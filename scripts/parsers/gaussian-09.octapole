@@ -1,0 +1,59 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+#
+# read the 10 octapole moment components from 3 lines of input
+#
+  @result = ();
+
+  $line = <STDIN>;
+  if ( $line =~ /XXX=\s*(\S+)\s+YYY=\s*(\S+)\s+ZZZ=\s+(\S+)\s+XYY=\s+(\S+)/ ) {
+    push(@result,($1,$2,$3,$4));	
+  } else {
+    die
+      "ERROR: gaussian-94.octapole: line 1 of input not of expected format\n";
+  }
+  $line = <STDIN>;
+  if ( $line =~ /XXY=\s*(\S+)\s+XXZ=\s*(\S+)\s+XZZ=\s+(\S+)\s+YZZ=\s+(\S+)/ ) {
+    push(@result,($1,$2,$3,$4));	
+  } else {
+    die
+      "ERROR: gaussian-94.octapole: line 2 of input not of expected format\n";
+  }
+  $line = <STDIN>;
+  if ( $line =~ /YYZ=\s*(\S+)\s+XYZ=\s*(\S+)/ ) {
+    push(@result,($1,$2));	
+  } else {
+    die
+      "ERROR: gaussian-94.octapole: line 3 of input not of expected format\n";
+  }
+#
+# print the symmetry labels
+  if ($#result == 0) {
+    die "zero atoms\n";
+  } else {
+    $size = $#result + 1;
+    print "key: OCTAPOLE\n";
+    print "size:\n$size\n";
+    print "rowlabels:\n";
+    print "XXX YYY ZZZ XYY XXY XXZ XZZ YZZ YYZ XYZ\n";
+    print "values:\n";
+    foreach $i (0 .. $#result ) { print "$result[$i] "; }
+    print "\nEND\n";
+  }
+
+  exit(0);

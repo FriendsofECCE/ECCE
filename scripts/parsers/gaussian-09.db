@@ -1,0 +1,290 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#   This script extracts properties from the "db" section at the
+#   end of gaussian output files.  
+#
+# Description:
+#   Since gaussian throws everything in its "db section"
+#   this script is not particularly focused.  In general,
+#   if the property can be parsed from another section of output, it
+#   is - this is more or less a last resort..
+#
+#
+#   The way this thing currently works is it splits the output on '\'
+#   and then makes an associative array for all key=value pairs.  So
+#   far those are the only things we need to parse.  After that all you
+#   should need to do is check if the key is there an dump it out if
+#   it is.
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+######
+# The command line arguments
+######
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+$ucCategory = uc($ucCategory);
+
+while (<STDIN>) {
+  if (!/l9999.exe/ && !/Job cpu time/) {
+    chomp;
+    s/^\s+//g;
+    $input .= $_;
+  } elsif (/Job cpu time/) {
+    $cpuline = $_;
+  }
+}
+
+@sections = split(/\\/,$input);
+
+foreach $pair (@sections) {
+  if ($pair =~ /=/) {
+    ($key,$value) = split(/=/,$pair);
+    $kvpairs{$key} = $value;
+
+    # Uncomment this for debugging help
+    #print "$key: $value \n";
+  }
+}
+
+#####
+# ATTENTION:  Put new calls for property parsing here
+#####
+
+&polarizabilities();
+&energies();
+&sSquared();
+&cpuTime();
+
+exit(0);
+
+
+######
+#
+# *******
+# SEE ALSO gaussian-94.energy which is where most of them are parsed.
+# *******
+#
+# Unfortunately, we now have logic for deciding whether its a TE
+# in two places.
+######
+sub energies() {
+  my (@goodOnes, @ecceKey);
+  my ($size, $idx);
+  my ($energy);
+
+#
+# Energies that ONLY show up in the database paragraph.  
+#
+  $energy = $kvpairs{"QCISD"};
+  if ($energy ne "") {
+    printScalar("EQCISD",$energy);
+    if ($theory =~ /QCISD/i && $theory !~ /QCISD.T./) {
+      printScalar("TE",$energy);
+    }
+  }
+  $energy = $kvpairs{"QCISD(T)"};
+  if ($energy ne "") {
+    printScalar("EQCISDT",$energy);
+    if ($theory =~ /QCISD.T./i) {
+      printScalar("TE",$energy);
+    }
+  }
+
+#
+# These are the ones we ONLY want to get from the database section.
+#
+  if ($runtype !~ /Geo/i) {
+    @goodOnes = ("HF", 
+                 "MP2",  "MP3", "MP4DQ", "MP4SDQ", "MP4SDTQ", "MP5", 
+                 "CCD", "CCSD", "CCSD(T)",
+                 "CIS", "CISD", "MP4D");
+    @ecceKey =  ("ESCF", 
+                 "EMP2", "EMP3", "EMP4DQ", "EMP4SDQ", "EMP4SDTQ", "EMP5",
+                 "ECCD", "ECCSD", "ECCSDTPERT", 
+                 "ECIS", "ECISD", "EMP4D");
+    $size = @goodOnes;
+
+    foreach $idx (0 .. $size-1 ) { 
+      $energy = $kvpairs{$goodOnes[$idx]};
+      if ($energy ne "" && $ucCategory ne "SE") {
+        printScalar($ecceKey[$idx],$energy);
+#
+# I think the following will work in all cases - need to test.
+# I had pattern matching problems due to the () chars so replace them
+# Marcie looked at this too and we couldn't come up with a better
+# solution.
+#
+        $current = @goodOnes[$idx];
+        $current =~ s/\(/\./;
+        $current =~ s/\)/\./;
+#
+# More trickery - due to all the naming conventions, strip the
+# () from MP*(DQ) MP*(SDQ) etc
+#
+        $tmpTheory = $theory;
+        if ($tmpTheory =~ /MP/) {
+          $tmpTheory =~ s/\((.*DQ)\)/$1/;
+#
+# MP4 is a shorthand alias for MP4SDTQ.  ARGGGGG!
+#
+          if ($tmpTheory =~ /MP4$/ ||  $tmpTheory =~ /MP4.FC.$/) {
+            $tmpTheory = "MP4SDTQ";
+          }
+        }
+        if ($tmpTheory =~ /$current$/i || $tmpTheory =~ /$current.FC.$/i) {
+          printScalar("TE",$energy);
+        }
+        elsif ($tmpTheory =~ /DFT/i && $current =~ /HF/) {
+          printScalar("TE",$energy);
+        }
+      }
+#
+#  All energies in semi-empirical theories are mapped to HF
+#  in data summary. Need to sort out different energies on a case
+#  by case basis.
+#
+      elsif ($energy ne "" && $ucCategory eq "SE") {
+        if ($theory =~ /CNDO/i) {
+          &printScalar("ECNDO",$energy);
+          &printScalar("TE",$energy);
+        }
+        elsif ($theory =~ /INDO/i && !($theory =~ /MINDO3/i)) {
+          &printScalar("EINDO",$energy);
+          &printScalar("TE",$energy);
+        }
+        elsif ($theory =~ /MINDO3/i) {
+          &printScalar("EMINDO3",$energy);
+          &printScalar("TE",$energy);
+        }
+        elsif ($theory =~ /MNDO/i) {
+          &printScalar("EMNDO",$energy);
+          &printScalar("TE",$energy);
+        }
+        elsif ($theory =~ /AM1/i) {
+          &printScalar("EAM1",$energy);
+          &printScalar("TE",$energy);
+        }
+        elsif ($theory =~ /PM3/i) {
+          &printScalar("EPM3",$energy);
+          &printScalar("TE",$energy);
+        }
+      }
+    }
+  }
+
+}
+
+######
+# POLARIZ and HYPERPOLARIZ -- Nothing tricky here.
+######
+sub polarizabilities() {
+  my (@values,@values1);
+
+  # Don't parse these properties for runtypes with geometry
+  # opimizations since we can't match the polarizability with
+  # the correct geometry.
+
+  if (!($runtype =~ /Geo/i)) {
+    # First do the Polarizabilities
+    @values1 = split(/,/,$kvpairs{'Polar'});
+    $size = @values1;
+
+    #reorder components of polarizability tensor
+    $values[0] = $values1[0];
+    $values[1] = $values1[1];
+    $values[2] = $values1[3];
+    $values[3] = $values1[2];
+    $values[4] = $values1[4];
+    $values[5] = $values1[5];
+
+    if ($size > 0) {
+      print "key: POLARIZ\n";
+      print "size:\n$size\n";
+      print "rowlabels:\n";
+      print "XX XY XZ YY YZ ZZ\n";
+      print "values:\n";
+      foreach $idx (0 .. $size ) { print "$values[$idx] "; }
+      print "\nEND\n";
+    }
+
+    # Now Hyper-Polarizabilities
+    @values = split(/,/,$kvpairs{'HyperPolar'});
+    $size = @values;
+    if ($size > 0) {
+      print "key: HYPERPOL1\n";
+      print "size:\n$size\n";
+      print "rowlabels:\n";
+      print "XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ\n";
+      print "values:\n";
+      foreach $idx (0 .. $size ) { print "$values[$idx] "; }
+      print "\nEND\n";
+    }
+  }
+
+}
+
+######
+# The value s**2 is a measure of the quality of the wave function.
+# It is unitless and will only be available for UHF calcs.  Dave Feller
+# specifically requested that this be added.
+######
+sub sSquared() {
+  my ($svar);
+  $svar = $kvpairs{"S2"};
+  if ($svar ne "") {
+    printScalarNoUnit("S2",$svar);
+  }
+
+  $svar = $kvpairs{"S2A"};
+  if ($svar ne "") {
+    printScalarNoUnit("S2A",$svar);
+  }
+
+}
+
+######
+# Grab cpu time from end of data block
+######
+sub cpuTime() {
+  ($junk,$cpuline) = split(/:/,$cpuline);
+  $cpuline =~
+    /\s*(\S+)\s*days\s*(\S+)\s*hours\s*(\S+)\s*minutes\s*(\S+)\s*seconds/;
+  $days = $1; $hours = $2; $minutes = $3; $seconds = $4;
+
+  $fullhours = 24.0*$days + $hours;
+  $fullminutes = 60.0*$fullhours + $minutes;
+  $cpusec = 60.0*$fullminutes + $seconds;
+
+  print "key: CPUSEC\n";
+  print "size:\n1\n";
+  print "values:\n$cpusec\n";
+  print "END\n";
+}
+
+######
+# Useful for simple scalars
+######
+sub printScalar() {
+  ($outkey,$value) = @_;
+  print "key: $outkey\n";
+  print "size:\n1\n";
+  print "values:\n$value\n";
+  print "units:\nHartree\n";
+  print "END\n";
+}
+
+sub printScalarNoUnit() {
+  ($outkey,$value) = @_;
+  print "key: $outkey\n";
+  print "size:\n1\n";
+  print "values:\n$value\n";
+  print "END\n";
+}

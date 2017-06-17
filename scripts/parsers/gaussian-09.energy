@@ -1,0 +1,389 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   gauss94.te
+#
+#
+# Purpose:
+#   Parse energies from gaussian output.  This script has to be
+#   smart enough to determine if the energy in question is the TE
+#   by looking at the theory.
+#
+# Design
+#   NOTE: Some energies ONLY show up in the database section.  The
+#         parsing is handled in gausian-94.db.
+#
+#   This script assumes 1 line of input.  
+#
+#   First, based on what data comes in, parse the appropriate energy.
+#   Then decide if it is also the TE.
+# 
+# ---------------------------------------------------------------------------
+# Some helpful comments from Dave Feller:
+#
+
+#   could do UMP5 calculations, but the formulas aren't implemented in G94.
+#
+#2. I checked several of my DFT output files and it appears as if there is
+#   a different label attached to each different type of DFT.  For example,
+#   I found:
+#   SCF Done:  E(RS-VWN) =  -78.1538646706     A.U. after    8 cycles
+#
+#   and
+#
+#   SCF Done:  E(RB-LYP) =  -78.5682659021     A.U. after    8 cycles
+#
+#Maybe you could scan for "SCF Done:".
+#
+#With CCSD(T) the string you want to find is simple.  It looks something like
+#this:
+#CCSD(T)= -0.78428374124D+02.
+#
+#CCSD (without the (T)) is harder.  They don't print out a single value at
+#the end of the iterations.  Each iteration produces an entry in the output
+#file that looks like this.
+#
+# Iteration Nr.   9
+# **********************
+# DD1Dir will call FoFDir   1 times, MxPair=        72
+# NAB=    36 NAA=     0 NBB=     0.
+# The Euclidean norm of the A-vectors is   0.1694924D-04
+# DE(CORR)= -0.36011245D+00        E(CORR)=    -0.78416243623D+02
+# NORM(A)=   0.10658758D+01
+#
+#The value for the last iteration is the final CCSD energy.  The CCSD
+#energy is the number that appears to the right of E(CORR)=.  It also
+#appears at the bootom of the file in the so-called Archive entry.  For example,
+#here's an archive entry for a CCSD calculation.
+#
+# 1\1\GINC-REDCURRY\SP\RCCSD\6-311++G(d,p)\C2H4\ROBERTO\26-Nov-1995\0\\#
+# P CCSD=FULL/6-311++G** 6D SCF=CONVEN\\Ethylene\\0,1\C\C,1,1.3185\H,2,1
+# .0766,1,121.6612\H,2,1.0766,1,121.6612,3,180.,0\H,1,1.0766,2,121.6612,
+# 3,0.,0\H,1,1.0766,2,121.6612,3,180.,0\\Version=SGI-G94RevC.3\State=1-A
+# G\HF=-78.0561312\MP2=-78.3875125\MP3=-78.411755\MP4D=-78.4197798\MP4DQ
+# =-78.412991\MP4SDQ=-78.4156605\CCSD=-78.4162436\RMSD=4.322e-09\PG=D02H
+#  [C2"(C1.C1),SG(H4)]\\
+#
+#
+#If you look closely, you'll see the CCSD energy.
+#
+#CISD is like CCSD in that they print a value with each iteration and then
+#place a value in the Archive entry at the very bottom of the file.
+#The individual iterations look like this:
+#
+# Iteration Nr.   9
+# **********************
+# DD1Dir will call FoFDir   1 times, MxPair=        72
+# NAB=    36 NAA=     0 NBB=     0.
+# Singles A-vector converged to   3.09D-07
+# The Euclidean norm of the A-vectors is   0.5211499D-05
+# RLE energy=       -0.3306314028
+# DE(CI)=   -0.33063138D+00        E(CI)=      -0.78386762555D+02
+# NORM(A)=   0.10511834D+01
+# SIZE-CONSISTENCY CORRECTION:
+# S.C.C.=   -0.32922132D-01        E(CI,SIZE)= -0.78419684616D+02
+#
+#The value you want is what appears to the right of E(CI)=.
+#
+#
+# 8/26/98
+# For runtypes other than optimizations (ie not Opt and not Opt+Vib)
+# it gaussian ends up doing a numerical gradient, it will spit out
+# all kinds of energies we don't want.  In this case we only want
+# the first one which is also what gets printed in the database section.
+# Therefore this script needs to know what the runtype is and not
+# generate data for non-optimization runs.
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+$lcCategory = lc($ucCategory);
+$lcTheory = lc($theory);
+
+#print "$key $runtype $lcCategory $theory\n";
+
+$inline = <STDIN>;
+chop $inline;
+$sav_inline = $inline;
+
+
+# See comments in file header.
+if ($runtype =~ /Geo/i) {
+
+  #####
+  # If you handle a different type of energy, be sure to:
+  #  a) put the result in $energy
+  #  b) update the isTE subroutine.
+  #
+  # You'll notice that some of the logic is the same despite the key.
+  # I find it a little easier to debug and test this way - thats
+  # the only reason.  Some of the code can be compressed later when we
+  # feel like we have a good grasp on all the possibilities.
+  #
+  # In general, I think looking at the key is a little hokey since it
+  # has evolved to not have much meaning anymore.  The only one you
+  # ever see is the first one from the .desc file.
+  #####
+  if ($sav_inline =~ /MP/) {
+#
+# This should handle all the MP runs since we parse on the '='
+#
+    $inline =~ /.*=\s*(\S+)\s*$/;
+    $energy = $1;
+#
+# Convert to real exponential
+#
+    $energy =~ s/D/e/;
+    if ($sav_inline =~ /EUMP2/) {
+      &printScalar("EMP2",$energy);
+      &printScalar("EMP2VEC",$energy);
+    }
+    elsif ($sav_inline =~ /EUMP3/) {
+      &printScalar("EMP3",$energy);
+      &printScalar("EMP3VEC",$energy);
+    }
+    elsif ($sav_inline =~ /UMP4\(DQ\)/) {
+      &printScalar("EMP4DQ",$energy);
+      &printScalar("EMP4DQVEC",$energy);
+    }
+    elsif ($sav_inline =~ /UMP4\(SDQ\)/) {
+      &printScalar("EMP4SDQ",$energy);
+      &printScalar("EMP4SDQVEC",$energy);
+    }
+    elsif ($sav_inline =~ /UMP4\(SDTQ\)/) {
+      &printScalar("EMP4SDTQ",$energy);
+      &printScalar("EMP4SDTQVEC",$energy);
+    }
+    elsif ($sav_inline =~ /MP5/) {
+      &printScalar("EMP5",$energy);
+      &printScalar("EMP5VEC",$energy);
+    }
+
+  }
+  elsif ($sav_inline =~ /ECCSD\(T\)/) {
+    $inline =~ /.*=\s*(\S+)\s*$/;
+    $energy = $1;
+#
+# Convert to real exponential
+#
+    $energy =~ s/D/e/;
+    &printScalar("ECCSDTPERT",$energy);
+    &printScalar("ECCSDTPERTVEC",$energy);
+
+  }
+  elsif ($sav_inline =~ /E\(CI\)/) {
+    $inline =~ /.*=\s*(\S+)\s*$/;
+    $energy = $1;
+    if ($theory =~ /CISD/i) {
+      $inline = <STDIN>;
+      while ($inline ne "") {
+        chop($inline);
+#
+# Find last occurence of E(CI) and assign to $energy
+#
+        if ($inline =~ /E\(CI\)/i) {
+          $inline =~ /.*=\s*(\S+)\s*$/;
+          $energy = $1;
+          $sav_inline = $inline;
+        }
+        $inline = <STDIN>;
+      }
+    }
+    $inline = $sav_inline;
+#
+# Convert to real exponential
+#
+    $energy =~ s/D/e/;
+    &printScalar("ECISD",$energy);
+    &printScalar("ECISDVEC",$energy);
+
+  }
+  elsif ($sav_inline =~ /E\(Cis\)/) {
+    $inline =~ /.*=\s*(\S+)\s*$/;
+    $energy = $1;
+#
+# Convert to real exponential
+#
+    $energy =~ s/D/e/;
+    &printScalar("ECIS",$energy);
+    &printScalar("ECISVEC",$energy);
+
+  }
+  elsif (($theory =~ /CCD/i || $theory =~ /QCISD/i) &&
+        $sav_inline =~ /CORR/) {
+    $inline =~ /.*=\s*(\S+)\s*$/;
+    $energy = $1;
+    $inline = <STDIN>;
+    while ($inline ne "") {
+      chop($inline);
+#
+# Find last occurence of E(CORR) assign to $energy
+#
+      if ($inline =~ /E\(CORR\)/i) {
+        $inline =~ /.*=\s*(\S+)\s*$/;
+        $energy = $1;
+        $sav_inline = $inline;
+      }
+      $inline = <STDIN>;
+    }
+    $inline = $sav_inline;
+#
+# Convert to real exponential
+#
+    $energy =~ s/D/e/;
+    if ($theory =~ /CCD/i) {
+      &printScalar("ECCD",$energy);
+      &printScalar("ECCDVEC",$energy);
+    } elsif ($theory =~ /QCISD/i) {
+      &printScalar("EQCISD",$energy);
+      &printScalar("EQCISDVEC",$energy);
+    }
+
+  }
+  elsif ($theory =~ /CCSD/i && $sav_inline =~ /CORR/) {
+    $inline =~ /.*=\s*(\S+)\s*$/;
+    $energy = $1;
+#
+# Convert to real exponential
+#
+    $energy =~ s/D/e/;
+    &printScalar("ECCSD",$energy);
+    &printScalar("ECCSDVEC",$energy);
+
+  }
+  elsif ($sav_inline =~ /SCF/i) {
+    ($junk, $energy) = split(/:/,$inline);
+#
+# Grab next nonblank field as result
+#
+    $energy =~ /.*=\s*(\S+)/;
+    $energy = $1;
+#
+# Convert to real exponential
+#
+    $energy =~ s/D/e/;
+    &printScalar("ESCF",$energy);
+    &printScalar("ESCFVEC",$energy);
+
+  }
+  elsif ($sav_inline =~ /CNDO/ || $sav_inline =~ /INDO/ ||
+           $sav_inline =~ /MINDO\/3/ || $sav_inline =~ /MNDO/ ||
+           $sav_inline =~ /AM1/ || $sav_inline =~ /PM3/) {
+#
+# Scan through text to find line begining with " Energy" and
+# grab this value
+#
+    while($inline=<STDIN>) {
+      chop($inline);
+      if ($inline =~ /Energy/) {
+        $inline =~ /.*=\s*(\S+)\s*NIter/;
+        $energy = $1;
+      }
+    }
+    $inline = $sav_inline;
+#
+# Convert to real exponential
+#
+    $energy =~ s/D/e/;
+    if ($sav_inline =~ /CNDO/) {
+      &printScalar("ECNDO",$energy);
+      &printScalar("ECNDOVEC",$energy);
+    }
+    elsif ($sav_inline =~ /INDO/ && !($sav_inline =~ /MINDO\/3/)) {
+      &printScalar("EINDO",$energy);
+      &printScalar("EINDOVEC",$energy);
+    }
+    elsif ($sav_inline =~ /MINDO\/3/) {
+      &printScalar("EMINDO3",$energy);
+      &printScalar("EMINDO3VEC",$energy);
+    }
+    elsif ($sav_inline =~ /MNDO/) {
+      &printScalar("EMNDO",$energy);
+      &printScalar("EMNDOVEC",$energy);
+    }
+    elsif ($sav_inline =~ /AM1/) {
+      &printScalar("EAM1",$energy);
+      &printScalar("EAM1VEC",$energy);
+    }
+    elsif ($sav_inline =~ /PM3/) {
+      &printScalar("EPM3",$energy);
+      &printScalar("EPM3VEC",$energy);
+    }
+  }
+  if (isTE($lcTheory,$inline)) {
+
+    &printScalar("TE",$energy);
+    &printScalar("TEVEC",$energy);
+
+  }
+}
+
+
+exit(0);
+
+
+sub printScalar() {
+  ($outkey,$value) = @_;
+  print "key: $outkey\n";
+  print "size:\n1\n";
+  print "values:\n$value\n";
+  print "units:\nHartee\n";
+  print "END\n";
+}
+
+
+####
+# Determine if the current values should be stored as the TE and TEVEC too.
+# Brute Force!
+####
+sub isTE {
+  $ret = 0;
+  my ($name,$line) = @_;
+  $name =~ s/\(fc\)//;
+
+  if ($name =~ /mp2/ && $line =~ /EUMP2/) {
+    $ret = 1;
+  } elsif ($name =~ /mp3/ && $line =~ /EUMP3/) {
+    $ret = 1;
+  } elsif ($name =~ /mp4.dq./ && $line =~ /MP4.DQ./) {
+    $ret = 1;
+  } elsif ($name =~ /mp4.sdq./ && $line =~ /MP4.SDQ./) {
+    $ret = 1;
+  } elsif ($name =~ /mp4$/ && $line =~ /MP4/) {
+    $ret = 1;
+  } elsif ($name =~ /mp5/ && $line =~ /MP5/) {
+    $ret = 1;
+  } elsif (($name =~ /hf$/ || $name =~ /dft$/) && $line =~ /SCF/i) {
+    $ret = 1;
+  } elsif ($name =~ /cc.d/i && $line =~ /CORR/i) {
+    $ret = 1;
+  } elsif ($name =~ /ccsd.t./i && $line =~ /CCSD.T./i) {
+    $ret = 1;
+  } elsif ($name =~ /ccd/i && $line =~ /CORR/i) {
+    $ret = 1;
+  } elsif ($name =~ /qcisd/i && $line =~ /CORR/i) {
+    $ret = 1;
+  } elsif ($name =~ /ci/i && $line =~ /CI/) {
+    $ret = 1;
+  } elsif ($name =~ /ci/i && $line =~ /Cis/) {
+    $ret = 1;
+  } elsif ($name =~ /cndo/i && $line =~ /CNDO/) {
+    $ret = 1;
+  } elsif ($name =~ /indo/i && !($name =~ /mindo3/i) && $line =~ /INDO/
+           && !($line =~ /MINDO\/3/)) {
+    $ret = 1;
+  } elsif ($name =~ /mindo3/i && $line =~ /MINDO\/3/) {
+    $ret = 1;
+  } elsif ($name =~ /mndo/i && $line =~ /MNDO/) {
+    $ret = 1;
+  } elsif ($name =~ /am1/i && $line =~ /AM1/) {
+    $ret = 1;
+  } elsif ($name =~ /pm3/i && $line =~ /PM3/) {
+    $ret = 1;
+  } 
+
+  return $ret;
+}

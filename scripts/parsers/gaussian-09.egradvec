@@ -1,0 +1,70 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#  Parse the EGRADVEC property.
+#
+# Description:
+#
+# Sample of Expected Input:
+#
+#     1          8           0.000000000    0.000000000    0.014378836
+#     2          1           0.000000000   -0.010383238   -0.007189418
+#     3          1           0.000000000    0.010383238   -0.007189418
+#  -------------------------------------------------------------------
+#
+#Bruce says that we should multiply the numbers by -1 in G94 so that
+#we get proper gradients rather than forces.  This will make us
+#consistent with the NWChem output.  Otherwise all the signs are
+#wrong.
+#
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+######
+# The command line arguments
+######
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+#Don't parse gradients for runtypes with geometry optimization
+#since we can't match gradients with correct geometry.
+
+#if (!($runtype =~ /Geo/i)) {
+  $natom = 0;
+  while (<STDIN>) {
+    if (/-----/) { last; }
+    chop;
+
+    s/^\s*//;
+    ($cnt,$atom,$x,$y,$z) = split(/ +/);
+    push (@x,$x==0?$x:$x*-1.);
+    push (@y,$y==0?$y:$y*-1.);
+    push (@z,$z==0?$z:$z*-1.);
+    $natom += 1;
+  }
+
+  #
+  # Print out the data in standard format.
+  #
+  print "key: EGRADVEC\n";
+  print "size:\n";
+  print "$natom  3\n";
+  print "rowlabels:\n";
+  for ($i=1;$i<=$natom;$i++) { print "$i "; }
+
+  print "\ncolumnlabels:\nX Y Z\n";
+
+  print "values:\n";
+  for ($i=0; $i<= $#x; $i++) {
+    print "$x[$i] $y[$i] $z[$i]"; 
+    print "\n";
+  }
+  print "units:\nHartree/Bohr\n";
+  print "END\n";
+#}
