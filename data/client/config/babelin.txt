@@ -1,0 +1,41 @@
+alc: Alchemy
+prep: Amber PREP
+bs: Ball & Stick
+caccrt: Cacao Cartesian
+ccc: CCC
+c3d1: Chem3D Cartesian 1
+c3d2: Chem3D Cartesian 2
+cml: Chemical Markup Language
+box: Dock 3.5 Box
+dmol: DMol3 Coordinates
+feat: Feature
+gam: GAMESS Output
+gamout: GAMESS Output
+gpr: Ghemical Project
+mm1gp: Ghemical MM
+qm1gp: Ghemical QM
+hin: HyperChem HIN
+jout: Jaguar Output
+bin: OpenEye Binary
+mmd: MacroModel
+mmod: MacroModel
+dat: MacroModel
+car: MSI Biosym/Insight II CAR
+sdf: MDL Isis SDF
+sd: MDL Isis SDF
+mdl: MDL Molfile
+mol: MDL Molfile
+mopcrt: MOPAC Cartesian
+mopout: MOPAC Output
+mmads: MMADS
+mpqc: MPQC
+bgf: MSI BGF
+nwo: NWChem Output
+pdb: PDB
+ent: PDB
+qcout: Q-Chem Output
+smi: SMILES
+mol2: Sybyl Mol2
+unixyz: UniChem XYZ
+vmol: ViewMol
+xyz: XYZ

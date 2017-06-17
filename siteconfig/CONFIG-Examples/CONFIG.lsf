@@ -1,0 +1,94 @@
+################################################################################
+#
+# Synopis
+#  Example for Linux cluster running LSF
+#
+#  This particular example make extensive use of customization to collect
+#  and add refund information to the output file.
+#
+#  Read the README file and refer to the ../submit.site file for 
+#  documentation on variables and syntax.
+#
+#  $Date: 2003-02-12 08:51:20 -0800 (Wed, 12 Feb 2003) $
+#
+################################################################################
+
+#******
+# The following can be set through the registration GUI.
+#
+# perl path information is required only if it located in non-standard
+# location that is unlikely to be in the users path.  
+#******
+NWChem: /home/nwchem/bin/nwchem
+
+#******
+# These must be set manually in this file.
+# . xappsPath is added to $PATH and is needed only if its installed in a
+# nonstandard location.
+# . sourceFile contains environment settings for the queue system 
+#******
+xappsPath: /usr/X11R6/bin
+sourceFile:  /home/mscf/lsf5/conf/cshrc.lsf
+
+#******
+# There are system defaults in $ECCE_HOME/submit.site for the rest of the
+# entries in this file.  For queued systems, the defaults typically
+# will NOT be what you want so most of the following should be in your
+# CONFIG.<machine> file.
+#******
+
+#******
+# Customize the header that will be used in the submit script.  There is
+# a fallback example in the submit.site file that will be used if you
+# don't provide a custom one but it probably won't be what you want.
+#******
+LSF {
+#BSUB -W $wallHrMin
+#BSUB -o lsf.out
+#BSUB -e lsf.out
+#BSUB -extsched "rails=2"
+#BSUB -P $account
+#BSUB -J $submitFile
+#BSUB -n $totalprocs
+}
+
+#******
+# Code fragment to insert into script prior to execution of the code.
+# Capture queue system information to append to output file.
+#******
+setup {
+
+setenv MLIB_NUMBER_OF_THREADS 1
+setenv ARMCI_DEFAULT_SHMMAX 440
+setenv OMP_NUM_THREADS 1
+
+rm -f refund.out
+touch refund.out
+
+echo "" >> refund.out
+echo "----- MSCF Refund Information -----" >> refund.out
+echo "UserID = $USER" >> refund.out
+echo "Account name = $account" >> refund.out
+echo "LSF Job ID = $LSB_JOBID" >> refund.out
+echo "RMS Job ID = $RMS_RESOURCEID" >> refund.out
+echo "Number of processors = $totalprocs" >> refund.out
+echo "Amount of time requested = $wallHrMin" >> refund.out
+echo "Processor list = $LSB_HOSTS" >> refund.out
+echo "" >> refund.out
+
+}
+
+#******
+# Code fragment to insert into script after execution of the code.
+#******
+wrapup {
+cat $refund >> $outFile
+rm -f $refund
+}
+
+#******
+# Customize execution command for NWChem
+#******
+NWChemCommand {
+prun -n $totalprocs $nwchem $inFile >& $outFile
+}

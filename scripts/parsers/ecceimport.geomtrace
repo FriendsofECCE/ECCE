@@ -1,0 +1,75 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+# The RunType is checked so that for a geometry optimization or for
+# a opt+vib calculation the coordinates are only recorded if they come
+# from the gradients task.  This prevents getting multiple copies.
+#
+#
+################################################################################
+
+# Force output to be flushed
+$| = 1;
+
+# Stash the script arguments.
+($key, $runtype, $category, $theory) = @ARGV;
+
+
+########################################################################
+# read the data from stdin:
+########################################################################
+<STDIN>;  # key line
+$numAtoms = <STDIN>;
+$title = <STDIN>;
+
+$numAtoms = 0;
+while (<STDIN>) {
+  last if (/}/);
+  chomp;
+  $numAtoms++;
+  s/^ *//;
+  s/ *$//;
+  ($atom,$x,$y,$z) = split(/ +/,$_);
+  push(@values,$x);
+  push(@values,$y);
+  push(@values,$z);
+}
+
+#
+# Print out the data in standard format.
+#
+if ($numAtoms > 0) {
+  print "key: GEOMTRACE\n";
+  print "size:\n";
+  print "1 " . ($numAtoms) . " 3\n";
+  print "rowlabels:\n";
+  for ($i=0; $i<$numAtoms; $i++) { print "$i "; }
+  print "\ncolumnlabels:\nX Y Z\n";
+  print "values:\n";
+  for ($i=0; $i<= $#values; $i++) {
+    printf("%.15e ",$values[$i]); 
+    if ($i % 3 == 2 ) { print "\n"; };
+  }
+  if ($i % 3 != 0 ) { print "\n"; };
+  print "END\n";
+
+  #&printScalar("TEVEC",1.0);
+}
+
+sub printScalar() {
+  ($outkey,$value) = @_;
+  print "key: $outkey\n";
+  print "size:\n1\n";
+  print "values:\n$value\n";
+  print "END\n";
+}
+

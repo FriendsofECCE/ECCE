@@ -1,0 +1,108 @@
+#!/bin/csh -f
+#
+# Select installation process 
+
+set scratchdir = "/tmp/data-scratch"
+set currentdir = `pwd`
+if ($#argv > 0) then
+  echo "Usage: build_data_server"
+  exit -1
+endif
+
+if ( $?ECCE_HOME == 0 ) then
+  echo "ECCE_HOME environment variable has not been set"  
+  goto cleanup
+endif
+
+if ( -d $scratchdir ) then
+  echo "Removing existing $scratchdir directory"
+  rm -rf $scratchdir
+endif
+
+mkdir $scratchdir
+
+if ( -e $ECCE_HOME/data/admin/dataserver/server_config/data_server_files.tar ) then
+  cd $scratchdir
+  cp $ECCE_HOME/data/admin/dataserver/server_config/data_server_files.tar .
+  echo "Untarring DAV data directories for customization"
+  tar xf data_server_files.tar 
+
+  if (-e /msrc/proj/ecce/helpdev) then
+    cd /msrc/proj/ecce/helpdev 
+    echo "Tarring online help files from /msrc/proj/ecce/helpdev"
+    tar cf $scratchdir/eccehelp.tar . 
+  else
+    echo "Copying local online help distribution"
+    cp $ECCE_HOME/data/admin/dataserver/help/eccehelp.tar $scratchdir
+  endif
+    
+  cd $scratchdir
+  echo "Tarring customized DAV data directories bundle"
+  tar cf data_server_config.tar Ecce eccehelp.tar
+
+  rm -rf Ecce DAV eccehelp.tar
+
+  cp $ECCE_HOME/build/server_admin/httpd.conf.ecce .
+  cp $ECCE_HOME/build/server_admin/add_ecce_user.ecce .
+  cp $ECCE_HOME/build/server_admin/start_ecce_server.ecce .
+  cp $ECCE_HOME/build/server_admin/stop_ecce_server.ecce .
+  cp $ECCE_HOME/build/server_admin/start_ecce_data_server.ecce .
+  cp $ECCE_HOME/build/server_admin/stop_ecce_data_server.ecce .
+  cp $ECCE_HOME/build/server_admin/start_ecce_message_server.ecce .
+  cp $ECCE_HOME/build/server_admin/stop_ecce_message_server.ecce .
+  cp $ECCE_HOME/build/server_admin/ecce_htpasswd.ecce .
+  cp $ECCE_HOME/build/server_admin/ecce_accounts.ecce .
+  cp $ECCE_HOME/build/server_admin/ecce_htaccess.ecce .
+  echo "Updating data_server_config bundle with customization scripts"
+  tar uvf data_server_config.tar httpd.conf.ecce add_ecce_user.ecce start_ecce_server.ecce stop_ecce_server.ecce start_ecce_data_server.ecce stop_ecce_data_server.ecce start_ecce_message_server.ecce stop_ecce_message_server.ecce ecce_htpasswd.ecce ecce_accounts.ecce ecce_htaccess.ecce
+else 
+  echo "Your developer build is missing the $ECCE_HOME/data/admin/dataserver/server_config/data_server_files.tar directory"
+  goto cleanup 
+endif
+
+echo "Data server configuration tar file built--$scratchdir/data_server_config.tar"
+echo ""
+
+cd $scratchdir
+cp $ECCE_HOME/build/server_admin/apachectl.ecce .
+
+set sysdir = `sysdir`
+cd $ECCE_HOME/${sysdir}3rdparty
+if (! -d httpd) then
+  echo "$$ECCE_HOME/${sysdir}3rdparty/httpd Apache HTTP server directory missing"
+  goto cleanup 
+endif
+
+tar cf $scratchdir/httpd_server.tar httpd
+if ($status != 0) then
+  echo "Tar file creation failed for httpd_server.tar"
+  goto cleanup 
+endif
+
+echo "Tarring data_server bundle"
+
+cd $scratchdir
+tar cvjf data_server.tar.bz2 data_server_config.tar apachectl.ecce httpd_server.tar 
+if ($status != 0) then
+  echo "Compressed tar file creation failed for data_server.tar.bz2"
+  goto cleanup 
+endif
+
+echo "Moving data_server bundle to current directory"
+mv data_server.tar.bz2 $currentdir
+if ($status != 0) then
+  echo "Move of data_server.tar.bz2 to $currentdir failed"
+  goto cleanup 
+endif
+
+cd $currentdir
+rm -rf $scratchdir
+
+echo "Data server tar file built--${currentdir}/data_server.tar.bz2"
+exit 0
+
+cleanup:
+  echo ""
+  echo "Installation not complete."
+  echo ""
+  exit -1

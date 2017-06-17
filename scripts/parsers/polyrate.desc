@@ -1,0 +1,18 @@
+# parse Descriptor for Polyrate output file
+#
+
+[POLYRATES]
+Script=poly.rates
+Begin=Forward rates
+Frequency=last
+End=( END OF POLYRATE LONG OUTPUT| Bottleneck properties)
+[END]
+
+[POLYEQUIL]
+Script=poly.rates
+Begin=Equilibrium constants
+Frequency=last
+End= END OF POLYRATE LONG OUTPUT
+[END]
+
+

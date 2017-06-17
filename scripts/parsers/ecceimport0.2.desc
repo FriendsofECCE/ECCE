@@ -1,0 +1,14 @@
+# $Source$
+#
+# Purpose:
+#   Parse descriptors for EcceImport formatted output file.
+#
+#
+
+[GEOMTRACE]
+Script=ecceimport.all
+Begin=EcceImport
+Prefix=EcceImport
+Frequency=first
+End=End
+[END]

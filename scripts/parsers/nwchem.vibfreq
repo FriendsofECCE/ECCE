@@ -1,0 +1,55 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+# This script extracts the normal mode coefficients from nwchem output.
+# It may be extended to add mode numbers and symmetry labels or frequencies
+# in the labels vectorlabels field, or atom labels in the rowlabels field.
+#
+# Command line parameters:
+#           
+# Description:
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+  $labelLine = <STDIN>;
+  $labelLine =~ /encies%(\d+)%/;
+  $nfrequencies = $1;
+
+  while (<STDIN>) {
+    last if (/freq/);
+    chomp;
+    push(@values,$_);
+  }
+
+# output the data
+#
+  print "key: VIBFREQ\n";
+  print "size:\n$nfrequencies\n";
+  print "rowlabels:\n";
+  foreach $i (1 .. $nfrequencies){
+    print " $i ";
+    if (($i % 10) == 0) {print "\n"}
+  }
+  if (($nfrequencies % 10) != 0) {
+    print "\nvalues:\n";
+  } else {
+    print "values:\n";
+  }
+  $nvalues = @values;
+  foreach $i (1 .. $nvalues) {
+    print " $values[$i-1]";
+    if (($i % 10) == 0) {print "\n"}
+  }
+  if (($nvalues % 10) != 0) {
+    print "\n";
+  }
+  print "units:\ncm-1\n";
+  print "END\n";
+  exit(0);

@@ -1,0 +1,21 @@
+name
+Stuttgart RLC ECP
+name
+type
+ecp
+type
+category
+AUXILIARY
+category
+references
+ELEMENTS                      REFERENCES
+ ---------                       ----------
+
+
+references
+comments
+2/25/05  - DFF - Correct iodine exponents/coefficients based on the information from the web site.
+7/31/98  - DFF - Jared Chase interchanged columns of exponents/coeff's
+6/22/98  - DFF - remove 2 extraneous tempi = 0 lines
+3/18/98  - DFF - original creation of this file by James Duplain
+comments

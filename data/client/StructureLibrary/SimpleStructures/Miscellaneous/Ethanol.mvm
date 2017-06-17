@@ -1,0 +1,28 @@
+#!
+#! This file written by ud_print_mvm
+#!
+title:		Ethanol
+type:		molecule
+cell_units:	angstroms
+num_atoms:	9
+atom_info:	symbol cart 
+atom_list:
+  O  1.192 -0.241  0.000 
+  C  0.000  0.575  0.000 
+  C -1.178 -0.392  0.000 
+  H -2.119  0.145  0.000 
+  H -1.127 -1.023  0.878 
+  H -1.127 -1.023 -0.878 
+  H -0.037  1.211  0.879 
+  H -0.037  1.211 -0.879 
+  H  1.986  0.309  0.000 
+num_bonds:	8
+bond_list:
+  1   9
+  2   8
+  2   7
+  3   6
+  3   5
+  3   4
+  2   3
+  1   2

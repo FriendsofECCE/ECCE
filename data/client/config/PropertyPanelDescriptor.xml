@@ -1,0 +1,494 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  <PropertyPanel>
+    <name>
+      The name that will be the title of the panel
+    </name>
+    <class>
+      The class that will be dynamically loaded
+    </class>
+    <consumer>
+      Whether this panel keeps later panels from also seeing the same
+      properties.  For example, if the property name "TE" is consumed by 
+      panel A, and panel B appears later in this file and also wants "TE",
+      it will not know of its existence (since A consumed it) and as a result
+      panel B will not appear.
+    </consumer>
+    <allowPin>
+      Whether this panel's visualization can be shown simulatenously with
+      others.  Default is True.
+    </allowPin>
+    <allowMax>
+      Whether this panel can be maximized.  Useful for panels that are
+      otherwise a fixed size but are useful to be maximized e.g. plots, tables.
+    </allowMax>
+    <property name="" class="" type="">
+      The property element should appear one or more times.
+      The property element must have at least one of the attributes above.
+      Note that multiple attributes are explicitly "AND"ed together.  If
+      a property key is not matched against all defined attributes, it will
+      not be relevant to this panel.
+      name - the "short name" of the property aka the key
+      class - will look up all properties with the given classification
+              this uses the old "properties" file where class is "Energy",
+              "Charge", etc
+      type - will look up all properties with the given storage type
+             this uses the old "properties" file where type is one of
+             value, string, vector, table, vectable, vecgrid, vecstring,
+             tsvecstring, tstable, tsvectable, tsvecvector, tsvector
+    </property>
+  </PropertyPanel>
+-->
+<PropertyPanelDescriptor>
+
+  <!--PropertyPanel>
+    <name>Key/Value</name>
+    <class>KeyValuePropertyPanel</class>
+    <consumer>false</consumer>
+    <property type="value"/>
+  </PropertyPanel-->
+
+  <PropertyPanel>
+    <name>Calculation Summary</name>
+    <class>CalcInfoPanel</class>
+    <consumer>true</consumer>
+    <property name="Application"/>
+    <property name="Theory/Runtype"/>
+    <property name="Basis Set"/>
+    <property name="Launch Info"/>
+    <property name="Run Statistics"/>
+    <property class="Process" type="value"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Key/String</name>
+    <class>KeyStringPropertyPanel</class>
+    <consumer>false</consumer>
+    <property type="string"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Run Statistics</name>
+    <class>KeyValuePropertyPanel</class>
+    <consumer>true</consumer>
+    <property class="Process" type="value"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Energies</name>
+    <class>KeyValuePropertyPanel</class>
+    <consumer>true</consumer>
+    <property class="Energy" type="value"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <!-- Bert says these aren't energies and to put them in their 
+         own panel. -->
+    <name>S**2</name>
+    <class>KeyValuePropertyPanel</class>
+    <consumer>true</consumer>
+    <property name="S2"/>
+    <property name="S2A"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>ES Calculation Info</name>
+    <class>CalcEdPropertyPanel</class>
+    <consumer>true</consumer>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Spin-Spin Indirect Coupling Tensor</name>
+    <class>SpinSpin</class>
+    <consumer>true</consumer>
+    <property name="SPINSPIN"/>
+  </PropertyPanel>
+
+  <!-- Tensors -->
+  <PropertyPanel>
+    <name>Shielding Tensor</name>
+    <class>VecAtomTensor</class>
+    <consumer>true</consumer>
+    <property name="SHIELDTENSOR"/>
+  </PropertyPanel>
+  <PropertyPanel>
+    <name>Spin-dipole Tensor</name>
+    <class>VecAtomTensor</class>
+    <consumer>true</consumer>
+    <property name="DIPOLETENSOR"/>
+  </PropertyPanel>
+  <PropertyPanel>
+    <name>Electric Field Gradient</name>
+    <class>VecAtomTensor</class>
+    <consumer>true</consumer>
+    <property name="EFIELDGRAD"/>
+  </PropertyPanel>
+
+
+
+  <PropertyPanel>
+    <name>Geometry Trace</name>
+    <class>GeomTracePropertyPanel</class>
+    <consumer>false</consumer>
+    <property name="GEOMTRACE"/>
+    <property type="tsvector" indexedBy="Geometry Step"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Reaction Trace</name>
+    <class>ReactionTracePropertyPanel</class>
+    <consumer>true</consumer>
+    <property name="RXTRACE"/>
+    <property type="tsvector" indexedBy="Reaction Step"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Geometry Step Plots</name>
+    <class>PlotAnyPropertyPanel</class>
+    <consumer>false</consumer>
+    <allowMax>true</allowMax>
+    <property type="tsvector" indexedBy="Geometry Step"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Wave Step Plots</name>
+    <class>PlotAnyPropertyPanel</class>
+    <consumer>false</consumer>
+    <allowMax>true</allowMax>
+    <property type="tsvector" indexedBy="Wave Step"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Mulliken Charges</name>
+    <class>MullikenPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="MULLIKEN"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>MOs</name>
+    <class>MoPanel</class>
+    <consumer>true</consumer>
+    <property name="MO"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Vibrational Frequencies</name>
+    <class>NModePanel</class>
+    <consumer>true</consumer>
+    <property name="VIB"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Dipole Moment</name>
+    <class>MomentsPanel</class>
+    <consumer>true</consumer>
+    <property name="DIPOLE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>MP2 Dipole Moment</name>
+    <class>MomentsPanel</class>
+    <consumer>true</consumer>
+    <property name="MP2DIPOLE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Quadrapole Moment</name>
+    <class>QuadPolePanel</class>
+    <consumer>true</consumer>
+    <property name="QUADPOLE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Polarizability</name>
+    <class>QuadPolePanel</class>
+    <consumer>true</consumer>
+    <property name="POLARIZ"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Hyper Polarizability</name>
+    <class>QuadPolePanel</class>
+    <consumer>true</consumer>
+    <property name="HYPERPOL1"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Trajectory</name>
+    <class>TrajectoryPanel</class>
+    <consumer>true</consumer>
+    <property name="TRJ"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Cube File</name>
+    <class>Cube</class>
+    <consumer>true</consumer>
+    <property name="CUBE"/>
+    <property name="Gaussian CUBE"/>
+  </PropertyPanel>
+
+  <!-- Simple Vectors displayed as two column table -->
+  <PropertyPanel>
+    <name>Octapole</name>
+    <class>DefaultVecPanel</class>
+    <consumer>true</consumer>
+    <property name="OCTAPOLE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Hexadecapole</name>
+    <class>DefaultVecPanel</class>
+    <consumer>true</consumer>
+    <property name="HEXPOLE"/>
+  </PropertyPanel>
+
+
+  <PropertyPanel>
+    <name>Partial Charges</name>
+    <class>PartialCharges</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="ESPCHARGE"/>
+  </PropertyPanel>
+
+  <!-- Spectrum displays -->
+  <PropertyPanel>
+    <name>Magnetic Shielding Anisotropy</name>
+    <class>VecAtomSpectrum</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="ANISOSHIELD"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Isotropic Shielding</name>
+    <class>VecAtomSpectrum</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="ISOSHIELD"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Energy Gradient Norm Vector</name>
+    <class>VecAtomSpectrum</class>
+    <consumer>true</consumer>
+    <property name="EGRADNORMVEC"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Electron Density at Nuclei</name>
+    <class>VecAtomSpectrum</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="EDENS"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Fermi Contact</name>
+    <class>VecAtomSpectrum</class>
+    <consumer>true</consumer>
+    <property name="FERMI"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Electric Field Gradient Asymmetry</name>
+    <class>VecAtomSpectrum</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="EFIELDASYMM"/>
+  </PropertyPanel>
+
+  <!-- Eigenvalues -->
+  <PropertyPanel>
+    <name>E Field Eigenvalues</name>
+    <class>EigenValPanel</class>
+    <consumer>true</consumer>
+    <property name="EFIELDEIGVAL"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Shielding Tensor Eigenvalues</name>
+    <class>EigenValPanel</class>
+    <consumer>true</consumer>
+    <property name="SHIELDEIGVAL"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Spin-dipole Tensor Eigenvalues</name>
+    <class>EigenValPanel</class>
+    <consumer>true</consumer>
+    <property name="DIPOLEEIGVAL"/>
+  </PropertyPanel>
+
+  <!-- TableAtomCoords -->
+  <PropertyPanel>
+    <name>Electric Field</name>
+    <class>TableAtomCoords</class>
+    <consumer>true</consumer>
+    <property name="EFIELD"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Energy Gradient</name>
+    <class>TableAtomCoords</class>
+    <consumer>true</consumer>
+    <property name="EGRADVEC"/>
+  </PropertyPanel>
+
+
+  <!-- Reaction Rate Properties -->
+  <PropertyPanel>
+    <name>Forward Rate Constant</name>
+    <class>TablePanel</class>
+    <consumer>false</consumer>
+    <property name="FORWARD_RATE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Reverse Rate Constant</name>
+    <class>TablePanel</class>
+    <consumer>false</consumer>
+    <property name="REVERSE_RATE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Forward Rate Constant 1 Standard Deviation</name>
+    <class>TablePanel</class>
+    <consumer>false</consumer>
+    <property name="FORWARD_RATE1"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Reverse Rate Constant 1 Standard Deviation</name>
+    <class>TablePanel</class>
+    <consumer>false</consumer>
+    <property name="REVERSE_RATE1"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Forward Rate Constant 2 Standard Deviations</name>
+    <class>TablePanel</class>
+    <consumer>false</consumer>
+    <property name="FORWARD_RATE2"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Reverse Rate Constant 2 Standard Deviations</name>
+    <class>TablePanel</class>
+    <consumer>false</consumer>
+    <property name="REVERSE_RATE2"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Equilibrium Constant</name>
+    <class>TablePanel</class>
+    <consumer>false</consumer>
+    <property name="EQUILIBRIUM_CONST"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Equilibrium Constant Plot</name>
+    <class>EquilibriumConstantPlotPropertyPanel</class>
+    <consumer>false</consumer>
+    <allowMax>true</allowMax>
+    <property name="EQUILIBRIUM_CONST"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Forward Rate Constant Plot--TST</name>
+    <class>ReactionErrorPlotPropertyPanel</class>
+    <consumer>false</consumer>
+    <allowMax>true</allowMax>
+    <property name="FORWARD_RATE"/>
+    <property name="FORWARD_RATE1"/>
+    <property name="FORWARD_RATE2"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Reverse Rate Constant Plot--TST</name>
+    <class>ReactionErrorPlotPropertyPanel</class>
+    <consumer>false</consumer>
+    <allowMax>true</allowMax>
+    <property name="REVERSE_RATE"/>
+    <property name="REVERSE_RATE1"/>
+    <property name="REVERSE_RATE2"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Forward Rate Constant Plot--CVT</name>
+    <class>ReactionErrorPlotPropertyPanel</class>
+    <consumer>false</consumer>
+    <allowMax>true</allowMax>
+    <property name="FORWARD_RATE"/>
+    <property name="FORWARD_RATE1"/>
+    <property name="FORWARD_RATE2"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Reverse Rate Constant Plot--CVT</name>
+    <class>ReactionErrorPlotPropertyPanel</class>
+    <consumer>false</consumer>
+    <allowMax>true</allowMax>
+    <property name="REVERSE_RATE"/>
+    <property name="REVERSE_RATE1"/>
+    <property name="REVERSE_RATE2"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Forward Rate Constant Plot--TST and CVT</name>
+    <class>ReactionConstantPlotPropertyPanel</class>
+    <consumer>false</consumer>
+    <allowMax>true</allowMax>
+    <property name="FORWARD_RATE"/>
+    <property name="FORWARD_RATE1"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Reverse Rate Constant Plot--TST and CVT</name>
+    <class>ReactionConstantPlotPropertyPanel</class>
+    <consumer>false</consumer>
+    <allowMax>true</allowMax>
+    <property name="REVERSE_RATE"/>
+    <property name="REVERSE_RATE1"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Forward Rate Constant Plot--TST/CVT Ratio</name>
+    <class>ReactionConstantVsPlotPropertyPanel</class>
+    <consumer>false</consumer>
+    <allowMax>true</allowMax>
+    <property name="FORWARD_RATE"/>
+    <property name="FORWARD_RATE1"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Reverse Rate Constant Plot--TST/CVT Ratio</name>
+    <class>ReactionConstantVsPlotPropertyPanel</class>
+    <consumer>false</consumer>
+    <allowMax>true</allowMax>
+    <property name="REVERSE_RATE"/>
+    <property name="REVERSE_RATE1"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>1D Metadynamics Potential</name>
+    <class>PlotMetaXY</class>
+    <consumer>false</consumer>
+    <allowMax>true</allowMax>
+    <property name="METAVEC"/>
+    <property name="IKCPVEC"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>2D Metadynamics Potential</name>
+    <class>PlotMeta3D</class>
+    <consumer>false</consumer>
+    <allowMax>true</allowMax>
+    <property name="METATABLE"/>
+    <property name="IKCPVEC"/>
+  </PropertyPanel>
+
+</PropertyPanelDescriptor>

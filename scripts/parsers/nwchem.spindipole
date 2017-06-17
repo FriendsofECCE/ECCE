@@ -1,0 +1,134 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#    Parse output from spin dipole block in ecce.out file produced by nwchem
+#
+# Command line parameters:
+#           
+# Description:
+#
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+{
+  $natoms = 0;
+  @atoms = ();
+  @asymm = ();
+  @egtensor = ();
+  @evalue = ();
+  @evector = ();
+  
+  #parse all data and accumulate it in arrays
+
+  $line = <STDIN>;
+  while (!($line =~ /spin-dipole\%end\%exit/)) {
+    # get atom symbol
+    if ($line =~ /^task_property spin-dipole\%begin\%atom name/) {
+      $natoms++;
+      $line = <STDIN>;
+      $line =~ s/^\s*//;
+      $line =~ s/\s*$//;
+      push(@atoms,$line);
+    }
+    # get electric field gradient tensor
+    if ($line =~ /^task_property spin-dipole\%begin\%spin-dipole tensor/) {
+      $line = <STDIN>;
+      ($value0,$value1,$value2) = split(/ +/,$line);
+      push(@egtensor,($value0,$value1,$value2));
+      $line = <STDIN>;
+      ($value0,$value1,$value2) = split(/ +/,$line);
+      push(@egtensor,($value0,$value1,$value2));
+      $line = <STDIN>;
+      ($value0,$value1,$value2) = split(/ +/,$line);
+      push(@egtensor,($value0,$value1,$value2));
+    }
+    # get electric field gradient eigenvalues
+    if ($line =~ /^task_property spin-dipole\%begin\%spin-dipole eigenvalues/) {
+      $line = <STDIN>;
+      ($value0,$value1,$value2) = split(/ +/,$line);
+      push(@evalue,($value0,$value1,$value2));
+    }
+    $line = <STDIN>
+  }
+  
+########################################################################
+# make this matrix look like a vector with concatenated labels
+########################################################################
+  $nrows =  $natoms;
+  $ncolumns = 9;
+  print "key: DIPOLETENSOR\n";
+  $vecsize = $nrows*$ncolumns;
+  print "size:\n$vecsize\n";
+  print "rowlabels:\n";
+  $icnt = 0;
+  foreach $i (0 .. $#atoms ) {
+    foreach $j ("-XX","-YX","-ZX","-XY","-YY","-ZY","-XZ","-YZ","-ZZ") {
+      print $atoms[$i]."-".($i+1).$j." "; 
+      $icnt++;
+      if ($icnt%9 == 0) {
+        print "\n";
+        $icnt = 0;
+      }
+    }
+  }
+  if ($icnt != 0) {
+    print "\n";
+  }
+  print "values:\n";
+  $icnt = 0;
+  foreach $i (0 .. $#egtensor ) {
+    print "$egtensor[$i] ";
+    $icnt++;
+    if ($icnt%9 == 0) {
+      print "\n";
+      $icnt = 0;
+    }
+  }
+  if ($icnt != 0) {
+    print "\n";
+  }
+  print "units:\nau\n";
+  print "END\n";
+
+  print "key: DIPOLEEIGVAL\n";
+  $numvals = 3*$nrows;
+  print "size:\n$numvals\n";
+  print "rowlabels:\n";
+  $icnt = 0;
+  foreach $i (0 .. $#atoms ) {
+    foreach $j ("-1","-2","-3") {
+      print $atoms[$i]."-".($i+1).$j." "; 
+      $icnt++;
+      if ($icnt%10 == 0) {
+        print "\n";
+        $icnt = 0;
+      }
+    }
+  }
+  if ($icnt != 0) { print "\n"; }
+  print "values:\n";
+  $icnt = 0;
+  foreach $i (0 .. $#evalue ) {
+    print "$evalue[$i] ";
+    $icnt++;
+    if ($icnt%3 == 0) {
+      print "\n";
+      $icnt = 0;
+    }
+  };
+  if ($icnt != 0) {
+    print "\n";
+  }
+  print "units:\nau\n";
+  print "END\n";
+
+  exit(0);
+
+}

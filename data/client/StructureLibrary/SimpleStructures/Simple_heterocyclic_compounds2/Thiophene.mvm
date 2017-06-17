@@ -1,0 +1,26 @@
+title:          Thiophene
+type:           molecule
+cell_units:     angstroms
+num_atoms:      9
+atom_info:      symbol cart
+atom_list:
+  C  -0.749   0.669   0.008
+  C   0.735   0.684   0.003
+  C   1.261  -0.548  -0.009
+  S   0.019  -1.812  -0.016
+  C  -1.250  -0.575  -0.001
+  H  -1.367   1.581   0.019
+  H   1.334   1.610   0.010
+  H   2.338  -0.780  -0.015
+  H  -2.321  -0.829   0.001
+num_bonds:      9
+bond_list:
+ 1  2
+ 1  5
+ 1  6
+ 2  3
+ 2  7
+ 3  4
+ 3  8
+ 4  5
+ 5  9

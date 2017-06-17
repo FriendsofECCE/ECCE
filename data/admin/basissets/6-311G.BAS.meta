@@ -1,0 +1,87 @@
+name
+6-311G
+name
+type
+pople
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ----------
+H, Li - Ne: R. Krishnan, J.S. Binkley, R. Seeger and J.A. Pople,
+            J. Chem. Phys. 72, 650 (1980)
+Na - Ar:    A.D. McLean and G.S. Chandler J. Chem. Phys. 72, 5639, (1980).
+K  - Ca:    J-P. Blaudeau, M. P. McGrath, L.A. Curtiss and L. Radom,
+            J. Chem. Phys. 107, 5016 (1997).
+Ga - Kr:    L. A. Curtiss, M. P. McGrath, J-P. Blandeau, N. E. Davis, 
+            R. C. Binning, Jr. L. Radom, J. Chem. Phys. 103, 6104 (1995).
+I      :    M.N. Glukhovstev, A. pross, M.P. McGrath, L. Radom, J. Chem. Phys.
+            103, 1878 (1995)
+
+references
+info
+                        6-311G Valence Triple Zeta Basis
+                        --------------------------------
+Elements      Contraction                       Reference
+ H - He: (5s)        -> [3s]       R. Krishnan, J.S. Binkley, R. Seeger and
+Li - Ne: (11s,5p)    -> [4s,3p]    J.A. Pople, J. Chem. Phys. 72, 650 (1980).
+Na - Ar: (12s,9p)    -> [6s,5p]    A.D. McLean and G.S. Chandler
+                                   J. Chem. Phys. 72, 5639, (1980)
+K  - Ca: (14s,11p,3d)-> [8s,7p,1d] J-P. Blaudeau, M. P. McGrath, L.A. Curtiss
+                                   and L. Radom, J. Chem. Phys. 107, 5016
+                                   (1997).
+Ga - Kr: (14,12p,5d) -> [8s,7p,2d] L. A. Curtiss, M. P. McGrath, J-P. Blandeau,
+                                   N. E. Davis, R. C. Binning, Jr., L. Radom,
+                                   J. Chem. Phys. 103, 6104 (1995).
+I      : (15s,12p,6d)-> [10s,9p,4d] M.N. Glukhovtsev, A. Pross, M.P. McGrath
+                                   and L. Radom, J. Chem. Phys. 103, 1878
+                                   (1995).
+
+This basis has increased flexibility in the valence region relative to the
+6-31G basis because it uses three functions to represent each valence AO.
+The original 6-311G set is extended to second row elements using the McLean
+Chandler  basis sets.
+
+                     6-311G Atomic Energies
+                                                    ROHF
+   State  UHF (noneq) ROHF (noneq)  ROHF(equiv)   HF Limit (equiv)
+   -----  ----------  -----------   -----------   ---------
+H   2-S   -0.499810    -0.499810     -0.499810     -0.50000
+He  1-S                                            -2.86168
+Li  2-S                                            -7.43273
+Be  1-S                                           -14.57302
+B   2-P                                           -24.52906
+C   3-P  -37.686024   -37.684801                  -37.68862
+N   4-S                                           -54.40094
+O   3-P                                           -74.80940
+F   2-P                                           -99.40935
+Ne  1-S                                          -128.54710
+Al  2-P  -241.870015  -241.869963                -241.87671
+Ga  2-P -1923.168380 -1923.167936               -1923.26098
+Ge  3-P -2075.267125 -2075.266384               -2075.35971
+As  4-S -2234.143801 -2234.143342               -2234.23864
+Se  3-P -2399.772249 -2399.771229               -2399.86759
+Br  2-P -2572.318178 -2572.317570               -2572.44130
+Kr  1-S -2751.952558 -2751.952558               -2752.05496
+
+
+info
+comments
+3/26/00  - DFF - correct I s contr. coeff. 0.18375 -> 0.33878
+12/30/99  - DFF - Add I
+12/14/97  - DFF - Add K and Ca.
+10/06/97  - DFF - Correct Al s exponent.  0.652370 -> 0.0652370
+3/28/97  - DFF - Correct P s exponent.  7549.76 -> 754.976
+7/08/96  - DFF - Correct Ne contr. coeff. 0.0119149 -> 0.1191490.
+11/09/95  - DFF - Add Ga - Kr.
+2/21/95  - DFF - Modify the format of the literature citation.
+8/10/90  - DFF - Original creation of this file from MIA basis set library.
+comments

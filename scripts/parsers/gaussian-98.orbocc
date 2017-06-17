@@ -1,0 +1,378 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#  Parse orbital occupations from a gaussian run.
+#
+# Command line parameters:
+#           
+# Description:
+#  Prior to revision 1.10, the occupations were generated according to
+#  some algorithm Hugh put together.  Now we use the punch card keyword.
+#
+#  Note that parsing orboccs must account for the different data recieved
+#  when running UHF.  For U* calcs, there will be both alpha and beta
+#  occupations.  The descriptor should send both to this script in one
+#  invocation.
+# 
+#  Note that we have to handle the differences between RHF, UHF, and ROHF.
+#  The latter is a special case.  This is all kind of strange because for
+#  anything other than HF orbitals, the occupations won't be just 0s and 1s.
+#  Between Dave, Theresa, and Karen, we decided:
+#     if V -> assign 0
+#     if O -> assign 1s if you have alphas and betas
+#             assign 2s if you just have "alphas"
+#             For ROHF, assign ones to highest #openShells, 2s to the rest
+#
+#  Sample script input:
+#     Molecular Orbital Coefficients
+#                           1         2         3         4         5
+#                        (A1)--O   (A1)--O   (B2)--O   (A1)--O   (B1)--O
+#     EIGENVALUES --   -18.29454  -0.83512  -0.39011  -0.17229  -0.07467
+#   1 1   O  1S          0.99258  -0.22715   0.00000  -0.12974   0.00000
+#   2        2S          0.03316   0.79172   0.00000   0.62174   0.00000
+#   3        2PX         0.00000   0.00000   0.00000   0.00000   1.00000
+#   4        2PY         0.00000   0.00000   0.61294   0.00000   0.00000
+#   5        2PZ        -0.00498  -0.20481   0.00000   0.74382   0.00000
+#   6 2   H  1S         -0.00786   0.18005   0.44088  -0.28194   0.00000
+#   7 3   H  1S         -0.00786   0.18005  -0.44088  -0.28194   0.00000
+#                           6         7
+#                        (A1)--V   (B2)--V
+#     EIGENVALUES --     0.26983   0.37420
+#   1 1   O  1S         -0.12726   0.00000
+#   2        2S          0.81523   0.00000
+#   3        2PX         0.00000   0.00000
+#   4        2PY         0.00000   0.96755
+#   5        2PZ        -0.74794   0.00000
+#   6 2   H  1S         -0.77209  -0.81317
+#   7 3   H  1S         -0.77209   0.81317
+#
+#  More problems. For some systems, particularly linear molecules, the term
+#  symbols are Sigma, Pi, Delta etc. The orbitals with Delta symmetry have
+#  labels like (DLTU)-- where the final O or V is chopped off. It is
+#  impossible to determine the occupation of these orbitals from the label.
+#  To get around this, we can parse the output starting at the orbital
+#  symmetries section and count the number of occupied orbitals. We can then
+#  use this information to determine the occupation of an orbital of unknown
+#  occupation.
+#
+#  Needed to change line in the parse descriptor file terminating parsing of
+#  MO section to help improve imports of calculations without molecular
+#  orbital coefficients. Included a line that causes the processing of the
+#  text block to terminate where the old parse descriptor used to stop
+#  (at the keyword "DENSITY").
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+######
+# The command line arguments
+######
+($key, $runtype, $ucCategory, $theory, $openShells) = @ARGV;
+
+# This could be the ORBOCC or ORBOCCBETA
+$whichocc = "ORBOCC";
+
+##############################################################################
+#  Count number of occupied orbitals in orbital symmetry section. These can
+#  then be used to figure out whether orbitals are occupied or not in the
+#  translateOccupations subroutine.
+##############################################################################
+
+$a_flag=1;
+$b_flag=0;
+$r_flag=0;
+$alpha_occ=0;
+$beta_occ=0;
+@alpha_sym=();
+@beta_sym=();
+
+$_ = <STDIN>;
+if (/Orbital Symmetries/) {
+  while (<STDIN>) {
+    chop;
+    if (/Alpha Orbitals/) {
+      $a_flag = 1;
+      $b_flag = 0;
+    }
+    elsif (/Beta Orbitals/) {
+      $a_flag = 0;
+      $b_flag = 1;
+    }
+    elsif (/Occupied/) {
+      $r_flag = 1;
+      s/^\s*Occupied\s*//;
+      s/\s*$//;
+      @junk = ();
+      @junk = split(/ +/);
+      if ($a_flag) {
+        $alpha_occ += @junk;
+        push(@alpha_sym,@junk);
+      }
+      else {
+        $beta_occ += @junk;
+        push(@beta_sym,@junk);
+      }
+    }
+    elsif (/Virtual/) {
+      $r_flag = 0;
+      s/^\s*Virtual\s*//;
+      s/\s*$//;
+      @junk = ();
+      @junk = split(/ +/);
+      if ($a_flag) {
+        push(@alpha_sym,@junk);
+      }
+      else {
+        push(@beta_sym,@junk);
+      }
+    }
+    elsif ($r_flag==1) {
+      s/^\s*//;
+      s/\s*$//;
+      @junk = ();
+      @junk = split(/ +/);
+      if ($a_flag) {
+        $alpha_occ += @junk;
+        push(@alpha_sym,@junk);
+      }
+      else {
+        $beta_occ += @junk;
+        push(@beta_sym,@junk);
+      }
+    }
+    elsif (/electronic/) {
+      last;
+    }
+    else {
+      s/^\s*//;
+      s/\s*$//;
+      @junk = ();
+      @junk = split(/ +/);
+      if ($a_flag) {
+        push(@alpha_sym,@junk);
+      }
+      else {
+        push(@beta_sym,@junk);
+      }
+    }
+  }
+  while (<STDIN>) {
+    if (/Molecular Orbital Coefficients/) {
+      if ($alpha_occ > 0) {last;}
+    }
+  }
+}
+#
+# Remove parantheses from symmetry labels
+#
+for ($i=0; $i < @alpha_sym ; $i++) {
+  $alpha_sym[$i] =~ s/\(//;
+  $alpha_sym[$i] =~ s/\)//;
+}
+for ($i=0; $i < @beta_sym ; $i++) {
+  $beta_sym[$i] =~ s/\(//;
+  $beta_sym[$i] =~ s/\)//;
+}
+
+$multiplier = 2.0;
+if ($theory =~ /^u/ || $theory =~ /^U/ || @beta_sym > 0) {
+  $multiplier = 1.0;
+}
+
+if ($alpha_occ == 0) {
+  $need_occ = 1;
+} else {
+  $need_occ = 0;
+}
+if (!$need_occ) {
+  for ($i=0; $i<@alpha_sym; $i++) {
+    if ($i < $alpha_occ) {
+      $values[$i] = "O";
+    } else {
+      $values[$i] = "V";
+    }
+  }
+  if (@beta_sym > 0) {
+    &translateOccupations();
+    &printThem();
+    @values=();
+    $whichocc = "ORBOCCBETA";
+    for ($i=0; $i<@beta_sym; $i++) {
+      if ($i < $beta_occ) {
+        $values[$i] = "O";
+      } else {
+        $values[$i] = "V";
+      }
+    }
+  }
+} else {
+  $use_beta = 0;
+  while (<STDIN>) {
+    chop;
+    # V means 0., O means 1.0 for open shell and 2.0 for closed shell
+    if (/beta molec/i || /alpha molec/i) { $multiplier = 1.0; }
+
+    if (/^\s*Beta/) {
+      if ($need_occ) {
+        $size = @values;
+        for ($i=0; $i<$size; $i++) {
+          if ($values[$i] eq "O") {$alpha_occ++;}
+        }
+      }
+      $multiplier = 1.0;
+      &translateOccupations();
+      &printThem();
+      @values=();
+      $whichocc = "ORBOCCBETA";
+      $use_beta = 1;
+    } elsif (/.*--[OV]/) {
+      s/^\s*//;
+      s/[^\s]*--(O|V)/$1/g;
+      @values = (@values,split(/ +/));
+    } elsif (/^\s*[OV]\s*$/ || /^\s*[OV]\s*[OV]\s*$/ ||
+             /^\s*[OV]\s*[OV]\s*[OV]\s*$/ ||
+             /^\s*[OV]\s*[OV]\s*[OV]\s*[OV]\s*$/ ||
+             /^\s*[OV]\s*[OV]\s*[OV]\s*[OV]\s*[OV]\s*/) {
+      s/^\s*//;
+      if ($need_occ) {@values = (@values,split(/ +/));}
+    } elsif (/DLT..--/) {
+      s/^\s*//;
+      @values = (@values,split(/ +/));
+    } elsif (/DENSITY/) {
+      last;
+    } else {
+      next;
+    }
+  }
+  if ($use_beta) {
+    if ($need_occ) {
+      $size = @values;
+      for ($i=0; $i<$size; $i++) {
+        if ($values[$i] eq "O") {$beta_occ++;}
+      }
+    }
+  }
+}
+
+&translateOccupations();
+&printThem();
+&printSym();
+
+# In this special case, we need to look at the number of openshells
+# to set the occupations correctly.  Just post-process the array
+# since its easiest.
+# All we get with this output is V's and O's.  These must be translated
+# into 0.0s and 1.0s.
+sub translateOccupations() {
+  $size = @values;
+  $numdone = 0;
+  for ($idx=$size-1; $idx>=0; $idx--) {
+    if (@values[$idx] =~ /V/) {
+        @values[$idx] = 0.0;
+    } elsif (@values[$idx] =~ /O/) {
+      if ($theory =~ /RO/i && $numdone < $openShells) {
+        @values[$idx] = 1.0;
+        $numdone++;
+      } else {
+        @values[$idx] = $multiplier;
+      }
+    } elsif (@values[$idx] =~ /--$/) {
+#
+# Orbital may be occupied or unoccupied
+#
+      if ($beta_occ==0) {
+        $occ_level = $alpha_occ;
+      } else {
+        $occ_level = $beta_occ;
+      }
+      if ($idx+1 <= $occ_level) {
+        if ($theory =~ /RO/i && $numdone < $openShells) {
+          @values[$idx] = 1.0;
+          $numdone++;
+        } else {
+          @values[$idx] = $multiplier;
+        }
+      } else {
+        @values[$idx] = 0.0
+      }
+    }
+  }
+}
+
+
+
+# Print the data global structures - useful since this script may
+# pick up both the alpha and beta occupations.
+sub printThem {
+  my ($size);
+  $size = @values;
+  print "key: $whichocc\n";
+  print "size: $size\n";
+
+  # Just generate some numbers here
+  print "rowlabels:\n";
+  for ($idx=1; $idx<$size+1; $idx++) {
+    print "$idx ";
+    if (($idx % 25) == 0) { print "\n"; }
+  }
+  print "\n";
+
+  print "values:\n";
+  $idx = 1;
+  foreach $value (@values) {
+   print "$value ";
+   if (($idx % 25) == 0) { print "\n"; }
+   $idx++;
+  }
+  print "\nEND\n";
+}
+
+sub printSym {
+
+  $size = @alpha_sym;
+  if ($size > 0) {
+    print  "key: ORBSYM\n";
+    print  "size: $size\n";
+
+# just generate some numbers here
+
+    print "rowlabels:\n";
+    for ($idx=1; $idx <= $size; $idx++) {
+      print "$idx ";
+      if (($idx % 8) == 0) {print "\n"; }
+    }
+    print "\n";
+    print "values:\n";
+    for ($idx=1; $idx <= $size; $idx++) {
+      print "$alpha_sym[$idx-1] ";
+      if (($idx % 8) == 0) {print "\n"; }
+    }
+    print "\nEND\n";
+  }
+  $size = @beta_sym;
+  if ($size > 0) {
+    print  "key: ORBSYMBETA\n";
+    print  "size: $size\n";
+
+# just generate some numbers here
+
+    print "rowlabels:\n";
+    for ($idx=1; $idx <= $size; $idx++) {
+      print "$idx ";
+      if (($idx % 8) == 0) {print "\n"; }
+    }
+    print "\n";
+    print "values:\n";
+    for ($idx=1; $idx <= $size; $idx++) {
+      print "$beta_sym[$idx-1] ";
+      if (($idx % 8) == 0) {print "\n"; }
+    }
+    print "\nEND\n";
+  }
+}

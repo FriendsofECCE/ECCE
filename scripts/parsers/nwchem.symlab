@@ -1,0 +1,52 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#   This script parses the labels of the irreducible representations
+#   from the output file. It stores the results in a temporary utility
+#   file in the /tmp directory.
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+######
+# The command line arguments
+######
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+local ($result,@symlabels);
+
+$i = 0;
+$result = <STDIN>;
+while (<STDIN>) {
+  if (!/end\%group irrep names/) {
+    $result = $_;
+    chop($result);
+    $result =~ s/^\s*//;
+    $result =~ s/\s*$//;
+    $symlabel[$i] = $result;
+    $i++;
+  }
+}
+$imax = $i;
+
+#
+# Create temporary file in /tmp directory to store symmetry
+# labels
+#
+$filename = $key."/parseSym";
+open (AUXFILE, ">$filename") || die("open AUXFILE failed");
+for ($i=0; $i<$imax ; $i++) {
+  print AUXFILE "$symlabel[$i]\n";
+}
+close (AUXFILE);
+
+exit(0);

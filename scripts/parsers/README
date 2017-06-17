@@ -1,0 +1,129 @@
+
+Overview
+--------
+
+This directory contains the following categories of files.
+
+ - scripts for basis set file translation from the NWChem format that is 
+   output by ECCE to formats of other codes.  These have names like
+   "std2Gaussian-94".
+
+ - scripts and templates for input file generation.  The templates have 
+   names like "nwch.tpl" and "g94.tpl", and the input generation scripts 
+   have names like "ai.gauss94".
+  
+ - parse descriptor files for each code.  These have names like 
+   gaussian-94.desc.
+
+ - property parse scripts for each descriptor in each .desc file,
+   named according to the one or more of the properties that is 
+   extracted, such as gaussian-94.eqcisd, which parses the text
+   that contains the QCISD energy from gaussian-94.
+
+ - wrapper scripts to invoke each registered code, such as ecce.nwchem.
+
+ - the submit script, which is the top-level run script (and the IBM
+   LoadLeveler file) that calls the wrapper script.
+
+Products
+--------
+The files in this directory are used as is, i.e., no libraries or
+binaries are generated.
+
+Filename		Description
+--------		-------------------------------------------------------
+README			- This file.
+ai.gamessus		- Input generation script for GAMESS-US.
+ai.gauss94		- Input generation script for Gaussian-94.
+ai.nwchem		- Input generation script for NWChem.
+ecce.gamessus		- Wrapper script to run GAMESS-US.
+ecce.gaussian-94	- Wrapper script to run Gaussian-94.
+ecce.nwchem		- Wrapper script to run NWChem.
+g94.tpl			- Input file template for Gaussian-94.
+gamessus.tpl		- Input file template for GAMESS-US.
+gaussian-94.anisoshield	- Script that parses named Gaussian-94 property.
+gaussian-94.cpusec	- Script that parses named Gaussian-94 property.
+gaussian-94.deltae	- Script that parses named Gaussian-94 property.
+gaussian-94.desc	- Parse descriptor file for Gaussian-94.
+gaussian-94.dipole	- Script that parses named Gaussian-94 property.
+gaussian-94.dipolemag	- Script that parses named Gaussian-94 property.
+gaussian-94.ecas	- Script that parses named Gaussian-94 property.
+gaussian-94.eccd	- Script that parses named Gaussian-94 property.
+gaussian-94.eccsd	- Script that parses named Gaussian-94 property.
+gaussian-94.eccsdt	- Script that parses named Gaussian-94 property.
+gaussian-94.eccsdtpert	- Script that parses named Gaussian-94 property.
+gaussian-94.ecisd	- Script that parses named Gaussian-94 property.
+gaussian-94.egrad	- Script that parses named Gaussian-94 property.
+gaussian-94.egradvec	- Script that parses named Gaussian-94 property.
+gaussian-94.emp2	- Script that parses named Gaussian-94 property.
+gaussian-94.emp3	- Script that parses named Gaussian-94 property.
+gaussian-94.emp4dq	- Script that parses named Gaussian-94 property.
+gaussian-94.emp4sdq	- Script that parses named Gaussian-94 property.
+gaussian-94.emp4sdtq	- Script that parses named Gaussian-94 property.
+gaussian-94.eqcisd	- Script that parses named Gaussian-94 property.
+gaussian-94.eqcisdt	- Script that parses named Gaussian-94 property.
+gaussian-94.escf	- Script that parses named Gaussian-94 property.
+gaussian-94.fermicon	- Script that parses named Gaussian-94 property.
+gaussian-94.geomtrace	- Script that parses named Gaussian-94 property.
+gaussian-94.hexpole	- Script that parses named Gaussian-94 property.
+gaussian-94.isoshield	- Script that parses named Gaussian-94 property.
+gaussian-94.ke		- Script that parses named Gaussian-94 property.
+gaussian-94.mo		- Script that parses named Gaussian-94 property.
+gaussian-94.mulliken	- Script that parses named Gaussian-94 property.
+gaussian-94.octapole	- Script that parses named Gaussian-94 property.
+gaussian-94.orbocc	- Script that parses named Gaussian-94 property.
+gaussian-94.orbsym	- Script that parses named Gaussian-94 property.
+gaussian-94.polariz	- Script that parses named Gaussian-94 property.
+gaussian-94.quadpole	- Script that parses named Gaussian-94 property.
+gaussian-94.shieldtensor
+			- Script that parses named Gaussian-94 property.
+gaussian-94.statesym	- Script that parses named Gaussian-94 property.
+gaussian-94.status	- Script that parses named Gaussian-94 property.
+gaussian-94.te		- Script that parses named Gaussian-94 property.
+gaussian-94.vib		- Script that parses named Gaussian-94 property.
+gaussian-942std		- Script that translates basis set from Gaussian-94
+			  format to NWChem format.
+gus_enr_mp.tpl		- Input file template for GAMESS-US.
+gus_enr_scf.tpl		- Input file template for GAMESS-US.
+include			- Directory containing Perl modules.
+  rdGaussianGBS.pm	- Read a Gaussian-94 format GBS file.
+  rdStandardGBS.pm	- Read a standard format GBS file.
+  wrGamesGBS.pm		- Write a GAMESS-US format GBS file.
+  wrGaussian94GBS.pm	- Write a Gaussian-94 format GBS file.
+  wrNWChemGBS.pm	- Write an NWChem format GBS file.
+nwch.tpl		- Input file template for NWChem.
+nwch_geom_dft.tpl	- Link to nwch.tpl.
+nwch_geom_scf.tpl	- Link to nwch.tpl.
+nwchem.cpusec		- Script that parses named NWChem property.
+nwchem.deltae		- Script that parses named NWChem property.
+nwchem.desc		- Parse descriptor file for NWChem.
+nwchem.dewvec		- Script that parses named NWChem property.
+nwchem.dipole		- Script that parses named NWChem property.
+nwchem.egrad		- Script that parses named NWChem property.
+nwchem.egradnormvec	- Script that parses named NWChem property.
+nwchem.egradvec		- Script that parses named NWChem property.
+nwchem.emp2		- Script that parses named NWChem property.
+nwchem.etime		- Script that parses named NWChem property.
+nwchem.ezeropt		- Script that parses named NWChem property.
+nwchem.geomtrace	- Script that parses named NWChem property.
+nwchem.mo		- Script that parses named NWChem property.
+nwchem.mulliken		- Script that parses named NWChem property.
+nwchem.nnrepul		- Script that parses named NWChem property.
+nwchem.orbeng		- Script that parses named NWChem property.
+nwchem.orbocc		- Script that parses named NWChem property.
+nwchem.orbsym		- Script that parses named NWChem property.
+nwchem.quadpole		- Script that parses named NWChem property.
+nwchem.status		- Script that parses named NWChem property.
+nwchem.te		- Script that parses named NWChem property.
+nwchem.vib		- Script that parses named NWChem property.
+nwchem.vibfreq		- Script that parses named NWChem property.
+nwchem.vibir		- Script that parses named NWChem property.
+std2GAMESS(US)		- Script that translates basis set from standard
+			  format to GAMESS-US format.
+std2Gaussian-92		- Identical to std2Gaussian-94.
+std2Gaussian-94		- Script that translates basis set from standard
+			  format to Gaussian-94 format.
+std2NWChem		- Script that translates basis set from standard
+			  format to NWChem format.
+submit			- Top-level script that controls execution of
+			  calculation on compute server.

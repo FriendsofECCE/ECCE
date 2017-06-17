@@ -1,0 +1,19 @@
+This directory contains example CONFIG files for various types of
+compute servers.  For queued machines customization is usually
+required.  These examples are all from actual systems that have been or
+are currently in use.
+
+Note that real CONFIG files have names of the form CONFIG.<machinename>
+so if the machine is named mcurie, the file shoul be named CONFIG.mcurie.
+
+Note that some of the contents of the CONFIG.* files are written by the
+machine registration gui.  Others must be provided by hand editing.
+The GUI can be used again after making custom edits without loss of
+information.
+
+The general process of machine registration is documented in the Ecce web
+pages (http://ecce.emsl.pnl.gov).  This pdf file is located at:
+http://ecce.emsl.pnl.gov/docs/2864B-server_reg.pdf.  You should read this
+document before proceeding and then use these examples as templates for
+your systems.
+

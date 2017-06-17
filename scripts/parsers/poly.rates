@@ -1,0 +1,512 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+($key, $basis, $theorycat, $theoryname, $xcfunc) = @ARGV;
+
+# Force output to be flushed
+$| = 1;
+
+$Rconst = 0.0019872; # kcal-mol/K
+
+$deltaERand = 0.0;
+$deltaESyst = 0.0;
+$error_flag = 0;
+
+# Uncomment the following 3 lines to generate error values for any method
+#$error_flag = 1;
+#$deltaERand =  2.41;
+#$deltaESyst = -0.11;
+
+# Set the error factors based on the basis, theory category/name, and
+# functional for DFT
+if ($basis eq "6-31++G**") {
+  if ($theorycat eq "DFT") {
+    if ($xcfunc eq "Mod. Perdew-Wang 1K (hybrid)") {
+      $error_flag = 1;
+      $deltaERand =  2.41;
+      $deltaESyst = -0.11;
+    } elsif ($xcfunc eq "B3LYP (hybrid)") {
+      $error_flag = 1;
+      $deltaERand =  5.75;
+      $deltaESyst = -2.03;
+    } elsif ($xcfunc eq "BB1K (hybrid)") {
+      $error_flag = 1;
+      $deltaERand =  2.13;
+      $deltaESyst = -0.09;
+    }
+  } elsif ($theorycat eq "MP") {
+    $error_flag = 1;
+    $deltaERand =  4.72;
+    $deltaESyst =  6.07;
+  }
+} elsif ($basis eq "aug-cc-pVTZ") {
+  if ($theorycat eq "CC") {
+    $error_flag = 1;
+    $deltaERand =  0.77;
+    $deltaESyst = -0.2375;
+  }
+}
+
+$frtmp_cnt = 0;
+$rrtmp_cnt = 0;
+$eqtmp_cnt = 0;
+$tst_flag = 0;
+@frtmp = ();
+@fr_tst = ();
+@fr_cvt = ();
+@fr_tstlo1s = ();
+@fr_tsthi1s = ();
+@fr_tstlo2s = ();
+@fr_tsthi2s = ();
+@fr_cvtlo1s = ();
+@fr_cvthi1s = ();
+@fr_cvtlo2s = ();
+@fr_cvthi2s = ();
+@fr_tstcvt = ();
+@rrtmp = ();
+@rr_tst = ();
+@rr_tstlo1s = ();
+@rr_tsthi1s = ();
+@rr_tstlo2s = ();
+@rr_tsthi2s = ();
+@rr_cvt = ();
+@rr_cvtlo1s = ();
+@rr_cvthi1s = ();
+@rr_cvtlo2s = ();
+@rr_cvthi2s = ();
+@rr_tstcvt = ();
+@eqtmp = ();
+@eq_fr = ();
+@eq_lnfr = ();
+@eq_invrt = ();
+
+# Parse rates and equilibrium constants from output and put in arrays
+# The format for rates is variable to support both VTST and TST calculations.
+# Unfortunately the number of header lines is also different between these
+# two types of calculations (4 for VTST and 3 for TST).  So the logic needs
+# to accomodate for that as well, which is the final check of $_.
+while (<STDIN>) {
+  last if (/\*\*\*/);
+  if (/Forward rates/) {
+    $line = <STDIN>;
+    $line = <STDIN>;
+    $line = <STDIN>;
+    $gotdata = 0;
+    while(<STDIN>) {
+      if (/^\s*(\S+)\s+(\S+)\s+\S+\s+\S+\s+(\S+)\s*$/) {
+        $frtmp[$frtmp_cnt] = $1;
+        $fr1000tmp[$frtmp_cnt] = 1000.0/$frtmp[$frtmp_cnt];
+        $fr_tst[$frtmp_cnt] = $2;
+        $fr_lntst[$frtmp_cnt] = log($fr_tst[$frtmp_cnt]);
+        $fr_cvt[$frtmp_cnt] = $3;
+        $fr_lncvt[$frtmp_cnt] = log($fr_cvt[$frtmp_cnt]);
+        if ($fr_tst[$frtmp_cnt] > 0.0 && $fr_cvt[$frtmp_cnt] > 0.0) {
+          $fr_tstcvt[$frtmp_cnt] = log($fr_tst[$frtmp_cnt]/$fr_cvt[$frtmp_cnt]);
+        }
+#       Calculate error estimates
+        if ($error_flag && $fr_tst[$frtmp_cnt] > 0.0) {
+          $fr_lntstlo1s[$frtmp_cnt] = log($fr_tst[$frtmp_cnt]*exp(-$deltaERand/$Rconst/$frtmp[$frtmp_cnt])*exp($deltaESyst/$Rconst/$frtmp[$frtmp_cnt]));
+          $fr_lntsthi1s[$frtmp_cnt] = log($fr_tst[$frtmp_cnt]*exp( $deltaERand/$Rconst/$frtmp[$frtmp_cnt])*exp($deltaESyst/$Rconst/$frtmp[$frtmp_cnt]));
+          $fr_lntstlo2s[$frtmp_cnt] = log($fr_tst[$frtmp_cnt]*exp(-2.0*$deltaERand/$Rconst/$frtmp[$frtmp_cnt])*exp(2.0*$deltaESyst/$Rconst/$frtmp[$frtmp_cnt]));
+          $fr_lntsthi2s[$frtmp_cnt] = log($fr_tst[$frtmp_cnt]*exp( 2.0*$deltaERand/$Rconst/$frtmp[$frtmp_cnt])*exp(2.0*$deltaESyst/$Rconst/$frtmp[$frtmp_cnt]));
+        } else {
+          $fr_lntstlo1s[$frtmp_cnt] = 0.0;
+          $fr_lntsthi1s[$frtmp_cnt] = 0.0;
+          $fr_lntstlo2s[$frtmp_cnt] = 0.0;
+          $fr_lntsthi2s[$frtmp_cnt] = 0.0;
+        }
+        if ($error_flag && $fr_cvt[$frtmp_cnt] > 0.0) {
+          $fr_lncvtlo1s[$frtmp_cnt] = log($fr_cvt[$frtmp_cnt]*exp(-$deltaERand/$Rconst/$frtmp[$frtmp_cnt])*exp($deltaESyst/$Rconst/$frtmp[$frtmp_cnt]));
+          $fr_lncvthi1s[$frtmp_cnt] = log($fr_cvt[$frtmp_cnt]*exp( $deltaERand/$Rconst/$frtmp[$frtmp_cnt])*exp($deltaESyst/$Rconst/$frtmp[$frtmp_cnt]));
+          $fr_lncvtlo2s[$frtmp_cnt] = log($fr_cvt[$frtmp_cnt]*exp(-2.0*$deltaERand/$Rconst/$frtmp[$frtmp_cnt])*exp(2.0*$deltaESyst/$Rconst/$frtmp[$frtmp_cnt]));
+          $fr_lncvthi2s[$frtmp_cnt] = log($fr_cvt[$frtmp_cnt]*exp( 2.0*$deltaERand/$Rconst/$frtmp[$frtmp_cnt])*exp(2.0*$deltaESyst/$Rconst/$frtmp[$frtmp_cnt]));
+        } else {
+          $fr_lncvtlo1s[$frtmp_cnt] = 0.0;
+          $fr_lncvthi1s[$frtmp_cnt] = 0.0;
+          $fr_lncvtlo2s[$frtmp_cnt] = 0.0;
+          $fr_lncvthi2s[$frtmp_cnt] = 0.0;
+        }
+
+        $frtmp_cnt++;
+        $gotdata = 1;
+      }
+      elsif (/^\s*(\S+)\s+(\S+)\s*$/) {
+        $tst_flag = 1;
+        $frtmp[$frtmp_cnt] = $1;
+        $fr1000tmp[$frtmp_cnt] = 1000.0/$frtmp[$frtmp_cnt];
+        $fr_tst[$frtmp_cnt] = $2;
+        $fr_lntst[$frtmp_cnt] = log($fr_tst[$frtmp_cnt]);
+#       Calculate error estimates
+        if ($error_flag && $fr_tst[$frtmp_cnt] > 0.0) {
+          $fr_lntstlo1s[$frtmp_cnt] = log($fr_tst[$frtmp_cnt]*exp(-$deltaERand/$Rconst/$frtmp[$frtmp_cnt])*exp($deltaESyst/$Rconst/$frtmp[$frtmp_cnt]));
+          $fr_lntsthi1s[$frtmp_cnt] = log($fr_tst[$frtmp_cnt]*exp( $deltaERand/$Rconst/$frtmp[$frtmp_cnt])*exp($deltaESyst/$Rconst/$frtmp[$frtmp_cnt]));
+          $fr_lntstlo2s[$frtmp_cnt] = log($fr_tst[$frtmp_cnt]*exp(-2.0*$deltaERand/$Rconst/$frtmp[$frtmp_cnt])*exp($deltaESyst/$Rconst/$frtmp[$frtmp_cnt]));
+          $fr_lntsthi2s[$frtmp_cnt] = log($fr_tst[$frtmp_cnt]*exp( 2.0*$deltaERand/$Rconst/$frtmp[$frtmp_cnt])*exp($deltaESyst/$Rconst/$frtmp[$frtmp_cnt]));
+        } else {
+          $fr_lntstlo1s[$frtmp_cnt] = 0.0;
+          $fr_lntsthi1s[$frtmp_cnt] = 0.0;
+          $fr_lntstlo2s[$frtmp_cnt] = 0.0;
+          $fr_lntsthi2s[$frtmp_cnt] = 0.0;
+        }
+
+        $frtmp_cnt++;
+        $gotdata = 1;
+      }
+      elsif ($_ eq "\n") {
+        last if ($gotdata == 1);
+      }
+    }
+  }
+
+  if (/Reverse rates/) {
+    $line = <STDIN>;
+    $line = <STDIN>;
+    $line = <STDIN>;
+    $gotdata = 0;
+    while(<STDIN>) {
+      if (/^\s*(\S+)\s+(\S+)\s+\S+\s+\S+\s+(\S+)\s*$/) {
+        $rrtmp[$rrtmp_cnt] = $1;
+        $rr1000tmp[$rrtmp_cnt] = 1000.0/$rrtmp[$rrtmp_cnt];
+        $rr_tst[$rrtmp_cnt] = $2;
+        $rr_lntst[$rrtmp_cnt] = log($rr_tst[$rrtmp_cnt]);
+        $rr_cvt[$rrtmp_cnt] = $3;
+        $rr_lncvt[$rrtmp_cnt] = log($rr_cvt[$rrtmp_cnt]);
+        if ($rr_tst[$rrtmp_cnt] > 0.0 && $rr_cvt[$rrtmp_cnt] > 0.0) {
+          $rr_tstcvt[$rrtmp_cnt] = log($rr_tst[$rrtmp_cnt]/$rr_cvt[$rrtmp_cnt]);
+        }
+#       Calculate error estimates
+        if ($error_flag && $rr_tst[$rrtmp_cnt] > 0.0) {
+          $rr_lntstlo1s[$rrtmp_cnt] = log($rr_tst[$rrtmp_cnt]*exp(-$deltaERand/$Rconst/$rrtmp[$rrtmp_cnt])*exp($deltaESyst/$Rconst/$rrtmp[$rrtmp_cnt]));
+          $rr_lntsthi1s[$rrtmp_cnt] = log($rr_tst[$rrtmp_cnt]*exp( $deltaERand/$Rconst/$rrtmp[$rrtmp_cnt])*exp($deltaESyst/$Rconst/$rrtmp[$rrtmp_cnt]));
+          $rr_lntstlo2s[$rrtmp_cnt] = log($rr_tst[$rrtmp_cnt]*exp(-2.0*$deltaERand/$Rconst/$rrtmp[$rrtmp_cnt])*exp(2.0*$deltaESyst/$Rconst/$rrtmp[$rrtmp_cnt]));
+          $rr_lntsthi2s[$rrtmp_cnt] = log($rr_tst[$rrtmp_cnt]*exp( 2.0*$deltaERand/$Rconst/$rrtmp[$rrtmp_cnt])*exp(2.0*$deltaESyst/$Rconst/$rrtmp[$rrtmp_cnt]));
+        } else {
+          $rr_lntstlo1s[$rrtmp_cnt] = 0.0;
+          $rr_lntsthi1s[$rrtmp_cnt] = 0.0;
+          $rr_lntstlo2s[$rrtmp_cnt] = 0.0;
+          $rr_lntsthi2s[$rrtmp_cnt] = 0.0;
+        }
+        if ($error_flag && $rr_cvt[$rrtmp_cnt] > 0.0) {
+          $rr_lncvtlo1s[$rrtmp_cnt] = log($rr_cvt[$rrtmp_cnt]*exp(-$deltaERand/$Rconst/$rrtmp[$rrtmp_cnt])*exp($deltaESyst/$Rconst/$rrtmp[$rrtmp_cnt]));
+          $rr_lncvthi1s[$rrtmp_cnt] = log($rr_cvt[$rrtmp_cnt]*exp( $deltaERand/$Rconst/$rrtmp[$rrtmp_cnt])*exp($deltaESyst/$Rconst/$rrtmp[$rrtmp_cnt]));
+          $rr_lncvtlo2s[$rrtmp_cnt] = log($rr_cvt[$rrtmp_cnt]*exp(-2.0*$deltaERand/$Rconst/$rrtmp[$rrtmp_cnt])*exp(2.0*$deltaESyst/$Rconst/$rrtmp[$rrtmp_cnt]));
+          $rr_lncvthi2s[$rrtmp_cnt] = log($rr_cvt[$rrtmp_cnt]*exp( 2.0*$deltaERand/$Rconst/$rrtmp[$rrtmp_cnt])*exp(2.0*$deltaESyst/$Rconst/$rrtmp[$rrtmp_cnt]));
+        } else {
+          $rr_lncvtlo1s[$rrtmp_cnt] = 0.0;
+          $rr_lncvthi1s[$rrtmp_cnt] = 0.0;
+          $rr_lncvtlo2s[$rrtmp_cnt] = 0.0;
+          $rr_lncvthi2s[$rrtmp_cnt] = 0.0;
+        }
+
+        $rrtmp_cnt++;
+        $gotdata = 1;
+      }
+      elsif (/^\s*(\S+)\s+(\S+)\s*$/) {
+        $tst_flag = 1;
+        $rrtmp[$rrtmp_cnt] = $1;
+        $rr1000tmp[$rrtmp_cnt] = 1000.0/$rrtmp[$rrtmp_cnt];
+        $rr_tst[$rrtmp_cnt] = $2;
+        $rr_lntst[$rrtmp_cnt] = log($rr_tst[$rrtmp_cnt]);
+#       Calculate error estimates
+        if ($error_flag && $rr_tst[$rrtmp_cnt] > 0.0) {
+          $rr_lntstlo1s[$rrtmp_cnt] = log($rr_tst[$rrtmp_cnt]*exp(-$deltaERand/$Rconst/$rrtmp[$rrtmp_cnt])*exp($deltaESyst/$Rconst/$rrtmp[$rrtmp_cnt]));
+          $rr_lntsthi1s[$rrtmp_cnt] = log($rr_tst[$rrtmp_cnt]*exp( $deltaERand/$Rconst/$rrtmp[$rrtmp_cnt])*exp($deltaESyst/$Rconst/$rrtmp[$rrtmp_cnt]));
+          $rr_lntstlo2s[$rrtmp_cnt] = log($rr_tst[$rrtmp_cnt]*exp(-2.0*$deltaERand/$Rconst/$rrtmp[$rrtmp_cnt])*exp(2.0*$deltaESyst/$Rconst/$rrtmp[$rrtmp_cnt]));
+          $rr_lntsthi2s[$rrtmp_cnt] = log($rr_tst[$rrtmp_cnt]*exp( 2.0*$deltaERand/$Rconst/$rrtmp[$rrtmp_cnt])*exp(2.0*$deltaESyst/$Rconst/$rrtmp[$rrtmp_cnt]));
+        } else {
+          $rr_lntstlo1s[$rrtmp_cnt] = 0.0;
+          $rr_lntsthi1s[$rrtmp_cnt] = 0.0;
+          $rr_lntstlo2s[$rrtmp_cnt] = 0.0;
+          $rr_lntsthi2s[$rrtmp_cnt] = 0.0;
+        }
+
+        $rrtmp_cnt++;
+        $gotdata = 1;
+      }
+      elsif ($_ eq "\n") {
+        last if ($gotdata == 1);
+      }
+    }
+  }
+#
+  if (/Equilibrium constants/) {
+    $line = <STDIN>;
+    $line = <STDIN>;
+    $line = <STDIN>;
+    while(<STDIN>) {
+      last if (!/^\s*(\S+)\s+(\S+)/);
+      $eqtmp[$eqtmp_cnt] = $1;
+      $eq_fr[$eqtmp_cnt] = $2;
+      $eq_lnfr[$eqtmp_cnt] = log($eq_fr[$eqtmp_cnt]);
+      $eq_invrt[$eqtmp_cnt] = 1.0/($Rconst*$eqtmp[$eqtmp_cnt]);
+      $eqtmp_cnt++;
+    }
+  }
+}
+
+# Print out rates as formatted tables, with error values if applicable
+
+if ($error_flag) {
+  # 1 std dev errors
+  if ($frtmp_cnt > 0) {
+    print "key: FORWARD_RATE1\n";
+    if ($tst_flag == 0) {
+      print "size:\n$frtmp_cnt 9\n";
+    } else {
+      print "size:\n$frtmp_cnt 5\n";
+    }
+
+    print "rowlabels:\n";
+    $icnt = 1;
+    for ($i = 0; $i < $frtmp_cnt; $i++) {
+      print "$icnt ";
+      if ($icnt % 8 == 0) {
+        print "\n";
+      }
+      $icnt++;
+    }
+
+    if ($tst_flag == 0) {
+      print "\ncolumnlabels:\n";
+      print "T 1000/T ln(k_TST) ln(k_TST-lower) ln(k_TST-upper) ln(k_CVT) ln(k_CVT-lower) ln(k_CVT-upper) ln(k_TST/k_CVT)\n";
+      print "values:\n";
+      for ($i=0; $i<$frtmp_cnt; $i++) {
+        print "$frtmp[$i] $fr1000tmp[$i] $fr_lntst[$i] $fr_lntstlo1s[$i] $fr_lntsthi1s[$i] $fr_lncvt[$i] $fr_lncvtlo1s[$i] $fr_lncvthi1s[$i] $fr_tstcvt[$i]\n";
+      }
+    } else {
+      print "\ncolumnlabels:\n";
+      print "T 1000/T ln(k_TST) ln(k_TST-lower) ln(k_TST-upper)\n";
+      print "values:\n";
+      for ($i=0; $i<$frtmp_cnt; $i++) {
+        print "$frtmp[$i] $fr1000tmp[$i] $fr_lntst[$i] $fr_lntstlo1s[$i] $fr_lntsthi1s[$i]\n";
+      }
+    }
+    print "END\n";
+  }
+
+  # Print out reverse reaction rate
+
+  if ($rrtmp_cnt > 0) {
+    print "key: REVERSE_RATE1\n";
+    if ($tst_flag == 0) {
+      print "size:\n$rrtmp_cnt 9\n";
+    } else {
+      print "size:\n$rrtmp_cnt 5\n";
+    }
+  
+    print "rowlabels:\n";
+    $icnt = 1;
+    for ($i = 0; $i < $rrtmp_cnt; $i++) {
+      print "$icnt ";
+      if ($icnt % 8 == 0) {
+        print "\n";
+      }
+      $icnt++;
+    }
+
+    if ($tst_flag == 0) {
+      print "\ncolumnlabels:\n";
+      print "T 1000/T ln(k_TST) ln(k_TST-lower) ln(k_TST-upper) ln(k_CVT) ln(k_CVT-lower) ln(k_CVT-upper) ln(k_TST/k_CVT)\n";
+      print "values:\n";
+      for ($i=0; $i<$rrtmp_cnt; $i++) {
+        print "$rrtmp[$i] $rr1000tmp[$i] $rr_lntst[$i] $rr_lntstlo1s[$i] $rr_lntsthi1s[$i] $rr_lncvt[$i] $rr_lncvtlo1s[$i] $rr_lncvthi1s[$i] $rr_tstcvt[$i]\n";
+      }
+    } else {
+      print "\ncolumnlabels:\n";
+      print "T 1000/T ln(k_TST) ln(k_TST-lower) ln(k_TST-upper)\n";
+      print "values:\n";
+      for ($i=0; $i<$rrtmp_cnt; $i++) {
+        print "$rrtmp[$i] $rr1000tmp[$i] $rr_lntst[$i] $rr_lntstlo1s[$i] $rr_lntsthi1s[$i]\n";
+      }
+    }
+    print "END\n";
+  }
+
+  # 2 std dev errors
+  if ($frtmp_cnt > 0) {
+    print "key: FORWARD_RATE2\n";
+    if ($tst_flag == 0) {
+      print "size:\n$frtmp_cnt 9\n";
+    } else {
+      print "size:\n$frtmp_cnt 5\n";
+    }
+
+    print "rowlabels:\n";
+    $icnt = 1;
+    for ($i = 0; $i < $frtmp_cnt; $i++) {
+      print "$icnt ";
+      if ($icnt % 8 == 0) {
+        print "\n";
+      }
+      $icnt++;
+    }
+
+    if ($tst_flag == 0) {
+      print "\ncolumnlabels:\n";
+      print "T 1000/T ln(k_TST) ln(k_TST-lower) ln(k_TST-upper) ln(k_CVT) ln(k_CVT-lower) ln(k_CVT-upper) ln(k_TST/k_CVT)\n";
+      print "values:\n";
+      for ($i=0; $i<$frtmp_cnt; $i++) {
+        print "$frtmp[$i] $fr1000tmp[$i] $fr_lntst[$i] $fr_lntstlo2s[$i] $fr_lntsthi2s[$i] $fr_lncvt[$i] $fr_lncvtlo2s[$i] $fr_lncvthi2s[$i] $fr_tstcvt[$i]\n";
+      }
+    } else {
+      print "\ncolumnlabels:\n";
+      print "T 1000/T ln(k_TST) ln(k_TST-lower) ln(k_TST-upper)\n";
+      print "values:\n";
+      for ($i=0; $i<$frtmp_cnt; $i++) {
+        print "$frtmp[$i] $fr1000tmp[$i] $fr_lntst[$i] $fr_lntstlo2s[$i] $fr_lntsthi2s[$i]\n";
+      }
+    }
+    print "END\n";
+  }
+
+  # Print out reverse reaction rate
+
+  if ($rrtmp_cnt > 0) {
+    print "key: REVERSE_RATE2\n";
+    if ($tst_flag == 0) {
+      print "size:\n$rrtmp_cnt 9\n";
+    } else {
+      print "size:\n$rrtmp_cnt 5\n";
+    }
+  
+    print "rowlabels:\n";
+    $icnt = 1;
+    for ($i = 0; $i < $rrtmp_cnt; $i++) {
+      print "$icnt ";
+      if ($icnt % 8 == 0) {
+        print "\n";
+      }
+      $icnt++;
+    }
+
+    if ($tst_flag == 0) {
+      print "\ncolumnlabels:\n";
+      print "T 1000/T ln(k_TST) ln(k_TST-lower) ln(k_TST-upper) ln(k_CVT) ln(k_CVT-lower) ln(k_CVT-upper) ln(k_TST/k_CVT)\n";
+      print "values:\n";
+      for ($i=0; $i<$rrtmp_cnt; $i++) {
+        print "$rrtmp[$i] $rr1000tmp[$i] $rr_lntst[$i] $rr_lntstlo2s[$i] $rr_lntsthi2s[$i] $rr_lncvt[$i] $rr_lncvtlo2s[$i] $rr_lncvthi2s[$i] $rr_tstcvt[$i]\n";
+      }
+    } else {
+      print "\ncolumnlabels:\n";
+      print "T 1000/T ln(k_TST) ln(k_TST-lower) ln(k_TST-upper)\n";
+      print "values:\n";
+      for ($i=0; $i<$rrtmp_cnt; $i++) {
+        print "$rrtmp[$i] $rr1000tmp[$i] $rr_lntst[$i] $rr_lntstlo2s[$i] $rr_lntsthi2s[$i]\n";
+      }
+    }
+    print "END\n";
+  }
+} else {
+  # no error values calculated
+
+  if ($frtmp_cnt > 0) {
+    print "key: FORWARD_RATE\n";
+    if ($tst_flag == 0) {
+      print "size:\n$frtmp_cnt 5\n";
+    } else {
+      print "size:\n$frtmp_cnt 3\n";
+    }
+
+    print "rowlabels:\n";
+    $icnt = 1;
+    for ($i = 0; $i < $frtmp_cnt; $i++) {
+      print "$icnt ";
+      if ($icnt % 8 == 0) {
+        print "\n";
+      }
+      $icnt++;
+    }
+
+    if ($tst_flag == 0) {
+      print "\ncolumnlabels:\n";
+      print "T 1000/T ln(k_TST) ln(k_CVT) ln(k_TST/k_CVT)\n";
+      print "values:\n";
+      for ($i=0; $i<$frtmp_cnt; $i++) {
+        print "$frtmp[$i] $fr1000tmp[$i] $fr_lntst[$i] $fr_lncvt[$i] $fr_tstcvt[$i]\n";
+      }
+    } else {
+      print "\ncolumnlabels:\n";
+      print "T 1000/T ln(k_TST)\n";
+      print "values:\n";
+      for ($i=0; $i<$frtmp_cnt; $i++) {
+        print "$frtmp[$i] $fr1000tmp[$i] $fr_lntst[$i]\n";
+      }
+    }
+    print "END\n";
+  }
+
+  # Print out reverse reaction rate
+
+  if ($rrtmp_cnt > 0) {
+    print "key: REVERSE_RATE\n";
+    if ($tst_flag == 0) {
+      print "size:\n$rrtmp_cnt 5\n";
+    } else {
+      print "size:\n$rrtmp_cnt 3\n";
+    }
+
+    print "rowlabels:\n";
+    $icnt = 1;
+    for ($i = 0; $i < $rrtmp_cnt; $i++) {
+      print "$icnt ";
+      if ($icnt % 8 == 0) {
+        print "\n";
+      }
+      $icnt++;
+    }
+
+    if ($tst_flag == 0) {
+      print "\ncolumnlabels:\n";
+      print "T 1000/T ln(k_TST) ln(k_CVT) ln(k_TST/k_CVT)\n";
+      print "values:\n";
+      for ($i=0; $i<$rrtmp_cnt; $i++) {
+        print "$rrtmp[$i] $rr1000tmp[$i] $rr_lntst[$i] $rr_lncvt[$i] $rr_tstcvt[$i]\n";
+      }
+    } else {
+      print "\ncolumnlabels:\n";
+      print "T 1000/T ln(k_TST)\n";
+      print "values:\n";
+      for ($i=0; $i<$rrtmp_cnt; $i++) {
+        print "$rrtmp[$i] $rr1000tmp[$i] $rr_lntst[$i]\n";
+      }
+    }
+    print "END\n";
+  }
+}
+
+# Print out equilibrium constants
+
+if ($eqtmp_cnt > 0) {
+  print "key: EQUILIBRIUM_CONST\n";
+  print "size:\n$eqtmp_cnt 4\n";
+
+  print "rowlabels:\n";
+  $icnt = 1;
+  for ($i = 0; $i < $eqtmp_cnt; $i++) {
+    print "$icnt ";
+    if ($icnt % 8 == 0) {
+      print "\n";
+    }
+    $icnt++;
+  }
+
+  print "\ncolumnlabels:\n";
+  print "T K_eq ln(K_eq) 1/(RT)[mol/kcal]\n";
+  print "values:\n";
+  for ($i=0; $i<$eqtmp_cnt; $i++) {
+    print "$eqtmp[$i] $eq_fr[$i] $eq_lnfr[$i] $eq_invrt[$i]\n";
+  }
+  print "END\n";
+}
+

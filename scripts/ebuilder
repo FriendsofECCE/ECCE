@@ -1,0 +1,38 @@
+#!/bin/csh -f
+
+if (! $?ECCE_HOME) then
+  echo "ERROR: ECCE_HOME must be set prior to running Builder."
+  echo "       Check your ~/.cshrc or ~/.mycshrc file for the correct path"
+  echo "       to runtime_setup, or contact your site ECCE administrator"
+  echo ""
+  exit
+endif
+
+# this sets ECCE_SYSDIR
+source $ECCE_HOME/scripts/ecce_env
+
+if ( $ECCE_SYSDIR == "unsupported" ) then
+  echo "ERROR: Host is not supported by this ECCE installation."
+  echo -n "       Host platform: "
+  $ECCE_HOME/scripts/sysdir
+  echo ""
+  exit
+endif
+
+# smarts to turn a relative path into an absolute path as needed by builder
+set file = ""
+if ($#argv > 0) then
+  set dir = `dirname $argv[1]`
+  set base = `basename $argv[1]`
+  set file = "`cd $dir >& /dev/null && pwd || echo $dir`/$base"
+endif
+
+setenv ECCE_NO_MESSAGING
+cd $ECCE_HOME/${ECCE_SYSDIR}bin
+
+# uncomment the following ldd statement to determine where OpenGL is found
+#ldd ./builder | grep libGL
+
+# suppress harmless warning messages such as from Gtk
+./builder -standalone $file |& grep -v -e Gtk -e Gdk -e GLib -e debug1 -e Fontconfig -e menu_proxy_module_load -e pixmap -e "OpenGL Warning" -e '^$'
+

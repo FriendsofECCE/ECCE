@@ -1,0 +1,27 @@
+title:          Dimethylsulfoxide
+type:           molecule
+cell_units:     angstroms
+num_atoms:      10
+atom_info:      symbol cart
+atom_list:
+  C  -0.170   1.340   0.224
+  S   0.870   0.100  -0.586
+  C  -0.223  -1.316  -0.306
+  O   2.046  -0.089   0.241
+  H   0.313   2.340   0.150
+  H  -1.166   1.397  -0.270
+  H  -0.313   1.096   1.301
+  H   0.260  -2.244  -0.687
+  H  -1.186  -1.175  -0.847
+  H  -0.431  -1.449   0.779
+num_bonds:      9
+bond_list:
+ 1  2
+ 1  5
+ 1  6
+ 1  7
+ 2  3
+ 2  4
+ 3  8
+ 3  9
+ 3  10

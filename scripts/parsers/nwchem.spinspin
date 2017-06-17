@@ -1,0 +1,159 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#    Parse output from spin-spin indirect coupling block in ecce.out file
+#    produced by nwchem
+#
+# Command line parameters:
+#           
+# Description:
+#
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+{
+  $npairs = 0;
+  @atom1 = ();
+  @atom2 = ();
+  @isotropy = ();
+  @sstensor = ();
+  
+  #parse all data and accumulate it in arrays
+
+  $line = <STDIN>;
+  while (!($line =~ /spinspin\%end\%exit/)) {
+    # get atom indices
+    if ($line =~ /^task_property spinspin\%begin\%index atom one/) {
+      $npairs++;
+      $line = <STDIN>;
+      $line =~ s/^\s*//;
+      $line =~ s/\s*$//;
+      push(@atom1,$line);
+    }
+    if ($line =~ /^task_property spinspin\%begin\%index atom two/) {
+      $line = <STDIN>;
+      $line =~ s/^\s*//;
+      $line =~ s/\s*$//;
+      push(@atom2,$line);
+    }
+    # get spin-spin indirect coupling tensor
+    if ($line =~ /^task_property spinspin\%begin\%spinspin tensor/) {
+      $line = <STDIN>;
+      ($value0,$value1,$value2) = split(/ +/,$line);
+      push(@sstensor,($value0,$value1,$value2));
+      $line = <STDIN>;
+      ($value0,$value1,$value2) = split(/ +/,$line);
+      push(@sstensor,($value0,$value1,$value2));
+      $line = <STDIN>;
+      ($value0,$value1,$value2) = split(/ +/,$line);
+      push(@sstensor,($value0,$value1,$value2));
+    }
+    # get spin-spin isotropy
+    if ($line =~ /^task_property spinspin\%begin\%spinspin isotropic/) {
+      $line = <STDIN>;
+      $line =~ s/^\s*//;
+      $line =~ s/\s*$//;
+      push(@isotropy,$line);
+    }
+    $line = <STDIN>
+  }
+  
+########################################################################
+# Collect these matrices into a table. Columns are the nine different
+# matrix elements, rows are different atom-atom pairs.
+########################################################################
+  $nrows =  $natoms;
+  $ncolumns = 9;
+ # Find pairs that are used twice
+  @mask = ();
+  %pairs = {};
+  $icnt = 0;
+  for ($i=0; $i<$npairs; $i++) {
+    $key = "$atom2[$i]-$atom1[$i]";
+    if (defined($pairs{$key})) {
+      $mask[$i] = 0;
+    } else {
+      $icnt++;
+      $mask[$i] = 1;
+      $key = "$atom1[$i]-$atom2[$i]";
+      $pairs{$key} = 1;
+    }
+  }
+  $nrows = $icnt;
+  print "key: SPINSPIN\n";
+  print "size:\n$nrows 9\n";
+  print "rowlabels:\n";
+  $icnt = 0;
+  for ($i=0; $i<$npairs; $i++) {
+    if ($mask[$i]) {
+      $icnt++;
+      if ($icnt%10 != 0) {
+        print "$atom1[$i]-$atom2[$i] ";
+      } else {
+        print "$atom1[$i]-$atom2[$i]\n";
+      }
+    }
+  }
+  if ($icnt%10 != 0) {
+    print "\n";
+  }
+  print "\ncolumnlabels:\nXX YX ZX XY YY ZY XZ YZ ZZ\n";
+  print "values:\n";
+  $icnt = 0;
+  for ($i=0; $i<$npairs; $i++) {
+    for ($j=0; $j<9; $j++) {
+      if ($mask[$i]) {
+        print " $sstensor[$icnt]";
+      }
+      $icnt++;
+    }
+    if ($mask[$i]) {
+      print "\n";
+    }
+  }
+  print "units:\nHertz\n";
+  print "END\n";
+
+  print "\nkey: SSISOTROPY\n";
+  print "size:\n$nrows\n";
+  print "rowlabels:\n";
+  $icnt = 0;
+  for ($i=0; $i<$npairs; $i++) {
+    if ($mask[$i]) {
+      $icnt++;
+      if ($icnt%10 != 0) {
+        print "$atom1[$i]-$atom2[$i] ";
+      } else {
+        print "$atom1[$i]-$atom2[$i]\n";
+      }
+    }
+  }
+  if ($icnt%10 != 0) {
+    print "\n";
+  }
+  print "values:\n";
+  $icnt = 0;
+  for ($i=0; $i<$npairs; $i++) {
+    if ($mask[$i]) {
+      print "$isotropy[$i] ";
+      $icnt++;
+    }
+    if ($icnt%10 == 0) {
+      print "\n";
+      $icnt = 0;
+    }
+  }
+  if ($icnt != 0) {
+    print "\n";
+  }
+  print "units:\nHertz\n";
+  print "END\n";
+  exit(0);
+}

@@ -1,0 +1,32 @@
+name
+d-aug-cc-pVTZ Diffuse
+name
+type
+diffuse
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+GC
+contraction_type
+references
+Elements                             References
+--------                             ---------
+H - He:  D.E. Woon and T.H. Dunning, Jr., J. Chem. Phys. 100, 2975 (1994).
+ B - F:
+Al - Cl: 
+
+references
+info
+                      Doubly Augmented cc-pVTZ Diffuse Functions
+                      ------------------------------------------
+
+
+info
+comments
+10/22/96  - DFF - Original creation of this file from an Excel spreadsheet 
+comments

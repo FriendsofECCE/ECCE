@@ -1,0 +1,185 @@
+name
+cc-pV5Z
+name
+type
+correlation_consistent
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+GC
+contraction_type
+references
+Elements                             References
+--------                             ----------
+H      : T.H. Dunning, Jr. J. Chem. Phys. 90, 1007 (1989).
+He     : D.E. Woon and T.H. Dunning, Jr. J. Chem. Phys. 100, 2975 (1994).
+Li     : Unofficial set from D. Feller.
+B  - Ne: T.H. Dunning, Jr. J. Chem. Phys. 90, 1007 (1989).
+Na - Mg: Unofficial set from D. Feller.
+Al - Ar: D.E. Woon and T.H. Dunning, Jr.  J. Chem. Phys. 98, 1358 (1993).
+Ca     : J. Koput and K.A. Peterson, J. Phys. Chem. A, 106, 9595 (2002).
+
+references
+info
+ Correlation Consistent Polarized Valence Quintuple Zeta (cc-pV5Z) Basis
+ ----------------------------------------------------------------------
+Elements        Contraction                             References
+ H     : (8s,4p,3d,2f,1g)      -> [5s,4p,3d,2f,1g]     T.H. Dunning, Jr.
+ He    : (8s,4p,3d,2f,1g)      -> [5s,4p,3d,2f,1g]     D.E. Woon and T.H.
+                                                       Dunning, Jr., J.C.P.
+                                                       100, 2975 (1994).
+ Li    : (14s,7p,4d,3f,2g,1h)  -> [6s,5p,4d,3f,2g,1h]  Unofficial set from
+                                                       D. Feller.
+ B - Ne: (14s,8p,4d,3f,2g,1h)  -> [6s,5p,4d,3f,2g,1h]  D. Woon, K. Peterson
+ Na    : (20s,12p,4d,3f,2g,1h) -> [7s,6p,4d,3f,2g,1h]  D. Woon and T.H. Dunning
+ Mg    : (20s,14p,4d,3f,2g,1h) -> [7s,6p,4d,3f,2g,1h]  (unpublished)
+ Al- Ar: (20s,12p,4d,3f,2g,1h) -> [7s,6p,4d,3f,2g,1h]
+Ca     : (26s,18p,8d,3f,2g,1h) -> [8s,7p,5d,3f,2g,1h]  J. Koput and K.A.
+                                                       Peterson, J.  Phys.
+                                                       Chem. A, 106, 9595
+                                                       (2002)
+Ga - Kr: (26s,17p,13d,3f,2g,1h)-> [8s,7p,5d,3f,2g,1h]  A.K. Wilson, D.E. Woon,
+                                                       K.A. Peterson, T.H.
+                                                       Dunning, Jr., J.
+                                                       Chem. Phys. 110, 7667
+                                                       (1999)
+
+The lithium and sodium sets are unofficial sets designed to loosely match
+the original cc-pVDZ, cc-pVTZ and cc-pVQZ Na sets.
+
+It was noticed in January 2000 that the s and p contractions for Ar
+don't correspond to the HF AOs.  The vectors are rotated amongst
+themselves.  The total energy is unaffected.  The contraction coefficients
+appear to correspond to the SCF natural orbitals.
+
+
+                        cc-pV5Z Atomic Energies
+
+   State  UHF (noneq) ROHF (noneq)  ROHF(equiv)   HF Limit (equiv)
+   -----  ----------  -----------   -----------   ---------
+H   2-S    -0.499995    -0.499995    -0.499995     -0.50000
+He  1-S                                            -2.86168
+Li  2-S    -7.432722    -7.432722    -7.432722     -7.43273
+Be  1-S   -14.573012   -14.573012   -14.573012    -14.57302
+B   2-P   -24.533124   -24.529109                 -24.52906
+C   3-P   -37.693677   -37.688642   -37.688571    -37.68862
+N   4-S                -54.400852   -54.400852    -54.40094
+O   3-P   -74.818781   -74.812231                 -74.80940
+F   2-P   -99.416046   -99.411171                 -99.40935
+Ne  1-S  -128.546770  -128.546770  -128.546770   -128.54710
+Na  2-S  -161.858717                             -161.85891
+Mg  1-S  -199.614605               -199.614605   -199.61463
+Al  2-P               -241.876777                -241.87671
+Si  3-P  -288.858814  -288.854439                -288.85436
+P   4-S               -340.718677  -340.718677   -340.71878
+S   3-P  -397.513160  -397.507108                -397.50490
+Cl  2-P  -459.488781  -459.483779                -459.48207
+Ar  1-S  -526.813116  -526.813116                -526.81751
+
+          MP2(noneq)   MP2(noneq)   MP4(noneq)  QCISD(T)(noneq)
+            UHF          UHF          UHF           UHF
+   State  No core      Froz. core   Froz. core   Froz. core
+   -----  ----------   ----------   ----------  --------------
+H   2-S    -0.499995    -0.499995    -0.499995     -0.499995
+He  1-S
+Li  2-S                 -7.432722    -7.432722     -7.432722
+Be  1-S                -14.602898   -14.614753
+B   2-P                -24.581325   -24.597608
+C   3-P   -37.797519   -37.767826   -37.785484
+N   4-S
+O   3-P                -74.982456   -74.999117
+F   2-P                -99.646728   -99.660313
+Ne  1-S
+Na  2-S               -161.858717  -161.858717    -161.858717
+Mg  1-S               -199.639284  -199.646608
+Al  2-P
+Si  3-P               -288.920334  -288.937008
+P   4-S
+S   3-P  -397.816757  -397.645266  -397.669863
+Cl  2-P               -459.670561  -459.697567
+Ar  1-S               -527.052552
+
+          CCSD(noneq) CCSD(T)(noneq  CCSD(noneq)  CCSD(T)(noneq)
+            UHF          UHF          ROHF         ROHF
+   State  Froz. core   Froz. core    Froz. core   Froz. core
+   -----  ----------   -----------   ----------   -----------
+H   2-S    -0.499995    -0.499995    -0.499995    -0.499995
+He  1-S
+Li  2-S    -7.432722    -7.432722    -7.432722    -7.432722
+Be  1-S   -14.619078   -14.619078   -14.619078   -14.619078
+B   2-P   -24.600054   -24.601552   -24.599820   -24.601462
+C   3-P   -37.785770   -37.788237   -37.785359   -37.787961
+N   4-S                             -54.524404   -54.527481
+O   3-P   -74.996123   -75.000109   -74.995569   -74.999678
+F   2-P   -99.655563   -99.660628   -99.655243   -99.660382
+Ne  1-S  -128.852259  -128.858358  -128.852259  -128.858358
+Mg  1-S  -199.648590  -199.648590
+Al  2-P                            -241.932846  -241.934377
+Si  3-P  -288.936031  -288.938970  -288.935455  -288.938641
+P   4-S                            -340.824709  -340.829594
+S   3-P  -397.665268  -397.671369  -397.664430  -397.670868
+Cl  2-P                            -459.691669  -459.699611
+
+          CISD(noneq)  CISD+Q(noneq) Full CI (noneq)  CCSDT        CCSDTQ
+            ROHF         ROHF          ROHF            ROHF        ROHF
+   State  Froz. core   Froz. core    Froz. core     Froz. core   Froz. core
+   -----  ----------   -----------   ----------     ----------   ----------
+H   2-S    -0.499995    -0.499995    -0.499995      -0.499995    -0.499995
+He  1-S
+Li  2-S    -7.432722
+Be  1-S   -14.619078   -14.619078
+B   2-P   -24.599736   -24.604965
+C   3-P   -37.784767   -37.789953
+N   4-S
+O   3-P   -74.992004   -74.992224
+F   2-P   -99.650434   -99.659281
+Ne  1-S  -128.844888                               -128.8583160
+Mg  1-S  -199.648590
+P   4-S  -340.823383  -340.830166
+S   3-P  -397.659600
+
+          CCSD(eq)    CCSD(T)(eq)     CCSD(eq)    CCSD(T)(eq)
+            ROHF         ROHF           R/U          R/U
+   State  Froz. core   Froz. core    Froz. core   Froz. core
+   -----  ----------   ----------    ----------   ----------
+H   2-S    -0.499995    -0.499995     -0.499995    -0.499995
+B   2-P
+C   3-P   -37.785372   -37.787986    -37.785536   -37.788124
+N   4-S   -54.524441   -54.527520    -54.524689   -54.527722
+O   3-P
+F   2-P
+Ne  1-S
+Si  3-P
+P   4-S
+S   3-P  -397.664441  -397.670847   -397.664834  -397.671144
+Cl  2-P
+Ar  1-S
+
+Note: for the symmetry equivalenced calculations the contaminants resulting
+from higher l-value functions that are present in atomic calculations performed
+in D2h symmetry were removed.  For example, the d0 and d2+ contaminants present
+in the s irrep were removed.
+
+
+info
+comments
+12/15/02  - DFF - Add Ca based on a file from K. Peterson
+11/16/99  - DFF - Add more digits to very small contraction coefficients.
+5/06/99  - DFF - Correct D -> 5D and F -> 7F for Ga. 
+11/29/98  - DFF - Add Ga, Ge, As, Se, Br, Kr
+12/02/96  - DFF - Correct s exponent, cc-pV5Z He, 1.2405 -> 1.2400.
+6/05/95  - DFF - Add magnesium basis set from Dave Woon.
+2/22/95  - DFF - Modify the format of the literature citation.
+2/20/95  - DFF - Correct lithium NUMEXP for P's.
+2/08/95  - DFF - Add lithium (unofficial set)
+9/18/92  - DFF - Remove tab character from oxygen f's (it was a hidden char.)
+5/8/92  - DFF - Add boron, carbon, nitrogen and fluorine from Kirk Peterson
+4/26/92  - DFF - Add second row sets from Dave Woon.
+9/5/91  - DFF - Add h exponent for oxygen optimized at MP2 level
+6/29/91  - DFF - Original creation of this file based on exponents from
+comments

@@ -1,0 +1,49 @@
+name
+aug-cc-pVDZ Diffuse
+name
+type
+diffuse
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ---------
+ H    :  T.H. Dunning, Jr. J. Chem. Phys. 90, 1007 (1989).
+ He   :  D.E. Woon and T.H. Dunning, Jr., J. Chem. Phys. 100, 2975 (1994).
+ B - F:  R.A. Kendall, T.H. Dunning, Jr. and R.J. Harrison, J. Chem. Phys. 96,
+         6769 (1992).
+Al - Cl: D.E. Woon and T.H. Dunning, Jr. J. Chem. Phys. 98, 1358 (1993).
+
+references
+info
+              aug-cc-pVDZ Diffuse Functions
+              -----------------------------
+Elements                             References
+H - He: (1s,1p)      R.A. Kendall, T.H. Dunning, Jr. and R.J. Harrison,
+                     J. Chem. Phys. 96, 6796 (1992).
+                     D.E. Woon and T.H. Dunning, Jr., J. Chem. Phys. 100,
+                     2975 (1994).
+B - Ne:  (1s,1p,1d)
+Al - Cl: (1s,1p,1d)  D.E. Woon and T.H. Dunning, Jr.  J. Chem. Phys. 98,
+                     1358 (1993).
+
+
+info
+comments
+11/29/98  - DFF - Add Ga, Ge, As, Se, Br, Kr using values from T.H.D.
+1/30/98  - DFF - Add Li, Be, Na, Mg using values from T.H.D.
+2/16/95  - DFF - Modify the format of the literature citation.
+4/12/94  - DFF - Add helium diffuse functions (from Dave Woon)
+4/26/92  - DFF - Add argon diffuse functions (from Dave Woon)
+1/13/92  - DFF - Add second row diffuse functions (from Dave Woon)
+11/5/91  - DFF - Add neon diffuse functions (from Thom Dunning).
+8/22/90  - DFF - Original creation of this file from MIA basis set library.
+comments

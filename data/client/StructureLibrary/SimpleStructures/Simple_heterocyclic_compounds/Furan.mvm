@@ -1,0 +1,26 @@
+title:          Furan_cart
+type:           molecule
+cell_units:     angstroms
+num_atoms:      9
+atom_info:      symbol cart
+atom_list:
+  C  -0.740   0.715   0.000
+  C   0.745   0.710   0.005
+  C   1.070  -0.591   0.001
+  O  -0.005  -1.428  -0.005
+  C  -1.074  -0.584  -0.005
+  H  -1.411   1.590   0.001
+  H   1.422   1.580   0.010
+  H   2.092  -1.003   0.003
+  H  -2.099  -0.989  -0.010
+num_bonds:      9
+bond_list:
+ 1  2
+ 1  5
+ 1  6
+ 2  3
+ 2  7
+ 3  4
+ 3  8
+ 4  5
+ 5  9

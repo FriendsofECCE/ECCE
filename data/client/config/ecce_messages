@@ -1,0 +1,100 @@
+// This file defines all the JMS messages used by Ecce.
+// Our current JMS server (JORAM) requires that topics be registered
+// before they are used so they are all defined here.
+//
+// The FILTER BY section controls the type of JMS filtering done but
+// also may include local filtering.  In particular the section
+// FILTER BY: USER:HOSTNAME:DISPLAY are messages that are never routed
+// to the JMS server (local java router).
+//
+// Comments can be added by starting a line with // or #
+
+FILTER BY: USER:HOSTNAME:DISPLAY
+
+ecce_quit
+ecce_identify
+ecce_identify_reply
+ecce_invoke
+ecce_get_app
+ecce_invoke_status
+ecce_activity
+ecce_gateway_raise
+ecce_preferences_gateway
+ecce_poll
+ecce_poll_reply
+ecce_set_iconified
+ecce_raise
+ecce_app_ready
+ecce_internal_invoke_status
+ecce_check_child
+
+
+// New messages for integrating MD editor and builder
+ecce_url_mol_selection
+ecce_ffconfig_edit
+ecce_getcharge
+ecce_getNWChemSelection
+ecce_getNWChemDistance
+ecce_getNWChemAngle
+ecce_set_selection
+
+// New message for integrating NWDirdyVTST editor and builder
+ecce_getselection
+
+// New message for integrating calculation editor and builder
+ecce_get_atomlist
+ecce_get_methyl_constraint
+
+// New messages for setting display styles
+ecce_displaystyle_list
+ecce_displaystyle_create
+ecce_displaystyle_edit
+ecce_displaystyle_delete
+ecce_displaystyle_describe
+ecce_displaystyle_changed
+ecce_displaystyle_select
+ecce_displaystyle_globalchanged
+
+// New message for retrieving FileChooser url
+ecce_filechooser_url
+ecce_filechooser_error
+ecce_filechooser_formats
+ecce_filechooser_units
+ecce_filechooser_request
+
+// New message for viz thumbnail renderer
+ecce_vizthumbnail
+
+FILTER BY: NONE
+
+ecce_url_created
+ecce_url_renamed
+ecce_url_removed
+ecce_url_basis
+ecce_url_code
+ecce_url_details
+ecce_url_launch
+ecce_url_property
+ecce_url_property_data
+ecce_url_runtype
+ecce_url_spin
+ecce_url_state
+ecce_url_subject
+ecce_url_theory
+ecce_machreg_changed
+ecce_ejs_kill
+
+
+FILTER BY: USER
+
+ecce_auth_changed 
+ecce_preferences_pertab
+ecce_preferences_misc
+ecce_preferences_states
+ecce_preferences_units
+ecce_machconf_changed
+ecce_data_server
+
+
+
+

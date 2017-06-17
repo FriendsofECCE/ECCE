@@ -1,0 +1,16 @@
+################################################################################
+# FILENAME:  Makefile.xerces
+#
+#
+# PURPOSE:
+#   Define template information for the makefile generator for those who
+#   need to use the Xerces xml parser
+#
+# DESCRIPTION:
+#   You only need this file if you are compiling or linking with Xerces.
+################################################################################
+
+XERCES_IFLAGS = -I$(ECCE_HOME)/$(ECCE_SYSDIR)3rdparty/xerces/include
+XERCES_LFLAGS = -Wl,-rpath=../3rdparty/xerces/lib -L$(ECCE_HOME)/$(ECCE_SYSDIR)3rdparty/xerces/lib
+XERCES_LIBS = -lxerces-c -lxerces-depdom
+

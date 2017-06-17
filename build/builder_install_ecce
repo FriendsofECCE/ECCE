@@ -1,0 +1,344 @@
+#!/bin/csh
+################################################################################
+# FILENAME:  builder_install_ecce
+#
+# PURPOSE:
+#   Install an ECCE builder distribution.
+#
+# DESCRIPTION:
+#   Installs the ECCE builder distribution after prompting the user for
+#   the installation directory.
+#
+################################################################################
+
+# don't want to pick up any site silliness
+unalias *
+
+# set when distribution is created so user can rename at their will
+set version = "##VERSION##"
+set platform = "##PLATFORM##"
+
+# must run from the directory where install_ecce_builder.* lives
+set file = "$0"
+if (`ls -1 | grep -c "^$file:t"` == "0") then
+  echo ""
+  echo "  Error:  Must run ECCE Builder installation script from the"
+  echo "  directory where the script is located."
+  echo ""
+  exit 1
+endif
+
+# various platform/distribution compatability checks (including glibc for Linux)
+if (`uname` != "Linux") then
+  echo ""
+  echo "  Warning: You are attempting to install a Linux distribution"
+  echo "  of ECCE Builder on a machine that does not appear to run Linux."
+  echo ""
+  echo -n "Proceed with install (yes/no)? [yes] "
+  set proceed = $<
+  if ($proceed != "" && $proceed != "yes" && $proceed != "y" && $proceed != "Y" && $proceed != "Yes" && $proceed != "YES") then
+    echo ""
+    echo "ECCE Builder installation aborted."
+    echo ""
+    exit 1
+  endif
+endif
+
+# all files are extracted here so it is easy to cleanup any failed installs
+set workdir = `pwd`"/tmptar"
+if (-e $workdir) then
+  rm -rf $workdir
+endif
+mkdir $workdir
+
+# magic that extracts tar file from full distribution
+echo ""
+echo "Extracting ECCE Builder distribution from $file..."
+echo ""
+# only look at first 500 lines to speed up search
+# grep binary file as text (-a)
+set lines = `head -n 500 $0 | fgrep -a -n -x "#TAILMARK" | cut -d: -f1`
+
+if ($lines == "") then
+  echo ""
+  echo "  Error:  Unable to split ECCE Builder distribution script."
+  echo "  This could be because you don't have permission to write"
+  echo "  to the current directory or because $file is incomplete."
+  echo ""
+  exit 1
+endif
+@ lines ++
+tail --lines=+$lines $0 >! $workdir/ecce.tar
+
+set verboseout = ""
+set verbosetar = ""
+set appdir = ""
+set emslflag = 0
+
+while ( $#argv > 0) 
+  if ("$1" == "-v" || "$1" == "-verbose") then
+    set verboseout = "-v"
+    set verbosetar = "v"
+  else if ("$1" == "-emsl") then
+    shift
+    set appdir = $1
+    set emslflag = 1
+  else if ("$1" == "-help" || "$1" == "-h") then
+    echo ""
+    echo "$file is a self extracting script that is capable of installing"
+    echo "the ECCE Builder software. To select verbose output"
+    echo "use the '-v' option."
+    echo "Usage:  $file [-v] [-help]"
+    echo ""
+    exit 0
+  else
+    echo ""
+    echo "Usage:  $file [-v] [-help]"
+    echo ""
+    exit 0
+  endif
+  shift
+end
+
+onintr cleanfail
+
+# check for perl because there is no reason to proceed if it isn't in the path
+perl -v >& /dev/null
+if ($status != 0) then
+  echo ""
+  echo "  Error:  perl not found in your path.  Please install or find perl,"
+  echo "  add it to your path, and re-run the Builder install script."
+  echo ""
+  exit 1
+endif
+
+# check if bunzip2 is found--no reason to proceed if not
+bunzip2 -h >& /dev/null
+if ($status != 0) then
+  echo ""
+  echo "  Error:  bunzip2 not found in your path.  Please install or find"
+  echo "  bunzip2, add it to your path, and re-run the Builder install script."
+  echo ""
+  exit 1
+endif
+
+set hostname = `hostname -f`
+if (`echo $hostname | grep -c "\."` == 0)  then
+  set hostname = `hostname`
+endif
+
+set defdir = `pwd`
+set username = `whoami`
+
+# nice little goto label for input confirmation
+startover:
+
+set appdirDef = $defdir"/ecce-builder-"$version
+
+echo -n "ECCE Builder installation directory: [$appdirDef] "
+set appdir = $<
+if ($appdir == "") set appdir = $appdirDef
+
+# Trim slash at the end of the string if present
+set appdir = `echo $appdir | sed -e 's/\/$//'`
+
+# Do not allow installation if platform exists
+if (-e $appdir/${platform}bin) then
+  echo ""
+  echo "  Error:  Install for this platform under $appdir/$platform"
+  echo "  already exists.  Please specify a different directory or"
+  echo "  move the existing install first."
+  echo ""
+  set appdir = ""
+  goto startover
+endif
+
+# DISPLAY CONFIG --------------------------------------------------------
+clear
+echo " "
+echo "ECCE Builder $version installation directory: [$appdir]"
+echo ""
+echo -n "Is this choice correct (yes/no/quit)? [yes] "
+set response = $<
+
+if ($response == "") set response = "yes"
+
+if ($response == "q" || $response == "quit" || $response == "Q") then
+  goto cleanfail
+else if ($response != "yes" && $response != "y" && $response != "Y") then
+  clear
+  goto startover
+endif
+
+# set tar extraction command based on platform
+set tarcmd = "tar --no-same-owner -xm${verbosetar}f"
+
+cd $workdir
+$tarcmd ecce.tar
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to untar the main distribution (out of"
+  echo "  disk space?)."
+  goto cleanfail
+endif
+rm -f ecce.tar
+
+echo ""
+echo -n "Installing ECCE Builder in $appdir..."
+
+mkdir -p $appdir
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make directory $appdir (permissions?)."
+  goto cleanfail
+endif
+
+if ( ! -d $appdir || ! -w $appdir) then
+  echo ""
+  echo "  Error:  $appdir does not exist or is not writable."
+  goto cleanfail
+endif
+
+# uncompress the file if necessary
+echo ""
+echo -n "  Extracting ECCE Builder distribution..."
+
+# untar into the appdir
+cd $appdir
+
+$tarcmd $workdir/ecce_apps.$version*.tar*
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to untar the application distribution (out of"
+  echo "  disk space?)."
+  goto cleanfail
+endif
+rm -f $workdir/ecce_apps.$version*.tar*
+
+# untar into the appdir
+cd $appdir
+$tarcmd $workdir/ecce_3rdparty.$version*.tar*
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to untar the third party distribution (out of"
+  echo "  disk space?)."
+  goto cleanfail
+endif
+rm -f $workdir/ecce_3rdparty.$version*.tar*
+
+# uncompress and extract WebHelp, if necessary
+if (! -d $appdir/data/client/WebHelp) then
+  echo ""
+  echo -n "  Extracting client WebHelp distribution..."
+
+  # untar WebHelp in the appropriate directory
+  mkdir $appdir/data/client/WebHelp
+
+  cd $appdir/data/client/WebHelp
+  $tarcmd $workdir/eccewebhelp.tar*
+  if ($status != 0) then
+    echo ""
+    echo "  Error:  Unable to untar the WebHelp distribution (out of"
+    echo "  disk space?)."
+    goto cleanfail
+  endif
+endif
+
+# distribution may or may not be compressed depending upon whether
+# WebHelp already exists so use wildcard for deletion
+rm -f $workdir/eccewebhelp.tar*
+
+
+# CONFIGURE --------------------------------------------------------
+
+echo ""
+echo -n "  Configuring ECCE Builder..."
+
+#set ECCE_HOME
+cd $appdir/scripts
+perl -pi -e 's%setenv ECCE_HOME.*%setenv ECCE_HOME '$appdir'%g' $appdir/scripts/runtime_setup
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to do perl substitution for"
+  echo "  $appdir/scripts/runtime_setup."
+endif
+
+perl -pi -e 's%ECCE_HOME=.*%ECCE_HOME='$appdir'%g' $appdir/scripts/runtime_setup.sh
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to do perl substitution for"
+  echo "  $appdir/scripts/runtime_setup.sh."
+endif
+
+perl -pi -e 's%<Url>(.*)<\/Url>%<Url>'$appdir'/data/client/StructureLibrary</Url>%g' $appdir/siteconfig/DataServers
+perl -pi -e 's%<Desc>(.*)<\/Desc>%<Desc>'$hostname'</Desc>%g' $appdir/siteconfig/DataServers
+perl -pi -e 's%<StructureLib>(.*)<\/StructureLib>%<StructureLib>'$appdir'/data/client/StructureLibrary</StructureLib>%g' $appdir/siteconfig/DataServers
+perl -pi -e 's%<BasisSet>(.*)<\/BasisSet>%<BasisSet></BasisSet>%g' $appdir/siteconfig/DataServers
+
+# update site_runtime
+cd $appdir/siteconfig
+perl -pi -e 's%ECCE_HELP.*%ECCE_HELP               \ http://ecce.emsl.pnl.gov\ %g' $appdir/siteconfig/site_runtime
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to do perl substitution for ECCE_HELP in"
+  echo "  $appdir/siteconfig/site_runtime."
+endif
+
+# commented out because this takes significant time for limited value
+# change file permissions to read-only except for siteconfig
+#cd $appdir
+#find data scripts ! -type d -exec chmod a-w {} \;
+#if ($platform != "") then
+#  find $platform ! -type d -exec chmod a-w {} \;
+#else
+#  find bin lib 3rdparty ! -type d -exec chmod a-w {} \;
+#endif
+
+echo ""
+echo ""
+if ($emslflag != 0) then
+  echo "EMSL ECCE Builder installation succeeded."
+else
+  echo "ECCE Builder installation succeeded."
+  echo ""
+  echo "****************************************************************"
+  echo "\!\! You MUST perform the following step to use the ECCE Builder\!\!"
+  echo ""
+  echo "-- Before running the ECCE Builder each user must source a"
+  echo "   setup script.  For csh/tcsh users, add this to ~/.cshrc:"
+  echo "     if ( -e $appdir/scripts/runtime_setup ) then"
+  echo "       source $appdir/scripts/runtime_setup"
+  echo "     endif"
+  echo "   For sh/bash users, add this to ~/.profile or ~/.bashrc:"
+  echo "     if [ -e $appdir/scripts/runtime_setup.sh ]; then"
+  echo "       . $appdir/scripts/runtime_setup.sh"
+  echo "     fi"
+  echo "****************************************************************"
+endif
+  echo ""
+
+if (-e $workdir) then
+  rm -rf $workdir
+endif
+
+exit 0
+
+
+cleanfail:
+  if ($appdir != "") then
+    if (-e $appdir) then
+      rm -rf $appdir
+    endif
+  endif
+  if ($workdir != "") then
+    if ( -e $workdir) then
+      rm -rf $workdir
+    endif
+  endif
+  echo ""
+  echo "ECCE Builder installation failed."
+  echo ""
+  echo "Re-run the ECCE Builder install script after resolving the issue."
+  echo ""
+  exit 1
+#TAILMARK

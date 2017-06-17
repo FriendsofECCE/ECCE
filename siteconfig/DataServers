@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+  The DataServers file contains a list of ECCE servers known to this
+  application software installation.
+
+  Each <EcceServer> element contains the following sub-elements:
+
+    <Url>             Server location 
+    <Desc>            Server description, appears in ECCE 
+                        application software (e.g. Calculation Manager)
+
+
+  The first <EcceServer> element is the "default" server.  All users of this 
+  application software installation need a user account on this "default"
+  server regardless of whether they store their calculation data on the
+  "default" server or another one.
+
+  Adding multiple <EcceServer> elements allows users to access the servers 
+  listed after the first "default" server as additional locations to store 
+  their data.  They also need a user account on any of the additional 
+  servers they will access.
+
+  The DataServers file also contains the following elements:
+
+    <BasisSet>        Gaussian Basis Set location.
+
+    <StructureLib>    Structure library location.  Multiple libarary 
+                        locations can be specified.  The first 
+                        library listed will be considered as the 
+                        default.  For standalone builder the Url tag
+                        is used for the Structure library and this one is
+                        ignored.
+
+    <ForceField>      Force field information - default name is "NWChem"
+      <ParamFiles>      Force field parameter files
+      <SegmentDirs>     Force field segment directories
+-->
+
+<EcceData>
+  <EcceServer>
+    <Url>http://eccetera.emsl.pnl.gov:8096/Ecce</Url>
+    <Desc>EMSL ECCE Web Server</Desc>
+  </EcceServer>
+
+  <BasisSet>http://eccetera.emsl.pnl.gov:8096/Ecce/system/GaussianBasisSetLibrary</BasisSet>
+
+  <StructureLib>$ECCE_HOME/data/client/StructureLibrary</StructureLib>
+
+  <ForceField name="NWChem">
+    <ParamFiles>
+      <ParamFile>$ECCE_HOME/nwchem/usr.local.lib.nwchem/amber_s/amber.par</ParamFile>
+      <ParamFile>$ECCE_HOME/nwchem/usr.local.lib.nwchem/amber_x/amber.par</ParamFile>
+    </ParamFiles>
+    <SegmentDirs>
+      <SegmentDir>$ECCE_HOME/nwchem/usr.local.lib.nwchem/amber_s</SegmentDir>
+      <SegmentDir>$ECCE_HOME/nwchem/usr.local.lib.nwchem/amber_x</SegmentDir>
+    </SegmentDirs>
+  </ForceField>
+</EcceData>
+

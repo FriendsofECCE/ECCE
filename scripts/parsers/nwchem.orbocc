@@ -1,0 +1,55 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#   Parse ORBOCC or ORBOCCBETA.
+#
+# Command line parameters:
+#           
+# Description:
+#
+###############################################################################
+# Force output to be flushed
+$| = 1;
+
+$whichprop = "ORBOCC";
+
+$labelLine = <STDIN>;
+if ($labelLine =~ /beta/) { $whichprop = "ORBOCCBETA"; }
+
+
+$labelLine =~ /%(\d+)%double/;
+$nvalues = $1;
+
+while (<STDIN>) {
+  last if (/task/);
+  chomp;
+  push(@values,split(/ +/,$_));
+}
+
+print "key: $whichprop\n";
+print "size:\n$nvalues\n";
+print "rowlabels:\n";
+foreach $i (1 .. $nvalues){
+  print " $i ";
+  if (($i % 10) == 0) {print "\n";}
+}
+if (($nvalues % 10) != 0) {
+  print "\nvalues:\n";
+} else {
+  print "values:\n";
+}
+$nvalues = @values;
+foreach $i (1 .. $nvalues){
+  print " $values[$i-1]";
+  if (($i % 10) == 0) {print "\n";}
+}
+if (($nvalues % 10) !=0) {
+  print "\nEND\n";
+} else {
+  print "END\n";
+}
+exit(0);

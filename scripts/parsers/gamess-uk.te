@@ -1,0 +1,68 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+($key, $runtype, $category, $theory) = @ARGV;
+
+# Force output to be flushed
+$| = 1;
+
+  $value = <STDIN>;
+  chop($value);
+
+  ########################################################################
+  #
+  # Dump out total energy. For optimizations, add total energy to total
+  # energy vector as well.
+  #
+  ########################################################################
+  if ($theory =~ /MP2/) {
+     if ($value =~ /total energy \(mp2\)/) {
+        $value =~ /total energy \(mp2\)\s*(\S*)/;
+        $value = $1;
+     } elsif ($value =~ /total energy \(uhf-mp2\)/) {
+        $value =~ /total energy \(uhf-mp2\)\s*(\S*)/;
+        $value = $1;
+     } else {
+        exit;
+     }
+  } else {
+     $value =~ /total energy\s*(\=?)\s*(\S*)/;
+     $value = $2;
+  }
+
+  if ($value =~ /\:/) { exit; }
+
+  if (!($runtype =~ /Geo/)) {
+#
+#     write TE only for non-geometry optimization calculations
+#
+      print "key: TE\n";
+      print "size:\n1\n";
+      print "values:\n$value\n";
+      print "END\n";
+
+  } else {
+#
+#     write TE and TEVEC (this is the target energy)
+#
+      print "key: TE\n";
+      print "size:\n1\n";
+      print "values:\n$value\n";
+      print "END\n";
+
+      print "key: TEVEC\n";
+      print "size:\n1\n";
+      print "values:\n$value\n";
+      print "END\n";
+ }

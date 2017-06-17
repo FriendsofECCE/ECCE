@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   See online documenation at http://www.emsl.pnl.gov:2080/docs/ecce
+-->
+
+<appdescriptor>
+
+<GaussianBasisSetRules>
+  <MaxLValue>  5</MaxLValue>
+  <ECPS>True</ECPS>
+  <GeneralContractions>True</GeneralContractions>
+  <PreferOptimization>	True</PreferOptimization>
+  <MaxPrimitives>64000 64000 64000 64000 64000 64000 64000</MaxPrimitives>
+  <MaxSharedExponent>      1 </MaxSharedExponent>
+  <SphericalCoordinates>	True </SphericalCoordinates>
+  <TheoryNoSpherical>	RIMP2 </TheoryNoSpherical>
+  <DFTFitting>		True</DFTFitting>
+  <RecommendDFTCharge>	True </RecommendDFTCharge>
+  <RequireFullDFT>         True </RequireFullDFT>
+  <MaxTotalFunctions>	64000</MaxTotalFunctions>
+  <MaxTotalPrimitives>	64000</MaxTotalPrimitives>
+  <MultipleOrbitals>	false</MultipleOrbitals>
+  <LibraryNames>	True</LibraryNames>
+  <AllowMultipleOrbitals>False</AllowMultipleOrbitals>
+</GaussianBasisSetRules>
+
+
+
+<!--
+  Enables Geometry and Partial Charge sub dialogs if runtype is appropriate
+-->
+<SupportsConstraints>true</SupportsConstraints>
+
+
+
+<GeometryConstraintRules>
+  <SupportsAtomConstraints>true</SupportsAtomConstraints>
+  <SupportsConstrainBonds>true</SupportsConstrainBonds>
+  <SupportsConstrainAngles>true</SupportsConstrainAngles>
+  <SupportsConstrainTorsions>true</SupportsConstrainTorsions>
+  <SupportsRestrainBonds>true</SupportsRestrainBonds>
+  <SupportsRestrainAngles>false</SupportsRestrainAngles>
+  <SupportsRestrainTorsions>false</SupportsRestrainTorsions>
+  <SupportsFixedAtomsAndConstraints>false</SupportsFixedAtomsAndConstraints>
+  <SupportsFixedAtomsAndRestraints>true</SupportsFixedAtomsAndRestraints>
+  <SupportsMixedConstraintsAndRestraints>false</SupportsMixedConstraintsAndRestraints>
+</GeometryConstraintRules>
+
+
+
+<!-- This seems misplaced.  Where should it really be?  What affects does
+     that have on existing data?
+     Bruce is looking into this.
+-->
+
+<MOOrdering type="cartesian" >
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="x2" a2="xy" a3="xz" a4="y2" a5="yz" a6="z2"></lshell>
+   <lshell lval="3" a1="x3" a2="x2y" a3="x2z" a4="xyy" a5="xyz" a6="xzz"
+    a7="yyy" a8="yyz" a9="yzz" a10="zzz"></lshell>
+   <lshell lval="4" a1="xxxx" a2="xxxy" a3="xxxz" a4="xxyy" a5="xxyz" a6="xxzz"
+    a7="xyyy" a8="xyyz" a9="xyzz" a10="xzzz" a11="yyyy" a12="yyyz"
+    a13="yyzz" a14="yzzz" a15="zzzz"></lshell>
+</MOOrdering>
+
+<MOOrdering type="spherical" >
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="xy" a2="yz" a3="-xx/2-yy/2+zz" a4="-xz"
+    a5="xx/2-yy/2"></lshell>
+   <lshell lval="3" a1="3xxy/2-yyy/2" a2="xyz" a3="-xxy/2-yyy/2+2yzz"
+    a4="-3xxz/2-3yyz/2+zzz" a5="xxx/2+xyy/2-2xzz" a6="xxz/2-yyz/2"
+    a7="-xxx/2+3xyy/2"></lshell>
+</MOOrdering>
+
+<!-- All names are completely unconstrained but must be consistent with
+     names used by detail dialogs and input files generator etc.
+-->
+<Editor theorydialog="nedtheory.py" runtypedialog="nedruntype.py">
+  <Theory category="SCF" name="RHF">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>Property</runtype>
+    <runtype noSpherical = "true">ESP</runtype>
+  </Theory>
+  <Theory category="SCF" name="ROHF">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>Property</runtype>
+    <runtype noSpherical = "true">ESP</runtype>
+  </Theory>
+  <Theory category="SCF" name="UHF">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>Property</runtype>
+    <runtype noSpherical = "true">ESP</runtype>
+  </Theory>
+  <Theory category="DFT" name="RDFT">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>Property</runtype>
+  </Theory>
+  <Theory category="DFT" name="UDFT">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>Property</runtype>
+  </Theory>
+  <Theory category="MP" name="RMP2">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="MP" name="UMP2">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="CC" name="RCCSD">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="CC" name="RCCSD(T)">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <!-- Start Eric Bylaska's planewave module integration -->
+  <Theory category="NWPW" name="PSPW" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>Property</runtype>
+    <runtype>Car-Parrinello</runtype>
+  </Theory>
+  <Theory category="NWPW" name="BAND" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>Property</runtype>
+  </Theory>
+  <!-- End Eric Bylaska's planewave module integration -->
+
+  <TheorySummary>
+    <item key="ES.Theory.SCF.Direct" label="SCF Integrals"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.SCF.ConvergenceAlgorithm" label="SCF Conv. Algorithm"></item>
+  </TheorySummary>
+  <TheorySummary topLabel="SCF Convergence-">
+    <item key="ES.Theory.SCF.ConvergenceGradient.Value" label="Gradient"></item>
+    <item key="ES.Theory.SCF.ConvergenceDensity.Value" label="Density"></item>
+    <item key="ES.Theory.SCF.ConvergenceEnergy.Value" label="Energy"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.SCF.ConvergenceIterations" label="SCF Max. Iterations"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.DFT.XCFunctionals" label="DFT Combined Func."></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.DFT.ExchangeFunctionals" label="DFT Exchange Func."></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.DFT.CorrelationFunctionals" label="DFT Corr Func."></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.CorrelOrb.FrozenCoreValue" label="Frozen Core Orbitals"></item>
+  </TheorySummary>
+
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.SearchAlgorithm" label="Algorithm"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.SearchFor" label="Search for"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.Convergence" label="Geom. Convergence"></item>
+  </RuntypeSummary>
+  <RuntypeSummary topLabel="Geom. Convergence-">
+    <item key="ES.Runtype.GeomOpt.ConvergenceGradient.Value" label="Gradient"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.MaximumStepsValue" label="Max. Steps"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.ESP.RestraintAlgorithm" label="Restraint Algorithm"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.ESP.HarmForceConstant" label="Force Constant"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.ESP.HypForceConstant" label="Force Constant"></item>
+  </RuntypeSummary>
+</Editor>
+
+
+
+<!-- Raw File Naming Conventions
+-->
+
+<DataFiles>
+  <Input   type="primary" mimetype="chemical/x-nwchem-input" comment="true" commentstring="#">nwch.nw</Input>
+  <Input   type="primary" mimetype="chemistry/x-nwchem-input" comment="true" commentstring="#">nwch.in</Input>
+  <Output type="primary" mimetype="chemical/x-nwchem-output">nwch.nwout</Output>
+  <Output type="primary" mimetype="chemistry/x-nwchem-output">nwch.out</Output>
+  <Output type="parse" verifypattern="%begin%input" mimetype="chemical/x-ecce-parse">ecce.out</Output>
+  <Output type="parse" verifypattern="%begin%input" mimetype="chemistry/x-ecce-parse">ecce.out</Output>
+  <Output type="auxiliary" mimetype="chemical/x-nwchem-mo">movec.nw_mo</Output>
+  <Output type="auxiliary" mimetype="chemistry/x-nwchem-mo">movec</Output>
+  <Output type="property" mimetype="chemical/x-gaussian-cube">CUBE</Output>
+  <Output type="fragment" mimetype="chemical/x-pdb"></Output>
+  <Output type="restart" mimetype="chemical/x-nwchem-restart"></Output>
+  <Output type="topology" mimetype="chemical/x-nwchem-topology"></Output>
+  <Output type="mdproperties" mimetype="chemical/x-nwchem-md-properties"></Output>
+  <Output type="mdoutput" mimetype="chemical/x-nwchem-md-output"></Output>
+  <Output type="property" mimetype="chemical/x-nwchem-md-trajectory">TRJ</Output>
+  <Output type="esp" mimetype="chemical/x-nwchem-esp"></Output>
+</DataFiles>
+
+<!-- Names of files required for code integration.  These files are
+     assumed to be in the ecce path as managed by the ecce_env script.
+-->
+<IntegrationFiles>
+  <Template>	nwch.tpl  </Template>
+  <InputGenerator>ai.nwchem </InputGenerator>
+  <Importer>NWChem.expt </Importer>
+  <ParseSpecification>nwchem.desc </ParseSpecification>
+  <LaunchPreprocessor>nwchem.launchpp </LaunchPreprocessor>
+  <BasisTranslationScript>std2NWChem</BasisTranslationScript>
+</IntegrationFiles>
+
+</appdescriptor>

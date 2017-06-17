@@ -1,0 +1,9 @@
+# ECCE Installed Machines
+#
+# This file looks almost readable  when viewed in a wide xterm with a really
+# small font
+#
+#name						vendor	model		processor			nodes	remShell	codes
+#----						------	-----		---------			-----	--------	-----
+chinook	chinook.emsl.pnl.gov	HP	HPCS3 Phase 1 Cluster	AMD 2.6 GHz Opteron	4800:600	ssh	:NWChem	MN:RD:SD:UN:PW:AA:Q:TL
+franklin	franklin.nersc.gov	Cray	Cray Cluster	AMD 2.6 GHz Opteron	16000:4000	ssh	:NWChem	MN:RD:SD:UN:PW:AA:Q:TL

@@ -1,0 +1,36 @@
+name
+Feller Misc. CVQZ
+name
+type
+other_segmented
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ----------
+K : (s,p) exponents from H. Partridge 
+    Polarization and core/valence exponents from D. Feller, (to be published)
+
+references
+info
+                Core/valence quadruple zeta basis sets
+                --------------------------------------
+Elements                   Contraction               References
+K : (23s,19p,6d,4f,2g) -> [10s,9p,6d,4f,2g] (s,p) exponents from H. Partridge
+                                            Polarization and core/valence
+                                            exponents from
+                                            D. Feller, (to be published)
+
+
+info
+comments
+12/29/97  - DFF - Original creation of this file.
+comments

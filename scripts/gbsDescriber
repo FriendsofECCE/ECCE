@@ -1,0 +1,261 @@
+#!/usr/bin/python
+import sys
+
+
+def getargs(arguments):
+########## Attempt at Linux-style argument handling ######
+	exit=0
+	ver='0.2 (27 June 2013)'
+	print ''
+	print '\t---------------------------------------'
+	print '\tgbsDescriber, version %s.'% ver
+	print '\t---------------------------------------\n'
+	switches={}
+	thecontractiontype=[]
+	thespherical=[]
+	thecategory=[]
+	thename=[]
+	thetype=[]
+	theoutput=''
+	
+	try: 
+		if "-n" in arguments:
+			thename=arguments[arguments.index('-n')+1]
+			print 'Name: %s.'%thename
+		elif "--name" in arguments:
+			thename=arguments[arguments.index('--name')+1]
+			print 'Name: %s.'%thename
+		else:
+			print ''
+			print 'Error -- no name defined.'
+			print 'This should be the same as the'
+			print 'name of the nwchem basis set file.'
+			print ''
+			arguments="--help"
+	except:
+		print 'Error -- no name defined.'
+		print 'This should be the same as the'
+		print 'name of the nwchem basis set file.'
+		print ''
+		arguments="--help"
+	
+	try: 
+		if "-c" in arguments:
+			thecategory=arguments[arguments.index('-c')+1]
+			print 'Category: %s.'% thecategory
+		elif "--category" in arguments:
+			thecategory=arguments[arguments.index('--category')+1]
+			print 'Category: %s.' % thecategory
+		else:
+			print ''
+			print 'Error -- no category defined.'
+			print 'Example of categories include: '
+			print 'ORBITAL, AUXILIARY, TAIOrbital'
+			print ''
+			arguments="--help"
+	except:
+		print 'Error -- no category defined.'
+		print 'Example of categories include: '
+		print 'ORBITAL, AUXILIARY, TAIOrbital'
+		print ''
+		arguments="--help"
+	
+	try: 
+		if "-t" in arguments:
+			thetype=arguments[arguments.index('-t')+1]
+			print 'Type: %s.'% thetype
+		elif "--type" in arguments:
+			thetype=arguments[arguments.index('--type')+1]
+			print 'Type: %s.'%thetype
+		else:
+			print ''
+			print 'Error -- no type defined.'
+			print 'Examples of types include:'
+			print 'pople,ecp, polarization, ECPOrbital'
+			print ''
+			arguments="--help"
+	except:
+		print 'Error -- no type defined.'
+		print 'Examples of types include:'
+		print 'pople,ecp, polarization, ECPOrbital'
+		print ''
+		arguments="--help"
+	
+	try: 
+		if "-o" in arguments:
+			theoutput=arguments[arguments.index('-o')+1]
+			print 'Output: %s.'%theoutput
+		elif "--output" in arguments:
+			theoutput=arguments[arguments.index('--output')+1]
+			print 'Output: %s.'%theoutput
+		else:
+			print ''
+			print 'Error -- no output file defined.'
+			print ''
+			arguments="--help"
+	except:
+		print 'Error -- no name defined.'
+		print 'This should be the same as the'
+		print 'name of the nwchem basis set file.'
+		print ''
+		arguments="--help"
+	
+	try: 
+		if "-y" in arguments:
+			thecontractiontype=arguments[arguments.index('-y')+1]
+			print 'Contraction_type: %s.'%thecontractiontype
+		elif "--contraction_type" in arguments:
+			thecontractiontype=arguments[arguments.index('--contraction_type')+1]
+			print 'Contraction_type: %s.'%thecontractiontype
+		else:
+			print ''
+			print 'Warning -- no contraction type defined.'
+			print 'This should be defined for non-ECP'
+			print 'basis sets. Examples include'
+			print 'Segmented, other_segmented, correlation_consistent,diffuse, GC'
+			print 'Note: Case sensitive'
+			print ''
+	except:
+		thecontractiontype=[]
+	
+	try: 
+		if "-s" in arguments:
+			thespherical=arguments[arguments.index('-s')+1]
+			print 'Spherical: %s.'%thespherical
+		elif "--spherical" in arguments:
+			thespherical=arguments[arguments.index('--spherical')+1]
+			print 'Spherical: %s.'%thespherical
+		else:
+			print ''
+			print 'Warning -- whether spherical or not'
+			print 'is not indicated. This can be defined'
+			print 'for non-ECP basis sets. Is either Y, N'
+			print ''
+	except:
+		thespherical=[]
+	
+	# Check input
+	if thetype not in ['pople','ecp','ECPOrbital','polarization','']:
+		print 'Illegal type (probably) -- see source code (could be wrong case)'
+	if thecategory not in ['ORBITAL', 'AUXILIARY', 'TAIOrbital','']:
+		print 'Illegal category (probably) -- see source code (could be wrong case)'
+	
+	if (thecontractiontype not in ['Segmented','other_segmented','correlation_consistent','diffuse','GC','']) and (thecontractiontype!=[]):
+		print 'Illegal contraction_type (probably) -- see source code (could be wrong case)'
+	
+	if (thespherical not in ['Y','N','']) and (thespherical!=[]):
+		print 'Illegal spherical type (probably) -- see source code (should be Y or N)'
+	
+	try:
+		if ("-h" in arguments) or ("--help" in arguments):
+			print " "
+			print "\t\tThis is gbsDescriber, a tool for generating .DAV/.pag"
+			print "\t\t files for ECCE. Use this together with gbsNWChemConverter"
+			print "\t\tThis is version",ver
+			print "\tUsage:"
+			print "\t-h\t--help   \tYou're looking at it."
+			print "\t-n\t--name\tnwchem basis set file name, e.g. 3-21g"
+			print "\t-t\t--type\tType, e.g. pople"
+			print "\t-c\t--category \tCategory, e.g. ORBITAL"
+			print "\t-o\t--output \tFile to save to, e.g. 3-21G.BAS.pag"
+			print "\t-y\t--contraction_type \tContraction type, e.g. Segmented"
+			print "\t-s\t--spherical \tSpherical: Y(es) or N(o). e.g. N"
+	
+			print ""
+			exit=1
+	except:
+		a=1		 #do nothing
+	
+	if exit==1:
+		sys.exit(0)
+	print ''
+	switches['n']=thename
+	switches['t']=thetype
+	switches['c']=thecategory
+	switches['o']=theoutput
+	switches['y']=thecontractiontype
+	switches['s']=thespherical
+	return switches
+
+def genbinary(switches):
+	thename=switches['n']
+	thetype=switches['t']
+	thecategory=switches['c']
+	theoutput=switches['o']
+	thecontractiontype=switches['y']
+	thespherical=switches['s']
+	
+	###
+	#note that orbital starts with chr(12), while auxiliary starts with chr(8).
+	
+	#UGLY!!!
+	if thecontractiontype==[] and thespherical==[]:
+	# ECP only
+		pagdata=[chr(8),chr(0),chr(255-len('1:name')),chr(3),chr(255-len('1:name')-1-len(thename)-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('METADATA')),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('METADATA')-len(chr(0)+chr(4)+chr(0)+chr(2)+'DAV:'+chr(0)+'http://www.emsl.pnl.gov/ecce:'+chr(0))),chr(3)]
+	
+	elif thecontractiontype==[]:
+		pagdata=[chr(12),chr(0),chr(255-len('1:name')),chr(3),chr(255-len('1:name')-1-len(thename)-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1),chr(3),\
+	chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:spherical')-1),chr(3),\
+	chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:spherical')-1-len(thespherical)-1-1),chr(3),\
+	chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:spherical')-1-len(thespherical)-1-1-len('METADATA')),\
+	chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:spherical')-1-len(thespherical)-1-1-len('METADATA')-len(chr(0)+chr(4)+chr(0)+chr(2)+'DAV:'+chr(0)+'http://www.emsl.pnl.gov/ecce:'+chr(0))),chr(3)]
+	
+	
+	elif thespherical==[]:
+		pagdata=[chr(12),chr(0),chr(255-len('1:name')),chr(3),chr(255-len('1:name')-1-len(thename)-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1),chr(3),\
+	chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:contraction_type')-1),chr(3),\
+	chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:contraction_type')-1-len(thecontractiontype)-1-1),chr(3),\
+	chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:contraction_type')-1-len(thecontractiontype)-1-1-len('METADATA')),\
+	chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:contraction_type')-1-len(thecontractiontype)-1-1-len('METADATA')-len(chr(0)+chr(4)+chr(0)+chr(2)+'DAV:'+chr(0)+'http://www.emsl.pnl.gov/ecce:'+chr(0))),chr(3)]
+	
+	else:
+		pagdata=[chr(12),chr(0),chr(255-len('1:name')),chr(3),chr(255-len('1:name')-1-len(thename)-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1),chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1),chr(3),\
+	chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:spherical')-1),chr(3),\
+	chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:spherical')-1-len(thespherical)-1-1),chr(3),\
+	chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:spherical')-1-len(thespherical)-1-1-len('1:contraction_type')-1),chr(3),\
+	chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:spherical')-1-len(thespherical)-1-1-len('1:contraction_type')-1-len(thecontractiontype)-1-1),chr(3),\
+	chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:spherical')-1-len(thespherical)-1-1-len('1:contraction_type')-1-len(thecontractiontype)-1-1-len('METADATA')),\
+	chr(3),chr(255-len('1:name')-1-len(thename)-1-len('1:type')-1-1-len(thetype)-1-len('1:category')-1-len(thecategory)-1-1-len('1:spherical')-1-len(thespherical)-1-1-len('1:contraction_type')-1-len(thecontractiontype)-1-1-len('METADATA')-len(chr(0)+chr(4)+chr(0)+chr(2)+'DAV:'+chr(0)+'http://www.emsl.pnl.gov/ecce:'+chr(0))),chr(3)]
+		
+		
+	pagarray=[chr(004),chr(0),chr(0),chr(002)]+list('DAV:')
+	metaarray=[chr(0)]+list('http://www.emsl.pnl.gov/ecce:')+[chr(0)]+list('METADATA')
+	
+	if thecontractiontype !=[]:
+		thecontractiontype=[chr(0)]+list(thecontractiontype)+[chr(0)]+list('1:contraction_type')+[chr(0)]
+	if thespherical !=[]:
+		thespherical=[chr(0)]+list(thespherical)+[chr(0)]+list('1:spherical')+[chr(0)]
+		
+	catarray=[chr(0)]+list(thecategory)+[chr(0)]+list('1:category')+[chr(0)]
+	typearray=[chr(0)]+list(thetype)+[chr(0)]+list('1:type')+[chr(0)]
+	namearray=[chr(0)]+list(thename)+[chr(0)]+list('1:name')+[chr(0)]
+	
+	middata=(1024-len(pagdata+pagarray+metaarray+thecontractiontype+thespherical+catarray+typearray+namearray))*[chr(0)]
+	
+	pagcontent=pagdata+middata+pagarray+metaarray+thecontractiontype+thespherical+catarray+typearray+namearray
+	return pagcontent
+
+def writedavdata(davdata,theoutput):
+	
+	g=open(theoutput,'wb')
+	for byte in davdata:
+		g.write(byte)
+	g.close
+	
+	success=0
+	return success
+if __name__ == "__main__":
+	
+	arguments=sys.argv[1:len(sys.argv)]
+	switches=getargs(arguments)
+	davdata=genbinary(switches)
+	success=writedavdata(davdata,switches['o'])
+
+	if success==0:
+		print 'Completed successfully.'
+		print "DON'T FORGET TO CREATE AN EMPTY .dir FILE"
+	else:
+		print 'Something went wrong when writing'
+	
+	
+	

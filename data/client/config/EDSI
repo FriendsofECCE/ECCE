@@ -1,0 +1,54 @@
+#
+# EDSI error keys and messages
+#
+# For long messages, use '\' at the end of a line to continue it
+#
+
+# When all else fails
+UNKNOWN: %s unrecognized error.
+
+
+# Client side status codes
+CLIENT_ERROR: The application is unable to access the data server
+SERVER_NOT_FOUND: Server or server port is not available. %s 
+
+# Different implementations of AuthEventListener may choose to abort
+# after a certain number of authentication attempts.
+TOO_MANY_RETRIES:  You have exceeded the number of allowable attempts at \
+  authentication - request aborted. 
+
+# This indicates some error encountered sending or receiving from the
+# server
+UNABLE_TO_COMPLETE_REQUEST: Unable to complete request. %s
+
+# Server side status codes
+NOT_IMPLEMENTED: %s not implemented by this data server.
+NOT_STORAGE_SYSTEM: %s cannot be used as a storage system.
+SERVER_ERROR: An error condition has occured on the data server so the operation cannot be completed.  %s
+SERVER_REQUEST_ACKNOWLEDGEMENT: The server acknowledged your request.  %s    
+SERVICE_DENIAL:  The server denied your request.  %s
+
+#Authorization and Authentication
+NOT_AUTHENTICATION: You do not provide the proper authentication.  %s 
+NOT_PRIVLEDGES: You do not have privileges for operation.  %s
+
+# The following applies to authentication.
+CANCELED:  Canceled by user
+INTERRUPTED:  Interrupted!  Since this operation was interrupted, a \
+partially completed state may exist on the server.
+
+#Transaction status/results 
+INCOMPLETE_TRANSACTION: Operation partially failed due to error condition.  %s
+LOCK_PRESENT: %s or it's children contain one or more locks.
+NOT_AVAILABLE: %s was not accessible or failed to transmit properly
+NOT_COLLECTION: %s is not a collection
+NOT_EXIST: %s does not exist
+NOT_REGULAR_FILE: %s is not a regular file
+RESOURCE_NOT_FOUND: %s does not exist
+TRANSACTION_IN_PROGRESS:  Operation in progress. 
+UNABLE_TO_COPY: Unable to copy %s
+UNABLE_TO_CREATE: Unable to create %s
+UNABLE_TO_DELETE: Unable to delete %s
+UNABLE_TO_READ: Unable to open %s for reading
+UNABLE_TO_WRITE: Unable to open %s for write
+UNABLE_TO_MOVE: Unable to move %s

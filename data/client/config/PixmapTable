@@ -1,0 +1,54 @@
+############################################################################
+# PixmapTable
+#
+# This file contains a table of logical names and the pixmap that should
+# be used whenever that name is encountered.
+#
+# Because some of the names use ':' for namespace deliniation, the name
+# and value are separated by the ',' character.  The url
+# http://www.emsl.pnl.gov/ecce defines a namespace for ecce data types.
+#
+# The primary reason for modifying this file is if a new data type or
+# application is added to Ecce.
+############################################################################
+
+
+#The first item will be the default if no match is found
+file,                                                 docany.xpm
+
+# open and close folders used in the Calulation manager
+structure, viz.xpm
+collection, folder.xpm
+ecceProject, folder.xpm
+httpd/unix-directory, folder.xpm
+collectionselected, foldersel.xpm
+opencollection, openfolder.xpm
+opencollectionselected, openfoldersel.xpm
+
+boolean,                                              checkmark.xpm
+
+http://www.emsl.pnl.gov/ecce:reviewed,                viewed.xpm
+http://www.emsl.pnl.gov/ecce:annotation,              anno.xpm
+annotation,                                           anno.xpm
+ecceCalculation,                                      calcany.xpm
+eccecalculation,                                      calcany.xpm
+
+# Icons for registered calculations
+http://www.emsl.pnl.gov/ecce:ecceCalculation,         calcany.xpm
+http://www.emsl.pnl.gov/ecce:NWChem,                  calcnwchem.xpm
+http://www.emsl.pnl.gov/ecce:GAMESS-UK,               calcgamessuk.xpm
+http://www.emsl.pnl.gov/ecce:Gaussian-03,             calcgaussian03.xpm
+http://www.emsl.pnl.gov/ecce:Gaussian-98,             calcgaussian.xpm
+http://www.emsl.pnl.gov/ecce:Gaussian-94,             calcgaussian.xpm
+http://www.emsl.pnl.gov/ecce:Amica,                   calcamica.xpm
+http://www.emsl.pnl.gov/ecce:NWChemMD,                calcnwchemmd.xpm
+http://www.emsl.pnl.gov/ecce:MDStudy,                 mdstudy.xpm
+http://www.emsl.pnl.gov/ecce:mdstudy,                 mdstudy.xpm
+http://www.emsl.pnl.gov/ecce:G3,                      calcg3.xpm
+http://www.emsl.pnl.gov/ecce:DeltaHF,                 calchf.xpm
+
+# Icon to show the sort direction of columns in tables.
+sortup,                                               up.xpm
+sortdown,                                             down.xpm
+
+

@@ -1,0 +1,5 @@
+mvm: ECCE Internal Type
+nw: NWChem Input
+pdb: PDB
+xyz: XYZ
+car: CAR

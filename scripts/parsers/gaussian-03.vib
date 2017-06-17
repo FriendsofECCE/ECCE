@@ -1,0 +1,362 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+# This script extracts the normal mode coefficients from Gaussian-98 output.
+# It may be extended to add mode numbers and symmetry labels or frequencies
+# in the labels vectorlabels field, or atom labels in the rowlabels field.
+#
+# Command line parameters:
+#           
+# Description:
+#
+###############################################################################
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+require "pertab.pl";
+
+# Force output to be flushed
+$| = 1;
+
+&loadPT;
+
+#
+# initialize counters and lists
+#
+  $natoms = 0;
+  @modelabels = ();
+  @atomlabels = ();
+  @symmetries = ();
+  @frequencies = ();
+  @vectors = ();
+  $modecount = 0;
+#
+# For the special case of a diatomic, there is only a single normal
+# mode and none of the cuteness in read3ModeBlock is necessary
+# 
+#
+  $_ = <STDIN>;
+  $_ = <STDIN>;
+  if ( /^\s*1\s*$/ ) {  # diatomic
+    $natoms = 2;
+    $nfree = 1;
+    $numVibModes = 1;
+    $modecount = 1;
+
+    $_ = <STDIN>;
+    chop;
+    $label = $_;
+    $label =~ tr/ //d;
+    
+    $_ = <STDIN>;
+    chop;
+    ($junk1,$freq) = split("-+",$_);
+
+    $_ = <STDIN>;
+    $_ = <STDIN>;
+    $_ = <STDIN>;
+    chop;
+    ($junk1,$IRinten) = split("-+",$_);
+
+    $_ = <STDIN>;
+    chop;
+    ($junk1,$raman) = split("-+",$_);
+
+    $_ = <STDIN>;
+    $_ = <STDIN>;
+    $_ = <STDIN>;
+    chop;
+    ($junk1,$junk2,$atnum,@tmpcoords) = split(" +",$_);
+    push(@atomlabels,"1-".$atomicSymbol[$atnum]);
+    push(@coords,@tmpcoords);
+    $_ = <STDIN>;
+    chop;
+    ($junk1,$junk2,$atnum,@tmpcoords) = split(" +",$_);
+    push(@atomlabels,"2-".$atomicSymbol[$atnum]);
+    push(@coords,@tmpcoords);
+
+    print "key: VIB\n";
+    print "size:\n$nfree $natoms 3\n";
+    print "vectorlabels:\n";
+    print "1-$label\n";
+    print "rowlabels:\n";
+    print "@atomlabels\n";
+    print "columnlabels:\n";
+    print " X Y Z\n";
+    print "values:\n";
+    foreach $i (@coords) { print " $i "; }
+    print "\nunits:\nAngstrom\n";
+    print "END\n";
+
+    print "key: VIBFREQ\n";
+    print "size:\n$numVibModes\n";
+    print "rowlabels:\n";
+    print "1-$label\n";
+    print "values:\n";
+    print "$freq\n";
+    print "\nunits:\ncm-1\n";
+    print "END\n";
+
+    print "key: VIBIR\n";
+    print "size:\n$numVibModes\n";
+    print "columnlabels:\n";
+    print "1-$label\n";
+    print "values:\n";
+    print "$IRinten\n";
+    print "\nunits:\nKM/Mole\n";
+    print "END\n";
+
+    print "key: VIBRAM\n";
+    print "size:\n$numVibModes\n";
+    print "columnlabels:\n";
+    print "1-$label\n";
+    print "values:\n";
+    print "$raman\n";
+    print "\nunits:\nA^4/AMU\n";
+    print "END\n";
+    exit;
+  } elsif (! /^\s+1\s+2\s+3\s*$/ ) {
+#   For Gaussian-92 output, the vibrational output appears in two formats.
+#   the following line skips to the second format, which is the same as
+#   that from Gaussian-94.  This trick only fails if there are exactly 3 
+#   vibrational modes (true for H2O).  In this case, the Frequencies, 
+#   IR intensities, and Raman activities are parsed from the _first_ copy
+#   of the output, but the search for 'Atom AN' in read3ModeBlock then jumps
+#   to the second output block and reads the normal modes.
+#
+    while (<STDIN>)  { last if (/^\s+1\s+2\s+3\s*$/); }
+  }
+#
+
+#
+# read the data
+#
+  for (;;) {
+    last if ( &read3ModeBlock != 0);
+  }
+
+# output the data
+#
+  if ($natoms == 0) {
+    die "zero atoms\n";
+  } else {
+#    $nfree = 3 * $natoms - 6;
+    $nfree = $modecount;
+    print "key: VIB\n";
+    print "size:\n$nfree $natoms 3\n";
+    print "vectorlabels:\n";
+    $prefix = 1;
+    $icnt = 0;
+    foreach $i ( @symmetries ) {
+      $icnt++;
+      print "$prefix-$i ";
+      if (($icnt % 10) == 0) { print "\n"};
+      $prefix++;
+    }
+    if (($icnt % 10) != 0) { print "\n"; }
+    print "rowlabels:\n";
+    print "@atomlabels\n";
+    print "columnlabels:\n";
+    print " X Y Z\n";
+    print "values:\n";
+
+    for ($i=0; $i<= $#vectors; $i++) {
+      printf("%.15e ",$vectors[$i]); 
+      if ($i % 3 == 2 ) { print "\n"; };
+    }
+    if ($i % 3 != 0 ) { print "\n";}
+
+  }
+  print "units:\nAngstrom\n";
+  print "END\n";
+
+  $numVibModes = $#symmetries + 1;
+
+  print "key: VIBFREQ\n";
+  print "size:\n$numVibModes\n";
+  print "rowlabels:\n";
+  $prefix = 1;
+  $icnt = 0;
+  foreach $i ( @symmetries ) {
+    $icnt++;
+    print "$prefix-$i ";
+    if (($icnt % 10) == 0) { print "\n"};
+    $prefix++;
+  }
+  if (($icnt % 10) != 0) { print "\n"; }
+  print "values:\n";
+  $icnt = 0;
+  foreach $i ( @frequencies ) {
+    $icnt++;
+    print "$i ";
+    if (($icnt % 10) == 0) { print "\n"};
+  }
+  if (($icnt % 10) != 0) { print "\n"; }
+  print "units:\ncm-1\n";
+  print "END\n";
+
+  print "key: VIBIR\n";
+  print "size:\n$numVibModes\n";
+  print "rowlabels:\n";
+  $prefix = 1;
+  $icnt = 0;
+  foreach $i ( @symmetries ) {
+    $icnt++;
+    print "$prefix-$i ";
+    if (($icnt % 10) == 0) { print "\n"};
+    $prefix++;
+  }
+  if (($icnt % 10) != 0) { print "\n"; }
+  print "values:\n";
+  $icnt = 0;
+  foreach $i ( @IRIntensities ) {
+    $icnt++;
+    print "$i ";
+    if (($icnt % 10) == 0) { print "\n"};
+  }
+  if (($icnt % 10) != 0) { print "\n"; }
+  print "units:\nKM/Mole\n";
+  print "END\n";
+
+  print "key: VIBRAM\n";
+  print "size:\n$numVibModes\n";
+  print "rowlabels:\n";
+  $prefix = 1;
+  $icnt = 0;
+  foreach $i ( @symmetries ) {
+    $icnt++;
+    print "$prefix-$i ";
+    if (($icnt % 10) == 0) { print "\n"};
+    $prefix++;
+  }
+  if (($icnt % 10) != 0) { print "\n"; }
+  print "values:\n";
+  $icnt = 0;
+  foreach $i ( @ramanActivities ) {
+    $icnt++;
+    print "$i ";
+    if (($icnt % 10) == 0) { print "\n"};
+  }
+  if (($icnt % 10) != 0) { print "\n"; }
+  print "units:\nA^4/AMU\n";
+  print "END\n";
+
+  exit(0);
+
+##############################################################################
+#
+#  Description:
+#      G94 vibrational modes and their attributes are put out 3 at a time
+#      in columns.  This routine reads one such block.
+#       
+############################################################################## 
+sub read3ModeBlock {
+#
+# read the symmetries for the 3 modes, on a line following one consisting
+# of only 2 or 3 numbers
+  if ( /^\s+\d+\s+\d+\s+\d+\s*$/ ||
+       /^\s+\d+\s+\d+\s*$/) { # found line of 2 or 3 numbers, symmetries next
+#   get the symmetry labels
+    $_ = <STDIN>;
+    chop;
+    ($junk0, @symtemp ) = split(/ +/,$_);
+    $modecount += 3;
+
+#   remove question marks that G94 inserts for no-symmetry calculations
+#   that may not reflect the actual point group.  If people don't like
+#   this, we could just set the labels blank.
+    foreach $label (@symtemp) { $label =~ s/\?//g; };
+    push(@symmetries,@symtemp);
+    @symtemp = ();
+
+    @IRintenstemp = (0.0, 0.0, 0.0);
+    @ramantemp = (0.0, 0.0, 0.0);
+    while (<STDIN>)  {
+      if (/Atom\s*AN/) {
+        last;
+      } elsif (/Frequencies/) {
+#       get the frequencies
+        chop;
+        ($junk0, $junk1, $junk2, @freqtemp ) = split(/ +/,$_);
+        push(@frequencies,@freqtemp);
+        @freqtemp = ();
+      } elsif (/IR Inten/) {
+#       get the IR intensities
+        chop;
+        ($junk0, $junk1, $junk2, $junk3, @IRintenstemp ) = split(/ +/,$_);
+      } elsif (/Raman Activ/) {
+#       get the Raman activites
+        chop;
+        ($junk0, $junk1, $junk2, $junk3, @ramantemp ) = split(/ +/,$_);
+      }
+    }
+    push(@IRIntensities,@IRintenstemp);
+    push(@ramanActivities,@ramantemp);
+
+  } elsif ( /^\s+\d+\s*/ ) {   # data begins with 1 integer ==> diatomic
+#   get the symmetry labels
+    $_ = <STDIN>;
+    chop;
+    ($junk0, @symtemp ) = split(/ +/,$_);
+    $modecount++;
+
+#   remove question marks that G94 inserts for no-symmetry calculations
+#   that may not reflect the actual point group.  If people don't like
+#   this, we could just set the labels blank.
+    foreach $label (@symtemp) { $label =~ s/\?//g; };
+    push(@symmetries,@symtemp);
+    @symtemp = ();
+
+    @IRintenstemp = (0.0);
+    @ramantemp = (0.0);
+    while (<STDIN>)  {
+      if (/Atom\s*AN/) {
+        last;
+      } elsif (/Frequencies/) {
+#       get the frequencies
+        chop;
+        ($junk0, $junk1, $junk2, @freqtemp ) = split(/ +/,$_);
+        push(@frequencies,@freqtemp);
+        @freqtemp = ();
+      } elsif (/IR Inten/) {
+#       get the IR intensities
+        chop;
+        ($junk0, $junk1, $junk2, $junk3, @IRintenstemp ) = split(/ +/,$_);
+      } elsif (/Raman Activ/) {
+#       get the Raman activites
+        chop;
+        ($junk0, $junk1, $junk2, $junk3, @ramantemp ) = split(/ +/,$_);
+      }
+    }
+    push(@IRIntensities,@IRintenstemp);
+    push(@ramanActivities,@ramantemp);
+
+  } else {   # data did not begin with mode label line (3 integers), done
+    return 1;
+  }
+  $natoms = 0;
+  @atomlabels = ();
+  @vec0 = (); @vec1 = (); @vec2 = (); 
+#
+# now read in the normal mode coefficients (natom lines)
+#
+  while (<STDIN>)  { # read 
+    if ( /\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/ ||
+         /\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/ ||
+         /\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/ ) {
+      push(@atomlabels,($1."-".$atomicSymbol[$2]));
+      push(@vec0,($3,$4,$5));
+      if (defined($6)) {push(@vec1,($6,$7,$8))};
+      if (defined($9)) {push(@vec2,($9,$10,$11))};
+      $natoms++;
+    } else {
+      last;
+    }
+  }  
+  push(@vectors,@vec0);
+  push(@vectors,@vec1);
+  push(@vectors,@vec2);
+  return 0;
+}

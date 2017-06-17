@@ -1,0 +1,17 @@
+title:          Formic Acid
+type:           molecule
+cell_units:     angstroms
+num_atoms:      5
+atom_info:      symbol cart
+atom_list:
+  C  -0.293  -0.342  -0.078
+  O   0.818   0.238   0.397
+  H   0.961   1.186   0.240
+  O  -0.585  -1.507   0.050
+  H  -0.902   0.425  -0.609
+num_bonds:      4
+bond_list:
+ 1  2
+ 1  4
+ 1  5
+ 2  3

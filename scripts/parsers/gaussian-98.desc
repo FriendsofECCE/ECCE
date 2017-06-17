@@ -1,0 +1,390 @@
+# Parse descriptor for GAUSSIAN-98 output file.
+
+[ORBOCC1][ORBOCCBETA]
+Script=gaussian-98.orbocc
+Begin=Orbital Symmetries
+Frequency=last
+End=Condensed to atoms
+[END]
+
+[ORBOCC2][ORBOCCBETA]
+Script=gaussian-98.orbocc
+Begin=Molecular Orbital Coefficients
+Frequency=last
+End=Condensed to atoms
+[END]
+
+[NULL3]
+Script=gaussian-03.null
+Begin=Making orbital integer symmetry
+Frequency=all
+End=used in FoFDir
+[END]
+
+[GEOMTRACE]
+Script=gaussian-03.geomtrace
+Begin=Standard orientation\:
+Skip=5
+Frequency=all
+End=--------------------------------------
+[END]
+
+[GEOMTRACE1]
+Script=gaussian-03.geomtrace-input
+Begin=Input orientation\:
+Skip=5
+Frequency=all
+End=Framework group
+[END]
+
+[EGRAD]
+Script=gaussian-03.egrad
+Begin=Cartesian Forces\:
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[EGRADVEC]
+Script=gaussian-03.egradvec
+Begin=             Forces
+Frequency=last
+Skip=3
+End=--------------------------------------
+[END]
+
+#The key used for a property that is derived from an auxiliary file cannot
+#match any entries in the properties file
+[MOFILE]
+Script=gaussian-98.mo
+File=fort.7
+Begin=fort.7
+[END]
+
+[ESP]
+Script=gaussian-03.esp
+File=grid.dat
+Begin=grid.dat
+[END]
+
+[DELTAE]
+Script=gaussian-03.deltae
+Begin=Delta\-E
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[RMSDP]
+Script=gaussian-03.rmsdp
+Begin=RMSDP
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[CPUSEC]
+Script=gaussian-03.cpusec
+Begin=Job cpu time\:
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[KE][NNREPUL]
+Script=gaussian-03.ke
+Begin=N\-N\=
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[VIB][VIBFREQ][VIBIR][VIBRAM][VIBSYM]
+Script=gaussian-03.vib
+Begin=reduced masses \(AMU\), force constants \(mDyne\/A\) and normal coordinates\:
+Frequency=first
+End=-------------------
+[END]
+
+[NULL1]
+Script=gaussian-03.null
+Begin=Proceeding to internal job step
+Frequency=first
+End=Harmonic frequencies
+[END]
+
+[NULL2]
+Script=gaussian-03.null
+Begin= Thermochemistry
+Frequency=first
+End=Cartesian Forces
+[END]
+
+[DIPOLE1]
+Script=gaussian-03.dipole
+Begin=Dipole moment\=
+Frequency=last
+Lines=1
+[END]
+
+[DIPOLE2]
+Script=gaussian-03.dipole
+Begin=Dipole moment \(Debye\)\:
+Frequency=last
+Lines=1
+Skip=1
+[END]
+
+[QUADPOLE1]
+Script=gaussian-03.quadpole
+Begin=Quadrupole moment \(Debye\-Ang\)\:
+Frequency=last
+Lines=2
+Skip=1
+[END]
+
+[OCTAPOLE2]
+Script=gaussian-03.octapole
+Begin=Octapole moment \(Debye\-Ang\*\*2\)\:
+Frequency=last
+Lines=3
+Skip=1
+[END]
+
+[HEXPOLE]
+Script=gaussian-03.hexpole
+Begin=Hexadecapole moment \(Debye\-Ang\*\*3\)\:
+Frequency=last
+Lines=4
+Skip=1
+[END]
+
+[POLARIZ1][HYPERPOL1]
+Script=gaussian-03.db
+Begin=l9999\.exe
+Frequency=last
+End=Job cpu
+[END]
+
+[POLARIZ2][HYPERPOL1]
+Script=gaussian-03.db
+Begin= 1\\1\\GINC
+Frequency=last
+End=Job cpu
+[END]
+
+[SHIELDTENSOR][ISOSHIELD][ANISOSHIELD][SHIELDEIGVAL]
+Script=gaussian-03.shieldtensor
+Begin=Magnetic shielding
+Frequency=first
+End= Leave Link 1002
+[END]
+
+[MULLIKEN]
+Script=gaussian-03.mulliken
+Begin= Total atomic charges\:
+Skip=2
+Frequency=all
+End= Sum of Mulliken
+[END]
+
+[FERMICON]
+Script=gaussian-03.fermicon
+Begin=Fermi
+Skip=2
+Frequency=first
+End= Electronic spatial extent
+[END]
+
+[ESCF1][ESCFVEC]
+Script=gaussian-03.energy
+Begin=SCF Done\:
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[ESCF2][ESCFVEC]
+Script=gaussian-03.energy
+Begin=SCF DONE\:
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[EMP2][EMP2VEC]
+Script=gaussian-03.energy
+Begin=EUMP2
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[EMP2][EMP2VEC]
+Script=gaussian-03.energy
+Begin=EUMP2
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[EMP3][EMP3VEC]
+Script=gaussian-03.energy
+Begin=EUMP3
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[EMP4DQ][EMP4DQVEC]
+Script=gaussian-03.energy
+Begin=UMP4\(DQ\)
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[EMP4SDQ][EMP4SDQVEC]
+Script=gaussian-03.energy
+Begin=UMP4\(SDQ\)
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[EMP4SDTQ][EMP4SDTQVEC]
+Script=gaussian-03.energy
+Begin=UMP4\(SDTQ\)
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[EMP5][EMP5VEC]
+Script=gaussian-03.energy
+Begin=MP5 \=
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+# There is only one of these
+[ECCSDTPERT]
+Script=gaussian-03.energy
+Begin=CCSD\(T\)\=
+Frequency=first
+Skip=0
+Lines=1
+[END]
+
+[ECCD][ECCDVEC][ECCSD][ECCSDVEC]
+Script=gaussian-03.energy
+Begin=E\(CORR\)
+End=Largest amplitude
+[END]
+
+[ECISD][ECISDVEC]
+Script=gaussian-03.energy
+Begin=E\(CI\)\=
+End=Largest amplitude
+[END]
+
+[ECIS][ECISVEC]
+Script=gaussian-03.energy
+Begin=E\(Cis\) \=
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[ECNDO1][ECNDOVEC]
+Script=gaussian-03.energy
+Begin=RHF\-CNDO
+Frequency=all
+End=Energy
+[END]
+
+[ECNDO2][ECNDOVEC]
+Script=gaussian-03.energy
+Begin=UHF\-CNDO
+Frequency=all
+End=Energy
+[END]
+
+[EINDO1][EINDOVEC]
+Script=gaussian-03.energy
+Begin=RHF\-INDO
+Frequency=all
+End=Energy
+[END]
+
+[EINDO2][EINDOVEC]
+Script=gaussian-03.energy
+Begin=UHF\-INDO
+Frequency=all
+End=Energy
+[END]
+
+[EMINDO31][EMINDO3VEC]
+Script=gaussian-03.energy
+Begin=RHF\-MINDO\/3
+Frequency=all
+End=Energy
+[END]
+
+[EMINDO32][EMINDO3VEC]
+Script=gaussian-03.energy
+Begin=UHF\-MINDO\/3
+Frequency=all
+End=Energy
+[END]
+
+[EMNDO1][EMNDOVEC]
+Script=gaussian-03.energy
+Begin=RHF\-MNDO
+Frequency=all
+End=Energy
+[END]
+
+[EMNDO2][EMNDOVEC]
+Script=gaussian-03.energy
+Begin=UHF\-MNDO
+Frequency=all
+End=Energy
+[END]
+
+[EAM11][EAM1VEC]
+Script=gaussian-03.energy
+Begin=RHF\-AM1
+Frequency=all
+End=Energy
+[END]
+
+[EAM12][EAM1VEC]
+Script=gaussian-03.energy
+Begin=UHF\-AM1
+Frequency=all
+End=Energy
+[END]
+
+[EPM31][EPM3VEC]
+Script=gaussian-03.energy
+Begin=RHF\-PM3
+Frequency=all
+End=Energy
+[END]
+
+[EPM32][EPM3VEC]
+Script=gaussian-03.energy
+Begin=UHF\-PM3
+Frequency=all
+End=Energy
+[END]
+
+[PNTGRP]
+Script=gaussian-03.symmetry
+Begin= Full point group
+Frequency=all
+Skip=0
+Lines=1
+[END]

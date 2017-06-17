@@ -1,0 +1,36 @@
+name
+aug-cc-pV(6+d)Z Diffuse
+name
+type
+diffuse
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ---------
+Al - Ar: T.H. Dunning, Jr., K. A. Peterson and A. K. Wilson, J. Chem. Phys.
+114, 9244 (2001).
+
+references
+info
+                   aug-cc-pV(6+d)Z Diffuse Functions
+                   ---------------------------------
+Elements                                References
+Al- Ar: (1s,1p,1d,1f,1g,1h,1i) T.H. Dunning, Jr., K.A. Peterson and
+                               A.K. Wilson, J. Chem. Phys. 114, 9244 (2001)
+
+
+info
+comments
+3/03/05  - DFF - Update literature citation. 
+7/26/01  - DFF - Correct d exponent for chlorine.
+4/17/01  - DFF - Creation of this file from exponents contained in
+comments

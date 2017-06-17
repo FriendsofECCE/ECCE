@@ -1,0 +1,36 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#  value is output in kcal/mol; converted here to Hartrees
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+while (<STDIN>) {
+  if (! /task/ ) {
+    $value = $_;
+    last;
+  }
+}
+
+#    1 Hartree = 4.35974394e-18 Joule (NIST 2007)
+#    Avogadro's Constant = 6.02214179e23 atoms (NIST 2006)
+#    1 Joule = 4.184 Calorie
+#    1 Kcal/mol = 1.593601443e-3
+$value *=  1.593601451e-3; # convert kcal/mol -> Hartree
+
+print "key: EZEROPT\n";
+print "size:\n1\n";
+print "values:\n$value\n";
+print "units:\nHartree\n";
+print "END\n";

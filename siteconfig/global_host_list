@@ -1,0 +1,12 @@
+######
+# global_host_list
+#
+# Place all machines in this file that are to be included in distributions
+# other than for EMSL users.  Machines here are defined in the Machines file,
+# Queues file (if applicable), and their CONFIG.<host> is included if it exists.
+# 
+# Only list machines that are globally accessible or are otherwise deemed to
+# be important since example registrations are now provided in the 
+# CONFIG-Examples directory.
+chinook
+franklin

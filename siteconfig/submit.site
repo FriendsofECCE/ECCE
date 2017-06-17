@@ -1,0 +1,186 @@
+#############################################################################
+# File: submit.site
+#
+# Purpose:
+#   Provide site level defaults for submit script generation.  Any values
+#   in this file may be overridden by specifying them in the 
+#   CONFIG.machinename file.  In fact, they can also be overridden at the
+#   user level by specifying them in a ~/.ECCE/CONFIG.machinename file.
+#
+# Syntax:
+#   The syntax exists for historical reasons.
+#   The file essentially consists of key/value pairs that can take one
+#   of several forms including:
+#   key: value
+#   key  value
+#   key { value }
+#   key {
+#     value...
+#     ...
+#   }
+#
+# There are several keys that apply to each and every code.  In that
+# case, the key follows the naming convention <code>key.
+#
+# Case for keys is not sensitive.
+#
+#
+# The submit script generator recognizes the keywords described below.
+# Most of these are easily recognized as fields the user controls 
+# through the interface.
+#    $account     - allocation account
+#    $host        - server machine name
+#    $queue       - queue to use
+#    $code        - name of code to run
+#    $totalprocs  - total number of processors requested by user.  This
+#                   is the value used for multiprocessor workstations.
+#    $nodes       - #nodes to use. Specified by user or 1 for workstations.
+#    $ppn         - processors per node.  This is not specified by user
+#                   but is computed as $totalprocs / $nodes.
+#    $wallTime    - wall time limit
+#    $runDir      - directory where calculation will be run
+#    $scratchDir  - scratch directory
+#    $inFile      - name of input file
+#    $outFile     - name of output file
+#    $memory      - memory limit
+#    $ecceDir     - location of ecce directory on server
+#    $submitFile  - name of submit script
+#    $g98         - registered path for Gaussian98
+#    $nwchem      - registered path to nwchem
+#############################################################################
+
+################
+# NWChem
+################
+NWChemFilesToRemove { core  *.aoints.* }
+
+NWChemPrelimFilesToRemove { *.q  *.trj  *.prp  *[0-9][0-9][0-9]*.rst *.file30 meta*.dat }
+
+# The /usr/ucblib path is really only for Suns but we add it here so that we
+# can reduce registration efforts - no affect on other machines.
+#NWChemEnvironment { 
+#  LD_LIBRARY_PATH /usr/ucblib
+#}
+
+# This is the actual command to run the code.  Typically you would 
+# override this per machine for queued machines.  It is commented out
+# here since what is shown is the script generator default.
+# If you do customize it for a shared memory machine (e.g. and SGI
+# Origin) then you need to put int the code to use parallel too.
+# This is shown in the second commented out example.  Don't forget to fix
+# the path.
+#NWChemCommand {
+#  $nwchem $infile > $outfile
+#}
+
+#NWChemCommand {
+##  - Generating setup file for use with Parallel
+#if ( -e nwchem.p) rm -f nwchem.p
+#cat << EOCAT > nwchem.p
+#$USER `hostname` $totalprocs $nwchem $runDir
+#EOCAT
+#/msrc/proj/nwchem/bin/parallel nwchem $inFile >&! $outFile
+#}
+
+################
+# Amica
+################
+AmicaFilesToRemove { core }
+
+# The /usr/ucblib path is really only for Suns but we add it here so that we
+# can reduce registration efforts - no affect on other machines.
+AmicaEnvironment { 
+  LD_LIBRARY_PATH /usr/ucblib
+  COMENIUS /msrc/home/gdanitz/comenius/platform/IRIX64
+}
+
+# Defined in gensub at this point
+#AmicaCommand {
+#  amica -P $totalprocs < $infile
+#}
+
+
+################
+# Gaussian-98 - see comments for NWChem
+################
+Gaussian-98FilesToRemove { core *.rwf }
+
+################
+# Gaussian-03 - see comments for NWChem
+################
+Gaussian-03FilesToRemove { core *.rwf }
+
+################
+# Polyrate
+################
+PolyrateFilesToRemove { core }
+PolyratePrelimFilesToRemove { *.fu14 *.fu15 *.fu61 }
+
+################
+# Queue Manager
+# Typically overridden for queued machines - in CONFIG.<machine> file.
+################
+
+Maui {
+# @ job_type         = parallel
+# @ requirements     = (Adapter == "hps_user")
+# @ notification     = complete
+# @ class            = $queue
+# @ account_no       = $account
+# @ wall_clock_limit = $wallTime
+# @ input            = /dev/null
+# @ output           = llout.out
+# @ error            = llerr.out
+# @ environment      = COPY_ALL; MP_EUILIB=us; MP_CSS_INTERRUPT=yes; MP_INFOLEVEL=2; MP_EUIDEVICE=css0; MP_PULSE=0; MP_SINGLE_THREAD=yes;
+# @ min_processors   = $nodes
+# @ max_processors   = $nodes
+# @ queue
+}
+
+LoadLeveler {
+# @ class            = $queue
+# @ wall_clock_limit = $wallTime
+# @ input            = /dev/null
+# @ output           = llout.out
+# @ error            = llerr.out
+# @ environment      = COPY_ALL; MP_EUILIB=us; MP_CSS_INTERRUPT=yes; MP_INFOLEVEL=2; MP_EUIDEVICE=css0; MP_PULSE=0; MP_SINGLE_THREAD=yes;
+# @ min_processors   = $nodes
+# @ max_processors   = $nodes
+# @ queue
+}
+
+PBS {
+#PBS -mb
+#PBS -me
+#PBS -s /bin/csh
+#PBS -nr
+#PBS -lM 28Mw
+#PBS -lm 28Mw
+#PBS -J m
+#PBS -lT 7200   # per request limit
+#PBS -lt 3600   # per process limit
+#PBS -q $queue
+#PBS -eo -o pbs.out
+#PBS -l p_mpp_t=$wallTime
+#PBS -l mpp_t=$wallTime
+#PBS -l mpp_p=$nodes
+#PBS -r $submitFile
+#PBS -A $account
+#PBS
+}
+
+LSF {
+#BSUB -nr -nc
+#BSUB -s /bin/csh
+#BSUB -lM $memoryMw
+#BSUB -q $queue
+#BSUB -o $submitFile.out
+#BSUB -e stderr.out
+#BSUB -r $submitFile
+}
+
+SGE {
+#$ -pe make $totalprocs
+#$ -v SHELL
+#$ -cwd
+}

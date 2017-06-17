@@ -1,0 +1,36 @@
+# parse Descriptor for NWCHEM output file
+#
+# Due to the way nwchem outputs U* theory mos, and the fact that we
+# want to only parse the last one, the mo-related parsing is a little
+# messy.  A separate entry is required for alpha and beta properties.
+# This applies to MO MOBETA ORBOCC ORBOCCBETA...
+# Symmetry has been included.
+#
+
+[RXGEOM]
+Script=nwchemrx.spath
+Begin= XXSummary of MEP data
+Frequency=last
+End=  Frequencies
+[END]
+
+[TSSTEP]
+Script=nwchemrx.rxstep
+Begin= All quantities in atomic units, x is vector of mass-weighted coordinates
+Frequency=first
+End = (\s*\S*\s*dx=)
+[END]
+
+[RXSTEP]
+Script=nwchemrx.rxstep
+Begin = (\s*\S*\s*x=)
+Frequency=all
+End = (\s*\S*\s*dx=)
+[END]
+
+[MASSES]
+Script=nwchemrx.masses
+Begin = Mass of atom
+Frequency=first
+End = Forward reduced mass
+[END]

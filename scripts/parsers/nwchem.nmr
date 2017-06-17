@@ -1,0 +1,207 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#    Parse output from nmr block in ecce.out file produced by nwchem
+#
+# Command line parameters:
+#           
+# Description:
+#
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+{
+  $natoms = 0;
+  @atoms = ();
+  @isotropic = ();
+  @atropic = ();
+  @stensor = ();
+  @evalue = ();
+  @evector = ();
+  
+  #parse all data and accumulate it in arrays
+
+  $line = <STDIN>;
+  while (!($line =~ /nmr\%begin\%exit\%2/)) {
+    # get atom symbol
+    if ($line =~ /nmr\%begin\%atom name/) {
+      $natoms++;
+      $line = <STDIN>;
+      $line =~ s/^\s*//;
+      $line =~ s/\s*$//;
+      push(@atoms,$line);
+    }
+    # get shielding tensor
+    if ($line =~ /nmr\%begin\%shielding tensor/) {
+      $line = <STDIN>;
+      ($value0,$value1,$value2) = split(/ +/,$line);
+      push(@stensor,($value0,$value1,$value2));
+      $line = <STDIN>;
+      ($value0,$value1,$value2) = split(/ +/,$line);
+      push(@stensor,($value0,$value1,$value2));
+      $line = <STDIN>;
+      ($value0,$value1,$value2) = split(/ +/,$line);
+      push(@stensor,($value0,$value1,$value2));
+    }
+    # get isotropic part of shielding
+    if ($line =~ /nmr\%begin\%shielding isotropic/) {
+      $line = <STDIN>;
+      $line =~ s/^\s*//;
+      $line =~ s/\s*$//;
+      push(@isotropic,$line);
+    }
+    # get anisotropic part of shielding
+    if ($line =~ /nmr\%begin\%shielding anisotropy/) {
+      $line = <STDIN>;
+      $line =~ s/^\s*//;
+      $line =~ s/\s*$//;
+      push(@atropic,$line);
+    }
+    # get shielding tensor eigenvalues
+    if ($line =~ /nmr\%begin\%shielding eigenvalues/) {
+      $line = <STDIN>;
+      ($value0,$value1,$value2) = split(/ +/,$line);
+      push(@evalue,($value0,$value1,$value2));
+    }
+    $line = <STDIN>
+  }
+  
+########################################################################
+# make this matrix look like a vector with concatenated labels
+########################################################################
+  $nrows =  $natoms;
+  $ncolumns = 9;
+  print "key: SHIELDTENSOR\n";
+  $vecsize = $nrows*$ncolumns;
+  print "size:\n$vecsize\n";
+  print "rowlabels:\n";
+  $icnt = 0;
+  foreach $i (0 .. $#atoms ) {
+    foreach $j ("-XX","-YX","-ZX","-XY","-YY","-ZY","-XZ","-YZ","-ZZ") {
+      print $atoms[$i]."-".($i+1).$j." "; 
+      $icnt++;
+      if ($icnt%9 == 0) {
+        print "\n";
+        $icnt = 0;
+      }
+    }
+  }
+  if ($icnt != 0) {
+    print "\n";
+  }
+  print "values:\n";
+  $icnt = 0;
+  foreach $i (0 .. $#stensor ) {
+    print "$stensor[$i] ";
+    $icnt++;
+    if ($icnt%9 == 0) {
+      print "\n";
+      $icnt = 0;
+    }
+  }
+  if ($icnt != 0) {
+    print "\n";
+  }
+  print "units:\nppm\n";
+  print "END\n";
+
+  print "key: ISOSHIELD\n";
+  print "size:\n$nrows\n";
+  print "rowlabels:\n";
+  $icnt = 0;
+  foreach $i (0 .. $#atoms ) {
+    print "$atoms[$i] ";
+    $icnt++;
+    if ($icnt%10 == 0) {
+      print "\n";
+      $icnt = 0;
+    }
+  };
+  if ($icnt != 0) {print "\n";}
+  print "values:\n";
+  $icnt = 0;
+  foreach $i (0 .. $#atoms ) {
+    print "$isotropic[$i] ";
+    $icnt++;
+    if ($icnt%10 == 0) {
+      print "\n";
+      $icnt = 0;
+    }
+  };
+  if ($icnt != 0) {
+    print "\n";
+  }
+  print "units:\nppm\n";
+  print "END\n";
+
+  print "key: ANISOSHIELD\n";
+  print "size:\n$nrows\n";
+  print "rowlabels:\n";
+  $icnt = 0;
+  foreach $i (0 .. $#atoms ) {
+    print "$atoms[$i] ";
+    $icnt++;
+    if ($icnt%10 == 0) {
+      print "\n";
+      $icnt = 0;
+    }
+  };
+  if ($icnt != 0) { print "\n"; }
+  print "values:\n";
+  $icnt = 0;
+  foreach $i (0 .. $#atoms ) {
+    print "$atropic[$i] ";
+    $icnt++;
+    if ($icnt%10 == 0) {
+      print "\n";
+      $icnt = 0;
+    }
+  };
+  if ($icnt != 0) {
+    print "\n";
+  }
+  print "units:\nppm\n";
+  print "END\n";
+
+  print "key: SHIELDEIGVAL\n";
+  $numvals = 3*$nrows;
+  print "size:\n$numvals\n";
+  print "rowlabels:\n";
+  $icnt = 0;
+  foreach $i (0 .. $#atoms ) {
+    foreach $j ("-1","-2","-3") {
+      print $atoms[$i]."-".($i+1).$j." "; 
+      $icnt++;
+      if ($icnt%10 == 0) {
+        print "\n";
+        $icnt = 0;
+      }
+    }
+  }
+  if ($icnt != 0) { print "\n"; }
+  print "values:\n";
+  $icnt = 0;
+  foreach $i (0 .. $#evalue ) {
+    print "$evalue[$i] ";
+    $icnt++;
+    if ($icnt%3 == 0) {
+      print "\n";
+      $icnt = 0;
+    }
+  };
+  if ($icnt != 0) {
+    print "\n";
+  }
+  print "units:\nppm\n";
+  print "END\n";
+
+  exit(0);
+
+}

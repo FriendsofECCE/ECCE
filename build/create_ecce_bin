@@ -1,0 +1,1266 @@
+#!/usr/bin/env perl
+################################################################################
+$FILENAME = "create_ecce_bin";
+#
+#
+$SYNTAX = "$FILENAME [-h] [-t <directory>] [-n <file>] [-e] [-p] [-v] [-b] [-z] [-r] [-V]";
+#
+$DESCRIPTION = <<EOT;
+    [-h]           Display usage.
+    [-t directory] To: place output distribution in specified directory.
+    [-n file]      Use specified NWChem distribution rather than default.
+    [-e]           Do an EMSL distribution (applications only).  The
+                   siteconfig Machines, Queues, and CONFIG.* files are
+                   stripped, and the distribution is uuencoded and appended
+                   to the install script.
+    [-p]           Platform (bins and libs) tar file.  Used only for performing
+                   simultaneous move_ecce commands to the same directory.
+    [-v]           Show verbose output.
+    [-b]           Create standalone builder/viewer distribution.
+    [-z]           Create standalone builder (no server) distribution.
+    [-r]           Create reaction rate distribution.
+ 
+    Tars up and uuencodes \$ECCE_HOME distribution for the current platform
+    and places it in /tmp or as specified by the -t option
+
+EOT
+#
+# IMPORTANT: LINKS ARE FOLLOWED!  Exclude them if you need to.
+#
+################################################################################
+
+# ENVIRONMENT VARS AND DEFAULTS ----------------------------------------
+
+# env
+use File::Copy;
+use File::Path;
+use Digest::MD5;
+use FileHandle;
+use DirHandle;
+use Env qw(ECCE_HOME HOME ECCE USER);
+
+# miscellaneous defaults (or global vars)
+$sysdir = `sysdir`;
+chomp $sysdir;
+$scratchdir = "/tmp/ecce-scratch";
+
+use Getopt::Std;
+
+# retrieve options
+if (!getopts('ht:d:n:d:vpebrz')) {
+    print "$SYNTAX\n";
+    exit 1;
+}
+
+# compression to use, if any
+if ( $opt_e ) {
+  $cmpcmd = "";
+  $cmpext = "";
+} else {
+  $cmpcmd = "j";
+  $cmpext = ".bz2";
+}
+
+# INCLUDE AND EXCLUDE LISTS --------------------------------------------
+# IMPORTANT: LINKS ARE FOLLOWED!  Exclude them if you need to.
+# CONFIG: inclusion/exclusion of CONFIG.<host> or <host>.Q files should be
+#   determined by the use of the siteconfig/global_host_list
+#   file.  The logic is below in this script.
+#
+# some things are too specific to include here.  See the section below
+# where these vars are interpreted.
+#
+# Wildcards ( * ): You may use csh style wildcards when specifying files
+#   for inclusion or exclusion.  Use them on the tail word only 
+#   ( as in 'tail' in 'this/is/the/tail').
+#
+
+#####
+#Include/Exclude lists
+  if ( $opt_p ) {
+    # Platform specific distribution (bin and lib directories)
+    @full_site_include_list = qw();
+    @full_site_include3_list = qw();
+
+    @full_site_exclude_list = qw();
+    @full_site_exclude3_list = qw();
+  } else {
+    # Full distribution files
+    @full_site_include_list = qw( data
+            siteconfig
+            java
+            scripts
+            README
+            INSTALL
+            LICENSE );
+
+    @full_site_include3_list = qw();
+
+    @full_site_exclude_list = qw( data/admin
+            siteconfig/StartMessage
+            siteconfig/PreventStart
+            siteconfig/global_host_list 
+            java/src 
+            java/build );
+
+    @full_site_exclude3_list = qw();
+
+    # Builder/Viewer distribution files
+    @eviewer_site_include_list = qw( data
+                                siteconfig
+                                java
+                                scripts
+                                README
+                                INSTALL
+                                LICENSE );
+
+    @eviewer_site_include3_list = qw();
+
+    @eviewer_site_exclude_list = qw( data/admin
+                data/client/bstimages
+                scripts/ecce
+                scripts/ecce_checks
+                scripts/gensub
+                scripts/processmachine
+                scripts/epmf
+                scripts/eprp
+                scripts/pmf_gui.py
+                scripts/prp_gui.py
+                scripts/viewer
+                scripts/codereg
+                siteconfig/StartMessage
+                siteconfig/PreventStart
+                siteconfig/global_host_list
+                siteconfig/README.Q
+                siteconfig/remote_shells.site
+                siteconfig/submit.site
+                siteconfig/CONFIG-Examples
+                java/src 
+                java/build );
+
+    @eviewer_site_exclude3_list = qw();
+
+    # Standalone Builder distribution files
+    @ebuilder_site_include_list = qw( data
+                                siteconfig
+                                scripts
+                                README
+                                BUILDER_INSTALL
+                                LICENSE );
+
+    @ebuilder_site_include3_list = qw();
+
+    @ebuilder_site_exclude_list = qw( data/admin
+                data/client/bstimages
+                data/client/cap
+                scripts/parsers
+                scripts/ecce
+                scripts/ecce_checks
+                scripts/eccejobmonitor
+                scripts/gensub
+                scripts/processmachine
+                scripts/epmf
+                scripts/eprp
+                scripts/pmf_gui.py
+                scripts/prp_gui.py
+                scripts/eviewer
+                scripts/viewer
+                scripts/codereg
+                siteconfig/StartMessage
+                siteconfig/PreventStart
+                siteconfig/global_host_list
+                siteconfig/Queues
+                siteconfig/QueueManagers
+                siteconfig/README.Q
+                siteconfig/remote_shells.site
+                siteconfig/submit.site
+                siteconfig/jndi.properties
+                siteconfig/CONFIG.*
+                siteconfig/CONFIG-Examples
+                siteconfig/*.Q );
+
+    @ebuilder_site_exclude3_list = qw();
+  }
+
+  # $ECCE_SYSDIR based files/directories that are to be excluded
+  # Full distribution files
+  @full_site_platform_ex = qw( lib/shared
+            lib/libecce*.a
+            obj );
+
+#  if (! $opt_r ) {
+#    @site_platform_ex[$#site_platform_ex+1..$#site_platform_ex+3] = qw(
+#              bin/dirdyed
+#              bin/polyed
+#              bin/vizthumbnail );
+#  }
+
+  # 3rdparty files/directories that are to be excluded.
+  @full_site_platform3_ex = qw( build
+            jre
+            httpd
+            activemq
+            blowfish
+            local
+            mesa/include
+            wxwidgets/include
+            wxwidgets/bin
+            wxwidgets/lib/wx
+            xerces/include );
+
+  # Viewer/Builder platform include/exclude lists 
+  @eviewer_site_platform_ex = qw( bin/basistool
+            bin/calced
+            bin/dirdyed
+            bin/ecmd
+            bin/gateway
+            bin/launcher
+            bin/load_tgbs
+            bin/machbrowser
+            bin/machregister
+            bin/mddynamics
+            bin/mdenergy
+            bin/mdoptimize
+            bin/mdprepare
+            bin/msgdialog
+            bin/organizer
+            bin/passdialog
+            bin/pertable
+            bin/polyed
+            bin/vizthumbnail
+            lib/shared 
+            lib/libecce*.a
+            lib/libeccewxguimd.so
+            obj );
+
+  @eviewer_site_platform3_ex = qw( build
+            jre
+            httpd
+            activemq
+            blowfish
+            local
+            mesa/include
+            wxwidgets/include
+            wxwidgets/bin
+            wxwidgets/lib/wx
+            xerces/include
+            wxpython );
+
+  @ebuilder_site_platform_ex = qw( bin/basistool
+            bin/calced
+            bin/dirdyed
+            bin/eccejobstore
+            bin/eccejobmaster
+            bin/ecmd
+            bin/gateway
+            bin/launcher
+            bin/load_tgbs
+            bin/machbrowser
+            bin/machregister
+            bin/mddynamics
+            bin/mdenergy
+            bin/mdoptimize
+            bin/mdprepare
+            bin/msgdialog
+            bin/organizer
+            bin/passdialog
+            bin/pertable
+            bin/polyed
+            bin/vizthumbnail
+            lib/shared 
+            lib/libecce*.a
+            lib/libeccewxguimd.so
+            obj );
+
+  @ebuilder_site_platform3_ex = qw( build
+            jre
+            httpd
+            activemq
+            blowfish
+            local
+            mesa/include
+            wxwidgets/include
+            wxwidgets/bin
+            wxwidgets/lib/wx
+            xerces/include
+            wxpython );
+
+  @site_find_list = qw( Makefile 
+            .svn 
+            core* );
+
+
+$platfrmstring = "";
+if ( $sysdir ne "" ) {
+  # $sysdir has a trailing "/" that we don't want in the distribution name
+  $chopsys = $sysdir;
+  # the chop function removes the last character from a string
+  chop $chopsys;
+  $platfrmstring = ".${chopsys}";
+}
+
+
+# Create symbolic links (decrease distribution size) in place of identical
+# 3rdparty/*/lib libraries
+opendir (THREEDIR, "${ECCE_HOME}/${sysdir}3rdparty/") or die "can't open ${ECCE_HOME}/${sysdir}3rdparty directory: $!";
+@alldirs = readdir THREEDIR;
+closedir THREEDIR;
+
+foreach my $dir (@alldirs) {
+  chdir "${ECCE_HOME}/${sysdir}3rdparty" or die "can't cd to ${ECCE_HOME}/${sysdir}3rdparty directory: $!\n";
+  if ($dir ne "." && $dir ne ".." && $dir ne ".svn" &&
+      opendir (SYMDIR, "${dir}/lib/")) {
+    chdir "${dir}/lib/" or die "can't cd to ${dir}/lib directory: $!\n";
+    @allfiles = grep { not /^[.][.]?\z/ } readdir SYMDIR;
+
+    # Pass 1 - stat() everything.
+    foreach my $file (@allfiles) {
+      my @statbuf;
+      if (-d $file || !(@statbuf=lstat($file))) {
+        next;
+      }
+
+      $numtotal++;
+      push(@{$sizes{$statbuf[7]}}, $file);
+    }
+
+    $context=new Digest::MD5;
+
+    # Pass 2 - Check for files with the same size, md5sum them and
+    # link duplicates.
+    for my $size (sort { $b <=> $a } keys(%sizes)) {
+      my $files=$sizes{$size};
+      if (@$files>1) {
+        # reorder from longest to shortest name so the links
+        # created will always be pointing to the longest name
+        @$files = sort { length $b <=> length $a } @$files;
+        check($files);
+      }
+    }
+
+    # clear the hash between each directory!
+    %sizes = ();
+    closedir SYMDIR;
+  }
+}
+
+sub check($)
+{
+  my $files=shift;
+  my %md5;
+
+  for my $file (@$files) {
+    $num++;
+
+    if (my $fd=new FileHandle "<$file") {
+      $context->reset();
+      $context->addfile($fd);
+      my $hash=$context->hexdigest();
+      close($fd);
+      if (defined($md5{$hash})) {
+        my $size=-s $file;
+        if ($size==0) {
+          return;
+        } else {
+          $total+=$size;
+          unlink($file) or die "Can't rm $file: $!\n";
+          symlink($md5{$hash}, $file)
+              or die "Can't link $md5{$hash} to $file: $!\n";
+        }
+      } else {
+        $md5{$hash}=$file;
+      }
+    } else {
+        print STDERR &basename(), ": $file: $!\n";
+    }
+  }
+}
+
+sub basename($)
+{
+  my $foo=shift;
+  $foo=$0 if (!defined($foo));
+
+  return $foo if ($foo!~/\//);
+  return substr($foo,(-1*length($foo))+(rindex($foo, "/")+1));
+}
+# End symbolic link creation
+
+
+# PROCESS COMMAND LINE ARGS -------------------------------------------
+&processArgs;
+
+&check_build;
+&create_include_exclude;
+
+if (! $opt_e && -e "$fromdir/siteconfig/global_host_list") {
+  &global_machine_ex;
+}
+
+&clean_and_expand;
+&write_and_display_lists;
+
+if (! $opt_e && -e "$fromdir/siteconfig/global_host_list") {
+  &global_mods;
+}
+
+&linkdirs( $fromdir, "$scratchdir" );
+&create_apps_tar;
+if (! $opt_z && ! $opt_e ) {
+  &create_data_server;
+  &create_jms_server;
+  &create_server_tar;
+}
+if (! $opt_z ) {
+&create_jre_tar;
+}
+
+&create_webhelp_tar;
+&create_combined_tar;
+&create_install_script;
+
+&cleanup;
+ 
+print "create_ecce_bin finished\n\n";
+exit;
+
+
+
+
+###############################
+# SUBROUTINES ---------------------------------------------------------
+
+
+sub processArgs {
+
+  if ( $opt_h ) {
+    print "$SYNTAX\n\n$DESCRIPTION";
+    exit;
+  }
+
+  # process
+  $todir = ( $opt_t ? $opt_t : "/tmp" );
+  $temp = `touch $todir/x.$$`;
+  if ($?) {
+    print "ERROR: You do not have permissions to write to this directory:\n";
+    print "  $todir\n Either fix the permissions or use the -t option to specify\n";
+    print " a different destination directory.\n";
+    &cleanup;
+    exit 1;
+  }
+  $temp = `rm $todir/x.$$`; 
+
+  $opt_v = ( $opt_v ? "v" : "" );
+  if ( $ECCE_HOME ) {
+    $fromdir = $ECCE_HOME;
+    chomp( $version = `cat $fromdir/data/client/config/Version` );
+
+    # For beta releases, uncomment this logic
+#    if ( $version =~ /v4.5/) {
+#      $version = "v4.5beta";
+#    }
+  } else {
+    print "ERROR: ECCE_HOME must be set.\n";
+    exit 1;
+  }
+
+  # print status
+  if ( $opt_e ) {
+    print "\nCreating EMSL binary distribution from: $fromdir\n";
+    print "                                    to: $todir\n\n";
+  } else {
+    print "\nCreating ECCE binary distribution from: $fromdir\n";
+    print "                                    to: $todir\n\n";
+  }
+  
+  # The "binary" NWChem distributions contain bin and lib directories.
+  # NWChem creates a LINUX or LINUX64 platform subdirectory under these, which
+  # are removed for ECCE (contents moved up one level).  Also, all the *.a
+  # archive libraries are removed because they aren't needed at runtime and
+  # libgfortran.so.1 is copied into lib so NWChem will run on systems without
+  # gfortran installed.
+  $processor = `uname -m`;
+
+  # The commented out logic below was used to support both 32- and 64-bit
+  # NWChem distributions with ECCE and can be added back if needed.
+  #if ( $processor =~ /64/ && $sysdir !~ /m32/ ) {
+  #  $nwchembinfile = "${ECCE_HOME}/build/3rdparty-dists/nwchem-6.1.1-binary-rhel5-gcc4.1.2-m64.tar.bz2";
+  #} else {
+  #  $nwchembinfile = "${ECCE_HOME}/build/3rdparty-dists/nwchem-6.1.1-binary-rhel5-gcc4.1.2-m32.tar.bz2";
+  #}
+  # The "common" NWChem distribution contains non-platform specific files
+  # which is everything but the bin and lib directories.
+  #$nwchemcmnfile = "${ECCE_HOME}/build/3rdparty-dists/nwchem-6.1.1-binary-common.tar.bz2";
+
+  # CUSTOMIZE NWCHEM DISTRIBUTION HERE
+  # override the value of $nwchemfile on the line below to be the absolute
+  # path to the desired NWChem distribution.  The $nwchemfile value will
+  # override the settings above.  Can also use logic as above to determine the
+  # correct distribution name based on $processor or other criteria.
+  $nwchemfile = "${ECCE_HOME}/build/3rdparty-dists/nwchem-6.3-binary-rhel5-gcc4.1.2-m64.tar.bz2";
+
+  # allow bundling of per-invocation distributions of NWChem with the -n flag
+  $nwchemfile = ( $opt_n ? $opt_n : $nwchemfile );
+
+  if ( ! -d $fromdir ) {
+    print "ERROR: Source $fromdir does not exist ... unable to continue\n";
+    exit 1;
+  }
+  if ( ! -d $todir ) {
+    print "ERROR: Destination $todir does not exist ... unable to continue\n";
+    exit 1;
+  }
+
+  # build only the builder
+  if ( $opt_b ) {
+     print "Tarring the builder/viewer only\n";
+  } elsif ( $opt_z ) {
+     print "Tarring the builder only\n";
+  }
+
+  # change to ECCE_HOME
+  chdir $fromdir;
+}
+
+
+# CHECK THAT THE BUILD IS OK -------------------------------------------
+sub check_build {
+  print "Checking application software build\n";
+  # these executables make up a runnable version of ECCE
+  @missing_exe = qw();
+  @req_exes = qw( autosym basistool builder calced cleansym dirdyed eccejobmaster eccejobstore ecmd gateway genmol genmollat getfrag launcher load_tgbs machbrowser machregister mddynamics mdenergy mdoptimize mdprepare msgdialog organizer passdialog pertable polyed vizthumbnail );
+  foreach $exe (@req_exes) {
+    if ( ! -e "./${sysdir}bin/$exe" ) {
+      push @missing_exe, "${sysdir}bin/$exe";
+    }
+  }
+ 
+  # An empty list has a size of -1, so 0 size indicates there is a missing exe
+  if ( $#missing_exe >= 0 ) {
+    print "\nERROR: Missing executables in $ECCE_HOME:\n";
+    foreach ( @missing_exe ) {
+      print "  $_\n";
+    }
+    print "\n";
+    # comment out the exit and change ERROR to WARNING above to create
+    # distributions without all exes
+    exit 1;
+  } else {
+    print "  All binaries exist\n" if $opt_v;
+  }
+
+  print "Checking for NWChem distribution\n";
+  if ( $nwchemfile ne "" && ! -e $nwchemfile ) {
+    print "WARNING: NWChem distribution $nwchemfile does not exist ... cannot include NWChem\n";
+  }
+}
+
+
+# this is to exclude machine registrations that aren't globally accessible
+sub global_machine_ex {
+  ##########
+  # get our machine list 
+  open DISTHOST, "siteconfig/global_host_list";
+  @dist_hosts = grep !/^#|^ *$/, <DISTHOST>;
+  close DISTHOST;
+  chomp @dist_hosts;
+  print "\n   Distributing machine information for:\n" if $opt_v;
+  foreach $host ( @dist_hosts ) {
+    print "     $host\n" if $opt_v;
+    ( $temp = $host ) =~ s/\..*//;
+    push @short_dist_hosts, $temp;
+  }
+  # build grep items
+  $regexp = join '|', @dist_hosts;
+  $short_regexp = join '|', @short_dist_hosts;
+
+  # what CONFIG files and queue files do we ignore 
+  # first get dir contents
+  opendir SITECONFIG, "siteconfig";
+  @config_q_list = readdir SITECONFIG;
+  closedir SITECONFIG;
+  # exclude only unwanted CONFIG and Q files
+  @config_q_list = grep /^CONFIG\.|\.Q$/, @config_q_list;
+  # remove CONFIG files that are always taken
+  @config_q_list = grep !/README/, @config_q_list;
+  # don't exclude files related with distributed hosts
+  @config_q_list = grep !/$short_regexp/, @config_q_list;
+  # prepend directory
+  for ( $i=0; $i<=$#config_q_list; $i++ ) {
+    push @exclude_list, "siteconfig/" . $config_q_list[$i];
+  }
+}
+
+
+# CREATE INCLUDE AND EXCLUDE FILES ---------------------------------------
+sub create_include_exclude {
+  local($include, $include3, $exclude, $exclude3, $platform, $platform3, $find);
+  
+  if ( $opt_z ) { # standalone builder distribution only (no server)
+    $include = "ebuilder_site_include_list";
+    $include3 = "ebuilder_site_include3_list";
+    $exclude = "ebuilder_site_exclude_list";
+    $exclude3 = "ebuilder_site_exclude3_list";
+    $platform = "ebuilder_site_platform_ex";
+    $platform3 = "ebuilder_site_platform3_ex";
+  } elsif ( $opt_b ) { # combination builder/viewer (with server for imports)
+    $include = "eviewer_site_include_list";
+    $include3 = "eviewer_site_include3_list";
+    $exclude = "eviewer_site_exclude_list";
+    $exclude3 = "eviewer_site_exclude3_list";
+    $platform = "eviewer_site_platform_ex";
+    $platform3 = "eviewer_site_platform3_ex";
+  } else { # full applications/server distribution
+    $include = "full_site_include_list";
+    $include3 = "full_site_include3_list";
+    $exclude = "full_site_exclude_list";
+    $exclude3 = "full_site_exclude3_list";
+    $platform = "full_site_platform_ex";
+    $platform3 = "full_site_platform3_ex";
+  }
+
+  $find = "site_find_list";
+
+  print "Creating application include and exclude file lists\n";
+
+  # platform directory modifications
+  # include its platform dir
+  push @include_list, "${sysdir}bin";
+  push @include_list, "${sysdir}lib";
+  push @include3_list, "${sysdir}3rdparty";
+  foreach $exc ( @$platform ) {
+    push @exclude_list, "${sysdir}$exc";
+  }
+  foreach $exc ( @$platform3 ) {
+    push @exclude3_list, "${sysdir}3rdparty/$exc";
+  }
+
+  # add on the includes and excludes
+  push @include_list, @$include;
+  push @include3_list, @$include3;
+  push @exclude_list, @$exclude;
+  push @exclude3_list, @$exclude3;
+
+  # use find to search for specified files/dirs like .svn, core
+  print "\n   Searching directories for excluded application files - this may take a while\n" if ( $opt_v );
+  foreach $f ( @$find ) {
+    @search_in = @include_list;
+    # if they have specified directories
+    if ( $f =~ /:/ ) {
+      splice @temp;
+      splice @do;
+      splice @not;
+      @temp = split /:/, $f;
+      $f = pop @temp;
+      foreach $temp ( @temp ) {
+        if ( $temp =~ /^\!/ ) {
+      $temp =~ s/^\!//;
+          push @not, $temp unless grep /$temp/, @not;
+        } else {
+          push @do, $temp unless grep /$temp/, @do;
+        }
+      }
+      @search_in = @do if ( @do );
+      if ( @not ) {
+        $temp = join '|', @not;
+        @search_in = grep !/$temp/, @search_in;
+      }
+    } # end if the find entry specified directories
+ 
+    # create a hash so we can search by directory (hopefully faster
+    # since find has cached directory contents first time)
+    foreach $item ( @search_in ) {
+      push @{ $find_hash{$item} }, $f;
+    }
+  } # end foreach in find list
+  foreach $dir ( sort keys( %find_hash ) ) {
+    print "     -In $dir\n" if ( $opt_v );
+    if ( -d $dir ) {
+      foreach $pattern ( @{ $find_hash{$dir} } ) {
+        push @exclude_list, `find $dir -follow -name $pattern`;
+      }
+    }
+  }
+  print "\n" if ( $opt_v );
+
+  print "\n   Searching directories for excluded 3rdparty files - this may take a while\n" 
+  if ( $opt_v );
+  foreach $f ( @$find ) {
+    @search_in = @include3_list;
+    # if they have specified directories
+    if ( $f =~ /:/ ) {
+      splice @temp;
+      splice @do;
+      splice @not;
+      @temp = split /:/, $f;
+      $f = pop @temp;
+      foreach $temp ( @temp ) {
+        if ( $temp =~ /^\!/ ) {
+      $temp =~ s/^\!//;
+          push @not, $temp unless grep /$temp/, @not;
+        } else {
+          push @do, $temp unless grep /$temp/, @do;
+        }
+      }
+      @search_in = @do if ( @do );
+      if ( @not ) {
+        $temp = join '|', @not;
+        @search_in = grep !/$temp/, @search_in;
+      }
+    } # end if the find entry specified directories
+ 
+    # create a hash so we can search by directory (hopefully faster
+    #   since find has cached directory contents first time)
+    foreach $item ( @search_in ) {
+      push @{ $find_hash{$item} }, $f;
+    }
+  } # end foreach in find list
+  foreach $dir ( sort keys( %find_hash ) ) {
+    print "     -In $dir\n" if ( $opt_v );
+    if ( -d $dir ) {
+      foreach $pattern ( @{ $find_hash{$dir} } ) {
+        push @exclude3_list, `find $dir -follow -name $pattern`;
+      }
+    }
+  }
+  print "\n" if ( $opt_v );
+}
+
+# clean up and expand wildcards
+sub clean_and_expand {
+  
+  # expand wildcards 
+  @include_list = &expand_wild( @include_list );
+  @include3_list = &expand_wild( @include3_list );
+  @exclude_list = &expand_wild( @exclude_list );
+  @exclude3_list = &expand_wild( @exclude3_list );
+  
+  # get rid of redundancy in exclude list
+  @exclude_list = &exclude_redundancy( @exclude_list );
+  @exclude3_list = &exclude_redundancy( @exclude3_list );
+  
+  # eliminate anything in include that is in exclude
+  @include_list = &strip_include( \@include_list, \@exclude_list );
+  @include3_list = &strip_include( \@include3_list, \@exclude3_list );
+  
+  # and last of all, sort'em for display.
+  @include_list = sort @include_list;
+  @include3_list = sort @include3_list;
+  @exclude_list = sort @exclude_list;
+  @exclude3_list = sort @exclude3_list;
+}
+
+# fill up the include/exclude files and print out if verbose
+sub write_and_display_lists {
+
+  # Create a temporary directory so we can fool tar with our mods
+  if ( -d $scratchdir ) {
+    `rm -rf $scratchdir`;
+    if ( $? != 0 ) { die "Cannot remove old $scratchdir directory: $!"; }
+  }
+  mkdir "$scratchdir", 0755;
+  chdir $scratchdir;
+
+  # get rid of the include/exclude files if they are there (shouldn't be)
+  if ( -e make_tar_exclude ) {
+    unlink make_tar_exclude;
+  }
+  if ( -e make_tar_exclude3 ) {
+    unlink make_tar_exclude3;
+  }
+  if ( -e make_tar_include ) {
+    unlink make_tar_include;
+  }
+  if ( -e make_tar_include3 ) {
+    unlink make_tar_include3;
+  }
+
+  # write listing files
+  &write_listing( "make_tar_include", @include_list);
+  &write_listing( "make_tar_include3", @include3_list);
+  &write_listing( "make_tar_exclude", @exclude_list);
+  &write_listing( "make_tar_exclude3", @exclude3_list);
+  print "\n" if $opt_v;
+  
+  if ( $opt_v ) {
+    &display_listing( "   Included:\n", @include_list);
+    &display_listing( "   Included 3rdparty:\n", @include3_list);
+    &display_listing( "   Excluded:\n", @exclude_list);
+    &display_listing( "   Excluded 3rdparty:\n", @exclude3_list);
+    print "\n";
+  }
+}
+
+sub global_mods {
+
+  print "Creating new temporary siteconfig Machines and Queues files:\n" if $opt_v;
+
+  # Create temp dir for fooling tar
+  mkdir "$scratchdir/siteconfig", 0755;
+
+  # Machines file
+  # move, open, and transfer
+  print "  Modifying: Machines" if $opt_v;
+  open MACHINEORIG, "<$fromdir/siteconfig/Machines";
+  open MACHINE, ">$scratchdir/siteconfig/Machines";
+  print MACHINE grep( /^#|^ *\$|$regexp/, <MACHINEORIG> );
+  close MACHINEORIG;
+  close MACHINE;
+
+  # Queues file - This is a rather complex so we can support multiple or
+  #               single line Queues host listings.
+  print ", Queues" if $opt_v;
+  open QUEUESORIG, "<$fromdir/siteconfig/Queues";
+  open QUEUES, ">$scratchdir/siteconfig/Queues";
+  $inheader = 1;
+  MAIN: while (<QUEUESORIG>) {
+    if ( $inheader ) {
+      # if we have comments and we aren't at the Queues line yet
+      if ( /^\s*#/ ) {
+        print QUEUES;
+        next MAIN;
+      }
+      chomp;
+      # if we are getting the queues line
+      if (/^\s*Queues:/) {
+        # while it goes on to the next line ( trailing \ )
+        while (/\\\s*$/) {
+          # take away leading spaces.
+          s/^\s*//;
+          # add to queuemachines var and eliminate trailing \
+          ( $queuemachines .= " $_" ) =~ s/\\\s*$//;
+          # get the next line
+          $_ = <QUEUESORIG>;
+          chomp;
+        }
+        s/^\s*//; # get rid of leading spaces.
+        $queuemachines .= $_; # last line has no backslash
+        # print to the new file what machines are in dist_hosts
+        print QUEUES "Queues: ";
+        foreach $host ( @dist_hosts ) {
+          if ( $queuemachines =~ /$host/ ) {
+            print QUEUES "$host ";
+          }
+        }
+        print QUEUES "\n";
+        # waiting for the end of the header section
+        while ( ($_ = <QUEUESORIG>) !~ /^##+$/ ) {
+          print QUEUES;
+        }
+        print QUEUES;
+        $inheader = 0;
+        next MAIN;
+      } # endif /^\s*QUEUES:/
+    } else {
+      if ( /^\s*$/ ) {
+        print QUEUES unless $notdist; 
+      } elsif ( /$regexp/ ) {
+        print QUEUES;
+        $notdist = 0;
+      } else {
+        $notdist = 1;
+      }
+    }
+  } # MAIN while loop
+  close QUEUESORIG;
+  close QUEUES;
+
+  # remote_shells.site file
+  # move, open, and transfer
+  print "  Modifying: remote_shells.site" if $opt_v;
+  open SHELLSORIG, "<$fromdir/siteconfig/remote_shells.site";
+  open SHELLS, ">$scratchdir/siteconfig/remote_shells.site";
+  print SHELLS grep( /^#|^ *\$|$regexp/, <SHELLSORIG> );
+  close SHELLSORIG;
+  close SHELLS;
+
+  print "\n" if $opt_v;
+} 
+
+
+sub create_apps_tar {
+
+  chdir "$scratchdir";
+  $apptarfile = "ecce_apps.${version}${platfrmstring}.tar${cmpext}";
+  print "Making application tar file $apptarfile\n";
+  # h causes links to be followed
+  # The -X/-T files are used to control what is tarred and what isn't
+  $TAR = "tar -ch${opt_v}${cmpcmd}f ${apptarfile} -X make_tar_exclude -T make_tar_include |";
+  unless (open TAR) {
+    print "ERROR: Can't open tar process: $! ";
+    &cleanup;
+    exit;
+  }
+  while (<TAR>) {
+    print "  $_";
+  }
+  close TAR;
+  print "\n" if $opt_v;
+
+  $app3tarfile = "ecce_3rdparty.${version}${platfrmstring}.tar${cmpext}";
+  print "Making 3rdparty tar file $app3tarfile\n";
+  # Don't follow links this time!
+  # (because we have links to shared libs to handle version suffixes
+  # to save size on the distribution)
+  # This bit of trickiness with creating the tar file from $ECCE_HOME
+  # allows -h to be omitted since from $scratchdir the 3rdparty directory
+  # is under a link itself and we would need to follow it to get anything.
+  chdir "${ECCE_HOME}";
+  $TAR = "tar -c${opt_v}${cmpcmd}f ${scratchdir}/${app3tarfile} -X ${scratchdir}/make_tar_exclude3 -T ${scratchdir}/make_tar_include3 |";
+  unless (open TAR) {
+    print "ERROR: Can't open tar process: $! ";
+    &cleanup;
+    exit;
+  }
+  while (<TAR>) {
+    print "  $_";
+  }
+  close TAR;
+  print "\n" if $opt_v;
+}
+
+sub create_jre_tar {
+
+  if (-d "${ECCE_HOME}/${sysdir}3rdparty/jre") {
+    chdir "${ECCE_HOME}/${sysdir}3rdparty";
+    $jretarfile = "jre${platfrmstring}.tar${cmpext}";
+    print "Making JRE tar file $jretarfile\n";
+
+    # logic to toss .svn directories
+    unless (open WRITEOUT, ">make_tar_exclude" ) {
+      die "Can't open ${ECCE_HOME}/${sysdir}3rdparty/make_tar_exclude for writing: $!";
+    }
+    print WRITEOUT ".svn\n";
+    close WRITEOUT;
+
+    # h causes links to be followed
+    $TAR = "tar -ch${opt_v}${cmpcmd}f ${scratchdir}/${jretarfile} -X make_tar_exclude jre |";
+    unless (open TAR) {
+      print "ERROR: Can't open tar process: $! ";
+      &cleanup;
+      exit;
+    }
+    while (<TAR>) {
+      print "  $_";
+    }
+    close TAR;
+    unlink make_tar_exclude;
+    print "\n" if $opt_v;
+  } else {
+    $jretarfile = "";
+  }
+}
+
+sub create_webhelp_tar {
+
+  $webhelptarfile = "eccewebhelp.tar${cmpext}";
+
+  if (-d "/msrc/proj/ecce/webhelpdev") {
+    chdir "/msrc/proj/ecce/webhelpdev";
+
+    print "Making WebHelp tar file $webhelptarfile\n";
+    # h causes links to be followed. 
+    $TAR = "tar -ch${opt_v}${cmpcmd}f ${scratchdir}/${webhelptarfile} . |";
+    unless (open TAR) {
+      print "ERROR: Can't open tar process: $! ";
+      &cleanup;
+      exit;
+    }
+    while (<TAR>) {
+      print "  $_";
+    }
+    close TAR;
+    print "\n" if $opt_v;
+  } else {
+    print "Copying WebHelp tar file $webhelptarfile\n";
+    `cp ${ECCE_HOME}/data/admin/dataserver/help/${webhelptarfile} ${scratchdir}`;
+  }
+}
+
+sub create_data_server {
+
+  chdir "$scratchdir";
+  print "\nBuilding data server bundle:\n";
+  $SVR = "build_data_server |";
+
+  unless (open SVR) {
+    print "ERROR: Can't open build_data_server process: $! ";
+    &cleanup;
+  }
+  while (<SVR>) {
+    print "  $_";
+  }
+  close SVR;
+}
+
+sub create_jms_server {
+
+  $jmstarfile = "jms_server.tar${cmpext}";
+
+  if (-d "${ECCE_HOME}/${sysdir}3rdparty/activemq") {
+    chdir "${ECCE_HOME}/${sysdir}3rdparty";
+    print "\nMaking JMS server compressed tar file $jmstarfile\n";
+
+    # logic to toss .svn directories
+    unless (open WRITEOUT, ">make_tar_exclude" ) {
+      die "Can't open ${ECCE_HOME}/${sysdir}3rdparty/make_tar_exclude for writing: $!";
+    }
+    print WRITEOUT ".svn\n";
+    close WRITEOUT;
+
+    # h causes links to be followed
+    $TAR = "tar -ch${opt_v}${cmpcmd}f ${scratchdir}/${jmstarfile} -X make_tar_exclude activemq |";
+    unless (open TAR) {
+      print "ERROR: Can't open tar process: $! ";
+      &cleanup;
+      exit;
+    }
+    while (<TAR>) {
+      print "  $_";
+    }
+    close TAR;
+    unlink make_tar_exclude;
+    print "\n" if $opt_v;
+  } else {
+    print "\nCopying JMS server distribution $jmstarfile\n";
+    `cp ${ECCE_HOME}/build/3rdparty-dists/apache-activemq* ${scratchdir}/${jmstarfile}`;
+  }
+}
+
+sub create_server_tar {
+
+  chdir "$scratchdir";
+  $svrtarfile = "ecce_server${platfrmstring}.tar";
+  print "Making server tar file $svrtarfile\n";
+  $TAR = "tar -c${opt_v}f ${svrtarfile} data_server.tar${cmpext} jms_server.tar${cmpext} |";
+  unless (open TAR) {
+    print "ERROR: Can't open server tar process: $! ";
+    &cleanup;
+  }
+  while (<TAR>) {
+    print "  $_";
+  }
+  close TAR;
+
+  `rm -f data_server.tar${cmpext} jms_server.tar${cmpext}`;
+}
+
+sub get_nwchem_tar {
+ 
+  if ( $nwchemfile ne "" && -e $nwchemfile ) {
+    #get the name of the nwchem tar file 
+    @filelist = split (/\//, $nwchemfile );
+    $count = @filelist;
+    $nwchemtarfiles = @filelist[$count - 1];
+
+    print "Copying NWChem distribution $nwchemtarfile\n";
+    `cp $nwchemfile $scratchdir/$nwchemtarfiles`;
+  } elsif ( -e $nwchembinfile && -e $nwchemcmnfile ) {
+    #get the name of the nwchem binary tar file 
+    @filelist = split (/\//, $nwchembinfile );
+    $count = @filelist;
+    $nwchemtarfile1 = @filelist[$count - 1];
+
+    print "Copying NWChem binary distribution $nwchemtarfile1\n";
+    `cp $nwchembinfile $scratchdir/$nwchemtarfile1`;
+
+    #get the name of the nwchem common tar file 
+    @filelist = split (/\//, $nwchemcmnfile );
+    $count = @filelist;
+    $nwchemtarfile2 = @filelist[$count - 1];
+
+    print "Copying NWChem common distribution $nwchemtarfile2\n";
+    `cp $nwchemcmnfile $scratchdir/$nwchemtarfile2`;
+
+    $nwchemtarfiles = "$nwchemtarfile1 $nwchemtarfile2";
+  } else {
+    $nwchemtarfiles = "";
+  }
+}
+  
+
+sub create_combined_tar {
+
+  chdir "$scratchdir";
+  $tarfile = "ecce.${version}${platfrmstring}.tar";
+  print "Making combined tar file $tarfile\n";
+  if ( $opt_z ) {
+    $TAR = "tar -c${opt_v}f ${tarfile} ${apptarfile} ${app3tarfile} ${webhelptarfile} |";
+  } elsif ( $opt_b ) {
+    $TAR = "tar -c${opt_v}f ${tarfile} ${apptarfile} ${app3tarfile} ${svrtarfile} ${jretarfile} ${webhelptarfile} |";
+  } elsif ( $opt_e ) {
+    &get_nwchem_tar;
+    $TAR = "tar -c${opt_v}f ${tarfile} ${apptarfile} ${app3tarfile} ${jretarfile} ${webhelptarfile} ${nwchemtarfiles} |";
+  } else {
+    &get_nwchem_tar; 
+    $TAR = "tar -c${opt_v}f ${tarfile} ${apptarfile} ${app3tarfile} ${svrtarfile} ${jretarfile} ${webhelptarfile} ${nwchemtarfiles} |";
+  }
+
+  unless (open TAR) {
+    print "ERROR: Can't open combined tar process: $! ";
+    &cleanup;
+    exit;
+  }
+  while (<TAR>) {
+    print "  $_";
+  }
+  close TAR;
+  print "\n" if $opt_v;
+}
+
+sub create_install_script {
+
+  if ( $opt_z ) {
+    $uufile = "install_ecce_builder.${version}${platfrmstring}.csh";
+    chdir "$scratchdir";
+    print "Concatenating builder install script $tarfile\n";
+    `cp $ECCE_HOME/build/builder_install_ecce $todir/$uufile`;
+  } elsif ( $opt_b ) {
+    $uufile = "install_ecce_builder.${version}${platfrmstring}.csh";
+    chdir "$scratchdir";
+    print "Concatenating builder/viewer install script $tarfile\n";
+    `cp $ECCE_HOME/build/viewer_install_ecce $todir/$uufile`;
+  } else {
+#    if ( $opt_r ) {
+#      $uufile = "install_ecce_rxn.${version}${platfrmstring}.csh";
+#    } else {
+      $uufile = "install_ecce.${version}${platfrmstring}.csh";
+#    }
+    chdir "$scratchdir";
+    print "Concatenating install script and combined tar file $tarfile\n";
+    `cp $ECCE_HOME/build/install_ecce $todir/$uufile`; 
+  }
+
+  `perl -pi -e 's%##VERSION##%$version%' $todir/$uufile`;
+  `perl -pi -e 's%##PLATFORM##%$sysdir%' $todir/$uufile`;
+  `cat $tarfile >> $todir/$uufile`; 
+  `chmod +x $todir/$uufile`;
+  print "\n" if $opt_v;
+}
+
+sub cleanup {
+  print "Removing temporary files/directories\n" if $opt_v;
+  # Eliminating temporary modified siteconfig Machines and Queues files.
+  chdir "$fromdir";
+  $temp = `rm -rf $scratchdir`;
+  if ($? != 0) { die "error with rm : $! "; }
+  print "\n" if $opt_v;
+}
+
+
+# expand wild cards and get rid of carriage returns too
+# note: if your paths are relative, this assumes you are *in* the
+#       base directory.
+sub expand_wild {
+  local( @listing ) = @_;
+  chomp( $temp = `pwd` );
+  # expand wildcards in include list
+  for ( $i=0; $i<=$#listing; $i++ ) {
+    if ( $listing[$i] =~ /\*/ ) {
+      # get the directory
+      ( $listing_base = "$temp/$listing[$i]" ) =~ s/\/([\w\.\*]+)$/\//;
+      # capture the tail
+      $wildcard = $1;
+      $wildcard =~ s/\./\\\./; # escape periods
+      $wildcard =~ s/\*/\.\*/; # change wildcards from * to .* for perl
+      opendir LISTING, "$listing_base" or die "Cannot open $listing_base : $!";
+      @dir_list = readdir LISTING;
+      closedir LISTING;
+      @dir_list = grep /$wildcard/, @dir_list;
+      @dir_list = grep !/\.\.?$/, @dir_list;
+      $listing_base =~ s/$temp\///;
+      for ( $j=0; $j<=$#dir_list; $j++ ) {
+        $dir_list[$j] = "${listing_base}$dir_list[$j]";
+      }
+      splice @listing, $i, 1, @dir_list;
+      $i += $#shell_list;
+    }
+  }
+  # get rid of carriage returns
+  chomp @listing;
+  return @listing;
+}
+
+# writeout file 
+sub write_listing {
+  local( $filename, @listing ) = @_;
+  unless (open WRITEOUT, ">$filename" ) {
+    die "Can't open $filename for writing: $!";
+  }
+  foreach $line ( @listing ) {
+    print WRITEOUT "./$line\n";
+  }
+  close WRITEOUT;
+}
+
+# writeout to screen 
+sub display_listing {
+  local( $title, @listing ) = @_;
+  print $title;
+  foreach $line ( @listing ) {
+    print "     $line\n";
+  }
+  print "\n";
+}
+
+# get rid of redundancy: for exclude lists
+sub exclude_redundancy {
+  local( @listing ) = @_;
+  foreach $line ( @listing ) {
+    # get rid of subdirectories if directories are included
+    if ( grep( /${line}\//, @listing) > 0 ) {
+      @listing = grep !/${line}\//, @listing;
+    }
+  }
+  return @listing;
+}
+
+sub strip_include {
+  local( $inref, $exref ) = @_;
+
+  foreach $item ( @$exref ) {
+    for ( $i=0; $i<=$#$inref; $i++) {
+      if ( $item eq $$inref[$i] ) {
+        splice @$inref, $i, 1;
+        $i--;
+      }
+    }
+  }
+  return @$inref;
+}
+
+# recursively link one directory with another, preserving files
+# that already exist.
+sub linkdirs {
+  local( $from, $to ) = @_;
+  local( $start );
+
+  # get full paths
+  chomp( $start = `pwd` );
+  chdir $from;
+  chomp( $from = `pwd` );
+  chdir $start;
+  chdir $to;
+  chomp( $to = `pwd` );
+
+  # get the listing, subdirectories first
+  @dirlist = `find . -depth -type d`;
+  chomp @dirlist;
+  foreach $dir ( @dirlist ) {
+    ( $f = $dir ) =~ s/^\./$from/;
+    ( $t = $dir ) =~ s/^\./$to/;
+
+    # what is in original dir
+    opendir FROM, "$from/$dir";
+    @originals = grep !/^\.\.?$/, readdir( FROM );
+    closedir FROM;
+
+    # make links
+    foreach $file ( @originals ) {
+      unless ( -e "$t/$file" ) {
+        symlink "$f/$file", "$t/$file";
+      }
+    }
+  }
+} # end linkdirs
+

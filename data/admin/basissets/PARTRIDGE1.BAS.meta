@@ -1,0 +1,44 @@
+name
+Partridge Uncontr. 1
+name
+type
+other_segmented
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+Uncontracted
+contraction_type
+references
+Elements                             References
+--------                             ----------
+Li - Ne, K - Zn: H. Partridge, J. Chem. Phys. 90, 1043 (1989).
+Na - Ar:         H. Partridge, J. Chem. Phys. 87, 6643 (1987).
+
+references
+info
+                    Partridge Uncontracted Basis Sets
+                    ---------------------------------
+ Elements                            Reference
+ Li, Be:  (14s)      H. Partridge, J. Chem. Phys. 90, 1043 (1989).
+ B - Ne:  (14s,9p)
+ Na - Mg: (18s,10p)  H. Partridge, J. Chem. Phys. 87, 6643 (1987).
+ Al - Ar: (17s,12p)
+ K - Ca:  (20s,12p)
+ Sc - Zn: (20s,12p,9d) except V, Co and Ni which are (20s,12p,8d)
+ Ga - Kr: (20s,15p,9d)
+ Rb - Sr: (24s,16p,10d)
+
+These are groundstate, RHF energy-optimized, uncontracted basis sets.
+
+info
+comments
+11/25/97  - DFF - Fix fluorine s/p labels
+4/16/95  - DFF - Add sets for Na - Ar formatted by S. Coulson.
+3/06/95  - DFF - Modify the literation citation format. 
+7/17/91  - DFF - Original creation of this file from a file set by H. Partridge
+comments

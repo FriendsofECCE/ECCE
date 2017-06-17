@@ -1,0 +1,291 @@
+###############################################################################
+#
+#
+# The properties table contains the single locations of all property
+# definitions attached to objects in the EMSL database.  The
+# descriptions of the fields are as follows:
+#  Class - A generic classification key of the property
+#          EStruct = Electronic Structure
+#          Derived = Computed From Other Properties
+#          Process = Values Associated with Computer Processes
+#          Any = A Generic User-Defined Category
+#  Long_Name - A more descriptive name of the property
+#  Short_Name - Key Attribute for finding properties
+#               (Note: being the key, these values must be unique,
+#                      capitalization is only a convention)
+#  Units - The units class of specific units the property can take
+#          The actual units are defined in netCDF files of the same
+#          name as the class.  For example, Energy units and
+#          conversions are found in Energy.nc (and Energy.tbl).
+#  DBClass - The database property class that will hold values
+#            for this type of property.  These are used to sanity
+#            check the creation of properties.
+#  userlevel - The UserLevel that the property is accessible from.
+#  proplevel - Intended for use with properties like the MOs, where the
+#              MO property would be primary, and others (e.g. MO Energies) would be
+#              secondary.  However, it is currently being used for some properties (e.g. Energy Vectors) to 
+#              filter them out from being displayed by the CalcBrowser since, the scalar is available
+#  append - Whether the property should be appended to upon a restart
+#
+###############################################################################
+# Fields MUST be tab separated.  If they are not, you should get a fatal
+# assert runnning load_refdb.
+###############################################################################
+#class		long_name				short_name	units		dbclass			
+######		#########				##########	#####		#######		
+Energy		Point Group				PNTGRP		Energy		PropTSVecString<Wave Step>
+Energy		Delta E					DELTAE		Energy		PropTSVector<Wave Step>
+Energy		RMSDP					RMSDP		Energy		PropTSVector<Wave Step>
+Energy		Wavefunction Step Energy		EWVEC		Energy		PropTSVector<Wave Step>
+Energy		Orbital Gradient Norm			DEWVEC		Energy		PropTSVector<Wave Step>
+Energy		Electron Affinity			EA		Energy		PropValue
+Energy		Dissociation Energy			DE		Energy		PropValue
+Energy		Excitation Energy			EXCI		Energy		PropValue
+Energy		Proton Affinity				PA		Energy		PropValue
+Energy		Ionization Potential			IP		Energy		PropValue
+Energy		Conformational Energy Difference	CED		Energy		PropValue
+Energy		Reaction Energy Difference		RXN		Energy		PropValue
+Energy		Rotational Inversion Barrier		ROTINV		Energy		PropValue
+Energy		Nuclear Repulsion Energy		NNREPUL		Energy		PropValue
+Energy		One-Electron Energy			ONEELEC		Energy		PropValue
+Energy		Two-Electron Energy			TWOELEC		Energy		PropValue
+Energy		Correlation Energy			CORRELTN	Energy		PropValue
+Energy		Coulomb Energy				COULOMB		Energy		PropValue
+Energy		Van der Waals Energy			VDW		Energy		PropValue
+Energy		Potential Energy			PE		Energy		PropValue
+Energy		Exchange Energy				EXCHANGE	Energy		PropValue
+Energy		Kinetic Energy				KE		Energy		PropValue
+Energy		Atomic Energy				AE		Energy		PropTable<Basis Set,Theory>
+# 
+Energy		Total Energy				TE		Energy		PropValue
+Energy		SCF Energy				ESCF		Energy		PropValue
+Energy		DFT Energy				EDFT		Energy		PropValue
+Energy		MP2 Energy				EMP2		Energy		PropValue
+Energy		MP3 Energy				EMP3		Energy		PropValue
+Energy		MP4(D) Energy				EMP4D		Energy		PropValue
+Energy		MP4(DQ) Energy				EMP4DQ		Energy		PropValue
+Energy		MP4(SDQ) Energy				EMP4SDQ		Energy		PropValue
+Energy		MP4(SDTQ) Energy			EMP4SDTQ	Energy		PropValue
+Energy		MP5 Energy				EMP5		Energy		PropValue
+Energy		CCSD Energy				ECCSD		Energy		PropValue
+Energy		CCSD(T) Energy 				ECCSDTPERT	Energy		PropValue
+Energy		CCSD+T Energy				ECCSDTPERT2	Energy		PropValue
+Energy		QCISD Energy				EQCISD		Energy		PropValue
+Energy		QCISD(T) Energy				EQCISDT		Energy		PropValue
+Energy		CASSCF Energy				ECAS		Energy		PropValue
+Energy		CIS Energy				ECIS		Energy		PropValue
+Energy		CISD Energy				ECISD		Energy		PropValue
+Energy		CNDO Energy				ECNDO		Energy		PropValue
+Energy		INDO Energy				EINDO		Energy		PropValue
+Energy		MINDO/3 Energy				EMINDO3		Energy		PropValue
+Energy		MNDO Energy				EMNDO		Energy		PropValue
+Energy		AM1 Energy				EAM1		Energy		PropValue
+Energy		PM3 Energy				EPM3		Energy		PropValue
+#
+AmicaSCF	Hartree-Fock				ESCF_A		Energy		PropValue
+AmicaSCF	MCSCF 					EMCSCF_A	Energy		PropValue
+AmicaOther	MP2					EMP2_A		Energy		PropValue
+AmicaOther	MP3 					EMP3_A		Energy		PropValue
+AmicaOther	MP4 					EMP4_A		Energy		PropValue
+AmicaOther	MP2-R12 				EMP2-R12	Energy		PropValue
+AmicaOther	MP3-R12 				EMP3-R12	Energy		PropValue
+AmicaOther	MP4-R12					EMP4-R12	Energy		PropValue
+AmicaOther	ACCD 					EACCD_A		Energy		PropValue
+AmicaOther	CCD 					ECCD_A		Energy		PropValue
+AmicaOther	CCSD					ECCSD_A		Energy		PropValue
+AmicaOther	CCSD(T) 				ECCSDTPERT_A	Energy		PropValue
+AmicaOther	CCSD[T] 				ECCSDTPERT3_A	Energy		PropValue
+AmicaOther	CCSDT-1a 				ECCSDT1A_A	Energy		PropValue
+AmicaOther	LCCD 					EL-CCD_A	Energy		PropValue
+AmicaOther	ACCD-R12 				EACCD-R12	Energy		PropValue
+AmicaOther	CCD-R12 				ECCD-R12	Energy		PropValue
+AmicaOther	CCSD-R12 				ECCSD-R12	Energy		PropValue
+AmicaOther	CCSD(T)-R12 				ECCSDTPERT-R12	Energy		PropValue
+AmicaOther	CCSD[T]-R12 				ECCSDTPERT3-R12	Energy		PropValue
+AmicaOther	CCSDT-1a-R12 				ECCSDT1A-R12	Energy		PropValue
+AmicaOther	LCCD-R12 				EL-CCD-R12	Energy		PropValue
+AmicaOther	ACPF 					EACPF_A		Energy		PropValue
+AmicaOther	ACPF2 					EACPF2_A	Energy		PropValue
+AmicaOther	AQCC 					EAQCC_A		Energy		PropValue
+AmicaOther	CEPA0 					ECEPA0_A	Energy		PropValue
+AmicaOther	CI(SD)					ECISD_A		Energy		PropValue
+AmicaOther	CPF 					ECPF_A		Energy		PropValue
+AmicaOther	R12-CISD 				ER12-CISD	Energy		PropValue
+AmicaOther	R12-ACPF 				ER12-ACPF	Energy		PropValue
+AmicaOther	R12-ACPF2 				ER12-ACPF2	Energy		PropValue
+AmicaOther	R12-AQCC 				ER12-AQCC	Energy		PropValue
+AmicaOther	R12-CEPA0 				ER12-CEPA0	Energy		PropValue
+AmicaOther	MR-CISD 				EMR-CISD_A	Energy		PropValue
+AmicaOther	MR-ACPF 				EMR-ACPF_A	Energy		PropValue
+AmicaOther	MR-ACPF2 				EMR-ACPF2_A	Energy		PropValue
+AmicaOther	MR-AQCC 				EMR-AQCC_A	Energy		PropValue
+AmicaOther	MR-CEPA0 				EMR-CEPA0_A	Energy		PropValue
+AmicaOther	R12-MR-CISD 				ER12-MR-CISD	Energy		PropValue
+AmicaOther	R12-MR-ACPF 				ER12-MR-ACPF	Energy		PropValue
+AmicaOther	R12-MR-ACPF2 				ER12-MR-ACPF2	Energy		PropValue
+AmicaOther	R12-MR-AQCC 				ER12-MR-AQCC	Energy		PropValue
+AmicaOther	R12-MR-CEPA0 				ER12-MR-CEPA0	Energy		PropValue
+AmicaOther	Cowan-Griffin Relativistic Correction	ERELCORR_A	Energy		PropValue
+#
+#  SC02 results
+#
+Energy		Gx Energy				GXENERGY	Energy		PropValue
+Energy		Heat of Formation			HFENERGY	Energy		PropValue
+#
+Energy		Zero Point Energy			EZEROPT		Energy		PropValue
+#							   		     
+#
+Energy		Total Energy Vector			TEVEC		Energy		PropTSVector<Geometry Step>
+Energy		Kinetic Energy Vector			KEVEC		Energy		PropTSVector<Geometry Step>
+Energy		Potential Energy Vector			PEVEC		Energy		PropTSVector<Geometry Step>
+Energy		TimeStep Vector				TIMEVEC		Time		PropTSVector<Geometry Step>
+Energy		Temperature Vector			TEMPVEC		Temperature	PropTSVector<Geometry Step>
+Energy		Pressure Vector				PRESSVEC	Pressure	PropTSVector<Geometry Step>
+Energy		SCF Energy Vector			ESCFVEC		Energy		PropTSVector<Geometry Step>
+Energy		DFT Energy Vector			EDFTVEC		Energy		PropTSVector<Geometry Step>
+Energy		MP2 Energy Vector			EMP2VEC		Energy		PropTSVector<Geometry Step>
+Energy		MP3 Energy Vector			EMP3VEC		Energy		PropTSVector<Geometry Step>
+Energy		MP4(DQ) Energy Vector			EMP4DQVEC	Energy		PropTSVector<Geometry Step>
+Energy		MP4(SDQ) Energy Vector			EMP4SDQVEC	Energy		PropTSVector<Geometry Step>
+Energy		MP4(SDTQ) Energy Vector			EMP4SDTQVEC	Energy		PropTSVector<Geometry Step>
+Energy		MP5 Energy Vector			EMP5VEC		Energy		PropTSVector<Geometry Step>
+Energy		CCD Energy Vector			ECCDVEC		Energy		PropTSVector<Geometry Step>
+Energy		CCSD Energy Vector			ECCSDVEC	Energy		PropTSVector<Geometry Step>
+Energy		CCSD(T) Energy Vector			ECCSDTPVEC	Energy		PropTSVector<Geometry Step>
+Energy		QCISD Energy Vector			EQCISDVEC	Energy		PropTSVector<Geometry Step>
+Energy		QCISD(T) Energy Vector			EQCISDTVEC	Energy		PropTSVector<Geometry Step>
+Energy		CASSCF Energy Vector			ECASVEC		Energy		PropTSVector<Geometry Step>
+Energy		CI Singles Energy Vector		ECISVEC		Energy		PropTSVector<Geometry Step>
+Energy		CI S+D Energy Vector			ECISDVEC	Energy		PropTSVector<Geometry Step>
+Energy		CNDO Energy Vector			ECNDOVEC	Energy		PropTSVector<Geometry Step>
+Energy		INDO Energy Vector			EINDOVEC	Energy		PropTSVector<Geometry Step>
+Energy		MINDO/3 Energy Vector			EMINDO3VEC	Energy		PropTSVector<Geometry Step>
+Energy		MNDO Energy Vector			EMNDOVEC	Energy		PropTSVector<Geometry Step>
+Energy		AM1 Energy Vector			EAM1VEC		Energy		PropTSVector<Geometry Step>
+Energy		PM3 Energy Vector			EPM3VEC		Energy		PropTSVector<Geometry Step>
+ESP		ESP Grid Dimensions     		ESPDIM		NA		PropVector<Grid>
+ESP		Electro Static Potential		ESPVEC		Energy		PropVector<Grid>
+#
+Geometry	GeometryTrace				GEOMTRACE	Length		PropTSVecTable<Geometry Step,Atom,Coordinate>
+Geometry	Lattice Vectors				LATTICEVEC	Length		PropTSVecTable<Geometry Step,Coordinate,Coordinate>
+#
+#							   		     
+Vibration	Vib Modes				VIB		Length		PropVecTable<Normal Mode,Atom,Coordinate>
+Vibration	Frequencies				VIBFREQ		Frequency	PropVector<Normal Mode>
+Vibration	IR Intensities				VIBIR		IRIntensity	PropVector<Normal Mode>
+Vibration	Raman Activities			VIBRAM		RamanIntensity	PropVector<Normal Mode>
+Vibration	Vib Mode Symmetries			VIBSYM		NA		PropVecString<Normal Mode>
+#
+#
+Derived		S**2					S2		NA		PropValue
+Derived		S**2 After Annihilation			S2A		NA		PropValue
+Derived		SCF Dipole Moment			DIPOLE		Dipole		PropVector<Coordinate>
+Derived		MP2 Dipole Moment			MP2DIPOLE	Dipole		PropVector<Coordinate>
+Derived		Quadrupole Moment			QUADPOLE	Quadrupole	PropVector<Unknown>
+Derived		Octapole Moment				OCTAPOLE	Octapole	PropVector<Unknown>
+Derived		Hexadecapole Moment			HEXPOLE		Hexadecapole	PropVector<Unknown>
+Derived		Polarizability				POLARIZ		Polariz		PropVector<Unknown>
+Derived		Hyperpolarizability			HYPERPOL1	Hyperpolariz	PropVector<Unknown>
+#
+#
+Derived		Residual Norm				RESIDNORM	NA		PropTSVector<Wave Step>
+#
+#							   		     
+Magnetic	Shielding Tensor			SHIELDTENSOR	PPM		PropVector<Unknown>
+Magnetic	Isotropic Shielding			ISOSHIELD	PPM		PropVector<Atom>
+Magnetic	Shielding Anisotropy			ANISOSHIELD	PPM		PropVector<Atom>
+Magnetic	Shielding Tensor Eigenvalues		SHIELDEIGVAL	PPM		PropVector<Component>
+Magnetic	Spin-dipole Tensor			DIPOLETENSOR	AU		PropVector<Unknown>
+Magnetic	Spin-dipole Tensor Eigenvalues		DIPOLEEIGVAL	AU		PropVector<Component>
+Magnetic	Spin-Spin Indirect Coupling Tensor	SPINSPIN	Hertz		PropTable<Unknown>
+Magnetic	Spin-Spin Isotropy			SSISOTROPY	Hertz		PropVector<Unknown>
+
+Derived		Electric Field Gradient			EFIELDGRAD	EFieldGrad	PropVector<Unknown>
+Derived		Electric Field Gradient Asymmetry	EFIELDASYMM	EFieldGrad	PropVector<Atom>
+Derived		Electric Field Gradient Eigenvalues	EFIELDEIGVAL	EFieldGrad	PropVector<Component>
+#
+#							   		     
+EStruct		MOs					MO		Electrons	PropTable<Basis Function,Basis Function>
+EStruct		MOs (Beta)				MOBETA		Electrons	PropTable<Basis Function,Basis Function>
+EStruct		MO Energies				ORBENG		Energy		PropVector<Basis Function>
+EStruct		MO Energies (beta)			ORBENGBETA	Energy		PropVector<Basis Function>
+EStruct		MO Occupations				ORBOCC		Charge		PropVector<Basis Function>
+EStruct		MO Occupations (beta)			ORBOCCBETA	Charge		PropVector<Basis Function>
+EStruct		MO Symmetries 				ORBSYM		NA		PropVecString<Basis Function>
+EStruct		MO Symmetries (beta)			ORBSYMBETA	NA		PropVecString<Basis Function>
+EStruct		One Density Matrix			DMAT1		Electrons	PropTable<Basis Function,Basis Function>
+EStruct		Electronic State			ESTATE		NA		PropString
+EStruct		Gaussian CUBE				CUBE		Electrons	PropVecGrid
+EStruct		Trajectory				TRJ		NA	NA
+#
+# Added by KLS - don't know which category is correct
+#
+#							   		     
+Derived		Energy Gradient Magnitude		EGRAD		Gradient	PropTSVector<Geometry Step>
+Derived		Energy Gradient Vector			EGRADVEC	Gradient	PropTable<Atom,Coordinate>
+Derived		Electric Field Vector			EFIELD		EField		PropTable<Atom,Coordinate>
+Derived		Energy Gradient Norm Vector		EGRADNORMVEC	Gradient	PropVector<Atom>
+#							   		     
+#
+Process		Global Memory Used			GCORE		Memory		PropValue
+Process		Local Memory Used			LCORE		Memory		PropValue
+Process		Elapsed Time				ETIME		Time		PropValue
+Process		CPU Time				CPUSEC		Time		PropValue
+#
+#							   		     
+Delta		Delta					DELTA		Percent		PropValue
+#							   		     
+#
+Charge		Mulliken Charges			MULLIKEN	Charge		PropVector<Atom>
+Charge		Mulliken Shell Charges			MLKNSHELL	Charge		PropVector<Unknown>
+Charge		Electron Density at Nuclei		EDENS		EFieldGrad	PropVector<Atom>
+Charge		Fermi Contact				FERMI		MHertz		PropVector<Atom>
+Charge		ESP Charge Fitting			ESPCHARGE	Charge		PropTable<Atom,Charge>
+
+#
+# Added for CMCS prototype complex calculations
+#
+EStruct		Num Alpha Electrons			NALPHAE		NA		PropValue
+EStruct		Num Beta Electrons			NBETAE		NA		PropValue
+Derived		Version					VERSION		NA		PropString
+
+#
+# MD properties
+#
+Energy		Pressure				PRSSRVEC	Pressure	PropTSVector<Geometry Step>
+Energy		Temperature				TMPRTRVEC	Temperature	PropTSVector<Geometry Step>
+Energy		Total Energy				TEMDVEC		Energy		PropTSVector<Geometry Step>
+Energy		Potential Energy			PEMDVEC		Energy		PropTSVector<Geometry Step>
+Energy		Van der Waals Energy			VDWEMDVEC	Energy		PropTSVector<Geometry Step>
+Energy		Electrostatic Energy			ELEMDVEC	Energy		PropTSVector<Geometry Step>
+Energy		Kinetic Energy				KEMDVEC		Energy		PropTSVector<Geometry Step>
+Energy		Simulation Volume			VMDVEC		Volume		PropTSVector<Geometry Step>
+
+#
+# POLYRATE properties
+#
+Reaction	Forward Reaction Rate			FORWARD_RATE	Hertz		PropTable<Unknown>
+Reaction	Reverse Reaction Rate			REVERSE_RATE	Hertz		PropTable<Unknown>
+Reaction	Forward Reaction Rate 1 Std Dev		FORWARD_RATE1	Hertz		PropTable<Unknown>
+Reaction	Reverse Reaction Rate 1 Std Dev		REVERSE_RATE1	Hertz		PropTable<Unknown>
+Reaction	Forward Reaction Rate 2 Std Dev		FORWARD_RATE2	Hertz		PropTable<Unknown>
+Reaction	Reverse Reaction Rate 2 Std Dev		REVERSE_RATE2	Hertz		PropTable<Unknown>
+Reaction	Equilibrium Constant			EQUILIBRIUM_CONST	NA		PropTable<Unknown>
+Reaction	Reaction Coordinate			RXCOORD		Energy		PropTSVector<Reaction Step>
+Reaction	Reaction Energy				RXENERGY	Energy		PropTSVector<Reaction Step>
+Reaction	Reaction Trace				RXTRACE		Length		PropTSVecTable<Reaction Step,Atom,Coordinate>
+
+#
+# Planewave Car-Parrinello properties
+#
+Energy		Total Energy Vector			TECPVEC		Energy		PropTSVector<Geometry Step>
+Energy		Kinetic Energy Vector			KECPVEC		Energy		PropTSVector<Geometry Step>
+Energy		Potential Energy Vector			PECPVEC		Energy		PropTSVector<Geometry Step>
+Energy		Electron Kinetic Vector			EKCPVEC		Energy		PropTSVector<Geometry Step>
+Energy		Ion Kinetic Vector			IKCPVEC		Energy		PropTSVector<Geometry Step>
+Energy		TimeStep Vector				TIMECPVEC	Time		PropTSVector<Geometry Step>
+Geometry	GeometryTrace				TGRADCPVEC	Length		PropTSVecTable<Geometry Step,Atom,Coordinate>
+Energy		Gradient Norm Vector			GRADNORMCPVEC	Gradient	PropTSVector<Geometry Step>
+Energy		Orbital Gradient Norm Vector		OGRADNORMCPVEC	Gradient	PropTSVector<Geometry Step>
+Energy		Free Energy				METAVEC		Energy		PropVector<Position>
+Energy		Free Energy				METATABLE	Energy		PropTable<Position,Position>

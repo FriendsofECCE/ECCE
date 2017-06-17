@@ -1,0 +1,94 @@
+$Source$
+
+This file is the README for the contents of the .cap files.
+
+This file follows the ECCE standard key/value pair format.
+Case is sensitive for the keys.
+
+Each key/value pair is used to drive code dependent error checking,
+file generation, or file parsing.
+
+MaxLValue
+---------
+  The maximum l-value (shell) that the code supports internally for basis
+  sets.   Valid values are 0-6.  For example, a value of 4 indicates
+  that the code does not support basis sets with h or i functions.
+
+GeneralContractions
+-------------------
+  A boolean that specifies whether or not the code supports
+  generally contractd basis sets.  If not, the sets can still be
+  used through reformatting techniques.
+
+PreferOptimization
+------------------
+  A boolean that specifies whether or not the code will perform
+  better with some reformatting optimization techniques.  This
+  is normally True but we found an exception with SuperMolecule.
+
+MaxTotalFunctions
+-----------------
+  An integer that specifies the maximum number of basis functions
+  that the code can handle internally.  If there is no internal limit,
+  use the value of 64000 to disable costly checking.
+
+MaxTotalPrimitives
+------------------
+  An integer that specifies the maximum number of gaussian primitives
+  that the code can handle internally.  If there is no internal limit,
+  use the value of 64000 to disable costly checking.
+
+MaxPrimitives
+-------------
+  A list of integers that specifies the maximum number of
+  primitives the code supports PER lvalue (or shell).  If there
+  is essentially no limit, enter a value of 64000 to eliminate
+  (time) costly checking.  This will likely be the case for
+  most newer codes.  An example from an older code is:
+      20 15 8 4 2 0 0
+  This code cannot use sets that have h or i functions.
+
+MaxSharedExponent
+-----------------
+  An integer that specifies that highest shell for which
+  basis set exponents can be shared.  This is over-designed
+  for future capabilities.  For codes today, this could be
+  a Boolean that indicates that exponents can be shared on
+  the s and p functions.  The idea was that a code might share
+  exponents on s,p, and d.  In reality of value of 1 indicates
+  sharing over s and p.
+
+SphericalCoordinates
+--------------------
+  A boolean that specifies whether or not the code supports
+  basis sets that were designed for spherical polarization
+  components.
+
+ECP
+---
+  A boolean that specifies whether or not the code supports use of ECPs.
+
+DFTFitting
+----------
+  Specifies whether or not the code (when using DFT) allows the user
+  specify fitting sets.  If the code doesn't support DFT theory, it is
+  irrelevent.
+ 
+RecommedDFTCharge
+-----------------
+  Specifies whether or not DFT runs should usually include at least
+  charge fitting sets.  This is a bit fuzzy since DFT is fairly new but
+  it seems that specifying charge fitting sets is VERY much faster than
+  not.  There was debate over making them required but we decided NOT to
+  limit the scientists and just provide warning reminders.  Exchange
+  fitting sets do not seem to affect performance much.
+
+RequireFullDFT
+--------------
+  Specifies whether or not DFT fitting sets must be specified for all
+  elements if they are specified for any.  This is normally the case but
+  this attribute was added in expectation of future flexibility provided
+  by codes like NWChem.
+
+MultipleOrbitals
+----------------

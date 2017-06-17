@@ -1,0 +1,80 @@
+NWChem: /home/nwchem/nwchem-5.1/bin/LINUX64/nwchem
+xappsPath: /usr/X11R6/bin
+sourceFile:  /etc/csh.login
+globusContact: jobmanager-lsf
+frontendMachine: mpp2e.emsl.pnl.gov
+frontendBypass: .pnl.gov
+
+LSF {
+#BSUB -W $wallHrMin
+#BSUB -o $runDir/lsf.out
+#BSUB -e $runDir/lsf.out
+#BSUB -P $account
+#BSUB -J $submitFile
+#BSUB -n $totalprocs
+}
+
+setup {
+
+source /home/mscf/sw/modules/init/csh
+
+module purge
+module load pnnl_env/2.10
+module load nwchem
+
+set refundFile = $runDir/refund.out
+rm -f $refundFile
+touch $refundFile
+
+echo "" >> $refundFile
+echo "----- MSCF Refund Information -----" >> $refundFile
+echo "UserID = $USER" >> $refundFile
+echo "Account name = $account" >> $refundFile
+echo "LSF Job ID = $LSB_JOBID" >> $refundFile
+echo "RMS Job ID = $RMS_RESOURCEID" >> $refundFile
+echo "Number of processors = $totalprocs" >> $refundFile
+echo "Amount of time requested = $wallHrMin" >> $refundFile
+echo "Processor list = $LSB_HOSTS" >> $refundFile
+echo "" >> $refundFile
+
+if ("$mdSystemName" != "" && `echo $runDir | grep "/dtemp"` == "") then
+  hostname >! $runDir/hopnode.out
+endif
+}
+
+wrapup {
+if ("$mdSystemName" != "" && `echo $runDir | grep "/dtemp"` == "") then
+  foreach file ($SDIR/*.*)
+    if ((-o $file) && (! -x $file)) cp $file $runDir/.
+  end
+
+  rm -f $runDir/hopnode.out
+endif
+
+cat $refundFile >> $runDir/$outFile
+rm -f $refundFile
+}
+
+#******
+# Customize execution command for NWChem
+# We want to copy nwchem to all nodes and run from the nodes.  Depending
+# on what type of job you are running, performance could take a big hit
+# if this is not done (if the nwchem image is referenced often).
+#******
+NWChemCommand {
+setenv SDIR /scratch
+pdsh -f 30 -w `nodes c $LSB_HOSTS` cp $nwchem $SDIR/nwchem
+
+if (`echo $runDir | grep "/dtemp"` == "") then
+  if ("$mdSystemName" != "") then
+    cp *.top $SDIR
+    cp *.pdb $SDIR
+    cp *.rst $SDIR
+  endif
+
+  cd $SDIR
+endif
+
+prun -n $totalprocs $SDIR/nwchem $runDir/$inFile >& $runDir/$outFile
+
+}

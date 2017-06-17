@@ -1,0 +1,146 @@
+#!/bin/csh -f
+################################################################################
+#
+# This script is the key to supporting multiple platforms when needed from a
+# single top-level $ECCE_HOME install directory allowing shared platform-
+# independent configuration files/scripts such as in siteconfig and codereg.
+# The script can be customized by each site to output distinct values for
+# each of the different platforms supported.  It is completely up to the site
+# what the logic is that distinguishes the platforms.  Typically commands like
+# 'uname -m' and 'gcc --version' and '/lib64/libc.so.6' can be used to
+# construct a platform string.  If only a single set of executables/libraries
+# is sufficient for a site, then this script can simply exit without outputting
+# a value and no directories are created to distinguish platforms.  Note that
+# if a plaform string is output, it must have a trailing directory slash.
+#
+################################################################################
+
+# Bail if there is already a top-level bin directory so no need to find
+# an appropriate platform string
+if (-d ${ECCE_HOME}/bin) then
+  exit
+endif
+
+cd $ECCE_HOME
+# Redirect stderr by running this under sh since csh doesn't support that
+set platforms = `sh -c 'ls -d */bin 2>/dev/null'`
+set numplatforms = `echo $platforms | wc -w`
+
+# One platform directory so take it and run
+if ($numplatforms == 1) then
+  set platform = `echo $platforms | awk -F/ '{print $1}'`
+  echo $platform/
+  exit
+endif
+
+set gccver = `gcc -v |& tail -1 | awk '{print $3}'`
+set gccmajor = `echo $gccver | awk -F. '{print $1}'`
+
+if (`uname -m | grep -c 64` == 0) then
+  set bits = "m32"
+else
+  # Support for 32-bit cross-compiling based on $ECCE_HOME
+  if (`echo $ECCE_HOME | grep -c m32` != 0) then
+    set bits = "m32"
+  else
+    set bits = "m64"
+  endif
+endif
+
+# For a new build without an existing bin directory there are two choices:
+#   1. Don't create a platform directory (multiple platform support not needed)
+#   2. Generate a platform directory name based on some criteria
+#      (multiple platform support needed)
+# Currently pnl.gov domain hosts will always generate a platform directory
+# name and others won't
+
+# No existing platform directories and no need to support multiple platforms
+if ($numplatforms == 0 && `sh -c "hostname -f 2> /dev/null" | grep -c "pnl.gov"` == 0) then
+  exit
+endif
+
+# No existing platform directories, but we wish to generate one
+# to support multiple platforms
+if ($numplatforms == 0) then
+  # This is just recommended logic and sites are free to customize
+  # as desired to generate platform strings based on other criteria
+  set vendor = `lsb_release -is`
+
+  if ($vendor == "RedHatEnterpriseClient") then
+    set vendor = "rhel"
+  else if ($vendor == "Ubuntu") then
+    set vendor = "ubuntu"
+  else if ($vendor == "Debian") then
+    set vendor = "debian"
+  else if ($vendor == "SUSE LINUX") then
+    set vendor = "suse"
+  else if ($vendor == "LinuxMint") then
+    set vendor = "mint"
+  endif
+  # Other vendor names can likewise be shortened
+
+  set release = `lsb_release -rs | awk -F. '{print $1}'`
+
+  set gcc = "gcc${gccver}"
+
+  echo ${vendor}${release}-${gcc}-${bits}/
+  exit
+endif
+
+# Multiple platform directories so find the best match based on gcc version
+# and whether it's a 32- or 64-bit platform
+# This again is logic a site may wish to customize based on their own
+# criteria for generating platform strings
+
+# First check exact gcc version and bits match
+foreach check ($platforms)
+  if (`echo $check | grep "gcc${gccver}" | grep -c "${bits}"` == 1) then
+    set platform = `echo $check | awk -F/ '{print $1}'`
+    echo $platform/
+    exit
+  endif
+end
+
+# Then try the gcc major version and bits match
+foreach check ($platforms)
+  if (`echo $check | grep "gcc${gccmajor}" | grep -c "${bits}"` == 1) then
+    set platform = `echo $check | awk -F/ '{print $1}'`
+    echo $platform/
+    exit
+  endif
+end
+
+# Next best match is bits alone
+foreach check ($platforms)
+  if (`echo $check | grep -c "${bits}"` == 1) then
+    set platform = `echo $check | awk -F/ '{print $1}'`
+    echo $platform/
+    exit
+  endif
+end
+
+# No matches based on gcc version or bits so now try
+# the exact gcc version
+foreach check ($platforms)
+  if (`echo $check | grep -c "gcc${gccver}"` == 1) then
+    set platform = `echo $check | awk -F/ '{print $1}'`
+    echo $platform/
+    exit
+  endif
+end
+
+# Finally try the gcc major version alone
+foreach check ($platforms)
+  if (`echo $check | grep -c "gcc${gccmajor}"` == 1) then
+    set platform = `echo $check | awk -F/ '{print $1}'`
+    echo $platform/
+    exit
+  endif
+end
+
+# At this point it's probably futile to try more guesses
+# so just choose the first one and hope for the best
+set platform = `echo $platforms[1] | awk -F/ '{print $1}'`
+echo $platform/
+exit
+

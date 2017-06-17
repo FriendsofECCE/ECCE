@@ -1,0 +1,161 @@
+///////////////////////////////////////////////////////////////////////////////
+// DOCUMENT FILENAME: $Source$
+//
+//
+///////////////////////////////////////////////////////////////////////////////
+ 
+Overview
+--------
+This source files in this directory implement the molecular modeling
+forcefield used in the Builder "clean" command to optimize molecular
+geometries.  It is based on the "Universal Force Field" (UFF)
+described by A. K. Rappe' and W. A. Goddard III in
+J. Phys. Chem. 95(8):3358, 1991.  The overall structure, however, is
+consistent with any molecular modeling potential based on diagonal
+Hamiltonian (though supporting non-diagonal potentials would not be
+hard).
+
+Note, however, that the so-called "Generalized Mulliken-Pauling
+Electronegativities" that are used as parameters are not provided in
+that paper, however, and the reference that is cited (ref 9) never
+appeared.  Tony Rappe' politely declined to give me the values (the
+work was funded by MSI and is probably regarded as proprietary).  However,
+another paper (Journal of Physical Chemistry Vol95 No. 8 1991 p3358)
+contains values for the first couple of rows of atoms.  Other values
+were estimated numerically relative to published Mulliken and Pauling
+electronegativities.
+
+Geometry functionality such as the gradient of an Angle or
+Torsion is implemented in the FFCoordinates class (see
+...src/include/db/FFCoordinates.H and ...src/db/ff/FFCoordinates.C).  
+Optimization is carried out by means of a conjugate gradient minimizer in
+...src/include/db/CGMinimizer.H and .../src/db/ff/CGMinimizer.C.
+
+Limitations
+-----------
+In some places, copy constructors in these classes
+do not make deep copies as they should.  Use them with caution.
+
+Products
+--------
+libecceundb.a and .so
+
+Structural Classes
+-----------------------------------------------------------------------------
+ForceField.C       - Top-level class that supports all API commands, including
+                     ForceField::optimize, the geometry optimization routine.
+
+UFFParams.C        - All functionality peculiar to the UFF is contained in 
+                     this class; all other classes are designed to support 
+                     arbitrary potentials.  UFFParams generates forcefield 
+                     parameters (force constants, equilibrium distances, ...)  
+                     based on atomic species, bond connectivity, bond 
+                     orders, and partial charges.  Implementation of a new 
+                     modeling potential other than the UFF would primarily
+                     consist of reproducing the functionality of this class.
+
+Internal Coordinate Classes
+-----------------------------------------------------------------------------
+Angle.C            - Represents the angle defined by three atoms and the 
+                     associated interaction.
+
+ForceBond.C        - Represents a bond between two atoms and the associated
+                     interaction.
+
+Inversion.C        - Represents an inversion or improper torsion angle
+                     defined by four atoms and the associated
+                     interaction.  (The angle of a bond vs a plane).
+
+NonBondPair.C      - Represents a non-bonding (Van der Waals and/or Coulomb)
+                     interaction between two atoms. 
+
+Torsion.C          - Represents a torsion angle defined by four atoms and 
+                     the associated interaction.             
+
+Utility Classes
+-----------------------------------------------------------------------------
+LeviCivitaTensor.C - Supports sums involving the Levi-Civita symbol
+                     \epsilon_{ijk} = |  1 for (ijk) a + permutation
+                                      | -1 for (ijk) a - permutation
+                                      |  0 if i=j, j=k, or i=k
+                     Used by Inversion class.
+
+NeighborCursor.C   - Cursor over the bonded neighbors of an atom.
+
+NeighborList.C     - Sorted list of bonded pairs; supports NeighborCursor.
+                     This consists of a 2*Nbond list of bonds, indexed
+                     by two atom indices and the bond index.  Since each
+                     bond appears twice, with both orderings of the atom
+                     indices, the bonds to a particular atom appear
+                     contiguously.
+                     
+SparseMatrix.C     - Row-sparse matrix of doubles.  Implemented as a
+                     friend class of FFCoordinates by the addition of
+                     an integer map array so that a matrix of N rows
+                     and M columns may represent selected rows of
+                     a matrix of P>N rows and M columns.  It is used to 
+                     represent, for example, the contribution to the 
+                     force vector due to a bond interaction that is 
+                     zero for all atoms but those in that bond.
+
+Simple Value Types
+-----------------------------------------------------------------------------
+SymIndexPair.C     - An index pair i>j, used to index the elements of a
+                     triangular matrix.  Used in ForceField with
+                     container classes to construct 3rd neighbor and 
+                     non-bonded pair lists.
+
+Triple.C           - An ordered triple of integers.  Used to implement
+                     the NeighborList class.
+
+
+
+
+Notes on Future Optimization
+----------------------------
+  The forcefield has to first set itself up and figure out all the
+angles, torsions, ...., then iteratively calculate forces and energies
+and adjust the geometry.  Calculation of forces and energies dominates
+this.  Of the terms that contribute to the forces and energies, 
+the nonbond term dominates for any system over about 20 atoms.
+
+  So the thing to concentrate on is the NonBond force and energy.
+
+The call tree for the non-bond-pair energy looks like this:
+
+///////////////////////////////////////////////////////////////////
+
+ForceField::energy ==> 
+     NonBondPair::energy ==> 
+            UFFParams::nonBondEnergy (via pointer)
+            NonBondPair::length
+            
+NonBondPair::length ==> 
+     FFCoordinates::rowdiff_norm
+
+///////////////////////////////////////////////////////////////////
+
+The call tree for the non-bond-pair force is similar:
+
+ForceField::force ==> 
+     NonBondPair::forceVector ==> 
+          NonBondPair::scalarMult and
+          NonBondPair::force
+
+Matrix<double>::forceVector ==> 
+     FFCoordinates::normalized_rowdiff
+
+NonBondPair::force ==>
+     NonBondPair::length
+
+NonBondPair::length ==> 
+     FFCoordinates::rowdiff_norm
+
+///////////////////////////////////////////////////////////////////
+
+Profiling first might be worth a try.  I know that together, the 
+nonbond force and energy dominate.  I don't know which dominates 
+between the two or what dominates within them.  (the energy is called
+many times for each force call.
+
+Hugh

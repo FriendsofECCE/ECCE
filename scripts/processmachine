@@ -1,0 +1,575 @@
+#!/usr/bin/env perl
+################################################################################
+# FILENAME:  processmachine
+#
+#
+# PURPOSE:
+#   Do Machine registration processing from a GUI.
+#
+# DESCRIPTION:
+#   This script was originally a cgi script and was slightly modified
+#   to be used with a Motif app.  The POST method of input formatting
+#   was retained.
+#
+# LIMITATIONS:
+#   This script is designed to work with CVS if there are CVS dirs
+#   but the paths are hardwired to EMSL paths for CVS commands.
+#
+################################################################################
+
+# set this if you want debug output to the html page
+$debugOut = "false";
+
+%changeperms = { "init" => "this" };
+%newfile = { "init" => "this" };
+
+
+# This used to be a cgi POST script.  It works fine so we keep 
+# the same input method.
+read(STDIN, $buffer, $ENV{'CONTENT_LENGTH'});
+@pairs = split(/&/,$buffer);
+foreach $pair (@pairs) {
+  ($name,$value) = split(/=/,$pair);
+  $value =~ tr/+/ /;
+  $value =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C",hex($1))/eg;
+  $contents{$name} = $value;
+}
+
+#
+# This block of code just dumps the arguments for debugging.
+#
+if ($debugOut eq "true") {
+  print "You submitted the following:\n";
+  while (($holder,$record) = each(%contents)) {
+     print "$holder=$record\n";
+  }
+}
+
+# To keep this script from having to know very much, the list of fully
+# registered codes is now passed in as an arguement.  Old code to
+# determined this from the .cap files can be found in the previous
+# version if there is a need to revert to that type of strategy.
+#
+# We have to create a list of all codes fully registered with the system.
+# This was added while preparing ECCE to better support external code
+# registration.  
+#
+@fullyregistered = split(/,/,$contents{registeredcodes});;
+
+
+# Make sure some required variables are defined.  This isn't all of them
+# but it does make testing a little easier
+@addgottahaves = ("siteconfig", "machine", "name", "qmgr", "type", "nodes",
+                  "vendor", "model", "processor");
+@rmgottahaves = ("siteconfig", "name", "type");
+
+$siteflag = $contents{"siteconfig"};
+if ($siteflag eq "true") {
+  $path = $ENV{"ECCE_HOME"} . "/siteconfig";
+} else {
+  $path = $ENV{"ECCE_REALUSERHOME"} . "/.ECCE";
+}
+
+# Determine whether or not we'll have to edit the CONFIG file.  We only
+# need to if we have paths to specify.
+$configflag = "false";
+if (($contents{"perlPath"} eq "" || $contents{"perlPath"} eq "EMSL")) {
+  foreach $code (@fullyregistered) {
+    if (!($contents{"$code"} eq "" || $contents{$code} eq "EMSL")) {
+      $configflag = "true";
+    }
+  }
+} else {
+  $configflag = "true";
+}
+
+$machine = $contents{"name"};
+
+if ($siteflag eq "true") {
+  $mFile = $path . "/Machines";
+} else {
+  $mFile = $path . "/MyMachines";
+}
+
+$cFile =  "CONFIG." . $machine;
+$qsFile = "Queues";
+$QFile = $machine . ".Q";
+
+$useRC = "false";
+#if (-e $path . "/CVS") {
+#  $useRC = "true";
+#  $rccmd = "cvs";
+#} elsif (-e $path . "/.svn") {
+#  $useRC = "true";
+#  $rccmd = "svn";
+#}
+
+$qmgr = $contents{"qmgr"};
+if ($qmgr eq "") {
+  $qmgr = "None";
+}
+
+if ($contents{"type"} eq "delete") {
+  foreach $var (@rmgottahaves) {
+    die "$var not specified as input - bailing..." if ($var eq "") ;
+  }
+  &doDelete();
+} else { 
+  foreach $var (@addgottahaves) {
+    die "$var not specified as input - bailing..." if ($var eq "") ;
+  }
+  &doAccept();
+}
+
+#######################################################################
+# Description
+#   Modify/create machine.Q if necessary
+#   Modify Queues if necessary
+#   Delete from Machines if necessary, then add
+#   Modify CONFIG file
+#######################################################################
+sub doAccept {
+
+  my($line,$codes, $keys, $shells);
+  my(@lines);
+  my($value,$key,$pair,@parts);
+
+  my ($sMachines, $sQ, $sQueues, $sCONFIG);
+  # First the Machines file
+  $sMachines = 0;
+  $sMachines = &checkOut($mFile,$useRC);
+
+  if ($siteflag eq "true") {
+    my ($wasThere,$qline,@otherLines);
+    $sQueues = 0;
+    ($wasThere,$qline,@otherLines) = &readQueues($machine);
+    if (($wasThere eq true && $qmgr eq "None") ||
+        ($wasThere eq false && $qmgr ne "None")) {
+      $sQueues = &checkOut("$path/$qsFile",$useRC);
+    }
+
+    $sQ = 0;
+    $sQ = &checkOut("$path/$QFile",$useRC);
+  }
+
+  if ($configflag eq "true") {
+    $sCONFIG = 0;
+    $sCONFIG = &checkOut("$path/$cFile",$useRC);
+  } else {
+    # Delete that bad boy
+    removeFile("$path/$cFile",$useRC);
+  }
+
+  if (open(MACHINES,"<$mFile")) {
+    @lines = <MACHINES>; 
+    close(MACHINES);
+  }
+  open(MACHINES,">$mFile") || die("Unable to open $mFile for write");
+  foreach $line (@lines) { 
+   if ($line !~ /^$machine\t/) { 
+     print MACHINES "$line";
+    }
+  }
+  # Now print new stuff
+  $line = "$machine" . "\t";
+  $line .= $contents{"machine"} . "\t";
+  $line .= $contents{"vendor"} . "\t";
+  $line .= $contents{"model"} . "\t";
+  $line .= $contents{"processor"} . "\t";
+
+  $line .= $contents{"procs"};
+  if ($contents{"nodes"} > 0) {
+    $line .= ":" . $contents{"nodes"};
+  }
+  $line .= "\t";
+
+  $shell = "";
+  if ($contents{"ssh"} eq "true") { $shell = "ssh"; }
+  if ($contents{"sshftp"} eq "true") { 
+    $shell .= ":" if ($shell ne "");
+    $shell .= "ssh/ftp"; 
+  }
+  if ($contents{"sshpass"} eq "true") { 
+    $shell .= ":" if ($shell ne "");
+    $shell .= "sshpass"; 
+  }
+  if ($contents{"rsh"} eq "true") { 
+    $shell .= ":" if ($shell ne "");
+    $shell .= "rsh"; 
+  }
+  if ($contents{"telnet"} eq "true") { 
+    $shell .= ":" if ($shell ne "");
+    $shell .= "telnet"; 
+  }
+  if ($contents{"gsh"} eq "true") { 
+    $shell .= ":" if ($shell ne "");
+    $shell .= "Globus"; 
+  }
+  if ($contents{"gssh"} eq "true") { 
+    $shell .= ":" if ($shell ne "");
+    $shell .= "Globus-ssh"; 
+  }
+  if ($shell eq "") { $shell = "ssh";}  # don't leave empty field
+  $line .= $shell . "\t";;
+
+  foreach $code (@fullyregistered) {
+    $codes .= ":$code" if ($contents{$code} ne "");
+  }
+  $codes = ":" if ($codes eq "");  # don't leave empty field
+  $line .= $codes . "\t";
+
+  $keys = "MN:RD:SD:UN:PW";
+  $keys .= ":AA" if ($contents{"AA"} eq "true");
+
+  # TimeLimit, maxMemory, and minScratch enabled if set for any queue
+  $nqueues = $contents{"numQueues"};
+  $keys .= ":Q" if ($nqueues > 0);
+  for ($idx=0; $idx<$nqueues; $idx++) {
+    (@parts) = split(/,/,$contents{"q".$idx});
+    foreach $pair (@parts) {
+      if ($pair =~ /maxCPU/) {
+        $value = "";
+        ($key,$value) = split(/\|/,$pair);
+        if ($value ne "" && $value != 0) {
+          $keys .= ":TL";
+          last;
+        }
+      }
+    }
+    last if ($value ne "");
+  }
+  for ($idx=0; $idx<$nqueues; $idx++) {
+    (@parts) = split(/,/,$contents{"q".$idx});
+    foreach $pair (@parts) {
+      if ($pair =~ /maxMemory/) {
+        $value = "";
+        ($key,$value) = split(/\|/,$pair);
+        if ($value ne "" && $value != 0) {
+          $keys .= ":MM";
+          last;
+        }
+      }
+    }
+    last if ($value ne "");
+  }
+  for ($idx=0; $idx<$nqueues; $idx++) {
+    (@parts) = split(/,/,$contents{"q".$idx});
+    foreach $pair (@parts) {
+      if ($pair =~ /minScratch/) {
+        $value = "";
+        ($key,$value) = split(/\|/,$pair);
+        if ($value ne "" && $value != 0) {
+          $keys .= ":SS";
+          last;
+        }
+      }
+    }
+    last if ($value ne "");
+  }
+  $line .= $keys;
+
+  print MACHINES "$line\n";
+  close(MACHINES);
+  &checkIn($mFile,$useRC,
+           "\"Register Compute Servers application add/modify $machine\"");
+
+  if ($siteflag eq "true") {
+    # Now modify the Queues file.  This could mean removing stuff
+    # as well as adding so just do a remove followed by add.
+    my ($wasThere,$qline,@otherLines);
+    ($wasThere,$qline,@otherLines) = &readQueues($machine);
+    if (($wasThere eq true && $qmgr eq "None") ||
+        ($wasThere eq false && $qmgr ne "None")) {
+      open(QUEUES,">$path/$qsFile") 
+         || die("Unable to open $path/$qsFile for write");
+      print QUEUES "Queues: $qline";
+      print QUEUES " $machine" if ($qmgr ne "None");
+      print QUEUES "\n";
+      print QUEUES @otherLines;
+      if ($qmgr ne "None") {
+        print QUEUES "\n";
+        print QUEUES "$machine|queueMgrName:    $qmgr\n";
+        print QUEUES "$machine|queueMgrVersion: 2.0~\n";
+        print QUEUES "$machine|prefFile:        $machine.Q\n";
+      }
+      close(QUEUES);
+      &checkIn("$path/$qsFile",$useRC,
+  "\"Register Compute Servers application add/modify of queues for $machine\"");
+    }
+
+
+    #####
+    # The Q file.  Wipe it out and recreate.  Or possibly just wipe it out
+    #####
+    # In this case, get rid of Q file
+    my $nqueues = $contents{"numQueues"};
+    if ($nqueues == 0) {
+      removeFile("$path/$QFile",$useRC);
+    } else {
+      $qnames = "";
+      $qdetails = "";
+      for ($idx=0; $idx<$nqueues; $idx++) {
+        (@parts) = split(/,/,$contents{"q".$idx});
+        $name = "";
+        foreach $pair (@parts) {
+          if ($pair =~ /name\|/) {
+            $value = "";
+            ($key,$value) = split(/\|/,$pair);
+            $qnames .= $value . " ";
+            $name = $value;
+            $name =~ s/^\s*//;
+          } else {
+            ($key,$value) = split(/\|/,$pair);
+            if ($value ne "") {
+              $key = "minProcessors" if ($key =~ /minNodes/);
+              $key = "maxProcessors" if ($key =~ /maxNodes/);
+              $key = "runLimit" if ($key =~ /maxCPU/);
+              $key = "memLimit" if ($key =~ /maxMemory/);
+              $key = "scratchLimit" if ($key =~ /minScratch/);
+              $qdetails .= $name . "|" . $key . ":       " . $value . "\n";
+            }
+          }
+        }
+      }
+      open(QFILE,">$path/$QFile") || die("Unable to open $path/$QFile");
+      print QFILE "# Queue details for $machine \n\n";
+      print QFILE "Queues:    $qnames\n\n";
+      print QFILE "$qdetails";
+      close(QFILE);
+      &checkIn("$path/$QFile",$useRC,
+               "\"Register Compute Servers application queue settings\"");
+    }
+  }
+
+  # The CONFIG file... waiting to decide
+
+  if ($configflag eq "true") {
+    @lines = ();
+    if (open(CONFIG,"<$path/$cFile")) {
+      @lines = <CONFIG>;
+      close(CONFIG);
+    }
+    my ($cdx,$afterComments);
+    $afterComments=0;
+    for ($cdx=0; $cdx<$#lines+1; $cdx++) {
+      if ($afterComments==0 && $lines[$cdx] !~ /^\s*#/) {
+         $afterComments = $cdx; 
+      }
+      foreach $code (@fullyregistered) {
+        if ($lines[$cdx] =~ /^$code[: \t]+/) { $lines[$cdx] = ""; }
+      }
+      if ($lines[$cdx] =~ /^perlPath[: \t]+/) { $lines[$cdx] = ""; }
+      if ($lines[$cdx] =~ /^qmgrPath[: \t]+/) { $lines[$cdx] = ""; }
+    }
+    @donelines = ();
+    if ($afterComments > 0) {
+      my $tmp = $afterComments-1;
+      @donelines = @lines[0..$tmp];
+    }
+    foreach $code (@fullyregistered) {
+      if ($contents{$code} ne "" && $contents{$code} ne "EMSL") { 
+        push(@donelines,"$code: $contents{$code}\n");
+      }
+    }
+
+    if ($contents{"perlPath"} ne "" && $contents{"perlPath"} ne "EMSL") { 
+       push(@donelines,"perlPath: $contents{'perlPath'}\n");
+    }
+    if ($contents{"qmgrPath"} ne "") { 
+       push(@donelines,"qmgrPath: $contents{'qmgrPath'}\n");
+    }
+    push(@donelines,@lines[$afterComments..$#lines]);
+
+    open(CONFIG,">$path/$cFile") || 
+          die("Unable to open Config File $path/$cFile");
+    print CONFIG @donelines;
+    close(CONFIG);
+
+    &checkIn("$path/$cFile",$useRC,
+             "\"Register Compute Servers application configuration settings\"");
+  }
+}
+
+#######################################################################
+# Description
+#   Delete the entry in the Machines file
+#   Delete the entries in the Queues file
+#   Delete the CONFIG.$machine
+#   Delete the $machine.Q file
+#
+#   Check to make sure we can gain write access to all needed files
+#   before proceeding.  This eliminates partial transactions.
+#######################################################################
+sub doDelete {
+
+  my ($status1,$status2);
+  $status1 = &checkOut($mFile,$useRC);
+ 
+  my ($existed,$qMachines,@lines);
+  if ($siteflag eq "true") {
+    ($existed,$qMachines,@lines) = &readQueues($machine);
+    $status2 = 0;
+    if ($existed eq true) {
+      $status2 = &checkOut("$path/$qsFile",$useRC);
+    }
+  }
+
+  removeFile("$path/$cFile",$useRC);
+
+  if ($siteflag eq "true") {
+    removeFile("$path/$QFile",$useRC);
+
+    #
+    # Strip out machine stuff from Queues file if necessary.
+    # This could be written nicer - don't leave blank lines...
+    #
+    if ($existed eq true) {
+      open(QUEUES,">$path/$qsFile") || die("Unable to open $path/$qsFile for write");
+      print QUEUES "Queues: $qMachines";
+      print QUEUES "\n";
+      print QUEUES @lines;
+      close(QUEUES);
+      &checkIn("$path/$qsFile",$useRC,
+    "\"Register Compute Servers application deleting of queues for $machine\"");
+    }
+  }
+
+  #
+  # Remove the single line from Machines
+  #
+  open(MACHINES,"<$mFile") || die "Unable to open $mFile";
+  @lines = <MACHINES>;
+  close(MACHINES);
+  open(MACHINES,">$mFile") || die("Unable to open $mFile for write");
+  foreach $line (@lines) {
+    if ($line !~ /^$machine\t/) { 
+      print MACHINES "$line";
+    }
+  }
+  close(MACHINES);
+  &checkIn($mFile,$useRC,
+           "\"Register Compute Servers application delete $machine\"");
+}
+
+
+# Description
+#   A little strange but this function strips out lines containing
+#   $machine.
+sub readQueues {
+  ($oldMachine) = @_;
+  my ($wasThere,$qMachines,@lines);
+  $wasThere=false;
+
+  @lines = ();
+  open(QUEUES,"$path/$qsFile") || die("Unable to open $path/$qsFile"); 
+  $qMachines = "";
+  while (<QUEUES>) {
+    if (/Queues/) {
+      $qMachines = $_;
+      $qMachines =~ s/Queues://;
+      $_ = $qMachines;
+      while ($_ =~ /\\/) {
+        $_ = <QUEUES>;
+        $qMachines = $qMachines . $_;
+      }
+    } else {
+      if (! /$oldMachine\|/) {
+        push(@lines,$_);
+      } else {
+        $wasThere = true;
+      }
+    }
+  }
+  close(QUEUES);
+
+  $qMachines =~ s/\\//g;
+  $qMachines =~ s/\n//g;
+  $qMachines =~ s/ $machine / /g;
+  $qMachines =~ s/ $machine$//g;
+  $qMachines =~ s/\s+/ /g;
+
+  return ($wasThere,$qMachines,@lines);
+}
+
+sub checkIn {
+  local($file, $doRC, $message) = @_;
+  chomp($message);
+  if ($doRC eq "true") {
+    if (&isControlled($file)) {
+      `$rccmd -q commit -m$message $file`;
+    } else {
+      `$rccmd -q add $file`;
+      `$rccmd -q commit -m$message $file`;
+    }
+  } elsif ($changeperms{$file}) { 
+    `chmod -w $file`;
+  }
+  return $? >> 8;
+}
+
+# Check out a file which really means make it available for modification
+# if it exists.  The return value for success is 0 ala a system command.
+# 0 is also returned if the file doesn't exist and thus there is nothing
+# to do.  This is not robust because it doesn't guarantee that the file 
+# can be created.
+sub checkOut {
+  local($ret);
+  local($file, $doRC) = @_;
+  $changeperms{$file} = 1; 
+  $ret = 0;  # success as with a system call
+  if ($doRC eq "true") {
+    if (&isControlled($file)) {
+      `$rccmd -q update $file`;
+      $ret = $? >> 8;
+    } else { 
+      $newfile{$file} = 1; 
+    }
+  } elsif (-e $file) {
+    if (-w $file) {
+      $changeperms{$file} = 0; 
+    } else {
+      $changeperms{$file} = 1; 
+      `chmod +w $file`;
+      $ret = $? >> 8;
+    }
+  }
+  return $ret;
+}
+
+# Removes the revision control system information about a file.
+sub removeFile {
+  local($file,$doRC) = @_;
+  if (-e $file) {
+    `rm -f $file`;
+    if ($doRC eq "true") {
+      `$rccmd -q remove $file`;
+      `$rccmd -q commit -m"deleted with Register Compute Servers application" $file`;
+    }
+  }
+}
+
+# Returns true if the file is under revision control.  This is different
+# than whether or not we are using revision control in that new files may
+# need to be created or existing files removed.  Previously this was
+# accomplished by looking for a ,v file.  Now we need to use CVS
+# commands.  Note that the RCS file will exist for a file for a file that
+# was added and then removed.
+sub isControlled {
+  local($file) = @_;
+  local($ret);
+  `$rccmd -q log $file `;
+  $ret = ($? >> 8);
+  if ( $ret == 0) {
+    `$rccmd status $file | grep "no file" `;
+    $ret = ($? >> 8);
+    if ($ret == 1) { 
+      $ret = 0;
+    } else {
+      $ret = 1;
+    }
+  }
+  return  ! ($ret);
+}
+
+exit(0);
+

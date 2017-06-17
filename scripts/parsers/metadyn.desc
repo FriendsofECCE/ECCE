@@ -1,0 +1,578 @@
+# parse Descriptor for NWCHEM output file
+#
+# Due to the way nwchem outputs U* theory mos, and the fact that we
+# want to only parse the last one, the mo-related parsing is a little
+# messy.  A separate entry is required for alpha and beta properties.
+# This applies to MO MOBETA ORBOCC ORBOCCBETA...
+# Symmetry has been included.
+#
+
+[EGRADVEC]
+Script=nwchem.egradvec
+Begin=task_gradient%begin%total gradient
+Frequency=all
+End=task
+[END]
+
+[EGRAD]
+Script=nwchem.scalar
+Begin=task_gradient%begin%gradient norm
+Frequency=all
+Lines=2
+[END]
+
+[DEWVEC]
+Script=nwchem.scalar
+Begin=task_gradient%begin%orbital gradient norm
+Frequency=all
+Lines=2
+[END]
+
+[GEOMNULL]
+Script=nwchem.null
+Begin=task_hessian task_energy%begin%cartesian coordinates
+Frequency=first
+End=task
+[END]
+
+[GEOMPROP]
+Script=nwchem.geomtrace
+Begin=^task_energy%begin%cartesian coordinates
+Frequency=first
+End=task
+[END]
+
+[GEOMCAR]
+Script=nwchem.geomtrace
+Begin=task_car-parrinello%begin%cartesian coordinates
+Frequency=all
+End=task
+[END]
+
+[GEOMTRACE]
+Script=nwchem.geomtrace
+Begin=task_gradient%begin%cartesian coordinates
+Frequency=all
+End=task
+[END]
+
+[LATVECNULL]
+Script=nwchem.null
+Begin=task_hessian task_energy%begin%lattice vectors
+Frequency=first
+End=task
+[END]
+
+[LATVECPROP]
+Script=nwchem.latvec
+Begin=^task_energy%begin%lattice vectors
+Frequency=first
+End=task
+[END]
+
+[LATVECTRACE]
+Script=nwchem.latvec
+Begin=task_gradient%begin%lattice vectors
+Frequency=all
+End=task
+[END]
+
+[MO]
+Script=nwchem.mo
+Begin=begin%molecular orbital vectors dft alpha
+Frequency=first
+End=task
+[END]
+
+[MOBETA]
+Script=nwchem.mo
+Begin=begin%molecular orbital vectors dft beta
+Frequency=first
+End=task
+[END]
+
+
+[MO]
+Script=nwchem.mo
+Begin=begin%molecular orbital vectors R
+Frequency=first
+End=task
+[END]
+
+[MO]
+Script=nwchem.mo
+Begin=begin%molecular orbital vectors UHF alpha
+Frequency=first
+End=task
+[END]
+
+[MOBETA]
+Script=nwchem.mo
+Begin=begin%molecular orbital vectors UHF beta
+Frequency=first
+End=task
+[END]
+
+[ORBENG1]
+Script=nwchem.orbeng
+Begin=orbital energies dft alpha
+Frequency=first
+End=task
+[END]
+
+[ORBENGBETA1]
+Script=nwchem.orbeng
+Begin=orbital energies dft beta
+Frequency=first
+End=task
+[END]
+
+[ORBENG2]
+Script=nwchem.orbeng
+Begin=orbital energies R
+Frequency=first
+End=task
+[END]
+
+[ORBENG3]
+Script=nwchem.orbeng
+Begin=orbital energies UHF alpha
+Frequency=first
+End=task
+[END]
+
+[ORBENGBETA2]
+Script=nwchem.orbeng
+Begin=orbital energies UHF beta
+Frequency=first
+End=task
+[END]
+
+[ORBOCC1]
+Script=nwchem.orbocc
+Begin=begin%molecular orbital occupations dft alpha
+Frequency=first
+End=task
+[END]
+
+[ORBOCCBETA1]
+Script=nwchem.orbocc
+Begin=begin%molecular orbital occupations dft beta
+Frequency=first
+End=task
+[END]
+
+
+[ORBOCC2]
+Script=nwchem.orbocc
+Begin=begin%molecular orbital occupations R
+Frequency=first
+End=task
+[END]
+
+[ORBOCC3]
+Script=nwchem.orbocc
+Begin=begin%molecular orbital occupations UHF alpha
+Frequency=first
+End=task
+[END]
+
+[ORBOCCBETA2]
+Script=nwchem.orbocc
+Begin=begin%molecular orbital occupations UHF beta
+Frequency=first
+End=task
+[END]
+
+[ORBSYM]
+Script=nwchem.orbsym
+Begin=begin%molecular orbital symmetries NOT SUPPORTED
+Frequency=first
+End=task
+[END]
+
+[SHIELDTENSOR]
+Script=nwchem.nmr
+Begin=^nmr
+Frequency=last
+End=nmr%end%exit%1%char
+[END]
+
+[ESP]
+Script=nwchem.esp
+File=##CalcName##.q
+Begin=##CalcName##.q
+[END]
+
+[METAVEC]
+Script=meta.pmf
+File=meta.dat
+Begin=meta.dat
+[END]
+
+[CPUSEC]
+Script=nwchem.scalar
+Begin=begin%all tasks cpu time
+Frequency=all
+Lines=2
+[END]
+
+[ETIME]
+Script=nwchem.scalar
+Begin=begin%all tasks wall time
+Frequency=all
+Lines=2
+[END]
+
+[NNREPUL]
+Script=nwchem.scalar
+Begin=begin%nuclear repulsion
+Frequency=all
+Lines=2
+[END]
+
+[EZEROPT]
+Script=nwchem.ezeropt
+Begin=begin%zero point
+Frequency=all
+Skip=1
+Lines=1
+[END]
+
+[MULLIKEN]
+Script=nwchem.mulliken
+Begin=begin%total mulliken atomic
+Frequency=last
+End=task
+[END]
+
+[MLKNSHELL]
+Script=nwchem.mlknshell
+Begin=begin%total mulliken shell
+Frequency=last
+End=task
+[END]
+
+[TEPROP]
+Script=nwchem.te
+Begin=^task_energy%begin%total energy
+Frequency=first
+End=task
+[END]
+
+[TEVEC]
+Script=nwchem.te
+Begin=task_gradient%begin%total energy
+Frequency=all
+End=task
+[END]
+
+[EMP2]
+Script=nwchem.emp2
+Begin=ccsd%begin%mp2 energy
+Frequency=all
+End=task
+[END]
+
+[ECCSDTPERT]
+Script=nwchem.emp2
+Begin=ccsd%begin%total ccsd\(t\)
+Frequency=all
+End=task
+[END]
+
+[ECCSDTPERT2]
+Script=nwchem.emp2
+Begin=ccsd%begin%total ccsd\+t\(ccsd\)
+Frequency=all
+End=task
+[END]
+
+[DELTAE]
+Script=nwchem.scalar
+Begin=begin%iterative total energy difference
+Frequency=all
+Lines=2
+[END]
+
+[RESIDNORM]
+Script=nwchem.scalar
+Begin=begin%rms error
+Frequency=all
+Lines=2
+[END]
+
+[VIB]
+Script=nwchem.vib
+Begin=begin%projected normal
+Frequency=all
+End=task
+[END]
+
+[VIBFREQ]
+Script=nwchem.vibfreq
+Begin=begin%projected freq
+Frequency=all
+End=task
+[END]
+
+[VIBIR]
+Script=nwchem.vibir
+Begin=begin%projected intensities \(KM\/mol\)
+Frequency=all
+End=task
+[END]
+
+[DIPOLE][MP2DIPOLE]
+Script=nwchem.dipole
+Begin=begin%total dipole
+Frequency=all
+Lines=2
+[END]
+
+[QUADPOLE]
+Script=nwchem.quadpole
+Begin=begin%total quadrupole
+Frequency=all
+Lines=2
+Skip=1
+[END]
+
+[ONEELEC]
+Script=nwchem.scalar
+Begin=begin%one\-electron
+Frequency=all
+Lines=2
+[END]
+
+[TWOELEC]
+Script=nwchem.scalar
+Begin=begin%two\-electron
+Frequency=all
+Lines=2
+[END]
+
+[CORRELTN]
+Script=nwchem.scalar
+Begin=begin%correlation energy
+Frequency=all
+Lines=2
+[END]
+
+[COULOMB]
+Script=nwchem.scalar
+Begin=begin%coulomb energy
+Frequency=all
+Lines=2
+[END]
+
+[EXCHANGE]
+Script=nwchem.scalar
+Begin=begin%exchange energy
+Frequency=all
+Lines=2
+[END]
+
+[S2]
+Script=nwchem.scalar
+Begin=begin%S\^2
+Frequency=last
+Lines=2
+[END]
+
+[PNTGRP]
+Script=nwchem.symmetry
+Begin=begin%group name
+Frequency=all
+Skip=1
+Lines=1
+[END]
+
+[SYMLAB]
+Script=nwchem.symlab
+Begin=begin%group irrep names
+Frequency=first
+End=task
+[END]
+
+[MOLAB1]
+Script=nwchem.molab
+Begin=begin%molecular orbital symmetries R
+Frequency=first
+End=task
+[END]
+
+[MOLAB2]
+Script=nwchem.molab
+Begin=begin%molecular orbital symmetries UHF alpha%
+Frequency=first
+End=task
+[END]
+
+[MOLAB3]
+Script=nwchem.molab
+Begin=begin%molecular orbital symmetries UHF beta%
+Frequency=first
+End=task
+[END]
+
+[MOLAB4]
+Script=nwchem.molab
+Begin=begin%molecular orbital symmetries dft alpha%
+Frequency=first
+End=task
+[END]
+
+[MOLAB5]
+Script=nwchem.molab
+Begin=begin%molecular orbital symmetries dft beta%
+Frequency=first
+End=task
+[END]
+
+[MOLAB6]
+Script=nwchem.molab
+Begin=begin%molecular orbital symmetries alpha%
+Frequency=first
+End=task
+[END]
+
+[MOLAB7]
+Script=nwchem.molab
+Begin=begin%molecular orbital symmetries beta%
+Frequency=first
+End=task
+[END]
+
+[MOLAB8]
+Script=nwchem.molab
+Begin=begin%molecular orbital symmetries%
+Frequency=first
+End=task
+[END]
+
+[NALPHAE]
+Script=nwchem.activeelectrons
+Begin=begin%number of active alpha electrons%
+Frequency=last
+End=task
+[END]
+
+[NBETAE]
+Script=nwchem.activeelectrons
+Begin=begin%number of active beta electrons%
+Frequency=last
+End=task
+[END]
+
+[VERSION]
+Script=nwchem.version
+Begin=begin%version%
+Frequency=first
+End=end%
+[END]
+
+[EFIELD]
+Script=nwchem.efield
+Begin=^EField
+Frequency=first
+End=^EField
+[END]
+
+[EFIELDGRAD]
+Script=nwchem.efg
+Begin=^efg
+Frequency=first
+End=^EFG
+[END]
+
+[EDENS]
+Script=nwchem.edens
+Begin=^Eldensities
+Frequency=first
+End=Eldensities%end%exit
+[END]
+
+[FERMI]
+Script=nwchem.fermi
+Begin=^fermi_contact
+Frequency=first
+End=fermi_contact%end%exit
+[END]
+
+[SPINDIPOLE]
+Script=nwchem.spindipole
+Begin=^spin-dipole
+Frequency=first
+End=spin-dipole%end%exit
+[END]
+
+[SPINSPIN]
+Script=nwchem.spinspin
+Begin=^spinspin
+Frequency=first
+End=spinspin%end%exit
+[END]
+
+[TECPVEC]
+Script=nwchem.cp
+Begin=task_car-parrinello%begin%total energy
+Frequency=all
+End=task
+[END]
+
+[KECPVEC]
+Script=nwchem.cp
+Begin=task_car-parrinello%begin%total kinetic
+Frequency=all
+End=task
+[END]
+
+[PECPVEC]
+Script=nwchem.cp
+Begin=task_car-parrinello%begin%potential energy
+Frequency=all
+End=task
+[END]
+
+[EKCPVEC]
+Script=nwchem.cp
+Begin=task_car-parrinello%begin%electron kinetic
+Frequency=all
+End=task
+[END]
+
+[IKCPVEC]
+Script=nwchem.cp
+Begin=task_car-parrinello%begin%ion kinetic
+Frequency=all
+End=task
+[END]
+
+[TIMECPVEC]
+Script=nwchem.cp
+Begin=task_car-parrinello%begin%time
+Frequency=all
+End=task
+[END]
+
+[TGRADCPVEC]
+Script=nwchem.egradvec
+Begin=task_car-parrinello%begin%total gradient
+Frequency=all
+End=task
+[END]
+
+[GRADNORMCPVEC]
+Script=nwchem.cp
+Begin=task_car-parrinello%begin%gradient norm
+Frequency=all
+End=task
+[END]
+
+[OGRADNORMCPVEC]
+Script=nwchem.cp
+Begin=task_car-parrinello%begin%orbital gradient norm
+Frequency=all
+End=task
+[END]

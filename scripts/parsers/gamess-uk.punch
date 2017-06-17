@@ -1,0 +1,247 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#   Parse MO properties.
+#
+# Description:
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+# Stash the script arguments.
+($key, $runtype, $category, $theory) = @ARGV;
+
+# This script provides either MO and MOBETA
+
+%MO_Tokens = {};
+@keys = ();
+$has_beta = 0;
+$Ang = 1.0/1.889725989;
+$x = 0;
+$y = 0;
+$z = 0;
+@vibfrq    = ();
+$nvibfrq   = 0;
+@vib       = ();
+$nvib      = 0;
+@infrared  = ();
+$ninfrared = 0;
+
+########################################################################
+# get and print the orbital occupations.  
+########################################################################
+$keycnt = 0;
+while (<STDIN> ) {
+  $num_value = 0;
+  $line = $_;
+  $token = "";
+  if ($line =~ /block\s*\=\s*vibrational_frequency\s*index\s*\=\s*(\S*)\s*records\s*\=\s*(\S*)\s*unit\s*\=\s*cm\*\*-1\s*/) {
+     $line = <STDIN>;
+     chomp $line;
+     $nvibfrq = $nvibfrq + 1;
+     push(@vibfrq,$line);
+  }
+  if ($line =~ /block\s*\=\s*infrared_intensity\s*index\s*\=\s*(\S*)\s*records\s*\=\s*(\S*)\s*unit\s*\=\s*km\/mol\s*/) {
+     $line = <STDIN>;
+     chomp $line;
+     $ninfrared = $ninfrared + 1;
+     push(@infrared,$line);
+  }
+  if ($line =~ /block\s*\=\s*normal_coordinates\s*index\s*\=\s*(\S*)\s*records\s*\=\s*(\S*)\s*/) {
+    $natom = $2;
+    $nvib = $nvib + 1;
+    for ($i=0; $i<$natom; $i++) {
+      $line = <STDIN>;
+      ($b,$a,$x,$y,$z)=split(/\s+/,$line);
+      $x = $Ang * $x;
+      $y = $Ang * $y;
+      $z = $Ang * $z;
+      push(@vib,($x,$y,$z));
+    }
+  }
+  if ($line =~ /block\s*\=\s*update_coordinates\s*index\s*\=\s*(\S*)\s*records\s*\=\s*(\S*)\s*unit\s*\=\s*au\s*/) {
+    $natom = $2;
+    print "key: GEOMTRACE\n";
+    print "size:\n";
+    print "1 " . ($natom) . " 3\n";
+    print "rowlabels:\n";
+    for ($i=0; $i<$natom; $i++) { print "$i "; }
+    print "\ncolumnlabels:\nX Y Z\n";
+    print "values:\n";
+    for ($i=0; $i<$natom; $i++) {
+      $line = <STDIN>;
+      ($b,$a,$x,$y,$z)=split(/\s+/,$line);
+      $x = $Ang * $x;
+      $y = $Ang * $y;
+      $z = $Ang * $z;
+      printf("%.15e %.15e %.15e\n",$x,$y,$z);
+    }
+    print "END\n";
+  }
+  if ($line =~ /block\s*\=\s*occupations\s*records\s*\=\s*(\S*)\s*index\s*\=\s*(\S*)/) {
+    $num_value = $1;
+  # Find out if beta orbitals are present
+    if ($2 == 2) {
+      $token = "ORBOCCBETA";
+    } else {
+      $token = "ORBOCC";
+    }
+    print "key: $token\n";
+    print "size:\n$num_value\n";
+    print "rowlabels:\n";
+    foreach $i (1 .. $num_value) {
+      print " $i ";
+      if (($i % 10) == 0) {print "\n";}
+    }
+    if (($num_value % 10) != 0) {
+      print "\nvalues:\n";
+    } else {
+      print "values:\n";
+    }
+    for ($i = 0; $i<$num_value; $i++) {
+      $line = <STDIN>;
+      print "$line";
+    }
+    print "END\n";
+  }
+  if ($line =~ /block\s*\=\s*eigenvalues\s*records\s*\=\s*(\S*)\s*index\s*\=\s*(\S*)/) {
+    $num_value = $1;
+    if ($2 == 2) {
+      $token = "ORBENGBETA";
+    } else {
+      $token = "ORBENG";
+    }
+    print "key: $token\n";
+    print "size:\n$num_value\n";
+    print "rowlabels:\n";
+    foreach $i (1 .. $num_value) {
+      print " $i ";
+      if (($i % 10) == 0) {print "\n";}
+    }
+    if (($num_value % 10) != 0) {
+      print "\nvalues:\n";
+    } else {
+      print "values:\n";
+    }
+    for ($i = 0; $i<$num_value; $i++) {
+      $line = <STDIN>;
+      print "$line";
+    }
+    print "END\n";
+  }
+  if ($line =~ /block\s*\=\s*vectors\s*records\s*\=\s*(\S*)\s*index\s*\=\s*(\S*)\s*elements\s*\=\s*(\S*)\s*sets\s*\=\s*(\S*)/) {
+    $rows = $4;
+    $columns = $3;
+    $nlines = $1;
+    if ($2 == 2) {
+      $token = "MOBETA";
+    } else {
+      $token = "MO";
+    }
+    print "key: $token\n";
+    print "size:\n$rows $columns\n";
+    print "rowlabels:\n";
+    foreach $i (1 .. $rows) {
+      print "MO-$i ";
+      if (($i % 8) == 0) {
+        print "\n";
+      }
+    }
+    print "\ncolumnlabels:\n";
+    foreach $i (1 .. $columns) {
+      print "BasFun-$i ";
+      if (($i % 6) == 0) {
+        print "\n";
+      }
+    }
+    print "\nvalues:\n";
+    for ($i=0; $i < $nlines; $i++) {
+      $line = <STDIN>;
+      print "$line";
+    }
+    print "END\n";
+    $token = "";
+  }
+}
+#
+# Some of the data (vibrational modes, frequencies) were collected while
+# trundeling through the puchfile. These still need to be written out.
+#
+if ($ninfrared > 0) {
+  print "key: VIBIR\n";
+  print "size:\n$ninfrared\n";
+  print "rowlabels:\n";
+  foreach $i (1 .. $ninfrared){
+    print " $i ";
+    if (($i % 10) == 0) {print "\n"}
+  }
+  if (($ninfrared % 10) != 0) {
+    print "\nvalues:\n";
+  } else {
+    print "values:\n";
+  }
+  $nvalues = @infrared;
+  foreach $i (1 .. $nvalues) {
+    print " $infrared[$i-1]";
+    if (($i % 10) == 0) {print "\n"}
+  }
+  if (($nvalues % 10) != 0) {
+    print "\nEND\n";
+  } else {
+    print "END\n";
+  }
+}
+if ($nvibfrq > 0) {
+  print "key: VIBFREQ\n";
+  print "size:\n$nvibfrq\n";
+  print "rowlabels:\n";
+  foreach $i (1 .. $nvibfrq){
+    print " $i ";
+    if (($i % 10) == 0) {print "\n"}
+  }
+  if (($nvibfrq % 10) != 0) {
+    print "\nvalues:\n";
+  } else {
+    print "values:\n";
+  }
+  $nvalues = @vibfrq;
+  foreach $i (1 .. $nvalues) {
+    print " $vibfrq[$i-1]";
+    if (($i % 10) == 0) {print "\n"}
+  }
+  if (($nvalues % 10) != 0) {
+    print "\nEND\n";
+  } else {
+    print "END\n";
+  }
+}
+if ($nvib > 0) {
+  print "key: VIB\n";
+  print "size:\n$nvib $natom 3\n";
+  print "vectorlabels:\n";
+  foreach $i (1 .. $nvib){
+    print " NA ";
+    if (($i % 10) == 0) {print "\n";}
+  }
+  print "\nrowlabels:\n";
+  foreach $i (1 .. $natom){
+    print " $i ";
+    if (($i % 10) == 0) {print "\n";}
+  }
+  print "\ncolumnlabels:\n";
+  print "X Y Z\n";
+  print "values:\n";
+  for ($i=0; $i<= $#vib; $i++) {
+    printf("%.15e ",$vib[$i]);
+    if ($i % 3 == 2 ) { print "\n"; };
+  }
+  if ($i % 3 != 0 ) { print "\n";}
+  print "END\n";
+}
+exit(0);

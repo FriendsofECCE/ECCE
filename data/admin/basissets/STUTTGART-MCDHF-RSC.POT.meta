@@ -1,0 +1,22 @@
+name
+Stuttgart-Koeln MCDHF RSC ECP
+name
+type
+ecp
+type
+category
+AUXILIARY
+category
+references
+ELEMENTS                      REFERENCES
+ ---------                       ----------
+ O: B. Metz and H. Stoll, private communication (KAP)
+ Tl: B. Metz, M. Schweizer, H. Stoll, M. Dolg, W. Liu, Theor. Chem. Acc. 104, 22 (2000).
+ Ga-As, In-Sb, Pb-Bi: B. Metz, H. Stoll, M. Dolg, J. Chem. Phys. 113, 2563 (2000).
+ Se-Kr, Te-Xe, Po-Rn: K.A. Peterson, D. Figgen, E. Goll, H. Stoll, and M. Dolg, J. Chem. Phys., in press (2003).
+ Cu, Zn, Ag, Cd, Au, Hg: D. Figgen, G. Rauhut, M. Dolg, and H. Stoll, Chem. Phys. 311, 227 (2005).
+
+references
+comments
+8/04/05  - DFF - Add Cu, Zn, Ag, Cd, Au and Hg ECPs using a file
+comments

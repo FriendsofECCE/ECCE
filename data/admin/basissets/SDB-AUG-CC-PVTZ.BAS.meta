@@ -1,0 +1,32 @@
+name
+SDB-aug-cc-pVTZ Diffuse
+name
+type
+diffuse
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ---------
+Ga - Kr: J.M.L. Martin and A. Sundermann, J. Chem. Phys. 114, 3408 (2001).
+In - Xe: 
+
+references
+info
+  Martin/Sundermann Stuttgart Relativistic, Large Core aVTZ Diffuse Functions
+  ---------------------------------------------------------------------------
+(1s,1p,1d,1f)
+
+
+info
+comments
+4/19/01  - DFF - Original creation of this file based on a file that
+comments

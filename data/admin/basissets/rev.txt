@@ -1,0 +1,25 @@
+################################################################################
+#
+# PURPOSE:
+#   Revision Update logs for EMSL basis sets.
+#
+# DESCRIPTION:
+# 	Entries are organized within dataset revisions.  These revisions are
+# 	separated by the Key "Revision".  The values following that keyword
+# 	are the revisions associated with that version.
+#
+#	Each entry includes Date, payroll number of the person that
+#	made the change, the type of change, and a description.  
+#
+#	The following types are supported.
+#		MA: Major Bug Fix
+#		MI: Minor Bug Fix
+#		EN: Enhancement
+#
+################################################################################
+
+
+# ------------------------------------------------------------------------
+Version: 1.0
+# ------------------------------------------------------------------------
+

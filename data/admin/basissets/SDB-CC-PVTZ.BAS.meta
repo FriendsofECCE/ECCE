@@ -1,0 +1,46 @@
+name
+SDB-cc-pVTZ
+name
+type
+ECPOrbital
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ----------
+Ga - Kr: J.M.L. Martin and A. Sundermann, J. Chem. Phys. 114, 3408 (2001). 
+In - Xe: 
+
+references
+info
+  Martin/Sundermann Stuttgart Relativistic, Large Core VTZ ECP Basis Sets
+  -----------------------------------------------------------------------
+                     Stuttgart
+          Core         Name     Primitives        Contractions
+Ga - As: 28 [Ar+3d]   ECP28MWB (14s,10p,2d,1f) -> [3s,3p,2d,1f]
+In     : 46 [Kr+4d]   ECP46MWB (14s,10p,3d,1f) -> [3s,3p,2d,1f]
+Sn - Sb: 46 [Kr+4d]   ECP46MWB (14s,10p,2d,1f) -> [3s,3p,2d,1f]
+Te     : 46 [Kr+4d]   ECP46MWB (15s,11p,3d,1f) -> [3s,3p,2d,1f]
+I      : 46 [Kr+4d]   ECP46MWB (14s,10p,3d,1f) -> [3s,3p,2d,1f]
+Xe     : 46 [Kr+4d]   ECP46MWB (14s,10p,2d,1f) -> [3s,3p,2d,1f]
+
+Basis set exponents and contractions were taken from:
+J.M.L. Martin and A. Sundermann, J. Chem. Phys. 114, 3408 (2001).
+
+Relativistic ECP definitions were taken from:
+A. Bergner, M. Dolg, W. Kuechle, H. Stoll, H. Preuss, Mol. Phys. 80,1431 (1993)
+
+
+info
+comments
+1/02/02  - DFF - Correct no. of s primitives for Te
+4/18/01  - DFF - Original creation of this file based on a file that
+comments

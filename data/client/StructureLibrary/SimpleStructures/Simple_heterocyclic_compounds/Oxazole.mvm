@@ -1,0 +1,24 @@
+title:          Oxazole
+type:           molecule
+cell_units:     angstroms
+num_atoms:      8
+atom_info:      symbol cart
+atom_list:
+  C  -0.273   0.958   0.060
+  N   0.957   0.625   0.136
+  C   1.081  -0.643   0.036
+  O  -0.129  -1.250  -0.119
+  C  -0.960  -0.179  -0.097
+  H  -0.654   1.991   0.117
+  H   2.030  -1.203   0.068
+  H  -2.051  -0.298  -0.200
+num_bonds:      8
+bond_list:
+ 1  2
+ 1  5
+ 1  6
+ 2  3
+ 3  4
+ 3  7
+ 4  5
+ 5  8

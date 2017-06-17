@@ -1,0 +1,45 @@
+name
+aug-cc-pV6Z Diffuse
+name
+type
+diffuse
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ---------
+H    :  K.A. Peterson, D.E. Woon (unpublished)
+B - O:  A.K. Wilson, T. van Mourik and T.H. Dunning, Jr. J. Mol. Struct.
+        (THEOCHEM) 388, 339 (1997).
+Cl:
+
+references
+info
+              aug-cc-pV6Z Diffuse Functions
+              -----------------------------
+Elements                             References
+H     : (1s,1p,1d,1f,1g,1h)    K.A. Peterson, D.E. Woon (unpublished)
+B - F : (1s,1p,1d,1f,1g,1h,1i)
+Cl    : (1s,1p,1d,1f,1g,1h,1i)
+
+First Row Diffuse:   A.K. Wilson, T. van Mourik and T.H. Dunning, Jr.,
+                     Mol. Phys. 96, 529 (1999)
+Second Row Diffuse:  T. van Mourik and T.H. Dunning, Jr., Int. J. Quantum
+                     Chem. 76, 205 (2000)
+
+
+info
+comments
+4/19/99  - DFF - Add He, Al, P, Ar and Ne (unofficial set from DFF)
+11/17/98  - DFF - Add S using exponents from Tanja van Mourik.
+10/09/98  - DFF - Add F using exponents from Tanja van Mourik.
+1/14/98  - DFF - Creation of this file from exponents contained in
+comments

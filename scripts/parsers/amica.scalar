@@ -1,0 +1,129 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#   Generic script used to output most of the Amica scalar values. Script 
+#   parses Hartree-Fock, MCSCF, and CI-like energies and 1st-order
+#   (relativistic) Cowan-Griffin correction. Gdanitz, Dec 21, 2001.
+#   Changes required by changed properties file. Gdanitz, Jan 18, 2002.
+#
+#   The change in the $key variable from database variable name to PID
+#   number means that the scalar variable names must now be identified
+#   by parsing the first line of text.
+#
+##############################################################################
+
+($key, $runtype, $category, $theory) = @ARGV;
+
+# Force output to be flushed
+$| = 1;
+
+$line = <STDIN>;
+if(index($line, "total energy =")+1) {
+
+# Hartree-Fock.
+
+  $propKey = "ESCF";
+  $value = substr($line, 19, 22); }
+
+elsif(index($line, "final mcscf convergence values:")+1) {
+
+# MCSCF.
+
+  $propKey ="EMCSCF"; # This name has yet to be added to the 'properties' file.
+  $value = substr(<STDIN>, 14, 16); }
+
+elsif(index($line, "Result of a")+1) {
+
+# CI-like functional. 
+
+  if(index($line, "(traditional)")+1) {
+#   Traditional computation.
+    $propKey = substr($line, 27, 9); }
+  elsif(index($line, "r12")+1) {
+#   r12 computation.
+    $propKey = substr($line, 14, 13); 
+    $propKey =~ s/r12/R12/;}
+  else {
+#   Error condition encountered. CI functional must be either traditional or 
+#   r12. Exit without writing any values.
+    exit;}
+  $propKey =~ s/\s.+//; # Remove possible stuff after blank.
+  $propKey =~ s/\s//g; # Remove space characters.
+  $propKey = "E" . $propKey; 
+  $propKey =~ s/\(//; $propKey =~ s/\)//; # Remove possible parenthesis.
+
+# Skip 4 lines and read energy.
+  foreach (1..5) {
+    $line = <STDIN>;
+  }
+  $value = substr($line, 21, 19);
+}   
+elsif(index($line, "CPF calculation ended in the")+1) {
+
+# CPF.
+
+  $propKey = "ECPF";
+# Skip 3 lines and read energy.
+  foreach (1..4) {
+    $line = <STDIN>;
+  }
+  $value = substr($line, 21, 19);
+}
+elsif(index($line, "first-order Cowan-Griffin correction")+1) {
+
+# 1st order Cowan-Griffin correction.
+
+  $propKey = "ERELCORR";
+  $value = substr($line, 56, 15);
+}
+elsif(index($line, "SCF-ENERGY =")+1) {
+
+# HARTREE-FOCK energy from Comenius.
+ 
+  $propKey = "ESCF";
+  $value = substr($line, 13, 20);
+}
+elsif(index($line, "SCF+ MBPT")+1) {
+
+# MBPT.
+
+  $propKey = substr($line, 8, 11);
+  $propKey =~ s/\s.+//; # Remove possible stuff after blank.
+  $propKey =~ s/MBPT/MP/; $propKey =~ s/\(//; $propKey =~ s/\)//;
+  $propKey = "E" . $propKey;
+  $value = substr($line, 19, 20);
+}
+elsif(index($line,"SCF+")+1 && index($line,"CC")+1) {
+
+# Coupled Cluster.
+
+  $propKey = substr($line, 7, 12);
+  $propKey =~ s/\s//g; # Remove space characters.
+  $propKey = "E" . $propKey;
+  $propKey =~ s/ECCSD\(T\)/ECCSDTPERT/;
+  $propKey =~ s/ECCSD\[T\]/ECCSDTPERT3/;
+  $propKey =~ s/ECCSDT-1A/ECCSDT1A/;
+  $propKey =~ s/EFCCD/EACCD/;
+  $value = substr($line, 19, 20);
+}
+
+# If $propKey does not contain "R12" then append "_A"
+if(index($propKey, "R12") == -1) {
+  $propKey = $propKey ."_A" 
+}
+
+# Output parsed data.
+
+print "key: $propKey\n";
+print "size:\n1\n";
+print "values:\n$value\n";
+print "units:\nHartree\n";
+print "END\n";

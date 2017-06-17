@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   See online documenation at http://www.emsl.pnl.gov:2080/docs/ecce
+-->
+
+<appdescriptor>
+
+<GaussianBasisSetRules>
+  <MaxLValue>6</MaxLValue>
+  <ECPS>True</ECPS>
+  <GeneralContractions>False</GeneralContractions>
+  <PreferOptimization>	True</PreferOptimization>
+  <MaxPrimitives>100 100 100 100 100 100</MaxPrimitives>
+  <MaxSharedExponent>      1 </MaxSharedExponent>
+  <SphericalCoordinates>	True </SphericalCoordinates>
+  <DFTFitting>		False</DFTFitting>
+  <RecommendDFTCharge>	False </RecommendDFTCharge>
+  <RequireFullDFT>         False </RequireFullDFT>
+  <MaxTotalFunctions>	64000</MaxTotalFunctions>
+  <!-- max no. of primitive _shells_ p229 manual -->
+  <MaxTotalPrimitives>	7500</MaxTotalPrimitives>
+  <MultipleOrbitals>	false</MultipleOrbitals>
+  <LibraryNames>	True</LibraryNames>
+  <AllowMultipleOrbitals>False</AllowMultipleOrbitals>
+</GaussianBasisSetRules>
+
+
+<!--
+  Enables Geometry and Partial Charge sub dialogs if runtype is appropriate
+-->
+<SupportsConstraints>true</SupportsConstraints>
+
+
+<GeometryConstraintRules>
+  <SupportsAtomConstraints>true</SupportsAtomConstraints>
+  <SupportsConstrainBonds>true</SupportsConstrainBonds>
+  <SupportsConstrainAngles>true</SupportsConstrainAngles>
+  <SupportsConstrainTorsions>true</SupportsConstrainTorsions>
+  <SupportsRestrainBonds>false</SupportsRestrainBonds>
+  <SupportsRestrainAngles>false</SupportsRestrainAngles>
+  <SupportsRestrainTorsions>false</SupportsRestrainTorsions>
+  <SupportsFixedAtomsAndConstraints>true</SupportsFixedAtomsAndConstraints>
+  <SupportsFixedAtomsAndRestraints>false</SupportsFixedAtomsAndRestraints>
+  <SupportsMixedConstraintsAndRestraints>false</SupportsMixedConstraintsAndRestraints>
+</GeometryConstraintRules>
+
+
+
+<!-- This seems misplaced.  Where should it really be?  What affects does
+     that have on existing data?
+     Bruce is looking into this.
+-->
+
+<MOOrdering type="cartesian" >
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="xx" a2="yy" a3="zz" a4="xy" a5="xz"
+    a6="yz"></lshell>
+   <lshell lval="3" a1="xxx" a2="yyy" a3="zzz" a4="xyy" a5="xxy" a6="xxz"
+    a7="xzz" a8="yzz" a9="yyz" a10="xyz"></lshell>
+   <lshell lval="4" a1="zzzz" a2="yzzz" a3="yyzz" a4="yyyz" a5="yyyy"
+    a6="xzzz" a7="xyzz" a8="xyyz" a9="xyyy" a10="xxzz"
+    a11="xxyz" a12="xxyy" a13="xxxz" a14="xxxy"
+    a15="xxxx"></lshell>
+</MOOrdering>
+
+<MOOrdering type="spherical" >
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="-xx/2-yy/2+zz" a2="xz" a3="yz" a4="xx/2-yy/2"
+    a5="xy"></lshell>
+   <lshell lval="3" a1="-3xxz/2-3yyz/2+zzz" a2="-xxx/2-xyy/2+2xzz"
+    a3="-xxy/2-yyy/2+2yzz" a4="xxz/2-yyz/2" a5="xyz"
+    a6="xxx/2-3xyy/2" a7="3xxy/2-yyy/2"></lshell>
+</MOOrdering>
+
+
+<!-- All names are completely unconstrained but must be consistent with
+     names used by detail dialogs and input files generator etc.
+-->
+<Editor theorydialog="ged03theory.py" runtypedialog="ged03runtype.py">
+  <Theory category="SCF" name="RHF">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Magnetic</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="SCF" name="ROHF">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="SCF" name="UHF">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Magnetic</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="DFT" name="RDFT">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Magnetic</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="DFT" name="UDFT">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Magnetic</runtype>
+  </Theory>
+  <Theory category="SE" name="RCNDO" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="SE" name="UCNDO" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="SE" name="RINDO" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="SE" name="UINDO" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="SE" name="RMINDO3" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="SE" name="RMINDO3" needsBasis="false">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="SE" name="UMINDO3" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="SE" name="RMNDO" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="SE" name="ROMNDO" needsBasis="false">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="SE" name="UMNDO" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="SE" name="RAM1" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="SE" name="ROAM1" needsBasis="false">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="SE" name="UAM1" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="SE" name="RPM3" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="SE" name="UPM3" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="MP" name="RMP2">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="MP" name="ROMP2">
+    <runtype>Energy</runtype>
+    <runtype>Vibration</runtype>
+  </Theory>
+  <Theory category="MP" name="UMP2">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="MP" name="RMP3">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="MP" name="UMP3">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="MP" name="RMP4">
+    <runtype>Energy</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="MP" name="UMP4">
+    <runtype>Energy</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="MP" name="RMP4(SDQ)">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="MP" name="UMP4(SDQ)">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="MP" name="RMP4(DQ)">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="MP" name="UMP4(DQ)">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="MP" name="UMP5">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="CC" name="RQCISD">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="CC" name="UQCISD">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="CC" name="RQCISD(T)">
+    <runtype>Energy</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="CC" name="UQCISD(T)">
+    <runtype>Energy</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="CC" name="RCCD">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="CC" name="UCCD">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="CC" name="RCCSD">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="CC" name="UCCSD">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="CC" name="RCCSD(T)">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="CC" name="UCCSD(T)">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="CI" name="CIS">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+  <Theory category="CI" name="CISD">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+    <runtype>Polarizability</runtype>
+  </Theory>
+
+  <TheorySummary>
+    <item key="ES.Theory.SCF.Direct" label="SCF Integrals"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.SCF.ConvergenceAlgorithm" label="SCF Conv. Algorithm"></item>
+  </TheorySummary>
+  <TheorySummary topLabel="SCF Convergence-">
+    <item key="ES.Theory.SCF.ConvergenceDensity.Value" label="Density"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.SCF.ConvergenceIterations" label="SCF Max. Iterations"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.DFT.XCFunctionals" label="DFT Combined Func."></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.DFT.ExchangeFunctionals" label="DFT Exchange Func."></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.DFT.CorrelationFunctionals" label="DFT Corr Func."></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.CorrelOrb.FrozenCoreValue" label="Frozen Core Orbitals"></item>
+  </TheorySummary>
+
+  <RuntypeSummary topLabel="Geom. Convergence-">
+    <item key="ES.Runtype.GeomOpt.ConvergenceGradient.Value" label="Gradient"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.SearchFor" label="Search for"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.MaximumStepsValue" label="Max. Steps"></item>
+  </RuntypeSummary>
+</Editor>
+
+
+
+<!-- Raw File Naming Conventions
+-->
+
+<DataFiles>
+  <Input   type="primary" mimetype="chemical/x-gaussian03-input" comment="true" commentstring="#">g03.g03in</Input>
+  <Input   type="primary" mimetype="chemical/x-gaussian-03-input" comment="true" commentstring="#">g03.in</Input>
+  <Output type="primary" mimetype="chemical/x-gaussian03-output">g03.g03out</Output>
+  <Output type="primary" mimetype="chemical/x-gaussian-03-output">g03.out</Output>
+  <Output type="parse" verifypattern="Gaussian 03, Revision" mimetype="chemical/x-gaussian03-output">g03.g03out</Output>
+  <Output type="parse" verifypattern="Gaussian 03, Revision" mimetype="chemical/x-gaussian-03-output">g03.out</Output>
+  <Output type="auxiliary" mimetype="chemical/x-gaussian-03-mo">fort.7</Output>
+  <Output type="property" mimetype="chemical/x-gaussian-cube">CUBE</Output>
+</DataFiles>
+
+<!-- Names of files required for code integration.  These files are
+     assumed to be in the ecce path as managed by the ecce_env script.
+-->
+<IntegrationFiles>
+  <Template>g03.tpl</Template>
+  <InputGenerator>ai.gauss03 </InputGenerator>
+  <Importer>Gaussian-03.expt </Importer>
+  <ParseSpecification>gaussian-03.desc </ParseSpecification>
+  <LaunchPreprocessor>gaussian-03.launchpp </LaunchPreprocessor>
+  <BasisTranslationScript>std2Gaussian-03</BasisTranslationScript>
+</IntegrationFiles>
+
+</appdescriptor>

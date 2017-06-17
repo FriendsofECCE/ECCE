@@ -1,0 +1,284 @@
+
+INSTRUCTIONS FOR SCRIPT-GUIDED BUILD OF ECCE FROM A SOURCE CODE DISTRIBUTION
+----------------------------------------------------------------------------
+
+NOTE:  ECCE builds only on Linux platforms.  There is not a port for
+ECCE to either the Windows or Mac OS X operating system.  To run ECCE on
+Windows or Mac, install Linux on a virtual machine running under VirtualBox
+(https://www.virtualbox.org) or VMware (http://www.vmware.com) and then
+either build ECCE from source code or install an ECCE binary distribution
+on the Linux virtual machine.
+
+A script named build_ecce automates the ECCE build process and is the
+recommended way to compile.  A number of third party packages are used by
+ECCE to both build and run the software.  Most of these packages are installed
+as binary distributions using the package manager command line utilities or
+GUIs that are specific to different Linux operating systems (e.g. apt-get,
+yum, YaST).  The build_ecce script checks for these prerequisite software
+packages including for versions compatible with ECCE and indicates when
+specific packages need to be installed before continuing the build.
+
+A small number of third party packages are either not available as packages
+from Linux vendors or require specific build settings to work with ECCE and
+therefore must be built from source code.  The build_ecce script performs
+these third party package builds from source code as well as compiling
+the core ECCE code.  Distributions for specific versions of these third
+party packages that have been tested to build successfully and work with
+ECCE on a variety of Linux operating systems are bundled with the ECCE
+source code distribution.  All third party packages must be successfully
+built before the core ECCE code can be compiled.
+
+As an alternative to the automated build_ecce script there are instructions
+for manually building the required thirdy party packages in the file named
+build_details.doc in this directory.  These instructions give guidance on
+what versions of the different third party packages are likely to work along
+with the configure and make commands needed.  If any difficulties are
+encountered with compiling third party packages using the build_ecce script
+the manual build instructions may also prove helpful.  Additionally if
+compiling manually the build_ecce script can be used as a reference to
+determine the configuration and make options used by the automated ECCE
+build process.
+
+
+
+RECOMMENDED BUILD PROCESS
+-------------------------
+
+Extract the compressed source code distribution in a non /tmp directory where
+it can remain for as long as you plan to run this version of ECCE.  This build
+directory is not the same as the directory where you intend to install and run
+ECCE.  Installing ECCE is a separate step after building from source code.
+
+$ tar xvf ecce-v7.0-src.tar.bz2
+
+If you are running sh or bash, source this environment setup script:
+
+$ . ecce-v7.0/build/build_setup.sh
+
+Or, if you are running csh or tcsh, perform the following steps:
+
+$ setenv ECCE_HOME <full-directory-path>/ecce-v7.0
+$ source $ECCE_HOME/build/build_setup
+
+(Note that for sh/bash users the $ECCE_HOME variable is set by build_setup.sh)
+
+The build_ecce script that compiles both ECCE and the third party software
+needed by ECCE requires the csh shell.  Some Linux platforms do not include
+csh with the base operating system and it must be installed using the package
+manager command or GUI specific to the platform.  The package manager install
+commands for common Linux platforms where ECCE builds have been performed are:
+
+Debian   => apt-get install
+Ubuntu   => apt-get install
+OpenSUSE => YaST (GUI application)
+Mint     => apt-get install
+Red Hat  => yum install
+
+Either sudo or root access is needed to install packages.  To check for csh:
+
+$ which csh
+
+To install csh if it isn't found, the tcsh package is recommended for its
+better interactive shell since it also bundles the base csh shell.  The sudo
+command on Ubuntu Linux for example is:
+
+$ sudo apt-get install tcsh
+
+For most packages installed with apt-get or yum, there is a yes/no prompt
+before actual installation that must be answered in the affirmative. To
+install the tcsh package on Debian using a root shell instead of sudo:
+
+$ su -
+(enter root password)
+# apt-get install tcsh
+# exit
+
+At this point build_ecce can be run:
+
+$ build_ecce
+
+This will initially conduct the checks for prerequisite software such as
+compilers and underlying libraries needed to build ECCE and the third party
+packages compiled from source code like wxWidgets.  Each prequisite check
+will be followed by a prompt so that the results can be verified before the
+next check is performed.
+
+Typically for a first time build of ECCE a number of the checks will fail to
+find the required software and a package will need to be installed before the
+bundled third party source code distributions and ECCE can be built.  The
+package manager commands given above are used to install missing packages.
+The message output by build_ecce when a package isn't found will give an
+indication of the name of the missing package, but the exact name is platform
+dependent.  There are "list" options with the package manager commands
+(e.g. sudo apt-cache search <search-string>) that are useful in identifying
+the package name needed.  Redirecting output from a package manager list
+command to a file (e.g. sudo yum list > yum.list) and then searching that
+file either with a text editor or using grep commands is a convenient way to
+find missing packages.  A recommendation for installing missing packages is
+to use two terminal windows with one running build_ecce and the other for
+finding missing package names and installing them as called out by build_ecce.
+
+At the bottom of these instructions there are lists of the missing package
+names needed for fresh operating system installations from common Linux
+vendors.  These lists are likely to change with newer operating system
+releases and of course are dependent on what software packages have already
+been installed since the base Linux.
+
+After the check for prerequisite software is done the build_ecce script will
+prompt for whether to skip these checks whenever build_ecce is invoked in the
+future.  It is recommended that if any prerequisite software was not found the
+checks be repeated to get a "clean" pass through the required packages before
+starting on the actual build from source code.  However, answering yes to the
+prompt for skipping checks should be done once all the prerequisite software
+has been found as there will be serveral build_ecce invocations required to
+compile all thirdy party code and ECCE.
+
+
+Script-Guided Compile of Third Party Packages and ECCE
+------------------------------------------------------
+
+Invoke the build_ecce script again after installing all prerequisite software:
+
+$ build_ecce
+
+At this stage the script will build one 3rd party package per invocation, 
+exiting after each package is built.  In order the 3rd party packages that
+will be built are:
+
+1. Apache Xerces XML parser
+2. Mesa OpenGL
+3. wxWidgets C++ GUI toolkit (from WxPython source code distribution)
+4. wxPython GUI toolkit
+5. Apache HTTP web server
+
+The "-help" option to build_ecce will give additional details on options for
+controlling the build process.  After all of these 3rd party packages are built
+another invocation of build_ecce will compile core ECCE code ultimately
+creating an ECCE binary distribution in the top-level directory where the
+source code directory was extracted.  This ECCE binary distribution is
+equivalent to an ECCE binary distribution downloaded from the ECCE website and
+must be installed before running ECCE.  Documentation for installing an ECCE
+binary distribution is available in both the INSTALL file under the top-level
+distribution directory and from the ECCE website at
+http://ecce.pnl.gov/using/installguide.shtml.
+
+The lists of missing packages below are applicable to both 32- and 64-bit
+versions of the same Linux operating system.  It is recommended that the lists
+below be used in conjunction with the interactive build_ecce prerequisite
+checks since they may be incorrect or incomplete for your platform or packages
+may have been previously installed.  Thus, installing these packages before
+ever running the interactive prequisite check in build_ecce is not recommended.
+The package names may also change with newer operating system releases.  For
+some operating systems there are additional notes below for building and
+running ECCE pertinent to that platform.
+
+If you are planning to deploy ECCE on Linux running on a virtual machine and
+your site does not dictate a specific Linux operating system be used,
+after much building and testing, highest recommendations for ECCE go to
+Debian, Mint, and Ubuntu.  Debian is the most stable and robust Linux and
+also feels a bit speedier running as a VM than the others.  Mint is very easy
+to install, provides the most bundled software, and feels like a quality
+product although it is less popular versus the established alternatives.
+Ubuntu is easy to install and use, and is among the most popular Linux
+distributions although there is a minor issue currently running applications
+with the GUI toolkit ECCE uses (see below for explanation).  Among the others
+OpenSUSE and Red Hat also support building and running ECCE but each feel like
+they are a step below the recommended three in a number of areas.  Finally
+ECCE has not been successfully built under Fedora as currently released,
+version 16 (see below for explanation), and thus Fedora is not recommended.
+
+
+Debian 6.0.4 Missing Packages
+-----------------------------
+1.  g++
+2.  gfortran
+3.  openjdk-6-jdk
+4.  ant
+5.  python-dev
+6.  libgtk2.0-dev
+7.  libjpeg62-dev
+8.  autoconf
+9.  libtool
+
+
+Ubuntu 11.10 Missing Packages
+-----------------------------
+1.  g++
+2.  gfortran
+3.  openjdk-6-jdk
+4.  ant
+5.  python-dev
+6.  libgtk2.0-dev
+7.  libjpeg62-dev
+8.  autoconf
+9.  libtool
+10. imagemagick
+
+In addition to the missing packages, this version of Ubuntu contains a Gtk
+related bug that keeps wxWidgets application menubars from displaying.  The
+fix for this is to remove a Gtk package:
+
+$ sudo apt-get remove appmenu-gtk
+
+This should be done prior to running ECCE, but does not need to be done
+before building.
+
+
+OpenSUSE 12.1 Missing Packages
+------------------------------
+The YaST GUI package manager is accessed from the
+Applications->System Tools->YaST menu item.  This will prompt for the
+superuser password and then bring up an "Administrator Settings" windows.
+From this window select "Software Management".
+
+1.  gcc-c++ (installs gcc as well)
+2.  gcc-fortran
+3.  make
+4.  java-1_6_0-openjdk-devel
+5.  ant
+6.  python-devel
+7.  gtk2-devel
+8.  libjpeg62-devel
+9.  autoconf
+10. libtool
+
+In addition to the missing packages, the default hostname is not properly
+configured with OpenSUSE for a fresh operating system install.  Therefore
+the ActiveMQ messaging server won't start.  In order to resolve this, set
+a pingable hostname before installing the ECCE binary distribution , e.g.
+
+$ sudo hostname localhost
+
+
+Mint 12 Missing Packages
+------------------------
+1. g++
+2. gfortran
+3. openjdk-6-jdk
+4. ant
+5. python-dev
+6. libjpeg62-dev
+
+
+Red Hat Enterprise Linux 5.8 Missing Packages
+---------------------------------------------
+1.  gcc-c++
+2.  gcc-gfortran
+3.  java-1.6.0-openjdk-devel
+4.  ant
+5.  python-devel
+6.  gtk2-devel
+7.  libjpeg-devel
+8.  autoconf
+9.  libtool
+11. libXt-devel
+
+
+Fedora 16 Missing Packages
+--------------------------
+Fedora 16 corrupts itself when installing various packages via "yum install"
+that are needed to build ECCE.  The "gtk2-devel" package is one that fails to
+install and then subsequent "yum installs" of any package result in crashes.
+Therefore it is not recommended that Fedora be used to build ECCE source code
+until this issue is remedied by Fedora developers.
+

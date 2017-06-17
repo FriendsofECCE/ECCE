@@ -1,0 +1,116 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+$lcCategory = lc($ucCategory);
+
+# Force output to be flushed
+$| = 1;
+
+  $label = <STDIN>;
+  chop($label);
+  $value = <STDIN>;
+  chop($value);
+
+  ########################################################################
+  # For an Energy calculation, there are three cases of interest: 
+  #    i) total converged task energy (that of the target Category)
+  #    ii) another total energy (e.g. MP2 in a CCSD calculation)
+  #    iii) an unconverged iterative total energy
+  #
+  # For a geometry optimization, iii is omitted
+  #
+  ########################################################################
+  $label =~ /(\S+)%begin/;
+  $prebegin = $1;  # might be task_<tasktype> or a category type
+
+  $eveckey = "";
+  if ($runtype ne "Geometry" && $runtype ne "GeoVib") {
+    if ($prebegin =~ /task_energy/ ||
+        $prebegin =~ /task_gradient/) { # converged target total energy
+#
+#     write TE and TEVEC (this is the target energy)
+#
+      print "key: TE\n";
+      print "size:\n1\n";
+      print "values:\n$value\n";
+      print "units:\nHartree\n";
+      print "END\n";
+
+      print "key: TEVEC\n";
+      print "size:\n1\n";
+      print "values:\n$value\n";
+      print "units:\nHartree\n";
+      print "END\n";
+
+    } else {
+
+      $ekey = &EKey($prebegin); # SCF iterations?
+      if ($prebegin =~ /$lcCategory/) {
+	# vec output only for target energy iterations
+	print "key: EWVEC\n";
+	print "size:\n1\n";
+	print "values:\n$value\n";
+        print "units:\nHartree\n";
+	print "END\n";
+      }
+    }
+  } else { # Get energy only from task_gradient, skips task_energy
+    if ($prebegin =~ /task_gradient/ ) {
+      print "key: TE\n";
+      print "size:\n1\n";
+      print "values:\n$value\n";
+      print "units:\nHartree\n";
+      print "END\n";
+
+      print "key: TEVEC\n";
+      print "size:\n1\n";
+      print "values:\n$value\n";
+      print "units:\nHartree\n";
+      print "END\n";
+
+    } else {  # might be another total energy of interest
+      $ekey = &EKey($prebegin);
+    }
+  }
+
+  if ($ekey) {
+    print "key: $ekey\n";
+    print "size:\n1\n";
+    print "values:\n$value\n";
+    print "units:\nHartree\n";
+    print "END\n";
+  }
+
+
+sub EKey {
+  local($category) = @_;
+
+  if ($category =~ /scf/ ) {
+    $result = "ESCF";
+  } elsif ($category =~ /dft/) {
+    $result = "EDFT";
+  } elsif ($category =~ /mp2/) {
+    $result = "EMP2";
+  } elsif ($category =~ /ccsd/) {
+    $result = "ECCSD";
+  } elsif ($category =~ /ccsd(t)/) {
+    $result = "ECCSDTPERT";
+  } elsif ($category =~ /ccsd+t(ccsd)/) {
+    $result = "ECCSDTPERT2";
+  } else { # probably junk, don't write it out
+    $result = "";
+  }
+  return $result;
+}

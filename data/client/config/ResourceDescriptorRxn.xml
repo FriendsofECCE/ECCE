@@ -1,0 +1,5786 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+  <ResourceType name="document" resourceType="file" contentType="" applicationType="">
+  When generating Resource, EDSIFactory will try to match all these three attributes
+  "resourceType" "contentType" "applicationType" to determine a Resource's ResourceType
+
+    <SortPriority></SortPriority>
+    Priority when sorted with other resource.
+
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    A reqular expression defining the naming convention/rules for this resource
+
+    <Icons>
+      <Normal>document.xpm</Normal>
+      <Selected>document.xpm</Selected>
+      <Expanded>document.xpm</Expanded>
+      <SelectedExpanded>document.xpm</SelectedExpanded>
+    </Icons>
+    Icons for this resource, one for each state in the tree.
+
+    <Label>document</Label>
+    Default name of a new resource of this type
+
+    <StateBased>false</StateBased>
+    Indicates if this resource is state based
+
+    <MenuItem/>
+    Menu item for creating this new resource
+
+    <DescriptorFile/>
+    Descriptor file name, if any
+
+    <FactoryCategory>Document</FactoryCategory>
+    Used by EDSIFactory to call the correct create/get method for a resource
+
+    <IsExpandable>false</IsExpandable>
+    Indicates if the resource can be expanded in the Calculation
+    Manager's tree view, revealing the recources children, if any.
+
+    <ContextPanel>DocumentContextPanel</ContextPanel>
+    Identifies the context panel class for this resource
+
+    <IsSessionBased>false</IsSessionBased>
+    Identifies if the resource is session based, ie does it manage a set of
+    tasks using a linkbase.
+
+    <Relationships/>
+    Identifies relationships this resource may have with other resoures.
+
+    <EnabledTools/>
+    Identifies the enabled tools for this resource. If the resource is state
+    based, then the states for which it is enabled are listed also.
+
+    <DefaultTools/>
+    Identifies the default tools for this resource. If the resource is state
+    based, then the states for which the tool is a defualt is listed.
+
+    <EnabledRunManagementTasks/>
+    Identifies the enabled run management tasks for this resource. If the
+    resource is state based, then the states for which it is enabled are listed also.
+
+  </ResourceType>
+
+ -->
+<ResourceDescriptor>
+  <!-- DAV document resource -->
+  <ResourceType name="document" resourceType="file" contentType="file,hidden" applicationType="">
+    <SortPriority>100</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>document.xpm</Normal>
+      <Selected>document.xpm</Selected>
+      <Expanded>document.xpm</Expanded>
+      <SelectedExpanded>document.xpm</SelectedExpanded>
+    </Icons>
+    <Label>document</Label>
+    <StateBased>false</StateBased>
+    <MenuItem/>
+    <DescriptorFile/>
+    <FactoryCategory>Document</FactoryCategory>
+    <IsExpandable>false</IsExpandable>
+    <ContextPanel>DocumentContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships/>
+    <EnabledTools/>
+    <DefaultTools/>
+    <EnabledRunManagementTasks/>
+  </ResourceType>
+  <!-- DAV image test resource -->
+  <ResourceType name="image" 
+                resourceType="file" 
+                contentType="image/jpeg,image/png,image/gif,image/x-xpixmap,image/tiff,image/bmp" 
+                applicationType="">
+    <SortPriority>100</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>image.xpm</Normal>
+      <Selected>image.xpm</Selected>
+      <Expanded>image.xpm</Expanded>
+      <SelectedExpanded>image.xpm</SelectedExpanded>
+    </Icons>
+    <Label>image</Label>
+    <StateBased>false</StateBased>
+    <MenuItem/>
+    <DescriptorFile/>
+    <FactoryCategory>Document</FactoryCategory>
+    <IsExpandable>false</IsExpandable>
+    <ContextPanel>ImageContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships/>
+    <EnabledTools/>
+    <DefaultTools/>
+    <EnabledRunManagementTasks/>
+  </ResourceType>
+  <!-- DAV mvm molecule resource -->
+  <ResourceType name="chemical-mvm" resourceType="file" contentType="chemical/x-ecce-mvm"
+    applicationType="">
+    <SortPriority>100</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>molecule.xpm</Normal>
+      <Selected>molecule.xpm</Selected>
+      <Expanded>molecule.xpm</Expanded>
+      <SelectedExpanded>molecule.xpm</SelectedExpanded>
+    </Icons>
+    <Label>chemical-mvm</Label>
+    <StateBased>false</StateBased>
+    <MenuItem/>
+    <DescriptorFile/>
+    <FactoryCategory>Document</FactoryCategory>
+    <IsExpandable>false</IsExpandable>
+    <ContextPanel>DocumentContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships/>
+    <EnabledTools/>
+    <DefaultTools/>
+    <EnabledRunManagementTasks/>
+  </ResourceType>
+  <!-- DAV pdb molecule resource -->
+  <ResourceType name="chemical-pdb" resourceType="file" contentType="chemical/x-pdb"
+    applicationType="">
+    <SortPriority>100</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>molecule.xpm</Normal>
+      <Selected>molecule.xpm</Selected>
+      <Expanded>molecule.xpm</Expanded>
+      <SelectedExpanded>molecule.xpm</SelectedExpanded>
+    </Icons>
+    <Label>chemical-pdb</Label>
+    <StateBased>false</StateBased>
+    <MenuItem/>
+    <DescriptorFile/>
+    <FactoryCategory>Document</FactoryCategory>
+    <IsExpandable>false</IsExpandable>
+    <ContextPanel>DocumentContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships/>
+    <EnabledTools/>
+    <DefaultTools/>
+    <EnabledRunManagementTasks/>
+  </ResourceType>
+  <!-- Ecce Project resource -->
+  <ResourceType name="project" resourceType="collection" contentType="ecceProject,httpd/unix-directory"
+    applicationType="">
+    <SortPriority>10</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>folder_close.xpm</Normal>
+      <Selected>folder_close.xpm</Selected>
+      <Expanded>folder_open.xpm</Expanded>
+      <SelectedExpanded>folder_open.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Project</Label>
+    <StateBased>false</StateBased>
+    <MenuItem>New Project...</MenuItem>
+    <DescriptorFile/>
+    <FactoryCategory>Project</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>ProjectContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+          <ContainsResource name="nwchem_es"/>
+          <ContainsResource name="gaussian03_es"/>
+          <ContainsResource name="gaussian98_es"/>
+          <ContainsResource name="guk_es"/>
+          <ContainsResource name="amica_es"/>
+          <ContainsResource name="nwchem_md_study"/>
+          <ContainsResource name="gas_reaction_study"/>
+          <ContainsResource name="condensed_reaction_study"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools/>
+    <DefaultTools/>
+    <EnabledRunManagementTasks/>
+  </ResourceType>
+  <!--  Importd electronic structure calculation resource - no code specified -->
+  <ResourceType name="import_es" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="">
+    <SortPriority>40</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>calcany.xpm</Normal>
+      <Selected>calcany.xpm</Selected>
+      <Expanded>calcany.xpm</Expanded>
+      <SelectedExpanded>calcany.xpm</SelectedExpanded>
+    </Icons>
+    <Label>calculation</Label>
+    <StateBased>false</StateBased>
+    <MenuItem/>
+    <DescriptorFile/>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>PropertyContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships/>
+    <EnabledTools/>
+    <DefaultTools/>
+    <EnabledRunManagementTasks/>
+  </ResourceType>
+  <!-- NWChem electronic structure calculation resource -->
+  <ResourceType name="nwchem_es" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="NWChem">
+    <SortPriority>40</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>calcnwchem.xpm</Normal>
+      <Selected>calcnwchem.xpm</Selected>
+      <Expanded>calcnwchem.xpm</Expanded>
+      <SelectedExpanded>calcnwchem.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Calculation</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New NWChem Calculation...</MenuItem>
+    <DescriptorFile>NWChem.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Basistool">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Ready"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+  <!-- Gaussian-98 electronic structure calculation resource -->
+  <ResourceType name="gaussian98_es" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Gaussian-98">
+    <SortPriority>50</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>calcgaussian.xpm</Normal>
+      <Selected>calcgaussian.xpm</Selected>
+      <Expanded>calcgaussian.xpm</Expanded>
+      <SelectedExpanded>calcgaussian.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Calculation</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New Gaussian-98 Calculation...</MenuItem>
+    <DescriptorFile>Gaussian-98.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Basistool">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+  <!-- Gaussian-03 electronic structure calculation resource -->
+  <ResourceType name="gaussian03_es" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Gaussian-03">
+    <SortPriority>60</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>calcgaussian03.xpm</Normal>
+      <Selected>calcgaussian03.xpm</Selected>
+      <Expanded>calcgaussian03.xpm</Expanded>
+      <SelectedExpanded>calcgaussian03.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Calculation</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New Gaussian-03 Calculation...</MenuItem>
+    <DescriptorFile>Gaussian-03.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContianedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Basistool">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+  <!-- Amica electronic structure calculation resource -->
+  <ResourceType name="amica_es" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Amica">
+    <SortPriority>70</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>calcamica.xpm</Normal>
+      <Selected>calcamica.xpm</Selected>
+      <Expanded>calcamica.xpm</Expanded>
+      <SelectedExpanded>calcamica.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Calculation</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New Amica Calculation...</MenuItem>
+    <DescriptorFile>Amica.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Basistool">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+  <!-- GAMESS-UK electronic structure calculation resource -->
+  <ResourceType name="guk_es" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="GAMESS-UK">
+    <SortPriority>80</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>calcgamessuk.xpm</Normal>
+      <Selected>calcgamessuk.xpm</Selected>
+      <Expanded>calcgamessuk.xpm</Expanded>
+      <SelectedExpanded>calcgamessuk.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Calculation</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New GAMESS-UK Calculation...</MenuItem>
+    <DescriptorFile>GAMESS-UK.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Basistool">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+  <!-- NWChem MD Study resource -->
+  <ResourceType name="nwchem_md_study" resourceType="virtual_document" contentType="ecceSession"
+    applicationType="MDStudy">
+    <SortPriority>20</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>mdstudy.xpm</Normal>
+      <Selected>mdstudy.xpm</Selected>
+      <Expanded>mdstudy.xpm</Expanded>
+      <SelectedExpanded>mdstudy.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Study</Label>
+    <StateBased>false</StateBased>
+    <MenuItem>New MD Study...</MenuItem>
+    <DescriptorFile/>
+    <FactoryCategory>MdSession</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>MdContextPanel</ContextPanel>
+    <IsSessionBased>true</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="nwchem_md_prepare"/>
+          <ContainsResource name="nwchem_md_optimize"/>
+          <ContainsResource name="nwchem_md_energy"/>
+          <ContainsResource name="nwchem_md_dynamics"/>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools/>
+    <DefaultTools/>
+    <EnabledRunManagementTasks/>
+  </ResourceType>
+  <!-- NWChem MD Prepare resource -->
+  <ResourceType name="nwchem_md_prepare" resourceType="virtual_document" contentType="ecceMdPrepare"
+    applicationType="NWChemMD">
+    <SortPriority>30</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>taskmdprepare.xpm</Normal>
+      <Selected>taskmdprepare.xpm</Selected>
+      <Expanded>taskmdprepare.xpm</Expanded>
+      <SelectedExpanded>taskmdprepare.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Prepare</Label>
+    <!-- Indicates that this resource can be the initial task created in the study,
+         that is, the root task. -->
+    <RootTask>true</RootTask>
+    <StateBased>true</StateBased>
+    <MenuItem>New NWChem MD Prepare...</MenuItem>
+    <DescriptorFile>NWChemMD.edml</DescriptorFile>
+    <FactoryCategory>MdTask</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="nwchem_md_study"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="MDPrepare">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="MDPrepare">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+  <!-- NWChem MD Optimize resource -->
+  <ResourceType name="nwchem_md_optimize" resourceType="virtual_document"
+    contentType="ecceMdOptimize" applicationType="NWChemMD">
+    <SortPriority>30</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>taskmdoptimize.xpm</Normal>
+      <Selected>taskmdoptimize.xpm</Selected>
+      <Expanded>taskmdoptimize.xpm</Expanded>
+      <SelectedExpanded>taskmdoptimize.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Optimize</Label>
+    <!-- Indicates that this resource can be the initial task created in the study,
+         that is, the root task. -->
+    <RootTask>false</RootTask>
+    <StateBased>true</StateBased>
+    <MenuItem>New NWChem MD Optimize...</MenuItem>
+    <DescriptorFile>NWChemMD.edml</DescriptorFile>
+    <FactoryCategory>MdTask</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="nwchem_md_study"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="MDOptimize">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="MDOptimize">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+  <!-- NWChem MD Energy resource -->
+  <ResourceType name="nwchem_md_energy" resourceType="virtual_document" contentType="ecceMdEnergy"
+    applicationType="NWChemMD">
+    <SortPriority>30</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>taskmdenergy.xpm</Normal>
+      <Selected>taskmdenergy.xpm</Selected>
+      <Expanded>taskmdenergy.xpm</Expanded>
+      <SelectedExpanded>taskmdenergy.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Energy</Label>
+    <!-- Indicates that this resource can be the initial task created in the study,
+         that is, the root task. -->
+    <RootTask>false</RootTask>
+    <StateBased>true</StateBased>
+    <MenuItem>New NWChem MD Energy...</MenuItem>
+    <DescriptorFile>NWChemMD.edml</DescriptorFile>
+    <FactoryCategory>MdTask</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="nwchem_md_study"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="MDEnergy">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="MDEnergy">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+  <!-- NWChem MD Dynamics resource -->
+  <ResourceType name="nwchem_md_dynamics" resourceType="virtual_document"
+    contentType="ecceMdDynamics" applicationType="NWChemMD">
+    <SortPriority>30</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>taskmddynamics.xpm</Normal>
+      <Selected>taskmddynamics.xpm</Selected>
+      <Expanded>taskmddynamics.xpm</Expanded>
+      <SelectedExpanded>taskmddynamics.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Dynamics</Label>
+    <!-- Indicates that this resource can be the initial task created in the study,
+         that is, the root task. -->
+    <RootTask>false</RootTask>
+    <StateBased>true</StateBased>
+    <MenuItem>New NWChem MD Dynamics...</MenuItem>
+    <DescriptorFile>NWChemMD.edml</DescriptorFile>
+    <FactoryCategory>MdTask</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="nwchem_md_study"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="MDDynamics">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="MDDynamics">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+
+  <!-- Condensed Phase Reaction Study resource -->
+  <ResourceType name="condensed_reaction_study" resourceType="virtual_document" contentType="ecceSession"
+    applicationType="CondensedReactionStudy">
+    <SortPriority>20</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>condensedrxnstudy.xpm</Normal>
+      <Selected>condensedrxnstudy.xpm</Selected>
+      <Expanded>condensedrxnstudy.xpm</Expanded>
+      <SelectedExpanded>condensedrxnstudy.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Study</Label>
+    <StateBased>false</StateBased>
+    <MenuItem>New Condensed Phase Reaction Study...</MenuItem>
+    <DescriptorFile/>
+    <FactoryCategory>CondensedReactionSession</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>ReactionContextPanel</ContextPanel>
+    <IsSessionBased>true</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="rxn_solvate"/>
+          <ContainsResource name="nwchem_rxn_metadyn"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools/>
+    <DefaultTools/>
+    <EnabledRunManagementTasks/>
+  </ResourceType>
+  <!-- Reaction Solvate resource -->
+  <ResourceType name="rxn_solvate" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Solvate">
+    <SortPriority>30</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>taskconrxsolvate.xpm</Normal>
+      <Selected>taskconrxsolvate.xpm</Selected>
+      <Expanded>taskconrxsolvate.xpm</Expanded>
+      <SelectedExpanded>taskconrxsolvate.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Solvate</Label>
+    <!-- Indicates that this resource can be the initial task created in the study,
+         that is, the root task. -->
+    <RootTask>true</RootTask>
+    <StateBased>true</StateBased>
+    <MenuItem>New Solvate...</MenuItem>
+    <DescriptorFile>NWChem.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="condensed_reaction_study"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="SolvationEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="SolvationEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+  <!-- NWChem Reaction Metadynamics resource -->
+  <ResourceType name="nwchem_rxn_metadyn" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Metadynamics">
+    <SortPriority>30</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>taskconrxmetadyn.xpm</Normal>
+      <Selected>tasconkrxmetadyn.xpm</Selected>
+      <Expanded>taskconrxmetadyn.xpm</Expanded>
+      <SelectedExpanded>taskconrxmetadyn.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Metadynamics</Label>
+    <RootTask>false</RootTask>
+    <StateBased>true</StateBased>
+    <MenuItem>New NWChem Metadynamics...</MenuItem>
+    <DescriptorFile>MetaDyn.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="condensed_reaction_study"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="MetadynamicsEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="MetadynamicsEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Ready"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+
+  <!-- Gas Phase Reaction Study resource -->
+  <ResourceType name="gas_reaction_study" resourceType="virtual_document" contentType="ecceSession"
+    applicationType="ReactionStudy">
+    <SortPriority>20</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>gasrxnstudy.xpm</Normal>
+      <Selected>gasrxnstudy.xpm</Selected>
+      <Expanded>gasrxnstudy.xpm</Expanded>
+      <SelectedExpanded>gasrxnstudy.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Study</Label>
+    <StateBased>false</StateBased>
+    <MenuItem>New Gas Phase Reaction Study...</MenuItem>
+    <DescriptorFile/>
+    <FactoryCategory>ReactionSession</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>ReactionContextPanel</ContextPanel>
+    <IsSessionBased>true</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="dirdyvtst"/>
+          <ContainsResource name="polyrate"/>
+          <ContainsResource name="nwchem_es"/>
+          <ContainsResource name="gaussian03_es"/>
+          <ContainsResource name="gaussian98_es"/>
+          <ContainsResource name="guk_es"/>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools/>
+    <DefaultTools/>
+    <EnabledRunManagementTasks/>
+  </ResourceType>
+  <ResourceType name="dirdyvtst" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="DirDyVTST">
+    <SortPriority>40</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>taskrxdirdyvtst.xpm</Normal>
+      <Selected>taskrxdirdyvtst.xpm</Selected>
+      <Expanded>taskrxdirdyvtst.xpm</Expanded>
+      <SelectedExpanded>taskrxdirdyvtst.xpm</SelectedExpanded>
+    </Icons>
+    <Label>DirDyVTST</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New NWChem DirDyVTST Calculation...</MenuItem>
+    <DescriptorFile>DirDyVTST.edml</DescriptorFile>
+    <FactoryCategory>reactiontask</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="gas_reaction_study"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="NWDirdy">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="NWDirdy">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+  <ResourceType name="polyrate" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Polyrate">
+    <SortPriority>40</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>taskrxpolyrate.xpm</Normal>
+      <Selected>taskrxpolyrate.xpm</Selected>
+      <Expanded>taskrxpolyrate.xpm</Expanded>
+      <SelectedExpanded>taskrxpolyrate.xpm</SelectedExpanded>
+    </Icons>
+    <Label>POLYRATE</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New POLYRATE Calculation...</MenuItem>
+    <DescriptorFile>Polyrate.edml</DescriptorFile>
+    <FactoryCategory>reactiontask</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="gas_reaction_study"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="Polyrate">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="Polyrate">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+  <!--
+  (end of reaction study description)
+  -->
+
+  <!-- Listing of units available for Molecular Dynamics -->
+  <MDUnits>
+    <MDUnit>SI (kJoule/mol : nanometer : radians)</MDUnit>
+    <MDUnit>Kcal/mol : angstrom : degrees</MDUnit>
+  </MDUnits>
+  <!-- Listing of all tools -->
+  <Tools>
+    <Tool name="CalculationEditor">
+      <MenuItem>Electronic Structure &amp;Editor...&#x9;Ctrl+E</MenuItem>
+      <Label>Electronic Structure Editor</Label>
+      <InvokeArg>./calced</InvokeArg>
+      <Icon>gweditor2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+    <Tool name="Builder">
+      <MenuItem>&amp;Builder...&#x9;Ctrl+B</MenuItem>
+      <Label>Builder</Label>
+      <InvokeArg>./builder</InvokeArg>
+      <Icon>gwbuilder2.xpm</Icon>
+      <Gateway>1</Gateway>
+    </Tool>
+    <Tool name="Basistool">
+      <MenuItem>Basis &amp;Set Tool...&#x9;Ctrl+S</MenuItem>
+      <Label>Basis Set Tool</Label>
+      <InvokeArg>./basistool</InvokeArg>
+      <Icon>gwbst2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+    <Tool name="Launcher">
+      <MenuItem>&amp;Launcher...&#x9;Ctrl+L</MenuItem>
+      <Label>Launcher</Label>
+      <InvokeArg>./launcher</InvokeArg>
+      <Icon>gwlauncher2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+    <Tool name="CalculationViewer">
+      <MenuItem>Viewe&amp;r...&#x9;Ctrl+R</MenuItem>
+      <Label>Viewer</Label>
+      <InvokeArg>viewer</InvokeArg>
+      <Icon>gwviewer2.xpm</Icon>
+      <Gateway>2</Gateway>
+    </Tool>
+    <Tool name="PeriodicTable">
+      <MenuItem>&amp;Periodic Table...&#x9;Ctrl+P</MenuItem>
+      <Label>Periodic Table</Label>
+      <InvokeArg>./pertable</InvokeArg>
+      <Icon>gwpertab2.xpm</Icon>
+      <Gateway>4</Gateway>
+    </Tool>
+    <Tool name="VizThumbnail">
+      <MenuItem>Capture Viz as Thumbnail ...</MenuItem>
+      <Label>Viz Thumbnail</Label>
+      <InvokeArg>./vizthumbnail</InvokeArg>
+      <Icon/>
+      <Gateway>-1</Gateway>
+    </Tool>
+    <Tool name="Organizer">
+      <MenuItem>Organizer...</MenuItem>
+      <Label>Organizer</Label>
+      <InvokeArg>./organizer</InvokeArg>
+      <Icon>gworganizer2.xpm</Icon>
+      <Gateway>0</Gateway>
+    </Tool>
+    <Tool name="MachineBrowser">
+      <MenuItem>Machine Browser...</MenuItem>
+      <Label>Machine Browser</Label>
+      <InvokeArg>./machbrowser</InvokeArg>
+      <Icon>gwmachinebrowser2.xpm</Icon>
+      <Gateway>3</Gateway>
+    </Tool>
+    <Tool name="MachineRegister">
+      <MenuItem>Register Machines...</MenuItem>
+      <Label>Register Machines</Label>
+      <InvokeArg>./machregister</InvokeArg>
+      <Icon>gwmachinebrowser2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+    <Tool name="MDPrepare">
+      <MenuItem>NWChem MD Prepare &amp;Editor...&#x9;Ctrl+E</MenuItem>
+      <Label>NWChem MD Prepare Editor</Label>
+      <InvokeArg>./mdprepare</InvokeArg>
+      <Icon>gweditor2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+    <Tool name="MDOptimize">
+      <MenuItem>NWChem MD Optimize &amp;Editor...&#x9;Ctrl+E</MenuItem>
+      <Label>NWChem MD Optimize Editor</Label>
+      <InvokeArg>./mdoptimize</InvokeArg>
+      <Icon>gweditor2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+    <Tool name="MDEnergy">
+      <MenuItem>NWChem MD Energy &amp;Editor...&#x9;Ctrl+E</MenuItem>
+      <Label>NWChem MD Energy Editor</Label>
+      <InvokeArg>./mdenergy</InvokeArg>
+      <Icon>gweditor2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+    <Tool name="MDDynamics">
+      <MenuItem>NWChem MD Dynamics &amp;Editor...&#x9;Ctrl+E</MenuItem>
+      <Label>NWChem MD Dynamics Editor</Label>
+      <InvokeArg>./mddynamics</InvokeArg>
+      <Icon>gweditor2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+
+    <!-- Reaction Study Tasks -->
+    <Tool name="NWDirdy">
+      <MenuItem>NWChem DirDyVTST Editor...&#x9;Ctrl+E</MenuItem>
+      <Label>NWChem DirDyVTST Editor</Label>
+      <InvokeArg>./dirdyed</InvokeArg>
+      <Icon>gweditor2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+    <Tool name="Polyrate">
+      <MenuItem>POLYRATE Editor...&#x9;Ctrl+E</MenuItem>
+      <Label>POLYRATE Editor</Label>
+      <InvokeArg>./polyed</InvokeArg>
+      <Icon>gweditor2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+
+    <!-- Condensed Phase Reaction Study Tasks -->
+    <Tool name="SolvationEditor">
+      <MenuItem>Solvation &amp;Editor...&#x9;Ctrl+E</MenuItem>
+      <Label>Solvation Editor</Label>
+      <InvokeArg>./solvate</InvokeArg>
+      <Icon>gweditor2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+    <Tool name="MetadynamicsEditor">
+      <MenuItem>Metadynamics &amp;Editor...&#x9;Ctrl+E</MenuItem>
+      <Label>Metadynamics Editor</Label>
+      <InvokeArg>./metadyn</InvokeArg>
+      <Icon>gweditor2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+
+  </Tools>
+  <!-- Listing of all Run Management Tasks -->
+  <RunManagementTasks>
+    <RunManagementTask name="tailOutputFile">
+      <MenuItem>Tai&amp;l -f on Output File...&#x9;Alt+L</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="shellInRunDir">
+      <MenuItem>&amp;Shell in Calculation Run Directory...&#x9;Alt+S</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="terminateCalc">
+      <MenuItem>&amp;Terminate Calculation...</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="checkJob">
+      <MenuItem>&amp;Check Job Monitoring</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="reconnectJob">
+      <MenuItem>Reconnect &amp;Job Monitoring</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="forceFail">
+      <MenuItem>Force State to &amp;Failed</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="resetForRerun">
+      <MenuItem>Reset to &amp;Rerun&#x9;Alt+R</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="resetForRestart">
+      <MenuItem>Reset for Rest&amp;art</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="resetCompleted">
+      <MenuItem>Reset State::Reset to completed</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="resetIncomplete">
+      <MenuItem>Reset State::Reset to incomplete</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="resetImported">
+      <MenuItem>Reset State::Reset to imported</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="resetKilled">
+      <MenuItem>Reset State::Reset to killed</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="markReviewed">
+      <MenuItem>&amp;Mark as Reviewed</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="markUnreviewed">
+      <MenuItem>Mark as &amp;Unreviewed</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="cleanRunDir">
+      <MenuItem>Cleanup Run &amp;Directory Files</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="viewRunLog">
+      <MenuItem>&amp;View Run Log...</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="viewInputFile">
+      <MenuItem>View &amp;Input file...&#x9;Alt+I</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="viewOutputFile">
+      <MenuItem>View &amp;Output File...&#x9;Alt+O</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="separator">
+      <MenuItem></MenuItem>
+    </RunManagementTask>
+  </RunManagementTasks>
+  <!-- Identifies and defines the provided (i.e. "canned")  property views -->
+  <PropertyViews>
+    <PropertyView name="basic">
+      <MenuItem>Basic Properties</MenuItem>
+      <Order>1</Order>
+      <Property>
+        <Label>Type</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceIcon</Type>
+      </Property>
+      <Property>
+        <Label>Name</Label>
+        <Namespace>DAV</Namespace>
+        <Name>displayname</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>State</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateIcon</Type>
+      </Property>
+      <Property>
+        <Label>Viewed</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewed</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>check</Type>
+      </Property>
+      <Property>
+        <Label>Created</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>creationdate</Name>
+        <Order>6</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Last Modified</Label>
+        <Namespace>DAV</Namespace>
+        <Name>getlastmodified</Name>
+        <Order>7</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Size</Label>
+        <Namespace>DAV</Namespace>
+        <Name>getcontentlength</Name>
+        <Order>8</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+      </Property>
+      <Property>
+        <Label>Application</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>9</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Formula</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>empiricalFormula</Name>
+        <Order>10</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Theory</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>theory</Name>
+        <Order>13</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Run Type</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>runtype</Name>
+        <Order>14</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Machine</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_machine</Name>
+        <Order>15</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </PropertyView>
+    <PropertyView name="setup">
+      <MenuItem>Setup Properties</MenuItem>
+      <Order>2</Order>
+      <Property>
+        <Label>Type</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceIcon</Type>
+      </Property>
+      <Property>
+        <Label>Name</Label>
+        <Namespace>DAV</Namespace>
+        <Name>displayname</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>State</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateIcon</Type>
+      </Property>
+      <Property>
+        <Label>Last Modified</Label>
+        <Namespace>DAV</Namespace>
+        <Name>getlastmodified</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Size</Label>
+        <Namespace>DAV</Namespace>
+        <Name>getcontentlength</Name>
+        <Order>5</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+      </Property>
+      <Property>
+        <Label>Application</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>6</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Formula</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>empiricalFormula</Name>
+        <Order>7</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>BasisSet</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>name</Name>
+        <Order>8</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Annotation</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>annotation</Name>
+        <Order>9</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>check</Type>
+      </Property>
+      <Property>
+        <Label>Owner</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>owner</Name>
+        <Order>10</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Theory</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>theory</Name>
+        <Order>11</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Run Type</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>runtype</Name>
+        <Order>12</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </PropertyView>
+    <PropertyView name="launch">
+      <MenuItem>Launch Properties</MenuItem>
+      <Order>3</Order>
+      <Property>
+        <Label>Type</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceIcon</Type>
+      </Property>
+      <Property>
+        <Label>Name</Label>
+        <Namespace>DAV</Namespace>
+        <Name>displayname</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>State</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateIcon</Type>
+      </Property>
+      <Property>
+        <Label>Last Modified</Label>
+        <Namespace>DAV</Namespace>
+        <Name>getlastmodified</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Size</Label>
+        <Namespace>DAV</Namespace>
+        <Name>getcontentlength</Name>
+        <Order>5</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+      </Property>
+      <Property>
+        <Label>Machine</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_machine</Name>
+        <Order>6</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Processors</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_totalprocs</Name>
+        <Order>7</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Start Date</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>startdate</Name>
+        <Order>8</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Completion Date</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>completiondate</Name>
+        <Order>9</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </PropertyView>
+    <PropertyView name="detail">
+      <MenuItem>All Properties</MenuItem>
+      <Order>4</Order>
+      <Property>
+        <Label>Type</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceIcon</Type>
+      </Property>
+      <Property>
+        <Label>Name</Label>
+        <Namespace>DAV</Namespace>
+        <Name>displayname</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>State</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateIcon</Type>
+      </Property>
+      <Property>
+        <Label>Viewed</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewed</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>check</Type>
+      </Property>
+      <Property>
+        <Label>Created</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>creationdate</Name>
+        <Order>5</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Last Modified</Label>
+        <Namespace>DAV</Namespace>
+        <Name>getlastmodified</Name>
+        <Order>6</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Size</Label>
+        <Namespace>DAV</Namespace>
+        <Name>getcontentlength</Name>
+        <Order>7</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+      </Property>
+      <Property>
+        <Label>Application</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>8</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Formula</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>empiricalFormula</Name>
+        <Order>9</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>BasisSet</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>name</Name>
+        <Order>10</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Annotation</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>annotation</Name>
+        <Order>11</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>check</Type>
+      </Property>
+      <Property>
+        <Label>Owner</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>owner</Name>
+        <Order>12</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Theory</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>theory</Name>
+        <Order>13</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Run Type</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>runtype</Name>
+        <Order>14</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Machine</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_machine</Name>
+        <Order>15</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Processors</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_totalprocs</Name>
+        <Order>17</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Start Date</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>startdate</Name>
+        <Order>18</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Completion Date</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>completiondate</Name>
+        <Order>19</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </PropertyView>
+  </PropertyViews>
+  <!-- Properties displayed for each tool depend on content and tool -->
+  <!-- Tools and properties are displayed in ascending order of Orders -->
+  <!-- Orders are integers, but two toolProperties can have the same Order -->
+  <!-- ToolPropertyViews>
+    <ToolPropertyView contentType="ecceCalculation" tool="CalculationEditor">
+      contentType differentiates between an electronic structure calculation
+      and an mdtask
+      tool describes which ecce app to disply a button for.  certain metadata
+      are logically associated with certain tools, but any metadata could be
+      shown with any tool if it was really desired
+      <MenuItem>Code Setup</MenuItem>
+        not used in this case, but needed in order to parse this xml document
+        correctly because the some of the code to parse tags is re-used 
+      <Order>5</Order>
+        the bigger the integer used here, the further down in the context panel
+        this tool and its properties are displayed
+      <Property>
+        a generic ResourceProperty, however we use its attributes in unique ways
+        not necessarily in the orginally intended way.
+        <Label>Calculation:</Label>
+          The label to describe the metadata property on the context panel.
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+          Namespace where to find this metadata property. 
+        <Name>state</Name>
+          The name of the metadata property.
+        <Order>1</Order>
+          If more than one property is associated with a tool, the larger the 
+          integer associated with the property, the further down in the prop
+          list it will appear.  Ties are handled ambiguously (so don't do it)
+        <Display>true</Display>
+          Sometimes a metadata property won't exist.  If this attribute is true,
+          then the label will still appear but with a blank value.  Some props
+          are important enough that we wan't to show the user a place holder.
+        <IsReadOnly>true</IsReadOnly>
+          Used with mdtasks.  If read only is true, we will only look in the
+          local resource's properties for the given prop.  If false, we will
+          get the property from the resource's input providers if we didn't find
+          it first in its own prop list.
+        <Type>runstateicon</Type>
+          Different prop types are displayed differently.
+          cdata:        just a string
+          datetime:     a string representing a date/time, in GMT format
+          check:        a boolean value, but value can be Y/N, true/false
+          icon:         unused
+          resourceicon: string representing contentType of resource, displays
+                        both the resource icon followed by string representation
+          runstateicon: string representing the state of this resource, displays
+                        both the state icon followed by a string representation
+          undefined:    default, inserts blank space
+      </Property>
+  </ToolPropertyViews -->
+  <ToolPropertyViews>
+    <ToolPropertyView contentType="ecceCalculation" tool="CalculationEditor">
+      <MenuItem>Code Setup</MenuItem>
+      <Order>5</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+      <Property>
+        <Label>Theory:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>theory</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Runtype:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>runtype</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceCalculation" tool="SolvationEditor">
+      <MenuItem>Code Setup</MenuItem>
+      <Order>5</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+      <Property>
+        <Label>Theory:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>theory</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Runtype:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>runtype</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceCalculation" tool="MetadynamicsEditor">
+      <MenuItem>Code Setup</MenuItem>
+      <Order>5</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+      <Property>
+        <Label>Theory:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>theory</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Runtype:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>runtype</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdPrepare" tool="MDPrepare">
+      <MenuItem>Code Setup</MenuItem>
+      <Order>5</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdOptimize" tool="MDOptimize">
+      <MenuItem>Code Setup</MenuItem>
+      <Order>5</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdEnergy" tool="MDEnergy">
+      <MenuItem>Code Setup</MenuItem>
+      <Order>5</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdDynamics" tool="MDDynamics">
+      <MenuItem>Code Setup</MenuItem>
+      <Order>5</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceCalculation" tool="Builder">
+      <MenuItem>Chemical System</MenuItem>
+      <Order>6</Order>
+      <Property>
+        <Label>Formula:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>empiricalFormula</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Symmetry:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>symmetrygroup</Name>
+        <Order>5</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Atoms:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numAtoms</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Electrons:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numElectrons</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Charge:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>charge</Name>
+        <Order>6</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Spin Mult.:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>spinmultiplicity</Name>
+        <Order>7</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Open Shells:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>openshells</Name>
+        <Order>8</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdPrepare" tool="Builder">
+      <MenuItem>Chemical System</MenuItem>
+      <Order>6</Order>
+      <Property>
+        <Label>Atoms:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numAtoms</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Residues:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numResidues</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdOptimize" tool="Builder">
+      <MenuItem>Chemical System</MenuItem>
+      <Order>6</Order>
+      <Property>
+        <Label>Atoms:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numAtoms</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Residues:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numResidues</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdEnergy" tool="Builder">
+      <MenuItem>Chemical System</MenuItem>
+      <Order>6</Order>
+      <Property>
+        <Label>Atoms:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numAtoms</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Residues:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numResidues</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdDynamics" tool="Builder">
+      <MenuItem>Chemical System</MenuItem>
+      <Order>6</Order>
+      <Property>
+        <Label>Atoms:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numAtoms</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Residues:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numResidues</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceCalculation" tool="Builder">
+      <MenuItem>Chemical System</MenuItem>
+      <Order>6</Order>
+      <Property>
+        <Label>Formula:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>empiricalFormula</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Symmetry:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>symmetrygroup</Name>
+        <Order>5</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Atoms:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numAtoms</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Electrons:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numElectrons</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Charge:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>charge</Name>
+        <Order>6</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Spin Mult.:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>spinmultiplicity</Name>
+        <Order>7</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Open Shells:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>openshells</Name>
+        <Order>8</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdPrepare" tool="Builder">
+      <MenuItem>Chemical System</MenuItem>
+      <Order>6</Order>
+      <Property>
+        <Label>Atoms:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numAtoms</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Residues:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numResidues</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdOptimize" tool="Builder">
+      <MenuItem>Chemical System</MenuItem>
+      <Order>6</Order>
+      <Property>
+        <Label>Atoms:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numAtoms</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Residues:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numResidues</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdEnergy" tool="Builder">
+      <MenuItem>Chemical System</MenuItem>
+      <Order>6</Order>
+      <Property>
+        <Label>Atoms:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numAtoms</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Residues:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numResidues</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdDynamics" tool="Builder">
+      <MenuItem>Chemical System</MenuItem>
+      <Order>6</Order>
+      <Property>
+        <Label>Atoms:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numAtoms</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Residues:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numResidues</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceCalculation" tool="Basistool">
+      <MenuItem>Basis Set</MenuItem>
+      <Order>7</Order>
+      <Property>
+        <Label>Name:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>name</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Polarization:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>coordsys</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>check</Type>
+      </Property>
+      <Property>
+        <Label>Functions:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numFunctions</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Primitives:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numPrimitives</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>ECP:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>ecpName</Name>
+        <Order>5</Order>
+        <Display>false</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>CD Fitting:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>chargeFittingName</Name>
+        <Order>6</Order>
+        <Display>false</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>XC Fitting:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>exchangeFittingName</Name>
+        <Order>7</Order>
+        <Display>false</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceCalculation" tool="Launcher">
+      <MenuItem>Launcher</MenuItem>
+      <Order>8</Order>
+      <Property>
+        <Label>Machine:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_machine</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Processors:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_totalprocs</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Start Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>startdate</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Comp. Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>completiondate</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdPrepare" tool="Launcher">
+      <MenuItem>Launcher</MenuItem>
+      <Order>8</Order>
+      <Property>
+        <Label>Machine:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_machine</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Processors:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_totalprocs</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Start Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>startdate</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Comp. Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>completiondate</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdOptimize" tool="Launcher">
+      <MenuItem>Launcher</MenuItem>
+      <Order>8</Order>
+      <Property>
+        <Label>Machine:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_machine</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Processors:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_totalprocs</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Start Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>startdate</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Comp. Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>completiondate</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdEnergy" tool="Launcher">
+      <MenuItem>Launcher</MenuItem>
+      <Order>8</Order>
+      <Property>
+        <Label>Machine:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_machine</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Processors:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_totalprocs</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Start Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>startdate</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Comp. Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>completiondate</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdDynamics" tool="Launcher">
+      <MenuItem>Launcher</MenuItem>
+      <Order>8</Order>
+      <Property>
+        <Label>Machine:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_machine</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Processors:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_totalprocs</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Start Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>startdate</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Comp. Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>completiondate</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceCalculation" tool="NWDirdy">
+      <MenuItem>NWDirdy</MenuItem>
+      <Order>5</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceCalculation" tool="Polyrate">
+      <MenuItem>POLYRATE</MenuItem>
+      <Order>5</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceCalculation" tool="CalculationViewer">
+      <MenuItem>Viewer</MenuItem>
+      <Order>9</Order>
+      <Property>
+        <Label>Viewed:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewed</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>check</Type>
+      </Property>
+      <Property>
+        <Label>View Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewedDate</Name>
+        <Order>2</Order>
+        <Display>false</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdPrepare" tool="CalculationViewer">
+      <MenuItem>Viewer</MenuItem>
+      <Order>9</Order>
+      <Property>
+        <Label>Viewed:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewed</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>check</Type>
+      </Property>
+      <Property>
+        <Label>View Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewedDate</Name>
+        <Order>2</Order>
+        <Display>false</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdOptimize" tool="CalculationViewer">
+      <MenuItem>Viewer</MenuItem>
+      <Order>9</Order>
+      <Property>
+        <Label>Viewed:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewed</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>check</Type>
+      </Property>
+      <Property>
+        <Label>View Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewedDate</Name>
+        <Order>2</Order>
+        <Display>false</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdEnergy" tool="CalculationViewer">
+      <MenuItem>Viewer</MenuItem>
+      <Order>9</Order>
+      <Property>
+        <Label>Viewed:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewed</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>check</Type>
+      </Property>
+      <Property>
+        <Label>View Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewedDate</Name>
+        <Order>2</Order>
+        <Display>false</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdDynamics" tool="CalculationViewer">
+      <MenuItem>Viewer</MenuItem>
+      <Order>9</Order>
+      <Property>
+        <Label>Viewed:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewed</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>check</Type>
+      </Property>
+      <Property>
+        <Label>View Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewedDate</Name>
+        <Order>2</Order>
+        <Display>false</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="" tool="ResourceButton">
+      <MenuItem>MD Prepare</MenuItem>
+      <Order>10</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>contenttype</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdPrepare" tool="ResourceButton">
+      <MenuItem>MD Prepare</MenuItem>
+      <Order>10</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>contenttype</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+    </ToolPropertyView>
+  </ToolPropertyViews>
+  <!-- Identifies and defines the atom property views (ie geometry table) -->
+  <AtomViews>
+    <AtomView name="xyz">
+      <MenuItem>Coordinate View</MenuItem>
+      <ToolTip>X, Y, Z fields</ToolTip>
+      <Order>1</Order>
+      <AtomProperty>
+        <Name>ap_element</Name>
+        <Label></Label>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>3</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_num</Name>
+        <Label>#</Label>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>6</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_xcoord</Name>
+        <Label>X</Label>
+        <Order>10</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_ycoord</Name>
+        <Label>Y</Label>
+        <Order>11</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_zcoord</Name>
+        <Label>Z</Label>
+        <Order>12</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+    </AtomView>
+    <AtomView name="residue">
+      <MenuItem>Residue View</MenuItem>
+      <ToolTip>Basic residue fields</ToolTip>
+      <Order>1</Order>
+      <AtomProperty>
+        <Name>ap_element</Name>
+        <Label></Label>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>3</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_num</Name>
+        <Label>#</Label>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>6</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_atom_name</Name>
+        <Label>Atom Name</Label>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_charge</Name>
+        <Label>Charge</Label>
+        <Order>17</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_type</Name>
+        <Label>Type</Label>
+        <Order>18</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_pol</Name>
+        <Label>Pol.</Label>
+        <Order>19</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_cg</Name>
+        <Label>C.G.</Label>
+        <Order>20</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_pg</Name>
+        <Label>P.G.</Label>
+        <Order>21</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_env</Name>
+        <Label>Env.</Label>
+        <Order>22</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_link_num</Name>
+        <Label>Link #</Label>
+        <Order>23</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+    </AtomView>
+    <AtomView name="charge">
+      <MenuItem>Charge View</MenuItem>
+      <ToolTip>Charge fields</ToolTip>
+      <Order>1</Order>
+      <AtomProperty>
+        <Name>ap_element</Name>
+        <Label></Label>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>3</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_num</Name>
+        <Label>#</Label>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>6</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_charge</Name>
+        <Label>Charge</Label>
+        <Order>17</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+    </AtomView>
+    <AtomView name="pdb">
+      <MenuItem>PDB View</MenuItem>
+      <ToolTip>PDB fields</ToolTip>
+      <Order>1</Order>
+      <AtomProperty>
+        <Name>ap_element</Name>
+        <Label></Label>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>3</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_num</Name>
+        <Label>#</Label>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>6</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_atom_name</Name>
+        <Label>Atom Name</Label>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_res_name</Name>
+        <Label>Name</Label>
+        <Order>5</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_pdb_num</Name>
+        <Label>PDB #</Label>
+        <Order>6</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_icode</Name>
+        <Label>ICode</Label>
+        <Order>7</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_chain</Name>
+        <Label>Chain</Label>
+        <Order>8</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_segment</Name>
+        <Label>Segment</Label>
+        <Order>9</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>10</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_xcoord</Name>
+        <Label>X</Label>
+        <Order>10</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_ycoord</Name>
+        <Label>Y</Label>
+        <Order>11</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_zcoord</Name>
+        <Label>Z</Label>
+        <Order>12</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_occ</Name>
+        <Label>Occ.</Label>
+        <Order>15</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_bfactor</Name>
+        <Label>BFactor</Label>
+        <Order>16</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_charge</Name>
+        <Label>Charge</Label>
+        <Order>17</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+    </AtomView>
+    <AtomView name="all">
+      <MenuItem>Full View</MenuItem>
+      <ToolTip>All fields</ToolTip>
+      <Order>1</Order>
+      <AtomProperty>
+        <Name>ap_element</Name>
+        <Label></Label>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>3</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_num</Name>
+        <Label>#</Label>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>6</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_suffix</Name>
+        <Label>Suffix</Label>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_atom_name</Name>
+        <Label>Atom Name</Label>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_res_name</Name>
+        <Label>Name</Label>
+        <Order>5</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_pdb_num</Name>
+        <Label>PDB #</Label>
+        <Order>6</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_icode</Name>
+        <Label>ICode</Label>
+        <Order>7</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_chain</Name>
+        <Label>Chain</Label>
+        <Order>8</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_segment</Name>
+        <Label>Segment</Label>
+        <Order>9</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>10</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_xcoord</Name>
+        <Label>X</Label>
+        <Order>10</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_ycoord</Name>
+        <Label>Y</Label>
+        <Order>11</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_zcoord</Name>
+        <Label>Z</Label>
+        <Order>12</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_mass</Name>
+        <Label>Mass</Label>
+        <Order>13</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_behavior</Name>
+        <Label>Behavior</Label>
+        <Order>14</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_occ</Name>
+        <Label>Occ.</Label>
+        <Order>15</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_bfactor</Name>
+        <Label>BFactor</Label>
+        <Order>16</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_charge</Name>
+        <Label>Charge</Label>
+        <Order>17</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_type</Name>
+        <Label>Type</Label>
+        <Order>18</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_pol</Name>
+        <Label>Pol.</Label>
+        <Order>19</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_cg</Name>
+        <Label>C.G.</Label>
+        <Order>20</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_pg</Name>
+        <Label>P.G.</Label>
+        <Order>21</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_env</Name>
+        <Label>Env.</Label>
+        <Order>22</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_link_num</Name>
+        <Label>Link #</Label>
+        <Order>23</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+    </AtomView>
+    <AtomView name="md">
+      <MenuItem>MD View</MenuItem>
+      <ToolTip>MD fields</ToolTip>
+      <Order>1</Order>
+      <AtomProperty>
+        <Name>ap_element</Name>
+        <Label></Label>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>3</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_num</Name>
+        <Label>#</Label>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>6</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_charge</Name>
+        <Label>Charge</Label>
+        <Order>17</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>float</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_type</Name>
+        <Label>Type</Label>
+        <Order>18</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+    </AtomView>
+  </AtomViews>
+  <!-- Identifies and defines residue views -->
+  <ResidueViews>
+    <ResidueView name="residue">
+      <MenuItem>Default View</MenuItem>
+      <ToolTip>Default residue fields</ToolTip>
+      <Order>1</Order>
+      <AtomProperty>
+        <Name>ap_res_edit</Name>
+        <Label>Edit</Label>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>check</Type>
+        <DefaultWidth>7</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_res_num</Name>
+        <Label>#</Label>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>5</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_res_name</Name>
+        <Label>Name</Label>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_pdb_num</Name>
+        <Label>PDB #</Label>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_chain</Name>
+        <Label>Chain</Label>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+    </ResidueView>
+    <ResidueView name="full">
+      <MenuItem>Full Editing View</MenuItem>
+      <ToolTip>All residue fields</ToolTip>
+      <Order>1</Order>
+      <AtomProperty>
+        <Name>ap_res_edit</Name>
+        <Label>Edit</Label>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>check</Type>
+        <DefaultWidth>7</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_res_num</Name>
+        <Label>#</Label>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>5</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_res_name</Name>
+        <Label>Name</Label>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>9</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_pdb_num</Name>
+        <Label>PDB #</Label>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>numeric</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_chain</Name>
+        <Label>Chain</Label>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_coupling</Name>
+        <Label>Coupling</Label>
+        <Order>9</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>10</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_status</Name>
+        <Label>Status</Label>
+        <Order>9</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>10</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_icode</Name>
+        <Label>ICode</Label>
+        <Order>9</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>8</DefaultWidth>
+      </AtomProperty>
+      <AtomProperty>
+        <Name>ap_segment</Name>
+        <Label>Segment</Label>
+        <Order>9</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+        <DefaultWidth>10</DefaultWidth>
+      </AtomProperty>
+    </ResidueView>
+  </ResidueViews>
+</ResourceDescriptor>
+
+

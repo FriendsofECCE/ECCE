@@ -1,0 +1,13 @@
+FullName:               CGS (kcal/Mole:Angstrom:Degree)
+Energy:                 kcal/Mole
+Length:                 Angstrom
+Angle:                  Degree
+Pressure:               Atm
+Bond Force Constant:    (kcal/Mole)/(Angstrom**2)
+Bend Force Constant:   (kcal/Mole)/(Radian**2)
+Torsion Force Constant: kcal/Mole
+Time:                   ps
+Temperature:            Kelvin
+Compressibility:        m**2/N
+Drift:                  (kcal/Mole)/ps
+Mass:                   amu

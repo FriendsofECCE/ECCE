@@ -1,0 +1,32 @@
+name
+cc-pVDZ-fit2-1
+name
+type
+polarization
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ----------
+H - Ne: D.E. Bernholdt and R.J. Harrison, J. Chem. Phys. 109, 1593 (1998)
+
+references
+info
+   Bernholdt - Harrison RI DZ Fitting Basis
+   ----------------------------------------
+Elements                                        References
+ H - He: (9s,6p,4d)       D.E. Bernholdt and R.J. Harrison, J. Chem. Phys.
+Li - Ne: (10s,5p,4d,1f)   109, 1593 (1998)
+
+info
+comments
+10/12/98  - DFF - Original creation of this file from a file set by D. Bernhodlt
+comments

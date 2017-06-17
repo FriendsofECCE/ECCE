@@ -1,0 +1,26 @@
+title:          Pyrazole
+type:           molecule
+cell_units:     angstroms
+num_atoms:      9
+atom_info:      symbol cart
+atom_list:
+  C  -0.254   0.929   0.010
+  C   1.173   0.520  -0.004
+  N   1.222  -0.753  -0.015
+  N  -0.116  -1.233  -0.010
+  C  -0.995  -0.189   0.006
+  H  -0.360  -2.158  -0.016
+  H  -0.631   1.965   0.021
+  H   2.057   1.177  -0.005
+  H  -2.095  -0.258   0.013
+num_bonds:      9
+bond_list:
+ 1  2
+ 1  5
+ 1  7
+ 2  3
+ 2  8
+ 3  4
+ 4  5
+ 4  6
+ 5  9

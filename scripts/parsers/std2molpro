@@ -1,0 +1,35 @@
+#!/usr/bin/env perl
+use strict;
+use vars qw($opt_h $opt_help $opt_v);
+use Getopt::Std;
+
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+
+require "rdStandardGBS.pm";
+require "wrmolproGBS.pm";
+
+#
+#  Handle the options
+#
+getopts('hv');
+&handle_options;
+
+my $bs = &readStandardBS();
+&writemolpro($bs);
+
+sub usage {
+  print "Usage: std2molpro\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}
+#
+#
+#
+sub handle_options {
+  &usage && exit if ( $opt_h || $opt_help );
+  my $revision = '$Revision: 1326 $';
+  $revision =~ (s/\$//g);
+  print "$revision\n" if ( $opt_v );
+  exit if ( $opt_v );
+}

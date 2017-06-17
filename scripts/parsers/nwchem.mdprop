@@ -1,0 +1,159 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+$lcCategory = lc($ucCategory);
+
+#
+# get data locations from auxiliary text file
+#
+
+$tmprtr_flag = -1;
+$prssr_flag = -1;
+$te_flag = -1;
+$ke_flag = -1;
+$pe_flag = -1;
+$vdw_flag = -1;
+$el_flag = -1;
+$volume_flag = -1;
+
+$filename = $key."/parseMD";
+if (open (AUXFILE, "<$filename")) {
+  while (<AUXFILE>) {
+    if (/Temperature :\s*(\d*)/) {
+      $tmprtr_flag = $1;
+    }
+    if (/Pressure :\s*(\d*)/) {
+      $prssr_flag = $1;
+    }
+    if (/Energy total :\s*(\d*)/) {
+      $te_flag = $1;
+    }
+    if (/Energy potential :\s*(\d*)/) {
+      $pe_flag = $1;
+    }
+    if (/Energy kinetic :\s*(\d*)/) {
+      $ke_flag = $1;
+    }
+    if (/Energy vdw :\s*(\d*)/) {
+      $vdw_flag = $1;
+    }
+    if (/Energy electrostatic :\s*(\d*)/) {
+      $el_flag = $1;
+    }
+    if (/Volume :\s*(\d*)/) {
+      $volume_flag = $1;
+    }
+  }
+  close (AUXFILE);
+} else {
+  exit(0);
+}
+
+
+# Force output to be flushed
+$| = 1;
+
+  $label = <STDIN>;
+  @values = ();
+  @quartet = ();
+  for ($i=0; $i<10; $i++) {
+    $line = <STDIN>;
+    if ($line =~ /(-?\d+\.\d+E[\+\-]?\d\d)\s*(-?\d+\.\d+E[\+\-]?\d\d)\s*(-?\d+\.\d+E[\+\-]?\d\d)\s*(-?\d+\.\d+E[\+\-]?\d\d)/) {
+      @quartet = ($1,$2,$3,$4);
+      push(@values, @quartet)
+    }
+  }
+#
+#     write property vectors
+#
+  if ($tmprtr_flag >= 0) {
+    if ( !($values[$tmprtr_flag] =~ /inf/i)  && !($values[$tmprtr_flag] =~ /nan/i)) {
+      print "key: TMPRTRVEC\n";
+      print "size:\n1\n";
+      print "values:\n$values[$tmprtr_flag]\n";
+      print "units:\nKelvin\n";
+      print "END\n";
+    }
+  }
+
+  if ($prssr_flag >= 0) {
+    if ( !($values[$prssr_flag] =~ /inf/i)  && !($values[$prssr_flag] =~ /nan/i)) {
+      print "key: PRSSRVEC\n";
+      print "size:\n1\n";
+      print "values:\n$values[$prssr_flag]\n";
+      print "units:\nN/m**2\n";
+      print "END\n";
+    }
+  }
+
+  if ($te_flag >= 0) {
+    if ( !($values[$te_flag] =~ /inf/i)  && !($values[$te_flag] =~ /nan/i)) {
+      print "key: TEMDVEC\n";
+      print "size:\n1\n";
+      print "values:\n$values[$te_flag]\n";
+      print "units:\nkJoule/Mole\n";
+      print "END\n";
+    }
+  }
+
+  if ($pe_flag >= 0) {
+    if ( !($values[$pe_flag] =~ /inf/i) && !($values[$pe_flag] =~ /nan/i)) {
+      print "key: PEMDVEC\n";
+      print "size:\n1\n";
+      print "values:\n$values[$pe_flag]\n";
+      print "units:\nkJoule/Mole\n";
+      print "END\n";
+    }
+  }
+
+  if ($pe_flag >= 0) {
+    if ( !($values[$vdw_flag] =~ /inf/i)  && !($values[$vdwe_flag] =~ /nan/i)) {
+      print "key: VDWEMDVEC\n";
+      print "size:\n1\n";
+      print "values:\n$values[$vdw_flag]\n";
+      print "units:\nkJoule/Mole\n";
+      print "END\n";
+    }
+  }
+
+  if ($pe_flag >= 0) {
+    if ( !($values[$el_flag] =~ /inf/i)  && !($values[$el_flag] =~ /nan/i)) {
+      print "key: ELEMDVEC\n";
+      print "size:\n1\n";
+      print "values:\n$values[$el_flag]\n";
+      print "units:\nkJoule/Mole\n";
+      print "END\n";
+    }
+  }
+
+  if ($ke_flag >= 0) {
+    if ( !($values[$ke_flag] =~ /inf/i)  && !($values[$ke_flag] =~ /nan/i)) {
+      print "key: KEMDVEC\n";
+      print "size:\n1\n";
+      print "values:\n$values[$ke_flag]\n";
+      print "units:\nkJoule/Mole\n";
+      print "END\n";
+    }
+  }
+
+  if ($volume_flag >= 0) {
+    if ( !($values[$volume_flag] =~ /inf/i)  && !($values[$volume_flag] =~ /nan/i)) {
+      print "key: VMDVEC\n";
+      print "size:\n1\n";
+      print "values:\n$values[$volume_flag]\n";
+      print "units:\nnm**3\n";
+      print "END\n";
+    }
+  }

@@ -1,0 +1,83 @@
+#!/usr/bin/env perl
+###############################################################################
+#  Description:
+#    Reformat .pjd files generated using DialogBlocks by replacing
+#    standard wxWidgets classes with ECCE ewx subclasses.
+###############################################################################
+
+if ($ARGV[0] ne "") {
+  $inputFile = $ARGV[0];
+  open(OLDFILE, $inputFile) || die "Sorry, couldn't open original .pjd file\n";
+} else {
+  print "Must specify input file name\n";
+  exit(0);
+}
+
+if ($ARGV[1] ne "") {
+  $outputFile = $ARGV[1];
+  open(NEWFILE, ">$outputFile") || die "Sorry, couldn't open new .pjd file\n";
+} else {
+  print "Must specify output file name\n";
+  exit(0);
+}
+
+while (<OLDFILE>) {
+  $line = $_;
+  if (/.*proxy\-Class.*[\>\"]wxBitmapButton.*/) {
+    $line =~ s/wxBitmapButton/ewxBitmapButton/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxButton.*/) {
+    $line =~ s/wxButton/ewxButton/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxCheckBox.*/) {
+    $line =~ s/wxCheckBox/ewxCheckBox/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxChoice.*/) {
+    $line =~ s/wxChoice/ewxChoice/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxComboBox.*/) {
+    $line =~ s/wxComboBox/ewxComboBox/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxListBox.*/) {
+    $line =~ s/wxListBox/ewxListBox/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxScrolledWindow.*/) {
+    $line =~ s/wxScrolledWindow/ewxScrolledWindow/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxNotebook.*/) {
+    $line =~ s/wxNotebook/ewxNotebook/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxRadioBox.*/) {
+    $line =~ s/wxRadioBox/ewxRadioBox/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxRadioButton.*/) {
+    $line =~ s/wxRadioButton/ewxRadioButton/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxSpinCtrl.*/) {
+    $line =~ s/wxSpinCtrl/ewxSpinCtrl/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxStaticText.*/) {
+    $line =~ s/wxStaticText/ewxStaticText/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxStaticLine.*/) {
+    $line =~ s/wxStaticLine/ewxStaticLine/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxStaticBox.*/) {
+    $line =~ s/wxStaticBox/ewxStaticBox/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxTextCtrl.*/) {
+    $line =~ s/wxTextCtrl/ewxTextCtrl/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxGrid.*/) {
+    $line =~ s/wxGrid/ewxGrid/;
+  } 
+  if (/.*proxy\-Class.*[\>\"]wxTreeCtrl.*/) {
+    $line =~ s/wxTreeCtrl/ewxTreeCtrl/;
+  }
+  print (NEWFILE "$line");
+}
+
+close(OLDFILE);
+close(NEWFILE);
+exit(0);
+

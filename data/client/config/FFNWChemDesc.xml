@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+  Regarding validation on classes, for now assume that we only validate
+  the length (number of characters) and that the same length can be applied
+  to all classes in a category.  ValidCombination is a set of bit masks
+  representing all valid combinations of complete and missing data.
+  -->
+
+<FFDescriptor name="NWChem">
+
+  <!-- Atom Descriptor -->
+  <CategoryDescriptor type="Atom">
+    <Name>Atoms</Name>
+    <Label>Atoms</Label>
+    <MultiLine>false</MultiLine>
+    <Formula>epsilon*[(R*/r)**12-2(R*/r)**6]</Formula>
+    <DisplayOrder>0 1 2 3 4</DisplayOrder>
+    <Classes num="1" charlimit="4">
+      <ValidCombination>1</ValidCombination>
+    </Classes>
+
+    <Parameters>
+
+      <Parameter>
+        <Label>Mol. Wt.</Label>
+        <Type>float</Type>
+        <Minimum>GTZero</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>1.0</Default>
+        <Units class="Null"></Units>
+      </Parameter>
+
+      <Parameter>
+        <Label>epsilon</Label>
+        <Type>float</Type>
+        <Minimum>GTZero</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>0.0</Default>
+        <Units class="Energy">kJoule/Mole</Units>
+      </Parameter>
+
+      <Parameter>
+        <Label>R*</Label>
+        <Type>float</Type>
+        <Minimum>GTZero</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>0.0</Default>
+        <Units class="Length">nm</Units>
+      </Parameter>
+
+      <Parameter>
+        <Label>Atomic No.</Label>
+        <Type>element</Type>
+        <Default>6.0</Default>
+        <Units class="Null"></Units>
+      </Parameter>
+
+      <Parameter>
+        <Label>Quantum</Label>
+        <Type>boolean</Type>
+        <Default>no</Default>
+        <Units class="Null"></Units>
+      </Parameter>
+
+    </Parameters>
+  </CategoryDescriptor>
+
+  <!-- Bond Descriptor -->
+  <CategoryDescriptor type="Bond">
+    <Name>Bonds</Name>
+    <Label>Bonds</Label>
+    <MultiLine>false</MultiLine>
+    <Formula>0.5*K*(r-R_eq)**2</Formula>
+    <DisplayOrder>1 0 2</DisplayOrder>
+    <Classes num="2" charlimit="4">
+      <ValidCombination>11</ValidCombination>
+    </Classes>
+
+    <Parameters>
+
+      <Parameter>
+        <Label>R_eq</Label>
+        <Type>float</Type>
+        <Minimum>GTZero</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>1.0</Default>
+        <Units class="Length">nm</Units>
+      </Parameter>
+
+      <Parameter>
+        <Label>K</Label>
+        <Type>float</Type>
+        <Minimum>GTZero</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>1.0</Default>
+        <Units class="Bond Force Constant">(kJoule/Mole)/(nm**2)</Units>
+      </Parameter>
+
+      <Parameter>
+        <Label>charge</Label>
+        <Type>float</Type>
+        <Minimum>MinusInfinity</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>0.0</Default>
+        <Units class="Null"></Units>
+      </Parameter>
+
+    </Parameters>
+
+  </CategoryDescriptor>
+
+
+  <!-- Angle Descriptor -->
+  <CategoryDescriptor type="Angle">
+    <Name>Angles</Name>
+    <Label>Angles</Label>
+    <MultiLine>false</MultiLine>
+    <Formula>0.5*K*(Theta-Theta_eq)**2</Formula>
+    <DisplayOrder>1 0</DisplayOrder>
+    <Classes num="3" charlimit="4">
+      <ValidCombination>111</ValidCombination>
+    </Classes>
+
+    <Parameters>
+
+      <Parameter>
+        <Label>Theta_eq</Label>
+        <Type>float</Type>
+        <Minimum>MinusInfinity</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>0.0</Default>
+        <Units class="Angle">Radian</Units>
+      </Parameter>
+
+      <Parameter>
+        <Label>K</Label>
+        <Type>float</Type>
+        <Minimum>GEZero</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>1.0</Default>
+        <Units class="Bend Force Constant">(kJoule/Mole)/(Radian**2)</Units>
+      </Parameter>
+
+    </Parameters>
+
+  </CategoryDescriptor>
+
+  <!-- Torsion Descriptor -->
+  <CategoryDescriptor type="Torsion">
+    <Name>Proper</Name>
+    <Label>Torsions</Label>
+    <MultiLine>true</MultiLine>
+    <Formula>sum_n[V_n*(1+cos(n*Phi-Phi_eq))]</Formula>
+    <DisplayOrder>2 1 0</DisplayOrder>
+    <Classes num="4" charlimit="4">
+      <ValidCombination>0110</ValidCombination>
+      <ValidCombination>1111</ValidCombination>
+    </Classes>
+
+    <Parameters>
+
+      <Parameter>
+        <Label>Phi_eq</Label>
+        <Type>float</Type>
+        <Minimum>MinusInfinity</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>0.0</Default>
+        <Units class="Angle">Radian</Units>
+      </Parameter>
+
+      <Parameter>
+        <Label>V_n</Label>
+        <Type>float</Type>
+        <Minimum>MinusInfinity</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>0.0</Default>
+        <Units class="Torsion Force Constant">kJoule/Mole</Units>
+      </Parameter>
+
+      <Parameter>
+        <Label>n</Label>
+        <Type>int</Type>
+        <Minimum>GTZero</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>1</Default>
+        <Units class="Null"></Units>
+      </Parameter>
+
+    </Parameters>
+
+  </CategoryDescriptor>
+
+
+  <!-- Improper Torsion Descriptor -->
+  <CategoryDescriptor type="Improper">
+    <Name>Improper</Name>
+    <Label>Improper</Label>
+    <MultiLine>true</MultiLine>
+    <Formula>sum_n[V_n*(1+cos(n*Gamma-Gamma_eq))]</Formula>
+    <DisplayOrder>2 1 0</DisplayOrder>
+    <Classes num="4" charlimit="4">
+      <ValidCombination>0011</ValidCombination>
+      <ValidCombination>0111</ValidCombination>
+      <ValidCombination>1111</ValidCombination>
+    </Classes>
+
+    <Parameters>
+
+      <Parameter>
+        <Label>Gamma_eq</Label>
+        <Type>float</Type>
+        <Minimum>MinusInfinity</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>0.0</Default>
+        <Units class="Angle">Radian</Units>
+      </Parameter>
+
+      <Parameter>
+        <Label>V_n</Label>
+        <Type>float</Type>
+        <Minimum>MinusInfinity</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>0.0</Default>
+        <Units class="Torsion Force Constant">kJoule/Mole</Units>
+      </Parameter>
+
+      <Parameter>
+        <Label>n</Label>
+        <Type>int</Type>
+        <Minimum>GTZero</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>1</Default>
+        <Units class="Null"></Units>
+      </Parameter>
+
+    </Parameters>
+
+  </CategoryDescriptor>
+
+  <!-- Cross Descriptor -->
+  <CategoryDescriptor type="Cross">
+    <Name>Cross</Name>
+    <Label>Cross</Label>
+    <Formula>epsilon*[(R*/r)**12-2(R*/r)**6]</Formula>
+    <DisplayOrder>0 1</DisplayOrder>
+    <Classes num="2" charlimit="4">
+      <ValidCombination>11</ValidCombination>
+    </Classes>
+
+    <Parameters>
+
+      <Parameter>
+        <Label>epsilon</Label>
+        <Type>float</Type>
+        <Minimum>GTZero</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>1.0</Default>
+        <Units class="Energy">kJoule/Mole</Units>
+      </Parameter>
+
+      <Parameter>
+        <Label>R*</Label>
+        <Type>float</Type>
+        <Minimum>GTZero</Minimum>
+        <Maximum>Infinity</Maximum>
+        <Default>1.0</Default>
+        <Units class="Length">nm</Units>
+      </Parameter>
+
+    </Parameters>
+
+  </CategoryDescriptor>
+
+</FFDescriptor>

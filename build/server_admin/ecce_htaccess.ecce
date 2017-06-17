@@ -1,0 +1,764 @@
+#!/msrc/apps/bin/perl
+#=======================================================================
+# ecce_htaccess
+#
+# This script performs the following functions:
+# 
+# (1) Retrieve .htaccess Users
+#     Returns users who are allowed access to the .htaccess directory, 
+#     identified by paramb, if authenticated by the server.  This 
+#     function returns two user lists (1) Users who have READ 
+#     access and (2) Users who have READ/WRITE access.  A value 
+#     of ALL in a user list indicates all authenticated users 
+#     have access.
+#
+#     Input (POST/GET)
+#       parama - name of request = 'retrieve'
+#       paramb - location of htaccess file - path relative to $davserverroot.
+#                The script prepends the valuse of $davserverroot
+#                to the value of paramb to create an absolute path
+#                to the location of the .htaccess file.
+#
+#     Output 
+#       Document containing two comma delimited lists containing
+#       users who have READ or READ/WRITE access.  Following is an
+#       example:
+#
+#         #R#user1,user2,user3#R#
+#         #RW#user1,user2,user3,user4,user5#RW#
+#
+#
+# (2) Modify .htaccess Users
+#     Modify users who will be allowed access to the
+#     .htaccess directory, identified by paramb, if authenticated 
+#     by the server.  This function accepts two user lists 
+#     (1) Users who will have READ  access and (2) Users who will have 
+#     READ/WRITE access.  The current .htaccess file is replaced 
+#     with a new .htaccess file  containing the listed users.  A 
+#     value of ALL in a user list indicates all authenticated 
+#     users will have access.   
+#
+#     Input (POST/GET)
+#       parama - name of request = 'modify'
+#       paramb - location of htaccess file - path relative to $davserverroot.
+#                The script prepends the valuse of $davserverroot
+#                to the value of paramb to create an absolute path
+#                to the location of the .htaccess file.
+#       paramc - AuthName entry in the .htaccess file (Realm)
+#       paramd - list of users who should be given READ 
+#                access (e.g. user1 user2,user3).  The list
+#                of users may be delimited by commas, whitespace,
+#                and/or a combination of both commas and 
+#                whitespace.
+#       parame - list of users who should be given READ/WRITE 
+#                access (e.g. user1 user2,user3).  The list
+#                of users may be delimited by commas, whitespace,
+#                and/or a combination of both commas and 
+#                whitespace.
+#
+#     Output 
+#       None
+#
+#
+# Output Codes
+#   Http status code: 200 - Request succeeded
+#                     500 - Request failed 
+#
+#
+#
+# Notes: The script variables $davserverroot and $httpdserverroot must
+#        be set based on the ECCE installation values.
+#
+#        The REMOTE_USER (i.e user running this script) and the 
+#        ECCE Administrator (i.e. ecceadm) user will always be added
+#        to the .htaccess script as having READ/WRITE access
+#        regardless of the lists provided in the modify function.  
+#        This allows a reset to the original .htaccess configuration
+#        if the modify function is called with empty lists.
+#
+#        This script cannot be run by the ECCE Administrator account 
+#        (i.e. ecceadm).  It must be run by a standard ECCE user
+#        account.
+#
+#        Methods allowed for READ access, include: HEAD, GET, POST, 
+#        OPTIONS, and PROPFIND.
+#
+#        Methods allowed for READ/WRITE access, include all READ methods
+#        as well as the following methods: MKCOL, PUT, DELETE, LOCK,
+#        UNLOCK, COPY, MOVE, and PROPPATCH. 
+#
+#        User's of this script must be authenticated by the server so 
+#        the script can correctly determine ownership of the .htaccess 
+#        file.  That is, the apache web server should be configured to 
+#        "require" authentication for this script.
+#
+#        If paramb (location of .htaccess file) is an empty string, then 
+#        the access privileges will be reported for the $davserverroot.
+#        By default, this is READ access for ALL authenticated users.
+#
+#=======================================================================
+use CGI;
+use Cwd;
+
+
+###################################
+# New query object - retrieve POST
+
+my($q) = new CGI;
+
+
+###################################
+# Global Script variables
+
+my($davserverroot) = '##DAVROOT##';
+my($httpdserverroot) = '##HTTPDROOT##';
+my($usersroot) = $davserverroot.'/'.'users';
+my($shareroot) = $davserverroot.'/'.'share';
+my($systemroot) = $davserverroot.'/'.'system';
+my($structurelibroot) = $shareroot.'/'.'StructureLibrary';
+my($admin_account) = 'ecceadm';
+my($remote_user) = $q->remote_user();
+my($htaccess_file) = '.htaccess';
+my($r_key) = '#R#';
+my($rw_key) = '#RW#';
+my($owner_key) = '#O#';
+my($all_key) = 'ALL';
+my($all_read) = $r_key.$all_key.$r_key;
+my($all_read_write) = $rw_key.$all_key.$rw_key;
+my($status) = 0;
+my($http_status_code);
+my($message) = '';
+my($response) = '';
+
+
+
+###################################
+###################################
+# Process request
+#   $status will only be set to 1 if action succeeds
+#   $response will contain reponse document for a Retrieve function
+#   $message will be set if action does not succeed (error occurs)
+
+if ($remote_user) {
+  if ($remote_user ne $admin_account) { 
+    $status = process_request($q, \$response, \$message);
+  }
+  else {
+    $message = 'Must authenticate under a standard ECCE user account.';
+  }
+}
+else {
+  $message = 'Could not determine remote user.';
+}
+
+
+
+###################################
+# Return status/message information
+
+if ($status) {
+  $http_status_code = 200;
+}
+else {
+  $http_status_code = 500;
+  $response = $message;
+}
+
+print $q->header(-status=>"$http_status_code ");
+print $response;
+
+exit;
+
+
+ 
+###################################
+###################################
+# Subroutines
+
+
+sub process_request {
+  #=====================================================================
+  # This sub processes request
+  #=====================================================================
+  my($q, $response_ref, $message_ref) = @_;
+  my($action) = $q->param('parama'); 
+  my($htaccess_path) = get_htaccess_path($q->param('paramb'));
+  my($r_access, $rw_access, $realm, $status);
+
+
+  if ($action eq 'retrieve') {
+    if (is_valid_retrieve($htaccess_path, $message_ref)) {
+      $status = retrieve_htaccess($htaccess_path, $response_ref, $message_ref);  
+    }
+  }
+  elsif ($action eq 'modify') {
+    $r_access = $q->param('paramd');
+    $r_access =~ s/\s+/\,/g;
+    $r_access = join(' ', split(/\,/, $r_access)); 
+    $rw_access = $q->param('parame');
+    $rw_access =~ s/\s+/\,/g;
+    $rw_access = join(' ', split(/\,/, $rw_access)); 
+    $realm = $q->param('paramc'); 
+    if (is_valid_modify($htaccess_path, $realm, $message_ref)) {
+      $status = modify_htaccess($htaccess_path, \$r_access, \$rw_access, $realm, $message_ref);  
+    }
+  }
+  else {
+    $status = 0;
+    $$message_ref = "Invalid request - must be either 'modify' or 'retrieve'.";
+  }
+
+  return $status;
+}
+
+
+sub is_valid_retrieve {
+  #=====================================================================
+  # This sub ensures input is valid for retrieving .htaccess users
+  #=====================================================================
+  my($htaccess_path, $message_ref) = @_;
+  my($error_message) = '';
+  my($is_valid_retrieve) = 0;
+
+
+  if (!$htaccess_path) {
+    $error_message .= "Missing location parameter.";
+  } 
+
+  if ( ! -d $htaccess_path )  {
+    $error_message = "Retrieve location not found.";
+  }
+
+  if ( ! is_in_path($htaccess_path, 'DAV') ) {
+    $error_message = "Retrieve location is not under ECCE DAV Server root.";
+  }
+
+  if (!$error_message) {
+    $is_valid_retrieve = 1;
+  }
+  else {
+    $$message_ref = $error_message;
+  }
+
+  return $is_valid_retrieve;
+}
+
+
+sub is_valid_modify {
+  #=====================================================================
+  # This sub ensures input is valid for modify .htaccess users
+  #=====================================================================
+  my($htaccess_path, $realm, $message_ref) = @_;
+  my($is_valid_modify, $error_message);
+
+
+  $is_valid_modify = 0;
+  $error_message = '';
+
+  if (!$htaccess_path) {
+    $error_message .= "Missing location parameter.";
+  } 
+
+  if (!$realm) {
+    $error_message .= "Missing realm parameter.";
+  }
+
+  if ( ! -d $htaccess_path )  {
+    $error_message = "Modify location not found.";
+  }
+
+  if ( ! is_in_path($htaccess_path, 'DAV') ) {
+    $error_message = "Modify location is not under ECCE DAV Server root.";
+  }
+
+  if (!is_owner($htaccess_path) &&
+      !is_user_share_root($htaccess_path)) {
+    $error_message .= "Cannot modify access at this location - not owner.";
+  }
+
+  if (!$error_message) {
+    $is_valid_modify = 1;
+  }
+  else {
+    $$message_ref = $error_message;
+  }
+
+  return $is_valid_modify;
+}
+
+
+sub is_in_path {
+  #=====================================================================
+  # This sub determines if $path is equal to or a sub-directory 
+  # of one of ECCE's DAV server roots identified by $ecce_root.
+  # $ecce root may be:
+  #   DAV    - Top level DAV server root
+  #   USERS  - Users root
+  #   SHARE  - Share root
+  #   SYSTEM - System root
+  #   STLIB  - Structure Library root
+  # If $path is equal to or a sub-directory of $ecce_root this sub will 
+  # return true, otherwise false.
+  #=====================================================================
+  my($path, $ecce_root) = @_;
+  my($is_in_path, $ecce_root_path);
+
+  $is_in_path = 0;
+
+  $_ = $ecce_root;
+  SWITCH: {
+    if (/^DAV$/)    {$ecce_root_path = $davserverroot; last SWITCH;}
+    if (/^USERS$/)   {$ecce_root_path = $usersroot; last SWITCH;}
+    if (/^SHARE$/)  {$ecce_root_path = $shareroot; last SWITCH;}
+    if (/^SYSTEM$/) {$ecce_root_path = $systemroot; last SWITCH;}
+    if (/^STLIB$/)  {$ecce_root_path = $structurelibroot; last SWITCH;}
+    $ecce_root_path = '';
+  }
+
+  if ($ecce_root_path) {
+    $_ = $path;
+    if (/^$ecce_root_path/) {
+      $is_in_path = 1;
+    }
+  } 
+
+  return $is_in_path;
+}
+
+
+sub set_path {
+  #=====================================================================
+  #  Sets path, ensuring there is a leading but no trailing slash.
+  #=====================================================================
+  my($path_ref) = @_;
+  my($path_length, $fc, $lc);
+
+  if (defined($$path_ref)) {
+    $path_length = length($$path_ref);
+    if ($path_length == 0) {
+      $$path_ref = '/';
+    }
+    elsif ($path_length == 1) {
+        $$path_ref = '/'.$$path_ref if $$path_ref ne '/'; 
+    }
+    else {
+      $fc = substr($$path_ref, 0, 1);
+      $lc = substr($$path_ref, $path_length-1, 1);
+      $$path_ref = '/'.$$path_ref if $fc ne '/';
+      $$path_ref = substr($$path_ref, 0, $path_length-1) if $lc eq '/'; 
+    }
+  }
+  else {
+    $$path_ref = '/';
+  }
+}
+
+
+sub get_htaccess_path {
+  #=====================================================================
+  # This sub creates the htaccess path by concatenating $davserverroot
+  # with the htaccess_path (paramb) posted to the script.
+  #=====================================================================
+  my($htaccess_path) = @_;
+
+  set_path(\$htaccess_path);
+  return $davserverroot.$htaccess_path;
+}
+
+
+sub get_htaccess {
+  #=====================================================================
+  # This sub retrieves an .htaccess file
+  #=====================================================================
+  my($file, $htaccess_ref, $message_ref) = @_;
+  my($get_htaccess, @htaccess, $htaccess) = 0;
+
+  if (open (HTACCESS, "<$file")) {
+    @htaccess = <HTACCESS>;
+    close(HTACCESS);
+    $get_htaccess = 1;
+
+    foreach $htaccess (@htaccess) {
+      $$htaccess_ref .= $htaccess;
+    }
+  }
+  else {
+    $$message_ref = 'Could not open .htaccess file: '.$!;
+  }
+
+  return $get_htaccess;
+}
+
+
+sub is_owner {
+  #=====================================================================
+  # This sub determines if $remote_user is owner of the location
+  # requested for modification.  Ownership is determined by one of two
+  # ways: (1) The .htaccess file is found in a sub-directory under the 
+  # USERS root and the $remote_user is equal to the sub-directory name 
+  # under the USERS root and is in the $path (i.e. a user's home folder)
+  # OR (2) The .htaccess file is found under the SHARE root and the owner 
+  # identified inside of the .htaccess file is equal to the $remote_user.
+  #=====================================================================
+  my($path, $realm) = @_;
+  my($is_owner, $finished, $is_in_users, $is_in_share, $is_in_stlib,
+     $user_dir, $file);
+
+  $is_owner = 0;
+  $finished = 0;
+  set_path(\$path);
+  $is_in_users = is_in_path($path, 'USERS');
+  $is_in_share = is_in_path($path, 'SHARE');
+  $is_in_stlib = is_in_path($path, 'STLIB');
+  $user_dir = $usersroot.'/'.$remote_user;
+  if ( ($is_in_users) || ( ($is_in_share) && (!$is_in_stlib) ) ) {
+
+    if (chdir($path)) {
+
+      set_path(\$path);
+      while (!$finished) {
+
+        if ( ($path eq $usersroot) || 
+             ($path eq $shareroot)) {
+          $finished = 1;
+        }
+
+        if (!$finished) {
+          $file = $path.'/'.$htaccess_file;
+          if (-e $file) {
+
+            # USERS path
+            $_ = $path;
+            if (/^$user_dir/) {
+              $is_owner = 1;
+            }
+            
+            # SHARE path
+            if (get_htaccess($file, \$htaccess, $message_ref)) { 
+              if (get_owner_list(\$owner, \$htaccess)) {
+                if ($owmer eq $remote_user) {
+                  $is_owner = 1;
+                }
+              }
+            }
+            $finished = 1;
+          }
+          else {
+            # Move up a directory level
+            if ( chdir('..') ) {
+              $path = getcwd();
+              set_path(\$path);
+            }
+            else {
+              $finished = 1;
+            }
+          }
+        }
+      }
+    }
+  }
+  return $is_owner;  
+}
+
+
+sub is_user_share_root {
+  #=====================================================================
+  # This sub determines if path is a directory below the SHARE root, 
+  # which is a location where users can create a new share area.
+  #=====================================================================
+  my($path) = @_;
+  my($is_user_share_root);
+
+  $is_user_share_root = 0;
+
+  set_path(\$path);
+  if ( ($path ne $structurelibroot) &&
+       (chdir($path) ) ) {
+    if (chdir('..')) {
+      $path = getcwd();
+      set_path(\$path);
+      if ($path eq $shareroot) {
+        $is_user_share_root = 1;
+      }
+    }
+  }
+
+  return $is_user_share_root;
+}
+
+
+sub get_owner_list {
+  #=====================================================================
+  # This sub retrieves the owner(s) of an .htaccess file.  It's assumed 
+  # that the .htaccess file has a single owner, however, this sub will
+  # support retrieving a list of multiple owners, if required. 
+  #=====================================================================
+  my($o_list_ref, $htaccess_ref) = @_;
+  my($o_list, @o_list);
+
+  $_ = $$htaccess_ref;
+  s/$o_key(.*)$o_key/$1/;
+  $_ = $1;
+  @o_list = split;
+
+  $$o_list_ref = '';
+  foreach $o_list (@o_list) {
+    # Do not return admin account
+    if (lc($o_list) ne lc($admin_account)) {
+      $$o_list_ref .= $o_list.',';
+    }
+  }
+  chop $$o_list_ref unless !$$o_list_ref;
+}
+
+
+sub get_r_list {
+  #=====================================================================
+  # This sub retrieves list of users allowed READ access. 
+  #=====================================================================
+  my($r_list_ref, $htaccess_ref) = @_;
+  my($r_list, @r_list);
+
+  $_ = $$htaccess_ref;
+  s/$r_key(.*)$r_key/$1/;
+  $_ = $1;
+  @r_list = split;
+
+  $$r_list_ref = '';
+  foreach $r_list (@r_list) {
+    # Do not return admin account
+    if (lc($r_list) ne lc($admin_account)) {
+      $$r_list_ref .= $r_list.',';
+    }
+  }
+  chop $$r_list_ref unless !$$r_list_ref;
+}
+
+
+sub get_rw_list {
+  #=====================================================================
+  # This sub retrieves list of users allowed READ/WRITE access.
+  #=====================================================================
+  my($rw_list_ref, $htaccess_ref) = @_;
+  my($rw_list, @rw_list);
+
+  $_ = $$htaccess_ref;
+  s/$rw_key(.*)$rw_key/$1/;
+  $_ = $1;
+  @rw_list = split;
+
+  $$rw_list_ref = '';
+  foreach $rw_list (@rw_list) {
+    # Do not return admin account
+    if (lc($rw_list) ne lc($admin_account)) {
+      $$rw_list_ref .= $rw_list.',';
+    } 
+  }
+  chop $$rw_list_ref unless !$$rw_list_ref;
+}
+
+
+sub is_all_access {
+  #=====================================================================
+  # This sub determines if $access_list contains the $all_key, meaning
+  # access is open to all users for the access type the list represents.
+  # It is assumed that elements of $access_list are delimited by
+  # whitespace.
+  #=====================================================================
+  my($access_list) = @_;
+  my($is_all_access, $a_list, @a_list);
+
+  $is_all_access = 0;
+  $_ = $access_list;
+  @a_list = split;
+
+  foreach $a_list (@a_list) {
+    if (lc($a_list) eq lc($all_key)) {
+      $is_all_access = 1;
+    } 
+  }
+  return $is_all_access;
+}
+
+
+sub put_htaccess {
+  #=====================================================================
+  # This sub creates a new .htaccess file
+  #=====================================================================
+  my($path, $htaccess_ref, $message_ref) = @_;
+  my($put_htaccess, $file) = 0;
+
+  $file = $path.'/'.$htaccess_file;
+  if (open (HTACCESS, ">$file")) {
+    print HTACCESS $$htaccess_ref;
+    close(HTACCESS);
+    $put_htaccess = 1;
+  }
+  else {
+    $$message_ref = 'Could not create .htaccess file: '.$!;
+  }
+
+  return $put_htaccess;
+}
+
+
+sub retrieve_htaccess {
+  #=====================================================================
+  # This sub retrieves users who have READ and READ/WRITE access.
+  #=====================================================================
+  my($htaccess_path, $response_ref, $message_ref) = @_;
+  my($retrieved_htaccess, $path, $file, $found_htaccess, $r_access, $rw_access, $htaccess);
+
+  $retireved_htaccess = 0;
+  $path = $htaccess_path;
+  $found_htaccess = 0;
+  $$message_ref = '';
+
+
+  # System & StructureLibrary are READ only areas
+  set_path(\$path);
+  if ( (is_in_path($path, 'SYSTEM')) ||
+       (is_in_path($path, 'STLIB')) ) {
+    $r_access = $r_key.$all_key.$r_key."\n"; 
+    $rw_access = $rw_key.$rw_key."\n"; 
+    $found_htaccess = 1;
+  }
+
+  # Set working directory and find nearest htacess file 
+  # to determine R/RW access lists
+  chdir($path);
+  while (!$found_htaccess && !$$message_ref) {
+
+    if ($path eq $davserverroot) {
+      $r_access = $r_key.$all_key.$r_key."\n"; 
+      $rw_access = $rw_key.$rw_key."\n"; 
+      $found_htaccess = 1;
+    }
+
+    if ($path eq $usersroot) {
+      $r_access = $r_key.$all_key.$r_key."\n"; 
+      $rw_access = $rw_key.$rw_key."\n"; 
+      $found_htaccess = 1;
+    }
+
+    if ($path eq $shareroot) {
+      $r_access = $r_key.$r_key."\n"; 
+      $rw_access = $rw_key.$all_key.$rw_key."\n"; 
+      $found_htaccess = 1;
+    }
+
+    if (!$found_htaccess) {
+      $file = $path.'/'.$htaccess_file;
+      if (-e $file) {
+        # Get htaccess R/RW lists
+        if (get_htaccess($file, \$htaccess, $message_ref)) { 
+          get_r_list(\$r_access, \$htaccess);
+          get_rw_list(\$rw_access, \$htaccess);
+          if ( (!$r_access) && (!$rw_access) ) {
+            # Assume default setting
+            $r_access = "$r_key"."$r_key"."\n";
+            $rw_access =  "$rw_key".$remote_user."$rw_key"."\n";
+          }
+          else {
+            $r_access = "$r_key".$r_access."$r_key"."\n";
+            $rw_access = "$rw_key".$rw_access."$rw_key"."\n";
+          }
+        }
+        $found_htaccess = 1;
+      }
+      else {
+        # Move up a directory level
+        if ( chdir('..') ) {
+          $path = getcwd();
+          set_path($path);
+        }
+        else {
+          $$message_ref = 'chdir failed - could not find directory - '.$!;
+        }
+      }
+    }
+  }
+  if ($found_htaccess && !$$message_ref) {
+    $$response_ref = $r_access.$rw_access;
+    $retrieved_htaccess = 1;
+  }
+
+  return $retrieved_htaccess;
+}
+
+ 
+sub modify_htaccess {
+  #=====================================================================
+  # This sub modifies users who have READ and READ/WRITE access.
+  #=====================================================================
+  my($path, $r_access_ref, $rw_access_ref, $realm, $message_ref) = @_;
+  my($modified_htaccess, $r_require, $rw_require, $r_list, $rw_list, 
+     $owner_list, $htaccess);
+
+
+  $r_require = '';
+  $rw_require = '';
+  $modified_htaccess = 0;
+
+
+  # Determine READ access settings
+  if (is_all_access($$r_access_ref)) {
+    $r_list = $r_key.$all_key.$r_key;
+    $r_require = 'require valid-user'; 
+  }
+  else {
+    $r_list = $r_key.$$r_access_ref.$r_key;
+    if ($$r_access_ref) {
+      $r_require = 'require user '.$$r_access_ref;
+    }
+  }
+
+  # Determine READ/WRITE access settings
+  if (is_all_access($$rw_access_ref)) {
+    $rw_list = $rw_key.$all_key.$rw_key;
+    $rw_require = 'require valid-user'; 
+  }
+  else {
+    if ($$rw_access_ref !~ /$remote_user/i) {
+      $$rw_access_ref .= " $remote_user";
+    }
+    $rw_list = $rw_key.$$rw_access_ref.$rw_key;
+    if ($$rw_access_ref !~ /$admin_account/i) {
+      $$rw_access_ref .= " $admin_account";
+    }
+    $rw_require = 'require user '.$$rw_access_ref;
+  }
+
+  # Build owner list (used to determine owner of a SHARE directory)
+  $owner_list = $owner_key.$remote_user.$owner_key; 
+
+
+  # Build .htaccess file
+  $htaccess .= '# ECCE .htaccess File #'."\n"; 
+  $htaccess .= '#'."\n"; 
+  $htaccess .= '## DO NOT EDIT ## - file automatically generated'."\n"; 
+  $htaccess .= '#'."\n"; 
+  $htaccess .= $owner_list."\n";
+  $htaccess .= $r_list."\n";
+  $htaccess .= $rw_list."\n";
+  $htaccess .= 'AuthName '.$realm."\n";
+  if ($r_require) {
+    $htaccess .= "<Limit OPTIONS HEAD GET PROPFIND COPY POST> \n".
+                  "  Allow from all \n".
+                  "  $r_require \n".
+                  "</Limit> \n";
+  }
+  $htaccess .= "<Limit OPTIONS HEAD GET PUT DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK POST> \n".
+                "  Allow from all \n".
+                "  $rw_require \n".
+                "</Limit> \n";
+
+
+  # Create new .htaccess file
+  if (put_htaccess($path, \$htaccess, $message_ref)) {
+    $modified_htaccess = 1;
+  } 
+
+  return $modified_htaccess;
+}
+

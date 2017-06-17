@@ -1,0 +1,29 @@
+
+This directory contains the scripts and Makefile needed to create the
+ewxAUI library, which is an enhanced version of the standard wxWidgets wxAUI
+library needed for the ECCE Builder/Viewer application.  This README as well
+as the full ECCE build document describe how to create ewxAUI.  The scripts
+are known to work for the wxPython/wxWidgets 2.8.x series of releases and will
+likely require updates to be compatible with major new releases.
+
+The steps for creating ewxAUI are:
+
+1. cd $ECCE_HOME/build
+
+2. cp -rf ewxaui <wxPython-src-directory>/bld
+
+Note: <wxPython-src-directory> is the top-level directory where the wxPython
+source code distribution was extracted and the wxWidgets/wxPython
+builds are being done.
+
+3. cd <wxPython-src-directory>/bld/ewxaui
+
+4. ./auigen.sh
+
+Note: Make sure this script completes successfully before proceeding.
+
+5. make
+
+Note: This step will both build and install ewxAUI.  The install directory
+is derived from the Makefile in <wxPython-src-directory>/bld.
+

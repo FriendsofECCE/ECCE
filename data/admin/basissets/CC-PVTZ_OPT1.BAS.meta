@@ -1,0 +1,70 @@
+name
+cc-pVTZ(seg-opt)
+name
+type
+other_segmented
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ----------
+ H     : T.H. Dunning, Jr. J. Chem. Phys. 90, 1007 (1989).
+ He    : D.E. Woon and T.H. Dunning, Jr. J. Chem. Phys. 100, 2975 (1994).
+Li - Ne: T.H. Dunning, Jr. J. Chem. Phys. 90, 1007 (1989).
+Na - Mg: D.E. Woon and T.H. Dunning, Jr.  (to be published)
+Al - Ar: D.E. Woon and T.H. Dunning, Jr.  J. Chem. Phys. 98, 1358 (1993).
+
+references
+info
+   Correlation Consistent Polarized Valence Triple Zeta (cc-pVTZ) Basis
+    These basis functions have been converted to segmented contractions
+    and transformed to reduce the length of the contractions.
+   --------------------------------------------------------------------
+Elements      Contraction                       References
+H      : (5s,2p,1d)     -> [3s,2p,1d]      T.H. Dunning, Jr. J. Chem. Phys.
+                                           90, 1007 (1989).
+He     : (6s,2p,1d)     -> [3s,2p,1d]      D.E. Woon and T.H. Dunning, Jr.,
+                                           J. Chem. Phys. 100, 2975 (1994).
+Li - Ne: (10s,5p,2d,1f) -> [4s,3p,2d,1f]   T.H. Dunning, Jr. J. Chem. Phys.
+                                           90, 1007 (1989).
+NA     : (16s,10p,2d,1f)-> [5s,4p,2d,1f]   D. Woon and T.H. Dunning, Jr.
+Mg     : (15s,10p,2d,1f)-> [5s,4p,2d,1f]   (to be published)
+Al - Ar: (15s,9p,2d,1f) -> [5s,4p,2d,1f]   D.E. Woon and T.H. Dunning, Jr.,
+                                           J. Chem. Phys. 98, 1358 (1993).
+Ga - Kr: (20s,13p,9d,1f)-> [6s,5p,3d,1f]   A.K. Wilson, D.E. Woon, K.A.
+                                           Peterson, T.H. Dunning, Jr.,
+                                           J. Chem. Phys., 110, 7667 (1999)
+The basic idea behind the correlation consistent basis sets is that functions
+which contribute approximately the same amount of correlation energy should
+be grouped together when considering what mixture of s,p,d,.. etc basis
+functions to use.  For hydrogen the polarization exponents were determined by
+optimizing them at the SD-CI level for molecular hydrogen in its ground
+state.  The (s,p) exponents for B - Ne were optimized in atomic Hartree-
+Fock calculations on the ground state.  The polarization exponents were
+optimized at the SD-CI level.
+
+The Gaussian elimination algorithm used to reduce the contraction lengths was
+described in an article by E.R. Davidson (Chem. Phys. Lett. 260, 514 (1996)).
+
+
+info
+comments
+5/07/99  - DFF - Correct Br d function. Wrong single primitives.
+11/27/98  - DFF - Add Ga, Ge, As, Se, Br and Kr
+6/05/95  - DFF - Add magnesium set from Dave Woon.
+2/16/95  - DFF - Modify the format of the literature citation.
+2/16/94  - DFF - Add beryllium set from Dave Woon
+10/02/93  - DFF - Add sodium set from Dave Woon
+8/19/92  - DFF - Add lithium set from Dave Woon
+1/19/92  - DFF - Add second row basis sets from Dave Woon
+11/19/90  - DFF - Add sulfur using file from S. Xanthesis
+9/21/90  - DFF - Original creation of this file from MIA basis set library.
+comments

@@ -1,0 +1,8 @@
+Queues: chinook franklin 
+###############################################################################
+
+chinook|queueMgrName:   Moab
+chinook|prefFile:       chinook.Q
+
+franklin|queueMgrName:	PBS
+franklin|prefFile:      franklin.Q

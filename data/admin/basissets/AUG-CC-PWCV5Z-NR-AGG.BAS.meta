@@ -1,0 +1,31 @@
+name
+aug-cc-pwCV5Z-NR
+name
+type
+correlation_consistent
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+GC
+contraction_type
+references
+
+references
+info
+ All-electron, Nonrelativistic Weighted Core/valence aug-cc-pwCV5Z-NR Sets
+ -------------------------------------------------------------------------
+Elements           Contraction                                  References
+Sc - Zn: (31s,23p,15d,6f,5g,4h,3i) -> [12s,11p,9d,6f,5g,4h,3i] N.B. Balabanov
+                                                              and K.A. Peterson,
+                                                              J. Chem. Phys.,
+                                                              123, 064107 (2005)
+
+
+info
+comments
+comments

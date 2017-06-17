@@ -1,0 +1,21 @@
+#!/bin/csh -f
+# Use in conjunction with publishmany to see how server handles lots of
+# connects publish,subscribe, disconnect.
+
+set JMS_LIB=${ECCE_HOME}/java/lib/joram
+set CP=""
+foreach file (${JMS_LIB}/*.jar)
+   set CP=${file}:${CP}
+end
+set CP=${CP}:${ECCE_HOME}/siteconfig:${CLASSPATH}:.:${ECCE_HOME}/java/build/classes
+
+@ numIts = 2
+@ cnt = 1;
+#while (1)
+while ($cnt < $numIts)
+  echo ""
+  echo "Iteration: $cnt"
+  echo "Use CTRL-C to kill this"
+  time java -classpath ${CP} TestJMSSubscribe
+  @ cnt += 1
+end

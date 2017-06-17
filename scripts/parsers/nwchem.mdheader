@@ -1,0 +1,82 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#   This script parses the header portion of the NWChem MD properties file
+#   to determine the location of specific data items. This information is
+#   stored in a temporary utility file in the /tmp directory.
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+
+######
+# The command line arguments
+######
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+local ($result,@symlabels);
+
+$tmprtr_flag = -1;
+$prssr_flag = -1;
+$te_flag = -1;
+$ke_flag = -1;
+$pe_flag = -1;
+$vdw_flag = -1;
+$el_flag = -1;
+$volume_flag = -1;
+
+$result = <STDIN>;
+$icnt = 0;
+while (<STDIN>) {
+  if (/^Temperature\s*K/) {
+    $tmprtr_flag = $icnt;
+  }
+  if (/^Pressure\s*Pa/) {
+    $prssr_flag = $icnt;
+  }
+  if (/^Energy total/) {
+    $te_flag = $icnt;
+  }
+  if (/^Energy potential/) {
+    $pe_flag = $icnt;
+  }
+  if (/^Energy kinetic/) {
+    $ke_flag = $icnt;
+  }
+  if (/^Energy van der Waals/) {
+    $vdw_flag = $icnt;
+  }
+  if (/^Energy electrostatic/) {
+    $el_flag = $icnt;
+  }
+  if (/^Volume/) {
+    $volume_flag = $icnt;
+  }
+  $icnt++;
+}
+
+#
+# Create temporary file in /tmp directory to property indices
+#
+$filename = $key."/parseMD";
+open (AUXFILE, ">$filename") || die("open AUXFILE failed");
+print AUXFILE "Temperature : $tmprtr_flag\n";
+print AUXFILE "Pressure : $prssr_flag\n";
+print AUXFILE "Energy total : $te_flag\n";
+print AUXFILE "Energy potential : $pe_flag\n";
+print AUXFILE "Energy kinetic : $ke_flag\n";
+print AUXFILE "Energy vdw : $vdw_flag\n";
+print AUXFILE "Energy electrostatic : $el_flag\n";
+print AUXFILE "Volume : $volume_flag\n";
+close (AUXFILE);
+
+exit(0);

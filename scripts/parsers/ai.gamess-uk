@@ -1,0 +1,1425 @@
+#!/usr/bin/env perl
+################################################################################
+# FILENAME:  ai.gamess-uk
+#
+#
+# SYNTAX: ai.gamess-uk -n <jobname> -p -f -q -b -c -t <template>
+#
+#         -n <jobname> specifies the jobname
+#         -p specifies there is a parameter file called <jobname>.param
+#         -f specifies there is a fragment file called <jobname>.frag
+#         -q specifies there is a ESP file called <jobname>.esp
+#         -b specifies there is a basisset file called <jobname>.basis
+#         -c specifies there is a constraint file called <jobname>.con
+#         -t <template> specifies the template file
+#         -h or -help print the usage information
+#         -v print the version information
+#
+# PURPOSE:
+#	Take an AbiChem generated dictionary and produce an input
+#       file for a GAMESS-UK run. Note that the template file is
+#       overwritten when generating the input file.
+#
+# DESCRIPTION:
+#
+# LIMITATIONS:
+#
+###########################################################################
+
+{
+# package for command-line options like -v
+  use Getopt::Std;
+
+  push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+
+# provides loadPT to setup periodic table hashes
+  require "pertab.pl";
+
+# Force output to be flushed
+  $| = 1;
+
+#
+#  Handle the options
+#
+  &getopts(':n:t:pfbqchvse');
+  &handle_options;
+
+## Setup dates and such
+  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
+  $month = (January, February, March, April, May, June,
+	    July, August, September, October, November, December)[$mon];
+
+## Dictionary to be parsed from specified input file
+  %AbiDict = ();
+
+  if ($TplFILE eq "") {
+    &usage;
+  }
+
+#  print "Executing: ai.gamess-uk $ARGV[0] $ARGV[1] $ARGV[2] $ARGV[3]\n";
+# set some flags to determine what kind of basis is used.
+  $usesXCBasis = 0;
+  $usesCDBasis = 0;
+  $usesECPBasis = 0;
+  $usesBQAtoms = 0;
+  %BQAtomsList = ();
+
+## Main Routine
+  &loadPT;
+  &verifyAbiFile;
+  &verifyFragFile;
+  &verifyESPFile;
+  &verifyCnstrntFile;
+  &verifyGBSFile;
+  &readDict;
+  &readChemSys;
+  &readESPFile;
+  &readCnstrntFile;
+  &modifyInputFile;
+  &removeUnusedSections;
+# uncomment for debugging help
+#  &dumpData;
+  &cleanup;
+}
+## Modify the existing template or create a new copy of the
+##   template and then begin modifying it.  We go line-by-line
+##   throught the template, replacing all /##(.*)##/ tags with
+##   translated dictionary values.  If no key is found in the
+##   dictionary, we remove the line entirely
+sub modifyInputFile {
+  local($keysave, $key, $subname, $prefix, $postfix, $finished);
+  $inputFile = $TplFILE;
+  open(TEMPLATE, $inputFile);
+  open(NEWFILE, ">tmpfile");
+  # Do Specialized Key Replacement Before Trying Generic Subroutines
+  while (<TEMPLATE>) {
+    if (/([^#]*)##([^#]*)##(.*)/) {  ## Locate Tag
+# cpp     if (/dummy/) {  ## Use this instead of above line for emacs indenting
+      $prefix = $1;
+      $postfix = $3;
+      $keysave = $key = $2;
+      $finished = 0;
+      while ($finished == 0) {
+	$subname = $key;
+	$subname =~ s/\./_/g;          ## Replace "." with "_" For Sub Name
+	if (defined($AbiDict{$key})) { ## Value is in Dictionary
+	  $finished = 1;                       ## Match Means We'll Be Done
+	  $value = $AbiDict{$key};
+	  $fct = "&$subname('$value')";
+	  $result = eval $fct;
+	  if (!(defined $result)) {            ## Simple Replacement if No Sub
+	    s/##$keysave##/$value/;
+	  } elsif ($result ne "") {            ## Replace With Subs Value
+	    $_ = $prefix . $result . $postfix . "\n";
+	  } ## Else The Subroutine Did What it Needed
+	} else {                      ## Value Wasn't in Dictionary
+	  $finished = 1;
+	  $fct = "&$subname";
+	  $result = eval $fct;
+	  if (!(defined $result)) {
+	    # Instead of Failing Outright, Try Reducing Keyword
+	    if (index($key, ".") >= $[) {
+	      $key =~ s/\.[^\.]*$//;
+	      $finished = 0;
+	    } else {
+	      ## print "Removing token $key\n";
+	      $_ = "";
+	    }
+	  } elsif ($result ne "") {            ## Replace With Subs Value
+	    $_ = $prefix . $result . $postfix . "\n";
+	  } ## Else The Subroutine Did What it Needed
+	}
+      }
+    }
+    print(NEWFILE);
+  }
+  close TEMPLATE;
+}
+
+##############################################################################
+#
+#  Description:
+#      Generate one runtype line; goes with ##runType## key in template.
+#       
+############################################################################## 
+sub runType {
+  local($result);
+  local($runtype,$geomsearch,$local_runtype,$local_theory);
+  $runtype = $AbiDict{"RunType"};
+  $local_runtype = &RunType($runtype);
+  $local_theory = &NWTheoryKey;
+  $result = "runtype";
+  if ($runtype =~ /Energy/) {
+     $result .= " scf";
+  } elsif ($runtype =~ /Gradient/) {
+     $result .= " gradient";
+  } elsif ($runtype =~ /Geometry/) {
+     $geomsearch = $AbiDict{"ES.Runtype.GeomOpt.SearchAlgorithm"};
+     if ($geomsearch =~ /Optimise/) {
+        $result .= " optimise";
+     } elsif ($geomsearch =~ /Optxyz/) {
+        $result .= " optxyz";
+     } elsif ($geomsearch =~ /Saddle/) {
+        $result .= " saddle";
+     } else {
+        $result .= " optimise";
+     }
+  } elsif ($runtype =~ /Vibration/) {
+     #
+     # Make choices based on current parallel capabilities
+     #
+     if ($AbiDict{"Theory"} eq "RHF" || $AbiDict{"Theory"} eq "RDFT") {
+        $result .= " hessian";
+     } else {
+        $result .= " force";
+     }
+  } elsif ($runtype =~ /Property/) {
+        $result .= " property";
+  } elsif ($runtype =~ /ESP/) {
+        $result .= " esp";
+  }
+  $_ = $result;
+  return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#      Generate one scftype line; goes with ##scfType## key in template.
+#       
+############################################################################## 
+sub scfType {
+  local($result);
+  local($scftype,$direct,$local_theory);
+  #$runtype = $AbiDict{"RunType"};
+  #$local_runtype = &RunType($runtype);
+  #$local_theory = &NWTheoryKey;
+  $local_theory = $AbiDict{"Theory"};
+  $result = "scftype";
+  $direct = $AbiDict{"ES.Theory.SCF.Direct"};
+  if ($direct =~ /Direct/) {
+     $result .= " direct";
+  }
+  if ($local_theory =~ /ROHF/) {
+     $result .= " rhf";
+  } elsif ($local_theory =~ /RDFT/) {
+     $result .= " rhf";
+  } elsif ($local_theory =~ /UDFT/) {
+     $result .= " uhf";
+  } elsif ($local_theory =~ /RMP2/) {
+     $result .= " mp2";
+  } elsif ($local_theory =~ /UMP2/) {
+     $result .= " mp2";
+  } else {
+     $result .= " ";
+     $result .= $local_theory;
+  }
+  $_ = $result;
+  return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#      Add nosym directive to input if needed
+#
+############################################################################## 
+sub Symmetry {
+  local($result, $usesymm);
+  $usesymm = $AbiDict{"ES.Theory.UseSymmetry"};
+  if ($usesymm == 0) {
+    $result = "nosym";
+  } else {
+    $result = "";
+  }
+  $_ = $result;
+  return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#      Add charge or qcharge directive to input.
+#
+############################################################################## 
+sub Charge {
+  local($result, $charge);
+  $charge = $AbiDict{"Charge"};
+  if ($useAtomBehavior == 1 && !$usesBQAtoms) {
+    $result = "qcharge $charge";
+  } else {
+    $result = "charge $charge";
+  }
+  $_ = $result;
+  return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#      Generate an GAMESS-UK theory key from an ecce Category
+#
+############################################################################## 
+sub NWTheoryKey {
+  my($result);
+  if ($AbiDict{"Category"} eq "DFT" ) {
+    $result =  "dft";
+  } elsif ($AbiDict{"Category"} eq "SCF" ) {
+    $result =  "scf";
+  } elsif ($AbiDict{"Category"} eq "RISCF" ) {
+    $result =  "riscf";
+  } elsif ($AbiDict{"Category"} eq "MP" ) {
+    if ($AbiDict{"ES.Theory.MP.Direct"} eq "direct") {
+      $result =  "direct_mp2";
+    } else {
+      $result =  "mp2";
+    }
+  } elsif ($AbiDict{"Category"} eq "RIMP" ) {
+    $result =  "rimp2";
+  } elsif ($AbiDict{"Category"} eq "CC" ) {
+    if ( $AbiDict{"Theory"} =~ /CCSD\(T\)/ ) {
+      $result =  "ccsd(t)";
+    } elsif ( $AbiDict{"Theory"} =~ /CCSDPT/ ) {
+      $result =  "ccsd+t(ccsd)";
+    } else {
+      $result =  "ccsd";
+    }
+  }
+  return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#      For use inside SCF context
+#       
+############################################################################## 
+sub SCFTheory {
+  local($result);
+  if ($AbiDict{"Category"} eq "SCF") {
+    $result = $AbiDict{"Theory"};
+  } elsif ( $AbiDict{"Theory"} =~ /^R/ ) {
+    $result = "rhf";
+  } elsif ( $AbiDict{"Theory"} =~ /^RO/ ) {
+    $result = "rohf";
+  } elsif ( $AbiDict{"Theory"} =~ /^U/ ) {
+    $result = "uhf";
+  } else {
+    $result = "";
+  }
+  $_ = $result;
+  return $result;
+}
+##############################################################################
+#
+#  Description:
+#      Generate an GAMESS-UK runtype from an ecce runtype
+#       
+##############################################################################
+sub RunType {
+  local($runtype) = @_;
+  local($result);
+  if ($runtype eq "Energy") {
+    $result = "energy";
+  } elsif ($runtype eq "Gradient") {
+    $result = "gradient";
+  } elsif ($runtype eq "Geometry" || $runtype eq "GeoVib" ) {
+    if ( $AbiDict{"GeomOpt.SearchFor"} eq "Transition State" ) {
+      $result = "saddle"; 
+    } else {
+      $result = "optimize";
+    }
+  } elsif ($runtype eq "Vibration") {
+    $result = "freq";
+  } elsif ($runtype eq "Property") {
+    $result = "property"
+  } elsif ($runtype eq "ESP") {
+    $result = "esp"
+  } else {
+    $result = "";
+  }
+  return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#     generate the maximum number of geometry optimisation steps
+#       
+############################################################################## 
+sub MaxOptSteps {
+  my $result, $numsteps;
+  if ( $AbiDict{"ES.Runtype.GeomOpt.MaxSteps"} ) {
+     $numsteps = $AbiDict{"ES.Runtype.GeomOpt.MaxSteps"};
+     $result = "minmax $numsteps $numsteps";
+  } else {
+     $_ = "";
+     $result = "";
+  }
+  return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#     generate the geometry optimisation convergence criteria
+#     this involves either a global specification using xtol or an
+#     explicit specification for all the separate criteria
+#       
+############################################################################## 
+sub OptConvCrit {
+  my $result, $convcrit, $convtol;
+  if ( $AbiDict{"ES.Runtype.GeomOpt.Convergence"} ) {
+     $convcrit = $AbiDict{"ES.Runtype.GeomOpt.Convergence"};
+     if ( $convcrit eq "Loose" ) {
+        $result = "xtol 0.03";
+     } elsif ( $convcrit eq "Default" ) {
+        $_ = "";
+        $result = "";
+     } elsif ( $convcrit eq "Tight" ) {
+        $result = "xtol 0.0003";
+     } elsif ( $convcrit eq "Explicit" ) {
+        $convtol = $AbiDict{"ES.Runtype.GeomOpt.StepSizeTol"};
+        $result = "xtol $convtol";
+     } else {
+        $result = "ErrorOC: inconsistency between ai.gamess-uk and gukruntype.py: $convcrit";
+     } 
+  } else {
+     $_ = "";
+     $result = "";
+  }
+  return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#     generates SCF input line for level shifting and convergence algorithm
+#       
+############################################################################## 
+sub SCFLevel {
+  local($shift1, $shift2, $crossover, $result, $theory);
+  $theory = $AbiDict{"Theory"};
+  $shift1 = $AbiDict{"ES.Theory.SCF.LevelShiftSize1"};
+  $shift2 = $AbiDict{"ES.Theory.SCF.LevelShiftSize2"};
+  $crossover = $AbiDict{"ES.Theory.SCF.LevelShiftIter"};
+
+  if ($shift1) {
+    if ($theory =~ /UHF/ || $theory =~ /UDFT/ || $theory =~ /UMP2/) {
+       if($crossover && (! $shift2 )) {$shift2 = 0.0 }
+       $result = "level $shift1 $shift1 $crossover $shift2 $shift2";
+    } else {
+       if($crossover && (! $shift2 )) {$shift2 = 0.0 }
+       $result = "level $shift1 $crossover $shift2";
+    }
+  } else {
+    $result = "conv 2";
+  }
+  $_ = $result;
+  return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#      For GAMESS-UK  turn off DIIS optimization if the user
+#      asks for it
+#       
+##############################################################################
+sub DIIS {
+  my  $result;
+
+  $result = "";
+  if ($AbiDict{"ES.Theory.SCF.UseDIIS"} eq 0) {
+     $result .= " off";
+  } 
+  $_ = $result;
+  return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#    Output SCF convergence threshold
+#      
+############################################################################## 
+sub SCFThreshold {
+  local($thresh,$result);
+
+  if ($AbiDict{"ES.Theory.SCF.ConvGradient"}) {
+     $thresh = -log($AbiDict{"ES.Theory.SCF.ConvGradient"})/log(10.0);
+     $result = " $thresh";
+  } else {
+     $result = "";
+  }
+  $_ = $result;
+  return $result;
+}
+
+
+
+sub chemsys {
+  local($symbol, $task, $index, $runtype);
+  ($chemsys_atoms != 0) || die "Sorry, Fragment has no atoms!\n";
+  $runtype = $AbiDict{"RunType"};
+  $task = "geometry";
+  if ($runtype =~ /Geometry/) {
+    if ($AbiDict{"ES.Runtype.GeomOpt.SearchAlgorithm"} =~ /Optimise/) {
+      $task .= " all";
+    } elsif ($AbiDict{"ES.Runtype.GeomOpt.SearchAlgorithm"} =~ /Saddle/) {
+      $task .= " all";
+    }
+  }
+  print(NEWFILE "$task angstrom\n");
+  for ($index = 0; $index < $chemsys_atoms; $index++) {
+    $symbol = $tags{$index};
+    $charge = "";
+    if ($useAtomBehavior == 1) {
+      if ($atomBehavior{$index} =~ /point/i) {
+        $symbol = "bq";
+        if ($useAtomCharge == 1) {
+          $charge = " charge $atomCharge{$index}";
+        } else {
+          $charge = " charge 0.00";
+        }
+      } elsif ($atomBehavior{$index} =~ /bqx/i) {
+        $tmp = "bq";
+        $tag = $symbol;
+        $symbol = $tmp . $symbol;
+        if ($usesBQAtoms == 1) {
+          $tag = ucfirst lc $tag;
+          if (!defined($BQAtomsList{$tag})) {
+            $BQAtomsList{$tag} = 1;
+          }
+        }
+      }
+    }
+    print(NEWFILE " $coords{$index,0} $coords{$index,1}");
+    print(NEWFILE " $coords{$index,2} $symbol_to_number{$tags{$index}}");
+    print(NEWFILE " $symbol$suffixHack{$index}\n");
+  }
+  if (@geo_zcoords > 0) {
+    print(NEWFILE " zcoord\n");
+    for ($i=0; $i<@geo_zcoords; $i++) {
+      print(NEWFILE "$geo_zcoords[$i]");
+    }
+    print(NEWFILE " end\n");
+  }
+  print(NEWFILE "end\n");
+  $_ = "";
+}
+
+
+#
+# XC and CD fitting bases will always be used if they appear in the 
+# gamess-uk input.
+#
+# if they are toggled off in the GUI, this used to insert the word IGNORE in
+# the label string.   Now it just skips the block.
+#
+# KLS 7/9/98
+# There used to be a set of toggles in the calced that allowed users
+# to remove them or keep them.  These toggles are gone and the bst
+# alone is in control.  So this sub is not really needed but I
+# didn't know how to get rid of it.  Therefore,  I just deleted 
+# the code that stripped out data sets.
+#
+sub basis {
+  local($tag, $oldtag, $gap, $gap2, $library, $remainder, $extraBasis);
+  local($writeBasis, $amomt, $line, $nelec, $ECPFlag);
+  $writeBasis = 1;
+  $oldtag = "";
+  $extraBasis = "";
+  $ECPFlag = 0;
+  while(<GBS>) {
+    if (/cd\s+basis/i) { $usesCDBasis = 1; }
+    if (/xc\s+basis/i) { $usesXCBasis = 1; }
+    if (/ecp/i) { $usesECPBasis = 1; }
+    $line = $_;
+#
+# Most of this code is designed to handle the situation that occurs when
+# BQX atoms are in the system (usually for a BSSE counterpoise correction
+# calculation)
+#
+    if ($usesBQAtoms == 1 && /^(\s*)(\S*)(\s*library)(.*)/i) {
+      $gap = $1;
+      $tag = ucfirst lc $2;
+      $library = $3;
+      $remainder = $4;
+      if ($writeBasis == 0 && $extraBasis ne "") {
+        if (defined($BQAtomsList{$oldtag}) && $ECPFlag == 0) {
+          print (NEWFILE $extraBasis);
+        }
+        $extraBasis = "";
+        $writeBasis = 1;
+      }
+      if (defined($BQAtomsList{$tag})) {
+        $extraBasis = $gap . "bq" . $tag . $library . " " . $tag . $remainder ."\n";
+      }
+    } elsif ($usesBQAtoms && /^(\s*)([a-z][a-z]?)(\s+)([a-z][a-z]?)\s*$/i) {
+      $writeBasis = 0;
+      $gap = $1;
+      $tag = ucfirst lc $2;
+      $gap2 = $3;
+      $amomt = $4;
+      if ($writeBasis == 0 && $extraBasis ne "" && $oldtag ne $tag) {
+        if (defined($BQAtomsList{$oldtag}) && $ECPFlag == 0) {
+          print (NEWFILE $extraBasis);
+        }
+        $ECPFlag = 0;
+        $extraBasis = "";
+      }
+      $extraBasis .= $gap . "bq" . $tag . $gap2 . $amomt . "\n";
+      $oldtag = $tag;
+    } elsif ($usesBQAtoms && /^(\s*)([a-z][a-z]?)(\s+nelec\s*\d*)/i) {
+      $ECPFlag = 1;
+      $writeBasis = 0;
+      $gap = $1;
+      $tag = ucfirst lc $2;
+      $nelec = $3;
+      if ($writeBasis == 0 && $extraBasis ne "") {
+        $extraBasis = "";
+      }
+      $extraBasis = $gap . "bq" . $tag . $nelec . "\n";
+      $oldtag = $tag;
+    } elsif ($writeBasis == 0 && !/end/i && !/basis/i && !/ecp/i) {
+      $extraBasis .= $line;
+    }
+    if (/end/i && $writeBasis == 0 && $extraBasis ne "") {
+      if (defined($BQAtomsList{$oldtag}) && $ECPFlag == 0) {
+        print (NEWFILE $extraBasis);
+      }
+      $ECPFlag = 0;
+      $extraBasis = "";
+    }
+    print (NEWFILE $line);
+    if ($writeBasis == 1 && $extraBasis ne "") {
+      print (NEWFILE $extraBasis);
+      $extraBasis = "";
+    }
+  }
+  $_ = "";
+}
+
+##############################################################################
+#
+#  Description:
+#      For MP or CC theory, insert frozen core line only if UseFrozenCores 
+#      is true
+#       
+############################################################################## 
+sub UseFrozenCoreValue {
+
+  my $result = "freeze core ";
+
+  if ($AbiDict{"ES.Theory.UseFrozenCores"} &&
+      $AbiDict{"ES.Theory.UseFrozenCores"} == 1) {
+    $result .= $AbiDict{"ES.Theory.CorrelOrb.FrozenCoreValue"};
+  } else {
+    $result = "";
+  }
+  $_ = "";
+  return $result;
+}
+
+##
+##  Multiplicity is now just a number signifying the number of open shells
+##
+sub Multiplicity {
+  if ( $AbiDict{"ChemSys.Multiplicity"} =~ /(\d+)/) {
+    $multiplicity = $1;
+  } else {
+    $multiplicity = 1;
+  }
+  $_ = "";
+  return $multiplicity;
+}
+
+sub Nopen {
+  local($nopen);
+  $nopen = &Multiplicity - 1;
+  $_ = $nopen;
+  return $nopen;
+}
+
+##
+## SCF Gets Translated for DFT: RHF->dft, UHF->odft
+##
+sub SCF {
+  if ($AbiDict{"Category"} eq "DFT") {
+    if ($_[0] eq "RHF") {
+      return "dft";
+    } elsif ($_[0] eq "UHF") {
+      return "odft";
+    } else {
+      $_ = "";
+      return "";
+    }
+  } elsif ($AbiDict{"Category"} eq "SCF") {
+    if ($_[0] eq "RHF") {
+      return "rhf";
+    } elsif ($_[0] eq "ROHF") {
+      return "rohf";
+    } elsif ($_[0] eq "UHF") {
+      return "uhf";
+    } else {
+      $_ = "";
+      return "";
+    }
+  } else {
+    die "Fatal ai.gamess-uk error:  Unrecognized Category in dictionary\n";
+  }
+}
+##
+## InitialGuess Gets Translated: Core Hamiltonian->hcore,
+## Atomic Guess->atoms, Vectors->isect1 isect2
+##
+sub InitialGuess {
+  local($result,$local_theory,$local_guess,$sectiona,$sectionb);
+  $local_guess = $AbiDict{"ES.Theory.SCF.InitGuess"};
+  $local_theory = $AbiDict{"Theory"};
+  $result = "vectors";
+  if ($local_guess =~ /Atomic Guess/) {
+    $result .= " atoms";
+  } elsif ($local_guess =~ /Core Hamiltonian/) {
+    $result .= " hcore";
+  } elsif ($local_guess =~ /Vectors/) {
+    $sectiona = $AbiDict{"ES.Theory.SCF.InitVector1"};
+    $sectionb = $AbiDict{"ES.Theory.SCF.InitVector2"};
+    $result .= " $sectiona";
+    if ($local_theory =~ /UHF/ || $local_theory =~ /UDFT/ || $local_theory =~ /UMP2/) {
+       $result .= " $sectionb";
+    }
+  }
+  $_ = $result;
+  return $result;
+}
+
+sub FrozenOrbitals {
+  local($result,$theory,$runtype,$frozenvirt,$frozencore,$numorb,$first,$last);
+  local($numocc,$numvirt);
+  
+  $theory = $AbiDict{"ES.Theory"};
+  $frozencore = 0;
+  $frozenvirt = 0;
+  $numocc     = $AbiDict{"NumOccupiedOrbs"};
+  $numvirt    = $AbiDict{"NumVirtualOrbs"};
+  $numorb     = $numocc+$numvirt;
+  if ($theory == "MP") {
+     if ($AbiDict{"ES.Theory.PostHF.UseFrozenCore"}) {
+        $frozencore = $AbiDict{"ES.Theory.PostHF.NumFrozenCore"};
+     }
+     if ($AbiDict{"ES.Theory.PostHF.UseFrozenVirt"}) {
+        $frozenvirt = $AbiDict{"ES.Theory.PostHF.NumFrozenVirt"};
+     }
+     if ($frozencore > 0 || $frozenvirt > 0) {
+        $first = 1+$frozencore;
+        $last = $numorb-$frozenvirt;
+        $result = "active\n   $first to $last\nend";
+        if ($numorb == 0) {
+           $result = "ErrorOrb: numocc=$numocc and numvirt=$numvirt ???";
+        }
+     }
+  } else {
+     $result = "";
+     $_ = $result;
+  }
+  return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#      Create directive for selecting the accuracy of the quadrature
+############################################################################## 
+sub GridDensity {
+  my $result, $grid;
+  $grid = $AbiDict{"ES.Theory.DFT.GridAccuracy"};
+  if ( $AbiDict{"ES.Theory.DFT.GridAccuracy"} ) {
+     if ($grid eq "Low") {
+        $result = "low";
+     } elsif ($grid eq "Medium") {
+        $result = "medium";
+     } elsif ($grid eq "High") {
+        $result = "high";
+     } elsif ($grid eq "Very High") {
+        $result = "veryhigh";
+     } else {
+        $result = "ErrorG: Inconsistency between ai.gamess-uk and guktheory.py: $grid";
+     }
+  } else {
+    $_ = "";
+    $result = "";
+  }
+  return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#      Create directive for adding exchange and/or correlation functionals
+############################################################################## 
+sub ExchangeAndCorrelation {
+  my ($result);
+  my ($exchange);
+  my ($correlation); 
+  my ($temp);
+##
+##
+  if ( $AbiDict{"ES.Theory.DFT.XFunctionals"} || $AbiDict{"ES.Theory.DFT.CFunctionals"}) {
+    $exchange = $AbiDict{"ES.Theory.DFT.XFunctionals"};
+    if ($exchange eq "None") {
+      $result =  "null_x";
+    } elsif ($exchange eq "Hartree-Fock") {
+      $result =  "hf_x";
+    } elsif ($exchange eq "Slater (LDA)") {
+      $result =  "lda_x";
+    } elsif ($exchange eq "Becke 1988 (GGA)") {
+      $result =  "b88_x";
+    } elsif ($exchange eq "EDF1 (GGA)") {
+      $result =  "edf1_x";
+    } elsif ($exchange eq "Filatov-Thiel 1997 (GGA)") {
+      $result =  "ft97_x";
+    } elsif ($exchange eq "Filatov-Thiel 1997 A (GGA)") {
+      $result =  "ft97a_x";
+    } elsif ($exchange eq "Perdew-Burke-Ernzerhof (GGA)") {
+      $result =  "pbe_x";
+    } elsif ($exchange eq "Perdew-Wang 1991 (GGA)") {
+      $result =  "pw91_x";
+    } elsif ($exchange eq "Becke 3 (hybrid)") {
+      $result =  "b3_x";
+    } elsif ($exchange eq "Becke 1997 (hybrid)") {
+      $result =  "b97_x";
+    } else {
+      $result =  "ErrorX: inconsistency between ai.gamess-uk and guktheory.py: $exchange\n";
+    }
+  
+    $result .= " ";
+    ##
+    # Add correlation functional if available
+    ##
+    $correlation = $AbiDict{"ES.Theory.DFT.CFunctionals"};
+    if ($correlation eq "None") {
+      $result .=  "null_c";
+    } elsif ($correlation eq "Perdew-Zunger 1981 (LDA)") {
+      $result .=  "pz81";
+    } elsif ($correlation eq "Perdew-Wang 1992 (LDA)") {
+      $result .=  "pw92";
+    } elsif ($correlation eq "Vosko-Wilk-Nusair (LDA)") {
+      $result .=  "vwn5";
+    } elsif ($correlation eq "Vosko-Wilk-Nusair 5-RPA (LDA)") {
+      $result .=  "vwn5rpa";
+    } elsif ($correlation eq "EDF1 (GGA)") {
+      $result .=  "edf1_c";
+    } elsif ($correlation eq "Filatov-Thiel 1997 (GGA)") {
+      $result .=  "ft97_c";
+    } elsif ($correlation eq "Lee-Yang-Parr (GGA)") {
+      $result .=  "lyp";
+    } elsif ($correlation eq "Perdew-Burke-Ernzerhof (GGA)") {
+      $result .=  "pbe_c";
+    } elsif ($correlation eq "Perdew 1986 (GGA)") {
+      $result .=  "p86";
+    } elsif ($correlation eq "Perdew 1991 (GGA)") {
+      $result .=  "p91_c";
+    } elsif ($correlation eq "Perdew-Wang 1991 (GGA)") {
+      $result .=  "pw91_c";
+    } elsif ($correlation eq "Becke 1995 (meta-GGA)") {
+      $result .=  "b95_c";
+    } else {
+      $result .=  "ErrorC: inconsistency between ai.gamess-uk and guktheory.py: $correlation";
+    }
+  } else {
+    $_ = "";
+    $result =  "";
+  }
+##
+# combined functional rules out separate exchange and correlation
+##
+  if ( $AbiDict{"ES.Theory.DFT.XCFunctionals"} ) {
+    if ( $AbiDict{"ES.Theory.DFT.XCFunctionals"} ne "None" ) {
+      $_ = "";
+      $result =  "";
+    }
+  }
+  return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#      Combined DFT exchange-correlation functional
+#       
+############################################################################## 
+sub XCFunctional {
+  my ($xcFun);
+  my ($result);
+
+  if ($AbiDict{"ES.Theory.DFT.XCFunctionals"}) {
+    $xcFun = $AbiDict{"ES.Theory.DFT.XCFunctionals"};
+    if ($xcFun eq "None") {
+      $_ = "";
+      $result = "";
+    } elsif ($xcFun eq "SVWN (LDA)") {
+      $result = "svwn";
+    } elsif ($xcFun eq "BLYP (GGA)") {
+      $result = "blyp";
+    } elsif ($xcFun eq "EDF1 (GGA)") {
+      $result = "edf1";
+    } elsif ($xcFun eq "Filatov-Thiel 1997 (GGA)") {
+      $result = "ft97";
+    } elsif ($xcFun eq "HCTH93 (GGA)") {
+      $result = "hcth93";
+    } elsif ($xcFun eq "HCTH120 (GGA)") {
+      $result = "hcth120";
+    } elsif ($xcFun eq "HCTH147 (GGA)") {
+      $result = "hcth147";
+    } elsif ($xcFun eq "HCTH407 (GGA)") {
+      $result = "hcth407";
+    } elsif ($xcFun eq "PB86 (GGA)") {
+      $result = "pb86";
+    } elsif ($xcFun eq "PBE (GGA)") {
+      $result = "pbe";
+    } elsif ($xcFun eq "PW91 (GGA)") {
+      $result = "pw91";
+    } elsif ($xcFun eq "B3LYP (hybrid)") {
+      $result = "b3lyp";
+    } elsif ($xcFun eq "Becke 1997 (hybrid)") {
+      $result = "b97";
+    } elsif ($xcFun eq "Becke 1997-1 (hybrid)") {
+      $result = "b97-1";
+    } elsif ($xcFun eq "Becke 1997-2 (hybrid)") {
+      $result = "b97-2";
+    } elsif ($xcFun eq "B1B95 (meta-GGA)") {
+      $result = "b1b95";
+    } elsif ($xcFun eq "BB1K (meta-GGA)") {
+      $result = "bb1k";
+    } elsif ($xcFun eq "BB95 (meta-GGA)") {
+      $result = "bb95";
+    } else {
+      $result = "ErrorXC: inconsistency between ai.gamess-uk and guktheory.py";
+    }
+  } else {
+    $_ = "";
+    $result = "";
+  }
+  return $result;
+}
+
+sub GridWeights {
+   my ($result)="";
+   if ($AbiDict{"ES.Theory.DFT.GridPartition"}) {
+     $value = $AbiDict{"ES.Theory.DFT.GridPartition"};
+     if ($value eq "Becke") {
+       $result = "beckescr";
+     } elsif ($value eq "Stratmann-Scuseria-Frisch (SSF)") {
+       $result = "ssfscr";
+     } elsif ($value eq "Murray-Handy-Laming (MHL)") {
+       $result = "mhlscr";
+     } elsif ($value eq "MHL4SSF") {
+       $result = "mhl4ssf";
+     } elsif ($value eq "MHL8SSF") {
+       $result = "mhl8ssf";
+     } else {
+       $result = "ErrorW: inconsistency between ai.gamess-uk and guktheory.py";
+     }
+   } else {
+     $result = "";
+     $_ = "";
+   }
+   return $result;
+}
+
+
+###############################################################################
+## EVERYTHING BEYOND THIS POINT IS UTILITY SUBROUTINES
+###############################################################################
+## Check to make sure the specified input file is a valid dictionary file.
+sub verifyAbiFile {
+  if ($AbiFILE ne "") {
+    # print "Opening $AbiFILE as abichem dictionary file\n";
+    open(ABIDICT, $AbiFILE) || die "Sorry, Couldn't open parameter file!\n";
+    # check for correct version and program header !!!!!
+  }
+}
+
+## Check to make sure the specified input file is a valid geometry file.
+sub verifyFragFile {
+  local($hasBehavior);
+  $hasBehavior = 0;
+  if ($FragFILE ne "") {
+    # print "Opening $FragFILE as fragment file\n";
+    open(CHEMSYS, $FragFILE) || die "Sorry, Couldn't open geometry file!\n";
+    # check for correct version and program header !!!!!
+  }
+  while (<CHEMSYS>) {
+    if (/behavior/) {
+      $hasBehavior = 1;
+    }
+    if (/bq(\S+)/ && $hasBehavior == 1) {
+      $usesBQAtoms = 1;
+    }
+  }
+  seek(CHEMSYS,0,0); # rewind
+}
+
+## Check to make sure the specified input file is a valid constraint file.
+sub verifyESPFile {
+  if ($EspFILE ne "") {
+    # print "Opening $EspFILE as esp file\n";
+    open(ESPCNST, $EspFILE);
+    # check for correct version and program header !!!!!
+  }
+}
+
+## Check to make sure the specified input file is a valid constraint file.
+sub verifyCnstrntFile {
+  if ($CnstrntFILE ne "") {
+    # print "Opening $CnstrntFILE as constraint file\n";
+    open(GEOCNST, $CnstrntFILE);
+    # check for correct version and program header !!!!!
+  }
+}
+
+## Check to make sure the specified input file is a valid basis set file.
+sub verifyGBSFile {
+  if ($BasisFILE ne "") {
+    # print "Opening $BasisFile as gaussian basis set file\n";
+    open(GBS, $BasisFILE) || die "Sorry, Couldn't open basis set file!\n";
+    # check for correct version and program header !!!!!
+  }
+}
+
+## Close input file and exit nicely.
+sub cleanup {
+  close(NEWFILE);
+  system("/bin/mv -f tmpfile \'$inputFile\'");
+  system("/bin/rm -f tmpfile2");
+  close(ABIDICT);
+  close(CHEMSYS);
+  close(GBS);
+  exit(0);
+}
+
+## Read in the dictionary of AbiChem values from the input file.
+##    Start by reading simple key, value pairs (: separated)
+sub readDict {
+  while(<ABIDICT>) {
+    $_ =~ s/\s*!.*$//;
+    if (/:/) {
+      ($key, $value) = split(/:/);
+      $key =~ s/^\s*//;
+      $key =~ s/\s*$//;
+      $value =~ s/^\s*//;
+      $value =~ s/\s*$//;
+      # Here we do successive refinements of the tag just found
+      # Starting with the full name we keep stripping off ^[^.]*.
+      #  until we find a match or we've emptied the string
+      $tagkey = $key;
+      while ($tagkey  ne "") {
+        # Handle special continuation lines here !!!!!
+        $AbiDict{$tagkey} = $value;
+        $tagkey =~ s/^[^\.]*//;
+        $tagkey =~ s/^\.//;
+      }
+    }
+  }
+}
+
+## Read the MVM format fragment into internal perl structures
+sub readChemSys {
+  local($tag);
+  local($symbols) = 0;
+  local($index, $junk);
+
+  $chemsys_atoms = 0;
+  $useAtomMass = 0;
+  $useAtomBehavior = 0;
+  $useAtomCharge = 0;
+  $_ = <CHEMSYS>;
+  while (<CHEMSYS>) {
+    if (/^num_atoms:/) {
+      ($junk, $chemsys_atoms) = split;
+    } elsif (/^title:/) {
+      ($junk, $chemsys_name) = split;
+    } elsif (/^atom_info:/) {
+      $symbols = /symbol/;
+    } elsif (/^atom_list:/) {
+      if ($symbols) {
+        for ($index = 0; $index < $chemsys_atoms; $index++) {
+          $_ = <CHEMSYS>;
+          ($tags{$index},
+           $coords{$index,0},$coords{$index,1},$coords{$index,2}) = split;
+          $suffixHack{$index} = "";
+        }
+      } else {
+        for ($index = 0; $index < $atomCount; $index++) {
+          $_ = <CHEMSYS>;
+          ($tags{$index},
+           $coords{$index,0},$coords{$index,1},$coords{$index,2}) = split;
+           $tags{$index} = $number_to_symbol{$tag{$index}};
+          $suffixHack{$index} = "";
+        }
+      }
+    } elsif (/^suffix_list:/) {
+      for ($index = 0; $index < $chemsys_atoms; $index++) {
+        $_ = <CHEMSYS>;
+        ($suffixHack{$index}) = split;
+      }
+    } elsif (/^atom_mass_list:/) {
+      $useAtomMass = 1;
+      for ($index = 0; $index < $chemsys_atoms; $index++) {
+        $_ = <CHEMSYS>;
+        ($atomMass{$index}) = split;
+      }
+    } elsif (/^atom_behavior_list:/) {
+      $useAtomBehavior = 1;
+      for ($index = 0; $index < $chemsys_atoms; $index++) {
+        $_ = <CHEMSYS>;
+        ($atomBehavior{$index}) = split;
+      }
+    } elsif (/^attr_list:/) {
+      @attributes = ();
+      $useAtomCharge = 1;
+      for ($index = 0; $index < $chemsys_atoms; $index++) {
+        $_ = <CHEMSYS>;
+         @attributes = split;
+        ($atomCharge{$index}) = $attributes[0];
+      }
+    }
+  }
+}
+
+## Read ESP constraint file
+sub readESPFile {
+  local($newline, $type, $charge, $tgroup, $i, $tval);
+  local(@group1, @group2);
+  local ($saveType);
+  @esp_constraints = ();
+
+  while (<ESPCNST>) {
+    if (/<Constraint>/) {
+      $newline = "";
+      @group1 = ();
+      @group2 = ();
+      $annotation = "";
+      while (<ESPCNST>) {
+        if (/<\/Constraint>/) {
+          last;
+        }
+        if (/^\s*<Type>(.*)<\/Type>\s*$/) {
+          $saveType = $1;
+          if ($1 =~ /All charge equal/) {
+            $type = "  constrain equal";
+          } elsif ($1 =~ /Fix atom charge/) {
+            $type = "  constrain";
+          } elsif ($1 =~ /Total charge fixed/) {
+            $type = "  constrain";
+          } elsif ($1 =~ /Constrain group1 to group2/) {
+            $type = "  constrain group";
+            $charge = "";
+          } elsif ($1 =~ /Constrain Methyl group/) {
+            $type = "  constrain xhn";
+            $charge = "";
+          } elsif ($1 =~ /Constrain special \(Methyl type\)/) {
+            $type = "  constrain xhn";
+            $charge = "";
+          }
+        }
+        if (/^\s*<Charge>(.*)<\/Charge>\s*$/) {
+          $charge = $1;
+        }
+        if (/^\s*<Group1>(.*)<\/Group1>\s*$/) {
+          $tgroup = $1;
+          @group1 = split(/ +/,$tgroup);
+        }
+        if (/^\s*<Group2>(.*)<\/Group2>\s*$/) {
+          $tgroup = $1;
+          @group2 = split(/ +/,$tgroup);
+        }
+        if (/^\s*<Annotation>(.*)<\/Annotation>\s*$/) {
+          $annotation = $1;
+        }
+      }
+      if ($type ne "  constrain group") {
+        $newline = "$type";
+        if ($type eq "  constrain") {
+          $newline .= " $charge";
+        }
+        if ($saveType =~ /Total charge fixed/) {
+          if (@group1 > 0) {
+            $amin = $group1[0];
+            $amax = $group1[0];
+            for ($i=0; $i<@group1; $i++) {
+              if ($group1[$i] < $amin) {
+                $amin = $group1[$i];
+              }
+              if ($group1[$i] > $amax) {
+                $amax = $group1[$i];
+              }
+            }
+            $amin++;
+            $amax++;
+            $newline .= " $amin through $amax";
+          }
+        } else {
+          for ($i = 0; $i<@group1; $i++) {
+            $tval = $group1[$i] + 1;
+            $newline .= " $tval";
+          }
+        }
+        if ($type ne "  constrain") {
+          for ($i = 0; $i<@group2; $i++) {
+            $tval = $group2[$i] + 1;
+            $newline .= " $tval";
+          }
+        }
+      } else {
+        $newline = "$type";
+        if (@group1 > 0) {
+          $amin = $group1[0];
+          $amax = $group1[0];
+          for ($i=0; $i<@group1; $i++) {
+            if ($group1[$i] < $amin) {
+              $amin = $group1[$i];
+            }
+            if ($group1[$i] > $amax) {
+              $amax = $group1[$i];
+            }
+          }
+          $amin++;
+          $amax++;
+        }
+        $newline .= " $amin $amax";
+        $newline .= " to";
+        if (@group2 > 0) {
+          $amin = $group2[0];
+          $amax = $group2[0];
+          for ($i=0; $i<@group2; $i++) {
+            if ($group2[$i] < $amin) {
+              $amin = $group2[$i];
+            }
+            if ($group2[$i] > $amax) {
+              $amax = $group2[$i];
+            }
+          }
+          $amin++;
+          $amax++;
+        }
+        $newline .= " $amin $amax";
+      }
+      if ($annotation ne "") {
+        $newline .= "      # $annotation";
+      }
+      $newline .= "\n";
+      push(@esp_constraints, $newline);
+    }
+  }
+}
+
+## Read geometry constraint/restraint file
+sub readCnstrntFile {
+  local($newline, $type, $value, $tgroup, $i);
+  local($forceConstant);
+  local(@group);
+  @fixed_atoms = ();
+  @geo_constraints = ();
+  @geo_restraints = ();
+
+  while (<GEOCNST>) {
+    if (/<Constraint/i) {
+      if (/Type\s*\=\s*\"\s*(\S*)\s*\"\s*>/i) {
+        $type = lc $1;
+      } else {
+        $type = "";
+      }
+      $newline = "";
+      @group = ();
+      while (<GEOCNST>) {
+        if (/<\/Constraint>/i) {
+          last;
+        }
+        if (/^\s*<Value>(.*)<\/Value>\s*$/i) {
+          $value = $1;
+        }
+        if (/^\s*<Group>(.*)<\/Group>\s*$/i) {
+          $tgroup = $1;
+          @group = split(/ +/,$tgroup);
+        }
+      }
+      if ($type eq "bond") {
+        $newline = "    bond";
+      } elsif ($type eq "angle") {
+        $newline = "    angle";
+      } elsif ($type eq "torsion") {
+        $newline = "    torsion";
+      } elsif ($type eq "fixed") {
+         push(@fixed_atoms,@group);
+      }
+      if ($type ne "fixed") {
+        for ($i=0; $i<@group; $i++) {
+          $itmp = $group[$i] + 1;
+          $newline .= " $itmp";
+        }
+        $newline .= " $value constant\n";
+        push(@geo_zcoords, $newline);
+      }
+    } elsif (/<Restraint/i) {
+      if (/Type\s*\=\s*\"\s*(\S*)\s*\"\s*>/i) {
+        $type = lc $1;
+      } else {
+        $type = "";
+      }
+      $newline = "";
+      @group = ();
+      while (<GEOCNST>) {
+        if (/<\/Restraint>/i) {
+          last;
+        }
+        if (/^\s*<Value>(.*)<\/Value>\s*$/i) {
+          $value = $1 * 1.889725989;
+        }
+        if (/^\s*<ForceConstant>(.*)<\/ForceConstant>\s*$/i) {
+          $forceConstant = $1;
+        }
+        if (/^\s*<Group>(.*)<\/Group>\s*$/i) {
+          $tgroup = $1;
+          @group = split(/ +/,$tgroup);
+        }
+      }
+      if ($type eq "bond") {
+        $newline = "  spring bond";
+      }
+      for ($i=0; $i<@group; $i++) {
+        $itmp = $group[$i] + 1;
+        $newline .= " $itmp";
+      }
+      $newline .= " $forceConstant $value\n";
+      push(@geo_restraints, $newline);
+    }
+  }
+  if (@fixed_atoms > 0) {
+    $ifix = (@fixed_atoms - @fixed_atoms%10)/10;
+    if (@fixed_atoms%10 > 0) {
+      $ifix++;
+    }
+    $icnt = 0;
+    for ($i=0; $i<$ifix; $i++) {
+      $plus10 = $icnt + 10;
+      $newline = "  fix atom";
+      while ($icnt < @fixed_atoms && $icnt < $plus10) {
+         $itmp = $fixed_atoms[$icnt] + 1;
+         $newline .= " $itmp";
+         $icnt++;
+      }
+      $newline .= "\n";
+      push(@geo_constraints, $newline);
+    } 
+  }
+}
+
+## the following has been replaced by including pertab.pl
+##
+## Load periodic table information from reference .tbl format
+# sub loadPT {
+#   $pt_tbl_file = $ENV{'ECCE_HOME'} . "/data/client/config/PeriodicTable";
+#   open(PT, $pt_tbl_file) || die "Sorry, Couldn't open specified file!\n";
+#   while (<PT>) {
+#     last if /\s*X/;
+#   }
+#   $count = 1;
+#   while (<PT>) {
+#     s/^\s*//;
+#     ($atom_symbol, $atom_name) = split;
+#     $symbol_to_name{$atom_symbol} = $atom_name;
+#     $name_to_symbol{$atom_name} = $atom_symbol;
+#     $symbol_to_number{$atom_symbol} = $count;
+#     $count++
+#       }
+# }
+
+## remove irrelevant sections from generated file
+## this is for NWChem only
+sub removeUnusedSections {
+  my $category = $AbiDict{"Category"};
+  my %toRemove;
+
+  $toRemove{"scf"} = 1  if ( $category eq "DFT" );
+  $toRemove{"dft"} = 1  unless ( $category eq "DFT" );
+  $toRemove{"mp2"} = 1  unless ( $category eq "MP" );
+  $toRemove{"ccsd"} = 1 unless ( $category eq "CC" );
+
+#  print "remove the headers: \@toRemove\n";
+
+  close(NEWFILE);
+  system("/bin/mv -f tmpfile tmpfile2");
+  open(NEWFILE2,"tmpfile2");
+  open(NEWFILE,">tmpfile");
+
+  my @field;
+  while (<NEWFILE2>) {
+    @field = split;
+    if ( $toRemove{$field[0]} == 1 ) {  # skip this line and until end
+      while (<NEWFILE2>) { last if /end/; }
+      $_ = <NEWFILE2>;
+    }
+    print NEWFILE "$_";
+  }
+  close NEWFILE2;
+}
+
+
+## Debugging Aid for dumping out the dictionary we just read
+sub dumpData {
+  foreach $key (sort keys %AbiDict) {
+    print "\"$key\" = \"$AbiDict{$key}\"\n";
+  }
+  print "$chemsys_name\n";
+  print "$chemsys_atoms\n";
+  for ($index = 0; $index < $chemsys_atoms; $index++) {
+    print "$tags{$index}$suffixHack{$index} $coords{$index,0} $coords{$index,1} $coords{$index,2}";
+    print "\n";
+  }
+}
+
+sub usage {
+  print "Usage: ai.gamess-uk -n <jobname> -p -f -q -b -c -t <template>\n\n";
+  print "Options: -n <jobname> specifies the jobname\n";
+  print "         -p specifies there is a parameter file called <jobname>.param\n";
+  print "         -f specifies there is a fragment file called <jobname>.frag\n";
+  print "         -q specifies there is a ESP file called <jobname>.esp\n";
+  print "         -b specifies there is a basisset file called <jobname>.basis\n";
+  print "         -c specifies there is a constraint file called <jobname>.con\n";
+  print "         -t <template> specifies the template file\n";
+  print "         -h or -help print the usage information\n";
+  print "         -v print the version information\n\n";
+  print "Purpose:\n";
+  print "    Take an AbiChem generated dictionary and produce an input\n";
+  print "    file for a GAMESS-UK run. Note that the template file is\n";
+  print "    overwritten when generating the input file.\n";
+ 
+  exit;
+}
+#
+#
+#
+sub handle_options {
+  &usage && exit if ( $opt_h || $opt_help );
+  $revision = '$Revision: 22972 $';
+  $revision =~ (s/\$//g);
+  print "$revision\n" if ( $opt_v );
+  exit if ( $opt_v );
+  $AbiFILE = "";
+  $FragFILE = "";
+  $BasisFILE = "";
+  $EspFILE = "";
+  $CnstrntFILE = "";
+  $TplFILE = "";
+  $AbiFILE = "$opt_n\.param" if ( $opt_p );
+  $FragFILE = "$opt_n\.frag" if ( $opt_f );
+  $BasisFILE = "$opt_n\.basis" if ( $opt_b );
+  $EspFILE = "$opt_n\.esp" if ( $opt_q );
+  $CnstrntFILE = "$opt_n\.con" if ( $opt_c );
+  $TplFILE = $opt_t;
+}
+#
+

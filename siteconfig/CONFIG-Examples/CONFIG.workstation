@@ -1,0 +1,25 @@
+################################################################################
+#
+# Synopis
+#  Example CONFIG file for workstation.
+#
+#  Workstations do not need custom configuration (in or experience).
+#
+#  Read the README file and refer to the ../submit.site file for 
+#  documentation on variables and syntax.
+#
+#  Note that all of the contents of this file are handled by the GUI.
+#
+#  $Date: 2003-02-12 08:51:20 -0800 (Wed, 12 Feb 2003) $
+#
+################################################################################
+
+#******
+# The following can be set through the registration GUI.
+#
+# perl path information is required only if it located in non-standard
+# location that is unlikely to be in the users path.  
+#******
+NWChem: /msrc/proj/nwchem/bin/nwchem
+Gaussian-98: /msrc/lapps/g98a11r12k/g98/g98
+Amica: /msrc/home/gdanitz/amica/platform/IRIX64/bin

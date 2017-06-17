@@ -1,0 +1,26 @@
+title:          Imidazole_cart
+type:           molecule
+cell_units:     angstroms
+num_atoms:      9
+atom_info:      symbol cart
+atom_list:
+  C  -0.273   1.154   0.013
+  N   0.974   0.883   0.007
+  C   1.165  -0.377  -0.007
+  N  -0.056  -0.982  -0.011
+  C  -0.983   0.016   0.002
+  H  -0.677   2.180   0.025
+  H   2.155  -0.862  -0.014
+  H  -0.226  -1.922  -0.020
+  H  -2.080  -0.091   0.004
+num_bonds:      9
+bond_list:
+ 1  2
+ 1  5
+ 1  6
+ 2  3
+ 3  4
+ 3  7
+ 4  5
+ 4  8
+ 5  9

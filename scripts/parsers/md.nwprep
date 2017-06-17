@@ -1,0 +1,431 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#     Script for generating input file for MD simulations
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+######
+# The command line arguments
+######
+
+%AbiDict = ();
+@PrepCmd = ();
+@PmfSel = ();
+@PmfDir = ();
+@LinkList = ();
+@CounterIonList = ();
+$icmd = 0;
+$ipmfsel = 0;
+$ipmfdir = 0;
+$ilink = 0;
+$ifile = 0;
+$idir = 0;
+$systemName = '';
+$calcId = '';
+$outputFragmentName = '';
+@ParamFiles = ();
+@Directories = ();
+
+while(<STDIN>) {
+  $line = $_;
+  if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+    $key = $1;
+    $value = $2;
+    $key2 = $3;
+    $AbiDict{$key} = $value;
+  } elsif ($line =~ /^\s*<CoordCommands>/) {
+    $icmd = 0;
+    while (<STDIN>) {
+      if (!/^\s*<\/CoordCommands>/) {
+        $line = $_;
+        if ($line =~ /^\s*<Command>([^<]*)<\/Command>\s*$/) {
+          $value = $1;
+          $PrepCmd[$icmd] = $value;
+          $icmd++;
+        }
+      } else {
+        last;
+      }
+    }
+  } elsif ($line =~ /^\s*<PmfSelections>/) {
+    $ipmfsel = 0;
+    while (<STDIN>) {
+      if (!/^\s*<\/PmfSelections>/) {
+        $line = $_;
+        if ($line =~ /^\s*<PmfSelection>([^<]*)<\/PmfSelection>\s*$/) {
+          $value = $1;
+          $PmfSel[$ipmfsel] = $value;
+          $ipmfsel++;
+        }
+      } else {
+        last;
+      }
+    }
+  } elsif ($line =~ /^\s*<PmfDirectives>/) {
+    $ipmfdir = 0;
+    while (<STDIN>) {
+      if (!/^\s*<\/PmfDirectives>/) {
+        $line = $_;
+        if ($line =~ /^\s*<PmfDirective>([^<]*)<\/PmfDirective>\s*$/) {
+          $value = $1;
+          $PmfDir[$ipmfdir] = $value;
+          $ipmfdir++;
+        }
+      } else {
+        last;
+      }
+    }
+  } elsif ($line =~ /^\s*<AtomLinks>/) {
+    $ilnk = 0;
+    while (<STDIN>) {
+      if (!/^\s*<\/AtomLinks>/) {
+        $line = $_;
+        if ($line =~ /^\s*<Link>([^<]*)<\/Link>\s*$/) {
+          $value = $1;
+          $LinkList[$ilnk] = $value;
+          $ilnk++;
+        }
+      } else {
+        last;
+      }
+    }
+  } elsif ($line =~ /^\s*<CounterIons>/) {
+    $ions = 0;
+    while (<STDIN>) {
+      if (!/^\s*<\/CounterIons>/) {
+        $line = $_;
+        if ($line =~ /^\s*<Ion>([^<]*)<\/Ion>\s*$/) {
+          $value = $1;
+          $CounterIonList[$ions] = $value;
+          $ions++;
+        }
+      } else {
+        last;
+      }
+    }
+  } elsif ($line =~ /^\s*<ForceFieldFiles>/) {
+    $ifile = 0;
+    while (<STDIN>) {
+      if (!/^\s*<\/ForceFieldFiles>/) {
+        $line = $_;
+        if ($line =~ /^\s*<File>([^<]*)<\/File>\s*$/) {
+          $value = $1;
+          $ParamFiles[$ifile] = $value;
+          $ifile++;
+        }
+      } else {
+        last;
+      }
+    }
+  } elsif ($line =~ /^\s*<ForceFieldDirectories>/) {
+    $idir = 0;
+    while (<STDIN>) {
+      if (!/^\s*<\/ForceFieldDirectories>/) {
+        $line = $_;
+        if ($line =~ /^\s*<Directory>([^<]*)<\/Directory>\s*$/) {
+          $value = $1;
+          $Directories[$idir] = $value;
+          $idir++;
+        }
+      } else {
+        last;
+      }
+    }
+  }
+}
+
+if (defined($AbiDict{"SystemName"})) {
+  $systemName = $AbiDict{"SystemName"};
+}
+
+if (defined($AbiDict{"CalcId"})) {
+  $calcId = $AbiDict{"CalcId"};
+}
+
+if (defined($AbiDict{"OutputFragmentName"})) {
+  $outputFragmentName = $AbiDict{"OutputFragmentName"};
+}
+
+
+print "start $systemName\n\n";
+if (defined($AbiDict{"UseMemory"}) && (defined($AbiDict{"HeapMemory"}) ||
+    defined($AbiDict{"StackMemory"}) ||
+    defined($AbiDict{"GlobalMemory"}))) {
+  if ($AbiDict{"UseMemory"} != 0) {
+    print "memory";
+    if (defined($AbiDict{"HeapMemory"})) {
+      $value = $AbiDict{"HeapMemory"};
+      print " heap $value";
+    }
+    if (defined($AbiDict{"StackMemory"})) {
+      $value = $AbiDict{"StackMemory"};
+      print " stack $value";
+    }
+    if (defined($AbiDict{"GlobalMemory"})) {
+      $value = $AbiDict{"GlobalMemory"};
+      print " global $value";
+    }
+    print " mb\n\n";
+  }
+}
+
+print "ecce_print ecce.out\n\n";
+
+print "prepare\n";
+
+# merge parameter files and segment directories to create a minimal
+# list of directory inputs
+
+%UniqueParamDirectories = {};
+@ParamDirectories = ();
+@FF_File = ();
+@link = ();
+$icnt = 0;
+for ($i=0; $i<$ifile; $i++) {
+  if ($ParamFiles[$i] =~ /(^\/.*\/)([^\/]*$)/) {
+    $dir = $1;
+    $file = $2;
+# Remove file slash
+    chop($dir);
+# Remove white space
+    $dir =~ s/^\s*//;
+    $dir =~ s/\s*$//;
+    $file =~ s/^\s*//;
+    $file =~ s/\s*$//;
+    if ($file ne "") {
+      if (!defined($UniqueParamDirectories{$dir})) {
+        $UniqueParamDirectories{$dir} = $icnt;
+        $link[$icnt] = -1;
+      } else {
+        $link[$icnt] = $UniqueParamDirectories{$dir};
+        $UniqueParamDirectories{$dir} = $icnt;
+      }
+      $ParamDirectories[$icnt] = $dir;
+      $FF_Files[$icnt] = $file;
+      $icnt++;
+    }
+  }
+}
+
+# Clean off terminal slashes on directories, if present
+for ($i=0; $i<$idir; $i++) {
+  if ($Directories[$i] =~ /\/$/) {
+    chop($Directories[$i]);
+  }
+}
+
+# Set parameter files and segment directories from configuration dialog
+$j=0;
+for ($i=0; $i<$idir; $i++) {
+  if (!defined($UniqueParamDirectories{$Directories[$i]})) {
+    $j++;
+    print "  directory_$j $Directories[$i]\n";
+  }
+}
+for ($i=0; $i<$icnt; $i++) {
+  $j++;
+  print "  directory_$j $ParamDirectories[$i]" . "\/" . "$FF_Files[$i]\n";
+}
+
+print "  system ".$systemName."_".$calcId."\n";
+if (defined($AbiDict{"IsFirstTask"})) {
+  if ($AbiDict{"IsFirstTask"} == 0) {
+    print "  read ".$systemName."_".$calcId."\.rst\n";
+  } else {
+    print "  source pdb\n";
+  }
+} else {
+  print "  source pdb\n";
+}
+print "  amber\n";
+
+
+if (defined($AbiDict{"PrintLevel"})) {
+  $model = lc $AbiDict{"PrintLevel"};
+  print "  print $model\n";
+}
+
+if (defined($AbiDict{"PDBModel"})) {
+  $model = $AbiDict{"PDBModel"};
+  print "  model $model\n";
+}
+
+if (defined($AbiDict{"PDBAltLoc"})) {
+  $altloc = $AbiDict{"PDBAltLoc"};
+  print "  altloc $altloc\n";
+}
+
+if (defined($AbiDict{"PDBChainID"})) {
+  $chain = uc $AbiDict{"PDBChainID"};
+  print "  chain $chain\n";
+}
+
+if (defined($AbiDict{"Histidine"})) {
+  $histidine = uc $AbiDict{"Histidine"};
+  print "  histidine $histidine\n";
+}
+
+if (defined($AbiDict{"SolventOption"})) {
+  $check = 1;
+  $name = "";
+  $model = "";
+  if (defined($AbiDict{"SolventName"})) {
+    $name = $AbiDict{"SolventName"};
+  } else {
+    $check = 0;
+  }
+  if ($name =~ /^\s*$/) {
+    $check = 0;
+  }
+  if (defined($AbiDict{"SolventModel"})) {
+    $model = $AbiDict{"SolventModel"};
+  } else {
+    $check = 0;
+  }
+  if ($model =~ /^\s*$/) {
+    $check = 0;
+  }
+  if ($check == 1) {
+    print "  solvent name $name model $model\n";
+  }
+} 
+
+for ($i=0; $i<$ilnk; $i++) {
+  print "$LinkList[$i]\n";
+}
+
+for ($i=0; $i<$ions; $i++) {
+  print "$CounterIonList[$i]\n";
+}
+if (defined($AbiDict{"CounterIonScale"}) &&  $ions > 0) {
+  $scale = $AbiDict{"CounterIonScale"};
+  print "  counter $scale\n";
+}
+
+if (defined($AbiDict{"CounterIonGridSize"}) &&
+    defined($AbiDict{"MinimumAtomIonDistance"})) {
+  $gridsz = $AbiDict{"CounterIonGridSize"};
+  $mindis = $AbiDict{"MinimumAtomIonDistance"};
+  print "  grid $gridsz $mindis\n";
+}
+for ($i=0; $i<$icmd; $i++) {
+  print "$PrepCmd[$i]\n";
+}
+
+if (defined($AbiDict{"UseFractions"})) {
+  if ($AbiDict{"UseFractions"} == 1) {
+    $cmd = "  fraction";
+    $icnt = 0;
+    if (defined($AbiDict{"Fraction1"})) {
+      $value = $AbiDict{"Fraction1"};
+      if ($value > 0) {
+        $cmd .= " $value";
+        $icnt++;
+      }
+    }
+    if (defined($AbiDict{"Fraction2"})) {
+      $value = $AbiDict{"Fraction2"};
+      if ($value > 0) {
+        $cmd .= " $value";
+        $icnt++;
+      }
+    }
+    if (defined($AbiDict{"Fraction3"})) {
+      $value = $AbiDict{"Fraction3"};
+      if ($value > 0) {
+        $cmd .= " $value";
+        $icnt++;
+      }
+    }
+    if (defined($AbiDict{"Fraction4"})) {
+      $value = $AbiDict{"Fraction4"};
+      if ($value > 0) {
+        $cmd .= " $value";
+        $icnt++;
+      }
+    }
+    if (defined($AbiDict{"Fraction5"})) {
+      $value = $AbiDict{"Fraction5"};
+      if ($value > 0) {
+        $cmd .= " $value";
+        $icnt++;
+      }
+    }
+    if (defined($AbiDict{"Fraction6"})) {
+      $value = $AbiDict{"Fraction6"};
+      if ($value > 0) {
+        $cmd .= " $value";
+        $icnt++;
+      }
+    }
+    if (defined($AbiDict{"Fraction7"})) {
+      $value = $AbiDict{"Fraction7"};
+      if ($value > 0) {
+        $cmd .= " $value";
+        $icnt++;
+      }
+    }
+    if (defined($AbiDict{"Fraction8"})) {
+      $value = $AbiDict{"Fraction8"};
+      if ($value > 0) {
+        $cmd .= " $value";
+        $icnt++;
+      }
+    }
+    if (defined($AbiDict{"Fraction9"})) {
+      $value = $AbiDict{"Fraction9"};
+      if ($value > 0) {
+        $cmd .= " $value";
+        $icnt++;
+      }
+    }
+    if (defined($AbiDict{"Fraction10"})) {
+      $value = $AbiDict{"Fraction10"};
+      if ($value > 0) {
+        $cmd .= " $value";
+        $icnt++;
+      }
+    }
+    if ($icnt > 0) {
+      print "$cmd\n";
+    }
+  }
+}
+
+if ($ipmfsel > 0) {
+  print "  free\n";
+}
+for ($i=0; $i<$ipmfsel; $i++) {
+  print "  $PmfSel[$i]\n";
+}
+for ($i=0; $i<$ipmfdir; $i++) {
+  print "  $PmfDir[$i]\n";
+}
+
+if (defined($AbiDict{"ChangedTopology"})) {
+  if ($AbiDict{"ChangedTopology"} == 1) {
+    print "  new_top new_seq\n";
+  }
+} else {
+  print "  new_top new_seq\n";
+}
+
+print "  write $outputFragmentName\n";
+print "  write rst\n";
+
+print "end\n";
+print "task prepare\n";
+
+exit(0);

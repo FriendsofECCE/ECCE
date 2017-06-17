@@ -1,0 +1,36 @@
+name
+McLean/Chandler VTZ
+name
+type
+other_segmented
+type
+category
+ORBITAL
+category
+spherical
+N
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+
+!
+
+references
+info
+                  McLean - Chandler Valence Triple Zeta Basis
+                  -------------------------------------------
+Elements      Contraction                       Reference
+Na - Ar  (12s,9p)    -> [6s,5p]    A.D. McLean and G.S. Chandler
+                                   J. Chem. Phys. 72, 5639, (1980)
+
+
+
+info
+comments
+3/16/99  - DFF - Correct error in Al s exponent, 0.652370 -> 0.0652370.
+8/24/94  - DFF - Correct error in NUMEXP for P in Al.
+5/12/92  - DFF - Correct error in phoshporus exponent
+3/21/92  - DFF - Original creation of this file.
+comments

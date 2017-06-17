@@ -1,0 +1,1003 @@
+#!/usr/bin/env perl
+###############################################################################
+# FILENAME:  NWChem.expt
+#
+#
+# SYNTAX: NWChem.expt <outfile>
+#
+# PURPOSE:
+#       Reads a NWChem output file and generates an ECCE' .frag,
+#       .basis, and .
+#
+# DESCRIPTION:
+#
+# LIMITATIONS:
+#
+# TO DO:
+#   frozen orbs for CC, MP
+#   direct MP and RIMP
+#    RISCF
+#    saddle point search
+#
+###############################################################################
+###############################################################################
+## Start Of Main Routine
+###############################################################################
+{
+# Uncomment the following for debug output
+# my $debug = "true";
+
+# package for command-line options like -v
+use Getopt::Std;
+
+# provides loadPT to setup periodic table hashes
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+require "pertab.pl";
+
+# Force output to be flushed
+  $| = 1;
+#
+#  Handle the options
+#
+  &getopts(':hv');  # any option before ":" would take an argument
+  &handle_options;
+  if ($#ARGV != 0) { &usage; }
+
+## Setup dates and such
+  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
+  $month = (January, February, March, April, May, June,
+            July, August, September, October, November, December)[$mon];
+
+
+  &loadPT;
+
+#&setupBasisTranslation;   # NameToBasis associative array
+
+  open(INPUT, $ARGV[0]) || die "Can't locate log file $ARGV[0]";
+
+# initialize
+  $basisData = "";
+  $numbasis = 0;
+  $sphericalBasis = "false";
+  $guiDict   = "";
+
+  &parseInputFile;
+
+  &writeDictAndMVM($ARGV[0]);
+  exit(0);
+}
+###############################################################################
+## End Of Main Routine
+###############################################################################
+
+##
+## writeDictAndMVM
+##    Dump out a dictionary and mvm file to be read by the caller
+##    (hopefully the Experiment import routine).  The file names
+##    used are the passed file name with the ".???" extension
+##    replaced with ".mvm" and ".param".  This also dumps the GBS
+##    file if the general specification was located in the logfile.
+##
+sub writeDictAndMVM {
+  local($rootFile) = @_;
+  $rootFile =~ s/\.[^\.]*$//;
+
+  open(PARAMS, ">$rootFile.param");
+  $title =~ tr/\|/ /;
+  if (defined($title)) { print(PARAMS "title:\t\\|$title\n"); }
+  if (defined($version)) { print(PARAMS "version:\t$version\n"); }
+  if (defined($architecture)) {
+                              print(PARAMS "architecture:\t$architecture\n"); }
+  if (defined($memory)) { print(PARAMS "memory:\t$memory\n"); }
+  if (defined($numProc)) { print(PARAMS "nproc:\t$numProc\n"); }
+  if (defined($theoryCat)) { print(PARAMS "Category:\t$theoryCat\n"); }
+  if (defined($theory)) { print(PARAMS "Theory:\t$theory\n"); }
+  if (defined($runType)) { print(PARAMS "RunType:\t$runType\n"); }
+  if (defined($charge)) { print(PARAMS "charge:\t$charge\n"); }
+  if (defined($multiplicity)) {
+                   print(PARAMS "ES.ChemSys.Multiplicity:\t$multiplicity\n"); }
+  if (defined($startDate)) { $startDate =~ tr/\|/ /;
+                             print(PARAMS "StartDate:\t\\|$startDate\n"); }
+  if (defined($startTime)) { $startTime =~ tr/\|/ /;
+                             print(PARAMS "StartTime:\t\\|$startTime\n"); }
+  if (defined($endDate)) { $endDate =~ tr/\|/ /;
+                           print(PARAMS "EndDate:\t\\|$endDate\n"); }
+  if (defined($endTime)) { $endTime =~ tr/\|/ /;
+                           print(PARAMS "EndTime:\t\\|$endTime\n"); }
+  if (defined($basis) && ($basis ne "gen"))
+                         { print(PARAMS "basis:\t\\|$basis\n"); }
+  if (defined($guiDict)) { print(PARAMS "$guiDict\n"); }
+  if ($sphericalBasis eq "true") 
+                          { print(PARAMS "SphericalBasis:\tTRUE\n"); }
+
+  #########################################################################
+  #  try a bogus basis name...
+  ########################################################################
+#  print(PARAMS "basis:\t\\|$basis\n");
+
+  close(PARAMS);
+
+  open(MOL, ">$rootFile.frag");
+  print(MOL "$molecule");
+  close(MOL);
+
+  @aolist = values(%aobasis);
+  if ($basisData ne "" || @aolist > 0) {
+    
+    open(GBS, ">$rootFile.gbs");
+    if (@aolist > 0) {
+      print(GBS "NameBasis\n");
+      if ($sphericalBasis eq "true") {
+        $type = "spherical";
+      } else {
+        $type = "cartesian";
+      }
+      if (@aolist > 0) {
+        print(GBS "  basis \"ao basis\" $type\n");
+        foreach $elem (keys(%aobasis)) {
+          if (!($elem =~ /\s*\*\s*/)) {
+            print(GBS "    $elem library $aobasis{$elem}\n");
+          } else {
+            foreach $sym (keys(%atomList)) {
+              if (!defined($aobasis{$sym})) {
+                print(GBS "    $sym library $aobasis{$elem}\n");
+              }
+            }
+          }
+        }
+        print(GBS "  END\n");
+      }
+      print(GBS "EndNameBasis\n");
+    }
+    if ($numbasis == 1) {
+      print(GBS "NumericalBasis\n");
+      print(GBS "$basisData");
+      print(GBS "EndNumericalBasis\n");
+    }
+    close(GBS);
+
+  }
+}
+
+##############################################################################
+#
+#  Description:
+#      Parse the echoed input file for:
+#      o molecular geometry
+#      o calculation title
+#      o charge
+#      o multiplicity (# of open shells in SCF or DFT section)
+#       
+#    This could probably be broken up into subroutine rather nicely...
+#
+############################################################################## 
+sub parseInputFile {
+
+  # This used to be within the MP section which presumably means
+  # the values were going out of scope.
+
+  my($numCore,$numVirtual) = (0,0);
+
+  my $read_echo = 1;
+  my $find_geom = 0;
+  my $find_tags = 0;
+  my $icnt;
+  my (@atags,@coordx,@coordy,@coordz, @asuffix);
+
+  $read_is_okay = 0;
+  while (<INPUT>) {
+
+    if (/%begin%input file/) {
+      $read_is_okay = 1;
+    }
+    if ($read_is_okay==0) {
+      next;
+    }
+    # Now we may have to get the basis info from the output
+    # section for files not created in ecce so we can no longer break on:
+    #   last if (/%end%input file/i);
+    if (/bas_input%end/i && $find_geom == 1) {
+      last;
+    }
+    elsif (/bas_input%end/i && $find_geom == 0) {
+      $read_echo = 0;
+    }
+############################################################################## 
+#  No geometry was found in echoed input deck so we had to parse the rest
+#  of the file to find useable geometry. Now need to check and see if we can
+#  quit from parsing.
+##############################################################################
+    if ($find_geom == 1 && $find_tags == 1 && read_echo == 0) {
+      $atomSection = "atom_info:\tsymbol cart\n";
+      $atomSection .= "atom_list:\n";
+      if ($suffixCheck == 1) {
+        $suffixSection = "suffix_list:\n";
+      }
+      $icnt = 0;
+      while ($icnt <= $centerNum) {
+         $atomSection .= "$atags[$icnt] $coordx[$icnt] $coordy[$icnt] $coordz[$icnt]\n";
+         if ($suffixCheck == 1) {
+           $suffixSection .= "$asuffix[$icnt]\n";
+         }
+         $icnt++;
+      }
+      last;
+    }
+
+    if (/^\s*title\S*(.*)/i && $read_echo == 1) {
+      $title = $1;
+
+    } elsif ( /^\s*charge\S*(.*)/i && $read_echo == 1) {
+      $charge = $1;
+
+    } elsif ( /^\s*geometry\S*(.*)$/i && $read_echo == 1) {
+      $unitMult = 1.0;
+      if (/bohr/i == 1 || /units\s*au/i == 1) { $unitMult = 0.529177; }
+      if (/nanometers/i == 1 || /units\s*nm/i == 1) { $unitMult = 10.0; }
+      if (/picometers/i == 1 || /units\s*pm/i == 1) { $unitMult = 0.01; }
+      $otherStuff = $1; # units or zmatrix (not handled yet)
+      $atomSection = "atom_info:\tsymbol cart\n";
+      $atomSection .= "atom_list:\n";
+      $suffixSection = "suffix_list:\n";
+      $suffixCheck = 0;
+      $centerNum = 0;
+      $totalNuclearCharge = 0;
+      $defaultCoreOrbs = 0;
+
+      while (<INPUT>) {
+
+        if (/^\s*end/i) {
+          $find_geom = 1;
+          last;
+        }
+
+######################################################################
+# NWChem symmetry input only includes symmetry-unique atoms. Bail out
+# for now and try to find geometry in output beyond the echoed input
+# deck. Ignore comments in geometry section (lines beginning with #)
+# and blank lines.
+######################################################################
+        if (!/^\s*\#/ && !/^\s*$/) {
+          if ( /^\s*symmetry/i ) {
+            last unless ( /c1/i );
+          }
+          if ( /^\s*zcoord/i || /^\s*zmatrix/i || /^\s*zmat/i || /^\s*zmt/i ) {
+            while(<INPUT>) {
+              if (/^\s*end/i) { last;}
+            }
+            if (/^\s*end\s*$/i) {last;}
+          }
+
+          s/^\s*//;
+          my($symbol,$x,$y,$z,$znuc);
+          ($symbol,$x,$y,$z) = split;
+          $symbol =~ s/^\s*//;
+          $symbol =~ s/\s*$//;
+          $symbol =~ /([a-zA-Z][a-zA-Z]?)(.*)/;
+          $symbol  = $1;
+          $suffix  = $2;
+          if ($suffix ne "") {
+            $suffixCheck = 1;
+          }
+          $x *= $unitMult;
+          $y *= $unitMult;
+          $z *= $unitMult;
+          $lcsymbol = ucfirst lc $symbol;
+          if (!defined($atomList{$lcsymbol})) {
+            $atomList{$lcsymbol} = $lcsymbol;
+          }
+          $centerNum++;
+          $znuc = $symbol_to_number{$lcsymbol};
+          $totalNuclearCharge += $znuc;
+          $defaultCoreOrbs += &numCoreElectrons($znuc)/2;
+
+          if (defined($debug)) {
+            print "running nuclear charge: $totalNuclearCharge\n";
+            print "running core electrons: $defaultCoreOrbs\n";
+          }
+          s/^\s*//; 
+          $atomSection .= "$symbol $x $y $z\n";
+          $suffixSection .= "$suffix\n";
+        }
+
+      }
+    } elsif ( /^\s*basis\s*"ao basis"(.*)$/i && $basisData eq ""
+             && $read_echo == 1) {
+      ########################################################################
+      # process basis set specification.  For now just explicit basis spec,
+      # not keywords for the NWChem library
+      ########################################################################
+      $otherStuff = $1; # cart/spherical and segmented/general; not yet used
+      if ($otherStuff =~ /spherical/i) {
+        $sphericalBasis = "true";
+      }
+
+      $basisData .= $_;
+
+      while (<INPUT>) {
+        # check to see if one of the libarary basis functions is being used
+        if (/^\s*(\S*)\s*library\s*(.*)\s*$/i) {
+          $elem = $1;
+          $elem = ucfirst lc $elem;
+          $basisname = $2;
+          if (!($basisname =~ /^\s*\"/)) {$basisname = "\"$basisname";}
+          if (!($basisname =~ /\"\s*$/)) {$basisname = "$basisname\"";}
+          $aobasis{$elem} = lc $basisname;
+        } else {
+          if (!(/basis/ || /end/i)) {$numbasis = 1};
+          $basisData .= $_;
+        }
+        last if (/^\s*end/i);
+      }
+
+    } elsif ( /^\s*basis\s*(.*)$/i
+             && !/^\s*basis\*"ao basis"(.*)$/i
+             && !/^\s*basis\*"cd basis"(.*)$/i
+             && !/^\s*basis\*"xc basis"(.*)$/i
+             && $basisData eq "" && $read_echo == 1) {
+      print "Import will not read basis set names other than \"ao basis\"";
+    } elsif ( /^\s*scf/i && $read_echo == 1) {
+      ########################################################################
+      # parse the scf section
+      ########################################################################
+
+      while (<INPUT>) {
+        last if (/^\s*end/i);
+
+#       nopen is the number of open shells
+        if ( /^\s*nopen\S*(.*)/i ) {
+          $multiplicity = 1 + $1;
+        }
+
+#       alternatively, may find an explicit spin multiplicity by name
+        if ( /^\s*singlet/i ) {
+          $multiplicity = 1;
+        } elsif ( /^\s*doublet/i ) {
+          $multiplicity = 2;
+        } elsif ( /^\s*triplet/i ) {
+          $multiplicity = 3;
+        } elsif ( /^\s*quartet/i ) {
+          $multiplicity = 4;
+        } elsif ( /^\s*quintet/i ) {
+          $multiplicity = 5;
+        } elsif ( /^\s*sextet/i ) {
+          $multiplicity = 6;
+        } elsif ( /^\s*septet/i ) {
+          $multiplicity = 7;
+        } elsif ( /^\s*octet/i ) {
+          $multiplicity = 8;
+        }
+
+#       rhf, rohf, or uhf theory type give the spin restriction
+        if ( /rhf/i ) {
+          $spinRestriction = "R";
+        } elsif ( /rohf/i ) {
+          $spinRestriction = "RO";
+        } elsif ( /uhf/i ) {
+          $spinRestriction = "U";
+        }
+      } #
+
+    } elsif ( /^\s*dft/i && $read_echo == 1) {
+      ########################################################################
+      # parse the dft section
+      # get the coulomb and exchange-correlation functional names.  
+      # eventually these will be used to generate a $theory
+      ########################################################################
+
+      while (<INPUT>) {
+        last if (/^\s*end/i);
+
+#       nopen is the number of open shells
+        if ( /^\s*mult\S*(.*)/i ) {
+          $multiplicity = $1;
+          if ($1 != 1) {
+            $spinRestriction = "U";
+          }
+        }
+
+#       dft or odft for spin-restricted and spin-unrestricted
+        if ( /^\s*odft/i ) {
+          $spinRestriction = "U";
+        } elsif ( /^\s*dft/i ) {
+          $spinRestriction = "R";
+          if (defined($multiplicity) && $multiplicity != 1) {
+            $spinRestriction = "U";
+          }
+        }
+
+#       exchange, correlation, or hybrid functional
+        if ( /^\s*xc\s+(.*)$/ ) {
+
+          $combined = "";
+          $exchange = "";
+          $correlation = "";
+
+#           combined functionals
+	  if ( /svwn_5/ ) {
+	    $combined = "svwn_5";
+	  } elsif ( /svwn_1_rpa/ ) {
+	    $combined = "svwn_1_rpa";
+	  } elsif ( /blyp/ ) {
+	    $combined = "blyp";
+	  } elsif ( /adiabatic/ ) {
+	    $combined = "adiabatic";
+	  } elsif ( /b3lyp/ ) {
+	    $combined = "b3lyp";
+	  } elsif ( /beckehnh/ ) {
+	    $combined = "beckehnh";
+	  }
+
+#           exchange functionals
+	  if ( /slater/ ) {
+	    $exchange = "slater";
+	  } elsif ( /becke88/ ) {
+	    $exchange = "becke88";
+	  } elsif ( /HFexch/ ) {
+	    $exchange = "HFexch";
+	  } elsif ( /becke3/ ) {
+	    $exchange = "becke3";
+	  }
+
+#           correlation functionals
+	  if ( /vwn_1/ ) {
+	    $correlation = "vwn_1";
+	  } elsif ( /vwn_2/ ) {
+	    $correlation = "vwn_2";
+	  } elsif ( /vwn_3/ ) {
+	    $correlation = "vwn_3";
+	  } elsif ( /vwn_4/ ) {
+	    $correlation = "vwn_4";
+	  } elsif ( /vwn_5/ ) {
+	    $correlation = "vwn_5";
+	  } elsif ( /vwn_1_rpa/ ) {
+	    $correlation = "vwn_1_rpa";
+	  } elsif ( /perdew81/ ) {
+	    $correlation = "perdew81";
+	  } elsif ( /pw91lda/ ) {
+	    $correlation = "pw91lda";
+	  } elsif ( /lyp/ ) {
+	    $correlation = "lyp";
+	  } elsif ( /perdew86/ ) {
+	    $correlation = "perdew86";
+	  } elsif ( /perdew91/ ) {
+	    $correlation = "perdew91";
+	  }
+
+#           later, $theory will be set here
+	  if ( $combined ) {
+	    $guiDict .= "ES.Theory.DFT.XCFunctionals:\t $combined\n";
+	  } else {
+	    if ( $exchange ) {
+	      $guiDict .= "ES.Theory.DFT.ExchangeFunctionals:\t $exchange\n";
+	    }
+	    if ( $correlation ) {
+	      $guiDict .=
+		  "ES.Theory.DFT.CorrelationFunctionals:\t $correlation\n";
+	    }
+	  }
+	}
+	
+      } # end while loop over dft section
+
+    } elsif ( /^\s*mp2/i && $read_echo == 1) {
+      ########################################################################
+      # parse the mp2 section  (frozen orbitals)
+      ########################################################################
+
+
+      while (<INPUT>) {
+
+        last if (/^\s*end/i);
+
+#       frozen core and virtual orbitals.  both directives can be on one
+#       line, or on separate lines.
+	if ( /^\s*freeze/i ) {
+
+	  if ( /virtual\s+(\d+)/i ) {
+	    $numVirtual = $1;
+	  }
+
+	  if ( /core\s+(\d+)/i ) {
+	    $numCore = $1;
+	  }
+
+	  if ( /freeze\s+(\d+)/i ) {
+	    $numCore = $1;
+	  }
+
+#         if numbers of virtuals and cores not set, use default frozen core
+#         from the geometry parse code above
+          print "numCore = $numCore\n";
+          print "numVirtual = $numVirtual\n";
+          print "defaultCoreOrbs = $defaultCoreOrbs\n";
+	  if ( !$numCore && !$numVirtual ) {
+	    $numCore = $defaultCoreOrbs;
+	  }
+
+	}
+
+      } # end loop over mp2 lines
+
+#     add frozen core and virtuals to the dictionary.  Default is a
+#     problem here.  
+      if ( $numCore ) {
+	$guiDict .= "ES.Theory.CorrelOrb.FrozenCoreValue:\t $numCore\n";
+      }
+
+      if ( $numVirtual ) {
+	$guiDict .= "ES.Theory.CorrelOrb.FrozenVirtualValue:\t $numVirtual\n";
+      }
+
+    } elsif ( /^\s*ccsd/i && $read_echo == 1) {
+      ########################################################################
+      # parse the ccsd section  (frozen orbitals)
+      ########################################################################
+
+      while (<INPUT>) {
+
+        last if (/^\s*end/i);
+
+#       frozen core and virtual orbitals.  both directives can be on one
+#       line, or on separate lines.
+	if ( /^\s*freeze/i ) {
+
+	  if ( /virtual\s+(\d+)/i ) {
+	    $numVirtual = $1;
+	  }
+
+	  if ( /core\s+(\d+)/i ) {
+	    $numCore = $1;
+	  }
+
+	  if ( /freeze\s+(\d+)/i ) {
+	    $numCore = $1;
+	  }
+
+#         if numbers of virtuals and cores not set, use default frozen core
+#         from the geometry parse code above
+	  if ( !$numCore && !$numVirtual ) {
+	    $numCore = $defaultCoreOrbs;
+	  }
+
+	}
+
+      }
+
+    } elsif ( /^\s*task/i && !(/^\s*task_/i) && $read_echo == 1) {
+      ########################################################################
+      # accumulate the task line(s) (parse below)
+      ########################################################################
+      push(@taskLines,$_);
+
+  #############################################################################
+  #  No geometry has been found up to now. Keep searching remainder of
+  #  file for a useable geometry. Start by finding a set of atomic coordinates.
+  #  No way to deal with units if we get to here.
+  #############################################################################
+    } elsif (/begin%cartesian coordinates/i && $read_echo == 0 && find_geom == 0) {
+
+      $centerNum = 0;
+
+      while (<INPUT>) {
+         if (/end%cartesian coordinates/i) {
+            $find_geom = 1;
+            last;
+         }
+         s/^\s*//;
+         my ($x,$y,$z);
+         ($x,$y,$z) = split;
+         $coordx[$centerNum] = $x;
+         $coordy[$centerNum] = $y;
+         $coordz[$centerNum] = $z;
+         $centerNum++;
+      }
+  #############################################################################
+  #  Find a set of atomic tags to go with atomic coordinates.
+  #############################################################################
+    } elsif (/begin%atomic tags/i && $read_echo == 0 && find_tags == 0) {
+
+      $totalNuclearCharge = 0;
+      $defaultCoreOrbs = 0;
+      $icnt = 0;
+
+      while (<INPUT>) {
+         if (/end%atomic tags/i) {
+            $find_tags = 1;
+            last;
+         }
+         s/^\s*//;
+         chomp;
+         my ($symbol,$znuc);
+         $symbol = ucfirst lc $_;
+  #############################################################################
+  #  Check to see if atomic symbol is a recognized element type. If not, then
+  #  see if a recognizable element can be derived from it by dropping off some
+  #  of the trailing characters.
+  #############################################################################
+         $suffix = "";
+         if (!defined($symbol_to_name{$symbol})) {
+  #############################################################################
+  #  First two characters are a recognizable symbol
+  #############################################################################
+           if ( $symbol =~ /\s*([A-Z][a-z])(\S*)/ ) {
+             if (defined($symbol_to_name{$1})) {
+               $symbol = $1;
+               $suffix = $2;
+             }
+  #############################################################################
+  #  First character is a recognizable symbol
+  #############################################################################
+           } elsif ( $symbol =~ /\s*([A-Z])(\S*)/ ) {
+             if (defined($symbol_to_name{$1})) {
+               $symbol = $1;
+               $suffix = $2;
+             }
+           }
+           if ($suffix ne "") {
+             $suffixCheck = 1;
+           }
+         }
+         if (!defined($atomList{$symbol})) {
+           $atomList{$symbol} = $symbol;
+         }
+         $atags[$icnt] = $symbol;
+         $asuffix[$icnt] = $suffix;
+	 $znuc = $symbol_to_number{$symbol};
+         $totalNuclearCharge += $znuc;
+         $defaultCoreOrbs += &numCoreElectrons($znuc);
+         $icnt++;
+      }
+    }
+  } # end loop over echoed input file lines
+
+  ########################################################################
+  # process parsed information
+  ########################################################################
+  $numberOfElectrons = $totalNuclearCharge - $charge;
+
+  $molecule = "title:\t$title\n";
+  $molecule .= "type:\tmolecule\n";
+  $molecule .= "charge:\t$charge\n";
+  $molecule .= "num_atoms:\t$centerNum\n$atomSection";  # need $centernum
+  if ($suffixCheck == 1) {
+    $molecule .= "$suffixSection";
+  }
+
+  if (defined($debug)) {
+    print "molecule: $molecule\n";
+  }
+
+  ########################################################################
+  #  map NWChem task and theory keywords to ECCE' RunType and TheoryCategories
+  #  not all are supported in ECCE'
+  #  nwchem theories:
+  #      scf - Hartree-Fock 
+  #      dft - Density functional theory for molecules 
+  #      gapss - Density functional theory for periodic systems 
+  #      mp2 - MP2 using a semi-direct algorithm 
+  #      direct_mp2 - MP2 using a full-direct algorithm
+  #      rimp2 - MP2 using the RI approximation 
+  #      ccsd - Coupled-cluster single and double excitations 
+  #      ccsd+t(ccsd) - fourth order triples from converged singles and doubles
+  #      ccsd(t) - not yet available.  Full perturbative (not iterated) triples.
+  #      mcscf - Multiconfiguration SCF 
+  #      selci - Selected CI with perturbation correction 
+  #  nwchem tasks:
+  #      md - Classical molecular dynamics simulation using nwARGOS 
+  #      energy - Evaluate the single point energy. 
+  #      gradient - Evaluate the geometry gradients
+  #      optimize - Minimize the energy by varying the molecular structure.
+  #      saddle - Conduct a search for a transition state
+  #      frequencies or freq - Second derivatives and vibrational analysis
+  #      dynamics - Compute molecular dynamics
+  #      thermodynamics - Multi-configuration thermodynamic integration
+  #
+  #      HAVE to handle multiple tasks tool like opt+vib
+  #
+  ########################################################################
+
+  %keyToCategory = (
+		    "scf" => "SCF",		    "dft" => "DFT",
+		    "mp2" => "MP",		    "direct_mp2" => "MP",
+		    "ccsd" => "CC",		    "ccsd+t(ccsd)" => "CC",
+		    "ccsd(t)" => "CC",		    "rimp2" => "RIMP",
+		    "mcscf" => "MCSCF",		    "selci" => "SELCI",
+		    "gapss" => "PERDFT",
+		    );
+
+  %keyToRuntype = (
+		   "energy" => "Energy",	   "gradient" => "Gradient",
+		   "optimize" => "Geometry",	   "saddle" => "Geometry",
+		   "frequencies" => "Vibration",   "dynamics" => "Dynamics",
+                   "freq" => "Vibration",          "optimizefreq" => "GeoVib",
+		   "md" => "Dynamics",		   "thermodynamics" => "Thermo",
+                   "property" => "Property",
+                   "energyproperty" => "Property",
+		   );
+
+  ########################################################################
+  # Need to look at all task lines to get the runtype correct but only
+  # one of them to get the Theory - at least for the limited support
+  # we provide of tasks.
+  ########################################################################
+  $lastLine = $#taskLines;
+  $foundTheory = 0;
+  while ($lastLine >= 0 && $foundTheory == 0) {
+    $lastTaskLine = $taskLines[$lastLine];
+    chop($lastTaskLine);
+    $lastTaskLine =~ tr/A-Z/a-z/;
+    ($junk1,$NWTheory,$NWTask) = split(/\s+/,$lastTaskLine);
+    if (defined($keyToCategory{lc($NWTheory)})) {
+      $theoryCat = $keyToCategory{lc($NWTheory)};
+      $foundTheory = 1;
+    }
+    $lastLine--;
+  }
+  $NWTask = "";
+  foreach $task (@taskLines) {
+    chop($task);
+    $task =~ tr/A-Z/a-z/;
+    ($junk1,$junk2,$thisTask) = split(/\s+/,$task);
+    $NWTask = $NWTask . $thisTask;
+  }
+  if ($NWTask eq "") {
+     $NWTask = "energy";
+  }
+  $runType = $keyToRuntype{lc($NWTask)};
+  if ($runType eq "") { $runType = "UNKNOWN"; }
+  if ($theoryCat eq "") { $theoryCat = "UNKNOWN"; }
+  if ($NWTheory eq "") { $NWTheory = "UNKNOWN"; }
+
+  ########################################################################.
+  # set the Theory and a few other GDM items, (considers frozen core)
+  ########################################################################
+  if ( !$spinRestriction ) {
+    $spinRestriction = &defaultSpinRestriction;
+  }
+
+  ########################################################################
+  # TODO: this block needs to handle: 
+  #     DFT functionals ==> new theory names
+  #     convergence criteria, other niceties
+  ########################################################################
+
+  my $freeze;
+
+  if ( $numCore || $numVirtual ) {
+    $freeze = "(FC)";
+  } else {
+    $freeze = "";
+  }
+
+  if ( $theoryCat eq "SCF" ) {
+    $theory = $spinRestriction . "HF";
+
+  } elsif ( $theoryCat eq "DFT" ) {
+    $theory = $spinRestriction . "DFT";
+
+  } elsif ( $theoryCat eq "MP" ) {
+    $theory = $spinRestriction . "MP2" . $freeze;
+
+  } elsif ( $theoryCat eq "CC" ) {
+    my $cctype = "CCSD";
+
+    if ( $NWTheory =~ /ccsd\(t\)/ ) {
+      $cctype .= "(T)";
+    } elsif ( $NWTheory =~ /ccsd\+t/ ) {
+      $cctype .= "PT";
+    }
+
+    $theory = $spinRestriction . $cctype . $freeze;
+
+  } elsif ( $theoryCat eq "RIMP" . $freeze ) {
+    die "NWChem.expt: import for theory category $theoryCat not supported\n";
+  } elsif ( $theoryCat eq "MCSCF" ) {
+    die "NWChem.expt: import for theory category $theoryCat not supported\n";
+  } elsif ( $theoryCat eq "SELCI" ) {
+    die "NWChem.expt: import for theory category $theoryCat not supported\n";
+  } elsif ( $theoryCat eq "PERDFT" ) {
+    die "NWChem.expt: import for theory category $theoryCat not supported\n";
+  }
+
+  if ( $NWTask =~ /saddle/i ) {
+    $guiDict .= "ES.Runtype.GeomOpt.SearchFor:\t other\n";
+  }
+
+  return;
+}
+
+##############################################################################
+#
+#  Description:
+#      Return the number of core electrons for a given atomic number
+#       
+############################################################################## 
+sub numCoreElectrons {
+  
+  my ($atomicNumber) = @_;
+  my $numCore = 0;
+  
+  if ( $atomicNumber <= 2 ) {
+    $numCore = 0;
+  } elsif ( $atomicNumber <= 10 ) {
+    $numCore = 2;
+  } elsif ( $atomicNumber <= 18 ) {
+    $numCore = 10;
+  } elsif ( $atomicNumber <= 36 ) {
+    $numCore = 18;
+  } elsif ( $atomicNumber <= 54 ) {
+    $numCore = 36;
+  } elsif ( $atomicNumber <= 86 ) {
+    $numCore = 54;
+  } else {
+    $numCore = 86;
+  }
+  return $numCore;
+}
+
+sub defaultSpinRestriction {
+  my ($result);
+  
+  if ( $numberOfElectrons % 2 == 0 ) {
+    $result = "R";
+  } elsif ( $theoryCat eq "SCF") {
+    $result = "RO";
+  } else {
+    $result = "U";
+  }
+  return $result;
+}
+
+# sub convertBasis {
+#   if (($basis =~ /gen/) && ($basisData eq "")) {
+#     # Try One More Thing, Parsing the Basis Set Name From the File Name
+#     #  - This Really Only Applies to Dave Feller's Advisor Data Set
+#     $ARGV[0] =~ /_?([^_]+)?_?([^_]+)_([^_]+).log$/;
+#     print "Could Convert Basis To \"$1\" or \"$2\" or \"$3\"\n";
+#     if (defined $NameToBasis{$1}) {
+#       $basis = $NameToBasis{$1};
+#     } elsif (defined $NameToBasis{$2}) {
+#       $basis = $NameToBasis{$2};
+#     } elsif (defined $NameToBasis{$3}) {
+#       $basis = $NameToBasis{$3};
+#     } else {
+#       $basis = "sto-3g";
+#     }
+#     print "Basis: Converting GEN to \"$basis\"\n";
+#   } elsif (($basis =~ /^shc/) ||
+# 	   ($basis =~ /^cep/) ||
+# 	   ($basis =~ /^6-21/)) {
+#     print "Basis: Basis Set $basis Not in EMSL Data Set\n";
+#     print "       Converting to STO-3G\n";
+#     $basis = "sto-3g";
+#   } else {
+#     # Handle two known translations
+#     $basis =~ s/^[Dd]95[Vv]/sv (dunning-hay)/;
+#     $basis =~ s/^[Dd]95/dz (dunning)/;
+#     $basis =~ s/\(d\)/\*/;
+#     $basis =~ s/\(d,p\)/\*\*/;
+#   }
+# }
+
+
+###############################################################################
+## EVERYTHING BEYOND THIS POINT IS UTILITY SUBROUTINES
+###############################################################################
+## Check to make sure the specified input file is a valid dictionary file.
+sub verifyAbiFile {
+  # print "Opening $ARGV[0] as abichem dictionary file\n";
+  open(ABIDICT, $ARGV[0])
+      || die "Sorry, Couldn't open specified file: $ARGV[0]\n";
+  # check for correct version and program header !!!!!
+}
+
+## Check to make sure the specified input file is a valid dictionary file.
+sub verifyFragFile {
+  # print "Opening $ARGV[1] as fragment file\n";
+  open(CHEMSYS, $ARGV[1])
+      || die "Sorry, Couldn't open specified file: $ARGV[1]\n";
+  # check for correct version and program header !!!!!
+}
+
+## Check to make sure the specified input file is a valid dictionary file.
+sub verifyGBSFile {
+  # print "Opening $ARGV[2] as gaussian basis set file\n";
+  open(GBS, $ARGV[2])
+      || die "Sorry, Couldn't open specified file: $ARGV[2]\n";
+  # check for correct version and program header !!!!!
+}
+
+## Read in the dictionary of AbiChem values from the input file.
+##    Start by reading simple key, value pairs (: separated)
+sub readDict {
+  while(<ABIDICT>) {
+    $_ =~ s/\s*!.*$//;
+    if (/:/) {
+      ($key, $value) = split(/:/);
+      $key =~ s/^\s*//;
+      $key =~ s/\s*$//;
+      $value =~ s/^\s*//;
+      $value =~ s/\s*$//;
+      # Here we do successive refinements of the tag just found
+      # Starting with the full name we keep stripping off ^[^.]*.
+      #  until we find a match or we've emptied the string
+      $tagkey = $key;
+      while ($tagkey  ne "") {
+        # Handle special continuation lines here !!!!!
+        unless ($AbiDict{$tagkey} eq "") {
+          print "Warning! Found duplicate value for $tagkey\n";
+        }
+        $AbiDict{$tagkey} = $value;
+        $tagkey =~ s/^[^\.]*//;
+        $tagkey =~ s/^\.//;
+      }
+    }
+  }
+}
+
+## Load periodic table information from reference .tbl format
+# sub loadPT {
+#   $pt_tbl_file = $ENV{'ECCE_HOME'} . "/data/refload/PeriodicTable.tbl";
+#   open(PT, $pt_tbl_file) 
+#       || die "Sorry, Couldn't open specified file: $pt_tbl_file\n";
+#   while (<PT>) {
+#     last if /\s*X/;
+#   }
+#   $count = 1;
+#   while (<PT>) {
+#     s/^\s*//;
+#     ($atom_symbol, $atom_name) = split;
+#     $symbol_to_name{$atom_symbol} = $atom_name;
+#     $name_to_symbol{$atom_name} = $atom_symbol;
+#     $symbol_to_number{$atom_symbol} = $count;
+#     $number_to_symbol{$count} = $atom_symbol;
+#     $count++
+#   }
+#   $number_to_symbol{-1} = "X";
+# }
+
+##
+## setupBasisTranslation
+##  This creates an associative array for translating Dave Feller's
+##  log file name basis sets into EMSL Basis Set Library basis set
+##  names.
+##
+# sub setupBasisTranslation {
+#   $NameToBasis{"avtz"} =   "aug-cc-pVTZ";
+#   $NameToBasis{"avdz"} =   "aug-cc-pVDZ";
+#   $NameToBasis{"avdz2"} =  "aug-cc-pVDZ";
+#   $NameToBasis{"avqz"} =   "aug-cc-pVQZ";
+#   $NameToBasis{"augvqz"} = "aug-cc-pVQZ";
+#   $NameToBasis{"acvtz"} =  "aug-cc-pCVTZ";
+#   $NameToBasis{"vdz"} =  "cc-pVDZ";
+#   $NameToBasis{"vtz"} =  "cc-pVTZ";
+#   $NameToBasis{"vqz"} =  "cc-pVQZ";
+#   $NameToBasis{"cvdz"} = "cc-pCVDZ";
+#   $NameToBasis{"cvtz"} = "cc-pCVTZ";
+#   $NameToBasis{"svp"} = "SVP (Dunning-Hay)";
+#   $NameToBasis{"dz"} = "DZ (Dunning)";
+#   $NameToBasis{"dzp"} = "DZP (Dunning)";
+#   $NameToBasis{"631pgs"} = "6-31+G*";
+#   $NameToBasis{"321g"} = "3-21G";
+#   $NameToBasis{"321ppg"} = "3-21++G";
+#   $NameToBasis{"midi"} = "MIDI (Huzinaga)";
+# }
+
+
+sub usage {
+    print "Usage: NWChem.expt <logfile>\n";
+    print "Options:    -h        this help\n";
+    print "            -v        version\n";
+    exit(1);
+}
+#
+#
+#
+sub handle_options {
+  &usage && exit(1) if ( $opt_h || $opt_help );
+  $revision = '$Revision: 22972 $';
+  $revision =~ (s/\$//g);
+  print "$revision\n" if ( $opt_v );
+  exit(1) if ( $opt_v );
+}

@@ -1,0 +1,54 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#   Parse electric field components at atoms and reformat it
+#
+################################################################################
+
+# Force output to be flushed
+$| = 1;
+
+# read the data from stdin:
+#
+  $labelLine = <STDIN>;
+  $natom = 0;
+
+  while (<STDIN>) {
+    last if (/^EField/);
+    if (/begin\%EField components/) {
+      $tline = <STDIN>;
+      chomp($tline);
+      $tline =~ s/^ *//;
+      $tline =~ s/ *$//;
+      @line = split(' +',$tline);
+      push(@values,@line);
+      $natom++;
+    }
+  }
+
+#
+# Print out the data in standard format.
+#
+  print "key: EFIELD\n";
+  print "size:\n";
+  print $natom . " 3\n";
+  print "rowlabels:\n";
+
+  for ($i=1;$i<=$natom;$i++) { print "$i "; }
+  print "\ncolumnlabels:\nX Y Z\n";
+  print "values:\n";
+  for ($i=0; $i<= $#values; $i++) {
+    printf("%.15e ",$values[$i]); 
+    if ($i % 3 == 2 ) { print "\n"; };
+  }
+  if ($i % 3 != 0 ) { print "\n"; };
+  print "units:\ne/Bohr**2\n";
+  print "END\n";

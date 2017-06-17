@@ -1,0 +1,27 @@
+title:          Methylallene
+type:           molecule
+cell_units:     angstroms
+num_atoms:      10
+atom_info:      symbol cart
+atom_list:
+  C  -1.450  -0.473   0.336
+  C  -0.534   0.416  -0.453
+  C   0.761   0.336  -0.265
+  C   2.054   0.267  -0.063
+  H  -2.462  -0.014   0.420
+  H  -1.559  -1.459  -0.172
+  H  -1.068  -0.645   1.369
+  H  -0.941   1.097  -1.218
+  H   2.533   0.918   0.685
+  H   2.667  -0.443  -0.639
+num_bonds:      9
+bond_list:
+ 1  2
+ 1  5
+ 1  6
+ 1  7
+ 2  3
+ 2  8
+ 3  4
+ 4  9
+ 4  10

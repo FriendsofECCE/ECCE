@@ -1,0 +1,59 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+  $label = <STDIN>;
+  chop($label);
+  $line = <STDIN>;
+  chomp($line);
+  @values = split(/ +/,$line);
+########################################################################
+#  convert atomic units to debye
+########################################################################
+  $size = @values;
+  for ($i = 0; $i < $size; $i++) {
+    $values[$i] = 2.541766*$values[$i];
+  }
+########################################################################
+# for mp2, both the mp2 and scf dipoles are output
+########################################################################
+  $label =~ /(\S+)%begin/;
+  $prebegin = $1;  # might be task_<tasktype> or a theory type
+
+  if ($prebegin =~ /mp2/) {
+    $key = "MP2DIPOLE";
+  } else {
+    $key = "DIPOLE";
+  }
+
+########################################################################
+#   debug hack until NWChem output bug (missing elements) fixed
+########################################################################
+  if ( $#values < 2 ) {
+    @values = (42.0,42.0,42.0);
+  }
+########################################################################
+
+  if ($key) {
+    print "key: $key\n";
+    print "size:\n3\n";
+    print "rowlabels:\n";
+    print "x y z\n";
+    print "values:\n";
+    foreach $i (@values) { print " $i"; }
+    print "\nunits:\nDebye\n";
+    print "END\n";
+  }

@@ -1,0 +1,96 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Purpose:
+#   Post-process the generated input file to add launch control information.
+#
+# Description:
+#   The %nproc or %nproclinda directives must be inserted into the file.
+#   Its also possible that they should be stripped out for example if a user 
+#   copies a calculation that was run on a multi-processor machine and then 
+#   goes to run on a single processor.  This is probably a fairly rare case.
+#   Psuedo code:
+#     if $ParamDict{'numNodes'} == 1 && $ParamDict{'numProcs'} == 1
+#       strip any %nproc*
+#     else if $ParamDict{'numNodes'} == 1 && $ParamDict{'numProcs'} > 1
+#       insert %nproc=$ParamDict{'numProcs'}
+#     else if $ParamDict{'numNodes'} > 1 && $ParamDict{'numProcs'} > 1
+#       insert %nproclinda=$ParamDict{'numProcs'}
+#     else if $ParamDict{'numNodes'} > 1 && $ParamDict{'numProcs'} == 1
+#       error condition
+#     
+#
+#   This script must be smart enough to re-process a file that
+#   has already been processed.
+#
+##############################################################################
+
+use Getopt::Std;
+
+&getopts('p:v');  # any option before ":" would take an argument
+
+if ( $opt_v) {
+   $revision = '$Revision: 1.0';
+   $revision =~ (s/\$//g);
+   print "$revision\n";
+   #print "$opt_f\n" if ($opt_f);
+   exit 0 ;
+}
+
+open(PARAMDICT, "<$opt_p") || die "parameter file does not exist!\n";
+
+while(<PARAMDICT>) {
+  $_ =~ s/\s*!.*$//;
+  if (/:/) {
+    ($key, $value) = split(/:/);
+
+    # strip leading and trailing white space from both key and value
+    $key =~ s/^\s*//;
+    $key =~ s/\s*$//;
+    $value =~ s/^\s*//;
+    $value =~ s/\s*$//;
+
+    # add to dictionary
+    if ($key ne "") {
+      $ParamDict{$key} = $value;
+    }
+  }
+}
+close(PARAMDICT);
+
+# Read in the entire file.
+unless (open(INFILE, $ParamDict{'inputFile'})) {
+  die "Cannot open gaussian input file";
+}
+@contents = <INFILE>;
+close(INFILE);
+
+# Be smart enough to insert or replace the nproc directive
+unless (open(PPFILE,">$ParamDict{'inputFile'}")) {
+  die "Cannot write gaussian input file";
+}
+$size = @contents;
+$start = 0;
+
+# Always strip out this line if its there.  We'll put it back if we need it.
+# Note we assume this is ALWAYS on the first line so we could have trouble 
+# if a user hand edits the file.
+if (@contents[0] =~ /nproc/) { $start = 1; }
+
+if ($ParamDict{'numNodes'} == 1 && $ParamDict{'numProcs'} == 1) {
+  # nothing to do
+} elsif ($ParamDict{'numNodes'} == 1 && $ParamDict{'numProcs'} > 1) {
+  print PPFILE "%nprocshared=$ParamDict{'numProcs'}\n";
+} elsif ($ParamDict{'numNodes'} > 1 && $ParamDict{'numProcs'} > 1) {
+  print PPFILE "%nproclinda=$ParamDict{'numProcs'}\n";
+} else {
+  die "Inconsistent number of nodes/processors $ParamDict{'numNodes'}/$ParamDict{'numProcs'}.";
+}
+
+# Dump the rest of the contenets in tact and close the file
+for ($idx=$start; $idx<$size; $idx++) {
+  print PPFILE (@contents[$idx]);
+}
+close PPFILE;
+
+exit(0);

@@ -1,0 +1,104 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+# This script extracts the configurations from the minimum energy path, along
+# with the corresponding energies, and write to the GEOMTRACE and TEVEC
+# properties.
+#
+################################################################################
+
+# Force output to be flushed
+$| = 1;
+
+######
+# The command line arguments
+######
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+#
+# get masses from auxiliary text file
+#
+$filename = $key."/rxMasses";
+@masses = ();
+$nmass = 0;
+if (open (AUXFILE, "<$filename")) {
+  $nmass = <AUXFILE>;
+  for ($i=0; $i<$nmass; $i++) {
+    $masses[$i] = <AUXFILE>;
+  }
+  close (AUXFILE);
+}
+
+@geom = ();
+
+while (<STDIN>) {
+  if (/^\s*(\S+)\s*(\S+)\s+x=(.*)/) {
+    $s = $1;
+    $energy = $2;
+    $coords = $3;
+    $coords =~ s/^\s*//;
+    $coords =~ s/\s*$//;
+  } elsif (!/^\s*(\S+)\s*(\S+)\s*dx=(.*)/) {
+    $line = $_;
+    $line =~ s/^\s*//;
+    $line =~ s/\s*$//;
+    $coords .= " $line";
+  } else {
+    last;
+  }
+}
+
+#
+# Print out the data in standard format. Start by printing the reactants.
+#
+@array = ();
+@array = split(" ",$coords);
+$values = @array;
+$natom = @array;
+$natom /= 3;
+$icnt = 0;
+if ($natom == $nmass) {
+  $imass = 0;
+  for ($i=0; $i<$values; $i++) {
+    $array[$i] /= sqrt($masses[$imass]);
+    $array[$i] /= 1.889725989;
+    if ($i % 3 == 2) {
+      $imass++;
+    }
+  }
+}
+
+print "\nkey: RXTRACE\n";
+print "size:\n";
+print "1 " . ($natom) . " 3\n";
+print "rowlabels:\n";
+for ($i=0; $i<$natom; $i++) { print "$i "; }
+print "\ncolumnlabels:\nX Y Z\n";
+print "values:\n";
+for ($i=0; $i < $values; $i++) {
+  printf("%.15e ",$array[$i]);
+  if ($i % 3 == 2 ) { print "\n"; };
+}
+if ($i % 3 != 0 ) { print "\n"; };
+print "units:\nAngstrom\n";
+print "END\n";
+
+print "\nkey: RXENERGY\n";
+print "size:\n1\n";
+print "values:\n$energy";
+print "\nunits:\nHartree\n";
+print "END\n";
+
+print "\nkey: RXCOORD\n";
+print "size:\n1\n";
+print "values:\n$s";
+print "\nunits:\nBohr\n";
+print "END\n";

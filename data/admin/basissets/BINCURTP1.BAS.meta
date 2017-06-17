@@ -1,0 +1,31 @@
+name
+Binning-Curtiss (1d) Polarization
+name
+type
+polarization
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+
+!
+
+references
+info
+                    Binning-Curtiss d Polarization Sets
+                    -----------------------------------
+ Elements                            Reference
+Ga - Kr: (1d) R. C. Binning, Jr. and L.A. Curtiss, J.Comp. Chem. 11, 1206 (1990)
+
+
+info
+comments
+12/23/91  - DFF - Original creation of this file 
+comments

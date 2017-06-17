@@ -1,0 +1,294 @@
+# $Source$
+#
+# This file contains the META description of the CRDB V1.0 format.
+#
+# The type skipnode means that ecce doesn't parse this type of data.
+# As long as it follows the convention of being enclosed by either {}
+# or [], the data can be skipped without us having  to know how it
+# is formated.  
+#
+# It is important to note that the "skipnodes" format has not been designed
+# and I have not worked with Dave to get them into a consistent format.
+# Also I discovered that z_matrix data does not fit any of the current
+# types so if we ever have to parse it, we will have to enhance the parser.
+# Its kindof a sparse matrix type.
+
+
+# None of this information is used.
+Node Crdb_data_sheet         {
+        crdb_data_sheet_label           string
+        crdb_data_sheet_number          int
+        creation_date                   date
+        advisory_data                   string # should be boolean
+}
+
+# All of this data is stored in either Subject or ChemicalSystem.
+Node Chemical_system {
+        chemical_Formula    string       # empirical formula
+        chem_abstract_index int          # CAS number
+        smiles              string       # structure search string
+        iupac_name          string
+        alternate_name_1    string
+        alternate_name_2    string
+        annotation          string
+}
+
+Node Molecular_structure {
+        atoms                 atoms                   # array
+        cartesian_coord_units string
+        cartesian_coordinates cartesian_coordinates   # array
+        symmetry_point_group  string
+        structure             string
+        geom_source           geom_source             # node
+        annotation            string
+        z_matrix_coord_units  string
+        z_matrix              skipNode
+        internal_coordinates  skipNode
+}
+
+Array cartesian_coordinates {
+        tag string
+        x   double
+        y   double
+        z   double
+}
+
+Node Basis_set {
+       type                         string
+       basis_set_name               string
+       basis_set_explicit           basis_set_explicit   # array
+       ecp_name                     string
+       ecp_explicit                 ecp_explicit         # array
+       alternate_name_1             string
+       alternate_name_2             string
+       basis_set_annotation         string
+}
+
+
+Node Level_of_theory {
+       theory                      string
+       number_frozen_core          int
+       annotation                  string
+}
+
+Node Electronic_state {
+       charge                   Double
+       multiplicity             int
+       electronic_configuration electronic_configuration # array
+       state_symmetry           string
+       state_number             string   # I guess
+       annotation               string
+}
+
+
+Node Properties {
+       energies                energies
+       vibrational_frequencies vibrational_frequencies
+       ir_intensities          ir_intensities
+       raman_intensities       raman_intensities
+       HF_Mulliken_atomic_charges HF_Mulliken_atomic_charges
+       Hf_dipole_moments       Hf_dipole_moments
+       Hf_quadrupole_moments   Hf_quadrupole_moments
+       Hf_quadrupole_mom_tensor   Hf_quadrupole_mom_tensor
+       hf_octapole_moments     hf_octapole_moments
+       hexadecapole_moments     hexadecapole_moments
+       moments_origin          string
+       dipole_polarizabilities dipole_polarizabilities
+       dipole_first_hyperpolarizability dipole_first_hyperpolarizability
+# These are all ignored
+       electric_field_grad     electric_field_grad
+       rotational_constants    skipnode
+       raman_depolarization_ratio skipnode
+       atomization_energies    skipnode
+       vertical_electronic_excitation skipNode
+       rotational_barrier      skipNode
+       dissociation_energy     skipNode
+       reaction_energy         skipNode
+}
+
+Node machine {
+       vendor            string
+       opsys             string
+       model             string
+       processor         string
+       clock             int
+       clock_units       string
+       name              string
+       processors_used   int 
+       memory_used       int 
+       memory_units      string
+       disk_used         int
+       disk_units        string
+}
+
+Node Entry_source {
+       type                 string
+       date                 date
+       program              string
+       version              string
+       machine              machine
+       cpu_time             double
+       wall_time            double
+       contributor_name     string
+       citation             string
+       property_list        property_list
+}
+
+Array property_list {
+       propertyName string 
+}
+
+# The property name string will be of the form RHF_total, RHF_kinetic
+# RMP2_total. In talking to Hugh, the kinetic energies have limited uses
+# so we will ignore them.
+Array theory_energies {
+       property string
+       value    double
+}
+
+Node energies {
+       units               string
+       theory_energies     theory_energies
+       nuclear_repulsion   double
+       orbital             orbital_energies
+}
+
+array orbital_energies {
+       molabel   string
+       value     double
+}
+
+NODE vibrational_frequencies {
+       units         string
+       values        frequencies
+       uncertainties uncertainties
+}
+
+node ir_intensities {
+       units         string
+       values        intensities
+       uncertainties uncertainties
+}
+
+Node raman_intensities {
+       units         string
+       values        intensities
+       uncertainties uncertainties
+}
+
+array frequencies {
+       symmetry     string
+       type         string
+       value        double
+}
+
+array uncertainties {
+       value double
+}
+
+array intensities {
+       symmetry     string
+       type         string
+       value        double
+}
+
+array electronic_configuration {
+       molabel       string
+       label         string
+       occupation    int
+}
+
+array ecp_explicit {
+       label  string
+       ecp    string
+}
+
+array basis_set_explicit {
+       label  string
+       basis  string
+}
+
+node geom_source {
+       type                string
+       theory              level_of_theory
+       basis_set           basis_set
+       electronic_state    electronic_state
+       citation            string
+       annotation          string
+}
+
+array atoms {
+       label   string
+       element string
+}
+
+array HF_Mulliken_atomic_charges {
+       label   string
+       value   double
+}
+
+node hf_dipole_moments {
+       units string
+       total double
+       values moments
+}
+node hf_quadrupole_moments {
+       units string
+       total double
+       values moments
+}
+
+node hf_quadrupole_mom_tensor {
+       units string
+       values moments
+}
+
+node hf_octapole_moments {
+       units string
+       values moments
+}
+
+node hexadecapole_moments {
+       units string
+       values moments
+}
+
+node dipole_polarizabilities {
+       units string
+       values moments
+}
+
+node dipole_first_hyperpolarizability {
+       units string
+       values moments
+}
+
+node raman_depolarization_ratio {
+       units string
+       values intensities     # like intensities anyway
+}
+
+node electric_field_grad {
+       units string
+       values moments
+}
+
+node rotational_constants {
+       units string
+       values moments
+}
+
+node atomization_energies {
+      units    string
+      annotation string
+}
+
+array moments {
+       label   string
+       value   double
+}
+
+array hf_mulliken_atomic_charges {
+       label   string
+       value   double
+}

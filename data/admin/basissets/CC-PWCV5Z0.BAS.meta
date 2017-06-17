@@ -1,0 +1,54 @@
+name
+cc-pwCV5Z Core Set
+name
+type
+correlation_consistent
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+GC
+contraction_type
+references
+Elements                             References
+--------                             ----------
+B  - Ne: K.A. Peterson and T.H. Dunning, Jr. J. Chem. Phys. 117, 10548 (2002).
+Al - Ar: 
+
+references
+info
+             Core Set (cc-pwCV5Z)
+             --------------------
+Elements  Contraction                                    References
+B  - Ne: (14s,8p,4d,3f,2g,1h) -> [6s,5p,4d,3f,2g,1h]    K.A. Peterson and T.H.
+                                                        Dunning, Jr.
+Al - Ar: (20s,12p,4d,3f,2g,1h) -> [11s,10p,4d,3f,2g,1h] J. Chem. Phys. (in
+                                                        press)
+
+The correlation consistent core-valence basis sets extend the ideas of the
+original cc-pVxZ sets by including extra functions designed for core-core and
+core-valence correlation.
+
+
+info
+comments
+3/06/05  - DFF - Update the literature citation.
+5/24/02  - DFF - Modify Ga - Ar contraction coefficients for cc-pwCVnZ
+11/16/99  - DFF - Add more digits to very small contraction coefficients.
+5/06/99  - DFF - Correct D -> 5D and F -> 7F for Ga. 
+11/29/98  - DFF - Add Ga, Ge, As, Se, Br, Kr
+12/02/96  - DFF - Correct s exponent, cc-pV5Z He, 1.2405 -> 1.2400.
+6/05/95  - DFF - Add magnesium basis set from Dave Woon.
+2/22/95  - DFF - Modify the format of the literature citation.
+2/20/95  - DFF - Correct lithium NUMEXP for P's.
+2/08/95  - DFF - Add lithium (unofficial set)
+9/18/92  - DFF - Remove tab character from oxygen f's (it was a hidden char.)
+6/8/92  - DFF - Add boron, carbon, nitrogen and fluorine from Kirk Peterson
+4/26/92  - DFF - Add second row sets from Dave Woon.
+9/5/91  - DFF - Add h exponent for oxygen optimized at MP2 level
+6/29/91  - DFF - Original creation of this file from MIA basis set library.
+comments

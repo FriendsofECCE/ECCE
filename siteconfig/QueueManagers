@@ -1,0 +1,185 @@
+#
+# Start with the list of Queue Managers - Each queue manager can have a
+# version number in the name if necessary to distinguish between versions
+# for some reason.  If its not necessary, then its probably more clear to 
+# the user to leave off version information.
+#
+#
+# NOTE: - if you need to support versions, do something like PBS-3.3 and make
+#         sure that the full name is used to fully describe that queue manager
+#         elsewhere in this file.  Reference the full name in Queues file.
+#
+QueueManagers:		LoadLeveler \
+			Maui \
+			EASY \
+			PBS \
+			LSF \
+			Moab \
+			SGE \
+			Shell
+
+#
+# Start the Entries for Each Queue Manager.
+# Keys are Coded by Queue Manager | Attribute Name
+#
+# Commands such as llsubmit can be customized if you need to specify some
+# of the job information as command line arguments instead of keywords
+# within the script header.  Commonly used ones include:
+#    ##numProcs##
+#    ##numNodes##
+#    ##wall_clock_time##
+#    ##account_no##
+#    ##maxmemory##
+#    ##queue##
+# So for example if the submit command for you queue system needs to have
+# the number of processors specified on the command line, you could do
+# something like:
+#
+#MYQUEUE|submitCommand:    mysubmit -p ##numProcs## ##script##
+#
+# Note that ##numProcs## is the total number of processors while
+# ##numNodes## is the number of nodes.  The distinction is only
+# important if you have systems with multiple nodes and multiple
+# processors per node.
+# 
+###############################################################################
+
+###############################################################################
+# Maui 
+# This is Maui running on top of Load Leveler
+#
+# This queue submit command should be done in the foreground to catch
+# error messages.  Note that this is different than the shell command below.
+#
+# The queryMachineCommand and queryQueueCommand below are EMSL specific.
+# More generic commands are shown commented out below which will be needed
+# for machines outside EMSL.  This only impacts the Machine Browser
+# application and no critical components of job launching or monitoring.
+#
+Maui|submitCommand:           llsubmit ##script##
+Maui|cancelCommand:           llcancel ##id##
+Maui|queryJobCommand:         llq ##id##
+Maui|queryMachineCommand:     sysinfo
+#Maui|queryMachineCommand:    llstatus
+Maui|queryQueueCommand:       showq
+#Maui|queryQueueCommand:      llq
+Maui|queryDiskUsageCommand:   df -k
+Maui|jobIdParseExpression:    .*
+Maui|jobIdParseLeadingText:   The job "
+Maui|jobIdParseTrailingText:  "
+
+###############################################################################
+# LoadLeveler 
+#
+# This queue submit command should be done in the foreground to catch
+# error messages.  Note that this is different than the shell command below.
+#
+LoadLeveler|submitCommand:          llsubmit ##script##
+LoadLeveler|cancelCommand:          llcancel ##id##
+LoadLeveler|queryJobCommand:        llq ##id##
+LoadLeveler|queryMachineCommand:    llstatus
+LoadLeveler|queryQueueCommand:      llq
+LoadLeveler|queryDiskUsageCommand:  df -k
+LoadLeveler|jobIdParseExpression:   .*
+LoadLeveler|jobIdParseLeadingText:  The job "
+LoadLeveler|jobIdParseTrailingText: "
+
+###############################################################################
+# EASY 
+# The EASY scheduler is a simplified Maui scheduler by Dave Jackson originally
+# done for ANL
+#
+# This queue submit command should be done in the foreground to catch
+# error messages.  Note that this is different than the shell command below.
+#
+EASY|submitCommand:           llsubmit ##script##
+EASY|cancelCommand:           llcancel ##id##
+EASY|queryJobCommand:         llq ##id##
+EASY|queryMachineCommand:     sysinfo
+EASY|queryQueueCommand:       showq
+EASY|queryDiskUsageCommand:   df -k
+EASY|jobIdParseExpression:    .*
+EASY|jobIdParseLeadingText:   The job "
+EASY|jobIdParseTrailingText:  "
+
+###############################################################################
+# PBS 
+#
+# This queue submit command should be done in the foreground to catch
+# error messages.  Note that this is different than the shell command below.
+#
+PBS|submitCommand:          qsub ##script##
+PBS|cancelCommand:          qdel ##id##
+PBS|queryJobCommand:        qstat ##id##
+PBS|queryMachineCommand:    qstat -Bf
+PBS|queryQueueCommand:      qstat -a
+PBS|queryDiskUsageCommand:  df -k
+PBS|jobIdParseExpression:   .*
+
+###############################################################################
+# LSF 
+# Load Sharing Facility is related to PBS
+#
+# This queue submit command should be done in the foreground to catch
+# error messages.  Note that this is different than the shell command below.
+#
+LSF|submitCommand:           bsub < ##script##
+LSF|cancelCommand:           bkill ##id##
+LSF|queryJobCommand:         bjobs -l ##id##
+LSF|queryMachineCommand:     bqueues
+LSF|queryQueueCommand:       bjobs -u all
+LSF|queryDiskUsageCommand:   df -h
+LSF|jobIdParseExpression:    .*
+LSF|jobIdParseLeadingText:   Job <
+LSF|jobIdParseTrailingText:  > is submitted
+
+###############################################################################
+# Moab 
+#
+# This queue submit command should be done in the foreground to catch
+# error messages.  Note that this is different than the shell command below.
+#
+Moab|submitCommand:           msub ##script##
+Moab|cancelCommand:           mjobctl -c ##id##
+Moab|queryJobCommand:         checkjob ##id## | grep "^State: "
+Moab|queryMachineCommand:     showstats
+Moab|queryQueueCommand:       showq
+Moab|queryDiskUsageCommand:   df -h
+Moab|jobIdParseExpression:    [0-9]+
+Moab|jobIdParseLeadingText:
+Moab|jobIdParseTrailingText:
+
+###############################################################################
+# SGE 
+# Sun Grid Engine
+#
+# This queue submit command should be done in the foreground to catch
+# error messages.  Note that this is different than the shell command below.
+#
+SGE|submitCommand:           qsub ##script##
+SGE|cancelCommand:           qdel ##id##
+SGE|queryJobCommand:         qstat
+SGE|queryMachineCommand:     qstat -F
+SGE|queryQueueCommand:       qstat -f
+SGE|queryDiskUsageCommand:   df -k
+SGE|jobIdParseExpression:    .*
+SGE|jobIdParseLeadingText:   job 
+
+###############################################################################
+# Generic Shell
+#
+# The submit command must be done in the background unlike the
+# queue submit command.
+# Killing a job on a workstation requires a code dependent signal.
+# Also, send SIGINT to submit script first because otherwise codes
+# that catch it will exit normally and we might not differentiate between
+# killed and incomplete states.
+#
+Shell|submitCommand:          ##priority## ./##script##&
+Shell|cancelCommand:          kill -INT ##id##; kill -##signal## -`ps -p ##id## -o pgid | tail -n 1`
+Shell|queryJobCommand:        ps -eaf | grep ##id## | grep ##user##
+Shell|queryMachineCommand:    uptime
+Shell|queryQueueCommand:      ps -eaf
+Shell|queryDiskUsageCommand:  df -k
+Shell|jobIdParseExpression:   \ [0-9]+
+

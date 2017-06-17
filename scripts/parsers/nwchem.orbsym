@@ -1,0 +1,37 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#    Extract orbital symmetries form output.
+#
+# Command line parameters:
+#
+# Description:
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+  $labelLine = <STDIN>;
+  $labelLine =~ /%(\d+)%int/;
+  $nvalues = $1;
+
+  while (<STDIN>) {
+    last if (/task/);
+    chomp;
+    push(@values,$_);
+  }
+
+# output the data
+#
+  print "key: ORBSYM\n";
+  print "size:\n$nvalues\n";
+  print "rowlabels:\n";
+  foreach $i (1 .. $nvalues){ print " $i ";}
+  print "\nvalues:\n";
+  print "@values\n";
+  print "END\n";

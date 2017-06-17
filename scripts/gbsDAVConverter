@@ -1,0 +1,1076 @@
+#!/usr/bin/env perl
+#########################################################################
+# File: gbsDAVConverter
+# 
+# Summary:
+#
+#   This script will parse the MASTER.TBL, *.BAS, and *.POT files that
+#   are located in Dave Feller's data directory and produce the following
+#   files:
+#
+#     Files used for ECCE DAV server library:
+#
+#         bsb.rev        (revision history)
+#
+#         *.BAS,         (exponents & coefficients only)
+#         *.POT          (exponents & coefficients only)
+#         *-AGG.BAS      (empty placeholders for aggregate basis sets)
+#         *.BAS.meta     (meta data, ultimately saved as DAV properties)
+#         *.POT.meta 	 (meta data, ultimately saved as DAV properties)
+#         *-AGG.BAS.meta (meta data, ultimately saved as DAV properties)
+#
+#         gbsMapping (maps basis set names to the corresponding file(s) )
+#
+#         (These files are used as input for the load_tgbs utility,
+#          load_tgbs.C, which actually installs the GBS library on the 
+#          DAV server.)
+##########################################################################
+
+my @periodic_table = (
+"H"  ,                                                                                                "He" ,
+"Li" ,"Be" ,                                                            "B"  ,"C"  ,"N"  ,"O"  ,"F"  ,"Ne" ,
+"Na" ,"Mg" ,                                                            "Al" ,"Si" ,"P"  ,"S"  ,"Cl" ,"Ar" ,
+"K"  ,"Ca" ,"Sc" ,"Ti" ,"V"  ,"Cr" ,"Mn" ,"Fe" ,"Co" ,"Ni" ,"Cu" ,"Zn" ,"Ga" ,"Ge" ,"As" ,"Se" ,"Br" ,"Kr" ,
+"Rb" ,"Sr" ,"Y"  ,"Zr" ,"Nb" ,"Mo" ,"Tc" ,"Ru" ,"Rh" ,"Pd" ,"Ag" ,"Cd" ,"In" ,"Sn" ,"Sb" ,"Te" ,"I"  ,"Xe" ,
+"Cs" ,"Ba" ,"La" ,"Ce" ,"Pr" ,"Nd" ,"Pm" ,"Sm" ,"Eu" ,"Gd" ,"Tb" ,"Dy" ,"Ho" ,"Er" ,"Tm" ,"Yb" ,"Lu",
+"Hf" ,"Ta" ,"W"  ,"Re" ,"Os" ,"Ir" ,"Pt" ,"Au" ,"Hg" ,"Tl" ,"Pb" ,"Bi" ,"Po" ,"At" ,"Rn" ,
+"Fr" ,"Ra" ,"Ac" ,"Th" ,"Pa" ,"U"  ,"Np" ,"Pu" ,"Am" ,"Cm" ,"Bk" ,"Cf" ,"Es" ,"Fm" ,"Md" ,"No" ,"Lr",
+"Rf" ,"Db" ,"Sg" ,"Bh" ,"Hs" ,"Mt" ,"Uun","Uuu","Uub","Uut","Uuq","Uup","Uuh","Uus","Uuo");
+
+##########################################################################
+#
+# MAIN PROGRAM
+#
+##########################################################################
+
+# Handle the command line arguments
+
+  $i = 0;
+  $sourceDir ="";
+  $destDir = "";
+  foreach $arg (@ARGV)
+  {
+    if ($arg =~ /-h/)
+    {
+      &usage;
+    }
+    if ($arg =~ /-s/)
+    {
+      $sourceDir = $ARGV[$i+1];
+    }
+    if ($arg =~ /-d/)
+    {
+      $destDir = $ARGV[$i+1];
+    }
+    $i++;
+  }
+
+# Default values if no arguments are entered at command line: 
+  $sourceDir = "/msrc/dist/gbasis-1.0" if $sourceDir eq "";
+  $templateDir = "$ENV{ECCE_HOME}/data/admin/basissets";
+  $destDir = $templateDir . "/testNewData" if $destDir eq "";
+
+# Eliminate all output buffering (why is this necessary?)
+  $| = 1;
+
+# Verify the source and destination directories
+  do
+  {
+    print "\nSource directory:\t$sourceDir\n";
+    print "Destination directory:\t$destDir\n";
+    print "OK? (y/n) ";
+    $answer = <STDIN>;
+    exit if ($answer =~ /[Nn][Oo]/);
+  } while ($answer =~ !/[Yy]([Ee][Ss])?/);
+
+# Empty out the destination directory of old data files
+  # see if file already exists
+  if (-e $destDir) {
+     print "Deleting old files from $destDir...";
+     $deleted = unlink (<$destDir/*.BAS>,
+	        <$destDir/MASTER.TBL*>,<$destDir/*.POT>,<$destDir/*.*.meta>,
+		<$destDir/gbsNameConv>);
+
+     print "$deleted files deleted.\n";
+
+ } else {
+     mkdir($destDir, 0777);
+ }
+ 
+# Copy MASTER.TBL into the dest directory and clean it up
+  &cleanMaster;
+
+# Create a revision file from MASTER.TBL
+  &createBSBRev;
+
+# Generate file name mapping lists:
+  %name2file;
+  %file2name;
+  @allFiles;   # all files referenced in MASTER.TBL
+  &generateNamefileHash;
+
+# Convert .BAS & .POT files to DAV Format
+  &parseDAVData; # this was the old gbsDAVConverter.pl script
+
+# Print out hidden auxillary basis sets so that Dave knows about them
+# (these are the basis sets that didnt get parsed):  
+  print "Hidden Basis Sets:\n";
+
+  foreach $filename(@allFiles) {
+      if (!(-e "$destDir/$filename")) {
+	  print "$filename\n";
+      }  
+  }   
+
+print "End gbsDAVConverter\n";
+
+#------------------------------------------------------------------------
+# Subroutine: generateNamefileHash
+# Summary:    Looks through MASTER.TBL and finds the file name associated
+#             with each basis set.  This used to be a manual step - now
+#             it is automatic
+#------------------------------------------------------------------------
+sub generateNamefileHash
+{
+    print "Generating namefile hash...";
+    
+    open (MASTER,"$destDir/MASTER.TBL")
+	|| die "Unable to open dest MASTER.TBL for read";
+    
+    # Parse out name to file mappings for each basis set
+    my $bsNum = 0;
+    my $bsname;
+    my $fileCount;
+    my $fileName;
+
+    while(<MASTER>) {
+	chop;
+
+	# Revision History indicates the end of file, so update the last basis
+	if (/NAME=\"(.*)\"/ || /Revision History/) {
+	    my $tmpName = $1;
+	    $bsNum++;
+            if ($bsNum != 1) {
+		if ($fileCount == 1) {
+		    $name2file{$bsname} = $fileName;  
+		    $file2name{$fileName} = $bsname;
+		    print "mapping $fileName to $bsname\n";
+		
+		# Aggregate group needs a special name:
+		} else {
+		    
+		    my $aggFilename = $bsname;
+		    # remove commas, parentheses, slashes, and spaces
+                    $aggFilename =~ tr/\,\(\)\/\\ //d;
+
+		    # replace * with S and + with P
+                    $aggFilename =~ tr/\*\+/SP/;
+
+		    # replace lowercase with uppercase letters
+		    $aggFilename =~ tr/a-z/A-Z/;
+
+                    $aggFilename = $aggFilename . "-AGG.BAS";
+		    $name2file{$bsname} = $aggFilename;
+		    $file2name{$aggFilename} = $bsname;
+		    print "mapping $aggFilename to $bsname\n";
+		}
+	    }
+		
+	    $bsname = $tmpName;
+	    $fileCount = 0;
+	} elsif (/\!/) { #ignore any line with ! in it
+
+	} elsif (/^\s*FILE=\"(.*)\"/) {
+	    $fileName = $1;
+	    push(@allFiles, $1);
+	    $fileCount++;
+		    
+	} elsif (/FIL[0-9]=\"(.*)\"/) {
+	    $fileCount++;
+	    push(@allFiles, $1);
+
+	    # have to check for ! here, because ECPFILE= is also in the
+	    #comments section
+	} elsif (/ECPFILE=\"(.*)\"/) {
+	    # don't count this as an aggregate set	
+	    push(@allFiles, $1);
+
+	} elsif (/COUFILE=\"(.*)\"/) {
+	    push(@allFiles, $1);
+	} elsif (/EXCFILE=\"(.*)\"/) {
+	    push(@allFiles, $1);
+	}    
+    }
+}
+
+#########################################################################
+# Subroutine: cleanMaster
+#
+# Summary:    Copies MASTER.TBL into the dest directory and cleans
+#             up comments and white space.
+#########################################################################
+sub cleanMaster
+{
+  open (MSTR,"$sourceDir/MASTER.TBL") 
+      || die "Unable to open source MASTER.TBL";
+  open (NEW,">$destDir/MASTER.TBL")
+      || die "Unable to open dest MASTER.TBL for write";
+
+  print "Reading from $sourceDir/MASTER.TBL\n";
+  print "Creating $destDir/MASTER.TBL.....";
+  while (<MSTR>)
+  {
+      s/ NA$/   /g;     # Get rid of end-of-line NA
+      s/ NA\"/   \"/g;  # Get rid of NA followed by quote
+      s/ NA /    /g;    # Get rid of NA with spaces before and after
+      s/\s*$//;         # Get rid of trailing spaces
+      print NEW "$_\n";;
+  }
+  close MSTR;
+  close NEW;
+  print "Done\n";
+}
+
+#------------------------------------------------------------------------
+# Subroutine: usage
+#
+# Summary:    Describes command-line agrument syntax.
+#------------------------------------------------------------------------
+sub usage
+{
+  print "Usage: master2bas [-h] [-s sourceDir] [-d destDir]\n";
+  print "\t-h\tDisplay this message.\n";
+  print "\t-s\tSpecify the source directory for the data files\n";
+  print "\t\tThis defaults to /msrc/dist/gbasis-1.0\n";
+  print "\t-d\tSpecify the destination directory for the data files\n";
+  print "\t\tThis defaults to \$ECCE_HOME/data/admin/basissets/testNewData\n";
+  exit;
+}
+
+#------------------------------------------------------------------------
+# Subroutine: createBSBRev
+#
+# Summary:    Creates bsb.rev file which contains the basis set revision
+#             history.
+#------------------------------------------------------------------------
+sub createBSBRev
+{
+  print "Extracting Revision Information from MASTER.TBL...";
+
+  open (MSTR,"<$destDir/MASTER.TBL") || die "Unable to open MASTER.TBL";
+
+  # rev.txt contains the heading for the bsb.rev file
+  open (TXT,"<$templateDir/rev.txt") || 
+       die "Unable to open $templateDir/rev.txt";
+  open (REV, ">$destDir/bsb.rev") || die "Unable to open bsb.rev for write";
+
+  # Print heading:
+  while (<TXT>) {
+    print REV;
+  }
+  close TXT;
+
+  #Extract body from MASTER.TBL:
+  $found = 0;     # marker for when in revision section of file, init to false
+  while (<MSTR>) {
+    chop;
+    if ($found == 1) {
+      #
+      # Should now be reading lines that contain revision data.
+      # It is either starting off with a date or it is a continuation line.
+      #
+      if (/. ([ \d]\d\/[ \d]\d\/\d\d)\s*(\w*)\s*(\w*)\s*(.*)/) {
+         #
+         # This matches a new item.
+         #    $1 = date
+         #    $2 = Author (usually "DFF") (Convert DFF to 3e102)
+         #    $3 = Type (MA, MI, or EN)
+         #    $4 = Rest of comments
+         #
+         print REV "\n\nDate: $1\n";
+         $author = ($2 eq "DFF") ? "3e102" : $2;
+         print REV "Author: $author\n";
+         print REV "Type: $3\n";
+         print REV "Description: $4";  # Leave off the newline until we see
+                                   # if it is a continuation line.
+      } elsif (/!\s*(.*)/) {
+         #
+         # This matches a continuation line.
+         #    $1 contains the text
+         #
+         print REV "\\\n";   # Print the continuation character and newline
+         print REV "$1";     # Leave off newline until we see about next line
+      }
+    }
+    #
+    # When the line containing "Revision History" is found, then set the
+    # flag and read and discard the next four lines.
+    #
+    if (/Revision History/ && $found == 0) {
+      $found = 1;
+      for ($i=1;$i<=4;$i++)  {
+         $line = <MSTR>;
+      }
+    }
+  }
+
+  print REV "\n";    # Finish off the last line
+  close (MSTR);
+  close (REV);
+  print "Done\n";
+}
+
+#------------------------------------------------------------------------
+# Subroutine: parseDAVData
+# Summary:    This is basically the old gbsDAVConverter.pl script
+#             cleaned up a bit.
+#------------------------------------------------------------------------
+sub parseDAVData
+{
+    # I put these here so I didn't have to change all the variable names in
+    # the old code
+    my $root_dir     = $sourceDir;
+    my $new_tree     = $destDir;
+    my $master_table = $destDir . "/MASTER.TBL";    
+
+    # name2file and file2name were already calculated up above
+
+    my $external = 0; # all atoms are included!!
+    my $gbs_ptr;   # points to the current basis set (which is an assoc. array)
+    my $name;      # basis set name
+    my %BasisSets; # maps basis set name to an associative array
+    my %ECP;
+
+    my @gbs_names;
+
+    my %type_dictionary;
+
+    open(MASTER,$master_table);
+    my $line;
+
+    # First loop thru all of MASTER.TBL, creating a map of basis set data
+    # map contains both meta data and contraction data
+    while($line = <MASTER>) {
+
+	# Determine basis set name - begin parsing a new basis set
+	if($line =~ /^\s*NAME=\"(.*)\"/) {
+	    $name = $1;
+print "NAME OF BASIS SET :: " . $name . "\n";
+	    my %new_gbs;
+	    $gbs_ptr = \%new_gbs;
+	    if($name =~ /cc-p/) {
+		${$gbs_ptr}{"cc"} = "true";
+	    } else {
+		${$gbs_ptr}{"cc"} = "false";
+	    }
+            print "BASIS SET : $name\n";
+            push(@gbs_names,$name);
+        }
+
+        # Determine basis set category
+        if($line =~ /^CATEGORY=(\w+)/) {
+            my $category = $1;
+	    if($category eq "ORBITAL") {
+		${$gbs_ptr}{"category"} = "ORBITAL";
+            } elsif($category eq "ECP") {
+		${$gbs_ptr}{"category"} = "ORBITAL";
+                ${$gbs_ptr}{"type"} = "ECPOrbital";
+            } elsif($category eq "DFTORB") {
+		${$gbs_ptr}{"category"} = "ORBITAL";
+                ${$gbs_ptr}{"type"} = "DFTOrbital";
+            } elsif($category eq "DFTXFIT") {
+		${$gbs_ptr}{"category"} = "ORBITAL";
+                ${$gbs_ptr}{"type"} = "Exchange";
+            } elsif($category eq "DFTCFIT") {
+		${$gbs_ptr}{"category"} = "ORBITAL";
+                ${$gbs_ptr}{"type"} = "Charge";
+            } elsif($category eq "PERIODIC") {
+		${$gbs_ptr}{"category"} = "PeriodicHF";
+            } elsif($category eq "AUXILIARY") {
+		${$gbs_ptr}{"category"} = "TAIOrbital";
+            } else {
+		print "Unrecognized type $category\n";
+            } 
+        }
+
+        # Determine shared status:
+        if ($line =~ /^SHARED=(.)/) {
+	    if($1 eq 'T') {
+		${$gbs_ptr}{"SHARED"} = "true";
+	    } else {
+		${$gbs_ptr}{"SHARED"} = "false";
+            }
+        }
+
+        # Determine contraction type:
+        if($line =~ /^GENR=(.)/) {
+	    if($1 eq 'T') {
+		${$gbs_ptr}{"contraction_type"} = "GC";
+            } else {
+		${$gbs_ptr}{"contraction_type"} = "Segmented";
+            }  
+        }
+
+        # Determine basis set type:
+        if($line =~ /^TYPE=\"(.*)\"/) {
+	    my $types = $1;
+	    if($types =~ s/MB//) {
+		${$gbs_ptr}{"ao_representation"} = "Minimal";
+            } elsif ($types =~ s/VDZ//) {
+		${$gbs_ptr}{"ao_representation"} = "ValenceDoubleZeta";
+            } elsif ($types =~ s/VTZ//) {
+		${$gbs_ptr}{"ao_representation"} = "ValenceTripleZeta";
+            } elsif ($types =~ s/VQZ//) {
+		${$gbs_ptr}{"ao_representation"} = "ValenceQuadrupleZeta";
+            } elsif ($types =~ s/V5Z//) {
+		${$gbs_ptr}{"ao_representation"} = "ValenceQuintupleZeta";
+            } elsif ($types =~ s/V6Z//) {
+		${$gbs_ptr}{"ao_representation"} = "ValenceSextetZeta";
+            } elsif ($types =~ s/V7Z//) {
+		${$gbs_ptr}{"ao_representation"} = "SeptupleZeta";
+            } elsif ($types =~ s/V8Z//) {
+		${$gbs_ptr}{"ao_representation"} = "OctupleZeta";
+            } elsif ($types =~ s/DZ//) {
+		${$gbs_ptr}{"ao_representation"} = "DoubleZeta";
+            } elsif ($types =~ s/TZ//) {
+		${$gbs_ptr}{"ao_representation"} = "TripleZeta";
+            } elsif ($types =~ s/QZ//) {
+		${$gbs_ptr}{"ao_representation"} = "QuadrupleZeta";
+            } elsif ($types =~ s/5Z//) {
+		${$gbs_ptr}{"ao_representation"} = "SextetZeta";
+            } elsif ($types =~ s/GENERAL//) {
+		${$gbs_ptr}{"ao_representation"} = "General";
+            } elsif ($types =~ s/UNCONTR//) {
+		${$gbs_ptr}{"ao_representation"} = "Uncontract";
+                ${$gbs_ptr}{"contraction_type"} = "Uncontracted";
+            } elsif ($types =~ s/DFT//) {
+                # Nothing to do here.  ao_rep doesn't apply
+            } elsif ($types =~ /^\d/) {
+		${$gbs_ptr}{"ao_representation"} = "General";
+            } else {
+		print"Error Unrecognized TYPE\n";
+            }
+
+            # so chop function can be used.
+            if(${$gbs_ptr}{"category"} eq "TAIOrbital") {
+                $types = reverse($types);
+		while(1) {
+		    if($types =~ /\s+$/) {
+			last;
+		    } elsif($types =~ /\d$/) {
+			# do nothing
+		    } elsif($types =~ /P$/ || $types =~ /T$/) {
+			${$gbs_ptr}{"type"} = "polarization";
+		        last;
+		    } elsif($types =~ /D$/) {
+			${$gbs_ptr}{"type"} = "diffuse";
+		        last;
+	            } elsif($types =~ /R$/) {
+			${$gbs_ptr}{"type"} = "rydberg";
+                        last;
+                    } else {
+		        print "Error : bad TYPE! $types\n";
+	            }
+                    chop($types);
+                }   
+            }
+        }
+
+        # Determine spherical or cartesian coordinate system:
+        if($line =~ /^SPHR=/) {
+	    if($line =~ /Y/) {
+		${$gbs_ptr}{"SPHR"} = "Y";
+	    } else {
+		${$gbs_ptr}{"SPHR"} = "N";
+            }
+        }
+
+        # Get INFO block (this contains reference info as well as AEs)
+        if($line =~ /^INFO=/) {
+	    my $get_info = 0;
+	    do {
+		if($line =~ /(.*)\"(.*)/) {
+		    $get_info = ($get_info == 0) ? 1 : -1;
+		    ${$gbs_ptr}{"INFO"} .= ($get_info == 1) ? $2 : $1;
+                    ${$gbs_ptr}{"INFO"} .= "\n";
+                } elsif($get_info == 1) {
+		    ${$gbs_ptr}{"INFO"} .= $line;
+                }
+                $line = <MASTER>;
+            } while($get_info != -1);
+        }
+
+       # Get list of atoms supported by principal basis set
+       if(( $external == 0 && $line =~ s/^ATMN=(.*)\s*/$1/ ) || 
+	  ( $external == 1 && $line =~ s/^!EXA=(.*)\s*/$1/ )) {
+	   my @atoms;
+	   my $get_atoms = 1;
+
+	   do {
+	       if($line !~ /^\s*!/) {
+		   if($line =~ s/^\s*(.*)\s*ENDATMNOS/$1/) {
+		       $get_atoms = 0;
+		       foreach(split(/\s+/,$line)) {push(@atoms,$_);}
+		   } elsif($get_atoms == 1) {
+		       $line =~ s/^\s*(.*)\s*$/$1/;
+		       foreach(split(/\s+/,$line)) {push(@atoms,$_);}
+		   }
+	       }
+	       $line = <MASTER>;
+	   } while($get_atoms == 1);
+
+	   foreach $fatom (keys %{${$gbs_ptr}{"functions"}}) {
+	      my $found = 0;
+	      foreach $satom (@atoms) {
+		  if($fatom == $satom) {
+		      $found = 1;
+		  }
+		  if(!defined ${${$gbs_ptr}{"functions"}}{$satom}) {
+	              print "ERROR: No functions defined for " . 
+		            "$periodic_table[$satom - 1]\n";
+	          }
+              }
+              if($found == 0) {
+                print "WARNING: Leaving $periodic_table[$fatom - 1] out.\n";
+                undef ${${$gbs_ptr}{"functions"}}{$fatom};
+              }
+           }        
+           # add this to the array of atoms
+           push(@{${$gbs_ptr}{"ATMN"}}, \@atoms);
+       }
+
+       # Get list of atoms supported by secondary basis set
+       if ($line =~ s/^ATM(\d)=(.*)/$2/ ) {
+
+	   my @atoms;
+	   my $get_atoms = 1;
+
+	   do {
+	       if($line !~ /^\s*!/) {
+		   if($line =~ s/^\s*(.*)\s*ENDATMNOS/$1/) {
+		       $get_atoms = 0;
+		       foreach(split(/\s+/,$line)) {push(@atoms,$_);}
+		   } elsif($get_atoms == 1) {
+		       $line =~ s/^\s*(.*)\s*$/$1/;
+		       foreach(split(/\s+/,$line)) {push(@atoms,$_);}
+		   }
+	       }
+	       $line = <MASTER>;
+	   } while($get_atoms == 1);
+
+           # add this to the array of atoms
+           push(@{${$gbs_ptr}{"ATMN"}}, \@atoms);
+       }
+
+       # Get current basis set in group (could be orbital or aux, if basis
+       # set is aggregate)
+
+       # If principal basis set then header is FILE=
+       # (if only 1 file is included, then this is not an aggregate basis set)
+       # (this could be an ORBITAL or a stand-alone AUX basis set)
+       if($line =~ /^\s*FILE=\"(.*)\"/) {
+	  my $file_name = $1;
+
+	  # if $gbs_ptr is an ORBITAL basis set with augmenting basis sets
+	  # the orbital data will be parsed here but the data will not be
+	  # printed when the augmenting basis sets are found later on.
+	  
+	  push(@{${$gbs_ptr}{"basis_names"}}, $name2file{$name});
+          if($name2file{$name} ne $file_name) {
+	      push(@{${$gbs_ptr}{"basis_names"}}, $file_name);
+          } else {
+	      # we don't really need this here, but we pass it in because
+              # we need it for ECPs, which are parsed with the same function
+	      my @allAtoms;
+	      &parse_data_file($root_dir . "/" . $file_name, $gbs_ptr,
+			       \@allAtoms);
+          } 
+          $BasisSets{$name} = $gbs_ptr; 
+       }
+
+       # If AUX basis set as part of an aggregate group, 
+       #then could be polariz, diff, exchange, charge, or
+       # ecp:
+       if($line =~ /^\s*(COUFILE|EXCFILE|ECPFILE|FIL(\d))=\"(.*)\"/) {
+	  my $aux_bs_type = $1;
+	  my $file_name = $3;
+	  my $aux_name;
+
+	  # first determine what the name is of the AUX basis set
+          # (MASTER.TBL only contains the file name)
+	  open(FILE,$root_dir . "/" . $file_name);
+	  foreach (<FILE>) {
+	      if(/^\s*NAME=\"(.*)\"/) {
+		  $aux_name = $1;
+		  last;
+	      }
+	  }
+	  close(FILE);
+
+	  # If it's an ECP, then parse the contraction data from file:
+          if($aux_bs_type eq "ECPFILE") {
+
+#	      while($line !~ s/^ATMP=(.*)\s*/$1/) {
+#		  $line = <MASTER>;
+#	      }
+#
+#	      my @atoms;
+#	      my $get_atoms = 1;
+#	      do {
+#		  if($line !~ /^\s*!/) {
+#		      if($line =~ s/^\s*(.*)\s*ENDPOT/$1/) {
+#			  $get_atoms = 0;
+#			  foreach(split(/\s+/,$line)) {push(@atoms,$_);}
+#		      } elsif($get_atoms == 1) {
+#			  $line =~ s/^\s*(.*)\s*$/$1/;
+#			  foreach(split(/\s+/,$line)) {push(@atoms,$_);}
+#		      }
+#		  }
+#		  $line = <MASTER>;
+#	      } while($get_atoms == 1);
+
+              # We know if we got here, then we just parsed the ECP part for
+              # an ECP group.  We need to add the atom mapping for that ECP
+              # to the list of atoms for that group:
+#              push(@{${$gbs_ptr}{"ATMN"}}, \@atoms);
+
+              # Since ECPs DO NOT have a separate listing in the table (like
+              # the other aux basis sets), we will create a new one here
+ 
+	      # Only parse this ECP if it hasn't already been parsed:
+	      if (!exists($ECP{$aux_name})) {
+		 
+		  my %new_ecp;
+		  my $ecp_ptr = \%new_ecp;
+		  my @allAtoms;  # get every atom in the file - we can't
+                                 # count on the atom list in MASTER.TBL
+
+		  my @tmp = ($file_name, $ecp_ptr);
+		  $ECP{$aux_name} = \@tmp;
+
+		  &parse_data_file($root_dir . "/" . $file_name,$ecp_ptr,
+				   \@allAtoms);
+		  foreach $fatom (keys %{$new_ecp{"functions"}}) {
+		      my $found = 0;
+		      foreach $satom (@atoms) {
+			  if($fatom == $satom) {
+			      $found = 1;
+			  }
+			  if(!defined ${$new_ecp{"functions"}}{$satom}) {
+		             print "ERROR: No functions defined for " . 
+			     "$periodic_table[$satom - 1]\n";
+		          }  
+	              }
+	              #if($found == 0) {
+		      #   print "WARNING: Leaving $periodic_table[$fatom - 1] out.\n";
+		      #   undef ${$new_ecp{"functions"}}{$fatom};
+	              #}
+                  }
+
+		  # ECP parts can't be aggregate, so there is only one 
+                  # atoms list
+		  $new_ecp{"ATMN"} = \@allAtoms;
+	      }
+
+          } # End ECP parse
+
+          # Add the Aux file name to the list of files for the aggregate group
+          push(@{${$gbs_ptr}{"basis_names"}}, $file_name);
+
+       } # End AUX basis set parse
+   }   
+   close(MASTER);
+
+   # Now print the .BAS and .BAS.meta files for each basis set in the list:
+   %gbsNameConv;
+   foreach $bsname (@gbs_names) {
+
+     my $bsptr = $BasisSets{$bsname};
+     my $current_dir;
+
+     if(${$bsptr}{"category"} eq "ORBITAL" && !defined ${$bsptr}{"type"}) {
+       if(${$bsptr}{"SHARED"} eq "true") {
+          ${$bsptr}{"type"} = "pople";
+       } elsif(${$bsptr}{"contraction_type"} eq "Segmented" ||
+               ${$bsptr}{"contraction_type"} eq "Uncontracted") {
+         ${$bsptr}{"type"} = "other_segmented";
+       } elsif(${$bsptr}{"contraction_type"} eq "GC") {
+         if(${$bsptr}{"cc"} eq "true") {
+           ${$bsptr}{"type"} = "correlation_consistent";
+         } else {
+           ${$bsptr}{"type"} = "other_generally_contracted";
+         }
+       }
+     }
+
+     $current_dir = ${$bsptr}{"type"};
+
+     &print_gbs($bsname,$bsptr,"$new_tree/$name2file{$bsname}");
+
+     if(!defined $gbsNameConv{$current_dir}) {
+       my @tmp;
+       $gbsNameConv{$current_dir} = \@tmp;
+     }
+
+     my @tmp = ($bsname,@{${$bsptr}{"basis_names"}});
+     push(@{$gbsNameConv{$current_dir}},\@tmp);
+
+   }
+
+   # Now print the .POT and .POT.meta files for each ecp in the list:
+   foreach $ecp_name (keys %ECP) {
+     my ($ecp_file_name,$ecpptr) = @{$ECP{$ecp_name}};
+     &print_ecp($ecp_name,$ecpptr,$new_tree . "/" . $ecp_file_name);
+   }
+
+   # Now print the gbsNameConv file:
+   open(DICT,">$new_tree/gbsNameConv") ||
+        die "Could not open $new_tree/gbsNameConv";
+   foreach $type (keys %gbsNameConv) {
+     print DICT "type= $type\n";
+     foreach $gbs_files (@{$gbsNameConv{$type}}) {
+
+       my $name = shift(@{$gbs_files});
+       print DICT "name= $name\n";
+
+       print DICT "files=";
+       foreach $file (@{$gbs_files}) {
+         print DICT " $file";
+       }
+       print DICT "\n";
+       
+       my $count = 0;
+
+       foreach (@{${$BasisSets{$name}}{"ATMN"}}) {
+         print DICT "atoms=";
+	 my @tmpArray = @{${$BasisSets{$name}}{"ATMN"}[$count]};
+
+	 foreach $atom (@tmpArray) {
+	     print DICT " $periodic_table[$atom-1]";
+	 }
+         print DICT "\n";
+         $count++;
+       }
+       print DICT "\n";
+     }
+   }  
+
+   print DICT "type= ecp\n";
+
+   foreach $ecp_name (keys %ECP) {
+
+     my ($ecp_file_name,$ecpptr) = @{$ECP{$ecp_name}};
+     print DICT "name= $ecp_name\n";
+     print DICT "files= $ecp_file_name\n";
+     print DICT "atoms=";
+     foreach $atom (@{${$ecpptr}{"ATMN"}}) {
+       print DICT " $periodic_table[$atom-1]";
+     }
+     print DICT "\n";
+
+   }
+   close(DICT);
+}
+
+#------------------------------------------------------------------------
+# Subroutine: parse_data_file
+# Summary:    Reads the exponents and coefficients from the given file
+#             and adds them to the given basis set pointer (which is 
+#             pointing to an associative array)
+#------------------------------------------------------------------------
+sub parse_data_file
+{
+  # Input parameters:
+  my $file_name=$_[0];
+  my $basis_dataPtr = $_[1];
+
+  # This reference array contains the list of all the elements with 
+  # contractions in this file.  We need to do this for *.POT files 
+  # to get their atom list, since ECP parts are not listed separately
+  # in MASTER.TBL file.
+  my $atomListPtr = $_[2]; 
+
+  # Temporary variables:
+  my $atom;
+  my $line;
+
+  # Open the original file from Feller's root directory:
+  print " FILE : $file_name\n";
+  open(BASFILE,$file_name) || die "could not open $file_name";
+
+OUTERLOOP:  while($line = <BASFILE>) {
+
+    if($line =~ /^\s*REFERENCE=/) {
+      my $get_reference = 0;
+      do {
+        if($line =~ /(.*)\"(.*)/) {
+          $get_reference = $get_reference == 0 ? 1 : -1;
+          ${$basis_dataPtr}{"references"} .= $get_reference == 1 ? $2 : $1;
+          ${$basis_dataPtr}{"references"} .= "\n";
+        } elsif($get_reference == 1) {
+          ${$basis_dataPtr}{"references"} .= $line;
+        }
+        if($get_reference != -1) {
+          $line = <BASFILE>;
+        }
+      } while($get_reference != -1 && $line !~ /^\s*Z=/);
+    }
+
+    if($line =~ /^\s*Z=\s*(\d+)/) {
+      my $atom = $1;
+      my $l;
+      my $type;
+      my @functions;
+      
+      push(@$atomListPtr,$atom);
+      
+      if(!defined ${$basis_dataPtr}{"category"}) {
+        my @ecp_data;
+        $functions[0] = \@ecp_data;
+      }
+
+      my $got_data="F";
+      while($line = <BASFILE>) {
+
+        # functions for ecps
+        if($line =~ /^\s*NCORE=\s*(\d+)/) {
+          ${$functions[0]}[0]=$1;
+        }
+        if($line =~ /^\s*LMAX=\s*(\d+)/) {
+          ${$functions[0]}[1]=$1;
+        }
+        if($line =~ /^\s*L=\s*(\d+)\s*TYPE=\"(.*)\"/) {
+          $l=$1;
+          $type=$2;
+        }
+
+        if($line =~ /\s*NUMEXP=\s*(\d+)(.*)/) {
+
+          my $numexp = $1;
+          my @contraction;
+    
+          if( defined ${$basis_dataPtr}{"category"}) {
+            # get shell and check for SP shared contractions!
+            $line = $2;
+            $line =~ s/[\s+\d+]//g;
+            $contraction[0] = $line;
+          } else {
+            # ecp
+            my @tmp = ($l,$type);
+            $contraction[0] = \@tmp;
+          }
+
+          my $i;
+          for($i=0;$i<$numexp;$i++) {
+            $line = <BASFILE>;
+            $line =~ s/^\s*(.*)\s*$/$1/;
+            my @tmp = split(/\s+/,$line);
+            push(@contraction,\@tmp);
+          }
+          push(@functions,\@contraction);
+          $got_data = "T";
+
+        }
+        if($line =~ /^\s*(!|Z=)/ && $got_data eq "T") {
+          last;
+        }
+      }
+      @{${${$basis_dataPtr}{"functions"}}{$atom}} = 
+           (@{${${$basis_dataPtr}{"functions"}}{$atom}}, @functions);
+      if($line =~ /^\s*Z=/) {
+        redo OUTERLOOP;
+      }
+    }
+
+    if($line =~ /File Revision History/) {
+      my @comments;
+      while($line = <BASFILE>) {
+
+        $line =~ s/(.*)\s+$/$1/;
+        if($line eq "!" || $line eq "") {
+          last;
+        }
+        if($line =~ /^\s*!        /) {
+          $line =~ s/^\s*!\s*(.*)/$1/;
+          if($line !~ /---------/) {
+            ${$comments[$#comments]}[2] .= $line;
+          }
+        } elsif($line =~ /!\s*(\d+)\/\s*(\d+)\/(\d+)(.*)/) {
+          my $date = $1 . "/" . $2 . "/" . $3;
+          my @tmp = ($1 . "/" . $2 . "/" . $3,$4);
+          push(@comments,\@tmp);
+        } else {
+          print "Unrecognized File Revision History Line : ****$line****\n";
+        }
+      }
+      ${$basis_dataPtr}{"comments"} = \@comments;
+    }
+
+  }
+
+  close(BASFILE);
+}
+
+#------------------------------------------------------------------------
+# Subroutine: print_gbs
+# Summary:    Prints a .BAS and .BAS.meta file for the indicated basis set.
+#------------------------------------------------------------------------
+sub print_gbs {
+
+  my $bsname = $_[0];
+  my $bsptr = $_[1];
+  my $bsfile = $_[2];
+
+  # print meta data
+
+  print "Generating : $bsfile.meta\n";
+  open(META,">$bsfile.meta") || 
+  die "Could not open $bsfile.meta\n";
+
+  print META "name\n$bsname\nname\n";
+  print META "type\n${$bsptr}{'type'}\ntype\n";
+  print META "category\n${$bsptr}{'category'}\ncategory\n";
+  print META "spherical\n${$bsptr}{'SPHR'}\nspherical\n";
+  print META "contraction_type\n${$bsptr}{'contraction_type'}\ncontraction_type\n";
+
+# my $count = 0;
+
+#  foreach(@{${$bsptr}{"ATMN"}}) {
+#    print META "atoms\n";
+#    my @tmpArray = @{${$bsptr}{"ATMN"}[$count]};
+    
+#    foreach $atom (@tmpArray) {
+#        print META " $periodic_table[$atom-1]";
+#    }
+#    print META "\natoms\n";
+#    $count++;
+#  }
+
+  print META "references\n${$bsptr}{'references'}\nreferences\n";
+  print META "info\n${$bsptr}{'INFO'}\ninfo\n";
+
+  print META "comments\n";
+  foreach $commentPtr (@{${$bsptr}{'comments'}}) {
+    my ($date,$comment) = @{$commentPtr};
+    print META "$date $comment\n";
+  }
+  print META "comments\n";
+
+  close(META);
+
+  # print exponents and coefficients
+
+  print "Generating : $bsfile\n";
+  open(FILE,">$bsfile") || 
+  die "Could not open $bsfile\n";
+
+  my %functions = %{${$bsptr}{"functions"}};
+  my $atom;
+  for($atom=1;$atom<$#periodic_table+1;$atom++) {
+
+    if( defined $functions{$atom} ) {
+
+      print FILE "atom=$periodic_table[$atom-1]\n";
+
+      my @contraction_set = @{$functions{$atom}};
+      my $contSetPtr;
+      foreach $contSetPtr (@contraction_set) {
+        my $shell = shift(@{$contSetPtr});
+        my $num_primitives = $#{$contSetPtr} + 1;
+        my $num_coefficients = $#{${$contSetPtr}[0]};
+
+        print FILE "contraction shell=$shell ";
+        print FILE "num_primitives=$num_primitives ";
+        print FILE "num_coefficients=$num_coefficients\n";
+
+        my $contPtr;
+        foreach $contPtr (@{$contSetPtr}) {
+          my ($exponent, @coefficients) = @{$contPtr};
+          print FILE "$exponent @coefficients\n";
+        }
+      }
+    }
+  }
+  close(FILE);
+}
+
+#------------------------------------------------------------------------
+# Subroutine: print_ecp
+# Summary:    Prints a .POT and .POT.meta file for the indicated ecp.
+#------------------------------------------------------------------------
+sub print_ecp {
+  my $bsname = $_[0];
+  my $bsptr = $_[1];
+  my $bsfile = $_[2];
+
+  # meta data
+
+  print "Generating : $bsfile.meta\n";
+  open(META,">$bsfile.meta") ||
+  die "Could not open $bsfile.meta\n";
+
+  print META "name\n$bsname\nname\n";
+  print META "type\necp\ntype\n";
+  print META "category\nAUXILIARY\ncategory\n";
+
+#  print META "atoms\n";
+#  foreach(@{${$bsptr}{"ATMN"}}) {
+#    print META $periodic_table[$_ - 1];
+#    if($_ != ${${$bsptr}{"ATMN"}}[$#{${$bsptr}{"ATMN"}}]) {
+#      print META " ";
+#    }
+#  }
+#  print META "\natoms\n";
+
+  print META "references\n${$bsptr}{'references'}\nreferences\n";
+
+  print META "comments\n";
+  foreach $commentPtr (@{${$bsptr}{'comments'}}) {
+    my ($date,$comment) = @{$commentPtr};
+    print META "$date $comment\n";
+  }
+  print META "comments\n";
+
+  # exponents and coefficients
+
+  print "Generating : $bsfile\n";
+  open(FILE,">$bsfile") ||
+  die "Could not open $bsfile\n";
+
+  my %functions = %{${$bsptr}{"functions"}};
+
+  # print functions in periodic_table order
+  my $atom;
+  for($atom=1;$atom<$#periodic_table+1;$atom++) {
+
+    if( defined $functions{$atom} ) {
+
+      my @contraction_set = @{$functions{$atom}};
+
+      print FILE "atom=$periodic_table[$atom-1]";
+      my @ecp_potential_meta_data = @{shift(@contraction_set)};
+      my $ncore = $ecp_potential_meta_data[0];
+      my $lmax = $ecp_potential_meta_data[1];
+      print FILE " ncore=$ncore lmax=$lmax\n";
+
+      my $ecp_potential_ptr;
+      foreach $ecp_potential_ptr (@contraction_set) {
+
+        my ($l, $type) = @{shift(@{$ecp_potential_ptr})};
+        my $num_primitives = $#{$ecp_potential_ptr} + 1;
+
+        print FILE "ecp_potential%l=$l%";
+        print FILE "shell=$type%";
+        print FILE "num_exponents=$num_primitives\n";
+
+        my $ecp_part_ptr;
+        foreach $ecp_part_ptr (@{$ecp_potential_ptr}) {
+          my ($power, $exponent, $coefficient) = @{$ecp_part_ptr};
+          print FILE "$power $exponent $coefficient\n";
+        }
+      }
+    }
+  }
+  close(FILE);
+}
+

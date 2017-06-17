@@ -1,0 +1,18 @@
+# List of basis set names where explicit exponents and coefficients should
+# always be used regardless of user setting.
+#
+# This is useful, for instance, when NWChem doesn't support the basis set for
+# specific elements when it really should such as the correlation consistent
+# basis sets with Calcium.
+#
+# Format is one basis set name per line.  Matching is done by substring so,
+# for instance, CRENB will match both CRENBL and CRENBS basis sets. Quotes
+# are used to match the beginning and ending of the name.  Comment lines
+# start with # in the first column and blank lines are also ignored.
+
+"CRENB
+
+"cc-pVDZ"
+"cc-pVTZ"
+"cc-pVQZ"
+"cc-pV5Z"

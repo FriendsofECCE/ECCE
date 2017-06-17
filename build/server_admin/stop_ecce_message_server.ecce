@@ -1,0 +1,26 @@
+#!/bin/csh
+#
+
+setenv ACTIVEMQ_HOME ##ECCESERVERROOT##/activemq
+
+# Have to kill JMS manually--argh
+echo ""
+set jmsid = `ps --cols 1024 -eo 'ppid pid args' | grep "java " | grep " -Dorg.apache." | grep $ACTIVEMQ_HOME | grep -v grep | sort | head -n 1 | awk -F" " '{print $2}'`
+if ($jmsid != "") then
+  kill -9 $jmsid
+  if ($status == 0) then
+    echo "Messaging server stopped"
+  else
+    echo "Unable to stop messaging server"
+  endif
+else
+  echo "Messaging server not currently running"
+endif
+
+echo ""
+
+exit 0
+
+error_exit:
+  echo ""
+  exit -1

@@ -1,0 +1,24 @@
+################################################################################
+# FILENAME:  Makefile.wx
+#
+#
+# PURPOSE:
+#   Define template information for the makefile generator for those who
+#   need to use wxWidgets software.
+#
+# DESCRIPTION:
+#   You only need this file if you are compiling or linking with wxWidgets.
+################################################################################
+
+WX_IFLAGS = $(shell $(ECCE_HOME)/$(ECCE_SYSDIR)3rdparty/wxwidgets/bin/wx-config --cflags)
+WX_LFLAGS = -Wl,-rpath=../3rdparty/wxwidgets/lib -L$(ECCE_HOME)/$(ECCE_SYSDIR)3rdparty/wxwidgets/lib
+WX_LIBS = -lwx_gtk2_ewxaui-2.8 -lwx_gtk2_adv-2.8
+WX_LIBS += $(shell $(ECCE_HOME)/$(ECCE_SYSDIR)3rdparty/wxwidgets/bin/wx-config --libs)
+
+ifdef ECCE_BUILD_CROSSCOMPILE
+  # A full set of libraries are needed when cross-compiling (32-bit build on
+  # a 64-bit platform) because otherwise it wants to use the libraries in
+  # /usr/lib that aren't consistent with the 3rdparty/system|local/lib versions
+  WX_LIBS += -lgtk-x11-2.0 -lgdk-x11-2.0 -latk-1.0 -lgdk_pixbuf-2.0 -lpangocairo-1.0 -lpangoxft-1.0 -lpangox-1.0 -lpangoft2-1.0 -lpango-1.0 -lcairo -lgobject-2.0 -lgmodule-2.0 -ldl -lglib-2.0 -lfontconfig -lXrender -lXrandr -lXcursor -lXfixes -lXft -lfreetype -ltiff -ljpeg -lpng12 -lICE -lSM -lz
+endif
+

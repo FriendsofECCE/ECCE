@@ -1,0 +1,37 @@
+name
+STO-3G* Polarization
+name
+type
+polarization
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             Reference
+--------                             ----------
+Na - Ar:  J.B. Collins, P.R. Schleyer, J.S. Binkley, J.A. Pople, J. Chem. 
+          Phys. 64, 5142 (1976)
+
+references
+info
+                     STO-3G* Polarization Functions
+                     ------------------------------
+Elements                             References
+Na - Ar: (1d)  J.B. Collins, P.R. Schleyer, J.S. Binkley, J.A. Pople, J. Chem.
+               Phys. 64, 5142 (1976)
+
+The STO-3G* polarization set amounts to a single 5-term d function for elements
+Na - Ar to account for the participation of d functions in second row bonding.
+
+
+info
+comments
+12/09/95  - DFF - Original creation of this file from MIA basis set library.
+comments

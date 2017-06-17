@@ -1,0 +1,547 @@
+
+INSTRUCTIONS FOR MANUAL BUILD OF ECCE FROM A SOURCE CODE DISTRIBUTION
+---------------------------------------------------------------------
+
+This file provides guidance for those who wish to manually build ECCE including
+the third party software packages it uses.  The recommended way to build ECCE
+and the associated third party software is to use the build_ecce script
+documented in the README file in this directory.  But, if desired or needed it
+can all be built manually without build_ecce.  Additionally, if there is
+difficulty in getting build_ecce to compile a third party package then this
+documentation can give more insight into what might be done to resolve any
+problems.  The build_ecce script can also be used for compiling some packages
+while others are built manually by using command line arguments to build_ecce
+to direct which packages to build.
+
+Regardless of whether build_ecce is being used or not for compiling third party 
+packages and ECCE, the up-front prerequisite software checks done by build_ecce
+should be performed in both cases.  There are a number of required software
+packages including compilers and other build tools along with commands and
+applications invoked by ECCE at runtime.  These must be installed before any
+of the rest of the third party software and ECCE can be compiled.  The README
+file provides details on the prerequisite software packages.  Follow the
+README file procedures up until the heading "Compiling Third Party Packages
+and ECCE" including sourcing the appropriate build_setup script.
+
+Although not mandatory if building manually it is recommended that third party
+software be built under a directory named
+$ECCE_HOME/${ECCE_SYSDIR}3rdparty/build.  The $ECCE_HOME directory is the
+top-level directory where the ECCE source code distribution was extracted and
+${ECCE_SYSDIR} is the platform name directory determined by the
+$ECCE_HOME/scripts/sysdir script (the name may be empty and will always have
+a trailing "/" if not--edit the sysdir script for more details).  These
+environment variables will be set after sourcing the appropriate build_setup
+script depending on the shell used.  The
+$ECCE_HOME/${ECCE_SYSDIR}3rdparty/build directory is treated specially and
+not included in the ECCE binary distribution that must be created to
+deploy ECCE after compiling.  But, using this directory keeps the third party
+software builds close to where they are installed for use by ECCE.  Also note
+that the install directories (the "--prefix" option to configure commands)
+for each of the third party software packages must be given as indicated in the
+documentation below.  The ECCE Makefile system depends on these paths to build
+successfully.
+
+
+Manual Compile of Third Party Packages and ECCE
+-----------------------------------------------
+
+Apache Xerces
+-------------
+
+Apache Xerces is a C++ or Java XML parser used extensively by ECCE for
+data management.
+
+* ECCE uses version 2.x of the C++ source code distribution available from
+  http://xerces.apache.org.  Note that ECCE is not API compatible with the
+  Xerces 3.x releases and thus only 2.x releases should not be used.
+
+* The ECCE source code distribution bundles Xerces C++ 2.8.0 although newer
+  2.x releases can be downloaded, compiled, and tried with ECCE if desired.
+  The ECCE bundled Xerces source code distribution resides in the directory
+  $ECCE_HOME/build/3rdparty-dists.  Copy the bundled xerces-c-src_2_8_0.tar.bz2
+  distribution or one that has been downloaded from http://xerces.apache.org
+  to the directory $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build
+
+* Extract the xerces-c-src_2_8_0.tar.bz2 distribution with the command:
+  % cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build
+  % tar xvf xerces-c-src_2_8_0.tar.bz2
+
+* The following steps use the build instructions available from
+  http://xerces.apache.org/xerces-c/build-winunix-2.html#UNIX
+
+* Set XERCESCROOT environment variable (note the "C" after XERCES and before
+  ROOT):
+  For csh/tcsh users:
+    % setenv XERCESCROOT $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build/xerces-c-src_2_8_0
+  For sh/bash users:
+    % export XERCESCROOT=$ECCE_HOME/${ECCE_SYSDIR}3rdparty/build/xerces-c-src_2_8_0
+
+* Change directory to where the Xerces runConfigure script is located:
+  % cd xerces-c-src_2_8_0/src/xercesc
+
+* Invoke the runConfigure command:
+  % ./runConfigure -plinux -b$ECCE_BUILD_BITS -nfileonly cgcc -xg++ -P$ECCE_HOME/${ECCE_SYSDIR}/3rdparty/xerces
+  Note that $ECCE_BUILD_BITS is set to either 32 or 64 by the build_setup script
+
+* If successful, run make:
+  % make
+
+* If successful, invoke the install target of make:
+  % make install
+
+* (Optional) If successful, strip installed Xerces libraries to save space:
+  % cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/xerces/lib
+  % strip *
+
+
+Mesa OpenGL
+-----------
+
+OpenGL is the underlying visualization library used by ECCE.  Mesa is a
+software-only implementation of the OpenGL standard while graphics hardware
+card vendors (NVidia, ATI, etc.) maintain OpenGL drivers for their cards.  If
+a hardware graphics card is being used then hardware OpenGL drivers are
+recommended with ECCE due to better rendering performance especially for large
+chemical systems such as when interactively manipulating PDB-based systems or
+animating molecular dynamics trajectories.  However, for working with smaller
+molecules typical of electronic structure calculations Mesa software OpenGL
+is normally sufficient.
+
+Both the local OpenGL libraries and the Mesa source code distribution bundled
+with ECCE will more than likely work fine.  It has been observed though that
+one or the other may cause Builder/Viewer application crashes on certain
+platforms and thus support for both is provided.  Environment variables
+described in the $ECCE_HOME/siteconfig/site_runtime file specify which OpenGL
+libraries are used.
+
+Note that the Mesa bundled with ECCE, version 6.5.3, is quite old.  This
+version is used because it has fewer dependencies on other libraries like
+libdrm.so compared to newer Mesa releases and is thus easier to compile and
+should work well with the other visualization packages used by ECCE, Open
+Inventor and OpenMOIV.  Finally, note that Mesa must be built before attempting
+to build wxWidgets or the wxWidgets build will fail.
+
+* Copy the bundled Mesa 6.5.3 distribution:
+  % cp $ECCE_HOME/build/3rdparty-dists/MesaLib-*.tar.bz2 $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build
+  Note that this distribution can currently be downloaded from
+  http://sourceforge.net/projects/mesa3d/files/MesaLib.  Given the age (2007)
+  of this distribution and the difficulty in locating it with web search
+  engines, it may not be available indefinitely.
+
+* Extract the MesaLib-6.5.3.tar.bz2 distribution with the command:
+  % cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build
+  % tar xvf MesaLib-6.5.3.tar.bz2
+
+* Change directory to where the top-level extracted Mesa distribution:
+  % cd Mesa-6.5.3
+
+* Run make with the proper target and options:
+  If building on a 64-bit platform:
+    % make linux-x86-64 OPT_FLAGS="-fno-strict-aliasing"
+  If building on a 32-bit platform:
+    % make linux-x86 OPT_FLAGS="-fno-strict-aliasing"
+
+* Create the needed 3rdparty/mesa install directories:
+  % mkdir $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa
+  % mkdir $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa/include
+  % mkdir $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa/lib
+
+* Copy the compiled Mesa include files:
+  % cp -rf include/GL $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa/include
+
+* Copy the compiled Mesa libraries:
+  % cd lib*
+  % cp -rf * $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa/lib
+
+* (Optional) If successful, strip installed Mesa libraries to save space:
+  % cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa/lib
+  % strip *
+
+
+wxWidgets
+---------
+
+Note that one of the two sets of instructions (copying or compiling) for Mesa
+OpenGL must have been done before attempting to build wxWidgets.
+
+wxWidgets is a C++ cross-platform GUI toolkit used for all core ECCE user
+interface applications.  A Python binding to wxWidgets named wxPython is
+used by ECCE for the electronic structure Calculation Editor application
+theory and runtype details dialogs for the various computational codes
+supported by ECCE (NWChem, Gaussian 03, GAMESS-UK, etc.).  Although wxWidgets
+and wxPython distributions are available separately, ECCE uses a wxPython
+distribution that itself bundles a wxWidgets C++ distribution so that only
+a single version of the wxWidgets C++ libraries is shared between wxWidgets
+and wxPython.  Although the source code distribution is shared the build
+instructions are divided into two sections as there are distinct steps for
+building each toolkit.
+
+ECCE also employs a GUI builder application named DialogBlocks
+(http://www.dialogblocks.com) for creating wxWidgets based applications.
+This GUI builder is not open source and has a nominal cost associated with
+it and thus cannot be distributed with ECCE.  However, it is not necessary
+to purchase DialogBlocks in order to build ECCE source code as the C++ code
+generated by DialogBlocks is included with the ECCE source code distribution.
+Files in the ECCE source code tree matching *GUI.pjd are DialogBlocks format.
+Source code generated by DialogBlocks matches *GUI.C and *GUI.H.  It is also
+possible to make simple changes to GUIs by directly modifying the *GUI.C C++
+source code generated by DialogBlocks although major changes to existing
+interfaces are not practical.  Therefore, if considering more than trivial
+changes to existing ECCE user interfaces purchasing DialogBlocks is
+recommended.  Note that brand new ECCE wxWidgets GUI applications can be
+written without the use of DialogBlocks unless desired.  The ECCE Calculation
+Editor wxPython theory and runtype details dialogs do not use DialogBlocks and
+thus are easily modified, which is also a task more likely to be undertaken
+versus modifying existing core ECCE applications.
+
+* The ECCE source code distribution bundles wxPython 2.8.12.1 although later
+  2.8.x releases can be downloaded, compiled, and tried with ECCE if desired.
+  wxWidgets and thus wxPython assign even minor version numbers (e.g. 2.6,
+  2.8, and 2.10 if that exists in the future) to stable releases and odd minor
+  version numbers (e.g. 2.7, 2.9) to development releases.  It is recommended
+  that only stable releases of wxWidgets/wxPython be used for ECCE.
+
+* The ECCE wxPython source code distribution resides in the directory
+  $ECCE_HOME/build/3rdparty-dists.  Copy the bundled
+  wxPython-src-2.8.12.1.tar.bz2 distribution or one that has been downloaded
+  from http://www.wxpython.org to the directory
+  $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build.
+
+* Extract the wxPython-src-2.8.12.1.tar.bz2 distribution with the command:
+  % cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build
+  % tar xvf wxPython-src-2.8.12.1.tar.bz2
+
+* The following steps use the build instructions available from
+  http://wxpython.org/BUILD-2.8.html
+
+* Set WXDIR environment variable:
+  For csh/tcsh users:
+    % setenv WXDIR $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build/wxPython-src-2.8.12.1
+  For sh/bash users:
+    % export WXDIR=$ECCE_HOME/${ECCE_SYSDIR}3rdparty/build/wxPython-src-2.8.12.1
+
+* Change directory to the top-level wxWidgets/wxPython distribution:
+  % cd wxPython-src-2.8.12.1
+
+* Edit the file named configure and search for "SEARCH_INCLUDE".  After the
+  equals sign and double quote mark and before the backslash on that same line
+  add the following: $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa/include
+  Save the changed file.  This change will allow the wxWidgets configure
+  command to find the OpenGL include files as well as libraries.  Unfortuantely
+  the logic used by the wxWidgets configure script is very simplistic and does
+  not support environment variables or command line options for passing these
+  locations, nor separate base paths for include files and libraries.
+
+* Make a subdirectory named bld to perform the wxWidgets compile:
+  % mkdir bld
+  % cd bld
+
+* Run the configure command with the proper options:
+  % ../configure --prefix=$ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxwidgets --with-gtk --with-gnomeprint --with-opengl --enable-geometry --enable-graphics_ctx --enable-sound --with-sdl --enable-mediactrl --enable-display
+  Note that the documentation for building at http://wxpython.org strongly
+  recommends the --enable-unicode option be passed to the configure command,
+  but this is incompatible with ECCE's use of the STL string class in C++
+  code and thus can't be used.
+
+* If successful, run make
+  % make
+
+* If successful, run make in the contrib/src/gizmos dir needed to build
+  wxPython later:
+  % make -C contrib/src/gizmos
+
+* If successful, run make in the contrib/src/stc dir needed to build
+  wxPython later:
+  % make -C contrib/src/stc
+
+* If successful, invoke the install target of make:
+  % make install
+
+* If successful, invoke the install target of make for contrib/src/gizmos:
+  % make -C contrib/src/gizmos install
+
+* If successful, invoke the install target of make for contrib/src/stc:
+  % make -C contrib/src/stc install
+
+* Build the ECCE customized version of the wxWidgets AUI widget needed for
+  the ECCE Builder application:
+  % cp -rf $ECCE_HOME/build/ewxaui .
+  % cd ewxaui
+  % ./auigen.sh
+  This will copy the standard AUI code and then apply sed command edits
+  followed by some perl scripting to make the code modifications needed for
+  ECCE.
+
+* Run make on the ECCE customized AUI code:
+  % make
+  This make invocation also copies the resulting libraries to the
+  3rdpary/wxwidgets/lib directory after compiling source code.
+
+* (Optional) If successful, cleanup statically linked wxWidgets libraries and
+  and strip shared libraries to save space:
+  % cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxwidgets/lib
+  % strip *
+
+
+wxPython
+--------
+
+Note that wxWidgets must have been successfully built before attempting to
+build wxPython.
+
+* If not already done, set the WXDIR environment variable as described for
+  wxWidgets above.
+
+* Change directory to the wxPython subdirectory under the top-level
+  wxWidgets/wxPython distribution:
+  % cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build/wxPython-src-2.8.12.1/wxPython
+
+* Set path to locate the wx-config command of the just-installed wxWidgets:
+  For csh/tcsh users:
+    % set path = ($ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxwidgets/bin $path)
+  For sh/bash users:
+    % export PATH=$ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxwidgets/bin:$PATH
+
+* Set LD_LIBRARY_PATH environment variable to find the just-installed
+  wxWidgets libraries:
+  For csh/tcsh users:
+    % setenv LD_LIBRARY_PATH $ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxwidgets/lib
+  For sh/bash users:
+    % export LD_LIBRARY_PATH=$ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxwidgets/lib
+
+* Invoke the setup.py script with the proper options to build wxPython:
+  % python setup.py build_ext --inplace UNICODE=0 BUILD_GLCANVAS=0 BUILD_OGL=0
+
+* If successful, create the needed 3rdparty/wxpython install directory:
+  % mkdir $ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxpython
+
+* Copy the wxPython to the install directory:
+  % cp -rf wx $ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxpython
+
+* (Optional) Strip installed wxPython libraries to save space:
+  % cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxpython/wx
+  % strip *
+
+
+Apache HTTP Server
+------------------
+
+The Apache HTTP Server is used as the shared repository for files and metadata
+for all calculations done within ECCE.  Using a web server allows the data
+to reside in a remote location with any number of ECCE client application
+software installations accessing the server.  Collaboration between users
+is possible by modifying access control lists via the ECCE Organizer
+application or manually editing standard .htaccess files.  The WebDAV
+(http://www.webdav.org) protocol allows uploads and downloads of files to/from
+the HTTP server and is the key third party component for ECCE data management.
+Enabling support for WebDAV is a configuration option for building the HTTP
+server.
+
+* ECCE uses version 2.2.x series of the Apache HTTP Server available from
+  http://httpd.apache.org.  ECCE has not been tested with the newer 2.4.x
+  release series and it is likely that some level of porting would be needed
+  before ECCE would function and thus only 2.2.x releases should be used.
+
+* The ECCE source code distribution bundles version 2.2.25 of the HTTP
+  server in the $ECCE_HOME/build/3rdparty-dists directory although newer
+  2.2 releases can be downloaded, compiled and tried with ECCE if desired.
+  Copy the bundled httpd-2.2.25.tar.bz2 or one that has been downloaded from
+  http://httpd.apache.org to the directory
+  $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build
+
+* Extract the httpd-2.2.25.tar.bz2 distribution with the command:
+  % cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build
+  % tar xvf httpd-2.2.25.tar.bz2
+
+* The following steps use the build instructions available from
+  http://httpd.apache.org/docs/2.2/install.html
+
+* Change directory to where the top-level extracted HTTP Server distribution:
+  % cd httpd-2.2.25
+
+* Create the ss_compression directory--server side compression for storing
+  large files such as molecular dynamics trajectories.  Then copy the module
+  implementation files to the ss_compression directory:
+  % mkdir modules/ss_compression
+  % cp $ECCE_HOME/build/httpd_ss_compression/*.* modules/ss_compression
+
+* Run the HTTP Server buildconf script prior to the configure command (required
+  because of the custom ss_compression module):
+  % ./buildconf
+
+* If successful, run the configure script with the proper options:
+  % ./configure --prefix=$ECCE_HOME/${ECCE_SYSDIR}3rdparty/httpd --enable-rewrite --enable-dav --enable-ss-compression
+
+* If successful, run make:
+  % make
+
+* If successful, invoke the install target of make:
+  % make install
+
+* ECCE uses the perl CGI module available from http://search.cpan.org/dist/CGI
+  Version 3.63 of this module is bundled with ECCE in the 
+  $ECCE_HOME/build/3rdparty-dists directory although newer versions from the
+  CPAN site should also work.  Copy the bundled CGI.pm-3.63.tar.bz2 or one
+  that has been downloaded from CPAN to the directory
+  $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build
+
+* Extract the CGI.pm-3.63.tar.bz2 distribution with the command:
+  % cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build
+  % tar xvf CGI.pm-3.63.tar.bz2
+
+* Change directory to lib subdirectory of the CGI.pm-3.63 distribution and
+  copy the contents to the cgi-bin subdirectory of the installed HTTP Server:
+  % cd CGI.pm-3.63/lib
+  % cp -r * $ECCE_HOME/${ECCE_SYSDIR}3rdparty/httpd/cgi-bin
+
+* (Optional) Cleanup and strip the installed HTTP Server to save space:
+  % cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/httpd
+  % rm -rf manual
+  % strip lib/* bin/*
+
+
+Apache ActiveMQ Server
+----------------------
+
+ECCE uses the Java based ActiveMQ server for inter-process communication (IPC)
+between all ECCE applications.  Messages passed between applications typically
+when "save" operations are done keep them synchronized with the same
+data/state.  ECCE currently uses version 5.1.0 of ActiveMQ rather than
+the newer 5.5.x.  Initial testing showed significant changes in the latter
+requiring a porting effort and therefore version 5.1.0, as bundled with ECCE,
+must be used.  Although Java source code distributions of the ActiveMQ
+server are available from http://activemq.apache.org, only a binary
+distribution is bundled with ECCE since Java code does not need to be
+recompiled on different platforms unless changes are made to the underlying
+Java source code.  For this reason no ActiveMQ compilation is needed and
+the ActiveMQ 5.1.0 binary distribution is installed directly from the
+$ECCE_HOME/build/3rdparty-dists directory during the ECCE binary distribution
+installation (no action required).
+
+
+ECCE Core Code
+--------------
+
+After the third party software that ECCE uses has been built based on the
+instructions above or by using the build_ecce script, ECCE source code itself
+can be compiled.  For this ECCE uses a set of hierarchical Makefiles throughout
+the source code distribution directory tree including the top level directory.
+Users wishing to get a better understanding of the options available are
+encouraged to look at these Makefiles, especially $ECCE_HOME/Makefile and the
+included definitions and rules Makefiles in $ECCE_HOME/build/make.  However,
+for a basic build these are the only steps required:
+
+* Run make from the top-level $ECCE_HOME directory:
+  % cd $ECCE_HOME
+  For csh/tcsh users:
+    % make |& tee make.log
+  For sh/bash users:
+    % make 2>&1 | tee make.log
+  Note this will take anywhere from 30 minutes to more than a couple hours
+  to complete depending upon the platform.  Parallel make options to speed up
+  the compile are available with targets given in $ECCE_HOME/Makefile although
+  their use is discouraged for first-time builds on a platform.  Output is run
+  through the tee command so progress can be seen on the terminal as well as
+  logged to a file to facilitate diagnosing problems. This technique can also
+  be used when building any of the third party packages above since most take
+  significant time to compile.
+
+* Create an ECCE binary distribution for subsequent deployment:
+  % create_ecce_bin -t $ECCE_HOME
+  The -t option specifies the target directory for the distribution which
+  defaults to /tmp if not specified.  Use the -h option with create_ecce_bin
+  for more details.
+
+* Install the ECCE binary distribution by running the self-extracting
+  C-shell script.  Detailed instructions for installing ECCE binary
+  distributions are available in the INSTALL file under the top-level
+  distribution directory and from http://ecce.pnl.gov/using/installguide.shtml
+
+
+NWChem Binary Distributions
+---------------------------
+
+ECCE bundles a 64-bit NWChem 6.3 binary distribution file.  NWChem was built
+with the GNU gfortran compiler using default settings except for the use of MPI
+for message passing.  These distributions of NWChem are likely only suitable
+for limited use and sites will want to custom build NWChem themselves for use
+on more powerful compute resources.  The installation of NWChem included with
+the ECCE deployment is automatically registered to allow jobs to be submitted
+via the Job Launcher application.  For making custom builds of NWChem that
+aren't bundled with ECCE binary distributions known to ECCE, post-installation
+compute server registration must be done
+(see http:ecce.pnl.gov/docs/2864B-server_reg.pdf).
+
+The following steps describe how to create a binary distribution of NWChem
+from an NWChem source code distribution so that it is included in ECCE binary
+distributions.
+
+* Copy and extract the NWChem source code distribution:
+  % cp Nwchem-6.3.revision1-src.2013-05-28.tar.gz $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build
+  % cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build
+  % tar xvf Nwchem-6.3.revision1-src.2013-05-28.tar.gz
+
+* Set required NWChem build options:
+  % export USE_NOFSCHECK=TRUE
+  % export NWCHEM_TOP=$ECCE_HOME/${ECCE_SYSDIR}3rdparty/build/nwchem-6.3-src.2013-05-28
+  (Note there is a 65-character maximum length so some symbolic linking may
+   be needed to effectively shorten the directory path)
+  % export NWCHEM_TARGET=LINUX64
+  (export NWCHEM_TARGET=LINUX if building on a 32-bit platform)
+  % export NWCHEM_MODULES=all
+  (Note python not built to simplify and speed build process)
+
+* Set NWChem MPI build options (recommended as running on multiple processors
+  with the default TCGMSG communication has proven problemmatic with newer
+  NWChem releases):
+  % export USE_MPI=y
+  % export USE_MPIF=y
+  % export USE_MPIF4=y
+  % export LIBMPI="-lmpich -lopa -lmpl -lrt lpthread"
+  % export MPI_LOC=/msrc/apps/mpich2/1.3.2p1/gnu
+  (Note this is a path specific to EMSL machines that isn't valid outside
+   that facility and will need to be modified)
+  % export MPI_LIB=$MPI_LOC/lib
+  % export MPI_INCLUDE=$MPI_LOC/include
+  % export PATH=$MPI_LOC/bin:$PATH
+
+* Change directory to the src subdirectory and do the build:
+  % cd $NWCHEM_TOP/src
+  % make nwchem_config
+  For csh/tcsh users:
+    % make FC=gfortran |& tee make.log
+  For sh/bash users:
+    % make FC=gfortran 2>&1 | tee make.log
+
+* Create an NWChem binary distribution by customizing the
+  $NWCHEM_TOP/contrib/distro-tools/build_nwchem_bin_distro script:
+  - Change the version number distribution name to the current
+    version ("distro" variable)
+  - If it's a 32-bit platform change LINUX64 to LINUX in the first cp command
+  - Comment out the examples and QA directory copies to shrink distribution
+  - Comment out the QA/testoutputs "if" block and the QA find command after
+  - Comment out the last two lines for creating the .tar.bz2 distro
+
+* Run build_nwchem_bin_distro with the proper options (64-bit shown):
+  % cd $NWCHEM_TOP
+  % contrib/distro-tools/build_nwchem_bin_distro . rhel5 gcc4.1.2-m64
+  (2nd and 3rd arguments are set as per ECCE naming conventions and of course
+   should be changed based on the build platform)
+
+* Create the .tar.bz2 distribution (64-bit shown):
+  % cd nwchem-6.3-binary-rhel5-gcc4.1.2-m64
+  % tar cvjf ../nwchem-6.3-binary-rhel5-gcc4.1.2-m64.tar.bz2 *
+  (Note that no parent directory is created for compliance with existing
+   ECCE generated NWChem binary distributions, which is why this step was
+   commented out in the build_nwchem_bin_distro script)
+
+* Copy to the ECCE 3rdparty-dists directory (64-bit shown):
+  % cd ..
+  % cp nwchem-6.3-binary-rhel5-gcc4.1.2-m64.tar.bz2 $ECCE_HOME/build/3rdparty-dists
+
+* Modify the $ECCE_HOME/build/create_ecce_bin script to use this new
+  NWChem distribution.  Search for "CUSTOMIZE NWCHEM DISTRIBUTION HERE" and
+  follow the instructions to specify the path to the NWChem distribution to
+  bundle.  Also note that the "-n <nwchem-distribution-path>" option can be
+  used instead of changing create_ecce_bin.
+

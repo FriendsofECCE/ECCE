@@ -1,0 +1,16 @@
+                     README for Basis Set Image directory
+
+The following conventions are used for translating basis set files into
+corresponding image file names.
+
+1. All [().] are removed
+2. Spaces and , are replaced with -
+3. * is replaced with S
+4. + is left as is
+5. The file name is appended with .p# where # is period 1-7.
+
+Both gif and xpm files are currently needed.  The gif files are used
+by the Web-based basis set tool.  The xpm files are used by ECCE
+software.  Only the gif files are revision controlled since the xpm
+files can be generated from the gifs.  The script allxpmtogif converts
+them all.

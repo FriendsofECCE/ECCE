@@ -1,0 +1,34 @@
+name
+aug-mcc-pVQZ
+name
+type
+other_segmented
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ---------
+ H    : S.T. Mielke, B.C. Garrett and K.A. Peterson, J. Chem. Phys. 111, 3806
+        (1999).
+
+references
+info
+      Hydrogen Modified Correlation Consistent Quadruple Zeta (aug-mcc-pVQZ)
+      -------------------------------------------------------------------
+Elements               Contraction               References
+H : (7s,4p,3d,2f) -> [5s,4p,3d,2f]   S.T. Mielke, B.C. Garrett and K.A.
+                                     Peterson, J. Chem. Phys. 111, 3806 (1999).
+
+
+info
+comments
+2/25/2005  - DFF - Original creation of this file from an e-mail message
+comments

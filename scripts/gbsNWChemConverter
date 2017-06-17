@@ -1,0 +1,385 @@
+#!/usr/bin/python
+
+# This program could probably be made somewhat more elegant and intelligent. However, it get's the job done (just).
+
+import sys
+
+def getargs(arguments):
+
+	switches={}
+
+	exit=0
+	ver='0.4 (28 June 2013)'
+	print ''
+	print '\t---------------------------------------'
+	print '\tgbsNWChemConverter, version %s.'% ver
+	print '\t---------------------------------------\n'
+	infile=''
+	try: 
+		if "-i" in arguments:
+			infile=arguments[arguments.index('-i')+1]
+			print 'Using nwchem basis file %s.'% infile
+			switches['i']=infile
+		elif "--input" in arguments:
+			infile=arguments[arguments.index('--input')+1]
+			print 'Using nwchem basis file %s.' % infile
+			switches['i']=infile
+	except:
+		print 'error -- no input file defined.'
+		arguments="--help"
+	
+	outfile=''
+	try: 
+		if "-o" in arguments:
+			outfile=arguments[arguments.index('-o')+1]
+			print 'Writing to basis file %s.'% outfile
+			switches['o']=outfile
+		elif "--output" in arguments:
+			outfile=arguments[arguments.index('--output')+1]
+			print 'Writing to basis file %s.'%outfile
+			switches['o']=outfile
+		else:
+			outfile=infile+'.BAS'	
+			switches['o']=outfile
+			print 'Warning -- no output file defined, using %s if needed.'% outfile
+	except:
+		a=0
+	
+	thename=''
+	try: 
+		if "-n" in arguments:
+			thename=arguments[arguments.index('-n')+1]
+			print 'Name: %s.'%thename
+			switches['n']=thename
+		elif "--name" in arguments:
+			thename=arguments[arguments.index('--name')+1]
+			print 'Name: %s.'%thename
+			switches['n']=thename
+		else:
+			print ''
+			print 'Error -- no name defined.'
+			print 'This should be the same as the'
+			print 'name of the nwchem basis set file.'
+			print ''
+			arguments="--help"
+	except:
+		print 'Error -- no name defined.'
+		print 'This should be the same as the'
+		print 'name of the nwchem basis set file.'
+		print ''
+		arguments="--help"
+	
+	potfile=''
+	try: 
+		if "-p" in arguments:
+			potfile=arguments[arguments.index('-p')+1]
+			print 'Writing to ecp pot file %s.'%potfile
+			switches['p']=potfile
+		elif "--potfile" in arguments:
+			potfile=arguments[arguments.index('--potfile')+1]
+			print 'Writing to ecp pot file %s.'%potfile
+			switches['p']=potfile
+		else:
+			potfile=infile+'.POT'	
+			switches['p']=potfile
+			print 'Warning -- no pot file defined, using %s if needed.'% potfile
+	except:
+		a=0
+	
+	if infile=='' :
+		exit=1
+		arguments="--help"
+	
+	try:
+		if ("-h" in arguments) or ("--help" in arguments):
+			print " "
+			print "\t\tThis is gbsNWChemConverter, a tool for converting nwchem-style basis"
+			print "\t\tset files to ECCE style basis set files."
+			print "\t\tPlease see the included README file for help"
+			print "\t\tThis is version",ver
+			print "\tUsage:"
+			print "\t-h\t--help   \tYou're looking at it."
+			print "\t-i\t--input \tnwchem basis set file, e.g. 3-21gs."
+			print "\t-o\t--output\tECCE-style basis set file, e.g. 3-21GS.BAS."
+			print "\t-p\t--potfile\tECCE-style ecp POT file, e.g. 3-21GS.POT."
+			print "\t-n\t--name\tname of the basis set. Should typically be the same as"
+			print "\t  \t      \tnwchem basis set file."
+			print ""
+			exit=1
+	except:
+		a=1		 #do nothing
+
+	if exit==1:
+		sys.exit(0)
+	print ''
+
+	return switches
+
+def doconvert(switches):
+	#initialise
+	switches['n']=''
+	references=''
+	ecpreferences=''
+	atomtype=''
+	atomlist=''
+	ecplist=''
+	orbitaltype=''
+	orbital=[]
+	newatom=0
+	numprimitives=0
+	coefficients=''
+	numcoefficients=0
+	ecp=False
+	basis=False
+	nwchemfile=open(switches['i'],'r')
+	for line in nwchemfile:
+
+		if line[0]=="#" and basis==False and line!='':
+			line=line.lstrip('#')
+			references+=line
+	
+			if switches['n']=="":
+				line=filter(None,line.split(' '))
+				switches['n']=line[0]
+	
+		elif (line[0]=="#" and basis==True):
+			line=line.lstrip('#')
+			ecpreferences+=line
+	
+		elif line.startswith('basis'):
+			if basis==False:
+				eccebasfile=open(switches['o'],'w')	
+			basis=True
+			for line in nwchemfile:
+				line=filter(None,(line.rstrip('\n')).split(' '))
+	
+				if atomtype=='':
+					atomtype=line[0]
+					orbitaltype=line[len(line)-1]
+					print '%s' % atomtype,
+					eccebasfile.write('atom=%s\n' % atomtype)
+					atomlist+=atomtype+' '
+	
+				elif atomtype==line[0]:
+					print '.', # each dot is a shell
+					eccebasfile.write('contraction shell=%s num_primitives=%d num_coefficients=%d\n'\
+					 % (orbitaltype,numprimitives,numcoefficients))
+					eccebasfile.write(coefficients)
+					
+					orbitaltype=line[len(line)-1]
+					coefficients=''
+					numprimitives=0
+	
+				elif 'end' in line:
+					eccebasfile.write('contraction shell=%s num_primitives=%d num_coefficients=%d\n'\
+					 % (orbitaltype,numprimitives,numcoefficients))
+					eccebasfile.write(coefficients)
+					coefficients=''
+					numprimitives=0
+													
+					break;
+	
+				else:
+					numcoefficients=len(line)-1
+					newline=''
+					for item in line:
+							if 'D' in item:
+								item=item.replace('D', 'E') #deals with fortran type notation
+							newline+=item+' '
+					newline=newline.rstrip(' ')
+					newline+=str('\n')
+					coefficients+=newline
+					numprimitives+=1
+	
+		elif line.startswith('ecp'):
+			if ecp==False:
+				eccepotfile=open(switches['p'],'w')
+			ecp=True		
+	
+			for line in nwchemfile:
+				line=filter(None,(line.rstrip('\n')).split(' '))
+	
+				if atomtype=='':
+					atomtype=line[0]
+					ncore=int(line[len(line)-1])
+					ecplist+=atomtype+' '
+	
+				elif atomtype==line[0]:
+					print '.', # each dot is a shell
+					orbital+=[line[len(line)-1]]
+					lmax+=1
+	
+					potentials+=[coefficients]
+					coefficients=[]
+	
+				elif 'end' in line: # see http://www.nwchem-sw.org/index.php/Special:AWCforum/st/id700/Bug_in_Gaussian%2794_interface.html for functions
+					potentials+=[coefficients]
+					if lmax==2:
+						toprint=['ecp_potential%%l=2%%shell=d potential%%num_exponents=%d'% len(potentials[1])]
+						toprint+=['ecp_potential%%l=0%%shell=s-d potential%%num_exponents=%d'% len(potentials[2])]
+						toprint+=['ecp_potential%%l=1%%shell=p-d potential%%num_exponents=%d'% len(potentials[3])]
+					elif lmax==3:
+						toprint=['ecp_potential%%l=3%%shell=f potential%%num_exponents=%d'% len(potentials[1])]
+						toprint+=['ecp_potential%%l=0%%shell=s-f potential%%num_exponents=%d'% len(potentials[2])]
+						toprint+=['ecp_potential%%l=1%%shell=p-f potential%%num_exponents=%d'% len(potentials[3])]
+						toprint+=['ecp_potential%%l=2%%shell=d-f potential%%num_exponents=%d'% len(potentials[4])]
+					elif lmax==4:
+						toprint=['ecp_potential%%l=4%%shell=g potential%%num_exponents=%d'% len(potentials[1])]
+						toprint+=['ecp_potential%%l=0%%shell=s-g potential%%num_exponents=%d'% len(potentials[2])]
+						toprint+=['ecp_potential%%l=1%%shell=p-g potential%%num_exponents=%d'% len(potentials[3])]
+						toprint+=['ecp_potential%%l=2%%shell=d-g potential%%num_exponents=%d'% len(potentials[4])]
+						toprint+=['ecp_potential%%l=3%%shell=f-g potential%%num_exponents=%d'% len(potentials[5])]
+					elif lmax==5:
+						toprint=['ecp_potential%%l=5%%shell=h potential%%num_exponents=%d'% len(potentials[1])]
+						toprint+=['ecp_potential%%l=0%%shell=s-h potential%%num_exponents=%d'% len(potentials[2])]
+						toprint+=['ecp_potential%%l=1%%shell=p-h potential%%num_exponents=%d'% len(potentials[3])]
+						toprint+=['ecp_potential%%l=2%%shell=d-h potential%%num_exponents=%d'% len(potentials[4])]
+						toprint+=['ecp_potential%%l=3%%shell=f-h potential%%num_exponents=%d'% len(potentials[5])]
+						toprint+=['ecp_potential%%l=4%%shell=g-h potential%%num_exponents=%d'% len(potentials[6])]
+					elif lmax==6:
+						toprint=['ecp_potential%%l=6%%shell=i potential%%num_exponents=%d'% len(potentials[1])]
+						toprint+=['ecp_potential%%l=0%%shell=s-i potential%%num_exponents=%d'% len(potentials[2])]
+						toprint+=['ecp_potential%%l=1%%shell=p-i potential%%num_exponents=%d'% len(potentials[3])]
+						toprint+=['ecp_potential%%l=2%%shell=d-i potential%%num_exponents=%d'% len(potentials[4])]
+						toprint+=['ecp_potential%%l=3%%shell=f-i potential%%num_exponents=%d'% len(potentials[5])]
+						toprint+=['ecp_potential%%l=4%%shell=g-i potential%%num_exponents=%d'% len(potentials[6])]
+						toprint+=['ecp_potential%%l=5%%shell=h-i potential%%num_exponents=%d'% len(potentials[7])]
+					elif lmax==7:
+						toprint=['ecp_potential%%l=7%%shell=k potential%%num_exponents=%d'% len(potentials[1])]
+						toprint+=['ecp_potential%%l=0%%shell=s-k potential%%num_exponents=%d'% len(potentials[2])]
+						toprint+=['ecp_potential%%l=1%%shell=p-k potential%%num_exponents=%d'% len(potentials[3])]
+						toprint+=['ecp_potential%%l=2%%shell=d-k potential%%num_exponents=%d'% len(potentials[4])]
+						toprint+=['ecp_potential%%l=3%%shell=f-k potential%%num_exponents=%d'% len(potentials[5])]
+						toprint+=['ecp_potential%%l=4%%shell=g-k potential%%num_exponents=%d'% len(potentials[6])]
+						toprint+=['ecp_potential%%l=5%%shell=h-k potential%%num_exponents=%d'% len(potentials[7])]
+						toprint+=['ecp_potential%%l=6%%shell=i-k potential%%num_exponents=%d'% len(potentials[8])]
+					elif lmax==8:
+						toprint=['ecp_potential%%l=7%%shell=l potential%%num_exponents=%d'% len(potentials[1])]
+						toprint+=['ecp_potential%%l=0%%shell=s-l potential%%num_exponents=%d'% len(potentials[2])]
+						toprint+=['ecp_potential%%l=1%%shell=p-l potential%%num_exponents=%d'% len(potentials[3])]
+						toprint+=['ecp_potential%%l=2%%shell=d-l potential%%num_exponents=%d'% len(potentials[4])]
+						toprint+=['ecp_potential%%l=3%%shell=f-l potential%%num_exponents=%d'% len(potentials[5])]
+						toprint+=['ecp_potential%%l=4%%shell=g-l potential%%num_exponents=%d'% len(potentials[6])]
+						toprint+=['ecp_potential%%l=5%%shell=h-l potential%%num_exponents=%d'% len(potentials[7])]
+						toprint+=['ecp_potential%%l=6%%shell=i-l potential%%num_exponents=%d'% len(potentials[8])]
+						toprint+=['ecp_potential%%l=6%%shell=k-l potential%%num_exponents=%d'% len(potentials[9])]
+					elif lmax==9:
+						toprint=['ecp_potential%%l=7%%shell=m potential%%num_exponents=%d'% len(potentials[1])]
+						toprint+=['ecp_potential%%l=0%%shell=s-m potential%%num_exponents=%d'% len(potentials[2])]
+						toprint+=['ecp_potential%%l=1%%shell=p-m potential%%num_exponents=%d'% len(potentials[3])]
+						toprint+=['ecp_potential%%l=2%%shell=d-m potential%%num_exponents=%d'% len(potentials[4])]
+						toprint+=['ecp_potential%%l=3%%shell=f-m potential%%num_exponents=%d'% len(potentials[5])]
+						toprint+=['ecp_potential%%l=4%%shell=g-m potential%%num_exponents=%d'% len(potentials[6])]
+						toprint+=['ecp_potential%%l=5%%shell=h-m potential%%num_exponents=%d'% len(potentials[7])]
+						toprint+=['ecp_potential%%l=6%%shell=i-m potential%%num_exponents=%d'% len(potentials[8])]
+						toprint+=['ecp_potential%%l=6%%shell=k-m potential%%num_exponents=%d'% len(potentials[9])]
+						toprint+=['ecp_potential%%l=6%%shell=l-m potential%%num_exponents=%d'% len(potentials[10])]
+					else:
+						print 'lmax out of range: %i ! Something has gone wrong. Do not use this basis set without correcting.' % lmax
+						
+					eccepotfile.write('atom=%s ncore=%d lmax=%d\n' % (atomtype,ncore,lmax))
+	
+					for n in range(0,len(toprint)):
+						eccepotfile.write(toprint[n]+'\n')
+						for pots in potentials[n+1]:
+							newline=''
+							for lines in pots:
+								newline+=str(lines)+' '
+							newline=newline.rstrip(' ')+'\n'
+							eccepotfile.write(newline)
+					coefficients=[]
+					print atomtype+'_ecp.',
+								
+					break;
+	
+				else:
+					numcoefficients=len(line)-1
+					coefficients+=[line]
+	
+	#	reset
+		atomtype='' 
+		lmax=-1	
+		ncore=0
+		orbital=[]
+		potentials=[]
+
+#ecplist, atomlist, ecp, basis	
+	nwchemfile.close()
+	ecplist=ecplist.rstrip(' ')
+	switches['ecp']=ecp
+	switches['basis']=basis
+	switches['atomlist']=atomlist
+	switches['ecplist']=ecplist
+	switches['ecpreferences']=ecpreferences
+	switches['references']=references
+	try:
+		filehandle=eccebasfile
+	except:
+		filehandle=eccepotfile
+	return switches, filehandle
+
+def writestuff(switches,eccebasfile):
+	print 'Converting ',
+
+	if switches['basis']==True:
+		ecceatomfile=open(switches['o']+'.descriptor','w')
+		ecceatomfile.write('name= %s\n' % switches['n'])
+		ecceatomfile.write('files= %s' % (switches['o']))
+	
+		if switches['ecp']==True:
+			ecceatomfile.write(' %s \n' % (switches['p']))
+		else:
+			ecceatomfile.write('\n')
+	
+		atomlist=switches['atomlist'].rstrip(' ')
+		ecceatomfile.write('atoms= %s\n' % atomlist)
+	
+		if switches['ecplist']!='':
+			ecceatomfile.write('atoms= %s\n' % switches['ecplist'])
+		eccebasfile.close()
+		ecceatomfile.close()
+	
+	if switches['basis']==False and switches['ecp']==True:
+		ecceatomfile=open(switches['p']+'.descriptor','w')
+		ecceatomfile.write('name= %s\n' % switches['n'])
+		ecceatomfile.write('files= %s\n' % (switches['p']))
+		ecceatomfile.write('atoms= %s\n' % switches['ecplist'])
+	
+	# write meta file
+	if switches['basis']==True:
+		eccemetafile=open(switches['o']+'.meta','w')
+		eccemetafile.write('name\n'+switches['n']+'\nname\n')
+		eccemetafile.write('type\n'+''+'\ntype\n')
+		eccemetafile.write('category\n'+'ORBITAL'+'\ncategory\n')
+		eccemetafile.write('spherical\n'+''+'\nspherical\n')
+		eccemetafile.write('contraction_type\n'+''+'\ncontraction_type\n')
+		eccemetafile.write('references\n'+switches['references']+'\nreferences\n')
+		eccemetafile.write('info\n'+''+'\ninfo\n')
+		eccemetafile.write('comments\n'+''+'\ncomments\n')
+		eccemetafile.close()
+	if switches['ecp']==True:
+		if switches['basis']==False:
+			ecpreferences=switches['references']
+		eccemetapotfile=open(switches['p']+'.meta','w')
+		eccemetapotfile.write('name\n'+switches['n']+'\nname\n')
+		eccemetapotfile.write('type\n'+'ecp'+'\ntype\n')
+		eccemetapotfile.write('category\n'+'AUXILIARY'+'\ncategory\n')
+		eccemetapotfile.write('references\n'+switches['ecpreferences']+'\nreferences\n')
+		eccemetapotfile.write('info\n'+''+'\ninfo\n')
+		eccemetapotfile.write('comments\n'+''+'\ncomments\n')
+		eccemetapotfile.close()
+	return 0
+
+if __name__ == "__main__":
+	arguments=sys.argv[1:len(sys.argv)]
+	switches=getargs(arguments)
+	switches,eccebasfile=doconvert=doconvert(switches)	
+	success=writestuff(switches,eccebasfile)
+	if success==0:
+		print '\nConversion successful (I think)'
+	else:
+		print '\nSomething seems to have gone wrong'
+
+	
+	
+

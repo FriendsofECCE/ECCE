@@ -1,0 +1,56 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+#
+#
+################################################################################
+
+# Force output to be flushed
+$| = 1;
+
+# Stash the script arguments.
+($key, $runtype, $category, $theory) = @ARGV;
+
+$natom = 0;
+@x = ();
+@y = ();
+@z = ();
+$Ang = 1.0/1.889725989;
+########################################################################
+# read the data from stdin:
+########################################################################
+while (<STDIN>) {
+  if (/\*\s+\S+\s*\S+\s*(\S+)\s*(\S+)\s*(\S+)\s*\d+\s+\*/) {
+     $x[$natom] = $Ang * $1;
+     $y[$natom] = $Ang * $2;
+     $z[$natom] = $Ang * $3;
+     $natom++;
+  }
+}
+
+#
+# Print out the data in standard format.
+#
+print "key: GEOMTRACE\n";
+print "size:\n";
+print "1 " . ($natom) . " 3\n";
+print "rowlabels:\n";
+for ($i=0; $i<$natom; $i++) { print "$i "; }
+print "\ncolumnlabels:\nX Y Z\n";
+print "values:\n";
+for ($i=0; $i<$natom; $i++) {
+  printf("%.15e %.15e %.15e\n",$x[$i],$y[$i],$z[$i]); 
+}
+
+print "END\n";
+
+exit(0);

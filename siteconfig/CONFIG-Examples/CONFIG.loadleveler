@@ -1,0 +1,122 @@
+################################################################################
+#
+# Synopis
+#  Example CONFIG file for an SP machine running MAUI and loadleveler.
+#
+#  This particular example make extensive use of customization to collect
+#  and add refund information to the output file.
+#
+#  Read the README file and refer to the ../submit.site file for 
+#  documentation on variables and syntax.
+#
+#  $Date: 2004-06-30 14:17:27 -0700 (Wed, 30 Jun 2004) $
+#
+################################################################################
+
+
+
+#******
+# The following can be set through the registration GUI.
+#
+# perl path information is required only if it located in non-standard
+# location that is unlikely to be in the users path.
+#******
+NWChem: /u/nwchem/bin/nwchem
+Gaussian-98: /u/apps/g98/g98
+perlPath: /usr/lpp/ssp/perl5/bin
+qmgrPath: /loadl/bin
+
+
+#******
+# These must be set manually in this file.
+# For xhost, supply all the interactive nodes.  These will be xhosted for
+# the user so that Ecce can start xterm windows on the compute server for
+# at the users request.
+#******
+xhost: et1409-atm.nwmpp1.emsl.pnl.gov et1411-atm.nwmpp1.emsl.pnl.gov et1509-atm.nwmpp1.emsl.pnl.gov et1511-atm.nwmpp1.emsl.pnl.gov
+
+#******
+# There are system defaults in $ECCE_HOME/submit.site for the rest of the
+# entries in this file.  For queued systems, the defaults typically
+# will NOT be what you want so most of the following should be in your
+# CONFIG.<machine> file.
+#******
+
+#******
+# Customize the header that will be used in the submit script.  There is
+# a fallback example in the submit.site file that will be used if you
+# don't provide a custom one but it probably won't be what you want.
+#******
+Maui {
+# @ job_type         = parallel
+# @ requirements     = (Pool == 0)
+# @ network.lapi     = css0,not_shared,US
+# @ notification     = complete
+# @ node_usage       = not_shared
+# @ class            = $queue
+# @ account_no       = $account
+# @ wall_clock_limit = $wallTime
+# @ input            = /dev/null
+# @ output           = llout.out
+# @ error            = llerr.out
+# @ environment      = COPY_ALL; MP_INFOLEVEL=3; MP_PULSE=0; MP_SINGLE_THREAD =yes; MP_WAIT_MODE=yield; MP_EUILIB=us; AIXTHREAD_SCOPE=S; restart=no
+# @ node   = $nodes
+# @ total_tasks   = $totalprocs
+# @ queue
+}
+
+
+#******
+# Variables that must be added to the users environment at runtime.
+#******
+Gaussian-98Environment { 
+  GAUSS_EXEDIR /u/apps/g98/linda-exe
+  PATH /u/apps/g98/linda/rs6k-3.2_/bin
+} 
+
+#******
+# Code fragment to insert into script prior to execution of the code.
+# Capture queue system information to append to output file.
+#******
+setup {
+
+set refund = "refund.out"
+rm -f $refund
+touch $refund
+
+echo "" >> $refund
+echo "-----MSCF Refund Information-----" >> $refund
+
+set batchnodes = ""
+set spnodes = `echo $LOADL_PROCESSOR_LIST`
+foreach anode (${spnodes})
+  set mynode =  `echo $anode| cut -f1 -d"."`
+  set batchnodes = ($batchnodes $mynode)
+end
+set temp = (-nodelist \"$batchnodes\")
+setenv GAUSS_LFLAGS "$temp"
+
+echo "UserID = $USER" >> $refund
+echo "Account name = $account" >> $refund
+echo "Job ID = $LOADL_STEP_ID" >> $refund
+echo "Number of nodes = $nodes" >> $refund
+echo "$batchnodes" >> $refund
+date >> $refund
+
+}
+
+#******
+# Code fragment to insert into script after execution of the code.
+#******
+wrapup {
+cat $refund >> $outFile
+rm -f $refund
+}
+
+
+#******
+# Customize execution command for NWChem
+#******
+NWChemCommand {
+poe $nwchem $inFile -procs $nodes > $outFile
+}

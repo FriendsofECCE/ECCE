@@ -1,0 +1,49 @@
+#
+# Application Color Mapping
+#
+# Four possible themes can be specified or colors can be set individually.
+# The four themes are:
+#   Classic - Traditional ECCE colors prior to version 5.0
+#   PNNL - Pacific Northwest National Laborary copper/silver branding
+#   EMSL - Environmental Molecular Sciences Laboratory green branding
+#   PNNL_EMSL - Combined copper and green branding
+#
+# Seven colors can be set individually by #RRGGBB hexadecimal value or by
+# the name of color (no "#" character) for some basic colors.
+# When a theme is also specified, setting an individual color overrides that
+# one color in the theme, but the other theme colors are still used.
+# The seven colors that can be set indvidually are:
+#   Window - window background color
+#   Menubar - application menubar background color
+#   Text - color for all text including labels and input fields
+#   Input - background color for enabled input fields
+#   Readonly - background color for disabled fields
+#   Caption - background color for dockable panel title bars (e.g. Builder)
+#   CaptionGradient - lighter "fade to" color for panel title bars
+#
+# A "#" character before the name of a theme or color indicates the line
+# is commented out and the setting is not applied.
+# The following are the color values for the default PNNL color theme as a
+# syntax example:
+# Window: #e0e1e1
+# Menubar: #b7b8ba
+# Text: #000000
+# Input: #f9dd99
+# Readonly: #b7b8ba
+# Caption: #d57500
+# CaptionGradient: #e29e4c
+#
+# An application color mapping file may be specified at both the site level
+# and for each user.  The site level file is named AppColors and resides in the
+# $ECCE_HOME/siteconfig directory while user files are named MyAppColors
+# and reside in ~/.ECCE4 preferences directories.  Settings for colors in user
+# MyAppColors files override any in the site level AppColors file, though any
+# colors not set in the user file will fallback to the site settings.  The
+# Gateway Preferences dialog contains a choice box for selecting a theme as
+# well.  Setting this preference to "Site Default" (default unless a user
+# explicitly changes it) in the GUI will fallback to the site settings.
+# Although the MyAppColors file is automatically generated, overriding the
+# individual colors (Window, Input, etc.) can still be done by manually
+# editing the file.
+
+Theme: PNNL

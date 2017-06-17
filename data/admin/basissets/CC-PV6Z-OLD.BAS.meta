@@ -1,0 +1,71 @@
+name
+pV6Z
+name
+type
+other_generally_contracted
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+GC
+contraction_type
+references
+Elements                             References
+--------                             ----------
+H:         T. H. Dunning, Jr., (to be published). 
+C:         A.D. Pradhan, H. Partridge and C.W. Bauschlicher, Jr., J. Chem.
+           Phys. 101, 3857 (1994) with correction to the p set.
+O:         (s,p) set from H. Partridge, (d,f,g) from T.H. Dunning, Jr., 
+           (h,i) from D. Feller.
+N:         C.W. Bauschlicher, Jr. and H. Partridge, J. Chem. Phys. 100,
+           4329 (1994).
+
+references
+info
+ Polarized Valence Sextuple Zeta (pV6Z-like) Basis
+ -------------------------------------------------
+Elements        Contraction                             References
+ H: (10s,5p,4d,3f,2g,1h) -> [6s,5p,4d,3f,2g,1h]        K.A. Peterson, D.E.
+                                                       Woon and T.H. Dunning,
+                                                       Jr., J. Chem. Phys. 100,
+                                                       7410 (1994).
+ C: (16s,11p,5d,4f,3g,2h,1i) -> [7s,6p,5d,4f,3g,2h,1i] A.D. Pradhan, H.
+                                                       Partridge and C.W.
+                                                       Bauschlicher, Jr.,
+                                                       J. Chem. Phys. 101,
+                                                       3857 (1994).
+ N: (16s,11p,5d,4f,3g,2h,1i) -> [7s,6p,5d,4f,3g,2h,1i] C. W. Bauschlicher, Jr.
+                                                       and H. Partridge,
+                                                       J. Chem. Phys. 100,
+                                                       4329 (1994).
+ O: (16s,10p,5d,4f,3g,2h,1i) -> [7s,6p,5d,4f,3g,2h,1i] T.H. Dunning, Jr.
+                                                       (unpublished)
+
+Note: an error was discovered in the carbon basis set published in J. Chem.
+Phys. 101, (1994).  That error has been corrected in this version of the basis.
+This collection of basis sets was designed to mimic and extend the correlation
+consistent sets.  These sets were created before the official cc-pV6Z sets were
+developed.
+
+The oxygen basis was constructed of (s,p,d,f,g) exponents optimized by T. H.
+Dunning along with h and i exponents extrapolated from other data by D. Feller.
+
+The basic idea behind the correlation consistent basis sets is that functions
+which contribute approximately the same amount of correlation energy should
+be grouped together when considering what mixture of s,p,d,.. etc basis
+functions to use.  For hydrogen the polarization exponents were determined by
+optimizing them at the SD-CI level for molecular hydrogen in its ground
+state.  The (s,p) exponents for B - Ne were optimized in atomic Hartree-
+Fock calculations on the ground state.  The polarization exponents were
+optimized at the SD-CI level.
+
+info
+comments
+2/22/95  - DFF - Modify the format of the literature citation.
+5/13/94  - DFF - Add C and N sets from C.W. Bauschlicher and H. Partridge.
+7/16/93  - DFF - Create this temporary repository for 6Z type basis sets.
+comments

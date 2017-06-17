@@ -1,0 +1,51 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#   This script extracts a list of atomic masses from the NWDIRDYVTST
+#   output and stores them in a temporary utility file.
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+######
+# The command line arguments
+######
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+local ($result,@symlabels);
+
+$i = 0;
+@masses = ();
+while (<STDIN>) {
+  if (/Mass of atom\s*\S*\s*(\S*)/) {
+    $mass = $1;
+    $masses[$i] = $mass;
+    $i++;
+  } elsif (/Forward reduced mass\s*(\S*)/) {
+    $rmass = $1;
+  }
+}
+$nmass = $i;
+
+#
+# Create temporary file in /tmp directory to store masses
+#
+$filename = $key."/rxMasses";
+open (AUXFILE, ">$filename") || die("open AUXFILE failed");
+print AUXFILE "$nmass\n";
+for ($i=0; $i<$nmass ; $i++) {
+  $mass = $masses[$i]/$rmass;
+  print AUXFILE "$mass\n";
+}
+close (AUXFILE);
+
+exit(0);

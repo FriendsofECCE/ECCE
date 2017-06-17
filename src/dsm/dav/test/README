@@ -1,0 +1,16 @@
+I created a series of small test programs to do performance tests.  If you want to test uncomment out the #define DEBUG 1 preprocessor statement.  You will have to set up some areas on the dav server for each test.  For test 1 conduct this test on a non-virtual document URL.  Test 2 - conduct this directly on a underlying part of the Ecce Virtual document.  Test 3 conduct this on an Ecce Virtual Document root URL.  Test 4 - conduct this on an Ecce Virtual Document root URL.  Test 5 - conduct this on a DAV collection that has only one data member which is a document or collection.  Test 6 - conduct this on a collection that has only one data member which is a virtual document.  
+  
+Test Scenerios
+
+GetMetaData 
+1)  tst1 - Metadata is requested for a document/collection URL.  The metadata contains a value that is not a XML string.
+2)  tst2 - Metadata is requested for a document/collection URL.  The metadata contains a value that is a XML string.
+3)  tst3 - Metadata is requested for a virtual document URL.  The metadata contains a value that is not a XML string.
+4)  tst4 - Metadata is requested for a virtual document URL.  The metadata contains a value that is a XML string.
+5)  tst5 - ListCollection is requested for a collection URL children.  Child is a document/collection.
+6)  tst6 - ListCollection is requested for a collection URL children.  Child is a virtual document.
+7)  tst7 - Metadata is requested for a virtual document URL.  ResourceMetaDataResults are returned.
+8)  tst8 - Metadata is requested for a document/collection  URL.  ResourceMetaDataResults are returned.
+
+Each test will dump out to a designated file which is specified in EcceDAVClient and DavEDSI.
+

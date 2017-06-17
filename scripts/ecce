@@ -1,0 +1,269 @@
+#!/bin/csh -f
+################################################################################
+# FILENAME: ecce 
+#
+# SYNTAX:
+#   ecce
+#
+# PURPOSE:
+#   Sets up the required environment and starts the ECCE Gateway toolbar
+#
+################################################################################
+
+if (! $?ECCE_HOME) then
+  echo "ERROR: ECCE_HOME must be set prior to running ECCE."
+  echo "       Check your ~/.cshrc or ~/.mycshrc file for the correct path"
+  echo "       to runtime_setup (runtime_setup.sh for sh users), or"
+  echo "       contact your ECCE site administrator"
+  echo ""
+  exit
+endif
+
+# Check if a message is to be displayed
+if ( -e $ECCE_HOME/siteconfig/StartMessage ) then
+  echo ""
+  cat $ECCE_HOME/siteconfig/StartMessage
+  echo ""
+  sleep 3
+  if ( -e $ECCE_HOME/siteconfig/PreventStart ) then
+    echo "Aborting ECCE run..."
+    echo ""
+    exit
+  endif
+endif
+
+# Set variables -----------------------------------------------------------
+
+set admin = "false"
+foreach var ($argv)
+  if ("$var" == "-remote") setenv ECCE_REMOTE_SERVER
+  if ("$var" == "-admin") set admin = "true"
+end
+
+# this sets ECCE_SYSDIR
+source $ECCE_HOME/scripts/ecce_env
+
+if ( $ECCE_SYSDIR == "unsupported" ) then
+  echo "ERROR: Host is not supported by this ECCE installation."
+  echo -n "       Host platform: "
+  $ECCE_HOME/scripts/sysdir
+  echo ""
+  exit
+endif
+
+# Change directory to where the ECCE apps are located allowing them and
+# the associated shared libraries to be found.
+cd $ECCE_HOME/${ECCE_SYSDIR}bin
+
+# check for perl locally by invoking it with the version option
+perl -v >& /dev/null
+if ($status != 0) then
+  echo "ERROR: perl not found in path.  Unable to run ECCE."
+  which perl
+  echo ""
+  exit
+endif
+
+# Instead of having a separate script, support the -admin option
+# for registering compute servers.
+if ($admin == "true") then
+  set temp = "$ECCE_HOME/siteconfig/writetest.$$"
+  touch $temp >& /dev/null
+  if ( -e $temp ) then
+    /bin/rm -f $temp
+    # Set environment variable so app won't use JMS messaging
+    setenv ECCE_NO_MESSAGING
+    ./machregister -admin |& grep -v -e Gdk -e Gtk -e GLib -e debug1 -e Fontconfig -e menu_proxy_module_load -e '^$'
+  else
+    echo ""
+    echo "############"
+    echo "  REQUEST DENIED:"
+    echo "  You do not have write permission in the following directory:"
+    echo "     $ECCE_HOME/siteconfig"
+    echo "  This is required to register site compute servers."
+    echo "############"
+    echo ""
+  endif
+  exit (0)
+endif
+
+set machines = "false"
+foreach var ($argv)
+  if ("$var" == "-machine" || "$var" == "-machines") set machines="true"
+end
+
+if ($machines == "true") then
+  set temp = "$ECCE_REALUSERHOME/.ECCE/writetest.$$"
+  touch $temp >& /dev/null
+  if ( -e $temp ) then
+    /bin/rm -f $temp
+    # Set environment variable so app won't use JMS messaging
+    setenv ECCE_NO_MESSAGING
+    ./machregister |& grep -v -e Gdk -e Gtk -e GLib -e debug1 -e Fontconfig -e menu_proxy_module_load -e '^$'
+  else
+    echo ""
+    echo "############"
+    echo "  REQUEST DENIED:"
+    echo "  You do not have write permission in the following directory:"
+    echo "     $ECCE_REALUSERHOME/.ECCE"
+    echo "  This is required to register compute servers."
+    echo "############"
+    echo ""
+  endif
+  exit (0)
+endif
+
+# print stuff only if user wanted it by setting ECCE_DEBUG
+if ($?ECCE_DEBUG) then
+  echo PATH is $PATH
+  echo LD_LIBRARY_PATH is $LD_LIBRARY_PATH
+endif
+
+# Check disk and cache dir -----------------------------------------------
+
+# be verbose only if user wants it
+if ($?ECCE_DEBUG) then
+  $ECCE_HOME/scripts/ecce_checks -v
+else
+  $ECCE_HOME/scripts/ecce_checks
+endif
+
+if ( $status != 0 ) then
+  echo "ERROR: Unable to run ECCE due to problem found by ecce_checks script"
+  echo ""
+  exit
+endif
+
+# Check if user is ecceadm ------------------------------------------------
+
+if ("$ECCE_REALUSER" == "ecceadm") then
+  echo "ERROR: ECCE cannot be run as the special ecceadm user."
+  echo ""
+  exit
+endif
+
+# Start ECCE server if required and able ----------------------------------
+
+if (! $?ECCE_REMOTE_SERVER) then
+  if (! -e $ECCE_HOME/../server/httpd/logs/httpd.pid && -x $ECCE_HOME/../server/ecce-admin/start_ecce_server) then
+    echo "Starting ECCE server ..."
+    $ECCE_HOME/../server/ecce-admin/start_ecce_server
+    # wait to insure activemq server is running before proceeding
+    sleep 12
+    echo ""
+    if ($status != 0) then
+      echo "Could not start ECCE server"
+      echo ""
+      exit
+    endif
+  endif
+endif
+
+echo "Starting ECCE ... please wait"
+
+# Check ~/.nwchemrc -------------------------------------------------------
+
+if (! -e ~/.nwchemrc) then
+  if (-e $ECCE_HOME/${ECCE_SYSDIR}3rdparty/nwchem/etc/default.nwchemrc) then
+    echo ""
+    echo "Copying default ~/.nwchemrc file to run NWChem locally"
+    /bin/cp -f $ECCE_HOME/${ECCE_SYSDIR}3rdparty/nwchem/etc/default.nwchemrc ~/.nwchemrc
+  endif
+endif
+
+# Create temporary directory if necessary ---------------------------------
+
+if (! -d $ECCE_TMPDIR/ecce_$ECCE_REALUSER) then
+  mkdir -p $ECCE_TMPDIR/ecce_$ECCE_REALUSER
+endif
+
+# Check for duplicate site/user machine registrations ---------------------
+
+if (-e $ECCE_HOME/siteconfig/Machines && -e $ECCE_REALUSERHOME/.ECCE/MyMachines) then
+
+  grep -v "^#" $ECCE_HOME/siteconfig/Machines | cut -f1 | sort >! $ECCE_TMPDIR/ecce_$ECCE_REALUSER/siteMachines
+  grep -v "^#" $ECCE_REALUSERHOME/.ECCE/MyMachines | cut -f1 | sort >! $ECCE_TMPDIR/ecce_$ECCE_REALUSER/userMachines
+  join $ECCE_TMPDIR/ecce_$ECCE_REALUSER/siteMachines $ECCE_TMPDIR/ecce_$ECCE_REALUSER/userMachines  >! $ECCE_TMPDIR/ecce_$ECCE_REALUSER/dupMachines
+  if (`cat $ECCE_TMPDIR/ecce_$ECCE_REALUSER/dupMachines | wc -l` != 0) then
+    echo -n "Duplicate registrations between site and user machines found.  You should rename these machines using the Machine Registration application available from the Machine Browser or Job Launcher.  " >! $ECCE_TMPDIR/ecce_$ECCE_REALUSER/msgMachines
+    if (`cat $ECCE_TMPDIR/ecce_$ECCE_REALUSER/dupMachines | wc -l` == 1) then
+      echo "The duplicate registered machine is:" >> $ECCE_TMPDIR/ecce_$ECCE_REALUSER/msgMachines
+    else
+      echo "The duplicate registered machines are:" >> $ECCE_TMPDIR/ecce_$ECCE_REALUSER/msgMachines
+    endif
+    cat $ECCE_TMPDIR/ecce_$ECCE_REALUSER/dupMachines >> $ECCE_TMPDIR/ecce_$ECCE_REALUSER/msgMachines
+    msgdialog message "Duplicate Machine Registrations Found" "`cat $ECCE_TMPDIR/ecce_$ECCE_REALUSER/msgMachines`"
+    rm -f $ECCE_TMPDIR/ecce_$ECCE_REALUSER/msgMachines
+  endif
+
+  rm -f $ECCE_TMPDIR/ecce_$ECCE_REALUSER/siteMachines
+  rm -f $ECCE_TMPDIR/ecce_$ECCE_REALUSER/userMachines
+  rm -f $ECCE_TMPDIR/ecce_$ECCE_REALUSER/dupMachines
+endif
+
+# Check whether overriding server login name ------------------------------
+
+while ($#argv)
+  if ("$argv[1]" == "-l") then
+    shift
+    if ($#argv) then 
+      echo "LOGIN: $argv[1]" >! $ECCE_REALUSERHOME/.ECCE/ServerLogin
+    endif
+    break
+  endif
+  shift
+end
+
+# Start ECCE --------------------------------------------------------------
+
+set version=`cat $ECCE_HOME/data/client/config/Version`
+
+# remove tee'd output from previous invocation
+rm -f $ECCE_TMPDIR/ecce_$ECCE_REALUSER/consoleOutput
+
+# start the gateway under JMS
+# suppress harmless warning messages such as from Gtk
+java -DECCE_HOST=`hostname` -DDISPLAY=$DISPLAY -DECCE_HOME=$ECCE_HOME -DECCE_USERHOME=$ECCE_REALUSERHOME gov.pnnl.emsl.ecce.jms.JMSDispatcher -c ./gateway |& tee $ECCE_TMPDIR/ecce_$ECCE_REALUSER/consoleOutput |& grep -v -e Gdk -e Gtk -e GLib -e debug1 -e Fontconfig -e menu_proxy_module_load -e pixmap -e "required by" -e "OpenGL Warning" -e '^$'
+
+# use tee'd output to check if the server was not running
+if (-e $ECCE_TMPDIR/ecce_$ECCE_REALUSER/consoleOutput && `grep -c "Could not connect to broker URL" $ECCE_TMPDIR/ecce_$ECCE_REALUSER/consoleOutput` != 0) then
+  echo ""
+  echo "  ERROR: The ECCE application software cannot"
+  echo "  establish a connection to the ECCE Server"
+  echo "  at this time."
+  echo ""
+  echo "  Please contact your ECCE administrator to check"
+  echo "  that the ECCE Server is running and that the"
+  echo "  ECCE application software configuration file"
+  echo "  '$ECCE_HOME/siteconfig/DataServers'"
+  echo "  contains the correct URL for your ECCE Server."
+  echo ""
+  exit
+endif
+
+# Cleanup temp files ------------------------------------------------------
+
+# Now remove the temporary files
+if ($?ECCE_DEBUG) then
+  echo "Cleaning up temporary files"
+  find $ECCE_TMPDIR/ecce_$ECCE_REALUSER/trj -user $ECCE_REALUSER -type f -exec /bin/rm -f {} \; -print
+  if (-d $ECCE_TMPDIR/ecce_$ECCE_REALUSER/jobs) then
+    touch $ECCE_TMPDIR/ecce_$ECCE_REALUSER/jobs/savejobsdir
+  endif
+  find $ECCE_TMPDIR/ecce_$ECCE_REALUSER/jobs -user $ECCE_REALUSER -mtime +1 -type d -exec /bin/rm -rf {} \; -print
+  if (-e $ECCE_TMPDIR/ecce_$ECCE_REALUSER/jobs/savejobsdir) then
+    /bin/rm -f $ECCE_TMPDIR/ecce_$ECCE_REALUSER/jobs/savejobsdir
+  endif
+  find $ECCE_TMPDIR/ecce_$ECCE_REALUSER -user $ECCE_REALUSER -mtime +1 -name ECCE\* -type f -exec /bin/rm -f {} \; -print
+else
+  find $ECCE_TMPDIR/ecce_$ECCE_REALUSER/trj -user $ECCE_REALUSER -type f -exec /bin/rm -f {} \; >& /dev/null
+  if (-d $ECCE_TMPDIR/ecce_$ECCE_REALUSER/jobs) then
+    touch $ECCE_TMPDIR/ecce_$ECCE_REALUSER/jobs/savejobsdir
+  endif
+  find $ECCE_TMPDIR/ecce_$ECCE_REALUSER/jobs -user $ECCE_REALUSER -mtime +1 -type d -exec /bin/rm -rf {} \; >& /dev/null
+  if (-e $ECCE_TMPDIR/ecce_$ECCE_REALUSER/jobs/savejobsdir) then
+    /bin/rm -f $ECCE_TMPDIR/ecce_$ECCE_REALUSER/jobs/savejobsdir
+  endif
+  find $ECCE_TMPDIR/ecce_$ECCE_REALUSER -user $ECCE_REALUSER -mtime +1 -name ECCE\* -type f -exec /bin/rm -f {} \; >& /dev/null
+endif
+

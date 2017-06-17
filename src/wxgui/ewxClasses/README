@@ -1,0 +1,42 @@
+SOMETHING TO NOTE:
+
+We ran into some issues with initialization lists when implementing
+ewxNonBoldLabel.  Init lists are great tools that can sometimes enhance
+performance and almost always make a program more "exception safe".
+
+Another quick digression... it was decided to implement ewx classes as
+subclasses of their wx counterparts so that we could control the fonts,
+colors, etc and set them to our own Ecce defaults (every developer's GUIs
+will look the same style-wise.)  This methodology worked well up until
+ewxNonBoldLabel because before ewxNonBoldLabel, every wx base class had only
+ONE derived ewx class.
+
+ewxStyledWindow uses the C++ RTTI system to determine which wx base class was
+being styled and there was no need to know which ewx derived class it was.  
+When I attempted to dynamically cast to the ewx derived class instead,
+nothing happened and instead the wx base class was typed and used.  Why?
+
+Answer: the derived class ewxStaticText called setStyle with a "this"
+pointer from within the initialization list.  Because it was in an init list,
+the instance of ewxNonBoldLabel was not yet in existance, so the pointer 
+was not of the desired type.
+
+When a constructor is called for a derived class, it calls the default, no
+argument constructors of its base classes in a depth-first left-to-right
+order based on the class declarations.  In our case the order was:
+wxStaticText, ewxStyledWindow, ewxStaticText, then ewxNonBoldLabel.
+At the moment ewxStaticText called setStyles with the "this" pointer, "this"
+was only a wxStaticText/ewxStyledWindow and nothing more derived.
+
+Solutions (best and proper):
+The best solution is to eliminate the StyledWindow constructor that calls
+setStyles, change all of the dynamic casts in the setStyles method to cast to
+their ewx classes and not their wx base classes, and move the StyledWindow
+constructor call out of the init list and call setStyles from within the 
+constructor bodies for all derived ewx classes.
+
+treelistctrl is taken from the wxcode project.
+http://wxcode.sourceforge.net/components/treelistctrl/
+http://wxcode.sourceforge.net/components/treelistctrl/reference.html
+
+

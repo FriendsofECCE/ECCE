@@ -1,0 +1,77 @@
+Note:
+The programmes, gbsNWChemConverter and gbsDescriber, are not 'intelligent' -- they won't check that you are doing something reasonable. Bad input = bad output. Please note that the scripts have NOT been extensively tested. They can be considered as being at the alpha stage.
+
+__Usage__
+gbsNWChemConverter can turn a full basis set, or an ECP basis set, into an ECCE compatible set of basis set files.
+
+Typically, an nwchem basis set consists of a single file, e.g. 3-21g. It can also be divided into several files, e.g. def2-svp and def-ecp, where the effective core potentials (ecps) are found in def2-ecp. Other basis set files, such as lanl2dz_ecp, contain both the orbital and the contraction parts.
+
+Typically, a ECCE basis set suite consists of: 
+basis.BAS
+basis.BAS.meta
+basis.POT (for ECP)
+basis.POT.meta (for ECP)
+
+These files are found in the server/data/Ecce/system/GaussianBasisSetLibrary folder of a full ECCE installation.
+
+Sometimes polarization and diffuse functions are separated from the main .BAS file. E.g. 3-21++G* consists of
+3-21G.BAS
+3-21GS.BAS
+POPLDIFF.BAS
+
+in addition to the meta files. The meta files are just markup-language type files with e.g. references. Note that you don't have to break up the basis set components like this, and that the longevity of ECCE means that different approaches appear to have dominated at different times.
+
+Since the basis set data can be broken up into smaller files, the overall basis set is defined as an entry in a category file.
+
+For example, 3-21G is defined in the category file 'pople', and points to 3-21G.BAS. 3-21G* is also defined in pople, but point to both 3-21G.BAS and 3-21GS.BAS. These category files are also found in server/data/Ecce/system/GaussianBasisSetLibrary.
+
+ECP basis sets work in a similar way, by combining a .BAS and a .POT file. Note that the .POT files look different from the .BAS files.
+
+gbsNWChemConverter generates .BAS and .POT files based on whether there are basis/end or ecp/end sections in the nwchem basis set file. If there are both, both POT and BAS files are generated.
+
+Again, all these files are contained in server/data/Ecce/system/GaussianBasisSetLibrary.
+
+Finally, you need to generate .pag and .dir files that go into the server/data/Ecce/system/GaussianBasisSetLibrary/.DAV directory. The .dir file is always empty, while the .pag file is unfortunately a binary file. gbsDescriber can, however, generate it with the right input.
+
+__Example__
+We'll use def2-svp as an example. The nwchem basis set file def2-svp contains the basis set, while def2-ecp contains the core potentials. Use def2-svp to generate DEF2_SVP.BAS, DEF2_SVP.BAS.meta. Use def2-ecp to generate DEF2_ECP.POT, DEF2_ECP.POT.meta. 
+
+As part of the generation, .descriptor files are also generated. These contain information that should go into the category file(s).
+
+Then generate the .pag files for both the POT and the BAS files, and touch the .dir files into existence.
+
+Do like this:
+gbsNWChemConverter -i def2-svp -o DEF2_SVP.BAS -n 'def2-svp'
+gbsNWChemConverter -i def2-ecp -p DEF2_ECP.POT -n 'def2-ecp'
+gbsDescriber -n def2-svp -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2_SVP.BAS.pag
+gbsDescriber -n def2-ecp -t ecp -c AUXILIARY -o DEF2_ECP.POT.pag
+
+You now have the following files:
+DEF2_ECP.POT
+DEF2_ECP.POT.descriptor
+DEF2_ECP.POT.meta
+DEF2_ECP.POT.pag
+DEF2_SVP.BAS
+DEF2_SVP.BAS.descriptor
+DEF2_SVP.BAS.meta
+DEF2_SVP.BAS.pag
+
+Copy the files to server/data/Ecce/system/GaussianBasisSetLibrary. Note that you need to select the correct target directory, and that that will vary with where you installed ECCE. For the sake of illustration, I'll assume it's in /opt/ecce
+
+cp DEF2* /opt/ecce/server/data/Ecce/system/GaussianBasisSetLibrary
+cd /opt/ecce/server/data/Ecce/system/GaussianBasisSetLibrary
+mv *.pag .DAV/
+touch .DAV/DEF2_SVP.BAS.dir .DAV/DEF2_ECP.POT.dir
+cat DEF2_SVP.BAS.descriptor >> ECPOrbital
+cat DEF2_ECP.POT.descriptor >> ECPOrbital
+cat DEF2_ECP.POT.descriptor >> ecp
+
+Edit ECPOrbital so that it reads:
+name= def2-svp
+files= DEF2_SVP.BAS DEF2_ECP.POT
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+atoms= Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn  
+
+Likewise, edit the file ecp in a similar way.
+
+You should now be able to see, and use, the basis sets in ECCE. Note that the scripts have not been extensively tested, and that they are in no way guaranteed to work under all conditions. 

@@ -1,0 +1,183 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+# This script extracts the configurations from the minimum energy path, along
+# with the corresponding energies, and write to the GEOMTRACE and TEVEC
+# properties.
+#
+################################################################################
+
+# Force output to be flushed
+$| = 1;
+
+########################################################################
+# read the data from stdin:
+########################################################################
+$isTS = 0;
+$isR = 0;
+$isP = 0;
+$eTS = "";
+@eR = ();
+@eP = ();
+$geomTS = "";
+@geomR = ();
+@geomP = ();
+while (<STDIN>) {
+  if (/^(\s[\s\*])(........\d\d\d\d\d)(\s[\s-]...........)(.*)/) {
+    $sym = $1;
+    $sval = $2;
+    $nrg = $3;
+    $coords = $4;
+    if ($isR) {
+      $rcoords =~ s/^\s*//;
+      $rcoords =~ s/\s*$//;
+      push(@geomR, $rcoords);
+    } elsif ($isP) {
+      $pcoords =~ s/^\s*//;
+      $pcoords =~ s/\s*$//;
+      push(@geomP, $pcoords);
+    }
+    $rcoords = "";
+    $pcoords = "";
+    if ($sym =~ / \*/ || $sval == 0.0) {
+      $isTS = 1;
+      $isR = 0;
+      $isP = 0;
+      $geomTS = $coords;
+      $eTS = $nrg;
+    } elsif ($sval < 0.0) {
+      $isTS = 0;
+      $isR = 1;
+      $isP = 0;
+      $rcoords = $coords;
+      push(@eR, $nrg);
+    } elsif ($sval > 0.0) {
+      $isTS = 0;
+      $isR = 0;
+      $isP = 1;
+      $pcoords = $coords;
+      push(@eP, $nrg);
+    }
+  } elsif (/^(\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s)(.*)/) {
+    $coords = $2;
+    if ($isR) {
+      $rcoords .= $coords;
+    } elsif ($isTS) {
+      $geomTS .= $coords;
+    } elsif ($isP) {
+      $pcoords .= $coords;
+    }
+  } elsif (/Frequencies/) {
+    if ($isR) {
+      $rcoords =~ s/^\s*//;
+      $rcoords =~ s/\s*$//;
+      push(@geomR, $rcoords);
+    } elsif ($isP) {
+      $pcoords =~ s/^\s*//;
+      $pcoords =~ s/\s*$//;
+      push(@geomP, $pcoords);
+    }
+  }
+}
+$geomTS =~ s/^\s*//;
+$geomTS =~ s/\s*$//;
+#
+# Print out the data in standard format. Start by printing the reactants.
+#
+$nreact = @geomR;
+for ($idx=0; $idx<$nreact; $idx++) {
+  @array = ();
+  @array = split(' +',$geomR[$idx]);
+  $values = @array;
+  $natom = @array;
+  $natom /= 3;
+  print "\nkey: GEOMTRACE\n";
+  print "size:\n";
+  print "1 " . ($natom) . " 3\n";
+  print "rowlabels:\n";
+  for ($i=0; $i<$natom; $i++) { print "$i "; }
+  print "\ncolumnlabels:\nX Y Z\n";
+  print "values:\n";
+  for ($i=0; $i < $values; $i++) {
+    printf("%.15e ",$array[$i]); 
+    if ($i % 3 == 2 ) { print "\n"; };
+  }
+  if ($i % 3 != 0 ) { print "\n"; };
+
+  print "units:\nAngstrom\n";
+  print "END\n";
+  print "\nkey: TEVEC\n";
+  print "size:\n1\n";
+  print "values:\n$eR[$idx]";
+  print "\nunits:\nkcal/mol\n";
+  print "END\n";
+}
+#
+# Print transition state
+#
+@array = ();
+@array = split(' +',$geomTS);
+$values = @array;
+$natom = @array;
+$natom /= 3;
+print "\nkey: GEOMTRACE\n";
+print "size:\n";
+print "1 " . ($natom) . " 3\n";
+print "rowlabels:\n";
+for ($i=0; $i<$natom; $i++) { print "$i "; }
+print "\ncolumnlabels:\nX Y Z\n";
+print "values:\n";
+for ($i=0; $i < $values; $i++) {
+  printf("%.15e ",$array[$i]); 
+  if ($i % 3 == 2 ) { print "\n"; };
+}
+if ($i % 3 != 0 ) { print "\n"; };
+
+print "units:\nAngstrom\n";
+print "END\n";
+print "\nkey: TEVEC\n";
+print "size:\n1\n";
+print "values:\n$eTS";
+print "\nunits:\nkcal/mol\n";
+print "END\n";
+#
+# Print products
+#
+$nprod = @geomP;
+print "Number of product geometries: $nprod\n";
+for ($idx=0; $idx<$nprod; $idx++) {
+  @array = ();
+  @array = split(' +',$geomP[$idx]);
+  $values = @array;
+  $natom = @array;
+  $natom /= 3;
+  print "\nkey: GEOMTRACE\n";
+  print "size:\n";
+  print "1 " . ($natom) . " 3\n";
+  print "rowlabels:\n";
+  for ($i=0; $i<$natom; $i++) { print "$i "; }
+  print "\ncolumnlabels:\nX Y Z\n";
+  print "values:\n";
+  for ($i=0; $i < $values; $i++) {
+    printf("%.15e ",$array[$i]); 
+    if ($i % 3 == 2 ) { print "\n"; };
+  }
+  if ($i % 3 != 0 ) { print "\n"; };
+
+  print "units:\nAngstrom\n";
+  print "END\n";
+  print "\nkey: TEVEC\n";
+  print "size:\n1\n";
+  print "values:\n$eP[$idx]";
+  print "\nunits:\nkcal/mol\n";
+  print "END\n";
+}

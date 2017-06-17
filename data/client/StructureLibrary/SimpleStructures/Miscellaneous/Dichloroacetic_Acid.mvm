@@ -1,0 +1,23 @@
+title:          Dichloroacetic Acid
+type:           molecule
+cell_units:     angstroms
+num_atoms:      8
+atom_info:      symbol cart
+atom_list:
+  Cl  -2.326   0.458   0.472
+  C  -0.827  -0.085  -0.338
+  C   0.440   0.310   0.405
+  O   0.539   1.075   1.337
+  Cl  -0.922  -1.826  -0.751
+  O   1.523  -0.288  -0.115
+  H  -0.807   0.454  -1.313
+  H   2.379  -0.098   0.304
+num_bonds:      7
+bond_list:
+ 1  2
+ 2  3
+ 2  5
+ 2  7
+ 3  4
+ 3  6
+ 6  8

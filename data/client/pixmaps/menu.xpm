@@ -1,0 +1,22 @@
+/* XPM */
+static char *menu[] = {
+/* columns rows colors chars-per-pixel */
+"13 13 3 1",
+"  c black",
+". c gray90",
+"X c None",
+/* pixels */
+"XXXXXXXXXXXXX",
+"XXXXXXXXXXXXX",
+"XXXXXXXXXXXXX",
+"XX          X",
+"XX         XX",
+"XXX       XXX",
+"XXXX     XXXX",
+"XXXXX    XXXX",
+"XXXXXX  XXXXX",
+"XXXXXX  XXXXX",
+"XXXXXXXXXXXXX",
+"XXXXXXXXXXXXX",
+"XXXXXXXXXXXXX"
+};

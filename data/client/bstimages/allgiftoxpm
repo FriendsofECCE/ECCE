@@ -1,0 +1,18 @@
+#!/bin/csh -f
+################################################################################
+# FILENAME:  allgiftoxpm
+#
+#
+# SYNTAX:
+#    allgiftoxpm
+#
+# PURPOSE:
+#
+# DESCRIPTION:
+#
+# LIMITATIONS:
+################################################################################
+foreach gif ($*)
+  echo $gif:r.xpm
+  giftoppm $gif | ppmtoxpm >! $gif:r.xpm
+end

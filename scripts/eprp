@@ -1,0 +1,14 @@
+#!/bin/csh -f
+
+# this sets ECCE_SYSDIR
+source $ECCE_HOME/scripts/ecce_env
+
+cd $ECCE_HOME/${ECCE_SYSDIR}bin
+
+if ($#argv < 1) then
+  echo "Must specify path to directory containing *.prp files"
+  exit
+endif
+
+../3rdparty/${ECCE_SYSDIR}bin/python $ECCE_HOME/scripts/prp_gui.py $argv[1]
+

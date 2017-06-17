@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   See online documenation at http://www.emsl.pnl.gov:2080/docs/ecce
+-->
+
+<appdescriptor>
+
+<GaussianBasisSetRules>
+  <MaxLValue>6</MaxLValue>
+  <ECPS>True</ECPS>
+  <GeneralContractions>False</GeneralContractions>
+  <PreferOptimization>	True</PreferOptimization>
+  <MaxPrimitives>25 25 25 25 25 25 25</MaxPrimitives>
+  <MaxSharedExponent>      0 </MaxSharedExponent>
+  <SphericalCoordinates>	True </SphericalCoordinates>
+  <DFTFitting>		false</DFTFitting>
+  <RecommendDFTCharge>	false </RecommendDFTCharge>
+  <RequireFullDFT>         false </RequireFullDFT>
+  <MaxTotalFunctions>	64000</MaxTotalFunctions>
+  <MaxTotalPrimitives>	64000</MaxTotalPrimitives>
+  <MultipleOrbitals>	false</MultipleOrbitals>
+
+</GaussianBasisSetRules>
+
+
+
+<Editor theorydialog="" runtypedialog="">
+  <Theory category="SCF" name="RHF">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype noSpherical = "true">Property</runtype>
+    <runtype noSpherical = "true">ESP</runtype>
+  </Theory>
+  <Theory category="SCF" name="UHF">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype noSpherical = "true">ESP</runtype>
+  </Theory>
+</Editor>
+
+
+<DataFiles>
+  <Input   type="primary" mimetype="chemical/x-molcas-input" comment="true" commentstring="#">molcas.molcasin</Input>
+  <Output type="primary" mimetype="chemical/x-molcas-output">molcas.molcasout</Output>
+  <Output type="parse" verifypattern="" mimetype="chemical/x-ecce-parse">ecce.out</Output>
+  <Output type="auxiliary" mimetype="chemical/x-molcas-mo">movec.molcas_mo</Output>
+</DataFiles>
+
+<!-- Names of files required for code integration.  These files are
+     assumed to be in the ecce path as managed by the ecce_env script.
+<IntegrationFiles>
+  <Template>	molcas.tpl  </Template>
+  <InputGenerator>ai.molcas </InputGenerator>
+  <Importer>molcas.expt </Importer>
+  <ParseSpecification>molcas.desc </ParseSpecification>
+  <LaunchPreprocessor>molcas.launchpp </LaunchPreprocessor>
+  <BasisTranslationScript>std2molcas</BasisTranslationScript>
+</IntegrationFiles>
+-->
+
+</appdescriptor>

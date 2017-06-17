@@ -1,0 +1,41 @@
+name
+Ahlrichs Polarization
+name
+type
+polarization
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ----------
+H - Kr: R. Ahlrichs and coworkers, (mostly unpublished)
+
+references
+info
+              Schafer, Horn and Ahlrichs Polarization Sets
+              --------------------------------------------
+ Elements                            Reference
+H  - He: (1p)   -> [1p]    A. Schafer, H. Horn and R. Ahlrichs,
+Li     : (1p)   -> [1p]    J. Chem. Phys. 97, 2571 (1992).
+Be     : (4p)   -> [2p]
+B  - Ne: (1d)   -> [1d]
+Na - Mg: (1p)   -> [1p]
+Al - Ar: (1d)   -> [1d]
+K  - Ca: (1p)   -> [1p]
+Sc - Zn: (1p)   -> [1p]
+Ga - Kr: (1d)   -> [1d]
+
+
+info
+comments
+2/23/95  - DFF - Modify the literature citation.
+10/04/94  - DFF - Original creation of this file from ftp'ed file.
+comments

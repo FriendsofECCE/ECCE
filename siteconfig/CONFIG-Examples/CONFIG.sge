@@ -1,0 +1,66 @@
+################################################################################
+#
+# Synopis
+#  Example for Linux cluster running SGE, Sun Grid Engine
+#
+#  Read the README file and refer to the ../submit.site file for 
+#  documentation on variables and syntax.
+#
+#  $Date: 2003-07-28 13:48:21 -0700 (Mon, 28 Jul 2003) $
+#
+################################################################################
+
+#******
+# The following can be set through the registration GUI.
+#
+# perl path information is required only if it located in non-standard
+# location that is unlikely to be in the users path.  
+#******
+NWChem: /usr/local/nwchem-4.5-gcc/bin/LINUX/nwchem
+
+#******
+# These must be set manually in this file.
+# . xappsPath is added to $PATH and is needed only if its installed in a
+# nonstandard location.
+# . qmgrPath is also added to $PATH and is needed only if the location of
+# the queue submission, status, etc. commands is in a nonstandard location.
+#******
+xappsPath: /usr/X11R6/bin
+qmgrPath: /opt/sge/bin/glinux
+
+#******
+# There are system defaults in $ECCE_HOME/submit.site for the rest of the
+# entries in this file.  For queued systems, the defaults typically
+# will NOT be what you want so most of the following should be in your
+# CONFIG.<machine> file.
+#******
+
+#******
+# Customize the header that will be used in the submit script.  There is
+# a fallback example in the submit.site file that will be used if you
+# don't provide a custom one but it probably won't be what you want.
+#******
+SGE {
+#$ -pe make $totalprocs
+#$ -v SHELL
+#$ -cwd
+}
+
+#******
+# Code fragment to insert into script prior to execution of the code.
+#******
+setup {
+}
+
+#******
+# Code fragment to insert into script after execution of the code.
+#******
+wrapup {
+}
+
+#******
+# Customize execution command for NWChem
+#******
+NWChemCommand {
+/usr/local/mpich-1.2.5/gcc/bin/mpirun -np $totalprocs $nwchem $inFile >& $outFile
+}

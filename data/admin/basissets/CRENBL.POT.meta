@@ -1,0 +1,18 @@
+name
+CRENBS ECP
+name
+type
+ecp
+type
+category
+AUXILIARY
+category
+references
+ELEMENTS                      REFERENCES
+---------                       ----------
+
+
+references
+comments
+5/17/01  - DFF - replace the Cf, Es, Fm and Md potentials based on an
+comments

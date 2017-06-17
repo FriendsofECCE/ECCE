@@ -1,0 +1,52 @@
+#!/usr/bin/env perl
+use strict;
+use vars qw($opt_h $opt_help $opt_v);
+use Getopt::Std;
+
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+
+require "rdGaussianGBS.pm";
+require "wrNWChemGBS.pm";
+
+#
+#  Handle the options
+#
+my $import = 0;
+getopts('hv');
+&handle_options;  # subroutine in this file
+
+if ($#ARGV > 1 && $ARGV[2] ne "import") {
+  &usage;
+  exit;
+}
+if ($#ARGV == 2 && $ARGV[2] eq "import") {
+  $import = 1;
+} 
+
+my $gbsPtr = &getGaussianGBS($ARGV[0], $ARGV[1]);
+
+if ($import == 1) {
+  print("NumericalBasis\n");
+}
+&wrNWChem($gbsPtr);
+if ($import == 1) {
+  print("EndNumericalBasis\n");
+}
+
+
+sub usage {
+  print "Usage: gaussian-942std <fragment> <stdfile> [import]\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}
+#
+#
+#
+sub handle_options {
+  &usage && exit if ( $opt_h || $opt_help );
+  my $revision = '$Revision: 6308 $';
+  $revision =~ (s/\$//g);
+  print "$revision\n" if ( $opt_v );
+  exit if ( $opt_v );
+}

@@ -1,0 +1,1314 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+# Purpose:
+#     Script for generating input file for NW DirDy task
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+# make sure script can find perl modules
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+
+# package for command line options
+use Getopt::Std;
+
+# provides hashes for periodic table
+require "pertab.pl";
+
+# Force output to be flushed
+$| = 1;
+
+######
+# Get command line arguments
+######
+
+&getopts('tcdefprm');
+&handle_options;
+
+# Angstroms to Bohr conversion factor
+$angtobohr = 1.889725989;
+
+#get transition state geometry
+@at_ts = ();
+@idx_ts = ();
+@x_ts = ();
+@y_ts = ();
+@z_ts = ();
+$num_ts = 0;
+%states = {};
+if ($TSFILE) {
+  open(TSGEOM,$TSFILE);
+  while (<TSGEOM>) {
+    if (/num_atoms\:\s*(\S+)/) {
+       $num_ts = $1;
+    }
+    if (/atom_list/) {
+      for ($i=0; $i<$num_ts; $i++) {
+        $line = <TSGEOM>;
+        if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+            $at_ts[$i] = $1;
+            $x_ts[$i] = $angtobohr * $2;
+            $y_ts[$i] = $angtobohr * $3;
+            $z_ts[$i] = $angtobohr * $4;
+        }
+      }
+    }
+    if (/atom_type_list/) {
+      for ($i=0; $i<$num_ts; $i++) {
+        $line = <TSGEOM>;
+        if ($line =~ /^\s*(\S+)\s+/) {
+            $idx_ts[$i] = $1;
+        }
+      }
+    }
+  }
+}
+close(TSGEOM);
+
+#get geometry of reactant 1, if it exists
+@at_r1 = ();
+@idx_r1 = ();
+@x_r1 = ();
+@y_r1 = ();
+@z_r1 = ();
+$num_r1 = 0;
+if ($R1FILE) {
+  open(R1GEOM,$R1FILE);
+  while (<R1GEOM>) {
+    if (/num_atoms\:\s*(\S+)/) {
+       $num_r1 = $1;
+    }
+    if (/atom_list/) {
+      for ($i=0; $i<$num_r1; $i++) {
+        $line = <R1GEOM>;
+        if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+            $at_r1[$i] = $1;
+            $x_r1[$i] = $angtobohr * $2;
+            $y_r1[$i] = $angtobohr * $3;
+            $z_r1[$i] = $angtobohr * $4;
+        }
+      }
+    }
+    if (/atom_type_list/) {
+      for ($i=0; $i<$num_r1; $i++) {
+        $line = <R1GEOM>;
+        if ($line =~ /^\s*(\S+)\s+/) {
+            $idx_r1[$i] = $1;
+        }
+      }
+    }
+  }
+}
+close(R1GEOM);
+
+#get geometry of reactant 2, if it exists
+@at_r2 = ();
+@idx_r2 = ();
+@x_r2 = ();
+@y_r2 = ();
+@z_r2 = ();
+$num_r2 = 0;
+if ($R2FILE) {
+  open(R2GEOM,$R2FILE);
+  while (<R2GEOM>) {
+    if (/num_atoms\:\s*(\S+)/) {
+       $num_r2 = $1;
+    }
+    if (/atom_list/) {
+      for ($i=0; $i<$num_r2; $i++) {
+        $line = <R2GEOM>;
+        if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+            $at_r2[$i] = $1;
+            $x_r2[$i] = $angtobohr * $2;
+            $y_r2[$i] = $angtobohr * $3;
+            $z_r2[$i] = $angtobohr * $4;
+        }
+      }
+    }
+    if (/atom_type_list/) {
+      for ($i=0; $i<$num_r2; $i++) {
+        $line = <R2GEOM>;
+        if ($line =~ /^\s*(\S+)\s+/) {
+            $idx_r2[$i] = $1;
+        }
+      }
+    }
+  }
+}
+close(R2GEOM);
+
+#get geometry of product 1, if it exists
+@at_p1 = ();
+@idx_p1 = ();
+@x_p1 = ();
+@y_p1 = ();
+@z_p1 = ();
+$num_p1 = 0;
+if ($P1FILE) {
+  open(P1GEOM,$P1FILE);
+  while (<P1GEOM>) {
+    if (/num_atoms\:\s*(\S+)/) {
+       $num_p1 = $1;
+    }
+    if (/atom_list/) {
+      for ($i=0; $i<$num_p1; $i++) {
+        $line = <P1GEOM>;
+        if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+            $at_p1[$i] = $1;
+            $x_p1[$i] = $angtobohr * $2;
+            $y_p1[$i] = $angtobohr * $3;
+            $z_p1[$i] = $angtobohr * $4;
+        }
+      }
+    }
+    if (/atom_type_list/) {
+      for ($i=0; $i<$num_p1; $i++) {
+        $line = <P1GEOM>;
+        if ($line =~ /^\s*(\S+)\s+/) {
+            $idx_p1[$i] = $1;
+        }
+      }
+    }
+  }
+}
+close(P1GEOM);
+
+#get geometry of product 2, if it exists
+@at_p2 = ();
+@idx_p2 = ();
+@x_p2 = ();
+@y_p2 = ();
+@z_p2 = ();
+$num_p2 = 0;
+if ($P2FILE) {
+  open(P2GEOM,$P2FILE);
+  while (<P2GEOM>) {
+    if (/num_atoms\:\s*(\S+)/) {
+       $num_p2 = $1;
+    }
+    if (/atom_list/) {
+      for ($i=0; $i<$num_p2; $i++) {
+        $line = <P2GEOM>;
+        if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+            $at_p2[$i] = $1;
+            $x_p2[$i] = $angtobohr * $2;
+            $y_p2[$i] = $angtobohr * $3;
+            $z_p2[$i] = $angtobohr * $4;
+        }
+      }
+    }
+    if (/atom_type_list/) {
+      for ($i=0; $i<$num_p2; $i++) {
+        $line = <P2GEOM>;
+        if ($line =~ /^\s*(\S+)\s+/) {
+            $idx_p2[$i] = $1;
+        }
+      }
+    }
+  }
+}
+close(R2GEOM);
+
+# Get parameters from NWDirdy setup GUI
+%PathDict = ();
+if ($pathFILE) {
+  open (SPATH,$pathFILE);
+  while (<SPATH>) {
+    if (/<NWDirdyModel>/) {
+      while (<SPATH>) {
+        if (!/<\/NWDirdyModel>/) {
+          $line = $_;
+          if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+            $key = $1;
+            $value = $2;
+            $PathDict{$key} = $value;
+          }
+        } else {
+          last;
+        }
+      }
+    }
+  }
+}
+close(SPATH);
+
+# Get parameters from Polyrate setup GUI
+@tmprtrList = ();
+if ($polyFILE) {
+  open (RATE,$polyFILE);
+  while (<RATE>) {
+    if (/<PolyrateModel>/) {
+      while (<RATE>) {
+        if (!/<\/PolyrateModel>/) {
+          $line = $_;
+          if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+            $key = $1;
+            $value = $2;
+            $PathDict{$key} = $value;
+          } elsif ($line =~ /^\s*\<TemperatureList\>/) {
+            while (<RATE>) {
+              if (!/\<\/TemperatureList\>/) {
+                $line = $_;
+                if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                  $key = $1;
+                  $value = $2;
+                  if ($key eq "Temperature") {
+                    push(@tmprtrList,$value);
+                  }
+                }
+              } else {
+                last;
+              }
+            }
+          } elsif ($line =~ /^\s*\<Reactant1\>/) {
+            %nrg_react1 = {};
+            $icnt = 0;
+            while (<RATE>) {
+              if (!/\<\/Reactant1\>/) {
+                $line = $_;
+                if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                  $key = $1;
+                  $value = $2;
+                  $nrg_react1{$key} = $value;
+                  $icnt++;
+                } elsif ($line =~ /^\s*\<TorsionList\>\s*$/) {
+                  @trsn_react1 = ();
+                  $trsn_cnt = 0;
+                  while (<RATE>) {
+                    if (!/\<\/TorsionList\>\s*$/) {
+                       $line = $_;
+                       if ($line =~ /^\s*\<Torsion\>\s*$/) {
+                         my %torsions = {};
+                         $items = 0;
+                         while (<RATE>) {
+                           if (!/\<\/Torsion\>\s*$/) {
+                             $line = $_;
+                             if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                               $key = $1;
+                               $value = $2;
+                               $torsions{$key} = $value;
+                               $items++;
+                             } elsif ($line =~ /^\s*\<TorsionOpts\>\s*$/) {
+                               my @trsn_opts = ();
+                               $opt_cnt = 0;
+                               while (<RATE>) {
+                                 if (!/\<\/TorsionOpts\>/) {
+                                   $line = $_;
+                                   if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                                     $trsn_opts[$opt_cnt] = $2;
+                                     $opt_cnt++;
+                                   }
+                                 } else {
+                                   last;
+                                 }
+                               }
+                               if ($opt_cnt > 0) {
+                                 $torsions{"Options"} = [@trsn_opts];
+                                 $items++;
+                               }
+                             }
+                           } else {
+                             if ($items > 0) {
+                               $trsn_react1[$trsn_cnt] =  \%torsions;
+                               $trsn_cnt++;
+                               $ival = @trsn_react1;
+                             } 
+                             last;
+                           }
+                         }
+                       }
+                    } else {
+                      last;
+                    }
+                  }
+                } elsif ($line =~ /^\s*\<StretchList\>\s*$/) {
+                  @strtch_react1 = ();
+                  $strtch_cnt = 0;
+		  while (<RATE>) {
+		    if (!/\<\/StretchList\>\s*$/) {
+		      $line = $_;
+		      if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+			if ($1 eq "Stretch") {
+                          $strtch_react1[$strtch_cnt] = $2;
+                          $strtch_cnt++;
+			}
+		      }
+		    } else {
+                      last;
+                    }
+                  }
+                }
+              } else {
+                last;
+              }
+            }
+            if ($icnt > 0) {
+              $states{"Reactant1"} = \%nrg_react1;
+            }
+          } elsif ($line =~ /^\s*\<Reactant2\>/) {
+            %nrg_react2 = {};
+            $icnt = 0;
+            while (<RATE>) {
+              if (!/\<\/Reactant2\>/) {
+                $line = $_;
+                if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                  $key = $1;
+                  $value = $2;
+                  $nrg_react2{$key} = $value;
+                  $icnt++;
+                } elsif ($line =~ /^\s*\<TorsionList\>\s*$/) {
+                  @trsn_react2 = ();
+                  $trsn_cnt = 0;
+                  while (<RATE>) {
+                    if (!/\<\/TorsionList\>\s*$/) {
+                       $line = $_;
+                       if ($line =~ /^\s*\<Torsion\>\s*$/) {
+                         my %torsions = {};
+                         $items = 0;
+                         while (<RATE>) {
+                           if (!/\<\/Torsion\>\s*$/) {
+                             $line = $_;
+                             if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                               $key = $1;
+                               $value = $2;
+                               $torsions{$key} = $value;
+                               $items++;
+                             } elsif ($line =~ /^\s*\<TorsionOpts\>\s*$/) {
+                               my @trsn_opts = ();
+                               $opt_cnt = 0;
+                               while (<RATE>) {
+                                 if (!/\<\/TorsionOpts\>/) {
+                                   $line = $_;
+                                   if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                                     $trsn_opts[$opt_cnt] = $2;
+                                     $opt_cnt++;
+                                   }
+                                 } else {
+                                   last;
+                                 }
+                               }
+                               if ($opt_cnt > 0) {
+                                 $torsions{"Options"} = [@trsn_opts];
+                                 $items++;
+                               }
+                             }
+                           } else {
+                             if ($items > 0) {
+                               $trsn_react2[$trsn_cnt] =  \%torsions;
+                               $trsn_cnt++;
+                             } 
+                             last;
+                           }
+                         }
+                       }
+                    } else {
+                      last;
+                    }
+                  }
+                } elsif ($line =~ /^\s*\<StretchList\>\s*$/) {
+                  @strtch_react2 = ();
+                  $strtch_cnt = 0;
+		  while (<RATE>) {
+		    if (!/\<\/StretchList\>\s*$/) {
+		      $line = $_;
+		      if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+			if ($1 eq "Stretch") {
+                          $strtch_react2[$strtch_cnt] = $2;
+                          $strtch_cnt++;
+			}
+		      }
+		    } else {
+                      last;
+                    }
+                  }
+                }
+              } else {
+                last;
+              }
+            }
+            if ($icnt > 0) {
+              $states{"Reactant2"} = \%nrg_react2;
+            }
+          } elsif ($line =~ /^\s*\<TransitionState\>/) {
+            %nrg_trans = {};
+            $icnt = 0;
+            while (<RATE>) {
+              if (!/\<\/TransitionState\>/) {
+                $line = $_;
+                if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                  $key = $1;
+                  $value = $2;
+                  $nrg_trans{$key} = $value;
+                  $icnt++;
+                } elsif ($line =~ /^\s*\<TorsionList\>\s*$/) {
+                  @trsn_ts = ();
+                  $trsn_cnt = 0;
+                  while (<RATE>) {
+                    if (!/\<\/TorsionList\>\s*$/) {
+                       $line = $_;
+                       if ($line =~ /^\s*\<Torsion\>\s*$/) {
+                         my %torsions = {};
+                         $items = 0;
+                         while (<RATE>) {
+                           if (!/\<\/Torsion\>\s*$/) {
+                             $line = $_;
+                             if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                               $key = $1;
+                               $value = $2;
+                               $torsions{$key} = $value;
+                               $items++;
+                             } elsif ($line =~ /^\s*\<TorsionOpts\>\s*$/) {
+                               my @trsn_opts = ();
+                               $opt_cnt = 0;
+                               while (<RATE>) {
+                                 if (!/\<\/TorsionOpts\>/) {
+                                   $line = $_;
+                                   if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                                     $trsn_opts[$opt_cnt] = $2;
+                                     $opt_cnt++;
+                                   }
+                                 } else {
+                                   last;
+                                 }
+                               }
+                               if ($opt_cnt > 0) {
+                                 $torsions{"Options"} = [@trsn_opts];
+                                 $items++;
+                               }
+                             }
+                           } else {
+                             if ($items > 0) {
+                               $trsn_ts[$trsn_cnt] =  \%torsions;
+                               $trsn_cnt++;
+                             } 
+                             last;
+                           }
+                         }
+                       }
+                    } else {
+                      last;
+                    }
+                  }
+                } elsif ($line =~ /^\s*\<StretchList\>\s*$/) {
+                  @strtch_ts = ();
+                  $strtch_cnt = 0;
+		  while (<RATE>) {
+		    if (!/\<\/StretchList\>\s*$/) {
+		      $line = $_;
+		      if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+			if ($1 eq "Stretch") {
+                          $strtch_ts[$strtch_cnt] = $2;
+                          $strtch_cnt++;
+			}
+		      }
+		    } else {
+                      last;
+                    }
+                  }
+                }
+              } else {
+                last;
+              }
+            }
+            if ($icnt > 0) {
+              $states{"TransitionState"} = \%nrg_trans;
+            }
+          } elsif ($line =~ /^\s*\<Product1\>/) {
+            %nrg_prod1 = {};
+            $icnt = 0;
+            while (<RATE>) {
+              if (!/\<\/Product1\>/) {
+                $line = $_;
+                if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                  $key = $1;
+                  $value = $2;
+                  $nrg_prod1{$key} = $value;
+                  $icnt++;
+                } elsif ($line =~ /^\s*\<TorsionList\>\s*$/) {
+                  @trsn_prod1 = ();
+                  $trsn_cnt = 0;
+                  while (<RATE>) {
+                    if (!/\<\/TorsionList\>\s*$/) {
+                       $line = $_;
+                       if ($line =~ /^\s*\<Torsion\>\s*$/) {
+                         my %torsions = {};
+                         $items = 0;
+                         while (<RATE>) {
+                           if (!/\<\/Torsion\>\s*$/) {
+                             $line = $_;
+                             if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                               $key = $1;
+                               $value = $2;
+                               $torsions{$key} = $value;
+                               $items++;
+                             } elsif ($line =~ /^\s*\<TorsionOpts\>\s*$/) {
+                               my @trsn_opts = ();
+                               $opt_cnt = 0;
+                               while (<RATE>) {
+                                 if (!/\<\/TorsionOpts\>/) {
+                                   $line = $_;
+                                   if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                                     $trsn_opts[$opt_cnt] = $2;
+                                     $opt_cnt++;
+                                   }
+                                 } else {
+                                   last;
+                                 }
+                               }
+                               if ($opt_cnt > 0) {
+                                 $torsions{"Options"} = [@trsn_opts];
+                                 $items++;
+                               }
+                             }
+                           } else {
+                             if ($items > 0) {
+                               $trsn_prod1[$trsn_cnt] =  \%torsions;
+                               $trsn_cnt++;
+                             } 
+                             last;
+                           }
+                         }
+                       }
+                    } else {
+                      last;
+                    }
+                  }
+                } elsif ($line =~ /^\s*\<StretchList\>\s*$/) {
+                  @strtch_prod1 = ();
+                  $strtch_cnt = 0;
+		  while (<RATE>) {
+		    if (!/\<\/StretchList\>\s*$/) {
+		      $line = $_;
+		      if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+			if ($1 eq "Stretch") {
+                          $strtch_prod1[$strtch_cnt] = $2;
+                          $strtch_cnt++;
+			}
+		      }
+		    } else {
+                      last;
+                    }
+                  }
+                }
+              } else {
+                last;
+              }
+            }
+            if ($icnt > 0) {
+              $states{"Product1"} = \%nrg_prod1;
+            }
+          } elsif ($line =~ /^\s*\<Product2\>/) {
+            %nrg_prod2 = {};
+            $icnt = 0;
+            while (<RATE>) {
+              if (!/\<\/Product2\>/) {
+                $line = $_;
+                if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                  $key = $1;
+                  $value = $2;
+                  $nrg_prod2{$key} = $value;
+                  $icnt++;
+                } elsif ($line =~ /^\s*\<TorsionList\>\s*$/) {
+                  @trsn_prod2 = ();
+                  $trsn_cnt = 0;
+                  while (<RATE>) {
+                    if (!/\<\/TorsionList\>\s*$/) {
+                       $line = $_;
+                       if ($line =~ /^\s*\<Torsion\>\s*$/) {
+                         my %torsions = {};
+                         $items = 0;
+                         while (<RATE>) {
+                           if (!/\<\/Torsion\>\s*$/) {
+                             $line = $_;
+                             if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                               $key = $1;
+                               $value = $2;
+                               $torsions{$key} = $value;
+                               $items++;
+                             } elsif ($line =~ /^\s*\<TorsionOpts\>\s*$/) {
+                               my @trsn_opts = ();
+                               $opt_cnt = 0;
+                               while (<RATE>) {
+                                 if (!/\<\/TorsionOpts\>/) {
+                                   $line = $_;
+                                   if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+                                     $trsn_opts[$opt_cnt] = $2;
+                                     $opt_cnt++;
+                                   }
+                                 } else {
+                                   last;
+                                 }
+                               }
+                               if ($opt_cnt > 0) {
+                                 $torsions{"Options"} = [@trsn_opts];
+                                 $items++;
+                               }
+                             }
+                           } else {
+                             if ($items > 0) {
+                               $trsn_prod2[$trsn_cnt] =  \%torsions;
+                               $trsn_cnt++;
+                             } 
+                             last;
+                           }
+                         }
+                       }
+                    } else {
+                      last;
+                    }
+                  }
+                } elsif ($line =~ /^\s*\<StretchList\>\s*$/) {
+                  @strtch_prod2 = ();
+                  $strtch_cnt = 0;
+		  while (<RATE>) {
+		    if (!/\<\/StretchList\>\s*$/) {
+		      $line = $_;
+		      if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+			if ($1 eq "Stretch") {
+                          $strtch_prod2[$strtch_cnt] = $2;
+                          $strtch_cnt++;
+			}
+		      }
+		    } else {
+                      last;
+                    }
+                  }
+                }
+              } else {
+                last;
+              }
+            }
+            if ($icnt > 0) {
+              $states{"Product2"} = \%nrg_prod2;
+            }
+          }
+        } else {
+          last;
+        }
+      }
+    }
+  }
+}
+close(RATE);
+
+# Get fragment multiplicities
+if ($multFILE) {
+  open (MULT,$multFILE);
+  while (<MULT>) {
+    if (/<FragmentMultiplicities>/) {
+      while (<MULT>) {
+        if (!/<\/FragmentMultiplicities>/) {
+          $line = $_;
+          if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+            $key = $1;
+            $value = $2;
+            $PathDict{$key} = $value;
+          }
+        } else {
+         last;
+        }
+      }
+    }
+  }
+}
+close(MULT);
+
+print "\*GENERAL\n";
+print "  TITLE\n";
+$value = $PathDict{"Annotation"};
+print "   $value\n";
+print "  END\n";
+
+if ($TSFILE) {
+  print "  ATOMS\n";
+  for ($i=0; $i<$num_ts; $i++) {
+    print "    $idx_ts[$i]   $at_ts[$i]\n";
+  }
+  print "  END\n";
+}
+
+if ($R1FILE) {
+  print "\n\*REACT1\n";
+  print "  GEOM\n";
+  for ($i=0; $i<$num_r1; $i++) {
+    print "    $idx_r1[$i]   $x_r1[$i] $y_r1[$i] $z_r1[$i]\n";
+  }
+  print "  END\n";
+  if (defined($states{"Reactant1"})) {
+    %values = %{$states{"Reactant1"}};
+    &printELEC;
+    if (defined($values{"ComponentAxis"})) {
+      $axis = $values{"ComponentAxis"};
+      if ($axis eq "X") {
+        print "\n  LINAXIS x-axis\n";
+      } elsif ($axis eq "Y") {
+        print "\n  LINAXIS y-axis\n";
+      } elsif ($axis eq "Z") {
+        print "\n  LINAXIS z-axis\n";
+      } 
+    }
+  }
+  $trsn_cnt = @trsn_react1;
+  $strtch_cnt = @strtch_react1;
+  if ($trsn_cnt > 0 || $strtch_cnt > 0) {
+    print "  VANHAR\n";
+    for ($i=0; $i<$trsn_cnt; $i++) {
+      %torsion = %{$trsn_react1[$i]};
+      if (defined($torsion{"Command"})) {
+        $cmd = $torsion{"Command"};
+        if ($cmd =~ /\s*(\d)\s+/) {
+          print "    $1 tor\n";
+        }
+      }
+    }
+    for ($i=0; $i<$strtch_cnt; $i++) {
+      print "    $strtch_react1[$i] morse\n";
+    }
+    print "  END\n";
+    $opt_cnt = 0;
+    print "  TOR\n";
+    for ($i=0; $i<$trsn_cnt; $i++) {
+      %torsion = %{$trsn_react1[$i]};
+      if (defined($torsion{"Command"})) {
+        $cmd = $torsion{"Command"};
+        print "$cmd\n";
+      }
+      if (defined($torsion{"Options"})) {
+        @options = @{$torsion{"Options"}};
+        $opt_cnt += @options;
+      }
+    }
+    print "  END\n";
+    if ($opt_cnt > 0) {
+      print "  TOROPT\n";
+      for ($i=0; $i<$trsn_cnt; $i++) {
+        %torsion = %{$trsn_react1[$i]};
+        if (defined($torsion{"Options"})) {
+          @options = @{$torsion{"Options"}};
+          $opt_cnt = @options;
+          for ($j=0; $j<$opt_cnt; $j++) {
+            print "$options[$j]\n";
+          }
+        }
+      }
+      print "  END\n";
+    }
+  }
+  $isLinear = 0;
+  if (defined($PathDict{"LinearReact1"})) {
+    $isLinear = $PathDict{"LinearReact1"};
+  }
+  if ($num_r1 == 1) {
+    print "\n  SPECIES ATOMIC\n";
+  } elsif ($num_r1 == 2 || $isLinear != 0) {
+    print "\n  SPECIES LINRP\n";
+  } else {
+    print "\n  SPECIES NONLINRP\n";
+  }
+}
+
+if ($R2FILE) {
+  print "\n\*REACT2\n";
+  print "  GEOM\n";
+  for ($i=0; $i<$num_r2; $i++) {
+    print "    $idx_r2[$i]   $x_r2[$i] $y_r2[$i] $z_r2[$i]\n";
+  }
+  print "  END\n";
+  if (defined($states{"Reactant2"})) {
+    %values = %{$states{"Reactant2"}};
+    &printELEC;
+    if (defined($values{"ComponentAxis"})) {
+      $axis = $values{"ComponentAxis"};
+      if ($axis eq "X") {
+        print "\n  LINAXIS x-axis\n";
+      } elsif ($axis eq "Y") {
+        print "\n  LINAXIS y-axis\n";
+      } elsif ($axis eq "Z") {
+        print "\n  LINAXIS z-axis\n";
+      } 
+    }
+  }
+  $trsn_cnt = @trsn_react2;
+  $strtch_cnt = @strtch_react2;
+  if ($trsn_cnt > 0 || $strtch_cnt > 0) {
+    print "  VANHAR\n";
+    for ($i=0; $i<$trsn_cnt; $i++) {
+      %torsion = %{$trsn_react2[$i]};
+      if (defined($torsion{"Command"})) {
+        $cmd = $torsion{"Command"};
+        if ($cmd =~ /\s*(\d)\s+/) {
+          print "    $1 tor\n";
+        }
+      }
+    }
+    for ($i=0; $i<$strtch_cnt; $i++) {
+      print "    $strtch_react2[$i] morse\n";
+    }
+    print "  END\n";
+    $opt_cnt = 0;
+    print "  TOR\n";
+    for ($i=0; $i<$trsn_cnt; $i++) {
+      %torsion = %{$trsn_react2[$i]};
+      if (defined($torsion{"Command"})) {
+        $cmd = $torsion{"Command"};
+        print "$cmd\n";
+      }
+      if (defined($torsion{"Options"})) {
+        @options = @{$torsion{"Options"}};
+        $opt_cnt += @options;
+      }
+    }
+    print "  END\n";
+    if ($opt_cnt > 0) {
+      print "  TOROPT\n";
+      for ($i=0; $i<$trsn_cnt; $i++) {
+        %torsion = %{$trsn_react2[$i]};
+        if (defined($torsion{"Options"})) {
+          @options = @{$torsion{"Options"}};
+          $opt_cnt = @options;
+          for ($j=0; $j<$opt_cnt; $j++) {
+            print "$options[$j]\n";
+          }
+        }
+      }
+      print "  END\n";
+    }
+  }
+  $isLinear = 0;
+  if (defined($PathDict{"LinearReact2"})) {
+    $isLinear = $PathDict{"LinearReact2"};
+  }
+  if ($num_r2 == 1) {
+    print "\n  SPECIES ATOMIC\n";
+  } elsif ($num_r2 == 2 || $isLinear != 0) {
+    print "\n  SPECIES LINRP\n";
+  } else {
+    print "\n  SPECIES NONLINRP\n";
+  }
+}
+
+if ($P1FILE) {
+  print "\n\*PROD1\n";
+  print "  GEOM\n";
+  for ($i=0; $i<$num_p1; $i++) {
+    print "    $idx_p1[$i]   $x_p1[$i] $y_p1[$i] $z_p1[$i]\n";
+  }
+  print "  END\n";
+  if (defined($states{"Product1"})) {
+    %values = %{$states{"Product1"}};
+    &printELEC;
+    if (defined($values{"ComponentAxis"})) {
+      $axis = $values{"ComponentAxis"};
+      if ($axis eq "X") {
+        print "\n  LINAXIS x-axis\n";
+      } elsif ($axis eq "Y") {
+        print "\n  LINAXIS y-axis\n";
+      } elsif ($axis eq "Z") {
+        print "\n  LINAXIS z-axis\n";
+      } 
+    }
+  }
+  $trsn_cnt = @trsn_prod1;
+  $strtch_cnt = @strtch_prod1;
+  if ($trsn_cnt > 0 || $strtch_cnt > 0) {
+    print "  VANHAR\n";
+    for ($i=0; $i<$trsn_cnt; $i++) {
+      %torsion = %{$trsn_prod1[$i]};
+      if (defined($torsion{"Command"})) {
+        $cmd = $torsion{"Command"};
+        if ($cmd =~ /\s*(\d)\s+/) {
+          print "    $1 tor\n";
+        }
+      }
+    }
+    for ($i=0; $i<$strtch_cnt; $i++) {
+      print "    $strtch_prod1[$i] morse\n";
+    }
+    print "  END\n";
+    $opt_cnt = 0;
+    print "  TOR\n";
+    for ($i=0; $i<$trsn_cnt; $i++) {
+      %torsion = %{$trsn_prod1[$i]};
+      if (defined($torsion{"Command"})) {
+        $cmd = $torsion{"Command"};
+        print "$cmd\n";
+      }
+      if (defined($torsion{"Options"})) {
+        @options = @{$torsion{"Options"}};
+        $opt_cnt += @options;
+      }
+    }
+    print "  END\n";
+    if ($opt_cnt > 0) {
+      print "  TOROPT\n";
+      for ($i=0; $i<$trsn_cnt; $i++) {
+        %torsion = %{$trsn_prod1[$i]};
+        if (defined($torsion{"Options"})) {
+          @options = @{$torsion{"Options"}};
+          $opt_cnt = @options;
+          for ($j=0; $j<$opt_cnt; $j++) {
+            print "$options[$j]\n";
+          }
+        }
+      }
+      print "  END\n";
+    }
+  }
+  $isLinear = 0;
+  if (defined($PathDict{"LinearProd1"})) {
+    $isLinear = $PathDict{"LinearProd1"};
+  }
+  if ($num_p1 == 1) {
+    print "\n  SPECIES ATOMIC\n";
+  } elsif ($num_p1 == 2 || $isLinear != 0) {
+    print "\n  SPECIES LINRP\n";
+  } else {
+    print "\n  SPECIES NONLINRP\n";
+  }
+}
+
+if ($P2FILE) {
+  print "\n\*PROD2\n";
+  print "  GEOM\n";
+  for ($i=0; $i<$num_p2; $i++) {
+    print "    $idx_p2[$i]   $x_p2[$i] $y_p2[$i] $z_p2[$i]\n";
+  }
+  print "  END\n";
+  if (defined($states{"Product2"})) {
+    %values = %{$states{"Product2"}};
+    &printELEC;
+    if (defined($values{"ComponentAxis"})) {
+      $axis = $values{"ComponentAxis"};
+      if ($axis eq "X") {
+        print "\n  LINAXIS x-axis\n";
+      } elsif ($axis eq "Y") {
+        print "\n  LINAXIS y-axis\n";
+      } elsif ($axis eq "Z") {
+        print "\n  LINAXIS z-axis\n";
+      } 
+    }
+  }
+  $trsn_cnt = @trsn_prod2;
+  $strtch_cnt = @strtch_prod2;
+  if ($trsn_cnt > 0 || $strtch_cnt > 0) {
+    print "  VANHAR\n";
+    for ($i=0; $i<$trsn_cnt; $i++) {
+      %torsion = %{$trsn_prod2[$i]};
+      if (defined($torsion{"Command"})) {
+        $cmd = $torsion{"Command"};
+        if ($cmd =~ /\s*(\d)\s+/) {
+          print "    $1 tor\n";
+        }
+      }
+    }
+    for ($i=0; $i<$strtch_cnt; $i++) {
+      print "    $strtch_prod2[$i] morse\n";
+    }
+    print "  END\n";
+    $opt_cnt = 0;
+    print "  TOR\n";
+    for ($i=0; $i<$trsn_cnt; $i++) {
+      %torsion = %{$trsn_prod2[$i]};
+      if (defined($torsion{"Command"})) {
+        $cmd = $torsion{"Command"};
+        print "$cmd\n";
+      }
+      if (defined($torsion{"Options"})) {
+        @options = @{$torsion{"Options"}};
+        $opt_cnt += @options;
+      }
+    }
+    print "  END\n";
+    if ($opt_cnt > 0) {
+      print "  TOROPT\n";
+      for ($i=0; $i<$trsn_cnt; $i++) {
+        %torsion = %{$trsn_prod2[$i]};
+        if (defined($torsion{"Options"})) {
+          @options = @{$torsion{"Options"}};
+          $opt_cnt = @options;
+          for ($j=0; $j<$opt_cnt; $j++) {
+            print "$options[$j]\n";
+          }
+        }
+      }
+      print "  END\n";
+    }
+  }
+  $isLinear = 0;
+  if (defined($PathDict{"LinearProd2"})) {
+    $isLinear = $PathDict{"LinearProd2"};
+  }
+  if ($num_p2 == 1) {
+    print "\n  SPECIES ATOMIC\n";
+  } elsif ($num_r2 == 2 || $isLinear != 0) {
+    print "\n  SPECIES LINRP\n";
+  } else {
+    print "\n  SPECIES NONLINRP\n";
+  }
+}
+
+if ($TSFILE) {
+  print "\n\*START\n";
+  print "  GEOM\n";
+  for ($i=0; $i<$num_ts; $i++) {
+    print "    $idx_ts[$i]   $x_ts[$i] $y_ts[$i] $z_ts[$i]\n";
+  }
+  print "  END\n";
+  if (defined($states{"TransitionState"})) {
+    %values = %{$states{"TransitionState"}};
+    &printELEC;
+    if (defined($values{"ComponentAxis"})) {
+      $axis = $values{"ComponentAxis"};
+      if ($axis eq "X") {
+        print "\n  LINAXIS x-axis\n";
+      } elsif ($axis eq "Y") {
+        print "\n  LINAXIS y-axis\n";
+      } elsif ($axis eq "Z") {
+        print "\n  LINAXIS z-axis\n";
+      } 
+    }
+  }
+  $trsn_cnt = @trsn_ts;
+  $strtch_cnt = @strtch_ts;
+  if ($trsn_cnt > 0 || $strtch_cnt > 0) {
+    print "  VANHAR\n";
+    for ($i=0; $i<$trsn_cnt; $i++) {
+      %torsion = %{$trsn_react2[$i]};
+      if (defined($torsion{"Command"})) {
+        $cmd = $torsion{"Command"};
+        if ($cmd =~ /\s*(\d)\s+/) {
+          print "    $1 tor\n";
+        }
+      }
+    }
+    for ($i=0; $i<$strtch_cnt; $i++) {
+      print "    $strtch_ts[$i] morse\n";
+    }
+    print "  END\n";
+    $opt_cnt = 0;
+    print "  TOR\n";
+    for ($i=0; $i<$trsn_cnt; $i++) {
+      %torsion = %{$trsn_ts[$i]};
+      if (defined($torsion{"Command"})) {
+        $cmd = $torsion{"Command"};
+        print "$cmd\n";
+      }
+      if (defined($torsion{"Options"})) {
+        @options = @{$torsion{"Options"}};
+        $opt_cnt += @options;
+      }
+    }
+    print "  END\n";
+    if ($opt_cnt > 0) {
+      print "  TOROPT\n";
+      for ($i=0; $i<$trsn_cnt; $i++) {
+        %torsion = %{$trsn_ts[$i]};
+        if (defined($torsion{"Options"})) {
+          @options = @{$torsion{"Options"}};
+          $opt_cnt = @options;
+          for ($j=0; $j<$opt_cnt; $j++) {
+            print "$options[$j]\n";
+          }
+        }
+      }
+      print "  END\n";
+    }
+  }
+  $isLinear = 0;
+  if (defined($PathDict{"LinearTS"})) {
+    $isLinear = $PathDict{"LinearTS"};
+  }
+  if ($num_ts == 1) {
+    print "\n  SPECIES ATOMIC\n";
+  } elsif ($num_ts == 2 || $isLinear != 0) {
+    print "\n  SPECIES LINTS\n";
+  } else {
+    print "\n  SPECIES NONLINTS\n";
+  }
+}
+
+print "\n\*ENERGETICS\n";
+print "  POTENTIAL unit30\n";
+
+if ($pathFILE) {
+  $value = 0;
+  if (defined($PathDict{"TSTOnly"})) {
+    $value = $PathDict{"TSTOnly"};
+  }
+  if ($value == 0) {
+    print "\n\*PATH\n";
+    if (defined($PathDict{"MEPIncrement"})) {
+      $value = $PathDict{"MEPIncrement"};
+      print "  SSTEP $value\n";
+    }
+    if (defined($PathDict{"ReducedMass"})) {
+      $value = $PathDict{"ReducedMass"};
+      print "  SCALEMASS $value\n";
+    }
+    if (defined($PathDict{"LowerSLimit"}) || defined($PathDict{"HigherSLimit"})) {
+      print "  SRANGE\n";
+      if (defined($PathDict{"LowerSLimit"})) {
+        $value = $PathDict{"LowerSLimit"};
+        print "    SLM $value\n";
+      }
+      if (defined($PathDict{"HigherSLimit"})) {
+        $value = $PathDict{"HigherSLimit"};
+        print "    SLP $value\n";
+      }
+      print "  END\n";
+    }
+    if (defined($PathDict{"SwitchSign"})) {
+      $value = $PathDict{"SwitchSign"};
+      if ($value) {
+        print "  SIGN REACTANT\n";
+      }
+    }
+    if (defined($PathDict{"FrequencyScale"})) {
+      $value = $PathDict{"FrequencyScale"};
+      print "  FREQSCALE $value\n";
+    }
+    if (defined($PathDict{"IndicateSaddle"})) {
+      $value = $PathDict{"IndicateSaddle"};
+      if ($value != 0) {
+        print "  SADDLE\n";
+      } else {
+        print "  NOSADDLE\n";
+      }
+    }
+  }
+}
+if ($polyFILE) {
+  print "\n\*RATE\n";
+  print "  PRPART rpt\n";
+  if (defined($PathDict{"TSTOnly"})) {
+    $value = $PathDict{"TSTOnly"};
+    if ($value == 1) {
+      print "  NOCVT\n";
+    }
+  }
+  if (defined($PathDict{"ForwardReverseOption"})) {
+    $value = $PathDict{"ForwardReverseOption"};
+    if ($value == 1) {
+      print "  BOTHK\n";
+    } else {
+      print "  FORWARDK\n";
+    }
+  }
+  if (defined($PathDict{"ReverseReactionScale"})) {
+    $value = $PathDict{"ReverseReactionScale"};
+    print "  REVKEXP $value\n";
+  }
+  if (defined($PathDict{"ForwardSymmetryFactor"})) {
+    $value = $PathDict{"ForwardSymmetryFactor"};
+    print "  SIGMAF $value\n";
+  }
+  if (defined($PathDict{"ReverseSymmetryFactor"})) {
+    $value = $PathDict{"ReverseSymmetryFactor"};
+    print "  SIGMAR $value\n";
+  }
+  $nsize = @tmprtrList;
+  if ($nsize > 0) {
+    print "  TEMP\n";
+    for ($i=0; $i<$nsize; $i++) {
+      print "    $tmprtrList[$i]\n";
+    }
+    print "  END\n";
+  }
+  if(defined($PathDict{"DetailedAnalysis"})) {
+   $value = $PathDict{"DetailedAnalysis"};
+   if ($value != 0) {
+     $nsize = @tmprtrList;
+     if ($nsize > 0) {
+       print "  ANALYSIS\n";
+       for ($i=0; $i<$nsize; $i++) {
+         print "    $tmprtrList[$i]\n";
+       }
+       print "  END\n";
+     }
+   }
+  }
+
+  # Add the TUNNEL keyword except for TST only calculations
+  if (defined($PathDict{"TSTOnly"})) {
+    $value = $PathDict{"TSTOnly"};
+    if ($value != 1) {
+      print "\n\*TUNNEL\n\n";
+    }
+  } else {
+    print "\n\*TUNNEL\n\n";
+  }
+}
+
+exit(0);
+
+sub handle_options {
+#  &usage && exit if ( $opt_h || $opt_help );
+#  $revision = '$Revision: 22972 $';
+#  $revision =~ (s/\$//g);
+#  print "$revision\n" if ( $opt_v );
+#  exit if ( $opt_v );
+  $TSFILE = "";
+  $R1FILE = "";
+  $R2FILE = "";
+  $P1FILE = "";
+  $P2FILE = "";
+  $pathFILE = "";
+  $polyFILE = "";
+  $multFILE = "";
+  $TSFILE = "ts\.chemsys" if ( $opt_t );
+  $R1FILE = "r1\.chemsys" if ( $opt_c );
+  $R2FILE = "r2\.chemsys" if ( $opt_d );
+  $P1FILE = "p1\.chemsys" if ( $opt_e );
+  $P2FILE = "p2\.chemsys" if ( $opt_f );
+  $pathFILE = "param\.path" if ( $opt_p );
+  $polyFILE = "param\.poly" if ( $opt_r );
+  $multFILE = "param\.mult" if ( $opt_m );
+}
+
+sub printELEC {
+  $use_line1 = 0;
+  if (defined($values{"Degeneracy1"}) && $values{"Degeneracy1"} != 1) {
+    $use_line1 = 1;
+  }
+  $deg = $values{"Degeneracy1"};
+  $line1 = "    $deg  0.000000\n";
+  $line2 = "";
+  $line3 = "";
+  if (defined($values{"Degeneracy2"})) {
+    if (defined($values{"Degeneracy2"})) {
+      $deg = $values{"Degeneracy2"};
+      $nrg = $values{"ElectronicEnergy2"};
+      if ($nrg == 0.0) {
+        $nrg = "unk";
+      }
+      $line2 = "    $deg  $nrg\n";
+    }
+  }
+  if (defined($values{"Degeneracy3"})) { 
+    if (defined($values{"Degeneracy3"})) {
+      $deg = $values{"Degeneracy3"};
+      $nrg = $values{"ElectronicEnergy3"};
+      if ($nrg == 0.0) {
+        $nrg = "unk";
+      }
+      $line3 = "    $deg  $nrg\n";
+    }
+  }
+  if ($use_line1 == 1 || $line2 != "" || $line3 != "") {
+    print "  ELEC\n";
+    print "$line1";
+    if ($line2 != "") {
+      print "$line2";
+    }
+    if ($line3 != "") {
+      print "$line3";
+    }
+    print "  END\n";
+  }
+}

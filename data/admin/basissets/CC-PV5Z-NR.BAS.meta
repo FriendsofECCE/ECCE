@@ -1,0 +1,89 @@
+name
+cc-pV5Z-NR
+name
+type
+correlation_consistent
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+GC
+contraction_type
+references
+Elements                             References
+--------                             ----------
+Sc - Zn: N.B. Balabanov and K.A. Peterson, J. Chem. Phys., 123, 064107 (2005)
+
+references
+info
+ All-electron, Nonrelativistic Transition Metal cc-pV5Z-NR Basis Sets
+ --------------------------------------------------------------------
+Elements                      Contraction                    References
+Sc - Zn: (28s,20p,12d,4f,3g,2h,1i) -> [9s,8p,6d,4f,3g,2h,1i] N.B. Balabanov and
+                                                             K.A. Peterson,
+                                                             J. Chem. Phys.,
+                                                             123, 064107 (2005)
+                      cc-pV5Z-NR Atomic Energies
+                                                                  Numerical
+        State           UHF (noneq) ROHF (noneq)  ROHF(equiv)   HF Limit(equiv)
+   --------------------  ----------  -----------   -----------   --------------
+Sc ...4s2 3d1      2-D                             -759.735714    -795.735718
+   ...4s1 3d2      4-F                             -759.698781    -759.698786
+Ti ...4s2 3d2      3-F                             -848.405992    -848.405997
+   ...4s1 3d3      5-F                             -848.386148    -848.386154
+V  ...4s2 3d3      4-F                             -942.884331    -942.884338
+   ...4s1 3d4      6-D                             -942.879776    -942.879783
+Cr ...4s2 3d4      5-D                            -1043.356368   -1043.30982
+   ...4s1 3d5      7-S                            -1043.309811   -1043.35638
+Mn ...4s2 3d5      6-S                            -1149.866242   -1149.86625
+   ...4s1 3d6      6-D                            -1149.743947   -1149.74396
+Fe ...4s2 3d6      5-D                            -1262.443654   -1262.44367
+   ...4s1 3d7      5-F                            -1262.377604   -1262.37762
+Co ...4s2 3d7      4-F                            -1381.414538   -1381.41455
+   ...4s1 3d8      4-F                            -1381.358368   -1381.35838
+Ni ...4s2 3d8      3-F                            -1506.870890   -1506.87091
+   ...4s1 3d9      3-D                            -1506.824009   -1506.82403
+Cu ...4s2 3d9      2-D                            -1638.950068   -1638.95008
+   ...4s1 3d10     2-S                            -1638.963725   -1506.96374
+Zn ...4s2 3d10     1-S                            -1777.848104   -1777.84812
+   ...4s1 3d10 4p1 3-P                            -1777.750955   -1777.75100
+
+Numerical HF energies are taken from H. Tatewaki and T. Koga, Chem. Phys. Lett.
+228, 562 (1994).
+
+                           CCSD(T)(noneq)   CCSD(T)(eq)     CCSD(T)(eq)
+                              UHF              ROHF             R/U
+     State/# Val. El.        Froz. Core       Froz. Core      Froz. Core
+   ----------------------  --------------   ------------    ------------
+Sc ...4s2 3d1      2-D  3                                    -759.778705
+   ...4s1 3d2      4-F  3                                    -759.719834
+Ti ...4s2 3d2      3-F  4                                    -848.464066
+   ...4s1 3d3      5-F  4                                    -848.430352
+V  ...4s2 3d3      4-F  5                                    -942.966987
+   ...4s1 3d4      6-D  5                                    -942.956359
+Cr ...4s2 3d4      5-D  6                                   -1043.467551
+   ...4s1 3d5      7-S  6                                   -1043.426516
+Mn ...4s2 3d5      6-S  7                                   -1150.018207
+   ...4s1 3d6      6-D  7                                   -1149.934608
+Fe ...4s2 3d6      5-D  8                                   -1262.669701
+   ...4s1 3d7      5-F  8                                   -1262.637828
+Co ...4s2 3d7      4-F  9                                   -1381.709025
+   ...4s1 3d8      4-F  9                                   -1381.697299
+Ni ...4s2 3d8      3-F 10                                   -1507.242829
+   ...4s1 3d9      3-D 10                                   -1507.250743
+Cu ...4s2 3d9      2-D 11                                   -1639.408961
+   ...4s1 3d10     2-S 11                                   -1639.476532
+Zn ...4s2 3d10     1-S 12                                   -1778.391928
+   ...4s1 3d10 4p1 3-P 12                                   -1778.250600
+
+Note: these calculations correlated the outermost 3d4s valence electrons only.
+
+
+info
+comments
+5/04/05  - DFF - Original creation of this file based on a file obtained from
+comments

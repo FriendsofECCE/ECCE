@@ -1,0 +1,682 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+# Purpose:
+#     Script for generating input file for NWChem Planewave Metadynamics task
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+# make sure script can find perl modules
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+
+# package for command line options
+use Getopt::Std;
+
+# provides hashes for periodic table
+require "pertab.pl";
+&loadPT;
+
+# Force output to be flushed
+$| = 1;
+
+######
+# Get command line arguments
+######
+
+&getopts(':n:fpmqc');
+&handle_options;
+
+# Angstroms to Bohr conversion factor
+$angtobohr = 1.889725989;
+
+#get transition state geometry
+@at = ();
+@type = ();
+@x = ();
+@y = ();
+@z = ();
+$xbox = 0.0;
+$ybox = 0.0;
+$zbox = 0.0;
+$genBasis = "";
+$spBasis = "";
+$numAtoms = 0;
+$firstAtomIndex = -1;
+if ($GEOMFILE) {
+  open(GEOM,$GEOMFILE);
+  while (<GEOM>) {
+    if (/num_atoms\:\s*(\S+)/) {
+       $numAtoms = $1;
+    }
+    if (/lattice_vectors\:\s*/) {
+      $line = <GEOM>;
+      if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+        $xbox = $1;
+      }
+      $line = <GEOM>;
+      if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+        $ybox = $2;
+      }
+      $line = <GEOM>;
+      if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+        $zbox = $3;
+      }
+    }
+    if (/fragment_attributes\:\s*/) {
+      $line = $_;
+      while(!($line =~ /end_fragment_attributes/)){
+        $line = <GEOM>;
+        if ($line =~ /first_solvent_atom_index\:\s*(\S+)\s*$/) {
+          $firstAtomIndex = $1;
+        }
+        if ($line =~ /solvent_num_atoms\:\s*(\S+)\s*$/) {
+          $solvNumAtoms = $1;
+        }
+      }
+    }
+    if (/atom_list/) {
+      for ($i=0; $i<$numAtoms; $i++) {
+        $line = <GEOM>;
+        if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+            $at[$i] = $1;
+# Don't convert coordinates to bohr
+#            $x[$i] = $angtobohr * $2;
+#            $y[$i] = $angtobohr * $3;
+#            $z[$i] = $angtobohr * $4;
+            $x[$i] = $2;
+            $y[$i] = $3;
+            $z[$i] = $4;
+        }
+      }
+    }
+    if (/atom_type_list/) {
+      for ($i=0; $i<$numAtoms; $i++) {
+        $line = <GEOM>;
+        if ($line =~ /^(....)/) {
+          $tmp = $1;
+          if ($tmp =~/\s*(\S+)\s*/) {
+            $type[$i] = $1;
+#begin HACK to handle limitations in NWChem input
+            $tsym = $1;
+            if ( $tsym =~ /^\s*(\S\S)/) {
+              $tsym = ucfirst lc $1;
+              if (defined($symbol_to_number{$tsym})) {
+                $type[$i] = $tsym;
+              } elsif ($tsym =~ /^\s*(\S)/) {
+                $tsym = uc $1;
+                if (defined($symbol_to_number{$tsym})) {
+                  $type[$i] = $tsym;
+                }
+              }
+            } elsif ($tsym =~ /^\s*(\S)/) {
+              $tsym = uc $1;
+              if (defined($symbol_to_number{$tsym})) {
+                $type[$i] = $tsym;
+              }
+            }
+#end HACK
+          } else {
+            $type[$i] = "";
+          }
+        } else {
+          $type[$i] = "";
+        }
+      }
+    }
+  }
+  close(GEOM);
+}
+
+# Get parameters from metapotential setup GUI
+@BondGroup = ();
+$BondGroupCnt = 0;
+@BondParams = ();
+$BondParamCnt = 0;
+@AngleGroup = ();
+$AngleGroupCnt = 0;
+@AngleParams = ();
+$AngleParamCnt = 0;
+if ($MetaFILE) {
+  open (MPATH,$MetaFILE);
+  while (<MPATH>) {
+    if (/<MetaPotentialModel>/) {
+      while (<MPATH>) {
+        if (!/<\/MetaPotentialModel>/) {
+          $line = $_;
+          if ($line =~ /MetaPotential\s*type.*Bond/) {
+            while (<MPATH>) {
+              if (!/<\/MetaPotential>/) {
+                if (/<Group>\s*(\S.*\S)\s*<\/Group>/) {
+                  $BondGroup[$BondGroupCnt] = $1;
+                  $BondGroupCnt++;
+                }
+                if (/<Values>\s*(\S.*\S)\s*<\/Values>/) {
+                  $BondParams[$BondParamCnt] = $1;
+                  $BondParamCnt++;
+                }
+              } else {
+                last;
+              }
+            }
+          } elsif ($line =~ /MetaPotential\s*type.*Angle/) {
+            while (<MPATH>) {
+              if (!/<\/MetaPotential>/) {
+                if (/<Group>\s*(\S.*\S)\s*<\/Group>/) {
+                  $AngleGroup[$AngleGroupCnt] = $1;
+                  $AngleGroupCnt++;
+                }
+                if (/<Values>\s*(\S.*\S)\s*<\/Values>/) {
+                  $AngleParams[$AngleParamCnt] = $1;
+                  $AngleParamCnt++;
+                }
+              } else {
+                last;
+              }
+            }
+          }
+        } else {
+          last;
+        }
+      }
+    }
+  }
+  close(MPATH);
+}
+
+# Get QMMM parameters from setup GUI
+@LJsuQMMMAtoms = ();
+$LJsuQMMMCnt = 0;
+@LJsuQMMMParams = ();
+@LJsvQMMMAtoms = ();
+$LJsvQMMMCnt = 0;
+@LJsvQMMMParams = ();
+@svPpotQMMMAtoms = ();
+$svPpotQMMMCnt = 0;
+@svPpotQMMMParams = ();
+@BondQMMMAtoms = ();
+$BondQMMMCnt = 0;
+@BondQMMMParams = ();
+@AngleQMMMAtoms = ();
+$AngleQMMMCnt = 0;
+@AngleQMMMParams = ();
+@shakeQMMMAtoms = ();
+$shakeQMMMCnt = 0;
+@shakeQMMMParams = ();
+if ($QMMMFILE) {
+  open (QPATH,$QMMMFILE);
+  while (<QPATH>) {
+    if (/<QMMMModel>/) {
+      while (<QPATH>) {
+        if (!/<\/QMMMModel>/) {
+          $line = $_;
+          if ($line =~ /QMMMParams/) {
+            while (<QPATH>) {
+              if (!/<\/QMMMParams>/) {
+                if (/<Type>\s*(\S*)\s*<\/Type>/) {
+                  $type = $1;
+                }
+                if (/<Atoms>\s*(\S.*\S)\s*<\/Atoms>/ ||
+                    /<Atoms>\s*(\S)\s*<\/Atoms>/) {
+                  $atoms = $1;
+                }
+                if (/<Values>\s*(\S.*\S)\s*<\/Values>/ ||
+                    /<Values>\s*(\S)\s*<\/Values>/) {
+                  $values = $1;
+                }
+              } else {
+#begin HACK to handle limitations in NWChem input
+                if ($type eq "su_vdw" || $type eq "sv_vdw" ||
+                    $type eq "pseud_pot") {
+                  $tsym = $atoms;
+                  if ( $tsym =~ /^\s*(\S\S)/) {
+                    $tsym = ucfirst lc $1;
+                    if (defined($symbol_to_number{$tsym})) {
+                      $atoms = $tsym;
+                    } elsif ($tsym =~ /^\s*(\S)/) {
+                      $atoms = uc $1;
+                      if (defined($symbol_to_number{$tsym})) {
+                        $atoms = $tsym;
+                      }
+                    }
+                  } elsif ($tsym =~ /^\s*(\S)/) {
+                    if ($type eq "sv_vdw") {
+                       print "tsym: $tsym\n";
+                    }
+                    $tsym = uc $1;
+                    if (defined($symbol_to_number{$tsym})) {
+                      $atoms = $tsym;
+                    }
+                  }
+                }
+#end HACK
+                if ($type eq "su_vdw") {
+                  $atoms =~ s/\s//;
+                  $LJsuQMMMAtoms[$LJsuQMMMCnt] = $atoms;
+                  $LJsuQMMMParams[$LJsuQMMMCnt] = $values;
+                  $LJsuQMMMCnt++;
+                }
+                if ($type eq "sv_vdw") {
+                  $atoms =~ s/\s//;
+                  $LJsvQMMMAtoms[$LJsvQMMMCnt] = $atoms;
+                  $LJsvQMMMParams[$LJsvQMMMCnt] = $values;
+                  $LJsvQMMMCnt++;
+                }
+                if ($type eq "pseud_pot") {
+                  $atoms =~ s/\s//;
+                  $svPpotQMMMAtoms[$svPpotQMMMCnt] = $atoms;
+                  $svPpotQMMMParams[$svPpotQMMMCnt] = $values;
+                  $svPpotQMMMCnt++;
+                }
+                if ($type eq "bond_set") {
+                  $BondQMMMAtoms[$BondQMMMCnt] = $atoms;
+                  $BondQMMMParams[$BondQMMMCnt] = $values;
+                  $BondQMMMCnt++;
+                }
+                if ($type eq "angle_set") {
+                  $AngleQMMMAtoms[$AngleQMMMCnt] = $atoms;
+                  $AngleQMMMParams[$AngleQMMMCnt] = $values;
+                  $AngleQMMMCnt++;
+                }
+                if ($type eq "shake") {
+                  $shakeQMMMAtoms[$shakeQMMMCnt] = $atoms;
+                  $shakeQMMMParams[$shakeQMMMCnt] = $values;
+                  $shakeQMMMCnt++;
+                }
+                last;
+              }
+            }
+          }
+        } else {
+          last;
+        }
+      }
+    }
+  }
+  close(QPATH);
+}
+
+# Get parameters for general calculation, if they exist
+%ParamDict = ();
+if ($ParFILE) {
+  open (GPARAM, $ParFILE);
+  while (<GPARAM>) {
+    $line = $_;
+    if (/(.*)\:(.*)/) {
+# Set key-value pair and remove white space
+      $key = $1;
+      $value = $2;
+      $key =~ s/^\s*//;
+      $key =~ s/\s*$//;
+      $value =~ s/^\s*//;
+      $value =~ s/\s*$//;
+      $ParamDict{$key} = $value;
+    }
+  }
+  close(GPARAM);
+}
+
+$value = $ParamDict{"title"};
+if ($ChainedTask == 0) {
+  print "start $value\n\n";
+} else {
+  print "restart $value\n\n";
+}
+
+if (defined($ParamDict{"parseFile"})) {
+  $value = $ParamDict{"parseFile"};
+  print "ecce_print $value\n\n";
+}
+
+if (defined($ParamDict{"ES.Theory.SCF.Memory"}) &&
+             $ParamDict{"ES.Theory.SCF.Memory"} == 1) {
+  if (defined($ParamDict{"ES.Theory.SCF.MemorySize"})) {
+    $value = $ParamDict{"ES.Theory.SCF.MemorySize"};
+    print "memory $value mw\n\n";
+  }
+}
+
+$charge = $ParamDict{"Charge"};
+if ($charge != 0) {
+  print "charge $charge\n\n";
+}
+
+# print geometry block
+if ($ChainedTask == 0) {
+  print "geometry units angstrom noautosym noautoz nocenter noprint\n";
+  for ($i=0; $i<$numAtoms; $i++) {
+    if ($type[$i] eq "") {
+      print "  $at[$i]   $x[$i]   $y[$i]   $z[$i]\n";
+    } else {
+      $tmp = $type[$i];
+#      if ($i >= $firstAtomIndex) {
+#        $tmp .= "^";
+#      }
+      print "  $tmp   $x[$i]   $y[$i]   $z[$i]\n";
+    }
+  }
+  print "end\n";
+}
+
+print "\nNWPW\n";
+if ($xbox == $ybox && $ybox == $zbox && $xbox != 0.0) {
+  print "  SIMULATION_CELL\n";
+  $tmp = $xbox * $angtobohr;
+  print "    SC $tmp \# in a.u.\n";
+  print "  END\n";
+} else {
+  print "  SIMULATION_CELL\n";
+  print "    LATTICE\n";
+  $tmp = $xbox * $angtobohr;
+  print "      lat_a $tmp\n";
+  $tmp = $ybox * $angtobohr;
+  print "      lat_b $tmp\n";
+  $tmp = $zbox * $angtobohr;
+  print "      lat_c $tmp\n";
+  print "      alpha 90\n";
+  print "      beta 90\n";
+  print "      gamma 90\n";
+  print "    end\n";
+  print "  end\n";
+}
+
+#Construct SCF directive if toggle is set
+if (defined($ParamDict{"ES.Theory.SCF.SCFTogValue"})) {
+  if ($ParamDict{"ES.Theory.SCF.SCFTogValue"} == 1) {
+    $check = 0;
+    $scfcmd = "scf";
+    if (defined($ParamDict{"ES.Theory.SCF.MixingAgorithm"})) {
+      $alg = $ParamDict{"ES.Theory.SCF.MixingAgorithm"};
+      $scfcmd .= " $alg";
+      $check = 1;
+    }
+    if (defined($ParamDict{"ES.Theory.SCF.LinearAgorithm"})) {
+      $alg = $ParamDict{"ES.Theory.SCF.LinearAgorithm"};
+      $scfcmd .= " $alg";
+      $check = 1;
+    }
+    if (defined($ParamDict{"ES.Theory.SCF.MixingField"})) {
+      $fld = $ParamDict{"ES.Theory.SCF.MixingField"};
+      $scfcmd .= " $fld";
+      $check = 1;
+    }
+    if (defined($ParamDict{"ES.Theory.SCF.DampingSize"})) {
+      $dmp = $ParamDict{"ES.Theory.SCF.DampingSize"};
+      $scfcmd .= " alpha $dmp";
+      $check = 1;
+    }
+    if (defined($ParamDict{"ES.Theory.SCF.InnerIterations"})) {
+      $itr = $ParamDict{"ES.Theory.SCF.InnerIterations"};
+      $scfcmd .= " iterations $itr";
+      $check = 1;
+    }
+    if (defined($ParamDict{"ES.Theory.SCF.OuterIterations"})) {
+      $itr = $ParamDict{"ES.Theory.SCF.OuterIterations"};
+      $scfcmd .= " outer_iterations $itr";
+      $check = 1;
+    }
+    if (defined($ParamDict{"ES.Theory.SCF.KerkerSize"})) {
+      $kerk = $ParamDict{"ES.Theory.SCF.KerkerSize"};
+      $scfcmd .= " kerker $kerk";
+      $check = 1;
+    }
+    if ($check == 1) {
+      $scfcmd = lc $scfcmd;
+      print "\n  $scfcmd\n";
+    }
+  }
+}
+
+if ($ChainedTask == 0) {
+  $doSD = 0;
+  if (defined($ParamDict{"ES.Runtype.SD.DoMinimize"})) {
+    $doSD = $ParamDict{"ES.Runtype.SD.DoMinimize"};
+    if ($doSD != 0) {
+      print "\n  steepest_descent\n";
+      print "    geometry_optimize\n";
+      if (defined($ParamDict{"ES.Runtype.SD.InnerIterations"}) &&
+          defined($ParamDict{"ES.Runtype.SD.OuterIterations"})) {
+        $inner = $ParamDict{"ES.Runtype.SD.InnerIterations"};
+        $outer = $ParamDict{"ES.Runtype.SD.OuterIterations"};
+        print "    loop $inner $outer\n";
+      }
+      print "  end\n";
+    }
+  }
+
+  # GDB 3/11/13
+  # Suppress QMMM block unless the user overrides default settings
+  # Requested by Rob Shroll
+  $yesQMMM = 0;
+  if ($LJsuQMMMCnt>0 || $LJsvQMMMCnt>0 || $svPpotQMMMCnt>0) {
+    $yesQMMM = 1;
+  }
+  if ($shakeQMMMCnt == 0) {
+    if ($BondQMMMCnt>0 || $AngleQMMMCnt>0) {
+      $yesQMMM = 1;
+    }
+  } else {
+    $yesQMMM = 1;
+  }
+
+  if ($yesQMMM != 0) {
+    $tmp1 = $firstAtomIndex+1;
+    $tmp2 = $numAtoms;
+    print "\n  QMMM\n";
+    print "    mm_tags $tmp1:$tmp2\n";
+    for ($i=0; $i<$LJsuQMMMCnt; $i++) {
+      print "    lj_ion_parameters $LJsuQMMMAtoms[$i] $LJsuQMMMParams[$i]\n";
+    }
+    for ($i=0; $i<$LJsvQMMMCnt; $i++) {
+      print "    lj_ion_parameters $LJsvQMMMAtoms[$i]^ $LJsvQMMMParams[$i]\n";
+    }
+    for ($i=0; $i<$svPpotQMMMCnt; $i++) {
+      print "    mm_psp $svPpotQMMMAtoms[$i]^ $svPpotQMMMParams[$i]\n";
+    }
+    print "\n";
+    print "    fragment spc\n";
+    print "      size $solvNumAtoms\n";
+    $tmp2 = $tmp2-$solvNumAtoms+1;
+    print "      index_start $tmp1:$tmp2:$solvNumAtoms\n";
+    if ($shakeQMMMCnt == 0) {
+      for ($i=0; $i<$BondQMMMCnt; $i++) {
+        print "      bond_spring $BondQMMMAtoms[$i] $BondQMMMParams[$i]\n";
+      }
+      for ($i=0; $i<$AngleQMMMCnt; $i++) {
+        print "      angle_spring $AngleQMMMAtoms[$i] $AngleQMMMParams[$i]\n";
+      }
+    } else {
+      print "      shake units angstroms $shakeQMMMAtoms[0] cyclic $shakeQMMMParams[0]\n";
+    }
+    #print "      shake units angstroms 1 2 3 cyclic 1.0 1.632993125 1.0\n";
+    print "    end\n";
+    print "  END\n";
+  }
+}
+
+if (defined($ParamDict{"ChemSys.Multiplicity"})) {
+  $mult = $ParamDict{"ChemSys.Multiplicity"};
+  print "\n  mult $mult\n";
+}
+if (defined($ParamDict{"ES.Theory.NWPW.Spintype"})) {
+  $value = $ParamDict{"ES.Theory.NWPW.Spintype"};
+  if ($value eq "Restricted") {
+    print "  restricted\n";
+  } elsif ($value eq "Unrestricted") {
+    print "  unrestricted\n";
+  }
+}
+if (defined($ParamDict{"ES.Theory.NWPW.XCFunctionals"})) {
+  $xcf = $ParamDict{"ES.Theory.NWPW.XCFunctionals"};
+  print "  xc $xcf\n";
+}
+if (defined($ParamDict{"ES.Runtype.CPMD.Translation"})) {
+  if ($ParamDict{"ES.Runtype.CPMD.Translation"} == 0) {
+    print "  translation no\n";
+  } else {
+    print "  translation yes\n";
+  }
+}
+if (defined($ParamDict{"ES.Runtype.CPMD.Rotation"})) {
+  if ($ParamDict{"ES.Runtype.CPMD.Rotation"} == 0) {
+    print "  rotation no\n";
+  } else {
+    print "  rotation yes\n";
+  }
+}
+if (defined($ParamDict{"ES.Theory.NWPW.UseCutoff"})) {
+  if ($ParamDict{"ES.Theory.NWPW.UseCutoff"} != 0) {
+    if (defined($ParamDict{"ES.Theory.NWPW.Cutoff"})) {
+      $cut = $ParamDict{"ES.Theory.NWPW.Cutoff"};
+      print "  cutoff $cut\n";
+    }
+  }
+}
+if (defined($ParamDict{"ES.Theory.NWPW.UseNpDimensions"})) {
+  if ($ParamDict{"ES.Theory.NWPW.UseNpDimensions"} != 0) {
+    if (defined($ParamDict{"ES.Theory.NWPW.NpDimensionsRows"}) &&
+        defined($ParamDict{"ES.Theory.NWPW.NpDimensionsCols"})) {
+      $irows = $ParamDict{"ES.Theory.NWPW.NpDimensionsRows"};
+      $icols = $ParamDict{"ES.Theory.NWPW.NpDimensionsCols"};
+      print "  np_dimensions $irows $icols\n";
+    }
+  }
+}
+if (defined($ParamDict{"ES.Theory.NWPW.UseNcut"})) {
+  if ($ParamDict{"ES.Theory.NWPW.UseNcut"} != 0) {
+    if (defined($ParamDict{"ES.Theory.NWPW.EwaldNcut"})) {
+      $ncut = $ParamDict{"ES.Theory.NWPW.EwaldNcut"};
+      print "  ewald_ncut $ncut\n";
+    }
+  }
+}
+if (defined($ParamDict{"ES.Theory.NWPW.UseRcut"})) {
+  if ($ParamDict{"ES.Theory.NWPW.UseRcut"} != 0) {
+    if (defined($ParamDict{"ES.Theory.NWPW.EwaldRcut"})) {
+      $rcut = $ParamDict{"ES.Theory.NWPW.EwaldRcut"};
+      print "  ewald_rcut $rcut\n";
+    }
+  }
+}
+if ($ParamDict{"ES.Theory.NWPW.mapping"} != 0) {
+  if (defined($ParamDict{"ES.Theory.NWPW.mapping"})) {
+    $map = $ParamDict{"ES.Theory.NWPW.mapping"};
+    print "  mapping $map\n";
+  }
+}
+
+print "\n";
+
+if (($BondGroupCnt > 0 && $BondParamCnt > 0 && $BondGroupCnt == $BondParamCnt) ||
+    ($AngleGroupCnt > 0 && $AngleParamCnt > 0 && $AngleGroupCnt == $AngleParamCnt)) {
+  print "\n  metadynamics\n";
+}
+if ($BondGroupCnt > 0 && $BondParamCnt > 0 && $BondGroupCnt == $BondParamCnt) {
+  for ($i=0; $i<$BondGroupCnt; $i++) {
+    $line = $BondParams[$i];
+    if ($line =~ /(\S+)\s+(\S+)/) {
+      $w = $1;
+      $sigma = $2;
+    }
+    $line = $BondGroup[$i];
+    if ($w ne "" && $sigma ne "" && $line =~ /\S+\s+\S+/) {
+      $w;
+      $sigma;
+      print "    bond $line w $w sigma $sigma\n";
+    }
+  }
+}
+if ($AngleGroupCnt > 0 && $AngleParamCnt > 0 && $AngleGroupCnt == $AngleParamCnt) {
+  for ($i=0; $i<$AngleGroupCnt; $i++) {
+    $line = $AngleParams[$i];
+    if ($line =~ /(\S+)\s+(\S+)/) {
+      $w = $1;
+      $sigma = $2;
+    }
+    $line = $AngleGroup[$i];
+    if ($w ne "" && $sigma ne "" && $line =~ /\S+\s+\S+/) {
+      $w;
+      $sigma;
+      print "    angle $line w $w sigma $sigma\n";
+    }
+  }
+}
+if (($BondGroupCnt > 0 && $BondParamCnt > 0 && $BondGroupCnt == $BondParamCnt) ||
+    ($AngleGroupCnt > 0 && $AngleParamCnt > 0 && $AngleGroupCnt == $AngleParamCnt)) {
+  print "  end\n";
+}
+print "\n  car-parrinello\n";
+if (defined($ParamDict{"ES.Runtype.CPMD.electronPeriod"}) &&
+    defined($ParamDict{"ES.Runtype.CPMD.electronTemperature"}) &&
+    defined($ParamDict{"ES.Runtype.CPMD.ionPeriod"}) &&
+    defined($ParamDict{"ES.Runtype.CPMD.ionTemperature"})) {
+  $eperiod = $ParamDict{"ES.Runtype.CPMD.electronPeriod"};
+  $etemp = $ParamDict{"ES.Runtype.CPMD.electronTemperature"};
+  $iperiod = $ParamDict{"ES.Runtype.CPMD.ionPeriod"};
+  $itemp = $ParamDict{"ES.Runtype.CPMD.ionTemperature"};
+  if (defined($ParamDict{"ES.Runtype.CPMD.Algorithm"})) {
+    $alg = $ParamDict{"ES.Runtype.CPMD.Algorithm"};
+    chomp($alg);
+    if ($alg eq "Constant Temperature") {
+      print "    nose-hoover $eperiod $etemp $iperiod $itemp\n";
+    }
+  }
+}
+if (defined($ParamDict{"ES.Runtype.CPMD.TimeStep"})) {
+  $timestep = $ParamDict{"ES.Runtype.CPMD.TimeStep"};
+  print "    time_step $timestep\n";
+}
+if (defined($ParamDict{"ES.Runtype.CPMD.FakeMass"})) {
+  $mass = $ParamDict{"ES.Runtype.CPMD.FakeMass"};
+  print "    fake_mass $mass\n";
+}
+if (defined($ParamDict{"ES.Runtype.CPMD.InnerIterations"}) &&
+    defined($ParamDict{"ES.Runtype.CPMD.OuterIterations"})) {
+  $inner = $ParamDict{"ES.Runtype.CPMD.InnerIterations"};
+  $outer = $ParamDict{"ES.Runtype.CPMD.OuterIterations"};
+  print "    loop $inner $outer\n";
+}
+if (defined($ParamDict{"ES.Runtype.CPMD.electronscaling"}) &&
+    defined($ParamDict{"ES.Runtype.CPMD.ionscaling"})) {
+  $electron_s = $ParamDict{"ES.Runtype.CPMD.electronscaling"};
+  $ion_s = $ParamDict{"ES.Runtype.CPMD.ionscaling"};
+  if ($electron_s != 1.0 || $ion_s != 1.0) {
+    print "    scaling $electron_s $ion_s\n";
+  }
+}
+print "  end\n";
+print "END\n";
+
+print "\n";
+if ($ChainedTask == 0) {
+  print "task pspw energy\n";
+
+  if ($doSD != 0) {
+    print "task pspw steepest_descent\n";
+  }
+}
+print "task pspw car-parrinello\n";
+exit(0);
+
+sub handle_options {
+#  &usage && exit if ( $opt_h || $opt_help );
+#  $revision = '$Revision: 19888 $';
+#  $revision =~ (s/\$//g);
+#  print "$revision\n" if ( $opt_v );
+#  exit if ( $opt_v );
+  $GEOMFILE = "";
+  $ParFILE = "";
+  $MetaFILE = "";
+  $QMMMFILE = "";
+  $ChainedTask = 0;
+  $GEOMFILE = "$opt_n\.frag" if ( $opt_f );
+  $ParFILE = "$opt_n\.param" if ( $opt_p );
+  $MetaFILE = "$opt_n\.meta" if ($opt_m);
+  $QMMMFILE = "$opt_n\.qmmm" if ($opt_q);
+  $ChainedTask = 1 if ($opt_c);
+}

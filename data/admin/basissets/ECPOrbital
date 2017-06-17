@@ -1,0 +1,185 @@
+name= cc-pVDZ-PP
+files= CC-PVDZ-PP.BAS STUTTGART-MCDHF-RSC.POT
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+
+name= cc-pVTZ-PP
+files= CC-PVTZ-PP.BAS STUTTGART-MCDHF-RSC.POT
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+
+name= cc-pVQZ-PP
+files= CC-PVQZ-PP.BAS STUTTGART-MCDHF-RSC.POT
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+
+name= cc-pV5Z-PP
+files= CC-PV5Z-PP.BAS STUTTGART-MCDHF-RSC.POT
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+
+name= aug-cc-pVDZ-PP
+files= AUG-CC-PVDZ-PP-AGG.BAS CC-PVDZ-PP.BAS AUG-CC-PVDZ-PP.BAS STUTTGART-MCDHF-RSC.POT
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+
+name= aug-cc-pVTZ-PP
+files= AUG-CC-PVTZ-PP-AGG.BAS CC-PVTZ-PP.BAS AUG-CC-PVTZ-PP.BAS STUTTGART-MCDHF-RSC.POT
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+
+name= aug-cc-pVQZ-PP
+files= AUG-CC-PVQZ-PP-AGG.BAS CC-PVQZ-PP.BAS AUG-CC-PVQZ-PP.BAS STUTTGART-MCDHF-RSC.POT
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+
+name= aug-cc-pV5Z-PP
+files= AUG-CC-PV5Z-PP-AGG.BAS CC-PV5Z-PP.BAS AUG-CC-PV5Z-PP.BAS STUTTGART-MCDHF-RSC.POT
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+
+name= cc-pwCVDZ-PP
+files= CC-PWCVDZ-PP.BAS STUTTGART-MCDHF-RSC.POT
+atoms= Cu Zn Ag Cd Au Hg
+atoms= Cu Zn Ag Cd Au Hg
+
+name= cc-pwCVTZ-PP
+files= CC-PWCVTZ-PP.BAS STUTTGART-MCDHF-RSC.POT
+atoms= Cu Zn Ag Cd Au Hg
+atoms= Cu Zn Ag Cd Au Hg
+
+name= cc-pwCVQZ-PP
+files= CC-PWCVQZ-PP.BAS STUTTGART-MCDHF-RSC.POT
+atoms= Cu Zn Ag Cd Au Hg
+atoms= Cu Zn Ag Cd Au Hg
+
+name= cc-pwCV5Z-PP
+files= CC-PWCV5Z-PP.BAS STUTTGART-MCDHF-RSC.POT
+atoms= Cu Zn Ag Cd Au Hg
+atoms= Cu Zn Ag Cd Au Hg
+
+name= Hay-Wadt MB (n+1) ECP
+files= HAY-WADT2_MB.BAS HAY-WADT2.POT
+atoms= K Ca Sc Ti V Cr Mn Fe Co Ni Cu Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cs Ba La Hf Ta W Re Os Ir Pt Au
+atoms= K Ca Sc Ti V Cr Mn Fe Co Ni Cu Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cs Ba La Hf Ta W Re Os Ir Pt Au
+
+name= Hay-Wadt VDZ (n+1) ECP
+files= HAY-WADT2_VDZ.BAS HAY-WADT2.POT
+atoms= K Ca Sc Ti V Cr Mn Fe Co Ni Cu Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cs Ba La Ta W Re Os Ir Pt Au
+atoms= K Ca Sc Ti V Cr Mn Fe Co Ni Cu Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cs Ba La Ta W Re Os Ir Pt Au
+
+name= LANL2DZ ECP
+files= LANL2DZ.BAS LANL2DZ.POT
+atoms= H Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Pb Bi U Np Pu
+atoms= Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Pb Bi U Np Pu
+
+name= LANL2DZdp ECP
+files= LANL2DZDPECP-AGG.BAS LANL2DZ.BAS LANL2DZPD.BAS LANL2DZ.POT
+atoms= H C N O F Si P S Cl Ge As Se Br Sn Sb Te I Pb Bi
+atoms= H C N O F Si P S Cl Ge As Se Br Sn Sb Te I Pb Bi
+atoms= Si P S Cl Ar Ge As Se Sn Sb Te I Pb Bi
+
+name= SBKJC VDZ ECP
+files= SBKJC_VDZ.BAS SBKJC.POT
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Ce Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Ce Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+
+name= CRENBL ECP
+files= CRENBL.BAS CRENBL.POT
+atoms= H Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn Fr Ra Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr Rf Db Sg Bh Hs Mt Uun Uuu Uub Uut Uuq Uup Uuh Uus Uuo
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn Fr Ra Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr Rf Db Sg Bh Hs Mt Uun Uuu Uub Uut Uuq Uup Uuh Uus Uuo
+
+name= CRENBS ECP
+files= CRENBS.BAS CRENBS.POT
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn Y Zr Nb Mo Tc Ru Rh Pd Ag Cd La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn Rf Db Sg Bh Hs Mt Uun Uuu Uub Uut Uuq Uup Uuh Uus Uuo
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn Rf Db Sg Bh Hs Mt Uun Uuu Uub Uut Uuq Uup Uuh Uus Uuo
+
+name= Stuttgart RLC ECP
+files= STUTTGART_RLC.BAS STUTTGART_RLC.POT
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Zn Ga Ge As Se Br Kr Rb Sr In Sn Sb Te I Xe Cs Ba Hg Tl Pb Bi Po At Rn Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Zn Ga Ge As Se Br Kr Rb Sr In Sn Sb Te I Xe Cs Ba Hg Tl Pb Bi Po At Rn Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr
+
+name= Stuttgart RSC 1997 ECP
+files= STUTTGART_RSC97.BAS STUTTGART_RSC97.POT
+atoms= K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd Cs Ba Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Hf Ta W Re Os Ir Pt Au Hg Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr Db
+atoms= K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd Cs Ba Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Hf Ta W Re Os Ir Pt Au Hg Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr Db
+
+name= Stuttgart RSC Segmented/ECP
+files= STUTTGART_RSC.BAS STUTTGART_RSC.POT
+atoms= La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu
+atoms= La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu
+
+name= Stuttgart RSC ANO/ECP
+files= STUTTGART_RSC_ANO.BAS STUTTGART_RSC.POT
+atoms= La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu
+atoms= La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu
+
+name= SDB-cc-pVTZ
+files= SDB-CC-PVTZ.BAS SDB_RLC.POT
+atoms= Ga Ge As Se Br Kr In Sn Sb Te I Xe
+atoms= Ga Ge As Se Br Kr In Sn Sb Te I Xe
+
+name= SDB-cc-pVQZ
+files= SDB-CC-PVQZ.BAS SDB_RLC.POT
+atoms= Ga Ge As Se Br Kr In Sn Sb Te I Xe
+atoms= Ga Ge As Se Br Kr In Sn Sb Te I Xe
+
+name= SDB-aug-cc-pVTZ
+files= SDB-AUG-CC-PVTZ-AGG.BAS SDB-CC-PVTZ.BAS SDB-AUG-CC-PVTZ.BAS STUTTGART_RLC.POT
+atoms= Ga Ge As Se Br In Sn Sb Te I
+atoms= Ga Ge As Se Br In Sn Sb Te I
+atoms= Ga Ge As Se Br In Sn Sb Te I
+
+name= SDB-aug-cc-pVQZ
+files= SDB-AUG-CC-PVQZ-AGG.BAS SDB-CC-PVQZ.BAS SDB-AUG-CC-PVQZ.BAS STUTTGART_RLC.POT
+atoms= Ga Ge As Se Br In Sn Sb Te I
+atoms= Ga Ge As Se Br In Sn Sb Te I
+atoms= Ga Ge As Se Br In Sn Sb Te I
+
+name= def2-svp
+files= DEF2_SVP.BAS DEF2_ECP.POT
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+atoms= Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+
+name= def2-svpd
+files= DEF2_SVPD.BAS DEF2_ECP.POT
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+atoms= Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+
+name= def2-tzvp
+files= DEF2_TZVP.BAS DEF2_ECP.POT
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+atoms= Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+
+name= def2-tzvpp
+files= DEF2_TZVPP.BAS DEF2_ECP.POT
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+atoms= Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+
+name= def2-tzvppd
+files= DEF2_TZVPPD.BAS DEF2_ECP.POT
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+atoms= Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+
+name= def2-qzvp
+files= DEF2_QZVP.BAS DEF2_ECP.POT
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+
+name= def2-qzvpd
+files= DEF2_QZVPD.BAS DEF2_ECP.POT
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+atoms= Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+
+name= def2-qzvpp
+files= DEF2_QZVPP.BAS DEF2_ECP.POT
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+atoms= Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+
+name= def2-qzvppd
+files= DEF2_QZVPPD.BAS DEF2_ECP.POT
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+atoms= Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+
+name= def2-tzvpd
+files= DEF2_TZVPD.BAS DEF2_ECP.POT
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+atoms= Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+

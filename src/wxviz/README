@@ -1,0 +1,12 @@
+This file stores the initial index for the widget IDs automatically generated
+from dialog blocks. The purpose of this file is to keep track of all the
+GUI classes to guarantee that none of the classes have duplicated IDs. Each
+new class should increment the starting ID of the previously highest class
+ID by 100 (we assume that this will be enough but if the previous class is
+composed of an inordinately large number of widgets, you may need to increment
+by a higher number). Please keep this list up to date as you add new GUI
+classes to this library. Reserve 2000 for each directory. The starting increment
+for this class of widgets is 200000
+
+viztools/
+DisplayChooserGUI:      200000

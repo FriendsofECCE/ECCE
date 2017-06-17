@@ -1,0 +1,23 @@
+/* XPM */
+static char * jup_xpm[] = {
+/* width height ncolors cpp [x_hot y_hot] */
+"16 16 1 1 0 0",
+/* colors */
+" 	c #BFBFBF",
+/* pixels */
+"                ",
+"                ",
+"                ",
+"                ",
+"                ",
+"                ",
+"                ",
+"                ",
+"                ",
+"                ",
+"                ",
+"                ",
+"                ",
+"                ",
+"                ",
+"                "};

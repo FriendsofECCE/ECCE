@@ -1,0 +1,43 @@
+/* XPM */
+static char *noname[] = {
+/* width height ncolors chars_per_pixel */
+"20 20 16 1",
+/* colors */
+"` c #757575",
+"a c #A3A3A3",
+"b c #666666",
+"c c #858585",
+"d c #757575",
+"e c #282828",
+"f c #515151",
+"g c #3D3D3D",
+"h c #C2C2C2",
+"i c #949494",
+"j c #4A4A52",
+"k c #666666",
+"l c #6B737B",
+"m c #282828",
+"n c #000000",
+"o c #B3B3B3",
+/* pixels */
+"hhhhhhhhhhhhhhhhhhhh",
+"hhhhhhhhhhhhhhhhhhhh",
+"hhhhhhhhhhhhhhhhhhhh",
+"hhhhhhhhhhhhhhkahhhh",
+"hhhhhhhhhhhhhhngahhh",
+"hhhhhhhhhcdkfk``jahh",
+"hhhhhhholm```````koh",
+"hhhhhhhcn````````gah",
+"hhhhhhoe`````n``eihh",
+"hhhhhhln`ndooonmahhh",
+"hhhhhhg`mcohhhjiohhh",
+"hhhhhhm`bhhhhhaohhhh",
+"hhhhhhngahhhhhhhhhhh",
+"hhhhhh`lhhhhhhhhhhhh",
+"hh`hhhnihhhhh`hhhhhh",
+"hh`hhhjihhhhh`hhhhhh",
+"hh`hhhhhhhhhh`hhhhhh",
+"hh````````````hhhhhh",
+"hhhhhhhhhhhhhhhhhhhh",
+"hhhhhhhhhhhhhhhhhhhh"
+};

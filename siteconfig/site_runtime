@@ -1,0 +1,166 @@
+# Site-specific configuration parameters
+# Parameters in this file are put into the user environment at runtime.
+# They will not override values the user may have already set at the
+# command line.
+#
+# Note: To disable a feature shown below with a value of "true", comment out
+# the variable definition--setting the value to false will not disable the
+# feature.  Conversely, uncomment a variable to enable a feature.
+
+# base url for online help
+ECCE_HELP http://eccetera.emsl.pnl.gov:8096
+
+# site values for online help web browsers per platform
+# firefox and mozilla are valid choices
+# if the web browser fails to come up, try specifying an absolute path
+# to the browser for these variables
+ECCE_BROWSER firefox
+
+# The $ECCE_MESA_OPENGL variable is used to control whether the Mesa (software)
+# OpenGL libraries installed under $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa/lib
+# should be used.  If available, hardware based OpenGL is preferred since
+# performance is significantly better.  However, many workstations even with
+# hardware graphics cards supporting OpenGL do not have the proper drivers
+# installed and thus software rendering is used anyway.  For this reason
+# the default is to use Mesa under 3rdparty/mesa/lib although sites/users are
+# encouraged to either comment out this variable or set the value to false and
+# install hardware OpenGL drivers if not already done.  The $ECCE_MESA_EXCEPT
+# variable is used to list processors and platforms that should not use OpenGL
+# libraries in the 3rdparty/mesa/lib directory even if $ECCE_MESA_OPENGL is set
+# to true.  This lets sites configure some platforms to use the libraries
+# in 3rdpary/mesa/lib and not for other platforms.  The 'uname -m' command is
+# used to determine the processor and the 'lsb_release -is' command is used to
+# determine the platform.  Substring searches are done using the colon
+# separated values in $ECCE_MESA_EXCEPT against the full processor and platform
+# name (e.g. RedHat in $ECCE_MESA_EXCEPT matches RedHatEnterpriseClient
+# returned by 'lsb_release -is').  By default $ECCE_MESA_EXCEPT is commented
+# out so 3rdparty/mesa/lib libraries are always used if they exist.
+ECCE_MESA_OPENGL true
+#ECCE_MESA_EXCEPT x86_64:RedHat:Fedora
+
+# For some platforms the OpenGL offscreen rendering capability needed to
+# generate image files (JPEG, GIF, etc.) and thumbnail visualizations does
+# not work and application crashes or X Window session crashes result.
+# The only image file format not using offscreen rendering is POV-Ray so
+# there is still a capability to generate graphics for publications and
+# presentations without offscreen rendering.  Uncomment this line to turn
+# off image file generation.
+#ECCE_NO_VIZIMAGES true
+
+# Enable/Disable automatic web server account creation
+# Possible values are yes/no
+# This setting cannot be overriden by users
+ECCE_AUTO_ACCOUNTS yes
+
+# Enable/Disable the ability for users to store molecular dynamics
+# trajectories on the web server.
+# Possible values are yes/no
+# This setting can only be overriden by users via the MD task GUI when
+# the value is yes (i.e., users can never store trajectories if the
+# site administrator sets the value here to "no").
+ECCE_STORE_TRAJECTORIES yes
+
+# Should the organizer always check for running jobstores when projects
+# are opened?
+ECCE_JOB_CHECK true
+
+# this controls sending mail to the ecce-test queue for jobs recognized
+# as job monitoring errors.  If the variable is not set no mail will ever
+# be sent.  If it is set to "true" then mail for failed jobs will always
+# be sent.  If it is set to some other value then that value is treated
+# as a substring search pattern in the URL for any calculation that fails.
+# Usually it will be the name of the data server or part of the IP domain
+# name for the data server.  For example, "emsl.pnl.gov" results in mail
+# being sent from all jobs run on EMSL data servers but no mail from data
+# servers outside EMSL.  If you wish to enable this feature outside EMSL
+# so that ECCE developers can work with you diagnosing problems with job
+# monitoring, simply set the value to "true" rather than figuring out the
+# proper data server domain name value.
+ECCE_JOB_FAILMAIL emsl.pnl.gov
+
+# define the communication scheme to use for job monitoring communications
+# possible values are:
+# stdio => use the remote shell (ssh, telnet, etc.) for all jobs
+# socket => use sockets for all jobs
+# socketlocal => use sockets for same domain job launches, stdio
+# externally
+ECCE_JOB_COMMS stdio
+
+# number of minutes before timing out when parsing a single property
+# on the client side with a perl parse script
+#ECCE_JOB_PARSE_TIMEOUT 5
+
+# keep all jobmonitor and jobstore log files for diagnosing problems
+#ECCE_JOB_LOGMODE yes,yes
+
+# log all job monitoring data server events in the server run log
+# this is the log that can be accessed under the Calculation Manager
+# Run Mgmt -> View Run Log menu item.
+# Useful for very low level debugging only since if not set, warnings,
+# errors and key messages will still be logged
+#ECCE_JOB_LOGALL true
+
+# total number of times to attempt to connect to the compute resource
+# with reconnects when job monitoring fails (remote connection fails,
+# eccejobstore process crashes, etc.) before aborting job monitoring and
+# setting a failed run state.
+# Default value is 25
+#ECCE_JOB_MAXCONNECTS 25
+
+# number of times to attempt to connect to the compute resource within a
+# fixed (short) time limit with reconnects when when job monitoring fails
+# before aborting.  This is used for short-circuiting the full "MAXCONNECTS"
+# limit when it is clear the failure happens immediately each time for the
+# same reason.
+# Default value is 5
+#ECCE_JOB_MAXQUICKCONNECTS 5
+
+# time limit in seconds for the number of reconnects specified by
+# ECCE_JOB_MAXQUICKCONNECTS.  This value should be at least 10 seconds
+# times the value of ECCE_JOB_MAXQUICKCONNECTS to allow time for a remote
+# shell connection to be established and ECCE job monitoring to be initiated.
+# Default value is 60
+#ECCE_JOB_MAXQUICKTIME 60
+
+# send remote communications output to the console for diagnosing problems
+#ECCE_RCOM_LOGMODE true
+
+# location for all job monitoring temporary files overriding /tmp
+#ECCE_TMPDIR /tmp
+
+# set wireframe limits threshold - above this value the user will be
+# prompted about swiching to wireframe mode to avoid poor rendering
+# performance
+ECCE_WIREFRAME_LIMIT 5000
+
+# The MO tool in the Viewer caches computed MO, density, and spin
+# density grids since computing them can be expensive.  
+# Since, depending on the grid size chosen, the grids can consume 
+# significant memory, use this variable to control the number of cached
+# grids.
+ECCE_MAX_CACHED_MO 10
+
+# X Window System font to use when creating either local (final edit,
+# view output file) or remote (shell in calculation run directory, tail -f
+# on output file) xterm windows.  This value is passed as the "-fn"
+# argument of xterm.  When not set, a font specification is not passed to
+# the xterm command.  The xlsfonts command shows the fonts available on
+# the local X server display.  The font named "fixed" is a good choice
+# for resolving problems when not setting a font yields ugly xterms.
+#ECCE_XTERM_FONT fixed
+
+# Override the default VWn5 correlation functional and Slater exchange
+# functional for NWChem DFT calculations.  The combined correlation and
+# exchange functional B3LYP is used instead when this variable is set.
+# Since this overrides the NWChem default, B3LYP will appear in the
+# input file even though it is the initial default setting in the NWChem
+# theory details dialog. Even if this variable is set, the user can
+# still override the default selection and even specify NWChem's
+# internal default of VWn5/Slater.
+ECCE_NWCHEM_DFT_USE_B3LYP true
+
+
+# Show warning in Organizer when trying to view a file that is bigger than
+# this number of Kilobytes (10240KB == 10MB)
+ECCE_FILESIZE_WARNING 10240
+

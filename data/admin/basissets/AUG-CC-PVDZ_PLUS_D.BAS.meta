@@ -1,0 +1,34 @@
+name
+aug-cc-pV(D+d)Z Diffuse
+name
+type
+diffuse
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ---------
+Al - Ar: T.H. Dunning, Jr., K. A. Peterson and A. K. Wilson, J. Chem. Phys. 
+114, 9244 (2001).
+
+references
+info
+                   aug-cc-pV(D+d)Z Diffuse Functions
+                   ---------------------------------
+Elements                           References
+Al - Ar: (1s,1p,1d) T.H. Dunning, Jr., K.A. Peterson and A.K. Wilson 114, 9244
+                    (2001)
+
+
+info
+comments
+12/07/00  - DFF - Original creation of this file from exponents listed in
+comments

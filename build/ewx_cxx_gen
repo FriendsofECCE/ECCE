@@ -1,0 +1,15 @@
+#!/bin/csh -f
+
+set dbpath = `which dialogblocks`
+set dbpath = $dbpath:h
+
+if ($?LD_LIBRARY_PATH) then
+  if (`echo $LD_LIBRARY_PATH | grep -c ${dbpath}` == 0) then
+    setenv LD_LIBRARY_PATH ${dbpath}:${LD_LIBRARY_PATH}
+  endif
+else
+  setenv LD_LIBRARY_PATH $dbpath
+endif
+
+dialogblocks -g -o $argv[1]
+exit 0

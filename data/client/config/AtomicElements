@@ -1,0 +1,140 @@
+# Atomic  Reference and Default Information.  
+#
+# Note that the file AtomicOxidationStates contains data that may vary by
+# charge.
+#
+# The columns are as follows:
+#symbol: name,row,col,state,metals,color,affinity,weight,boiling,melting,cr,crt
+X: Ghost,9,1,gas,nonMetallic,#ff8072,NA,0.,0.,0.,0.,0.26,1.2
+H: Hydrogen,1,1,gas,nonMetallic,#ffffff,0.7545,1.0079,0,13.81,20.28,0.40,1.1
+He: Helium,1,18,gas,nonMetallic,#ffffff,-0.2176 (calc.),4.0026,0,0.00,4.25,0.60,1.2
+Li: Lithium,2,1,solid,metallic,#d67b73,0.6198,6.941,0,453.75,1615.15,0.60,1.2
+Be: Beryllium,2,2,solid,metallic,#29d629,-0.1866,9.01218,0,1562.15,2745.15,0.90,1.2
+B: Boron,2,13,solid,semiMetallic,#c6d6e7,0.2384,10.81,0,2365.15,4275.15,0.82,1.2
+C: Carbon,2,14,solid,nonMetallic,#858585,1.27,12.011,0,0.00,4100.15,0.77,1.2
+N: Nitrogen,2,15,gas,nonMetallic,#1e90ff,-0.07255,14.0067,0,63.15,77.35,0.75,1.2
+O: Oxygen,2,16,gas,nonMetallic,#ff0000,1.461,15.9994,0,54.36,90.18,0.73,1.2
+
+F: Fluorine,2,17,gas,nonMetallic,#9b30ff,3.337,18.9984,0,53.53,85.02,0.72,1.2
+Ne: Neon,2,18,gas,nonMetallic,#ffffff,-0.3006 (calc.),20.179,0,24.56,27.07,0.71,1.2
+Na: Sodium,3,1,solid,metallic,#d67b73,0.5483,22.9898,0,370.95,1156.15,0.95,1.2
+Mg: Magnesium,3,2,solid,metallic,#29d629,-0.2176,24.305,0,923.15,1363.15,1.36,1.05
+Al: Aluminum,3,13,solid,metallic,#c6d6e7,0.456,26.9815,0,933.60,2793.15,1.18,1.05
+Si: Silicon,3,14,solid,semiMetallic,#1e90ff,1.385,28.0855,0,1687.15,3540.15,1.11,1.1
+P: Phosphorous,3,15,solid,nonMetallic,#ffa500,0.7431,30.9738,0,317.29,553.15,1.06,1.2
+S: Sulfur,3,16,solid,nonMetallic,#feff04,2.077,32.06,0,388.37,717.82,1.02,1.2
+Cl: Chlorine,3,17,gas,nonMetallic,#59ff66,3.614,35.453,0,172.12,239.25,0.99,1.2
+Ar: Argon,3,18,gas,nonMetallic,#ffffff,-0.3627 (calc.),39.948,0,83.80,87.28,0.98,1.2
+
+K: Potassium,4,1,solid,metallic,#d67b73,0.454,39.0983,0,336.86,1032.15,1.33,1.2
+Ca: Calcium,4,2,solid,metallic,#29d629,-1.928,40.08,0,1115.15,1767.15,1.74,1.05
+Sc: Scandium,4,3,solid,metallic,#ad9c84,-0.7255,44.9559,0,1814.15,3109.15,1.44,1.05
+Ti: Titanium,4,4,solid,metallic,#ad9c84,-0.02073,47.9,0,1943.15,3562.15,1.32,1.05
+V: Vanadium,4,5,solid,metallic,#ad9c84,0.6322,50.9415,0,2183.15,3682.15,1.22,1.05
+Cr: Chromium,4,6,solid,metallic,#ad9c84,0.9742,51.996,0,2136.15,2945.15,1.18,1.05
+Mn: Manganese,4,7,solid,metallic,#ad9c84,-0.9742,54.938,0,1519.15,2335.15,1.17,1.05
+Fe: Iron,4,8,solid,metallic,#ad9c84,0.456,55.847,0,1811.15,3135.15,1.17,1.05
+Co: Cobalt,4,9,solid,metallic,#ad9c84,1.057,58.9332,0,1768.15,3201.15,1.16,1.05
+Ni: Nickel,4,10,solid,metallic,#ad9c84,1.617,58.7,0,1728.15,3187.15,1.15,1.05
+Cu: Copper,4,11,solid,metallic,#ad9c84,1.226,63.546,0,1358.02,2836.15,1.17,1.05
+Zn: Zinc,4,12,solid,metallic,#ad9c84,0.09328,65.38,0,692.73,1180.15,1.25,1.05
+Ga: Gallium,4,13,liquid,metallic,#c6d6e7,0.3731 (calc.),69.72,0,302.92,2478.15,1.26,1.05
+
+Ge: Germanium,4,14,solid,semiMetallic,#1e90ff,1.202,72.59,0,1211.50,3107.15,1.22,1.05
+As: Arsenic,4,15,solid,semiMetallic,#1e90ff,0.798,74.9216,0,0.00,888.15,1.20,1.05
+Se: Selenium,4,16,solid,semiMetallic,#29ad29,2.021,78.96,0,494.15,958.15,1.16,1.05
+Br: Bromine,4,17,liquid,nonMetallic,#9b30ff,3.363,79.904,0,265.95,331.85,1.14,1.1
+Kr: Krypton,4,18,gas,nonMetallic,#ffffff,-0.4042 (calc.),83.8,0,115.78,119.92,1.12,1.1
+Rb: Rubidium,5,1,solid,metallic,#d67b73,0.4861,85.4768,0,312.63,961.15,1.48,1.2
+Sr: Strontium,5,2,solid,metallic,#29d629,-1.513,87.62,0,1042.15,1655.15,1.91,1.05
+Y: Yttrium,5,3,solid,metallic,#5abd8c,-0.4042,88.9059,0,1795.15,3611.15,1.62,1.05
+Zr: Zirconium,5,4,solid,metallic,#5abd8c,0.4457,91.22,0,2128.15,4682.15,1.45,1.05
+
+Nb: Niobium,5,5,solid,metallic,#5abd8c,1.13,92.9064,0,2742.15,5017.15,1.34,1.05
+Mo: Molybdenum,5,6,solid,metallic,#5abd8c,1.182,95.94,0,2896.15,4912.15,1.30,1.05
+Tc: Technetium,5,7,synthetic,metallic,#5abd8c,0.995,98,0,2477.15,4538.15,1.27,1.05
+Ru: Ruthenium,5,8,solid,metallic,#5abd8c,1.513,101.07,0,2607.15,4423.15,1.25,1.05
+Rh: Rhodium,5,9,solid,metallic,#5abd8c,1.679,102.906,0,2236.15,3970.15,1.25,1.05
+Pd: Palladium,5,10,solid,metallic,#5abd8c,1.02,106.4,0,1828.15,3237.15,1.28,1.05
+Ag: Silver,5,11,solid,metallic,#5abd8c,1.303,107.868,0,1235.08,2436.15,1.34,1.05
+Cd: Cadmium,5,12,solid,metallic,#5abd8c,-0.2695,112.41,0,594.26,1040.15,1.48,1.05
+In: Indium,5,13,solid,metallic,#c6d6e7,0.3524,114.82,0,429.78,2346.15,1.44,1.05
+Sn: Tin,5,14,solid,metallic,#b3b3b3,1.254,118.69,0,505.12,2876.15,1.41,1.05
+
+Sb: Antimony,5,15,solid,metallic,#ffa500,1.047,121.75,0,903.91,1860.15,1.40,1.05
+Te: Tellurium,5,16,solid,semiMetallic,#29ad29,1.971,127.6,0,722.72,1261.15,1.36,1.05
+I: Iodine,5,17,solid,nonMetallic,#9b30ff,3.061,126.905,0,386.65,457.45,1.33,1.2
+Xe: Xenon,5,18,gas,nonMetallic,#ffffff,-0.4249 (calc.),131.3,0,161.39,165.15,1.31,1.1
+Cs: Cesium,6,1,liquid,metallic,#d67b73,0.4716,132.905,0,301.54,944.15,1.69,1.1
+Ba: Barium,6,2,solid,metallic,#29d629,-0.4767,137.33,0,1002.15,2078.15,1.98,1.05
+La: Lanthanum,6,3,solid,metallic,#ffffc6,0.5493,138.906,0,1191.15,3737.15,1.69,1.05
+Ce: Cerium,8,4,solid,metallic,#ffffc6,<=0.5182,140.12,0,1071.15,3716.15,1.65,1.05
+Pr: Praseodymium,8,5,solid,metallic,#ffffc6,<=0.5182,140.908,0,1204.15,3793.15,1.65,1.05
+Nd: Neodymium,8,6,solid,metallic,#ffffc6,<=0.5182,144.24,0,1294.15,3347.15,1.64,1.05
+Pm: Promethium,8,7,synthetic,metallic,#ffffc6,<=0.5182,145,0,1315.15,3273.15,1.63,1.05
+
+Sm: Samarium,8,8,solid,metallic,#ffffc6,<=0.5182,150.4,0,1347.15,2067.15,1.62,1.05
+Eu: Europium,8,9,solid,metallic,#ffffc6,<=0.5182,151.96,0,1095.15,1800.15,1.85,1.05
+Gd: Gadolium,8,10,solid,metallic,#ffffc6,<=0.5182,157.25,0,1586.15,3546.15,1.61,1.05
+Tb: Terbium,8,11,solid,metallic,#ffffc6,<=0.5182,158.925,0,1629.15,3503.15,1.59,1.05
+Dy: Dysprosium,8,12,solid,metallic,#ffffc6,<=0.5182,162.5,0,1685.15,2840.15,1.59,1.05
+Ho: Holmium,8,13,solid,metallic,#ffffc6,<=0.5182,164.93,0,1747.15,2973.15,1.58,1.05
+Er: Erbium,8,14,solid,metallic,#ffffc6,<=0.5182,167.26,0,1802.15,3141.15,1.57,1.05
+Tm: Thulium,8,15,solid,metallic,#ffffc6,<=0.5182,168.934,0,1818.15,2223.15,1.56,1.05
+Yb: Ytterbium,8,16,solid,metallic,#ffffc6,<=0.5182,173.04,0,1092.15,1469.15,1.65,1.05
+Lu: Lutetium,8,17,solid,metallic,#ffffc6,<=0.5182,174.967,0,1936.15,3675.15,1.56,1.05
+Hf: Hafnium,6,4,solid,metallic,#ffffc6,0.6322,178.49,0,2504.15,4876.15,1.44,1.05
+
+Ta: Tantalum,6,5,solid,metallic,#ffffc6,0.1451,180.948,0,3293.15,5731.15,1.34,1.05
+W: Tungsten,6,6,solid,metallic,#ffffc6,1.233,183.85,0,3695.15,5828.15,1.30,1.05
+Re: Rhenium,6,7,solid,metallic,#ffffc6,0.3835,186.207,0,3459.15,5869.15,1.28,1.05
+Os: Osmium,6,8,solid,metallic,#ffffc6,1.441,190.2,0,3306.15,5285.15,1.26,1.05
+Ir: Iridium,6,9,solid,metallic,#ffffc6,1.969,192.22,0,2720.15,4701.15,1.27,1.05
+Pt: Platinum,6,10,solid,metallic,#ffffc6,2.56,195.09,0,2042.15,4100.15,1.30,1.05
+Au: Gold,6,11,solid,metallic,#ffffc6,2.311,196.967,0,1337.58,3130.15,1.34,1.05
+Hg: Mercury,6,12,liquid,metallic,#ffffc6,-0.1866,200.59,0,234.31,630.15,1.49,1.05
+
+Tl: Thallium,6,13,solid,metallic,#c6d6e7,0.3109,204.37,0,577.15,1746.15,1.48,1.05
+Pb: Lead,6,14,solid,metallic,#b3b3b3,0.3648,207.2,0,600.65,2023.15,1.47,1.05
+Bi: Bismuth,6,15,solid,metallic,#ffa500,1.047,208.98,0,544.59,1837.15,1.46,1.05
+Po: Polonium,6,16,solid,metallic,#29ad29,1.928,209,0,527.15,0.00,1.46,1.05
+At: Astatine,6,17,solid,semiMetallic,#9b30ff,2.798,210,0,575.15,0.00,1.45,1.05
+Rn: Radon,6,18,gas,nonMetallic,#ffffff,-0.4249,222,0,202.15,211.45,1.70,1.05
+Fr: Francium,7,1,liquid,metallic,#d67b73,0.456,223,0,300.15,0.00,1.76,1.05
+Ra: Radium,7,2,solid,metallic,#29d629,n.a.,226.025,0,973.15,0.00,2.05,1.05
+Ac: Actinium,7,3,solid,metallic,#efe7ad,n.a.,227.028,0,1324.15,3473.15,1.75,1.05
+
+Th: Thorium,9,4,solid,metallic,#efe7ad,n.a.,232.038,0,2028.15,5061.15,1.65,1.05
+Pa: Protactinium,9,5,solid,metallic,#efe7ad,n.a.,231.036,0,1845.15,0.00,1.55,1.05
+U: Uranium,9,6,solid,metallic,#efe7ad,n.a.,238.029,0,1408.15,4407.15,1.42,1.05
+Np: Neptunium,9,7,synthetic,metallic,#efe7ad,n.a.,237.048,0,912.15,0.00,1.40,1.05
+Pu: Plutonium,9,8,synthetic,metallic,#efe7ad,n.a.,244,0,913.15,3503.15,1.40,1.05
+Am: Americium,9,9,synthetic,metallic,#efe7ad,n.a.,243,0,1449.15,0.00,1.65,1.2
+Cm: Curium,9,10,synthetic,metallic,#efe7ad,n.a.,247,0,1618.15,0.00,1.45,1.2
+Bk: Berkelium,9,11,synthetic,metallic,#efe7ad,n.a.,247,0,1323.15,0.00,1.45,1.2
+Cf: Californium,9,12,synthetic,metallic,#efe7ad,n.a.,251,0,1173.15,0.00,1.43,1.2
+Es: Einsteinium,9,13,synthetic,metallic,#efe7ad,n.a.,252,0,1133.15,0.00,1.42,1.2
+
+Fm: Fermium,9,14,synthetic,metallic,#efe7ad,n.a.,257,0,1800.15,0.00,1.42,1.2
+Md: Mendelevium,9,15,synthetic,metallic,#efe7ad,n.a.,258,0,1100.15,0.00,1.40,1.2
+No: Nobelium,9,16,synthetic,metallic,#efe7ad,n.a.,259,0,1100.15,0.00,1.55,1.2
+Lr: Lawrencium,9,17,synthetic,metallic,#efe7ad,n.a.,260,0,1900.15,0.00,1.40,1.2
+Rf: Rutherfordium,7,4,synthetic,metallic,#efe7ad,n.a.,261,0,0.00,0.00,1.45,1.2
+Db: Dubnium,7,5,synthetic,metallic,#efe7ad,n.a.,262,0,0.00,0.00,1.40,1.2
+Sg: Seaborgium,7,6,synthetic,metallic,#efe7ad,n.a.,263,0,0.00,0.00,1.35,1.2
+Bh: Bohrium,7,7,synthetic,metallic,#efe7ad,n.a.,262,0,0.00,0.00,1.30,1.2
+Hs: Hassium,7,8,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.28,1.2
+Mt: Meitnerium,7,9,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.25,1.2
+Uun: Ununnilium,7,10,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.23,1.2
+
+Uuu: Unununium,7,11,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.25,1.2
+Uub: Ununbium,7,12,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.30,1.2
+Uut: Elemtn113,7,13,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.45,1.2
+Uuq: Ununquadium,7,14,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.50,1.2
+Uup: Element115,7,15,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.60,1.2
+Uuh: Ununhexium,7,16,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.70,1.2
+Uus: Element117,7,17,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.80,1.2
+Uuo: Ununoctium,7,18,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.90,1.2
+#HideNubunderhydrogenatposition1,1
+Nub: Nub,9,2,gas,nonMetallic,#be6a00,n.a.,0,0,0.00,0.00,0.36,1.2
+

@@ -1,0 +1,22 @@
+/* XPM */
+static char * closedsel_xpm[] = {
+"20 16 3 1",
+".	c #E5E5E5",
+"X	c #000000",
+"o	c #FFFFC6",
+"....................",
+"....XXXXXXXX........",
+"...XooooooooX.......",
+"...XooooooooX.......",
+"..XXXXXXXXXXXXXXX...",
+"..XooooooooooooooX..",
+"..XooooooooooooooX..",
+"..XooooooooooooooX..",
+"..XooooooooooooooX..",
+"..XooooooooooooooX..",
+"..XooooooooooooooX..",
+"..XooooooooooooooX..",
+"..XooooooooooooooX..",
+"..XooooooooooooooX..",
+"...XXXXXXXXXXXXXXX..",
+"...................."};

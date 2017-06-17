@@ -1,0 +1,29 @@
+name
+aug-cc-pVQZ-DK
+name
+type
+correlation_consistent
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+GC
+contraction_type
+references
+
+references
+info
+  All-electron, Douglas-Kroll Transition Metal aug-cc-pVQZ-DK Basis Sets
+  ----------------------------------------------------------------------
+Sc - Zn: (23s,19p,12d,4f,3g,2h) -> [9s,8p,6d,4f,3g,2h] N.B. Balabanov and K.A.
+                                                       Peterson, J. Chem. Phys.
+                                                       123, 064107 (2005)
+
+
+info
+comments
+comments

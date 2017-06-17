@@ -1,0 +1,52 @@
+name
+Partridge Uncontr. 2
+name
+type
+other_segmented
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+Uncontracted
+contraction_type
+references
+Elements                             References
+--------                             ----------
+Li - Ne, K - Zn: H. Partridge, J. Chem. Phys. 90, 1043 (1989).
+Na - Ar:         H. Partridge, J. Chem. Phys. 87, 6643 (1987).
+
+references
+info
+                    Partridge Uncontracted Basis Sets
+                    ---------------------------------
+ Elements                            Reference
+ Li, Be:  (16s)      H. Partridge, J. Chem. Phys. 90, 1043 (1989).
+ B - Ne:  (16s,11p)
+ Na - Mg: (19s,11p)  H. Partridge, J. Chem. Phys. 87, 6643 (1987).
+ Al - Ar: (18s,13p)
+ K - Ca:  (22s,14p)
+ Sc       (22s,16p,8d)
+ Ti       (22s,14p,9d)
+ V        (22s,14p,10d)
+ Mn - Fe: (22s,15p,11d)
+ Co       (22s,15p,8d)
+ Ni       (22s,15p,11d)
+ Cu       (22s,14p,10d)
+ Zn       (22s,15p,8d)
+ Ga       (21s,16p,11d)
+ Ge       (21s,16p,10d)
+
+These are groundstate, RHF energy-optimized, uncontracted basis sets.
+
+info
+comments
+2/27/98  - DFF - Correct typo in Gallium d functions.  Too many 5D keywords.
+5/16/95  - DFF - Correct typo in NUMEXP for element 31.
+4/16/95  - DFF - Add Na - Ar, formatted by S. Coulson.
+3/06/95  - DFF - Modify the literation citation format.
+7/17/91  - DFF - Original creation of this file from a file set by H. Partridge
+comments

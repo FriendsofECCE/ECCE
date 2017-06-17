@@ -1,0 +1,52 @@
+#!/bin/csh
+
+setenv ACTIVEMQ_HOME ##ECCESERVERROOT##/activemq
+
+# check for allocated ActiveMQ port
+set jmsport = `grep openwire $ACTIVEMQ_HOME/conf/activemq.xml | head -n 1 | awk -F":" '{print $3}' | awk -F'"' '{print $1}'`
+if (`netstat -a -n | grep LISTEN | grep "[:.]$jmsport " | wc -l` != 0) then
+  echo "Java Messaging Service port, $jmsport, is already in use\!"
+  echo ""
+  echo "Either an ECCE message server is still running or some other service"
+  echo "on this machine has allocated these ports.  See the ECCE Installation"
+  echo "and Administration Guide for how to change the ECCE port numbers to"
+  echo "avoid conflicts."
+  echo ""
+  exit -1
+endif 
+
+# java executable must be in $PATH
+java -version >& /dev/null
+if ($status != 0) then
+  echo "Can't find java--unable to start messaging server"
+  goto error_exit
+endif
+
+if ( ! -e $ACTIVEMQ_HOME/lib) then
+  echo "Unable to find $ACTIVEMQ_HOME/lib"
+  goto error_exit
+endif
+
+set CP=""
+foreach file (${ACTIVEMQ_HOME}/lib/*.jar)
+   set CP=${file}:${CP}
+end
+setenv CLASSPATH $CP
+
+# activemq wrapper script called below uses $JAVA_HOME if it is set to invoke
+# java, which can conflict with the version that ECCE thinks is being used so
+# the best option is to force activemq to use the java we want it to
+unsetenv JAVA_HOME
+
+(${ACTIVEMQ_HOME}/bin/activemq | grep -v -e "ACTIVEMQ" -e "Loading" -e "AMQ" -e "Kaha" -e "help" -e "Transport") &
+if ($status != 0) then
+  echo "Unable to start messaging server"
+  goto error_exit
+endif
+
+exit 0
+
+error_exit:
+  echo ""
+  exit -1
+

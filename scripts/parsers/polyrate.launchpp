@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Purpose:
+#   Post-process the generated input file to add launch control information.
+#
+# Description:
+#   At this time, no post processing of the polyrate input file is necessary.
+#   See the files for other codes if you need to add this functionality.
+#
+##############################################################################
+
+use Getopt::Std;
+
+&getopts('p:v');  # if it takes an arg, need trailing :
+
+if ( $opt_v) {
+   $revision = '$Revision: 1.0';
+   $revision =~ (s/\$//g);
+   print "$revision\n";
+   exit 0 ;
+}
+
+exit(0);

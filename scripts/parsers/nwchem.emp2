@@ -1,0 +1,51 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#  NOTE: This file is used to pick up the MP2 energy that is created during
+#        a CCSD run.  The MP2 energy for a MP run is picked up by nwchem.te.
+#        When NWChem changes the output for CCSD to match the other
+#        theories this file can be outdated and the entry changed in
+#        nwchem.desc to refer to the nwchem.te script.
+#        This is also being used to pick up the ccsd+t and ccsd(t) energies
+#
+#        This script was originally makeing use of the $key variable to
+#        determine what energy was being used. However, since the $key
+#        variable has been changed to give the parent process ID number,
+#        the energy being parsed is now obtained from the first line of
+#        the text block sent from the output file.
+#
+##############################################################################
+
+($key, $runtype, $category, $theory) = @ARGV;
+
+# Force output to be flushed
+$| = 1;
+
+while (<STDIN>) {
+  if (! /task/ ) {
+    $value = $_;
+    last;
+  } else {
+    if ( /mp2/i ) {
+      $propKey = "EMP2";
+    } elsif ( /ccsd\(t\)/ ) {
+      $propKey = "ECCSDTPERT";
+    } elsif ( /ccsd\+t\(ccsd\)/ ) {
+      $propKey = "ECCSDTPERT2";
+    }
+  }
+}
+
+print "key: $propKey\n";
+print "size:\n1\n";
+print "values:\n$value\n";
+print "units:\nHartree\n";
+print "END\n";

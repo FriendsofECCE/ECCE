@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   See online documenation at http://www.emsl.pnl.gov:2080/docs/ecce
+-->
+
+<appdescriptor>
+
+<GaussianBasisSetRules>
+  <MaxLValue>6</MaxLValue>
+  <ECPS>True</ECPS>
+  <GeneralContractions>True</GeneralContractions>
+  <PreferOptimization>	False</PreferOptimization>
+  <MaxPrimitives>20 20 20 20 20 20 20</MaxPrimitives>
+  <MaxSharedExponent>      0 </MaxSharedExponent>
+  <SphericalCoordinates>	True </SphericalCoordinates>
+  <DFTFitting>		false</DFTFitting>
+  <RecommendDFTCharge>	false </RecommendDFTCharge>
+  <RequireFullDFT>         false </RequireFullDFT>
+  <MaxTotalFunctions>	64000</MaxTotalFunctions>
+  <MaxTotalPrimitives>	64000</MaxTotalPrimitives>
+  <MultipleOrbitals>	false</MultipleOrbitals>
+
+</GaussianBasisSetRules>
+
+
+<IntegrationFiles>
+  <BasisTranslationScript>std2tx93</BasisTranslationScript>
+</IntegrationFiles>
+
+
+</appdescriptor>

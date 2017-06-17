@@ -1,0 +1,46 @@
+name
+cc-pwCVQZ-PP
+name
+type
+ECPOrbital
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+GC
+contraction_type
+references
+Elements                             References
+--------                             ----------
+Cu, Zn, Ag, Cd, Au, Hg: K.A. Peterson and C. Puzzarini, Theor. Chem. Acc., in press (2005)
+
+references
+info
+   cc-pwCVQZ-PP core/valence relativistic small core PP basis sets
+   ---------------------------------------------------------------
+          Core         Name       Primitives               Contractions
+Cu - Zn: 10 [Ne]      ECP10MDF (16s,13p,13d,4f,3g,2h) -> [8s,8p,7d,4f,3g,2h]
+Ag - Cd: 28 [Ar+3d]   ECP28MDF (16s,13p,13d,4f,3g,2h) -> [8s,8p,7d,4f,3g,2h]
+Au - Hg: 60 [Kr+4d3f] ECP60MDF (16s,13p,13d,4f,3g,2h) -> [8s,8p,7d,4f,3g,2h]
+
+Note: these basis sets are designed to be used with an active space that
+includes all electrons not subsumed into the pseudopotential.  For example,
+for Cu the 3s3p3d4s electrons are correlated.
+
+Exponents from:
+---------------
+K.A. Peterson and C. Puzzarini, Theor. Chem. Acc., in press (2005).
+
+PP parameters from:
+-------------------
+D. Figgen, G. Rauhut, M. Dolg, and H. Stoll, Chem. Phys. 311, 227 (2005).
+
+
+info
+comments
+8/06/05  - DFF - Original creation of this file based on exponents from
+comments

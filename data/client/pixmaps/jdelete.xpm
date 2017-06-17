@@ -1,0 +1,37 @@
+/* XPM */
+static char * jdelete_xpm[] = {
+/* width height ncolors cpp [x_hot y_hot] */
+"24 24 7 1 0 0",
+/* colors */
+" 	c #BFBFBF",
+".	s iconColor1	m black	c black",
+"X	c #D1D1D1",
+"o	c #282828",
+"O	s iconColor2	m white	c white",
+"+	s iconGray4	m white	c #949494",
+"@	c #666666",
+/* pixels */
+"                        ",
+"                        ",
+"          ...           ",
+"         .XXX.          ",
+"    ooooooooooooooo     ",
+"    oOXXXXXX+++++@oO    ",
+"    oooooooooooooooO    ",
+"     oOXXXXXX+++@oOO    ",
+"     oO+X+X@Xo+o@oO     ",
+"     oO+X+X@Xo+o@oO     ",
+"     oO+X+X@Xo+o@oO     ",
+"     oO+X+X@Xo+o@oO     ",
+"     oO+X+X@Xo+o@oO     ",
+"     oO+X+X@Xo+o@oO     ",
+"     oO+X+X@Xo+o@oO     ",
+"     oO+X+X@Xo+o@oO     ",
+"     oO+X+X@Xo+o@oO     ",
+"     oO+X+X@Xo+o@oO     ",
+"     oO+X+X@Xo+o@oO     ",
+"     oOXXXXXX+++@oO     ",
+"     oooooooooooooO     ",
+"      OOOOOOOOOOOOO     ",
+"                        ",
+"                        "};

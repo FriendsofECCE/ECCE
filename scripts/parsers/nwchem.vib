@@ -1,0 +1,59 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+# This script extracts the normal mode coefficients from nwchem output.
+# It may be extended to add mode numbers and symmetry labels or frequencies
+# in the labels vectorlabels field, or atom labels in the rowlabels field.
+#
+# Command line parameters:
+#           
+# Description:
+#
+###############################################################################
+
+
+# Force output to be flushed
+$| = 1;
+
+
+  $labelLine = <STDIN>;
+  $labelLine =~ /modes%(\d+)\s+(\d+)%/;
+  $nrowsXncolumns = $1;  $nvecs = $2;
+  $natoms = $nrowsXncolumns/3;
+
+  while (<STDIN>) {
+    last if (/proj/);
+    chomp;
+    push(@values,split(/ +/,$_));
+  }
+
+
+# output the data
+#
+
+  print "key: VIB\n";
+  print "size:\n$nvecs $natoms 3\n";
+  print "vectorlabels:\n";
+  foreach $i (1 .. $nvecs){
+    print " NA ";
+    if (($i % 10) == 0) {print "\n";}
+  }
+  print "\nrowlabels:\n";
+  foreach $i (1 .. $natoms){
+    print " $i ";
+    if (($i % 10) == 0) {print "\n";}
+  }
+  print "\ncolumnlabels:\n";
+  print "X Y Z\n";
+  print "values:\n";
+  for ($i=0; $i<= $#values; $i++) {
+    printf("%.15e ",$values[$i]); 
+    if ($i % 3 == 2 ) { print "\n"; };
+  }
+  if ($i % 3 != 0 ) { print "\n";}
+  print "units:\nAngstrom\n";
+  print "END\n";

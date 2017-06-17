@@ -1,0 +1,33 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+# Pull out version string.  The entire line is the version and we take it as
+# is.
+#
+# Description:
+#
+# Example:
+#%begin%version%1%char
+#Mon Sep 23 12:17:21 PDT 2002 Version 4.1 development
+#%end%version%1%char
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+while (<STDIN>) {
+  if (! /begin/ ) {
+    $value = $_;
+    last;
+  }
+}
+
+print "key: VERSION\n";
+print "size:\n1\n";
+print "values:\n$value\n";
+print "END\n";

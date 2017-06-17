@@ -1,0 +1,43 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+#
+##############################################################################
+
+#Force output to be flushed
+$| = 1;
+
+while(<STDIN>) {
+  last if (/end/) ;
+  $_ =~ s/^\s*//;
+  $_ =~ s/\s*$//;
+  @tmp = ();
+  @tmp = split(/\s+/,$_);
+  push(@values,@tmp);
+}
+##############################################################################
+#  scale values from atomic units to buckinghams
+##############################################################################
+$size = @values;
+for ($i=0;$i<$size;$i++){
+  $values[$i] = 1.344911 * $values[$i];
+}
+
+print "key: QUADPOLE\n";
+print "size:\n6\n";
+print "rowlabels:\n";
+print "xx xy xz yy yz zz";
+print "\nvalues:\n";
+foreach $i (@values) { print " $i "; }
+print "\nunits:\nau\n";
+print "\nEND\n";
+

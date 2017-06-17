@@ -1,0 +1,18 @@
+#!
+#! This file written by ud_print_mvm
+#!
+title:		Acetylene
+type:		molecule
+cell_units:	angstroms
+num_atoms:	4
+atom_info:	symbol cart 
+atom_list:
+  C  0.000  0.000  0.594 
+  C  0.000  0.000 -0.594 
+  H  0.000  0.000 -1.645 
+  H  0.000  0.000  1.645 
+num_bonds:	3
+bond_list:
+  1   4
+  2   3
+  1   2

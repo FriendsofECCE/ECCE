@@ -1,0 +1,26 @@
+#!/usr/bin/env perl
+#
+# NOTE: This script is highly dependent on the output format of gcc
+#
+
+# Accumulate the final output here to avoid temporary files.
+my (@deparray);
+
+# First, need to get OBJ_PATH into the dependency list and also
+# the .D file itself.  There must be a better way... But read each
+# line, fix the problem ones and write to a new file.  This later
+# gets written back into the .D file.
+open(DEPFILE,".$ARGV[0].D") || die "Unable to open .$ARGV[0].D";
+while (<DEPFILE>) {
+  if (/.*: (.*)$/) {
+     push @deparray, "\$\(OBJ_PATH\)/$ARGV[0].o .$ARGV[0].D : $1\n"
+  } elsif (/[^ \\\r\t\n\f]+/) {
+     push @deparray, $_;
+  }
+}
+close(DEPFILE);
+
+# Now write the array back to a .D file
+open(DEPFILE,"> .$ARGV[0].D");
+print DEPFILE "@deparray";
+close(DEPFILE);

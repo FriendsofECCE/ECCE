@@ -1,0 +1,90 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Purpose:
+#   Post-process the generated input file to add launch control information.
+#
+# Description:
+#   Currently this script only needs to insert the scratch_dir
+#   directive into the input file.
+#
+#   This script must be smart enough to reprocess a file that
+#   has already been processed.
+#
+##############################################################################
+
+use Getopt::Std;
+
+&getopts('p:v');  # any option before ":" would take an argument
+
+if ( $opt_v) {
+   $revision = '$Revision: 1.0';
+   $revision =~ (s/\$//g);
+   print "$revision\n";
+   exit 0 ;
+}
+
+open(PARAMDICT, "<$opt_p") || die "parameter file does not exist!\n";
+
+while(<PARAMDICT>) {
+  $_ =~ s/\s*!.*$//;
+  if (/:/) {
+    ($key, $value) = split(/:/);
+
+    # strip leading and trailing white space from both key and value
+    $key =~ s/^\s*//;
+    $key =~ s/\s*$//;
+    $value =~ s/^\s*//;
+    $value =~ s/\s*$//;
+
+    # add to dictionary
+    if ($key ne "") {
+      $ParamDict{$key} = $value;
+    }
+  }
+}
+close(PARAMDICT);
+
+# Read the file into an array
+unless (open(INFILE, $ParamDict{'inputFile'})) {
+  die "Cannot open nwchem input file";
+}
+@contents = <INFILE>;
+close(INFILE);
+
+if ( ! -w $ParamDict{'inputFile'}) {
+  die "Cannot write to nwchem input file $ParamDict{'inputFile'}!";
+}
+
+unless (open(PPFILE,">$ParamDict{'inputFile'}")) {
+  die "Cannot overwrite nwchem input file $ParamDict{'inputFile'}";
+}
+
+$size = @contents;
+$start = 0;
+$scratchdirneeded = 1;
+for ($idx=$start; $idx<$size; $idx++) {
+  if (@contents[$idx] =~ /scratch_dir/) {
+     if ($ParamDict{'scratchDir'} eq "") {
+        @contents[$idx] = "";
+     } else {
+       @contents[$idx] = "scratch_dir $ParamDict{'scratchDir'}\n";
+     }
+     $scratchdirneeded = 0;
+  } elsif (@contents[$idx] =~ /ecce_print/) {
+    if (@contents[$idx] =~ /\//) {
+       #Pick off the file name part of the fully qualified path 
+       @contents[$idx] =~ /.*\/([a-z,A-Z,.]*)$/;
+       @contents[$idx] = "ecce_print $ParamDict{'runDir'}\/$1\n";
+    } else {
+       @contents[$idx] =~ s/ecce_print /ecce_print $ParamDict{'runDir'}\//;
+    }
+  }
+}
+if ($scratchdirneeded == 1) {
+  print PPFILE "scratch_dir $ParamDict{'scratchDir'}\n" if ($ParamDict{'scratchDir'} ne "");
+}
+print PPFILE (@contents);
+close PPFILE;
+
+exit(0);

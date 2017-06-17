@@ -1,0 +1,73 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#   Generic script used to output most of the NWChem scalar values
+#
+#   The change in the $key variable from database variable name to PID
+#   number means that the scalar variable names must now be identified
+#   by parsing the first line of text.
+#
+##############################################################################
+
+($key, $runtype, $category, $theory) = @ARGV;
+
+# Force output to be flushed
+$| = 1;
+
+$_ = <STDIN>;
+$unit = "";
+if ( /begin\%gradient norm/ ) {
+  $propKey = "EGRAD";
+  $unit = "units:\nHartree/Bohr\n";
+  if (!($runtype eq "Geometry" || $runtype eq "GeoVib")) {
+    exit(0);
+  }
+} elsif ( /orbital gradient norm/ ) {
+  $propKey = "DEWVEC";
+} elsif ( /all tasks cpu time/ ) {
+  $propKey = "CPUSEC";
+} elsif ( /all tasks wall time/ ) {
+  $propKey = "ETIME";
+} elsif ( /nuclear repulsion/ ) {
+  $propKey = "NNREPUL";
+  $unit = "units:\nHartree\n";
+} elsif ( /iterative total energy difference/ ) {
+  $propKey = "DELTAE";
+  $unit = "units:\nHartree\n";
+} elsif ( /rms error/ ) {
+  $propKey = "RESIDNORM";
+} elsif ( /one-electron/ ) {
+  $propKey = "ONEELEC";
+  $unit = "units:\nHartree\n";
+} elsif ( /two-electron/ ) {
+  $propKey = "TWOELEC";
+  $unit = "units:\nHartree\n";
+} elsif ( /correlation energy/ ) {
+  $propKey = "CORRELTN";
+  $unit = "units:\nHartree\n";
+} elsif ( /coulomb energy/ ) {
+  $propKey = "COULOMB";
+  $unit = "units:\nHartree\n";
+} elsif ( /exchange energy/ ) {
+  $propKey = "EXCHANGE";
+  $unit = "units:\nHartree\n";
+# } elsif ( /S\s*2/ ) {
+#  $propKey = "S2";
+} elsif ( /S*2/ ) {
+  $propKey = "S2";
+}
+$value = <STDIN>;
+
+print "key: $propKey\n";
+print "size:\n1\n";
+print "values:\n$value\n";
+print "$unit";
+print "END\n";

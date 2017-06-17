@@ -1,0 +1,81 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+# This script parses the Mulliken Shell charges for GAMESS-UK output
+#
+# Command line parameters:
+#           
+# Description:
+#
+###############################################################################
+ 
+# Force output to be flushed
+$| = 1;
+
+# Stash the script arguments.
+($key, $runtype, $category, $theory) = @ARGV;
+
+#
+# read the Mulliken shell charges
+#
+$nshell = 0;
+@mshell = ();
+while (<STDIN>) {
+  last if (/condensed to atoms/);
+  if (/\s*\d+\s+\d+\s+\S+\s+\S+\s+(\S+)\s+\S+/) {
+    $mshell[$nshell] = $1;
+    $nshell++;
+  }    
+}
+$nmull = 0;
+@mullk = ();
+while (<STDIN>) {
+  last if (/mp2/);
+  if (/\s*\d+\s+\S+\s+(\S+)\s+(\S+)\s+\S+/) {
+    $mullk[$nmull] = $1 - $2;
+    $nmull++;
+  }    
+}
+#
+# output the data
+#
+#print "key: MLKNSHELL\n";
+#print "size:\n$nshell\n";
+#print "rowlabels:\n";
+#
+#foreach $i (1 .. $nshell){
+#  print " $i ";
+#  if (($i % 10) == 0) {print "\n";}
+#}
+#if (($nshell % 10) != 0) {
+#  print "\nvalues:\n";
+#} else {
+#  print "values:\n";
+#}
+#foreach $i (1 .. $nshell){
+#  print " $mshell[$i-1]";
+#  if (($i % 10) == 0) {print "\n";}
+#}
+#if (($nshell % 10) !=0) {
+#  print "\nEND\n";
+#} else {
+#  print "END\n";
+#}
+
+print "key: MULLIKEN\n";
+print "size:\n$nmull\n";
+print "values:\n";
+foreach $i (1 .. $nmull) {
+  print " $mullk[$i-1]";
+  if (($i % 10) == 0) {print "\n";}
+}
+if (($nmull % 10) !=0) {
+  print "\nEND\n";
+} else {
+  print "END\n";
+}
+exit(0);

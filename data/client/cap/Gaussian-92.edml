@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   See online documenation at http://www.emsl.pnl.gov:2080/docs/ecce
+-->
+
+<appdescriptor>
+
+<GaussianBasisSetRules>
+  <MaxLValue>3</MaxLValue>
+  <ECPS>True</ECPS>
+  <GeneralContractions>False</GeneralContractions>
+  <PreferOptimization>	True</PreferOptimization>
+  <MaxPrimitives>100 100 100 100 0 0 0</MaxPrimitives>
+  <MaxSharedExponent>      1 </MaxSharedExponent>
+  <SphericalCoordinates>	True </SphericalCoordinates>
+  <DFTFitting>		False</DFTFitting>
+  <RecommendDFTCharge>	False </RecommendDFTCharge>
+  <RequireFullDFT>         False </RequireFullDFT>
+  <MaxTotalFunctions>	64000</MaxTotalFunctions>
+  <MaxTotalPrimitives>	60000</MaxTotalPrimitives>
+  <MultipleOrbitals>	false</MultipleOrbitals>
+
+</GaussianBasisSetRules>
+
+
+
+<!-- This seems misplaced.  Where should it really be?  What affects does
+     that have on existing data?
+     Bruce is looking into this.
+-->
+
+<MOOrdering type="cartesian" >
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="xx" a2="yy" a3="zz" a4="xy" a5="xz"
+                    a6="yz"></lshell>
+   <lshell lval="3" a1="xxx" a2="yyy" a3="zzz" a4="xyy" a5="xxy" a6="xxz"
+    a7="xzz" a8="yzz" a9="yyz" a10="xyz"></lshell>
+   <lshell lval="4" a1="zzzz" a2="yzzz" a3="yyzz" a4="yyyz" a5="yyyy"
+                    a6="xzzz"
+    a7="xyzz" a8="xyyz" a9="xyyy" a10="xxzz" a11="xxyz" a12="xxyy"
+    a13="xxxz" a14="xxxy" a15="xxxx"></lshell>
+</MOOrdering>
+
+<MOOrdering type="spherical" >
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="-xx/2-yy/2+zz" a2="xz" a3="yz" a4="xx/2-yy/2"
+    a5="xy"></lshell>
+   <lshell lval="3" a1="-3xxz/2-3yyz/2+zzz" a2="-xxx/2-xyy/2+2xzz"
+    a3="-xxy/2-yyy/2+2yzz" a4="xxz/2-yyz/2" a5="xyz"
+    a6="xxx/2-3xyy/2" a7="3xxy/2-yyy/2"></lshell>
+</MOOrdering>
+
+<!-- All names are completely unconstrained but must be consistent with
+     names used by detail dialogs and input files generator etc.
+-->
+<Editor theorydialog="xxx" runtypedialog="yyy">
+  <Theory category="SE" name="RDFT" needsBasis="false">
+    <runtype>AEnergy</runtype>
+  </Theory>
+  <Theory category="SCF" name="RHF">
+    <runtype>AEnergy</runtype>
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="DFT" name="RDFT">
+    <runtype>Geometry</runtype>
+    <runtype>GeoLib</runtype>
+  </Theory>
+</Editor>
+
+
+
+<!-- Raw File Naming Conventions
+-->
+
+<DataFiles>
+  <Input  type="primary" mimetype="chemical/x-gaussian92.input" comment="true" commentstring="#">g92.g92in</Input>
+  <Input  type="primary" mimetype="chemical/x-gaussian-92.input" comment="true" commentstring="#">92.in</Input>
+  <Output type="primary" mimetype="chemical/x-gaussian92-output">g92.g92out</Output>
+  <Output type="primary" mimetype="chemical/x-gaussian-92-output">g92.out</Output>
+  <Output type="parse" mimetype="chemical/x-gaussian92-parse">g92.g92out</Output>
+  <Output type="parse" mimetype="chemical/x-gaussian-92-parse">g92.out</Output>
+  <Output type="auxiliary" mimetype="chemical/x-gaussian-92-mo">fort.7</Output>
+</DataFiles>
+
+<!-- Names of files required for code integration.  These files are
+     assumed to be in the ecce path as managed by the ecce_env script.
+-->
+<IntegrationFiles>
+  <BasisTranslationScript>std2Gaussian-92</BasisTranslationScript>
+</IntegrationFiles>
+
+</appdescriptor>

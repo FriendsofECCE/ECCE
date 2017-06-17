@@ -1,0 +1,126 @@
+#!/bin/csh -f
+#
+# ECCE standalone Builder/Viewer startup script
+
+# Comment/uncomment the following line to control whether the server is
+# stopped when the Builder/Viewer exits.  This is initially controlled
+# by an installation script option.  Stopping the server automatically
+# is only appropriate for a single user installation.  Even a single
+# user installation may wish to leave the server running to decrease
+# the app startup time.  The server always automatically starts when
+# the Builder/Viewer is invoked if it is not already running and the
+# user has permission to start it.
+setenv ECCE_STOP_SERVER
+
+if (! $?ECCE_HOME) then
+  echo "ERROR: ECCE_HOME must be set prior to running Viewer."
+  echo "       Check your ~/.cshrc or ~/.mycshrc file for the correct path"
+  echo "       to runtime_setup, or contact your site ECCE administrator"
+  echo ""
+  exit
+endif
+
+foreach var ($argv)
+  if ("$var" == "-remote") setenv ECCE_REMOTE_SERVER
+end
+
+# this sets ECCE_SYSDIR
+source $ECCE_HOME/scripts/ecce_env
+
+if ( $ECCE_SYSDIR == "unsupported" ) then
+  echo "ERROR: Host is not supported by this ECCE installation."
+  echo -n "       Host platform: "
+  $ECCE_HOME/scripts/sysdir
+  echo ""
+  exit
+endif
+
+cd $ECCE_HOME/${ECCE_SYSDIR}bin
+
+# Check if user is ecceadm ------------------------------------------------
+
+if ("$ECCE_REALUSER" == "ecceadm") then
+  echo "ERROR: ECCE cannot be run as the special ecceadm user."
+  echo ""
+  exit
+endif
+
+# Start ECCE server if required and able ----------------------------------
+
+if (! $?ECCE_REMOTE_SERVER) then
+  if (! -e $ECCE_HOME/../server/httpd/logs/httpd.pid && -x $ECCE_HOME/../server/ecce-admin/start_ecce_server) then
+    echo "Starting ECCE server ..."
+    $ECCE_HOME/../server/ecce-admin/start_ecce_server
+    # wait to insure activemq server is running before proceeding
+    sleep 8
+    echo ""
+    if ($status != 0) then
+      echo "Could not start ECCE server"
+      echo ""
+      exit
+    endif
+  endif
+endif
+
+echo "Starting ECCE Viewer ... please wait"
+
+# Create temporary directory if necessary ---------------------------------
+
+if (! -d $ECCE_TMPDIR/ecce_$ECCE_REALUSER) then
+  mkdir -p $ECCE_TMPDIR/ecce_$ECCE_REALUSER
+endif
+
+# Check whether overriding server login name ------------------------------
+
+while ($#argv)
+  if ("$argv[1]" == "-l") then
+    shift
+    if ($#argv) then
+      echo "LOGIN: $argv[1]" >! $ECCE_REALUSERHOME/.ECCE/ServerLogin
+    endif
+    break
+  endif
+  shift
+end
+
+# Start ECCE Viewer -------------------------------------------------------
+
+setenv ECCE_INVOKE_VIEWER
+
+# remove tee'd output from previous invocation
+rm -f $ECCE_TMPDIR/ecce_$ECCE_REALUSER/consoleOutput
+
+# start the builder under JMS so it can receive jobstore messages
+# suppress harmless warning messages such as from Gtk
+java -DECCE_HOST=`hostname` -DDISPLAY=$DISPLAY -DECCE_HOME=$ECCE_HOME -DECCE_USERHOME=$ECCE_REALUSERHOME gov.pnnl.emsl.ecce.jms.JMSDispatcher -c ./builder |& tee $ECCE_TMPDIR/ecce_$ECCE_REALUSER/consoleOutput |& grep -v -e Gdk -e Gtk -e GLib -e debug1 -e Fontconfig -e menu_proxy_module_load -e pixmap -e "OpenGL Warning" -e '^$'
+
+# use tee'd output to check if the server was not running
+if (-e $ECCE_TMPDIR/ecce_$ECCE_REALUSER/consoleOutput && `grep -c "Could not connect to broker URL" $ECCE_TMPDIR/ecce_$ECCE_REALUSER/consoleOutput` != 0) then
+  echo ""
+  echo "  ERROR: The ECCE Viewer cannot establish a "
+  echo "  connection to the ECCE Server at this time."
+  echo ""
+  echo "  Please contact your ECCE administrator to check"
+  echo "  that the ECCE Server is running and that the"
+  echo "  ECCE application software configuration file"
+  echo "  '$ECCE_HOME/siteconfig/DataServers'"
+  echo "  contains the correct URL for your ECCE Server."
+  echo ""
+  exit
+endif
+
+# Stop ECCE server if requested and able ----------------------------------
+
+if (! $?ECCE_REMOTE_SERVER) then
+  if ($?ECCE_STOP_SERVER && -e $ECCE_HOME/../server/httpd/logs/httpd.pid && -x $ECCE_HOME/../server/ecce-admin/stop_ecce_server) then
+    echo ""
+    echo "Stopping ECCE server ..."
+    $ECCE_HOME/../server/ecce-admin/stop_ecce_server
+    if ($status != 0) then
+      echo "Could not stop ECCE server"
+      echo ""
+      exit
+    endif
+  endif
+endif
+

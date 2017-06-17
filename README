@@ -1,0 +1,36 @@
+
+This is an Extensible Computational Chemistry Environment, ECCE, distribution.
+
+
+For ECCE source code distributions
+----------------------------------
+See the README file in the build directory for instructions on building ECCE
+and then the INSTALL file in this directory for installation and administration
+instructions (also available online from
+http://ecce.pnl.gov/using/installguide.shtml)
+
+
+For full ECCE binary distributions
+----------------------------------
+See the INSTALL file in this directory for installation and administration
+instructions for ECCE (also available online from
+http://ecce.pnl.gov/using/installguide.shtml)
+
+
+For ECCE Builder binary distributions
+-------------------------------------
+See the BUILDER_INSTALL file in this directory for ECCE installation and
+administration instructions for the ECCE Builder (also available online from
+http://ecce.pnl.gov/using/installguide.shtml)
+
+
+For more information on ECCE
+----------------------------
+See http://ecce.pnl.gov
+
+
+For support requests on ECCE
+----------------------------
+Address support requests to the NWChem wiki ECCE forums, under the "Community"
+link at http://www.nwchem-sw.org
+

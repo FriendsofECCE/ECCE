@@ -1,0 +1,478 @@
+###############################################################################
+# File: help.urls
+# 
+# This file contains the mapping between applications, dialogs, and
+# widgets and their associated help page. 
+#
+# To minimize maintenance headaches please observe the rules below.
+# They are designed to make it easy to support widget level help.
+#
+#   1. applications and their associated dialogs come first followed
+#      by generic dialogs.
+#   2. Every Shell except for confirm dialogs should have a help page.
+#   3. The help key for a dialog shell should be the widget name.  This
+#      means that you should use a reasonable name when new'ing a
+#      dialog, then invoke help like:
+#          EcceHelp().showHelpPage(XtName(getMyClass()));
+#   4. For shared dialogs like the database selection dialog, when
+#      you new an instance of the dialog, name it after the class or
+#      leave the name unspecified.
+#
+# URL specifications that do not start with http:// are assumed to be
+# preceeded by the value of the ECCE_HELP environment variable that is
+# set in the runtime_setup script derived from the siteconfig/site_runtime
+# file.
+#
+###############################################################################
+
+###############################################################################
+#                            Support Feedback Form
+###############################################################################
+#
+# This is an incomplete URL.  The missing parameter value appended to the URL
+# is the email address where feedback is sent to given by the ECCE_SUPPORT
+# environment variable.
+#
+Feedback:      cgi-bin/help/EcceQSubmissionForm.pl?
+
+###############################################################################
+#                            Applications
+###############################################################################
+
+# When a keyword is missing, go to the following address. This is supported
+# internally by ecce code.
+HomeFallback:                  EcceHelp/homepage.html
+
+# --------------------------
+# Gateway
+# --------------------------
+Gateway:                       EcceHelp/homepage.html
+Gateway.ecceBtn:               cgi-bin/help/cshelp?gateway&overview_usingtools.html
+Gateway.windowsPullMenu:       cgi-bin/help/cshelp?gateway&overview_usingtools.html
+Gateway.calcMgrIcon:           cgi-bin/help/toolhelp?calcmgr
+Gateway.calcViewerIcon:        cgi-bin/help/toolhelp?calcview
+Gateway.builderIcon:           cgi-bin/help/toolhelp?builder
+Gateway.bstIcon:               cgi-bin/help/toolhelp?basis
+Gateway.machineBrowserIcon:    cgi-bin/help/toolhelp?machines
+Gateway.pertabIcon:            cgi-bin/help/toolhelp?pertab
+Gateway.prefsBtn:              cgi-bin/help/toolhelp?child/preferences
+Gateway.feedbackBtn:           cgi-bin/help/toolhelp?child/feedback
+Gateway.helpBtn:               cgi-bin/help/cshelp?help&overview_start.html
+
+# --------------------------
+# BasisSetTool
+# --------------------------
+Basistool:                           cgi-bin/help/toolhelp?basis
+Basistool.Details:                   cgi-bin/help/cshelp?basis&overview_bs_details.html
+Basistool.popleList:                 cgi-bin/help/cshelp?basis&overview_basislist.html
+Basistool.othersegList:              cgi-bin/help/cshelp?basis&overview_basislist.html
+Basistool.ccList:                    cgi-bin/help/cshelp?basis&overview_basislist.html
+Basistool.otherGCList:               cgi-bin/help/cshelp?basis&overview_basislist.html
+Basistool.ecpOrbitalList:            cgi-bin/help/cshelp?basis&overview_basislist.html
+Basistool.dftOrbitalList:            cgi-bin/help/cshelp?basis&overview_basislist.html
+Basistool.polarList:                 cgi-bin/help/cshelp?basis&overview_basislist.html
+Basistool.diffuseList:               cgi-bin/help/cshelp?basis&overview_basislist.html
+Basistool.rydbergList:               cgi-bin/help/cshelp?basis&overview_basislist.html
+Basistool.orbitalTab:                cgi-bin/help/cshelp?basis&overview_basislist.html
+Basistool.basisTab:                  cgi-bin/help/cshelp?basis&overview_basislist.html
+Basistool.detailsBtn:                cgi-bin/help/cshelp?basis&overview_bs_details.html
+Basistool.contextForm:               cgi-bin/help/cshelp?basis&overview_periodictable.html
+
+Basistool.addTableBtn                cgi-bin/help/cshelp?basis&overview_addtable.html
+Basistool.configTab:                 cgi-bin/help/cshelp?basis&overview_basistabs.html
+Basistool.simpleTable:               cgi-bin/help/cshelp?basis&overview_basistabs.html
+Basistool.elementTable:              cgi-bin/help/cshelp?basis&overview_basistabs.html
+Basistool.atomTable:                 cgi-bin/help/cshelp?basis&overview_basistabs.html
+Basistool.codeForm:                  cgi-bin/help/cshelp?basis&overview_options.html
+Basistool.numbersForm:               cgi-bin/help/cshelp?basis&overview_options.html
+
+Basistool.molecularBasisMenu:        cgi-bin/help/cshelp?basis&overview_menumolbasis.html
+Basistool.tableEditMenu:             cgi-bin/help/cshelp?basis&overview_menuedit.html
+Basistool.atomicBasisMenu:           cgi-bin/help/cshelp?basis&overview_menuatombases.html
+Basistool.optionsMenu:               cgi-bin/help/cshelp?basis&overview_menumbrowse.html
+Basistool.help:                      cgi-bin/help/cshelp?basis&overview_menuhelp.shtml
+Basistool.menuBar:                   cgi-bin/help/cshelp?basis&overview_menubar.shtml
+BasisSetRevisionHistory:             cgi-bin/help/cshelp?basis&overview_menuatombases.html
+
+# --------------------------
+# BasisSetTool: Details
+# --------------------------
+BasisSetDetails:                     cgi-bin/help/toolhelp?basis
+
+# --------------------------
+# BasisSetTool: Exponents and Coefficients
+# --------------------------
+BasisSetExpAndCoeff:                 cgi-bin/help/toolhelp?basis
+
+# --------------------------
+# BasisSetTool: Editor
+# --------------------------
+BasisSetEditor:                      cgi-bin/help/toolhelp?basis
+
+# --------------------------
+# Builder
+# --------------------------
+Builder:                       cgi-bin/help/toolhelp?builder
+Builder.menuBar:               cgi-bin/help/cshelp?builder&overview_menubar.shtml
+Builder.FileMenu:              cgi-bin/help/cshelp?builder&overview_menufile.html
+Builder.EditMenu:              cgi-bin/help/cshelp?builder&overview_menuedit.html
+Builder.displayMenu:           cgi-bin/help/cshelp?builder&overview_menudisplay.html
+Builder.viewMenu:              cgi-bin/help/cshelp?builder&overview_menuview.html
+Builder.optionsMenu:           cgi-bin/help/cshelp?builder&overview_menuoptions.html
+Builder.toolkitMenu:           cgi-bin/help/cshelp?builder&overview_menutoolkits.html
+Builder.labnotebookMenu:       cgi-bin/help/cshelp?builder&overview_menulabnotebook.html
+Builder.HelpMenu:              cgi-bin/help/cshelp?builder&overview_menuhelp.shtml
+
+Builder.PeriodicForm:          cgi-bin/help/cshelp?builder&overview_element_palette.html
+Builder.PeriodicTable:         cgi-bin/help/cshelp?builder&overview_element_palette.html
+Builder.GeometryForm:          cgi-bin/help/cshelp?builder&overview_element_palette.html
+Builder.addHydrogensBtn:       cgi-bin/help/cshelp?builder&overview_add_hydrogen.html
+Builder.rmHydrogensBtn:        cgi-bin/help/cshelp?builder&overview_add_hydrogen.html
+Builder.fragLibBtn:            cgi-bin/help/cshelp?builder&overview_structure_lib.html
+Builder.BondOrderRC:           cgi-bin/help/cshelp?builder&overview_bond_types.html
+Builder.bondForm:              cgi-bin/help/cshelp?builder&overview_bond_types.html
+Builder.measureBox:            cgi-bin/help/cshelp?builder&overview_measurement_tools.html
+Builder.deleteBox:             cgi-bin/help/cshelp?builder&overview_3d_tools.html
+Builder.actionBox:             cgi-bin/help/cshelp?builder&overview_3d_tools.html
+Builder.nameChargeForm:        cgi-bin/help/cshelp?builder&overview_name_charge_symmetry.html
+Builder.viewerForm:            cgi-bin/help/cshelp?builder&overview_work_area.html
+Builder.LeftTrimForm:          cgi-bin/help/cshelp?builder&overview_work_area_tools.html
+Builder.leftTrimBtnsForm:      cgi-bin/help/cshelp?builder&overview_work_area_tools.html
+Builder.RightTrimForm:         cgi-bin/help/cshelp?builder&overview_view_controls.html
+Builder.BottomTrimForm:        cgi-bin/help/cshelp?builder&overview_view_controls.html
+RadiusSelection:               cgi-bin/help/cshelp?builder&overview_menuedit.html
+
+# --------------------------
+# Builder Children
+# --------------------------
+GeometryTable:                 cgi-bin/help/toolhelp?child/geomtext
+GeometryTable.Table:           cgi-bin/help/cshelp?child/geomtext&overview_table.html
+GeometryTable.menuBar:         cgi-bin/help/cshelp?child/geomtext&overview_menubar.shtml
+GeometryTable.fileMenu:        cgi-bin/help/cshelp?child/geomtext&overview_menufile.html
+GeometryTable.editMenu:        cgi-bin/help/cshelp?child/geomtext&overview_menuedit.html
+GeometryTable.viewMenu:        cgi-bin/help/cshelp?child/geomtext&overview_menuview.html
+BuilderPeriodicTable:          cgi-bin/help/cshelp?builder&overview_element_palette.html
+CommandRecorder:               cgi-bin/help/cshelp?builder&bo_recorder.html
+CleanParameters:               cgi-bin/help/cshelp?builder&overview_menuoptions.html
+
+# --------------------------
+# Builder: MD Toolkit
+# --------------------------
+mdPalette:                       cgi-bin/help/toolhelp?child/md_toolkit
+mdPalette.menuBar:               cgi-bin/help/cshelp?child/md_toolkit&overview_menubar.shtml
+mdPalette.fileMenu:              cgi-bin/help/cshelp?child/md_toolkit&overview_menufile.html
+mdPalette.editMenu:              cgi-bin/help/cshelp?child/md_toolkit&overview_menuedit.html
+mdPalette.viewMenu:              cgi-bin/help/cshelp?child/md_toolkit&overview_menuview.html
+mdPalette.optionsMenu:           cgi-bin/help/cshelp?child/md_toolkit&overview_menuoptions.html
+mdPalette.forceFieldPushMenu:    cgi-bin/help/cshelp?child/md_toolkit&overview_mdtools.html
+mdPalette.segmentDirsText:       cgi-bin/help/cshelp?child/md_toolkit&overview_mdtools.html
+mdPalette.validateStructureBtn:  cgi-bin/help/cshelp?child/md_toolkit&overview_mdtools.html
+mdPalette.assignAtomsBtn:        cgi-bin/help/cshelp?child/md_toolkit&overview_mdtools.html
+mdPalette.addHBtn:               cgi-bin/help/cshelp?child/md_toolkit&overview_mdtools.html
+
+# --------------------------
+# Builder: MD Toolkit:  Force Field Editor
+# --------------------------
+ForceFieldEditor:                         cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#ForceFieldEditor.mainForm:                cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#ForceFieldEditor.newColor:                cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#ForceFieldEditor.multiplyAssignedColor:   cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#ForceFieldEditor.atomFrame:               cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#ForceFieldEditor.bondFrame:               cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#ForceFieldEditor.torsionFrame:            cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#ForceFieldEditor.improperFrame:           cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#ForceFieldEditor.crossFrame:              cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#ForceFieldEditor.buttonRowCol:            cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#ForceFieldEditor.categoryForm:            cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+
+# --------------------------
+# Builder: MD Toolkit:  Topology Viewer
+# --------------------------
+TopologyViewer:                           cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#TopologyViewer.legendMenuForm:            cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#TopologyViewer.atomBondTabBtn:            cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#TopologyViewer.angleTabBtn:               cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#TopologyViewer.torsionTabBtn:             cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#TopologyViewer.improperTabBtn:            cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+#TopologyViewer.filterOpMenu:              cgi-bin/help/cshelp?child/md_toolkit&overview_menuforcefield.html
+
+# --------------------------
+# Builder: Partial Charge Toolkit
+# --------------------------
+PartialChargeConstraints:                  cgi-bin/help/toolhelp?child/partial_chg_toolkit
+PartialChargeConstraints.menuBar:          cgi-bin/help/cshelp?child/partial_chg_toolkit&overview_menubar.shtml
+PartialChargeConstraints.fileMenu:         cgi-bin/help/cshelp?child/partial_chg_toolkit&overview_menufile.html
+PartialChargeConstraints.groupActionMenu:  cgi-bin/help/cshelp?child/partial_chg_toolkit&overview_menugroupactions.html
+PartialChargeConstraints.lFrame:           cgi-bin/help/cshelp?child/partial_chg_toolkit&overview_pctools.html
+
+# --------------------------
+# Builder: Structure Library (formerly Fragment Library)
+# --------------------------
+fraglib:                   cgi-bin/help/toolhelp?child/structlib
+fraglib.menuBar:           cgi-bin/help/cshelp?child/structlib&overview_menubar.shtml
+fraglib.fragmentMenu:      cgi-bin/help/cshelp?child/structlib&overview_menustructure.html
+fraglib.structureMenu:     cgi-bin/help/cshelp?child/structlib&overview_menustructure.html
+fraglib.editMenu:          cgi-bin/help/cshelp?child/structlib&overview_menuedit.html
+fraglib.viewMenu:          cgi-bin/help/cshelp?child/structlib&overview_menuview.html
+fraglib.helpMenu:          cgi-bin/help/cshelp?child/structlib&overview_menuhelp.shtml
+fraglib.FragImage:         cgi-bin/help/cshelp?child/structlib&overview_piclist.html        
+fraglib.dbList:            cgi-bin/help/cshelp?child/structlib&overview_structdblist.html        
+fraglib.createNewDBBtn:    cgi-bin/help/cshelp?child/structlib&overview_button_createdb.html
+fraglib.DbCreate:          cgi-bin/help/cshelp?builder&overview_createstructdb.html
+fraglib.fbMessageTxt:      cgi-bin/help/cshelp?child/structlib&overview_footer.html        
+fraglib.fbDropSite:        cgi-bin/help/cshelp?child/structlib&overview_footer.html        
+
+# --------------------------
+# Builder: Symmetry Toolkit
+# --------------------------
+symPalette:                      cgi-bin/help/toolhelp?child/symmetry_toolkit
+symPalette.topForm:              cgi-bin/help/cshelp?child/symmetry_toolkit&overview_symmetry.html
+symPalette.alignForm:            cgi-bin/help/cshelp?child/symmetry_toolkit&overview_alignment.html
+
+# --------------------------
+# Builder: Trajectory Toolkit
+# --------------------------
+MDTrajectory:                   cgi-bin/help/toolhelp?child/md_trajectory_toolkit
+MDTrajectory.formatOpMenu:      cgi-bin/help/cshelp?child/md_trajectory_toolkit&overview_trajtools.html
+MDTrajectory.fileName:          cgi-bin/help/cshelp?child/md_trajectory_toolkit&overview_trajtools.html
+MDTrajectory.mybrowseBtn:       cgi-bin/help/cshelp?child/md_trajectory_toolkit&overview_trajtools.html
+MDTrajectory.seqStart:          cgi-bin/help/cshelp?child/md_trajectory_toolkit&overview_trajtools.html
+MDTrajectory.seqEnd:            cgi-bin/help/cshelp?child/md_trajectory_toolkit&overview_trajtools.html
+MDTrajectory.curSeq:            cgi-bin/help/cshelp?child/md_trajectory_toolkit&overview_trajtools.html
+MDTrajectory.curStep:           cgi-bin/help/cshelp?child/md_trajectory_toolkit&overview_trajtools.html
+MDTrajectory.stepInc:           cgi-bin/help/cshelp?child/md_trajectory_toolkit&overview_trajtools.html
+MDTrajectory.formatOpMenu:      cgi-bin/help/cshelp?child/md_trajectory_toolkit&overview_trajtools.html
+MDTrajectory.delay:             cgi-bin/help/cshelp?child/md_trajectory_toolkit&overview_trajtools.html
+MDTrajectory.outForm:           cgi-bin/help/cshelp?child/md_trajectory_toolkit&overview_trajtools.html
+MDTrajectory.btnBox:            cgi-bin/help/cshelp?child/md_trajectory_toolkit&overview_trajtools.html
+
+# --------------------------
+# Builder: DNA Builder Toolkit
+# --------------------------
+
+DNABuilder:                   cgi-bin/help/toolhelp?child/dna_toolkit
+DNABuilder.Table:             cgi-bin/help/toolhelp?child/dna_toolkit
+DNABuilder.ATBtn:             cgi-bin/help/cshelp?child/dna_toolkit&overview_dnatools.html
+DNABuilder.TABtn:             cgi-bin/help/cshelp?child/dna_toolkit&overview_dnatools.html
+DNABuilder.GCBtn:             cgi-bin/help/cshelp?child/dna_toolkit&overview_dnatools.html
+DNABuilder.CGBtn:             cgi-bin/help/cshelp?child/dna_toolkit&overview_dnatools.html
+DNABuilder.removeBtn:         cgi-bin/help/cshelp?child/dna_toolkit&overview_dnatools.html
+DNABuilder.clearBtn:          cgi-bin/help/cshelp?child/dna_toolkit&overview_dnatools.html
+DNABuilder.generateBtn:       cgi-bin/help/cshelp?child/dna_toolkit&overview_dnatools.html
+DNABuilder.otherBtnForm:      cgi-bin/help/cshelp?child/dna_toolkit&overview_dnatools.html
+
+
+# --------------------------
+# Calculation Editor
+# --------------------------
+CalculationEditor:             cgi-bin/help/toolhelp?calced
+CalculationEditor.calculationPullMenu:  cgi-bin/help/cshelp?calced&overview_menucalculation.html
+CalculationEditor.menuBar:              cgi-bin/help/cshelp?calced&overview_menubar.shtml
+CalculationEditor.helpPullMenu:         cgi-bin/help/cshelp?calced&overview_menuhelp.shtml
+CalculationEditor.moleculeForm:         cgi-bin/help/cshelp?calced&overview_chemsys.html
+CalculationEditor.multForm:             cgi-bin/help/cshelp?calced&overview_multiplicity.html
+CalculationEditor.basisForm:            cgi-bin/help/cshelp?calced&overview_basis.html
+CalculationEditor.theoryPushMenu:       cgi-bin/help/cshelp?calced&overview_theory.html
+CalculationEditor.runtypeOpMenu:        cgi-bin/help/cshelp?calced&overview_runtype.html
+CalculationEditor.primaryForm:          cgi-bin/help/cshelp?calced&overview_runsetup.html
+CalculationEditor.codeOpMenu:           cgi-bin/help/cshelp?calced&overview_codes.html
+CalculationEditor.theoryForm:           cgi-bin/help/toolhelp?child/ce_theory
+CalculationEditor.runForm:              cgi-bin/help/toolhelp?child/ce_runtype
+CalculationEditor.jobForm:              cgi-bin/help/cshelp?calced&overview_jobcontrol.html
+CalculationEditor.finalForm:            cgi-bin/help/cshelp?calced&overview_final_edit.html
+CalculationEditor.launcherForm:         cgi-bin/help/cshelp?calced&overview_launch.html
+
+CalculationEditorMultiplicity:      cgi-bin/help/cshelp?calced&overview_multiplicity.html
+CalculationEditorTheory:            cgi-bin/help/toolhelp?child/ce_theory
+CalculationEditorRuntype:           cgi-bin/help/toolhelp?child/ce_runtype
+
+# --------------------------
+# WxBuilder
+# --------------------------
+# This is a client side "WebHelp" based shorthand where the $ECCE_HOME based
+# path to WebHelp is inserted just after "file://"
+WxBuilder:                            file://Builder-Help.htm
+
+# --------------------------
+# Organizer
+# --------------------------
+# This is a client side "WebHelp" based shorthand where the $ECCE_HOME based
+# path to WebHelp is inserted just after "file://"
+Organizer:                            file://Subsystems/Ecce_Organizer/Ecce_Organizer.htm
+
+# --------------------------
+# Calculation Manager
+# --------------------------
+CalculationManager:                   cgi-bin/help/toolhelp?calcmgr
+CalculationManager.toolbar:           cgi-bin/help/cshelp?calcmgr&overview_project_toolbar.html
+CalculationManager.Table:             cgi-bin/help/cshelp?calcmgr&overview_project_tree.html
+CalculationManager.ETree:             cgi-bin/help/cshelp?calcmgr&overview_project_tree.html
+CalculationManager.cmMenuBar:         cgi-bin/help/cshelp?calcmgr&overview_menubar.shtml
+CalculationManager.cmCalcMenu:        cgi-bin/help/cshelp?calcmgr&overview_menucalc.html
+CalculationManager.cmEditMenu:        cgi-bin/help/cshelp?calcmgr&overview_menuedit.html
+CalculationManager.optionsMenu:     cgi-bin/help/cshelp?calcmgr&overview_menuoptions.html
+CalculationManager.cmRunMgmtMenu:     cgi-bin/help/cshelp?calcmgr&overview_menurunmgmt.html
+CalculationManager.cmToolsMenu:       cgi-bin/help/cshelp?calcmgr&overview_menutools.html
+CalculationManager.cmHelpMenu:        cgi-bin/help/cshelp?calcmgr&overview_menuhelp.shtml
+CalculationManager.Legend:            cgi-bin/help/cshelp?calcmgr&overview_calclegend.html
+CalculationManager.State:             cgi-bin/help/cshelp?calcmgr&overview_calclegend.html
+CalculationManager.fbCalcname:        cgi-bin/help/cshelp?calcmgr&overview_footer.html
+CalculationManager.longNamesText:     cgi-bin/help/cshelp?calcmgr&overview_footer.html
+
+# --------------------------
+# Calculation Manager: Preferences
+# --------------------------
+CalculationManagerPreferences:               cgi-bin/help/toolhelp?child/cm_preferences
+CalculationManagerPreferences.Table:         cgi-bin/help/cshelp?child/cm_preferences&overview_properties.html
+CalculationManagerPreferences.generalTab:    cgi-bin/help/cshelp?child/cm_preferences&overview_general.html
+CalculationManagerPreferences.confirmTgl:    cgi-bin/help/cshelp?child/cm_preferences&overview_general.html
+CalculationManagerPreferences.toolbarTgl:    cgi-bin/help/cshelp?child/cm_preferences&overview_general.html
+CalculationManagerPreferences.legendTgl:     cgi-bin/help/cshelp?child/cm_preferences&overview_general.html
+CalculationManagerPreferences.freezeColsTgl: cgi-bin/help/cshelp?child/cm_preferences&overview_general.html
+CalculationManagerPreferences.dateOpMenu:    cgi-bin/help/cshelp?child/cm_preferences&overview_general.html
+CalculationManagerPreferences.timeOpMenu:    cgi-bin/help/cshelp?child/cm_preferences&overview_general.html
+CalculationManagerPreferences.btnBox:        cgi-bin/help/cshelp?child/cm_preferences&overview_general.html
+
+# --------------------------
+# Calculation Manager: Access Control
+# --------------------------
+AccessControl:                       cgi-bin/help/cshelp?calcmgr&overview_menuoptions.html
+
+# --------------------------
+# Calculation Viewer
+# --------------------------
+CalculationViewer:                    cgi-bin/help/toolhelp?calcview
+CalculationViewer.menuBar:            cgi-bin/help/cshelp?calcview&overview_menubar.shtml
+CalculationViewer.viewerOptions:      cgi-bin/help/cshelp?calcview&overview_menudisplay.html
+CalculationViewer.csMenu:             cgi-bin/help/cshelp?calcview&overview_menuchemsys.html
+CalculationViewer.gridMenu:           cgi-bin/help/cshelp?calcview&overview_menusurface.html
+CalculationViewer.helpPullMenu:       cgi-bin/help/cshelp?calcview&overview_menuhelp.shtml
+CalculationViewer.leftSide:           cgi-bin/help/cshelp?calcview&overview_summarylist.html
+CalculationViewer.rightSide:          cgi-bin/help/cshelp?calcview&overview_sceneviewer.html
+CalculationViewer.isoSlider:          cgi-bin/help/cshelp?calcview&overview_viewercontrols.html
+CalculationViewer.IvCalcViewer:       cgi-bin/help/cshelp?calcview&overview_sceneviewer.html
+CalculationViewer.PropPlot:           cgi-bin/help/cshelp?calcview&overview_tables_plots.html
+3DGridDef:                     cgi-bin/help/cshelp?calcview&bo_3d_grid.html
+GridParams:					   cgi-bin/help/cshelp?calcview&overview_menusurface.html
+Slicer:				           cgi-bin/help/cshelp?calcview&overview_menusurface.html
+Capture:                       cgi-bin/help/cshelp?calcview&overview_menuCalc.html
+
+Basis Set:                     cgi-bin/help/cshelp?calcview&overview_summarylist.html
+Chemical System:               cgi-bin/help/cshelp?calcview&overview_vizproperties.html
+clipboard:                     cgi-bin/help/cshelp?calcview&overview_viewer_controls.html
+Energies:                      cgi-bin/help/cshelp?calcview&overview_summarylist.html
+GEOMTRACE:                     cgi-bin/help/cshelp?calcview&overview_vizproperties.html
+MO:                            cgi-bin/help/cshelp?calcview&overview_vizproperties.html
+Moments:                       cgi-bin/help/cshelp?calcview&overview_summarylist.html
+Normal Modes:                  cgi-bin/help/cshelp?calcview&overview_vizproperties.html
+Polarizabilities:              cgi-bin/help/cshelp?calcview&overview_summarylist.html
+Run Stats:                     cgi-bin/help/cshelp?calcview&overview_summarylist.html
+Setup Parameters:              cgi-bin/help/cshelp?calcview&overview_summarylist.html
+SurfaceDetails:                cgi-bin/help/cshelp?calcview&overview_menusurface.html
+Theory/Runtype:                cgi-bin/help/cshelp?calcview&overview_summarylist.html
+
+# --------------------------
+#  Fragment Library (see Builder: Structure Library)
+# --------------------------
+
+# --------------------------
+# Chemical System Display Options (Builder & Viewer)
+# --------------------------
+CSDetails:                 cgi-bin/help/cshelp?builder&bo_chemsysdetails.shtml
+
+# --------------------------
+# Job Launcher
+# --------------------------
+Launcher:                      cgi-bin/help/toolhelp?launcher
+Launcher.menuBar:              cgi-bin/help/cshelp?launcher&overview_menubar.shtml
+Launcher.launcherMenu:         cgi-bin/help/cshelp?launcher&overview_menujob.html
+Launcher.filterMenu:           cgi-bin/help/cshelp?launcher&overview_menuview.html
+Launcher.helpMenu:             cgi-bin/help/cshelp?launcher&overview_menuhelp.html
+Launcher.machineList:          cgi-bin/help/cshelp?launcher&overview_machineslist.html
+Launcher.machineListForm:      cgi-bin/help/cshelp?launcher&overview_setuparea.html
+Launcher.launchBtn:            cgi-bin/help/cshelp?launcher&overview_launchbutton.html
+
+
+# --------------------------
+# Job Launcher/Machine Browser Children
+# --------------------------
+# --------------------------
+# Register Machine
+# --------------------------
+ConfigSvrs:                       cgi-bin/help/toolhelp?child/regmachine
+
+# --------------------------
+# Machine Browser
+# --------------------------
+MachineBrowser:                cgi-bin/help/toolhelp?machines
+MachineBrowser.machineBrowserMenu: cgi-bin/help/cshelp?machines&overview_menubar.shtml
+MachineBrowser.helpMenu:           cgi-bin/help/cshelp?machines&overview_menuhelp.shtml
+MachineBrowser.machineList:        cgi-bin/help/cshelp?machines&overview_machineslist.html
+MachineBrowser.queueForm:          cgi-bin/help/cshelp?machines&overview_queuemenu.html
+MachineBrowser.statusForm:         cgi-bin/help/cshelp?machines&overview_statusarea.html
+MachineBrowser.refForm:            cgi-bin/help/cshelp?machines&overview_referencearea.html
+MachineBrowser.scratchDirs:        cgi-bin/help/cshelp?machines&overview_referencearea.html
+MachineBrowser.codes:              cgi-bin/help/cshelp?machines&overview_referencearea.html
+MachineBrowser.queueTable:         cgi-bin/help/cshelp?machines&overview_queueattributes.html
+MachineBrowser.viewMenu:           cgi-bin/help/cshelp?machines&overview_queueattributes.html
+MachineBrowser.fbMessageTxt:       cgi-bin/help/cshelp?machines&overview_message_area.shtml
+
+# --------------------------
+# Machine Configuration / Remote Machine Setup
+# --------------------------
+MachineConfig:                 cgi-bin/help/toolhelp?child/configmachine
+
+# --------------------------
+# Periodic Table 
+# --------------------------
+PeriodicTable:                 cgi-bin/help/toolhelp?pertab
+PeriodicTable.menuBar:         cgi-bin/help/cshelp?pertab&overview_menubar.shtml
+PeriodicTable.file:            cgi-bin/help/cshelp?pertab&overview_menufile.html
+PeriodicTable.view:            cgi-bin/help/cshelp?pertab&overview_menuview.html
+PeriodicTable.help:            cgi-bin/help/cshelp?pertab&overview_menuhelp.shtml
+PeriodicTable.PerTab:          cgi-bin/help/cshelp?pertab&overview_pertab.html
+PeriodicTable.saveIcon:        cgi-bin/help/cshelp?pertab&overview_menufile.html
+PerTabData:                    cgi-bin/help/cshelp?pertab&bo_view_info.html
+
+# --------------------------
+# Preferences
+# --------------------------
+Preferences:                   cgi-bin/help/toolhelp?child/preferences
+Preferences.miscTab:           cgi-bin/help/cshelp?child/preferences&overview_miscpref.html
+Preferences.stateTab:          cgi-bin/help/cshelp?child/preferences&overview_runstates.html
+
+###############################################################################
+#                            Shared Dialogs
+###############################################################################
+PeriodicTable.Isotopes:        EcceHelp/homepage.html
+PeriodicTable.Colors:          EcceHelp/homepage.html
+PeriodicTable.AtomicEnergy:    EcceHelp/homepage.html
+PeriodicTable.Reference:       EcceHelp/homepage.html
+
+###############################################################################
+#                            Cross Application Templates
+###############################################################################
+
+# Window Footer
+fbState:           cgi-bin/help/cshelp?child/footer&overview_icon_calcstate.html
+fbCalcName:        cgi-bin/help/cshelp?child/footer&overview_label.html
+fbIconBtn:         cgi-bin/help/cshelp?child/footer&overview_icon_padlock.html
+fbMessageTxt:      cgi-bin/help/cshelp?child/footer&overview_message_area.shtml
+fbDropSite:        cgi-bin/help/cshelp?child/footer&overview_dropsite.html
+
+# Table Print Dialog
+printFrame:         cgi-bin/help/cshelp?shared&addquickhelp.html
+orientationFrame:   cgi-bin/help/cshelp?shared&addquickhelp.html
+destFrame:          cgi-bin/help/cshelp?shared&addquickhelp.html
+printerList:        cgi-bin/help/cshelp?shared&addquickhelp.html
+printFileSelectionBox: cgi-bin/help/cshelp?shared&addquickhelp.html
+printBtnBox:        cgi-bin/help/cshelp?shared&addquickhelp.html
+
+# Table Export Dialog
+exportFormatOpMenu: cgi-bin/help/cshelp?shared&addquickhelp.html
+ExportWin:          cgi-bin/help/cshelp?shared&addquickhelp.html
+
+# File Management Dialog
+Manage Files:       cgi-bin/help/cshelp?calcmgr&bo_filemgt_how2.shtml
+
+

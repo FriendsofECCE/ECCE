@@ -1,0 +1,64 @@
+#!/bin/csh
+#
+
+set httpdserverroot = ##ECCESERVERROOT##/httpd
+
+set httpdport = `grep "^Listen" $httpdserverroot/conf/httpd.conf | awk '{print $2}'`
+if (`netstat -a -n | grep LISTEN | grep "[:.]$httpdport " | wc -l` != 0) then
+  echo "Apache HTTPD server port, $httpdport, already in use\!"
+  echo ""
+  echo "Either an ECCE data server is still running or some other service on"
+  echo "this machine (such as another Apache server) has allocated this port."
+  echo "See the ECCE Installation and Administration Guide for how to change"
+  echo "the ECCE port numbers to avoid conflicts."
+  goto error_exit
+endif
+
+if ( ! -e $httpdserverroot/bin/apachectl) then 
+  echo "Unable to find $httpdserverroot/bin/apachectl"
+  goto error_exit
+endif
+
+if ( ! -d $httpdserverroot/logs) then
+  mkdir $httpdserverroot/logs
+  chmod go-w $httpdserverroot/logs
+endif
+
+if ( -d /var/tmp/EcceServer$httpdport) then
+  rm -rf /var/tmp/EcceServer$httpdport
+endif
+
+if ( ! -d /var/tmp/EcceServer$httpdport) then
+  mkdir -p /var/tmp/EcceServer$httpdport
+  chmod go-w /var/tmp/EcceServer$httpdport
+  if (`whoami` == "root") then
+    chown nobody /var/tmp/EcceServer$httpdport
+  endif
+else
+  echo "Existing data server lock directory /var/tmp/EcceServer$httpdport could not be removed"
+  goto error_exit
+endif
+
+if ( ! -d /var/tmp/EcceServer$httpdport) then
+  echo "Unable to create data server lock directory /var/tmp/EcceServer$httpdport"
+  goto error_exit
+endif
+
+if ($?LD_LIBRARY_PATH) then
+  setenv LD_LIBRARY_PATH ##ECCESERVERROOT##/httpd/lib:${LD_LIBRARY_PATH}
+else
+  setenv LD_LIBRARY_PATH ##ECCESERVERROOT##/httpd/lib
+endif
+
+$httpdserverroot/bin/apachectl start
+if ($status != 0) then
+  echo "Unable to execute apachectl start"
+  goto error_exit
+endif 
+
+echo ""
+exit 0
+
+error_exit:
+  echo ""
+  exit -1

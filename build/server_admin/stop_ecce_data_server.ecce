@@ -1,0 +1,26 @@
+#!/bin/csh
+#
+
+set httpdserverroot = ##ECCESERVERROOT##/httpd
+
+if ( ! -e $httpdserverroot/bin/apachectl) then 
+  echo "Unable to find $httpdserverroot/bin/apachectl"
+  goto error_exit
+endif
+
+$httpdserverroot/bin/apachectl stop
+if ($status == 0) then
+  # Remove the DAV lock directory in case the server is run as a different user
+  set httpdport = `grep "^Listen" $httpdserverroot/conf/httpd.conf | awk '{print $2}'`
+  rm -rf /var/tmp/EcceServer$httpdport
+else
+  echo "Unable to stop data server"
+  goto error_exit
+endif 
+
+echo ""
+exit 0
+
+error_exit:
+  echo ""
+  exit -1

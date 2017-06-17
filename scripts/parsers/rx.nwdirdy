@@ -1,0 +1,979 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+# Purpose:
+#     Script for generating input file for NW DirDy task
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+# make sure script can find perl modules
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+
+# package for command line options
+use Getopt::Std;
+
+# provides hashes for periodic table
+require "pertab.pl";
+
+# Force output to be flushed
+$| = 1;
+
+######
+# Get command line arguments
+######
+
+&getopts('tcdefhijpg');
+&handle_options;
+
+# Angstroms to Bohr conversion factor
+$angtobohr = 1.889725989;
+
+#get transition state geometry
+@at_ts = ();
+@idx_ts = ();
+@x_ts = ();
+@y_ts = ();
+@z_ts = ();
+$genBasis = "";
+$spBasis = "";
+$charge_ts = 0;
+$num_ts = 0;
+%GenDict = ();
+%SPDict = ();
+if ($TSFILE) {
+  open(TSGEOM,$TSFILE);
+  while (<TSGEOM>) {
+    if (/charge\:\s*(\S+)/) {
+       $charge_ts = $1;
+    }
+    if (/num_atoms\:\s*(\S+)/) {
+       $num_ts = $1;
+    }
+    if (/atom_list/) {
+      for ($i=0; $i<$num_ts; $i++) {
+        $line = <TSGEOM>;
+        if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+            $at_ts[$i] = $1;
+            $x_ts[$i] = $angtobohr * $2;
+            $y_ts[$i] = $angtobohr * $3;
+            $z_ts[$i] = $angtobohr * $4;
+        }
+      }
+    }
+    if (/atom_type_list/) {
+      for ($i=0; $i<$num_ts; $i++) {
+        $line = <TSGEOM>;
+        if ($line =~ /^\s*(\S+)\s+/) {
+            $idx_ts[$i] = $1;
+        }
+      }
+    }
+  }
+  close(TSGEOM);
+}
+
+#get geometry of reactant 1, if it exists
+@at_r1 = ();
+@idx_r1 = ();
+@x_r1 = ();
+@y_r1 = ();
+@z_r1 = ();
+$num_r1 = 0;
+if ($R1FILE) {
+  open(R1GEOM,$R1FILE);
+  while (<R1GEOM>) {
+    if (/num_atoms\:\s*(\S+)/) {
+       $num_r1 = $1;
+    }
+    if (/atom_list/) {
+      for ($i=0; $i<$num_r1; $i++) {
+        $line = <R1GEOM>;
+        if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+            $at_r1[$i] = $1;
+            $x_r1[$i] = $angtobohr * $2;
+            $y_r1[$i] = $angtobohr * $3;
+            $z_r1[$i] = $angtobohr * $4;
+        }
+      }
+    }
+    if (/atom_type_list/) {
+      for ($i=0; $i<$num_r1; $i++) {
+        $line = <R1GEOM>;
+        if ($line =~ /^\s*(\S+)\s+/) {
+            $idx_r1[$i] = $1;
+        }
+      }
+    }
+  }
+  close(R1GEOM);
+}
+
+#get geometry of reactant 2, if it exists
+@at_r2 = ();
+@idx_r2 = ();
+@x_r2 = ();
+@y_r2 = ();
+@z_r2 = ();
+$num_r2 = 0;
+if ($R2FILE) {
+  open(R2GEOM,$R2FILE);
+  while (<R2GEOM>) {
+    if (/num_atoms\:\s*(\S+)/) {
+       $num_r2 = $1;
+    }
+    if (/atom_list/) {
+      for ($i=0; $i<$num_r2; $i++) {
+        $line = <R2GEOM>;
+        if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+            $at_r2[$i] = $1;
+            $x_r2[$i] = $angtobohr * $2;
+            $y_r2[$i] = $angtobohr * $3;
+            $z_r2[$i] = $angtobohr * $4;
+        }
+      }
+    }
+    if (/atom_type_list/) {
+      for ($i=0; $i<$num_r2; $i++) {
+        $line = <R2GEOM>;
+        if ($line =~ /^\s*(\S+)\s+/) {
+            $idx_r2[$i] = $1;
+        }
+      }
+    }
+  }
+  close(R2GEOM);
+}
+
+#get geometry of product 1, if it exists
+@at_p1 = ();
+@idx_p1 = ();
+@x_p1 = ();
+@y_p1 = ();
+@z_p1 = ();
+$num_p1 = 0;
+if ($P1FILE) {
+  open(P1GEOM,$P1FILE);
+  while (<P1GEOM>) {
+    if (/num_atoms\:\s*(\S+)/) {
+       $num_p1 = $1;
+    }
+    if (/atom_list/) {
+      for ($i=0; $i<$num_p1; $i++) {
+        $line = <P1GEOM>;
+        if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+            $at_p1[$i] = $1;
+            $x_p1[$i] = $angtobohr * $2;
+            $y_p1[$i] = $angtobohr * $3;
+            $z_p1[$i] = $angtobohr * $4;
+        }
+      }
+    }
+    if (/atom_type_list/) {
+      for ($i=0; $i<$num_p1; $i++) {
+        $line = <P1GEOM>;
+        if ($line =~ /^\s*(\S+)\s+/) {
+            $idx_p1[$i] = $1;
+        }
+      }
+    }
+  }
+  close(P1GEOM);
+}
+
+#get geometry of product 2, if it exists
+@at_p2 = ();
+@idx_p2 = ();
+@x_p2 = ();
+@y_p2 = ();
+@z_p2 = ();
+$num_p2 = 0;
+if ($P2FILE) {
+  open(P2GEOM,$P2FILE);
+  while (<P2GEOM>) {
+    if (/num_atoms\:\s*(\S+)/) {
+       $num_p2 = $1;
+    }
+    if (/atom_list/) {
+      for ($i=0; $i<$num_p2; $i++) {
+        $line = <P2GEOM>;
+        if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+            $at_p2[$i] = $1;
+            $x_p2[$i] = $angtobohr * $2;
+            $y_p2[$i] = $angtobohr * $3;
+            $z_p2[$i] = $angtobohr * $4;
+        }
+      }
+    }
+    if (/atom_type_list/) {
+      for ($i=0; $i<$num_p2; $i++) {
+        $line = <P2GEOM>;
+        if ($line =~ /^\s*(\S+)\s+/) {
+            $idx_p2[$i] = $1;
+        }
+      }
+    }
+  }
+  close(P2GEOM);
+}
+
+# Get parameters from setup GUI
+%PathDict = ();
+if ($ParFILE) {
+  open (SPATH,$ParFILE);
+  while (<SPATH>) {
+    if (/<NWDirdyModel>/) {
+      while (<SPATH>) {
+        if (!/<\/NWDirdyModel>/) {
+          $line = $_;
+          if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+            $key = $1;
+            $value = $2;
+            $PathDict{$key} = $value;
+          }
+        } else {
+          last;
+        }
+      }
+    }
+  }
+  close(SPATH);
+}
+
+# Get General basis
+if ($GBasisFILE) {
+  open (GBASIS, $GBasisFILE);
+  while (<GBASIS>) {
+     $line = $_;
+     $genBasis .= $line;
+  }
+  close(GBASIS);
+}
+
+# Get Single Point basis, if it exists
+if ($SPBasisFILE) {
+  open (SPBASIS, $SPBasisFILE);
+  while (<SPBASIS>) {
+     $line = $_;
+     if ($line =~ /ao basis/) {
+        $line =~ s/ao basis/singlepoint/;
+     }
+     $spBasis .= $line;
+  }
+  close(SPBASIS);
+}
+
+# Get parameters for general calculation, if they exist
+if ($GParamFILE) {
+  open (GPARAM, $GParamFILE);
+  while (<GPARAM>) {
+    $line = $_;
+    if (/(.*)\:(.*)/) {
+# Set key-value pair and remove white space
+      $key = $1;
+      $value = $2;
+      $key =~ s/^\s*//;
+      $key =~ s/\s*$//;
+      $value =~ s/^\s*//;
+      $value =~ s/\s*$//;
+      $GenDict{$key} = $value;
+    }
+  }
+  close(GPARAM);
+}
+
+if ($SPParamFILE) {
+  open (SPPARAM, $SPParamFILE);
+  while (<SPPARAM>) {
+    $line = $_;
+    if (/(.*)\:(.*)/) {
+# Set key-value pair and remove white space
+      $key = $1;
+      $value = $2;
+      $key =~ s/^\s*//;
+      $key =~ s/\s*$//;
+      $value =~ s/^\s*//;
+      $value =~ s/\s*$//;
+      $SPDict{$key} = $value;
+    }
+  }
+  close(SPPARAM);
+}
+
+$value = $GenDict{"title"};
+print "start $value\n\n";
+
+if ($charge_ts != 0) {
+  print "charge $charge_ts\n\n";
+}
+
+#TODO create hash table of atoms in system (temporary til we get basis set hooked up)
+%atsym = ();
+for ($i=0; $i<$num_ts; $i++) {
+  $atsym{$at_ts[$i]} = 1;
+}
+if ($genBasis ne "") {
+  print "$genBasis\n";
+}
+
+if ($PathDict{"SinglePointCategory"} ne "None") {
+  if ($spBasis ne "") {
+    print "$spBasis\n";
+  }
+}
+
+$cmd = "dirdyvtst";
+
+if (defined($PathDict{"AutoSymmetry"})) {
+  if ($PathDict{"AutoSymmetry"}) {
+    $cmd .= " autosym";
+    if (defined($PathDict{"SymmetryTolerance"})) {
+      $value = $PathDict{"SymmetryTolerance"};
+      $cmd .= " $value";
+    }
+  } else {
+    $cmd .= " noautosym";
+  }
+}
+
+$mult = "";  
+if (defined($GenDict{"multiplicity"})) {
+  $mult = $GenDict{"multiplicity"};
+  $mult =~ tr/A-Z/a-z/;
+  if ($mult eq "singlet" || $mult eq "unknown") {
+    $mult = "";  
+  }
+}
+
+print "$cmd\n";
+print "  theory";
+if ($PathDict{"GeneralTheory"} eq "RHF") {
+  print " scf input \"scf\\\; rhf\\\;";
+  if ($mult ne "") {
+    print " $mult\\\;";
+  }
+} elsif ($PathDict{"GeneralTheory"} eq "ROHF") {
+  print " scf input \"scf\\\; rohf\\\;";
+  if ($mult ne "") {
+    print " $mult\\\;";
+  }
+} elsif ($PathDict{"GeneralTheory"} eq "UHF") {
+  print " scf input \"scf\\\; uhf\\\;";
+  if ($mult ne "") {
+    print " $mult\\\;";
+  }
+} elsif ($PathDict{"GeneralTheory"} eq "RDFT") {
+  print " dft input \"dft\\\;";
+} elsif ($PathDict{"GeneralTheory"} eq "UDFT") {
+  print " dft input \"dft\\\; odft\\\;";
+} elsif ($PathDict{"GeneralTheory"} eq "RMP2") {
+  print " mp2 input \"scf\\\; rhf\\\;";
+  if ($mult ne "") {
+    print " $mult\\\;";
+  }
+} elsif ($PathDict{"GeneralTheory"} eq "UMP2") {
+  print " mp2 input \"scf\\\; uhf\\\;";
+  if ($mult ne "") {
+    print " $mult\\\;";
+  }
+} elsif ($PathDict{"GeneralTheory"} eq "RCCSD") {
+  print " ccsd input \"scf\\\; rhf\\\;";
+  if ($mult ne "") {
+    print " $mult\\\;";
+  }
+} elsif ($PathDict{"GeneralTheory"} eq "RCCSD\(T\)") {
+  print " ccsd(t) input \"scf\\\; rhf\\\;";
+  if ($mult ne "") {
+    print " $mult\\\;";
+  }
+}
+&write_theory($PathDict{"GeneralTheory"},%GenDict);
+print " end\"\n";
+
+if ($PathDict{"SinglePointCategory"} ne "None") {
+  print "  sptheory";
+  if ($PathDict{"SinglePointTheory"} eq "RHF") {
+    print " scf basis singlepoint input \"scf\\\; rhf\\\;";
+    if ($mult ne "") {
+      print " $mult\\\;";
+    }
+  } elsif ($PathDict{"SinglePointTheory"} eq "UHF") {
+    print " scf basis singlepoint input \"scf\\\; uhf\\\;";
+    if ($mult ne "") {
+      print " $mult\\\;";
+    }
+  } elsif ($PathDict{"SinglePointTheory"} eq "ROHF") {
+    print " scf basis singlepoint input \"scf\\\; rohf\\\;";
+    if ($mult ne "") {
+      print " $mult\\\;";
+    }
+  } elsif ($PathDict{"SinglePointTheory"} eq "RDFT") {
+    print " dft basis singlepoint input \"dft\\\;";
+  } elsif ($PathDict{"SinglePointTheory"} eq "UDFT") {
+    print " dft basis singlepoint input \"dft\\\; odft\\\;";
+  } elsif ($PathDict{"SinglePointTheory"} eq "RMP2") {
+    print " mp2 basis singlepoint input \"scf\\\; rhf\\\;";
+    if ($mult ne "") {
+      print " $mult\\\;";
+    }
+  } elsif ($PathDict{"SinglePointTheory"} eq "UMP2") {
+    print " mp2 basis singlepoint input \"scf\\\; uhf\\\;";
+    if ($mult ne "") {
+      print " $mult\\\;";
+    }
+  } elsif ($PathDict{"SinglePointTheory"} eq "RCCSD") {
+    print " ccsd basis singlepoint input \"scf\\\; rhf\\\;";
+    if ($mult ne "") {
+      print " $mult\\\;";
+    }
+  } elsif ($PathDict{"SinglePointTheory"} eq "RCCSD\(T\)") {
+    print " ccsd(t) basis singlepoint input \"scf\\\; rhf\\\;";
+    if ($mult ne "") {
+      print " $mult\\\;";
+    }
+  }
+  &write_theory($PathDict{"SinglePointTheory"},%SPDict);
+  print " end\"\n";
+}
+print "\*GENERAL\n";
+print "  TITLE\n";
+$value = $GenDict{"annotation"};
+print "$value\n";
+if ($TSFILE) {
+  print "  ATOMS\n";
+  for ($i=0; $i<$num_ts; $i++) {
+    print "    $idx_ts[$i]   $at_ts[$i]\n";
+  }
+  print "  END\n";
+}
+
+if ($PathDict{"SinglePointCategory"} ne "None") {
+  print "  SINGLEPOINT\n";
+}
+
+if ($R1FILE) {
+  print "\n\*REACT1\n";
+  print "  GEOM\n";
+  for ($i=0; $i<$num_r1; $i++) {
+    print "    $idx_r1[$i]   $x_r1[$i] $y_r1[$i] $z_r1[$i]\n";
+  }
+  print "  END\n";
+  if ($num_r1 == 1) {
+    print "\n  SPECIES ATOMIC\n";
+  } elsif ($num_r1 == 2) {
+    print "\n  SPECIES LINRP\n";
+  } else {
+    $value = 0;
+    if (defined($PathDict{"LinearReact1"})) {
+      $value = $PathDict{"LinearReact1"};
+    }
+    if ($value) {
+      print "\n  SPECIES LINRP\n";
+    } else {
+      print "\n  SPECIES NONLINRP\n";
+    }
+  }
+}
+
+if ($R2FILE) {
+  print "\n\*REACT2\n";
+  print "  GEOM\n";
+  for ($i=0; $i<$num_r2; $i++) {
+    print "    $idx_r2[$i]   $x_r2[$i] $y_r2[$i] $z_r2[$i]\n";
+  }
+  print "  END\n";
+  if ($num_r2 == 1) {
+    print "\n  SPECIES ATOMIC\n";
+  } elsif ($num_r2 == 2) {
+    print "\n  SPECIES LINRP\n";
+  } else {
+    $value = 0;
+    if (defined($PathDict{"LinearReact2"})) {
+      $value = $PathDict{"LinearReact2"};
+    }
+    if ($value) {
+      print "\n  SPECIES LINRP\n";
+    } else {
+      print "\n  SPECIES NONLINRP\n";
+    }
+  }
+}
+
+if ($P1FILE) {
+  print "\n\*PROD1\n";
+  print "  GEOM\n";
+  for ($i=0; $i<$num_p1; $i++) {
+    print "    $idx_p1[$i]   $x_p1[$i] $y_p1[$i] $z_p1[$i]\n";
+  }
+  print "  END\n";
+  if ($num_p1 == 1) {
+    print "\n  SPECIES ATOMIC\n";
+  } elsif ($num_p1 == 2) {
+    print "\n  SPECIES LINRP\n";
+  } else {
+    $value = 0;
+    if (defined($PathDict{"LinearProd1"})) {
+      $value = $PathDict{"LinearProd1"};
+    }
+    if ($value) {
+      print "\n  SPECIES LINRP\n";
+    } else {
+      print "\n  SPECIES NONLINRP\n";
+    }
+  }
+}
+
+if ($P2FILE) {
+  print "\n\*PROD2\n";
+  print "  GEOM\n";
+  for ($i=0; $i<$num_p2; $i++) {
+    print "    $idx_p2[$i]   $x_p2[$i] $y_p2[$i] $z_p2[$i]\n";
+  }
+  print "  END\n";
+  if ($num_p2 == 1) {
+    print "\n  SPECIES ATOMIC\n";
+  } elsif ($num_r2 == 2) {
+    print "\n  SPECIES LINRP\n";
+  } else {
+    $value = 0;
+    if (defined($PathDict{"LinearProd2"})) {
+      $value = $PathDict{"LinearProd2"};
+    }
+    if ($value) {
+      print "\n  SPECIES LINRP\n";
+    } else {
+      print "\n  SPECIES NONLINRP\n";
+    }
+  }
+}
+
+if ($TSFILE) {
+  print "\n\*START\n";
+  print "  GEOM\n";
+  for ($i=0; $i<$num_ts; $i++) {
+    print "    $idx_ts[$i]   $x_ts[$i] $y_ts[$i] $z_ts[$i]\n";
+  }
+  print "  END\n";
+  if ($num_ts == 1) {
+    print "\n  SPECIES ATOMIC\n";
+  } elsif ($num_ts == 2) {
+    print "\n  SPECIES LINTS\n";
+  } else {
+    $value = 0;
+    if (defined($PathDict{"LinearTS"})) {
+      $value = $PathDict{"LinearTS"};
+    }
+    if ($value) {
+      print "\n  SPECIES LINTS\n";
+    } else {
+      print "\n  SPECIES NONLINTS\n";
+    }
+  }
+}
+
+if ($ParFILE) {
+  print "\n\*PATH\n";
+  $value = 0;
+  if (defined($PathDict{"TSTOnly"})) {
+    $value = $PathDict{"TSTOnly"};
+    if ($value == 1) {
+    print "  SLM 0.0\n";
+    print "  SLP 0.0\n";
+    }
+  }
+  if ($value == 0) {
+    if (defined($PathDict{"MEPIncrement"})) {
+      $value = $PathDict{"MEPIncrement"};
+      print "  SSTEP $value\n";
+    }
+    if (defined($PathDict{"SaveIncrement"})) {
+      $value = $PathDict{"SaveIncrement"};
+      print "  SSAVE $value\n";
+    }
+    if (defined($PathDict{"HessianIncrement"})) {
+      $value = $PathDict{"HessianIncrement"};
+      print "  SHESS $value\n";
+    }
+    if (defined($PathDict{"ReducedMass"})) {
+      $value = $PathDict{"ReducedMass"};
+      print "  SCALEMASS $value\n";
+    }
+    if (defined($PathDict{"LowerSLimit"})) {
+      $value = $PathDict{"LowerSLimit"};
+      print "  SLM $value\n";
+    }
+    if (defined($PathDict{"HigherSLimit"})) {
+      $value = $PathDict{"HigherSLimit"};
+      print "  SLP $value\n";
+    }
+    if (defined($PathDict{"SwitchSign"})) {
+      $value = $PathDict{"SwitchSign"};
+      if ($value) {
+        print "  SIGN PRODUCT\n";
+      }
+    }
+    if (defined($PathDict{"IntegrationOpt"})) {
+      $value = $PathDict{"IntegrationOpt"};
+      if ($value == 0) {
+        print "  INTEGRA EULER\n";
+      } elsif ($value == 1) {
+        print "  INTEGRA LQA\n";
+      } elsif ($value == 2) {
+        print "  INTEGRA CLQA\n";
+      } elsif ($value == 3) {
+        print "  INTEGRA CUBE\n";
+      }
+    } 
+    if (defined($PathDict{"PrintFlag"})) {
+      $value = $PathDict{"PrintFlag"};
+      if ($value) {
+        print "  PRINTFREQ on\n";
+      }
+    }
+  }
+}
+
+print "END\n";
+
+print "\ntask dirdyvtst\n";
+
+exit(0);
+
+sub write_theory {
+  my($Theory, %Dict) = @_;
+  local($result, $nmult, $mykey, $exchange, $correlation);
+  if ($Theory =~ /HF/) {
+    $result = $Dict{"ES.Theory.SCF.Direct"};
+    if ($result eq "" && $Dict{"ES.Theory.SCF.DiskSize"}) {
+      print " semidirect filesize ".$Dict{"ES.Theory.SCF.DiskSize"}."000000\\\;";
+    } elsif ($result eq "Direct") {
+      print " direct\\\;";
+    }
+    if (defined($Dict{"ES.Theory.SCF.InitialGuess"})) {
+      $result = $Dict{"ES.Theory.SCF.InitialGuess"};
+      if ($result eq "Core Hamiltonian") {
+        print " vectors hcore\\\;";
+      } elsif ($result eq "NWChem Atomic Guess") {
+        print " vectors atomic\\\;";
+      }
+    }
+    if (defined($Dict{"ES.Theory.SCF.ConvergenceGradient.Value"})) {
+      $result = $Dict{"ES.Theory.SCF.ConvergenceGradient.Value"};
+      print " thresh $result\\\;";
+    }
+    if (defined($Dict{"ES.Theory.SCF.ConvergenceIterations"})) {
+      $result = $Dict{"ES.Theory.SCF.ConvergenceIterations"};
+      print " maxiter $result\\\;";
+    }
+    if (defined($Dict{"ES.Theory.SCF.LevelShiftSize"})) {
+      local($shift1, $shift2, $crossover);
+      $shift1 = $Dict{"ES.Theory.SCF.LevelShiftSize"};
+      $shift2 = $Dict{"ES.Theory.SCF.NewLevelShiftSize"};
+      $crossover = $Dict{"ES.Theory.SCF.NewLevelShiftCrossover"};
+      if($crossover && (! $shift2 )) {$shift2 = 0.0 }
+      if ($shift2 ne "" && $crossover ne "") {
+        print " level pcg $shift1 $crossover $shift2\\\;";
+      } elsif ($crossover ne "") {
+        print " level pcg $shift1 $crossover\\\;";
+      } else {
+        print " level pcg $shift1\\\;";
+      }
+    }
+    if ($Dict{"ES.Theory.SCF.ConvergenceAlgorithm"} eq "Conjugate Gradient") {
+      print " nr 0\\\;";
+    }
+    if (defined($Dict{"ES.Theory.SCF.TwoElectronCutoffExponent"})) {
+      $result = $Dict{"ES.Theory.SCF.TwoElectronCutoffExponent"};
+      print " tol2e $result\\\;";
+    }
+  } elsif ($Theory =~ /DFT/) {
+    $nmult = $GenDict{"openshells"};
+    $result = $nmult + 1;
+    print " mult $result\\\;";
+    if (defined($Dict{"ES.Theory.SCF.Direct"})) {
+      $result = $Dict{"ES.Theory.SCF.Direct"};
+      if ($result eq "Direct" ) {
+# If the user specifies Direct (no memory or disk caching of integrals)
+# they probably wouldn't want to store inverse matrices either, so set
+# noio
+        print " direct\\\; noio\\\;"
+      }
+    }
+    if (defined($Dict{"ES.Theory.SCF.InitialGuess"})) {
+      $mykey = $Dict{"ES.Theory.SCF.InitialGuess"};
+      if ($mykey eq "Core Hamiltonian") {
+        $result = "hcore";
+      } elsif ($mykey eq "NWChem Atomic Guess") {
+        $result = "atomic";
+      } else {
+        $result = "";
+      }
+      if ($result ne "") {
+        print " $result\\\;";
+      }
+    }
+    if (defined($Dict{"ES.Theory.DFT.XCFunctionals"})) {
+      $mykey = $Dict{"ES.Theory.DFT.XCFunctionals"};
+      if ($mykey eq "Becke Half and Half (hybrid)") {
+        $result = "beckehandh";
+      } elsif ($mykey eq "Adiabatic Conn. (hybrid)") {
+        $result = "acm";
+      } elsif ($mykey eq "B3LYP (hybrid)") {
+        $result = "b3lyp";
+      } elsif ($mykey eq "HCTH (Gradient Corr.)") {
+        $result = "hcth";
+      } elsif ($mykey eq "HCTH 120 (Gradient Corr.)") {
+        $result = "hcth120";
+      } elsif ($mykey eq "HCTH 147 (Gradient Corr.)") {
+        $result = "hcth147";
+      } elsif ($mykey eq "HCTH 407 (Gradient Corr.)") {
+        $result = "hcth407";
+      } elsif ($mykey eq "HCTHP 14 (Gradient Corr.)") {
+        $result = "hcth407";
+      } elsif ($mykey eq "Becke 1997 (hybrid)") {
+        $result = "becke97";
+      } elsif ($mykey eq "Becke 1997-1 (hybrid)") {
+        $result = "becke97-1";
+      } elsif ($mykey eq "Becke 1997-2 (hybrid)") {
+        $result = "becke97-2";
+      } elsif ($mykey eq "Becke 1997-GGA1 (Gradient Corr.)") {
+        $result = "becke97gga1";
+      } elsif ($mykey eq "Becke 1998 (hybrid)") {
+        $result = "becke98";
+      } elsif ($mykey eq "PBE0 (hybrid)") {
+        $result = "pbe0";
+      } elsif ($mykey eq "Mod. Perdew-Wang 1K (hybrid)") {
+        $result = "mpw1k";
+      } elsif ($mykey eq "Filatov-Thiel 1997 (Gradient Corr.)") {
+        $result = "ft97";
+      } else {
+        $result = "";
+      }
+      if ($result ne "") {
+        print " XC $result\\\;";
+      } 
+    }
+    $exchange = "";
+    if (defined($Dict{"ES.Theory.DFT.ExchangeFunctionals"})) {
+      $mykey = $Dict{"ES.Theory.DFT.ExchangeFunctionals"};
+      if ($mykey eq "Becke88 (Gradient Corr.)") {
+        $exchange =  "becke88";
+      } elsif ($mykey eq "Perdew 1991 (Gradient Corr.)") {
+        $exchange =  "xperdew91";
+      } elsif ($mykey eq "PBE 1996 (Gradient Corr.)") {
+        $exchange =  "xpbe96";
+      } elsif ($mykey eq "Gill 1996 (Gradient Corr.)") {
+        $exchange =  "gill96";
+      } elsif ($mykey eq "Optimized Exchange (Gradient Corr.)") {
+        $exchange =  "optx";
+      } elsif ($mykey eq "Modified Perdew-Wang 1991 (Gradient Corr.)") {
+        $exchange =  "mpw91";
+      } elsif ($mykey eq "Filatov-Thiel 1997 (Gradient Corr.)") {
+        $exchange =  "xft97";
+      } else {
+        $exchange =  "slater";
+      }
+    }
+    $correlation = "";
+    if (defined($Dict{"ES.Theory.DFT.CorrelationFunctionals"})) {
+      $mykey = $Dict{"ES.Theory.DFT.CorrelationFunctionals"};
+      if ($mykey eq "VWN 1 (local)") {
+        $correlation =  "vwn_1";
+      } elsif ($mykey eq "VWN 2 (local)") {
+        $correlation =  "vwn_2";
+      } elsif ($mykey eq "VWN 3 (local)") {
+        $correlation =  "vwn_3";
+      } elsif ($mykey eq "VWN 4 (local)") {
+        $correlation =  "vwn_4";
+      } elsif ($mykey eq "VWN 1/RPA (local)") {
+        $correlation =  "vwn_1_rpa";
+      } elsif ($mykey eq "Perdew 1981 (local)") {
+        $correlation =  "perdew81";
+      } elsif ($mykey eq "Perdew-Wang 1991 (local)") {
+        $correlation =  "pw91lda";
+      } elsif ($mykey eq "Perdew 1986 (Gradient Corr.)") {
+        $correlation =  "perdew86";
+      } elsif ($mykey eq "Lee-Yang-Parr (Gradient Corr.)") {
+        $correlation =  "lyp";
+      } elsif ($mykey eq "Perdew 1991 (Gradient Corr.)") {
+        $correlation =  "perdew91";
+      } elsif ($mykey eq "PBE 1996 (Gradient Corr.)") {
+        $correlation =  "cpbe96";
+      } elsif ($mykey eq "Filatov-Thiel 1997 (Gradient Corr.)") {
+        $correlation =  "cft97 ";
+      } else {
+        $correlation =  "vwn_5";
+      }
+    }
+    $result = "$exchange $correlation";
+# If default functional, set $result = ""
+    if ($result eq "slater vwn_5" || $result =~ /^\s*$/) {
+      $result = "";
+    }
+# combined functional rules out separate exchange and correlation
+    if (defined($Dict{"ES.Theory.DFT.XCFunctionals"}) && 
+        $Dict{"ES.Theory.DFT.XCFunctionals"} ne "None") {
+      $result = "";
+    } 
+    if ($result ne "") {
+      print " $result\\\;";
+    }
+    if (defined($Dict{"ES.Theory.DFT.GridDensity"})) {
+      $mykey = $Dict{"ES.Theory.DFT.GridDensity"};
+      if ($mykey eq "Extra Coarse") {
+        $result = "xcoarse";
+      } elsif ($mykey eq "Coarse") {
+        $result = "coarse";
+      } elsif ($mykey eq "Fine") {
+        $result = "fine";
+      } elsif ($mykey eq "Extra Fine") {
+        $result = "xfine";
+      } else {
+        $result = "";
+      }
+      if ($result ne "") {
+        print " grid $result\\\;";
+      }
+    }
+    if (defined($Dict{"ES.Theory.DFT.GridAngular"})) {
+      $mykey = $Dict{"ES.Theory.DFT.GridAngular"};
+      if ($mykey eq "Gauss-Legendre") {
+        print " grid gausleg\\\;";
+      }
+    }
+    if (defined($Dict{"ES.Theory.DFT.GridPartition"})) {
+      $mykey = $Dict{"ES.Theory.DFT.GridPartition"};
+      if ($mykey eq "Becke") {
+        $result = "becke";
+      } elsif ($mykey eq "SSF") {
+        $result = "ssf";
+      } else {
+        $result = "";
+      }
+      if ($result ne "") {
+        print " grid $result\\\;";
+      }
+    }
+    if (defined($Dict{"ES.Theory.DFT.GridRadial"})) {
+      $mykey = $Dict{"ES.Theory.DFT.GridRadial"};
+      if ($mykey eq "Euler") {
+        $result = "euler";
+      } elsif ($mykey eq "Treutler") {
+        $result = "treutler";
+      } else {
+        $result = "";
+      }
+      if ($result ne "") {
+        print " grid $result\\\;";
+      }
+    }
+    if (defined($Dict{"ES.Theory.SCF.ConvergenceAlgorithm"})) {
+      $mykey = $Dict{"ES.Theory.SCF.ConvergenceAlgorithm"};
+      if ($mykey eq "Iterative SCF") {
+        print " convergence diisoff\\\;";
+      }
+    }
+    if (defined($Dict{"ES.Theory.SCF.ConvergenceEnergy.Value"})) {
+      $value = $Dict{"ES.Theory.SCF.ConvergenceEnergy.Value"};
+      print " convergence energy $value\\\;";
+    }
+    if (defined($Dict{"ES.Theory.SCF.ConvergenceDensity.Value"})) {
+      $value = $Dict{"ES.Theory.SCF.ConvergenceDensity.Value"};
+      print " convergence density $value\\\;";
+    }
+    if (defined($Dict{"ES.Theory.SCF.ConvergenceGradient.Value"})) {
+      $value = $Dict{"ES.Theory.SCF.ConvergenceGradient.Value"};
+      print " convergence gradient $value\\\;";
+    }
+    if (defined($Dict{"ES.Theory.SCF.ConvergenceIterations"})) {
+      $value = $Dict{"ES.Theory.SCF.ConvergenceIterations"};
+      print " iterations $value\\\;";
+    }
+    if (defined($Dict{"ES.Theory.SCF.NewLevelShiftCrossover"})) {
+      $value = $Dict{"ES.Theory.SCF.NewLevelShiftCrossover"};
+      print " convergence levloff $value\\\;";
+    }
+    if (defined($Dict{"ES.Theory.SCF.LevelShiftSize"})) {
+      $value = $Dict{"ES.Theory.SCF.LevelShiftSize"};
+      print " convergence lshift $value\\\;";
+    }
+    if (defined($Dict{"ES.Theory.SCF.DampingValue"})) {
+      $value = $Dict{"ES.Theory.SCF.DampingValue"};
+      print " convergence damp $value\\\;";
+    }
+    if (defined($Dict{"ES.Theory.DFT.CoulombCutoff"})) {
+      $value = $Dict{"ES.Theory.DFT.CoulombCutoff"};
+      if ($value) {
+        $exponent = int(-0.434294481904 * log($value));
+        print "tolerances accCoul $exponent\\\;";
+      }
+    }
+  } elsif ($Theory =~ /MP2/) {
+    if (defined($Dict{"ES.Theory.UseFrozenCores"}) &&
+        $Dict{"ES.Theory.UseFrozenCores"} == 1) {
+      $value = $Dict{"ES.Theory.CorrelOrb.FrozenCoreValue"};
+      if ($value) {
+        print " freeze core $value\\\;";
+      }
+    }
+    if (defined($Dict{"ES.Theory.MP.UseTightConvergence"})) {
+      if ($Dict{"ES.Theory.MP.UseTightConvergence"}) {
+        print " tight\\\;";
+      }
+    }
+  } elsif ($Theory =~ /CCSD/) {
+    if (defined($Dict{"ES.Theory.CC.ConvergenceEnergy.Value"})) {
+      $value = $Dict{"ES.Theory.CC.ConvergenceEnergy.Value"};
+      if ($value && $value > 0.0) {
+        print " thresh $value\\\;";
+      }
+    }
+    if (defined($Dict{"ES.Theory.CC.ConvergenceIterations"})) {
+      $value = $Dict{"ES.Theory.CC.ConvergenceIterations"};
+      if ($value) {
+        print " maxiter $value\\\;";
+      }
+    }
+    if (defined($Dict{"ES.Theory.UseFrozenCores"}) &&
+        $Dict{"ES.Theory.UseFrozenCores"} == 1) {
+      $value = $Dict{"ES.Theory.CorrelOrb.FrozenCoreValue"};
+      if ($value) {
+        print "freeze core $value\\\;";
+      }
+    }
+  }
+}
+
+sub handle_options {
+#  &usage && exit if ( $opt_h || $opt_help );
+#  $revision = '$Revision: 22972 $';
+#  $revision =~ (s/\$//g);
+#  print "$revision\n" if ( $opt_v );
+#  exit if ( $opt_v );
+  $TSFILE = "";
+  $R1FILE = "";
+  $R2FILE = "";
+  $P1FILE = "";
+  $P2FILE = "";
+  $ParFILE = "";
+  $GBasisILE = "";
+  $SPBasisILE = "";
+  $GParamFILE = "";
+  $SPParamFILE = "";
+  $TSFILE = "transition\.frag" if ( $opt_t );
+  $R1FILE = "reactant1\.frag" if ( $opt_c );
+  $R2FILE = "reactant2\.frag" if ( $opt_d );
+  $P1FILE = "product1\.frag" if ( $opt_e );
+  $P2FILE = "product2\.frag" if ( $opt_f );
+  $ParFILE = "path\.param" if ( $opt_p );
+  $GBasisFILE = "general\.basis" if ( $opt_g );
+  $SPBasisFILE = "single\.basis" if ( $opt_h );
+  $GParamFILE = "general\.param" if ( $opt_i );
+  $SPParamFILE = "single\.param" if ( $opt_j );
+}
+

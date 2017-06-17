@@ -1,0 +1,212 @@
+##############################################################################
+# FILENAME:  build_setup
+#
+# PURPOSE:
+#   CSH script for ECCE build environment
+#
+# DESCRIPTION:
+#   This script sets up aliases and environment variables needed for compiling
+#   ECCE
+#
+########
+# PLEASE follow these rules
+########
+#
+# 1. when adding to PATH or LD_LIBRARY_PATH always check for the
+# directories existence first and make sure it's not already included.
+#
+# 2. Be careful about setting variables like JAVA_HOME that may be used
+# by packages besides ECCE.
+#
+################################################################################
+
+################################################################################
+# $ECCE_HOME must already be set...
+################################################################################
+if ( ! $?ECCE_HOME ) then
+  echo "ERROR: You must set your ECCE_HOME variable.  Please set it and"
+  echo "re-run this script."
+  echo ""
+  exit -1
+endif
+
+
+################################################################################
+# sanity check...
+################################################################################
+if (! -d ${ECCE_HOME} ) then
+  echo "ERROR: no ECCE source code tree at ${ECCE_HOME}"
+  echo ""
+  exit -1
+endif
+
+
+################################################################################
+# Miscellaneous build environment variables
+################################################################################
+if ( ! $?ECCE_COMPILE_MODE) then
+  setenv ECCE_COMPILE_MODE -DINSTALL
+#  setenv ECCE_COMPILE_MODE -g
+endif
+
+# Default is to build with options to allow creation of .so
+if ( ! $?ECCE_SHARED_LIBS) then
+  setenv ECCE_SHARED_LIBS true
+endif
+
+
+################################################################################
+# This gets you some extra Organizer features like showing all data server files
+# and Builder features like type-in command entry
+################################################################################
+#setenv ECCE_DEVELOPER
+
+
+################################################################################
+# sysdir stuff - set a variable to keep from hitting the env all the time
+################################################################################
+setenv ECCE_SYSDIR `${ECCE_HOME}/scripts/sysdir`
+
+
+################################################################################
+# DialogBlocks wxWidgets GUI Builder
+################################################################################
+if ( -d /msrc/proj/ecce/3rdparty/DialogBlocks_aw3) then
+  setenv DIALOGBLOCKSDIR /msrc/proj/ecce/3rdparty/DialogBlocks_aw3
+  if ($?LD_LIBRARY_PATH) then
+    if (`echo $LD_LIBRARY_PATH | grep -c ${DIALOGBLOCKSDIR}` == 0) then
+      setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${DIALOGBLOCKSDIR}
+    endif
+  else
+    setenv LD_LIBRARY_PATH ${DIALOGBLOCKSDIR}
+  endif
+
+  if (`echo $path | grep -c ${DIALOGBLOCKSDIR}` == 0) then
+    set path=(${DIALOGBLOCKSDIR} $path)
+  endif
+endif
+
+# Set variable that determines whether to do wxWidgets dialogblocks
+# code generation during build
+which dialogblocks >& /dev/null
+if ($status == 0) then
+  setenv ECCE_HAVE_BLOCKS true
+else
+  unsetenv ECCE_HAVE_BLOCKS
+endif
+
+
+###############################################################################
+# Java environment for Apache ActiveMQ JMS
+# Don't override a previous setting for JAVA_HOME!
+###############################################################################
+if (! $?JAVA_HOME) then
+  if ( -d $ECCE_HOME/${ECCE_SYSDIR}3rdparty/jre) then
+    setenv JAVA_HOME $ECCE_HOME/${ECCE_SYSDIR}3rdparty/jre
+  endif
+endif
+
+if ($?JAVA_HOME) then
+  if (`echo $path | grep -c ${JAVA_HOME}/bin` == 0) then
+    set path = (${JAVA_HOME}/bin $path)
+  endif
+endif
+
+set CP=""
+foreach file (${ECCE_HOME}/java/lib/*.jar)
+   set CP=${file}:${CP}
+end
+
+if ($?CLASSPATH) then
+  setenv CLASSPATH ${CP}${ECCE_HOME}/siteconfig:.:${CLASSPATH}
+else
+  setenv CLASSPATH ${CP}${ECCE_HOME}/siteconfig:.
+endif
+
+
+################################################################################
+# Environment variables dealing with paths and such
+################################################################################
+setenv ECCE_MAKEINC_DIR ${ECCE_HOME}/build/make
+
+if (`echo ${path} | grep -c "$ECCE_HOME/devtools"` == 0) then
+  set path = ($ECCE_HOME/devtools $path )
+endif
+
+if (`echo ${path} | grep -c "$ECCE_HOME/build"` == 0) then
+  set path = ($ECCE_HOME/build $path )
+endif
+
+if (`echo ${path} | grep -c "$ECCE_HOME/scripts"` == 0) then
+  set path = ($ECCE_HOME/scripts $path )
+endif
+
+
+################################################################################
+# Variables needed to build
+################################################################################
+if ($ECCE_SYSDIR == "") then
+  if (`uname -m | grep -c 64` != 0) then
+    setenv ECCE_BUILD_BITS 64
+  else
+    setenv ECCE_BUILD_BITS 32
+  endif
+else
+  if (`echo $ECCE_SYSDIR | grep -c m32` == 0) then
+    setenv ECCE_BUILD_BITS 64
+  else
+    setenv ECCE_BUILD_BITS 32
+  endif
+endif
+
+if (`uname -m | grep -c 64` != 0 && $ECCE_BUILD_BITS == 32) then
+  setenv ECCE_BUILD_CROSSCOMPILE true
+else
+  unsetenv ECCE_BUILD_CROSSCOMPILE
+endif
+
+
+################################################################################
+# Useful cd alii for the ecce directory tree
+################################################################################
+alias cdtop             'cd $ECCE_HOME/\!*'
+alias cddevtls          'cd $ECCE_HOME/devtools'
+alias cdbuild           'cd $ECCE_HOME/build'
+alias cdbin             'cd $ECCE_HOME/${ECCE_SYSDIR}bin'
+alias cdlib             'cd $ECCE_HOME/${ECCE_SYSDIR}lib'
+alias cdapps            'cd $ECCE_HOME/src/apps/\!*'
+alias cd3rd             'cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty'
+alias cdscripts         'cd $ECCE_HOME/scripts'
+alias cddata            'cd $ECCE_HOME/data/\!*'
+alias cdpars            'cd $ECCE_HOME/scripts/parsers'
+alias cddsm             'cd $ECCE_HOME/src/dsm/\!*'
+alias cdwxgui           'cd $ECCE_HOME/src/wxgui/\!*'
+alias cdwxviz           'cd $ECCE_HOME/src/wxviz/\!*'
+alias cdcomm            'cd $ECCE_HOME/src/comm/\!*'
+alias cdutil            'cd $ECCE_HOME/src/util/\!*'
+alias cdtdat            'cd $ECCE_HOME/src/tdat/\!*'
+alias cdviz             'cd $ECCE_HOME/src/viz/\!*'
+alias cdinv             'cd $ECCE_HOME/src/inv/\!*'
+alias cdsrc             'cd $ECCE_HOME/src/\!*'
+alias cdinc             'cd $ECCE_HOME/include\!*'
+alias cdidsm            'cd $ECCE_HOME/include/dsm'
+alias cdiwxgui          'cd $ECCE_HOME/include/wxgui'
+alias cdiwxviz          'cd $ECCE_HOME/include/wxviz'
+alias cdicomm           'cd $ECCE_HOME/include/comm'
+alias cdiutil           'cd $ECCE_HOME/include/util'
+alias cditdat           'cd $ECCE_HOME/include/tdat'
+alias cdiviz            'cd $ECCE_HOME/include/viz'
+alias cdiinv            'cd $ECCE_HOME/include/inv'
+alias cdjsrc            'cd $ECCE_HOME/java/src/gov/pnnl/emsl/ecce/jms'
+
+
+################################################################################
+# Other useful alii
+################################################################################
+alias db                'blocks'
+alias debugon           'setenv ECCE_COMPILE_MODE -g'
+alias debugoff          'setenv ECCE_COMPILE_MODE -DINSTALL'
+alias sharedon          'setenv ECCE_SHARED_LIBS true'
+alias sharedoff         'setenv ECCE_SHARED_LIBS false'
+alias chhome            'setenv ECCE_HOME \!$ ; source $ECCE_HOME/build/build_setup'
+

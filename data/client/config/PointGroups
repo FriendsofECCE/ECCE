@@ -1,0 +1,84 @@
+# $Source$
+# $Revision: 2 $
+#
+# Each point group (determined by the locations of the nuclei)
+# has its own set of symmetry labels (also known by the formidable
+# moniker "irreducible representations" or "irreps").  Each vibrational
+# mode, molecular orbital, or electronic state can always be assigned
+# to one of the irreps of the nuclear symmetry group.
+#
+# There are a couple of naming conventions for the groups; these 
+# are the "Schoenflies" notation, favored by chemists.
+#
+# Here are the irrep labels for most of the point groups used in chemistry:
+# This list of groups is complete but the irreps are missing for some since
+# they were missing in the text book this was taken from.  This list should
+# contain most/all of the ones we will care about.
+#
+# group: irrep1 irrep2 ...
+
+C1:  A
+C2:  A B
+C3:  A E
+C4:  A B E
+C5:  A E1 E2
+C6:  A B E1 E2
+C7:  A E1 E2 E3
+C8:  A B E1 E2 E3
+
+# I'm not sure about these but they were in the list from Dave.
+CS: A' A''
+CI: Ag Au
+
+IH: Ag T1g T2g Gg Hg Au T1u T2u Gu Hu
+I:  A  T1  T2  G  H
+
+C2V:  A1 A2 B1 B2
+C3V:  A1 A2 E
+C4V:  A1 A2 B1 B2 E
+C5V:  A1 A2 E1 E2
+C6V:  A1 A2 B1 B2 E1 E2
+
+# C1H:  A' A''
+C2H:  Ag Au Bg Bu
+C3H:  A' A'' E' E''
+C4H:  Ag Bg Eg Au Bu Eu
+C5H:  A' E1' E2' A'' E1'' E2''
+C6H:  Ag Bg E1g E2g Au Bu E1u E2u
+
+# S2:  Ag Au
+S4:  A B E
+S6:  Ag Eg Au Eu
+S8:  A B E1 E2 E3
+
+D2:  A1 B1 B2 B3
+D3:  A1 A2 E
+D4:  A1 A2 B1 B2 E
+D5:  A1 A2 E1 E2
+D6:  A1 A2 B1 B2 E1 E2
+
+D2D:  A1 A2 B1 B2 E 
+D3D:  A1g A2g Eg A1u A2u Eu
+D4D:  A1 A2 B1 B2 E1 E2 E3
+D5D:  A1g A2g E1g E2g A1u A2u E1u E2u
+D6D:  A1 A2 B1 B2 E1 E2 E3 E4 E5
+
+D2H: Ag B1g B2g B3g Au B1u B2u B3u
+D3H:  A1' A2' A1'' A2'' E' E''
+D4H: A1g A2g B1g B2g Eg A1u A2u B1u B2u Eu
+D5H: A1' A2' E1' E2' A1'' A2'' E1'' E2''
+D6H: A1g A2g B1g B2g E1g E2g A1u A2u B1u B2u E1u E2u
+D8H: A1g A2g B1g B2g E1g E2g E3g A1u A2u B1u B2u E1u E2u E3u
+
+T:   A E T
+TH:  Ag Au Eg Eu Tg Tu 
+O:   A1 A2 E T1 T2
+OH:  A1g A2g Eg T1g T2g A1u A2u Eu T1u T2u
+TD:  A1 A2 E T1 T2
+
+# Presumably we don't want to support these infinit ones?
+#C<infinity>v:  A1g(Sigmag+) A2g(Sigma-) E1(Pi) E2(Delta)  ... (infinite set)
+#
+#D<infinity>h:  A1g(Sigmag+) A1u(Sigmau-) E1(Pi) E2(Delta)  ... (infinite set)
+#               A2g(Sigmag-) A2u(Sigmau+) E1(Pi) E2(Delta)  ... (infinite set)
+

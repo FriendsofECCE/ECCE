@@ -1,0 +1,32 @@
+name
+Glendening Polarization
+name
+type
+polarization
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+
+!
+
+references
+info
+              Glendening/Feller/Thompson Polarization Sets
+              --------------------------------------------
+ Elements                            Reference
+K, Rb, Cs(1d)  E. Glendening, D. Feller and M. Thompson, J. Am. Chem. Soc.
+               116, 10657 (1994).
+
+
+info
+comments
+2/01/95  - DFF - Original creation of this file.
+comments

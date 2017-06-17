@@ -1,0 +1,191 @@
+################################################################################
+# errmsg
+# 
+# This file contains error msg ids and strings used to communicate
+# between programs.  The file is loaded dynamically.
+#
+###############################################################################
+EE_MISC:              Miscellaneous ECCE error: %s.
+EE_MISC_INFO:         %s.
+EE_MEM_ALLOC:         Memory allocation error:  %s.
+EE_NOT_IMPLEMENTED:   %s not yet implemented.
+
+EE_DUP_KEY:           Duplicate key detected: %s.
+EE_RANGE:             Range error (%d-%d): was %d.
+EE_GDM_RANGE:         Range error  key: %s, value %s.
+EE_COLOR_RANGE:       %s value (%f) out of range - setting to %f.
+EE_ARG_MISMATCH:      Arguments are inconsistent: %s.
+
+EE_BAD_VALUE:            Bad value: %s.
+EE_PARSE_ERROR:          Parse error: %s.
+
+
+EE_BAD_CODE:          Unknown code: %s.
+EE_UNREGISTERED_CODE: %s is not a fully registered code - changing to %s.
+
+#####
+# Basis set stuff
+#####
+EE_UNKNOWN_GBS:          %s is an unknown basis set.
+EE_GBS_EXCEED_MAX_LVAL:  Maximum LValue limit (%d) exceeded: %d.
+EE_GBS_EXCEED_MAX_PRIMS: Maximum # of primitives limit (%d) exceeded: %d.
+EE_GBS_EXCEED_MAX_TOTAL_FUNCS: Maximum # of total functions limit (%d) \
+                               excceded: %d.
+EE_GBS_EXCEED_MAX_TOTAL_PRIMS: Maximum # of total primitives limit (%d) \
+                               excceded: %d.
+EE_GBS_ECP:               ECPs are used but not supported.
+EE_GBS_GROUPS_EMPTY:      One or more groups has not been defined.
+EE_ECP_COVERAGE:          ECP %s
+EE_ORBITAL_COVERAGE:      Orbital basis set %s does not cover all the \
+                          elements in its group.
+EE_GBS_DFTFITTING:        DFT Fitting sets are used but not supported.
+EE_GBS_DFTFITTING_THEORY: DFT Fitting sets are included but a dft theory \
+                          is not being used.
+
+EE_GBS_ONE_ORBITAL:      This code limits you to one orbital basis set.
+EE_GBS_DUP_AUX_BS:       Duplicate auxillary basis sets names %s.
+EE_GBS_DUP_POL_FCTNS:    Duplicate polarization functions.
+EE_GBS_DUP_RYD_FCTNS:    Duplicate rydberg functions.
+EE_GBS_DUP_DIF_FCTNS:    Duplicate diffuse functions.
+EE_GBS_DFTFIT_MISS_ALL:   For performance reasons, charge density (Coulomb) \
+                         fitting should be used. In addition, this code \
+                         requires that all elements have fitting sets \
+                         assigned.
+EE_GBS_DFTFIT_MISS:      For performance reasons, charge density (Coulomb) \
+                         fitting should be used.
+EE_GBS_DFTFIT_ALL:       You must supply fitting sets for all elements.
+EE_GBS_CS_CHANGE:        The change to the chemical system required a change \
+                         to the basis set configuration to maintain \
+                         consistency.  You may need to use the Basis Set \
+                         Tool to reconfigure the basis set.
+EE_GBS_SPHERICAL:        %s/%s does not support spherical polarization \
+                         components.  Selecting cartesians. 
+EE_GBS_CANT_ADD_TIGHT:   Unable to compute appended tight function: %s.
+EE_GBS_CANT_ADD_DIFFUSE: Unable to compute appended diffuse function: %s.
+
+EE_PT_NO_SUCH_SYMBOL:    No such atomic symbol: %s.
+
+EE_CS_BAD_CHARGE:        Positive charge (%d) exceeds nuclear charge (%d).
+EE_CS_BAD_NEG_CHARGE:    Negative charge (%d) appears excessive.
+EE_CS_OVERRIDE_MULTIPLICITY: New chemical system overrides spin multiplicity \ 
+                             and open shells.
+EE_CS_OVERRIDE_THEORY:   New chemical system overrides previous theory.
+EE_CS_OVERRIDE_RUNTYPE:  New chemical system overrides previous runtype.
+EE_CS_BOND_INDEX:        Illegal Bond Index %d for Bond Number %d. (%d Atoms).
+EE_CS_BAD_FORMULA:       Improperly formatted formula detected: %s.
+
+
+
+EE_INSTANTIATE_FAILURE:  %s constructor not completed successfully.
+EE_BAD_VERSION:          Attempt to decriment version number.
+EE_INVALID_THEORY:       Unrecognized theory category or theory name: %s %s.
+EE_INVALID_RUNTYPE:      Unregocnized run type name: %s.
+EE_NOT_MODIFYABLE:       Can't modify some part of an object.
+
+
+
+EE_DB_CREATE_MISC:       Miscellaneous ObjectStore error creating: %s.
+EE_DB_CREATE_PERM:       Permission error creating database: %s.
+EE_DB_NO_VERSION:        Database %s has no version.
+EE_DB_BAD_VERSION:       Mismatch version numbers %s, %s.
+EE_ECCEDB_REINIT:        Attempt to Call EcceDB::initialize() More than Once.
+EE_DB_SCHEMA_MISMATCH:   ObjectStore mismatched schema.
+EE_LOOKUP_FAILED:        Lookup failure on: %s.
+EE_DB_FNF:               ObjectStore file %s was not found.
+EE_DB_MISC:              %s %s.
+EE_DB_PERM:              Permission denied: %s.
+
+#####
+# Files
+#####
+EE_FNF:                  The file %s was not found.
+EE_FILE_CREATED:         New file created: %s.
+EE_FILE_EXISTS:          File already exists: %s.
+EE_FILE_NOT_REMOVED:     Unable to remove file: %s.
+EE_FILE_PERM:            Insufficient privileges on file: %s.
+EE_FILE_ACCESS:          Unable to access file: %s.
+EE_NOT_DIR:              %s already exists and is not a directory.
+EE_SYSFILE_ERR:          %s %s.
+EE_DIR_SPACE:            Insufficient available disk space for directory: %s.
+EE_DIR_NOT_FOUND:        The directory %s was not found.
+EE_DIR_PERMS:            Insufficient privileges on directory:: %s.
+
+#####
+# Remote Command Processing - Including Launch
+#####
+EE_LAUNCH_FAILED:        Unknown Remote Command Failure.
+EE_REMOTE_PERM:          Unable to change permissions on remote files.
+EE_REMOTE_ACCESS:        Unable to access remote file/dir: %s.
+EE_SOCKET_OP:            Socket Create/Destroy/Dup Errors.
+EE_FORKEXEC_FAILED:      RCommand SubProcess Fork Failed.
+EE_MACHINE_CONNECT:      Error Connecting to Remote Machine.
+EE_AUTH:                 Authentication failure on remote command - check \
+                         hostname, username, and password.
+EE_COMMUNICATION:        Failed to Send %d Bytes (%d sent).
+EE_COMM_TIMEOUT:         Communications timeout: %s. 
+EE_CLIENT:               Unable to start local client: %s.
+
+#####
+# Units
+#####
+EE_UNITS_NOCONV:         Could not find conversion from %s to %s. Returning 1.
+EE_UNITS_INVALID:        Unrecognized unit or unit class: %s.
+
+#####
+# Properties
+#####
+EE_PROP_INVALID:         Property Name %s Not Found.  Setting Anyway.
+EE_PROP_CLASS:           Illegal Class %s for Type %s.  Setting to INVALID.
+
+#####
+# Job Setup
+#####
+EE_INVALID_PLATFORM:     Platform %s not registered with Ecce.
+EE_UNKNOWN_MACHINE:      Machine %s not registered with Ecce.
+EE_MACHINE_PREF:         Illegal Machine Preference Format %s.
+EE_UNKNOWN_SCRATCH:      Scratch directory %s for %s is not registered.
+EE_UNKNOWN_QUEUE:        Queue %s for %s is not registered.
+EE_UNKNOWN_REMOTESHELL:  Remote Shell %s for %s is not registered.
+
+#####
+# SmartPointer and os_Reference Errors
+#####
+EE_BAD_OID:              Bad Dump String or Object Pointer.
+
+#####
+# Problems Using system() Command
+#####
+EE_EXEC:                 Error executing: %s.
+
+#####
+# Object Manipulation Signals
+#####
+EE_OBJECT_DEL:           Destroyed Incomplete Experiment.
+
+#####
+# Builder 
+#####
+EE_NO_BOND_SITE:         Atoms must have bonding sites to create a bond. \
+                         Change the geometry to create a bonding site.
+EE_ILLEGAL_BOND:         Bonds cannot be created between two nubs of the \
+                         same atom.
+EE_DUP_BOND:		 A bond already exists between the specified atoms.
+#####
+# EDSI Stuff
+#####
+#
+# EDSI error keys and messages
+#
+# For long messages, use '\' at the end of a line to continue it
+#
+ILLEGAL_CALCULATION_LOCATION:  %s is contained within another calculation  
+NOT_CALCULATION:  %s is not a calculation.  
+NOT_COLLECTION: %s is not a collection.
+NOT_IMPLEMENTED: %s not implemented by this server.
+NOT_REGULAR_FILE: %s is not a regular file.
+RESOURCE_NOT_FOUND: %s does not exist.
+SERVER_NOT_FOUND: %s or it's port is not available or does not exist.
+UNABLE_TO_COPY: Unable to copy %s
+UNABLE_TO_DELETE: Unable to delete %s
+UNABLE_TO_READ: Unable to open %s for reading.
+UNABLE_TO_WRITE: Unable to open %s for write.

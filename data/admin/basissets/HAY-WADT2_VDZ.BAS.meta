@@ -1,0 +1,53 @@
+name
+Hay-Wadt VDZ (n+1) ECP
+name
+type
+ECPOrbital
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+GC
+contraction_type
+references
+Elements                             References
+--------                             ----------
+K - Au: P. J. Hay and W. R. Wadt, J. Chem. Phys. 82, 299 (1985).
+        P. J. Hay (Private Communication).
+
+references
+info
+              Hay-Wadt (n+1) ECP VDZ Basis Sets
+              -----------------------------------------
+Elements     Contraction                   References
+ K - Ca: (5s,5p)    -> [3s,3p]     P. J. Hay and W. R. Wadt, J. Chem. Phys.
+Sc - Cu: (5s,5p,5d) -> [3s,3p,2d]  82, 299 (1985).
+Rb - Sr: (5s,6p)    -> [3s,3p]
+ Y - Ag: (5s,6p,5d) -> [3s,3p,2d]
+Cs - Ba: (5s,6p)    -> [3s,3p]
+La - Au: (5s,6p,5d) -> [3s,3p,2d]
+
+The Hay-Wadt (n+1) effective core potentials include an extra shell of
+electrons beyond what is traditionally available in effective core potentials.
+For example, on potassium the 3s and 3p electrons are not subsumed into the
+core as they would be in other ECP's.  This set is derived from the exponents
+and contraction coefficients given in the Hay-Wadt paper and were obtained
+directly from P. J. Hay.  Any discrepancy between the numbers contained in
+these basis sets and the JCP paper are attributable to the file obtained from
+Jeff at Los Alamos.  The elements beyond Kr include the 1-electron Darwin and
+mass-velocity relativistic corrections in their definitions.
+
+info
+comments
+10/23/99  - DFF - Correct silver s contraction coefficient.
+11/20/97  - DFF - Correct no. of d exponents for wolfram (tungsten)
+9/1/97  - DFF - Reformat as general contractions. 
+3/8/95  - DFF - Change literature citation format.
+8/24/94  - DFF - Correct error in NUMEXP for wolfram
+12/6/93  - DFF - Some reformatting to conform to MSRC Lib. conventions.
+12/2/93  - SJB - Original creation of this file from a file sent by Jeff Hay.
+comments

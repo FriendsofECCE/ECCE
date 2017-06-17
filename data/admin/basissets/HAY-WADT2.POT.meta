@@ -1,0 +1,22 @@
+name
+HAY/WADT (N-1) ECP
+name
+type
+ecp
+type
+category
+AUXILIARY
+category
+references
+Elements                             References
+--------                             ----------
+K - Au: P. J. Hay and W. R. Wadt, J. Chem. Phys. 82, 299 (1985).
+        P. J. Hay (Private Communication).
+
+references
+comments
+1/01/02  - DFF - Add Hf back into file.  Two basis sets reference this
+7/15/96  - DFF - Correct NUMEXP for Ti, Co and Ni.
+12/16/93  - DFF - Some reformatting to conform to MSRC Lib. conventions.
+12/2/93  - SJB - Original creation of this file from a file sent by Jeff Hay.
+comments

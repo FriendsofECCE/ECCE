@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   See online documenation at http://www.emsl.pnl.gov:2080/docs/ecce
+-->
+
+<appdescriptor codeName="NWChem">
+
+<!-- Raw File Naming Conventions
+-->
+
+<DataFiles>
+  <Input   type="primary" mimetype="chemical/x-nwchem-input" comment="true" commentstring="#">nwch.nw</Input>
+  <Input   type="primary" mimetype="chemistry/x-nwchem-input" comment="true" commentstring="#">nwch.in</Input>
+  <Output type="primary" mimetype="chemical/x-nwchem-output">nwch.nwout</Output>
+  <Output type="primary" mimetype="chemistry/x-nwchem-output">nwch.out</Output>
+  <Output type="parse" verifypattern="" mimetype="chemical/x-ecce-parse">##SystemName##_##CalcName##.prp</Output>
+  <Output type="auxiliary" mimetype="chemical/x-nwchem-mo">movec.nw_mo</Output>
+  <Output type="auxiliary" mimetype="chemistry/x-nwchem-mo">movec</Output>
+  <Output type="property" mimetype="chemical/x-gaussian-cube">CUBE</Output>
+  <Output type="fragment" mimetype="chemical/x-pdb"></Output>
+  <Output type="restart" mimetype="chemical/x-nwchem-restart"></Output>
+  <Output type="topology" mimetype="chemical/x-nwchem-topology"></Output>
+  <Output type="mdproperties" mimetype="chemical/x-nwchem-md-properties"></Output>
+  <Output type="mdoutput" mimetype="chemical/x-nwchem-md-output"></Output>
+  <Output type="property" mimetype="chemical/x-nwchem-md-trajectory">TRJ</Output>
+  <Output type="property" mimetype="chemical/x-nwchem-md-pmf">PMF</Output>
+
+
+  <!-- List of suffix mappings
+       Any file with a suffix of the "from" value will be renamed so
+       that its new suffix is the "to" value, before being uploaded 
+       to the dav server.  This ensures calculation data files will be
+       correctly mime-typed when stored on the dav server.  This becomes
+       necessary when codes generate data files that have an ambiguous 
+       filename suffix.  -->
+  <SuffixMap from="out" to="mdout"/>
+
+</DataFiles>
+
+<!-- Names of files required for code integration.  These files are
+     assumed to be in the ecce path as managed by the ecce_env script.
+-->
+<IntegrationFiles>
+  <Template>	nwch.tpl  </Template>
+  <PrepareInputGenerator>md.nwprep</PrepareInputGenerator>
+  <TaskInputGenerator>md.nwtask</TaskInputGenerator>
+  <Importer>NWChem.expt </Importer>
+  <ParseSpecification>nwchemmd.desc </ParseSpecification>
+  <LaunchPreprocessor>nwchem.launchpp </LaunchPreprocessor>
+</IntegrationFiles>
+
+</appdescriptor>

@@ -1,0 +1,127 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+################################################################################
+
+# Force output to be flushed
+$| = 1;
+
+# read the data from stdin:
+#
+@xval = ();
+@yval = ();
+@eval = ();
+$icnt = 0;
+$jcnt = 0;
+$ncnt = 0;
+$nmeta = 0;
+$readData = 0;
+$is1D = 0;
+$is2D = 0;
+$xsize = 0;
+$ysize = 0;
+$firstLine = 0;
+while (<STDIN>) {
+  $line = $_;
+  if ($readData == 0) {
+    if ($line =~ /^\s*$/) { next; }
+    if ($line =~ /^\s*#/) { next; }
+    if ($line =~ /^\s*(\S+)\s+(\S+)\s*$/) {
+      $firstLine = 1;
+      $is1D = 1;
+      $xval[$icnt] = $1;
+      $eval[$ncnt] = $2;
+      $icnt++;
+      $ncnt++;
+    }
+    if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+      $firstLine = 1;
+      $is2D = 1;
+      $xval[$icnt] = $1;
+      $yval[$jcnt] = $2;
+      $eval[$ncnt] = $3;
+      $icnt++;
+      $ncnt++;
+    }
+  }
+  if ($readData == 1 && $is1D == 1) {
+    if ($line =~ /^\s*(\S+)\s+(\S+)\s*$/) {
+      $xval[$icnt] = $1;
+      $eval[$ncnt] = $2;
+      $icnt++;
+      $ncnt++;
+      $xsize = $icnt;
+    }
+  }
+  if ($readData == 1 && $is2D == 1) {
+    if ($line =~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+      if ($xsize == 0) {
+        $xval[$icnt] = $1;
+        $icnt++;
+      }
+      $yval[$jcnt] = $2;
+      $eval[$ncnt] = $3;
+      $ncnt++;
+    } elsif ($line =~ /^\s*$/) {
+      $jcnt++;
+      if ($xsize == 0) {
+        $xsize = $icnt;
+      }
+    }
+  }
+  if ($firstLine == 1) {
+    $readData = 1;
+  }
+}
+if ($is2D) {
+  $ysize = $jcnt;
+}
+if ($xsize > 0 && $is1D == 1) {
+  print "key: METAVEC\n";
+  print "size:\n";
+  print "$xsize 1\n";
+  print "rowlabels:\n";
+  for ($i=0; $i<$xsize; $i++) {
+    print "$xval[$i] ";
+  }
+  print "\ncolumnlabels:\n";
+  print "values:\n";
+  for ($i=0; $i<$ncnt; $i++) {
+    print "$eval[$i]\n";
+  }
+  print "\nunits:\nHartree\n";
+  print "END\n";
+}
+
+if ($xsize > 0 && $ysize > 0 && $is2D == 1) {
+  print "key: METATABLE\n";
+  print "size:\n";
+  print "$xsize $ysize\n";
+  print "rowlabels:\n";
+  for ($i=0; $i<$xsize; $i++) {
+    print "$xval[$i] ";
+  }
+  print "\ncolumnlabels:\n";
+  for ($i=0; $i<$ysize; $i++) {
+    print "$yval[$i] ";
+  }
+  print "\nvalues:\n";
+  $ncnt = 0;
+  for ($j=0; $j<$ysize; $j++) {
+    for ($i=0; $i<$xsize; $i++) {
+      print "$eval[$ncnt]\n";
+      $ncnt++;
+    }
+  }
+  print "\nunits:\nHartree\n";
+  print "END\n";
+}

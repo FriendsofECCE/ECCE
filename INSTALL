@@ -1,0 +1,1057 @@
+
+                 ====================================
+                 ECCE Installation and Administration
+                 ====================================
+
+****************** SPECIAL NOTE for Ubuntu installs **************************
+Ubuntu currently has a Gtk bug where wxWidgets based GUI applications like
+ECCE will not display menubars, rendering ECCE useless.  In order to work
+around this problem, the following command must be run before running ECCE:
+$ sudo apt-get remove appmenu-gtk
+******************************************************************************
+
+
+Overview
+--------
+
+ECCE can be installed and run on most Linux 32- and 64-bit operating 
+systems such as Red Hat Enterprise Linux, Debian, Ubuntu, OpenSUSE, 
+and Mint.  This includes both native and virtual machine Linux installs 
+using VirtualBox (http://www.virtualbox.org) or VMware 
+(http://www.vmware.com).  Installing Linux as virtual machine allows 
+sites with only Windows or Macintosh OS X workstations to run ECCE.  
+A minimum of 2 GB of memory is needed to run both your Linux 
+operating system and ECCE although 4 GB or more is recommended.  
+The minimum free disk space needed to install both the ECCE 
+application and server software is 500 MB.  However, the ECCE server 
+maintains job input and output files for all calculations setup and run 
+using ECCE.  Therefore additional free disk space is recommended from 
+several gigabytes on up the terabyte range depending upon the size of 
+calculations run and the number of users sharing the ECCE server.
+
+When running ECCE three distinct types of hosts are used:
+
+* Desktop workstations running ECCE client graphical user interface applications
+* Data and messaging servers
+* Compute resources running chemistry codes
+
+ECCE client application software such as the Builder, Organizer, 
+Electronic Structure Editor, and Viewer run on Linux workstations using 
+the wxWidgets GUI toolkit, which is built on the Gtk toolkit with the 
+base X Window System.  These workstations must run either 32-bit i686 
+processors or 64-bit x86_64 processors, constrained by the minimum 
+platform requirements mentioned above.  The application software can 
+be installed on each individual workstation running ECCE, or preferably 
+for a multi-user install, on a shared file system such as NFS or AFS that 
+each workstation accesses.
+
+The ECCE data and messaging server are packaged together to run on 
+the same host.  The data server is an open source Apache2 web server 
+(http://httpd.apache.org) compiled with the optional mod_dav module to 
+support distributed collaborative data management.  The mod_dav 
+module implements the Distributed Authoring and Versioning (DAV) 
+protocol (http://www.webdav.org/) for maintaining files with associated 
+metadata on a web server.  The messaging server relies on an open 
+source client/server implementation of the Java standard for inter-process 
+communication (Java Messaging Service), named ActiveMQ 
+(http://activemq.apache.org), to manage communications between the 
+separate applications running in an ECCE session.  ECCE has applied 
+this technology to C++ applications by embedding a Java virtual 
+machine inside the main Gateway toolbar application.  In addition to the 
+data and messaging server software, ECCE reference data libraries (basis 
+set and structure libraries) and a small number of ECCE server 
+administration scripts are provided.  Typically a single data and 
+messaging server (referred to collectively as an ECCE server) can be 
+installed at a site serving all workstations running the ECCE application 
+software, although multiple ECCE servers can be installed with user 
+access to each being configured by the ECCE site administrator.
+
+The compute resources where chemistry codes run range from single 
+processor desktop workstations to massively parallel supercomputers and 
+clusters running a variety of batch queue scheduling systems.  They are 
+not as tightly constrained as the Linux platforms on which the ECCE 
+application and server software must be run, although they must run 
+UNIX, Linux, or Macintosh OS X with C shell (csh) and the Perl 
+scripting language available.  The NWChem code is bundled with the 
+ECCE binary distribution and may be used to run chemistry jobs on the 
+same host as ECCE client applications.  However, for shared file system 
+installations of ECCE client application software, NWChem performance 
+is severely degraded and may prove impractical.  More than likely you 
+will want to run NWChem and other chemistry codes on higher 
+performance dedicated compute resources rather than where ECCE client 
+applications are installed.  This will require separate installation of the 
+chemistry code from ECCE as well as registration of the compute 
+resource in ECCE as described later in this document.
+
+It is important to understand that each of these three host types is distinct 
+within ECCE.  It is possible for a single desktop workstation to function 
+as all three of these for an ECCE installation and represent the extent of 
+the ECCE configuration at a site.  Conversely, there may be dozens of 
+workstations running the application software, accessing several ECCE 
+servers, and farming out chemistry jobs to compute resources both at the 
+site and around the world.
+
+
+Download ECCE Binary Distribution or Build ECCE Source Distribution
+-------------------------------------------------------------------
+
+Instructions for obtaining ECCE can be found on the ECCE website at 
+http://ecce.pnl.gov.  The download website has both 32- and 64-bit 
+binary distributions and a source code distribution.  Binary distributions 
+are provided for both the full ECCE software suite and the standalone 
+ECCE Builder application.  Although these binary distributions are built 
+on Red Hat Enterprise Linux (the operating system supported for the 
+EMSL where ECCE is developed), this distribution should run on a 
+variety of Linux operating systems.  This is possible by bundling all the 
+shared libraries required for the different ECCE applications including 
+system libraries that are normally present on most Linux systems, but 
+may not be fully compatible with what was used to create the ECCE 
+binary distributions on Red Hat.  These binary distributions have been 
+tested with operating systems including Debian, Ubuntu, OpenSUSE, 
+and Mint in addition to Red Hat.
+
+Sites having difficulty using the ECCE binary distributions, those 
+considering modifying or adding to ECCE code, or those just wanting a 
+better understanding of the ECCE software can download and build 
+ECCE from the source code distribution.  The results from completing an 
+ECCE source code build as documented in the build/README file in 
+that distribution (the build directory is not included with ECCE binary 
+distributions) will be an ECCE binary distribution specific to the Linux 
+operating system and hard platform on which it was built.  This new 
+ECCE binary distribution is identical in structure to those downloadable 
+from the ECCE website and thus the install documentation herein should 
+be followed to complete the installation.
+
+Using a web browser, download the desired ECCE distribution for your 
+platform to a local disk directory.  File size for downloading is displayed 
+on the web page although having sufficient additional free disk space 
+during installation is critical since ECCE distributions are compressed 
+and extraction will multiply the size requirements.  This document 
+assumes that either a full ECCE binary distribution is downloaded or that 
+a source code distribution has been downloaded, built, and a new ECCE 
+binary distribution has been generated from that build as the starting 
+point for the installation procedures given below.  ECCE Builder binary 
+distribution installations are documented separately.  Full ECCE binary 
+distributions include both the ECCE application software and server, 
+although installation options allow you to selectively install only 
+applications or the server, as well as both.  This gives flexibility that 
+allows, for example, sharing one ECCE server for separate 32-bit and 64-
+bit application software installations.  As a benefit of the web server 
+technology underlying ECCE data management, the ECCE server can be 
+installed on a machine of your choosing provided it is accessible via http 
+from the machines where ECCE application software is run (shared file 
+systems aren't needed between server and application machines).
+
+
+Install ECCE
+------------
+
+The installation procedures assume a basic familiarity with UNIX/Linux 
+system administration.  Commands given are for sh and also apply to 
+bash; if you are using another shell such as csh or tcsh, you may need to 
+adjust the syntax.
+
+In order to maintain the integrity of the installation, we recommend 
+creating an account named ecceadm, for "ECCE Administrator", or 
+something similar and installing as that user.  There are many 
+configuration files, along with executables and libraries distributed with 
+ECCE that if removed or improperly modified will corrupt the 
+installation.
+ 
+The ECCE binary distribution itself is a self-extracting C shell 
+installation script along with the application software and server bzip2 
+format compressed tar files.  The installation script has a main menu 
+allowing you to select the type of install to be performed.  Normally a 
+"full" installation of both the application and server software is done.  
+This option is appropriate for either standalone or networked hosts.  
+Further options allow the application software and server to be installed 
+independently.  These options accommodate application software being 
+installed on all desired platforms (by downloading and running the 
+binary distribution script on each platform), with the server installed on 
+just a single platform, among other scenarios.  The main menu allows 
+both new installations and upgrades of older releases of ECCE to the 
+newest version.
+
+Depending upon the policies at your site, you may need to do the server 
+side of the installation as another user rather than ecceadm.  If you install 
+as root the Apache httpd daemon will automatically run as the 
+unprivileged "nobody" user, an additional security benefit when your 
+network, firewall, and web server configuration allows external access.  
+If you wish to do a server install as root, you may either install all of 
+ECCE as root ("full install"), or you can install the application software 
+first as ecceadm (or another user) selecting "Application software install" 
+from the main menu, and then doing a second install as root selecting 
+"Server install" from the main menu.
+
+The following steps document sample installations of ECCE on a Linux 
+host for two common scenarios--a full install and a full upgrade.  If you 
+are doing other than a full ECCE install or upgrade, then the prompts 
+below will vary somewhat.
+
+
+Full ECCE Install
+-----------------
+
+Run the install_ecce.*.csh script in the directory where it was 
+downloaded.  You may need to add execute permission to the file 
+first.  Note that values in square brackets are defaults and you may 
+simply hit return to use a default.  For clarity, values are always 
+explicitly entered for the prompts in these sample installs even when 
+the default value is used.  Here is the first sample invocation of 
+install_ecce.*.csh, a full install, run as ecceadm with links to notes 
+describing how to determine appropriate values for each of the 
+configuration settings:
+
+	prompt$ cd /myfiles
+	prompt$ chmod +x ./install_ecce.v6.4.rhel5-gcc4.1.2-m64.csh
+	prompt$ ./install_ecce.v6.4.rhel5-gcc4.1.2-m64.csh
+
+	Extracting ECCE distribution from ./install_ecce.v6.4.rhel5-
+        gcc4.1.2-m64.csh...
+
+	Main ECCE installation menu
+	===========================
+        1) Help on main menu options
+        2) Prerequisite software check
+	3) Full install
+	4) Full upgrade
+	5) Application software install
+	6) Application software upgrade
+	7) Server install
+	8) Server upgrade
+
+	IMPORTANT: If you are uncertain about any aspect of installing
+	or running ECCE at your site, please refer to the detailed
+	ECCE Installation and Administration Guide at
+	http://ecce.emsl.pnl.gov/docs/installation/2864B-Installation.pdf
+
+	Hit <return> at prompts to accept the default value in brackets.
+
+	Selection:  [1] 2
+
+	Checking prerequisites for running ECCE...
+
+	If any of the following packages aren't found or aren't the right
+	version, hit <ctrl>-c at the prompt and either find or install
+	the package before installing ECCE.  The whereis command is
+	useful for finding commands and libraries not in your path.
+
+	Found java in: /usr/bin/java
+	ECCE requires java 1.5.x or 1.6.x
+	This version: java version "1.6.0_18"
+	Hit return if this java is OK...
+
+	Found python in: /usr/bin/python
+	ECCE requires python 2.4.x or newer
+	This version: Python 2.6.6
+	Hit return if this python is OK...
+
+	Found perl in: /usr/bin/perl
+	ECCE requires perl 5.x.x
+	This is perl, v5.10.1 (*) built for x86_64-linux-gnu-thread-multi
+	Hit return if this perl is OK...
+
+	Pkg-config check for gtk+-2.0: Found
+	ECCE requires gtk+-2.0 2.x.x
+	This version: 2.20.1
+	Hit retrn if this gtk+-2.0 is OK...
+
+	Found ImageMagick mogrify in: /usr/bin/mogrify
+	ECCE requires mogrify 6.x.x or newer
+	Version: ImageMagick 6.6.0-4 2012-03-05 Q16 http://www.imagemagick.org
+	Hit return if this mogrify is OK...
+
+	Found xterm in: /usr/bin/xterm
+	Hit return if xterm was found...
+
+	Main ECCE installation menu
+	===========================
+        1) Help on main menu options
+        2) Prerequisite software check
+	3) Full install
+	4) Full upgrade
+	5) Application software install
+	6) Application software upgrade
+	7) Server install
+	8) Server upgrade
+
+	IMPORTANT: If you are uncertain about any aspect of installing
+	or running ECCE at your site, please refer to the detailed
+	ECCE Installation and Administration Guide at
+	http://ecce.emsl.pnl.gov/docs/installation/2864B-Installation.pdf
+
+	Hit <return> at prompts to accept the default value in brackets.
+
+	Selection:  [1] 3
+
+	Host name: [mymachine.mysite.mydomain] mymachine.mysite.mydomain
+	Application installation directory:  [/myfiles/ecce-v6.4/apps] 
+        /sharednfs/ecce-v6.4/apps
+	Server installation directory:  [/myfiles/ecce-v6.4/server] 
+        /myfiles/ecce-v6.4/server
+
+	ECCE v6.4 will be installed using the settings:
+
+	  Installation type: [full install]
+	  Host name:  [mymachine.mysite.mydomain]
+	  Application installation directory:  [/sharednfs/ecce-v6.4/apps]
+	  Server installation directory:  [/myfiles/ecce-v6.4/server]
+
+	Are these choices correct (yes/no/quit)? [yes] yes
+
+	Installing ECCE application software in /sharednfs/ecce-v6.4/apps...
+	  Extracting application distribution...
+	  Extracting NWChem distribution...
+	  Extracting client WebHelp distribution...
+	  Configuring application software...
+	  Configuring NWChem...
+
+	Installing ECCE server in /myfiles/ecce-v6.4/server...
+	  Extracting data server in /myfiles/ecce-v6.4/server/httpd...
+	  Extracting data libraries in /myfiles/ecce-v6.4/server/data...
+	  Extracting messaging server in /myfiles/ecce-v6.4/server/activemq...
+	  Configuring ECCE server...
+
+	ECCE installation succeeded.
+
+	***************************************************************
+	!! You MUST perform the following steps in order to use ECCE !!
+	-- Unless only the user 'ecceadm' will be running ECCE,
+           start the ECCE server as 'ecceadm' with:
+	     /myfiles/ecce-v6.4/server/ecce-admin/start_ecce_server
+
+	-- To register machines to run computational codes, please see
+   	   the installation and compute resource registration manuals
+	   at http://ecce.pnl.gov/using/installguide.shtml
+
+	-- Before running ECCE each user must source an environment
+	   setup script.  For csh/tcsh users add this to ~/.cshrc:
+	     if (-e /sharednfs/ecce-v6.4/apps/scripts/runtime_setup) then
+	       source /sharednfs/ecce-v6.4/apps/scripts/runtime_setup
+     	     endif
+	   For sh/bash users, add this to ~/.profile or ~/.login:
+	     if [ -e /sharednfs/ecce-v6.4/apps/scripts/runtime_setup.sh ]; then
+	       . /sharednfs/ecce-v6.4/apps/scripts/runtime_setup.sh
+	     fi
+	***************************************************************
+
+	prompt$
+
+
+Full ECCE Upgrade
+-----------------
+
+Here is the second sample invocation of install_ecce.v6.4.*.csh, a 
+full upgrade from a release of ECCE v6.0, run as ecceadm with links 
+to notes describing how to determine appropriate values for each of 
+the configuration settings:
+
+	prompt$ cd /myfiles
+	prompt$ chmod +x ./install_ecce.v6.4.rhel5-gcc4.1.2-m64.csh
+	prompt$ ./install_ecce.v6.4.rhel5-gcc4.1.2-m64.csh
+
+	Extracting ECCE distribution from ./install_ecce.v6.4.rhel5-
+        gcc4.1.2-m64.csh...
+
+	Main ECCE installation menu
+	===========================
+        1) Help on main menu options
+        2) Prerequisite software check
+	3) Full install
+	4) Full upgrade
+	5) Application software install
+	6) Application software upgrade
+	7) Server install
+	8) Server upgrade
+
+	IMPORTANT: If you are uncertain about any aspect of installing
+	or running ECCE at your site, please refer to the detailed
+	ECCE Installation and Administration Guide at
+	http://ecce.emsl.pnl.gov/docs/installation/2864B-Installation.pdf
+
+	Hit <return> at prompts to accept the default value in brackets.
+
+	Selection:  [0] 4
+
+	Host name:  [mymachine.mysite.mydomain] mymachine.mysite.mydomain
+	New application installation directory:  [/myfiles/ecce-v6.4/apps] 
+        /sharednfs/ecce-v6.4/apps
+	Existing application directory to upgrade:  /sharednfs/ecce-v6.0/apps
+	New server installation directory:  [/myfiles/ecce-v6.4/server] 
+        /myfiles/ecce-v6.4/server
+	Existing server directory to upgrade:  /myfiles/ecce-v6.0/server
+	Backup existing server user data (yes/no)? [yes] yes
+	
+	ECCE v6.4 will be installed using the settings:
+
+	  Installation type:  [full upgrade]
+	  Host name:  [mymachine.mysite.mydomain]
+	  Application installation directory:  [/sharednfs/ecce-v6.4/apps]
+	  Application directory to upgrade:  [/sharednfs/ecce-v6.0/apps]
+	  Server installation directory:  [/myfiles/ecce-v6.4/server]
+	  Server directory to upgrade:  [/myfiles/ecce-v6.0/server]
+	  Backup existing server user data:  [yes]
+
+	Are these choices correct (yes/no/quit)? [yes] yes
+
+	Installing ECCE application software in /sharednfs/ecce-v6.4/apps...
+	  Extracting application distribution...
+	  Extracting NWChem distribution...
+	  Extracting client WebHelp distribution...
+	  Configuring application software...
+	  Configuring NWChem...
+
+	Installing ECCE server in /myfiles/ecce-v6.4/server...
+	  Extracting data server in /myfiles/ecce-v6.4/server/httpd...
+	  Extracting data libraries in /myfiles/ecce-v6.4/server/data...
+	  Extracting messaging server in /myfiles/ecce-v6.4/server/activemq...
+	  Configuring ECCE server...
+	  Copying user data from server to be upgraded...
+	  Copying share data from server to be upgraded...
+ 
+        ECCE installation succeeded.
+
+	****************************************************************
+	!! You MUST complete the following steps in order to use ECCE !!
+	-- Unless only the user 'ecceadm' will be running ECCE,
+           start the ECCE server as 'ecceadm' with:
+	     /myfiles/ecce-v6.4/server/ecce-admin/start_ecce_server
+
+	-- To register machines to run computational codes, please see
+	   the installation and compute resource registration manuals
+	   at http://ecce.emsl.pnl.gov/using/installguide.shtml
+
+	-- Before running ECCE each user must source an environment
+	   setup script.  For csh/tcsh users add this to ~/.cshrc:
+	     if (-e /sharednfs/ecce-v6.4/apps/scripts/runtime_setup) then
+	        source /sharednfs/ecce-v6.4/apps/scripts/runtime_setup
+	     endif
+	   For sh/bash users, add this to ~/.profile or ~/.login:
+	     if [ -e /sharednfs/ecce-v6.4/apps/scripts/runtime_setup.sh ]; then
+	        . /sharednfs/ecce-v6.4/apps/scripts/runtime_setup.sh
+	     fi
+	****************************************************************
+
+	prompt$
+
+After the install_ecce.*.csh script has completed with both the 
+application software and server being installed as desired, you may 
+delete the distribution script although we recommend waiting until 
+ECCE is completely tested at your site.
+
+The next several paragraphs describe how to choose appropriate 
+values for the ECCE installation prompts as shown above.  If you 
+have successfully run the installation script and understand the 
+prompts, you may skip to Post-Install Configuration to continue with 
+the installation.
+
+Main menu selection:  There are three basic types of ECCE 
+installations:  full, application, and server.  Each type can either be a 
+from-scratch install or an upgrade of an existing installation.  An 
+upgrade is done rather than a from-scratch install, referred to as 
+simply an "install", when you have an existing version of ECCE 
+where you wish to incorporate the machine registrations and/or 
+calculation data for that version into the new version.  An install is 
+done rather than an upgrade when you have either not previously 
+installed ECCE or do not wish to incorporate data from an existing 
+version.  The following describes each of the eight main menu 
+options:
+
+1. Help on main menu options:  Abridged version of what you are 
+reading now.
+
+2. Prerequisite software check:  Checks for packages and libraries 
+needed to run ECCE including whether the versions found are 
+compatible with what ECCE needs.  Unless you have either 
+previously installed ECCE on the target machine or have built 
+it from an ECCE source code distribution this step is highly 
+recommended to circumvent problems.
+
+3. Full install:  Install both the ECCE application software and 
+server without incorporating data created from a previous 
+ECCE install, if any.  This is the recommended option when 
+special needs, as described below, do not dictate separate 
+application and server software installations.  A full install can 
+be done either for use from a single machine on or off the 
+network, or for use from multiple machines.  For use from a 
+single machine the host name is often entered as "localhost" if 
+defined properly in the /etc/hosts file, to allow taking machines 
+such as laptops on and off networks with ECCE working in 
+both configurations.  Application software is installed to local 
+disk for use from a single machine or to a shared file system, 
+such as NFS or AFS, for use from multiple machines.  The 
+ECCE server is always installed to local disk, but the server 
+will be accessible externally to the extent allowed by the 
+network and firewall configuration of the server host.  Security 
+and performance of the ECCE server would both be 
+compromised if it was installed to a shared file system and 
+there are no advantages in doing so.  Even when installed for 
+use from a single machine, computational jobs may still be run 
+to other machines with a full install, assuming a network 
+connection exists of course.
+
+4. Full upgrade:  Install a new version of the ECCE application 
+software and server on a machine incorporating the machine 
+registrations and calculation data from a previous install.  The 
+large number of changes between each successive version of 
+ECCE limits how old the version to upgrade can be, but it 
+should always work for the same major version and usually 
+going back to the previous major version.
+
+5. Application software install:  Install only the application 
+software and not the server.  Used when ECCE will be run 
+from multiple platforms, but the server has been already been 
+installed on a different platform with a full install, or will be 
+installed with a server only install.
+
+6. Application software upgrade:  Install a new version of the 
+application software incorporating machine registrations and 
+other application software configuration data from a previous 
+installation.  Used for installing patches to application software 
+when there are no server enhancements, or upgrading multiple 
+platforms for running applications.  Also can be used to only 
+incorporate machine registrations from a previous version of 
+ECCE without incorporating user calculation data from the 
+previous version.
+
+7. Server install:  Install only the server and not the application 
+software.  Used when the server needs to run on a different 
+machine or platform than where the application software is 
+installed.
+
+8. Server upgrade:  Install a new version of the server 
+incorporating user calculation data from a previous 
+installation.  Used for installing server-side only patches or 
+when user calculation data from a previous version needs to be 
+upgraded without application software being upgraded.
+
+* Host name:  This is the full domain name of the machine where you 
+are currently running the install_ecce.*.csh script.  You cannot install 
+the ECCE server on a different machine than the one you run the 
+script on.  If you do not wish to install the server on the machine you 
+are currently on, you must copy the install_ecce.*.csh script to the 
+desired machine and run there.  The host name prompt confirms the 
+name detected by the installation script is correct.  In the majority of 
+cases you will simply accept the default server name as shown in the 
+square brackets, provided it is the correct full domain name.  In the 
+instance you wish to refer to the server name by an alias, use the IP 
+address rather than the name, or use "localhost" as the name for a 
+machine that is taken off the network, you may enter the desired 
+name at this prompt.  Note, of course, that if you set the name as 
+"localhost", you will only be able to run ECCE with this server from 
+the local machine regardless of whether it is currently on or off the 
+network.
+
+* Application installation directory:  ECCE applications are 
+designed for installation under a single shared directory at a site, 
+with all hosts accessing the common application installation.  A local 
+file system disk is selected for the application installation directory 
+when ECCE will only be run from a single machine.  If you wish to 
+have multiple machines running ECCE, we strongly recommend 
+installing the application software in a shared file system if feasible 
+as it substantially reduces parallel administration.  The directory 
+where ECCE applications are installed is independent of the 
+directory where the distribution script is run, although the default 
+will be a subdirectory of the run directory.  For access from multiple 
+machines the distribution is typically downloaded to local disk to 
+speed file transfer, and then installed to a shared file system.  This 
+file system for the application installation directory should have at 
+least 300 megabytes free for each platform that will be installed.  To 
+install multiple platforms to a shared file system, specify the same 
+application installation directory for each platform (requires 
+downloading and running the installation script distribution for each 
+platform).  The ECCE installation script automatically extracts 
+platform-dependent libraries and executables into separate 
+subdirectories.  The absolute path to the directory where ECCE 
+applications are installed is stored in the ECCE runtime_setup and 
+runtime_setup.sh scripts as the environment variable 
+$ECCE_HOME.  The rest of this document uses the term "ECCE 
+application installation directory" and slight variations 
+interchangeably with the variable $ECCE_HOME, especially when 
+referring to file paths.
+
+You are not allowed to overwrite an existing ECCE application 
+installation except in the case where you are installing different 
+platforms under the same top-level application installation directory.  
+The installation script will verify that the directory specified is not a 
+previous installation for the same platform and prompt for a new 
+directory if it is.  This restriction prevents the inadvertent loss of a 
+working installation should the new one have some kind of problem.  
+If you do wish to install a new version of the ECCE applications to 
+the same top level directory as an existing installation for the same 
+platform, you must move the old installation to another directory 
+prior to running the install_ecce.*.csh script.  We recommend that 
+you only remove an existing installation after you have verified the 
+operation of the new installation.
+
+* Server installation directory:  The Apache HTTP server binaries, 
+HTTP server data directory, Apache ActiveMQ JMS server, and a 
+directory named ecce-admin containing some scripts to facilitate 
+ECCE server administration, will all be placed under this directory.  
+This directory should always be on local disk.  All data created 
+within ECCE will reside under the "data" subdirectory of the server 
+installation directory including both the original and ECCE-
+formatted input and output data from all jobs run with ECCE.  For 
+this reason, we highly recommend that you dedicate a large partition 
+or an entire disk (hundreds of gigabytes if not more) for the ECCE 
+server, depending upon anticipated usage.  If you are short on disk 
+space, it is possible to configure multiple ECCE servers and divide 
+users between the servers, but planning ahead will make 
+administration easier.
+
+* Are these choices correct:  Pressing return or entering "yes" results 
+in the ECCE installation completing based on the summary of 
+settings given before this prompt.  Entering "no" results in all items 
+being prompted for again including the main menu selection.
+
+A list of steps of additional steps is printed at the end of the 
+installation process.  If you are installing an ECCE server, the 
+installation script will attempt to update the ECCE application 
+software files in the $ECCE_HOME/siteconfig directory that 
+configure access to the new ECCE server.  If this fails for some 
+reason, such as the application software not being accessible from 
+the machine where the ECCE server is currently being installed, the 
+instructions will be given for manually completing this step.  In the 
+event you have multiple installations of the application software at 
+your site (not recommended due to additional burden of maintaining 
+installations in parallel) and you wish to share the same ECCE 
+server, the ECCE installation script will only be able to update the 
+application software $ECCE_HOME/siteconfig files for one of these 
+installations.  In this case, you will need to copy the add_ecce_server 
+script from the ecce-admin directory under the server installation 
+directory to the other hosts where the application software is 
+installed and run it manually on each host.
+
+* Existing application directory to upgrade:  Each site must 
+customize their ECCE application installation in order to recognize 
+the compute resources and ECCE servers available to the users at the 
+site.  This information is stored in the $ECCE_HOME/siteconfig 
+directory.  Performing an upgrade allows you to automatically copy 
+the site-specific compute resource registrations and customizations 
+for an existing installation into the new one.  Enter the application 
+installation $ECCE_HOME directory of the existing (old) 
+installation at this prompt.  If you specify an invalid directory for the 
+existing installation for the given platform, a warning will be issued 
+and you will be prompted again.  As well as copying the contents of 
+an existing siteconfig directory, this upgrade feature is also used to 
+update files that have changed format in the new version of ECCE.  
+Therefore, it is recommended that this feature be used instead of 
+manually upgrading an existing installation.
+
+* Existing server directory to upgrade:  Enter the path for the 
+existing ECCE server installation at this prompt.  User accounts and 
+all data created under a previous server installation will be 
+incorporated into the new server.
+
+* Backup existing server user data:  We HIGHLY recommend 
+making a backup copy of all user data stored under the server data 
+directory before an upgrade between server versions is done.  Hitting 
+return or entering "yes" at this prompt will copy all data stored in the 
+"users" and "share" subdirectories of the ECCE server data directory 
+from the existing server installation into the new server installation.  
+This can require considerable disk space and time, which is the 
+reason this step is optional.  If you do not make the backup copy, by 
+entering "no" at this prompt, then the "users" and "share" data 
+directories will simply be moved from the old to the new server 
+installation with no possibility of continuing to use the existing 
+server.  If there is not enough disk space to make the backup, or for 
+some other reason, you do not wish the ECCE installation script to 
+automatically make the backup, you should make a backup manually 
+(such as a tar.bz2 file) to disk or another storage device prior to 
+doing the upgrade.
+
+
+Post-install Configuration
+--------------------------
+
+* Change the Default Web Browser
+
+ECCE uses a web browser for online help and the user support request 
+web page.  At this time, Firefox and Mozilla are compatible with how 
+ECCE controls the display of web pages externally (KDE Konqueror, for 
+instance, does not allow the control needed by ECCE).  By default 
+Firefox is configured as the web browser within ECCE.  This can be 
+changed by editing the application software 
+$ECCE_HOME/siteconfig/site_runtime file and scrolling down to the 
+entries for web browsers.  The only valid values for the browsers are 
+"firefox" and "mozilla".
+
+
+* Change the Apache HTTP Data or ActiveMQ Messaging Server Ports
+
+ECCE uses a default port number of 8096 for the Apache HTTP data 
+server.  This is a "high port" and is usually a safe value that closes off the 
+web server from outside a firewall.  However, if this value is 
+inappropriate for your site based on firewall configuration or external 
+access to ECCE you wish to allow or deny, it can be changed manually.  
+First, change directory to httpd/conf under the server installation 
+directory.  Next, edit httpd.conf, search for "ECCE PORT", and follow 
+the instructions provided there to change the default.  Next, update all 
+application software installations using this server by editing the 
+$ECCE_HOME/siteconfig/DataServers file URL for the server.
+
+The Apache ActiveMQ messaging server uses a default port number of 
+8095 as configured in ECCE.  To change this value, change directory to 
+activemq/conf under the server installation directory.  Edit the file 
+activemq.xml and search for "openwire".  Change the port number at the 
+end of the value given for the "uri" keyword in the same line.  Finally, 
+update all application software installations using this server with the 
+new ActiveMQ port in the $ECCE_HOME/siteconfig/jndi.properties file 
+for each installation.  Near the top of this file you will see the 
+"java.naming.provider.url" keyword that needs to be updated with the 
+new port value.
+
+
+* Access Multiple ECCE Servers
+
+To configure access to more than a single ECCE server for an application 
+software installation, you must edit the DataServers file in the 
+application software $ECCE_HOME/siteconfig directory.  Follow the 
+documentation in this file for configuring access to multiple servers.
+
+
+* Add ECCE Server Users
+
+The default configuration of ECCE will automatically create an ECCE 
+server account for each user the first time they run the ECCE application 
+software, eliminating this extra chore of creating these accounts from the 
+ECCE administrator.  The ECCE administrator can disable this feature if 
+there are concerns about allowing any user with access to the application 
+software to create their own area with write permission on the server.  
+Note that users do not automatically get read or write access to other 
+users' data.  The environment variable $ECCE_AUTO_ACCOUNTS 
+defined in the $ECCE_HOME/siteconfig/site_runtime file (which should 
+be editable only by the ECCE administrator like all other files under 
+$ECCE_HOME) controls whether this feature is enabled.  The automatic 
+account creation feature is implemented with an Apache HTTP cgi-bin 
+script with no critical data being passed unencrypted over the Internet.  
+For security reasons, server passwords will need to be manually reset by 
+the ECCE administrator using the ecce_htpasswd script, described 
+below, for those users who forget their their password.  If you plan to use 
+the automatic server account creation feature, you may skip to the next 
+section describing the ecce_htpasswd script.
+
+If the automatic server account creation feature is disabled accounts must 
+be created by the ECCE administrator.  The ECCE server includes a 
+script named add_ecce_user for this purpose.  This script is located in the 
+ecce-admin directory, under the server installation directory and must be 
+run as the same user the installation was done as (ecceadm, if you are 
+following the recommended install procedure).  It performs the steps 
+necessary to add a single new user account to the ECCE server per 
+invocation.
+
+The add_ecce_user script will prompt for all input needed to make a user 
+account and home directory.  An example run, done as the ecceadm user 
+(i.e., the ECCE server owner), is shown below.  The prompt for "User 
+name" is the machine login name corresponding to the $USER 
+environment variable for the user on the host(s) where they are running 
+ECCE application software.  Here is the add_ecce_user run:
+
+        prompt$ /myfiles/ecce-v6.4/server/ecce-admin/add_ecce_user
+
+        First name? Joe
+        Last name? Smith
+        User name? jsmith
+
+        Entry confirmation:
+
+        First name:  Joe
+        Last name:  Smith
+        User name:  jsmith
+
+        Is this information correct? [yes/no] yes
+
+        New password:  (text not echoed)
+        Re-type new password:  (text not echoed)
+        Adding password for user jsmith
+
+ECCE uses basic web server authentication, built on standard UNIX 
+crypt functionality.  ECCE server passwords entered through 
+add_ecce_user or as described below are independent of machine login 
+passwords for users.  We recommend passwords be chosen by some 
+random means or using public domain tools for generating "nonsensical"
+words for such purposes.
+
+It is also possible to setup users completely manually, bypassing the 
+add_ecce_user script.  The script merely simplifies the most common 
+administrative duty of adding a new user by performing a number of 
+small steps on your behalf.  If you decide to setup access differently than 
+is supported by the script or want to understand the process behind it, the 
+following instructions lead you through manual user account creation.  If 
+you wish to use add_ecce_user without knowing the details you may skip 
+to the next section describing the ecce_htpasswd script, which must be 
+used to change passwords because the add_ecce_user script only 
+supports adding new users.
+
+
+* Add ECCE Server Users Manually
+
+The recommended configuration of ECCE for access control to data 
+stored on the web server is to create a user name and password entry in 
+the Apache HTTP server "users" file for each user.  A default "home" 
+directory should also be created (owned by the server data directory 
+owner--either the ECCE server owner or "nobody" if root owns the 
+ECCE server) under the ECCE/users directory of the data directory under 
+the server installation.  The home directory is named the same as the user 
+name and contains an .htaccess file.  This file directs the web server to 
+require the user to authenticate with their user name and password to 
+view and create data under their home directory.
+
+To add a user named Joe Smith with a login name of jsmith first create a 
+directory named jsmith in the ECCE/users directory under the server data 
+directory.  Within that directory create an .htaccess file with the 
+following five lines:
+
+AuthName "ECCE-Joe.Smith"
+<Limit OPTIONS HEAD GET PUT DELETE PROPFIND 
+PROPPATCH MKCOL COPY MOVE LOCK UNLOCK POST>
+Allow from all
+require user jsmith ecceadm
+</Limit>
+
+It is possible to be much more sophisticated with access control than is 
+shown with this .htaccess file.  You are referred to the numerous 
+reference sources for Apache HTTP server administration to configure 
+more complex access control.  Besides creating a home directory and 
+.htaccess file for each new user, a user name and password must be 
+defined, as described next.
+
+
+* Run ecce_htpasswd
+
+The ecce_htpasswd script included in the server ecce-admin directory is 
+used to add user name and password pairs to the server, or change the 
+password for an existing user.  This script is a simple wrapper for the 
+standard Apache HTTP htpasswd program that sets up the proper 
+$LD_LIBRARY_PATH and passes the correct argument for the user 
+password file.  An example invocation of ecce_htpasswd for adding the 
+user jsmith, again run as ecceadm, follows:
+
+        prompt$ /myfiles/ecce-v6.4/server/ecce-admin/ecce_htpasswd jsmith
+        New password:  (text not echoed)
+        Re-type new password:  (text not echoed)
+        Adding password for user jsmith
+
+Changing a password for an existing user is done in the same way by 
+passing the user name on the command line.  Prompts and output from 
+ecce_htpasswd are also similar in this case.  The most common way to 
+use ecce_htpasswd is with the user name as the only command line 
+argument.  However, other arguments supported by the standard 
+htpasswd program can also be used with ecce_htpasswd.  To see the full 
+usage of the htpasswd program via ecce_htpasswd, type 
+"ecce_htpasswd" with no arguments in the ecce-admin directory.  Note 
+that the "passwordfile" argument is passed by ecce_htpasswd even 
+though the usage description (which is for the standard htpasswd script) 
+shows it.  You may also run htpasswd directly if you set the 
+$LD_LIBRARY_PATH to include the apache/lib directory under the 
+server installation directory.  ECCE is not compatible with MD5 or SHA 
+password encryption when automatic account creation or password 
+synchronization is used ($ECCE_AUTO_ACCOUNTS set to something 
+besides "false").  Finally, it is not necessary to restart the web server to 
+recognize changes when running add_ecce_user, ecce_htpasswd, 
+htpasswd, or manually editing .htaccess files.
+
+
+* Remove ECCE Server Users
+
+Due to the risk of accidentally losing valuable data, removing users from 
+the ECCE server is done manually.  Simply edit and delete the 
+appropriate line from the Apache server "users" file (located in the 
+"apache" directory under the server installation directory) and then 
+remove their home directory (located in the data/ECCE/users directory 
+under the server installation directory).  Backing up this home directory 
+before deletion is recommended if there is any chance this data will be 
+needed in the future.  As well as ECCE-specific files, all input and output 
+log files from jobs run under ECCE are stored with user calculations, so 
+they may later be used outside ECCE.
+
+
+* Start the ECCE Server
+
+At this point you should be able to start the Apache HTTP data and 
+ActiveMQ messaging servers that make up the ECCE server.  If only a 
+single user will be running the ECCE application software, that being the 
+same user who performed the ECCE installation and thus owns the files, 
+there is normally no need to explicitly start the server as described 
+below.  The other requirement for automatic server startup besides being 
+a single user installation owned by that user is for the top-level "apps" 
+and "server" directories to be under the same parent directory, as is the 
+default for "full install" and "full upgrade" type installations.  In this case 
+the "ecce" script used to start the application software will also start the 
+server if it is not already running.  Note that when exiting ECCE under 
+this scenario (as with starting the server explicitly) the server will remain 
+running as it is needed to monitor any running jobs even when ECCE 
+user interface applications are not running.  Thus, if there is a need, the 
+server must be stopped manually as described below.  Normally though 
+the ECCE server can be left running indefinitely and imposes very little 
+computational demand on the host machine.
+
+For those installations where it is necessary to start the server explicitly 
+(muti-user or when the server is not installed in a parallel directory to the 
+application software), this operation should be done as the ECCE server 
+installation owner (ecceadm if you are following the recommended 
+install procedure) in order for the httpd web server daemon to have write 
+access to files under the server data directory.  Commands to start and 
+stop the server are located in the ecce-admin directory under the ECCE 
+server installation directory:
+
+To start the server:
+
+        prompt$ /myfiles/ecce-v6.4/server/ecce-admin/start_ecce_server
+
+After starting the server, you may verify that the Apache httpd daemon 
+and child httpd processes are running, as well as the ActiveMQ server:
+
+        prompt$ ls /myfiles/ecce-v6.4/server/apache/logs/httpd.pid
+        prompt$ ps -ef | grep "java" | grep "Dorg.apache"
+
+To stop the server:
+
+        prompt$ /myfiles/ecce-v6.4/server/ecce-admin/stop_ecce_server
+
+You may wish to have the ECCE server automatically started during the 
+machine boot sequence, assuming your installation doesn't fall under the 
+single-user, owned-by-user variety where the server is started 
+automatically.  Contact your system administrator to configure boot 
+sequence startup.
+
+
+Register Compute Resources to Run Codes
+---------------------------------------
+
+The ECCE administrator must register each queued machine that serves 
+as an ECCE compute resource where NWChem, GAMESS-UK, 
+Gaussian 03, Gaussian 98, and Amica jobs will be run.  Non-queued 
+shared access machines are also typically registered by the ECCE 
+administrator.  Users may register their own personal workstations 
+provided they don't use a queue management system.  Also, compute 
+resources shared by small groups that don't use queue managers can be 
+registered by each user desiring access as an alternative to making them 
+globally visible within ECCE user interfaces as is the case when the 
+ECCE administrator performs the registration.  Compute resource 
+registration is done with a graphical interface application provided in the 
+ECCE distribution.  To use this application, you must first set up your 
+environment to run as an ECCE user.  For sh/bash users, this is done by 
+changing either ~/.profile or ~/.login for the ecceadm account (or 
+whatever account owns the ECCE installation) as described in Setup 
+Users' Environment and sourcing the modified file.  For csh/tcsh users 
+the ~/.cshrc file should be modified and sourced.  You will also need to 
+give yourself an ECCE server user account as described above.  For 
+security reasons, there is no automatic server account creation for 
+ecceadm.  You will need to run the add_ecce_user script to create an 
+account if you are running as ecceadm.  Finally, enter the following 
+command to start the machine registration graphical interface:
+
+        prompt$ ecce  -admin
+
+Write permissions for the ECCE application software installation is 
+required to save the compute resource registration information.  We do 
+not recommend setting global write permissions on the "siteconfig" 
+directory where the registration information is stored, as improper 
+changes can effectively disable ECCE for all users at the site.
+
+Use the "Help" button to get information on using the interface, what all 
+the input fields mean, and how to manually customize some queue 
+management options that are not yet supported via the interface.  
+Machines within EMSL accessible externally by EMSL collaborators are 
+initially registered in the siteconfig directory as part of the ECCE 
+distribution.  There are examples for registering machines for each queue 
+management system that ECCE currently supports in the CONFIG-
+Examples subdirectory of siteconfig.  The configuration and site usage 
+policies of most queued machines are too complex for them to be 
+completely registered with the "ecce -admin" application.  For these 
+machines the "ecce -admin" application can be used to create template 
+files based on the queue management system.  These must be hand edited 
+to account for the configuration of the individual machine.  A PDF 
+document describing compute resource registration is maintained on the 
+ECCE web site and should be consulted whenever queued machines need 
+to be registered.
+
+
+Setup Users' Environment
+------------------------
+
+* For sh and bash users, add the following lines to their ~/.profile or 
+~/.login file, substituting the correct path under which ECCE was 
+installed on your host: 
+
+	# setup to run ECCE
+	if [ -e /sharednfs/ecce/scripts/runtime_setup.sh ]; then
+	  .  /sharednfs/ecce/scripts/runtime_setup.sh
+	fi
+
+* There is an equivalent script named runtime_setup in the same 
+directory that can be sourced for csh and tcsh users  in their ~/.cshrc 
+(~/.mycshrc within EMSL) file, substituting the correct path under 
+which ECCE was installed on your host:
+
+	# setup to run ECCE
+	if ( -e /sharednfs/ecce/scripts/runtime_setup) then
+	  source /sharednfs/ecce/scripts/runtime_setup
+	endif
+
+Hint:  Within EMSL we maintain a symbolic link named scripts in a 
+top-level shared ECCE directory that contains multiple releases of 
+ECCE.  The scripts link points to the scripts directory for the current 
+production version of ECCE.  This way the ECCE administrator only 
+needs to update this link to change the version all ECCE users run by 
+default.  Users wishing to run other than the default version the 
+symbolic link points to can change their environment setup file to 
+reference the runtime_setup.sh or runtime_setup script for the 
+desired version.  The path to runtime_setup.sh and runtime_setup 
+under /sharednfs/ecce/scripts in the examples above is based upon 
+this mechanism.  In the example installation, ECCE was installed 
+under /sharednfs/ecce-v6.4/apps.  A symbolic link in the 
+/sharednfs/ecce directory named scripts pointing to /sharednfs/ecce-
+v6.4/apps/scripts will make it easier for the ECCE administrator to 
+upgrade users to new versions of ECCE.  The commands to do this 
+for the example installation are:
+
+	prompt$ mkdir /sharednfs/ecce
+	prompt$ cd /sharednfs/ecce
+	prompt$ ln -s ../ecce-v6.4/apps/scripts  scripts
+
+* Logout then log back in again to make sure the environment is 
+properly setup.  Enter the command "which ecce" to make sure paths 
+are correct.
+
+
+Run ECCE
+--------
+
+* Start ECCE by typing...
+
+        prompt$ ecce
+
+Users will first be prompted for their data server password in a 
+window containing the ECCE "wave" logo centered on their screen.  
+When automatic server account creation is enabled (the default), the 
+password prompt for the initial login will be for setting a new data 
+server password.  On subsequent invocations this data server 
+password must be entered to gain access.  If automatic server 
+account creation has been disabled then the ECCE site administrator 
+must create an ECCE server account for the user and give them the 
+password prior to running ECCE.  Users can also change their data 
+server password by hitting the "Change" button on the data server 
+password window provided they know the current password.
+
+ECCE caches all passwords entered during an ECCE session.  The 
+data server password entered when starting ECCE is passed via this 
+cache between all ECCE applications that access the data server 
+saving the user from re-entering the password each time an 
+application is started.  Similarly, compute resource (machine login) 
+passwords are cached between applications so only a single prompt 
+for the password is made for an ECCE session.  This feature is used 
+even within a single job launch as multiple connections are 
+established to transfer files, start the job, and then monitor the 
+running job in a non-GUI ECCE application (eccejobstore).
+
+* Where to go for help
+
+Check out the help pages on the web at http://ecce.emsl.pnl.gov/help, 
+which are also accessible from within ECCE applications under the 
+menubar Help menu.  Also visit the user FAQ and Release Notes for 
+the current and previous releases of ECCE.  The release notes serve 
+as the most up-to-date and complete documentation of ECCE 
+features.
+

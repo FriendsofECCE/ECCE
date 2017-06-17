@@ -1,0 +1,62 @@
+###############################################################################
+# Author: Tom Keller
+# Last Modified: Oct. 1, 1996
+#
+# The properties table contains the single locations of all property
+# definitions attached to objects in the EMSL database.  The
+# descriptions of the fields are as follows:
+#  Class - A generic classification key of the property
+#          EStruct = Electronic Structure
+#          Derived = Computed From Other Properties
+#          Process = Values Associated with Computer Processes
+#          Any = A Generic User-Defined Category
+#  Long_Name - A more descriptive name of the property
+#              (Note: do not include spaces)
+#  Short_Name - Key Attribute for finding properties
+#               (Note: being the key, these values must be unique,
+#                      capitalization is only a convention)
+#  Units - The units class of specific units the property can take
+#          The actual units are defined in netCDF files of the same
+#          name as the class.  For example, Energy units and
+#          conversions are found in Energy.nc (and Energy.tbl).
+#  DBClass - The database property class that will hold values
+#            for this type of property.  These are used to sanity
+#            check the creation of properties.
+###############################################################################
+#key       long_name | class | visibility | dims | units
+TE:        \,Total-Energy,Energy,noviceUser,1,Energy
+EA:        \,Electron-Affinity,Energy,expertUser,1,Energy
+DE:        \,Dissociation-Energy,Energy,expertUser,1,Energy
+EXCI:      \,Excitation-Energy,Energy,expertUser,1,Energy
+PA:        \,Proton-Affinity,Energy,expertUser,1,Energy
+IP:        \,Ionization-Potential,Energy,expertUser,1,Energy
+RXN:       \,Conformational-Energy-Difference,Energy,expertUser,1,Energy
+ROTINV:    \,Rotational-Inversion-Barrier,Energy,expertUser,1,Energy
+
+HH:        \,HH-Bond,Geometry,expertUser,1,Distance
+AH:        \,AH-Bond,Geometry,expertUser,1,Distance
+AB:        \,AB-Bond,Geometry,expertUser,1,Distance
+HAH:       \,HAH-Angle,Geometry,expertUser,1,Angle
+ABC:       \,ABC-Angle,Geometry,expertUser,1,Angle
+HAB:       \,HAB-Angle,Geometry,expertUser,1,Angle
+DIHE:      \,Dihedral,Geometry,expertUser,1,Angle
+GEOMTRACE: \,GeometryTrace,Geometry,noviceUser,1,ChemicalSystem
+LATTICEVEC:\,Lattice-Vectors,Geometry,noviceUser,1,ChemicalSystem
+
+BEND:      \,Bend,Vibration,expertUser,1,Frequency
+STRETCH:   \,Stretch,Vibration,expertUser,1,Frequency
+DEFORM:    \,Deform,Vibration,expertUser,1,Frequency
+ROCK:      \,Rock,Vibration,expertUser,1,Frequency
+WAG:       \,Wag,Vibration,expertUser,1,Frequency
+
+MO:        \,Molecular-Orbitals,EStruct,noviceUser,1,EStruct
+ED:        \,Electron-Density,EStruct,expertUser,1,EStruct
+
+EGRAD:     \,Energy-Gradient,Derived,noviceUser,1,Gradient
+DELTAE:    \,Delta-E,Derived,noviceUser,1,Gradient
+
+MCORE:     \,Core-Memory-Used,Process,noviceUser,1,Memory
+ETIME:     \,Elapsed-Time,Process,noviceUser,1,Time
+
+ANY:       \,Generic-Property,Any,expertUser,1,VoidPtr
+DELTA:     \,Delta,DeltaScalar,expertUser,1,Percent

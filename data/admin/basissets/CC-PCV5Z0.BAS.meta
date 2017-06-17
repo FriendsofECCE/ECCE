@@ -1,0 +1,47 @@
+name
+cc-pCV5Z0
+name
+type
+correlation_consistent
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+GC
+contraction_type
+references
+Elements                             References
+--------                             ----------
+Ca     : J. Koput and K.A. Peterson, J. Phys. Chem. A, 106, 9595 (2002).
+
+references
+info
+ Polarized Valence Quintuple Zeta Basis with tight s and p functions in contraction
+ -----------------------------------------------------------------------------------
+
+ Note: Ca in this file differs from the Ca in the CC-PV5Z.BAS file in the
+       addition of the s- and p-core-valence function in the contraction itself.
+
+
+info
+comments
+9/27/05  - BDJ - Now only contains the Ca to be used in the cc-pcv5z basis
+12/15/02  - DFF - Add Ca based on a file from K. Peterson
+11/16/99  - DFF - Add more digits to very small contraction coefficients.
+5/06/99  - DFF - Correct D -> 5D and F -> 7F for Ga. 
+11/29/98  - DFF - Add Ga, Ge, As, Se, Br, Kr
+12/02/96  - DFF - Correct s exponent, cc-pV5Z He, 1.2405 -> 1.2400.
+6/05/95  - DFF - Add magnesium basis set from Dave Woon.
+2/22/95  - DFF - Modify the format of the literature citation.
+2/20/95  - DFF - Correct lithium NUMEXP for P's.
+2/08/95  - DFF - Add lithium (unofficial set)
+9/18/92  - DFF - Remove tab character from oxygen f's (it was a hidden char.)
+5/8/92  - DFF - Add boron, carbon, nitrogen and fluorine from Kirk Peterson
+4/26/92  - DFF - Add second row sets from Dave Woon.
+9/5/91  - DFF - Add h exponent for oxygen optimized at MP2 level
+6/29/91  - DFF - Original creation of this file based on exponents from
+comments

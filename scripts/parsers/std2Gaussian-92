@@ -1,0 +1,35 @@
+#!/usr/bin/env perl
+use strict;
+use Getopt::Std;
+use vars qw($opt_h $opt_help $opt_v);
+
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+
+require "rdStandardGBS.pm";
+require "wrGaussian92GBS.pm";
+
+#
+#  Handle the options
+#
+getopts('hv');
+&handle_options;
+
+my $bs = &readStandardBS;
+&writeGaussian92($bs);
+
+sub usage {
+  print "Usage: std2gaus92\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}
+#
+#
+#
+sub handle_options {
+  &usage && exit if ( $opt_h || $opt_help );
+  my $revision = '$Revision: 22972 $';
+  $revision =~ (s/\$//g);
+  print "$revision\n" if ( $opt_v );
+  exit if ( $opt_v );
+}

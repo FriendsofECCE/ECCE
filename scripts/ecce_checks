@@ -1,0 +1,47 @@
+#!/usr/bin/env perl
+##############################################################################
+# FILENAME: ecce_checks
+#
+# 
+# SYNTAX:  ecce_checks 
+#
+# PURPOSE:
+#  called from ecce, checks environment variables, disk space, etc. to
+#  make sure that the system is ready to run ecce.
+##############################################################################
+
+# SETUP VARIABLES ------------------------------------------------------
+
+chomp( $host = `hostname`);
+($host) = split(/\./,$host);
+
+$warning_threshold = 90;
+$kill_threshold = 95;
+
+# CHECK DISK SPACE ----------------------------------------------------
+
+$exitVal = 0;
+$val = &checkUnixDir("/tmp");
+if ($val > $kill_threshold) {
+  print "  Error:  The /tmp partition is $val% full. You should cleanup
+  the /tmp partition before runing ecce.\n\n";
+  $exitVal = -1;
+}
+elsif ($val > $warning_threshold) {
+  print "  Warning:  The /tmp partition is $val% full. Please cleanup
+  the /tmp partition if problems are encountered.\n\n";
+}
+
+exit ($exitVal);
+
+
+sub checkUnixDir {
+  my ($dir) = @_;
+  my ($val);
+  $uname = `uname`;
+  @junk = grep(!/Filesystem/,split(/\n/,`df -k $dir`));
+  @junk = split(/\s+/,$junk[0]);
+  $val = $junk[5];
+  return $val;
+}
+

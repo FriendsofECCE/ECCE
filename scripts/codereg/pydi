@@ -1,0 +1,29 @@
+#!/bin/csh -f
+
+# this sets ECCE_SYSDIR
+source $ECCE_HOME/scripts/ecce_env
+
+if ($#argv > 1) then
+  set theorycat = $2
+else
+  set theorycat = "SCF"
+endif
+if ($#argv > 2) then
+  set runtype = $3
+else
+  set runtype = "Property"
+endif
+if ($#argv < 1) then
+  echo "Must specify wxpython script to run as command line argument"
+  exit
+endif
+
+if (! -e /tmp/restore.in) then
+  touch /tmp/restore.in
+endif
+
+setenv LD_LIBRARY_PATH ${ECCE_HOME}/${ECCE_SYSDIR}3rdparty/wxwidgets/lib:${ECCE_HOME}/${ECCE_SYSDIR}3rdparty/system/lib:${ECCE_HOME}/${ECCE_SYSDIR}3rdparty/local/lib
+python $1 /tmp/restore.in 0 GUIValues Writable DebugOff $theorycat UDFT $runtype "CalcName" 0 "C1" 12 13 14 15 16 17 |& grep -v -e "required by"
+
+rm -f /tmp/restore.out
+

@@ -1,0 +1,48 @@
+name
+6-31G* Polarization
+name
+type
+polarization
+type
+category
+TAIOrbital
+category
+spherical
+N
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ----------
+Li - Ne: P.C. Hariharan and J.A. Pople, Theoret. Chimica Acta 28, 213 (1973).
+Na - Ar: M.M. Francl, W.J. Petro, W.J. Hehre, J.S. Binkley, M.S. Gordon, D.J.
+         DeFrees and J.A. Pople, J. Chem. Phys. 77, 3654 (1982).
+K  - Zn: V. Rassolov, J.A. Pople, M. Ratner and T.L. Windus, J. Chem. Phys. 
+         109, 1223 (1998) 
+         
+         Note: He and Ne are unpublished basis sets taken from Gaussian.
+
+references
+info
+                    6-31G* Polarization Functions
+                    -----------------------------
+Elements                      References
+Li - Ne: (1d)  P.C. Hariharan and J.A. Pople, Theoret. Chimica Acta 28, 213
+               (1973).
+Na - Ar: (1d)  M.M. Francl, W.J. Petro, W.J. Hehre, J.S. Binkley, M.S. Gordon,
+               D.J. DeFrees and J.A. Pople, J. Chem. Phys. 77, 3654 (1982)
+
+Note: This basis set uses 6-component d functions.
+
+
+info
+comments
+6/02/98  - DFF - Add new K - Zn using file provided by Theresa Windus
+12/14/97  - DFF - Add K and Ca d functions.
+2/22/95  - DFF - Modify the literature citation format.
+8/25/94  - DFF - Change Si exponent to match G92 instead of GAMESS(US).
+1/7/91  - DFF - Add MP2 and MP4 energies for some atoms
+7/17/90  - DFF - Original creation of this file from MIA basis set library.
+comments

@@ -1,0 +1,70 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+################################################################################
+
+# Force output to be flushed
+$| = 1;
+
+# read the data from stdin:
+#
+  $line = <STDIN>;
+  $line =~ s/^\s*//;
+  $line =~ s/\s*$//;
+  ($natom,$ncol) = split(/ +/,$line);
+  $icnt = 0;
+  @charges = ();
+  while (<STDIN>) {
+    last if ($icnt >= $natom);
+    $line = $_;
+    $line =~ s/^\s*//;
+    $line =~ s/\s*$//;
+    @values = ();
+    @values = split(/ +/,$line);
+    for ($i = 4; $i<4+$ncol; $i++) {
+      push(@charges, $values[$i]);
+    }
+    $icnt++;
+  }
+
+#
+# Print out the data in standard format.
+#
+  print "key: ESPCHARGE\n";
+  print "size:\n";
+  print $natom . " $ncol\n";
+  print "rowlabels:\n";
+
+  for ($i=1;$i<=$natom;$i++) {
+    print "$i ";
+    if ($i % 12 == 0 &&  $i < $natom - 1) { print "\n";}
+  }
+  if ($ncol == 5) {
+    print "\ncolumnlabels:\nESP CESP RESP CRESP CRESP2\n";
+  } elsif ($ncol == 4) {
+    print "\ncolumnlabels:\nESP CESP RESP CRESP\n";
+  } elsif ($ncol == 3) {
+    print "\ncolumnlabels:\nESP RESP RESP2\n";
+  } elsif ($ncol == 2) {
+    print "\ncolumnlabels:\nESP CESP\n";
+  } elsif ($ncol == 1) {
+    print "\ncolumnlabels:\nESP\n";
+  }
+  print "values:";
+  $icnt = 0;
+  for ($i=0; $i<= $#charges; $i++) {
+    if ($icnt % $ncol == 0) {print "\n";}
+    printf("%.15e ",$charges[$icnt]);
+    $icnt++;
+  }
+  print "\nunits:\ne\n";
+  print "END\n";

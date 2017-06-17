@@ -1,0 +1,13 @@
+FullName:               SI (kJoule/Mole:nm:Radian)
+Energy:                 kJoule/Mole
+Length:                 nm
+Angle:                  Radian
+Pressure:               N/m**2 
+Bond Force Constant:    (kJoule/Mole)/(nm**2)
+Bend Force Constant:   (kJoule/Mole)/(Radian**2)
+Torsion Force Constant: kJoule/Mole
+Time:                   ps
+Temperature:            Kelvin
+Compressibility:        m**2/N
+Drift:                  (kJoule/Mole)/ps
+Mass:                   amu

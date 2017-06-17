@@ -1,0 +1,256 @@
+#!/usr/bin/env perl
+###############################################################################
+#  Description:
+#    Reformat .C and .H files generated using DialogBlocks to allow subclassing
+###############################################################################
+
+if ($ARGV[0] ne "") {
+  @path = split(/\//, $ARGV[0]);
+  $inputFile = $path[@path-1];
+  print "Patching $inputFile\n";
+  open(CFILE, $inputFile) || die "Sorry, Couldn't open original .C file\n";
+} else {
+  print "Must specify file name\n";
+  exit(-1);
+}
+
+$incFile = $inputFile;
+$incFile =~ s/\.C\s*$//;
+
+$subsys = $path[@path-3];
+
+if ($subsys eq "apps") {
+  $headerFile = $incFile . "\.H";
+} else {
+  $headerFile = "\.\.\/\.\.\/\.\.\/include\/$subsys\/" . $incFile . "\.H";
+}
+open(HFILE, $headerFile) || die "Sorry, Couldn't open original .H file\n";
+
+@oldfile = ();
+$filecnt = 0;
+$class = "";
+$className = "";
+$isPropertyPanel = 0;
+while (<HFILE>) {
+  #Will need to include header file for this to work
+  if (/.*public\s*(wxFrame).*/) {
+    $class = "wxgui/ewxFrame";
+    $_ =~ s/wxFrame/ewxFrame/;
+    $oldfile[$filecnt] = $_;
+  }
+  elsif (/public\s*wxDialog/) {
+    $class = "wxgui/ewxDialog";
+    $_ =~ s/wxDialog/ewxDialog/;
+    $oldfile[$filecnt] = $_;
+  }
+  elsif (/public\s*wxPanel/) {
+    $class = "wxgui/ewxPanel";
+    $_ =~ s/wxPanel/ewxPanel/; 
+    $oldfile[$filecnt] = $_;
+  }
+  elsif (/public\s*ewxTool/) {
+    $class = "wxgui/ewxTool";
+    $oldfile[$filecnt] = $_;
+  }
+  elsif (/public\s*PropertyPanel/) {
+    $class = "PropertyPanel";
+    $oldfile[$filecnt] = $_;
+    $isPropertyPanel = 1;
+  }
+  elsif (/public\s*VizPropertyPanel/) {
+    $class = "VizPropertyPanel";
+    $oldfile[$filecnt] = $_;
+    $isPropertyPanel = 1;
+  }
+
+  if (/^class (\w+):/) {
+    $className = $1;
+  }
+
+  #Make all event handlers virtual
+  if (/wx.*Event/) {
+    if (!/virtual/) {
+      $oldfile[$filecnt] = "    virtual" . $_;
+    }
+  }
+  #elsif (/end includes/) {
+  #$oldfile[$filecnt++] = "\n\#include \"wxgui\/ewxClasses.H\"\n";
+  #$oldfile[$filecnt] = $_;
+  #}
+  elsif (/ Created\:    /) {
+  } 
+  else {
+    $oldfile[$filecnt] = $_;
+  }
+  $filecnt++;
+}
+
+#gather ewx classnames while we write out the first tmp file
+#also gather #defines for IDs
+%includes = ();
+%id_names = ();
+open(NEWFILE, ">tmpfile" ) || die "Sorry, Couldn't open new file\n";
+for ($i = 0; $i < $filecnt; $i++) {
+  $_ = $oldfile[$i];
+  if (/ewx/) {
+    $tmp = $_;
+    $tmp =~ s/\n//;
+    $tmp =~ s/.*(ewx\w*).*/$1/;
+    $includes{$tmp} = $tmp;
+  }
+  elsif (/^#define ID/) {
+    $tmp = $_;
+    $tmp =~ s/\n//;
+    $tmp =~ s/^#define (ID\w*) .*/$1/;
+    $id_names{$tmp} = $tmp;
+    next;
+  }
+  elsif (/^#define wxID/) {
+    $tmp = $_;
+    $tmp =~ s/\n//;
+    $tmp =~ s/^#define (wxID\w*) .*/$1/;
+    $id_names{$tmp} = $tmp;
+    next;
+  }
+  print (NEWFILE "$oldfile[$i]");
+}
+close(HFILE);
+close(NEWFILE);
+#now write the #includes and forward declarations for the ewx classes used
+open(NEWFILE, "tmpfile" ) || die "Sorry, Couldn't open new file\n";
+open(NEWFILE2, ">tmpfile2" ) || die "Sorry, Couldn't open new file\n";
+while (<NEWFILE>) {
+  if (/end includes/) {
+    print (NEWFILE2 "#include \"$class.H\"\n");
+  }
+  elsif (/end forward/) {
+    while (($key, $value) = each(%includes)) {
+      if ($key ne $class) {
+        print (NEWFILE2 "class $key;\n");
+      }
+    }
+    if ($isPropertyPanel) {
+      print (NEWFILE2 "class IPropCalculation;\n");
+    }
+  }
+  elsif (/end \w+ member variables/) {
+    while (($key, $value) = each(%id_names)) {
+      print (NEWFILE2 "    static const wxWindowID $key;\n");
+    }
+  }
+  elsif (/wxWindow\* parent/ and $isPropertyPanel) {
+    $tmp = $_;
+    $tmp =~ s/wxWindow/IPropCalculation\* calculation, wxWindow/;
+    print (NEWFILE2 "$tmp");
+    next;
+  }
+  print (NEWFILE2 "$_");
+}
+close(NEWFILE);
+close(NEWFILE2);
+system("/bin/rm -f \'$headerFile\'");
+system("/bin/rm -f tmpfile");
+system("/bin/mv -f tmpfile2 \'$headerFile\'");
+
+@oldfile = ();
+$filecnt = 0;
+while (<CFILE>) {
+  if ($subsys ne "apps" && /$incFile/ && /include/) {
+    $oldfile[$filecnt] = "\#include \"$subsys\/" . $incFile . "\.H\"\n";
+  }
+  # Put in .H to support ewxFrames...
+  #elsif (/end includes/) {
+  #  $oldfile[$filecnt] = "\n\#include \"wxgui\/ewxClasses.H\"";
+  #}
+  elsif (/ Created\:    /) {
+  }
+  elsif (/wxMenuBar/) {
+    #MenuBar objects aren't the same as other widgets so we have to 
+    #handle them in instead of pjd patcher
+    s/wxMenuBar/ewxMenuBar/g; 
+    $oldfile[$filecnt] = $_;
+  }
+  elsif (/ wxPanel/) {
+    #wxPanel objects aren't the same as other widgets so we have to 
+    #handle them in instead of pjd patcher
+    s/ wxPanel/ ewxPanel/g; 
+    $oldfile[$filecnt] = $_;
+  } elsif (/ wxDialog/) {
+    s/ wxDialog/ ewxDialog/g; 
+    $oldfile[$filecnt] = $_;
+  } elsif (/ wxBitmap bitmap/) {
+    s/ wxBitmap/ ewxBitmap/; 
+    $oldfile[$filecnt] = $_;
+  } elsif (/ wxFrame/) {
+    #  In order to get our frames created with the same names so
+    # they get grouped together in taskbars, we need this hack 
+    s/ wxFrame/ ewxFrame/; 
+    $oldfile[$filecnt] = $_;
+  } 
+  else {
+    $oldfile[$filecnt] = $_;
+  }
+  $filecnt++;
+}
+#gather ewx classnames while we write out the first tmp file
+%includes = ();
+open(NEWFILE, ">tmpfile" ) || die "Sorry, Couldn't open new file\n";
+for ($i = 0; $i < $filecnt; $i++) {
+  $_ = $oldfile[$i];
+  if (/ ewxEVT/) { #ignore custom ewx EVT macros
+  }
+  elsif (/ ewx/) { #space is intentional, to ignore 'itemewxTool1'
+    $tmp = $_;
+    $tmp =~ s/\n//;
+    $tmp =~ s/.*(ewx\w*).*/$1/;
+    $includes{$tmp} = $tmp;
+  }
+  elsif (/ Wx\w*GUI/) { #ignore custom wx classes within apps dirs
+  }
+  elsif (/ Wx/) {
+    $tmp = $_;
+    $tmp =~ s/\n//;
+    $tmp =~ s/.*(Wx\w*).*/$1/;
+    $includes{$tmp} = $tmp;
+  }
+  print (NEWFILE "$oldfile[$i]");
+}
+close(CFILE);
+close(NEWFILE);
+#now write the #includes for the ewx classes used
+open(NEWFILE, "tmpfile" ) || die "Sorry, Couldn't open new file\n";
+open(NEWFILE2, ">tmpfile2" ) || die "Sorry, Couldn't open new file\n";
+while (<NEWFILE>) {
+  if (/end XPM/) {
+    print (NEWFILE2 "$_");
+    while (($key, $value) = each(%id_names)) {
+      print (NEWFILE2 "const wxWindowID $className\:\:$key = wxNewId();\n");
+    }
+    next;
+  }
+  elsif (/end includes/) {
+    while (($key, $value) = each(%includes)) {
+      print (NEWFILE2 "#include \"wxgui/$key.H\"\n");
+    }
+  }
+  elsif (/wxWindow\* parent/ and $isPropertyPanel) {
+    $tmp = $_;
+    $tmp =~ s/wxWindow/IPropCalculation\* calculation, wxWindow/;
+    print (NEWFILE2 "$tmp");
+    next;
+  }
+  elsif (/parent/ and $isPropertyPanel) {
+    $tmp = $_;
+    $tmp =~ s/parent/calculation, parent/;
+    print (NEWFILE2 "$tmp");
+    next;
+  }
+  print (NEWFILE2 "$_");
+}
+close(NEWFILE);
+close(NEWFILE2);
+system("/bin/rm -f \'$inputFile\'");
+system("/bin/rm -f tmpfile");
+system("/bin/mv -f tmpfile2 \'$inputFile\'");
+
+exit(0);

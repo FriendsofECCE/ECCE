@@ -1,0 +1,4745 @@
+###############################################################################
+#
+# Filename:
+#
+#       eccejobmonitor
+#
+# Abstract:
+#
+#	This program implements a server that extracts data
+#	from a job output file as specified by a client
+#	and communicates the desired data back to the client.
+#
+# Usage:
+#
+#	See the ArgvRead routine in this file.
+#
+###############################################################################
+
+require 5.002;
+use POSIX ();
+use Socket;
+use strict;
+
+# this special routine is executed before the rest of this file is parsed
+BEGIN
+{
+    # forward declarations
+    sub Die;
+    sub LogErr;
+    sub LogFatal;
+    sub LogInfo;
+    sub LogMsg;
+    sub LogWarn;
+    sub SigHandleChld;
+    sub SigHandleMisc;
+}
+
+#
+# global constants
+#
+
+# debugging output flags
+my $DEBUG_PD		= 0x01;
+
+# parse descriptor constants
+my $PD_KEY_BEGIN        = 'begin';	# canonical form of rule key Begin
+my $PD_KEY_END          = 'end';	# canonical form of rule key End
+my $PD_KEY_FILE         = 'file';	# canonical form of rule key File
+my $PD_KEY_FREQ         = 'frequency';	# canonical form of rule key Frequency
+my $PD_KEY_LINES        = 'lines';	# canonical form of rule key Lines
+my $PD_KEY_PREFIX       = 'prefix';	# canonical form of rule key Prefix
+my $PD_KEY_SCRIPT       = 'script';	# canonical form of rule key Script
+my $PD_KEY_SKIP         = 'skip';	# canonical form of rule key Skip
+my $PD_KEY_TYPE         = 'type';	# internal key
+
+my $PD_VAL_FREQ_ALL     = 'all';	# value for rule key Frequency
+my $PD_VAL_FREQ_FIRST   = 'first';	# value for rule key Frequency
+my $PD_VAL_FREQ_FLAST   = 'firstlast';	# value for rule key Frequency
+my $PD_VAL_FREQ_LAST    = 'last';	# value for rule key Frequency
+my $PD_VAL_FREQ_NONE    = 'none';	# value for rule key Frequency
+
+my $PD_VAL_DEF_FREQ     = $PD_VAL_FREQ_ALL;	# default value for
+						#  rule key Frequency
+
+# communication protocol constants
+my $MSG_FMT          = '%s%s%4d%s';	# printf format for packets
+my $MSG_MAXLEN       = 2042;		# + 1 byte for msg start sentinel
+					# + 1 byte for sequence type
+					# + 4 bytes for length
+my $MSG_PREFIX       = "\001";		# first byte of message
+my $MSG_SEP          = "\000";		# field separator
+my $MSG_SEQ_1_1      = "0";		# single packet for property
+my $MSG_SEQ_1_N      = "1";		# first of multiple packets
+my $MSG_SEQ_M_N      = "2";		# middle packet
+my $MSG_SEQ_N_N      = "3";		# last packet for property
+
+my $MSG_TYPE_DONE    = 'jmDONE';	# end of communication
+my $MSG_TYPE_EOFS    = 'jmEOFS';	# end of files to be sent message
+my $MSG_TYPE_ERROR   = 'jmERROR';	# error message
+my $MSG_TYPE_FILE    = 'jmFILE';	# file message
+my $MSG_TYPE_PORT    = 'jmPORT';	# port message
+my $MSG_TYPE_PROP    = 'jmPROP';	# property message
+my $MSG_TYPE_NODE    = 'jmNODE';	# ejm requests restart on compute node
+my $MSG_TYPE_STATUS  = 'jmSTATUS';	# status message
+my $MSG_TYPE_STATREQ = 'jmSTATREQ';	# request status from client--Globus
+my $MSG_TYPE_UP      = 'jmUP';  	# up (heartbeat) message
+
+my $MSG_TYPE_E_INFO  = "info";		# error: informational
+my $MSG_TYPE_E_WARN  = "warn";		# error: warning
+my $MSG_TYPE_E_FATAL = "fatal";		# error: fatal
+
+my $MSG_TYPE_F_PROP  = "prop";		# file: contains property
+my $MSG_TYPE_F_JOF   = "output";	# file: job output file
+my $MSG_TYPE_F_OTHER = "other";		# file: other kind of file
+
+my $MSG_VAL_STAT_RUNNING = 301;		# value: status: job is running
+my $MSG_VAL_STAT_UNAVAIL = 302;		# value: status: unavailable
+my $MSG_VAL_STAT_IMPORTED = 303;	# value: status: imported
+
+# return values from JobCheck
+my $JOB_STATE_PENDING	= 0x1;
+my $JOB_STATE_RUNNING	= 0x2;
+my $JOB_STATE_DONE	= 0x4;
+my $JOB_STATE_NONE	= 0x8;
+
+# return values from file checking; cannot conflict with $JOB_STATE_*
+my $FILE_EXISTS_1	= 0x100;
+my $FILE_EXISTS_2	= 0x200;
+
+# return values from Try
+my $TRY_OK      = 0;
+my $TRY_ERROR   = 1;
+my $TRY_TIMEOUT = 2;
+
+#
+# global variables
+#
+
+my %gArgv;
+my %gFileReadBuf;
+my $gFileHandle = undef;
+my $gFilePosition = 0;
+my $gJobCheckComplaintIssued = 0;
+my $gJobCheckEnqueuedIssued = 0;
+my $gJobCheckState = $JOB_STATE_NONE;
+my $gLogFileOpen = 0;
+my $gLogNumErrors = 0;
+my $gLogNumWarnings = 0;
+my $gMppMdFlag = 0;
+my $gMppMdScratchDir = '/scratch';
+my %gMsgBlockBuf;
+my $gMsgBlockBuffering;
+my $gMsgBlockBufParseType;
+my $gMsgBlockCurrent;
+my $gMsgDest = undef;
+my %gPdCount;
+my @gPdMatchList;
+my %gPdTable;
+my %gPdTableFiles;
+my %gPdTableFreq;
+my $gPort;
+my $gProgramName = 'eccejobmonitor';
+my $gProgramVersion;
+my $gSigChild;
+my %gSigName;
+my %gSigNum;
+my $gSigReinstallHandler;
+my $gSocketCurrent = undef;
+my $gSocketDead = 0;
+my $gWaitFileStatus = 1;
+my $gUpCount = 0;
+my $gUpFreq = 6;
+my $gUser = getpwuid($<);
+
+# configuration parameters
+my %gConfig = (
+    'blocksize'			=> 8192,
+    'blocksizeForce'		=> 0,		# {0, 1}
+    'bookmark'			=> 0,
+    'calcName'			=> '-',
+    'commFailOpenAction'	=> 'failover',	# {die, failover}
+    'commFailWriteAction'	=> 'die',	# {die, log}
+    'commType'			=> 'stdio',	# {socket, stdio}
+    'configFile'		=> '-',
+    'debug'			=> 0,
+    'ecceVersion'		=> 'VersionUnspecified',
+    'endOfParams'		=> 'EndOfText',
+    'endOfPDF'			=> 'EndOfText',
+    'filesToTransfer'		=> undef,
+    'freqFileReopen'		=> 18,
+    'host'			=> '-',
+    'importDir'			=> '-',
+    'jobId'			=> undef,
+    'jobOutputFile'		=> undef,
+    'jobOutputFile2'		=> undef,
+    'jobOutputFile3'		=> undef,
+    'jobOutputFile4'		=> undef,
+    'jobOutputFile5'		=> undef,
+    'jobOutputFile6'		=> undef,
+    'jobQ'			=> 'shell',
+    'jobStatusFile'		=> '.ecce.status',
+    'logFile'			=> "$gProgramName.log.",
+    'logLevel'			=> 2,		# {0, 1, 2}
+    'logMode'			=> 'yes',	# {no, rmifok, yes}
+    'mdBatchOutput'		=> 'no',	# {no, yes}
+    'mdPMFOutput'		=> 'no',	# {no, yes}
+    'mdPrepareTask'		=> 'no',	# {no, yes}
+    'mdTask'		=> 'no',	# {no, yes}
+    'monitoringMode'	=> 'post',	# {live, post}
+    'msgLength'			=> $MSG_MAXLEN,
+    'msgReportRunning'		=> 'lax',	# {lax, strict}
+    'outputFile'		=> '-',
+    'parseDescriptorFile'	=> '-',
+    'parseTypes'		=> 'all',
+    'pdShuffleThreshold'	=> 10,
+    'portCycles'		=> 1,
+    'portRange'			=> 1000,
+    'portStart'			=> 3852,
+    'regExp'			=> 1,		# {0, 1}
+    'systemName'		=> '-',
+    'timeLimitFileExist'	=> undef,
+    'timeLimitFileExistStat'	=> undef,
+    'timeLimitJobExist'		=> undef,
+    'timeLimitSocketAccept'	=> 20,
+    'timePauseFileExist'	=> 10,
+    'timePauseFileExistStat'	=> undef,
+    'timePauseJobDone'		=> 0,
+    'timePauseJobExist'		=> 10,
+    'timePauseReadLine'		=> 10,
+    'timePauseReadLinePartial'	=> 10,
+    'timePauseSocketWrite'	=> 5,
+    'triesFileReopenJobDone'	=> 1,
+);
+
+# statistics
+my %gStat = (
+    'callsPDMatchBeginFail'	=> 0,
+    'callsPDMatchBeginSucceed'	=> 0,
+    'callsSysread'		=> 0,
+    'countLines'		=> 0,
+    'countPDMatchBegin'		=> 0,
+    'sumPDMatchBeginSucceed'	=> 0,
+    'sumPDMatchBeginTotal'	=> 0,
+);
+
+# --------------------------------------------------------------------------- #
+# Main.
+# --------------------------------------------------------------------------- #
+
+# initialize
+&Init();
+
+# read job output file, send parsed contents to client
+&JobOutputGet();
+
+# send files to client
+&JobFilesGet();
+
+# end communication with client
+&MsgSendDone();
+
+# finished
+&Done(0);
+
+# --------------------------------------------------------------------------- #
+# Read and process the command line arguments.
+# --------------------------------------------------------------------------- #
+
+sub ArgvRead
+{
+    my $help = '';
+    my $helpRaw;
+    my $i;
+    my $line;
+    my $opt;
+    my $param;
+    my $replacement;
+    my $usage;
+
+    # set usage text
+    $usage = <<EOT;
+Usage: $gProgramName
+    [-h]                 print this message and exit
+    [-v]                 print program version and exit
+    [-option value ...]  configuration parameters
+EOT
+
+    # set raw help text
+    $helpRaw = <<EOT;
+    This program extracts specified data from a job output file
+    and communicates the data to a client.
+
+    Configuration parameters can be given on the command line
+    or in a configuration file.  Parameters given on the command
+    line override parameters given in a configuration file.
+
+    To specify a parameter on the command line, prepend a dash
+    to it.  For example, to assign the value "bar" to the parameter
+    named "foo", use this syntax:
+
+        -foo bar
+
+    To specify parameters in a configuration file, give one
+    name/value pair on each line, separated by whitespace:
+
+        # Comment lines begin with a pound sign.
+        foo bar
+
+    ------------------------
+    Configuration Parameters
+    ------------------------
+
+    Name			Purpose
+    ----			-------
+
+    blocksize			default blocksize for file reading
+					default: %blocksize
+    blocksizeForce		use default blocksize for file reading
+				regardless of filesystem blocksize
+					0		no
+					1		yes
+					default: %blocksizeForce
+    calcName			name of calculation
+					default: %calcName
+    commFailOpenAction		action to take when the selected
+				communications mechanism cannot be opened
+					die		exit
+					failover	try different one
+					default: %commFailOpenAction
+    commFailWriteAction		action to take when a write over the
+				communications mechanism fails
+					die		exit
+					log		log it and continue
+					default: %commFailWriteAction
+    commType			communications mechanism to use
+					socket		sockets
+					stdio		standard i/o
+					default: %commType
+    configFile			file to read configuration parameters from
+					default: %configFile
+    debug                       print debugging output; combine values
+                                using OR to select more than one
+					$DEBUG_PD		PD matching stats
+                                        default: %debug
+    ecceVersion			version of ECCE
+					default: %ecceVersion
+    endOfParams			text that appears alone on a line to mark
+				the end of the configuration parameters
+				(useful for stdio)
+					default: %endOfParams
+    endOfPDF			text that appears alone on a line to mark
+				the end of the parse descriptor file
+				(useful for stdio)
+					default: %endOfPDF
+    filesToTransfer		space-separated list of extra files to
+				transfer to the client
+					default: %filesToTransfer
+    freqFileReopen		how often to reopen the job output file
+				while the job is running and no output
+				is available (e.g., 5 means reopen the
+				file every fifth time)
+					default: %freqFileReopen
+    host			name of compute host
+					default: %host
+    importDir			for imports, full path to directory where
+				input file was selected from
+					default: %importDir
+    jobId			job identifier (e.g., process ID)
+					default: %jobId
+    jobOutputFile		file to extract data from
+					default: %jobOutputFile
+    jobOutputFile2		alternate output file; no data is extracted
+				from it, but it is transferred to the client
+					default: %jobOutputFile2
+    jobOutputFile3		output fragment file - for MD tasks 
+					default: %jobOutputFile3
+    jobOutputFile4		restart file - for MD tasks 
+					default: %jobOutputFile4
+    jobOutputFile5		topology file - for MD tasks 
+					default: %jobOutputFile5
+    jobOutputFile6		md output file - for MD tasks 
+					default: %jobOutputFile7
+    jobQ			name of the job queuing system
+					default: %jobQ
+    jobStatusFile		file to read job status from
+					default: %jobStatusFile
+    logFile			file to log information to; if it ends with
+					a period, the process ID will be appended
+					default: %logFile
+    logLevel			amount of logging output
+					0		low
+					1		medium
+					2		high
+					default: %logLevel
+    logMode			overall control of logging
+					no		do not log
+					rmifok		do log but remove
+							if no errors
+					yes		do log
+					default: %logMode
+    mdBatchOutput			flag for single or multiple sequenced parse files
+					no		single parse file to monitor
+					yes		multiple batch sequenced parse files to monitor
+					default: %mdBatchOutput
+    mdPMFOutput			flag for whether PMF output will be generated
+					no		no PMF output
+					yes		PMF output (multiple sequenced parse files to monitor)
+					default: %mdPMFOutput
+    mdPrepareTask			flag for MD Prepare task
+					no		not an MD Prepare task
+					yes		is an MD Prepare task
+					default: %mdPrepareTask
+    mdTask			flag for any MD task
+					no		not an MD task
+					yes		isn an MD task
+					default: %mdTask
+    monitoringMode		how monitoring is to be done
+					live		job is running
+					post		job is done
+					default: %monitoringMode
+    msgLength			maximum number of bytes in message body;
+				if message is longer, it will be split
+				into multiple packets
+					default: %msgLength
+    msgReportRunning		how to report change to running state
+				(only in live monitoringMode)
+					lax		when job has already
+							finished or is actually
+							running
+					strict		only when job is
+							actually running
+					default: %msgReportRunning
+    outputFile			file to write results to
+				(only used for stdio)
+					default: %outputFile
+    parseDescriptorFile		file to read parse descriptors from
+					default: %parseDescriptorFile
+    parseTypes			list of parse types to enable
+					default: %parseTypes
+    pdShuffleThreshold		if a matching parse descriptor is beyond
+				this position in the list, it is moved
+				to the head of the list
+					default: %pdShuffleThreshold
+    portCycles			number of times to cycle through set of ports
+				while looking for an open one
+					default: %portCycles
+    portRange			number of ports to cycle through
+					default: %portRange
+    portStart			port number to start looking at
+					default: %portStart
+    regExp			allow regular expressions in parse descriptors
+					0		no
+					1		yes
+					default: %regExp
+    systemName			name of study (md)
+					default: %systemName
+    timeLimitFileExist		seconds to wait for a file to exist
+					default: %timeLimitFileExist
+    timeLimitFileExistStat	seconds to wait for status file to exist
+					default: %timeLimitFileExistStat
+    timeLimitJobExist		seconds to wait for job to start
+					default: %timeLimitJobExist
+    timeLimitSocketAccept	seconds to wait for client to connect to socket
+					default: %timeLimitSocketAccept
+    timePauseFileExist		seconds to pause while checking for
+				existence of a file
+					default: %timePauseFileExist
+    timePauseFileExistStat	seconds to pause while checking for
+				existence of status file
+					default: %timePauseFileExistStat
+    timePauseJobDone		seconds to pause after job is done
+				for the remainder of the job output file
+				to be written
+					default: %timePauseJobDone
+    timePauseJobExist		seconds to pause while checking for
+				starting of job
+					default: %timePauseJobExist
+    timePauseReadLine		seconds to pause when lines read from a file
+				are exhausted
+					default: %timePauseReadLine
+    timePauseReadLinePartial	seconds to pause while checking for
+				completion of partial line
+					default: %timePauseReadLinePartial
+    timePauseSocketWrite	seconds to pause when syswrite clogs
+					default: %timePauseSocketWrite
+    triesFileReopenJobDone	number of times to reopen the job output file
+				after job is done and output is exhausted
+					default: %triesFileReopenJobDone
+EOT
+
+    # insert default parameter values into help text
+    foreach $line (split /\n/, $helpRaw)
+    {
+        if ($line =~ /default:\s+%(\S+)/)
+        {
+            $param = $1;
+            if ($param =~ /^timeLimit\S+Exist$/)
+            {
+                $replacement = 'based upon jobQ';
+            }
+            elsif (!(defined $gConfig{$param}))
+            {
+                $replacement = 'none';
+            }
+            else
+            {
+                $replacement = $gConfig{$param};
+            }
+
+            $line =~ s/%$param/$replacement/;
+        }
+
+        # append line to help text
+        $help .= "$line\n";
+    }
+
+    # process command line arguments
+    for ($i = 0; $i < @ARGV; $i++)
+    {
+        $_ = $ARGV[$i];
+        if (/^-h$/)
+        {
+            print "$usage\n$help";
+            exit 0;
+        }
+        elsif (/^-v$/)
+        {
+            print "$gProgramVersion\n";
+            exit 0;
+        }
+        elsif (/^-(.+)/)
+        {
+            $opt = $1;
+            if (++$i < @ARGV)
+            {
+                # command line overrides default
+                $gConfig{$opt} = $ARGV[$i];
+
+                # command line overrides config file
+                $gArgv{$opt} = 1;
+            }
+            else
+            {
+                Die "Missing argument for -$opt\n$usage";
+            }
+        }
+        else
+        {
+            Die "Unrecognized option: $_\n$usage";
+        }
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Initialize communications.
+# --------------------------------------------------------------------------- #
+
+sub CommInit
+{
+    if ($gConfig{'commType'} eq 'socket')
+    {
+        my $status;
+
+        # open socket
+        $status = &SocketCreate(
+            \*SOCKET1,
+            $gConfig{'portStart'},
+            $gConfig{'portStart'} + $gConfig{'portRange'} - 1,
+            $gConfig{'portCycles'});
+
+        if ($status =~ /^\d+$/)
+        {
+            # socket opened
+
+            # remember port
+            $gPort = $status;
+
+            # transmit port to client
+            &MsgSendPort($gPort);
+
+            # log it
+            LogMsg "CommInit: pid $$ listening on port $gPort";
+
+            # wait for client to connect to port
+            if (&SocketAccept(\*SOCKET2, \*SOCKET1) != 0)
+            {
+              # close primary port
+              close \*SOCKET1;
+
+              # use secondary port
+              &SocketSelect(\*SOCKET2);
+            }
+            else
+            {
+              if ($gConfig{'commFailOpenAction'} eq 'die')
+              {
+                  Die "CommInit: SocketAccept failed";
+              }
+              else # failover
+              {
+                  # switch to stdio
+                  $gConfig{'commType'} = 'stdio';
+
+                  # if this doesn't work then give up the ghost
+                  $gConfig{'commFailOpenAction'} = 'die';
+
+                  # reinitialize
+                  &CommInit();
+
+                  # notify client
+                  &MsgSendErr($MSG_TYPE_E_WARN,
+                      "CommInit: pid $$ switched to stdio");
+              }
+            }
+        }
+        else
+        {
+            # socket not opened
+
+            if ($gConfig{'commFailOpenAction'} eq 'die')
+            {
+                Die "CommInit: $status";
+            }
+            else # failover
+            {
+                # transmit failure to create port to client
+                &MsgSendPort("FAILED");
+
+                # switch to stdio
+                $gConfig{'commType'} = 'stdio';
+
+                # if this doesn't work then give up the ghost
+                $gConfig{'commFailOpenAction'} = 'die';
+
+                # reinitialize
+                &CommInit();
+
+                # notify client
+                &MsgSendErr($MSG_TYPE_E_WARN,
+                    "CommInit: pid $$ switched to stdio ($status)");
+            }
+        }
+    }
+    else # stdio
+    {
+        my $file = $gConfig{'outputFile'};
+
+        if (open(OUT, "> $file"))
+        {
+            &MsgSelect(\*OUT);
+            &FileAutoFlush(\*OUT);
+            LogMsg "CommInit: pid $$ writing $file";
+        }
+        else
+        {
+            my $errMsg = "cannot open file '$file': $!";
+
+            if ($gConfig{'commFailOpenAction'} eq 'die')
+            {
+                Die "CommInit: $errMsg";
+            }
+            else # failover
+            {
+                if ($file eq '-')
+                {
+                    # nothing to failover to in this case
+                    Die "CommInit: $errMsg";
+                }
+                else
+                {
+                    # switch to stdio
+                    $gConfig{'outputFile'} = '-';
+
+                    # reinitialize
+                    &CommInit();
+
+                    # notify client
+                    &MsgSendErr($MSG_TYPE_E_WARN,
+                        "CommInit: pid $$ switched to stdio ($errMsg)");
+                }
+            }
+        }
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Sanity check the configuration parameters.
+#
+# Return an error message upon failure, undef upon success.
+# --------------------------------------------------------------------------- #
+
+sub ConfigCheck
+{
+    my @ok;
+    my $p;
+    my $v;
+
+    #
+    # sanity check parameters
+    #
+
+    $p = 'blocksize';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v > 0));
+
+    $p = 'blocksizeForce';
+    $v = $gConfig{$p};
+    @ok = qw{0 1};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
+
+    $p = 'calcName';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless ($v);
+
+    $p = 'commFailOpenAction';
+    $v = $gConfig{$p};
+    @ok = qw{die failover};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
+
+    $p = 'commFailWriteAction';
+    $v = $gConfig{$p};
+    @ok = qw{die log};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
+
+    $p = 'commType';
+    $v = $gConfig{$p};
+    @ok = qw{socket stdio};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
+
+    $p = 'configFile';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless ($v);
+
+    $p = 'debug';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 0));
+
+    $p = 'ecceVersion';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless ($v);
+
+    # $p = 'endOfParams';
+    # $v = $gConfig{$p};
+
+    # $p = 'endOfPDF';
+    # $v = $gConfig{$p};
+
+    # $p = 'filesToTransfer';
+    # $v = $gConfig{$p};
+
+    $p = 'freqFileReopen';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+
+    $p = 'host';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless ($v);
+
+    # $p = 'jobId';
+    # $v = $gConfig{$p};
+
+    # $p = 'jobOutputFile';
+    # $v = $gConfig{$p};
+
+    # $p = 'jobOutputFile2';
+    # $v = $gConfig{$p};
+
+    # $p = 'jobOutputFile3';
+    # $v = $gConfig{$p};
+
+    # $p = 'jobOutputFile4';
+    # $v = $gConfig{$p};
+
+    # $p = 'jobOutputFile5';
+    # $v = $gConfig{$p};
+
+    # $p = 'jobOutputFile6';
+    # $v = $gConfig{$p};
+
+    # $p = 'jobQ';
+    # $v = $gConfig{$p};
+
+    $p = 'jobStatusFile';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless ($v);
+
+    # $p = 'logFile';
+    # $v = $gConfig{$p};
+
+    $p = 'logLevel';
+    $v = $gConfig{$p};
+    @ok = qw{0 1 2};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
+
+    $p = 'logMode';
+    $v = $gConfig{$p};
+    @ok = qw{no rmifok yes};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
+
+    $p = 'mdBatchOutput';
+    $v = $gConfig{$p};
+    @ok = qw{no yes};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
+
+    $p = 'mdPMFOutput';
+    $v = $gConfig{$p};
+    @ok = qw{no yes};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
+
+    $p = 'mdPrepareTask';
+    $v = $gConfig{$p};
+    @ok = qw{no yes};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
+
+    $p = 'mdTask';
+    $v = $gConfig{$p};
+    @ok = qw{no yes};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
+
+    $p = 'monitoringMode';
+    $v = $gConfig{$p};
+    @ok = qw{live post};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
+
+    $p = 'msgLength';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+
+    $p = 'msgReportRunning';
+    $v = $gConfig{$p};
+    @ok = qw{lax strict};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
+
+    $p = 'outputFile';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless ($v);
+
+    $p = 'parseDescriptorFile';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless ($v);
+
+    # $p = 'parseTypes';
+    # $v = $gConfig{$p};
+
+    $p = 'pdShuffleThreshold';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 0));
+
+    $p = 'portCycles';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+
+    $p = 'portRange';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+
+    $p = 'portStart';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless ($v =~ /^\d+$/);
+
+    $p = 'regExp';
+    $v = $gConfig{$p};
+    @ok = qw{0 1};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
+
+    $p = 'systemName';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless ($v);
+
+    $p = 'timeLimitFileExist';
+    $v = $gConfig{$p};
+    if (defined $v)
+    {
+        return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+    }
+
+    $p = 'timeLimitFileExistStat';
+    $v = $gConfig{$p};
+    if (defined $v)
+    {
+        return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+    }
+
+    $p = 'timeLimitJobExist';
+    $v = $gConfig{$p};
+    if (defined $v)
+    {
+        return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+    }
+
+    $p = 'timeLimitSocketAccept';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+
+    $p = 'timePauseFileExist';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+
+    $p = 'timePauseFileExistStat';
+    $v = $gConfig{$p};
+    if (defined $v)
+    {
+        return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+    }
+
+    $p = 'timePauseJobDone';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 0));
+
+    $p = 'timePauseJobExist';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+
+    $p = 'timePauseReadLine';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+
+    $p = 'timePauseReadLinePartial';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+
+    $p = 'timePauseSocketWrite';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+
+    $p = 'triesFileReopenJobDone';
+    $v = $gConfig{$p};
+    return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 0));
+
+    #
+    # check existence of required parameters
+    #
+
+    if ($gConfig{'monitoringMode'} eq 'live')
+    {
+        $p = 'jobId';
+        $v = $gConfig{$p};
+        return "missing parameter $p" unless $v;
+
+        $p = 'jobQ';
+        $v = $gConfig{$p};
+        return "missing parameter $p" unless $v;
+    }
+
+    $p = 'jobOutputFile';
+    $v = $gConfig{$p};
+    return "missing parameter $p" unless $v;
+
+    #
+    # set global variables based on parameters
+    #
+
+    $MSG_MAXLEN = $gConfig{'msgLength'};
+
+    # success
+    undef;
+}
+
+# --------------------------------------------------------------------------- #
+# Read the given configuration file.
+#
+# Return an error message upon failure, undef upon success.
+# --------------------------------------------------------------------------- #
+
+sub ConfigRead
+{
+    my($file) = @_;
+    my $errMsg = undef;
+    my $line = 0;
+
+    open(CONFIG, "< $file") || return "cannot open config file '$file'";
+    while (<CONFIG>)
+    {
+        $line++;
+
+        # check for end of parameters
+        if ($gConfig{'endOfParams'})
+        {
+            last if (/^$gConfig{'endOfParams'}$/);
+        }
+
+        next if /^\s*#/;	# skip comment lines
+        next if /^\s*$/;	# skip blank lines
+
+        chomp;
+
+        if (/^\s*(\S+)(\s+(\S.*))?$/)
+        {
+            $gConfig{$1} = $3 unless (exists $gArgv{$1});
+        }
+        else
+        {
+            return "bad line ($line) in config file '$file': '$_'";
+        }
+     }
+    close CONFIG;
+
+    # enforce case
+    $gConfig{'commFailOpenAction'}	= lc $gConfig{'commFailOpenAction'};
+    $gConfig{'commFailWriteAction'}	= lc $gConfig{'commFailWriteAction'};
+    $gConfig{'commType'}		= lc $gConfig{'commType'};
+    $gConfig{'jobQ'}			= lc $gConfig{'jobQ'};
+    $gConfig{'logMode'}			= lc $gConfig{'logMode'};
+    $gConfig{'monitoringMode'}		= lc $gConfig{'monitoringMode'};
+    $gConfig{'msgReportRunning'}	= lc $gConfig{'msgReportRunning'};
+    $gConfig{'parseTypes'}		= lc $gConfig{'parseTypes'};
+
+    # set timeouts
+    &TimeoutInit($gConfig{'jobQ'});
+
+    # success
+    undef;
+}
+
+# --------------------------------------------------------------------------- #
+# Print the configuration parameters into a string and return it.
+# --------------------------------------------------------------------------- #
+
+sub ConfigSprint
+{
+    my $k;
+    my $string = '';
+    my $val;
+
+    foreach $k (sort keys %gConfig)
+    {
+        $val = (defined $gConfig{$k}) ? $gConfig{$k} : 'undef';
+        $string .= "  $k: $val\n";
+    }
+
+    # return the string
+    $string;
+}
+
+# --------------------------------------------------------------------------- #
+# Concatenate the arguments into a message M.
+# If executing within an eval, append a newline to M and die;
+# otherwise, print M as a fatal error message in the log file,
+# send M to the client as a fatal error message,
+# and terminate execution.
+# --------------------------------------------------------------------------- #
+
+sub Die
+{
+    my $msg = join '', @_;
+
+    if (&WithinEval())
+    {
+        # die
+        die "$msg\n";
+    }
+    else
+    {
+        # exit
+        &MsgSendErr($MSG_TYPE_E_FATAL, $msg);
+        &Done(1);
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Print a termination message based on the given exit status,
+# clean up the log file, and exit with the given exit status.
+# --------------------------------------------------------------------------- #
+
+sub Done
+{
+    my($exitStatus) = @_;
+    my $how = ($exitStatus == 0) ? 'normally' : 'abnormally';
+
+    LogMsg "$gProgramName terminating $how, exit status $exitStatus";
+    &LogClose();
+
+    exit $exitStatus;
+}
+
+# --------------------------------------------------------------------------- #
+# Enable autoflush for the given filehandle.
+# --------------------------------------------------------------------------- #
+
+sub FileAutoFlush
+{
+    my($handle) = @_;
+
+    my $previousHandle = select $handle;
+    $| = 1;
+    select $previousHandle;
+}
+
+# --------------------------------------------------------------------------- #
+# Return the preferred block size for filesystem I/O
+# for the given filehandle.
+# --------------------------------------------------------------------------- #
+
+sub FileBlockSize
+{
+    my($handle) = @_;
+
+    if ($gConfig{'blocksizeForce'})
+    {
+        # override filesystem blocksize
+        $gConfig{'blocksize'};
+    }
+    else
+    {
+        # use filesystem blocksize if available
+        (stat $handle)[11] || $gConfig{'blocksize'};
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Prepare to call FileReadLine on $file.
+# --------------------------------------------------------------------------- #
+
+sub FileReadInit
+{
+    my($file, $handle) = @_;
+
+    $gFileReadBuf{$file} =
+    {
+        'blocksize'	=> &FileBlockSize($handle),
+        'buf'		=> '',
+        'handle'	=> $handle,
+        'lines'		=> [],
+        'offset'	=> 0,
+    };
+}
+
+# --------------------------------------------------------------------------- #
+# Read a line from the given filehandle.  If $doneFlag is true, that
+# indicates to read until EOF, but don't wait for more to be written
+#
+# Return a list ($line, $error).  The first element contains the line
+# if successful or '' if unsuccessful.  The second element contains
+# an error message if an error occurred, or '' if no error occurred.
+#
+#	result		meaning
+#	------		-------
+#	($line, '')	line read successfully
+#	('', '')	no line read, but no error
+#	($line, $error)	partial line read, error occurred
+#	('', $error)	no line read, error occurred
+# --------------------------------------------------------------------------- #
+
+sub FileReadLine
+{
+    my($file) = @_;
+    my $line;
+    my $lines = $gFileReadBuf{$file}{'lines'};
+
+    # use buffered line if available
+    if (@$lines > 0)
+    {
+        $line = shift @$lines;
+        return ($line, '');
+    }
+
+    my $bufLength;
+    my $bytesRead;
+    my $bytesStored;
+    my $errMsg = '';
+    my $i;
+    my $j;
+    my $lineLength;
+    my $fileReopenedJobDone = 0;
+    my $naps = 0;
+    my $id = $gConfig{'jobId'};
+    my $q = $gConfig{'jobQ'};
+
+    # convenience variables
+    my $blocksize = $gFileReadBuf{$file}{'blocksize'};
+    my $buf = \$gFileReadBuf{$file}{'buf'};
+    my $handle = $gFileReadBuf{$file}{'handle'};
+    my $offset = \$gFileReadBuf{$file}{'offset'};
+
+    while (1)
+    {
+        # attempt to read a block of bytes
+        $bytesRead = sysread
+            $handle,
+            $$buf,
+            $blocksize,
+            $$offset;
+        $gStat{'callsSysread'}++;
+
+        if (defined $bytesRead)
+        {
+            if ($bytesRead > 0)
+            {
+                # keep track of position for FileReopen calls
+                $gFilePosition += $bytesRead;
+
+                $bytesStored = 0;
+
+                # split block into lines
+                for ($i = 0; ($j = index($$buf, "\n", $i)) >= 0; $i = $j + 1)
+                {
+                    $lineLength = $j - $i + 1;
+                    $bytesStored += $lineLength;
+                    push @$lines, substr($$buf, $i, $lineLength);
+                }
+
+                # did we get a line?
+                if (@$lines > 0)
+                {
+                    # we have at least one complete line
+
+                    $bufLength = length $$buf;
+
+                    # remove complete lines from buffer
+                    if ($bufLength > $bytesStored)
+                    {
+                        # incomplete line
+                        $$buf = substr($$buf, $bytesStored);
+                        $$offset = $bufLength - $bytesStored;
+                    }
+                    else
+                    {
+                        # no incomplete line
+                        $$buf = '';
+                        $$offset = 0;
+                    }
+
+                    # return the first line
+                    $line = shift @$lines;
+                    return ($line, '');
+                }
+                else
+                {
+                    # we do not have a complete line
+
+                    # update buffer
+                    $$offset += $bytesRead;
+                }
+            }
+            else
+            {
+                if ($$offset > 0)
+                {
+                    # We've got a partial line here.  We want to wait
+                    # for the rest of the line, but also continue to check
+                    # the state of the job in case it finishes
+
+                    # pause to give filesystem more time
+                    sleep $gConfig{'timePauseReadLinePartial'};
+
+                    # partial line reads can last a long time so
+                    # make sure to keep sending out up/heartbeat messages
+                    my $state = &JobCheck($id, $q, $file);
+                    if (($state == $JOB_STATE_PENDING) ||
+                        ($state == $JOB_STATE_RUNNING))
+                    {
+                        # job is still active; not EOF
+
+                        # periodically attempt to force a filesystem flush
+                        if ((++$naps % $gConfig{'freqFileReopen'}) == 0)
+                        {
+                            &FileReopen($file, $handle);
+                        }
+                    }
+                    else
+                    {
+                        # job is no longer active; possible EOF
+
+                        if (++$fileReopenedJobDone >
+                            $gConfig{'triesFileReopenJobDone'})
+                        {
+                            # EOF
+                            return ('', '');
+                        }
+                        else
+                        {
+                            # pause to give filesystem more time
+                            sleep $gConfig{'timePauseJobDone'};
+
+                            # attempt to force a filesystem flush
+                            &FileReopen($file, $handle);
+                        }
+                    }
+                }
+                else
+                {
+                    # EOF
+                    return ('', '');
+                }
+            }
+        }
+        else
+        {
+            if ($! =~ /^Interrupted/)
+            {
+                next;
+            }
+            else
+            {
+                $errMsg = "FileReadLine: sysread error: $!";
+                return ('', $errMsg);
+            }
+        }
+    }
+}
+
+
+sub FileFindBookmark
+{
+    my($pos) = @_;
+    my $blockSize = $gConfig{'blocksize'};
+    my $skipBlocks = int($pos / $blockSize);
+    my $skipBytes = int($pos % $blockSize);
+    my $buf;
+    my $bytesRead;
+
+    while ($skipBlocks > 0)
+    {
+        $bytesRead = 0;
+        while ($bytesRead < $blockSize)
+        {
+            $bytesRead += sysread
+                $gFileHandle,
+                $buf,
+                $blockSize - $bytesRead,
+                0;
+
+            unless (defined $bytesRead)
+            {
+                if ($! =~ /^Interrupted/)
+                {
+                    next;
+                }
+                else
+                {
+                    LogFatal "FileFindBookmark: sysread error: $!";
+                }
+            }
+        }
+        $skipBlocks--;
+    }
+
+    $bytesRead = 0;
+    while ($bytesRead < $skipBytes)
+    {
+        $bytesRead += sysread
+            $gFileHandle,
+            $buf,
+            $skipBytes - $bytesRead,
+            0;
+
+        unless (defined $bytesRead)
+        {
+            if ($! =~ /^Interrupted/)
+            {
+                next;
+            }
+            else
+            {
+                LogFatal "FileFindBookmark: sysread error: $!";
+            }
+        }
+    }
+
+    # set file position to the bookmark
+    $gFilePosition = $pos;
+}
+
+
+
+# --------------------------------------------------------------------------- #
+# Close the given file, reopen it, and reposition the file pointer
+# to where it was when the file was closed.
+#
+# Die upon error.
+# --------------------------------------------------------------------------- #
+
+sub FileReopen
+{
+    my($fileName, $fileHandle) = @_;
+
+    close $fileHandle;
+    open($fileHandle, "< $fileName") ||
+        Die "FileReopen: cannot open '$fileName': $!";
+
+    LogMsg "FileReopen: current file position: $gFilePosition";
+
+    &FileFindBookmark($gFilePosition);
+
+#   tell/seek logic fails on Linux because these commands don't always work
+#   The logic used in FileFindBookmark uses sysread which does work
+}
+
+# --------------------------------------------------------------------------- #
+# Wait until $file, described by $what (e.g., 'output file'),
+# exists and has nonzero size.
+# Wait up to $timeLimit seconds, pausing for $timePause seconds
+# between checks.
+#
+# Return an error message upon failure, undef upon success.
+# --------------------------------------------------------------------------- #
+
+sub FileWait
+{
+    my($file, $what, $timeLimit, $timePause) = @_;
+    my $errMsg;
+
+    $timeLimit = $gConfig{'timeLimitFileExist'} unless $timeLimit;
+    $timePause = $gConfig{'timePauseFileExist'} unless $timePause;
+
+    LogMsg "FileWait: waiting (max $timeLimit seconds) for -e $file ...";
+
+    my($status, $result) = &Try(
+        $timePause,
+        $timeLimit,
+        sub {-e $file});
+
+    if ($status == $TRY_TIMEOUT)
+    {
+        $errMsg = "$what '$file' "
+            . "does not exist and have nonzero size within "
+            . "$timeLimit seconds";
+        return $errMsg;
+    }
+    elsif ($status == $TRY_ERROR)
+    {
+        $errMsg = "error while testing for the existence of "
+            . "$what '$file': "
+            . "$result";
+        return $errMsg;
+    }
+    else
+    {
+        # success
+        return undef;
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Wait until $file1 or $file2, described by $what1 or $what2
+# (e.g., 'output file'), respectively, exists and has nonzero size.
+# Wait up to $timeLimit seconds, pausing for $timePause seconds
+# between checks.
+#
+# Return a ($status, $result) list, defined as follows:
+#
+#	$status		$result		condition
+#	-------		-------		---------
+#	$TRY_OK		1		only $file1 exists
+#			2		only $file2 exists
+#			3		both $file1 and $file2 exist
+#	$TRY_TIMEOUT	error msg	files did not exist within time limit
+#	$TRY_ERROR	error msg	error occurred
+# --------------------------------------------------------------------------- #
+
+sub FileWait2
+{
+    my($file1, $what1, $file2, $what2, $timeLimit, $timePause) = @_;
+    my $errMsg;
+
+    $timeLimit = $gConfig{'timeLimitFileExist'} unless $timeLimit;
+    $timePause = $gConfig{'timePauseFileExist'} unless $timePause;
+
+    LogMsg "FileWait2: waiting (max $timeLimit seconds) for -e $file1 or -e $file2 ...";
+
+    my $function = sub
+    {
+        my $rc = 0;
+
+        $rc  = 0x1 if (-e $file1);
+        $rc |= 0x2 if (-e $file2);
+        $rc;
+    };
+
+    my($status, $result) = &Try($timePause, $timeLimit, $function);
+
+    if ($status == $TRY_OK)
+    {
+        # success
+        return ($status, $result);
+    }
+    elsif ($status == $TRY_TIMEOUT)
+    {
+        $errMsg = "neither $what1 '$file1' nor $what2 '$file2'"
+            . "exist and have nonzero size within "
+            . "$timeLimit seconds";
+        return ($status, $errMsg);
+    }
+    else # ($status == $TRY_ERROR)
+    {
+        $errMsg = "error while testing for the existence of "
+            . "$what1 '$file1' or $what2 '$file2': "
+            . "$result";
+        return ($status, $errMsg);
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Initialize.
+# --------------------------------------------------------------------------- #
+
+sub Init
+{
+    my $errMsg = undef;
+    my $rcsVersion = '$Revision: 22533 $';
+
+    # initialize stdout filehandle for pre-CommInit errors and for sending
+    # port if sockets are being used
+    if (open(OUT, "> -"))
+    {
+        &MsgSelect(\*OUT);
+        &FileAutoFlush(\*OUT);
+    }
+    else
+    {
+        die "Init: cannot open STDOUT: $!\n";
+    }
+
+    # construct program version string
+    if ($rcsVersion =~ /Revision:\s*([.\w]+)/)
+    {
+        # extract revision from RCS string
+        $rcsVersion = $1;
+    }
+    $gProgramVersion = "$gProgramName $rcsVersion";
+
+    # read command line arguments
+    &ArgvRead();
+
+    # read configuration file
+    $errMsg = &ConfigRead($gConfig{'configFile'});
+
+    # handle error from reading configuration file
+    Die "Init: $errMsg" if (defined $errMsg);
+
+    # check parameters
+    $errMsg = &ConfigCheck();
+    Die "Init: $errMsg" if (defined $errMsg);
+
+    # open log file
+    $errMsg = &LogInit();
+    Die "Init: $errMsg" if (defined $errMsg);
+
+    # echo runtime info
+    LogMsg "Init: runtime info:\n", &RuntimeInfoSprint();
+
+    # echo parameters
+    LogMsg "Init: configuration parameters:\n", &ConfigSprint();
+
+    # initialize signals
+    $errMsg = &SigInit();
+    Die "Init: $errMsg" if (defined $errMsg);
+
+    # handle certain signals for which default is to terminate without core
+    $SIG{'HUP'} = \&SigHandleMisc;
+    $SIG{'INT'} = \&SigHandleMisc;
+    $SIG{'TERM'} = \&SigHandleMisc;
+    $SIG{'USR1'} = \&SigHandleMisc;
+    $SIG{'USR2'} = \&SigHandleMisc;
+
+    # ignore SIGPIPE to test whether they are really fatal type problems
+    $SIG{'PIPE'} = \&SigHandleMisc;
+
+    # initialize communications
+    &CommInit();
+
+    # read parse descriptor file
+    $errMsg = &PDFileRead($gConfig{'parseDescriptorFile'});
+    Die "Init: $errMsg" if (defined $errMsg);
+
+    # enable the parse types requested by the client
+    $errMsg = &PDTypesEnable($gConfig{'parseTypes'});
+    &MsgSendErr($MSG_TYPE_E_WARN, $errMsg) if (defined $errMsg);
+
+    # determine if this is an chinook MD task (other than
+    # prepare) running on the login node where the run directory
+    # is not /dtemp.
+    # set the special mpp MD monitoring flag accordingly
+    if (($gConfig{'host'} eq 'chinook') &&
+        ($gConfig{'mdTask'} eq 'yes') &&
+        ($gConfig{'mdPrepareTask'} eq 'no') &&
+        (index(cwd(), "/dtemp") < 0))
+    {
+        $gMppMdFlag = 1;
+    }
+    else
+    {
+        $gMppMdFlag = 0;
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Query queuing system $q for job $id and return one of the following
+# values:
+#
+#	value			meaning
+#	-----			-------
+#	$JOB_STATE_PENDING	job will run later
+#	$JOB_STATE_RUNNING	job is running
+#	$JOB_STATE_DONE		job will not run anymore
+#	$JOB_STATE_NONE		job state is unavailable
+#
+# If you are adding a new queue system, you must modify this function.
+# If your queue system is a derivitive of one of the queue systems that
+# is already supported, first try to add it into the appropriate existing
+# block of code.  Otherwise add a new code block after the final elsif
+# and prior to the final else block.  
+# Search for "add new queue system here"
+#
+# You should make every attempt to cover all queue job states and map
+# them to one of the values listed above to avoid
+# monitoring problems.
+# --------------------------------------------------------------------------- #
+
+sub JobCheck
+{
+    my($id, $q, $file) = @_;
+    my $cmd;
+    my $gotState;
+    my $status = $JOB_STATE_NONE;
+
+    if ($q eq 'shell')
+    {
+        $cmd = "ps -p $id 2>&1";
+        if (open(QUERY, "$cmd |"))
+        {
+            my $found = 0;
+            while (<QUERY>)
+            {
+                # PID is field 0 (0-based)
+                if ((split)[0] eq $id)
+                {
+                    &MsgSendUp("Shell job pid '$id'");
+
+                    # special logic to make sure job has really started--
+                    # some shell jobs block until nodes are available
+                    if (-e $file) {
+                      $status = $JOB_STATE_RUNNING;
+                    } else {
+                      $status = $JOB_STATE_PENDING;
+                    }
+ 
+                    $found = 1;
+                    last;
+                }
+            }
+            close QUERY;
+
+            if ($found == 0)
+            {
+                if ($gJobCheckState != $JOB_STATE_NONE)
+                {
+                    $status = $JOB_STATE_DONE;
+                }
+            }
+        }
+        else
+        {
+            &MsgSendErr($MSG_TYPE_E_WARN, "'$cmd' failed: $!");
+        }
+    }
+    elsif (($q eq 'loadleveler') || ($q eq 'maui') || ($q eq 'easy'))
+    {
+        $cmd = "llq $id 2>&1";
+        my ($sid) = split(/\./, $id);
+        if (open(QUERY, "$cmd |"))
+        {
+            while (<QUERY>)
+            {
+                if (/^$sid/)
+                {
+                    my $state = (split)[4];
+
+                    &MsgSendUp("LoadLeveler job id '$id' in state '$state'");
+
+                    if (grep {$state eq $_} qw{R})
+                    {
+                        $status = $JOB_STATE_RUNNING;
+                    }
+                    elsif (grep {$state eq $_} qw{D H I P S SH ST})
+                    {
+                        $status = $JOB_STATE_PENDING;
+                    }
+                    else
+                    {
+                        $status = $JOB_STATE_DONE;
+                        LogMsg "JobCheck: LoadLeveler state set as DONE: $state";
+                    }
+                    last;
+                }
+                elsif (/not a valid name/)
+                {
+                    if ($gJobCheckState != $JOB_STATE_NONE)
+                    {
+                        $status = $JOB_STATE_DONE;
+                        LogMsg "JobCheck: LoadLeveler job name not valid: $id";
+                    }
+                    last;
+                }
+            }
+            close QUERY;
+        }
+        else
+        {
+            &MsgSendErr($MSG_TYPE_E_WARN, "'$cmd' failed: $!");
+        }
+    }
+    elsif (($q eq 'nqe') || ($q eq 'nqs'))
+    {
+        if ($q eq 'nqe')
+        {
+            $cmd = "cqstatl -f $id 2>&1";
+        }
+        else # ($q eq 'nqs')
+        {
+            $cmd = "qstat -a -f $id 2>&1";
+        }
+
+        if (open(QUERY, "$cmd |"))
+        {
+            while (<QUERY>)
+            {
+                # Debug output because NQE seems to misbehave sometimes
+                LogMsg "JobCheck NQE/NQS status:  $_";
+
+                if (/\sStat(us|e):\s+(\S+)/)
+                {
+                    my $state = uc $2;
+
+                    my $capq = uc $q;
+                    &MsgSendUp("$capq job id '$id' in state '$state'");
+
+                    if (grep {$state eq $_} qw{RUNNING})
+                    {
+                        $status = $JOB_STATE_RUNNING;
+                    }
+                    elsif (grep {$state eq $_} qw{ARRIVING
+                                                  NEW
+                                                  PENDING
+                                                  SCHEDULED
+                                                  QUEUED
+                                                  ROUTING
+                                                  SUSPENDED
+                                                  UNKNOWN
+                                                  WAITING})
+                    {
+                        $status = $JOB_STATE_PENDING;
+                    }
+                    else
+                    {
+                        $status = $JOB_STATE_DONE;
+                    }
+                    last;
+                }
+                elsif (/not found/)
+                {
+                    if ($gJobCheckState != $JOB_STATE_NONE)
+                    {
+                        $status = $JOB_STATE_DONE;
+                    }
+                    last;
+                }
+            }
+        }
+        else
+        {
+            &MsgSendErr($MSG_TYPE_E_WARN, "'$cmd' failed: $!");
+        }
+    }
+    elsif ($q eq 'pbs')
+    {
+        $cmd = "qstat -f $id 2>&1";
+        if (open(QUERY, "$cmd |"))
+        {
+            while (<QUERY>)
+            {
+                # Debug output because PBS seems to misbehave sometimes
+                LogMsg "JobCheck PBS status:  $_";
+
+                if (/\sjob_state = (\S)/)
+                {
+                    my $state = uc $1;
+
+                    my $capq = uc $q;
+                    &MsgSendUp("$capq job id '$id' in state '$state'");
+
+                    if (grep {$state eq $_} qw{R})
+                    {
+                        $status = $JOB_STATE_RUNNING;
+                    }
+                    elsif (grep {$state eq $_} qw{Q
+                                                  H
+                                                  W
+                                                  T
+                                                  S})
+                    {
+                        $status = $JOB_STATE_PENDING;
+                    }
+                    else
+                    {
+                        $status = $JOB_STATE_DONE;
+                    }
+                    last;
+                }
+                elsif (/Unknown Job/)
+                {
+                    if ($gJobCheckState != $JOB_STATE_NONE)
+                    {
+                        $status = $JOB_STATE_DONE;
+                    }
+                    last;
+                }
+            }
+        }
+        else
+        {
+            &MsgSendErr($MSG_TYPE_E_WARN, "'$cmd' failed: $!");
+        }
+    }
+    elsif ($q eq 'lsf')
+    {
+        $cmd = "bjobs -w $id 2>&1";
+        if (open(QUERY, "$cmd |"))
+        {
+            while (<QUERY>)
+            {
+                LogMsg "JobCheck LSF status:  $_";
+
+                # trying to match a line like "... $gUser  RUN ..."
+                if (/\s$gUser\s+(\S+)\s+\S+\s+\S+\s+(\S+)/)
+                {
+                    my $state = uc $1;
+                    my $nodelist = $2;
+
+                    my $capq = uc $q;
+                    &MsgSendUp("$capq job id '$id' in state '$state'");
+
+                    if (grep {$state eq $_} qw{RUN})
+                    {
+                        $status = $JOB_STATE_RUNNING;
+
+                        # if this is an chinook MD task ruunning on the login
+                        # node, wait for the hopnode.out file to be written
+                        # by the job submit script, read the node from the
+                        # file and then send it to eccejobstore.  Finally,
+                        # exit job monitoring so that eccejobstore can restart
+                        # eccejobmonitor on the master compute node instead
+                        # of the login node
+
+                        if ($gMppMdFlag)
+                        {
+                            # check if we are currently running on the login
+                            # node because we should only bail in that case
+                            if (index($nodelist, hostname()) < 0)
+                            {
+                                my $hopFile = 'hopnode.out';
+                                my $hopWhat = 'job master compute node file';
+                                my $sFile = $gConfig{'jobStatusFile'};
+                                my $sWhat = 'job status file';
+                                my $result;
+                                my $status;
+                                my $errMsg = undef;
+
+                                ($status, $result) = &FileWait2($hopFile,
+                                                      $hopWhat, $sFile, $sWhat);
+
+                                # check results
+                                if ($status == $TRY_OK)
+                                {
+                                    if ($result == 2)
+                                    {
+                                        # hopnode.out does not exist
+                                        &MsgSendErr($MSG_TYPE_E_WARN, "JobCheck: $sWhat '$sFile' exists, but $hopWhat '$hopFile' does not");
+                                        last;
+                                    }
+                                }
+                                elsif ($status == $TRY_TIMEOUT)
+                                {
+                                    Die "JobCheck: $result";
+                                }
+                                else # ($status == $TRY_ERROR)
+                                {
+                                    Die "JobCheck: $result";
+                                }
+
+                                # grab node from hopnode.out file
+                                if (open(HOPFILE, "< $hopFile"))
+                                {
+                                    my $node;
+
+                                    &FileReadInit($hopFile, \*HOPFILE);
+                                    ($node, $errMsg) = &FileReadLine($hopFile);
+                                    close HOPFILE;
+
+                                    if ($errMsg)
+                                    {
+                                        $errMsg = "error reading $hopWhat '$hopFile': $errMsg";
+                                    }
+                                    else
+                                    {
+                                        &MsgSendNode($node);
+                                        &Done(0);
+                                    }
+                                }
+                                else
+                                {
+                                    $errMsg = "cannot open $hopWhat '$hopFile': $!";
+                                }
+
+                                # bail if hopnode.out could not be read
+                                if ($errMsg)
+                                {
+                                    Die "JobCheck: $errMsg";
+                                }
+                            }
+                        }
+                    }
+                    elsif (grep {$state eq $_} qw{PEND
+                                                  WAIT
+                                                  PSUSP
+                                                  USUSP
+                                                  SSUSP})
+                    {
+                        $status = $JOB_STATE_PENDING;
+                    }
+                    else
+                    {
+                        $status = $JOB_STATE_DONE;
+                    }
+                    last;
+                }
+                elsif (/not found/)
+                {
+                    if ($gJobCheckState != $JOB_STATE_NONE)
+                    {
+                        $status = $JOB_STATE_DONE;
+                    }
+                    last;
+                }
+            }
+        }
+        else
+        {
+            &MsgSendErr($MSG_TYPE_E_WARN, "'$cmd' failed: $!");
+        }
+    }
+    elsif ($q eq 'moab')
+    {
+        $cmd = "squeue -h -a -j $id -o %T 2>&1";
+        if (open(QUERY, "$cmd |"))
+        {
+            while (<QUERY>)
+            {
+                LogMsg "JobCheck Moab status:  $_";
+
+                my $state = $_;
+                chomp $state;
+
+                my $capq = uc $q;
+                &MsgSendUp("$capq job id '$id' in state '$state'");
+
+                if (grep {$state eq $_} qw{RUNNING})
+                {
+                    $status = $JOB_STATE_RUNNING;
+
+                    # if this is a chinook MD task ruunning on the login
+                    # node, wait for the hopnode.out file to be written
+                    # by the job submit script, read the node from the
+                    # file and then send it to eccejobstore.  Finally,
+                    # exit job monitoring so that eccejobstore can restart
+                    # eccejobmonitor on the master compute node instead
+                    # of the login node
+
+                    if ($gMppMdFlag)
+                    {
+                        # check if we are currently running on the login
+                        # node because we should only bail in that case
+                        while (<QUERY>)
+                        {
+                        if (/^Allocated Nodes:/)
+                            {
+                                if (<QUERY>)
+                                {
+                                    my $nodelist = $_;
+                                    if (index($nodelist, hostname()) < 0)
+                                    {
+                                        my $hopFile = 'hopnode.out';
+                                        my $hopWhat = 'job master compute node file';
+                                        my $sFile = $gConfig{'jobStatusFile'};
+                                        my $sWhat = 'job status file';
+                                        my $result;
+                                        my $status;
+                                        my $errMsg = undef;
+
+                                        ($status, $result) = &FileWait2($hopFile,
+                                                              $hopWhat, $sFile, $sWhat);
+
+                                        # check results
+                                        if ($status == $TRY_OK)
+                                        {
+                                            if ($result == 2)
+                                            {
+                                                # hopnode.out does not exist
+                                                &MsgSendErr($MSG_TYPE_E_WARN, "JobCheck: $sWhat '$sFile' exists, but $hopWhat '$hopFile' does not");
+                                                last;
+                                            }
+                                        }
+                                        elsif ($status == $TRY_TIMEOUT)
+                                        {
+                                            Die "JobCheck: $result";
+                                        }
+                                        else # ($status == $TRY_ERROR)
+                                        {
+                                            Die "JobCheck: $result";
+                                        }
+
+                                        # grab node from hopnode.out file
+                                        if (open(HOPFILE, "< $hopFile"))
+                                        {
+                                            my $node;
+
+                                            &FileReadInit($hopFile, \*HOPFILE);
+                                            ($node, $errMsg) = &FileReadLine($hopFile);
+                                            close HOPFILE;
+
+                                            if ($errMsg)
+                                            {
+                                                $errMsg = "error reading $hopWhat '$hopFile': $errMsg";
+                                            }
+                                            else
+                                            {
+                                                &MsgSendNode($node);
+                                                &Done(0);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            $errMsg = "cannot open $hopWhat '$hopFile': $!";
+                                        }
+
+                                        # bail if hopnode.out could not be read
+                                        if ($errMsg)
+                                        {
+                                            Die "JobCheck: $errMsg";
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    last;
+                }
+                elsif (grep {$state eq $_} qw{PENDING
+                                              IDLE
+                                              STARTING
+                                              BATCHHOLD
+                                              SYSTEMHOLD
+                                              USERHOLD
+                                              DEFERRED
+                                              MIGRATED
+                                              STAGING})
+                {
+                    $status = $JOB_STATE_PENDING;
+                    last;
+                }
+                elsif (grep {$state eq $_} qw{COMPLETING})
+                {
+                    $status = $JOB_STATE_DONE;
+                    last;
+                }
+                else
+                {
+                    $status = $JOB_STATE_DONE;
+                }
+            }
+        }
+        else
+        {
+            &MsgSendErr($MSG_TYPE_E_WARN, "'$cmd' failed: $!");
+        }
+    }
+    elsif ($q eq 'sge')
+    {
+        $cmd = "qstat 2>&1";
+        if (open(QUERY, "$cmd |"))
+        {
+            $gotState = 0;
+            while (<QUERY>)
+            {
+                LogMsg "JobCheck: SGE qstat line: $_";
+                if (/^\s*$id/)
+                {
+                    my $state = (split)[4];
+
+                    &MsgSendUp("SGE job id '$id' in state '$state'");
+
+                    if (grep {$state eq $_} qw{r
+                                               t})
+                    {
+                        $status = $JOB_STATE_RUNNING;
+                    }
+                    elsif (grep {$state eq $_} qw{qw})
+                    {
+                        $status = $JOB_STATE_PENDING;
+                    }
+                    $gotState = 1;
+                    last;
+                }
+            }
+            if ($gotState == 0)
+            {
+                if ($gJobCheckState != $JOB_STATE_NONE)
+                {
+                    $status = $JOB_STATE_DONE;
+                }
+            }
+            close QUERY;
+        }
+        else
+        {
+            &MsgSendErr($MSG_TYPE_E_WARN, "'$cmd' failed: $!");
+        }
+    }
+# Add new queue system here
+    elsif ($q eq 'globus')
+    {
+        # Globus status commands issued on client side 
+        &MsgSendStatusRequest();
+
+        # Read status from stdin (blocking)
+        my $state = <STDIN>;
+
+        if ($state =~ /RUNNING/)
+        {
+            $status = $JOB_STATE_RUNNING;
+            $state = "RUNNING";
+        }
+        elsif ($state =~ /PENDING/)
+        {
+            $status = $JOB_STATE_PENDING;
+            $state = "PENDING";
+        }
+        else
+        {
+            $status = $JOB_STATE_DONE;
+            $state = "DONE";
+        }
+
+        LogMsg "Globus status from eccejobstore: $state";
+    }
+    else
+    {
+        if ($gJobCheckComplaintIssued == 0)
+        {
+            &MsgSendErr($MSG_TYPE_E_WARN, "JobCheck: queue '$q' not implemented");
+            $gJobCheckComplaintIssued = 1;
+        }
+    }
+
+    # log enqueuing once
+    if ($gJobCheckEnqueuedIssued == 0)
+    {
+        if ($status == $JOB_STATE_PENDING)
+        {
+            LogMsg "JobCheck: $q job $id enqueued (pending)";
+            $gJobCheckEnqueuedIssued = 1;
+        }
+        elsif ($status == $JOB_STATE_RUNNING)
+        {
+            LogMsg "JobCheck: $q job $id enqueued (running)";
+            $gJobCheckEnqueuedIssued = 1;
+        }
+        elsif ($status == $JOB_STATE_DONE)
+        {
+            LogMsg "JobCheck: $q job $id enqueued (done)";
+            $gJobCheckEnqueuedIssued = 1;
+        }
+    }
+
+    if ($gJobCheckState != $status)
+    {
+      LogMsg "JobCheck: state change from $gJobCheckState to $status";
+    }
+
+    # remember this state
+    $gJobCheckState = $status;
+
+    # return
+    $status;
+}
+
+# --------------------------------------------------------------------------- #
+# Send files of interest to the client, then send the completion status
+# info if it's available.
+# --------------------------------------------------------------------------- #
+
+sub JobFilesGet
+{
+    my $errMsg = undef;
+    my $i;
+    my $sFile = $gConfig{'jobStatusFile'};
+    my $sWhat = 'job status file';
+    my $timeLimit = $gConfig{'timeLimitFileExistStat'};
+    my $timePause = $gConfig{'timePauseFileExistStat'};
+
+    if (($gConfig{'monitoringMode'} eq 'live') && $gWaitFileStatus)
+    {
+        # wait for job status file to exist
+        $errMsg = &FileWait($sFile, $sWhat, $timeLimit, $timePause);
+    }
+
+    # send files indicated in parse descriptors
+    foreach $i (keys %gPdTableFiles)
+    {
+        &MsgSendFile($i, $MSG_TYPE_F_PROP, $gPdTableFiles{$i});
+    }
+
+    # send job output files
+
+    # for multiple parse files, don't add the jobOutputFile to the
+    # list to be transferred over since it will actually be a sequence
+    # of files and the JobOutputGet subroutine is responsible for adding
+    # all those files to the list to be transferred
+    my $batchFlag = ($gConfig{'mdBatchOutput'} eq 'yes') ? 1 : 0;
+    my $pmfFlag = ($gConfig{'mdPMFOutput'} eq 'yes') ? 1 : 0;
+    if ($batchFlag == 0 && $pmfFlag == 0)
+    {
+        &MsgSendFile($gConfig{'jobOutputFile'}, $MSG_TYPE_F_JOF);
+    }
+
+    &MsgSendFile($gConfig{'jobOutputFile2'}, $MSG_TYPE_F_JOF);
+    &MsgSendFile($gConfig{'jobOutputFile3'}, $MSG_TYPE_F_JOF);
+    &MsgSendFile($gConfig{'jobOutputFile4'}, $MSG_TYPE_F_JOF);
+    &MsgSendFile($gConfig{'jobOutputFile5'}, $MSG_TYPE_F_JOF);
+    &MsgSendFile($gConfig{'jobOutputFile6'}, $MSG_TYPE_F_JOF);
+
+    # send restart files, if any
+    # this allows the eccejobstore client to find the highest sequence
+    # number if all restart files aren't being stored
+    opendir RST_DIR, "." or Die "Could not open directory: $! \n";
+    my @rstFiles = grep /\.rst$/, readdir RST_DIR;
+    closedir RST_DIR;
+    foreach $i (@rstFiles)
+    {
+        &MsgSendFile($i, $MSG_TYPE_F_JOF);
+    }
+
+    # send other files
+    if ($gConfig{'filesToTransfer'})
+    {
+        foreach $i (split /\s+/, $gConfig{'filesToTransfer'})
+        {
+            &MsgSendFile($i, $MSG_TYPE_F_OTHER);
+        }
+    }
+
+    &MsgSendEndOfFiles();
+
+    # send completion status info
+    if ((! $errMsg) && ($gConfig{'monitoringMode'} ne 'live'))
+    {
+        &MsgSendStatus($MSG_VAL_STAT_IMPORTED);
+    }
+    elsif ((! $errMsg) && $gWaitFileStatus)
+    {
+        if (open(STATUS, "< $sFile"))
+        {
+            my $buf;
+
+            &FileReadInit($sFile, \*STATUS);
+            ($buf, $errMsg) = &FileReadLine($sFile);
+            close STATUS;
+
+            if ($errMsg)
+            {
+                $errMsg = "error reading $sWhat '$sFile': $errMsg";
+            }
+            else
+            {
+                &MsgSendStatus($buf);
+            }
+        }
+        else
+        {
+            $errMsg = "cannot open $sWhat '$sFile': $!";
+        }
+    }
+
+    # complain if job status file exhibits problem
+    if ($errMsg)
+    {
+        &MsgSendErr($MSG_TYPE_E_WARN, "JobFilesGet: $errMsg");
+    }
+
+    # notify client if job status file is unavailable
+    if ($errMsg || ! $gWaitFileStatus)
+    {
+        &MsgSendStatus($MSG_VAL_STAT_UNAVAIL);
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Read the job output file, parse it,
+# and send the relevant contents to the client.
+# --------------------------------------------------------------------------- #
+
+sub JobOutputGet
+{
+    my $errMsg;
+    my $id = $gConfig{'jobId'};
+    my $live = ($gConfig{'monitoringMode'} eq 'live') ? 1 : 0;
+    my $currWhat = 'job output file';
+    my $q = $gConfig{'jobQ'};
+    my $sFile = $gConfig{'jobStatusFile'};
+    my $state;
+    my $sWhat = 'job status file';
+    my $numParts;
+
+    #
+    # GDB initialization for multiple (batched) parse files
+    #
+    my $currSeq = 0;
+    my $batchFlag = ($gConfig{'mdBatchOutput'} eq 'yes') ? 1 : 0;
+    my $pmfFlag = ($gConfig{'mdPMFOutput'} eq 'yes') ? 1 : 0;
+    if ($batchFlag || $pmfFlag)
+    {
+        $currSeq = 1;
+    }
+
+    # account for bookmark restart
+    my $currPos = 0;
+    my $bookmarkField = $gConfig{'bookmark'};
+    if ($bookmarkField ne '0')
+    {
+        my @bookmarkParts = split(/:/, $bookmarkField);
+        $currPos = $bookmarkParts[0];
+        $numParts = @bookmarkParts;
+        if (($batchFlag || $pmfFlag) && ($numParts > 1))
+        {
+            $currSeq = $bookmarkParts[1];
+        }
+    }
+
+    # construct the full parse file name
+    my $currFile = $gConfig{'jobOutputFile'};
+    if ($batchFlag && $pmfFlag)
+    {
+        my @fileParts = split(/\./, $currFile);
+
+        # pmf sequence numbers are always zero padded 5 digit values
+        my $fmtSeq = sprintf("%05d", $currSeq);
+
+        $currFile = "$fileParts[0]"."001-"."$fmtSeq";
+        $numParts = @fileParts;
+        if ($numParts > 1)
+        {
+            # assumes a single period separator
+            $currFile .= "."."$fileParts[1]";
+        }
+    }
+    elsif ($batchFlag)
+    {
+        my @fileParts = split(/\./, $currFile);
+
+        # sequence numbers are always zero padded 3 digit values
+        my $fmtSeq = sprintf("%03d", $currSeq);
+
+        $currFile = "$fileParts[0]"."$fmtSeq";
+        $numParts = @fileParts;
+        if ($numParts > 1)
+        {
+            # assumes a single period separator
+            $currFile .= "."."$fileParts[1]";
+        }
+    }
+    elsif ($pmfFlag)
+    {
+        my @fileParts = split(/\./, $currFile);
+
+        # pmf sequence numbers are always zero padded 5 digit values
+        my $fmtSeq = sprintf("%05d", $currSeq);
+
+        $currFile = "$fileParts[0]"."-"."$fmtSeq";
+        $numParts = @fileParts;
+        if ($numParts > 1)
+        {
+            # assumes a single period separator
+            $currFile .= "."."$fileParts[1]";
+        }
+    }
+
+    my $fullCurrFile = $currFile;
+    if ($gMppMdFlag)
+    {
+        $fullCurrFile = "$gMppMdScratchDir"."/"."$currFile";
+    }
+    
+
+    #
+    # wait for job output file to exist
+    #
+
+    if ($live)
+    {
+        my $result;
+        my $status;
+
+        # wait for job to start
+        ($status, $result) = &JobWait($fullCurrFile);
+
+        # check results
+        if ($status == $TRY_OK)
+        {
+            if ($result & $JOB_STATE_RUNNING)
+            {
+                # job is running
+                &MsgSendStatus($MSG_VAL_STAT_RUNNING);
+
+                if (!($result & $FILE_EXISTS_1))
+                {
+                    # job output file does not exist
+
+                    while (1)
+                    {
+                        # wait for job output file to exist
+                        ($status, $result) =
+                            &FileWait2($fullCurrFile, $currWhat, $sFile, $sWhat);
+
+                        # check results
+                        if ($status == $TRY_OK)
+                        {
+                            if ($result == 2)
+                            {
+                                # job output file does not exist
+                                &MsgSendErr($MSG_TYPE_E_WARN, "JobOutputGet: $sWhat '$sFile' exists, but $currWhat '$fullCurrFile' does not");
+                                return;
+                            }
+                            else
+                            {
+                                # job output file does exist
+                                last;
+                            }
+                        }
+                        elsif ($status == $TRY_TIMEOUT)
+                        {
+                            Die "JobOutputGet: $result";
+                        }
+                        else # ($status == $TRY_ERROR)
+                        {
+                            Die "JobOutputGet: $result";
+                        }
+                    }
+                }
+            }
+            else
+            {
+                # job is not running
+
+                if ($result & $FILE_EXISTS_1)
+                {
+                    # job output file does exist
+
+                    # job already ran or will run
+                    &MsgSendStatus($MSG_VAL_STAT_RUNNING)
+                        if ($gConfig{'msgReportRunning'} ne 'strict');
+                }
+                else
+                {
+                    # job output file does not exist
+
+                    if ($result & $FILE_EXISTS_2)
+                    {
+                        # job status file does exist
+
+                        &MsgSendErr($MSG_TYPE_E_WARN, "JobOutputGet: $sWhat '$sFile' exists, but $currWhat '$fullCurrFile' does not");
+                    }
+                    else
+                    {
+                        # job status file does not exist
+
+                        &MsgSendErr($MSG_TYPE_E_WARN, "JobOutputGet: neither $sWhat '$sFile' nor $currWhat '$fullCurrFile' exists");
+
+                        # don't wait for job status file
+                        $gWaitFileStatus = 0;
+                    }
+
+                    # no job output file to process
+                    return;
+                }
+            }
+        }
+        elsif ($status == $TRY_TIMEOUT)
+        {
+            &MsgSendErr($MSG_TYPE_E_WARN, "JobOutputGet: $result");
+
+            # don't wait for job status file
+            $gWaitFileStatus = 0;
+
+            # no job output file to process
+            return;
+        }
+        else # ($status == $TRY_ERROR)
+        {
+            Die "JobOutputGet: $result";
+        }
+    }
+    else
+    {
+        # doing an import--report job as running so we get live updates
+        # below and the user knows job monitoring is active
+        &MsgSendStatus($MSG_VAL_STAT_RUNNING);
+    }
+
+
+    #
+    # read job parse files
+    #
+
+    my $fileReopenedJobDone;
+    my $naps;
+    my $line;
+    my $lineSkip;
+    my $lineTake;
+    my $count;
+    my $parseHandle;
+    my $parseType;
+    my $nextFile;
+    my $fullNextFile;
+    my $nextFileFlag;
+
+    # outer loop over all parse files
+    while (1)
+    {
+        $fileReopenedJobDone = 0;
+        $naps = 0;
+        $line = 0;
+        $lineSkip = 0;
+        $lineTake = 0;
+        $parseHandle = undef;
+        $parseType = undef;
+
+        #
+        # open current parse file
+        #
+        unless (open(JOF, "< $fullCurrFile"))
+        {
+            $errMsg = "cannot open $currWhat '$fullCurrFile': $!";
+
+            Die "JobOutputGet: $errMsg";
+        }
+        $gFileHandle = \*JOF;
+
+        # initialize file position before any reads are done
+        $gFilePosition = 0;
+
+        &FileReadInit($fullCurrFile, \*JOF);
+
+        if ($currPos != 0)
+        {
+            &FileFindBookmark($currPos);
+            LogMsg "JobOutputGet: restart file position $currPos";
+            &JobBufferedPropertiesGet();
+        }
+
+        # construct the name of the next parse file, if applicable
+        if ($batchFlag && $pmfFlag)
+        {
+            $nextFileFlag = 0;
+            $nextFile = $gConfig{'jobOutputFile'};
+            my @fileParts = split(/\./, $nextFile);
+
+            my $nextSeq = $currSeq + 1;
+            # pmf sequence numbers are always zero padded 5 digit values
+            my $fmtSeq = sprintf("%05d", $nextSeq);
+
+            $nextFile = "$fileParts[0]"."001-"."$fmtSeq";
+            $numParts = @fileParts;
+            if ($numParts > 1)
+            {
+                # assumes a single period separator
+                $nextFile .= "."."$fileParts[1]";
+            }
+
+            $fullNextFile = $nextFile;
+            if ($gMppMdFlag)
+            {
+                $fullNextFile = "$gMppMdScratchDir"."/"."$nextFile";
+            }
+        }
+        elsif ($batchFlag)
+        {
+            $nextFileFlag = 0;
+            $nextFile = $gConfig{'jobOutputFile'};
+            my @fileParts = split(/\./, $nextFile);
+
+            my $nextSeq = $currSeq + 1;
+            # sequence numbers are always zero padded 3 digit values
+            my $fmtSeq = sprintf("%03d", $nextSeq);
+
+            $nextFile = "$fileParts[0]"."$fmtSeq";
+            $numParts = @fileParts;
+            if ($numParts > 1)
+            {
+                # assumes a single period separator
+                $nextFile .= "."."$fileParts[1]";
+            }
+
+            $fullNextFile = $nextFile;
+            if ($gMppMdFlag)
+            {
+                $fullNextFile = "$gMppMdScratchDir"."/"."$nextFile";
+            }
+        }
+        elsif ($pmfFlag)
+        {
+            $nextFileFlag = 0;
+            $nextFile = $gConfig{'jobOutputFile'};
+            my @fileParts = split(/\./, $nextFile);
+
+            my $nextSeq = $currSeq + 1;
+            # pmf sequence numbers are always zero padded 5 digit values
+            my $fmtSeq = sprintf("%05d", $nextSeq);
+
+            $nextFile = "$fileParts[0]"."-"."$fmtSeq";
+            $numParts = @fileParts;
+            if ($numParts > 1)
+            {
+                # assumes a single period separator
+                $nextFile .= "."."$fileParts[1]";
+            }
+
+            $fullNextFile = $nextFile;
+            if ($gMppMdFlag)
+            {
+                $fullNextFile = "$gMppMdScratchDir"."/"."$nextFile";
+            }
+        }
+
+        # dual purpose flag:  for single parse file jobs, this flag simply
+        # indicates whether it is a live job or an import.  For multiple
+        # parse files, this flag indicates whether to continue to wait
+        # for output from the current file or whether to read and process
+        # it immediately because the next parse file already exists
+        my $waitForOutput = $live;
+
+        # inner loop over the current parse file
+        while (1)
+        {
+            # read next line from job output file
+            if ($waitForOutput)
+            {
+                # GDB smarts for looking ahead with multiple parse files
+                # during the processing of the current file
+
+                # check for existence of the next file to parse, if applicable
+                if ($batchFlag || $pmfFlag)
+                {
+                    if (-e $fullNextFile)
+                    {
+                        # set flag to indicate there is no reason to wait on
+                        # more output to the current file--just read and
+                        # process it immediately until EOF so we can move on
+                        # to the next file
+                        $waitForOutput = 0;
+
+                        # set flag to indicate that the next parse file is
+                        # found.  This is necessary instead of just using
+                        # $waitForOutput because it's possible to import
+                        # (non-live monitoring) a multiple parse file MD job.
+                        # In this case, the $waitForOutput flag would always
+                        # be false
+                        $nextFileFlag = 1;
+
+                        # bail from this loop iteration and go to the next
+                        # one, but this time entering the else clause
+                        next;
+                    }
+                }
+
+                # read next line from current file
+                ($_, $errMsg) = &FileReadLine($fullCurrFile);
+
+                # check for problems or EOF
+                if ($errMsg)
+                {
+                    $errMsg = "error reading $currWhat '$fullCurrFile': $errMsg";
+
+                    Die "JobOutputGet: $errMsg";
+                }
+                elsif ((length $_) == 0)
+                {
+                    # check for EOF
+
+                    $state = &JobCheck($id, $q, $fullCurrFile);
+                    if (($state == $JOB_STATE_PENDING) ||
+                        ($state == $JOB_STATE_RUNNING))
+                    {
+                        # job is still active; not EOF
+
+                        # pause to avoid hogging CPU
+                        sleep $gConfig{'timePauseReadLine'};
+
+                        # periodically attempt to force a filesystem flush
+                        if ((++$naps % $gConfig{'freqFileReopen'}) == 0)
+                        {
+                            &FileReopen($fullCurrFile, \*JOF);
+                        }
+
+                        # try again
+                        next;
+                    }
+                    else
+                    {
+                        # job is no longer active; possible EOF
+
+                        if (++$fileReopenedJobDone >
+                            $gConfig{'triesFileReopenJobDone'})
+                        {
+                            # EOF
+                            last;
+                        }
+                        else
+                        {
+                            # pause to give filesystem more time
+                            sleep $gConfig{'timePauseJobDone'};
+
+                            # attempt to force a filesystem flush
+                            &FileReopen($fullCurrFile, \*JOF);
+
+                            # try again
+                            next;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                # read next line
+                $_ = <JOF>;
+
+                # check for EOF
+                last unless $_;
+            }
+
+            $line++;
+
+            # Keep track of where we are for restarting
+            $currPos += length;
+
+            if ($parseHandle)
+            {
+                # currently processing a data block
+
+                next if ($lineSkip-- > 0);
+
+                if (exists $gPdTable{$parseHandle}{$PD_KEY_LINES})
+                {
+                    if ($lineTake-- > 1)
+                    {
+                        &MsgSendBlockLine($_);
+                    }
+                    elsif ($lineTake == 0)
+                    {
+                        &MsgSendBlockLine($_);
+                        &MsgSendBlockEnd($currPos, $currSeq);
+                        if ($gPdTable{$parseHandle}{$PD_KEY_FREQ}
+                            eq $PD_VAL_FREQ_FIRST)
+                        {
+                            &PDTableDeleteType(
+                                $gPdTable{$parseHandle}{$PD_KEY_TYPE});
+                        }
+                        $parseHandle = undef;
+                    }
+                }
+                elsif (/$gPdTable{$parseHandle}{$PD_KEY_END}/)
+                {
+                    &MsgSendBlockLine($_);
+                    &MsgSendBlockEnd($currPos, $currSeq);
+                    if ($gPdTable{$parseHandle}{$PD_KEY_FREQ} eq
+                                                $PD_VAL_FREQ_FIRST)
+                    {
+                        &PDTableDeleteType($gPdTable{$parseHandle}
+                                               {$PD_KEY_TYPE});
+                    }
+                    $parseHandle = undef;
+                }
+                else
+                {
+                    &MsgSendBlockLine($_);
+                }
+            }
+            else
+            {
+                # not currently processing a data block
+
+                $gStat{'countLines'}++;
+
+                if ($parseHandle = &PDMatchBegin($_))
+                {
+                    # this is the start of a data block
+
+                    if ($gConfig{'debug'} & $DEBUG_PD)
+                    {
+                        LogMsg "JobOutputGet: PDs checked = $gStat{'countPDMatchBegin'}, lines read = $gStat{'countLines'}";
+
+                        $gStat{'countLines'} = 0;
+                        $gStat{'countPDMatchBegin'} = 0;
+                    }
+
+                    # map handle to type
+                    $parseType = $gPdTable{$parseHandle}{$PD_KEY_TYPE};
+
+                    # increment the instance count of this parse type
+                    $count = ++$gPdCount{$parseType};
+
+                    &MsgSendBlockBegin($parseType, $count);
+
+                    if (exists $gPdTable{$parseHandle}{$PD_KEY_SKIP})
+                    {
+                        $lineSkip = $gPdTable{$parseHandle}{$PD_KEY_SKIP};
+                    }
+                    else
+                    {
+                        $lineSkip = 0;
+                    }
+
+                    if (exists $gPdTable{$parseHandle}{$PD_KEY_LINES})
+                    {
+                        $lineTake = $gPdTable{$parseHandle}{$PD_KEY_LINES};
+                    }
+                    else
+                    {
+                        $lineTake = 0;
+                    }
+
+                    if ($lineSkip-- == 0)
+                    {
+                        &MsgSendBlockLine($_);
+                        if ($lineTake-- == 1)
+                        {
+                            &MsgSendBlockEnd($currPos, $currSeq);
+                            if ($gPdTable{$parseHandle}{$PD_KEY_FREQ}
+                                eq $PD_VAL_FREQ_FIRST)
+                            {
+                                &PDTableDeleteType(
+                                    $gPdTable{$parseHandle}{$PD_KEY_TYPE});
+                            }
+                            $parseHandle = undef;
+                        }
+                    }
+                }
+            }
+        }
+        close JOF;
+        $gFileHandle = undef;
+
+        LogMsg "JobOutputGet: read $line lines from $fullCurrFile";
+
+        # check for runaway parse type
+        if ($parseHandle)
+        {
+            $errMsg = "end of file encountered while reading parse type $parseType";
+
+            Die "JobOutputGet: $errMsg";
+        }
+
+        # GDB setup to process the next parse file, if applicable
+        if ($batchFlag || $pmfFlag)
+        {
+            # mark the current file so it will be transferred over at the
+            # end of the job
+            &MsgSendFile($currFile, $MSG_TYPE_F_JOF);
+        }
+
+        if (($batchFlag || $pmfFlag) && $nextFileFlag)
+        {
+            # update $currFile and other associated variables to point
+            # to the next file to be parsed
+            $currFile = $nextFile;
+            $fullCurrFile = $fullNextFile;
+            $currSeq++;
+            $currPos = 0;
+        }
+        else
+        {
+            # bail from the outer loop because it's either a single
+            # parse file or it was the last parse file
+            last;
+        }
+
+    # end of the outer loop over all parse files
+    }
+
+    LogMsg "JobOutputGet: statistics:\n", &StatSprint();
+
+    # send buffered data blocks
+    &MsgSendBlockFlush();
+}
+
+sub JobBufferedPropertiesGet
+{
+    my $line;
+    my $k;
+    my $len;
+    my $buf;
+    my $bytesRead;
+    my $propFileHandle;
+
+    open(PROPBUF, "< $gProgramName.propbuf") || return;
+
+    $propFileHandle = \*PROPBUF;
+
+    while (<PROPBUF>)
+    {
+        $line = $_;
+        chomp $line;
+        ($k,$len) = split(/ /, $line, 2); 
+        $bytesRead = read
+                $propFileHandle,
+                $buf,
+                $len,
+                0;
+        if ($bytesRead == $len)
+        {
+            $gMsgBlockBuf{$k} = $buf;
+        }
+    }
+    close PROPBUF;
+}
+
+# --------------------------------------------------------------------------- #
+# Wait until the job is running or the job output or status files
+# exist and have nonzero size.
+#
+# Return a ($status, $result) list, defined as follows:
+#
+#	$status		$result			condition
+#	-------		-------			---------
+#	$TRY_OK		& $JOB_STATE_RUNNING	job is running
+#			& $JOB_STATE_DONE	job is done running
+#			& $FILE_EXISTS_1	job output file exists
+#			& $FILE_EXISTS_2	job status file exists
+#	$TRY_TIMEOUT	error msg		job not queued or running,
+#					 	nor do files exist within
+#						(some multiple of) time limit
+#	$TRY_ERROR	error msg		error occurred
+# --------------------------------------------------------------------------- #
+
+sub JobWait
+{
+    my ($file1) = @_;
+    my $file2 = $gConfig{'jobStatusFile'};
+    my $id = $gConfig{'jobId'};
+    my $q = $gConfig{'jobQ'};
+    my $errMsg;
+    my $result;
+    my $state;
+    my $status;
+    my $timeLimit = $gConfig{'timeLimitJobExist'};
+    my $timePause = $gConfig{'timePauseJobExist'};
+    my $what1 = 'job output file';
+    my $what2 = 'job status file';
+
+    LogMsg "JobWait: waiting (max $timeLimit seconds) for $q job $id ...";
+
+    my $function = sub
+    {
+        my $rc = 0;
+        my $state = &JobCheck($id, $q, $file1);
+
+        if (($state == $JOB_STATE_RUNNING) ||
+            ($state == $JOB_STATE_DONE))
+        {
+            $rc = $state;
+        }
+        $rc |= $FILE_EXISTS_1 if (-e $file1);
+        $rc |= $FILE_EXISTS_2 if (-e $file2);
+        $rc;
+    };
+
+    while (1)
+    {
+        ($status, $result) = &Try($timePause, $timeLimit, $function);
+
+        if ($status == $TRY_OK)
+        {
+            # success
+            return ($status, $result);
+        }
+        elsif ($status == $TRY_TIMEOUT)
+        {
+            $state = &JobCheck($id, $q, $file1);
+            if (($state == $JOB_STATE_DONE) ||
+                ($state == $JOB_STATE_NONE))
+            {
+                $errMsg = "$q job $id is neither queued nor running and "
+                    . "neither $what1 '$file1' nor $what2 '$file2' "
+                    . "exist and have nonzero size within "
+                    . "$timeLimit seconds";
+                return ($status, $errMsg);
+            }
+        }
+        else # ($status == $TRY_ERROR)
+        {
+            $errMsg = "error while testing for the existence of "
+                . "$q job $id, $what1 '$file1' or $what2 '$file2': $result";
+            return ($status, $errMsg);
+        }
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Remove the log file if requested and certain conditions are met.
+# --------------------------------------------------------------------------- #
+
+sub LogClose
+{
+    if (($gConfig{'logMode'} eq 'rmifok') &&
+        ($gLogNumErrors == 0) &&
+        ($gLogNumWarnings == 0))
+    {
+        my $file;
+
+        # remove log file and link
+        foreach $file ($gConfig{'logFile'})
+        {
+            if ($file)
+            {
+                if (unlink($file) != 1)
+                {
+                    LogErr "unlink '$file' failed: $!";
+                }
+            }
+        }
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Print the arguments as an error message in the log file.
+# --------------------------------------------------------------------------- #
+
+sub LogErr
+{
+    &LogPrint("ERROR: ", @_);
+    $gLogNumErrors++;
+}
+
+# --------------------------------------------------------------------------- #
+# Print the arguments as a fatal error message in the log file.
+# --------------------------------------------------------------------------- #
+
+sub LogFatal
+{
+    &LogPrint("FATAL ERROR: ", @_);
+    $gLogNumErrors++;
+}
+
+# --------------------------------------------------------------------------- #
+# Print the arguments as an info message in the log file.
+# --------------------------------------------------------------------------- #
+
+sub LogInfo
+{
+    &LogPrint("INFO: ", @_);
+}
+
+# --------------------------------------------------------------------------- #
+# Initialize the log file module.  The process ID is appended to the
+# name of the log file if the name ends in a period.
+#
+# Return an error message upon failure, undef upon success.
+# --------------------------------------------------------------------------- #
+
+sub LogInit
+{
+    my $file;
+    my $link;
+
+    # do not open log file if logging is disabled
+    return if ($gConfig{'logMode'} eq 'no');
+
+    # append pid to name of log file if desired
+    $gConfig{'logFile'} .= $$ if ($gConfig{'logFile'} =~ /\.$/);
+
+    # set convenience variables
+    $file = $gConfig{'logFile'};
+
+    # open new log file
+    open(LOG, "> $file") ||
+        return "cannot open $file for writing: $!";
+
+    # enable autoflush for the log file
+    &FileAutoFlush(\*LOG);
+
+    # mark the log file as being open
+    $gLogFileOpen = $$;
+
+    # print identifying information in the log file
+    LogMsg "$gProgramVersion, ecce $gConfig{'ecceVersion'}";
+
+    # success
+    undef;
+}
+
+# --------------------------------------------------------------------------- #
+# Return 1 if the log file for the process is open, else return 0.
+# --------------------------------------------------------------------------- #
+
+sub LogIsOpen
+{
+    ($gLogFileOpen == $$) ? 1 : 0;
+}
+
+# --------------------------------------------------------------------------- #
+# Print the arguments as a message in the log file if verbose logging is on.
+# --------------------------------------------------------------------------- #
+
+sub LogMsg
+{
+    &LogPrint(@_) if ($gConfig{'logLevel'} >= 1);
+}
+
+# --------------------------------------------------------------------------- #
+# Print the arguments as a message in the log file, if it's open.
+# Prepend timestamp.
+# --------------------------------------------------------------------------- #
+
+sub LogPrint
+{
+    local $" = '';
+
+    if (@_ > 0)
+    {
+        chomp $_[$#_];
+    }
+
+    if (&LogIsOpen())
+    {
+        print LOG scalar localtime, ": @_\n";
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Print the arguments as a warning message in the log file.
+# --------------------------------------------------------------------------- #
+
+sub LogWarn
+{
+    &LogPrint("WARNING: ", @_);
+    $gLogNumWarnings++;
+}
+
+# --------------------------------------------------------------------------- #
+# Set the currently selected output filehandle to the given filehandle.
+# --------------------------------------------------------------------------- #
+
+sub MsgSelect
+{
+    $gMsgDest = $_[0];
+}
+
+# --------------------------------------------------------------------------- #
+# Packetize the given $msg and send it via the current communications
+# mechanism to the client.
+# --------------------------------------------------------------------------- #
+
+sub MsgSend
+{
+    my($msg) = @_;
+    my $errMsg;
+    my $len;
+    my $packet;
+
+    # Some systems and transport mechanisms expand \n from a single byte
+    # (e.g., \012) to two bytes (e.g., \r\n, or \015\012), so to make
+    # processing easier for the client, we map \n to \002
+    # (which hopefully does not appear in the data) to prevent expansion.
+    $msg =~ tr/\n/\002/;
+
+    $len = length $msg;
+
+    if (($gConfig{'commType'} eq 'stdio') || ! &SocketSelected())
+    {
+        if ($len <= $MSG_MAXLEN)
+        {
+            # message consists of 1 packet
+
+            $packet = sprintf $MSG_FMT, $MSG_PREFIX, $MSG_SEQ_1_1, $len, $msg;
+
+            unless (print $gMsgDest $packet)
+            {
+                $errMsg = "cannot print '$packet'";
+                if ($gConfig{'commFailWriteAction'} eq 'die')
+                {
+                    if (&WithinDie())
+                    {
+                        # avoid infinite loop
+                        return;
+                    }
+                    else
+                    {
+                        Die $errMsg;
+                    }
+                }
+                else
+                {
+                    LogErr $errMsg;
+                }
+            }
+
+            if ($gConfig{'logLevel'} >= 2)
+            {
+                LogMsg "SEND: $packet";
+            }
+        }
+        else
+        {
+            # message consists of more than 1 packet
+
+            my $bytes;
+            my $ptr;
+            my $seq;
+
+            for ($ptr = 0; $ptr < $len; $ptr += $MSG_MAXLEN)
+            {
+                if ($ptr == 0)
+                {
+                    $seq = $MSG_SEQ_1_N;
+                    $bytes = $MSG_MAXLEN;
+                }
+                elsif (($ptr + $MSG_MAXLEN) < $len)
+                {
+                    $seq = $MSG_SEQ_M_N;
+                    $bytes = $MSG_MAXLEN;
+                }
+                else
+                {
+                    $seq = $MSG_SEQ_N_N;
+                    $bytes = $len - $ptr;
+                }
+
+                $packet =
+                    sprintf $MSG_FMT, $MSG_PREFIX, $seq, $bytes,
+                                      substr($msg, $ptr, $bytes);
+
+                unless (print $gMsgDest $packet)
+                {
+                    $errMsg = "cannot print '$packet'";
+                    if ($gConfig{'commFailWriteAction'} eq 'die')
+                    {
+                        if (&WithinDie())
+                        {
+                            # avoid infinite loop
+                            return;
+                        }
+                        else
+                        {
+                            Die $errMsg;
+                        }
+                    }
+                    else
+                    {
+                        LogErr $errMsg;
+                    }
+                }
+
+                if ($gConfig{'logLevel'} >= 2)
+                {
+                    LogMsg "SEND: $packet";
+                }
+            }
+        }
+    }
+    else
+    {
+        if ($len <= $MSG_MAXLEN)
+        {
+            # message consists of 1 packet
+
+            $packet = sprintf $MSG_FMT, $MSG_PREFIX, $MSG_SEQ_1_1, $len, $msg;
+
+            $errMsg = undef;
+            $errMsg = &SocketWrite($packet);
+
+            if (defined $errMsg)
+            {
+                if ($gConfig{'commFailWriteAction'} eq 'die')
+                {
+                    if (&WithinDie())
+                    {
+                        # avoid infinite loop
+                        return;
+                    }
+                    else
+                    {
+                        Die $errMsg;
+                    }
+                }
+                else
+                {
+                    LogErr $errMsg;
+                }
+            }
+
+            if ($gConfig{'logLevel'} >= 2)
+            {
+                LogMsg "SEND: $packet";
+            }
+        }
+        else
+        {
+            # message consists of more than 1 packet
+
+            my $bytes;
+            my $ptr;
+            my $seq;
+
+            for ($ptr = 0; $ptr < $len; $ptr += $MSG_MAXLEN)
+            {
+                if ($ptr == 0)
+                {
+                    $seq = $MSG_SEQ_1_N;
+                    $bytes = $MSG_MAXLEN;
+                }
+                elsif (($ptr + $MSG_MAXLEN) < $len)
+                {
+                    $seq = $MSG_SEQ_M_N;
+                    $bytes = $MSG_MAXLEN;
+                }
+                else
+                {
+                    $seq = $MSG_SEQ_N_N;
+                    $bytes = $len - $ptr;
+                }
+
+                $packet =
+                    sprintf $MSG_FMT, $MSG_PREFIX, $seq, $bytes,
+                            substr($msg, $ptr, $bytes);
+
+                $errMsg = undef;
+                $errMsg = &SocketWrite($packet);
+
+                if (defined $errMsg)
+                {
+                    if ($gConfig{'commFailWriteAction'} eq 'die')
+                    {
+                        if (&WithinDie())
+                        {
+                            # avoid infinite loop
+                            return;
+                        }
+                        else
+                        {
+                            Die $errMsg;
+                        }
+                    }
+                    else
+                    {
+                        LogErr $errMsg;
+                    }
+                }
+
+                if ($gConfig{'logLevel'} >= 2)
+                {
+                    LogMsg "SEND: $packet";
+                }
+            }
+        }
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Begin accumulating or buffering a data block of the given $parseType
+# for potential future transmission.
+# --------------------------------------------------------------------------- #
+
+sub MsgSendBlockBegin
+{
+    my($parseType, $count) = @_;
+    my $freq = $gPdTableFreq{$parseType};
+
+    $gMsgBlockBuffering = 0;
+
+    if (defined $freq)
+    {
+        if ($freq eq $PD_VAL_FREQ_FLAST)
+        {
+            if ($count > 1)
+            {
+                $gMsgBlockBuffering = 1;
+            }
+        }
+        elsif ($freq eq $PD_VAL_FREQ_LAST)
+        {
+            $gMsgBlockBuffering = 1;
+        }
+        elsif ($freq =~ /\d/)
+        {
+            if (($count % $freq) != 1)
+            {
+                $gMsgBlockBuffering = 1;
+            }
+        }
+    }
+
+    if ($gMsgBlockBuffering)
+    {
+        # forget previously buffered block, start buffering the current block
+        $gMsgBlockBuf{$parseType} = "$count$MSG_SEP";
+        $gMsgBlockBufParseType = $parseType;
+    }
+    else
+    {
+        # previously buffered block was not the last
+        delete $gMsgBlockBuf{$parseType};
+
+        # start accumulating the current block
+        $gMsgBlockCurrent ="$parseType$MSG_SEP$count$MSG_SEP";
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Send the current data block message to the client.
+# --------------------------------------------------------------------------- #
+
+sub MsgSendBlockEnd
+{
+    my($pos, $seq) = @_;
+    my $k;
+    my $len;
+
+    if ($gMsgBlockBuffering)
+    {
+        open(PROPBUF, "> $gProgramName.propbuf") || return;
+        foreach $k (keys %gMsgBlockBuf)
+        {
+            $len = length $gMsgBlockBuf{$k};
+            print PROPBUF "$k $len\n$gMsgBlockBuf{$k}";
+        }
+        close PROPBUF;
+    }
+    else
+    {
+        my $bookmark = $pos;
+        if ($seq > 0)
+        {
+            $bookmark .= ":$seq";
+        }
+        &MsgSend(join $MSG_SEP, $MSG_TYPE_PROP, $bookmark, $gMsgBlockCurrent);
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Send all buffered data block messages to the client.
+# --------------------------------------------------------------------------- #
+
+sub MsgSendBlockFlush
+{
+    my $k;
+
+    foreach $k (keys %gMsgBlockBuf)
+    {
+        &MsgSend(join $MSG_SEP, $MSG_TYPE_PROP, "EOF", $k, $gMsgBlockBuf{$k});
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Store the given data for potential future transmission.
+# --------------------------------------------------------------------------- #
+
+sub MsgSendBlockLine
+{
+    my($line) = @_;
+
+    if ($gMsgBlockBuffering)
+    {
+        $gMsgBlockBuf{$gMsgBlockBufParseType} .= $line;
+    }
+    else
+    {
+        $gMsgBlockCurrent .= $line;
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Send a done message to the client.
+# --------------------------------------------------------------------------- #
+
+sub MsgSendDone
+{
+    &MsgSend($MSG_TYPE_DONE);
+}
+
+# --------------------------------------------------------------------------- #
+# Send a node message to the client triggering a restart.
+# --------------------------------------------------------------------------- #
+
+sub MsgSendNode
+{
+    my($node) = @_;
+
+    &MsgSend(join $MSG_SEP, $MSG_TYPE_NODE, $node);
+}
+
+# --------------------------------------------------------------------------- #
+# Send a job monitor "up" message (heartbeat) to the client.
+# --------------------------------------------------------------------------- #
+
+sub MsgSendUp
+{
+    $gUpCount++;
+
+    if (($gUpCount % $gUpFreq) == 0)
+    {
+        $gUpCount = 0;
+        &MsgSend(join $MSG_SEP, $MSG_TYPE_UP, scalar localtime, @_);
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Send an error message to the client, after logging it.
+# --------------------------------------------------------------------------- #
+
+sub MsgSendErr
+{
+    my($msgType, $msg) = @_;
+
+    if ($msgType eq $MSG_TYPE_E_INFO)
+    {
+        LogInfo $msg;
+    }
+    elsif ($msgType eq $MSG_TYPE_E_WARN)
+    {
+        LogWarn $msg;
+    }
+    elsif ($msgType eq $MSG_TYPE_E_FATAL)
+    {
+        LogFatal $msg;
+    }
+
+    &MsgSend(join $MSG_SEP, $MSG_TYPE_ERROR, $msgType, $msg);
+}
+
+# --------------------------------------------------------------------------- #
+# Send a file message to the client.
+# --------------------------------------------------------------------------- #
+
+sub MsgSendFile
+{
+    my($file, $msgType, $parseType) = @_;
+    my $count = 1;
+    my $idir;
+
+    return unless $file;
+
+    $parseType = '' unless (defined $parseType);
+
+    # see if the file exists -- location depends on live or import
+    if ($gConfig{'monitoringMode'} eq 'live')
+    { 
+        unless (-e $file)
+        {
+            &MsgSendErr($MSG_TYPE_E_INFO, "MsgSendFile: file '$file' does not exist");
+            return;
+        }
+    }
+    else
+    {
+        $idir = $gConfig{'importDir'};
+        unless (-e "$idir$file")
+        {
+            &MsgSendErr($MSG_TYPE_E_INFO, "MsgSendFile: file '$idir$file' does not exist");
+            return;
+        }
+    }
+
+    &MsgSend(
+        join $MSG_SEP, $MSG_TYPE_FILE, $msgType, $parseType, $count, $file);
+}
+
+# --------------------------------------------------------------------------- #
+# Send an end of files message to the client.
+# --------------------------------------------------------------------------- #
+
+sub MsgSendEndOfFiles
+{
+    &MsgSend($MSG_TYPE_EOFS);
+}
+
+# --------------------------------------------------------------------------- #
+# Send a port message to the client.
+# --------------------------------------------------------------------------- #
+
+sub MsgSendPort
+{
+    my($port) = @_;
+
+    &MsgSend(join $MSG_SEP, $MSG_TYPE_PORT, $port);
+}
+
+# --------------------------------------------------------------------------- #
+# Send a status message to the client.
+# --------------------------------------------------------------------------- #
+
+sub MsgSendStatus
+{
+    my($status) = @_;
+
+    &MsgSend(join $MSG_SEP, $MSG_TYPE_STATUS, $status);
+}
+
+# --------------------------------------------------------------------------- #
+# Send a status request message to the client (Globus only).
+# --------------------------------------------------------------------------- #
+
+sub MsgSendStatusRequest
+{
+    &MsgSend($MSG_TYPE_STATREQ);
+}
+
+
+# --------------------------------------------------------------------------- #
+# Read the parse descriptor file.
+#
+# An entry in a parse descriptor file has the following format:
+#
+#	[<ParseType1>][<ParseType2>] ... [<ParseTypeN>]
+#	<Key1>=<Value1>
+#	<Key2>=<Value2>
+#	...
+#	<KeyN>=<ValueN>
+#	[END]
+#
+# The supported keys in the rules are as follows:
+#
+#	Rule Key	Rule Value
+#	--------	----------
+#	begin		A string that indicates the start of a data block.
+#			Begin must be specified and must be unique.
+#	end		A string that indicates the end of a data block.
+#			Exactly one of {End, Lines} must be specified,
+#			unless File is specified.
+#	file		A string that specifies a file to transfer.
+#			If File is specified, keys other than Begin
+#			are ignored.
+#	frequency	A string or a nonnegative integer that indicates
+#			which instances of this parse type are to be
+#			forwarded downstream (i.e., to the client).
+#			 all		forward all instances
+#			 first		forward the first instance
+#			 last		forward the last instance
+#			 firstlast	forward the first and last instances
+#			 none		forward no instances
+#			 n		forward the first and last instances
+#					as well as every nth instance between
+#			The default is 'all'.
+#	lines		A positive integer indicating how many lines
+#			are in the data block, after any lines skipped
+#			due to the Skip key.
+#			Exactly one of {End, Lines} must be specified,
+#			unless File is specified.
+#	prefix		A string that acts as a filter.
+#			Unused by this program.
+#	script		A string that specifies the parse script to execute.
+#			Script must be specified,
+#			but is otherwise unused by this program.
+#	skip		A nonnegative integer indicating how many lines
+#			to skip, including the start line in the data block.
+#
+# Keys may be given in any case, but are canonicalized to lower case.
+#
+# Return an error message upon failure, undef upon success.
+# --------------------------------------------------------------------------- #
+
+sub PDFileRead
+{
+    my($file) = @_;
+    my $errMsg = undef;
+    my $key;
+    my $line = 0;
+    my $parseType = undef;
+    my %pdBuf;
+    my @pdKeys = (
+        $PD_KEY_BEGIN,
+        $PD_KEY_END,
+        $PD_KEY_FILE,
+        $PD_KEY_FREQ,
+        $PD_KEY_LINES,
+        $PD_KEY_PREFIX,
+        $PD_KEY_SCRIPT,
+        $PD_KEY_SKIP
+    );
+    my @pdValsFreq = (
+        $PD_VAL_FREQ_ALL,
+        $PD_VAL_FREQ_FIRST,
+        $PD_VAL_FREQ_FLAST,
+        $PD_VAL_FREQ_LAST,
+        $PD_VAL_FREQ_NONE
+    );
+    my $val;
+    my $what = 'parse descriptor file';
+
+    open(PDF, "< $file") || return "cannot open $what $file";
+    while (<PDF>)
+    {
+        $line++;
+
+        # check for end of file
+        if ($gConfig{'endOfPDF'})
+        {
+            last if (/^$gConfig{'endOfPDF'}$/);
+        }
+
+        next if /^\s*#/;	# skip comment lines
+        next if /^\s*$/;	# skip blank lines
+
+        chomp;
+
+        if ($parseType)
+        {
+            # currently processing a parse type
+
+            if (/^\s*(\S+?)\s*=(.*)$/)
+            {
+                # in parse type; matched a rule
+
+                $key = lc $1;
+                $val = $2;
+                if (grep /^$key$/, @pdKeys)
+                {
+                    # key is valid
+
+                    # check for duplicate key
+                    if (exists $pdBuf{$key})
+                    {
+                        $errMsg = "line $line "
+                            . "of $what '$file': "
+                            . "rule key '$key' already given";
+                        last;
+                    }
+
+                    # check for rule without a value
+                    unless ($key eq $PD_KEY_END)
+                    {
+                        unless ((length $val) > 0)
+                        {
+                            $errMsg = "line $line "
+                                . "of $what '$file': "
+                                . "no value given for rule key '$key'";
+                            last;
+                        }
+                    }
+
+                    # perform key-specific checking
+                    if ($key eq $PD_KEY_END)
+                    {
+                        $val = '^$' unless ((length $val) > 0);
+                    }
+                    elsif ($key eq $PD_KEY_LINES)
+                    {
+                        if (($val =~ /\D/) || ($val <= 0))
+                        {
+                            $errMsg = "line $line "
+                                . "of $what '$file': "
+                                . "value for $key must be > 0";
+                            last;
+                        }
+                    }
+                    elsif ($key eq $PD_KEY_FREQ)
+                    {
+                        if (((grep /^$val$/i, @pdValsFreq) == 0) &&
+                            (($val =~ /\D/) || ($val < 0)))
+                        {
+                            $errMsg = "line $line "
+                                . "of $what '$file': "
+                                . "value for $key must be >= 0 "
+                                . "or one of (@pdValsFreq)";
+                            last;
+                        }
+                    }
+                    elsif ($key eq $PD_KEY_SKIP)
+                    {
+                        if (($val =~ /\D/) || ($val < 0))
+                        {
+                            $errMsg = "line $line "
+                                . "of $what '$file': "
+                                . "value for $key must be >= 0";
+                            last;
+                        }
+                    }
+
+                    # store the rule
+                    $pdBuf{$key} = $val;
+                }
+                else
+                {
+                    # key is invalid
+
+                    $errMsg = "line $line "
+                        . "of $what '$file': "
+                        . "unrecognized rule key '$key'";
+                    last;
+                }
+            }
+            elsif ($_ eq '[END]')
+            {
+                # in parse type; matched end of parse type
+
+                # check for missing rules
+                unless (exists $pdBuf{$PD_KEY_BEGIN})
+                {
+                    $errMsg = "line $line "
+                        . "of $what '$file': "
+                        . "rule key '$PD_KEY_BEGIN' "
+                        . "must be given "
+                        . "in parse type [$parseType]";
+                    last;
+                }
+                if ((!(exists $pdBuf{$PD_KEY_FILE})) &&
+                    (!(exists $pdBuf{$PD_KEY_END})) &&
+                    (!(exists $pdBuf{$PD_KEY_LINES})))
+                {
+                    $errMsg = "line $line "
+                        . "of $what '$file': "
+                        . "rule key '$PD_KEY_END' or '$PD_KEY_LINES' "
+                        . "must be given "
+                        . "in parse type [$parseType]";
+                    last;
+                }
+                unless (exists $pdBuf{$PD_KEY_SCRIPT})
+                {
+                    $errMsg = "line $line "
+                        . "of $what '$file': "
+                        . "rule key '$PD_KEY_SCRIPT' "
+                        . "must be given "
+                        . "in parse type [$parseType]";
+                    last;
+                }
+
+                # check for conflicting rules
+                if ((exists $pdBuf{$PD_KEY_END}) &&
+                    (exists $pdBuf{$PD_KEY_LINES}))
+                {
+                    $errMsg = "line $line "
+                        . "of $what '$file': "
+                        . "rule keys '$PD_KEY_END' and '$PD_KEY_LINES' "
+                        . "cannot both be given "
+                        . "in parse type [$parseType]";
+                    last;
+                }
+
+                # handle parse types having $PD_KEY_FILE rules
+                if (exists $pdBuf{$PD_KEY_FILE})
+                {
+                    my $file = $pdBuf{$PD_KEY_FILE};
+                    $file =~ s/##SystemName##/$gConfig{'systemName'}/;
+                    $file =~ s/##CalcName##/$gConfig{'calcName'}/;
+
+                    if (!(exists $gPdTableFiles{$file}))
+                    {
+                        # store ($file, $parseType) into gPdTableFiles
+                        $gPdTableFiles{$file} = $parseType;
+                    }
+                    elsif ($gPdTableFiles{$file} ne $parseType)
+                    {
+                        $errMsg = "line $line "
+                            . "of $what '$file': "
+                            . "file '$file' "
+                            . "in parse type [$parseType] "
+                            . "was already given "
+                            . "in parse type [$gPdTableFiles{$file}]";
+                        last;
+                    }
+                }
+
+                # handle parse types having $PD_KEY_FREQ rules
+                if (exists $pdBuf{$PD_KEY_FREQ})
+                {
+                    my $freq = $pdBuf{$PD_KEY_FREQ};
+
+                    # map numeric to textual if possible
+                    if ($freq =~ /\d/)
+                    {
+                        if ($freq == 0)
+                        {
+                            # 0 is equivalent to $PD_VAL_FREQ_FLAST
+                            $freq = $PD_VAL_FREQ_FLAST;
+                            $pdBuf{$PD_KEY_FREQ} = $freq;
+                        }
+                        elsif ($freq == 1)
+                        {
+                            # 1 is equivalent to $PD_VAL_FREQ_ALL
+                            $freq = $PD_VAL_FREQ_ALL;
+                            $pdBuf{$PD_KEY_FREQ} = $freq;
+                        }
+                    }
+
+                    if (!(exists $gPdTableFreq{$parseType}))
+                    {
+                        # store ($parseType, $freq) into gPdTableFreq
+                        $gPdTableFreq{$parseType} = $freq;
+                    }
+                    elsif ($gPdTableFreq{$parseType} ne $freq)
+                    {
+                        $errMsg = "line $line "
+                            . "of $what '$file': "
+                            . "frequency '$freq' "
+                            . "in parse type [$parseType] "
+                            . "differs from "
+                            . "frequency '$gPdTableFreq{$parseType}' "
+                            . "in an earlier instance of this parse type";
+                        last;
+                    }
+                }
+
+                # store parse type into master table
+                my $parseHandle = $pdBuf{$PD_KEY_BEGIN};
+                if (!(exists $gPdTable{$parseHandle}))
+                {
+                    # store pdBuf into gPdTable
+                    foreach (keys %pdBuf)
+                    {
+                        $gPdTable{$parseHandle}{$_} = $pdBuf{$_};
+                    }
+                }
+                # silently ignore duplicate parse handles
+
+                # reset for next parse type
+                $parseType = undef;
+                undef %pdBuf;
+            }
+            else
+            {
+                # in parse type; matched nothing
+
+                $errMsg = "line $line "
+                    . "of $what '$file': "
+                    . "unrecognized line '$_' "
+                    . "while parsing [$parseType]";
+                last;
+            }
+        }
+        elsif (/^\s*\[(.+)\]\s*$/)
+        {
+            # not currently processing a parse type; start this one
+
+            $parseType = $1;
+            $pdBuf{$PD_KEY_TYPE} = $parseType;
+        }
+        else
+        {
+            # not currently processing a parse type; no match
+
+            $errMsg = "line $line "
+                . "of $what '$file': "
+                . "unrecognized line '$_'";
+            last;
+        }
+    }
+    close PDF;
+
+    # return
+    $errMsg;
+}
+
+# --------------------------------------------------------------------------- #
+# Return the handle of the parse descriptor for which the Begin rule
+# matches (a part of) the given $line, or undef if none match.
+#
+# If more than one Begin rule matches, the first one (in some unspecified
+# order) found is returned.
+# --------------------------------------------------------------------------- #
+
+sub PDMatchBegin
+{
+    my($line) = @_;
+    my $begin;
+    my $i;
+
+    for ($i = 0; $i < @gPdMatchList; $i++)
+    {
+        $begin = $gPdMatchList[$i][1];
+
+        if ($line =~ /$begin/)
+        {
+            # match
+
+            # remember the return value
+            my $pd = $gPdMatchList[$i][0];
+
+            # promote this parse descriptor to the head of the list
+            unshift(@gPdMatchList, splice(@gPdMatchList, $i, 1))
+                if ($i > $gConfig{'pdShuffleThreshold'});
+
+            # make $i reflect 1-based number of comparisons
+            $i++;
+
+            $gStat{'callsPDMatchBeginSucceed'}++;
+            $gStat{'countPDMatchBegin'} += $i;
+            $gStat{'sumPDMatchBeginSucceed'} += $i;
+            $gStat{'sumPDMatchBeginTotal'} += $i;
+
+            return $pd;
+        }
+    }
+
+    # no match
+
+    $gStat{'callsPDMatchBeginFail'}++;
+    $gStat{'countPDMatchBegin'} += $i;
+    $gStat{'sumPDMatchBeginTotal'} += $i;
+
+    undef;
+}
+
+# --------------------------------------------------------------------------- #
+# Populate @gPdMatchList from %gPdTable.
+# --------------------------------------------------------------------------- #
+
+sub PDMatchListCreate
+{
+    my $pd;
+
+    @gPdMatchList = ();
+
+    # construct list of parse descriptors for matching
+    foreach $pd (keys %gPdTable)
+    {
+        # ignore parse descriptors having $PD_KEY_FILE rules
+        next if (exists $gPdTable{$pd}{$PD_KEY_FILE});
+
+        # add this parse descriptor
+        push @gPdMatchList, [$pd, $gPdTable{$pd}{$PD_KEY_BEGIN}];
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Delete all parse descriptor table entries having type $parseType.
+# --------------------------------------------------------------------------- #
+
+sub PDTableDeleteType
+{
+    my($parseType) = @_;
+
+    foreach (keys %gPdTable)
+    {
+        delete $gPdTable{$_}
+            if ($gPdTable{$_}{$PD_KEY_TYPE} eq $parseType);
+    }
+
+    foreach (keys %gPdTableFiles)
+    {
+        delete $gPdTableFiles{$_}
+            if ($gPdTableFiles{$_} eq $parseType);
+    }
+
+    # reinitialize the match list
+    &PDMatchListCreate();
+}
+
+# --------------------------------------------------------------------------- #
+# Print the parse descriptor table into a string and return it.
+# --------------------------------------------------------------------------- #
+
+sub PDTableSprint
+{
+    my $parseHandle;
+    my $ruleKey;
+    my $string = '';
+
+    foreach $parseHandle (keys %gPdTable)
+    {
+        $string .= "[$gPdTable{$parseHandle}{$PD_KEY_TYPE}]\n";
+        foreach $ruleKey (sort keys %{$gPdTable{$parseHandle}})
+        {
+            next if ($ruleKey eq $PD_KEY_TYPE);
+            $string .= "$ruleKey=$gPdTable{$parseHandle}{$ruleKey}\n";
+        }
+        $string .= "[END]\n\n";
+    }
+
+    # strip the final \n
+    chop $string;
+
+    # return the string
+    $string;
+}
+
+# --------------------------------------------------------------------------- #
+# Return 1 if the given $parseType is in %gPdTable, else return 0.
+# --------------------------------------------------------------------------- #
+
+sub PDTypeExists
+{
+    my($parseType) = @_;
+
+    foreach (keys %gPdTable)
+    {
+        return 1 if ($parseType eq $gPdTable{$_}{$PD_KEY_TYPE});
+    }
+
+    # failure
+    0;
+}
+
+# --------------------------------------------------------------------------- #
+# Enable the given parse types.
+#
+# Return an error message upon failure, undef upon success.
+# --------------------------------------------------------------------------- #
+
+sub PDTypesEnable
+{
+    my($parseTypes) = @_;
+    my $errMsg = undef;
+    my @parseTypes = split /\+/, $parseTypes;
+    my @parseTypesUnknown;
+
+    # verify the parse types
+    foreach (@parseTypes)
+    {
+        # we don't expect pseudo-type 'all' to be in the parse descriptor table
+        next if ($_ eq 'all');
+
+        # we do expect other types to be in the parse descriptor table
+        if (&PDTypeExists($_))
+        {
+            # mark as enabled and initialize count
+            $gPdCount{$_} = 0;
+        }
+        else
+        {
+            push(@parseTypesUnknown, "'$_'");
+        }
+    }
+
+    if (@parseTypesUnknown > 0)
+    {
+        $errMsg = "unknown parse type"
+            . ((@parseTypesUnknown == 1) ? ": " : "s: ")
+            . join ', ', @parseTypesUnknown;
+    }
+
+    # delete the parse types that are not enabled
+    if ($parseTypes !~ /\ball\b/)
+    {
+        foreach (keys %gPdTable)
+        {
+            delete $gPdTable{$_}
+                unless (exists $gPdCount{$gPdTable{$_}{$PD_KEY_TYPE}});
+        }
+
+        foreach (keys %gPdTableFiles)
+        {
+            delete $gPdTableFiles{$_}
+                unless (exists $gPdCount{$gPdTableFiles{$_}});
+        }
+    }
+
+    # initialize the parse types that are enabled
+    &PDTypesInit();
+
+    # echo parse types
+    LogMsg "enabled parse types:\n", &PDTableSprint();
+
+    # initialize the match list
+    &PDMatchListCreate();
+
+    # return
+    $errMsg;
+}
+
+# --------------------------------------------------------------------------- #
+# Initialize the parse types that are enabled.
+# --------------------------------------------------------------------------- #
+
+sub PDTypesInit
+{
+    my $val;
+
+    foreach (keys %gPdTable)
+    {
+        # skip this type if it was deleted by an earlier iteration
+        next unless (exists $gPdTable{$_});
+
+        # initialize $PD_KEY_FREQ
+        $val = $gPdTable{$_}{$PD_KEY_FREQ};
+        if (defined $val)
+        {
+            # canonicalize to lowercase
+            $gPdTable{$_}{$PD_KEY_FREQ} = lc $val;
+
+            # remove this type if no instances are requested
+            if ($gPdTable{$_}{$PD_KEY_FREQ} eq $PD_VAL_FREQ_NONE)
+            {
+                &PDTableDeleteType($gPdTable{$_}{$PD_KEY_TYPE});
+                next;
+            }
+        }
+        else
+        {
+            # use default value
+            $gPdTable{$_}{$PD_KEY_FREQ} = $PD_VAL_DEF_FREQ;
+        }
+
+        # escape all metacharacters
+        unless ($gConfig{'regExp'})
+        {
+            $val = $gPdTable{$_}{$PD_KEY_BEGIN};
+            $gPdTable{$_}{$PD_KEY_BEGIN} = quotemeta $val
+                if (defined $val);
+
+            $val = $gPdTable{$_}{$PD_KEY_END};
+            $gPdTable{$_}{$PD_KEY_END} = quotemeta $val
+                if ((defined $val) && ($val ne '^$'));
+        }
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Print the runtime info into a string and return it.
+# --------------------------------------------------------------------------- #
+
+sub RuntimeInfoSprint
+{
+    my $string = '';
+
+    # get user (real and effective) and host
+    {
+        use Sys::Hostname;
+        $string .= "  user\@host = $gUser\@" . hostname() . "\n";
+    }
+
+    # get working directory
+    {
+        use Cwd;
+
+        $string .= "  working directory = " . cwd() . "\n";
+    }
+
+    # get name of Perl executable and its version
+    $string .= "  perl ($^X) version $]\n";
+
+    # get search path
+    $string .= "  PATH = $ENV{'PATH'}\n";
+
+    # return the string
+    $string;
+}
+
+# --------------------------------------------------------------------------- #
+# Reap a child process.
+# --------------------------------------------------------------------------- #
+
+sub SigHandleChld
+{
+    # reinstall handler to guard against broken System V behavior
+    $SIG{$gSigChild} = \&SigHandleChld if ($gSigReinstallHandler);
+
+    LogMsg "SigHandleChld: calling waitpid ...";
+
+    my $pid = waitpid(-1, &POSIX::WNOHANG());
+    if ($pid > 0)
+    {
+        my $exitStatus;
+        if (defined $?)
+        {
+            my $exitHigh = $? >> 8;
+            my $exitLow  = $? & 0x00ff;
+
+            if ($exitLow == 0)
+            {
+                $exitStatus = "exit status $exitHigh";
+            }
+            elsif ($exitHigh == 0)
+            {
+                my $signal = $gSigName{$exitLow};
+                $signal = 'undefined' unless (defined $signal);
+                $exitStatus = "terminated by signal $exitLow ($signal)";
+            }
+            else
+            {
+                my $signal = $gSigName{$exitHigh};
+                $signal = 'undefined' unless (defined $signal);
+                $exitStatus = "stopped by signal $exitHigh ($signal)";
+            }
+        }
+        else
+        {
+            $exitStatus = "exit status unavailable";
+        }
+        LogMsg "SigHandleChld: reaped $pid, " . $exitStatus;
+    }
+    elsif ($pid == 0)
+    {
+        LogMsg "SigHandleChld: no children to reap";
+    }
+    else # ($pid < 0)
+    {
+        LogErr "SigHandleChld: waitpid failed: $!";
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Handle signals not handled by other handlers.
+# --------------------------------------------------------------------------- #
+
+sub SigHandleMisc
+{
+    my($signame) = @_;
+    my $msg = "SigHandleMisc: received signal $gSigNum{$signame} (SIG$signame)";
+
+    # reinstall handler to guard against broken System V behavior
+    $SIG{$signame} = \&SigHandleMisc if ($gSigReinstallHandler);
+
+    if ($signame eq 'TERM')
+    {
+        LogMsg $msg;
+        &Done(0);
+    }
+    elsif ($signame eq 'PIPE')
+    {
+        LogMsg $msg;
+    }
+    else
+    {
+        Die $msg;
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Initialize the signal module.
+# Create the hash %gSigName, which maps signal numbers to signal names.
+# Create the hash %gSigNum, which maps signal names to signal numbers.
+#
+# Return an error message upon failure, undef upon success.
+# --------------------------------------------------------------------------- #
+
+sub SigInit
+{
+    use Config ();
+
+    if (defined $Config::Config{sig_name})
+    {
+        my $i = 0;
+        foreach (split ' ', $Config::Config{sig_name})
+        {
+            $gSigName{$i} = $_;
+            $gSigNum{$_} = $i;
+            $i++;
+        }
+        if (defined $gSigNum{'CHLD'})
+        {
+            $gSigChild = 'CHLD';
+        }
+        elsif (defined $gSigNum{'CLD'})
+        {
+            $gSigChild = 'CLD';
+        }
+        else
+        {
+            return "no child signals defined";
+        }
+    }
+    else
+    {
+        return "no signals defined";
+    }
+
+    # if system supports reliable sigaction, handlers don't need reinstalling
+    if ($Config::Config{d_sigaction})
+    {
+        $gSigReinstallHandler = 0;
+    }
+    else
+    {
+        $gSigReinstallHandler = 1;
+    }
+
+    # success
+    undef;
+}
+
+# --------------------------------------------------------------------------- #
+# Accept a connection on socket $s1, creating the new socket $s2.
+# --------------------------------------------------------------------------- #
+
+sub SocketAccept
+{
+    my($s2, $s1) = @_;
+    my $timeLimit = $gConfig{'timeLimitSocketAccept'};
+
+    LogMsg "SocketAccept: waiting (max $timeLimit seconds) for client to connect ...";
+
+    my $function = sub
+    {
+        for (;;)
+        {
+            my $packedAddress;
+            if (!($packedAddress = accept($s2, $s1)))
+            {
+                LogErr "SocketAccept: accept: $!";
+                next;
+            }
+            else
+            {
+                LogMsg "SocketAccept: accept from ",
+                    &SocketAcceptInfo($packedAddress);
+                return 1;
+            }
+        }
+    };
+
+    my($status, $result) = &Try(0, $timeLimit, $function);
+
+    if ($status == $TRY_OK)
+    {
+        # success
+        return 1;
+    }
+    elsif ($status == $TRY_TIMEOUT)
+    {
+        LogErr "SocketAccept: timed out after $timeLimit seconds";
+        return 0;
+    }
+    elsif ($status == $TRY_ERROR)
+    {
+        LogErr "SocketAccept: $result";
+        return 0;
+    }
+
+    # shouldn't get here but just in case lets pretend it worked
+    return 1;
+}
+
+# --------------------------------------------------------------------------- #
+# Decode the given packed address (as returned by accept())
+# and return a string containing the peer name and address
+# and the port number.
+# --------------------------------------------------------------------------- #
+
+sub SocketAcceptInfo
+{
+    my($addressPacked) = @_;
+
+    my($port, $addressIP) = sockaddr_in($addressPacked);
+    my $name = gethostbyaddr($addressIP, AF_INET);
+    my $address = inet_ntoa($addressIP);
+
+    "$name [$address] on port $port";
+}
+
+# --------------------------------------------------------------------------- #
+# Create socket $s on the first free port between $portMin and $portMax,
+# trying all ports between $portMin and $portMax up to $cycles times.
+# Return the (numeric) port number upon success, or an (alphanumeric)
+# error message upon failure.
+# --------------------------------------------------------------------------- #
+
+sub SocketCreate
+{
+    my($s, $portMin, $portMax, $cycles) = @_;
+    my $cycle;
+    my $port;
+
+    socket($s, PF_INET, SOCK_STREAM, getprotobyname('tcp')) ||
+        return "SocketCreate: socket: $!";
+    setsockopt($s, SOL_SOCKET, SO_REUSEADDR, 1) ||
+        return "SocketCreate: setsockopt: $!";
+
+    # cycle through the range of ports, trying to bind to one
+    for ($cycle = 0; $cycle < $cycles; $cycle++)
+    {
+        for ($port = $portMin; $port <= $portMax; $port++)
+        {
+            if (bind($s, sockaddr_in($port, INADDR_ANY)))
+            {
+                if (listen($s, SOMAXCONN))
+                {
+                    # success
+                    return $port;
+                }
+                else
+                {
+                    # failure
+                    return "SocketCreate: listen: $!";
+                }
+            }
+        }
+    }
+
+    # failure
+    return "SocketCreate: bind: $!";
+}
+
+# --------------------------------------------------------------------------- #
+# Set the currently selected socket to the given filehandle.
+# --------------------------------------------------------------------------- #
+
+sub SocketSelect
+{
+    $gSocketCurrent = $_[0];
+}
+
+# --------------------------------------------------------------------------- #
+# Return the currently selected socket.
+# --------------------------------------------------------------------------- #
+
+sub SocketSelected
+{
+    $gSocketCurrent;
+}
+
+# --------------------------------------------------------------------------- #
+# Write the given string to the current socket.
+#
+# Return an error message upon failure, undef upon success.
+# --------------------------------------------------------------------------- #
+
+sub SocketWrite
+{
+    my($str) = @_;
+    my $bytesPending;
+    my $bytesWritten;
+    my $offset;
+
+    return "cannot write to socket (client bailed)" if $gSocketDead;
+
+    # syswrite might need to be called multiple times
+    $bytesPending = length $str;
+    $offset = 0;
+    while ($bytesPending > 0)
+    {
+        $bytesWritten = syswrite $gSocketCurrent, $str, $bytesPending, $offset;
+        if (defined $bytesWritten)
+        {
+            if ($bytesWritten > 0)
+            {
+                $bytesPending -= $bytesWritten;
+                $offset += $bytesWritten;
+            }
+            else
+            {
+                # pause to avoid hogging CPU
+                sleep $gConfig{'timePauseSocketWrite'};
+            }
+        }
+        else
+        {
+            if ($! =~ /^Interrupted/)
+            {
+                next;
+            }
+            else
+            {
+                if ($! =~ /^Connection reset by peer/)
+                {
+                    $gSocketDead = 1;
+                }
+                return "syswrite error: $!";
+            }
+        }
+    }
+
+    # success
+    undef;
+}
+
+# --------------------------------------------------------------------------- #
+# Print the statistics into a string and return it.
+# --------------------------------------------------------------------------- #
+
+sub StatSprint
+{
+    my $avg;
+    my $callsTotal;
+    my $denominator;
+    my $details;
+    my $numerator;
+    my $percent;
+    my $string = '';
+
+    $string .= "    sysread calls  = $gStat{'callsSysread'}\n";
+
+    $callsTotal = $gStat{'callsPDMatchBeginSucceed'} +
+                  $gStat{'callsPDMatchBeginFail'};
+
+    $numerator = $gStat{'callsPDMatchBeginSucceed'};
+    $denominator = $callsTotal;
+    if ($denominator > 0)
+    {
+        $percent = int(($numerator / $denominator * 100) + 0.5);
+        $details = "/$denominator ($percent%)";
+    }
+    else
+    {
+        $details = '';
+    }
+    $string .= "    PDMatchBegin calls (successful)     = $numerator$details\n";
+
+    $numerator = $gStat{'callsPDMatchBeginFail'};
+    if ($denominator > 0)
+    {
+        $percent = int(($numerator / $denominator * 100) + 0.5);
+        $details = "/$denominator ($percent%)";
+    }
+    else
+    {
+        $details = '';
+    }
+    $string .= "    PDMatchBegin calls (unsuccessful)   = $numerator$details\n";
+
+    $numerator = $gStat{'sumPDMatchBeginSucceed'};
+    $denominator = $gStat{'callsPDMatchBeginSucceed'};
+    if ($denominator > 0)
+    {
+        $avg = sprintf '%.2f', $numerator / $denominator;
+    }
+    else
+    {
+        $avg = 'na';
+    }
+    $string .= "    avg PDs checked per successful call = $avg\n";
+
+    $numerator = $gStat{'sumPDMatchBeginTotal'};
+    $denominator = $callsTotal;
+    if ($denominator > 0)
+    {
+        $avg = sprintf '%.2f', $numerator / $denominator;
+    }
+    else
+    {
+        $avg = 'na';
+    }
+    $string .= "    avg PDs checked per call overall    = $avg\n";
+
+    # return the string
+    $string;
+}
+
+# --------------------------------------------------------------------------- #
+# Set timeout values based upon the given queuing system.
+# --------------------------------------------------------------------------- #
+
+sub TimeoutInit
+{
+    my($queue) = @_;
+
+    if ($queue =~ /shell/i)
+    {
+        $gConfig{'timeLimitFileExist'} = 60
+            unless (defined $gConfig{'timeLimitFileExist'});
+
+        $gConfig{'timeLimitJobExist'} = 60
+            unless (defined $gConfig{'timeLimitJobExist'});
+    }
+    else
+    {
+        $gConfig{'timeLimitFileExist'} = 600
+            unless (defined $gConfig{'timeLimitFileExist'});
+
+        $gConfig{'timeLimitJobExist'} = 180
+            unless (defined $gConfig{'timeLimitJobExist'});
+
+        if ($queue =~ /nqe/i)
+        {
+            # The NQE guys at NERSC complained about cqstatl queuries every
+            # 10 seconds because it locks up the NQE database!
+            $gConfig{'timePauseJobExist'} = 180;
+            $gUpFreq = 1;
+        }
+    }
+
+    $gConfig{'timeLimitFileExistStat'} = 60
+        unless (defined $gConfig{'timeLimitFileExistStat'});
+
+    $gConfig{'timePauseFileExistStat'} = 3
+        unless (defined $gConfig{'timePauseFileExistStat'});
+}
+
+# --------------------------------------------------------------------------- #
+# Execute the given function until it returns true or the given time limit
+# elapses, pausing for the given amount of time between attempts.
+#
+# Return a list having the following components:
+#
+#	situation	$result[0]	$result[1]
+#	---------	----------	----------
+#	success		$TRY_OK		return value from function
+#	timed out	$TRY_TIMEOUT	''
+#	error		$TRY_ERROR	error message
+# --------------------------------------------------------------------------- #
+
+sub Try
+{
+    my($pause, $timeLimit, $function) = @_;
+    my $timeoutMsg = "function timed out\n";
+    my $result;
+
+    eval
+    {
+        local $SIG{'ALRM'} = sub {die $timeoutMsg};
+        alarm $timeLimit;
+        for (;;)
+        {
+            last if ($result = &$function());
+            sleep $pause if ($pause > 0);
+        }
+        alarm 0;
+    };
+
+    if ($@)
+    {
+        if ($@ eq $timeoutMsg)
+        {
+            ($TRY_TIMEOUT, '');
+        }
+        else
+        {
+            ($TRY_ERROR, $@);
+        }
+    }
+    else
+    {
+        ($TRY_OK, $result);
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Return 1 if there is a routine among the stack of current
+# subroutine calls that matches the given $ancestor,
+# else return 0.
+# --------------------------------------------------------------------------- #
+
+sub Within
+{
+    my($ancestor) = @_;
+
+    my $i = 1;
+    my $routine;
+
+    while ($routine = (caller($i++))[3])
+    {
+        # does this stack frame match the one we're looking for?
+        return 1 if ($routine eq $ancestor);
+    }
+
+    # no such ancestor
+    0;
+}
+
+# --------------------------------------------------------------------------- #
+# Return 1 if there is a Die among the stack of current subroutine calls,
+# else return 0.
+# --------------------------------------------------------------------------- #
+
+sub WithinDie
+{
+    &Within('main::Die');
+}
+
+# --------------------------------------------------------------------------- #
+# Return 1 if there is an eval among the stack of current subroutine calls,
+# else return 0.
+# --------------------------------------------------------------------------- #
+
+sub WithinEval
+{
+    &Within('(eval)');
+}

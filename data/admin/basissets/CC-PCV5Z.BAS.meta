@@ -1,0 +1,49 @@
+name
+Core/val. Functions (cc-pCV5Z)
+name
+type
+polarization
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ----------
+ B - Na: T.H. Dunning, Jr. J. Chem. Phys. 90, 1007 (1989) and D. E. Woon and
+         T.H. Dunning, Jr. J. Chem. Phys. 103, 4572 (1995). 
+Ca     : J. Koput and K.A. Peterson, J. Phys. Chem. A, 106, 9595 (2002).
+
+references
+info
+              Extra Core/valence Functions (cc-pCV5Z)
+              --------------------------------------
+ Elements                            Reference
+Li - Ne: (4s,4p,3d,2f,1g)    T.H. Dunning, Jr. J.C.P. 90, 1007 (1989).
+Mg       (4s,4p,4d,3f,2g,1h) D.E. Woon and T.H. Dunning, Jr. (to be published)
+Al-Ar  : (4d,3d,2g,1h)       K.A. Peterson and T.H. Dunning, Jr. J. Chem. Phys. 117, 10548 (2002)
+Ca     : (4d,3f,2g,1h)       J. Koput and K.A. Peterson, J. Phys. Chem. A,
+                             106, 9595 (2002)
+Note: the tight (s,p) functions for Ca are contained in the CC-PCV5Z0.BAS
+file.
+
+
+info
+comments
+6/10/03  - DFF - Although this didn't involve any changes in the basis set
+1/09/03  - DFF - Add Al - Ar based on values in paper by Peterson & Dunning
+12/15/02  - DFF - Add Ca based on exponents from K. Peterson. 
+1/07/99  - DFF - Correct Mg tight exponents from K. Peterson
+1/06/99  - DFF - Correct Na tight exponents from K. Peterson
+9/09/98  - DFF - Add Mg from K. Peterson.
+7/31/95  - DFF - Correct Ne 4p exponent. 21.309 (new), 23.309 (old).
+5/30/95  - DFF - Modified exponents from Thom Dunning. Original exponents
+2/22/95  - DFF - Modify the literature citation.
+5/11/94  - DFF - Original creation of this file from exponents sent
+comments

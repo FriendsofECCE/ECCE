@@ -1,0 +1,22 @@
+################################################################################
+# FILENAME:  runtime_setup
+#
+# USAGE:
+#   source from ~/.cshrc or ~/.mycshrc
+#
+# DESCRIPTION:
+#   This csh script sets up the minimal environment to bootstrap ECCE.
+#   It is modified during an install to insert the value of ECCE_HOME.
+#
+################################################################################
+
+# set ECCE_HOME -------------------------------------------------------
+setenv ECCE_HOME ##REPLACE-WITH-ECCE_HOME##
+
+# set PATH ------------------------------------------------------------
+if ($?PATH) then
+  setenv PATH ${ECCE_HOME}/scripts:$PATH
+else
+  setenv PATH ${ECCE_HOME}/scripts
+endif
+

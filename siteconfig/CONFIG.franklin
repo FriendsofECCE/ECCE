@@ -1,0 +1,56 @@
+NWChem: /scratch/scratchdirs/ebylaska/nwchem/bin/LINUX64/nwchem
+xappsPath: /usr/X11R6/bin
+sourceFile:  /etc/csh.login
+
+PBS {
+#PBS -q $queue
+#PBS -l mppwidth=$totalprocs
+#PBS -l mppnppn=$ppn
+#PBS -l walltime=$wallTime
+#PBS -j eo
+#PBS -N $submitFile
+#PBS -A $account
+}
+
+
+setup {
+
+##### Setup NWChem #######
+setenv ARMCI_NETWORK CRAY-SHMEM
+#setenv MA_USE_ARMCI_MEM 1
+setenv XT_SYMMETRIC_HEAP_SIZE 1G
+setenv XT_LINUX_SHMEM_HEAP_SIZE 400M
+
+set refundFile = $runDir/refund.out
+rm -f $refundFile
+touch $refundFile
+
+echo "" >> $refundFile
+echo "----- NERSC Refund Information -----" >> $refundFile
+echo "UserID = $USER" >> $refundFile
+echo "Account name = $account" >> $refundFile
+echo "PBS Job ID = $PBS_JOBID" >> $refundFile
+echo "Number of processors = $totalprocs" >> $refundFile
+echo "Amount of time requested = $wallHrMin" >> $refundFile
+echo "" >> $refundFile
+
+}
+
+wrapup {
+
+cat $refundFile >> $runDir/$outFile
+rm -f $refundFile
+
+}
+
+#******
+# Customize execution command for NWChem
+# We want to copy nwchem to all nodes and run from the nodes.  Depending
+# on what type of job you are running, performance could take a big hit
+# if this is not done (if the nwchem image is referenced often).
+#******
+NWChemCommand {
+
+cd $PBS_O_WORKDIR
+aprun -n $totalprocs $nwchem $runDir/$inFile > &! $runDir/$outFile
+}

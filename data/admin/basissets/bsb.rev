@@ -1,0 +1,1527 @@
+################################################################################
+#
+# PURPOSE:
+#   Revision Update logs for EMSL basis sets.
+#
+# DESCRIPTION:
+# 	Entries are organized within dataset revisions.  These revisions are
+# 	separated by the Key "Revision".  The values following that keyword
+# 	are the revisions associated with that version.
+#
+#	Each entry includes Date, payroll number of the person that
+#	made the change, the type of change, and a description.  
+#
+#	The following types are supported.
+#		MA: Major Bug Fix
+#		MI: Minor Bug Fix
+#		EN: Enhancement
+#
+################################################################################
+
+
+# ------------------------------------------------------------------------
+Version: 1.0
+# ------------------------------------------------------------------------
+
+\
+Date   Author Type              Description
+
+Date:  9/13/05
+Author: BDJ
+Type: MA
+Description: Corrected errors in (aug)-cc-pVnZ-PP basis sets\
+such as # of basis functions and MXCn and MAXL, etc.
+
+Date:  9/13/05
+Author: BDJ
+Type: EN
+Description: Added the aug-cc-pVnZ-PP diffuse functions separately.
+
+Date:  9/13/05
+Author: BDJ
+Type: EN
+Description: Replaced x_DK.BAS with x-DK.BAS for consistency.
+
+Date:  9/07/05
+Author: 3e102
+Type: EN
+Description: Update some literature citations in comment fields
+
+Date:  9/02/05
+Author: 3e102
+Type: EN
+Description: Add aug-pV7Z support for Ne.
+
+Date:  8/28/05
+Author: 3e102
+Type: EN
+Description: Update some literature citations in comment fields
+
+Date:  8/14/05
+Author: 3e102
+Type: EN
+Description: Add transition metal atomic energies.
+
+Date:  8/07/05
+Author: 3e102
+Type: EN
+Description: Change name of pV8Z basis sets to cc-pV8Z.
+
+Date:  8/06/05
+Author: 3e102
+Type: EN
+Description: Add Cu, Zn, Ag, Cd, Au and Hg cc-pwCVnZ-PP basis sets
+
+Date:  8/05/05
+Author: 3e102
+Type: EN
+Description: Add Cu, Zn, Ag, Cd, Au and Hg cc-pVnZ-PP and\
+aug-cc-pVnZ-PP basis sets.
+
+Date:  7/19/05
+Author: 3e102
+Type: EN
+Description: Correct number of primitives and contractions for the\
+second row cc-pwCV5Z basis sets.
+
+Date:  7/06/05
+Author: 3e102
+Type: MA
+Description: Correct mistake in C p exponent in the IGLO-III basis\
+set.  0.4267024 appeared twice.  -> 0.17481926
+
+Date:  6/16/05
+Author: 3e102
+Type: EN
+Description: Add correlation consistent transition metal basis sets\
+cc-pVnZ-NR, aug-cc-pVnZ-NR, cc-pwCVnZ-NR,\
+aug-cc-pwCVnZ-NR, cc-pVnZ-DK, etc.
+
+Date:  6/13/05
+Author: 3e102
+Type: EN
+Description: Add cc-pCV6Z basis set for B - F.
+
+Date:  6/13/05
+Author: 3e102
+Type: EN
+Description: Rename existing O cc-pCV6Z to cc-pCV6Z(old) in\
+order to accommodate the official cc-pCV6Z sets.
+
+Date:  4/08/05
+Author: 3e102
+Type: EN
+Description: Add cc-pV9Z basis set for Ne.
+
+Date:  4/06/05
+Author: 3e102
+Type: EN
+Description: Add cc-pV8Z basis sets for H, C - Ne.
+
+Date:  4/02/05
+Author: 3e102
+Type: MI
+Description: Correct UMP2(FC)/cc-pVDZ energy to -54.461855.
+
+Date:  3/13/05
+Author: 3e102
+Type: EN
+Description: Add addiitonal atomic reference energies.
+
+Date:  3/07/05
+Author: 3e102
+Type: EN
+Description: Add cc-pCV5Z Al - Ar sets.
+
+Date:  3/06/05
+Author: 3e102
+Type: EN
+Description: Add aug-cc-pwCVnZ (n=D-5) basis sets.
+
+Date:  2/28/05
+Author: 3e102
+Type: EN
+Description: Add aug-mcc-pVQZ (n=T-7) basis sets for hydrogen.
+
+Date:  2/25/05
+Author: 3e102
+Type: MA
+Description: Correct Stuttgart relativistic large core RLC ECP\
+exponents and coefficients for I.
+
+Date: 12/16/03
+Author: 3e102
+Type: EN
+Description: Update some basis set references.
+
+Date: 12/03/03
+Author: 3e102
+Type: MI
+Description: Correct 10th contraction coeff. in the 1s basis funct.\
+of the NASA cc-pV5Z set for Fe.
+
+Date: 12/03/03
+Author: 3e102
+Type: EN
+Description: Tweak some basis set comments in the MASTER.TBL file.
+
+Date: 10/21/03
+Author: 3e102
+Type: EN
+Description: Add cc-pVxZ-PP and aug-cc-pVxZ-PP basis sets
+
+Date:  6/19/03
+Author: 3e102
+Type: EN
+Description: Make Li cc-pCVnZ basis sets publically available.
+
+Date:  6/10/03
+Author: 3e102
+Type: EN
+Description: Add cc-pwCVTZ and cc-pwCVQZ Br basis sets from Kirk.
+
+Date:  6/06/03
+Author: 3e102
+Type: EN
+Description: Make cc-pCVnZ Na and Mg basis sets public.
+
+Date:  5/17/03
+Author: 3e102
+Type: MI
+Description: Correct wrong page number for Kendall et al. reference\
+to aug-cc-pVnZ basis sets. 6769 -> 6796.
+
+Date:  4/17/03
+Author: 3e102
+Type: EN
+Description: Add Partridge Uncontr. 4 basis sets for transition\
+metals Sc - Zn:  (23s,15p,11d)
+
+Date:  2/12/03
+Author: 3e102
+Type: EN
+Description: Correct Fe 10th s contraction coefficient in the first\
+contracted function. 0.358560 -> 0.358569 for\
+NASA Ames cc-pVQZ.
+
+Date:  1/13/03
+Author: 3e102
+Type: EN
+Description: Rename the older CV tight functions for Al - Ar\
+cc-pCVnZ(old).
+
+Date:  1/12/03
+Author: 3e102
+Type: MI
+Description: Correct Al to Ar tight exponents in cc-pCVnZ basis\
+basis sets to agree with the exponents in the paper\
+by Peterson and Dunning; JCP 117,  10548 (2002).
+
+Date: 12/15/02
+Author: 3e102
+Type: EN
+Description: Add Ca cc-pVnZ and cc-pCVnZ basis sets.
+
+Date: 12/04/02
+Author: 3e102
+Type: EN
+Description: Add Al, P, S and Ar cc-pCVnZ basis sets.
+
+Date: 12/04/02
+Author: 3e102
+Type: EN
+Description: Add Al, P, S and Ar aug-cc-pCVnZ basis sets.
+
+Date: 10/29/02
+Author: 3e102
+Type: EN
+Description: Add auxiliary functions from cc-pwCVnZ basis sets.
+
+Date:  7/30/02
+Author: 3e102
+Type: MI
+Description: Correct spelling of Blaudeau in 6-311G** reference
+
+Date:  7/29/02
+Author: 3e102
+Type: MA
+Description: Correct I ECP for the SDB-cc-pVTZ and SDB-cc-pVQZ\
+basis sets.  It was ECP46MDF and should be ECP46MWB.
+
+Date:  6/28/02
+Author: 3e102
+Type: EN
+Description: Add NASA correlation consistent Fe basis sets
+
+Date:  6/11/02
+Author: 3e102
+Type: MA
+Description: Correct Ga diffuse g exponent in aug-cc-pVQZ basis,\
+0.0168 -> 0.1680
+
+Date:  5/22/02
+Author: 3e102
+Type: EN
+Description: Add cc-pwCVnZ basis sets, B - Ne, Al - Ar.
+
+Date:  4/05/02
+Author: 3e102
+Type: EN
+Description: Add Li, Be, Na and Mg cc-pVxZ
+
+Date:  3/27/02
+Author: 3e102
+Type: MI
+Description: Correct external flags for aug-cc-pV(T+d)Z
+
+Date:  2/25/02
+Author: 3e102
+Type: EN
+Description: Add Ne cc-pCV6Z basis set.
+
+Date:  2/20/02
+Author: 3e102
+Type: EN
+Description: Add Kutzelnigg IGLO-II and IGLO-III basis sets.
+
+Date:  1/02/02
+Author: 3e102
+Type: MA
+Description: Misc. corrections to SDB-cc-pVTZ and SDB-cc-pVQZ.
+
+Date: 11/29/01
+Author: 3e102
+Type: MA
+Description: Correct mistake in Stuttgart RSC Ba basis set. M Dolg\
+informed us, Gaussian, Inc. and Molcas about it.
+
+Date: 11/08/01
+Author: 3e102
+Type: EN
+Description: Add seperate entries for diffuse functions in the\
+aug-cc-pV(x+d)Z sets.
+
+Date: 11/07/01
+Author: 3e102
+Type: MI
+Description: Correct misc. minor problems identified by C. Lansing
+
+Date: 10/12/01
+Author: 3e102
+Type: MA
+Description: Correct problem with Stuttgart RSC Segmented/ECP Sm.
+
+Date: 10/11/01
+Author: 3e102
+Type: EN
+Description: Add LANL2DZdp basis sets.
+
+Date: 10/11/01
+Author: 3e102
+Type: EN
+Description: Add Pb and Bi to LANL2DZ.BAS and LANL2DZ.POT files.
+
+Date: 10/11/01
+Author: 3e102
+Type: EN
+Description: Add cc-pCV6Z basis set for oxygen.
+
+Date:  9/12/01
+Author: 3e102
+Type: MA
+Description: Correct missing 7F in Br SDB-CC-PVQZ.BAS file.
+
+Date:  8/31/01
+Author: 3e102
+Type: EN
+Description: Add new Suttgart/Bonn lanthanide ANO RSC basis sets
+
+Date:  8/28/01
+Author: 3e102
+Type: EN
+Description: Add new Suttgart/Bonn lanthanide RSC basis sets and\
+rename older sets Stuttgart RSC 1997 ECP
+
+Date:  8/01/01
+Author: 3e102
+Type: MA
+Description: Correct diffuse s exponent for Br aug-cc-pVTZ,\
+0.041601 -> 0.045593.
+
+Date:  7/26/01
+Author: 3e102
+Type: MA
+Description: Correct diffuse d exponent for Cl aug-cc-pV(6+d)Z,\
+0.0609 -> 0.0775.
+
+Date:  6/09/01
+Author: 3e102
+Type: MI
+Description: Modify comments under d-aug-cc-pV6Z entry.
+
+Date:  5/18/01
+Author: 3e102
+Type: MI
+Description: Update CRENBS ECP definitions for Cf, Es, Fm and Md
+
+Date:  4/22/01
+Author: 3e102
+Type: MI
+Description: Correct minor errors in ref. for cc-pV6Z/aug-cc-pV6Z
+
+Date:  4/19/01
+Author: 3e102
+Type: EN
+Description: Add SDB-aug-cc-pVTZ and SDB-aug-cc-pVQZ basis sets
+
+Date:  4/19/01
+Author: 3e102
+Type: EN
+Description: Add SDB-cc-pVTZ and SDB-cc-pVQZ basis sets
+
+Date:  4/17/01
+Author: 3e102
+Type: EN
+Description: Add cc-pV(6+d)Z and aug-cc-pV(6+d)Z basis sets
+
+Date:  4/16/01
+Author: 3e102
+Type: EN
+Description: Correct cc-pV5Z Ar s and p contraction coefficients
+
+Date:  4/16/01
+Author: 3e102
+Type: EN
+Description: Add k diffuse frunction for aug-pV7Z (Ed Valeev)
+
+Date:  4/16/01
+Author: 3e102
+Type: MI
+Description: correct # of sulfur p contractions in pV7Z from 9 to 8
+
+Date:  1/29/01
+Author: 3e102
+Type: EN
+Description: Add k functions for pV7Z basis sets from Ed Valeev.
+
+Date: 12/29/00
+Author: 3e102
+Type: EN
+Description: Add cc-pV(x+d) and aug-cc-pV(x+d) basis sets.
+
+Date: 11/16/00
+Author: 3e102
+Type: MI
+Description: Correct K and Ca in the LANL2DZ basis to coincide\
+with their definition in Gaussian.
+
+Date: 11/14/00
+Author: 3e102
+Type: MI
+Description: Correct missing ECP entry for LANL2DZ basis for Pu
+
+Date: 11/08/00
+Author: 3e102
+Type: EN
+Description: Add H pV7Z and aug-pV7Z basis sets
+
+Date: 10/03/00
+Author: 3e102
+Type: EN
+Description: Add Li, Be, Na and Mg Douglas-Kroll basis sets
+
+Date:  9/29/00
+Author: 3e102
+Type: EN
+Description: Add Bauschlicher cc-like Ti basis sets.
+
+Date:  6/26/00
+Author: 3e102
+Type: MA
+Description: Correct error in Roos ANO1 Cr d and f contractions
+
+Date:  6/26/00
+Author: 3e102
+Type: MA
+Description: Replace Ken Dyall's basis set files with new copies\
+from Bert de Jong.  Bert discovered errors in the\
+original files.
+
+Date:  6/04/00
+Author: 3e102
+Type: MA
+Description: Correct contr. coeff for all CRENBS basis sets
+
+Date:  4/20/00
+Author: 3e102
+Type: EN
+Description: Add cc-pVxZ_DK basis sets from Bert de Jong.
+
+Date:  4/10/00
+Author: 3e102
+Type: MA
+Description: Correct Ce SBKJC d-f potential
+
+Date:  3/26/00
+Author: 3e102
+Type: MA
+Description: Correct I 6-311G s contr. coeff. 0.18375 -> 0.33878
+
+Date:  3/08/00
+Author: 3e102
+Type: MI
+Description: Correct the names of new rel. basis sets wf -> fw
+
+Date:  3/01/00
+Author: 3e102
+Type: EN
+Description: Add silicon cc-pCVxZ sets.
+
+Date:  2/10/00
+Author: 3e102
+Type: EN
+Description: Add a large number of relativistic recontraction of\
+the cc- basis sets from Ken Dyall.
+
+Date:  2/03/00
+Author: 3e102
+Type: EN
+Description: Add pV7Z basis sets for C,N,O,F and S.
+
+Date: 12/14/99
+Author: 3e102
+Type: MA
+Description: Correct missing quote in cc-pV6Z basis set file.
+
+Date: 12/10/99
+Author: 3e102
+Type: MA
+Description: Correct Ga diffuse g exponent, 0.0114 -> 0.114
+
+Date: 12/03/99
+Author: 3e102
+Type: MI
+Description: Correct GEN flag for cc-pVTZ(seg-opt) to False
+
+Date: 11/19/99
+Author: 3e102
+Type: MI
+Description: Correct Br 6-311G** exponent (0.415 -> 0.451)
+
+Date: 11/19/99
+Author: 3e102
+Type: EN
+Description: Add cc-pVTZ(seg-opt) basis set family
+
+Date: 11/16/99
+Author: 3e102
+Type: MI
+Description: Add more digits to very small contr. coeff. Br cc-pV5Z
+
+Date: 10/23/99
+Author: 3e102
+Type: MA
+Description: Correct HAY-WADT2_VDZ.BAS and LANL2DZ.BAS for wrong\
+s contraction coefficient on silver. -1.2413971 ->\
+-0.4901427
+
+Date:  6/07/99
+Author: 3e102
+Type: MI
+Description: Correct d-aug- sets by removing reference to Al - Ar
+
+Date:  5/07/99
+Author: 3e102
+Type: MA
+Description: Correct Br d function (cc-pVTZ). Wrong single primit.
+
+Date:  5/06/99
+Author: 3e102
+Type: EN
+Description: Add optimized segmented contractions for Ge - Br
+
+Date:  5/03/99
+Author: 3e102
+Type: EN
+Description: Add the optimized cc-pVQZ segmented contractions.
+
+Date:  4/19/99
+Author: 3e102
+Type: EN
+Description: Add He, Al, P, Ar aug-cc-pV6Z basis sets
+
+Date:  4/19/99
+Author: 3e102
+Type: EN
+Description: Add He, Al, P, Ar cc-pV6Z basis sets from T.v. Mourik
+
+Date:  3/16/99
+Author: 3e102
+Type: MA
+Description: McClean/Chandler Al s exponent, 0.652370 -> 0.065237
+
+Date:  3/05/99
+Author: 3e102
+Type: MA
+Description: Remove incorrect entries for d-aug-cc-pVxZ for Na - Ar
+
+Date:  2/22/99
+Author: 3e102
+Type: MI
+Description: Correct some inconsistencies between the MASTER.TBL\
+file's SPHR= lines and what was actually in *.BAS files
+
+Date:  1/21/99
+Author: 3e102
+Type: MA
+Description: Correct Br 6-311G* d exponent. 0.415 -> 0.451.
+
+Date:  1/07/99
+Author: 3e102
+Type: MA
+Description: Correct Mg cc-pCV5Z tight exponents
+
+Date:  1/06/99
+Author: 3e102
+Type: MA
+Description: Correct Na cc-pCVQZ and cc-pCV5Z tight exponents
+
+Date: 12/07/98
+Author: 3e102
+Type: EN
+Description: Add separate entries for doubly aug. diffuse functions
+
+Date: 12/02/98
+Author: 3e102
+Type: EN
+Description: Add Si cc-pV6Z and aug-cc-pV6Z from Tanja van Mourik
+
+Date: 11/29/98
+Author: 3e102
+Type: EN
+Description: Add Ga - Kr cc-pVxZ and aug-cc-pVxZ basis sets.
+
+Date: 11/17/98
+Author: 3e102
+Type: EN
+Description: Add S cc-pV6Z and aug-cc-pV6Z from Tanja van Mourik
+
+Date: 10/28/98
+Author: 3e102
+Type: EN
+Description: Add d-aug-cc-pVQZ, 5Z and 6Z families of basis sets.
+
+Date: 10/22/98
+Author: 3e102
+Type: EN
+Description: Add d-aug-cc-pVDZ and d-aug-cc-pVTZ families.
+
+Date: 10/13/98
+Author: 3e102
+Type: MI
+Description: Correct the mispelling of the word auxiliary.
+
+Date: 10/12/98
+Author: 3e102
+Type: EN
+Description: Add Bernholdt-Harrison RI fitting basis sets
+
+Date: 10/09/98
+Author: 3e102
+Type: EN
+Description: Add aug-cc-pV6Z for F.
+
+Date:  9/09/98
+Author: 3e102
+Type: EN
+Description: Add core/valence functions for Mg from Kirk.
+
+Date:  8/05/98
+Author: 3e102
+Type: EN
+Description: Correct Stuttgart ECP files. Exponents and coefficients\
+were interchanged.
+
+Date:  8/04/98
+Author: 3e102
+Type: EN
+Description: Update the core/valence (cc-pCVxZ) list of elements.
+
+Date:  7/22/98
+Author: 3e102
+Type: EN
+Description: Add Stuttgart small core, relativistic ECPs.
+
+Date:  7/08/98
+Author: 3e102
+Type: EN
+Description: Add Ahlrichs Coulomb Fitting DFT basis sets
+
+Date:  6/02/98
+Author: 3e102
+Type: EN
+Description: Add 6-31G-Blaudeau Basis, new Pople 6-31G trans. metals
+
+Date:  5/18/98
+Author: 3e102
+Type: EN
+Description: Add cc-pCVDZ, cc-pCVTZ and cc-pCVQZ for Cl.
+
+Date:  4/11/98
+Author: 3e102
+Type: EN
+Description: Add cc-pCVTZ for P.
+
+Date:  3/20/98
+Author: 3e102
+Type: EN
+Description: Add Stuttgart large core, relativistic ECPs.
+
+Date:  3/10/98
+Author: 3e102
+Type: EN
+Description: Add some RCCSD(T) atomic energies.
+
+Date:  2/26/98
+Author: 3e102
+Type: MI
+Description: Correct miscell. missing elements in various sets.
+
+Date:  2/12/98
+Author: 3e102
+Type: MI
+Description: Remove 0.0 exponents of element 116 in CRENBL.BAS.
+
+Date:  2/09/98
+Author: 3e102
+Type: EN
+Description: Add aug-cc-pV6Z diffuse functions as a standalone set
+
+Date:  2/06/98
+Author: 3e102
+Type: MA
+Description: Correct 4-31G Be set. It was the same as Li.
+
+Date:  1/30/98
+Author: 3e102
+Type: EN
+Description: Add aug-cc-pVxZ diffuse functions for Li, Be, Na, Mg
+
+Date:  1/16/98
+Author: 3e102
+Type: MA
+Description: Revise H polar. functions cc-pV6Z (from Kirk Peterson)
+
+Date:  1/14/98
+Author: 3e102
+Type: EN
+Description: Add Cl cc-pV6Z and aug-cc-pV6Z basis sets (Tanja v. M.)
+
+Date: 12/29/97
+Author: 3e102
+Type: EN
+Description: Add K Feller Misc. VDZ, VTZ and VQZ basis sets.
+
+Date: 12/15/97
+Author: 3e102
+Type: EN
+Description: Add K and Ca to 6-311G, 6-311G* and 6-311G**.
+
+Date: 12/14/97
+Author: 3e102
+Type: EN
+Description: Add K and Ca to 6-31G and 6-31G*.
+
+Date: 12/09/97
+Author: 3e102
+Type: EN
+Description: Add the 4-22GSP basis set family.
+
+Date: 12/01/97
+Author: 3e102
+Type: EN
+Description: Add the 3-21GSP basis set family.
+
+Date: 11/25/97
+Author: 3e102
+Type: MI
+Description: Remove Mg from the MIDI basis sets.
+
+Date: 11/25/97
+Author: 3e102
+Type: EN
+Description: Add the MIDI! Si, Br and I basis sets from D. Truhlar
+
+Date: 11/14/97
+Author: 3e102
+Type: EN
+Description: Add the optimized cc-pVDZ segmented contractions.
+
+Date: 10/28/97
+Author: 3e102
+Type: EN
+Description: Modify the DGauss basis set reference.
+
+Date: 10/06/97
+Author: 3e102
+Type: MA
+Description: Correct 6-311G Al s exponent.  0.652370 -> 0.0652370
+
+Date:  9/05/97
+Author: 3e102
+Type: EN
+Description: Add 6-311+G* basis set family.
+
+Date:  8/27/97
+Author: 3e102
+Type: EN
+Description: Add U, Np and Pu to the LANL DZ ECP collection
+
+Date:  8/26/97
+Author: 3e102
+Type: EN
+Description: Add lanthanides to SBKJC basis sets
+
+Date:  8/07/97
+Author: 3e102
+Type: EN
+Description: Add Christiansen, Ermler, etc. ECPs
+
+Date:  7/24/97
+Author: 3e102
+Type: MI
+Description: Remove reference to Ar in Dunning/Hay polarization.
+
+Date:  5/14/97
+Author: 3e102
+Type: MA
+Description: Correct typo in the Al basis.  Garbage following S.
+
+Date:  4/18/97
+Author: 3e102
+Type: MA
+Description: Correct Cl d exponent in Sadlej pVTZ basis.  0.8169 ->\
+0.3580.
+
+Date:  3/28/97
+Author: 3e102
+Type: MA
+Description: Correct P s exponent in 6-311G.  7549.76 -> 754.976.
+
+Date:  3/18/97
+Author: 3e102
+Type: EN
+Description: Add the well-tempered basis set family from Huzinaga.
+
+Date:  2/19/97
+Author: 3e102
+Type: MI
+Description: Add some polarization set elements for consistency.
+
+Date:  2/05/97
+Author: 3e102
+Type: EN
+Description: Add official cc-pV6Z basis set family from A. Wilson.
+
+Date:  2/05/97
+Author: 3e102
+Type: MI
+Description: Add separate entries for just the aug-cc diffuse funct.
+
+Date:  2/04/97
+Author: 3e102
+Type: MI
+Description: Correct missing entries in the lists of supported\
+elements for STO-3G, 3-21G*
+
+Date:  1/27/97
+Author: 3e102
+Type: MI
+Description: Correct cc-pVDZ ROHF equiv. energy for O.
+
+Date:  1/20/97
+Author: 3e102
+Type: EN
+Description: Add Be cc-pV5Z
+
+Date:  1/14/97
+Author: 3e102
+Type: MA
+Description: Correct error in Ru DZVP S exponent. 88363.7->188363.7
+
+Date:  1/07/97
+Author: 3e102
+Type: MA
+Description: Correct error in F DZVP P exponent. 0.2864 -> 2.864038
+
+Date:  1/05/97
+Author: 3e102
+Type: EN
+Description: Add many aug-cc-pVxZ atomic energies.
+
+Date: 12/02/96
+Author: 3e102
+Type: MA
+Description: Correct s exponent, cc-pV5Z He, 1.2405 -> 1.2400.
+
+Date: 11/15/96
+Author: 3e102
+Type: MI
+Description: Remove H and He from all cc-pCVxZ lists of elements.
+
+Date: 10/26/96
+Author: 3e102
+Type: EN
+Description: Add lithium Dunning DZ and DZP.
+
+Date: 10/08/96
+Author: 3e102
+Type: MA
+Description: Correct sulfur p contr. coeff. 0.488108 -> 0.448108
+
+Date:  9/28/96
+Author: 3e102
+Type: MI
+Description: Correct missing diffuse H,He functions in aug-cc-pCVxZ
+
+Date:  9/27/96
+Author: 3e102
+Type: EN
+Description: Add some aug-cc-pVDZ atomic energies.
+
+Date:  8/28/96
+Author: 3e102
+Type: MI
+Description: Add separate entries for the extra core/valence sets.
+
+Date:  8/22/96
+Author: 3e102
+Type: MI
+Description: Modify STO-3G* TYPE to be MBP and add the polarization\
+functions as a separate family.
+
+Date:  8/19/96
+Author: 3e102
+Type: EN
+Description: Add Sadlej polarized basis set family from Aces II.
+
+Date:  8/12/96
+Author: 3e102
+Type: MA
+Description: Correct errors in the DGauss DZVP2 sullfur p exp&coeff
+
+Date:  8/02/96
+Author: 3e102
+Type: MA
+Description: Correct errors in the DGauss DZVP p and d exponents\
+on fluorine. There should have been 4 exponents in\
+the p contraction and the d exponent should be 1.0.
+
+Date:  7/10/96
+Author: 3e102
+Type: MI
+Description: Correct wrong NUMEXPs for Ge, As and At in SBKJC.POT
+
+Date:  7/10/96
+Author: 3e102
+Type: MI
+Description: Correct wrong NUMEXP for Mg in AHLRICHS_TZV.BAS
+
+Date:  7/09/96
+Author: 3e102
+Type: MA
+Description: Correct Roos ANO N d exponents and coefficients.\
+They were incorrectly duplicated from carbon.
+
+Date:  7/09/96
+Author: 3e102
+Type: MA
+Description: Correct Roos He s coefficient, 0.0047488 -> 1.0047488.
+
+Date:  7/08/96
+Author: 3e102
+Type: MA
+Description: Correct Dunning/Hay DZ sulfur s exponent, 0.4264 ->\
+0.4246\
+Old value came came from prepint.  New value comes\
+from the actual book.
+
+Date:  7/08/96
+Author: 3e102
+Type: MA
+Description: Correct Dunning/Hay DZ Cl s contraction coeff.,\
+0.129056 -> 0.120956
+
+Date:  7/08/96
+Author: 3e102
+Type: MA
+Description: Correct s exponent for F 6-31G. 7001.1713 -> 7001.713
+
+Date:  7/08/96
+Author: 3e102
+Type: MA
+Description: Correct s coeff. for Ne 6-311G. 0.0119149 -> 0.1191490
+
+Date:  7/08/96
+Author: 3e102
+Type: MA
+Description: Correct p coeff. for N 4-31G. 0.3112030 -> 0.7527482
+
+Date:  7/08/96
+Author: 3e102
+Type: MA
+Description: Correct s coeff. for Al 6-31G. 0.144583 -> 0.00144583
+
+Date:  7/04/96
+Author: 3e102
+Type: MA
+Description: Correct aug-cc-pV5Z diffuse s on He. 0.03109 ->\
+0.04664. Change from Tanja van Mourik.
+
+Date:  7/03/96
+Author: 3e102
+Type: MA
+Description: Remove Li and Be from Dunning-Hay DZ + double Ryd. set
+
+Date:  6/27/96
+Author: 3e102
+Type: MA
+Description: Correct error in K STO-3G. Exponent 0.101 -> 1.018.
+
+Date:  6/24/96
+Author: 3e102
+Type: MI
+Description: Correct spherical label on DZVP, DZVP2 and TZVP sets.
+
+Date:  6/11/96
+Author: 3e102
+Type: MI
+Description: Add some comments from the .BAS files.
+
+Date:  6/05/96
+Author: 3e102
+Type: MI
+Description: Correct mispelling of ENDSHPERE to ENDSPHERE.
+
+Date:  5/21/96
+Author: 3e102
+Type: MI
+Description: Correct mispelling of ENDATMNOS for some basis sets
+
+Date:  5/09/96
+Author: 3e102
+Type: MA
+Description: Correct Ar 6-311++G(3df,3pd) f exp., old=0.8. new=0.85
+
+Date:  4/19/96
+Author: 3e102
+Type: MA
+Description: Correct error in the Partridge pV6Z carbon basis and\
+rename the cc-pV6Z sets to pV6Z in order to\
+differentiate it from the official cc-pV6Z sets which\
+will be appearing shortly.
+
+Date:  3/26/96
+Author: 3e102
+Type: EN
+Description: Add Hay-Wadt LANL2DZ ECP basis sets and ECPs.
+
+Date:  3/21/96
+Author: 3e102
+Type: MI
+Description: Correct some of the Dunning-Hay Rydberg basis set\
+definitions.  There are no Rydberg functions for Be.
+
+Date:  1/29/96
+Author: 3e102
+Type: EN
+Description: Extend 6-311G** to include Ga - Kr.
+
+Date:  1/25/96
+Author: 3e102
+Type: EN
+Description: Add new Roos aug-VDZ basis sets for the 3rd row.
+
+Date:  1/10/96
+Author: 3e102
+Type: EN
+Description: Add Ahlrichs new TZV basis set family.
+
+Date:  1/06/96
+Author: 3e102
+Type: EN
+Description: Add MIDI-bang basis set family.
+
+Date: 12/29/95
+Author: 3e102
+Type: EN
+Description: Add STO-3G In, Sn, Sb, Te and I basis sets.
+
+Date: 12/18/95
+Author: 3e102
+Type: EN
+Description: Add STO-3G* basis set family.
+
+Date: 12/14/95
+Author: 3e102
+Type: MI
+Description: Correct reference for diffuse functions in 6-31++G etc.
+
+Date: 12/08/95
+Author: 3e102
+Type: MA
+Description: Correct typo D->6D for DGAUSS_DZVP, DGAUSS_DZV2 sets.
+
+Date: 11/14/95
+Author: 3e102
+Type: EN
+Description: Modify type designation for aug-cc-VDZ to VDZ2PD.
+
+Date: 11/08/95
+Author: 3e102
+Type: MI
+Description: Correct typo in Ca for Partidge 3 basis.
+
+Date: 11/08/95
+Author: 3e102
+Type: MA
+Description: Correct errors in Ru and Pd DGauss DZVP orbital sets.
+
+Date: 10/22/95
+Author: 3e102
+Type: EN
+Description: Add DGauss DZVP2 DFT orbital basis and fitting sets.\
+Add DGauss TZVP DFT orbital basis sets.
+
+Date: 10/21/95
+Author: 3e102
+Type: EN
+Description: Add DGauss DZVP DFT orbital basis and fitting sets.
+
+Date:  9/18/95
+Author: 3e102
+Type: EN
+Description: Update the literature reference for cc-pCVxZ sets.
+
+Date:  9/17/95
+Author: 3e102
+Type: MI
+Description: Correct no. of basis functions for aug-cc-pVQZ H, He.\
+Old value was 47, correct value is 46.
+
+Date:  9/11/95
+Author: 3e102
+Type: EN
+Description: Add more cc-pVQZ atomic energies.
+
+Date:  9/05/95
+Author: 3e102
+Type: MI
+Description: Correct ref. for Dunning/Hay basis, Vol. 2 -> Vol. 3.
+
+Date:  9/04/95
+Author: 3e102
+Type: EN
+Description: Add more cc-pV5Z atomic energies.
+
+Date:  8/29/95
+Author: 3e102
+Type: EN
+Description: Add more cc-pVTZ and cc-pVQZ atomic energies.
+
+Date:  8/25/95
+Author: 3e102
+Type: EN
+Description: Add 4-31G, DZ and 6-311++G(3df,3pd) atomic energies.
+
+Date:  7/31/95
+Author: 3e102
+Type: MA
+Description: Correct cc-pCV5Z Ne 4p exponent. 21.309 (new),\
+23.309 (old). New values from D. Woon e-mail.
+
+Date:  7/27/95
+Author: 3e102
+Type: MA
+Description: Correct aug-cc-pV5Z diffuse s exponent on H, 0.0138 ->\
+0.0207.  New value comes from S. Mielke (PNL).
+
+Date:  7/06/95
+Author: 3e102
+Type: EN
+Description: Add Dunning TZ basis sets.
+
+Date:  6/05/95
+Author: 3e102
+Type: EN
+Description: Add magnesium cc-pVxZ sets from Dave Woon.
+
+Date:  5/30/95
+Author: 3e102
+Type: MI
+Description: Update cc-pCVxZ information based on a file from T.H.D.
+
+Date:  5/16/95
+Author: 3e102
+Type: MI
+Description: Correct the type designation for Bauschlicher\
+transition metal basis sets to VQZ3P.
+
+Date:  5/04/95
+Author: 3e102
+Type: EN
+Description: Add Bauschlicher first row transition metal ANO sets
+
+Date:  5/03/95
+Author: 3e102
+Type: MI
+Description: Correct errors in no. of basis functions for cc-pV5Z.
+
+Date:  5/01/95
+Author: 3e102
+Type: EN
+Description: Add Wachter's transiton metal sets from C. Bauschlicher\
+e-mail file.
+
+Date:  4/20/95
+Author: 3e102
+Type: EN
+Description: Add 3-21++G* and 6-31++G* basis sets.
+
+Date:  4/17/95
+Author: 3e102
+Type: EN
+Description: Add DeMon charge fitting basis sets.
+
+Date:  4/16/95
+Author: 3e102
+Type: EN
+Description: Extend the Partridge uncontracted basis sets to other\
+elements.
+
+Date:  3/14/95
+Author: 3e102
+Type: MI
+Description: Correct error in no. of basis functions for H 6-31+G*
+
+Date:  2/23/95
+Author: 3e102
+Type: EN
+Description: Add Ahlrichs PVTZ basis sets.
+
+Date:  2/16/95
+Author: 3e102
+Type: EN
+Description: Assorted modifications to information on basis sets.
+
+Date:  2/08/95
+Author: 3e102
+Type: EN
+Description: Add lithium cc-pV5Z set.
+
+Date:  2/01/95
+Author: 3e102
+Type: EN
+Description: Add Glendening/Feller polarization set for K, Rb, Cs.
+
+Date: 10/11/94
+Author: 3e102
+Type: EN
+Description: Extend 6-311G* to include second row elements.
+
+Date: 10/04/94
+Author: 3e102
+Type: EN
+Description: Add Ahlrichs PVDZ (SVP) basis sets.
+
+Date:  9/30/94
+Author: 3e102
+Type: EN
+Description: Add Ahlrichs VDZ basis sets.
+
+Date:  9/27/94
+Author: 3e102
+Type: EN
+Description: Extend STO-3G sets to Nb and Mo. Change ECP= to\
+CATEGORY=.
+
+Date:  9/ 8/94
+Author: 3e102
+Type: EN
+Description: Remove reference to the 6-31G(3df,3pd) file since it\
+duplicated the contents of the 6-311G(3df,3pd) file.
+
+Date:  9/ 8/94
+Author: 3e102
+Type: EN
+Description: Add 6-311G* standalone and Dunning/Hay diffuse, polar.
+
+Date:  8/26/94
+Author: 3e102
+Type: EN
+Description: Add EXA lines to serve as a flag to the OODB.
+
+Date:  8/24/94
+Author: 3e102
+Type: EN
+Description: Add separate Pople diffuse, polarization, etc.\
+functions to allow users to roll their own.
+
+Date:  8/24/94
+Author: 3e102
+Type: MI
+Description: Correct 3-21G* MAXL and MXC1 etc. data
+
+Date:  5/12/94
+Author: 3e102
+Type: EN
+Description: Add cc-pV6Z C and N sets from H. Partridge (NASA Ames)
+
+Date:  5/12/94
+Author: 3e102
+Type: MA
+Description: Add core/valence cc-pCVxZ sets from Dave Woon.
+
+Date:  3/30/94
+Author: 3e102
+Type: MI
+Description: Correct TYPE= error for the 6-31++G** basis.
+
+Date:  3/12/94
+Author: 3e102
+Type: EN
+Description: Extend aug-cc-pVxZ sets to include new helium data.
+
+Date:  3/ 1/94
+Author: 3e102
+Type: EN
+Description: Add SHARED keyword information.
+
+Date:  2/16/94
+Author: 3e102
+Type: EN
+Description: Add cc-pVDZ - cc-pV5Z sets for beryllium from D. Woon
+
+Date:  2/ 9/94
+Author: 3e102
+Type: EN
+Description: Add 6-31++G** basis sets.
+
+Date:  1/19/94
+Author: 3e102
+Type: EN
+Description: Add Stevens/Basch/Krauss/Jasien/Cundari -21G ECP basis
+
+Date: 12/16/93
+Author: 3e102
+Type: EN
+Description: Extend 3-21G to include Nb to Xe.
+
+Date: 12/06/93
+Author: 3e102
+Type: EN
+Description: Add Hay/Wadt effective core potential sets.
+
+Date: 10/02/93
+Author: 3e102
+Type: EN
+Description: Add cc-pVxZ sodium basis sets from D. Woon
+
+Date:  9/16/93
+Author: 3e102
+Type: EN
+Description: Add Roos ANO sets for the second row.
+
+Date:  9/07/93
+Author: 3e102
+Type: EN
+Description: Add STO-6G sets.
+
+Date:  8/30/93
+Author: 3e102
+Type: EN
+Description: Add selected Rydberg sets and more basis set info.
+
+Date:  8/04/93
+Author: 3e102
+Type: EN
+Description: Extend 3-21G to include Y and Zr.
+
+Date:  7/16/93
+Author: 3e102
+Type: EN
+Description: Add a few unofficial cc-pV6Z sets to the library.
+
+Date:  5/12/93
+Author: 3e102
+Type: MI
+Description: Update aug-cc-pV5Z sets for H and correct no. prim.'s
+
+Date:  4/01/93
+Author: 3e102
+Type: EN
+Description: Update aug-cc-pV5Z sets for first row atom.
+
+Date:  3/28/93
+Author: 3e102
+Type: EN
+Description: Update MIDI to reflect the addition of potassium.
+
+Date: 12/02/92
+Author: 3e102
+Type: EN
+Description: Extend 3-21G to include Rb and Sr.
+
+Date: 10/23/92
+Author: 3e102
+Type: EN
+Description: Add 6-311++G(3df,3pd) for second row elements
+
+Date: 10/13/92
+Author: 3e102
+Type: EN
+Description: Add modifications to reflect Ne and Ar Pople diffuse\
+functns.
+
+Date:  8/19/92
+Author: 3e102
+Type: EN
+Description: Add lithium cc-pVTZ and cc-pVQZ sets from D. Woon.
+
+Date:  8/11/92
+Author: 3e102
+Type: EN
+Description: Add 6-311G(2df,2pd)
+
+Date:  7/15/92
+Author: 3e102
+Type: EN
+Description: Add lithium cc-pVDZ from D. Woon.
+
+Date:  5/29/92
+Author: 3e102
+Type: EN
+Description: Add 6-311G* sets as separate
+
+Date:  5/08/92
+Author: 3e102
+Type: EN
+Description: Add cc-pV5Z sets for B, C, N, F and Ne from K. Peterson
+
+Date:  4/26/92
+Author: 3e102
+Type: EN
+Description: Add 2nd row cc-pV5Z snd aug-cc-pV5Z sets from D. Woon.
+
+Date:  3/21/92
+Author: 3e102
+Type: EN
+Description: Add second row McLean/Chandler sets as an extension to\
+the 6-311G set and as a separate set.
+
+Date:  3/16/92
+Author: 3e102
+Type: EN
+Description: Add the 6-31++G sets.
+
+Date:  1/13/92
+Author: 3e102
+Type: EN
+Description: Update the cc-pVxZ entries for the second row.
+
+Date: 12/23/91
+Author: 3e102
+Type: EN
+Description: Add Binning/Curtiss sets for Ga - Kr.
+
+Date: 11/13/91
+Author: 3e102
+Type: EN
+Description: Add information about the no. of contracted functions
+
+Date: 11/ 8/91
+Author: 3e102
+Type: EN
+Description: Add Pople's 4-31G sets.
+
+Date: 11/ 5/91
+Author: 3e102
+Type: EN
+Description: Add Ne diffuse function support for aug-cc-pVxZ sets
+
+Date:  7/18/91
+Author: 3e102
+Type: EN
+Description: Add Partridge uncontracted basis sets & new NASA ANO's
+
+Date:  6/28/91
+Author: 3e102
+Type: EN
+Description: Add Dunning cc-pV5Z hydrogen set (obtained from Thom)
+
+Date:  3/ 2/91
+Author: 3e102
+Type: EN
+Description: Add GAMESS valence triple zeta set
+
+Date:  2/12/91
+Author: 3e102
+Type: EN
+Description: Add STO-2G Basis Sets
+
+Date:  1/16/91
+Author: 3e102
+Type: EN
+Description: Modify Type information
+
+Date: 12/21/90
+Author: 3e102
+Type: EN
+Description: Add 3-21G* polarization functions
+
+Date: 12/20/90
+Author: 3e102
+Type: EN
+Description: Add max. l and max. contraction length information
+
+Date: 11/ 9/90
+Author: 3e102
+Type: EN
+Description: Add Roos atomic NO basis sets.
+
+Date: 10/12/90
+Author: 3e102
+Type: EN
+Description: Add Huzinaga's MINI and MIDI basis sets.
+
+Date: 10/11/90
+Author: 3e102
+Type: EN
+Description: Add Dan Chipman's Spin Density basis sets.
+
+Date: 10/10/90
+Author: 3e102
+Type: EN
+Description: Add NASA Ames atomic NO basis sets.
+
+Date:  9/27/90
+Author: 3e102
+Type: EN
+Description: Add cc-pVDZ sulfur.
+
+Date:  9/17/90
+Author: 3e102
+Type: EN
+Description: Add Dunning/Dunning-Hay DZ Basis sets.
+
+Date:  8/22/90
+Author: 3e102
+Type: EN
+Description: Add Pople-style diffuse sets, eg. 3-21+G. Also add\
+Kendall, Harrison, Dunning aug-cc-pVxZ sets
+
+Date:  7/13/90
+Author: 3e102
+Type: EN
+Description: Original creation of this file from MELDF Input\
+Assistant (MIA) Basis Set Library.

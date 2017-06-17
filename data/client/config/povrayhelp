@@ -1,0 +1,37 @@
+// POV-ray is a freely distributed ray-tracing program
+// available at http://www.povray.org
+//
+// The POV-ray file is an ordinary text file that can be
+// edited by the user to achieve effects that are not
+// currently supported within Ecce. The most important of
+// these is editing the illumination source to get off-
+// center lighting. The illumination source is specified
+// with the POV-ray "light_source" directive and can be
+// modified by changing the first vector inclosed in the angle
+// brackets following this directive.
+//
+// In most cases, the atom colors and the colors of the vectors
+// are listed at the top of the file using the #declare statement,
+// along with the surface finishes. These can also be edited by
+// hand if necessary. Cases where this is not true are when
+// creating a povray file from a display of partial charges or
+// when using complex finishes, e.g. "Wood".
+//
+// The POV-ray images have a width:height aspect ratio of 4:3.
+// On most systems the image can be scaled to the desired size
+// when executing the povray command. To produce an image that
+// is 800 by 600 pixels in size type
+//   povray +W800 +H600 ./filename
+// On most systems you can also type
+//   povray -W800 -H600 ./filename
+// The filename must have a .pov suffix. On some systems
+// the pixels are not square and the ratio of width and height
+// may need to be adjusted accordingly. See the POV-ray
+// documentation for more information on this topic.
+//
+// We also recommend that you use the anti-aliasing option when
+// processing the POV-ray input file. This consists of adding the
+// option +A when processing the .pov file, e.g.
+//   povray +W800 +H600 +A ./filename
+// This option does increase the processing time, but in most cases
+// will substantially improve the appearance of the final image.

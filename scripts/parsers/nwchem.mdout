@@ -1,0 +1,51 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+# Purpose: Parse output parameter from .mdout file for single point energy
+#          calculations
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+$lcCategory = lc($ucCategory);
+
+while (<STDIN>) {
+  if (/Energy total\s*(\S+)/) {
+    $value = $1;
+    print "key: TE\n";
+    print "size:\n1\n";
+    print "values:\n$value\n";
+    print "units:\nkJoule/Mole\n";
+    print "END\n";
+  }
+  if (/Energy electrostatic\s*(\S+)/) {
+    $value = $1;
+    print "key: COULOMB\n";
+    print "size:\n1\n";
+    print "values:\n$value\n";
+    print "units:\nkJoule/Mole\n";
+    print "END\n";
+  }
+  if (/Energy potential\s*(\S+)/) {
+    $value = $1;
+    print "key: PE\n";
+    print "size:\n1\n";
+    print "values:\n$value\n";
+    print "units:\nkJoule/Mole\n";
+    print "END\n";
+  }
+  if (/Energy van der Waals\s*(\S+)/) {
+    $value = $1;
+    print "key: VDW\n";
+    print "size:\n1\n";
+    print "values:\n$value\n";
+    print "units:\nkJoule/Mole\n";
+    print "END\n";
+  }
+}

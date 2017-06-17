@@ -1,0 +1,20 @@
+name
+Stuttgart RSC 1997 ECP
+name
+type
+ecp
+type
+category
+AUXILIARY
+category
+references
+ELEMENTS                      REFERENCES
+ ---------                       ----------
+
+
+references
+comments
+8/11/98  - DFF - Add dubnium, remove Rf
+8/04/98  - DFF - Remove redundant rutherfordim potential.
+7/21/98  - DFF - Original creation of this file.
+comments

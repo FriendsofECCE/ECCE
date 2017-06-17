@@ -1,0 +1,125 @@
+################################################################################
+# FILENAME:  Makefile.defs
+#
+#
+# PURPOSE:
+#   Makefile definition template for any makefile
+#
+# DESCRIPTION:
+#   There's lots of weird stuff in here so you'll have to find what
+#   you're looking for and read the attached comments.
+#
+#------------------------------------------------------------------------
+#
+#   Interesting info taken from "GNU Make" by Stallman and McGrath.
+#
+#   These are the Automatic variables used in gnumake (p112):
+#
+#   $@ - file name of the target of the rule
+#   $% - target member name if archive (eg $% = bar.o given foo.a(bar.o))
+#   $< - name of the first dependency
+#   $^ - names of all dependencies (with spaces)
+#   $? - names of all dependencies newer than the target (with spaces)
+#   $* - stem of target in implicit rule match (eg $* = x given a.x.b and a.%.b)
+#
+#   Some useful variables with built-in values (p107-108, unuseful excluded)
+#
+#   AR = ar           (archive maintaining program -- we will use this)
+#   ARFLAGS = rv      (flags for ar -- we will use/suppliment this)
+#   CC = cc           (C compiler -- we will use this)
+#   CPP = $(CC) -E    (C preprocessor -- we may use this)
+#   CXX = g++         (C++ compiler -- we will use this)
+#   CO = co           (Extracting files from RCS -- we will use this)
+#   RM = rm -f        (Command to remove a file -- we will use this I guess)
+#
+# LIMITATIONS:
+################################################################################
+
+################################################################################
+# Compilers
+################################################################################
+CXX := g++
+CC := gcc
+
+################################################################################
+# ECCE Variables for obj, inc, lib, and bin paths (-L, -I, etc. left off because
+# variables are used differetly in different places).
+################################################################################
+# For libraries, object files go in subdirectory based on library name
+OBJEXT := $(patsubst libecce%.a,%, $(LIBRARY))
+ifeq ($(OBJEXT),)
+# For programs, object files go in subdirectory based on directory name
+# GDB 6/7/12
+  OBJEXT := $(notdir $(CURDIR))
+endif
+OBJ_PATH := $(ECCE_HOME)/$(ECCE_SYSDIR)obj/$(OBJEXT)
+INC_PATH = -I$(ECCE_HOME)/include
+LIB_PATH = $(ECCE_HOME)/$(ECCE_SYSDIR)lib
+BIN_PATH = $(ECCE_HOME)/$(ECCE_SYSDIR)bin
+
+################################################################################
+# Lists of search directories and such for includes and libraries
+################################################################################
+ECCE_IFLAGS += $(INC_PATH)
+ECCE_LFLAGS += -Wl,-rpath=../lib -L$(LIB_PATH)
+# Use any provided libraries in the system/lib directory (no harm, no foul
+# if this directory doesn't exist)
+ECCE_LFLAGS += -Wl,-rpath=../3rdparty/system/lib -L$(ECCE_HOME)/$(ECCE_SYSDIR)3rdparty/system/lib
+# Same with local/lib as far as not existing.  In fact this one won't exist
+# except for EMSL production builds
+ECCE_LFLAGS += -Wl,-rpath=../3rdparty/local/lib -L$(ECCE_HOME)/$(ECCE_SYSDIR)3rdparty/local/lib
+
+
+################################################################################
+# Define ranlib for the platforms that need it
+# Add the u option to the default ARFLAGS definition
+################################################################################
+AR = ar
+ARFLAGS = ru
+
+
+################################################################################
+# Compiler options (FFLAGS is for Fortran symmetry executables)
+################################################################################
+ECCE_CFLAGS = $(ECCE_COMPILE_MODE) -pipe -fPIC -Wall -Wno-deprecated -Wno-sign-compare -Wno-non-virtual-dtor
+ECCE_CCFLAGS = $(ECCE_COMPILE_MODE) -pipe -fPIC -Wall -Wno-sign-compare -Wno-implicit-int
+ECCE_FFLAGS = $(ECCE_COMPILE_MODE)
+
+# 32-bit cross-compilation check
+ifeq ($(findstring 64,$(shell uname -m)),64)
+  ifeq ($(findstring -m32,$(ECCE_SYSDIR)),-m32)
+    ECCE_CFLAGS += -m32
+    ECCE_CCFLAGS += -m32
+    ECCE_FFLAGS += -m32
+  endif
+endif
+
+################################################################################
+# Linker options
+################################################################################
+
+ECCE_LDFLAGS = $(ECCE_CFLAGS) 
+
+# Strip executables if it's an install type build
+ifeq ($(findstring -DINSTALL,$(ECCE_COMPILE_MODE)),-DINSTALL)
+  ECCE_LDFLAGS += -s
+endif
+
+################################################################################
+# Define the libraries that all executables are dependent on.  Just 
+# using $(ECCE_LIBS) doesn't work when there are multiple executables
+# for some unknown reason.  Of course the problem with the statement
+# below is that people might not use the -l syntax.
+################################################################################
+ifeq ($(ECCE_SHARED_LIBS),true)
+  ECCE_DEP_LIBS = $(patsubst -l%, lib%.so, $(ECCE_LIBS))
+else
+  ECCE_DEP_LIBS = $(patsubst -l%, lib%.a, $(ECCE_LIBS))
+endif
+
+################################################################################
+# Required whenever linking a libexpect app (libexpect itself is part of the
+# ECCE tree).
+################################################################################
+EXPECT_LIBS = -lutil
+

@@ -1,0 +1,44 @@
+#!/bin/csh
+#
+
+set httpdserverroot = ##ECCESERVERROOT##/httpd
+
+setenv ACTIVEMQ_HOME ##ECCESERVERROOT##/activemq
+
+if ( ! -e $httpdserverroot/bin/apachectl) then 
+  echo "Unable to find $httpdserverroot/bin/apachectl"
+  goto error_exit
+endif
+
+# Easy to kill Apache
+$httpdserverroot/bin/apachectl stop
+if ($status == 0) then
+  # Remove the DAV lock directory in case the server is run as a different user
+  set httpdport = `grep "^Listen" $httpdserverroot/conf/httpd.conf | awk '{print $2}'`
+  rm -rf /var/tmp/EcceServer$httpdport
+else
+  echo "Unable to stop data server"
+  goto error_exit
+endif 
+
+# Have to kill JMS manually--argh
+echo ""
+set jmsid = `ps --cols 1024 -eo 'ppid pid args' | grep "java " | grep " -Dorg.apache." | grep $ACTIVEMQ_HOME | grep -v grep | sort | head -n 1 | awk -F" " '{print $2}'`
+if ($jmsid != "") then
+  kill -9 $jmsid
+  if ($status == 0) then
+    echo "Messaging server stopped"
+  else
+    echo "Unable to stop messaging server"
+  endif
+else
+  echo "Messaging server not currently running"
+endif
+
+echo ""
+
+exit 0
+
+error_exit:
+  echo ""
+  exit -1

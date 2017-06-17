@@ -1,0 +1,239 @@
+################################################################################# FILENAME: ecce_env
+#
+# SYNTAX:
+#   ecce_env
+#
+# PURPOSE:
+#   ecce_env sets up the environment including $PATH, $LD_LIBRARY_PATH, and
+#   other variables when ECCE is started.
+#
+# DESCRIPTION:
+#
+# LIMITATIONS:
+################################################################################
+
+# Fix the locale at the portable C locale so we don't run into numeric
+# parsing problems or date formatting problems which have shown up in french
+# and chineese locales respectively.
+setenv LC_ALL C
+
+# set variable to home directory used by application software unless set
+if (! $?ECCE_REALUSERHOME) then
+  setenv ECCE_REALUSERHOME ~
+endif
+
+# set variable to temporary directory used by application software unless set
+if (! $?ECCE_TMPDIR) then
+  setenv ECCE_TMPDIR /tmp
+endif
+
+setenv ECCE_SYSDIR `$ECCE_HOME/scripts/sysdir`
+
+# bail if there isn't a bin directory corresponding to $ECCE_SYSDIR
+if (! -d ${ECCE_HOME}/${ECCE_SYSDIR}bin ) then
+  setenv ECCE_SYSDIR unsupported
+  exit
+endif
+
+if (`echo $PATH | grep -c "${ECCE_HOME}/scripts/parsers"` == 0 ) then
+  set path = (${ECCE_HOME}/scripts/parsers $path)
+endif
+
+if (`echo $PATH | grep -c "/usr/sbin"` == 0 ) then
+  set path = (/usr/sbin $path)
+endif
+
+# All ECCE apps are started in the directory in which they exist so that the
+# path to shared libraries can be relative (../lib) rather than absolute.
+# This allows the library path to be hardwired via the linker rpath directive
+# while still allowing ECCE to be installed under any directory.  Using rpath
+# means $LD_LIBRARY_PATH doesn't need to be set for ECCE code (which messes
+# up non-ECCE commands/executables when system libraries are involved).
+if (`echo $PATH | grep -c ":.:"` == 0 ) then
+  # this check fails if "." is at the very beginning or end of the path
+  # but it works most of the time and shouldn't do any harm otherwise
+  set path = (. $path)
+endif
+
+# set font config file
+setenv FONTCONFIG_FILE $ECCE_HOME/data/client/config/fonts.conf
+
+# set truetype font path for libFL.a, needed to show label in viz window
+setenv FL_FONT_PATH $ECCE_HOME/data/client/fonts/
+
+# simplify logic below by initializing LD_LIBRARY_PATH if necessary
+if (! $?LD_LIBRARY_PATH) then
+  setenv LD_LIBRARY_PATH
+endif
+
+# WxPython GUI detail dialogs
+setenv PYTHONPATH ${ECCE_HOME}/${ECCE_SYSDIR}3rdparty/wxpython
+# Make sure only $PYTHONPATH is being used
+if ($?PYTHONHOME) then
+  unsetenv PYTHONHOME
+endif
+# Use local python for 32-bit and anywhere else it exists in system/bin
+if (-x ${ECCE_HOME}/${ECCE_SYSDIR}3rdparty/system/bin/python && `echo $PATH | grep -c "${ECCE_HOME}/${ECCE_SYSDIR}3rdparty/system/bin"` == 0) then
+    set path = (${ECCE_HOME}/${ECCE_SYSDIR}3rdparty/system/bin $path)
+  endif
+endif
+
+# NVidia driver thread local storage library
+if (-d /usr/lib/tls) then
+  if (`echo $LD_LIBRARY_PATH | grep -c "/usr/lib/tls"` == 0) then
+#   append /usr/lib to fix a RH9 bug where the /usr/lib/tls/libGL
+#   libraries will be used instead of /usr/lib/libGL
+    setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/usr/lib
+  else
+#   prepend /usr/lib to fix a RH9 bug where the /usr/lib/tls/libGL
+#   libraries will be used instead of /usr/lib/libGL
+    setenv LD_LIBRARY_PATH /usr/lib:${LD_LIBRARY_PATH}
+  endif
+endif
+
+# fixes a SUSE problem by unsetting this
+unsetenv XMODIFIERS
+
+# on Redhat Enterprise Linux 4, Redhat Fedora Core 5, and likely others,
+# the location of XKeysymDB doesn't follow accepted UNIX/Linux standards
+# and Motif apps won't work right (either not accepting any keyboard input
+# or just modifier key sequences like menu accelerators).  In these cases
+# we try to manually specify the location, although this may not be an
+# exhaustive list
+if (-e /usr/X11R6/lib/X11/XKeysymDB) then
+  setenv XKEYSYMDB /usr/X11R6/lib/X11/XKeysymDB
+else if (-e /usr/share/X11/XKeysymDB) then
+  setenv XKEYSYMDB /usr/share/X11/XKeysymDB
+endif
+
+# code display order to override random default
+# list codes in order to appear (such as Calculation Manager Editors menu)
+# codes not listed here are random after these
+setenv ECCE_CODE_ORDER "NWChem"
+
+# main site configuration file
+if (! $?ECCE_REMOTE_SERVER) then
+  set configFile = "${ECCE_HOME}/siteconfig/site_runtime"
+else
+  set configFile = "${ECCE_HOME}/siteconfig/RemoteServer/site_runtime"
+endif
+
+# exclude any necessary paths from LD_LIBRARY_PATH
+set list = ( `grep EXCLUDED_LIBS $configFile ` )
+if ($list != "") then
+  shift list
+  foreach dir ( $list ) 
+    setenv LD_LIBRARY_PATH `echo $LD_LIBRARY_PATH | sed -e "s#$dir##" | sed -e "s#::#:#"`
+  end
+endif
+
+# append any necessary paths to LD_LIBRARY_PATH
+set list = ( `grep APPEND_LIBS $configFile ` )
+if ($list != "") then
+  shift list
+  foreach dir ( $list )
+    setenv LD_LIBRARY_PATH `echo "${LD_LIBRARY_PATH}:$dir" | sed -e "s#::#:#"`
+  end
+endif
+ 
+unset list
+unset dir
+
+###############################################################################
+# Site configurable variables
+# Read from site_runtime file and set only if not already set
+###############################################################################
+set envlist = `grep '^[a-z,A-Z]' $configFile`
+@ cnt = 1
+@ size = $#envlist
+
+while ($cnt < $size)
+  if (`env | grep -c $envlist[$cnt]` != 0) then
+    @ cnt+=2
+  else
+    set key = $envlist[$cnt]
+    @ cnt++
+    set value = $envlist[$cnt]
+    @ cnt++
+
+    setenv $key $value
+  endif
+end
+
+###############################################################################
+# End site configurable variables
+###############################################################################
+
+###############################################################################
+# Java environment for JMS
+###############################################################################
+
+# only do this if it's a full ECCE install and not for a builder install
+if (-d ${ECCE_HOME}/java) then
+
+  # set CLASSPATH to include the JMS jar files in the install tree
+  set CP=""
+  foreach file (${ECCE_HOME}/java/lib/*.jar)
+     set CP=${file}:${CP}
+  end
+
+  # add siteconfig directory to CLASSPATH to pick up jndi.properties files
+  if (! $?ECCE_REMOTE_SERVER) then
+    setenv CLASSPATH ${CP}:${ECCE_HOME}/siteconfig
+  else
+    setenv CLASSPATH ${CP}:${ECCE_HOME}/siteconfig/RemoteServer
+  endif
+endif
+
+###############################################################################
+# End Java env
+###############################################################################
+
+###############################################################################
+# Mesa software OpenGL environment
+###############################################################################
+
+if ($?ECCE_MESA_OPENGL) then
+  if ($ECCE_MESA_OPENGL == "true" || $ECCE_MESA_OPENGL == "True" || $ECCE_MESA_OPENGL == "TRUE") then
+    # look for exceptions to using ECCE-provided Mesa and skip setting
+    # $LD_LIBRARY_PATH  if this is one of those platforms
+    if ($?ECCE_MESA_EXCEPT) then
+      set processor = `uname -m`
+      set platform = `lsb_release -is`
+      set nomesa = `echo $ECCE_MESA_EXCEPT | sed -e "s#:# #g"`
+      foreach except ( $nomesa )
+        if (`echo $processor | grep -c $except` != 0 || `echo $platform | grep -c $except` != 0) then
+          goto postMesa 
+        endif
+      end
+    endif
+
+    if (`echo $LD_LIBRARY_PATH | grep -c "3rdparty/mesa/lib"` == 0) then
+      # prepend the mesa directory to find the ECCE Mesa OpenGL libs first
+      setenv LD_LIBRARY_PATH ${ECCE_HOME}/${ECCE_SYSDIR}3rdparty/mesa/lib:${LD_LIBRARY_PATH}
+    endif
+  endif
+endif
+
+###############################################################################
+# End Mesa env
+###############################################################################
+postMesa:
+
+###############################################################################
+# Miscellaneous things that used to be in runtime_setup
+###############################################################################
+if (! $?USER) then
+  if ($?LOGNAME) then
+    setenv USER $LOGNAME
+  else
+    setenv USER `whoami`
+  endif
+endif
+setenv ECCE_REALUSER $USER
+
+# make sure HOST is set
+if (! $?HOST) then
+  setenv HOST `hostname`
+endif
+

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   See online documenation at http://www.emsl.pnl.gov:2080/docs/ecce
+-->
+
+<appdescriptor>
+
+<GaussianBasisSetRules>
+  <MaxLValue>8</MaxLValue>
+  <ECPS>False</ECPS>
+  <GeneralContractions>True</GeneralContractions>
+  <PreferOptimization>	True</PreferOptimization>
+  <MaxPrimitives>64000 64000 64000 64000 64000 64000 64000</MaxPrimitives>
+  <MaxSharedExponent>      1 </MaxSharedExponent>
+  <SphericalCoordinates>	True </SphericalCoordinates>
+  <TheoryNoSpherical>	RIMP2 </TheoryNoSpherical>
+  <DFTFitting>		False</DFTFitting>
+  <RecommendDFTCharge>	True </RecommendDFTCharge>
+  <RequireFullDFT>         True </RequireFullDFT>
+  <MaxTotalFunctions>	64000</MaxTotalFunctions>
+  <MaxTotalPrimitives>	64000</MaxTotalPrimitives>
+  <MultipleOrbitals>	True</MultipleOrbitals>
+  <LibraryNames>	False</LibraryNames>
+  <AllowMultipleOrbitals>True</AllowMultipleOrbitals>
+</GaussianBasisSetRules>
+
+
+
+<!-- This seems misplaced.  Where should it really be?  What affects does
+     that have on existing data?
+     Bruce is looking into this.
+-->
+<MOOrdering>nwchem</MOOrdering>
+
+
+
+<!-- All names are completely unconstrained but must be consistent with
+     names used by detail dialogs and input files generator etc.
+-->
+<Editor irreducibleFragmentSupported="true" basisSetQuickListSupported="false"
+  theorydialog="amicatheory.py">
+  <Theory category="HF,MCSCF,CI" name="None">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="MCSCF,CI" name="None">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="HF,CI" name="None">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="MCSCF" name="None">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="HF,MCSCF" name="None">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="HF" name="None">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="HF,CC" name="None">
+    <runtype>Energy</runtype>
+  </Theory>
+
+  <TheorySummary topLabel="Hartree-Fock:" noDefault="true">
+    <item key="ES.Theory.HF.ShellOccupation" label="Closed-shell occ."></item>
+<!-- $$$ OPEN-SHELL OCCUPATIONS NEED TO BE PROGRAMMED -->
+    <item key="ES.Theory.HF.CouplingA" label="A"></item>
+    <item key="ES.Theory.HF.CouplingB" label="B"></item>
+<item key="ES.Theory.HF.EnergyConvergence" label="Energy Convergence"></item>
+  </TheorySummary>
+  <TheorySummary topLabel="Reference Space:" noDefault="true">
+<item key="ES.Theory.PSI.State" label="State"></item>
+<item key="ES.Theory.PSI.Irrep" label="Symmetry"></item>
+<item key="ES.Theory.PSI.Interact" label="Apply Interacting Space Restrictions"></item>
+<item key="ES.Theory.PSI.Asym" label="Use References of All Symmetries"></item>
+<item key="ES.Theory.PSI.FrozenCore" label="Frozen Core Orbital List"></item>
+<item key="ES.Theory.PSI.DoublyOcc" label="Doubly Occupied Orbital List"></item>
+<item key="ES.Theory.PSI.ActiveOrbs" label="Active Orbital List"></item>
+<item key="ES.Theory.PSI.OccMin" label="Min. Occupations of Active Levels"></item>
+<item key="ES.Theory.PSI.OccMax" label="Max. Occupations of Active Levels"></item>
+  </TheorySummary>
+  <TheorySummary topLabel="MCSCF:" noDefault="true">
+<item key="ES.Theory.MCSCF.Iter" label="Max. No. of Iterations"></item>
+<item key="ES.Theory.MCSCF.Shift" label="PSCI Emergency Shift"></item>
+<item key="ES.Theory.MCSCF.Wnorm" label="Orbital-State Coupling Tolerance"></item>
+<item key="ES.Theory.MCSCF.Fcilev" label="Orbital Resolution Mask"></item>
+<item key="ES.Theory.MCSCF.Freeze" label="Frozen Core Orbitals"></item>
+  </TheorySummary>
+  <TheorySummary topLabel="CI Functionals:" toggleSet="true">
+<item key="ES.Theory.CI.ACPF" label="ACPF"></item>
+<item key="ES.Theory.CI.ACPF2" label="ACPF-2"></item>
+<item key="ES.Theory.CI.AQCC" label="AQCC"></item>
+<item key="ES.Theory.CI.CEPA0" label="CEPA-0"></item>
+<item key="ES.Theory.CI.CI" label="CI"></item>
+<item key="ES.Theory.CI.CPF" label="CPF"></item>
+<item key="ES.Theory.CI.R12ACPF" label="r12-ACPF"></item>
+<item key="ES.Theory.CI.R12ACPF2" label="r12-ACPF-2"></item>
+<item key="ES.Theory.CI.R12AQCC" label="r12-AQCC"></item>
+<item key="ES.Theory.CI.R12CEPA0" label="r12-CEPA-0"></item>
+<item key="ES.Theory.CI.R12CI" label="r12-CI"></item>
+  </TheorySummary>
+  <TheorySummary topLabel="CI:" noDefault="true">
+<item key="ES.Theory.CI.R12Orbs" label="No. of Int. Orbs. Used for r12-Terms"></item>
+<item key="ES.Theory.CI.NELEC" label="No. of Corr. Elec. in ACPF"></item>
+<item key="ES.Theory.CI.R12shell" label="Invariant Subspace Masks for r12-Terms"></item>
+<item key="ES.Theory.CI.Iterations" label="Max. No. of Iterations"></item>
+<item key="ES.Theory.CI.EnergyConvergence" label="Energy Convergence"></item>
+<item key="ES.Theory.CI.NOHESS" label="Ignore Indefinite Hessian"></item>
+<item key="ES.Theory.CI.Properties" label="Properties"></item>
+<item key="ES.Theory.CI.NVCIMX" label="Max. No. of Kept CI Vectors"></item>
+  </TheorySummary>
+  <TheorySummary topLabel="Hartree-Fock/Coupled Cluster:" noDefault="true">
+<item key="ES.Theory.CC.R12_CC" label="CC"></item>
+<item key="ES.Theory.CC.CC" label="Type"></item>
+<item key="ES.Theory.CC.Direct" label="Integral Direct"></item>
+<item key="ES.Theory.CC.FROZEN" label="No. of Frozen Core Orbs."></item>
+<item key="ES.Theory.CC.OCCUPIED" label="No. of Occupied Orbs."></item>
+<item key="ES.Theory.CC.FRZVIRT" label="No. of Frozen Virtual Orbs."></item>
+<item key="ES.Theory.CC.HF_Convergence" label="HF Energy Convergence"></item>
+<item key="ES.Theory.CC.CC_Convergence" label="CC Energy Convegence"></item>
+<item key="ES.Theory.CC.DETAILED" label="Detailed Output"></item>
+  </TheorySummary>
+  <TheorySummary topLabel="Miscellaneous Options:" noDefault="true">
+<item key="ES.Theory.MISC.DIATOM" label="Diatomic"></item>
+<item key="ES.Theory.MISC.BOND" label="Bond Functions"></item>
+<item key="ES.Theory.MISC.DIST" label="Loop over Distances"></item>
+<item key="ES.Theory.MISC.UNIT" label="Units"></item>
+<item key="ES.Theory.MISC.MEMORY" label="Max. Memory"></item>
+<item key="ES.Theory.MISC.NORUN" label="Run Calculation"></item>
+  </TheorySummary>
+</Editor>
+
+<!-- Raw File Naming Conventions
+-->
+
+<DataFiles>
+  <Input type="primary" mimetype="chemical/x-amica-input" comment="true" commentstring="#">amica.amica_in</Input>
+  <Input type="primary" mimetype="chemical/x-amica-input" comment="true" commentstring="#">amica.in</Input>
+  <Input type="auxiliary" mimetype="chemical/x-amica-aux-basisset" comment="true" commentstring="#">.bas</Input>
+  <Output type="primary" mimetype="chemical/x-amica-output">amica.out</Output>
+  <Output type="parse" mimetype="chemical/x-amica-output">amica.out</Output>
+</DataFiles>
+
+<!-- Names of files required for code integration.  These files are
+     assumed to be in the ecce path as managed by the ecce_env script.
+-->
+<IntegrationFiles>
+  <Template>	amica.tpl  </Template>
+  <InputGenerator>ai.amica </InputGenerator>
+  <Importer>amica.expt </Importer>
+  <ParseSpecification>amica.desc </ParseSpecification>
+  <LaunchPreprocessor>amica.launchpp </LaunchPreprocessor>
+  <BasisTranslationScript>std2Amica</BasisTranslationScript>
+</IntegrationFiles>
+
+</appdescriptor>
+

@@ -1,0 +1,38 @@
+/* XPM */
+static char * jcopy_xpm[] = {
+/* width height ncolors cpp [x_hot y_hot] */
+"24 24 8 1 0 0",
+/* colors */
+" 	c #BFBFBF",
+".	s iconColor1	m black	c black",
+"X	s iconColor2	m white	c white",
+"o	c #D1D1D1",
+"O	c #A3A3A3",
+"+	c #E1E1E1",
+"@	c #B3B3B3",
+"#	c #E5E5E5",
+/* pixels */
+"                        ",
+"                        ",
+"   .........            ",
+"   .XXXXXX..            ",
+"   .XoOoO.oo.           ",
+"   .XOoOoO.o.           ",
+"   .XoOo.........       ",
+"   .XOoO.XXXXXX..       ",
+"   .XoO+.XOoOo.oo.      ",
+"   .XO+@.XoOoOo.o.      ",
+"   .X+@#.XOoOoO#.o.     ",
+"   .X@#@.XoOoO#@#..     ",
+"   .X#@#.XOoO+@#@#..    ",
+"   .X@#@.XoO+@#@#@#.X   ",
+"   .X#@#.XO+@#@#@#@.X   ",
+"   .X@#@.X+@#@#@#Oo.X   ",
+"   ......X@#@#@#@oO.X   ",
+"    XXXX.X#@#@#@oOo.X   ",
+"        .X@#@#@oOoO.X   ",
+"        .X#@#@oOoOo.X   ",
+"        ............X   ",
+"         XXXXXXXXXXXX   ",
+"                        ",
+"                        "};

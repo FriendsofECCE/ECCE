@@ -1,0 +1,23 @@
+/* XPM */
+static char * opensel_xpm[] = {
+"20 16 4 1",
+".	c #E5E5E5",
+"X	c #000000",
+"O	c #FFFFC6",
+"+	c #FFFFC6",
+"....................",
+"....XXXXXX..........",
+"...XOOOOOOX.........",
+"...XOOOOOOX.........",
+"..XOOOOOOOOXX.......",
+"..XOOOOOOOOOOX......",
+"..XOOOOOOOOOOX......",
+"..XOOOXXXXXXXXXXX...",
+"..XOOOX+++++++++X...",
+"..XOOX++++++++++X...",
+"..XOOX+++++++++X....",
+"..XOX++++++++++X....",
+"..XOX+++++++++X.....",
+"..XX++++++++++X.....",
+"...XXXXXXXXXXX......",
+"...................."};

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE project>
+
+<!-- ################################################################ -->
+<!-- ECCE PROJECT BUILD -->
+<!-- ################################################################ -->
+<project name="Ecce" default="all_NoClean" basedir=".">
+
+
+<!-- GLOBAL PROPERTIES -->
+  <!-- Set the debug option -->
+  <property name="debug"  value="on"/>
+
+  <!-- set global properties for this build -->
+  <property name="openjms_lib"  value="../lib" />
+  <property name="src_jms" value="../src/gov/pnnl/emsl/ecce/jms" />
+  <property name="src_config" value="../src/gov/pnnl/emsl/ecce/config" />
+  <property name="build" value="classes" />
+  <property name="dist"  value="../lib" />
+
+<!-- ################################################################ -->
+<!-- CLASSPATH -->
+<!-- ################################################################ -->
+  <path id="classpath">
+    <fileset dir="${openjms_lib}">
+       <include name="**/*.jar"/>
+    </fileset>
+    <pathelement location="build"/>
+    <pathelement path="${classpath}"/>        
+  </path>
+
+<!-- ################################################################ -->
+<!-- TARGET: init -->
+<!-- ################################################################ -->
+  <target name="init">
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${build}"/>
+  </target>
+  
+<!-- ################################################################ -->
+<!-- TARGET: Compile -->
+<!-- ################################################################ -->
+  <target name="Compile" depends="init">
+
+    <!-- Compile the JMS interface code. -->
+    <javac srcdir="${src_jms}" 
+           classpathref="classpath"  
+           destdir="${build}" 
+           includeantruntime="false" 
+           debug="${debug}">
+     
+    </javac>
+
+  </target>
+
+<!-- ################################################################ -->
+<!-- TARGET: JMS -->
+<!-- ################################################################ -->
+  <target name="JMS" depends="Compile">
+
+    <jar jarfile="${dist}/ecce_jms.jar"
+       basedir="${build}"
+       includes="gov/pnnl/emsl/ecce/jms/**"
+    />
+  </target>
+
+<!-- ################################################################ -->
+<!-- TARGET: clean -->
+<!-- ################################################################ -->
+  <target name="clean">
+    <!-- Delete the ${build} directory tree -->
+    <delete dir="${build}"/>
+    <delete file="${dist}/ecce_jms.jar"/>
+  </target>
+
+<!-- ################################################################ -->
+<!-- TARGET: all -->
+<!-- ################################################################ -->
+  <target name="all" depends="clean,Compile,JMS">
+  </target>
+
+<!-- ################################################################ -->
+<!-- TARGET: all_NoClean -->
+<!-- ################################################################ -->
+  <target name="all_NoClean" depends="Compile,JMS">
+  </target>
+
+</project>
+

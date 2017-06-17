@@ -1,0 +1,28 @@
+# As of Ecce V1.5, the contents of this file have changed.
+#
+# This file contains system-wide override values for van der waals
+# radius, covalent radius (single bonds/SP1), and a tolerance for
+# bond generation.  Default values are compiled into the code.  This
+# file is used only to provide a means for overriding these values.
+# In particular, this is used to fix values without having to modify
+# compiled code but without sacrificing performance by having to load
+# all values dynamically.
+#
+# This same file format is used for user preferences following the 
+# normal user preference scheme.
+#
+# There is currently no way to set vwr radii for different isotopes.
+# This needs to be added when ecce supports charge assignment.
+#
+# Syntax:
+# -------
+# atomicsymbol:  vwr cr tolerance
+# H: 1.1 0.36 1.2
+#
+# The radius values are in angstroms. The tolerance is a scale factor.
+#
+# Order of elements is not significant.  Case is sensitive.
+#
+#
+X: .75 .15 1.2
+Nub: .80 .2  1.2

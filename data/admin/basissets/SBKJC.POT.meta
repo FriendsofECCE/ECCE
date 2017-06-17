@@ -1,0 +1,22 @@
+name
+SBKJC ECP
+name
+type
+ecp
+type
+category
+AUXILIARY
+category
+references
+H - HE: J.S. BINKLEY, J.A. POPLE, W.J.HEHRE, J. AM. CHEM.SOC. 102, 939 (1980) 
+ LI - AR: W.J. STEVENS, H. BASCH, M. KRAUSS, J. CHEM. PHYS. 81, 6026 (1984) 
+ K - RN:  W.J. STEVENS, M. KRAUSS, H. BASCH, P. G. Jasien, Can. J. Chem. 70, 
+          612 (1992) 
+ CE - LU: T. R. CUNDARI AND W.J. STEVENS, J. CHEM. PHYS. 98, 5555 (1993)
+
+references
+comments
+4/10/00  - DFF - Correct d-f components for Ce
+12/27/93  - DFF - Some reformatting to conform to MSRC Lib. conventions.
+12/22/93  - SJB - Original creation of this file.
+comments

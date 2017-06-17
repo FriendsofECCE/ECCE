@@ -1,0 +1,101 @@
+#!/bin/csh
+#
+
+set davserverroot = ##DAVROOT##
+set httpdserverroot = ##HTTPDROOT##
+
+if ( ! -e $httpdserverroot/bin/htpasswd) then 
+  echo "Unable to find $httpdserverroot/bin/htpasswd"
+  goto error_exit
+endif
+
+if ($?LD_LIBRARY_PATH) then
+  setenv LD_LIBRARY_PATH ##HTTPDROOT##/lib:${LD_LIBRARY_PATH}
+else
+  setenv LD_LIBRARY_PATH ##HTTPDROOT##/lib
+endif
+
+adduser:
+echo ""
+echo "Add an ECCE user account."
+echo "" 
+set firstname = "";
+set lastname  = "";
+set userid    = "";
+echo -n "First name? "
+set firstname = $<
+echo -n "Last name? "
+set lastname = $<
+echo -n "User name? "
+set userid = $<
+echo ""
+echo "Entry confirmation:"
+echo ""
+echo "First name: ${firstname}"
+echo "Last name: ${lastname}"
+echo "User name: ${userid}"
+echo ""
+echo -n "Is this information correct? [yes/no] "
+set response = $<
+echo ""
+if ($response == "Y" || $response == "y" || $response == "YES" || $response == "yes") then
+  if ( ! -e $httpdserverroot/bin/htpasswd) then 
+    echo "Unable to find $httpdserverroot/bin/htpasswd"
+    goto error_exit
+  endif
+
+  if (! -e $httpdserverroot/users) then
+    $httpdserverroot/bin/htpasswd  -c $httpdserverroot/users $userid
+    if (`whoami` == "root") then
+      chown nobody $httpdserverroot/users
+    endif 
+  else
+    $httpdserverroot/bin/htpasswd $httpdserverroot/users $userid
+  endif 
+
+  if ( ! -e ${davserverroot}/users/${userid}) then
+    if (  -w ${davserverroot}/users ) then
+      mkdir -p ${davserverroot}/users/${userid}
+      rm -f  ${davserverroot}/users/${userid}/.htaccess
+      echo "# ECCE .htaccess File #" > ${davserverroot}/users/${userid}/.htaccess
+      echo "#" >> ${davserverroot}/users/${userid}/.htaccess
+      echo "## DO NOT EDIT ## - file automatically generated" >> ${davserverroot}/users/${userid}/.htaccess
+      echo "#" >> ${davserverroot}/users/${userid}/.htaccess
+      echo "#R##R#" >> ${davserverroot}/users/${userid}/.htaccess
+      echo "#RW#${userid}#RW#" >> ${davserverroot}/users/${userid}/.htaccess
+      echo  "AuthName Ecce-${firstname}.${lastname}" >>  ${davserverroot}/users/${userid}/.htaccess
+      echo  "<Limit OPTIONS HEAD GET PUT DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK POST>" >>  ${davserverroot}/users/${userid}/.htaccess
+      echo  "Allow from all" >>  ${davserverroot}/users/${userid}/.htaccess
+      echo  "require user ${userid} ecceadm" >>  ${davserverroot}/users/${userid}/.htaccess
+      echo  "</Limit>"  >>  ${davserverroot}/users/${userid}/.htaccess
+      if (`whoami` == "root") then
+        chown -R nobody ${davserverroot}/users/${userid}
+      endif 
+    else
+      echo "Unable to create directory ${davserverroot}/users/${userid}" 
+    endif
+  else
+    if ( -w ${davserverroot}/users/${userid}) then 
+      rm -f  ${davserverroot}/users/${userid}/.htaccess
+      echo "# ECCE .htaccess File #" > ${davserverroot}/users/${userid}/.htaccess
+      echo "#" >> ${davserverroot}/users/${userid}/.htaccess
+      echo "## DO NOT EDIT ## - file automatically generated" >> ${davserverroot}/users/${userid}/.htaccess
+      echo "#" >> ${davserverroot}/users/${userid}/.htaccess
+      echo "#R##R#" >> ${davserverroot}/users/${userid}/.htaccess
+      echo "#RW#${userid}#RW#" >> ${davserverroot}/users/${userid}/.htaccess
+      echo  "AuthName Ecce-${firstname}.${lastname}" >>  ${davserverroot}/users/${userid}/.htaccess
+      echo  "<Limit OPTIONS HEAD GET PUT DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK POST>" >>  ${davserverroot}/users/${userid}/.htaccess
+      echo  "Allow from all" >>  ${davserverroot}/users/${userid}/.htaccess
+      echo  "require user ${userid} ecceadm" >>  ${davserverroot}/users/${userid}/.htaccess
+      echo  "</Limit>"  >>  ${davserverroot}/users/${userid}/.htaccess
+    else
+      echo "Unable to write in directory ${davserverroot}/users/${userid}"
+    endif 
+  endif
+else
+  goto adduser
+endif
+exit 0
+
+error_exit:
+  exit -1

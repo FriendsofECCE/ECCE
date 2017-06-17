@@ -1,0 +1,402 @@
+#!/msrc/apps/bin/perl
+#=======================================================================
+# ecce_accounts
+#
+# This script performs the following functions:
+# 
+# (1) Create User
+#     Adds an entry to the Apache password file for the new user.  As
+#     part of creating the user, their data directory and .htaccess
+#     file are created if they do not already exist.
+#
+#     Input (POST/GET)
+#       parama - name of request = 'create'
+#       paramu - user id
+#       paramr - AuthName entry in .htaccess file
+#       paramn - user password
+#
+#     Output
+#       None
+#
+#
+# (2) Modify User
+#     Modifies a user's password.
+#
+#     Input (POST/GET)
+#       parama - name of request = 'modify'
+#       paramu - user id
+#       paramo - user's old password
+#       paramn - user new password
+#
+#
+# (3) Check user exists
+#     Checks if user has an entry in the password file, indicated
+#     by the status code returned.
+#
+#     Input (POST/GET)
+#       parama - name of request = 'exists' 
+#       paramu - user id
+#
+#     Output
+#       None
+#
+#
+# Return Codes
+#   Http status code: 200 - Request succeeded
+#                     500 - Request failed
+#
+# Note: The script variables $davserverroot and $httpdserverroot must
+#       be set based on the ECCE installation.
+#
+#=======================================================================
+use CGI;
+
+
+###################################
+# New query object - retrieve POST
+
+my($q) = new CGI;
+
+
+
+###################################
+# Script variables
+
+my($davserverroot) = '##DAVROOT##';
+my($httpdserverroot) = '##HTTPDROOT##';
+my($password_file) = $httpdserverroot.'/users';
+my($salt) = join '', ('.', '/', 0..9, 'A'..'Z', 'a'..'z')[rand 64, rand 64];
+my(@users);
+my($status) = 0;
+my($http_status_code);
+my($message) = '';
+my($response) = '';
+my($admin_account) = 'ecceadm';
+my($r_key) = '#R#';
+my($rw_key) = '#RW#';
+
+
+
+
+###################################
+# Retrieve password file and process request
+#   $status will only be set to 1 if action succeeds
+#   $message will be set if action does not succeed
+
+if (get_users(\@users, \$message)) {
+  $status = process_request(\@users, $q, \$message);
+}
+
+
+
+###################################
+# Return status/message information
+
+if ($status) {
+  $http_status_code = 200;
+}
+else {
+  $http_status_code = 500;
+  $response = $message;
+}
+print $q->header(-status=>"$http_status_code ");
+print $response;
+
+exit;
+
+
+ 
+###################################
+###################################
+# Subroutines
+
+sub get_users {
+  #=====================================================================
+  # This sub retrieves contents of users password file and stores it
+  # in an array.
+  #=====================================================================
+  my($users_ref, $message_ref) = @_;
+
+  my($get_users) = 0;
+
+  if (open (USERS, "<$password_file")) {
+    @$users_ref=<USERS>;
+    close(USERS);
+    $get_users = 1;
+  }
+  else {
+    $$message_ref = 'Could not access password file: '.$!;
+  }
+
+  return $get_users;
+}
+
+
+sub process_request {
+  #=====================================================================
+  # This sub determines and processes request
+  #=====================================================================
+  my($users_ref, $q, $message_ref) = @_;
+
+  my($action) = $q->param('parama'); 
+  my($username) = $q->param('paramu');
+  my($realm) = $q->param('paramr');
+  my($old_password) = $q->param('paramo');
+  my($password) = $q->param('paramn');
+  my($status);
+
+  if ($action eq 'create') {
+    if (is_valid_create($users_ref, $username, $realm, $password, $message_ref)) {
+      $status = create_user($username, $realm, $password, $message_ref);  
+    }
+  }
+  elsif ($action eq 'modify') {
+    if (is_valid_modify($users_ref, $username, $old_password, $password, $message_ref)) {
+      $status = modify_user($users_ref, $username, $password, $message_ref);
+    }
+  }
+  elsif ($action eq 'exists') {
+    $status = is_user($users_ref, $username);
+  }
+  else {
+    $status = 0;
+    $$message_ref = "Invalid request\n";
+  }
+
+  return $status;
+}
+
+
+sub is_valid_create {
+  #=====================================================================
+  # This sub ensures valid input for creating a user
+  #=====================================================================
+  my($users_ref, $username, $realm, $password, $message_ref) = @_;
+
+  my($error_message) = '';
+  my($is_valid_create) = 0;
+
+  if (!$username) {
+    $error_message .= "Missing username\n";
+  }
+  if (lc($username) eq lc($admin_account)) {
+    $error_message .= "Can not create admin account\n";
+  } 
+  if (($username) && (is_user($users_ref, $username)) ) {
+    $error_message .= "User already exists\n";
+  } 
+  if (!$realm) {
+    $error_message .= "Missing realm\n";
+  }
+  if (!$password) {
+    $error_message .= "Missing password\n";
+  }
+
+  if (!$error_message) {
+    $is_valid_create = 1;
+  }
+  else {
+    $$message_ref = $error_message;
+  }
+
+  return $is_valid_create;
+}
+
+
+sub is_valid_modify {
+  #=====================================================================
+  # This sub ensures valid input for modifying a user
+  #=====================================================================
+  my($users_ref, $username, $old_password, $password, $message_ref) = @_;
+  my($error_message) = '';
+  my($is_valid_modify) = 0;
+
+  if (!$username) {
+    $error_message .= "Missing username\n";
+  }
+  else {
+    if (lc($username) eq lc($admin_account)) {
+      $error_message .= "Can not modify admin account\n";
+    } 
+    else {
+      if (!is_user($users_ref, $username)) {
+        $error_message .= "User does not exist\n";
+      } 
+      else {
+        if (!$old_password) {
+          $error_message .= "Missing old password\n";
+        }
+        else {
+          if (!is_password($users_ref, $username, $old_password)) {
+            $error_message .= "Incorrect old password\n";
+          }
+        }
+      }
+    }
+  }
+  if (!$password) {
+    $error_message .= "Missing new password\n";
+  }
+
+  if (!$error_message) {
+    $is_valid_modify = 1;
+  }
+  else {
+    $$message_ref = $error_message;
+  }
+
+  return $is_valid_modify;
+}
+
+
+sub is_user {
+  #=====================================================================
+  # This sub determines if the user exists in the password file
+  #=====================================================================
+  my($users_ref, $username) = @_;
+
+  my($user, $id, $pwd);
+  my($is_user) = 0;
+
+  foreach $user(@$users_ref) {
+    ($id, $pwd) = split(/:/, $user, 2);
+    if ($username eq $id) {
+      $is_user = 1;
+      last;
+    }
+  }
+ 
+  return $is_user; 
+}
+
+ 
+sub is_password {
+  #=====================================================================
+  # This sub determines if the password supplied for the user is correct
+  #   Old password is passed to the script unencrypted.  With the 
+  #   intention that if it is correct it will be modified anyway.
+  #=====================================================================
+  my($users_ref, $username, $password) = @_;
+
+  my($user, $id, $pwd, $cpwd);
+  my($is_password) = 0;
+
+  foreach $user(@$users_ref) {
+    ($id, $pwd) = split(/:/, $user, 2);
+    chomp($pwd);
+    if ($username eq $id) {
+      if (crypt($password, $pwd) eq $pwd) {
+        $is_password = 1;
+      }
+    }
+  }
+ 
+  return $is_password; 
+}
+
+ 
+sub create_user {
+  #=====================================================================
+  # This sub will create a new entry in the password file for the 
+  # user.  It also creates the user's data directory and .htaccess
+  # file if they do not already exist.
+  #=====================================================================
+  my($username, $realm, $password, $message_ref) = @_;
+
+  my($user_directory) = $davserverroot.'/users/'.$username;
+  my($htaccess_file) = $user_directory.'/'.'.htaccess';
+  my($r_list) = $r_key.$r_key;
+  my($rw_list) = $rw_key.$username.$rw_key;
+  my($htaccess) = '# ECCE .htaccess File #'."\n".
+                  '#'."\n".
+                  '## DO NOT EDIT ## - file automatically generated'."\n".
+                  '#'."\n".
+                  $r_list."\n".
+                  $rw_list."\n".
+                  "AuthName $realm \n".
+                  "<Limit OPTIONS HEAD GET PUT DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK POST> \n".
+                  "  Allow from all \n".
+                  "  require user $username $admin_account\n".
+                  "</Limit> \n";
+  my($cpwd);
+  my($error_message) = '';
+  my($created_user) = 0;
+
+  # Create user directory
+  if (! -e $user_directory) {
+    if (mkdir($user_directory, 0755)) {
+      if (open(HTACCESS, ">$htaccess_file")) {
+        print HTACCESS $htaccess;
+        close(HTACCESS);
+      }
+      else {
+        $error_message = 'Could not create .htaccess file: '."$!"; 
+      }
+    }
+    else {
+      $error_message = 'Could not create user directory: '."$!"; 
+    }
+  }
+  else {
+    if (! -e $htaccess_file) {
+      if (open(HTACCESS, ">$htaccess_file")) {
+        print HTACCESS $htaccess;
+        close(HTACCESS);
+      }
+      else {
+        $error_message = 'Could not create .htaccess file: '."$!"; 
+      }
+    }
+  }
+
+  if (!$error_message) {
+    $cpwd = crypt($password, $salt);
+    if (open(USERS, ">>$password_file")) {
+      print USERS "$username".':'."$cpwd\n";
+      close(USERS);
+      $created_user = 1;
+    }
+    else {
+      $error_message = 'Could not access password file: '.$!;
+    }
+  }
+  $$message_ref = $error_message if $error_message;
+
+  return $created_user;
+}
+
+
+sub modify_user {
+  #=====================================================================
+  # This sub modifies a user's password
+  #=====================================================================
+  my($users_ref, $username, $password, $message_ref) = @_;
+
+  my($user, $id, $pwd, $count, $cpwd);
+  my($modified_user) = 0;
+
+  # Modify password file
+  $count = 0;
+  foreach $user(@$users_ref) {
+    ($id, $pwd) = split(/:/, $user, 2);
+    if ($username eq $id) {
+      splice (@$users_ref, $count, 1); 
+      last;
+    }
+    $count++;
+  }
+
+  $cpwd = crypt($password, $salt);
+  push(@$users_ref, "$username".':'."$cpwd\n");
+  if (open(USERS, ">$password_file")) {
+    print USERS @$users_ref;
+    close(USERS);
+    $modified_user = 1;
+  }
+  else {
+    $$message_ref = 'Could not access password file: '.$!;
+  }
+
+  return $modified_user;
+}
+

@@ -1,0 +1,1144 @@
+#!/usr/bin/env perl
+###############################################################################
+# FILENAME:  Gaussian-94.expt
+#
+#
+# SYNTAX: Gaussian-94.expt <outfile>
+#
+# PURPOSE:
+#       Reads a Gaussian-94 output file and generates an ECCE' .frag,
+#       .basis, and .param
+#
+# DESCRIPTION:
+#
+# LIMITATIONS:
+#
+###############################################################################
+
+# NOTE: Uncomment for debug output.  It will cause all the stuff that
+# is written to files to be dumped to stdout also.
+# $debug = "true";
+
+# package for command-line options like -v
+use Getopt::Std;
+
+# Force output to be flushed
+$| = 1;
+
+# provides loadPT to setup periodic table hashes
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+require "pertab.pl";
+
+#
+#  Handle the options
+#
+&getopts(':hv');  # any option before ":" would take an argument
+&handle_options;
+
+## Setup dates and such
+($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
+$month = (January, February, March, April, May, June,
+	  July, August, September, October, November, December)[$mon];
+
+if ($#ARGV != 0) {
+  &usage;
+}
+
+# print "Executing: gaussian-94.expt $ARGV[0]\n";
+
+###############################################################################
+## Start Of Main Routine
+###############################################################################
+&loadPT;
+&setupBasisTranslation;   # NameToBasis associative array
+open(INPUT, $ARGV[0]) || die "Can't locate log file $ARGV[0]";
+&skipOverHeader;
+&getLink0Commands;
+&getRouteSection;
+&getStartTime;
+&getTitleChargeMulti;
+if (!defined($charge)) {
+  &scanForCharge;
+}
+if (!defined($charge)) {
+  $charge = 0; $multiplicity = 1;
+}
+&getMolecule($charge);
+if ($basis =~ /gen/i) {
+  &getGeneralBasis;
+} else {
+  &getNameBasis;
+}
+&convertMethod($method, $charge, $multiplicity, $basis);
+&convertBasis;
+# $_ = <INPUT>; print "$_\n";
+&getEndTime;
+&writeDictAndMVM($ARGV[0]);
+exit(0);
+###############################################################################
+## End Of Main Routine
+###############################################################################
+
+
+##
+## writeDictAndMVM
+##    Dump out a dictionary and mvm file to be read by the caller
+##    (hopefully the Experiment import routine).  The file names
+##    used are the passed file name with the ".???" extension
+##    replaced with ".mvm" and ".param".  This also dumps the GBS
+##    file if the general specification was located in the logfile.
+##
+sub writeDictAndMVM {
+  local($atsym);
+  local($rootFile) = @_;
+  $rootFile =~ s/\.[^\.]*$//;
+
+  open(PARAMS, ">$rootFile.param");
+  $title =~ tr/\|/ /;
+  if (defined($title)) { print(PARAMS "title:\t\\|$title\n"); }
+  if (defined($version)) { print(PARAMS "version:\t$version\n"); }
+  if (defined($architecture)) {
+                              print(PARAMS "architecture:\t$architecture\n"); }
+  if (defined($memory)) { print(PARAMS "memory:\t$memory\n"); }
+  if (defined($numProc)) { print(PARAMS "nproc:\t$numProc\n"); }
+  if (defined($theoryCat)) { print(PARAMS "Category:\t$theoryCat\n"); }
+  if (defined($theory)) { print(PARAMS "Theory:\t$theory\n"); }
+  if (defined($runType)) { print(PARAMS "RunType:\t$runType\n"); }
+  if (defined($charge)) { print(PARAMS "charge:\t$charge\n"); }
+  if (defined($multiplicity)) {
+                   print(PARAMS "ES.ChemSys.Multiplicity:\t$multiplicity\n"); }
+  if (defined($startDate)) { $startDate =~ tr/\|/ /;
+                             print(PARAMS "StartDate:\t\\|$startDate\n"); }
+  if (defined($startTime)) { $startTime =~ tr/\|/ /;
+                             print(PARAMS "StartTime:\t\\|$startTime\n"); }
+  if (defined($endDate)) { $endDate =~ tr/\|/ /;
+                           print(PARAMS "EndDate:\t\\|$endDate\n"); }
+  if (defined($endTime)) { $endTime =~ tr/\|/ /;
+                           print(PARAMS "EndTime:\t\\|$endTime\n"); }
+  if (defined($guiDict)) { print(PARAMS "$guiDict\n"); }
+  if ($sphericalBasis eq "true")
+                          { print(PARAMS "SphericalBasis:\tTRUE\n"); }
+  close(PARAMS);
+
+  if (defined($debug)) {
+     print "Param Debug\n";
+     print "title:\t\\|$title\n";
+     print "version:\t$version\n";
+     print "architecture:\t$architecture\n";
+     print "memory:\t$memory\n";
+     print "nproc:\t$numProc\n";
+     print "Category:\t$theoryCat\n";
+     print "Theory:\t$theory\n";
+     print "RunType:\t$runType\n";
+     print "charge:\t$charge\n";
+     print "ES.ChemSys.Multiplicity:\t$multiplicity\n";
+     print "StartDate:\t\\|$startDate\n";
+     print "StartTime:\t\\|$startTime\n";
+     print "EndDate:\t\\|$endDate\n";
+     print "EndTime:\t\\|$endTime\n";
+     if ($basis ne "gen") { print "basis:\t\\|$basis\n"; }
+     print "SphericalBasis:\t$sphericalBasis\n";
+     print "$guiDict";
+  }
+
+  open(MOL, ">$rootFile.frag");
+  print(MOL "$molecule");
+  close(MOL);
+  if (defined($debug)) {
+    print "Molecule Debug\n";
+    print "$molecule";
+  }
+
+  if ($basisData ne "") {
+    if ($useNameBasis == 0) {
+      # Now use the translator to produce standard gbs format
+      $translator = $ENV{'ECCE_HOME'} . "/scripts/parsers/gaussian-942std";
+      if (-r $translator) {
+        open(GBS, ">$rootFile.gbs.tmp");
+        print(GBS "$basisData");
+        close(GBS);
+        if (defined($debug)) {
+          print "Basis Debug\n";
+          print "$basisData";
+        }
+        if (-f "$rootFile.gbs") {
+          system("rm $rootFile.gbs");
+        }
+        system("$translator $rootFile.frag $rootFile.gbs.tmp import > $rootFile.gbs");
+      }
+    } else {
+      #Try and see if we can come up with a named basis for system
+      if (-f "$rootFile.gbs") {
+        system("rm $rootFile.gbs");
+      }
+      #remove white space from around basis
+      $basisData =~ s/^\s*//;
+      $basisData =~ s/\s*$//;
+      $basisData = lc($basisData);
+      if (defined($NameToBasis{$basisData})) {
+        if ($sphericalBasis eq "true") {
+          $type = "spherical";
+        } else {
+          $type = "cartesian";
+        }
+        open(GBS, ">$rootFile.gbs");
+        print(GBS "NameBasis\n");
+        print(GBS "basis \"ao basis\" $type\n");
+        foreach $atsym (keys(%atomList)) {
+          print(GBS "  $atsym library \"$NameToBasis{$basisData}\"\n");
+        }
+        print(GBS "END\n");
+        print(GBS "EndNameBasis\n");
+        close(GBS);
+      }
+    }
+  } 
+}
+
+##
+## skipOverHeader
+##    Parse INPUT until we get past the section with the Gaussian 94
+##    version information:
+##     ***************************************
+##     Gaussian 94:  SGI-G94RevB.2  5-May-1995
+##                    8-Jan-1997
+##     ***************************************
+##
+##    The stars appear at other locations in the log file.  One place
+##    is in between Gaussians for GEN Basis Set specification.
+##    The other is population analysis section and the message
+##    "Axes restored to original set"
+##    We'll use 4 of them to find the first occurance and validate that
+##    the next line does indead contain the string "Gaussian 9?".
+##    The input is left following the Gaussian header section (the
+##    second "*** ... ***" line.
+##
+sub skipOverHeader {
+  while (<INPUT>) {
+    if (/\*\*\*\*\*\*/) {
+      $_ = <INPUT>;
+      if (!/Gaussian (\d\d):\s+([^-]+)-/) {
+        die "Apparently not a Gaussian log file. Failed at $_";
+      } else {
+	$version = $1;
+	$architecture = $2;
+	$_ = <INPUT>; $_ = <INPUT>; last;
+      }
+    }
+  }
+}
+
+##
+## getLink0Commands
+##    Parse the LINK 0 Gaussian Commands (G94 Reference Manual pp. 159-160.
+##    The parsing stops as soon as the root command link is reached
+##    (currently identified by 2 '-' cahracters).  That line is consumed.
+##
+## TODO
+##    Handle size specification modifiers KB, MB, GB, KW, MW, GW.
+##    This Won't Work in Gaussian 90 (and previous versions).
+##
+sub getLink0Commands {
+  while (<INPUT>) {
+    if (/^ --/) {
+      last;
+    } elsif (/%Mem=(\d+)(..)?/i) {  # Memory Directive
+      $memory = $1;
+    } elsif (/%(N|n)(P|p)roc=(\d+)/) {     # Parallel Job
+      $numProc = $3;
+    } elsif (/chk/i) {                 # checkpoint file - don't care
+    } else {
+      print "Unknown LINK 0 Command: $_";
+    }
+  }
+}
+
+##
+## getRouteSection
+##    This is the toughest section to parse.  Each line begins with a
+##    '#'.  We finish parsing when we locate a line that doesn't start
+##    with that character.  The problem with this section as described
+##    in the G94 Manual pp. 20-27 is that it is, "free-format and
+##    case-insensitive."  Options are generally space delimited but
+##    look like "\s*#[special]\s+[keyword]\s+[keyword]...".
+##    Each keyword, though, can be "keyword\s*=\s*option"
+##                                 "keyword(option)"
+##                                 "keyword\s*=\s*(option<delim>option2 ... )"
+##                                 "keyword(option<delim>option2 ... )"
+##    The manual states that <delim> is usually a ','.
+##    Keyword need only be their shortest, unique, case-insentive substrings.
+##    Comments have to be stripped (start with '!');
+##
+##    RunTypes - opt     -> Geometry
+##               freq    -> Vibration
+##               polar   -> Polarizability
+##               nmr     -> Magnetic
+##               force   -> Gradient
+##
+## TODO
+##    Handle file read directive @filename..
+##    We assume that the first field of the first directive is the
+##    method/basis-set specification.
+##
+sub getRouteSection {
+  local($basistype);
+  while (<INPUT>) {
+    if (/^ --/) {
+      last;
+    } else {
+###############################################################################
+#   Strip comment lines from route card. The beginning of a comment is
+#   identified by the ! symbol.
+###############################################################################
+      if (/!/) {
+        s/![^!]*$//;
+      }
+###############################################################################
+#   Convert everything to lower case.
+###############################################################################
+      tr/A-Z/a-z/;
+###############################################################################
+#   Strip off initial #P, #N, or #T from route card. Print warning if terse
+#   output specified.
+###############################################################################
+
+      if (/\s*#(t|p|n)?\s*([^\s]*)\s*/) {
+	s/\s*#(t|p|n)?//;
+        if ((defined $1) && ($1 eq "t")) {
+	  print "Warning: Terse Output Will Reduce Parsability=\n";
+	  print "         Please Specify #P in the Future\n";
+        }
+###############################################################################
+#   Identify whether theory requires a basis set specification or not. Look
+#   for either the / character or the chkbas keyword. If neither appears,
+#   assume theory requires no basis. If basis set is found, split input at
+#   / or chkbas, assign first part of input to $method and second portion to
+#   $line. Then clip first word in $line and assign it to $basis.
+###############################################################################
+	if (/\//) {
+          /([^\/]*)\/(.*)/;
+          $method = $1;
+          $line = $2;
+          $basistype = $line;
+          $line =~ s/\s*([^\s]*)\s*//;
+          $basis = $1;
+          $basistype =~ s/\s*([^\s]*)\s*([^\s]*)\s*//;
+          $basistype = $2;
+          if ($basistype =~ /5d/i || $basistype =~ /7f/i) {
+            $sphericalBasis = "true";
+          } else {
+            $sphericalBasis = "false";
+          }
+        }
+        elsif (/chkbas/i) {
+          /(.*)chkbas(.*)/;
+          $method = $1;
+          $line = "chkbas " . $2;
+          $line = s/\s*([^\s])\s*//;
+          $basis = $1;
+        }
+        else {
+          $method = $_;
+          $line = $_;
+        }
+      }
+###############################################################################
+#   Get rid of leading white space in $method and parse the Remaining Tokens in
+#   $line
+###############################################################################
+      $method =~ s/^\s*//;
+      &otherOptions($line);
+    }
+  }
+}
+
+##
+## otherOptions
+##    RunTypes - opt     -> Geometry
+##               freq    -> Vibration
+##               polar   -> Polarizability
+##               nmr     -> Magnetic
+##               density -> Excited
+##
+sub otherOptions {
+  local($line) = @_;
+  $runType = "Energy";
+  if ($line =~ /opt.*freq/i) {
+    $runType = "GeoVib";
+  } elsif ($line =~ /freq.*opt/i) {
+    $runType = "GeoVib";
+  } elsif ($line =~ /opt/i) {
+    $runType = "Geometry";
+  } elsif ($line =~ /freq/i) {
+    $runType = "Vibration";
+  } elsif ($line =~ /pol/i) {
+    $runType = "Polarizability";
+  } elsif ($line =~ /nmr/i) {
+    $runType = "Magnetic";
+  } elsif ($line =~ /force/i) {
+    $runType = "Gradient";
+  }
+}
+
+##
+## Base names supported and translations:
+##  STO-3G                   *
+##  3-21G                    * x ++
+##  4-31G
+##  6-31G                    ( | ++) x (* | **)) | (3df,3pd) (no +G**)
+##  6-311G
+##  D95V   -> DUNHAYSV
+##  D95    -> DUNNINGDZ
+##  LanL2MB
+##  LanL2DZ
+##  cc-pV*Z
+## General Translations:
+##  /(d)$/  -> *
+##  /(d,p)/ -> **
+##
+sub convertBasis {
+  if (($basis =~ /gen/) && 
+     ($BasisData eq "") && 
+     ($ARGV[0] =~ /_?([^_]+)?_?([^_]+)_([^(_|\.log|\.out)]+)(\.(log|out)$)?/)) {
+    # Try One More Thing, Parsing the Basis Set Name From the File Name
+    #  - This Really Only Applies to Dave Feller's Advisor Data Set
+    #
+    # This code is probably obsolete
+    #
+    print "Could Convert Basis To \"$1\" or \"$2\" or \"$3\"\n";
+    if (defined $NameToBasis{$1}) {
+      $basis = $NameToBasis{$1};
+    } elsif (defined $NameToBasis{$2}) {
+      $basis = $NameToBasis{$2};
+    } elsif (defined $NameToBasis{$3}) {
+      $basis = $NameToBasis{$3};
+    } else {
+      # Don't set a default
+    }
+  } elsif (($basis =~ /gen/) && 
+          ($basisData eq "") && 
+          ($title =~ /_?([^_]+)?_?([^_]+)_([^_]+)/)) {
+    print "Could Convert Basis To \"$1\" or \"$2\" or \"$3\"\n";
+    if (defined $NameToBasis{$1}) {
+      $basis = $NameToBasis{$1};
+    } elsif (defined $NameToBasis{$2}) {
+      $basis = $NameToBasis{$2};
+    } elsif (defined $NameToBasis{$3}) {
+      $basis = $NameToBasis{$3};
+    } else {
+      # Don't set a default
+    }
+  } elsif (($basis =~ /^shc/) ||
+           ($basis =~ /^cep/) ||
+           ($basis =~ /^6-21/)) {
+    print "Basis: Basis Set $basis Not in EMSL Data Set\n";
+    $basis = "";
+  } else {
+    # Handle two known translations
+    $basis =~ s/^[Dd]95[Vv]/sv (dunning-hay)/;
+    $basis =~ s/^[Dd]95/dz (dunning)/;
+    $basis =~ s/\(d\)/\*/;
+    $basis =~ s/\(d,p\)/\*\*/;
+  }
+}
+
+###############################################################################
+##
+## convertMethod($method,$charge,$multiplicity,$basis)
+##    This routine translates from Gaussian method format to
+##    ECCE $theoryCategory and $theory. The general strategy is to first
+##    check to see if a basis set is required. If not then the calculation
+##    is assumed to be semi-empirical.
+##
+###############################################################################
+sub convertMethod {
+  local($method,$charge,$multiplicity,$basis) = @_;
+  local $tmptheory = "unknown";
+
+###############################################################################
+#   Theory requires a basis set. Must be HF, DFT, MP, CC, or CI.
+###############################################################################
+  if ($basis ne "") {
+###############################################################################
+#   Check for Hartree-Fock theory.
+###############################################################################
+    if ($method =~ /hf/){
+      $tmptheory = "hf";
+      $theoryCat = "SCF";
+    }
+###############################################################################
+#   Check for MP-type theory.
+###############################################################################
+    elsif ($method =~ /mp/) {
+      if ($method =~ /mp2/) {
+        $tmptheory = "mp2";
+      }
+      elsif ($method =~ /mp3/) {
+        $tmptheory = "mp3";    
+      }
+      elsif ($method =~ /mp4/) {
+        if ($method =~ /sdq/) {
+          $tmptheory = "mp4(sdq)";
+        }
+        elsif ($method =~ /dq/ && !($method =~ /sdq/)) {
+          $tmptheory = "mp4(dq)";
+        }
+        else {
+          $tmptheory = "mp4";
+        }
+      }
+      elsif ($method =~ /mp5/) {
+        $tmptheory = "mp5";
+      }
+      if ($method =~ /fc/ || $method =~ /rw/) {
+        $tmptheory = $tmptheory . "(fc)";
+      }
+      $theoryCat = "MP";
+    }
+###############################################################################
+#   Check for coupled cluster theory.
+###############################################################################
+    elsif ($method =~ /cc/) {
+      if ($method =~ /ccd/) {
+        $tmptheory = "ccd";
+      }
+      elsif ($method =~ /ccsd/) {
+        if (($method =~ /t/ && !($method =~ /t1d/)) || ($method =~ /t1d/
+           && $method =~ /t.*t/)) {
+          $tmptheory = "ccsd(t)";
+        }
+        else {
+          $tmptheory = "ccsd";
+        }
+      }
+      if ($method =~ /fc/ || $method =~ /rw/) {
+        $tmptheory = $tmptheory . "(fc)"; 
+      } 
+      $theoryCat = "CC";
+    }
+    elsif ($method =~ /qc/) {
+      if (($method =~ /t/ && !($method =~ /t1d/ && $method =~ /tq/)) || ($method =~ /t1d/
+           && $method =~ /t.*t/ && !($method =~ /tq/))) {
+        $tmptheory = "qcisd(t)";
+      }
+      else {
+        $tmptheory = "qcisd";
+      }
+      if ($method =~ /fc/ || $method =~ /rw/) {
+        $tmptheory = $tmptheory . "(fc)"; 
+      }  
+      $theoryCat = "CC";
+    }
+###############################################################################
+#   Check for configuration interaction theory.
+###############################################################################
+    elsif ($method =~ /ci/ && !($method =~ /qc/)) {
+      if ($method =~ /cis/ && !($method =~ /cisd/)) {
+        $tmptheory = "cis";
+      }
+      elsif ($method =~ /cisd/) {
+        $tmptheory = "cisd";
+      }
+      if ($method =~ /fc/ || $method =~ /rw/) {
+        $tmptheory = $tmptheory . "(fc)";
+      }
+      $theoryCat = "CI";
+    }
+###############################################################################
+#   No theory found yet. Check to see if theory is a density functional theory.
+###############################################################################
+    else {
+      local ($exchange,$correlation) = ("","");
+###############################################################################
+#   Check first for hydbrid methods
+###############################################################################
+      if ($method =~ /b.*3lyp/ || $method =~ /bhandh/) {
+        if ($method =~ /b.*3lyp/) {
+          $tmptheory = "dft";
+          $guiDict .= "\nES.Theory.DFT.XCFunctionals:\tB3LYP (hybrid)";
+        }
+        elsif ($method =~ /bhandh/) {
+          $tmptheory = "dft";
+          $guiDict .= "\nES.Theory.DFT.XCFunctionals:\tBecke Half and Half (hybrid)";
+        }
+        $theoryCat = "DFT";
+      }
+      else {
+###############################################################################
+#   Find exchange functional. Need to account for the possibility that there
+#   is a "r" or "u" prefix
+###############################################################################
+        $dftvar = $method;
+        $dftvar =~ s/\s*(r|u)//;
+        if ($dftvar =~ /^s/) {
+          $exchange = "s";
+          $guiDict .= "\nES.Theory.DFT.ExchangeFunctionals:\tSlater (local)";
+        }
+        elsif ($dftvar =~ /^xa/) {
+          $exchange = "xa";
+          $guiDict .= "\nES.Theory.DFT.ExchangeFunctionals:\tX-Alpha (local)";
+        }
+        elsif ($dftvar =~ /^b/) {
+          $exchange = "b";
+          $guiDict .= "\nES.Theory.DFT.ExchangeFunctionals:\tBecke88 (nonlocal)";
+        }
+###############################################################################
+#   Find correlation functional.
+###############################################################################
+        if ($method =~/vwn/ && !($method =~ /vwn5/)) {
+          $correlation = "vwn";
+          $guiDict .= "\nES.Theory.DFT.CorrelationFunctionals:\tVWN 1/RPA (local)";
+        }
+        elsif ($method =~/vwn5/) {
+          $correlation = "vwn5";
+          $guiDict .= "\nES.Theory.DFT.CorrelationFunctionals:\tVWN 5 (local)";
+        }
+        elsif ($method =~/lyp/) {
+          $correlation = "lyp";
+          $guiDict .= "\nES.Theory.DFT.CorrelationFunctionals:\tLee-Yang-Parr (nonlocal)";
+        }
+        elsif ($method =~/pl/) {
+          $correlation = "pl";
+          $guiDict .= "\nES.Theory.DFT.CorrelationFunctionals:\tPerdew 1981 (local)";
+        }
+        elsif ($method =~/p86/) {
+          $correlation = "p86";
+          $guiDict .= "\nES.Theory.DFT.CorrelationFunctionals:\tPerdew 1986 (nonlocal)";
+        }
+        elsif ($method =~/pw91/) {
+          $correlation = "pw91";
+          $guiDict .= "\nES.Theory.DFT.CorrelationFunctionals:\tPerdew 1991 (nonlocal)";
+        }
+        if ($exchange ne "" && $correlation ne "") {
+          $tmptheory = "dft";
+          $theoryCat = "DFT";
+        }
+      }
+    }
+  }
+###############################################################################
+#   Theory does NOT require a basis set. Must be semi-empirical. Check all
+#   possibilities.
+###############################################################################
+  else {
+    if ($method =~ /cndo/) {
+      $tmptheory = "cndo";
+    }
+    elsif ($method =~ /mindo3/) {
+      $tmptheory = "mindo3";
+    }
+    elsif ($method =~ /indo/ && !($method =~ /mindo3/)) {
+      $tmptheory = "indo";
+    }
+    elsif ($method =~ /mndo/) {
+      $tmptheory = "mndo";
+    }
+    elsif ($method =~ /am1/) {
+      $tmptheory = "am1";
+    }
+    elsif ($method =~ /pm3/) {
+      $tmptheory = "pm3";
+    }
+    $theoryCat = "SE";
+  }
+###############################################################################
+#   Determine whether theory is restricted, unrestricted, or restricted open
+#   shell.
+###############################################################################
+  if ($method =~ /^r/ && !($method =~ /^ro/)) {
+    $tmptheory = "r" . $tmptheory;
+  }
+  elsif ($method =~ /^ro/) {
+    $tmptheory = "ro" . $tmptheory;
+  }
+  elsif ($method =~ /^u/) {
+    $tmptheory = "u" . $tmptheory;
+  }
+  elsif ($theoryCat eq "CI") {
+  }
+  elsif ($multiplicity > 1) {
+    $tmptheory = "u" . $tmptheory;
+  }
+  else {
+    $tmptheory = "r" . $tmptheory;
+  }
+  $method = $tmptheory;
+  if ($method =~ /unknown/) {
+    $method = "unknown";
+  }
+  $theory = uc $method;
+}
+
+##
+## getStartTime
+##    The best guess at start time is when the Link 1 parsing ends.
+##    In the output of Gaussian-94 this occurs at a line with
+##    /eave\s+Link/.
+##    However, if we hit the title section /^ --/ then we've gone too
+##    far and we might as well forget about getting times.
+##
+sub getStartTime {
+  local($dow, $month, $day, $year);
+  while (<INPUT>) {
+    if (/^ --/) {
+      last;
+    } elsif (/$\s*Leave\s+Link/) {
+      /\s+at\s+([^,]*),/;
+      $_ = $1;
+      ($dow, $month, $day, $startTime, $year) = split;
+      $startDate = "$month $day, $year";
+    }
+  }
+}
+
+##
+## getEndTime
+##    The end time will be the last "Leave Link" found in the file.
+##
+sub getEndTime {
+  local($dow, $month, $day, $year);
+  while (<INPUT>) {
+    if (/$\s*Leave\s+Link/) {
+      /\s+at\s+([^,]*),/;
+      $_ = $1;
+      ($dow, $month, $day, $endTime, $year) = split;
+      $endDate = "$month $day, $year";
+    }
+  }
+}
+
+##
+## getTitleChargeMulti
+##    The title section follows link1 (in link101).  We search for
+##    a title by its '-' bar separators.  For example:
+##    -------
+##    DMAGeom
+##    -------
+##    Now that we look for the start time we have already consumed the
+##    leading /^ --/ prior to calling this subroutine.  The first line
+##    we see, therefore, is considered the title.
+##    If we find "Symbolic z-matrix:" before finding a title then
+##    we'll make the title the name of this log file (set by default
+##    on program start).  This can happen for very small titles
+##    (less than four characters).
+##    Only yhe first line of the title will be used.
+##
+## TODO
+##    Translate out special characters not allowed in Experiment names.
+##
+sub getTitleChargeMulti {
+  while (<INPUT>) {
+    if (/Symbolic (z|Z)-matrix:/) {
+      if (!defined($title)) {
+        $title = $ARGV[0];
+      }
+      last;
+    } elsif (!defined($title)) {
+      $title = $_;
+      $title =~ s/^\s+//;
+      $title =~ s/\s+$//;
+      last;
+    }
+  }
+  $_ = <INPUT>;
+  if (/Charge\s*=\s*(-?\d+)\s+Multiplicity\s*=\s*(\d+)/) {
+    $charge = $1;
+    $multiplicity = $2;
+  }
+}
+
+##
+## scanForCharge
+##    If the charge wasn't found immediately following the title,
+##    this routine will scan until the end of the file looking for
+##    one.  The file pointer will be rewound to its position prior
+##    to this call.
+##
+sub scanForCharge {
+  local($filePos);
+  $filePos = tell(INPUT);
+  while (<INPUT>) {
+    if (/Charge\s*=\s*(-?\d+)\s+Multiplicity\s*=\s*(\d+)/) {
+      $charge = $1;
+      $multiplicity = $2;
+      last;
+    }
+  }
+  seek(INPUT, $filePos, 0);
+}
+
+##
+## getMolecule
+##    This subroutine scans from the current file position to locate
+##    the geometry of the molecule. It first looks for the phrase
+##    "Standard orientation". If it can't find that then it goes back to
+##    the begining of the file and looks for "Input orientation". If it
+##    still hasn't found a geometry it goes back to the top of the file
+##    and looks for "Z-Matrix orientation". This could be potentially
+##    very slow if output file is large. The Geometry is parsed into
+##    a $molecule variable which is the molecule in mvm format.
+##
+sub getMolecule {
+  local($charge) = @_;
+  local($atomSection,$find_geom,$centerNum,$atomNum,$x,$y,$z,$atsym);
+  $find_geom = 0;
+#########################################################################
+#  Look for a geometry in "Standard orientation"
+#########################################################################
+  while (<INPUT>) {
+    if (/Standard orientation/ ) {
+      $_ = <INPUT>;  # -------------------------------------------------------
+      $_ = <INPUT>;  # Center     Atomic              Coordinates (Angstroms)
+      $_ = <INPUT>;  # Number     Number             X           Y           Z
+      $_ = <INPUT>;  # -------------------------------------------------------
+      $molecule = "title:\t$title\n";
+      $molecule .= "type:\tmolecule\n";
+      $molecule .= "charge:\t$charge\n";
+      $atomSection = "atom_info:\tsymbol cart\n";
+      $atomSection .= "atom_list:\n";
+      while (<INPUT>) {
+        last if /^ --/;
+	s/^\s*//; 
+        ($centerNum,$atomNum,$x,$y,$z) = split;
+        if ($atomNum > 0) {
+          $atsym = $atomicSymbol[$atomNum];
+          $atomSection .= " $atomicSymbol[$atomNum] $x $y $z\n";
+          if (!defined($atomList{$atsym})) {
+            $atomList{$atsym} = $atsym;
+          }
+        }
+      }
+      $find_geom = 1;
+      last;
+    }
+  }
+#########################################################################
+#  Could not find geometry. Look for a geometry in "Input orientation"
+#########################################################################
+  if ($find_geom == 0) {
+    seek(INPUT, 0, 0);
+    while (<INPUT>) {
+      if (/Input orientation/ ) {
+        $_ = <INPUT>;  # -------------------------------------------------------
+        $_ = <INPUT>;  # Center     Atomic              Coordinates (Angstroms)
+        $_ = <INPUT>;  # Number     Number             X           Y           Z
+        $_ = <INPUT>;  # -------------------------------------------------------
+        $molecule = "title:\t$title\n";
+        $molecule .= "type:\tmolecule\n";
+        $molecule .= "charge:\t$charge\n";
+        $atomSection = "atom_info:\tsymbol cart\n";
+        $atomSection .= "atom_list:\n";
+        while (<INPUT>) {
+          last if /^ --/;
+          s/^\s*//;
+          ($centerNum,$atomNum,$x,$y,$z) = split;
+          if ($atomNum > 0) {
+            $atsym = $atomicSymbol[$atomNum];
+            $atomSection .= " $atomicSymbol[$atomNum] $x $y $z\n";
+            if (!defined($atomList{$atsym})) {
+              $atomList{$atsym} = $atsym;
+            }
+          }
+        }
+        $find_geom = 1;
+        last;
+      }
+    }
+  }
+#########################################################################
+#  Still no geometry. Look for a geometry in "Z-Matrix orientation"
+#########################################################################
+ if ($find_geom == 0) {
+    seek(INPUT, 0, 0);
+    while (<INPUT>) {
+      if (/Z-Matrix orientation/ ) {
+        $_ = <INPUT>;  # -------------------------------------------------------
+        $_ = <INPUT>;  # Center     Atomic              Coordinates (Angstroms)
+        $_ = <INPUT>;  # Number     Number             X           Y           Z
+        $_ = <INPUT>;  # -------------------------------------------------------
+        $molecule = "title:\t$title\n";
+        $molecule .= "type:\tmolecule\n";
+        $molecule .= "charge:\t$charge\n";
+        $atomSection = "atom_info:\tsymbol cart\n";
+        $atomSection .= "atom_list:\n";
+        while (<INPUT>) {
+          last if /^ --/;
+          s/^\s*//;
+          ($centerNum,$atomNum,$x,$y,$z) = split;
+          if ($atomNum > 0) {
+            $atsym = $atomicSymbol[$atomNum];
+            $atomSection .= " $atomicSymbol[$atomNum] $x $y $z\n";
+            if (!defined($atomList{$atsym})) {
+              $atomList{$atsym} = $atsym;
+            }
+          }
+        }
+        $find_geom = 1;
+        last;
+      }
+    }
+  }
+  $molecule .= "num_atoms:\t$centerNum\n$atomSection";
+}
+
+##
+## getGeneralBasis
+##    This is a little tricky.  Even if the basis set was specified as
+##    as "GEN", it may not be dumped in the log file for us to read.
+##    We'll search for either "General basis read" (as the beginning)
+##    or a line containing "basis functions" that appears at the end
+##    of link301.
+##
+sub getGeneralBasis {
+  local($started);
+  $started = 0;
+  $anyCenters = 0;
+  $useNameBasis = 0;
+  while (<INPUT>) {
+    if (/ basis functions /) {
+      last;
+    } elsif (/General basis read from cards:\s*\((.*)\)\s*/) {
+      $started = 1;
+      $basisData = $_;
+
+      my $coorddata = $1;
+      # Gaussian 98 may have ability to assign
+      # spherical coordinants to higher orbitals
+      # Gaussian 94 only supports sphericals in D
+      # and F orbitals
+      if($coorddata =~ /(6D|10F|15G|21H|28I)/) {
+        $sphericalBasis = "false";
+      } elsif($coorddata =~ /(5D|7F|9G|11H|13I)/) {
+        $sphericalBasis = "true";
+      }
+
+    } elsif ($started == 1) {
+      if (/Centers:/) {
+        $anyCenters = 1;
+      }
+      $basisData .= $_;
+    }
+  }
+  if ($anyCenters == 0) {
+    $basisData = "";
+  }
+}
+
+sub getNameBasis {
+  $useNameBasis = 1;
+  $basisData = $basis;
+}
+
+sub basis {
+  local($symbol);
+  while(<GBS>) {
+    print NEWFILE;
+  }
+  $_ = "";
+}
+
+###############################################################################
+## EVERYTHING BEYOND THIS POINT IS UTILITY SUBROUTINES
+###############################################################################
+##
+## setupBasisTranslation
+##  This creates an associative array for translating Dave Feller's
+##  log file name basis sets into EMSL Basis Set Library basis set
+##  names.
+##
+sub setupBasisTranslation {
+  # Normal Names For Basis Sets
+  #
+  # Must take out all spaces for names since 
+  # name is declared in output filename as well
+  # as the title in the output file.
+
+  $NameToBasis{"sto-2g"} = "STO-2G";
+  $NameToBasis{"sto-3g"} = "STO-3G";
+  $NameToBasis{"sto-6g"} = "STO-6G";
+  $NameToBasis{"sto-3gs"} = "STO-3G*";
+  $NameToBasis{"sto-3g*"} = "STO-3G*";
+
+  $NameToBasis{"3-21g"} = "3-21G";
+  $NameToBasis{"3-21++g"} = "3-21++G";
+  $NameToBasis{"3-21gs"} = "3-21G*";
+  $NameToBasis{"3-21++gs"} = "3-21++G*";
+  $NameToBasis{"3-21++g*"} = "3-21++G*";
+  $NameToBasis{"3-21gsp"} = "3-21GSP";
+
+  $NameToBasis{"4-31g"} = "4-31G";
+  $NameToBasis{"4-22gsp"} = "4-22GSP";
+
+  $NameToBasis{"6-31g"} = "6-31G";
+  $NameToBasis{"6-31g-blaudeau"} = "6-31G-Blaudeau";
+  $NameToBasis{"6-31++g"} = "6-31++G";
+  $NameToBasis{"6-31gs"} = "6-31G*";
+  $NameToBasis{"6-31g*"} = "6-31G*";
+  $NameToBasis{"6-31gss"} = "6-31G**";
+  $NameToBasis{"6-31g**"} = "6-31G**";
+  $NameToBasis{"6-31gs-blaudeau"} = "6-31G*-Blaudeau";
+  $NameToBasis{"6-31+gs"} = "6-31+G*";
+  $NameToBasis{"6-31+g*"} = "6-31+G*";
+  $NameToBasis{"6-31++gs"} = "6-31++G*";
+  $NameToBasis{"6-31++g*"} = "6-31++G*";
+  $NameToBasis{"6-31++gss"} = "6-31++G**";
+  $NameToBasis{"6-31++g**"} = "6-31++G**";
+  $NameToBasis{"6-31g(3df,3pd)"} = "6-31G(3df,3pd)";
+  $NameToBasis{"6-311g"} = "6-311G";
+  $NameToBasis{"6-311gs"} = "6-311G*";
+  $NameToBasis{"6-311g*"} = "6-311G*";
+  $NameToBasis{"6-311gss"} = "6-311G**";
+  $NameToBasis{"6-311g**"} = "6-311G**";
+  $NameToBasis{"6-311+gs"} = "6-311+G*";
+  $NameToBasis{"6-311+g*"} = "6-311+G*";
+  $NameToBasis{"6-311++gss"} = "6-311++G**";
+  $NameToBasis{"6-311++g**"} = "6-311++G**";
+  $NameToBasis{"6-311++g(2d,2p)"} = "6-311++G(2d,2p)";
+  $NameToBasis{"6-311g(2df,2pd)"} = "6-311G(2df,2pd)";
+  $NameToBasis{"6-311++g(3df,3pd)"} = "6-311++G(3df,3pd)";
+
+  $NameToBasis{"midi!"} = "MIDI!";
+  $NameToBasis{"d95"} = "DZ (Dunning)";
+  $NameToBasis{"d95v"} = "SV (Dunning-Hay)";
+  $NameToBasis{"mini(scaled)"} = "MINI (Scaled)";
+  $NameToBasis{"mini(huzinaga)"} = "MINI (Huzinaga)";
+  $NameToBasis{"svp(dunning-hay)"} = "SVP (Dunning-Hay)";
+  $NameToBasis{"svp+diffuse(dunning-hay)"} = "SVP + Diffuse (Dunning-Hay)";
+  $NameToBasis{"dzp(dunning)"} = "DZP (Dunning)";
+  $NameToBasis{"dzp+diffuse(dunning)"} = "DZP + Diffuse (Dunning)";
+  $NameToBasis{"tz(dunning)"} = "TZ (Dunning)";
+  $NameToBasis{"chipman dzp+diffuse"} = "Chipman DZP + Diffuse";
+
+  $NameToBasis{"cc-pvdz"} = "cc-pVDZ";
+  $NameToBasis{"cc-pvtz"} = "cc-pVTZ";
+  $NameToBasis{"cc-pvqz"} = "cc-pVQZ";
+  $NameToBasis{"cc-pv5z"} = "cc-pV5Z";
+  $NameToBasis{"cc-pv6z"} = "cc-pV6Z";
+  $NameToBasis{"aug-cc-pvdz"} = "aug-cc-pVDZ";
+  $NameToBasis{"aug-cc-pvtz"} = "aug-cc-pVTZ";
+  $NameToBasis{"aug-cc-pvqz"} = "aug-cc-pVQZ";
+  $NameToBasis{"aug-cc-pv5z"} = "aug-cc-pV5Z";
+  $NameToBasis{"aug-cc-pv6z"} = "aug-cc-pV6Z";
+
+  $NameToBasis{"pv6z"} = "pV6Z";
+  $NameToBasis{"cc-pvdz(seg-opt)"} = "cc-pVDZ(seg-opt)";
+  $NameToBasis{"cc-pcvdz"} = "cc-pCVDZ";
+  $NameToBasis{"cc-pcvtz"} = "cc-pCVTZ";
+  $NameToBasis{"cc-pcvqz"} = "cc-pCVQZ";
+  $NameToBasis{"cc-pcv5z"} = "cc-pCV5Z";
+  $NameToBasis{"aug-cc-pcvdz"} = "aug-cc-pCVDZ";
+  $NameToBasis{"aug-cc-pcvtz"} = "aug-cc-pCVTZ";
+  $NameToBasis{"aug-cc-pcvqz"} = "aug-cc-pCVQZ";
+  $NameToBasis{"aug-cc-pcv5z"} = "aug-cc-pCV5Z";
+  $NameToBasis{"fellermisc.cvdz"} = "Feller Misc. CVDZ";
+  $NameToBasis{"fellermisc.cvtz"} = "Feller Misc. CVTZ";
+  $NameToBasis{"fellermisc.cvqz"} = "Feller Misc. CVQZ";
+  $NameToBasis{"nasaamesano"} = "NASA Ames ANO";
+  $NameToBasis{"roosaugmenteddoublezetaano"} = "Roos Augmented Double Zeta ANO";
+  $NameToBasis{"roosaugmentedtriplezetaano"} = "Roos Augmented Triple Zeta ANO";
+  $NameToBasis{"wtbs"} = "WTBS";
+  $NameToBasis{"gamessvtz"} = "GAMESS VTZ";
+  $NameToBasis{"gamesspvtz"} = "GAMESS PVTZ";
+  $NameToBasis{"partridgeuncontr.1"} = "Partridge Uncontr. 1";
+  $NameToBasis{"partridgeuncontr.2"} = "Partridge Uncontr. 2";
+  $NameToBasis{"partridgeuncontr.3"} = "Partridge Uncontr. 3";
+  $NameToBasis{"ahlrichsvdz"} = "Ahlrichs VDZ";
+  $NameToBasis{"ahlrichspvdz"} = "Ahlrichs pVDZ";
+  $NameToBasis{"ahlrichsvtz"} = "Ahlrichs VTZ";
+  $NameToBasis{"ahlrichstzv"} = "Ahlrichs TZV";
+  $NameToBasis{"binning/curtisssv"} = "Binning/Curtiss SV";
+  $NameToBasis{"binning/curtissvtz"} = "Binning/Curtiss VTZ";
+  $NameToBasis{"binning/curtisssvp"} = "Binning/Curtiss SVP";
+  $NameToBasis{"binning/curtissvtzp"} = "Binning/Curtiss VTZP";
+  $NameToBasis{"mcLean/chandlervtz"} = "McLean/Chandler VTZ";
+  $NameToBasis{"sv+rydberg(dunning-hay)"} = "SV + Rydberg (Dunning-Hay)";
+  $NameToBasis{"svp+rydberg(dunning-hay)"} = "SVP + Rydberg (Dunning-Hay)";
+  $NameToBasis{"svp+diffuse+rydberg"} = "SVP + Diffuse + Rydberg";
+  $NameToBasis{"dz+rydberg(dunning)"} = "DZ + Rydberg (Dunning)";
+  $NameToBasis{"dzp+rydberg(dunning)"} = "DZP + Rydberg (Dunning)";
+  $NameToBasis{"dz+doublerydberg(dunning-hay)"} = "DZ + Double Rydberg (Dunning-Hay)";
+  $NameToBasis{"sv+doublerydberg(dunning-hay)"} = "SV + Double Rydberg (Dunning-Hay)";
+  $NameToBasis{"wachters+f"} = "Wachters+f";
+  $NameToBasis{"bauschlicherano"} = "Bauschlicher ANO";
+  $NameToBasis{"sadlejpvtz"} = "Sadlej pVTZ";
+  $NameToBasis{"hay-wadtmb(n+1)ecp"} = "Hay-Wadt MB (n+1) ECP";
+  $NameToBasis{"hay-wadtvdz(n+1)ecp"} = "Hay-Wadt VDZ (n+1) ECP";
+  $NameToBasis{"lanl2dz"} = "LANL2DZ ECP";
+  $NameToBasis{"sbkjcvdzecp"} = "SBKJC VDZ ECP";
+  $NameToBasis{"crenblecp"} = "CRENBL ECP";
+  $NameToBasis{"crenbsecp"} = "CRENBS ECP";
+  $NameToBasis{"stuttgartrlcecp"} = "Stuttgart RLC ECP";
+  $NameToBasis{"stuttgartrscecp"} = "Stuttgart RSC ECP";
+  $NameToBasis{"dzvp(dftorbital)"} = "DZVP (DFT Orbital)";
+  $NameToBasis{"dzvp2(dftorbital)"} = "DZVP2 (DFT Orbital)";
+  $NameToBasis{"tzvp(dftorbital)"} = "TZVP (DFT Orbital)";
+  $NameToBasis{"demoncoulombfitting"} = "DeMon Coulomb Fitting";
+  $NameToBasis{"dgaussa1dftcoulombFitting"} = "DGauss A1 DFT Coulomb Fitting";
+  $NameToBasis{"dgaussa1dftexchangeFitting"} = "DGauss A1 DFT Exchange Fitting";
+  $NameToBasis{"dgaussa2dftcoulombFitting"} = "DGauss A2 DFT Coulomb Fitting";
+  $NameToBasis{"dgaussa2dftexchangeFitting"} = "DGauss A2 DFT Exchange Fitting";
+  $NameToBasis{"ahlrichscoulombfitting"} = "Ahlrichs Coulomb Fitting";
+  $NameToBasis{"pople-stylediffuse"} = "Pople-style Diffuse";
+  $NameToBasis{"sto-3gspolarization"} = "STO-3G* Polarization";
+  $NameToBasis{"3-21gspolarization"} = "3-21G* Polarization";
+  $NameToBasis{"6-31gspolarization"} = "6-31G* Polarization";
+  $NameToBasis{"6-31gsspolarization"} = "6-31G** Polarization";
+  $NameToBasis{"6-311gspolarization"} = "6-311G* Polarization";
+  $NameToBasis{"6-311gsspolarization"} = "6-311G** Polarization";
+  $NameToBasis{"pople(2d,2p)polarization"} = "Pople (2d,2p) Polarization";
+  $NameToBasis{"pople(2df,2pd)polarization"} = "Pople (2df,2pd) Polarization";
+  $NameToBasis{"pople(3df,3pd)polarization"} = "Pople (3df,3pd) Polarization";
+  $NameToBasis{"hondo7polarization"} = "HONDO7 Polarization";
+  $NameToBasis{"huzinagapolarization"} = "Huzinaga Polarization";
+  $NameToBasis{"dunning-haydiffuse"} = "Dunning-Hay Diffuse";
+  $NameToBasis{"aug-cc-pvdzdiffuse"} = "aug-cc-pVDZ Diffuse";
+  $NameToBasis{"aug-cc-pvtzdiffuse"} = "aug-cc-pVTZ Diffuse";
+  $NameToBasis{"aug-cc-pvqzdiffuse"} = "aug-cc-pVQZ Diffuse";
+  $NameToBasis{"aug-cc-pv5zdiffuse"} = "aug-cc-pV5Z Diffuse";
+  $NameToBasis{"aug-cc-pv6zdiffuse"} = "aug-cc-pV6Z Diffuse";
+  $NameToBasis{"dhmspolarization"} = "DHMS Polarization";
+  $NameToBasis{"dunning-hay4ydberg"} = "Dunning-Hay Rydberg";
+  $NameToBasis{"dunning-haydouble4ydberg"} = "Dunning-Hay Double Rydberg";
+  $NameToBasis{"binning-curtiss(1d)polarization"} = "Binning-Curtiss (1d) Polarization";
+  $NameToBasis{"binning-curtiss(df)polarization"} = "Binning-Curtiss (df) Polarization";
+  $NameToBasis{"ahlrichspolarization"} = "Ahlrichs Polarization";
+  $NameToBasis{"glendeningpolarization"} = "Glendening Polarization";
+  $NameToBasis{"blaudeaupolarization"} = "Blaudeau Polarization";
+  $NameToBasis{"core/val.functions(cc-pcvdz)"} = "Core/val. Functions (cc-pCVDZ)";
+  $NameToBasis{"core/val.functions(cc-pcvtz)"} = "Core/val. Functions (cc-pCVTZ)";
+  $NameToBasis{"core/val.functions(cc-pcvqz)"} = "Core/val. Functions (cc-pCVQZ)";
+  $NameToBasis{"core/val.functions(cc-pcv5z)"} = "Core/val. Functions (cc-pCV5Z)";
+
+}
+
+## Debugging Aid for dumping out the dictionary we just read
+sub dumpData {
+  foreach $key (sort keys %AbiDict) {
+    print "\"$key\" = \"$AbiDict{$key}\"\n";
+  }
+  print "$chemsys_name\n";
+  print "$chemsys_atoms\n";
+  for ($index = 0; $index < $chemsys_atoms; $index++) {
+    print "$tags{$index} $coords{$index,0} $coords{$index,1} $coords{$index,2}";
+    print "\n";
+  }
+}
+
+
+sub usage {
+    print "Usage: gaussian-94.expt <logfile>\n";
+    print "Options:    -h        this help\n";
+    print "            -v        version\n";
+    exit(1);
+}
+#
+#
+#
+sub handle_options {
+  &usage && exit(1) if ( $opt_h || $opt_help );
+  $revision = '$Revision: 22972 $';
+  $revision =~ (s/\$//g);
+  print "$revision\n" if ( $opt_v );
+  exit(1) if ( $opt_v );
+}
+#

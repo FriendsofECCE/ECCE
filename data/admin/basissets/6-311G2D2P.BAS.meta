@@ -1,0 +1,37 @@
+name
+Pople (2d,2p) Polarization
+name
+type
+polarization
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ----------
+H-Ne: M.J. Frisch, J.A. Pople and J.S. Binkley, J. Chem. Phys. 80, 3265 (1984)
+
+references
+info
+               6-311++G(2d,2p) Polarization Functions
+               --------------------------------------
+Elements                          Reference
+H  - He: (2p)  R. Krishnan, J.S. Binkley, R. Seeger and J.A. Pople, J.A. Pople,
+Li - Ne: (2d)  J. Chem. Phys. 72, 650 (1980).
+
+This basis contains two sets of polarization functions on every atom.
+Note: This basis set uses 5-component d functions.
+
+info
+comments
+12/15/97  - DFF - Add Na - Ca
+2/22/95  - DFF - Modify the literature citation.
+8/10/90  - DFF - Original creation of this file from MIA basis set library.
+comments

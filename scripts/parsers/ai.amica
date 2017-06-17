@@ -1,0 +1,681 @@
+#!/usr/bin/env perl
+################################################################################
+# FILENAME:  ai.amica
+#
+#
+# SYNTAX: ai.amica -p <paramdictionary> -f <frag> -b <gbs> -t <template>
+#
+# PURPOSE:
+#	Take an AbiChem generated dictionary and produce an input
+#       file for an Amica run.
+#
+# DESCRIPTION:
+#
+# LIMITATIONS:
+#
+###########################################################################
+
+{
+# package for command-line options like -v
+  use Getopt::Std;
+
+  push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+
+# provides XML interface
+# commented out because it's not a standard module at least on certain
+# platforms such as itanium or with certain versions of perl
+#  use XML::DOM; 
+
+# provides loadPT to setup periodic table hashes
+  require "pertab.pl";
+
+# Force output to be flushed
+  $| = 1;
+
+#
+#  Handle the options
+#
+  &getopts(':n:t:pfbqchvse');
+  &handle_options;
+
+## Setup dates and such
+  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
+  $month = (January, February, March, April, May, June,
+	    July, August, September, October, November, December)[$mon];
+
+## Dictionary to be parsed from specified input file
+  %AbiDict = ();
+
+  if ($TplFILE eq "") {
+    &usage;
+  }
+
+#  print "Executing: ai.amica $ARGV[0] $ARGV[1] $ARGV[2] $ARGV[3]\n";
+
+## Main Routine
+  &loadPT;
+  &verifyAbiFile;
+  &verifyFragFile;
+  &verifyGBSFile;
+  &readDict;
+  &readChemSys;
+  &modifyInputFile;
+  &writeBasis;
+  &removeUnusedSections;
+# uncomment for debugging help
+#  &dumpData;
+  &cleanup;
+}
+## Modify the existing template or create a new copy of the
+##   template and then begin modifying it.  We go line-by-line
+##   throught the template, replacing all /##(.*)##/ tags with
+##   translated dictionary values.  If no key is found in the
+##   dictionary, we remove the line entirely
+sub modifyInputFile {
+  local($keysave, $key, $subname, $prefix, $postfix, $finished);
+  $inputFile = $TplFILE;
+  open(TEMPLATE, $inputFile);
+  open(NEWFILE, ">tmpfile");
+  # Do Specialized Key Replacement Before Trying Generic Subroutines
+  while (<TEMPLATE>) {
+    if (/([^#]*)##([^#]*)##(.*)/) {  ## Locate Tag
+# cpp     if (/dummy/) {  ## Use this instead of above line for emacs indenting
+      $prefix = $1;
+      $postfix = $3;
+      $keysave = $key = $2;
+      $finished = 0;
+      while ($finished == 0) {
+	$subname = $key;
+	$subname =~ s/\./_/g;          ## Replace "." with "_" For Sub Name
+	if (defined($AbiDict{$key})) { ## Value is in Dictionary
+	  $finished = 1;                       ## Match Means We'll Be Done
+	  $value = $AbiDict{$key};
+	  $fct = "&$subname('$value')";
+	  $result = eval $fct;
+	  if (!(defined $result)) {            ## Simple Replacement if No Sub
+	    s/##$keysave##/$value/;
+	  } elsif ($result ne "") {            ## Replace With Subs Value
+	    $_ = $prefix . $result . $postfix . "\n";
+	  } ## Else The Subroutine Did What it Needed
+	} else {                      ## Value Wasn't in Dictionary
+	  $finished = 1;
+	  $fct = "&$subname";
+	  $result = eval $fct;
+	  if (!(defined $result)) {
+	    # Instead of Failing Outright, Try Reducing Keyword
+	    if (index($key, ".") >= $[) {
+	      $key =~ s/\.[^\.]*$//;
+	      $finished = 0;
+	    } else {
+	      ## print "Removing token $key\n";
+	      $_ = "";
+	    }
+	  } elsif ($result ne "") {            ## Replace With Subs Value
+	    $_ = $prefix . $result . $postfix . "\n";
+	  } ## Else The Subroutine Did What it Needed
+	}
+      }
+    }
+    print(NEWFILE);
+  }
+  close TEMPLATE;
+}
+
+##############################################################################
+#  Description:
+#    Write out files containing basis set parameters for each element.
+##############################################################################
+sub writeBasis {
+  while(<GBS>) {
+    if (/^\$/ && !(/^\$END/)) {
+      close(GBSFILE);
+      $line = $_;
+      $symbol = $line;
+      chop($symbol);
+      $symbol =~ s/^\$\s*//;
+      $symbol =~ tr/A-Z/a-z/;
+      $symbol = ucfirst($symbol);
+      $symbol = $name_to_symbol{$symbol};
+      $file = $symbol . &getAuxInputExt;
+      open(GBSFILE, ">$file");
+      print(GBSFILE "$line");
+    } elsif (/^\$END/) {
+      close(GBSFILE);
+    } else {
+      if (!/^\s*$/) {print GBSFILE;}
+    }
+  }
+  close(GBSFILE);
+  $_ = "";
+}
+
+##############################################################################
+#  Description:
+#      Converts geometry etc. into Amica geometry input specification
+#
+##############################################################################
+sub chemsys {
+  local($symbol, $index, @usedatoms, $nsym, $iat, $sym, $scale);
+  $scale = 1.8897261;
+  ($chemsys_atoms != 0) || die "Sorry, Fragment has no atoms!\n";
+  #
+  # Prescan geometry to find out which atoms are used. Calculate number of
+  # electrons for neutral system.
+  #
+  $nsym = @atomicSymbol;
+  for ($index = 0; $index < $nsym; $index++) {
+     $usedatoms[$index] = 0;
+  }
+  for ($iat=0; $iat < $nsym; $iat++) {
+    for ($index = 0; $index < $chemsys_atoms; $index++) {
+      if ($atomicSymbol[$iat] eq $tags{$index}) {
+         $usedatoms[$iat]++;
+      }
+    }
+  }
+
+  #
+  # Find total number of different elements that are being used
+  #
+  $sym = 0;
+  for ($iat=0; $iat < $nsym; $iat++) {
+    if ($usedatoms[$iat] > 0) {
+      $sym++;
+    }
+  }
+  print(NEWFILE "    ATOMS $sym\n");
+
+  #
+  # Scan through atomic symbols and then scan through geometry to construct
+  # atomic element list
+  #
+  for ($iat=0; $iat < $nsym; $iat++) {
+    if ($usedatoms[$iat] > 0) {
+      print(NEWFILE "\n    TYPE $atomicSymbol[$iat] $usedatoms[$iat]\n");
+      for ($index = 0; $index < $chemsys_atoms; $index++) {
+        if ($atomicSymbol[$iat] eq $tags{$index}) {
+          printf(NEWFILE "    COORD    %12.6f    %12.6f    %12.6f\n",
+                 $scale*$coords{$index,0},$scale*$coords{$index,1},
+                 $scale*$coords{$index,2});
+        }
+      }
+      $sym = $atomicName[$iat];
+      $sym =~ tr/a-z/A-Z/;
+      print(NEWFILE "    BASIS \$$sym\n");
+    }
+  }
+  #
+  # Scan through elements to list identifier strings
+  #
+#  print(NEWFILE "\n");
+#  for ($iat=0; $iat < $nsym; $iat++) {
+#    if ($usedatoms[$iat] > 0) {
+#      $sym = $atomicName[$iat];
+#      $sym =~ tr/a-z/A-Z/;
+#      print(NEWFILE "    BASIS \$$sym\n");
+#    }
+#  }
+  $_ = "";
+}
+
+####################################
+# BEGIN OF SPECIAL KEYWORD SECTION #
+####################################
+
+### HF SECTION ###
+
+# Add open shell occupation numbers
+
+sub OpenShellOcc {
+  local($result,$max_irep,$item,$icnt,$index,$first);
+  $max_irep = 8;
+  $index = 1;
+  $first = 1;
+  $result = "";
+  for ($icnt = 0; $icnt < $max_irep; $icnt++) {
+    $item = "ES.Theory.Occupation"."$icnt";
+    if (defined($AbiDict{$item})) {
+      if ($first == 1) {
+        $result = "OCC"."$index "."$AbiDict{$item}";
+        $first = 0;
+      } else {
+        $result .= "\n  OCC"."$index "."$AbiDict{$item}";
+      }
+    }
+    $index++;
+  }
+  $_ = $result; return $result; }
+
+### REFERENCE SPACE ###
+
+# Add NOINTER keyword if ES.Theory.PSI.Interact is set to off.
+sub PsiInteract { local($result);
+  if (defined($AbiDict{"ES.Theory.PSI.Interact"})) {
+     $result = "NOINTER";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add ASYM keyword if ES.Theory.PSI.Asym is set to on.
+sub Asym { local($result);
+  if (defined($AbiDict{"ES.Theory.PSI.Asym"})) {
+     $result = "ASYM";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add number of electrons. Number of electrons for charge neutral
+# species was calculated in chemsys subroutine.
+sub ELEC { local($result,$Nelectrons);
+  $Nelectrons = $AbiDict{"NumElectrons"};
+  $result = "ELEC $Nelectrons";
+  $_ = $result; return $result; }
+
+### CI ###
+
+# Add ACPF keyword if ES.Theory.CI.ACPF is set to on.
+sub ACPF { local($result);
+  if (defined($AbiDict{"ES.Theory.CI.ACPF"})) {
+     $result = "ACPF";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add ACPF2 keyword if ES.Theory.CI.ACPF2 is set to on.
+sub ACPF2 { local($result);
+  if (!defined($AbiDict{"ES.Theory.CI.ACPF2"})) {
+     $result = "ACPF2";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add AQCC keyword if ES.Theory.CI.AQCC is set to on.
+sub AQCC { local($result);
+  if (defined($AbiDict{"ES.Theory.CI.AQCC"})) {
+     $result = "AQCC";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add CEPA0 keyword if ES.Theory.CI.CEPA0 is set to on.
+sub CEPA0 { local($result);
+  if (defined($AbiDict{"ES.Theory.CI.CEPA0"})) {
+     $result = "CEPA0";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add CI keyword if ES.Theory.CI.CI is set to on.
+sub CI { local($result);
+  if (defined($AbiDict{"ES.Theory.CI.CI"})) {
+     $result = "CI";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add CPF keyword if ES.Theory.CI.CPF is set to on.
+sub CPF { local($result);
+  if (defined($AbiDict{"ES.Theory.CI.CPF"})) {
+     $result = "CPF";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add R12ACPF keyword if ES.Theory.CI.R12 and ES.Theory.CI.R12ACPF are set to on.
+sub R12ACPF { local($result);
+  if (defined($AbiDict{"ES.Theory.CI.R12"}) && 
+      defined($AbiDict{"ES.Theory.CI.R12ACPF"})) {
+     $result = "R12-ACPF";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add ACPF2 keyword if ES.Theory.CI.R12 and ES.Theory.CI.R12ACPF2 are set to on.
+sub R12ACPF2 { local($result);
+  if (defined($AbiDict{"ES.Theory.CI.R12"}) && 
+      !defined($AbiDict{"ES.Theory.CI.R12ACPF2"})) {
+     $result = "R12-ACPF2";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add AQCC keyword if ES.Theory.CI.R12 and ES.Theory.CI.R12AQCC are set to on.
+sub R12AQCC { local($result);
+  if (defined($AbiDict{"ES.Theory.CI.R12"}) && 
+      defined($AbiDict{"ES.Theory.CI.R12AQCC"})) {
+     $result = "R12-AQCC";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add CEPA0 keyword if ES.Theory.CI.R12 and ES.Theory.CI.R12CEPA0 are set to on.
+sub R12CEPA0 { local($result);
+  if (defined($AbiDict{"ES.Theory.CI.R12"}) && 
+      defined($AbiDict{"ES.Theory.CI.R12CEPA0"})) {
+     $result = "R12-CEPA0";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add CI keyword if ES.Theory.CI.R12 and ES.Theory.CI.R12CI are set to on.
+sub R12CI { local($result);
+  if (defined($AbiDict{"ES.Theory.CI.R12"}) && 
+      defined($AbiDict{"ES.Theory.CI.R12CI"})) {
+     $result = "R12-CI";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add NOHESS keyword if ES.Theory.CI.NOHESS is set to on.
+sub NOHESS { local($result);
+  if (defined($AbiDict{"ES.Theory.CI.NOHESS"})) {
+     $result = "NOHESS";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+### COUPLED CLUSTER ###
+
+sub R12_CC { local($result);
+   if ($AbiDict{"ES.Theory.CC.R12_CC"} eq "r12/Extr. Pairs") {
+     $result = "R12 EXT";
+  } elsif ($AbiDict{"ES.Theory.CC.R12_CC"} eq "r12") {
+     $result = "R12";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add SCFDIRECT keyword if ES.Theory.CC.Direct is set to "HF".
+sub Direct { local($result);
+   if ($AbiDict{"ES.Theory.CC.Direct"} eq "HF") {
+     $result = "SCFDIRECT";
+ } elsif ($AbiDict{"ES.Theory.CC.Direct"} eq "R12") {
+     $result = "R12DIRECT";
+ } elsif ($AbiDict{"ES.Theory.CC.Direct"} eq "U12") {
+     $result = "U12DIRECT";
+ } elsif ($AbiDict{"ES.Theory.CC.Direct"} eq "HF+R12") {
+     $result = "SCFDIRECT R12DIRECT";
+ } elsif ($AbiDict{"ES.Theory.CC.Direct"} eq "HF+U12") {
+     $result = "SCFDIRECT U12DIRECT";
+ } elsif ($AbiDict{"ES.Theory.CC.Direct"} eq "R12+U12") {
+     $result = "R12DIRECT U12DIRECT";
+ } elsif ($AbiDict{"ES.Theory.CC.Direct"} eq "HF+R12+U12") {
+     $result = "SUPDIRECT";
+ } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add DETAILED keyword if ES.Theory.CC.DETAILED is set to on.
+sub DETAILED { local($result);
+  if (defined($AbiDict{"ES.Theory.CC.DETAILED"})) {
+     $result = "DETAILED";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+### MISCELLANEOUS ###
+
+# Add DENSITY keyword if ES.Theory.CI.Properties is set to "1e-Density Matrix"
+# or "1th-order Rel. Energy".
+sub DENSITY { local($result);
+  if ($AbiDict{"ES.Theory.CI.Properties"} eq "1e-Density Matrix" ||
+      $AbiDict{"ES.Theory.CI.Properties"} eq "1th-order Rel. Energy") {
+     $result = "DENSITY";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add PROPER keyword if ES.Theory.CI.Properties is set to 
+#   "1th-order Rel. Energy".
+sub PROPER { local($result);
+   if ($AbiDict{"ES.Theory.CI.Properties"} eq "1th-order Rel. Energy") {
+     $result = "PROPER";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add DIATOM keyword if ES.Theory.MISC.DIATOM is set to on.
+sub DIATOM { local($result);
+  if (defined($AbiDict{"ES.Theory.MISC.DIATOM"})) {
+     $result = "DIATOM";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add BOND keyword if ES.Theory.MISC.BOND is set to on.
+sub BOND { local($result);
+  if (defined($AbiDict{"ES.Theory.MISC.BOND"})) {
+     $result = "BOND";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add ANGSTROM keyword if ES.Theory.MISC.UNIT is set to "Angstrom".
+sub ANGSTROM { local($result);
+  if (defined($AbiDict{"ES.Theory.MISC.UNIT"})) {
+    if ($AbiDict{"ES.Theory.MISC.UNIT"} eq "Angstrom") {
+      $result = "ANGSTROM";
+    } else { $result = "";}
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add NORUN keyword if ES.Theory.MISC.NORUN is set to off.
+sub NORUN { local($result);
+  if (defined($AbiDict{"ES.Theory.MISC.NORUN"})) {
+     $result = "NORUN";
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+# Add CARTESIAN keyword if BasisSet.Coordinates is set to Cartesian.
+sub CARTESIAN { local($result,$tmp);
+  if (defined($AbiDict{"BasisSet.Coordinates"})) {
+     if ($AbiDict{"BasisSet.Coordinates"} eq "Cartesian") {
+       $result = "CARTESIAN";
+     } else { $result = ""; }
+  } else { $result = ""; }
+  $_ = $result; return $result; }
+
+##################################
+# END OF SPECIAL KEYWORD SECTION #
+##################################
+
+###############################################################################
+## EVERYTHING BEYOND THIS POINT IS UTILITY SUBROUTINES
+###############################################################################
+## Check to make sure the specified input file is a valid dictionary file.
+sub verifyAbiFile {
+  if ($AbiFILE ne "") {
+    # print "Opening $AbiFILE as abichem dictionary file\n";
+    open(ABIDICT, $AbiFILE) || die "Sorry, Couldn't open specified file!\n";
+    # check for correct version and program header !!!!!
+  }
+}
+
+## Check to make sure the specified input file is a valid dictionary file.
+sub verifyFragFile {
+  if ($FragFILE ne "") {
+    # print "Opening $FragFILE as fragment file\n";
+    open(CHEMSYS, $FragFILE) || die "Sorry, Couldn't open specified file!\n";
+    # check for correct version and program header !!!!!
+  }
+}
+
+## Check to make sure the specified input file is a valid dictionary file.
+sub verifyGBSFile {
+  if ($BasisFILE ne "") {
+    # print "Opening $BasisFILE as gaussian basis set file\n";
+    open(GBS, $BasisFILE) || die "Sorry, Couldn't open specified file!\n";
+    # check for correct version and program header !!!!!
+  }
+}
+
+## Close input file and exit nicely.
+sub cleanup {
+  close(NEWFILE);
+  system("/bin/mv -f tmpfile \'$inputFile\'");
+  system("/bin/rm -f tmpfile2");
+  close(ABIDICT);
+  close(CHEMSYS);
+  close(GBS);
+  exit(0);
+}
+
+## Read in the dictionary of AbiChem values from the input file.
+##    Start by reading simple key, value pairs (: separated)
+sub readDict {
+  while(<ABIDICT>) {
+    $_ =~ s/\s*!.*$//;
+    if (/:/) {
+      ($key, $value) = split(/:/);
+      $key =~ s/^\s*//;
+      $key =~ s/\s*$//;
+      $value =~ s/^\s*//;
+      $value =~ s/\s*$//;
+      # Here we do successive refinements of the tag just found
+      # Starting with the full name we keep stripping off ^[^.]*.
+      #  until we find a match or we've emptied the string
+      $tagkey = $key;
+      while ($tagkey  ne "") {
+        # Handle special continuation lines here !!!!!
+        $AbiDict{$tagkey} = $value;
+        $tagkey =~ s/^[^\.]*//;
+        $tagkey =~ s/^\.//;
+      }
+    }
+  }
+}
+
+## Read the MVM format fragment into internal perl structures
+sub readChemSys {
+  local($tag);
+  local($symbols) = 0;
+  local($index, $junk);
+
+# In order to rotate the molecule clockwise by 90 degree around the z-axis
+# (x,y,z) -> (-y,x,z) set $rotate to true. Gdanitz, Jan 16, 2002.
+  local($rotate) = 1; 
+
+  $chemsys_atoms = 0;
+  $_ = <CHEMSYS>;
+  while (<CHEMSYS>) {
+    if (/^num_atoms:/) {
+      ($junk, $chemsys_atoms) = split;
+    } elsif (/^title:/) {
+      ($junk, $chemsys_name) = split;
+    } elsif (/^atom_info:/) {
+      $symbols = /symbol/;
+    } elsif (/^atom_list:/) {
+      if ($symbols) {
+        for ($index = 0; $index < $chemsys_atoms; $index++) {
+          $_ = <CHEMSYS>;
+          ($tags{$index},
+           $coords{$index,0},$coords{$index,1},$coords{$index,2}) = split;
+          if($rotate){
+#           (x,y) -> (-y,x). Gdanitz, Jan 16, 2002.
+            ( $coords{$index,0}, $coords{$index,1}) = 
+            (-$coords{$index,1}, $coords{$index,0});
+            }
+        }
+      } else {
+        for ($index = 0; $index < $atomCount; $index++) {
+          $_ = <CHEMSYS>;
+          ($tags{$index},
+           $coords{$index,0},$coords{$index,1},$coords{$index,2}) = split;
+          if($rotate){
+#           (x,y) -> (-y,x). Gdanitz, Jan 16, 2002.
+            ( $coords{$index,0}, $coords{$index,1}) =
+            (-$coords{$index,1}, $coords{$index,0});
+            }
+           $tags{$index} = $number_to_symbol{$tag{$index}};
+        }
+      }
+    }
+  }
+}
+
+## remove irrelevant sections from generated file
+## this is for Amica only
+sub removeUnusedSections {
+  my $category = $AbiDict{"Category"};
+  my %toRemove;
+
+  $toRemove{"\&SCF"} = 1  if ( $category eq "MCSCF" ||
+     $category eq "MCSCF,CI" || $category eq "HF,CC" );
+  $toRemove{"\&MCSCF"} = 1  if ( $category eq "HF" ||
+     $category eq "HF,CI" || $category eq "HF,CC" );
+  $toRemove{"\&CI"} = 1  if ( $category eq "HF" ||
+     $category eq "MCSCF" || $category eq "HF,MCSCF" ||
+     $category eq "HF,CC" );
+  $toRemove{"\&CC"} = 1  unless ( $category eq "HF,CC" );
+  $toRemove{"\&PSI"} = 1 if ( $category eq "HF" ||
+     $category eq "HF,CC" );
+
+#  print "remove the headers: \@toRemove\n";
+
+  close(NEWFILE);
+  system("/bin/mv -f tmpfile tmpfile2");
+  open(NEWFILE2,"tmpfile2");
+  open(NEWFILE,">tmpfile");
+
+  my @field;
+  while (<NEWFILE2>) {
+    @field = split;
+    if ( $toRemove{$field[0]} == 1 ) {  # skip this line and intermediate
+                                        # lines until blank line is reached.
+      while (<NEWFILE2>) {  
+        if (/^\s*$/){
+          last;
+        }
+      }
+    } else {
+      print NEWFILE "$_";
+    }
+  }
+  close NEWFILE2;
+}
+
+
+## Retrieve Amica's auxiliary input file extension
+sub getAuxInputExt {
+
+#  my $file = "$ENV{ECCE_HOME}".'/data/client/cap/Amica.edml';
+#  my $parser = new XML::DOM::Parser;
+#  my $doc = $parser->parsefile($file);
+#  my $inputElement;
+#  my $typeAttribute;
+#  my $child;
+#  my $ret;
+
+#  foreach $inputElement ($doc->getElementsByTagName('Input')) {
+#    $typeAttribute = $inputElement->getAttribute('type');
+#    if ($typeAttribute eq 'auxiliary') {
+#      $child = $inputElement->getFirstChild;
+#      $ret = $child->getNodeValue;
+#      last;
+#    }
+#  }
+#  return $ret;
+  return ".bas";
+}
+
+
+
+## Debugging Aid for dumping out the dictionary we just read
+sub dumpData {
+  foreach $key (sort keys %AbiDict) {
+    print "\"$key\" = \"$AbiDict{$key}\"\n";
+  }
+  print "$chemsys_name\n";
+  print "$chemsys_atoms\n";
+  for ($index = 0; $index < $chemsys_atoms; $index++) {
+    print "$tags{$index} $coords{$index,0} $coords{$index,1} $coords{$index,2}";
+    print "\n";
+  }
+}
+
+sub usage {
+  print "Usage: ai.amica calc.param calc.frag  calc.basis template\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}
+#
+#
+#
+sub handle_options {
+  &usage && exit if ( $opt_h || $opt_help );
+  $revision = '$Revision: 22972 $';
+  $revision =~ (s/\$//g);
+  print "$revision\n" if ( $opt_v );
+  exit if ( $opt_v );
+  $AbiFILE = "";
+  $FragFILE = "";
+  $BasisFILE = "";
+  $TplFILE = "";
+  $AbiFILE = "$opt_n\.param" if ( $opt_p );
+  $FragFILE = "$opt_n\.frag" if ( $opt_f );
+  $BasisFILE = "$opt_n\.basis" if ( $opt_b );
+  $TplFILE = $opt_t;
+}
+#
+
+

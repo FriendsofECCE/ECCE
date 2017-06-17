@@ -1,0 +1,995 @@
+#!/bin/csh -f
+################################################################################
+#
+# Name: build_ecce
+#
+# Purpose: Check for prerequisite software and then build 3rd party packages
+# needed by ECCE followed by ECCE itself and finally create an ECCE binary
+# distribution ready for installation.
+#
+# Usage: Invoke script with -help flag to see command line options.
+#
+################################################################################
+
+set buildcheck = 1
+set buildxerces = 1
+set buildmesa = 1
+set buildwx = 1
+set buildpy = 1
+set buildhttpd = 1
+set buildecce = 1
+set force = 0
+set pause = 0
+set xit = 1
+set config = 0
+set make = 0
+
+set clearfirst = 1
+while ( $#argv > 0) 
+  if ("$1" == "-s" || "$1" == "-skip" || "$1" == "-skipcheck") then
+    set buildcheck = 0
+  else if ("$1" == "-x" || "$1" == "-xerces") then
+    set buildxerces = 1
+    if ($clearfirst == 1) then
+      set clearfirst = 0
+      set buildmesa = 0
+      set buildwx = 0
+      set buildpy = 0
+      set buildhttpd = 0
+      set buildecce = 0
+    endif
+  else if ("$1" == "-m" || "$1" == "-mesa") then
+    set buildmesa = 1
+    if ($clearfirst == 1) then
+      set clearfirst = 0
+      set buildxerces = 0
+      set buildwx = 0
+      set buildpy = 0
+      set buildhttpd = 0
+      set buildecce = 0
+    endif
+  else if ("$1" == "-w" || "$1" == "-wx" || "$1" == "-wxwidgets") then
+    set buildwx = 1
+    if ($clearfirst == 1) then
+      set clearfirst = 0
+      set buildmesa = 0
+      set buildxerces = 0
+      set buildpy = 0
+      set buildhttpd = 0
+      set buildecce = 0
+    endif
+  else if ("$1" == "-p" || "$1" == "-py" || "$1" == "-python" || "$1" == "-wxpython") then
+    set buildpy = 1
+    if ($clearfirst == 1) then
+      set clearfirst = 0
+      set buildmesa = 0
+      set buildxerces = 0
+      set buildwx = 0
+      set buildhttpd = 0
+      set buildecce = 0
+    endif
+  else if ("$1" == "-h" || "$1" == "-httpd") then
+    set buildhttpd = 1
+    if ($clearfirst == 1) then
+      set clearfirst = 0
+      set buildxerces = 0
+      set buildmesa = 0
+      set buildwx = 0
+      set buildpy = 0
+      set buildecce = 0
+    endif
+  else if ("$1" == "-e" || "$1" == "-ecce") then
+    set buildecce = 1
+    if ($clearfirst == 1) then
+      set clearfirst = 0
+      set buildxerces = 0
+      set buildmesa = 0
+      set buildwx = 0
+      set buildpy = 0
+      set buildhttpd = 0
+    endif
+  else if ("$1" == "-3" || "$1" == "-3rd" || "$1" == "-3rdparty" || "$1" == "-third") then
+    set buildxerces = 1
+    set buildmesa = 1
+    set buildwx = 1
+    set buildpy = 1
+    set buildhttpd = 1
+    set buildecce = 0
+    set xit = 0
+  else if ("$1" == "-f" || "$1" == "-force") then
+    set force = 1
+  else if ("$1" == "-pause") then
+    set pause = 1
+  else if ("$1" == "-noexit" || "$1" == "-xxit") then
+    set xit = 0
+  else if ("$1" == "-conf" || "$1" == "-config" || "$1" == "-configure") then
+    set config = 1
+  else if ("$1" == "-make") then
+    set make = 1
+  else if ("$1" == "-help") then
+    echo
+    echo "Usage:  build_ecce [-skip] [-xerces] [-mesa] [-wx] [-py] [-httpd]"
+    echo "                   [-ecce] [-3rd] [-force] [-config] [-make]"
+    echo "                   [-noexit] [-pause] [-help]"
+    echo
+    echo "By default build_ecce compiles all 3rd party packages, one per"
+    echo "invocation and then ECCE, ultimately creating an ECCE binary"
+    echo "distribution. Which packages are built can be explicitly"
+    echo "controlled by command line options.  By specifying any package"
+    echo "to build on the command line all other packages are not built"
+    echo "unless also specified on the command line.  The -config and"
+    echo "-make options can be used to restart aborted 3rd party builds."
+    echo
+    echo "  -skip:   skip checks for prerequisite software before building"
+    echo "  -xerces: build the Apache Xerces XML parser"
+    echo "  -mesa:   build the Mesa OpenGL library"
+    echo "  -wx:     build the wxWidgets GUI toolkit"
+    echo "  -py:     build the wxPython GUI toolkit (build wxWidgets first!)"
+    echo "  -httpd:  build the Apache HTTP server"
+    echo "  -ecce:   build ECCE code and then create a binary distribution"
+    echo "  -3rd:    build all 3rd party packages but not ECCE code"
+    echo "  -force:  build even if packages were previously built/attempted"
+    echo "  -config: skip package extraction and start with configure"
+    echo "  -make:   skip configure step and start with make"
+    echo "  -noexit: do no exit after a package is built but continue to the"
+    echo "           next package (not recommended unless previously built)"
+    echo "  -pause:  pause between each package by prompting for user input"
+    echo "           (only applicable with -noexit option)"
+    echo "  -help:   this message"
+    echo
+    exit 0
+  else
+    echo
+    echo "Usage:  build_ecce [-skip] [-xerces] [-mesa] [-wx] [-py] [-httpd]"
+    echo "                   [-ecce] [-3rd] [-force] [-config] [-make]"
+    echo "                   [-noexit] [-pause] [-help]"
+    echo
+    exit 0
+  endif
+  shift
+end
+
+
+# Make sure $ECCE_HOME is set before doing anything
+if (! $?ECCE_HOME) then
+  echo
+  echo "The \$ECCE_HOME variable must be set to the top-level directory for"
+  echo "the ECCE source code distribution before re-running this script."
+  echo
+  exit -1
+endif
+
+# Check if a valid ECCE source code distribution is specified
+if (! -d ${ECCE_HOME}) then
+  echo
+  echo "The \$ECCE_HOME setting of $ECCE_HOME does not point to"
+  echo "a valid directory.  Set this variable to the top-level directory for"
+  echo "the ECCE source code distribution before re-running this script."
+  echo
+  exit -1
+endif
+
+if (! -d ${ECCE_HOME}/build || ! -d ${ECCE_HOME}/scripts || ! -d ${ECCE_HOME}/data || ! -d ${ECCE_HOME}/siteconfig || ! -d ${ECCE_HOME}/src || ! -d ${ECCE_HOME}/include || ! -d ${ECCE_HOME}/java || ! -e ${ECCE_HOME}/Makefile) then
+  echo
+  echo "The \$ECCE_HOME setting of $ECCE_HOME does not point to"
+  echo "a valid ECCE source code distribution.  Set this variable to the"
+  echo "top-level directory for the ECCE source code distribution before"
+  echo "re-running this script."
+  echo
+  exit -1
+endif
+
+# Setup the required ECCE build environment if needed
+if (! $?ECCE_SYSDIR) then
+  source $ECCE_HOME/build/build_setup
+endif
+
+
+# Prerequisite checks
+if (! -e $ECCE_HOME/build/.buildcheck && $buildcheck == 1) then
+  echo
+  echo "Checking prerequisites for building ECCE..."
+  echo
+  echo "If any of the following tools aren't found or aren't the right"
+  echo "version, hit <ctrl>-c at the prompt and either find or install"
+  echo "the tool before re-running this script.  The whereis command"
+  echo "is useful for finding tools not in your path."
+
+  # gcc
+  echo; echo -n "Found gcc in: "
+  which gcc
+  if ($status == 0) then
+    echo "ECCE requires gcc 3.2.x or 4.x.x"
+    echo -n "This version: "
+    gcc --version | head -1
+  else
+    echo "ECCE requires the 'gcc' package to build"
+  endif
+  echo -n "Hit return if this gcc is OK... "
+  set proceed = $<
+
+  # g++
+  echo; echo -n "Found g++ in: "
+  which g++
+  if ($status == 0) then
+    echo "ECCE requires g++ 3.2.x or 4.x.x"
+    echo -n "This version: "
+    g++ --version | head -1
+  else
+    echo "ECCE requires the 'g++' package to build"
+  endif
+  echo -n "Hit return if g++ is OK... "
+  set proceed = $<
+
+  # gfortran
+  echo; echo -n "Found gfortran in: "
+  which gfortran
+  if ($status == 0) then
+    echo "ECCE requires gfortran 3.2.x or 4.x.x"
+    echo -n "This version: "
+    gfortran --version | head -1
+  else
+    echo "ECCE requires the 'gfortran' package to build"
+  endif
+  echo -n "Hit return if this gfortran is OK... "
+  set proceed = $<
+
+  # make
+  echo; echo -n "Found make in: "
+  which make
+  if ($status == 0) then
+    echo "ECCE requires make 3.x"
+    echo -n "This version: "
+    make --version | head -1
+  else
+    echo "ECCE requires the 'make' package to build"
+  endif
+  echo -n "Hit return if this make is OK... "
+  set proceed = $<
+
+  # java
+  echo; echo -n "Found java in: "
+  which java
+  if ($status == 0) then
+    echo "ECCE requires java 1.5.x or 1.6.x"
+    echo -n "This version: "
+    java -version |& head -1
+  else
+    echo "ECCE requires the 'java jdk' package to run"
+  endif
+  echo -n "Hit return if this java is OK... "
+  set proceed = $<
+
+  # javac
+  echo; echo -n "Found javac in: "
+  which javac
+  if ($status == 0) then
+    echo "ECCE requires javac to be the same version as java above"
+    echo -n "This version: "
+    javac -version | head -1
+  else
+    echo "ECCE requires the 'java jdk development' package to build"
+  endif
+  echo -n "Hit return if this javac is OK... "
+  set proceed = $<
+
+  # ant
+  echo; echo -n "Found ant in: "
+  which ant
+  if ($status == 0) then
+    echo "ECCE requires ant 1.6.x or newer"
+    echo -n "This version: "
+    ant -version | head -1
+  else
+    echo "ECCE requires the 'ant' package to build"
+  endif
+  echo -n "Hit return if this ant is OK... "
+  set proceed = $<
+
+  # python
+  echo; echo -n "Found python in: "
+  which python
+  if ($status == 0) then
+    echo "ECCE requires python 2.4.x or newer"
+    echo -n "This version: "
+    python -V | head -1
+  else
+    echo "ECCE requires the 'python' package to build and run"
+  endif
+  echo -n "Hit return if this python is OK... "
+  set proceed = $<
+
+  # Python.h
+  echo; echo -n "Check for Python.h: "
+  ls /usr/include/*/Python.h
+  if ($status != 0) then
+    echo "ECCE requires the 'python development' package to build"
+  endif
+  echo -n "Hit return if Python.h was found... "
+  set proceed = $<
+
+  # perl
+  echo; echo -n "Found perl in: "
+  which perl
+  if ($status == 0) then
+    echo "ECCE requires perl 5.x.x"
+    perl -v | head -2 | tail -1
+  else
+    echo "ECCE requires the 'perl' package to build and run"
+  endif
+  echo -n "Hit return if this perl is OK... "
+  set proceed = $<
+
+  # gtk+-2.0
+  echo; echo -n "pkg-config check for gtk+-2.0: "
+  set gtkcheck = `pkg-config --list-all | grep gtk+-2.0`
+  if ("$gtkcheck" == "") then
+    echo "Not found"
+    echo "ECCE requires the 'gtk+-2.0 development' package to build and run"
+  else
+    echo "Found"
+    echo "ECCE requires gtk+-2.0 2.x.x"
+    echo -n "This version: "
+    pkg-config --modversion gtk+-2.0
+  endif
+  echo -n "Hit return if this gtk+-2.0 is OK... "
+  set proceed = $<
+
+  # jpeglib.h
+  echo; echo -n "Check for jpeglib.h: "
+  ls /usr/include/jpeglib.h
+  if ($status != 0) then
+    echo "ECCE requires the 'jpeg development' package to build"
+  endif
+  echo -n "Hit return if jpeglib.h was found... "
+  set proceed = $<
+
+  # autoconf
+  echo; echo -n "Found autoconf in: "
+  which autoconf
+  if ($status == 0) then
+    echo "ECCE requires autoconf 2.5x or newer"
+    echo -n "This version: "
+    autoconf --version | head -1
+  else
+    echo "ECCE requires the 'autoconf' package to build"
+  endif
+  echo -n "Hit return if this autoconf is OK... "
+  set proceed = $<
+
+  # libtool
+  echo; echo -n "Found libtool in: "
+  which libtool
+  if ($status == 0) then
+    echo "ECCE requires libtool 1.5.x or newer"
+    echo -n "This version: "
+    libtool --version | head -1
+  else
+    echo "ECCE requires the 'libtool' package to build"
+  endif
+  echo -n "Hit return if this libtool is OK... "
+  set proceed = $<
+
+  # mogrify
+  echo; echo -n "Found ImageMagick mogrify in: "
+  which mogrify
+  if ($status == 0) then
+    echo "ECCE requires mogrify 6.x.x or newer"
+    mogrify --version | head -1
+  else
+    echo "ECCE requires the 'imagemagick' package to run"
+  endif
+  echo -n "Hit return if this mogrify is OK... "
+  set proceed = $<
+
+  # Xt includes
+  echo; echo -n "Check for Xt Instrinsic.h: "
+  ls /usr/include/X11/Intrinsic.h
+  if ($status != 0) then
+    echo "ECCE requires the 'libXt development' package to build and run"
+  endif
+  echo -n "Hit return if the Xt Intrinsic.h include file was found... "
+  set proceed = $<
+
+  # xterm
+  echo; echo -n "Found xterm in: "
+  which xterm
+  if ($status != 0) then
+    echo "ECCE requires the 'xterm' package to run"
+  endif
+  echo -n "Hit return if xterm was found... "
+  set proceed = $<
+
+  # Check if the sysdir platform is OK
+  echo; echo "The $ECCE_HOME/scripts/sysdir script identifies the build"
+  echo -n "platform directory as: "
+  if ($ECCE_SYSDIR == "") then
+    echo "<empty>"
+    echo "Because this value is <empty> no platform-specific parent"
+    echo "directory will be created for ECCE executables, libraries, etc."
+    echo "This works fine unless your site needs support for multiple platforms."
+  else
+    echo $ECCE_SYSDIR
+    echo "This value will be used to create a $ECCE_HOME/$ECCE_SYSDIR"
+    echo "parent directory for all compiled executables, libraries, etc."
+  endif
+
+  echo; echo "Finished checking prerequisites for building ECCE."
+  echo -n "Do you want to skip these checks for future build_ecce invocations (y/n)? "
+  set skipit = $<
+  if ($skipit == "yes" || $skipit == "y" || $skipit == "Y" || $skipit == "Yes" || $skipit == "YES") then
+    touch $ECCE_HOME/build/.buildcheck
+  else
+    rm -f $ECCE_HOME/build/.buildcheck
+  endif
+
+  if ($xit == 1) then
+    echo; exit 0
+  endif
+endif
+# End of prerequisites
+
+
+# Check if this is a 64-bit platform, but $ECCE_SYSDIR indicates a 32-bit
+# build. I.e., this is a cross-compilation as is done for the EMSL
+# automated builds and the -m32 flag is required to compile
+if ($?ECCE_BUILD_CROSSCOMPILE) then
+  setenv CFLAGS -m32
+  setenv CXXFLAGS -m32
+  setenv LDFLAGS -m32
+  setenv PKG_CONFIG_PATH /usr/lib/pkgconfig
+endif
+
+
+# Create 3rdparty directories if needed
+if (! -d $ECCE_HOME/$ECCE_SYSDIR) then
+  mkdir $ECCE_HOME/$ECCE_SYSDIR
+endif
+
+if (! -d $ECCE_HOME/${ECCE_SYSDIR}3rdparty) then
+  mkdir $ECCE_HOME/${ECCE_SYSDIR}3rdparty
+endif
+
+if (! -d $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build) then
+  mkdir $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build
+endif
+
+cd $ECCE_HOME
+
+
+# Xerces build
+if ($buildxerces == 1) then
+  if ($force == 1) then
+    rm -rf ${ECCE_SYSDIR}3rdparty/xerces
+    rm -rf ${ECCE_SYSDIR}3rdparty/build/xerces-c-src*
+  else if ($make == 1 || $config == 1) then
+    rm -rf ${ECCE_SYSDIR}3rdparty/xerces
+  endif
+
+  if (! -d ${ECCE_SYSDIR}3rdparty/xerces) then
+    if ($config == 1) then
+      cd ${ECCE_SYSDIR}3rdparty/build
+      goto xconfig
+    else if ($make == 1) then
+      cd ${ECCE_SYSDIR}3rdparty/build/xerces-c-src*
+      setenv XERCESCROOT $cwd
+      cd src/xercesc
+      goto xmake
+    endif
+
+    if (`ls -1 ${ECCE_SYSDIR}3rdparty/build | grep -c xerces-c-src` == 0) then
+      echo; echo "Building Xerces XML parser..."; echo
+
+      cp -f build/3rdparty-dists/xerces-c-src* ${ECCE_SYSDIR}3rdparty/build
+      cd ${ECCE_SYSDIR}3rdparty/build
+      tar xvf xerces-c-src*.tar.bz2
+      rm -f xerces-c-src*.tar.bz2
+
+xconfig:
+      cd xerces-c-src*
+      setenv XERCESCROOT $cwd
+      cd src/xercesc
+
+      ./runConfigure -plinux -b$ECCE_BUILD_BITS -nfileonly -cgcc -xg++ -P$ECCE_HOME/${ECCE_SYSDIR}3rdparty/xerces
+      if ($status != 0) then
+        echo
+        echo "The Xerces 'runConfigure' command failed.  The issue(s)"
+        echo "identified must be resolved before Xerces can be built."
+        echo
+        exit -1
+      endif
+
+xmake:
+      make |& tee make.log
+      if ($status != 0) then
+        echo
+        echo "The Xerces 'make' command failed.  The issue(s)"
+        echo "identified must be resolved before Xerces can be built."
+        echo
+        exit -1
+      endif
+
+      make install
+      if ($status != 0) then
+        echo
+        echo "The Xerces 'make install' command failed.  The issue(s)"
+        echo "identified must be resolved before Xerces can be built."
+        echo
+        exit -1
+      endif
+
+      cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/xerces/lib
+      find . -type f -exec strip {} \;
+      cd $ECCE_HOME
+
+      echo; echo "Xerces built"; echo
+      if ($xit == 1) then
+        echo; exit 0
+      endif
+    else
+      echo
+      echo "Xerces build previously started, but not finished!"
+      echo "Use the -config, -make, or -force option to build_ecce"
+      echo
+      exit -1
+    endif
+  else
+    echo; echo "Xerces previously built--skipping"
+  endif
+
+  if ($pause == 1) then
+     echo -n "Hit return to continue build... "
+     set proceed = $<
+  endif
+endif
+
+
+# Mesa OpenGL build
+if ($buildmesa == 1) then
+  if ($force == 1) then
+    rm -rf ${ECCE_SYSDIR}3rdparty/mesa
+    rm -rf ${ECCE_SYSDIR}3rdparty/build/Mesa-*
+  else if ($make == 1 || $config == 1) then
+    rm -rf ${ECCE_SYSDIR}3rdparty/mesa
+  endif
+
+  if (! -d ${ECCE_SYSDIR}3rdparty/mesa) then
+    if ($config == 1 || $make == 1) then
+      cd ${ECCE_SYSDIR}3rdparty/build/Mesa-*
+      goto mmake
+    endif
+
+    if (`ls -1 ${ECCE_SYSDIR}3rdparty/build | grep -c Mesa-` == 0) then
+      echo; echo "Building Mesa OpenGL library..."; echo
+
+      cp -f build/3rdparty-dists/MesaLib-* ${ECCE_SYSDIR}3rdparty/build
+      cd ${ECCE_SYSDIR}3rdparty/build
+      tar xvf MesaLib-*.tar.bz2
+      rm -f MesaLib-*.tar.bz2
+
+mmake:
+      cd Mesa-*
+
+      if ($ECCE_BUILD_BITS == 64) then
+        set mesaConfig = "linux-x86-64"
+      else if ($?ECCE_BUILD_CROSSCOMPILE) then
+        set mesaConfig = "linux-x86-32"
+      else
+        set mesaConfig = "linux-x86"
+      endif
+ 
+      make $mesaConfig OPT_FLAGS="-fno-strict-aliasing" |& tee make.log
+      if ($status != 0) then
+        echo
+        echo "The Mesa OpenGL 'make' command failed.  The issue(s)"
+        echo "identified must be resolved before Mesa can be built."
+        echo
+        exit -1
+      endif
+
+      mkdir $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa
+      mkdir $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa/include
+      mkdir $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa/lib
+      cp -rf include/GL $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa/include
+      cd lib*
+      cp -rf * $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa/lib
+     
+      cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa/lib
+      find . -type f -exec strip {} \;
+      cd $ECCE_HOME
+
+      echo; echo "Mesa OpenGL built"; echo
+      if ($xit == 1) then
+        echo; exit 0
+      endif
+    else
+      echo
+      echo "Mesa OpenGL build previously started, but not finished!"
+      echo "Use the -make or -force option to build_ecce"
+      echo
+      exit -1
+    endif
+  else
+    echo; echo "Mesa OpenGL previously built--skipping"
+  endif
+
+  if ($pause == 1) then
+     echo -n "Hit return to continue build... "
+     set proceed = $<
+  endif
+endif
+
+
+# wxWidgets/ewxAUI build
+if ($buildwx == 1) then
+  if ($force == 1) then
+    rm -rf ${ECCE_SYSDIR}3rdparty/wxwidgets
+    rm -rf ${ECCE_SYSDIR}3rdparty/build/wxPython-src*
+  else if ($make == 1 || $config == 1) then
+    rm -rf ${ECCE_SYSDIR}3rdparty/wxwidgets
+  endif
+
+  if (! -d ${ECCE_SYSDIR}3rdparty/wxwidgets) then
+    if ($config == 1) then
+      cd ${ECCE_SYSDIR}3rdparty/build
+      goto wconfig
+    else if ($make == 1) then
+      cd ${ECCE_SYSDIR}3rdparty/build/wxPython-src*
+      setenv WXDIR $cwd
+      cd bld
+      goto wmake
+    endif
+
+    if (`ls -1 ${ECCE_SYSDIR}3rdparty/build | grep -c wxPython-src` == 0) then
+      echo; echo "Building wxWidgets GUI toolkit..."; echo
+
+      cp -f build/3rdparty-dists/wxPython-src* ${ECCE_SYSDIR}3rdparty/build
+      cd ${ECCE_SYSDIR}3rdparty/build
+      tar xvf wxPython-src*.tar.bz2
+      rm -f wxPython-src*.tar.bz2
+
+wconfig:
+      cd wxPython-src*
+      setenv WXDIR $cwd
+
+      # Sleight of hand so that the ECCE Mesa OpenGL includes/libs are found
+      # rather than being dependent upon a native install of OpenGL placing
+      # these files in the directories expected by wxWidgets configure
+      # which bombs when they aren't found.
+      # Unfortunately the configure script won't take arguments like
+      # LDFLAGS and use those so had to resort to tweaking the script itself.
+      # For 64-bit builds only the native OpenGL is functional, so the
+      # includes/libs for that should already have been copied into the
+      # ECCE Mesa install area.  If the wxWidgets configure command wasn't
+      # so nasty all this extra work wouldn't be necessary.
+      if (! -e configure.orig) then
+        mv configure configure.orig
+      endif
+      cat configure.orig | sed -e 's%^SEARCH_INCLUDE="\\%SEARCH_INCLUDE="$ECCE_HOME/${ECCE_SYSDIR}3rdparty/mesa/include \\%' >! configure
+      chmod a+x configure
+
+      if (! -d bld) then
+        mkdir bld
+      endif
+      cd bld
+      ../configure --prefix=$ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxwidgets --with-gtk --with-gnomeprint --with-opengl --enable-geometry --enable-graphics_ctx --enable-sound --with-sdl --enable-mediactrl --enable-display
+      if ($status != 0) then
+        echo
+        echo "The wxWidgets 'configure' command failed.  The issue(s)"
+        echo "identified must be resolved before wxWidgets can be built."
+        echo
+        exit -1
+      endif
+
+wmake:
+      make |& tee make.log
+      if ($status != 0) then
+        echo
+        echo "The wxWidgets 'make' command failed.  The issue(s)"
+        echo "identified must be resolved before wxWidgets can be built."
+        echo
+        exit -1
+      endif
+
+      make -C contrib/src/gizmos |& tee -a make.log
+      if ($status != 0) then
+        echo
+        echo "The wxWidgets 'make -C contrib/src/gizmos' command failed.  The issue(s)"
+        echo "identified must be resolved before wxWidgets can be built."
+        echo
+        exit -1
+      endif
+
+      make -C contrib/src/stc |& tee -a make.log
+      if ($status != 0) then
+        echo
+        echo "The wxWidgets 'make -C contrib/src/stc' command failed.  The issue(s)"
+        echo "identified must be resolved before wxWidgets can be built."
+        echo
+        exit -1
+      endif
+
+      make install
+      if ($status != 0) then
+        echo
+        echo "The wxWidgets 'make install' command failed.  The issue(s)"
+        echo "identified must be resolved before wxWidgets can be built."
+        echo
+        exit -1
+      endif
+
+      make -C contrib/src/gizmos install
+      if ($status != 0) then
+        echo
+        echo "The wxWidgets 'make -C contrib/src/gizmos install' command failed."
+        echo "The issue(s) identified must be resolved before wxWidgets can be built."
+        echo
+        exit -1
+      endif
+
+      make -C contrib/src/stc install
+      if ($status != 0) then
+        echo
+        echo "The wxWidgets 'make -C contrib/src/stc install' command failed."
+        echo "The issue(s) identified must be resolved before wxWidgets can be built."
+        echo
+        exit -1
+      endif
+
+      # ECCE customized AUI, i.e. ewxAUI
+      cp -rf $ECCE_HOME/build/ewxaui .
+      cd ewxaui
+      ./auigen.sh 
+      if ($status != 0) then
+        echo
+        echo "The wxWidgets ewxAUI 'auigen.sh' command failed.  The issue(s)"
+        echo "identified must be resolved before ewxAUI can be built."
+        echo
+        exit -1
+      endif
+
+      make |& tee make.log
+      if ($status != 0) then
+        echo
+        echo "The wxWidgets ewxAUI 'make' command failed.  The issue(s)"
+        echo "identified must be resolved before ewxAUI can be built."
+        echo
+        exit -1
+      endif
+
+      cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxwidgets/lib
+      # The ewxaui build creates a static .a library we don't need
+      rm -f libwx_*.a
+      find . -maxdepth 1 -type f -exec strip {} \;
+      cd $ECCE_HOME
+
+      echo; echo "wxWidgets built"; echo
+      if ($xit == 1) then
+        echo; exit 0
+      endif
+    else
+      echo
+      echo "wxWidgets build previously started, but not finished!"
+      echo "Use the -config, -make, or -force option to build_ecce"
+      echo
+      exit -1
+    endif
+  else
+    echo; echo "wxWidgets previously built--skipping"
+  endif
+
+  if ($pause == 1) then
+     echo -n "Hit return to continue build... "
+     set proceed = $<
+  endif
+endif
+
+
+# wxPython build
+if ($buildpy == 1) then
+  if ($force == 1) then
+    rm -rf ${ECCE_SYSDIR}3rdparty/wxpython
+  endif
+
+  if (! -d ${ECCE_SYSDIR}3rdparty/wxpython) then
+    if (! -d ${ECCE_SYSDIR}3rdparty/wxwidgets) then
+      echo
+      echo "wxWidgets must be built before wxPython!"
+      echo
+      exit -1
+    else if (`ls -1 ${ECCE_SYSDIR}3rdparty/build | grep -c wxPython-src` != 0) then
+      echo; echo "Building wxPython GUI toolkit..."; echo
+
+      cd ${ECCE_SYSDIR}3rdparty/build/wxPython-src*
+      setenv WXDIR $cwd
+      cd wxPython
+
+      # wxPython
+      set path = ($ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxwidgets/bin $path)
+      setenv LD_LIBRARY_PATH $ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxwidgets/lib
+
+      python setup.py build_ext --inplace UNICODE=0 BUILD_GLCANVAS=0 BUILD_OGL=0 |& tee build.log
+      if ($status != 0) then
+        echo
+        echo "The wxPython 'python setup.py' command failed.  The issue(s)"
+        echo "identified must be resolved before wxPython can be built."
+        echo
+        exit -1
+      endif
+
+      mkdir $ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxpython
+      cp -rf wx $ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxpython
+
+      cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/wxpython/wx
+      find . -name \*.so -exec strip {} \;
+      cd $ECCE_HOME
+
+      echo; echo "wxPython built"; echo
+      if ($xit == 1) then
+        echo; exit 0
+      endif
+    else
+      echo
+      echo "wxPython build previously started, but not finished!"
+      echo "Use the -force option to build_ecce"
+      echo
+      exit -1
+    endif
+  else
+    echo; echo "wxPython previously built--skipping"
+  endif
+
+  if ($pause == 1) then
+     echo -n "Hit return to continue build... "
+     set proceed = $<
+  endif
+endif
+
+
+# Apache HTTP server build
+if ($buildhttpd == 1) then
+  if ($force == 1) then
+    rm -rf ${ECCE_SYSDIR}3rdparty/httpd
+    rm -rf ${ECCE_SYSDIR}3rdparty/build/httpd-*
+  else if ($make == 1 || $config == 1) then
+    rm -rf ${ECCE_SYSDIR}3rdparty/httpd
+  endif
+
+  if (! -d ${ECCE_SYSDIR}3rdparty/httpd) then
+    if ($config == 1) then
+      cd ${ECCE_SYSDIR}3rdparty/build/httpd-*
+      goto hconfig
+    else if ($make == 1) then
+      cd ${ECCE_SYSDIR}3rdparty/build/httpd-*
+      goto hmake
+    endif
+
+    if (`ls -1 ${ECCE_SYSDIR}3rdparty/build | grep -c httpd-` == 0) then
+      echo; echo "Building Apache HTTP server..."; echo
+
+      cp -f build/3rdparty-dists/httpd-* ${ECCE_SYSDIR}3rdparty/build
+      cd ${ECCE_SYSDIR}3rdparty/build
+      tar xvf httpd-*.tar.bz2
+      rm -f httpd-*.tar.bz2
+      cd httpd-*
+
+      mkdir modules/ss_compression
+      cp $ECCE_HOME/build/httpd_ss_compression/*.* modules/ss_compression
+
+hconfig:
+      ./buildconf
+      if ($status != 0) then
+        echo
+        echo "The Apache HTTP server 'buildconf' command failed.  The issue(s)"
+        echo "identified must be resolved before the Apache HTTP server can be built."
+        echo
+        exit -1
+      endif
+
+      ./configure --prefix=$ECCE_HOME/${ECCE_SYSDIR}3rdparty/httpd --enable-rewrite --enable-dav --enable-ss-compression
+      if ($status != 0) then
+        echo
+        echo "The Apache HTTP server 'configure' command failed.  The issue(s)"
+        echo "identified must be resolved before the Apache HTTP server can be built."
+        echo
+        exit -1
+      endif
+
+hmake:
+      make |& tee make.log
+      if ($status != 0) then
+        echo
+        echo "The Apache HTTP server 'make' command failed.  The issue(s)"
+        echo "identified must be resolved before the Apache HTTP server can be built."
+        echo
+        exit -1
+      endif
+
+      make install
+      if ($status != 0) then
+        echo
+        echo "The Apache HTTP server 'make install' command failed.  The issue(s)"
+        echo "identified must be resolved before the Apache HTTP server can be built."
+        echo
+        exit -1
+      endif
+
+      # perl CGI module
+      cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/build
+      if (`ls -1 | grep -c CGI.pm-` == 0) then
+        cp -f $ECCE_HOME/build/3rdparty-dists/CGI.pm-* .
+        tar xvf CGI.pm-*.tar.bz2
+        rm -f CGI.pm-*.tar.bz2
+      else
+        echo
+        echo "Perl CGI module 3rd party distribution not found!"
+        echo
+        exit -1
+      endif
+
+      cd CGI.pm-*
+      cd lib
+      cp -r * $ECCE_HOME/${ECCE_SYSDIR}3rdparty/httpd/cgi-bin
+
+      # cleanup
+      cd $ECCE_HOME/${ECCE_SYSDIR}3rdparty/httpd
+      rm -rf manual
+      # GDB 8/6/13 lib directory doesn't exist if APR wasn't built
+      if (-d lib) then
+        find lib -maxdepth 1 -type f -name \*.so\* -exec strip {} \;
+      endif
+      strip bin/* >& /dev/null
+      cd $ECCE_HOME
+
+      echo; echo "Apache HTTP server built"; echo
+      if ($xit == 1) then
+        echo; exit 0
+      endif
+    else
+      echo
+      echo "Apache HTTP server build previously started, but not finished!"
+      echo "Use the -config, -make, or -force option to build_ecce"
+      echo
+      exit -1
+    endif
+  else
+    echo; echo "Apache HTTP server previously built--skipping"
+  endif
+
+  if ($pause == 1) then
+     echo -n "Hit return to continue build... "
+     set proceed = $<
+  endif
+endif
+
+
+# Done with 3rdparty packages
+
+# ECCE build
+if ($buildecce == 1) then
+  if ($force == 1) then
+    make clean
+  endif
+  echo; echo "Building ECCE code..."; echo
+
+  make |& tee make.log
+  if ($status != 0) then
+    echo
+    echo "The ECCE 'make' command failed.  The issue(s)"
+    echo "identified must be resolved before ECCE can be built."
+    echo
+    exit -1
+  endif
+
+  create_ecce_bin -t $ECCE_HOME
+  if ($status != 0) then
+    echo
+    echo "The ECCE 'create_ecce_bin' command failed.  The issue(s)"
+    echo "identified must be resolved before the ECCE distribution can be built."
+    echo
+    exit -1
+  endif
+
+  echo; echo "ECCE built and distribution created in $ECCE_HOME"; echo
+endif
+

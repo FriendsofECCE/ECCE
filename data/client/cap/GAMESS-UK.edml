@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   See online documenation at http://www.emsl.pnl.gov:2080/docs/ecce
+-->
+
+<appdescriptor>
+
+<GaussianBasisSetRules>
+  <MaxLValue>  4</MaxLValue>
+  <ECPS>True</ECPS>
+  <GeneralContractions>True</GeneralContractions>
+  <PreferOptimization>	True</PreferOptimization>
+  <MaxPrimitives>64000 64000 64000 64000 64000 64000 64000</MaxPrimitives>
+  <MaxSharedExponent>      1 </MaxSharedExponent>
+  <SphericalCoordinates>	True </SphericalCoordinates>
+  <DFTFitting>		True</DFTFitting>
+  <RecommendDFTCharge>	False </RecommendDFTCharge>
+  <RequireFullDFT>         True </RequireFullDFT>
+  <MaxTotalFunctions>	64000</MaxTotalFunctions>
+  <MaxTotalPrimitives>	64000</MaxTotalPrimitives>
+  <MultipleOrbitals>	False</MultipleOrbitals>
+  <LibraryNames>	False</LibraryNames>
+  <AllowMultipleOrbitals>False</AllowMultipleOrbitals>
+</GaussianBasisSetRules>
+
+
+
+<GeometryConstraintRules>
+  <SupportsAtomConstraints>true</SupportsAtomConstraints>
+  <SupportsConstrainBonds>false</SupportsConstrainBonds>
+  <SupportsConstrainAngles>false</SupportsConstrainAngles>
+  <SupportsConstrainTorsions>false</SupportsConstrainTorsions>
+  <SupportsRestrainBonds>false</SupportsRestrainBonds>
+  <SupportsRestrainAngles>false</SupportsRestrainAngles>
+  <SupportsRestrainTorsions>false</SupportsRestrainTorsions>
+  <SupportsFixedAtomsAndConstraints>false</SupportsFixedAtomsAndConstraints>
+  <SupportsFixedAtomsAndRestraints>false</SupportsFixedAtomsAndRestraints>
+  <SupportsMixedConstraintsAndRestraints>false</SupportsMixedConstraintsAndRestraints>
+</GeometryConstraintRules>
+
+
+
+<!-- This seems misplaced.  Where should it really be?  What affects does
+     that have on existing data?
+     Bruce is looking into this.
+-->
+
+<MOOrdering type="cartesian" >
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="xx" a2="yy" a3="zz" a4="xy" a5="xz" a6="yz"></lshell>
+   <lshell lval="3" a1="xxx" a2="yyy" a3="zzz" a4="xxy" a5="xxz" a6="xyy"
+    a7="yyz" a8="xzz" a9="yzz" a10="xyz"></lshell>
+   <lshell lval="4" a1="xxxx" a2="yyyy" a3="zzzz" a4="xxxy" a5="xxxz" a6="yyyx"
+    a7="yyyz" a8="zzzx" a9="zzzy" a10="xxyy" a11="xxzz" a12="yyzz"
+    a13="xxyz" a14="yyxz" a15="zzxy"></lshell>
+</MOOrdering>
+
+<MOOrdering type="spherical" >
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="xx" a2="yy" a3="zz" a4="xy" a5="xz" a6="yz"></lshell>
+   <lshell lval="3" a1="xxx" a2="yyy" a3="zzz" a4="xxy" a5="xxz" a6="xyy"
+    a7="yyz" a8="xzz" a9="yzz" a10="xyz"></lshell>
+   <lshell lval="4" a1="xxxx" a2="yyyy" a3="zzzz" a4="xxxy" a5="xxxz" a6="yyyx"
+    a7="yyyz" a8="zzzx" a9="zzzy" a10="xxyy" a11="xxzz" a12="yyzz"
+    a13="xxyz" a14="yyxz" a15="zzxy"></lshell>
+</MOOrdering>
+
+<!-- All names are completely unconstrained but must be consistent with
+     names used by amulet dialogs and input files generator etc.
+-->
+<Editor theorydialog="guktheory.py" runtypedialog="gukruntype.py">
+  <Theory category="SCF" name="RHF">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+  </Theory>
+  <Theory category="SCF" name="ROHF">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+  </Theory>
+  <Theory category="SCF" name="UHF">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+  </Theory>
+  <Theory category="DFT" name="RDFT">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+  </Theory>
+  <Theory category="DFT" name="UDFT">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+  </Theory>
+  <Theory category="MP" name="RMP2">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+  </Theory>
+  <Theory category="MP" name="UMP2">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+  </Theory>
+
+  <TheorySummary>
+    <item key="ES.Theory.SCF.Direct" label="SCF Integrals"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.SCF.ConvergenceAlgorithm" label="SCF Conv. Algorithm"></item>
+  </TheorySummary>
+  <TheorySummary topLabel="SCF Convergence-">
+    <item key="ES.Theory.SCF.ConvGradient" label="Gradient"></item>
+    <item key="ES.Theory.SCF.ConvDensity" label="Density"></item>
+    <item key="ES.Theory.SCF.ConvEnergy" label="Energy"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.SCF.ConvIterations" label="SCF Max. Iterations"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.DFT.XCFunctionals" label="DFT Combined Func."></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.DFT.ExchangeFunctionals" label="DFT Exchange Func."></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.DFT.CorrelationFunctionals" label="DFT Corr Func."></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.PostHF.NumFrozenCore" label="Frozen Core Orbitals"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.PostHF.NumFrozenVirt" label="Frozen Virtual Orbitals"></item>
+  </TheorySummary>
+
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.SearchAlgorithm" label="Algorithm"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.SearchFor" label="Search for"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.Convergence" label="Geom. Convergence"></item>
+  </RuntypeSummary>
+  <RuntypeSummary topLabel="Geom. Convergence-">
+    <item key="ES.Runtype.GeomOpt.ConvergenceGradient.Value" label="Gradient"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.MaximumStepsValue" label="Max. Steps"></item>
+  </RuntypeSummary>
+</Editor>
+
+
+
+<!-- Raw File Naming Conventions
+-->
+
+<DataFiles>
+  <Input   type="primary" mimetype="chemical/x-gamessuk-input" comment="true" commentstring="#">gamessuk.gki</Input>
+  <Output type="primary" mimetype="chemical/x-gamessuk-output">gamessuk.gko</Output>
+  <Output type="parse" verifypattern="" mimetype="chemical/x-gamessuk-parse">gamessuk.gko</Output>
+  <Output type="auxiliary" mimetype="chemical/x-gamessuk-mo">ftn058</Output>
+</DataFiles>
+
+<!-- Names of files required for code integration.  These files are
+     assumed to be in the ecce path as managed by the ecce_env script.
+-->
+<IntegrationFiles>
+  <Template>	gamess-uk.tpl  </Template>
+  <InputGenerator>ai.gamess-uk </InputGenerator>
+  <Importer>GAMESS-UK.expt </Importer>
+  <ParseSpecification>gamess-uk.desc </ParseSpecification>
+  <LaunchPreprocessor>gamess-uk.launchpp </LaunchPreprocessor>
+  <BasisTranslationScript>std2GAMESS-UK</BasisTranslationScript>
+</IntegrationFiles>
+
+</appdescriptor>

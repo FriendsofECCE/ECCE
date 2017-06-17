@@ -1,0 +1,61 @@
+
+This directory contains information that may be customized for each
+site.  This README provides a short synopsis  of each file or set of
+files.  Many of the files contain extensive documentation so refer
+directly to the files for more detailed information.  Where appropriate
+pointers to other documentation are provided.
+
+Miscellaneous
+-------------------------------------
+DataServers - information on data servers used at this site.  
+This information is filled in by the installation script and can be hand
+modified later.
+
+jndi.properties - information needed by the messaging server.
+This information is filled in by the installation script and can be hand
+modified later.
+
+remote_shells.site - customizations for remote shell, copy, and remote
+xterm commands.  See the extensive documentation within this file.
+
+site_runtime - environment variables used by Ecce.
+
+GLLimits.xml - allows customization of the maximum number of viewers for
+specific x servers (GLX).  This is typically not necessary except for X
+emulation packages (Exceed 3D etc).
+
+a3debug.cfg - controls logging of the Ecce messaging system.
+Customization not required unless you are helping the Ecce team debug a
+problem.
+
+Machine Registration Files/Directories
+--------------------------------------
+The remaining files, described below, are part of the machine
+registration process.  Most, but not all,  customization of these files can
+be done through the Ecce Machine Registration GUI (ecce -admin).  Please read
+the documentation that can be found on the web pages before customizing these
+files http://ecce.emsl.pnl.gov/docs/2864B-server_reg.pdf.  
+
+submit.site - contains documentation and basic defaults for the
+CONFIG.<machine> files.
+
+CONFIG.<machine> - contains paths (set via the GUI) and allows for
+customization of the generated job scripts.
+
+CONFIG-examples - This directory contains example CONFIG.<machine> files
+for the different queuing systems.  See the README in this directory.
+Use these files as examples for your own customization.
+
+Machines - Information from the GUI about each registered machine.
+
+README.Q - explains the syntax of the .Q files.
+
+<machine>.Q  - describes the Queues available on each machine (if any).
+
+QueueManagers - descriptions of queue managers and command to manipulate
+them (LSF, PBS...).  This file only needs to be modified if you have a
+queue system not already supported by Ecce.
+
+Queues - specifies all the queues in use and the associated .Q file.
+This fiile is modified directly by the GUI.
+

@@ -1,0 +1,29 @@
+name
+Def2-SVPD
+name
+type
+
+type
+category
+ORBITAL
+category
+spherical
+
+spherical
+contraction_type
+
+contraction_type
+references
+  Def2-SVPD  EMSL  Basis Set Exchange Library  3/15/13 10:18 AM
+ Elements                             References
+ --------                             ----------
+ H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn: Dmitrij Rappoport,F. Furche, Property-optimized Gaussian basis sets for molecular response calculations, J. Chem. Phys. 133, 134105 (2010).
+ 
+
+references
+info
+
+info
+comments
+
+comments

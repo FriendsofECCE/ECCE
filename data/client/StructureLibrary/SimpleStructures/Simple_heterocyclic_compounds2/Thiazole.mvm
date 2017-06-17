@@ -1,0 +1,24 @@
+title:          Thiazole
+type:           molecule
+cell_units:     angstroms
+num_atoms:      8
+atom_info:      symbol cart
+atom_list:
+  C  -0.432   0.856   0.012
+  N   0.842   0.777   0.007
+  C   1.323  -0.404  -0.009
+  S   0.072  -1.657  -0.020
+  C  -1.082  -0.316  -0.000
+  H  -0.950   1.830   0.025
+  H   2.402  -0.626  -0.016
+  H  -2.174  -0.460   0.002
+num_bonds:      8
+bond_list:
+ 1  2
+ 1  5
+ 1  6
+ 2  3
+ 3  4
+ 3  7
+ 4  5
+ 5  8

@@ -1,0 +1,34 @@
+name
+aug-mcc-pV8Z
+name
+type
+correlation_consistent
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+GC
+contraction_type
+references
+Elements                             References
+--------                             ---------
+ H    : S. L. Mielke and K. A. Peterson, to be published.
+
+references
+info
+      Hydrogen Modified Correlation Consistent Octuple Zeta (aug-mcc-pV8Z)
+      --------------------------------------------------------------------
+Elements               Contraction                     References
+H : (16s,8p,7d,6f,5g,4h,3i,2k) -> [9s,8p,7d,6f,5g,4h,3i,2k]
+                                                 S.T. Mielke and K.A. Peterson,
+                                                 to be published.
+
+
+info
+comments
+3/02/2005  - DFF - Original creation of this file from an e-mail message
+comments

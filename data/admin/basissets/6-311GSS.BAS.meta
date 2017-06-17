@@ -1,0 +1,39 @@
+name
+6-311G** Polarization
+name
+type
+polarization
+type
+category
+TAIOrbital
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ----------
+H - Ar:  R. Krishnan, J.S. Binkley, R. Seeger, J.A. Pople, J. Chem. Phys. 72,
+         650 (1980)
+
+references
+info
+                6-311G** Polarization Functions
+                -------------------------------
+Elements                            Reference
+ H - He: (1p) R. Krishnan, J.S. Binkley, R. Seeger and J.A. Pople, J. Chem.
+Li - Ne: (1d) Phys. 72, 650 (1980).
+Note: This basis uses 5-component d functions.
+
+info
+comments
+12/30/99  - DFF - Add I d function
+11/19/99  - DFF - Correct Br exponent (0.415 -> 0.451)
+12/15/97  - DFF - Add K and Can d functions.
+1/29/96  - DFF - Add Ga - Kr.
+2/22/95  - DFF - Modify the literature citation format.
+8/10/90  - DFF - Original creation of this file from MIA basis set library.
+comments

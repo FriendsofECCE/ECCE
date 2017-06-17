@@ -1,0 +1,266 @@
+
+=========================
+ECCE Builder Installation
+=========================
+
+
+Overview
+--------
+
+The ECCE Builder can be installed and run on most Linux 32- and 64-bit 
+operating systems such as Red Hat Enterprise Linux, Debian, Ubuntu, 
+OpenSUSE, and Mint.  This includes both native and virtual machine 
+Linux installs using VirtualBox (http://www.virtualbox.org) or VMware 
+(http://www.vmware.com).  Installing Linux as a virtual machine allows 
+sites with only Windows or Macintosh OS X workstations to run the 
+ECCE Builder.  A minimum of 2 GB of memory is needed to run both 
+your Linux operating system and the ECCE Builder although 4 GB or 
+more is recommended.  The minimum free disk space needed to install 
+the ECCE Builder is 250 MB.
+
+The ECCE Builder uses the wxWidgets GUI toolkit, which is built on the 
+Gtk toolkit with the base X Window System and OpenGL for 
+visualization.  Linux workstations running the ECCE Builder must have 
+either 32-bit i686 processors or 64-bit x86_64 processors constrained by 
+the memory and disk space requirements mentioned above.  The ECCE 
+Builder software can be installed on each individual workstation on 
+which it will be run, or preferably in a multi-user environment, on a 
+shared file system such as NFS or AFS that each workstation accesses.
+
+Download ECCE Builder Binary Distribution or Build Source Distribution
+
+Instructions for obtaining the ECCE Builder can be found on the ECCE 
+website at http://ecce.pnl.gov.  The download website has both 32- and 
+64-bit binary distributions and a source code distribution.  Binary 
+distributions are provided for both the ECCE Builder application and the 
+full ECCE software suite.  Although the ECCE Builder binary 
+distribution is built on Red Hat Enterprise Linux (the operating system 
+supported for the EMSL where ECCE is developed), this distribution 
+should run on a variety of Linux operating systems.  This is possible by 
+bundling all the shared libraries required for the ECCE Builder including 
+system libraries that are normally present on most Linux systems, but 
+may not be fully compatible with what was used to create the ECCE 
+Builder binary distribution on Red Hat.  The ECCE Builder binary 
+distribution has been tested with operating systems including Debian, 
+Ubuntu, OpenSUSE, and Mint in addition to Red Hat.
+
+Sites having difficulty using the ECCE Builder binary distributions those 
+considering modifying or adding to ECCE code, or those just wanting a 
+better understanding of the ECCE software can download and build 
+ECCE from the source code distribution.  The results from completing an 
+ECCE source code build as documented in the build/README file in 
+that distribution (the build directory is not included with the ECCE 
+Builder binary distribution) will be an ECCE Builder binary distribution 
+specific to the Linux operating system and hard platform on which it was 
+built.  This new ECCE Builder binary distribution is identical in structure 
+to those downloadable from the ECCE website and thus the install 
+documentation herein should be followed to complete the installation.
+
+Using a web browser, download the desired ECCE distribution for your 
+platform to a local disk directory.  File size for downloading is displayed 
+on the web page although having sufficient additional free disk space 
+during installation is critical since ECCE distributions are compressed 
+and extraction will multiply the size requirements.  This document 
+assumes that either an ECCE Builder binary distribution is downloaded 
+or that a source code distribution has been downloaded, built, and a new 
+ECCE Builder binary distribution has been generated from that build as 
+the starting point for the installation procedures given below.  Full ECCE 
+binary distribution installations are documented separately.
+
+
+Install ECCE Builder
+--------------------
+
+The installation procedures assume a basic familiarity with UNIX/Linux 
+system administration.  Commands given are for sh and also apply to 
+bash; if you are using another shell such as csh or tcsh, you may need to 
+adjust the syntax.
+
+In order to maintain the integrity of the installation, we recommend 
+creating an account named ecceadm, for "ECCE Administrator", or 
+something similar and installing as that user.  There are many 
+configuration files, along with the Builder executable and libraries that if 
+removed or improperly modified will corrupt the installation.
+ 
+The ECCE Builder distribution itself is a self-extracting C shell 
+installation script along with bzip2 format compressed tar files 
+containing the Builder application software.  The installation script 
+prompts for configuration settings and then performs the installation.
+
+Run the install_ecce_builder.*.csh script in the directory where it was 
+downloaded.  You may need to add execute permission to the file first.  
+Note that values in square brackets are defaults and you may simply hit 
+return to use a default.  For clarity, values are always explicitly entered 
+for the prompts in this sample install even when the default value is used.  
+Here is the sample invocation of install_ecce_builder.*.csh, run as 
+ecceadm with links to notes describing how to determine appropriate 
+values for each of the configuration settings:
+
+        prompt$ cd /myfiles
+        prompt$ chmod +x ./ install_ecce_builder.v6.4.rhel5-gcc4.1.2-m64.csh
+        prompt$ ./ install_ecce_builder.v6.4.rhel5-gcc4.1.2-m64.csh
+
+        Extracting ECCE Builder distribution from 
+        ./install_ecce_builder.v6.4.rhel5-gcc4.1.2-m64.csh...
+
+        ECCE Builder installation directory: [/myfiles/ecce-builder-v6.4] 
+        /sharednfs/ecce-builder-v6.4
+
+        ECCE Builder v6.4 installation directory: [/sharednfs/ecce-builder-v6.4]
+ 
+        Is this choice correct (yes/no/quit)? [yes] yes
+
+        Installing ECCE Builder in /sharednfs /ecce-builder-v6.4...
+          Extracting ECCE Builder distribution...
+          Extracting client WebHelp distribution...
+          Configuring ECCE Builder...
+
+        ECCE Builder installation succeeded.
+
+        *******************************************************
+        !! You MUST perform the following step to use the ECCE Builder!!
+
+        -- Before running the ECCE Builder each user must source a
+           setup script.  For csh/tcsh users, add this to ~/.cshrc:
+             if ( -e /sharednfs/ecce-builder-v6.4/scripts/runtime_setup ) then
+                source /sharednfs/ecce-builder-v6.4/scripts/runtime_setup
+             endif
+           For sh/bash users, add this to ~/.profile or ~/.bashrc:
+             if [ -e /sharednfs/ecce-builder-v6.4/scripts/runtime_setup.sh ]; then
+                .  /sharednfs/ecce-builder-v6.4/scripts/runtime_setup.sh
+             fi
+        *******************************************************
+
+        prompt$
+
+After the install_ecce_builder.*.csh script has completed, you may delete 
+the distribution script although we recommend waiting until the Builder 
+is completely tested at your site.
+
+The next several paragraphs describe how to choose appropriate values 
+for the ECCE Builder installation prompts as shown above.  If you have 
+successfully run the installation script and understand the prompts, you 
+may skip to Post-Install Configuration to continue with the installation.
+
+ECCE Builder installation directory:  The ECCE Builder is designed 
+for installation under a single shared directory at a site, with all hosts 
+accessing the common installation.  A local file system disk is selected 
+for the installation directory when the Builder will only be run from a 
+single machine.  If you have a shared file system and will have multiple 
+machines and/or platforms running the Builder, we recommend installing 
+under the shared file system as it reduces parallel administration.  The 
+shared directory where the Builder is installed is independent of the 
+directory where the distribution script is run, although the default will be 
+a subdirectory of the run directory.  For access from multiple machines 
+the distribution is typically downloaded to local disk to speed file 
+transfer, and then installed to a shared file system.  This file system 
+should have at least 200 megabytes free for each platform that will be 
+installed.  To install multiple platforms to a shared file system, specify 
+the same Builder installation directory for each platform (requires 
+downloading and running the installation script distribution for each 
+platform).  The installation script automatically extracts platform-
+dependent libraries and executables into separate subdirectories.  The 
+absolute path to the directory where the ECCE Builder is installed is 
+stored in the ECCE runtime setup and runtime_setup.sh scripts as the 
+environment variable $ECCE_HOME.  The rest of this document uses 
+the term "ECCE Builder installation directory" and slight variations 
+interchangeably with $ECCE_HOME, especially when referring to file 
+paths.
+
+You are not allowed to overwrite an existing ECCE Builder installation 
+except in the case where you are installing different platforms under the 
+same top-level directory.  The installation script will verify that the 
+directory specified is not a previous installation for the same platform 
+and prompt for a new directory if it is.  This restriction prevents the 
+inadvertent loss of a working installation should the new one have some 
+kind of problem.  If you do wish to install a new version of the ECCE 
+Builder in the same top level directory as an existing installation for the 
+same platform, you must move the old installation to another directory 
+prior to running the install_ecce_builder.*.csh script.  We recommend 
+that you only remove an existing installation after you have verified the 
+operation of the new installation.
+
+Is this choice correct:  Pressing return or entering "yes" results in the 
+ECCE Builder installation completing under the specified installation 
+directory.  Entering "no" results in the installation directory being 
+prompted for again.
+
+
+Post-install Configuration
+--------------------------
+
+* Change the Default Web Browser
+
+The ECCE Builder uses a web browser for online help and the user 
+support request web page.  At this time Firefox and Mozilla are 
+compatible with how the ECCE Builder controls the display of web 
+pages externally (KDE Konqueror, for instance, does not allow the 
+control needed).  By default Firefox is configured as the web browser 
+within the ECCE Builder.  This can be changed by editing the 
+$ECCE_HOME/siteconfig/site_runtime file and scrolling down to the 
+entries for web browsers.  The only valid values for the browsers are 
+"firefox" and "mozilla".
+
+Setup Users' Environment
+
+* For sh and bash users, add the following lines to their ~/.profile or 
+~/.bashrc file, substituting the correct path under which the ECCE 
+Builder was installed on your host: 
+
+	# setup to run ECCE Builder
+	if [ -e /sharednfs/ecce-builder/scripts/runtime_setup.sh ]; then
+	  .  /sharednfs/ecce-builder/scripts/runtime_setup.sh
+	fi
+
+* There is an equivalent script named runtime_setup in the same 
+directory that can be sourced for csh and tcsh users in their ~/.cshrc 
+(~/.mycshrc within EMSL) file, substituting the correct path under 
+which the ECCE Builder was installed on your host:
+
+	# setup to run ECCE Builder
+	if ( -e /sharednfs/ecce-builder/scripts/runtime_setup) then
+	  source /sharednfs/ecce-builder/scripts/runtime_setup
+	endif
+
+Hint:  Within EMSL, we maintain a symbolic link named scripts in a 
+top-level shared ECCE Builder directory that contains multiple 
+releases of the Builder.  The scripts link points to the scripts 
+directory for the current production version of the ECCE Builder.  
+This way the ECCE administrator only needs to update this link to 
+change the version all ECCE Builder users are running.  Users 
+wishing to run other than the default version the symbolic link points 
+to can change their environment setup file to reference the 
+runtime_setup or runtime_setup.sh script for the desired version.  
+The path to runtime_setup and runtime_setup.sh under 
+/sharednfs/ecce-builder/scripts in the example above is based upon 
+this mechanism.  In the example installation, ECCE was installed 
+under /sharednfs/ecce-builder-v6.4.  A symbolic link in the 
+/sharednfs/ecce-builder directory named scripts pointing to 
+/sharednfs/ecce-builder-v6.4/scripts will make it easier for the ECCE 
+administrator to upgrade users to new versions of the ECCE Builder.  
+The commands to do this for the example installation are:
+
+	prompt$ mkdir /sharednfs/ecce-builder
+	prompt$ cd /sharednfs/ecce-builder
+	prompt$ ln -s ../ecce-builder-v6.4/scripts  scripts
+
+* Logout then log back in again to make sure the environment is 
+properly setup.  Enter the command "which ebuilder" to make sure 
+paths are correct.
+
+Run ECCE Builder
+
+* Start the ECCE Builder by typing...
+
+prompt$ ebuilder
+
+* Where to go for help
+
+Check out the ECCE Builder help pages on the web at 
+http://ecce.emsl.pnl.gov/cgi-bin/help/toolhelp?builder, which are also 
+accessible from within the ECCE Builder under the menubar Help 
+menu.  Also visit the user FAQ and Release Notes for the current and 
+previous releases of ECCE, including the Builder application.  The 
+release notes serve as the most up-to-date and complete 
+documentation of ECCE Builder features.
+

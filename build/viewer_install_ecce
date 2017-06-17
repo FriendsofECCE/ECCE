@@ -1,0 +1,1328 @@
+#!/bin/csh
+################################################################################
+# FILENAME:  viewer_install_ecce
+#
+# PURPOSE:
+#   Install an ECCE Builder/Viewer distribution.
+#
+# DESCRIPTION:
+#   Installs the ECCE Builder/Viewer distribution (application software and
+#   ECCE server) after prompting the user for the installation directory, etc.
+#
+################################################################################
+
+# don't want to pick up any site silliness
+unalias *
+
+# set when distribution is created so user can rename at their will
+set version = "##VERSION##"
+set platform = "##PLATFORM##"
+
+# set these variables to make it easy to change in the future
+# or to prompt for the values
+set dataport = 8096
+set msgport = 8095
+
+# must run from the directory where install_ecce_builder.* lives
+set file = "$0"
+if (`ls -1 | grep -c "^$file:t"` == 0) then
+  echo ""
+  echo "  Error:  Must run ECCE Builder installation script from the"
+  echo "  directory where the script is located."
+  echo ""
+  exit 1
+endif
+
+# various platform/distribution compatability checks (including glibc for Linux)
+if (`uname` != "Linux") then
+  echo ""
+  echo "  Warning: You are attempting to install a Linux distribution of"
+  echo "  ECCE Builder/Viewer on a machine that does not appear to run Linux."
+  echo ""
+  echo -n "Proceed with install (yes/no)? [yes] "
+  set proceed = $<
+  if ($proceed != "" && $proceed != "yes" && $proceed != "y" && $proceed != "Y" && $proceed != "Yes" && $proceed != "YES") then
+    echo ""
+    echo "ECCE Builder/Viewer installation aborted."
+    echo ""
+    exit 1
+  endif
+endif
+
+# all files are extracted here so it is easy to cleanup any failed installs
+set workdir = `pwd`"/tmptar"
+if (-e $workdir) then
+  rm -rf $workdir
+endif
+mkdir $workdir
+
+# magic that extracts tar file from full distribution
+echo ""
+echo "Extracting ECCE Builder/Viewer distribution from $file..."
+echo ""
+# only look at first 1500 lines to speed up search
+# grep binary file as text (-a)
+set lines = `head -n 1500 $0 | fgrep -a -n -x "#TAILMARK" | cut -d: -f1`
+
+if ($lines == "") then
+  echo ""
+  echo "  Error:  Unable to split ECCE Builder/Viewer distribution script."
+  echo "  This could be because you don't have permission to write"
+  echo "  to the current directory or because $file is incomplete."
+  echo ""
+  exit 1
+endif
+@ lines ++
+tail --lines=+$lines $0 >! $workdir/ecce.tar
+
+set verboseout = ""
+set verbosetar = ""
+set topdir = ""
+set appdir = ""
+set svrdir = ""
+set appupdir = ""
+set serverhost = ""
+set emslflag = 0
+
+while ( $#argv > 0) 
+  if ("$1" == "-v" || "$1" == "-verbose") then
+    set verboseout = "-v"
+    set verbosetar = "v"
+  else if ("$1" == "-emsl") then
+    shift
+    set appdir = $1
+    set emslflag = 1
+  else if ("$1" == "-help" || "$1" == "-h") then
+    echo ""
+    echo "$file is a self extracting script that is capable of installing"
+    echo "the ECCE Builder/Viewer software. To select verbose output"
+    echo "use the '-v' option."
+    echo "Usage:  $file [-v] [-help]"
+    echo ""
+    exit 0
+  else
+    echo ""
+    echo "Usage:  $file [-v] [-help]"
+    echo ""
+    exit 0
+  endif
+  shift
+end
+
+onintr cleanfail
+
+# check for perl because there is no reason to proceed if it isn't in the path
+perl -v >& /dev/null
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Perl not found in path.  Please install or find perl,"
+  echo "  add it to your path, and re-run the Builder/Viewer install script."
+  echo ""
+  exit 1
+endif
+
+# check if bunzip2 is found--no reason to proceed if not
+bunzip2 -h >& /dev/null
+if ($status != 0) then
+  echo ""
+  echo "  Error:  bunzip2 not found in path.  Please install or find bunzip2,"
+  echo "  add it to your path, and re-run the Builder/Viewer install script."
+  echo ""
+  exit 1
+endif
+
+# check if ping is found--no reason to proceed if not
+ping -V >& /dev/null
+if ($status != 0) then
+  echo ""
+  echo "  Error:  ping not found in your path.  Please install or find ping,"
+  echo "  add it to your path, and re-run the Builder/Viewer install script."
+  echo ""
+  exit 1
+endif
+
+# get default hostname with domain for server and nwchem registration
+set hostname = `hostname -f`
+# just in case the -f option isn't supported, use a simple hostname command
+if (`echo $hostname | grep -c "\."` == 0)  then
+  set hostname = `hostname`
+endif
+set hostlongDef = $hostname
+
+# this is our backup full name if the logic below doesn't find a better one
+if (`echo $hostname | grep -c "\."` == 0)  then
+  set domain = `grep $hostname /etc/hosts | tail -1 | awk '{ print $2 }' `
+  if (`echo $domain | grep -c "\."` == 0)  then
+    set domain = `grep ^domain /etc/resolv.conf | tail -1 | awk '{ print $2 }' `
+    if ($domain != "") then
+      set hostlongDef = $hostname.$domain
+    endif
+  else
+    set hostlongDef = $domain
+  endif
+endif
+
+set defdir = `pwd`
+set username = `whoami`
+
+# nice little goto label for input confirmation
+startover:
+
+set topdirDef = $defdir"/ecce-builder-"$version
+
+hostLabel:
+  ping -c 1 $hostlongDef >& /dev/null
+  if ($status != 0) then
+    echo -n "Host name: [localhost (could not successfully ping $hostlongDef)] "
+    set hostlongDef = "localhost"
+  else
+    set pingMess = ""
+    echo -n "Host name: [$hostlongDef] "
+  endif
+
+  set hostlong = $<
+  if ($hostlong == "") set hostlong = $hostlongDef
+
+  ping -c 1 $hostlong >& /dev/null
+  if ($status != 0) then
+    echo ""
+    echo "  Error:  $hostlong not properly configured for local"
+    echo "  access based on running the ping command.  Your /etc/hosts"
+    echo "  or /etc/resolv.conf may need to be modified or network"
+    echo "  interface started if the host name is correct."
+    goto hostLabel
+  endif
+
+  set svremail = $username@$hostlong
+
+  # host without domain
+  set hostname = `echo $hostlong | cut -d. -f1`
+
+appLabel:
+    echo -n "ECCE Builder/Viewer installation directory: [$topdirDef] "
+    set topdir = $<
+    if ($topdir == "") set topdir = $topdirDef
+
+    # Trim slash at the end of the string if present
+    set topdir = `echo $topdir | sed -e 's/\/$//'`
+
+    set appdir = $topdir/apps
+    set eccehome = $appdir
+    set svrdir = $topdir/server
+    set svrdatadir = $svrdir/data
+
+    # Do not allow installation if platform exists
+    if (-e $appdir/${platform}bin) then
+      echo ""
+      echo "  Error:  Install for this platform under $appdir/$platform"
+      echo "  already exists.  Please specify a different directory or"
+      echo "  move the existing install first."
+      echo ""
+      set topdir = ""
+      goto appLabel
+    endif
+
+stopLabel:
+    set stopServerDef = "yes"
+    echo -n "Stop ECCE server on Builder/Viewer exit: [$stopServerDef] "
+    set stopServer = $<
+    if ($stopServer == "") set stopServer = $stopServerDef
+
+    # Interpet yes/no variations
+    if ($stopServer == "yes" || $stopServer == "y" || $stopServer == "Y" || $stopServer == "YES" || $stopServer == "Yes") then
+      set stopServer = "yes"
+    else if ($stopServer == "no" || $stopServer == "n" || $stopServer == "N" || $stopServer == "NO" || $stopServer == "No") then
+      set stopServer = "no"
+    else
+      echo ""
+      echo "  Error:  Must provide yes/no response."
+      echo ""
+      set stopServer = ""
+      goto stopLabel
+    endif
+  endif
+
+# DISPLAY CONFIG --------------------------------------------------------
+  clear
+  echo " "
+  echo "ECCE Builder/Viewer $version will be installed using the settings:"
+  echo ""
+
+  echo "  Host name: [$hostlong]"
+  echo "  Builder/Viewer installation directory: [$topdir]"
+  echo "  Stop ECCE server on Builder/Viewer exit: [$stopServer]"
+  echo ""
+  echo -n "Are these choices correct (yes/no/quit)? [yes] "
+  set response = $<
+
+  if ($response == "") set response = "yes"
+
+  if ($response == "q" || $response == "quit" || $response == "Q") then
+    goto cleanfail  
+  else if ($response != "yes" && $response != "y" && $response != "Y") then
+    clear
+    goto startover
+  endif
+endif
+
+# set tar extraction command based on platform
+set tarcmd = "tar --no-same-owner -xm${verbosetar}f"
+
+cd $workdir
+$tarcmd ecce.tar
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to untar the main distribution (out of"
+  echo "  disk space?)."
+  goto cleanfail
+endif
+rm -f ecce.tar
+
+echo ""
+echo -n "Installing ECCE Builder/Viewer application software in $appdir..."
+
+mkdir -p $appdir
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make directory $appdir (permissions?)."
+  goto cleanfail
+endif
+
+if ( ! -d $appdir || ! -w $appdir) then
+  echo ""
+  echo "  Error:  $appdir does not exist or is not writable."
+  goto cleanfail
+endif
+
+# uncompress the file if necessary
+echo ""
+echo -n "  Extracting ECCE Builder/Viewer application distribution..."
+
+# untar into the appdir
+cd $appdir
+
+$tarcmd $workdir/ecce_apps.$version*.tar*
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to untar the application distribution (out of"
+  echo "  disk space?)."
+  goto cleanfail
+endif
+rm -f $workdir/ecce_apps.$version*.tar*
+
+# untar into the appdir
+cd $appdir
+$tarcmd $workdir/ecce_3rdparty.$version*.tar*
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to untar the third party distribution (out of"
+  echo "  disk space?)."
+  goto cleanfail
+endif
+rm -f $workdir/ecce_3rdparty.$version*.tar*
+
+# uncompress the jre if applicable
+if (`ls $workdir | grep -c jre` != 0) then
+  echo ""
+  echo -n "  Extracting Java JRE distribution..."
+
+  # untar the jre in the appropriate directory
+  cd $appdir/${platform}3rdparty
+  $tarcmd $workdir/jre*.tar*
+  if ($status != 0) then
+    echo ""
+    echo "  Error:  Unable to untar the Java JRE distribution (out"
+    echo "  of disk space?)."
+    goto cleanfail
+  endif
+endif
+
+# uncompress and extract WebHelp, if necessary
+if (! -d $appdir/data/client/WebHelp) then
+  echo ""
+  echo -n "  Extracting client WebHelp distribution..."
+
+  # untar WebHelp in the appropriate directory if necessary
+  mkdir $appdir/data/client/WebHelp
+
+  cd $appdir/data/client/WebHelp
+  $tarcmd $workdir/eccewebhelp.tar*
+  if ($status != 0) then
+    echo ""
+    echo "  Error:  Unable to untar the WebHelp distribution (out of"
+    echo "  disk space?)."
+    goto cleanfail
+  endif
+endif
+
+# distribution may or may not be compressed depending upon whether
+# WebHelp already exists so use wildcard for deletion
+rm -f $workdir/eccewebhelp.tar*
+
+
+# CONFIGURE --------------------------------------------------------
+
+echo ""
+echo -n "  Configuring ECCE Builder/Viewer application software..."
+
+# set ECCE_HOME
+cd $appdir/scripts
+perl -pi -e 's%setenv ECCE_HOME.*%setenv ECCE_HOME '$appdir'%g' $appdir/scripts/runtime_setup
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to do perl substitution for"
+  echo "  $appdir/scripts/runtime_setup."
+endif
+
+perl -pi -e 's%ECCE_HOME=.*%ECCE_HOME='$appdir'%g' $appdir/scripts/runtime_setup.sh
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to do perl substitution for"
+  echo "  $appdir/scripts/runtime_setup.sh."
+endif
+
+cd $appdir
+if ($emslflag == 0) then
+  # clear out any EMSL-specific new user and startup messages
+  rm -f siteconfig/StartupMessage
+  touch siteconfig/StartupMessage
+  rm -f siteconfig/NewUserMessage
+  touch siteconfig/NewUserMessage
+endif
+
+perl -pi -e 's%<Url>(.*)<\/Url>%<Url>'$appdir'/data/client/StructureLibrary</Url>%g' $appdir/siteconfig/DataServers
+perl -pi -e 's%<Desc>(.*)<\/Desc>%<Desc>'$hostname'</Desc>%g' $appdir/siteconfig/DataServers
+perl -pi -e 's%<StructureLib>(.*)<\/StructureLib>%<StructureLib>'$appdir'/data/client/StructureLibrary</StructureLib>%g' $appdir/siteconfig/DataServers
+perl -pi -e 's%<BasisSet>(.*)<\/BasisSet>%<BasisSet></BasisSet>%g' $appdir/siteconfig/DataServers
+
+# update site_runtime
+cd $appdir/siteconfig
+perl -pi -e 's%ECCE_HELP.*%ECCE_HELP               \ http://ecce.emsl.pnl.gov\ %g' $appdir/siteconfig/site_runtime
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to do perl substitution for ECCE_HELP in"
+  echo "  $appdir/siteconfig/site_runtime."
+endif
+
+# commented out because this takes significant time for limited value
+# change file permissions to read-only except for siteconfig
+#echo ""
+#echo -n "  Changing application file permissions..."
+#cd $appdir
+#find data java scripts ! -type d -exec chmod a-w {} \;
+#if ($platform != "") then
+#  find $platform ! -type d -exec chmod a-w {} \;
+#else
+#  find bin lib 3rdparty ! -type d -exec chmod a-w {} \;
+#endif
+
+
+# server installation logic
+echo ""
+echo ""
+echo -n "Installing ECCE server in $svrdir..."
+
+mkdir -p $svrdir
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make directory $svrdir (permissions?)"
+  goto cleanfail
+endif
+
+if ( ! -d $svrdir || ! -w $svrdir) then
+  echo ""
+  echo "  Error:  $svrdir does not exist or is not writable."
+  goto cleanfail
+endif
+
+if ($username == "root") then
+  # check that the user nobody exists
+  if (`grep -c "^nobody:" /etc/passwd` == 0) then
+    echo ""
+    echo "  Error:  The user 'nobody' does not exist on this host."
+    echo "  This user must exist to install the ECCE server as root"
+    echo "  because the Apache HTTP server runs as the user 'nobody'."
+    goto cleanfail
+  endif
+ 
+  # check for global execute permission for root installs since httpd
+  # runs as nobody and requires it
+  cd $svrdir
+  set perm = `ls -ald | awk '{print $1}' | tail -2c`
+  while (`echo $perm | grep -c -` == 0 && `pwd` != "/")
+    cd ..
+    set perm = `ls -ald | awk '{print $1}' | tail -2c`
+  end
+  if (`echo $perm | grep -c -` != 0) then
+    echo ""
+    echo "  Error:  Directory $cwd does not have global execute"
+    echo "  permission.  ECCE server installs as root require this so the"
+    echo "  Apache HTTP server may be run as the user nobody.  Either the"
+    echo "  directory permissions must be changed, another server"
+    echo "  installation directory must be selected, or the install can't"
+    echo "  be done as the root user."
+    goto cleanfail
+  endif
+endif
+
+# untar the file.  The tar file name will be the name of the  
+# uuencoded tar file.
+cd $workdir
+$tarcmd ecce_server*.tar
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to untar server distribution (out of"
+  echo "  disk space?)."
+  goto cleanfail
+endif
+rm ecce_server*.tar
+
+bunzip2 $verboseout data_server.tar.bz2
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to run bunzip2 on data_server.tar.bz2"
+  echo "  (out of disk space?)."
+  goto cleanfail
+endif
+
+$tarcmd data_server.tar
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to untar data_server.tar (out of disk"
+  echo "  space?)."
+  goto cleanfail
+endif
+rm data_server.tar
+
+# logic to install contents of ecce_server*.tar  
+
+# install the Apache2 HTTP server distribution
+if (! -e httpd_server.tar) then
+  echo ""
+  echo "  Error:  httpd_server.tar not found in ECCE server distribution."
+  goto cleanfail
+endif
+
+echo ""
+echo -n "  Extracting data server in $svrdir/httpd..."
+mv httpd_server.tar $svrdir
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move httpd_server.tar to $svrdir"
+  echo "  (out of disk space?)."
+  goto cleanfail
+endif
+
+cd $svrdir
+$tarcmd httpd_server.tar
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to untar httpd_server.tar (out of"
+  echo "  disk space?)."
+  goto cleanfail
+endif
+rm httpd_server.tar
+set webdir=$svrdir/httpd
+cd $workdir
+
+# install the ECCE and DAV server directories
+echo "" 
+echo -n "  Extracting data libraries in $svrdatadir..."
+mkdir -p $svrdatadir
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make directory $svrdatadir (permissions?)."
+  goto cleanfail
+endif
+
+if ( ! -e $svrdatadir || ! -w $svrdatadir) then
+  echo ""
+  echo "  Error:  $svrdatadir does not exist or is not writable."
+  goto cleanfail
+endif
+
+if ( ! -e data_server_config.tar) then
+  echo ""
+  echo "  Error: data_server_config.tar not found in ECCE server distribution."
+  goto cleanfail
+endif 
+
+mv data_server_config.tar $svrdatadir
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move data_server_config.tar to $svrdatadir"
+  echo "  (out of disk space?)."
+  goto cleanfail
+endif
+
+cd $svrdatadir
+$tarcmd data_server_config.tar
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to untar data_server_config.tar (out of"
+  echo "  disk space?)."
+  goto cleanfail
+endif
+rm data_server_config.tar
+
+# were we successful installing data server directory tree?
+if (! -d $svrdatadir/Ecce) then
+  echo ""
+  echo "  Error:  ECCE data libraries not successfully installed."
+  goto cleanfail
+endif
+
+# link to the application side JRE if it exists
+cd $svrdir
+if (-d ../apps/${platform}3rdparty/jre) then
+  ln -s ../apps/${platform}3rdparty/jre jre
+  if ($status != 0) then
+    echo ""
+    echo "  Error:  Unable to create Java JRE symbolic link from"
+    echo "  $eccehome/${platform}3rdparty/jre to"
+    echo "  $svrdir/jre."
+    goto cleanfail
+  endif
+endif
+
+# untar JMS
+echo ""
+echo -n "  Extracting messaging server in $svrdir/activemq..."
+cd $workdir
+if ( ! -e jms_server.tar.bz2) then
+  echo "" 
+  echo "  Error: jms_server.tar.bz2 not found in ECCE server distribution."
+  goto cleanfail
+endif 
+mv jms_server.tar.bz2 $svrdir
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move jms_server.tar.bz2 to $svrdir"
+  echo "  (out of disk space?)."
+  goto cleanfail
+endif
+
+cd $svrdir
+bunzip2 $verboseout jms_server.tar.bz2
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to run bunzip2 on jms_server.tar.bz2"
+  echo "  (out of disk space?)."
+  goto cleanfail
+endif
+
+$tarcmd jms_server.tar
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to untar jms_server.tar (out of disk"
+  echo "  space?)."
+  goto cleanfail
+endif
+rm jms_server.tar
+
+# next we add and edit the httpd.conf.ecce file and install it in
+# the $webdir/conf directory
+echo ""
+echo -n "  Configuring ECCE server..."
+
+cd $svrdatadir
+if (! -e httpd.conf.ecce) then
+  echo ""
+  echo "  Error:  httpd.conf.ecce not found in ECCE server distribution."
+  goto cleanfail 
+endif
+
+# determine the default group for the current user because it needs to
+# be set in httpd.conf to avoid setgid errors in error_log when starting
+rm -f /tmp/group_check
+touch /tmp/group_check
+set group = `ls -l /tmp/group_check | awk '{print $4}'`
+rm -f /tmp/group_check
+
+# check whether it's a number because httpd.conf treats those special
+test $group -gt 0 >& /dev/null
+if ($status == 0) then
+  set newgroup = `echo -n "#" && echo $group`
+  set group = $newgroup
+endif
+
+if ($username == "root") then
+  set ownerformat = "nobody"
+else
+  # check to see if owner contains numbers (is a UID)
+  # if they are there we need to prefix them with a # because httpd.conf
+  # needs them that way
+  set ownerformat = $username
+  if (`echo $username | grep -c "[^0123456789]"` == 0)  then
+    set ownerformat = "#"$username
+  endif 
+endif
+
+# break up the sed commands into separate invocations because some systems
+# choke on processing something that complex
+cat httpd.conf.ecce | sed -e "s%##HTTPDROOT##%$webdir%g" | sed -e "s%##DATAROOT##%$svrdatadir%g" >! httpd.conf.1
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to httpd.conf.ecce."
+  goto cleanfail
+endif
+
+cat httpd.conf.1 | sed -e "s%##SERVER##%$hostlong%g" | sed -e "s%##PORT##%$dataport%g" >! httpd.conf.2
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to httpd.conf.ecce."
+  goto cleanfail
+endif
+
+cat httpd.conf.2 | sed -e "s%##EMAIL##%$svremail%g" | sed -e "s%##USER##%$ownerformat%g" >! httpd.conf.3
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to httpd.conf.ecce."
+  goto cleanfail
+endif
+
+cat httpd.conf.3 | sed -e "s%##GROUP##%$group%g" >! httpd.conf
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to httpd.conf.ecce."
+  goto cleanfail
+endif
+
+rm httpd.conf.1 httpd.conf.2 httpd.conf.3
+
+if (! -e httpd.conf) then
+  echo ""
+  echo "  Error:  Unable to generate httpd.conf."
+  goto cleanfail
+endif
+
+if (-e $webdir/conf/httpd.conf) then
+  mv $webdir/conf/httpd.conf $webdir/conf/httpd.conf.bk
+endif 
+
+if (-e $webdir/conf/httpd.conf) then
+  echo "  Warning:  Unable to backup $webdir/conf/httpd.conf prior to"
+  echo "  installation of ECCE httpd.conf configuration file"
+  goto cleanfail 
+endif
+
+mv httpd.conf $webdir/conf
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move httpd.conf to $webdir/conf"
+  echo "  (out of disk space?)."
+  goto cleanfail
+endif
+
+cp $webdir/conf/httpd.conf $webdir/conf/httpd.conf.ecce
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to copy $webdir/conf/httpd.conf to"
+  echo "  $webdir/conf/httpd.conf.ecce (permissions?)."
+  goto cleanfail
+endif
+
+cd $svrdatadir
+rm httpd.conf.ecce
+cd $workdir
+
+# we add and edit the apachectl.ecce
+# file and install it in the $webdir/bin
+# directory.
+if (! -e apachectl.ecce) then
+  echo ""
+  echo "  Error:  apachectl.ecce not found in ECCE server distribution."
+  goto cleanfail
+endif
+
+cat apachectl.ecce | sed -e "s%##HTTPDROOT##%$webdir%g" >! apachectl
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to apachectl.ecce."
+  goto cleanfail
+endif
+rm apachectl.ecce
+if (! -e apachectl) then
+  echo ""
+  echo "  Error:  Unable to generate apachectl."
+  goto cleanfail
+endif
+
+if (-e $webdir/conf/apachectl) then
+  mv $webdir/conf/apachectl $webdir/conf/apachectl.bk
+endif
+
+if (-e $webdir/conf/apachectl) then
+  echo ""
+  echo "  Error:  Unable to backup $webdir/bin/apachectl prior to"
+  echo "  installation of ECCE apachectl configuration file."
+  goto cleanfail
+endif
+
+mv apachectl $webdir/bin
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move apachectl to $webdir/bin"
+  echo "  (permissions?)."
+  goto cleanfail
+endif
+chmod u+x $webdir/bin/apachectl
+
+# add and edit the add_ecce_user file and install it in
+# the $svrdir/ecce-admin directory.
+cd $svrdatadir
+if (! -e add_ecce_user.ecce) then
+  echo ""
+  echo "  Error:  add_ecce_user.ecce not found in ECCE server distribution."
+  goto cleanfail
+endif
+
+cat add_ecce_user.ecce | sed -e "s%##DAVROOT##%$svrdatadir/Ecce%g" | sed -e "s%##HTTPDROOT##%$webdir%g" >! add_ecce_user
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to add_ecce_user.ecce."
+  goto cleanfail
+endif
+rm add_ecce_user.ecce
+if (! -e add_ecce_user) then
+  echo ""
+  echo "  Error:  Unable to generate add_ecce_user."
+  goto cleanfail
+endif
+
+mkdir $svrdir/ecce-admin
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to mkdir $svrdir/ecce-admin permissions?)."
+  goto cleanfail
+endif
+mv add_ecce_user $svrdir/ecce-admin
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move add_ecce_user to $svrdir/ecce-admin"
+  echo "  (out of disk space?)."
+  goto cleanfail
+endif
+chmod u+x $svrdir/ecce-admin/add_ecce_user
+
+# add and edit the ecce_htpasswd file and install it in
+# the $svrdir/ecce-admin directory.
+if (! -e ecce_htpasswd.ecce) then
+  echo ""
+  echo "  Error:  ecce_htpasswd.ecce not found in ECCE server distribution."
+  goto cleanfail
+endif
+
+cat ecce_htpasswd.ecce | sed -e "s%##HTTPDROOT##%$webdir%g" >! ecce_htpasswd
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to ecce_htpasswd.ecce."
+  goto cleanfail
+endif
+rm ecce_htpasswd.ecce
+if (! -e ecce_htpasswd) then
+  echo ""
+  echo "  Error:  Unable to generate ecce_htpasswd."
+  goto cleanfail
+endif
+
+mv ecce_htpasswd $svrdir/ecce-admin
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move ecce_htpasswd to $svrdir/ecce-admin"
+  echo "  (out of disk space?)."
+  goto cleanfail
+endif
+chmod u+x $svrdir/ecce-admin/ecce_htpasswd
+
+# add and edit the ecce_accounts file and install it in
+# the $webdir/cgi-bin directory.
+if (! -e ecce_accounts.ecce) then
+  echo ""
+  echo "  Error:  ecce_accounts.ecce not found in ECCE server distribution."
+  goto cleanfail
+endif
+
+cat ecce_accounts.ecce | sed -e "s%##DAVROOT##%$svrdatadir/Ecce%g" | sed -e "s%##HTTPDROOT##%$webdir%g" >! ecce_accounts
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to ecce_accounts.ecce."
+  goto cleanfail
+endif
+rm ecce_accounts.ecce
+if (! -e ecce_accounts) then
+  echo ""
+  echo "  Error:  Unable to generate ecce_accounts."
+  goto cleanfail
+endif
+
+mv ecce_accounts $webdir/cgi-bin
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move ecce_accounts to $webdir/cgi-bin"
+  echo "  (out of disk space?)."
+  goto cleanfail
+endif
+chmod a+x $webdir/cgi-bin/ecce_accounts
+
+# finally, add and edit the ecce_htaccess file and install it in
+# the $webdir/cgi-bin directory.
+if (! -e ecce_htaccess.ecce) then
+  echo ""
+  echo "  Error:  ecce_htaccess.ecce not found in ECCE server distribution."
+  goto cleanfail
+endif
+
+cat ecce_htaccess.ecce | sed -e "s%##DAVROOT##%$svrdatadir/Ecce%g" | sed -e "s%##HTTPDROOT##%$webdir%g" >! ecce_htaccess
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to ecce_htaccess.ecce."
+  goto cleanfail
+endif
+rm ecce_htaccess.ecce
+if (! -e ecce_htaccess) then
+  echo ""
+  echo "  Error:  Unable to generate ecce_htaccess."
+  goto cleanfail
+endif
+
+mv ecce_htaccess $webdir/cgi-bin
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move ecce_htaccess to $webdir/cgi-bin"
+  echo "  (out of disk space?)."
+  goto cleanfail
+endif
+chmod a+x $webdir/cgi-bin/ecce_htaccess
+
+# Don't install server side help because Builder only has client side
+rm eccehelp.tar
+
+# substitute perl path in cgi-bin perl scripts
+set found = 0
+foreach checkdir ($path)
+  if (-x $checkdir/perl) then
+    set found = 1 
+    set perlpath = $checkdir/perl
+    break
+  endif
+end
+
+if ($found == 1) then
+  perl -pi -e 's%^#\!.*perl%#\!'$perlpath'%g' $webdir/cgi-bin/ecce_accounts
+  if ($status != 0) then
+    echo ""
+    echo "  Error:  Unable to do perl substitution for"
+    echo "  $webdir/cgi-bin/ecce_accounts."
+    goto cleanfail
+  endif
+
+  perl -pi -e 's%^#\!.*perl%#\!'$perlpath'%g' $webdir/cgi-bin/ecce_htaccess
+  if ($status != 0) then
+    echo ""
+    echo "  Error:  Unable to do perl substitution for"
+    echo "  $webdir/cgi-bin/ecce_htaccess."
+    goto cleanfail
+  endif
+else
+  echo ""
+  echo "  Error:  Unable to find perl in path for substitution into"
+  echo "  $webdir/cgi-bin scripts."
+  goto cleanfail
+endif
+
+# customize JMS server config file
+perl -pi -e 's%"tcp://localhost:.*"%"tcp://'$hostlong':'$msgport'"%' $svrdir/activemq/conf/activemq.xml
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to do server name perl substitution for"
+  echo "  $svrdir/activemq/conf/activemq.xml."
+  goto cleanfail
+endif
+
+# customize server start/stop scripts
+cd $svrdatadir
+if (! -e start_ecce_server.ecce) then
+  echo ""
+  echo "  Error:  start_ecce_server.ecce not found in ECCE server distribution."
+  goto cleanfail 
+endif
+cat start_ecce_server.ecce | sed -e "s%##ECCESERVERROOT##%$svrdir%g" >! start_ecce_server
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to start_ecce_server."
+  goto cleanfail
+endif
+mv start_ecce_server $svrdir/ecce-admin
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move start_ecce_server to $svrdir/ecce-admin"
+  echo "  (permissions?)."
+  goto cleanfail
+endif
+rm start_ecce_server.ecce
+chmod u+x $svrdir/ecce-admin/start_ecce_server
+
+if (! -e start_ecce_data_server.ecce) then
+  echo ""
+  echo "  Error:  start_ecce_data_server.ecce not found in ECCE server distribution."
+  goto cleanfail 
+endif
+cat start_ecce_data_server.ecce | sed -e "s%##ECCESERVERROOT##%$svrdir%g" >! start_ecce_data_server
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to start_ecce_data_server."
+  goto cleanfail
+  endif
+mv start_ecce_data_server $svrdir/ecce-admin
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move start_ecce_data_server to"
+  echo "  $svrdir/ecce-admin (permissions?)."
+  goto cleanfail
+endif
+rm start_ecce_data_server.ecce
+chmod u+x $svrdir/ecce-admin/start_ecce_data_server
+
+if (! -e stop_ecce_server.ecce) then
+  echo ""
+  echo "  Error:  stop_ecce_server.ecce not found in ECCE server distribution."
+  goto cleanfail 
+endif
+cat stop_ecce_server.ecce | sed -e "s%##ECCESERVERROOT##%$svrdir%g" >! stop_ecce_server
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to stop_ecce_server.ecce."
+  goto cleanfail
+endif
+mv stop_ecce_server $svrdir/ecce-admin
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move stop_ecce_server to"
+  echo "  $svrdir/ecce-admin (permissions?)."
+  goto cleanfail
+endif
+rm stop_ecce_server.ecce
+chmod u+x $svrdir/ecce-admin/stop_ecce_server
+
+if (! -e stop_ecce_data_server.ecce) then
+  echo ""
+  echo "  Error:  stop_ecce_data_server.ecce not found in ECCE server distribution."
+  goto cleanfail 
+endif
+cat stop_ecce_data_server.ecce | sed -e "s%##ECCESERVERROOT##%$svrdir%g" >! stop_ecce_data_server
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to stop_ecce_data_server.ecce."
+  goto cleanfail
+endif
+mv stop_ecce_data_server $svrdir/ecce-admin
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move stop_ecce_data_server to"
+  echo "  $svrdir/ecce-admin (permissions?)."
+  goto cleanfail
+endif
+rm stop_ecce_data_server.ecce
+chmod u+x $svrdir/ecce-admin/stop_ecce_data_server
+
+# customize message server start/stop scripts
+cd $svrdatadir
+if (! -e start_ecce_message_server.ecce) then
+  echo ""
+  echo "  Error:  start_ecce_message_server.ecce not found in ECCE server distribution."
+  goto cleanfail
+endif
+cat start_ecce_message_server.ecce | sed -e "s%##ECCESERVERROOT##%$svrdir%g" >! start_ecce_message_server
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to start_ecce_message_server."
+  goto cleanfail
+endif
+mv start_ecce_message_server $svrdir/ecce-admin
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move start_ecce_message_server to"
+  echo "  $svrdir/ecce-admin (permissions?)."
+  goto cleanfail
+endif
+rm start_ecce_message_server.ecce
+chmod u+x $svrdir/ecce-admin/start_ecce_message_server
+                                                                                
+if (! -e stop_ecce_message_server.ecce) then
+  echo ""
+  echo "  Error: stop_ecce_message_server.ecce not found in ECCE server distribution."
+  goto cleanfail
+endif
+cat stop_ecce_message_server.ecce | sed -e "s%##ECCESERVERROOT##%$svrdir%g" >! stop_ecce_message_server
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to make sed updates to stop_ecce_message_server.ecce."
+  goto cleanfail
+endif
+mv stop_ecce_message_server $svrdir/ecce-admin
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to move stop_ecce_message_server to"
+  echo "  $svrdir/ecce-admin (permissions?)."
+  goto cleanfail
+endif
+rm stop_ecce_message_server.ecce
+chmod u+x $svrdir/ecce-admin/stop_ecce_message_server
+                                                                                
+
+# Create the config_from_server script
+cat >! $svrdir/ecce-admin/config_from_server <<EOF
+#!/bin/csh
+set localEccehome = $eccehome
+
+confirm:
+
+while ( \$localEccehome == "")
+  echo -n "Enter the ECCE application software installation home directory: "
+  set localEccehome = \$<
+  echo ""
+end
+
+if ( \$#argv < 1 ) then
+  echo "ECCE application software home directory is \$localEccehome"
+  echo -n "Is this correct? [yes] "
+  set confirmEccehome = \$<
+  if (\$confirmEccehome != "" && \$confirmEccehome != "y" && \$confirmEccehome != "yes") then
+    echo ""
+    set localEccehome = ""
+    goto confirm
+  endif
+endif
+
+while ( ! -d \$localEccehome/siteconfig)
+  echo "\$localEccehome is not a recognized ECCE application software home directory"
+  echo ""
+  set localEccehome = ""
+  goto confirm
+end
+
+if ( ! -w \$localEccehome/siteconfig/DataServers ) then
+  chmod u+w \$localEccehome/siteconfig/DataServers
+  if ( ! -w \$localEccehome/siteconfig/DataServers ) then
+    echo "\$localEccehome/siteconfig/DataServers does not have write permission"
+    exit 1
+  endif
+endif
+if ( ! -w \$localEccehome/siteconfig/site_runtime ) then
+  chmod u+w  \$localEccehome/siteconfig/site_runtime 
+  if ( ! -w \$localEccehome/siteconfig/site_runtime ) then
+    echo "\$localEccehome/siteconfig/site_runtime does not have write permission"
+    exit 1
+  endif
+endif
+if ( ! -w \$localEccehome/siteconfig/jndi.properties ) then
+  chmod u+w  \$localEccehome/siteconfig/jndi.properties 
+  if ( ! -w \$localEccehome/siteconfig/jndi.properties ) then
+    echo "\$localEccehome/siteconfig/jndi.properties does not have write permission"
+    exit 1
+  endif
+endif
+
+echo "Adding data server URL for $hostlong to siteconfig/DataServers"
+
+# Make a copy of the original DataServers file that uses the EMSL server
+mkdir \$localEccehome/siteconfig/RemoteServer
+cp \$localEccehome/siteconfig/DataServers \$localEccehome/siteconfig/RemoteServer
+
+# DataServers file substitutions
+perl -pi -e 's%<Url>(.*)<\/Url>%<Url>http://'$hostlong':'$dataport'/Ecce</Url>%g' \$localEccehome/siteconfig/DataServers
+perl -pi -e 's%<Desc>(.*)<\/Desc>%<Desc>ECCE Data Server--'$hostlong'</Desc>%g' \$localEccehome/siteconfig/DataServers
+perl -pi -e 's%<BasisSet>(.*)<\/BasisSet>%<BasisSet>http://'$hostlong':'$dataport'/Ecce/system/GaussianBasisSetLibrary</BasisSet>%g' \$localEccehome/siteconfig/DataServers
+
+echo "Adding URL for online help to siteconfig/site_runtime"
+# Make a copy of the original site_runtime file that uses the EMSL server
+cp \$localEccehome/siteconfig/site_runtime \$localEccehome/siteconfig/RemoteServer
+perl -pi -e 's%ECCE_HELP.*%ECCE_HELP                http://'$hostlong':'$dataport'%g' \$localEccehome/siteconfig/site_runtime
+
+echo "Adding message server URL for $hostlong to siteconfig/jndi.properties"
+# Make a copy of the original jndi.properties file that uses the EMSL server
+cp \$localEccehome/siteconfig/jndi.properties \$localEccehome/siteconfig/RemoteServer
+perl -pi -e 's%tcp://.*%tcp://'$hostlong':'$msgport'%' \$localEccehome/siteconfig/jndi.properties
+
+EOF
+
+chmod u+x $svrdir/ecce-admin/config_from_server
+
+if ( -e $eccehome/siteconfig/DataServers) then
+  set checkForDup = `grep -c "http://${hostlong}:$dataport/Ecce" $eccehome/siteconfig/DataServers`
+  if ($checkForDup == 0) then
+    $svrdir/ecce-admin/config_from_server -q >& /dev/null
+    if ($status == 0) then
+      cat >! $eccehome/siteconfig/RemoteServer/config_remote_server <<EOF
+#!/bin/csh
+set remoteServerhost = ""
+
+confirm:
+
+while ( \$remoteServerhost == "")
+  echo "Enter the full host name of the machine where the remote ECCE"
+  echo -n "server is installed: "
+  set remoteServerhost = \$<
+  echo ""
+end
+
+echo "Remote ECCE server host name is \$remoteServerhost"
+echo -n "Is this correct? [yes] "
+set confirmServerhost = \$<
+if (\$confirmServerhost != "" && \$confirmServerhost != "y" && \$confirmServerhost != "yes") then
+  echo ""
+  set remoteServerhost = ""
+  goto confirm
+endif
+
+echo ""
+echo "Adding data server URL for \$remoteServerhost to siteconfig/RemoteServer/DataServers"
+
+# DataServers file substitutions
+perl -pi -e 's%<Url>(.*)<\/Url>%<Url>http://'\$remoteServerhost':'$dataport'/Ecce</Url>%g' $appdir/siteconfig/RemoteServer/DataServers
+perl -pi -e 's%<Desc>(.*)<\/Desc>%<Desc>ECCE Data Server--'\$remoteServerhost'</Desc>%g' $appdir/siteconfig/RemoteServer/DataServers
+perl -pi -e 's%<StructureLib>(.*)<\/StructureLib>%<StructureLib>'$appdir'/data/client/StructureLibrary</StructureLib>%g' $appdir/siteconfig/RemoteServer/DataServers
+perl -pi -e 's%<BasisSet>(.*)<\/BasisSet>%<BasisSet>http://'\$remoteServerhost':'$dataport'/Ecce/system/GaussianBasisSetLibrary</BasisSet>%g' $appdir/siteconfig/RemoteServer/DataServers
+
+echo "Adding URL for online help to siteconfig/RemoteServer/site_runtime"
+perl -pi -e 's%ECCE_HELP.*%ECCE_HELP                http://'\$remoteServerhost':'$dataport'%g' $appdir/siteconfig/RemoteServer/site_runtime
+
+echo "Adding message server URL for \$remoteServerhost to siteconfig/RemoteServer/jndi.properties"
+perl -pi -e 's%tcp://.*%tcp://'\$remoteServerhost':'$msgport'%' $appdir/siteconfig/RemoteServer/jndi.properties
+
+EOF
+
+      chmod u+x $eccehome/siteconfig/RemoteServer/config_remote_server
+    endif
+  endif
+endif
+
+if ($username == "root") then
+  echo ""
+  echo -n "  Setting ownership of server data files to user nobody..."
+  chown -R nobody ${svrdatadir} >& /dev/null
+  if ($status != 0) then
+    echo ""
+    echo "  **********"
+    echo "  Warning:  Unable to set ownership in $svrdatadir.  You"
+    echo "  must set ${svrdatadir} to be owned by user 'nobody'."  
+    echo "  To set ownership perform the following command as the root user:"
+    echo ""
+    echo "  chown -R nobody ${svrdatadir}"
+    echo "  **********"
+    echo ""
+    echo -n "Press the 'Enter' key to continue "
+    set dummy = $<
+  endif
+endif
+
+if (! -e $webdir/users) then
+  # users file must be created beforehand for ecce_accounts to work
+  touch $webdir/users
+  if ($username == "root") then
+    chown nobody $webdir/users
+  endif
+endif
+
+# make a convenient in-the-path way for users to start/stop the server
+cd $eccehome/scripts
+ln -s ../../server/ecce-admin/start_ecce_server start_ecce_server
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to create start_ecce_server symbolic link from"
+  echo "  $eccehome/scripts to"
+  echo "  $svrdir/ecce-admin."
+  goto cleanfail
+endif
+ln -s ../../server/ecce-admin/stop_ecce_server stop_ecce_server
+if ($status != 0) then
+  echo ""
+  echo "  Error:  Unable to create stop_ecce_server symbolic link from"
+  echo "  $eccehome/scripts to"
+  echo "  $svrdir/ecce-admin."
+  goto cleanfail
+endif
+
+# configure whether the server should stop on Builder exit
+if ($stopServer == "no") then
+  cd $appdir/scripts
+perl -pi -e 's%setenv ECCE_STOP_SERVER%#setenv ECCE_STOP_SERVER%g' $appdir/scripts/eviewer
+  if ($status != 0) then
+    echo ""
+    echo "  Error:  Unable to do perl substitution for stopping the server in"
+    echo "  $appdir/scripts/eviewer."
+  endif
+endif
+
+echo ""
+echo ""
+if ($emslflag != 0) then
+  echo "EMSL ECCE Builder/Viewer installation succeeded."
+else
+  echo "ECCE Builder/Viewer installation succeeded."
+  echo ""
+  echo "*******************************************************************"
+  echo "\!\! You MUST perform the following step to use the Builder/Viewer\!\!"
+  echo ""
+  echo "-- Before running the ECCE Builder/Viewer each user must source a"
+  echo "   setup script.  For csh/tcsh users add this to ~/.cshrc:"
+  echo "     if ( -e $appdir/scripts/runtime_setup ) then"
+  echo "       source $appdir/scripts/runtime_setup"
+  echo "     endif"
+  echo "   For sh/bash users, add this to ~/.profile or ~/.bashrc:"
+  echo "     if [ -e $appdir/scripts/runtime_setup.sh ]; then"
+  echo "       . $appdir/scripts/runtime_setup.sh"
+  echo "     fi"
+ 
+  echo ""
+  if ($stopServer == "no") then
+    echo "Note: The ECCE server will remain running between invocations,"
+    echo "      which is necessary to support multiple users.  The"
+    echo "      server can be manually stopped with the command:"
+    echo "      $svrdir/ecce-admin/stop_ecce_server"
+    echo "      and started with the command:"
+    echo "      $svrdir/ecce-admin/start_ecce_server"
+    echo "      both run as '$username'."
+  else
+    echo "Note: The ECCE server is set to automatically stop when the"
+    echo "      Builder/Viewer exits. This setting will not work if there"
+    echo "      are multiple users at your site."
+  endif
+    echo "      This setting can be changed by editing the file"
+    echo "      $appdir/scripts/eviewer and"
+    echo "      commenting/uncommeting the line"
+    echo "      'setenv ECCE_STOP_SERVER'"
+  echo "*******************************************************************"
+endif
+
+if (-e $workdir) then
+  rm -rf $workdir
+endif
+
+exit 0
+
+
+cleanfail:
+  if ($appdir != "") then
+    if (-e $appdir) then
+      rm -rf $appdir
+    endif
+  endif
+  if ($svrdir != "") then
+    if (-e $svrdir) then
+      rm -rf $svrdir
+    endif
+  endif
+  if ($workdir != "") then
+    if ( -e $workdir) then
+      rm -rf $workdir
+    endif
+  endif
+  echo ""
+  echo "ECCE Builder/Viewer installation failed."
+  echo ""
+  echo "Re-run the ECCE Builder/Viewer install script after resolving the issue."
+  echo ""
+  exit 1
+#TAILMARK

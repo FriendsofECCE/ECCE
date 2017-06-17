@@ -1,0 +1,248 @@
+# parse Descriptor for Amica output file
+# Gdanitz, December 12, 2001, modified on Jan 08, 2002.
+
+[HF]
+Script=amica.scalar
+Begin=total energy =
+Frequency=first
+Lines=1
+[END]
+
+[MCSCF]
+Script=amica.scalar
+Begin=final mcscf convergence values:
+Frequency=first
+Lines=2
+[END]
+
+[ACPF]
+Script=amica.scalar
+Begin=Result of a (traditional) ACPF calculation:
+Frequency=first
+Lines=6
+[END]
+
+[ACPF2]
+Script=amica.scalar
+Begin=Result of a (traditional) ACPF2 calculation:
+Frequency=first
+Lines=6
+[END]
+
+[AQCC]
+Script=amica.scalar
+Begin=Result of a (traditional) AQCC calculation:
+Frequency=first
+Lines=6
+[END]
+
+[CEPA0]
+Script=amica.scalar
+Begin=Result of a (traditional) CEPA0 calculation:
+Frequency=first
+Lines=6
+[END]
+
+[CI]
+Script=amica.scalar
+Begin=Result of a (traditional) CI(SD) calculation:
+Frequency=first
+Lines=6
+[END]
+
+[MR-ACPF]
+Script=amica.scalar
+Begin=Result of a (traditional) MR-ACPF calculation
+Frequency=first
+Lines=6
+[END]
+
+[MR-ACPF2]
+Script=amica.scalar
+Begin=Result of a (traditional) MR-ACPF2 calculation
+Frequency=first
+Lines=6
+[END]
+
+[MR-AQCC]
+Script=amica.scalar
+Begin=Result of a (traditional) MR-AQCC calculation
+Frequency=first
+Lines=6
+[END]
+
+[MR-CEPA0]
+Script=amica.scalar
+Begin=Result of a (traditional) MR-CEPA0 calculation
+Frequency=first
+Lines=6
+[END]
+
+[MR-CI]
+Script=amica.scalar
+Begin=Result of a (traditional) MR-CI(SD) calculation
+Frequency=first
+Lines=6
+[END]
+
+[r12-ACPF]
+Script=amica.scalar
+Begin=Result of an r12-ACPF calculation:
+Frequency=first
+Lines=6
+[END]
+
+[r12-ACPF2]
+Script=amica.scalar
+Begin=Result of an r12-ACPF2 calculation:
+Frequency=first
+Lines=6
+[END]
+
+[r12-AQCC]
+Script=amica.scalar
+Begin=Result of an r12-AQCC calculation:
+Frequency=first
+Lines=6
+[END]
+
+[r12-CEPA0]
+Script=amica.scalar
+Begin=Result of an r12-CEPA0 calculation:
+Frequency=first
+Lines=6
+[END]
+
+[r12-CI]
+Script=amica.scalar
+Begin=Result of an r12-CI(SD) calculation:
+Frequency=first
+Lines=6
+[END]
+
+[r12-MR-ACPF]
+Script=amica.scalar
+Begin=Result of an r12-MR-ACPF calculation
+Frequency=first
+Lines=6
+[END]
+
+[r12-MR-ACPF2]
+Script=amica.scalar
+Begin=Result of an r12-MR-ACPF2 calculation
+Frequency=first
+Lines=6
+[END]
+
+[r12-MR-AQCC]
+Script=amica.scalar
+Begin=Result of an r12-MR-AQCC calculation
+Frequency=first
+Lines=6
+[END]
+
+[r12-MR-CEPA0]
+Script=amica.scalar
+Begin=Result of an r12-MR-CEPA0 calculation
+Frequency=first
+Lines=6
+[END]
+
+[r12-MR-CI]
+Script=amica.scalar
+Begin=Result of an r12-MR-CI(SD) calculation
+Frequency=first
+Lines=6
+[END]
+
+[CPF]
+Script=amica.scalar
+Begin=CPF calculation ended in the
+Frequency=first
+Lines=5
+[END]
+
+[REL]
+Script=amica.scalar
+Begin=first-order Cowan-Griffin correction
+Frequency=first
+Lines=1
+[END]
+
+[HF]
+Script=amica.scalar
+Begin=SCF-ENERGY =
+Frequency=first
+Lines=1
+[END]
+
+[MBPT(2)]
+Script=amica.scalar
+Begin=SCF+ MBPT(2)
+Frequency=first
+Lines=1
+[END]
+
+[MBPT(3)]
+Script=amica.scalar
+Begin=SCF+ MBPT(3)
+Frequency=first
+Lines=1
+[END]
+
+[MBPT(4)]
+Script=amica.scalar
+Begin=SCF+ MBPT(4)
+Frequency=first
+Lines=1
+[END]
+
+[ACCD]
+Script=amica.scalar
+Begin=SCF+    FCCD
+Frequency=first
+Lines=1
+[END]
+
+[CCD]
+Script=amica.scalar
+Begin=SCF+     CCD
+Frequency=first
+Lines=1
+[END]
+
+[CCSD]
+Script=amica.scalar
+Begin=SCF+    CCSD
+Frequency=first
+Lines=1
+[END]
+
+[CCSD(T)]
+Script=amica.scalar
+Begin=SCF+ CCSD(T)
+Frequency=first
+Lines=1
+[END]
+
+[CCSD[T]]
+Script=amica.scalar
+Begin=SCF+ CCSD[T]
+Frequency=first
+Lines=1
+[END]
+
+[CCSDT-1A]
+Script=amica.scalar
+Begin=SCF+CCSDT-1A
+Frequency=first
+Lines=1
+[END]
+
+[LCCD]
+Script=amica.scalar
+Begin=SCF+   L-CCD
+Frequency=first
+Lines=1
+[END]
+

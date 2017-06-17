@@ -1,0 +1,173 @@
+#############################################################################
+# File: remote_shells.site
+#
+# Purpose:
+#   Provide site specific remote shell, copy, xterm, and proxy authentication
+#   commands.  For the remote shell and copy commands, these augment the
+#   built-in ssh/scp, rsh/rcp, telnet/ftp, and Globus command invocations.
+#   For the remote xterm command this allows a site to override the default
+#   mechanism Ecce uses to create a remote xterm within a remote shell by
+#   specifying a command to be issued on the local client machine that
+#   replaces both the remote shell and xterm parts of the standard Ecce
+#   invocation.  For the proxy authentication command, this allows a
+#   command to be issued when authentication is necessary as a separate step
+#   before invoking a remote shell, copy or xterm command.
+#
+#   Often a site will require a different remote shell be used such as
+#   Kerberized rsh (krsh), a different version of an Ecce built-in command
+#   with a different syntax, or a different set of command line options due to
+#   different usage policies such as authentication type.  All these cases can
+#   normally be handled by configuring remote shell commands through this file.
+#   Any commands specified here will be added to the list of available remote
+#   shells for all registered machines at a site.  Thus it is the user's
+#   responsibility to recognize when different remote shells may or may not
+#   apply.  Only the built-in support for ssh/scp, etc. commands can be
+#   registered as being available or unavailable on specific compute servers
+#   through the Machines file.  An "alias" to the ssh remote shell named
+#   sshpass was added to attempt to guarantee password authentication.  This
+#   may be needed by sites that support several types of authentication through
+#   ssh but Ecce does not handle the authentication protocol (e.g. prompting
+#   for passphrase) for types other than traditional password authentication.
+#
+#   Remote xterms are used in various places within Ecce such as the "Shell
+#   in Calculation Directory..." and "tail -f on Output File..." menu items
+#   in the Calculation Manager, the "Open Remote Shell..." button on the
+#   Machine Configuration dialog, and the "Open Shell" menu item in the Machine
+#   Browser.  A custom remote xterm command can be used when the standard
+#   mechanism for setting the $DISPLAY envrionment variable to the host machine
+#   as required by telnet and rsh (and potentially other attributes such as
+#   $XAUTHORITY) does not allow standard Ecce remote shells running the xterm
+#   command to be created.  For example, sites using the KTH (Royal Institute
+#   of Technology, Stockholm, Sweden) version of Kerberos can use the
+#   Kerberized versions of rsh and rcp to launch and monitor jobs in Ecce.
+#   However, the rxterm script in KTH Kerberos must be used to create remote
+#   xterm shells because of the customizations done in rxterm to $DISPLAY and
+#   $XAUTHORITY for Kerberos X Windows protocol forwarding.
+#
+#   The proxy authentication command option is used for establishing
+#   authentication before any other remote shell, copy, or xterm command is
+#   issued.  Some remote shells, notably Kerberized rsh, require this type
+#   of authentication as it is more secure than prompting in the actual remote
+#   shell, copy, or xterm command itself.  The proxy authentication command is
+#   only supported when a remote xterm command is also specified (it must be
+#   the 4th specified item).
+#
+# Syntax
+#   Each non-comment line consists of a both a remote shell and remote
+#   copy command specification along with an optional remote xterm command
+#   and an optional proxy authentication command.  The logical name of the
+#   command is the first token delimited by a colon.  This is the label that
+#   appears to users for selecting the remote shell when configuring a machine
+#   or launching a job. After the colon is the syntax of the remote shell
+#   command followed by a vertical bar "|" and then the syntax for the remote
+#   copy command.  If a remote xterm command is specified it follows the
+#   remote copy command also separated by a vertical bar.  Likewise, the
+#   proxy authentication command follows the remote xterm command separated
+#   by a vertical bar.
+#
+#   The remote shell, copy, xterm, and proxy authentication pieces of the
+#   custom remote shell configuration start with the actual commands (such
+#   as ssh, rsh, scp, rcp, rxterm, kauth, etc.) and not just the command line
+#   arguments.  The logical name (before the colon) is strictly used for user
+#   identification purposes and does not necessarily correspond with the
+#   actual remote commands used.  This allows for things like multiple
+#   specifications with different arguments for commands like ssh where
+#   different remote servers may have different authentication requirements.
+#   A very basic invocation for configuring ssh and scp, for example, would be:
+#   "ssh_emsl: ssh|scp -r"
+#
+#   It is recommended if the built-in versions of the remote commands work
+#   that you use those rather than configure other commands here for simplicity
+#   of administration. 
+#
+#   There are two degenerate forms of the syntax for more compact
+#   representation in specific cases.  First, if only a simple remote
+#   shell and remote copy command is to be used without any command line
+#   arguments then nothing is specified after the colon and the logical
+#   name is the name of the remote copy command followed by a "\" and then
+#   the remote copy command.  E.g. "ssh\scp:" would invoke those commands
+#   directly without any arguments.  Note that this violates the usage
+#   guidelines below but it has been shown to work in some instances.
+#
+#   The second variation can be used if the arguments are identical for
+#   both the remote shell and remote copy commands.  In this case the
+#   arguments can be specified without the vertical bar "|" syntax and the
+#   names of the commands separated by a "\".  For example to use ssh and scp
+#   with only an option requesting RSA authentication:
+#   "ssh_rsa: ssh\scp -o RSAAuthentication=yes"
+#   Note that this again violates the usage guidelines described below since
+#   specific options are omitted with the scp command.
+#
+#   Both the remote xterm and proxy authentication command syntax provides 
+#   additional flexibility due to the need to specify extra arguments in a
+#   specific order.  An example of a remote shell specification with a remote
+#   xterm and proxy authentication command, used in this case for supporting
+#   KTH Kerberized rsh, is:
+#   kerberos: rsh|rcp -r|rxterm -l ##user## -x ##-e command## ##machine##|kauth -h ##machine##
+#
+#   There are three arguments that are specified with the remote xterm and
+#   proxy authentication commands:  user, machine, and command.  The "user"
+#   and "machine" arguments must appear as "##user##" and "##machine##",
+#   respectively in the commands.  The actual values used when issuing the
+#   commands will be substituted by Ecce based on the machine configuration
+#   selected by the user.  Forcing these to be specified as arguments allows
+#   the order to be changed as well specifying arbitrary "prefix arguments"
+#   such as the "-l" denoting that a user name follows.  For the Kerberized
+#   rsh example above using the rxterm command, note that the machine name is
+#   at the very end of the command.  Putting it directly after the user name
+#   is not supported in the implementation of rxterm.  The "command" argument
+#   for remote xterms only is a special case.  This is a placeholder that must
+#   be specified so that Ecce knows where it can substitute whatever command
+#   is to be invoked within a user requested xterm.  For instance, there are
+#   xterms that edit a file, tail a file, or start in a specific directory
+#   that all require a command to be executed within the remote xterm.   The
+#   "##-e command##" example above specifies that there is a single command
+#   line argument consisting of both the "-e" concatenated with whatever
+#   command Ecce needs to execute.  The "-e" part can be changed although
+#   "-e" is the command line argument that the standard xterm command uses to
+#   specify an optional command to be executed within the xterm instance.
+#   The "command" argument can also be specified simply as "##command##" if no
+#   prefix is required to be prepended to form a single command line argument.
+#   Finally, note that the "-x" argument for the remote xterm command is
+#   outside the "##" delimiters.  This indicates that it is fed to the rxterm
+#   command as a separate command line argument.  With rxterm the "-x"
+#   specifies that the following argument is to be passed to the xterm command
+#   created within rxterm.
+#
+# Usage Guidelines:
+#   All remote shell commands specified must support the -l command line
+#   option for specifying the user.  This option is automatically appended by
+#   Ecce and therefore should not be specified as an argument for the
+#   commands in this file.  Remote copy commands automatically embed the
+#   destination machine and user within the file name specification.
+#
+#   For specifying remote copy commands the option -r for recursive copy is
+#   strongly advised as certain operations within Ecce may fail without it.
+#   This option should be explicitly specified with the command in this file
+#   when it is supported.
+#
+#   It is not possible to specify remote shell commands that support telnet
+#   or ftp protocol due to complexity of how these commands operate.
+#
+#   The two commented out remote shell specifications below the line of all
+#   "#" characters at the end of this file are provided as additional examples
+#   and also to let Ecce administrators know where to add their own remote
+#   shell specifications.  If these lines were not proceeded by the "#"
+#   comment character they would be included in the list of remote shells
+#   available in the Machine Configuration dialog.
+#
+#   NOTE:  It is still possible that the remote command configuration
+#   capability provided here is insufficient for being able to use an aribtrary
+#   remote shell and copy command at a site.  This is true even when the
+#   guidelines for using "-l" for shells and "-r" for copying are
+#   supported by the commands.  The exact syntax for output from the remote
+#   shell and copy commands may not work with the implementation of Ecce
+#   remote communications which is scanning for particular strings in the
+#   output to recognize prompts and then success or failure.  In this case
+#   please contact ecce-support@emsl.pnl.gov and it may be possible to augment
+#   Ecce to support new remote commands, new arguments to existing commands,
+#   or new types of authentication.
+#
+#############################################################################
+#ssh_emsl: ssh|scp -r
+#kerberos: rsh|rcp -r|rxterm -l ##user## -x ##-e command## ##machine##|kauth -h ##machine##

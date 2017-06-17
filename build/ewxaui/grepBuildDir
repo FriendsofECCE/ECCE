@@ -1,0 +1,2 @@
+#!/bin/sh
+grep '^prefix' ../Makefile | awk '{print $3}'

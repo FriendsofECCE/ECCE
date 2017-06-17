@@ -1,0 +1,34 @@
+#!/usr/bin/env perl
+###############################################################################
+# FILENAME:  prettyInput
+#
+#
+# SYNTAX: prettyInput <outfile>
+#
+# PURPOSE:
+#       Beautifies input files after they are initially generated.  Right
+#       now that means just removing multiple blank lines.
+#
+# DESCRIPTION:
+#
+# LIMITATIONS:
+#
+###############################################################################
+
+$lastBlank = 0;
+
+while (<STDIN>) {
+  if (/^\s*$/) {
+    if ($lastBlank == 0) {
+      print "$_";
+    }
+
+    $lastBlank = 1;
+
+  } else {
+    print "$_";
+
+    $lastBlank = 0;
+  }
+}
+

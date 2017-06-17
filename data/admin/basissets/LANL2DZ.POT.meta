@@ -1,0 +1,24 @@
+name
+LANL2DZ ECP
+name
+type
+ecp
+type
+category
+AUXILIARY
+category
+references
+Elements                             References
+--------                             ----------
+Na - Hg: P. J. Hay and W. R. Wadt, J. Chem. Phys. 82, 270 (1985).
+         P. J. Hay and W. R. Wadt, J. Chem. Phys. 82, 284 (1985).
+         P. J. Hay and W. R. Wadt, J. Chem. Phys. 82, 299 (1985).
+
+references
+comments
+11/16/00  - DFF - Replace K and Ca with the HAY-WADT2.POT versions in order
+10/20/97  - DFF - Correct errors in the number of primitives for Ur, Np, Pu
+5/13/96  - DFF - Correct errors in Sb and Te with number of exponents.
+5/10/96  - DFF - Correct errors in the original formatting, NUMEXP missing.
+3/27/96  - DFF - Original creation of this file from a file sent by Jeff Hay.
+comments

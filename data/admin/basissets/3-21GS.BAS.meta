@@ -1,0 +1,40 @@
+name
+3-21G* Polarization
+name
+type
+polarization
+type
+category
+TAIOrbital
+category
+spherical
+N
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             Reference
+--------                             ----------
+Na - Ar:  W.J. Pietro, M.M. Francl, W.J. Hehre, D.J. DeFrees, J.A. Pople and 
+          J.S. Binkley, J. Am. Chem. Soc. 104, 5039 (1982)
+
+references
+info
+                     3-21G* Polarization Functions
+                     -----------------------------
+Elements                             References
+Na - Ar: (1d)  W. J. Pietro, M. M. Francl, W. J. Hehre, D.J. DeFrees,
+               J. A.  Pople and J. S. Binkley, J. Am. Chem. Soc. 104,
+               5039 (1982).
+
+The 3-21G* polarization set amounts to a single 6-term d function for elements
+Na - Ar to account for the participation of d functions in second row bonding.
+
+
+info
+comments
+2/21/95  - DFF - Change citation reference format.
+9/3/94  - DFF - Change the NAME= name to reflect what is in MASTER.TBL.
+7/17/90  - DFF - Original creation of this file from MIA basis set library.
+comments

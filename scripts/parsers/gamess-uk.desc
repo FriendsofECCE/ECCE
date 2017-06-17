@@ -1,0 +1,45 @@
+# parse Descriptor for GAMESS-UK output file
+#
+
+[TEVEC]
+Script=gamess-uk.te
+Begin=total energy
+Frequency=all
+Lines=1
+[END]
+
+[TENERGY]
+Script=gamess-uk.te
+Begin=total energy
+Frequency=first
+Lines=1
+[END]
+
+[MOFILE]
+Script=gamess-uk.punch
+File=ftn058
+Begin=ftn058
+[END]
+
+[DIPOLE]
+Script=gamess-uk.dipole
+Begin=dipole moments
+Frequency=all
+End=z
+[END]
+
+[MULLIKEN]
+Script=gamess-uk.mulliken
+Begin=total gross population in aos
+Frequency=all
+End= ======
+[END]
+
+[GEOMPROP]
+Script=gamess-uk.geomprop
+Begin=molecular geometry
+Frequency=first
+End=molecular basis set
+[END]
+
+

@@ -1,0 +1,45 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+$dx_flag = 0;
+$dy_flag = 0;
+$dz_flag = 0;
+while (<STDIN>) {
+  if (/^\s*x\s*\S*\s*\S*\s*(\S*)/) {
+    $dx = $1;
+    $dx_flag = 1;
+  }
+  if (/^\s*y\s*\S*\s*\S*\s*(\S*)/) {
+    $dy = $1;
+    $dy_flag = 1;
+  }
+  if (/^\s*z\s*\S*\s*\S*\s*(\S*)/) {
+    $dz = $1;
+    $dz_flag = 1;
+  }
+  if ($dx_flag && $dy_flag && $dz_flag) {
+    print "key: DIPOLE\n";
+    print "size:\n3\n";
+    print "rowlabels:\n";
+    print "x y z\n";
+    print "values:\n";
+    print " $dx $dy $dz";
+    print "\nEND\n";
+  }
+}
+
+exit();

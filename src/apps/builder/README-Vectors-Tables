@@ -1,0 +1,122 @@
+This table describes some information about the type of vector and table
+display panels, what classes they map to, what calculations to run etc.
+Hopefully its useful to somebody down the line but its at least useful
+to figure out what classes to implement.
+
+1. DefaultVecPanel (Done)
+   OCTAPOLE PropVector<Unknown>
+   HEXPOLE     PropVector<Unknown>
+
+   Two column table constructed from PropVector objects
+   Extract Rowlabels from rowLabels attribute
+   No visualization
+
+2. TablePanel (Done except doesn't use data labels)
+   N column table constructed from PropTable objects
+   Use column and row label attributes
+   No visualization
+
+   Not sure when its used but these probably apply
+   FORWARD_RATE   PropTable<Unknown>
+   REVERSE_RATE   PropTable<Unknown>
+   EQUILIBRIUM_CONST PropTable<Unknown>
+
+2. MomentsPanel (Done)
+   DIPOLE   PropVector<Coordinate>
+   MP2DIPOLE   PropVector<Coordinate>
+
+   n/3 Row Table with row labels used as column labels
+   1 Vector for entire table
+   Should be a single row in the table
+   Currently using labels embedded in table instead of column labels.
+   May want to change this and then add #3 below
+   Cmd = CmdAddDipoleMoment
+
+3. QuadPoleMomentPanel (subclass DipoleMomentVector) (Done)
+   QUADPOLE PropVector<Unknown>
+   POLARIZ     PropVector<Unknown>
+   HYPERPOL1   PropVector<Unknown>
+
+   Currently implemented using 3 columns for compatibility with
+   other tables in the display.
+   Similar to DipoleMomentPanel except that labels are embedded in the cells
+   Currently MomentsPanel is used by may want to differentiate label handling
+   between the two
+   Cmd = CmdAddQuadrapoleMoment
+
+
+4. VecAtomSpectrum (rough start)
+   ISOSHIELD   PropVector<Atom>
+   ANISOSHIELD PropVector<Atom>
+   EGRADNORMVEC   Gradient PropVector<Atom>
+   EDENS (EFieldGrad)  PropVector<Atom>
+   FERMI    PropVector<Atom>
+   EFIELDASYMM PropVector<Atom>
+
+   Shows color spectrum over the atoms
+   Run a gaussian property calc
+   Cmd = CmdCSColors
+   See calcviewer/spectrumtable_cdlg.C
+
+5. VecAtomTensor
+   SHIELDTENSOR   PropVector<Unknown>
+   DIPOLETENSOR   PropVector<Unknown>
+   EFIELDGRAD  PropVector<Unknown>
+
+   Per atom tensor table 
+   Class is DefaultTensor
+   Run an nwchem SCF property calc 
+   Cmd = CmdAddEfieldGrad,CmdAddShieldTensor,CmdAddDipoleTensor
+   Implement as one command this time
+
+6. TableAtomCoords(i,x,y,z)
+   EGRADVEC PropTable<Atom,Coordinate>
+   EFIELD      PropTable<Atom,Coordinate>
+
+   Run a geometry optimization to get an EGRADVEC
+   Run a property calculation to get an EFIELD
+
+   Current design is fine (nice to view vectors by selection perhaps)
+   Each row is a vector.
+   Cmd = CmdAddEGradVec/CmdAddEfield
+   Implement as one class this time
+
+7. EigenValPanel (Done)
+   EFIELDEIGVAL   PropVector<Component>
+   SHIELDEIGVAL   PropVector<Component>
+   DIPOLEEIGVAL   PropVector<Component>
+
+   Subclass DefaultVector and override the fillTable method
+   Would be nice to connect user selection with viz interaction
+   Run a Property calculation to get this data
+   Cmd = None
+
+8. SSTensor
+   SPINSPIN PropTable<Unknown>
+   Also consumes "SSISOTROPY  PropVector<Unknown>"
+
+   Run NWChem property calc at SCF/UHF to get this data.
+   Cmd = CmdSpinSpinTensor
+   See calcviewer/spinspin_cdlg.C
+
+9. Vec3ColVector (May be obsolete)
+   Alternative view of Octapole, hexadecapole
+   Preferred view is now DefaultVecPanel
+
+--------------------------------------------
+Unknown
+--------------------------------------------
+
+# No custom class
+QUADPOLET   PropVector<Unknown>
+
+--------------------------------------------
+Other Notes
+--------------------------------------------
+Each class above has a list of TODOs at the top of the implementation file
+None of the classes so far implements messaging for real time monitoring
+Selection integration with the viewer have beend downgraded to low priority
+Atom labels have been downgraded to low priority
+No guis are very well tested; especially in terms of comparison to calcviewer
+No guis really are well integrated into receive/lose/take focus because that
+  framework isn't complete

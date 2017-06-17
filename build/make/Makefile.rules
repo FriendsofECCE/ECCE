@@ -1,0 +1,186 @@
+################################################################################
+# FILENAME:  Makefile.rules
+#
+#
+# PURPOSE:
+#   Makefile rules template for common target types (included in any makefile)
+#
+# DESCRIPTION:
+#   The file /usr/include/make/default.mk served as the starting
+#   point.  All rules that are not being used have been deleted
+#   to decrease confusion.  Add them as needed.
+#
+#   Interesting info taken from "GNU Make" by Stallman and McGrath.
+#
+#   These are the Automatic variables used in gnumake (p112):
+#
+#   $@ - file name of the target of the rule
+#   $% - target member name if archive (eg $% = bar.o given foo.a(bar.o))
+#   $< - name of the first dependency
+#   $^ - names of all dependencies (with spaces)
+#   $? - names of all dependencies newer than the target (with spaces)
+#   $* - stem of target in implicit rule match (eg $* = x given a.x.b and a.%.b)
+#
+#   Some useful variables with built-in values (p107-108, unuseful excluded)
+#
+#   AR = ar           (archive maintaining program -- we will use this)
+#   ARFLAGS = rv      (flags for ar -- we will use this)
+#   CC = cc           (C compiler -- we will use this)
+#   FC = f77          (Fortran compiler -- we may use this)
+#   CPP = $(CC) -E    (C preprocessor -- we may use this)
+#   CXX = g++         (C++ compiler -- we will use this)
+#   CO = co           (Extracting files from RCS -- we will use this)
+#   RM = rm -f        (Command to remove a file -- we will use this I guess)
+#
+# COMMENTS:
+################################################################################
+
+################################################################################
+# Since gnumake will check out anything automatically if it's a target, do
+# that for all source files.  We don't need any commands because the default
+# is to check out of RCS, which is what we want.
+################################################################################
+%.h:
+%.H:
+%.cc:
+%.c:
+%.C:
+$(ECCE_TEMPLATE_DIR)/Makefile.%:
+Makefile:
+	@echo " "
+
+$(OBJ_PATH): 
+	@mkdir -p $@
+	@mkdir -p $(LIB_PATH)
+	@mkdir -p $(BIN_PATH)
+
+################################################################################
+# How to make .o files from .C (C++ language) source code.
+################################################################################
+$(OBJ_PATH)/%.o: %.C
+	$(CXX) $(CFLAGS) $(IFLAGS) -c $< -o $@
+
+################################################################################
+# How to make .o files from .c (C language) source code.
+################################################################################
+$(OBJ_PATH)/%.o: %.c
+	$(CC) $(CCFLAGS) $(IFLAGS) -c $< -o $@
+
+################################################################################
+# How to make .%.D (dependency) files from %.C (C++ language) source code.
+#  Makefiles must "include $(SRCS:%.C=.%.D)"
+# Note that leaving $(CFLAGS) out may cause dependencies to be left out.
+# But having it may generate warnings due to differences between CC options
+# and gcc and makes it hard to write a depfixer that doesn't get confused.
+#
+# May be fruitful to process error output but now I'm just sending into
+# outer space.  If adding it back in, make sure to modify the depfixer
+# script.
+# TO direct both stdout and stderr to the same file, use:
+#	-gcc -MM $(IFLAGS) -c $<   1> $@ 2>&1  
+################################################################################
+.%.D: %.C
+	@echo "Generating dependencies for: $*.C"
+	-@gcc -MM $(IFLAGS) -c $<   > $@ 2>/dev/null ; $(ECCE_HOME)/build/depfixer "$*" 
+
+.%.D: %.c
+	@echo "Generating dependencies for: $*.c"
+	-@gcc -MM $(IFLAGS) -c $<   > $@ 2>/dev/null ; $(ECCE_HOME)/build/depfixer "$*" 
+
+################################################################################
+# How to make library (.a) files
+# The library is dependent on each of the .o's it is supposed to contain.
+# This is what causes objects to be put into the library if you accidentally
+# blow away your library but don't remake the objects.  Its slow since it
+# does each .o separately.
+################################################################################
+$(LIB_PATH)/$(LIBRARY): $(OBJS) $(LIB_PATH)/$(LIBRARY)($(OBJS))
+	ar rv $(LIB_PATH)/$(LIBRARY) $(OBJS)
+
+$(LIB_PATH)/$(LIBRARY)():
+
+$(LIB_PATH)/$(LIBRARY)(%.o):
+ifneq ($findstring(SUSE,$(shell lsb_release -is)),SUSE)
+	ar rv $(LIB_PATH)/$(LIBRARY) $(OBJS)
+endif
+
+################################################################################
+# How to make programs
+################################################################################
+
+ifeq ($(words $(PROGRAMS)),1)
+  OBJ_DEPS = $(OBJS)
+  OBJ_FILES = $(OBJS)
+else
+  OBJ_DEPS = $(OBJ_PATH)/%.o
+  OBJ_FILES = $(OBJ_PATH)/$(@F).o
+endif
+
+$(PROGRAMS): %: $(BIN_PATH)/%
+	@echo "$@ is built"
+ 
+$(BIN_PATH)/%: $(OBJ_DEPS) $(ECCE_DEP_LIBS)
+	$(LD) $(LDFLAGS) $(OBJ_FILES) $(LIBS) -o $@
+
+################################################################################
+# DialogBlocks WxWidgets code generation rules.
+################################################################################
+%.C: %.pjd
+ifndef AUTOBUILD
+ifdef ECCE_HAVE_BLOCKS
+	ewx_pjd_patch $*.pjd tmp.pjd
+	ewx_cxx_gen tmp.pjd
+	@rm -f tmp.pjd
+	ewx_cxx_patch `pwd`/$@
+endif
+endif
+
+################################################################################
+# Target rules common to all makefiles
+################################################################################
+# Use PHONY just to try to speed things up.
+.PHONY: tidy clean
+
+tidy: ; -$(RM) $(OBJS) core* *.diff
+
+# Need variable for shared library
+SO_LIBRARY = $(patsubst %.a,%.so,$(LIBRARY))
+clean: tidy
+ifneq ($(PROGRAMS),)
+	-$(RM) $(patsubst %, $(BIN_PATH)/%, $(PROGRAMS))
+endif
+	-$(RM) *~
+ifneq ($(LIBRARY),)
+	@echo "Removing library(s)"
+	-$(RM) $(LIB_PATH)/$(LIBRARY)
+	-$(RM) $(LIB_PATH)/$(SO_LIBRARY)
+endif
+ifneq ($(LIBRARY1),)
+	-$(RM) $(LIB_PATH)/$(LIBRARY1)
+	-$(RM) $(LIB_PATH)/$(SO_LIBRARY1)
+endif
+ifneq ($(LIBRARY2),)
+	-$(RM) $(LIB_PATH)/$(LIBRARY2)
+	-$(RM) $(LIB_PATH)/$(SO_LIBRARY2)
+endif
+ifneq ($(LIBRARY3),)
+	-$(RM) $(LIB_PATH)/$(LIBRARY3)
+	-$(RM) $(LIB_PATH)/$(SO_LIBRARY3)
+endif
+ifneq ($(LIBRARY4),)
+	-$(RM) $(LIB_PATH)/$(LIBRARY4)
+	-$(RM) $(LIB_PATH)/$(SO_LIBRARY4)
+endif
+ifneq ($(LIBRARY5),)
+	-$(RM) $(LIB_PATH)/$(LIBRARY5)
+	-$(RM) $(LIB_PATH)/$(SO_LIBRARY5)
+endif
+
+clobber: clean
+	-$(RM) .*D
+
+# This dependency is needed so that programs are rebuilt when
+# a library changes.  This seems to only work if there is some
+# sort of command executed which is why nothing is echo'd
+$(ECCE_DEP_LIBS)::
+	@echo -n ""

@@ -1,0 +1,1140 @@
+#!/usr/bin/env perl
+#
+# Filename: gensub
+#
+# Description
+#   Based on command-line arguments and config files, generate an ecce 
+#   job submission script.
+#
+#   See handleOptions() for description of command line args.
+#
+#   A submit script from ECCE can be considered to consist of the following:
+#     .  header section with gen data ... followed by queue mgr keywords if any
+#     .  a env setup section
+#     .  custom setup stuff
+#     .  running the code
+#     .  determination of status (ie ECCE RUN_STATE)
+#     .  custom wrapup stuff
+#     .  cleanup of files (core scratch...whatever)
+#
+#   The following options are considered mandatory:
+#     . -c code
+#     . -Q qmanager
+#          a value of "Silver" has special implications (meta scheduler)
+#     . -H host machine logical key
+#     . -r run directory ( it must already exist)
+#     . -i input file
+#     . -o output file
+#
+# WARNING
+#  On some platforms (unicos), there is a maximum length for csh variable
+#  names.  I think it is 16. (eg EXIT_UNCONVERGED_MIN doesn't work)
+#
+# --------------------------------------------------------------------
+# Notes to those who are supporting new codes or queue managers
+# --------------------------------------------------------------------
+# The key design elements of this script are:
+#   . you extend it for new codes and queues by writing the subroutines
+#     named like <code>_<queuemanager>.  For example nwchem_maui (lower case).
+#     The queue manager name for non-queued workstations is shell.
+#     Illegal subroutine name characters are stripped out (eg '-').
+#     This subroutine returns a string which is csh code to be added to
+#     the generated submit script.  IMPORTANT: The last thing this
+#     subroutine should do is run the code since code that gets added
+#     after that, gets and evaluates the exit status.
+#     These scripts are at the bottom of this file.  However this can
+#     be overridden in the config file too.  If the attribute of the
+#     same name (ie nwchem_maui) exists in a config file, it will be used
+#     instead of the subroutine.
+#   . This script reads configuration information out of a series of
+#     config files.  This information is put into %config and can be
+#     used to configure different machines/platforms differently.
+#
+# --------------------------------------------------------------------
+# TODO List for this whole module - not just this script.
+# --------------------------------------------------------------------
+# . combine all the machine related stuff.  Currently there is the
+#   Queues file, the CONFIG.* files, submit.* files and the Machines file.
+#   See getConfigFileNames to see how many different files I look for
+#   just to get the right config information.
+# . merge the format and content of the CONFIG.* files and submit.*
+#   files.  Currently we only use submit.site so there hasn't been
+#   to much of an issue.  The readConfig subroutine tries to handle
+#   everything.
+# . add more logging to the generated script.  There is less now than
+#   there was in the old scripts.
+# . Add more error handling to the gensub script so that the launcher
+#   gui can potentially capture more errors.  Currently you could
+#   specify a Queue Manager but not a Queue and this script would
+#   generate an incomplete script.  Of course the launcher gui should
+#   not allow that so its not a big deal.
+# . have the generated submit script detect errors and return a success
+#   or fail status.  Might not be useful since I think it gets run in
+#   the background on workstations anyway.
+# . test use of 'loop hole'.
+# . cleanup of nwchem.p file.  This may mean that we need to have the
+#   filestoremove stuff be code dependent which I guess makes sense
+#   anyway.
+#     
+
+{
+  use Getopt::Std;
+  use Sys::Hostname;
+  use Socket;
+  #use strict vars;
+
+  # These are all the command line args (optionally) needed for generating input
+  local ($host, $qMgr, $queue, $code, $account, $nodes, $totalprocs,
+         $cpuTime, $wallTime, $wallHrMin, $runDir, $scratchDir,
+         $inFile, $outFile, $memory, $mem_x_1024, $scratchSpace);
+  local ($submitFile);  # this is a cmd line arg too
+  local ($jobName);     # extracted for $submitFile
+  local ($verbose);     # -v option
+  local ($mdSystemName);# -S option -- md jobs only
+  local ($mdCalcName);  # -C option -- md jobs only
+  local ($globus);      # -g option
+  local ($metascheduler);    # -Q "Silver"
+
+  local ($CC);        # comment character(s)
+  local ($ecceHome);  # since we use it often
+  local (%config);    # stuff from config files
+  local (@msgs);      # error messages
+
+  getopts(':p:f:H:Q:q:c:a:n:N:t:T:w:r:s:i:o:S:C:mxhgv');
+
+  # get this from config files
+  $CC = "# ";
+
+  $ecceHome = $ENV{'ECCE_HOME'};
+
+  &handleOptions();
+
+  # keep around the lower case version of the code name
+  $lccode = lc($code);
+
+  local (@configFiles);
+  @configFiles = &getConfigFileNames();
+
+  # $logFile is temporary - the output is concatenated to the actual
+  # output file after the job is run.  You cannot just write to the
+  # output file from the beginning since the code may overwrite it.
+  local $logfile = "$runDir/ecce.submit.log";
+  local $statusFile = "$runDir/.ecce.status";
+
+  open(SUBMIT,"> $submitFile") || die "Unable to open $submitFile for write";
+  print SUBMIT &getHeader();
+  &readConfig();
+  ##&printConfig();
+
+  # If using a Queued system, you probably have a header to generate
+  # But not with globus (-g) because it messes it up.
+  if ($globus ne "true" && $metascheduler ne "true") {
+    print SUBMIT &provideVariables(&getQMgrKeys);
+  }
+
+  print SUBMIT "\n$CC Handle interrupts\n";
+  print SUBMIT "onintr canceljob\n";
+
+  # For globus expecially we need to make sure we change to the rundir
+  # Not a bad idea for regular ecce too.
+  print SUBMIT "\n$CC Change to the run directory\n";
+  print SUBMIT "cd $runDir\n";
+
+  print SUBMIT "\n$CC Remove any left-over ecce files from previous runs\n";
+  print SUBMIT "rm -f $statusFile core\n";
+  # Do this so we don't have to know when to use > vs >>
+  print SUBMIT "rm -f $logfile\n";
+  print SUBMIT "touch $logfile\n";  
+
+  local ($preFileExpr);
+  $preFileExpr = $::config{$lccode . "prelimfilestoremove"};
+  if ($preFileExpr ne "") {
+    print SUBMIT "\n$::CC Removing files specified by PrelimFilesToRemove\n";
+    print SUBMIT "rm -f $preFileExpr >& /dev/null\n";
+  }
+
+  # create back files if configured to do so
+  print SUBMIT &backFiles();
+
+  # Define the various exit state checking at might get used
+  print SUBMIT "\n$CC Exit status and ECCE states...\n";
+  print SUBMIT &defineStatusSymbols();
+
+  # If there is a specific setup registered, add it
+  if (defined($config{$lccode . "_setup"})) {
+    $out = $config{$lccode . "_setup"};
+    print SUBMIT &provideVariables($out);
+    print SUBMIT "\n";
+  } else {
+    if (defined($config{"setup"})) {
+      $out = $config{"setup"};
+      print SUBMIT &provideVariables($out);
+      print SUBMIT "\n";
+    }
+  }
+
+  # Set environment variables per code...
+  print SUBMIT "\n$CC Setting environment variables...\n";
+  print SUBMIT &doEnvironment($lccode);
+
+
+  # For loadleveler...
+  # Some day we'll need to do copies too.
+  if (defined($scratchDir) && $qMgr eq "Maui") {
+    print SUBMIT "# Make scratch dir on all nodes.\n";
+    print SUBMIT "if ( ! -e ~/.rhosts) touch ~/.rhosts\n";
+    print SUBMIT "foreach node (\$LOADL_PROCESSOR_LIST)\n";
+    print SUBMIT "  if ( `grep -c \"\${node} \$USER\" ~/.rhosts` == 0) echo \"\${node} \$USER\" >> ~/.rhosts\n";
+    print SUBMIT "end\n";
+    print SUBMIT "foreach node (\$LOADL_PROCESSOR_LIST)\n";
+    print SUBMIT "  echo rsh \${node} 'if (! -d $scratchDir) mkdir -p $scratchDir'\n";
+    print SUBMIT "  rsh \${node} \"if (! -d $scratchDir) mkdir -p $scratchDir\"\n";
+    print SUBMIT "end\n";
+  }
+
+  print SUBMIT "\n";
+  print SUBMIT "echo -n \"Starting Job: \" >> $::logfile\n";
+  print SUBMIT "date >> $::logfile\n";
+
+  print SUBMIT "\n$CC - code/queue manager section...\n";
+  $fct = $lccode . "_loophole";
+  # Apparently, subroutine names with '-' characters are illegal.
+  $fct =~ s/-//g;
+  if (defined($config{$fct})) {
+    print SUBMIT $config{$fct};
+  } else {
+    $fct = $lccode;
+    $fct =~ s/-//g;
+    $out = eval "&$fct()";
+    if ($@ ne "") {
+      die "Missing function $fct because $@";
+    }
+  }
+
+  print SUBMIT &provideVariables($out);
+
+  ## NOTE##
+  # There should NOT be any extra commands betweent the main body
+  # and the call to determineStatus or we'll get the wrong status.
+  # So the date has to come later...
+  #########
+  print SUBMIT "\n$CC - determine state...\n";
+  print SUBMIT  &determineStatus();
+
+
+  if ($sendMetrics) {
+    print SUBMIT "\n$CC - capture completed job metrics \n\n";
+    print SUBMIT '  Mail ecce_tracking@emsl.pnl.gov << EOM >& /dev/null'."\n";
+    print SUBMIT "$completedTag ".
+                 '`date +"%T %d-%h-%y"`: $USER job completed, job was started from '.
+                 $domainAddress.
+                 ", running ".
+                 $code.
+                 " on ".
+                 $hostFull.
+                 " using ".
+                 $totalprocs.
+                 " processors\n";
+    print SUBMIT 'EOM'."\n";
+    print SUBMIT "\n\n";
+  }
+
+
+  print SUBMIT "\n";
+  print SUBMIT "echo -n \"Completed Job: \" >> $::logfile\n";
+  print SUBMIT "date >> $::logfile\n\n";
+
+  # If there is a specific wrapup registered, add it
+  if (defined($config{$lccode . "_wrapup"})) {
+    $out = $config{$lccode . "_wrapup"};
+    print SUBMIT &provideVariables($out);
+  } else {
+    if (defined($config{"wrapup"})) {
+      $out = $config{"wrapup"};
+      print SUBMIT &provideVariables($out);
+    }
+  }
+
+  print SUBMIT &cleanup();
+
+  # Now write the $statusFile file for oc_server
+  # Its assumed to have been removed at the start of the job
+  # but may have been created externally by the kill process.
+  print SUBMIT "if ( ! -e $statusFile ) then \n  echo \$exitStatus > $statusFile\nendif\n";
+
+  # Concatenate log info to output file and remove log file
+  print SUBMIT "\n$CC Adding ecce log info to output file for debugging...";
+  print SUBMIT "\nif ( ! -e $::outFile) touch $::runDir/$::outFile\n";
+  print SUBMIT "echo \"\" >> $::runDir/$::outFile \n";
+  print SUBMIT "echo \"-----ECCE Log Information-----\" >> $runDir/$::outFile \n";
+  print SUBMIT "cat $logfile >> $runDir/$::outFile \n";
+  print SUBMIT "rm -f $logfile\n\n";
+
+  # Probably need to have exit status values here
+  print SUBMIT "exit (0)\n";
+
+  print SUBMIT "\n$CC Handle interrupt here...\n";
+  print SUBMIT "canceljob:\n";
+  print SUBMIT "   echo \$X_INTERRUPTED > $statusFile\n";
+  print SUBMIT "   exit (1)\n";
+
+  close(SUBMIT);
+  `chmod 744 $submitFile`;
+}
+
+##########################################################################
+##########################################################################
+sub defineStatusSymbols() 
+{
+  use strict vars;
+  my ($retval);
+
+  $retval .= "set X_INTERRUPTED     = 302;    # caught interrupt - kill \n";
+  $retval .= "set X_FILE_EXIST      = 211;    # in/out file does not exist\n";
+  $retval .= "set X_UNEXPECTED_CORE = 221;    # code exit 0 but core exists\n";
+
+  return $retval;
+  nouse strict vars;
+}
+
+##########################################################################
+# Later determine whether to back up files from config files.  For
+# example, back up the output file to *.out *.out.1.  For now, just 
+# remove them.
+##########################################################################
+sub backFiles() 
+{
+  my $retval = "";
+#  $retval = "\n$CC Removing old output file if it exists\n";
+#  $retval .= "if ( -e $outFile) rm -f $outFile\n";
+  return $retval;
+}
+
+##########################################################################
+# Description
+#   Remove any files specified by the filestoremove keyword in any
+#   of the config files.  If this keyword is missing, it really doesn't
+#   matter.
+##########################################################################
+sub cleanup() 
+{
+  my ($retval);
+  my ($fileExpr);
+  $retval = "";
+
+  $fileExpr = $::config{$lccode . "filestoremove"};
+  if ($fileExpr ne "") {
+    $retval .= "\n$::CC Removing files specified by FilesToRemove\n";
+    $retval .= "rm -f $fileExpr >& /dev/null\n\n";
+  }
+  return $retval;
+}
+
+##########################################################################
+# Description
+#  Grab any keys of the form <code>Environment and add them to the 
+#  generated script.  Handle any vars with PATH in them as you would
+#  any UNIX path.
+#
+#  Its questionable whether this section is useful or if its better to
+#  handle it in sub <code>_<qmgr>.
+##########################################################################
+sub doEnvironment() 
+{
+  use strict vars;
+  my ($retval);
+  my ($code,$key,@vars,$var);
+  my ($evar,$rhs);
+  ($code) = @_;
+  $key = $code . "environment";
+  @vars = split(/\n/,$::config{$key});
+  foreach $var (@vars) {
+    $var =~ s/^\s*//;
+    ($evar,$rhs) = split(/ +/,$var);
+    # For any path variables, append if defined
+    if ($evar =~ /PATH/i) {
+      $retval .= "if (\$?$evar) then\n";
+      $retval .= "  setenv $evar \$\{${evar}\}:$rhs\n";
+      $retval .= "else\n";
+      $retval .= "  setenv $evar $rhs\n";
+      $retval .= "endif\n";
+    } else {
+      $retval .= "setenv $evar $rhs\n";
+    }
+  }
+  return $retval;
+  nouse strict vars;
+}
+
+##########################################################################
+# Descrition
+#   Do replacements on "exposed" variables.  I could not figure out how
+#   to do this gracefully.  All variables are globals.
+##########################################################################
+sub provideVariables()
+{
+  use strict vars;
+  my ($fixedString);
+  ($fixedString) = @_;
+  $fixedString =~ s/\$account/$::account/gi;
+  # This one has to be case sensitive so as not to accidentally
+  # replace $HOST which is intended to be the unix env variable.
+
+  # Need for PBS
+  my ($ppn);
+  $ppn = $::totalprocs/$::nodes;
+
+  $fixedString =~ s/\$host/$::host/g;
+  $fixedString =~ s/\$qMgr/$::qMgr/gi;
+  $fixedString =~ s/\$queue/$::queue/gi;
+  $fixedString =~ s/\$code/$::code/gi;
+  $fixedString =~ s/\$nodes/$::nodes/gi;
+  $fixedString =~ s/\$totalprocs/$::totalprocs/gi;
+  $fixedString =~ s/\$ppn/$ppn/gi;
+  $fixedString =~ s/\$cpuTime/$::cpuTime/gi;
+  $fixedString =~ s/\$wallTime/$::wallTime/gi;
+  $fixedString =~ s/\$wallHrMin/$::wallHrMin/gi;
+  $fixedString =~ s/\$runDir/$::runDir/gi;
+  $fixedString =~ s/\$scratchDir/$::scratchDir/gi;
+  $fixedString =~ s/\$inFile/$::inFile/gi;
+  $fixedString =~ s/\$outFile/$::outFile/gi;
+  $fixedString =~ s/\$memory/$::memory/gi;
+  $fixedString =~ s/\$mem_x_1024/$::mem_x_1024/gi;
+  $fixedString =~ s/\$scratchSpace/$::scratchSpace/gi;
+  $fixedString =~ s/\$submitFile/$::jobName/gi;
+  $fixedString =~ s/\$mdSystemName/$::mdSystemName/gi;
+  $fixedString =~ s/\$mdCalcName/$::mdCalcName/gi;
+
+  $fixedString .= "\n";
+
+  return $fixedString;
+  nouse strict vars;
+}
+
+
+##########################################################################
+# From csh man pages:
+#     status            The status returned  by  the  most  recent
+#                       command.    If   that  command  terminated
+#                       abnormally, 0200 is added to  the  status.
+#                       Built-in  commands  that  fail return exit
+#                       status 1; all other built-in commands  set
+#                       status to 0.
+#     $status appears to be the "true" program exit value.
+#
+#  Checking for a core file could be more robust - make sure there is
+#  no core to start with - make sure its associated with the current run...
+##########################################################################
+sub determineStatus()
+{
+  my ($reval);
+  $retval = "set exitStatus = \$status\n";
+  $retval .= "echo \"$lccode exit status = \$exitStatus\" >> $logfile\n";
+  $retval .= "\n$CC look for suspicious core\n";
+  $retval .= "if ( -e \'core\' ) then\n";
+  $retval .= "  echo \"Unexpected core - setting status to X_UNEXPECTED_CORE\" >> $logfile\n";
+  $retval .= "  set exitStatus = \$X_UNEXPECTED_CORE\n";
+  $retval .= "endif\n";
+
+  # If the output file doesn't even exist, something bad happened.
+  $retval .= "\n";
+  $retval .= "if ( ! -e $runDir/$outFile) then\n";
+  $retval .= "  echo \"Output file $outFile does not exist - setting status to failed\" >> $logfile\n";
+  $retval .= "  set exitStatus = \$X_FILE_EXIST\n";
+
+  $retval .= "endif\n";
+  $retval .= "echo \"Final exit status = \$exitStatus\" >> $logfile\n";
+  return $retval; 
+}
+
+##########################################################################
+# Description
+#  By knowing the Queue Manager and the config file information,
+#  we know which Keys to write out.
+#
+#  Note the strings that we compare to below should match those in the
+#  data/client/config/QueueManagers file.
+##########################################################################
+sub getQMgrKeys() 
+{
+  my ($header);
+
+  if (lc($qMgr) ne "shell") {
+    $header =  $::config{lc($qMgr)} . "\n";
+  } else {
+    $header =  "";
+  }
+
+  return $header;
+}
+
+##########################################################################
+# Description
+#   Returns default header information that we put at the beginning
+#   of each script.
+##########################################################################
+sub getHeader() 
+{
+  my ($header);
+  $header = "#!/bin/csh\n";
+  $header .= "$CC ECCE Submit Script\n";
+  $date = `date`;
+  chop ($date);
+  $version = &getVersion();
+  $header .= "$CC Generated $date with ECCE Version $version.\n";
+  if (defined($verbose)) {
+
+    # echo all the command line args here
+    $header .= "$CC\n";
+    $header .= &listOptions($CC);
+
+    # echo the config file name(s)
+    $header .= "$CC\n";
+    $header .= "$CC Config Files Used:\n";
+    foreach $f (@configFiles) {
+      $header .= "$CC";
+      $header .= "$f\n";
+    }
+  }
+  return $header;
+}
+
+##########################################################################
+# Description
+#   Return name(s) of config file name. 
+#   The way this works is that multiple config files can be used if
+#   they exist.  They will be read in order of most general to most
+#   specific (site, hardware type, machine, user).  If the same
+#   attribute exists in more than one file, the last one encountered
+#   rules.
+##########################################################################
+sub getConfigFileNames() 
+{
+  my (@files,$dir);
+  my (@machines,$junk1,$junk2,$vendor,$mode,$processor);
+
+  $dir = "$ecceHome/siteconfig";
+
+  push(@files,"$dir/submit.site") if (-e "$dir/submit.site");
+
+  # Use the platform info in the Machines file to figure out the
+  # hardware architecture config file.
+  open(MACHINES,"<$dir/Machines") || die "Unable to open Machines file";
+  @machines = <MACHINES>;
+  close(MACHINES);
+  ($line) = grep(/$host	/,@machines);
+
+  $home = $ENV{"ECCE_REALUSERHOME"};
+
+  if ($line eq "") {
+    if (open(MACHINES,"<$home/.ECCE/MyMachines")) {
+      @machines = <MACHINES>;
+      close(MACHINES);
+      ($line) = grep(/$host	/,@machines);
+    }
+  }
+
+  ($junk1,$junk2,$vendor,$model,$processor)= split(/\t+/,$line);
+  $vendor = uc($vendor);
+  if ($vendor ne "" && $vendor ne "UNSPECIFIED") {
+    push(@files,"$dir/CONFIG.$vendor") if (-e "$dir/CONFIG.$vendor");
+
+    $model = uc($model);
+    if ($model ne "" && $model ne "UNSPECIFIED") {
+      push(@files,"$dir/CONFIG.$vendor.$model") if (-e "$dir/CONFIG.$vendor.$model");
+
+      $processor = uc($processor);
+      push(@files,"$dir/CONFIG.$vendor.$model.$processor") if ($processor ne "" && $processor ne "UNSPECIFIED" && -e "$dir/CONFIG.$vendor.$model.$processor");
+    }
+  }
+
+  push(@files,"$dir/CONFIG.$host") if (-e "$dir/CONFIG.$host");
+  push(@files,"$home/.ECCE/CONFIG.$host") if (-e "$home/.ECCE/CONFIG.$host");
+
+  return @files;
+}
+
+##########################################################################
+# Description
+#  Returns version number that generated the script.
+##########################################################################
+sub getVersion() 
+{
+  my ($version);
+  $version = `cat $ecceHome/data/client/config/Version`;
+  chop $version;
+  return $version;
+}
+
+##########################################################################
+# Description
+#   Read in site-specified config file to control this script.
+#   Later maybe override with user file if it exists.
+#   The file format can be one of three things:
+#  key: value pairs like the old CONFIG.* files
+#  key  value pairs
+#  key {...}
+##########################################################################
+sub readConfig() 
+{
+  foreach $file (@configFiles) {
+    if (open(CONFIG,"< $file")) {
+      while (<CONFIG>) {
+        if (/^\s*\/\//) { next };
+        if (/^\s*#/) { next };
+        if (/^\s*$/) { next };
+
+        if (/^\s*(.*)\s*\{(.*)\}/) {
+          $value = $2;
+          $key = $1;
+        } elsif (/^\s*(.*)\s*\{/) {
+         # read block
+         $key = $1;
+         $key =~ s/\s*$//;
+         $value = "";
+         while (<CONFIG>) {
+           if (/^\}/) { last} ;
+           $value .= $_;
+         }
+        } else {
+          # one-liner - support ':' notation for old CONFIG* files
+          if (/:/) {
+            /^\s*(.*):\s*(.*)/;
+            $value = $2;
+            $key = $1;
+          } else {
+            /^\s*(.*)\s*(.*)/;
+            $value = $2;
+            $key = $1;
+          }
+          $key =~ s/\s*$//;
+        }
+        $key =~ s/^\s*//;
+        $key =~ s/\s*$//;
+        $value =~ s/^\s*//;
+        $value =~ s/\s*$//;
+        if ($value ne "") {
+          $config{lc($key)} = $value;
+        }
+      }
+      close CONFIG;
+    } else {
+      print "WARNING: Unable to open $file for read.\n";
+    }
+  }
+}
+
+
+##########################################################################
+# Description
+#   Print the config file associative array.
+##########################################################################
+sub printConfig()
+{
+  foreach $key (sort keys %config) {
+    print "$key: $config{$key}\n";
+  }
+}
+
+##########################################################################
+# Description
+#   Assign $opt_* to reasonable variable names  
+#   Take arguments either at the command line or from a param file.
+#   The latter is necessary to handle problems with csh cmd length
+#   overflow.
+##########################################################################
+sub handleOptions()
+{
+  # Default where not provided
+  $submitFile = "submit__";
+  $nodes = 1;
+  $totalprocs = 1;
+
+  $host = $opt_H if defined ($opt_H);
+  $qMgr = $opt_Q if defined ($opt_Q);
+  $queue = $opt_q if defined ($opt_q);
+  $code = $opt_c  if defined ($opt_c);
+  $account = $opt_a  if defined ($opt_a);
+  $nodes = $opt_N  if defined ($opt_N);
+  $totalprocs = $opt_n  if defined ($opt_n);
+  $cpuTime = $opt_t  if defined ($opt_t);
+  $wallTime = $opt_T  if defined ($opt_T);
+  $wallHrMin = $opt_w  if defined ($opt_w);
+  $runDir   = $opt_r  if defined ($opt_r);
+  $scratchDir   = $opt_s  if defined ($opt_s);
+  $inFile   = $opt_i  if defined ($opt_i);
+  $outFile   = $opt_o  if defined ($opt_o);
+  if (defined ($opt_m)) {
+    $memory     = $opt_m;
+    $mem_x_1024 = $opt_m * 1024;
+  }
+  $scratchSpace = $opt_x  if defined ($opt_x);
+  $verbose   = "true" if defined ($opt_v);
+  $submitFile   = $opt_f if defined ($opt_f);
+  $mdSystemName = $opt_S  if defined ($opt_S);
+  $mdCalcName = $opt_C  if defined ($opt_C);
+  $globus   = "true" if defined ($opt_g);
+
+  # The parameters can be sent in via a param file also.  They
+  # override anything specified at the command line.
+  if ($opt_p) {
+     open (PARAM,"<$opt_p") || die ("Param file specified but not found.");
+#open(DEBUG,">/tmp/klsgensub");
+     while (<PARAM>) {
+#print DEBUG;
+      chop;
+      $_ =~ s/^\s*//;
+      ($opt,$value) = split(/ +/,$_);
+
+      $host = $value if ($opt =~ /-H/);
+      $hostFull = $value if ($opt =~ /-d/);
+      $qMgr = $value if ($opt =~ /-Q/);
+      $queue = $value if ($opt =~ /-q/);
+      $code = $value  if ($opt =~ /-c/);
+      $account = $value  if ($opt =~ /-a/);
+      $nodes = $value  if ($opt =~ /-N/);
+      $totalprocs = $value  if ($opt =~ /-n/);
+      $cpuTime = $value  if ($opt =~ /-t/);
+      $wallTime = $value  if ($opt =~ /-T/);
+      $wallHrMin = $value  if ($opt =~ /-w/);
+      $runDir   = $value  if ($opt =~ /-r/);
+      $scratchDir   = $value  if ($opt =~ /-s/);
+      $inFile   = $value  if ($opt =~ /-i/);
+      $outFile   = $value  if ($opt =~ /-o/);
+      if ($opt =~ /-m/) {
+        $memory     = $value;
+        $mem_x_1024 = $value * 1024;
+      }
+      $scratchSpace = $value  if ($opt =~ /-x/);
+      $verbose   = "true" if ($opt =~ /-v/);
+      $submitFile   = $value if ($opt =~ /-f/);
+      $mdSystemName = $value  if ($opt =~ /-S/);
+      $mdCalcName = $value  if ($opt =~ /-C/);
+      $globus   = "true" if ($opt =~ /-g/);
+     }
+     close(PARAM);
+#close(DEBUG);
+  }
+
+  # Make the job name the tail of the submit file path
+  (@tmp) = split(/\//,$submitFile);
+  $size = $tmp;
+  $jobName = @tmp[$size-1];
+  $jobName =~ s/submit__//;
+  $jobName = substr($jobName,0,14);
+
+  $metascheduler   = "true" if ($opt_Q =~ /Silver/i);
+
+  if ($opt_h) {
+    &usage();
+    exit(-1);
+  }
+
+  if ( !defined($qMgr) || !defined($code) || !defined($host) ||
+       !defined($runDir) || !defined($inFile) || !defined($outFile)) {
+    ##&listOptions();
+    die "QueueManager, Code, Machine, Run Dir, Input File, Output File must be specified\n";
+  }
+}
+
+###########################################################################
+# Description
+#   Echo the options specified on the command line in comment form.
+###########################################################################
+sub listOptions()
+{
+  ($CP) = @_;    # comment prefix - optional 
+  my ($info);
+
+  $info = "$CP Machine: $host\n"  if defined($host);
+  $info .= "$CP QueueManager: $qMgr\n"  if defined($qMgr);
+  $info .= "$CP Queue: $queue\n"  if defined($queue);
+  $info .= "$CP Code: $code\n"  if defined($code);
+  $info .= "$CP Account: $account\n"  if defined($account);
+  $info .= "$CP CPU Time: $cpuTime\n"  if defined($cpuTime);
+  $info .= "$CP Wall Time: $wallTime\n"  if defined($wallTime);
+  # Decide what to show based on whether its a queued system or not
+  $info .= "$CP # Processors: $nodes\n"  if  !defined($queue);
+  $info .= "$CP # Nodes: $nodes\n"  if defined($queue);
+  $info .= "$CP # TotalProcessors: $totalprocs\n"  if defined($queue);
+
+  $info .= "$CP Run Directory: $runDir\n"  if defined($runDir);
+  $info .= "$CP Scratch Directory: $scratchDir\n"  if defined($scratchDir);
+  $info .= "$CP Input File: $inFile\n"  if defined($inFile);
+  $info .= "$CP Output File: $outFile\n"  if defined($outFile);
+  $info .= "$CP Memory: $memory\n"  if defined($memory);
+  $info .= "$CP Scratch Space: $scratchSpace\n"  if defined($scratchSpace);
+
+  return $info;
+}
+
+###########################################################################
+# TODO
+###########################################################################
+sub usage()
+{
+  print "gensub -Q <QueueManager> -c <CodeName> -H <Machine> -r <RunDir>\n";
+  print "       -i <In Filename> -o <Out Filename> -e <ECCE Dir>\n";
+  print "       -q <QueueName> -N <#Nodes> -n <total_tasks> -s <ScratchDir>\n";
+  print "       -a <Account> -t <CPUTime> -T<WallTime> -m <Memory>\n";
+  print "       -f <script file name> h -v\n";
+  print "\n";
+  print "   -v verbose output\n";
+  print "   -h this message\n";
+}
+
+
+###########################################################################
+#         Code/QueueManager Implementation Subroutines
+###########################################################################
+
+
+###########################################################################
+# Description
+###########################################################################
+sub gaussian98() 
+{
+  my ($retval,$cmd);
+  $retval = "";
+  $g98 = $config{$lccode};
+  if ($g98 eq "") { die "Path for G98 not found"; }
+  $cmd = $::config{"gaussian-98command"};
+
+  # We still need to check the environment to allow the user
+  # to override the path like we did with the previous implementation
+  $retval .= "set g98 = $g98\n";
+  $retval .= "if (\$\?ECCE_GAUSSIAN98) then\n  set g98 = \$ECCE_GAUSSIAN98\nendif\n";
+  my ($tmp);
+  $_ = $g98;
+  /(.*)\/(.*)$/;
+  $tmp = $1;
+  $retval .= "if (\$?GAUSS_EXEDIR) then\n";
+  $retval .= "  setenv GAUSS_EXEDIR \${GAUSS_EXEDIR}:\${g98:h}\n";
+  $retval .= "else\n";
+  $retval .= "  setenv GAUSS_EXEDIR \$g98:h\n";
+  $retval .= "endif\n";
+  # Try to identify it as an sgi - if so add g98 to path to pick up util.so
+  #if ($g98 =~ /g98.*r.*/) {
+    $retval .= "if (\$?LD_LIBRARY_PATH) then\n";
+    $retval .= "  setenv LD_LIBRARY_PATH \${g98:h}:\${LD_LIBRARY_PATH}\n";
+    $retval .= "else\n";
+    $retval .= "  setenv LD_LIBRARY_PATH \$g98:h\n";
+    $retval .= "endif\n";
+  #}
+  $retval .= "echo \"Using g98 path: \$g98\" >> $::logfile\n";
+
+  # For NQS and NQE systems use the system defined $TMPDIR, if available,
+  # otherwise use the user configured scratch directory (if defined)
+  if (defined($::scratchDir)) {
+    $retval .= "setenv GAUSS_SCRDIR $::scratchDir\n";
+    $retval .= "echo \"Using $::scratchDir as GAUSS_SCRDIR\" >> $::logfile\n";
+  } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
+    $retval .= "if (\$\?TMPDIR) then\n  setenv GAUSS_SCRDIR \$TMPDIR\n";
+    $retval .= "  echo \"Using \$TMPDIR as GAUSS_SCRDIR\" >> $::logfile\n";
+    $retval .= "endif\n";
+  }
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $retval .= "\$g98 < $::inFile >&! $::outFile\n";
+  }
+  return $retval;
+}
+
+###########################################################################
+# Description
+###########################################################################
+sub gaussian03() 
+{
+  my ($retval,$cmd);
+  $retval = "";
+  $g03 = $config{$lccode};
+  if ($g03 eq "") { die "Path for G03 not found"; }
+  $cmd = $::config{"gaussian-03command"};
+
+  # We still need to check the environment to allow the user
+  # to override the path like we did with the previous implementation
+  $retval .= "set g03 = $g03\n";
+  $retval .= "if (\$\?ECCE_GAUSSIAN03) then\n  set g03 = \$ECCE_GAUSSIAN03\nendif\n";
+  my ($tmp);
+  $_ = $g03;
+  /(.*)\/(.*)$/;
+  $tmp = $1;
+  $retval .= "if (\$?GAUSS_EXEDIR) then\n";
+  $retval .= "  setenv GAUSS_EXEDIR \${GAUSS_EXEDIR}:\${g03:h}\n";
+  $retval .= "else\n";
+  $retval .= "  setenv GAUSS_EXEDIR \$g03:h\n";
+  $retval .= "endif\n";
+  # Try to identify it as an sgi - if so add g03 to path to pick up util.so
+  #if ($g03 =~ /g03.*r.*/) {
+    $retval .= "if (\$?LD_LIBRARY_PATH) then\n";
+    $retval .= "  setenv LD_LIBRARY_PATH \${g03:h}:\${LD_LIBRARY_PATH}\n";
+    $retval .= "else\n";
+    $retval .= "  setenv LD_LIBRARY_PATH \$g03:h\n";
+    $retval .= "endif\n";
+  #}
+  $retval .= "echo \"Using g03 path: \$g03\" >> $::logfile\n";
+
+  # For NQS and NQE systems use the system defined $TMPDIR, if available,
+  # otherwise use the user configured scratch directory (if defined)
+  if (defined($::scratchDir)) {
+    $retval .= "setenv GAUSS_SCRDIR $::scratchDir\n";
+    $retval .= "echo \"Using $::scratchDir as GAUSS_SCRDIR\" >> $::logfile\n";
+  } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
+    $retval .= "if (\$\?TMPDIR) then\n  setenv GAUSS_SCRDIR \$TMPDIR\n";
+    $retval .= "  echo \"Using \$TMPDIR as GAUSS_SCRDIR\" >> $::logfile\n";
+    $retval .= "endif\n";
+  }
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $retval .= "\$g03 < $::inFile >&! $::outFile\n";
+  }
+  return $retval;
+}
+
+###########################################################################
+# Description
+#   Use parallel for multiple nodes.
+#
+#   To Run nwchem under Maui/LL.
+#   In the future, run under /scratch and use a poe commands file
+#   that uses copyexe to copy nwchem to all the /scratch directories.
+#   Heres the nwchem.ll snipet:
+#     cp /u/windus/nwchem/bin/SP1/nwchem /scratch/nwchem
+#     cat << EOFcat > poe.commands
+#     /u1/d3g681/bin/copyexe /scratch/nwchem
+#     /scratch/nwchem /u/windus/h2o.2.nw
+#     quit
+#     EOFcat
+#     time poe -procs 1 -newjob yes -cmdfile poe.commands
+#
+#    Notice that nwchem does not allow the full domain name for
+#    the host in the nwchem.p file.  You will get a very confusing
+#    "Permission denied" error.
+###########################################################################
+sub nwchem() 
+{
+  use strict vars;
+  my ($retval,$nwchem,$parallel,$cmd);
+  $retval = "";
+  $nwchem = $::config{$::lccode};
+  if ($nwchem eq "") { die "Path for nwchem not found"; }
+  $cmd = $::config{"nwchemcommand"};
+
+  # We still need to check the environment to allow the user
+  # to override the path like we did with the previous implementation
+  $retval .= "set nwchem = $nwchem\n";
+  $retval .= "if (\$\?ECCE_NWCHEM) then\n  set nwchem = \$ECCE_NWCHEM\nendif\n";
+
+  # For running the ECCE distribution of NWChem, set $LD_LIBRARY_PATH to
+  # find libgfortran.so.1
+  if ($nwchem =~ /3rdparty\/nwchem\/bin/) {
+    $retval .= "if (\$?LD_LIBRARY_PATH) then\n";
+    $retval .= "  setenv LD_LIBRARY_PATH \${nwchem:h}/../lib:\${LD_LIBRARY_PATH}\n";
+    $retval .= "else\n";
+    $retval .= "  setenv LD_LIBRARY_PATH \${nwchem:h}/../lib\n";
+    $retval .= "endif\n";
+  }
+
+  # For NQS and NQE systems use the system defined $TMPDIR, if available,
+  # otherwise use the user configured scratch directory (if defined)
+  if (defined($::scratchDir)) {
+    $retval .= "setenv SCRATCH_DIR $::scratchDir\n";
+    $retval .= "echo \"Using $::scratchDir as nwchem SCRATCH_DIR\" >> $::logfile\n";
+  } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
+    $retval .= "if (\$\?TMPDIR) then\n  setenv SCRATCH_DIR \$TMPDIR\n";
+    $retval .= "  echo \"Using \$TMPDIR as nwchem SCRATCH_DIR\" >> $::logfile\n";
+    $retval .= "endif\n";
+  }
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } elsif ($::totalprocs <= 1) {
+    $retval .= "\$nwchem $::inFile >&! $::outFile\n";
+  } elsif ($::totalprocs > 1) {
+    $retval .= "\n$::CC - Generating submit file for NWChem built with MPI\n";
+    $retval .= "\n$::CC - Path to mpirun if running an ECCE deployed NWChem\n";
+    $retval .= "set mpibindir = \$nwchem:h/../../system/bin\n";
+    $retval .= "if (-d \$mpibindir) then\n";
+    $retval .= "  set path = (\$mpibindir \$path)\n";
+    $retval .= "endif\n";
+    $retval .= "mpirun -np $::totalprocs \$nwchem $::runDir/$::inFile >&! $::runDir/$::outFile < /dev/null\n";
+  }
+  return $retval;
+  nouse strict vars;
+}
+
+sub nwchemmd() 
+{
+  use strict vars;
+  my ($retval,$nwchem,$parallel,$cmd);
+  $retval = "";
+  # $nwchem = $::config{$::lccode};
+  # hardwire the configured code to nwchem so all the machine registration
+  # <machine>.CONFIG files don't have to change
+  $nwchem = $::config{"nwchem"};
+  if ($nwchem eq "") { die "Path for nwchem not found"; }
+  $cmd = $::config{"nwchemcommand"};
+
+  # We still need to check the environment to allow the user
+  # to override the path like we did with the previous implementation
+  $retval .= "set nwchem = $nwchem\n";
+  $retval .= "if (\$\?ECCE_NWCHEM) then\n  set nwchem = \$ECCE_NWCHEM\nendif\n";
+
+  # For NQS and NQE systems use the system defined $TMPDIR, if available,
+  # otherwise use the user configured scratch directory (if defined)
+  if (defined($::scratchDir)) {
+    $retval .= "setenv SCRATCH_DIR $::scratchDir\n";
+    $retval .= "echo \"Using $::scratchDir as nwchem SCRATCH_DIR\" >> $::logfile\n";
+  } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
+    $retval .= "if (\$\?TMPDIR) then\n  setenv SCRATCH_DIR \$TMPDIR\n";
+    $retval .= "  echo \"Using \$TMPDIR as nwchem SCRATCH_DIR\" >> $::logfile\n";
+    $retval .= "endif\n";
+  }
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } elsif ($::totalprocs <= 1) {
+    $retval .= "\$nwchem $::inFile >&! $::outFile\n";
+  } elsif ($::totalprocs > 1) {
+    # parallel is assumed to be in the same location as nwchem itself.
+    $retval .= "\n$::CC - Generating setup file for use with Parallel\n";
+    $retval .= "if ( -e nwchem.p) rm -f nwchem.p\n";
+    $retval .= "if ( \$?ECCE_NWCHEM_P) then\n";
+    $retval .= "cp \$ECCE_NWCHEM_P nwchem.p\n";
+    $retval .= "else\n";
+    $retval .= "cat << EOCAT > nwchem.p\n";
+    $retval .= "\$USER `hostname` $::totalprocs \$nwchem $::runDir\n";
+    $retval .= "EOCAT\n";
+    $retval .= "endif\n";
+    $retval .= "set loc = \$nwchem:h\n";
+    $retval .= "\$loc/parallel nwchem $::runDir/$::inFile >&! $::runDir/$::outFile\n";
+  }
+  return $retval;
+  nouse strict vars;
+}
+
+###########################################################################
+# Description
+###########################################################################
+sub amica() 
+{
+  use strict vars;
+  my ($retval,$amica,$parallel,$cmd);
+  $retval = "";
+  $amica = $::config{$::lccode};
+  if ($amica eq "") { die "Path for amica not found"; }
+  $cmd = $::config{"amicacommand"};
+
+  # We still need to check the environment to allow the user
+  # to override the path like we did with the previous implementation
+  $retval .= "set amica = $amica\n";
+  $retval .= "if (\$\?ECCE_AMICA) then\n  set amica = \$ECCE_AMICA\nendif\n";
+  $retval .= "echo \"Using amica path: \$amica\" >> $::logfile\n";
+  $retval .= "set path = (\$amica /usr/bsd \$path)\n";
+  $retval .= "alias which /usr/bsd/which\n";
+
+  # For NQS and NQE systems use the system defined $TMPDIR, if available,
+  # otherwise use the user configured scratch directory (if defined)
+  if (defined($::scratchDir)) {
+    $retval .= "setenv AMICA_SCR $::scratchDir\n";
+    $retval .= "echo \"Using $::scratchDir as AMICA_SCR\" >> $::logfile\n";
+  } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
+    $retval .= "if (\$\?TMPDIR) then\n  setenv AMICA_SCR \$TMPDIR\n";
+    $retval .= "  echo \"Using \$TMPDIR as AMICA_SCR\" >> $::logfile\n";
+    $retval .= "endif\n";
+  }
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $retval .= "amica -P $::totalprocs < $::inFile\n";
+  }
+  return $retval;
+  nouse strict vars;
+}
+
+###########################################################################
+# Description
+#   GAMESS-UK
+###########################################################################
+sub gamessuk() 
+{
+  use strict vars;
+  my ($retval,$gamessuk,$cmd);
+  $retval = "";
+  $gamessuk = $::config{$::lccode};
+  if ($gamessuk eq "") { die "Path for GAMESS-UK not found"; }
+  $cmd = $::config{"gamess-ukcommand"};
+
+  # We still need to check the environment to allow the user
+  # to override the path like we did with the previous implementation
+  $retval .= "set gamessuk = $gamessuk\n";
+  $retval .= "if (\$\?ECCE_GAMESSUK) then\n  set gamessuk = \$ECCE_GAMESSUK\nendif\n";
+  $retval .= "echo \"Using GAMESS-UK path: \$gamessuk\" >> $::logfile\n";
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } elsif ($::totalprocs <= 1) {
+    $retval .= "\$gamessuk $::inFile >&! $::outFile\n";
+  }
+  return $retval;
+  nouse strict vars;
+}
+
+###########################################################################
+# Description
+#   GAMESS
+###########################################################################
+sub gamessus() 
+{
+  use strict vars;
+  my ($retval,$gamess,$cmd);
+  $retval = "";
+  $gamess = $::config{$::lccode};
+  if ($gamess eq "") { die "Path for GAMESS not found"; }
+  $cmd = $::config{"gamess-uscommand"};
+
+  # We still need to check the environment to allow the user
+  # to override the path like we did with the previous implementation
+  $retval .= "set gamess = $gamess\n";
+  $retval .= "if (\$\?ECCE_GAMESS) then\n  set gamess = \$ECCE_GAMESS\nendif\n";
+  $retval .= "echo \"Using gamess path: \$gamess\" >> $::logfile\n";
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } elsif ($::totalprocs <= 1) {
+    $retval .= "\$gamess $::inFile >&! $::outFile\n";
+  }
+  return $retval;
+  nouse strict vars;
+}
+
+###########################################################################
+# Description
+#   POLYRATE
+###########################################################################
+sub polyrate() 
+{
+  use strict vars;
+  my ($retval,$polyrate,$cmd);
+  $retval = "";
+  $polyrate = $::config{$::lccode};
+  if ($polyrate eq "") { die "Path for POLYRATE not found"; }
+  $cmd = $::config{"polyratecommand"};
+
+  # We still need to check the environment to allow the user
+  # to override the path like we did with the previous implementation
+  $retval .= "set polyrate = $polyrate\n";
+  $retval .= "if (\$\?ECCE_POLYRATE) then\n  set polyrate = \$ECCE_POLYRATE\nendif\n";
+  $retval .= "echo \"Using POLYRATE path: \$polyrate\" >> $::logfile\n";
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $retval .= "\$polyrate\n";
+  }
+  return $retval;
+  nouse strict vars;
+}
+

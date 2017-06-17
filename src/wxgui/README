@@ -1,0 +1,72 @@
+This file store the initial index for the widget IDs automatically generated
+from dialog blocks. The purpose of this file is to keep track of all the
+GUI classes to guarantee that none of the classes have duplicated IDs. Each
+new class should increment the starting ID of the previously highest class
+ID by 100 (we assume that this will be enough but if the previous class is
+composed of an inordinately large number of widgets, you may need to increment
+by a higher number). Please keep this list up to date as you add new GUI
+classes to this library. Reserve 2000 for each directory.
+
+To auto generate ID's correctly in Dialogblocks, click View->Settings...
+(or type ctrl-T). Set the "Base ID for xxx" field with the number you
+registered here. Also recommend put a unique User Identifier Prefix to make
+each id having a unique name as well.
+
+mdtools/
+MDEdBaseGUI:            100100
+ConstraintPanelGUI:     100200
+ControlPanelGUI:        100300
+DynamicsPanelGUI:       100400
+FilesPanelGUI:          100500
+InteractionPanelGUI:    100600
+OptimizePanelGUI:       100700
+ThermodynamicsPanelGUI: 100800
+
+
+wxtools/
+WxFeedbackGUI:          102000
+WxStateGUI:             102100
+WxColorSchemeChooser:   102200
+EcceTool:               102300
+
+pertable/
+PTDataFrameGUI:         104000
+
+
+wxdialogs/
+WxAccessControlGUI      106000
+WxAuthGUI               106100
+WxPassPromptGUI         106200
+WxAddDataServerGUI      106300
+WxFragmentImportGUI     106400
+WxPDBPromptGUI          106500
+WxFileChooserGUI        106600
+WxPovrayOptionsGUI      106700
+WxMeasurePrompt         106800
+
+toolbox/
+ToolboxItem             108000
+ToolTabButton           108100
+
+wxviz/
+AtomTableMenu           9200
+
+wxbuilder/
+ShapeDropDown           6000
+MiniPerTab              8000
+BondDropDown            9290
+Dna                     9300
+Symmetry                9400
+ResIndexPrompt          9450
+Dna                     9500
+Peptide                 9550
+Move                    10000
+MDToolsPanel            11000
+Translate               13000
+CoordPanel              15000
+StructLib               39400
+GridPanel               14000
+NormalMode              9700
+MoPanel                 9800
+TablePanel              9900
+Slicer                  W10500

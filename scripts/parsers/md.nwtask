@@ -1,0 +1,1062 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+# Purpose:
+#     Script for generating input file for MD optimization task
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+######
+# The command line arguments
+######
+
+%AbiDict = ();
+%IntDict = ();
+%CnstDict = ();
+%OptDict = ();
+%CntlDict = ();
+%DynDict = ();
+%ThermoDict = ();
+%FileDict = ();
+@FixAtCmd = ();
+$UsesDyn = 0;
+$UsesThermo = 0;
+$UsesOpt = 0;
+$icmd = 0;
+$systemName = '';
+$calcId = '';
+$restartName = '';
+$mdOutputName = '';
+
+
+while(<STDIN>) {
+  $line = $_;
+  if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+    $key = $1;
+    $value = $2;
+    $key2 = $3;
+    $AbiDict{$key} = $value;
+  } elsif ($line =~ /^\s*<Interaction>/) {
+    while (<STDIN>) {
+      if (!/^\s*<\/Interaction>/) {
+        $line = $_;
+        if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+          $key = $1;
+          $value = $2;
+          $key2 = $3;
+          $IntDict{$key} = $value;
+        }
+      } else {
+        last;
+      }
+    }
+  } elsif ($line =~ /^\s*<Constraints>/) {
+    while (<STDIN>) {
+      if (!/^\s*<\/Constraints>/) {
+        $line = $_;
+        if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+          $key = $1;
+          $value = $2;
+          $key2 = $3;
+          $CnstDict{$key} = $value;
+        } elsif ($line =~ /^\s*<FixAtomCmds>/) {
+          $icmd = 0;
+          while (<STDIN>) {
+            if (!/^\s*<\/FixAtomCmds>/) {
+              $line = $_;
+              if ($line =~ /^\s*<Command>([^<]*)<\/Command>\s*$/) {
+                $value = $1;
+                $FixAtCmd[$icmd] = $value;
+                $icmd++;
+              }
+            } else {
+              last;
+            }
+          }
+        }
+      } else {
+        last;
+      }
+    }
+  } elsif ($line =~ /^\s*<Optimize>/) {
+    $UsesOpt = 1;
+    while (<STDIN>) {
+      if (!/^\s*<\/Optimize>/) {
+        $line = $_;
+        if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+          $key = $1;
+          $value = $2;
+          $key2 = $3;
+          $OptDict{$key} = $value;
+        }
+      } else {
+        last;
+      }
+    }
+  } elsif ($line =~ /^\s*<Control>/) {
+    while (<STDIN>) {
+      if (!/^\s*<\/Control>/) {
+        $line = $_;
+        if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+          $key = $1;
+          $value = $2;
+          $key2 = $3;
+          $CntlDict{$key} = $value;
+        }
+      } else {
+        last;
+      }
+    }
+  } elsif ($line =~ /^\s*<Dynamics>/) {
+    $UsesDyn = 1;
+    while (<STDIN>) {
+      if (!/^\s*<\/Dynamics>/) {
+        $line = $_;
+        if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+          $key = $1;
+          $value = $2;
+          $key2 = $3;
+          $DynDict{$key} = $value;
+        }
+      } else {
+        last;
+      }
+    }
+  } elsif ($line =~ /^\s*<Thermodynamics>/) {
+    $UsesThermo = 1;
+    while (<STDIN>) {
+      if (!/^\s*<\/Thermodynamics>/) {
+        $line = $_;
+        if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+          $key = $1;
+          $value = $2;
+          $key2 = $3;
+          $ThermoDict{$key} = $value;
+        }
+      } else {
+        last;
+      }
+    }
+  } elsif ($line =~ /^\s*<Files>/) {
+    while (<STDIN>) {
+      if (!/^\s*<\/Files>/) {
+        $line = $_;
+        if ($line =~ /^\s*<([^>]*)>([^<]*)<\/([^>]*)>\s*$/) {
+          $key = $1;
+          $value = $2;
+          $key2 = $3;
+          $FileDict{$key} = $value;
+        }
+      } else {
+        last;
+      }
+    }
+  }
+}
+
+
+#
+# Get System name and other file names
+#
+if (defined($AbiDict{"SystemName"})) {
+ $systemName = $AbiDict{"SystemName"};
+}
+if (defined($AbiDict{"CalcId"})) {
+ $calcId = $AbiDict{"CalcId"};
+}
+if (defined($AbiDict{"RestartName"})) {
+ $restartName = $AbiDict{"RestartName"};
+}
+if (defined($AbiDict{"MdOutputName"})) {
+ $mdOutputName = $AbiDict{"MdOutputName"};
+}
+
+print "start ".$systemName."\n\n";
+print "md\n";
+print "  system ".$systemName."_".$calcId."\n";
+#
+# Options from Interaction panel
+#
+if (defined($IntDict{"ParameterSet"})) {
+  $value = $IntDict{"ParameterSet"};
+  if (defined($IntDict{"FirstPerturbationSet"}) ||
+     defined($IntDict{"SecondPerturbationSet"})) {
+    print "  set 1\n";
+  } else {
+    print "  set $value\n";
+  }
+}
+if (defined($IntDict{"FirstPerturbationSet"}) &&
+    defined($IntDict{"SecondPerturbationSet"})) {
+  $val1 = $IntDict{"FirstPerturbationSet"};
+  $val2 = $IntDict{"SecondPerturbationSet"};
+  if ($val1 != 0 && $val2 == 0) {
+    print "  pset 2\n";
+  } elsif ($val1 == 0 && $val2 != 0) {
+    print "  pset 3\n";
+  } elsif ($val1 != 0 && $val2 != 0) {
+    print "  pset 2 3\n";
+  }
+}
+#
+# Nonbonding interaction options
+#
+if (defined($IntDict{"InteractionOption"})) {
+  $opt = $IntDict{"InteractionOption"};
+# Particle-Mesh Ewald
+  if ($opt == 0) {
+    print "  pme";
+    if (defined($IntDict{"GridDimensions"})) {
+      $value = $IntDict{"GridDimensions"};
+      print " grid $value";
+    }
+    if (defined($IntDict{"EwaldConvergence"})) {
+      $value = $IntDict{"EwaldConvergence"};
+      print " alpha $value";
+    }
+    if (defined($IntDict{"BSplineOrder"})) {
+      $value = $IntDict{"BSplineOrder"};
+      print " order $value";
+    }
+    if (defined($IntDict{"AdvancedFFT"})) {
+      $flag = $IntDict{"AdvancedFFT"};
+      if ($flag != 0) {
+        if (defined($IntDict{"FFTOption"})) {
+          print " fft 2";
+        }
+        if (defined($IntDict{"FFTNodes"})) {
+          $value = $IntDict{"FFTNodes"};
+          print " procs $value";
+        }
+      }
+    }
+    if (defined($IntDict{"ChargeGridOption"})) {
+      if ($IntDict{"ChargeGridOption"} != 0) {
+        print " solvent";
+      }
+    }
+    print "\n";
+# Polarization (Currently disabled, there is no option 2)
+  } elsif ($opt == 2) {
+    print "  polar";
+    if (defined($IntDict{"FirstOrderOption"})) {
+      if ($IntDict{"FirstOrderOption"} != 0) {
+        print " first";
+      } else {
+        print " scf";
+      }
+    } else {
+      print " scf";
+    }
+    if (defined($IntDict{"MaxPolarizationIterations"})) {
+      $value = $IntDict{"MaxPolarizationIterations"};
+      print " $value";
+    }
+    if (defined($IntDict{"PolarizationTolerance"})) {
+      $value = $IntDict{"PolarizationTolerance"};
+      print " $value";
+    }
+    print "\n";
+  }
+}
+# Cutoff options
+if (defined($IntDict{"CutoffOption"})) {
+  $value = $IntDict{"CutoffOption"};
+} else {
+  $value = 1;
+}
+if ($value == 1 && defined($IntDict{"ShortRangeCutoff"})) {
+  $scut = $IntDict{"ShortRangeCutoff"};
+  print "  cutoff short $scut\n";
+}
+if ($value == 2 && defined($IntDict{"ShortRangeCutoff"}) &&
+  defined($IntDict{"LongRangeCutoff"})) {
+  $scut = $IntDict{"ShortRangeCutoff"};
+  $lcut = $IntDict{"LongRangeCutoff"};
+  print "  cutoff short $scut long $lcut\n";
+}
+#
+# Options from constraint panel
+#
+if (defined($CnstDict{"UseSHAKE"}) && 
+    ($UsesOpt != 0 || $UsesDyn != 0)) {
+  if ($CnstDict{"UseSHAKE"} == 1) {
+    print "  shake";
+  } else {
+    print "  noshake";
+  }
+  if (defined($CnstDict{"MaxSolventIter"})) {
+    $value = $CnstDict{"MaxSolventIter"};
+    print " $value";
+  }
+  if (defined($CnstDict{"MaxSoluteIter"})) {
+    $value = $CnstDict{"MaxSoluteIter"};
+    print " $value";
+  }
+  if (defined($CnstDict{"SolventTol"})) {
+    $value = $CnstDict{"SolventTol"};
+    print " $value";
+  }
+  if (defined($CnstDict{"SoluteTol"})) {
+    $value = $CnstDict{"SoluteTol"};
+    print " $value";
+  }
+  print "\n";
+}
+if (defined($CnstDict{"SHAKEOption"})) {
+  $opt = $CnstDict{"SHAKEOption"};
+  if ($opt == 1) {
+    print "  noshake solute\n";
+  } elsif ($opt == 2) {
+    print "  noshake solvent\n";
+  }
+}
+# Fix atom commands
+if ($icmd > 0) {
+  for ($i=0; $i < $icmd; $i++) {
+    print "  $FixAtCmd[i]\n";
+  }
+}
+#
+# Options from Optimize panel
+#
+if (defined($OptDict{"UseSD"})) {
+  if ($OptDict{"UseSD"} != 0) {
+    print "  sd";
+    if (defined($OptDict{"SDMaxIterations"})) {
+      $value = $OptDict{"SDMaxIterations"};
+      print " $value";
+    }
+    if (defined($OptDict{"SDInitialStepSize"})) {
+      $value = $OptDict{"SDInitialStepSize"};
+      print " init $value";
+    }
+    if (defined($OptDict{"SDTolerance"})) {
+      $value = $OptDict{"SDTolerance"};
+      print " min $value";
+    }
+    if (defined($OptDict{"SDMaxStepSize"})) {
+      $value = $OptDict{"SDMaxStepSize"};
+      print " max $value";
+    }
+    print "\n"
+  }
+}
+if (defined($OptDict{"UseCG"})) {
+  if ($OptDict{"UseCG"} != 0) {
+    print "  cg";
+    if (defined($OptDict{"CGMaxIterations"})) {
+      $value = $OptDict{"CGMaxIterations"};
+      print " $value";
+    }
+    if (defined($OptDict{"CGInitialSearchInterval"})) {
+      $value = $OptDict{"CGInitialSearchInterval"};
+      print " init $value";
+    }
+    if (defined($OptDict{"CGThresholdSize"})) {
+      $value = $OptDict{"CGThresholdSize"};
+      print " min $value";
+    }
+    if (defined($OptDict{"CGRefreshCycle"})) {
+      $value = $OptDict{"CGRefreshCycle"};
+      print " cy $value";
+    }
+    print "\n"
+  }
+}
+#
+# Update command, which contains contributions from miscellaneous
+# panels
+#
+if (defined($IntDict{"ShortListUpdateFrequency"}) ||
+    defined($IntDict{"LongListUpdateFrequency"})) {
+  print "  update";
+  if (defined($IntDict{"ShortListUpdateFrequency"})) {
+    $value = $IntDict{"ShortListUpdateFrequency"};
+    print " pairs $value";
+  }
+  if (defined($IntDict{"LongListUpdateFrequency"})) {
+    $value = $IntDict{"LongListUpdateFrequency"};
+    print " long $value";
+  }
+  print "\n";
+}
+#
+# Options from control panel
+#
+if (defined($CntlDict{"LoadBalance"})) {
+  $icnt = 0;
+  if ($CntlDict{"LoadBalance"} != 0) {
+    $cmd = "  load";
+    if (defined($CntlDict{"RedistributePairs"})) {
+      if ($CntlDict{"RedistributePairs"} != 0) {
+        $cmd .= " pairs";
+        if (defined($CntlDict{"AdjustFrequency"})) {
+          $ifreq = $CntlDict{"AdjustFrequency"};
+          $cmd .= " $ifreq";
+        }
+      }
+    }
+    if (defined($CntlDict{"BalanceCellSize"})) {
+      if ($CntlDict{"BalanceCellSize"} != 0) {
+        if (defined($CntlDict{"BalanceZOnly"})) {
+          if ($CntlDict{"BalanceZOnly"} != 0) {
+            $cmd .= " sizez";
+          } else {
+            $cmd .= " size";
+          }
+        } else {
+          $cmd .= " size";
+        }
+        if (defined($CntlDict{"CouplingStrength"})) {
+          $rval = $CntlDict{"CouplingStrength"};
+          $cmd .= " $rval";
+        }
+        $icnt++; 
+      }
+    }
+  }
+  if (defined($CntlDict{"RedistributePairs"})) {
+    if ($CntlDict{"RedistributePairs"} != 0) {
+      if (defined($CntlDict{"SynchOption"})) {
+        if ($CntlDict{"SynchOption"} == 0) {
+          $cmd .= " last";
+        } elsif ($CntlDict{"SynchOption"} == 1) {
+          $cmd .=" minimum";
+        } elsif ($CntlDict{"SynchOption"} == 2) {
+          $cmd .= " average";
+        }
+      }
+    }
+  }
+  if ($icnt > 0) {
+    print "$cmd\n";
+  }
+}
+if (defined($CntlDict{"ProcessorConfig"})) {
+  if ($CntlDict{"ProcessorConfig"} != 0) {
+    $check = 1;
+    $ix = 0;
+    $iy = 0;
+    $iz = 0;
+    if (defined($CntlDict{"XProc"})) {
+      $ix = $CntlDict{"XProc"};
+    } else {
+      $check = 0;
+    }
+    if (defined($CntlDict{"YProc"})) {
+      $iy = $CntlDict{"YProc"};
+    } else {
+      $check = 0;
+    }
+    if (defined($CntlDict{"ZProc"})) {
+      $iz = $CntlDict{"ZProc"};
+    } else {
+      $check = 0;
+    }
+    if ($check != 0) {
+      print "  procs $ix $iy $iz\n";
+    }
+  }
+}
+if (defined($CntlDict{"CellConfig"})) {
+  if ($CntlDict{"CellConfig"} != 0) {
+    $check = 1;
+    $ix = 0;
+    $iy = 0;
+    $iz = 0;
+    if (defined($CntlDict{"XCell"})) {
+      $ix = $CntlDict{"XCell"};
+    } else {
+      $check = 0;
+    }
+    if (defined($CntlDict{"YCell"})) {
+      $iy = $CntlDict{"YCell"};
+    } else {
+      $check = 0;
+    }
+    if (defined($CntlDict{"ZCell"})) {
+      $iz = $CntlDict{"ZCell"};
+    } else {
+      $check = 0;
+    }
+    if ($check != 0) {
+      print "  cells $ix $iy $iz\n";
+    }
+  }
+}
+if (defined($CntlDict{"UseMaxSolvent"})) {
+  if ($CntlDict{"UseMaxSolvent"} != 0) {
+    if (defined($CntlDict{"MaxSolvent"})) {
+      $value = $CntlDict{"MaxSolvent"};
+      print "  mwm $value\n";
+    }
+  }
+}
+if (defined($CntlDict{"UseMaxSolute"})) {
+  if ($CntlDict{"UseMaxSolute"} != 0) {
+    if (defined($CntlDict{"MaxSolute"})) {
+      $value = $CntlDict{"MaxSolute"};
+      print "  msa $value\n";
+    }
+  }
+}
+if (defined($CntlDict{"PackOption"})) {
+  if ($CntlDict{"PackOption"} == 0) {
+    print "  nopack\n";
+  }
+}
+#
+# Options from Dynamics panel
+#
+if (defined($DynDict{"DataSteps"})) {
+  $value = $DynDict{"DataSteps"};
+  print "  data $value\n";
+}
+if (defined($DynDict{"ResumeOpt"}) && $DynDict{"ResumeOpt"} == 1) {
+  print "  resume\n";
+} else {
+  if (defined($DynDict{"IntegrationOpts"})) {
+    if ($DynDict{"IntegrationOpts"} == 1) {
+      print "  leapfrog_bc\n";
+    }
+  }
+  if (defined($DynDict{"EquilibrationSteps"})) {
+    $value = $DynDict{"EquilibrationSteps"};
+    print "  equil $value\n";
+  }
+  if (defined($DynDict{"TimeStep"})) {
+    $value = $DynDict{"TimeStep"};
+    print "  step $value\n";
+  }
+  if (defined($DynDict{"InitialTime"})) {
+    $value = $DynDict{"InitialTime"};
+    print "  time $value\n";
+  }
+  if (defined($DynDict{"RecenterSystem"})) {
+    if ($DynDict{"RecenterSystem"} != 0) {
+      print "  update center";
+      if (defined($DynDict{"RecenterFreq"})) {
+        $value = $DynDict{"RecenterFreq"};
+        print " $value";
+      }
+      if (defined($DynDict{"RecenterOpts"})) {
+        $value = $DynDict{"RecenterOpts"};
+        if ($value == 2) {
+          print " xyonly";
+        } elsif ($value == 3) {
+          print " zonly";
+        }
+      }
+      if (defined($DynDict{"UseFractions"})) {
+        if ($DynDict{"UseFractions"} != 0) {
+          print " fraction";
+          if (defined($DynDict{"Fraction1"})) {
+            $value = $DynDict{"Fraction1"};
+            print " $value";
+          }
+          if (defined($DynDict{"Fraction2"})) {
+            $value = $DynDict{"Fraction2"};
+            print " $value";
+          }
+          if (defined($DynDict{"Fraction3"})) {
+            $value = $DynDict{"Fraction3"};
+            print " $value";
+          }
+          if (defined($DynDict{"Fraction4"})) {
+            $value = $DynDict{"Fraction4"};
+            print " $value";
+          }
+          if (defined($DynDict{"Fraction5"})) {
+            $value = $DynDict{"Fraction5"};
+            print " $value";
+          }
+        }
+      }
+      print "\n";
+    }
+  }
+  if (defined($DynDict{"RemoveCM"})) {
+    if ($DynDict{"RemoveCM"} != 0) {
+      if (defined($DynDict{"RemoveCMFreq"})) {
+        $value = $DynDict{"RemoveCMFreq"};
+        print "  update motion $value\n";
+      }
+    }
+  }
+#
+#  Isothermal ensemble
+#
+  if (defined($DynDict{"UseNVT"})) {
+    if ($DynDict{"UseNVT"} != 0) {
+      print "  isotherm";
+      $use2Rx = 0;
+      if (defined($DynDict{"UseDoubleRelaxation"})) {
+        $use2Rx = $DynDict{"UseDoubleRelaxation"};
+        if (!defined($DynDict{"SolventRxTime"})) {
+          $use2Rx = 0;
+        }
+      }
+      $useAnnl = 0;
+      if (defined($DynDict{"UseAnnealing"})) {
+        $useAnnl = $DynDict{"UseAnnealing"};
+        if (!defined($DynDict{"NVTTemperature"})) {
+          $useAnnl = 0;
+        }
+        if (!defined($DynDict{"FinalAnnealTemp"})) {
+          $useAnnl = 0;
+        }
+        if (!defined($DynDict{"FinalAnnealTime"})) {
+          $useAnnl = 0;
+        }
+      }
+      if (defined($DynDict{"NVTTemperature"})) {
+        $value = $DynDict{"NVTTemperature"};
+        print " $value";
+      }
+      if ($useAnnl != 0) {
+        $value = $DynDict{"FinalAnnealTemp"};
+        print " $value";
+      }
+      if (defined($DynDict{"SolventRxTime"})) {
+        $value = $DynDict{"SolventRxTime"};
+        print " trelax $value";
+      }
+      if ($use2Rx != 0) {
+        $value = $DynDict{"SoluteRxTime"};
+        print " $value";
+      }
+      if ($useAnnl != 0) {
+        print " anneal";
+        if (defined($DynDict{"InitAnnealTime"})) {
+          $value = $DynDict{"InitAnnealTime"};
+          print " $value";
+        }
+        $value = $DynDict{"FinalAnnealTime"};
+        print " $value";
+      }
+      print "\n";
+    }
+  }
+#
+#  Isobaric ensemble
+#
+  if (defined($DynDict{"UseNPT"})) {
+    if ($DynDict{"UseNPT"} != 0) {
+      print "  isobar";
+      if (defined($DynDict{"NPTPressure"})) {
+        $value = $DynDict{"NPTPressure"};
+        print " $value";
+      }
+      if (defined($DynDict{"NPTRxTime"})) {
+        $value = $DynDict{"NPTRxTime"};
+        print " trelax $value";
+      }
+      if (defined($DynDict{"Compressibility"})) {
+        $value = $DynDict{"Compressibility"};
+        print " compress $value";
+      }
+      if (defined($DynDict{"VolumeAdjustAlg"})) {
+        $value = $DynDict{"VolumeAdjustAlg"};
+        print " anisotropic";
+        if ($value == 1) {
+          print " xy";
+        } elsif ($value == 2) {
+          print " z";
+        } elsif ($value == 3) {
+          print " xy-z";
+        }
+      }
+      print "\n";
+    }
+  }
+#
+#  Velocity Rethermalization
+#
+  if (defined($DynDict{"UseVelRetherm"})) {
+    if ($DynDict{"UseVelRetherm"} != 0) {
+      print "  vreass";
+      if (defined($DynDict{"RethermFreq"})) {
+        $value = $DynDict{"RethermFreq"};
+        print " $value";
+      }
+      if (defined($DynDict{"RethermTemp"})) {
+        $value = $DynDict{"RethermTemp"};
+        print " $value";
+      }
+      if (defined($DynDict{"RethermFrac"})) {
+        $value = $DynDict{"RethermFrac"};
+        print " fraction $value";
+      }
+      if (defined($DynDict{"RethermOpt"})) {
+        $value = $DynDict{"RethermOpt"};
+        if ($value == 1) {
+          print " once";
+        } elsif ($value == 2) {
+          print " first";
+        } elsif ($value == 3) {
+          print " last";
+        } elsif ($value == 4) {
+          print " first last";
+        }
+      }
+      print "\n";
+    }
+  }
+}
+#
+# Options from thermodynamics panel
+#
+if (defined($ThermoDict{"UsePmf"})) {
+  if ($ThermoDict{"UsePmf"} != 0) {
+    print "  pmf";
+    if ($ThermoDict{"PmfOpt"} == 1) {
+      if (defined($ThermoDict{"PmfScale"})) {
+        $value = $ThermoDict{"PmfScale"};
+        print " scale $value";
+      }
+    }
+    if ($ThermoDict{"PmfOpt"} == 2) {
+      if (defined($ThermoDict{"PmfEquilharm"})) {
+        $value = $ThermoDict{"PmfEquilharm"};
+        print " equilharm $value";
+      }
+    }
+    print "\n";
+  }
+}
+if (defined($ThermoDict{"UseTherm"})) {
+  if ($ThermoDict{"UseTherm"} != 0) {
+    if (defined($ThermoDict{"ThermInitialConditionsOpt"})) {
+      if ($ThermoDict{"ThermInitialConditionsOpt"} == 0) {
+        print "  new";
+      }
+      if ($ThermoDict{"ThermInitialConditionsOpt"} == 1) {
+        print "  renew";
+      }
+      if ($ThermoDict{"ThermInitialConditionsOpt"} == 2) {
+        print "  extend";
+      }
+      print "\n";
+    }
+    if (defined($ThermoDict{"ThermDirectionOpt"})) {
+      if ($ThermoDict{"ThermDirectionOpt"} == 0) {
+        print "  forward"
+      }
+      if ($ThermoDict{"ThermDirectionOpt"} == 1) {
+        print "  reverse"
+      }
+      if (defined($ThermoDict{"ThermEnsembleNumber"})) {
+        $value = $ThermoDict{"ThermEnsembleNumber"};
+        print " $value of";
+      }
+      if (defined($ThermoDict{"ThermEnsembleMax"})) {
+        $value = $ThermoDict{"ThermEnsembleMax"};
+        print " $value";
+      }
+      print "\n";
+    }
+    if (defined($ThermoDict{"ThermErrorMax"})) {
+      $value = $ThermoDict{"ThermErrorMax"};
+      print "  error $value\n";
+    }
+    if (defined($ThermoDict{"ThermDriftMax"})) {
+      $value = $ThermoDict{"ThermDriftMax"};
+      print "  drift $value\n";
+    }
+  }
+}
+#
+# Options from print panel
+#
+if (defined($FileDict{"PrintMD"})) {
+  if ($FileDict{"PrintMD"} != 0) {
+    if (defined($FileDict{"PrintMDFreq"})) {
+      $value = $FileDict{"PrintMDFreq"};
+      print "  print step $value";
+      if (defined($FileDict{"SolventEnergy"})) {
+        if ($FileDict{"SolventEnergy"} != 0) {
+          print " extra";
+        }
+      }
+      if (defined($FileDict{"SoluteEnergy"})) {
+        if ($FileDict{"SoluteEnergy"} != 0) {
+          print " energy";
+        }
+      }
+      print "\n";
+    }
+  }
+}
+if (defined($FileDict{"PrintStat"})) {
+  if ($FileDict{"PrintStat"} != 0) {
+    if (defined($FileDict{"StatFreq"})) {
+      $value = $FileDict{"StatFreq"};
+      print "  print stat $value\n";
+    }
+  }
+}
+if (defined($FileDict{"SoluteBonds"})) {
+  if ($FileDict{"SoluteBonds"} != 0) {
+    if (defined($FileDict{"BondFreq"})) {
+      $value = $FileDict{"BondFreq"};
+      print "  print energies $value\n";
+    }
+  }
+}
+if (defined($FileDict{"SoluteForces"})) {
+  if ($FileDict{"SoluteForces"} != 0) {
+    if (defined($FileDict{"ForceFreq"})) {
+      $value = $FileDict{"ForceFreq"};
+      print "  print forces $value\n";
+    }
+  }
+}
+if (defined($FileDict{"PmfData"})) {
+  if ($FileDict{"PmfData"} != 0) {
+    if (defined($FileDict{"PmfFreq"})) {
+      $value = $FileDict{"PmfFreq"};
+      print "  print pmf $value\n";
+    }
+  }
+}
+if (defined($FileDict{"PrintTop"})) {
+  if ($FileDict{"PrintTop"} != 0) {
+    $cnt = 0;
+    $cmd = "  print topol";
+    if (defined($FileDict{"NbondPar"})) {
+      if ($FileDict{"NbondPar"} != 0) {
+        $cmd .= " nonbond";
+        $cnt++;
+      }
+    }
+    if (defined($FileDict{"SolventBondPar"})) {
+      if ($FileDict{"SolventBondPar"} != 0) {
+        $cmd .= " solvent";
+        $cnt++;
+      }
+    }
+    if (defined($FileDict{"SoluteBondPar"})) {
+      if ($FileDict{"SoluteBondPar"} != 0) {
+        $cmd .= " solute";
+        $cnt++;
+      }
+    }
+    $cmd .= "\n";
+    if ($cnt == 3) {
+      print "  print topol\n";
+    } elsif ($cnt > 0) {
+      print "$cmd";
+    }
+  }
+}
+#
+# Options from record panel
+#
+if ($UsesOpt != 0 || $UsesDyn != 0) {
+  $value = 0;
+  if (defined($FileDict{"RestartFreq"})) {
+    $value = $FileDict{"RestartFreq"};
+    $keep = "";
+    if (defined($FileDict{"KeepRestart"})) {
+      if ($FileDict{"KeepRestart"} != 0) {
+        $keep = "keep";
+      } 
+    }
+  }
+  print "  record rest";
+  if ($value > 0) {
+    print " $value";
+  }
+  if ($keep ne "") {
+    print " $keep";
+  }
+  print "\n";
+}
+if (defined($FileDict{"WriteTrajectory"}) &&
+    ($UsesOpt != 0 || $UsesDyn != 0)) {
+  $icnt = 0;
+  $cmd = "  record";
+  if ($FileDict{"WriteTrajectory"} != 0) {
+    $val1 = 0;
+    $val2 = 0;
+    if (defined($FileDict{"CoordinatesSoluteFreq"})) {
+      $val1 = $FileDict{"CoordinatesSoluteFreq"};
+    }
+    if (defined($FileDict{"CoordinatesSolventFreq"})) {
+      $val2 = $FileDict{"CoordinatesSolventFreq"};
+    }
+    if ($FileDict{"CoordinatesSolutePrint"} != 0 && 
+        $FileDict{"CoordinatesSolventPrint"} != 0) {
+      if ($val1 == $val2) {
+        if ($val1 > 0) {
+          $cmd .= " coord $val1";
+          $icnt++;
+        }
+      } else {
+        if ($val1 > 0) {
+          $cmd .= " scoor $val1";
+          $icnt++;
+        }
+        if ($val2 > 0) {
+          $cmd .= " wcoor $val2";
+          $icnt++;
+        }
+      }
+    } elsif ($FileDict{"CoordinatesSolutePrint"} != 0) {
+      if ($val1 > 0) {
+        $cmd .= " scoor $val1";
+        $icnt++;
+      }
+    } elsif ($FileDict{"CoordinatesSolventPrint"} != 0) {
+      if ($val2 > 0) {
+        $cmd .= " wcoor $val2";
+        $icnt++;
+      }
+    }
+    $val1 = 0;
+    $val2 = 0;
+    if (defined($FileDict{"VelocitiesSoluteFreq"})) {
+      $val1 = $FileDict{"VelocitiesSoluteFreq"};
+    }
+    if (defined($FileDict{"VelocitiesSolventFreq"})) {
+      $val2 = $FileDict{"VelocitiesSolventFreq"};
+    }
+    if ($FileDict{"VelocitiesSolutePrint"} != 0 && 
+        $FileDict{"VelocitiesSolventPrint"} != 0) {
+      if ($val1 == $val2) {
+        if ($val1 > 0) {
+          $cmd .= " veloc $val1";
+          $icnt++;
+        }
+      } else {
+        if ($val1 > 0) {
+          $cmd .= " svelo $val1";
+          $icnt++;
+        }
+        if ($val2 > 0) {
+          $cmd .= " wvelo $val2";
+          $icnt++;
+        }
+      }
+    } elsif ($FileDict{"VelocitiesSolutePrint"} != 0) {
+      if ($val1 > 0) {
+        $cmd .= " svelo $val1";
+        $icnt++;
+      }
+    } elsif ($FileDict{"VelocitiesSolventPrint"} != 0) {
+      if ($val2 > 0) {
+        $cmd .= " wvelo $val2";
+        $icnt++;
+      }
+    }
+    $val1 = 0;
+    $val2 = 0;
+    if (defined($FileDict{"ForcesSoluteFreq"})) {
+      $val1 = $FileDict{"ForcesSoluteFreq"};
+    }
+    if (defined($FileDict{"ForcesSolventFreq"})) {
+      $val2 = $FileDict{"ForcesSolventFreq"};
+    }
+    if ($FileDict{"ForcesSolutePrint"} != 0 && 
+        $FileDict{"ForcesSolventPrint"} != 0) {
+      if ($val1 == $val2) {
+        if ($val1 > 0) {
+          $cmd .= " force $val1";
+          $icnt++;
+        }
+      } else {
+        if ($val1 > 0) {
+          $cmd .= " sforc $val1";
+          $icnt++;
+        }
+        if ($val2 > 0) {
+          $cmd .= " wforc $val2";
+          $icnt++;
+        }
+      }
+    } elsif ($FileDict{"ForcesSolutePrint"} != 0) {
+      if ($val1 > 0) {
+        $cmd .= " sforc $val1";
+        $icnt++;
+      }
+    } elsif ($FileDict{"ForcesSolventPrint"} != 0) {
+      if ($val2 > 0) {
+        $cmd .= " wforc $val2";
+        $icnt++;
+      }
+    }
+    if ($icnt > 0) {
+      $cmd .= "\n";
+      print "$cmd";
+    }
+    if (defined($FileDict{"UseBatches"})) {
+      if ($FileDict{"UseBatches"} != 0) {
+        if (defined($FileDict{"BatchSize"})) {
+          $value = $FileDict{"BatchSize"};
+          if ($value > 0) {
+            print "  batch $value\n";
+          }
+        }
+      }
+    }
+  }
+}
+$iopt = 0;
+if (defined($FileDict{"AverageProperties"})) {
+  $iopt = $FileDict{"AverageProperties"};
+}
+if ($UsesOpt != 0 || $UsesDyn != 0) {
+  $cmd = "  record";
+  if ($iopt == 0) {
+    $cmd .= " prop";
+  } else {
+    $cmd .= " prop_average";
+  }
+  if (defined($FileDict{"PropertyFreq"})) {
+    $value = $FileDict{"PropertyFreq"};
+    if ($value > 0) {
+      $cmd .= " $value\n";
+      print "$cmd";
+    }
+  }
+}
+print "end\n";
+
+if ($UsesThermo != 0 && $ThermoDict{"UseTherm"} != 0) {
+  print "task md thermodynamics\n\n";
+}elsif ($UsesDyn != 0) {
+  print "task md dynamics\n\n";
+}elsif ($UsesOpt != 0) {
+  print "task md optimize\n\n";
+} else {
+  print "task md energy\n\n";
+}
+
+#
+#  Print out file containing final configuration if restart file is available
+#
+if ($UsesDyn != 0 || $UsesOpt != 0) {
+  print "\nprepare\n";
+  print "  system ".$systemName."_".$calcId."\n";
+  if ($UsesOpt != 0) {
+    print "  read ".$systemName."_".$calcId.".qrs\n";
+  }
+  else {
+    print "  read ".$systemName."_".$calcId.".rst\n";
+  }
+  print "  write chemsys.pdb\n";
+  print "end\n";
+  print "task prepare\n";
+}
+
+exit(0);

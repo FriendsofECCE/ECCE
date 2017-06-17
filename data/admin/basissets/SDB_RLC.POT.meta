@@ -1,0 +1,21 @@
+name
+SDB RLC ECP
+name
+type
+ecp
+type
+category
+AUXILIARY
+category
+references
+ELEMENTS                      REFERENCES
+ ---------                       ----------
+
+
+references
+comments
+7/29/02  - DFF - correct I potential. It was ECP46MDF and should have
+7/31/98  - DFF - Jared Chase interchanged columns of exponents/coeff's
+6/22/98  - DFF - remove 2 extraneous tempi = 0 lines
+3/18/98  - DFF - original creation of this file by James Duplain
+comments

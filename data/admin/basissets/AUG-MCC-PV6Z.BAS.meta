@@ -1,0 +1,35 @@
+name
+aug-mcc-pV6Z
+name
+type
+other_segmented
+type
+category
+ORBITAL
+category
+spherical
+Y
+spherical
+contraction_type
+Segmented
+contraction_type
+references
+Elements                             References
+--------                             ---------
+ H    : S.T. Mielke, B.C. Garrett and K.A. Peterson, J. Chem. Phys. 111, 3806
+        (1999).
+
+references
+info
+      Hydrogen Modified Correlation Consistent Sextuple Zeta (aug-mcc-pV6Z)
+      ---------------------------------------------------------------------
+Elements               Contraction               References
+H : (14s,6p,5d,4f,3g,2h) -> [7s,6p,5d,4f,3g,2h]  S.T. Mielke, B.C. Garrett and
+                                                 K.A. Peterson, J. Chem. Phys.
+                                                 111, 3806 (1999).
+
+
+info
+comments
+3/02/2005  - DFF - Original creation of this file from an e-mail message
+comments

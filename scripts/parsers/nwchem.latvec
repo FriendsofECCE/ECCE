@@ -1,0 +1,79 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+# The RunType is checked so that for a geometry optimization or for
+# a opt+vib calculation the coordinates are only recorded if they come
+# from the gradients task.  This prevents getting multiple copies.
+#
+#
+################################################################################
+
+# Force output to be flushed
+$| = 1;
+
+# Stash the script arguments.
+($key, $runtype, $category, $theory) = @ARGV;
+
+########################################################################
+# read the data from stdin:
+########################################################################
+$labelLine = <STDIN>;
+$labelLine =~ /(\d+)\s+(\d+)%double/;
+# Lattice vectors are always 3x3 so don't even bother parsing this
+
+########################################################################
+# geometry opt and opt+vib calculations use only coordinates from
+# the gradient task
+########################################################################
+$forgetIt = 0;  # false
+
+$labelLine =~ /(\S+)%begin/;
+$prebegin = $1;  # might be task_<tasktype> or a category type
+
+if ($runtype eq "Geometry" || $runtype eq "GeoVib" || $runtype eq "Gradient") {
+  $forgetIt = "TRUE" if ( $prebegin !~ /task_gradient/ ); 
+# Start Eric Bylaska's planewave module integration
+} elsif ($runtype eq "Car-Parrinello") {
+  $forgetIt = "TRUE" if ( $prebegin !~ /task_car-parrinello/ ); 
+# End Eric Bylaska's planewave module integration
+}
+
+unless ( $forgetIt ) {
+
+  while (<STDIN>) {
+    last if (/lattice/);
+    chomp;
+    s/^ *//;
+    s/ *$//;
+    @line = split(' +',$_);
+    push(@values,@line);
+  }
+
+#
+# Print out the data in standard format.
+#
+  print "key: LATTICEVEC\n";
+  print "size:\n";
+  print "1 3 3\n";
+  print "rowlabels:\n0 1 2\n";
+  print "columnlabels:\nX Y Z\n";
+  print "values:\n";
+  for ($i=0; $i<= $#values; $i++) {
+    printf("%.15e ",$values[$i]); 
+    if ($i % 3 == 2 ) { print "\n"; };
+  }
+  if ($i % 3 != 0 ) { print "\n"; };
+
+} # end unless
+
+print "units:\nAngstrom\n";
+print "END\n";
