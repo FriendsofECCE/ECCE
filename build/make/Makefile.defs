@@ -53,7 +53,7 @@ ifeq ($(OBJEXT),)
   OBJEXT := $(notdir $(CURDIR))
 endif
 OBJ_PATH := $(ECCE_HOME)/$(ECCE_SYSDIR)obj/$(OBJEXT)
-INC_PATH = -I$(ECCE_HOME)/include
+INC_PATH = -I$(ECCE_HOME)/include -I/usr/include/freetype2/freetype
 LIB_PATH = $(ECCE_HOME)/$(ECCE_SYSDIR)lib
 BIN_PATH = $(ECCE_HOME)/$(ECCE_SYSDIR)bin
 
