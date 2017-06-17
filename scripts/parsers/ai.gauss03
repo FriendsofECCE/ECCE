@@ -209,6 +209,7 @@ sub G03Route {
   $route .= &RunType($AbiDict{"RunType"});
   $route .= &SCFOptions;
   $route .= &SCRFOptions;
+#  $route .= &AIMOptions;
   $route .= &Symmetry($AbiDict{"UseSymmetry"});
   # This is so we can detect the basis set on import.
   # - GFInput flag is unneeded to dump basissets - jmc
@@ -219,6 +220,19 @@ sub G03Route {
   if ($AbiDict{"Category"} ne "SE") {
     $route .= " Punch=(MO)";
   }
+# Andy
+  if ($AbiDict{"UseMayer"}) { 
+    $route .= " iop(6/80=1)";
+  } 
+   if ($AbiDict{"UseAIM"}) { 
+    $route .= " AIM=(CP)";
+  } 
+ 
+  if ($AbiDict{"ES.Theory.DFT.UseGD3BJ"}) {
+    $route .= " empiricaldispersion=GD3-BJ";
+  }
+# End Andy
+  
   # Boy this is confusing.  We use Punch(MO) to get the orbitals in the fort.7
   # file which is easily parsed.  Then we use Pop(FULL) to get the occupations
   # The user does not get a choice between natural and hf orbitals at this point.
@@ -236,7 +250,13 @@ sub G03Route {
   if ((($tmpTheory =~ /MP4/ || $tmpTheory =~ /MP5/) &&  $tmpTheory !~ /SDQ/) || 
         $tmpTheory =~ /CCSD/ || $tmpTheory =~ /QCISD.T./ ||
         $tmpTheory =~ /ROMP/ || $tmpTheory =~ /HF/ || $tmpTheory =~ /DFT/) {
+#Andy
+    if ($AbiDict{"UseNBO"}) { 
+    $route .= " Pop=(NBO6, savenbos)"; #Andy
+    } else {
+# end Andy
     $route .= " Pop=()";
+    } 
   } else {
     $route .= " Density Pop=()";
   }
@@ -617,6 +637,8 @@ sub GridDensity {
     $result =  "FineGrid ";
   } elsif ($AbiDict{"ES.Theory.DFT.GridDensity"} eq "Ultra Fine") {
     $result =  "UltraFine ";
+  } elsif ($AbiDict{"ES.Theory.DFT.GridDensity"} eq "Super Fine") {
+    $result =  "SuperFine ";
   } else {
     $result =  "";
   }
@@ -639,8 +661,10 @@ sub DFTXCFun {
     $result = "SVWN5";
     } elsif ($xcFun eq "M06 (hybrid)") {
 	$result = "M06";
-	} elsif ($xcFun eq "BP86 (hybrid)") {
+	} elsif ($xcFun eq "BP86 (GGA)") {
 	$result = "BP86";
+	} elsif ($xcFun eq "PW91PW91 (GGA)") {
+	$result = "PW91PW91";
  } elsif ($xcFun eq "X3LYP (hybrid)") {
 	$result = "X3LYP";
  } elsif ($xcFun eq "PBE0 (hybrid)") {
@@ -669,7 +693,7 @@ sub DFTXCFun {
     $result = "N12";
   } elsif ($xcFun eq "MN12L (nonlocal)") {
     $result = "MN12L";
-  } elsif ($xcFun eq "M06L (nonlocal)") {
+  } elsif ($xcFun eq "M06L (meta-GGA)") {
     $result = "M06L";
   } elsif ($xcFun eq "B97D (nonlocal)") {
     $result = "B97D";
@@ -703,6 +727,10 @@ sub DFTXCFun {
     $result = "B972";
   } elsif ($xcFun eq "PBE1PBE (hybrid)") {
     $result = "PBE1PBE";
+  } elsif ($xcFun eq "PBE (GGA)") {
+    $result = "PBEPBE";
+  } elsif ($xcFun eq "OPBE (GGA)") {
+    $result = "OPBE";
   } elsif ($xcFun eq "M06HF (hybrid)") {
     $result = "M06HF";
    } elsif ($xcFun eq "M062X (hybrid)") {
@@ -724,7 +752,7 @@ sub DFTXCFun {
    } elsif ($xcFun eq "SOGGA11X (hybrid)") {
     $result = "SOGGA11X";       
    } elsif ($xcFun eq "TPSSh (hybrid)") {
-    $result = "SOGGA11X";       
+    $result = "tpssh";       
    } elsif ($xcFun eq "tHCTHhyb (hybrid)") {
     $result = "SOGGA11X";       
    } elsif ($xcFun eq "HSEH1PBE (range)") {
@@ -741,7 +769,7 @@ sub DFTXCFun {
     $result = "wB97X";       
    } elsif ($xcFun eq "LC-wPBE (range)") {
     $result = "LC-wPBE";       
-   } elsif ($xcFun eq "CAM-B3lYP (range)") {
+   } elsif ($xcFun eq "CAM-B3LYP (range)") {
     $result = "CAM-B3LYP";       
    } elsif ($xcFun eq "HISSbPBE (range)") {
     $result = "HISSbPBE";       
@@ -959,6 +987,38 @@ sub PolarOptions {
            || $theory eq "UQCISD" || $theory eq "CIS"
            || $theory eq "CIS" || $theory eq "CISD"
            || $theory eq "CIS(FC)" || $theory eq "CISD(FC)") {
+##############################################################################
+#
+#  Description:
+#      AIM options field -CAO
+#       
+############################################################################## 
+sub AIMOptions {
+  my($options,$result);
+
+  $result = "";
+  $options = "";
+
+  # aim type
+  if ($AbiDict{"ES.Theory.AIM.UseAIM"}) {
+    if ($AbiDict{"ES.Theory.AIM.AIM"} eq "" ) {
+      $options .= "CriticalPoints,";
+    } else {
+      $options .= ($AbiDict{"ES.Theory.AIM.AIM"}).","
+    }
+  
+
+    if ($options ne "") {
+      $result =  "AIM=(";
+      $result .= $options;
+      $result .= ") ";
+    }
+
+    return  $result;
+  }
+}
+
+
 
 ##############################################################################
 #
@@ -1552,7 +1612,8 @@ sub ConvergenceTolerance {
 #    $result =  "SinglePoint";
   } else {
     $exponent = int(-0.434294481904 * log($value));
-    $result = "Conver=$exponent ";
+#    $result = "Conver=$exponent ";
+    $result = "";
 #    $result = "Conver=".$value." ";
   }
   return $result;

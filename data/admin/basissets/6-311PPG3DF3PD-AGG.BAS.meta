@@ -1,18 +1,3 @@
-name
-6-311++G(3df,3pd)
-name
-type
-pople
-type
-category
-ORBITAL
-category
-spherical
-Y
-spherical
-contraction_type
-Segmented
-contraction_type
 references
 
 references
@@ -77,4 +62,5 @@ S   3-P               -397.617577 -397.643967
 
 info
 comments
+
 comments

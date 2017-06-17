@@ -1,18 +1,3 @@
-name
-STO-3G*
-name
-type
-pople
-type
-category
-ORBITAL
-category
-spherical
-Y
-spherical
-contraction_type
-Segmented
-contraction_type
 references
 
 references
@@ -61,4 +46,5 @@ K   2-S  -593.077769  -593.077389  -593.077389   -599.16479
 
 info
 comments
+
 comments

@@ -1,18 +1,3 @@
-name
-Core/val. Functions (cc-pCV6Z)
-name
-type
-polarization
-type
-category
-TAIOrbital
-category
-spherical
-Y
-spherical
-contraction_type
-Segmented
-contraction_type
 references
 Elements                             References
 --------                             ----------
@@ -30,4 +15,5 @@ Ne   : (4s,4p,4d,3f,2g,1h)    D. Feller (to be published)
 
 info
 comments
+
 comments

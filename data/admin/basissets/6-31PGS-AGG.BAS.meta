@@ -1,18 +1,3 @@
-name
-6-31+G*
-name
-type
-pople
-type
-category
-ORBITAL
-category
-spherical
-N
-spherical
-contraction_type
-Segmented
-contraction_type
 references
 
 references
@@ -75,4 +60,5 @@ Note: This basis set uses 6-component d functions.
 
 info
 comments
+
 comments

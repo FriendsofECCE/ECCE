@@ -31,14 +31,14 @@ Lines=2
 [GEOMNULL]
 Script=nwchem.null
 Begin=task_hessian task_energy%begin%cartesian coordinates
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [GEOMPROP]
 Script=nwchem.geomtrace
 Begin=^task_energy%begin%cartesian coordinates
-Frequency=first
+Frequency=last
 End=task
 [END]
 
@@ -59,14 +59,14 @@ End=task
 [LATVECNULL]
 Script=nwchem.null
 Begin=task_hessian task_energy%begin%lattice vectors
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [LATVECPROP]
 Script=nwchem.latvec
 Begin=^task_energy%begin%lattice vectors
-Frequency=first
+Frequency=last
 End=task
 [END]
 
@@ -80,14 +80,14 @@ End=task
 [MO]
 Script=nwchem.mo
 Begin=begin%molecular orbital vectors dft alpha
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [MOBETA]
 Script=nwchem.mo
 Begin=begin%molecular orbital vectors dft beta
-Frequency=first
+Frequency=last
 End=task
 [END]
 
@@ -95,70 +95,71 @@ End=task
 [MO]
 Script=nwchem.mo
 Begin=begin%molecular orbital vectors R
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [MO]
 Script=nwchem.mo
 Begin=begin%molecular orbital vectors UHF alpha
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [MOBETA]
 Script=nwchem.mo
 Begin=begin%molecular orbital vectors UHF beta
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [ORBENG1]
 Script=nwchem.orbeng
 Begin=orbital energies dft alpha
-Frequency=first
+Frequency=last
 End=task
 [END]
+#changed last to last
 
 [ORBENGBETA1]
 Script=nwchem.orbeng
 Begin=orbital energies dft beta
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [ORBENG2]
 Script=nwchem.orbeng
 Begin=orbital energies R
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [ORBENG3]
 Script=nwchem.orbeng
 Begin=orbital energies UHF alpha
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [ORBENGBETA2]
 Script=nwchem.orbeng
 Begin=orbital energies UHF beta
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [ORBOCC1]
 Script=nwchem.orbocc
 Begin=begin%molecular orbital occupations dft alpha
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [ORBOCCBETA1]
 Script=nwchem.orbocc
 Begin=begin%molecular orbital occupations dft beta
-Frequency=first
+Frequency=last
 End=task
 [END]
 
@@ -166,28 +167,28 @@ End=task
 [ORBOCC2]
 Script=nwchem.orbocc
 Begin=begin%molecular orbital occupations R
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [ORBOCC3]
 Script=nwchem.orbocc
 Begin=begin%molecular orbital occupations UHF alpha
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [ORBOCCBETA2]
 Script=nwchem.orbocc
 Begin=begin%molecular orbital occupations UHF beta
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [ORBSYM]
 Script=nwchem.orbsym
 Begin=begin%molecular orbital symmetries NOT SUPPORTED
-Frequency=first
+Frequency=last
 End=task
 [END]
 
@@ -250,7 +251,7 @@ End=task
 [TEPROP]
 Script=nwchem.te
 Begin=^task_energy%begin%total energy
-Frequency=first
+Frequency=last
 End=task
 [END]
 
@@ -385,63 +386,63 @@ Lines=1
 [SYMLAB]
 Script=nwchem.symlab
 Begin=begin%group irrep names
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [MOLAB1]
 Script=nwchem.molab
 Begin=begin%molecular orbital symmetries R
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [MOLAB2]
 Script=nwchem.molab
 Begin=begin%molecular orbital symmetries UHF alpha%
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [MOLAB3]
 Script=nwchem.molab
 Begin=begin%molecular orbital symmetries UHF beta%
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [MOLAB4]
 Script=nwchem.molab
 Begin=begin%molecular orbital symmetries dft alpha%
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [MOLAB5]
 Script=nwchem.molab
 Begin=begin%molecular orbital symmetries dft beta%
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [MOLAB6]
 Script=nwchem.molab
 Begin=begin%molecular orbital symmetries alpha%
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [MOLAB7]
 Script=nwchem.molab
 Begin=begin%molecular orbital symmetries beta%
-Frequency=first
+Frequency=last
 End=task
 [END]
 
 [MOLAB8]
 Script=nwchem.molab
 Begin=begin%molecular orbital symmetries%
-Frequency=first
+Frequency=last
 End=task
 [END]
 
@@ -462,49 +463,49 @@ End=task
 [VERSION]
 Script=nwchem.version
 Begin=begin%version%
-Frequency=first
+Frequency=last
 End=end%
 [END]
 
 [EFIELD]
 Script=nwchem.efield
 Begin=^EField
-Frequency=first
+Frequency=last
 End=^EField
 [END]
 
 [EFIELDGRAD]
 Script=nwchem.efg
 Begin=^efg
-Frequency=first
+Frequency=last
 End=^EFG
 [END]
 
 [EDENS]
 Script=nwchem.edens
 Begin=^Eldensities
-Frequency=first
+Frequency=last
 End=Eldensities%end%exit
 [END]
 
 [FERMI]
 Script=nwchem.fermi
 Begin=^fermi_contact
-Frequency=first
+Frequency=last
 End=fermi_contact%end%exit
 [END]
 
 [SPINDIPOLE]
 Script=nwchem.spindipole
 Begin=^spin-dipole
-Frequency=first
+Frequency=last
 End=spin-dipole%end%exit
 [END]
 
 [SPINSPIN]
 Script=nwchem.spinspin
 Begin=^spinspin
-Frequency=first
+Frequency=last
 End=spinspin%end%exit
 [END]
 

@@ -1342,6 +1342,8 @@ sub XCFunctionals {
     $result = "becke88 lyp";
   } elsif ($xcFun eq "BOP (Gradient Corr.)") {
     $result = "bop";
+  } elsif ($xcFun eq "PBE (GGA)") {
+    $result = "pbe96";
   } elsif ($xcFun eq "PBEOP (Gradient Corr.)") {
     $result = "pbeop";
   } elsif ($xcFun eq "M05 (hybrid)") {
@@ -1356,7 +1358,21 @@ sub XCFunctionals {
     $result = "m06-2x";
   } elsif ($xcFun eq "M06-L (hybrid)") {
     $result = "m06-l";
-# added by CAO  -- end
+  } elsif ($xcFun eq "s12g (GGA)") {
+    $result = "s12g";
+  } elsif ($xcFun eq "CAM-s12g (range)") {
+    $result = "cam-s12g";
+   } elsif ($xcFun eq "s12h (hybrid)") {
+    $result = "s12h";
+  } elsif ($xcFun eq "CAM-s12h (range)") {
+    $result = "cam-s12h";
+   } elsif ($xcFun eq "OPBE (GGA)") {
+    $result = "vwn_5 optx cpbe96 nonlocal";
+   } elsif ($xcFun eq "SSB-D (GGA)") {
+    $result = "SSB-D";
+  } elsif ($xcFun eq "LC-wPBE (range)") {
+    $result = "xwpbe 1.00 cpbe96 1.0 hfexch 1.00 cam 0.3 cam_alpha 0.00 cam_beta 1.00";
+#added by CAO  -- end
   } elsif ($xcFun eq "None") {
     $result = "";
     $_ = "";

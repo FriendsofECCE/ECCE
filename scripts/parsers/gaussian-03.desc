@@ -23,7 +23,7 @@ End=used in FoFDir
 
 [GEOMTRACE]
 Script=gaussian-03.geomtrace
-Begin=Standard orientation\:
+Begin=Input orientation\:
 Skip=5
 Frequency=all
 End=--------------------------------------
@@ -39,7 +39,7 @@ End=--------------------------------------
 
 [GEOMTRACE1]
 Script=gaussian-03.geomtrace-input
-Begin=Input orientation\:
+Begin=Standard orientation\:
 Skip=5
 Frequency=all
 End=Framework group

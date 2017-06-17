@@ -1,18 +1,3 @@
-name
-aug-cc-pwCVQZ-NR
-name
-type
-correlation_consistent
-type
-category
-ORBITAL
-category
-spherical
-Y
-spherical
-contraction_type
-GC
-contraction_type
 references
 
 references
@@ -28,4 +13,5 @@ Sc - Zn: (23s,19p,12d,5f,4g,3h) -> [11s,10p,8d,5f,4g,3h] N.B. Balabanov and
 
 info
 comments
+
 comments

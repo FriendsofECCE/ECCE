@@ -1,18 +1,3 @@
-name
-SVP + Diffuse + Rydberg
-name
-type
-other_segmented
-type
-category
-ORBITAL
-category
-spherical
-N
-spherical
-contraction_type
-Segmented
-contraction_type
 references
 
 references
@@ -35,4 +20,5 @@ an even-tempered extension.
 
 info
 comments
+
 comments

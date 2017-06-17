@@ -26,7 +26,7 @@ class Globals:
     ReadOnlyFlag = "Writable"
     DebugFlag = "DebugOff"
     Signal = 0
-    Category = "SCF"
+    Category = "SCF" 
     Theory = "7"
     RunType = "Geometry"
     CalculationName = "Calculation"

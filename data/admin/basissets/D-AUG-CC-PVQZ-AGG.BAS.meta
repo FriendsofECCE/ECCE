@@ -1,18 +1,3 @@
-name
-d-aug-cc-pVQZ
-name
-type
-correlation_consistent
-type
-category
-ORBITAL
-category
-spherical
-Y
-spherical
-contraction_type
-GC
-contraction_type
 references
 
 references
@@ -35,4 +20,5 @@ The second shell is from D.E. Woon and T.H. Dunning, Jr., J. Chem. Phys. 100,
 
 info
 comments
+
 comments

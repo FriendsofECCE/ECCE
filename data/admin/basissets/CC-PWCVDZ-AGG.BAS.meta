@@ -1,18 +1,3 @@
-name
-cc-pwCVDZ
-name
-type
-correlation_consistent
-type
-category
-ORBITAL
-category
-spherical
-Y
-spherical
-contraction_type
-GC
-contraction_type
 references
 
 references
@@ -33,4 +18,5 @@ KL intershell correlation energy at the expense of the KK correlation.
 
 info
 comments
+
 comments

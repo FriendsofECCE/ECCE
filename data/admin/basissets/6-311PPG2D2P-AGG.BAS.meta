@@ -1,18 +1,3 @@
-name
-6-311++G(2d,2p)
-name
-type
-pople
-type
-category
-ORBITAL
-category
-spherical
-Y
-spherical
-contraction_type
-Segmented
-contraction_type
 references
 
 references
@@ -35,4 +20,5 @@ Note: This basis set uses 5-component d functions.
 
 info
 comments
+
 comments

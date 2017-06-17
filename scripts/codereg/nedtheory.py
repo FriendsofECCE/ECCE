@@ -708,7 +708,7 @@ class NedTheoryPanel(EccePanel):
                             "CAM-B3LYP (range)", # added by CAO
                             "Adiabatic Conn. (hybrid)",
                             "B3PW91 (hybrid)",   # added by CAO
-                            "BP86 (hybrid)", # added by CAO
+                            "BP86 (GGA)", # added by CAO
                             "B3P86 (hybrid)", # added by CAO
                             "X3LYP (hybrid)", # added by CAO
                             "mPW1PW91 (hybrid)", # added by CAO
@@ -733,16 +733,24 @@ class NedTheoryPanel(EccePanel):
                             "Becke 1997-GGA1 (Gradient Corr.)",
                             "Becke 1998 (hybrid)",
                             "PBE0 (hybrid)",
+                            "LC-wPBE (range)",
+                            "PBE (GGA)",
+                            "OPBE (GGA)",
+                            "s12g (GGA)",
+                            "CAM-s12g (range)",
+                            "s12h (hybrid)",
+                            "CAM-s12h (range)",
+                            "SSB-D (GGA)",
                             "Mod. Perdew-Wang 1K (hybrid)",
                             "BB1K (hybrid)",
                             "Filatov-Thiel 1997 (Gradient Corr.)"]
-            xcFuncDefault = 0
+            xcFuncDefault = 36
 
             if EcceGlobals.ReactionStudyFlag != 0:
-                xcFuncDefault =27 # CAO --changed from 15 to 37 to reflect added XCs
+                xcFuncDefault =36 # CAO --changed from 15 to 37 to reflect added XCs
             elif os.environ.has_key("ECCE_NWCHEM_DFT_USE_B3LYP"):
                 if os.environ["ECCE_NWCHEM_DFT_USE_B3LYP"] == "true":
-                    xcFuncDefault = 8 #  CAO -- changed from 7 to 8 to reflect reordering
+                    xcFuncDefault = 36 #  CAO -- changed from 7 to 8 to reflect reordering
             self.xcFunc = EcceComboBox(self,
                                        choices = xcFuncChoice,
                                        name = "ES.Theory.DFT.XCFunctionals",

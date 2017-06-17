@@ -1,18 +1,3 @@
-name
-DZP (Dunning)
-name
-type
-other_segmented
-type
-category
-ORBITAL
-category
-spherical
-N
-spherical
-contraction_type
-Segmented
-contraction_type
 references
 
 references
@@ -32,4 +17,5 @@ H.F. Schaefer III, J. Chem. Phys. 83, 5721 (1985)
 
 info
 comments
+
 comments

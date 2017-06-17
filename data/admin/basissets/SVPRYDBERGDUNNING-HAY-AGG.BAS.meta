@@ -1,18 +1,3 @@
-name
-SV + Rydberg (Dunning-Hay)
-name
-type
-other_segmented
-type
-category
-ORBITAL
-category
-spherical
-N
-spherical
-contraction_type
-Segmented
-contraction_type
 references
 
 references
@@ -33,4 +18,5 @@ values were estimated on the basis of neighboring elements.
 
 info
 comments
+
 comments

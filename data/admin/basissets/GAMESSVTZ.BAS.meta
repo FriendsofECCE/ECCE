@@ -1,18 +1,3 @@
-name
-GAMESS VTZ
-name
-type
-other_segmented
-type
-category
-ORBITAL
-category
-spherical
-N
-spherical
-contraction_type
-Segmented
-contraction_type
 references
 T. H. DUNNING, JR., J. CHEM. PHYS. 55, 716 (1971) 
  A.D. MCCLEAN AND G.S. CHANDLER, J. CHEM. PHYS. 72, 5639 (1980) 

@@ -1,18 +1,3 @@
-name
-Huzinaga Polarization
-name
-type
-polarization
-type
-category
-TAIOrbital
-category
-spherical
-N
-spherical
-contraction_type
-Segmented
-contraction_type
 references
 K, CA, RB, SR: GAMESS(US) 1994 
  S. Huzinaga, J. Anzelm, M. Klobukowski, E. Radzio-Andzelm, Y. Sakai, 

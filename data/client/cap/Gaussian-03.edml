@@ -462,6 +462,8 @@
   <Input   type="primary" mimetype="chemical/x-gaussian-03-input" comment="true" commentstring="#">g03.in</Input>
   <Output type="primary" mimetype="chemical/x-gaussian03-output">g03.g03out</Output>
   <Output type="primary" mimetype="chemical/x-gaussian-03-output">g03.out</Output>
+  <Output type="parse" verifypattern="Gaussian 09, Revision" mimetype="chemical/x-gaussian03-output">g03.g03out</Output>
+  <Output type="parse" verifypattern="Gaussian 09, Revision" mimetype="chemical/x-gaussian-03-output">g03.out</Output>
   <Output type="parse" verifypattern="Gaussian 03, Revision" mimetype="chemical/x-gaussian03-output">g03.g03out</Output>
   <Output type="parse" verifypattern="Gaussian 03, Revision" mimetype="chemical/x-gaussian-03-output">g03.out</Output>
   <Output type="auxiliary" mimetype="chemical/x-gaussian-03-mo">fort.7</Output>

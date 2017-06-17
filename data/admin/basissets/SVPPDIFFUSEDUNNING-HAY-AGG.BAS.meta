@@ -1,18 +1,3 @@
-name
-SVP + Diffuse (Dunning-Hay)
-name
-type
-other_segmented
-type
-category
-ORBITAL
-category
-spherical
-N
-spherical
-contraction_type
-Segmented
-contraction_type
 references
 
 references
@@ -30,4 +15,5 @@ were obtained by simply extending the exponents in an even-tempered sense.
 
 info
 comments
+
 comments

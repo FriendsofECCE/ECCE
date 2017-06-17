@@ -50,7 +50,7 @@ class Ged03TheoryPanel(EccePanel):
         self.useSymmetryBox = EcceCheckBox(self,
                                            label = " Use Available Symmetry",
                                            name = "ES.Theory.UseSymmetry",
-                                           default = True,
+                                           default = False,
                                            export = 1)
         genopsSizer.AddWidget(self.useSymmetryBox)
         
@@ -60,6 +60,53 @@ class Ged03TheoryPanel(EccePanel):
                                            default = False,
                                            export = 1)
         genopsSizer.AddWidget(self.useCartesianBox)
+
+# Added by Andy 10/10/2016        
+        self.useNBOBox = EcceCheckBox(self,
+                                           label = " Do NBO6 calculation",
+                                           name = "ES.Theory.UseNBO",
+                                           default = False,
+                                           export = 1)
+        genopsSizer.AddWidget(self.useNBOBox)
+
+        self.useMayerBox = EcceCheckBox(self,
+                                           label = " Do Mayer BO",
+                                           name = "ES.Theory.UseMayer",
+                                           default = False,
+                                           export = 1)
+        genopsSizer.AddWidget(self.useMayerBox)
+   # Use AIM
+        self.useAIMBox = EcceCheckBox(self,
+                                           label = " Do AIM CP",
+                                           name = "ES.Theory.UseAIM",
+                                           default = False,
+                                           export = 1)
+        genopsSizer.AddWidget(self.useAIMBox)
+            
+#        self.useAIM = EcceCheckBox(self, #useAIM
+#                                         label = " Use AIM",
+#                                         name = "ES.Theory.UseAIM",
+#                                         default = False)
+#        genopsSizer.AddWidget(self.useAIM)
+#            # AIM type
+#        aimChoice = ["Charges",
+#                      "AtomicProperties",
+#                      "AtomicSurfaces",
+#                      "BondOrders",
+#                      "CriticalPoints",
+#                      "All",
+#                      "Tight"]
+#        self.aim = EcceComboBox(self,
+#                                        choices = aimChoice,
+#                                        name = "ES.Theory.AIM.AIM",
+#                                        label = "AIM type:",
+#                                        default = 0)
+#        genopsSizer.AddWidget(self.aim)
+
+#end added by Andy 10/10/2016
+#       self.panelSizer.Add(genopsSizer)
+
+        
         self.panelSizer.Add(genopsSizer)
 
         # MEMEORY/DISK LIMIT
@@ -74,14 +121,14 @@ class Ged03TheoryPanel(EccePanel):
         self.memoryBox = EcceCheckBox(self,
                                       label = " Memory:",
                                       name = "ES.Theory.SCF.Memory",
-                                      default = False)
+                                      default = True)
         memorySizer.AddWidget(self.memoryBox)
         
         self.memorySpin = EcceSpinCtrl(self,
                                        hardRange = "[0..)",
                                        unit = "Megawords",
                                        name = "ES.Theory.SCF.MemorySize",
-                                       default = 4,
+                                       default = 800,
                                        export = 1)
         memorySizer.AddWidget(self.memorySpin)
 
@@ -193,7 +240,10 @@ class Ged03TheoryPanel(EccePanel):
                             "M06 (hybrid)",
                             "X3LYP (hybrid)",
                             "PBE0 (hybrid)",
-                            "BP86 (hybrid)",
+                            "PBE (GGA)",
+                            "PW91PW91 (GGA)",
+                            "OPBE (GGA)",
+                            "BP86 (GGA)",
                             "SVWN 5 (local)",
                             "SVWN 1/RPA (local)",                            
                             "BLYP (nonlocal)",
@@ -203,7 +253,7 @@ class Ged03TheoryPanel(EccePanel):
                             "HCTH/147 (nonlocal)",
                             "HCTH/93 (nonlocal)",
                             "tHCTH (nonlocal)",
-                            "M06L (nonlocal)",
+                            "M06L (meta-GGA)",
                             "B97D (nonlocal)",
                             "B97D3 (nonlocal)",
                             "SOGGA11 (nonlocal)",
@@ -251,7 +301,7 @@ class Ged03TheoryPanel(EccePanel):
                             "N12SX (range)"
                             "MN12SX (range)"
                             ]
-            xcFuncDefault = 0
+            xcFuncDefault = 3 #Andy  -- changed default from None to PBE0
             if EcceGlobals.ReactionStudyFlag != 0:
                 xcFuncDefault = 17
 
@@ -312,15 +362,24 @@ class Ged03TheoryPanel(EccePanel):
             dftSizer.AddWidget(exchangeSizer,
                                flag=EcceGlobals.FlagDefault|wx.EXPAND)
             
-            gridOptChoice = ["Ultra Fine",
+            gridOptChoice = ["Super Fine",
+                             "Ultra Fine",
                              "Fine",
                              "Coarse"]
             self.gridOpt = EcceComboBox(self,
                                         choices = gridOptChoice,
                                         name = "ES.Theory.DFT.GridDensity",
-                                        default = 1,
+                                        default = 2,
                                         label = "Grid Quality:")
             dftSizer.AddWidget(self.gridOpt)
+
+            self.useGD3BJBox = EcceCheckBox(self,
+                                           label = " Use GD3-BJ",
+                                           name = "ES.Theory.DFT.UseGD3BJ",
+                                           default = False,
+                                           export = 1)
+            dftSizer.AddWidget(self.useGD3BJBox)
+
 
             self.panelSizer.Add(dftSizer)
 
@@ -359,6 +418,8 @@ class Ged03TheoryPanel(EccePanel):
                              "Methanol",
                              "Ethanol",
                              "Manual",
+                             "1,4-Dioxane",
+                             "methylcyclohexane",
                              "Benzene",
                              "Chloroform",
                              "Diethylether",
@@ -381,6 +442,7 @@ class Ged03TheoryPanel(EccePanel):
                              "Cyclohexane",
                              "Isoquinoline",
                              "Quinoline",
+							 "n,n-dimethylformamide",
                              ]
             self.solvent = EcceComboBox(self,
                                         choices = solventChoice,

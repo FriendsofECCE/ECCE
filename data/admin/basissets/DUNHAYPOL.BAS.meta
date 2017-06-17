@@ -1,18 +1,3 @@
-name
-DHMS Polarization
-name
-type
-polarization
-type
-category
-TAIOrbital
-category
-spherical
-N
-spherical
-contraction_type
-Segmented
-contraction_type
 references
  H - F: T.H. DUNNING JR. AND P.J. HAY, IN METHODS OF ELECTRONIC STRUCTURE 
               THEORY VOL. 2, H.F. SCHAEFER III, ED., PLENUM PRESS (1977). 

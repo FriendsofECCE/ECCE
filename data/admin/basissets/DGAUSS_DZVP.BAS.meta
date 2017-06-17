@@ -1,18 +1,3 @@
-name
-DZVP (DFT Orbital)
-name
-type
-DFTOrbital
-type
-category
-ORBITAL
-category
-spherical
-N
-spherical
-contraction_type
-Segmented
-contraction_type
 references
 N. Godbout, D. R. Salahub, J. Andzelm, and E. Wimmer, Can. J. Chem. 70, 560
  (1992)

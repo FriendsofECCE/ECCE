@@ -60,9 +60,9 @@ END_EVENT_TABLE()
 
 /** Basis set quick pick list.  */
 const char* CalcEd::p_BASIS_QUICK_PICKS[] = {
-  "STO-3G", "-", // len(2)
-  "3-21G", "6-31G", "6-31++G", "6-31G*", "6-31+G*", "6-31++G**", "-", // len(7)
+  "6-31G", "6-31++G", "6-31G*", "6-31+G*", "6-31++G**", "-", // len(6)
   "cc-pVDZ", "cc-pVTZ", "aug-cc-pVDZ", "aug-cc-pVTZ", "-", // len(5)
+  "def2-svp", "def2-svpd", "def2-tzvp" // len(3)
   "DZVP (DFT Orbital)", "DZVP2 (DFT Orbital)", "TZVP (DFT Orbital)" // len(3)
 }; // len(17)
 
