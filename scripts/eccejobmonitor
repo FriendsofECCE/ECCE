@@ -2123,6 +2123,47 @@ sub JobCheck
 
         LogMsg "Globus status from eccejobstore: $state";
     }
+    elsif ($q eq 'slurm') #SLURM added by ANDY 28/72015
+    {
+        $cmd = "squeue 2>&1";
+        if (open(QUERY, "$cmd |"))
+        {
+            $gotState = 0;
+            while (<QUERY>)
+            {
+                LogMsg "JobCheck: Slurm squeue line: $_";
+                if (/^\s*$id/)
+                {
+                    my $state = (split)[4];
+
+                    &MsgSendUp("Slurm job id '$id' in state '$state'");
+
+                    if (grep {$state eq $_} qw{R})
+                    {
+                        $status = $JOB_STATE_RUNNING;
+                    }
+                    elsif (grep {$state eq $_} qw{PD})
+                    {
+                        $status = $JOB_STATE_PENDING;
+                    }
+                    $gotState = 1;
+                    last;
+                }
+            }
+            if ($gotState == 0)
+            {
+                if ($gJobCheckState != $JOB_STATE_NONE)
+                {
+                    $status = $JOB_STATE_DONE;
+                }
+            }
+            close QUERY;
+        }
+        else
+        {
+            &MsgSendErr($MSG_TYPE_E_WARN, "'$cmd' failed: $!");
+        }
+    }
     else
     {
         if ($gJobCheckComplaintIssued == 0)
