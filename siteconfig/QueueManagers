@@ -16,7 +16,8 @@ QueueManagers:		LoadLeveler \
 			LSF \
 			Moab \
 			SGE \
-			Shell
+			Shell\
+			Slurm
 
 #
 # Start the Entries for Each Queue Manager.
@@ -183,3 +184,16 @@ Shell|queryQueueCommand:      ps -eaf
 Shell|queryDiskUsageCommand:  df -k
 Shell|jobIdParseExpression:   \ [0-9]+
 
+###############################################################################
+# SLURM 
+# Simple Linux Utility for Resource Management
+#
+#
+Slurm|submitCommand:           sbatch ##script##
+Slurm|cancelCommand:           scancel ##id##
+Slurm|queryJobCommand:         squeue
+Slurm|queryMachineCommand:     sinfo -p ##queue##
+Slurm|queryQueueCommand:       squeue -a
+Slurm|queryDiskUsageCommand:   df -k
+Slurm|jobIdParseExpression:    .*
+Slurm|jobIdParseLeadingText:   job 
