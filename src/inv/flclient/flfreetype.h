@@ -4,7 +4,7 @@
 /* GDB 1/27/12 begin */
 #include <ft2build.h>
 /* GDB 1/27/12 end */
-#include <freetype/freetype.h>
+#include FT_FREETYPE_H
 
 #ifndef __fl_h_
 #include "fl.h"
