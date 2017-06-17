@@ -1,0 +1,16 @@
+name= apr-cc-pv(Qd)z
+files= apr-cc-pv(Qd)z.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar
+name= cc-pVTDZ
+files= cc-pVTDZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+name= cc-pVTZ
+files= cc-pVTZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+name= cc-pVQZ
+files= cc-pVQZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+name= cc-pV5Z
+files= cc-pV5Z.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+

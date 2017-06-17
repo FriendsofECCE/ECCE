@@ -1,0 +1,30 @@
+name
+AQZP
+name
+type
+
+type
+category
+ORBITAL
+category
+spherical
+
+spherical
+contraction_type
+
+contraction_type
+references
+  AQZP  EMSL  Basis Set Exchange Library  6/19/15 6:24 AM
+ Elements                             References
+ --------                             ----------
+ H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar: P. A. Fantin, P. L. Barbieri, A. Canal Neto, and F. E. Jorge, Augmented Gaussian basis sets of triple and quadruple zeta valence quality for the atoms H and from Li to Ar: Applications in HF, MP2, and DFT calculations of molecular dipole moment and dipole (hyper)polarizability, J. Mol. Struct. (Theochem) 810, 103 (2007).
+ K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe: L. S. C. Martins, F. A. L. de Souza, G. A. Ceolin, F. E. Jorge, R. C. de Berrêdo, and C. T. Campos, Augmented Gaussian basis sets for the elements K, Sc-Kr, Rb, and Y-Xe: Application in HF, MP2, and DFT calculations of molecular electric properties, Compt. Theor. Chem. 1013, 62 (2013).
+ 
+
+references
+info
+
+info
+comments
+
+comments

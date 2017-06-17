@@ -1,0 +1,217 @@
+name= MINI (Huzinaga)
+files= MINI.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca
+
+name= MINI (Scaled)
+files= MINISCALED.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca
+
+name= MIDI (Huzinaga)
+files= MIDI.BAS
+atoms= H He Li Be B C N O F Ne Na Al Si P S Cl Ar K Cs
+
+name= MIDI!
+files= MIDI_BANG.BAS
+atoms= H C N O F Si P S Cl Br I
+
+name= SV (Dunning-Hay)
+files= DUNHAYSV.BAS
+atoms= H Li Be B C N O F Ne
+
+name= SVP (Dunning-Hay)
+files= SVPDUNNING-HAY-AGG.BAS DUNHAYSV.BAS DUNHAYPOL.BAS
+atoms= H Li Be B C N O F Ne
+atoms= H Li Be B C N O F Ne
+
+name= SVP + Diffuse (Dunning-Hay)
+files= SVPPDIFFUSEDUNNING-HAY-AGG.BAS DUNHAYSV.BAS DUNHAYPOL.BAS DUNHAYDIF.BAS
+atoms= H Li Be B C N O F Ne
+atoms= H Li Be B C N O F Ne
+atoms= H Li Be B C N O F Ne
+
+name= DZ (Dunning)
+files= DUNNINGDZ.BAS
+atoms= H Li B C N O F Ne Al Si P S Cl
+
+name= DZP (Dunning)
+files= DZPDUNNING-AGG.BAS DUNNINGDZ.BAS DUNHAYPOL.BAS
+atoms= H Li B C N O F Ne Al Si P S Cl
+atoms= H Li B C N O F Ne Al Si P S Cl
+
+name= DZP + Diffuse (Dunning)
+files= DZPPDIFFUSEDUNNING-AGG.BAS DUNNINGDZ.BAS DUNHAYPOL.BAS DUNHAYDIF.BAS
+atoms= H B C N O F Ne
+atoms= H B C N O F Ne
+atoms= H B C N O F Ne
+
+name= TZ (Dunning)
+files= DUNNINGTZ.BAS
+atoms= H Li Be B C N O F Ne
+
+name= Chipman DZP + Diffuse
+files= CHIPMAN.BAS
+atoms= H B C N O F
+
+name= IGLO-II
+files= IGLOII.BAS
+atoms= H B C N O F Al Si P S Cl
+
+name= IGLO-III
+files= IGLOIII.BAS
+atoms= H B C N O F Al Si P S Cl
+
+name= cc-pVDZ(seg-opt)
+files= CC-PVDZ_OPT1.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVTZ(seg-opt)
+files= CC-PVTZ_OPT1.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVQZ(seg-opt)
+files= CC-PVQZ_OPT1.BAS
+atoms= H He C O
+
+name= Feller Misc. CVDZ
+files= FELLER_VDZ.BAS
+atoms= K
+
+name= Feller Misc. CVTZ
+files= FELLER_VTZ.BAS
+atoms= K
+
+name= Feller Misc. CVQZ
+files= FELLER_VQZ.BAS
+atoms= K
+
+name= aug-mcc-pVTZ
+files= AUG-MCC-PVTZ.BAS
+atoms= H
+
+name= aug-mcc-pVQZ
+files= AUG-MCC-PVQZ.BAS
+atoms= H
+
+name= aug-mcc-pV5Z
+files= AUG-MCC-PV5Z.BAS
+atoms= H
+
+name= aug-mcc-pV6Z
+files= AUG-MCC-PV6Z.BAS
+atoms= H
+
+name= aug-mcc-pV7Z
+files= AUG-MCC-PV7Z.BAS
+atoms= H
+
+name= GAMESS VTZ
+files= GAMESSVTZ.BAS
+atoms= H Be B C N O F Ne Na Mg Al Si P S Cl Ar
+
+name= GAMESS PVTZ
+files= GAMESSPVTZ-AGG.BAS GAMESSVTZ.BAS HONDO7POL.BAS
+atoms= H Be B C N O F Ne
+atoms= H Be B C N O F Ne
+
+name= Partridge Uncontr. 1
+files= PARTRIDGE1.BAS
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr
+
+name= Partridge Uncontr. 2
+files= PARTRIDGE2.BAS
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+
+name= Partridge Uncontr. 3
+files= PARTRIDGE3.BAS
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= Partridge Uncontr. 4
+files= PARTRIDGE4.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= Ahlrichs VDZ
+files= AHLRICHS_VDZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+
+name= Ahlrichs pVDZ
+files= AHLRICHSPVDZ-AGG.BAS AHLRICHS_VDZ.BAS AHLRICHS_POL.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+
+name= Ahlrichs VTZ
+files= AHLRICHS_VTZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+
+name= Ahlrichs TZV
+files= AHLRICHS_TZV.BAS
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+
+name= Binning/Curtiss SV
+files= BINCURT-VDZ.BAS
+atoms= Ga Ge As Se Br Kr
+
+name= Binning/Curtiss VTZ
+files= BINCURT-VTZ.BAS
+atoms= Ga Ge As Se Br Kr
+
+name= Binning/Curtiss SVP
+files= BINNINGCURTISSSVP-AGG.BAS BINCURT-VDZ.BAS BINCURTP1.BAS
+atoms= Ga Ge As Se Br Kr
+atoms= Ga Ge As Se Br Kr
+
+name= Binning/Curtiss VTZP
+files= BINNINGCURTISSVTZP-AGG.BAS BINCURT-VTZ.BAS BINCURTP2.BAS
+atoms= Ga Ge As Se Br Kr
+atoms= Ga Ge As Se Br Kr
+
+name= McLean/Chandler VTZ
+files= MCLEAN-CHAND.BAS
+atoms= Na Mg Al Si P S Cl Ar
+
+name= SV + Rydberg (Dunning-Hay)
+files= SVPRYDBERGDUNNING-HAY-AGG.BAS DUNHAYSV.BAS RYD-DUNNING.BAS
+atoms= H Li Be B C N O F Ne
+atoms= B C N O F Ne
+
+name= SVP + Rydberg (Dunning-Hay)
+files= SVPPRYDBERGDUNNING-HAY-AGG.BAS DUNHAYSV.BAS DUNHAYPOL.BAS RYD-DUNNING.BAS
+atoms= H Li Be B C N O F Ne
+atoms= H Li Be B C N O F Ne
+atoms= B C N O F Ne
+
+name= SVP + Diffuse + Rydberg
+files= SVPPDIFFUSEPRYDBERG-AGG.BAS DUNHAYSV.BAS DUNHAYPOL.BAS DUNHAYDIF.BAS RYD-DUNNING.BAS
+atoms= H Li Be B C N O F Ne
+atoms= H Li Be B C N O F Ne
+atoms= H Li Be B C N O F Ne
+atoms= B C N O F Ne
+
+name= DZ + Rydberg (Dunning)
+files= DZPRYDBERGDUNNING-AGG.BAS DUNNINGDZ.BAS RYD-DUNNING.BAS
+atoms= H B C N O F Ne Al Si P S Cl
+atoms= B C N O F Ne Al Si P S Cl
+
+name= DZP + Rydberg (Dunning)
+files= DZPPRYDBERGDUNNING-AGG.BAS DUNNINGDZ.BAS DUNHAYPOL.BAS RYD-DUNNING.BAS
+atoms= H B C N O F Ne Al Si P S Cl
+atoms= H B C N O F Ne Al Si P S Cl
+atoms= B C N O F Ne Al Si P S Cl
+
+name= DZ + Double Rydberg (Dunning-Hay)
+files= DZPDOUBLERYDBERGDUNNING-HAY-AGG.BAS DUNNINGDZ.BAS RYD2-DUNNING.BAS
+atoms= H B C N O F Ne Al Si P S Cl
+atoms= B C N O F Ne Al Si P S Cl
+
+name= SV + Double Rydberg (Dunning-Hay)
+files= SVPDOUBLERYDBERGDUNNING-HAY-AGG.BAS DUNHAYSV.BAS RYD2-DUNNING.BAS
+atoms= H Li Be B C N O F Ne
+atoms= B C N O F Ne
+
+name= Wachters+f
+files= WACHTERS.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu
+
+name= Sadlej pVTZ
+files= SADLEJ.BAS
+atoms= H Li Be C N O F Na Mg Si P S Cl K Ca Br Rb Sr I
+

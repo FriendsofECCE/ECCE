@@ -1,0 +1,30 @@
+name
+TZP-DKH
+name
+type
+
+type
+category
+ORBITAL
+category
+spherical
+
+spherical
+contraction_type
+
+contraction_type
+references
+  TZP-DKH  EMSL  Basis Set Exchange Library  6/17/15 3:49 AM
+ Elements                             References
+ --------                             ----------
+ H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe: F. E. Jorge, A. Canal Neto, G. G. Camiletti, and S. F. Machado, Contracted Gaussian basis sets for Douglas?Kroll?Hess calculations: Estimating scalar relativistic effects of some atomic and molecular properties, Journal of Chemical Physics 130, 064108 (2009).
+ Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe: C. T. Campos and F. E. Jorge, Triple zeta quality basis sets for atoms Rb through Xe: application in CCSD(T) atomic and molecular property calculations Triple zeta quality basis sets for atoms Rb through Xe: application in CCSD(T) atomic and molecular property calculations, Molecular Physics 111, 167 (2013).
+ 
+
+references
+info
+
+info
+comments
+
+comments

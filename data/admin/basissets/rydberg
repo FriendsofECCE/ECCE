@@ -1,0 +1,8 @@
+name= Dunning-Hay Rydberg
+files= RYD-DUNNING.BAS
+atoms= B C N O F Ne Al Si P S Cl Ar
+
+name= Dunning-Hay Double Rydberg
+files= RYD2-DUNNING.BAS
+atoms= B C N O F Ne Al Si P S Cl Ar
+

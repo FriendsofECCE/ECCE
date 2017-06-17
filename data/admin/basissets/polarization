@@ -1,0 +1,132 @@
+name= cc-pVDZ-fit2-1
+files= CC-PVDZ-FIT2-1.BAS
+atoms= H He Li Be B C N O F Ne
+
+name= cc-pVTZ-fit2-1
+files= CC-PVTZ-FIT2-1.BAS
+atoms= H He Li Be B C N O F Ne
+
+name= STO-3G* Polarization
+files= STO-3GS.BAS
+atoms= Na Mg Al Si P S Cl Ar
+
+name= 3-21G* Polarization
+files= 3-21GS.BAS
+atoms= Na Mg Al Si P S Cl Ar
+
+name= 6-31G* Polarization
+files= 6-31GS.BAS
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= 6-31G** Polarization
+files= 6-31GSS.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= 6-311G* Polarization
+files= 6-311GS.BAS
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Ga Ge As Se Br Kr I
+
+name= 6-311G** Polarization
+files= 6-311GSS.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Ga Ge As Se Br Kr I
+
+name= Pople (2d,2p) Polarization
+files= 6-311G2D2P.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Ga Ge As Se Br Kr
+
+name= Pople (2df,2pd) Polarization
+files= 6-311G2DF2PD.BAS
+atoms= H He Li Be B C N O F Ne K Ca
+
+name= Pople (3df,3pd) Polarization
+files= 6-311G3DF3PD.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar
+
+name= HONDO7 Polarization
+files= HONDO7POL.BAS
+atoms= H He Be B C N O F Ne Na Mg Al Si P S Cl Ar
+
+name= Huzinaga Polarization
+files= HUZINAGAPOL.BAS
+atoms= K Ca Ga Ge As Se Br Kr Rb Sr In Sn Sb Te I Xe Tl Pb Bi Po At Rn
+
+name= DHMS Polarization
+files= DUNHAYPOL.BAS
+atoms= H He Li Be B C N O F Ne Al Si P S Cl
+
+name= Binning-Curtiss (1d) Polarization
+files= BINCURTP1.BAS
+atoms= Ga Ge As Se Br Kr
+
+name= Binning-Curtiss (df) Polarization
+files= BINCURTP2.BAS
+atoms= Ga Ge As Se Br Kr
+
+name= Ahlrichs Polarization
+files= AHLRICHS_POL.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+
+name= Glendening Polarization
+files= GLENDENING_POL.BAS
+atoms= K Rb Cs
+
+name= Blaudeau Polarization
+files= 6-31GS-BLAUDEAU.BAS
+atoms= K Ca
+
+name= Core/val. Functions (cc-pCVDZ)
+files= CC-PCVDZ.BAS
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca
+
+name= Core/val. Functions (cc-pCVTZ)
+files= CC-PCVTZ.BAS
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca
+
+name= Core/val. Functions (cc-pCVQZ)
+files= CC-PCVQZ.BAS
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca
+
+name= Core/val. Functions (cc-pCV5Z)
+files= CC-PCV5Z.BAS
+atoms= B C N O F Ne Na Mg Al Si P S Cl Ar Ca
+
+name= Core/val. Functions (cc-pCV6Z)
+files= CC-PCV6Z.BAS
+atoms= B C N O F Ne
+
+name= Core/val. Functions (cc-pCV6Z(old))
+files= CC-PCV6Z-OLD.BAS
+atoms= O
+
+name= Core/val. Functions (cc-pCVDZ(old))
+files= CC-PCVDZ_OLD.BAS
+atoms= Al Si P S Cl Ar
+
+name= Core/val. Functions (cc-pCVTZ(old))
+files= CC-PCVTZ_OLD.BAS
+atoms= Al Si P S Cl Ar
+
+name= Core/val. Functions (cc-pCVQZ(old))
+files= CC-PCVQZ_OLD.BAS
+atoms= Al Si P S Cl Ar
+
+name= cc-pwCVDZ Tight
+files= CC-PWCVDZ.BAS
+atoms= B C N O F Ne Al Si P S Cl Ar
+
+name= cc-pwCVTZ Tight
+files= CC-PWCVTZ.BAS
+atoms= B C N O F Ne Al Si P S Cl Ar
+
+name= cc-pwCVQZ Tight
+files= CC-PWCVQZ.BAS
+atoms= B C N O F Ne Al Si P S Cl Ar Br
+
+name= cc-pwCV5Z Tight
+files= CC-PWCV5Z.BAS
+atoms= B C N O F Ne Al Si P S Cl Ar
+
+name= LANL2DZdp ECP Polarization
+files= LANL2DZPD.BAS
+atoms= H C N O F Si P S Cl Ge As Se Br Sn Sb Te I Pb Bi
+

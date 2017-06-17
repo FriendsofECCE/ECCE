@@ -1,0 +1,33 @@
+name
+ADZP
+name
+type
+
+type
+category
+ORBITAL
+category
+spherical
+
+spherical
+contraction_type
+
+contraction_type
+references
+  Ahlrichs Coulomb Fitting  EMSL  Basis Set Exchange Library  6/17/15 2:51 AM
+ Elements                             References
+   --------                             ----------
+ H - Ba; Hf - At: 
+       1) K. Eichkorn, O. Treutler, H. Ohm, M. Haser and R. Ahlrichs,
+          Chem. Phys. Letters 240, 283 (1995).
+       2) K. Eichkorn, F. Weigend, O. Treutler, R. Ahlrichs,
+          Theor. Chem. Acc. 97, 119 (1997)
+   
+
+references
+info
+
+info
+comments
+
+comments

@@ -1,0 +1,31 @@
+name
+lanl08
+name
+type
+
+type
+category
+ORBITAL
+category
+spherical
+
+spherical
+contraction_type
+
+contraction_type
+references
+  LANL08  EMSL  Basis Set Exchange Library  6/17/15 4:58 AM
+ Elements                             References
+ --------                             ----------
+ Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi: P.J. Hay and W.R. Wadt, J. Chem. Phys. 82, 299 (1985).
+ Na   Mg   Al   Si   P   S   Cl   Ar   K   Ca   Sc   Ti   V   Cr   Mn   Fe   Co   Ni   Cu   Zn   Ga   Ge   As   Se   Br   Kr   Rb   Sr   Y   Zr   Nb   Mo   Tc   Ru   Rh   Pd   Ag   Cd   In   Sn   Sb   Te   I   Xe   Cs   Ba   La   Hf   Ta   W   Re   Os   Ir   Pt   Au   Hg   Tl   Pb   Bi: P.J. Hay and W.R. Wadt, J. Chem. Phys. 82, 284 (1985).
+ Na   Mg   Al   Si   P   S   Cl   Ar   K   Ca   Sc   Ti   V   Cr   Mn   Fe   Co   Ni   Cu   Zn   Ga   Ge   As   Se   Br   Kr   Rb   Sr   Y   Zr   Nb   Mo   Tc   Ru   Rh   Pd   Ag   Cd   In   Sn   Sb   Te   I   Xe   Cs   Ba   La   Hf   Ta   W   Re   Os   Ir   Pt   Au   Hg   Tl   Pb   Bi: L.E. Roy, P.J. Hay, and R.L. Martin, J. Chem. Theory Comput 4, 1029 (2008).
+ 
+
+references
+info
+
+info
+comments
+
+comments

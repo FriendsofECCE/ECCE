@@ -1,0 +1,30 @@
+name
+LANL2TZ
+name
+type
+
+type
+category
+ORBITAL
+category
+spherical
+
+spherical
+contraction_type
+
+contraction_type
+references
+  LANL2TZ  EMSL  Basis Set Exchange Library  6/17/15 3:07 AM
+ Elements                             References
+ --------                             ----------
+ Sc Ti V Cr Mn Fe Co Ni Cu Zn Y Zr Nb Mo Tc Ru Rh Pd Ag Cd La Hf Ta W Re Os Ir Pt Au Hg: P.J. Hay and W.R. Wadt, J. Chem. Phys. 82, 299 (1985).
+ Sc Ti V Cr Mn Fe Co Ni Cu Zn Y Zr Nb Mo Tc Ru Rh Pd Ag Cd La Hf Ta W Re Os Ir Pt Au Hg: L.E. Roy, P.J. Hay, and R.L. Martin, J. Chem. Theory Comput. 4, 1029 (2008).
+ 
+
+references
+info
+
+info
+comments
+
+comments

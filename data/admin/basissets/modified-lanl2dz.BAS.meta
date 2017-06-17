@@ -1,0 +1,29 @@
+name
+modified-lanl2dz
+name
+type
+
+type
+category
+ORBITAL
+category
+spherical
+
+spherical
+contraction_type
+
+contraction_type
+references
+  modified LANL2DZ  EMSL  Basis Set Exchange Library  6/17/15 5:20 AM
+ Elements                             References
+ --------                             ----------
+ Sc Ti V Cr Mn Fe Co Ni Cu Y Zr Nb Mo Tc Ru Rh Pd Ag La Hf Ta W Re Os Ir Pt Au: Marc Couty; Michael B. Hall, Basis Sets for Transition Metals: Optimized Outer p Functions, Journal of Computational Chemistry 17, 1359 (1996).
+ 
+
+references
+info
+
+info
+comments
+
+comments

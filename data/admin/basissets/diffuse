@@ -1,0 +1,120 @@
+name= Pople-style Diffuse
+files= POPLDIFF.BAS
+atoms= H Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca
+
+name= Dunning-Hay Diffuse
+files= DUNHAYDIF.BAS
+atoms= H Li Be B C N O F Ne
+
+name= aug-cc-pVDZ Diffuse
+files= AUG-CC-PVDZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= aug-cc-pVTZ Diffuse
+files= AUG-CC-PVTZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= aug-cc-pVQZ Diffuse
+files= AUG-CC-PVQZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= aug-cc-pV5Z Diffuse
+files= AUG-CC-PV5Z.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= aug-cc-pV6Z Diffuse
+files= AUG-CC-PV6Z.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar
+
+name= aug-pV7Z Diffuse
+files= AUG-PV7Z.BAS
+atoms= C N O F S
+
+name= aug-cc-pVDZ-PP Diffuse
+files= AUG-CC-PVDZ-PP.BAS
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+
+name= aug-cc-pVTZ-PP Diffuse
+files= AUG-CC-PVTZ-PP.BAS
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+
+name= aug-cc-pVQZ-PP Diffuse
+files= AUG-CC-PVQZ-PP.BAS
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+
+name= aug-cc-pV5Z-PP Diffuse
+files= AUG-CC-PV5Z-PP.BAS
+atoms= Cu Zn Ga Ge As Se Br Kr Ag Cd In Sn Sb Te I Xe Au Hg Tl Pb Bi Po At Rn
+
+name= aug-cc-pVTZ-DK Diffuse
+files= AUG-CC-PVTZ-DK.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pVQZ-DK Diffuse
+files= AUG-CC-PVQZ-DK.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pV5Z-DK Diffuse
+files= AUG-CC-PV5Z-DK.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pVTZ-NR Diffuse
+files= AUG-CC-PVTZ-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pVQZ-NR Diffuse
+files= AUG-CC-PVQZ-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pV5Z-NR Diffuse
+files= AUG-CC-PV5Z-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= d-aug-cc-pVDZ Diffuse
+files= DAUG-CC-PVDZ.BAS
+atoms= H He B C N O F Ne
+
+name= d-aug-cc-pVTZ Diffuse
+files= DAUG-CC-PVTZ.BAS
+atoms= H He B C N O F Ne
+
+name= d-aug-cc-pVQZ Diffuse
+files= DAUG-CC-PVQZ.BAS
+atoms= H He B C N O F Ne
+
+name= d-aug-cc-pV5Z Diffuse
+files= DAUG-CC-PV5Z.BAS
+atoms= H He B C N O F Ne
+
+name= d-aug-cc-pV6Z Diffuse
+files= DAUG-CC-PV6Z.BAS
+atoms= H B C N O
+
+name= aug-cc-pV(D+d)Z Diffuse
+files= AUG-CC-PVDZ_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+
+name= aug-cc-pV(T+d)Z Diffuse
+files= AUG-CC-PVTZ_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+
+name= aug-cc-pV(Q+d)Z Diffuse
+files= AUG-CC-PVQZ_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+
+name= aug-cc-pV(5+d)Z Diffuse
+files= AUG-CC-PV5Z_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+
+name= aug-cc-pV(6+d)Z Diffuse
+files= AUG-CC-PV6Z_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+
+name= SDB-aug-cc-pVTZ Diffuse
+files= SDB-AUG-CC-PVTZ.BAS
+atoms= Ga Ge As Se Br In Sn Sb Te I
+
+name= SDB-aug-cc-pVQZ Diffuse
+files= SDB-AUG-CC-PVQZ.BAS
+atoms= Ga Ge As Se Br In Sn Sb Te I
+

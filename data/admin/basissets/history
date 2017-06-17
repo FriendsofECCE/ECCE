@@ -1,0 +1,243 @@
+  474  less gbsDescriber 
+  475  ./gbsDescriber 
+  476  ./gbsDescriber -h
+  477  python gbsDescriber -h
+  479  less gbs.README 
+  490  mkdir ~/Dropbox/gbs
+  491  cp gbs* ~/Dropbox/gbs
+  511  gbsNWChemConverter -i ADZP.nwchem -o ADZP.BAS -n 'ADZP'
+  512  .././gbsNWChemConverter -i ADZP.nwchem -o ADZP.BAS -n 'ADZP'
+  514  .././gbsNWChemConverter -i ANO-RCC.nwchem -o ANO-RCC.BAS -n 'ANO-RCC'
+  515  .././gbsNWChemConverter -i apr-cc-pv(Qd)z.nwchem -o apr-cc-pvqdz.BAS -n 'apr-cc-pv(Qd)z'
+  516  .././gbsNWChemConverter -i apr-cc-pv\(Qd\)z.nwchem -o apr-cc-pvqdz.BAS -n 'apr-cc-pv(Qd)z'
+  517  .././gbsNWChemConverter -i AQZP.nwchem -o AQZP.BAS -n 'AQZP'
+  518  .././gbsNWChemConverter -i aug-pc-0.nwchem -o aug-pc-0.BAS -n 'aug-pc-0'
+  519  .././gbsNWChemConverter -i aug-pc-1.nwchem -o aug-pc-1.BAS -n 'aug-pc-1'
+  520  .././gbsNWChemConverter -i aug-pc-2.nwchem -o aug-pc-2.BAS -n 'aug-pc-2'
+  521  .././gbsNWChemConverter -i aug-pc-3.nwchem -o aug-pc-3.BAS -n 'aug-pc-3'
+  522  .././gbsNWChemConverter -i aug-pc-4.nwchem -o aug-pc-4.BAS -n 'aug-pc-4'
+  523  .././gbsNWChemConverter -i aug-pcseg-0.nwchem -o aug-pcseg-0.BAS -n 'aug-pcseg-0'
+  524  .././gbsNWChemConverter -i aug-pcseg-1.nwchem -o aug-pcseg-1.BAS -n 'aug-pcseg-1'
+  525  .././gbsNWChemConverter -i aug-pcseg-2.nwchem -o aug-pcseg-2.BAS -n 'aug-pcseg-2'
+  526  .././gbsNWChemConverter -i aug-pcseg-3.nwchem -o aug-pcseg-3.BAS -n 'aug-pcseg-3'
+  527  .././gbsNWChemConverter -i aug-pcseg-4.nwchem -o aug-pcseg-4.BAS -n 'aug-pcseg-4'
+  528  .././gbsNWChemConverter -i aug-pcseg-5.nwchem -o aug-pcseg-5.BAS -n 'aug-pcseg-5'
+  529  .././gbsNWChemConverter -i aug-pcSseg-0.nwchem -o aug-pcSseg-0.BAS -n 'aug-pcSseg-0'
+  530  .././gbsNWChemConverter -i aug-pcSseg-1.nwchem -o aug-pcSseg-1.BAS -n 'aug-pcSseg-1'
+  531  .././gbsNWChemConverter -i aug-pcSseg-2.nwchem -o aug-pcSseg-2.BAS -n 'aug-pcSseg-2'
+  532  .././gbsNWChemConverter -i aug-pcSseg-3.nwchem -o aug-pcSseg-3.BAS -n 'aug-pcSseg-3'
+  533  .././gbsNWChemConverter -i aug-pcSseg-4.nwchem -o aug-pcSseg-4.BAS -n 'aug-pcSseg-4'
+  534  .././gbsNWChemConverter -i cc-pV5Z.nwchem -o cc-pV5Z.BAS -n 'cc-pV5Z'
+  535  .././gbsNWChemConverter -i cc-pVQZ.nwchem -o cc-pVQZ.BAS -n 'cc-pVQZ'
+  536  .././gbsNWChemConverter -i cc-pVTZ.nwchem -o cc-pVTZ.BAS -n 'cc-pVTZ'
+  537  .././gbsNWChemConverter -i def2-qzvp.nwchem -o DEF2-QZVP.BAS -n 'def2-qzvp'
+  538  .././gbsNWChemConverter -i def2-qzvpd.nwchem -o DEF2-QZVPD.BAS -n 'def2-qzvpd'
+  539  .././gbsNWChemConverter -i def2-qzvpp.nwchem -o DEF2-QZVPP.BAS -n 'def2-qzvpp'
+  540  .././gbsNWChemConverter -i def2-qzvppd.nwchem -o DEF2-QZVPPD.BAS -n 'def2-qzvppd'
+  541  .././gbsNWChemConverter -i def2-tzvppd.nwchem -o DEF2-TZVPPD.BAS -n 'def2-tzvppd'
+  542  .././gbsNWChemConverter -i def2-tzvpd.nwchem -o DEF2-TZVPD.BAS -n 'def2-tzvpd'
+  543  .././gbsNWChemConverter -i def2-tzvpp.nwchem -o DEF2-TZVPP.BAS -n 'def2-tzvpp'
+  544  .././gbsNWChemConverter -i def2-svp.nwchem -o DEF2-SVP.BAS -n 'def2-svp'
+  545  .././gbsNWChemConverter -i def2-svp\(p\).nwchem -o DEF2-SVP\(P\).BAS -n 'def2-svp(p)'
+  546  .././gbsNWChemConverter -i def2-svpd.nwchem -o DEF2-SVPD.BAS -n 'def2-svpd'
+  547  .././gbsNWChemConverter -i DZP-DKH.nwchem -o J-DZP-DKH.BAS -n 'J-DZP-DKH'
+  548  .././gbsNWChemConverter -i TZP-DKH.nwchem -o J-TZP-DKH.BAS -n 'J-TZP-DKH'
+  549  .././gbsNWChemConverter -i gamess-pvtz.nwchem -o gamess-pvtz.BAS -n 'gamess pVTZ'
+  550  .././gbsNWChemConverter -i gamess-vtz.nwchem -o gamess-vtz.BAS -n 'gamess VTZ'
+  551  .././gbsNWChemConverter -i lanl08.nwchem -o lanl08.BAS -n 'LANL08'
+  552  .././gbsNWChemConverter -i LANL2TZ.nwchem -o LANL2TZ.BAS -n 'LANL2TZ'
+  553  .././gbsNWChemConverter -i LANL2TZ+.nwchem -o LANL2TZ+.BAS -n 'LANL2TZ+'
+  554  .././gbsNWChemConverter -i LANL2TZ\+.nwchem -o LANL2TZ\+.BAS -n 'LANL2TZ+'
+  555  .././gbsNWChemConverter -i 'LANL2TZ+.nwchem' -o 'LANL2TZ+.BAS' -n 'LANL2TZ+'
+  556  .././gbsNWChemConverter -i 'LANL2Z+.nwchem' -o 'LANL2TZ+.BAS' -n 'LANL2TZ+'
+  557  .././gbsNWChemConverter -i modified-lanl2dz.nwchem -o mLANL2DZ.BAS -n 'mod. LANL2DZ'
+  558  .././gbsNWChemConverter -i pc-1.nwchem -o pc-1.BAS -n 'pc-1'
+  559  .././gbsNWChemConverter -i pc-2.nwchem -o pc-2.BAS -n 'pc-2'
+  560  .././gbsNWChemConverter -i pc-3.nwchem -o pc-3.BAS -n 'pc-3'
+  561  .././gbsNWChemConverter -i pc-4.nwchem -o pc-4.BAS -n 'pc-4'
+  562  .././gbsNWChemConverter -i pcseg-4.nwchem -o pcseg-4.BAS -n 'pcseg-4'
+  563  .././gbsNWChemConverter -i pcseg-3.nwchem -o pcseg-3.BAS -n 'pcseg-3'
+  564  .././gbsNWChemConverter -i pcseg-2.nwchem -o pcseg-2.BAS -n 'pcseg-2'
+  565  .././gbsNWChemConverter -i pcseg-1.nwchem -o pcseg-1.BAS -n 'pcseg-1'
+  566  .././gbsNWChemConverter -i pcseg-0.nwchem -o pcseg-0.BAS -n 'pcseg-0'
+  567  .././gbsNWChemConverter -i pcSseg-0.nwchem -o pcSseg-0.BAS -n 'pcSseg-0'
+  568  .././gbsNWChemConverter -i pcSseg-1.nwchem -o pcSseg-1.BAS -n 'pcSseg-1'
+  569  .././gbsNWChemConverter -i pcSseg-2.nwchem -o pcSseg-2.BAS -n 'pcSseg-2'
+  570  .././gbsNWChemConverter -i pcSseg-3.nwchem -o pcSseg-3.BAS -n 'pcSseg-3'
+  571  .././gbsNWChemConverter -i pcSseg-4.nwchem -o pcSseg-4.BAS -n 'pcSseg-4'
+  572  .././gbsNWChemConverter -i QZP.nwchem -o J-QZP.BAS -n 'J-QZP'
+  573  .././gbsNWChemConverter -i QZP-DKH.nwchem -o J-QZP-DKH.BAS -n 'J-QZP-DKH'
+  574  .././gbsNWChemConverter -i UGBS.nwchem -o UGBS.BAS -n 'UGBS'
+  575  .././gbsNWChemConverter -i LANL2TZ\(F\).nwchem -o LANL2TZF.BAS -n 'LANL2TZ(F)'
+  576  .././gbsNWChemConverter -i 'LANL2TZ(F).nwchem' -o LANL2TZF.BAS -n 'LANL2TZ(F)'
+  578  .././gbsNWChemConverter -i LANL2TZ\(F\).nwchem -o LANL2TZF.BAS -n 'LANL2TZ(F)'
+  579  .././gbsNWChemConverter -i LANL2TZ\(F\)\.nwchem -o LANL2TZF.BAS -n 'LANL2TZ(F)'
+  580  .././gbsNWChemConverter -i 'LANL2TZ(F).nwchem' -o LANL2TZF.BAS -n 'LANL2TZ(F)'
+  582  .././gbsNWChemConverter -i 'LANL2TZF.nwchem' -o LANL2TZF.BAS -n 'LANL2TZ(F)'
+  586  gbsNWChemConverter -i def2-qzvppd -p DEF2_ECP.POT -n 'def2-ecp'
+  587  gbsNWChemConverter -i def2-qzvppd.nwchem -p DEF2_ECP.POT -n 'def2-ecp'
+  588  ./gbsNWChemConverter -i def2-qzvppd.nwchem -p DEF2_ECP.POT -n 'def2-ecp'
+  589  .././gbsNWChemConverter -i def2-qzvppd.nwchem -p DEF2_ECP.POT -n 'def2-ecp'
+  593  .././gbsNWChemConverter -i def2-qzvppd.nwchem -p DEF2_ECP.POT -n 'def2-ecp'
+  596  .././gbsNWChemConverter -i def2-qzvppd.nwchem -p DEF2_ECP.POT -n 'def2-ecp'
+  603  .././gbsNWChemConverter -i def2-qzvppd.nwchem -p DEF2-QZVPPD.BAS -n 'def2-qzvppd'
+  604  .././gbsNWChemConverter -i def2-qzvpp.nwchem -p DEF2-QZVPP.BAS -n 'def2-qzvpp'
+  605  .././gbsNWChemConverter -i def2-qzvpd.nwchem -p DEF2-QZVPD.BAS -n 'def2-qzvpd'
+  606  .././gbsNWChemConverter -i def2-qzvp.nwchem -p DEF2-QZVP.BAS -n 'def2-qzvp'
+  607  .././gbsNWChemConverter -i def2-tzvp.nwchem -p DEF2-TZVP.BAS -n 'def2-tzvp'
+  609  .././gbsNWChemConverter -i def2-tzvp.nwchem -p DEF2-TZVP.BAS -n 'def2-tzvp'
+  612  .././gbsNWChemConverter -i def2-tzvp.nwchem -p DEF2-TZVP.BAS -n 'def2-tzvp'
+  613  .././gbsNWChemConverter -i def2-tzvpp.nwchem -p DEF2-TZVPP.BAS -n 'def2-tzvpp'
+  614  .././gbsNWChemConverter -i def2-tzvppd.nwchem -p DEF2-TZVPPD.BAS -n 'def2-tzvppd'
+  615  .././gbsNWChemConverter -i def2-tzvpd.nwchem -p DEF2-TZVPD.BAS -n 'def2-tzvpd'
+  617  .././gbsNWChemConverter -i def2-svp.nwchem -p DEF2-SPD.BAS -n 'def2-svp'
+  618  .././gbsNWChemConverter -i def2-svpd.nwchem -p DEF2-SVPD.BAS -n 'def2-svpd'
+  619  .././gbsNWChemConverter -i def2-svp.nwchem -p DEF2-SVP.BAS -n 'def2-svp'
+  622  .././gbsNWChemConverter -i 'def2-svp(p).nwchem' -p DEF2-SVPP.BAS -n 'def2-svp(p)'
+  624  .././gbsNWChemConverter -i 'lanl08.nwchem' -p LANL08.BAS -n 'LANL08'
+  630  .././gbsNWChemConverter -i LANL2TZ.nwchem -p LANL2TZ.BAS -n 'LANL2TZ'
+  631  .././gbsNWChemConverter -i LANL2TZ\+.nwchem -p LANL2TZ\+.BAS -n 'LANL2TZ+'
+  632  .././gbsNWChemConverter -i 'LANL2TZ+.nwchem' -p LANL2TZ\+.BAS -n 'LANL2TZ+'
+  636  .././gbsNWChemConverter -i 'LANL2TZ+.nwchem' -p LANL2TZ\+.BAS -n 'LANL2TZ+'
+  638  .././gbsNWChemConverter -i 'LANL2TZF.nwchem' -p LANL2TZF.BAS -n 'LANL2TZ(F)'
+  640  .././gbsNWChemConverter -i modified_LANL2DZ.nwchem -p mLANL2DZ.BAS -n 'mod. LANL2DZ'
+  642  .././gbsNWChemConverter -i modified-lanl2dz.nwchem -p mLANL2DZ.BAS -n 'mod. LANL2DZ'
+  648  .././gbsNWChemConverter -i modified-lanl2dz.nwchem -p mLANL2DZ.POT -n 'mod. LANL2DZ'
+  649  .././gbsNWChemConverter -i modified-lanl2dz.nwchem -o mLANL2DZ.BAS -n 'mod. LANL2DZ'
+  655  .././gbsNWChemConverter -i modified-lanl2dz.nwchem -o mLANL2DZ.BAS -n 'mod. LANL2DZ'
+  656  .././gbsNWChemConverter -i 'LANL2TZF.nwchem' -o LANL2TZF.BAS -n 'LANL2TZ(F)'
+  657  .././gbsNWChemConverter -i 'LANL2TZ+.nwchem' -o LANL2TZ\+.BAS -n 'LANL2TZ+'
+  658  history|grep gbs
+  659  .././gbsNWChemConverter -i LANL2TZ.nwchem -o LANL2TZ.BAS -n 'LANL2TZ'
+  660  .././gbsNWChemConverter -i 'lanl08.nwchem' -o LANL08.BAS -n 'LANL08'
+  661  history|grep gbs
+  662  .././gbsNWChemConverter -i 'def2-svp(p).nwchem' -o DEF2-SVPP.BAS -n 'def2-svp(p)'
+  663  .././gbsNWChemConverter -i 'def2-svpd.nwchem' -o DEF2-SVPD.BAS -n 'def2-svpd'
+  664  .././gbsNWChemConverter -i 'def2-svp.nwchem' -o DEF2-SVP.BAS -n 'def2-svp'
+  665  .././gbsNWChemConverter -i 'def2-tzvp.nwchem' -o DEF2-TZVP.BAS -n 'def2-tzvp'
+  666  .././gbsNWChemConverter -i 'def2-tzvpp.nwchem' -o DEF2-TZVPP.BAS -n 'def2-tzvpp'
+  667  .././gbsNWChemConverter -i 'def2-tzvppd.nwchem' -o DEF2-TZVPPD.BAS -n 'def2-tzvppd'
+  668  .././gbsNWChemConverter -i 'def2-tzvpd.nwchem' -o DEF2-TZVPD.BAS -n 'def2-tzvpd'
+  675  .././gbsNWChemConverter -i 'def2-qzvpd.nwchem' -o DEF2-QZVPD.BAS -n 'def2-qzvpd'
+  676  .././gbsNWChemConverter -i 'def2-qzvppd.nwchem' -o DEF2-QZVPPD.BAS -n 'def2-qzvppd'
+  677  .././gbsNWChemConverter -i 'def2-qzvpp.nwchem' -o DEF2-QZVPP.BAS -n 'def2-qzvpp'
+  678  .././gbsNWChemConverter -i 'def2-qzvp.nwchem' -o DEF2-QZVP.BAS -n 'def2-qzvp'
+  681  .././gbsNWChemConverter -i 'def2-qzvp.nwchem' -p DEF2-QZVP.POT -n 'def2-qzvp'
+  689  .././gbsNWChemConverter -i 'lanl08.nwchem' -p LANL08.POT -n 'LANL08'
+  690  .././gbsNWChemConverter -i LANL2TZ.nwchem -p LANL2TZ.POT -n 'LANL2TZ'
+  691  .././gbsNWChemConverter -i 'LANL2TZ+.nwchem' -p LANL2TZ\+.POT -n 'LANL2TZ+'
+  692  .././gbsNWChemConverter -i 'LANL2TZF.nwchem' -p LANL2TZF.POT -n 'LANL2TZ(F)'
+  693  .././gbsNWChemConverter -i modified-lanl2dz.nwchem -p mLANL2DZ.POT -n 'mod. LANL2DZ'
+  702  .././gbsNWChemConverter -i modified-lanl2dz.nwchem -p mLANL2DZ.POT -n 'mod. LANL2DZ'
+  704  .././gbsNWChemConverter -i modified-lanl2dz.nwchem -p mLANL2DZ.POT -n 'mod. LANL2DZ'
+  708  .././gbsNWChemConverter -i modified-lanl2dz.nwchem -o mLANL2DZ.BAS -n 'mod. LANL2DZ'
+  710  .././gbsNWChemConverter -i def2-tzvp.nwchem -o DEF2-TZVP.BAS -n 'def2-tzvp'
+  711  .././gbsNWChemConverter -i def2-tzvp.nwchem -p DEF2-TZVP.POT -n 'def2-tzvp'
+  712  .././gbsNWChemConverter -i def2-tzvp.nwchem -o DEF2-TZVP.BAS -p DEF2-TZVP.POT -n 'def2-tzvp'
+  713  .././gbsNWChemConverter -i def2-tzvpp.nwchem -o DEF2-TZVPP.BAS -p DEF2-TZVPP.POT -n 'def2-tzvpp'
+  714  .././gbsNWChemConverter -i def2-tzvppd.nwchem -o DEF2-TZVPPD.BAS -p DEF2-TZVPPD.POT -n 'def2-tzvppd'
+  715  .././gbsNWChemConverter -i def2-tzvpd.nwchem -o DEF2-TZVPD.BAS -p DEF2-TZVPD.POT -n 'def2-tzvpd'
+  716  .././gbsNWChemConverter -i def2-qzvpd.nwchem -o DEF2-QZVPD.BAS -p DEF2-QZVPD.POT -n 'def2-qzvpd'
+  717  .././gbsNWChemConverter -i def2-qzvppd.nwchem -o DEF2-QZVPPD.BAS -p DEF2-QZVPPD.POT -n 'def2-qzvppd'
+  718  .././gbsNWChemConverter -i def2-qzvpp.nwchem -o DEF2-QZVPP.BAS -p DEF2-QZVPP.POT -n 'def2-qzvpp'
+  719  .././gbsNWChemConverter -i def2-svp.nwchem -o DEF2-SVP.BAS -p DEF2-SVP.POT -n 'def2-svp'
+  720  .././gbsNWChemConverter -i def2-svpd.nwchem -o DEF2-SVPD.BAS -p DEF2-SVPD.POT -n 'def2-svpd'
+  721  .././gbsNWChemConverter -i def2-svp\(p\).nwchem -o DEF2-SVPP.BAS -p DEF2-SVPP.POT -n 'def2-svp(p)'
+  723  .././gbsNWChemConverter -i lanl08.nwchem -o LANL08.BAS -p LANL08.POT -n 'LANL08'
+  724  .././gbsNWChemConverter -i LANL2TZ.nwchem -o LANL2TZ.BAS -p LANL2TZ.POT -n 'LANL2TZ'
+  726  .././gbsNWChemConverter -i LANL2TZF.nwchem -o LANL2TZF.BAS -p LANL2TZF.POT -n 'LANL2TZ(F)'
+  728  .././gbsNWChemConverter -i modified-lanl2dz.nwchem -o mLANL2DZ.BAS -n 'mod. LANL2DZ'
+  734  .././gbsNWChemConverter -i def2-svpd.nwchem -o DEF2-SVPD.BAS -p DEF2-ECP.POT -n 'def2-ecp'
+  743  .././gbsNWChemConverter -i def2-svpd.nwchem -o DEF2-SVPD.BAS -p DEF2-ECP.POT -n 'def2-ecp'
+  744  .././gbsNWChemConverter -i def2-svpd.nwchem -o DEF2-SVPD.BAS  -n 'def2-svpd'
+  748  .././gbsNWChemConverter -i def2-svpd.nwchem -o DEF2-SVPD.BAS -p DEF2-ECP.POT -n 'def2-ecp'
+  750  .././gbsNWChemConverter -i def2-svpd.nwchem -o DEF2-SVP.BAS -p DEF2-ECP.POT -n 'def2-svp'
+  751  .././gbsNWChemConverter -i def2-svpd.nwchem -o DEF2-SVPD.BAS -p DEF2-ECP.POT -n 'def2-svpd'
+  752  .././gbsNWChemConverter -i def2-svp.nwchem -o DEF2-SVP.BAS -p DEF2-ECP.POT -n 'def2-svp'
+  753  .././gbsNWChemConverter -i def2-svp\(p\).nwchem -o DEF2-SVPP.BAS -p DEF2-ECP.POT -n 'def2-svp(p)'
+  759  .././gbsNWChemConverter -i def2-svp.nwchem -o DEF2-SVP.BAS -p DEF2-ECP.POT -n 'def2-svp'
+  763  .././gbsNWChemConverter -i def2-tzvp.nwchem -o DEF2-TZVP.BAS -p DEF2-ECP.POT -n 'def2-tzvp'
+  764  .././gbsNWChemConverter -i def2-tzvpp.nwchem -o DEF2-TZVPP.BAS -p DEF2-ECP.POT -n 'def2-tzvpp'
+  765  .././gbsNWChemConverter -i def2-tzvppd.nwchem -o DEF2-TZVPPD.BAS -p DEF2-ECP.POT -n 'def2-tzvppd'
+  766  .././gbsNWChemConverter -i def2-tzvpd.nwchem -o DEF2-TZVPD.BAS -p DEF2-ECP.POT -n 'def2-tzvpd'
+  767  .././gbsNWChemConverter -i def2-qzvpd.nwchem -o DEF2-QZVPD.BAS -p DEF2-ECP.POT -n 'def2-qzvpd'
+  768  .././gbsNWChemConverter -i def2-qzvppd.nwchem -o DEF2-QZVPPD.BAS -p DEF2-ECP.POT -n 'def2-qzvppd'
+  769  .././gbsNWChemConverter -i def2-qzvpp.nwchem -o DEF2-QZVPP.BAS -p DEF2-ECP.POT -n 'def2-qzvpp'
+  770  .././gbsNWChemConverter -i def2-qzvp.nwchem -o DEF2-QZVP.BAS -p DEF2-ECP.POT -n 'def2-qzvp'
+  773  .././gbsNWChemConverter -i lanl08.nwchem -o LANL08.BAS -p LANL08_ECP.POT -n 'LANL08'
+  775  .././gbsNWChemConverter -i LANL2TZ.nwchem -o LANL2TZ.BAS -p LANL2TZ_ECP.POT -n 'LANL2TZ'
+  776  .././gbsNWChemConverter -i LANL2TZF.nwchem -o LANL2TZF.BAS -p LANL2TZF_ECP.POT -n 'LANL2TZ(F)'
+  778  .././gbsNWChemConverter -i LANL2TZ\+.nwchem -o LANL2TZ\+.BAS -p LANL2TZ\+_ECP.POT -n 'LANL2TZ+'
+  780  .././gbsNWChemConverter -i modified-lanl2dz.nwchem -o mLANL2DZ.BAS -p mLANL2DZ_ECP.POT -n 'mod. LANL2DZ'
+  788  .././gbsNWChemConverter -i modified-lanl2dz.nwchem -o mLANL2DZ.BAS -p mLANL2DZ_ECP.POT -n 'mod. LANL2DZ'
+  839  .././gbsNWChemConverter -i nwchem/modified-lanl2dz.nwchem -o mLANL2DZ.BAS -p mLANL2DZ_ECP.POT -n 'mod. LANL2DZ'
+  887  cd ~/Dropbox/gbs/
+  898  history|grep gbs
+  899  .././gbsNWChemConverter -i nwchem/LANL2TZ.nwchem -o LANL2TZ.BAS -p LANL2TZ_ECP.POT -n 'LANL2TZ'
+  900  .././gbsNWChemConverter -i nwchem/LANL2TZ\+.nwchem -o LANL2TZ\+.BAS -p LANL2TZ\+_ECP.POT -n 'LANL2TZ+'
+  901  .././gbsNWChemConverter -i nwchem/LANL2TZF.nwchem -o LANL2TZF.BAS -p LANL2TZF_ECP.POT -n 'LANL2TZ(f)'
+  902  .././gbsNWChemConverter -i nwchem/modified-lanl2dz.nwchem -o mLANL2DZ.BAS -p mLANL2DZ_ECP.POT -n 'mod. LANL2DZ'
+  927  history |grep gbs
+  928  .././gbsNWChemConverter -i nwchem/def2-tzvppd.nwchem.proc -o DEF2-TZVPPD.BAS -p DEF2-ECP.POT -n 'def2-tzvppd'
+  931  .././gbsNWChemConverter -i nwchem/def2-tzvppd.nwchem.proc -o DEF2-TZVPPD.BAS -p DEF2-ECP.POT -n 'def2-tzvppd'
+  936  .././gbsNWChemConverter -i nwchem/def2-tzvppd.nwchem.proc -o DEF2-TZVPPD.BAS -p DEF2-ECP.POT -n 'def2-tzvppd'
+  937  .././gbsNWChemConverter -i nwchem/def2-tzvpp.nwchem.proc -o DEF2-TZVPP.BAS -p DEF2-ECP.POT -n 'def2-tzvpp'
+  938  .././gbsNWChemConverter -i nwchem/def2-tzvpd.nwchem.proc -o DEF2-TZVPD.BAS -p DEF2-ECP.POT -n 'def2-tzvpd'
+  939  .././gbsNWChemConverter -i nwchem/def2-tzvp.nwchem.proc -o DEF2-TZVP.BAS -p DEF2-ECP.POT -n 'def2-tzvp'
+  940  .././gbsNWChemConverter -i nwchem/def2-qzvp.nwchem.proc -o DEF2-QZVP.BAS -p DEF2-ECP.POT -n 'def2-qzvp'
+  941  .././gbsNWChemConverter -i nwchem/def2-qzvpp.nwchem.proc -o DEF2-QZVPP.BAS -p DEF2-ECP.POT -n 'def2-qzvpp'
+  942  .././gbsNWChemConverter -i nwchem/def2-qzvppd.nwchem.proc -o DEF2-QZVPPD.BAS -p DEF2-ECP.POT -n 'def2-qzvppd'
+  943  .././gbsNWChemConverter -i nwchem/def2-qzvpd.nwchem.proc -o DEF2-QZVPD.BAS -p DEF2-ECP.POT -n 'def2-qzvpd'
+  944  .././gbsNWChemConverter -i nwchem/def2-svpd.nwchem.proc -o DEF2-SVPD.BAS -p DEF2-ECP.POT -n 'def2-svpd'
+  945  .././gbsNWChemConverter -i nwchem/def2-svp.nwchem.proc -o DEF2-SVP.BAS -p DEF2-ECP.POT -n 'def2-svp'
+  946  .././gbsNWChemConverter -i nwchem/def2-svp\(p\).nwchem.proc -o DEF2-SVPP.BAS -p DEF2-ECP.POT -n 'def2-svp(p)'
+  955  gbsDescriber -n def2-svp -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2_SVP.BAS.pag
+  956  gbsDescriber -n def2-svp -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2_SVP.BAS.pag && touch DEF2-SVP.BAS.dir
+  957  gbsDescriber -n def2-svpd -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2_SVPD.BAS.pag && touch DEF2-SVPD.BAS.dir
+  958  gbsDescriber -n def2-svp(p) -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2_SVPP.BAS.pag && touch DEF2-SVPP.BAS.dir
+  959  gbsDescriber -n def2-svp\(p\) -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2_SVPP.BAS.pag && touch DEF2-SVPP.BAS.dir
+  964  gbsDescriber -n def2-svp\(p\) -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2-SVPP.BAS.pag && touch DEF2-SVPP.BAS.dir
+  965  gbsDescriber -n def2-svpd -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2-SVPD.BAS.pag && touch DEF2-SVPD.BAS.dir
+  966  gbsDescriber -n def2-svp -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2-SVP.BAS.pag && touch DEF2-SVP.BAS.dir
+  967  gbsDescriber -n def2-tzvp -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2-TZVP.BAS.pag && touch DEF2-TZVP.BAS.dir
+  968  gbsDescriber -n def2-tzvpd -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2-TZVPD.BAS.pag && touch DEF2-TZVPD.BAS.dir
+  969  gbsDescriber -n def2-tzvppd -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2-TZVPPD.BAS.pag && touch DEF2-TZVPPD.BAS.dir
+  970  gbsDescriber -n def2-tzvpp -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2-TZVPP.BAS.pag && touch DEF2-TZVPP.BAS.dir
+  971  gbsDescriber -n def2-qzvpp -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2-QZVPP.BAS.pag && touch DEF2-QZVPP.BAS.dir
+  972  gbsDescriber -n def2-qzvppd -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2-QZVPPD.BAS.pag && touch DEF2-QZVPPD.BAS.dir
+  973  gbsDescriber -n def2-qzvpd -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2-QZVPD.BAS.pag && touch DEF2-QZVPD.BAS.dir
+  974  gbsDescriber -n def2-qzvp -t ECPOrbital -c ORBITAL -y Segmented -s Y -o DEF2-QZVP.BAS.pag && touch DEF2-QZVP.BAS.dir
+  976  gbsDescriber -n "mod. LANL2DZ" -t ECPOrbital -c ORBITAL -y Segmented -s Y -o mLANL2DZ.BAS.pag && touch mLANL2DZ.BAS.dir
+  977  gbsDescriber -n "LANL2DZ\(f\)" -t ECPOrbital -c ORBITAL -y Segmented -s Y -o LANL2DZF.BAS.pag && touch LANL2DZF.BAS.dir
+  978  gbsDescriber -n "LANL2DZ\+" -t ECPOrbital -c ORBITAL -y Segmented -s Y -o LANL2DZ\+.BAS.pag && touch LANL2DZ\+.BAS.dir
+  979  gbsDescriber -n "LANL08" -t ECPOrbital -c ORBITAL -y Segmented -s Y -o LANL08.BAS.pag && touch LANL08.BAS.dir
+  981  gbsDescriber -n def2-ecp -t ecp -c AUXILIARY -o DEF2-ECP.POT.pag && touch DEF2-ECP.POT.dir
+  986  gbsDescriber -n LANL08 -t ecp -c AUXILIARY -o LANL08_ECP.POT.pag && touch LANL08_ECP.POT.dir
+  988  gbsDescriber -n LANL2TZ -t ecp -c AUXILIARY -o LANL2TZ_ECP.POT.pag && touch LANL2TZ_ECP.POT.dir
+  995  gbsDescriber -n LANL2TZ\+-ECP -t ecp -c AUXILIARY -o LANL2TZ\+_ECP.POT.pag && touch LANL2TZ\+_ECP.POT.dir
+  997  gbsDescriber -n LANL2TZ-ECP -t ecp -c AUXILIARY -o LANL2TZ_ECP.POT.pag && touch LANL2TZ_ECP.POT.dir
+  998  gbsDescriber -n LANL08-ECP -t ecp -c AUXILIARY -o LANL08_ECP.POT.pag && touch LANL08_ECP.POT.dir
+ 1000  gbsDescriber -n LANL2TZ\(f\)-ECP -t ecp -c AUXILIARY -o LANL2TZF_ECP.POT.pag && touch LANL2TZF_ECP.POT.dir
+ 1002  gbsDescriber -n "mod. LANL2DZ-ECP" -t ecp -c AUXILIARY -o mLANL2DZ_ECP.POT.pag && touch mLANL2DZ_ECP.POT.dir
+ 1004  .././gbsNWChemConverter -i nwchem/modified-lanl2dz.nwchem -o mLANL2DZ.BAS -p mLANL2DZ-ECP.POT -n 'mod. LANL2DZ'
+ 1013  basis=ADZP && gbsDescriber -n $basis -t other_generally_contracted -c ORBITAL -y Segmented -s Y -o $basis.BAS.pag && touch $basis.BAS.dir
+ 1016  basis=ANO-RCC && gbsDescriber -n $basis -t other_generally_contracted -c ORBITAL -y Segmented -s Y -o $basis.BAS.pag && touch $basis.BAS.dir
+ 1018  ls *.BAS||grep -v DEF2|grep -v LAN|grep 's/.BAS//g'|xargs -I {} gbsDescriber -n {} -t other_generally_contracted -c ORBITAL -y Segmented -s Y -o {}.BAS.pag
+ 1019  ls *.BAS|grep -v DEF2|grep -v LAN|grep 's/.BAS//g'|xargs -I {} gbsDescriber -n {} -t other_generally_contracted -c ORBITAL -y Segmented -s Y -o {}.BAS.pag
+ 1021  ls *.BAS|grep -v DEF2|grep -v LAN|grep 's/.BAS//g'|xargs -I {} gbsDescriber -n {} -t other_generally_contracted -c ORBITAL -y Segmented -s Y -o {}.BAS.pag
+ 1022  ls *.BAS|grep -v DEF2|grep -v LAN|sed 's/.BAS//g'|xargs -I {} gbsDescriber -n {} -t other_generally_contracted -c ORBITAL -y Segmented -s Y -o {}.BAS.pag
+ 1058  history|grpe gbsD|grep cc
+ 1059  history|grep gbsD|grep cc
+ 1060  history|grep gbs|grep cc
+ 1062  cp ~/Dropbox/gbs/basis/.DAV/*  ~/eccev7/server/data/Ecce/system/GaussianBasisSetLibrary/.DAV
+ 1063  less ~/Dropbox/gbs/basis/nwchem/gamess-vtz.nwchem 
+ 1064  less ~/Dropbox/gbs/basis/gamess-vtz.BAS
+ 1065  cd ~/Dropbox/gbs/basis/
+ 1067  .././gbsNWChemConverter -i gamess-vtz.nwchem -o gamess-vtz.BAS -n 'gamess VTZ'
+ 1068  .././gbsNWChemConverter -i nwchem/gamess-vtz.nwchem -o gamess-vtz.BAS -n 'gamess VTZ'
+ 1070  .././gbsNWChemConverter -i nwchem/gamess-vtz.nwchem -o gamess-vtz.BAS -n 'gamess VTZ'
+ 1073  .././gbsNWChemConverter -i nwchem/gamess-vtz.nwchem -o gamess-vtz.BAS -n 'gamess VTZ'
+ 1075  .././gbsNWChemConverter -i nwchem/gamess-vtz.nwchem -o gamess-vtz.BAS -n 'gamess VTZ'
+ 1078  .././gbsNWChemConverter -i nwchem/gamess-vtz.nwchem -o gamess-vtz.BAS -n 'gamess VTZ'
+ 1092  history |grep gbs
+ 1093  history |grep gbs >> history

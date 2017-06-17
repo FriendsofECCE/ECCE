@@ -1,0 +1,33 @@
+name
+J-DZP
+name
+type
+
+type
+category
+ORBITAL
+category
+spherical
+
+spherical
+contraction_type
+
+contraction_type
+references
+  DZP  EMSL  Basis Set Exchange Library  6/15/15 6:27 AM
+ Elements                             References
+ --------                             ----------
+ H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar: A. Canal Neto, E. P. Muniz, R. Centoducatte, and F. E. Jorge, Gaussian basis sets for correlated wave functions. Hydrogen, helium, first- and second-row atoms, J. Mol. Struct. (Theochem) 718, 219 (2005).
+ K Ca Sc Ti V Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr: G. G. Camiletti, S. F. Machado, and F. E. Jorge, Gaussian Basis Set of Double Zeta Quality for Atoms K Through Kr: Application in DFT Calculations of Molecular Properties, J. Comp. Chem. 29, 2434 (2008).
+ Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe: C. L. Barros, P. J. P. de Oliveira, F. E. Jorge, A. Canal Neto, and M. Campos, Gaussian basis set of double zeta quality for atoms Rb through Xe: application in non-relativistic and relativistic calculations of atomic and molecular properties, Mol. Phys. 108, 1965 (2010).
+ Pt: R. C. de Berrêdo, and F. E. Jorge, All-electron double zeta basis sets for platinum: Estimating scalar relativistic effects on platinum(II) anticancer drugs, J. Mol. Struct. (Theochem) 961, 107 (2010).
+ Cs Ba La Hf Ta W Re Os Ir Au Hg Tl Pb Bi Po At Rn: A. Canal Neto and F. E. Jorge, All-electron double zeta basis sets for the most fifth-row atoms: Application in DFT spectroscopic constant calculations, Chem. Phys. Lett. 582, 158 (2013).
+ 
+
+references
+info
+
+info
+comments
+
+comments

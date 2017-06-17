@@ -1,0 +1,11 @@
+ls nwchem/*.nwchem|sed 's/.nwchem//g'|sed 's.nwchem/..g' |xargs -I {} .././gbsNWChemConverter -i nwchem/{}.nwchem -o {}.BAS -p {}.POT
+
+ ls *.BAS|grep -v cc|grep -v def2|grep -v lanl|grep -v LANL |grep -v apr| sed 's/.BAS//g'|xargs -I {} gbsDescriber -n {} -t other_generally_contracted -c ORBITAL -y Segmented -s Y -o {}.BAS.pag
+ ls *.BAS|grep cc| sed 's/.BAS//g'|xargs -I {} gbsDescriber -n {} -t correlation_consistent -c ORBITAL -y Segmented -s Y -o {}.BAS.pag
+  ls *.BAS|grep apr| sed 's/.BAS//g'|xargs -I {} gbsDescriber -n {} -t correlation_consistent -c ORBITAL -y Segmented -s Y -o {}.BAS.pag
+ ls *.BAS|grep def2| sed 's/.BAS//g'|xargs -I {} gbsDescriber -n {} -t ECPOrbital -c ORBITAL -y Segmented -s Y -o {}.BAS.pag
+ ls *.BAS|grep lanl| sed 's/.BAS//g'|xargs -I {} gbsDescriber -n {} -t ECPOrbital -c ORBITAL -y Segmented -s Y -o {}.BAS.pag
+ ls *.BAS|grep LANL| sed 's/.BAS//g'|xargs -I {} gbsDescriber -n {} -t ECPOrbital -c ORBITAL -y Segmented -s Y -o {}.BAS.pag
+ ls *.POT| sed 's/.POT//g'|xargs -I {} gbsDescriber -n {} -t ecp -c ORBITAL -y Segmented -s Y -o {}.POT.pag
+ls *.pag|sed 's/.pag//g'|xargs -I {} touch {}.dir
+

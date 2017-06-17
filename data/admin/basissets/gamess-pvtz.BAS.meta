@@ -1,0 +1,31 @@
+name
+gamess-pvtz
+name
+type
+
+type
+category
+ORBITAL
+category
+spherical
+
+spherical
+contraction_type
+
+contraction_type
+references
+  GAMESS PVTZ  EMSL  Basis Set Exchange Library  6/17/15 5:04 AM
+ T. H. DUNNING, JR., J. CHEM. PHYS. 55, 716 (1971) 
+  A.D. MCCLEAN AND G.S. CHANDLER, J. CHEM. PHYS. 72, 5639 (1980) 
+  A.J.H. WATCHERS, J. CHEM. PHYS. 52, 1033 (1970).
+   
+ !
+   
+
+references
+info
+
+info
+comments
+
+comments

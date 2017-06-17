@@ -1,0 +1,486 @@
+name= cc-pVDZ
+files= cc-pVDZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+
+name= cc-pVTZ
+files= cc-pVTZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+
+name= cc-pVQZ
+files= cc-pVQZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+
+name= cc-pV5Z
+files= cc-pV5Z.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+
+name= cc-pV6Z
+files= CC-PV6Z.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar
+
+name= cc-pV8Z
+files= CC-PV8Z.BAS
+atoms= H Ne
+
+name= cc-pV9Z
+files= CC-PV9Z.BAS
+atoms= Ne
+
+name= cc-pCV5Z0
+files= CC-PCV5Z0.BAS
+atoms= Ca
+
+name= cc-pCVDZ
+files= CC-PCVDZ-AGG.BAS CC-PVDZ.BAS CC-PCVDZ.BAS
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca
+
+name= cc-pCVTZ
+files= CC-PCVTZ-AGG.BAS CC-PVTZ.BAS CC-PCVTZ.BAS
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca
+
+name= cc-pCVQZ
+files= CC-PCVQZ-AGG.BAS CC-PVQZ.BAS CC-PCVQZ.BAS
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca
+atoms= Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca
+
+name= cc-pCV5Z
+files= CC-PCV5Z-AGG.BAS CC-PV5Z.BAS CC-PCV5Z0.BAS CC-PCV5Z.BAS
+atoms= B C N O F Ne Na Mg Al Si P S Cl Ar
+atoms= Ca
+atoms= B C N O F Ne Na Mg Al Si P S Cl Ar Ca
+
+name= cc-pCV6Z
+files= CC-PCV6Z-AGG.BAS CC-PV6Z.BAS CC-PCV6Z.BAS
+atoms= B C N O F Ne
+atoms= B C N O F Ne
+
+name= cc-pCV6Z(old)
+files= CC-PCV6ZOLD-AGG.BAS CC-PV6Z.BAS CC-PCV6Z-OLD.BAS
+atoms= O
+atoms= O
+
+name= cc-pwCVDZ
+files= CC-PWCVDZ-AGG.BAS CC-PVDZ.BAS CC-PWCVDZ.BAS
+atoms= B C N O F Ne Al Si P S Cl Ar
+atoms= B C N O F Ne Al Si P S Cl Ar
+
+name= cc-pwCVTZ
+files= CC-PWCVTZ-AGG.BAS CC-PVTZ.BAS CC-PWCVTZ.BAS
+atoms= B C N O F Ne Al Si P S Cl Ar Br
+atoms= B C N O F Ne Al Si P S Cl Ar Br
+
+name= cc-pwCVQZ
+files= CC-PWCVQZ-AGG.BAS CC-PVQZ.BAS CC-PWCVQZ.BAS
+atoms= B C N O F Ne Al Si P S Cl Ar Br
+atoms= B C N O F Ne Al Si P S Cl Ar Br
+
+name= cc-pwCV5Z
+files= CC-PWCV5Z-AGG.BAS CC-PWCV5Z0.BAS CC-PWCV5Z.BAS
+atoms= B C N O F Ne Al Si P S Cl Ar
+atoms= B C N O F Ne Al Si P S Cl Ar
+
+name= aug-cc-pwCVDZ
+files= AUG-CC-PWCVDZ-AGG.BAS CC-PVDZ.BAS CC-PWCVDZ.BAS AUG-CC-PVDZ.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar
+atoms= B C N O F Ne Al Si P S Cl Ar
+atoms= H He B C N O F Ne Al Si P S Cl Ar
+
+name= aug-cc-pwCVTZ
+files= AUG-CC-PWCVTZ-AGG.BAS CC-PVTZ.BAS CC-PWCVTZ.BAS AUG-CC-PVTZ.BAS
+atoms= H B C N O F Ne Al Si P S Cl Ar
+atoms= B C N O F Ne Al Si P S Cl Ar
+atoms= H B C N O F Ne Al Si P S Cl Ar
+
+name= aug-cc-pwCVQZ
+files= AUG-CC-PWCVQZ-AGG.BAS CC-PVQZ.BAS CC-PWCVQZ.BAS AUG-CC-PVQZ.BAS
+atoms= H B C N O F Ne Al Si P S Cl Ar
+atoms= B C N O F Ne Al Si P S Cl Ar
+atoms= H B C N O F Ne Al Si P S Cl Ar
+
+name= aug-cc-pwCV5Z
+files= AUG-CC-PWCV5Z-AGG.BAS CC-PWCV5Z0.BAS CC-PWCV5Z.BAS AUG-CC-PV5Z.BAS
+atoms= H B C N O F Al Si P S Cl Ar
+atoms= B C N O F Al Si P S Cl Ar
+atoms= H B C N O F Al Si P S Cl Ar
+
+name= cc-pCVDZ(old)
+files= CC-PCVDZOLD-AGG.BAS CC-PVDZ.BAS CC-PCVDZ_OLD.BAS
+atoms= Al Si P S Cl Ar
+atoms= Al Si P S Cl Ar
+
+name= cc-pCVTZ(old)
+files= CC-PCVTZOLD-AGG.BAS CC-PVTZ.BAS CC-PCVTZ_OLD.BAS
+atoms= Al Si P S Cl Ar
+atoms= Al Si P S Cl Ar
+
+name= cc-pCVQZ(old)
+files= CC-PCVQZOLD-AGG.BAS CC-PVQZ.BAS CC-PCVQZ_OLD.BAS
+atoms= Al Si P S Cl Ar
+atoms= Al Si P S Cl Ar
+
+name= aug-cc-pVDZ
+files= AUG-CC-PVDZ-AGG.BAS CC-PVDZ.BAS AUG-CC-PVDZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ga Ge As Se Br Kr
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= aug-cc-pVTZ
+files= AUG-CC-PVTZ-AGG.BAS CC-PVTZ.BAS AUG-CC-PVTZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ga Ge As Se Br Kr
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= aug-cc-pVQZ
+files= AUG-CC-PVQZ-AGG.BAS CC-PVQZ.BAS AUG-CC-PVQZ.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ga Ge As Se Br Kr
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= aug-cc-pV5Z
+files= AUG-CC-PV5Z-AGG.BAS CC-PV5Z.BAS AUG-CC-PV5Z.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= aug-cc-pV6Z
+files= AUG-CC-PV6Z-AGG.BAS CC-PV6Z.BAS AUG-CC-PV6Z.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar
+atoms= H He B C N O F Ne Al Si P S Cl Ar
+
+name= cc-pV(D+d)Z
+files= CC-PVDZ_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+
+name= cc-pV(T+d)Z
+files= CC-PVTZ_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+
+name= cc-pV(Q+d)Z
+files= CC-PVQZ_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+
+name= cc-pV(5+d)Z
+files= CC-PV5Z_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+
+name= cc-pV(6+d)Z
+files= CC-PV6Z_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+
+name= aug-cc-pV(D+d)Z
+files= AUG-CC-PVDPDZ-AGG.BAS CC-PVDZ_PLUS_D.BAS AUG-CC-PVDZ_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+atoms= Al Si P S Cl Ar
+
+name= aug-cc-pV(T+d)Z
+files= AUG-CC-PVTPDZ-AGG.BAS CC-PVTZ_PLUS_D.BAS AUG-CC-PVTZ_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+atoms= Al Si P S Cl Ar
+
+name= aug-cc-pV(Q+d)Z
+files= AUG-CC-PVQPDZ-AGG.BAS CC-PVQZ_PLUS_D.BAS AUG-CC-PVQZ_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+atoms= Al Si P S Cl Ar
+
+name= aug-cc-pV(5+d)Z
+files= AUG-CC-PV5PDZ-AGG.BAS CC-PV5Z_PLUS_D.BAS AUG-CC-PV5Z_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+atoms= Al Si P S Cl Ar
+
+name= aug-cc-pV(6+d)Z
+files= AUG-CC-PV6PDZ-AGG.BAS CC-PV6Z_PLUS_D.BAS AUG-CC-PV6Z_PLUS_D.BAS
+atoms= Al Si P S Cl Ar
+atoms= Al Si P S Cl Ar
+
+name= aug-cc-pCVDZ
+files= AUG-CC-PCVDZ-AGG.BAS CC-PVDZ.BAS CC-PCVDZ.BAS AUG-CC-PVDZ.BAS
+atoms= B C N O F Na Mg Al Si P S Cl Ar
+atoms= B C N O F Na Mg Al Si P S Cl Ar
+atoms= B C N O F Na Mg Al Si P S Cl Ar
+
+name= aug-cc-pCVTZ
+files= AUG-CC-PCVTZ-AGG.BAS CC-PVTZ.BAS CC-PCVTZ.BAS AUG-CC-PVTZ.BAS
+atoms= B C N O F Ne Na Mg Al Si P S Cl Ar
+atoms= B C N O F Ne Na Mg Al Si P S Cl Ar
+atoms= B C N O F Ne Na Mg Al Si P S Cl Ar
+
+name= aug-cc-pCVQZ
+files= AUG-CC-PCVQZ-AGG.BAS CC-PVQZ.BAS CC-PCVQZ.BAS AUG-CC-PVQZ.BAS
+atoms= B C N O F Ne Al Si P S Cl 
+atoms= B C N O F Ne Al Si P S Cl Ar
+atoms= B C N O F Ne Al Si P S Cl Ar
+
+name= aug-cc-pCV5Z
+files= AUG-CC-PCV5Z-AGG.BAS CC-PV5Z.BAS CC-PCV5Z.BAS AUG-CC-PV5Z.BAS
+atoms= B C N O F
+atoms= B C N O F
+atoms= B C N O F
+
+name= d-aug-cc-pVDZ
+files= D-AUG-CC-PVDZ-AGG.BAS CC-PVDZ.BAS AUG-CC-PVDZ.BAS DAUG-CC-PVDZ.BAS
+atoms= H He B C N O F Ne
+atoms= H He B C N O F Ne
+atoms= H He B C N O F Ne
+
+name= d-aug-cc-pVTZ
+files= D-AUG-CC-PVTZ-AGG.BAS CC-PVTZ.BAS AUG-CC-PVTZ.BAS DAUG-CC-PVTZ.BAS
+atoms= H He B C N O F Ne
+atoms= H He B C N O F Ne
+atoms= H He B C N O F Ne
+
+name= d-aug-cc-pVQZ
+files= D-AUG-CC-PVQZ-AGG.BAS CC-PVQZ.BAS AUG-CC-PVQZ.BAS DAUG-CC-PVQZ.BAS
+atoms= H He B C N O F Ne
+atoms= H He B C N O F Ne
+atoms= H He B C N O F Ne
+
+name= d-aug-cc-pV5Z
+files= D-AUG-CC-PV5Z-AGG.BAS CC-PV5Z.BAS AUG-CC-PV5Z.BAS DAUG-CC-PV5Z.BAS
+atoms= H He B C N O F Ne
+atoms= H He B C N O F Ne
+atoms= H He B C N O F Ne
+
+name= d-aug-cc-pV6Z
+files= D-AUG-CC-PV6Z-AGG.BAS CC-PV6Z.BAS AUG-CC-PV6Z.BAS DAUG-CC-PV6Z.BAS
+atoms= H B C N O
+atoms= H B C N O
+atoms= H B C N O
+
+name= aug-mcc-pV8Z
+files= AUG-MCC-PV8Z.BAS
+atoms= H
+
+name= cc-pVTZ-NR
+files= CC-PVTZ-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= cc-pVQZ-NR
+files= CC-PVQZ-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= cc-pV5Z-NR
+files= CC-PV5Z-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pVTZ-NR
+files= AUG-CC-PVTZ-NR-AGG.BAS CC-PVTZ-NR.BAS AUG-CC-PVTZ-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pVQZ-NR
+files= AUG-CC-PVQZ-NR-AGG.BAS CC-PVQZ-NR.BAS AUG-CC-PVQZ-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pV5Z-NR
+files= AUG-CC-PV5Z-NR-AGG.BAS CC-PV5Z-NR.BAS AUG-CC-PV5Z-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= cc-pwCVTZ-NR
+files= CC-PWCVTZ-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= cc-pwCVQZ-NR
+files= CC-PWCVQZ-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= cc-pwCV5Z-NR
+files= CC-PWCV5Z-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pwCVTZ-NR
+files= AUG-CC-PWCVTZ-NR-AGG.BAS CC-PWCVTZ-NR.BAS AUG-CC-PVTZ-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pwCVQZ-NR
+files= AUG-CC-PWCVQZ-NR-AGG.BAS CC-PWCVQZ-NR.BAS AUG-CC-PVQZ-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pwCV5Z-NR
+files= AUG-CC-PWCV5Z-NR-AGG.BAS CC-PWCV5Z-NR.BAS AUG-CC-PV5Z-NR.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pVTZ-DK
+files= AUG-CC-PVTZ-DK-AGG.BAS CC-PVTZ-DK.BAS AUG-CC-PVTZ-DK.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pVQZ-DK
+files= AUG-CC-PVQZ-DK-AGG.BAS CC-PVQZ-DK.BAS AUG-CC-PVQZ-DK.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pV5Z-DK
+files= AUG-CC-PV5Z-DK-AGG.BAS CC-PV5Z-DK.BAS AUG-CC-PV5Z-DK.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= cc-pwCVTZ-DK
+files= CC-PWCVTZ-DK.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= cc-pwCVQZ-DK
+files= CC-PWCVQZ-DK.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= cc-pwCV5Z-DK
+files= CC-PWCV5Z-DK.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pwCVTZ-DK
+files= AUG-CC-PWCVTZ-DK-AGG.BAS CC-PWCVTZ-DK.BAS AUG-CC-PVTZ-DK.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pwCVQZ-DK
+files= AUG-CC-PWCVQZ-DK-AGG.BAS CC-PWCVQZ-DK.BAS AUG-CC-PVQZ-DK.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= aug-cc-pwCV5Z-DK
+files= AUG-CC-PWCV5Z-DK-AGG.BAS CC-PWCV5Z-DK.BAS AUG-CC-PV5Z-DK.BAS
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= NASA Ames cc-pVTZ
+files= NASA_CC-PVTZ.BAS
+atoms= Ti Fe
+
+name= NASA Ames cc-pVQZ
+files= NASA_CC-PVQZ.BAS
+atoms= Ti Fe
+
+name= NASA Ames cc-pV5Z
+files= NASA_CC-PV5Z.BAS
+atoms= Ti Fe
+
+name= NASA Ames cc-pCVTZ
+files= NASA_CC-PCVTZ.BAS
+atoms= Ti
+
+name= NASA Ames cc-pCVQZ
+files= NASA_CC-PCVQZ.BAS
+atoms= Ti
+
+name= NASA Ames cc-pCV5Z
+files= NASA_CC-PCV5Z.BAS
+atoms= Ti
+
+name= cc-pVDZ-DK
+files= CC-PVDZ-DK.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVTZ-DK
+files= CC-PVTZ-DK.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+
+name= cc-pVQZ-DK
+files= CC-PVQZ-DK.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+
+name= cc-pV5Z-DK
+files= CC-PV5Z-DK.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+
+name= cc-pVDZ(pt/sf/fw)
+files= CC-PVDZ_PT_SF_FW.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVTZ(pt/sf/fw)
+files= CC-PVTZ_PT_SF_FW.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVQZ(pt/sf/fw)
+files= CC-PVQZ_PT_SF_FW.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pV5Z(pt/sf/fw)
+files= CC-PV5Z_PT_SF_FW.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVDZ(fi/sf/fw)
+files= CC-PVDZ_FI_SF_FW.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVTZ(fi/sf/fw)
+files= CC-PVTZ_FI_SF_FW.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVQZ(fi/sf/fw)
+files= CC-PVQZ_FI_SF_FW.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pV5Z(fi/sf/fw)
+files= CC-PV5Z_FI_SF_FW.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVDZ(pt/sf/sc)
+files= CC-PVDZ_PT_SF_SC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVDZ(pt/sf/lc)
+files= CC-PVDZ_PT_SF_LC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVTZ(pt/sf/sc)
+files= CC-PVTZ_PT_SF_SC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVTZ(pt/sf/lc)
+files= CC-PVTZ_PT_SF_LC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVQZ(pt/sf/sc)
+files= CC-PVQZ_PT_SF_SC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVQZ(pt/sf/lc)
+files= CC-PVQZ_PT_SF_LC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pV5Z(pt/sf/sc)
+files= CC-PV5Z_PT_SF_SC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pV5Z(pt/sf/lc)
+files= CC-PV5Z_PT_SF_LC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVDZ(fi/sf/sc)
+files= CC-PVDZ_FI_SF_SC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVDZ(fi/sf/lc)
+files= CC-PVDZ_FI_SF_LC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVTZ(fi/sf/sc)
+files= CC-PVTZ_FI_SF_SC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVTZ(fi/sf/lc)
+files= CC-PVTZ_FI_SF_LC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVQZ(fi/sf/sc)
+files= CC-PVQZ_FI_SF_SC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pVQZ(fi/sf/lc)
+files= CC-PVQZ_FI_SF_LC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pV5Z(fi/sf/sc)
+files= CC-PV5Z_FI_SF_SC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pV5Z(fi/sf/lc)
+files= CC-PV5Z_FI_SF_LC.BAS
+atoms= H He B C N O F Ne Al Si P S Cl Ar Ga Ge As Se Br Kr
+
+name= cc-pwCV5Z Core Set
+files= CC-PWCV5Z0.BAS
+atoms= B C N O F Ne Al Si P S Cl Ar
+

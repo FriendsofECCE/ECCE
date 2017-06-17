@@ -1,0 +1,36 @@
+name
+apr-cc-pv(Qd)z
+name
+type
+
+type
+category
+ORBITAL
+category
+spherical
+
+spherical
+contraction_type
+
+contraction_type
+references
+  apr-cc-pV(Q+d)Z  EMSL  Basis Set Exchange Library  6/17/15 5:05 AM
+ Elements                             References
+ --------                             ----------
+ H-Ar: Ewa Papajak and Donald G. Truhlar, Convergent Partially Augmented Basis Sets for Post-Hartree?Fock Calculations of Molecular Properties and Reaction Barrier Heights, J. Chem. Theory Comput. 7, 10-18 (2011).
+ H, Li-Ne: T.H. Dunning, Jr., J. Chem. Phys. 90, 1007 (1989).
+ He: D.E. Woon and T.H. Dunning, Jr., J. Chem. Phys. 100, 2975 (1994).
+ Li - Ne: T.H. Dunning, Jr., J. Chem. Phys. 90, 1007 (1989).
+ B - F: R.A. Kendall, T.H. Dunning, Jr. and R.J. Harrison, J. Chem. Phys. 96, 6796 (1992).
+ H-Ar: E. Papajak, D. G. Truhlar, J. Chem. Theory Comput. 597, 597 (2010).
+ Al - Ar: D.E. Woon and T.H. Dunning, Jr., J. Chem. Phys. 98, 1358 (1993).
+ Al - Ar: T.H. Dunning, Jr., K.A. Peterson and A.K. Wilson, J. Chem. Phys. 114, 9244 (2001).
+ 
+
+references
+info
+
+info
+comments
+
+comments

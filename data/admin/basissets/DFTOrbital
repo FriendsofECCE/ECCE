@@ -1,0 +1,12 @@
+name= DZVP (DFT Orbital)
+files= DGAUSS_DZVP.BAS DGAUSS-A1COULOMB.BAS DGAUSS-A1EXCHANGE.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe
+
+name= DZVP2 (DFT Orbital)
+files= DGAUSS_DZVP2.BAS DGAUSS-A2COULOMB.BAS DGAUSS-A2EXCHANGE.BAS
+atoms= H He Li Be B C N O F Al Si P S Cl Ar Sc Ti V Cr Mn Fe Co Ni Cu Zn
+
+name= TZVP (DFT Orbital)
+files= DGAUSS_TZVP.BAS DGAUSS-A2COULOMB.BAS DGAUSS-A2EXCHANGE.BAS
+atoms= H C N O F Al Si P S Cl Ar
+

@@ -1,0 +1,30 @@
+name
+QZP
+name
+type
+
+type
+category
+ORBITAL
+category
+spherical
+
+spherical
+contraction_type
+
+contraction_type
+references
+  QZP  EMSL  Basis Set Exchange Library  6/17/15 3:50 AM
+ Elements                             References
+ --------                             ----------
+ H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar: P. L. Barbieri, P. A. Fantin, and F. E. Jorge, Gaussian basis sets of triple and quadruple zeta valence quality for correlated wave functions, Mol. Phys. 104, 2945 (2006).
+ K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe: G. A. Ceolin, R. C. de Berrêdo and F. E. Jorge, Gaussian basis sets of quadruple zeta quality for potassium through xenon: application in CCSD(T) atomic and molecular property calculations, Theor. Chem. Acc. 132, 1339 (2013).
+ 
+
+references
+info
+
+info
+comments
+
+comments
