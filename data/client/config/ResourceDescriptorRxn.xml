@@ -739,8 +739,8 @@
     </EnabledRunManagementTasks>
   </ResourceType>
   <!-- Gaussian-09 electronic structure calculation resource -->
-  <ResourceType name="gaussian03_es" resourceType="virtual_document" contentType="ecceCalculation"
-    applicationType="Gaussian-03">
+  <ResourceType name="gaussian09_es" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Gaussian-09">
     <SortPriority>60</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
