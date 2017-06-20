@@ -2,7 +2,7 @@
 static char * calcgaussian09_xpm[] = {
 "16 16 2 1",
 " 	c None",
-".	c #41B141",
+".	c #F1061C",
 "                ",
 "                ",
 "  .......   ... ",
