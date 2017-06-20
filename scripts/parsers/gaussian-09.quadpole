@@ -1,0 +1,63 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+#
+# read the 6 quadrupole moment components  (3 per line)
+#
+  @result1 = ();
+  @result = ();
+
+  $line = <STDIN>;
+  if ( $line =~ /XX=\s*(\S+)\s+YY=\s*(\S+)\s+ZZ=\s+(\S+)/  ) {
+    push(@result1,($1,$2,$3));	
+  } else {
+    die
+      "ERROR: gaussian-94.quadpole: line 1 of input not of expected format\n";
+  }
+  $line = <STDIN>;
+  if ( $line =~ /XY=\s*(\S+)\s+XZ=\s*(\S+)\s+YZ=\s+(\S+)/  ) {
+    push(@result1,($1,$2,$3));	
+  } else {
+    die
+      "ERROR: gaussian-94.quadpole: line 2 of input not of expected format\n";
+  }
+#
+# reorder components of quadrupole tensor
+#
+  $result[0] = $result1[0];
+  $result[1] = $result1[3];
+  $result[2] = $result1[4];
+  $result[3] = $result1[1];
+  $result[4] = $result1[5];
+  $result[5] = $result1[2];
+
+#
+# print the symmetry labels
+  if ($#result == 0) {
+    die "zero atoms\n";
+  } else {
+    $size = $#result + 1;
+    print "key: QUADPOLE\n";
+    print "size:\n$size\n";
+    print "rowlabels:\n";
+    print "XX XY XZ YY YZ ZZ\n";
+    print "values:\n";
+    foreach $i (0 .. $#result ) { print "$result[$i] "; }
+    print "\nEND\n";
+  }
+
+  exit(0);

@@ -38,6 +38,7 @@ http://www.emsl.pnl.gov/ecce:ecceCalculation,         calcany.xpm
 http://www.emsl.pnl.gov/ecce:NWChem,                  calcnwchem.xpm
 http://www.emsl.pnl.gov/ecce:GAMESS-UK,               calcgamessuk.xpm
 http://www.emsl.pnl.gov/ecce:Gaussian-03,             calcgaussian03.xpm
+http://www.emsl.pnl.gov/ecce:Gaussian-09,             calcgaussian09.xpm
 http://www.emsl.pnl.gov/ecce:Gaussian-98,             calcgaussian.xpm
 http://www.emsl.pnl.gov/ecce:Gaussian-94,             calcgaussian.xpm
 http://www.emsl.pnl.gov/ecce:Amica,                   calcamica.xpm

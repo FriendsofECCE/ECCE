@@ -1,0 +1,39 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#   This script parses the symmetry point group from the output file
+#
+# Command line parameters:
+#           
+# Description:
+#
+# sample input line (except for the lead #):
+# Framework group D*H[C*(HC.CH)]
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+######
+# The command line arguments
+######
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+local ($result,@store);
+
+$result = <STDIN>;
+chop($result);
+$result =~ s/\s*Full point group\s*//;
+@store = split(/\s+/,$result);
+$result = $store[0];
+
+print "key: PNTGRP\n";
+print "size: \n1\n";
+print "values: \n$result\n";
+print "END\n";
+
+exit(0);

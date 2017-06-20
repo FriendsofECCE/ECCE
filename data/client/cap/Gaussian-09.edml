@@ -79,7 +79,7 @@
 <!-- All names are completely unconstrained but must be consistent with
      names used by detail dialogs and input files generator etc.
 -->
-<Editor theorydialog="ged03theory.py" runtypedialog="ged03runtype.py">
+<Editor theorydialog="ged09theory.py" runtypedialog="ged09runtype.py">
   <Theory category="SCF" name="RHF">
     <runtype>Energy</runtype>
     <runtype>Gradient</runtype>
@@ -458,13 +458,13 @@
 -->
 
 <DataFiles>
-  <Input   type="primary" mimetype="chemical/x-gaussian03-input" comment="true" commentstring="#">g03.g03in</Input>
-  <Input   type="primary" mimetype="chemical/x-gaussian-03-input" comment="true" commentstring="#">g03.in</Input>
-  <Output type="primary" mimetype="chemical/x-gaussian03-output">g03.g03out</Output>
-  <Output type="primary" mimetype="chemical/x-gaussian-03-output">g03.out</Output>
-  <Output type="parse" verifypattern="Gaussian 03, Revision" mimetype="chemical/x-gaussian03-output">g03.g03out</Output>
-  <Output type="parse" verifypattern="Gaussian 03, Revision" mimetype="chemical/x-gaussian-03-output">g03.out</Output>
-  <Output type="auxiliary" mimetype="chemical/x-gaussian-03-mo">fort.7</Output>
+  <Input   type="primary" mimetype="chemical/x-gaussian09-input" comment="true" commentstring="#">g09.g09in</Input>
+  <Input   type="primary" mimetype="chemical/x-gaussian-09-input" comment="true" commentstring="#">g09.in</Input>
+  <Output type="primary" mimetype="chemical/x-gaussian09-output">g09.g09out</Output>
+  <Output type="primary" mimetype="chemical/x-gaussian-09-output">g09.out</Output>
+  <Output type="parse" verifypattern="Gaussian 09, Revision" mimetype="chemical/x-gaussian09-output">g09.g09out</Output>
+  <Output type="parse" verifypattern="Gaussian 09, Revision" mimetype="chemical/x-gaussian-09-output">g09.out</Output>
+  <Output type="auxiliary" mimetype="chemical/x-gaussian-09-mo">fort.7</Output>
   <Output type="property" mimetype="chemical/x-gaussian-cube">CUBE</Output>
 </DataFiles>
 
@@ -472,12 +472,12 @@
      assumed to be in the ecce path as managed by the ecce_env script.
 -->
 <IntegrationFiles>
-  <Template>g03.tpl</Template>
-  <InputGenerator>ai.gauss03 </InputGenerator>
-  <Importer>Gaussian-03.expt </Importer>
-  <ParseSpecification>gaussian-03.desc </ParseSpecification>
-  <LaunchPreprocessor>gaussian-03.launchpp </LaunchPreprocessor>
-  <BasisTranslationScript>std2Gaussian-03</BasisTranslationScript>
+  <Template>g09.tpl</Template>
+  <InputGenerator>ai.gauss09 </InputGenerator>
+  <Importer>Gaussian-09.expt </Importer>
+  <ParseSpecification>gaussian-09.desc </ParseSpecification>
+  <LaunchPreprocessor>gaussian-09.launchpp </LaunchPreprocessor>
+  <BasisTranslationScript>std2Gaussian-09</BasisTranslationScript>
 </IntegrationFiles>
 
 </appdescriptor>
