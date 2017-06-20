@@ -9,7 +9,7 @@
 # Description:
 #
 #
-#  The input stream is essentially taken directly from the g03 fort.7
+#  The input stream is essentially taken directly from the g09 fort.7
 #  file so look at one of those to understand the incoming format.
 #  For U* theories both alpha and beta MOs will appear and must be
 #  parsed into separate properties.  The alphas come first followed by
