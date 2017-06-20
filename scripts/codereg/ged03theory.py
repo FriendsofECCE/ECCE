@@ -621,7 +621,7 @@ class Ged03TheoryPanel(EccePanel):
             self.corrFunc.Enable(not self.xcFunc.GetSelection())
 
         # SCRF solvation -- CAO
-        if EcceGlobals.Category == "DFT" or EcceGlobals.Category == "SCF":   
+        if EcceGlobals.Category == "DFT" or EcceGlobals.Category == "SCF" or EcceGlobals.Category == "MP":   
             self.solvent.Enable(self.useSCRF.GetValue())
             self.scrf.Enable(self.useSCRF.GetValue())
             self.scrfDielec.Enable(self.useSCRF.GetValue() and
