@@ -1,12 +1,12 @@
 from templates import *
 
-class Ged03RunTypeFrame(EcceFrame):
+class Ged09RunTypeFrame(EcceFrame):
     def __init__(self, parent, title, app, helpURL=""):
         EcceFrame.__init__(self, parent, title)
-        panel = Ged03RunTypePanel(self, helpURL)
+        panel = Ged09RunTypePanel(self, helpURL)
         self.Finalize()
 
-class Ged03RunTypePanel(EccePanel):
+class Ged09RunTypePanel(EccePanel):
     def __init__(self, parent, helpURL):
         EccePanel.__init__(self, parent, helpURL)
 
@@ -272,7 +272,7 @@ class Ged03RunTypePanel(EccePanel):
             self.fdStep.Enable(self.vibMethod.GetValue() != "Analytic")
 
 
-frame = Ged03RunTypeFrame(None,
-                          title = "ECCE Gaussian-03 Editor: Runtype Details",
+frame = Ged09RunTypeFrame(None,
+                          title = "ECCE Gaussian-09 Editor: Runtype Details",
                           app = app,
                           helpURL = "")

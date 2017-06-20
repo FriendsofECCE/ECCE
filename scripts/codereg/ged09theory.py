@@ -1,12 +1,12 @@
 from templates import *
 
-class Ged03TheoryFrame(EcceFrame):
+class Ged09TheoryFrame(EcceFrame):
     def __init__(self, parent, title, app, helpURL=""):
         EcceFrame.__init__(self, parent, title)
-        panel = Ged03TheoryPanel(self, helpURL)
+        panel = Ged09TheoryPanel(self, helpURL)
         self.Finalize()
         
-class Ged03TheoryPanel(EccePanel):
+class Ged09TheoryPanel(EccePanel):
     def __init__(self,parent,helpURL=""):
         EccePanel.__init__(self, parent, helpURL)
 
@@ -638,7 +638,7 @@ class Ged03TheoryPanel(EccePanel):
             self.exSpin.Enable(self.exTog.GetValue())
 
 
-frame = Ged03TheoryFrame(None,
-                         title = "ECCE Gaussian-03 Editor: Theory Details",
+frame = Ged09TheoryFrame(None,
+                         title = "ECCE Gaussian-09 Editor: Theory Details",
                          app = app,
                          helpURL = "")
