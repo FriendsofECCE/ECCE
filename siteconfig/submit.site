@@ -111,6 +111,11 @@ Gaussian-98FilesToRemove { core *.rwf }
 Gaussian-03FilesToRemove { core *.rwf }
 
 ################
+# Gaussian-09 - see comments for NWChem
+################
+Gaussian-09FilesToRemove { core *.rwf }
+
+################
 # Polyrate
 ################
 PolyrateFilesToRemove { core }
