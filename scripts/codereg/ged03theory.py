@@ -485,7 +485,83 @@ class Ged03TheoryPanel(EccePanel):
                                       label = "Computed:")
             mpSizer.AddWidget(self.mpOpt)
             self.panelSizer.Add(mpSizer)
-            
+             # Use solvation
+            self.useSCRF = EcceCheckBox(self, #useCosmo
+                                         label = " Use SCRF",
+                                         name = "ES.Theory.SCF.UseSCRF",
+                                         default = False)
+            sovLeftSizer.AddWidget(self.useSCRF,
+                                   border = EcceGlobals.BorderDefault)
+            # SCRF type
+            scrfChoice = ["PCM",
+                          "CPCM",
+                          "IPCM",
+                          "SCIPCM",
+                          "SMD",
+                          "Dipole"]
+            self.scrf = EcceComboBox(self,
+                                        choices = scrfChoice,
+                                        name = "ES.Theory.SCF.SCRF",
+                                        label = "SCRF type:",
+                                        default = 0)
+            sovRightSizer.AddWidget(self.scrf,
+                                    border = EcceGlobals.BorderDefault)
+            # Solvent type 
+            solventChoice = ["Water",
+                             "Acetonitrile",
+                             "Methanol",
+                             "Ethanol",
+                             "Manual",
+                             "1,4-Dioxane",
+                             "methylcyclohexane",
+                             "Benzene",
+                             "Chloroform",
+                             "Diethylether",
+                             "Dichloromethane",
+                             "Dichloroethane",
+                             "Carbontetrachloride",
+                             "Toluene",
+                             "Chlorobenzene",
+                             "Nitromethane",
+                             "Heptane",
+                             "Aniline",
+                             "Acetone",
+                             "Tetrahydrofuran",
+                             "Dimethylsulfoxide",
+                             "Argon",
+                             "Krypton",
+                             "Xenon",
+                             "n-Octanol",
+                             "1-Butanol"
+                             "Cyclohexane",
+                             "Isoquinoline",
+                             "Quinoline",
+							 "n,n-dimethylformamide",
+                             ]
+            self.solvent = EcceComboBox(self,
+                                        choices = solventChoice,
+                                        name = "ES.Theory.SCF.Solvent",
+                                        label = "Solvent:",
+                                        default = 0)
+            sovRightSizer.AddWidget(self.solvent,
+                                    border = EcceGlobals.BorderDefault)
+
+            self.scrfDielec = EcceFloatInput(self,
+                                              default = 78.4,
+                                              name = "ES.Theory.SCF.Dielectric",
+                                              label = "Dielectric Constant:",
+                                              hardRange = "(0..)",
+                                              unit = "Debye")
+            sovRightSizer.AddWidget(self.scrfDielec,
+                                    border = EcceGlobals.BorderDefault)
+
+            sovSizer.AddWidget(sovLeftSizer,
+                               flag = wx.ALL)
+            sovSizer.AddWidget(sovRightSizer,
+                               flag = wx.ALL)
+            self.panelSizer.Add(sovSizer)
+            # End theory options solvation -CAO
+           
         # THEORY OPTIONS CC
         if EcceGlobals.Category == "CC":
             ccSizer = EcceBoxSizer(self,
@@ -621,7 +697,7 @@ class Ged03TheoryPanel(EccePanel):
             self.corrFunc.Enable(not self.xcFunc.GetSelection())
 
         # SCRF solvation -- CAO
-        if EcceGlobals.Category == "DFT" or EcceGlobals.Category == "SCF" or EcceGlobals.Category == "MP":   
+        if EcceGlobals.Category == "DFT" or EcceGlobals.Category == "MP":   
             self.solvent.Enable(self.useSCRF.GetValue())
             self.scrf.Enable(self.useSCRF.GetValue())
             self.scrfDielec.Enable(self.useSCRF.GetValue() and
