@@ -46,7 +46,7 @@ if ($debugOut eq "true") {
 }
 
 # To keep this script from having to know very much, the list of fully
-# registered codes is now passed in as an arguement.  Old code to
+# registered codes is now passed in as an argument.  Old code to
 # determined this from the .cap files can be found in the previous
 # version if there is a need to revert to that type of strategy.
 #
