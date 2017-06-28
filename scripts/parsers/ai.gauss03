@@ -236,9 +236,9 @@ sub G03Route {
   if ((($tmpTheory =~ /MP4/ || $tmpTheory =~ /MP5/) &&  $tmpTheory !~ /SDQ/) || 
         $tmpTheory =~ /CCSD/ || $tmpTheory =~ /QCISD.T./ ||
         $tmpTheory =~ /ROMP/ || $tmpTheory =~ /HF/ || $tmpTheory =~ /DFT/) {
-    $route .= " Pop=()";
+    $route .= " Pop=(full)";
   } else {
-    $route .= " Density Pop=()";
+    $route .= " Density Pop=(full)";
   }
   $result = &multiLineString($route,78); # break the route line if too long
 
