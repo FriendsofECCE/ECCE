@@ -42,7 +42,7 @@ Script=gaussian-03.geomtrace-input
 Begin=Input orientation\:
 Skip=5
 Frequency=all
-End=Framework group
+End=--------------------------------------
 [END]
 
 [EGRAD]
