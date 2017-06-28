@@ -252,13 +252,13 @@ sub G09Route {
         $tmpTheory =~ /ROMP/ || $tmpTheory =~ /HF/ || $tmpTheory =~ /DFT/) {
 #Andy
     if ($AbiDict{"UseNBO"}) { 
-    $route .= " Pop=(NBO6, savenbos)"; #Andy
+    $route .= " Pop=(NBO6, savenbos,full)"; #Andy
     } else {
 # end Andy
-    $route .= " Pop=()";
+    $route .= " Pop=(full)";
     } 
   } else {
-    $route .= " Density Pop=()";
+    $route .= " Density Pop=(full)";
   }
   $result = &multiLineString($route,78); # break the route line if too long
 

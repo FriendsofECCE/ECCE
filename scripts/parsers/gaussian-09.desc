@@ -18,7 +18,7 @@ End=Condensed to atoms
 Script=gaussian-09.null
 Begin=Making orbital integer symmetry
 Frequency=all
-End=used in FoFDir
+End=CISAX will form
 [END]
 
 [GEOMTRACE]
@@ -42,7 +42,7 @@ Script=gaussian-09.geomtrace-input
 Begin=Standard orientation\:
 Skip=5
 Frequency=all
-End=Framework group
+End=--------------------------------------
 [END]
 
 [EGRAD]
