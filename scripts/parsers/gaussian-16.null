@@ -1,0 +1,21 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+# This script ignores all input. It is used to skip over redundant output
+# in geometry optimization-vibration calculations.
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+######
+# The command line arguments
+######
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+exit(0);
