@@ -849,13 +849,13 @@ sub gaussian16()
 {
   my ($retval,$cmd);
   $retval = "";
-  $g09 = $config{$lccode};
-  if ($g09 eq "") { die "Path for G16 not found"; }
-  $cmd = $::config{"gaussian-09command"};
+  $g16 = $config{$lccode};
+  if ($g16 eq "") { die "Path for G16 not found"; }
+  $cmd = $::config{"gaussian-16command"};
 
   # We still need to check the environment to allow the user
   # to override the path like we did with the previous implementation
-  $retval .= "set g09 = $g16\n";
+  $retval .= "set g16 = $g16\n";
   $retval .= "if (\$\?ECCE_GAUSSIAN16) then\n  set g16 = \$ECCE_GAUSSIAN16\nendif\n";
   my ($tmp);
   $_ = $g16;
@@ -867,7 +867,7 @@ sub gaussian16()
   $retval .= "  setenv GAUSS_EXEDIR \$g16:h\n";
   $retval .= "endif\n";
   # Try to identify it as an sgi - if so add g16 to path to pick up util.so
-  #if ($g09 =~ /g09.*r.*/) {
+  #if ($g16 =~ /g16.*r.*/) {
     $retval .= "if (\$?LD_LIBRARY_PATH) then\n";
     $retval .= "  setenv LD_LIBRARY_PATH \${g16:h}:\${LD_LIBRARY_PATH}\n";
     $retval .= "else\n";
