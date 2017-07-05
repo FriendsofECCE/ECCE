@@ -773,7 +773,7 @@ sub DFTXCFun {
     $result = "CAM-B3LYP";       
    } elsif ($xcFun eq "HISSbPBE (range)") {
     $result = "HISSbPBE";       
-   } elsif ($xcFun eq "M11 (range)") {
+   } elsif ($xcFun eq "MN15M11 (range)") {
     $result = "M11";       
    } elsif ($xcFun eq "N12SX (range)") {
     $result = "N12SX";       
@@ -781,6 +781,24 @@ sub DFTXCFun {
     $result = "MN12SX";       
   } elsif ($xcFun eq "Becke Half and LYP Half (hybrid)") {
     $result = "BHandHLYP";
+  } elsif ($xcFun eq "MN15 (hybrid)") {
+    $result = "MN15";
+  } elsif ($xcFun eq "M08HX (hybrid)") {
+    $result = "M08HX";
+  } elsif ($xcFun eq "M05 (hybrid)") {
+    $result = "M05";
+  } elsif ($xcFun eq "M052X (hybrid)") {
+   $result = "M052X";
+  } elsif ($xcFun eq "PW6B95 (hybrid)") {
+    $result = "PW6B95";
+  } elsif ($xcFun eq "PW6B95D3 (hybrid)") {
+    $result = "PW6B95D3";
+  } elsif ($xcFun eq "DSDPBEP86 (double-hybrid)") {
+    $result = "DSDPBEP86";
+  } elsif ($xcFun eq "PBE0DH (double-hybrid)") {
+    $result = "PBE0DH";
+  } elsif ($xcFun eq "PBEQIDH (double-hybrid)") {
+    $result = "PBEQIDH";
   } else {
     $result = "";
   }

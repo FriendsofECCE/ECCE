@@ -85,6 +85,7 @@
     <runtype>Gradient</runtype>
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
+    <runtype>Absorbance</runtype>
     <runtype>GeoVib</runtype>
     <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
@@ -95,6 +96,7 @@
     <runtype>Gradient</runtype>
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
+    <runtype>Absorbance</runtype>
     <runtype>GeoVib</runtype>
     <runtype>IRC</runtype>
   </Theory>
@@ -103,6 +105,7 @@
     <runtype>Gradient</runtype>
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
+    <runtype>Absorbance</runtype>
     <runtype>GeoVib</runtype>
     <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
@@ -113,6 +116,7 @@
     <runtype>Gradient</runtype>
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
+    <runtype>Absorbance</runtype>
     <runtype>GeoVib</runtype>
     <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
@@ -123,6 +127,7 @@
     <runtype>Gradient</runtype>
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
+    <runtype>Absorbance</runtype>
     <runtype>GeoVib</runtype>
     <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
@@ -232,7 +237,39 @@
     <runtype>GeoVib</runtype>
     <runtype>IRC</runtype>
   </Theory>
-  <Theory category="MP" name="RMP2">
+    <Theory category="SE" name="RPM6" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+  <Theory category="SE" name="UPM6" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+   <Theory category="SE" name="RPM7" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+   <Theory category="SE" name="UPM7" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
+  </Theory>
+ <Theory category="MP" name="RMP2">
     <runtype>Energy</runtype>
     <runtype>Gradient</runtype>
     <runtype>Geometry</runtype>
