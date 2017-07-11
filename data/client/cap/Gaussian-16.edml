@@ -85,7 +85,7 @@
     <runtype>Gradient</runtype>
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
-    <runtype>Absorbance</runtype>
+<!--    <runtype>Absorbance</runtype> -->
     <runtype>GeoVib</runtype>
     <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
