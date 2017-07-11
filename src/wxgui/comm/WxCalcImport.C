@@ -106,6 +106,8 @@ void WxCalcImport::importCalc()
         string name = file.pathtail();
         if (name == "ecce")
           name = "NWChem";
+        else if (name == "g16")
+          name = "Gaussian16";
         else if (name == "g09")
           name = "Gaussian09";
          else if (name == "g03")

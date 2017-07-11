@@ -1,0 +1,54 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+# Process the data
+# The end of the data input is marked by "\001"
+
+while (<STDIN>) {
+   chop;
+   if ($_ eq "\001") {
+      last;
+   }
+   if ($_ eq "") {
+      next;
+   }
+   $inline = $_;
+}
+
+#
+# Get the data of interest out of the line:
+# Total energy
+#
+
+# print "cpu_time_seconds: ";
+
+($junk,$inline) = split(/:/,$inline);
+$inline =~
+    /\s*(\S+)\s*days\s*(\S+)\s*hours\s*(\S+)\s*minutes\s*(\S+)\s*seconds/;
+$days = $1; $hours = $2; $minutes = $3; $seconds = $4;
+
+$fullhours = 24.0*$days + $hours;
+$fullminutes = 60.0*$fullhours + $minutes;
+$cpusec = 60.0*$fullminutes + $seconds;
+
+print "key: CPUSEC\n";
+print "size:\n1\n";
+print "values:\n$cpusec\n";
+print "END\n";
+
+exit(0);
