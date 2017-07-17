@@ -62,9 +62,9 @@ END_EVENT_TABLE()
 const char* CalcEd::p_BASIS_QUICK_PICKS[] = {
   "6-31G", "6-31++G", "6-31G*", "6-31+G*", "6-31++G**", "-", // len(6)
   "cc-pVDZ", "cc-pVTZ", "aug-cc-pVDZ", "aug-cc-pVTZ", "-", // len(5)
-  "def2-svp", "def2-svpd", "def2-tzvp" // len(3)
+  "def2-svp", "def2-svpd", "def2-tzvp","-", // len(4)
   "DZVP (DFT Orbital)", "DZVP2 (DFT Orbital)", "TZVP (DFT Orbital)" // len(3)
-}; // len(17)
+}; // len(18)
 
 
 CalcEd::CalcEd( )
