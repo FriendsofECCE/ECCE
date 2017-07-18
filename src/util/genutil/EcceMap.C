@@ -7,7 +7,7 @@
            a file or to a DAV meta data property.
 **************************************************************************/
 #include <iostream>
-#include <sstream>
+#include <strstream>
 using std::istrstream;
 
 #include "util/EcceMap.H"

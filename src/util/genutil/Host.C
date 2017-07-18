@@ -12,7 +12,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <sstream>
+#include <strstream>
 using std::ostrstream;
 #include <fstream>
 using std::ifstream;

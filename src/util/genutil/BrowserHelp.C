@@ -7,7 +7,7 @@
 #include <iostream>
   using std::cout;
   using std::endl;
-#include <sstream>
+#include <strstream>
   using std::ostrstream;
 
 #include <stdlib.h>              // system()

@@ -18,7 +18,7 @@ using std::cout;
 using std::endl;
 using std::ends;
 
-#include <sstream>
+#include <strstream>
 using std::ostrstream;
 
 #include <string>

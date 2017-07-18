@@ -9,7 +9,7 @@
   using std::cerr;
   using std::endl;
 
-#include <sstream>
+#include <strstream>
   using std::istrstream;
 #include <fstream>
   using std::ofstream;

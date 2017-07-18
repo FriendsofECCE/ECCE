@@ -3,7 +3,7 @@
   using std::ends;
   using std::ifstream;
   using std::ofstream;
-#include <sstream>
+#include <strstream>
   using std::ostrstream;
 #include <unistd.h> // for getcwd()
 

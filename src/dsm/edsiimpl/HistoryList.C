@@ -10,7 +10,7 @@
  *  Supports saving and restoring from server or local disk.
  */
 
-#include <sstream>
+#include <strstream>
   using std::ostrstream;
 #include <iostream>
   using std::endl;

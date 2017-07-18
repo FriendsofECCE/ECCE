@@ -5,7 +5,7 @@
   using std::ifstream;
   using std::ofstream;
 
-#include <sstream>
+#include <strstream>
   using std::ostrstream;
   using std::strstreambuf;
 

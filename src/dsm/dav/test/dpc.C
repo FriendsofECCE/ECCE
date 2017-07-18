@@ -1,6 +1,6 @@
 // include files ***********************************************************
 #  include <iostream>
-#  include <sstream>
+#  include <strstream>
 #  include <fstream>
 #  include <string>
 using namespace std;

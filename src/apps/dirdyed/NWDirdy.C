@@ -20,7 +20,7 @@
   using std::ifstream;
 #include <sstream>
   using std::ostringstream;
-#include <sstream>
+#include <strstream>
   using std::istrstream;
   using std::ostrstream;
 #include <unistd.h>

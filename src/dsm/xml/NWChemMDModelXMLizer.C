@@ -3,7 +3,7 @@
   using std::cerr;
   using std::endl;
   using std::ends;
-#include <sstream>
+#include <strstream>
   using std::istrstream;
   using std::ostrstream;
 

@@ -7,7 +7,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h> // sprintf
-#include <sstream>
+#include <strstream>
   using std::istrstream;
 #include <fstream>
   using std::ifstream;

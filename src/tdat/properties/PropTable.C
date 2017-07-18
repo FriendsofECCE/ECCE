@@ -9,7 +9,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <sstream>
+#include <strstream>
 using std::istrstream;
 
 #include <stdlib.h>         // atoi

@@ -13,7 +13,7 @@
   using std::cout;
   using std::endl;
   using std::ends;
-#include <sstream>
+#include <strstream>
   using std::istrstream;
 
 #include <algorithm>

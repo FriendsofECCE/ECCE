@@ -17,7 +17,7 @@
    #include <netinet/in.h>
 
 #include <fstream>
-#include <sstream>
+#include <strstream>
 using namespace std;
    #include "util/SFile.H"
 

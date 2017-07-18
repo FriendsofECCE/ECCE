@@ -1,5 +1,5 @@
 #include <iostream>
-#include <sstream>
+#include <strstream>
 
   using namespace std;
 

@@ -2,7 +2,7 @@
 
 #include <stdio.h>  // sprintf
 
-#include <sstream>
+#include <strstream>
   using std::ostrstream;
   using std::istrstream;
 

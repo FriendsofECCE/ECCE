@@ -7,7 +7,7 @@
   using std::endl;
   using std::ios;
 
-#include <sstream>
+#include <strstream>
   using std::ostrstream;
   using std::istrstream;
   using std::streambuf;

@@ -9,7 +9,7 @@
   using std::endl;
   using std::ends;
   using std::cout;
-#include <sstream>
+#include <strstream>
   using std::istrstream;
   using std::ostrstream;
 

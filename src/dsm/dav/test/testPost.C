@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include <sstream>
+#include <strstream>
   using namespace std;
 
 #include "util/CmdLineAuthListener.H"
