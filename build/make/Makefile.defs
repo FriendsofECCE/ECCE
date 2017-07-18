@@ -81,8 +81,8 @@ ARFLAGS = ru
 ################################################################################
 # Compiler options (FFLAGS is for Fortran symmetry executables)
 ################################################################################
-ECCE_CFLAGS = $(ECCE_COMPILE_MODE) -pipe -fPIC -Wall -Wno-deprecated -Wno-sign-compare -Wno-non-virtual-dtor
-ECCE_CCFLAGS = $(ECCE_COMPILE_MODE) -pipe -fPIC -Wall -Wno-sign-compare -Wno-implicit-int
+ECCE_CFLAGS = $(ECCE_COMPILE_MODE) -pipe -fPIC -Wall -Wno-deprecated -Wno-sign-compare -Wno-non-virtual-dtor -ansi
+ECCE_CCFLAGS = $(ECCE_COMPILE_MODE) -pipe -fPIC -Wall -Wno-sign-compare -Wno-implicit-int -ansi
 ECCE_FFLAGS = $(ECCE_COMPILE_MODE)
 
 # 32-bit cross-compilation check
