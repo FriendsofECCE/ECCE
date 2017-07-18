@@ -79,7 +79,7 @@ _flGetFontInfoList(GLubyte *fontList /* "fn1,fn2,fn3, ..." */)
 #if 000
       list[i] = flGetFontInfo((FLfontNumber)atoi(p2));
 #else
-      // GDB 2/9/12  Get rid of compiler warning and use preferred function
+      /* GDB 2/9/12  Get rid of compiler warning and use preferred function */
       list[i] = flGetFontInfo((FLfontNumber)
                      strtol((const char*)p2, (char**)NULL, 10));
 #endif
