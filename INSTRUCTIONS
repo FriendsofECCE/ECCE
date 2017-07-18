@@ -4,8 +4,11 @@ Debian 8.8, Ubuntu 16.04.2 LTS and CentOS 7  do not need patching to compile any
 CentOS 7:
 using yum, install: csh gcc gcc-c++ gcc-gfortran java-1.7.0-openjdk-devel python-devel ant gtk2-devel libjpeg-turbo-devel libtool ImageMagick libXt-devel xterm mesa-libGLU-devel kernel-devel perl-Digest-Perl-MD5 perl-Digest-MD5 bzip2 perl-Env 
 
+Debian 9:
+using apt-get, install: bzip2 build-essential autoconf libtool ant pkg-config libgtk2.0-dev libxt-dev csh gfortran openjdk-8-jdk python-dev libjpeg-dev imagemagick xterm libfreetype6-dev libfl-dev libtool-bin
+
 Debian 8.8:
-using apt-get, install: bzip2 build-essential autoconf libtool ant pkg-config gtk+-2.0-dev libxt-dev csh gfortran openjdk-7-jdk python-dev libjpeg-dev imagemagick xterm libfreetype6-dev libfl-dev libtool-bin
+using apt-get, install: bzip2 build-essential autoconf libtool ant pkg-config libgtk2.0-dev libxt-dev csh gfortran openjdk-7-jdk python-dev libjpeg-dev imagemagick xterm libfreetype6-dev libfl-dev libtool-bin
 
 Ubuntu 16.04.2 LTS:
 using apt-get, install: bzip2 build-essential autoconf libtool ant pkg-config gtk+-2.0-dev libxt-dev csh gfortran openjdk-8-jdk python-dev libjpeg-dev imagemagick xterm libfreetype6-dev libfl-dev libtool-bin
