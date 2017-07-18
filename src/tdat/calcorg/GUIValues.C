@@ -2,7 +2,7 @@
   using std::ends;
   using std::flush;
 
-#include <strstream>
+#include <sstream>
   using std::istrstream;
   using std::ostrstream;
 

@@ -8,7 +8,7 @@
 
 #include <iostream>
 using std::ends;
-#include <strstream>
+#include <sstream>
 using std::ostrstream;
 
 

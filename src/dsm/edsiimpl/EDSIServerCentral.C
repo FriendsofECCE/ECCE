@@ -1,4 +1,4 @@
-#include <strstream>
+#include <sstream>
   using std::ostrstream;
 #include <iostream>
   using std::cout;

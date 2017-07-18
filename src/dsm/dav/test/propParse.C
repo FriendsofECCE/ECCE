@@ -18,7 +18,7 @@ using namespace xercesc;
 #include "dsm/DavEDSI.H"
 #include "dsm/BasicDOMParser.H"
 #include "dsm/ResourceDescriptor.H"
-#include <strstream>
+#include <sstream>
 #include <fstream>
 #include <set.h>
 #include <map>

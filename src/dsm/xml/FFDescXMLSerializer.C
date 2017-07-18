@@ -2,7 +2,7 @@
 #include <limits.h>
 #include <float.h>
 
-#include <strstream>
+#include <sstream>
   using std::istrstream;
   using std::ostrstream;
 

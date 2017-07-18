@@ -11,7 +11,7 @@
   using std::cerr;
   using std::endl;
   using std::ends;
-#include <strstream>
+#include <sstream>
   using std::istrstream;
 
 #include <stdio.h>

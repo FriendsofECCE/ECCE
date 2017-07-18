@@ -15,7 +15,7 @@
 #include <fstream>
   using std::ofstream;
   using std::ifstream;
-#include <strstream>
+#include <sstream>
   using std::istrstream;
 
 #include "util/Ecce.H"

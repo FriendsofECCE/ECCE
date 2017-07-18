@@ -2,7 +2,7 @@
 // include files ***********************************************************
 #  include <iostream>
 #  include <fstream>
-#  include <strstream>
+#  include <sstream>
 using namespace std;
 #include "util/CmdLineAuthListener.H"
 #include "util/ProgressEvent.H"

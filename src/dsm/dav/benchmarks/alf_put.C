@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-#include <strstream>
+#include <sstream>
   using namespace std;
 
 #include "util/CmdLineAuthListener.H"

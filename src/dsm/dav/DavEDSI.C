@@ -42,7 +42,7 @@
 // 504                    Gateway Time-out
 // 505                    HTTP Version not supported
 //////////////////////////////////////////////////////////////////////////////
-#include <strstream>
+#include <sstream>
   using std::istrstream;
   using std::ostrstream;
 #include <iostream>

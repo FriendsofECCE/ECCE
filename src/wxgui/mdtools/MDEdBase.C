@@ -16,7 +16,7 @@
 #include <fstream>
   using std::ofstream;
   using std::ifstream;
-#include <strstream>
+#include <sstream>
   using std::istrstream;
   using std::ostrstream;
 

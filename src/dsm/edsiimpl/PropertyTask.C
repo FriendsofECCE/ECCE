@@ -5,7 +5,7 @@
  */
 #include <algorithm>
   using std::find;
-#include <strstream>
+#include <sstream>
   using std::ostrstream;
   using std::istrstream;
   using std::ends;

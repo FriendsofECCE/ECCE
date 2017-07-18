@@ -4,7 +4,7 @@
  *
  */
 
-#include <strstream>
+#include <sstream>
   using std::ostrstream;
 
 #include <iostream>

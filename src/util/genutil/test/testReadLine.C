@@ -1,5 +1,5 @@
 #include <iostream>
-#include <strstream>
+#include <sstream>
 #include <fstream>
   using namespace std;
 #include "util/StringTokenizer.H"

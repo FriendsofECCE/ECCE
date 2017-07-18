@@ -17,7 +17,7 @@ using std::ofstream;
 #include <iostream>
 using std::cerr;
 
-#include <strstream>
+#include <sstream>
 using std::ostrstream;
 
 #include <algorithm>

@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include <strstream>
+#include <sstream>
 using namespace std;
 #include <unistd.h>
 

@@ -7,7 +7,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <strstream>
+#include <sstream>
 using std::istrstream;
 
 #include "tdat/PropTSVecVector.H"

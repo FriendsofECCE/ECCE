@@ -7,7 +7,7 @@
 #include <fstream>
   using std::ifstream;
 
-#include <strstream>
+#include <sstream>
   using std::istrstream;
   using std::ostrstream;
   using std::ends;

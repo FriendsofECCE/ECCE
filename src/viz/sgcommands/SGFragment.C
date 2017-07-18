@@ -7,7 +7,7 @@
 #endif
 #include <fstream>
   using std::ifstream;
-#include <strstream>
+#include <sstream>
   using std::istrstream;
 #include <set>
   using std::set;
