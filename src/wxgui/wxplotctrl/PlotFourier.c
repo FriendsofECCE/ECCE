@@ -42,9 +42,9 @@
 
 /*--- start of file fftmisc.c---*/
 
-// #define IsPowerOfTwo(x) (((x)<2) || ((x)&((x)-1)) ? false : true)
+/* #define IsPowerOfTwo(x) (((x)<2) || ((x)&((x)-1)) ? false : true) */
 
-// returns 1 if the numver is a power of two else 0
+/* returns 1 if the numver is a power of two else 0 */
 int IsPowerOfTwo ( unsigned x )
 {
     if ( x < 2 )
@@ -56,7 +56,7 @@ int IsPowerOfTwo ( unsigned x )
     return 1;
 }
 
-// returns the number of bits needed
+/* returns the number of bits needed */
 unsigned NumberOfBitsNeeded ( unsigned PowerOfTwo )
 {
     unsigned i;
