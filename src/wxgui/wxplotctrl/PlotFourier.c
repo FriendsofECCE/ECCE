@@ -50,7 +50,7 @@ int IsPowerOfTwo ( unsigned x )
     if ( x < 2 )
         return 0;
 
-    if ( x & (x-1) )        // Thanks to 'byang' for this cute trick!
+    if ( x & (x-1) )        /* Thanks to 'byang' for this cute trick! */
         return 0;
 
     return 1;
@@ -140,7 +140,7 @@ int fft_double (
     unsigned i, j, k, n;
     unsigned BlockSize, BlockEnd;
 
-    double angle_numerator = -2.0 * DDC_PI; // this is - to match matlab
+    double angle_numerator = -2.0 * DDC_PI; /* this is - to match matlab */
     double tr, ti;     /* temp real, temp imaginary */
 
     if ( !IsPowerOfTwo(NumSamples) || (NumSamples < 2) )
@@ -287,7 +287,7 @@ int fft_float (
     unsigned i, j, k, n;
     unsigned BlockSize, BlockEnd;
 
-    double angle_numerator = -2.0 * DDC_PI; // this is - to match matlab
+    double angle_numerator = -2.0 * DDC_PI; /* this is - to match matlab */
     double tr, ti;     /* temp real, temp imaginary */
 
     if ( !IsPowerOfTwo(NumSamples) || (NumSamples < 2) )
