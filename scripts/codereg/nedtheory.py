@@ -708,7 +708,6 @@ class NedTheoryPanel(EccePanel):
                             "CAM-B3LYP (range)", # added by CAO
                             "Adiabatic Conn. (hybrid)",
                             "B3PW91 (hybrid)",   # added by CAO
-                            "BP86 (hybrid)", # added by CAO
                             "B3P86 (hybrid)", # added by CAO
                             "X3LYP (hybrid)", # added by CAO
                             "mPW1PW91 (hybrid)", # added by CAO
@@ -720,6 +719,7 @@ class NedTheoryPanel(EccePanel):
                             "Gaussian B3 (hybrid)", # added by CAO
                             "BOP (Gradient Corr.)",# added by CAO
                             "PBEOP (Gradient Corr.)",# added by CAO
+                            "BP86 (Gradient Corr.)", # added by CAO
                             "M05 (hybrid)",# added by CAO
                             "M05-2X (hybrid)",# added by CAO
                             "M06 (hybrid)",# added by CAO
