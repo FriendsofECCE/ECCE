@@ -52,7 +52,7 @@
  */
 
 #include <stdio.h>
-#include <math.h>
+#include <tr1/math.h>
 #include <stdlib.h>
 #include "SoAddPrefix.H"
 #include "inv/actions/SoRayPickAction.H"

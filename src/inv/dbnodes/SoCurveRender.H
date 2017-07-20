@@ -56,7 +56,7 @@
 #ifndef  _SO_NURBS_CURVE_RENDER_
 #define  _SO_NURBS_CURVE_RENDER_
 
-#include <math.h>
+#include <tr1/math.h>
 #include <stdlib.h>
 #include "inv/SbLinear.H"
 #include "nurbstess.H"

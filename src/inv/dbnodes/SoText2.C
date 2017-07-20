@@ -80,7 +80,7 @@
 
 // 6.2 requires flclient.h, iconv.h for UTF->UCS conversion
 #include "inv/flclient.h"
-#include <math.h>
+#include <tr1/math.h>
 #include <iconv.h>
 #include "machine.H"
 
@@ -1412,7 +1412,7 @@ SoBitmapFontCache::freeBitmap(unsigned long, void* value)
 #include "inv/nodes/SoText2.H"
 
 #include "inv/flclient.h"
-#include <math.h>
+#include <tr1/math.h>
 
 // An internal class that makes life easier:
 

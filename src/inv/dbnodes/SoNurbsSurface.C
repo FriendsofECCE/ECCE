@@ -53,7 +53,7 @@
 
 #include <GL/gl.h>
 #include <GL/glu.h>
-#include <math.h>
+#include <tr1/math.h>
 #include "inv/SbBox.H"
 #include "inv/SoDB.H"
 #include "inv/actions/SoGLRenderAction.H"
