@@ -57,7 +57,7 @@
 #define  _SO_NURBS_PRIM_RENDER_
 
 //#include <GL/gl.h>
-#include <math.h>
+#include <tr1/math.h>
 #include <stdlib.h>
 #include "inv/SbLinear.H"
 #include "nurbstess.H"
