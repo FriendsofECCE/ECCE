@@ -23,7 +23,7 @@ include $(ECCE_MAKEINC_DIR)/Makefile.defs
 SRCS   := $(shell ls *.c)
 OBJS   = $(patsubst %.c, $(OBJ_PATH)/%.o, $(SRCS))
 IFLAGS := $(ECCE_IFLAGS) 
-CCFLAGS := $(ECCE_CCFLAGS)
+CCFLAGS := $(ECCE_CCFLAGS) -DNO_UNION_WAIT
 
 default: $(OBJ_PATH) $(SRCS:%.c=.%.D) $(LIB_PATH)/$(LIBRARY)
 

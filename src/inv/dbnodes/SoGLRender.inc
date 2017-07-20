@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include <math.h>
+#include <tr1/math.h>
 #include <stdlib.h>
 #include "inv/errors/SoDebugError.H"
 #include "SoAddPrefix.H"

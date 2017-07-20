@@ -43,7 +43,7 @@
 
 #include <inttypes.h>   /* defines long and brethren */
 
-#include <math.h>
+#include <tr1/math.h>
 #include <stdlib.h>
 #include "nurbstess.H"
 #include "gl4types.H"

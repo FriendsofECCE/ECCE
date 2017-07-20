@@ -58,7 +58,7 @@
 #ifndef  _SO_NURBS_PRIM_MAPS_
 #define  _SO_NURBS_PRIM_MAPS_
 
-#include <math.h>
+#include <tr1/math.h>
 #include <stdlib.h>
 #include "inv/SbLinear.H"
 #include "inv/SoPrimitiveVertex.H"
