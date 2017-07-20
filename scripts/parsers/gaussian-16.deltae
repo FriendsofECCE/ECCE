@@ -1,0 +1,44 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+# This script converts the raw DELTAESCF (Energy Change) for an SCF interation.
+#
+# Command line parameters:
+#           
+# Description:
+#
+# sample input line (except for the lead #):
+#  E=-0.533603067515587D+03 Delta-E=       -1.125464774809
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+######
+# The command line arguments
+######
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+if ($runtype =~ /Geo/i) {
+
+  while (<STDIN>) {
+    if ( /Delta\-E=\s*(\S+)/ ) {
+      $deltae = $1;
+      $deltae =~ s/D/E/g;
+      last;
+    }
+  }
+
+  print "key: DELTAE\n";
+  print "size: \n1\n";
+  print "values: \n$deltae\n";
+  print "units:\nHartree\n";
+  print "END\n";
+}
+
+exit(0);

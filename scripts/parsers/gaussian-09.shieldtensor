@@ -1,0 +1,163 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+#
+# read the NMR shielding tensor components
+#
+  @result = ();
+  @rowlabels = ();
+
+  $_ = <STDIN>;
+  $_ = <STDIN>;  # first line of interest
+  for (;;) {
+# read atom name, Isotropic and Anisotropy for atom    
+    ($junk0,$label0,$label1,$junk2,$junk3,$iso,$junk4,$junk5,$aniso) =
+	split(/ +/,$_);
+    push(@rowlabels,($label1 . "-" . $label0));
+    push(@iso,$iso);
+    chop $aniso;
+    push(@aniso,$aniso);
+    $_ = <STDIN>;
+# read 1st 3 shielding tensor components
+    ($junka,$junk0,$value0,$junk1,$value1,$junk2,$value2) = split(/ +/,$_);
+    chop($value2);
+    push(@result,($value0,$value1,$value2));
+    $_ = <STDIN>;
+# read 2nd 3 shielding tensor components
+    ($junka,$junk0,$value0,$junk1,$value1,$junk2,$value2) = split(/ +/,$_);
+    chop($value2);
+    push(@result,($value0,$value1,$value2));
+    $_ = <STDIN>;
+# read last 3 shielding tensor components
+    ($junka,$junk0,$value0,$junk1,$value1,$junk2,$value2) = split(/ +/,$_);
+    chop($value2);
+    push(@result,($value0,$value1,$value2));
+    $_ = <STDIN>;
+# read eigenvalues
+    ($junk0,$junka,$value0,$value1,$value2) = split(/ +/,$_);
+    chop $value2;
+    push(@eigvals,($value0,$value1,$value2));
+    $_ = <STDIN>;
+# skip over eigenvectors, if they show up
+    if (/Eigenvector/) {
+      $_ = <STDIN>;
+      $_ = <STDIN>;
+      $_ = <STDIN>;
+      $_ = <STDIN>;
+    }
+   
+# break on  "Leave"
+    last unless(/Isotropic/);
+  }
+########################################################################
+# make this matrix look like a vector with concatenated labels
+########################################################################
+  $nrows =  ($#result + 1)/9;
+  $ncolumns = 9;
+  print "key: SHIELDTENSOR\n";
+  $vecsize = $nrows*$ncolumns;
+  print "size:\n$vecsize\n";
+  print "rowlabels:\n";
+  foreach $i (0 .. $#rowlabels ) {
+    foreach $j ("-XX","-YX","-ZX","-XY","-YY","-ZY","-XZ","-YZ","-ZZ") {
+      print $rowlabels[$i].$j." "; 
+    }
+    if ($i != $#rowlabels) {print "\n";}
+  }
+  print "\n";
+  print "values:\n";
+  $icnt = 0;
+#  @map = (0,3,6,1,4,7,2,5,8);
+  @map = (0,1,2,3,4,5,6,7,8);
+  for ($i=0; $i<$nrows; $i++) {
+    for ($j=0; $j<9; $j++) {
+      print "$result[$icnt+$map[$j]] ";
+    }
+    $icnt += 9;
+    if ($i != $nrows-1) {print "\n";}
+  }
+  print "\nunits:\nppm\n";
+  print "END\n";
+
+  print "key: ISOSHIELD\n";
+  print "size:\n$nrows\n";
+  print "rowlabels:\n";
+  foreach $i (0 .. $#rowlabels ) {
+    print "$rowlabels[$i] ";
+    if (($i+1) % 9 == 0 && $i != $#result) { print "\n";}
+  }
+  print "\n";
+  print "values:\n";
+  foreach $i (0 .. $#rowlabels ) {
+    print "$iso[$i] ";
+    if (($i+1) % 9 == 0 && $i != $#result) { print "\n";}
+  }
+  print "\nunits:\nppm\n";
+  print "END\n";
+
+  print "key: ANISOSHIELD\n";
+  print "size:\n$nrows\n";
+  print "rowlabels:\n";
+  foreach $i (0 .. $#rowlabels ) {
+    print "$rowlabels[$i] ";
+    if (($i+1) % 9 == 0 && $i != $#result) { print "\n";}
+  }
+  print "\n";
+  print "values:\n";
+  foreach $i (0 .. $#rowlabels ) {
+    print "$aniso[$i] ";
+    if (($i+1) % 9 == 0 && $i != $#result) { print "\n";}
+  }
+  print "\nunits:\nppm\n";
+  print "END\n";
+
+  print "key: SHIELDEIGVAL\n";
+  $numvals = 3*$nrows;
+  print "size:\n$numvals\n";
+  print "rowlabels:\n";
+  foreach $i (0 .. $#rowlabels ) {
+    foreach $j ("-1","-2","-3") {
+      print $rowlabels[$i].$j." "; 
+    }
+    if ($i != $#rowlabels) {print "\n";}
+  }
+  print "\n";
+  print "values:\n";
+  foreach $i (0 .. $#eigvals ) {
+    print "$eigvals[$i] ";
+    if (($i+1) % 9 == 0 && $i != $#result) { print "\n";}
+  }
+  print "\nunits:\nppm\n";
+  print "END\n";
+
+  exit(0);
+
+#
+# search down to desired string
+sub searchForward {			# might make this a logical function
+  local(*FILE,$string) = @_;
+  if (/$string/) {
+    return 0;
+  }
+  while(<FILE>) {  
+    if (/$string/) {
+      return 0;
+    }
+  }
+  return 1;
+}

@@ -1,0 +1,44 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+# This script converts the raw RMSDP values for an SCF calculation.
+#
+# Command line parameters:
+#           
+# Description:
+#
+# sample input line (except for the lead #):
+# RMSDP=3.97D-02 MaxDP=1.74D-01
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+######
+# The command line arguments
+######
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+if ($runtype =~ /Geo/i) {
+
+  while (<STDIN>) {
+    if ( /RMSDP=\s*(\S+)/ ) {
+      $deltae = $1;
+      $deltae =~ s/D/E/g;
+      last;
+    }
+  }
+
+  print "key: RMSDP\n";
+  print "size: \n1\n";
+  print "values: \n$deltae\n";
+  print "units:\nHartree\n";
+  print "END\n";
+}
+
+exit(0);

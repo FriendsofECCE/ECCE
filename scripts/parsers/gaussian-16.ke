@@ -1,0 +1,40 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+# This script parses the kinetic and nuclear-nuclear repulsion energy
+# from Gaussian94  output
+#
+# Command line parameters:
+#           
+# Description:
+#
+##############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+#
+# Get the data of interest out of the line:
+#
+
+  $_ = <STDIN>;
+  s/D/e/g;                     # Convert to real exponential
+  /N-N=\s*(\S+).*KE=\s*(\S+)/;     # Grab next nonblank field as result
+  $NNRepulsion = $1;
+  $KineticEnergy = $2;
+  print "key: NNREPUL\n";
+  print "size:\n1\n";
+  print "values:\n$NNRepulsion\n";
+  print "units:\nHartree\n";
+  print "END\n";
+  print "key: KE\n";
+  print "size:\n1\n";
+  print "values:\n$KineticEnergy\n";
+  print "units:\nHartree\n";
+  print "END\n";
+
+  exit(0);

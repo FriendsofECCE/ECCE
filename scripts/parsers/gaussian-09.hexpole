@@ -1,0 +1,70 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+#
+# Command line parameters:
+#           
+# Description:
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+#
+# read the 15 hexadecapole moment components from 4 lines of input
+#
+  @result = ();
+
+  $line = <STDIN>;
+  if ( $line =~
+      /XXXX=\s*(\S+)\s+YYYY=\s*(\S+)\s+ZZZZ=\s+(\S+)\s+XXXY=\s+(\S+)/){
+    push(@result,($1,$2,$3,$4));	
+  } else {
+    die
+      "ERROR: gaussian-94.hexpole: line 1 of input not of expected format\n";
+  }
+  $line = <STDIN>;
+  if ( $line =~
+      /XXXZ=\s*(\S+)\s+YYYX=\s*(\S+)\s+YYYZ=\s+(\S+)\s+ZZZX=\s+(\S+)/){
+    push(@result,($1,$2,$3,$4));	
+  } else {
+    die
+      "ERROR: gaussian-94.hexpole: line 2 of input not of expected format\n";
+  }
+  $line = <STDIN>;
+  if ( $line =~
+      /ZZZY=\s*(\S+)\s+XXYY=\s*(\S+)\s+XXZZ=\s+(\S+)\s+YYZZ=\s+(\S+)/){
+    push(@result,($1,$2,$3,$4));	
+  } else {
+    die
+      "ERROR: gaussian-94.hexpole: line 3 of input not of expected format\n";
+  }
+  $line = <STDIN>;
+  if ( $line =~
+      /XXYZ=\s*(\S+)\s+YYXZ=\s*(\S+)\s+ZZXY=\s+(\S+)/){
+    push(@result,($1,$2,$3));	
+  } else {
+    die
+      "ERROR: gaussian-94.hexpole: line 4 of input not of expected format\n";
+  }
+#
+# print the symmetry labels
+  if ($#result == 0) {
+    die "zero atoms\n";
+  } else {
+    $size = $#result + 1;
+    print "key: HEXPOLE\n";
+    print "size:\n$size\n";
+    print "rowlabels:\n";
+    print "XXXX YYYY ZZZZ XXXY XXXZ YYYX YYYZ ZZZX ZZZY XXYY XXZZ YYZZ XXYZ YYXZ ZZXY\n";
+    print "values:\n";
+    foreach $i (0 .. $#result ) { print "$result[$i] "; }
+    print "\nEND\n";
+  }
+
+  exit(0);

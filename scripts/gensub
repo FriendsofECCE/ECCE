@@ -845,6 +845,115 @@ sub gaussian98()
 ###########################################################################
 # Description
 ###########################################################################
+sub gaussian16() 
+{
+  my ($retval,$cmd);
+  $retval = "";
+  $g16 = $config{$lccode};
+  if ($g16 eq "") { die "Path for G16 not found"; }
+  $cmd = $::config{"gaussian-16command"};
+
+  # We still need to check the environment to allow the user
+  # to override the path like we did with the previous implementation
+  $retval .= "set g16 = $g16\n";
+  $retval .= "if (\$\?ECCE_GAUSSIAN16) then\n  set g16 = \$ECCE_GAUSSIAN16\nendif\n";
+  my ($tmp);
+  $_ = $g16;
+  /(.*)\/(.*)$/;
+  $tmp = $1;
+  $retval .= "if (\$?GAUSS_EXEDIR) then\n";
+  $retval .= "  setenv GAUSS_EXEDIR \${GAUSS_EXEDIR}:\${g16:h}\n";
+  $retval .= "else\n";
+  $retval .= "  setenv GAUSS_EXEDIR \$g16:h\n";
+  $retval .= "endif\n";
+  # Try to identify it as an sgi - if so add g16 to path to pick up util.so
+  #if ($g16 =~ /g16.*r.*/) {
+    $retval .= "if (\$?LD_LIBRARY_PATH) then\n";
+    $retval .= "  setenv LD_LIBRARY_PATH \${g16:h}:\${LD_LIBRARY_PATH}\n";
+    $retval .= "else\n";
+    $retval .= "  setenv LD_LIBRARY_PATH \$g16:h\n";
+    $retval .= "endif\n";
+  #}
+  $retval .= "echo \"Using g16 path: \$g16\" >> $::logfile\n";
+
+  # For NQS and NQE systems use the system defined $TMPDIR, if available,
+  # otherwise use the user configured scratch directory (if defined)
+  if (defined($::scratchDir)) {
+    $retval .= "setenv GAUSS_SCRDIR $::scratchDir\n";
+    $retval .= "echo \"Using $::scratchDir as GAUSS_SCRDIR\" >> $::logfile\n";
+  } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
+    $retval .= "if (\$\?TMPDIR) then\n  setenv GAUSS_SCRDIR \$TMPDIR\n";
+    $retval .= "  echo \"Using \$TMPDIR as GAUSS_SCRDIR\" >> $::logfile\n";
+    $retval .= "endif\n";
+  }
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $retval .= "\$g16 < $::inFile >&! $::outFile\n";
+  }
+  return $retval;
+}
+
+
+
+###########################################################################
+# Description
+###########################################################################
+sub gaussian09() 
+{
+  my ($retval,$cmd);
+  $retval = "";
+  $g09 = $config{$lccode};
+  if ($g09 eq "") { die "Path for G09 not found"; }
+  $cmd = $::config{"gaussian-09command"};
+
+  # We still need to check the environment to allow the user
+  # to override the path like we did with the previous implementation
+  $retval .= "set g09 = $g09\n";
+  $retval .= "if (\$\?ECCE_GAUSSIAN09) then\n  set g09 = \$ECCE_GAUSSIAN09\nendif\n";
+  my ($tmp);
+  $_ = $g09;
+  /(.*)\/(.*)$/;
+  $tmp = $1;
+  $retval .= "if (\$?GAUSS_EXEDIR) then\n";
+  $retval .= "  setenv GAUSS_EXEDIR \${GAUSS_EXEDIR}:\${g09:h}\n";
+  $retval .= "else\n";
+  $retval .= "  setenv GAUSS_EXEDIR \$g09:h\n";
+  $retval .= "endif\n";
+  # Try to identify it as an sgi - if so add g09 to path to pick up util.so
+  #if ($g09 =~ /g09.*r.*/) {
+    $retval .= "if (\$?LD_LIBRARY_PATH) then\n";
+    $retval .= "  setenv LD_LIBRARY_PATH \${g09:h}:\${LD_LIBRARY_PATH}\n";
+    $retval .= "else\n";
+    $retval .= "  setenv LD_LIBRARY_PATH \$g09:h\n";
+    $retval .= "endif\n";
+  #}
+  $retval .= "echo \"Using g09 path: \$g09\" >> $::logfile\n";
+
+  # For NQS and NQE systems use the system defined $TMPDIR, if available,
+  # otherwise use the user configured scratch directory (if defined)
+  if (defined($::scratchDir)) {
+    $retval .= "setenv GAUSS_SCRDIR $::scratchDir\n";
+    $retval .= "echo \"Using $::scratchDir as GAUSS_SCRDIR\" >> $::logfile\n";
+  } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
+    $retval .= "if (\$\?TMPDIR) then\n  setenv GAUSS_SCRDIR \$TMPDIR\n";
+    $retval .= "  echo \"Using \$TMPDIR as GAUSS_SCRDIR\" >> $::logfile\n";
+    $retval .= "endif\n";
+  }
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $retval .= "\$g09 < $::inFile >&! $::outFile\n";
+  }
+  return $retval;
+}
+
+
+###########################################################################
+# Description
+###########################################################################
 sub gaussian03() 
 {
   my ($retval,$cmd);

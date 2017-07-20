@@ -242,6 +242,16 @@ AddType  chemical/x-polyrate-output      .fu6
 # ---------------
 AddType  chemical/x-gaussian-checkpoint .chk
 
+# Gaussian-09
+# ---------------
+AddType  chemical/x-gaussian09-input  .g09in
+AddType  chemical/x-gaussian09-output .g09out
+
+# Gaussian-16
+# ---------------
+AddType  chemical/x-gaussian16-input  .g16in
+AddType  chemical/x-gaussian16-output .g16out
+
 # Gaussian-03
 # ---------------
 AddType  chemical/x-gaussian03-input  .g03in

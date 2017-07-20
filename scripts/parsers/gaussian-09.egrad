@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+# This script converts the raw EGRAD (Energy Gradient) data parsed from the
+# output of GAUSSIAN-94 program.
+#
+# Command line parameters:
+#           
+# Description:
+#
+###############################################################################
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+if ($runtype =~ /Geo/i) {
+  $line = <STDIN>;
+  $line =~ /Max\s*(\S+)/; 
+  $gradient = $1;
+  $gradient =~ s/D/e/;       # Convert to real exponential
+
+  print "key: EGRAD\n";
+  print "size:\n1\n";
+  print "values:\n$gradient\n";
+  print "units:\nHartree/Bohr\n";
+  print "END\n";
+}
+
+exit(0);

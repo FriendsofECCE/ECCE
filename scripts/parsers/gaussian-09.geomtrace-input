@@ -1,0 +1,81 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+# This script converts the raw GEOMTRACE data parsed from the output of 
+# GAUSSIAN-94.  It deals with Input orientations which may or may not be
+# what we want.
+#
+# Command line parameters:
+#           
+# Description:
+#  This gets pretty tricky because we have to decide if we want to use 
+#  Input orientation or Standard orientation.  Bruce & Karen looked at g94
+#  output files to try to decide how this could reasonably be accomplished.
+#  It seems that in the case where there is no symmetry, you will get only
+#  input orientation but you can key off the fact that the "Framework group"
+#  is null.
+#
+################################################################################
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+require "pertab.pl";
+
+&loadPT;
+
+# Force output to be flushed
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+# With either format, you can now gather up the xyz values.  Later we will decide if
+# we should toss the input orientations.
+#if ($runtype =~ /Geo/i) {
+  while (<STDIN>) {
+    if (/^\s+\d+/) { # skips extra lines (though there shouldn't be any)
+      chop;
+      s/^\s*//;    # Get rid of leading blanks
+      s/D/e/g;     # Use "e" in exponentials
+      ($atomIndex,$atomicNumber,$atomicType,$xcoord,$ycoord,$zcoord) =
+                                                          split(/ +/,$_);
+      $line = join(" ",($xcoord,$ycoord,$zcoord));
+#    $line = join(" ",($atomicSymbol[$atomicNumber],$xcoord,$ycoord,$zcoord));
+      push(@coordlines,$line);    
+      $line = join("-",$atomIndex,($atomicSymbol[$atomicNumber]));
+      $rowLabels .= " $line";
+    } else {
+      last;
+    }
+  }
+
+# There should be more lines here - look for the Framework group value.  If
+# its empty we won't bother to provide the geometry.
+  $tossit = "true";
+  while (<STDIN>) {
+    chop;
+    if (/Symmetry turned off/) {
+      $tossit = "false";
+    }
+  }
+
+#
+# Print out the data in standard format unless we decided to tossit
+#
+  if ($tossit ne "true") {
+    print "key: GEOMTRACE\n";
+    print "size:\n";
+    print "1 " . ($#coordlines + 1) . " 3\n";
+    print "rowlabels:\n$rowLabels\n";
+    print "columnlabels:\nX Y Z\n";
+    print "values:\n";
+    foreach $line (@coordlines) { 
+      print " $line\n"; 
+    }
+    print "units:\nHartree\n";
+    print "END\n";
+  }
+#}
+
+exit(0);

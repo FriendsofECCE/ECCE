@@ -1,0 +1,43 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+# This script extracts the Mulliken charge for each atom
+#
+# Command line parameters:
+#           
+# Description:
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+#
+# read the Mulliken charge for each atom
+#
+  @result = ();
+
+  while (<STDIN>) {
+    if ( /Sum/ ) { 
+      last; 
+    } else {
+      ($junk0,$junk1,$junk2,$value) = split(/ +/,$_);
+      chop($value);
+      push(@result,($value));
+    }
+  }
+#
+  $size = $#result + 1;
+  print "key: MULLIKEN\n";
+  print "size:\n$size\n";
+#  print "rowlabels:\n";
+  print "values:\n";
+  foreach $i (0 .. $#result ) { print "$result[$i] "; }
+  print "\nunits:\ne\n";
+  print "END\n";
+
+  exit(0);

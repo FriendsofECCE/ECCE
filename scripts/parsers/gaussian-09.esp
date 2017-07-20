@@ -1,0 +1,71 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Name:   $Source$
+#
+#
+# Purpose:
+# This script converts the raw Cube(Potential) data into the set of
+# ESP properties.
+#
+# Command line parameters:
+#           
+# Description:
+#
+# Note this script does not provide column labels since they are
+# meaningless and really slow down loading of the data.
+#
+################################################################################
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+require "pertab.pl";
+
+&loadPT;
+
+# Force output to be flushed
+$| = 1;
+
+local($dims, $tmp, $size, @values);
+
+#print "esp garbage\n";
+<STDIN>;  # Read line that says "Potential"
+<STDIN>;  # Read line that says SCF Total Density
+<STDIN>;  # Read line with NAtoms and xyz origin - I don't know if we need this
+
+# Read in the N1, X1, Y1, Z1 line and only keep N1
+for ($idx=0; $idx<3; $idx++) {
+  $_ = <STDIN>;
+  chop;
+  s/^\s*//;
+  ($tmp) = split(/ +/,$_);
+  push(@dims,$tmp);
+}
+
+# Now print what we have
+if ($dims[0] > 0 && $dims[1] > 0 && $dims[2] > 0) {
+  print "key: ESPDIM\n";
+  print "size:\n3\n";
+  print "values:\n";
+  print "@dims\n";
+  print "END\n";
+
+  # Skip 3 lines which we don't want now
+  <STDIN>; <STDIN>; <STDIN>;
+
+  # We must be doing ok at this point - now read the vector
+  while (<STDIN>) {
+    s/^\s*//;
+    push(@values,split(/ +/));
+  }
+
+  # Before we write it, lets make sure the vector matches the dimensions
+  $size = $dims[0] * $dims[1] * $dims[2];
+  if ($size == $#values+1) {
+    print "key: ESPVEC\n";
+    print "size:\n$size\n";
+    print "values:\n";
+    print "@values\n";
+    print "END\n";
+  }
+}
+
+exit(0);
