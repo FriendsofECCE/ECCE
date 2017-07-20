@@ -6,7 +6,7 @@ use vars qw($opt_h $opt_help $opt_v);
 push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
 
 require "rdStandardGBS.pm";
-require "wrGaussian09GBS.pm";
+require "wrGaussian16GBS.pm";
 
 #
 #  Handle the options
@@ -15,10 +15,10 @@ getopts('hv');
 &handle_options;
 
 my $bs = &readStandardBS;
-&writeGaussian09($bs);
+&writeGaussian16($bs);
 
 sub usage {
-  print "Usage: std2gaus09\n";
+  print "Usage: std2gaus16\n";
   print "Options:    -h        this help\n";
   print "            -v        version\n";
   exit;
