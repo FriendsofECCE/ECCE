@@ -270,7 +270,7 @@ my %elementNum =
  Mt =>  109
 );
 
-sub writeGaussian09{
+sub writeGaussian16{
   my $bsPtr = $_[0];
   my %bs = %{$bsPtr};
   my %gbs = %{$bs{"gbs"}};
