@@ -80,7 +80,7 @@ if (@contents[0] =~ /nproc/) { $start = 1; }
 if ($ParamDict{'numNodes'} == 1 && $ParamDict{'numProcs'} == 1) {
   # nothing to do
 } elsif ($ParamDict{'numNodes'} == 1 && $ParamDict{'numProcs'} > 1) {
-  print PPFILE "%nprocshared=$ParamDict{'numProcs'}\n";
+  print PPFILE "%cpu=$ParamDict{'numProcs'}\n";
 } elsif ($ParamDict{'numNodes'} > 1 && $ParamDict{'numProcs'} > 1) {
   print PPFILE "%nproclinda=$ParamDict{'numProcs'}\n";
 } else {
