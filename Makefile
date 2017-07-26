@@ -1,16 +1,13 @@
-################################################################################
-# FILENAME:  Makefile
-#
-#
-# PURPOSE:
-#   Top level Makefile for ECCE.
-#
-# DESCRIPTION:
-################################################################################
+# Perhaps this a good idea, but it likely isn't
+# include $(ECCE_MAKEINC_DIR)/Makefile.defs
 
-# include all ECCE definitions
-include $(ECCE_MAKEINC_DIR)/Makefile.defs
+TOP_DIR ?= `pwd`
+# THIS SHOULD CHANGE TO build in the future, but that name is already taken
+BUILD_DIR ?= $(TOP_DIR)/build_temp
+THIRD_PARTY = $(BUILD_DIR)/3rdparty
 
+all:
+	@echo $(BUILD_DIR)
 
 default:
 	$(MAKE) -C java/build
@@ -53,4 +50,3 @@ full:
 fullfast:
 	$(MAKE) clean
 	$(MAKE) fast
-
