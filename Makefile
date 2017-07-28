@@ -1,52 +1,52 @@
 # Perhaps this a good idea, but it likely isn't
 # include $(ECCE_MAKEINC_DIR)/Makefile.defs
 
-TOP_DIR ?= `pwd`
+TOP_DIR ?= $(CURDIR)
+ECCE_HOME ?= $(TOP_DIR)
 # THIS SHOULD CHANGE TO build in the future, but that name is already taken
 BUILD_DIR ?= $(TOP_DIR)/build_temp
+LOG_DIR ?= $(BUILD_DIR)/ecce
 THIRD_PARTY = $(BUILD_DIR)/3rdparty
+THIRD_PARTY_TAR = $(TOP_DIR)/build/3rdparty-dists
+
+# BUILD VARIABLES
+ARCH ?= x86_64
+BITS ?= 64
+CC ?= gcc
+CPP ?= g++
+CFLAGS ?= ""
+CPPFLAGS ?= ""
+
+# Lets make the directory
+$(BUILD_DIR) \
+$(LOG_DIR)):
+	@echo $@
+	#mkdir -p $@
+
+dir: $(BUILD_DIR) $(LOG_DIR)
 
 all:
 	@echo $(BUILD_DIR)
 
-default:
-	$(MAKE) -C java/build
-	$(MAKE) -C src
-	$(MAKE) -C src/apps
+# Rules for building third party software
+third_party: dir xerces
 
-fast:
-	$(MAKE) -C java/build
-	$(MAKE) -C src fast
-	$(MAKE) -C src/apps fast
+clean_third_party:
+	rm -rf $(THIRD_PARTY)
 
-clean:
-	$(MAKE) rmdep
-	$(MAKE) rmobjs
-	$(MAKE) rmlibs
-	$(MAKE) rmbins
-	$(MAKE) -C java/build clean
+######### XERCES #########
+xerces: dir $(THIRD_PARTY)/src/xerces*/.built
 
-rmdep:
-	@echo "removing all dependency files"
-	@find . -name .\*.D -exec rm -f {} \; -print
+# Untar the Xerces source
+$(THIRD_PARTY)/src/xerces-c-src%:
+	mkdir -p $(THIRD_PARTY)/src
+	tar xvf $(THIRD_PARTY_TAR)/xerces-c-src* -C $(THIRD_PARTY)/src
 
-rmobjs:
-	@echo "removing all object files"
-	rm -rf $(ECCE_HOME)/$(ECCE_SYSDIR)obj/*
-
-rmlibs:
-	@echo "removing all ECCE libraries"
-	rm -rf $(LIB_PATH)/*
-
-rmbins:
-	@echo "removing all ECCE binaries"
-	rm -rf $(BIN_PATH)/*
-
-full:
-# default target for templates is NOT update - so force
-	$(MAKE) clean
-	$(MAKE) default
-
-fullfast:
-	$(MAKE) clean
-	$(MAKE) fast
+# Build Xerces
+# This process changes for xerces 3
+# More info at https://xerces.apache.org/xerces-c/build-3.html
+$(THIRD_PARTY)/src/xerces%/.built: $(THIRD_PARTY)/src/xerces%
+	cd $</src/xercesc; ./runConfigure -p linux -b $(BITS) -P $(THIRD_PARTY)/install/xerces
+	$(MAKE) -C $</src/xercesc
+	$(MAKE) -C $</src/xercesc install
+	@touch $</.built
