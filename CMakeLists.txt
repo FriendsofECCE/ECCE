@@ -7,7 +7,7 @@ include(ExternalProject)
 # THIRD PARTY PACKAGES
 
 add_custom_target(third_party)
-add_dependencies(third_party xerces wxpython)
+add_dependencies(third_party xerces wxpython httpd)
 
 # XERCES
 set(XERCES_REPO http://svn.apache.org/repos/asf/xerces/c/tags/Xerces-C_2_8_0)
@@ -50,6 +50,25 @@ ExternalProject_Add(wxpython
     INSTALL_DIR ${WXPYTHON_INSTALL}
     CONFIGURE_COMMAND
         sh ${WXPYTHON_SRC}/configure --prefix=${WXPYTHON_INSTALL} --with-gtk --with-gnomeprint --with-opengl --enable-geometry --enable-graphics_ctx --enable-sound --with-sdl --enable-mediactrl --enable-display
+    BUILD_COMMAND
+        make
+    INSTALL_COMMAND
+        make install
+)
+
+# HTTPD
+set(HTTPD_URL http://apache.mirrors.pair.com//httpd/httpd-2.2.34.tar.gz)
+set(HTTPD_DIR ${CMAKE_CURRENT_BINARY_DIR}/httpd)
+set(HTTPD_INSTALL ${HTTPD_DIR}/install)
+set(HTTPD_SRC ${HTTPD_DIR}/source)
+
+ExternalProject_Add(httpd
+    URL ${HTTPD_URL}
+    PREFIX ${HTTPD_DIR}
+    SOURCE_DIR ${HTTPD_SRC}
+    INSTALL_DIR ${HTTPD_INSTALL}
+    CONFIGURE_COMMAND
+        ${HTTPD_SRC}/configure --prefix=${HTTPD_INSTALL} --enable-rewrite --enable-dav
     BUILD_COMMAND
         make
     INSTALL_COMMAND
