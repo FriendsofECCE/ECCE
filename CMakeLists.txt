@@ -74,3 +74,22 @@ ExternalProject_Add(httpd
     INSTALL_COMMAND
         make install
 )
+
+# ActiveMQ
+set(ACTIVEMQ_URL
+    https://github.com/FriendsofECCE/ECCE/raw/develop/build/3rdparty-dists/apache-activemq-5.1.0-bin.tar.bz2)
+set(ACTIVEMQ_DIR ${CMAKE_CURRENT_BINARY_DIR}/activemq)
+set(ACTIVEMQ_INSTALL ${ACTIVEMQ_DIR}/install)
+set(ACTIVEMQ_SRC ${ACTIVEMQ_DIR}/source)
+
+ExternalProject_Add(activemq
+    URL ${ACTIVEMQ_URL}
+    PREFIX ${ACTIVEMQ_DIR}
+    SOURCE_DIR ${ACTIVEMQ_INSTALL}
+    CONFIGURE_COMMAND
+        echo "It's a bin distrobution, so no build."
+    BUILD_COMMAND
+        echo "No build either."
+    INSTALL_COMMAND
+        echo "And no install."
+)
