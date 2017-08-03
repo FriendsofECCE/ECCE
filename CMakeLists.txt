@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 2.8)
-project(ecce)
+project(ecce C CXX Fortran Java)
 
 include(ExternalProject)
 
+find_package(wxWidgets COMPONENTS core base REQUIRED)
+find_package(GTK2 2.8 COMPONENTS gtk REQUIRED)
+# find_package(Java REQUIRED)
+# find_package(XercesC)
 
 # THIRD PARTY PACKAGES
 
@@ -52,8 +56,12 @@ ExternalProject_Add(wxpython
         sh ${WXPYTHON_SRC}/configure --prefix=${WXPYTHON_INSTALL} --with-gtk --with-gnomeprint --with-opengl --enable-geometry --enable-graphics_ctx --enable-sound --with-sdl --enable-mediactrl --enable-display
     BUILD_COMMAND
         make
+        make -C ${WXPYTHON_SRC}contrib/src/gizmo
+        make -C ${WXPYTHON_SRC}contrib/src/stc
     INSTALL_COMMAND
         make install
+        make -C ${WXPYTHON_SRC}contrib/src/gizmo install
+        make -C ${WXPYTHON_SRC}contrib/src/stc install 
 )
 
 # HTTPD
@@ -93,3 +101,21 @@ ExternalProject_Add(activemq
     INSTALL_COMMAND
         echo "And no install."
 )
+
+# NOW LETS BUILD ECCE
+
+# Set up variables
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+# ewxaui
+include(${wxWidgets_USE_FILE})
+file(GLOB_RECURSE ewxaui_SOURCE ${CMAKE_SOURCE_DIR}/src/ewxaui/*.C)
+file(GLOB_RECURSE ewxaui_INCLUDE ${CMAKE_SOURCE_DIR}/src/ewxaui/include)
+
+# message(${ewxaui_SOURCE})
+# message(${wxWidgets_USE_FILE})
+add_library(ewxaui SHARED ${ewxaui_SOURCE})
+target_compile_options(ewxaui PUBLIC ${wxWidgets_CXX_FLAGS})
+# target_link_libraries(ewxaui PUBLIC ${wxWidgets_LIBRARIES})
+target_include_directories(ewxaui PUBLIC ${wxWidgets_INCLUDE_DIRS} ${GTK2_INCLUDE_DIRS})
+install(TARGETS ewxaui DESTINATION ${CMAKE_SOURCE_DIR}/install/lib)
