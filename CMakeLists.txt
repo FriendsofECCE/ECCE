@@ -15,6 +15,7 @@ add_dependencies(third_party xerces wxpython httpd)
 
 # XERCES
 set(XERCES_REPO http://svn.apache.org/repos/asf/xerces/c/tags/Xerces-C_2_8_0)
+# set(XERCES_REPO https://svn.apache.org/repos/asf/xerces/c/trunk)
 set(XERCES_DIR ${CMAKE_CURRENT_BINARY_DIR}/xerces)
 set(XERCES_INSTALL ${XERCES_DIR}/install)
 set(XERCES_ROOT ${XERCES_DIR}/source)
@@ -25,19 +26,13 @@ ExternalProject_Add(xerces
     PREFIX ${XERCES_DIR}
     INSTALL_DIR ${XERCES_INSTALL}
     SOURCE_DIR ${XERCES_ROOT}
-    CONFIGURE_COMMAND
-        cd ${XERCES_SRC} &&
-        pwd && ls &&
-        export XERCESCROOT=${XERCES_ROOT} &&
-        ./runConfigure -p linux -b 64 -P ${XERCES_INSTALL} &&
-        make -C ${XERCES_SRC} &&
-        make -C ${XERCES_SRC} install
-    # Lumping the build process into the CONFIGURE_COMMAND because of Xerces'
-    #   crippling addiction environment variables.
-    BUILD_COMMAND
-        echo -n ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
     INSTALL_COMMAND
-        echo -n ""
+        # Build steps lumped together because XercesC environment variables
+        # Using bash script prevents rebuilding if .installed file exists
+        # I dislike this, but...
+        sh ${CMAKE_SOURCE_DIR}/cmake/build_xerces.sh ${XERCES_SRC} ${XERCES_ROOT} ${XERCES_INSTALL}
 )
 
 # wxPython
@@ -55,13 +50,13 @@ ExternalProject_Add(wxpython
     CONFIGURE_COMMAND
         sh ${WXPYTHON_SRC}/configure --prefix=${WXPYTHON_INSTALL} --with-gtk --with-gnomeprint --with-opengl --enable-geometry --enable-graphics_ctx --enable-sound --with-sdl --enable-mediactrl --enable-display
     BUILD_COMMAND
-        make
-        make -C ${WXPYTHON_SRC}contrib/src/gizmo
-        make -C ${WXPYTHON_SRC}contrib/src/stc
+        make &&
+        make -C contrib/src/gizmos &&
+        make -C contrib/src/stc
     INSTALL_COMMAND
-        make install
-        make -C ${WXPYTHON_SRC}contrib/src/gizmo install
-        make -C ${WXPYTHON_SRC}contrib/src/stc install 
+        make install &&
+        make -C contrib/src/gizmos install &&
+        make -C contrib/src/stc install
 )
 
 # HTTPD
@@ -110,12 +105,11 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 # ewxaui
 include(${wxWidgets_USE_FILE})
 file(GLOB_RECURSE ewxaui_SOURCE ${CMAKE_SOURCE_DIR}/src/ewxaui/*.C)
-file(GLOB_RECURSE ewxaui_INCLUDE ${CMAKE_SOURCE_DIR}/src/ewxaui/include)
+set(ewxaui_INCLUDE ${CMAKE_SOURCE_DIR}/rc/ewxaui/include)
 
 # message(${ewxaui_SOURCE})
-# message(${wxWidgets_USE_FILE})
 add_library(ewxaui SHARED ${ewxaui_SOURCE})
+add_dependencies(ewxaui third_party)
 target_compile_options(ewxaui PUBLIC ${wxWidgets_CXX_FLAGS})
-# target_link_libraries(ewxaui PUBLIC ${wxWidgets_LIBRARIES})
 target_include_directories(ewxaui PUBLIC ${wxWidgets_INCLUDE_DIRS} ${GTK2_INCLUDE_DIRS})
 install(TARGETS ewxaui DESTINATION ${CMAKE_SOURCE_DIR}/install/lib)
