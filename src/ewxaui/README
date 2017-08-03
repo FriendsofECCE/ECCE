@@ -1,0 +1,3 @@
+# NOTE
+
+These files were generated automatically from build/ewxaui/auigen.sh as part of an old build process and code for the libewxaui.so library. They are modified versions of the wxPython source with "improvements", so they must be changed if wxWidgets is ever updated (2.8 is currnetly shipping with CentOS 7 and Ubuntu 16.10). As to what these improvements are, I cannot say. Ideally they would be stripped.
