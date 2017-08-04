@@ -3,8 +3,11 @@ project(ecce C CXX Fortran Java)
 
 include(ExternalProject)
 
+
 find_package(wxWidgets COMPONENTS core base REQUIRED)
 find_package(GTK2 2.8 COMPONENTS gtk REQUIRED)
+set(wxWidgets_USE_UNICODE OFF)
+
 # find_package(Java REQUIRED)
 # find_package(XercesC)
 
@@ -107,9 +110,73 @@ include(${wxWidgets_USE_FILE})
 file(GLOB_RECURSE ewxaui_SOURCE ${CMAKE_SOURCE_DIR}/src/ewxaui/*.C)
 set(ewxaui_INCLUDE ${CMAKE_SOURCE_DIR}/rc/ewxaui/include)
 
-# message(${ewxaui_SOURCE})
 add_library(ewxaui SHARED ${ewxaui_SOURCE})
 add_dependencies(ewxaui third_party)
 target_compile_options(ewxaui PUBLIC ${wxWidgets_CXX_FLAGS})
 target_include_directories(ewxaui PUBLIC ${wxWidgets_INCLUDE_DIRS} ${GTK2_INCLUDE_DIRS})
-install(TARGETS ewxaui DESTINATION ${CMAKE_SOURCE_DIR}/install/lib)
+# Does this need to be in here?
+# target_link_libraries(ewxaui PUBLIC ${wxWidgets_LIBRARIES})
+install(TARGETS ewxaui DESTINATION lib)
+
+# Fortran
+add_custom_target(f_code)
+add_dependencies(f_code autosym cleansym genmol genmollat getfrag testnames)
+set(f_SRC ${CMAKE_SOURCE_DIR}/src/f/symmetry)
+
+add_executable(autosym
+    ${f_SRC}/autosym.f
+    ${f_SRC}/geom_hnd.f
+    ${f_SRC}/errquit.f
+    ${f_SRC}/deter3.f
+)
+
+add_executable(cleansym
+    ${f_SRC}/cleansym.f
+    ${f_SRC}/sym_avg.f
+    ${f_SRC}/spnames.f90
+    ${f_SRC}/spgen.f90
+    ${f_SRC}/deter3.f
+    ${f_SRC}/dctr.f
+    ${f_SRC}/gensym.f
+    ${f_SRC}/errquit.f
+)
+
+add_executable(genmol
+    ${f_SRC}/genmol.f
+    ${f_SRC}/dosymops.f
+    ${f_SRC}/spnames.f90
+    ${f_SRC}/spgen.f90
+    ${f_SRC}/deter3.f
+    ${f_SRC}/dctr.f
+    ${f_SRC}/gensym.f
+    ${f_SRC}/errquit.f
+)
+
+add_executable(genmollat
+    ${f_SRC}/genmollat.f
+    ${f_SRC}/dosymops.f
+    ${f_SRC}/spnames.f90
+    ${f_SRC}/spgen.f90
+    ${f_SRC}/deter3.f
+    ${f_SRC}/dctr.f
+    ${f_SRC}/gensym.f
+    ${f_SRC}/errquit.f
+)
+
+add_executable(getfrag
+    ${f_SRC}/getfrag.f
+    ${f_SRC}/findfrag.f
+    ${f_SRC}/spnames.f90
+    ${f_SRC}/spgen.f90
+    ${f_SRC}/deter3.f
+    ${f_SRC}/dctr.f
+    ${f_SRC}/gensym.f
+    ${f_SRC}/errquit.f
+)
+
+add_executable(testnames
+    ${f_SRC}/testnames.f
+    ${f_SRC}/spnames.f90
+)
+
+install(TARGETS autosym cleansym genmol genmollat getfrag testnames DESTINATION bin)
