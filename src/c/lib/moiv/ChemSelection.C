@@ -29,25 +29,25 @@
  *
  * OpenMOIV - C++ library for molecular visualization using Inventor.
  * Copyright (C) 2001-2003 Universitat Pompeu Fabra - Barcelona (Spain)
- * 
+ *
  * Developers: Interactive Technology Group (GTI)
  * Team: Josep Blat, Eduard Gonzalez, Sergi Gonzalez,
  *       Daniel Soto, Alejandro Ramirez, Oscar Civit.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details (see the file 
+ * Lesser General Public License for more details (see the file
  * LICENSE.LGPL at the root directory).
  *
  * REMARK: This library is a derived product.
  *         You need also to accept all other applicable licenses.
- * 
+ *
  * Homepage: http://www.tecn.upf.es/openMOIV/
  * Contact:  openmoiv@upf.es
  *
@@ -188,7 +188,7 @@ SbTime now = 0.0;
 #endif
 
 #define SELECT(PARTS, PART)   ((PARTS & (PART)) != 0)
- 
+
 SO_NODE_SOURCE(ChemSelection);
 
 SoSearchAction *ChemSelection::searchAction = NULL;
@@ -198,17 +198,17 @@ ChemBBoxAction *ChemSelection::chemBBoxAction = NULL;
 SbVec2f ChemSelection::ringCoords[RINGSIDES];
 
 ////////////////////////////////////////////////////////////////////////
-// 
+//
 // Description:
 //    Returns the square of the distance between 2 points.  This
 //    is so we can avoid the square root you have to do when the
 //    SbVec3f length method is used.
-// 
+//
 // Use: internal, static
 
 static float
 distSquared(const SbVec3f &v1, const SbVec3f &v2)
-// 
+//
 ////////////////////////////////////////////////////////////////////////
 {
     SbVec3f tvec = v1 - v2;
@@ -217,7 +217,7 @@ distSquared(const SbVec3f &v1, const SbVec3f &v2)
 
 static float
 distSquared2D(const SbVec3f &v1, const SbVec3f &v2)
-// 
+//
 ////////////////////////////////////////////////////////////////////////
 {
     SbVec3f tvec = v1 - v2;
@@ -225,13 +225,13 @@ distSquared2D(const SbVec3f &v1, const SbVec3f &v2)
 }
 
 ////////////////////////////////////////////////////////////////////////
-// 
+//
 // Description:
 //    Static helper routine; given a vector in object space and a
 //    transformation matrix to screen (normalized-device coordinate)
 //    space returns the 2D coordinates of the vector.  This
 //    actually returns a 3D vector; the z value is just the NDC z value.
-// 
+//
 // Use: internal, static
 
 static SbVec3f
@@ -242,7 +242,7 @@ fromObjectSpace(const SbVec3f &vector, const SbMatrix &matrix)
     // First, transform to NDC (-1 to 1)
     SbVec3f ndc;
     matrix.multVecMatrix(vector, ndc);
-    
+
     // And do the viewport transformation:
     SbVec3f result;
     result[0] = (ndc[0]+1.0) * 0.5;
@@ -263,13 +263,13 @@ fromObjectSpace(const SbVec3f &vector, const SbMatrix &matrix)
 //    actually returns a 3D vector; the z value is just the NDC z value.
 //
 // Use: internal, static
- 
+
 static SbVec3f
 fromObjectSpaceToPixels(const SbVec3f &vector, const SbMatrix &matrix,
                 const SbViewportRegion &vpr)
 //
 ////////////////////////////////////////////////////////////////////////
-{           
+{
     // First, transform to NDC (-1 to 1 in viewport)
     SbVec3f ndc;
     matrix.multVecMatrix(vector, ndc);
@@ -303,23 +303,23 @@ calculateRotation(SbMatrix modelMatrix, SbViewVolume viewVolume,
     SbVec3f axis, normal;
     axis.setValue(0.0, 1.0, 0.0);
     normal.setValue(0.0, 0.0, 1.0);
-  
+
     SbVec3f lineOfSight = viewVolume.getProjectionDirection();
 
     SbVec3f  translate, scale;
     SbRotation  rotation, scaleOrientation;
     modelMatrix.getTransform(translate, rotation, scale, scaleOrientation);
     SbRotation answer = rotation.inverse();
- 
- 
+
+
     // rotate the normal to point in the direction opposite to LOS
     SbRotation      orientation;
     orientation.setValue(normal.getValue(), -lineOfSight);
-            
+
     // calculate the new position of the up vector
     SbVec3f newUp;
     orientation.multVec(axis.getValue(), newUp);
-        
+
     // This is what the up vector should be lined up with
     // It becomes +Y after the viewing xform
     //    (0, 1, 0) = desiredUp * viewMatrix
@@ -330,7 +330,7 @@ calculateRotation(SbMatrix modelMatrix, SbViewVolume viewVolume,
     desiredUp[0] = viewMatrix[0][1];
     desiredUp[1] = viewMatrix[1][1];
     desiredUp[2] = viewMatrix[2][1];
- 
+
     // calculate the angle between newUp and desiredUp
     desiredUp.normalize();
     newUp.normalize();
@@ -361,9 +361,9 @@ calculateRotation(SbMatrix modelMatrix, SbViewVolume viewVolume,
 // Use: internal, static
 
 static SbBool
-pointInLasso(const short &lassoType, 
+pointInLasso(const short &lassoType,
     const SbVec3f &lassoMin, const SbVec3f &lassoMax,
-    const SbVec3f *vertices, const int32_t numVertices, 
+    const SbVec3f *vertices, const int32_t numVertices,
     const SbVec3f &thePoint)
 //
 ////////////////////////////////////////////////////////////////////////
@@ -448,7 +448,7 @@ lineIntersectsLasso(const SbVec3f *vertices,
 
     Ax = point2[X] - point1[X];
     Ay = point2[Y] - point1[Y];
-    
+
     // For X bounding box check
     if (Ax < 0.0) {
         x1Lo = point2[X];
@@ -458,7 +458,7 @@ lineIntersectsLasso(const SbVec3f *vertices,
         x1Hi = point2[X];
         x1Lo = point1[X];
     }
-    
+
     // For Y bounding box check
     if (Ay < 0.0) {
         y1Lo = point2[Y];
@@ -493,9 +493,9 @@ lineIntersectsLasso(const SbVec3f *vertices,
                 continue;
             }
         }
-    
+
         By = theVertex0[Y] - theVertex1[Y];
-    
+
         if (By > 0.0) {
             if (y1Hi < theVertex1[Y] || theVertex0[Y] < y1Lo) {
                 theVertex0 = theVertex1;
@@ -510,12 +510,12 @@ lineIntersectsLasso(const SbVec3f *vertices,
                 continue;
             }
         }
-    
+
         Cx = point1[X] - theVertex0[X];
         Cy = point1[Y] - theVertex0[Y];
         d  = By*Cx - Bx*Cy;        // Numerator for alpha
         f  = Ay*Bx - Ax*By;        // Denominator for both alpha and beta
-    
+
         // Tests on alpha
         if ( f > 0.0) {
             if (d < 0.0 || d > f) {
@@ -531,9 +531,9 @@ lineIntersectsLasso(const SbVec3f *vertices,
                 continue;
             }
         }
-    
+
         e = Ax*Cy - Ay*Cx;         // Numerator for beta;
-    
+
         // Tests on beta
         if (f > 0.0) {
             if (e < 0.0 || e > f) {
@@ -549,7 +549,7 @@ lineIntersectsLasso(const SbVec3f *vertices,
                 continue;
             }
         }
-    
+
         // At this point the lines either intersect or are collinear
         return TRUE;
     }
@@ -565,7 +565,7 @@ lineIntersectsLasso(const SbVec3f *vertices,
 // Use: internal, static
 
 static SbBool
-lassoIntersectsCircle(const SbVec3f *vertices, const int32_t numVertices, 
+lassoIntersectsCircle(const SbVec3f *vertices, const int32_t numVertices,
     const SbVec3f &circleCenter, float circleRadius)
 //
 ////////////////////////////////////////////////////////////////////////
@@ -609,7 +609,7 @@ lassoIntersectsCircle(const SbVec3f *vertices, const int32_t numVertices,
 
     // Since there is no intersection, check to see if all of the points
     // of the lasso are within the radius of the circle.
-    
+
     SbBool ret = TRUE;
     for (j = 0; j < numVertices; j++) {
         if (distSquared2D(vertices[j], circleCenter) > circleRadiusSq) {
@@ -629,7 +629,7 @@ lassoIntersectsCircle(const SbVec3f *vertices, const int32_t numVertices,
 // Use: internal, static
 
 static SbBool
-boxSphereIntersect(const SbBox3f &bbox, 
+boxSphereIntersect(const SbBox3f &bbox,
     const SbMatrix &modelMatrix,
     const SbVec3f &center, const float &radius)
 //
@@ -675,8 +675,8 @@ checkLassoCenter(
     const int32_t *index,
     const SbVec3f *center,
     const short theLassoType, const SbBox3f &lassoBBox,
-    const int32_t numLassoVertices, 
-    const SbVec3f *lassoVertices, int32_t &lassoedIncr, 
+    const int32_t numLassoVertices,
+    const SbVec3f *lassoVertices, int32_t &lassoedIncr,
     SbIntList &lassoedList)
 //
 ////////////////////////////////////////////////////////////////////////
@@ -721,8 +721,8 @@ checkLassoThruBBox(
     const SbBox3f *bbox,
     const SbVec3f *center,
     const short theLassoType, const SbBox3f &lassoBBox,
-    const int32_t numLassoVertices, 
-    const SbVec3f *lassoVertices, int32_t &lassoedIncr, 
+    const int32_t numLassoVertices,
+    const SbVec3f *lassoVertices, int32_t &lassoedIncr,
     SbIntList &lassoedList)
 //
 ////////////////////////////////////////////////////////////////////////
@@ -755,7 +755,7 @@ checkLassoThruBBox(
               (lassoMax[Y] >= pt0[Y]) && (lassoMin[Y] <= pt2[Y]))) {
             continue;
         }
-        
+
         // Set the values of the other corners of the rectangle.
         pt0[Z] = pt1[Z] = pt2[Z] = pt3[Z] = 0.0;
         pt1[X] = pt2[X];
@@ -824,8 +824,8 @@ checkLassoEntireBBox(
     const SbBox3f *bbox,
     const SbVec3f *center,
     const short theLassoType, const SbBox3f &lassoBBox,
-    const int32_t numLassoVertices, 
-    const SbVec3f *lassoVertices, int32_t &lassoedIncr, 
+    const int32_t numLassoVertices,
+    const SbVec3f *lassoVertices, int32_t &lassoedIncr,
     SbIntList &lassoedList)
 //
 ////////////////////////////////////////////////////////////////////////
@@ -858,7 +858,7 @@ checkLassoEntireBBox(
               (lassoMax[Y] >= pt0[Y]) && (lassoMin[Y] <= pt2[Y]))) {
             continue;
         }
-        
+
         // Set the values of the other corners of the rectangle.
         pt0[Z] = pt1[Z] = pt2[Z] = pt3[Z] = 0.0;
         pt1[X] = pt2[X];
@@ -871,7 +871,7 @@ checkLassoEntireBBox(
             (pointInLasso(theLassoType, lassoMin, lassoMax,
                           lassoVertices, numLassoVertices, pt1)) &&
             (pointInLasso(theLassoType, lassoMin, lassoMax,
-                          lassoVertices, numLassoVertices, pt2)) && 
+                          lassoVertices, numLassoVertices, pt2)) &&
             (pointInLasso(theLassoType, lassoMin, lassoMax,
                           lassoVertices, numLassoVertices, pt3))) {
 // --> EGB && SGB lasso selection error
@@ -899,8 +899,8 @@ checkLassoThruAtomBBox(
     const SbBool doHydrogens, const ChemBaseData *chemData,
     const ChemAtomBBox *atomBBoxes,
     const short theLassoType, const SbBox3f &lassoBBox,
-    const int32_t numLassoVertices, 
-    const SbVec3f *lassoVertices, int32_t &lassoedIncr, 
+    const int32_t numLassoVertices,
+    const SbVec3f *lassoVertices, int32_t &lassoedIncr,
     SbIntList &lassoedList)
 //
 ////////////////////////////////////////////////////////////////////////
@@ -1008,8 +1008,8 @@ checkLassoEntireAtomBBox(
     const SbBool doHydrogens, const ChemBaseData *chemData,
     const ChemAtomBBox *atomBBoxes,
     const short theLassoType, const SbBox3f &lassoBBox,
-    const int32_t numLassoVertices, 
-    const SbVec3f *lassoVertices, int32_t &lassoedIncr, 
+    const int32_t numLassoVertices,
+    const SbVec3f *lassoVertices, int32_t &lassoedIncr,
     SbIntList &lassoedList)
 //
 ////////////////////////////////////////////////////////////////////////
@@ -1085,7 +1085,7 @@ checkLassoEntireAtomBBox(
         for (side = 0; side < RINGSIDES; side++) {
             pt0[0] = rad * ringCoords[side][0] + pcenter[0];
             pt0[1] = rad * ringCoords[side][1] + pcenter[1];
-            if (!pointInLasso(theLassoType, lassoMin, lassoMax, 
+            if (!pointInLasso(theLassoType, lassoMin, lassoMax,
                               lassoVertices, numLassoVertices, pt0)) {
                 allIn = FALSE;
                 break;
@@ -1116,8 +1116,8 @@ checkLassoThruStickBondBBox(
     const ChemBaseData *chemData,
     const ChemStickBondBBox *bondBBoxes,
     const short theLassoType, const SbBox3f &lassoBBox,
-    const int32_t numLassoVertices, 
-    const SbVec3f *lassoVertices, int32_t &lassoedIncr, 
+    const int32_t numLassoVertices,
+    const SbVec3f *lassoVertices, int32_t &lassoedIncr,
     SbIntList &lassoedList)
 //
 ////////////////////////////////////////////////////////////////////////
@@ -1250,8 +1250,8 @@ checkLassoThruStickBondBBox(
 // <-- EGB && SGB lasso selection error
             continue;
         }
-        
-        // Check to see if the lasso intersects the interior of the 
+
+        // Check to see if the lasso intersects the interior of the
         // bbox.  This case would only occur if the lasso is drawn entirely
         // within the 4 lines comprising the box and therefore didn't cross
         // any of them.  Therefore, if any point on the lasso is outside of the
@@ -1411,8 +1411,8 @@ checkLassoEntireStickBondBBox(
     const ChemBaseData *chemData,
     const ChemStickBondBBox *bondBBoxes,
     const short theLassoType, const SbBox3f &lassoBBox,
-    const int32_t numLassoVertices, 
-    const SbVec3f *lassoVertices, int32_t &lassoedIncr, 
+    const int32_t numLassoVertices,
+    const SbVec3f *lassoVertices, int32_t &lassoedIncr,
     SbIntList &lassoedList)
 //
 ////////////////////////////////////////////////////////////////////////
@@ -1590,8 +1590,8 @@ checkLassoThruWireframeBondBBox(
     const ChemBaseData *chemData,
     const ChemWireframeBondBBox *bondBBoxes,
     const short theLassoType, const SbBox3f &lassoBBox,
-    const int32_t numLassoVertices, 
-    const SbVec3f *lassoVertices, int32_t &lassoedIncr, 
+    const int32_t numLassoVertices,
+    const SbVec3f *lassoVertices, int32_t &lassoedIncr,
     SbIntList &lassoedList)
 //
 ////////////////////////////////////////////////////////////////////////
@@ -1682,7 +1682,7 @@ checkLassoThruWireframeBondBBox(
                   (lassoMin[Y] <= lbondBBoxMax[Y]))) {
                 continue;
             }
-    
+
             // Check to see if any of the bounding box points are contained in
             // the lasso.
             if ((pointInLasso(theLassoType, lassoMin, lassoMax,
@@ -1693,7 +1693,7 @@ checkLassoThruWireframeBondBBox(
                               lassoVertices, numLassoVertices, bbox2[2])) ||
                 (pointInLasso(theLassoType, lassoMin, lassoMax,
                               lassoVertices, numLassoVertices, bbox2[3]))) {
-    
+
 // --> EGB && SGB lasso selection error
 //            lassoedList[lassoedIncr++] = bondBBoxes->index[loop];
 								lassoedIncr++;
@@ -1701,7 +1701,7 @@ checkLassoThruWireframeBondBBox(
 // <-- EGB && SGB lasso selection error
                 continue;
             }
-    
+
             // Check for intersections of the edges with the lasso.
             // Check sides first as they are the most likely
             if ((lineIntersectsLasso(lassoVertices, numLassoVertices,
@@ -1719,15 +1719,15 @@ checkLassoThruWireframeBondBBox(
 // <-- EGB && SGB lasso selection error
                 continue;
             }
-            
-            // Check to see if the lasso intersects the interior of the 
+
+            // Check to see if the lasso intersects the interior of the
             // bbox.  This case would only occur if the lasso is drawn entirely
             // within the 4 lines comprising the box and therefore didn't cross
             // any of them.  Therefore, if any point on the lasso is outside of the
             // bbox, then there is no intersection.
             SbBool lassoInBBox = TRUE;
             for (i = 0; i < numLassoVertices; i++) {
-                if (!pointInLasso(ChemSelection::LASSO, 
+                if (!pointInLasso(ChemSelection::LASSO,
                                   lbondBBoxMin, lbondBBoxMax,
                                   bbox2, 4, lassoVertices[i])) {
                     lassoInBBox = FALSE;
@@ -1761,8 +1761,8 @@ checkLassoEntireWireframeBondBBox(
     const ChemBaseData *chemData,
     const ChemWireframeBondBBox *bondBBoxes,
     const short theLassoType, const SbBox3f &lassoBBox,
-    const int32_t numLassoVertices, 
-    const SbVec3f *lassoVertices, int32_t &lassoedIncr, 
+    const int32_t numLassoVertices,
+    const SbVec3f *lassoVertices, int32_t &lassoedIncr,
     SbIntList &lassoedList)
 //
 ////////////////////////////////////////////////////////////////////////
@@ -1844,7 +1844,7 @@ checkLassoEntireWireframeBondBBox(
                 (pointInLasso(theLassoType, lassoMin, lassoMax,
                               lassoVertices, numLassoVertices, bbox2[2])) &&
                 (pointInLasso(theLassoType, lassoMin, lassoMax,
-                              lassoVertices, numLassoVertices, bbox2[3]))) {    
+                              lassoVertices, numLassoVertices, bbox2[3]))) {
 // --> EGB && SGB lasso selection error
 //            lassoedList[lassoedIncr++] = bondBBoxes->index[loop];
 							lassoedIncr++;
@@ -1864,7 +1864,7 @@ checkLassoEntireWireframeBondBBox(
 // Use: internal, static
 
 static SbBool
-bondBBoxSphereIntersect(const Silhouette &bbox, 
+bondBBoxSphereIntersect(const Silhouette &bbox,
     const SbMatrix &modelMatrix,
     const SbVec3f &bondCenter, const SbVec3f &sphereCenter,
     const float &sphereRadiusSquared)
@@ -1903,7 +1903,7 @@ bondBBoxSphereIntersect(const Silhouette &bbox,
 // Description:
 //    Select items from the lassoedList.
 //
-// Use: static, internal   
+// Use: static, internal
 
 static void
 selectItems(SbIntList lassoedList, MFVec2i &theIndex)
@@ -1915,7 +1915,7 @@ selectItems(SbIntList lassoedList, MFVec2i &theIndex)
     int32_t lastAtomIncr  = 0;
     int32_t count = 0;
 
-    // Go through the list of atoms that have been lassoed and 
+    // Go through the list of atoms that have been lassoed and
     // add to the chemPath.
     atomEnd = lassoedList.getLength();
     for (atomLoop = 0; atomLoop < atomEnd; atomLoop++) {
@@ -2050,7 +2050,7 @@ ChemSelection::constructorCommon()
 
     // Enum for what to select
     SO_NODE_DEFINE_ENUM_VALUE(ChemPart, ATOMS);
-    SO_NODE_DEFINE_ENUM_VALUE(ChemPart, BONDS);   
+    SO_NODE_DEFINE_ENUM_VALUE(ChemPart, BONDS);
     SO_NODE_DEFINE_ENUM_VALUE(ChemPart, ATOMLABELS);
     SO_NODE_DEFINE_ENUM_VALUE(ChemPart, BONDLABELS);
     SO_NODE_DEFINE_ENUM_VALUE(ChemPart, CHEMLABELS);
@@ -2105,14 +2105,14 @@ ChemSelection::constructorCommon()
     selCBList = NULL;
     deselCBList = NULL;
     startCBList = NULL;
-    finishCBList = NULL;  
+    finishCBList = NULL;
     lassoStartCBList = NULL;
-    lassoFinishCBList = NULL;  
+    lassoFinishCBList = NULL;
     changeCBList = NULL;
-    
+
     pickCBFunc = NULL;
     pickCBData = NULL;
-    
+
     mouseDownPickPath = NULL;
     pickMatching = TRUE;
 
@@ -2317,11 +2317,11 @@ ChemSelection::~ChemSelection()
     delete selCBList;
     delete deselCBList;
     delete startCBList;
-    delete finishCBList;  
+    delete finishCBList;
     delete lassoStartCBList;
-    delete lassoFinishCBList;  
+    delete lassoFinishCBList;
     delete changeCBList;
-    
+
     if (mouseDownPickPath != NULL) {
         mouseDownPickPath->unref();
     }
@@ -2345,7 +2345,7 @@ ChemSelection::~ChemSelection()
 }
 
 ////////////////////////////////////////////////////////////////////////
-//    
+//
 // Description:
 //    This adds a child as the last one in the group.
 //
@@ -2353,7 +2353,7 @@ ChemSelection::~ChemSelection()
 
 void
 ChemSelection::addChild(SoNode *child)
-//    
+//
 ////////////////////////////////////////////////////////////////////////
 {
     SoGroup::addChild(child);
@@ -2369,7 +2369,7 @@ ChemSelection::addChild(SoNode *child)
 
 void
 ChemSelection::insertChild(SoNode *child, int newChildIndex)
-//    
+//
 ////////////////////////////////////////////////////////////////////////
 {
     SoGroup::insertChild(child, newChildIndex+1);
@@ -2384,7 +2384,7 @@ ChemSelection::insertChild(SoNode *child, int newChildIndex)
 
 SoNode *
 ChemSelection::getChild(int index) const
-//    
+//
 ////////////////////////////////////////////////////////////////////////
 {
     return SoGroup::getChild(index+1);
@@ -2400,14 +2400,14 @@ ChemSelection::getChild(int index) const
 
 int
 ChemSelection::findChild(const SoNode *child) const
-//    
+//
 ////////////////////////////////////////////////////////////////////////
 {
     return SoGroup::findChild(child) - 1;
 }
 
 ////////////////////////////////////////////////////////////////////////
-//  
+//
 // Description:
 //    Returns number of children
 //
@@ -2415,7 +2415,7 @@ ChemSelection::findChild(const SoNode *child) const
 
 int
 ChemSelection::getNumChildren() const
-//    
+//
 ////////////////////////////////////////////////////////////////////////
 {
 // --> Coin2 compatibility
@@ -2433,7 +2433,7 @@ ChemSelection::getNumChildren() const
 
 void
 ChemSelection::removeChild(int index)
-//    
+//
 ////////////////////////////////////////////////////////////////////////
 {
     SoGroup::removeChild(index+1);
@@ -2455,15 +2455,15 @@ ChemSelection::removeChild(SoNode *child)
 }
 
 ////////////////////////////////////////////////////////////////////////
-// 
+//
 // Description:
 //    Removes all children from the group.
-// 
+//
 // Use: public
 
 void
 ChemSelection::removeAllChildren()
-//    
+//
 ////////////////////////////////////////////////////////////////////////
 {
 // --> Coin2 compatibility
@@ -2480,12 +2480,12 @@ ChemSelection::removeAllChildren()
 //
 // Description:
 //    Replaces child with given index with new child.
-// 
+//
 // Use: public
 
 void
 ChemSelection::replaceChild(int index, SoNode *newChild)
-//    
+//
 ////////////////////////////////////////////////////////////////////////
 {
     SoGroup::replaceChild(index+1, newChild);
@@ -2495,7 +2495,7 @@ ChemSelection::replaceChild(int index, SoNode *newChild)
 //
 // Description:
 //    Replaces old child with new child.
-// 
+//
 // Use: public
 
 void
@@ -2507,7 +2507,7 @@ ChemSelection::replaceChild(SoNode *oldChild, SoNode *newChild)
 }
 
 ////////////////////////////////////////////////////////////////////////
-// 
+//
 // Description:
 //    Turn off notification on fields to avoid notification when
 //    reading, so that caching works properly:
@@ -2541,14 +2541,14 @@ ChemSelection::readInstance(SoInput *in, unsigned short flags)
 #ifdef IV2_0
     SbBool result = SoGroup::readInstance(in);
 #else
-    SbBool result = SoGroup::readInstance(in, flags); 
+    SbBool result = SoGroup::readInstance(in, flags);
 #endif
 
     for (i = 0; i < myFields.getLength(); i++) {
         myFields[i]->enableNotify(TRUE);
     }
 
-    return result;  
+    return result;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -2557,7 +2557,7 @@ ChemSelection::readInstance(SoInput *in, unsigned short flags)
 //    Implements pick action.
 //
 // Use: extender
-        
+
 void
 ChemSelection::pick(SoPickAction *action)
 //
@@ -2574,7 +2574,7 @@ ChemSelection::pick(SoPickAction *action)
 //    Implements write action.
 //
 // Use: extender
-        
+
 void
 ChemSelection::write(SoWriteAction *action)
 //
@@ -2609,7 +2609,7 @@ ChemSelection::getBoundingBox(SoGetBoundingBoxAction *action)
 //    Does the GL render action
 //
 // Use: extender
- 
+
 void
 ChemSelection::GLRender(SoGLRenderAction *action)
 //
@@ -2661,7 +2661,7 @@ printf ("Setting ChemDisplaySelectionElement in GLRenderBelowPath\n");
 ////////////////////////////////////////////////////////////////////////
 //
 // Description:
-//    Does the GL render action 
+//    Does the GL render action
 //
 // Use: extender
 
@@ -2690,7 +2690,7 @@ printf ("Setting ChemDisplaySelectionElement in GLRenderInPath\n");
 // Description:
 //    Does the GL render action
 //
-// Use: extender   
+// Use: extender
 
 void
 ChemSelection::GLRenderOffPath(SoGLRenderAction *action)
@@ -2769,7 +2769,7 @@ ChemSelection::deselect(ChemPath *chemPath)
 
         if (deselCBList != NULL)
             deselCBList->invokeCallbacks(chemPath);
-        
+
         if (changeCBList != NULL)
             changeCBList->invokeCallbacks(this);
 
@@ -2815,7 +2815,7 @@ ChemSelection::toggle(const ChemPath *path)
 //////////////////////////////////////////////////////////////////////////////
 //
 // Description:
-//    Merge adds path if it's not in the SelectionList, leaves it alone if 
+//    Merge adds path if it's not in the SelectionList, leaves it alone if
 //    it is.  A touch is performed in order to update the elements.
 //
 //  Use: public
@@ -2957,10 +2957,10 @@ ChemSelection::isSelected(SoNode *node) const
 ////////////////////////////////////////////////////////////////////////
 {
     SbBool itIs = FALSE;
-    
+
     if (node != NULL) {
         node->ref();
-        
+
         if (searchAction == NULL)
             searchAction = new SoSearchAction;
         else
@@ -2976,10 +2976,10 @@ ChemSelection::isSelected(SoNode *node) const
             itIs = isSelected(chemPath);
             chemPath->unref();
         }
-        
+
         node->unref();
     }
-    
+
     return itIs;
 }
 
@@ -2996,7 +2996,7 @@ ChemSelection::getDisplayPath(int32_t index) const
 //////////////////////////////////////////////////////////////////////////////
 {
     ChemDisplayPath *p;
-    
+
 #ifdef DEBUG
     if ((index >= displaySelectionList.getLength()) || (index < 0)) {
         SoDebugError::post("ChemSelection::getDisplayPath", "Index out of range.  Index = %d, numSelected = %d",
@@ -3006,7 +3006,7 @@ ChemSelection::getDisplayPath(int32_t index) const
     else
 #endif
         p = (ChemDisplayPath *)displaySelectionList[index];
-        
+
     return p;
 }
 
@@ -3023,7 +3023,7 @@ ChemSelection::getLabelPath(int32_t index) const
 //////////////////////////////////////////////////////////////////////////////
 {
     ChemLabelPath *p;
-    
+
 #ifdef DEBUG
     if ((index >= labelSelectionList.getLength()) || (index < 0)) {
         SoDebugError::post("ChemSelection::getLabelPath", "Index out of range.  Index = %d, numSelected = %d",
@@ -3033,7 +3033,7 @@ ChemSelection::getLabelPath(int32_t index) const
     else
 #endif
         p = (ChemLabelPath *)labelSelectionList[index];
-        
+
     return p;
 }
 
@@ -3050,7 +3050,7 @@ ChemSelection::getMonitorPath(int32_t index) const
 //////////////////////////////////////////////////////////////////////////////
 {
     ChemMonitorPath *p;
-    
+
 #ifdef DEBUG
     if ((index >= monitorSelectionList.getLength()) || (index < 0)) {
         SoDebugError::post("ChemSelection::getMonitorPath", "Index out of range.  Index = %d, numSelected = %d",
@@ -3060,7 +3060,7 @@ ChemSelection::getMonitorPath(int32_t index) const
     else
 #endif
         p = (ChemMonitorPath *)monitorSelectionList[index];
-        
+
     return p;
 }
 
@@ -3176,7 +3176,7 @@ ChemSelection::removeChangeCallback(ChemSelectionClassCB *f, void *userData)
 void
 ChemSelection::setPickFilterCallback(
     ChemSelectionPickCB *f,
-    void *userData, 
+    void *userData,
     SbBool callOnlyIfSelectable)
 {
     pickCBFunc = f;
@@ -3197,23 +3197,23 @@ void
 ChemSelection::handleEvent(SoHandleEventAction *action)
 //
 ////////////////////////////////////////////////////////////////////////
-{    
+{
     // Save event in case it's needed
     currentEvent = action->getEvent();
 
-    reallyHandleEvent(action);   
-    
+    reallyHandleEvent(action);
+
     // We no longer have an event
     currentEvent = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////
-// 
+//
 // Description:
 //    If a change was made to a ChemBaseData or ChemDisplay node, then
 //    the displaySelectionList is no longer valid.  This resets the displaySelectionList
 //    if necessary and invokes SoSeparator::notify.
-//    
+//
 // Use: internal, public
 
 void
@@ -3224,8 +3224,8 @@ ChemSelection::notify(SoNotList *list)
     int32_t i;
     // See if the notification is due to a child notifying its parent.
     if ((list->getFirstRecAtNode()->getType() == SoNotRec::PARENT)) {
-        // If the child is of type ChemBaseData or of type ChemDisplay, 
-        // find all ChemDisplayPaths in displaySelectionList which contain the 
+        // If the child is of type ChemBaseData or of type ChemDisplay,
+        // find all ChemDisplayPaths in displaySelectionList which contain the
         // node and deselect those ChemDisplayPaths.
         SoBase *base = list->getFirstRecAtNode()->getBase();
         if ((base->isOfType(ChemBaseData::getClassTypeId())) ||
@@ -3249,8 +3249,8 @@ ChemSelection::notify(SoNotList *list)
                 }
             }
         }
-        // If the child is of type ChemLabel, 
-        // find all ChemLabelPaths in labelSelectionList which contain the 
+        // If the child is of type ChemLabel,
+        // find all ChemLabelPaths in labelSelectionList which contain the
         // node and deselect those ChemLabelPaths.
         else if (base->isOfType(ChemLabel::getClassTypeId())) {
             // Check if the labelSelectionList has anything in it.
@@ -3303,10 +3303,10 @@ ChemSelection::notify(SoNotList *list)
 //    selection.  It invokes action->setHandled if appropriate.
 //
 // Use: private
-    
+
 void
 ChemSelection::reallyHandleEvent(SoHandleEventAction *action)
-//  
+//
 ////////////////////////////////////////////////////////////////////////
 {
     // Let SoSeparator traverse the children
@@ -3341,7 +3341,7 @@ ChemSelection::reallyHandleEvent(SoHandleEventAction *action)
 
             // Get the pick path
             if (pickedPoint != NULL) {
-                // If the pick callback exists, let it tell us what path to 
+                // If the pick callback exists, let it tell us what path to
                 // pick
                 if (pickCBFunc != NULL) {
                     if (callPickCBOnlyIfSelectable) {
@@ -3439,7 +3439,7 @@ fprintf(stderr, "Starting lasso\n");
                 getLassoPoints()->vertex.deleteValues(0);
 #endif
                 lassoBBox.makeEmpty();
-                lassoActive = TRUE;  
+                lassoActive = TRUE;
                 if (lassoStartCBList != NULL)
                     lassoStartCBList->invokeCallbacks(this);
             }
@@ -3499,9 +3499,9 @@ fprintf(stderr, "Starting lasso\n");
                 //
                 // If they match, invoke the selection policy.
                 // If they do NOT match, do nothing.
-            
+
                 if (pickChemPath == NULL) {
-                    // If nothing was picked, pass NULL to 
+                    // If nothing was picked, pass NULL to
                     // invokeSelectionPolicy.
                     if ((! pickMatching) || (mouseDownPickPath == NULL)) {
                         invokeSelectionPolicy(NULL, shiftDown, ctrlDown, TRUE);
@@ -3510,7 +3510,7 @@ fprintf(stderr, "Starting lasso\n");
                 }
                 else {
                     pickChemPath->ref();
-                
+
                     if ((! pickMatching) || (mouseDownPickPath != NULL)) {
                         // Mouse down pick hit something.
                         // Was it same as mouse up pick?
@@ -3518,8 +3518,8 @@ fprintf(stderr, "Starting lasso\n");
                         ChemPath *mouseUpPickPath = copyFromThis(pickChemPath);
                         if (mouseUpPickPath != NULL) {
                             mouseUpPickPath->ref();
-                    
-                            // If paths match, invoke the selection policy. 
+
+                            // If paths match, invoke the selection policy.
                             if ((! pickMatching) ||
                                 (*mouseDownPickPath == *mouseUpPickPath)) {
                                 if (mouseUpPickPath->path->getLength() == 1) {
@@ -3537,17 +3537,17 @@ fprintf(stderr, "Starting lasso\n");
                                 }
                             }
                             // else paths do not match - ignore event
-                        
+
                             mouseUpPickPath->unref();
                         }
                         // else path does not pass through this node -
                         // ignore event
                     }
                     // else paths do not match - ignore event
-                
+
                     pickChemPath->unref();
                 }
-            
+
                 // All done with mouse down pick path
                 if (mouseDownPickPath != NULL) {
                     mouseDownPickPath->unref();
@@ -3563,7 +3563,7 @@ fprintf(stderr, "Starting lasso\n");
 
             lassoBBox.makeEmpty();
             lassoActive = FALSE;
-            
+
             // Turn notification back on and apply a touch so that the scene
             // graph will be traversed with the new selection info in the
             // state.
@@ -3583,7 +3583,7 @@ fprintf(stderr, "Starting lasso\n");
 //
 // Description:
 //    Invoke the appropriate routine to implement the current
-//    selection policy. 
+//    selection policy.
 //
 // Use: protected
 
@@ -3606,7 +3606,7 @@ ChemSelection::invokeSelectionPolicy(ChemPath *chemPath, SbBool shiftDown,
                  performToggleSelection(chemPath, ctrlDown, notify);
             }
             else {
-                performSingleSelection(chemPath, notify); 
+                performSingleSelection(chemPath, notify);
             }
             break;
         default:
@@ -3632,10 +3632,10 @@ ChemSelection::performSingleSelection(ChemPath *chemPath, SbBool notify)
 ////////////////////////////////////////////////////////////////////////
 {
     SbBool needFinishCB = FALSE;
-    
+
     // let app know (if and only if) user is changing the selection
     if (notify) {
-        if ((getNumDisplaysSelected() > 0) || 
+        if ((getNumDisplaysSelected() > 0) ||
             (getNumLabelsSelected() > 0) ||
             (getNumMonitorsSelected() > 0) ||
             (chemPath != NULL)) {
@@ -3659,7 +3659,7 @@ ChemSelection::performSingleSelection(ChemPath *chemPath, SbBool notify)
     if (chemPath != NULL) {
         addPath(chemPath, FALSE);
     }
-    
+
     // let app know user is done changing the selection
     if (notify) {
         if (needFinishCB) {
@@ -3673,7 +3673,7 @@ ChemSelection::performSingleSelection(ChemPath *chemPath, SbBool notify)
 //
 // Description:
 //    Depending on the value of ctrlDown, selection is made either by
-//    toggling or by merging.  Toggling means that if an object is 
+//    toggling or by merging.  Toggling means that if an object is
 //    already selected, then it is deselected.  Merging means that if
 //    it is already selected, it stays selected.
 //
@@ -3689,7 +3689,7 @@ ChemSelection::performToggleSelection(ChemPath *chemPath, SbBool ctrlDown,
         // let app know user is changing the selection
         if (startCBList != NULL)
             startCBList->invokeCallbacks(this);
-        
+
         // toggle the picked object
         addPath(chemPath, !ctrlDown);
 
@@ -3714,7 +3714,7 @@ ChemSelection::copyFromThis(const ChemPath *chemPath) const
 {
     if (chemPath == NULL)
         return NULL;
-        
+
     SoNode *node;
     int32_t i, indexToThis = -1;
     ChemPath *cp = NULL;
@@ -3723,8 +3723,8 @@ ChemSelection::copyFromThis(const ChemPath *chemPath) const
 
     for (i = 0; i < fullInPath->getLength(); i++) {
         node = fullInPath->getNode(i);
-	/* 
-	   cast (SoNode *) added by fabien fontaine the 14/12/2000 to avoid 
+	/*
+	   cast (SoNode *) added by fabien fontaine the 14/12/2000 to avoid
 	   compiler warning
 	*/
         if (node == (SoNode *) this) {
@@ -3732,7 +3732,7 @@ ChemSelection::copyFromThis(const ChemPath *chemPath) const
             break;
         }
     }
-    
+
     if (indexToThis != -1) {
         if (chemPath->isOfType(ChemDisplayPath::getClassTypeId())) {
             ChemDisplayPath *tcp = ((ChemDisplayPath *)chemPath)->copy();
@@ -3821,8 +3821,8 @@ ChemSelection::removeDisplayPath(int32_t which)
         displaySelectionList.remove(which);
         if (deselCBList != NULL)
             deselCBList->invokeCallbacks(p);
-        p->unref();     
-        
+        p->unref();
+
         if (changeCBList != NULL)
             changeCBList->invokeCallbacks(this);
     }
@@ -3849,8 +3849,8 @@ ChemSelection::removeLabelPath(int32_t which)
         labelSelectionList.remove(which);
         if (deselCBList != NULL)
             deselCBList->invokeCallbacks(p);
-        p->unref();     
-        
+        p->unref();
+
         if (changeCBList != NULL)
             changeCBList->invokeCallbacks(this);
     }
@@ -3877,8 +3877,8 @@ ChemSelection::removeMonitorPath(int32_t which)
         monitorSelectionList.remove(which);
         if (deselCBList != NULL)
             deselCBList->invokeCallbacks(p);
-        p->unref();     
-        
+        p->unref();
+
         if (changeCBList != NULL)
             changeCBList->invokeCallbacks(this);
     }
@@ -3899,14 +3899,14 @@ ChemSelection::findPath(const ChemPath *chemPath) const
     int32_t index = -1;
     if (chemPath != NULL) {
         ChemPath *selPath = NULL;
-	/* 
-	   cast (SoNode *) added by fabien fontaine the 14/12/2000 to avoid 
+	/*
+	   cast (SoNode *) added by fabien fontaine the 14/12/2000 to avoid
 	   compiler warning
 	*/
         if (chemPath->path->getHead() != (SoNode *) this)
              selPath = copyFromThis(chemPath);
         else selPath = (ChemPath *)chemPath; // const cast away
-        
+
         // selPath still not NULL? (copyFromThis() might have returned NULL)
         if (selPath != NULL) {
             selPath->ref();
@@ -3920,7 +3920,7 @@ ChemSelection::findPath(const ChemPath *chemPath) const
             selPath->unref();
         }
     }
-    
+
     return index;
 }
 
@@ -3929,11 +3929,11 @@ ChemSelection::findPath(const ChemPath *chemPath) const
 // Description:
 //    Perform a lasso pick operation using the current set of lassoPoints
 //
-// Use: private       
-        
+// Use: private
+
 void
 ChemSelection::doLassoPick(SbBool shiftDown, SbBool ctrlDown)
-//   
+//
 ////////////////////////////////////////////////////////////////////////
 {
 #ifdef IV2_0
@@ -3943,7 +3943,7 @@ ChemSelection::doLassoPick(SbBool shiftDown, SbBool ctrlDown)
 #endif
     if (numLassoVertices < 3) {
         return;
-    } 
+    }
     // The code to determine if a point is within the polygon automatically
     // connects the first and last point.  If the DRAGGER is used, the first
     // and last vertex points are the same, so set the number of vertices to
@@ -3952,7 +3952,7 @@ ChemSelection::doLassoPick(SbBool shiftDown, SbBool ctrlDown)
         assert(numLassoVertices == 5);
         numLassoVertices = 4;
     }
-    
+
     short theLassoType = (short)lassoType.getValue();
     const SbVec3f &lassoMin = lassoBBox.getMin();
     const SbVec3f &lassoMax = lassoBBox.getMax();
@@ -3992,7 +3992,7 @@ ChemSelection::doLassoPick(SbBool shiftDown, SbBool ctrlDown)
     ChemPath *chemPath = (ChemPath *)selectedItemList[0];
     invokeSelectionPolicy(chemPath, shiftDown, ctrlDown, FALSE);
     if (chemPath != NULL) chemPath->unref();
-    
+
     // Loop over the rest of seletedItemList
     int32_t i;
     int32_t endIndex = selectedItemList.getLength();
@@ -4021,7 +4021,7 @@ ChemSelection::doLassoPick(SbBool shiftDown, SbBool ctrlDown)
 //    using the current set of lassoPoints.  The selected items are
 //    appended to the selectedItemList.
 //
-// Use: private       
+// Use: private
 
 void
 ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
@@ -4039,17 +4039,17 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
     // ChemSelection node.  Note that "pl" needs to be freed before leaving
     // this method.
     SoPathList *pl = getPathList(ChemDisplay::getClassTypeId());
-    
+
     if (pl == NULL) {
         return;
     }
-            
+
     ////////////////////////////////////////////
     //
     // Go through the pathList and add the ChemDisplay pointers to
     // pickedNodeArray.  Only unique references will be added.
     //
-    
+
     int32_t i;
     uint32_t endIndex = pl->getLength();
 
@@ -4221,10 +4221,10 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                 }
                 else if (thePolicy == ChemSelection::THRU_BBOX) {
                     checkLassoThruAtomBBox(orthoCamXres, orthoCamYres,
-                        displayMVPMatrix, displayRotation, 
-                        doHydrogens, chemData, atomBBoxes, 
+                        displayMVPMatrix, displayRotation,
+                        doHydrogens, chemData, atomBBoxes,
                         theLassoType, lassoBBox,
-                        numLassoVertices, lassoVertices, 
+                        numLassoVertices, lassoVertices,
                         lassoedIncr, lassoedList);
                 }
                 else if (thePolicy == ChemSelection::ENTIRE_BBOX) {
@@ -4233,12 +4233,12 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                         displayMVPMatrix, displayRotation,
                         doHydrogens, chemData, atomBBoxes,
                         theLassoType, lassoBBox,
-                        numLassoVertices, lassoVertices, 
+                        numLassoVertices, lassoVertices,
                         lassoedIncr, lassoedList);
                 }
                 selectItems(lassoedList, chemPath->atomIndex);
             }
-        } // end of selection of ATOMS 
+        } // end of selection of ATOMS
 
         if (SELECT(what, ChemSelection::BONDS)) {
             int displayStyle = cdp->displayStyle.getValue();
@@ -4249,7 +4249,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                     SbBool isWireframe =
                         ((displayStyle == ChemDisplayParam::DISPLAY_WIREFRAME) ||
                          (displayStyle == ChemDisplayParam::DISPLAY_BALLWIRE));
-        
+
                     thePolicy = bondLassoPolicy.getValue();
                     lassoedList.truncate(0);
                     lassoedIncr = 0;
@@ -4258,7 +4258,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                             theItem = bondBBoxes->index[loop];
                             int32_t from = chemData->getBondFrom(theItem);
                             int32_t to = chemData->getBondTo(theItem);
-        
+
                             if (!doHydrogens) {
                                 if ((chemData->getAtomicNumber(from) == 1) ||
                                     (chemData->getAtomicNumber(to) == 1)) {
@@ -4290,18 +4290,18 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                                 orthoCamXres, orthoCamYres,
                                 displayMVPMatrix,
                                 doHydrogens, chemData,
-                                (ChemWireframeBondBBox *)bondBBoxes, 
+                                (ChemWireframeBondBBox *)bondBBoxes,
                                 theLassoType, lassoBBox,
-                                numLassoVertices, lassoVertices, 
+                                numLassoVertices, lassoVertices,
                                 lassoedIncr, lassoedList);
                         }
                         else {
                             checkLassoThruStickBondBBox(orthoCamXres, orthoCamYres,
                                 displayMVPMatrix,
                                 doHydrogens, chemData,
-                                (ChemStickBondBBox *)bondBBoxes, 
+                                (ChemStickBondBBox *)bondBBoxes,
                                 theLassoType, lassoBBox,
-                                numLassoVertices, lassoVertices, 
+                                numLassoVertices, lassoVertices,
                                 lassoedIncr, lassoedList);
                         }
                     }
@@ -4313,7 +4313,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                                 doHydrogens, chemData,
                                 (ChemWireframeBondBBox *)bondBBoxes,
                                 theLassoType, lassoBBox,
-                                numLassoVertices, lassoVertices, 
+                                numLassoVertices, lassoVertices,
                                 lassoedIncr, lassoedList);
                         }
                         else {
@@ -4322,7 +4322,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                                 doHydrogens, chemData,
                                 (ChemStickBondBBox *)bondBBoxes,
                                 theLassoType, lassoBBox,
-                                numLassoVertices, lassoVertices, 
+                                numLassoVertices, lassoVertices,
                                 lassoedIncr, lassoedList);
                         }
                     }
@@ -4330,8 +4330,8 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                     selectItems(lassoedList, chemPath->bondIndex);
                 }
             }
-        } // end of selection of BONDS 
-    
+        } // end of selection of BONDS
+
         if (SELECT(what, ChemSelection::ATOMLABELS)) {
             chemBBoxAction->getAtomLabelBBoxes(atomLabelBBoxes);
             if ((atomLabelBBoxes != NULL) &&
@@ -4346,7 +4346,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                         atomLabelBBoxes->index,
                         atomLabelBBoxes->center,
                         theLassoType, lassoBBox,
-                        numLassoVertices, lassoVertices, 
+                        numLassoVertices, lassoVertices,
                         lassoedIncr, lassoedList);
                 }
                 else if (thePolicy == ChemSelection::THRU_BBOX) {
@@ -4357,7 +4357,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                         atomLabelBBoxes->bbox,
                         atomLabelBBoxes->center,
                         theLassoType, lassoBBox,
-                        numLassoVertices, lassoVertices, 
+                        numLassoVertices, lassoVertices,
                         lassoedIncr, lassoedList);
                 }
                 else if (thePolicy == ChemSelection::ENTIRE_BBOX) {
@@ -4368,7 +4368,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                         atomLabelBBoxes->bbox,
                         atomLabelBBoxes->center,
                         theLassoType, lassoBBox,
-                        numLassoVertices, lassoVertices, 
+                        numLassoVertices, lassoVertices,
                         lassoedIncr, lassoedList);
                 }
                 selectItems(lassoedList, chemPath->atomLabelIndex);
@@ -4389,7 +4389,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                         bondLabelBBoxes->index,
                         bondLabelBBoxes->center,
                         theLassoType, lassoBBox,
-                        numLassoVertices, lassoVertices, 
+                        numLassoVertices, lassoVertices,
                         lassoedIncr, lassoedList);
                 }
                 else if (thePolicy == ChemSelection::THRU_BBOX) {
@@ -4400,7 +4400,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                         bondLabelBBoxes->bbox,
                         bondLabelBBoxes->center,
                         theLassoType, lassoBBox,
-                        numLassoVertices, lassoVertices, 
+                        numLassoVertices, lassoVertices,
                         lassoedIncr, lassoedList);
                 }
                 else if (thePolicy == ChemSelection::ENTIRE_BBOX) {
@@ -4411,7 +4411,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                         bondLabelBBoxes->bbox,
                         bondLabelBBoxes->center,
                         theLassoType, lassoBBox,
-                        numLassoVertices, lassoVertices, 
+                        numLassoVertices, lassoVertices,
                         lassoedIncr, lassoedList);
                 }
                 selectItems(lassoedList, chemPath->bondLabelIndex);
@@ -4430,7 +4430,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
 								{
                     SbBool isWireframe =
                         (displayStyle == ChemDisplayParam::DISPLAY_RESIDUES_CAWIRE);
-        
+
                     thePolicy = residueLassoPolicy.getValue();
                     lassoedList.truncate(0);
                     lassoedIncr = 0;
@@ -4439,7 +4439,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                         for (loop = 0; loop < residueBBoxes->numberOfBonds; loop++)
 												{
                             theItem = residueBBoxes->index[loop];
-        
+
                             SbVec3f tmpCoord =
                                 fromObjectSpace(residueBBoxes->center[loop],
                                                 displayMVPMatrix);
@@ -4452,7 +4452,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                                 // The residue bond has been lassoed so add it to the list
                                 // of lassoed bonds which will be processed later.
 															lassoedIncr++;
-															assert(theItem < numberOfResidues);
+															// assert(theItem < numberOfResidues);
 															lassoedList.append(theItem);
                             }
                         }
@@ -4465,9 +4465,9 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                                 orthoCamXres, orthoCamYres,
                                 displayMVPMatrix,
                                 doHydrogens, chemData,
-                                (ChemWireframeBondBBox *)residueBBoxes, 
+                                (ChemWireframeBondBBox *)residueBBoxes,
                                 theLassoType, lassoBBox,
-                                numLassoVertices, lassoVertices, 
+                                numLassoVertices, lassoVertices,
                                 lassoedIncr, lassoedList);
                         }
                         else
@@ -4475,9 +4475,9 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                             checkLassoThruStickBondBBox(orthoCamXres, orthoCamYres,
                                 displayMVPMatrix,
                                 doHydrogens, chemData,
-                                (ChemStickBondBBox *)residueBBoxes, 
+                                (ChemStickBondBBox *)residueBBoxes,
                                 theLassoType, lassoBBox,
-                                numLassoVertices, lassoVertices, 
+                                numLassoVertices, lassoVertices,
                                 lassoedIncr, lassoedList);
                         }
                     }
@@ -4491,7 +4491,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                                 doHydrogens, chemData,
                                 (ChemWireframeBondBBox *)residueBBoxes,
                                 theLassoType, lassoBBox,
-                                numLassoVertices, lassoVertices, 
+                                numLassoVertices, lassoVertices,
                                 lassoedIncr, lassoedList);
                         }
                         else
@@ -4501,7 +4501,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                                 doHydrogens, chemData,
                                 (ChemStickBondBBox *)residueBBoxes,
                                 theLassoType, lassoBBox,
-                                numLassoVertices, lassoVertices, 
+                                numLassoVertices, lassoVertices,
                                 lassoedIncr, lassoedList);
                         }
                     }
@@ -4513,7 +4513,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
                 }
 						} // cawire, castick
 						else if (displayStyle == ChemDisplayParam::DISPLAY_RESIDUES_LINERIBBON ||
-							displayStyle == ChemDisplayParam::DISPLAY_RESIDUES_FLATRIBBON || 
+							displayStyle == ChemDisplayParam::DISPLAY_RESIDUES_FLATRIBBON ||
 							displayStyle == ChemDisplayParam::DISPLAY_RESIDUES_SOLIDRIBBON)
 						{
 						 chemBBoxAction->getResidueBBoxes(residueBBoxes);
@@ -4538,7 +4538,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
 												// The residue has been lassoed so add it to the list
 												// of lassoed residues which will be processed later.
 											theItem = residueBBoxes->index[loop];
-											assert(theItem < numberOfResidues);
+											// assert(theItem < numberOfResidues);
 											lassoedIncr++;
 											lassoedList.append(theItem);
 										}
@@ -4579,7 +4579,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
 							residueLabelBBoxes->index,
 							residueLabelBBoxes->center,
 							theLassoType, lassoBBox,
-							numLassoVertices, lassoVertices, 
+							numLassoVertices, lassoVertices,
 							lassoedIncr, lassoedList);
 					}
           else if (thePolicy == ChemSelection::THRU_BBOX)
@@ -4591,7 +4591,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
 								residueLabelBBoxes->bbox,
 								residueLabelBBoxes->center,
 								theLassoType, lassoBBox,
-								numLassoVertices, lassoVertices, 
+								numLassoVertices, lassoVertices,
 								lassoedIncr, lassoedList);
           }
           else if (thePolicy == ChemSelection::ENTIRE_BBOX)
@@ -4603,7 +4603,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
               residueLabelBBoxes->bbox,
               residueLabelBBoxes->center,
               theLassoType, lassoBBox,
-              numLassoVertices, lassoVertices, 
+              numLassoVertices, lassoVertices,
               lassoedIncr, lassoedList);
           }
 					selectItems(lassoedList, chemPath->residueLabelIndex);
@@ -4627,7 +4627,7 @@ ChemSelection::lassoChemDisplay(int32_t numLassoVertices, short theLassoType,
 //    using the current set of lassoPoints.  The selected labels are
 //    appended to the selectedItemList.
 //
-// Use: private       
+// Use: private
 
 void
 ChemSelection::lassoChemLabel(int32_t numLassoVertices, short theLassoType,
@@ -4645,17 +4645,17 @@ ChemSelection::lassoChemLabel(int32_t numLassoVertices, short theLassoType,
     // ChemSelection node.  Note that "pl" needs to be freed before leaving
     // this method.
     SoPathList *pl = getPathList(ChemLabel::getClassTypeId());
-    
+
     if (pl == NULL) {
         return;
     }
-            
+
     ////////////////////////////////////////////
     //
     // Go through the pathList and add the ChemLabel pointers to
     // pickedNodeArray.  Only unique references will be added.
     //
-    
+
     int32_t i;
     uint32_t endIndex = pl->getLength();
 
@@ -4723,7 +4723,7 @@ ChemSelection::lassoChemLabel(int32_t numLassoVertices, short theLassoType,
                     chemLabelBBoxes->index,
                     chemLabelBBoxes->center,
                     theLassoType, lassoBBox,
-                    numLassoVertices, lassoVertices, 
+                    numLassoVertices, lassoVertices,
                     lassoedIncr, lassoedList);
             }
             else if (thePolicy == ChemSelection::THRU_BBOX) {
@@ -4734,7 +4734,7 @@ ChemSelection::lassoChemLabel(int32_t numLassoVertices, short theLassoType,
                     chemLabelBBoxes->bbox,
                     chemLabelBBoxes->center,
                     theLassoType, lassoBBox,
-                    numLassoVertices, lassoVertices, 
+                    numLassoVertices, lassoVertices,
                     lassoedIncr, lassoedList);
             }
             else if (thePolicy == ChemSelection::ENTIRE_BBOX) {
@@ -4745,10 +4745,10 @@ ChemSelection::lassoChemLabel(int32_t numLassoVertices, short theLassoType,
                     chemLabelBBoxes->bbox,
                     chemLabelBBoxes->center,
                     theLassoType, lassoBBox,
-                    numLassoVertices, lassoVertices, 
+                    numLassoVertices, lassoVertices,
                     lassoedIncr, lassoedList);
             }
-    
+
             selectItems(lassoedList, chemPath->labelIndex);
             selectedItemList->append(chemPath);
 
@@ -4768,7 +4768,7 @@ ChemSelection::lassoChemLabel(int32_t numLassoVertices, short theLassoType,
 //    using the current set of lassoPoints.  The selected monitors are
 //    appended to the selectedItemList.
 //
-// Use: private       
+// Use: private
 
 void
 ChemSelection::lassoChemMonitor(int32_t numLassoVertices, short theLassoType,
@@ -4786,17 +4786,17 @@ ChemSelection::lassoChemMonitor(int32_t numLassoVertices, short theLassoType,
     // ChemSelection node.  Note that "pl" needs to be freed before leaving
     // this method.
     SoPathList *pl = getPathList(ChemMonitor::getClassTypeId());
-    
+
     if (pl == NULL) {
         return;
     }
-            
+
     ////////////////////////////////////////////
     //
     // Go through the pathList and add the ChemMonitor pointers to
     // pickedNodeArray.  Only unique references will be added.
     //
-    
+
     int32_t i;
     uint32_t endIndex = pl->getLength();
 
@@ -4864,7 +4864,7 @@ ChemSelection::lassoChemMonitor(int32_t numLassoVertices, short theLassoType,
                     chemMonitorBBoxes->distanceIndex,
                     chemMonitorBBoxes->distanceCenter,
                     theLassoType, lassoBBox,
-                    numLassoVertices, lassoVertices, 
+                    numLassoVertices, lassoVertices,
                     lassoedIncr, lassoedList);
 
                 selectItems(lassoedList, chemPath->distanceIndex);
@@ -4877,7 +4877,7 @@ ChemSelection::lassoChemMonitor(int32_t numLassoVertices, short theLassoType,
                     chemMonitorBBoxes->angleIndex,
                     chemMonitorBBoxes->angleCenter,
                     theLassoType, lassoBBox,
-                    numLassoVertices, lassoVertices, 
+                    numLassoVertices, lassoVertices,
                     lassoedIncr, lassoedList);
 
                 selectItems(lassoedList, chemPath->angleIndex);
@@ -4890,7 +4890,7 @@ ChemSelection::lassoChemMonitor(int32_t numLassoVertices, short theLassoType,
                     chemMonitorBBoxes->torsionalIndex,
                     chemMonitorBBoxes->torsionalCenter,
                     theLassoType, lassoBBox,
-                    numLassoVertices, lassoVertices, 
+                    numLassoVertices, lassoVertices,
                     lassoedIncr, lassoedList);
 
                 selectItems(lassoedList, chemPath->torsionalIndex);
@@ -4905,7 +4905,7 @@ ChemSelection::lassoChemMonitor(int32_t numLassoVertices, short theLassoType,
                     chemMonitorBBoxes->distanceBBox,
                     chemMonitorBBoxes->distanceCenter,
                     theLassoType, lassoBBox,
-                    numLassoVertices, lassoVertices, 
+                    numLassoVertices, lassoVertices,
                     lassoedIncr, lassoedList);
 
                 selectItems(lassoedList, chemPath->distanceIndex);
@@ -4919,7 +4919,7 @@ ChemSelection::lassoChemMonitor(int32_t numLassoVertices, short theLassoType,
                     chemMonitorBBoxes->angleBBox,
                     chemMonitorBBoxes->angleCenter,
                     theLassoType, lassoBBox,
-                    numLassoVertices, lassoVertices, 
+                    numLassoVertices, lassoVertices,
                     lassoedIncr, lassoedList);
 
                 selectItems(lassoedList, chemPath->angleIndex);
@@ -4933,7 +4933,7 @@ ChemSelection::lassoChemMonitor(int32_t numLassoVertices, short theLassoType,
                     chemMonitorBBoxes->torsionalBBox,
                     chemMonitorBBoxes->torsionalCenter,
                     theLassoType, lassoBBox,
-                    numLassoVertices, lassoVertices, 
+                    numLassoVertices, lassoVertices,
                     lassoedIncr, lassoedList);
 
                 selectItems(lassoedList, chemPath->torsionalIndex);
@@ -4948,7 +4948,7 @@ ChemSelection::lassoChemMonitor(int32_t numLassoVertices, short theLassoType,
                     chemMonitorBBoxes->distanceBBox,
                     chemMonitorBBoxes->distanceCenter,
                     theLassoType, lassoBBox,
-                    numLassoVertices, lassoVertices, 
+                    numLassoVertices, lassoVertices,
                     lassoedIncr, lassoedList);
 
                 selectItems(lassoedList, chemPath->distanceIndex);
@@ -4962,7 +4962,7 @@ ChemSelection::lassoChemMonitor(int32_t numLassoVertices, short theLassoType,
                     chemMonitorBBoxes->angleBBox,
                     chemMonitorBBoxes->angleCenter,
                     theLassoType, lassoBBox,
-                    numLassoVertices, lassoVertices, 
+                    numLassoVertices, lassoVertices,
                     lassoedIncr, lassoedList);
 
                 selectItems(lassoedList, chemPath->angleIndex);
@@ -4976,12 +4976,12 @@ ChemSelection::lassoChemMonitor(int32_t numLassoVertices, short theLassoType,
                     chemMonitorBBoxes->torsionalBBox,
                     chemMonitorBBoxes->torsionalCenter,
                     theLassoType, lassoBBox,
-                    numLassoVertices, lassoVertices, 
+                    numLassoVertices, lassoVertices,
                     lassoedIncr, lassoedList);
 
                 selectItems(lassoedList, chemPath->torsionalIndex);
             }
-    
+
             selectedItemList->append(chemPath);
 
         } // end of (chemMonitorBBoxes != NULL)
@@ -4998,7 +4998,7 @@ ChemSelection::lassoChemMonitor(int32_t numLassoVertices, short theLassoType,
 // Description:
 //    Perform a radius pick operation using the selectedRadius.
 //
-// Use: private       
+// Use: private
 
 void
 ChemSelection::doRadiusPick(SbBool shiftDown, SbBool ctrlDown)
@@ -5063,7 +5063,7 @@ ChemSelection::doRadiusPick(SbBool shiftDown, SbBool ctrlDown)
 //    using the selectedRadius.  The seleted items are appended to
 //    the selectedItemList.
 //
-// Use: private       
+// Use: private
 
 void
 ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
@@ -5074,17 +5074,17 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
     // ChemSelection node.  Note that "pl" needs to be freed before leaving
     // this method.
     SoPathList *pl = getPathList(ChemDisplay::getClassTypeId());
-    
+
     if (pl == NULL) {
         return;
     }
-            
+
     ////////////////////////////////////////////
     //
     // Go through the pathList and add the ChemDisplay pointers to
     // pickedNodeArray.  Only unique references will be added.
     //
-    
+
     int32_t i;
     uint32_t endIndex = pl->getLength();
 
@@ -5093,7 +5093,7 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
     ChemDisplayParam *cdp;
     SbIntList lassoedList(50);
     int32_t lassoedIncr;
-    
+
     // Create a new searchAction if necessary
     if (searchAction == NULL) {
         searchAction = new SoSearchAction;
@@ -5260,7 +5260,7 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
                             theCenter);
                         float theSep =
                             (theCenter - selectedAtomCoordX).length();
-                        if (theSep < 
+                        if (theSep <
                             (atomBBoxes->radius[loop] + selectedRadius)) {
 // --> sphere selection error
 //                            lassoedList[lassoedIncr++] = atomBBoxes->index[loop];
@@ -5281,7 +5281,7 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
                             theCenter);
                         float theSep =
                             (theCenter - selectedAtomCoordX).length();
-        
+
                         if ((theSep + atomBBoxes->radius[loop]) <=
                              selectedRadius) {
 // --> sphere selection error
@@ -5294,7 +5294,7 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
                 }
                 selectItems(lassoedList, chemPath->atomIndex);
             }
-        } // end of selection of ATOMS 
+        } // end of selection of ATOMS
 
         if (SELECT(what, ChemSelection::BONDS)) {
             int displayStyle = cdp->displayStyle.getValue();
@@ -5311,18 +5311,18 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
                             theItem = bondBBoxes->index[loop];
                             int32_t from = chemData->getBondFrom(theItem);
                             int32_t to = chemData->getBondTo(theItem);
-        
+
                             if (!doHydrogens) {
                                 if ((chemData->getAtomicNumber(from) == 1) ||
                                     (chemData->getAtomicNumber(to) == 1)) {
                                     continue;
                                 }
                             }
-        
+
                             SbVec3f theCoord;
                             modelMatrix.multVecMatrix(bondBBoxes->center[loop],
                                 theCoord);
-        
+
                             if (distSquared(theCoord, selectedAtomCoordX) <=
                                  selectedRadiusSquared) {
                                 // The bond has been lassoed so add it to the list
@@ -5382,7 +5382,7 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
                     selectItems(lassoedList, chemPath->bondIndex);
                 }
             }
-        } // end of selection of BONDS 
+        } // end of selection of BONDS
 
         if (SELECT(what, ChemSelection::ATOMLABELS)) {
             chemBBoxAction->getAtomLabelBBoxes(atomLabelBBoxes);
@@ -5402,7 +5402,7 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
 //                            lassoedList[lassoedIncr++] = atomLabelBBoxes->index[loop];
 															lassoedIncr++;
 															lassoedList.append(atomLabelBBoxes->index[loop]);
-// <-- sphere selection error   
+// <-- sphere selection error
                         }
                     }
                 }
@@ -5417,7 +5417,7 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
 //                            lassoedList[lassoedIncr++] = atomLabelBBoxes->index[loop];
 															lassoedIncr++;
 															lassoedList.append(atomLabelBBoxes->index[loop]);
-// <-- sphere selection error   
+// <-- sphere selection error
 
                         }
                     }
@@ -5438,7 +5438,7 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
 //                            lassoedList[lassoedIncr++] = atomLabelBBoxes->index[loop];
 															lassoedIncr++;
 															lassoedList.append(atomLabelBBoxes->index[loop]);
-// <-- sphere selection error   
+// <-- sphere selection error
                         }
                     }
                 }
@@ -5519,7 +5519,7 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
 						{
                 chemBBoxAction->getResidueBBoxes(residueBBoxes);
                 if ((residueBBoxes != NULL) && (residueBBoxes->numberOfBonds > 0))
-								{        
+								{
                     thePolicy = residueLassoPolicy.getValue();
                     lassoedList.truncate(0);
                     lassoedIncr = 0;
@@ -5528,7 +5528,7 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
                         for (loop = 0; loop < residueBBoxes->numberOfBonds; loop++)
 												{
                             theItem = residueBBoxes->index[loop];
-        
+
                             SbVec3f theCoord;
 		                        modelMatrix.multVecMatrix(residueBBoxes->center[loop],
                             theCoord);
@@ -5557,7 +5557,7 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
 // <-- residue atoms selection
 						} // castick,cawire
 						else if (displayStyle == ChemDisplayParam::DISPLAY_RESIDUES_LINERIBBON ||
-							displayStyle == ChemDisplayParam::DISPLAY_RESIDUES_FLATRIBBON || 
+							displayStyle == ChemDisplayParam::DISPLAY_RESIDUES_FLATRIBBON ||
 							displayStyle == ChemDisplayParam::DISPLAY_RESIDUES_SOLIDRIBBON)
 						{
 							chemBBoxAction->getResidueBBoxes(residueBBoxes);
@@ -5599,7 +5599,7 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
 									// <-- residue atoms selection
 							} // bboxes != NULL
 					} //ribbons
-					
+
 					if (displayStyle != ChemDisplayParam::DISPLAY_RESIDUES_SCHEMATIC)
 					{
 						selectItems(lassoedList, chemPath->residueIndex);
@@ -5687,7 +5687,7 @@ ChemSelection::radiusPickChemDisplay(SbPList *selectedItemList)
 //    using the selectedRadius.  The seleted labels are appended to
 //    the selectedItemList.
 //
-// Use: private       
+// Use: private
 
 void
 ChemSelection::radiusPickChemLabel(SbPList *selectedItemList)
@@ -5698,24 +5698,24 @@ ChemSelection::radiusPickChemLabel(SbPList *selectedItemList)
     // ChemSelection node.  Note that "pl" needs to be freed before leaving
     // this method.
     SoPathList *pl = getPathList(ChemLabel::getClassTypeId());
-    
+
     if (pl == NULL) {
         return;
     }
-            
+
     ////////////////////////////////////////////
     //
     // Go through the pathList and add the ChemLabel pointers to
     // pickedNodeArray.  Only unique references will be added.
     //
-    
+
     int32_t i;
     uint32_t endIndex = pl->getLength();
 
     ChemLabel *chemLabel;
     SbIntList lassoedList(50);
     int32_t lassoedIncr;
-    
+
     // Create a new searchAction if necessary
     if (searchAction == NULL) {
         searchAction = new SoSearchAction;
@@ -5739,7 +5739,7 @@ ChemSelection::radiusPickChemLabel(SbPList *selectedItemList)
 
     int32_t loop;
     int32_t thePolicy;
-    
+
 
     // For labels
     ChemLabelBBox *chemLabelBBoxes;
@@ -5791,7 +5791,7 @@ ChemSelection::radiusPickChemLabel(SbPList *selectedItemList)
                     if (boxSphereIntersect(chemLabelBBoxes->bbox[loop],
                             modelMatrix,
                             selectedAtomCoordX, selectedRadius)) {
-                        lassoedList[lassoedIncr++] = 
+                        lassoedList[lassoedIncr++] =
                             chemLabelBBoxes->index[loop];
                     }
                 }
@@ -5833,7 +5833,7 @@ ChemSelection::radiusPickChemLabel(SbPList *selectedItemList)
 //    using the selectedRadius.  The seleted monitors are appended to
 //    the selectedItemList.
 //
-// Use: private       
+// Use: private
 
 void
 ChemSelection::radiusPickChemMonitor(SbPList *selectedItemList)
@@ -5844,24 +5844,24 @@ ChemSelection::radiusPickChemMonitor(SbPList *selectedItemList)
     // ChemSelection node.  Note that "pl" needs to be freed before leaving
     // this method.
     SoPathList *pl = getPathList(ChemMonitor::getClassTypeId());
-    
+
     if (pl == NULL) {
         return;
     }
-            
+
     ////////////////////////////////////////////
     //
     // Go through the pathList and add the ChemMonitor pointers to
     // pickedNodeArray.  Only unique references will be added.
     //
-    
+
     int32_t i;
     uint32_t endIndex = pl->getLength();
 
     ChemMonitor *chemMonitor;
     SbIntList lassoedList(50);
     int32_t lassoedIncr;
-    
+
     // Create a new searchAction if necessary
     if (searchAction == NULL) {
         searchAction = new SoSearchAction;
@@ -5885,7 +5885,7 @@ ChemSelection::radiusPickChemMonitor(SbPList *selectedItemList)
 
     int32_t loop;
     int32_t thePolicy;
-    
+
     // For monitors
     ChemMonitorBBox *chemMonitorBBoxes;
 
@@ -5966,7 +5966,7 @@ ChemSelection::radiusPickChemMonitor(SbPList *selectedItemList)
                     if (boxSphereIntersect(chemMonitorBBoxes->distanceBBox[loop],
                             modelMatrix,
                             selectedAtomCoordX, selectedRadius)) {
-                        lassoedList[lassoedIncr++] = 
+                        lassoedList[lassoedIncr++] =
                             chemMonitorBBoxes->distanceIndex[loop];
                     }
                 }
@@ -5980,7 +5980,7 @@ ChemSelection::radiusPickChemMonitor(SbPList *selectedItemList)
                     if (boxSphereIntersect(chemMonitorBBoxes->angleBBox[loop],
                             modelMatrix,
                             selectedAtomCoordX, selectedRadius)) {
-                        lassoedList[lassoedIncr++] = 
+                        lassoedList[lassoedIncr++] =
                             chemMonitorBBoxes->angleIndex[loop];
                     }
                 }
@@ -5994,7 +5994,7 @@ ChemSelection::radiusPickChemMonitor(SbPList *selectedItemList)
                     if (boxSphereIntersect(chemMonitorBBoxes->torsionalBBox[loop],
                             modelMatrix,
                             selectedAtomCoordX, selectedRadius)) {
-                        lassoedList[lassoedIncr++] = 
+                        lassoedList[lassoedIncr++] =
                             chemMonitorBBoxes->torsionalIndex[loop];
                     }
                 }
@@ -6069,15 +6069,15 @@ ChemSelection::radiusPickChemMonitor(SbPList *selectedItemList)
     }
     delete pl;
 }
-                      
+
 ////////////////////////////////////////////////////////////////////////
 //
 // Description:
 //  add the point in the passed action to the lassoPoints list
 //
 // Use: private
-         
-void    
+
+void
 ChemSelection::addPointToLasso(SoHandleEventAction *action)
 //
 ////////////////////////////////////////////////////////////////////////
@@ -6092,7 +6092,7 @@ ChemSelection::addPointToLasso(SoHandleEventAction *action)
     int32_t n = vp->vertex.getNum();
 #endif
     static SbBool sphereSwitchOn = FALSE;
-                            
+
     // If "radiusSelect" is TRUE and the user selected an atom, then
     // "useRadiusSelection" will be on and will override LASSO and DRAGGER
     // selection.
@@ -6169,7 +6169,7 @@ ChemSelection::addPointToLasso(SoHandleEventAction *action)
             (coords->point[n-1][0] == point[0] &&
              coords->point[n-1][1] == point[1]))
             return;
-            
+
         SbVec3f p(point[0], point[1], 0.0);
         coords->point.set1Value(n, p);
         lassoBBox.extendBy(p);
@@ -6178,7 +6178,7 @@ ChemSelection::addPointToLasso(SoHandleEventAction *action)
             (vp->vertex[n-1][0] == point[0] &&
              vp->vertex[n-1][1] == point[1]))
             return;
-            
+
         // grrr. Have to do this because getLassoPoints()->point is a vec3f
         SbVec3f p(point[0], point[1], 0.0);
         vp->vertex.set1Value(n, p);
@@ -6244,16 +6244,16 @@ ChemSelection::addPointToLasso(SoHandleEventAction *action)
 }
 
 ////////////////////////////////////////////////////////////////////////
-// 
+//
 // Description:
 //  return a list of paths to all nodes of classTypeId.  If none exist
 //  return NULL.
-//              
+//
 // Use: protected
-    
-SoPathList *   
+
+SoPathList *
 ChemSelection::getPathList(SoType classTypeId)
-//                  
+//
 ////////////////////////////////////////////////////////////////////////
 {
 
@@ -6268,11 +6268,11 @@ ChemSelection::getPathList(SoType classTypeId)
     return (searchAction->getPaths().getLength() > 0) ?
         new SoPathList(searchAction->getPaths()) : NULL;
 }
-  
-////////////////////////////////////////////////////////////////////////  
+
+////////////////////////////////////////////////////////////////////////
 //
 // Description:
-//    Convert the passed mouse coordinates to model coords.  These are 0 to 1   
+//    Convert the passed mouse coordinates to model coords.  These are 0 to 1
 //    along the shorter axis and values of equal aspect centered at 0.5 along
 //    the longer axis.
 //
@@ -6297,7 +6297,7 @@ ChemSelection::getModelCoordinates(SoHandleEventAction *action)
 //    If the user picks a single point, process that point to see what
 //    was selected.
 //
-// Use: private   
+// Use: private
 
 ChemPath *
 ChemSelection::processPickedPoint(const SoPickedPoint *pp)
@@ -6438,7 +6438,7 @@ ChemSelection::processPickedPoint(const SoPickedPoint *pp)
             chemPath = new ChemMonitorPath;
             chemPath->setSoPath(path);
 
-            // Get the ChemMonitorDetail which will tell us which monitor was 
+            // Get the ChemMonitorDetail which will tell us which monitor was
             // picked.  Add this information to the ChemMonitorPath.
             const ChemMonitorDetail *detail =
                 (const ChemMonitorDetail *)pp->getDetail();
@@ -6507,7 +6507,7 @@ ChemSelection::getSelectedAtomCoord(ChemDisplayPath *chemPath)
 
     SbVec3f theTranslation, theScale;
     SbRotation theRotation, theScaleOrientation;
- 
+
     currentModelMatrixInverse = currentModelMatrix.inverse();
     currentModelMatrixInverse.getTransform(theTranslation, theRotation,
       theScale, theScaleOrientation);
