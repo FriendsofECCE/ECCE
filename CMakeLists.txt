@@ -7,6 +7,7 @@ include(ExternalProject)
 # External Libraries
 find_package(wxWidgets COMPONENTS core base REQUIRED)
 find_package(GTK2 2.8 COMPONENTS gtk REQUIRED)
+find_package(Freetype)
 # find_package(Java REQUIRED)
 # find_package(XercesC)
 set(wxWidgets_USE_UNICODE OFF)
