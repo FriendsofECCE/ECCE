@@ -81,7 +81,37 @@ if(NOT CMAKE_BUILD_TYPE MATCHES Debug)
 endif(NOT CMAKE_BUILD_TYPE MATCHES Debug)
 
 #rcommand
+file(GLOB rcommand_SOURCE ${LIB_SRC_DIR}/rcommand/*.C)
+add_library(rcommand SHARED ${rcommand_SOURCE})
 
+#tdat
+set(tdat_SRC_DIR ${LIB_SRC_DIR}/tdat)
+file(GLOB tdat_SOURCE
+    ${tdat_SRC_DIR}/calcorg/*.C
+    ${tdat_SRC_DIR}/chemistry/*.C
+    ${tdat_SRC_DIR}/ffield/*.C
+    ${tdat_SRC_DIR}/nwmdtask/*.C
+    ${tdat_SRC_DIR}/properties/*.C
+    ${tdat_SRC_DIR}/reaction/*.C
+    ${tdat_SRC_DIR}/resources/*.C
+)
+add_library(tdat SHARED ${tdat_SOURCE})
+
+#util
+set(util_SRC_DIR ${LIB_SRC_DIR}/util)
+file(GLOB util_SOURCE
+    ${util_SRC_DIR}/chemutil/*.C
+    ${util_SRC_DIR}/command/*.C
+    ${util_SRC_DIR}/events/*.C
+    ${util_SRC_DIR}/exceptions/*.C
+    ${util_SRC_DIR}/genutil/*.C
+    ${util_SRC_DIR}/jms/*.C
+    ${util_SRC_DIR}/units/*.C
+)
+add_library(util SHARED ${util_SOURCE})
+target_include_directories(util PUBLIC ${XERCES_INCLUDE})
+add_dependencies(util xerces)
+target_compile_options(util PUBLIC -DECCE_VERSION="${ECCE_VERSION}")
 
 # Add the right libecce_ prefix
 set_target_properties(

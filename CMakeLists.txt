@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 2.8)
 project(ecce C CXX Fortran Java)
 
+# TODO: Specify ECCE version here instead of data/client/config/Version
+file(READ data/client/config/Version ECCE_VERSION)
+string(STRIP ${ECCE_VERSION} ECCE_VERSION)
+message("Generating Files for ECCE ${ECCE_VERSION}")
+
 # CMake Utilities
 include(ExternalProject)
 
@@ -16,10 +21,10 @@ set(wxWidgets_USE_UNICODE OFF)
 include(${wxWidgets_USE_FILE})
 
 # Set global variables
-set(CMAKE_INC ${CMAKE_SOURCE_DIR}/cmake)
+set(CMAKE_INC cmake)
 
 # Setup C build environment
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(include)
 
 # Include Specific Rules
 include(${CMAKE_INC}/3rdparty.cmake)
