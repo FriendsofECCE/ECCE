@@ -113,6 +113,24 @@ target_include_directories(util PUBLIC ${XERCES_INCLUDE})
 add_dependencies(util xerces)
 target_compile_options(util PUBLIC -DECCE_VERSION="${ECCE_VERSION}")
 
+#vizsg
+file(GLOB_RECURSE vizsg_SOURCE ${LIB_SRC_DIR}/vizsg/*.C)
+add_library(vizsg SHARED ${vizsg_SOURCE})
+target_include_directories(vizsg PUBLIC ${XERCES_INCLUDE})
+add_dependencies(vizsg xerces)
+
+#wxgui
+# file(GLOB_RECURSE wxgui_SOURCE ${LIB_SRC_DIR}/wxgui/*.C)
+# add_library(wxgui SHARED ${wxgui_SOURCE})
+
+#wxguicomm
+#wxinv
+#wxmdtools
+#wxplotctrl
+#wxthings
+#wxviz
+#xml
+
 # Add the right libecce_ prefix
 set_target_properties(
     cipc
