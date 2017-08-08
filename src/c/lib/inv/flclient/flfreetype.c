@@ -1,32 +1,32 @@
 /*
  * Copyright (c) 2000 Silicon Graphics, Inc.  All Rights Reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
  * published by the Free Software Foundation.
- * 
+ *
  * This program is distributed in the hope that it would be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * 
+ *
  * Further, this software is distributed without any warranty that it is
  * free of the rightful claim of any third person regarding infringement
  * or the like.  Any license provided herein, whether implied or
  * otherwise, applies only to this software file.  Patent licenses, if
  * any, provided herein do not apply to combinations of this program with
  * other software, or any other product whatsoever.
- * 
+ *
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write the Free Software Foundation, Inc., 59
  * Temple Place - Suite 330, Boston MA 02111-1307, USA.
- * 
+ *
  * Contact information: Silicon Graphics, Inc., 1600 Amphitheatre Pkwy,
  * Mountain View, CA  94043, or:
- * 
- * http://www.sgi.com 
- * 
- * For further information regarding this notice, see: 
- * 
+ *
+ * http://www.sgi.com
+ *
+ * For further information regarding this notice, see:
+ *
  * http://oss.sgi.com/projects/GenInfo/NoticeExplan/
  */
 
@@ -34,7 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <ftoutln.h>
+#include <freetype/ftoutln.h>
 
 #include "fl.h"
 #include "flfreetype.h"
@@ -193,7 +193,7 @@ _flFTGetBitmap(FLfontStruct *_fs, GLuint c)
   left        = BM_FLOOR(glyph->metrics.horiBearingX);
   right       = BM_CEILING(glyph->metrics.horiBearingX + glyph->metrics.width);
   width       = BM_TRUNC(right - left);
-    
+
   top         = BM_CEILING(glyph->metrics.horiBearingY);
   bottom      = BM_FLOOR(glyph->metrics.horiBearingY - glyph->metrics.height);
   height      = BM_TRUNC(top - bottom);
@@ -203,9 +203,9 @@ _flFTGetBitmap(FLfontStruct *_fs, GLuint c)
 
   bbox_width  = BM_TRUNC(face->bbox.xMax - face->bbox.xMin);
 
-  if (glyph->format == ft_glyph_format_outline) {    
+  if (glyph->format == ft_glyph_format_outline) {
     pitch     = (width + 7) >> 3;
-    size      = pitch * height; 
+    size      = pitch * height;
     pitch2    = ((width + (PIXEL_ROW_ALIGNMENT << 3) - 1) >> 5) << 2;
     size2     = pitch2 * height;
 
@@ -229,7 +229,7 @@ _flFTGetBitmap(FLfontStruct *_fs, GLuint c)
 
     if (fs->lowPrec)
       glyph->outline.flags &= ~ft_outline_high_precision;
-      
+
     (void)FT_Outline_Get_Bitmap(library, &glyph->outline, &bit2);
 
     bitmap_convert(width, height, pitch, pitch2, (char *)bit2.buffer, (char *)bit3->bitmap);
@@ -311,7 +311,7 @@ _flFTGetOutline(FLfontStruct *_fs, GLuint c)
     fs->index16[start] = c;
     fs->char16[start]  = outline;
   }
-    
+
   return (FLoutline *) outline;
 }
 
@@ -607,7 +607,7 @@ _flFTLoadChar(FLFreeTypeFontStruct *fs, FLchar c)
   respcetively, until they get segments straight enough to be
   approximated with lines, ie. until the angles of a segment's
   bounding triangle or quadrangle corresponding to its endpoints are
-  small enough (plus there should be some additional criterion for 
+  small enough (plus there should be some additional criterion for
   cubic curves with an inflexion (ie. S-shaped curves)).
 
 */
@@ -693,7 +693,7 @@ typedef long TPos, *PPos;
 
 /* This structure defines a point in a plane. */
 typedef struct TPoint {
-  TPos  x, y; 
+  TPos  x, y;
 } TPoint;
 
 /* The type of a scanline position/coordinate within a map. */
@@ -1020,12 +1020,12 @@ Compute_Orientation (int n_points, TPoint *pt, FT_BBox *bbox)
   FLpt2 v1, v2;
   TPoint *p[3];
   int n;
-  
+
   for (n = 0; n_points--; pt++)
     if (pt->x == bbox->xMin || pt->x == bbox->xMax ||
         pt->y == bbox->yMin || pt->y == bbox->yMax) {
       p[n++] = pt;
-      
+
       if (n == 3)
         break;
     }
@@ -1120,7 +1120,7 @@ _flFTFinalizeFaceTable(  FLFreeTypeOutline *ch, RAS_ARG)
     /* Store scaled points and assign indexs to each point */
     for (i = 0; i < p->n_points; i++) {
       TPoint *pt = &p->offset[i];
-      
+
       /* Compute the bounding box of the contour */
       if (pt->x < bbox.xMin)
 	bbox.xMin = pt->x;
@@ -1158,7 +1158,7 @@ _flFTFinalizeFaceTable(  FLFreeTypeOutline *ch, RAS_ARG)
     direction = Compute_Orientation(p->n_points, p->offset, &bbox);
 
     if (lastDirection)
-      isPolygon = (direction == lastDirection || 
+      isPolygon = (direction == lastDirection ||
 		   !(lastBBox.xMin < bbox.xMin && lastBBox.xMax > bbox.xMax &&
 		     lastBBox.yMin < bbox.yMin && lastBBox.yMax > bbox.yMax));
     else
@@ -1245,7 +1245,7 @@ Dynamic_Bezier_Threshold (RAS_ARG_ int degree, TPoint *arc)
 #endif
 
 static double
-Bounding_Triangle_Angle(TPos x1, TPos y1, 
+Bounding_Triangle_Angle(TPos x1, TPos y1,
 			TPos x,  TPos y,
 			TPos x2, TPos y2)
 {
@@ -1309,7 +1309,7 @@ Bezier_Up_Sign(RAS_ARG_ int degree,
     e2 = FLOOR (y2);	/* integer end y */
     if (e2 > maxy)
       e2 = FLOOR (maxy);
-      
+
     e0 = CEILING (y1);
     if (e0 < miny)
       e0 = CEILING (miny);
@@ -1318,7 +1318,7 @@ Bezier_Up_Sign(RAS_ARG_ int degree,
 
     if (e2 == e0) {
       ENTER_POINT(top, x2, sign * y2, "approx");
-	
+
       arc -= degree;	/* pop the arc */
     }
     else {
@@ -1342,14 +1342,14 @@ Bezier_Up_Sign(RAS_ARG_ int degree,
 	splitter(arc);
 	arc += degree;
       }
-      
+
       else {
 	/* otherwise, approximate it as a segment and compute
 	   its intersection with the current scanline */
 	if (((x2 < x && x < x1) || (x1 < x && x < x2)) &&
-	    angle < upper_threshold) 
+	    angle < upper_threshold)
 	  ENTER_POINT(top, x, sign * y, "approx");
-	
+
 	arc -= degree;     /* pop the arc */
       }
     }
@@ -1443,16 +1443,16 @@ Bezier_Right_Sign(RAS_ARG_ int degree,
     e2 = FLOOR (x2);	/* integer end x */
     if (e2 > maxx)
       e2 = FLOOR (maxx);
-    
+
     e0 = CEILING (x1);
     if (e0 < minx)
       e0 = CEILING (minx);
-      
+
     x  = (e0 + e2) / 2;
 
     if (e2 == e0) {
       ENTER_POINT(top, sign * x2, y2, "approx");
-      
+
       arc -= degree;	/* pop the arc */
     }
     else {
@@ -1470,20 +1470,20 @@ Bezier_Right_Sign(RAS_ARG_ int degree,
       }
 
       angle = Bounding_Triangle_Angle(e0, y1, x, y, e2, y2);
-      
+
       if (e2 - x >= 64 && abs(y2 - y) >= 64 && angle < lower_threshold) {
 	/* if the arc's bounding triangle's angle is too great, split it */
 	splitter(arc);
 	arc += degree;
       }
-      
+
       else {
 	/* otherwise, approximate it as a segment and compute
 	   its intersection with the current scanline */
 	if (((y2 < y && y < y1) || (y1 < y && y < y2)) &&
-	    angle < upper_threshold) 
+	    angle < upper_threshold)
 	  ENTER_POINT(top, sign * x, y, "approx");
-	
+
 	arc -= degree;     /* pop the arc */
       }
     }
@@ -1772,7 +1772,7 @@ Conic_To (FT_Vector *control,
 	/* the arc is y-monotonous, either ascending or descending
 	   detect a change of direction */
 	state_bez = y1 < y3 ? Ascending : Descending;
-	
+
 	/* now call the appropriate routine */
 	if (state_bez == Ascending) {
 	  if (Bezier_Up (RAS_VAR_  2, Split_Conic, ras.minY, ras.maxY))
