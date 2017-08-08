@@ -1,8 +1,9 @@
 # THIRD PARTY PACKAGES
 set(THIRD_PARTY_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/apps/3rdparty)
+set(THIRD_PARTY_INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
 
-add_custom_target(third_party)
-add_dependencies(third_party xerces wxpython httpd)
+# add_custom_target(third_party)
+# add_dependencies(third_party xerces wxpython httpd)
 
 # XERCES
 set(XERCES_REPO http://svn.apache.org/repos/asf/xerces/c/tags/Xerces-C_2_8_0)
@@ -25,30 +26,31 @@ ExternalProject_Add(xerces
         # I dislike this, but...
         sh ${CMAKE_SOURCE_DIR}/cmake/build_xerces.sh ${XERCES_SRC} ${XERCES_ROOT} ${XERCES_INSTALL}
 )
+set(XERCES_INCLUDE ${XERCES_INSTALL}/include)
 
 # wxPython
-set(WXPYTHON_URL
-    http://cfhcable.dl.sourceforge.net/project/wxpython/wxPython/2.8.12.1/wxPython-src-2.8.12.1.tar.bz2)
-set(WXPYTHON_DIR ${CMAKE_CURRENT_BINARY_DIR}/wxpython)
-set(WXPYTHON_INSTALL ${CMAKE_INSTALL_PREFIX}/wxpython)
-set(WXPYTHON_SRC ${WXPYTHON_DIR}/source)
+# set(WXPYTHON_URL
+#     http://cfhcable.dl.sourceforge.net/project/wxpython/wxPython/2.8.12.1/wxPython-src-2.8.12.1.tar.bz2)
+# set(WXPYTHON_DIR ${CMAKE_CURRENT_BINARY_DIR}/wxpython)
+# set(WXPYTHON_INSTALL ${CMAKE_INSTALL_PREFIX}/wxpython)
+# set(WXPYTHON_SRC ${WXPYTHON_DIR}/source)
 
-ExternalProject_Add(wxpython
-    URL ${WXPYTHON_URL}
-    PREFIX ${WXPYTHON_DIR}
-    SOURCE_DIR ${WXPYTHON_SRC}
-    INSTALL_DIR ${WXPYTHON_INSTALL}
-    CONFIGURE_COMMAND
-        sh ${WXPYTHON_SRC}/configure --prefix=${WXPYTHON_INSTALL} --with-gtk --with-gnomeprint --with-opengl --enable-geometry --enable-graphics_ctx --enable-sound --with-sdl --enable-mediactrl --enable-display
-    BUILD_COMMAND
-        make &&
-        make -C contrib/src/gizmos &&
-        make -C contrib/src/stc
-    INSTALL_COMMAND
-        make install &&
-        make -C contrib/src/gizmos install &&
-        make -C contrib/src/stc install
-)
+# ExternalProject_Add(wxpython
+#     URL ${WXPYTHON_URL}
+#     PREFIX ${WXPYTHON_DIR}
+#     SOURCE_DIR ${WXPYTHON_SRC}
+#     INSTALL_DIR ${WXPYTHON_INSTALL}
+#     CONFIGURE_COMMAND
+#         sh ${WXPYTHON_SRC}/configure --prefix=${WXPYTHON_INSTALL} --with-gtk --with-gnomeprint --with-opengl --enable-geometry --enable-graphics_ctx --enable-sound --with-sdl --enable-mediactrl --enable-display
+#     BUILD_COMMAND
+#         make &&
+#         make -C contrib/src/gizmos &&
+#         make -C contrib/src/stc
+#     INSTALL_COMMAND
+#         make install &&
+#         make -C contrib/src/gizmos install &&
+#         make -C contrib/src/stc install
+# )
 
 # HTTPD
 set(HTTPD_URL http://apache.mirrors.pair.com//httpd/httpd-2.2.34.tar.gz)
