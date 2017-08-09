@@ -51,7 +51,7 @@ ExternalProject_Add(wxpython
         make -C contrib/src/gizmos install &&
         make -C contrib/src/stc install
 )
-set(WXPYTHON_FLAGS -I/home/vagrant/install/wxpython/lib/wx/include/gtk2-ansi-release-2.8 -I/home/vagrant/install/wxpython/include/wx-2.8 -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES -D__WXGTK__)
+set(WXPYTHON_FLAGS -I${WXPYTHON_INSTALL}/lib/wx/include/gtk2-ansi-release-2.8 -I${WXPYTHON_INSTALL}/include/wx-2.8 -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES -D__WXGTK__)
 set(WXPYTHON_INCLUDE ${WXPYTHON_INSTALL}/include/wx-2.8 ${WXPYTHON_INSTALL}/lib/wx/include/gtk2-ansi-release-2.8)
 set(WXPYTHON_LIB ${WXPYTHON_INSTALL}/lib)
 

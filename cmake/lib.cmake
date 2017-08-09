@@ -39,7 +39,6 @@ add_library(ewxaui SHARED ${ewxaui_SOURCE})
 target_include_directories(ewxaui PUBLIC ${WXPYTHON_INCLUDE} ${GTK2_INCLUDE_DIRS})
 target_compile_options(ewxaui PUBLIC ${WXPYTHON_FLAGS})
 # target_compile_options(ewxaui PUBLIC ${wxWidgets_CXX_FLAGS})
-# target_include_directories(ewxaui PUBLIC ${wxWidgets_INCLUDE_DIRS} ${GTK2_INCLUDE_DIRS})
 add_dependencies(ewxaui xerces wxpython)
 
 #expect TODO: LOOK INTO THIS AND SEE IF THEY MAY BE A SHARED LIB
@@ -130,31 +129,115 @@ file(GLOB wxgui_SOURCE
     ${wxgui_SRC_DIR}/wxdialogs/*.C
     ${wxgui_SRC_DIR}/wxtools/*.C
 )
-# file(GLOB_RECURSE wxgui_SOURCE ${LIB_SRC_DIR}/wxgui/*.C)
 add_library(wxgui SHARED ${wxgui_SOURCE})
 target_include_directories(wxgui PUBLIC ${XERCES_INCLUDE} ${WXPYTHON_INCLUDE})
 target_compile_options(wxgui PUBLIC ${WXPYTHON_FLAGS})
 add_dependencies(wxgui xerces wxpython)
 
 #wxguicomm
+add_library(wxguicomm SHARED ${LIB_SRC_DIR}/wxguicomm/WxCalcImport.C)
+target_include_directories(wxguicomm PUBLIC ${XERCES_INCLUDE} ${WXPYTHON_INCLUDE})
+target_compile_options(wxguicomm PUBLIC ${WXPYTHON_FLAGS})
+add_dependencies(wxguicomm xerces wxpython)
+
 #wxinv
+file(GLOB_RECURSE wxinv_SOURCE ${LIB_SRC_DIR}/wxinv/*.C)
+add_library(wxinv SHARED ${wxinv_SOURCE})
+target_include_directories(wxinv PUBLIC ${WXPYTHON_INCLUDE})
+target_compile_options(wxinv PUBLIC ${WXPYTHON_FLAGS})
+add_dependencies(wxinv wxpython)
+
 #wxmdtools
+file(GLOB_RECURSE wxmdtools_SOURCE ${LIB_SRC_DIR}/wxmdtools/*.C)
+add_library(wxmdtools SHARED ${wxmdtools_SOURCE})
+target_include_directories(wxmdtools PUBLIC ${XERCES_INCLUDE} ${WXPYTHON_INCLUDE})
+target_compile_options(wxmdtools PUBLIC ${WXPYTHON_FLAGS})
+add_dependencies(wxmdtools xerces wxpython)
+
 #wxplotctrl
+file(GLOB_RECURSE wxplotctrl_SOURCE ${LIB_SRC_DIR}/wxplotctrl/*.C)
+add_library(wxplotctrl SHARED ${wxplotctrl_SOURCE})
+target_include_directories(wxplotctrl PUBLIC ${WXPYTHON_INCLUDE} ${GTK2_INCLUDE_DIRS})
+target_compile_options(wxplotctrl PUBLIC ${WXPYTHON_FLAGS})
+add_dependencies(wxplotctrl wxpython)
+
 #wxthings
+file(GLOB_RECURSE wxthings_SOURCE ${LIB_SRC_DIR}/wxthings/*.C)
+add_library(wxthings SHARED ${wxthings_SOURCE})
+target_include_directories(wxthings PUBLIC ${WXPYTHON_INCLUDE})
+target_compile_options(wxthings PUBLIC ${WXPYTHON_FLAGS})
+add_dependencies(wxthings wxpython)
+
 #wxviz
+set(wxviz_SRC_DIR ${LIB_SRC_DIR}/wxviz)
+file(GLOB wxviz_SOURCE
+    ${wxviz_SRC_DIR}/viewer/*.C
+    ${wxviz_SRC_DIR}/viztools/*.C
+)
+add_library(wxviz SHARED ${wxviz_SOURCE})
+target_include_directories(wxviz PUBLIC ${XERCES_INCLUDE} ${WXPYTHON_INCLUDE})
+target_compile_options(wxviz PUBLIC ${WXPYTHON_FLAGS})
+add_dependencies(wxviz xerces wxpython)
+
 #xml
+set(xml_SRC_DIR ${LIB_SRC_DIR}/xml)
+file(GLOB xml_SOURCE
+    ${xml_SRC_DIR}/chemistry/*.C
+    ${xml_SRC_DIR}/xml/*.C
+)
+add_library(xml SHARED ${xml_SOURCE})
+target_include_directories(xml PUBLIC ${XERCES_INCLUDE})
+add_dependencies(xml xerces)
 
 # Add the right libecce_ prefix
 set_target_properties(
-    cipc
-    ewxaui
-    PROPERTIES
-    PREFIX libecce_
-)
+        cipc
+        commtools
+        commxt
+        dav
+        edsiimpl
+        ewxaui
+        expect
+        faces
+        inv
+        moiv
+        rcommand
+        tdat
+        util
+        vizsg
+        wxgui
+        wxguicomm
+        wxinv
+        wxmdtools
+        wxplotctrl
+        wxthings
+        wxviz
+        xml
+    PROPERTIES PREFIX libecce_)
 
 # Install the the library directory
 install(
     TARGETS
         cipc
+        commtools
+        commxt
+        dav
+        edsiimpl
         ewxaui
+        expect
+        faces
+        inv
+        moiv
+        rcommand
+        tdat
+        util
+        vizsg
+        wxgui
+        wxguicomm
+        wxinv
+        wxmdtools
+        wxplotctrl
+        wxthings
+        wxviz
+        xml
     DESTINATION lib)
