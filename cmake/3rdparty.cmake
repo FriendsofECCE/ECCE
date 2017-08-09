@@ -1,6 +1,6 @@
 # THIRD PARTY PACKAGES
 set(THIRD_PARTY_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/apps/3rdparty)
-set(THIRD_PARTY_INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
+set(THIRD_PARTY_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}) # TODO: Remove this line
 
 # add_custom_target(third_party)
 # add_dependencies(third_party xerces wxpython httpd)
@@ -29,28 +29,31 @@ ExternalProject_Add(xerces
 set(XERCES_INCLUDE ${XERCES_INSTALL}/include)
 
 # wxPython
-# set(WXPYTHON_URL
-#     http://cfhcable.dl.sourceforge.net/project/wxpython/wxPython/2.8.12.1/wxPython-src-2.8.12.1.tar.bz2)
-# set(WXPYTHON_DIR ${CMAKE_CURRENT_BINARY_DIR}/wxpython)
-# set(WXPYTHON_INSTALL ${CMAKE_INSTALL_PREFIX}/wxpython)
-# set(WXPYTHON_SRC ${WXPYTHON_DIR}/source)
+set(WXPYTHON_URL
+    http://cfhcable.dl.sourceforge.net/project/wxpython/wxPython/2.8.12.1/wxPython-src-2.8.12.1.tar.bz2)
+set(WXPYTHON_DIR ${CMAKE_CURRENT_BINARY_DIR}/wxpython)
+set(WXPYTHON_INSTALL ${CMAKE_INSTALL_PREFIX}/wxpython)
+set(WXPYTHON_SRC ${WXPYTHON_DIR}/source)
 
-# ExternalProject_Add(wxpython
-#     URL ${WXPYTHON_URL}
-#     PREFIX ${WXPYTHON_DIR}
-#     SOURCE_DIR ${WXPYTHON_SRC}
-#     INSTALL_DIR ${WXPYTHON_INSTALL}
-#     CONFIGURE_COMMAND
-#         sh ${WXPYTHON_SRC}/configure --prefix=${WXPYTHON_INSTALL} --with-gtk --with-gnomeprint --with-opengl --enable-geometry --enable-graphics_ctx --enable-sound --with-sdl --enable-mediactrl --enable-display
-#     BUILD_COMMAND
-#         make &&
-#         make -C contrib/src/gizmos &&
-#         make -C contrib/src/stc
-#     INSTALL_COMMAND
-#         make install &&
-#         make -C contrib/src/gizmos install &&
-#         make -C contrib/src/stc install
-# )
+ExternalProject_Add(wxpython
+    URL ${WXPYTHON_URL}
+    PREFIX ${WXPYTHON_DIR}
+    SOURCE_DIR ${WXPYTHON_SRC}
+    INSTALL_DIR ${WXPYTHON_INSTALL}
+    CONFIGURE_COMMAND
+        sh ${WXPYTHON_SRC}/configure --prefix=${WXPYTHON_INSTALL} --with-gtk --with-gnomeprint --with-opengl --enable-geometry --enable-graphics_ctx --enable-sound --with-sdl --enable-mediactrl --enable-display
+    BUILD_COMMAND
+        make &&
+        make -C contrib/src/gizmos &&
+        make -C contrib/src/stc
+    INSTALL_COMMAND
+        make install &&
+        make -C contrib/src/gizmos install &&
+        make -C contrib/src/stc install
+)
+set(WXPYTHON_FLAGS -I/home/vagrant/install/wxpython/lib/wx/include/gtk2-ansi-release-2.8 -I/home/vagrant/install/wxpython/include/wx-2.8 -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES -D__WXGTK__)
+set(WXPYTHON_INCLUDE ${WXPYTHON_INSTALL}/include/wx-2.8 ${WXPYTHON_INSTALL}/lib/wx/include/gtk2-ansi-release-2.8)
+set(WXPYTHON_LIB ${WXPYTHON_INSTALL}/lib)
 
 # HTTPD
 set(HTTPD_URL http://apache.mirrors.pair.com//httpd/httpd-2.2.34.tar.gz)

@@ -36,9 +36,11 @@ add_dependencies(edsiimpl xerces)
 file(GLOB_RECURSE ewxaui_SOURCE ${LIB_SRC_DIR}/ewxaui/*.C)
 set(ewxaui_INCLUDE ${LIB_SRC_DIR}/ewxaui/include)
 add_library(ewxaui SHARED ${ewxaui_SOURCE})
-target_compile_options(ewxaui PUBLIC ${wxWidgets_CXX_FLAGS})
-target_include_directories(ewxaui PUBLIC ${wxWidgets_INCLUDE_DIRS} ${GTK2_INCLUDE_DIRS})
-add_dependencies(ewxaui xerces)
+target_include_directories(ewxaui PUBLIC ${WXPYTHON_INCLUDE} ${GTK2_INCLUDE_DIRS})
+target_compile_options(ewxaui PUBLIC ${WXPYTHON_FLAGS})
+# target_compile_options(ewxaui PUBLIC ${wxWidgets_CXX_FLAGS})
+# target_include_directories(ewxaui PUBLIC ${wxWidgets_INCLUDE_DIRS} ${GTK2_INCLUDE_DIRS})
+add_dependencies(ewxaui xerces wxpython)
 
 #expect TODO: LOOK INTO THIS AND SEE IF THEY MAY BE A SHARED LIB
 file(GLOB expect_SOURCE ${LIB_SRC_DIR}/expect/*.c)
@@ -120,8 +122,19 @@ target_include_directories(vizsg PUBLIC ${XERCES_INCLUDE})
 add_dependencies(vizsg xerces)
 
 #wxgui
+set(wxgui_SRC_DIR ${LIB_SRC_DIR}/wxgui)
+file(GLOB wxgui_SOURCE
+    ${wxgui_SRC_DIR}/ewxClasses/*.C
+    ${wxgui_SRC_DIR}/jms/*.C
+    ${wxgui_SRC_DIR}/pertable/*.C
+    ${wxgui_SRC_DIR}/wxdialogs/*.C
+    ${wxgui_SRC_DIR}/wxtools/*.C
+)
 # file(GLOB_RECURSE wxgui_SOURCE ${LIB_SRC_DIR}/wxgui/*.C)
-# add_library(wxgui SHARED ${wxgui_SOURCE})
+add_library(wxgui SHARED ${wxgui_SOURCE})
+target_include_directories(wxgui PUBLIC ${XERCES_INCLUDE} ${WXPYTHON_INCLUDE})
+target_compile_options(wxgui PUBLIC ${WXPYTHON_FLAGS})
+add_dependencies(wxgui xerces wxpython)
 
 #wxguicomm
 #wxinv

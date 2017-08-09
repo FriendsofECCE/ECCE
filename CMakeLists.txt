@@ -9,16 +9,17 @@ message("Generating Files for ECCE ${ECCE_VERSION}")
 # CMake Utilities
 include(ExternalProject)
 
+# set(wxWidgets_USE_UNICODE OFF)
+
 # External Libraries
-find_package(wxWidgets COMPONENTS core base REQUIRED)
+# find_package(wxWidgets COMPONENTS core base REQUIRED)
 find_package(GTK2 2.8 COMPONENTS gtk REQUIRED)
 find_package(Freetype)
 # find_package(Java REQUIRED)
 # find_package(XercesC)
-set(wxWidgets_USE_UNICODE OFF)
 
 # Initialize Third Party Packages
-include(${wxWidgets_USE_FILE})
+# include(${wxWidgets_USE_FILE})
 
 # Set global variables
 set(CMAKE_INC cmake)
