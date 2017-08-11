@@ -369,7 +369,7 @@ class Ged16TheoryPanel(EccePanel):
             self.gridOpt = EcceComboBox(self,
                                         choices = gridOptChoice,
                                         name = "ES.Theory.DFT.GridDensity",
-                                        default = 2,
+                                        default = 1,
                                         label = "Grid Quality:")
             dftSizer.AddWidget(self.gridOpt)
 
