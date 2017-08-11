@@ -38,7 +38,7 @@ End=--------------------------------------
 [END]
 
 [GEOMTRACE1]
-Script=gaussian-16.geomtrace-input
+Script=gaussian-16.geomtrace
 Begin=Standard orientation\:
 Skip=5
 Frequency=all
