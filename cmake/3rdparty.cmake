@@ -1,6 +1,6 @@
 # THIRD PARTY PACKAGES
 set(THIRD_PARTY_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/apps/3rdparty)
-set(THIRD_PARTY_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}) # TODO: Remove this line
+# set(THIRD_PARTY_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}) # TODO: Remove this line
 
 # add_custom_target(third_party)
 # add_dependencies(third_party xerces wxpython httpd)
@@ -27,12 +27,14 @@ ExternalProject_Add(xerces
         sh ${CMAKE_SOURCE_DIR}/cmake/build_xerces.sh ${XERCES_SRC} ${XERCES_ROOT} ${XERCES_INSTALL}
 )
 set(XERCES_INCLUDE ${XERCES_INSTALL}/include)
+set(XERCES_LIB_DIR ${XERCES_INSTALL}/lib)
+set(XERCES_LIBRARIES -lxerces-c -lxerces-depdom)
 
 # wxPython
 set(WXPYTHON_URL
     http://cfhcable.dl.sourceforge.net/project/wxpython/wxPython/2.8.12.1/wxPython-src-2.8.12.1.tar.bz2)
 set(WXPYTHON_DIR ${CMAKE_CURRENT_BINARY_DIR}/wxpython)
-set(WXPYTHON_INSTALL ${CMAKE_INSTALL_PREFIX}/wxpython)
+set(WXPYTHON_INSTALL ${THIRD_PARTY_INSTALL_DIR}/wxpython)
 set(WXPYTHON_SRC ${WXPYTHON_DIR}/source)
 
 ExternalProject_Add(wxpython
@@ -51,14 +53,16 @@ ExternalProject_Add(wxpython
         make -C contrib/src/gizmos install &&
         make -C contrib/src/stc install
 )
-set(WXPYTHON_FLAGS -I${WXPYTHON_INSTALL}/lib/wx/include/gtk2-ansi-release-2.8 -I${WXPYTHON_INSTALL}/include/wx-2.8 -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES -D__WXGTK__)
-set(WXPYTHON_INCLUDE ${WXPYTHON_INSTALL}/include/wx-2.8 ${WXPYTHON_INSTALL}/lib/wx/include/gtk2-ansi-release-2.8)
-set(WXPYTHON_LIB ${WXPYTHON_INSTALL}/lib)
+set(WX_INCLUDE ${WXPYTHON_INSTALL}/include/wx-2.8 ${WXPYTHON_INSTALL}/lib/wx/include/gtk2-ansi-release-2.8)
+message(${WX_INCLUDE})
+set(WX_LIB_DIR ${WXPYTHON_INSTALL}/lib)
+set(WX_FLAGS -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES -D__WXGTK__ -pthread)
+set(WX_LIBRARIES ewxaui -lwx_gtk2_adv-2.8 -lwx_gtk2_richtext-2.8 -lwx_gtk2_aui-2.8 -lwx_gtk2_xrc-2.8 -lwx_gtk2_qa-2.8 -lwx_gtk2_html-2.8 -lwx_gtk2_adv-2.8 -lwx_gtk2_core-2.8 -lwx_base_xml-2.8 -lwx_base_net-2.8 -lwx_base-2.8)
 
 # HTTPD
 set(HTTPD_URL http://apache.mirrors.pair.com//httpd/httpd-2.2.34.tar.gz)
 set(HTTPD_DIR ${CMAKE_CURRENT_BINARY_DIR}/httpd)
-set(HTTPD_INSTALL ${CMAKE_INSTALL_PREFIX}/httpd)
+set(HTTPD_INSTALL ${THIRD_PARTY_INSTALL_DIR}/httpd)
 set(HTTPD_SRC ${HTTPD_DIR}/source)
 
 ExternalProject_Add(httpd
@@ -78,7 +82,7 @@ ExternalProject_Add(httpd
 set(ACTIVEMQ_URL
     https://github.com/FriendsofECCE/ECCE/raw/develop/build/3rdparty-dists/apache-activemq-5.1.0-bin.tar.bz2)
 set(ACTIVEMQ_DIR ${CMAKE_CURRENT_BINARY_DIR}/activemq)
-set(ACTIVEMQ_INSTALL ${CMAKE_INSTALL_PREFIX}/activemq)
+set(ACTIVEMQ_INSTALL ${THIRD_PARTY_INSTALL_DIR}/activemq)
 set(ACTIVEMQ_SRC ${ACTIVEMQ_DIR}/source)
 
 ExternalProject_Add(activemq
