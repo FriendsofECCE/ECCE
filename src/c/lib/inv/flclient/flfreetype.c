@@ -34,7 +34,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <freetype/ftoutln.h>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #include "fl.h"
 #include "flfreetype.h"
