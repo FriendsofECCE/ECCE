@@ -55,6 +55,7 @@ add_library(inv SHARED ${inv_c_SOURCE} ${inv_cpp_SOURCE})
 target_include_directories(inv
     PUBLIC
         ${FREETYPE_INCLUDE_DIR_ft2build}
+        ${FREETYPE_INCLUDE_DIRS}
     PRIVATE
         ${inv_SOURCE_DIR}/dbelements
         ${inv_SOURCE_DIR}/dbengines
