@@ -10,8 +10,8 @@ message("Generating Files for ECCE ${ECCE_VERSION}")
 include(ExternalProject)
 
 set(CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX}/apps/wxpython ${CMAKE_PREFIX_PATH})
-set(wxWidgets_USE_UNICODE OFF)
-set(wxWidgets_CONFIG_OPTIONS --prefix=${CMAKE_INSTALL_PREFIX}/apps/wxpython)
+# set(wxWidgets_USE_UNICODE OFF)
+# set(wxWidgets_CONFIG_OPTIONS --prefix=${CMAKE_INSTALL_PREFIX}/apps/wxpython)
 
 # External Libraries
 # find_package(wxWidgets REQUIRED)
@@ -21,6 +21,7 @@ find_package(Freetype)
 # find_package(XercesC)
 
 # Initialize Third Party Packages
+# message(${wxWidgets_USE_FILE})
 # include(${wxWidgets_USE_FILE})
 
 

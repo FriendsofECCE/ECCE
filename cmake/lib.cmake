@@ -154,9 +154,11 @@ target_compile_options(wxmdtools PUBLIC ${WX_FLAGS})
 add_dependencies(wxmdtools xerces wxpython)
 
 #wxplotctrl
-file(GLOB_RECURSE wxplotctrl_SOURCE ${LIB_SRC_DIR}/wxplotctrl/*.C)
+file(GLOB
+    wxplotctrl_SOURCE ${LIB_SRC_DIR}/wxplotctrl/*.C
+    wxplotctrl_SOURCE ${LIB_SRC_DIR}/wxplotctrl/*.c)
 add_library(wxplotctrl SHARED ${wxplotctrl_SOURCE})
-target_include_directories(wxplotctrl PUBLIC ${WX_INCLUDE})
+target_include_directories(wxplotctrl PUBLIC ${WX_INCLUDE} ${GTK2_INCLUDE_DIRS})
 target_compile_options(wxplotctrl PUBLIC ${WX_FLAGS})
 add_dependencies(wxplotctrl wxpython)
 
