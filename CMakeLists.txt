@@ -17,6 +17,8 @@ set(CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX}/apps/wxpython ${CMAKE_PREFIX_PATH}
 # find_package(wxWidgets REQUIRED)
 find_package(GTK2 2.8 COMPONENTS gtk REQUIRED)
 find_package(Freetype)
+find_package(X11)
+# include_directories(${X11_INCLUDE_DIR})
 # find_package(Java REQUIRED)
 # find_package(XercesC)
 
