@@ -586,3 +586,31 @@ target_link_libraries(vizthumbnail
 # polyrate
 # solvate
 # vizthumbnail
+# Install
+install(
+    TARGETS
+        basistool
+        builder
+        calced
+        load_tgbs
+        dirdyed
+        ecmd
+        gateway
+        eccejobmaster
+        eccejobstore
+        launcher
+        machbrowser
+        machregister
+        mddynamics
+        mdenergy
+        mdoptimize
+        mdprepare
+        msgdialog
+        metadyn
+        organizer
+        passdialog
+        pertable
+        polyed
+        solvate
+        vizthumbnail
+    DESTINATION ${ECCE_APPS}/bin)

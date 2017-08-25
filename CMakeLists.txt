@@ -29,6 +29,9 @@ find_package(X11)
 
 # Set global variables
 set(CMAKE_INC cmake)
+set(ECCE_APPS apps)
+set(ECCE_SERVER server)
+
 
 # Setup C build environment
 include_directories(include)

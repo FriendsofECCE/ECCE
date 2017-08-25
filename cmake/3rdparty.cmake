@@ -101,3 +101,16 @@ ExternalProject_Add(activemq
     INSTALL_COMMAND
         echo "And no install."
 )
+
+install(DIRECTORY
+        ${WXPYTHON_INSTALL}
+        ${WX_INSTALL}
+        ${XERCES_INSTALL}
+    DESTINATION
+        ${ECCE_APPS}/3rdparty)
+
+install(DIRECTORY
+        ${ACTIVEMQ_INSTALL}
+        ${HTTPD_INSTALL}
+    DESTINATION
+        ${ECCE_SERVER})

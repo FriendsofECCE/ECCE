@@ -241,4 +241,4 @@ install(
         wxthings
         wxviz
         xml
-    DESTINATION lib)
+    DESTINATION ${ECCE_APPS}/lib)

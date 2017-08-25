@@ -61,3 +61,4 @@ add_executable(testnames
 )
 
 install(TARGETS autosym cleansym genmol genmollat getfrag testnames DESTINATION bin)
+install(TARGETS autosym cleansym genmol genmollat getfrag testnames DESTINATION ${ECCE_APPS}/bin)
