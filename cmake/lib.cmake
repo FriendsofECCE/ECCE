@@ -67,16 +67,16 @@ target_include_directories(inv
         ${inv_SOURCE_DIR}/image
         ${inv_SOURCE_DIR}/interaction
 )
-if(NOT CMAKE_BUILD_TYPE MATCHES Debug)
+# if(NOT CMAKE_BUILD_TYPE MATCHES Debug)
     target_compile_options(inv PUBLIC -DNDEBUG)
-endif(NOT CMAKE_BUILD_TYPE MATCHES Debug)
+# endif(NOT CMAKE_BUILD_TYPE MATCHES Debug)
 
 #moiv
 file(GLOB_RECURSE moiv_SOURCE ${LIB_SRC_DIR}/moiv/*.C)
 add_library(moiv SHARED ${moiv_SOURCE})
-if(NOT CMAKE_BUILD_TYPE MATCHES Debug)
+# if(NOT CMAKE_BUILD_TYPE MATCHES Debug)
     target_compile_options(moiv PUBLIC -DNDEBUG)
-endif(NOT CMAKE_BUILD_TYPE MATCHES Debug)
+# endif(NOT CMAKE_BUILD_TYPE MATCHES Debug)
 
 #rcommand
 
