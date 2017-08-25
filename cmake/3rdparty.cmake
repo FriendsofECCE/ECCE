@@ -54,7 +54,15 @@ ExternalProject_Add(wxpython
     INSTALL_COMMAND
         make install &&
         make -C contrib/src/gizmos install &&
-        make -C contrib/src/stc install
+        make -C contrib/src/stc install &&
+        cd ${WXPYTHON_SRC}/wxPython &&
+        export LD_LIBRARY_PATH=${WX_INSTALL}/lib:$ENV{LD_LIBRARY_PATH} &&
+        export WXWIN=${WXPYTHON_SRC} &&
+        export PATH=${WX_INSTALL}/bin:$ENV{PATH} &&
+        export CFLAGS="-I${WX_INSTALL}/include/wx-2.8 $ENV{CFLAGS}" &&
+        export CXXFLAGS="-I${WX_INSTALL}/include/wx-2.8 $ENV{CCFLAGS}" &&
+        python setup.py build_ext --inplace UNICODE=0 BUILD_GLCANVAS=0 BUILD_OGL=0 &&
+        python setup.py install UNICODE=0 --home=${WXPYTHON_INSTALL}
 )
 set(WX_INCLUDE ${WXPYTHON_INSTALL}/include/wx-2.8 ${WXPYTHON_INSTALL}/lib/wx/include/gtk2-ansi-release-2.8)
 set(WX_LIB_DIR ${WXPYTHON_INSTALL}/lib)
