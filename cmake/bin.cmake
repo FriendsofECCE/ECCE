@@ -4,7 +4,6 @@ link_directories(${XERCES_LIB_DIR} ${WX_LIB_DIR} /usr/lib64)
 include_directories(${XERCES_INCLUDE})
 set(X_LIBRARIES -lXt -lX11)
 set(GL_LIBRARIES -lwx_gtk2_gl-2.8 -lGL -lGLU -ljpeg)
-# set(WX_LIBS -L/home/vagrant/install/wxpython/lib -pthread   -L/usr/lib64 -lwx_gtk2_adv-2.8 -lwx_gtk2_richtext-2.8 -lwx_gtk2_aui-2.8 -lwx_gtk2_xrc-2.8 -lwx_gtk2_qa-2.8 -lwx_gtk2_html-2.8 -lwx_gtk2_adv-2.8 -lwx_gtk2_core-2.8 -lwx_base_xml-2.8 -lwx_base_net-2.8 -lwx_base-2.8)
 
 # basistool
 set(basistool_SRC_DIR ${BIN_SRC_DIR}/basistool)
@@ -14,8 +13,6 @@ target_include_directories(basistool
     PUBLIC ${WX_INCLUDE}
     PRIVATE ${basistool_SRC_DIR})
 target_link_libraries(basistool
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     ewxaui
     wxgui
     wxplotctrl
@@ -27,6 +24,8 @@ target_link_libraries(basistool
     xml
     tdat
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # builder
@@ -37,10 +36,6 @@ target_include_directories(builder
     PUBLIC ${WX_INCLUDE}
     PRIVATE ${builder_SRC_DIR})
 target_link_libraries(builder
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
-    ${GL_LIBRARIES}
-    ${X_LIBRARIES}
     wxguicomm
     wxviz
     wxinv
@@ -62,6 +57,11 @@ target_link_libraries(builder
     tdat
     xml
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
+    ${GL_LIBRARIES}
+    ${X_LIBRARIES}
+
 )
 
 # calced
@@ -72,8 +72,6 @@ target_include_directories(calced
     PUBLIC ${WX_INCLUDE}
     PRIVATE ${calced_SRC_DIR})
 target_link_libraries(calced
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     commtools
     rcommand
     expect
@@ -87,12 +85,13 @@ target_link_libraries(calced
     xml
     tdat
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # davutils
-add_executable(davutils ${BIN_SRC_DIR}/davutils/load_tgbs.C)
-target_link_libraries(davutils
-    ${XERCES_LIBRARIES}
+add_executable(load_tgbs ${BIN_SRC_DIR}/davutils/load_tgbs.C)
+target_link_libraries(load_tgbs
     edsiimpl
     dav
     cipc
@@ -100,6 +99,7 @@ target_link_libraries(davutils
     xml
     tdat
     util
+    ${XERCES_LIBRARIES}
 )
 
 # dirdyed
@@ -110,8 +110,6 @@ target_include_directories(dirdyed
     PUBLIC ${WX_INCLUDE}
     PRIVATE ${dirdyed_SRC_DIR})
 target_link_libraries(dirdyed
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     wxgui
     wxplotctrl
     wxthings
@@ -122,12 +120,13 @@ target_link_libraries(dirdyed
     xml
     tdat
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # ecmd
 add_executable(ecmd ${BIN_SRC_DIR}/ecmd/ecmd.C)
 target_link_libraries(ecmd
-    ${XERCES_LIBRARIES}
     rcommand
     expect
     edsiimpl
@@ -137,6 +136,7 @@ target_link_libraries(ecmd
     xml
     tdat
     util
+    ${XERCES_LIBRARIES}
 )
 
 # gateway
@@ -147,8 +147,6 @@ target_include_directories(gateway
     PUBLIC ${WX_INCLUDE}
     PRIVATE ${gateway_SRC_DIR})
 target_link_libraries(gateway
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     wxgui
     wxplotctrl
     wxthings
@@ -159,13 +157,13 @@ target_link_libraries(gateway
     xml
     tdat
     util
-)
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
+ )
 
 # jobstore
 add_executable(eccejobmaster ${BIN_SRC_DIR}/jobstore/eccejobmaster.C)
 target_link_libraries(eccejobmaster
-    ${X_LIBRARIES}
-    ${XERCES_LIBRARIES}
     commxt
     rcommand
     expect
@@ -176,12 +174,12 @@ target_link_libraries(eccejobmaster
     xml
     tdat
     util
-)
+    ${X_LIBRARIES}
+    ${XERCES_LIBRARIES}
+ )
 
 add_executable(eccejobstore ${BIN_SRC_DIR}/jobstore/eccejobstore.C)
 target_link_libraries(eccejobstore
-    ${X_LIBRARIES}
-    ${XERCES_LIBRARIES}
     commxt
     rcommand
     expect
@@ -192,6 +190,8 @@ target_link_libraries(eccejobstore
     xml
     tdat
     util
+    ${X_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # launcher
@@ -202,9 +202,6 @@ target_include_directories(launcher
     PUBLIC ${WX_INCLUDE}
     PRIVATE ${launcher_SRC_DIR})
 target_link_libraries(launcher
-    ${X_LIBRARIES}
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     commxt
     commtools
     rcommand
@@ -219,6 +216,9 @@ target_link_libraries(launcher
     xml
     tdat
     util
+    ${X_LIBRARIES}
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # machbrowser
@@ -230,8 +230,6 @@ target_include_directories(machbrowser
         ${WX_INCLUDE}
     PRIVATE ${machbrowser_SRC_DIR})
 target_link_libraries(machbrowser
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     wxgui
     wxplotctrl
     wxthings
@@ -244,6 +242,8 @@ target_link_libraries(machbrowser
     expect
     tdat
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # machregister
@@ -255,8 +255,6 @@ target_include_directories(machregister
         ${WX_INCLUDE}
     PRIVATE ${machregister_SRC_DIR})
 target_link_libraries(machregister
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     wxgui
     wxplotctrl
     wxthings
@@ -267,6 +265,8 @@ target_link_libraries(machregister
     xml
     tdat
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # mddynamics
@@ -278,8 +278,6 @@ target_include_directories(mddynamics
         ${WX_INCLUDE}
     PRIVATE ${mddynamics_SRC_DIR})
 target_link_libraries(mddynamics
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     wxmdtools
     wxgui
     wxplotctrl
@@ -291,6 +289,8 @@ target_link_libraries(mddynamics
     xml
     tdat
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # mdenergy
@@ -302,8 +302,6 @@ target_include_directories(mdenergy
         ${WX_INCLUDE}
     PRIVATE ${mdenergy_SRC_DIR})
 target_link_libraries(mdenergy
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     wxmdtools
     wxgui
     wxplotctrl
@@ -315,6 +313,8 @@ target_link_libraries(mdenergy
     xml
     tdat
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # mdoptimize
@@ -326,8 +326,6 @@ target_include_directories(mdoptimize
         ${WX_INCLUDE}
     PRIVATE ${mdoptimize_SRC_DIR})
 target_link_libraries(mdoptimize
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     wxmdtools
     wxgui
     wxplotctrl
@@ -339,6 +337,8 @@ target_link_libraries(mdoptimize
     xml
     tdat
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # mdprepare
@@ -350,9 +350,6 @@ target_include_directories(mdprepare
         ${WX_INCLUDE}
     PRIVATE ${mdenergy_SRC_DIR})
 target_link_libraries(mdprepare
-    ${X_LIBRARIES}
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     wxgui
     wxplotctrl
     wxthings
@@ -367,15 +364,16 @@ target_link_libraries(mdprepare
     xml
     tdat
     util
+    ${X_LIBRARIES}
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # messagedialog
-add_executable(messagedialog ${BIN_SRC_DIR}/messagedialog/MessageDialogApp.C)
-target_include_directories(messagedialog
+add_executable(msgdialog ${BIN_SRC_DIR}/messagedialog/MessageDialogApp.C)
+target_include_directories(msgdialog
     PUBLIC ${WX_INCLUDE})
-target_link_libraries(messagedialog
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
+target_link_libraries(msgdialog
     wxgui
     wxplotctrl
     wxthings
@@ -386,6 +384,8 @@ target_link_libraries(messagedialog
     xml
     tdat
     util
+    ${XERCES_LIBRARIES}
+    ${WX_LIBRARIES}
 )
 
 # metadyn
@@ -397,8 +397,6 @@ target_include_directories(metadyn
         ${WX_INCLUDE}
     PRIVATE ${metadyn_SRC_DIR})
 target_link_libraries(metadyn
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     commtools
     rcommand
     expect
@@ -412,6 +410,8 @@ target_link_libraries(metadyn
     xml
     tdat
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # organizer
@@ -423,9 +423,6 @@ target_include_directories(organizer
         ${WX_INCLUDE}
     PRIVATE ${organizer_SRC_DIR})
 target_link_libraries(organizer
-    ${X_LIBRARIES}
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     wxguicomm
     commxt
     commtools
@@ -441,6 +438,9 @@ target_link_libraries(organizer
     xml
     tdat
     util
+    ${X_LIBRARIES}
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # passdialog
@@ -448,8 +448,6 @@ add_executable(passdialog ${BIN_SRC_DIR}/passdialog/PasswordDialogApp.C)
 target_include_directories(passdialog
     PUBLIC ${WX_INCLUDE})
 target_link_libraries(passdialog
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     wxgui
     wxplotctrl
     wxthings
@@ -460,6 +458,8 @@ target_link_libraries(passdialog
     xml
     tdat
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # pertable
@@ -471,8 +471,6 @@ target_include_directories(pertable
         ${WX_INCLUDE}
     PRIVATE ${pertable_SRC_DIR})
 target_link_libraries(pertable
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     wxgui
     wxplotctrl
     wxthings
@@ -483,6 +481,8 @@ target_link_libraries(pertable
     xml
     tdat
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # polyrate
@@ -494,8 +494,6 @@ target_include_directories(polyed
         ${WX_INCLUDE}
     PRIVATE ${polyrate_SRC_DIR})
 target_link_libraries(polyed
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     wxgui
     wxplotctrl
     wxthings
@@ -506,6 +504,8 @@ target_link_libraries(polyed
     xml
     tdat
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # solvate
@@ -517,8 +517,6 @@ target_include_directories(solvate
         ${WX_INCLUDE}
     PRIVATE ${solvate_SRC_DIR})
 target_link_libraries(solvate
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     commtools
     rcommand
     expect
@@ -532,6 +530,8 @@ target_link_libraries(solvate
     xml
     tdat
     util
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
 # vizthumbnail
@@ -543,9 +543,6 @@ target_include_directories(vizthumbnail
         ${WX_INCLUDE}
     PRIVATE ${vizthumbnail_SRC_DIR})
 target_link_libraries(vizthumbnail
-    ${GL_LIBRARIES}
-    ${WX_LIBRARIES}
-    ${XERCES_LIBRARIES}
     wxviz
     wxinv
     vizsg
@@ -561,31 +558,11 @@ target_link_libraries(vizthumbnail
     xml
     tdat
     util
+    ${GL_LIBRARIES}
+    ${WX_LIBRARIES}
+    ${XERCES_LIBRARIES}
 )
 
-# basistool
-# builder
-# calced
-# davutils
-# dirdyed
-# ecmd
-# gateway
-# jobstore
-# launcher
-# machbrowser
-# machregister
-# mddynamics
-# mdenergy
-# mdoptimize
-# mdprepare
-# messagedialog
-# metadyn
-# organizer
-# passdialog
-# pertable
-# polyrate
-# solvate
-# vizthumbnail
 # Install
 install(
     TARGETS

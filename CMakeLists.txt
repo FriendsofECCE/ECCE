@@ -33,6 +33,7 @@ set(ECCE_APPS apps)
 set(ECCE_SERVER server)
 
 
+add_compile_options(-DINSTALL -pipe)
 # Setup C build environment
 include_directories(include)
 
