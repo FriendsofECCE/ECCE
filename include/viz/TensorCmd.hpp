@@ -5,7 +5,7 @@
   using std::vector;
 
 
-#include "viz/AddVectorCmd.H"
+#include "viz/AddVectorCmd.hpp"
 
 class SGContainer;
 

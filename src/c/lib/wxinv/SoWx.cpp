@@ -1,11 +1,11 @@
 #include <wx/wx.h>
 
-#include "inv/SoDB.H"
-#include "inv/nodekits/SoNodeKit.H"
-#include "inv/SoInteraction.H"
+#include "inv/SoDB.hpp"
+#include "inv/nodekits/SoNodeKit.hpp"
+#include "inv/SoInteraction.hpp"
 
-#include "inv/SoWx/SoWxEventHandler.H"
-#include "inv/SoWx/SoWx.H"
+#include "inv/SoWx/SoWxEventHandler.hpp"
+#include "inv/SoWx/SoWx.hpp"
 
 SoWxEventHandler * SoWx::p_eventHandler = 0;
 wxWindow * SoWx::p_topWindow = 0;

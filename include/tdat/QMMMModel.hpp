@@ -6,10 +6,10 @@
 #ifndef QMMMMODEL_HH
 #define QMMMMODEL_HH
 
-#include "util/Serializable.H"
-#include "util/InvalidException.H"
+#include "util/Serializable.hpp"
+#include "util/InvalidException.hpp"
 
-#include "tdat/QMMMParams.H"
+#include "tdat/QMMMParams.hpp"
 
 #include <vector>
 

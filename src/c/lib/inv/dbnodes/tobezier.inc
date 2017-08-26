@@ -39,12 +39,12 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "mystring.H"
-#include "quilt.H"
-#include "knotvector.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "mystring.hpp"
+#include "quilt.hpp"
+#include "knotvector.hpp"
 
 /* local type definitions */
 struct Breakpt {		/* breakpoints	*/

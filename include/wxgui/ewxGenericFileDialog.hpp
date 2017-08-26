@@ -13,7 +13,7 @@
 #include "wx/wx.h"
 #include "wx/generic/filedlgg.h"
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
 class ewxChoice;
 class ewxFileCtrl;

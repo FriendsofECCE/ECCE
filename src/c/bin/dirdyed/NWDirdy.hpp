@@ -16,25 +16,25 @@
 #include "wx/wx.h"
 #include "wx/socket.h"
 
-#include "util/EcceException.H"
-#include "util/IOException.H"
-#include "util/EditListener.H"
+#include "util/EcceException.hpp"
+#include "util/IOException.hpp"
+#include "util/EditListener.hpp"
 
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/DirDyVTSTTask.H"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/DirDyVTSTTask.hpp"
 
-#include "tdat/TaskApp.H"
-#include "tdat/FragmentSummary.H"
-#include "tdat/NWDirdyModel.H"
-#include "tdat/SpinMult.H"
+#include "tdat/TaskApp.hpp"
+#include "tdat/FragmentSummary.hpp"
+#include "tdat/NWDirdyModel.hpp"
+#include "tdat/SpinMult.hpp"
 
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/WxJMSListener.H"
-#include "wxgui/CalcDropHandler.H"
-#include "wxgui/WxFeedback.H"
+#include "wxgui/WxDavAuth.hpp"
+#include "wxgui/WxJMSListener.hpp"
+#include "wxgui/CalcDropHandler.hpp"
+#include "wxgui/WxFeedback.hpp"
 
-#include "NWDirdyGUI.H"
-#include "NWDirdySetup.H"
+#include "NWDirdyGUI.hpp"
+#include "NWDirdySetup.hpp"
 
 #define wxID_THEORY_CHANGE 10998
 #define wxID_SPTHEORY_CHANGE 10999

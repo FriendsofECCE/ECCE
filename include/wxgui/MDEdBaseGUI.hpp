@@ -11,7 +11,7 @@
 #define _MDEDBASEGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "MDEdBaseGUI.C"
+#pragma interface "MDEdBaseGUI.cpp"
 #endif
 
 /*!
@@ -22,8 +22,8 @@
 #include "wx/frame.h"
 #include "wx/notebook.h"
 #include "wx/statline.h"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/ewxFrame.hpp"
 ////@end includes
 
 /*!

@@ -21,10 +21,10 @@
   using std::string;
 
 
-#include "tdat/TBond.H"
-#include "tdat/TAtm.H"
-#include "tdat/Fragment.H"
-#include "tdat/FFCoords.H"
+#include "tdat/TBond.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/Fragment.hpp"
+#include "tdat/FFCoords.hpp"
 
 // forward references
 class PBonds;

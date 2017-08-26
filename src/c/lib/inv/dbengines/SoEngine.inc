@@ -51,16 +51,16 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/SoOutput.H"
-#include "inv/SoInput.H"
-#include "inv/engines/SoEngine.H"
-#include "inv/engines/SoFieldConverter.H"
-#include "inv/engines/SoOutputData.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/fields/SoField.H"
-#include "inv/fields/SoFieldData.H"
-#include "inv/misc/SoNotification.H"
+#include "inv/SoDB.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/engines/SoEngine.hpp"
+#include "inv/engines/SoFieldConverter.hpp"
+#include "inv/engines/SoOutputData.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/fields/SoField.hpp"
+#include "inv/fields/SoFieldData.hpp"
+#include "inv/misc/SoNotification.hpp"
 
 SoType	SoEngine::classTypeId;				// Type identifier
 

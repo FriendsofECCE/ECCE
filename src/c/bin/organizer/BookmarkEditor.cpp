@@ -13,15 +13,15 @@
 //#include <iostream>
 //using namespace std;
 
-#include "util/Bookmark.H"
+#include "util/Bookmark.hpp"
 
-#include "dsm/BookmarkList.H"
+#include "dsm/BookmarkList.hpp"
 
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxListBox.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxListBox.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 
-#include "BookmarkEditor.H"
+#include "BookmarkEditor.hpp"
 
 
 IMPLEMENT_CLASS( BookmarkEditor, BookmarkEditorGUI )

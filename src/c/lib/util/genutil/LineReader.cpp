@@ -2,7 +2,7 @@
 #include <fstream>
 using std::ifstream;
 
-#include "util/LineReader.H"
+#include "util/LineReader.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 // Constructor.

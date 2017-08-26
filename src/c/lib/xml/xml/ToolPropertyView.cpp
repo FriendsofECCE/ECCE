@@ -20,9 +20,9 @@
 #include <xercesc/util/XMLString.hpp>
   using namespace xercesc;
 
-#include"util/STLUtil.H"
+#include"util/STLUtil.hpp"
 
-#include "dsm/ToolPropertyView.H"
+#include "dsm/ToolPropertyView.hpp"
 
 
 

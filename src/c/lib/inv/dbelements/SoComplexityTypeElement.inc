@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoComplexityTypeElement.H"
-#include "inv/elements/SoShapeStyleElement.H"
+#include "inv/elements/SoComplexityTypeElement.hpp"
+#include "inv/elements/SoShapeStyleElement.hpp"
 
 SO_ELEMENT_SOURCE(SoComplexityTypeElement);
 

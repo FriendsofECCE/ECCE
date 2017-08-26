@@ -26,7 +26,7 @@
     #pragma hdrstop
 #endif
 
-#include "wxgui/PlotDefs.H"
+#include "wxgui/PlotDefs.hpp"
 
 class FunctionParser;
 

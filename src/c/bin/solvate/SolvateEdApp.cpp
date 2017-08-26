@@ -1,13 +1,13 @@
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
-#include "tdat/AuthCache.H"
+#include "tdat/AuthCache.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSIServerCentral.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSIServerCentral.hpp"
 
-#include "SolvateEdApp.H"
-#include "SolvateEd.H"
+#include "SolvateEdApp.hpp"
+#include "SolvateEd.hpp"
 
 IMPLEMENT_APP(SolvateEdApp)
 

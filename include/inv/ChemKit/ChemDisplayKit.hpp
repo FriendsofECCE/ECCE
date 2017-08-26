@@ -57,10 +57,10 @@
 #ifndef __CHEM_DISPLAY_KIT_H__
 #define __CHEM_DISPLAY_KIT_H__
 
-#include "inv/SbLinear.H"
-#include "inv/nodekits/SoBaseKit.H"
+#include "inv/SbLinear.hpp"
+#include "inv/nodekits/SoBaseKit.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 ////////////////////////////////////////////////////////////////////
 //    Class: ChemDisplayKit

@@ -57,15 +57,15 @@
 #ifndef  __CHEM_BASE_DATA_H__
 #define  __CHEM_BASE_DATA_H__
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
-#include "inv/fields/SoSFInt32.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/fields/SoMFEnum.H"
+#include "inv/fields/SoSFInt32.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/fields/SoMFEnum.hpp"
 
-#include "inv/nodes/SoSubNode.H"
+#include "inv/nodes/SoSubNode.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

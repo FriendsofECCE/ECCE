@@ -6,9 +6,9 @@
 #include <string>
   using std::string;
 
-#include "dsm/EDSI.H"
-#include "dsm/EDSIFactory.H"
-#include "util/CmdLineAuthListener.H"
+#include "dsm/EDSI.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "util/CmdLineAuthListener.hpp"
 
 
 int main(int argc, char** argv) 

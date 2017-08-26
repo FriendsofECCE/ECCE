@@ -29,7 +29,7 @@
 #ifndef __CHEMFILEIMPORTER__
 #define __CHEMFILEIMPORTER__
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class ChemData;
 class ChemAssociatedData;

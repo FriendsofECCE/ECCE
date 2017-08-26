@@ -56,8 +56,8 @@
 #ifndef  _SO_V1PACKEDCOLOR_
 #define  _SO_V1PACKEDCOLOR_
 
-#include "inv/upgraders/SoUpgrader.H"
-#include "inv/fields/SoMFUInt32.H"
+#include "inv/upgraders/SoUpgrader.hpp"
+#include "inv/fields/SoMFUInt32.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

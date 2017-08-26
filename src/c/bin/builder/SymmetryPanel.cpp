@@ -9,24 +9,24 @@
 #include "wx/combo.h"
 #include "wx/listbase.h"
 
-#include "tdat/PointGroup.H"
+#include "tdat/PointGroup.hpp"
 
-#include "viz/AssignSymmetryCmd.H"
-#include "viz/CleanSymmetryCmd.H"
-#include "viz/FindIrreduceFragCmd.H"
-#include "viz/FindSymmetryCmd.H"
-#include "viz/GenerateFragCmd.H"
-#include "viz/GenerateGhostsCmd.H"
-#include "viz/RemoveGhostsCmd.H"
-#include "viz/SGContainer.H"
-#include "viz/SGFragment.H"
+#include "viz/AssignSymmetryCmd.hpp"
+#include "viz/CleanSymmetryCmd.hpp"
+#include "viz/FindIrreduceFragCmd.hpp"
+#include "viz/FindSymmetryCmd.hpp"
+#include "viz/GenerateFragCmd.hpp"
+#include "viz/GenerateGhostsCmd.hpp"
+#include "viz/RemoveGhostsCmd.hpp"
+#include "viz/SGContainer.hpp"
+#include "viz/SGFragment.hpp"
 
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxListViewComboPopup.H"
-#include "wxgui/ewxNumericValidator.H"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxListViewComboPopup.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
 
-#include "SymmetryPanel.H"
+#include "SymmetryPanel.hpp"
 
 
 /**

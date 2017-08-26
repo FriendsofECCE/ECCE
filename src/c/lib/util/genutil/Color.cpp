@@ -15,9 +15,9 @@ using std::endl;
 #include <stdio.h>  // sprintf
 
 
-#include "util/ErrMsg.H"
-#include "util/Preferences.H"
-#include "util/Color.H"
+#include "util/ErrMsg.hpp"
+#include "util/Preferences.hpp"
+#include "util/Color.hpp"
 
 
 // Colors - non integral types can't be initialized in declaration

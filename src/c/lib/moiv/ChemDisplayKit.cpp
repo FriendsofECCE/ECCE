@@ -56,18 +56,18 @@
 #ident "$Revision: 22147 $"
 
 #include <stdio.h>
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
-#include "inv/nodes/SoSeparator.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/nodes/SoSeparator.hpp"
 
-#include "inv/ChemKit/ChemDisplayKit.H"
-#include "inv/ChemKit/ChemDisplayParam.H"
-#include "inv/ChemKit/ChemRadii.H"
-#include "inv/ChemKit/ChemColor.H"
+#include "inv/ChemKit/ChemDisplayKit.hpp"
+#include "inv/ChemKit/ChemDisplayParam.hpp"
+#include "inv/ChemKit/ChemRadii.hpp"
+#include "inv/ChemKit/ChemColor.hpp"
 // --> lod
-#include "inv/ChemKit/ChemLOD.H"
+#include "inv/ChemKit/ChemLOD.hpp"
 // <-- lod
-#include "inv/ChemKit/ChemDisplay.H"
+#include "inv/ChemKit/ChemDisplay.hpp"
 
 /*
 	Porting to Windows:

@@ -126,9 +126,9 @@
 #ifndef  _SO_SUB_FIELD_
 #define  _SO_SUB_FIELD_
 
-#include "inv/fields/SoField.H"
-#include "inv/SoInput.H"
-#include "inv/SoOutput.H"
+#include "inv/fields/SoField.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoOutput.hpp"
 
 // C-api: end
 

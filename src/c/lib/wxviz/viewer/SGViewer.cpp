@@ -5,28 +5,28 @@
 //#include <iostream>
 // using namespace std;
 
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/fields/SoSFTime.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoGroup.H"
-#include "inv/nodes/SoCallback.H"
-#include "inv/nodes/SoCamera.H"
-#include "inv/nodes/SoPerspectiveCamera.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoGLLazyElement.H"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/fields/SoSFTime.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/nodes/SoCallback.hpp"
+#include "inv/nodes/SoCamera.hpp"
+#include "inv/nodes/SoPerspectiveCamera.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoGLLazyElement.hpp"
 
-#include "wxgui/ewxCursor.H"
+#include "wxgui/ewxCursor.hpp"
 
-#include "inv/SoWx/SoWxExaminerViewer.H"
-#include "inv/SoWx/SoWxRenderArea.H"
+#include "inv/SoWx/SoWxExaminerViewer.hpp"
+#include "inv/SoWx/SoWxRenderArea.hpp"
 
-#include "viz/freeglut_font_data.H"
-#include "viz/EcceDispParam.H"
-#include "viz/VR3dXVSmouse.H"
+#include "viz/freeglut_font_data.hpp"
+#include "viz/EcceDispParam.hpp"
+#include "viz/VR3dXVSmouse.hpp"
 
-#include "wxviz/SGViewer.H"
-#include "wxviz/SGSelection.H"
-#include "wxviz/MouseEventListener.H"
+#include "wxviz/SGViewer.hpp"
+#include "wxviz/SGSelection.hpp"
+#include "wxviz/MouseEventListener.hpp"
 
 
 #include <iostream>

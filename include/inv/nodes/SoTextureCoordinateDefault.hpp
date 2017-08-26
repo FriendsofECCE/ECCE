@@ -59,7 +59,7 @@
 #ifndef  _SO_TEXTURE_COORDINATE_DEFAULT_
 #define  _SO_TEXTURE_COORDINATE_DEFAULT_
 
-#include "inv/nodes/SoTextureCoordinateFunction.H"
+#include "inv/nodes/SoTextureCoordinateFunction.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

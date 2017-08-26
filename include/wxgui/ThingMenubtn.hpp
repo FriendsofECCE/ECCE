@@ -25,8 +25,8 @@ Create the button with either a text or bitmap label.
 #ifndef _WX_MENUBTN_H_
 #define _WX_MENUBTN_H_
 
-#include "wxgui/ThingDef.H"
-#include "wxgui/ThingToggle.H"
+#include "wxgui/ThingDef.hpp"
+#include "wxgui/ThingToggle.hpp"
 
 class WXDLLIMPEXP_FWD_CORE wxMenu;
 class WXDLLIMPEXP_FWD_CORE wxBitmap;

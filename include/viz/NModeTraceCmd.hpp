@@ -1,8 +1,8 @@
 #ifndef NMODETRACECMD_H
 #define NMODETRACECMD_H
 
-#include "viz/SGCommand.H"
-#include "viz/PropCmd.H"
+#include "viz/SGCommand.hpp"
+#include "viz/PropCmd.hpp"
 
 
 /**

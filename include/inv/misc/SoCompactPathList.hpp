@@ -58,7 +58,7 @@
 #ifndef  _SO_COMPACT_PATH_LIST_
 #define  _SO_COMPACT_PATH_LIST_
 
-#include "inv/SoLists.H"
+#include "inv/SoLists.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

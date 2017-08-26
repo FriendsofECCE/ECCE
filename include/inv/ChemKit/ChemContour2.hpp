@@ -57,18 +57,18 @@
 #ifndef __CHEM_CONTOUR2_H__
 #define __CHEM_CONTOUR2_H__
 
-#include "inv/SbLinear.H"
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/fields/SoSFShort.H"
-#include "inv/fields/SoMFColor.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/fields/SoMFUInt32.H"
+#include "inv/SbLinear.hpp"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/fields/SoSFShort.hpp"
+#include "inv/fields/SoMFColor.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/fields/SoMFUInt32.hpp"
 
-#include "inv/nodes/SoShape.H"
+#include "inv/nodes/SoShape.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class SoIndexedLineSet;
 class SoChildList;

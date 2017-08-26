@@ -5,13 +5,13 @@
 
 using std::string;
 
-#include "util/CommandManager.H"
-#include "util/Command.H"
+#include "util/CommandManager.hpp"
+#include "util/Command.hpp"
 
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
-#include "wxviz/SGViewer.H"
+#include "wxviz/SGViewer.hpp"
 
 /**
  * Interface representing the controller class (core) of a viz application.

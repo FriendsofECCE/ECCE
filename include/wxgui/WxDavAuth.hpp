@@ -8,9 +8,9 @@
 
 class wxWindow;
 
-#include "util/AuthEvent.H"
+#include "util/AuthEvent.hpp"
 
-#include "tdat/AuthCache.H"
+#include "tdat/AuthCache.hpp"
 
 
 /**

@@ -6,8 +6,8 @@
 #include <vector>
   using std::vector;
 
-#include "AbstractPropCalculation.H"
-#include "CalculationFactory.H"
+#include "AbstractPropCalculation.hpp"
+#include "CalculationFactory.hpp"
 
 /**
  * Allows trajectory files to be opened and understood as property providers.

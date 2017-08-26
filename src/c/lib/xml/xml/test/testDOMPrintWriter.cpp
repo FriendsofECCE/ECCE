@@ -12,10 +12,10 @@ using namespace std;
 
 using namespace xercesc;
 
-#include "util/ETimer.H"
-#include "util/StringConverter.H"
-#include "dsm/BasicDOMWriter.H"
-#include "dsm/BasicDOMParser.H"
+#include "util/ETimer.hpp"
+#include "util/StringConverter.hpp"
+#include "dsm/BasicDOMWriter.hpp"
+#include "dsm/BasicDOMParser.hpp"
 
 
 

@@ -1,10 +1,10 @@
 #include <iostream>
 using namespace std;
 
-#include "inv/actions/SoGLRenderAction.H"
+#include "inv/actions/SoGLRenderAction.hpp"
 
 
-#include "viz/MillerPlane.H"
+#include "viz/MillerPlane.hpp"
 
 
 // Include files for new classes

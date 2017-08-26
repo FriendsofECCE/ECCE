@@ -56,18 +56,18 @@
 #ifndef  _SO_CALLBACK_ACTION_
 #define  _SO_CALLBACK_ACTION_
 
-#include "inv/SbBox.H"
-#include "inv/actions/SoSubAction.H"
-#include "inv/nodes/SoComplexity.H"
-#include "inv/nodes/SoDrawStyle.H"
-#include "inv/nodes/SoLightModel.H"
-#include "inv/nodes/SoMaterialBinding.H"
-#include "inv/nodes/SoNormalBinding.H"
-#include "inv/nodes/SoPickStyle.H"
-#include "inv/nodes/SoShapeHints.H"
-#include "inv/nodes/SoTexture2.H"
-#include "inv/nodes/SoTextureCoordinateBinding.H"
-#include "inv/nodes/SoUnits.H"
+#include "inv/SbBox.hpp"
+#include "inv/actions/SoSubAction.hpp"
+#include "inv/nodes/SoComplexity.hpp"
+#include "inv/nodes/SoDrawStyle.hpp"
+#include "inv/nodes/SoLightModel.hpp"
+#include "inv/nodes/SoMaterialBinding.hpp"
+#include "inv/nodes/SoNormalBinding.hpp"
+#include "inv/nodes/SoPickStyle.hpp"
+#include "inv/nodes/SoShapeHints.hpp"
+#include "inv/nodes/SoTexture2.hpp"
+#include "inv/nodes/SoTextureCoordinateBinding.hpp"
+#include "inv/nodes/SoUnits.hpp"
 
 class SoPrimitiveVertex;
 class SoShape;

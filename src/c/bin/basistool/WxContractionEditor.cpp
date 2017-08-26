@@ -8,18 +8,18 @@
     using std::less;
 #include <vector>
 
-#include "util/Color.H"
-#include "util/ErrMsg.H"
-#include "util/STLUtil.H"
-#include "util/StringConverter.H"
+#include "util/Color.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/STLUtil.hpp"
+#include "util/StringConverter.hpp"
 
-#include "dsm/TGaussianBasisSet.H"
+#include "dsm/TGaussianBasisSet.hpp"
 
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxGrid.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxGrid.hpp"
 
-#include "WxContractionEditor.H"
-#include "WxBasisTool.H"
+#include "WxContractionEditor.hpp"
+#include "WxBasisTool.hpp"
 
 
           // Contraction Table

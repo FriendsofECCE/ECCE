@@ -28,7 +28,7 @@
 
 #include "wx/treectrl.h"
 
-#include "wxgui/ewxTreeCtrl.H"
+#include "wxgui/ewxTreeCtrl.hpp"
 
 ewxTreeCtrl::ewxTreeCtrl()
   : wxTreeCtrl(),

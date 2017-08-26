@@ -56,7 +56,7 @@
 #ifndef  _SO_DRAW_STYLE_ELEMENT
 #define  _SO_DRAW_STYLE_ELEMENT
 
-#include "inv/elements/SoInt32Element.H"
+#include "inv/elements/SoInt32Element.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

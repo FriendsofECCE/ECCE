@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 #include "arc.inc"
 #include "arcsorter.inc"
 #include "arctess.inc"

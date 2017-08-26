@@ -52,10 +52,10 @@
  */
 
 #include <GL/gl.h>
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoGLLightIdElement.H"
-#include "inv/elements/SoLightAttenuationElement.H"
-#include "inv/nodes/SoPointLight.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoGLLightIdElement.hpp"
+#include "inv/elements/SoLightAttenuationElement.hpp"
+#include "inv/nodes/SoPointLight.hpp"
 
 SO_NODE_SOURCE(SoPointLight);
 

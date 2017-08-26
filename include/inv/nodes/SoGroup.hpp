@@ -57,7 +57,7 @@
 #define  _SO_GROUP_
 
 class SoChildList;
-#include "inv/nodes/SoSubNode.H"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

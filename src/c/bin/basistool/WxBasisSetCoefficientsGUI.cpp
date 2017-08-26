@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "WxBasisSetCoefficientsGUI.H"
+#pragma implementation "WxBasisSetCoefficientsGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,13 +23,13 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxDialog.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxDialog.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "WxBasisSetCoefficientsGUI.H"
+#include "WxBasisSetCoefficientsGUI.hpp"
 
 ////@begin XPM images
 

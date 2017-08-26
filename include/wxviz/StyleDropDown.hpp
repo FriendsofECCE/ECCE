@@ -3,11 +3,11 @@
 
 #include <wx/toolbar.h>
 
-#include "util/Event.H"
-#include "util/Listener.H"
+#include "util/Event.hpp"
+#include "util/Listener.hpp"
   using namespace ecce;
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
 class StyleDropDown : public wxToolBar, 
         public WxVizTool, // for access to fragment 

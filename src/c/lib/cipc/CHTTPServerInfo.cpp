@@ -11,10 +11,10 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPDefs.H"
-#include "dsm/CHTTPRequest.H"
-#include "dsm/CHTTPUtils.H"
-#include "dsm/CHTTPServerInfo.H"
+#include "dsm/CHTTPDefs.hpp"
+#include "dsm/CHTTPRequest.hpp"
+#include "dsm/CHTTPUtils.hpp"
+#include "dsm/CHTTPServerInfo.hpp"
 
 #include <cstdlib>
 

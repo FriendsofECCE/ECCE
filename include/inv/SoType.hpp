@@ -65,9 +65,9 @@
 #ifndef  _SO_TYPE_
 #define  _SO_TYPE_
 
-#include "inv/misc/SoBasic.H"
-#include "inv/SbString.H"
-#include "inv/SbDict.H"
+#include "inv/misc/SoBasic.hpp"
+#include "inv/SbString.hpp"
+#include "inv/SbDict.hpp"
 
 class SoTypeList;
 struct SoTypeData;

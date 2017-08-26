@@ -51,14 +51,14 @@
  _______________________________________________________________________
 */
 
-#include "inv/elements/SoLazyElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/elements/SoSubElement.H"
-#include "inv/elements/SoShapeStyleElement.H"
-#include "inv/nodes/SoPackedColor.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/fields/SoMFColor.H"
+#include "inv/elements/SoLazyElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/elements/SoSubElement.hpp"
+#include "inv/elements/SoShapeStyleElement.hpp"
+#include "inv/nodes/SoPackedColor.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/fields/SoMFColor.hpp"
 
 SO_ELEMENT_SOURCE(SoLazyElement);
 static	SbColor unpacker(0, 0, 0);

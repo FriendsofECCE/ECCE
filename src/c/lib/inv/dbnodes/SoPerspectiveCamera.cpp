@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/nodes/SoPerspectiveCamera.H"
+#include "inv/nodes/SoPerspectiveCamera.hpp"
 #include <tr1/math.h>
 
 #define MINIMUM_NEAR_PLANE 0.01	    /* minimum near clipping distance */

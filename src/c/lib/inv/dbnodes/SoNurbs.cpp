@@ -50,7 +50,7 @@
  ______________  S I L I C O N   G R A P H I C S   I N C .  ____________
  _______________________________________________________________________
  */
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 #include "SoCurveMaps.inc"
 #include "SoCurveRender.inc"
 #include "SoCurveRndEvl.inc"

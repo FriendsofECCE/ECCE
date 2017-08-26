@@ -1,7 +1,7 @@
 #ifndef CLEARBONDROTATECMD_H
 #define CLEARBONDROTATECMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class ClearBondRotateCmd : public Command
 {

@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1Text2Kit.H"
-#include "inv/nodes/SoText2.H"
-#include "inv/nodekits/SoShapeKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1Text2Kit.hpp"
+#include "inv/nodes/SoText2.hpp"
+#include "inv/nodekits/SoShapeKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1Text2Kit);

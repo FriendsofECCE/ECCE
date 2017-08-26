@@ -6,10 +6,10 @@
 #ifndef _MDDYNAMICS_H_
 #define _MDDYNAMICS_H_
 
-#include "util/IOException.H"
+#include "util/IOException.hpp"
 
-#include "wxgui/MDEdBase.H"
-#include "wxgui/WxJMSListener.H"
+#include "wxgui/MDEdBase.hpp"
+#include "wxgui/WxJMSListener.hpp"
 
 class InteractionPanel;
 class ConstraintPanel;

@@ -56,8 +56,8 @@
 #ifndef  _SO_CALLBACK_
 #define  _SO_CALLBACK_
 
-#include "inv/SbLinear.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/SbLinear.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

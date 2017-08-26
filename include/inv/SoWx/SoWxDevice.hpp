@@ -3,7 +3,7 @@
 
 #include <wx/window.h>
 #include <wx/event.h>
-#include "inv/events/SoEvent.H"
+#include "inv/events/SoEvent.hpp"
 
 
 class SoWxDevice {

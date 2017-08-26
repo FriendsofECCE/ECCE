@@ -40,7 +40,7 @@ Differences to wxSpinCtrl:
 
 #include <wx/spinbutt.h>
 #include <wx/spinctrl.h> // for EVT_SPINCTRL
-#include "wxgui/ThingDef.H"
+#include "wxgui/ThingDef.hpp"
 
 class WXDLLIMPEXP_FWD_CORE wxTextCtrl;
 class WXDLLIMPEXP_FWD_THINGS wxSpinCtrlDblTextCtrl;

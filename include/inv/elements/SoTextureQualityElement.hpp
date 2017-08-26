@@ -57,7 +57,7 @@
 #ifndef  _SO_TEXTURE_QUALITY_ELEMENT
 #define  _SO_TEXTURE_QUALITY_ELEMENT
 
-#include "inv/elements/SoFloatElement.H"
+#include "inv/elements/SoFloatElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -1,7 +1,7 @@
 #ifndef ATOMCOORDVECCMD__H
 #define ATOMCOORDVECCMD__H
 
-#include "viz/AddVectorCmd.H"
+#include "viz/AddVectorCmd.hpp"
 
 /**
  * Command to create vectors for Electric field.

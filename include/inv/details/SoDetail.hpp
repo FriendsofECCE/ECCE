@@ -56,7 +56,7 @@
 #ifndef _SO_DETAIL_
 #define _SO_DETAIL_
 
-#include "inv/SoType.H"
+#include "inv/SoType.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

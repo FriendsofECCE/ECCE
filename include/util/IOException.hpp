@@ -6,7 +6,7 @@
 #ifndef IOEXCEPTION_HH
 #define IOEXCEPTION_HH
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 /**
  * IOException indicates some IO failure.

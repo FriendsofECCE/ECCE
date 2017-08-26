@@ -39,10 +39,10 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "nurbstess.H"
-#include "displaylist.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "nurbstess.hpp"
+#include "displaylist.hpp"
 
 
 DisplayList::DisplayList( NurbsTessellator  *_nt ) :

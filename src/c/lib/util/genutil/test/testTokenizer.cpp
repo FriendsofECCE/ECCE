@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 
-#include "util/StringTokenizer.H"
+#include "util/StringTokenizer.hpp"
 
 int main(int argc, char** argv)
 {

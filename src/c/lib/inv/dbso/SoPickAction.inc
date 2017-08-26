@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoViewportRegionElement.H"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
 
 SO_ACTION_SOURCE(SoPickAction);
 

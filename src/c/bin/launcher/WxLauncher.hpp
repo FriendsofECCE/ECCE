@@ -10,25 +10,25 @@
 #include <string>
     using std::string;
 
-#include "util/EcceMap.H"
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
-#include "util/Preferences.H"
+#include "util/EcceMap.hpp"
+#include "util/JMSMessage.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/Preferences.hpp"
 
-#include "tdat/Queue.H"
-#include "tdat/RefMachine.H"
+#include "tdat/Queue.hpp"
+#include "tdat/RefMachine.hpp"
 
-#include "dsm/MachinePreferences.H"
-#include "dsm/TaskJob.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/MachinePreferences.hpp"
+#include "dsm/TaskJob.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "comm/Launch.H"
+#include "comm/Launch.hpp"
 
-#include "wxgui/CalcDropHandler.H"
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/WxFeedback.H"
+#include "wxgui/CalcDropHandler.hpp"
+#include "wxgui/WxDavAuth.hpp"
+#include "wxgui/WxFeedback.hpp"
 
-#include "WxLauncherGUI.H"
+#include "WxLauncherGUI.hpp"
 
 class ewxButton;
 class ewxChoice;

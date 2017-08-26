@@ -56,8 +56,8 @@
 #ifndef  _SO_VIEWPORT_REGION_ELEMENT
 #define  _SO_VIEWPORT_REGION_ELEMENT
 
-#include "inv/SbViewportRegion.H"
-#include "inv/elements/SoSubElement.H"
+#include "inv/SbViewportRegion.hpp"
+#include "inv/elements/SoSubElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

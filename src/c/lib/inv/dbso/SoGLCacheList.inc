@@ -53,14 +53,14 @@
 
 #include <assert.h>
 
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/caches/SoGLCacheList.H"
-#include "inv/caches/SoGLRenderCache.H"
-#include "inv/elements/SoCacheElement.H"
-#include "inv/elements/SoGLCacheContextElement.H"
-#include "inv/misc/SoState.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/caches/SoGLCacheList.hpp"
+#include "inv/caches/SoGLRenderCache.hpp"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/elements/SoGLCacheContextElement.hpp"
+#include "inv/misc/SoState.hpp"
 
-#include "SoDebug.H"
+#include "SoDebug.hpp"
 
 static const int maxThreshold = 100;
 

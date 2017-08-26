@@ -39,9 +39,9 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "sorter.H"
-#include "mystdio.H"
+#include "glimports.hpp"
+#include "sorter.hpp"
+#include "mystdio.hpp"
 
 Sorter::Sorter( int _es )
 {

@@ -1,7 +1,7 @@
 #ifndef STRINGLISTCTRL_H_
 #define STRINGLISTCTRL_H_
 
-#include "wxgui/ewxListView.H"
+#include "wxgui/ewxListView.hpp"
 
 
 class StringListCtrl : public ewxListView

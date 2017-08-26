@@ -55,7 +55,7 @@
 
 #ident "$Revision: 22141 $"
 
-#include "inv/ChemKit/ChemAtomBBox.H"
+#include "inv/ChemKit/ChemAtomBBox.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 // 

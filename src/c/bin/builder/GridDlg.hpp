@@ -1,7 +1,7 @@
 #ifndef GRIDDLG__H
 #define GRIDDLG__H
 
-#include "GridGUI.H"
+#include "GridGUI.hpp"
 
 
 /**

@@ -17,10 +17,10 @@
 #include <string.h>
 
 // application includes
-#include "util/ErrMsg.H"
-#include "util/SDirectory.H"
-#include "util/EcceSortedVector.H"
-#include "util/StringTokenizer.H"
+#include "util/ErrMsg.hpp"
+#include "util/SDirectory.hpp"
+#include "util/EcceSortedVector.hpp"
+#include "util/StringTokenizer.hpp"
 
 
 // -----------------------

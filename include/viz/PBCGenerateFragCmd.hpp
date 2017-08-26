@@ -6,7 +6,7 @@
 #ifndef  PBCGENERATEFRAGCMD_H
 #define  PBCGENERATEFRAGCMD_H
 
-#include "viz/PBCCmd.H"
+#include "viz/PBCCmd.hpp"
 
 class Fragment;
 

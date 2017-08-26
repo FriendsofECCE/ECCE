@@ -1,6 +1,6 @@
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "FilesPanel.H"
+#pragma implementation "FilesPanel.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -14,20 +14,20 @@
   using std::cout;
   using std::endl;
 
-#include "util/Ecce.H"
+#include "util/Ecce.hpp"
 
-#include "tdat/FilesModel.H"
+#include "tdat/FilesModel.hpp"
 
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxNotebook.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/MDPanelHelper.H"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxNotebook.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/MDPanelHelper.hpp"
 
-#include "wxgui/FilesPanel.H"
+#include "wxgui/FilesPanel.hpp"
 
 /*!
  * FilesPanel constructors

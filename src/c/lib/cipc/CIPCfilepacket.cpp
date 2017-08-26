@@ -11,8 +11,8 @@
 
 #include <string.h>        /* for memcpy(), memset() */
 
-#include "dsm/CIPCcsock.H"
-#include "dsm/CIPCfilepacket.H"
+#include "dsm/CIPCcsock.hpp"
+#include "dsm/CIPCfilepacket.hpp"
 
 /* Some macros ***********************************************************/
 

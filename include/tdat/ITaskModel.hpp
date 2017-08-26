@@ -10,9 +10,9 @@
 
 using std::string;
 
-#include "util/Receiver.H"
-#include "util/InvalidException.H"
-#include "util/Serializable.H"
+#include "util/Receiver.hpp"
+#include "util/InvalidException.hpp"
+#include "util/Serializable.hpp"
 
 /**
  * Abstract base class for implementing data models for generic task models.

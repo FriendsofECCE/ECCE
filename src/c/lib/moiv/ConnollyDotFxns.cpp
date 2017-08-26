@@ -61,14 +61,14 @@
 #include <math.h>
 
 #ifdef __coin
-#include "inv/system/inttypes.H"
+#include "inv/system/inttypes.hpp"
 #else
 #include <inttypes.h>
 #endif
 
-#include "inv/ChemKit/SparseBits.H"
+#include "inv/ChemKit/SparseBits.hpp"
 
-#include "inv/ChemKit/ChemConnollyDot.H"
+#include "inv/ChemKit/ChemConnollyDot.hpp"
 
 /* MPM 12/2000 required by gcc */
 #define SP_ALLOC_INC 1024

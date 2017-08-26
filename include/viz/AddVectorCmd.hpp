@@ -4,9 +4,9 @@
 #include <vector>
   using std::vector;
 
-#include "inv/nodes/SoSwitch.H"
+#include "inv/nodes/SoSwitch.hpp"
 
-#include "viz/PropCmd.H"
+#include "viz/PropCmd.hpp"
 
 class SGContainer;
 

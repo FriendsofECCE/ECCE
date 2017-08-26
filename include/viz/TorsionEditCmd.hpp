@@ -6,7 +6,7 @@
 #ifndef  TORSIONEDITCMD_H
 #define  TORSIONEDITCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

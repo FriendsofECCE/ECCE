@@ -56,11 +56,11 @@
 #ifndef  _SO_PROFILE_
 #define  _SO_PROFILE_
 
-#include "inv/SbLinear.H"
-#include "inv/elements/SoProfileElement.H"
-#include "inv/fields/SoMFInt32.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/SbLinear.hpp"
+#include "inv/elements/SoProfileElement.hpp"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

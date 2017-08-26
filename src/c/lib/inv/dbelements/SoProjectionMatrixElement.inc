@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoProjectionMatrixElement.H"
+#include "inv/elements/SoProjectionMatrixElement.hpp"
 
 SO_ELEMENT_SOURCE(SoProjectionMatrixElement);
 

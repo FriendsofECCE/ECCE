@@ -5,9 +5,9 @@
 using std::string;
 #include "wx/fileconf.h"
 
-#include "util/Preferences.H"
+#include "util/Preferences.hpp"
 
-#include "wxviz/WxVizToolFW.H"
+#include "wxviz/WxVizToolFW.hpp"
 
 class Residue;
 

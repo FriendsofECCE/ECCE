@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "WxLauncherGUI.H"
+#pragma implementation "WxLauncherGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,20 +23,20 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/WxParameterEdit.H"
-#include "wxgui/ewxMenuBar.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/WxTimeSpanEdit.H"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/ewxFrame.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/WxParameterEdit.hpp"
+#include "wxgui/ewxMenuBar.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/WxTimeSpanEdit.hpp"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/ewxFrame.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "WxLauncherGUI.H"
+#include "WxLauncherGUI.hpp"
 
 ////@begin XPM images
 

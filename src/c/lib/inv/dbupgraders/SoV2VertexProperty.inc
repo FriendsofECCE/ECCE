@@ -51,16 +51,16 @@
  _______________________________________________________________________
  */
 
-#include "SoV2VertexProperty.H"
-#include "inv/nodes/SoVertexProperty.H"
-#include "inv/nodes/SoGroup.H"
-#include "inv/nodes/SoCoordinate3.H"
-#include "inv/nodes/SoNormal.H"
-#include "inv/nodes/SoPackedColor.H"
-#include "inv/nodes/SoTextureCoordinate2.H"
-#include "inv/nodes/SoNormalBinding.H"
-#include "inv/nodes/SoMaterialBinding.H"
-#include "inv/errors/SoReadError.H"
+#include "SoV2VertexProperty.hpp"
+#include "inv/nodes/SoVertexProperty.hpp"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/nodes/SoCoordinate3.hpp"
+#include "inv/nodes/SoNormal.hpp"
+#include "inv/nodes/SoPackedColor.hpp"
+#include "inv/nodes/SoTextureCoordinate2.hpp"
+#include "inv/nodes/SoNormalBinding.hpp"
+#include "inv/nodes/SoMaterialBinding.hpp"
+#include "inv/errors/SoReadError.hpp"
 
 SO_NODE_SOURCE(SoV2VertexProperty);
 

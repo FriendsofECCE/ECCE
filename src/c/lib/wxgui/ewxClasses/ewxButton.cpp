@@ -4,10 +4,10 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxDisabler.H"
-#include "wxgui/ewxDisabler.H"
-#include "wxgui/ewxHelpHandler.H"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxDisabler.hpp"
+#include "wxgui/ewxDisabler.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
 
 
 

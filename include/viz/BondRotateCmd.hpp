@@ -1,7 +1,7 @@
 #ifndef BONDROTATECMD_H
 #define BONDROTATECMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class TAtm;
 class SoDragger;

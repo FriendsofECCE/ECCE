@@ -56,9 +56,9 @@
 #ifndef  _SO_TEXTURE_2_TRANSFORM_
 #define  _SO_TEXTURE_2_TRANSFORM_
 
-#include "inv/fields/SoSFVec2f.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoSFVec2f.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

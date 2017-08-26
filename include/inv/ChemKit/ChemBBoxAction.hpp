@@ -57,10 +57,10 @@
 #ifndef  __CHEM_BBOX_ACTION_H__
 #define  __CHEM_BBOX_ACTION_H__
     
-#include "inv/SbBox.H"
-#include "inv/actions/SoSubAction.H"
+#include "inv/SbBox.hpp"
+#include "inv/actions/SoSubAction.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class ChemAtomBBox;
 class ChemBondBBox;

@@ -14,7 +14,7 @@
 #include <string>
 using std::string;
 
-#include "WxFindGUI.H"
+#include "WxFindGUI.hpp"
 
 /**
  * The implementation of WxFindGUI.

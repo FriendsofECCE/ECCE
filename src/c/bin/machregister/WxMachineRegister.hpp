@@ -28,13 +28,13 @@
 #include "wx/frame.h"
 #include "wx/msgdlg.h"
 
-#include "tdat/RefMachine.H"
+#include "tdat/RefMachine.hpp"
 
-#include "util/Preferences.H"
+#include "util/Preferences.hpp"
 
-//#include "wxgui/ewxWindowUtils.H"
+//#include "wxgui/ewxWindowUtils.hpp"
 
-#include "WxMachineRegisterGUI.H"
+#include "WxMachineRegisterGUI.hpp"
 
 class ewxButton;
 class ewxCheckBox;

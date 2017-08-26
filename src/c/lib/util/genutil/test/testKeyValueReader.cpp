@@ -3,8 +3,8 @@
 
   using namespace std;
 
-#include "util/Ecce.H"
-#include "util/KeyValueReader.H"
+#include "util/Ecce.hpp"
+#include "util/KeyValueReader.hpp"
 
 int main(int argc, char** argv)
 {

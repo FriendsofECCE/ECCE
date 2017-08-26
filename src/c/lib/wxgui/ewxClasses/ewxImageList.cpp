@@ -1,13 +1,13 @@
 #include <fstream>
   using std::ifstream;
 
-#include "util/Ecce.H"
-#include "util/StringConverter.H"
+#include "util/Ecce.hpp"
+#include "util/StringConverter.hpp"
 
-#include "wxgui/ewxDialog.H"
-#include "wxgui/ewxScrolledWindow.H"
+#include "wxgui/ewxDialog.hpp"
+#include "wxgui/ewxScrolledWindow.hpp"
 
-#include "wxgui/ewxImageList.H"
+#include "wxgui/ewxImageList.hpp"
 
 ewxImageList::ewxImageList()
   : wxImageList()

@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/errors/SoDebugError.H"
+#include "inv/errors/SoDebugError.hpp"
 #include <stdarg.h>
 
 // Static variables declared in SoDebugError.h:

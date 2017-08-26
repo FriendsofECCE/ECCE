@@ -55,7 +55,7 @@
 
 #ident "$Revision: 22141 $"
 
-#include "inv/ChemKit/ChemWireframeBondBBox.H"
+#include "inv/ChemKit/ChemWireframeBondBBox.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 // 

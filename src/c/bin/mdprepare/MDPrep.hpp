@@ -7,20 +7,20 @@
 
 #include "wx/wx.h"
 
-#include "util/EcceException.H"
-#include "util/IOException.H"
-#include "util/EditListener.H"
+#include "util/EcceException.hpp"
+#include "util/IOException.hpp"
+#include "util/EditListener.hpp"
 
-#include "tdat/FragmentSummary.H"
-#include "tdat/TaskApp.H"
+#include "tdat/FragmentSummary.hpp"
+#include "tdat/TaskApp.hpp"
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "wxgui/CalcDropHandler.H"
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/WxJMSListener.H"
+#include "wxgui/CalcDropHandler.hpp"
+#include "wxgui/WxDavAuth.hpp"
+#include "wxgui/WxJMSListener.hpp"
 
-#include "MDPrepGUI.H"
+#include "MDPrepGUI.hpp"
 
 class EditEvent;
 class ewxDialog;

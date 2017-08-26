@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "MoGUI.H"
+#pragma implementation "MoGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,15 +23,15 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxGrid.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxGrid.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "MoGUI.H"
+#include "MoGUI.hpp"
 
 ////@begin XPM images
 

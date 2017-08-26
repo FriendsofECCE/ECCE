@@ -7,7 +7,7 @@
 #define _EWXTEXTENTRYDIALOG_H  
 
 #include "wx/textdlg.h"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 /**
  * Subclass wxTextEntryDialog to provide style changes.

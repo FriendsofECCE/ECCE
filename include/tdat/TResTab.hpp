@@ -14,7 +14,7 @@
   using std::string;
   using std::vector;
 
-#include "tdat/TResItem.H"
+#include "tdat/TResItem.hpp"
 
 /**
  * TResTab contains reference residue information that is loaded only

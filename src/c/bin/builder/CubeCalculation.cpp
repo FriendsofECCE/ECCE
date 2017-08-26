@@ -1,15 +1,15 @@
 
 #include <wx/link.h>
 
-#include "util/STLUtil.H"
+#include "util/STLUtil.hpp"
 
-#include "tdat/Fragment.H"
-#include "tdat/PropGrids.H"
+#include "tdat/Fragment.hpp"
+#include "tdat/PropGrids.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/Resource.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/Resource.hpp"
 
-#include "CubeCalculation.H"
+#include "CubeCalculation.hpp"
 
 
 wxFORCE_LINK_THIS_MODULE(CubeCalculation)

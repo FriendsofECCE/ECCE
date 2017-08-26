@@ -59,11 +59,11 @@
 #ifndef  _SO_ELAPSED_TIME_
 #define  _SO_ELAPSED_TIME_
 
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFTime.H"
-#include "inv/fields/SoSFTrigger.H"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFTime.hpp"
+#include "inv/fields/SoSFTrigger.hpp"
 
 // C-api: public=timeIn,speed,on,pause,reset
 // C-api: public=timeOut

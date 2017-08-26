@@ -9,7 +9,7 @@
 
 #include <math.h>
 
-#include "util/Diag3.H"
+#include "util/Diag3.hpp"
 
 
 // ---------- Constructors ------------

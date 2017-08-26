@@ -20,15 +20,15 @@
    using std::sort;
    using std::includes;
 
-#include "util/STLUtil.H"
-#include "util/ErrMsg.H"
-#include "util/Ecce.H"
+#include "util/STLUtil.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/Ecce.hpp"
 
-#include "dsm/EDSI.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSIServerCentral.H"
-#include "dsm/EDSIGaussianBasisSetLibrary.H"
-#include "dsm/TGBSConfig.H"
+#include "dsm/EDSI.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSIServerCentral.hpp"
+#include "dsm/EDSIGaussianBasisSetLibrary.hpp"
+#include "dsm/TGBSConfig.hpp"
 
 
 // Debug flags:

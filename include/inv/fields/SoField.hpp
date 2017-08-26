@@ -56,9 +56,9 @@
 #ifndef  _SO_FIELD_
 #define  _SO_FIELD_
 
-#include "inv/SbString.H"
-#include "inv/SoType.H"
-#include "inv/misc/SoNotification.H"
+#include "inv/SbString.hpp"
+#include "inv/SoType.hpp"
+#include "inv/misc/SoNotification.hpp"
 
 class SoEngineOutput;
 class SoFieldContainer;

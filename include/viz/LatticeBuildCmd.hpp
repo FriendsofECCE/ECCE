@@ -2,7 +2,7 @@
 #define LATTICEBUILDCMD_HH
 
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 #include <vector>
   using std::vector;

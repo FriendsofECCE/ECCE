@@ -12,7 +12,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "MDTaskPanelGUI.H"
+#include "MDTaskPanelGUI.hpp"
 
 
 class Resource;

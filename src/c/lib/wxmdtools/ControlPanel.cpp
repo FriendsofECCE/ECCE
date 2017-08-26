@@ -1,5 +1,5 @@
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "ControlPanel.H"
+#pragma implementation "ControlPanel.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -13,18 +13,18 @@
   using std::cout;
   using std::endl;
 
-#include "tdat/ControlModel.H"
+#include "tdat/ControlModel.hpp"
 
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxOpenCloseToggle.H"
-#include "wxgui/ewxRadioButton.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/MDPanelHelper.H"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxOpenCloseToggle.hpp"
+#include "wxgui/ewxRadioButton.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/MDPanelHelper.hpp"
 
-#include "wxgui/ControlPanel.H"
+#include "wxgui/ControlPanel.hpp"
 
 /*!
  * ControlPanel constructors

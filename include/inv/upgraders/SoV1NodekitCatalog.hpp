@@ -58,9 +58,9 @@
 #ifndef  _SO_V1_NODEKIT_CATALOG
 #define  _SO_V1_NODEKIT_CATALOG
 
-#include "inv/SbString.H"
-#include "inv/SbPList.H"
-#include "inv/SoType.H"
+#include "inv/SbString.hpp"
+#include "inv/SbPList.hpp"
+#include "inv/SoType.hpp"
 
 #define SO_V1_CATALOG_NAME_NOT_FOUND -1
 

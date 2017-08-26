@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "ProjectContextPanelGUI.H"
+#pragma implementation "ProjectContextPanelGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,10 +23,10 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 ////@end includes
 
-#include "ProjectContextPanelGUI.H"
+#include "ProjectContextPanelGUI.hpp"
 
 ////@begin XPM images
 

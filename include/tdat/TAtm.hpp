@@ -9,8 +9,8 @@
 #include <iostream>
 using std::ostream;
 
-#include "tdat/ShapeData.H"
-#include "tdat/DisplayStyle.H"
+#include "tdat/ShapeData.hpp"
+#include "tdat/DisplayStyle.hpp"
 
 
 #include <string>

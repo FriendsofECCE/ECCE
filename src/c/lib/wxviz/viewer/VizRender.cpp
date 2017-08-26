@@ -2,8 +2,8 @@
  * @file
  *
  */
-#include "inv/SoOffscreenRenderer.H"
-#include "inv/nodes/SoGroup.H"
+#include "inv/SoOffscreenRenderer.hpp"
+#include "inv/nodes/SoGroup.hpp"
 
 //#include <iostream>
 //using std::cout;
@@ -15,29 +15,29 @@
 #include "wx/wx.h"
 #endif
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/ChemistryTask.H"
-#include "dsm/Resource.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/ChemistryTask.hpp"
+#include "dsm/Resource.hpp"
 
-#include "util/ImageConverter.H"
-#include "util/TempStorage.H"
+#include "util/ImageConverter.hpp"
+#include "util/TempStorage.hpp"
 
-#include "viz/AtomLabelsCmd.H"
-#include "viz/CSLoadColorsCmd.H"
-#include "viz/CSRadiiCmd.H"
-#include "viz/CSStyleCmd.H"
-#include "viz/ForegroundCmd.H"
-#include "viz/NewFragmentCmd.H"
-#include "viz/SGContainer.H"
-#include "viz/SGFragment.H"
+#include "viz/AtomLabelsCmd.hpp"
+#include "viz/CSLoadColorsCmd.hpp"
+#include "viz/CSRadiiCmd.hpp"
+#include "viz/CSStyleCmd.hpp"
+#include "viz/ForegroundCmd.hpp"
+#include "viz/NewFragmentCmd.hpp"
+#include "viz/SGContainer.hpp"
+#include "viz/SGFragment.hpp"
 
-#include "wxgui/ewxColor.H"
-#include "wxgui/ewxConfig.H"
+#include "wxgui/ewxColor.hpp"
+#include "wxgui/ewxConfig.hpp"
 
-#include "wxviz/BackgroundCmd.H"
-#include "wxviz/SGViewer.H"
-#include "wxviz/ViewerEvtHandler.H"
-#include "wxviz/VizRender.H"
+#include "wxviz/BackgroundCmd.hpp"
+#include "wxviz/SGViewer.hpp"
+#include "wxviz/ViewerEvtHandler.hpp"
+#include "wxviz/VizRender.hpp"
 
 SbViewportRegion    * VizRender::p_viewport  = NULL;
 SoOffscreenRenderer * VizRender::p_renderer  = NULL;

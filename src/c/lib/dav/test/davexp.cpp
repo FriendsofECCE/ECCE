@@ -1,11 +1,11 @@
 #include <stdlib.h>
 #include <iostream>
 using namespace std;
-#include "util/EcceURL.H"
-#include "tdat/CmdLineCacheAuthListener.H"
-#include "tdat/AuthCache.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSIExporter.H"
+#include "util/EcceURL.hpp"
+#include "tdat/CmdLineCacheAuthListener.hpp"
+#include "tdat/AuthCache.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSIExporter.hpp"
 
 
 int main(int argc, char** argv) {

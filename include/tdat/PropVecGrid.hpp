@@ -7,8 +7,8 @@
 #ifndef PROPVECGRID_HH
 #define PROPVECGRID_HH
 
-#include "tdat/PropGrids.H"
-#include "tdat/TProperty.H"
+#include "tdat/PropGrids.hpp"
+#include "tdat/TProperty.hpp"
 
 
 /**

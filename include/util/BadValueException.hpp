@@ -6,7 +6,7 @@
 #ifndef BADVALUEEXCEPTION_HH
 #define BADVALUEEXCEPTION_HH
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 
 /**

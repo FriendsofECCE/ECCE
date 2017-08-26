@@ -26,7 +26,7 @@
 #include <string>
   using std::string;
 
-#include "tdat/TProperty.H"
+#include "tdat/TProperty.hpp"
 
 class PropertyDoc;
 class Property_Ref;

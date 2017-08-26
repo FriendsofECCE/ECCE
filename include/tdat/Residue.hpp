@@ -17,8 +17,8 @@
 #include <string>
   using std::string;
 
-#include "tdat/TAtm.H"
-#include "tdat/DisplayStyle.H"
+#include "tdat/TAtm.hpp"
+#include "tdat/DisplayStyle.hpp"
 
 class Fragment;
 

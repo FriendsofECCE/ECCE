@@ -1,7 +1,7 @@
 #ifndef _EWXBITMAPBUTTON_H
 #define _EWXBITMAPBUTTON_H
 
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 #include "wx/bmpbuttn.h"
 
 class ewxDisabler;

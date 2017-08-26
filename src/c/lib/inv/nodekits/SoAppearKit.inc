@@ -51,15 +51,15 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/nodekits/SoAppearanceKit.H"
-#include "inv/nodes/SoLightModel.H"
-#include "inv/nodes/SoEnvironment.H"
-#include "inv/nodes/SoDrawStyle.H"
-#include "inv/nodes/SoMaterial.H"
-#include "inv/nodes/SoComplexity.H"
-#include "inv/nodes/SoTexture2.H"
-#include "inv/nodes/SoFont.H"
+#include "inv/SoDB.hpp"
+#include "inv/nodekits/SoAppearanceKit.hpp"
+#include "inv/nodes/SoLightModel.hpp"
+#include "inv/nodes/SoEnvironment.hpp"
+#include "inv/nodes/SoDrawStyle.hpp"
+#include "inv/nodes/SoMaterial.hpp"
+#include "inv/nodes/SoComplexity.hpp"
+#include "inv/nodes/SoTexture2.hpp"
+#include "inv/nodes/SoFont.hpp"
 
 SO_KIT_SOURCE(SoAppearanceKit);
 

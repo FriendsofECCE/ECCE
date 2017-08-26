@@ -6,11 +6,11 @@ using std::endl;
 #include <stdio.h>
 #include <string.h>
 
-#include "util/STLUtil.H"
+#include "util/STLUtil.hpp"
 
-#include "tdat/FragmentSummary.H"
-#include "tdat/TAtm.H"
-#include "tdat/Fragment.H"
+#include "tdat/FragmentSummary.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/Fragment.hpp"
 
 /**
  * Initialize all values to something harmless

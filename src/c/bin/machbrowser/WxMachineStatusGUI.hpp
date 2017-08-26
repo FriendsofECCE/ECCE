@@ -11,7 +11,7 @@
 #define _WXMACHINESTATUSGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "WxMachineStatusGUI.C"
+#pragma interface "WxMachineStatusGUI.cpp"
 #endif
 
 /*!
@@ -20,7 +20,7 @@
 
 ////@begin includes
 #include "wx/frame.h"
-#include "wxgui/ewxDialog.H"
+#include "wxgui/ewxDialog.hpp"
 ////@end includes
 
 /*!

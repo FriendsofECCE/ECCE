@@ -101,11 +101,11 @@
 #ifndef  _SO_CENTERBALL_DRAGGER_
 #define  _SO_CENTERBALL_DRAGGER_
 
-#include "inv/SbLinear.H"
-#include "inv/sensors/SoSensor.H"
-#include "inv/draggers/SoDragger.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/fields/SoSFRotation.H"
+#include "inv/SbLinear.hpp"
+#include "inv/sensors/SoSensor.hpp"
+#include "inv/draggers/SoDragger.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/fields/SoSFRotation.hpp"
 
 class SoFieldSensor;
 class SoInput;

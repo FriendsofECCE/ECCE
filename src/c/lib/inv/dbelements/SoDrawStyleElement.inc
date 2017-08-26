@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoDrawStyleElement.H"
-#include "inv/elements/SoShapeStyleElement.H"
+#include "inv/elements/SoDrawStyleElement.hpp"
+#include "inv/elements/SoShapeStyleElement.hpp"
 
 SO_ELEMENT_SOURCE(SoDrawStyleElement);
 

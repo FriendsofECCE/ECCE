@@ -62,10 +62,10 @@
 #ifndef  _SO_GLOBALFIELD_
 #define  _SO_GLOBALFIELD_
 
-#include "inv/SbDict.H"
-#include "inv/fields/SoSFName.H"
-#include "inv/fields/SoFieldContainer.H"
-#include "inv/fields/SoFieldData.H"
+#include "inv/SbDict.hpp"
+#include "inv/fields/SoSFName.hpp"
+#include "inv/fields/SoFieldContainer.hpp"
+#include "inv/fields/SoFieldData.hpp"
 
 class SoGlobalField : public SoFieldContainer {
     

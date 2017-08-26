@@ -16,7 +16,7 @@
 #include "wx/socket.h"
 #include "wx/event.h"
 
-#include "wxgui/WxJMSListener.H"
+#include "wxgui/WxJMSListener.hpp"
 
 class WxJMSSubscriber;
 class JMSMessage;

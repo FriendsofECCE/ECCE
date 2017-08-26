@@ -5,7 +5,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxStaticLine.H"
+#include "wxgui/ewxStaticLine.hpp"
 
 
 ewxStaticLine::ewxStaticLine()

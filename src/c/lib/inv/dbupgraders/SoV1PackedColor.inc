@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "SoV1PackedColor.H"
-#include "inv/nodes/SoPackedColor.H"
+#include "SoV1PackedColor.hpp"
+#include "inv/nodes/SoPackedColor.hpp"
 
 SO_NODE_SOURCE(SoV1PackedColor);
 

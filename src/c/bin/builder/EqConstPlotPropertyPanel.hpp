@@ -1,7 +1,7 @@
 #ifndef EQUILIBRIUMCONSTANTPLOTPROPERTYPANEL_H_
 #define EQUILIBRIUMCONSTANTPLOTPROPERTYPANEL_H_
 
-#include "PropertyPanel.H"
+#include "PropertyPanel.hpp"
 
 class ewxChoice;
 class ewxPlotCtrl;

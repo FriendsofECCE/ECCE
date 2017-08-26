@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1QuadMeshKit.H"
-#include "inv/nodes/SoQuadMesh.H"
-#include "inv/nodekits/SoShapeKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1QuadMeshKit.hpp"
+#include "inv/nodes/SoQuadMesh.hpp"
+#include "inv/nodekits/SoShapeKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1QuadMeshKit);

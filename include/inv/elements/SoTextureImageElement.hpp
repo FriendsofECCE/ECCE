@@ -56,8 +56,8 @@
 #ifndef  _SO_TEXTURE_IMAGE_ELEMENT
 #define  _SO_TEXTURE_IMAGE_ELEMENT
 
-#include "inv/SbColor.H"
-#include "inv/elements/SoReplacedElement.H"
+#include "inv/SbColor.hpp"
+#include "inv/elements/SoReplacedElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

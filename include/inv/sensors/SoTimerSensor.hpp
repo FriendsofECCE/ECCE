@@ -67,7 +67,7 @@
 #ifndef  _SO_TIMER_SENSOR_
 #define  _SO_TIMER_SENSOR_
 
-#include "inv/sensors/SoTimerQueueSensor.H"
+#include "inv/sensors/SoTimerQueueSensor.hpp"
 
 // C-api: prefix=SoTimerSens
 class SoTimerSensor : public SoTimerQueueSensor {

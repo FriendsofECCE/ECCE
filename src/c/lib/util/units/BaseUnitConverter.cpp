@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 
 // Helper types for map

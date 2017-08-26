@@ -37,16 +37,16 @@
 #ifndef __glumapdesc_h_
 #define __glumapdesc_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * mapdesc.h - $Revision: 22116 $
  */
 
-#include "mystdio.H"
-#include "types.H"
-#include "defines.H"
-#include "bufpool.H"
-#include "nurbsconsts.H"
+#include "mystdio.hpp"
+#include "types.hpp"
+#include "defines.hpp"
+#include "bufpool.hpp"
+#include "nurbsconsts.hpp"
 
 typedef REAL Maxmatrix[MAXCOORDS][MAXCOORDS];
 

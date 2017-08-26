@@ -3,7 +3,7 @@
  *
  *
  */
-#include "util/RetryException.H"
+#include "util/RetryException.hpp"
 
 RetryException::RetryException() : EcceException()
 {

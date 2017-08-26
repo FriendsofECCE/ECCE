@@ -3,9 +3,9 @@
 
 #include <unistd.h>
 
-#include "util/TempStorage.H"
-#include "util/SFile.H"
-#include "util/SDirectory.H"
+#include "util/TempStorage.hpp"
+#include "util/SFile.hpp"
+#include "util/SDirectory.hpp"
 
 int main(int argc, char** argv)
 {

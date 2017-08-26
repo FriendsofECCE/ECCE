@@ -53,9 +53,9 @@
 
 
 /* Polynomial Evaluator Interface */
-#include "SoAddPrefix.H"
-#include "SoCurveRenderEval.H"
-#include "SoCurveMaps.H"
+#include "SoAddPrefix.hpp"
+#include "SoCurveRenderEval.hpp"
+#include "SoCurveMaps.hpp"
 
 _SoNurbsCurveRenderEval::_SoNurbsCurveRenderEval( void ) 
 { 

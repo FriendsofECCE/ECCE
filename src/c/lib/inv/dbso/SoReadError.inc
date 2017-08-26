@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoInput.H"
-#include "inv/errors/SoReadError.H"
+#include "inv/SoInput.hpp"
+#include "inv/errors/SoReadError.hpp"
 #include <stdarg.h>
 
 // Static variables declared in SoReadError.h:

@@ -1,10 +1,10 @@
 #ifndef  __SOWXMOUSE_H
 #define  __SOWXMOUSE_H
 
-#include "inv/events/SoLocation2Event.H"
-#include "inv/events/SoMouseButtonEvent.H"
+#include "inv/events/SoLocation2Event.hpp"
+#include "inv/events/SoMouseButtonEvent.hpp"
 
-#include "inv/SoWx/SoWxDevice.H"
+#include "inv/SoWx/SoWxDevice.hpp"
 
 #define SO_WX_ALL_MOUSE_EVENTS 0
 

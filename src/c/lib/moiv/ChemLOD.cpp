@@ -40,9 +40,9 @@
 #include <string.h>
 #include <assert.h>
 
-#include "inv/ChemKit/ChemLOD.H"
-#include "inv/ChemKit/ChemUnitSphere.H"
-#include "inv/ChemKit/ChemUnitCylinder.H"
+#include "inv/ChemKit/ChemLOD.hpp"
+#include "inv/ChemKit/ChemUnitSphere.hpp"
+#include "inv/ChemKit/ChemUnitCylinder.hpp"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction

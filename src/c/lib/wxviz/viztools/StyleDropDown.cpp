@@ -1,11 +1,11 @@
-#include "util/Event.H"
+#include "util/Event.hpp"
 using namespace ecce;
 
-//#include "wxgui/ewxWindowUtils.H"
-//#include "wxgui/WindowEvent.H"
+//#include "wxgui/ewxWindowUtils.hpp"
+//#include "wxgui/WindowEvent.hpp"
 
-#include "wxviz/ViewerEvtHandler.H"
-#include "wxviz/StyleDropDown.H"
+#include "wxviz/ViewerEvtHandler.hpp"
+#include "wxviz/StyleDropDown.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS( StyleDropDown, wxToolBar )

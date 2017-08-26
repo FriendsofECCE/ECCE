@@ -12,14 +12,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "dsm/CDAVHeader.H"
-#include "dsm/CDAVRequest.H"
-#include "dsm/CDAVResponse.H"
-#include "dsm/CDAVServerInfo.H"
-#include "dsm/CHTTPConnection.H"
-#include "dsm/CHTTPUtils.H"
+#include "dsm/CDAVHeader.hpp"
+#include "dsm/CDAVRequest.hpp"
+#include "dsm/CDAVResponse.hpp"
+#include "dsm/CDAVServerInfo.hpp"
+#include "dsm/CHTTPConnection.hpp"
+#include "dsm/CHTTPUtils.hpp"
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
 
 class ProgressEventListener;

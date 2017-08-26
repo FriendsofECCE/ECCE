@@ -9,10 +9,10 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma implementation "PlotCurv.H"
+    #pragma implementation "PlotCurv.hpp"
 #endif
 
-#include "wxgui/PlotPrecomp.H"
+#include "wxgui/PlotPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
@@ -26,7 +26,7 @@
     #include "wx/dcmemory.h"
 #endif // WX_PRECOMP
 
-#include "wxgui/PlotCurv.H"
+#include "wxgui/PlotCurv.hpp"
 
 const wxRect2DDouble wxNullPlotBounds(0, 0, 0, 0);
 

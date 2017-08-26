@@ -57,14 +57,14 @@
 
 #include <assert.h>
 
-#include "inv/SoPath.H"
+#include "inv/SoPath.hpp"
 
-#include "inv/actions/SoSearchAction.H"
+#include "inv/actions/SoSearchAction.hpp"
 
-#include "inv/ChemKit/ChemIntList.H"
-#include "inv/ChemKit/ChemMonitor.H"
-#include "inv/ChemKit/ChemMonitorPath.H"
-#include "inv/ChemKit/ChemMonitorPathList.H"
+#include "inv/ChemKit/ChemIntList.hpp"
+#include "inv/ChemKit/ChemMonitor.hpp"
+#include "inv/ChemKit/ChemMonitorPath.hpp"
+#include "inv/ChemKit/ChemMonitorPathList.hpp"
 
 #define END_OF_LIST 9999999
 #define END_INDICATOR -1

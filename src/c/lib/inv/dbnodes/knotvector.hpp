@@ -37,12 +37,12 @@
 #ifndef __gluknotvector_h_
 #define __gluknotvector_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * knotvector.h - $Revision: 22364 $
  */
 
-#include "types.H"
+#include "types.hpp"
 
 struct Knotvector { /* a knot vector */
 			Knotvector( void );

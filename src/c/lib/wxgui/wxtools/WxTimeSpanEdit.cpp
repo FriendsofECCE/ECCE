@@ -13,10 +13,10 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxStaticText.hpp"
 
-#include "wxgui/WxTimeSpanEdit.H"
+#include "wxgui/WxTimeSpanEdit.hpp"
 
 
 #define MINUTES_PER_HOUR    60

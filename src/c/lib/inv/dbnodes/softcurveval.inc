@@ -40,12 +40,12 @@
  * $Revision: 22116 $
  */
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 #include <GL/gl.h>
-#include "myassert.H"
-#include "softcurveval.H"
-#include "softcurvmap.H"
-#include "cachingeval.H"
+#include "myassert.hpp"
+#include "softcurveval.hpp"
+#include "softcurvmap.hpp"
+#include "cachingeval.hpp"
 
  
 _SoNurbsCurveEvaluator::_SoNurbsCurveEvaluator( void ) 

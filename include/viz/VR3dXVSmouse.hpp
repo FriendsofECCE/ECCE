@@ -9,10 +9,10 @@
 
 // required commercial includes  //
 
-#include "inv/nodes/SoSubNode.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoBlinker.H"
-#include "inv/nodes/SoSwitch.H"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoBlinker.hpp"
+#include "inv/nodes/SoSwitch.hpp"
 
 class SoSensor;
 class RTDraggerNode;

@@ -52,16 +52,16 @@
  */
 
 
-#include "inv/misc/SoChildList.H"
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/SoOutput.H"
-#include "inv/actions/SoActions.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoReadError.H"
-#include "inv/fields/SoFieldData.H"
-#include "inv/nodes/SoGroup.H"
-#include "inv/elements/SoCacheElement.H"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/actions/SoActions.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/fields/SoFieldData.hpp"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/elements/SoCacheElement.hpp"
 
 SO_NODE_SOURCE(SoGroup);
 

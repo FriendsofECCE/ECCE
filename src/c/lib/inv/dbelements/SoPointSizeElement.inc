@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoPointSizeElement.H"
+#include "inv/elements/SoPointSizeElement.hpp"
 
 SO_ELEMENT_SOURCE(SoPointSizeElement);
 

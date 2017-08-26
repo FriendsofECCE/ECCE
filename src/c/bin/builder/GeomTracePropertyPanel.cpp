@@ -6,34 +6,34 @@
 #include "wx/log.h"
 #include "wx/sizer.h"
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
-#include "util/Transformations.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
+#include "util/Transformations.hpp"
   using namespace ecce;
 
-#include "tdat/PropTSVecTable.H"
-#include "tdat/PropVector.H"
-#include "tdat/TProperty.H"
-#include "tdat/LatticeDef.H"
+#include "tdat/PropTSVecTable.hpp"
+#include "tdat/PropVector.hpp"
+#include "tdat/TProperty.hpp"
+#include "tdat/LatticeDef.hpp"
 
-#include "dsm/IPropCalculation.H"
-#include "dsm/PropFactory.H"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/PropFactory.hpp"
 
-#include "viz/GTStepCmd.H"
-#include "viz/PBCFoldCmd.H"
-#include "viz/PBCReplicateCmd.H"
+#include "viz/GTStepCmd.hpp"
+#include "viz/PBCFoldCmd.hpp"
+#include "viz/PBCReplicateCmd.hpp"
 
-#include "wxgui/ewxConfig.H"
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxPlotCtrl.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/GenericValidator.H"
-#include "wxgui/NumericTextCtrl.H"
-#include "wxgui/NumericValidator.H"
-#include "wxgui/PlaybackControl.H"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxPlotCtrl.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/GenericValidator.hpp"
+#include "wxgui/NumericTextCtrl.hpp"
+#include "wxgui/NumericValidator.hpp"
+#include "wxgui/PlaybackControl.hpp"
 
-#include "GeomTracePropertyPanel.H"
+#include "GeomTracePropertyPanel.hpp"
 
 
 static const char *INIFILE = "wxbuilder.ini";

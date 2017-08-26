@@ -68,13 +68,13 @@
 #ifndef  _SO_COMPOSE_
 #define  _SO_COMPOSE_
 
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/fields/SoMFMatrix.H"
-#include "inv/fields/SoMFRotation.H"
-#include "inv/fields/SoMFVec2f.H"
-#include "inv/fields/SoMFVec3f.H"
-#include "inv/fields/SoMFVec4f.H"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/fields/SoMFMatrix.hpp"
+#include "inv/fields/SoMFRotation.hpp"
+#include "inv/fields/SoMFVec2f.hpp"
+#include "inv/fields/SoMFVec3f.hpp"
+#include "inv/fields/SoMFVec4f.hpp"
 
 // C-api: end
 // This internal macro defines the standard methods for the composition

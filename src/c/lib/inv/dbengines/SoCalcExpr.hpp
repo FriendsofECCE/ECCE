@@ -37,8 +37,8 @@
 #ifndef _SO_CALC_EXPR_
 #define _SO_CALC_EXPR_
 
-#include "inv/SbLinear.H"
-#include "inv/SbPList.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SbPList.hpp"
 
 #define Expr SoCalcExpr 
 #define ExprList SoCalcExprList 

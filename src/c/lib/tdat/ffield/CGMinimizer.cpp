@@ -16,8 +16,8 @@
   using std::cout;
   using std::endl;
 
-#include "util/ErrMsg.H"
-#include "tdat/CGMinimizer.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/CGMinimizer.hpp"
 
 #define ZEPS 1.0e-10
 #define CGOLD 0.3819660

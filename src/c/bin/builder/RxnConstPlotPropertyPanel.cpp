@@ -5,22 +5,22 @@
 #include <wx/link.h>
 #include <wx/sizer.h>
 
-#include "util/InternalException.H"
+#include "util/InternalException.hpp"
 
-#include "tdat/PropTable.H"
-#include "tdat/PropVector.H"
-#include "tdat/TProperty.H"
+#include "tdat/PropTable.hpp"
+#include "tdat/PropVector.hpp"
+#include "tdat/TProperty.hpp"
 
-#include "dsm/IPropCalculation.H"
-#include "dsm/PropFactory.H"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/PropFactory.hpp"
 
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxPlotCtrl.H"
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxPlotCtrl.hpp"
+#include "wxgui/ewxStaticText.hpp"
 
-#include "RxnConstPlotPropertyPanel.H"
+#include "RxnConstPlotPropertyPanel.hpp"
 
 
 wxFORCE_LINK_THIS_MODULE(ReactionConstantPlotPropertyPanel)

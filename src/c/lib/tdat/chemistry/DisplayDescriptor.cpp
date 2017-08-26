@@ -10,11 +10,11 @@
 
 #include <stdlib.h>
 
-#include "util/StringTokenizer.H"
-#include "util/Preferences.H"
+#include "util/StringTokenizer.hpp"
+#include "util/Preferences.hpp"
 
-#include "tdat/DisplayStyle.H"
-#include "tdat/DisplayDescriptor.H"
+#include "tdat/DisplayStyle.hpp"
+#include "tdat/DisplayDescriptor.hpp"
 
 //Default values
 const string DisplayDescriptor::DISPLAY = "Ball And Wireframe";

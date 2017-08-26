@@ -39,15 +39,15 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "nurbsconsts.H"
-#include "nurbstess.H"
-#include "bufpool.H"
-#include "quilt.H"
-#include "displaylist.H"
-#include "knotvector.H"
-#include "mapdesc.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "nurbsconsts.hpp"
+#include "nurbstess.hpp"
+#include "bufpool.hpp"
+#include "quilt.hpp"
+#include "displaylist.hpp"
+#include "knotvector.hpp"
+#include "mapdesc.hpp"
 
 #define THREAD( work, arg, cleanup ) \
 	if( dl ) {\

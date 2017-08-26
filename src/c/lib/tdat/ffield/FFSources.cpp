@@ -16,8 +16,8 @@
   using std::cout;
   using std::endl;
 
-#include "util/ErrMsg.H"
-#include "tdat/FFSources.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/FFSources.hpp"
 
 const char* FFSources::NEW_SOURCE = "new";
 

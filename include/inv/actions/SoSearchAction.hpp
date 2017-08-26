@@ -56,7 +56,7 @@
 #ifndef  _SO_SEARCH_ACTION_
 #define  _SO_SEARCH_ACTION_
 
-#include "inv/actions/SoSubAction.H"
+#include "inv/actions/SoSubAction.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

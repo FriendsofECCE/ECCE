@@ -52,13 +52,13 @@
  */
 
 #include <GL/gl.h>
-#include "inv/SbBox.H"
-#include "inv/misc/SoState.H"
-#include "inv/bundles/SoTextureCoordinateBundle.H"
-#include "inv/elements/SoGLTextureEnabledElement.H"
-#include "inv/elements/SoTextureCoordinateBindingElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodes/SoShape.H"
+#include "inv/SbBox.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/bundles/SoTextureCoordinateBundle.hpp"
+#include "inv/elements/SoGLTextureEnabledElement.hpp"
+#include "inv/elements/SoTextureCoordinateBindingElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodes/SoShape.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

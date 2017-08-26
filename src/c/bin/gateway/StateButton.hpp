@@ -21,9 +21,9 @@
 #endif
 
 #include <string.h>
-#include "dsm/ResourceDescriptor.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/WxState.H"
+#include "dsm/ResourceDescriptor.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/WxState.hpp"
 
 #define STATEBUTTON_STYLE  wxNO_BORDER|wxTAB_TRAVERSAL
 #define STATEBUTTON_SIZE wxSize(50,30)

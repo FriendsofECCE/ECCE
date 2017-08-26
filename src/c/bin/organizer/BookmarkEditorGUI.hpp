@@ -11,7 +11,7 @@
 #define _BOOKMARKEDITORGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "BookmarkEditorGUI.C"
+#pragma interface "BookmarkEditorGUI.cpp"
 #endif
 
 /*!
@@ -19,7 +19,7 @@
  */
 
 ////@begin includes
-#include "wxgui/ewxDialog.H"
+#include "wxgui/ewxDialog.hpp"
 ////@end includes
 
 /*!

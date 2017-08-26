@@ -9,17 +9,17 @@
 #include <iostream>
 using std::cerr;
 
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/ResourceTool.H"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/ResourceTool.hpp"
 
-#include "util/BrowserHelp.H"
-#include "util/Preferences.H"
+#include "util/BrowserHelp.hpp"
+#include "util/Preferences.hpp"
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxMenu.H"
-#include "wxgui/ewxMenuBar.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxMenu.hpp"
+#include "wxgui/ewxMenuBar.hpp"
 
-#include "wxgui/PerTabFrame.H"
+#include "wxgui/PerTabFrame.hpp"
 
 IMPLEMENT_DYNAMIC_CLASS( PerTabFrame, ewxFrame )
 

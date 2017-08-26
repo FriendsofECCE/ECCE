@@ -56,9 +56,9 @@
 #ifndef  _SO_VERTEX_SHAPE_
 #define  _SO_VERTEX_SHAPE_
 
-#include "inv/nodes/SoShape.H"
-#include "inv/nodes/SoVertexProperty.H"
-#include "inv/fields/SoSFNode.H"
+#include "inv/nodes/SoShape.hpp"
+#include "inv/nodes/SoVertexProperty.hpp"
+#include "inv/fields/SoSFNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

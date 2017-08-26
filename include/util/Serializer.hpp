@@ -16,7 +16,7 @@
 class Serializable;
 class EcceMap;
 
-#include "util/ParseException.H"
+#include "util/ParseException.hpp"
 
 class Serializer
 {

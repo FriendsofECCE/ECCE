@@ -57,7 +57,7 @@
 #ifndef  _SO_TEMP_PATH_
 #define  _SO_TEMP_PATH_
 
-#include "inv/SoPath.H"
+#include "inv/SoPath.hpp"
 
 // C-api: end
 //////////////////////////////////////////////////////////////////////////////

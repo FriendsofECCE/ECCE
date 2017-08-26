@@ -1,10 +1,10 @@
 #include <wx/stattext.h>
 
-#include "util/InternalException.H"
-#include "util/UnitFactory.H"
-#include "util/UnitFamily.H"
+#include "util/InternalException.hpp"
+#include "util/UnitFactory.hpp"
+#include "util/UnitFamily.hpp"
 
-#include "wxgui/NumericValidator.H"
+#include "wxgui/NumericValidator.hpp"
 
 
 NumericValidatorBase::NumericValidatorBase()

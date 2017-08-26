@@ -1,8 +1,8 @@
 #ifndef _POLYRATEAPP_H
 #define _POLYRATEAPP_H
 
-#include "wxgui/ewxApp.H"
-#include "wxgui/WxJMSMessageDispatch.H"
+#include "wxgui/ewxApp.hpp"
+#include "wxgui/WxJMSMessageDispatch.hpp"
 
 class Polyrate;
 class JMSMessage;

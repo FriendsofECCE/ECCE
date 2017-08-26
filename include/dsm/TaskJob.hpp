@@ -15,22 +15,22 @@
 #include <vector>
   using std::vector;
 
-#include "util/SFile.H"
-#include "util/EcceURL.H"
-#include "util/Preferences.H"
-#include "util/IOException.H"
-#include "util/EcceException.H"
-#include "util/InvalidException.H"
-#include "util/DavException.H"
-#include "util/ParseException.H"
-#include "util/Serializer.H"
+#include "util/SFile.hpp"
+#include "util/EcceURL.hpp"
+#include "util/Preferences.hpp"
+#include "util/IOException.hpp"
+#include "util/EcceException.hpp"
+#include "util/InvalidException.hpp"
+#include "util/DavException.hpp"
+#include "util/ParseException.hpp"
+#include "util/Serializer.hpp"
 
-#include "tdat/ITaskModel.H"
+#include "tdat/ITaskModel.hpp"
 
-#include "dsm/Job.H"
-#include "dsm/JCode.H"
-#include "dsm/Resource.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/Job.hpp"
+#include "dsm/JCode.hpp"
+#include "dsm/Resource.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
 class VDoc;
 

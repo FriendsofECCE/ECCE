@@ -55,7 +55,7 @@
 
 #ident "$Revision: 22141 $"
 
-#include "inv/ChemKit/ChemWireframeDetail.H"
+#include "inv/ChemKit/ChemWireframeDetail.hpp"
 
 SO_DETAIL_SOURCE(ChemWireframeDetail);
 

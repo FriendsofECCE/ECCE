@@ -16,11 +16,11 @@
 #ifndef MACHINEPREFERENCES_HH
 #define MACHINEPREFERENCES_HH
 
-#include "util/StringTokenizer.H"
-#include "tdat/RefMachine.H"
-#include "tdat/MachineOptions.H"
+#include "util/StringTokenizer.hpp"
+#include "tdat/RefMachine.hpp"
+#include "tdat/MachineOptions.hpp"
 
-#include "dsm/TaskJob.H"        //  for the Launchdata structure
+#include "dsm/TaskJob.hpp"        //  for the Launchdata structure
 
 
 class MachinePreferences

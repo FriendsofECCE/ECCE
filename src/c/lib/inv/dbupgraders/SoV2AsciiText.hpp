@@ -56,12 +56,12 @@
 #ifndef  _SO_V2ASCIITEXT_
 #define  _SO_V2ASCIITEXT_
 
-#include "inv/fields/SoMFString.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/upgraders/SoUpgrader.H"
+#include "inv/fields/SoMFString.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/upgraders/SoUpgrader.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

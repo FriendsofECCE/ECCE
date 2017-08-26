@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/nodes/SoLabel.H"
+#include "inv/nodes/SoLabel.hpp"
 
 SO_NODE_SOURCE(SoLabel);
 

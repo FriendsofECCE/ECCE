@@ -60,7 +60,7 @@
 #ifndef  _SO_SCENE_KIT_
 #define  _SO_SCENE_KIT_
 
-#include "inv/nodekits/SoBaseKit.H"
+#include "inv/nodekits/SoBaseKit.hpp"
 
 ////////////////////////////////////////////////////////////////////
 //    Class: SoSceneKit

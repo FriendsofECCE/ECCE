@@ -56,8 +56,8 @@
 #ifndef  _SO_VIEW_VOLUME_ELEMENT
 #define  _SO_VIEW_VOLUME_ELEMENT
 
-#include "inv/SbLinear.H"
-#include "inv/elements/SoReplacedElement.H"
+#include "inv/SbLinear.hpp"
+#include "inv/elements/SoReplacedElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

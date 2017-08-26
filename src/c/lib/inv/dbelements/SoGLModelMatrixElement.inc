@@ -52,9 +52,9 @@
  */
 
 #include <GL/gl.h>
-#include "inv/elements/SoGLModelMatrixElement.H"
-#include "inv/elements/SoGLViewingMatrixElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/elements/SoGLModelMatrixElement.hpp"
+#include "inv/elements/SoGLViewingMatrixElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 #include <math.h>
 
 SO_ELEMENT_SOURCE(SoGLModelMatrixElement);

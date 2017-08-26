@@ -26,8 +26,8 @@ arrows.
 #ifndef _WX_BMPCOMBO_H_
 #define _WX_BMPCOMBO_H_
 
-#include "wxgui/ThingDef.H"
-#include "wxgui/ThingDropdown.H"
+#include "wxgui/ThingDef.hpp"
+#include "wxgui/ThingDropdown.hpp"
 
 #if wxUSE_POPUPWIN
 

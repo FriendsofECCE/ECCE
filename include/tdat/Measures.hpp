@@ -6,7 +6,7 @@
 #ifndef MEASURES_HH
 #define MEASURES_HH
 
-#include "tdat/TAtm.H"
+#include "tdat/TAtm.hpp"
 
 /**
   * Class that computes different measures between atoms (bonds, angles,

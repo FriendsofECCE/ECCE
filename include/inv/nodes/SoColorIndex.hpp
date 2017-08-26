@@ -56,8 +56,8 @@
 #ifndef  _SO_COLOR_INDEX_
 #define  _SO_COLOR_INDEX_
 
-#include "inv/fields/SoMFInt32.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

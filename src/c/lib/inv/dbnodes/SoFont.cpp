@@ -51,14 +51,14 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoFontNameElement.H"
-#include "inv/elements/SoFontSizeElement.H"
-#include "inv/elements/SoOverrideElement.H"
-#include "inv/nodes/SoFont.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoFontNameElement.hpp"
+#include "inv/elements/SoFontSizeElement.hpp"
+#include "inv/elements/SoOverrideElement.hpp"
+#include "inv/nodes/SoFont.hpp"
 
 SO_NODE_SOURCE(SoFont);
 

@@ -56,7 +56,7 @@
 #ifndef  _SO_UNITS_ELEMENT
 #define  _SO_UNITS_ELEMENT
 
-#include "inv/elements/SoInt32Element.H"
+#include "inv/elements/SoInt32Element.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

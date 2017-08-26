@@ -2,7 +2,7 @@
 #define _EWXMENUBAR_H
 
 #include "wx/menu.h"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxMenuBar : public wxMenuBar, public ewxStyledWindow
 {

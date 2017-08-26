@@ -1,7 +1,7 @@
 #ifndef ATOMDELETEACTION_HH
 #define ATOMDELETEACTION_HH
 
-#include "inv/actions/SoSubAction.H"
+#include "inv/actions/SoSubAction.hpp"
 
 class AtomDeleteAction : public SoAction {
 

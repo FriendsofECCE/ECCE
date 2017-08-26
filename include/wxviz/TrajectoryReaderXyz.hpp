@@ -8,9 +8,9 @@
 #include <vector>
   using std::vector;
 
-#include "util/IOException.H"
+#include "util/IOException.hpp"
 
-#include "wxviz/TrajectoryReader.H"
+#include "wxviz/TrajectoryReader.hpp"
 
 
 class SGContainer;

@@ -39,16 +39,16 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "hull.H"
-#include "gridvertex.H"
-#include "gridtrimvertex.H"
-#include "gridline.H"
-#include "trimline.H"
-#include "uarray.H"
-#include "trimregion.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "hull.hpp"
+#include "gridvertex.hpp"
+#include "gridtrimvertex.hpp"
+#include "gridline.hpp"
+#include "trimline.hpp"
+#include "uarray.hpp"
+#include "trimregion.hpp"
 
 Hull::Hull( void )
 {}

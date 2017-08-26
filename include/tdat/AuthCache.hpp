@@ -6,7 +6,7 @@
   using std::string;
   using std::vector;
 
-#include "util/JMSMessage.H"
+#include "util/JMSMessage.hpp"
 
 class AuthTuple;
 

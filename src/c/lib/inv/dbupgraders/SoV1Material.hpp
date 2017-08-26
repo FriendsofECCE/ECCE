@@ -56,9 +56,9 @@
 #ifndef  _SO_V1MATERIAL_
 #define  _SO_V1MATERIAL_
 
-#include "inv/fields/SoMFColor.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/upgraders/SoUpgrader.H"
+#include "inv/fields/SoMFColor.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/upgraders/SoUpgrader.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

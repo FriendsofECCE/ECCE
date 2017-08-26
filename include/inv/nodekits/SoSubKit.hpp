@@ -105,17 +105,17 @@
 // There is a cycle of include files between SoBaseKit.h and SoSubKit.h
 // SoBaseKit.h must be included before _SO_SUB_KIT_ is defined.  Otherwise,
 // SoBaseKit.h will not compile.
-#include "inv/nodekits/SoBaseKit.H"
+#include "inv/nodekits/SoBaseKit.hpp"
 
 #ifndef  _SO_SUB_KIT_
 #define  _SO_SUB_KIT_
 
 // C-api: end
 
-#include "inv/nodes/SoNode.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/nodekits/SoNodekitCatalog.H"
-#include "inv/nodekits/SoNodeKitListPart.H"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/nodekits/SoNodekitCatalog.hpp"
+#include "inv/nodekits/SoNodeKitListPart.hpp"
 
 /////////////////////////////////////////////////////////////////////////////
 //

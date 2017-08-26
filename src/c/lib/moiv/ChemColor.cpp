@@ -55,14 +55,14 @@
 
 #ident "$Revision: 22147 $"
 
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
 
-#include "inv/ChemKit/ChemColor.H"
-#include "inv/ChemKit/ChemColorElement.H"
-#include "inv/ChemKit/ChemOverrideElement.H"
+#include "inv/ChemKit/ChemColor.hpp"
+#include "inv/ChemKit/ChemColorElement.hpp"
+#include "inv/ChemKit/ChemOverrideElement.hpp"
 
 const float defaultAtomColors[][3] =  {
     { 1.00f, 1.00f, 1.00f}, // Place holder

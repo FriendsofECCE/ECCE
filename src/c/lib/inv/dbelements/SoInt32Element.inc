@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoInt32Element.H"
+#include "inv/elements/SoInt32Element.hpp"
 
 SO_ELEMENT_ABSTRACT_SOURCE(SoInt32Element);
 

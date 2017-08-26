@@ -22,7 +22,7 @@
 
 
 
-#include "tdat/MachineOptions.H"
+#include "tdat/MachineOptions.hpp"
 
 
 string p_optionMnemonics[] = {  "Q", "TL", "MM", "SS", "MN",

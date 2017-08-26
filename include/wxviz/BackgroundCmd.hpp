@@ -1,10 +1,10 @@
 #ifndef BACKGROUNDCMD_HH
 #define BACKGROUNDCMD_HH
 
-#include "inv/SbColor.H"
+#include "inv/SbColor.hpp"
 
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 /**
  * Wrapper for command to set viewer background color.

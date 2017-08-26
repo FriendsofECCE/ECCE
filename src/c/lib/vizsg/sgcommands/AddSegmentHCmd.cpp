@@ -6,22 +6,22 @@
 #include <iostream>
   using namespace std;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
-#include "util/FFConfigData.H"
-#include "util/StringConverter.H"
+#include "util/FFConfigData.hpp"
+#include "util/StringConverter.hpp"
 
-#include "dsm/SegFactory.H"
+#include "dsm/SegFactory.hpp"
 
-#include "tdat/Segment.H"
-#include "tdat/FragUtil.H"
-#include "tdat/TPerTab.H"
-#include "tdat/ShapeData.H"
+#include "tdat/Segment.hpp"
+#include "tdat/FragUtil.hpp"
+#include "tdat/TPerTab.hpp"
+#include "tdat/ShapeData.hpp"
 
-#include "viz/AddSegmentHCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/AddSegmentHCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 #define PI 3.14159265358979323846
 

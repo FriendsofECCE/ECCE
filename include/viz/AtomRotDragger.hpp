@@ -1,8 +1,8 @@
 #ifndef  _ATOMROTDRAGGER_HH
 #define  _ATOMROTDRAGGER_HH
 
-#include "inv/draggers/SoRotateDiscDragger.H"
-#include "inv/nodes/SoTransform.H"
+#include "inv/draggers/SoRotateDiscDragger.hpp"
+#include "inv/nodes/SoTransform.hpp"
 
 
 class SGFragment;

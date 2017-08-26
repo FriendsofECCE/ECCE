@@ -56,10 +56,10 @@
  */
 
 #include <assert.h>
-#include "inv/engines/SoCalculator.H"
-#include "inv/errors/SoDebugError.H"
-#include "SoCalcExpr.H"
-#include "SoEngineUtil.H"
+#include "inv/engines/SoCalculator.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "SoCalcExpr.hpp"
+#include "SoEngineUtil.hpp"
 
 SO_ENGINE_SOURCE(SoCalculator);
 

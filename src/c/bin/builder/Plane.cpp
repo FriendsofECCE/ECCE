@@ -3,14 +3,14 @@ using namespace std;
 
 #include <wx/dialog.h>
 
-#include "wxgui/ewxConfig.H"
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxColorDialog.H"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxColorDialog.hpp"
 
-#include "Plane.H"
+#include "Plane.hpp"
 
 static const char *INIFILE = "wxbuilder.ini";
 

@@ -71,7 +71,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "inv/sensors/SoSensor.H"
+#include "inv/sensors/SoSensor.hpp"
 
 // C-api: prefix=SoDelQSens
 class SoDelayQueueSensor : public SoSensor {

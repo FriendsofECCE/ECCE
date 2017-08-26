@@ -11,7 +11,7 @@
 #define _THERMODYNAMICSPANELGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "ThermodynamicsPanelGUI.C"
+#pragma interface "ThermodynamicsPanelGUI.cpp"
 #endif
 
 /*!
@@ -20,7 +20,7 @@
 
 ////@begin includes
 #include "wx/spinctrl.h"
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 ////@end includes
 
 /*!

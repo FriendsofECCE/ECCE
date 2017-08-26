@@ -51,12 +51,12 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoPath.H"
-#include "inv/SoPrimitiveVertex.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/details/SoDetail.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/elements/SoTextureMatrixElement.H"
+#include "inv/SoPath.hpp"
+#include "inv/SoPrimitiveVertex.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/details/SoDetail.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/elements/SoTextureMatrixElement.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

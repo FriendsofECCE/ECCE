@@ -7,9 +7,9 @@
 #define WXFFDATACONFIG_H_
 
 
-#include "util/IOException.H"
+#include "util/IOException.hpp"
 
-#include "wxgui/WxFFDataConfigGUI.H"
+#include "wxgui/WxFFDataConfigGUI.hpp"
 
 
 class EDSIServerCentral;

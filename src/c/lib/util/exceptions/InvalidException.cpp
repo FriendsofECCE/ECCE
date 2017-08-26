@@ -3,7 +3,7 @@
  *
  *
  */
-#include "util/InvalidException.H"
+#include "util/InvalidException.hpp"
 
 InvalidException::InvalidException(const string& msg, 
                                    const char *file, int line)

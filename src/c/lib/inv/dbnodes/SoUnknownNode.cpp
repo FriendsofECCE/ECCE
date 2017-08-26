@@ -53,11 +53,11 @@
 
 
 #include <stdlib.h>
-#include "inv/misc/SoState.H"
-#include "inv/actions/SoWriteAction.H"
-#include "inv/fields/SoMFString.H"
-#include "inv/fields/SoSFNode.H"
-#include "SoUnknownNode.H"
+#include "inv/misc/SoState.hpp"
+#include "inv/actions/SoWriteAction.hpp"
+#include "inv/fields/SoMFString.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "SoUnknownNode.hpp"
 
 // Because of the special treatment of fieldData, we can't use the
 // regular SO_NODE_SOURCE macro.

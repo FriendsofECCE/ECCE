@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "SoV2LOD.H"
-#include "inv/nodes/SoLOD.H"
-#include "inv/nodes/SoLevelOfDetail.H"
-#include "inv/errors/SoReadError.H"
+#include "SoV2LOD.hpp"
+#include "inv/nodes/SoLOD.hpp"
+#include "inv/nodes/SoLevelOfDetail.hpp"
+#include "inv/errors/SoReadError.hpp"
 
 SO_NODE_SOURCE(SoV2LOD);
 

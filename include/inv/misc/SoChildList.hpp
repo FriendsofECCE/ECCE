@@ -57,7 +57,7 @@
 #ifndef _SO_CHILD_LIST_
 #define _SO_CHILD_LIST_
 
-#include "inv/SoLists.H"
+#include "inv/SoLists.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -7,9 +7,9 @@
 #ifndef  COMPUTEMOCMD_H
 #define  COMPUTEMOCMD_H
 
-#include "viz/PropCmd.H"
+#include "viz/PropCmd.hpp"
 
-#include "viz/SGContainer.H"
+#include "viz/SGContainer.hpp"
 
 class TGBSAngFunc;
 class TGBSConfig;

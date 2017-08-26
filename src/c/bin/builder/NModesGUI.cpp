@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "NModesGUI.H"
+#pragma implementation "NModesGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,17 +23,17 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxGrid.H"
-#include "wxgui/ewxBitmapButton.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxRadioBox.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxGrid.hpp"
+#include "wxgui/ewxBitmapButton.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxRadioBox.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "NModesGUI.H"
+#include "NModesGUI.hpp"
 
 ////@begin XPM images
 

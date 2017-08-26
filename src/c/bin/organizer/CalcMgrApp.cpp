@@ -8,7 +8,7 @@
  */
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "CalcMgrApp.H"
+#pragma implementation "CalcMgrApp.hpp"
 #endif
 
 #include "wx/wxprec.h"
@@ -24,17 +24,17 @@
 //#include <iostream>
 //using std::cerr;
 
-#include "tdat/RefMachine.H"
+#include "tdat/RefMachine.hpp"
 
-#include "dsm/MachineConfig.H"
-#include "dsm/EDSIFactory.H"
+#include "dsm/MachineConfig.hpp"
+#include "dsm/EDSIFactory.hpp"
 
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/WxJMSSubscriber.H"
-#include "wxgui/WxState.H"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/WxJMSSubscriber.hpp"
+#include "wxgui/WxState.hpp"
 
-#include "CalcMgrApp.H"
-#include "CalcMgr.H"
+#include "CalcMgrApp.hpp"
+#include "CalcMgr.hpp"
 
 
 IMPLEMENT_APP(CalcMgrApp)

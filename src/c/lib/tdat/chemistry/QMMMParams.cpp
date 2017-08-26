@@ -7,9 +7,9 @@
 using std::set;
 using std::less;
 
-#include "util/STLUtil.H"
-#include "tdat/QMMMParams.H"
-#include "tdat/Measures.H"
+#include "util/STLUtil.hpp"
+#include "tdat/QMMMParams.hpp"
+#include "tdat/Measures.hpp"
 
 
 

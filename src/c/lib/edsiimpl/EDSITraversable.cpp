@@ -1,13 +1,13 @@
 #include <iostream>
 using namespace std;
 
-#include "dsm/EDSI.H"
-#include "dsm/VDoc.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/ResourceType.H"
-#include "dsm/Session.H"
-#include "dsm/EDSITraversable.H"
+#include "dsm/EDSI.hpp"
+#include "dsm/VDoc.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/ResourceType.hpp"
+#include "dsm/Session.hpp"
+#include "dsm/EDSITraversable.hpp"
 
 EDSITraversable::EDSITraversable(const EcceURL& url) : ITraversable(url)
 {

@@ -43,12 +43,12 @@
 	- interprets display mode (wireframe,shaded,...)
 */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "backend.H"
-#include "basiccrveval.H"
-#include "basicsurfeval.H"
-#include "nurbsconsts.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "backend.hpp"
+#include "basiccrveval.hpp"
+#include "basicsurfeval.hpp"
+#include "nurbsconsts.hpp"
 
 /*-------------------------------------------------------------------------
  * bgnsurf - preamble to surface definition and evaluations

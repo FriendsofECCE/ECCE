@@ -53,10 +53,10 @@
 
 
 #include <stdio.h>
-#include "inv/SoDB.H"
-#include "inv/manips/SoHandleBoxManip.H"
-#include "inv/draggers/SoHandleBoxDragger.H"
-#include "inv/nodes/SoSurroundScale.H"
+#include "inv/SoDB.hpp"
+#include "inv/manips/SoHandleBoxManip.hpp"
+#include "inv/draggers/SoHandleBoxDragger.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
 
 SO_NODE_SOURCE(SoHandleBoxManip);
 

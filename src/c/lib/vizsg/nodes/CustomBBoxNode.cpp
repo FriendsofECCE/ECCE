@@ -1,6 +1,6 @@
 
 
-#include "viz/CustomBBoxNode.H"
+#include "viz/CustomBBoxNode.hpp"
 
 SO_NODE_SOURCE(CustomBBoxNode);
 

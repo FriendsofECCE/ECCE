@@ -1,6 +1,6 @@
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "ConstraintPanel.H"
+#pragma implementation "ConstraintPanel.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -14,28 +14,28 @@
   using std::cout;
   using std::endl;
 
-#include "util/StringConverter.H"
-#include "util/STLUtil.H"
-#include "util/JMSPublisher.H"
-#include "util/JMSMessage.H"
+#include "util/StringConverter.hpp"
+#include "util/STLUtil.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/JMSMessage.hpp"
 
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxListBox.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxRadioButton.H"
-#include "wxgui/ewxRegexpValidator.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxUnitHelper.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/MDPanelHelper.H"
-#include "wxgui/WxFeedback.H"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxListBox.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxRadioButton.hpp"
+#include "wxgui/ewxRegexpValidator.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxUnitHelper.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/MDPanelHelper.hpp"
+#include "wxgui/WxFeedback.hpp"
 
-#include "tdat/ConstraintModel.H"
-#include "tdat/FragmentSummary.H"
+#include "tdat/ConstraintModel.hpp"
+#include "tdat/FragmentSummary.hpp"
 
-#include "wxgui/ConstraintPanel.H"
+#include "wxgui/ConstraintPanel.hpp"
 
 static const wxString ATOMREGEXP = "[0-9]+:_[a-z,A-Z]+";
 

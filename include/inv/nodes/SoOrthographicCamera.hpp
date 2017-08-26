@@ -56,7 +56,7 @@
 #ifndef  _SO_ORTHOGRAPHIC_CAMERA_
 #define  _SO_ORTHOGRAPHIC_CAMERA_
 
-#include "inv/nodes/SoCamera.H"
+#include "inv/nodes/SoCamera.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

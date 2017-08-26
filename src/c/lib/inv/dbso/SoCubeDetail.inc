@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/details/SoCubeDetail.H"
+#include "inv/details/SoCubeDetail.hpp"
 
 SO_DETAIL_SOURCE(SoCubeDetail)
 

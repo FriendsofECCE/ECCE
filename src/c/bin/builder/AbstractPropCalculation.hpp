@@ -1,10 +1,10 @@
 #ifndef ABSTRACTPROPCALCULATION_H_
 #define ABSTRACTPROPCALCULATION_H_
 
-#include "dsm/IPropCalculation.H"
-#include "dsm/PropertyDoc.H"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/PropertyDoc.hpp"
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
 #include <string>
   using std::string;

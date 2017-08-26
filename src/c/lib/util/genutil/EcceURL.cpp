@@ -2,11 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "util/Ecce.H"
-#include "util/StringTokenizer.H"
+#include "util/Ecce.hpp"
+#include "util/StringTokenizer.hpp"
 
-#include "util/EcceURL.H"
-#include "util/EcceMap.H"
+#include "util/EcceURL.hpp"
+#include "util/EcceMap.hpp"
 
 using std::find;
 

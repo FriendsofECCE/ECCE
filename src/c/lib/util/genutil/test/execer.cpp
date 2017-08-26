@@ -8,7 +8,7 @@
 #include <iostream>
   using namespace std;
 
-#include "util/JMSPublisher.H"
+#include "util/JMSPublisher.hpp"
 
 int main(int argc, char** argv) {
 

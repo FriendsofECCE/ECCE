@@ -56,8 +56,8 @@
 #ifndef  _SO_POINT_SET_
 #define  _SO_POINT_SET_
 
-#include "inv/fields/SoSFInt32.H"
-#include "inv/nodes/SoNonIndexedShape.H"
+#include "inv/fields/SoSFInt32.hpp"
+#include "inv/nodes/SoNonIndexedShape.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

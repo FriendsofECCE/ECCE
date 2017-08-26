@@ -20,21 +20,21 @@ using std::string;
 using std::vector;
 using std::pair;
 
-#include "util/StringConverter.H"
-#include "util/Serializable.H"
-#include "util/Serializer.H"
-#include "util/InvalidException.H"
-#include "util/EcceRegexp.H"
-#include "util/EcceMap.H"
+#include "util/StringConverter.hpp"
+#include "util/Serializable.hpp"
+#include "util/Serializer.hpp"
+#include "util/InvalidException.hpp"
+#include "util/EcceRegexp.hpp"
+#include "util/EcceMap.hpp"
 
-#include "dsm/NWChemMDModel.H"
-#include "dsm/Resource.H"
-#include "dsm/MdTask.H"
-#include "dsm/ResourceType.H"
-#include "dsm/VDoc.H"
-#include "dsm/Session.H"
-#include "dsm/SessionXMLizer.H"
-#include "dsm/DirDyVTSTTask.H"
+#include "dsm/NWChemMDModel.hpp"
+#include "dsm/Resource.hpp"
+#include "dsm/MdTask.hpp"
+#include "dsm/ResourceType.hpp"
+#include "dsm/VDoc.hpp"
+#include "dsm/Session.hpp"
+#include "dsm/SessionXMLizer.hpp"
+#include "dsm/DirDyVTSTTask.hpp"
 
 
 /**

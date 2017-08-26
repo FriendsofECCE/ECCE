@@ -1,6 +1,6 @@
 #include <stdlib.h> // atoi
 
-#include "dsm/EcceDAVStatus.H"
+#include "dsm/EcceDAVStatus.hpp"
 
 /**
  * Determines if the http code is success or not.

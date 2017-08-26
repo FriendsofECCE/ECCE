@@ -58,9 +58,9 @@
 #ifndef  _SO_NURBS_PRIM_EVALS_
 #define  _SO_NURBS_PRIM_EVALS_
 
-#include "softcurveval.H"
-#include "softsurfeval.H"
-#include "SoPrimMaps.H"
+#include "softcurveval.hpp"
+#include "softsurfeval.hpp"
+#include "SoPrimMaps.hpp"
 
 class _SoNurbsPrimCurvEval : public _SoNurbsCurveEvaluator {
 public:

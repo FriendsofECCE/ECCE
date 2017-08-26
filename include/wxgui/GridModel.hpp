@@ -22,7 +22,7 @@
     using std::vector;
 
 
-#include "wxgui/GridElement.H"
+#include "wxgui/GridElement.hpp"
 
 
 

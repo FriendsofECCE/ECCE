@@ -57,11 +57,11 @@
 #ifndef __CHEM_CONNOLLYDOT_H__
 #define __CHEM_CONNOLLYDOT_H__
 
-#include "inv/fields/SoSFColor.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/nodes/SoPointSet.H"
+#include "inv/fields/SoSFColor.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/nodes/SoPointSet.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class ChemBaseDataElement;
 class ChemColorElement;

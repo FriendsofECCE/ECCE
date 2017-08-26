@@ -52,13 +52,13 @@
  */
 
 #include <GL/gl.h>
-#include "inv/bundles/SoMaterialBundle.H"
-#include "inv/elements/SoGLCacheContextElement.H"
-#include "inv/elements/SoGLLazyElement.H"
-#include "inv/elements/SoMaterialBindingElement.H"
-#include "inv/elements/SoShapeStyleElement.H"
-#include "inv/misc/SoState.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/bundles/SoMaterialBundle.hpp"
+#include "inv/elements/SoGLCacheContextElement.hpp"
+#include "inv/elements/SoGLLazyElement.hpp"
+#include "inv/elements/SoMaterialBindingElement.hpp"
+#include "inv/elements/SoShapeStyleElement.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

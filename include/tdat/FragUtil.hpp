@@ -25,10 +25,10 @@
 
 
 // application includes
-#include "tdat/TAtm.H"
-#include "tdat/TResChain.H"
-#include "tdat/IBondList.H"
-#include "util/Transformations.H"
+#include "tdat/TAtm.hpp"
+#include "tdat/TResChain.hpp"
+#include "tdat/IBondList.hpp"
+#include "util/Transformations.hpp"
 
 class Fragment;
 class TBond;

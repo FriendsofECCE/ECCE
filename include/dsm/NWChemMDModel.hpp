@@ -12,18 +12,18 @@
 using std::string;
 using std::vector;
 
-#include "util/IOException.H"
+#include "util/IOException.hpp"
 
-#include "tdat/ITaskModel.H"
-#include "tdat/InteractionModel.H"
-#include "tdat/ConstraintModel.H"
-#include "tdat/OptimizeModel.H"
-#include "tdat/DynamicsModel.H"
-#include "tdat/ThermodynamicsModel.H"
-#include "tdat/ControlModel.H"
-#include "tdat/FilesModel.H"
+#include "tdat/ITaskModel.hpp"
+#include "tdat/InteractionModel.hpp"
+#include "tdat/ConstraintModel.hpp"
+#include "tdat/OptimizeModel.hpp"
+#include "tdat/DynamicsModel.hpp"
+#include "tdat/ThermodynamicsModel.hpp"
+#include "tdat/ControlModel.hpp"
+#include "tdat/FilesModel.hpp"
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
 
 /**

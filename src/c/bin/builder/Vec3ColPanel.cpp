@@ -6,16 +6,16 @@
 #include <wx/link.h>
 #include <wx/sizer.h>
 
-#include "util/PreferenceLabels.H"
+#include "util/PreferenceLabels.hpp"
 
-#include "tdat/PropVector.H"
-#include "tdat/TProperty.H"
+#include "tdat/PropVector.hpp"
+#include "tdat/TProperty.hpp"
 
-#include "dsm/IPropCalculation.H"
+#include "dsm/IPropCalculation.hpp"
 
-#include "wxgui/ewxGrid.H"
+#include "wxgui/ewxGrid.hpp"
 
-#include "Vec3ColPanel.H"
+#include "Vec3ColPanel.hpp"
 
 
 //static const char *INIFILE = "wxbuilder.ini";

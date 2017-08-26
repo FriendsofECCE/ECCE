@@ -4,7 +4,7 @@
 #include <wx/combo.h>
 #include <wx/textctrl.h>
 
-#include "wxgui/ewxSlider.H"
+#include "wxgui/ewxSlider.hpp"
 
 class SliderCombo;
 

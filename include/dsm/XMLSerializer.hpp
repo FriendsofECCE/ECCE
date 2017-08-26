@@ -16,7 +16,7 @@ using namespace xercesc;
 
 class Serializable;
 
-#include "util/Serializer.H"
+#include "util/Serializer.hpp"
 
 /**
  * An abstract implementation of Serializer that adds some

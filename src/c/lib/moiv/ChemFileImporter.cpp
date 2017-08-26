@@ -26,7 +26,7 @@
  *
 \**************************************************************************/
 
-#include "inv/ChemKit/ChemFileImporter.H"
+#include "inv/ChemKit/ChemFileImporter.hpp"
 
 
 ChemFileImporter::ChemFileImporter()

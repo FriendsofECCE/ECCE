@@ -56,8 +56,8 @@
 #ifndef  _SO_COORDINATE4_
 #define  _SO_COORDINATE4_
 
-#include "inv/fields/SoMFVec4f.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoMFVec4f.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

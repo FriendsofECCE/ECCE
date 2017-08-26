@@ -8,7 +8,7 @@
 #define METAPOTENTIALMODELXMLIZER_HH
 
 #include <string>
-#include "dsm/XMLSerializer.H"
+#include "dsm/XMLSerializer.hpp"
 
 class TAtm;
 class MetaPotential;

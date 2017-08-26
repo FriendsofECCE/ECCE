@@ -11,7 +11,7 @@
 #define _WXPOVRAYOPTIONSGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "WxPovrayOptionsGUI.C"
+#pragma interface "WxPovrayOptionsGUI.cpp"
 #endif
 
 /*!
@@ -19,7 +19,7 @@
  */
 
 ////@begin includes
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 ////@end includes
 
 /*!

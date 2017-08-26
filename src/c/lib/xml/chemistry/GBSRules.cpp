@@ -18,14 +18,14 @@
 
 #include <string.h>
 
-#include "util/ErrMsg.H"
+#include "util/ErrMsg.hpp"
 
-#include "tdat/TTheory.H"
-#include "tdat/Fragment.H"
+#include "tdat/TTheory.hpp"
+#include "tdat/Fragment.hpp"
 
-#include "dsm/JCode.H"
-#include "dsm/TGBSConfig.H"
-#include "dsm/GBSRules.H"
+#include "dsm/JCode.hpp"
+#include "dsm/TGBSConfig.hpp"
+#include "dsm/GBSRules.hpp"
 
 /*******************************************************************
  Method : checkOrbitalCoverage

@@ -1,8 +1,8 @@
 #include <iostream>
   using namespace std;
 
-#include "wxviz/SGViewer.H"
-#include "wxviz/SetHomeCmd.H"
+#include "wxviz/SGViewer.hpp"
+#include "wxviz/SetHomeCmd.hpp"
 
 SetHomeCmd::SetHomeCmd(const string& name, Receiver *receiver)
        : Command(name, receiver)

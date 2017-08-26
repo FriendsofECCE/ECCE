@@ -7,8 +7,8 @@
 #include <string>
   using std::string;
 
-#include "util/EcceURL.H"
-#include "util/UrlDecoder.H"
+#include "util/EcceURL.hpp"
+#include "util/UrlDecoder.hpp"
 
 
 EcceURL UrlDecoder::decode(const EcceURL& url)

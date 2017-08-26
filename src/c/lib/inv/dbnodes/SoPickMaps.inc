@@ -55,13 +55,13 @@
  */
 
 #include <stdio.h>
-#include "SoAddPrefix.H"
-#include "inv/SoPickedPoint.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/details/SoDetail.H"
-#include "inv/nodes/SoCoordinate3.H"
-#include "inv/nodes/SoNormal.H"
-#include "SoPickMaps.H"
+#include "SoAddPrefix.hpp"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/details/SoDetail.hpp"
+#include "inv/nodes/SoCoordinate3.hpp"
+#include "inv/nodes/SoNormal.hpp"
+#include "SoPickMaps.hpp"
 
 // This stores the texture coordinate until the vertex comes through.
 static float tmpTexPt[2] = {0.0, 0.0};

@@ -27,24 +27,24 @@
 #include <xercesc/dom/DOMElement.hpp>
 using namespace xercesc;
 
-#include "util/TDateTime.H"
-#include "util/ETimer.H"
-#include "util/ErrMsg.H"
-#include "util/EcceURL.H"
+#include "util/TDateTime.hpp"
+#include "util/ETimer.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/EcceURL.hpp"
 
-#include "dsm/ActivityLog.H"
-#include "dsm/VDoc.H"
-#include "dsm/EDSI.H"
-#include "dsm/PropFactory.H"
-#include "dsm/PropertyDoc.H"
-#include "dsm/IPropCache.H"
-#include "dsm/IPropCalculation.H"
-#include "dsm/DavPropCache.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/PropertyInterpreter.H"
-#include "dsm/BasicDOMWriter.H"
+#include "dsm/ActivityLog.hpp"
+#include "dsm/VDoc.hpp"
+#include "dsm/EDSI.hpp"
+#include "dsm/PropFactory.hpp"
+#include "dsm/PropertyDoc.hpp"
+#include "dsm/IPropCache.hpp"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/DavPropCache.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/PropertyInterpreter.hpp"
+#include "dsm/BasicDOMWriter.hpp"
 
-#include "tdat/Fragment.H"
+#include "tdat/Fragment.hpp"
 
 
 /**

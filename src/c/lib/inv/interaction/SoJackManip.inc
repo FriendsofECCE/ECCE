@@ -54,12 +54,12 @@
 
 #include <stdio.h>
 #include <stdio.h>
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
 
-#include "inv/manips/SoJackManip.H"
-#include "inv/draggers/SoJackDragger.H"
-#include "inv/nodes/SoSurroundScale.H"
+#include "inv/manips/SoJackManip.hpp"
+#include "inv/draggers/SoJackDragger.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
 
 SO_NODE_SOURCE(SoJackManip);
 

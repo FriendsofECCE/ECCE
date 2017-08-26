@@ -9,11 +9,11 @@
   using std::map;
   using std::less;
 
-#include "dsm/ChemistryTask.H"
-#include "dsm/IPropCalculation.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ChemistryTask.hpp"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
 class PropValue;
 class PropString;

@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "PolyrateGUI.H"
+#pragma implementation "PolyrateGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,21 +23,21 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxListBox.H"
-#include "wxgui/ewxNotebook.H"
-#include "wxgui/ewxMenuBar.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxFrame.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxListBox.hpp"
+#include "wxgui/ewxNotebook.hpp"
+#include "wxgui/ewxMenuBar.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxFrame.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "PolyrateGUI.H"
+#include "PolyrateGUI.hpp"
 
 ////@begin XPM images
 

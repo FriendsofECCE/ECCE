@@ -6,7 +6,7 @@
 #ifndef CANCELEXCEPTION_H
 #define CANCELEXCEPTION_H
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 /**
  * CancelException indicates that the operation was canceled by a user.

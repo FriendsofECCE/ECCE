@@ -14,7 +14,7 @@
 #include <string>
 using std::string;
 
-#include "WxConfigureNwfsArchiveGUI.H"
+#include "WxConfigureNwfsArchiveGUI.hpp"
 
 /**
  * The implementation of WxConfigureNwfsArchiveGUI.

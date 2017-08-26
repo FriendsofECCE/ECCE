@@ -9,23 +9,23 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/JMSMessage.H"
+#include "util/JMSMessage.hpp"
 
-#include "dsm/NWChemMDModel.H"
-#include "dsm/MdTask.H"
+#include "dsm/NWChemMDModel.hpp"
+#include "dsm/MdTask.hpp"
 
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxNotebook.H"
-#include "wxgui/ConstraintPanel.H"
-#include "wxgui/ControlPanel.H"
-#include "wxgui/DynamicsPanel.H"
-#include "wxgui/FilesPanel.H"
-#include "wxgui/InteractionPanel.H"
-#include "wxgui/ThermodynamicsPanel.H"
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/WxJMSListener.H"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxNotebook.hpp"
+#include "wxgui/ConstraintPanel.hpp"
+#include "wxgui/ControlPanel.hpp"
+#include "wxgui/DynamicsPanel.hpp"
+#include "wxgui/FilesPanel.hpp"
+#include "wxgui/InteractionPanel.hpp"
+#include "wxgui/ThermodynamicsPanel.hpp"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/WxJMSListener.hpp"
 
-#include "MDDynamics.H"
+#include "MDDynamics.hpp"
 
 
 MDDynamics::MDDynamics( ) : MDEdBase(), WxJMSListener()

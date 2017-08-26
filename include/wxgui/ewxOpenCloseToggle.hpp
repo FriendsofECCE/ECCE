@@ -8,7 +8,7 @@
 
 #include <wx/bmpbuttn.h>
 
-#include "wxgui/ewxGenericValidator.H" // for ewxDefaultValidator
+#include "wxgui/ewxGenericValidator.hpp" // for ewxDefaultValidator
 
 /**
  * A class that acts as a toggle to hide and show panels.

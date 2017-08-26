@@ -58,16 +58,16 @@
 
 #include <math.h>
 
-#include "inv/SoPrimitiveVertex.H"
-#include "inv/actions/SoAction.H"
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/elements/SoTextureCoordinateElement.H"
+#include "inv/SoPrimitiveVertex.hpp"
+#include "inv/actions/SoAction.hpp"
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/elements/SoTextureCoordinateElement.hpp"
 
 // --> lod
-#include "inv/ChemKit/ChemLOD.H"
+#include "inv/ChemKit/ChemLOD.hpp"
 // <-- lod
-#include "inv/ChemKit/ChemDisplay.H"
-#include "inv/ChemKit/ChemUnitCylinder.H"
+#include "inv/ChemKit/ChemDisplay.hpp"
+#include "inv/ChemKit/ChemUnitCylinder.hpp"
 
 // Returns S or T texture coord for point on top or bottom of
 // cylinder, given x or z coord

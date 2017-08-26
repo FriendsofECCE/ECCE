@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "NoAccessContextPanelGUI.H"
+#pragma implementation "NoAccessContextPanelGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,11 +23,11 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxStaticText.hpp"
 ////@end includes
 
-#include "NoAccessContextPanelGUI.H"
+#include "NoAccessContextPanelGUI.hpp"
 
 ////@begin XPM images
 

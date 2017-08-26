@@ -6,7 +6,7 @@
 #ifndef _WXPOVRAYOPTIONSDIALOG_H_
 #define _WXPOVRAYOPTIONSDIALOG_H_
 
-#include "wxgui/ewxDialog.H"
+#include "wxgui/ewxDialog.hpp"
 
 class WxPovrayOptions;
 

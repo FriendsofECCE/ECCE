@@ -1,10 +1,10 @@
-#include "util/Event.H"
-#include "util/EventDispatcher.H"
+#include "util/Event.hpp"
+#include "util/EventDispatcher.hpp"
 
-#include "wxgui/ewxBitmap.H"
+#include "wxgui/ewxBitmap.hpp"
 using namespace ecce;
 
-#include "ShapeDropDown.H"
+#include "ShapeDropDown.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS( ShapeDropDown, wxToolBar )

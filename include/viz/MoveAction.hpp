@@ -1,7 +1,7 @@
 #ifndef MOVEACTION_HH
 #define MOVEACTION_HH
 
-#include "inv/actions/SoSubAction.H"
+#include "inv/actions/SoSubAction.hpp"
 
 class MoveAction : public SoAction {
 

@@ -56,7 +56,7 @@
 #ifndef  _SO_V1_NODE_KIT_
 #define  _SO_V1_NODE_KIT_
 
-#include "inv/SbBasic.H"
+#include "inv/SbBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

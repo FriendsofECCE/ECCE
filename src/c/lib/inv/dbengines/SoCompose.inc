@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/engines/SoCompose.H"
-#include "SoEngineUtil.H"
+#include "inv/engines/SoCompose.hpp"
+#include "SoEngineUtil.hpp"
 
 //////////////////
 //

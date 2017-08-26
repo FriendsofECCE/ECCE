@@ -3,13 +3,13 @@
 #include <strstream>
   using namespace std;
 
-#include "util/CmdLineAuthListener.H"
-#include "util/ProgressEvent.H"
+#include "util/CmdLineAuthListener.hpp"
+#include "util/ProgressEvent.hpp"
 
-#include "util/EcceURL.H"
-#include "dsm/EDSIFactory.H"
+#include "util/EcceURL.hpp"
+#include "dsm/EDSIFactory.hpp"
 
-#include "dsm/EcceDAVClient.H"
+#include "dsm/EcceDAVClient.hpp"
 
 void usage() {
   cout << "usage putdataset url value-filename" << endl;

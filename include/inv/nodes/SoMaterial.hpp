@@ -56,9 +56,9 @@
 #ifndef  _SO_MATERIAL_
 #define  _SO_MATERIAL_
 
-#include "inv/fields/SoMFColor.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoMFColor.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 class SoColorPacker;
 
 //////////////////////////////////////////////////////////////////////////////

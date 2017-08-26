@@ -35,7 +35,7 @@
 #ifndef __CHEM_SCHEMATICCHAIN_H__
 #define __CHEM_SCHEMATICCHAIN_H__
 
-#include "inv/ChemKit/SbVecI.H" // SbVec2i
+#include "inv/ChemKit/SbVecI.hpp" // SbVec2i
 
 class ChemDisplay;
 

@@ -31,12 +31,12 @@
 #include <signal.h> // SIGTERM
 #include <netdb.h> // gethostbyname
 
-#include "util/StringTokenizer.H"
-#include "util/Ecce.H"
+#include "util/StringTokenizer.hpp"
+#include "util/Ecce.hpp"
 
-#include "tdat/AuthCache.H"
+#include "tdat/AuthCache.hpp"
 
-#include "comm/RCommand.H"
+#include "comm/RCommand.hpp"
 
 #include "comm/expect.h"
 

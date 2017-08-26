@@ -11,8 +11,8 @@
   using std::vector;
 
 
-#include "dsm/EDSI.H"
-#include "util/EcceURL.H"
+#include "dsm/EDSI.hpp"
+#include "util/EcceURL.hpp"
 
 class FileEDSI : public EDSI 
 {

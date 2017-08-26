@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/elements/SoCoordinateElement.H"
-#include "inv/elements/SoTextureCoordinateBindingElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodes/SoIndexedShape.H"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/elements/SoCoordinateElement.hpp"
+#include "inv/elements/SoTextureCoordinateBindingElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodes/SoIndexedShape.hpp"
 
 SO_NODE_ABSTRACT_SOURCE(SoIndexedShape);
 

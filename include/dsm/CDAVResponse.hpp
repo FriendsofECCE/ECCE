@@ -11,7 +11,7 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPResponse.H"
+#include "dsm/CHTTPResponse.hpp"
 
 // class: CDAVResponse *****************************************************
 

@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "SoDebug.H"
-#include "inv/SbDict.H"
-#include "inv/actions/SoWriteAction.H"
-#include "inv/nodes/SoNode.H"
-#include "inv/fields/SoField.H"
+#include "SoDebug.hpp"
+#include "inv/SbDict.hpp"
+#include "inv/actions/SoWriteAction.hpp"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/fields/SoField.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>

@@ -56,9 +56,9 @@
 #ifndef  _SO_INDEXED_TRIANGLE_SET_
 #define  _SO_INDEXED_TRIANGLE_SET_
 
-#include "inv/nodes/SoIndexedShape.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/nodes/SoVertexProperty.H"
+#include "inv/nodes/SoIndexedShape.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/nodes/SoVertexProperty.hpp"
 class SoCoordinateElement;
 
 

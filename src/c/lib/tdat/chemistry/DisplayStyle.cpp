@@ -1,4 +1,4 @@
-#include "tdat/DisplayStyle.H"
+#include "tdat/DisplayStyle.hpp"
 
 // TODO toss this constructor and require name
 DisplayStyle::DisplayStyle(DisplayStyle::Style style )

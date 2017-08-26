@@ -14,7 +14,7 @@
 
 using std::string;
 
-#include "util/InvalidException.H"
+#include "util/InvalidException.hpp"
 
 /**
  * This is the base class for creating unit conversion routines. Each unit

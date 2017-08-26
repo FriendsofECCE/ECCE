@@ -45,8 +45,8 @@
 
 #include <inttypes.h>   /* defines long and brethren */
 
-#include "basicsurfeval.H"
-#include "softsurfmap.H"
+#include "basicsurfeval.hpp"
+#include "softsurfmap.hpp"
 
 class _SoNurbsSurfaceEvaluator : public _SoNurbsBasicSurfaceEvaluator {
 public:

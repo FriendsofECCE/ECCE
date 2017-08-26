@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/nodekits/SoWrapperKit.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoTransform.H"
+#include "inv/SoDB.hpp"
+#include "inv/nodekits/SoWrapperKit.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoTransform.hpp"
 
 SO_KIT_SOURCE(SoWrapperKit);
 

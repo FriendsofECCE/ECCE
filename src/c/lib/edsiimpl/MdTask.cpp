@@ -9,19 +9,19 @@
   using std::ostrstream;
   using std::ends;
 
-#include "util/DavException.H"
-#include "util/EcceURL.H"
-#include "util/InvalidException.H"
-#include "util/ResourceUtils.H"
-#include "util/StringConverter.H"
+#include "util/DavException.hpp"
+#include "util/EcceURL.hpp"
+#include "util/InvalidException.hpp"
+#include "util/ResourceUtils.hpp"
+#include "util/StringConverter.hpp"
 
-#include "dsm/Job.H"
-#include "dsm/NWChemMDModel.H"
-#include "dsm/JCode.H"
-#include "dsm/MdTask.H"
-#include "dsm/ResourceType.H"
-#include "dsm/Session.H"
-#include "dsm/VDoc.H"
+#include "dsm/Job.hpp"
+#include "dsm/NWChemMDModel.hpp"
+#include "dsm/JCode.hpp"
+#include "dsm/MdTask.hpp"
+#include "dsm/ResourceType.hpp"
+#include "dsm/Session.hpp"
+#include "dsm/VDoc.hpp"
 
 
 

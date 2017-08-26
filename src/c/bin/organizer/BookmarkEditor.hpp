@@ -10,9 +10,9 @@
 #ifndef _BOOKMARKEDITOR_H_
 #define _BOOKMARKEDITOR_H_
 
-#include "dsm/BookmarkList.H"
+#include "dsm/BookmarkList.hpp"
 
-#include "BookmarkEditorGUI.H"
+#include "BookmarkEditorGUI.hpp"
 
 
 /*!

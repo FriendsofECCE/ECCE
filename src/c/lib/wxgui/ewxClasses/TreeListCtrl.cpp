@@ -38,7 +38,7 @@
 #include <wx/dcscreen.h>
 #include <wx/scrolwin.h>
 
-#include "wxgui/TreeListCtrl.H"
+#include "wxgui/TreeListCtrl.hpp"
 
 #ifdef __WXMAC__
     #include "wx/mac/private.h"

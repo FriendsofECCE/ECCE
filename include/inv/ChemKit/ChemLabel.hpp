@@ -57,28 +57,28 @@
 #ifndef  __CHEM_LABEL_H__
 #define  __CHEM_LABEL_H__
 
-#include "inv/SbViewportRegion.H"
+#include "inv/SbViewportRegion.hpp"
 
-#include "inv/fields/SoMFColor.H"
-#include "inv/fields/SoMFEnum.H"
-#include "inv/fields/SoMFInt32.H"
-#include "inv/fields/SoMFString.H"
-#include "inv/fields/SoMFVec3f.H"
+#include "inv/fields/SoMFColor.hpp"
+#include "inv/fields/SoMFEnum.hpp"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/fields/SoMFString.hpp"
+#include "inv/fields/SoMFVec3f.hpp"
 
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFColor.H"
-#include "inv/fields/SoSFName.H"
-#include "inv/fields/SoSFFloat.H"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFColor.hpp"
+#include "inv/fields/SoSFName.hpp"
+#include "inv/fields/SoSFFloat.hpp"
 
-#include "inv/nodes/SoNonIndexedShape.H"
+#include "inv/nodes/SoNonIndexedShape.hpp"
 
 // Manuel Pastor (MPM)  2002/03/08
-#include "inv/SoLists.H"
+#include "inv/SoLists.hpp"
 // Jamie Doornbos	2001/07/15
-//#include "inv/lists/SoPickedPointList.H"
+//#include "inv/lists/SoPickedPointList.hpp"
 
-#include "inv/ChemKit/MFVec2i.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/MFVec2i.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class ChemBitmapFontCache;
 class ChemLabelBBox;

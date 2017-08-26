@@ -10,13 +10,13 @@
 
 #include <string.h>
 
-#include "tdat/Residue.H"
-#include "tdat/Fragment.H"
-#include "tdat/TResTab.H"
+#include "tdat/Residue.hpp"
+#include "tdat/Fragment.hpp"
+#include "tdat/TResTab.hpp"
 
-#include "util/STLUtil.H"
-#include "util/StringConverter.H"
-#include "util/StringTokenizer.H"
+#include "util/STLUtil.hpp"
+#include "util/StringConverter.hpp"
+#include "util/StringTokenizer.hpp"
 
 static const char* vstatusMap[]   = {"Missing", "Complete", "Incomplete",
                                      "Unknown", "Generatable"};

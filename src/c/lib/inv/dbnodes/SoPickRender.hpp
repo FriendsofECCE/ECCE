@@ -58,9 +58,9 @@
 
 #include <tr1/math.h>
 #include <stdlib.h>
-#include "inv/SbLinear.H"
-#include "nurbstess.H"
-#include "SoPickEvals.H"
+#include "inv/SbLinear.hpp"
+#include "nurbstess.hpp"
+#include "SoPickEvals.hpp"
 
 class SoRayPickAction;
 

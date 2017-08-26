@@ -4,7 +4,7 @@
 #include <map>
   using std::map;
 
-#include "GeomTracePropertyPanel.H"
+#include "GeomTracePropertyPanel.hpp"
 
 class ReactionTracePropertyPanel : public GeomTracePropertyPanel
 {

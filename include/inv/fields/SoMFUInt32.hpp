@@ -56,7 +56,7 @@
 #ifndef  _SO_MF_UINT32_
 #define  _SO_MF_UINT32_
 
-#include "inv/fields/SoSubField.H"
+#include "inv/fields/SoSubField.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -56,8 +56,8 @@
 #ifndef  _SO_MATRIX_TRANSFORM_
 #define  _SO_MATRIX_TRANSFORM_
 
-#include "inv/fields/SoSFMatrix.H"
-#include "inv/nodes/SoTransformation.H"
+#include "inv/fields/SoSFMatrix.hpp"
+#include "inv/nodes/SoTransformation.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

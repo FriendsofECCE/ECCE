@@ -56,11 +56,11 @@
 #ifndef  _SO_GATE_
 #define  _SO_GATE_
 
-#include "inv/SoDB.H"
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFName.H"
-#include "inv/fields/SoSFTrigger.H"
+#include "inv/SoDB.hpp"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFName.hpp"
+#include "inv/fields/SoSFTrigger.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

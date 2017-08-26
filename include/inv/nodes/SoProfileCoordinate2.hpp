@@ -56,8 +56,8 @@
 #ifndef  _SO_PROFILE_COORDINATE_2_
 #define  _SO_PROFILE_COORDINATE_2_
 
-#include "inv/fields/SoMFVec2f.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoMFVec2f.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

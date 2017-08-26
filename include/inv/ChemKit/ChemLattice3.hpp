@@ -57,14 +57,14 @@
 #ifndef  __CHEM_LATTICE3_H__
 #define  __CHEM_LATTICE3_H__
 
-#include "inv/fields/SoSFName.H"
-#include "inv/fields/SoSFShort.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoSFName.hpp"
+#include "inv/fields/SoSFShort.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
-#include "inv/ChemKit/SFVec3i.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/SFVec3i.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 enum LatticeDataType {
 // --> sas

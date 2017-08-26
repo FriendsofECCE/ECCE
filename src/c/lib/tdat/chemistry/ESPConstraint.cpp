@@ -15,8 +15,8 @@
   using std::endl;
 
 //Application includes
-#include "tdat/TAtm.H"
-#include "tdat/ESPConstraint.H"
+#include "tdat/TAtm.hpp"
+#include "tdat/ESPConstraint.hpp"
 
 vector<string> *ESPConstraint::p_typeLabels = new vector<string>;
 

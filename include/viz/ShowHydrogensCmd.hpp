@@ -6,7 +6,7 @@
 #ifndef  SHOWHYDROGENSCMD_H
 #define  SHOWHYDROGENSCMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 
 class ShowHydrogensCmd : public Command

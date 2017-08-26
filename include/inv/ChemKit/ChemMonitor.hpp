@@ -57,24 +57,24 @@
 #ifndef  __CHEM_MONITOR_H__
 #define  __CHEM_MONITOR_H__
 
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFColor.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFName.H"
-#include "inv/fields/SoSFString.H"
-#include "inv/fields/SoSFUShort.H"
-#include "inv/fields/SoMFBool.H"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFColor.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFName.hpp"
+#include "inv/fields/SoSFString.hpp"
+#include "inv/fields/SoSFUShort.hpp"
+#include "inv/fields/SoMFBool.hpp"
 
-#include "inv/misc/SoChildList.H"
+#include "inv/misc/SoChildList.hpp"
 
-#include "inv/nodes/SoNonIndexedShape.H"
+#include "inv/nodes/SoNonIndexedShape.hpp"
 
-#include "inv/ChemKit/MFVec2i.H"
-#include "inv/ChemKit/MFVec2AtomSpec.H"
-#include "inv/ChemKit/MFVec3AtomSpec.H"
-#include "inv/ChemKit/MFVec4AtomSpec.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/MFVec2i.hpp"
+#include "inv/ChemKit/MFVec2AtomSpec.hpp"
+#include "inv/ChemKit/MFVec3AtomSpec.hpp"
+#include "inv/ChemKit/MFVec4AtomSpec.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class ChemLabel;
 class ChemMonitorBBox;

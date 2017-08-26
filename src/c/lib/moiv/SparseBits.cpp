@@ -1,7 +1,7 @@
 #include <iostream>
 using namespace std;
 
-#include "inv/ChemKit/SparseBits.H"
+#include "inv/ChemKit/SparseBits.hpp"
 
 
 /**

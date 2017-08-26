@@ -2,12 +2,12 @@
 // include files ***********************************************************
 #  include <iostream.h>
 #  include <fstream.h>
-#include "util/CmdLineAuthListener.H"
-#include "util/ProgressEvent.H"
-#include "util/EcceURL.H"
-#include "dsm/EDSIFactory.H"
+#include "util/CmdLineAuthListener.hpp"
+#include "util/ProgressEvent.hpp"
+#include "util/EcceURL.hpp"
+#include "dsm/EDSIFactory.hpp"
 
-#include "dsm/DavEDSI.H"
+#include "dsm/DavEDSI.hpp"
 
 void usage() {
   cout << "usage getdataset <url> <file> " << endl;

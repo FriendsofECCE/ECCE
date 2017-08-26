@@ -16,10 +16,10 @@ using std::vector;
 using std::pair;
 
 
-#include "util/Serializable.H"
-#include "util/InvalidException.H"
-#include "dsm/Resource.H"
-#include "dsm/EDSIFactory.H"
+#include "util/Serializable.hpp"
+#include "util/InvalidException.hpp"
+#include "dsm/Resource.hpp"
+#include "dsm/EDSIFactory.hpp"
 
 
 /** 

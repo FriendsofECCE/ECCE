@@ -5,7 +5,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS(ewxPanel, wxPanel)

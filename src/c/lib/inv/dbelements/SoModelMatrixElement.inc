@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoModelMatrixElement.H"
+#include "inv/elements/SoModelMatrixElement.hpp"
 
 #ifdef DEBUG
 #include <SoDebug.h>
-#include "inv/errors/SoDebugError.H"
+#include "inv/errors/SoDebugError.hpp"
 #endif
 
 SO_ELEMENT_SOURCE(SoModelMatrixElement);

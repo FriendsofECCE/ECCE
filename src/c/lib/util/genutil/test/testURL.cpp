@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
 int main(int argc, char** argv)
 {

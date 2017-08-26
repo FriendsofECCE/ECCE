@@ -1,10 +1,10 @@
 #  include <iostream.h>
 #  include <fstream.h>
-#include "util/ETimer.H"
-#include "util/EcceURL.H"
-#include "dsm/DavEDSI.H"
-#include "dsm/EDSIFactory.H"
-#include "util/CmdLineAuthListener.H"
+#include "util/ETimer.hpp"
+#include "util/EcceURL.hpp"
+#include "dsm/DavEDSI.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "util/CmdLineAuthListener.hpp"
 
 // Global data
 

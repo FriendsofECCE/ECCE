@@ -11,7 +11,7 @@
 #ifndef LENGTHCONVERTER_HH
 #define LENGTHCONVERTER_HH
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 class LengthConverter: public BaseUnitConverter
 {

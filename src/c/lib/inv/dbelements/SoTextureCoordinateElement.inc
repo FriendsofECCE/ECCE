@@ -52,9 +52,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoTextureCoordinateElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/elements/SoShapeStyleElement.H"
+#include "inv/elements/SoTextureCoordinateElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/elements/SoShapeStyleElement.hpp"
 
 SO_ELEMENT_SOURCE(SoTextureCoordinateElement);
 

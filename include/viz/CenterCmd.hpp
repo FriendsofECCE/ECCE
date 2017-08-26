@@ -2,7 +2,7 @@
 #define CENTERCMD_HH
 
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 #include <vector>
   using std::vector;

@@ -2,7 +2,7 @@
 #include <strstream>
   using namespace std;
 
-#include "util/Preferences.H"
+#include "util/Preferences.hpp"
 
 int main(int argc, char** argv)
 {

@@ -54,19 +54,19 @@
  */
 
 #include <GL/gl.h>
-#include "inv/SbBox.H"
-#include "inv/SoPickedPoint.H"
-#include "inv/SoPrimitiveVertex.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/bundles/SoMaterialBundle.H"
-#include "inv/elements/SoComplexityElement.H"
-#include "inv/elements/SoComplexityTypeElement.H"
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/elements/SoGLTextureEnabledElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/misc/SoState.H"
-#include "inv/nodes/SoSphere.H"
+#include "inv/SbBox.hpp"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/SoPrimitiveVertex.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/bundles/SoMaterialBundle.hpp"
+#include "inv/elements/SoComplexityElement.hpp"
+#include "inv/elements/SoComplexityTypeElement.hpp"
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/elements/SoGLTextureEnabledElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/nodes/SoSphere.hpp"
 
 #ifdef _CRAY
 #define atan2f	atan2

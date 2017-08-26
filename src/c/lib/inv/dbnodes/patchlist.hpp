@@ -37,14 +37,14 @@
 #ifndef __glupatchlist_h_
 #define __glupatchlist_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * patchlist.h - $Revision: 22116 $
  */
 
-#include "types.H"
-#include "defines.H"
-#include "patch.H"
+#include "types.hpp"
+#include "defines.hpp"
+#include "patch.hpp"
 
 class Quilt;
 

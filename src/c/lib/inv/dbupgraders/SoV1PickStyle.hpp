@@ -56,8 +56,8 @@
 #ifndef  _SO_V1PICKSTYLE_
 #define  _SO_V1PICKSTYLE_
 
-#include "inv/upgraders/SoUpgrader.H"
-#include "inv/fields/SoSFEnum.H"
+#include "inv/upgraders/SoUpgrader.hpp"
+#include "inv/fields/SoSFEnum.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

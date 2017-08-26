@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/details/SoFaceDetail.H"
+#include "inv/details/SoFaceDetail.hpp"
 
 SO_DETAIL_SOURCE(SoFaceDetail)
 

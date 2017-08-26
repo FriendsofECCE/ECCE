@@ -12,7 +12,7 @@
   using std::string;
 
 
-#include "tdat/UFFDesc.H"
+#include "tdat/UFFDesc.hpp"
 
 UFFDesc::UFFDesc(void)
 {

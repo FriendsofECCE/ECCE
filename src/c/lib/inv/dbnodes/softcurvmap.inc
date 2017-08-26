@@ -40,11 +40,11 @@
  * $Revision: 22116 $
  */
 
-#include "mystdio.H"
-#include "myassert.H"
-#include "mystring.H"
-#include "defines.H"
-#include "softcurvmap.H"
+#include "mystdio.hpp"
+#include "myassert.hpp"
+#include "mystring.hpp"
+#include "defines.hpp"
+#include "softcurvmap.hpp"
 
 #define SHALLOWCOPY
 

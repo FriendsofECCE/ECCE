@@ -51,17 +51,17 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoBBoxModelMatrixElement.H"
-#include "inv/elements/SoGLModelMatrixElement.H"
-#include "inv/elements/SoLocalBBoxMatrixElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodes/SoTransform.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoBBoxModelMatrixElement.hpp"
+#include "inv/elements/SoGLModelMatrixElement.hpp"
+#include "inv/elements/SoLocalBBoxMatrixElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodes/SoTransform.hpp"
 
 SO_NODE_SOURCE(SoTransform);
 

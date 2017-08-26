@@ -12,7 +12,7 @@
 #include <algorithm>
   using std::find;
 
-#include "dsm/ObserverSubject.H"
+#include "dsm/ObserverSubject.hpp"
 
 Observer::Observer()  
 {

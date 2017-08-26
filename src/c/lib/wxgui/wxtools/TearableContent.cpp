@@ -3,9 +3,9 @@
 #include <wx/sizer.h>
 #include <wx/toolbar.h>
 
-#include "wxgui/ewxImage.H"
-#include "wxgui/PerTabPanel.H"
-#include "wxgui/TearableContent.H"
+#include "wxgui/ewxImage.hpp"
+#include "wxgui/PerTabPanel.hpp"
+#include "wxgui/TearableContent.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS(TearButton, ewxPanel)

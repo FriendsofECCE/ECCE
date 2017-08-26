@@ -6,7 +6,7 @@
 #ifndef  TWODMOVECMD_H
 #define  TWODMOVECMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

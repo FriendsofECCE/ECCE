@@ -1,9 +1,9 @@
 #ifndef TENSORTABLE__H
 #define TENSORTABLE__H
 
-#include "wxgui/ewxDialog.H"
+#include "wxgui/ewxDialog.hpp"
 
-#include "VizPropertyPanel.H"
+#include "VizPropertyPanel.hpp"
 
 class WxColorSchemeButton;
 class ewxStaticText;

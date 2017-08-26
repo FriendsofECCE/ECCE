@@ -69,7 +69,7 @@
 #ifndef  __CHEM_HASHER_H__
 #define  __CHEM_HASHER_H__
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
 class SbDict;
 class SoMFVec2f;

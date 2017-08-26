@@ -1,12 +1,12 @@
 #include <iostream.h>
 #include <unistd.h>
 
-#include "util/EcceException.H"
-#include "util/CancelException.H"
-#include "util/ParseException.H"
-#include "util/SystemCommandException.H"
-#include "util/NullPointerException.H"
-#include "util/IndexOutOfRangeException.H"
+#include "util/EcceException.hpp"
+#include "util/CancelException.hpp"
+#include "util/ParseException.hpp"
+#include "util/SystemCommandException.hpp"
+#include "util/NullPointerException.hpp"
+#include "util/IndexOutOfRangeException.hpp"
 
 int main(int argc, char** argv)
 {

@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <locale.h>
 
-#include "util/TDateTime.H"
+#include "util/TDateTime.hpp"
 
 // Test some basic things we need out of date/time
 //   . parse Z time used in Dav Creation time.

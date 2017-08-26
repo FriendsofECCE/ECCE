@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/misc/SoChildList.H"
-#include "inv/actions/SoAction.H"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/actions/SoAction.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

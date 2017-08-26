@@ -23,7 +23,7 @@
 #ifndef PROPSTRING_HH
 #define PROPSTRING_HH
 
-#include "tdat/TProperty.H"
+#include "tdat/TProperty.hpp"
 
 class PropString : public TProperty
 {

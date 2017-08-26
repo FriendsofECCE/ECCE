@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/details/SoTextDetail.H"
+#include "inv/details/SoTextDetail.hpp"
 
 SO_DETAIL_SOURCE(SoTextDetail)
 

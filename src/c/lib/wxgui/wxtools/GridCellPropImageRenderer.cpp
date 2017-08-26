@@ -16,20 +16,20 @@
   using std::endl;
 
 
-#include "util/StringConverter.H"
-#include "util/ResourceUtils.H"
+#include "util/StringConverter.hpp"
+#include "util/ResourceUtils.hpp"
 
-#include "dsm/ResourceProperty.H"
-#include "dsm/GridProperty.H"
+#include "dsm/ResourceProperty.hpp"
+#include "dsm/GridProperty.hpp"
 
-#include "wxgui/ewxColor.H"
-#include "wxgui/GridModel.H"
-#include "wxgui/GridPropElement.H"
-#include "wxgui/WxResourceImageList.H"
-#include "wxgui/WxState.H"
-#include "wxgui/WxStateImageList.H"
+#include "wxgui/ewxColor.hpp"
+#include "wxgui/GridModel.hpp"
+#include "wxgui/GridPropElement.hpp"
+#include "wxgui/WxResourceImageList.hpp"
+#include "wxgui/WxState.hpp"
+#include "wxgui/WxStateImageList.hpp"
 
-#include "wxgui/GridCellPropImageRenderer.H"
+#include "wxgui/GridCellPropImageRenderer.hpp"
 
 
 class wxGridWindow;

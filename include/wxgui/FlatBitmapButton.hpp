@@ -3,7 +3,7 @@
 
 #include "wx/sizer.h"
 
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 
 class wxStaticBitmap;
 

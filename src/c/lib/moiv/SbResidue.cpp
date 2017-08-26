@@ -34,12 +34,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "inv/SoInput.H"
-#include "inv/SoOutput.H"
-#include "inv/errors/SoReadError.H"
+#include "inv/SoInput.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/errors/SoReadError.hpp"
 
-#include "inv/ChemKit/SbResidue.H"
-#include "inv/ChemKit/ChemData.H"
+#include "inv/ChemKit/SbResidue.hpp"
+#include "inv/ChemKit/ChemData.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

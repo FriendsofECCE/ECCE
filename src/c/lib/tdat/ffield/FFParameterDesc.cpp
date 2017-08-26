@@ -10,9 +10,9 @@
 #include <float.h>
 #include <limits.h>
 
-#include "util/ErrMsg.H"
+#include "util/ErrMsg.hpp"
 
-#include "tdat/FFParameterDesc.H"
+#include "tdat/FFParameterDesc.hpp"
 
 //-------------------Constructor------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////

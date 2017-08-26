@@ -56,8 +56,8 @@
 #ifndef  _SO_BASE_COLOR_
 #define  _SO_BASE_COLOR_
 
-#include "inv/fields/SoMFColor.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoMFColor.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 class SoColorPacker;
 //////////////////////////////////////////////////////////////////////////////
 //

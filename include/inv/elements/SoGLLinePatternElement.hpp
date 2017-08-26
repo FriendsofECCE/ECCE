@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_LINE_PATTERN_ELEMENT
 #define  _SO_GL_LINE_PATTERN_ELEMENT
 
-#include "inv/elements/SoLinePatternElement.H"
+#include "inv/elements/SoLinePatternElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

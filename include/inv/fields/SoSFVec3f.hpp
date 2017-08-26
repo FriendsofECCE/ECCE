@@ -56,8 +56,8 @@
 #ifndef  _SO_SF_VEC3F_
 #define  _SO_SF_VEC3F_
 
-#include "inv/fields/SoSubField.H"
-#include "inv/SbLinear.H"
+#include "inv/fields/SoSubField.hpp"
+#include "inv/SbLinear.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

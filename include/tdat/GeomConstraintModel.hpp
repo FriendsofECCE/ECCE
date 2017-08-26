@@ -6,10 +6,10 @@
 #ifndef GEOMCONSTRAINTMODEL_HH
 #define GEOMCONSTRAINTMODEL_HH
 
-#include "util/Serializable.H"
-#include "util/InvalidException.H"
+#include "util/Serializable.hpp"
+#include "util/InvalidException.hpp"
 
-#include "tdat/GeomConstraint.H"
+#include "tdat/GeomConstraint.hpp"
 
 #include <vector>
 

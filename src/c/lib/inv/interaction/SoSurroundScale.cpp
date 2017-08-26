@@ -51,20 +51,20 @@
  _______________________________________________________________________
  */
 
-#include "inv/SbViewportRegion.H"
-#include "inv/SoDB.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/elements/SoCacheElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/elements/SoViewportRegionElement.H"
-#include "inv/misc/SoChildList.H"
-#include "inv/nodes/SoSurroundScale.H"
+#include "inv/SbViewportRegion.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
 
 SO_NODE_SOURCE(SoSurroundScale);
 

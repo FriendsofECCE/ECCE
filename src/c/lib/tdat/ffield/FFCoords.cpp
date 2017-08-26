@@ -32,8 +32,8 @@
 #include <iomanip>
   using std::ios;
 
-#include "tdat/FFCoords.H"
-#include "util/ErrMsg.H"
+#include "tdat/FFCoords.hpp"
+#include "util/ErrMsg.hpp"
 
 // #ifndef DEBUG
 // #define DEBUG

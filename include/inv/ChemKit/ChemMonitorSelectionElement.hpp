@@ -57,10 +57,10 @@
 #ifndef __CHEM_MONITOR_SELECTION_ELEMENT_H__
 #define __CHEM_MONITOR_SELECTION_ELEMENT_H__
 
-#include "inv/elements/SoSubElement.H"
+#include "inv/elements/SoSubElement.hpp"
 
-#include "inv/ChemKit/ChemMonitorPathList.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemMonitorPathList.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

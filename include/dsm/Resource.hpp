@@ -15,14 +15,14 @@
   using std::istream;
 
 
-#include "util/EcceURL.H"
-#include "util/RetryException.H"
-#include "util/CancelException.H"
-#include "util/InvalidException.H"
-#include "util/DavException.H"
+#include "util/EcceURL.hpp"
+#include "util/RetryException.hpp"
+#include "util/CancelException.hpp"
+#include "util/InvalidException.hpp"
+#include "util/DavException.hpp"
 
-#include "dsm/PropertyView.H"
-#include "dsm/ResourceProperty.H"
+#include "dsm/PropertyView.hpp"
+#include "dsm/ResourceProperty.hpp"
 
 class EcceURL;
 class SFile;

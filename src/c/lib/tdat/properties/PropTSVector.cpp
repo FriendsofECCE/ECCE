@@ -9,7 +9,7 @@
 
 #include <stdlib.h> 
 
-#include "tdat/PropTSVector.H"
+#include "tdat/PropTSVector.hpp"
 
 
 // ---------- Constructors ------------

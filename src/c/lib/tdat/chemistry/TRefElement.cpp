@@ -15,9 +15,9 @@
 // general includes
 
 // application includes
-#include "tdat/TRefElement.H"
-#include "util/Color.H"
-#include "util/ErrMsg.H"
+#include "tdat/TRefElement.hpp"
+#include "util/Color.hpp"
+#include "util/ErrMsg.hpp"
 
 
 

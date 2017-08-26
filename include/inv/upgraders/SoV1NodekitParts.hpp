@@ -64,7 +64,7 @@
 #ifndef  _SO_V1_NODEKIT_PARTS
 #define  _SO_V1_NODEKIT_PARTS
 
-#include "inv/upgraders/SoV1NodekitCatalog.H"
+#include "inv/upgraders/SoV1NodekitCatalog.hpp"
 
 class SoGroup;
 class SoV1BaseKit;

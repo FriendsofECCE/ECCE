@@ -9,10 +9,10 @@
 #include <fstream>
   using std::ifstream;
 
-#include "util/NotImplementedException.H"
-#include "util/StringTokenizer.H"
+#include "util/NotImplementedException.hpp"
+#include "util/StringTokenizer.hpp"
 
-#include "tdat/PolyrateModel.H"
+#include "tdat/PolyrateModel.hpp"
 
 // Default values
 const bool PolyrateModel::FROPT = true;

@@ -2,7 +2,7 @@
   using std::cerr;
   using std::endl;
 
-#include "dsm/ParseErrorReporter.H"
+#include "dsm/ParseErrorReporter.hpp"
 
 ParseErrorReporter::ParseErrorReporter()
 {

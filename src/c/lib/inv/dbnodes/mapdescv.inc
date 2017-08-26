@@ -39,13 +39,13 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "myassert.H"
-#include "mystring.H"
-#include "mymath.H"
-#include "nurbsconsts.H"
-#include "mapdesc.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "myassert.hpp"
+#include "mystring.hpp"
+#include "mymath.hpp"
+#include "nurbsconsts.hpp"
+#include "mapdesc.hpp"
 
 /*--------------------------------------------------------------------------
  * calcPartialVelocity - calculate maximum magnitude of a given partial

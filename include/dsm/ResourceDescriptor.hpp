@@ -27,7 +27,7 @@ using std::pair;
 #include <xercesc/dom/DOMElement.hpp>
 using namespace xercesc;
 
-#include "util/ParseException.H"
+#include "util/ParseException.hpp"
 
 
 class TNode;

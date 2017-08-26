@@ -61,14 +61,14 @@
 #define  _SO_EVENTS_
 
 
-#include "inv/events/SoEvent.H"
+#include "inv/events/SoEvent.hpp"
 
-#include "inv/events/SoButtonEvent.H"
-#include "inv/events/SoKeyboardEvent.H"
-#include "inv/events/SoMouseButtonEvent.H"
-#include "inv/events/SoSpaceballButtonEvent.H"
+#include "inv/events/SoButtonEvent.hpp"
+#include "inv/events/SoKeyboardEvent.hpp"
+#include "inv/events/SoMouseButtonEvent.hpp"
+#include "inv/events/SoSpaceballButtonEvent.hpp"
 
-#include "inv/events/SoLocation2Event.H"
-#include "inv/events/SoMotion3Event.H"
+#include "inv/events/SoLocation2Event.hpp"
+#include "inv/events/SoMotion3Event.hpp"
 
 #endif /* _SO_EVENTS_ */

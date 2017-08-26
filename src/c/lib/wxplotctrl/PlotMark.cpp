@@ -9,10 +9,10 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma implementation "PlotMark.H"
+    #pragma implementation "PlotMark.hpp"
 #endif
 
-#include "wxgui/PlotPrecomp.H"
+#include "wxgui/PlotPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
@@ -27,8 +27,8 @@
 
 #include "wx/image.h"
 
-#include "wxgui/PlotMark.H"
-#include "wxgui/PlotCtrl.H"
+#include "wxgui/PlotMark.hpp"
+#include "wxgui/PlotCtrl.hpp"
 
 #include "wx/arrimpl.cpp"
 WX_DEFINE_OBJARRAY( wxArrayPlotMarker );

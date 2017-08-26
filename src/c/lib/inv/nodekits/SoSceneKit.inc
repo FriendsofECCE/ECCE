@@ -51,14 +51,14 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/nodekits/SoNodeKitListPart.H"
-#include "inv/nodekits/SoSceneKit.H"
-#include "inv/nodekits/SoCameraKit.H"
-#include "inv/nodekits/SoLightKit.H"
-#include "inv/nodekits/SoSeparatorKit.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSwitch.H"
+#include "inv/SoDB.hpp"
+#include "inv/nodekits/SoNodeKitListPart.hpp"
+#include "inv/nodekits/SoSceneKit.hpp"
+#include "inv/nodekits/SoCameraKit.hpp"
+#include "inv/nodekits/SoLightKit.hpp"
+#include "inv/nodekits/SoSeparatorKit.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSwitch.hpp"
 
 SO_KIT_SOURCE(SoSceneKit);
 

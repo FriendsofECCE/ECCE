@@ -35,14 +35,14 @@
 #ifndef __RESIDUE_H__
 #define __RESIDUE_H__
 
-#include "inv/SbLinear.H"
-#include "inv/fields/SoSubField.H"
-#include "inv/fields/SoMFInt32.H"
-#include "inv/SbString.H" 
-#include "inv/SbPList.H"
-#include "inv/fields/SoSFEnum.H"
+#include "inv/SbLinear.hpp"
+#include "inv/fields/SoSubField.hpp"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/SbString.hpp" 
+#include "inv/SbPList.hpp"
+#include "inv/fields/SoSFEnum.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class ChemData;
 class SbResidue;

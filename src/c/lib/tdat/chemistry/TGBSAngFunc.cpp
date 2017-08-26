@@ -14,8 +14,8 @@
 //////////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
-#include "util/ErrMsg.H"
-#include "tdat/TGBSAngFunc.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/TGBSAngFunc.hpp"
 
 
 // Constructor

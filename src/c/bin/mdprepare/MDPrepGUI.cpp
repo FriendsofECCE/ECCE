@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "MDPrepGUI.H"
+#pragma implementation "MDPrepGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,26 +23,26 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxRadioButton.H"
-#include "wxgui/ewxBitmapButton.H"
-#include "wxgui/ewxNotebook.H"
-#include "wxgui/ewxMenuBar.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxListBox.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxComboBox.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/ewxFrame.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxRadioButton.hpp"
+#include "wxgui/ewxBitmapButton.hpp"
+#include "wxgui/ewxNotebook.hpp"
+#include "wxgui/ewxMenuBar.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxListBox.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxComboBox.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/ewxFrame.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "MDPrepGUI.H"
+#include "MDPrepGUI.hpp"
 
 ////@begin XPM images
 

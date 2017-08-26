@@ -50,7 +50,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/events/SoLocation2Event.H"
+#include "inv/events/SoLocation2Event.hpp"
 
 SO_EVENT_SOURCE(SoLocation2Event);
 

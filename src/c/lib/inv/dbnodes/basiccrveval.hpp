@@ -37,15 +37,15 @@
 #ifndef __glubasiccrveval_h_
 #define __glubasiccrveval_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 /*
  * basiccurveeval.h - $Revision: 22116 $
  */
 
-#include "types.H"
-#include "displaymode.H"
-#include "cachingeval.H"
+#include "types.hpp"
+#include "displaymode.hpp"
+#include "cachingeval.hpp"
 
 class BasicCurveEvaluator : public CachingEvaluator {
 public:

@@ -5,13 +5,13 @@ using namespace xercesc;
   using std::cout;
   using std::endl;
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/SDirectory.H"
-#include "util/StringTokenizer.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/SDirectory.hpp"
+#include "util/StringTokenizer.hpp"
 
-#include "dsm/JCode.H"
-#include "dsm/CodeFactory.H"
+#include "dsm/JCode.hpp"
+#include "dsm/CodeFactory.hpp"
 
 #include <vector>
 

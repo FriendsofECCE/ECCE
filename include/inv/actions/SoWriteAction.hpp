@@ -56,9 +56,9 @@
 #ifndef  _SO_WRITE_ACTION_
 #define  _SO_WRITE_ACTION_
 
-#include "inv/actions/SoAction.H"
-#include "inv/actions/SoSubAction.H"
-#include "inv/SoOutput.H"
+#include "inv/actions/SoAction.hpp"
+#include "inv/actions/SoSubAction.hpp"
+#include "inv/SoOutput.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

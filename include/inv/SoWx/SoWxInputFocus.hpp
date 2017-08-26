@@ -1,7 +1,7 @@
 #ifndef __SOWXINPUTFOCUS_H 
 #define __SOWXINPUTFOCUS_H
 
-#include "inv/SoWx/SoWxDevice.H"
+#include "inv/SoWx/SoWxDevice.hpp"
 
 #define SO_WX_ALL_FOCUS_EVENTS \
     (EnterWindowMask | LeaveWindowMask)

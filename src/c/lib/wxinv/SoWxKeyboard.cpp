@@ -1,7 +1,7 @@
-#include "inv/SbTime.H"
+#include "inv/SbTime.hpp"
 #include <wx/event.h>
 
-#include "inv/SoWx/SoWxKeyboard.H"
+#include "inv/SoWx/SoWxKeyboard.hpp"
 
 //#include <iostream>
 //using std::cerr;

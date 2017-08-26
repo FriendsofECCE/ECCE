@@ -7,9 +7,9 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxDisabler.H"
-#include "wxgui/ewxRadioButton.H"
-#include "wxgui/ewxHelpHandler.H"
+#include "wxgui/ewxDisabler.hpp"
+#include "wxgui/ewxRadioButton.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
 
 
 ewxRadioButton::ewxRadioButton()

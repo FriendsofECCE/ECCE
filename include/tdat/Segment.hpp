@@ -13,7 +13,7 @@
   using std::vector;
 
 class Fragment;
-#include <tdat/Residue.H>
+#include <tdat/Residue.hpp>
 class TAtm;
 
 class Segment {

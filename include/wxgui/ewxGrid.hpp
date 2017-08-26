@@ -3,7 +3,7 @@
 
 #include <wx/grid.h>
 
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxGrid : public wxGrid
               , public ewxStyledWindow

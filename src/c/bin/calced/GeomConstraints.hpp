@@ -3,10 +3,10 @@
 
 #include "wx/grid.h" // for wxGridEvent
 
-#include "wxgui/WxJMSListener.H"
-#include "wxgui/WxDavAuth.H"
+#include "wxgui/WxJMSListener.hpp"
+#include "wxgui/WxDavAuth.hpp"
 
-#include "GeomConstraintsGUI.H"
+#include "GeomConstraintsGUI.hpp"
 
 
 class GeomConstraintModel;

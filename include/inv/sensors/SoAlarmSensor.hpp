@@ -59,7 +59,7 @@
 #ifndef  _SO_ALARM_SENSOR_
 #define  _SO_ALARM_SENSOR_
 
-#include "inv/sensors/SoTimerQueueSensor.H"
+#include "inv/sensors/SoTimerQueueSensor.hpp"
 
 // C-api: prefix=SoAlarmSens
 class SoAlarmSensor : public SoTimerQueueSensor {

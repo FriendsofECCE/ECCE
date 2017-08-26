@@ -7,13 +7,13 @@ using std::flush;
 #include <unistd.h>
 #include <termios.h>
 
-#include "util/InvalidException.H"
+#include "util/InvalidException.hpp"
 
-#include "util/ErrMsg.H"
-#include "util/EcceURL.H"
-#include "util/CmdLineAuthListener.H"
-#include "util/RetryException.H"
-#include "util/NotImplementedException.H"
+#include "util/ErrMsg.hpp"
+#include "util/EcceURL.hpp"
+#include "util/CmdLineAuthListener.hpp"
+#include "util/RetryException.hpp"
+#include "util/NotImplementedException.hpp"
 
 /**
   This class implements the AuthEventListener interface by using the

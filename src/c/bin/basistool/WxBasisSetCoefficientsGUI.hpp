@@ -11,7 +11,7 @@
 #define _WXBASISSETCOEFFICIENTSGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "WxBasisSetCoefficientsGUI.C"
+#pragma interface "WxBasisSetCoefficientsGUI.cpp"
 #endif
 
 /*!
@@ -19,7 +19,7 @@
  */
 
 ////@begin includes
-#include "wxgui/ewxDialog.H"
+#include "wxgui/ewxDialog.hpp"
 ////@end includes
 
 /*!

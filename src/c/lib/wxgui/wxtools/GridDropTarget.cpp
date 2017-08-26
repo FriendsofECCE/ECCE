@@ -7,18 +7,18 @@
 #include <wx/dnd.h>
 #include <wx/tokenzr.h>
 
-#include "dsm/Resource.H"
-#include "dsm/EDSIFactory.H"
+#include "dsm/Resource.hpp"
+#include "dsm/EDSIFactory.hpp"
 
-#include "util/JMSPublisher.H"
+#include "util/JMSPublisher.hpp"
 
-#include "wxgui/ewxGrid.H"
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxStyledWindow.H"
-#include "wxgui/GridDropTarget.H"
-#include "wxgui/GridPropElement.H"
-#include "wxgui/GridModel.H"
-#include "wxgui/WxGridView.H"
+#include "wxgui/ewxGrid.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxStyledWindow.hpp"
+#include "wxgui/GridDropTarget.hpp"
+#include "wxgui/GridPropElement.hpp"
+#include "wxgui/GridModel.hpp"
+#include "wxgui/WxGridView.hpp"
 
 
 /**

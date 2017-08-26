@@ -7,13 +7,13 @@
 #ifndef BUILERAPP_HH
 #define BUILDERAPP_HH
 
-#include "util/JMSMessage.H"
+#include "util/JMSMessage.hpp"
 
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/ewxApp.H"
+#include "wxgui/WxDavAuth.hpp"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/ewxApp.hpp"
 
-#include "Builder.H"
+#include "Builder.hpp"
 
 class BuilderApp : public ewxApp, public WxDavAuth, public WxJMSMessageDispatch
 {

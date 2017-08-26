@@ -57,7 +57,7 @@
 #ifndef  _SO_JACK_MANIP_
 #define  _SO_JACK_MANIP_
 
-#include "inv/manips/SoTransformManip.H"
+#include "inv/manips/SoTransformManip.hpp"
 
 class SoJackManip : public SoTransformManip
 {

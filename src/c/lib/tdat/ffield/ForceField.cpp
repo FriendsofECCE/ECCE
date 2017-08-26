@@ -29,24 +29,24 @@
   using std::cout;
   using std::endl;
 
-#include "util/ErrMsg.H"
-#include "util/ETimer.H"
-#include "util/ProgressMonitor.H"
-#include "util/CancelException.H"
+#include "util/ErrMsg.hpp"
+#include "util/ETimer.hpp"
+#include "util/ProgressMonitor.hpp"
+#include "util/CancelException.hpp"
 
-#include "tdat/TPerTab.H"
-#include "tdat/TAtm.H"
-#include "tdat/ForceField.H"
-#include "tdat/PBonds.H"
-#include "tdat/Angles.H"
-#include "tdat/Torsions.H"
-#include "tdat/Inversions.H"
-#include "tdat/NonBond.H"
-#include "tdat/UFFParams.H"
-#include "tdat/CGMinimizer.H"
-#include "tdat/FFRules.H"
-#include "tdat/LinkCellList.H"
-#include "tdat/CGEnergyFunction.H"
+#include "tdat/TPerTab.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/ForceField.hpp"
+#include "tdat/PBonds.hpp"
+#include "tdat/Angles.hpp"
+#include "tdat/Torsions.hpp"
+#include "tdat/Inversions.hpp"
+#include "tdat/NonBond.hpp"
+#include "tdat/UFFParams.hpp"
+#include "tdat/CGMinimizer.hpp"
+#include "tdat/FFRules.hpp"
+#include "tdat/LinkCellList.hpp"
+#include "tdat/CGEnergyFunction.hpp"
 
 //#define FORCETIMER
 //#define ENERGYTIMER

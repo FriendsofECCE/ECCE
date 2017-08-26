@@ -4,7 +4,7 @@
  *
  */
 
-#include "util/BondFrcConstConverter.H"
+#include "util/BondFrcConstConverter.hpp"
 
 /**
  * Constructor.

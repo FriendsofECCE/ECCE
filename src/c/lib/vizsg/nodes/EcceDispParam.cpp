@@ -18,7 +18,7 @@
   using std::cerr;
   using std::endl;
 
-#include "viz/EcceDispParam.H"
+#include "viz/EcceDispParam.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////
 // class statics

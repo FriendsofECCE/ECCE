@@ -30,13 +30,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "inv/SbString.H" 
-#include "inv/SbPList.H" 
+#include "inv/SbString.hpp" 
+#include "inv/SbPList.hpp" 
 
-#include "inv/ChemKit/ChemMOLImporter.H"
-#include "inv/ChemKit/ChemData.H"
-#include "inv/ChemKit/ChemAssociatedData.H"
-#include "inv/ChemKit/ChemTheElements.H"
+#include "inv/ChemKit/ChemMOLImporter.hpp"
+#include "inv/ChemKit/ChemData.hpp"
+#include "inv/ChemKit/ChemAssociatedData.hpp"
+#include "inv/ChemKit/ChemTheElements.hpp"
 
 ChemMOLImporter::ChemMOLImporter()
 {

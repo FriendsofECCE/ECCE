@@ -68,7 +68,7 @@
 #ifndef  _SO_SUB_DETAIL_
 #define  _SO_SUB_DETAIL_
 
-#include "inv/details/SoDetail.H"
+#include "inv/details/SoDetail.hpp"
 
 // C-api: end
 /////////////////////////////////////////////////////////////////////////////

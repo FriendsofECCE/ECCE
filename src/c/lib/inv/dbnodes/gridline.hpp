@@ -37,7 +37,7 @@
 #ifndef __glugridline_h_
 #define __glugridline_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * gridline.h - $Revision: 22116 $
  */

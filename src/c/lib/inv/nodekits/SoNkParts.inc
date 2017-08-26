@@ -52,16 +52,16 @@
  */
 
 
-#include "inv/SoDB.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/nodekits/SoNodekitParts.H"
-#include "inv/nodekits/SoNodeKitListPart.H"
-#include "inv/nodekits/SoBaseKit.H"
-#include "inv/SoPath.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/nodes/SoGroup.H"
+#include "inv/SoDB.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/nodekits/SoNodekitParts.hpp"
+#include "inv/nodekits/SoNodeKitListPart.hpp"
+#include "inv/nodekits/SoBaseKit.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/nodes/SoGroup.hpp"
 
 #ifdef DEBUG
 #include <SoDebug.h>

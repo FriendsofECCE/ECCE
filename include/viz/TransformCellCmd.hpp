@@ -1,7 +1,7 @@
 #ifndef TRANSFORMCELLCMD_H
 #define TRANSFORMCELLCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 #include <vector>
   using std::vector;

@@ -12,9 +12,9 @@
 #include <algorithm>
   using std::find;
 
-#include "util/IndexOutOfRangeException.H"
-#include "util/InvalidException.H"
-#include "tdat/FFItem.H"
+#include "util/IndexOutOfRangeException.hpp"
+#include "util/InvalidException.hpp"
+#include "tdat/FFItem.hpp"
 
 /** The force field type class (FFType) contains information and methods 
  *  for handling force field types.  Example force field types of the

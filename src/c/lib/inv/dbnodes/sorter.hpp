@@ -37,7 +37,7 @@
 #ifndef __glusorter_h_
 #define __glusorter_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 class Sorter {
 public:

@@ -13,8 +13,8 @@ using std::istrstream;
 
 #include <stdlib.h>         // atoi
 
-#include "util/ErrMsg.H"
-#include "tdat/PropVecString.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/PropVecString.hpp"
 
 
 // ---------- Constructors ------------

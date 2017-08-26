@@ -39,9 +39,9 @@
  *	Derrick Burns - 1992
  */
 
-#include "mystdio.H"
-#include "types.H"
-#include "basiccrveval.H"
+#include "mystdio.hpp"
+#include "types.hpp"
+#include "basiccrveval.hpp"
 #include <stdio.h>
 
 void 

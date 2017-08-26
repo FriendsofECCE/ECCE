@@ -31,7 +31,7 @@
 #endif
 #include <GL/gl.h>
 
-#include "inv/ChemKit/ChemResidueStuff.H"
+#include "inv/ChemKit/ChemResidueStuff.hpp"
 
 #define POINT_PLANE_DIST(PLANE,POINT) \
 PLANE.getNormal().dot(POINT) - PLANE.getDistanceFromOrigin();

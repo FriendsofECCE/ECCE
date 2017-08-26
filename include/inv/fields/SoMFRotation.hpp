@@ -56,8 +56,8 @@
 #ifndef  _SO_MF_ROTATION_
 #define  _SO_MF_ROTATION_
 
-#include "inv/fields/SoSubField.H"
-#include "inv/SbLinear.H"
+#include "inv/fields/SoSubField.hpp"
+#include "inv/SbLinear.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

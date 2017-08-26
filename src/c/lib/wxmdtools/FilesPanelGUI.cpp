@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "FilesPanelGUI.H"
+#pragma implementation "FilesPanelGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,16 +23,16 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxNotebook.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxNotebook.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "wxgui/FilesPanelGUI.H"
+#include "wxgui/FilesPanelGUI.hpp"
 
 ////@begin XPM images
 

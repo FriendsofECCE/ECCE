@@ -6,7 +6,7 @@
 #ifndef PARSEEXCEPTION_H
 #define PARSEEXCEPTION_H
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 /**
  * ParseException indicates a problem parsing text data including XML.

@@ -37,37 +37,37 @@
   using std::ofstream;
   using std::ifstream;
 
-#include "inv/SbColor.H"
-#include "inv/actions/SoSearchAction.H"
-#include "inv/actions/SoWriteAction.H"
-#include "inv/nodes/SoCamera.H"
-#include "inv/nodes/SoPerspectiveCamera.H"
-#include "inv/nodes/SoOrthographicCamera.H"
-#include "inv/nodes/SoCylinder.H"
-#include "inv/nodes/SoCone.H"
-#include "inv/nodes/SoScale.H"
-#include "inv/nodes/SoDirectionalLight.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/nodes/SoVertexProperty.H"
-#include "inv/nodes/SoIndexedTriangleStripSet.H"
-#include "inv/misc/SoChildList.H"
+#include "inv/SbColor.hpp"
+#include "inv/actions/SoSearchAction.hpp"
+#include "inv/actions/SoWriteAction.hpp"
+#include "inv/nodes/SoCamera.hpp"
+#include "inv/nodes/SoPerspectiveCamera.hpp"
+#include "inv/nodes/SoOrthographicCamera.hpp"
+#include "inv/nodes/SoCylinder.hpp"
+#include "inv/nodes/SoCone.hpp"
+#include "inv/nodes/SoScale.hpp"
+#include "inv/nodes/SoDirectionalLight.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/nodes/SoVertexProperty.hpp"
+#include "inv/nodes/SoIndexedTriangleStripSet.hpp"
+#include "inv/misc/SoChildList.hpp"
 
-#include "util/Ecce.H"
+#include "util/Ecce.hpp"
 
-#include "tdat/TPerTab.H"
-#include "tdat/TBond.H"
+#include "tdat/TPerTab.hpp"
+#include "tdat/TBond.hpp"
 
-#include "inv/ChemKit/ChemRadii.H"
-#include "inv/ChemKit/ChemColor.H"
-#include "inv/ChemKit/ChemIso.H"
+#include "inv/ChemKit/ChemRadii.hpp"
+#include "inv/ChemKit/ChemColor.hpp"
+#include "inv/ChemKit/ChemIso.hpp"
 
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
-#include "viz/VRVector.H"
-#include "viz/AtomLine.H"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
+#include "viz/VRVector.hpp"
+#include "viz/AtomLine.hpp"
 
-#include "wxviz/SGViewer.H"
-#include "wxviz/PovrayCmd.H"
+#include "wxviz/SGViewer.hpp"
+#include "wxviz/PovrayCmd.hpp"
 
 // These are logical names used in #declare in povray file
 string PovrayCmd::p_IsoFinish;

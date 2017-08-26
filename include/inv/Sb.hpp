@@ -57,17 +57,17 @@
 #ifndef  _SB_
 #define  _SB_
 
-#include "inv/SbBasic.H"
+#include "inv/SbBasic.hpp"
 
-#include "inv/SbBox.H"
-#include "inv/SbColor.H"
-#include "inv/SbDict.H"
-#include "inv/SbLinear.H"
-#include "inv/SbPList.H"
-#include "inv/SbString.H"
-#include "inv/SbTime.H"
-#include "inv/SbViewportRegion.H"
+#include "inv/SbBox.hpp"
+#include "inv/SbColor.hpp"
+#include "inv/SbDict.hpp"
+#include "inv/SbLinear.hpp"
+#include "inv/SbPList.hpp"
+#include "inv/SbString.hpp"
+#include "inv/SbTime.hpp"
+#include "inv/SbViewportRegion.hpp"
 
-#include "inv/projectors/SbProjectors.H"
+#include "inv/projectors/SbProjectors.hpp"
 
 #endif	/* _SB_ */

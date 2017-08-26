@@ -51,14 +51,14 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/actions/SoWriteAction.H"
-#include "inv/engines/SoCalculator.H"
-#include "inv/engines/SoCompose.H"
-#include "inv/engines/SoElapsedTime.H"
-#include "inv/nodes/SoRotor.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/sensors/SoOneShotSensor.H"
+#include "inv/SoDB.hpp"
+#include "inv/actions/SoWriteAction.hpp"
+#include "inv/engines/SoCalculator.hpp"
+#include "inv/engines/SoCompose.hpp"
+#include "inv/engines/SoElapsedTime.hpp"
+#include "inv/nodes/SoRotor.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/sensors/SoOneShotSensor.hpp"
 
 SO_NODE_SOURCE(SoRotor);
 

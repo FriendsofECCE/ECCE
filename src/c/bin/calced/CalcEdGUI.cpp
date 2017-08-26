@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "CalcEdGUI.H"
+#pragma implementation "CalcEdGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,19 +23,19 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxMenuBar.H"
-#include "wxgui/ewxComboBox.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxFrame.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxMenuBar.hpp"
+#include "wxgui/ewxComboBox.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxFrame.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "CalcEdGUI.H"
+#include "CalcEdGUI.hpp"
 
 ////@begin XPM images
 

@@ -8,7 +8,7 @@
 #define SETPOLARIZABILITYCMD_HH
 
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 
 class SetPolarizabilityCmd : public Command

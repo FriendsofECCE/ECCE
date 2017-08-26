@@ -8,7 +8,7 @@
   using std::cout;
   using std::endl;
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-#pragma implementation "ewxRegexpValidator.H"
+#pragma implementation "ewxRegexpValidator.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx.h".
@@ -38,8 +38,8 @@
     #include <clib.h>
 #endif
 
-#include "util/EcceRegexp.H"
-#include "wxgui/ewxRegexpValidator.H"
+#include "util/EcceRegexp.hpp"
+#include "wxgui/ewxRegexpValidator.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS(ewxRegexpValidator, ewxGenericValidator)

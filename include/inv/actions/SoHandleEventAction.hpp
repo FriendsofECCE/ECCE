@@ -56,9 +56,9 @@
 #ifndef  _SO_HANDLE_EVENT_ACTION_
 #define  _SO_HANDLE_EVENT_ACTION_
 
-#include "inv/SbViewportRegion.H"
-#include "inv/actions/SoSubAction.H"
-#include "inv/actions/SoRayPickAction.H"
+#include "inv/SbViewportRegion.hpp"
+#include "inv/actions/SoSubAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
 
 class SoEvent;
 

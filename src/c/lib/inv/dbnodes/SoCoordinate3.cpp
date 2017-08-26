@@ -51,12 +51,12 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoGLCoordinateElement.H"
-#include "inv/nodes/SoCoordinate3.H"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoGLCoordinateElement.hpp"
+#include "inv/nodes/SoCoordinate3.hpp"
 
 SO_NODE_SOURCE(SoCoordinate3);
 

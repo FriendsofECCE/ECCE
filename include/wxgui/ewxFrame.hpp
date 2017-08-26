@@ -1,9 +1,9 @@
 #ifndef _EWXFRAME_H  
 #define _EWXFRAME_H  
 
-#include "util/Preferences.H"
+#include "util/Preferences.hpp"
 #include "wx/frame.h"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxConfig;
 

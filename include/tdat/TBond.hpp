@@ -25,7 +25,7 @@
 #include <string>
   using std::string;
 
-#include "tdat/DisplayStyle.H"
+#include "tdat/DisplayStyle.hpp"
 
 class TAtm;
 

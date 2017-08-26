@@ -10,16 +10,16 @@
 
 #include "wx/image.h"
 
-#include "util/Ecce.H"
-#include "util/Preferences.H"
-#include "util/Color.H"
+#include "util/Ecce.hpp"
+#include "util/Preferences.hpp"
+#include "util/Color.hpp"
 
-#include "dsm/DavDebug.H"
+#include "dsm/DavDebug.hpp"
 
-#include "tdat/TaskApp.H"
+#include "tdat/TaskApp.hpp"
 
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/ewxApp.H"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/ewxApp.hpp"
 
 
 /**

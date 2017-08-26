@@ -13,8 +13,8 @@
 
 #include <string.h>
 
-#include "util/EcceURL.H"
-#include "util/UrlEncoder.H"
+#include "util/EcceURL.hpp"
+#include "util/UrlEncoder.hpp"
 
 
 EcceURL UrlEncoder::encode(const EcceURL& url)

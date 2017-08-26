@@ -56,9 +56,9 @@
 #ifndef  _SO_GET_BOUNDING_BOX_ACTION_
 #define  _SO_GET_BOUNDING_BOX_ACTION_
 
-#include "inv/SbBox.H"
-#include "inv/SbViewportRegion.H"
-#include "inv/actions/SoSubAction.H"
+#include "inv/SbBox.hpp"
+#include "inv/SbViewportRegion.hpp"
+#include "inv/actions/SoSubAction.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

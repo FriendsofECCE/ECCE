@@ -1,10 +1,10 @@
-#include "util/STLUtil.H"
-#include "util/StringConverter.H"
+#include "util/STLUtil.hpp"
+#include "util/StringConverter.hpp"
 
-#include "dsm/TGBSConfig.H"
-#include "dsm/TGaussianBasisSet.H"
+#include "dsm/TGBSConfig.hpp"
+#include "dsm/TGaussianBasisSet.hpp"
 
-#include "GBSSummaryGridModel.H"
+#include "GBSSummaryGridModel.hpp"
 
 
 GBSSummaryGridModel::GBSSummaryGridModel(TGBSConfig *cnfg, string symbol)

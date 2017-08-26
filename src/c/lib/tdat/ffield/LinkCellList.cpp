@@ -8,11 +8,11 @@
 #include <math.h>
 
 // application includes
-#include "util/Transformations.H"
-#include "util/ErrMsg.H"
-#include "tdat/LinkCellList.H"
-#include "tdat/Fragment.H"
-#include "tdat/TAtm.H"
+#include "util/Transformations.hpp"
+#include "util/ErrMsg.hpp"
+#include "tdat/LinkCellList.hpp"
+#include "tdat/Fragment.hpp"
+#include "tdat/TAtm.hpp"
 
 // -----------------------
 // Public Member Functions

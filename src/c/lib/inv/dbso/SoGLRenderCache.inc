@@ -51,12 +51,12 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/caches/SoGLRenderCache.H"
-#include "inv/elements/SoCacheElement.H"
-#include "inv/elements/SoGLCacheContextElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "SoDebug.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/caches/SoGLRenderCache.hpp"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/elements/SoGLCacheContextElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "SoDebug.hpp"
 
 
 ////////////////////////////////////////////////////////////////////////

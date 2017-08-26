@@ -56,8 +56,8 @@
 #ifndef  _SO_SWITCH_
 #define  _SO_SWITCH_
 
-#include "inv/fields/SoSFInt32.H"
-#include "inv/nodes/SoGroup.H"
+#include "inv/fields/SoSFInt32.hpp"
+#include "inv/nodes/SoGroup.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

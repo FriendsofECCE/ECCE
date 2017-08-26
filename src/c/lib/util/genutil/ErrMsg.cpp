@@ -18,11 +18,11 @@ using std::endl;
 #include <stdarg.h>  // va_start()
 #include <string.h>
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/EcceMap.H"
-#include "util/KeyValueReader.H"
-#include "util/EcceRegexp.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/EcceMap.hpp"
+#include "util/KeyValueReader.hpp"
+#include "util/EcceRegexp.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////
 // class statics

@@ -10,7 +10,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxTextEntryDialog.H"
+#include "wxgui/ewxTextEntryDialog.hpp"
 
 
 /**

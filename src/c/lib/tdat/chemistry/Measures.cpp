@@ -6,8 +6,8 @@
 
 #include <math.h>
 
-#include "util/Transformations.H"
-#include "tdat/Measures.H"
+#include "util/Transformations.hpp"
+#include "tdat/Measures.hpp"
 
 /**
   *  Return value of the distance between atoms a1 and a2

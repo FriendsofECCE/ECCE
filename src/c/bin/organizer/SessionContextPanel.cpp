@@ -18,22 +18,22 @@ using std::cerr;
 #include "wx/colordlg.h"
 #include "wx/tooltip.h"
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
-#include "dsm/Session.H"
+#include "dsm/Session.hpp"
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxColor.H"
-#include "wxgui/ewxColorDialog.H"
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/WxResourceTreeItemData.H"
-#include "wxgui/WxState.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxColor.hpp"
+#include "wxgui/ewxColorDialog.hpp"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/WxResourceTreeItemData.hpp"
+#include "wxgui/WxState.hpp"
 
-#include "CalcMgr.H"
-#include "MDTaskPanel.H"
-#include "SessionContextPanel.H"
+#include "CalcMgr.hpp"
+#include "MDTaskPanel.hpp"
+#include "SessionContextPanel.hpp"
 
 
 /**

@@ -1,14 +1,14 @@
 #ifndef _PBC_H_
 #define _PBC_H_
 
-#include "util/Event.H"
+#include "util/Event.hpp"
   using ecce::Event;
-#include "util/Listener.H"
+#include "util/Listener.hpp"
   using ecce::Listener;
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
-#include "PBCGUI.H"
+#include "PBCGUI.hpp"
 
 class PBCCmd;
 

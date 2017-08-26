@@ -5,26 +5,26 @@
 #include <algorithm>
   using std::find;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "util/ErrMsg.H"
-#include "util/STLUtil.H"
+#include "util/ErrMsg.hpp"
+#include "util/STLUtil.hpp"
 
-#include "tdat/TPerTab.H"
-#include "tdat/TResItem.H"
-#include "tdat/TResTab.H"
-#include "tdat/ShapeData.H"
-#include "tdat/TAtm.H"
-#include "tdat/TBond.H"
-#include "tdat/Measures.H"
+#include "tdat/TPerTab.hpp"
+#include "tdat/TResItem.hpp"
+#include "tdat/TResTab.hpp"
+#include "tdat/ShapeData.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/TBond.hpp"
+#include "tdat/Measures.hpp"
 
-#include "inv/ChemKit/ChemDisplayParam.H"
+#include "inv/ChemKit/ChemDisplayParam.hpp"
 
-#include "viz/SGContainer.H"
-#include "viz/SGFragment.H"
-#include "viz/AtomEditCmd.H"
+#include "viz/SGContainer.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/AtomEditCmd.hpp"
 
 
 AtomEditCmd::AtomEditCmd(const string& name, Receiver *receiver) 

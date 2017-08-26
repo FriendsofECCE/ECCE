@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "util/PressureConverter.H"
+#include "util/PressureConverter.hpp"
 
 /**
  * Constructor.

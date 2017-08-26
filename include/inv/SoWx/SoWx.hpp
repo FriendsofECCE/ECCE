@@ -3,7 +3,7 @@
 
 #include <wx/wx.h>
 
-#include "inv/SoWx/SoWxEventHandler.H"
+#include "inv/SoWx/SoWxEventHandler.hpp"
 
 //#define SOWXDEBUG 1
 

@@ -26,7 +26,7 @@
 // library includes
 
 // application includes
-   #include "tdat/TProperty.H"
+   #include "tdat/TProperty.hpp"
 
 
 class PropTSVecString : public TProperty

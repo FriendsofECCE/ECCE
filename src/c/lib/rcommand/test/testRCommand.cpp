@@ -8,9 +8,9 @@ using namespace std;
 //#include <rw/cstring.h>
 
 #include "expect.h"
-#include "comm/RCommand.H"
+#include "comm/RCommand.hpp"
 
-#include "util/EcceRegexp.H"
+#include "util/EcceRegexp.hpp"
 
 int main(int argc, char** argv)
 {

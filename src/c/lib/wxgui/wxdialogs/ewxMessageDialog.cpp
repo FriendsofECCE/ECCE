@@ -4,11 +4,11 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxDialog.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxMessageDialog.H"
+#include "wxgui/ewxDialog.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
 
 
 /**

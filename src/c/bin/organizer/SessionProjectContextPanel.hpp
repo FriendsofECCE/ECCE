@@ -2,13 +2,13 @@
 #define _SESSIONPROJECTCONTEXTPANEL_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "SessionProjectContextPanel.C"
+#pragma interface "SessionProjectContextPanel.cpp"
 #endif
 
 
 #include "wx/splitter.h"
 
-#include "ContextPanelInterface.H"
+#include "ContextPanelInterface.hpp"
 
 class CalcMgr;
 class WxResourceTreeItemData;

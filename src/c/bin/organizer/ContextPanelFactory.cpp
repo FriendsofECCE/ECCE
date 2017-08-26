@@ -10,27 +10,27 @@
 #include <iostream>
 using namespace std;
 
-#include "util/ResourceUtils.H"
-#include "util/StringConverter.H"
+#include "util/ResourceUtils.hpp"
+#include "util/StringConverter.hpp"
 
-#include "dsm/Resource.H"
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/ResourceType.H"
+#include "dsm/Resource.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/ResourceType.hpp"
 
-#include "wxgui/WxResourceTreeItemData.H"
+#include "wxgui/WxResourceTreeItemData.hpp"
 
-#include "ContextPanelInterface.H"
-#include "ContextPanelFactory.H"
+#include "ContextPanelInterface.hpp"
+#include "ContextPanelFactory.hpp"
 
 // List of all context panel header files here
-#include "PropertyContextPanel.H"
-#include "ProjectContextPanel.H"
-#include "DocumentContextPanel.H"
-#include "CalculationContextPanel.H"
-#include "SessionContextPanel.H"
-#include "SessionProjectContextPanel.H"
-#include "ImageContextPanel.H"
-#include "NoAccessContextPanel.H"
+#include "PropertyContextPanel.hpp"
+#include "ProjectContextPanel.hpp"
+#include "DocumentContextPanel.hpp"
+#include "CalculationContextPanel.hpp"
+#include "SessionContextPanel.hpp"
+#include "SessionProjectContextPanel.hpp"
+#include "ImageContextPanel.hpp"
+#include "NoAccessContextPanel.hpp"
 
 
 class CalcMgr;  

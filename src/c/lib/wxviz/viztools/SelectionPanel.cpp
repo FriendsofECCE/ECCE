@@ -3,7 +3,7 @@
  */
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "SelectionPanel.H"
+#pragma implementation "SelectionPanel.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -17,24 +17,24 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/STLUtil.H"
+#include "util/STLUtil.hpp"
 
-#include "tdat/TPerTab.H"
+#include "tdat/TPerTab.hpp"
 
-#include "viz/SelectCmd.H"
-#include "viz/SelectRadiusCmd.H"
-#include "viz/SelectBondDisCmd.H"
-#include "viz/SelectAllCmd.H"
+#include "viz/SelectCmd.hpp"
+#include "viz/SelectRadiusCmd.hpp"
+#include "viz/SelectBondDisCmd.hpp"
+#include "viz/SelectAllCmd.hpp"
 
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxComboBox.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxRadioButton.H"
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxComboBox.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxRadioButton.hpp"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 
-#include "wxviz/SelectionPanelGUI.H"
-#include "wxviz/SelectionPanel.H"
+#include "wxviz/SelectionPanelGUI.hpp"
+#include "wxviz/SelectionPanel.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS( SelectionPanel, SelectionPanelGUI )

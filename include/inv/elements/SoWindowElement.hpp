@@ -56,7 +56,7 @@
 #ifndef  _SO_WINDOW_ELEMENT
 #define  _SO_WINDOW_ELEMENT
 
-#include "inv/elements/SoSubElement.H"
+#include "inv/elements/SoSubElement.hpp"
 #include <GL/glx.h>
 
 class SoGLRenderAction;

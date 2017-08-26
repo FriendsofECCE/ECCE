@@ -54,21 +54,21 @@
  */
 
 
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/misc/SoNotification.H"
-#include "inv/SoOutput.H"
-#include "inv/actions/SoWriteAction.H"
-#include "inv/engines/SoEngine.H"
-#include "inv/engines/SoFieldConverter.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoReadError.H"
-#include "inv/fields/SoFieldContainer.H"
-#include "inv/fields/SoSubField.H"
-#include "inv/nodes/SoNode.H"
-#include "inv/sensors/SoDataSensor.H"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/misc/SoNotification.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/actions/SoWriteAction.hpp"
+#include "inv/engines/SoEngine.hpp"
+#include "inv/engines/SoFieldConverter.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/fields/SoFieldContainer.hpp"
+#include "inv/fields/SoSubField.hpp"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/sensors/SoDataSensor.hpp"
 #include <stdlib.h>
-#include "SoGlobalField.H"
+#include "SoGlobalField.hpp"
 
 // Special characters in files
 #define OPEN_BRACE_CHAR		'['

@@ -51,13 +51,13 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoGLModelMatrixElement.H"
-#include "inv/nodes/SoResetTransform.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoGLModelMatrixElement.hpp"
+#include "inv/nodes/SoResetTransform.hpp"
 
 SO_NODE_SOURCE(SoResetTransform);
 

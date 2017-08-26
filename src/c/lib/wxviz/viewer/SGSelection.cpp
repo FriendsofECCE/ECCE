@@ -3,35 +3,35 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-#include "inv/SoPickedPoint.H"
-#include "inv/actions/SoHandleEventAction.H"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
 
-#include "inv/events/SoEvent.H"
-#include "inv/events/SoLocation2Event.H"
-#include "inv/events/SoMouseButtonEvent.H"
-#include "inv/events/SoLocation2Event.H"
-#include "inv/events/SoKeyboardEvent.H"
-#include "inv/elements/SoViewVolumeElement.H"
+#include "inv/events/SoEvent.hpp"
+#include "inv/events/SoLocation2Event.hpp"
+#include "inv/events/SoMouseButtonEvent.hpp"
+#include "inv/events/SoLocation2Event.hpp"
+#include "inv/events/SoKeyboardEvent.hpp"
+#include "inv/elements/SoViewVolumeElement.hpp"
 
-#include "inv/misc/SoCallbackList.H"
-#include "inv/nodes/SoCamera.H"
-#include "inv/SbLinear.H"
-#include "inv/nodes/SoCube.H"
-#include "inv/nodes/SoCone.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/actions/SoSearchAction.H"
+#include "inv/misc/SoCallbackList.hpp"
+#include "inv/nodes/SoCamera.hpp"
+#include "inv/SbLinear.hpp"
+#include "inv/nodes/SoCube.hpp"
+#include "inv/nodes/SoCone.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/actions/SoSearchAction.hpp"
 
-#include "inv/ChemKit/ChemBaseData.H"
-#include "inv/ChemKit/ChemDisplay.H"
-#include "inv/ChemKit/ChemInit.H"
-#include "inv/ChemKit/ChemDisplayPath.H"
+#include "inv/ChemKit/ChemBaseData.hpp"
+#include "inv/ChemKit/ChemDisplay.hpp"
+#include "inv/ChemKit/ChemInit.hpp"
+#include "inv/ChemKit/ChemDisplayPath.hpp"
 
-#include "viz/SGFragment.H"
+#include "viz/SGFragment.hpp"
 
-#include "wxviz/MotionListener.H"
-#include "wxviz/MotionData.H"
-#include "wxviz/SGSelection.H"
-#include "wxviz/SGViewer.H"
+#include "wxviz/MotionListener.hpp"
+#include "wxviz/MotionData.hpp"
+#include "wxviz/SGSelection.hpp"
+#include "wxviz/SGViewer.hpp"
 
 using std::find;
 

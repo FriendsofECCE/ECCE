@@ -20,7 +20,7 @@
 
 #if wxUSE_AUI
 
-#include "wx/ewxaui/auibook.H"
+#include "wx/ewxaui/auibook.hpp"
 
 #ifndef WX_PRECOMP
     #include "wx/settings.h"
@@ -28,7 +28,7 @@
     #include "wx/menu.h"
 #endif
 
-#include "wx/ewxaui/tabmdi.H"
+#include "wx/ewxaui/tabmdi.hpp"
 #include "wx/dcbuffer.h"
 #include "wx/log.h"
 

@@ -5,8 +5,8 @@
 #include <xercesc/util/XMLString.hpp>
 using namespace xercesc;
 
-#include "dsm/JCode.H"
-#include "dsm/SummaryIterator.H"
+#include "dsm/JCode.hpp"
+#include "dsm/SummaryIterator.hpp"
 
 
 SummaryIterator::SummaryIterator()

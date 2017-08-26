@@ -57,9 +57,9 @@
 #ifndef  _SO_V1CUSTOMNODE_
 #define  _SO_V1CUSTOMNODE_
 
-#include "inv/upgraders/SoUpgrader.H"
-#include "inv/fields/SoMFName.H"
-#include "inv/fields/SoMFString.H"
+#include "inv/upgraders/SoUpgrader.hpp"
+#include "inv/fields/SoMFName.hpp"
+#include "inv/fields/SoMFString.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

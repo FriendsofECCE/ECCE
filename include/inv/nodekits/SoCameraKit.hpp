@@ -57,7 +57,7 @@
 #ifndef  _SO_CAMERA_KIT_
 #define  _SO_CAMERA_KIT_
 
-#include "inv/nodekits/SoBaseKit.H"
+#include "inv/nodekits/SoBaseKit.hpp"
 
 ////////////////////////////////////////////////////////////////////
 //    Class: SoCameraKit

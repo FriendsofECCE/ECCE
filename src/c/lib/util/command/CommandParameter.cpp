@@ -8,8 +8,8 @@
 #include <iostream>
   using namespace std;
 
-#include "util/CommandParameter.H"
-#include "util/StringTokenizer.H"
+#include "util/CommandParameter.hpp"
+#include "util/StringTokenizer.hpp"
 
 
 /**

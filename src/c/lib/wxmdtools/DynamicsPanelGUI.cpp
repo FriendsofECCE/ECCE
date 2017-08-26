@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "DynamicsPanelGUI.H"
+#pragma implementation "DynamicsPanelGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,16 +23,16 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxRadioButton.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxNotebook.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxRadioButton.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxNotebook.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "wxgui/DynamicsPanelGUI.H"
+#include "wxgui/DynamicsPanelGUI.hpp"
 
 ////@begin XPM images
 

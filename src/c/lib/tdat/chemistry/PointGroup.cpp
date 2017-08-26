@@ -15,14 +15,14 @@
 #include <fstream>
   using std::ifstream;
 
-#include "util/ErrMsg.H"
-#include "util/KeyValueReader.H"
-#include "util/LineReader.H"
-#include "util/Ecce.H"
-#include "util/STLUtil.H"
-#include "util/StringTokenizer.H"
+#include "util/ErrMsg.hpp"
+#include "util/KeyValueReader.hpp"
+#include "util/LineReader.hpp"
+#include "util/Ecce.hpp"
+#include "util/STLUtil.hpp"
+#include "util/StringTokenizer.hpp"
 
-#include "tdat/PointGroup.H"
+#include "tdat/PointGroup.hpp"
 
 vector<PointGroup*> *PointGroup::p_extent = 0;
 vector<string> PointGroup::p_spnames;

@@ -2,8 +2,8 @@
 #define _MDOPTIMIZE_H_
 
 
-#include "wxgui/MDEdBase.H"
-#include "wxgui/WxJMSListener.H"
+#include "wxgui/MDEdBase.hpp"
+#include "wxgui/WxJMSListener.hpp"
 
 class JMSMessage;
 class EcceException;

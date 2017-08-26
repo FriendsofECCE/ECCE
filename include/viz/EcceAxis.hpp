@@ -8,12 +8,12 @@
 #ifndef  __ECCE_AXIS_H__
 #define  __ECCE_AXIS_H__
 
-#include "inv/SbLinear.H"
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFBool.H"
-#include "inv/nodes/SoLineSet.H"
-#include "inv/fields/SoSFVec3f.H"
+#include "inv/SbLinear.hpp"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/nodes/SoLineSet.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
 
 
 class EcceAxis : public SoLineSet {

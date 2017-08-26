@@ -6,9 +6,9 @@
 #define CGALIGNMENTFUNCTION_HH
 
 
-#include "util/InvalidException.H"
+#include "util/InvalidException.hpp"
 
-#include "tdat/ObjectiveFunction.H"
+#include "tdat/ObjectiveFunction.hpp"
 
 class FFCoordinates;
 

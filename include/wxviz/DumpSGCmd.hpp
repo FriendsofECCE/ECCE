@@ -2,7 +2,7 @@
 #define DUMPSGCMD_H
 
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class DumpSGCmd : public Command
 {

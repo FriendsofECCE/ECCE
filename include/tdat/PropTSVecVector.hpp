@@ -22,7 +22,7 @@
 #ifndef TSVECVECTOR_HH
 #define TSVECVECTOR_HH
 
-#include "tdat/TProperty.H"
+#include "tdat/TProperty.hpp"
 
 // Need to declare explicitly so this class can be used as template
 // types inside a vector<...> declaration:

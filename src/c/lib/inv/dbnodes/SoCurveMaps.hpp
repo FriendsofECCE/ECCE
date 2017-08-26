@@ -59,9 +59,9 @@
 
 #include <tr1/math.h>
 #include <stdlib.h>
-#include "inv/SbLinear.H"
-#include "softcurvmap.H"
-#include "gl4types.H"
+#include "inv/SbLinear.hpp"
+#include "softcurvmap.hpp"
+#include "gl4types.hpp"
 
 #define CRV_ALLOC_BLOCK 20
 

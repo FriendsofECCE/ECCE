@@ -2,8 +2,8 @@
 #include <strstream>
   using namespace std;
 
-#include "util/Ecce.H"
-#include "util/TupleReader.H"
+#include "util/Ecce.hpp"
+#include "util/TupleReader.hpp"
 
 int main(int argc, char** argv)
 {

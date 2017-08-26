@@ -7,12 +7,12 @@
  using std::cout;
  using std::endl;
 
-#include "util/STLUtil.H"
-#include "util/Command.H"
-#include "util/Receiver.H"
-#include "util/CommandParameter.H"
+#include "util/STLUtil.hpp"
+#include "util/Command.hpp"
+#include "util/Receiver.hpp"
+#include "util/CommandParameter.hpp"
 
-#include "util/StringTokenizer.H"
+#include "util/StringTokenizer.hpp"
 
 /**
  * Constructor.

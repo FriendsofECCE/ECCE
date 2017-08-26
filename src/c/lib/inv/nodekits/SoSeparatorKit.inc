@@ -51,15 +51,15 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/nodekits/SoNodeKitListPart.H"
-#include "inv/nodekits/SoSeparatorKit.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodekits/SoAppearanceKit.H"
-#include "inv/nodes/SoPickStyle.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/nodes/SoUnits.H"
-#include "inv/nodes/SoTexture2Transform.H"
+#include "inv/SoDB.hpp"
+#include "inv/nodekits/SoNodeKitListPart.hpp"
+#include "inv/nodekits/SoSeparatorKit.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodekits/SoAppearanceKit.hpp"
+#include "inv/nodes/SoPickStyle.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/nodes/SoUnits.hpp"
+#include "inv/nodes/SoTexture2Transform.hpp"
 
 SO_KIT_SOURCE(SoSeparatorKit);
 

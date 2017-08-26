@@ -37,14 +37,14 @@
 #ifndef __gluarcsorter_h_
 #define __gluarcsorter_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 /*
  * arcsorter.h - $Revision: 22116 $
  */
 
-#include "sorter.H"
-//#include "arcsorter.H"
+#include "sorter.hpp"
+//#include "arcsorter.hpp"
 
 class Arc;
 class Subdivider;

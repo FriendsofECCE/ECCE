@@ -51,14 +51,14 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoDrawStyleElement.H"
-#include "inv/elements/SoLinePatternElement.H"
-#include "inv/elements/SoLineWidthElement.H"
-#include "inv/elements/SoPointSizeElement.H"
-#include "inv/elements/SoOverrideElement.H"
-#include "inv/nodes/SoDrawStyle.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoDrawStyleElement.hpp"
+#include "inv/elements/SoLinePatternElement.hpp"
+#include "inv/elements/SoLineWidthElement.hpp"
+#include "inv/elements/SoPointSizeElement.hpp"
+#include "inv/elements/SoOverrideElement.hpp"
+#include "inv/nodes/SoDrawStyle.hpp"
 
 SO_NODE_SOURCE(SoDrawStyle);
 

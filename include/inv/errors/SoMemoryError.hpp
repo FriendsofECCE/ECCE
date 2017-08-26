@@ -59,7 +59,7 @@
 #ifndef  _SO_MEMORY_ERROR
 #define  _SO_MEMORY_ERROR
 
-#include "inv/errors/SoError.H"
+#include "inv/errors/SoError.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

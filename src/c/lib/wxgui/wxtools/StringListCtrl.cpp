@@ -1,4 +1,4 @@
-#include "wxgui/StringListCtrl.H"
+#include "wxgui/StringListCtrl.hpp"
 
 IMPLEMENT_DYNAMIC_CLASS(StringListCtrl, ewxListView)
 

@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoGLNormalElement.H"
-#include "inv/nodes/SoNormal.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoGLNormalElement.hpp"
+#include "inv/nodes/SoNormal.hpp"
 
 SO_NODE_SOURCE(SoNormal);
 

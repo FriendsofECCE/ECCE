@@ -56,8 +56,8 @@
 #ifndef  _SO_SF_NAME_
 #define  _SO_SF_NAME_
 
-#include "inv/SbString.H"
-#include "inv/fields/SoSubField.H"
+#include "inv/SbString.hpp"
+#include "inv/fields/SoSubField.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

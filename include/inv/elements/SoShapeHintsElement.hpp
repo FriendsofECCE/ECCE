@@ -56,7 +56,7 @@
 #ifndef  _SO_SHAPE_HINTS_ELEMENT
 #define  _SO_SHAPE_HINTS_ELEMENT
 
-#include "inv/elements/SoReplacedElement.H"
+#include "inv/elements/SoReplacedElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -16,8 +16,8 @@
 #include <vector>
   using std::vector;
 
-#include "util/StringTokenizer.H"
-#include "util/STLUtil.H"
+#include "util/StringTokenizer.hpp"
+#include "util/STLUtil.hpp"
 
 
 void STLUtil::toLower(string& str)

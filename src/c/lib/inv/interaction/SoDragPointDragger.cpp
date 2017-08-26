@@ -55,34 +55,34 @@
 #include <stdio.h>
 #include <limits.h>
 
-#include "inv/SoDB.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/SoDB.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
 
-#include "inv/SbLinear.H"
-#include "inv/SoPath.H"
-#include "inv/SoPickedPoint.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/SoPickedPoint.hpp"
 
-#include "inv/events/SoEvent.H"
-#include "inv/events/SoKeyboardEvent.H"
+#include "inv/events/SoEvent.hpp"
+#include "inv/events/SoKeyboardEvent.hpp"
 
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
 
-#include "inv/draggers/SoDragPointDragger.H"
-#include "inv/draggers/SoTranslate1Dragger.H"
-#include "inv/draggers/SoTranslate2Dragger.H"
+#include "inv/draggers/SoDragPointDragger.hpp"
+#include "inv/draggers/SoTranslate1Dragger.hpp"
+#include "inv/draggers/SoTranslate2Dragger.hpp"
 
-#include "inv/nodes/SoNode.H"
-#include "inv/nodes/SoRotation.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/nodes/SoTranslation.H"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/nodes/SoRotation.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/nodes/SoTranslation.hpp"
 
-#include "inv/projectors/SbLineProjector.H"
-#include "inv/projectors/SbPlaneProjector.H"
+#include "inv/projectors/SbLineProjector.hpp"
+#include "inv/projectors/SbPlaneProjector.hpp"
 
-#include "SoDragPointDraggerGeom.H"
+#include "SoDragPointDraggerGeom.hpp"
 
 
 SO_KIT_SOURCE(SoDragPointDragger);

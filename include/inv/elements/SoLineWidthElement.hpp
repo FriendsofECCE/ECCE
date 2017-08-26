@@ -56,7 +56,7 @@
 #ifndef  _SO_LINE_WIDTH_ELEMENT
 #define  _SO_LINE_WIDTH_ELEMENT
 
-#include "inv/elements/SoFloatElement.H"
+#include "inv/elements/SoFloatElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

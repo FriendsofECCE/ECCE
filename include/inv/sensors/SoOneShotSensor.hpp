@@ -57,7 +57,7 @@
 #ifndef  _SO_ONE_SHOT_SENSOR_
 #define  _SO_ONE_SHOT_SENSOR_
 
-#include "inv/sensors/SoDelayQueueSensor.H"
+#include "inv/sensors/SoDelayQueueSensor.hpp"
 
 // C-api: prefix=SoOneShotSens
 class SoOneShotSensor : public SoDelayQueueSensor {

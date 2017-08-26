@@ -10,7 +10,7 @@
 #ifndef ENERGYCONVERTER_HH
 #define ENERGYCONVERTER_HH
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 class EnergyConverter: public BaseUnitConverter
 {

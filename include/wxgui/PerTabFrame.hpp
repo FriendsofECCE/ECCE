@@ -17,8 +17,8 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxFrame.H"
-#include "wxgui/PerTabPanel.H"
+#include "wxgui/ewxFrame.hpp"
+#include "wxgui/PerTabPanel.hpp"
 
 #define PERTABFRAME_STYLE wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxMINIMIZE_BOX|wxMAXIMIZE_BOX|wxCLOSE_BOX
 #define PERTABFRAME_TITLE _("ECCE Periodic Table")

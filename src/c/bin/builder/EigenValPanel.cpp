@@ -6,22 +6,22 @@
 #include "wx/sizer.h"
 #include "wx/grid.h" 
 
-#include "util/EventDispatcher.H"
-#include "util/PreferenceLabels.H"
+#include "util/EventDispatcher.hpp"
+#include "util/PreferenceLabels.hpp"
 
-#include "tdat/TProperty.H"
-#include "tdat/PropVector.H"
+#include "tdat/TProperty.hpp"
+#include "tdat/PropVector.hpp"
 
-#include "dsm/IPropCalculation.H"
-#include "dsm/ICalculation.H"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/ICalculation.hpp"
 
-#include "wxgui/ewxConfig.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/WindowEvent.H"
-#include "wxgui/ewxGrid.H"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/WindowEvent.hpp"
+#include "wxgui/ewxGrid.hpp"
 
-#include "EigenValPanel.H"
+#include "EigenValPanel.hpp"
 
 
 // ----------------------------------------------------------------------------

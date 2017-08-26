@@ -58,7 +58,7 @@
 #ifndef  _SO_V1_SPOT_LIGHT_KIT_
 #define  _SO_V1_SPOT_LIGHT_KIT_
 
-#include "inv/upgraders/SoV1LightKit.H"
+#include "inv/upgraders/SoV1LightKit.hpp"
 
 ////////////////////////////////////////////////////////////////////
 //    Class: SoV1SpotLightKit

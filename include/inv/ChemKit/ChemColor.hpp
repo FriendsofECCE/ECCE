@@ -57,11 +57,11 @@
 #ifndef  __CHEM_COLOR_H__
 #define  __CHEM_COLOR_H__
 
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoMFColor.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoMFColor.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

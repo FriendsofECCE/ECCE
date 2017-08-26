@@ -54,22 +54,22 @@
 
 #include <stdio.h>
 #include <stdio.h>
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
 
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/nodes/SoRotation.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/nodes/SoSurroundScale.H"
-#include "inv/nodes/SoAntiSquish.H"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/nodes/SoRotation.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
+#include "inv/nodes/SoAntiSquish.hpp"
 
-#include "inv/draggers/SoRotateCylindricalDragger.H"
-#include "inv/draggers/SoTransformBoxDragger.H"
-#include "inv/draggers/SoTranslate2Dragger.H"
-#include "inv/draggers/SoScaleUniformDragger.H"
+#include "inv/draggers/SoRotateCylindricalDragger.hpp"
+#include "inv/draggers/SoTransformBoxDragger.hpp"
+#include "inv/draggers/SoTranslate2Dragger.hpp"
+#include "inv/draggers/SoScaleUniformDragger.hpp"
 
-#include "SoTransformBoxDraggerGeom.H"
+#include "SoTransformBoxDraggerGeom.hpp"
 
 
 SO_KIT_SOURCE(SoTransformBoxDragger);

@@ -135,12 +135,12 @@
 #ifndef  _SO_TRANSFORMER_DRAGGER_
 #define  _SO_TRANSFORMER_DRAGGER_
 
-#include "inv/SoLists.H"
-#include "inv/draggers/SoDragger.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFRotation.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/sensors/SoSensor.H"
+#include "inv/SoLists.hpp"
+#include "inv/draggers/SoDragger.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFRotation.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/sensors/SoSensor.hpp"
 
 class SbDict;
 class SbPlaneProjector;

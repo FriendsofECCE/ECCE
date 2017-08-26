@@ -57,7 +57,7 @@
 #ifndef  _SO_V1_TEXT2_KIT_
 #define  _SO_V1_TEXT2_KIT_
 
-#include "inv/upgraders/SoV1ShapeKit.H"
+#include "inv/upgraders/SoV1ShapeKit.hpp"
 
 ////////////////////////////////////////////////////////////////////
 //    Class: SoV1Text2Kit

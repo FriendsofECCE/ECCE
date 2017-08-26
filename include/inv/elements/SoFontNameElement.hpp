@@ -56,8 +56,8 @@
 #ifndef  _SO_FONT_NAME_ELEMENT
 #define  _SO_FONT_NAME_ELEMENT
 
-#include "inv/SbString.H"
-#include "inv/elements/SoReplacedElement.H"
+#include "inv/SbString.hpp"
+#include "inv/elements/SoReplacedElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

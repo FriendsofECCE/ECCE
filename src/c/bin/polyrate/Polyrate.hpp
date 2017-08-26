@@ -10,23 +10,23 @@
 
 #include "wx/wx.h"
 
-#include "util/EcceException.H"
-#include "util/IOException.H"
-#include "util/EditListener.H"
+#include "util/EcceException.hpp"
+#include "util/IOException.hpp"
+#include "util/EditListener.hpp"
 
-#include "tdat/TaskApp.H"
-#include "tdat/PolyrateModel.H"
+#include "tdat/TaskApp.hpp"
+#include "tdat/PolyrateModel.hpp"
 
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/DirDyVTSTTask.H"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/DirDyVTSTTask.hpp"
 
-#include "wxgui/ewxChoice.H"
-#include "wxgui/CalcDropHandler.H"
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/WxJMSListener.H"
-#include "wxgui/WxFeedback.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/CalcDropHandler.hpp"
+#include "wxgui/WxDavAuth.hpp"
+#include "wxgui/WxJMSListener.hpp"
+#include "wxgui/WxFeedback.hpp"
 
-#include "PolyrateGUI.H"
+#include "PolyrateGUI.hpp"
 
 class EditEvent;
 class ewxDialog;

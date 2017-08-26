@@ -55,7 +55,7 @@
 
 #ident "$Revision: 22141 $"
 
-#include "inv/ChemKit/ChemLattice3Element.H"
+#include "inv/ChemKit/ChemLattice3Element.hpp"
 
 SO_ELEMENT_SOURCE(ChemLattice3Element);
 

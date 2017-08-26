@@ -4,8 +4,8 @@
  *
  */
 
-#include "tdat/TaskAppCloseEvent.H"
-#include "tdat/TaskApp.H"
+#include "tdat/TaskAppCloseEvent.hpp"
+#include "tdat/TaskApp.hpp"
 
 
 

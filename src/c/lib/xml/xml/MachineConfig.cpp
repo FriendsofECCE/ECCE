@@ -33,16 +33,16 @@
     using std::ifstream;
     using std::ofstream;
 
-#include "util/Ecce.H"
-#include "util/Host.H"
-#include "util/ErrMsg.H"
-#include "util/KeyValueReader.H"
-#include "util/EcceRegexp.H"
+#include "util/Ecce.hpp"
+#include "util/Host.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/KeyValueReader.hpp"
+#include "util/EcceRegexp.hpp"
 
-#include "tdat/RefMachine.H"
+#include "tdat/RefMachine.hpp"
 
-#include "dsm/MachineConfig.H"
-#include "dsm/MachinePreferences.H"
+#include "dsm/MachineConfig.hpp"
+#include "dsm/MachinePreferences.hpp"
 
 // Public Member Functions
 // -----------------------

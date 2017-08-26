@@ -37,7 +37,7 @@
 #ifndef __glumyassert_h_
 #define __glumyassert_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * myassert.h - $Revision: 22116 $
  */

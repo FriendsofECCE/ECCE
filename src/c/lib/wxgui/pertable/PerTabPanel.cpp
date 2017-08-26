@@ -12,21 +12,21 @@ using std::ios;
 using std::ofstream;
 using std::ifstream;
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "tdat/TPerTab.H"
+#include "tdat/TPerTab.hpp"
 
-#include "util/Ecce.H"
-#include "util/Event.H"
-#include "util/EventDispatcher.H"
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
-#include "util/Listener.H"
-#include "util/Preferences.H"
+#include "util/Ecce.hpp"
+#include "util/Event.hpp"
+#include "util/EventDispatcher.hpp"
+#include "util/JMSMessage.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/Listener.hpp"
+#include "util/Preferences.hpp"
 
-#include "wxgui/ewxMenu.H"
-#include "wxgui/PerTabPanel.H"
-#include "wxgui/PTDataFrame.H"
+#include "wxgui/ewxMenu.hpp"
+#include "wxgui/PerTabPanel.hpp"
+#include "wxgui/PTDataFrame.hpp"
 
 using namespace ecce;
 

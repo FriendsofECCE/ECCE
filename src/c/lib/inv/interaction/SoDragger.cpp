@@ -54,36 +54,36 @@
 
 #include <stdio.h>
 
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
-#include "inv/SoPickedPoint.H"
-#include "inv/SoPath.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/SoPath.hpp"
 
-#include "inv/fields/SoSFRotation.H"
-#include "inv/fields/SoSFVec3f.H"
+#include "inv/fields/SoSFRotation.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/events/SoEvent.H"
-#include "inv/events/SoKeyboardEvent.H"
-#include "inv/events/SoLocation2Event.H"
-#include "inv/events/SoMouseButtonEvent.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/events/SoEvent.hpp"
+#include "inv/events/SoKeyboardEvent.hpp"
+#include "inv/events/SoLocation2Event.hpp"
+#include "inv/events/SoMouseButtonEvent.hpp"
 
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/actions/SoSearchAction.H"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/actions/SoSearchAction.hpp"
 
-#include "inv/nodes/SoCamera.H"
-#include "inv/nodes/SoMatrixTransform.H"
+#include "inv/nodes/SoCamera.hpp"
+#include "inv/nodes/SoMatrixTransform.hpp"
 
-#include "inv/misc/SoState.H"
-#include "inv/misc/SoTempPath.H"
-#include "inv/misc/SoAuditorList.H"
-#include "inv/misc/SoChildList.H"
-#include "inv/elements/SoViewVolumeElement.H"
-#include "inv/elements/SoViewportRegionElement.H"
+#include "inv/misc/SoState.hpp"
+#include "inv/misc/SoTempPath.hpp"
+#include "inv/misc/SoAuditorList.hpp"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/elements/SoViewVolumeElement.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
 
-#include "inv/draggers/SoDragger.H"
+#include "inv/draggers/SoDragger.hpp"
 
 // The smallest scale that any dragger will write. If the user attempts
 // to go below this amount, the dragger will set it to this minimum.

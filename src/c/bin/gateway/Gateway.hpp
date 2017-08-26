@@ -12,7 +12,7 @@
 #define _GATEWAY_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "Gateway.C"
+#pragma interface "Gateway.cpp"
 #endif
 
 #include "wx/frame.h"
@@ -43,8 +43,8 @@ using std::vector;
 #define wxFIXED_MINSIZE 0
 #endif
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxFrame.hpp"
 
 class EcceTool;
 class ewxMenu;

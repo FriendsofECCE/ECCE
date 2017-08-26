@@ -7,8 +7,8 @@
 using std::set;
 using std::less;
 
-#include "tdat/GeomConstraint.H"
-#include "tdat/Measures.H"
+#include "tdat/GeomConstraint.hpp"
+#include "tdat/Measures.hpp"
 
 
 

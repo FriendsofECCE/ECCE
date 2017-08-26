@@ -11,7 +11,7 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPClient.H"
+#include "dsm/CHTTPClient.hpp"
 
 // class: CDAVClient *******************************************************
 

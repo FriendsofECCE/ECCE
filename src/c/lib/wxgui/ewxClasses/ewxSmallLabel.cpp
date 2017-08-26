@@ -4,8 +4,8 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxSmallLabel.H"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxSmallLabel.hpp"
 
 
 ewxSmallLabel::ewxSmallLabel()

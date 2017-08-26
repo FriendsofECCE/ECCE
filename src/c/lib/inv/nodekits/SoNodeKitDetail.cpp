@@ -52,9 +52,9 @@
  */
 
 
-#include "inv/details/SoNodeKitDetail.H"
+#include "inv/details/SoNodeKitDetail.hpp"
 
-#include "inv/nodekits/SoBaseKit.H"
+#include "inv/nodekits/SoBaseKit.hpp"
 
 SO_DETAIL_SOURCE(SoNodeKitDetail);
 

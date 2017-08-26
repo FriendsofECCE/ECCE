@@ -37,15 +37,15 @@ using namespace std;
   using std::ofstream;
   using std::ifstream;
 
-#include "util/ErrMsg.H"
-#include "util/KeyValueReader.H"
-#include "tdat/TPerTab.H"
-#include "tdat/TOxidationState.H"
-#include "tdat/TRefElement.H"
-#include "util/Color.H"
-#include "util/Ecce.H"
-#include "util/SFile.H"
-#include "util/StringTokenizer.H"
+#include "util/ErrMsg.hpp"
+#include "util/KeyValueReader.hpp"
+#include "tdat/TPerTab.hpp"
+#include "tdat/TOxidationState.hpp"
+#include "tdat/TRefElement.hpp"
+#include "util/Color.hpp"
+#include "util/Ecce.hpp"
+#include "util/SFile.hpp"
+#include "util/StringTokenizer.hpp"
 
 map<string,int,less<string> > *TPerTab::p_symhash=0;
 vector<TRefElement*>       *TPerTab::p_refel=0;

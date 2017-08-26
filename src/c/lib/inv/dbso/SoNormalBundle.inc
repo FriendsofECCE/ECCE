@@ -51,13 +51,13 @@
  _______________________________________________________________________
  */
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/misc/SoState.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/bundles/SoNormalBundle.H"
-#include "inv/elements/SoCreaseAngleElement.H"
-#include "inv/elements/SoNormalBindingElement.H"
-#include "inv/elements/SoShapeHintsElement.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/bundles/SoNormalBundle.hpp"
+#include "inv/elements/SoCreaseAngleElement.hpp"
+#include "inv/elements/SoNormalBindingElement.hpp"
+#include "inv/elements/SoShapeHintsElement.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

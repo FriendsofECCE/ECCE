@@ -56,8 +56,8 @@
 #ifndef  _SO_NORMAL_
 #define  _SO_NORMAL_
 
-#include "inv/nodes/SoSubNode.H"
-#include "inv/fields/SoMFVec3f.H"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/fields/SoMFVec3f.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -51,12 +51,12 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoShapeStyleElement.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoDrawStyleElement.H"
-#include "inv/elements/SoComplexityTypeElement.H"
-#include "inv/nodes/SoVertexProperty.H"
-#include "inv/nodes/SoLightModel.H"
+#include "inv/elements/SoShapeStyleElement.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoDrawStyleElement.hpp"
+#include "inv/elements/SoComplexityTypeElement.hpp"
+#include "inv/nodes/SoVertexProperty.hpp"
+#include "inv/nodes/SoLightModel.hpp"
 
 const int INVISIBLE_BIT = 0x1;
 const int BBOX_BIT = 0x2;

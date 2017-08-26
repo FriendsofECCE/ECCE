@@ -9,9 +9,9 @@
 #ifndef CALCULATIONCONTEXTPANEL_H
 #define CALCULATIONCONTEXTPANEL_H
 
-#include "wxgui/ewxScrolledWindow.H"
+#include "wxgui/ewxScrolledWindow.hpp"
 
-#include "ContextPanelInterface.H"
+#include "ContextPanelInterface.hpp"
 
 
 class CalcMgr;

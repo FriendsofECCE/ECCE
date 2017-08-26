@@ -39,13 +39,13 @@
  * 	Derrick Burns - 1991
  */
 #include <stdio.h>
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "quilt.H"
-#include "patchlist.H"
-#include "patch.H"
-#include "nurbsconsts.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "quilt.hpp"
+#include "patchlist.hpp"
+#include "patch.hpp"
+#include "nurbsconsts.hpp"
 
 Patchlist::Patchlist( Quilt *quilts, REAL *pta, REAL *ptb )
 {

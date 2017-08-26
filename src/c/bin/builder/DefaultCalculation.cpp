@@ -1,11 +1,11 @@
 #include <sstream>
   using std::ostringstream;
 
-#include "util/NotImplementedException.H"
+#include "util/NotImplementedException.hpp"
 
-#include "tdat/Fragment.H"
+#include "tdat/Fragment.hpp"
 
-#include "DefaultCalculation.H"
+#include "DefaultCalculation.hpp"
 
 
 IMPLEMENT_CALCULATION(

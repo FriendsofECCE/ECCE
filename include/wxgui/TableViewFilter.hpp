@@ -14,7 +14,7 @@
 #ifndef TABLEVIEWFILTER_HH
 #define TABLEVIEWFILTER_HH
 
-#include "wxgui/TableElement.H"
+#include "wxgui/TableElement.hpp"
 
 class TableViewFilter
 {

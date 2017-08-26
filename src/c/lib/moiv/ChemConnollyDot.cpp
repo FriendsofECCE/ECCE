@@ -59,13 +59,13 @@
 
 #include <stdio.h>
 
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoRayPickAction.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
 
-#include "inv/ChemKit/ChemConnollyDot.H"
-#include "inv/ChemKit/ChemBaseDataElement.H"
-#include "inv/ChemKit/ChemColorElement.H"
-#include "inv/ChemKit/ChemRadiiElement.H"
+#include "inv/ChemKit/ChemConnollyDot.hpp"
+#include "inv/ChemKit/ChemBaseDataElement.hpp"
+#include "inv/ChemKit/ChemColorElement.hpp"
+#include "inv/ChemKit/ChemRadiiElement.hpp"
 
 void
 ChemConnollyDot::initClass()

@@ -56,8 +56,8 @@
 #ifndef  _SO_BUTTON_EVENT_
 #define  _SO_BUTTON_EVENT_
 
-#include "inv/SbBasic.H"
-#include "inv/events/SoSubEvent.H"
+#include "inv/SbBasic.hpp"
+#include "inv/events/SoSubEvent.hpp"
 
 
 // C-api: prefix=SoBtnEv

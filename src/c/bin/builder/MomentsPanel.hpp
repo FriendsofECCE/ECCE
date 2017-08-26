@@ -2,7 +2,7 @@
 #define MOMENTSPANEL__H
 
 
-#include "VizPropertyPanel.H"
+#include "VizPropertyPanel.hpp"
 
 
 class SliderCombo;

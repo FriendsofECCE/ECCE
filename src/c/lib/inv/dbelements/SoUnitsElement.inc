@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoUnitsElement.H"
+#include "inv/elements/SoUnitsElement.hpp"
 
 SO_ELEMENT_SOURCE(SoUnitsElement);
 

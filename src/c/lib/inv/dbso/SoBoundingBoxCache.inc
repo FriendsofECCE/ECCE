@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/caches/SoBoundingBoxCache.H"
-#include "inv/elements/SoCacheElement.H"
+#include "inv/caches/SoBoundingBoxCache.hpp"
+#include "inv/elements/SoCacheElement.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

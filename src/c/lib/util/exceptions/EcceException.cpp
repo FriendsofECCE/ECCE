@@ -12,7 +12,7 @@ using std::endl;
 #include  <stdlib.h>
 #include  <string.h>
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 const EcceException *EcceException::p_last = 0;
 

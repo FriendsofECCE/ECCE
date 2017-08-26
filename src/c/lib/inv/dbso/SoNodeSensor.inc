@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/nodes/SoNode.H"
-#include "inv/sensors/SoNodeSensor.H"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/sensors/SoNodeSensor.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

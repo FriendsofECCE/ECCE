@@ -56,10 +56,10 @@
 #ifndef  _SO_ARRAY_
 #define  _SO_ARRAY_
 
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFShort.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/nodes/SoGroup.H"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFShort.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/nodes/SoGroup.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

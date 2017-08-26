@@ -1,5 +1,5 @@
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "Dna.H"
+#pragma implementation "Dna.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -13,18 +13,18 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/WindowEvent.H"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/WindowEvent.hpp"
   using namespace ecce;
 
-#include "viz/GenerateDNACmd.H"
-#include "viz/NewFragmentCmd.H"
+#include "viz/GenerateDNACmd.hpp"
+#include "viz/NewFragmentCmd.hpp"
 
-#include "Dna.H"
+#include "Dna.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS( Dna, DnaGUI )
@@ -123,7 +123,7 @@ void Dna::OnButtonDnaGenerateClick( wxCommandEvent& event )
 
   bool doit = true;
   if (frag->numAtoms() > 0) {
-     ewxMessageDialog dlg(this, 
+     ewxMessageDialog dlg(this,
            "DNA strands can not be added to existing systems.  \n"
            "Do you want to clear the existing system?",
            "ECCE Clear System", wxOK|wxCANCEL|wxICON_QUESTION);

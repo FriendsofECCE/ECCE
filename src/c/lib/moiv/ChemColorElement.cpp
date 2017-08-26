@@ -55,7 +55,7 @@
 
 #ident "$Revision: 22141 $"
 
-#include "inv/ChemKit/ChemColorElement.H"
+#include "inv/ChemKit/ChemColorElement.hpp"
 
 SO_ELEMENT_SOURCE(ChemColorElement);
 

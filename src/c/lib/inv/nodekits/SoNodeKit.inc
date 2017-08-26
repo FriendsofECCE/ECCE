@@ -51,19 +51,19 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/nodekits/SoNodeKitListPart.H"
-#include "inv/nodekits/SoNodeKit.H"
-#include "inv/nodekits/SoAppearanceKit.H"
-#include "inv/nodekits/SoBaseKit.H"
-#include "inv/nodekits/SoCameraKit.H"
-#include "inv/nodekits/SoSeparatorKit.H"
-#include "inv/nodekits/SoLightKit.H"
-#include "inv/nodekits/SoSceneKit.H"
-#include "inv/nodekits/SoShapeKit.H"
-#include "inv/nodekits/SoWrapperKit.H"
-#include "inv/details/SoNodeKitDetail.H"
-#include "inv/upgraders/SoV1NodeKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/nodekits/SoNodeKitListPart.hpp"
+#include "inv/nodekits/SoNodeKit.hpp"
+#include "inv/nodekits/SoAppearanceKit.hpp"
+#include "inv/nodekits/SoBaseKit.hpp"
+#include "inv/nodekits/SoCameraKit.hpp"
+#include "inv/nodekits/SoSeparatorKit.hpp"
+#include "inv/nodekits/SoLightKit.hpp"
+#include "inv/nodekits/SoSceneKit.hpp"
+#include "inv/nodekits/SoShapeKit.hpp"
+#include "inv/nodekits/SoWrapperKit.hpp"
+#include "inv/details/SoNodeKitDetail.hpp"
+#include "inv/upgraders/SoV1NodeKit.hpp"
 
 SbBool SoNodeKit::initialized = FALSE;
 

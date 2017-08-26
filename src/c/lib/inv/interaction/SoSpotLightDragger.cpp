@@ -58,26 +58,26 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
-#include "inv/SoPath.H"
-#include "inv/projectors/SbPlaneProjector.H"
-#include "inv/projectors/SbSphereSectionProjector.H"
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/projectors/SbPlaneProjector.hpp"
+#include "inv/projectors/SbSphereSectionProjector.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
 
-#include "inv/nodes/SoMaterial.H"
-#include "inv/nodes/SoRotation.H"
-#include "inv/nodes/SoScale.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/nodes/SoTranslation.H"
-#include "inv/nodes/SoSpotLight.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/draggers/SoDragPointDragger.H"
-#include "inv/draggers/SoRotateSphericalDragger.H"
-#include "inv/draggers/SoSpotLightDragger.H"
+#include "inv/nodes/SoMaterial.hpp"
+#include "inv/nodes/SoRotation.hpp"
+#include "inv/nodes/SoScale.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/nodes/SoTranslation.hpp"
+#include "inv/nodes/SoSpotLight.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/draggers/SoDragPointDragger.hpp"
+#include "inv/draggers/SoRotateSphericalDragger.hpp"
+#include "inv/draggers/SoSpotLightDragger.hpp"
 
-#include "SoSpotLightDraggerGeom.H"
+#include "SoSpotLightDraggerGeom.hpp"
 
 
 SO_KIT_SOURCE(SoSpotLightDragger);

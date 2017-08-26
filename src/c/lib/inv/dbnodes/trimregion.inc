@@ -39,11 +39,11 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "trimregion.H"
-#include "backend.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "trimregion.hpp"
+#include "backend.hpp"
 
 TrimRegion::TrimRegion( void )
 {

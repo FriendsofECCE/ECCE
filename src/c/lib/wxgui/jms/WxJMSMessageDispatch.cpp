@@ -24,17 +24,17 @@
 #include <algorithm>
   using std::find;
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/JMSMessage.H"
-#include "util/StringConverter.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/JMSMessage.hpp"
+#include "util/StringConverter.hpp"
 
-#include "tdat/AuthCache.H"
+#include "tdat/AuthCache.hpp"
 
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/ResourceTool.H"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/ResourceTool.hpp"
 
-#include "wxgui/WxJMSMessageDispatch.H"
+#include "wxgui/WxJMSMessageDispatch.hpp"
 
 // KLS 9/6/06
 // Made this static instance pointer for signal handling

@@ -11,7 +11,7 @@
 #ifndef BONDFRCCONSTCONVERTER_HH
 #define BONDFRCCONSTCONVERTER_HH
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 class BondFrcConstConverter: public BaseUnitConverter
 {

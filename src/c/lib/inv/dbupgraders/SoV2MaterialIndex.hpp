@@ -56,9 +56,9 @@
 #ifndef  _SO_V2MATERIALINDEX_
 #define  _SO_V2MATERIALINDEX_
 
-#include "inv/fields/SoMFInt32.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/upgraders/SoUpgrader.H"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/upgraders/SoUpgrader.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

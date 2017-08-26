@@ -14,7 +14,7 @@ using std::ios;
 using std::ofstream;
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "GatewayApp.H"
+#pragma implementation "GatewayApp.hpp"
 #endif
 
 #include "wx/wxprec.h"
@@ -31,25 +31,25 @@ using std::ofstream;
 
 #include <signal.h>
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/SDirectory.H"
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/SDirectory.hpp"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSIServerCentral.H"
-#include "dsm/EDSI.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSIServerCentral.hpp"
+#include "dsm/EDSI.hpp"
 
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/WxJMSSubscriber.H"
-#include "wxgui/ewxMessageDialog.H"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/WxJMSSubscriber.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
 
-#include "GatewayApp.H"
-#include "Gateway.H"
+#include "GatewayApp.hpp"
+#include "Gateway.hpp"
 
 #ifdef EMSL
-#include "EMSLAuth.H"
+#include "EMSLAuth.hpp"
 #endif
 
 

@@ -57,9 +57,9 @@
 #ifndef __SFDOUBLE_H__
 #define __SFDOUBLE_H__
 
-#include "inv/fields/SoSubField.H"
+#include "inv/fields/SoSubField.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class CHEMKIT_DLL_API SFDouble : public SoSField {
 

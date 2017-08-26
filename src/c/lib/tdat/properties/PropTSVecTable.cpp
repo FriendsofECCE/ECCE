@@ -14,8 +14,8 @@ using std::istrstream;
 
 #include <stdlib.h>         // atoi
 
-#include "util/ErrMsg.H"
-#include "tdat/PropTSVecTable.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/PropTSVecTable.hpp"
 
 
 // -----------------------

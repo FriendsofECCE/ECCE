@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoCreaseAngleElement.H"
+#include "inv/elements/SoCreaseAngleElement.hpp"
 
 SO_ELEMENT_SOURCE(SoCreaseAngleElement);
 

@@ -28,14 +28,14 @@ using std::ifstream;
 
 
 // application includes
-#include "tdat/TChartOfNuclides.H"
-#include "tdat/TRefIsotope.H"
-#include "tdat/TPerTab.H"
+#include "tdat/TChartOfNuclides.hpp"
+#include "tdat/TRefIsotope.hpp"
+#include "tdat/TPerTab.hpp"
 
-//#include "util/ErrMsg.H"
-#include "util/Preferences.H"
-#include "util/Ecce.H"
-#include "util/StringTokenizer.H"
+//#include "util/ErrMsg.hpp"
+#include "util/Preferences.hpp"
+#include "util/Ecce.hpp"
+#include "util/StringTokenizer.hpp"
 
 // Class statics
 vector<TRefIsotope*> *TChartOfNuclides::p_cn = 0;

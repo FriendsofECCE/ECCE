@@ -60,11 +60,11 @@
 
 #include <tr1/math.h>
 #include <stdlib.h>
-#include "inv/SbLinear.H"
-#include "inv/SoPrimitiveVertex.H"
-#include "softcurvemaps.H"
-#include "softsurfacemaps.H"
-//#include "gl4types.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoPrimitiveVertex.hpp"
+#include "softcurvemaps.hpp"
+#include "softsurfacemaps.hpp"
+//#include "gl4types.hpp"
 
 class SoAction;
 

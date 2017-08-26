@@ -60,11 +60,11 @@
 #ifndef  _SO_COMPUTE_BOUNDING_BOX_
 #define  _SO_COMPUTE_BOUNDING_BOX_
 
-#include "inv/SbViewportRegion.H"
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoSFPath.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/fields/SoSFVec3f.H"
+#include "inv/SbViewportRegion.hpp"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoSFPath.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
 
 class SoGetBoundingBoxAction;
 

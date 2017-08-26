@@ -5,7 +5,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxNotebook.H"
+#include "wxgui/ewxNotebook.hpp"
 
 
 ewxNotebook::ewxNotebook()

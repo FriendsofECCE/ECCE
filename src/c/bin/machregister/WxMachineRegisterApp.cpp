@@ -13,15 +13,15 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/Ecce.H"
+#include "util/Ecce.hpp"
 
-#include "tdat/AuthCache.H"
+#include "tdat/AuthCache.hpp"
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "WxMachineRegisterApp.H"
-#include "WxMachineRegisterGUI.H"
-#include "WxMachineRegister.H"
+#include "WxMachineRegisterApp.hpp"
+#include "WxMachineRegisterGUI.hpp"
+#include "WxMachineRegister.hpp"
 
 
 IMPLEMENT_APP(WxMachineRegisterApp)

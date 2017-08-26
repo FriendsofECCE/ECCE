@@ -54,21 +54,21 @@
  */
 
 #include <GL/gl.h>
-#include "inv/SbBox.H"
-#include "inv/SoPickedPoint.H"
-#include "inv/SoPrimitiveVertex.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/bundles/SoMaterialBundle.H"
-#include "inv/details/SoCylinderDetail.H"
-#include "inv/elements/SoComplexityElement.H"
-#include "inv/elements/SoComplexityTypeElement.H"
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/elements/SoGLTextureEnabledElement.H"
-#include "inv/elements/SoLightModelElement.H"
-#include "inv/elements/SoMaterialBindingElement.H"
-#include "inv/misc/SoState.H"
-#include "inv/nodes/SoCylinder.H"
+#include "inv/SbBox.hpp"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/SoPrimitiveVertex.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/bundles/SoMaterialBundle.hpp"
+#include "inv/details/SoCylinderDetail.hpp"
+#include "inv/elements/SoComplexityElement.hpp"
+#include "inv/elements/SoComplexityTypeElement.hpp"
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/elements/SoGLTextureEnabledElement.hpp"
+#include "inv/elements/SoLightModelElement.hpp"
+#include "inv/elements/SoMaterialBindingElement.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/nodes/SoCylinder.hpp"
 
 SO_NODE_SOURCE(SoCylinder);
 

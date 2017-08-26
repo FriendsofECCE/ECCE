@@ -37,15 +37,15 @@
 #ifndef __gluimports_h_
 #define __gluimports_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * glimports.h - $Revision: 22116 $
  */
 
 #include <stdio.h>
 
-#include "mystdlib.H"
-#include "mystdio.H"
+#include "mystdlib.hpp"
+#include "mystdio.hpp"
 
 inline void *
 operator new( size_t s )

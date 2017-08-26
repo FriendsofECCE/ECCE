@@ -56,8 +56,8 @@
 #ifndef  _SO_GL_LAZY_ELEMENT
 #define  _SO_GL_LAZY_ELEMENT
 
-#include "inv/elements/SoLazyElement.H"
-#include "inv/actions/SoGLRenderAction.H"
+#include "inv/elements/SoLazyElement.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
 class SoGLRenderCache;
 
 //////////////////////////////////////////////////////////////////////////////

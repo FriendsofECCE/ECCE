@@ -2,10 +2,10 @@
 #include <vector>
   using std::string;
   using std::vector;
-#include "tdat/Segment.H"
-#include "tdat/Fragment.H"
-#include "tdat/TPerTab.H"
-#include "tdat/FragUtil.H"
+#include "tdat/Segment.hpp"
+#include "tdat/Fragment.hpp"
+#include "tdat/TPerTab.hpp"
+#include "tdat/FragUtil.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Description:

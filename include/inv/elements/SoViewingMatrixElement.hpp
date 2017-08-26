@@ -56,8 +56,8 @@
 #ifndef  _SO_VIEWING_MATRIX_ELEMENT
 #define  _SO_VIEWING_MATRIX_ELEMENT
 
-#include "inv/SbLinear.H"
-#include "inv/elements/SoReplacedElement.H"
+#include "inv/SbLinear.hpp"
+#include "inv/elements/SoReplacedElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

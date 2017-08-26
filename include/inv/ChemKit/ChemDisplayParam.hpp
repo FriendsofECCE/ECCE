@@ -58,24 +58,24 @@
 #define  __CHEM_DISPLAY_PARAM_H__
 
 
-#include "inv/fields/SoSFInt32.H"
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFColor.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFName.H"
-#include "inv/fields/SoSFShort.H"
-#include "inv/fields/SoSFString.H"
-#include "inv/fields/SoSFUShort.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/fields/SoMFNode.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoSFInt32.hpp"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFColor.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFName.hpp"
+#include "inv/fields/SoSFShort.hpp"
+#include "inv/fields/SoSFString.hpp"
+#include "inv/fields/SoSFUShort.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/fields/SoMFNode.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 // --> residue labels
-#include "inv/fields/SoSFVec3f.H"
+#include "inv/fields/SoSFVec3f.hpp"
 // <-- residue labels
 
-#include "inv/ChemKit/MFInt8.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/MFInt8.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

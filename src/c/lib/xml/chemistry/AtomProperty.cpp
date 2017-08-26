@@ -18,10 +18,10 @@
   using namespace xercesc;
 
 
-#include "util/StringConverter.H"
-#include "util/STLUtil.H"
+#include "util/StringConverter.hpp"
+#include "util/STLUtil.hpp"
 
-#include "dsm/AtomProperty.H"
+#include "dsm/AtomProperty.hpp"
 
 
 /**

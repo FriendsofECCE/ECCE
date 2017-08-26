@@ -61,9 +61,9 @@
 #ifndef  _SO_ERRORS_
 #define  _SO_ERRORS_
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoError.H"
-#include "inv/errors/SoMemoryError.H"
-#include "inv/errors/SoReadError.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoError.hpp"
+#include "inv/errors/SoMemoryError.hpp"
+#include "inv/errors/SoReadError.hpp"
 
 #endif /* _SO_ERRORS_ */

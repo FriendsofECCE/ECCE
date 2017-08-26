@@ -3,13 +3,13 @@
 
 #include <wx/event.h>
 
-#include "util/Preferences.H"
+#include "util/Preferences.hpp"
 
-#include "dsm/TGBSConfig.H"
+#include "dsm/TGBSConfig.hpp"
 
-#include "WxContractionEditorGUI.H"
-#include "GBSContractionGridModel.H"
-#include "GBSSummaryGridModel.H"
+#include "WxContractionEditorGUI.hpp"
+#include "GBSContractionGridModel.hpp"
+#include "GBSSummaryGridModel.hpp"
 
 class ewxChoice;
 class ewxGrid;

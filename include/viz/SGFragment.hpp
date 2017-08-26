@@ -13,12 +13,12 @@
 #include <map>
   using std::map;
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
-#include "tdat/Fragment.H"
-#include "tdat/DisplayStyle.H"
+#include "tdat/Fragment.hpp"
+#include "tdat/DisplayStyle.hpp"
 
-#include "inv/ChemKit/ChemData.H"
+#include "inv/ChemKit/ChemData.hpp"
 
 class SoAction;
 class SoCallbackAction;

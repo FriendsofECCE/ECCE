@@ -53,7 +53,7 @@
 #ifndef  _SO_TAB_BOX_MANIP_
 #define  _SO_TAB_BOX_MANIP_
 
-#include "inv/manips/SoTransformManip.H"
+#include "inv/manips/SoTransformManip.hpp"
 
 class SoTabBoxManip : public SoTransformManip
 {

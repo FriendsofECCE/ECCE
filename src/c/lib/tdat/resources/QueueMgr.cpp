@@ -19,13 +19,13 @@
 // general includes
 // library includes
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/Preferences.H"
-#include "tdat/RefQueueMgr.H"
-#include "tdat/QueueMgr.H"
-#include "tdat/RefMachine.H"
-#include "tdat/Queue.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/Preferences.hpp"
+#include "tdat/RefQueueMgr.hpp"
+#include "tdat/QueueMgr.hpp"
+#include "tdat/RefMachine.hpp"
+#include "tdat/Queue.hpp"
 
 // #ifndef DEBUG
 // #define DEBUG

@@ -17,8 +17,8 @@
 // library includes
 
 // application includes
-   #include "util/ErrMsg.H"
-   #include "tdat/TProperty.H"
+   #include "util/ErrMsg.hpp"
+   #include "tdat/TProperty.hpp"
 
 
 // -----------------------

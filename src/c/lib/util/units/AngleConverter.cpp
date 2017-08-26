@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "util/AngleConverter.H"
+#include "util/AngleConverter.hpp"
 
 /**
  * Constructor.

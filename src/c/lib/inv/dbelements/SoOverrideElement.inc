@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoOverrideElement.H"
-#include "inv/elements/SoShapeStyleElement.H"
+#include "inv/elements/SoOverrideElement.hpp"
+#include "inv/elements/SoShapeStyleElement.hpp"
 
 SO_ELEMENT_SOURCE(SoOverrideElement);
 

@@ -55,7 +55,7 @@
 
 #ident "$Revision: 22141 $"
 
-#include "inv/ChemKit/SFInt8.H"
+#include "inv/ChemKit/SFInt8.hpp"
 
 //////////////////////////////////////////////////////////////////
 // Class SFInt8

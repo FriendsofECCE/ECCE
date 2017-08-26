@@ -13,9 +13,9 @@
 #include <xercesc/dom/DOMDocument.hpp>
   using namespace xercesc;
 
-#include "dsm/EDSI.H"
-#include "dsm/ResourceDescriptor.H"
-#include "util/ProgressEvent.H"
+#include "dsm/EDSI.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "util/ProgressEvent.hpp"
 
 
 class EcceDAVClient;

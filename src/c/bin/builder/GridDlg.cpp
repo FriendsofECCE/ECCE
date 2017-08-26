@@ -9,17 +9,17 @@
 #include "wx/sizer.h"
 #include "wx/tglbtn.h" // EVT_TOGGLEBUTTON
 
-#include "dsm/PropFactory.H"
-#include "dsm/ICalculation.H"
+#include "dsm/PropFactory.hpp"
+#include "dsm/ICalculation.hpp"
 
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxNumericValidator.H"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
 
-#include "GridDlg.H"
+#include "GridDlg.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS(GridDlg, GridGUI)

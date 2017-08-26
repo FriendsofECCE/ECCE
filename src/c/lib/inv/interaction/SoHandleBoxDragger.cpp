@@ -53,24 +53,24 @@
 
 
 #include <stdio.h>
-#include "inv/SoDB.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/events/SoEvent.H"
-#include "inv/events/SoKeyboardEvent.H"
-#include "inv/projectors/SbPlaneProjector.H"
-#include "inv/projectors/SbLineProjector.H"
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/draggers/SoHandleBoxDragger.H"
-#include "inv/nodes/SoSurroundScale.H"
-#include "inv/nodes/SoDrawStyle.H"
-#include "inv/nodes/SoRotation.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/nodes/SoTranslation.H"
-#include "inv/nodes/SoTransform.H"
+#include "inv/SoDB.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/events/SoEvent.hpp"
+#include "inv/events/SoKeyboardEvent.hpp"
+#include "inv/projectors/SbPlaneProjector.hpp"
+#include "inv/projectors/SbLineProjector.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/draggers/SoHandleBoxDragger.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
+#include "inv/nodes/SoDrawStyle.hpp"
+#include "inv/nodes/SoRotation.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/nodes/SoTranslation.hpp"
+#include "inv/nodes/SoTransform.hpp"
 #include <GL/gl.h>
 
-#include "SoHandleBoxDraggerGeom.H"
+#include "SoHandleBoxDraggerGeom.hpp"
 
 
 SO_KIT_SOURCE(SoHandleBoxDragger);

@@ -55,19 +55,19 @@
 
 #ident "$Revision: 22147 $"
     
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/actions/SoWriteAction.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/actions/SoWriteAction.hpp"
 
-#include "inv/misc/SoChildList.H"
+#include "inv/misc/SoChildList.hpp"
 
-#include "inv/ChemKit/ChemContour2.H"
-#include "inv/ChemKit/ChemLattice3.H"
-#include "inv/ChemKit/ContourLib.H"
+#include "inv/ChemKit/ChemContour2.hpp"
+#include "inv/ChemKit/ChemLattice3.hpp"
+#include "inv/ChemKit/ContourLib.hpp"
 
 //#define TIMEIT
 #ifdef TIMEIT

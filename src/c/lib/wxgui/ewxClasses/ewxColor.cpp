@@ -5,8 +5,8 @@
 #endif
 
 #include <stdio.h>  // sprintf
-#include "wxgui/ewxColor.H"
-#include "util/Color.H"
+#include "wxgui/ewxColor.hpp"
+#include "util/Color.hpp"
 #include <iostream>
 using namespace std;
 

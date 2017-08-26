@@ -52,8 +52,8 @@
  */
 
 #include <stdlib.h>
-#include "inv/errors/SoReadError.H"
-#include "inv/fields/SoMFBool.H"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/fields/SoMFBool.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

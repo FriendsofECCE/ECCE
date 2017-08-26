@@ -1,7 +1,7 @@
 #ifndef _MDDYNAMICSAPP_H
 #define _MDDYNAMICSAPP_H
 
-#include "wxgui/ewxApp.H"
+#include "wxgui/ewxApp.hpp"
 
 class MDDynamics;
 

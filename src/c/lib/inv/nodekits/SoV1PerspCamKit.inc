@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1PerspectiveCameraKit.H"
-#include "inv/nodes/SoPerspectiveCamera.H"
-#include "inv/nodekits/SoCameraKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1PerspectiveCameraKit.hpp"
+#include "inv/nodes/SoPerspectiveCamera.hpp"
+#include "inv/nodekits/SoCameraKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1PerspectiveCameraKit);

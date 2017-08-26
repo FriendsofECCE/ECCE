@@ -1,8 +1,8 @@
 #include "wx/dcmemory.h"
 
-#include "wxgui/WxState.H"
+#include "wxgui/WxState.hpp"
 
-#include "wxgui/WxStateImageList.H"
+#include "wxgui/WxStateImageList.hpp"
 
 
 map<int, WxStateImageList*> WxStateImageList::p_singletons;

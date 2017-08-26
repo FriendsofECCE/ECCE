@@ -11,16 +11,16 @@
 #include <fstream>
   using std::ofstream;
 
-#include "util/ErrMsg.H"
-#include "util/Ecce.H"
-#include "util/EcceURL.H"
-#include "util/StringConverter.H"
-#include "util/StringTokenizer.H"
-#include "util/TempStorage.H"
-#include "util/JMSPublisher.H"
+#include "util/ErrMsg.hpp"
+#include "util/Ecce.hpp"
+#include "util/EcceURL.hpp"
+#include "util/StringConverter.hpp"
+#include "util/StringTokenizer.hpp"
+#include "util/TempStorage.hpp"
+#include "util/JMSPublisher.hpp"
 
-#include "tdat/RefMachine.H"
-#include "tdat/AuthCache.H"
+#include "tdat/RefMachine.hpp"
+#include "tdat/AuthCache.hpp"
 
 
 //--------------------------------------------------------------------------

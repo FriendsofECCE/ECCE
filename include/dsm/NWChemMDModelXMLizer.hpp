@@ -11,7 +11,7 @@
 #include <iostream>
   using std::ostream;
 
-#include "dsm/XMLSerializer.H"
+#include "dsm/XMLSerializer.hpp"
 
 class NWChemMDModel;
 class InteractionModel;

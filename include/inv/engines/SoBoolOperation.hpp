@@ -59,9 +59,9 @@
 #ifndef  _SO_BOOL_OPERATION_
 #define  _SO_BOOL_OPERATION_
 
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoMFEnum.H"
-#include "inv/fields/SoMFBool.H"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoMFEnum.hpp"
+#include "inv/fields/SoMFBool.hpp"
 
 // C-api: prefix=SoBoolOper
 // C-api: public=a,b,operation

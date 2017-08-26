@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoViewingMatrixElement.H"
+#include "inv/elements/SoViewingMatrixElement.hpp"
 
 SO_ELEMENT_SOURCE(SoViewingMatrixElement);
 

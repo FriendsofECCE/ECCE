@@ -24,7 +24,7 @@
 #include <string>
     using std::string;
 
-#include "WxMachineStatusGUI.H"
+#include "WxMachineStatusGUI.hpp"
 
 class ewxButton;
 class ewxStaticText;

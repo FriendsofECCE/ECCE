@@ -57,8 +57,8 @@
 #ifndef _SO_AUDITOR_LIST_
 #define _SO_AUDITOR_LIST_
 
-#include "inv/SbPList.H"
-#include "inv/misc/SoNotification.H"
+#include "inv/SbPList.hpp"
+#include "inv/misc/SoNotification.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -56,8 +56,8 @@
 #ifndef  _SO_MULTIPLE_COPY_
 #define  _SO_MULTIPLE_COPY_
 
-#include "inv/fields/SoMFMatrix.H"
-#include "inv/nodes/SoGroup.H"
+#include "inv/fields/SoMFMatrix.hpp"
+#include "inv/nodes/SoGroup.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

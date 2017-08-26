@@ -1,8 +1,8 @@
 #ifndef RESIDUEINDEXPROMPT_H_
 #define RESIDUEINDEXPROMPT_H_
 
-#include "wxviz/ResidueIndexPromptGUI.H"
-#include "wxviz/WxVizTool.H"
+#include "wxviz/ResidueIndexPromptGUI.hpp"
+#include "wxviz/WxVizTool.hpp"
 
 class ResidueIndexPrompt : public ResidueIndexPromptGUI,
                            public WxVizTool

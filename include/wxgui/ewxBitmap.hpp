@@ -2,7 +2,7 @@
 #define _EWXBITMAP_H
 
 #include "wx/bitmap.h"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 /**
  * An extenstion of the wxBitmap class that knows where to find

@@ -24,7 +24,7 @@
 #include "wx/brush.h"
 #include "wx/bitmap.h"
 #include "wx/colour.h"
-#include <wx/ewxaui/framemanager.H>
+#include <wx/ewxaui/framemanager.hpp>
 
 // dock art provider code - a dock provider provides all drawing
 // functionality to the ewxAui dock manager.  This allows the dock

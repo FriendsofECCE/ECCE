@@ -56,9 +56,9 @@
 #ifndef  _SO_GET_MATRIX_ACTION_
 #define  _SO_GET_MATRIX_ACTION_
 
-#include "inv/SbLinear.H"
-#include "inv/actions/SoSubAction.H"
-#include "inv/SbViewportRegion.H"
+#include "inv/SbLinear.hpp"
+#include "inv/actions/SoSubAction.hpp"
+#include "inv/SbViewportRegion.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

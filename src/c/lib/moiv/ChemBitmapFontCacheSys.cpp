@@ -38,7 +38,7 @@ Delete all libfl references, only FLBitmap structure is used
 #include <math.h>
 
 #include "ChemBitmapFontCache.h"
-#include "inv/elements/SoCacheElement.H"
+#include "inv/elements/SoCacheElement.hpp"
 
 #include "FixFonts.h"
 

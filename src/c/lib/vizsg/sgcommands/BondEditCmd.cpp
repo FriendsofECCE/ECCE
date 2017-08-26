@@ -6,20 +6,20 @@
 #include <iostream>
   using namespace std;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
   using namespace ecce;
 
-#include "tdat/TAtm.H"
-#include "tdat/TBond.H"
-#include "tdat/TResItem.H"
-#include "tdat/TResTab.H"
-#include "tdat/FragUtil.H"
-#include "tdat/Measures.H"
+#include "tdat/TAtm.hpp"
+#include "tdat/TBond.hpp"
+#include "tdat/TResItem.hpp"
+#include "tdat/TResTab.hpp"
+#include "tdat/FragUtil.hpp"
+#include "tdat/Measures.hpp"
 
-#include "viz/BondEditCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/BondEditCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 
 

@@ -39,14 +39,14 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "subdivider.H"
-#include "arc.H"
-#include "bin.H"
-#include "backend.H"
-#include "trimvertpool.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "subdivider.hpp"
+#include "arc.hpp"
+#include "bin.hpp"
+#include "backend.hpp"
+#include "trimvertpool.hpp"
 
 enum i_result { INTERSECT_VERTEX, INTERSECT_EDGE };
 

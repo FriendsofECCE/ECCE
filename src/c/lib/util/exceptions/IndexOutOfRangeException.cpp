@@ -5,7 +5,7 @@
  */
 #include <stdio.h>
 
-#include "util/IndexOutOfRangeException.H"
+#include "util/IndexOutOfRangeException.hpp"
 
 
 /**

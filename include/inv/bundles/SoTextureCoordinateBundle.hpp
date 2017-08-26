@@ -56,9 +56,9 @@
 #ifndef  _SO_TEXTURE_COORDINATE_BUNDLE
 #define  _SO_TEXTURE_COORDINATE_BUNDLE
 
-#include "inv/bundles/SoBundle.H"
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/misc/SoState.H"
+#include "inv/bundles/SoBundle.hpp"
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/misc/SoState.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -6,7 +6,7 @@
 #ifndef INVALIDEXCEPTION_HH
 #define INVALIDEXCEPTION_HH
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 /**
  * InvalidException can be used to indicate invalid arguments to a request

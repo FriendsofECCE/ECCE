@@ -10,9 +10,9 @@
   using std::string;
   using std::vector;
 
-#include "util/EcceURL.H"
-#include "dsm/EDSIMessage.H"
-#include "dsm/ResourceDescriptor.H"
+#include "util/EcceURL.hpp"
+#include "dsm/EDSIMessage.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
 class MetaDataRequest;
 class MetaDataResult;

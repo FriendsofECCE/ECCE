@@ -10,14 +10,14 @@
 #include <strstream>
 using std::ostrstream;
 
-#include "util/ErrMsg.H"
+#include "util/ErrMsg.hpp"
 
-#include "tdat/FFRules.H"
-#include "tdat/FFDesc.H"
+#include "tdat/FFRules.hpp"
+#include "tdat/FFDesc.hpp"
 
-#include "dsm/FFModel.H"
-#include "dsm/FFFactory.H"
-#include "dsm/NWChemDesc.H"
+#include "dsm/FFModel.hpp"
+#include "dsm/FFFactory.hpp"
+#include "dsm/NWChemDesc.hpp"
 
 FFModel* FFModel::p_instance = 0;
 

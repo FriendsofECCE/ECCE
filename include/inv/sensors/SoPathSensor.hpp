@@ -58,8 +58,8 @@
 #ifndef  _SO_PATH_SENSOR_
 #define  _SO_PATH_SENSOR_
 
-#include "inv/SoPath.H"
-#include "inv/sensors/SoDataSensor.H"
+#include "inv/SoPath.hpp"
+#include "inv/sensors/SoDataSensor.hpp"
 
 // C-api: prefix=SoPathSens
 class SoPathSensor : public SoDataSensor {

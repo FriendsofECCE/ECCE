@@ -8,10 +8,10 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPDefs.H"
-#include "dsm/CHTTPUtils.H"
-#include "dsm/CDAVServerInfo.H"
-#include "dsm/CDAVRequest.H"
+#include "dsm/CHTTPDefs.hpp"
+#include "dsm/CHTTPUtils.hpp"
+#include "dsm/CDAVServerInfo.hpp"
+#include "dsm/CDAVRequest.hpp"
 
 #include <cstdlib>
 

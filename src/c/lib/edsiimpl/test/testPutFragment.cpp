@@ -2,12 +2,12 @@
 #include <strstream>
   using namespace std;
 
-#include "util/CmdLineAuthListener.H"
+#include "util/CmdLineAuthListener.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/ChemistryTask.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/ChemistryTask.hpp"
 
-#include "tdat/Fragment.H"
+#include "tdat/Fragment.hpp"
 
 
 

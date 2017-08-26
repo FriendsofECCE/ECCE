@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_LIGHT_ID_ELEMENT
 #define  _SO_GL_LIGHT_ID_ELEMENT
 
-#include "inv/elements/SoInt32Element.H"
+#include "inv/elements/SoInt32Element.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

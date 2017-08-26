@@ -3,7 +3,7 @@
  *
  *
  */
-#include "util/Event.H"
+#include "util/Event.hpp"
 
 namespace ecce {
 

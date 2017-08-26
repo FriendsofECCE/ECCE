@@ -6,16 +6,16 @@
 #include <iostream>
   using namespace std;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "tdat/PointGroup.H"
-#include "tdat/SymmetryOps.H"
+#include "tdat/PointGroup.hpp"
+#include "tdat/SymmetryOps.hpp"
 
-#include "viz/AssignSymmetryCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/AssignSymmetryCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 AssignSymmetryCmd::AssignSymmetryCmd(const string& name, Receiver * receiver)
     : Command(name, receiver)

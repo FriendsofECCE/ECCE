@@ -58,10 +58,10 @@
 #ifndef __ISOLIB_H__
 #define __ISOLIB_H__
 
-#include "inv/nodes/SoIndexedTriangleStripSet.H"
+#include "inv/nodes/SoIndexedTriangleStripSet.hpp"
 
-#include "inv/ChemKit/SbVecI.H"
-#include "inv/ChemKit/ChemLattice3.H"
+#include "inv/ChemKit/SbVecI.hpp"
+#include "inv/ChemKit/ChemLattice3.hpp"
 
 void isoLibInitVolume(
     SbBool generateNormals,

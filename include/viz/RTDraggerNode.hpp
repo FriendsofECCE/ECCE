@@ -38,11 +38,11 @@
 #ifndef  _RTDRAGGERNODE_
 #define  _RTDRAGGERNODE_
 
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/draggers/SoDragger.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/fields/SoSFRotation.H"
-#include "inv/nodes/SoTranslation.H"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/draggers/SoDragger.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/fields/SoSFRotation.hpp"
+#include "inv/nodes/SoTranslation.hpp"
 
  class TranslateRadialDragger;
  class SoRotateCylindricalDragger;

@@ -3,7 +3,7 @@
 
 #include <istream>
 
-#include "VizPropertyPanel.H"
+#include "VizPropertyPanel.hpp"
 
 class MdTask;
 class PlaybackControl;

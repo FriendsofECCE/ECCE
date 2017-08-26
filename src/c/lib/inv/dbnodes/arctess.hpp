@@ -37,15 +37,15 @@
 #ifndef __gluarctess_h_
 #define __gluarctess_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 /*
  * arctess.h - $Revision: 22116 $
  */
 
-#include "defines.H"
-#include "types.H"
-#include "arc.H"
+#include "defines.hpp"
+#include "types.hpp"
+#include "arc.hpp"
 
 class BezierArc;
 class Pool;

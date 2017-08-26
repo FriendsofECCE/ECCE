@@ -9,10 +9,10 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma implementation "PlotLmLsqr.H"
+    #pragma implementation "PlotLmLsqr.hpp"
 #endif
 
-#include "wxgui/PlotPrecomp.H"
+#include "wxgui/PlotPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
@@ -28,8 +28,8 @@
 
 #include "wx/math.h"
 
-#include "wxgui/PlotLmLsqr.H"
-#include "wxgui/PlotData.H"
+#include "wxgui/PlotLmLsqr.hpp"
+#include "wxgui/PlotData.hpp"
 
 #undef BUG
 #define BUG 0

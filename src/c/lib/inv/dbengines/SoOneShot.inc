@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFShort.H"
-#include "inv/engines/SoOneShot.H"
+#include "inv/SoDB.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFShort.hpp"
+#include "inv/engines/SoOneShot.hpp"
 
 SO_ENGINE_SOURCE(SoOneShot);
 

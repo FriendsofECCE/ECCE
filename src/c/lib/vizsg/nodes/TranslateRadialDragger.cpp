@@ -24,20 +24,20 @@
  *  Source file for "TranslateRadialDragger" 
  *------------------------------------------------------------*/
 
-#include "inv/SoPath.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/projectors/SbLineProjector.H"
-#include "inv/nodes/SoRotation.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSwitch.H"
+#include "inv/SoPath.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/projectors/SbLineProjector.hpp"
+#include "inv/nodes/SoRotation.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSwitch.hpp"
 
 // Include file for our new class.
-#include "viz/TranslateRadialDragger.H"
+#include "viz/TranslateRadialDragger.hpp"
 
 // This file contains the variable 
 // TranslateRadialDragger::geomBuffer, which describes 
 // the default geometry resources for this dragger.
-#include "viz/TranslateRadialDraggerGeom.H"
+#include "viz/TranslateRadialDraggerGeom.hpp"
 
 SO_KIT_SOURCE(TranslateRadialDragger);
 

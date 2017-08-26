@@ -6,10 +6,10 @@
 #define CGENERGYFUNCTION_HH
 
 
-#include "util/InvalidException.H"
+#include "util/InvalidException.hpp"
 
-#include "tdat/ObjectiveFunction.H"
-#include "tdat/ForceField.H"
+#include "tdat/ObjectiveFunction.hpp"
+#include "tdat/ForceField.hpp"
 
 class FFCoordinates;
 

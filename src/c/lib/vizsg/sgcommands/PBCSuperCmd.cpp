@@ -6,14 +6,14 @@
 #include <iostream>
   using namespace std;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "viz/PBCSuperCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
-#include "viz/SGLattice.H"
+#include "viz/PBCSuperCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
+#include "viz/SGLattice.hpp"
 
 PBCSuperCmd::PBCSuperCmd(const string& name, Receiver * receiver, SGFragment *base)
     : PBCCmd(name, receiver, base)

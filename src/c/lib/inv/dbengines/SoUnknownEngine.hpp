@@ -59,7 +59,7 @@
 #ifndef  _SO_UNKNOWN_ENGINE_
 #define  _SO_UNKNOWN_ENGINE_
 
-#include "inv/engines/SoSubEngine.H"
+#include "inv/engines/SoSubEngine.hpp"
 
 class SoUnknownEngine : public SoEngine {
 

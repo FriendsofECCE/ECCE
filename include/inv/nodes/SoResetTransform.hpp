@@ -56,8 +56,8 @@
 #ifndef  _SO_RESET_TRANSFORM_
 #define  _SO_RESET_TRANSFORM_
 
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/nodes/SoTransformation.H"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/nodes/SoTransformation.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

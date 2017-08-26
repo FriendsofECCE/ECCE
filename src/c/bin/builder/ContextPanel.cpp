@@ -1,9 +1,9 @@
 #include <wx/sizer.h>
 
-#include "wxgui/ewxPanel.H"
-#include "wxgui/StringListCtrl.H"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/StringListCtrl.hpp"
 
-#include "ContextPanel.H"
+#include "ContextPanel.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS(ContextPanel, ewxPanel)

@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/errors/SoReadError.H"
-#include "inv/fields/SoSFBool.H"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/fields/SoSFBool.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -56,7 +56,7 @@
 #ifndef  _SO_POINT_SIZE_ELEMENT
 #define  _SO_POINT_SIZE_ELEMENT
 
-#include "inv/elements/SoFloatElement.H"
+#include "inv/elements/SoFloatElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

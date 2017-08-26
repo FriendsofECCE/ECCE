@@ -1,17 +1,17 @@
 #include <algorithm>
   using std::find;
 
-//#include "inv/nodes/SoSwitch.H"
+//#include "inv/nodes/SoSwitch.hpp"
 
-#include "util/Diag3.H"
-#include "util/InternalException.H"
+#include "util/Diag3.hpp"
+#include "util/InternalException.hpp"
 
-#include "dsm/IPropCalculation.H"
+#include "dsm/IPropCalculation.hpp"
 
-#include "tdat/PropVector.H"
+#include "tdat/PropVector.hpp"
 
-#include "viz/SGContainer.H"
-#include "viz/TensorCmd.H"
+#include "viz/SGContainer.hpp"
+#include "viz/TensorCmd.hpp"
 
 TensorCmd::TensorCmd(const string& name, Receiver *receiver,
                          IPropCalculation *calc)

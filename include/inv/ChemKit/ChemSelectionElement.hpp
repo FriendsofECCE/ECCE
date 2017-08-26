@@ -57,9 +57,9 @@
 #ifndef  __CHEM_SELECTION_ELEMENT_H__
 #define  __CHEM_SELECTION_ELEMENT_H__
 
-#include "inv/elements/SoInt32Element.H"
+#include "inv/elements/SoInt32Element.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

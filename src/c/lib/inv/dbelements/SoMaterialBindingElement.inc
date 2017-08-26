@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoMaterialBindingElement.H"
+#include "inv/elements/SoMaterialBindingElement.hpp"
 
 SO_ELEMENT_SOURCE(SoMaterialBindingElement);
 

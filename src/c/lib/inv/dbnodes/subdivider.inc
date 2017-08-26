@@ -39,22 +39,22 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "subdivider.H"
-#include "arc.H"
-#include "bezierarc.H"
-#include "bin.H"
-#include "renderhints.H"
-#include "backend.H"
-#include "mapdesc.H"
-#include "quilt.H"
-#include "patchlist.H"
-#include "patch.H"
-#include "nurbsconsts.H"
-#include "trimvertpool.H"
-#include "simplemath.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "subdivider.hpp"
+#include "arc.hpp"
+#include "bezierarc.hpp"
+#include "bin.hpp"
+#include "renderhints.hpp"
+#include "backend.hpp"
+#include "mapdesc.hpp"
+#include "quilt.hpp"
+#include "patchlist.hpp"
+#include "patch.hpp"
+#include "nurbsconsts.hpp"
+#include "trimvertpool.hpp"
+#include "simplemath.hpp"
 
 /*---------------------------------------------------------------------------
  * Subdivider - construct a subdivider

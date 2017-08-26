@@ -7,17 +7,17 @@
  */
 #include "wx/dcmemory.h" // for wxMemoryDC
 
-#include "dsm/Resource.H"
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/ResourceType.H"
+#include "dsm/Resource.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/ResourceType.hpp"
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/WxResourceImageList.H"
-#include "wxgui/WxStateImageList.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/WxResourceImageList.hpp"
+#include "wxgui/WxStateImageList.hpp"
 
-#include "wxgui/WxResourceStateImageList.H"
+#include "wxgui/WxResourceStateImageList.hpp"
 
 
 WxResourceStateImageList* WxResourceStateImageList::p_singleton = 0;

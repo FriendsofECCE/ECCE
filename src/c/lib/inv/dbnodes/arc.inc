@@ -40,14 +40,14 @@
  */
 
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "myassert.H"
-#include "arc.H"
-#include "bin.H"
-#include "bezierarc.H"
-#include "pwlarc.H"
-#include "simplemath.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "myassert.hpp"
+#include "arc.hpp"
+#include "bin.hpp"
+#include "bezierarc.hpp"
+#include "pwlarc.hpp"
+#include "simplemath.hpp"
 
 /* local preprocessor definitions */
 #define	ZERO		0.000001

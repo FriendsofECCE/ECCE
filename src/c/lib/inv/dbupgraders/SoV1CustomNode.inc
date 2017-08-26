@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/upgraders/SoV1CustomNode.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodes/SoInfo.H"
+#include "inv/upgraders/SoV1CustomNode.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodes/SoInfo.hpp"
 
 SO_NODE_SOURCE(SoV1CustomNode);
 

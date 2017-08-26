@@ -56,8 +56,8 @@
 #include <assert.h>
 #endif
 
-#include "inv/elements/SoProfileElement.H"
-#include "inv/nodes/SoProfile.H"
+#include "inv/elements/SoProfileElement.hpp"
+#include "inv/nodes/SoProfile.hpp"
 
 SO_ELEMENT_SOURCE(SoProfileElement);
 

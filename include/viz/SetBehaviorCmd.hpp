@@ -8,7 +8,7 @@
 #define SETBEHAVIORCMD_HH
 
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 
 class SetBehaviorCmd : public FragCloneCmd

@@ -13,12 +13,12 @@
 
 #include <string>
 
-#include "dsm/CHTTPDefs.H"
-#include "dsm/CHTTPHeader.H"
-#include "dsm/CHTTPRequest.H"
-#include "dsm/CHTTPResponse.H"
+#include "dsm/CHTTPDefs.hpp"
+#include "dsm/CHTTPHeader.hpp"
+#include "dsm/CHTTPRequest.hpp"
+#include "dsm/CHTTPResponse.hpp"
 
-#include "dsm/CSocket.H"
+#include "dsm/CSocket.hpp"
 
 // class: CHTTPConnection **************************************************
 

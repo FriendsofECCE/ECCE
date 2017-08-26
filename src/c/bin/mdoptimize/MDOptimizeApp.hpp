@@ -1,7 +1,7 @@
 #ifndef _MDOPTIMIZEAPP_H
 #define _MDOPTIMIZEAPP_H
 
-#include "wxgui/ewxApp.H"
+#include "wxgui/ewxApp.hpp"
 
 class MDOptimize;
 

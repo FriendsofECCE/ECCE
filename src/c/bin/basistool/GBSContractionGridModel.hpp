@@ -6,7 +6,7 @@
 #include <vector>
     using std::vector;
 
-#include "GBSContractionGridItem.H"
+#include "GBSContractionGridItem.hpp"
 
 
 class GBSContractionGridModel

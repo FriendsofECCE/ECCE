@@ -74,8 +74,8 @@
 #ifndef  _SO_V1_SUB_KIT_
 #define  _SO_V1_SUB_KIT_
 
-#include "inv/nodes/SoNode.H"
-#include "inv/upgraders/SoV1NodekitCatalog.H"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/upgraders/SoV1NodekitCatalog.hpp"
 
 
 /////////////////////////////////////////////////////////////////////////////

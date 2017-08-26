@@ -59,13 +59,13 @@
 #ifndef  _SO_TIME_COUNTER_
 #define  _SO_TIME_COUNTER_
 
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoSFShort.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/fields/SoSFTime.H"
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFTrigger.H"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoSFShort.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/fields/SoSFTime.hpp"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFTrigger.hpp"
 
 // C-api: public=min,max,step,on,frequency,duty,timeIn,syncIn,reset
 // C-api: public=output,syncOut

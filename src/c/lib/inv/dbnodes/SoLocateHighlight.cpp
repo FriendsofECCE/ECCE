@@ -54,18 +54,18 @@
 
 #include <GL/gl.h>
 
-#include "inv/SoPath.H"
-#include "inv/SoPickedPoint.H"
-#include "inv/events/SoEvent.H"
-#include "inv/events/SoLocation2Event.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/elements/SoCacheElement.H"
-#include "inv/elements/SoLazyElement.H"
-#include "inv/elements/SoOverrideElement.H"
-#include "inv/elements/SoWindowElement.H"
+#include "inv/SoPath.hpp"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/events/SoEvent.hpp"
+#include "inv/events/SoLocation2Event.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/elements/SoLazyElement.hpp"
+#include "inv/elements/SoOverrideElement.hpp"
+#include "inv/elements/SoWindowElement.hpp"
 
-#include "inv/nodes/SoLocateHighlight.H"
+#include "inv/nodes/SoLocateHighlight.hpp"
 
 #ifdef DEBUG
 #include <SoDebug.h>

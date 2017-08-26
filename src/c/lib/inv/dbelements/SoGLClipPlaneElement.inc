@@ -52,8 +52,8 @@
  */
 
 #include <GL/gl.h>
-#include "inv/elements/SoGLClipPlaneElement.H"
-#include "inv/misc/SoState.H"
+#include "inv/elements/SoGLClipPlaneElement.hpp"
+#include "inv/misc/SoState.hpp"
 
 // This holds the maximum number of concurrent GL clip planes
 int	SoGLClipPlaneElement::maxGLPlanes = -1;

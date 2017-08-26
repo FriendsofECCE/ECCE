@@ -55,12 +55,12 @@
 
 #ident "$Revision: 22141 $"
 
-#include "inv/ChemKit/SFVec3AtomSpec.H"
-#include "inv/ChemKit/ChemBaseData.H"
+#include "inv/ChemKit/SFVec3AtomSpec.hpp"
+#include "inv/ChemKit/ChemBaseData.hpp"
 // --> lod
-#include "inv/ChemKit/ChemLOD.H"
+#include "inv/ChemKit/ChemLOD.hpp"
 // <-- lod
-#include "inv/ChemKit/ChemDisplay.H"
+#include "inv/ChemKit/ChemDisplay.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

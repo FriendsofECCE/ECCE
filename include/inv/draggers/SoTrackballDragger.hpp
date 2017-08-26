@@ -83,12 +83,12 @@
 #ifndef  _SO_TRACKBALL_DRAGGER_
 #define  _SO_TRACKBALL_DRAGGER_
 
-#include "inv/SbLinear.H"
-#include "inv/SbTime.H"
-#include "inv/sensors/SoSensor.H"
-#include "inv/draggers/SoDragger.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/fields/SoSFRotation.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SbTime.hpp"
+#include "inv/sensors/SoSensor.hpp"
+#include "inv/draggers/SoDragger.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/fields/SoSFRotation.hpp"
 
 class SbDict;
 class SoGroup;

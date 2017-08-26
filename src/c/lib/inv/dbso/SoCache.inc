@@ -53,11 +53,11 @@
 
 #include <stdlib.h>
 
-#include "inv/caches/SoCache.H"
-#include "inv/elements/SoElement.H"
-#include "inv/misc/SoState.H"
+#include "inv/caches/SoCache.hpp"
+#include "inv/elements/SoElement.hpp"
+#include "inv/misc/SoState.hpp"
 
-#include "SoDebug.H"
+#include "SoDebug.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

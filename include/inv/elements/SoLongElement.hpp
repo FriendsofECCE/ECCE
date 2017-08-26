@@ -62,7 +62,7 @@
 #define  _SO_LONG_ELEMENT
 
 #ifndef IV_STRICT
-#include "inv/elements/SoInt32Element.H"
+#include "inv/elements/SoInt32Element.hpp"
 typedef SoInt32Element SoLongElement;
 
 #else

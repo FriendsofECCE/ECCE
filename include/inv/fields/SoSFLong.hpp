@@ -57,7 +57,7 @@
 #define  _SO_SF_LONG_
 
 #ifndef IV_STRICT
-#include "inv/fields/SoSFInt32.H"
+#include "inv/fields/SoSFInt32.hpp"
 typedef SoSFInt32 SoSFLong;
 
 #else

@@ -28,8 +28,8 @@ using std::vector;
 using std::less;
 
 
-#include "util/SFile.H"
-#include "util/EcceSortedVector.H"
+#include "util/SFile.hpp"
+#include "util/EcceSortedVector.hpp"
 
 class SDirectory : public SFile
 {

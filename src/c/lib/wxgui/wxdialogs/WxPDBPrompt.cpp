@@ -12,14 +12,14 @@
 
 #include <math.h>
 
-#include "util/STLUtil.H"
+#include "util/STLUtil.hpp"
 
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxStaticText.hpp"
 
-#include "wxgui/WxPDBPrompt.H"
+#include "wxgui/WxPDBPrompt.hpp"
 
 /**
  * constructors

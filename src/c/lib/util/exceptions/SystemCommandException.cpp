@@ -5,7 +5,7 @@
  */
 #include <stdio.h>
 #include <string.h>
-#include "util/SystemCommandException.H"
+#include "util/SystemCommandException.hpp"
 
 
 SystemCommandException::SystemCommandException(int code, const char *msg, 

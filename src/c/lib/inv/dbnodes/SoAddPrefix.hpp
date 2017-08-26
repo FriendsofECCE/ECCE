@@ -43,8 +43,8 @@
 #define _lib_nurbs(name) _SoNurbs/**/name
 #endif
 
-#include "_undefs.H"
-#include "_defines.H"
+#include "_undefs.hpp"
+#include "_defines.hpp"
 
 // GDB 2/8/12 Needed by mystdlib, mystring, etc. include files
 #define LIBRARYBUILD 1

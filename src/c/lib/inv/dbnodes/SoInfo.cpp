@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/nodes/SoInfo.H"
+#include "inv/nodes/SoInfo.hpp"
 
 SO_NODE_SOURCE(SoInfo);
 

@@ -1,9 +1,9 @@
 #ifndef MOPANEL__H
 #define MOPANEL__H
 
-#include "wxgui/TearableContentProvider.H"
+#include "wxgui/TearableContentProvider.hpp"
 
-#include "MoGUI.H"
+#include "MoGUI.hpp"
 
 class ewxPlotCtrl;
 class GridDlg;

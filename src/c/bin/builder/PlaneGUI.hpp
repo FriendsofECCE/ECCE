@@ -11,7 +11,7 @@
 #define _PLANEGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "PlaneGUI.C"
+#pragma interface "PlaneGUI.cpp"
 #endif
 
 /*!
@@ -21,7 +21,7 @@
 ////@begin includes
 #include "wx/notebook.h"
 #include "wx/spinctrl.h"
-#include "wxgui/ewxDialog.H"
+#include "wxgui/ewxDialog.hpp"
 ////@end includes
 
 /*!

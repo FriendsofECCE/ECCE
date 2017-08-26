@@ -3,7 +3,7 @@
  *
  *
  */
-#include "util/NullPointerException.H"
+#include "util/NullPointerException.hpp"
 
 NullPointerException::NullPointerException(const string& msg, 
                                            const char *file, int line)

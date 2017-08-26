@@ -40,11 +40,11 @@
 #include <algorithm>
   using std::find;
 
-#include "util/ErrMsg.H"
-#include "util/EcceSortedVector.H"
+#include "util/ErrMsg.hpp"
+#include "util/EcceSortedVector.hpp"
 
-#include "tdat/TFormula.H"
-#include "tdat/TPerTab.H"
+#include "tdat/TFormula.hpp"
+#include "tdat/TPerTab.hpp"
 
 
 // -----------------------

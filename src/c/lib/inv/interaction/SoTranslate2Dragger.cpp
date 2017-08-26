@@ -53,20 +53,20 @@
 
 
 #include <stdio.h>
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/SoInput.H"
-#include "inv/SoPath.H"
-#include "inv/projectors/SbPlaneProjector.H"
-#include "inv/draggers/SoTranslate2Dragger.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/events/SoEvent.H"
-#include "inv/events/SoKeyboardEvent.H"
-#include "inv/actions/SoHandleEventAction.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/projectors/SbPlaneProjector.hpp"
+#include "inv/draggers/SoTranslate2Dragger.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/events/SoEvent.hpp"
+#include "inv/events/SoKeyboardEvent.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
 
-#include "SoTranslate2DraggerGeom.H"
+#include "SoTranslate2DraggerGeom.hpp"
 
 
 SO_KIT_SOURCE(SoTranslate2Dragger);

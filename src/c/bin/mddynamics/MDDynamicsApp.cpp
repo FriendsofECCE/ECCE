@@ -13,8 +13,8 @@
   using std::ostrstream;
 
  
-#include "MDDynamics.H"
-#include "MDDynamicsApp.H"
+#include "MDDynamics.hpp"
+#include "MDDynamicsApp.hpp"
 
 IMPLEMENT_APP(MDDynamicsApp)
 

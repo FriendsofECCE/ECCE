@@ -56,7 +56,7 @@
 #ifndef  _SO_LIGHT_MODEL_ELEMENT
 #define  _SO_LIGHT_MODEL_ELEMENT
 
-#include "inv/elements/SoGLLazyElement.H"
+#include "inv/elements/SoGLLazyElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

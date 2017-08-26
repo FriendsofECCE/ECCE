@@ -7,12 +7,12 @@
 #define GRIDPROPELEMENT_HH
 
 
-#include "dsm/Resource.H"
-#include "dsm/ResourceProperty.H"
+#include "dsm/Resource.hpp"
+#include "dsm/ResourceProperty.hpp"
 
-#include "util/InvalidException.H"
+#include "util/InvalidException.hpp"
 
-#include "wxgui/GridElement.H"
+#include "wxgui/GridElement.hpp"
 
 
 class GridPropElement : public GridElement 

@@ -32,11 +32,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/WxTableView.H"
-#include "wxgui/TableElement.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/WxTableView.hpp"
+#include "wxgui/TableElement.hpp"
 
-#include "util/StringConverter.H"
+#include "util/StringConverter.hpp"
 
 #include "wx/image.h"
 #include "wx/colour.h"

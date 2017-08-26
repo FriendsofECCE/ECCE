@@ -8,11 +8,11 @@
 // properly load this file previously.
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma implementation "PlotFparser.H"
+    #pragma implementation "PlotFparser.hpp"
     #pragma implementation "PlotFparser.inc"
 #endif
 
-#include "wxgui/PlotPrecomp.H"
+#include "wxgui/PlotPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include "wx/wxprec.h"
@@ -111,7 +111,7 @@ double atanh(double x)
 #endif
 
 
-#include "wxgui/PlotFparser.H"
+#include "wxgui/PlotFparser.hpp"
 #include "PlotFparser.inc"
 #include "PlotFpconfig.inc"
 #include "PlotFptypes.inc"

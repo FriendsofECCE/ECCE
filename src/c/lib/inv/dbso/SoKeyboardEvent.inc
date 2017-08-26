@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/events/SoKeyboardEvent.H"
+#include "inv/events/SoKeyboardEvent.hpp"
 
 SO_EVENT_SOURCE(SoKeyboardEvent);
 

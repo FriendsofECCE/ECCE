@@ -11,20 +11,20 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/ResourceUtils.H"
-#include "util/NullPointerException.H"
+#include "util/ResourceUtils.hpp"
+#include "util/NullPointerException.hpp"
 
-#include "dsm/TaskJob.H"
-#include "dsm/VDoc.H"
+#include "dsm/TaskJob.hpp"
+#include "dsm/VDoc.hpp"
 
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ForwardMouseEventHandler.H"
-#include "wxgui/WxResourceImageList.H"
-#include "wxgui/WxState.H"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ForwardMouseEventHandler.hpp"
+#include "wxgui/WxResourceImageList.hpp"
+#include "wxgui/WxState.hpp"
 
-#include "MDTaskPanel.H"
-#include "SessionContextPanel.H"
-#include "CalcMgr.H"
+#include "MDTaskPanel.hpp"
+#include "SessionContextPanel.hpp"
+#include "CalcMgr.hpp"
 
 
 /**

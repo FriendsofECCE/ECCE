@@ -9,15 +9,15 @@
 #include <string>
   using std::string;
 
-#include "util/DavException.H"
-#include "util/EcceURL.H"
-#include "util/InvalidException.H"
+#include "util/DavException.hpp"
+#include "util/EcceURL.hpp"
+#include "util/InvalidException.hpp"
 
-#include "tdat/Fragment.H"
-#include "tdat/FragmentSummary.H"
+#include "tdat/Fragment.hpp"
+#include "tdat/FragmentSummary.hpp"
 
-#include "dsm/PropertyTask.H"
-#include "dsm/EDSIFactory.H"
+#include "dsm/PropertyTask.hpp"
+#include "dsm/EDSIFactory.hpp"
 
 
 /**

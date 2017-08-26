@@ -4,9 +4,9 @@
   using std::string;
   using std::vector;
 
-#include "util/EcceURL.H"
-#include "util/IOException.H"
-#include "dsm/EDSI.H"
+#include "util/EcceURL.hpp"
+#include "util/IOException.hpp"
+#include "dsm/EDSI.hpp"
 
 
 class EDSIExporter {

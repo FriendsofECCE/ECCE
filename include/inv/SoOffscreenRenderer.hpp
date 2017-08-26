@@ -61,9 +61,9 @@
 
 #include <stdio.h>
 #include <GL/glx.h>
-#include "inv/SbColor.H"
-#include "inv/SbViewportRegion.H"
-#include "inv/SbLinear.H"
+#include "inv/SbColor.hpp"
+#include "inv/SbViewportRegion.hpp"
+#include "inv/SbLinear.hpp"
 #include <X11/Xlib.h>
 
 class SoNode;

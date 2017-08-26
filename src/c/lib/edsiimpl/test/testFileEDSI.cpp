@@ -6,13 +6,13 @@
 #include <fstream.h>
 #include <unistd.h>
 
-#include "util/EcceURL.H"
-#include "dsm/Resource.H"
-#include "dsm/EDSIFactory.H"
+#include "util/EcceURL.hpp"
+#include "dsm/Resource.hpp"
+#include "dsm/EDSIFactory.hpp"
 
-#include "dsm/FileEDSI.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/Resource.H"
+#include "dsm/FileEDSI.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/Resource.hpp"
 
 
 

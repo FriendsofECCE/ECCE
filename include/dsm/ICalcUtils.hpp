@@ -18,7 +18,7 @@
 
 
 
-#include "dsm/EDSIGaussianBasisSetLibrary.H"
+#include "dsm/EDSIGaussianBasisSetLibrary.hpp"
 
 
 

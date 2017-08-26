@@ -3,8 +3,8 @@
  *
  */
 
-#include "util/FFConfigData.H"
-#include "util/Preferences.H"
+#include "util/FFConfigData.hpp"
+#include "util/Preferences.hpp"
 
 vector<string> FFConfigData::getFFFiles()
 {

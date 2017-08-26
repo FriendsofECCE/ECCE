@@ -58,34 +58,34 @@
 #include <ctype.h>
 #include <math.h>
 
-#include "inv/SoPrimitiveVertex.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/details/SoLineDetail.H"
-#include "inv/details/SoPointDetail.H"
-#include "inv/elements/SoGLDrawStyleElement.H"
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/elements/SoGLTextureEnabledElement.H"
-#include "inv/elements/SoGLTextureImageElement.H"
+#include "inv/SoPrimitiveVertex.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/details/SoLineDetail.hpp"
+#include "inv/details/SoPointDetail.hpp"
+#include "inv/elements/SoGLDrawStyleElement.hpp"
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/elements/SoGLTextureEnabledElement.hpp"
+#include "inv/elements/SoGLTextureImageElement.hpp"
 
 #ifdef IV2_0
-#include "inv/bundles/SoMaterialBundle.H"
+#include "inv/bundles/SoMaterialBundle.hpp"
 #else
-#include "inv/elements/SoGLLazyElement.H"
-#include "inv/elements/SoLazyElement.H"
+#include "inv/elements/SoGLLazyElement.hpp"
+#include "inv/elements/SoLazyElement.hpp"
 #endif
 
-#include "inv/ChemKit/ChemDetail.H"
+#include "inv/ChemKit/ChemDetail.hpp"
 // --> lod
-#include "inv/ChemKit/ChemLOD.H"
+#include "inv/ChemKit/ChemLOD.hpp"
 // <-- lod
-#include "inv/ChemKit/ChemDisplay.H"
-#include "inv/ChemKit/ChemBaseDataElement.H"
-#include "inv/ChemKit/ChemColorElement.H"
-#include "inv/ChemKit/ChemDisplayParamElement.H"
-#include "inv/ChemKit/ChemWireframeDetail.H"
+#include "inv/ChemKit/ChemDisplay.hpp"
+#include "inv/ChemKit/ChemBaseDataElement.hpp"
+#include "inv/ChemKit/ChemColorElement.hpp"
+#include "inv/ChemKit/ChemDisplayParamElement.hpp"
+#include "inv/ChemKit/ChemWireframeDetail.hpp"
 
-#include "inv/ChemKit/ChemBondStuff.H"
-#include "inv/ChemKit/ChemAromaticRing.H"
+#include "inv/ChemKit/ChemBondStuff.hpp"
+#include "inv/ChemKit/ChemAromaticRing.hpp"
 
 static void generateMulti(SoPrimitiveVertex *pvs, short &numPVS,
 	SbVec3f coords1, SbVec3f coords2, int32_t theBond,

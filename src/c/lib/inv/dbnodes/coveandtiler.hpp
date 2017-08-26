@@ -37,13 +37,13 @@
 #ifndef __glucoveandtiler_h
 #define __glucoveandtiler_h
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 /*
  * coveandtiler.h - $Revision: 22116 $
  */
 
-#include "trimregion.H"
+#include "trimregion.hpp"
 
 class Backend;
 class TrimVertex;

@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/engines/SoSelectOne.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoReadError.H"
-#include "inv/fields/SoFields.H"
+#include "inv/engines/SoSelectOne.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/fields/SoFields.hpp"
 
 // Constants for all of the multi-value fields; SelectOne's input can be
 // any of the SoMF types, and its output will be the corresponding

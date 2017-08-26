@@ -56,7 +56,7 @@
 #ifndef  _SO_BYTE_STREAM_
 #define  _SO_BYTE_STREAM_
 
-#include "inv/SbBasic.H"
+#include "inv/SbBasic.hpp"
 
 class SoNode;
 class SoPath;

@@ -42,21 +42,21 @@
 #include <float.h> // FLT_MAX
 #include <string.h> // memset
 
-#include "inv/nodes/SoVertexProperty.H"
-#include "inv/nodes/SoIndexedTriangleStripSet.H"
+#include "inv/nodes/SoVertexProperty.hpp"
+#include "inv/nodes/SoIndexedTriangleStripSet.hpp"
 
-#include "inv/misc/SoState.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
+#include "inv/misc/SoState.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
 
-#include "inv/bundles/SoMaterialBundle.H"
+#include "inv/bundles/SoMaterialBundle.hpp"
 
-#include "inv/ChemKit/ChemSAS.H"
-#include "inv/ChemKit/ChemBaseDataElement.H"
-#include "inv/ChemKit/ChemDisplayParamElement.H"
-#include "inv/ChemKit/ChemColorElement.H"
-#include "inv/ChemKit/ChemRadiiElement.H"
+#include "inv/ChemKit/ChemSAS.hpp"
+#include "inv/ChemKit/ChemBaseDataElement.hpp"
+#include "inv/ChemKit/ChemDisplayParamElement.hpp"
+#include "inv/ChemKit/ChemColorElement.hpp"
+#include "inv/ChemKit/ChemRadiiElement.hpp"
 
 // redefined here for compatibility with different compilers
 #ifndef min

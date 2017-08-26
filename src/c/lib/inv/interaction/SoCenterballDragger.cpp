@@ -54,28 +54,28 @@
 
 #include <stdio.h>
 
-#include "inv/SoDB.H" 
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/SoDB.hpp" 
+#include "inv/sensors/SoFieldSensor.hpp"
 
-#include "inv/events/SoEvent.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/draggers/SoCenterballDragger.H"
+#include "inv/events/SoEvent.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/draggers/SoCenterballDragger.hpp"
 
-#include "inv/elements/SoModelMatrixElement.H"
+#include "inv/elements/SoModelMatrixElement.hpp"
 
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoRotation.H"
-#include "inv/nodes/SoLightModel.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/nodes/SoSurroundScale.H"
-#include "inv/nodes/SoAntiSquish.H"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoRotation.hpp"
+#include "inv/nodes/SoLightModel.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
+#include "inv/nodes/SoAntiSquish.hpp"
 
-#include "inv/draggers/SoTranslate2Dragger.H"
-#include "inv/draggers/SoRotateCylindricalDragger.H"
-#include "inv/draggers/SoRotateSphericalDragger.H"
+#include "inv/draggers/SoTranslate2Dragger.hpp"
+#include "inv/draggers/SoRotateCylindricalDragger.hpp"
+#include "inv/draggers/SoRotateSphericalDragger.hpp"
 
-#include "SoCenterballDraggerGeom.H"
+#include "SoCenterballDraggerGeom.hpp"
 
 SO_KIT_SOURCE(SoCenterballDragger);
 

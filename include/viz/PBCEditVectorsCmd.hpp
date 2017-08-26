@@ -2,7 +2,7 @@
 #define PBCEDITVECTORSCMD_H
 
 
-#include "viz/PBCCmd.H"
+#include "viz/PBCCmd.hpp"
 
 #include <vector>
   using std::vector;

@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "SoV1IndexedTriangleMesh.H"
-#include "inv/nodes/SoIndexedTriangleStripSet.H"
+#include "SoV1IndexedTriangleMesh.hpp"
+#include "inv/nodes/SoIndexedTriangleStripSet.hpp"
 
 SO_NODE_SOURCE(SoV1IndexedTriangleMesh);
 

@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoFontSizeElement.H"
+#include "inv/elements/SoFontSizeElement.hpp"
 
 SO_ELEMENT_SOURCE(SoFontSizeElement);
 

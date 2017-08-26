@@ -5,8 +5,8 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxRadioBox.H"
-#include "wxgui/ewxHelpHandler.H"
+#include "wxgui/ewxRadioBox.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
 
 
 ewxRadioBox::ewxRadioBox()

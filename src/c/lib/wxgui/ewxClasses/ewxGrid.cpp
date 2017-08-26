@@ -1,9 +1,9 @@
 #include <wx/menu.h>
 #include <wx/settings.h>
 
-#include "wxgui/ewxGrid.H"
-#include "wxgui/ewxHelpHandler.H"
-#include "wxgui/ExportTableDialog.H"
+#include "wxgui/ewxGrid.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
+#include "wxgui/ExportTableDialog.hpp"
 
 
 IMPLEMENT_CLASS(ewxGrid, wxGrid)

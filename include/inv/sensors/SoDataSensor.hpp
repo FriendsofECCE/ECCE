@@ -64,7 +64,7 @@ class SoNode;
 class SoPath;
 class SoNotList;
 
-#include "inv/sensors/SoDelayQueueSensor.H"
+#include "inv/sensors/SoDelayQueueSensor.hpp"
 
 // C-api: abstract
 // C-api: prefix=SoDataSens

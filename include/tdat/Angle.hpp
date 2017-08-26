@@ -26,7 +26,7 @@
 #include <vector>
   using std::vector;
 
-#include "tdat/ForceField.H"
+#include "tdat/ForceField.hpp"
 
 // used in expressions like sqrt(1-a*a*ONEMINUS5EPS) to avoid sqrt(-DBL_EPSILON)
 #define ONEMINUS5EPS (1.0 - 5.0*DBL_EPSILON)

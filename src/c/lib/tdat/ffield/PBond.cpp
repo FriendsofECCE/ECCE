@@ -10,8 +10,8 @@
 // system includes
 #include <math.h>
 // application includes
-#include "util/ErrMsg.H"
-#include "tdat/PBond.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/PBond.hpp"
 
 // -----------------------
 // Public Member Functions

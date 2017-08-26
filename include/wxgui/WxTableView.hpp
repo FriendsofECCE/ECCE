@@ -16,10 +16,10 @@
 #include "wx/imaglist.h"
 #include "wx/listctrl.h"
 
-#include "wxgui/DefaultTableModel.H"
-#include "wxgui/TableViewFilter.H"
+#include "wxgui/DefaultTableModel.hpp"
+#include "wxgui/TableViewFilter.hpp"
 
-#include "util/Preferences.H"
+#include "util/Preferences.hpp"
 
 
 class DefaultTableModel;

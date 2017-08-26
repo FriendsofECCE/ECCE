@@ -6,8 +6,8 @@
            that pattern.  Pattern matching is case sensitive.
 **************************************************************************/
 
-#include "util/EcceRegexp.H"
-#include "util/ErrMsg.H"
+#include "util/EcceRegexp.hpp"
+#include "util/ErrMsg.hpp"
 
 
 /*************************************************************************

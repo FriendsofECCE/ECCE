@@ -56,7 +56,7 @@
 #ifndef  _SO_LINEAR_PROFILE_
 #define  _SO_LINEAR_PROFILE_
 
-#include "inv/nodes/SoProfile.H"
+#include "inv/nodes/SoProfile.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

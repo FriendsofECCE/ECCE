@@ -7,13 +7,13 @@
 #include <iostream>
 using namespace std;
 
-#include "util/JMSMessage.H"
+#include "util/JMSMessage.hpp"
 
-#include "wxgui/WxJMSSubscriber.H"
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/WxFileChooser.H"
+#include "wxgui/WxJMSSubscriber.hpp"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/WxFileChooser.hpp"
 
-#include "WxFileChooserApp.H"
+#include "WxFileChooserApp.hpp"
 
 
 IMPLEMENT_APP(WxFileChooserApp)

@@ -54,24 +54,24 @@
 
 #include <stdio.h>
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/events/SoEvent.H"
-#include "inv/events/SoKeyboardEvent.H"
-#include "inv/SoDB.H"
-#include "inv/sensors/SoTimerSensor.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/draggers/SoTrackballDragger.H"
-#include "inv/nodes/SoRotation.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSurroundScale.H"
-#include "inv/nodes/SoAntiSquish.H"
-#include "inv/projectors/SbCylinderPlaneProjector.H"
-#include "inv/projectors/SbSphereSectionProjector.H"
-#include "inv/projectors/SbLineProjector.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/events/SoEvent.hpp"
+#include "inv/events/SoKeyboardEvent.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/sensors/SoTimerSensor.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/draggers/SoTrackballDragger.hpp"
+#include "inv/nodes/SoRotation.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
+#include "inv/nodes/SoAntiSquish.hpp"
+#include "inv/projectors/SbCylinderPlaneProjector.hpp"
+#include "inv/projectors/SbSphereSectionProjector.hpp"
+#include "inv/projectors/SbLineProjector.hpp"
 
-#include "SoTrackballDraggerGeom.H"
+#include "SoTrackballDraggerGeom.hpp"
 
 
 // Defines

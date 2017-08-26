@@ -56,7 +56,7 @@
 #ifndef _SO_FACE_DETAIL_
 #define _SO_FACE_DETAIL_
 
-#include "inv/details/SoPointDetail.H"
+#include "inv/details/SoPointDetail.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

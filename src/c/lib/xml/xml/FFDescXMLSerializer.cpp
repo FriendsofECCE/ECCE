@@ -18,14 +18,14 @@
 
 using std::string;
 
-#include "util/StringConverter.H"
-#include "util/ErrMsg.H"
-#include "tdat/FFDesc.H"
-#include "tdat/FFCategoryDesc.H"
-#include "tdat/FFParameterDesc.H"
+#include "util/StringConverter.hpp"
+#include "util/ErrMsg.hpp"
+#include "tdat/FFDesc.hpp"
+#include "tdat/FFCategoryDesc.hpp"
+#include "tdat/FFParameterDesc.hpp"
 
-#include "dsm/BasicDOMParser.H"
-#include "dsm/FFDescXMLSerializer.H"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/FFDescXMLSerializer.hpp"
 
 
 FFDescXMLSerializer::FFDescXMLSerializer() : XMLSerializer()

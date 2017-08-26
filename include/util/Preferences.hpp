@@ -30,8 +30,8 @@ using std::vector;
 using std::map;
 using std::less;
 
-#include "util/KeyValueReader.H"
-#include "util/EcceMap.H"
+#include "util/KeyValueReader.hpp"
+#include "util/EcceMap.hpp"
 
 class Preferences 
 {

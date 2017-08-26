@@ -56,8 +56,8 @@
 #ifndef  _SO_INFO_
 #define  _SO_INFO_
 
-#include "inv/fields/SoSFString.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoSFString.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

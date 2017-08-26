@@ -8,22 +8,22 @@
 //  more.
 ///////////////////////////////////////////////////////////////////////////////
 #include <GL/gl.h>
-#include "inv/SbBox.H"
-#include "inv/SoPickedPoint.H"
-#include "inv/SoPrimitiveVertex.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/elements/SoGLLazyElement.H" 
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/elements/SoGLTextureEnabledElement.H"
-#include "inv/elements/SoMaterialBindingElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/misc/SoState.H"
+#include "inv/SbBox.hpp"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/SoPrimitiveVertex.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/elements/SoGLLazyElement.hpp" 
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/elements/SoGLTextureEnabledElement.hpp"
+#include "inv/elements/SoMaterialBindingElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/misc/SoState.hpp"
 
-#include "viz/freeglut_font_data.H"
+#include "viz/freeglut_font_data.hpp"
 
-#include "viz/SGFragment.H"
-#include "viz/AtomLine.H"
+#include "viz/SGFragment.hpp"
+#include "viz/AtomLine.hpp"
 
 
 SO_NODE_SOURCE(AtomLine);

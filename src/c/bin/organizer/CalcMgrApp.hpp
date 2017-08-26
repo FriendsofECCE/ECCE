@@ -9,11 +9,11 @@
 #define _CALCMGRAPP_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "CalcMgrApp.C"
+#pragma interface "CalcMgrApp.cpp"
 #endif
 
 #include "wx/wx.h"
-#include "wxgui/ewxApp.H"
+#include "wxgui/ewxApp.hpp"
 
 class CalcMgr;
 class WxJMSMessageDispatch;

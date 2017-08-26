@@ -56,8 +56,8 @@
 #ifndef  _SO_ROTATION_
 #define  _SO_ROTATION_
 
-#include "inv/fields/SoSFRotation.H"
-#include "inv/nodes/SoTransformation.H"
+#include "inv/fields/SoSFRotation.hpp"
+#include "inv/nodes/SoTransformation.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

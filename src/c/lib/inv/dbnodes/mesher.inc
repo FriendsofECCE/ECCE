@@ -39,17 +39,17 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "mesher.H"
-#include "gridvertex.H"
-#include "gridtrimvertex.H"
-#include "jarcloc.H"
-#include "gridline.H"
-#include "trimline.H"
-#include "uarray.H"
-#include "backend.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "mesher.hpp"
+#include "gridvertex.hpp"
+#include "gridtrimvertex.hpp"
+#include "jarcloc.hpp"
+#include "gridline.hpp"
+#include "trimline.hpp"
+#include "uarray.hpp"
+#include "backend.hpp"
 
 
 const float Mesher::ZERO = 0.0;

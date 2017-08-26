@@ -1,7 +1,7 @@
 #include <iostream>
   using namespace std;
 
-#include "util/EcceRegexp.H"
+#include "util/EcceRegexp.hpp"
 
 int main(int argc, char** argv)
 {

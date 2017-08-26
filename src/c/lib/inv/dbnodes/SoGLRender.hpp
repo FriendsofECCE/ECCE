@@ -58,10 +58,10 @@
 
 #include <tr1/math.h>
 #include <stdlib.h>
-#include "inv/SbLinear.H"
-#include "nurbstess.H"
-#include "softsurfeval.H"
-#include "softcurveval.H"
+#include "inv/SbLinear.hpp"
+#include "nurbstess.hpp"
+#include "softsurfeval.hpp"
+#include "softcurveval.hpp"
 
 class _SoNurbsVertex3SurfaceMap;
 class _SoNurbsVertex4SurfaceMap;

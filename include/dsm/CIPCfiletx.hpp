@@ -15,8 +15,8 @@
 
 /* include files *********************************************************/
 
-#include "dsm/CIPCcsock.H"       /* for csocket */
-#include "dsm/CIPCfilepacket.H"  /* for filepacket */
+#include "dsm/CIPCcsock.hpp"       /* for csocket */
+#include "dsm/CIPCfilepacket.hpp"  /* for filepacket */
 
 extern "C" {
 

@@ -2,14 +2,14 @@
 #define _CONSTRAINTPANEL_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "ConstraintPanel.C"
+#pragma interface "ConstraintPanel.cpp"
 #endif
 
 /*!
  * Includes
  */
 
-#include "wxgui/ConstraintPanelGUI.H"
+#include "wxgui/ConstraintPanelGUI.hpp"
 
 class ConstraintModel;
 class FragmentSummary;

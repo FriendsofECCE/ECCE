@@ -57,9 +57,9 @@
 #ifndef  _SO_V1_BASE_KIT_
 #define  _SO_V1_BASE_KIT_
 
-#include "inv/upgraders/SoV1CustomNode.H"
-#include "inv/upgraders/SoV1NodekitParts.H"
-#include "inv/upgraders/SoV1SubKit.H"
+#include "inv/upgraders/SoV1CustomNode.hpp"
+#include "inv/upgraders/SoV1NodekitParts.hpp"
+#include "inv/upgraders/SoV1SubKit.hpp"
 
 class SoSeparator;
 class SbBox3f;

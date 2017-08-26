@@ -4,9 +4,9 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/WxPassPrompt.H"
+#include "wxgui/WxPassPrompt.hpp"
 
-#include "WxPassPromptApp.H"
+#include "WxPassPromptApp.hpp"
 
 IMPLEMENT_APP(WxPassPromptApp)
 

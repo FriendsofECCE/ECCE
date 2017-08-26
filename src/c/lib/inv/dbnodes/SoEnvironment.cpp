@@ -52,11 +52,11 @@
  */
 
 #include <GL/gl.h>
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoLightAttenuationElement.H"
-#include "inv/elements/SoViewVolumeElement.H"
-#include "inv/nodes/SoEnvironment.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoLightAttenuationElement.hpp"
+#include "inv/elements/SoViewVolumeElement.hpp"
+#include "inv/nodes/SoEnvironment.hpp"
 
 SO_NODE_SOURCE(SoEnvironment);
 

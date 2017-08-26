@@ -7,12 +7,12 @@
   using std::vector;
   using std::find;
 
-#include "tdat/CmdLineCacheAuthListener.H"
-#include "tdat/AuthCache.H"
+#include "tdat/CmdLineCacheAuthListener.hpp"
+#include "tdat/AuthCache.hpp"
 
-#include "util/EcceURL.H"
-#include "dsm/DavEDSI.H"
-#include "dsm/EDSIFactory.H"
+#include "util/EcceURL.hpp"
+#include "dsm/DavEDSI.hpp"
+#include "dsm/EDSIFactory.hpp"
 
 
 void usage() {

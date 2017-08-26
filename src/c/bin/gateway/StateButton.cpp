@@ -12,13 +12,13 @@
 #include "wx/wx.h"
 
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "StateButton.H"
-#include "GatewayPrefs.H"
+#include "StateButton.hpp"
+#include "GatewayPrefs.hpp"
 
-#include "wxgui/ewxColorDialog.H"
-#include "wxgui/WxState.H"
+#include "wxgui/ewxColorDialog.hpp"
+#include "wxgui/WxState.hpp"
 
 
 BEGIN_EVENT_TABLE( StateButton, wxPanel )

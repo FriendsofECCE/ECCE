@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "GatewayPrefsGUI.H"
+#pragma implementation "GatewayPrefsGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,14 +23,14 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxFrame.hpp"
 ////@end includes
 
-#include "GatewayPrefsGUI.H"
+#include "GatewayPrefsGUI.hpp"
 
 ////@begin XPM images
 

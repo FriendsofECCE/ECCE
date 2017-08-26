@@ -26,15 +26,15 @@
 #include <string>
 using std::string;
 
-#include "util/EcceMap.H"
-#include "util/StringTokenizer.H"
-#include "tdat/TAtm.H"
-#include "tdat/Fragment.H"
-#include "tdat/MetaPotentialModel.H"
-#include "tdat/MetaPotential.H"
-#include "tdat/GeomRestraint.H"
-#include "dsm/BasicDOMParser.H"
-#include "dsm/MetaPotentialModelXMLizer.H"
+#include "util/EcceMap.hpp"
+#include "util/StringTokenizer.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/Fragment.hpp"
+#include "tdat/MetaPotentialModel.hpp"
+#include "tdat/MetaPotential.hpp"
+#include "tdat/GeomRestraint.hpp"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/MetaPotentialModelXMLizer.hpp"
 
 
 /**

@@ -59,8 +59,8 @@
 #ifndef  _SO_ON_OFF_
 #define  _SO_ON_OFF_
 
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoSFTrigger.H"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoSFTrigger.hpp"
 
 // C-api: public=on,off,toggle,isOn,isOff
 class SoOnOff : public SoEngine {

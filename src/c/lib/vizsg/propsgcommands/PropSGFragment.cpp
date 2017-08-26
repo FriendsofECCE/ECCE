@@ -2,20 +2,20 @@
 #include <sys/types.h>
 #include <time.h>
 
-#include "util/ErrMsg.H"
+#include "util/ErrMsg.hpp"
 
-#include "tdat/PropTSVecTable.H"   
-#include "tdat/TAtm.H"   
-#include "tdat/TBond.H"
-#include "tdat/IBondList.H"
+#include "tdat/PropTSVecTable.hpp"   
+#include "tdat/TAtm.hpp"   
+#include "tdat/TBond.hpp"
+#include "tdat/IBondList.hpp"
 
-#include "inv/ChemKit/ChemKit.H"
-#include "inv/ChemKit/ChemDisplay.H"
-#include "inv/ChemKit/ChemDisplayParam.H"
-#include "inv/ChemKit/ChemBaseDataElement.H"
-#include "inv/ChemKit/ChemInit.H"
+#include "inv/ChemKit/ChemKit.hpp"
+#include "inv/ChemKit/ChemDisplay.hpp"
+#include "inv/ChemKit/ChemDisplayParam.hpp"
+#include "inv/ChemKit/ChemBaseDataElement.hpp"
+#include "inv/ChemKit/ChemInit.hpp"
 
-#include "viz/PropSGFragment.H"   
+#include "viz/PropSGFragment.hpp"   
 
 SO_NODE_SOURCE(PropSGFragment);
 

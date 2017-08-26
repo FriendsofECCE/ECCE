@@ -51,17 +51,17 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1GroupKit.H"
-#include "inv/upgraders/SoV1AppearanceKit.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodekits/SoAppearanceKit.H"
-#include "inv/nodes/SoCallback.H"
-#include "inv/nodes/SoEventCallback.H"
-#include "inv/nodes/SoPickStyle.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/nodes/SoTexture2Transform.H"
-#include "inv/nodekits/SoSeparatorKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1GroupKit.hpp"
+#include "inv/upgraders/SoV1AppearanceKit.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodekits/SoAppearanceKit.hpp"
+#include "inv/nodes/SoCallback.hpp"
+#include "inv/nodes/SoEventCallback.hpp"
+#include "inv/nodes/SoPickStyle.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/nodes/SoTexture2Transform.hpp"
+#include "inv/nodekits/SoSeparatorKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1GroupKit);

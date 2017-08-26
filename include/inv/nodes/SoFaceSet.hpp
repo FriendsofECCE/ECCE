@@ -56,9 +56,9 @@
 #ifndef  _SO_FACE_SET_
 #define  _SO_FACE_SET_
 
-#include "inv/SbLinear.H"
-#include "inv/fields/SoMFInt32.H"
-#include "inv/nodes/SoNonIndexedShape.H"
+#include "inv/SbLinear.hpp"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/nodes/SoNonIndexedShape.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

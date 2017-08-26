@@ -11,8 +11,8 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/DnDCalcDrop.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/DnDCalcDrop.hpp"
 
 #include <iostream>
 using std::cerr;

@@ -10,7 +10,7 @@
   using std::map;
   using std::less;
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 
 class HydrogenBondsCmd : public Command

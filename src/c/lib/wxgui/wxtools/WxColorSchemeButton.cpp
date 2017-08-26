@@ -5,7 +5,7 @@
  *
  */
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "WxColorSchemeButton.H"
+#pragma implementation "WxColorSchemeButton.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -19,8 +19,8 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/WxColorSchemeButton.H"
-#include "wxgui/WxColorSchemeChooser.H"
+#include "wxgui/WxColorSchemeButton.hpp"
+#include "wxgui/WxColorSchemeChooser.hpp"
 
 IMPLEMENT_DYNAMIC_CLASS( WxColorSchemeButton, ewxPanel )
 

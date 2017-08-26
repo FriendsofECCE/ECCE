@@ -1,7 +1,7 @@
 #ifndef  __VR_VECTOR_H__
 #define  __VR_VECTOR_H__
 
-#include "inv/nodes/SoGroup.H"
+#include "inv/nodes/SoGroup.hpp"
 
 class SoScale;
 class SoTransform;

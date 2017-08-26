@@ -32,9 +32,9 @@
 #include <string>
 using std::string;
 
-#include "dsm/CSocket.H"
-#include "dsm/CCookie.H"
-#include "dsm/CIPCHTTP.H"
+#include "dsm/CSocket.hpp"
+#include "dsm/CCookie.hpp"
+#include "dsm/CIPCHTTP.hpp"
 
 using std::cout;
 using std::ostream;

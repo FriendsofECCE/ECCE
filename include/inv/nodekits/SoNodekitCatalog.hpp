@@ -58,10 +58,10 @@
 #ifndef  _SO_NODEKIT_CATALOG
 #define  _SO_NODEKIT_CATALOG
 
-#include "inv/misc/SoBasic.H"
-#include "inv/SbString.H"
-#include "inv/SoLists.H"
-#include "inv/SoType.H"
+#include "inv/misc/SoBasic.hpp"
+#include "inv/SbString.hpp"
+#include "inv/SoLists.hpp"
+#include "inv/SoType.hpp"
 
 #define SO_CATALOG_NAME_NOT_FOUND -1
 #define SO_CATALOG_THIS_PART_NUM   0

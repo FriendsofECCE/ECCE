@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/projectors/SbCylinderPlaneProjector.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/projectors/SbCylinderPlaneProjector.hpp"
+#include "inv/errors/SoDebugError.hpp"
 #include <stdio.h>
 
 ////////////////////////////////////////////////////////////////////////

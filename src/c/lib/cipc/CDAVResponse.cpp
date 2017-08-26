@@ -8,7 +8,7 @@
 
 // include files ***********************************************************
 
-#include "dsm/CDAVResponse.H"
+#include "dsm/CDAVResponse.hpp"
 
 // CDAVResponse::isValidStatus *********************************************
 

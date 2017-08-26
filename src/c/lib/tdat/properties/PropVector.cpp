@@ -14,8 +14,8 @@ using std::istrstream;
 #include <stdlib.h>         // atoi
 #include <math.h>           // sqrt
 
-#include "util/ErrMsg.H"
-#include "tdat/PropVector.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/PropVector.hpp"
 
 
 // ---------- Constructors ------------

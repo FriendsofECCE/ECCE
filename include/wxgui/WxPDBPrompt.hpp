@@ -8,8 +8,8 @@
 
 #include <string>
 
-#include "wxgui/WxPDBPromptGUI.H"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/WxPDBPromptGUI.hpp"
+#include "wxgui/ewxStyledWindow.hpp"
 
 
 /**

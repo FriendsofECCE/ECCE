@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_LINE_WIDTH_ELEMENT
 #define  _SO_GL_LINE_WIDTH_ELEMENT
 
-#include "inv/elements/SoLineWidthElement.H"
+#include "inv/elements/SoLineWidthElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

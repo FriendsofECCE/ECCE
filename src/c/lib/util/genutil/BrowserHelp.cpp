@@ -13,11 +13,11 @@
 #include <stdlib.h>              // system()
 #include <string.h>
 
-#include "util/Ecce.H"
-#include "util/Preferences.H"
-#include "util/StringTokenizer.H"
-#include "util/BrowserHelp.H"
-#include "util/NullPointerException.H"
+#include "util/Ecce.hpp"
+#include "util/Preferences.hpp"
+#include "util/StringTokenizer.hpp"
+#include "util/BrowserHelp.hpp"
+#include "util/NullPointerException.hpp"
 
 
 ///////////////////////////////////////////////////////////////////////////////

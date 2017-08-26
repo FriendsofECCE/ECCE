@@ -6,7 +6,7 @@
 #ifndef  RENUMBERRESIDUESCMD_H
 #define  RENUMBERRESIDUESCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

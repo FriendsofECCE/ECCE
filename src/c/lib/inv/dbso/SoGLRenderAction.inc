@@ -53,16 +53,16 @@
 
 #include <float.h>
 #include <GL/gl.h>
-#include "inv/SoDB.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/elements/SoCacheElement.H"
-#include "inv/elements/SoGLCacheContextElement.H"
-#include "inv/elements/SoGLRenderPassElement.H"
-#include "inv/elements/SoGLUpdateAreaElement.H"
-#include "inv/elements/SoTextureImageElement.H"
-#include "inv/elements/SoViewportRegionElement.H"
-#include "inv/elements/SoShapeStyleElement.H"
+#include "inv/SoDB.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/elements/SoGLCacheContextElement.hpp"
+#include "inv/elements/SoGLRenderPassElement.hpp"
+#include "inv/elements/SoGLUpdateAreaElement.hpp"
+#include "inv/elements/SoTextureImageElement.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
+#include "inv/elements/SoShapeStyleElement.hpp"
 
 SO_ACTION_SOURCE(SoGLRenderAction);
 

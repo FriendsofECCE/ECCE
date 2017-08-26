@@ -9,21 +9,21 @@
   using std::endl;
   using std::ends;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
   using namespace ecce;
 
-#include "tdat/TAtm.H"
-#include "tdat/TChartOfNuclides.H"
-#include "tdat/TRefIsotope.H"
+#include "tdat/TAtm.hpp"
+#include "tdat/TChartOfNuclides.hpp"
+#include "tdat/TRefIsotope.hpp"
 
-#include "wxgui/WindowEvent.H"
+#include "wxgui/WindowEvent.hpp"
   using namespace ecce;
 
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
-#include "viz/SetMassCmd.H"
+#include "viz/SetMassCmd.hpp"
 
 
 

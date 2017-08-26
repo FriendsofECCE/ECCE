@@ -37,14 +37,14 @@
 #ifndef __glucurvelist_h_
 #define __glucurvelist_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 /*
  * curvelist.h - $Revision: 22116 $
  */
 
-#include "types.H"
-#include "defines.H"
+#include "types.hpp"
+#include "defines.hpp"
 
 class Mapdesc;
 class Quilt;

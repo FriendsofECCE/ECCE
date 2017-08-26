@@ -8,7 +8,7 @@
 #define SETSUFFIXCMD_HH
 
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 
 class SetSuffixCmd : public Command

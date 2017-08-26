@@ -32,7 +32,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "inv/ChemKit/ChemBitmapFontCache.H"
+#include "inv/ChemKit/ChemBitmapFontCache.hpp"
 /*
 	WGL/GLX implementation:
 	Delete all libfl references, only FLBitmap structure is used

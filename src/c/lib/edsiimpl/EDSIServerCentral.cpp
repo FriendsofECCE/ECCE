@@ -15,21 +15,21 @@
 #include <xercesc/dom/DOMNamedNodeMap.hpp>
 using namespace xercesc;
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/KeyValueReader.H"
-#include "util/SFile.H"
-#include "util/EcceException.H"
-#include "util/Bookmark.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/KeyValueReader.hpp"
+#include "util/SFile.hpp"
+#include "util/EcceException.hpp"
+#include "util/Bookmark.hpp"
 
-#include "dsm/EDSIServerCentral.H"
-#include "dsm/EDSIGaussianBasisSetLibrary.H"
-#include "dsm/EDSI.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/EcceDAVClient.H"
-#include "dsm/BasicDOMParser.H"
-#include "dsm/ParseErrorReporter.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/EDSIServerCentral.hpp"
+#include "dsm/EDSIGaussianBasisSetLibrary.hpp"
+#include "dsm/EDSI.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EcceDAVClient.hpp"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/ParseErrorReporter.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
 
 

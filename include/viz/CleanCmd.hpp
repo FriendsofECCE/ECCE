@@ -2,8 +2,8 @@
 #define CLEANCMD_HH
 
 
-#include "util/ProgressMonitor.H"
-#include "viz/FragCloneCmd.H"
+#include "util/ProgressMonitor.hpp"
+#include "viz/FragCloneCmd.hpp"
 
 
 /**

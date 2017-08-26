@@ -1,5 +1,5 @@
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "NWDirdySetup.H"
+#pragma implementation "NWDirdySetup.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -26,43 +26,43 @@
 #include <values.h>
 //#include <stdlib.h>  // abort
 
-#include "util/Ecce.H"
-#include "util/CommandWrapper.H"
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
-#include "util/StringConverter.H"
-#include "util/Preferences.H"
-#include "util/SFile.H"
-#include "util/TypedFile.H"
-#include "util/SDirectory.H"
-#include "util/TempStorage.H"
-#include "util/EcceException.H"
-#include "util/StringConverter.H"
-#include "util/ResourceUtils.H"
-#include "util/EditEvent.H"
+#include "util/Ecce.hpp"
+#include "util/CommandWrapper.hpp"
+#include "util/JMSMessage.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/StringConverter.hpp"
+#include "util/Preferences.hpp"
+#include "util/SFile.hpp"
+#include "util/TypedFile.hpp"
+#include "util/SDirectory.hpp"
+#include "util/TempStorage.hpp"
+#include "util/EcceException.hpp"
+#include "util/StringConverter.hpp"
+#include "util/ResourceUtils.hpp"
+#include "util/EditEvent.hpp"
 
-#include "tdat/NWDirdyModel.H"
+#include "tdat/NWDirdyModel.hpp"
 
-#include "dsm/JCode.H"
-#include "dsm/CodeFactory.H"
+#include "dsm/JCode.hpp"
+#include "dsm/CodeFactory.hpp"
 
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxComboBox.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxRegexpValidator.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxUnitHelper.H"
-#include "wxgui/ewxProgressDialog.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/WxState.H"
-#include "wxgui/WxEditSessionMgr.H"
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxSingleChoiceDialog.H"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxComboBox.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxRegexpValidator.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxUnitHelper.hpp"
+#include "wxgui/ewxProgressDialog.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/WxState.hpp"
+#include "wxgui/WxEditSessionMgr.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxSingleChoiceDialog.hpp"
 
-#include "NWDirdySetup.H"
-#include "NWDirdy.H"
+#include "NWDirdySetup.hpp"
+#include "NWDirdy.hpp"
 
 static const string NWDirdyUnitFamily = "AU";
 static const string WHOAMI = "NWDirdySetup";

@@ -62,22 +62,22 @@
 #include <xercesc/dom/DOMNamedNodeMap.hpp>
 using namespace xercesc;
 
-#include "dsm/EcceDAVStatus.H"
-#include "dsm/DavEDSI.H"
-#include "dsm/VDoc.H"
-#include "dsm/BasicDOMParser.H"
-#include "dsm/CDAVClient.H"
+#include "dsm/EcceDAVStatus.hpp"
+#include "dsm/DavEDSI.hpp"
+#include "dsm/VDoc.hpp"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/CDAVClient.hpp"
 
-#include "util/ErrMsg.H"
-#include "util/EcceURL.H"
-#include "util/UrlDecoder.H"
-#include "util/StringConverter.H"
-#include "util/ResourceUtils.H"
-#include "util/STLUtil.H"
-#include "dsm/EDSI.H"
-#include "dsm/BasicDOMWriter.H"
-#include "dsm/EcceDAVClient.H"
-#include "dsm/ResourceDescriptor.H"
+#include "util/ErrMsg.hpp"
+#include "util/EcceURL.hpp"
+#include "util/UrlDecoder.hpp"
+#include "util/StringConverter.hpp"
+#include "util/ResourceUtils.hpp"
+#include "util/STLUtil.hpp"
+#include "dsm/EDSI.hpp"
+#include "dsm/BasicDOMWriter.hpp"
+#include "dsm/EcceDAVClient.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
 
 

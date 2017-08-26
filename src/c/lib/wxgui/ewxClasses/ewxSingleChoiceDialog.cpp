@@ -10,8 +10,8 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxStyledWindow.H"
-#include "wxgui/ewxSingleChoiceDialog.H"
+#include "wxgui/ewxStyledWindow.hpp"
+#include "wxgui/ewxSingleChoiceDialog.hpp"
 
 
 /**

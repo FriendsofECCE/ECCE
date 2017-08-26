@@ -56,9 +56,9 @@
 #ifndef  _SO_ACTION_
 #define  _SO_ACTION_
 
-#include "inv/misc/SoBasic.H"
-#include "inv/misc/SoTempPath.H"
-#include "inv/SoPath.H"
+#include "inv/misc/SoBasic.hpp"
+#include "inv/misc/SoTempPath.hpp"
+#include "inv/SoPath.hpp"
 
 // This is the type of a method function pointer in the table
 class SoAction;

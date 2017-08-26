@@ -13,7 +13,7 @@
 #include <string>
     using std::string;
 
-#include "util/Preferences.H"
+#include "util/Preferences.hpp"
 
 
 class TableColumn

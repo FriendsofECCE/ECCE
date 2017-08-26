@@ -56,8 +56,8 @@
 #ifndef  _SO_QUAD_MESH_
 #define  _SO_QUAD_MESH_
 
-#include "inv/fields/SoSFInt32.H"
-#include "inv/nodes/SoNonIndexedShape.H"
+#include "inv/fields/SoSFInt32.hpp"
+#include "inv/nodes/SoNonIndexedShape.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

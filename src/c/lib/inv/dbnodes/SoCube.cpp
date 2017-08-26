@@ -54,22 +54,22 @@
  */
 
 #include <GL/gl.h>
-#include "inv/SbBox.H"
-#include "inv/SoPickedPoint.H"
-#include "inv/SoPrimitiveVertex.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/bundles/SoMaterialBundle.H"
-#include "inv/details/SoCubeDetail.H"
-#include "inv/elements/SoComplexityElement.H"
-#include "inv/elements/SoComplexityTypeElement.H"
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/elements/SoGLTextureEnabledElement.H"
-#include "inv/elements/SoLightModelElement.H"
-#include "inv/elements/SoMaterialBindingElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/misc/SoState.H"
-#include "inv/nodes/SoCube.H"
+#include "inv/SbBox.hpp"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/SoPrimitiveVertex.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/bundles/SoMaterialBundle.hpp"
+#include "inv/details/SoCubeDetail.hpp"
+#include "inv/elements/SoComplexityElement.hpp"
+#include "inv/elements/SoComplexityTypeElement.hpp"
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/elements/SoGLTextureEnabledElement.hpp"
+#include "inv/elements/SoLightModelElement.hpp"
+#include "inv/elements/SoMaterialBindingElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/nodes/SoCube.hpp"
 
 SO_NODE_SOURCE(SoCube);
 

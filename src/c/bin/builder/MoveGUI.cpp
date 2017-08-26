@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "MoveGUI.H"
+#pragma implementation "MoveGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,14 +23,14 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "MoveGUI.H"
+#include "MoveGUI.hpp"
 
 ////@begin XPM images
 

@@ -54,7 +54,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
 // amount squared to figure if two floats are equal
 // (used for operator == right now)

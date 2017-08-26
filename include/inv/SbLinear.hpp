@@ -72,7 +72,7 @@
 #define _SB_LINEAR_
 
 #include <math.h>
-#include "inv/SbBasic.H"
+#include "inv/SbBasic.hpp"
 
 // -----------------------------------
 //

@@ -60,25 +60,25 @@
 #ifndef  _SO_
 #define  _SO_
 
-#include "inv/misc/SoBasic.H"
+#include "inv/misc/SoBasic.hpp"
 
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/SoLists.H"
-#include "inv/SoOffscreenRenderer.H"
-#include "inv/SoOutput.H"
-#include "inv/SoPath.H"
-#include "inv/misc/SoBase.H"
-#include "inv/misc/SoCallbackList.H"
-#include "inv/misc/SoState.H"
-#include "inv/misc/SoTranscribe.H"
-#include "inv/sensors/SoSensorManager.H"
-#include "inv/sensors/SoSensors.H"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoLists.hpp"
+#include "inv/SoOffscreenRenderer.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/misc/SoBase.hpp"
+#include "inv/misc/SoCallbackList.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/misc/SoTranscribe.hpp"
+#include "inv/sensors/SoSensorManager.hpp"
+#include "inv/sensors/SoSensors.hpp"
 
-#include "inv/actions/SoActions.H"
-#include "inv/details/SoDetails.H"
-#include "inv/events/SoEvents.H"
-#include "inv/fields/SoFields.H"
-#include "inv/nodes/SoNodes.H"
+#include "inv/actions/SoActions.hpp"
+#include "inv/details/SoDetails.hpp"
+#include "inv/events/SoEvents.hpp"
+#include "inv/fields/SoFields.hpp"
+#include "inv/nodes/SoNodes.hpp"
 
 #endif /* _SO_ */

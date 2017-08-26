@@ -54,15 +54,15 @@
 
 #include <stdio.h>
 #include <stdio.h>
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
 
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/manips/SoCenterballManip.H"
-#include "inv/draggers/SoCenterballDragger.H"
-#include "inv/nodes/SoSurroundScale.H"
-#include "inv/events/SoEvent.H"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/manips/SoCenterballManip.hpp"
+#include "inv/draggers/SoCenterballDragger.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
+#include "inv/events/SoEvent.hpp"
 
 SO_NODE_SOURCE(SoCenterballManip);
 

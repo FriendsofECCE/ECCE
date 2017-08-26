@@ -2,10 +2,10 @@
 #define _WXCOLORSCHEMEBUTTON_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "WxColorSchemeButton.C"
+#pragma interface "WxColorSchemeButton.cpp"
 #endif
 
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 
 
 #define SYMBOL_WXSTATEGUI_SIZE wxSize(15, 15)

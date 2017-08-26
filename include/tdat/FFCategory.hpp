@@ -28,13 +28,13 @@
   using std::range_error;
   using std::invalid_argument;
 
-#include "util/InvalidException.H"
-#include "util/IndexOutOfRangeException.H"
+#include "util/InvalidException.hpp"
+#include "util/IndexOutOfRangeException.hpp"
 
-#include "FFItem.H"
-#include "FFType.H"
-#include "FFParamSet.H"
-#include "FFCategoryDesc.H"
+#include "FFItem.hpp"
+#include "FFType.hpp"
+#include "FFParamSet.hpp"
+#include "FFCategoryDesc.hpp"
 
 
 ////////////////////////////////////////////////////////////////////////////////

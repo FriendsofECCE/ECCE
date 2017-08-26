@@ -6,7 +6,7 @@
 // License:     wxWidgets v2
 /////////////////////////////////////////////////////////////////////////////
 
-#include "wxgui/ThingPrecomp.H"
+#include "wxgui/ThingPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include <wx/wxprec.h>
@@ -15,7 +15,7 @@
     #pragma hdrstop
 #endif
 
-#include "wxgui/ThingGeometry.H"
+#include "wxgui/ThingGeometry.hpp"
 
 /*
 2.4 : How do I generate a circle through three points?

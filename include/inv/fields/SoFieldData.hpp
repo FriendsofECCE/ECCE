@@ -59,9 +59,9 @@
 #ifndef  _SO_FIELD_DATA_
 #define  _SO_FIELD_DATA_
 
-#include "inv/misc/SoBasic.H"
-#include "inv/SbPList.H"
-#include "inv/SbString.H"
+#include "inv/misc/SoBasic.hpp"
+#include "inv/SbPList.hpp"
+#include "inv/SbString.hpp"
 
 class SoField;
 class SoInput;

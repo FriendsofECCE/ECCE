@@ -11,7 +11,7 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPVersion.H"
+#include "dsm/CHTTPVersion.hpp"
 #include <string>
 
 // class: CHTTPResponse ****************************************************

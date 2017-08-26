@@ -56,9 +56,9 @@
 #ifndef  _SO_DB_
 #define  _SO_DB_
 
-#include "inv/sensors/SoSensorManager.H"
-#include "inv/SoType.H"
-#include "inv/SbPList.H"
+#include "inv/sensors/SoSensorManager.hpp"
+#include "inv/SoType.hpp"
+#include "inv/SbPList.hpp"
 
 class SoBase;
 class SoSFRealTime;

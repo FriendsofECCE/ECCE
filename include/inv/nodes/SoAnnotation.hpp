@@ -56,7 +56,7 @@
 #ifndef  _SO_ANNOTATION_
 #define  _SO_ANNOTATION_
 
-#include "inv/nodes/SoSeparator.H"
+#include "inv/nodes/SoSeparator.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

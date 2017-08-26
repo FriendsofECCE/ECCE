@@ -13,8 +13,8 @@
   using std::vector;
 
 
-#include "dsm/ResourceProperty.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceProperty.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
 
 

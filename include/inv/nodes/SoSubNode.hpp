@@ -94,9 +94,9 @@
 #ifndef  _SO_SUB_NODE_
 #define  _SO_SUB_NODE_
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/fields/SoFieldData.H"
-#include "inv/nodes/SoNode.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/fields/SoFieldData.hpp"
+#include "inv/nodes/SoNode.hpp"
 
 // C-api: end
 

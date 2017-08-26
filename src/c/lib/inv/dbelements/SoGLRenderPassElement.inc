@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoGLRenderPassElement.H"
+#include "inv/elements/SoGLRenderPassElement.hpp"
 
 SO_ELEMENT_SOURCE(SoGLRenderPassElement);
 

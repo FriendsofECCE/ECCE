@@ -15,27 +15,27 @@
 using std::cerr;
 using std::endl;
 
-#include "util/Ecce.H"
-#include "util/EcceURL.H"
-#include "util/StringTokenizer.H"
-#include "util/Command.H"
-#include "util/ErrMsg.H"
-#include "util/SDirectory.H"
+#include "util/Ecce.hpp"
+#include "util/EcceURL.hpp"
+#include "util/StringTokenizer.hpp"
+#include "util/Command.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/SDirectory.hpp"
 
-#include "tdat/AuthCache.H"
+#include "tdat/AuthCache.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSIServerCentral.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSIServerCentral.hpp"
 
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/WxState.H"
-#include "wxgui/ewxMessageDialog.H"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/WxState.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
 
-#include "viz/SelectCmd.H"
-#include "viz/ValidateStrCmd.H"
+#include "viz/SelectCmd.hpp"
+#include "viz/ValidateStrCmd.hpp"
 
-#include "BuilderApp.H"
-#include "Builder.H"
+#include "BuilderApp.hpp"
+#include "Builder.hpp"
 
 IMPLEMENT_APP(BuilderApp)
 

@@ -53,17 +53,17 @@
  _______________________________________________________________________
  */
 
-#include "inv/SbDict.H"
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/SoLists.H"
-#include "inv/SoOutput.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoReadError.H"
-#include "inv/fields/SoField.H"
-#include "inv/fields/SoFieldContainer.H"
-#include "inv/fields/SoFieldData.H"
-#include "inv/misc/SoNotification.H"
+#include "inv/SbDict.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoLists.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/fields/SoField.hpp"
+#include "inv/fields/SoFieldContainer.hpp"
+#include "inv/fields/SoFieldData.hpp"
+#include "inv/misc/SoNotification.hpp"
 
 #include <stdlib.h>
 

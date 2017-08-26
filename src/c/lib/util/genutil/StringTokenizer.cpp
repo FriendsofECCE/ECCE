@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "util/StringTokenizer.H"
+#include "util/StringTokenizer.hpp"
 
 StringTokenizer::StringTokenizer(const string& str, const string& pattern)
 {

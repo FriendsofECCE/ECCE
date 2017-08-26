@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "WxBasisToolGUI.H"
+#pragma implementation "WxBasisToolGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,21 +23,21 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxRadioButton.H"
-#include "wxgui/ewxGrid.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxListBox.H"
-#include "wxgui/ewxNotebook.H"
-#include "wxgui/ewxMenuBar.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/ewxRadioButton.hpp"
+#include "wxgui/ewxGrid.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxListBox.hpp"
+#include "wxgui/ewxNotebook.hpp"
+#include "wxgui/ewxMenuBar.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxFrame.hpp"
 ////@end includes
 
-#include "WxBasisToolGUI.H"
+#include "WxBasisToolGUI.hpp"
 
 ////@begin XPM images
 

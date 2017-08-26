@@ -52,7 +52,7 @@
  */
 
 #include <stdio.h>
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 #include "gl4base.inc"
 #include "gl4curveval.inc"
 #include "gl4surfeval.inc"

@@ -52,13 +52,13 @@
  */
 
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodekits/SoNodekitCatalog.H"
-#include "inv/nodekits/SoNodeKitListPart.H"
-#include "inv/SoDB.H"
-#include "inv/nodekits/SoBaseKit.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSwitch.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodekits/SoNodekitCatalog.hpp"
+#include "inv/nodekits/SoNodeKitListPart.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/nodekits/SoBaseKit.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSwitch.hpp"
 
 // Static variables for the nodekit catalog class...
 

@@ -1,9 +1,9 @@
-#include "util/STLUtil.H"
+#include "util/STLUtil.hpp"
 
-#include "dsm/TGBSConfig.H"
-#include "dsm/TGaussianBasisSet.H"
+#include "dsm/TGBSConfig.hpp"
+#include "dsm/TGaussianBasisSet.hpp"
 
-#include "GBSContractionGridModel.H"
+#include "GBSContractionGridModel.hpp"
 
 
 GBSContractionGridModel::GBSContractionGridModel(TGBSConfig *cnfg, string symbol)

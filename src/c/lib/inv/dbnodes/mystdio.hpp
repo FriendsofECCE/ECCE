@@ -37,7 +37,7 @@
 #ifndef __glumystdio_h_
 #define __glumystdio_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * mystdio.h - $Revision: 22364 $
  */

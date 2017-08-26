@@ -56,8 +56,8 @@
 #ifndef  _SO_NURBS_PROFILE_
 #define  _SO_NURBS_PROFILE_
 
-#include "inv/fields/SoMFFloat.H"
-#include "inv/nodes/SoProfile.H"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/nodes/SoProfile.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

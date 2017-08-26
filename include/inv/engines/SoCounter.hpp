@@ -59,10 +59,10 @@
 #ifndef  _SO_COUNTER_
 #define  _SO_COUNTER_
 
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoSFShort.H"
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFTrigger.H"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoSFShort.hpp"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFTrigger.hpp"
 
 // C-api: public=min,max,step,trigger,reset
 // C-api: public=output,syncOut

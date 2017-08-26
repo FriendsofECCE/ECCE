@@ -1,12 +1,12 @@
 #ifndef SOLVATEEDAPP_H_
 #define SOLVATEEDAPP_H_
 
-#include "util/JMSMessage.H"
+#include "util/JMSMessage.hpp"
 
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/ewxApp.H"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/ewxApp.hpp"
 
-#include "SolvateEd.H"
+#include "SolvateEd.hpp"
 
 class SolvateEdApp : public ewxApp,
                      public WxJMSMessageDispatch

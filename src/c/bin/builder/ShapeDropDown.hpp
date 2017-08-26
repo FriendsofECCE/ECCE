@@ -3,9 +3,9 @@
 
 #include <wx/toolbar.h>
 
-#include "tdat/ShapeData.H"
+#include "tdat/ShapeData.hpp"
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
 
 class ShapeDropDown : public wxToolBar,

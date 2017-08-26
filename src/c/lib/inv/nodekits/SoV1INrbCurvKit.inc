@@ -51,13 +51,13 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1IndexedNurbsCurveKit.H"
-#include "inv/nodes/SoCoordinate3.H"
-#include "inv/nodes/SoCoordinate4.H"
-#include "inv/nodes/SoTextureCoordinate2.H"
-#include "inv/nodes/SoIndexedNurbsCurve.H"
-#include "inv/nodekits/SoShapeKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1IndexedNurbsCurveKit.hpp"
+#include "inv/nodes/SoCoordinate3.hpp"
+#include "inv/nodes/SoCoordinate4.hpp"
+#include "inv/nodes/SoTextureCoordinate2.hpp"
+#include "inv/nodes/SoIndexedNurbsCurve.hpp"
+#include "inv/nodekits/SoShapeKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1IndexedNurbsCurveKit);

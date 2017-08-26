@@ -51,19 +51,19 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1CameraKit.H"
-#include "inv/nodes/SoCamera.H"
-#include "inv/nodes/SoCallback.H"
-#include "inv/nodes/SoEventCallback.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodekits/SoAppearanceKit.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/nodes/SoPathSwitch.H"
-#include "inv/nodes/SoPerspectiveCamera.H"
-#include "inv/nodekits/SoSeparatorKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1CameraKit.hpp"
+#include "inv/nodes/SoCamera.hpp"
+#include "inv/nodes/SoCallback.hpp"
+#include "inv/nodes/SoEventCallback.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodekits/SoAppearanceKit.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/nodes/SoPathSwitch.hpp"
+#include "inv/nodes/SoPerspectiveCamera.hpp"
+#include "inv/nodekits/SoSeparatorKit.hpp"
 
-#include "inv/nodekits/SoCameraKit.H"
+#include "inv/nodekits/SoCameraKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1CameraKit);

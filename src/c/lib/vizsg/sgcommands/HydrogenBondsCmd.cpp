@@ -11,20 +11,20 @@
 #include <algorithm>
   using std::find;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "tdat/LinkCellList.H"
-#include "tdat/TPerTab.H"
-#include "tdat/TBond.H"
-#include "tdat/TPerTab.H"
+#include "tdat/LinkCellList.hpp"
+#include "tdat/TPerTab.hpp"
+#include "tdat/TBond.hpp"
+#include "tdat/TPerTab.hpp"
 
-#include "viz/HydrogenBondsCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
-#include "viz/AtomLine.H"
-#include "viz/AtomMeasureDist.H"
+#include "viz/HydrogenBondsCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
+#include "viz/AtomLine.hpp"
+#include "viz/AtomMeasureDist.hpp"
 
 HydrogenBondsCmd::HydrogenBondsCmd(const string& name, Receiver * receiver)
     : Command(name, receiver)

@@ -1,7 +1,7 @@
 #ifndef  __STYLEDPLANE_H
 #define  __STYLEDPLANE_H
 
-#include "inv/nodes/SoSwitch.H"
+#include "inv/nodes/SoSwitch.hpp"
 
 class SGPlane;
 class SoMaterial;

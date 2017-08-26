@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/events/SoEvent.H"
+#include "inv/events/SoEvent.hpp"
 
 SoType SoEvent::classTypeId;
 

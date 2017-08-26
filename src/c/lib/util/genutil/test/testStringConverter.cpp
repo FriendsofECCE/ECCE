@@ -2,7 +2,7 @@
 #include <strstream>
   using namespace std;
 
-#include "util/StringConverter.H"
+#include "util/StringConverter.hpp"
 
 int main(int argc, char** argv)
 {

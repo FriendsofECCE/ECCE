@@ -15,7 +15,7 @@
 #include <xercesc/dom/DOMElement.hpp>
   using namespace xercesc;
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
 
 

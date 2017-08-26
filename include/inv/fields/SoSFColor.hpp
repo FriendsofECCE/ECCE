@@ -56,8 +56,8 @@
 #ifndef  _SO_SF_COLOR_
 #define  _SO_SF_COLOR_
 
-#include "inv/fields/SoSubField.H"
-#include "inv/SbColor.H"
+#include "inv/fields/SoSubField.hpp"
+#include "inv/SbColor.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

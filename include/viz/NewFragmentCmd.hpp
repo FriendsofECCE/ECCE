@@ -6,7 +6,7 @@
 #ifndef  NEWFRAGMENTCMD_H
 #define  NEWFRAGMENTCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

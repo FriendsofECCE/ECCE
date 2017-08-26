@@ -13,8 +13,8 @@
 #include <vector>
   using std::vector;
 
-#include "util/CommandParameter.H"
-#include "util/EcceException.H"
+#include "util/CommandParameter.hpp"
+#include "util/EcceException.hpp"
 
 class CommandParameter;
 class Receiver;

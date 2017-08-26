@@ -37,12 +37,12 @@
 #ifndef __glujarcloc_h_
 #define __glujarcloc_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * jarcloc.h - $Revision: 22116 $
  */
 
-#include "arc.H"
+#include "arc.hpp"
 
 class Jarcloc {
 private:

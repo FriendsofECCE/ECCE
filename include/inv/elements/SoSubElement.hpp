@@ -79,7 +79,7 @@
 #ifndef  _SO_SUB_ELEMENT_
 #define  _SO_SUB_ELEMENT_
 
-#include "inv/elements/SoElement.H"
+#include "inv/elements/SoElement.hpp"
 
 // C-api: end
 

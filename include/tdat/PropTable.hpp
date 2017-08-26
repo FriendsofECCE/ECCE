@@ -21,7 +21,7 @@
 #include <iostream>
   using std::istream;
 
-#include "tdat/TProperty.H"
+#include "tdat/TProperty.hpp"
 
 class PropTable : public TProperty
 {

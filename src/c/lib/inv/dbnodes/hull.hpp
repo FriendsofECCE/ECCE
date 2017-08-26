@@ -37,13 +37,13 @@
 #ifndef __gluhull_h_
 #define __gluhull_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * hull.h - $Revision: 22116 $
  */
 
-#include "trimline.H"
-#include "trimregion.H"
+#include "trimline.hpp"
+#include "trimregion.hpp"
 
 class GridTrimVertex;
 class Gridline;

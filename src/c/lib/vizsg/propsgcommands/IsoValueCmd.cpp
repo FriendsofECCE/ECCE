@@ -2,17 +2,17 @@
   using std::cout;
   using std::endl;
 
-#include "inv/nodes/SoIndexedTriangleStripSet.H"
-#include "inv/misc/SoChildList.H"
-#include "inv/nodes/SoSwitch.H"
+#include "inv/nodes/SoIndexedTriangleStripSet.hpp"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/nodes/SoSwitch.hpp"
 
-#include "tdat/SingleGrid.H"
+#include "tdat/SingleGrid.hpp"
 
-#include "inv/ChemKit/ChemIso.H"
-#include "inv/ChemKit/ChemContour.H"
+#include "inv/ChemKit/ChemIso.hpp"
+#include "inv/ChemKit/ChemContour.hpp"
 
-#include "viz/SGContainer.H"
-#include "viz/IsoValueCmd.H"
+#include "viz/SGContainer.hpp"
+#include "viz/IsoValueCmd.hpp"
 
 IsoValueCmd::IsoValueCmd(const string& name,Receiver *receiver,
                          IPropCalculation *calc)

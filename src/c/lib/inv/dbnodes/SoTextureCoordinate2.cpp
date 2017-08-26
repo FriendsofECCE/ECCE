@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/nodes/SoTextureCoordinate2.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/nodes/SoTextureCoordinate2.hpp"
 
 SO_NODE_SOURCE(SoTextureCoordinate2);
 

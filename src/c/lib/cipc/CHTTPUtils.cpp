@@ -16,8 +16,8 @@
 #include <cctype>
 #include <cstdlib>
 
-#include "dsm/CHTTPDefs.H"
-#include "dsm/CHTTPUtils.H"
+#include "dsm/CHTTPDefs.hpp"
+#include "dsm/CHTTPUtils.hpp"
 
 using std::string;
 

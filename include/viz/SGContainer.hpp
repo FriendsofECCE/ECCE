@@ -25,18 +25,18 @@ class PropTSVecTable;
 #include <deque>
   using std::deque;
 
-#include "inv/nodes/SoSwitch.H"
+#include "inv/nodes/SoSwitch.hpp"
 
-#include "util/ICommandObject.H"
-#include "util/Receiver.H"
+#include "util/ICommandObject.hpp"
+#include "util/Receiver.hpp"
 
-#include "tdat/TAtm.H"
-#include "tdat/TPerTab.H"
-#include "tdat/DisplayStyle.H"
-#include "tdat/DisplayDescriptor.H"
+#include "tdat/TAtm.hpp"
+#include "tdat/TPerTab.hpp"
+#include "tdat/DisplayStyle.hpp"
+#include "tdat/DisplayDescriptor.hpp"
 
-#include "inv/ChemKit/ChemDisplayParam.H"
-#include "inv/ChemKit/ChemSelection.H"
+#include "inv/ChemKit/ChemDisplayParam.hpp"
+#include "inv/ChemKit/ChemSelection.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

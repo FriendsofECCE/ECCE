@@ -14,14 +14,14 @@
 
 #if 000
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "ewxTreeCtrl.C"
+#pragma interface "ewxTreeCtrl.cpp"
 #endif
 #endif
 
 #include "wx/treectrl.h"
 
-#include "wxgui/ewxGenericValidator.H" // for ewxDefaultValidator
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxGenericValidator.hpp" // for ewxDefaultValidator
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxTreeCtrl : public wxTreeCtrl, public ewxStyledWindow
 {

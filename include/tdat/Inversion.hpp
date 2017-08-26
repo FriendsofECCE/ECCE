@@ -18,7 +18,7 @@
 #include <vector>
   using std::vector;
 
-#include "tdat/TBond.H"
+#include "tdat/TBond.hpp"
 
 #define ONEMINUS5EPS (1.0 - 5.0*DBL_EPSILON)
 

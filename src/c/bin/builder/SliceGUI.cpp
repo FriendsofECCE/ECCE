@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "SliceGUI.H"
+#pragma implementation "SliceGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,14 +23,14 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxCheckBox.H"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxCheckBox.hpp"
 ////@end includes
 
-#include "SliceGUI.H"
+#include "SliceGUI.hpp"
 
 ////@begin XPM images
 

@@ -11,7 +11,7 @@
 #define _NMODESGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "NModesGUI.C"
+#pragma interface "NModesGUI.cpp"
 #endif
 
 /*!
@@ -20,7 +20,7 @@
 
 ////@begin includes
 #include "wx/grid.h"
-#include "VizPropertyPanel.H"
+#include "VizPropertyPanel.hpp"
 ////@end includes
 
 /*!

@@ -1,7 +1,7 @@
 #ifndef _EWXNONBOLDLABEL_H
 #define _EWXNONBOLDLABEL_H
 
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxStaticText.hpp"
 
 class ewxNonBoldLabel : public ewxStaticText
 {

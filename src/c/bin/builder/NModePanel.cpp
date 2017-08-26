@@ -8,33 +8,33 @@
 
 #include <wx/link.h>
 
-#include "util/EventDispatcher.H"
-#include "util/InternalException.H"
-#include "util/PreferenceLabels.H"
+#include "util/EventDispatcher.hpp"
+#include "util/InternalException.hpp"
+#include "util/PreferenceLabels.hpp"
 
-#include "tdat/PropVector.H"
+#include "tdat/PropVector.hpp"
 
-#include "dsm/ICalculation.H"
-#include "dsm/IPropCalculation.H"
+#include "dsm/ICalculation.hpp"
+#include "dsm/IPropCalculation.hpp"
 
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxColorDialog.H"
-#include "wxgui/ewxConfig.H"
-#include "wxgui/ewxPlotCtrl.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/SliderCombo.H"
-#include "wxgui/WindowEvent.H"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxColorDialog.hpp"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/ewxPlotCtrl.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/SliderCombo.hpp"
+#include "wxgui/WindowEvent.hpp"
 
-#include "viz/NModeStepCmd.H"
-#include "viz/NModeTraceCmd.H"
-#include "viz/NModeVectCmd.H"
+#include "viz/NModeStepCmd.hpp"
+#include "viz/NModeTraceCmd.hpp"
+#include "viz/NModeVectCmd.hpp"
 
-#include "wxviz/SGSelection.H"
-#include "wxviz/WxVizToolFW.H"
+#include "wxviz/SGSelection.hpp"
+#include "wxviz/WxVizToolFW.hpp"
 
-#include "NModePanel.H"
+#include "NModePanel.hpp"
 
   using std::find;
 

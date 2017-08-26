@@ -3,7 +3,7 @@
  *
  *
  */
-#include "tdat/GeomConstraintRules.H"
+#include "tdat/GeomConstraintRules.hpp"
 
 /**
  * Constructor.

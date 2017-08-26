@@ -56,10 +56,10 @@
 #ifndef  _SO_CYLINDER_
 #define  _SO_CYLINDER_
 
-#include "inv/SbLinear.H"
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/nodes/SoShape.H"
+#include "inv/SbLinear.hpp"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/nodes/SoShape.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

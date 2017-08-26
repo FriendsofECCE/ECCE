@@ -42,7 +42,7 @@
 #define SO_MYGLIMPORTS_H
 
 #include <inttypes.h>   /* defines int32_t and brethren */
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 #ifdef GLBUILD
 

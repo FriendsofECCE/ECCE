@@ -1,7 +1,7 @@
 #ifndef WXBASISSETCOEFFICIENTS_HH
 #define WXBASISSETCOEFFICIENTS_HH
 
-#include "WxBasisSetCoefficientsGUI.H"
+#include "WxBasisSetCoefficientsGUI.hpp"
 
 class ewxButton;
 class ewxTextCtrl;

@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "util/CommandWrapper.H"
+#include "util/CommandWrapper.hpp"
 
 CommandWrapper::CommandWrapper()
 {

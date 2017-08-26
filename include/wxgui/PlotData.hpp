@@ -16,8 +16,8 @@
 #endif
 
 #include "wx/txtstrm.h"            // for wxEOL
-#include "wxgui/PlotCurv.H"  // includes plotdefs.h
-#include "wxgui/PlotFunc.H"
+#include "wxgui/PlotCurv.hpp"  // includes plotdefs.h
+#include "wxgui/PlotFunc.hpp"
 
 class WXDLLIMPEXP_FWD_THINGS wxRangeIntSelection;
 class WXDLLIMPEXP_FWD_PLOTCTRL wxPlotData;

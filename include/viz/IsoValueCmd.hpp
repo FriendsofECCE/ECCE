@@ -1,7 +1,7 @@
 #ifndef ISOVALUECMD_H
 #define ISOVALUECMD_H
 
-#include "viz/PropCmd.H"
+#include "viz/PropCmd.hpp"
 
 
 /**

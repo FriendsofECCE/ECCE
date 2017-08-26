@@ -16,19 +16,19 @@
 using std::cout;
 using std::endl;
 
-#include "dsm/ICalcUtils.H"
-#include "dsm/EDSIServerCentral.H"
-#include "dsm/JCode.H"
-#include "dsm/EDSIGaussianBasisSetLibrary.H"
+#include "dsm/ICalcUtils.hpp"
+#include "dsm/EDSIServerCentral.hpp"
+#include "dsm/JCode.hpp"
+#include "dsm/EDSIGaussianBasisSetLibrary.hpp"
 
-#include "util/ErrMsg.H"
-#include "util/STLUtil.H"
+#include "util/ErrMsg.hpp"
+#include "util/STLUtil.hpp"
 
-#include "tdat/TTheory.H"
-#include "tdat/Fragment.H"
+#include "tdat/TTheory.hpp"
+#include "tdat/Fragment.hpp"
 
-#include "dsm/TGBSConfig.H"
-#include "dsm/GBSRules.H"
+#include "dsm/TGBSConfig.hpp"
+#include "dsm/GBSRules.hpp"
 
 // Static initialization;
    EDSIServerCentral central;

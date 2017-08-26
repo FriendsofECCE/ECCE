@@ -12,10 +12,10 @@
   using std::vector;
 
 
-#include "dsm/EDSI.H"
+#include "dsm/EDSI.hpp"
 
-#include "util/InvalidException.H"
-#include "util/JMSMessage.H"
+#include "util/InvalidException.hpp"
+#include "util/JMSMessage.hpp"
 
 
 class AuthEventListener;

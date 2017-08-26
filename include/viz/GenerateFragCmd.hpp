@@ -6,7 +6,7 @@
 #ifndef  GENERATEFRAGCMD_H
 #define  GENERATEFRAGCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

@@ -2,7 +2,7 @@
 #define VEC3COLPANEL__H
 
 
-#include "PropertyPanel.H"
+#include "PropertyPanel.hpp"
 
 
 class wxGrid;

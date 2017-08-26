@@ -54,8 +54,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/fields/SoField.H"
-#include "inv/engines/SoFieldConverter.H"
+#include "inv/fields/SoField.hpp"
+#include "inv/engines/SoFieldConverter.hpp"
 
 SO_ENGINE_ABSTRACT_SOURCE(SoFieldConverter);
 

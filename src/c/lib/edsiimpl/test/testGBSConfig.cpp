@@ -1,12 +1,12 @@
 #include <iostream.h>
 #include <strstream.h>
 
-#include "dsm/EDSIGaussianBasisSetLibrary.H"
-#include "dsm/EDSIServerCentral.H"
-#include "tdat/TGaussianBasisSet.H"
-#include "tdat/TGBSConfig.H"
-#include "tdat/Fragment.H"
-#include "tdat/TTCPair.H"
+#include "dsm/EDSIGaussianBasisSetLibrary.hpp"
+#include "dsm/EDSIServerCentral.hpp"
+#include "tdat/TGaussianBasisSet.hpp"
+#include "tdat/TGBSConfig.hpp"
+#include "tdat/Fragment.hpp"
+#include "tdat/TTCPair.hpp"
 
 int main(int argc, char** argv)
 {

@@ -56,9 +56,9 @@
 #ifndef  _SO_LIGHT_MODEL_
 #define  _SO_LIGHT_MODEL_
 
-#include "inv/elements/SoLazyElement.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/elements/SoLazyElement.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

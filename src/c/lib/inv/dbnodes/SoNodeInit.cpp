@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoPrimitiveVertex.H"
-#include "inv/actions/SoActions.H"
-#include "inv/elements/SoElements.H"
-#include "inv/nodes/SoNodes.H"
-#include "SoUnknownNode.H"
+#include "inv/SoPrimitiveVertex.hpp"
+#include "inv/actions/SoActions.hpp"
+#include "inv/elements/SoElements.hpp"
+#include "inv/nodes/SoNodes.hpp"
+#include "SoUnknownNode.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

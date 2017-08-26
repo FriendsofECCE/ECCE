@@ -55,7 +55,7 @@
 
 #ident "$Revision: 22141 $"
 
-#include "inv/ChemKit/ChemBaseDataElement.H"
+#include "inv/ChemKit/ChemBaseDataElement.hpp"
 
 SO_ELEMENT_SOURCE(ChemBaseDataElement);
 

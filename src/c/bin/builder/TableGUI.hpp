@@ -11,7 +11,7 @@
 #define _TABLEGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "TableGUI.C"
+#pragma interface "TableGUI.cpp"
 #endif
 
 /*!
@@ -20,7 +20,7 @@
 
 ////@begin includes
 #include "wx/grid.h"
-#include "PropertyPanel.H"
+#include "PropertyPanel.hpp"
 ////@end includes
 
 /*!

@@ -11,8 +11,8 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPServerInfo.H"
-#include "dsm/CDAVHeader.H"
+#include "dsm/CHTTPServerInfo.hpp"
+#include "dsm/CDAVHeader.hpp"
 
 // class: CDAVServerInfo ***************************************************
 

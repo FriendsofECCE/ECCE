@@ -46,10 +46,10 @@
 #ifndef  _SO_SPOT_LIGHT_MANIP_
 #define  _SO_SPOT_LIGHT_MANIP_
 
-#include "inv/SbLinear.H"
-#include "inv/draggers/SoDragger.H"
-#include "inv/nodes/SoSpotLight.H"
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/SbLinear.hpp"
+#include "inv/draggers/SoDragger.hpp"
+#include "inv/nodes/SoSpotLight.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
 
 // C-api: prefix=SoSpotLtManip
 class SoSpotLightManip : public SoSpotLight

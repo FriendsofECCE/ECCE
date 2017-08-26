@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoClipPlaneElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/elements/SoClipPlaneElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 SO_ELEMENT_SOURCE(SoClipPlaneElement);
 

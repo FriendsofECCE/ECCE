@@ -10,8 +10,8 @@
 #include <vector>
   using std::vector;
 
-#include "dsm/ICalculation.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ICalculation.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
 class EcceMap;
 class GUIValues;

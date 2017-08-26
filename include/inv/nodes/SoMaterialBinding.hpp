@@ -56,9 +56,9 @@
 #ifndef  _SO_MATERIAL_BINDING_
 #define  _SO_MATERIAL_BINDING_
 
-#include "inv/elements/SoMaterialBindingElement.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/elements/SoMaterialBindingElement.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

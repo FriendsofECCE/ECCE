@@ -28,14 +28,14 @@
 
 #include <float.h>
 
-#include "inv/SbPList.H"
-#include "inv/SbLinear.H"
+#include "inv/SbPList.hpp"
+#include "inv/SbLinear.hpp"
 
-#include "inv/ChemKit/ChemOctreeNode.H"
-#include "inv/ChemKit/ChemResidueStuff.H"
+#include "inv/ChemKit/ChemOctreeNode.hpp"
+#include "inv/ChemKit/ChemResidueStuff.hpp"
 
-#include "inv/ChemKit/ChemData.H"
-#include "inv/ChemKit/ChemDisplay.H"
+#include "inv/ChemKit/ChemData.hpp"
+#include "inv/ChemKit/ChemDisplay.hpp"
 
 #ifdef WIN32
 #include <windows.h>

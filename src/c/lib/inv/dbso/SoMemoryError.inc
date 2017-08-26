@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/errors/SoMemoryError.H"
+#include "inv/errors/SoMemoryError.hpp"
 
 // Static variables declared in SoMemoryError.h:
 SoType		SoMemoryError::classTypeId;

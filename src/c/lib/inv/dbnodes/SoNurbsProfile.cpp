@@ -51,16 +51,16 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoComplexityElement.H"
-#include "inv/elements/SoComplexityTypeElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/elements/SoProfileCoordinateElement.H"
-#include "inv/elements/SoProjectionMatrixElement.H"
-#include "inv/elements/SoViewingMatrixElement.H"
-#include "inv/nodes/SoNurbsProfile.H"
-#include "SoAddPrefix.H"
-#include "SoCurveMaps.H"
-#include "SoCurveRender.H"
+#include "inv/elements/SoComplexityElement.hpp"
+#include "inv/elements/SoComplexityTypeElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/elements/SoProfileCoordinateElement.hpp"
+#include "inv/elements/SoProjectionMatrixElement.hpp"
+#include "inv/elements/SoViewingMatrixElement.hpp"
+#include "inv/nodes/SoNurbsProfile.hpp"
+#include "SoAddPrefix.hpp"
+#include "SoCurveMaps.hpp"
+#include "SoCurveRender.hpp"
 
 SO_NODE_SOURCE(SoNurbsProfile);
 

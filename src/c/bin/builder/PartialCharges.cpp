@@ -6,35 +6,35 @@
 
 #include <wx/link.h>
 
-#include "util/PreferenceLabels.H"
-#include "util/Spectrum.H"
-#include "util/NullPointerException.H"
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/PreferenceLabels.hpp"
+#include "util/Spectrum.hpp"
+#include "util/NullPointerException.hpp"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
   using namespace ecce;
 
-#include "tdat/PropTable.H"
-#include "tdat/TProperty.H"
+#include "tdat/PropTable.hpp"
+#include "tdat/TProperty.hpp"
 
-#include "dsm/PropFactory.H"
-#include "dsm/ICalculation.H"
+#include "dsm/PropFactory.hpp"
+#include "dsm/ICalculation.hpp"
 
-#include "wxgui/ewxConfig.H"
-#include "wxgui/ewxColor.H"
-#include "wxgui/ewxGrid.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/WxColorSchemeButton.H"
-#include "wxgui/ewxMessageDialog.H"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/ewxColor.hpp"
+#include "wxgui/ewxGrid.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/WxColorSchemeButton.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
 
-#include "inv/ChemKit/ChemColor.H"
+#include "inv/ChemKit/ChemColor.hpp"
 
-#include "viz/CSLoadColorsCmd.H"
+#include "viz/CSLoadColorsCmd.hpp"
 
-#include "wxviz/WxVizToolFW.H"
+#include "wxviz/WxVizToolFW.hpp"
 
-#include "PartialCharges.H"
+#include "PartialCharges.hpp"
 
 static const int FIXEDCOLS = 2;
 

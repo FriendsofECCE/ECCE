@@ -1,10 +1,10 @@
-#include "inv/SoOffscreenRenderer.H"
+#include "inv/SoOffscreenRenderer.hpp"
 
-#include "util/SFile.H"
+#include "util/SFile.hpp"
 
-#include "wxviz/RenderFileCmd.H"
-#include "wxviz/SGViewer.H"
-#include "wxviz/VizRender.H"
+#include "wxviz/RenderFileCmd.hpp"
+#include "wxviz/SGViewer.hpp"
+#include "wxviz/VizRender.hpp"
 
 
 RenderFileCmd::RenderFileCmd(const string& name, Receiver *receiver)

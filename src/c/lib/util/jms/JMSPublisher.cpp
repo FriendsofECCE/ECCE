@@ -12,10 +12,10 @@
    #include <stdio.h>
 
 // Application includes:
-   #include "util/JMSPublisher.H"
-   #include "util/ErrMsg.H"
-   #include "util/Host.H"
-   #include "util/JMSMessage.H"
+   #include "util/JMSPublisher.hpp"
+   #include "util/ErrMsg.hpp"
+   #include "util/Host.hpp"
+   #include "util/JMSMessage.hpp"
 
 
 // Static initialization:

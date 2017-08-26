@@ -3,7 +3,7 @@
  */
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "StructLib.H"
+#pragma implementation "StructLib.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -26,30 +26,30 @@
 #include <string>
 //    using std::traits;
 
-#include "util/STLUtil.H"
-#include "util/StringConverter.H"
+#include "util/STLUtil.hpp"
+#include "util/StringConverter.hpp"
 
-#include "tdat/DisplayStyle.H"
+#include "tdat/DisplayStyle.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSIServerCentral.H"
-#include "dsm/Resource.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSIServerCentral.hpp"
+#include "dsm/Resource.hpp"
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxBitmapButton.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxConfig.H"
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxBitmapButton.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/ewxStaticText.hpp"
 
-#include "inv/ChemKit/ChemRadii.H"
-#include "inv/ChemKit/ChemColor.H"
-#include "inv/ChemKit/ChemDisplayPath.H"
+#include "inv/ChemKit/ChemRadii.hpp"
+#include "inv/ChemKit/ChemColor.hpp"
+#include "inv/ChemKit/ChemDisplayPath.hpp"
 
-#include "viz/AddFragmentCmd.H"
+#include "viz/AddFragmentCmd.hpp"
 
-#include "wxviz/SGSelection.H"
+#include "wxviz/SGSelection.hpp"
 
-#include "StructLib.H"
+#include "StructLib.hpp"
 
 
 #define VIEWER_MINSIZE      150

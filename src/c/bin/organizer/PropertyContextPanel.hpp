@@ -10,8 +10,8 @@
 
 #include <wx/panel.h>
 
-#include "PropertyContextPanelGUI.H"
-#include "ContextPanelInterface.H"
+#include "PropertyContextPanelGUI.hpp"
+#include "ContextPanelInterface.hpp"
 
 class WxResourceTreeItemData;
 class ContextPanelFactory;

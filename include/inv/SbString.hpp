@@ -58,7 +58,7 @@
 #ifndef _SB_STRING_
 #define _SB_STRING_
 
-#include "inv/SbBasic.H"
+#include "inv/SbBasic.hpp"
 
 #include <string.h>
 

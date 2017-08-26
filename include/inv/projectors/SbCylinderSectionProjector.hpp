@@ -62,7 +62,7 @@
 #ifndef _SB_CYLINDER_SECTION_PROJECTOR_
 #define _SB_CYLINDER_SECTION_PROJECTOR_
 
-#include "inv/projectors/SbCylinderProjector.H"
+#include "inv/projectors/SbCylinderProjector.hpp"
 
 // C-api: prefix=SbCylSectProj
 class SbCylinderSectionProjector : public SbCylinderProjector

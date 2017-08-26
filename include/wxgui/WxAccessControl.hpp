@@ -12,8 +12,8 @@
 #include <string>
 using std::string;
 
-#include "wxgui/WxFeedback.H"
-#include "wxgui/WxAccessControlGUI.H"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/WxAccessControlGUI.hpp"
 
 /**
  * Implementation of WxAccessControlGUI.

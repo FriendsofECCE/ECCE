@@ -9,10 +9,10 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma implementation "PlotFunc.H"
+    #pragma implementation "PlotFunc.hpp"
 #endif
 
-#include "wxgui/PlotPrecomp.H"
+#include "wxgui/PlotPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
@@ -29,8 +29,8 @@
     #include "wx/dataobj.h"
 #endif // WX_PRECOMP
 
-#include "wxgui/PlotFunc.H"
-#include "wxgui/PlotFparser.H"
+#include "wxgui/PlotFunc.hpp"
+#include "wxgui/PlotFparser.hpp"
 #include <math.h>
 
 const wxPlotFunction wxNullPlotFunction;

@@ -1,7 +1,7 @@
 #ifndef CALCINFOPANEL_H_
 #define CALCINFOPANEL_H_
 
-#include "PropertyPanel.H"
+#include "PropertyPanel.hpp"
 
 class CalcInfoPanel : public PropertyPanel
 {

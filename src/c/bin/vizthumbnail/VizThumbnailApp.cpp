@@ -8,32 +8,32 @@ using std::cerr;
 using std::endl;
 
 // Remove some of these three once the calls are in SoWx::init
-#include "inv/nodes/SoPerspectiveCamera.H"
-#include "inv/nodes/SoMaterial.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoDirectionalLight.H"
-#include "inv/nodes/SoNode.H"
-#include "inv/nodes/SoCone.H"
-#include "inv/nodes/SoRotationXYZ.H"
-#include "inv/manips/SoTrackballManip.H"
+#include "inv/nodes/SoPerspectiveCamera.hpp"
+#include "inv/nodes/SoMaterial.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoDirectionalLight.hpp"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/nodes/SoCone.hpp"
+#include "inv/nodes/SoRotationXYZ.hpp"
+#include "inv/manips/SoTrackballManip.hpp"
 
-#include "util/StringConverter.H"
+#include "util/StringConverter.hpp"
 
-#include "dsm/EDSIFactory.H"
+#include "dsm/EDSIFactory.hpp"
 
-#include "inv/ChemKit/ChemInit.H"
+#include "inv/ChemKit/ChemInit.hpp"
 
-#include "viz/AtomNodesInit.H"
-#include "viz/NodesInit.H"
-#include "viz/SGContainer.H"
-#include "viz/SGFragment.H"
+#include "viz/AtomNodesInit.hpp"
+#include "viz/NodesInit.hpp"
+#include "viz/SGContainer.hpp"
+#include "viz/SGFragment.hpp"
 
-#include "inv/SoWx/SoWx.H"
+#include "inv/SoWx/SoWx.hpp"
 
-#include "wxviz/SGSelection.H"
-#include "wxviz/VizRender.H"
+#include "wxviz/SGSelection.hpp"
+#include "wxviz/VizRender.hpp"
 
-#include "VizThumbnailApp.H"
+#include "VizThumbnailApp.hpp"
 
 IMPLEMENT_APP(VizThumbnailApp)
 

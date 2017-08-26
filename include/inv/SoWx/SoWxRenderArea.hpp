@@ -4,13 +4,13 @@
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
 
-#include "inv/SoSceneManager.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/nodes/SoSelection.H"
+#include "inv/SoSceneManager.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/nodes/SoSelection.hpp"
 
-#include "inv/SoWx/SoWxDevice.H"
-#include "inv/SoWx/SoWxMouse.H"
-#include "inv/SoWx/SoWxKeyboard.H"
+#include "inv/SoWx/SoWxDevice.hpp"
+#include "inv/SoWx/SoWxMouse.hpp"
+#include "inv/SoWx/SoWxKeyboard.hpp"
 
 // GLWidget defines
 #define SO_GLX_RGB      (1<<0)

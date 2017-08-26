@@ -37,17 +37,17 @@
 #ifndef __gludisplaylist_h_
 #define __gludisplaylist_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 /*
  * displaylist.h - $Revision: 22116 $
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mysetjmp.H"
-#include "mystdio.H"
-#include "bufpool.H"
+#include "glimports.hpp"
+#include "mysetjmp.hpp"
+#include "mystdio.hpp"
+#include "bufpool.hpp"
 
 class NurbsTessellator;
 

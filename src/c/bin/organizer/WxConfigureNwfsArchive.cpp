@@ -9,15 +9,15 @@
 using std::cerr;
 using std::endl;
 
-#include "tdat/AuthCache.H"
+#include "tdat/AuthCache.hpp"
 
-#include "dsm/MachinePreferences.H"
-#include "dsm/EDSIFactory.H"
+#include "dsm/MachinePreferences.hpp"
+#include "dsm/EDSIFactory.hpp"
 
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxTextCtrl.hpp"
 
-#include "CalcMgr.H"
-#include "WxConfigureNwfsArchive.H"
+#include "CalcMgr.hpp"
+#include "WxConfigureNwfsArchive.hpp"
 
 
 /**

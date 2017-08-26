@@ -52,14 +52,14 @@
  */
 
 #include <assert.h>
-#include "inv/SbString.H"
-#include "inv/SoInput.H"
-#include "inv/SoOutput.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoReadError.H"
-#include "inv/fields/SoField.H"
-#include "inv/fields/SoFieldData.H"
-#include "inv/nodes/SoNode.H"
+#include "inv/SbString.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/fields/SoField.hpp"
+#include "inv/fields/SoFieldData.hpp"
+#include "inv/nodes/SoNode.hpp"
 
 // Syntax for reading/writing type information to files
 #define OPEN_BRACE_CHAR		'['

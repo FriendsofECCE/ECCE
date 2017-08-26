@@ -5,7 +5,7 @@
  * Includes
  */
 
-#include "wxgui/InteractionPanelGUI.H"
+#include "wxgui/InteractionPanelGUI.hpp"
 
 class InteractionModel;
 class MDPanelHelper;

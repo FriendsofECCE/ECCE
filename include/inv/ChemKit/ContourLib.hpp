@@ -57,9 +57,9 @@
 #ifndef __CONTOUR_H__
 #define __CONTOUR_H__
 
-#include "inv/nodes/SoIndexedLineSet.H"
+#include "inv/nodes/SoIndexedLineSet.hpp"
 
-#include "inv/ChemKit/ChemLattice3.H"
+#include "inv/ChemKit/ChemLattice3.hpp"
 
 void contourLibContour(                 
                  SbBool  iAxis,

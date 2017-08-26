@@ -56,7 +56,7 @@
 #ifndef  _SO_SF_INT32_
 #define  _SO_SF_INT32_
 
-#include "inv/fields/SoSubField.H"
+#include "inv/fields/SoSubField.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

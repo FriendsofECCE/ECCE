@@ -55,15 +55,15 @@
 
 #ident "$Revision: 22147 $"
 
-#include "inv/actions/SoSearchAction.H"
+#include "inv/actions/SoSearchAction.hpp"
 
-#include "inv/ChemKit/ChemIntList.H"
-#include "inv/ChemKit/ChemPath.H"
-#include "inv/ChemKit/ChemBaseData.H"
+#include "inv/ChemKit/ChemIntList.hpp"
+#include "inv/ChemKit/ChemPath.hpp"
+#include "inv/ChemKit/ChemBaseData.hpp"
 // --> lod
-#include "inv/ChemKit/ChemLOD.H"
+#include "inv/ChemKit/ChemLOD.hpp"
 // <-- lod
-#include "inv/ChemKit/ChemDisplay.H"
+#include "inv/ChemKit/ChemDisplay.hpp"
 
 SoType ChemPath::classTypeId;
 

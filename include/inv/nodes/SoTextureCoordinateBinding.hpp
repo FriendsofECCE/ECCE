@@ -56,9 +56,9 @@
 #ifndef  _SO_TEXTURE_COORDINATE_BINDING_
 #define  _SO_TEXTURE_COORDINATE_BINDING_
 
-#include "inv/elements/SoTextureCoordinateBindingElement.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/elements/SoTextureCoordinateBindingElement.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

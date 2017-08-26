@@ -57,7 +57,7 @@
 #ifndef  __CHEM_UNITSPHERE_H__
 #define  __CHEM_UNITSPHERE_H__
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 // --> EGB && SGB
 #ifdef WIN32
 #include <windows.h>
@@ -66,12 +66,12 @@
 #include <GL/glu.h>
 #endif /* __glu_h__ */
 
-#include "inv/fields/SoSFEnum.H"
-#include "inv/nodes/SoSphere.H"
-#include "inv/actions/SoGLRenderAction.H"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/nodes/SoSphere.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
 // <-- EGB && SGB
 
-#include "inv/ChemKit/ChemDisplayParam.H"
+#include "inv/ChemKit/ChemDisplayParam.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

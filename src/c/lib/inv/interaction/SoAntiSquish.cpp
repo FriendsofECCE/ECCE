@@ -51,15 +51,15 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoCacheElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/nodes/SoAntiSquish.H"
+#include "inv/SoDB.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/nodes/SoAntiSquish.hpp"
 
 SO_NODE_SOURCE(SoAntiSquish);
 

@@ -56,9 +56,9 @@
 #ifndef  _SO_FILE_
 #define  _SO_FILE_
 
-#include "inv/misc/SoChildList.H"
-#include "inv/nodes/SoSubNode.H"
-#include "inv/fields/SoSFString.H"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/fields/SoSFString.hpp"
 
 class SoSensor;
 class SoFieldSensor;

@@ -45,11 +45,11 @@
 
 #include <inttypes.h>   /* defines long and brethren */
 
-#include "mystdio.H"
-#include "mymath.H"
-#include "defines.H"
-#include "isocurveeval.H"
-#include "types.H"
+#include "mystdio.hpp"
+#include "mymath.hpp"
+#include "defines.hpp"
+#include "isocurveeval.hpp"
+#include "types.hpp"
 
 #define MAXCACHED	100
 #define MAXCACHECURVES	3

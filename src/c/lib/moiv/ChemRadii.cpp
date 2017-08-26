@@ -55,14 +55,14 @@
 
 #ident "$Revision: 22147 $"
 
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
 
-#include "inv/ChemKit/ChemRadii.H"
-#include "inv/ChemKit/ChemRadiiElement.H"
-#include "inv/ChemKit/ChemOverrideElement.H"
+#include "inv/ChemKit/ChemRadii.hpp"
+#include "inv/ChemKit/ChemRadiiElement.hpp"
+#include "inv/ChemKit/ChemOverrideElement.hpp"
 
 const float defaultAtomRadii[] =
     { 1.00f, // Place holder

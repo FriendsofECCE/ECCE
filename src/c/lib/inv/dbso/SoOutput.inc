@@ -56,12 +56,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "inv/errors/SoDebugError.H"
+#include "inv/errors/SoDebugError.hpp"
 
-#include "machine.H"		// Inventor data goo lib
+#include "machine.hpp"		// Inventor data goo lib
 
-#include "inv/SoDB.H"
-#include "inv/SoOutput.H"
+#include "inv/SoDB.hpp"
+#include "inv/SoOutput.hpp"
 
 /////////////////////////////////////////////////////////////////////////
 //

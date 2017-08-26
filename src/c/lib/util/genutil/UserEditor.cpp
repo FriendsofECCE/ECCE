@@ -17,13 +17,13 @@
 #include <fstream>
   using std::ofstream;
 
-#include "util/Ecce.H"
-#include "util/SFile.H"
-#include "util/IndexOutOfRangeException.H"
-#include "util/TempStorage.H"
-#include "util/Color.H"
+#include "util/Ecce.hpp"
+#include "util/SFile.hpp"
+#include "util/IndexOutOfRangeException.hpp"
+#include "util/TempStorage.hpp"
+#include "util/Color.hpp"
 
-#include "util/UserEditor.H"
+#include "util/UserEditor.hpp"
 
 
 string UserEditor::p_editor = "";

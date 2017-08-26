@@ -57,9 +57,9 @@
 #ifndef __CHEM_MONITOR_DETAIL_H__
 #define __CHEM_MONITOR_DETAIL_H__
 
-#include "inv/details/SoSubDetail.H"
+#include "inv/details/SoSubDetail.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

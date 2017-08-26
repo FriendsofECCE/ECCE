@@ -2,10 +2,10 @@
   using std::endl;
   using std::cout;
 
-#include "util/ErrMsg.H"
-#include "util/Ecce.H"
+#include "util/ErrMsg.hpp"
+#include "util/Ecce.hpp"
 
-#include "tdat/DefaultDavAuth.H"
+#include "tdat/DefaultDavAuth.hpp"
 
 /**
   This class implements the AuthEventListener interface by using the

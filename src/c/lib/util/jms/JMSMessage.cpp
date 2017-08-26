@@ -19,11 +19,11 @@ using std::vector;
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "util/JMSMessage.H"
-#include "util/StringTokenizer.H"
-#include "util/ErrMsg.H"
-#include "util/Ecce.H"
-#include "util/STLUtil.H"
+#include "util/JMSMessage.hpp"
+#include "util/StringTokenizer.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/Ecce.hpp"
+#include "util/STLUtil.hpp"
 
 
 /**

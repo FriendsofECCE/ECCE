@@ -59,7 +59,7 @@
 #ifndef  _SO_CALLBACK_LIST_
 #define  _SO_CALLBACK_LIST_
 
-#include "inv/SbPList.H"
+#include "inv/SbPList.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

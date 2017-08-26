@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "SolvateEdGUI.H"
+#pragma implementation "SolvateEdGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,16 +23,16 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxComboBox.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxMenuBar.H"
-#include "wxgui/ewxFrame.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxComboBox.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxMenuBar.hpp"
+#include "wxgui/ewxFrame.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "SolvateEdGUI.H"
+#include "SolvateEdGUI.hpp"
 
 ////@begin XPM images
 

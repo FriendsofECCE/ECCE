@@ -1,7 +1,7 @@
 #ifndef  _NEARPLANESEP_
 #define  _NEARPLANESEP_
 
-#include "inv/nodes/SoSeparator.H"
+#include "inv/nodes/SoSeparator.hpp"
 
 
 class SoSeparator;

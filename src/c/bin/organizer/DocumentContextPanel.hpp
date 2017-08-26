@@ -11,8 +11,8 @@
 
 #include <wx/panel.h>
 
-#include "DocumentContextPanelGUI.H"
-#include "ContextPanelInterface.H"
+#include "DocumentContextPanelGUI.hpp"
+#include "ContextPanelInterface.hpp"
 
 class WxResourceTreeItemData;
 class ContextPanelFactory;

@@ -56,10 +56,10 @@
 /* Polynomial Evaluator Interface */
 
 #include <stdio.h>
-#include "SoAddPrefix.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "SoPickEvals.H"
-#include "SoPickMaps.H"
+#include "SoAddPrefix.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "SoPickEvals.hpp"
+#include "SoPickMaps.hpp"
 
 
 ////////////////////////////////////////////////////////////////////////

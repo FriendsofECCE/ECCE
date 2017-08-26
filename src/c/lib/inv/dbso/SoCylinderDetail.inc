@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/details/SoCylinderDetail.H"
+#include "inv/details/SoCylinderDetail.hpp"
 
 SO_DETAIL_SOURCE(SoCylinderDetail)
 

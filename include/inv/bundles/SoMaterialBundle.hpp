@@ -56,7 +56,7 @@
 #ifndef  _SO_MATERIAL_BUNDLE
 #define  _SO_MATERIAL_BUNDLE
 
-#include "inv/bundles/SoBundle.H"
+#include "inv/bundles/SoBundle.hpp"
 
 class SoGLLazyElement;
 

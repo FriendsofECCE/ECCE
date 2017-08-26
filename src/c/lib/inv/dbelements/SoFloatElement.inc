@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoFloatElement.H"
+#include "inv/elements/SoFloatElement.hpp"
 
 SO_ELEMENT_ABSTRACT_SOURCE(SoFloatElement);
 

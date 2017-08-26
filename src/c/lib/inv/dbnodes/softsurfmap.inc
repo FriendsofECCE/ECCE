@@ -42,11 +42,11 @@
 
 #include <stdio.h>
 #include <inttypes.h>   /* defines long and brethren */
-#include "myassert.H"
-#include "mystdio.H"
-#include "mymath.H"
-#include "types.H"
-#include "softsurfmap.H"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "mymath.hpp"
+#include "types.hpp"
+#include "softsurfmap.hpp"
 
 _SoNurbsSurfaceMap::_SoNurbsSurfaceMap( long _type, int _rational, int _ncoords )
 { 

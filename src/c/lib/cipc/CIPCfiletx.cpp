@@ -17,7 +17,7 @@
 #include <stdio.h>      /* for fprintf() */
 #include <fcntl.h>      /* for O_CREAT, O_RDONLY, O_WRONLY */
 
-#include "dsm/CIPCfiletx.H"
+#include "dsm/CIPCfiletx.hpp"
 
 /* tx_close **************************************************************/
 

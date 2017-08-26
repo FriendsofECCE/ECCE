@@ -19,9 +19,9 @@
 #include <string>
    using std::string;
 
-#include "wxgui/WxAppJMSMessageDispatch.H"
+#include "wxgui/WxAppJMSMessageDispatch.hpp"
 
-#include "MachineBrowser.H"
+#include "MachineBrowser.hpp"
 
 class MachineBrowserApp : public WxAppJMSMessageDispatch
 {

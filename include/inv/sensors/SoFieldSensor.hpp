@@ -59,7 +59,7 @@
 #ifndef  _SO_FIELD_SENSOR_
 #define  _SO_FIELD_SENSOR_
 
-#include "inv/sensors/SoDataSensor.H"
+#include "inv/sensors/SoDataSensor.hpp"
 
 class SoFieldContainer;
 

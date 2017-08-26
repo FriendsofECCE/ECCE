@@ -10,8 +10,8 @@
 #include <strstream>
 using std::istrstream;
 
-#include "tdat/PropTSVecVector.H"
-#include "util/ErrMsg.H"
+#include "tdat/PropTSVecVector.hpp"
+#include "util/ErrMsg.hpp"
 
 // -----------------------
 // Public Member Functions

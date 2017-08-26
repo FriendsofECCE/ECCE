@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/elements/SoCoordinateElement.H"
-#include "inv/nodes/SoNonIndexedShape.H"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/elements/SoCoordinateElement.hpp"
+#include "inv/nodes/SoNonIndexedShape.hpp"
 
 SO_NODE_ABSTRACT_SOURCE(SoNonIndexedShape);
 

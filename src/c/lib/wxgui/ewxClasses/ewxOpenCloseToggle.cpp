@@ -7,8 +7,8 @@ using namespace std;
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxOpenCloseToggle.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxOpenCloseToggle.hpp"
 
 /**
  * Private event helper for ewxOpenCloseToggle.

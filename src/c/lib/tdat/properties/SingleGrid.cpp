@@ -12,7 +12,7 @@
 //system includes
 #include <math.h>
 
-#include "tdat/SingleGrid.H"
+#include "tdat/SingleGrid.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
 //  Description:

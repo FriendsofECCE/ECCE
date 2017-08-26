@@ -51,15 +51,15 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/nodekits/SoLightKit.H"
-#include "inv/nodes/SoGroup.H"
-#include "inv/nodes/SoCube.H"
-#include "inv/nodes/SoLight.H"
-#include "inv/nodes/SoDirectionalLight.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/nodes/SoTransformSeparator.H"
+#include "inv/SoDB.hpp"
+#include "inv/nodekits/SoLightKit.hpp"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/nodes/SoCube.hpp"
+#include "inv/nodes/SoLight.hpp"
+#include "inv/nodes/SoDirectionalLight.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/nodes/SoTransformSeparator.hpp"
 
 SO_KIT_SOURCE(SoLightKit);
 

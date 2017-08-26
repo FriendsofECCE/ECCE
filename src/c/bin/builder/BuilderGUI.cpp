@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "BuilderGUI.H"
+#pragma implementation "BuilderGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,11 +23,11 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxTool.H"
-#include "wxgui/ewxMenuBar.H"
+#include "wxgui/ewxTool.hpp"
+#include "wxgui/ewxMenuBar.hpp"
 ////@end includes
 
-#include "BuilderGUI.H"
+#include "BuilderGUI.hpp"
 
 ////@begin XPM images
 

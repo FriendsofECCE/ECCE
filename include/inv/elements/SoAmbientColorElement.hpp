@@ -59,10 +59,10 @@
 #define  _SO_AMBIENT_COLOR_ELEMENT
 
 
-#include "inv/SbColor.H"
-#include "inv/misc/SoState.H"
-#include "inv/elements/SoLazyElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/SbColor.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/elements/SoLazyElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoType.H"
-#include "inv/SoLists.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/SoType.hpp"
+#include "inv/SoLists.hpp"
+#include "inv/errors/SoDebugError.hpp"
 #include <dlfcn.h>
 #include <stdlib.h>
 #ifdef __sgi

@@ -4,7 +4,7 @@
  *
  */
 
-#include "util/EnergyConverter.H"
+#include "util/EnergyConverter.hpp"
 
 
 /**

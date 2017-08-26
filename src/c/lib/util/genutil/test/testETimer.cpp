@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 
-#include "util/ETimer.H"
+#include "util/ETimer.hpp"
 
 int main(int argc, char** argv)
 {

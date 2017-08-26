@@ -57,12 +57,12 @@
 #ifndef __CHEM_KIT_H__
 #define __CHEM_KIT_H__
 
-#include "inv/SbLinear.H"
-#include "inv/nodekits/SoBaseKit.H"
+#include "inv/SbLinear.hpp"
+#include "inv/nodekits/SoBaseKit.hpp"
 
-#include "inv/ChemKit/ChemData.H"
-#include "inv/ChemKit/ChemDisplayKit.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemData.hpp"
+#include "inv/ChemKit/ChemDisplayKit.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 
 ////////////////////////////////////////////////////////////////////

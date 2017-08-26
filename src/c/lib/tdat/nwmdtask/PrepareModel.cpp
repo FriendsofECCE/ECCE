@@ -9,13 +9,13 @@
 #include <fstream>
   using std::ifstream;
 
-#include "util/NotImplementedException.H"
-#include "util/StringTokenizer.H"
-#include "util/STLUtil.H"
-#include "util/StringConverter.H"
+#include "util/NotImplementedException.hpp"
+#include "util/StringTokenizer.hpp"
+#include "util/STLUtil.hpp"
+#include "util/StringConverter.hpp"
 
-#include "tdat/PrepareModel.H"
-#include "tdat/Fragment.H"
+#include "tdat/PrepareModel.hpp"
+#include "tdat/Fragment.hpp"
 
 /* Default values */
 const bool PrepareModel::FIRSTTASK = true;

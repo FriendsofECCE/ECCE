@@ -54,10 +54,10 @@
 
 #include <stdio.h>
 
-#include "inv/SoDB.H"
-#include "inv/manips/SoTrackballManip.H"
-#include "inv/draggers/SoTrackballDragger.H"
-#include "inv/nodes/SoSurroundScale.H"
+#include "inv/SoDB.hpp"
+#include "inv/manips/SoTrackballManip.hpp"
+#include "inv/draggers/SoTrackballDragger.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
 
 SO_NODE_SOURCE(SoTrackballManip);
 

@@ -37,12 +37,12 @@
 #ifndef __gluuarray_h_
 #define __gluuarray_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * uarray.h - $Revision: 22116 $
  */
 
-#include "types.H"
+#include "types.hpp"
 
 class Arc;
 

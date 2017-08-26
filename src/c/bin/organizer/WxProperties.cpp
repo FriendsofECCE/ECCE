@@ -6,13 +6,13 @@
  */
 #include <wx/sizer.h>
 
-#include "util/NullPointerException.H"
+#include "util/NullPointerException.hpp"
 
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxTextCtrl.hpp"
 
-#include "CalcMgr.H"
-#include "PropertyContextPanel.H"
-#include "WxProperties.H"
+#include "CalcMgr.hpp"
+#include "PropertyContextPanel.hpp"
+#include "WxProperties.hpp"
 
 
 

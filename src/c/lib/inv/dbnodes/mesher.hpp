@@ -37,12 +37,12 @@
 #ifndef __glumesher_h_
 #define __glumesher_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * mesher.h - $Revision: 22116 $
  */
 
-#include "hull.H"
+#include "hull.hpp"
 
 class TrimRegion;
 class Backend;

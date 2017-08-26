@@ -11,7 +11,7 @@
 #define _WXCONTRACTIONEDITORGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "WxContractionEditorGUI.C"
+#pragma interface "WxContractionEditorGUI.cpp"
 #endif
 
 /*!
@@ -21,8 +21,8 @@
 ////@begin includes
 #include "wx/statline.h"
 #include "wx/grid.h"
-#include "wxgui/WxParameterEdit.H"
-#include "wxgui/ewxDialog.H"
+#include "wxgui/WxParameterEdit.hpp"
+#include "wxgui/ewxDialog.hpp"
 ////@end includes
 
 /*!

@@ -8,9 +8,9 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPDefs.H"
-#include "dsm/CHTTPUtils.H"
-#include "dsm/CDAVHeader.H"
+#include "dsm/CHTTPDefs.hpp"
+#include "dsm/CHTTPUtils.hpp"
+#include "dsm/CDAVHeader.hpp"
 
 // CDAVHeader::headerToString **********************************************
 

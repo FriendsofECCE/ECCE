@@ -18,11 +18,11 @@
 #include <wx/tglbtn.h>
 #include <wx/utils.h>
 
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
-#include "util/StringConverter.H"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
+#include "util/StringConverter.hpp"
 
-#include "wxgui/GenericValidator.H"
+#include "wxgui/GenericValidator.hpp"
 
 
 DEFINE_EVENT_TYPE(wxEVT_VALIDATION_EVENT)

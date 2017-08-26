@@ -19,12 +19,12 @@
 #include <fstream>
 #include <strstream>
 using namespace std;
-   #include "util/SFile.H"
+   #include "util/SFile.hpp"
 
 // Application includes:
-   #include "util/JMSSubscriber.H"
-   #include "util/JMSMessage.H"
-   #include "util/ErrMsg.H"
+   #include "util/JMSSubscriber.hpp"
+   #include "util/JMSMessage.hpp"
+   #include "util/ErrMsg.hpp"
 
 //#define debug
 

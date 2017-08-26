@@ -1,12 +1,12 @@
 
-#include "util/ResourceUtils.H"
-#include "util/STLUtil.H"
+#include "util/ResourceUtils.hpp"
+#include "util/STLUtil.hpp"
 
-#include "dsm/IPropCalculation.H"
-#include "dsm/ResourceType.H"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/ResourceType.hpp"
 
-#include "CalculationFactory.H"
-#include "OpenCalculationDialog.H"
+#include "CalculationFactory.hpp"
+#include "OpenCalculationDialog.hpp"
 
 
 OpenCalculationDialog::OpenCalculationDialog()

@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "util/TemperatureConverter.H"
+#include "util/TemperatureConverter.hpp"
 
 /**
  * Constructor.

@@ -1,7 +1,7 @@
 #ifndef CLEANPARAMETERS_H_
 #define CLEANPARAMETERS_H_
 
-#include "wxgui/ewxDialog.H"
+#include "wxgui/ewxDialog.hpp"
 
 class ewxSpinCtrl;
 class ewxTextCtrl;

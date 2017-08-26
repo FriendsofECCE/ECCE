@@ -6,15 +6,15 @@
 
 #include "wx/wx.h"
 
-#include "util/JMSPublisher.H"
-#include "util/ResourceUtils.H"
+#include "util/JMSPublisher.hpp"
+#include "util/ResourceUtils.hpp"
 
-#include "wxgui/CalcDropHandler.H"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/FeedbackSaveHandler.H"
-#include "wxgui/WxDavAuth.H"
+#include "wxgui/CalcDropHandler.hpp"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/FeedbackSaveHandler.hpp"
+#include "wxgui/WxDavAuth.hpp"
 
-#include "SolvateEdGUI.H"
+#include "SolvateEdGUI.hpp"
 
 class EcceTool;
 class Fragment;

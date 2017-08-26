@@ -1,11 +1,11 @@
 #ifndef  _CUSTOMBBOXNODE
 #define  _CUSTOMBBOXNODE
 
-#include "inv/nodes/SoNode.H"
-#include "inv/nodes/SoSubNode.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
 
-#include "inv/SbBox.H"
+#include "inv/SbBox.hpp"
 
 
 class SoNode;

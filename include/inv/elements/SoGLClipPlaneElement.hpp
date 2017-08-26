@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_CLIP_PLANE_ELEMENT
 #define  _SO_GL_CLIP_PLANE_ELEMENT
 
-#include "inv/elements/SoClipPlaneElement.H"
+#include "inv/elements/SoClipPlaneElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -55,7 +55,7 @@
 
 #ident "$Revision: 22141 $"
 
-#include "inv/ChemKit/ChemDisplayParamElement.H"
+#include "inv/ChemKit/ChemDisplayParamElement.hpp"
 
 SO_ELEMENT_SOURCE(ChemDisplayParamElement);
 

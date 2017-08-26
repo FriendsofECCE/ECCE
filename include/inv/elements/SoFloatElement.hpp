@@ -71,7 +71,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "inv/elements/SoSubElement.H"
+#include "inv/elements/SoSubElement.hpp"
 
 SoEXTENDER class SoFloatElement : public SoElement {
 

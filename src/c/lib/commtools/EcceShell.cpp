@@ -26,14 +26,14 @@ using std::string;
 // library includes
 
 // application includes
-#include "util/ErrMsg.H"
-#include "util/Host.H"
-#include "util/Color.H"
+#include "util/ErrMsg.hpp"
+#include "util/Host.hpp"
+#include "util/Color.hpp"
 
-#include "comm/RCommand.H"
-#include "tdat/RefMachine.H"
+#include "comm/RCommand.hpp"
+#include "tdat/RefMachine.hpp"
 
-#include "comm/EcceShell.H"
+#include "comm/EcceShell.hpp"
 
 // -----------------------
 // Public Member Functions

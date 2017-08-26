@@ -68,7 +68,7 @@ You have to #include <wx/tglbtn.h> for EVT_TOGGLEBUTTON
 #ifndef _WX_CUSTOMBUTTON_H_
 #define _WX_CUSTOMBUTTON_H_
 
-#include "wxgui/ThingDef.H"
+#include "wxgui/ThingDef.hpp"
 
 class WXDLLIMPEXP_FWD_BASE wxTimer;
 class WXDLLIMPEXP_FWD_BASE wxTimerEvent;

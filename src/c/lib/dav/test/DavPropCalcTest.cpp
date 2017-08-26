@@ -1,12 +1,12 @@
-#include "util/Bookmark.H"
-//#include "dsm/DavPropCalculation.H"
-#include "dsm/EDSIServerCentral.H"  // produces URL(s) to web server(s)
+#include "util/Bookmark.hpp"
+//#include "dsm/DavPropCalculation.hpp"
+#include "dsm/EDSIServerCentral.hpp"  // produces URL(s) to web server(s)
 
-#include "tdat/PropTSVecTable.H"
-#include "dsm/EDSIFactory.H"
-#include "tdat/TGBSConfig.H"
-#include "dsm/EDSIGaussianBasisSetLibrary.H"
-#include "tdat/TTCPair.H"
+#include "tdat/PropTSVecTable.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "tdat/TGBSConfig.hpp"
+#include "dsm/EDSIGaussianBasisSetLibrary.hpp"
+#include "tdat/TTCPair.hpp"
 
 #include <string>
 #include <vector>

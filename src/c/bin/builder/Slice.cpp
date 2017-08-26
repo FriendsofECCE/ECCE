@@ -2,23 +2,23 @@
 using namespace std;
 
 
-#include "Slice.H"
-#include "Plane.H"
+#include "Slice.hpp"
+#include "Plane.hpp"
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "tdat/Fragment.H"
-#include "wxgui/ewxConfig.H"
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxColorDialog.H"
+#include "tdat/Fragment.hpp"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxColorDialog.hpp"
 
-#include "viz/SGLattice.H"
-#include "viz/StyledPlane.H"
-#include "viz/NewPlaneCmd.H"
-#include "viz/TransformCellCmd.H"
-#include "viz/SliceCmd.H"
+#include "viz/SGLattice.hpp"
+#include "viz/StyledPlane.hpp"
+#include "viz/NewPlaneCmd.hpp"
+#include "viz/TransformCellCmd.hpp"
+#include "viz/SliceCmd.hpp"
 
 static const char *INIFILE = "wxbuilder.ini";
 static const int COL_COLOR = 0;

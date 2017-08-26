@@ -51,16 +51,16 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoGLCacheContextElement.H"
-#include "inv/elements/SoGLTextureEnabledElement.H"
-#include "inv/elements/SoGLTextureImageElement.H"
-#include "inv/elements/SoTextureQualityElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoReadError.H"
-#include "inv/nodes/SoTexture2.H"
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoGLCacheContextElement.hpp"
+#include "inv/elements/SoGLTextureEnabledElement.hpp"
+#include "inv/elements/SoGLTextureImageElement.hpp"
+#include "inv/elements/SoTextureQualityElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/nodes/SoTexture2.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>

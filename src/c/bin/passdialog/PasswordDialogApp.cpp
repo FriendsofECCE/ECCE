@@ -3,8 +3,8 @@
   using std::cout;
   using std::endl;
 
-#include "wxgui/ewxApp.H"
-#include "wxgui/WxAuth.H"
+#include "wxgui/ewxApp.hpp"
+#include "wxgui/WxAuth.hpp"
 
 
 class PasswordDialogApp : public ewxApp

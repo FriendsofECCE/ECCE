@@ -37,14 +37,14 @@
 #ifndef __gluquilt_h_
 #define __gluquilt_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * quilt.h - $Revision: 22116 $
  */
 
-#include "defines.H"
-#include "bufpool.H"
-#include "types.H"
+#include "defines.hpp"
+#include "bufpool.hpp"
+#include "types.hpp"
 
 class Backend;
 class Mapdesc;

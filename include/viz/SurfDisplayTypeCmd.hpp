@@ -2,7 +2,7 @@
 #define SURFDISPLAYTYPECMD_H
 
 
-#include "viz/PropCmd.H"
+#include "viz/PropCmd.hpp"
 
 /**
  * Switch between the available display types for an isosurface.

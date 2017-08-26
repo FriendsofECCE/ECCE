@@ -1,19 +1,19 @@
-#include "inv/SoDB.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoPickAction.H"
+#include "inv/SoDB.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
 
-#include "inv/nodes/SoScale.H"
-#include "inv/nodes/SoSeparator.H"
+#include "inv/nodes/SoScale.hpp"
+#include "inv/nodes/SoSeparator.hpp"
 
-#include "inv/nodes/SoMaterial.H"
-#include "inv/nodes/SoCone.H"
-#include "inv/nodes/SoCylinder.H"
-#include "inv/nodes/SoTranslation.H"
-#include "inv/nodes/SoTransform.H"
+#include "inv/nodes/SoMaterial.hpp"
+#include "inv/nodes/SoCone.hpp"
+#include "inv/nodes/SoCylinder.hpp"
+#include "inv/nodes/SoTranslation.hpp"
+#include "inv/nodes/SoTransform.hpp"
 
-#include "viz/VRVector.H"
+#include "viz/VRVector.hpp"
 
 #include <iostream>
   using std::cout;

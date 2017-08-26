@@ -58,8 +58,8 @@
 #ifndef  _SO_V1_GROUP_KIT_
 #define  _SO_V1_GROUP_KIT_
 
-#include "inv/upgraders/SoV1BaseKit.H"
-#include "inv/upgraders/SoV1AppearanceKit.H"
+#include "inv/upgraders/SoV1BaseKit.hpp"
+#include "inv/upgraders/SoV1AppearanceKit.hpp"
 
 ////////////////////////////////////////////////////////////////////
 //    Class: SoV1GroupKit

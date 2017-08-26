@@ -1,18 +1,18 @@
 #include <iostream>
 using namespace std;
-#include "inv/nodes/SoSwitch.H"
+#include "inv/nodes/SoSwitch.hpp"
 
-#include "util/Color.H"
-#include "util/InternalException.H"
+#include "util/Color.hpp"
+#include "util/InternalException.hpp"
 
-#include "dsm/IPropCalculation.H"
+#include "dsm/IPropCalculation.hpp"
 
-#include "inv/ChemKit/ChemDisplayParam.H"
+#include "inv/ChemKit/ChemDisplayParam.hpp"
 
-#include "viz/SGFragment.H"
-#include "viz/VRVector.H"
-#include "viz/cvSGContainer.H"
-#include "viz/AddVectorCmd.H"
+#include "viz/SGFragment.hpp"
+#include "viz/VRVector.hpp"
+#include "viz/cvSGContainer.hpp"
+#include "viz/AddVectorCmd.hpp"
 
 AddVectorCmd::AddVectorCmd(const string& name, Receiver *receiver,
                          IPropCalculation *calc) 

@@ -1,9 +1,9 @@
 #ifndef  _TRANSLATE_RADIAL_DRAGGER_
 #define  _TRANSLATE_RADIAL_DRAGGER_
 
-#include "inv/draggers/SoDragger.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/draggers/SoDragger.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
 
 class SbLineProjector;
 

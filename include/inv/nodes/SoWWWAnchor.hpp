@@ -55,8 +55,8 @@
 #ifndef  _SO_WWWANCHOR_
 #define  _SO_WWWANCHOR_
 
-#include "inv/fields/SoSFString.H"
-#include "inv/nodes/SoLocateHighlight.H"
+#include "inv/fields/SoSFString.hpp"
+#include "inv/nodes/SoLocateHighlight.hpp"
 
 class SoWWWAnchor;
 

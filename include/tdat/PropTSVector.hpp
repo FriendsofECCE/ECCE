@@ -25,7 +25,7 @@
 #ifndef TSVECTOR_HH
 #define TSVECTOR_HH
 
-#include "tdat/PropVector.H"
+#include "tdat/PropVector.hpp"
 
 
 class PropTSVector : public PropVector

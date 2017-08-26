@@ -6,7 +6,7 @@
 #ifndef  MEASUREBASECMD_H
 #define  MEASUREBASECMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class Fragment;
 

@@ -6,7 +6,7 @@
 #ifndef  ADDSEGMENTHCMD_H
 #define  ADDSEGMENTHCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class AddSegmentHCmd : public FragCloneCmd
 {

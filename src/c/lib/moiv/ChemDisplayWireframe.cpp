@@ -72,57 +72,57 @@
 #include <GL/gl.h>
 #endif /* __gl_h_ */
 
-#include "inv/SbBox.H"
-#include "inv/SoPickedPoint.H"
-#include "inv/SoPrimitiveVertex.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/caches/SoGLRenderCache.H"
-#include "inv/details/SoLineDetail.H"
-#include "inv/details/SoPointDetail.H"
-#include "inv/elements/SoCacheElement.H"
-#include "inv/elements/SoFontNameElement.H"
-#include "inv/elements/SoFontSizeElement.H"
-#include "inv/elements/SoLightModelElement.H"
-#include "inv/elements/SoGLCacheContextElement.H"
-#include "inv/elements/SoGLDrawStyleElement.H"
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/elements/SoGLTextureEnabledElement.H"
-#include "inv/elements/SoGLTextureImageElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/elements/SoProjectionMatrixElement.H"
-#include "inv/elements/SoViewingMatrixElement.H"
-#include "inv/elements/SoViewportRegionElement.H"
-#include "inv/elements/SoViewVolumeElement.H"
+#include "inv/SbBox.hpp"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/SoPrimitiveVertex.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/caches/SoGLRenderCache.hpp"
+#include "inv/details/SoLineDetail.hpp"
+#include "inv/details/SoPointDetail.hpp"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/elements/SoFontNameElement.hpp"
+#include "inv/elements/SoFontSizeElement.hpp"
+#include "inv/elements/SoLightModelElement.hpp"
+#include "inv/elements/SoGLCacheContextElement.hpp"
+#include "inv/elements/SoGLDrawStyleElement.hpp"
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/elements/SoGLTextureEnabledElement.hpp"
+#include "inv/elements/SoGLTextureImageElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/elements/SoProjectionMatrixElement.hpp"
+#include "inv/elements/SoViewingMatrixElement.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
+#include "inv/elements/SoViewVolumeElement.hpp"
 
 // Daniel Soto	2002-02-15
 // FIX lighting-off with Coin3D
 #ifdef __coin
 // --> coin 1,2 compatibility
-//#include "inv/elements/SoGLLightModelElement.H"
+//#include "inv/elements/SoGLLightModelElement.hpp"
 // <-- coin 1,2 compatibility
 #endif
 
 #ifdef IV2_0
-#include "inv/bundles/SoMaterialBundle.H"
+#include "inv/bundles/SoMaterialBundle.hpp"
 #else
-#include "inv/elements/SoGLLazyElement.H"
-#include "inv/elements/SoLazyElement.H"
+#include "inv/elements/SoGLLazyElement.hpp"
+#include "inv/elements/SoLazyElement.hpp"
 #endif
 
-#include "inv/ChemKit/ChemDetail.H"
-#include "inv/ChemKit/ChemDisplay.H"
-#include "inv/ChemKit/ChemBaseDataElement.H"
-#include "inv/ChemKit/ChemColorElement.H"
-#include "inv/ChemKit/ChemDisplayParamElement.H"
-#include "inv/ChemKit/ChemWireframeDetail.H"
+#include "inv/ChemKit/ChemDetail.hpp"
+#include "inv/ChemKit/ChemDisplay.hpp"
+#include "inv/ChemKit/ChemBaseDataElement.hpp"
+#include "inv/ChemKit/ChemColorElement.hpp"
+#include "inv/ChemKit/ChemDisplayParamElement.hpp"
+#include "inv/ChemKit/ChemWireframeDetail.hpp"
 
-#include "inv/ChemKit/ChemBondStuff.H"
-#include "inv/ChemKit/ChemAromaticRing.H"
+#include "inv/ChemKit/ChemBondStuff.hpp"
+#include "inv/ChemKit/ChemAromaticRing.hpp"
 
 // --> compute cylinder lod
-#include "inv/ChemKit/ChemUnitCylinder.H"
+#include "inv/ChemKit/ChemUnitCylinder.hpp"
 // <-- compute cylinder lod
 
 static void singleBondsNormal(const SbIntList list, const SbBool renderAsPoints,

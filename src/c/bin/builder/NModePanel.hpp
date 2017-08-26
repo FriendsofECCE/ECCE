@@ -1,9 +1,9 @@
 #ifndef NMODEPANEL__H
 #define NMODEPANEL__H
 
-#include "wxgui/TearableContentProvider.H"
+#include "wxgui/TearableContentProvider.hpp"
 
-#include "NModesGUI.H"
+#include "NModesGUI.hpp"
 
 class ewxPlotCtrl;
 class wxGrid;

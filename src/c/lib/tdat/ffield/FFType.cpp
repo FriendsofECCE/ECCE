@@ -7,7 +7,7 @@
   using std::cout;
   using std::endl;
 
-#include "tdat/FFType.H"
+#include "tdat/FFType.hpp"
 
 const int FFType::INVALID_ID = -1;
 

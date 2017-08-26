@@ -59,8 +59,8 @@
 #ifndef  _SO_TRIGGER_ANY_
 #define  _SO_TRIGGER_ANY_
 
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoSFTrigger.H"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoSFTrigger.hpp"
 
 // C-api: public=input0,input1,input2,input3,input4,input5
 // C-api: public=input6,input7,input8,input9,output

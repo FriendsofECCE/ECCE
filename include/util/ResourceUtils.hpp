@@ -8,7 +8,7 @@
 
 #include <string>
   using std::string;
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
 
 

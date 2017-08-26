@@ -39,16 +39,16 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "myassert.H"
-#include "bufpool.H"
-#include "slicer.H"
-#include "backend.H"
-#include "arc.H"
-#include "gridtrimvertex.H"
-#include "trimvertex.H"
-#include "varray.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "myassert.hpp"
+#include "bufpool.hpp"
+#include "slicer.hpp"
+#include "backend.hpp"
+#include "arc.hpp"
+#include "gridtrimvertex.hpp"
+#include "trimvertex.hpp"
+#include "varray.hpp"
 
 Slicer::Slicer( Backend &b ) 
 	: CoveAndTiler( b ), Mesher( b ), backend( b )

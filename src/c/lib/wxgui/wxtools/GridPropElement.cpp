@@ -23,21 +23,21 @@
   using std::make_pair;
 
 
-#include "util/EcceMap.H"
-#include "util/StringConverter.H"
-#include "util/InvalidException.H"
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
-#include "util/TDateTime.H"
+#include "util/EcceMap.hpp"
+#include "util/StringConverter.hpp"
+#include "util/InvalidException.hpp"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
+#include "util/TDateTime.hpp"
 
-#include "dsm/ITraversable.H"
-#include "dsm/ResourceType.H"
-#include "dsm/GridProperty.H"
+#include "dsm/ITraversable.hpp"
+#include "dsm/ResourceType.hpp"
+#include "dsm/GridProperty.hpp"
 
-#include "wxgui/GridElement.H"
-#include "wxgui/WxResourceImageList.H"
-#include "wxgui/GridCellPropImageRenderer.H"
-#include "wxgui/GridPropElement.H"
+#include "wxgui/GridElement.hpp"
+#include "wxgui/WxResourceImageList.hpp"
+#include "wxgui/GridCellPropImageRenderer.hpp"
+#include "wxgui/GridPropElement.hpp"
 
 
 

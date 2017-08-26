@@ -1,14 +1,14 @@
 #ifndef _SYMMETRYPANEL_H_
 #define _SYMMETRYPANEL_H_
 
-#include "util/Event.H"
+#include "util/Event.hpp"
   using ecce::Event;
-#include "util/Listener.H"
+#include "util/Listener.hpp"
   using ecce::Listener;
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
-#include "SymmetryPanelGUI.H"
+#include "SymmetryPanelGUI.hpp"
 
 #define ID_COMBO_SYMMETRY_GROUP 9500
 

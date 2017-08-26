@@ -12,7 +12,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxProgressDialog.H"
+#include "wxgui/ewxProgressDialog.hpp"
 
 
 /**

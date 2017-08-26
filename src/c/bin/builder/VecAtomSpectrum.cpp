@@ -6,28 +6,28 @@
 
 #include <wx/link.h>
 
-#include "util/PreferenceLabels.H"
-#include "util/Spectrum.H"
+#include "util/PreferenceLabels.hpp"
+#include "util/Spectrum.hpp"
 
-#include "tdat/PropVector.H"
-#include "tdat/TProperty.H"
+#include "tdat/PropVector.hpp"
+#include "tdat/TProperty.hpp"
 
-#include "dsm/PropFactory.H"
-#include "dsm/ICalculation.H"
+#include "dsm/PropFactory.hpp"
+#include "dsm/ICalculation.hpp"
 
-#include "wxgui/ewxConfig.H"
-#include "wxgui/ewxColor.H"
-#include "wxgui/ewxGrid.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/WxColorSchemeButton.H"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/ewxColor.hpp"
+#include "wxgui/ewxGrid.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/WxColorSchemeButton.hpp"
 
-#include "inv/ChemKit/ChemColor.H"
+#include "inv/ChemKit/ChemColor.hpp"
 
-#include "viz/CSLoadColorsCmd.H"
+#include "viz/CSLoadColorsCmd.hpp"
 
-#include "wxviz/WxVizToolFW.H"
+#include "wxviz/WxVizToolFW.hpp"
 
-#include "VecAtomSpectrum.H"
+#include "VecAtomSpectrum.hpp"
 
   using std::find;
 

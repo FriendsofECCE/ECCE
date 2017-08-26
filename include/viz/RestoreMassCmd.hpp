@@ -8,7 +8,7 @@
 #define RESTOREMASSCMD_H
 
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class wxWindow;
 

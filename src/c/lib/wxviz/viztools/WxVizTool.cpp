@@ -1,22 +1,22 @@
 #include <wx/fileconf.h>
 
-#include "util/NullPointerException.H"
-#include "util/Event.H"
-#include "util/EventDispatcher.H"
+#include "util/NullPointerException.hpp"
+#include "util/Event.hpp"
+#include "util/EventDispatcher.hpp"
 using namespace ecce;
 
-#include "tdat/TBond.H"
-#include "tdat/TAtm.H"
-#include "tdat/Residue.H"
+#include "tdat/TBond.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/Residue.hpp"
 
-#include "inv/ChemKit/ChemDisplayPath.H"
+#include "inv/ChemKit/ChemDisplayPath.hpp"
 
-#include "viz/SGContainer.H"
-#include "viz/SGFragment.H"
+#include "viz/SGContainer.hpp"
+#include "viz/SGFragment.hpp"
 
-#include "wxviz/SGSelection.H"
-#include "wxviz/WxVizToolFW.H"
-#include "wxviz/WxVizTool.H"
+#include "wxviz/SGSelection.hpp"
+#include "wxviz/WxVizToolFW.hpp"
+#include "wxviz/WxVizTool.hpp"
 
 
 WxVizTool::WxVizTool()

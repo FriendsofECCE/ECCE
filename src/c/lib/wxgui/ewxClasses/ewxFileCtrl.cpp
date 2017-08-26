@@ -6,7 +6,7 @@
  */
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-#pragma implementation "ewxFileCtrl.H"
+#pragma implementation "ewxFileCtrl.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx.h".
@@ -24,15 +24,15 @@
 using std::cerr;
 using std::endl;
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSIServerCentral.H"
-#include "dsm/Resource.H"
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/ResourceType.H"
-#include "wxgui/ewxFileCtrl.H"
-#include "wxgui/ewxFileData.H"
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxTextEntryDialog.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSIServerCentral.hpp"
+#include "dsm/Resource.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/ResourceType.hpp"
+#include "wxgui/ewxFileCtrl.hpp"
+#include "wxgui/ewxFileData.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxTextEntryDialog.hpp"
 
 IMPLEMENT_DYNAMIC_CLASS(ewxFileCtrl,wxFileCtrl)
 

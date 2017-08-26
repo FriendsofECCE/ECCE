@@ -8,12 +8,12 @@
 using std::string;
 using std::vector;
 
-#include "util/ErrMsg.H"
-#include "util/EcceURL.H"
-#include "util/TDateTime.H"
+#include "util/ErrMsg.hpp"
+#include "util/EcceURL.hpp"
+#include "util/TDateTime.hpp"
 
-#include "dsm/ActivityLog.H"
-#include "dsm/BasicDOMWriter.H"
+#include "dsm/ActivityLog.hpp"
+#include "dsm/BasicDOMWriter.hpp"
 
 ActivityLog::ActivityLog() {
 

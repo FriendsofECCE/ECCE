@@ -17,12 +17,12 @@
 
 #include "wx/window.h"
 #include "wx/bitmap.h"
-#include "wxgui/PlotDefs.H"
-#include "wxgui/PlotCurv.H"
-#include "wxgui/PlotData.H"
-#include "wxgui/PlotMark.H"
-#include "wxgui/PlotFunc.H"
-#include "wxgui/ThingRange.H"
+#include "wxgui/PlotDefs.hpp"
+#include "wxgui/PlotCurv.hpp"
+#include "wxgui/PlotData.hpp"
+#include "wxgui/PlotMark.hpp"
+#include "wxgui/PlotFunc.hpp"
+#include "wxgui/ThingRange.hpp"
 
 class WXDLLIMPEXP_FWD_BASE wxTimer;
 class WXDLLIMPEXP_FWD_BASE wxTimerEvent;

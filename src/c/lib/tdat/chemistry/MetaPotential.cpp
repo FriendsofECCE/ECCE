@@ -7,8 +7,8 @@
 using std::set;
 using std::less;
 
-#include "tdat/MetaPotential.H"
-#include "tdat/Measures.H"
+#include "tdat/MetaPotential.hpp"
+#include "tdat/Measures.hpp"
 
 
 

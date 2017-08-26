@@ -6,30 +6,30 @@
 #include "wx/tglbtn.h"
 #include "wx/fileconf.h"
 
-#include "util/Event.H"
-#include "util/EventDispatcher.H"
-#include "util/StringConverter.H"
+#include "util/Event.hpp"
+#include "util/EventDispatcher.hpp"
+#include "util/StringConverter.hpp"
 
-#include "tdat/TBond.H"
+#include "tdat/TBond.hpp"
 
-#include "viz/AtomMoveCmd.H"
-#include "viz/CleanCmd.H"
-#include "viz/DeleteCmd.H"
-#include "viz/HydrogensCmd.H"
-#include "viz/RmHydrogensCmd.H"
+#include "viz/AtomMoveCmd.hpp"
+#include "viz/CleanCmd.hpp"
+#include "viz/DeleteCmd.hpp"
+#include "viz/HydrogensCmd.hpp"
+#include "viz/RmHydrogensCmd.hpp"
 
-#include "wxgui/CleanParameters.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxBitmapButton.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxProgressDialog.H"
-#include "wxgui/ImageDropDown.H"
-#include "wxgui/PerTabPanel.H"
-#include "wxgui/TearableContent.H"
+#include "wxgui/CleanParameters.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxBitmapButton.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxProgressDialog.hpp"
+#include "wxgui/ImageDropDown.hpp"
+#include "wxgui/PerTabPanel.hpp"
+#include "wxgui/TearableContent.hpp"
 
-#include "wxviz/ViewerEvtHandler.H"
+#include "wxviz/ViewerEvtHandler.hpp"
 
-#include "MiniPerTab.H"
+#include "MiniPerTab.hpp"
 
 IMPLEMENT_DYNAMIC_CLASS( MiniPerTab, ewxPanel )
 

@@ -57,7 +57,7 @@
 #ifndef  _SO_V1_LINE_SET_KIT_
 #define  _SO_V1_LINE_SET_KIT_
 
-#include "inv/upgraders/SoV1VertexShapeKit.H"
+#include "inv/upgraders/SoV1VertexShapeKit.hpp"
 
 ////////////////////////////////////////////////////////////////////
 //    Class: SoV1LineSetKit

@@ -11,9 +11,9 @@
   using std::string;
   using std::vector;
 
-#include "util/EcceURL.H"
-#include "util/EcceMap.H"
-#include "dsm/ResourceDescriptor.H"
+#include "util/EcceURL.hpp"
+#include "util/EcceMap.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
 class EDSI;
 class TNode;

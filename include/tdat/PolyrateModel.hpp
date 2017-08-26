@@ -15,11 +15,11 @@
 #include <vector>
   using std::vector;
 
-#include "util/IOException.H"
-#include "util/EcceSortedVector.H"
+#include "util/IOException.hpp"
+#include "util/EcceSortedVector.hpp"
 
-#include "tdat/ITaskModel.H"
-#include "tdat/Fragment.H"
+#include "tdat/ITaskModel.hpp"
+#include "tdat/Fragment.hpp"
 
 
 /**

@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/sensors/SoSensorManager.H"
-#include "inv/sensors/SoSensors.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/sensors/SoSensorManager.hpp"
+#include "inv/sensors/SoSensors.hpp"
+#include "inv/errors/SoDebugError.hpp"
 #ifdef __sgi
 #include <osfcn.h>
 #endif // __sgi

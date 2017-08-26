@@ -56,12 +56,12 @@
 #ifndef  _SO_V2FONTSTYLE_
 #define  _SO_V2FONTSTYLE_
 
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFName.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/upgraders/SoUpgrader.H"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFName.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/upgraders/SoUpgrader.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -10,7 +10,7 @@
 #ifndef PRESSURECONVERTER_HH
 #define PRESSURECONVERTER_HH
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 class PressureConverter: public BaseUnitConverter
 {

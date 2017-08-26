@@ -9,15 +9,15 @@
 
 #include <wx/sizer.h>
 
-#include "dsm/EDSIServerCentral.H"
+#include "dsm/EDSIServerCentral.hpp"
 
-#include "util/NullPointerException.H"
+#include "util/NullPointerException.hpp"
 
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/WxFeedback.H"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/WxFeedback.hpp"
 
-#include "wxgui/WxAccessControl.H"
+#include "wxgui/WxAccessControl.hpp"
 
 
 /**

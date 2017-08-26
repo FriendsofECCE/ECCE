@@ -9,10 +9,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // application includes
-#include "util/ErrMsg.H"
-#include "tdat/Torsion.H"
-#include "tdat/TAtm.H"
-#include "tdat/FFCoords.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/Torsion.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/FFCoords.hpp"
 
 // -----------------------
 // Public Member Functions

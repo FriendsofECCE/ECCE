@@ -11,7 +11,7 @@
 #include <vector>
   using std::vector;
 
-#include "util/Transformations.H"
+#include "util/Transformations.hpp"
 
 /**
  * Class that contains periodic system boundary definitions

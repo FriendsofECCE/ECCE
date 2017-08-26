@@ -55,7 +55,7 @@
 
 #ident "$Revision: 22141 $"
 
-#include "inv/ChemKit/SFDouble.H"
+#include "inv/ChemKit/SFDouble.hpp"
 
 // Defines all required member variables and functions for a
 // single-value field

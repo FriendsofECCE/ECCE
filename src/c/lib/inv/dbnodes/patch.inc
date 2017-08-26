@@ -39,16 +39,16 @@
  * 	Derrick Burns - 1992
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "myassert.H"
-#include "mymath.H"
-#include "mystring.H"
-#include "patch.H"
-#include "mapdesc.H"
-#include "quilt.H"
-#include "nurbsconsts.H"
-#include "simplemath.H" //for abs function in ::singleStep();
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "myassert.hpp"
+#include "mymath.hpp"
+#include "mystring.hpp"
+#include "patch.hpp"
+#include "mapdesc.hpp"
+#include "quilt.hpp"
+#include "nurbsconsts.hpp"
+#include "simplemath.hpp" //for abs function in ::singleStep();
 
 
 /*--------------------------------------------------------------------------

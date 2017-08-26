@@ -56,11 +56,11 @@
 #ifndef  _SO_INDEXED_NURBS_SURFACE_
 #define  _SO_INDEXED_NURBS_SURFACE_
 
-#include "inv/SbLinear.H"
-#include "inv/fields/SoSFInt32.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/fields/SoMFInt32.H"
-#include "inv/nodes/SoShape.H"
+#include "inv/SbLinear.hpp"
+#include "inv/fields/SoSFInt32.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/nodes/SoShape.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

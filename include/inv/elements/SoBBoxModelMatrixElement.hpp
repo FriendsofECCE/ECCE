@@ -56,7 +56,7 @@
 #ifndef  _SO_BBOX_MODEL_MATRIX_ELEMENT
 #define  _SO_BBOX_MODEL_MATRIX_ELEMENT
 
-#include "inv/elements/SoModelMatrixElement.H"
+#include "inv/elements/SoModelMatrixElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

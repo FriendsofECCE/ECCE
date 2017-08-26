@@ -6,7 +6,7 @@
 #ifndef  GENBONDS_H
 #define  GENBONDS_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

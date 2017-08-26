@@ -2,12 +2,12 @@
 #define _DNA_H
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "Dna.C"
+#pragma interface "Dna.cpp"
 #endif
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
-#include "DnaGUI.H"
+#include "DnaGUI.hpp"
 
 /**
  * DNA gui toolkit.

@@ -51,15 +51,15 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1VertexShapeKit.H"
-#include "inv/nodes/SoShapeHints.H"
-#include "inv/nodes/SoCoordinate3.H"
-#include "inv/nodes/SoFaceSet.H"
-#include "inv/nodes/SoNormal.H"
-#include "inv/nodes/SoTextureCoordinate2.H"
-#include "inv/nodes/SoVertexShape.H"
-#include "inv/nodekits/SoShapeKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1VertexShapeKit.hpp"
+#include "inv/nodes/SoShapeHints.hpp"
+#include "inv/nodes/SoCoordinate3.hpp"
+#include "inv/nodes/SoFaceSet.hpp"
+#include "inv/nodes/SoNormal.hpp"
+#include "inv/nodes/SoTextureCoordinate2.hpp"
+#include "inv/nodes/SoVertexShape.hpp"
+#include "inv/nodekits/SoShapeKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1VertexShapeKit);

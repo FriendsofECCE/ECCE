@@ -19,14 +19,14 @@
   using std::map;
   using std::less;
 
-#include "util/Transformations.H"
-#include "util/EcceSortedVector.H"
-#include "util/EcceException.H"
+#include "util/Transformations.hpp"
+#include "util/EcceSortedVector.hpp"
+#include "util/EcceException.hpp"
 
-#include "tdat/TAtm.H"
-#include "tdat/Residue.H"
-#include "tdat/TResChain.H"
-#include "tdat/IBondList.H"
+#include "tdat/TAtm.hpp"
+#include "tdat/Residue.hpp"
+#include "tdat/TResChain.hpp"
+#include "tdat/IBondList.hpp"
 
 
 class TBond;

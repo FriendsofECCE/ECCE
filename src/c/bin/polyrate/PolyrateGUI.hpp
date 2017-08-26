@@ -11,7 +11,7 @@
 #define _POLYRATEGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "PolyrateGUI.C"
+#pragma interface "PolyrateGUI.cpp"
 #endif
 
 /*!
@@ -22,7 +22,7 @@
 #include "wx/frame.h"
 #include "wx/notebook.h"
 #include "wx/statline.h"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/ewxFrame.hpp"
 ////@end includes
 
 /*!

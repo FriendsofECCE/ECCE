@@ -2,24 +2,24 @@
   using std::cout;
   using std::endl;
 
-//#include "inv/nodes/SoSwitch.H"
+//#include "inv/nodes/SoSwitch.hpp"
 
-#include "util/Color.H"
-#include "util/InternalException.H"
+#include "util/Color.hpp"
+#include "util/InternalException.hpp"
 
 
-#include "dsm/ICalculation.H"
-#include "dsm/IPropCalculation.H"
+#include "dsm/ICalculation.hpp"
+#include "dsm/IPropCalculation.hpp"
 
-#include "tdat/SingleGrid.H"
-#include "tdat/PropVecTable.H"
-#include "tdat/TAtm.H"
-#include "tdat/TBond.H"
+#include "tdat/SingleGrid.hpp"
+#include "tdat/PropVecTable.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/TBond.hpp"
 
-#include "viz/SGContainer.H"
-#include "viz/SGFragment.H"
-#include "viz/VRVector.H"
-#include "viz/NModeVectCmd.H"
+#include "viz/SGContainer.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/VRVector.hpp"
+#include "viz/NModeVectCmd.hpp"
 
 NModeVectCmd::NModeVectCmd(const string& name,Receiver *receiver,
                          IPropCalculation *calc)

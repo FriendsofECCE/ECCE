@@ -37,7 +37,7 @@
 #ifndef __glumymath_h_
 #define __glumymath_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * mymath.h - $Revision: 22116 $
  */

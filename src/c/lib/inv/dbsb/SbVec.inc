@@ -54,7 +54,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
 // amount squared to figure if two floats are equal
 // (used for Vec2f and Vec3f right now)

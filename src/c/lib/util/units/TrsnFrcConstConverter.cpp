@@ -4,7 +4,7 @@
  *
  */
 
-#include "util/TrsnFrcConstConverter.H"
+#include "util/TrsnFrcConstConverter.hpp"
 
 
 /**

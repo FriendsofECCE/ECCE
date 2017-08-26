@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoPickStyleElement.H"
+#include "inv/elements/SoPickStyleElement.hpp"
 
 SO_ELEMENT_SOURCE(SoPickStyleElement);
 

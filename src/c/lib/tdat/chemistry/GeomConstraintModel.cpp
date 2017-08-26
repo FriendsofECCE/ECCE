@@ -14,11 +14,11 @@ using std::find;
   using __gnu_cxx::hash;
 #endif
 
-#include "tdat/Fragment.H"
-#include "tdat/GeomConstraint.H"
-#include "tdat/GeomRestraint.H"
-#include "tdat/GeomConstraintModel.H"
-#include "tdat/GeomConstraintRules.H"
+#include "tdat/Fragment.hpp"
+#include "tdat/GeomConstraint.hpp"
+#include "tdat/GeomRestraint.hpp"
+#include "tdat/GeomConstraintModel.hpp"
+#include "tdat/GeomConstraintRules.hpp"
 
 
 /**

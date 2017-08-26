@@ -4,8 +4,8 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxSlider.H"
-#include "wxgui/ewxHelpHandler.H"
+#include "wxgui/ewxSlider.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
 
 
 ewxSlider::ewxSlider()

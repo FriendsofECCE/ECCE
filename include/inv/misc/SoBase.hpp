@@ -59,10 +59,10 @@
 #ifndef  _SO_BASE_
 #define  _SO_BASE_
 
-#include "inv/misc/SoBasic.H"
-#include "inv/misc/SoAuditorList.H"
-#include "inv/SbString.H"
-#include "inv/SoType.H"
+#include "inv/misc/SoBasic.hpp"
+#include "inv/misc/SoAuditorList.hpp"
+#include "inv/SbString.hpp"
+#include "inv/SoType.hpp"
 
 class SoBaseList;
 class SoInput;

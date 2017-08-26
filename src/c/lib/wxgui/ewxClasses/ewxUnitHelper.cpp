@@ -11,11 +11,11 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxUnitHelper.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxStyledWindow.H"
-#include "util/UnitFamily.H"
+#include "wxgui/ewxUnitHelper.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxStyledWindow.hpp"
+#include "util/UnitFamily.hpp"
 
 
 /**

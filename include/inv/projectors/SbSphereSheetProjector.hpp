@@ -69,7 +69,7 @@
 #ifndef _SB_SPHERE_SHEET_PROJECTOR_
 #define _SB_SPHERE_SHEET_PROJECTOR_
 
-#include "inv/projectors/SbSphereProjector.H"
+#include "inv/projectors/SbSphereProjector.hpp"
 
 // C-api: prefix=SbSphSheetProj
 class SbSphereSheetProjector : public SbSphereProjector

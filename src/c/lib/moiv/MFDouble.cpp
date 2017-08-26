@@ -57,7 +57,7 @@
 
 #include <stdlib.h>
 
-#include "inv/ChemKit/MFDouble.H"
+#include "inv/ChemKit/MFDouble.hpp"
 
 // Defines all required member variables and functions for a
 // multiple-value field. We use the version that allocates field

@@ -56,7 +56,7 @@
 #ifndef  _SO_CACHE_ELEMENT_
 #define  _SO_CACHE_ELEMENT_
 
-#include "inv/elements/SoSubElement.H"
+#include "inv/elements/SoSubElement.hpp"
 
 class SoCache;
 

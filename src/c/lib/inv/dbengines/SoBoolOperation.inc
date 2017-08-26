@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/engines/SoBoolOperation.H"
-#include "SoEngineUtil.H"
+#include "inv/engines/SoBoolOperation.hpp"
+#include "SoEngineUtil.hpp"
 
 SO_ENGINE_SOURCE(SoBoolOperation);
 

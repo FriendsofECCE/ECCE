@@ -49,11 +49,11 @@
 #include <vector>
   using std::vector;
 
-#include "util/CancelException.H"
-#include "util/ETimer.H"
+#include "util/CancelException.hpp"
+#include "util/ETimer.hpp"
 
-#include "tdat/Fragment.H"
-#include "tdat/FFCoords.H"
+#include "tdat/Fragment.hpp"
+#include "tdat/FFCoords.hpp"
 
 class PBonds;
 class Angles;

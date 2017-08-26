@@ -2,7 +2,7 @@
 #define CENTERVIEWCMD_HH
 
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class CenterViewCmd : public Command
 {

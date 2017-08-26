@@ -54,9 +54,9 @@
 #ifndef  _SO_LOD_
 #define  _SO_LOD_
 
-#include "inv/fields/SoMFFloat.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/nodes/SoGroup.H"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/nodes/SoGroup.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

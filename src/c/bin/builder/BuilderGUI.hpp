@@ -11,7 +11,7 @@
 #define _BUILDERGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "BuilderGUI.C"
+#pragma interface "BuilderGUI.cpp"
 #endif
 
 /*!
@@ -20,7 +20,7 @@
 
 ////@begin includes
 #include "wx/frame.h"
-#include "wxgui/ewxTool.H"
+#include "wxgui/ewxTool.hpp"
 ////@end includes
 
 /*!

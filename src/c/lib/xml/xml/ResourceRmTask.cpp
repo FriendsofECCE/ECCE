@@ -17,7 +17,7 @@
 #include <xercesc/util/XMLString.hpp>
   using namespace xercesc;
 
-#include "dsm/ResourceRmTask.H"
+#include "dsm/ResourceRmTask.hpp"
 
 
 

@@ -39,11 +39,11 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "renderhints.H"
-#include "defines.H"
-#include "nurbsconsts.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "renderhints.hpp"
+#include "defines.hpp"
+#include "nurbsconsts.hpp"
 
 
 /*--------------------------------------------------------------------------

@@ -15,10 +15,10 @@
 #include <vector>
   using std::vector;
 
-#include "util/IOException.H"
+#include "util/IOException.hpp"
 
-#include "tdat/ITaskModel.H"
-#include "tdat/Fragment.H"
+#include "tdat/ITaskModel.hpp"
+#include "tdat/Fragment.hpp"
 
 
 /**

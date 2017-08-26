@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_SHAPE_HINTS_ELEMENT
 #define  _SO_GL_SHAPE_HINTS_ELEMENT
 
-#include "inv/elements/SoShapeHintsElement.H"
+#include "inv/elements/SoShapeHintsElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

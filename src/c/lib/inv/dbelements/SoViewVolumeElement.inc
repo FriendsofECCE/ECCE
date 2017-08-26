@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoViewVolumeElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/elements/SoViewVolumeElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 SO_ELEMENT_SOURCE(SoViewVolumeElement);
 

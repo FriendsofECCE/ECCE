@@ -24,19 +24,19 @@
 #include <set>
   using std::set_difference;
 
-#include "util/ErrMsg.H"
-#include "util/Ecce.H"
-#include "util/CompareOps.H"
-#include "util/SFile.H"
-#include "util/TempStorage.H"
+#include "util/ErrMsg.hpp"
+#include "util/Ecce.hpp"
+#include "util/CompareOps.hpp"
+#include "util/SFile.hpp"
+#include "util/TempStorage.hpp"
 
-#include "tdat/TTheory.H"
-#include "tdat/TPerTab.H"
+#include "tdat/TTheory.hpp"
+#include "tdat/TPerTab.hpp"
 
-#include "dsm/TGBSConfig.H"
-#include "dsm/TGaussianBasisSet.H"
-#include "dsm/JCode.H"
-#include "dsm/CodeFactory.H"
+#include "dsm/TGBSConfig.hpp"
+#include "dsm/TGaussianBasisSet.hpp"
+#include "dsm/JCode.hpp"
+#include "dsm/CodeFactory.hpp"
 
   
 // Static conversion arrays

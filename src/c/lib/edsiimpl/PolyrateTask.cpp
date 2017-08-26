@@ -22,15 +22,15 @@
 #include <vector>
   using std::vector;
 
-#include "tdat/Fragment.H"
+#include "tdat/Fragment.hpp"
 
-#include "dsm/TGaussianBasisSet.H"
-#include "dsm/EDSIMessage.H"
-#include "dsm/EDSI.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/Session.H"
-#include "dsm/DirDyVTSTTask.H"
-#include "dsm/PolyrateTask.H"
+#include "dsm/TGaussianBasisSet.hpp"
+#include "dsm/EDSIMessage.hpp"
+#include "dsm/EDSI.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/Session.hpp"
+#include "dsm/DirDyVTSTTask.hpp"
+#include "dsm/PolyrateTask.hpp"
 
 
 /**

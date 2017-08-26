@@ -30,7 +30,7 @@
     #pragma interface "PlotLmLsqr.H"
 #endif
 
-#include "wxgui/PlotDefs.H"
+#include "wxgui/PlotDefs.hpp"
 class WXDLLIMPEXP_FWD_PLOTCTRL wxPlotData;
 class WXDLLIMPEXP_FWD_PLOTCTRL wxPlotFunction;
 

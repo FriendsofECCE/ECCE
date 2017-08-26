@@ -59,8 +59,8 @@
 #ifndef  _SO_NORMAL_CACHE
 #define  _SO_NORMAL_CACHE
 
-#include "inv/SbLinear.H"
-#include "inv/caches/SoCache.H"
+#include "inv/SbLinear.hpp"
+#include "inv/caches/SoCache.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

@@ -51,13 +51,13 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/engines/SoElapsedTime.H"
-#include "inv/engines/SoCalculator.H"
-#include "inv/engines/SoInterpolate.H"
-#include "inv/nodes/SoShuttle.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/sensors/SoOneShotSensor.H"
+#include "inv/SoDB.hpp"
+#include "inv/engines/SoElapsedTime.hpp"
+#include "inv/engines/SoCalculator.hpp"
+#include "inv/engines/SoInterpolate.hpp"
+#include "inv/nodes/SoShuttle.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/sensors/SoOneShotSensor.hpp"
 
 SO_NODE_SOURCE(SoShuttle);
 

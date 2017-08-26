@@ -9,8 +9,8 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxNonBoldLabel.H"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxNonBoldLabel.hpp"
 
 
 ewxNonBoldLabel::ewxNonBoldLabel()

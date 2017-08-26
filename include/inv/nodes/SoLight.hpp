@@ -56,10 +56,10 @@
 #ifndef  _SO_LIGHT_
 #define  _SO_LIGHT_
 
-#include "inv/nodes/SoSubNode.H"
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFColor.H"
-#include "inv/fields/SoSFFloat.H"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFColor.hpp"
+#include "inv/fields/SoSFFloat.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

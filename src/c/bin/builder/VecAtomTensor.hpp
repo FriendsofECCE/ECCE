@@ -1,15 +1,15 @@
 #ifndef VECATOMTENSOR__H
 #define VECATOMTENSOR__H
 
-#include "util/Event.H"
+#include "util/Event.hpp"
   using ecce::Event;
-#include "util/Listener.H"
+#include "util/Listener.hpp"
   using ecce::Listener;
 
 
-#include "wxgui/TearableContentProvider.H"
+#include "wxgui/TearableContentProvider.hpp"
 
-#include "VizPropertyPanel.H"
+#include "VizPropertyPanel.hpp"
 
 
 class ewxChoice;

@@ -12,8 +12,8 @@
 
 #include <string>
 
-#include "dsm/CIPCcsock.H"          // "C" socket interface
-#include "dsm/CIPCfiletx.H"         // "C" file transfer interface
+#include "dsm/CIPCcsock.hpp"          // "C" socket interface
+#include "dsm/CIPCfiletx.hpp"         // "C" file transfer interface
 
 namespace ipc {
 

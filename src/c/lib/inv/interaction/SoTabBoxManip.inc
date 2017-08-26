@@ -54,13 +54,13 @@
 
 #include <stdio.h>
 #include <stdio.h>
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
 
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/manips/SoTabBoxManip.H"
-#include "inv/draggers/SoTabBoxDragger.H"
-#include "inv/nodes/SoSurroundScale.H"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/manips/SoTabBoxManip.hpp"
+#include "inv/draggers/SoTabBoxDragger.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
 
 SO_NODE_SOURCE(SoTabBoxManip);
 

@@ -26,9 +26,9 @@ using std::string;
 
 #include "wx/treectrl.h"
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "wxgui/ewxTreeCtrl.H"
+#include "wxgui/ewxTreeCtrl.hpp"
 
 
 class BookmarkList;

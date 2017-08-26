@@ -3,13 +3,13 @@
 #  include <strstream.h>
 #  include <fstream.h>
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
-#include "tdat/TProperty.H"
+#include "tdat/TProperty.hpp"
 
-#include "dsm/DavEDSI.H"
-#include "dsm/PropertyInterpreter.H"
-//#include "dsm/PropertyCacheEntry.H"
+#include "dsm/DavEDSI.hpp"
+#include "dsm/PropertyInterpreter.hpp"
+//#include "dsm/PropertyCacheEntry.hpp"
 void test(istream& is);
 
 void test(istream& is) {

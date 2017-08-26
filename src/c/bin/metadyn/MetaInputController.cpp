@@ -7,25 +7,25 @@
   using std::ostrstream;
 #include <unistd.h> // for getcwd()
 
-#include "util/Ecce.H"
-#include "util/EcceMap.H"
-#include "util/SDirectory.H"
-#include "util/TempStorage.H"
-#include "util/TypedFile.H"
-#include "util/STLUtil.H"
+#include "util/Ecce.hpp"
+#include "util/EcceMap.hpp"
+#include "util/SDirectory.hpp"
+#include "util/TempStorage.hpp"
+#include "util/TypedFile.hpp"
+#include "util/STLUtil.hpp"
 
-#include "tdat/Fragment.H"
-#include "tdat/MetaPotentialModel.H"
-#include "tdat/GUIValues.H"
-#include "tdat/TTheory.H"
+#include "tdat/Fragment.hpp"
+#include "tdat/MetaPotentialModel.hpp"
+#include "tdat/GUIValues.hpp"
+#include "tdat/TTheory.hpp"
 
-#include "dsm/MetaPotentialModelXMLizer.H"
-#include "dsm/QMMMModelXMLizer.H"
-#include "dsm/ICalculation.H"
-#include "dsm/JCode.H"
-#include "dsm/VDoc.H"
+#include "dsm/MetaPotentialModelXMLizer.hpp"
+#include "dsm/QMMMModelXMLizer.hpp"
+#include "dsm/ICalculation.hpp"
+#include "dsm/JCode.hpp"
+#include "dsm/VDoc.hpp"
 
-#include "MetaEd.H"
+#include "MetaEd.hpp"
 
 
 string MetaEd::changeWD(const string& newDir)

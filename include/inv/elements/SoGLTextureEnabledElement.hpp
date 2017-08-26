@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_TEXTURE_ENABLED_ELEMENT
 #define  _SO_GL_TEXTURE_ENABLED_ELEMENT
 
-#include "inv/elements/SoInt32Element.H"
+#include "inv/elements/SoInt32Element.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

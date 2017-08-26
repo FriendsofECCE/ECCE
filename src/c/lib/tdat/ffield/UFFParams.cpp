@@ -48,14 +48,14 @@
 #include <string.h>
 // library includes
 // application includes
-#include "util/ErrMsg.H"
-#include "tdat/TAtm.H"
-#include "tdat/ShapeData.H"
-#include "tdat/TBond.H"
-#include "tdat/TPerTab.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/ShapeData.hpp"
+#include "tdat/TBond.hpp"
+#include "tdat/TPerTab.hpp"
 
-#include "tdat/UFFParams.H"
-//#include "tdat/NeighborCursor.H"
+#include "tdat/UFFParams.hpp"
+//#include "tdat/NeighborCursor.hpp"
 
 #define  PI  3.14159265358979323846
 #define  DEG * PI / 180.0

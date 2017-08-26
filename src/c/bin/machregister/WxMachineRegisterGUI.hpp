@@ -11,7 +11,7 @@
 #define _WXMACHINEREGISTERGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "WxMachineRegisterGUI.C"
+#pragma interface "WxMachineRegisterGUI.cpp"
 #endif
 
 /*!
@@ -21,7 +21,7 @@
 ////@begin includes
 #include "wx/frame.h"
 #include "wx/spinctrl.h"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/ewxFrame.hpp"
 ////@end includes
 
 /*!

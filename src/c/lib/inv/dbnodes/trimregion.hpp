@@ -37,14 +37,14 @@
 #ifndef __glutrimregion_h_
 #define __glutrimregion_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * trimregion.h - $Revision: 22116 $
  */
 
-#include "trimline.H"
-#include "gridline.H"
-#include "uarray.H"
+#include "trimline.hpp"
+#include "gridline.hpp"
+#include "uarray.hpp"
 
 class Arc;
 class Backend;

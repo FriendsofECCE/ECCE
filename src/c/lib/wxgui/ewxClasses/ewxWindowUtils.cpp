@@ -18,22 +18,22 @@
 #include <X11/Xlib.h>
 #endif
 
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
-#include "util/UnitFactory.H"
-#include "util/UnitConverter.H"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
+#include "util/UnitFactory.hpp"
+#include "util/UnitConverter.hpp"
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxUnitHelper.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxConfig.H"
-#include "wxgui/NumericValidatorBase.H"
-#include "wxgui/WxFeedback.H"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxUnitHelper.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/NumericValidatorBase.hpp"
+#include "wxgui/WxFeedback.hpp"
 
 
 /**

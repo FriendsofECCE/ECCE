@@ -56,8 +56,8 @@
 #ifndef  _SO_DIRECTIONAL_LIGHT_
 #define  _SO_DIRECTIONAL_LIGHT_
 
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/nodes/SoLight.H"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/nodes/SoLight.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

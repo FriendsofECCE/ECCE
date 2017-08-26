@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoLazyElement.H"
-#include "inv/elements/SoOverrideElement.H"
-#include "inv/nodes/SoColorIndex.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoLazyElement.hpp"
+#include "inv/elements/SoOverrideElement.hpp"
+#include "inv/nodes/SoColorIndex.hpp"
 
 SO_NODE_SOURCE(SoColorIndex);
 

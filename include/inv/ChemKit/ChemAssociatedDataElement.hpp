@@ -57,10 +57,10 @@
 #ifndef  __CHEM_ASSOCIATED_DATA_ELEMENT_H__
 #define  __CHEM_ASSOCIATED_DATA_ELEMENT_H__
 
-#include "inv/elements/SoReplacedElement.H"
+#include "inv/elements/SoReplacedElement.hpp"
 
-#include "inv/ChemKit/ChemAssociatedData.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemAssociatedData.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 
 //////////////////////////////////////////////////////////////////////////////

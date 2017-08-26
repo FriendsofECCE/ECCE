@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/misc/SoCallbackList.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/misc/SoCallbackList.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 typedef struct {
     SoCallbackListCB	*func;

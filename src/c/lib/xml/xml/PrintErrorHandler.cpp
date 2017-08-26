@@ -7,7 +7,7 @@
 #include <xercesc/util/XMLString.hpp>
   using namespace xercesc;
 
-#include "dsm/PrintErrorHandler.H"
+#include "dsm/PrintErrorHandler.hpp"
 
 /**
  * Constructor.

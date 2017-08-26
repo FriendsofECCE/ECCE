@@ -6,11 +6,11 @@
 #include <iostream>
   using namespace std;
 
-#include "inv/ChemKit/ChemRadii.H"
+#include "inv/ChemKit/ChemRadii.hpp"
 
-#include "viz/CSRadiiCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/CSRadiiCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 CSRadiiCmd::CSRadiiCmd(const string& name, Receiver * receiver)
     : Command(name, receiver)

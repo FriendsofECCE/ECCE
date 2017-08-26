@@ -8,8 +8,8 @@
 #include <wx/dataobj.h>
 #include <wx/tokenzr.h>
 
-#include "TreeDropTarget.H"
-#include "CalcMgr.H"
+#include "TreeDropTarget.hpp"
+#include "CalcMgr.hpp"
 
 #include <iostream>
 using std::cerr;

@@ -7,12 +7,12 @@ using std::string;
 using std::map;
 using std::less;
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/SoPrimitiveVertex.H"
-#include "inv/nodes/SoIndexedTriangleStripSet.H"
-#include "inv/SbColor.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/SoPrimitiveVertex.hpp"
+#include "inv/nodes/SoIndexedTriangleStripSet.hpp"
+#include "inv/SbColor.hpp"
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class SoNode;
 class SoType;

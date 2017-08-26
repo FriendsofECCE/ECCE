@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoProfileCoordinateElement.H"
-#include "inv/nodes/SoLinearProfile.H"
+#include "inv/elements/SoProfileCoordinateElement.hpp"
+#include "inv/nodes/SoLinearProfile.hpp"
 
 SO_NODE_SOURCE(SoLinearProfile);
 

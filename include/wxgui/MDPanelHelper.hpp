@@ -7,7 +7,7 @@
 #ifndef _MDPANELHELPER_H
 #define _MDPANELHELPER_H
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
 class WxFeedback;
 

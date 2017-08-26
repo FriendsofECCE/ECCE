@@ -14,46 +14,46 @@
 #include <wx/grid.h>
 #include <wx/slider.h>
 
-#include "util/InternalException.H"
-#include "util/EventDispatcher.H"
-#include "util/PreferenceLabels.H"
+#include "util/InternalException.hpp"
+#include "util/EventDispatcher.hpp"
+#include "util/PreferenceLabels.hpp"
 
-#include "tdat/PropVector.H"
-#include "tdat/TProperty.H"
-#include "tdat/TTCPair.H"
+#include "tdat/PropVector.hpp"
+#include "tdat/TProperty.hpp"
+#include "tdat/TTCPair.hpp"
 
-#include "dsm/IPropCalculation.H"
-#include "dsm/ICalculation.H"
-#include "dsm/PropFactory.H"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/ICalculation.hpp"
+#include "dsm/PropFactory.hpp"
 
-#include "wxgui/ewxColorDialog.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxConfig.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxNumericValidator.H"
+#include "wxgui/ewxColorDialog.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
 
-#include "wxgui/ewxColor.H"
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/WindowEvent.H"
-#include "wxgui/WxColorSchemeButton.H"
-#include "wxgui/ewxGrid.H"
-#include "wxgui/SliderCombo.H"
+#include "wxgui/ewxColor.hpp"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/WindowEvent.hpp"
+#include "wxgui/WxColorSchemeButton.hpp"
+#include "wxgui/ewxGrid.hpp"
+#include "wxgui/SliderCombo.hpp"
 
-#include "wxviz/WxVizToolFW.H"
-#include "wxviz/SGSelection.H"
+#include "wxviz/WxVizToolFW.hpp"
+#include "wxviz/SGSelection.hpp"
 
-#include "inv/ChemKit/ChemColor.H"
+#include "inv/ChemKit/ChemColor.hpp"
 
-#include "viz/TensorCmd.H"
+#include "viz/TensorCmd.hpp"
 
-#include "VecAtomTensor.H"
-#include "TensorTable.H"
+#include "VecAtomTensor.hpp"
+#include "TensorTable.hpp"
 
   using std::find;
 

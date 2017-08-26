@@ -53,7 +53,7 @@
 #ifndef  _SO_CENTERBALL_MANIP_
 #define  _SO_CENTERBALL_MANIP_
 
-#include "inv/manips/SoTransformManip.H"
+#include "inv/manips/SoTransformManip.hpp"
 
 // C-api: prefix=SoCballManip
 class SoCenterballManip : public SoTransformManip

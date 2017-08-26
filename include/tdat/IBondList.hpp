@@ -12,7 +12,7 @@
 #ifndef IBONDLIST_HH
 #define IBONDLIST_HH
 
-#include "tdat/DisplayStyle.H"
+#include "tdat/DisplayStyle.hpp"
 
 class IBondList {
   public:

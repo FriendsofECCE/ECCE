@@ -22,15 +22,15 @@
   using std::set_difference;
   using std::sort;
 
-#include "util/ErrMsg.H"
-#include "util/Ecce.H"
+#include "util/ErrMsg.hpp"
+#include "util/Ecce.hpp"
 
-#include "tdat/Fragment.H"
-#include "tdat/TTheory.H"
+#include "tdat/Fragment.hpp"
+#include "tdat/TTheory.hpp"
 
-#include "dsm/TGBSConfig.H"
-#include "dsm/TGaussianBasisSet.H"
-#include "dsm/TGBSGroup.H"
+#include "dsm/TGBSConfig.hpp"
+#include "dsm/TGaussianBasisSet.hpp"
+#include "dsm/TGBSGroup.hpp"
 
 /*******************************************************************
  Method : Default constructor

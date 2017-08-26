@@ -45,27 +45,27 @@
   using std::cout;
   using std::endl;
 
-#include "util/ErrMsg.H"
-#include "util/InternalException.H"
-#include "util/CancelException.H"
-#include "util/Receiver.H"
-#include "util/ProgressMonitor.H"
+#include "util/ErrMsg.hpp"
+#include "util/InternalException.hpp"
+#include "util/CancelException.hpp"
+#include "util/Receiver.hpp"
+#include "util/ProgressMonitor.hpp"
 
-#include "tdat/TGBSAngFunc.H"
-#include "tdat/PropTable.H"
-#include "tdat/PropVector.H"
-#include "tdat/SingleGrid.H"
+#include "tdat/TGBSAngFunc.hpp"
+#include "tdat/PropTable.hpp"
+#include "tdat/PropVector.hpp"
+#include "tdat/SingleGrid.hpp"
 
-#include "dsm/TGaussianBasisSet.H"
-#include "dsm/TGBSConfig.H"
-#include "dsm/JCode.H"
-#include "dsm/CodeFactory.H"
-#include "dsm/ICalculation.H"
-#include "dsm/IPropCalculation.H"
+#include "dsm/TGaussianBasisSet.hpp"
+#include "dsm/TGBSConfig.hpp"
+#include "dsm/JCode.hpp"
+#include "dsm/CodeFactory.hpp"
+#include "dsm/ICalculation.hpp"
+#include "dsm/IPropCalculation.hpp"
 
-#include "viz/ComputeMoCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/ComputeMoCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 //
 // Last remaining macro 

@@ -37,12 +37,12 @@
 #ifndef __glurenderhints_h_
 #define __glurenderhints_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * renderhints.h - $Revision: 22116 $
  */
 
-#include "types.H"
+#include "types.hpp"
 
 class Renderhints {
 public:

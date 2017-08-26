@@ -33,22 +33,22 @@
 #include <xercesc/util/XMLString.hpp>
   using namespace xercesc;
 
-#include "util/Ecce.H"
-#include "util/ParseException.H"
-#include "util/InvalidException.H"
-#include "util/ResourceUtils.H"
-#include "util/StringConverter.H"
-#include "util/SFile.H"
-#include "util/StringTokenizer.H"
+#include "util/Ecce.hpp"
+#include "util/ParseException.hpp"
+#include "util/InvalidException.hpp"
+#include "util/ResourceUtils.hpp"
+#include "util/StringConverter.hpp"
+#include "util/SFile.hpp"
+#include "util/StringTokenizer.hpp"
 
-#include "dsm/ITraversable.H"
-#include "dsm/VDoc.H"
-#include "dsm/ResourceType.H"
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/PropertyView.H"
-#include "dsm/AtomView.H"
-#include "dsm/ToolPropertyView.H"
-#include "dsm/BasicDOMParser.H"
+#include "dsm/ITraversable.hpp"
+#include "dsm/VDoc.hpp"
+#include "dsm/ResourceType.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/PropertyView.hpp"
+#include "dsm/AtomView.hpp"
+#include "dsm/ToolPropertyView.hpp"
+#include "dsm/BasicDOMParser.hpp"
 
 
 

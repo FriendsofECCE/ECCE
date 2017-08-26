@@ -56,9 +56,9 @@
 #ifndef  _SO_NON_INDEXED_SHAPE_
 #define  _SO_NON_INDEXED_SHAPE_
 
-#include "inv/fields/SoSFInt32.H"
-#include "inv/nodes/SoVertexShape.H"
-#include "inv/nodes/SoVertexProperty.H"
+#include "inv/fields/SoSFInt32.hpp"
+#include "inv/nodes/SoVertexShape.hpp"
+#include "inv/nodes/SoVertexProperty.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

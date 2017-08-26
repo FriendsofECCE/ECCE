@@ -39,11 +39,11 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "myassert.H"
-#include "knotvector.H"
-#include "defines.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "myassert.hpp"
+#include "knotvector.hpp"
+#include "defines.hpp"
 
 
 void Knotvector::init( long _knotcount, long _stride, long _order, INREAL *_knotlist )

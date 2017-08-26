@@ -53,13 +53,13 @@
 
 
 #include <stdio.h>
-#include "inv/SoDB.H"
-#include "inv/nodes/SoMaterial.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/draggers/SoDragPointDragger.H"
-#include "inv/draggers/SoPointLightDragger.H"
+#include "inv/SoDB.hpp"
+#include "inv/nodes/SoMaterial.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/draggers/SoDragPointDragger.hpp"
+#include "inv/draggers/SoPointLightDragger.hpp"
 
-#include "SoPointLightDraggerGeom.H"
+#include "SoPointLightDraggerGeom.hpp"
 
 
 SO_KIT_SOURCE(SoPointLightDragger);

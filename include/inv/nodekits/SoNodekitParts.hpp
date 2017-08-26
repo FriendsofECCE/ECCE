@@ -64,7 +64,7 @@
 #ifndef  _SO_NODEKIT_PARTS
 #define  _SO_NODEKIT_PARTS
 
-#include "inv/nodekits/SoNodekitCatalog.H"
+#include "inv/nodekits/SoNodekitCatalog.hpp"
 
 class SoNodeKitListPart;
 class SoBaseKit;

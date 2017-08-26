@@ -3,9 +3,9 @@
 #include "wx/image.h"
 #include "wx/odcombo.h"
 
-#include "wxgui/ewxStyledWindow.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ImageDropDown.H"
+#include "wxgui/ewxStyledWindow.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ImageDropDown.hpp"
 
 ImageDropDown::ImageDropDown(wxWindow* parent,
                              wxWindowID id,

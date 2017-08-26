@@ -12,8 +12,8 @@
 // library includes
 
 // application includes
-   #include "util/ErrMsg.H"
-   #include "tdat/PropTSVecString.H"
+   #include "util/ErrMsg.hpp"
+   #include "tdat/PropTSVecString.hpp"
 
 
 // -----------------------

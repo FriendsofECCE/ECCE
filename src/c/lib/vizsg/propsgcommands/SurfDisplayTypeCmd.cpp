@@ -2,10 +2,10 @@
   using std::cout;
   using std::endl;
 
-#include "inv/nodes/SoSwitch.H"
+#include "inv/nodes/SoSwitch.hpp"
 
-#include "viz/SGContainer.H"
-#include "viz/SurfDisplayTypeCmd.H"
+#include "viz/SGContainer.hpp"
+#include "viz/SurfDisplayTypeCmd.hpp"
 
 SurfDisplayTypeCmd::SurfDisplayTypeCmd(const string& name, Receiver *receiver,
                                        IPropCalculation *calc)

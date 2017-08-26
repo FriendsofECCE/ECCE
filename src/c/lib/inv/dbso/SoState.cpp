@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/misc/SoState.H"
+#include "inv/elements/SoElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/misc/SoState.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

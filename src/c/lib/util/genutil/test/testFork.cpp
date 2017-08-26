@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include "util/JMSPublisher.H"
+#include "util/JMSPublisher.hpp"
 
 
 int main(int argc, char** argv) {

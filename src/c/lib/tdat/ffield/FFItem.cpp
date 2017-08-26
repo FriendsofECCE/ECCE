@@ -12,8 +12,8 @@
   using std::cout;
   using std::endl;
 
-// #include "util/ErrMsg.H"
-#include "tdat/FFItem.H"
+// #include "util/ErrMsg.hpp"
+#include "tdat/FFItem.hpp"
 
 const int FFItem::INVALID_ID = -1;
 

@@ -11,9 +11,9 @@
 #include "wx/generic/grid.h"
 #endif
 
-#include "util/TDateTime.H"
+#include "util/TDateTime.hpp"
 
-#include "dsm/GridProperty.H"
+#include "dsm/GridProperty.hpp"
 
 
 #include <string>

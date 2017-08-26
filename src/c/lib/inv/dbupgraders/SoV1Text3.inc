@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "SoV1Text3.H"
-#include "inv/nodes/SoText3.H"
+#include "SoV1Text3.hpp"
+#include "inv/nodes/SoText3.hpp"
 
 
 SO_NODE_SOURCE(SoV1Text3);

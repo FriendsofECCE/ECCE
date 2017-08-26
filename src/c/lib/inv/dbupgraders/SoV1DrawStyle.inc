@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "SoV1DrawStyle.H"
-#include "inv/nodes/SoDrawStyle.H"
+#include "SoV1DrawStyle.hpp"
+#include "inv/nodes/SoDrawStyle.hpp"
 
 SO_NODE_SOURCE(SoV1DrawStyle);
 

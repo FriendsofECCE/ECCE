@@ -11,17 +11,17 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/Ecce.H"
-#include "util/ResourceUtils.H"
-#include "util/EcceURL.H"
+#include "util/Ecce.hpp"
+#include "util/ResourceUtils.hpp"
+#include "util/EcceURL.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSIServerCentral.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSIServerCentral.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "WxLauncherApp.H"
-#include "WxLauncherGUI.H"
-#include "WxLauncher.H"
+#include "WxLauncherApp.hpp"
+#include "WxLauncherGUI.hpp"
+#include "WxLauncher.hpp"
 
 IMPLEMENT_APP(WxLauncherApp)
 //IMPLEMENT_CLASS(WxLauncherApp, ewxApp);

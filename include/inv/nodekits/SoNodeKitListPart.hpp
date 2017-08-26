@@ -68,14 +68,14 @@
 #ifndef  _SO_NODE_KIT_LIST_PART_
 #define  _SO_NODE_KIT_LIST_PART_
 
-#include "inv/misc/SoChildList.H"
-#include "inv/fields/SoSFName.H"
-#include "inv/fields/SoMFName.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/nodes/SoSubNode.H"
-#include "inv/nodes/SoNode.H"
-#include "inv/nodekits/SoNodekitParts.H"
-#include "inv/nodekits/SoBaseKit.H"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/fields/SoSFName.hpp"
+#include "inv/fields/SoMFName.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/nodekits/SoNodekitParts.hpp"
+#include "inv/nodekits/SoBaseKit.hpp"
 
 class SoGroup;
 

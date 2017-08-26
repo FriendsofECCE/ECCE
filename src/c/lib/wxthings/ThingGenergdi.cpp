@@ -8,7 +8,7 @@
 // Licence:     wxWidgets license
 /////////////////////////////////////////////////////////////////////////////
 
-#include "wxgui/ThingPrecomp.H"
+#include "wxgui/ThingPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx.h".
 #include <wx/wxprec.h>
@@ -17,7 +17,7 @@
     #pragma hdrstop
 #endif
 
-#include "wxgui/ThingGenergdi.H"
+#include "wxgui/ThingGenergdi.hpp"
 #include <wx/tokenzr.h>
 #include <wx/bitmap.h>
 

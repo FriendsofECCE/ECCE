@@ -1,4 +1,4 @@
-#include "wxgui/ewxListView.H"
+#include "wxgui/ewxListView.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS(ewxListView, wxListView)

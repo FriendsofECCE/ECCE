@@ -39,14 +39,14 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "myassert.H"
-#include "mystring.H"
-#include "mymath.H"
-#include "backend.H"
-#include "nurbsconsts.H"
-#include "mapdesc.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "myassert.hpp"
+#include "mystring.hpp"
+#include "mymath.hpp"
+#include "backend.hpp"
+#include "nurbsconsts.hpp"
+#include "mapdesc.hpp"
 
 Mapdesc::Mapdesc( long _type, int _israt, int _ncoords, Backend& b ) 
     : backend( b )

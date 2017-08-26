@@ -4,15 +4,15 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxWindowUtils.H"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
 
-#include "wxgui/CleanParameters.H"
+#include "wxgui/CleanParameters.hpp"
 
 
 const int CleanParameters::DEFAULT_MAX_ITERATIONS(100);

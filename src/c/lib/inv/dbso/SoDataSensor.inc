@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/nodes/SoNode.H"
-#include "inv/SoPath.H"
-#include "inv/sensors/SoDataSensor.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/sensors/SoDataSensor.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

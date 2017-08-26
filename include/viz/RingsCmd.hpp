@@ -6,7 +6,7 @@
 #ifndef  RINGSCMD_H
 #define  RINGSCMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class Fragment;
 

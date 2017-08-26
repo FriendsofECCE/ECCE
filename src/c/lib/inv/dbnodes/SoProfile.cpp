@@ -51,13 +51,13 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoProfileCoordinateElement.H"
-#include "inv/elements/SoProfileElement.H"
-#include "inv/nodes/SoProfile.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoProfileCoordinateElement.hpp"
+#include "inv/elements/SoProfileElement.hpp"
+#include "inv/nodes/SoProfile.hpp"
 
 SO_NODE_ABSTRACT_SOURCE(SoProfile);
 

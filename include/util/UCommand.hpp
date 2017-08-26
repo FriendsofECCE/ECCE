@@ -10,7 +10,7 @@ using std::ostream;
 using std::string;
 using std::vector;
 
-#include "util/UCommandParam.H"
+#include "util/UCommandParam.hpp"
 
 class ICommandObject;
 

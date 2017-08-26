@@ -7,7 +7,7 @@ set(GL_LIBRARIES -lwx_gtk2_gl-2.8 -lGL -lGLU -ljpeg)
 
 # basistool
 set(basistool_SRC_DIR ${BIN_SRC_DIR}/basistool)
-file(GLOB basistool_SOURCE ${basistool_SRC_DIR}/*.C)
+file(GLOB basistool_SOURCE ${basistool_SRC_DIR}/*.cpp)
 add_executable(basistool ${basistool_SOURCE})
 target_include_directories(basistool
     PUBLIC ${WX_INCLUDE}
@@ -30,7 +30,7 @@ target_link_libraries(basistool
 
 # builder
 set(builder_SRC_DIR ${BIN_SRC_DIR}/builder)
-file(GLOB builder_SOURCE ${builder_SRC_DIR}/*.C)
+file(GLOB builder_SOURCE ${builder_SRC_DIR}/*.cpp)
 add_executable(builder ${builder_SOURCE})
 target_include_directories(builder
     PUBLIC ${WX_INCLUDE}
@@ -66,7 +66,7 @@ target_link_libraries(builder
 
 # calced
 set(calced_SRC_DIR ${BIN_SRC_DIR}/calced)
-file(GLOB calced_SOURCE ${calced_SRC_DIR}/*.C)
+file(GLOB calced_SOURCE ${calced_SRC_DIR}/*.cpp)
 add_executable(calced ${calced_SOURCE})
 target_include_directories(calced
     PUBLIC ${WX_INCLUDE}
@@ -90,7 +90,7 @@ target_link_libraries(calced
 )
 
 # davutils
-add_executable(load_tgbs ${BIN_SRC_DIR}/davutils/load_tgbs.C)
+add_executable(load_tgbs ${BIN_SRC_DIR}/davutils/load_tgbs.cpp)
 target_link_libraries(load_tgbs
     edsiimpl
     dav
@@ -104,7 +104,7 @@ target_link_libraries(load_tgbs
 
 # dirdyed
 set(dirdyed_SRC_DIR ${BIN_SRC_DIR}/dirdyed)
-file(GLOB dirdyed_SOURCE ${dirdyed_SRC_DIR}/*.C)
+file(GLOB dirdyed_SOURCE ${dirdyed_SRC_DIR}/*.cpp)
 add_executable(dirdyed ${dirdyed_SOURCE})
 target_include_directories(dirdyed
     PUBLIC ${WX_INCLUDE}
@@ -125,7 +125,7 @@ target_link_libraries(dirdyed
 )
 
 # ecmd
-add_executable(ecmd ${BIN_SRC_DIR}/ecmd/ecmd.C)
+add_executable(ecmd ${BIN_SRC_DIR}/ecmd/ecmd.cpp)
 target_link_libraries(ecmd
     rcommand
     expect
@@ -141,7 +141,7 @@ target_link_libraries(ecmd
 
 # gateway
 set(gateway_SRC_DIR ${BIN_SRC_DIR}/gateway)
-file(GLOB gateway_SOURCE ${gateway_SRC_DIR}/*.C)
+file(GLOB gateway_SOURCE ${gateway_SRC_DIR}/*.cpp)
 add_executable(gateway ${gateway_SOURCE})
 target_include_directories(gateway
     PUBLIC ${WX_INCLUDE}
@@ -162,7 +162,7 @@ target_link_libraries(gateway
  )
 
 # jobstore
-add_executable(eccejobmaster ${BIN_SRC_DIR}/jobstore/eccejobmaster.C)
+add_executable(eccejobmaster ${BIN_SRC_DIR}/jobstore/eccejobmaster.cpp)
 target_link_libraries(eccejobmaster
     commxt
     rcommand
@@ -178,7 +178,7 @@ target_link_libraries(eccejobmaster
     ${XERCES_LIBRARIES}
  )
 
-add_executable(eccejobstore ${BIN_SRC_DIR}/jobstore/eccejobstore.C)
+add_executable(eccejobstore ${BIN_SRC_DIR}/jobstore/eccejobstore.cpp)
 target_link_libraries(eccejobstore
     commxt
     rcommand
@@ -196,7 +196,7 @@ target_link_libraries(eccejobstore
 
 # launcher
 set(launcher_SRC_DIR ${BIN_SRC_DIR}/launcher)
-file(GLOB launcher_SOURCE ${launcher_SRC_DIR}/*.C)
+file(GLOB launcher_SOURCE ${launcher_SRC_DIR}/*.cpp)
 add_executable(launcher ${launcher_SOURCE})
 target_include_directories(launcher
     PUBLIC ${WX_INCLUDE}
@@ -223,7 +223,7 @@ target_link_libraries(launcher
 
 # machbrowser
 set(machbrowser_SRC_DIR ${BIN_SRC_DIR}/machbrowser)
-file(GLOB machbrowser_SOURCE ${machbrowser_SRC_DIR}/*.C)
+file(GLOB machbrowser_SOURCE ${machbrowser_SRC_DIR}/*.cpp)
 add_executable(machbrowser ${machbrowser_SOURCE})
 target_include_directories(machbrowser
     PUBLIC
@@ -248,7 +248,7 @@ target_link_libraries(machbrowser
 
 # machregister
 set(machregister_SRC_DIR ${BIN_SRC_DIR}/machregister)
-file(GLOB machregister_SOURCE ${machregister_SRC_DIR}/*.C)
+file(GLOB machregister_SOURCE ${machregister_SRC_DIR}/*.cpp)
 add_executable(machregister ${machregister_SOURCE})
 target_include_directories(machregister
     PUBLIC
@@ -271,7 +271,7 @@ target_link_libraries(machregister
 
 # mddynamics
 set(mddynamics_SRC_DIR ${BIN_SRC_DIR}/mddynamics)
-file(GLOB mddynamics_SOURCE ${mddynamics_SRC_DIR}/*.C)
+file(GLOB mddynamics_SOURCE ${mddynamics_SRC_DIR}/*.cpp)
 add_executable(mddynamics ${mddynamics_SOURCE})
 target_include_directories(mddynamics
     PUBLIC
@@ -295,7 +295,7 @@ target_link_libraries(mddynamics
 
 # mdenergy
 set(mdenergy_SRC_DIR ${BIN_SRC_DIR}/mdenergy)
-file(GLOB mdenergy_SOURCE ${mdenergy_SRC_DIR}/*.C)
+file(GLOB mdenergy_SOURCE ${mdenergy_SRC_DIR}/*.cpp)
 add_executable(mdenergy ${mdenergy_SOURCE})
 target_include_directories(mdenergy
     PUBLIC
@@ -319,7 +319,7 @@ target_link_libraries(mdenergy
 
 # mdoptimize
 set(mdoptimize_SRC_DIR ${BIN_SRC_DIR}/mdoptimize)
-file(GLOB mdoptimize_SOURCE ${mdoptimize_SRC_DIR}/*.C)
+file(GLOB mdoptimize_SOURCE ${mdoptimize_SRC_DIR}/*.cpp)
 add_executable(mdoptimize ${mdoptimize_SOURCE})
 target_include_directories(mdoptimize
     PUBLIC
@@ -343,7 +343,7 @@ target_link_libraries(mdoptimize
 
 # mdprepare
 set(mdprepare_SRC_DIR ${BIN_SRC_DIR}/mdprepare)
-file(GLOB mdprepare_SOURCE ${mdprepare_SRC_DIR}/*.C)
+file(GLOB mdprepare_SOURCE ${mdprepare_SRC_DIR}/*.cpp)
 add_executable(mdprepare ${mdprepare_SOURCE})
 target_include_directories(mdprepare
     PUBLIC
@@ -370,7 +370,7 @@ target_link_libraries(mdprepare
 )
 
 # messagedialog
-add_executable(msgdialog ${BIN_SRC_DIR}/messagedialog/MessageDialogApp.C)
+add_executable(msgdialog ${BIN_SRC_DIR}/messagedialog/MessageDialogApp.cpp)
 target_include_directories(msgdialog
     PUBLIC ${WX_INCLUDE})
 target_link_libraries(msgdialog
@@ -390,7 +390,7 @@ target_link_libraries(msgdialog
 
 # metadyn
 set(metadyn_SRC_DIR ${BIN_SRC_DIR}/metadyn)
-file(GLOB metadyn_SOURCE ${metadyn_SRC_DIR}/*.C)
+file(GLOB metadyn_SOURCE ${metadyn_SRC_DIR}/*.cpp)
 add_executable(metadyn ${metadyn_SOURCE})
 target_include_directories(metadyn
     PUBLIC
@@ -416,7 +416,7 @@ target_link_libraries(metadyn
 
 # organizer
 set(organizer_SRC_DIR ${BIN_SRC_DIR}/organizer)
-file(GLOB organizer_SOURCE ${organizer_SRC_DIR}/*.C)
+file(GLOB organizer_SOURCE ${organizer_SRC_DIR}/*.cpp)
 add_executable(organizer ${organizer_SOURCE})
 target_include_directories(organizer
     PUBLIC
@@ -444,7 +444,7 @@ target_link_libraries(organizer
 )
 
 # passdialog
-add_executable(passdialog ${BIN_SRC_DIR}/passdialog/PasswordDialogApp.C)
+add_executable(passdialog ${BIN_SRC_DIR}/passdialog/PasswordDialogApp.cpp)
 target_include_directories(passdialog
     PUBLIC ${WX_INCLUDE})
 target_link_libraries(passdialog
@@ -464,7 +464,7 @@ target_link_libraries(passdialog
 
 # pertable
 set(pertable_SRC_DIR ${BIN_SRC_DIR}/pertable)
-file(GLOB pertable_SOURCE ${pertable_SRC_DIR}/*.C)
+file(GLOB pertable_SOURCE ${pertable_SRC_DIR}/*.cpp)
 add_executable(pertable ${pertable_SOURCE})
 target_include_directories(pertable
     PUBLIC
@@ -487,7 +487,7 @@ target_link_libraries(pertable
 
 # polyrate
 set(polyrate_SRC_DIR ${BIN_SRC_DIR}/polyrate)
-file(GLOB polyrate_SOURCE ${polyrate_SRC_DIR}/*.C)
+file(GLOB polyrate_SOURCE ${polyrate_SRC_DIR}/*.cpp)
 add_executable(polyed ${polyrate_SOURCE})
 target_include_directories(polyed
     PUBLIC
@@ -510,7 +510,7 @@ target_link_libraries(polyed
 
 # solvate
 set(solvate_SRC_DIR ${BIN_SRC_DIR}/solvate)
-file(GLOB solvate_SOURCE ${solvate_SRC_DIR}/*.C)
+file(GLOB solvate_SOURCE ${solvate_SRC_DIR}/*.cpp)
 add_executable(solvate ${solvate_SOURCE})
 target_include_directories(solvate
     PUBLIC
@@ -536,7 +536,7 @@ target_link_libraries(solvate
 
 # vizthumbnail
 set(vizthumbnail_SRC_DIR ${BIN_SRC_DIR}/vizthumbnail)
-file(GLOB vizthumbnail_SOURCE ${vizthumbnail_SRC_DIR}/*.C)
+file(GLOB vizthumbnail_SOURCE ${vizthumbnail_SRC_DIR}/*.cpp)
 add_executable(vizthumbnail ${vizthumbnail_SOURCE})
 target_include_directories(vizthumbnail
     PUBLIC

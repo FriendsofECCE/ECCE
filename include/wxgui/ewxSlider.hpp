@@ -2,8 +2,8 @@
 #define _EWXSLIDER_H
 
 #include "wx/slider.h"
-#include "wxgui/ewxGenericValidator.H" // for ewxDefaultValidator
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxGenericValidator.hpp" // for ewxDefaultValidator
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxSlider : public wxSlider, public ewxStyledWindow
 {

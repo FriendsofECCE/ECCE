@@ -52,7 +52,7 @@
  */
 
 #include <GL/gl.h>
-#include "inv/elements/SoGLViewportRegionElement.H"
+#include "inv/elements/SoGLViewportRegionElement.hpp"
 
 SO_ELEMENT_SOURCE(SoGLViewportRegionElement);
 

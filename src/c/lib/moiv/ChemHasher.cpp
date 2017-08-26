@@ -55,13 +55,13 @@
 
 #ident "$Revision: 22147 $"
 
-#include "inv/SbDict.H"
-#include "inv/SbPList.H"
-#include "inv/fields/SoMFVec2f.H"
-#include "inv/fields/SoMFVec3f.H"
+#include "inv/SbDict.hpp"
+#include "inv/SbPList.hpp"
+#include "inv/fields/SoMFVec2f.hpp"
+#include "inv/fields/SoMFVec3f.hpp"
 
-#include "inv/ChemKit/ChemAssert.H"
-#include "inv/ChemKit/ChemHasher.H"
+#include "inv/ChemKit/ChemAssert.hpp"
+#include "inv/ChemKit/ChemHasher.hpp"
 
 /////////////////////////////////////////////////////////////////////////////
 //

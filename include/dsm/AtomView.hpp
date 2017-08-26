@@ -13,8 +13,8 @@
   using std::vector;
 
 
-#include "dsm/AtomProperty.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/AtomProperty.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
 
 

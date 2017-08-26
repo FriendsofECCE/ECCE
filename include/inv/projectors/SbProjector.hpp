@@ -61,7 +61,7 @@
 #ifndef _SB_PROJECTOR_
 #define _SB_PROJECTOR_
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
 // C-api: prefix=SbProj
 class SbProjector

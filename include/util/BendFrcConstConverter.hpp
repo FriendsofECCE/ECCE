@@ -11,7 +11,7 @@
 #ifndef BENDFRCCONSTCONVERTER_HH
 #define BENDFRCCONSTCONVERTER_HH
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 class BendFrcConstConverter: public BaseUnitConverter
 {

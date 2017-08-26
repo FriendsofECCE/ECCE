@@ -17,10 +17,10 @@
   using std::multimap;
 
 
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/ResourceTool.H"
-#include "dsm/ResourceRmTask.H"
-#include "dsm/ResourceProperty.H"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/ResourceTool.hpp"
+#include "dsm/ResourceRmTask.hpp"
+#include "dsm/ResourceProperty.hpp"
 
 
 /**

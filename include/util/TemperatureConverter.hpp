@@ -10,7 +10,7 @@
 #ifndef TEMPERATURECONVERTER_HH
 #define TEMPERATURECONVERTER_HH
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 class TemperatureConverter: public BaseUnitConverter
 {

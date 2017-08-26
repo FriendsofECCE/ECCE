@@ -4,7 +4,7 @@
 #include <map>
   using std::map;
 
-#include "wxgui/PlotCtrl.H"
+#include "wxgui/PlotCtrl.hpp"
 
 class wxMenu;
 

@@ -2,15 +2,15 @@
   using std::endl;
   using std::ofstream;
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/Resource.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/Resource.hpp"
 
-#include "wxgui/ewxGrid.H"
-#include "wxgui/ExportTableDialog.H"
+#include "wxgui/ewxGrid.hpp"
+#include "wxgui/ExportTableDialog.hpp"
 
-#include "util/JMSPublisher.H"
-#include "util/SFile.H"
-#include "util/TempStorage.H"
+#include "util/JMSPublisher.hpp"
+#include "util/SFile.hpp"
+#include "util/TempStorage.hpp"
 
 
 IMPLEMENT_CLASS(ExportTableDialog, ewxGenericFileDialog)

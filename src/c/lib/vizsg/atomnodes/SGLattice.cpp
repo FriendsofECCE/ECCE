@@ -1,22 +1,22 @@
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/elements/SoGLTextureEnabledElement.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/elements/SoGLTextureEnabledElement.hpp"
 
-#include "inv/actions/SoPickAction.H"
+#include "inv/actions/SoPickAction.hpp"
 
-#include "inv/nodes/SoScale.H"
-#include "inv/nodes/SoSeparator.H"
+#include "inv/nodes/SoScale.hpp"
+#include "inv/nodes/SoSeparator.hpp"
 
-#include "inv/nodes/SoMaterial.H"
-#include "inv/nodes/SoCone.H"
-#include "inv/nodes/SoCylinder.H"
-#include "inv/nodes/SoTranslation.H"
-#include "inv/nodes/SoTransform.H"
-#include "viz/freeglut_font_data.H"
+#include "inv/nodes/SoMaterial.hpp"
+#include "inv/nodes/SoCone.hpp"
+#include "inv/nodes/SoCylinder.hpp"
+#include "inv/nodes/SoTranslation.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "viz/freeglut_font_data.hpp"
 
-#include "viz/SGLattice.H"
+#include "viz/SGLattice.hpp"
 
 #include <iostream>
   using std::cout;

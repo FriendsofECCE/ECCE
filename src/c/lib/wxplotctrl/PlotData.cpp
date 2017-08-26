@@ -9,10 +9,10 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma implementation "PlotData.H"
+    #pragma implementation "PlotData.hpp"
 #endif
 
-#include "wxgui/PlotPrecomp.H"
+#include "wxgui/PlotPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
@@ -33,10 +33,10 @@
 #include "wx/textfile.h"
 #include "wx/math.h"
 
-#include "wxgui/PlotData.H"
+#include "wxgui/PlotData.hpp"
 #include "wxgui/PlotFourier.h"
-#include "wxgui/ThingMedsort.H"
-#include "wxgui/ThingRange.H"
+#include "wxgui/ThingMedsort.hpp"
+#include "wxgui/ThingRange.hpp"
 #include <math.h>
 
 #define wxPLOTDATA_MAX_DATA_COLUMNS 64

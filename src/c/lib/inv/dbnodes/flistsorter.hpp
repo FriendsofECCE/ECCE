@@ -37,13 +37,13 @@
 #ifndef __gluflistsorter_h_
 #define __gluflistsorter_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * flistsorter.h - $Revision: 22116 $
  */
 
-#include "sorter.H"
-#include "types.H"
+#include "sorter.hpp"
+#include "types.hpp"
 
 class FlistSorter : public Sorter {
 public:

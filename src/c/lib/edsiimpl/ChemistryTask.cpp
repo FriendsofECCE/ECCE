@@ -18,22 +18,22 @@
   using std::vector;
 
 
-#include "util/TDateTime.H"
-#include "util/EcceMap.H"
-#include "util/Serializer.H"
-#include "util/StringConverter.H"
-#include "tdat/Fragment.H"
-#include "tdat/GeomConstraint.H"
-#include "tdat/MetaPotential.H"
-#include "tdat/QMMMParams.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/ESPConstraintModelXMLizer.H"
-#include "dsm/GeomConstraintModelXMLizer.H"
-#include "dsm/MetaPotentialModelXMLizer.H"
-#include "dsm/QMMMModelXMLizer.H"
-#include "dsm/Session.H"
-#include "dsm/VDoc.H"
-#include "dsm/ChemistryTask.H"
+#include "util/TDateTime.hpp"
+#include "util/EcceMap.hpp"
+#include "util/Serializer.hpp"
+#include "util/StringConverter.hpp"
+#include "tdat/Fragment.hpp"
+#include "tdat/GeomConstraint.hpp"
+#include "tdat/MetaPotential.hpp"
+#include "tdat/QMMMParams.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/ESPConstraintModelXMLizer.hpp"
+#include "dsm/GeomConstraintModelXMLizer.hpp"
+#include "dsm/MetaPotentialModelXMLizer.hpp"
+#include "dsm/QMMMModelXMLizer.hpp"
+#include "dsm/Session.hpp"
+#include "dsm/VDoc.hpp"
+#include "dsm/ChemistryTask.hpp"
 
 /**
  * Constructor.

@@ -52,7 +52,7 @@
  */
 
 #include <GL/gl.h>
-#include "inv/elements/SoGLLightIdElement.H"
+#include "inv/elements/SoGLLightIdElement.hpp"
 
 SO_ELEMENT_SOURCE(SoGLLightIdElement);
 

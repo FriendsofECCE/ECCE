@@ -13,7 +13,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/WxFileChooser.H"
+#include "wxgui/WxFileChooser.hpp"
 
 /**
  * App container for the file chooser which is a dialog in wxwidgets so we

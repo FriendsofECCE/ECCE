@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "MDEdBaseGUI.H"
+#pragma implementation "MDEdBaseGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,15 +23,15 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxNotebook.H"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/ewxMenuBar.H"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxNotebook.hpp"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/ewxMenuBar.hpp"
+#include "wxgui/ewxFrame.hpp"
 ////@end includes
 
-#include "wxgui/MDEdBaseGUI.H"
+#include "wxgui/MDEdBaseGUI.hpp"
 
 ////@begin XPM images
 

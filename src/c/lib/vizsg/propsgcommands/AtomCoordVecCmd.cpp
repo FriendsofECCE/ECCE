@@ -3,15 +3,15 @@
   using std::endl;
 
 
-#include "util/InternalException.H"
-#include "util/Diag3.H"
+#include "util/InternalException.hpp"
+#include "util/Diag3.hpp"
 
-#include "dsm/IPropCalculation.H"
+#include "dsm/IPropCalculation.hpp"
 
-#include "tdat/PropTable.H"
+#include "tdat/PropTable.hpp"
 
-#include "viz/cvSGContainer.H"
-#include "viz/AtomCoordVecCmd.H"
+#include "viz/cvSGContainer.hpp"
+#include "viz/AtomCoordVecCmd.hpp"
 
 AtomCoordVecCmd::AtomCoordVecCmd(const string& name, Receiver *receiver,
                          IPropCalculation *calc)

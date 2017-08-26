@@ -7,7 +7,7 @@
 #define _EWXSINGLECHOICEDIALOG_H
 
 #include "wx/choicdlg.h"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 /**
  * Subclass wxSingleChoiceDialog to provide style changes.

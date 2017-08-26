@@ -6,7 +6,7 @@
 #ifndef  MAKERESIDUECMD_H
 #define  MAKERESIDUECMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

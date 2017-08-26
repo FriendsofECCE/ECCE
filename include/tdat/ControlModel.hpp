@@ -11,7 +11,7 @@
 #include <vector>
   using std::vector;
 
-#include "util/IOException.H"
+#include "util/IOException.hpp"
 
 
 /**

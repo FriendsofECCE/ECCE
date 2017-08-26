@@ -22,8 +22,8 @@
 using std::string;
 using std::vector;
 
-#include "util/Serializable.H"
-#include "tdat/FFCategoryDesc.H"
+#include "util/Serializable.hpp"
+#include "tdat/FFCategoryDesc.hpp"
 
 class FFDesc : protected vector<FFCategoryDesc*>,  public Serializable {
 

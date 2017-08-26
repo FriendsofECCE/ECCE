@@ -8,9 +8,9 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPDefs.H"
-#include "dsm/CHTTPHeader.H"
-#include "dsm/CHTTPUtils.H"
+#include "dsm/CHTTPDefs.hpp"
+#include "dsm/CHTTPHeader.hpp"
+#include "dsm/CHTTPUtils.hpp"
 
 #include <cctype>
 

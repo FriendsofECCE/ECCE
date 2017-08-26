@@ -62,9 +62,9 @@
 #ifndef  _SO_SF_ENUM_
 #define  _SO_SF_ENUM_
 
-#include "inv/SbString.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/fields/SoSubField.H"
+#include "inv/SbString.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/fields/SoSubField.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

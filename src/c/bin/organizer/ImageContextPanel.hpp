@@ -12,8 +12,8 @@
 #include "wx/panel.h"
 #include "wx/image.h"
 
-#include "ImageContextPanelGUI.H"
-#include "ContextPanelInterface.H"
+#include "ImageContextPanelGUI.hpp"
+#include "ContextPanelInterface.hpp"
 
 class WxResourceTreeItemData;
 class ContextPanelFactory;

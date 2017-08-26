@@ -13,8 +13,8 @@
   using std::ostrstream;
 
 
-#include "MDEnergy.H"
-#include "MDEnergyApp.H"
+#include "MDEnergy.hpp"
+#include "MDEnergyApp.hpp"
 
 IMPLEMENT_APP(MDEnergyApp)
 

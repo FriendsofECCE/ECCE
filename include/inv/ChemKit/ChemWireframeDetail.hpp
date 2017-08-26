@@ -57,9 +57,9 @@
 #ifndef __CHEM_WIREFRAME_DETAIL_H__
 #define __CHEM_WIREFRAME_DETAIL_H__
 
-#include "inv/details/SoSubDetail.H"
+#include "inv/details/SoSubDetail.hpp"
 
-#include "inv/ChemKit/ChemDetail.H"
+#include "inv/ChemKit/ChemDetail.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

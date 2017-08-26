@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_VIEWPORT_REGION_ELEMENT
 #define  _SO_GL_VIEWPORT_REGION_ELEMENT
 
-#include "inv/elements/SoViewportRegionElement.H"
+#include "inv/elements/SoViewportRegionElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

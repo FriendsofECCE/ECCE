@@ -38,7 +38,7 @@
  * cachingeval.c++ - $Revision: 22116 $
  */
 
-#include "cachingeval.H"
+#include "cachingeval.hpp"
 
 int
 CachingEvaluator::canRecord( void )

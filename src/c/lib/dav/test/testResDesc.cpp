@@ -9,15 +9,15 @@
   using std::string;
 
 
-#include "util/CmdLineAuthListener.H"
-#include "dsm/ResourceType.H"
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/ITraversable.H"
-#include "dsm/EDSITraversable.H"
-#include "dsm/EDSI.H"
-#include "dsm/DavEDSI.H"
-#include "dsm/PropertyView.H"
-#include "dsm/ResourceProperty.H"
+#include "util/CmdLineAuthListener.hpp"
+#include "dsm/ResourceType.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/ITraversable.hpp"
+#include "dsm/EDSITraversable.hpp"
+#include "dsm/EDSI.hpp"
+#include "dsm/DavEDSI.hpp"
+#include "dsm/PropertyView.hpp"
+#include "dsm/ResourceProperty.hpp"
 
 
 

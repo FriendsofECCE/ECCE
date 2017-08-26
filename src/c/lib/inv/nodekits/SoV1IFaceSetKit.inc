@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1IndexedFaceSetKit.H"
-#include "inv/nodes/SoIndexedFaceSet.H"
-#include "inv/nodekits/SoShapeKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1IndexedFaceSetKit.hpp"
+#include "inv/nodes/SoIndexedFaceSet.hpp"
+#include "inv/nodekits/SoShapeKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1IndexedFaceSetKit);

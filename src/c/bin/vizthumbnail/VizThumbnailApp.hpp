@@ -5,10 +5,10 @@
 #ifndef VIZTHUMBNAILAPP_H_
 #define VIZTHUMBNAILAPP_H_
 
-#include "wxgui/ewxApp.H"
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/WxJMSListener.H"
+#include "wxgui/ewxApp.hpp"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/WxDavAuth.hpp"
+#include "wxgui/WxJMSListener.hpp"
 
 
 class CommandManager;

@@ -6,15 +6,15 @@
 #include <iostream>
   using namespace std;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "tdat/SymmetryOps.H"
+#include "tdat/SymmetryOps.hpp"
 
-#include "viz/FindIrreduceFragCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/FindIrreduceFragCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 FindIrreduceFragCmd::FindIrreduceFragCmd(const string& name, Receiver * receiver)
     : FragCloneCmd(name, receiver)

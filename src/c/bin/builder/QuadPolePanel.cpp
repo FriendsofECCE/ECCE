@@ -10,22 +10,22 @@
 #include "wx/grid.h" 
 #include <wx/link.h>
 
-#include "util/InternalException.H"
-#include "util/PreferenceLabels.H"
+#include "util/InternalException.hpp"
+#include "util/PreferenceLabels.hpp"
 
-#include "tdat/PropVector.H"
+#include "tdat/PropVector.hpp"
 
-#include "dsm/ICalculation.H"
-#include "dsm/IPropCalculation.H"
+#include "dsm/ICalculation.hpp"
+#include "dsm/IPropCalculation.hpp"
 
-#include "wxgui/ewxButton.H"
-#include "wxgui/SliderCombo.H"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/SliderCombo.hpp"
 
-#include "viz/AddQuadMomentCmd.H"
+#include "viz/AddQuadMomentCmd.hpp"
 
-#include "wxviz/WxVizToolFW.H"
+#include "wxviz/WxVizToolFW.hpp"
 
-#include "QuadPolePanel.H"
+#include "QuadPolePanel.hpp"
 
 
 // TODO

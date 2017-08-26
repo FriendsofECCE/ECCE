@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/actions/SoWriteAction.H"
+#include "inv/SoDB.hpp"
+#include "inv/actions/SoWriteAction.hpp"
 
 SO_ACTION_SOURCE(SoWriteAction);
 

@@ -1,14 +1,14 @@
 #ifndef VECATOMSPECTRUM_H
 #define VECATOMSPECTRUM_H
 
-#include "util/Event.H"
+#include "util/Event.hpp"
   using ecce::Event;
-#include "util/Listener.H"
+#include "util/Listener.hpp"
   using ecce::Listener;
 
-#include "wxgui/TearableContentProvider.H"
+#include "wxgui/TearableContentProvider.hpp"
 
-#include "VizPropertyPanel.H"
+#include "VizPropertyPanel.hpp"
 
 class ewxStaticText;
 class WxColorSchemeButton;

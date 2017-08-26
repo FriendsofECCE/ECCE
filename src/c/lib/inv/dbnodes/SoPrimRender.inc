@@ -36,11 +36,11 @@
 
 #include <tr1/math.h>
 #include <stdlib.h>
-#include "inv/errors/SoDebugError.H"
-#include "SoAddPrefix.H"
-#include "SoPrimRender.H"
-#include "softcurvemaps.H"
-#include "softsurfacemaps.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "SoAddPrefix.hpp"
+#include "SoPrimRender.hpp"
+#include "softcurvemaps.hpp"
+#include "softsurfacemaps.hpp"
 
 _SoNurbsPrimRender::_SoNurbsPrimRender( SoAction *act, SoNurbsPrimCB *cb, void *data )
 	: _SoNurbsNurbsTessellator( curveEvaluator, surfaceEvaluator )

@@ -9,26 +9,26 @@
 #include <set>
   using std::set;
 
-#include "util/EcceMap.H"
-#include "util/InvalidException.H"
-#include "util/ErrMsg.H"
+#include "util/EcceMap.hpp"
+#include "util/InvalidException.hpp"
+#include "util/ErrMsg.hpp"
 
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/Resource.H"
-#include "dsm/PropertyView.H"
-#include "dsm/ResourceProperty.H"
-#include "dsm/GridProperty.H"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/Resource.hpp"
+#include "dsm/PropertyView.hpp"
+#include "dsm/ResourceProperty.hpp"
+#include "dsm/GridProperty.hpp"
 
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxStyledWindow.H"
-#include "wxgui/WxResourceTreeItemData.H"
-#include "wxgui/ewxGrid.H"
-#include "wxgui/GridModel.H"
-#include "wxgui/GridPropElement.H"
-#include "wxgui/WxGridView.H"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxStyledWindow.hpp"
+#include "wxgui/WxResourceTreeItemData.hpp"
+#include "wxgui/ewxGrid.hpp"
+#include "wxgui/GridModel.hpp"
+#include "wxgui/GridPropElement.hpp"
+#include "wxgui/WxGridView.hpp"
 
-#include "CalcMgr.H"
-#include "ProjectContextPanel.H"
+#include "CalcMgr.hpp"
+#include "ProjectContextPanel.hpp"
 
 
 IMPLEMENT_CLASS(ProjectContextPanel, ProjectContextPanelGUI)

@@ -11,7 +11,7 @@
 #define _METAPOTENTIALSGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "MetaPotentialsGUI.C"
+#pragma interface "MetaPotentialsGUI.cpp"
 #endif
 
 /*!
@@ -20,7 +20,7 @@
 
 ////@begin includes
 #include "wx/statline.h"
-#include "wxgui/ewxDialog.H"
+#include "wxgui/ewxDialog.hpp"
 ////@end includes
 
 /*!

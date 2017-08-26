@@ -6,20 +6,20 @@
 #include <wx/log.h>
 #include <wx/sizer.h>
 
-#include "tdat/PropTSVecTable.H"
-#include "tdat/PropVector.H"
-#include "tdat/TProperty.H"
+#include "tdat/PropTSVecTable.hpp"
+#include "tdat/PropVector.hpp"
+#include "tdat/TProperty.hpp"
 
-#include "dsm/IPropCalculation.H"
-#include "dsm/PropFactory.H"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/PropFactory.hpp"
 
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxPlotCtrl.H"
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxPlotCtrl.hpp"
+#include "wxgui/ewxStaticText.hpp"
 
-#include "viz/GTStepCmd.H"
+#include "viz/GTStepCmd.hpp"
 
-#include "RxnTracePropertyPanel.H"
+#include "RxnTracePropertyPanel.hpp"
 
 
 wxFORCE_LINK_THIS_MODULE(ReactionTracePropertyPanel)

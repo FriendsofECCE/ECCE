@@ -7,8 +7,8 @@
 #define _EWXMESSAGEDIALOG_H  
 
 #include "wx/sizer.h"
-#include "wxgui/ewxDialog.H"
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxDialog.hpp"
+#include "wxgui/ewxStaticText.hpp"
 
 
 #define wxYES_NO_TO_ALL      1

@@ -6,19 +6,19 @@
 #include <iostream>
   using namespace std;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "tdat/LatticeDef.H"
-#include "viz/SGLattice.H"
-#include "viz/SGPlane.H"
-#include "viz/MillerPlane.H"
-#include "viz/StyledPlane.H"
+#include "tdat/LatticeDef.hpp"
+#include "viz/SGLattice.hpp"
+#include "viz/SGPlane.hpp"
+#include "viz/MillerPlane.hpp"
+#include "viz/StyledPlane.hpp"
 
-#include "viz/NewPlaneCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/NewPlaneCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 NewPlaneCmd::NewPlaneCmd(const string& name, Receiver * receiver)
     : FragCloneCmd(name, receiver)

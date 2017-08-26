@@ -1,6 +1,6 @@
-#include "inv/SbTime.H"
+#include "inv/SbTime.hpp"
 
-#include "inv/SoWx/SoWxInputFocus.H"
+#include "inv/SoWx/SoWxInputFocus.hpp"
 
 // #include <iostream>
 // using std::cerr;

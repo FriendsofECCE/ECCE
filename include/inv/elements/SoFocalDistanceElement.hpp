@@ -56,7 +56,7 @@
 #ifndef  _SO_FOCAL_DISTANCE_ELEMENT
 #define  _SO_FOCAL_DISTANCE_ELEMENT
 
-#include "inv/elements/SoFloatElement.H"
+#include "inv/elements/SoFloatElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

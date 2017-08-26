@@ -4,18 +4,18 @@
 
 #include <wx/link.h>
 
-#include "util/SFile.H"
-#include "util/STLUtil.H"
-#include "util/TempStorage.H"
+#include "util/SFile.hpp"
+#include "util/STLUtil.hpp"
+#include "util/TempStorage.hpp"
 
-#include "tdat/Fragment.H"
+#include "tdat/Fragment.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/Resource.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/Resource.hpp"
 
-#include "wxgui/WxUnitsPrompt.H"
+#include "wxgui/WxUnitsPrompt.hpp"
 
-#include "XyzCalculation.H"
+#include "XyzCalculation.hpp"
 
 
 wxFORCE_LINK_THIS_MODULE(XyzCalculation)

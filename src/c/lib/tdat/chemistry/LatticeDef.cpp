@@ -5,7 +5,7 @@ using namespace std;
 #include <stdio.h>
 #include <algorithm>
 
-#include "tdat/LatticeDef.H"
+#include "tdat/LatticeDef.hpp"
 
 //#define DEBUG
 

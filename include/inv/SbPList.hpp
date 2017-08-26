@@ -60,8 +60,8 @@
 #ifndef _SB_PLIST_
 #define _SB_PLIST_
 
-#include "inv/SbBasic.H"
-#include "inv/SbLinear.H"
+#include "inv/SbBasic.hpp"
+#include "inv/SbLinear.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

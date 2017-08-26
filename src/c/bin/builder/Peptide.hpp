@@ -2,12 +2,12 @@
 #define _PEPTIDE_H
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "Peptide.C"
+#pragma interface "Peptide.cpp"
 #endif
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
-#include "PeptideGUI.H"
+#include "PeptideGUI.hpp"
 
 /**
  * Peptide gui toolkit.

@@ -7,12 +7,12 @@
 #define _CHEMISTRYTASK_HH
 
 
-#include "tdat/ESPConstraintModel.H"
-#include "tdat/GeomConstraintModel.H"
-#include "tdat/MetaPotentialModel.H"
-#include "tdat/QMMMModel.H"
-#include "tdat/Fragment.H"
-#include "dsm/TaskJob.H"
+#include "tdat/ESPConstraintModel.hpp"
+#include "tdat/GeomConstraintModel.hpp"
+#include "tdat/MetaPotentialModel.hpp"
+#include "tdat/QMMMModel.hpp"
+#include "tdat/Fragment.hpp"
+#include "dsm/TaskJob.hpp"
 
 
 /**

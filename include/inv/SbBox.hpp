@@ -59,8 +59,8 @@
 #ifndef _SB_BOX_
 #define _SB_BOX_
 
-#include "inv/SbBasic.H"
-#include "inv/SbLinear.H"
+#include "inv/SbBasic.hpp"
+#include "inv/SbLinear.hpp"
 
 class SbBox3f {
   public:

@@ -11,7 +11,7 @@
 #ifndef DRIFTCONVERTER_HH
 #define DRIFTCONVERTER_HH
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 class DriftConverter: public BaseUnitConverter
 {

@@ -1,31 +1,31 @@
 #include <fstream>
   using std::ifstream;
 
-#include "util/BrowserHelp.H"
-#include "util/TempStorage.H"
-#include "util/Ecce.H"
-#include "util/SDirectory.H"
+#include "util/BrowserHelp.hpp"
+#include "util/TempStorage.hpp"
+#include "util/Ecce.hpp"
+#include "util/SDirectory.hpp"
 
-#include "tdat/Fragment.H"
-#include "tdat/TPerTab.H"
-#include "tdat/LatticeDef.H"
+#include "tdat/Fragment.hpp"
+#include "tdat/TPerTab.hpp"
+#include "tdat/LatticeDef.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSIServerCentral.H"
-#include "dsm/ICalculation.H"
-#include "dsm/ResourceTool.H"
-#include "dsm/ResourceType.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSIServerCentral.hpp"
+#include "dsm/ICalculation.hpp"
+#include "dsm/ResourceTool.hpp"
+#include "dsm/ResourceType.hpp"
 
-#include "wxgui/EcceTool.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxComboBox.H"
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/WxFeedback.H"
+#include "wxgui/EcceTool.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxComboBox.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/WxFeedback.hpp"
 
-#include "SolvateEd.H"
+#include "SolvateEd.hpp"
 
 //#define DEBUG
 

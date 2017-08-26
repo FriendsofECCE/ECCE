@@ -10,7 +10,7 @@
 #ifndef NULLCONVERTER_HH
 #define NULLCONVERTER_HH
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 class NullConverter: public BaseUnitConverter
 {

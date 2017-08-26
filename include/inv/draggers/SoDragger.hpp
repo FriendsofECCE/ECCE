@@ -64,14 +64,14 @@
 #ifndef  _SO_DRAGGER_
 #define  _SO_DRAGGER_
 
-#include "inv/SbBox.H"
-#include "inv/SbViewportRegion.H"
-#include "inv/SbLinear.H"
-#include "inv/nodekits/SoInteractionKit.H"
-#include "inv/misc/SoCallbackList.H"
-#include "inv/fields/SoSFBool.H"
-#include "inv/nodes/SoMatrixTransform.H"
-#include "inv/nodes/SoScale.H"
+#include "inv/SbBox.hpp"
+#include "inv/SbViewportRegion.hpp"
+#include "inv/SbLinear.hpp"
+#include "inv/nodekits/SoInteractionKit.hpp"
+#include "inv/misc/SoCallbackList.hpp"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/nodes/SoMatrixTransform.hpp"
+#include "inv/nodes/SoScale.hpp"
 
 
 class SoPickedPoint;

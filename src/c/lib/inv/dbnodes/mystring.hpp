@@ -37,7 +37,7 @@
 #ifndef __glumystring_h_
 #define __glumystring_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * mystring.h - $Revision: 22116 $
  */

@@ -8,7 +8,7 @@ using std::cout;
 using std::endl;
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "WxStateGUI.H"
+#pragma implementation "WxStateGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -26,14 +26,14 @@ using std::endl;
 #include <iostream>
 using namespace std;
 
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "wxgui/ewxColor.H"
+#include "wxgui/ewxColor.hpp"
 
-#include "wxgui/WxState.H"
+#include "wxgui/WxState.hpp"
 
 
 vector<string>   WxState::p_defaultColors;

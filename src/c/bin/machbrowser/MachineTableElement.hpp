@@ -12,11 +12,11 @@
 #ifndef MACHINETABLEELEMENT_HH
 #define MACHINETABLEELEMENT_HH
 
-#include "tdat/RefMachine.H"
+#include "tdat/RefMachine.hpp"
 
-#include "dsm/MachinePreferences.H"
+#include "dsm/MachinePreferences.hpp"
 
-#include "wxgui/TableElement.H"
+#include "wxgui/TableElement.hpp"
 
 
 class MachineTableElement: public TableElement

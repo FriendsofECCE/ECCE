@@ -52,13 +52,13 @@
  */
 
 #include <stdlib.h>
-#include "inv/caches/SoGLRenderCache.H"
-#include "inv/elements/SoCacheElement.H"
-#include "inv/elements/SoGLCacheContextElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/misc/SoState.H"
-#include "inv/SbString.H"
-#include "inv/SbPList.H"
+#include "inv/caches/SoGLRenderCache.hpp"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/elements/SoGLCacheContextElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/SbString.hpp"
+#include "inv/SbPList.hpp"
 
 SO_ELEMENT_SOURCE(SoGLCacheContextElement);
 

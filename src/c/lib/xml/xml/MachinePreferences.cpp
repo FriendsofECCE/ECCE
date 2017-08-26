@@ -23,14 +23,14 @@
 #include <ios>
     using std::ios;
 
-#include "util/KeyValueReader.H"
-#include "util/STLUtil.H"
-#include "util/Ecce.H"
-#include "util/StringConverter.H"
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
+#include "util/KeyValueReader.hpp"
+#include "util/STLUtil.hpp"
+#include "util/Ecce.hpp"
+#include "util/StringConverter.hpp"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
 
-#include "dsm/MachinePreferences.H"
+#include "dsm/MachinePreferences.hpp"
 
 #define RETAIN_VRSN3X_CONFIGFILES
 

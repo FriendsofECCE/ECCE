@@ -8,9 +8,9 @@
   using std::cerr;
   using std::endl;
 
-#include "tdat/PropGrids.H"
-#include "tdat/TProperty.H"
-#include "tdat/PropVecGrid.H"
+#include "tdat/PropGrids.hpp"
+#include "tdat/TProperty.hpp"
+#include "tdat/PropVecGrid.hpp"
 
 
 

@@ -10,14 +10,14 @@
 
 #include <string.h>
 
-#include "util/ErrMsg.H"
-#include "tdat/Inversion.H"
-#include "tdat/Inversions.H"
-#include "tdat/FFCoords.H"
-#include "tdat/UFFParams.H"
-#include "tdat/TBond.H"
-#include "tdat/TAtm.H"
-#include "tdat/FFRules.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/Inversion.hpp"
+#include "tdat/Inversions.hpp"
+#include "tdat/FFCoords.hpp"
+#include "tdat/UFFParams.hpp"
+#include "tdat/TBond.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/FFRules.hpp"
 
 #define PI  3.14159265358979323846
 #define DEG * PI / 180.0

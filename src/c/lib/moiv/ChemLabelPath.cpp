@@ -55,11 +55,11 @@
 
 #ident "$Revision: 22147 $"
 
-#include "inv/actions/SoSearchAction.H"
+#include "inv/actions/SoSearchAction.hpp"
 
-#include "inv/ChemKit/ChemIntList.H"
-#include "inv/ChemKit/ChemLabel.H"
-#include "inv/ChemKit/ChemLabelPath.H"
+#include "inv/ChemKit/ChemIntList.hpp"
+#include "inv/ChemKit/ChemLabel.hpp"
+#include "inv/ChemKit/ChemLabelPath.hpp"
 
 SoType ChemLabelPath::classTypeId;
 

@@ -10,7 +10,7 @@
 
 #include <stdlib.h>
 
-#include "tdat/PropString.H"
+#include "tdat/PropString.hpp"
 
 
 // ---------- Constructors ------------

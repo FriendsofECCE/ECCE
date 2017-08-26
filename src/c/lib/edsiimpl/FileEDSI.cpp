@@ -12,14 +12,14 @@
 #include <stdio.h> // sprintf
 #include <string.h>
 
-#include "util/SDirectory.H"
-#include "util/ErrMsg.H"
-#include "util/ProgressEvent.H"
-#include "util/TDateTime.H"
-#include "util/AuthEvent.H"
+#include "util/SDirectory.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/ProgressEvent.hpp"
+#include "util/TDateTime.hpp"
+#include "util/AuthEvent.hpp"
 
-#include "dsm/FileEDSI.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/FileEDSI.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
 
 FileEDSI::FileEDSI() : EDSI()

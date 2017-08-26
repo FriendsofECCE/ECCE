@@ -56,7 +56,7 @@
 #ifndef  _SO_CREASE_ANGLE_ELEMENT
 #define  _SO_CREASE_ANGLE_ELEMENT
 
-#include "inv/elements/SoFloatElement.H"
+#include "inv/elements/SoFloatElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

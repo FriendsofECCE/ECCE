@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/nodes/SoTransformation.H"
+#include "inv/nodes/SoTransformation.hpp"
 
 SO_NODE_SOURCE(SoTransformation);
 

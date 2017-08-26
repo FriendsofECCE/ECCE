@@ -6,12 +6,12 @@
 #define _SELECTIONPANEL_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "SelectionPanel.C"
+#pragma interface "SelectionPanel.cpp"
 #endif
 
-#include "wxviz/WxVizTool.H"
-#include "wxviz/SelectionPanelGUI.H"
-#include "util/Listener.H"
+#include "wxviz/WxVizTool.hpp"
+#include "wxviz/SelectionPanelGUI.hpp"
+#include "util/Listener.hpp"
 using namespace ecce;
 
 

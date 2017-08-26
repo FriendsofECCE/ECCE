@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoTextureQualityElement.H"
+#include "inv/elements/SoTextureQualityElement.hpp"
 
 SO_ELEMENT_SOURCE(SoTextureQualityElement);
 

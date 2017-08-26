@@ -56,11 +56,11 @@
 #ifndef  _SO_EVENT_
 #define  _SO_EVENT_
 
-#include "inv/SbBasic.H"
-#include "inv/SbViewportRegion.H"
-#include "inv/SbLinear.H"
-#include "inv/SbTime.H"
-#include "inv/SoType.H"
+#include "inv/SbBasic.hpp"
+#include "inv/SbViewportRegion.hpp"
+#include "inv/SbLinear.hpp"
+#include "inv/SbTime.hpp"
+#include "inv/SoType.hpp"
 
 // C-api: prefix=SoEv
 class SoEvent {

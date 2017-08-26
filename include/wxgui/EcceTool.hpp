@@ -16,7 +16,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 #define ID_ECCETOOL_NEW 102300
 
 

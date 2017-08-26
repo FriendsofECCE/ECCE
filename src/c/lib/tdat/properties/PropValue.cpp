@@ -11,7 +11,7 @@
 #include <float.h>
 #include <stdlib.h>         // atoi
 
-#include "tdat/PropValue.H"
+#include "tdat/PropValue.hpp"
 
 
 // ---------- Constructors ------------

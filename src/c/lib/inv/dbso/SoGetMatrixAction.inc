@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/elements/SoViewportRegionElement.H"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
 
 SO_ACTION_SOURCE(SoGetMatrixAction);
 

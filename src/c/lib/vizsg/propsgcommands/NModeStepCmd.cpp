@@ -2,23 +2,23 @@
   using std::cout;
   using std::endl;
 
-#include "inv/actions/SoSearchAction.H"
+#include "inv/actions/SoSearchAction.hpp"
 
-#include "util/InternalException.H"
+#include "util/InternalException.hpp"
 
 
-//#include "tdat/SingleGrid.H"
-//#include "tdat/PropVecTable.H"
-#include "tdat/PropTSVecTable.H"
-#include "tdat/TAtm.H"
-#include "tdat/TBond.H"
-//#include "dsm/PropFactory.H"
+//#include "tdat/SingleGrid.hpp"
+//#include "tdat/PropVecTable.hpp"
+#include "tdat/PropTSVecTable.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/TBond.hpp"
+//#include "dsm/PropFactory.hpp"
 
-#include "viz/SGContainer.H"
-#include "viz/SGFragment.H"
-#include "viz/PropSGFragment.H"
-//#include "viz/VRVector.H"
-#include "viz/NModeStepCmd.H"
+#include "viz/SGContainer.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/PropSGFragment.hpp"
+//#include "viz/VRVector.hpp"
+#include "viz/NModeStepCmd.hpp"
 
 NModeStepCmd::NModeStepCmd(const string& name,Receiver *receiver,
      IPropCalculation * calc)

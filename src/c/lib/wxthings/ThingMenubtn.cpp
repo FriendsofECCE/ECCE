@@ -9,7 +9,7 @@
 // Licence:     wxWidgets licence
 /////////////////////////////////////////////////////////////////////////////
 
-#include "wxgui/ThingPrecomp.H"
+#include "wxgui/ThingPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include <wx/wxprec.h>
@@ -27,8 +27,8 @@
     #include <wx/dc.h>
 #endif // WX_PRECOMP
 
-#include "wxgui/ThingToggle.H"
-#include "wxgui/ThingMenubtn.H"
+#include "wxgui/ThingToggle.hpp"
+#include "wxgui/ThingMenubtn.hpp"
 
 /* XPM */
 static const char *down_arrow_xpm_data[] = {

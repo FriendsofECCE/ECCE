@@ -11,7 +11,7 @@
 #define _SELECTIONPANELGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "SelectionPanelGUI.C"
+#pragma interface "SelectionPanelGUI.cpp"
 #endif
 
 /*!
@@ -22,7 +22,7 @@
 #include "wx/notebook.h"
 #include "wx/spinctrl.h"
 #include "wx/statline.h"
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 ////@end includes
 
 /*!

@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/nodes/SoTextureCoordinateBinding.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/nodes/SoTextureCoordinateBinding.hpp"
 
 SO_NODE_SOURCE(SoTextureCoordinateBinding);
 

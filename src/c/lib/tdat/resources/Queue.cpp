@@ -17,11 +17,11 @@
 // system includes
 #include <limits.h>
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/Preferences.H"
-#include "util/StringTokenizer.H"
-#include "tdat/Queue.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/Preferences.hpp"
+#include "util/StringTokenizer.hpp"
+#include "tdat/Queue.hpp"
 
 // #define DEBUG
 

@@ -58,18 +58,18 @@
 #ifndef  _SO_SENSORS_
 #define  _SO_SENSORS_
 
-#include "inv/sensors/SoAlarmSensor.H"
-#include "inv/sensors/SoDataSensor.H"
-#include "inv/sensors/SoDelayQueueSensor.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/sensors/SoIdleSensor.H"
-#include "inv/sensors/SoNodeSensor.H"
-#include "inv/sensors/SoOneShotSensor.H"
-#include "inv/sensors/SoPathSensor.H"
-#include "inv/sensors/SoSensor.H"
-#include "inv/sensors/SoSensorManager.H"
-#include "inv/sensors/SoTimerQueueSensor.H"
-#include "inv/sensors/SoTimerSensor.H"
+#include "inv/sensors/SoAlarmSensor.hpp"
+#include "inv/sensors/SoDataSensor.hpp"
+#include "inv/sensors/SoDelayQueueSensor.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/sensors/SoIdleSensor.hpp"
+#include "inv/sensors/SoNodeSensor.hpp"
+#include "inv/sensors/SoOneShotSensor.hpp"
+#include "inv/sensors/SoPathSensor.hpp"
+#include "inv/sensors/SoSensor.hpp"
+#include "inv/sensors/SoSensorManager.hpp"
+#include "inv/sensors/SoTimerQueueSensor.hpp"
+#include "inv/sensors/SoTimerSensor.hpp"
 
 #endif  /* _SO_SENSORS_ */
 

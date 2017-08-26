@@ -57,11 +57,11 @@
 #ifndef  __SF_VEC4I_H__
 #define  __SF_VEC4I_H__
 
-#include "inv/fields/SoSubField.H"
-#include "inv/SbLinear.H"
+#include "inv/fields/SoSubField.hpp"
+#include "inv/SbLinear.hpp"
 
-#include "inv/ChemKit/SbVecI.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/SbVecI.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

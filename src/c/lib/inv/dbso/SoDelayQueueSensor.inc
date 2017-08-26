@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/sensors/SoDelayQueueSensor.H"
+#include "inv/SoDB.hpp"
+#include "inv/sensors/SoDelayQueueSensor.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

@@ -2,13 +2,13 @@
 #define _WXCOLORSCHEMECHOOSER_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "WxColorSchemeChooser.C"
+#pragma interface "WxColorSchemeChooser.cpp"
 #endif
 
 #include <vector>
 using std::vector;
 
-#include "wxgui/WxColorSchemeButton.H"
+#include "wxgui/WxColorSchemeButton.hpp"
 
 
 /*!

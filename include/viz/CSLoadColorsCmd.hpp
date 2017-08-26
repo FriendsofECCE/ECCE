@@ -6,7 +6,7 @@
 #ifndef  CSLOADCOLORSCMD_H
 #define  CSLOADCOLORSCMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class Fragment;
 

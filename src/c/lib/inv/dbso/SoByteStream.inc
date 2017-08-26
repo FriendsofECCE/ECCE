@@ -53,15 +53,15 @@
 
 
 #include <stdlib.h>
-#include "inv/misc/SoByteStream.H"
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/SoLists.H"
-#include "inv/SoOutput.H"
-#include "inv/SoPath.H"
-#include "inv/actions/SoWriteAction.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodes/SoSeparator.H"
+#include "inv/misc/SoByteStream.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoLists.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/actions/SoWriteAction.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodes/SoSeparator.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

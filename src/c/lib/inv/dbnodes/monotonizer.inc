@@ -39,16 +39,16 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "myassert.H"
-#include "arc.H"
-#include "arctess.H"
-#include "bezierarc.H"
-#include "bin.H"
-#include "mapdesc.H"
-#include "nurbsconsts.H"
-#include "subdivider.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "myassert.hpp"
+#include "arc.hpp"
+#include "arctess.hpp"
+#include "bezierarc.hpp"
+#include "bin.hpp"
+#include "mapdesc.hpp"
+#include "nurbsconsts.hpp"
+#include "subdivider.hpp"
 
 /*-----------------------------------------------------------------------------
  * Subdivider::decompose - break all curves into monotone arcs

@@ -56,9 +56,9 @@
 #ifndef  _SO_MOTION3_EVENT_
 #define  _SO_MOTION3_EVENT_
 
-#include "inv/SbBasic.H"
-#include "inv/SbLinear.H"
-#include "inv/events/SoSubEvent.H"
+#include "inv/SbBasic.hpp"
+#include "inv/SbLinear.hpp"
+#include "inv/events/SoSubEvent.hpp"
 
 
 // C-api: prefix=SoMotion3Ev

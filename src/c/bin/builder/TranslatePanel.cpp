@@ -2,12 +2,12 @@
  * Panel that implements translations of the system
  */
 
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 
-#include "viz/TranslateCmd.H"
+#include "viz/TranslateCmd.hpp"
 
-#include "TranslatePanel.H"
+#include "TranslatePanel.hpp"
 
 /**
  * TranslatePanel constructors

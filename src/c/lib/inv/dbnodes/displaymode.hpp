@@ -37,7 +37,7 @@
 #ifndef __gludisplaymode_h_
 #define __gludisplaymode_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 #define N_MESHFILL	0
 #define N_MESHLINE	1

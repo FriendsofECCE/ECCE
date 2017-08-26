@@ -54,16 +54,16 @@
 #include <stdio.h>
 #include <tr1/math.h>
 #include <stdlib.h>
-#include "SoAddPrefix.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/elements/SoViewVolumeElement.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoCoordinate3.H"
-#include "inv/nodes/SoNormal.H"
-#include "SoPickRender.H"
-#include "SoPickEvals.H"
-#include "gl4types.H"
+#include "SoAddPrefix.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/elements/SoViewVolumeElement.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoCoordinate3.hpp"
+#include "inv/nodes/SoNormal.hpp"
+#include "SoPickRender.hpp"
+#include "SoPickEvals.hpp"
+#include "gl4types.hpp"
 
 static SbVec2s viewportSize;
 

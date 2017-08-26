@@ -3,26 +3,26 @@
  
 #include <wx/bmpcbox.h> // for wxBitmapComboBox
 
-#include "dsm/ChemistryTask.H"
-#include "dsm/DirDyVTSTTask.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/Resource.H"
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/ResourceType.H"
-#include "dsm/Session.H"
+#include "dsm/ChemistryTask.hpp"
+#include "dsm/DirDyVTSTTask.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/Resource.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/ResourceType.hpp"
+#include "dsm/Session.hpp"
 
-#include "tdat/FragUtil.H"
+#include "tdat/FragUtil.hpp"
 
-#include "util/JMSPublisher.H"
-#include "util/ResourceUtils.H"
-#include "util/StringTokenizer.H"
-#include "util/TempStorage.H"
+#include "util/JMSPublisher.hpp"
+#include "util/ResourceUtils.hpp"
+#include "util/StringTokenizer.hpp"
+#include "util/TempStorage.hpp"
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxConfig.H"
-#include "wxgui/ewxWindowUtils.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
 
-#include "wxgui/SaveExperimentAsDialog.H"
+#include "wxgui/SaveExperimentAsDialog.hpp"
 
 
 long ID_SAVE_AS_FILTER_CHOICE = wxNewId();

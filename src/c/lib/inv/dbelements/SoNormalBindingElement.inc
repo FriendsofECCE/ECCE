@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoNormalBindingElement.H"
+#include "inv/elements/SoNormalBindingElement.hpp"
 
 SO_ELEMENT_SOURCE(SoNormalBindingElement);
 

@@ -19,10 +19,10 @@
   using std::multimap;
       
 
-#include "dsm/ResourceType.H"
+#include "dsm/ResourceType.hpp"
 
-#include "util/EcceRegexp.H"
-#include "util/StringConverter.H"
+#include "util/EcceRegexp.hpp"
+#include "util/StringConverter.hpp"
 
 
 

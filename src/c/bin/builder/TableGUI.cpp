@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "TableGUI.H"
+#pragma implementation "TableGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,10 +23,10 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxGrid.H"
+#include "wxgui/ewxGrid.hpp"
 ////@end includes
 
-#include "TableGUI.H"
+#include "TableGUI.hpp"
 
 ////@begin XPM images
 

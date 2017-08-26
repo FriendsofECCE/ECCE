@@ -55,7 +55,7 @@
 
 #ident "$Revision: 22141 $"
   
-#include "inv/ChemKit/ChemOverrideElement.H"
+#include "inv/ChemKit/ChemOverrideElement.hpp"
 
 SO_ELEMENT_SOURCE(ChemOverrideElement);
 

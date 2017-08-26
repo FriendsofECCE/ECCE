@@ -1,7 +1,7 @@
 #ifndef _MDENERGYAPP_H
 #define _MDENERGYAPP_H
 
-#include "wxgui/ewxApp.H"
+#include "wxgui/ewxApp.hpp"
 
 class MDEnergy;
 

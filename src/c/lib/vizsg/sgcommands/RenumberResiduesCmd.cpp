@@ -6,13 +6,13 @@
 #include <iostream>
   using namespace std;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
    using namespace ecce;
 
-#include "viz/RenumberResiduesCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/RenumberResiduesCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 RenumberResiduesCmd::RenumberResiduesCmd(const string& name, Receiver * receiver)
     : FragCloneCmd(name, receiver)

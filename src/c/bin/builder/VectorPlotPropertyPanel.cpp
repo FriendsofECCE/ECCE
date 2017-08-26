@@ -4,15 +4,15 @@
 #include <wx/link.h>
 #include <wx/sizer.h>
 
-#include "tdat/PropVector.H"
-#include "tdat/TProperty.H"
+#include "tdat/PropVector.hpp"
+#include "tdat/TProperty.hpp"
 
-#include "dsm/IPropCalculation.H"
+#include "dsm/IPropCalculation.hpp"
 
-#include "wxgui/ewxPlotCtrl.H"
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxPlotCtrl.hpp"
+#include "wxgui/ewxStaticText.hpp"
 
-#include "VectorPlotPropertyPanel.H"
+#include "VectorPlotPropertyPanel.hpp"
 
 
 wxFORCE_LINK_THIS_MODULE(VectorPlotPropertyPanel)

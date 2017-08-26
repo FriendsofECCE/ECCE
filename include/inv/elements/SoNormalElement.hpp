@@ -58,9 +58,9 @@
 
 
 
-#include "inv/SbLinear.H"
-#include "inv/elements/SoReplacedElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/SbLinear.hpp"
+#include "inv/elements/SoReplacedElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -39,16 +39,16 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "subdivider.H"
-#include "renderhints.H"
-#include "backend.H"
-#include "quilt.H"
-#include "curvelist.H"
-#include "curve.H"
-#include "nurbsconsts.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "subdivider.hpp"
+#include "renderhints.hpp"
+#include "backend.hpp"
+#include "quilt.hpp"
+#include "curvelist.hpp"
+#include "curve.hpp"
+#include "nurbsconsts.hpp"
 
 /*--------------------------------------------------------------------------
  * drawCurves - main curve rendering entry point

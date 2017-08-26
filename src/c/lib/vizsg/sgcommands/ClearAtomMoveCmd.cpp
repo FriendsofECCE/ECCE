@@ -2,9 +2,9 @@
  * Command to remove all sphere manipulator
  */
 
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
-#include "viz/ClearAtomMoveCmd.H"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
+#include "viz/ClearAtomMoveCmd.hpp"
 
 ClearAtomMoveCmd::ClearAtomMoveCmd(const string& name, Receiver * receiver)
   : Command(name, receiver)

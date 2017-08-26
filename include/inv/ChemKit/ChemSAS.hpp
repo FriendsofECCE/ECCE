@@ -34,17 +34,17 @@
 #ifndef __CHEM_SAS_H__
 #define __CHEM_SAS_H__
 
-#include "inv/nodes/SoVertexShape.H"
+#include "inv/nodes/SoVertexShape.hpp"
 
-#include "inv/fields/SoMFInt32.H"
-#include "inv/fields/SoMFVec3f.H"
-#include "inv/fields/SoMFColor.H"
-#include "inv/fields/SoSFColor.H"
-#include "inv/fields/SoSFFloat.H"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/fields/SoMFVec3f.hpp"
+#include "inv/fields/SoMFColor.hpp"
+#include "inv/fields/SoSFColor.hpp"
+#include "inv/fields/SoSFFloat.hpp"
 
-#include "inv/ChemKit/ChemIso.H"
-#include "inv/ChemKit/ChemLattice3.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemIso.hpp"
+#include "inv/ChemKit/ChemLattice3.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class ChemBaseDataElement;
 class ChemColorElement;

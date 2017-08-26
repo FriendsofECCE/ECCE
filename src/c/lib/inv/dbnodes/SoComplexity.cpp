@@ -51,14 +51,14 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoComplexityElement.H"
-#include "inv/elements/SoTextureQualityElement.H"
-#include "inv/elements/SoOverrideElement.H"
-#include "inv/nodes/SoComplexity.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoComplexityElement.hpp"
+#include "inv/elements/SoTextureQualityElement.hpp"
+#include "inv/elements/SoOverrideElement.hpp"
+#include "inv/nodes/SoComplexity.hpp"
 
 SO_NODE_SOURCE(SoComplexity);
 

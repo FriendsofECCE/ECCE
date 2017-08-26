@@ -59,7 +59,7 @@
 #ifndef _SB_CYLINDER_SHEET_PROJECTOR_
 #define _SB_CYLINDER_SHEET_PROJECTOR_
 
-#include "inv/projectors/SbCylinderProjector.H"
+#include "inv/projectors/SbCylinderProjector.hpp"
 
 // C-api: prefix=SbCylSheetProj
 class SbCylinderSheetProjector : public SbCylinderProjector

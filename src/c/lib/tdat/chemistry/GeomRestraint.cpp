@@ -8,7 +8,7 @@ using std::set;
 using std::less;
 
 
-#include "tdat/GeomRestraint.H"
+#include "tdat/GeomRestraint.hpp"
 
 
 /**

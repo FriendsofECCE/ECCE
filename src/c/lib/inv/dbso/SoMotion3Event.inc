@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/events/SoMotion3Event.H"
+#include "inv/events/SoMotion3Event.hpp"
 
 SO_EVENT_SOURCE(SoMotion3Event);
 

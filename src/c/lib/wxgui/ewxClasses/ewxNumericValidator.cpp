@@ -1,10 +1,10 @@
 #include <wx/log.h>
 
-#include "util/STLUtil.H"
-#include "util/StringConverter.H"
-#include "util/StringTokenizer.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/WxFeedback.H"
+#include "util/STLUtil.hpp"
+#include "util/StringConverter.hpp"
+#include "util/StringTokenizer.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/WxFeedback.hpp"
 
 //#define DEBUG
 

@@ -11,7 +11,7 @@
 #include <signal.h>
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "Gateway.H"
+#pragma implementation "Gateway.hpp"
 #endif
 
 #include "wx/wxprec.h"
@@ -26,23 +26,23 @@
 
 #include "wx/timer.h"
 
-#include "util/BrowserHelp.H"
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
-#include "util/JMSPublisher.H"
-#include "util/TempStorage.H"
+#include "util/BrowserHelp.hpp"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/TempStorage.hpp"
 
-#include "dsm/EDSIServerCentral.H"
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/ResourceTool.H"
+#include "dsm/EDSIServerCentral.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/ResourceTool.hpp"
 
-#include "wxgui/EcceTool.H"
-#include "wxgui/ewxMenu.H"
-#include "wxgui/ewxMessageDialog.H"
+#include "wxgui/EcceTool.hpp"
+#include "wxgui/ewxMenu.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
 
-#include "Gateway.H"
-#include "GatewayApp.H"
-#include "GatewayPrefs.H"
+#include "Gateway.hpp"
+#include "GatewayApp.hpp"
+#include "GatewayPrefs.hpp"
 
 
 IMPLEMENT_CLASS( Gateway, wxFrame )

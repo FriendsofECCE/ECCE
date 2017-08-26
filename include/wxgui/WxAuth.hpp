@@ -13,7 +13,7 @@
 #include <string>
 using std::string;
 
-#include "wxgui/WxAuthGUI.H"
+#include "wxgui/WxAuthGUI.hpp"
 
 /**
  * The implementation of wxAUthGUI.

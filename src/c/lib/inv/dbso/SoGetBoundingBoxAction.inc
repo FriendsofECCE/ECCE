@@ -51,13 +51,13 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/elements/SoBBoxModelMatrixElement.H"
-#include "inv/elements/SoLocalBBoxMatrixElement.H"
-#include "inv/elements/SoViewingMatrixElement.H"
-#include "inv/elements/SoViewportRegionElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/misc/SoState.H"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/elements/SoBBoxModelMatrixElement.hpp"
+#include "inv/elements/SoLocalBBoxMatrixElement.hpp"
+#include "inv/elements/SoViewingMatrixElement.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/misc/SoState.hpp"
 
 SO_ACTION_SOURCE(SoGetBoundingBoxAction);
 

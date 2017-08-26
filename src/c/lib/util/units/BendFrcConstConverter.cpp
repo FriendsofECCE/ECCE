@@ -6,7 +6,7 @@
 
 #include <math.h>
 
-#include "util/BendFrcConstConverter.H"
+#include "util/BendFrcConstConverter.hpp"
 
 /**
  * Constructor.

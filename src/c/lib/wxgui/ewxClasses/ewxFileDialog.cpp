@@ -13,7 +13,7 @@
 #include "wx/spinctrl.h"
 #include "wx/notebook.h"
 
-#include "wxgui/ewxFileDialog.H"
+#include "wxgui/ewxFileDialog.hpp"
 
 
 /**

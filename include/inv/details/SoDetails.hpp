@@ -61,12 +61,12 @@
 #ifndef  _SO_DETAILS_
 #define  _SO_DETAILS_
 
-#include "inv/details/SoConeDetail.H"
-#include "inv/details/SoCubeDetail.H"
-#include "inv/details/SoCylinderDetail.H"
-#include "inv/details/SoFaceDetail.H"
-#include "inv/details/SoLineDetail.H"
-#include "inv/details/SoPointDetail.H"
-#include "inv/details/SoTextDetail.H"
+#include "inv/details/SoConeDetail.hpp"
+#include "inv/details/SoCubeDetail.hpp"
+#include "inv/details/SoCylinderDetail.hpp"
+#include "inv/details/SoFaceDetail.hpp"
+#include "inv/details/SoLineDetail.hpp"
+#include "inv/details/SoPointDetail.hpp"
+#include "inv/details/SoTextDetail.hpp"
 
 #endif /* _SO_DETAILS_ */

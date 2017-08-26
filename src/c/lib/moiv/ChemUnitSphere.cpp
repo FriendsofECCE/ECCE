@@ -68,9 +68,9 @@
 #endif
 
 #include <GL/gl.h>
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
-#include "inv/ChemKit/ChemUnitSphere.H"
+#include "inv/ChemKit/ChemUnitSphere.hpp"
 
 static float tridata[6][3] = {
     {1, 0, 0},

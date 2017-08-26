@@ -58,10 +58,10 @@
 
 #include <tr1/math.h>
 #include <stdlib.h>
-#include "inv/SbLinear.H"
-#include "nurbstess.H"
-#include "softsurfeval.H"
-#include "SoCurveRenderEval.H"
+#include "inv/SbLinear.hpp"
+#include "nurbstess.hpp"
+#include "softsurfeval.hpp"
+#include "SoCurveRenderEval.hpp"
 
 class _SoNurbsCurveRenderEval;
 class _SoNurbsCurveV3Map;

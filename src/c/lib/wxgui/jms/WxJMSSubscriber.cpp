@@ -10,7 +10,7 @@
 #include <fstream>
 #include <strstream>
 using namespace std;
-   #include "util/SFile.H"
+   #include "util/SFile.hpp"
 
 
 #include <sys/types.h>
@@ -22,9 +22,9 @@ using namespace std;
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include "util/JMSMessage.H"
-#include "util/ErrMsg.H"
-#include "wxgui/WxJMSSubscriber.H"
+#include "util/JMSMessage.hpp"
+#include "util/ErrMsg.hpp"
+#include "wxgui/WxJMSSubscriber.hpp"
 
 #include "wx/wx.h"
 #include "wx/socket.h"

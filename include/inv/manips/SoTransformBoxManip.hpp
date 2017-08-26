@@ -53,7 +53,7 @@
 #ifndef  _SO_TRANSFORM_BOX_MANIP_
 #define  _SO_TRANSFORM_BOX_MANIP_
 
-#include "inv/manips/SoTransformManip.H"
+#include "inv/manips/SoTransformManip.hpp"
 
 // C-api: prefix=SoXfBoxManip
 class SoTransformBoxManip : public SoTransformManip

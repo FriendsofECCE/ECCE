@@ -14,14 +14,14 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/InvalidException.H"
-#include "util/EcceURL.H"
+#include "util/InvalidException.hpp"
+#include "util/EcceURL.hpp"
 
-#include "wxgui/WxGridView.H"
+#include "wxgui/WxGridView.hpp"
 
-#include "ProjectContextPanelGUI.H"
-#include "ContextPanelInterface.H"
-#include "ContextPanelFactory.H"
+#include "ProjectContextPanelGUI.hpp"
+#include "ContextPanelInterface.hpp"
+#include "ContextPanelFactory.hpp"
 
 
 class CalcMgr;

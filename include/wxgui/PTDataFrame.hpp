@@ -12,7 +12,7 @@
 #define _PTDATAFRAME_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "PTDataFrame.C"
+#pragma interface "PTDataFrame.cpp"
 #endif
 
 #include "wx/frame.h"
@@ -20,10 +20,10 @@
 #include "wx/statline.h"
 #include "wx/grid.h"
 
-#include "tdat/TChartOfNuclides.H"
-#include "tdat/TRefIsotope.H"
-#include "wxgui/PTDataFrameGUI.H"
-#include "wxgui/PerTabPanel.H"
+#include "tdat/TChartOfNuclides.hpp"
+#include "tdat/TRefIsotope.hpp"
+#include "wxgui/PTDataFrameGUI.hpp"
+#include "wxgui/PerTabPanel.hpp"
 
 #define ID_PTDATA_ISOTOPEGRID 30001
 

@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoReplacedElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodes/SoNode.H"
+#include "inv/elements/SoReplacedElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodes/SoNode.hpp"
 
 SO_ELEMENT_ABSTRACT_SOURCE(SoReplacedElement);
 

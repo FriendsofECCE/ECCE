@@ -21,9 +21,9 @@
 #include <map>
      using std::multimap;
 
-#include "util/CompareOps.H"
+#include "util/CompareOps.hpp"
 
-#include "dsm/TGaussianBasisSet.H"
+#include "dsm/TGaussianBasisSet.hpp"
 
 
 class TGBSConfig;

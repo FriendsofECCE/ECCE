@@ -52,32 +52,32 @@
  */
 
 #include <stdlib.h>
-#include "inv/SbDict.H"
-#include "inv/SbString.H"
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/SoOutput.H"
-#include "inv/SoPath.H"
-#include "inv/SoType.H"
-#include "inv/actions/SoAction.H"
-#include "inv/details/SoDetail.H"
-#include "inv/elements/SoElement.H"
-#include "inv/engines/SoEngine.H"
-#include "inv/engines/SoFieldConverter.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoError.H"
-#include "inv/errors/SoReadError.H"
-#include "inv/events/SoEvent.H"
-#include "inv/fields/SoField.H"
-#include "inv/fields/SoSFTime.H"
-#include "inv/nodes/SoNode.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/sensors/SoTimerSensor.H"
+#include "inv/SbDict.hpp"
+#include "inv/SbString.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/SoType.hpp"
+#include "inv/actions/SoAction.hpp"
+#include "inv/details/SoDetail.hpp"
+#include "inv/elements/SoElement.hpp"
+#include "inv/engines/SoEngine.hpp"
+#include "inv/engines/SoFieldConverter.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoError.hpp"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/events/SoEvent.hpp"
+#include "inv/fields/SoField.hpp"
+#include "inv/fields/SoSFTime.hpp"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/sensors/SoTimerSensor.hpp"
 
-#include "SoDebug.H"
+#include "SoDebug.hpp"
 
-//#include "SoUpgraders.H"	    /* V1 upgraders */
-#include "SoGlobalField.H"	    /* GlobalField routines	*/
+//#include "SoUpgraders.hpp"	    /* V1 upgraders */
+#include "SoGlobalField.hpp"	    /* GlobalField routines	*/
 
 // Internal class for storing headers and the corresponding 
 // callback functions.

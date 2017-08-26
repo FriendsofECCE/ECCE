@@ -58,10 +58,10 @@
 #ifndef  _SO_SEPARATOR_KIT_
 #define  _SO_SEPARATOR_KIT_
 
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodekits/SoBaseKit.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodekits/SoBaseKit.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
 
 ////////////////////////////////////////////////////////////////////
 //    Class: SoSeparatorKit

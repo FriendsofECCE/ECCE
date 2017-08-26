@@ -8,9 +8,9 @@
 #include <string>
   using std::string;
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 
 
 class IPropCalculation;

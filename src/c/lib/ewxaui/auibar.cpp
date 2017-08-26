@@ -33,8 +33,8 @@
 #include "wx/settings.h"
 #include "wx/menu.h"
 
-#include "wx/ewxaui/auibar.H"
-#include "wx/ewxaui/framemanager.H"
+#include "wx/ewxaui/auibar.hpp"
+#include "wx/ewxaui/framemanager.hpp"
 
 #ifdef __WXMAC__
 #include "wx/mac/carbon/private.h"

@@ -6,13 +6,13 @@
 using namespace std;
 #  include <map>
 using std::less;
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
-#include "tdat/TProperty.H"
+#include "tdat/TProperty.hpp"
 
-#include "dsm/DavEDSI.H"
-#include "dsm/IPropCache.H"
-#include "dsm/EDSIFactory.H"
+#include "dsm/DavEDSI.hpp"
+#include "dsm/IPropCache.hpp"
+#include "dsm/EDSIFactory.hpp"
 void test(istream& is);
 
 void test(istream& is) {

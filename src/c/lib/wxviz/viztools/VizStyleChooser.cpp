@@ -1,5 +1,5 @@
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "VizStyleChooser.H"
+#pragma implementation "VizStyleChooser.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -24,30 +24,30 @@ using std::ostrstream;
 #include <string>
 using std::string;
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "tdat/DisplayDescriptor.H"
-#include "tdat/DisplayStyle.H"
+#include "tdat/DisplayDescriptor.hpp"
+#include "tdat/DisplayStyle.hpp"
 
-#include "util/StringTokenizer.H"
-#include "util/Spectrum.H"
-#include "util/EventDispatcher.H"
+#include "util/StringTokenizer.hpp"
+#include "util/Spectrum.hpp"
+#include "util/EventDispatcher.hpp"
 
-#include "viz/CSStyleCmd.H"
+#include "viz/CSStyleCmd.hpp"
 
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxColorDialog.H"
-#include "wxgui/ewxConfig.H"
-#include "wxgui/ewxListBox.H"
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxOpenCloseToggle.H"
-#include "wxgui/ewxRadioButton.H"
-#include "wxgui/ewxSlider.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/WxColorSchemeChooser.H"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxColorDialog.hpp"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/ewxListBox.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxOpenCloseToggle.hpp"
+#include "wxgui/ewxRadioButton.hpp"
+#include "wxgui/ewxSlider.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/WxColorSchemeChooser.hpp"
 
-#include "wxviz/VizStyleChooser.H"
+#include "wxviz/VizStyleChooser.hpp"
 
 static const char *v_spectrums[] = {"Rainbow", "Red-White-Blue", "Red", "Blue", "Green"};
 

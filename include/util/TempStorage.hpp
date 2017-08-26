@@ -9,7 +9,7 @@
 #include <string>
   using std::string;
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
 class SDirectory;
 class SFile;

@@ -9,8 +9,8 @@
 using std::string;
 using std::vector;
 
-#include "dsm/ITraversable.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ITraversable.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
 class EDSI;
 class TNode;

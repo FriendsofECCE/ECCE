@@ -49,10 +49,10 @@
  */
 
 #include <assert.h>
-#include "inv/events/SoMouseButtonEvent.H"
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/nodes/SoWWWAnchor.H"
-#include "inv/SoPickedPoint.H"
+#include "inv/events/SoMouseButtonEvent.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/nodes/SoWWWAnchor.hpp"
+#include "inv/SoPickedPoint.hpp"
 
 SoWWWAnchorCB *		SoWWWAnchor::fetchURLcb = NULL;
 void *			SoWWWAnchor::fetchURLdata = NULL;

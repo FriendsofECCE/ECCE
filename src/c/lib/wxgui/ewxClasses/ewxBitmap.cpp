@@ -7,8 +7,8 @@ using namespace std;
 #include "wx/wx.h"
 #endif
 
-#include "util/Ecce.H"
-#include "wxgui/ewxBitmap.H"
+#include "util/Ecce.hpp"
+#include "wxgui/ewxBitmap.hpp"
 
 
 /**

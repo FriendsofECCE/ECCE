@@ -22,17 +22,17 @@
 
 using std::string;
 
-#include "util/EcceMap.H"
-#include "util/StringTokenizer.H"
+#include "util/EcceMap.hpp"
+#include "util/StringTokenizer.hpp"
 
-#include "tdat/TAtm.H"
-#include "tdat/Fragment.H"
+#include "tdat/TAtm.hpp"
+#include "tdat/Fragment.hpp"
 
-#include "dsm/NWChemMDModel.H"
-#include "dsm/BasicDOMParser.H"
-#include "dsm/NWChemMDModelXMLizer.H"
-#include "dsm/Resource.H"
-#include "dsm/MdTask.H"
+#include "dsm/NWChemMDModel.hpp"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/NWChemMDModelXMLizer.hpp"
+#include "dsm/Resource.hpp"
+#include "dsm/MdTask.hpp"
 
 const string NWChemMDModelXMLizer::ROOTELEMENT = "NWChemMDModel";
 

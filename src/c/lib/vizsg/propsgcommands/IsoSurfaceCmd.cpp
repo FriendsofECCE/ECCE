@@ -1,22 +1,22 @@
 #include <iostream>
   using std::cout;
   using std::endl;
-#include "inv/nodes/SoSwitch.H"
-#include "inv/misc/SoChildList.H"
-#include "inv/nodes/SoShapeHints.H"
-#include "inv/nodes/SoIndexedTriangleStripSet.H"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/nodes/SoShapeHints.hpp"
+#include "inv/nodes/SoIndexedTriangleStripSet.hpp"
 
-#include "util/ErrMsg.H"
+#include "util/ErrMsg.hpp"
 
-#include "tdat/SingleGrid.H"
+#include "tdat/SingleGrid.hpp"
 
-#include "inv/ChemKit/SFVec3i.H"
-#include "inv/ChemKit/ChemLattice3.H"
-#include "inv/ChemKit/ChemIso.H"
-#include "inv/ChemKit/ChemContour.H"
+#include "inv/ChemKit/SFVec3i.hpp"
+#include "inv/ChemKit/ChemLattice3.hpp"
+#include "inv/ChemKit/ChemIso.hpp"
+#include "inv/ChemKit/ChemContour.hpp"
 
-#include "viz/SGContainer.H"
-#include "viz/IsoSurfaceCmd.H"
+#include "viz/SGContainer.hpp"
+#include "viz/IsoSurfaceCmd.hpp"
 
 IsoSurfaceCmd::IsoSurfaceCmd(const string& name, Receiver *receiver,
                              IPropCalculation *calc)

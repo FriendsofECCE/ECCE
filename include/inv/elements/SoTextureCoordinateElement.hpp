@@ -68,8 +68,8 @@
 #ifndef  _SO_TEXTURE_COORDINATE_ELEMENT
 #define  _SO_TEXTURE_COORDINATE_ELEMENT
 
-#include "inv/SbLinear.H"
-#include "inv/elements/SoReplacedElement.H"
+#include "inv/SbLinear.hpp"
+#include "inv/elements/SoReplacedElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

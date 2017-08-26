@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/fields/SoMFString.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/fields/SoMFString.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

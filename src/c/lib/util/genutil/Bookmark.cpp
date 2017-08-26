@@ -5,7 +5,7 @@
  * Replacement for EDSIMount
  *
  */
-#include "util/Bookmark.H"
+#include "util/Bookmark.hpp"
 
 
 Bookmark::Bookmark()

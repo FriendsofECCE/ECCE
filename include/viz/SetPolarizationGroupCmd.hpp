@@ -8,7 +8,7 @@
 #define SETPOLARIZATIONGROUPCMD_HH
 
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 
 class SetPolarizationGroupCmd : public Command

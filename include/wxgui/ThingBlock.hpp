@@ -11,12 +11,12 @@
 #define __wxBLOCK_H__
 
 #include <wx/geometry.h>
-#include "wxgui/ThingDef.H"
+#include "wxgui/ThingDef.hpp"
 
 //#define USE_wxRANGE
 
 #ifdef USE_wxRANGE
-    #include "wxgui/ThingRange.H"
+    #include "wxgui/ThingRange.hpp"
 #endif
 
 // Note: Why are these not just wxRect2DXXX with m_x and m_width?

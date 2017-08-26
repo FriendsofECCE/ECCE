@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "SoV2WWWInline.H"
-#include "inv/nodes/SoWWWInline.H"
-#include "inv/errors/SoReadError.H"
+#include "SoV2WWWInline.hpp"
+#include "inv/nodes/SoWWWInline.hpp"
+#include "inv/errors/SoReadError.hpp"
 
 SO_NODE_SOURCE(SoV2WWWInline);
 

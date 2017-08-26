@@ -6,7 +6,7 @@
 #ifndef MISMATCHEDTYPEEXCEPTION_HH
 #define MISMATCHEDTYPEEXCEPTION_HH
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 
 /**

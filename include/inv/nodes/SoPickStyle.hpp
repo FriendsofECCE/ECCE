@@ -56,10 +56,10 @@
 #ifndef  _SO_PICK_STYLE_
 #define  _SO_PICK_STYLE_
 
-#include "inv/SbString.H"
-#include "inv/elements/SoPickStyleElement.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/SbString.hpp"
+#include "inv/elements/SoPickStyleElement.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

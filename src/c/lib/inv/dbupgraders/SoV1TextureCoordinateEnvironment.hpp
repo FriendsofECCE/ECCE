@@ -56,10 +56,10 @@
 #ifndef  _SO_V1TEXTURECOORDINATEENVIRONMENT_
 #define  _SO_V1TEXTURECOORDINATEENVIRONMENT_
 
-#include "inv/upgraders/SoUpgrader.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFRotation.H"
-#include "inv/fields/SoSFVec3f.H"
+#include "inv/upgraders/SoUpgrader.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFRotation.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

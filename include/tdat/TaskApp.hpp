@@ -10,8 +10,8 @@
 
 using std::string;
 
-#include "util/CommandManager.H"
-#include "util/EcceException.H"
+#include "util/CommandManager.hpp"
+#include "util/EcceException.hpp"
 
 class ITaskModel;
 class TaskAppCloseListener;

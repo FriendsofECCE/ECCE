@@ -7,7 +7,7 @@
 // Licence:     wxWidgets
 /////////////////////////////////////////////////////////////////////////////
 
-#include "wxgui/ThingPrecomp.H"
+#include "wxgui/ThingPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx.h".
 #include <wx/wxprec.h>
@@ -20,7 +20,7 @@
     //#include <wx/object.h>
 #endif // WX_PRECOMP
 
-#include "wxgui/ThingBlock.H"
+#include "wxgui/ThingBlock.hpp"
 
 // use this to check to see if there is any overlap after minimizing
 //#define CHECK_BLOCK_OVERLAP 1

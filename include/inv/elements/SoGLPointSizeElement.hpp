@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_POINT_SIZE_ELEMENT
 #define  _SO_GL_POINT_SIZE_ELEMENT
 
-#include "inv/elements/SoPointSizeElement.H"
+#include "inv/elements/SoPointSizeElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

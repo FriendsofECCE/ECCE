@@ -56,8 +56,8 @@
 #ifndef  _SO_LEVEL_OF_DETAIL_
 #define  _SO_LEVEL_OF_DETAIL_
 
-#include "inv/fields/SoMFFloat.H"
-#include "inv/nodes/SoGroup.H"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/nodes/SoGroup.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

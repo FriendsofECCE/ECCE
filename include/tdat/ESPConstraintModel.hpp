@@ -15,10 +15,10 @@
 #ifndef ESPCONSTRAINTMODEL_HH
 #define ESPCONSTRAINTMODEL_HH
 
-#include "util/IndexOutOfRangeException.H"
+#include "util/IndexOutOfRangeException.hpp"
 
-#include "util/Serializable.H"
-#include "tdat/ESPConstraint.H"
+#include "util/Serializable.hpp"
+#include "tdat/ESPConstraint.hpp"
 
 
 #include <vector>

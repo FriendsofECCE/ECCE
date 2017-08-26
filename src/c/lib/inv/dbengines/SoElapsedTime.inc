@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/engines/SoElapsedTime.H"
+#include "inv/SoDB.hpp"
+#include "inv/engines/SoElapsedTime.hpp"
 
 SO_ENGINE_SOURCE(SoElapsedTime);
 

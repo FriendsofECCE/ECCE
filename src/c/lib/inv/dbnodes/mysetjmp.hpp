@@ -37,7 +37,7 @@
 #ifndef __glumysetjmp_h_
 #define __glumysetjmp_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * mysetjmp.h - $Revision: 22116 $
  */

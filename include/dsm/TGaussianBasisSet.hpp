@@ -11,7 +11,7 @@
 #define TGBS_H
 
 // Application includes:
-   #include "util/CompareOps.H"
+   #include "util/CompareOps.hpp"
 
 // STL:
    #include <string> 

@@ -1,11 +1,11 @@
-#include "inv/actions/SoWriteAction.H"
-#include "inv/SoOutput.H"
+#include "inv/actions/SoWriteAction.hpp"
+#include "inv/SoOutput.hpp"
 
 
-#include "wxviz/SGViewer.H"
-#include "wxviz/DumpSGCmd.H"
+#include "wxviz/SGViewer.hpp"
+#include "wxviz/DumpSGCmd.hpp"
 
-#include "viz/EcceAxis.H"
+#include "viz/EcceAxis.hpp"
 
 DumpSGCmd::DumpSGCmd(const string& name, Receiver *receiver)
        : Command(name, receiver)

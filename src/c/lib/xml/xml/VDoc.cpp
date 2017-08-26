@@ -19,18 +19,18 @@
 #include <xercesc/dom/DOMNodeList.hpp>
   using namespace xercesc;
 
-#include "util/DavException.H"
-#include "util/ParseException.H"
-#include "util/InvalidException.H"
-#include "util/TypedFile.H"
-#include "util/StringConverter.H"
-#include "util/ResourceUtils.H"
-#include "dsm/JCode.H"
-#include "dsm/CodeFactory.H"
-#include "dsm/BasicDOMParser.H"
-#include "dsm/EDSI.H"
-#include "dsm/EDSIFactory.H" 
-#include "dsm/VDoc.H"
+#include "util/DavException.hpp"
+#include "util/ParseException.hpp"
+#include "util/InvalidException.hpp"
+#include "util/TypedFile.hpp"
+#include "util/StringConverter.hpp"
+#include "util/ResourceUtils.hpp"
+#include "dsm/JCode.hpp"
+#include "dsm/CodeFactory.hpp"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/EDSI.hpp"
+#include "dsm/EDSIFactory.hpp" 
+#include "dsm/VDoc.hpp"
 
 
 static string p_ecceNamespace = "http://www.emsl.pnl.gov/ecce";

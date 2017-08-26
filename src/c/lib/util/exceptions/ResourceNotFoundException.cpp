@@ -3,7 +3,7 @@
  *
  *
  */
-#include "util/ResourceNotFoundException.H"
+#include "util/ResourceNotFoundException.hpp"
 
 ResourceNotFoundException::ResourceNotFoundException(const string& msg, 
                                            const char *file, int line)

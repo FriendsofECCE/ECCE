@@ -52,9 +52,9 @@
  */
 
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoReadError.H"
-#include "inv/fields/SoSFBitMask.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/fields/SoSFBitMask.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

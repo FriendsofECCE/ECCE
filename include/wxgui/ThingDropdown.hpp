@@ -34,7 +34,7 @@ DoShowPopup() - this is called from ShowPopup after creating the m_popupWin.
 #define _WX_DROPDOWNBASE_H_
 
 #include <wx/popupwin.h>
-#include "wxgui/ThingDef.H"
+#include "wxgui/ThingDef.hpp"
 
 #if wxUSE_POPUPWIN
 

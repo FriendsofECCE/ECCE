@@ -7,7 +7,7 @@
 #ifndef SETCOORDINATESCMD_HH
 #define SETCOORDINATESCMD_HH
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 
 class SetCoordinatesCmd : public Command

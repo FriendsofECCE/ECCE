@@ -55,10 +55,10 @@
 #ifndef  _SO_FONTSTYLE_
 #define  _SO_FONTSTYLE_
 
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/nodes/SoFont.H"
-#include "inv/actions/SoCallbackAction.H"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/nodes/SoFont.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

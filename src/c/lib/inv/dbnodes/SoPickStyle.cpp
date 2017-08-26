@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/nodes/SoPickStyle.H"
-#include "inv/elements/SoOverrideElement.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/nodes/SoPickStyle.hpp"
+#include "inv/elements/SoOverrideElement.hpp"
 
 SO_NODE_SOURCE(SoPickStyle);
 

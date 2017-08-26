@@ -57,9 +57,9 @@
 #ifndef  _SO_PROFILE_ELEMENT
 #define  _SO_PROFILE_ELEMENT
 
-#include "inv/SoLists.H"
-#include "inv/SbLinear.H"
-#include "inv/elements/SoAccumulatedElement.H"
+#include "inv/SoLists.hpp"
+#include "inv/SbLinear.hpp"
+#include "inv/elements/SoAccumulatedElement.hpp"
 
 class SoProfile;
 

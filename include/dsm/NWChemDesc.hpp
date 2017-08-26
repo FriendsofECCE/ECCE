@@ -30,15 +30,15 @@ class FFItem;
 class FFModel;
 
 // application includes
-#include "util/Serializer.H"
-#include "util/Serializable.H"
-#include "util/IOException.H"
+#include "util/Serializer.hpp"
+#include "util/Serializable.hpp"
+#include "util/IOException.hpp"
 
-#include "tdat/FFRules.H"
-#include "tdat/FFItem.H"
-#include "tdat/FFDesc.H"
-#include "tdat/TAtm.H"
-#include "tdat/TBond.H"
+#include "tdat/FFRules.hpp"
+#include "tdat/FFItem.hpp"
+#include "tdat/FFDesc.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/TBond.hpp"
 
 class NWChemDesc: public Serializer, public FFRules
 {

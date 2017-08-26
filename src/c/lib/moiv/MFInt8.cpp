@@ -57,7 +57,7 @@
 
 #include <stdlib.h>
 
-#include "inv/ChemKit/MFInt8.H"
+#include "inv/ChemKit/MFInt8.hpp"
 
 //////////////////////////////////////////////////////////////////
 // Class MFInt8

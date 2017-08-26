@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoGLLazyElement.H"
-#include "inv/elements/SoOverrideElement.H"
-#include "inv/nodes/SoMaterial.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoGLLazyElement.hpp"
+#include "inv/elements/SoOverrideElement.hpp"
+#include "inv/nodes/SoMaterial.hpp"
 
 SO_NODE_SOURCE(SoMaterial);
 

@@ -7,7 +7,7 @@
 #define _WXSTATE_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "WxStateGUI.C"
+#pragma interface "WxStateGUI.cpp"
 #endif
 
 #include <string>
@@ -16,9 +16,9 @@ using std::string;
 using std::vector;
 
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "wxgui/WxStateGUI.H"
+#include "wxgui/WxStateGUI.hpp"
 
 class wxPen;
 class wxBrush;

@@ -37,7 +37,7 @@
 #ifndef __glutypes_h_
 #define __glutypes_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * types.h - $Revision: 22116 $
  */

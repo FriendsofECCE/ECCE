@@ -37,7 +37,7 @@
 #ifndef __glumystdlib_h_
 #define __glumystdlib_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * mystdlib.h - $Revision: 22116 $
  */

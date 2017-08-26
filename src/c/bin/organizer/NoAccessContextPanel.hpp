@@ -10,8 +10,8 @@
 #define NOACCESSCONTEXTPANEL_H
 
 
-#include "ContextPanelInterface.H"
-#include "NoAccessContextPanelGUI.H"
+#include "ContextPanelInterface.hpp"
+#include "NoAccessContextPanelGUI.hpp"
 
 
 class CalcMgr;

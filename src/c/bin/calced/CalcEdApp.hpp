@@ -1,12 +1,12 @@
 #ifndef CALCEDAPP_H_
 #define CALCEDAPP_H_
 
-#include "util/JMSMessage.H"
+#include "util/JMSMessage.hpp"
 
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/ewxApp.H"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/ewxApp.hpp"
 
-#include "CalcEd.H"
+#include "CalcEd.hpp"
 
 class CalcEdApp : public ewxApp,
                   public WxJMSMessageDispatch

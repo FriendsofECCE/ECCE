@@ -56,9 +56,9 @@
 #ifndef  _SO_BLINKER_
 #define  _SO_BLINKER_
 
-#include "inv/nodes/SoSwitch.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFBool.H"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFBool.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

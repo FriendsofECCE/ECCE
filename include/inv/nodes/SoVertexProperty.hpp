@@ -58,13 +58,13 @@
 #ifndef  _SO_VERTEX_PROPERTY
 #define  _SO_VERTEX_PROPERTY
 
-#include "inv/fields/SoMFUInt32.H"
-#include "inv/fields/SoMFVec3f.H"
-#include "inv/fields/SoMFVec2f.H"
-#include "inv/nodes/SoSubNode.H"
-#include "inv/nodes/SoNormalBinding.H"
-#include "inv/nodes/SoMaterialBinding.H"
-#include "inv/nodes/SoTextureCoordinateBinding.H"
+#include "inv/fields/SoMFUInt32.hpp"
+#include "inv/fields/SoMFVec3f.hpp"
+#include "inv/fields/SoMFVec2f.hpp"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/nodes/SoNormalBinding.hpp"
+#include "inv/nodes/SoMaterialBinding.hpp"
+#include "inv/nodes/SoTextureCoordinateBinding.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -136,7 +136,7 @@ class SoVertexProperty : public SoNode {
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "inv/elements/SoShapeStyleElement.H"
+#include "inv/elements/SoShapeStyleElement.hpp"
 
 typedef void SoVPCacheFunc(const char *const);
 

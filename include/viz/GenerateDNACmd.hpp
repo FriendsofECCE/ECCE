@@ -6,7 +6,7 @@
 #ifndef  GENERATEDNACMD_H
 #define  GENERATEDNACMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class GenerateDNACmd : public FragCloneCmd
 {

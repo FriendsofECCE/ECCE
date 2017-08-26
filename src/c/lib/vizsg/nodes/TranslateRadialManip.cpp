@@ -25,10 +25,10 @@
  *
  *----------------------------------------------------------*/
 
-#include "inv/nodes/SoSurroundScale.H"
+#include "inv/nodes/SoSurroundScale.hpp"
 
-#include "viz/TranslateRadialDragger.H"
-#include "viz/TranslateRadialManip.H"
+#include "viz/TranslateRadialDragger.hpp"
+#include "viz/TranslateRadialManip.hpp"
 
 SO_NODE_SOURCE(TranslateRadialManip);
 

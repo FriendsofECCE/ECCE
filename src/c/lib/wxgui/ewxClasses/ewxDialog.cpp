@@ -4,10 +4,10 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/Preferences.H"
-#include "wxgui/ewxDialog.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/ewxConfig.H"
+#include "util/Preferences.hpp"
+#include "wxgui/ewxDialog.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/ewxConfig.hpp"
 
 /**
  * Default ctor.

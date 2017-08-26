@@ -6,14 +6,14 @@
 #define _STRUCTLIB_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "StructLib.C"
+#pragma interface "StructLib.cpp"
 #endif
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
-#include "StructLibGUI.H"
+#include "StructLibGUI.hpp"
 
 class ewxBitmapButton;
 class ewxChoice;

@@ -7,7 +7,7 @@
  */
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "PTDataFrame.H"
+#pragma implementation "PTDataFrame.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -22,25 +22,25 @@
 #include <vector>
   using std::vector;
 
-#include "tdat/TChartOfNuclides.H"
-#include "tdat/TPerTab.H"
-#include "tdat/TRefIsotope.H"
+#include "tdat/TChartOfNuclides.hpp"
+#include "tdat/TPerTab.hpp"
+#include "tdat/TRefIsotope.hpp"
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/SFile.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/SFile.hpp"
 
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/ResourceTool.H"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/ResourceTool.hpp"
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxColor.H"
-#include "wxgui/ewxColorDialog.H"
-#include "wxgui/ewxGrid.H"
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/PTDataFrame.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxColor.hpp"
+#include "wxgui/ewxColorDialog.hpp"
+#include "wxgui/ewxGrid.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/PTDataFrame.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS( PTDataFrame, PTDataFrameGUI )

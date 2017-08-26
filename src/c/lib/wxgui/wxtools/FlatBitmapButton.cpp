@@ -1,9 +1,9 @@
 #include <wx/sizer.h>
 #include <wx/statbmp.h>
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/FlatBitmapButton.H"
-#include "wxgui/ForwardMouseEventHandler.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/FlatBitmapButton.hpp"
+#include "wxgui/ForwardMouseEventHandler.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS(FlatBitmapButton, ewxPanel)

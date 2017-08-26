@@ -17,7 +17,7 @@
 #include "wx/textctrl.h"
 #include "wx/validate.h"
 
-#include "wxgui/ewxGenericValidator.H"
+#include "wxgui/ewxGenericValidator.hpp"
 
 /**
  * ewxRegexpValidator the validates against regular expression.

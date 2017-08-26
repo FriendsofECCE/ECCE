@@ -57,10 +57,10 @@
 #ifndef __MFINT8_H__
 #define __MFINT8_H__
 
-#include "inv/fields/SoSubField.H"
+#include "inv/fields/SoSubField.hpp"
 
-#include "inv/ChemKit/ChemDefs.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemDefs.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class CHEMKIT_DLL_API MFInt8 : public SoMField {
 

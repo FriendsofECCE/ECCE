@@ -5,7 +5,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxStaticText.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS(ewxStaticText, wxStaticText)

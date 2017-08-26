@@ -6,8 +6,8 @@
 #include <iostream>
    using namespace std;
 
-#include "util/Command.H"
-#include "util/CommandManager.H"
+#include "util/Command.hpp"
+#include "util/CommandManager.hpp"
 
 /**
  * Constructor.

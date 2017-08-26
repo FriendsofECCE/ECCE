@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/engines/SoCounter.H"
+#include "inv/SoDB.hpp"
+#include "inv/engines/SoCounter.hpp"
 
 SO_ENGINE_SOURCE(SoCounter);
 

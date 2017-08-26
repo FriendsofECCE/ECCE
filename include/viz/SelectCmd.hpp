@@ -6,7 +6,7 @@
 #ifndef  SELECTCMD_H
 #define  SELECTCMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class Fragment;
 class wxWindow;

@@ -11,7 +11,7 @@
 #define _IMAGECONTEXTPANELGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "ImageContextPanelGUI.C"
+#pragma interface "ImageContextPanelGUI.cpp"
 #endif
 
 /*!
@@ -20,7 +20,7 @@
 
 ////@begin includes
 #include "wx/toolbar.h"
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 ////@end includes
 
 /*!

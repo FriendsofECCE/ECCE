@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoSwitchElement.H"
+#include "inv/elements/SoSwitchElement.hpp"
 
 SO_ELEMENT_SOURCE(SoSwitchElement);
 

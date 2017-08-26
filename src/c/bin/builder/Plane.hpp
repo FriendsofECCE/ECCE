@@ -4,7 +4,7 @@
 
 #include "wx/sizer.h"
 
-#include "PlaneGUI.H"
+#include "PlaneGUI.hpp"
 
 /**
  * Implementation of Plane User interface.

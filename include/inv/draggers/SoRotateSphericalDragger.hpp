@@ -81,10 +81,10 @@
 #ifndef  _SO_ROTATE_SPHERICAL_DRAGGER_
 #define  _SO_ROTATE_SPHERICAL_DRAGGER_
 
-#include "inv/SbLinear.H"
-#include "inv/draggers/SoDragger.H"
-#include "inv/fields/SoSFRotation.H"
-#include "inv/sensors/SoSensor.H"
+#include "inv/SbLinear.hpp"
+#include "inv/draggers/SoDragger.hpp"
+#include "inv/fields/SoSFRotation.hpp"
+#include "inv/sensors/SoSensor.hpp"
 
 
 class SbDict;

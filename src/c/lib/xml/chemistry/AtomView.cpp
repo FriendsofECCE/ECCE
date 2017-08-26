@@ -20,10 +20,10 @@
 #include <xercesc/util/XMLString.hpp>
   using namespace xercesc;
 
-#include"util/STLUtil.H"
-#include"util/NotImplementedException.H"
+#include"util/STLUtil.hpp"
+#include"util/NotImplementedException.hpp"
 
-#include "dsm/AtomView.H"
+#include "dsm/AtomView.hpp"
 
 
 /**

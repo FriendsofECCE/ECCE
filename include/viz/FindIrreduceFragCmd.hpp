@@ -6,7 +6,7 @@
 #ifndef  FINDIRREDUCFRAGCMD_H
 #define  FINDIRREDUCFRAGCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

@@ -11,7 +11,7 @@
 #include "wx/valtext.h"
 #endif
 
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxCheckBox;
 class ewxTextCtrl;

@@ -18,14 +18,14 @@
 // shown these to be slower than re-establishing them each time.
 //#define persistentconnections
 
-#include "util/Ecce.H" 
-#include "util/ProgressEvent.H" 
-#include "util/UrlEncoder.H" 
-#include "util/AuthEvent.H" 
+#include "util/Ecce.hpp" 
+#include "util/ProgressEvent.hpp" 
+#include "util/UrlEncoder.hpp" 
+#include "util/AuthEvent.hpp" 
 
-#include "dsm/EcceDAVClient.H" 
-#include "dsm/DavDebug.H" 
-#include "dsm/EcceDAVStatus.H" 
+#include "dsm/EcceDAVClient.hpp" 
+#include "dsm/DavDebug.hpp" 
+#include "dsm/EcceDAVStatus.hpp" 
 
 
 // The following macros control logging output.  Bodies has a special

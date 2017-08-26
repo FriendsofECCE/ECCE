@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "SoV2AsciiText.H"
-#include "inv/nodes/SoAsciiText.H"
-#include "inv/errors/SoReadError.H"
+#include "SoV2AsciiText.hpp"
+#include "inv/nodes/SoAsciiText.hpp"
+#include "inv/errors/SoReadError.hpp"
 
 SO_NODE_SOURCE(SoV2AsciiText);
 

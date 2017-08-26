@@ -11,10 +11,10 @@
 #include <iostream>
 using namespace std;
 
-#include "util/TempStorage.H"
-#include "util/Ecce.H"
-#include "util/SDirectory.H"
-#include "util/SFile.H"
+#include "util/TempStorage.hpp"
+#include "util/Ecce.hpp"
+#include "util/SDirectory.hpp"
+#include "util/SFile.hpp"
 
 /**
  * Get path to default ecce temp directory.

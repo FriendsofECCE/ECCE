@@ -56,10 +56,10 @@
 #ifndef  _SO_V1LIGHTMODEL_
 #define  _SO_V1LIGHTMODEL_
 
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFColor.H"
-#include "inv/upgraders/SoUpgrader.H"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFColor.hpp"
+#include "inv/upgraders/SoUpgrader.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

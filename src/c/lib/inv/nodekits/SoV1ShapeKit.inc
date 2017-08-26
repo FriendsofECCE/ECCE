@@ -51,16 +51,16 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1ShapeKit.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoShape.H"
-#include "inv/nodes/SoSphere.H"
-#include "inv/nodes/SoMaterialBinding.H"
-#include "inv/nodes/SoNormalBinding.H"
-#include "inv/nodes/SoTextureCoordinateFunction.H"
-#include "inv/nodes/SoTextureCoordinateBinding.H"
-#include "inv/nodekits/SoShapeKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1ShapeKit.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoShape.hpp"
+#include "inv/nodes/SoSphere.hpp"
+#include "inv/nodes/SoMaterialBinding.hpp"
+#include "inv/nodes/SoNormalBinding.hpp"
+#include "inv/nodes/SoTextureCoordinateFunction.hpp"
+#include "inv/nodes/SoTextureCoordinateBinding.hpp"
+#include "inv/nodekits/SoShapeKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1ShapeKit);

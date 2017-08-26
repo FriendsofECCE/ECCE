@@ -6,34 +6,34 @@
 
 #include <wx/link.h>
 
-#include "util/InternalException.H"
-#include "util/PreferenceLabels.H"
-#include "util/Spectrum.H"
-#include "util/NullPointerException.H"
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/InternalException.hpp"
+#include "util/PreferenceLabels.hpp"
+#include "util/Spectrum.hpp"
+#include "util/NullPointerException.hpp"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
   using namespace ecce;
 
-#include "tdat/PropVector.H"
+#include "tdat/PropVector.hpp"
 
-#include "dsm/TGBSConfig.H"
-#include "dsm/ICalculation.H"
-#include "dsm/PropFactory.H"
+#include "dsm/TGBSConfig.hpp"
+#include "dsm/ICalculation.hpp"
+#include "dsm/PropFactory.hpp"
 
-#include "wxgui/ewxColor.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/TreeListCtrl.H"
-#include "wxgui/WxColorSchemeButton.H"
+#include "wxgui/ewxColor.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/TreeListCtrl.hpp"
+#include "wxgui/WxColorSchemeButton.hpp"
 
-#include "inv/ChemKit/ChemColor.H"
+#include "inv/ChemKit/ChemColor.hpp"
 
-#include "viz/CSLoadColorsCmd.H"
+#include "viz/CSLoadColorsCmd.hpp"
 
-#include "wxviz/WxVizToolFW.H"
+#include "wxviz/WxVizToolFW.hpp"
 
-#include "MullikenPanel.H"
+#include "MullikenPanel.hpp"
 
   using std::find;
 

@@ -56,11 +56,11 @@
 #ifndef  _SO_ANTI_SQUISH_
 #define  _SO_ANTI_SQUISH_
 
-#include "inv/fields/SoFieldData.H"
-#include "inv/nodes/SoSubNode.H"
-#include "inv/nodes/SoTransformation.H"
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFEnum.H"
+#include "inv/fields/SoFieldData.hpp"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/nodes/SoTransformation.hpp"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFEnum.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

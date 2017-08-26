@@ -1,7 +1,7 @@
 #ifndef CLEARATOMMOVECMD_H
 #define CLEARATOMMOVECMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class ClearAtomMoveCmd : public Command
 {

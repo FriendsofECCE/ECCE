@@ -58,8 +58,8 @@
 #ifndef  _SO_V1_APPEARANCE_KIT_
 #define  _SO_V1_APPEARANCE_KIT_
 
-#include "inv/upgraders/SoV1BaseKit.H"
-#include "inv/SoLists.H"
+#include "inv/upgraders/SoV1BaseKit.hpp"
+#include "inv/SoLists.hpp"
 
 
 ////////////////////////////////////////////////////////////////////

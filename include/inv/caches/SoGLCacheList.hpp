@@ -71,7 +71,7 @@
 #ifndef  _SO_GL_CACHE_LIST
 #define  _SO_GL_CACHE_LIST
 
-#include "inv/SbBasic.H"
+#include "inv/SbBasic.hpp"
 
 // C-api: end
 

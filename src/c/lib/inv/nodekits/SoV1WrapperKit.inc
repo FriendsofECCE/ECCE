@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1WrapperKit.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodekits/SoWrapperKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1WrapperKit.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodekits/SoWrapperKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1WrapperKit);

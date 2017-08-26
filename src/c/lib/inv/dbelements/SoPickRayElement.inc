@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoPickRayElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/elements/SoPickRayElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 SO_ELEMENT_SOURCE(SoPickRayElement);
 

@@ -11,8 +11,8 @@
 #include <vector>
   using std::vector;
 
-#include "util/Listener.H"
-#include "util/Event.H"
+#include "util/Listener.hpp"
+#include "util/Event.hpp"
 
 namespace ecce {
 

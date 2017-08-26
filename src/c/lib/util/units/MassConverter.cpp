@@ -4,7 +4,7 @@
  *
  */
 
-#include "util/MassConverter.H"
+#include "util/MassConverter.hpp"
 
 
 /**

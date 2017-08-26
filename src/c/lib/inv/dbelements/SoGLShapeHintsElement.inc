@@ -52,10 +52,10 @@
  */
 
 #include <GL/gl.h>
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoGLShapeHintsElement.H"
-#include "inv/misc/SoState.H"
-#include "SoDebug.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoGLShapeHintsElement.hpp"
+#include "inv/misc/SoState.hpp"
+#include "SoDebug.hpp"
 
 SO_ELEMENT_SOURCE(SoGLShapeHintsElement);
 

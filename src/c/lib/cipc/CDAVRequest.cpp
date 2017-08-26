@@ -9,8 +9,8 @@
 // include files ***********************************************************
 
 //#include "CHTTPDefs.h"
-#include "dsm/CHTTPUtils.H"
-#include "dsm/CDAVRequest.H"
+#include "dsm/CHTTPUtils.hpp"
+#include "dsm/CDAVRequest.hpp"
 
 // CDAVRequest::method *****************************************************
 

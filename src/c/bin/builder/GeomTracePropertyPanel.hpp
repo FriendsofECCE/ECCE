@@ -8,9 +8,9 @@
 #include <vector>
   using std::vector;
 
-#include "wxgui/TearableContentProvider.H"
+#include "wxgui/TearableContentProvider.hpp"
 
-#include "VizPropertyPanel.H"
+#include "VizPropertyPanel.hpp"
 
 class PlaybackControl;
 class wxPlotCtrl;

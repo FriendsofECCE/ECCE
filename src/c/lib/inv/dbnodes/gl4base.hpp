@@ -45,10 +45,10 @@
 
 #include <tr1/math.h>
 #include <stdlib.h>
-#include "nurbstess.H"
-#include "gl4types.H"
-#include "gl4surfeval.H"
-#include "gl4curveval.H"
+#include "nurbstess.hpp"
+#include "gl4types.hpp"
+#include "gl4surfeval.hpp"
+#include "gl4curveval.hpp"
 
 
 class _SoNurbsGL4Base : public _SoNurbsNurbsTessellator {

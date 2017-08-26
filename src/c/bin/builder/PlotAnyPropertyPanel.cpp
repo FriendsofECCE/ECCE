@@ -6,17 +6,17 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 
-#include "tdat/PropVector.H"
+#include "tdat/PropVector.hpp"
 
-#include "dsm/IPropCalculation.H"
-#include "dsm/PropFactory.H"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/PropFactory.hpp"
 
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxIntClientData.H"
-#include "wxgui/ewxPlotCtrl.H"
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxIntClientData.hpp"
+#include "wxgui/ewxPlotCtrl.hpp"
+#include "wxgui/ewxStaticText.hpp"
 
-#include "PlotAnyPropertyPanel.H"
+#include "PlotAnyPropertyPanel.hpp"
 
 
 wxFORCE_LINK_THIS_MODULE(PlotAnyPropertyPanel)

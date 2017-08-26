@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "PeptideGUI.H"
+#pragma implementation "PeptideGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,12 +23,12 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "PeptideGUI.H"
+#include "PeptideGUI.hpp"
 
 ////@begin XPM images
 

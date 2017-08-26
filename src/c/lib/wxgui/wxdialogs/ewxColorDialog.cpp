@@ -14,9 +14,9 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxColorDialog.H"
-#include "wxgui/ewxColor.H"
-#include "wxgui/ewxSpinCtrl.H"
+#include "wxgui/ewxColorDialog.hpp"
+#include "wxgui/ewxColor.hpp"
+#include "wxgui/ewxSpinCtrl.hpp"
 
 // ColorButton Class
 BEGIN_EVENT_TABLE( ColorButton, wxPanel )

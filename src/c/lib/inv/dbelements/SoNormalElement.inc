@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoNormalElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/elements/SoNormalElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 SO_ELEMENT_SOURCE(SoNormalElement);
 

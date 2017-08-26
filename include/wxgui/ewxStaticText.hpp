@@ -3,7 +3,7 @@
 
 #include <wx/stattext.h>
 
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxStaticText : public wxStaticText, public ewxStyledWindow
 {

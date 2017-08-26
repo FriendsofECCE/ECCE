@@ -57,21 +57,21 @@
 
 #include <assert.h>
 
-#include "inv/SoPath.H"
+#include "inv/SoPath.hpp"
 
-#include "inv/actions/SoSearchAction.H"
+#include "inv/actions/SoSearchAction.hpp"
 
-#include "inv/ChemKit/ChemIntList.H"
-#include "inv/ChemKit/ChemBaseData.H"
+#include "inv/ChemKit/ChemIntList.hpp"
+#include "inv/ChemKit/ChemBaseData.hpp"
 // --> lod
-#include "inv/ChemKit/ChemLOD.H"
+#include "inv/ChemKit/ChemLOD.hpp"
 // <-- lod
 // --> residues
-#include "inv/ChemKit/ChemData.H"
+#include "inv/ChemKit/ChemData.hpp"
 // <-- residues
-#include "inv/ChemKit/ChemDisplay.H"
-#include "inv/ChemKit/ChemDisplayPath.H"
-#include "inv/ChemKit/ChemDisplayPathList.H"
+#include "inv/ChemKit/ChemDisplay.hpp"
+#include "inv/ChemKit/ChemDisplayPath.hpp"
+#include "inv/ChemKit/ChemDisplayPathList.hpp"
 
 
 #define END_OF_LIST 9999999

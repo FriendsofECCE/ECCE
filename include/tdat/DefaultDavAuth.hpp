@@ -1,8 +1,8 @@
 #ifndef DEFAULTDAVAUTH_H
 #define DEFAULTDAVAUTH_H
 
-#include "util/AuthEvent.H"
-#include "tdat/AuthCache.H"
+#include "util/AuthEvent.hpp"
+#include "tdat/AuthCache.hpp"
 
 // This class provides default behavior for the abstract AuthEvent
 // interface.  Its useful for jobstore or apps that aren't going to

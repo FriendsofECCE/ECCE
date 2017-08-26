@@ -3,7 +3,7 @@
  *
  *
  */
-#include "util/MismatchedTypeException.H"
+#include "util/MismatchedTypeException.hpp"
 
 MismatchedTypeException::MismatchedTypeException(const string& msg, 
                                            const char *file, int line)

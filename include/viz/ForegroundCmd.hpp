@@ -1,9 +1,9 @@
 #ifndef FOREGROUNDCMD_HH
 #define FOREGROUNDCMD_HH
 
-#include "inv/SbColor.H"
+#include "inv/SbColor.hpp"
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 /**
  * Wrapper for command to set atom label color.

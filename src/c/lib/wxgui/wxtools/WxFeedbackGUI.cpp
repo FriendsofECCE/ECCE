@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "WxFeedbackGUI.H"
+#pragma implementation "WxFeedbackGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,14 +23,14 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxBitmapButton.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxBitmapButton.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "wxgui/WxFeedbackGUI.H"
+#include "wxgui/WxFeedbackGUI.hpp"
 
 ////@begin XPM images
 

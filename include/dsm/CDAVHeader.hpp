@@ -11,7 +11,7 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPHeader.H"
+#include "dsm/CHTTPHeader.hpp"
 
 // class: CDAVHeader *******************************************************
 

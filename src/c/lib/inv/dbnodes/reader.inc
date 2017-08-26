@@ -39,10 +39,10 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "nurbsconsts.H"
-#include "reader.H"
-#include "trimvertex.H"
+#include "glimports.hpp"
+#include "nurbsconsts.hpp"
+#include "reader.hpp"
+#include "trimvertex.hpp"
 
 O_pwlcurve::O_pwlcurve( long _type, long count, INREAL *array, long byte_stride, TrimVertex *trimpts )
 {

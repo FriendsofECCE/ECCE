@@ -14,16 +14,16 @@ using std::istream;
 
 #include <xercesc/util/PlatformUtils.hpp>
 
-#include "util/EcceURL.H"
-#include "util/IOException.H"
-#include "util/TempStorage.H"
-#include "util/SFile.H"
+#include "util/EcceURL.hpp"
+#include "util/IOException.hpp"
+#include "util/TempStorage.hpp"
+#include "util/SFile.hpp"
 
-#include "dsm/EDSI.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/DavEDSI.H"
-#include "dsm/EDSIExporter.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/EDSI.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/DavEDSI.hpp"
+#include "dsm/EDSIExporter.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
 
 // Restrict meta data exports to non DAV name spaces

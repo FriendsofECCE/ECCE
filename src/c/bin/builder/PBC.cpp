@@ -4,39 +4,39 @@
 
 #include <wx/sizer.h>
 
-#include "util/Transformations.H"
-#include "util/Event.H"
-#include "util/EventDispatcher.H"
+#include "util/Transformations.hpp"
+#include "util/Event.hpp"
+#include "util/EventDispatcher.hpp"
 using namespace ecce;
 
-#include "tdat/LatticeDef.H"
-#include "tdat/PointGroup.H"
-#include "tdat/SymmetryOps.H"
+#include "tdat/LatticeDef.hpp"
+#include "tdat/PointGroup.hpp"
+#include "tdat/SymmetryOps.hpp"
 
-#include "dsm/ICalculation.H"
+#include "dsm/ICalculation.hpp"
 
 
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/ewxListViewComboPopup.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/ewxListViewComboPopup.hpp"
 
-#include "viz/SGLattice.H"
-#include "viz/PBCReplicateCmd.H"
-#include "viz/PBCEditLatticeCmd.H"
-#include "viz/PBCFoldCmd.H"
-#include "viz/PBCEquivRectCmd.H"
-#include "viz/PBCSuperCmd.H"
-#include "viz/PBCCreateCmd.H"
-#include "viz/PBCDeleteCmd.H"
-#include "viz/PBCEditVectorsCmd.H"
-#include "viz/PBCGenerateFragCmd.H"
+#include "viz/SGLattice.hpp"
+#include "viz/PBCReplicateCmd.hpp"
+#include "viz/PBCEditLatticeCmd.hpp"
+#include "viz/PBCFoldCmd.hpp"
+#include "viz/PBCEquivRectCmd.hpp"
+#include "viz/PBCSuperCmd.hpp"
+#include "viz/PBCCreateCmd.hpp"
+#include "viz/PBCDeleteCmd.hpp"
+#include "viz/PBCEditVectorsCmd.hpp"
+#include "viz/PBCGenerateFragCmd.hpp"
 
-#include "PBC.H"
+#include "PBC.hpp"
 
 //#define DEBUG
 

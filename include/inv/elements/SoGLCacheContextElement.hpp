@@ -57,7 +57,7 @@
 #define  _SO_CACHE_CONTEXT_ELEMENT
 
 #include <GL/gl.h>
-#include "inv/elements/SoSubElement.H"
+#include "inv/elements/SoSubElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -15,7 +15,7 @@
 #include <sys/select.h> /* for select(), ... */
 #include <stdlib.h>     /* for free(), malloc() */
 
-#include "dsm/CIPCcsock.H"
+#include "dsm/CIPCcsock.hpp"
 
 /* csocket_accept ********************************************************/
 

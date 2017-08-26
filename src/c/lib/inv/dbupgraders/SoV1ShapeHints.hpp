@@ -56,9 +56,9 @@
 #ifndef  _SO_V1SHAPEHINTS_
 #define  _SO_V1SHAPEHINTS_
 
-#include "inv/upgraders/SoUpgrader.H"
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/fields/SoSFFloat.H"
+#include "inv/upgraders/SoUpgrader.hpp"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/fields/SoSFFloat.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

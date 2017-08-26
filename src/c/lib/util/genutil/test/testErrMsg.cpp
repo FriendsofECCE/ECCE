@@ -2,8 +2,8 @@
 #include <strstream>
 using namespace std;
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
 
 int main(int argc, char** argv)
 {

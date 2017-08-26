@@ -16,9 +16,9 @@
 #include <vector>
   using std::vector;
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
-#include "ContextPanelInterface.H"
+#include "ContextPanelInterface.hpp"
 
 class Resource;
 class CalcMgr;

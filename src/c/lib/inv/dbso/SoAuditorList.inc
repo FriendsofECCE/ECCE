@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/misc/SoAuditorList.H"
-#include "inv/misc/SoBase.H"
-#include "inv/fields/SoField.H"
-#include "inv/sensors/SoDataSensor.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/misc/SoAuditorList.hpp"
+#include "inv/misc/SoBase.hpp"
+#include "inv/fields/SoField.hpp"
+#include "inv/sensors/SoDataSensor.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

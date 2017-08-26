@@ -12,7 +12,7 @@
 using std::string;
 using std::deque;
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class Command;
 

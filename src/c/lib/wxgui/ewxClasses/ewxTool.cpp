@@ -2,12 +2,12 @@
 #include "wx/frame.h"
 #include "wx/bmpbuttn.h"
 
-#include "dsm/EDSIServerCentral.H"
+#include "dsm/EDSIServerCentral.hpp"
 
-#include "wxgui/ewxFrame.H"
-#include "wxgui/CalcDropHandler.H"
-#include "wxgui/ewxStatusBar.H"
-#include "wxgui/ewxTool.H"
+#include "wxgui/ewxFrame.hpp"
+#include "wxgui/CalcDropHandler.hpp"
+#include "wxgui/ewxStatusBar.hpp"
+#include "wxgui/ewxTool.hpp"
 
 
 ewxTool::ewxTool()

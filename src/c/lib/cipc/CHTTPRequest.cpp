@@ -8,9 +8,9 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPDefs.H"
-#include "dsm/CHTTPUtils.H"
-#include "dsm/CHTTPRequest.H"
+#include "dsm/CHTTPDefs.hpp"
+#include "dsm/CHTTPUtils.hpp"
+#include "dsm/CHTTPRequest.hpp"
 
 // CHTTPRequest::method ****************************************************
 

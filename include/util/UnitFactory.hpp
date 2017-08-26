@@ -23,10 +23,10 @@
   using std::vector;
   using std::map;
 
-#include "util/InvalidException.H"
-#include "util/UnitConverter.H"
+#include "util/InvalidException.hpp"
+#include "util/UnitConverter.hpp"
 
-#include "util/UnitFamily.H"
+#include "util/UnitFamily.hpp"
 
 /**
  *  The UnitFactory class will return the correct UnitConverter for a given

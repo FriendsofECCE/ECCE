@@ -20,7 +20,7 @@
   using std::ostream;
   using std::endl;
 
-#include "tdat/TOxidationState.H"
+#include "tdat/TOxidationState.hpp"
 
 // -----------------------
 // Public Member Functions

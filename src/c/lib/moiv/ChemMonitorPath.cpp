@@ -55,12 +55,12 @@
 
 #ident "$Revision: 22147 $"
 
-#include "inv/actions/SoSearchAction.H"
+#include "inv/actions/SoSearchAction.hpp"
 
-#include "inv/ChemKit/ChemIntList.H"
-#include "inv/ChemKit/ChemMonitorPath.H"
-#include "inv/ChemKit/ChemBaseData.H"
-#include "inv/ChemKit/ChemMonitor.H"
+#include "inv/ChemKit/ChemIntList.hpp"
+#include "inv/ChemKit/ChemMonitorPath.hpp"
+#include "inv/ChemKit/ChemBaseData.hpp"
+#include "inv/ChemKit/ChemMonitor.hpp"
 
 SoType ChemMonitorPath::classTypeId;
 

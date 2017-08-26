@@ -56,8 +56,8 @@
 #ifndef  _SO_CLIP_PLANE_ELEMENT
 #define  _SO_CLIP_PLANE_ELEMENT
 
-#include "inv/SbLinear.H"
-#include "inv/elements/SoAccumulatedElement.H"
+#include "inv/SbLinear.hpp"
+#include "inv/elements/SoAccumulatedElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

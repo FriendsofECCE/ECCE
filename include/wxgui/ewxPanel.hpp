@@ -3,7 +3,7 @@
 
 #include "wx/panel.h"
 
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxPanel : public wxPanel, public ewxStyledWindow
 {

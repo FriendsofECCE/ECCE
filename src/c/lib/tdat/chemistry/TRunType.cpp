@@ -12,9 +12,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "tdat/TRunType.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "tdat/TRunType.hpp"
 
 // -----------------------
 // Public Member Functions

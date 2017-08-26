@@ -56,9 +56,9 @@
 #ifndef  _SO_ROTATION_XYZ_
 #define  _SO_ROTATION_XYZ_
 
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/nodes/SoTransformation.H"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/nodes/SoTransformation.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

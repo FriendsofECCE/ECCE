@@ -6,7 +6,7 @@
  */
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-#pragma implementation "ewxFileData.H"
+#pragma implementation "ewxFileData.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx.h".
@@ -18,12 +18,12 @@
 
 #if wxUSE_FILEDLG
 
-#include "dsm/Resource.H"
-#include "dsm/ResourceDescriptor.H"
-#include "util/ResourceUtils.H"
-#include "util/TDateTime.H"
-#include "wxgui/ewxFileData.H"
-#include "wxgui/WxResourceImageList.H"
+#include "dsm/Resource.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "util/ResourceUtils.hpp"
+#include "util/TDateTime.hpp"
+#include "wxgui/ewxFileData.hpp"
+#include "wxgui/WxResourceImageList.hpp"
 
 /**
  *

@@ -37,13 +37,13 @@
 #ifndef __glupwlarc_h_
 #define __glupwlarc_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * pwlarc.h - $Revision: 22116 $
  */
 
-#include "myassert.H"
-#include "nurbsconsts.H"
+#include "myassert.hpp"
+#include "nurbsconsts.hpp"
 
 class TrimVertex;
 

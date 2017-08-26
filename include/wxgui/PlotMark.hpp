@@ -17,8 +17,8 @@
 
 #include "wx/bitmap.h"
 #include "wx/geometry.h"
-#include "wxgui/PlotDefs.H"
-#include "wxgui/ThingGenergdi.H"
+#include "wxgui/PlotDefs.hpp"
+#include "wxgui/ThingGenergdi.hpp"
 
 class WXDLLIMPEXP_FWD_PLOTCTRL wxPlotCtrl;
 class WXDLLIMPEXP_FWD_PLOTCTRL wxPlotMarker;

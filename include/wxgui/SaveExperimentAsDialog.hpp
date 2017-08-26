@@ -4,7 +4,7 @@
 #include <string>
   using std::string;
 
-#include "wxgui/ewxGenericFileDialog.H"
+#include "wxgui/ewxGenericFileDialog.hpp"
 
 class Fragment;
 class wxBitmapComboBox;

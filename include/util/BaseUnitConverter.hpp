@@ -13,7 +13,7 @@ using std::string;
 using std::map;
 using std::less;
 
-#include "util/UnitConverter.H"
+#include "util/UnitConverter.hpp"
 
 /**
  * Abstract base class that provides structures and

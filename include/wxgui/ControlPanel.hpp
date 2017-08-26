@@ -5,7 +5,7 @@
  * Includes
  */
 
-#include "wxgui/ControlPanelGUI.H"
+#include "wxgui/ControlPanelGUI.hpp"
 
 class ControlModel;
 class MDPanelHelper;

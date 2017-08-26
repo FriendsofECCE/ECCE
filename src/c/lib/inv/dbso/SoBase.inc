@@ -54,20 +54,20 @@
 #include <dlfcn.h>
 #include <ctype.h>
 
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/SoOutput.H"
-#include "inv/SoPath.H"
-#include "inv/sensors/SoDataSensor.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoReadError.H"
-#include "inv/fields/SoField.H"
-#include "inv/misc/SoBase.H"
-#include "inv/misc/SoNotification.H"
-#include "inv/upgraders/SoUpgrader.H"
-#include "SoUnknownNode.H"
-#include "SoUnknownEngine.H"
-#include "SoGlobalField.H"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/sensors/SoDataSensor.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/fields/SoField.hpp"
+#include "inv/misc/SoBase.hpp"
+#include "inv/misc/SoNotification.hpp"
+#include "inv/upgraders/SoUpgrader.hpp"
+#include "SoUnknownNode.hpp"
+#include "SoUnknownEngine.hpp"
+#include "SoGlobalField.hpp"
 
 // The global name dictionaries
 SbDict		*SoBase::nameObjDict;

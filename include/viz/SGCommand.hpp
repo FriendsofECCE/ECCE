@@ -5,7 +5,7 @@
 #include <string>
 using std::string;
 
-#include "viz/VCommand.H"
+#include "viz/VCommand.hpp"
 
 class SGFragment;
 

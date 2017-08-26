@@ -35,7 +35,7 @@
  */
 
 #include <stdio.h>
-#include "softsurfacemaps.H"
+#include "softsurfacemaps.hpp"
 
 _SoNurbsVertex3SurfaceMap::~_SoNurbsVertex3SurfaceMap(){}
 void _SoNurbsVertex3SurfaceMap::domain( float * ) { }

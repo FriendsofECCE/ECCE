@@ -9,7 +9,7 @@
 #include <string>
 using std::string;
 
-#include "util/Event.H"
+#include "util/Event.hpp"
   using namespace ecce;
 
 

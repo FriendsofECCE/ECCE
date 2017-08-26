@@ -57,9 +57,9 @@
 #ifndef  _SO_PATH_
 #define  _SO_PATH_
 
-#include "inv/misc/SoBase.H"
-#include "inv/nodes/SoNode.H"
-#include "inv/SoLists.H"
+#include "inv/misc/SoBase.hpp"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/SoLists.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -19,9 +19,9 @@
 #include <xercesc/dom/DOMNode.hpp>
   using namespace xercesc;
 
-#include "dsm/ICalculation.H"
+#include "dsm/ICalculation.hpp"
 
-#include "util/IOException.H"
+#include "util/IOException.hpp"
 
 class EDSI;
 class MetaDataResult;

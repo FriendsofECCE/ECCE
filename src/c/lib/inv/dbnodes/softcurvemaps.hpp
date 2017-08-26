@@ -45,8 +45,8 @@
 
 #include <inttypes.h>   /* defines long and brethren */
 
-#include "softcurvmap.H"
-#include "gl4types.H"
+#include "softcurvmap.hpp"
+#include "gl4types.hpp"
 
 class _SoNurbsColor4CurveMap : public _SoNurbsCurveMap
 {

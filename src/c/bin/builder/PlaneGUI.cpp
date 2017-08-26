@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "PlaneGUI.H"
+#pragma implementation "PlaneGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,17 +23,17 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxDialog.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxNotebook.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxDialog.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxNotebook.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "PlaneGUI.H"
+#include "PlaneGUI.hpp"
 
 ////@begin XPM images
 

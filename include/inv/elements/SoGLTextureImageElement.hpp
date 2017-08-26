@@ -58,7 +58,7 @@
 
 class SoGLDisplayList;
 
-#include "inv/elements/SoTextureImageElement.H"
+#include "inv/elements/SoTextureImageElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

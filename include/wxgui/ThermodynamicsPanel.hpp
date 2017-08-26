@@ -5,7 +5,7 @@
  * Includes
  */
 
-#include "wxgui/ThermodynamicsPanelGUI.H"
+#include "wxgui/ThermodynamicsPanelGUI.hpp"
 
 class MDPanelHelper;
 class ThermodynamicsModel;

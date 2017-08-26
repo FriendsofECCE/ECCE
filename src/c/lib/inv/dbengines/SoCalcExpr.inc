@@ -54,8 +54,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include "inv/errors/SoDebugError.H"
-#include "SoCalcExpr.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "SoCalcExpr.hpp"
 
 // for development, these provide a builtin
 // data storage location (don't need to

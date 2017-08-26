@@ -10,13 +10,13 @@
 
 #include "wx/wx.h"
 
-#include "util/EcceException.H"
-#include "util/IOException.H"
-#include "util/EditListener.H"
+#include "util/EcceException.hpp"
+#include "util/IOException.hpp"
+#include "util/EditListener.hpp"
 
-#include "tdat/SpinMult.H"
+#include "tdat/SpinMult.hpp"
 
-#include "NWDirdySetupGUI.H"
+#include "NWDirdySetupGUI.hpp"
 
 class JMSMessage;
 class WxJMSMessageDispatch;

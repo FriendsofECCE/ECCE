@@ -5,15 +5,15 @@
  *
  *
  */
-#include "dsm/Resource.H"
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/ResourceType.H"
+#include "dsm/Resource.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/ResourceType.hpp"
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
-#include "wxgui/ewxBitmap.H"
+#include "wxgui/ewxBitmap.hpp"
 
-#include "wxgui/WxResourceImageList.H"
+#include "wxgui/WxResourceImageList.hpp"
 
 
 WxResourceImageList* WxResourceImageList::p_singleton = 0;

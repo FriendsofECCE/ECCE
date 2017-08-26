@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/misc/SoBase.H"
-#include "inv/misc/SoNotification.H"
-#include "inv/fields/SoField.H"
-#include "inv/nodes/SoNode.H"
+#include "inv/misc/SoBase.hpp"
+#include "inv/misc/SoNotification.hpp"
+#include "inv/fields/SoField.hpp"
+#include "inv/nodes/SoNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

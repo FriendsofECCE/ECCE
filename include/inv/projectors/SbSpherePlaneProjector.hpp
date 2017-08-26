@@ -62,7 +62,7 @@
 #ifndef _SB_SPHERE_PLANE_PROJECTOR_
 #define _SB_SPHERE_PLANE_PROJECTOR_
 
-#include "inv/projectors/SbSphereSectionProjector.H"
+#include "inv/projectors/SbSphereSectionProjector.hpp"
 
 // C-api: prefix=SbSphPlnProj
 class SbSpherePlaneProjector : public SbSphereSectionProjector

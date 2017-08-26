@@ -3,7 +3,7 @@
  *
  *
  */
-#include "util/InternalException.H"
+#include "util/InternalException.hpp"
 
 InternalException::InternalException(const string& msg, 
                                            const char *file, int line)

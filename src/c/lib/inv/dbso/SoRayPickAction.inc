@@ -51,14 +51,14 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoPickedPoint.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/elements/SoClipPlaneElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/elements/SoPickRayElement.H"
-#include "inv/elements/SoViewportRegionElement.H"
-#include "inv/elements/SoViewVolumeElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/elements/SoClipPlaneElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/elements/SoPickRayElement.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
+#include "inv/elements/SoViewVolumeElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 SO_ACTION_SOURCE(SoRayPickAction);
 

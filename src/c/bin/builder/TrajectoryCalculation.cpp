@@ -1,14 +1,14 @@
 
 #include <wx/link.h>
 
-#include "util/STLUtil.H"
+#include "util/STLUtil.hpp"
 
-#include "tdat/Fragment.H"
+#include "tdat/Fragment.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/Resource.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/Resource.hpp"
 
-#include "TrajectoryCalculation.H"
+#include "TrajectoryCalculation.hpp"
 
 
 wxFORCE_LINK_THIS_MODULE(TrajectoryCalculation)

@@ -56,8 +56,8 @@
 #ifndef  _SO_PERSPECTIVE_CAMERA_
 #define  _SO_PERSPECTIVE_CAMERA_
 
-#include "inv/fields/SoSFFloat.H"
-#include "inv/nodes/SoCamera.H"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/nodes/SoCamera.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

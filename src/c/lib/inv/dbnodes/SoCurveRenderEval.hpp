@@ -56,8 +56,8 @@
 #ifndef  _SO_NURBS_CURVE_RENDER_EVAL_
 #define  _SO_NURBS_CURVE_RENDER_EVAL_
 
-#include "inv/SbLinear.H"
-#include "softcurveval.H"
+#include "inv/SbLinear.hpp"
+#include "softcurveval.hpp"
 
 class _SoNurbsCurveV3Map;
 class _SoNurbsCurveV4Map;

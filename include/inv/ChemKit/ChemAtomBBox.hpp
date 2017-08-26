@@ -57,9 +57,9 @@
 #ifndef __CHEM_ATOMBBOX_H__
 #define __CHEM_ATOMBBOX_H__
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

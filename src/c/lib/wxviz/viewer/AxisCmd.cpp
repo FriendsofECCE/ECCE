@@ -1,10 +1,10 @@
-#include "inv/nodes/SoSeparator.H"
+#include "inv/nodes/SoSeparator.hpp"
 
 
-#include "wxviz/SGViewer.H"
-#include "wxviz/AxisCmd.H"
+#include "wxviz/SGViewer.hpp"
+#include "wxviz/AxisCmd.hpp"
 
-#include "viz/EcceAxis.H"
+#include "viz/EcceAxis.hpp"
 
 AxisCmd::AxisCmd(const string& name, Receiver *receiver)
        : Command(name, receiver)

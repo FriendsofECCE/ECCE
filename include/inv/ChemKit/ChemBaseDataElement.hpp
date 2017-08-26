@@ -57,10 +57,10 @@
 #ifndef  __CHEM_BASE_DATA_ELEMENT_H__
 #define  __CHEM_BASE_DATA_ELEMENT_H__
 
-#include "inv/elements/SoReplacedElement.H"
+#include "inv/elements/SoReplacedElement.hpp"
 
-#include "inv/ChemKit/ChemBaseData.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemBaseData.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 
 //////////////////////////////////////////////////////////////////////////////

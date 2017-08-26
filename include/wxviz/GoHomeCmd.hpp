@@ -2,7 +2,7 @@
 #define GOHOMECMD_HH
 
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class GoHomeCmd : public Command
 {

@@ -37,13 +37,13 @@
 #ifndef __glureader_h_
 #define __glureader_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * reader.h - $Revision: 22116 $
  */
 
-#include "bufpool.H"
-#include "types.H"
+#include "bufpool.hpp"
+#include "types.hpp"
 
 enum Curvetype { ct_nurbscurve, ct_pwlcurve, ct_none };
     

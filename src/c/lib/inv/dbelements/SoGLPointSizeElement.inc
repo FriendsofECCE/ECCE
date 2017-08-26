@@ -52,10 +52,10 @@
  */
 
 #include <GL/gl.h>
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoGLPointSizeElement.H"
-#include "inv/elements/SoViewportRegionElement.H"
-#include "inv/misc/SoState.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoGLPointSizeElement.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
+#include "inv/misc/SoState.hpp"
 
 SO_ELEMENT_SOURCE(SoGLPointSizeElement);
 

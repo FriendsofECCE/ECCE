@@ -52,11 +52,11 @@
  */
 
 
-#include "inv/SoLists.H"
-#include "inv/elements/SoCacheElement.H"
-#include "inv/elements/SoElement.H"
-#include "inv/misc/SoState.H"
-#include "inv/nodes/SoNode.H"
+#include "inv/SoLists.hpp"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/elements/SoElement.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/nodes/SoNode.hpp"
 
 // Static variables declared in SoElement.h:
 

@@ -19,7 +19,7 @@
   using std::string;
   using std::vector;
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
 
 class HistoryList : protected vector<EcceURL> {

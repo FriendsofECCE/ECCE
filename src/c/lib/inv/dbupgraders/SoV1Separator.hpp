@@ -56,7 +56,7 @@
 #ifndef  _SO_V1SEPARATOR_
 #define  _SO_V1SEPARATOR_
 
-#include "inv/upgraders/SoUpgrader.H"
+#include "inv/upgraders/SoUpgrader.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

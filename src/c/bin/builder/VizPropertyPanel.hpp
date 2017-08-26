@@ -6,9 +6,9 @@
 #include <set>
   using std::set;
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
-#include "PropertyPanel.H"
+#include "PropertyPanel.hpp"
 
 
 class wxCustomButton;

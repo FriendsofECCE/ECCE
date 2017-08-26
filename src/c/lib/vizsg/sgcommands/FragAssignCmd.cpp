@@ -6,17 +6,17 @@
 #include <iostream>
   using namespace std;
 
-#include "util/InvalidException.H"
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/InvalidException.hpp"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "tdat/TAtm.H"
-#include "tdat/TBond.H"
+#include "tdat/TAtm.hpp"
+#include "tdat/TBond.hpp"
 
-#include "viz/FragAssignCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/FragAssignCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 FragAssignCmd::FragAssignCmd(const string& name, Receiver * receiver)
     : Command(name, receiver)

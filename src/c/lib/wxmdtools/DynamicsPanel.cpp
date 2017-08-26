@@ -1,6 +1,6 @@
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "DynamicsPanel.H"
+#pragma implementation "DynamicsPanel.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -14,23 +14,23 @@
   using std::cout;
   using std::endl;
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/TaskJob.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/TaskJob.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "tdat/DynamicsModel.H"
+#include "tdat/DynamicsModel.hpp"
 
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxRadioButton.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxUnitHelper.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/MDPanelHelper.H"
-#include "wxgui/WxFeedback.H"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxRadioButton.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxUnitHelper.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/MDPanelHelper.hpp"
+#include "wxgui/WxFeedback.hpp"
 
-#include "wxgui/DynamicsPanel.H"
+#include "wxgui/DynamicsPanel.hpp"
 
 /**
  * DynamicsPanel constructors and destructors

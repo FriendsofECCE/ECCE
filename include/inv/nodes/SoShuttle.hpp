@@ -56,9 +56,9 @@
 #ifndef  _SO_SHUTTLE_
 #define  _SO_SHUTTLE_
 
-#include "inv/nodes/SoTranslation.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFBool.H"
+#include "inv/nodes/SoTranslation.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFBool.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

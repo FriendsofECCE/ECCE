@@ -11,12 +11,12 @@
 #ifndef WXMACHINEREGISTERAPP_HH
 #define WXMACHINEREGISTERAPP_HH
 
-#include "util/JMSMessage.H"
+#include "util/JMSMessage.hpp"
 
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/ewxApp.H"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/ewxApp.hpp"
 
-#include "WxMachineRegister.H"
+#include "WxMachineRegister.hpp"
 
 
 class WxMachineRegisterApp : public ewxApp, public WxJMSMessageDispatch

@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/projectors/SbPlaneProjector.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/projectors/SbPlaneProjector.hpp"
+#include "inv/errors/SoDebugError.hpp"
 #include <stdio.h>
 
 ////////////////////////////////////////////////////////////////////////

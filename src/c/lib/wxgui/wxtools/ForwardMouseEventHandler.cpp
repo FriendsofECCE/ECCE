@@ -1,4 +1,4 @@
-#include "wxgui/ForwardMouseEventHandler.H"
+#include "wxgui/ForwardMouseEventHandler.hpp"
 
 
 BEGIN_EVENT_TABLE(ForwardMouseEventHandler, wxEvtHandler)

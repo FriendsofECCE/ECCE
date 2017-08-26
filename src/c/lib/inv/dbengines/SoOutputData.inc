@@ -51,12 +51,12 @@
  _______________________________________________________________________
  */
 
-#include "inv/SbString.H"
-#include "inv/SoInput.H"
-#include "inv/SoOutput.H"
-#include "inv/engines/SoOutputData.H"
-#include "inv/engines/SoEngine.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/SbString.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/engines/SoOutputData.hpp"
+#include "inv/engines/SoEngine.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 // Syntax for reading/writing type information to files
 #define OPEN_BRACE_CHAR		'['

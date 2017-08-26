@@ -8,8 +8,8 @@
 #include <vector>
   using std::vector;
 
-#include "dsm/FileEDSI.H"
-#include "tdat/Segment.H"
+#include "dsm/FileEDSI.hpp"
+#include "tdat/Segment.hpp"
 
 class Residue;
 class Fragment;

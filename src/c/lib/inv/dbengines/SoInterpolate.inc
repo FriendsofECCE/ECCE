@@ -56,7 +56,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/engines/SoInterpolate.H"
+#include "inv/engines/SoInterpolate.hpp"
 
 ////////////////
 //

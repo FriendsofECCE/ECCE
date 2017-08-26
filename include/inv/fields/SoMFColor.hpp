@@ -56,9 +56,9 @@
 #ifndef  _SO_MF_COLOR_
 #define  _SO_MF_COLOR_
 
-#include "inv/fields/SoSubField.H"
-#include "inv/SbColor.H"
-#include "inv/fields/SoMFVec3f.H"
+#include "inv/fields/SoSubField.hpp"
+#include "inv/SbColor.hpp"
+#include "inv/fields/SoMFVec3f.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

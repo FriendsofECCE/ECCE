@@ -37,12 +37,12 @@
 #ifndef __gluvarray_h_
 #define __gluvarray_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * varray.h - $Revision: 22116 $
  */
 
-#include "types.H"
+#include "types.hpp"
 
 class Arc;
 

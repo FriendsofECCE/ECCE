@@ -14,7 +14,7 @@
 #include <string>
 using std::string;
 
-#include "util/SystemCommandException.H"
+#include "util/SystemCommandException.hpp"
 
 class CommandWrapper 
 {

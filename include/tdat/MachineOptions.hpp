@@ -27,9 +27,9 @@
 #include <string>
     using std::string;
 
-#include "util/StringTokenizer.H"
+#include "util/StringTokenizer.hpp"
 
-#include "tdat/RefMachine.H"
+#include "tdat/RefMachine.hpp"
 
 
 enum MachineOptionConstants

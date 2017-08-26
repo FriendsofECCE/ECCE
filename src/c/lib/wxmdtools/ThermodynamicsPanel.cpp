@@ -1,6 +1,6 @@
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "ThermodynamicsPanel.H"
+#pragma implementation "ThermodynamicsPanel.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -10,17 +10,17 @@
 #include "wx/wx.h"
 #endif
 
-#include "tdat/ThermodynamicsModel.H"
+#include "tdat/ThermodynamicsModel.hpp"
 
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxUnitHelper.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/MDPanelHelper.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxUnitHelper.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/MDPanelHelper.hpp"
 
-#include "wxgui/ThermodynamicsPanel.H"
+#include "wxgui/ThermodynamicsPanel.hpp"
 
 /*!
  * ThermodynamicsPanel constructors

@@ -7,9 +7,9 @@
 #define DIRDYVTSTTASK_HH
 
 
-#include "tdat/Fragment.H"
-#include "dsm/TaskJob.H"
-#include "dsm/DavCalculation.H"
+#include "tdat/Fragment.hpp"
+#include "dsm/TaskJob.hpp"
+#include "dsm/DavCalculation.hpp"
 
 class TTheory;
 class TGBSConfig;

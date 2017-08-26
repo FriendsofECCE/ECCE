@@ -1,17 +1,17 @@
 #ifndef WXBASISTOOL_HH
 #define WXBASISTOOL_HH
 
-#include "util/JMSPublisher.H"
+#include "util/JMSPublisher.hpp"
 
-#include "dsm/TGaussianBasisSet.H"
-#include "dsm/TGBSConfig.H"
+#include "dsm/TGaussianBasisSet.hpp"
+#include "dsm/TGBSConfig.hpp"
 
-#include "wxgui/CalcDropHandler.H"
-#include "wxgui/FeedbackSaveHandler.H"
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/WxFeedback.H"
+#include "wxgui/CalcDropHandler.hpp"
+#include "wxgui/FeedbackSaveHandler.hpp"
+#include "wxgui/WxDavAuth.hpp"
+#include "wxgui/WxFeedback.hpp"
 
-#include "WxBasisToolGUI.H"
+#include "WxBasisToolGUI.hpp"
 
 class EDSIGaussianBasisSetLibrary;
 class ewxButton;

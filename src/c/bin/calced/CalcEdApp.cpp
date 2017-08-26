@@ -1,14 +1,14 @@
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
-#include "tdat/AuthCache.H"
+#include "tdat/AuthCache.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSIServerCentral.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSIServerCentral.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "CalcEdApp.H"
-#include "CalcEd.H"
+#include "CalcEdApp.hpp"
+#include "CalcEd.hpp"
 
 IMPLEMENT_APP(CalcEdApp)
 

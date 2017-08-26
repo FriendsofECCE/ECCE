@@ -24,10 +24,10 @@
 using std::string;
 using std::vector;
 
-#include "util/IndexOutOfRangeException.H"
-#include "util/SFile.H"
+#include "util/IndexOutOfRangeException.hpp"
+#include "util/SFile.hpp"
 
-#include "tdat/FFCategory.H"
+#include "tdat/FFCategory.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
 class FFSources 

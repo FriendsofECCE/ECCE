@@ -18,10 +18,10 @@
     using std::istream;
 
 // application includes:
-   #include "util/EcceURL.H"
+   #include "util/EcceURL.hpp"
 
-   #include "dsm/TGaussianBasisSet.H"
-   #include "dsm/TGBSGroup.H"
+   #include "dsm/TGaussianBasisSet.hpp"
+   #include "dsm/TGBSGroup.hpp"
 
 class TGBSConfig;
 class EDSI;

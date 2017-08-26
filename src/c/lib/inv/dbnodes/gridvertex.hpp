@@ -37,7 +37,7 @@
 #ifndef __glugridvertex_h_
 #define __glugridvertex_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * gridvertex.h - $Revision: 22116 $
  */

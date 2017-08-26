@@ -25,8 +25,8 @@
 #include <time.h>  // gmtime_r, localtime_r
 #include <string.h>
 
-#include "util/ErrMsg.H"
-#include "util/TDateTime.H"
+#include "util/ErrMsg.hpp"
+#include "util/TDateTime.hpp"
 
 #ifndef __APPLE__
 extern time_t timezone;

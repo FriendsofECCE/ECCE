@@ -9,7 +9,7 @@
  using std::endl;
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "WxFeedback.H"
+#pragma implementation "WxFeedback.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -25,27 +25,27 @@
 
 #include "wx/bitmap.h"  // for wxNullBitmap
 
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
-#include "util/ResourceUtils.H"
-#include "util/Color.H"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
+#include "util/JMSMessage.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/ResourceUtils.hpp"
+#include "util/Color.hpp"
 
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/PropertyTask.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/VDoc.H"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/PropertyTask.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/VDoc.hpp"
 
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxMenu.H"
-#include "wxgui/WxState.H"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/DnDCalcDrop.H"
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxColor.H"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxMenu.hpp"
+#include "wxgui/WxState.hpp"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/DnDCalcDrop.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxColor.hpp"
 
 
 WxFeedback* WxFeedback::p_feedback = (WxFeedback*)0;

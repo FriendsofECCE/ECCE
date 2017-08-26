@@ -23,7 +23,7 @@
 #include <string>
     using std::string;
 
-#include "WxConfigureAccessGUI.H"
+#include "WxConfigureAccessGUI.hpp"
 
 class ewxButton;
 class ewxChoice;

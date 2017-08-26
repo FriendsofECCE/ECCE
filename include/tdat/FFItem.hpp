@@ -13,7 +13,7 @@
 using std::vector;
 using std::string;
 
-#include "util/IndexOutOfRangeException.H"
+#include "util/IndexOutOfRangeException.hpp"
 
 /**
  * The FFItem (Force Field Item) class comprises information and methods for 

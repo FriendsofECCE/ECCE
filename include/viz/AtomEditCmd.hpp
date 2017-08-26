@@ -6,7 +6,7 @@
 #ifndef  ATOMEDITCMD_H
 #define  ATOMEDITCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

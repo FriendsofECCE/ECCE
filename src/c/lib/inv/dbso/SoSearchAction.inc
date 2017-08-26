@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoSearchAction.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/actions/SoSearchAction.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 SO_ACTION_SOURCE(SoSearchAction);
 

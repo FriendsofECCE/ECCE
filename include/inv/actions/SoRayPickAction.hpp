@@ -56,8 +56,8 @@
 #ifndef  _SO_RAY_PICK_ACTION_
 #define  _SO_RAY_PICK_ACTION_
 
-#include "inv/SoLists.H"
-#include "inv/actions/SoPickAction.H"
+#include "inv/SoLists.hpp"
+#include "inv/actions/SoPickAction.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

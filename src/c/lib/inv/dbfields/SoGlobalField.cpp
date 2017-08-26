@@ -63,9 +63,9 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoReadError.H"
-#include "SoGlobalField.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoReadError.hpp"
+#include "SoGlobalField.hpp"
 
 // SbName to SoGlobalField* dictionary.  Keyed by the name.
 SbDict *SoGlobalField::nameDict;

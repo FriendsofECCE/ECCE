@@ -13,8 +13,8 @@
 
 #include <stdlib.h>
 
-#include "wxgui/TableColumn.H"
-#include "util/StringConverter.H"
+#include "wxgui/TableColumn.hpp"
+#include "util/StringConverter.hpp"
 
 
 TableColumn::TableColumn(string label)

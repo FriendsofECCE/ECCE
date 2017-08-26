@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/fields/SoField.H"
-#include "inv/fields/SoFieldContainer.H"
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/fields/SoField.hpp"
+#include "inv/fields/SoFieldContainer.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

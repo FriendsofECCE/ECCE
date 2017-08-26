@@ -7,12 +7,12 @@ using std::ostream;
 #include <vector>
 using std::vector;
 
-#include "inv/events/SoMouseButtonEvent.H"
-#include "inv/elements/SoViewVolumeElement.H"
+#include "inv/events/SoMouseButtonEvent.hpp"
+#include "inv/elements/SoViewVolumeElement.hpp"
 
-#include "inv/ChemKit/ChemSelection.H"
+#include "inv/ChemKit/ChemSelection.hpp"
 
-#include "wxviz/MotionData.H"
+#include "wxviz/MotionData.hpp"
 
 class SGViewer;
 class SGFragment;

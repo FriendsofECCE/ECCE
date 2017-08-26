@@ -9,12 +9,12 @@
  */
 
 
-#include "util/StringConverter.H"
-#include "util/StringTokenizer.H"
+#include "util/StringConverter.hpp"
+#include "util/StringTokenizer.hpp"
 
-#include "tdat/QueueMgr.H"
+#include "tdat/QueueMgr.hpp"
 
-#include "MachineTableElement.H"
+#include "MachineTableElement.hpp"
 
 
 MachineTableElement::MachineTableElement(MachinePreferences *prefs)

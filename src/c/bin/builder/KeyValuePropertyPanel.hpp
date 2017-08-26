@@ -1,7 +1,7 @@
 #ifndef KEYVALUEPROPERTYPANEL_H_
 #define KEYVALUEPROPERTYPANEL_H_
 
-#include "PropertyPanel.H"
+#include "PropertyPanel.hpp"
 
 class KeyValuePropertyPanel : public PropertyPanel
 {

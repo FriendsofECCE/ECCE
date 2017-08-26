@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoLineWidthElement.H"
+#include "inv/elements/SoLineWidthElement.hpp"
 
 SO_ELEMENT_SOURCE(SoLineWidthElement);
 

@@ -3,8 +3,8 @@
 
 #include <wx/listctrl.h>
 
-#include "wxgui/ewxGenericValidator.H"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxGenericValidator.hpp"
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxListView : public wxListView, public ewxStyledWindow
 {

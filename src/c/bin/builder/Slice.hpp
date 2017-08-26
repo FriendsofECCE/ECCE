@@ -1,14 +1,14 @@
 #ifndef _SLICE_H_
 #define _SLICE_H_
 
-#include "util/Event.H"
+#include "util/Event.hpp"
   using ecce::Event;
-#include "util/Listener.H"
+#include "util/Listener.hpp"
   using ecce::Listener;
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
-#include "SliceGUI.H"
+#include "SliceGUI.hpp"
 
 class Slice: public SliceGUI, public WxVizTool, public Listener
 {    

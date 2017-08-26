@@ -2,9 +2,9 @@
   using namespace std;
 
 #include <map>
-#include "util/EcceSortedVector.H"
-#include "util/CompareOps.H"
-#include "tdat/TTCPair.H"
+#include "util/EcceSortedVector.hpp"
+#include "util/CompareOps.hpp"
+#include "tdat/TTCPair.hpp"
 
 int main(int argc, char** argv)
 {

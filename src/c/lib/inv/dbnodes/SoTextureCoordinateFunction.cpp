@@ -52,7 +52,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/nodes/SoTextureCoordinateFunction.H"
+#include "inv/nodes/SoTextureCoordinateFunction.hpp"
 
 SO_NODE_SOURCE(SoTextureCoordinateFunction);
 

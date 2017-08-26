@@ -17,9 +17,9 @@
 #include <map>
   using std::map;
 
-#include "util/IOException.H"
+#include "util/IOException.hpp"
 
-#include "tdat/ITaskModel.H"
+#include "tdat/ITaskModel.hpp"
 
 /**
  * Model for implementing NWChem MD Prepare module GUI.

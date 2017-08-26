@@ -51,37 +51,37 @@
  _______________________________________________________________________
  */
 
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
-#include "inv/SoPath.H"
-#include "inv/SoPickedPoint.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/SoPickedPoint.hpp"
 
-#include "inv/events/SoEvent.H"
-#include "inv/events/SoKeyboardEvent.H"
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/events/SoEvent.hpp"
+#include "inv/events/SoKeyboardEvent.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
 
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoHandleEventAction.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
 
-#include "inv/elements/SoCacheElement.H"
-#include "inv/elements/SoProjectionMatrixElement.H"
-#include "inv/elements/SoViewingMatrixElement.H"
-#include "inv/elements/SoViewportRegionElement.H"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/elements/SoProjectionMatrixElement.hpp"
+#include "inv/elements/SoViewingMatrixElement.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
 
-#include "inv/nodes/SoCoordinate3.H"
-#include "inv/nodes/SoIndexedFaceSet.H"
-#include "inv/nodes/SoMaterial.H"
-#include "inv/nodes/SoMaterialBinding.H"
-#include "inv/nodes/SoNormalBinding.H"
-#include "inv/nodes/SoNormal.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoShapeHints.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/nodes/SoTransform.H"
+#include "inv/nodes/SoCoordinate3.hpp"
+#include "inv/nodes/SoIndexedFaceSet.hpp"
+#include "inv/nodes/SoMaterial.hpp"
+#include "inv/nodes/SoMaterialBinding.hpp"
+#include "inv/nodes/SoNormalBinding.hpp"
+#include "inv/nodes/SoNormal.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoShapeHints.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/nodes/SoTransform.hpp"
 
-#include "inv/draggers/SoTabPlaneDragger.H"
+#include "inv/draggers/SoTabPlaneDragger.hpp"
 
-#include "SoTabPlaneDraggerGeom.H"
+#include "SoTabPlaneDraggerGeom.hpp"
 
 #ifndef __sgi
 #define _ABS(x) ((x) < 0 ? -(x) : (x))

@@ -13,8 +13,8 @@
   using std::ostrstream;
 
  
-#include "NWDirdy.H"
-#include "NWDirdyApp.H"
+#include "NWDirdy.hpp"
+#include "NWDirdyApp.hpp"
 
 IMPLEMENT_APP(NWDirdyApp)
 

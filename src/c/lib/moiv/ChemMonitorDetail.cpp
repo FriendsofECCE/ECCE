@@ -55,7 +55,7 @@
 
 #ident "$Revision: 22141 $"
 
-#include "inv/ChemKit/ChemMonitorDetail.H"
+#include "inv/ChemKit/ChemMonitorDetail.hpp"
 
 SO_DETAIL_SOURCE(ChemMonitorDetail);
 

@@ -5,7 +5,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxStaticBoxSizer.H"
+#include "wxgui/ewxStaticBoxSizer.hpp"
 
 
 ewxStaticBoxSizer::ewxStaticBoxSizer(wxStaticBox* box, int orient)

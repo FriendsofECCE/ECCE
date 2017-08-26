@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "WxStateGUI.H"
+#pragma implementation "WxStateGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,10 +23,10 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 ////@end includes
 
-#include "wxgui/WxStateGUI.H"
+#include "wxgui/WxStateGUI.hpp"
 
 ////@begin XPM images
 

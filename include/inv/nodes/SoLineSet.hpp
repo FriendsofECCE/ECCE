@@ -56,8 +56,8 @@
 #ifndef  _SO_LINE_SET_
 #define  _SO_LINE_SET_
 
-#include "inv/fields/SoMFInt32.H"
-#include "inv/nodes/SoNonIndexedShape.H"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/nodes/SoNonIndexedShape.hpp"
 
 class SoState;
 

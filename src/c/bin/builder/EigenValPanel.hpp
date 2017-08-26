@@ -1,14 +1,14 @@
 #ifndef EIGENVALPANEL__H
 #define EIGENVALPANEL__H
 
-#include "util/Event.H"
+#include "util/Event.hpp"
   using ecce::Event;
-#include "util/Listener.H"
+#include "util/Listener.hpp"
   using ecce::Listener;
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
-#include "DefaultVecPanel.H"
+#include "DefaultVecPanel.hpp"
 
 
 class wxGrid;

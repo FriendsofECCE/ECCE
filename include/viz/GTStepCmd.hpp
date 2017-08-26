@@ -1,7 +1,7 @@
 #ifndef GTSTEPCMD_H
 #define GTSTEPCMD_H
 
-#include "viz/PropCmd.H"
+#include "viz/PropCmd.hpp"
 
 class GTStepCmd : public PropCmd
 {

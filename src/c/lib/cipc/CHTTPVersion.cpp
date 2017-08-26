@@ -8,7 +8,7 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPVersion.H"
+#include "dsm/CHTTPVersion.hpp"
 
 #include <cstdio>
 #include <cstdlib>

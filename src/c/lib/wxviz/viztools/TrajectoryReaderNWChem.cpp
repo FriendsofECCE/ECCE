@@ -9,19 +9,19 @@
 
 #define VELOCITY 1
 #if VELOCITY
-//#include "inv/nodes/SoSwitch.H"
+//#include "inv/nodes/SoSwitch.hpp"
 #endif
 
-#include "tdat/Residue.H"
-#include "tdat/TAtm.H"
-#include "tdat/TBond.H"
+#include "tdat/Residue.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/TBond.hpp"
 
-#include "viz/SGContainer.H"
-#include "viz/SGFragment.H"
-#include "viz/VRVector.H"
+#include "viz/SGContainer.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/VRVector.hpp"
 
 
-#include "wxviz/TrajectoryReaderNWChem.H"
+#include "wxviz/TrajectoryReaderNWChem.hpp"
 
 
 /**

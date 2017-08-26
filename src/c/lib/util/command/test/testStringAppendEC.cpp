@@ -1,9 +1,9 @@
 #include <iostream.h>
 
-#include "util/Receiver.H"
-#include "util/StringReceiver.H"
-#include "util/StringAppendEC.H"
-#include "util/CommandParameter.H"
+#include "util/Receiver.hpp"
+#include "util/StringReceiver.hpp"
+#include "util/StringAppendEC.hpp"
+#include "util/CommandParameter.hpp"
 
 int main(int argc, char** argv)
 {

@@ -95,8 +95,8 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "inv/SbString.H"
-#include "inv/SoType.H"
+#include "inv/SbString.hpp"
+#include "inv/SoType.hpp"
 
 class SoError;		// Forward reference
 

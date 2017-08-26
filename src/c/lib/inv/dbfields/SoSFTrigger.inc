@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/fields/SoSFTrigger.H"
-#include "inv/misc/SoNotification.H"
+#include "inv/fields/SoSFTrigger.hpp"
+#include "inv/misc/SoNotification.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

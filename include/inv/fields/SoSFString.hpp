@@ -56,7 +56,7 @@
 #ifndef  _SO_SF_STRING_
 #define  _SO_SF_STRING_
 
-#include "inv/fields/SoSubField.H"
+#include "inv/fields/SoSubField.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

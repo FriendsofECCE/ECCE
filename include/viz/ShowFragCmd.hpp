@@ -1,8 +1,8 @@
 #ifndef SHOWFRAGCMD_H
 #define SHOWFRAGCMD_H
 
-#include "viz/SGCommand.H"
-#include "viz/PropCmd.H"
+#include "viz/SGCommand.hpp"
+#include "viz/PropCmd.hpp"
 
 
 /**

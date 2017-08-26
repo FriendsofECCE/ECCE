@@ -1,5 +1,5 @@
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "Peptide.H"
+#pragma implementation "Peptide.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -13,22 +13,22 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/Event.H"
-#include "util/EventDispatcher.H"
-#include "util/STLUtil.H"
+#include "util/Event.hpp"
+#include "util/EventDispatcher.hpp"
+#include "util/STLUtil.hpp"
 
-#include "tdat/TResTab.H"
+#include "tdat/TResTab.hpp"
 
-#include "viz/GeneratePeptideCmd.H"
-#include "viz/NewFragmentCmd.H"
+#include "viz/GeneratePeptideCmd.hpp"
+#include "viz/NewFragmentCmd.hpp"
 
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/WindowEvent.H"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/WindowEvent.hpp"
   using namespace ecce;
 
-#include "Peptide.H"
+#include "Peptide.hpp"
 
 static const int AA_FIRST_ID = 9550 + 10;  // 10 is to account for ids in pjd
 

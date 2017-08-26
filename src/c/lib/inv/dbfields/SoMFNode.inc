@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/nodes/SoNode.H"
-#include "inv/actions/SoWriteAction.H"
-#include "inv/fields/SoMFNode.H"
+#include "inv/SoDB.hpp"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/actions/SoWriteAction.hpp"
+#include "inv/fields/SoMFNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

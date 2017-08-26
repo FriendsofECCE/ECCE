@@ -34,10 +34,10 @@
  *
  */
 
-#include "SoAddPrefix.H"
-#include "mymath.H"
-#include "mystdlib.H"
-#include "gl4base.H"
+#include "SoAddPrefix.hpp"
+#include "mymath.hpp"
+#include "mystdlib.hpp"
+#include "gl4base.hpp"
 
 _SoNurbsGL4Base::_SoNurbsGL4Base(
                   _SoNurbsBasicCurveEvaluator& curveEvaluator, 

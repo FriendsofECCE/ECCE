@@ -10,7 +10,7 @@
 #include <string>
   using std::string;
 
-#include "util/ParseException.H"
+#include "util/ParseException.hpp"
 
 class SFile;
   

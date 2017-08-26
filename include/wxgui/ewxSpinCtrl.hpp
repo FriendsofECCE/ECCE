@@ -2,7 +2,7 @@
 #define _EWXSPINCTRL_H
 
 #include "wx/spinctrl.h"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxDisabler;
 

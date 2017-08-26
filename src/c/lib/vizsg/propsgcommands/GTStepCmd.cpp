@@ -2,21 +2,21 @@
   using std::cout;
   using std::endl;
 
-#include "util/InternalException.H"
+#include "util/InternalException.hpp"
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
   using namespace ecce;
 
-#include "dsm/IPropCalculation.H"
+#include "dsm/IPropCalculation.hpp"
 
-#include "tdat/PropTSVecTable.H"
-#include "tdat/LatticeDef.H"
+#include "tdat/PropTSVecTable.hpp"
+#include "tdat/LatticeDef.hpp"
 
 
-#include "viz/GTStepCmd.H"
-#include "viz/SGContainer.H"
-#include "viz/SGFragment.H"
+#include "viz/GTStepCmd.hpp"
+#include "viz/SGContainer.hpp"
+#include "viz/SGFragment.hpp"
 
 
 GTStepCmd::GTStepCmd(const string& name, Receiver *receiver,

@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "NWDirdySetupGUI.H"
+#pragma implementation "NWDirdySetupGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,18 +23,18 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxFrame.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxFrame.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "NWDirdySetupGUI.H"
+#include "NWDirdySetupGUI.hpp"
 
 ////@begin XPM images
 

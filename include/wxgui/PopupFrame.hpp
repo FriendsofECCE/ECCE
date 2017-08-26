@@ -11,7 +11,7 @@
 #define _POPUPFRAME_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "PopupFrame.C"
+#pragma interface "PopupFrame.cpp"
 #endif
 
 /*!
@@ -19,7 +19,7 @@
  */
 
 ////@begin includes
-#include "wxgui/ewxFrame.H"
+#include "wxgui/ewxFrame.hpp"
 ////@end includes
 
 /*!

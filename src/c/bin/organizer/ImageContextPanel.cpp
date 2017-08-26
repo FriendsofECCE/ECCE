@@ -28,19 +28,19 @@ using std::min;
 #include <wx/sstream.h>
 #include <wx/statbmp.h>
 
-#include "util/TempStorage.H"
-#include "util/StringConverter.H"
-#include "util/SFile.H"
+#include "util/TempStorage.hpp"
+#include "util/StringConverter.hpp"
+#include "util/SFile.hpp"
 
-#include "dsm/EcceDAVClient.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/Resource.H"
+#include "dsm/EcceDAVClient.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/Resource.hpp"
 
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxScrolledWindow.H"
-#include "wxgui/WxResourceTreeItemData.H"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxScrolledWindow.hpp"
+#include "wxgui/WxResourceTreeItemData.hpp"
 
-#include "ImageContextPanel.H"
+#include "ImageContextPanel.hpp"
 
 class CalcMgr;
 

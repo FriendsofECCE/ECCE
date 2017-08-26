@@ -52,16 +52,16 @@
  */
 
 
-#include "inv/SoDB.H"
-#include "inv/SoPath.H"
-#include "inv/nodes/SoLabel.H"
-#include "inv/nodes/SoGroup.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/nodekits/SoNodeKitListPart.H"
+#include "inv/SoDB.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/nodes/SoLabel.hpp"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/nodekits/SoNodeKitListPart.hpp"
 
-#include "inv/upgraders/SoV1BaseKit.H"
-#include "inv/nodekits/SoBaseKit.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/upgraders/SoV1BaseKit.hpp"
+#include "inv/nodekits/SoBaseKit.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 
 // Defines for printing out file data for nodekits

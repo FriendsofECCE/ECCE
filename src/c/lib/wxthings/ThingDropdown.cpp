@@ -9,7 +9,7 @@
 // Licence:     wxWidgets licence
 /////////////////////////////////////////////////////////////////////////////
 
-#include "wxgui/ThingPrecomp.H"
+#include "wxgui/ThingPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include <wx/wxprec.h>
@@ -24,8 +24,8 @@
 #endif // WX_PRECOMP
 
 #include <wx/timer.h>
-#include "wxgui/ThingDropdown.H"
-#include "wxgui/ThingToggle.H"
+#include "wxgui/ThingDropdown.hpp"
+#include "wxgui/ThingToggle.hpp"
 #include <wx/renderer.h>
 
 #if wxUSE_POPUPWIN

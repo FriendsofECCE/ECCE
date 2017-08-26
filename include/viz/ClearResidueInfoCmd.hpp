@@ -6,7 +6,7 @@
 #ifndef  CLEARRESIDUEINFOCMD_H
 #define  CLEARRESIDUEINFOCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

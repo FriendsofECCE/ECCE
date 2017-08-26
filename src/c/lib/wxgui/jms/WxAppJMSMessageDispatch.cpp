@@ -3,8 +3,8 @@
  *
  */
 
-#include "dsm/ResourceDescriptor.H"
-#include "wxgui/WxAppJMSMessageDispatch.H"
+#include "dsm/ResourceDescriptor.hpp"
+#include "wxgui/WxAppJMSMessageDispatch.hpp"
 
 WxAppJMSMessageDispatch::WxAppJMSMessageDispatch(const string& name, bool app)
   : ewxApp(), WxJMSMessageDispatch(name, app)

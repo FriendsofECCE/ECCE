@@ -59,9 +59,9 @@
 #ifndef  _SO_TRANSFORM_VEC3F_
 #define  _SO_TRANSFORM_VEC3F_
 
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoMFMatrix.H"
-#include "inv/fields/SoMFVec3f.H"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoMFMatrix.hpp"
+#include "inv/fields/SoMFVec3f.hpp"
 
 // C-api: public=vector,matrix,point,direction,normalDirection
 // C-api: prefix=SoXfV3f

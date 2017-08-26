@@ -41,60 +41,60 @@ using namespace std;
 
 #include <math.h>
 
-#include "inv/SbBox.H"
-#include "inv/SoPickedPoint.H"
-#include "inv/SoPrimitiveVertex.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/caches/SoGLRenderCache.H"
-#include "inv/details/SoLineDetail.H"
-#include "inv/details/SoPointDetail.H"
+#include "inv/SbBox.hpp"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/SoPrimitiveVertex.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/caches/SoGLRenderCache.hpp"
+#include "inv/details/SoLineDetail.hpp"
+#include "inv/details/SoPointDetail.hpp"
 
 #include "inv/flclient.h"
 
-#include "inv/ChemKit/SparseBits.H"
+#include "inv/ChemKit/SparseBits.hpp"
 
-#include "inv/ChemKit/ChemUnitSphere.H"
-#include "inv/ChemKit/ChemLOD.H"
+#include "inv/ChemKit/ChemUnitSphere.hpp"
+#include "inv/ChemKit/ChemLOD.hpp"
 
-#include "inv/ChemKit/ChemAtomBBox.H"
-#include "inv/ChemKit/ChemLabelBBox.H"
-#include "inv/ChemKit/ChemStickBondBBox.H"
-#include "inv/ChemKit/ChemWireframeBondBBox.H"
+#include "inv/ChemKit/ChemAtomBBox.hpp"
+#include "inv/ChemKit/ChemLabelBBox.hpp"
+#include "inv/ChemKit/ChemStickBondBBox.hpp"
+#include "inv/ChemKit/ChemWireframeBondBBox.hpp"
 
-#include "inv/ChemKit/ChemDisplay.H"
-#include "inv/ChemKit/ChemDisplayPath.H"
-#include "inv/ChemKit/ChemDisplayPathList.H"
-#include "inv/ChemKit/ChemDisplaySelectionElement.H"
-#include "inv/ChemKit/ChemBaseDataElement.H"
-#include "inv/ChemKit/ChemColorElement.H"
-#include "inv/ChemKit/ChemDisplayParamElement.H"
-#include "inv/ChemKit/ChemRadiiElement.H"
-#include "inv/ChemKit/ChemSelectionElement.H"
-#include "inv/ChemKit/ChemSSSR.H"
+#include "inv/ChemKit/ChemDisplay.hpp"
+#include "inv/ChemKit/ChemDisplayPath.hpp"
+#include "inv/ChemKit/ChemDisplayPathList.hpp"
+#include "inv/ChemKit/ChemDisplaySelectionElement.hpp"
+#include "inv/ChemKit/ChemBaseDataElement.hpp"
+#include "inv/ChemKit/ChemColorElement.hpp"
+#include "inv/ChemKit/ChemDisplayParamElement.hpp"
+#include "inv/ChemKit/ChemRadiiElement.hpp"
+#include "inv/ChemKit/ChemSelectionElement.hpp"
+#include "inv/ChemKit/ChemSSSR.hpp"
 
 #ifdef __coin
 // --> coin 1,2 compatibility
-//#include "inv/elements/SoGLLightModelElement.H"
+//#include "inv/elements/SoGLLightModelElement.hpp"
 // <-- coin 1,2 compatibility
 #endif
 
 // --> EGB && SGB
 #ifdef _DEBUG   
-#include "inv/errors/SoDebugError.H"
+#include "inv/errors/SoDebugError.hpp"
 #endif
 // <-- EGB && SGB
 
 #ifdef IV2_0
-#include "inv/bundles/SoMaterialBundle.H"
+#include "inv/bundles/SoMaterialBundle.hpp"
 #else
-#include "inv/elements/SoGLLazyElement.H"
-#include "inv/elements/SoLazyElement.H"
+#include "inv/elements/SoGLLazyElement.hpp"
+#include "inv/elements/SoLazyElement.hpp"
 #endif
 
-#include "inv/ChemKit/ChemData.H"
-#include "inv/nodes/SoSeparator.H"
+#include "inv/ChemKit/ChemData.hpp"
+#include "inv/nodes/SoSeparator.hpp"
 
 static int numAtomLoops;
 static int atomLoop;

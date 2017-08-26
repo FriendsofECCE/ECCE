@@ -2,16 +2,16 @@
   using std::cout;
   using std::endl;
 
-//#include "inv/nodes/SoSwitch.H"
+//#include "inv/nodes/SoSwitch.hpp"
 
-#include "util/InternalException.H"
+#include "util/InternalException.hpp"
 
-#include "dsm/IPropCalculation.H"
+#include "dsm/IPropCalculation.hpp"
 
-#include "tdat/PropVector.H"
+#include "tdat/PropVector.hpp"
 
-#include "viz/cvSGContainer.H"
-#include "viz/AddDipoleMomentCmd.H"
+#include "viz/cvSGContainer.hpp"
+#include "viz/AddDipoleMomentCmd.hpp"
 
 AddDipoleMomentCmd::AddDipoleMomentCmd(const string& name, Receiver *receiver,
                          IPropCalculation *calc)

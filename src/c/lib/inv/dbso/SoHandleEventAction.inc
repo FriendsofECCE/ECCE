@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/elements/SoViewportRegionElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/events/SoEvent.H"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/events/SoEvent.hpp"
 
 SO_ACTION_SOURCE(SoHandleEventAction);
 

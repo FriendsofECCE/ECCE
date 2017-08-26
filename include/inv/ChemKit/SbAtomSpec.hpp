@@ -57,9 +57,9 @@
 #ifndef __SB_ATOMSPEC_H__
 #define __SB_ATOMSPEC_H__
 
-#include "inv/SbBasic.H"
+#include "inv/SbBasic.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class ChemBaseData;
 class ChemDisplay;

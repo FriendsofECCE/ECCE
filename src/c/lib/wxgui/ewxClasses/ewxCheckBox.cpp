@@ -4,9 +4,9 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxDisabler.H"
-#include "wxgui/ewxHelpHandler.H"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxDisabler.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
 
 
 ewxCheckBox::ewxCheckBox()

@@ -56,10 +56,10 @@
 #ifndef  _SO_TRIANGLE_STRIP_SET_
 #define  _SO_TRIANGLE_STRIP_SET_
 
-#include "inv/fields/SoMFInt32.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/nodes/SoNonIndexedShape.H"
-#include "inv/nodes/SoVertexProperty.H"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/nodes/SoNonIndexedShape.hpp"
+#include "inv/nodes/SoVertexProperty.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

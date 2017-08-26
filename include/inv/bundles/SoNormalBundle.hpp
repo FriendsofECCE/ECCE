@@ -56,9 +56,9 @@
 #ifndef  _SO_NORMAL_BUNDLE
 #define  _SO_NORMAL_BUNDLE
 
-#include "inv/bundles/SoBundle.H"
-#include "inv/elements/SoGLNormalElement.H"
-#include "inv/misc/SoNormalGenerator.H"
+#include "inv/bundles/SoBundle.hpp"
+#include "inv/elements/SoGLNormalElement.hpp"
+#include "inv/misc/SoNormalGenerator.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

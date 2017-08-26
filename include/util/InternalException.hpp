@@ -6,7 +6,7 @@
 #ifndef INTERNALEXCEPTION_HH
 #define INTERNALEXCEPTION_HH
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 
 /**

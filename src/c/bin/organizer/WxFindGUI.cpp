@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "WxFindGUI.H"
+#pragma implementation "WxFindGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,15 +23,15 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxDialog.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxListBox.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxDialog.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxListBox.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "WxFindGUI.H"
+#include "WxFindGUI.hpp"
 
 ////@begin XPM images
 

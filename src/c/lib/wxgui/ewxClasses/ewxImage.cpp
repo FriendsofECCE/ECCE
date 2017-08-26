@@ -8,14 +8,14 @@
   using std::endl;
 #include <stdlib.h>
 
-#include "util/BadValueException.H"
-#include "util/Ecce.H"
-#include "util/KeyValueReader.H"
-#include "util/SFile.H"
-#include "util/STLUtil.H"
-#include "util/StringTokenizer.H"
+#include "util/BadValueException.hpp"
+#include "util/Ecce.hpp"
+#include "util/KeyValueReader.hpp"
+#include "util/SFile.hpp"
+#include "util/STLUtil.hpp"
+#include "util/StringTokenizer.hpp"
 
-#include "wxgui/ewxImage.H"
+#include "wxgui/ewxImage.hpp"
 
 
 bool operator < (const wxSize& first, const wxSize& second)

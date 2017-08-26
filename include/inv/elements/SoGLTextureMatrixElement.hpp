@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_TEXTURE_MATRIX_ELEMENT
 #define  _SO_GL_TEXTURE_MATRIX_ELEMENT
 
-#include "inv/elements/SoTextureMatrixElement.H"
+#include "inv/elements/SoTextureMatrixElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

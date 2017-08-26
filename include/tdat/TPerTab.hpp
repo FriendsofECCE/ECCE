@@ -27,7 +27,7 @@
   using std::map;
   using std::less;
 
-#include "util/CompareOps.H"
+#include "util/CompareOps.hpp"
 
 class Color;
 class TOxidationState;

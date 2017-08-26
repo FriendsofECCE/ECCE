@@ -6,19 +6,19 @@
 #include <iostream>
   using namespace std;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
   using namespace ecce;
 
-#include "wxgui/WindowEvent.H"
+#include "wxgui/WindowEvent.hpp"
   using namespace ecce;
 
-#include "tdat/TBond.H"
-#include "tdat/LinkCellList.H"
+#include "tdat/TBond.hpp"
+#include "tdat/LinkCellList.hpp"
 
-#include "viz/SelectRadiusCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/SelectRadiusCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 SelectRadiusCmd::SelectRadiusCmd(const string& name, Receiver * receiver, const string& sender)
     : Command(name, receiver)

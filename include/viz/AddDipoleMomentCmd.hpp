@@ -1,7 +1,7 @@
 #ifndef ADDDIPOLEMOMENTCMD__H
 #define ADDDIPOLEMOMENTCMD__H
 
-#include "viz/AddVectorCmd.H"
+#include "viz/AddVectorCmd.hpp"
 
 /**
  *   Create a dipole moment vector.  The vector origin depends on whether

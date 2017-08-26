@@ -56,11 +56,11 @@
 #ifndef  _SO_ENVIRONMENT_
 #define  _SO_ENVIRONMENT_
 
-#include "inv/fields/SoSFColor.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoSFColor.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

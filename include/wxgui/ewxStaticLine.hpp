@@ -2,7 +2,7 @@
 #define _EWXSTATICLINE_H
 
 #include "wx/statline.h"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxStaticLine : public wxStaticLine, public ewxStyledWindow
 {

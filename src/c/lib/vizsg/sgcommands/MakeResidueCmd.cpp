@@ -6,15 +6,15 @@
 #include <iostream>
   using namespace std;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "tdat/FragUtil.H"
+#include "tdat/FragUtil.hpp"
 
-#include "viz/MakeResidueCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/MakeResidueCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 MakeResidueCmd::MakeResidueCmd(const string& name, Receiver * receiver)
     : FragCloneCmd(name, receiver)

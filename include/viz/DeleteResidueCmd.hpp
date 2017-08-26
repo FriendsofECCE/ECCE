@@ -6,7 +6,7 @@
 #ifndef  DELETERESIDUECMD_H
 #define  DELETERESIDUECMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

@@ -6,17 +6,17 @@
 #include "wx/log.h"
 #include "wx/sizer.h"
 
-#include "util/PreferenceLabels.H"
+#include "util/PreferenceLabels.hpp"
 
-#include "tdat/TProperty.H"
+#include "tdat/TProperty.hpp"
 
-#include "dsm/IPropCalculation.H"
-#include "dsm/PropFactory.H"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/PropFactory.hpp"
 
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxStaticText.hpp"
 
-#include "KeyValuePropertyPanel.H"
+#include "KeyValuePropertyPanel.hpp"
 
 
 wxFORCE_LINK_THIS_MODULE(KeyValuePropertyPanel)

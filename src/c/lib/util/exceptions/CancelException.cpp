@@ -3,7 +3,7 @@
  *
  *
  */
-#include "util/CancelException.H"
+#include "util/CancelException.hpp"
 
 
 CancelException::CancelException(const char *file, int line)

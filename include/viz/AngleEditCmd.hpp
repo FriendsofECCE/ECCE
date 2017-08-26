@@ -6,7 +6,7 @@
 #ifndef  ANGLEEDITCMD_H
 #define  ANGLEEDITCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

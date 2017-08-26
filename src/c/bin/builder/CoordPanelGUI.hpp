@@ -11,7 +11,7 @@
 #define _COORDPANELGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "CoordPanelGUI.C"
+#pragma interface "CoordPanelGUI.cpp"
 #endif
 
 /*!
@@ -22,7 +22,7 @@
 #include "wx/notebook.h"
 #include "wx/statline.h"
 #include "wx/spinctrl.h"
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 ////@end includes
 
 /*!

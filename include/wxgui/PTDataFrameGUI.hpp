@@ -11,7 +11,7 @@
 #define _PTDATAFRAMEGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "PTDataFrameGUI.C"
+#pragma interface "PTDataFrameGUI.cpp"
 #endif
 
 /*!
@@ -23,7 +23,7 @@
 #include "wx/notebook.h"
 #include "wx/statline.h"
 #include "wx/grid.h"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/ewxFrame.hpp"
 ////@end includes
 
 /*!

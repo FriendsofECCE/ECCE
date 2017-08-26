@@ -6,7 +6,7 @@
 // License:     wxWidgets
 /////////////////////////////////////////////////////////////////////////////
 
-#include "wxgui/ThingPrecomp.H"
+#include "wxgui/ThingPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include <wx/wxprec.h>
@@ -21,7 +21,7 @@
 #endif // WX_PRECOMP
 
 #include <wx/tooltip.h>
-#include "wxgui/ThingSpinctld.H"
+#include "wxgui/ThingSpinctld.hpp"
 #include <math.h>
 
 #if wxCHECK_VERSION(2,5,0)

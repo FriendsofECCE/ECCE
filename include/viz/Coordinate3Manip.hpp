@@ -16,11 +16,11 @@
 #ifndef  _COORDINATE3_MANIP_
 #define  _COORDINATE3_MANIP_
 
-#include "inv/draggers/SoDragger.H"
-#include "inv/fields/SoSFInt32.H"
-#include "inv/nodes/SoCoordinate3.H"
-#include "inv/misc/SoChildList.H"
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/draggers/SoDragger.hpp"
+#include "inv/fields/SoSFInt32.hpp"
+#include "inv/nodes/SoCoordinate3.hpp"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
 
 class SoSeparator;
 

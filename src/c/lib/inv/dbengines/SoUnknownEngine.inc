@@ -52,11 +52,11 @@
  */
 
 #include <stdlib.h>
-#include "inv/SoInput.H"
-#include "inv/SoOutput.H"
-#include "inv/fields/SoField.H"
-#include "inv/engines/SoOutputData.H"
-#include "SoUnknownEngine.H"
+#include "inv/SoInput.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/fields/SoField.hpp"
+#include "inv/engines/SoOutputData.hpp"
+#include "SoUnknownEngine.hpp"
 
 // Can't use regular SO_ENGINE_SOURCE macro because of special
 // per-instance input and output data:

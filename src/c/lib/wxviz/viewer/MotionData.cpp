@@ -1,4 +1,4 @@
-#include "wxviz/MotionData.H"
+#include "wxviz/MotionData.hpp"
 
 
 MotionData::MotionData(int button, float deltaX, float deltaY, float deltaZ,

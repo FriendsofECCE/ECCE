@@ -52,8 +52,8 @@
  */
 
 #include <GL/gl.h>
-#include "inv/elements/SoGLNormalElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/elements/SoGLNormalElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 SO_ELEMENT_SOURCE(SoGLNormalElement);
 

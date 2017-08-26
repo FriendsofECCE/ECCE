@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/details/SoPointDetail.H"
+#include "inv/details/SoPointDetail.hpp"
 
 SO_DETAIL_SOURCE(SoPointDetail)
 

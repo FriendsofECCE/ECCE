@@ -52,7 +52,7 @@
  */
 
 #include <GL/gl.h>
-#include "inv/elements/SoGLTextureMatrixElement.H"
+#include "inv/elements/SoGLTextureMatrixElement.hpp"
 
 SO_ELEMENT_SOURCE(SoGLTextureMatrixElement);
 

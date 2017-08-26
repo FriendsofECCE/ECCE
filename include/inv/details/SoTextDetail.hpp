@@ -56,9 +56,9 @@
 #ifndef _SO_TEXT_DETAIL_
 #define _SO_TEXT_DETAIL_
 
-#include "inv/SbBox.H"
-#include "inv/details/SoSubDetail.H"
-#include "inv/nodes/SoText3.H"
+#include "inv/SbBox.hpp"
+#include "inv/details/SoSubDetail.hpp"
+#include "inv/nodes/SoText3.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -53,18 +53,18 @@
 
 
 #include <stdio.h>
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
 
-#include "inv/nodes/SoTransform.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSurroundScale.H"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
 
-#include "inv/draggers/SoTabPlaneDragger.H"
-#include "inv/draggers/SoTabBoxDragger.H"
+#include "inv/draggers/SoTabPlaneDragger.hpp"
+#include "inv/draggers/SoTabBoxDragger.hpp"
 
-#include "SoTabBoxDraggerGeom.H"
+#include "SoTabBoxDraggerGeom.hpp"
 
 
 SO_KIT_SOURCE(SoTabBoxDragger);

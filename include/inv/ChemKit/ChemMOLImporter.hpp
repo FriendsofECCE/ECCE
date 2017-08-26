@@ -29,9 +29,9 @@
 #ifndef __CHEMMOLIMPORTER__
 #define __CHEMMOLIMPORTER__
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
-#include "inv/ChemKit/ChemFileImporter.H"
+#include "inv/ChemKit/ChemFileImporter.hpp"
 
 class SbString;
 class ChemData;

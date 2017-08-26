@@ -13,13 +13,13 @@
   using std::ostrstream;
 
  
-#include "util/JMSMessage.H"
+#include "util/JMSMessage.hpp"
 
-#include "wxgui/WxJMSSubscriber.H"
-#include "wxgui/WxJMSMessageDispatch.H"
+#include "wxgui/WxJMSSubscriber.hpp"
+#include "wxgui/WxJMSMessageDispatch.hpp"
 
-#include "MDPrep.H"
-#include "PrepareApp.H"
+#include "MDPrep.hpp"
+#include "PrepareApp.hpp"
 
 IMPLEMENT_APP(PrepareApp)
 

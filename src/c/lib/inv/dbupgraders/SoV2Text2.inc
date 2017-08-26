@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "SoV2Text2.H"
-#include "inv/nodes/SoText2.H"
+#include "SoV2Text2.hpp"
+#include "inv/nodes/SoText2.hpp"
 
 #ifdef IRIX_6
 #include <iconv.h>

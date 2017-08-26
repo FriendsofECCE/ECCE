@@ -3,12 +3,12 @@
  *
  */
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
-#include "util/StringConverter.H"
-#include "util/VizThumbnail.H"
+#include "util/JMSMessage.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/StringConverter.hpp"
+#include "util/VizThumbnail.hpp"
 
 void VizThumbnail::thumbnail(const string& whoami, const string& calcurl,
                              int width, int height,

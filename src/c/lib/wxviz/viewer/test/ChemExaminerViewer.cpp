@@ -96,7 +96,7 @@ using namespace std;
 #define SoGUIFullViewer SoFlFullViewer
 #define SoGUIViewer SoFlViewer
 #include <Inventor/FL/viewers/SoFlVrUI.h>
-#include <FL/Fl_File_Chooser.H>
+#include <FL/Fl_File_Chooser.hpp>
 
 #include "OpenMOIVUI.h"
 #endif
@@ -1270,8 +1270,8 @@ void ChemExaminerViewer::OpenFileDialog()
 								"",
 								"Molecules (*.pdb *.mol)",
 								NULL,
-								"Obrir molècula"
-								"Escolleix una molècula" );
+								"Obrir molï¿½cula"
+								"Escolleix una molï¿½cula" );
 
 	if (s.isEmpty())
 		return;

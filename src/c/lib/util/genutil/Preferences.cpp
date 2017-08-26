@@ -20,13 +20,13 @@ using std::ofstream;
 
 #include <algorithm>
 
-#include "util/ErrMsg.H"
-#include "util/SDirectory.H"
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
-#include "util/Ecce.H"
-#include "util/SFile.H"
-#include "util/StringConverter.H"
+#include "util/ErrMsg.hpp"
+#include "util/SDirectory.hpp"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
+#include "util/Ecce.hpp"
+#include "util/SFile.hpp"
+#include "util/StringConverter.hpp"
 
 
 Preferences * Preferences::p_globalPref = NULL;

@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/engines/SoTriggerAny.H"
+#include "inv/SoDB.hpp"
+#include "inv/engines/SoTriggerAny.hpp"
 
 SO_ENGINE_SOURCE(SoTriggerAny);
 

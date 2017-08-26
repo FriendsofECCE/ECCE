@@ -6,7 +6,7 @@
 #ifndef  GENERATEPEPTIDECMD_H
 #define  GENERATEPEPTIDECMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class GeneratePeptideCmd : public FragCloneCmd
 {

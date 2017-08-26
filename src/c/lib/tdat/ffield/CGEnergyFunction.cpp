@@ -13,12 +13,12 @@
   using std::cout;
   using std::endl;
 
-#include "util/ErrMsg.H"
+#include "util/ErrMsg.hpp"
 
-#include "tdat/FFCoords.H"
-#include "tdat/ObjectiveFunction.H"
-#include "tdat/CGEnergyFunction.H"
-#include "tdat/ForceField.H"
+#include "tdat/FFCoords.hpp"
+#include "tdat/ObjectiveFunction.hpp"
+#include "tdat/CGEnergyFunction.hpp"
+#include "tdat/ForceField.hpp"
 
 CGEnergyFunction::CGEnergyFunction()
 {

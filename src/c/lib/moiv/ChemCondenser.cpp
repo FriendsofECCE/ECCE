@@ -55,16 +55,16 @@
 
 #ident "$Revision: 22147 $"
 
-#include "inv/SbBox.H"
-#include "inv/SbDict.H"
-#include "inv/nodes/SoIndexedLineSet.H"
-#include "inv/nodes/SoMaterialBinding.H"
-#include "inv/nodes/SoNormal.H"
-#include "inv/nodes/SoTextureCoordinate2.H"
+#include "inv/SbBox.hpp"
+#include "inv/SbDict.hpp"
+#include "inv/nodes/SoIndexedLineSet.hpp"
+#include "inv/nodes/SoMaterialBinding.hpp"
+#include "inv/nodes/SoNormal.hpp"
+#include "inv/nodes/SoTextureCoordinate2.hpp"
 
-#include "inv/ChemKit/ChemAssert.H"
-#include "inv/ChemKit/ChemCondenser.H"
-#include "inv/ChemKit/ChemHasher.H"
+#include "inv/ChemKit/ChemAssert.hpp"
+#include "inv/ChemKit/ChemCondenser.hpp"
+#include "inv/ChemKit/ChemHasher.hpp"
 
 /////////////////////////////////////////////////////////////////////////////
 //

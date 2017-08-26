@@ -56,9 +56,9 @@
 #ifndef  _SO_NORMAL_BINDING_
 #define  _SO_NORMAL_BINDING_
 
-#include "inv/elements/SoNormalBindingElement.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/elements/SoNormalBindingElement.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

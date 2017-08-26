@@ -4,7 +4,7 @@
 #include <vector>
 using std::vector;
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class SoDragger;
 class SoNode;

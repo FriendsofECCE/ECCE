@@ -52,8 +52,8 @@
  */
 
 
-#include "inv/SbBox.H"
-#include "inv/misc/SoNormalGenerator.H"
+#include "inv/SbBox.hpp"
+#include "inv/misc/SoNormalGenerator.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

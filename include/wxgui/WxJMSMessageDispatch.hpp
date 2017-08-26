@@ -9,11 +9,11 @@
 #include <vector>
   using std::vector;
 
-#include "wxgui/WxJMSListener.H"
-#include "wxgui/WxJMSSubscriber.H"
-#include "util/JMSPublisher.H"
-#include "util/JMSMessage.H"
-#include "util/NotImplementedException.H"
+#include "wxgui/WxJMSListener.hpp"
+#include "wxgui/WxJMSSubscriber.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/JMSMessage.hpp"
+#include "util/NotImplementedException.hpp"
 
 #include "wx/wx.h"
 #include "wx/event.h"

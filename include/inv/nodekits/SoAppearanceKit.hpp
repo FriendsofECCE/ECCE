@@ -58,7 +58,7 @@
 #ifndef  _SO_APPEARANCE_KIT_
 #define  _SO_APPEARANCE_KIT_
 
-#include "inv/nodekits/SoBaseKit.H"
+#include "inv/nodekits/SoBaseKit.hpp"
 
 
 ////////////////////////////////////////////////////////////////////

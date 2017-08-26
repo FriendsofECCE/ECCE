@@ -8,7 +8,7 @@
 #define CLEARBEHAVIORCMD_HH
 
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 
 class ClearBehaviorCmd : public FragCloneCmd

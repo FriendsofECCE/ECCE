@@ -3,7 +3,7 @@
  */
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "CoordPanel.H"
+#pragma implementation "CoordPanel.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -21,22 +21,22 @@
   using std::cout;
   using std::endl;
 
-#include "viz/AlignCmd.H"
-#include "viz/CenterCmd.H"
-#include "viz/LatticeBuildCmd.H"
-#include "viz/RotateAboutLineCmd.H"
-#include "viz/TranslateCmd.H"
+#include "viz/AlignCmd.hpp"
+#include "viz/CenterCmd.hpp"
+#include "viz/LatticeBuildCmd.hpp"
+#include "viz/RotateAboutLineCmd.hpp"
+#include "viz/TranslateCmd.hpp"
 
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxRadioButton.H"
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxRadioButton.hpp"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 
-#include "CoordPanel.H"
+#include "CoordPanel.hpp"
 
 #include <iostream>
 

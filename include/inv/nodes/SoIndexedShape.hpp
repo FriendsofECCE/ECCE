@@ -56,8 +56,8 @@
 #ifndef  _SO_INDEXED_SHAPE_
 #define  _SO_INDEXED_SHAPE_
 
-#include "inv/fields/SoMFInt32.H"
-#include "inv/nodes/SoVertexShape.H"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/nodes/SoVertexShape.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -8,8 +8,8 @@ using std::endl;
 #include "wx/wx.h"
 #endif
 
-#include "util/Ecce.H"
-#include "wxgui/ewxCursor.H"
+#include "util/Ecce.hpp"
+#include "wxgui/ewxCursor.hpp"
 
 
 /**

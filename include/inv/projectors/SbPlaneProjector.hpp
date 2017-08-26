@@ -58,7 +58,7 @@
 #ifndef _SB_PLANE_PROJECTOR_
 #define _SB_PLANE_PROJECTOR_
 
-#include "inv/projectors/SbProjector.H"
+#include "inv/projectors/SbProjector.hpp"
 
 // C-api: prefix=SbPlnProj
 class SbPlaneProjector : public SbProjector

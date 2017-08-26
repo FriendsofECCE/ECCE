@@ -37,7 +37,7 @@
 #ifndef __glusimplemath_h_
 #define __glusimplemath_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * simplemath.h - $Revision: 22116 $
  */

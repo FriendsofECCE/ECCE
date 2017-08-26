@@ -1,9 +1,9 @@
 #include <wx/sizer.h>
 
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/NumericTextCtrl.H"
-#include "wxgui/NumericValidatorBase.H"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/NumericTextCtrl.hpp"
+#include "wxgui/NumericValidatorBase.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS(NumericTextCtrl, ewxPanel)

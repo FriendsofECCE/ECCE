@@ -1,7 +1,7 @@
 #ifndef ADDQUADMOMENTCMD__H
 #define ADDQUADMOMENTCMD__H
 
-#include "viz/AddVectorCmd.H"
+#include "viz/AddVectorCmd.hpp"
 
 /**
  *  Create a quadrapole moment vector.  

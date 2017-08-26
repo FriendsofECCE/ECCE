@@ -6,7 +6,7 @@
 #ifndef RESOURCENOTFOUNDEXCEPTION_HH
 #define RESOURCENOTFOUNDEXCEPTION_HH
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 
 /**

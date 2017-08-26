@@ -19,15 +19,15 @@
 
 #include "wx/timer.h"
 
-#include "util/ErrMsg.H"
-#include "util/UserEditor.H"
-#include "util/TempStorage.H"
-#include "util/TDateTime.H"
-#include "util/SFile.H"
-#include "util/EditListener.H"
-#include "util/EditEvent.H"
+#include "util/ErrMsg.hpp"
+#include "util/UserEditor.hpp"
+#include "util/TempStorage.hpp"
+#include "util/TDateTime.hpp"
+#include "util/SFile.hpp"
+#include "util/EditListener.hpp"
+#include "util/EditEvent.hpp"
 
-#include "wxgui/WxEditSessionMgr.H"
+#include "wxgui/WxEditSessionMgr.hpp"
 
 extern char **environ;
 

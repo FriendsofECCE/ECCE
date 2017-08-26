@@ -18,31 +18,31 @@
 #include <strstream>
   using std::istrstream;
 
-#include "util/Ecce.H"
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
-#include "util/ResourceUtils.H"
-#include "util/StringConverter.H"
-#include "util/TempStorage.H"
-#include "util/EditEvent.H"
+#include "util/Ecce.hpp"
+#include "util/JMSMessage.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/ResourceUtils.hpp"
+#include "util/StringConverter.hpp"
+#include "util/TempStorage.hpp"
+#include "util/EditEvent.hpp"
 
-#include "dsm/NWChemMDModel.H"
-#include "dsm/MdTask.H"
+#include "dsm/NWChemMDModel.hpp"
+#include "dsm/MdTask.hpp"
 
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxNotebook.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/ConstraintPanel.H"
-#include "wxgui/ControlPanel.H"
-#include "wxgui/FilesPanel.H"
-#include "wxgui/InteractionPanel.H"
-#include "wxgui/WxEditSessionMgr.H"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/WxJMSListener.H"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxNotebook.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/ConstraintPanel.hpp"
+#include "wxgui/ControlPanel.hpp"
+#include "wxgui/FilesPanel.hpp"
+#include "wxgui/InteractionPanel.hpp"
+#include "wxgui/WxEditSessionMgr.hpp"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/WxJMSListener.hpp"
 
-#include "MDEnergy.H"
+#include "MDEnergy.hpp"
 
 
 MDEnergy::MDEnergy( )

@@ -59,11 +59,11 @@
 #ifndef  _SO_INPUT_
 #define  _SO_INPUT_
 
-#include "inv/misc/SoBasic.H"
-#include "inv/SbDict.H"
-#include "inv/SbPList.H"
-#include "inv/SbString.H"
-#include "inv/SoDB.H"
+#include "inv/misc/SoBasic.hpp"
+#include "inv/SbDict.hpp"
+#include "inv/SbPList.hpp"
+#include "inv/SbString.hpp"
+#include "inv/SoDB.hpp"
 
 class SoNode;
 class SoPath;

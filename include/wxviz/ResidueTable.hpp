@@ -11,12 +11,12 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/Event.H"
-#include "util/Listener.H"
+#include "util/Event.hpp"
+#include "util/Listener.hpp"
   using namespace ecce;
 
-#include "wxgui/TearableContentProvider.H"
-#include "wxviz/MoleculeDataTable.H"
+#include "wxgui/TearableContentProvider.hpp"
+#include "wxviz/MoleculeDataTable.hpp"
 
 
 class GridAtomElement;

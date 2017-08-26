@@ -4,15 +4,15 @@
   using std::cout;
   using std::endl;
 
-#include "util/ErrMsg.H"
-#include "util/TDateTime.H"
-#include "util/ETimer.H"
+#include "util/ErrMsg.hpp"
+#include "util/TDateTime.hpp"
+#include "util/ETimer.hpp"
 
-#include "tdat/TProperty.H"
-#include "dsm/ActivityLog.H"
-#include "dsm/PropFactory.H"
-#include "dsm/PropertyInterpreter.H"
-#include "dsm/PropertyDoc.H"
+#include "tdat/TProperty.hpp"
+#include "dsm/ActivityLog.hpp"
+#include "dsm/PropFactory.hpp"
+#include "dsm/PropertyInterpreter.hpp"
+#include "dsm/PropertyDoc.hpp"
 
 //#define timertest
 

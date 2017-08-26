@@ -18,11 +18,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "util/ErrMsg.H"
-#include "util/Ecce.H"
-#include "util/Preferences.H"    // for shapes
-#include "tdat/TPerTab.H"
-#include "tdat/ShapeData.H"
+#include "util/ErrMsg.hpp"
+#include "util/Ecce.hpp"
+#include "util/Preferences.hpp"    // for shapes
+#include "tdat/TPerTab.hpp"
+#include "tdat/ShapeData.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////
 // class statics

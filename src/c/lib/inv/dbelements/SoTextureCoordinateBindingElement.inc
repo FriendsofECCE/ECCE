@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoTextureCoordinateBindingElement.H"
+#include "inv/elements/SoTextureCoordinateBindingElement.hpp"
 
 SO_ELEMENT_SOURCE(SoTextureCoordinateBindingElement);
 

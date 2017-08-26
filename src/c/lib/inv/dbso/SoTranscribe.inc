@@ -52,14 +52,14 @@
  */
 
 
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/SoOutput.H"
-#include "inv/misc/SoTranscribe.H"
-#include "inv/actions/SoWriteAction.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/fields/SoFieldData.H"
-#include "inv/nodes/SoGroup.H"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/misc/SoTranscribe.hpp"
+#include "inv/actions/SoWriteAction.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/fields/SoFieldData.hpp"
+#include "inv/nodes/SoGroup.hpp"
 
 // Internal command codes
 #define TRAN_INSERT	0

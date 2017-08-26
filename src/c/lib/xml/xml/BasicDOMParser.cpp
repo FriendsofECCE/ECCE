@@ -7,11 +7,11 @@
 #include <xercesc/framework/MemBufInputSource.hpp>
 using namespace xercesc;
 
-#include "util/Ecce.H"
-//#include "util/ErrMsg.H"
-#include "util/SFile.H"
-#include "dsm/BasicDOMParser.H"
-#include "dsm/ParseErrorReporter.H"
+#include "util/Ecce.hpp"
+//#include "util/ErrMsg.hpp"
+#include "util/SFile.hpp"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/ParseErrorReporter.hpp"
 
 /**
  * Constructor.

@@ -1,7 +1,7 @@
 #include <iostream>
   using namespace std;
 
-#include "util/CommandParameter.H"
+#include "util/CommandParameter.hpp"
 
 int main(int argc, char** argv)
 {

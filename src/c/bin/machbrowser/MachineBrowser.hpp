@@ -21,27 +21,27 @@
 #include <string>
    using std::string;
 
-#include "util/StringConverter.H"
-#include "util/Preferences.H"
-#include "util/JMSPublisher.H"
-#include "util/TDateTime.H"
+#include "util/StringConverter.hpp"
+#include "util/Preferences.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/TDateTime.hpp"
 
-#include "tdat/QueueMgr.H"
-#include "tdat/RefQueueMgr.H"
+#include "tdat/QueueMgr.hpp"
+#include "tdat/RefQueueMgr.hpp"
 
-#include "dsm/MachinePreferences.H"
+#include "dsm/MachinePreferences.hpp"
 
-#include "comm/RCommand.H"
+#include "comm/RCommand.hpp"
 
-#include "wxgui/WxJMSListener.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/DefaultTableModel.H"
-#include "wxgui/WxTableView.H"
+#include "wxgui/WxJMSListener.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/DefaultTableModel.hpp"
+#include "wxgui/WxTableView.hpp"
 
-#include "MachineTableElement.H"
-#include "MachineBrowserGUI.H"
-#include "WxMachineStatus.H"
-#include "WxConfigureAccess.H"
+#include "MachineTableElement.hpp"
+#include "MachineBrowserGUI.hpp"
+#include "WxMachineStatus.hpp"
+#include "WxConfigureAccess.hpp"
 
 
 #define ITM_MACHINECONFIG               22584

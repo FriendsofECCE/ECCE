@@ -39,14 +39,14 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "coveandtiler.H"
-#include "gridvertex.H"
-#include "gridtrimvertex.H"
-#include "uarray.H"
-#include "backend.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "coveandtiler.hpp"
+#include "gridvertex.hpp"
+#include "gridtrimvertex.hpp"
+#include "uarray.hpp"
+#include "backend.hpp"
 
 
 const int CoveAndTiler::MAXSTRIPSIZE = 1000;

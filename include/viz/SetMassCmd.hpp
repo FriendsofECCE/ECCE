@@ -8,7 +8,7 @@
 #define SETMASSCMD_HH
 
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 
 class SetMassCmd : public FragCloneCmd

@@ -21,13 +21,13 @@
 
 using std::string;
 
-#include "util/EcceMap.H"
-#include "util/StringTokenizer.H"
-#include "tdat/TAtm.H"
-#include "tdat/Fragment.H"
-#include "tdat/ESPConstraintModel.H"
-#include "dsm/BasicDOMParser.H"
-#include "dsm/ESPConstraintModelXMLizer.H"
+#include "util/EcceMap.hpp"
+#include "util/StringTokenizer.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/Fragment.hpp"
+#include "tdat/ESPConstraintModel.hpp"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/ESPConstraintModelXMLizer.hpp"
 
 const string ESPConstraintModelXMLizer::ROOTELEMENT = "ESPModel";
 

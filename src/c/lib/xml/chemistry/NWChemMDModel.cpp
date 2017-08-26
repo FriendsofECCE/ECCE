@@ -4,11 +4,11 @@
  *
  */
 
-#include "util/NotImplementedException.H"
-#include "util/StringTokenizer.H"
-#include "util/STLUtil.H"
+#include "util/NotImplementedException.hpp"
+#include "util/StringTokenizer.hpp"
+#include "util/STLUtil.hpp"
 
-#include "dsm/NWChemMDModel.H"
+#include "dsm/NWChemMDModel.hpp"
 
 
 /**

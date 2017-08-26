@@ -37,7 +37,7 @@
 #include <vector>
   using std::vector;
 
-#include "util/EcceMap.H"
+#include "util/EcceMap.hpp"
 
 class RefQueueManager;
 class Preferences;

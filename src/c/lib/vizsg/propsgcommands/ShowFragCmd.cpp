@@ -3,21 +3,21 @@
   using std::endl;
 
 
-#include "util/InternalException.H"
+#include "util/InternalException.hpp"
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
   using namespace ecce;
 
 
-#include "dsm/IPropCalculation.H"
-#include "tdat/TAtm.H"
-#include "tdat/TBond.H"
+#include "dsm/IPropCalculation.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/TBond.hpp"
 
-#include "viz/SGContainer.H"
-#include "viz/SGFragment.H"
-#include "viz/PropSGFragment.H"
-#include "viz/ShowFragCmd.H"
+#include "viz/SGContainer.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/PropSGFragment.hpp"
+#include "viz/ShowFragCmd.hpp"
 
 ShowFragCmd::ShowFragCmd(const string& name,Receiver *receiver,
      IPropCalculation * calc)

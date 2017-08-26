@@ -59,10 +59,10 @@
 #ifndef __CHEM_INTLIST_H__
 #define __CHEM_INTLIST_H__
 
-#include "inv/SbBasic.H"
-#include "inv/SbLinear.H"
+#include "inv/SbBasic.hpp"
+#include "inv/SbLinear.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

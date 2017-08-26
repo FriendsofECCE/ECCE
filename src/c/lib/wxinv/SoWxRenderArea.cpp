@@ -1,13 +1,13 @@
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoWindowElement.H"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoWindowElement.hpp"
 
-#include "inv/SoWx/SoWx.H"
-#include "inv/SoWx/SoWxRenderArea.H"
-#include "inv/SoWx/SoWxViewer.H"
-#include "inv/SoWx/SoWxDevice.H"
-#include "inv/SoWx/SoWxMouse.H"
-#include "inv/SoWx/SoWxKeyboard.H"
+#include "inv/SoWx/SoWx.hpp"
+#include "inv/SoWx/SoWxRenderArea.hpp"
+#include "inv/SoWx/SoWxViewer.hpp"
+#include "inv/SoWx/SoWxDevice.hpp"
+#include "inv/SoWx/SoWxMouse.hpp"
+#include "inv/SoWx/SoWxKeyboard.hpp"
 
 
 #include <iostream>

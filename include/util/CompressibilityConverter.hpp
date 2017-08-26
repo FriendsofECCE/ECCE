@@ -10,7 +10,7 @@
 #ifndef COMPRESSIBILITYCONVERTER_HH
 #define COMPRESSIBILITYCONVERTER_HH
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 class CompressibilityConverter: public BaseUnitConverter
 {

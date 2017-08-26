@@ -2,8 +2,8 @@
 // include files ***********************************************************
 #  include <iostream.h>
 #  include <fstream.h>
-#include "util/EcceURL.H"
-#include "dsm/DavEDSI.H"
+#include "util/EcceURL.hpp"
+#include "dsm/DavEDSI.hpp"
 
 void usage() {
   cout << "usage listcol url [rr rmdr allrmdr] request1 request2 ..." << endl;

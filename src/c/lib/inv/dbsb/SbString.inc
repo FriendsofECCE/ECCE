@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/SbString.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/SbString.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 //
 // Constructor that initializes to a substring.

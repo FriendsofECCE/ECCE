@@ -53,8 +53,8 @@
  */
 
 #include <GL/gl.h>
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 SO_ELEMENT_SOURCE(SoGLTextureCoordinateElement);
 

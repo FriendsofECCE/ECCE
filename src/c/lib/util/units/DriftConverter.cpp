@@ -4,7 +4,7 @@
  *
  */
 
-#include "util/DriftConverter.H"
+#include "util/DriftConverter.hpp"
 
 
 /**

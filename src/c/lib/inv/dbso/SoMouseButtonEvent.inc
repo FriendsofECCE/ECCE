@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/events/SoMouseButtonEvent.H"
+#include "inv/events/SoMouseButtonEvent.hpp"
 
 SO_EVENT_SOURCE(SoMouseButtonEvent);
 

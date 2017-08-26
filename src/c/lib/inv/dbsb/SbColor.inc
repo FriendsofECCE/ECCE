@@ -52,7 +52,7 @@
  */
 
 #include <math.h>
-#include "inv/SbColor.H"
+#include "inv/SbColor.hpp"
 
 //
 // Default constructor. Defined here to reduce warnings.

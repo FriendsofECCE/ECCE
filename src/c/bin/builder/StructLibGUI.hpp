@@ -11,7 +11,7 @@
 #define _STRUCTLIBGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "StructLibGUI.C"
+#pragma interface "StructLibGUI.cpp"
 #endif
 
 /*!
@@ -21,7 +21,7 @@
 ////@begin includes
 #include "wx/splitter.h"
 #include "wx/listctrl.h"
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 ////@end includes
 
 /*!

@@ -13,8 +13,8 @@
   using std::ostrstream;
 
  
-#include "MDOptimize.H"
-#include "MDOptimizeApp.H"
+#include "MDOptimize.hpp"
+#include "MDOptimizeApp.hpp"
 
 IMPLEMENT_APP(MDOptimizeApp)
 

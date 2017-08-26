@@ -28,11 +28,11 @@
 #include <xercesc/dom/DOMNode.hpp>
  using namespace xercesc;
 
-#include "util/EcceURL.H"
-#include "util/Bookmark.H"
+#include "util/EcceURL.hpp"
+#include "util/Bookmark.hpp"
 
-#include "util/EcceException.H"
-#include "util/RetryException.H"
+#include "util/EcceException.hpp"
+#include "util/RetryException.hpp"
 
 
 class EDSIServerCentral 

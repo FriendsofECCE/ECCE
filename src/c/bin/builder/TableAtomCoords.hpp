@@ -2,7 +2,7 @@
 #define TABLEATOMCOORDS__H
 
 
-#include "MomentsPanel.H"
+#include "MomentsPanel.hpp"
 
 
 

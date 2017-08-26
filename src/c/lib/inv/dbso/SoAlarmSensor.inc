@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/sensors/SoAlarmSensor.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/sensors/SoAlarmSensor.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

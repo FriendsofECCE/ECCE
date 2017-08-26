@@ -11,7 +11,7 @@
 #ifndef TRSNFRCCONSTCONVERTER_HH
 #define TRSNFRCCONSTCONVERTER_HH
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 class TrsnFrcConstConverter: public BaseUnitConverter
 {

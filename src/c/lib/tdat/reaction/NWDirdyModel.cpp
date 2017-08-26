@@ -9,9 +9,9 @@
 #include <fstream>
   using std::ifstream;
 
-#include "util/NotImplementedException.H"
+#include "util/NotImplementedException.hpp"
 
-#include "tdat/NWDirdyModel.H"
+#include "tdat/NWDirdyModel.hpp"
 
 // Default values
 const bool NWDirdyModel::AUTOSYM = true;

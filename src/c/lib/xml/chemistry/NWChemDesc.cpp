@@ -19,18 +19,18 @@
 #include <string>
   using std::string;
 
-#include "util/STLUtil.H"
-#include "util/StringTokenizer.H"
+#include "util/STLUtil.hpp"
+#include "util/StringTokenizer.hpp"
 
-#include "tdat/FFItem.H"
-#include "tdat/FFCategory.H"
-#include "tdat/FFRules.H"
-#include "tdat/ShapeData.H"
-#include "tdat/TResTab.H"
-#include "tdat/Residue.H"
+#include "tdat/FFItem.hpp"
+#include "tdat/FFCategory.hpp"
+#include "tdat/FFRules.hpp"
+#include "tdat/ShapeData.hpp"
+#include "tdat/TResTab.hpp"
+#include "tdat/Residue.hpp"
 
-#include "dsm/NWChemDesc.H"
-#include "dsm/FFModel.H"
+#include "dsm/NWChemDesc.hpp"
+#include "dsm/FFModel.hpp"
 
 static const int NAME_END = 23;   // where 23 is size of name space
 static const int FIRST_END = 33;  // NAME_END + 10  where 10 is size of FIRST

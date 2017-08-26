@@ -53,20 +53,20 @@
 
 
 #include <stdio.h>
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
 
-#include "inv/nodes/SoSurroundScale.H"
-#include "inv/nodes/SoAntiSquish.H"
-#include "inv/nodes/SoTransform.H"
+#include "inv/nodes/SoSurroundScale.hpp"
+#include "inv/nodes/SoAntiSquish.hpp"
+#include "inv/nodes/SoTransform.hpp"
 
-#include "inv/draggers/SoDragPointDragger.H"
-#include "inv/draggers/SoJackDragger.H"
-#include "inv/draggers/SoRotateSphericalDragger.H"
-#include "inv/draggers/SoScaleUniformDragger.H"
+#include "inv/draggers/SoDragPointDragger.hpp"
+#include "inv/draggers/SoJackDragger.hpp"
+#include "inv/draggers/SoRotateSphericalDragger.hpp"
+#include "inv/draggers/SoScaleUniformDragger.hpp"
 
-#include "SoJackDraggerGeom.H"
+#include "SoJackDraggerGeom.hpp"
 
 
 SO_KIT_SOURCE(SoJackDragger);

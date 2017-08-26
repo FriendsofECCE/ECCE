@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/fields/SoSFBool.H"
-#include "inv/engines/SoOnOff.H"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/engines/SoOnOff.hpp"
 
 SO_ENGINE_SOURCE(SoOnOff);
 

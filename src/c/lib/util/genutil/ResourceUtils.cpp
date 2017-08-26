@@ -4,10 +4,10 @@
  *
  */
 
-#include "util/ResourceUtils.H"
-#include "util/StringConverter.H"
+#include "util/ResourceUtils.hpp"
+#include "util/StringConverter.hpp"
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
 
 

@@ -39,11 +39,11 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "trimline.H"
-#include "backend.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "trimline.hpp"
+#include "backend.hpp"
 
 Trimline::Trimline()
 {

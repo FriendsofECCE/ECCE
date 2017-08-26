@@ -5,9 +5,9 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/BrowserHelp.H"
-#include "wxgui/ewxHelpHandler.H"
-#include "wxgui/ewxWindowUtils.H"
+#include "util/BrowserHelp.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
 
 #define ID_MENU_HELP 50000
 #define ID_MENU_FEEDBACK 50001

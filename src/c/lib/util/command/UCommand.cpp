@@ -9,8 +9,8 @@
 //   ICommandObject object.
 //
 //////////////////////////////////////////////////////////////////////////////
-#include "util/UCommand.H"
-#include "util/ErrMsg.H"
+#include "util/UCommand.hpp"
+#include "util/ErrMsg.hpp"
 
 #include <iostream>
 using std::ostream;

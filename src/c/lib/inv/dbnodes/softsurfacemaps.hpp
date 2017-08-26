@@ -40,8 +40,8 @@
 #include <inttypes.h>   /* defines long and brethren */
 
 #include <GL/gl.h>
-#include "softsurfmap.H"
-#include "gl4types.H"
+#include "softsurfmap.hpp"
+#include "gl4types.hpp"
 
 class _SoNurbsSurfPartial {
 public:

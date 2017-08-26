@@ -39,9 +39,9 @@
   *	Derrick Burns - 1992
  */
 
-#include "mystdio.H"
-#include "types.H"
-#include "basicsurfeval.H"
+#include "mystdio.hpp"
+#include "types.hpp"
+#include "basicsurfeval.hpp"
 #include <stdio.h>
 
 void 

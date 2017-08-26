@@ -86,9 +86,9 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "inv/SoType.H"
-#include "inv/misc/SoState.H"
-#include "inv/nodes/SoNode.H"
+#include "inv/SoType.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/nodes/SoNode.hpp"
 
 class SoTypeList;
 

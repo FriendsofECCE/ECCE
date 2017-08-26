@@ -22,18 +22,18 @@
 using std::find;
 
     
-#include "util/Ecce.H"
-#include "util/SFile.H"
-#include "util/EcceMap.H"
-#include "util/KeyValueReader.H"
-#include "util/ErrMsg.H"
-#include "util/LineReader.H"
-#include "util/StringTokenizer.H"
-#include "util/StringConverter.H"
+#include "util/Ecce.hpp"
+#include "util/SFile.hpp"
+#include "util/EcceMap.hpp"
+#include "util/KeyValueReader.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/LineReader.hpp"
+#include "util/StringTokenizer.hpp"
+#include "util/StringConverter.hpp"
 
-#include "tdat/RefMachine.H"
-#include "tdat/QueueMgr.H"
-#include "tdat/Queue.H"
+#include "tdat/RefMachine.hpp"
+#include "tdat/QueueMgr.hpp"
+#include "tdat/Queue.hpp"
 
 static vector<string>       *s_refname_list=0;
 static vector<string>       *s_fullname_list=0;

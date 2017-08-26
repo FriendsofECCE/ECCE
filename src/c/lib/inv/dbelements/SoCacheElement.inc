@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/caches/SoCache.H"
-#include "inv/caches/SoGLRenderCache.H"
-#include "inv/elements/SoCacheElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/misc/SoState.H"
+#include "inv/caches/SoCache.hpp"
+#include "inv/caches/SoGLRenderCache.hpp"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/misc/SoState.hpp"
 
 // Static var:
 SbBool SoCacheElement::invalidated;

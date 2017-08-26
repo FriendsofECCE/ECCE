@@ -9,15 +9,15 @@
 using std::cerr;
 using std::endl;
 
-#include "util/NullPointerException.H"
+#include "util/NullPointerException.hpp"
 
-#include "dsm/EDSIFactory.H"
+#include "dsm/EDSIFactory.hpp"
 
-#include "wxgui/ewxListBox.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxListBox.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 
-#include "CalcMgr.H"
-#include "WxFind.H"
+#include "CalcMgr.hpp"
+#include "WxFind.hpp"
 
 
 /**

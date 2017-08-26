@@ -37,14 +37,14 @@
 #ifndef __glubufpool_h_
 #define __glubufpool_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 /*
  * bufpool.h - $Revision: 22116 $
  */
 
-#include "myassert.H"
-#include "mystdlib.H"
+#include "myassert.hpp"
+#include "mystdlib.hpp"
 #include <assert.h>
 
 #define NBLOCKS	32

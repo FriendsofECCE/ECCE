@@ -12,9 +12,9 @@
 #include "wx/frame.h"
 #include "wx/spinctrl.h"
 
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 
-#include "util/StringConverter.H"
+#include "util/StringConverter.hpp"
 
 class ewxDisabler;
 class ewxSpinCtrl;

@@ -7,7 +7,7 @@
 #include "wx/choice.h"
 #include "wx/textctrl.h"
 
-#include "wxgui/WxPovrayOptions.H"
+#include "wxgui/WxPovrayOptions.hpp"
 
 WxPovrayOptions::WxPovrayOptions()
 {

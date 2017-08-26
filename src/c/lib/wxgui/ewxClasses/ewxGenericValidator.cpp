@@ -18,10 +18,10 @@
 #include <wx/slider.h>
 #include <wx/tglbtn.h>
 
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
 
-#include "wxgui/ewxGenericValidator.H"
+#include "wxgui/ewxGenericValidator.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS(ewxGenericValidator, wxGenericValidator)

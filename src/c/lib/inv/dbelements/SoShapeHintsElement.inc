@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoShapeHintsElement.H"
-#include "inv/misc/SoState.H"
+#include "inv/elements/SoShapeHintsElement.hpp"
+#include "inv/misc/SoState.hpp"
 
 SO_ELEMENT_SOURCE(SoShapeHintsElement);
 

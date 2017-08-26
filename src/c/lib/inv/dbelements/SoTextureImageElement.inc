@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoTextureImageElement.H"
+#include "inv/elements/SoTextureImageElement.hpp"
 
 SO_ELEMENT_SOURCE(SoTextureImageElement);
 

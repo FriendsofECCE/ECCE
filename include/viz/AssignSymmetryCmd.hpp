@@ -6,7 +6,7 @@
 #ifndef  ASSIGNSYMMETRYCMD_H
 #define  ASSIGNSYMMETRYCMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class Fragment;
 

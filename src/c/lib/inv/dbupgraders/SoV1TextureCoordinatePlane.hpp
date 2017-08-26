@@ -56,10 +56,10 @@
 #ifndef  _SO_V1TEXTURECOORDINATEPLANE_
 #define  _SO_V1TEXTURECOORDINATEPLANE_
 
-#include "inv/upgraders/SoUpgrader.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFVec3f.H"
+#include "inv/upgraders/SoUpgrader.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

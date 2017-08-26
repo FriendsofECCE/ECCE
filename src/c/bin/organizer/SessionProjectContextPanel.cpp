@@ -1,5 +1,5 @@
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "SessionProjectContextPanel.H"
+#pragma implementation "SessionProjectContextPanel.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -18,14 +18,14 @@
 #include <iostream>
 using namespace std;
 
-#include "util/Preferences.H"
+#include "util/Preferences.hpp"
 
-#include "wxgui/WxResourceTreeItemData.H"
+#include "wxgui/WxResourceTreeItemData.hpp"
 
-#include "ContextPanelInterface.H"
-#include "ProjectContextPanel.H"
-#include "SessionContextPanel.H"
-#include "SessionProjectContextPanel.H"
+#include "ContextPanelInterface.hpp"
+#include "ProjectContextPanel.hpp"
+#include "SessionContextPanel.hpp"
+#include "SessionProjectContextPanel.hpp"
 
 
 /*!

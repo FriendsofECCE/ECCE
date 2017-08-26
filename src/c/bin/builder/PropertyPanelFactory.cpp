@@ -15,14 +15,14 @@
 #include <xercesc/util/XMLString.hpp>
   using namespace xercesc;
 
-#include "util/Ecce.H"
-#include "util/SFile.H"
+#include "util/Ecce.hpp"
+#include "util/SFile.hpp"
 
-#include "dsm/BasicDOMParser.H"
-#include "dsm/PropFactory.H"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/PropFactory.hpp"
 
-#include "PropertyPanel.H"
-#include "PropertyPanelFactory.H"
+#include "PropertyPanel.hpp"
+#include "PropertyPanelFactory.hpp"
 
 
 wxFORCE_LINK_MODULE(KeyValuePropertyPanel)

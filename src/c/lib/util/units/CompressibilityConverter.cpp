@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "util/CompressibilityConverter.H"
+#include "util/CompressibilityConverter.hpp"
 
 
 /**

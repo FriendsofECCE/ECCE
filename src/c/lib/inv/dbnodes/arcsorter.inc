@@ -41,10 +41,10 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "arc.H"
-#include "arcsorter.H"
-#include "subdivider.H"
+#include "glimports.hpp"
+#include "arc.hpp"
+#include "arcsorter.hpp"
+#include "subdivider.hpp"
 
 ArcSorter::ArcSorter(Subdivider &s) : Sorter( sizeof( Arc ** ) ), subdivider(s)
 {

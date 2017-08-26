@@ -2,7 +2,7 @@
 #include <fstream.h>
 #include <unistd.h>
 
-#include "dsm/EDSIMessage.H"
+#include "dsm/EDSIMessage.hpp"
 
 int main(int argc, char** argv)
 {

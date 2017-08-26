@@ -59,7 +59,7 @@
 #ifndef  _SO_READ_ERROR
 #define  _SO_READ_ERROR
 
-#include "inv/errors/SoError.H"
+#include "inv/errors/SoError.hpp"
 
 class SoInput;
 

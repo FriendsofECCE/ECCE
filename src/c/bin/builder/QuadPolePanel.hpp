@@ -2,7 +2,7 @@
 #define QUADPOLEPANEL__H
 
 
-#include "MomentsPanel.H"
+#include "MomentsPanel.hpp"
 
 
 

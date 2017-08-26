@@ -7,22 +7,22 @@
 #include "wx/wx.h"
 #include "wx/socket.h"
 
-#include "util/JMSPublisher.H"
-#include "util/EditListener.H"
+#include "util/JMSPublisher.hpp"
+#include "util/EditListener.hpp"
 
-#include "tdat/SpinMult.H"
-#include "tdat/TRunType.H"
-#include "tdat/TTheory.H"
-#include "tdat/ESPConstraintModel.H"
+#include "tdat/SpinMult.hpp"
+#include "tdat/TRunType.hpp"
+#include "tdat/TTheory.hpp"
+#include "tdat/ESPConstraintModel.hpp"
 
-#include "wxgui/CalcDropHandler.H"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/FeedbackSaveHandler.H"
-#include "wxgui/WxDavAuth.H"
+#include "wxgui/CalcDropHandler.hpp"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/FeedbackSaveHandler.hpp"
+#include "wxgui/WxDavAuth.hpp"
 
-#include "comm/RCommand.H"
+#include "comm/RCommand.hpp"
 
-#include "CalcEdGUI.H"
+#include "CalcEdGUI.hpp"
 
 #define wxID_THEORY_CHANGE 10998
 #define wxID_RUNTYPE_CHANGE 10999

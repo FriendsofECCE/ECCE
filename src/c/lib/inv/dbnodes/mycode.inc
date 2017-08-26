@@ -34,7 +34,7 @@
  *
  */
 
-#include "mymath.H"
+#include "mymath.hpp"
 
 #ifdef NEEDCEILF
 

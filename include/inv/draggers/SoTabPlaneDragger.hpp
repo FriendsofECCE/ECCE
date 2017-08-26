@@ -77,12 +77,12 @@
 #ifndef  _SO_TAB_PLANE_DRAGGER_
 #define  _SO_TAB_PLANE_DRAGGER_
 
-#include "inv/SbLinear.H"
-#include "inv/sensors/SoSensor.H"
-#include "inv/projectors/SbLineProjector.H"
-#include "inv/projectors/SbPlaneProjector.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/draggers/SoDragger.H"
+#include "inv/SbLinear.hpp"
+#include "inv/sensors/SoSensor.hpp"
+#include "inv/projectors/SbLineProjector.hpp"
+#include "inv/projectors/SbPlaneProjector.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/draggers/SoDragger.hpp"
 
 class SoNode;
 class SoCoordinate3;

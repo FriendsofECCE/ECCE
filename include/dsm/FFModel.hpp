@@ -26,15 +26,15 @@
   using std::string;
   using std::sort;
 
-#include "util/Serializable.H"
-#include "util/IOException.H"
+#include "util/Serializable.hpp"
+#include "util/IOException.hpp"
 
-#include "tdat/FFSources.H"
-#include "tdat/FFDesc.H"
-#include "tdat/FFCategoryDesc.H"
-#include "tdat/FFCategory.H"
+#include "tdat/FFSources.hpp"
+#include "tdat/FFDesc.hpp"
+#include "tdat/FFCategoryDesc.hpp"
+#include "tdat/FFCategory.hpp"
 
-#include "dsm/ObserverSubject.H"
+#include "dsm/ObserverSubject.hpp"
 
 class FFModel : public Subject, public Serializable 
 {

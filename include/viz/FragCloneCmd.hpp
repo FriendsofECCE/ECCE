@@ -6,8 +6,8 @@
 #ifndef  FRAGCLONECMD_H
 #define  FRAGCLONECMD_H
 
-#include "util/Command.H"
-#include "tdat/DisplayStyle.H"
+#include "util/Command.hpp"
+#include "tdat/DisplayStyle.hpp"
 
 class SGFragment;
 

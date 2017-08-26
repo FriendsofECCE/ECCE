@@ -56,7 +56,7 @@
 #ifndef  _SO_COMPLEXITY_TYPE_ELEMENT
 #define  _SO_COMPLEXITY_TYPE_ELEMENT
 
-#include "inv/elements/SoInt32Element.H"
+#include "inv/elements/SoInt32Element.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

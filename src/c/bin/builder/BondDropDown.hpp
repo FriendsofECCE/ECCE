@@ -2,12 +2,12 @@
 #define BONDDROPDOWN_H
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "BondDropDown.C"
+#pragma interface "BondDropDown.cpp"
 #endif
 
 #include <wx/toolbar.h>
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
 
 class BondDropDown : public wxToolBar,

@@ -2,10 +2,10 @@
 #include <fstream.h>
 #include <unistd.h>
 
-#include "util/CmdLineAuthListener.H"
+#include "util/CmdLineAuthListener.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/CCCreator.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/CCCreator.hpp"
 
 int main(int argc, char** argv)
 {

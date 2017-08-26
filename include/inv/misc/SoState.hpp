@@ -75,7 +75,7 @@
 #define SO_STATE_GET_CONST_ELEMENT(stackIndex)\
 	return stack[stackIndex];
 
-#include "inv/SoLists.H"
+#include "inv/SoLists.hpp"
 
 class SoAction;
 class SoElement;

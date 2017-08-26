@@ -1,18 +1,18 @@
-//#include "inv/SoDB.H"
-#include "inv/actions/SoGLRenderAction.H"
-//#include "inv/actions/SoCallbackAction.H"
-//#include "inv/actions/SoGetBoundingBoxAction.H"
-//#include "inv/actions/SoPickAction.H"
+//#include "inv/SoDB.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+//#include "inv/actions/SoCallbackAction.hpp"
+//#include "inv/actions/SoGetBoundingBoxAction.hpp"
+//#include "inv/actions/SoPickAction.hpp"
 
-//#include "inv/nodes/SoScale.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoShapeHints.H"
+//#include "inv/nodes/SoScale.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoShapeHints.hpp"
 
 
-#include "inv/nodes/SoMaterial.H"
+#include "inv/nodes/SoMaterial.hpp"
 
-#include "viz/StyledPlane.H"
-#include "viz/SGPlane.H"
+#include "viz/StyledPlane.hpp"
+#include "viz/SGPlane.hpp"
 
 #include <iostream>
   using std::cout;

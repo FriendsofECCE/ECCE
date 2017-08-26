@@ -39,10 +39,10 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "flist.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "flist.hpp"
 
 /*----------------------------------------------------------------------------
  * Flist::Flist - initialize a REAL number array

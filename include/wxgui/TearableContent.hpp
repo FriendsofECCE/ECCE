@@ -5,7 +5,7 @@
 #include <wx/minifram.h>
 #include <wx/popupwin.h>
 
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 
 
 /**

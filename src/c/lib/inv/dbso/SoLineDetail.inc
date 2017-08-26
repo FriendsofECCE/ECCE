@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/details/SoLineDetail.H"
+#include "inv/details/SoLineDetail.hpp"
 
 SO_DETAIL_SOURCE(SoLineDetail)
 

@@ -14,9 +14,9 @@ using std::find;
   using __gnu_cxx::hash;
 #endif
 
-#include "tdat/Fragment.H"
-#include "tdat/MetaPotential.H"
-#include "tdat/MetaPotentialModel.H"
+#include "tdat/Fragment.hpp"
+#include "tdat/MetaPotential.hpp"
+#include "tdat/MetaPotentialModel.hpp"
 
 
 /**

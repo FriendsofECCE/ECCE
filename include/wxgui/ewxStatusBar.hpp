@@ -3,8 +3,8 @@
 
 #include "wx/statusbr.h"
 #include "wx/bmpbuttn.h"
-#include "wxgui/ewxStyledWindow.H"
-#include "dsm/ResourceDescriptor.H"
+#include "wxgui/ewxStyledWindow.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
 class WxState;
 class FeedbackSaveHandler;

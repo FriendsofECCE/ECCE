@@ -27,7 +27,7 @@
 #if wxUSE_AUI
 #if wxUSE_MDI
 
-#include "wx/ewxaui/tabmdi.H"
+#include "wx/ewxaui/tabmdi.hpp"
 
 #ifndef WX_PRECOMP
     #include "wx/panel.h"

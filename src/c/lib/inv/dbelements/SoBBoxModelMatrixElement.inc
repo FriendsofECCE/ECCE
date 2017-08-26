@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoBBoxModelMatrixElement.H"
-#include "inv/elements/SoLocalBBoxMatrixElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/elements/SoBBoxModelMatrixElement.hpp"
+#include "inv/elements/SoLocalBBoxMatrixElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 // This is used to make sure the pushMatrix/popMatrix methods are
 // called correctly.

@@ -2,7 +2,7 @@
 #define DEFAULTVECPANEL__H
 
 
-#include "PropertyPanel.H"
+#include "PropertyPanel.hpp"
 
 
 class wxGrid;

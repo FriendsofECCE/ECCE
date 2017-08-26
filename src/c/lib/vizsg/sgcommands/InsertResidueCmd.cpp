@@ -6,14 +6,14 @@
 #include <iostream>
   using namespace std;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "viz/InsertResidueCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
-#include "tdat/Residue.H"
+#include "viz/InsertResidueCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
+#include "tdat/Residue.hpp"
 
 InsertResidueCmd::InsertResidueCmd(const string& name, Receiver * receiver)
       : FragCloneCmd(name, receiver)

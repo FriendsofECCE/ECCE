@@ -18,8 +18,8 @@
 #include <vector>
   using std::vector;
 
-#include "tdat/FFParameterDesc.H"
-#include "util/InvalidException.H"
+#include "tdat/FFParameterDesc.hpp"
+#include "util/InvalidException.hpp"
 
 /**
  *  The Force Field Category Description (FFCategoryDesc) class contains 

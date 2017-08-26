@@ -76,7 +76,7 @@
 #ifndef  _SO_SUB_EVENT_
 #define  _SO_SUB_EVENT_
 
-#include "inv/events/SoEvent.H"
+#include "inv/events/SoEvent.hpp"
 
 // C-api: end
 

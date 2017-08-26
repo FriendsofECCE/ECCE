@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1SpotLightKit.H"
-#include "inv/nodes/SoSpotLight.H"
-#include "inv/nodekits/SoLightKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1SpotLightKit.hpp"
+#include "inv/nodes/SoSpotLight.hpp"
+#include "inv/nodekits/SoLightKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1SpotLightKit);

@@ -70,7 +70,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
 // C-api: prefix=SbVPReg
 class SbViewportRegion {

@@ -6,10 +6,10 @@
  *
  */
 
-#include "dsm/ResourceTool.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/EcceTool.H"
+#include "dsm/ResourceTool.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/EcceTool.hpp"
 
 
 BEGIN_EVENT_TABLE( EcceTool, wxPanel )

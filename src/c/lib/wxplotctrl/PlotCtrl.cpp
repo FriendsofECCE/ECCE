@@ -9,10 +9,10 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma implementation "PlotCtrl.H"
+    #pragma implementation "PlotCtrl.hpp"
 #endif
 
-#include "wxgui/PlotPrecomp.H"
+#include "wxgui/PlotPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
@@ -38,8 +38,8 @@
 #include "wx/math.h"
 #include "wx/image.h"
 
-#include "wxgui/PlotCtrl.H"
-#include "wxgui/PlotDraw.H"
+#include "wxgui/PlotCtrl.hpp"
+#include "wxgui/PlotDraw.hpp"
 
 #include <math.h>
 #include <float.h>

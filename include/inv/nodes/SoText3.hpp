@@ -56,12 +56,12 @@
 #ifndef  _SO_TEXT_3_
 #define  _SO_TEXT_3_
 
-#include "inv/SbBox.H"
-#include "inv/fields/SoMFString.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/nodes/SoShape.H"
+#include "inv/SbBox.hpp"
+#include "inv/fields/SoMFString.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/nodes/SoShape.hpp"
 
 #include <GL/gl.h>   // For GLenum declaration
 

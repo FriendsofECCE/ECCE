@@ -4,11 +4,11 @@
  *
  */
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
-#include "tdat/TaskApp.H"
-#include "tdat/TaskAppCloseEvent.H"
-#include "tdat/TaskAppCloseListener.H"
+#include "tdat/TaskApp.hpp"
+#include "tdat/TaskAppCloseEvent.hpp"
+#include "tdat/TaskAppCloseListener.hpp"
 
 
 

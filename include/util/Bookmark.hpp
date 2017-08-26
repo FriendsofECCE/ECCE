@@ -10,7 +10,7 @@
 #include <string>
 using std::string;
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
 /**
  * A small container class that contains a name/url pair.

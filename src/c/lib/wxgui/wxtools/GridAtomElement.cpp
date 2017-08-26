@@ -23,26 +23,26 @@
   using std::make_pair;
 
 
-#include "util/EcceMap.H"
-#include "util/StringConverter.H"
-#include "util/InvalidException.H"
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
-#include "util/STLUtil.H"
+#include "util/EcceMap.hpp"
+#include "util/StringConverter.hpp"
+#include "util/InvalidException.hpp"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
+#include "util/STLUtil.hpp"
 
-#include "tdat/Residue.H"
-#include "tdat/TPerTab.H"
+#include "tdat/Residue.hpp"
+#include "tdat/TPerTab.hpp"
 
-#include "dsm/ITraversable.H"
-#include "dsm/ResourceType.H"
-#include "dsm/GridProperty.H"
-#include "dsm/AtomProperty.H"
+#include "dsm/ITraversable.hpp"
+#include "dsm/ResourceType.hpp"
+#include "dsm/GridProperty.hpp"
+#include "dsm/AtomProperty.hpp"
 
-#include "wxgui/GridElement.H"
-#include "wxgui/ewxStyledWindow.H"
-#include "wxgui/WxResourceImageList.H"
-#include "wxgui/GridCellPropImageRenderer.H"
-#include "wxgui/GridAtomElement.H"
+#include "wxgui/GridElement.hpp"
+#include "wxgui/ewxStyledWindow.hpp"
+#include "wxgui/WxResourceImageList.hpp"
+#include "wxgui/GridCellPropImageRenderer.hpp"
+#include "wxgui/GridAtomElement.hpp"
 
 
 static const char* vcouplingMap[] = {"Interior", "Tail", "Head", "Monomer"};

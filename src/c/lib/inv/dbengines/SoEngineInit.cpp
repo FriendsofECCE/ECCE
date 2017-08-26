@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/engines/SoEngines.H"
-#include "SoUnknownEngine.H"
-#include "SoFieldConverters.H"
+#include "inv/engines/SoEngines.hpp"
+#include "SoUnknownEngine.hpp"
+#include "SoFieldConverters.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

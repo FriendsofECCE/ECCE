@@ -51,21 +51,21 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoPath.H"
-#include "inv/SoNodeKitPath.H"
-#include "inv/actions/SoSearchAction.H"
-#include "inv/nodekits/SoBaseKit.H"
-#include "inv/nodes/SoNode.H"
-#include "inv/nodes/SoLightModel.H"
-#include "inv/nodes/SoBaseColor.H"
-#include "inv/nodes/SoDrawStyle.H"
-#include "inv/nodes/SoSelection.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoShape.H"
-#include "inv/nodes/SoTexture2.H"
-#include "inv/nodes/SoMaterialBinding.H"
+#include "inv/SoPath.hpp"
+#include "inv/SoNodeKitPath.hpp"
+#include "inv/actions/SoSearchAction.hpp"
+#include "inv/nodekits/SoBaseKit.hpp"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/nodes/SoLightModel.hpp"
+#include "inv/nodes/SoBaseColor.hpp"
+#include "inv/nodes/SoDrawStyle.hpp"
+#include "inv/nodes/SoSelection.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoShape.hpp"
+#include "inv/nodes/SoTexture2.hpp"
+#include "inv/nodes/SoMaterialBinding.hpp"
 
-#include "inv/actions/SoLineHighlightRenderAction.H"
+#include "inv/actions/SoLineHighlightRenderAction.hpp"
 
 
 SO_ACTION_SOURCE(SoLineHighlightRenderAction);

@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "CalcMgrGUI.H"
+#pragma implementation "CalcMgrGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,14 +23,14 @@
 #endif
 
 ////@begin includes
-#include "wxgui/WxResourceTreeCtrl.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxMenuBar.H"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/WxResourceTreeCtrl.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxMenuBar.hpp"
+#include "wxgui/ewxFrame.hpp"
 ////@end includes
 
-#include "CalcMgrGUI.H"
+#include "CalcMgrGUI.hpp"
 
 ////@begin XPM images
 

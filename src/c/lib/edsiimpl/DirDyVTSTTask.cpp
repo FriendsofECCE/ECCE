@@ -23,16 +23,16 @@
   using std::vector;
 
 
-#include "tdat/Fragment.H"
+#include "tdat/Fragment.hpp"
 
-#include "dsm/TGaussianBasisSet.H"
-#include "dsm/TGBSConfig.H"
-#include "dsm/EDSIMessage.H"
-#include "dsm/EDSI.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/Session.H"
-#include "dsm/DirDyVTSTTask.H"
-#include "dsm/CodeFactory.H"
+#include "dsm/TGaussianBasisSet.hpp"
+#include "dsm/TGBSConfig.hpp"
+#include "dsm/EDSIMessage.hpp"
+#include "dsm/EDSI.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/Session.hpp"
+#include "dsm/DirDyVTSTTask.hpp"
+#include "dsm/CodeFactory.hpp"
 
 
 

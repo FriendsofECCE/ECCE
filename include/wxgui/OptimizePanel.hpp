@@ -5,7 +5,7 @@
  * Includes
  */
 
-#include "wxgui/OptimizePanelGUI.H"
+#include "wxgui/OptimizePanelGUI.hpp"
 
 class MDPanelHelper;
 class OptimizeModel;

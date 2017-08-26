@@ -40,12 +40,12 @@
  * $Revision: 22116 $
  */
 
-#include "myglimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "mymath.H"
-#include "gl4surfeval.H"
-#include "nurbsconsts.H"
+#include "myglimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "mymath.hpp"
+#include "gl4surfeval.hpp"
+#include "nurbsconsts.hpp"
 #include <stdio.h>
 
 /*extern "C" {

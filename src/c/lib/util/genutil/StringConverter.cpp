@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "util/StringConverter.H"
-#include "util/STLUtil.H"
+#include "util/StringConverter.hpp"
+#include "util/STLUtil.hpp"
 
 
 bool StringConverter::isAllWhite(const string& str)

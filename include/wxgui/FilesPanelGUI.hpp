@@ -11,7 +11,7 @@
 #define _FILESPANELGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "FilesPanelGUI.C"
+#pragma interface "FilesPanelGUI.cpp"
 #endif
 
 /*!
@@ -21,7 +21,7 @@
 ////@begin includes
 #include "wx/notebook.h"
 #include "wx/statline.h"
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 ////@end includes
 
 /*!

@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "ImageContextPanelGUI.H"
+#pragma implementation "ImageContextPanelGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,12 +23,12 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxScrolledWindow.H"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxScrolledWindow.hpp"
 ////@end includes
 
-#include "ImageContextPanelGUI.H"
+#include "ImageContextPanelGUI.hpp"
 
 ////@begin XPM images
 

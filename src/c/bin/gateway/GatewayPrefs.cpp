@@ -10,7 +10,7 @@
  */
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "GatewayPrefs.H"
+#pragma implementation "GatewayPrefs.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -24,29 +24,29 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
-#include "util/TDateTime.H"
-#include "util/UnitFactory.H"
-#include "util/Ecce.H"
+#include "util/JMSMessage.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
+#include "util/TDateTime.hpp"
+#include "util/UnitFactory.hpp"
+#include "util/Ecce.hpp"
 
-#include "dsm/MachineConfig.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/MachineConfig.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxMessageDialog.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
 
-#include "StateButton.H"
+#include "StateButton.hpp"
 
-#include "GatewayPrefs.H"
+#include "GatewayPrefs.hpp"
 
 #ifdef EMSL
-#include "EMSLAuth.H"
+#include "EMSLAuth.hpp"
 #endif
 
 //#include <iostream>

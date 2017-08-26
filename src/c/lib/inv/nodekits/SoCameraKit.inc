@@ -51,13 +51,13 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/nodekits/SoCameraKit.H"
-#include "inv/nodes/SoCamera.H"
-#include "inv/nodes/SoGroup.H"
-#include "inv/nodes/SoPerspectiveCamera.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/nodes/SoTransformSeparator.H"
+#include "inv/SoDB.hpp"
+#include "inv/nodekits/SoCameraKit.hpp"
+#include "inv/nodes/SoCamera.hpp"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/nodes/SoPerspectiveCamera.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/nodes/SoTransformSeparator.hpp"
 
 SO_KIT_SOURCE(SoCameraKit);
 

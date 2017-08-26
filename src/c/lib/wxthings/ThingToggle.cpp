@@ -9,7 +9,7 @@
 // Licence:     wxWidgets licence
 /////////////////////////////////////////////////////////////////////////////
 
-#include "wxgui/ThingPrecomp.H"
+#include "wxgui/ThingPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include <wx/wxprec.h>
@@ -30,7 +30,7 @@
 #include <wx/tglbtn.h>
 #include <wx/image.h>
 #include <wx/renderer.h>
-#include "wxgui/ThingToggle.H"
+#include "wxgui/ThingToggle.hpp"
 
 // ==========================================================================
 // wxCustomButton

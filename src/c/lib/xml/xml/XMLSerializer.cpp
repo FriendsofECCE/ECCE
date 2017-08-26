@@ -5,8 +5,8 @@
 #include <xercesc/dom/DOMNodeList.hpp>
 #include <xercesc/dom/DOMNamedNodeMap.hpp>
 
-#include "util/Serializable.H"
-#include "dsm/XMLSerializer.H"
+#include "util/Serializable.hpp"
+#include "dsm/XMLSerializer.hpp"
 
 using std::string;
 

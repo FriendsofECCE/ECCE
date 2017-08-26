@@ -4,7 +4,7 @@
 #include <map>
   using std::map;
 
-#include "ewxImageList.H"
+#include "ewxImageList.hpp"
 
 class WxStateImageList : public ewxImageList
 {

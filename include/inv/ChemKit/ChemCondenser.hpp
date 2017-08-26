@@ -74,7 +74,7 @@
 #ifndef  __CHEM_CONDENSER_H__
 #define  __CHEM_CONDENSER_H__
 
-#include "inv/SbBasic.H"
+#include "inv/SbBasic.hpp"
 
 class SbDict;
 class SoMFInt32;

@@ -71,21 +71,21 @@
 #include <math.h>
 #include <assert.h>
 
-#include "inv/fields/SoMFInt32.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/fields/SoMFShort.H"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/fields/SoMFShort.hpp"
 
-#include "inv/nodes/SoIndexedLineSet.H"
-#include "inv/nodes/SoMaterialBinding.H"
-#include "inv/nodes/SoNormalBinding.H"
+#include "inv/nodes/SoIndexedLineSet.hpp"
+#include "inv/nodes/SoMaterialBinding.hpp"
+#include "inv/nodes/SoNormalBinding.hpp"
 
-#include "inv/SbColor.H"
+#include "inv/SbColor.hpp"
 
-#include "inv/ChemKit/SbVecI.H"
-#include "inv/ChemKit/MFDouble.H"
-#include "inv/ChemKit/MFInt8.H"
-#include "inv/ChemKit/ChemLattice3.H"
-#include "inv/ChemKit/ChemCondenser.H"
+#include "inv/ChemKit/SbVecI.hpp"
+#include "inv/ChemKit/MFDouble.hpp"
+#include "inv/ChemKit/MFInt8.hpp"
+#include "inv/ChemKit/ChemLattice3.hpp"
+#include "inv/ChemKit/ChemCondenser.hpp"
 
 static SoIndexedLineSet *lineSet;
 static SoVertexProperty *lineSetVP;

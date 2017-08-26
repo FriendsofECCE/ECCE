@@ -6,7 +6,7 @@
 #ifndef DAVEXCEPTION_HH
 #define DAVEXCEPTION_HH
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 /**
  * DavException indicates some failure with a WebDav operation.

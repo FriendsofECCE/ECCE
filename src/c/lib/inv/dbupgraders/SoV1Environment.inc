@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "SoV1Environment.H"
-#include "inv/nodes/SoEnvironment.H"
+#include "SoV1Environment.hpp"
+#include "inv/nodes/SoEnvironment.hpp"
 
 SO_NODE_SOURCE(SoV1Environment);
 

@@ -18,10 +18,10 @@
 // library includes
 
 // application includes
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/Preferences.H"
-#include "tdat/RefQueueMgr.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/Preferences.hpp"
+#include "tdat/RefQueueMgr.hpp"
 
 // #define DEBUG
 

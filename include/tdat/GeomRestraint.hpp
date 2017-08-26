@@ -6,7 +6,7 @@
 #ifndef GEOMRESTRAINT_HH
 #define GEOMRESTRAINT_HH
 
-#include "tdat/GeomConstraint.H"
+#include "tdat/GeomConstraint.hpp"
 
 
 /**

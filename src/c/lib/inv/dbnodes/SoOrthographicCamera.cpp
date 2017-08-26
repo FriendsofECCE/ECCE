@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/nodes/SoOrthographicCamera.H"
+#include "inv/nodes/SoOrthographicCamera.hpp"
 
 SO_NODE_SOURCE(SoOrthographicCamera);
 

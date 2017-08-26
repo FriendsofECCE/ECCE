@@ -8,7 +8,7 @@
 #define SETPARTIALCHARGECMD_HH
 
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class wxWindow;
 

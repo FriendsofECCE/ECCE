@@ -69,18 +69,18 @@ using namespace std;
 //#include <strstream.h>
 #include <stdlib.h>
 
-#include "inv/SbPList.H"
+#include "inv/SbPList.hpp"
 
-#include "inv/ChemKit/SparseBits.H"
+#include "inv/ChemKit/SparseBits.hpp"
 
 // --> moiv doublebond error
-#include "inv/ChemKit/ChemDisplay.H"
+#include "inv/ChemKit/ChemDisplay.hpp"
 // <-- moiv doublebond error
-#include "inv/ChemKit/ChemBaseData.H"
-#include "inv/ChemKit/ChemIntList.H"
-#include "inv/ChemKit/ChemSSSR.H"
+#include "inv/ChemKit/ChemBaseData.hpp"
+#include "inv/ChemKit/ChemIntList.hpp"
+#include "inv/ChemKit/ChemSSSR.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

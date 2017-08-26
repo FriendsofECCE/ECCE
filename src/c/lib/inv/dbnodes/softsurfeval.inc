@@ -40,15 +40,15 @@
  * $Revision: 22116 $
  */
 
-#include "SoAddPrefix.H"
-#include "myassert.H"
+#include "SoAddPrefix.hpp"
+#include "myassert.hpp"
 #include <stdio.h>
 #include <GL/gl.h>
-#include "mystdio.H"
-#include "mymath.H"
-#include "softsurfmap.H"
-#include "softsurfeval.H"
-#include "nurbsconsts.H"
+#include "mystdio.hpp"
+#include "mymath.hpp"
+#include "softsurfmap.hpp"
+#include "softsurfeval.hpp"
+#include "nurbsconsts.hpp"
 
 inline REAL absr( REAL x ) { return (x < 0.0) ? -x : x; }
 inline int equal( REAL x, REAL y ) { return (absr(x-y) < 1.0E-6) ? 1 : 0; }

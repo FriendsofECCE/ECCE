@@ -1,20 +1,20 @@
-#include "inv/nodes/SoRotation.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/nodes/SoTranslation.H"
-#include "inv/nodes/SoSurroundScale.H"
-#include "inv/nodes/SoAntiSquish.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/draggers/SoRotateCylindricalDragger.H"
+#include "inv/nodes/SoRotation.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/nodes/SoTranslation.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
+#include "inv/nodes/SoAntiSquish.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/draggers/SoRotateCylindricalDragger.hpp"
 
-#include "viz/TranslateRadialDragger.H"
+#include "viz/TranslateRadialDragger.hpp"
 
 // Include file for our new class.
-#include "viz/RTDraggerNode.H"
+#include "viz/RTDraggerNode.hpp"
 
 // This file contains RotTransDragger::geomBuffer, whic 
 // describes the default geometry resources for his class.
-#include "viz/RTDraggerGeom.H"
+#include "viz/RTDraggerGeom.hpp"
 
 SO_KIT_SOURCE(RTDraggerNode);
 

@@ -52,17 +52,17 @@
  */
 
 
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/SoOutput.H"
-#include "inv/SoPath.H"
-#include "inv/actions/SoWriteAction.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoReadError.H"
-#include "inv/misc/SoChildList.H"
-#include "inv/misc/SoNotification.H"
-#include "inv/nodes/SoNode.H"
-#include "inv/nodes/SoSeparator.H"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/actions/SoWriteAction.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/misc/SoNotification.hpp"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/nodes/SoSeparator.hpp"
 
 SoType SoPath::classTypeId;
 

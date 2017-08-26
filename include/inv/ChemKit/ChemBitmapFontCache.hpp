@@ -65,9 +65,9 @@
 #include <windows.h>
 #endif
 
-#include "inv/SbBox.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoViewportRegionElement.H"
+#include "inv/SbBox.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
 
 #include "inv/flclient.h"
 

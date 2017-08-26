@@ -6,10 +6,10 @@
 #ifndef METAPOTENTIALMODEL_HH
 #define METAPOTENTIALMODEL_HH
 
-#include "util/Serializable.H"
-#include "util/InvalidException.H"
+#include "util/Serializable.hpp"
+#include "util/InvalidException.hpp"
 
-#include "tdat/MetaPotential.H"
+#include "tdat/MetaPotential.hpp"
 
 #include <vector>
 

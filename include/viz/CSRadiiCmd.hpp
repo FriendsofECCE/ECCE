@@ -6,7 +6,7 @@
 #ifndef  CSRADIICMD_H
 #define  CSRADIICMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class Fragment;
 

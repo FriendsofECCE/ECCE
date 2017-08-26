@@ -41,10 +41,10 @@ using std::ifstream;
 #include <sys/stat.h>
 
 
-#include "util/ErrMsg.H"
-#include "util/Host.H"
-#include "util/SFile.H"
-#include "util/TDateTime.H"
+#include "util/ErrMsg.hpp"
+#include "util/Host.hpp"
+#include "util/SFile.hpp"
+#include "util/TDateTime.hpp"
 
 // -----------------------
 // Public Member Functions

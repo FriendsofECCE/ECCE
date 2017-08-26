@@ -52,11 +52,11 @@
  */
 
 #include <stdlib.h>
-#include "inv/SoLists.H"
-#include "inv/SoPath.H"
-#include "inv/SoPickedPoint.H"
-#include "inv/details/SoDetail.H"
-#include "inv/misc/SoBase.H"
+#include "inv/SoLists.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/details/SoDetail.hpp"
+#include "inv/misc/SoBase.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

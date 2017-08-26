@@ -58,7 +58,7 @@
 #ifndef  _SO_NOTIFICATION_
 #define  _SO_NOTIFICATION_
 
-#include "inv/SbBasic.H"
+#include "inv/SbBasic.hpp"
 
 class SoBase;
 class SoField;

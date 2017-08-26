@@ -52,7 +52,7 @@
  */
 
 #include <GL/gl.h>
-#include "inv/elements/SoGLProjectionMatrixElement.H"
+#include "inv/elements/SoGLProjectionMatrixElement.hpp"
 
 SO_ELEMENT_SOURCE(SoGLProjectionMatrixElement);
 

@@ -1,8 +1,8 @@
-#include "inv/actions/SoGetBoundingBoxAction.H"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
 
-#include "inv/nodes/SoSeparator.H"
+#include "inv/nodes/SoSeparator.hpp"
 
-#include "viz/NearPlaneSep.H"
+#include "viz/NearPlaneSep.hpp"
 
 SO_NODE_SOURCE(NearPlaneSep);
 

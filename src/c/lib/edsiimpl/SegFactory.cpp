@@ -2,18 +2,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "util/ErrMsg.H"
-#include "util/STLUtil.H"
-#include "util/StringConverter.H"
+#include "util/ErrMsg.hpp"
+#include "util/STLUtil.hpp"
+#include "util/StringConverter.hpp"
 
-#include "tdat/Fragment.H"
-#include "tdat/ShapeData.H"
-#include "tdat/TResTab.H"
-#include "tdat/FFRules.H"
+#include "tdat/Fragment.hpp"
+#include "tdat/ShapeData.hpp"
+#include "tdat/TResTab.hpp"
+#include "tdat/FFRules.hpp"
 
-#include "dsm/NWChemDesc.H"
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/SegFactory.H"
+#include "dsm/NWChemDesc.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/SegFactory.hpp"
 
 #include <map>
 

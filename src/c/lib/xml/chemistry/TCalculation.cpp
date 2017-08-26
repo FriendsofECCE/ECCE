@@ -1,17 +1,17 @@
-#include "util/EcceMap.H"
-#include "util/EcceURL.H"  
-#include "util/ErrMsg.H"
-#include "util/SFile.H"
+#include "util/EcceMap.hpp"
+#include "util/EcceURL.hpp"  
+#include "util/ErrMsg.hpp"
+#include "util/SFile.hpp"
 
-#include "tdat/Fragment.H"
-#include "tdat/GUIValues.H"
-#include "tdat/TRunType.H"
-#include "tdat/TTheory.H"
+#include "tdat/Fragment.hpp"
+#include "tdat/GUIValues.hpp"
+#include "tdat/TRunType.hpp"
+#include "tdat/TTheory.hpp"
 
-#include "dsm/JCode.H"
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/TCalculation.H"
-#include "dsm/TGBSConfig.H"
+#include "dsm/JCode.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/TCalculation.hpp"
+#include "dsm/TGBSConfig.hpp"
 
 using std::sort;
 using std::includes;

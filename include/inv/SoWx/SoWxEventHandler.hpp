@@ -5,7 +5,7 @@
 #include <wx/event.h>
 #include <wx/timer.h>
 
-#include "inv/SbTime.H"
+#include "inv/SbTime.hpp"
 
 #define ID_SOWXTIMER 1000000
 

@@ -59,9 +59,9 @@
 #ifndef  _SO_SELECTION_
 #define  _SO_SELECTION_
 
-#include "inv/SbColor.H"
-#include "inv/misc/SoCallbackList.H"
-#include "inv/nodes/SoSeparator.H"
+#include "inv/SbColor.hpp"
+#include "inv/misc/SoCallbackList.hpp"
+#include "inv/nodes/SoSeparator.hpp"
 
 class SoCallbackList;
 class SoEvent;

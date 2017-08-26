@@ -55,7 +55,7 @@
 #ifndef  _SO_TRANSFORMER_MANIP_
 #define  _SO_TRANSFORMER_MANIP_
 
-#include "inv/manips/SoTransformManip.H"
+#include "inv/manips/SoTransformManip.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

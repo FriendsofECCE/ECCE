@@ -1,10 +1,10 @@
 
-#include "util/ErrMsg.H"
+#include "util/ErrMsg.hpp"
 
-#include "dsm/IPropCalculation.H"
+#include "dsm/IPropCalculation.hpp"
 
-#include "PropertyPanel.H"
-#include "PropertyPanelFactory.H"
+#include "PropertyPanel.hpp"
+#include "PropertyPanelFactory.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS(PropertyPanel, ewxPanel)

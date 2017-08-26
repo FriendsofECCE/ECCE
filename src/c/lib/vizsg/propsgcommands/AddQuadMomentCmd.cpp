@@ -3,15 +3,15 @@
   using std::endl;
 
 
-#include "util/InternalException.H"
-#include "util/Diag3.H"
+#include "util/InternalException.hpp"
+#include "util/Diag3.hpp"
 
-#include "dsm/IPropCalculation.H"
+#include "dsm/IPropCalculation.hpp"
 
-#include "tdat/PropVector.H"
+#include "tdat/PropVector.hpp"
 
-#include "viz/cvSGContainer.H"
-#include "viz/AddQuadMomentCmd.H"
+#include "viz/cvSGContainer.hpp"
+#include "viz/AddQuadMomentCmd.hpp"
 
 AddQuadMomentCmd::AddQuadMomentCmd(const string& name, Receiver *receiver,
                          IPropCalculation *calc)

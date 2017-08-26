@@ -11,7 +11,7 @@
 #define _WXLAUNCHERGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "WxLauncherGUI.C"
+#pragma interface "WxLauncherGUI.cpp"
 #endif
 
 /*!
@@ -20,11 +20,11 @@
 
 ////@begin includes
 #include "wx/frame.h"
-#include "wxgui/WxParameterEdit.H"
-#include "wxgui/WxTimeSpanEdit.H"
+#include "wxgui/WxParameterEdit.hpp"
+#include "wxgui/WxTimeSpanEdit.hpp"
 #include "wx/statline.h"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/ewxFrame.hpp"
 ////@end includes
 
 /*!

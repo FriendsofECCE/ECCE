@@ -1,7 +1,7 @@
 #ifndef REACTIONERRORPLOTPROPERTYPANEL_H_
 #define REACTIONERRORPLOTPROPERTYPANEL_H_
 
-#include "PropertyPanel.H"
+#include "PropertyPanel.hpp"
 
 class ewxChoice;
 class ewxPlotCtrl;

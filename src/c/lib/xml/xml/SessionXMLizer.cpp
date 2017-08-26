@@ -26,15 +26,15 @@ using std::string;
 #include <xercesc/dom/DOMNamedNodeMap.hpp>
 
 
-#include "util/EcceURL.H"
-#include "util/ResourceUtils.H"
-#include "util/STLUtil.H"
-#include "dsm/Resource.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/XMLSerializer.H"
-#include "dsm/BasicDOMParser.H"
-#include "dsm/Session.H"
-#include "dsm/SessionXMLizer.H"
+#include "util/EcceURL.hpp"
+#include "util/ResourceUtils.hpp"
+#include "util/STLUtil.hpp"
+#include "dsm/Resource.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/XMLSerializer.hpp"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/Session.hpp"
+#include "dsm/SessionXMLizer.hpp"
 
 
 

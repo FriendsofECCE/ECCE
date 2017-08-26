@@ -6,12 +6,12 @@
 #include <wx/stattext.h>
 #include <wx/log.h>
 
-#include "util/InternalException.H"
-#include "util/StringConverter.H"
-#include "util/UnitConverter.H"
-#include "util/UnitFactory.H"
+#include "util/InternalException.hpp"
+#include "util/StringConverter.hpp"
+#include "util/UnitConverter.hpp"
+#include "util/UnitFactory.hpp"
 
-#include "wxgui/NumericValidatorBase.H"
+#include "wxgui/NumericValidatorBase.hpp"
 
 
 template <class T>

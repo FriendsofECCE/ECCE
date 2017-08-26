@@ -7,19 +7,19 @@
 
 #include <wx/link.h>
 
-#include "util/SFile.H"
-#include "util/STLUtil.H"
-#include "util/TempStorage.H"
+#include "util/SFile.hpp"
+#include "util/STLUtil.hpp"
+#include "util/TempStorage.hpp"
 
-#include "tdat/Fragment.H"
+#include "tdat/Fragment.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/Resource.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/Resource.hpp"
 
-#include "wxgui/WxPDBPrompt.H"
-#include "wxgui/ewxLogTextCtrl.H"
+#include "wxgui/WxPDBPrompt.hpp"
+#include "wxgui/ewxLogTextCtrl.hpp"
 
-#include "PdbCalculation.H"
+#include "PdbCalculation.hpp"
 
 
 wxFORCE_LINK_THIS_MODULE(PdbCalculation)

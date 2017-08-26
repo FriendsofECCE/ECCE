@@ -71,8 +71,8 @@
 #ifndef  _SO_LISTS_
 #define  _SO_LISTS_
 
-#include "inv/SbPList.H"
-#include "inv/SoType.H"
+#include "inv/SbPList.hpp"
+#include "inv/SoType.hpp"
 
 class SoBase;
 class SoDetail;

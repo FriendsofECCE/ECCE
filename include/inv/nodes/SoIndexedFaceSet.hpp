@@ -56,7 +56,7 @@
 #ifndef  _SO_INDEXED_FACE_SET_
 #define  _SO_INDEXED_FACE_SET_
 
-#include "inv/nodes/SoIndexedShape.H"
+#include "inv/nodes/SoIndexedShape.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

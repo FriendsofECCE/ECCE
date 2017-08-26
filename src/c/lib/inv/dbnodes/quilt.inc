@@ -39,17 +39,17 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "myassert.H"
-#include "quilt.H"
-#include "backend.H"
-#include "mapdesc.H"
-#include "flist.H"
-#include "knotvector.H"
-#include "patchlist.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "myassert.hpp"
+#include "quilt.hpp"
+#include "backend.hpp"
+#include "mapdesc.hpp"
+#include "flist.hpp"
+#include "knotvector.hpp"
+#include "patchlist.hpp"
 #include <tr1/math.h>     //fabs()
-#include "simplemath.H" //min()
+#include "simplemath.hpp" //min()
 
 /* local preprocessor definitions */
 #define DEF_PATCH_STEPSIZE	.2

@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_NORMAL_ELEMENT
 #define  _SO_GL_NORMAL_ELEMENT
 
-#include "inv/elements/SoNormalElement.H"
+#include "inv/elements/SoNormalElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

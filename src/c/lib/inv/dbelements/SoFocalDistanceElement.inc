@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoFocalDistanceElement.H"
+#include "inv/elements/SoFocalDistanceElement.hpp"
 
 SO_ELEMENT_SOURCE(SoFocalDistanceElement);
 

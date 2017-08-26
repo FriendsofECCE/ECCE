@@ -54,17 +54,17 @@
  _______________________________________________________________________
  */
 
-#include "machine.H"		// This is included in the Inventor tree
+#include "machine.hpp"		// This is included in the Inventor tree
 #include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "inv/misc/SoBase.H"
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/SoOutput.H"
-#include "inv/SoPath.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoReadError.H"
+#include "inv/misc/SoBase.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoReadError.hpp"
 
 // Static list of directories to search in.  Allocated by SoInput::init.
 SbStringList *SoInput::directories = NULL;

@@ -37,18 +37,18 @@
 #ifndef __glunurbstess_h_
 #define __glunurbstess_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * nurbstess.h - $Revision: 22364 $
  */
 
-#include "mysetjmp.H"
-#include "subdivider.H"
-#include "renderhints.H"
-#include "backend.H"
-#include "maplist.H"
-#include "reader.H"
-#include "nurbsconsts.H"
+#include "mysetjmp.hpp"
+#include "subdivider.hpp"
+#include "renderhints.hpp"
+#include "backend.hpp"
+#include "maplist.hpp"
+#include "reader.hpp"
+#include "nurbsconsts.hpp"
 
 class Knotvector;
 class Quilt;

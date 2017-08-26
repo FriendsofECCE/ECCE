@@ -1,17 +1,17 @@
-#include "viz/AtomNodesInit.H"
+#include "viz/AtomNodesInit.hpp"
  
-#include "viz/SGFragment.H"
+#include "viz/SGFragment.hpp"
 
-#include "viz/AtomMeasureDist.H"
-#include "viz/AtomMeasureAngle.H"
-#include "viz/AtomMeasureTorsion.H"
-#include "viz/AtomLine.H"
-#include "viz/AtomRotDragger.H"
-#include "viz/AtomRTDragger.H"
-#include "viz/MoveAction.H"
-#include "viz/AtomDeleteAction.H"
-#include "viz/SGLattice.H"
-//#include "viz/AtomCylinderDist.H"
+#include "viz/AtomMeasureDist.hpp"
+#include "viz/AtomMeasureAngle.hpp"
+#include "viz/AtomMeasureTorsion.hpp"
+#include "viz/AtomLine.hpp"
+#include "viz/AtomRotDragger.hpp"
+#include "viz/AtomRTDragger.hpp"
+#include "viz/MoveAction.hpp"
+#include "viz/AtomDeleteAction.hpp"
+#include "viz/SGLattice.hpp"
+//#include "viz/AtomCylinderDist.hpp"
 
 
 void AtomNodesInit::initClasses()

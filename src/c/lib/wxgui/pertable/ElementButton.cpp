@@ -6,14 +6,14 @@
  *
  */
 
-#include "tdat/TPerTab.H"
+#include "tdat/TPerTab.hpp"
 
-#include "util/StringConverter.H"
+#include "util/StringConverter.hpp"
 
-#include "wxgui/ewxMenu.H"
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxMenu.hpp"
+#include "wxgui/ewxPanel.hpp"
 
-#include "wxgui/PerTabPanel.H"
+#include "wxgui/PerTabPanel.hpp"
 
 
 BEGIN_EVENT_TABLE( ElementButton, ewxPanel )

@@ -8,10 +8,10 @@
  *
  */
 
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 
-#include "WxMachineStatus.H"
+#include "WxMachineStatus.hpp"
 
 WxMachineStatus::WxMachineStatus(      wxWindow* parent,
                                        wxWindowID id,

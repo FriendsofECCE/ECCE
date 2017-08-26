@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "util/LengthConverter.H"
+#include "util/LengthConverter.hpp"
 
 
 /**

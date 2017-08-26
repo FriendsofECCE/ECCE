@@ -9,8 +9,8 @@
 
 #include <X11/Intrinsic.h>
 
-#include "inv/SoType.H"
-#include "inv/SbTime.H"
+#include "inv/SoType.hpp"
+#include "inv/SbTime.hpp"
 
 #define ID_VIEWER 1000000
 

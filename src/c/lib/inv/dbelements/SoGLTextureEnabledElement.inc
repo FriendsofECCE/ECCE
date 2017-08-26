@@ -52,10 +52,10 @@
  */
 
 #include <GL/gl.h>
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoGLTextureEnabledElement.H"
-#include "inv/elements/SoShapeStyleElement.H"
-#include "inv/misc/SoState.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoGLTextureEnabledElement.hpp"
+#include "inv/elements/SoShapeStyleElement.hpp"
+#include "inv/misc/SoState.hpp"
 
 SO_ELEMENT_SOURCE(SoGLTextureEnabledElement);
 

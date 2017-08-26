@@ -39,15 +39,15 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "myassert.H"
-#include "arctess.H"
-#include "bufpool.H"
-#include "simplemath.H"
-#include "bezierarc.H"
-#include "trimvertex.H"
-#include "trimvertpool.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "myassert.hpp"
+#include "arctess.hpp"
+#include "bufpool.hpp"
+#include "simplemath.hpp"
+#include "bezierarc.hpp"
+#include "trimvertex.hpp"
+#include "trimvertpool.hpp"
 
 #define NOELIMINATION
 

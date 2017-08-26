@@ -4,16 +4,16 @@
 #include <string>
 using std::string;
 
-#include "inv/SbLinear.H"
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFBool.H"
-#include "inv/nodes/SoLineSet.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/nodes/SoSeparator.H"
+#include "inv/SbLinear.hpp"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/nodes/SoLineSet.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/nodes/SoSeparator.hpp"
 
-#include "inv/ChemKit/ChemLabel.H"
-#include "inv/ChemKit/ChemData.H"
+#include "inv/ChemKit/ChemLabel.hpp"
+#include "inv/ChemKit/ChemData.hpp"
 
 class SGFragment;
 class TAtm;

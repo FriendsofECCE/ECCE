@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "SoV1TextureCoordinateCube.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodes/SoInfo.H"
+#include "SoV1TextureCoordinateCube.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodes/SoInfo.hpp"
 
 SO_NODE_SOURCE(SoV1TextureCoordinateCube);
 

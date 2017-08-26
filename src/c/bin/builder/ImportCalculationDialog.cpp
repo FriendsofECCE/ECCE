@@ -1,12 +1,12 @@
 
-#include "util/ResourceUtils.H"
-#include "util/STLUtil.H"
+#include "util/ResourceUtils.hpp"
+#include "util/STLUtil.hpp"
 
-#include "dsm/IPropCalculation.H"
-#include "dsm/ResourceType.H"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/ResourceType.hpp"
 
-#include "CalculationFactory.H"
-#include "ImportCalculationDialog.H"
+#include "CalculationFactory.hpp"
+#include "ImportCalculationDialog.hpp"
 
 
 ImportCalculationDialog::ImportCalculationDialog()

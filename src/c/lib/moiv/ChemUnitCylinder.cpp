@@ -70,10 +70,10 @@
 
 #include <GL/gl.h>
 
-#include "inv/ChemKit/ChemDisplay.H"
-#include "inv/ChemKit/ChemUnitCylinder.H"
+#include "inv/ChemKit/ChemDisplay.hpp"
+#include "inv/ChemKit/ChemUnitCylinder.hpp"
 // --> roundcap optimization
-#include "inv/ChemKit/ChemDisplayParamElement.H"
+#include "inv/ChemKit/ChemDisplayParamElement.hpp"
 // <-- roundcap optimization
 
 // Returns S or T texture coord for point on top or bottom of
@@ -119,9 +119,9 @@ theRotation = SbRotation(matrix); \
 
 
 // --> EGB && SGB
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/elements/SoViewVolumeElement.H"
-#include "inv/elements/SoViewingMatrixElement.H"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/elements/SoViewVolumeElement.hpp"
+#include "inv/elements/SoViewingMatrixElement.hpp"
 // <-- EGB && SGB
 
 // --> roundcap optimization

@@ -3,8 +3,8 @@
  *
  *
  */
-#include "util/Listener.H"
-#include "util/EventDispatcher.H"
+#include "util/Listener.hpp"
+#include "util/EventDispatcher.hpp"
 
 using namespace ecce;
 

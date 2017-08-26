@@ -52,9 +52,9 @@
  */
 
 #include <GL/gl.h>
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoGLLinePatternElement.H"
-#include "inv/misc/SoState.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoGLLinePatternElement.hpp"
+#include "inv/misc/SoState.hpp"
 
 SO_ELEMENT_SOURCE(SoGLLinePatternElement);
 

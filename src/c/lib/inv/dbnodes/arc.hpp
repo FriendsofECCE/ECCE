@@ -37,17 +37,17 @@
 #ifndef __gluarc_h_
 #define __gluarc_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * arc.h - $Revision: 22116 $
  */
 
-#include "myassert.H"
-#include "bufpool.H"
-#include "mystdio.H"
-#include "types.H"
-#include "pwlarc.H"
-#include "trimvertex.H"
+#include "myassert.hpp"
+#include "bufpool.hpp"
+#include "mystdio.hpp"
+#include "types.hpp"
+#include "pwlarc.hpp"
+#include "trimvertex.hpp"
 
 class Bin;
 class Arc;

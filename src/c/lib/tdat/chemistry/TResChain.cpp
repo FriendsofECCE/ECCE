@@ -6,7 +6,7 @@
 //   system with residue.
 //
 ///////////////////////////////////////////////////////////////////////////////
-#include "tdat/TResChain.H"
+#include "tdat/TResChain.hpp"
 
 #include <vector>
 

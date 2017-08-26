@@ -6,7 +6,7 @@
 #ifndef MOTIONLISTENER_HH
 #define MOTIONLISTENER_HH
 
-#include "wxviz/MotionData.H" 
+#include "wxviz/MotionData.hpp" 
 
 /**
  * Abstract class that defines interface for objects that wich to

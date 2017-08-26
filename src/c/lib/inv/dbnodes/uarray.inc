@@ -39,11 +39,11 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "uarray.H"
-#include "arc.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "uarray.hpp"
+#include "arc.hpp"
 
 Uarray::Uarray( void )
 {

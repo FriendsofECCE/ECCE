@@ -15,21 +15,21 @@
 
 #include <wx/wx.h>
 
-#include "util/NotImplementedException.H"
-#include "util/NullPointerException.H"
-#include "util/Ecce.H"
-#include "util/EcceURL.H"
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
+#include "util/NotImplementedException.hpp"
+#include "util/NullPointerException.hpp"
+#include "util/Ecce.hpp"
+#include "util/EcceURL.hpp"
+#include "util/JMSMessage.hpp"
+#include "util/JMSPublisher.hpp"
 
-#include "tdat/AuthCache.H"
+#include "tdat/AuthCache.hpp"
 
-#include "dsm/EDSIServerCentral.H"
-#include "dsm/EcceDAVClient.H"
+#include "dsm/EDSIServerCentral.hpp"
+#include "dsm/EcceDAVClient.hpp"
 
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/WxAuth.H"
-#include "wxgui/ewxMessageDialog.H"
+#include "wxgui/WxDavAuth.hpp"
+#include "wxgui/WxAuth.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
 
 /**
  * This class implements the AuthEventListener interface by using the

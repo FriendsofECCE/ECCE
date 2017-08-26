@@ -56,8 +56,8 @@
 #ifndef  _SO_PICK_RAY_ELEMENT
 #define  _SO_PICK_RAY_ELEMENT
 
-#include "inv/SbLinear.H"
-#include "inv/elements/SoSubElement.H"
+#include "inv/SbLinear.hpp"
+#include "inv/elements/SoSubElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

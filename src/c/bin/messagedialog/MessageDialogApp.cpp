@@ -3,9 +3,9 @@
   using std::cout;
   using std::endl;
 
-#include "wxgui/ewxApp.H"
-#include "wxgui/ewxTextEntryDialog.H"
-#include "wxgui/ewxMessageDialog.H"
+#include "wxgui/ewxApp.hpp"
+#include "wxgui/ewxTextEntryDialog.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
 
 
 class MessageDialogApp : public ewxApp

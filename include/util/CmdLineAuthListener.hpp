@@ -1,7 +1,7 @@
 #ifndef CMDLINEAUTHLISTENER_H
 #define CMDLINEAUTHLISTENER_H
 
-#include "util/AuthEvent.H"
+#include "util/AuthEvent.hpp"
 
 //
 // This implementation of AuthEventListener gets authentication

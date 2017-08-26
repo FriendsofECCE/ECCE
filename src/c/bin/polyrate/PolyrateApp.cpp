@@ -14,8 +14,8 @@
 
  
 
-#include "PolyrateApp.H"
-#include "Polyrate.H"
+#include "PolyrateApp.hpp"
+#include "Polyrate.hpp"
 
 IMPLEMENT_APP(PolyrateApp)
 

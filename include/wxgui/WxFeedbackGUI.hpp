@@ -8,7 +8,7 @@
 #define _WXFEEDBACKGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "WxFeedbackGUI.C"
+#pragma interface "WxFeedbackGUI.cpp"
 #endif
 
 /*!
@@ -16,8 +16,8 @@
  */
 
 ////@begin includes
-#include "wxgui/FlatBitmapButton.H"
-#include "wxgui/ewxPanel.H"
+#include "wxgui/FlatBitmapButton.hpp"
+#include "wxgui/ewxPanel.hpp"
 ////@end includes
 
 /*!

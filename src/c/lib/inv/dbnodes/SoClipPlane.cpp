@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoGLClipPlaneElement.H"
-#include "inv/nodes/SoClipPlane.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoGLClipPlaneElement.hpp"
+#include "inv/nodes/SoClipPlane.hpp"
 
 SO_NODE_SOURCE(SoClipPlane);
 

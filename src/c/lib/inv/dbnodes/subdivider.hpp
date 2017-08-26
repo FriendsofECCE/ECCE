@@ -37,18 +37,18 @@
 #ifndef __glusubdivider_h_
 #define __glusubdivider_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * subdivider.h - $Revision: 22116 $
  */
 
-#include "mysetjmp.H"
-#include "bin.H"
-#include "flist.H"
-#include "slicer.H"
-#include "arctess.H"
-#include "trimvertex.H"
-#include "trimvertpool.H"
+#include "mysetjmp.hpp"
+#include "bin.hpp"
+#include "flist.hpp"
+#include "slicer.hpp"
+#include "arctess.hpp"
+#include "trimvertex.hpp"
+#include "trimvertpool.hpp"
 
 class Arc;
 class Pool;

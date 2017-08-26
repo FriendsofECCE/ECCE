@@ -8,7 +8,7 @@
 #define SETCHARGEGROUPCMD_HH
 
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 
 class SetChargeGroupCmd : public Command

@@ -12,17 +12,17 @@ using std::ends;
 using std::ostrstream;
 
 
-#include "util/EcceException.H"
-#include "util/JMSMessage.H"
+#include "util/EcceException.hpp"
+#include "util/JMSMessage.hpp"
 
-#include "tdat/AuthCache.H"
+#include "tdat/AuthCache.hpp"
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/WxJMSSubscriber.H"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/WxJMSSubscriber.hpp"
 
-#include "PerTabApp.H"
+#include "PerTabApp.hpp"
 
 
 

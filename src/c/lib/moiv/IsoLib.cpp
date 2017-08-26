@@ -60,9 +60,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "inv/fields/SoMFShort.H"
-#include "inv/fields/SoMFBool.H"
-#include "inv/nodes/SoIndexedTriangleStripSet.H"
+#include "inv/fields/SoMFShort.hpp"
+#include "inv/fields/SoMFBool.hpp"
+#include "inv/nodes/SoIndexedTriangleStripSet.hpp"
 
 //  Fix compilation with Coin3D.	Daniel Soto	2002-02-05
 #ifndef SO_END_STRIP_INDEX
@@ -70,13 +70,13 @@
 #endif
 
 //	Jamie Doornbos	2001/07/15
-#include "inv/nodes/SoNormalBinding.H"
-#include "inv/nodes/SoMaterialBinding.H"
-#include "inv/SbColor.H"
+#include "inv/nodes/SoNormalBinding.hpp"
+#include "inv/nodes/SoMaterialBinding.hpp"
+#include "inv/SbColor.hpp"
 
-#include "inv/ChemKit/ChemLattice3.H"
-#include "inv/ChemKit/MFDouble.H"
-#include "inv/ChemKit/MFInt8.H"
+#include "inv/ChemKit/ChemLattice3.hpp"
+#include "inv/ChemKit/MFDouble.hpp"
+#include "inv/ChemKit/MFInt8.hpp"
 
 static void add(int v);
 static int cube(short *edge, int v0, int v1);

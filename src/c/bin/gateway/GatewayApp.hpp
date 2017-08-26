@@ -9,14 +9,14 @@
 #define _GATEWAYAPP_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "GatewayApp.C"
+#pragma interface "GatewayApp.cpp"
 #endif
 
 #include "wx/image.h"
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/WxJMSSubscriber.H"
-#include "wxgui/ewxApp.H"
+#include "wxgui/WxDavAuth.hpp"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/WxJMSSubscriber.hpp"
+#include "wxgui/ewxApp.hpp"
 
 class Gateway;
 

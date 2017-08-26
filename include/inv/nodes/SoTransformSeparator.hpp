@@ -56,7 +56,7 @@
 #ifndef  _SO_TRANSFORM_SEPARATOR_
 #define  _SO_TRANSFORM_SEPARATOR_
 
-#include "inv/nodes/SoGroup.H"
+#include "inv/nodes/SoGroup.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

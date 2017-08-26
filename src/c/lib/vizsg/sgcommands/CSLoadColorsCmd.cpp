@@ -6,11 +6,11 @@
 #include <iostream>
   using namespace std;
 
-#include "inv/ChemKit/ChemColor.H"
+#include "inv/ChemKit/ChemColor.hpp"
 
-#include "viz/CSLoadColorsCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/CSLoadColorsCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 CSLoadColorsCmd::CSLoadColorsCmd(const string& name, Receiver * receiver)
     : Command(name, receiver)

@@ -1,19 +1,19 @@
-#include "inv/SoDB.H"
-#include "inv/nodekits/SoWrapperKit.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoPickAction.H"
+#include "inv/SoDB.hpp"
+#include "inv/nodekits/SoWrapperKit.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
 
-#include "inv/nodes/SoCone.H"
-#include "inv/nodes/SoCylinder.H"
-#include "inv/nodes/SoTranslation.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/sensors/SoTimerSensor.H"
+#include "inv/nodes/SoCone.hpp"
+#include "inv/nodes/SoCylinder.hpp"
+#include "inv/nodes/SoTranslation.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/sensors/SoTimerSensor.hpp"
 
-#include "viz/VR3dXVSmouse.H"
+#include "viz/VR3dXVSmouse.hpp"
 
-#include "viz/RTDraggerNode.H"
+#include "viz/RTDraggerNode.hpp"
 
 #define	SPACEBALL_PORT	"/dev/ttyd72"
 #define	SPACEBALL_BAUD	9600

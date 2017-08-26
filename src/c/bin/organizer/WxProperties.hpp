@@ -9,8 +9,8 @@
 #ifndef _WXPROPERTIES_H_
 #define _WXPROPERTIES_H_
 
-#include "WxPropertiesGUI.H"
-#include "PropertyContextPanel.H"
+#include "WxPropertiesGUI.hpp"
+#include "PropertyContextPanel.hpp"
 
 /**
  * Implementation of WxPropertiesGUI.

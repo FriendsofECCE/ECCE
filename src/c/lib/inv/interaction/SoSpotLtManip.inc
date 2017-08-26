@@ -42,20 +42,20 @@
 
 
 #include <stdio.h>
-#include "inv/SoDB.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodes/SoGroup.H"
-#include "inv/nodes/SoMaterial.H"
-#include "inv/manips/SoSpotLightManip.H"
-#include "inv/draggers/SoSpotLightDragger.H"
+#include "inv/SoDB.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/nodes/SoMaterial.hpp"
+#include "inv/manips/SoSpotLightManip.hpp"
+#include "inv/draggers/SoSpotLightDragger.hpp"
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/actions/SoSearchAction.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/actions/SoSearchAction.hpp"
 
 SO_NODE_SOURCE(SoSpotLightManip);
 

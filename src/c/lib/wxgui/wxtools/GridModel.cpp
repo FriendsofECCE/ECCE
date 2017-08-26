@@ -23,11 +23,11 @@
 #include <algorithm>
   using std::stable_sort;
 
-#include "util/StringConverter.H"
+#include "util/StringConverter.hpp"
 
-#include "wxgui/GridElement.H"
+#include "wxgui/GridElement.hpp"
 
-#include "wxgui/GridModel.H"
+#include "wxgui/GridModel.hpp"
 
 
 

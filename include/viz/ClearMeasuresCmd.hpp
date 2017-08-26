@@ -6,7 +6,7 @@
 #ifndef  CLEARMEASURESCMD_H
 #define  CLEARMEASURESCMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 /**
  * Command wrapper for removing measures.

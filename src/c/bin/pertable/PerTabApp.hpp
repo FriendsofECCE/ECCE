@@ -13,8 +13,8 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/WxAppJMSMessageDispatch.H"
-#include "wxgui/PerTabFrame.H"
+#include "wxgui/WxAppJMSMessageDispatch.hpp"
+#include "wxgui/PerTabFrame.hpp"
 
 
 /**

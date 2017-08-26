@@ -39,15 +39,15 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "mymath.H"
-#include "curve.H"
-#include "mapdesc.H"
-#include "types.H"
-#include "quilt.H"
-#include "nurbsconsts.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "mymath.hpp"
+#include "curve.hpp"
+#include "mapdesc.hpp"
+#include "types.hpp"
+#include "quilt.hpp"
+#include "nurbsconsts.hpp"
 
 /*--------------------------------------------------------------------------
  * Curve::Curve - copy curve from quilt and transform control points

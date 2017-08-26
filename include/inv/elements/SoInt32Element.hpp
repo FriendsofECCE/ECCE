@@ -70,7 +70,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "inv/elements/SoSubElement.H"
+#include "inv/elements/SoSubElement.hpp"
 
 SoEXTENDER class SoInt32Element : public SoElement {
 

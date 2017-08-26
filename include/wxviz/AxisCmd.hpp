@@ -2,7 +2,7 @@
 #define AXISCMD_H
 
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class AxisCmd : public Command
 {

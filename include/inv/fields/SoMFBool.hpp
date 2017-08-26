@@ -56,7 +56,7 @@
 #ifndef  _SO_MF_BOOL_
 #define  _SO_MF_BOOL_
 
-#include "inv/fields/SoSubField.H"
+#include "inv/fields/SoSubField.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -2,7 +2,7 @@
 #define _EWXCOLOR_H
 
 #include "wx/colour.h"
-#include "util/Color.H"
+#include "util/Color.hpp"
 
 
 class ewxColor : public wxColour 

@@ -3,12 +3,12 @@
  *
  *
  */
-#include "util/NotImplementedException.H"
-#include "util/StringTokenizer.H"
-#include "util/STLUtil.H"
+#include "util/NotImplementedException.hpp"
+#include "util/StringTokenizer.hpp"
+#include "util/STLUtil.hpp"
 
-#include "tdat/ConstraintModel.H"
-#include "tdat/Fragment.H"
+#include "tdat/ConstraintModel.hpp"
+#include "tdat/Fragment.hpp"
 
 //Default values
 const bool ConstraintModel::USESHAKE = true;

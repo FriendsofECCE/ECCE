@@ -1,5 +1,5 @@
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "BondDropDown.H"
+#pragma implementation "BondDropDown.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -13,17 +13,17 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 
-#include "tdat/TBond.H"
+#include "tdat/TBond.hpp"
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/WindowEvent.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/WindowEvent.hpp"
   using namespace ecce;
 
-#include "BondDropDown.H"
+#include "BondDropDown.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS( BondDropDown, wxToolBar )

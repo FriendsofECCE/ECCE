@@ -62,9 +62,9 @@
 #ifndef _SB_DICT_
 #define _SB_DICT_
 
-#include "inv/SbBasic.H"
-#include "inv/SbString.H"
-#include "inv/SbPList.H"
+#include "inv/SbBasic.hpp"
+#include "inv/SbString.hpp"
+#include "inv/SbPList.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

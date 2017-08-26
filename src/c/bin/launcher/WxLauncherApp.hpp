@@ -7,12 +7,12 @@
 #ifndef WXLAUNCHERAPP_HH
 #define WXLAUNCHERAPP_HH
 
-#include "util/JMSMessage.H"
+#include "util/JMSMessage.hpp"
 
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/ewxApp.H"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/ewxApp.hpp"
 
-#include "WxLauncher.H"
+#include "WxLauncher.hpp"
 
 class WxLauncherApp : public ewxApp, public WxJMSMessageDispatch
 {

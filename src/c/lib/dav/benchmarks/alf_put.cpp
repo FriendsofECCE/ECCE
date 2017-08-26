@@ -5,14 +5,14 @@
 #include <strstream>
   using namespace std;
 
-#include "util/CmdLineAuthListener.H"
-#include "util/ProgressEvent.H"
-#include "util/EcceURL.H"
-#include "util/SFile.H"
-#include "util/ETimer.H"
-#include "util/StringConverter.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/DavEDSI.H"
+#include "util/CmdLineAuthListener.hpp"
+#include "util/ProgressEvent.hpp"
+#include "util/EcceURL.hpp"
+#include "util/SFile.hpp"
+#include "util/ETimer.hpp"
+#include "util/StringConverter.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/DavEDSI.hpp"
 
 
 

@@ -17,7 +17,7 @@
 #endif
 
 #include "wx/dnd.h"
-#include "wxgui/CalcDropHandler.H"
+#include "wxgui/CalcDropHandler.hpp"
 
 class wxBitmapButton;
 

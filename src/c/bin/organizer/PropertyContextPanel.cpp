@@ -17,19 +17,19 @@
   using std::endl;
      
 
-#include "util/NullPointerException.H"
+#include "util/NullPointerException.hpp"
 
-#include "dsm/EDSI.H"
-#include "dsm/DavEDSI.H"
-#include "dsm/EDSIFactory.H"
+#include "dsm/EDSI.hpp"
+#include "dsm/DavEDSI.hpp"
+#include "dsm/EDSIFactory.hpp"
 
-#include "wxgui/ewxPanel.H"
-#include "wxgui/WxResourceTreeItemData.H"
-#include "wxgui/GridModel.H"
-#include "wxgui/WxGridView.H"
-#include "wxgui/GridElement.H"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/WxResourceTreeItemData.hpp"
+#include "wxgui/GridModel.hpp"
+#include "wxgui/WxGridView.hpp"
+#include "wxgui/GridElement.hpp"
 
-#include "PropertyContextPanel.H"
+#include "PropertyContextPanel.hpp"
 
 class CalcMgr;
 

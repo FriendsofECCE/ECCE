@@ -21,19 +21,19 @@
 #include <wx/statline.h>
 #include <wx/treectrl.h>
 
-#include "util/Color.H"
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
+#include "util/Color.hpp"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
 
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxColor.H"
-#include "wxgui/ewxComboBox.H"
-#include "wxgui/ewxListBox.H"
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxSmallLabel.H"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxColor.hpp"
+#include "wxgui/ewxComboBox.hpp"
+#include "wxgui/ewxListBox.hpp"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxSmallLabel.hpp"
+#include "wxgui/ewxStyledWindow.hpp"
 
 
 Preferences *ewxStyledWindow::p_prefs = 0;

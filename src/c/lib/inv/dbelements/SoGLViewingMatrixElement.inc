@@ -52,8 +52,8 @@
  */
 
 #include <GL/gl.h>
-#include "inv/elements/SoGLViewingMatrixElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
+#include "inv/elements/SoGLViewingMatrixElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
 
 SO_ELEMENT_SOURCE(SoGLViewingMatrixElement);
 

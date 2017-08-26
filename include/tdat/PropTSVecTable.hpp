@@ -28,7 +28,7 @@
 #include <vector>
   using std::vector;
 
-   #include "tdat/TProperty.H"
+   #include "tdat/TProperty.hpp"
 
 // Need to declare explicitly so this class can be used as template
 // type inside a vector<...> declaration:

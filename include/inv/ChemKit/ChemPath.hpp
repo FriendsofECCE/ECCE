@@ -57,10 +57,10 @@
 #ifndef __CHEM_PATH_H__
 #define __CHEM_PATH_H__
 
-#include "inv/misc/SoBase.H"
-#include "inv/SoPath.H"
+#include "inv/misc/SoBase.hpp"
+#include "inv/SoPath.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 
 class CHEMKIT_DLL_API ChemPath : public SoBase {

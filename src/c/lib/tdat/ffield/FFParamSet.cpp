@@ -11,8 +11,8 @@
   using std::cout;
   using std::endl;
 
-#include "util/ErrMsg.H"
-#include "tdat/FFParamSet.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/FFParamSet.hpp"
 
 //-------------------Constructor---------------------------------
 /////////////////////////////////////////////////////////////////

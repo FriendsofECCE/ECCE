@@ -30,12 +30,12 @@
 #ifndef  __CHEM_ASSOCIATED_DATA_H__
 #define  __CHEM_ASSOCIATED_DATA_H__
 
-#include "inv/fields/SoMFString.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoMFString.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
-#include "inv/ChemKit/ChemBaseData.H"
-#include "inv/ChemKit/MFInt8.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
+#include "inv/ChemKit/ChemBaseData.hpp"
+#include "inv/ChemKit/MFInt8.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

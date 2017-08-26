@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "SoV1TextureCoordinateEnvironment.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodes/SoTextureCoordinateEnvironment.H"
-#include "inv/nodes/SoTexture2Transform.H"
+#include "SoV1TextureCoordinateEnvironment.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodes/SoTextureCoordinateEnvironment.hpp"
+#include "inv/nodes/SoTexture2Transform.hpp"
 
 SO_NODE_SOURCE(SoV1TextureCoordinateEnvironment);
 

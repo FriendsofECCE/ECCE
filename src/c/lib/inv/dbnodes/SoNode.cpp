@@ -51,15 +51,15 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/SoOutput.H"
-#include "inv/actions/SoActions.H"
-#include "inv/elements/SoCacheElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/fields/SoFieldData.H"
-#include "inv/misc/SoChildList.H"
-#include "inv/misc/SoNotification.H"
-#include "inv/nodes/SoSubNode.H"		/* Has some handy stuff */
+#include "inv/SoDB.hpp"
+#include "inv/SoOutput.hpp"
+#include "inv/actions/SoActions.hpp"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/fields/SoFieldData.hpp"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/misc/SoNotification.hpp"
+#include "inv/nodes/SoSubNode.hpp"		/* Has some handy stuff */
 
 SoType		SoNode::classTypeId;		// Type identifier
 uint32_t	SoNode::nextUniqueId;		// Unique ID counter

@@ -57,7 +57,7 @@
 #ifndef  _SO_UPGRADER_
 #define  _SO_UPGRADER_
 
-#include "inv/nodes/SoGroup.H"
+#include "inv/nodes/SoGroup.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

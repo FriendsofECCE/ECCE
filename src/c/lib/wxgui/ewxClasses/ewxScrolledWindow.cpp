@@ -6,8 +6,8 @@
 #endif
 
 
-#include "wxgui/ewxScrolledWindow.H"
-#include "wxgui/ewxHelpHandler.H"
+#include "wxgui/ewxScrolledWindow.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
 
 
 ewxScrolledWindow::ewxScrolledWindow()

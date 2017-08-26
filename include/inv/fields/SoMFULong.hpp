@@ -57,7 +57,7 @@
 #define  _SO_MF_ULONG_
 
 #ifndef IV_STRICT
-#include "inv/fields/SoMFUInt32.H"
+#include "inv/fields/SoMFUInt32.hpp"
 typedef SoMFUInt32 SoMFULong;
 
 #else

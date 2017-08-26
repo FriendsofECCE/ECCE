@@ -35,12 +35,12 @@
 #ifndef __CHAIN_H__
 #define __CHAIN_H__
 
-#include "inv/SbLinear.H"
-#include "inv/fields/SoSubField.H"
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
+#include "inv/fields/SoSubField.hpp"
+#include "inv/SbLinear.hpp"
 
-#include "inv/ChemKit/SbResidue.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/SbResidue.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 // -----------------------------------
 //

@@ -4,11 +4,11 @@
  *
  */
 
-#include "util/NotImplementedException.H"
-#include "util/StringTokenizer.H"
-#include "util/STLUtil.H"
+#include "util/NotImplementedException.hpp"
+#include "util/StringTokenizer.hpp"
+#include "util/STLUtil.hpp"
 
-#include "tdat/DynamicsModel.H"
+#include "tdat/DynamicsModel.hpp"
 
 /* Default values */
 const int DynamicsModel::INTEGOPT = 0;

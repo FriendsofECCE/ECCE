@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/details/SoConeDetail.H"
+#include "inv/details/SoConeDetail.hpp"
 
 SO_DETAIL_SOURCE(SoConeDetail)
 

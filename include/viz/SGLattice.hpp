@@ -1,12 +1,12 @@
 #ifndef  SGLATTICE__H
 #define  SGLATTICE__H
 
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/nodes/SoGroup.H"
-#include "inv/nodes/SoLineSet.H"
-#include "inv/nodes/SoVertexProperty.H"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/nodes/SoLineSet.hpp"
+#include "inv/nodes/SoVertexProperty.hpp"
 
-#include "tdat/LatticeDef.H"
+#include "tdat/LatticeDef.hpp"
 
 /**
  * A to draw lines that represent the unit cell of a periodic system.

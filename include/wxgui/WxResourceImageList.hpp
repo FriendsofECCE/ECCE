@@ -9,7 +9,7 @@
 #ifndef _WXRESOURCEIMAGELIST_H_
 #define _WXRESOURCEIMAGELIST_H_
 
-#include "wxgui/ewxImageList.H"
+#include "wxgui/ewxImageList.hpp"
 
 
 class Resource;

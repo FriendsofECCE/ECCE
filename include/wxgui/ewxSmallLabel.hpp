@@ -1,7 +1,7 @@
 #ifndef _EWXSMALLLABEL_H
 #define _EWXSMALLLABEL_H
 
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxStaticText.hpp"
 
 class ewxSmallLabel : public ewxStaticText
 {

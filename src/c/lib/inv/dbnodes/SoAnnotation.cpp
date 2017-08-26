@@ -52,9 +52,9 @@
  */
 
 #include <GL/gl.h>
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoCacheElement.H"
-#include "inv/nodes/SoAnnotation.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/nodes/SoAnnotation.hpp"
 
 SO_NODE_SOURCE(SoAnnotation);
 

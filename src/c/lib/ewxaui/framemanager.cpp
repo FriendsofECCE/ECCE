@@ -25,11 +25,11 @@
 
 #if wxUSE_AUI
 
-#include "wx/ewxaui/framemanager.H"
-#include "wx/ewxaui/dockart.H"
-#include "wx/ewxaui/floatpane.H"
-#include "wx/ewxaui/tabmdi.H"
-#include "wx/ewxaui/auibar.H"
+#include "wx/ewxaui/framemanager.hpp"
+#include "wx/ewxaui/dockart.hpp"
+#include "wx/ewxaui/floatpane.hpp"
+#include "wx/ewxaui/tabmdi.hpp"
+#include "wx/ewxaui/auibar.hpp"
 
 #ifndef WX_PRECOMP
     #include "wx/panel.h"

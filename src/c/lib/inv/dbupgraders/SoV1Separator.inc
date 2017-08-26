@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "SoV1Separator.H"
-#include "inv/nodes/SoSeparator.H"
+#include "SoV1Separator.hpp"
+#include "inv/nodes/SoSeparator.hpp"
 
 SO_NODE_SOURCE(SoV1Separator);
 

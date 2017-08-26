@@ -56,7 +56,7 @@
 #ifndef  _SO_PICK_STYLE_ELEMENT
 #define  _SO_PICK_STYLE_ELEMENT
 
-#include "inv/elements/SoInt32Element.H"
+#include "inv/elements/SoInt32Element.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

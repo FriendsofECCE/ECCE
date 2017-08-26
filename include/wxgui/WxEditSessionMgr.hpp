@@ -12,8 +12,8 @@
 #include <vector>
   using std::vector;
 
-#include "util/EcceException.H"
-#include "util/EditSession.H"
+#include "util/EcceException.hpp"
+#include "util/EditSession.hpp"
 
 class SFile;
 class EditListener;

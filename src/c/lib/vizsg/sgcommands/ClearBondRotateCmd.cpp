@@ -2,9 +2,9 @@
  * Command to remove all sphere manipulator
  */
 
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
-#include "viz/ClearBondRotateCmd.H"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
+#include "viz/ClearBondRotateCmd.hpp"
 
 ClearBondRotateCmd::ClearBondRotateCmd(const string& name, Receiver * receiver)
   : Command(name, receiver)

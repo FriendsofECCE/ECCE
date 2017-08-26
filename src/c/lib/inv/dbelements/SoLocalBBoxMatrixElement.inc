@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoLocalBBoxMatrixElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/elements/SoLocalBBoxMatrixElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 SO_ELEMENT_SOURCE(SoLocalBBoxMatrixElement);
 

@@ -67,8 +67,8 @@
 #ifndef  _SO_CONCATENATE_
 #define  _SO_CONCATENATE_
 
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoSFName.H"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoSFName.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

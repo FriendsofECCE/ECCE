@@ -56,11 +56,11 @@
 #ifndef  _SO_TEXTURE_2_
 #define  _SO_TEXTURE_2_
 
-#include "inv/fields/SoSFColor.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFImage.H"
-#include "inv/fields/SoSFString.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoSFColor.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFImage.hpp"
+#include "inv/fields/SoSFString.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 #include <GL/gl.h>
 

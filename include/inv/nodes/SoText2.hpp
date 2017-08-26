@@ -56,10 +56,10 @@
 #ifndef  _SO_TEXT_2_
 #define  _SO_TEXT_2_
 
-#include "inv/fields/SoMFString.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/nodes/SoShape.H"
+#include "inv/fields/SoMFString.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/nodes/SoShape.hpp"
 
 // C-api: end
 class SoBitmapFontCache;  // Internal class

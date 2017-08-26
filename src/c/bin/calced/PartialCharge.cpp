@@ -6,30 +6,30 @@
   using std::set;
   using std::less;
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/Resource.H"
-#include "dsm/ResourceType.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/Resource.hpp"
+#include "dsm/ResourceType.hpp"
 
-#include "tdat/ESPConstraint.H"
-#include "tdat/ESPConstraintModel.H"
-#include "tdat/Fragment.H"
+#include "tdat/ESPConstraint.hpp"
+#include "tdat/ESPConstraintModel.hpp"
+#include "tdat/Fragment.hpp"
 
-#include "util/BrowserHelp.H"
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
-#include "util/StringConverter.H"
-#include "util/StringTokenizer.H"
+#include "util/BrowserHelp.hpp"
+#include "util/JMSMessage.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/StringConverter.hpp"
+#include "util/StringTokenizer.hpp"
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxListBox.H"
-#include "wxgui/NumericValidator.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/WxJMSMessageDispatch.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxListBox.hpp"
+#include "wxgui/NumericValidator.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/WxJMSMessageDispatch.hpp"
 
-#include "CalcEd.H"
-#include "PartialCharge.H"
+#include "CalcEd.hpp"
+#include "PartialCharge.hpp"
 
 /** Used to subscribe to messaging, publish, identify */
 static const string WHOAMI = PARTIALCHARGE;

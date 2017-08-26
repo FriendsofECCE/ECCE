@@ -56,8 +56,8 @@
 #ifndef  _SO_COORDINATE3_
 #define  _SO_COORDINATE3_
 
-#include "inv/fields/SoMFVec3f.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoMFVec3f.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

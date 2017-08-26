@@ -16,20 +16,20 @@
 #include <wx/dnd.h>
 #include <wx/renderer.h>
 
-#include "dsm/ResourceProperty.H"
+#include "dsm/ResourceProperty.hpp"
 
-#include "util/EcceURL.H"
-#include "util/Color.H"
-#include "util/ETimer.H"
+#include "util/EcceURL.hpp"
+#include "util/Color.hpp"
+#include "util/ETimer.hpp"
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxGrid.H"
-#include "wxgui/ewxStyledWindow.H"
-#include "wxgui/GridElement.H"
-#include "wxgui/GridPropElement.H"
-#include "wxgui/GridModel.H"
-#include "wxgui/GridDropTarget.H"
-#include "wxgui/WxGridView.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxGrid.hpp"
+#include "wxgui/ewxStyledWindow.hpp"
+#include "wxgui/GridElement.hpp"
+#include "wxgui/GridPropElement.hpp"
+#include "wxgui/GridModel.hpp"
+#include "wxgui/GridDropTarget.hpp"
+#include "wxgui/WxGridView.hpp"
 
 
 IMPLEMENT_CLASS(WxGridView, wxWindow)

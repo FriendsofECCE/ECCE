@@ -43,11 +43,11 @@
 
 #include <inttypes.h>   /* defines long and brethren */
 
-#include "mymath.H"
-#include "mystdlib.H"
-#include "gl4base.H"
-#include "softsurfeval.H"
-#include "softcurveval.H"
+#include "mymath.hpp"
+#include "mystdlib.hpp"
+#include "gl4base.hpp"
+#include "softsurfeval.hpp"
+#include "softcurveval.hpp"
 
 class _SoNurbsSoftRenderer : public _SoNurbsGL4Base {
 public:

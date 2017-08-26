@@ -6,7 +6,7 @@
 #ifndef  PROPCMD_H
 #define  PROPCMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class IPropCalculation;
 

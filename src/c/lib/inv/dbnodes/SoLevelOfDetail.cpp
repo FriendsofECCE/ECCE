@@ -51,17 +51,17 @@
  _______________________________________________________________________
  */
 
-#include "inv/misc/SoState.H"
-#include "inv/misc/SoChildList.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/elements/SoComplexityElement.H"
-#include "inv/elements/SoComplexityTypeElement.H"
-#include "inv/elements/SoViewportRegionElement.H"
-#include "inv/nodes/SoLevelOfDetail.H"
-#include "inv/nodes/SoShape.H"
+#include "inv/misc/SoState.hpp"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/elements/SoComplexityElement.hpp"
+#include "inv/elements/SoComplexityTypeElement.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
+#include "inv/nodes/SoLevelOfDetail.hpp"
+#include "inv/nodes/SoShape.hpp"
 
 SoGetBoundingBoxAction *SoLevelOfDetail::bboxAction = NULL;
 

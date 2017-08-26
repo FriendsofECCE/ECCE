@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoLightAttenuationElement.H"
-#include "inv/elements/SoGLLightIdElement.H"
-#include "inv/nodes/SoLight.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoLightAttenuationElement.hpp"
+#include "inv/elements/SoGLLightIdElement.hpp"
+#include "inv/nodes/SoLight.hpp"
 
 SO_NODE_ABSTRACT_SOURCE(SoLight);
 

@@ -36,12 +36,12 @@ using std::ostrstream;
 #include <locale.h>
 
 
-#include "util/EcceException.H"
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/KeyValueReader.H"
-#include "util/SFile.H"
-#include "util/Preferences.H"
+#include "util/EcceException.hpp"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/KeyValueReader.hpp"
+#include "util/SFile.hpp"
+#include "util/Preferences.hpp"
 
 
 // ECCE_VERSION must be supplied by the Makefile.

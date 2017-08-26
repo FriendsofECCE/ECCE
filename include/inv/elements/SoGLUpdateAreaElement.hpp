@@ -56,8 +56,8 @@
 #ifndef  _SO_UPDATE_AREA_ELEMENT
 #define  _SO_UPDATE_AREA_ELEMENT
 
-#include "inv/SbLinear.H"
-#include "inv/elements/SoSubElement.H"
+#include "inv/SbLinear.hpp"
+#include "inv/elements/SoSubElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

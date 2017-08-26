@@ -11,7 +11,7 @@
 #include <vector>
   using std::vector;
 
-#include "dsm/XMLSerializer.H"
+#include "dsm/XMLSerializer.hpp"
 
 class ESPConstraintModel;
 class Fragment;

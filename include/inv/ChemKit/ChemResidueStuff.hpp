@@ -35,7 +35,7 @@
 #ifndef __CHEM_RESIDUESTUFF_H__
 #define __CHEM_RESIDUESTUFF_H__
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 class ChemDisplay;
 class ChemOctreeNode;
 

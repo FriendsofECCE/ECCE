@@ -56,7 +56,7 @@
 #ifndef  _SO_COMPLEXITY_ELEMENT
 #define  _SO_COMPLEXITY_ELEMENT
 
-#include "inv/elements/SoFloatElement.H"
+#include "inv/elements/SoFloatElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

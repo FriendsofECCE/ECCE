@@ -6,7 +6,7 @@
 #ifndef  VALIDATESTRCMD_H
 #define  VALIDATESTRCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class ValidateStrCmd : public FragCloneCmd
 {

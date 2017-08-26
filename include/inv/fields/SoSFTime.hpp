@@ -56,8 +56,8 @@
 #ifndef  _SO_SF_TIME_
 #define  _SO_SF_TIME_
 
-#include "inv/fields/SoSubField.H"
-#include "inv/SbTime.H"
+#include "inv/fields/SoSubField.hpp"
+#include "inv/SbTime.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

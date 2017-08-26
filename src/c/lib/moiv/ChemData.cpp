@@ -55,13 +55,13 @@
 
 #ident "$Revision: 22147 $"
 
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoPickAction.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
 
-#include "inv/ChemKit/ChemData.H"
-#include "inv/ChemKit/ChemBaseDataElement.H"
+#include "inv/ChemKit/ChemData.hpp"
+#include "inv/ChemKit/ChemBaseDataElement.hpp"
 
 SO_NODE_SOURCE(ChemData);
 

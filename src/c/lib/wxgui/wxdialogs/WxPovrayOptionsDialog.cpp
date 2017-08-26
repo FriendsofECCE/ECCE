@@ -5,9 +5,9 @@
 
 #include "wx/sizer.h"
 
-#include "wxgui/WxPovrayOptions.H"
+#include "wxgui/WxPovrayOptions.hpp"
 
-#include "wxgui/WxPovrayOptionsDialog.H"
+#include "wxgui/WxPovrayOptionsDialog.hpp"
 
 WxPovrayOptionsDialog::WxPovrayOptionsDialog( wxWindow* parent, wxWindowID id,
                                               const wxString& title )

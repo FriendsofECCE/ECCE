@@ -58,9 +58,9 @@
 #define  _SO_SHININESS_ELEMENT
 
 
-#include "inv/elements/SoLazyElement.H"
-#include "inv/misc/SoState.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/elements/SoLazyElement.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

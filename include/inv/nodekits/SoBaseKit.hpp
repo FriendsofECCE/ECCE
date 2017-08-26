@@ -57,14 +57,14 @@
 #ifndef  _SO_BASE_KIT_
 #define  _SO_BASE_KIT_
 
-#include "inv/misc/SoChildList.H"
-#include "inv/fields/SoFieldData.H"
-#include "inv/nodes/SoSubNode.H"
-#include "inv/fields/SoSFName.H"
-#include "inv/nodes/SoNode.H"
-#include "inv/nodekits/SoNodekitParts.H"
-#include "inv/nodekits/SoSubKit.H"
-#include "inv/SoNodeKitPath.H"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/fields/SoFieldData.hpp"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/fields/SoSFName.hpp"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/nodekits/SoNodekitParts.hpp"
+#include "inv/nodekits/SoSubKit.hpp"
+#include "inv/SoNodeKitPath.hpp"
 
 class SoSeparator;
 class SbBox3f;

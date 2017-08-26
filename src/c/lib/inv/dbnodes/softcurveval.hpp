@@ -45,10 +45,10 @@
 
 #include <inttypes.h>   /* defines long and brethren */
 
-#include "mystdio.H"
-#include "isocurveeval.H"
-#include "basiccrveval.H"
-#include "softcurvmap.H"
+#include "mystdio.hpp"
+#include "isocurveeval.hpp"
+#include "basiccrveval.hpp"
+#include "softcurvmap.hpp"
 
 
 class _SoNurbsCurveEvaluator : public _SoNurbsBasicCurveEvaluator  {  

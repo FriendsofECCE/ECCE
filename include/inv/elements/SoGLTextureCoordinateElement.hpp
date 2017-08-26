@@ -60,8 +60,8 @@
 #ifndef  _SO_GL_TEXTURE_COORDINATE_ELEMENT
 #define  _SO_GL_TEXTURE_COORDINATE_ELEMENT
 
-#include "inv/SbLinear.H"
-#include "inv/elements/SoTextureCoordinateElement.H"
+#include "inv/SbLinear.hpp"
+#include "inv/elements/SoTextureCoordinateElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

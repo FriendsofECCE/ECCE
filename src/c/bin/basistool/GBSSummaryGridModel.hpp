@@ -6,7 +6,7 @@
 #include <vector>
     using std::vector;
 
-#include "GBSSummaryGridItem.H"
+#include "GBSSummaryGridItem.hpp"
 
 
 class GBSSummaryGridModel

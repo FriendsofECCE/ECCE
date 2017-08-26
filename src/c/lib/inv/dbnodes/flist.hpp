@@ -37,14 +37,14 @@
 #ifndef __gluflist_h_
 #define __gluflist_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 /*
  * flist.h - $Revision: 22116 $
  */
 
-#include "types.H"
-#include "flistsorter.H"
+#include "types.hpp"
+#include "flistsorter.hpp"
 
 class Flist {
 public:

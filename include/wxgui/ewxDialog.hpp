@@ -1,9 +1,9 @@
 #ifndef _EWXDIALOG_H  
 #define _EWXDIALOG_H  
 
-#include "util/Preferences.H"
+#include "util/Preferences.hpp"
 #include "wx/dialog.h"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxConfig;
 

@@ -48,24 +48,24 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/actions/SoActions.H"
-#include "inv/errors/SoReadError.H"
-#include "inv/nodes/SoCube.H"
-#include "inv/nodes/SoDrawStyle.H"
-#include "inv/nodes/SoGroup.H"
-#include "inv/nodes/SoLightModel.H"
-#include "inv/nodes/SoMaterial.H"
-#include "inv/nodes/SoBaseColor.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoTranslation.H"
-#include "inv/nodes/SoCamera.H"
-#include "inv/nodes/SoLevelOfDetail.H"
-#include "inv/nodes/SoWWWInline.H"
+#include "inv/SoDB.hpp"
+#include "inv/actions/SoActions.hpp"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/nodes/SoCube.hpp"
+#include "inv/nodes/SoDrawStyle.hpp"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/nodes/SoLightModel.hpp"
+#include "inv/nodes/SoMaterial.hpp"
+#include "inv/nodes/SoBaseColor.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoTranslation.hpp"
+#include "inv/nodes/SoCamera.hpp"
+#include "inv/nodes/SoLevelOfDetail.hpp"
+#include "inv/nodes/SoWWWInline.hpp"
 
-#include "inv/SoLists.H"
+#include "inv/SoLists.hpp"
 
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/sensors/SoFieldSensor.hpp"
 
 
 // static members

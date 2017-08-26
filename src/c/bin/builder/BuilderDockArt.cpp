@@ -1,10 +1,10 @@
-#include <wx/ewxaui/framemanager.H>
+#include <wx/ewxaui/framemanager.hpp>
 
-#include "util/Color.H"
+#include "util/Color.hpp"
 
-#include "wxgui/ewxImage.H"
+#include "wxgui/ewxImage.hpp"
 
-#include "BuilderDockArt.H"
+#include "BuilderDockArt.hpp"
 
 
 BuilderDockArt::BuilderDockArt()

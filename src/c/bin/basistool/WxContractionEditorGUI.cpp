@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "WxContractionEditorGUI.H"
+#pragma implementation "WxContractionEditorGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,17 +23,17 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxGrid.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/WxParameterEdit.H"
-#include "wxgui/ewxDialog.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxButton.H"
+#include "wxgui/ewxGrid.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/WxParameterEdit.hpp"
+#include "wxgui/ewxDialog.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxButton.hpp"
 ////@end includes
 
-#include "WxContractionEditorGUI.H"
+#include "WxContractionEditorGUI.hpp"
 
 ////@begin XPM images
 

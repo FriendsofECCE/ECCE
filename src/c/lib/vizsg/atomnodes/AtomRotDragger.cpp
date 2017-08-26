@@ -7,14 +7,14 @@
 //   of the tranform and scale but I think that there may be inventor
 //   reasons why this shouldn't be done this way.
 //////////////////////////////////////////////////////////////////////////////
-#include "inv/nodes/SoRotation.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/nodes/SoSurroundScale.H"
-#include "inv/nodes/SoAntiSquish.H"
+#include "inv/nodes/SoRotation.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
+#include "inv/nodes/SoAntiSquish.hpp"
 
-#include "viz/AtomRotDragger.H"
-#include "viz/SGFragment.H"
+#include "viz/AtomRotDragger.hpp"
+#include "viz/SGFragment.hpp"
 
 SO_NODE_SOURCE(AtomRotDragger);
 

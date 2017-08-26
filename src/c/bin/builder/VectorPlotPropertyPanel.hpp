@@ -1,7 +1,7 @@
 #ifndef VECTORPLOTPROPERTYPANEL_H_
 #define VECTORPLOTPROPERTYPANEL_H_
 
-#include "PropertyPanel.H"
+#include "PropertyPanel.hpp"
 
 class wxPlotCtrl;
 

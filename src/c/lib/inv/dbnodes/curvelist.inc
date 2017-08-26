@@ -39,14 +39,14 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "quilt.H"
-#include "curvelist.H"
-#include "curve.H"
-#include "nurbsconsts.H"
-#include "types.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "quilt.hpp"
+#include "curvelist.hpp"
+#include "curve.hpp"
+#include "nurbsconsts.hpp"
+#include "types.hpp"
 
 Curvelist::Curvelist( Quilt *quilts, REAL pta, REAL ptb )
 {

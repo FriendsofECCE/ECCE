@@ -1,4 +1,4 @@
-#include "util/TypedFile.H"
+#include "util/TypedFile.hpp"
 
 TypedFile::TypedFile()
 {

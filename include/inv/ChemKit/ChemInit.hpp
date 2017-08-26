@@ -57,7 +57,7 @@
 #ifndef  __CHEM_INIT_H__
 #define  __CHEM_INIT_H__
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

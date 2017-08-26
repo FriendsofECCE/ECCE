@@ -105,11 +105,11 @@
 #ifndef  _SO_DIRECTIONAL_LIGHT_DRAGGER_
 #define  _SO_DIRECTIONAL_LIGHT_DRAGGER_
 
-#include "inv/SbLinear.H"
-#include "inv/draggers/SoDragger.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/fields/SoSFRotation.H"
-#include "inv/sensors/SoSensor.H"
+#include "inv/SbLinear.hpp"
+#include "inv/draggers/SoDragger.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/fields/SoSFRotation.hpp"
+#include "inv/sensors/SoSensor.hpp"
 
 class SoFieldSensor;
 

@@ -56,9 +56,9 @@
 #ifndef  _SO_FONT_
 #define  _SO_FONT_
 
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFName.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFName.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -1,5 +1,5 @@
 
-#include "GBSSummaryGridItem.H"
+#include "GBSSummaryGridItem.hpp"
 
 
 GBSSummaryGridItem::GBSSummaryGridItem(string orbital)

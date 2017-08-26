@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_DRAW_STYLE_ELEMENT
 #define  _SO_GL_DRAW_STYLE_ELEMENT
 
-#include "inv/elements/SoDrawStyleElement.H"
+#include "inv/elements/SoDrawStyleElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

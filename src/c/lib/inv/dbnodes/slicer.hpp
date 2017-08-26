@@ -37,14 +37,14 @@
 #ifndef __gluslicer_h_
 #define __gluslicer_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * slicer.h - $Revision: 22116 $
  */
 
-#include "trimregion.H"
-#include "mesher.H"
-#include "coveandtiler.H"
+#include "trimregion.hpp"
+#include "mesher.hpp"
+#include "coveandtiler.hpp"
 
 class Backend;
 class Arc;

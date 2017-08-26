@@ -1,7 +1,7 @@
 #ifndef  SGCONTAINERMANAGER_H_
 #define  SGCONTAINERMANAGER_H_
 
-#include "inv/nodes/SoSeparator.H"
+#include "inv/nodes/SoSeparator.hpp"
 
 class SGContainer;
 

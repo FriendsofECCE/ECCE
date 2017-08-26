@@ -59,9 +59,9 @@
 #ifndef  _SO_OUTPUT_
 #define  _SO_OUTPUT_
 
-#include "inv/misc/SoBasic.H"
-#include "inv/SbDict.H"
-#include "inv/SbString.H"
+#include "inv/misc/SoBasic.hpp"
+#include "inv/SbDict.hpp"
+#include "inv/SbString.hpp"
 
 class SoBase;
 

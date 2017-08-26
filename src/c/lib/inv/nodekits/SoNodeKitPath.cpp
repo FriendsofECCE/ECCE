@@ -52,12 +52,12 @@
  */
 
 
-#include "inv/SoDB.H"
-#include "inv/SoPath.H"
-#include "inv/SoNodeKitPath.H"
-#include "inv/nodekits/SoBaseKit.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/actions/SoSearchAction.H"
+#include "inv/SoDB.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/SoNodeKitPath.hpp"
+#include "inv/nodekits/SoBaseKit.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/actions/SoSearchAction.hpp"
 
 SoSearchAction *SoNodeKitPath::searchAction = NULL;
 

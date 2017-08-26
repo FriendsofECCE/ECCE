@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoActions.H"
-#include "inv/elements/SoElements.H"
-#include "inv/misc/SoBasic.H"
+#include "inv/actions/SoActions.hpp"
+#include "inv/elements/SoElements.hpp"
+#include "inv/misc/SoBasic.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

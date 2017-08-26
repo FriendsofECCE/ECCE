@@ -18,9 +18,9 @@ using std::endl;
   using __gnu_cxx::hash;
 #endif
 
-#include "tdat/Fragment.H"
-#include "tdat/QMMMParams.H"
-#include "tdat/QMMMModel.H"
+#include "tdat/Fragment.hpp"
+#include "tdat/QMMMParams.hpp"
+#include "tdat/QMMMModel.hpp"
 
 
 /**

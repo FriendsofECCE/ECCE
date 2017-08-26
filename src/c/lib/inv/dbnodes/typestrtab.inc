@@ -35,8 +35,8 @@
  */
 
 #include <inttypes.h>   /* defines long and brethren */
-#include "gl4types.H"
-#include "typestringtable.H"
+#include "gl4types.hpp"
+#include "typestringtable.hpp"
 
 SoTypeStringPair
 SoTypeTranslationTable::table[] = 

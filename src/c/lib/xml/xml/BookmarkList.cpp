@@ -20,14 +20,14 @@ using std::string;
 #include <xercesc/util/XMLString.hpp>
 using namespace xercesc;
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/EcceException.H"
-#include "util/SFile.H"
-#include "util/Bookmark.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/EcceException.hpp"
+#include "util/SFile.hpp"
+#include "util/Bookmark.hpp"
 
-#include "dsm/BasicDOMParser.H"
-#include "dsm/BookmarkList.H"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/BookmarkList.hpp"
 
 const string BookmarkList::p_rootKey = "Bookmarks";
 const string BookmarkList::p_bookmarkKey = "Bookmark";

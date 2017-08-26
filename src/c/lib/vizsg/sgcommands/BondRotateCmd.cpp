@@ -6,18 +6,18 @@
 using std::cout;
 using std::endl;
 
-#include "inv/nodes/SoTransform.H"
-#include "inv/nodes/SoScale.H"
-#include "inv/actions/SoSearchAction.H"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/nodes/SoScale.hpp"
+#include "inv/actions/SoSearchAction.hpp"
 
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
-#include "viz/BondRotateCmd.H"
-#include "viz/AtomRotDragger.H"
-#include "viz/MoveAction.H"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
+#include "viz/BondRotateCmd.hpp"
+#include "viz/AtomRotDragger.hpp"
+#include "viz/MoveAction.hpp"
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
 

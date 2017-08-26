@@ -5,12 +5,12 @@
 #ifndef SGVIEWER_H
 #define SGVIEWER_H
 
-#include "inv/actions/SoGLRenderAction.H"
+#include "inv/actions/SoGLRenderAction.hpp"
 #include <stack>
 
-#include "util/Receiver.H"
+#include "util/Receiver.hpp"
 
-#include "inv/SoWx/SoWxExaminerViewer.H"
+#include "inv/SoWx/SoWxExaminerViewer.hpp"
 
 using std::stack;
 #include <vector>

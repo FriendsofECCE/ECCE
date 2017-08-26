@@ -2,7 +2,7 @@
 #define NEWPLANECMD_H
 
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 #include <vector>
   using std::vector;

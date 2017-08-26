@@ -7,7 +7,7 @@
 #include <vector>
   using std::vector;
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 class TaskJob;
 

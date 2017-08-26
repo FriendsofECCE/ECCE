@@ -53,15 +53,15 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/elements/SoElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/misc/SoCompactPathList.H"
-#include "inv/misc/SoBasic.H"
-#include "inv/misc/SoState.H"
-#include "inv/nodes/SoNode.H"
-#include "inv/actions/SoSubAction.H"
-#include "inv/SoPath.H"
+#include "inv/SoDB.hpp"
+#include "inv/elements/SoElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/misc/SoCompactPathList.hpp"
+#include "inv/misc/SoBasic.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/actions/SoSubAction.hpp"
+#include "inv/SoPath.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

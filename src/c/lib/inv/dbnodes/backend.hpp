@@ -37,15 +37,15 @@
 #ifndef __glubackend_h_
 #define __glubackend_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 /*
  * backend.h - $Revision: 22364 $
  */
 
-#include "trimvertex.H"
-#include "gridvertex.H"
-#include "gridtrimvertex.H"
+#include "trimvertex.hpp"
+#include "gridvertex.hpp"
+#include "gridtrimvertex.hpp"
 
 class BasicCurveEvaluator;
 class BasicSurfaceEvaluator;

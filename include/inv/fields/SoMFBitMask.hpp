@@ -56,7 +56,7 @@
 #ifndef  _SO_MF_BIT_MASK_
 #define  _SO_MF_BIT_MASK_
 
-#include "inv/fields/SoMFEnum.H"
+#include "inv/fields/SoMFEnum.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

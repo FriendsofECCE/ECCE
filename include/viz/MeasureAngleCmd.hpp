@@ -6,8 +6,8 @@
 #ifndef  MEASUREANGLECMD_H
 #define  MEASUREANGLECMD_H
 
-#include "util/Command.H"
-#include "viz/MeasureBaseCmd.H"
+#include "util/Command.hpp"
+#include "viz/MeasureBaseCmd.hpp"
 
 class Fragment;
 

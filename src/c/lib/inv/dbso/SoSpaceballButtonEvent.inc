@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/events/SoSpaceballButtonEvent.H"
+#include "inv/events/SoSpaceballButtonEvent.hpp"
 
 SO_EVENT_SOURCE(SoSpaceballButtonEvent);
 

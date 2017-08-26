@@ -6,8 +6,8 @@
 #ifndef  MEASUREDISTCMD_H
 #define  MEASUREDISTCMD_H
 
-#include "util/Command.H"
-#include "viz/MeasureBaseCmd.H"
+#include "util/Command.hpp"
+#include "viz/MeasureBaseCmd.hpp"
 
 class Fragment;
 

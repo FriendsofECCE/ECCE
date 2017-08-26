@@ -4,7 +4,7 @@
 #include <iostream>
   using std::istream;
 
-#include "viz/SGFragment.H"
+#include "viz/SGFragment.hpp"
 
 class PropTSVecTable;
 

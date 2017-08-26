@@ -56,13 +56,13 @@
 #ifndef  _SO_CAMERA_
 #define  _SO_CAMERA_
 
-#include "inv/SbBox.H"
-#include "inv/SbViewportRegion.H"
-#include "inv/nodes/SoSubNode.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFRotation.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/fields/SoSFEnum.H"
+#include "inv/SbBox.hpp"
+#include "inv/SbViewportRegion.hpp"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFRotation.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/fields/SoSFEnum.hpp"
 
 class SbViewportRegion;
 

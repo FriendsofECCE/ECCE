@@ -1,9 +1,9 @@
 #ifndef  __SOWXKEYBOARD_H
 #define  __SOWXKEYBOARD_H
 
-#include "inv/events/SoKeyboardEvent.H"
+#include "inv/events/SoKeyboardEvent.hpp"
 
-#include "inv/SoWx/SoWxDevice.H"
+#include "inv/SoWx/SoWxDevice.hpp"
 
 #define SO_WX_ALL_KEYBOARD_EVENTS 0
 

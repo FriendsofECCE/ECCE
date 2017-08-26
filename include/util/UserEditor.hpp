@@ -12,7 +12,7 @@
 
 class SFile;
 
-#include "util/InvalidException.H"
+#include "util/InvalidException.hpp"
 
 /**
  * A class to provide system information about the users preferred editor.

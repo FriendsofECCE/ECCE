@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "SoV1Texture2.H"
-#include "inv/SbPList.H"
-#include "inv/nodes/SoTexture2.H"
-#include "inv/nodes/SoTexture2Transform.H"
-#include "inv/sensors/SoNodeSensor.H"
+#include "SoV1Texture2.hpp"
+#include "inv/SbPList.hpp"
+#include "inv/nodes/SoTexture2.hpp"
+#include "inv/nodes/SoTexture2Transform.hpp"
+#include "inv/sensors/SoNodeSensor.hpp"
 
 SO_NODE_SOURCE(SoV1Texture2);
 

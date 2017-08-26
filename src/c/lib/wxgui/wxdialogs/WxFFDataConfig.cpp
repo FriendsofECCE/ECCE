@@ -8,14 +8,14 @@
 #include "wx/dirdlg.h"
 #include "wx/filedlg.h"
 
-#include "dsm/EDSIServerCentral.H"
+#include "dsm/EDSIServerCentral.hpp"
 
-#include "util/Ecce.H"
-#include "util/SFile.H"
+#include "util/Ecce.hpp"
+#include "util/SFile.hpp"
 
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/WxFFDataConfig.H"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/WxFFDataConfig.hpp"
 
 
 typedef map<string, vector<string>, less<string> >::value_type PathMapPair;

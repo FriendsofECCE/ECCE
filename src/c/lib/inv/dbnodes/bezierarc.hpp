@@ -37,13 +37,13 @@
 #ifndef __glubezierarc_h
 #define __glubezierarc_h
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 /*
  * bezierarc.h - $Revision: 22116 $
  */
 
-#include "myassert.H"
+#include "myassert.hpp"
 
 class Mapdesc;
 

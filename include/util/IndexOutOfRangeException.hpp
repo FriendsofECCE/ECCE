@@ -6,7 +6,7 @@
 #ifndef INDEXOUTOFRANGEEXCEPTION_H
 #define INDEXOUTOFRANGEEXCEPTION_H
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 /**
  * An IndexOutOfRangeException is usually used to signal that the caller

@@ -6,8 +6,8 @@
 
 #  include <iostream.h>
 #  include <fstream.h>
-#include "util/EcceURL.H"
-#include "dsm/DavEDSI.H"
+#include "util/EcceURL.hpp"
+#include "dsm/DavEDSI.hpp"
 
 int main() {
   EcceURL url;

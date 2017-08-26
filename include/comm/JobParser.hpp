@@ -17,8 +17,8 @@ using std::vector;
 using std::less;
 
 
-#include "dsm/PropertyInterpreter.H"
-#include "dsm/IPropCache.H"
+#include "dsm/PropertyInterpreter.hpp"
+#include "dsm/IPropCache.hpp"
 
 class TaskJob;
 class PropertyInterpreter;

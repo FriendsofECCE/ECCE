@@ -1,9 +1,9 @@
 #ifndef CUBE_H_
 #define CUBE_H_
 
-#include "wxgui/TearableContentProvider.H"
+#include "wxgui/TearableContentProvider.hpp"
 
-#include "VizPropertyPanel.H"
+#include "VizPropertyPanel.hpp"
 
 class ewxButton;
 class ewxStaticText;

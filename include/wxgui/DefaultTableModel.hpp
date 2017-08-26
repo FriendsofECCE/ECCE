@@ -16,10 +16,10 @@
 #include <vector>
     using std::vector;
 
-#include "util/Preferences.H"
+#include "util/Preferences.hpp"
 
-#include "wxgui/TableElement.H"
-#include "wxgui/TableColumn.H"
+#include "wxgui/TableElement.hpp"
+#include "wxgui/TableColumn.hpp"
 
 
 class DefaultTableModel

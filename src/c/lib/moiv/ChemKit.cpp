@@ -55,24 +55,24 @@
 
 #ident "$Revision: 22147 $"
 
-#include "inv/SoDB.H"
-#include "inv/nodes/SoTransformation.H"
-#include "inv/nodekits/SoNodeKitListPart.H"
+#include "inv/SoDB.hpp"
+#include "inv/nodes/SoTransformation.hpp"
+#include "inv/nodekits/SoNodeKitListPart.hpp"
 
-#include "inv/ChemKit/ChemKit.H"
-#include "inv/ChemKit/ChemBaseData.H"
-#include "inv/ChemKit/ChemBaseDataElement.H"
-#include "inv/ChemKit/ChemColor.H"
-#include "inv/ChemKit/ChemColorElement.H"
-#include "inv/ChemKit/ChemDisplayParam.H"
-#include "inv/ChemKit/ChemDisplayParamElement.H"
+#include "inv/ChemKit/ChemKit.hpp"
+#include "inv/ChemKit/ChemBaseData.hpp"
+#include "inv/ChemKit/ChemBaseDataElement.hpp"
+#include "inv/ChemKit/ChemColor.hpp"
+#include "inv/ChemKit/ChemColorElement.hpp"
+#include "inv/ChemKit/ChemDisplayParam.hpp"
+#include "inv/ChemKit/ChemDisplayParamElement.hpp"
 // --> lod
-#include "inv/ChemKit/ChemLOD.H"
+#include "inv/ChemKit/ChemLOD.hpp"
 // <-- lod
-#include "inv/ChemKit/ChemDisplay.H"
-#include "inv/ChemKit/ChemDisplayKit.H"
+#include "inv/ChemKit/ChemDisplay.hpp"
+#include "inv/ChemKit/ChemDisplayKit.hpp"
 
-#include "inv/ChemKit/ChemData.H"
+#include "inv/ChemKit/ChemData.hpp"
 
 
 SO_KIT_SOURCE(ChemKit);

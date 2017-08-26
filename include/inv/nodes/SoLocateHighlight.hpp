@@ -64,9 +64,9 @@
 #define  _SO_LOCATE_HIGHLIGHT_
 
 #include <GL/gl.h>
-#include "inv/fields/SoSFColor.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/nodes/SoSeparator.H"
+#include "inv/fields/SoSFColor.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/nodes/SoSeparator.hpp"
 
 class SoAction;
 class SoHandleEventAction;

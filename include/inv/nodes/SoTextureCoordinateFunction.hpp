@@ -56,7 +56,7 @@
 #ifndef  _SO_TEXTURE_COORDINATE_FUNCTION
 #define  _SO_TEXTURE_COORDINATE_FUNCTION
 
-#include "inv/nodes/SoSubNode.H"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

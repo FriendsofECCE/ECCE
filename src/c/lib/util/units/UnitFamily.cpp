@@ -4,7 +4,7 @@
  *
  */
 
-#include "util/UnitFamily.H"
+#include "util/UnitFamily.hpp"
 
 /**
  * Constructor.

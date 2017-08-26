@@ -2,7 +2,7 @@
 #define _EWXNOTEBOOK_H
 
 #include "wx/notebook.h"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxNotebook : public wxNotebook, public ewxStyledWindow
 {

@@ -10,7 +10,7 @@
 
 using std::vector;
 
-#include "tdat/TAtm.H"
+#include "tdat/TAtm.hpp"
 
 /**
   * Class for defining constraints associated with geometry optimizations.

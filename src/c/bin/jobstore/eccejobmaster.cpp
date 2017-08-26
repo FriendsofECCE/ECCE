@@ -38,7 +38,7 @@
 #include <string>
   using std::string;
 
-#include "tdat/AuthCache.H"
+#include "tdat/AuthCache.hpp"
 
 static string logFileName;
 

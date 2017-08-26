@@ -1,6 +1,6 @@
 #include <iostream>
 using namespace std;
-#include "util/Spectrum.H"
+#include "util/Spectrum.hpp"
 
 Spectrum::Spectrum(float min, float max, int slices)
 {

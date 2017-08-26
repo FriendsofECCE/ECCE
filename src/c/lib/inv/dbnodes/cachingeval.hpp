@@ -37,7 +37,7 @@
 #ifndef __glucachingval_h_
 #define __glucachingval_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 /*
  * cachingeval.h - $Revision: 22116 $

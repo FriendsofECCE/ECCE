@@ -9,32 +9,32 @@
   using std::vector;
 
 #include <wx/spinctrl.h> // for wxSpinEvent
-#include "inv/draggers/SoDragger.H"
-#include "inv/nodes/SoEventCallback.H" 
+#include "inv/draggers/SoDragger.hpp"
+#include "inv/nodes/SoEventCallback.hpp" 
 
-#include <wx/ewxaui/framemanager.H>
+#include <wx/ewxaui/framemanager.hpp>
 
-#include "util/CancelException.H"
-#include "util/CommandManager.H"
-#include "util/Event.H"
+#include "util/CancelException.hpp"
+#include "util/CommandManager.hpp"
+#include "util/Event.hpp"
   using ecce::Event;
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
-#include "util/Listener.H"
+#include "util/JMSMessage.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/Listener.hpp"
   using ecce::Listener;
 
-#include "wxgui/FeedbackSaveHandler.H"
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxSlider.H"
-#include "wxgui/WxCalcImportClient.H"
+#include "wxgui/FeedbackSaveHandler.hpp"
+#include "wxgui/WxDavAuth.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxSlider.hpp"
+#include "wxgui/WxCalcImportClient.hpp"
 
-#include "wxviz/MouseEventListener.H"
-#include "wxviz/MotionListener.H"
-#include "wxviz/WxVizTool.H"
-#include "wxviz/WxVizToolFW.H"
+#include "wxviz/MouseEventListener.hpp"
+#include "wxviz/MotionListener.hpp"
+#include "wxviz/WxVizTool.hpp"
+#include "wxviz/WxVizToolFW.hpp"
 
-#include "BuilderGUI.H"
+#include "BuilderGUI.hpp"
 
 class AtomMeasureAngle;
 class AtomMeasureDist;

@@ -51,15 +51,15 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1SceneKit.H"
-#include "inv/nodekits/SoCameraKit.H"
-#include "inv/nodekits/SoLightKit.H"
-#include "inv/nodekits/SoSeparatorKit.H"
-#include "inv/nodekits/SoInteractionKit.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/nodekits/SoSceneKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1SceneKit.hpp"
+#include "inv/nodekits/SoCameraKit.hpp"
+#include "inv/nodekits/SoLightKit.hpp"
+#include "inv/nodekits/SoSeparatorKit.hpp"
+#include "inv/nodekits/SoInteractionKit.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/nodekits/SoSceneKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1SceneKit);

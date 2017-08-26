@@ -56,7 +56,7 @@
 #ifndef _SO_PRIMITIVE_VERTEX_
 #define _SO_PRIMITIVE_VERTEX_
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
 class SoDetail;
 

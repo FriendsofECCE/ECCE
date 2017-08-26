@@ -53,17 +53,17 @@
 
 
 #include <stdio.h>
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/SoPath.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/projectors/SbPlaneProjector.H"
-#include "inv/draggers/SoScale2Dragger.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/nodes/SoSeparator.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/projectors/SbPlaneProjector.hpp"
+#include "inv/draggers/SoScale2Dragger.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/nodes/SoSeparator.hpp"
 
-#include "SoScale2DraggerGeom.H"
+#include "SoScale2DraggerGeom.hpp"
 
 
 SO_KIT_SOURCE(SoScale2Dragger);

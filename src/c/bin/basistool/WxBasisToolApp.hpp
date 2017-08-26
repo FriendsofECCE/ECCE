@@ -7,13 +7,13 @@
 #ifndef WXBASISTOOLAPP_HH
 #define WXBASISTOOLAPP_HH
 
-#include "util/JMSMessage.H"
+#include "util/JMSMessage.hpp"
 
 
-#include "wxgui/WxJMSMessageDispatch.H"
-#include "wxgui/ewxApp.H"
+#include "wxgui/WxJMSMessageDispatch.hpp"
+#include "wxgui/ewxApp.hpp"
 
-#include "WxBasisTool.H"
+#include "WxBasisTool.hpp"
 
 
 

@@ -57,10 +57,10 @@
 #ifndef  _SO_EVENT_CALLBACK_
 #define  _SO_EVENT_CALLBACK_
 
-#include "inv/misc/SoCallbackList.H"
-#include "inv/SoPath.H"
-#include "inv/nodes/SoSubNode.H"
-#include "inv/actions/SoHandleEventAction.H"
+#include "inv/misc/SoCallbackList.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
 
 class SoEvent;
 class SoEventCallback;

@@ -1,8 +1,8 @@
 #include <iostream.h>
 #include <strstream.h>
 
-#include "util/UnitFactory.H"
-#include "util/UnitFamily.H"
+#include "util/UnitFactory.hpp"
+#include "util/UnitFamily.hpp"
 
 int main(int argc, char** argv)
 {

@@ -4,7 +4,7 @@
  * Includes
  */
 
-#include "wxgui/FilesPanelGUI.H"
+#include "wxgui/FilesPanelGUI.hpp"
 
 class FilesModel;
 class MDPanelHelper;

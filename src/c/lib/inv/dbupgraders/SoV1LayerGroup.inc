@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "SoV1LayerGroup.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodes/SoSeparator.H"
+#include "SoV1LayerGroup.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodes/SoSeparator.hpp"
 
 SO_NODE_SOURCE(SoV1LayerGroup);
 

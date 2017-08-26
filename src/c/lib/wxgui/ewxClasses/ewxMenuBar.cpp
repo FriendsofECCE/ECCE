@@ -4,8 +4,8 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxMenuBar.H"
-#include "wxgui/ewxHelpHandler.H"
+#include "wxgui/ewxMenuBar.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
 
 ewxMenuBar::ewxMenuBar() : wxMenuBar(), ewxStyledWindow()
 {

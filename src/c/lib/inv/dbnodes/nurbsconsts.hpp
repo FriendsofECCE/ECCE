@@ -37,7 +37,7 @@
 #ifndef __glunurbsconsts_h_
 #define __glunurbsconsts_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * nurbsconsts.h - $Revision: 22116 $
  */

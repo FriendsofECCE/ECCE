@@ -3,8 +3,8 @@
 
 #include <string>
 
-#include "util/EcceMap.H"
-#include "util/InvalidException.H"
+#include "util/EcceMap.hpp"
+#include "util/InvalidException.hpp"
 
 using std::string;
 

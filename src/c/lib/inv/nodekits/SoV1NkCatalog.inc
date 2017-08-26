@@ -52,12 +52,12 @@
  */
 
 
-#include "inv/upgraders/SoV1NodekitCatalog.H"
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1BaseKit.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/upgraders/SoV1NodekitCatalog.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1BaseKit.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 // Static variables for the nodekit catalog class...
 

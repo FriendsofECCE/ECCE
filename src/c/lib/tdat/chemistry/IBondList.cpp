@@ -1,6 +1,6 @@
 #include <string.h>
 
-#include "tdat/IBondList.H"
+#include "tdat/IBondList.hpp"
 
 IBondList::IBondList(size_t newNumBonds) 
       : mnumBonds(0), matomIndices((int*)0), mbondOrders((double*)0),

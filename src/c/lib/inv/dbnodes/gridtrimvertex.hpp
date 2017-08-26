@@ -37,15 +37,15 @@
 #ifndef __glugridtrimvertex_h_
 #define __glugridtrimvertex_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * gridtrimvertex.h - $Revision: 22116 $
  */
 
-#include "mystdlib.H"
-#include "bufpool.H"
-#include "trimvertex.H"
-#include "gridvertex.H"
+#include "mystdlib.hpp"
+#include "bufpool.hpp"
+#include "trimvertex.hpp"
+#include "gridvertex.hpp"
 
 class GridTrimVertex : public PooledObj
 {

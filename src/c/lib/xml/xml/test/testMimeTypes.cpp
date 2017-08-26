@@ -5,8 +5,8 @@
 
 #include <xercesc/util/PlatformUtils.hpp>
 
-#include "util/ETimer.H"
-#include "dsm/MimeTypes.H"
+#include "util/ETimer.hpp"
+#include "dsm/MimeTypes.hpp"
 
 int main(int argc, char** argv)
 {

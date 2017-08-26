@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1DirectionalLightKit.H"
-#include "inv/nodes/SoDirectionalLight.H"
-#include "inv/nodes/SoCube.H"
-#include "inv/nodekits/SoLightKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1DirectionalLightKit.hpp"
+#include "inv/nodes/SoDirectionalLight.hpp"
+#include "inv/nodes/SoCube.hpp"
+#include "inv/nodekits/SoLightKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1DirectionalLightKit);

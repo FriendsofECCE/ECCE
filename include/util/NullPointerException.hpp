@@ -6,7 +6,7 @@
 #ifndef NULLPOINTEREXCEPTION_HH
 #define NULLPOINTEREXCEPTION_HH
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 
 /**

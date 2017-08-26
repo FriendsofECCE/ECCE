@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoComplexityElement.H"
+#include "inv/elements/SoComplexityElement.hpp"
 
 SO_ELEMENT_SOURCE(SoComplexityElement);
 

@@ -57,10 +57,10 @@
 #ifndef  _SO_TRANSFORM_MANIP_
 #define  _SO_TRANSFORM_MANIP_
 
-#include "inv/SbLinear.H"
-#include "inv/draggers/SoDragger.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/SbLinear.hpp"
+#include "inv/draggers/SoDragger.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
 
 // C-api: prefix=SoXfManip
 class SoTransformManip : public SoTransform

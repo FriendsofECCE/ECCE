@@ -52,12 +52,12 @@
  */
 #include <stdio.h>
 #include <assert.h>
-#include "inv/SbLinear.H"
-#include "inv/SoOffscreenRenderer.H"
-#include "inv/SoPath.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodes/SoNode.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoOffscreenRenderer.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodes/SoNode.hpp"
 
 // gross stuff to read images, grabbed from image.h and the image
 // library.  Had to grab it since the real .h file is not c++ compatible.

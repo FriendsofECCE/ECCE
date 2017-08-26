@@ -5,7 +5,7 @@
  * Includes
  */
 
-#include "wxgui/DynamicsPanelGUI.H"
+#include "wxgui/DynamicsPanelGUI.hpp"
 
 class DynamicsModel;
 class MDPanelHelper;

@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/engines/SoComputeBoundingBox.H"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/engines/SoComputeBoundingBox.hpp"
 
 SO_ENGINE_SOURCE(SoComputeBoundingBox);
 

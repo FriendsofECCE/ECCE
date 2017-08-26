@@ -70,8 +70,8 @@
 #ifndef  _SO_SUB_ACTION_
 #define  _SO_SUB_ACTION_
 
-#include "inv/actions/SoAction.H"
-#include "inv/SbString.H"
+#include "inv/actions/SoAction.hpp"
+#include "inv/SbString.hpp"
 
 // C-api: end
 /////////////////////////////////////////////////////////////////////////////

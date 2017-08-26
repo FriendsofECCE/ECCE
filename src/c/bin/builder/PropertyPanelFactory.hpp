@@ -11,7 +11,7 @@
 #include <xercesc/dom/DOMDocument.hpp>
   using namespace xercesc;
 
-#include "util/ParseException.H"
+#include "util/ParseException.hpp"
 
 
 class PropertyPanel;

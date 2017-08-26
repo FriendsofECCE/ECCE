@@ -45,8 +45,8 @@
 
 #include <inttypes.h>   /* defines long and brethren */
 
-#include "isocurveeval.H"
-#include "types.H"
+#include "isocurveeval.hpp"
+#include "types.hpp"
 
 class _SoNurbsCurveMap : public _SoNurbsIsocurveEvaluator {
 public:

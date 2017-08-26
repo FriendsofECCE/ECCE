@@ -22,9 +22,9 @@
   using std::cout;
   using std::endl;
  
-#include "tdat/AuthCache.H"
+#include "tdat/AuthCache.hpp"
 
-#include "comm/RCommand.H"
+#include "comm/RCommand.hpp"
 
 int main(int argc, char** argv)
 {

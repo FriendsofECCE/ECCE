@@ -6,7 +6,7 @@
 #ifndef  FINDSYMMETRYCMD_H
 #define  FINDSYMMETRYCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

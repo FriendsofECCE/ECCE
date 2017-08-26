@@ -62,8 +62,8 @@
 #include <sys/time.h>
 #include <math.h>
 #include <limits.h>
-#include "inv/SbBasic.H"
-#include "inv/SbString.H"
+#include "inv/SbBasic.hpp"
+#include "inv/SbString.hpp"
 
 // C-api: end
 #ifdef _CRAY

@@ -1,9 +1,9 @@
 
-#include "inv/ChemKit/ChemColor.H"
+#include "inv/ChemKit/ChemColor.hpp"
 
-#include "viz/SGContainer.H"
-#include "viz/ForegroundCmd.H"
-#include "viz/EcceDispParam.H"
+#include "viz/SGContainer.hpp"
+#include "viz/ForegroundCmd.hpp"
+#include "viz/EcceDispParam.hpp"
 
 
 ForegroundCmd::ForegroundCmd(const string& name, Receiver *receiver)

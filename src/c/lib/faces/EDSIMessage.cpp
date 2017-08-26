@@ -2,10 +2,10 @@
 #include <stdio.h>  // sprintf
 #include <string.h>
 
-#include "util/ErrMsg.H"
-#include "util/SFile.H"
-#include "util/KeyValueReader.H"
-#include "dsm/EDSIMessage.H"
+#include "util/ErrMsg.hpp"
+#include "util/SFile.hpp"
+#include "util/KeyValueReader.hpp"
+#include "dsm/EDSIMessage.hpp"
 
 
 // Class statics

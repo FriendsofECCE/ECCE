@@ -19,17 +19,17 @@
 using std::find;
 
 // application includes
-#include "tdat/Residue.H"
-#include "tdat/TAtm.H"
-#include "tdat/TBond.H"
-#include "tdat/TChartOfNuclides.H"
-#include "tdat/TPerTab.H"
-#include "tdat/TRefIsotope.H"
+#include "tdat/Residue.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/TBond.hpp"
+#include "tdat/TChartOfNuclides.hpp"
+#include "tdat/TPerTab.hpp"
+#include "tdat/TRefIsotope.hpp"
 
-#include "util/ErrMsg.H"
-#include "util/STLUtil.H"
-#include "util/StringConverter.H"
-#include "util/StringTokenizer.H"
+#include "util/ErrMsg.hpp"
+#include "util/STLUtil.hpp"
+#include "util/StringConverter.hpp"
+#include "util/StringTokenizer.hpp"
 
 #define  PI  3.14159265358979323846
 #define  RAD * 180.0 / PI

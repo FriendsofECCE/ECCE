@@ -56,9 +56,9 @@
 #ifndef _SO_PICKED_POINT_
 #define _SO_PICKED_POINT_
 
-#include "inv/SbLinear.H"
-#include "inv/SbViewportRegion.H"
-#include "inv/SoLists.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SbViewportRegion.hpp"
+#include "inv/SoLists.hpp"
 
 class SoDetail;
 class SoGetMatrixAction;

@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoOverrideElement.H"
-#include "inv/elements/SoLazyElement.H"
-#include "inv/nodes/SoLightModel.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoOverrideElement.hpp"
+#include "inv/elements/SoLazyElement.hpp"
+#include "inv/nodes/SoLightModel.hpp"
 
 SO_NODE_SOURCE(SoLightModel);
 

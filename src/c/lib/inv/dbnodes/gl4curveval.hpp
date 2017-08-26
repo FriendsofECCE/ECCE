@@ -45,7 +45,7 @@
 
 #include <inttypes.h>   /* defines long and brethren */
 
-#include "basiccrveval.H"
+#include "basiccrveval.hpp"
 
 class _SoNurbsGL4CurveEval : public _SoNurbsBasicCurveEvaluator {
     void		range1f( long, REAL *, REAL * );

@@ -21,11 +21,11 @@
 #include <vector>
   using std::vector;
 
-#include "util/Listener.H"
+#include "util/Listener.hpp"
 using namespace ecce;
 
-#include "wxgui/ewxColor.H"
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxColor.hpp"
+#include "wxgui/ewxPanel.hpp"
 
 class ewxMenu;
 class PerTabPanel;

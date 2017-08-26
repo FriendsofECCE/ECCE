@@ -6,7 +6,7 @@
 #ifndef  REMOVEGHOSTSCMD_H
 #define  REMOVEGHOSTSCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

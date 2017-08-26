@@ -64,13 +64,13 @@
 #ifndef  _SO_ASCIITEXT_
 #define  _SO_ASCIITEXT_
 
-#include "inv/SbBox.H"
-#include "inv/fields/SoMFString.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/nodes/SoShape.H"
+#include "inv/SbBox.hpp"
+#include "inv/fields/SoMFString.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/nodes/SoShape.hpp"
 
 #include <GL/gl.h>   // For GLenum declaration
 

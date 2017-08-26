@@ -17,9 +17,9 @@
 #include <xercesc/util/XMLString.hpp>
   using namespace xercesc;
 
-#include "util/StringConverter.H"
+#include "util/StringConverter.hpp"
 
-#include "dsm/ResourceTool.H"
+#include "dsm/ResourceTool.hpp"
 
 
 

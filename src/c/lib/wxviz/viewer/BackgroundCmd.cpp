@@ -1,5 +1,5 @@
-#include "wxviz/SGViewer.H"
-#include "wxviz/BackgroundCmd.H"
+#include "wxviz/SGViewer.hpp"
+#include "wxviz/BackgroundCmd.hpp"
 
 
 BackgroundCmd::BackgroundCmd(const string& name, Receiver *receiver)

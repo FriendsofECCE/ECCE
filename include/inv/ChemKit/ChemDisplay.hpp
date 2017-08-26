@@ -57,31 +57,31 @@
 #ifndef  __CHEM_DISPLAY_H__
 #define  __CHEM_DISPLAY_H__
 
-#include "inv/SbBox.H"
-#include "inv/SbViewportRegion.H"
+#include "inv/SbBox.hpp"
+#include "inv/SbViewportRegion.hpp"
 
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/fields/SoMFBitMask.H"
-#include "inv/fields/SoMFUInt32.H"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/fields/SoMFBitMask.hpp"
+#include "inv/fields/SoMFUInt32.hpp"
 
-#include "inv/nodes/SoNonIndexedShape.H"
+#include "inv/nodes/SoNonIndexedShape.hpp"
 
 // --> schematic
-#include "inv/fields/SoMFInt32.H"
+#include "inv/fields/SoMFInt32.hpp"
 // <-- schematic
 
 // --> EGB && SGB
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 // <-- EGB && SGB
 
-#include "inv/ChemKit/MFVec2i.H"
-#include "inv/ChemKit/ChemIntList.H"
-#include "inv/ChemKit/ChemBaseData.H"
-#include "inv/ChemKit/ChemBondBBox.H"
-#include "inv/ChemKit/ChemDisplayParam.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/MFVec2i.hpp"
+#include "inv/ChemKit/ChemIntList.hpp"
+#include "inv/ChemKit/ChemBaseData.hpp"
+#include "inv/ChemKit/ChemBondBBox.hpp"
+#include "inv/ChemKit/ChemDisplayParam.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class ChemAtomBBox;
 class ChemLabelBBox;

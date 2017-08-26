@@ -57,10 +57,10 @@
 #ifndef  __CHEM_RADII_ELEMENT_H__
 #define  __CHEM_RADII_ELEMENT_H__
 
-#include "inv/elements/SoReplacedElement.H"
+#include "inv/elements/SoReplacedElement.hpp"
 
-#include "inv/ChemKit/ChemRadii.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemRadii.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

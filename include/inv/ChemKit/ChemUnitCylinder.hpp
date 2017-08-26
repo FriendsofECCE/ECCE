@@ -57,8 +57,8 @@
 #ifndef  __CHEM_UNITCYLINDER_H__
 #define  __CHEM_UNITCYLINDER_H__
 
-#include "inv/SbLinear.H"
-#include "inv/SbColor.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SbColor.hpp"
 // --> EGB && SGB
 #ifdef WIN32
 #include <windows.h>
@@ -66,12 +66,12 @@
 #ifndef __glu_h__
 #include <GL/glu.h>
 #endif /* __glu_h__ */
-#include "inv/nodes/SoCylinder.H"
-#include "inv/actions/SoGLRenderAction.H"
+#include "inv/nodes/SoCylinder.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
 
-#include "inv/ChemKit/ChemDisplayParam.H"
+#include "inv/ChemKit/ChemDisplayParam.hpp"
 // --> roundcap optimization
-#include "inv/ChemKit/MFVec2i.H"
+#include "inv/ChemKit/MFVec2i.hpp"
 class ChemDisplay;
 // <-- roundcap optimization
 // <-- EGB && SGB

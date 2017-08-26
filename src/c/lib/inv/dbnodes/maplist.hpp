@@ -37,14 +37,14 @@
 #ifndef __glumaplist_h_
 #define __glumaplist_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * maplist.h - $Revision: 22116 $
  */
 
-#include "types.H"
-#include "defines.H"
-#include "bufpool.H"
+#include "types.hpp"
+#include "defines.hpp"
+#include "bufpool.hpp"
 
 class Backend;
 class Mapdesc;

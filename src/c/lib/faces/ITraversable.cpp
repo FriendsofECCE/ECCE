@@ -2,10 +2,10 @@
 using std::cout;
 using std::endl;
 
-#include "dsm/ITraversable.H"
-#include "dsm/EDSI.H"
-#include "dsm/ResourceDescriptor.H"
-#include "util/EcceURL.H"
+#include "dsm/ITraversable.hpp"
+#include "dsm/EDSI.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "util/EcceURL.hpp"
 
 
 ITraversable::ITraversable(const EcceURL& url)

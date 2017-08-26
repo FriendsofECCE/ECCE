@@ -51,14 +51,14 @@
  _______________________________________________________________________
  */
 
-#include "inv/caches/SoNormalCache.H"
-#include "inv/elements/SoCoordinateElement.H"
-#include "inv/elements/SoCreaseAngleElement.H"
-#include "inv/elements/SoShapeHintsElement.H"
-#include "inv/nodes/SoVertexShape.H"
-#include "inv/elements/SoDrawStyleElement.H"
-#include "inv/elements/SoComplexityTypeElement.H"
-#include "inv/actions/SoGLRenderAction.H"
+#include "inv/caches/SoNormalCache.hpp"
+#include "inv/elements/SoCoordinateElement.hpp"
+#include "inv/elements/SoCreaseAngleElement.hpp"
+#include "inv/elements/SoShapeHintsElement.hpp"
+#include "inv/nodes/SoVertexShape.hpp"
+#include "inv/elements/SoDrawStyleElement.hpp"
+#include "inv/elements/SoComplexityTypeElement.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
 
 SO_NODE_ABSTRACT_SOURCE(SoVertexShape);
 

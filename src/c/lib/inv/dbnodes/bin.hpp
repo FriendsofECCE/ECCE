@@ -37,15 +37,15 @@
 #ifndef __glubin_h_
 #define __glubin_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 /*
  * bin.h - $Revision: 22116 $
  */
 
-#include "myassert.H"
-#include "arc.H"
-#include "defines.H"
+#include "myassert.hpp"
+#include "arc.hpp"
+#include "defines.hpp"
 
 struct Bin { /* a linked list of jordan arcs */
 private:

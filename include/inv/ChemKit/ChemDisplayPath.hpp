@@ -57,11 +57,11 @@
 #ifndef __CHEM_DISPLAY_PATH_H__
 #define __CHEM_DISPLAY_PATH_H__
 
-#include "inv/misc/SoBase.H"
-#include "inv/SoPath.H"
+#include "inv/misc/SoBase.hpp"
+#include "inv/SoPath.hpp"
 
-#include "inv/ChemKit/MFVec2i.H"
-#include "inv/ChemKit/ChemPath.H"
+#include "inv/ChemKit/MFVec2i.hpp"
+#include "inv/ChemKit/ChemPath.hpp"
 
 class ChemSelection;
 

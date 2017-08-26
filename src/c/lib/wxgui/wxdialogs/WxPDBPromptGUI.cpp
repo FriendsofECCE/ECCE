@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "WxPDBPromptGUI.H"
+#pragma implementation "WxPDBPromptGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,15 +23,15 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxDialog.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxDialog.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxStaticText.hpp"
 ////@end includes
 
-#include "wxgui/WxPDBPromptGUI.H"
+#include "wxgui/WxPDBPromptGUI.hpp"
 
 ////@begin XPM images
 

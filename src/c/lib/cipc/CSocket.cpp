@@ -18,7 +18,7 @@
 
 // include files **********************************************************
 
-#include "dsm/CSocket.H"
+#include "dsm/CSocket.hpp"
 
 #include <stdlib.h>        // for free()
 #include <string.h>        // for memcpy()

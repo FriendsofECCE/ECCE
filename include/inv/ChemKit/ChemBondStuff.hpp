@@ -57,7 +57,7 @@
 #ifndef __CHEM_BONDSTUFF_H__
 #define __CHEM_BONDSTUFF_H__
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
 class ChemDisplay;
 

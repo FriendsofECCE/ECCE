@@ -14,7 +14,7 @@
   using std::ostream;
   using std::endl;
 
-#include "tdat/TRefIsotope.H"
+#include "tdat/TRefIsotope.hpp"
 
 
 

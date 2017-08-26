@@ -4,11 +4,11 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/Preferences.H"
-#include "wxgui/ewxFrame.H"
-#include "wxgui/ewxHelpHandler.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/ewxConfig.H"
+#include "util/Preferences.hpp"
+#include "wxgui/ewxFrame.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/ewxConfig.hpp"
 
 /**
  * Default Constructor.

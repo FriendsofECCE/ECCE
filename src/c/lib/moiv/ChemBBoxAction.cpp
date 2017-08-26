@@ -55,22 +55,22 @@
 
 #ident "$Revision: 22147 $"
 
-#include "inv/errors/SoDebugError.H"
+#include "inv/errors/SoDebugError.hpp"
 
-#include "inv/ChemKit/ChemBBoxAction.H"
+#include "inv/ChemKit/ChemBBoxAction.hpp"
 // --> lod
-#include "inv/ChemKit/ChemLOD.H"
+#include "inv/ChemKit/ChemLOD.hpp"
 // <-- lod
-#include "inv/ChemKit/ChemDisplay.H"
-#include "inv/ChemKit/ChemLabel.H"
-#include "inv/ChemKit/ChemMonitor.H"
+#include "inv/ChemKit/ChemDisplay.hpp"
+#include "inv/ChemKit/ChemLabel.hpp"
+#include "inv/ChemKit/ChemMonitor.hpp"
 
-#include "inv/ChemKit/ChemAtomBBox.H"
-#include "inv/ChemKit/ChemBondBBox.H"
-#include "inv/ChemKit/ChemLabelBBox.H"
-#include "inv/ChemKit/ChemMonitorBBox.H"
-#include "inv/ChemKit/ChemStickBondBBox.H"
-#include "inv/ChemKit/ChemWireframeBondBBox.H"
+#include "inv/ChemKit/ChemAtomBBox.hpp"
+#include "inv/ChemKit/ChemBondBBox.hpp"
+#include "inv/ChemKit/ChemLabelBBox.hpp"
+#include "inv/ChemKit/ChemMonitorBBox.hpp"
+#include "inv/ChemKit/ChemStickBondBBox.hpp"
+#include "inv/ChemKit/ChemWireframeBondBBox.hpp"
 
 
 SO_ACTION_SOURCE(ChemBBoxAction);

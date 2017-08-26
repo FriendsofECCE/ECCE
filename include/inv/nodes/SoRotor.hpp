@@ -56,9 +56,9 @@
 #ifndef  _SO_ROTOR_
 #define  _SO_ROTOR_
 
-#include "inv/nodes/SoRotation.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFBool.H"
+#include "inv/nodes/SoRotation.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFBool.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

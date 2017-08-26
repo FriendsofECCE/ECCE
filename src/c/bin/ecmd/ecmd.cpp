@@ -6,15 +6,15 @@
   using std::cerr;
   using std::endl;
 
-#include "util/TempStorage.H"
-#include "util/Preferences.H"
+#include "util/TempStorage.hpp"
+#include "util/Preferences.hpp"
 
-#include "tdat/RefMachine.H"
-#include "tdat/AuthCache.H"
+#include "tdat/RefMachine.hpp"
+#include "tdat/AuthCache.hpp"
 
-#include "dsm/MachineConfig.H"
+#include "dsm/MachineConfig.hpp"
 
-#include "comm/RCommand.H"
+#include "comm/RCommand.hpp"
 
 int main(int argc, char** argv)
 {

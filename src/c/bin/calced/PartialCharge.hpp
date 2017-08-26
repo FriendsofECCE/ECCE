@@ -5,9 +5,9 @@
 #ifndef _PARTIALCHARGE_H_
 #define _PARTIALCHARGE_H_
 
-#include "wxgui/WxJMSListener.H"
+#include "wxgui/WxJMSListener.hpp"
 
-#include "PartialChargeGUI.H"
+#include "PartialChargeGUI.hpp"
 
 
 class CalcEd;

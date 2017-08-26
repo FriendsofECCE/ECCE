@@ -56,11 +56,11 @@
 /* Polynomial Evaluator Interface */
 
 #include <stdio.h>
-#include "SoAddPrefix.H"
-#include "inv/actions/SoAction.H"
-#include "inv/nodes/SoShape.H"
-#include "SoPrimEvals.H"
-#include "SoPrimMaps.H"
+#include "SoAddPrefix.hpp"
+#include "inv/actions/SoAction.hpp"
+#include "inv/nodes/SoShape.hpp"
+#include "SoPrimEvals.hpp"
+#include "SoPrimMaps.hpp"
 
 
 ////////////////////////////////////////////////////////////////////////

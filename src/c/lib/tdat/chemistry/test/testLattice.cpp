@@ -2,7 +2,7 @@
 #include <strstream.h>
 #include <unistd.h>
 
-#include "tdat/LatticeDef.H"
+#include "tdat/LatticeDef.hpp"
 
 int main(int argc, char** argv)
 {

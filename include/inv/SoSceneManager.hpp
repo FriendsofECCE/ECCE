@@ -57,8 +57,8 @@
 #ifndef _SO_SCENE_MANAGER_
 #define _SO_SCENE_MANAGER_
 
-#include "inv/SbColor.H"
-#include "inv/actions/SoGLRenderAction.H"
+#include "inv/SbColor.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
 
 class SoNodeSensor;
 class SoEvent;

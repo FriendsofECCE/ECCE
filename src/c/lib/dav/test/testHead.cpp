@@ -1,8 +1,8 @@
 #include <unistd.h>
 #include <iostream.h>
 
-#include "dsm/DavEDSI.H"
-#include "util/CmdLineAuthListener.H"
+#include "dsm/DavEDSI.hpp"
+#include "util/CmdLineAuthListener.hpp"
 
 #include <vector>
 #include <string>

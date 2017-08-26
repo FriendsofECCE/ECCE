@@ -49,17 +49,17 @@
  _______________________________________________________________________
  */
 
-#include "inv/misc/SoState.H"
-#include "inv/misc/SoChildList.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/elements/SoGLCacheContextElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/elements/SoViewVolumeElement.H"
-#include "inv/nodes/SoLOD.H"
-#include "inv/nodes/SoShape.H"
+#include "inv/misc/SoState.hpp"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/elements/SoGLCacheContextElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/elements/SoViewVolumeElement.hpp"
+#include "inv/nodes/SoLOD.hpp"
+#include "inv/nodes/SoShape.hpp"
 
 SO_NODE_SOURCE(SoLOD);
 

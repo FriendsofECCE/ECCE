@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/engines/SoTimeCounter.H"
-#include "inv/nodes/SoBlinker.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/sensors/SoOneShotSensor.H"
+#include "inv/SoDB.hpp"
+#include "inv/engines/SoTimeCounter.hpp"
+#include "inv/nodes/SoBlinker.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/sensors/SoOneShotSensor.hpp"
 
 SO_NODE_SOURCE(SoBlinker);
 

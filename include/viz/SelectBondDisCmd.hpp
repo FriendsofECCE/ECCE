@@ -6,7 +6,7 @@
 #ifndef  SELECTBONDDISCMD_H
 #define  SELECTBONDDISCMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class Fragment;
 class wxWindow;

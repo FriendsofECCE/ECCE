@@ -9,7 +9,7 @@ using namespace xercesc;
 #include <string>
   using std::string;
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
   
 
 /**

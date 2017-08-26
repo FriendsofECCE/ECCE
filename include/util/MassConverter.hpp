@@ -10,7 +10,7 @@
 #ifndef MASSCONVERTER_HH
 #define MASSCONVERTER_HH
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 class MassConverter: public BaseUnitConverter
 {

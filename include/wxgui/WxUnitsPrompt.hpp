@@ -1,7 +1,7 @@
 #ifndef WXUNITSPROMPT_H_
 #define WXUNITSPROMPT_H_
 
-#include "wxgui/WxUnitsPromptGUI.H"
+#include "wxgui/WxUnitsPromptGUI.hpp"
 
 class WxUnitsPrompt : public WxUnitsPromptGUI
 {

@@ -21,9 +21,9 @@ using std::vector;
 #include <xercesc/framework/MemBufInputSource.hpp>
 using namespace xercesc;
 
-#include "dsm/PropFactory.H"
-#include "dsm/PropertyDoc.H" 
-#include "dsm/BasicDOMParser.H"
+#include "dsm/PropFactory.hpp"
+#include "dsm/PropertyDoc.hpp" 
+#include "dsm/BasicDOMParser.hpp"
 
 
 /**

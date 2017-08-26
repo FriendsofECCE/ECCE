@@ -37,13 +37,13 @@
 #ifndef __glupatch_h_
 #define __glupatch_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * patch.h - $Revision: 22116 $
  */
 
-#include "types.H"
-#include "defines.H"
+#include "types.hpp"
+#include "defines.hpp"
 
 class Quilt;
 class Mapdesc;

@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "SoV1ShapeHints.H"
-#include "inv/nodes/SoShapeHints.H"
+#include "SoV1ShapeHints.hpp"
+#include "inv/nodes/SoShapeHints.hpp"
 
 SO_NODE_SOURCE(SoV1ShapeHints);
 

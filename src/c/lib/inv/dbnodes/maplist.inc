@@ -39,14 +39,14 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "myassert.H"
-#include "mymath.H"
-#include "nurbsconsts.H"
-#include "maplist.H"
-#include "mapdesc.H"
-#include "backend.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "myassert.hpp"
+#include "mymath.hpp"
+#include "nurbsconsts.hpp"
+#include "maplist.hpp"
+#include "mapdesc.hpp"
+#include "backend.hpp"
  
 Maplist::Maplist( Backend& b )
     : mapdescPool( sizeof( Mapdesc ), 10, (char*)"mapdesc pool" ),

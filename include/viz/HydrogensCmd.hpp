@@ -6,10 +6,10 @@
 #ifndef  HYDROGENSCMD_H
 #define  HYDROGENSCMD_H
 
-#include "tdat/TAtm.H"
+#include "tdat/TAtm.hpp"
 
-#include "viz/SGContainer.H"
-#include "viz/FragCloneCmd.H"
+#include "viz/SGContainer.hpp"
+#include "viz/FragCloneCmd.hpp"
 
 class HydrogensCmd : public FragCloneCmd
 {

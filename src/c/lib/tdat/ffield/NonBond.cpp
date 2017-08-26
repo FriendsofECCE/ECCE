@@ -12,15 +12,15 @@
 #include <math.h>
 
 // application includes
-#include "util/Transformations.H"
-#include "util/ErrMsg.H"
-#include "tdat/NonBond.H"
-#include "tdat/FFCoords.H"
-#include "tdat/UFFParams.H"
-#include "tdat/TBond.H"
-#include "tdat/TAtm.H"
-#include "tdat/TPerTab.H"
-#include "tdat/LinkCellList.H"
+#include "util/Transformations.hpp"
+#include "util/ErrMsg.hpp"
+#include "tdat/NonBond.hpp"
+#include "tdat/FFCoords.hpp"
+#include "tdat/UFFParams.hpp"
+#include "tdat/TBond.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/TPerTab.hpp"
+#include "tdat/LinkCellList.hpp"
 
 #define PI  3.14159265358979323846
 #define DEG * PI / 180.0

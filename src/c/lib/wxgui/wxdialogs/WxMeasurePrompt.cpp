@@ -23,12 +23,12 @@
     #include "wx/statline.h"
 #endif
 
-#include "util/StringConverter.H"
+#include "util/StringConverter.hpp"
 
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/WxMeasurePrompt.H"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/WxMeasurePrompt.hpp"
 
 static const int wxID_TEXT = 106800;
 static const int wxID_TGL =  106801;

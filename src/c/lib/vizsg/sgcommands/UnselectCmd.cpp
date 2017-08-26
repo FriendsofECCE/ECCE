@@ -7,13 +7,13 @@
     using std::cout;
     using std::endl;
     
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "viz/UnselectCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/UnselectCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 UnselectCmd::UnselectCmd(const string& name, Receiver * receiver)
   : Command(name, receiver)

@@ -51,12 +51,12 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/elements/SoTextureQualityElement.H"
-#include "inv/nodes/SoTextureCoordinatePlane.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/elements/SoTextureQualityElement.hpp"
+#include "inv/nodes/SoTextureCoordinatePlane.hpp"
 
 #include <GL/gl.h>
 

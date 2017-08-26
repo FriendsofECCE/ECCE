@@ -56,8 +56,8 @@
 #ifndef  _SO_PATH_SWITCH_
 #define  _SO_PATH_SWITCH_
 
-#include "inv/fields/SoSFPath.H"
-#include "inv/nodes/SoGroup.H"
+#include "inv/fields/SoSFPath.hpp"
+#include "inv/nodes/SoGroup.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

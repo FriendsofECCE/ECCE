@@ -6,11 +6,11 @@
 #include <vector>
     using std::vector;
 
-#include "util/STLUtil.H"
-#include "util/StringConverter.H"
+#include "util/STLUtil.hpp"
+#include "util/StringConverter.hpp"
 
-#include "dsm/TGBSConfig.H"
-#include "dsm/TGaussianBasisSet.H"
+#include "dsm/TGBSConfig.hpp"
+#include "dsm/TGaussianBasisSet.hpp"
 
 class GBSContractionGridItem
 {

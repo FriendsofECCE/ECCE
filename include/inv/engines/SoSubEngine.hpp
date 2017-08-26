@@ -94,10 +94,10 @@
 #ifndef  _SO_SUB_ENGINE_
 #define  _SO_SUB_ENGINE_
 
-#include "inv/engines/SoEngine.H"
-#include "inv/engines/SoOutputData.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/fields/SoFieldData.H"
+#include "inv/engines/SoEngine.hpp"
+#include "inv/engines/SoOutputData.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/fields/SoFieldData.hpp"
 
 // C-api: end
 

@@ -51,19 +51,19 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/SbTime.H"
-#include "inv/SbLinear.H"
-#include "inv/SbViewportRegion.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodes/SoNode.H"
-#include "inv/SoSceneManager.H"
-#include "inv/fields/SoSFTime.H"
-#include "inv/sensors/SoSensor.H"
-#include "inv/sensors/SoNodeSensor.H"
-#include "inv/sensors/SoOneShotSensor.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoHandleEventAction.H"
+#include "inv/SoDB.hpp"
+#include "inv/SbTime.hpp"
+#include "inv/SbLinear.hpp"
+#include "inv/SbViewportRegion.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/SoSceneManager.hpp"
+#include "inv/fields/SoSFTime.hpp"
+#include "inv/sensors/SoSensor.hpp"
+#include "inv/sensors/SoNodeSensor.hpp"
+#include "inv/sensors/SoOneShotSensor.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
 
 #include <GL/gl.h>
 #include <GL/glu.h>

@@ -52,8 +52,8 @@
  */
 
 #include <GL/gl.h>
-#include "inv/elements/SoViewportRegionElement.H"
-#include "inv/elements/SoGLUpdateAreaElement.H"
+#include "inv/elements/SoViewportRegionElement.hpp"
+#include "inv/elements/SoGLUpdateAreaElement.hpp"
 
 SO_ELEMENT_SOURCE(SoGLUpdateAreaElement);
 

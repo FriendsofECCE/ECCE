@@ -15,8 +15,8 @@
 // general includes
 // library includes
 // application includes
-#include "tdat/TTCPair.H"
-#include "util/STLUtil.H"
+#include "tdat/TTCPair.hpp"
+#include "util/STLUtil.hpp"
 
 TTagCountPair::TTagCountPair() {}
 TTagCountPair::~TTagCountPair() {}

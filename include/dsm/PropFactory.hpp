@@ -55,8 +55,8 @@
 #include <vector>
   using std::vector;
 
-#include "tdat/TProperty.H"
-#include "util/EcceException.H"
+#include "tdat/TProperty.hpp"
+#include "util/EcceException.hpp"
 
 
 

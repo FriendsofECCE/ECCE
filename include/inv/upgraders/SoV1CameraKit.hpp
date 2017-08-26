@@ -57,7 +57,7 @@
 #ifndef  _SO_V1_CAMERA_KIT_
 #define  _SO_V1_CAMERA_KIT_
 
-#include "inv/upgraders/SoV1BaseKit.H"
+#include "inv/upgraders/SoV1BaseKit.hpp"
 
 ////////////////////////////////////////////////////////////////////
 //    Class: SoV1CameraKit

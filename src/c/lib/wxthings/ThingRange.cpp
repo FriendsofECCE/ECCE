@@ -7,7 +7,7 @@
 // Licence:     wxWidgets
 /////////////////////////////////////////////////////////////////////////////
 
-#include "wxgui/ThingPrecomp.H"
+#include "wxgui/ThingPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx.h".
 #include <wx/wxprec.h>
@@ -20,7 +20,7 @@
     #include <wx/utils.h>
 #endif // WX_PRECOMP
 
-#include "wxgui/ThingRange.H"
+#include "wxgui/ThingRange.hpp"
 #include <stdio.h>
 
 const wxRangeInt wxEmptyRangeInt(0, -1);

@@ -13,7 +13,7 @@ using std::string;
 
 #include <string.h>
 
-#include "tdat/TResItem.H"
+#include "tdat/TResItem.hpp"
 
 
 ///////////////////////////////////////////////////////////////////////////////

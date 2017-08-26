@@ -39,17 +39,17 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mysetjmp.H"
-#include "mystdio.H"
-#include "nurbsconsts.H"
-#include "nurbstess.H"
-#include "bufpool.H"
-#include "quilt.H"
-#include "knotvector.H"
-#include "mapdesc.H"
-#include "maplist.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mysetjmp.hpp"
+#include "mystdio.hpp"
+#include "nurbsconsts.hpp"
+#include "nurbstess.hpp"
+#include "bufpool.hpp"
+#include "quilt.hpp"
+#include "knotvector.hpp"
+#include "mapdesc.hpp"
+#include "maplist.hpp"
 
 void
 NurbsTessellator::resetObjects( void )

@@ -1,7 +1,7 @@
 #ifndef CONTEXTPANEL_H_
 #define CONTEXTPANEL_H_
 
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 
 class StringListCtrl;
 

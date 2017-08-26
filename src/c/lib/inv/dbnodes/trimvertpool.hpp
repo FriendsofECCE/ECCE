@@ -37,12 +37,12 @@
 #ifndef __glutrimvertpool_h_
 #define __glutrimvertpool_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * trimvertexpool.h - $Revision: 22116 $
  */
 
-#include "bufpool.H"
+#include "bufpool.hpp"
 
 class TrimVertex;
 

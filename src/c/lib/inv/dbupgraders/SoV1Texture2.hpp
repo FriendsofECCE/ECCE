@@ -56,16 +56,16 @@
 #ifndef  _SO_V1TEXTURE2_
 #define  _SO_V1TEXTURE2_
 
-#include "inv/upgraders/SoUpgrader.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFInt32.H"
-#include "inv/fields/SoMFInt32.H"
-#include "inv/fields/SoSFName.H"
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFColor.H"
-#include "inv/fields/SoSFVec2f.H"
-#include "inv/fields/SoSFFloat.H"
+#include "inv/upgraders/SoUpgrader.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFInt32.hpp"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/fields/SoSFName.hpp"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFColor.hpp"
+#include "inv/fields/SoSFVec2f.hpp"
+#include "inv/fields/SoSFFloat.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

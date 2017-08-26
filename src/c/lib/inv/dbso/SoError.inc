@@ -53,10 +53,10 @@
 
 #include <stdarg.h>
 
-#include "inv/SoPath.H"
-#include "inv/engines/SoEngine.H"
-#include "inv/errors/SoError.H"
-#include "inv/nodes/SoNode.H"
+#include "inv/SoPath.hpp"
+#include "inv/engines/SoEngine.hpp"
+#include "inv/errors/SoError.hpp"
+#include "inv/nodes/SoNode.hpp"
 
 // Static variables declared in SoError.h:
 SoType		 SoError::classTypeId;

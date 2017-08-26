@@ -55,13 +55,13 @@
 #ifndef  _SO_WWWINLINE_
 #define  _SO_WWWINLINE_
 
-#include "inv/misc/SoChildList.H"
-#include "inv/nodes/SoSubNode.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/fields/SoSFString.H"
-#include "inv/fields/SoSFVec3f.H"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/fields/SoSFString.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
 
-#include "inv/actions/SoCallbackAction.H"
+#include "inv/actions/SoCallbackAction.hpp"
 
 class SoWWWInline;
 class SoGroup;

@@ -8,7 +8,7 @@
 
 #include <string>
 
-#include "dsm/XMLSerializer.H"
+#include "dsm/XMLSerializer.hpp"
 
 class PrepareModel;
 

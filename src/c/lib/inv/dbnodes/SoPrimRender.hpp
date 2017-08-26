@@ -59,9 +59,9 @@
 //#include <GL/gl.h>
 #include <tr1/math.h>
 #include <stdlib.h>
-#include "inv/SbLinear.H"
-#include "nurbstess.H"
-#include "SoPrimEvals.H"
+#include "inv/SbLinear.hpp"
+#include "nurbstess.hpp"
+#include "SoPrimEvals.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

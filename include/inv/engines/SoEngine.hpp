@@ -57,10 +57,10 @@
 #ifndef  _SO_ENGINE_
 #define  _SO_ENGINE_
 
-#include "inv/fields/SoFieldContainer.H"
-#include "inv/SoLists.H"
-#include "inv/SbString.H"
-#include "inv/SoType.H"
+#include "inv/fields/SoFieldContainer.hpp"
+#include "inv/SoLists.hpp"
+#include "inv/SbString.hpp"
+#include "inv/SoType.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

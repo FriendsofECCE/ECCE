@@ -3,8 +3,8 @@
 
 #include <wx/timer.h>
 
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ThingToggle.H"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ThingToggle.hpp"
 
 
 DECLARE_EVENT_TYPE(wxEVT_PLAYBACK_TICK_EVENT, -1)

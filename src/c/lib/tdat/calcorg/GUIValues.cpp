@@ -9,8 +9,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "util/ErrMsg.H"
-#include "tdat/GUIValues.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/GUIValues.hpp"
 
 
 //-----------------------------------------------------------------------------

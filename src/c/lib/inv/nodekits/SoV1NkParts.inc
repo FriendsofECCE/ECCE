@@ -53,11 +53,11 @@
  */
 
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1NodekitParts.H"
-#include "inv/upgraders/SoV1BaseKit.H"
-#include "inv/SoPath.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1NodekitParts.hpp"
+#include "inv/upgraders/SoV1BaseKit.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/errors/SoDebugError.hpp"
 #include <stdlib.h>
 
 ////////////////////////////////////////////////////////////////////////

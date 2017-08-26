@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/SbTime.H"
+#include "inv/SbTime.hpp"
 #include <time.h>
 
 #ifdef _CRAY

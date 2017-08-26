@@ -6,9 +6,9 @@
 #include <vector>
   using std::vector;
 
-#include "dsm/PropertyDoc.H"
+#include "dsm/PropertyDoc.hpp"
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
 class Fragment;
 class TProperty;

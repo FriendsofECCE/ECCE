@@ -64,7 +64,7 @@
 #ifndef _SO_NODE_KIT_DETAIL_
 #define _SO_NODE_KIT_DETAIL_
 
-#include "inv/details/SoSubDetail.H"
+#include "inv/details/SoSubDetail.hpp"
 
 class SoNode;
 class SoBaseKit;

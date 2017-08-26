@@ -13,13 +13,13 @@
 
 #include "wx/grid.h" // for wxGridRangeSelectEvent
 
-#include "util/Event.H"
-#include "util/Listener.H"
+#include "util/Event.hpp"
+#include "util/Listener.hpp"
   using namespace ecce;
-#include "util/InvalidException.H"
+#include "util/InvalidException.hpp"
 
-#include "wxgui/ewxPanel.H"
-#include "wxviz/WxVizTool.H"
+#include "wxgui/ewxPanel.hpp"
+#include "wxviz/WxVizTool.hpp"
 
 
 class AtomView;

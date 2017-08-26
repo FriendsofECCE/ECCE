@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "SoV1PickStyle.H"
-#include "inv/nodes/SoPickStyle.H"
+#include "SoV1PickStyle.hpp"
+#include "inv/nodes/SoPickStyle.hpp"
 
 SO_NODE_SOURCE(SoV1PickStyle);
 

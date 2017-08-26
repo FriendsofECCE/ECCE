@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_RENDER_PASS_ELEMENT
 #define  _SO_GL_RENDER_PASS_ELEMENT
 
-#include "inv/elements/SoSubElement.H"
+#include "inv/elements/SoSubElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

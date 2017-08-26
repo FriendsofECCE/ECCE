@@ -3,9 +3,9 @@
 
 #include "wx/grid.h" // for wxGridEvent
 
-#include "wxgui/WxDavAuth.H"
+#include "wxgui/WxDavAuth.hpp"
 
-#include "QMMMPotentialsGUI.H"
+#include "QMMMPotentialsGUI.hpp"
 
 
 class QMMMModel;

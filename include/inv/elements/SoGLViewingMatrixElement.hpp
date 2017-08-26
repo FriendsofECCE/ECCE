@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_VIEWING_MATRIX_ELEMENT
 #define  _SO_GL_VIEWING_MATRIX_ELEMENT
 
-#include "inv/elements/SoViewingMatrixElement.H"
+#include "inv/elements/SoViewingMatrixElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

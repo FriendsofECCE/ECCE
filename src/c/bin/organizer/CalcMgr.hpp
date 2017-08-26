@@ -13,24 +13,24 @@
 #include <wx/treectrl.h>
 #include <wx/dnd.h>
 
-#include "util/ProgressEvent.H"
-#include "util/TDateTime.H"
-#include "util/JMSPublisher.H"
-#include "util/EditListener.H"
+#include "util/ProgressEvent.hpp"
+#include "util/TDateTime.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/EditListener.hpp"
 
-#include "dsm/TaskJob.H"
-#include "dsm/IPropCalculation.H"
-#include "dsm/ResourceType.H"
+#include "dsm/TaskJob.hpp"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/ResourceType.hpp"
 
-#include "wxgui/ewxTreeCtrl.H"
-#include "wxgui/WxResourceTreeCtrl.H"
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/WxAccessControl.H"
-#include "wxgui/WxCalcImportClient.H"
+#include "wxgui/ewxTreeCtrl.hpp"
+#include "wxgui/WxResourceTreeCtrl.hpp"
+#include "wxgui/WxDavAuth.hpp"
+#include "wxgui/WxAccessControl.hpp"
+#include "wxgui/WxCalcImportClient.hpp"
 
-#include "CalcMgrGUI.H"
-#include "ContextPanelInterface.H"
-#include "WxProperties.H"
+#include "CalcMgrGUI.hpp"
+#include "ContextPanelInterface.hpp"
+#include "WxProperties.hpp"
 
 class BookmarkEditor;
 class WxFind;

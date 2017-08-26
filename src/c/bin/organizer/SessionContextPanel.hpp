@@ -20,11 +20,11 @@
 #include <vector>
 using std::vector;
 
-#include "dsm/Session.H"
+#include "dsm/Session.hpp"
 
-#include "wxgui/ewxScrolledWindow.H"
+#include "wxgui/ewxScrolledWindow.hpp"
 
-#include "ContextPanelInterface.H"
+#include "ContextPanelInterface.hpp"
 
 class CalcMgr;
 class MDTaskPanel;

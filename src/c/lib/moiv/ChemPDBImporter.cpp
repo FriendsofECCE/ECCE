@@ -31,13 +31,13 @@
 #include <string.h>
 #include <assert.h>
 
-#include "inv/SbPList.H"
+#include "inv/SbPList.hpp"
 
-#include "inv/ChemKit/ChemPDBImporter.H"
-#include "inv/ChemKit/ChemData.H"
-#include "inv/ChemKit/ChemAssociatedData.H"
-#include "inv/ChemKit/ChemTheElements.H"
-#include "inv/ChemKit/ChemCovRadius.H"
+#include "inv/ChemKit/ChemPDBImporter.hpp"
+#include "inv/ChemKit/ChemData.hpp"
+#include "inv/ChemKit/ChemAssociatedData.hpp"
+#include "inv/ChemKit/ChemTheElements.hpp"
+#include "inv/ChemKit/ChemCovRadius.hpp"
 
 ChemPDBImporter::ChemPDBImporter()
 {

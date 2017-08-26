@@ -57,7 +57,7 @@
 #ifndef  _SO_HANDLEBOX_MANIP_
 #define  _SO_HANDLEBOX_MANIP_
 
-#include "inv/manips/SoTransformManip.H"
+#include "inv/manips/SoTransformManip.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

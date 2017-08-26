@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "SoV1TextureCoordinatePlane.H"
-#include "inv/nodes/SoTextureCoordinatePlane.H"
-#include "inv/nodes/SoTexture2Transform.H"
+#include "SoV1TextureCoordinatePlane.hpp"
+#include "inv/nodes/SoTextureCoordinatePlane.hpp"
+#include "inv/nodes/SoTexture2Transform.hpp"
 
 SO_NODE_SOURCE(SoV1TextureCoordinatePlane);
 

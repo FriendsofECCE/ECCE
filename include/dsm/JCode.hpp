@@ -21,14 +21,14 @@
 #include <xercesc/dom/DOMDocument.hpp>
   using namespace xercesc;
 
-#include "util/CompareOps.H"
+#include "util/CompareOps.hpp"
 
-#include "tdat/TTheory.H"
-#include "tdat/TRunType.H"
-#include "tdat/TGBSAngFunc.H"
-#include "tdat/GeomConstraintRules.H"
+#include "tdat/TTheory.hpp"
+#include "tdat/TRunType.hpp"
+#include "tdat/TGBSAngFunc.hpp"
+#include "tdat/GeomConstraintRules.hpp"
 
-#include "dsm/TGaussianBasisSet.H"
+#include "dsm/TGaussianBasisSet.hpp"
 
 
 class TypedFile;

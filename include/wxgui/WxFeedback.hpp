@@ -7,7 +7,7 @@
 #define _WXFEEDBACK_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "WxFeedback.C"
+#pragma interface "WxFeedback.cpp"
 #endif
 
 #include <string>
@@ -18,13 +18,13 @@ class WxState;
 class PropertyTask;
 
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
-#include "wxgui/WxFeedbackGUI.H"
-#include "wxgui/CalcDropHandler.H"
-#include "wxgui/FeedbackSaveHandler.H"
+#include "wxgui/WxFeedbackGUI.hpp"
+#include "wxgui/CalcDropHandler.hpp"
+#include "wxgui/FeedbackSaveHandler.hpp"
 
 
 class FeedbackTextEvtHandler :public wxEvtHandler

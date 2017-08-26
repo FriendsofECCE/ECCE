@@ -15,11 +15,11 @@
   using std::string;
   using std::vector;
 
-#include "util/IOException.H"
-#include "util/InvalidException.H"
-#include "util/SFile.H"
+#include "util/IOException.hpp"
+#include "util/InvalidException.hpp"
+#include "util/SFile.hpp"
 
-#include "tdat/Fragment.H"
+#include "tdat/Fragment.hpp"
 
 class SymmetryOps
 {

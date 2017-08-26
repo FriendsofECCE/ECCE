@@ -56,10 +56,10 @@
 #ifndef  _SO_UNKNOWN_NODE_
 #define  _SO_UNKNOWN_NODE_
 
-#include "inv/fields/SoFieldData.H"
-#include "inv/nodes/SoGroup.H"
-#include "inv/nodes/SoSubNode.H"
-#include "inv/misc/SoChildList.H"
+#include "inv/fields/SoFieldData.hpp"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/misc/SoChildList.hpp"
 
 class SoSFNode;
 class SoMFString;

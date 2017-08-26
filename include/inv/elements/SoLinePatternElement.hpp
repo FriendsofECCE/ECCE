@@ -56,7 +56,7 @@
 #ifndef  _SO_LINE_PATTERN_ELEMENT
 #define  _SO_LINE_PATTERN_ELEMENT
 
-#include "inv/elements/SoInt32Element.H"
+#include "inv/elements/SoInt32Element.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

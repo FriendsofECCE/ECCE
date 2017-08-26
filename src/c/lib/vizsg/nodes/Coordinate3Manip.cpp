@@ -24,20 +24,20 @@
  *  Source file for "Coordinate3Manip"
  *----------------------------------------------------------*/
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/actions/SoSearchAction.H"
-#include "inv/draggers/SoDragPointDragger.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/fields/SoSFInt32.H"
-#include "inv/nodes/SoGroup.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/actions/SoSearchAction.hpp"
+#include "inv/draggers/SoDragPointDragger.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/fields/SoSFInt32.hpp"
+#include "inv/nodes/SoGroup.hpp"
 
 // Include file for our new class
-#include "viz/Coordinate3Manip.H"
+#include "viz/Coordinate3Manip.hpp"
 
 SO_NODE_SOURCE(Coordinate3Manip);
 

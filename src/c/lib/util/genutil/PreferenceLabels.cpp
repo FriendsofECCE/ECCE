@@ -1,4 +1,4 @@
-#include "util/PreferenceLabels.H"
+#include "util/PreferenceLabels.hpp"
 
 const char *PrefLabels::GLOBALPREFFILE = "EcceGlobal";
 

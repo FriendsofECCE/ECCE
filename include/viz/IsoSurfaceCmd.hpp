@@ -1,7 +1,7 @@
 #ifndef ISOSURFACECMD__H
 #define ISOSURFACECMD__H
 
-#include "viz/PropCmd.H"
+#include "viz/PropCmd.hpp"
 
 
 /**

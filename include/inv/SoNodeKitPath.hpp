@@ -56,7 +56,7 @@
 #ifndef  _SO_NODE_KIT_PATH_
 #define  _SO_NODE_KIT_PATH_
 
-#include "inv/SoPath.H"
+#include "inv/SoPath.hpp"
 
 class SoBaseKit;
 class SoSearchAction;

@@ -61,8 +61,8 @@
 #ifndef  _SO_TIMER_QUEUE_SENSOR_
 #define  _SO_TIMER_QUEUE_SENSOR_
 
-#include "inv/sensors/SoSensor.H"
-#include "inv/SbTime.H"
+#include "inv/sensors/SoSensor.hpp"
+#include "inv/SbTime.hpp"
 
 // C-api: prefix=SoTimerQSens
 class SoTimerQueueSensor : public SoSensor {

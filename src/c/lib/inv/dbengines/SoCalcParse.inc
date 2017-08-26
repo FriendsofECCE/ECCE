@@ -14,9 +14,9 @@ SoCalc_yyrcsid[] = "$FreeBSD: src/usr.bin/yacc/skeleton.c,v 1.28 2000/01/17 02:0
 static int SoCalc_yygrowstack();
 #define YYPREFIX "SoCalc_yy"
 #line 19 "SoCalcParse.y"
-#include "inv/misc/SoBasic.H"
-#include "inv/errors/SoDebugError.H"
-#include "SoCalcExpr.H"
+#include "inv/misc/SoBasic.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "SoCalcExpr.hpp"
 #include <stdio.h>
 #ifdef __APPLE__
 #include <float.h>

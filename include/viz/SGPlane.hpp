@@ -6,11 +6,11 @@ using std::vector;
 #include <string>
 using std::string;
 
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/nodes/SoFaceSet.H"
-#include "inv/nodes/SoVertexProperty.H"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/nodes/SoFaceSet.hpp"
+#include "inv/nodes/SoVertexProperty.hpp"
 
-#include "util/Transformations.H"
+#include "util/Transformations.hpp"
 
 /**
  * Class for drawing a plane defined by n points.

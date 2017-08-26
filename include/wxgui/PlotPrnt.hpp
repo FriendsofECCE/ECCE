@@ -16,7 +16,7 @@
 #endif
 
 #include "wx/print.h"
-#include "wxgui/PlotDefs.H"
+#include "wxgui/PlotDefs.hpp"
 
 class WXDLLIMPEXP_FWD_PLOTCTRL wxPlotCtrl;
 

@@ -60,10 +60,10 @@
 #ifndef  _SO_OUTPUT_DATA_
 #define  _SO_OUTPUT_DATA_
 
-#include "inv/misc/SoBasic.H"
-#include "inv/SbPList.H"
-#include "inv/SbString.H"
-#include "inv/SoType.H"
+#include "inv/misc/SoBasic.hpp"
+#include "inv/SbPList.hpp"
+#include "inv/SbString.hpp"
+#include "inv/SoType.hpp"
 
 class SoEngine;
 class SoFieldContainer;

@@ -39,10 +39,10 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "myassert.H"
-#include "bin.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "myassert.hpp"
+#include "bin.hpp"
 
 /*----------------------------------------------------------------------------
  * Constructor and destructor

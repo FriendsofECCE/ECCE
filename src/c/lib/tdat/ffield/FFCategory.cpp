@@ -25,13 +25,13 @@
   using std::cout;
   using std::endl;
 
-#include "util/EcceException.H"
-#include "util/BadValueException.H"
-#include "util/NullPointerException.H"
-#include "util/ErrMsg.H"
-#include "util/STLUtil.H"
+#include "util/EcceException.hpp"
+#include "util/BadValueException.hpp"
+#include "util/NullPointerException.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/STLUtil.hpp"
 
-#include "tdat/FFCategory.H"
+#include "tdat/FFCategory.hpp"
 
 const int   FFCategory::INVALID_INDEX = -1;
 

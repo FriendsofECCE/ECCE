@@ -52,8 +52,8 @@
  */
 
 #include <GL/gl.h>
-#include "inv/elements/SoGLCoordinateElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/elements/SoGLCoordinateElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 SO_ELEMENT_SOURCE(SoGLCoordinateElement);
 

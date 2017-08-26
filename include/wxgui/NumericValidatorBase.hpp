@@ -1,7 +1,7 @@
 #ifndef NUMERICVALIDATORBASE_H_
 #define NUMERICVALIDATORBASE_H_
 
-#include "wxgui/GenericValidator.H"
+#include "wxgui/GenericValidator.hpp"
 
 class wxStaticText;
 

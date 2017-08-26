@@ -6,7 +6,7 @@
 #ifndef NOTIMPLEMENTEDEXCEPTION_HH
 #define NOTIMPLEMENTEDEXCEPTION_HH
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 
 /**

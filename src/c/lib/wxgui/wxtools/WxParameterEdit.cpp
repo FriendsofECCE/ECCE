@@ -21,12 +21,12 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxDisabler.H"
-#include "wxgui/ewxGenericValidator.H"
-#include "wxgui/ewxHelpHandler.H"
-#include "wxgui/ewxSmallLabel.H"
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/WxParameterEdit.H"
+#include "wxgui/ewxDisabler.hpp"
+#include "wxgui/ewxGenericValidator.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
+#include "wxgui/ewxSmallLabel.hpp"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/WxParameterEdit.hpp"
 
 IMPLEMENT_CLASS(WxParameterEdit, ewxPanel)
 

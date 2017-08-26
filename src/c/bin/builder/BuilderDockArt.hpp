@@ -1,7 +1,7 @@
 #ifndef BUILDERDOCKART_H_
 #define BUILDERDOCKART_H_
 
-#include <wx/ewxaui/dockart.H>
+#include <wx/ewxaui/dockart.hpp>
 
 class BuilderDockArt : public ewxAuiDefaultDockArt
 {

@@ -4,7 +4,7 @@
  */
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-#pragma implementation "ewxGenericFileDialog.H"
+#pragma implementation "ewxGenericFileDialog.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx.h".
@@ -22,18 +22,18 @@ using std::replace;
 #include "wx/generic/dirctrlg.h" // for wxFileIconsTable
 #include "wx/tokenzr.h" // for wxStringTokenizer
 
-#include "dsm/BookmarkList.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSIServerCentral.H"
-#include "dsm/Resource.H"
+#include "dsm/BookmarkList.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSIServerCentral.hpp"
+#include "dsm/Resource.hpp"
 
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxConfig.H"
-#include "wxgui/ewxFileCtrl.H"
-#include "wxgui/ewxFileData.H"
-#include "wxgui/ewxGenericFileDialog.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/WxResourceImageList.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/ewxFileCtrl.hpp"
+#include "wxgui/ewxFileData.hpp"
+#include "wxgui/ewxGenericFileDialog.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/WxResourceImageList.hpp"
 
 #define ID_PARENT_DIR  (wxID_FILEDLGG + 6)
 #define ID_LIST_CTRL  (wxID_FILEDLGG + 10)

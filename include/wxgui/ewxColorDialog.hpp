@@ -17,11 +17,11 @@
 #include <wx/spinctrl.h>
 #include <wx/statline.h>
 
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxColor.H"
-#include "wxgui/ewxDialog.H"
-#include "wxgui/ewxSpinCtrl.H"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxColor.hpp"
+#include "wxgui/ewxDialog.hpp"
+#include "wxgui/ewxSpinCtrl.hpp"
+#include "wxgui/ewxStyledWindow.hpp"
 
 #define ID_COLORBUTTON 10001
 #define SYMBOL_COLORBUTTON_STYLE wxSUNKEN_BORDER

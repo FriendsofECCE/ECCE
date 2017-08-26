@@ -58,8 +58,8 @@
 #ifndef  _SO_NURBS_PICK_EVALS_
 #define  _SO_NURBS_PICK_EVALS_
 
-#include "softcurveval.H"
-#include "softsurfeval.H"
+#include "softcurveval.hpp"
+#include "softsurfeval.hpp"
 
 class SoRayPickAction;
 class _SoNurbsPickV3CurveMap;

@@ -7,14 +7,14 @@
 #define _VIEWEREVTHANDLER_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "ViewerEvtHandler.C"
+#pragma interface "ViewerEvtHandler.cpp"
 #endif
 
 #include "wx/event.h"
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
-#include "util/Event.H"
-#include "util/Listener.H"
+#include "util/Event.hpp"
+#include "util/Listener.hpp"
   using namespace ecce;
 
 

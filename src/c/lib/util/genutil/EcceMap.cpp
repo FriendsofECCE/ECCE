@@ -10,8 +10,8 @@
 #include <strstream>
 using std::istrstream;
 
-#include "util/EcceMap.H"
-#include "util/KeyValueReader.H"
+#include "util/EcceMap.hpp"
+#include "util/KeyValueReader.hpp"
 
 
 // PUBLIC MEMBER FUNCTIONS

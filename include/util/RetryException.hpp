@@ -6,7 +6,7 @@
 #ifndef RETRYEXCEPTION_H
 #define RETRYEXCEPTION_H
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 /**
  * RetryException reports that the maximum number of retries has been exceeded.

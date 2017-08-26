@@ -6,7 +6,7 @@
 // License:     wxWidgets v2
 /////////////////////////////////////////////////////////////////////////////
 
-#include "wxgui/ThingPrecomp.H"
+#include "wxgui/ThingPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include <wx/wxprec.h>
@@ -15,7 +15,7 @@
     #pragma hdrstop
 #endif
 
-#include "wxgui/ThingMatrix2d.H"
+#include "wxgui/ThingMatrix2d.hpp"
 
 #ifndef WX_PRECOMP
     #include <wx/object.h>

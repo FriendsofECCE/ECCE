@@ -2,8 +2,8 @@
 #include <wx/menu.h>
 #include <wx/scrolbar.h>
 
-#include "wxgui/ewxFrame.H"
-#include "wxgui/ewxPlotCtrl.H"
+#include "wxgui/ewxFrame.hpp"
+#include "wxgui/ewxPlotCtrl.hpp"
 
   
 static double distance(double x, double y, wxPoint2DDouble p2)

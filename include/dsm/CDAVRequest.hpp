@@ -11,7 +11,7 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPRequest.H"
+#include "dsm/CHTTPRequest.hpp"
 
 // class: CDAVRequest ******************************************************
 

@@ -60,7 +60,7 @@
 #ifndef  _SO_FIELD_CONTAINER_
 #define  _SO_FIELD_CONTAINER_
 
-#include "inv/misc/SoBase.H"
+#include "inv/misc/SoBase.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

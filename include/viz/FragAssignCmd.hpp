@@ -6,7 +6,7 @@
 #ifndef  FRAGASSIGNCMD_H
 #define  FRAGASSIGNCMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class SGFragment;
 

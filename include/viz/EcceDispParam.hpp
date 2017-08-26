@@ -37,7 +37,7 @@
 // library includes
 #include <string>
 using std::string;
-#include "inv/SbColor.H"
+#include "inv/SbColor.hpp"
 
 class EcceDispParam;
 

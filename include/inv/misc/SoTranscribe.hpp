@@ -62,9 +62,9 @@
 #ifndef  _SO_TRANSCRIBE_
 #define  _SO_TRANSCRIBE_
 
-#include "inv/misc/SoBasic.H"
-#include "inv/SbString.H"
-#include "inv/SbDict.H"
+#include "inv/misc/SoBasic.hpp"
+#include "inv/SbString.hpp"
+#include "inv/SbDict.hpp"
 
 class SoGroup;
 class SoInput;

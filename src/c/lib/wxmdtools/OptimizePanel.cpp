@@ -1,6 +1,6 @@
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "OptimizePanel.H"
+#pragma implementation "OptimizePanel.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -10,16 +10,16 @@
 #include "wx/wx.h"
 #endif
 
-#include "tdat/OptimizeModel.H"
+#include "tdat/OptimizeModel.hpp"
 
-#include "wxgui/ewxCheckBox.H"
-#include "wxgui/ewxNumericValidator.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxUnitHelper.H"
-#include "wxgui/ewxWindowUtils.H"
-#include "wxgui/MDPanelHelper.H"
+#include "wxgui/ewxCheckBox.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxUnitHelper.hpp"
+#include "wxgui/ewxWindowUtils.hpp"
+#include "wxgui/MDPanelHelper.hpp"
 
-#include "wxgui/OptimizePanel.H"
+#include "wxgui/OptimizePanel.hpp"
 
 /*!
  * OptimizePanel constructors

@@ -3,12 +3,12 @@
  *
  *
  */
-#include "util/NotImplementedException.H"
-#include "util/StringTokenizer.H"
-#include "util/STLUtil.H"
+#include "util/NotImplementedException.hpp"
+#include "util/StringTokenizer.hpp"
+#include "util/STLUtil.hpp"
 
-#include "tdat/InteractionModel.H"
-#include "tdat/Fragment.H"
+#include "tdat/InteractionModel.hpp"
+#include "tdat/Fragment.hpp"
 
 // Default values
 const int InteractionModel::PARAMSET = 1;

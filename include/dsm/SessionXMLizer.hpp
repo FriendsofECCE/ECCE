@@ -10,8 +10,8 @@
 #include <string>
 using std::string;
 
-#include "util/EcceMap.H"
-#include "dsm/XMLSerializer.H"
+#include "util/EcceMap.hpp"
+#include "dsm/XMLSerializer.hpp"
 
 
 

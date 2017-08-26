@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/elements/SoProfileCoordinateElement.H"
-#include "inv/nodes/SoProfileCoordinate3.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/elements/SoProfileCoordinateElement.hpp"
+#include "inv/nodes/SoProfileCoordinate3.hpp"
 
 SO_NODE_SOURCE(SoProfileCoordinate3);
 

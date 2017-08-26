@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoViewportRegionElement.H"
+#include "inv/elements/SoViewportRegionElement.hpp"
 
 SbViewportRegion *SoViewportRegionElement::emptyViewportRegion;
 

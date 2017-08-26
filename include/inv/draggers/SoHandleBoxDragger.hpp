@@ -99,9 +99,9 @@
 #ifndef  _SO_HANDLEBOX_DRAGGER_
 #define  _SO_HANDLEBOX_DRAGGER_
 
-#include "inv/draggers/SoDragger.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/sensors/SoSensor.H"
+#include "inv/draggers/SoDragger.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/sensors/SoSensor.hpp"
 
 class SbDict;
 class SoDrawStyle;

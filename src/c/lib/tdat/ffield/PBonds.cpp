@@ -10,13 +10,13 @@
 // system includes
 #include <math.h>
 // application includes
-#include "util/ErrMsg.H"
-#include "tdat/PBonds.H"
-#include "tdat/PBond.H"
-#include "tdat/UFFParams.H"
-#include "tdat/TPerTab.H"
-#include "tdat/FFCoords.H"
-#include "tdat/FFRules.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/PBonds.hpp"
+#include "tdat/PBond.hpp"
+#include "tdat/UFFParams.hpp"
+#include "tdat/TPerTab.hpp"
+#include "tdat/FFCoords.hpp"
+#include "tdat/FFRules.hpp"
 
 const char* PBonds::BOND_LINK = "-";
 const char* PBonds::NUB_STRING = "Nub";  // string as tested in Fragment.C

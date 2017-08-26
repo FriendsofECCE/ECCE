@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/projectors/SbSphereProjector.H"
+#include "inv/projectors/SbSphereProjector.hpp"
 #include <stdio.h>
 
 ////////////////////////////////////////////////////////////////////////

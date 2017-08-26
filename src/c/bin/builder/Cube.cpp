@@ -1,27 +1,27 @@
 
-#include "util/InvalidException.H"
+#include "util/InvalidException.hpp"
 
-#include "tdat/PropGrids.H"
-#include "tdat/PropVecGrid.H"
-#include "tdat/SingleGrid.H"
+#include "tdat/PropGrids.hpp"
+#include "tdat/PropVecGrid.hpp"
+#include "tdat/SingleGrid.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/PropertyTask.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/PropertyTask.hpp"
 
-#include "viz/IsoSurfaceCmd.H"
-#include "viz/IsoValueCmd.H"
-#include "viz/SurfDisplayTypeCmd.H"
+#include "viz/IsoSurfaceCmd.hpp"
+#include "viz/IsoValueCmd.hpp"
+#include "viz/SurfDisplayTypeCmd.hpp"
 
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxConfig.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/NumericValidator.H"
-#include "wxgui/SliderCombo.H"
-#include "wxgui/StringListCtrl.H"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxConfig.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/NumericValidator.hpp"
+#include "wxgui/SliderCombo.hpp"
+#include "wxgui/StringListCtrl.hpp"
 
-#include "Cube.H"
-#include "CubeCalculation.H"
+#include "Cube.hpp"
+#include "CubeCalculation.hpp"
 
 
 #define EWX_FL __FILE__,__LINE__

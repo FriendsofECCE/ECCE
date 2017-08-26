@@ -18,8 +18,8 @@
   using namespace xercesc;
 
 
-#include "dsm/BasicDOMWriter.H"
-#include "dsm/PrintErrorHandler.H"
+#include "dsm/BasicDOMWriter.hpp"
+#include "dsm/PrintErrorHandler.hpp"
 
 static const string gEncoding = "UTF-8";
 static const string gVersion = "1.0";

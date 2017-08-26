@@ -58,9 +58,9 @@
 
 #include <stdlib.h>
 
-#include "inv/errors/SoDebugError.H"
+#include "inv/errors/SoDebugError.hpp"
 
-#include "inv/ChemKit/ChemIntList.H"
+#include "inv/ChemKit/ChemIntList.hpp"
 
 #define DEFAULT_INITIAL_SIZE    40
 #define END_OF_LIST 9999999

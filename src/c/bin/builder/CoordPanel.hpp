@@ -6,12 +6,12 @@
 #define _COORDPANEL_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "CoordPanel.C"
+#pragma interface "CoordPanel.cpp"
 #endif
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
-#include "CoordPanelGUI.H"
+#include "CoordPanelGUI.hpp"
 
 
 /*!

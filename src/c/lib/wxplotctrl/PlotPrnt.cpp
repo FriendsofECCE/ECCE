@@ -9,10 +9,10 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma implementation "PlotPrnt.H"
+    #pragma implementation "PlotPrnt.hpp"
 #endif
 
-#include "wxgui/PlotPrecomp.H"
+#include "wxgui/PlotPrecomp.hpp"
 
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
@@ -29,8 +29,8 @@
 #include "wx/module.h"
 #include "wx/printdlg.h"
 
-#include "wxgui/PlotPrnt.H"
-#include "wxgui/PlotCtrl.H"
+#include "wxgui/PlotPrnt.hpp"
+#include "wxgui/PlotCtrl.hpp"
 
 //-----------------------------------------------------------------------------
 // wxPlotPrintout

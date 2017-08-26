@@ -51,17 +51,17 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1NurbsSurfaceKit.H"
-#include "inv/nodes/SoCoordinate3.H"
-#include "inv/nodes/SoCoordinate4.H"
-#include "inv/nodes/SoTextureCoordinate2.H"
-#include "inv/nodes/SoProfileCoordinate2.H"
-#include "inv/nodes/SoProfileCoordinate3.H"
-#include "inv/nodes/SoNurbsProfile.H"
-#include "inv/nodes/SoLinearProfile.H"
-#include "inv/nodes/SoNurbsSurface.H"
-#include "inv/nodekits/SoShapeKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1NurbsSurfaceKit.hpp"
+#include "inv/nodes/SoCoordinate3.hpp"
+#include "inv/nodes/SoCoordinate4.hpp"
+#include "inv/nodes/SoTextureCoordinate2.hpp"
+#include "inv/nodes/SoProfileCoordinate2.hpp"
+#include "inv/nodes/SoProfileCoordinate3.hpp"
+#include "inv/nodes/SoNurbsProfile.hpp"
+#include "inv/nodes/SoLinearProfile.hpp"
+#include "inv/nodes/SoNurbsSurface.hpp"
+#include "inv/nodekits/SoShapeKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1NurbsSurfaceKit);

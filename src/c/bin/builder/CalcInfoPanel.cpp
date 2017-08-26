@@ -6,18 +6,18 @@
 #include "wx/log.h"
 #include "wx/sizer.h"
 
-#include "tdat/TProperty.H"
+#include "tdat/TProperty.hpp"
 
-#include "dsm/ICalculation.H"
-#include "dsm/IPropCalculation.H"
-#include "dsm/JCode.H"
-#include "dsm/PropFactory.H"
-#include "dsm/TaskJob.H"
+#include "dsm/ICalculation.hpp"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/JCode.hpp"
+#include "dsm/PropFactory.hpp"
+#include "dsm/TaskJob.hpp"
 
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxStaticText.hpp"
 
-#include "CalcInfoPanel.H"
+#include "CalcInfoPanel.hpp"
 
 
 // TODO 

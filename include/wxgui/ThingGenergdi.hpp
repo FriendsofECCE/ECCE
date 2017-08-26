@@ -14,7 +14,7 @@
 #include <wx/colour.h>
 #include <wx/pen.h>
 #include <wx/brush.h>
-#include "wxgui/ThingDef.H"
+#include "wxgui/ThingDef.hpp"
 
 class WXDLLIMPEXP_FWD_THINGS wxGenericColour;
 class WXDLLIMPEXP_FWD_THINGS wxGenericPen;

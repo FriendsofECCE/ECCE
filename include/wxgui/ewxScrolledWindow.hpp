@@ -1,7 +1,7 @@
 #ifndef _EWXSCROLLEDWINDOW_H
 #define _EWXSCROLLEDWINDOW_H
 
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 #include "wx/wx.h"
 
 /**

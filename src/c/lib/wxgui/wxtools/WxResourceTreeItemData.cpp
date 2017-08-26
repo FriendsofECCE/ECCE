@@ -29,9 +29,9 @@ using std::endl;
 
 #include "wx/treectrl.h"
 
-#include "dsm/Resource.H"
+#include "dsm/Resource.hpp"
 
-#include "wxgui/WxResourceTreeItemData.H"
+#include "wxgui/WxResourceTreeItemData.hpp"
 
 
 /**

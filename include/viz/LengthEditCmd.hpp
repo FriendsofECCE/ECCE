@@ -6,7 +6,7 @@
 #ifndef  LENGTHEDITCMD_H
 #define  LENGTHEDITCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

@@ -4,8 +4,8 @@
 #include <string>
   using std::string;
 
-#include "AbstractPropCalculation.H"
-#include "CalculationFactory.H"
+#include "AbstractPropCalculation.hpp"
+#include "CalculationFactory.hpp"
 
 class MvmCalculation : public AbstractPropCalculation
 {

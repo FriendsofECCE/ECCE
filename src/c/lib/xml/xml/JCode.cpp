@@ -16,22 +16,22 @@
 #include <xercesc/util/XMLString.hpp>
 using namespace xercesc;
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/TypedFile.H"
-#include "util/SFile.H"
-#include "util/EcceMap.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/TypedFile.hpp"
+#include "util/SFile.hpp"
+#include "util/EcceMap.hpp"
 
-#include "tdat/TTheory.H"
-#include "tdat/TRunType.H"
-#include "tdat/TGBSAngFunc.H"
-#include "tdat/GeomConstraintRules.H"
+#include "tdat/TTheory.hpp"
+#include "tdat/TRunType.hpp"
+#include "tdat/TGBSAngFunc.hpp"
+#include "tdat/GeomConstraintRules.hpp"
 
-#include "dsm/BasicDOMParser.H"
-#include "dsm/JCode.H"
-#include "dsm/SummaryIterator.H"
-#include "dsm/ParseErrorReporter.H"
-#include "dsm/ResourceType.H"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/JCode.hpp"
+#include "dsm/SummaryIterator.hpp"
+#include "dsm/ParseErrorReporter.hpp"
+#include "dsm/ResourceType.hpp"
 
 
 // typedef for theory map iterator

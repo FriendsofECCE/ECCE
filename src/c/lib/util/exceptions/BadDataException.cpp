@@ -3,7 +3,7 @@
  *
  *
  */
-#include "util/BadDataException.H"
+#include "util/BadDataException.hpp"
 
 BadDataException::BadDataException(const string& msg, 
                                            const char *file, int line)

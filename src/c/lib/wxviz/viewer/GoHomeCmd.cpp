@@ -1,8 +1,8 @@
 #include <iostream>
   using namespace std;
 
-#include "wxviz/SGViewer.H"
-#include "wxviz/GoHomeCmd.H"
+#include "wxviz/SGViewer.hpp"
+#include "wxviz/GoHomeCmd.hpp"
 
 GoHomeCmd::GoHomeCmd(const string& name, Receiver *receiver)
        : Command(name, receiver)

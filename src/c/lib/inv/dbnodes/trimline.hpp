@@ -37,7 +37,7 @@
 #ifndef __glutrimline_h_
 #define __glutrimline_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * trimline.h - $Revision: 22116 $
  */
@@ -45,8 +45,8 @@
 class Arc;
 class Backend;
 
-#include "trimvertex.H"
-#include "jarcloc.H"
+#include "trimvertex.hpp"
+#include "jarcloc.hpp"
 
 
 class Trimline {

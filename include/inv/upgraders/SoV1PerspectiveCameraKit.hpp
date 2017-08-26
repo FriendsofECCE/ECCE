@@ -58,7 +58,7 @@
 #ifndef  _SO_V1_PERSPECTIVE_CAMERA_KIT_
 #define  _SO_V1_PERSPECTIVE_CAMERA_KIT_
 
-#include "inv/upgraders/SoV1CameraKit.H"
+#include "inv/upgraders/SoV1CameraKit.hpp"
 
 ////////////////////////////////////////////////////////////////////
 //    Class: SoV1PerspectiveCameraKit

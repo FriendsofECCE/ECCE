@@ -6,12 +6,12 @@ using std::vector;
 #include <string>
 using std::string;
 
-//#include "inv/fields/SoSFBitMask.H"
-//#include "inv/nodes/SoFaceSet.H"
-//#include "inv/nodes/SoVertexProperty.H"
-#include "viz/SGPlane.H"
+//#include "inv/fields/SoSFBitMask.hpp"
+//#include "inv/nodes/SoFaceSet.hpp"
+//#include "inv/nodes/SoVertexProperty.hpp"
+#include "viz/SGPlane.hpp"
 
-#include "util/Transformations.H"
+#include "util/Transformations.hpp"
 
 /**
  * A plane that has miller indices.

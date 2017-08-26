@@ -57,11 +57,11 @@
 #ifndef  __CHEM_RADII_H__
 #define  __CHEM_RADII_H__
 
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

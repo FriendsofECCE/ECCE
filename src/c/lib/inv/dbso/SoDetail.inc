@@ -52,7 +52,7 @@
  */
 
 
-#include "inv/details/SoDetail.H"
+#include "inv/details/SoDetail.hpp"
 
 SoType	SoDetail::classTypeId;
 

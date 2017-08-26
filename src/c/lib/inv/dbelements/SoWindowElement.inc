@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoWindowElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/elements/SoWindowElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 SO_ELEMENT_SOURCE(SoWindowElement);
 

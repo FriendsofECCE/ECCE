@@ -53,11 +53,11 @@
 
 #include <tr1/math.h>
 #include <stdlib.h>
-#include "inv/errors/SoDebugError.H"
-#include "SoAddPrefix.H"
-#include "SoGLRender.H"
-#include "softcurvemaps.H"
-#include "softsurfacemaps.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "SoAddPrefix.hpp"
+#include "SoGLRender.hpp"
+#include "softcurvemaps.hpp"
+#include "softsurfacemaps.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

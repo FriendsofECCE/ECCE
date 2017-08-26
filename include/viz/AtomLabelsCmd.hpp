@@ -10,7 +10,7 @@
 #include <string>
 using std::string;
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class wxWindow;
 

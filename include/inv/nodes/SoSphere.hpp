@@ -56,8 +56,8 @@
 #ifndef  _SO_SPHERE_
 #define  _SO_SPHERE_
 
-#include "inv/fields/SoSFFloat.H"
-#include "inv/nodes/SoShape.H"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/nodes/SoShape.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

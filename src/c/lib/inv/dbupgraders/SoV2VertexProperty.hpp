@@ -56,12 +56,12 @@
 #ifndef  _SO_V2VERTEX_PROPERTY_
 #define  _SO_V2VERTEX_PROPERTY_
 
-#include "inv/fields/SoMFUInt32.H"
-#include "inv/fields/SoMFVec3f.H"
-#include "inv/fields/SoMFVec2f.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/nodes/SoMaterialBinding.H"
-#include "inv/upgraders/SoUpgrader.H"
+#include "inv/fields/SoMFUInt32.hpp"
+#include "inv/fields/SoMFVec3f.hpp"
+#include "inv/fields/SoMFVec2f.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/nodes/SoMaterialBinding.hpp"
+#include "inv/upgraders/SoUpgrader.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

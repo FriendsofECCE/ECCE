@@ -2,8 +2,8 @@
 #define _EWXCHECKBOX_H
 
 #include "wx/checkbox.h"
-#include "wxgui/ewxGenericValidator.H" // for ewxDefaultValidator
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxGenericValidator.hpp" // for ewxDefaultValidator
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxDisabler;
 

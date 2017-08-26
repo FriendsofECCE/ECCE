@@ -1,8 +1,8 @@
 #include "wx/fileconf.h"
 
-#include "util/Ecce.H"
-#include "util/CompareOps.H"
-#include "wxgui/ewxConfig.H"
+#include "util/Ecce.hpp"
+#include "util/CompareOps.hpp"
+#include "wxgui/ewxConfig.hpp"
 
 
 map<string, ewxConfig*, ltstring> ewxConfig::p_configs;

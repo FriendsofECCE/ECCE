@@ -8,9 +8,9 @@
  */
 
 #include <stdlib.h>
-#include "wxgui/DefaultTableModel.H"
+#include "wxgui/DefaultTableModel.hpp"
 
-#include "util/StringConverter.H"
+#include "util/StringConverter.hpp"
 
 /**
  *  Constructor for DefaultTableModel

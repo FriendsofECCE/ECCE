@@ -31,7 +31,7 @@
   using std::deque;
   using std::pair;
 
-#  include "dsm/PropertyDoc.H"
+#  include "dsm/PropertyDoc.hpp"
 
 class EcceURL;
 class EDSI;

@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoTextureMatrixElement.H"
+#include "inv/elements/SoTextureMatrixElement.hpp"
 
 SO_ELEMENT_SOURCE(SoTextureMatrixElement);
 

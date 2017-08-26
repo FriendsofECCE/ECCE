@@ -6,7 +6,7 @@
 #ifndef  BONDEDITCMD_H
 #define  BONDEDITCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/elements/SoAccumulatedElement.H"
-#include "inv/nodes/SoNode.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/elements/SoAccumulatedElement.hpp"
+#include "inv/nodes/SoNode.hpp"
 
 // Can't use normal SO_ELEMENT_ABSTRACT_SOURCE method because we need
 // to set flag in constructor.

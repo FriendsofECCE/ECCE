@@ -21,9 +21,9 @@ using std::ifstream;
 
 #include <netdb.h>        // gethostbyname
 
-#include "util/ErrMsg.H"
-#include "util/Host.H"
-#include "util/StringTokenizer.H"
+#include "util/ErrMsg.hpp"
+#include "util/Host.hpp"
+#include "util/StringTokenizer.hpp"
 
 // uname is not properly prototyped
 extern "C" int uname(struct utsname *name);

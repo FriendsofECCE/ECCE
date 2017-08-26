@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_PROJECTION_MATRIX_ELEMENT
 #define  _SO_GL_PROJECTION_MATRIX_ELEMENT
 
-#include "inv/elements/SoProjectionMatrixElement.H"
+#include "inv/elements/SoProjectionMatrixElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

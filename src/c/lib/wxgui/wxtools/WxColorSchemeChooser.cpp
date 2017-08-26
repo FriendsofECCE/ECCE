@@ -5,7 +5,7 @@
  *
  */
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "WxColorSchemeChooser.H"
+#pragma implementation "WxColorSchemeChooser.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -19,7 +19,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/WxColorSchemeChooser.H"
+#include "wxgui/WxColorSchemeChooser.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS( WxColorSchemeChooser, ewxPanel )

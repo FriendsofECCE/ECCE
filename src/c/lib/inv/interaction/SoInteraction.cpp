@@ -52,35 +52,35 @@
  */
 
 
-#include "inv/SoDB.H"
-#include "inv/nodekits/SoNodeKit.H"
-#include "inv/SoInteraction.H"
-#include "inv/nodes/SoShape.H"
-#include "inv/nodes/SoLight.H"
-#include "inv/nodes/SoCamera.H"
+#include "inv/SoDB.hpp"
+#include "inv/nodekits/SoNodeKit.hpp"
+#include "inv/SoInteraction.hpp"
+#include "inv/nodes/SoShape.hpp"
+#include "inv/nodes/SoLight.hpp"
+#include "inv/nodes/SoCamera.hpp"
 
-#include "inv/manips/SoTransformManip.H"
-#include "inv/manips/SoHandleBoxManip.H"
+#include "inv/manips/SoTransformManip.hpp"
+#include "inv/manips/SoHandleBoxManip.hpp"
 
-#include "inv/manips/SoCenterballManip.H"
-#include "inv/manips/SoDirectionalLightManip.H"
-#include "inv/manips/SoJackManip.H"
-#include "inv/manips/SoPointLightManip.H"
-#include "inv/manips/SoSpotLightManip.H"
-#include "inv/manips/SoTabBoxManip.H"
-#include "inv/manips/SoTrackballManip.H"
-#include "inv/manips/SoTransformBoxManip.H"
-#include "inv/manips/SoTransformerManip.H"
+#include "inv/manips/SoCenterballManip.hpp"
+#include "inv/manips/SoDirectionalLightManip.hpp"
+#include "inv/manips/SoJackManip.hpp"
+#include "inv/manips/SoPointLightManip.hpp"
+#include "inv/manips/SoSpotLightManip.hpp"
+#include "inv/manips/SoTabBoxManip.hpp"
+#include "inv/manips/SoTrackballManip.hpp"
+#include "inv/manips/SoTransformBoxManip.hpp"
+#include "inv/manips/SoTransformerManip.hpp"
 
-#include "inv/nodes/SoAntiSquish.H"
-#include "inv/nodes/SoSurroundScale.H"
+#include "inv/nodes/SoAntiSquish.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
 
-#include "inv/nodekits/SoInteractionKit.H"
-#include "inv/draggers/SoDragger.H"
+#include "inv/nodekits/SoInteractionKit.hpp"
+#include "inv/draggers/SoDragger.hpp"
 
-#include "inv/nodes/SoSelection.H"
-#include "inv/actions/SoBoxHighlightRenderAction.H"
-#include "inv/actions/SoLineHighlightRenderAction.H"
+#include "inv/nodes/SoSelection.hpp"
+#include "inv/actions/SoBoxHighlightRenderAction.hpp"
+#include "inv/actions/SoLineHighlightRenderAction.hpp"
 
 SbBool SoInteraction::initialized = FALSE;
 

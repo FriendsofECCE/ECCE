@@ -1,10 +1,10 @@
 #include <wx/wx.h>
 #include <wx/timer.h>
 
-#include "inv/SoDB.H"
-#include "inv/SbTime.H"
+#include "inv/SoDB.hpp"
+#include "inv/SbTime.hpp"
 
-#include "inv/SoWx/SoWxEventHandler.H"
+#include "inv/SoWx/SoWxEventHandler.hpp"
 
 #include <iostream>
 using std::cerr;

@@ -56,7 +56,7 @@
 #ifndef  _SO_BUNDLE
 #define  _SO_BUNDLE
 
-#include "inv/actions/SoAction.H"
+#include "inv/actions/SoAction.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

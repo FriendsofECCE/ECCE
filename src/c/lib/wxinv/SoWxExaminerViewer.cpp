@@ -4,22 +4,22 @@
 
 #include <wx/panel.h>
 
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/fields/SoSFTime.H"
-#include "inv/nodes/SoOrthographicCamera.H"
-#include "inv/nodes/SoPerspectiveCamera.H"
-#include "inv/nodes/SoScale.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/nodes/SoTranslation.H"
-#include "inv/projectors/SbSphereSheetProjector.H"
-#include "inv/actions/SoSearchAction.H"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/fields/SoSFTime.hpp"
+#include "inv/nodes/SoOrthographicCamera.hpp"
+#include "inv/nodes/SoPerspectiveCamera.hpp"
+#include "inv/nodes/SoScale.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/nodes/SoTranslation.hpp"
+#include "inv/projectors/SbSphereSheetProjector.hpp"
+#include "inv/actions/SoSearchAction.hpp"
 
-#include "inv/SoWx/SoWxExaminerViewer.H"
-#include "inv/SoWx/SoWx.H"
-#include "inv/SoWx/SoWxRenderArea.H"
+#include "inv/SoWx/SoWxExaminerViewer.hpp"
+#include "inv/SoWx/SoWx.hpp"
+#include "inv/SoWx/SoWxRenderArea.hpp"
 
 #include <iostream>
 using std::cerr;

@@ -5,7 +5,7 @@
  *
  */
 
-#include "NoAccessContextPanel.H"
+#include "NoAccessContextPanel.hpp"
 
 
 /**

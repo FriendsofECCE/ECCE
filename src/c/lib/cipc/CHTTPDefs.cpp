@@ -8,7 +8,7 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPDefs.H"
+#include "dsm/CHTTPDefs.hpp"
 
 using std::string;
 

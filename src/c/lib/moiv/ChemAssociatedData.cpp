@@ -55,13 +55,13 @@
 
 #ident "$Revision: 22147 $"
 
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoPickAction.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
 
-#include "inv/ChemKit/ChemAssociatedData.H"
-#include "inv/ChemKit/ChemAssociatedDataElement.H"
+#include "inv/ChemKit/ChemAssociatedData.hpp"
+#include "inv/ChemKit/ChemAssociatedDataElement.hpp"
 
 
 

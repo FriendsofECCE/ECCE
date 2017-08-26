@@ -19,7 +19,7 @@ using std::cout;
 using std::endl;
 #endif
 
-#include "dsm/CHTTPConnection.H"
+#include "dsm/CHTTPConnection.hpp"
 #include <algorithm>
 
 // Constructors: CHTTPConnection *******************************************

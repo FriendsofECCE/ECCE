@@ -6,19 +6,19 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 
-#include "tdat/PropTable.H"
-#include "tdat/PropTSVector.H"
-#include "tdat/Fragment.H"
+#include "tdat/PropTable.hpp"
+#include "tdat/PropTSVector.hpp"
+#include "tdat/Fragment.hpp"
 
-#include "dsm/IPropCalculation.H"
-#include "dsm/PropFactory.H"
-#include "dsm/ChemistryTask.H"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/PropFactory.hpp"
+#include "dsm/ChemistryTask.hpp"
 
-#include "wxgui/ewxPlotCtrl.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxPlotCtrl.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 
-#include "PlotMeta3D.H"
+#include "PlotMeta3D.hpp"
 
 
 wxFORCE_LINK_THIS_MODULE(PlotMeta3D)

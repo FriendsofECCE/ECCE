@@ -3,7 +3,7 @@
 
 #include "wx/button.h"
 #include "wx/colour.h"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 
 class ewxDisabler;

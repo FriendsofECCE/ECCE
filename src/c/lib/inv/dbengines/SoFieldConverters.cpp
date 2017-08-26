@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/engines/SoFieldConverter.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/fields/SoFields.H"
-#include "SoFieldConverters.H"
+#include "inv/engines/SoFieldConverter.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/fields/SoFields.hpp"
+#include "SoFieldConverters.hpp"
 
 //
 // Maximum number of multi-valued field types, and maximum total

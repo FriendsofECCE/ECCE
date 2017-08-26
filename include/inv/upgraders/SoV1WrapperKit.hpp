@@ -58,7 +58,7 @@
 #ifndef  _SO_V1_WRAPPER_KIT_
 #define  _SO_V1_WRAPPER_KIT_
 
-#include "inv/upgraders/SoV1GroupKit.H"
+#include "inv/upgraders/SoV1GroupKit.hpp"
 
 
 ////////////////////////////////////////////////////////////

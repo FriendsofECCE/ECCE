@@ -57,10 +57,10 @@
 #ifndef  _SO_DIRECTIONAL_LIGHT_MANIP_
 #define  _SO_DIRECTIONAL_LIGHT_MANIP_
 
-#include "inv/SbLinear.H"
-#include "inv/draggers/SoDragger.H"
-#include "inv/nodes/SoDirectionalLight.H"
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/SbLinear.hpp"
+#include "inv/draggers/SoDragger.hpp"
+#include "inv/nodes/SoDirectionalLight.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
 
 
 //////////////////////////////////////////////////////////////////////////////

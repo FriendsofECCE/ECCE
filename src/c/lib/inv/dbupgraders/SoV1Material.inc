@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "SoV1Material.H"
-#include "inv/nodes/SoMaterial.H"
+#include "SoV1Material.hpp"
+#include "inv/nodes/SoMaterial.hpp"
 
 SO_NODE_SOURCE(SoV1Material);
 

@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoCoordinateElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/elements/SoCoordinateElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 
 SO_ELEMENT_SOURCE(SoCoordinateElement);

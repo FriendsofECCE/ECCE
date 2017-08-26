@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "SoV2MaterialIndex.H"
-#include "inv/nodes/SoColorIndex.H"
+#include "SoV2MaterialIndex.hpp"
+#include "inv/nodes/SoColorIndex.hpp"
 
 SO_NODE_SOURCE(SoV2MaterialIndex);
 

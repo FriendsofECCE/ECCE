@@ -39,8 +39,8 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "flistsorter.H"
+#include "glimports.hpp"
+#include "flistsorter.hpp"
 
 FlistSorter::FlistSorter( void ) : Sorter( sizeof( REAL ) )
 {

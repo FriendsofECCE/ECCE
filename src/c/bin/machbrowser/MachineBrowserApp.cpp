@@ -7,16 +7,16 @@
  */
 
 
-#include "util/Ecce.H"
+#include "util/Ecce.hpp"
 
-#include "tdat/AuthCache.H"
+#include "tdat/AuthCache.hpp"
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "wxgui/ewxWindowUtils.H"
+#include "wxgui/ewxWindowUtils.hpp"
 
-#include "MachineBrowserApp.H"
-#include "MachineBrowserGUI.H"
+#include "MachineBrowserApp.hpp"
+#include "MachineBrowserGUI.hpp"
 
 IMPLEMENT_APP(MachineBrowserApp)
 

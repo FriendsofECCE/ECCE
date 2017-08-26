@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1TriangleStripSetKit.H"
-#include "inv/nodes/SoTriangleStripSet.H"
-#include "inv/nodekits/SoShapeKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1TriangleStripSetKit.hpp"
+#include "inv/nodes/SoTriangleStripSet.hpp"
+#include "inv/nodekits/SoShapeKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1TriangleStripSetKit);

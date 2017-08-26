@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoLightAttenuationElement.H"
+#include "inv/elements/SoLightAttenuationElement.hpp"
 
 SO_ELEMENT_SOURCE(SoLightAttenuationElement);
 

@@ -59,10 +59,10 @@
 #ifndef  _SO_CALCULATOR_
 #define  _SO_CALCULATOR_
 
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoMFFloat.H"
-#include "inv/fields/SoMFString.H"
-#include "inv/fields/SoMFVec3f.H"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/fields/SoMFString.hpp"
+#include "inv/fields/SoMFVec3f.hpp"
 
 class SoCalcParser;
 

@@ -83,7 +83,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "inv/elements/SoSubElement.H"
+#include "inv/elements/SoSubElement.hpp"
 
 SoEXTENDER class SoAccumulatedElement : public SoElement {
 

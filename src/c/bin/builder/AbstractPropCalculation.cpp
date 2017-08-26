@@ -1,8 +1,8 @@
-#include "util/NotImplementedException.H"
+#include "util/NotImplementedException.hpp"
 
-#include "tdat/Fragment.H"
+#include "tdat/Fragment.hpp"
 
-#include "AbstractPropCalculation.H"
+#include "AbstractPropCalculation.hpp"
 
 
 vector<string> AbstractPropCalculation::propertyNames(void)

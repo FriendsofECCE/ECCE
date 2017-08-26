@@ -2,10 +2,10 @@
 
 #include "wx/dcmemory.h"
 #include "wx/statusbr.h"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/WxState.H"
-#include "wxgui/ewxStatusBar.H"
-#include "wxgui/FeedbackSaveHandler.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/WxState.hpp"
+#include "wxgui/ewxStatusBar.hpp"
+#include "wxgui/FeedbackSaveHandler.hpp"
 
 BEGIN_EVENT_TABLE(ewxStatusBar, wxStatusBar)
   EVT_SIZE(ewxStatusBar::OnSize)

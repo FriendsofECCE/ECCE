@@ -68,54 +68,54 @@
 #include <GL/gl.h>
 #endif /* __gl_h_ */
 
-#include "inv/SoPickedPoint.H"
+#include "inv/SoPickedPoint.hpp"
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/actions/SoWriteAction.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/actions/SoWriteAction.hpp"
 
-#include "inv/details/SoTextDetail.H"
+#include "inv/details/SoTextDetail.hpp"
 
-#include "inv/elements/SoGLLazyElement.H"
-#include "inv/elements/SoLightModelElement.H"
-#include "inv/elements/SoLazyElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/elements/SoProjectionMatrixElement.H"
-#include "inv/elements/SoViewingMatrixElement.H"
-#include "inv/elements/SoViewportRegionElement.H"
-#include "inv/elements/SoViewVolumeElement.H"
+#include "inv/elements/SoGLLazyElement.hpp"
+#include "inv/elements/SoLightModelElement.hpp"
+#include "inv/elements/SoLazyElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/elements/SoProjectionMatrixElement.hpp"
+#include "inv/elements/SoViewingMatrixElement.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
+#include "inv/elements/SoViewVolumeElement.hpp"
 
-#include "inv/misc/SoChildList.H"
+#include "inv/misc/SoChildList.hpp"
 
 /*
 	Porting to Windows:
 	Jamie Doornbos	2001/07/15
 	Daniel Soto	2002/02/05
 */
-#include "inv/ChemKit/FixFonts.H"
+#include "inv/ChemKit/FixFonts.hpp"
 
-#include "inv/ChemKit/ChemBaseDataElement.H"
-#include "inv/ChemKit/ChemBBoxAction.H"
-#include "inv/ChemKit/ChemDisplay.H"
-#include "inv/ChemKit/ChemLabel.H"
-#include "inv/ChemKit/ChemLabelBBox.H"
-#include "inv/ChemKit/ChemMonitor.H"
-#include "inv/ChemKit/ChemMonitorBBox.H"
-#include "inv/ChemKit/ChemMonitorDetail.H"
-#include "inv/ChemKit/ChemMonitorPath.H"
-#include "inv/ChemKit/ChemMonitorPathList.H"
-#include "inv/ChemKit/ChemMonitorSelectionElement.H"
-#include "inv/ChemKit/ChemSelectionElement.H"
+#include "inv/ChemKit/ChemBaseDataElement.hpp"
+#include "inv/ChemKit/ChemBBoxAction.hpp"
+#include "inv/ChemKit/ChemDisplay.hpp"
+#include "inv/ChemKit/ChemLabel.hpp"
+#include "inv/ChemKit/ChemLabelBBox.hpp"
+#include "inv/ChemKit/ChemMonitor.hpp"
+#include "inv/ChemKit/ChemMonitorBBox.hpp"
+#include "inv/ChemKit/ChemMonitorDetail.hpp"
+#include "inv/ChemKit/ChemMonitorPath.hpp"
+#include "inv/ChemKit/ChemMonitorPathList.hpp"
+#include "inv/ChemKit/ChemMonitorSelectionElement.hpp"
+#include "inv/ChemKit/ChemSelectionElement.hpp"
 
 // Daniel Soto	2002-02-15
 // FIX lighting-off with Coin3D
 #ifdef __coin
 // --> coin 1,2 compatibility
-//#include "inv/elements/SoGLLightModelElement.H"
+//#include "inv/elements/SoGLLightModelElement.hpp"
 // <-- coin 1,2 compatibility
 #endif
 

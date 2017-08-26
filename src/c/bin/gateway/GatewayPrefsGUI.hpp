@@ -11,7 +11,7 @@
 #define _GATEWAYPREFSGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "GatewayPrefsGUI.C"
+#pragma interface "GatewayPrefsGUI.cpp"
 #endif
 
 /*!
@@ -20,7 +20,7 @@
 
 ////@begin includes
 #include "wx/frame.h"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/ewxFrame.hpp"
 ////@end includes
 
 /*!

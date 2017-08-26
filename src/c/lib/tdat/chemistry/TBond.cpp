@@ -17,9 +17,9 @@
 #include <limits.h>
 
 // application includes
-#include "util/ErrMsg.H"
-#include "tdat/TAtm.H"
-#include "tdat/TBond.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/TBond.hpp"
 
 // -----------------------
 // Public Member Functions

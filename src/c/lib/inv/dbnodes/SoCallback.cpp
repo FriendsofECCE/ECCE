@@ -51,16 +51,16 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/actions/SoSearchAction.H"
-#include "inv/actions/SoWriteAction.H"
-#include "inv/elements/SoGLCacheContextElement.H"
-#include "inv/nodes/SoCallback.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/actions/SoRayPickAction.hpp"
+#include "inv/actions/SoSearchAction.hpp"
+#include "inv/actions/SoWriteAction.hpp"
+#include "inv/elements/SoGLCacheContextElement.hpp"
+#include "inv/nodes/SoCallback.hpp"
 
 SO_NODE_SOURCE(SoCallback);
 

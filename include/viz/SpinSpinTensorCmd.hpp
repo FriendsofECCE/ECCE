@@ -5,7 +5,7 @@
   using std::vector;
 
 
-#include "viz/TensorCmd.H"
+#include "viz/TensorCmd.hpp"
 
 class SGContainer;
 

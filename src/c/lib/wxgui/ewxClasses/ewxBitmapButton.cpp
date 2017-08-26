@@ -7,9 +7,9 @@ using namespace std;
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxDisabler.H"
-#include "wxgui/ewxBitmapButton.H"
-#include "wxgui/ewxHelpHandler.H"
+#include "wxgui/ewxDisabler.hpp"
+#include "wxgui/ewxBitmapButton.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
 
 
 ewxBitmapButton::ewxBitmapButton()

@@ -59,11 +59,11 @@
 #ifndef  _SO_ONE_SHOT_
 #define  _SO_ONE_SHOT_
 
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFTrigger.H"
-#include "inv/fields/SoSFTime.H"
-#include "inv/fields/SoSFBitMask.H"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFTrigger.hpp"
+#include "inv/fields/SoSFTime.hpp"
+#include "inv/fields/SoSFBitMask.hpp"
 
 // C-api: public=duration,trigger,flags,disable,timeIn
 // C-api: public=timeOut,isActive,ramp

@@ -29,9 +29,9 @@
 #ifndef __CHEM_OCTREE_NODE__
 #define __CHEM_OCTREE_NODE__
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
-#include "inv/ChemKit/MFVec2i.H"
+#include "inv/ChemKit/MFVec2i.hpp"
 
 class ChemData;
 class ChemDisplay;

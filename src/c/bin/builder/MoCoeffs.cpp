@@ -11,30 +11,30 @@
 #include <wx/grid.h>
 #include <wx/slider.h>
 
-#include "util/InternalException.H"
-#include "util/EventDispatcher.H"
+#include "util/InternalException.hpp"
+#include "util/EventDispatcher.hpp"
 
-#include "tdat/PropTable.H"
-#include "tdat/PropVector.H"
-#include "tdat/PropVecString.H"
-#include "tdat/SingleGrid.H"
-#include "tdat/TProperty.H"
+#include "tdat/PropTable.hpp"
+#include "tdat/PropVector.hpp"
+#include "tdat/PropVecString.hpp"
+#include "tdat/SingleGrid.hpp"
+#include "tdat/TProperty.hpp"
 
-#include "dsm/TGBSConfig.H"
-#include "dsm/IPropCalculation.H"
-#include "dsm/ICalculation.H"
-#include "dsm/PropFactory.H"
+#include "dsm/TGBSConfig.hpp"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/ICalculation.hpp"
+#include "dsm/PropFactory.hpp"
 
-#include "inv/ChemKit/ChemColor.H"
+#include "inv/ChemKit/ChemColor.hpp"
 
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxColor.H"
-#include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/WindowEvent.H"
-#include "wxgui/ewxGrid.H"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxColor.hpp"
+#include "wxgui/ewxNonBoldLabel.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/WindowEvent.hpp"
+#include "wxgui/ewxGrid.hpp"
 
-#include "MoCoeffs.H"
+#include "MoCoeffs.hpp"
 
 
 // ----------------------------------------------------------------------------

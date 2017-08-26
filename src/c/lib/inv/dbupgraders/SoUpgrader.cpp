@@ -52,9 +52,9 @@
  */
 
 #include <assert.h>
-#include "inv/SoInput.H"
-#include "inv/SbDict.H"
-#include "inv/upgraders/SoUpgrader.H"
+#include "inv/SoInput.hpp"
+#include "inv/SbDict.hpp"
+#include "inv/upgraders/SoUpgrader.hpp"
 
 SO_NODE_ABSTRACT_SOURCE(SoUpgrader);
 

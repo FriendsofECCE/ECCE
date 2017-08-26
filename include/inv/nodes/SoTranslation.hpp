@@ -56,8 +56,8 @@
 #ifndef  _SO_TRANSLATION_
 #define  _SO_TRANSLATION_
 
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/nodes/SoTransformation.H"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/nodes/SoTransformation.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

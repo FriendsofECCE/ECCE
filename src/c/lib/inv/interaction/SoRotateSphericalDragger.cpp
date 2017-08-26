@@ -53,18 +53,18 @@
 
 
 #include <stdio.h>
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/SoPath.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/projectors/SbSphereSectionProjector.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/projectors/SbSphereSectionProjector.hpp"
 
-#include "inv/draggers/SoRotateSphericalDragger.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/nodes/SoSeparator.H"
+#include "inv/draggers/SoRotateSphericalDragger.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/nodes/SoSeparator.hpp"
 
-#include "SoRotateSphericalDraggerGeom.H"
+#include "SoRotateSphericalDraggerGeom.hpp"
 
 
 SO_KIT_SOURCE(SoRotateSphericalDragger);

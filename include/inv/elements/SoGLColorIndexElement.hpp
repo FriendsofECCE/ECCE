@@ -58,8 +58,8 @@
 #ifndef  _SO_GL_COLOR_INDEX_ELEMENT
 #define  _SO_GL_COLOR_INDEX_ELEMENT
 
-#include "inv/SbColor.H"
-#include "inv/elements/SoLazyElement.H"
+#include "inv/SbColor.hpp"
+#include "inv/elements/SoLazyElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

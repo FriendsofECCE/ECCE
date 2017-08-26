@@ -8,7 +8,7 @@ using std::string;
 #include <xercesc/dom/DOMElement.hpp>
 using namespace xercesc;
 
-#include "util/UCommand.H"
+#include "util/UCommand.hpp"
 
 class SGFragment;
 

@@ -11,7 +11,7 @@
 #define _CALCMGRGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "CalcMgrGUI.C"
+#pragma interface "CalcMgrGUI.cpp"
 #endif
 
 /*!
@@ -23,7 +23,7 @@
 #include "wx/toolbar.h"
 #include "wx/splitter.h"
 #include "wx/treectrl.h"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/ewxFrame.hpp"
 ////@end includes
 
 /*!

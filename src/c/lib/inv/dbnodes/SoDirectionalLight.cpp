@@ -52,9 +52,9 @@
  */
 
 #include <GL/gl.h>
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoGLLightIdElement.H"
-#include "inv/nodes/SoDirectionalLight.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoGLLightIdElement.hpp"
+#include "inv/nodes/SoDirectionalLight.hpp"
 
 SO_NODE_SOURCE(SoDirectionalLight);
 

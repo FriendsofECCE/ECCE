@@ -57,11 +57,11 @@
 #ifndef  _SO_V1TEXT_3_
 #define  _SO_V1TEXT_3_
 
-#include "inv/fields/SoMFString.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/upgraders/SoUpgrader.H"
+#include "inv/fields/SoMFString.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/upgraders/SoUpgrader.hpp"
 
 class SoV1Text3 : public SoUpgrader {
 

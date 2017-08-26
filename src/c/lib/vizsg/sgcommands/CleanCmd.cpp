@@ -6,19 +6,19 @@
 #include <iostream>
   using namespace std;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "tdat/ForceField.H"
-#include "tdat/FFCoords.H"
-#include "tdat/UFFDesc.H"
+#include "tdat/ForceField.hpp"
+#include "tdat/FFCoords.hpp"
+#include "tdat/UFFDesc.hpp"
 
-#include "tdat/TBond.H"
+#include "tdat/TBond.hpp"
 
-#include "viz/CleanCmd.H"
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
+#include "viz/CleanCmd.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
 
 CleanCmd::CleanCmd(const string& name, Receiver * receiver,
                    ProgressMonitor *mon)

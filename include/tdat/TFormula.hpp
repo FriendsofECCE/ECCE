@@ -34,8 +34,8 @@
   using std::vector;
   using std::less;
 
-#include "tdat/TTCPair.H"
-#include "util/EcceSortedVector.H"
+#include "tdat/TTCPair.hpp"
+#include "util/EcceSortedVector.hpp"
 
 class TFormula
 {

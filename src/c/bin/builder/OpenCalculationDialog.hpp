@@ -1,7 +1,7 @@
 #ifndef OPENCALCULATIONDIALOG_H_
 #define OPENCALCULATIONDIALOG_H_
 
-#include "wxgui/ewxGenericFileDialog.H"
+#include "wxgui/ewxGenericFileDialog.hpp"
 
 /**
  * Customized dialog for finding a URL of an Experiment.

@@ -1,9 +1,9 @@
 // include files ***********************************************************
 #  include <iostream.h>
 #  include <fstream.h>
-#include "util/EcceURL.H"
-#include "dsm/BasicDOMWriter.H"
-#include "dsm/BasicDOMParser.H"
+#include "util/EcceURL.hpp"
+#include "dsm/BasicDOMWriter.hpp"
+#include "dsm/BasicDOMParser.hpp"
 
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/util/XMLString.hpp>

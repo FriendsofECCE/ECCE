@@ -56,9 +56,9 @@
 #ifndef  _SO_GL_RENDER_ACTION_
 #define  _SO_GL_RENDER_ACTION_
 
-#include "inv/SbViewportRegion.H"
-#include "inv/actions/SoSubAction.H"
-#include "inv/elements/SoShapeStyleElement.H"
+#include "inv/SbViewportRegion.hpp"
+#include "inv/actions/SoSubAction.hpp"
+#include "inv/elements/SoShapeStyleElement.hpp"
 
 class	SbBox3f;
 class	SoGetBoundingBoxAction;

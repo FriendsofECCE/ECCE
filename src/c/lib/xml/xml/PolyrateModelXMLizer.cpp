@@ -27,15 +27,15 @@
 
 using std::string;
 
-#include "util/EcceMap.H"
-#include "util/StringTokenizer.H"
-#include "tdat/TAtm.H"
-#include "tdat/Fragment.H"
-#include "tdat/PolyrateModel.H"
-#include "dsm/BasicDOMParser.H"
-#include "dsm/PolyrateModelXMLizer.H"
-#include "dsm/Resource.H"
-#include "dsm/MdTask.H"
+#include "util/EcceMap.hpp"
+#include "util/StringTokenizer.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/Fragment.hpp"
+#include "tdat/PolyrateModel.hpp"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/PolyrateModelXMLizer.hpp"
+#include "dsm/Resource.hpp"
+#include "dsm/MdTask.hpp"
 
 
 

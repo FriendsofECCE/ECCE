@@ -10,7 +10,7 @@
 #ifndef TIMECONVERTER_HH
 #define TIMECONVERTER_HH
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 class TimeConverter: public BaseUnitConverter
 {

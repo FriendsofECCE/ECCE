@@ -58,20 +58,20 @@
 #define  __CHEM_DATA_H__
 
 
-#include "inv/fields/SoSFInt32.H"
-#include "inv/fields/SoMFInt32.H"
-#include "inv/fields/SoMFEnum.H"
-#include "inv/fields/SoMFShort.H"
-#include "inv/fields/SoMFString.H"
-#include "inv/fields/SoMFVec3f.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoSFInt32.hpp"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/fields/SoMFEnum.hpp"
+#include "inv/fields/SoMFShort.hpp"
+#include "inv/fields/SoMFString.hpp"
+#include "inv/fields/SoMFVec3f.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
-#include "inv/ChemKit/ChemBaseData.H"
+#include "inv/ChemKit/ChemBaseData.hpp"
 // --> CAstick
-#include "inv/ChemKit/SbResidue.H"
+#include "inv/ChemKit/SbResidue.hpp"
 // <-- CAstick
 // --> schematic
-#include "inv/ChemKit/MFVec2i.H"
+#include "inv/ChemKit/MFVec2i.hpp"
 // <-- schematic
 
 //////////////////////////////////////////////////////////////////////////////

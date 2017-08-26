@@ -51,21 +51,21 @@
  _______________________________________________________________________
  */
 
-#include "inv/nodes/SoVertexProperty.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/elements/SoGLCoordinateElement.H"
-#include "inv/elements/SoGLNormalElement.H"
-#include "inv/elements/SoOverrideElement.H"
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/elements/SoTextureCoordinateBindingElement.H"
-#include "inv/elements/SoMaterialBindingElement.H"
-#include "inv/elements/SoNormalBindingElement.H"
-#include "inv/nodes/SoTextureCoordinate2.H"
-#include "inv/elements/SoGLLazyElement.H"
-#include "machine.H"
+#include "inv/nodes/SoVertexProperty.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/elements/SoGLCoordinateElement.hpp"
+#include "inv/elements/SoGLNormalElement.hpp"
+#include "inv/elements/SoOverrideElement.hpp"
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/elements/SoTextureCoordinateBindingElement.hpp"
+#include "inv/elements/SoMaterialBindingElement.hpp"
+#include "inv/elements/SoNormalBindingElement.hpp"
+#include "inv/nodes/SoTextureCoordinate2.hpp"
+#include "inv/elements/SoGLLazyElement.hpp"
+#include "machine.hpp"
 
 SO_NODE_SOURCE(SoVertexProperty);
 

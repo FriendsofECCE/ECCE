@@ -1,9 +1,9 @@
 #include <string>
     using std::string;
 
-#include "util/StringConverter.H"
+#include "util/StringConverter.hpp"
 
-#include "GridSelectionBlock.H"
+#include "GridSelectionBlock.hpp"
 
 
 GridSelectionBlock::GridSelectionBlock()

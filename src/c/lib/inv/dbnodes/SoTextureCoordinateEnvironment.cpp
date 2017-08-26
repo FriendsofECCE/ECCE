@@ -51,14 +51,14 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoGLTextureCoordinateElement.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/elements/SoTextureQualityElement.H"
-#include "inv/elements/SoViewingMatrixElement.H"
-#include "inv/nodes/SoTextureCoordinateEnvironment.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoGLTextureCoordinateElement.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/elements/SoTextureQualityElement.hpp"
+#include "inv/elements/SoViewingMatrixElement.hpp"
+#include "inv/nodes/SoTextureCoordinateEnvironment.hpp"
 
 #include <GL/gl.h>
 

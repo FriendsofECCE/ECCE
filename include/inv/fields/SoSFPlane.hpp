@@ -56,8 +56,8 @@
 #ifndef  _SO_SF_PLANE_
 #define  _SO_SF_PLANE_
 
-#include "inv/fields/SoSubField.H"
-#include "inv/SbLinear.H"
+#include "inv/fields/SoSubField.hpp"
+#include "inv/SbLinear.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

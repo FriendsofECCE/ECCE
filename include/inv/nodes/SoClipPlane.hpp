@@ -56,9 +56,9 @@
 #ifndef  _SO_CLIP_PLANE_
 #define  _SO_CLIP_PLANE_
 
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFPlane.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFPlane.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

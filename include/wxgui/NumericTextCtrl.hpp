@@ -3,7 +3,7 @@
 
 #include <wx/textctrl.h>
 
-#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxPanel.hpp"
 
 class ewxNonBoldLabel;
 class ewxTextCtrl;

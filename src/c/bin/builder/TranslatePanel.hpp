@@ -1,9 +1,9 @@
 #ifndef _TRANSLATEPANEL_H_
 #define _TRANSLATEPANEL_H_
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
-#include "TranslatePanelGUI.H"
+#include "TranslatePanelGUI.hpp"
 
 /**
  * Panel to implement and manage translations of system coordinates

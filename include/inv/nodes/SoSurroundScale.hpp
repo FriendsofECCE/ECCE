@@ -56,10 +56,10 @@
 #ifndef  _SO_SURROUND_SCALE_
 #define  _SO_SURROUND_SCALE_
 
-#include "inv/fields/SoFieldData.H"
-#include "inv/nodes/SoSubNode.H"
-#include "inv/nodes/SoTransformation.H"
-#include "inv/fields/SoSFInt32.H"
+#include "inv/fields/SoFieldData.hpp"
+#include "inv/nodes/SoSubNode.hpp"
+#include "inv/nodes/SoTransformation.hpp"
+#include "inv/fields/SoSFInt32.hpp"
 
 class SoFullPath;
 

@@ -1,5 +1,5 @@
-#include "wxviz/SGViewer.H"
-#include "wxviz/CenterViewCmd.H"
+#include "wxviz/SGViewer.hpp"
+#include "wxviz/CenterViewCmd.hpp"
 
 CenterViewCmd::CenterViewCmd(const string& name, Receiver *receiver)
        : Command(name, receiver)

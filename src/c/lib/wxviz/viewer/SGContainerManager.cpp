@@ -5,7 +5,7 @@
   using std::flush;
 #endif // DEBUG
 
-#include "inv/nodes/SoSeparator.H"
+#include "inv/nodes/SoSeparator.hpp"
 
 #include <string>
   using std::string;
@@ -13,15 +13,15 @@
 
 #include <wx/colour.h>
 
-#include "tdat/TPerTab.H"
+#include "tdat/TPerTab.hpp"
 
-#include "util/Preferences.H"
+#include "util/Preferences.hpp"
 
-#include "viz/CSLoadColorsCmd.H"
-#include "viz/CSRadiiCmd.H"
-#include "viz/SGContainer.H"
+#include "viz/CSLoadColorsCmd.hpp"
+#include "viz/CSRadiiCmd.hpp"
+#include "viz/SGContainer.hpp"
 
-#include "wxviz/SGContainerManager.H"
+#include "wxviz/SGContainerManager.hpp"
 
 
 SO_NODE_SOURCE(SGContainerManager);

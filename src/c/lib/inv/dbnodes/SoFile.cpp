@@ -51,12 +51,12 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/actions/SoActions.H"
-#include "inv/errors/SoReadError.H"
-#include "inv/nodes/SoFile.H"
-#include "inv/nodes/SoGroup.H"
-#include "inv/sensors/SoFieldSensor.H"
+#include "inv/SoDB.hpp"
+#include "inv/actions/SoActions.hpp"
+#include "inv/errors/SoReadError.hpp"
+#include "inv/nodes/SoFile.hpp"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
 
 SO_NODE_SOURCE(SoFile);
 

@@ -57,10 +57,10 @@
 #ifndef  __CHEM_COLOR_ELEMENT_H__
 #define  __CHEM_COLOR_ELEMENT_H__
 
-#include "inv/elements/SoReplacedElement.H"
+#include "inv/elements/SoReplacedElement.hpp"
 
-#include "inv/ChemKit/ChemColor.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemColor.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 
 //////////////////////////////////////////////////////////////////////////////

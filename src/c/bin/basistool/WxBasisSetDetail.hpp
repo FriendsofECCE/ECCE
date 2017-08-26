@@ -2,23 +2,23 @@
 #define WXBASISSETDETAIL_HH
 
 
-#include "util/EcceMap.H"
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
-#include "util/Preferences.H"
+#include "util/EcceMap.hpp"
+#include "util/JMSMessage.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/Preferences.hpp"
 
-#include "tdat/Fragment.H"
+#include "tdat/Fragment.hpp"
 
-#include "dsm/TCalculation.H"
-#include "dsm/TGaussianBasisSet.H"
-#include "dsm/TGBSConfig.H"
-#include "dsm/EDSIGaussianBasisSetLibrary.H"
+#include "dsm/TCalculation.hpp"
+#include "dsm/TGaussianBasisSet.hpp"
+#include "dsm/TGBSConfig.hpp"
+#include "dsm/EDSIGaussianBasisSetLibrary.hpp"
 
-#include "wxgui/WxFeedback.H"
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/PerTabPanel.H"
+#include "wxgui/WxFeedback.hpp"
+#include "wxgui/WxDavAuth.hpp"
+#include "wxgui/PerTabPanel.hpp"
 
-#include "WxBasisSetDetailGUI.H"
+#include "WxBasisSetDetailGUI.hpp"
 
 class ewxButton;
 class ewxTextCtrl;

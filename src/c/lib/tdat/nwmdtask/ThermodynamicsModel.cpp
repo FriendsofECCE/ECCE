@@ -4,7 +4,7 @@
  *
  */
 
-#include "tdat/ThermodynamicsModel.H"
+#include "tdat/ThermodynamicsModel.hpp"
 
 /* Default values */
 const bool   ThermodynamicsModel::USEPMF = false;

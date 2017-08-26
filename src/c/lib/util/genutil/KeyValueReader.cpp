@@ -2,8 +2,8 @@
 #include <fstream>
 using std::ifstream;
 
-#include "util/STLUtil.H"
-#include "util/KeyValueReader.H"
+#include "util/STLUtil.hpp"
+#include "util/KeyValueReader.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 // Constructor.

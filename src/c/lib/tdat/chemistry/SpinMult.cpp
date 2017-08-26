@@ -14,8 +14,8 @@
 #include <ctype.h>  // for tolower()
 #include <stdio.h>
 
-#include "util/ErrMsg.H"
-#include "tdat/SpinMult.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/SpinMult.hpp"
 
 // PUBLIC STATIC MEMBER FUNCTIONS
 

@@ -7,7 +7,7 @@
 #define _EWXFILEDIALOG_H  
 
 #include "wx/textdlg.h"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 /**
  * Subclass wxFileDialog to provide style changes.

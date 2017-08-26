@@ -4,7 +4,7 @@
 #include <map>
   using std::map;
 
-#include "PropertyPanel.H"
+#include "PropertyPanel.hpp"
 
 class ewxPlotCtrl;
 class ewxTextCtrl;

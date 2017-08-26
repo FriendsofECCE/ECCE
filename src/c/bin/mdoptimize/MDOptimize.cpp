@@ -9,24 +9,24 @@
 #include "wx/wx.h"
 #endif
 
-#include "util/JMSMessage.H"
+#include "util/JMSMessage.hpp"
 
-#include "dsm/NWChemMDModel.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/MdTask.H"
+#include "dsm/NWChemMDModel.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/MdTask.hpp"
 
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxNotebook.H"
-#include "wxgui/ConstraintPanel.H"
-#include "wxgui/ControlPanel.H"
-#include "wxgui/FilesPanel.H"
-#include "wxgui/InteractionPanel.H"
-#include "wxgui/OptimizePanel.H"
-#include "wxgui/ThermodynamicsPanel.H"
-#include "wxgui/WxJMSListener.H"
-#include "wxgui/WxJMSMessageDispatch.H"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxNotebook.hpp"
+#include "wxgui/ConstraintPanel.hpp"
+#include "wxgui/ControlPanel.hpp"
+#include "wxgui/FilesPanel.hpp"
+#include "wxgui/InteractionPanel.hpp"
+#include "wxgui/OptimizePanel.hpp"
+#include "wxgui/ThermodynamicsPanel.hpp"
+#include "wxgui/WxJMSListener.hpp"
+#include "wxgui/WxJMSMessageDispatch.hpp"
 
-#include "MDOptimize.H"
+#include "MDOptimize.hpp"
 
 
 MDOptimize::MDOptimize() : MDEdBase(), WxJMSListener()

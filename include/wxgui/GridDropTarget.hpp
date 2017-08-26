@@ -13,7 +13,7 @@
 #include "wx/generic/grid.h"
 #endif
 
-#include "wxgui/WxGridView.H"
+#include "wxgui/WxGridView.hpp"
 
 
 class GridDropTarget: public wxDropTarget

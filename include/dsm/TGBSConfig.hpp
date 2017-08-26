@@ -32,9 +32,9 @@ using std::vector;
 using std::map;
 
 
-#include "tdat/Fragment.H"
+#include "tdat/Fragment.hpp"
 
-#include "dsm/TGBSGroup.H"
+#include "dsm/TGBSGroup.hpp"
     
    class TAtm;
    class TCodeCap;

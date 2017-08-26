@@ -4,10 +4,10 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxDisabler.H"
-#include "wxgui/ewxGenericValidator.H" // for ewxDefaultValidator
-#include "wxgui/ewxHelpHandler.H"
-#include "wxgui/ewxSpinCtrl.H"
+#include "wxgui/ewxDisabler.hpp"
+#include "wxgui/ewxGenericValidator.hpp" // for ewxDefaultValidator
+#include "wxgui/ewxHelpHandler.hpp"
+#include "wxgui/ewxSpinCtrl.hpp"
 
 
 /**

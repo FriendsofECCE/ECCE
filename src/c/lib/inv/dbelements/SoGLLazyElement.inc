@@ -52,19 +52,19 @@
  */
 
 #include <GL/gl.h>
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoGLLazyElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/misc/SoState.H"
-#include "inv/elements/SoSubElement.H"
-#include "inv/elements/SoCacheElement.H"
-#include "inv/caches/SoGLRenderCache.H"
-#include "inv/elements/SoGLCacheContextElement.H"
-#include "inv/nodes/SoPackedColor.H"
-#include "inv/fields/SoMFColor.H"
-#include "inv/fields/SoMFFloat.H"
-#include "SoDebug.H"
-#include "machine.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoGLLazyElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/misc/SoState.hpp"
+#include "inv/elements/SoSubElement.hpp"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/caches/SoGLRenderCache.hpp"
+#include "inv/elements/SoGLCacheContextElement.hpp"
+#include "inv/nodes/SoPackedColor.hpp"
+#include "inv/fields/SoMFColor.hpp"
+#include "inv/fields/SoMFFloat.hpp"
+#include "SoDebug.hpp"
+#include "machine.hpp"
 
 SO_ELEMENT_SOURCE(SoGLLazyElement);
 

@@ -4,10 +4,10 @@
 #include "wx/statusbr.h"
 #include "wx/frame.h"
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "wxgui/ewxFrame.H"
-#include "wxgui/CalcDropHandler.H"
+#include "wxgui/ewxFrame.hpp"
+#include "wxgui/CalcDropHandler.hpp"
 
 class FeedbackSaveHandler;
 class ewxStatusBar;

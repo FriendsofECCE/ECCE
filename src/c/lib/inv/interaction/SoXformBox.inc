@@ -54,12 +54,12 @@
 
 #include <stdio.h>
 #include <stdio.h>
-#include "inv/SbLinear.H"
-#include "inv/SoDB.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SoDB.hpp"
 
-#include "inv/manips/SoTransformBoxManip.H"
-#include "inv/draggers/SoTransformBoxDragger.H"
-#include "inv/nodes/SoSurroundScale.H"
+#include "inv/manips/SoTransformBoxManip.hpp"
+#include "inv/draggers/SoTransformBoxDragger.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
 
 SO_NODE_SOURCE(SoTransformBoxManip);
 

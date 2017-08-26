@@ -12,8 +12,8 @@
 #include <xercesc/util/PlatformUtils.hpp>
 using namespace xercesc;
 
-#include "util/TDateTime.H"
-#include "dsm/DavDebug.H"
+#include "util/TDateTime.hpp"
+#include "dsm/DavDebug.hpp"
 
 char *DavDebug::s_context = NULL;
 

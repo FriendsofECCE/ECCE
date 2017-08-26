@@ -2,7 +2,7 @@
 #define RENDERFILECMD_H
 
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 /**
  * A wrapper for the off screen rendering command.

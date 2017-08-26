@@ -58,9 +58,9 @@
 #include <stdlib.h>
 #include <limits.h>
 
-#include "inv/ChemKit/MFVec2i.H"
+#include "inv/ChemKit/MFVec2i.hpp"
 // --> util
-#include "inv/ChemKit/ChemIntList.H"
+#include "inv/ChemKit/ChemIntList.hpp"
 // <-- util
 
 //////////////////////////////////////////////////////////////////////////////

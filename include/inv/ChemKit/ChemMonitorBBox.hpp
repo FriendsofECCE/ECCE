@@ -57,10 +57,10 @@
 #ifndef __CHEM_MONITORBBOX_H__
 #define __CHEM_MONITORBBOX_H__
 
-#include "inv/SbLinear.H"
-#include "inv/SbBox.H"
+#include "inv/SbLinear.hpp"
+#include "inv/SbBox.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

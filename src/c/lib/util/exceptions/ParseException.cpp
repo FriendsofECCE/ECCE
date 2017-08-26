@@ -3,7 +3,7 @@
  *
  *
  */
-#include "util/ParseException.H"
+#include "util/ParseException.hpp"
 
 ParseException::ParseException() : EcceException()
 {

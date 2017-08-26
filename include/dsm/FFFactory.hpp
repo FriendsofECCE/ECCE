@@ -13,9 +13,9 @@
 
 using std::string;
 
-#include "util/InvalidException.H"
-#include "util/ParseException.H"
-#include "tdat/FFDesc.H"
+#include "util/InvalidException.hpp"
+#include "util/ParseException.hpp"
+#include "tdat/FFDesc.hpp"
 
 class FFFactory {
 

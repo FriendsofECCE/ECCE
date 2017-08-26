@@ -60,8 +60,8 @@
 #define  _SO_GL_RENDER_CACHE
 
 #include <GL/gl.h>
-#include "inv/caches/SoCache.H"
-#include "inv/elements/SoGLLazyElement.H"
+#include "inv/caches/SoCache.hpp"
+#include "inv/elements/SoGLLazyElement.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

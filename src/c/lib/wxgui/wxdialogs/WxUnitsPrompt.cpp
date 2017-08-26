@@ -1,10 +1,10 @@
 
 #include "wx/wx.h"
 
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxCheckBox.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxCheckBox.hpp"
 
-#include "wxgui/WxUnitsPrompt.H"
+#include "wxgui/WxUnitsPrompt.hpp"
 
 WxUnitsPrompt::WxUnitsPrompt(wxWindow *parent, const bool& bondsPrompt)
   : WxUnitsPromptGUI(parent)

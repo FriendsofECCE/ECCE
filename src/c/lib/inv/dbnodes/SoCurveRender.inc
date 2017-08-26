@@ -54,10 +54,10 @@
 #include <GL/gl.h>
 #include <tr1/math.h>
 #include <stdlib.h>
-#include "SoAddPrefix.H"
-#include "SoCurveRender.H"
-#include "SoCurveRenderEval.H"
-#include "SoCurveMaps.H"
+#include "SoAddPrefix.hpp"
+#include "SoCurveRender.hpp"
+#include "SoCurveRenderEval.hpp"
+#include "SoCurveMaps.hpp"
 
 _SoNurbsCurveRender::_SoNurbsCurveRender()
     : _SoNurbsNurbsTessellator(curveEvaluator, surfaceEvaluator)

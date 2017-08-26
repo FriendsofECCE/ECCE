@@ -20,9 +20,9 @@
 using std::vector;
 
 
-#include "tdat/FFRules.H"
-#include "tdat/TAtm.H"
-#include "tdat/TBond.H"
+#include "tdat/FFRules.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/TBond.hpp"
 
 class UFFDesc: public FFRules
 {

@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "inv/misc/SoCompactPathList.H"
-#include "inv/SoPath.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/misc/SoCompactPathList.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

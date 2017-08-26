@@ -15,7 +15,7 @@
   using std::string;
   using std::map;
 
-#include "util/CompareOps.H"
+#include "util/CompareOps.hpp"
 
 class JCode;
 

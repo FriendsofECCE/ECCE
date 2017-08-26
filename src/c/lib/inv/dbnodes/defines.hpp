@@ -37,7 +37,7 @@
 #ifndef __gludefines_h_
 #define __gludefines_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 
 /*
  * defines.h - $Revision: 22116 $

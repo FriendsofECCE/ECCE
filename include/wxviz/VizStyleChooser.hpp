@@ -10,16 +10,16 @@
 #ifndef VIZSTYLECHOOSER_H
 #define VIZSTYLECHOOSER_H
 
-#include "util/Listener.H"
+#include "util/Listener.hpp"
 using namespace ecce;
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "wxgui/WxJMSListener.H"
-#include "wxgui/WxJMSMessageDispatch.H"
+#include "wxgui/WxJMSListener.hpp"
+#include "wxgui/WxJMSMessageDispatch.hpp"
 
-#include "wxviz/VizStyleChooserGUI.H"
-#include "wxviz/WxVizTool.H"
+#include "wxviz/VizStyleChooserGUI.hpp"
+#include "wxviz/WxVizTool.hpp"
 
 
 

@@ -15,24 +15,24 @@
 using namespace std;
 
 // application includes
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/Host.H"
-#include "util/TempStorage.H"
-#include "util/StringConverter.H"
-#include "util/StringTokenizer.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/Host.hpp"
+#include "util/TempStorage.hpp"
+#include "util/StringConverter.hpp"
+#include "util/StringTokenizer.hpp"
 
-#include "tdat/RefMachine.H"
-#include "tdat/RefQueueMgr.H"
-#include "tdat/QueueMgr.H"
+#include "tdat/RefMachine.hpp"
+#include "tdat/RefQueueMgr.hpp"
+#include "tdat/QueueMgr.hpp"
 
-#include "dsm/MachinePreferences.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/ICalculation.H"
-#include "dsm/CodeFactory.H"
+#include "dsm/MachinePreferences.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/ICalculation.hpp"
+#include "dsm/CodeFactory.hpp"
 
-#include "comm/RCommand.H"
-#include "comm/RunMgmt.H"
+#include "comm/RCommand.hpp"
+#include "comm/RunMgmt.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////
 //

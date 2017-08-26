@@ -56,8 +56,8 @@
 #ifndef  _SO_FONT_SIZE_ELEMENT
 #define  _SO_FONT_SIZE_ELEMENT
 
-#include "inv/SbString.H"
-#include "inv/elements/SoFloatElement.H"
+#include "inv/SbString.hpp"
+#include "inv/elements/SoFloatElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

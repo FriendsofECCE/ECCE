@@ -39,14 +39,14 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mysetjmp.H"
-#include "mystdio.H"
-#include "subdivider.H"
-#include "arcsorter.H"
-#include "arc.H"
-#include "bin.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mysetjmp.hpp"
+#include "mystdio.hpp"
+#include "subdivider.hpp"
+#include "arcsorter.hpp"
+#include "arc.hpp"
+#include "bin.hpp"
 
 /* local preprocessor definitions */
 #define MAXARCS	10

@@ -20,10 +20,10 @@
 
 #include <string.h>
 
-#include "tdat/TResTab.H"
-#include "tdat/TResItem.H"
-#include "util/Ecce.H"
-#include "util/STLUtil.H"
+#include "tdat/TResTab.hpp"
+#include "tdat/TResItem.hpp"
+#include "util/Ecce.hpp"
+#include "util/STLUtil.hpp"
 
 vector<TResItem*>* TResTab::p_resItemList = 0;
 

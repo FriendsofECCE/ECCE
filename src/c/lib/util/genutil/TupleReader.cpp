@@ -3,8 +3,8 @@
 #include <fstream>
 using std::ifstream;
 
-#include "util/STLUtil.H"
-#include "util/TupleReader.H"
+#include "util/STLUtil.hpp"
+#include "util/TupleReader.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 // Constructor.

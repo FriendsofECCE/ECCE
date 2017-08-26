@@ -51,14 +51,14 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/elements/SoGLTextureMatrixElement.H"
-#include "inv/elements/SoOverrideElement.H"
-#include "inv/elements/SoTextureMatrixElement.H"
-#include "inv/nodes/SoTexture2Transform.H"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/elements/SoGLTextureMatrixElement.hpp"
+#include "inv/elements/SoOverrideElement.hpp"
+#include "inv/elements/SoTextureMatrixElement.hpp"
+#include "inv/nodes/SoTexture2Transform.hpp"
 
 SO_NODE_SOURCE(SoTexture2Transform);
 

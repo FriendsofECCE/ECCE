@@ -3,10 +3,10 @@
  *
  *
  */
-#include "util/ImageConverter.H"
-#include "util/SFile.H"
-#include "util/STLUtil.H"
-#include "util/CommandWrapper.H"
+#include "util/ImageConverter.hpp"
+#include "util/SFile.hpp"
+#include "util/STLUtil.hpp"
+#include "util/CommandWrapper.hpp"
 
 #include <iostream>
   using std::cout;

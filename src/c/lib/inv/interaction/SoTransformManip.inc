@@ -57,18 +57,18 @@
 #include <SoDebug.h>
 #endif
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/actions/SoSearchAction.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/actions/SoSearchAction.hpp"
 
-#include "inv/nodes/SoGroup.H"
-#include "inv/nodes/SoSurroundScale.H"
-#include "inv/manips/SoTransformManip.H"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/nodes/SoSurroundScale.hpp"
+#include "inv/manips/SoTransformManip.hpp"
 
 SO_NODE_SOURCE(SoTransformManip);
 

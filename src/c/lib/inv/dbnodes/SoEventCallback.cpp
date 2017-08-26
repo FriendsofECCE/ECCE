@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/SoPickedPoint.H"
-#include "inv/events/SoEvent.H"
-#include "inv/nodes/SoEventCallback.H"
+#include "inv/SoDB.hpp"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/events/SoEvent.hpp"
+#include "inv/nodes/SoEventCallback.hpp"
 
 // internal class for storing event types, callback funcs, user data
 typedef struct {

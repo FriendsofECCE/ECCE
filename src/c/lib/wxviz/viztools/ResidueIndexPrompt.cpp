@@ -1,6 +1,6 @@
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxTextCtrl.hpp"
 
-#include "wxviz/ResidueIndexPrompt.H"
+#include "wxviz/ResidueIndexPrompt.hpp"
 
 ResidueIndexPrompt::ResidueIndexPrompt()
   : ResidueIndexPromptGUI(),

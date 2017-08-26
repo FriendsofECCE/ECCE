@@ -58,7 +58,7 @@
 #ifndef  _SO_NODE_SENSOR_
 #define  _SO_NODE_SENSOR_
 
-#include "inv/sensors/SoDataSensor.H"
+#include "inv/sensors/SoDataSensor.hpp"
 
 // C-api: prefix=SoNodeSens
 class SoNodeSensor : public SoDataSensor {

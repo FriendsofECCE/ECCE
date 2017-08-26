@@ -2,7 +2,7 @@
 #define SETHOMECMD_HH
 
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class SetHomeCmd : public Command
 {

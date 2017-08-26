@@ -6,10 +6,10 @@
 #ifndef _EWXPROGRESSDIALOG_H  
 #define _EWXPROGRESSDIALOG_H  
 
-#include "util/ProgressMonitor.H"
+#include "util/ProgressMonitor.hpp"
 
 #include "wx/progdlg.h"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxStyledWindow.hpp"
 
 /**
  * Subclass wxProgressDialog to provide style changes.

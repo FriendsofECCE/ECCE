@@ -6,7 +6,7 @@
 #ifndef  CLEANSYMMETRYCMD_H
 #define  CLEANSYMMETRYCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class Fragment;
 

@@ -6,19 +6,19 @@
 #ifndef _ICALCULATION_HH
 #define _ICALCULATION_HH
 
-#include "util/RetryException.H"
-#include "util/CancelException.H"
+#include "util/RetryException.hpp"
+#include "util/CancelException.hpp"
 
-#include "tdat/SpinMult.H"
-#include "tdat/TRunType.H"
-#include "tdat/GUIValues.H"
-#include "tdat/TTheory.H"
-#include "tdat/Fragment.H"
-#include "tdat/ESPConstraintModel.H"
-#include "tdat/GeomConstraintModel.H"
+#include "tdat/SpinMult.hpp"
+#include "tdat/TRunType.hpp"
+#include "tdat/GUIValues.hpp"
+#include "tdat/TTheory.hpp"
+#include "tdat/Fragment.hpp"
+#include "tdat/ESPConstraintModel.hpp"
+#include "tdat/GeomConstraintModel.hpp"
 
-#include "dsm/TGBSConfig.H"
-#include "dsm/PropertyTask.H"
+#include "dsm/TGBSConfig.hpp"
+#include "dsm/PropertyTask.hpp"
 
 
 /**

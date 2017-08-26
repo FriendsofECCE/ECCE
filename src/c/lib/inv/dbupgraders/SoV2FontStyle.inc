@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "SoV2FontStyle.H"
-#include "inv/nodes/SoFontStyle.H"
-#include "inv/elements/SoFontNameElement.H"
-#include "inv/elements/SoFontSizeElement.H"
-#include "inv/errors/SoReadError.H"
+#include "SoV2FontStyle.hpp"
+#include "inv/nodes/SoFontStyle.hpp"
+#include "inv/elements/SoFontNameElement.hpp"
+#include "inv/elements/SoFontSizeElement.hpp"
+#include "inv/errors/SoReadError.hpp"
 
 SO_NODE_SOURCE(SoV2FontStyle);
 

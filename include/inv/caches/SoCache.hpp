@@ -76,7 +76,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 
-#include "inv/SoLists.H"
+#include "inv/SoLists.hpp"
 
 class SoElement;
 class SoState;

@@ -53,8 +53,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/SbLinear.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/SbLinear.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 // amount squared to figure if two floats are equal
 #define DELTA 1e-6

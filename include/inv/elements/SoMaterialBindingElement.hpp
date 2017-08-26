@@ -56,7 +56,7 @@
 #ifndef  _SO_MATERIAL_BINDING_ELEMENT
 #define  _SO_MATERIAL_BINDING_ELEMENT
 
-#include "inv/elements/SoInt32Element.H"
+#include "inv/elements/SoInt32Element.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

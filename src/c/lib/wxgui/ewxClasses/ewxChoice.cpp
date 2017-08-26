@@ -1,6 +1,6 @@
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxDisabler.H"
-#include "wxgui/ewxHelpHandler.H"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxDisabler.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
 
 
 ewxChoice::ewxChoice()

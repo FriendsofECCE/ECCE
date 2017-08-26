@@ -22,17 +22,17 @@
 
 using std::string;
 
-#include "util/EcceMap.H"
-#include "util/FFConfigData.H"
-#include "util/StringConverter.H"
-#include "util/StringTokenizer.H"
-#include "tdat/TAtm.H"
-#include "tdat/Fragment.H"
-#include "tdat/PrepareModel.H"
-#include "dsm/BasicDOMParser.H"
-#include "dsm/PrepareModelXMLizer.H"
-#include "dsm/Resource.H"
-#include "dsm/MdTask.H"
+#include "util/EcceMap.hpp"
+#include "util/FFConfigData.hpp"
+#include "util/StringConverter.hpp"
+#include "util/StringTokenizer.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/Fragment.hpp"
+#include "tdat/PrepareModel.hpp"
+#include "dsm/BasicDOMParser.hpp"
+#include "dsm/PrepareModelXMLizer.hpp"
+#include "dsm/Resource.hpp"
+#include "dsm/MdTask.hpp"
 
 const string PrepareModelXMLizer::ROOTELEMENT = "PrepareModel";
 

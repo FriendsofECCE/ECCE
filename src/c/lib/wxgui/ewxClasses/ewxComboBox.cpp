@@ -7,10 +7,10 @@ using namespace std;
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxDisabler.H"
-#include "wxgui/ewxComboBox.H"
-#include "wxgui/ewxHelpHandler.H"
-#include "wxgui/ewxGenericValidator.H"
+#include "wxgui/ewxDisabler.hpp"
+#include "wxgui/ewxComboBox.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
+#include "wxgui/ewxGenericValidator.hpp"
 
 
 ewxComboBox::ewxComboBox()

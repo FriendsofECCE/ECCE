@@ -68,8 +68,8 @@
 #ifndef  _SO_SHAPE_STYLE_ELEMENT
 #define  _SO_SHAPE_STYLE_ELEMENT
 
-#include "inv/elements/SoInt32Element.H"
-#include "inv/elements/SoLazyElement.H"
+#include "inv/elements/SoInt32Element.hpp"
+#include "inv/elements/SoLazyElement.hpp"
 
 
 

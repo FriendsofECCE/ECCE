@@ -75,7 +75,7 @@
 #ifndef  _SO_SENSOR_
 #define  _SO_SENSOR_
 
-#include "inv/SbBasic.H"
+#include "inv/SbBasic.hpp"
 
 class SoField;
 class SoMField;

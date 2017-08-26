@@ -14,19 +14,19 @@
 #include <iostream>
 using namespace std;
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/SFile.H"
-#include "util/Preferences.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/SFile.hpp"
+#include "util/Preferences.hpp"
 
-#include "dsm/TaskJob.H"
+#include "dsm/TaskJob.hpp"
 
-#include "comm/RCommand.H"
-#include "comm/JobParser.H"
+#include "comm/RCommand.hpp"
+#include "comm/JobParser.hpp"
 
-#include "wxgui/ewxFileDialog.H"
-#include "wxgui/WxCalcImportClient.H"
-#include "wxgui/WxCalcImport.H"
+#include "wxgui/ewxFileDialog.hpp"
+#include "wxgui/WxCalcImportClient.hpp"
+#include "wxgui/WxCalcImport.hpp"
 
 
 /////////////////////////////////////////////////////////////////////////////

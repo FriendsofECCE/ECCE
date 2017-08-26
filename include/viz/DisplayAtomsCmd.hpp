@@ -6,7 +6,7 @@
 #ifndef  DISPLAYATOMSCMD_H
 #define  DISPLAYATOMSCMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class Fragment;
 

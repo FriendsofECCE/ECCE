@@ -16,11 +16,11 @@
   using std::endl;
 
 
-#include "util/StringConverter.H"
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
-#include "dsm/AtomProperty.H"
-#include "wxgui/GridElement.H"
+#include "util/StringConverter.hpp"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
+#include "dsm/AtomProperty.hpp"
+#include "wxgui/GridElement.hpp"
 
 
 

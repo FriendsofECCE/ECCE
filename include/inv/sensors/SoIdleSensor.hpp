@@ -59,7 +59,7 @@
 #ifndef  _SO_IDLE_SENSOR_
 #define  _SO_IDLE_SENSOR_
 
-#include "inv/sensors/SoDelayQueueSensor.H"
+#include "inv/sensors/SoDelayQueueSensor.hpp"
 
 // C-api: prefix=SoIdleSens
 class SoIdleSensor : public SoDelayQueueSensor {

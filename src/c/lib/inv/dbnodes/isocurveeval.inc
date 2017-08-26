@@ -40,9 +40,9 @@
  * $Revision: 22177 $
  */
 
-#include "myassert.H"
-#include "defines.H"
-#include "isocurveeval.H"
+#include "myassert.hpp"
+#include "defines.hpp"
+#include "isocurveeval.hpp"
 
 
 const

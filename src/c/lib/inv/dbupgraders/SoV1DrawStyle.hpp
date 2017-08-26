@@ -56,10 +56,10 @@
 #ifndef  _SO_V1DRAWSTYLE_
 #define  _SO_V1DRAWSTYLE_
 
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFShort.H"
-#include "inv/fields/SoSFUShort.H"
-#include "inv/upgraders/SoUpgrader.H"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFShort.hpp"
+#include "inv/fields/SoSFUShort.hpp"
+#include "inv/upgraders/SoUpgrader.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

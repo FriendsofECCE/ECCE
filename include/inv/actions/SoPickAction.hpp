@@ -56,8 +56,8 @@
 #ifndef  _SO_PICK_ACTION_
 #define  _SO_PICK_ACTION_
 
-#include "inv/SbViewportRegion.H"
-#include "inv/actions/SoSubAction.H"
+#include "inv/SbViewportRegion.hpp"
+#include "inv/actions/SoSubAction.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

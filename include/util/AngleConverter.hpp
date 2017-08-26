@@ -10,7 +10,7 @@
 #ifndef ANGLECONVERTER_HH
 #define ANGLECONVERTER_HH
 
-#include "util/BaseUnitConverter.H"
+#include "util/BaseUnitConverter.hpp"
 
 class AngleConverter: public BaseUnitConverter
 {

@@ -6,7 +6,7 @@
 
 #include <math.h>
 
-#include "util/NullConverter.H"
+#include "util/NullConverter.hpp"
 
 /**
  * @file

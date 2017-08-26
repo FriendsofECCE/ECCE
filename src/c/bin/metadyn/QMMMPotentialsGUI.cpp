@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "QMMMPotentialsGUI.H"
+#pragma implementation "QMMMPotentialsGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,13 +23,13 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxDialog.H"
-#include "wxgui/ewxStaticLine.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxCheckBox.H"
+#include "wxgui/ewxDialog.hpp"
+#include "wxgui/ewxStaticLine.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxCheckBox.hpp"
 ////@end includes
 
-#include "QMMMPotentialsGUI.H"
+#include "QMMMPotentialsGUI.hpp"
 
 ////@begin XPM images
 

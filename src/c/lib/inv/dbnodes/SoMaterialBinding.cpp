@@ -51,11 +51,11 @@
  _______________________________________________________________________
  */
 
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/nodes/SoMaterialBinding.H"
-#include "inv/elements/SoOverrideElement.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/nodes/SoMaterialBinding.hpp"
+#include "inv/elements/SoOverrideElement.hpp"
 
 SO_NODE_SOURCE(SoMaterialBinding);
 

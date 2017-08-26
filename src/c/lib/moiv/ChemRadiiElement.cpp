@@ -55,7 +55,7 @@
 
 #ident "$Revision: 22141 $"
 
-#include "inv/ChemKit/ChemRadiiElement.H"
+#include "inv/ChemKit/ChemRadiiElement.hpp"
 
 SO_ELEMENT_SOURCE(ChemRadiiElement);
 

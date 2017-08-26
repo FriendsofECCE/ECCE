@@ -26,18 +26,18 @@
 #include <vector>
 #include <string>
 
-#include "util/Ecce.H"
-#include "util/ErrMsg.H"
-#include "util/SDirectory.H"
-#include "util/EcceURL.H"
-#include "util/CmdLineAuthListener.H"
-#include "util/Ecce.H"
-#include "util/EcceSortedVector.H"
+#include "util/Ecce.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/SDirectory.hpp"
+#include "util/EcceURL.hpp"
+#include "util/CmdLineAuthListener.hpp"
+#include "util/Ecce.hpp"
+#include "util/EcceSortedVector.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSI.H"
-#include "dsm/EDSIServerCentral.H"
-#include "dsm/VDoc.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSI.hpp"
+#include "dsm/EDSIServerCentral.hpp"
+#include "dsm/VDoc.hpp"
 
 
 // function declaration:

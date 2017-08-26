@@ -12,12 +12,12 @@
   using std::vector;
   using std::find;
 
-#include "util/EcceURL.H"
-#include "util/DavException.H"
-#include "util/ParseException.H"
-#include "util/InvalidException.H"
-#include "dsm/JCode.H"
-#include "dsm/EDSI.H"
+#include "util/EcceURL.hpp"
+#include "util/DavException.hpp"
+#include "util/ParseException.hpp"
+#include "util/InvalidException.hpp"
+#include "dsm/JCode.hpp"
+#include "dsm/EDSI.hpp"
 
 
 /**

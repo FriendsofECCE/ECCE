@@ -51,15 +51,15 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoPath.H"
-#include "inv/SoPickedPoint.H"
-#include "inv/actions/SoGetMatrixAction.H"
-#include "inv/details/SoDetail.H"
-#include "inv/elements/SoModelMatrixElement.H"
-#include "inv/elements/SoPickStyleElement.H"
-#include "inv/elements/SoTextureMatrixElement.H"
-#include "inv/elements/SoViewportRegionElement.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/SoPath.hpp"
+#include "inv/SoPickedPoint.hpp"
+#include "inv/actions/SoGetMatrixAction.hpp"
+#include "inv/details/SoDetail.hpp"
+#include "inv/elements/SoModelMatrixElement.hpp"
+#include "inv/elements/SoPickStyleElement.hpp"
+#include "inv/elements/SoTextureMatrixElement.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 SoGetMatrixAction *SoPickedPoint::matrixAction = NULL;
 

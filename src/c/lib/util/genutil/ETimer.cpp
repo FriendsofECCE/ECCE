@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #endif
 
-#include "util/ETimer.H"
+#include "util/ETimer.hpp"
 
 
 ETimer::ETimer()

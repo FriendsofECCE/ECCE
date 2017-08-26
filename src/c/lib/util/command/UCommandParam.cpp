@@ -22,8 +22,8 @@
 #include <string.h>
 #include <stdio.h>  // sprintf
 
-#include "util/ErrMsg.H"
-#include "util/UCommandParam.H"
+#include "util/ErrMsg.hpp"
+#include "util/UCommandParam.hpp"
 
 
 UCommandParam::UCommandParam(const string& nameIn,  const char  *valueIn) 

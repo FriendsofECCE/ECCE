@@ -5,17 +5,17 @@
 #include <algorithm>
   using std::find;
 
-//#include "inv/nodes/SoSwitch.H"
+//#include "inv/nodes/SoSwitch.hpp"
 
-#include "util/InternalException.H"
+#include "util/InternalException.hpp"
 
-#include "dsm/IPropCalculation.H"
+#include "dsm/IPropCalculation.hpp"
 
-#include "tdat/PropTable.H"
+#include "tdat/PropTable.hpp"
 
-#include "viz/SGContainer.H"
-#include "viz/SGFragment.H"
-#include "viz/SpinSpinTensorCmd.H"
+#include "viz/SGContainer.hpp"
+#include "viz/SGFragment.hpp"
+#include "viz/SpinSpinTensorCmd.hpp"
 
 SpinSpinTensorCmd::SpinSpinTensorCmd(const string& name, Receiver *receiver,
                          IPropCalculation *calc)

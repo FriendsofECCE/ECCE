@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoLinePatternElement.H"
+#include "inv/elements/SoLinePatternElement.hpp"
 
 SO_ELEMENT_SOURCE(SoLinePatternElement);
 

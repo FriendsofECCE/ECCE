@@ -19,14 +19,14 @@
 using std::string;
 
 
-#include "util/StringTokenizer.H"
-#include "util/LineReader.H"
-#include "util/ErrMsg.H"
-#include "util/IOException.H"
-#include "tdat/PropGrids.H"
-#include "tdat/SingleGrid.H"
-#include "tdat/Fragment.H"
-#include "tdat/TPerTab.H"
+#include "util/StringTokenizer.hpp"
+#include "util/LineReader.hpp"
+#include "util/ErrMsg.hpp"
+#include "util/IOException.hpp"
+#include "tdat/PropGrids.hpp"
+#include "tdat/SingleGrid.hpp"
+#include "tdat/Fragment.hpp"
+#include "tdat/TPerTab.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Description:

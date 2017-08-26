@@ -11,7 +11,7 @@
 #define _NWDIRDYSETUPGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "NWDirdySetupGUI.C"
+#pragma interface "NWDirdySetupGUI.cpp"
 #endif
 
 /*!
@@ -21,7 +21,7 @@
 ////@begin includes
 #include "wx/frame.h"
 #include "wx/statline.h"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/ewxFrame.hpp"
 ////@end includes
 
 /*!

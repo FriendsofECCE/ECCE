@@ -56,7 +56,7 @@
 #ifndef _SO_CONE_DETAIL_
 #define _SO_CONE_DETAIL_
 
-#include "inv/details/SoSubDetail.H"
+#include "inv/details/SoSubDetail.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

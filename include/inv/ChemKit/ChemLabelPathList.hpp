@@ -61,11 +61,11 @@
 class ChemLabelPath;
 class ChemPath;
 
-#include "inv/SbPList.H"
-#include "inv/SoPath.H"
+#include "inv/SbPList.hpp"
+#include "inv/SoPath.hpp"
 
-#include "inv/ChemKit/MFVec2i.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/MFVec2i.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class CHEMKIT_DLL_API ChemLabelPathList : public SbPList {
   public:

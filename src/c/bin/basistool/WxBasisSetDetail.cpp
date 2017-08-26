@@ -11,17 +11,17 @@
 #include "wx/dc.h"
 #include "wx/file.h"
 
-#include "util/ErrMsg.H"
-#include "util/Color.H"
-#include "util/STLUtil.H"
-#include "util/StringConverter.H"
+#include "util/ErrMsg.hpp"
+#include "util/Color.hpp"
+#include "util/STLUtil.hpp"
+#include "util/StringConverter.hpp"
 
-#include "dsm/TGaussianBasisSet.H"
-#include "dsm/EDSIGaussianBasisSetLibrary.H"
+#include "dsm/TGaussianBasisSet.hpp"
+#include "dsm/EDSIGaussianBasisSetLibrary.hpp"
 
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxTextCtrl.hpp"
 
-#include "WxBasisSetDetail.H"
+#include "WxBasisSetDetail.hpp"
 
 
 /*

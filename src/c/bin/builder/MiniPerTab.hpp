@@ -6,11 +6,11 @@ using std::string;
 #include <vector>
 using std::vector;
 
-#include "util/Listener.H"
-#include "util/Event.H"
+#include "util/Listener.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "wxviz/WxVizTool.H"
+#include "wxviz/WxVizTool.hpp"
 
 class wxBoxSizer;
 class wxGridBagSizer;

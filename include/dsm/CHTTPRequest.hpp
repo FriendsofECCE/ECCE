@@ -13,8 +13,8 @@
 
 // include files ***********************************************************
 
-#include "dsm/CHTTPDefs.H"
-#include "dsm/CHTTPVersion.H"
+#include "dsm/CHTTPDefs.hpp"
+#include "dsm/CHTTPVersion.hpp"
 #include <string>
 
 // class: CHTTPRequest *****************************************************

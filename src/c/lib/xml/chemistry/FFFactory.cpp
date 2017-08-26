@@ -10,13 +10,13 @@
 #include <fstream>
   using std::ifstream;
 
-#include "util/SFile.H"
-#include "util/Ecce.H"
-#include "util/EcceMap.H"
-#include "util/StringConverter.H"
+#include "util/SFile.hpp"
+#include "util/Ecce.hpp"
+#include "util/EcceMap.hpp"
+#include "util/StringConverter.hpp"
 
-#include "dsm/FFFactory.H"
-#include "dsm/FFDescXMLSerializer.H"
+#include "dsm/FFFactory.hpp"
+#include "dsm/FFDescXMLSerializer.hpp"
 
 /**
  * Default Constructor.

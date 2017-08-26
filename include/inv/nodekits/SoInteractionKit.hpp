@@ -56,11 +56,11 @@
 #ifndef  _SO_INTERACTION_KIT_
 #define  _SO_INTERACTION_KIT_
 
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodekits/SoBaseKit.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/sensors/SoFieldSensor.H"
-#include "inv/SoNodeKitPath.H"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodekits/SoBaseKit.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/sensors/SoFieldSensor.hpp"
+#include "inv/SoNodeKitPath.hpp"
 
 class SoPath;
 class SoPathList;

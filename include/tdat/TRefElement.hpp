@@ -53,8 +53,8 @@
 #include <string>
 using std::string;
 
-#include "util/Color.H"
-#include "tdat/TPerTab.H"
+#include "util/Color.hpp"
+#include "tdat/TPerTab.hpp"
 
 
 class PeriodicTable;

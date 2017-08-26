@@ -37,12 +37,12 @@
 #ifndef __glutrimvertex_h_
 #define __glutrimvertex_h_
 
-#include "SoAddPrefix.H"
+#include "SoAddPrefix.hpp"
 /*
  * trimvertex.h - $Revision: 22116 $
  */
 
-#include "types.H"
+#include "types.hpp"
 
 struct TrimVertex { /* a vertex on a trim curve */
     REAL		param[2];	/* parametric space coords */

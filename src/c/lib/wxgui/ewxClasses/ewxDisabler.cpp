@@ -7,7 +7,7 @@ using namespace std;
 // #endif
 // 
 
-#include "wxgui/ewxDisabler.H"
+#include "wxgui/ewxDisabler.hpp"
 
 // TODO add other handlers here
 BEGIN_EVENT_TABLE(ewxDisabler, wxEvtHandler)

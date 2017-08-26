@@ -33,7 +33,7 @@
 #ifndef _CHEMLOD_H_
 #define _CHEMLOD_H_
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
 class ChemDisplay;
 class ChemUnitSphere;

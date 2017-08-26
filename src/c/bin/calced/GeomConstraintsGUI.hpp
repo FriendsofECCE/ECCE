@@ -11,7 +11,7 @@
 #define _GEOMCONSTRAINTSGUI_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "GeomConstraintsGUI.C"
+#pragma interface "GeomConstraintsGUI.cpp"
 #endif
 
 /*!
@@ -20,7 +20,7 @@
 
 ////@begin includes
 #include "wx/statline.h"
-#include "wxgui/ewxDialog.H"
+#include "wxgui/ewxDialog.hpp"
 ////@end includes
 
 /*!

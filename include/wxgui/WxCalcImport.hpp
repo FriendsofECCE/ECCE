@@ -6,7 +6,7 @@
 #ifndef WXCALCIMPORT_H_
 #define WXCALCIMPORT_H_
 
-#include "wxgui/ewxFileDialog.H"
+#include "wxgui/ewxFileDialog.hpp"
 
 class WxCalcImportClient;
 

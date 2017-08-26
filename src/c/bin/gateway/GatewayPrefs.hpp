@@ -13,15 +13,15 @@
 #define _GATEWAYPREFS_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "GatewayPrefs.C"
+#pragma interface "GatewayPrefs.cpp"
 #endif
 
 
 #include "wx/frame.h"
 
-#include "wxgui/WxState.H"
+#include "wxgui/WxState.hpp"
 
-#include "GatewayPrefsGUI.H"
+#include "GatewayPrefsGUI.hpp"
 
 
 class JMSPublisher;

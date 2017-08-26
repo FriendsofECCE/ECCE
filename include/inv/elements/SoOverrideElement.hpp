@@ -56,7 +56,7 @@
 #ifndef  _SO_OVERRIDE_ELEMENT
 #define  _SO_OVERRIDE_ELEMENT
 
-#include "inv/elements/SoSubElement.H"
+#include "inv/elements/SoSubElement.hpp"
 
 //
 // Macro to implement get*Override inline methods.  There are a lot of

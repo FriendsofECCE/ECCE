@@ -1,6 +1,6 @@
 #include "wx/listctrl.h"
-#include "wxgui/ewxListViewComboPopup.H"
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxListViewComboPopup.hpp"
+#include "wxgui/ewxStyledWindow.hpp"
 
 BEGIN_EVENT_TABLE(ewxListViewComboPopup, wxListView)
   EVT_MOTION(ewxListViewComboPopup::OnMouseMove)

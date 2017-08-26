@@ -16,7 +16,7 @@
 #ifndef  _TRANSLATE_RADIAL_MANIP
 #define  _TRANSLATE_RADIAL_MANIP_
 
-#include "inv/manips/SoTransformManip.H"
+#include "inv/manips/SoTransformManip.hpp"
 
 
 class TranslateRadialManip : public SoTransformManip

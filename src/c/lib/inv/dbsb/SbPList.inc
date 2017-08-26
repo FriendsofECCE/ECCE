@@ -55,8 +55,8 @@
  */
 
 
-#include "inv/SbPList.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/SbPList.hpp"
+#include "inv/errors/SoDebugError.hpp"
 
 #define DEFAULT_INITIAL_SIZE	4
 

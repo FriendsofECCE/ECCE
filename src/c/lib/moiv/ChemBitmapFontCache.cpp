@@ -63,15 +63,15 @@
 #include <ctype.h>
 #include <math.h>
 
-#include "inv/elements/SoCacheElement.H"
+#include "inv/elements/SoCacheElement.hpp"
 
-#include "inv/ChemKit/ChemBitmapFontCache.H"
+#include "inv/ChemKit/ChemBitmapFontCache.hpp"
 /*
 	Porting to Windows:
 	Jamie Doornbos	2001/07/15
 	Daniel Soto	2002/02/05
 */
-#include "inv/ChemKit/FixFonts.H"
+#include "inv/ChemKit/FixFonts.hpp"
 
 // This very specialized cache class is used to cache bitmaps and GL
 // display lists containing bitmaps.  It is strange because it doesn't

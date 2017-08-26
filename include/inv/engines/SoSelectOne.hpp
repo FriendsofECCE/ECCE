@@ -58,9 +58,9 @@
 #ifndef  _SO_SELECTONE_
 #define  _SO_SELECTONE_
 
-#include "inv/engines/SoSubEngine.H"
-#include "inv/fields/SoSFInt32.H"
-#include "inv/fields/SoSFName.H"
+#include "inv/engines/SoSubEngine.hpp"
+#include "inv/fields/SoSFInt32.hpp"
+#include "inv/fields/SoSFName.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

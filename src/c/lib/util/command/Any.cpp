@@ -7,9 +7,9 @@
   using namespace std;
 #include <stdio.h>  // sprintf
 
-#include "util/Any.H"
-#include "util/NotImplementedException.H"
-#include "util/InvalidException.H"
+#include "util/Any.hpp"
+#include "util/NotImplementedException.hpp"
+#include "util/InvalidException.hpp"
 
 
 /**

@@ -57,11 +57,11 @@
 #ifndef __CHEM_SSSR_H__
 #define __CHEM_SSSR_H__
 
-#include "inv/SbBasic.H"
-#include "inv/SbPList.H"
+#include "inv/SbBasic.hpp"
+#include "inv/SbPList.hpp"
 
-#include "inv/ChemKit/ChemIntList.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemIntList.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 class ChemPathMsg;
 class ChemTNode;

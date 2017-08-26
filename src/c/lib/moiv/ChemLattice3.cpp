@@ -55,24 +55,24 @@
 
 #ident "$Revision: 22147 $"
 
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/actions/SoWriteAction.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/actions/SoWriteAction.hpp"
 
-#include "inv/errors/SoDebugError.H"
-#include "inv/errors/SoReadError.H"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/errors/SoReadError.hpp"
 
-#include "inv/fields/SoMFBool.H"
-#include "inv/fields/SoMFShort.H"
-#include "inv/fields/SoMFInt32.H"
-#include "inv/fields/SoMFFloat.H"
+#include "inv/fields/SoMFBool.hpp"
+#include "inv/fields/SoMFShort.hpp"
+#include "inv/fields/SoMFInt32.hpp"
+#include "inv/fields/SoMFFloat.hpp"
 
-#include "inv/ChemKit/ChemLattice3.H"
-#include "inv/ChemKit/ChemLattice3Element.H"
-#include "inv/ChemKit/MFDouble.H"
-#include "inv/ChemKit/MFInt8.H"
+#include "inv/ChemKit/ChemLattice3.hpp"
+#include "inv/ChemKit/ChemLattice3Element.hpp"
+#include "inv/ChemKit/MFDouble.hpp"
+#include "inv/ChemKit/MFInt8.hpp"
 
 /*
 	Jamie Doornbos	2001/07/27

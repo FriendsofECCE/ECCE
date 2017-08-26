@@ -9,10 +9,10 @@
   using __gnu_cxx::hash;
 #endif
 
-#include "util/NullPointerException.H"
-#include "tdat/ESPConstraintModel.H"
-#include "tdat/ESPConstraint.H"
-#include "tdat/Fragment.H"
+#include "util/NullPointerException.hpp"
+#include "tdat/ESPConstraintModel.hpp"
+#include "tdat/ESPConstraint.hpp"
+#include "tdat/Fragment.hpp"
 
 ESPConstraintModel::ESPConstraintModel(const Fragment& frag)
 {

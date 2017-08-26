@@ -56,8 +56,8 @@
 #ifndef  _SO_PACKED_COLOR_
 #define  _SO_PACKED_COLOR_
 
-#include "inv/fields/SoMFUInt32.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoMFUInt32.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

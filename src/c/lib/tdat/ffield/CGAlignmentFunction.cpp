@@ -14,11 +14,11 @@
   using std::endl;
 #include <math.h>
 
-#include "util/ErrMsg.H"
+#include "util/ErrMsg.hpp"
 
-#include "tdat/FFCoords.H"
-#include "tdat/ObjectiveFunction.H"
-#include "tdat/CGAlignmentFunction.H"
+#include "tdat/FFCoords.hpp"
+#include "tdat/ObjectiveFunction.hpp"
+#include "tdat/CGAlignmentFunction.hpp"
 
 CGAlignmentFunction::CGAlignmentFunction()
 {

@@ -3,7 +3,7 @@
  *
  *
  */
-#include "util/NotImplementedException.H"
+#include "util/NotImplementedException.hpp"
 
 NotImplementedException::NotImplementedException(const string& msg, 
                                            const char *file, int line)

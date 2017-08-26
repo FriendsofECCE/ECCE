@@ -19,10 +19,10 @@
 #include <limits.h>
 #include <string.h>
 
-#include "util/ErrMsg.H"
-#include "dsm/HistoryList.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSI.H"
+#include "util/ErrMsg.hpp"
+#include "dsm/HistoryList.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSI.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 // Constructor.

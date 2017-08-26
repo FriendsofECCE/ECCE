@@ -1,8 +1,8 @@
 #ifndef _NWDIRDYAPP_H
 #define _NWDIRDYAPP_H
 
-#include "wxgui/ewxApp.H"
-#include "wxgui/WxJMSMessageDispatch.H"
+#include "wxgui/ewxApp.hpp"
+#include "wxgui/WxJMSMessageDispatch.hpp"
 
 class NWDirdy;
 class JMSMessage;

@@ -39,14 +39,14 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "mystdio.H"
-#include "myassert.H"
-#include "subdivider.H"
-#include "types.H"
-#include "arc.H"
-#include "trimvertex.H"
-#include "simplemath.H"
+#include "glimports.hpp"
+#include "mystdio.hpp"
+#include "myassert.hpp"
+#include "subdivider.hpp"
+#include "types.hpp"
+#include "arc.hpp"
+#include "trimvertex.hpp"
+#include "simplemath.hpp"
 
 inline int 
 Subdivider::bbox( TrimVertex *a, TrimVertex *b, TrimVertex *c, int p )

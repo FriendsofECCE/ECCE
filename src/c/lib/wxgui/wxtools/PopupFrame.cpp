@@ -1,5 +1,5 @@
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "PopupFrame.H"
+#pragma implementation "PopupFrame.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -14,12 +14,12 @@
 #endif
 
 
-#include "util/EventDispatcher.H"
-#include "wxgui/WindowEvent.H"
+#include "util/EventDispatcher.hpp"
+#include "wxgui/WindowEvent.hpp"
   using namespace ecce;
 
 
-#include "wxgui/PopupFrame.H"
+#include "wxgui/PopupFrame.hpp"
 
 IMPLEMENT_CLASS( PopupFrame, wxFrame )
 

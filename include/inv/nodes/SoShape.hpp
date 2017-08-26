@@ -56,8 +56,8 @@
 #ifndef  _SO_SHAPE_
 #define  _SO_SHAPE_
 
-#include "inv/SbLinear.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/SbLinear.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 #include <GL/glu.h>
 

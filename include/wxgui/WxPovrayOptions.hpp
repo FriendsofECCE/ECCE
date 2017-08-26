@@ -9,7 +9,7 @@
 #include <string>
   using std::string;
 
-#include "wxgui/WxPovrayOptionsGUI.H"
+#include "wxgui/WxPovrayOptionsGUI.hpp"
 
 class WxPovrayOptions : public WxPovrayOptionsGUI
 {

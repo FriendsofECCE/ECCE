@@ -53,12 +53,12 @@
 
 #include <GL/glu.h>
 #include <GL/gl.h>
-#include "inv/elements/SoCacheElement.H"
-#include "inv/elements/SoGLCacheContextElement.H"
-#include "inv/elements/SoGLTextureImageElement.H"
-#include "inv/elements/SoGLTextureEnabledElement.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/misc/SoState.H"
+#include "inv/elements/SoCacheElement.hpp"
+#include "inv/elements/SoGLCacheContextElement.hpp"
+#include "inv/elements/SoGLTextureImageElement.hpp"
+#include "inv/elements/SoGLTextureEnabledElement.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/misc/SoState.hpp"
 
 #ifdef __sgi
 #include <alloca.h>

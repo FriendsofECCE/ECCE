@@ -3,7 +3,7 @@
 
 #include "wx/menu.h"
 
-#include "wxgui/ContextHistory.H"
+#include "wxgui/ContextHistory.hpp"
 
 
 ContextHistory::ContextHistory(size_t maxFiles, wxWindowID idBase,

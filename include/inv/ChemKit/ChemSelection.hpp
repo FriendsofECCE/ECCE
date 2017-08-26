@@ -58,28 +58,28 @@
 #define  __CHEM_SELECTION_H__
 
 
-#include "inv/nodes/SoIndexedLineSet.H"
-#include "inv/nodes/SoLineSet.H"
+#include "inv/nodes/SoIndexedLineSet.hpp"
+#include "inv/nodes/SoLineSet.hpp"
 
-#include "inv/fields/SoSFBitMask.H"
-#include "inv/fields/SoSFBool.H"
-#include "inv/fields/SoSFColor.H"
-#include "inv/fields/SoSFName.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/fields/SoSFUShort.H"
+#include "inv/fields/SoSFBitMask.hpp"
+#include "inv/fields/SoSFBool.hpp"
+#include "inv/fields/SoSFColor.hpp"
+#include "inv/fields/SoSFName.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/fields/SoSFUShort.hpp"
 
-#include "inv/misc/SoCallbackList.H"
+#include "inv/misc/SoCallbackList.hpp"
 
-#include "inv/nodes/SoOrthographicCamera.H"
-#include "inv/nodes/SoSelection.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/nodes/SoOrthographicCamera.hpp"
+#include "inv/nodes/SoSelection.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
-#include "inv/ChemKit/ChemBBoxAction.H"
-#include "inv/ChemKit/ChemDisplayPathList.H"
-#include "inv/ChemKit/ChemLabelPathList.H"
-#include "inv/ChemKit/ChemMonitorPathList.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemBBoxAction.hpp"
+#include "inv/ChemKit/ChemDisplayPathList.hpp"
+#include "inv/ChemKit/ChemLabelPathList.hpp"
+#include "inv/ChemKit/ChemMonitorPathList.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 
 class SoColorIndex;

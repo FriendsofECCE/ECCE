@@ -56,8 +56,8 @@
 #ifndef  _SO_SEPARATOR_
 #define  _SO_SEPARATOR_
 
-#include "inv/nodes/SoGroup.H"
-#include "inv/fields/SoSFEnum.H"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/fields/SoSFEnum.hpp"
 
 class SoBoundingBoxCache;
 class SoGLCacheList;
@@ -71,7 +71,7 @@ class SoGLCacheList;
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "inv/fields/SoSFBitMask.H"
+#include "inv/fields/SoSFBitMask.hpp"
 
 // C-api: prefix=SoSep
 // C-api: public=renderCaching, boundingBoxCaching, renderCulling, pickCulling

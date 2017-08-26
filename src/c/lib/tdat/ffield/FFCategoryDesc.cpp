@@ -8,8 +8,8 @@
   using std::cout;
   using std::endl;
 
-#include "util/ErrMsg.H"
-#include "tdat/FFCategoryDesc.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/FFCategoryDesc.hpp"
 
 /**
  *  Constructs an empty force field category description (FFCategoryDesc)

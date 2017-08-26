@@ -39,13 +39,13 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "mystring.H"
-#include "trimvertex.H"
-#include "trimvertpool.H"
-#include "bufpool.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "mystring.hpp"
+#include "trimvertex.hpp"
+#include "trimvertpool.hpp"
+#include "bufpool.hpp"
 
 /*----------------------------------------------------------------------------
  * TrimVertexPool::TrimVertexPool 

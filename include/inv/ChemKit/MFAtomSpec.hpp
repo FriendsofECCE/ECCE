@@ -57,10 +57,10 @@
 #ifndef  __MF_ATOMSPEC_H__
 #define  __MF_ATOMSPEC_H__
 
-#include "inv/fields/SoSubField.H"
+#include "inv/fields/SoSubField.hpp"
 
-#include "inv/ChemKit/SbAtomSpec.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/SbAtomSpec.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

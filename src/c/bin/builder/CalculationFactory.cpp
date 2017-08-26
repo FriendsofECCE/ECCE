@@ -11,15 +11,15 @@
 
 #include <wx/link.h>
 
-#include "util/ResourceUtils.H"
-#include "util/StringTokenizer.H"
+#include "util/ResourceUtils.hpp"
+#include "util/StringTokenizer.hpp"
 
-#include "dsm/EDSIFactory.H"
-#include "dsm/IPropCalculation.H"
-#include "dsm/Resource.H"
-#include "dsm/ResourceType.H"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/Resource.hpp"
+#include "dsm/ResourceType.hpp"
 
-#include "CalculationFactory.H"
+#include "CalculationFactory.hpp"
 
 wxFORCE_LINK_MODULE(CarCalculation)
 wxFORCE_LINK_MODULE(CubeCalculation)

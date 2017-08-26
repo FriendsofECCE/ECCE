@@ -54,8 +54,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/SbBox.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/SbBox.hpp"
+#include "inv/errors/SoDebugError.hpp"
 #include <limits.h>
 #include <float.h>    /* For FLT_MAX */
 

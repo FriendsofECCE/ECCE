@@ -5,7 +5,7 @@
 #ifndef OBJECTIVEFUNCTION_HH
 #define OBJECTIVEFUNCTION_HH
 
-#include "util/InvalidException.H"
+#include "util/InvalidException.hpp"
 
 class FFCoordinates;
 

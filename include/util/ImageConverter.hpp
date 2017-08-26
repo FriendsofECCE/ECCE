@@ -13,8 +13,8 @@
 #include <vector>
   using std::vector;
 
-#include "util/EcceException.H"
-#include "util/BadValueException.H"
+#include "util/EcceException.hpp"
+#include "util/BadValueException.hpp"
 
 
 class ImageConverter

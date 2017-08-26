@@ -57,9 +57,9 @@
 #define  _SO_LAZY_ELEMENT
 
 
-#include "inv/SbColor.H"
-#include "inv/elements/SoElement.H"
-#include "inv/elements/SoSubElement.H"
+#include "inv/SbColor.hpp"
+#include "inv/elements/SoElement.hpp"
+#include "inv/elements/SoSubElement.hpp"
 #include <math.h>
 
 class SoMFFloat; class SoMFColor; class SoColorPacker;

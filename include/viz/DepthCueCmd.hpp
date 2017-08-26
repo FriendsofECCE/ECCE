@@ -6,7 +6,7 @@
 #ifndef  DEPTHCUECMD_H
 #define  DEPTHCUECMD_H
 
-#include "util/Command.H"
+#include "util/Command.hpp"
 
 class Fragment;
 

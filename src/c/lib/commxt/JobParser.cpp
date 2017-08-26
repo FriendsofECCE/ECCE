@@ -17,30 +17,30 @@
   using std::ofstream;
 
 
-#include "util/ErrMsg.H"
-#include "util/Preferences.H"
-#include "util/SFile.H"
-#include "util/EcceURL.H"
-#include "util/TDateTime.H"
-#include "util/TypedFile.H"
-#include "util/EcceMap.H"
-#include "util/StringTokenizer.H"
-#include "util/SDirectory.H"
-#include "util/TempStorage.H"
+#include "util/ErrMsg.hpp"
+#include "util/Preferences.hpp"
+#include "util/SFile.hpp"
+#include "util/EcceURL.hpp"
+#include "util/TDateTime.hpp"
+#include "util/TypedFile.hpp"
+#include "util/EcceMap.hpp"
+#include "util/StringTokenizer.hpp"
+#include "util/SDirectory.hpp"
+#include "util/TempStorage.hpp"
 
-#include "tdat/RefMachine.H"
+#include "tdat/RefMachine.hpp"
 
-#include "dsm/IPropCache.H"
-#include "dsm/JCode.H"
-#include "dsm/CodeFactory.H"
-#include "dsm/TaskJob.H"
-#include "dsm/ActivityLog.H"
-#include "dsm/EDSIFactory.H"
-#include "dsm/EDSIServerCentral.H"
+#include "dsm/IPropCache.hpp"
+#include "dsm/JCode.hpp"
+#include "dsm/CodeFactory.hpp"
+#include "dsm/TaskJob.hpp"
+#include "dsm/ActivityLog.hpp"
+#include "dsm/EDSIFactory.hpp"
+#include "dsm/EDSIServerCentral.hpp"
 
-#include "comm/RCommand.H"
-#include "comm/Launch.H"
-#include "comm/JobParser.H"
+#include "comm/RCommand.hpp"
+#include "comm/Launch.hpp"
+#include "comm/JobParser.hpp"
 
 #ifdef JSPERLTIMER
 extern RWTimer perlTimer;

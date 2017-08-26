@@ -61,7 +61,7 @@
 #ifndef _SO_BOX_HIGHLIGHT_RENDER_ACTION_
 #define _SO_BOX_HIGHLIGHT_RENDER_ACTION_
 
-#include "inv/actions/SoGLRenderAction.H"
+#include "inv/actions/SoGLRenderAction.hpp"
 
 class SbColor;
 class SoSeparator;

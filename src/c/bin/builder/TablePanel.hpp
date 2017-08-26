@@ -1,7 +1,7 @@
 #ifndef TABLEPANEL__H
 #define TABLEPANEL__H
 
-#include "TableGUI.H"
+#include "TableGUI.hpp"
 
 
 class wxGrid;

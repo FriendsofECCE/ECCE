@@ -56,8 +56,8 @@
 #ifndef  _SO_SPACEBALL_BUTTON_EVENT_
 #define  _SO_SPACEBALL_BUTTON_EVENT_
 
-#include "inv/SbBasic.H"
-#include "inv/events/SoButtonEvent.H"
+#include "inv/SbBasic.hpp"
+#include "inv/events/SoButtonEvent.hpp"
 
 // some convenience macros for determining if an event matches
 // C-api: end

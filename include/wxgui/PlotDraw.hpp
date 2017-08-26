@@ -15,10 +15,10 @@
     #pragma interface "PlotDraw.H"
 #endif
 
-#include "wxgui/PlotDefs.H"
-#include "wxgui/PlotMark.H"
-#include "wxgui/ThingGenergdi.H"
-#include "wxgui/ThingRange.H"
+#include "wxgui/PlotDefs.hpp"
+#include "wxgui/PlotMark.hpp"
+#include "wxgui/ThingGenergdi.hpp"
+#include "wxgui/ThingRange.hpp"
 
 class WXDLLIMPEXP_FWD_CORE wxDC;
 

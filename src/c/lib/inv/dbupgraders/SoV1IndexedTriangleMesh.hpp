@@ -57,8 +57,8 @@
 #ifndef  _SO_V1INDEXEDTRIANGLEMESH_
 #define  _SO_V1INDEXEDTRIANGLEMESH_
 
-#include "inv/upgraders/SoUpgrader.H"
-#include "inv/fields/SoMFInt32.H"
+#include "inv/upgraders/SoUpgrader.hpp"
+#include "inv/fields/SoMFInt32.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

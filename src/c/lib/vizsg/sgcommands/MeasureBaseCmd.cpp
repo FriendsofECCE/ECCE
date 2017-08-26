@@ -6,12 +6,12 @@
 #include <iostream>
   using namespace std;
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
    using namespace ecce;
 
-#include "viz/MeasureBaseCmd.H"
-#include "viz/SGContainer.H"
+#include "viz/MeasureBaseCmd.hpp"
+#include "viz/SGContainer.hpp"
 
 MeasureBaseCmd::MeasureBaseCmd(const string& name, Receiver * receiver)
     : Command(name, receiver)

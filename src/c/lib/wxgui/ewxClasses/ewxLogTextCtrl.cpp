@@ -5,14 +5,14 @@
 #include "wx/log.h"
 #include "wx/wx.h"
 
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
-#include "util/Color.H"
-#include "wxgui/ewxLogTextCtrl.H"
-#include "wxgui/ewxStyledWindow.H"
-#include "wxgui/ewxColor.H"
+#include "util/JMSMessage.hpp"
+#include "util/JMSPublisher.hpp"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
+#include "util/Color.hpp"
+#include "wxgui/ewxLogTextCtrl.hpp"
+#include "wxgui/ewxStyledWindow.hpp"
+#include "wxgui/ewxColor.hpp"
 
 IMPLEMENT_CLASS( ewxLogTextCtrl, wxEvtHandler )
 

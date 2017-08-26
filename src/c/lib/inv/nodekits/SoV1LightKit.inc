@@ -51,17 +51,17 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/upgraders/SoV1LightKit.H"
-#include "inv/nodes/SoCallback.H"
-#include "inv/nodes/SoEventCallback.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodekits/SoAppearanceKit.H"
-#include "inv/nodes/SoLight.H"
-#include "inv/nodes/SoDirectionalLight.H"
-#include "inv/nodes/SoTransform.H"
-#include "inv/nodekits/SoSeparatorKit.H"
-#include "inv/nodekits/SoLightKit.H"
+#include "inv/SoDB.hpp"
+#include "inv/upgraders/SoV1LightKit.hpp"
+#include "inv/nodes/SoCallback.hpp"
+#include "inv/nodes/SoEventCallback.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodekits/SoAppearanceKit.hpp"
+#include "inv/nodes/SoLight.hpp"
+#include "inv/nodes/SoDirectionalLight.hpp"
+#include "inv/nodes/SoTransform.hpp"
+#include "inv/nodekits/SoSeparatorKit.hpp"
+#include "inv/nodekits/SoLightKit.hpp"
 
 // Define the required type id and name inquiry methods
 SO_NODE_SOURCE(SoV1LightKit);

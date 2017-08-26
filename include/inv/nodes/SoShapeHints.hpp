@@ -56,10 +56,10 @@
 #ifndef  _SO_SHAPE_HINTS_
 #define  _SO_SHAPE_HINTS_
 
-#include "inv/elements/SoGLShapeHintsElement.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/elements/SoGLShapeHintsElement.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

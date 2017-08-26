@@ -30,7 +30,7 @@
 #define __CHEMPDBIMPORTER__
 
 
-#include "inv/ChemKit/ChemFileImporter.H"
+#include "inv/ChemKit/ChemFileImporter.hpp"
 
 class ChemData;
 class ChemAssociatedData;

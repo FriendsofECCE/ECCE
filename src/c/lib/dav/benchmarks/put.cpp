@@ -4,11 +4,11 @@
 #include <fstream>
 using namespace std;
 
-#include "util/ETimer.H"
-#include "util/EcceURL.H"
-#include "util/CmdLineAuthListener.H"
-#include "dsm/DavEDSI.H"
-#include "dsm/EDSIFactory.H"
+#include "util/ETimer.hpp"
+#include "util/EcceURL.hpp"
+#include "util/CmdLineAuthListener.hpp"
+#include "dsm/DavEDSI.hpp"
+#include "dsm/EDSIFactory.hpp"
 
 
 void usage() {

@@ -57,10 +57,10 @@
  */
 
 #include <stdio.h>
-#include "inv/actions/SoAction.H"
-#include "inv/elements/SoNormalElement.H"
-#include "SoAddPrefix.H"
-#include "SoPrimMaps.H"
+#include "inv/actions/SoAction.hpp"
+#include "inv/elements/SoNormalElement.hpp"
+#include "SoAddPrefix.hpp"
+#include "SoPrimMaps.hpp"
 
 // This stores the texture coordinate until the vertex comes through.
 static float tmpPrimTex[2] = {0.0, 0.0};

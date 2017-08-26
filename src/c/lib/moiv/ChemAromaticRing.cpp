@@ -54,8 +54,8 @@
 
 #include <math.h>
 
-#include "inv/ChemKit/ChemIntList.H"
-#include "inv/ChemKit/ChemAromaticRing.H"
+#include "inv/ChemKit/ChemIntList.hpp"
+#include "inv/ChemKit/ChemAromaticRing.hpp"
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAXFLOAT    ((float)3.40282346638528860e+38)

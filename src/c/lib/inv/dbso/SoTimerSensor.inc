@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/SoDB.H"
-#include "inv/sensors/SoTimerSensor.H"
+#include "inv/SoDB.hpp"
+#include "inv/sensors/SoTimerSensor.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

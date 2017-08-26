@@ -56,7 +56,7 @@
 #ifndef _SO_POINT_DETAIL_
 #define _SO_POINT_DETAIL_
 
-#include "inv/details/SoSubDetail.H"
+#include "inv/details/SoSubDetail.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

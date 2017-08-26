@@ -1,20 +1,20 @@
 
-#include "util/Ecce.H"
-#include "util/Host.H"
-#include "util/Preferences.H"
-#include "util/PreferenceLabels.H"
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
+#include "util/Ecce.hpp"
+#include "util/Host.hpp"
+#include "util/Preferences.hpp"
+#include "util/PreferenceLabels.hpp"
+#include "util/JMSMessage.hpp"
+#include "util/JMSPublisher.hpp"
 
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceDescriptor.hpp"
 
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxCheckBox.H"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxCheckBox.hpp"
 
-#include "wxgui/WxAuth.H"
+#include "wxgui/WxAuth.hpp"
 
 
 /**

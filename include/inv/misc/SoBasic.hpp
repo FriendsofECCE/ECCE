@@ -56,7 +56,7 @@
 #ifndef  _SO_BASIC_
 #define  _SO_BASIC_
 
-#include "inv/SbBasic.H"
+#include "inv/SbBasic.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

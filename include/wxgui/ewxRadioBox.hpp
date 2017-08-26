@@ -3,8 +3,8 @@
 
 #include "wx/radiobox.h"
 
-#include "wxgui/ewxGenericValidator.H" // for ewxDefaultValidator
-#include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxGenericValidator.hpp" // for ewxDefaultValidator
+#include "wxgui/ewxStyledWindow.hpp"
 
 class ewxRadioBox : public wxRadioBox, public ewxStyledWindow
 {

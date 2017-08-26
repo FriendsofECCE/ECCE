@@ -59,9 +59,9 @@
 #ifndef  _SO_TEXTURE_COORDINATE_PLANE_
 #define  _SO_TEXTURE_COORDINATE_PLANE_
 
-#include "inv/nodes/SoTextureCoordinateFunction.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/fields/SoSFRotation.H"
+#include "inv/nodes/SoTextureCoordinateFunction.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/fields/SoSFRotation.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

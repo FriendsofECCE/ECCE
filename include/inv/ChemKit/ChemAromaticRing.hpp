@@ -57,7 +57,7 @@
 #ifndef __CHEM_AROMATIC_RING_H__
 #define __CHEM_AROMATIC_RING_H__
 
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
 class ChemDisplay;
 class ChemIntList;

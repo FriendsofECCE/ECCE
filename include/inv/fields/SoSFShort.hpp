@@ -56,7 +56,7 @@
 #ifndef  _SO_SF_SHORT_
 #define  _SO_SF_SHORT_
 
-#include "inv/fields/SoSubField.H"
+#include "inv/fields/SoSubField.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

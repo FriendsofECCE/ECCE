@@ -56,8 +56,8 @@
 #ifndef  _SO_FIELD_CONVERTER_
 #define  _SO_FIELD_CONVERTER_
 
-#include "inv/SoDB.H"
-#include "inv/engines/SoSubEngine.H"
+#include "inv/SoDB.hpp"
+#include "inv/engines/SoSubEngine.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -6,9 +6,9 @@
 #ifndef GRIDATOMELEMENT_HH
 #define GRIDATOMELEMENT_HH
 
-#include "util/InvalidException.H"
+#include "util/InvalidException.hpp"
 
-#include "wxgui/GridElement.H"
+#include "wxgui/GridElement.hpp"
 
 class AtomProperty;
 class Residue;

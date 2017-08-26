@@ -3,9 +3,9 @@
 #include <wx/tglbtn.h>
 #include <wx/timer.h>
 
-#include "wxgui/ThingToggle.H"
-#include "wxgui/PlaybackControl.H"
-#include "wxgui/ewxImage.H"
+#include "wxgui/ThingToggle.hpp"
+#include "wxgui/PlaybackControl.hpp"
+#include "wxgui/ewxImage.hpp"
 
 
 DEFINE_EVENT_TYPE(wxEVT_PLAYBACK_TICK_EVENT)

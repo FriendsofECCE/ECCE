@@ -15,8 +15,8 @@
 #include <xercesc/dom/DOMElement.hpp>
   using namespace xercesc;
 
-#include "dsm/GridProperty.H"
-#include "dsm/ResourceDescriptor.H"
+#include "dsm/GridProperty.hpp"
+#include "dsm/ResourceDescriptor.hpp"
 
 
 

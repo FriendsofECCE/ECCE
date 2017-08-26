@@ -21,34 +21,34 @@
     using std::vector;
 
 
-#include "util/STLUtil.H"
-#include "util/Ecce.H"
-#include "util/Preferences.H"
-#include "util/KeyValueReader.H"
-#include "util/SFile.H"
-#include "util/EcceSortedVector.H"
-#include "util/EcceMap.H"
-#include "util/StringTokenizer.H"
-#include "util/JMSMessage.H"
-#include "util/BrowserHelp.H"
+#include "util/STLUtil.hpp"
+#include "util/Ecce.hpp"
+#include "util/Preferences.hpp"
+#include "util/KeyValueReader.hpp"
+#include "util/SFile.hpp"
+#include "util/EcceSortedVector.hpp"
+#include "util/EcceMap.hpp"
+#include "util/StringTokenizer.hpp"
+#include "util/JMSMessage.hpp"
+#include "util/BrowserHelp.hpp"
 
-#include "tdat/Queue.H"
-#include "tdat/QueueMgr.H"
+#include "tdat/Queue.hpp"
+#include "tdat/QueueMgr.hpp"
 
-#include "dsm/MachinePreferences.H"
-#include "dsm/CodeFactory.H"
-#include "dsm/ResourceDescriptor.H"
-#include "dsm/ResourceTool.H"
+#include "dsm/MachinePreferences.hpp"
+#include "dsm/CodeFactory.hpp"
+#include "dsm/ResourceDescriptor.hpp"
+#include "dsm/ResourceTool.hpp"
 
-#include "comm/RCommand.H"
+#include "comm/RCommand.hpp"
 
-#include "wxgui/ewxBitmap.H"
-#include "wxgui/ewxButton.H"
-#include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxBitmap.hpp"
+#include "wxgui/ewxButton.hpp"
+#include "wxgui/ewxMessageDialog.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 
-#include "MachineBrowser.H"
+#include "MachineBrowser.hpp"
 
 
 BEGIN_EVENT_TABLE(MachineBrowser, MachineBrowserGUI)

@@ -57,10 +57,10 @@
 #ifndef  __CHEM_LATTICE3_ELEMENT_H__
 #define  __CHEM_LATTICE3_ELEMENT_H__
 
-#include "inv/elements/SoReplacedElement.H"
+#include "inv/elements/SoReplacedElement.hpp"
 
-#include "inv/ChemKit/ChemLattice3.H"
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemLattice3.hpp"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 
 //////////////////////////////////////////////////////////////////////////////

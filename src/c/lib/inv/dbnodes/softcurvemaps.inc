@@ -35,7 +35,7 @@
  */
 
 #include <GL/gl.h>
-#include "softcurvemaps.H"
+#include "softcurvemaps.hpp"
 
 _SoNurbsColor4CurveMap::_SoNurbsColor4CurveMap() : _SoNurbsCurveMap( N_C4D, 0, 4 ) {}
 _SoNurbsColor4CurveMap::~_SoNurbsColor4CurveMap() {}

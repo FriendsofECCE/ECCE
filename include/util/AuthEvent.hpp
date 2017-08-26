@@ -4,7 +4,7 @@
 #include <string>
   using std::string;
 
-#include "util/RetryException.H"
+#include "util/RetryException.hpp"
 
 struct  AuthEvent {
   string m_realm;   // as in WWW-Authenticate

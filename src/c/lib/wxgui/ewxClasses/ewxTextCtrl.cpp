@@ -16,18 +16,18 @@
 
 #include "wx/textctrl.h"
 
-#include "util/BadDataException.H"
-#include "util/StringConverter.H"
-#include "util/UnitFactory.H"
-#include "util/UnitFamily.H"
-#include "util/UnitConverter.H"
+#include "util/BadDataException.hpp"
+#include "util/StringConverter.hpp"
+#include "util/UnitFactory.hpp"
+#include "util/UnitFamily.hpp"
+#include "util/UnitConverter.hpp"
 
-#include "wxgui/ewxDisabler.H"
-#include "wxgui/ewxTextCtrl.H"
-#include "wxgui/ewxHelpHandler.H"
-#include "wxgui/ewxUnitHelper.H"
-#include "wxgui/ewxGenericValidator.H"
-#include "wxgui/ewxNumericValidator.H"
+#include "wxgui/ewxDisabler.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
+#include "wxgui/ewxHelpHandler.hpp"
+#include "wxgui/ewxUnitHelper.hpp"
+#include "wxgui/ewxGenericValidator.hpp"
+#include "wxgui/ewxNumericValidator.hpp"
 
 
 /**

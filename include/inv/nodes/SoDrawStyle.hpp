@@ -56,12 +56,12 @@
 #ifndef  _SO_DRAW_STYLE_
 #define  _SO_DRAW_STYLE_
 
-#include "inv/SbString.H"
-#include "inv/elements/SoDrawStyleElement.H"
-#include "inv/fields/SoSFEnum.H"
-#include "inv/fields/SoSFFloat.H"
-#include "inv/fields/SoSFUShort.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/SbString.hpp"
+#include "inv/elements/SoDrawStyleElement.hpp"
+#include "inv/fields/SoSFEnum.hpp"
+#include "inv/fields/SoSFFloat.hpp"
+#include "inv/fields/SoSFUShort.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

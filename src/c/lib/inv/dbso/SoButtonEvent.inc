@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/events/SoButtonEvent.H"
+#include "inv/events/SoButtonEvent.hpp"
 
 SO_EVENT_SOURCE(SoButtonEvent);
 

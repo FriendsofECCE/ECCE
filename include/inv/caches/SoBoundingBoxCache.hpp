@@ -59,8 +59,8 @@
 #ifndef  _SO_BOUNDING_BOX_CACHE
 #define  _SO_BOUNDING_BOX_CACHE
 
-#include "inv/SbBox.H"
-#include "inv/caches/SoCache.H"
+#include "inv/SbBox.hpp"
+#include "inv/caches/SoCache.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //

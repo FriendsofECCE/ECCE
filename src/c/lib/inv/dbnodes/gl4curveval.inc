@@ -40,11 +40,11 @@
  * $Revision: 22116 $
  */
 
-#include "myglimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "mymath.H"
-#include "gl4curveval.H"
+#include "myglimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "mymath.hpp"
+#include "gl4curveval.hpp"
 
 /*
 extern "C" {

@@ -21,12 +21,12 @@
 #include "math.h"
 #include "string.h"
 
-#include "util/Ecce.H"
-#include "util/TempStorage.H"
-#include "util/SFile.H"
+#include "util/Ecce.hpp"
+#include "util/TempStorage.hpp"
+#include "util/SFile.hpp"
 
-#include "tdat/SymmetryOps.H"
-#include "tdat/LatticeDef.H"
+#include "tdat/SymmetryOps.hpp"
+#include "tdat/LatticeDef.hpp"
 
 static string cleanCmd = "./cleansym";
 static string autosymCmd = "./autosym";

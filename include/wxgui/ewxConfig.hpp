@@ -10,7 +10,7 @@ using std::vector;
 
 #include "wx/fileconf.h"
 
-#include "util/CompareOps.H"
+#include "util/CompareOps.hpp"
 
 
 class ewxConfig : public wxFileConfig

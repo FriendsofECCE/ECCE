@@ -17,24 +17,24 @@
 #include <iomanip>
 
 
-#include "util/NullPointerException.H"
-#include "util/SFile.H"
-#include "util/STLUtil.H"
-#include "util/TempStorage.H"
-#include "util/Transformations.H"
+#include "util/NullPointerException.hpp"
+#include "util/SFile.hpp"
+#include "util/STLUtil.hpp"
+#include "util/TempStorage.hpp"
+#include "util/Transformations.hpp"
 
-#include "tdat/FragUtil.H"
-#include "tdat/Fragment.H"
-#include "tdat/TFormula.H"
-#include "tdat/TTCPair.H"
-#include "tdat/TPerTab.H"
-#include "tdat/ShapeData.H"
-#include "tdat/TBond.H"
-#include "tdat/TAtm.H"
-#include "tdat/Residue.H"
-#include "tdat/TResTab.H"
-#include "tdat/TResItem.H"
-#include "tdat/Measures.H"
+#include "tdat/FragUtil.hpp"
+#include "tdat/Fragment.hpp"
+#include "tdat/TFormula.hpp"
+#include "tdat/TTCPair.hpp"
+#include "tdat/TPerTab.hpp"
+#include "tdat/ShapeData.hpp"
+#include "tdat/TBond.hpp"
+#include "tdat/TAtm.hpp"
+#include "tdat/Residue.hpp"
+#include "tdat/TResTab.hpp"
+#include "tdat/TResItem.hpp"
+#include "tdat/Measures.hpp"
 
 #define PI 3.14159265358979323846
 

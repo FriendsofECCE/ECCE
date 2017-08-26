@@ -26,8 +26,8 @@
   using std::vector;
   using std::map;
 
-#include "dsm/ActivityLog.H"
-#include "dsm/IPropCache.H"
+#include "dsm/ActivityLog.hpp"
+#include "dsm/IPropCache.hpp"
 class EcceURL;
 class EDSI;
 class VDoc;

@@ -1,9 +1,9 @@
-#include "dsm/IPropCalculation.H"
-#include "dsm/ICalculation.H"
+#include "dsm/IPropCalculation.hpp"
+#include "dsm/ICalculation.hpp"
 
-#include "viz/ShowFragCmd.H"
+#include "viz/ShowFragCmd.hpp"
 
-#include "VizPropertyPanel.H"
+#include "VizPropertyPanel.hpp"
 
 
 IMPLEMENT_DYNAMIC_CLASS(VizPropertyPanel, PropertyPanel)

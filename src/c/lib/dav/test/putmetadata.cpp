@@ -2,8 +2,8 @@
 // include files ***********************************************************
 #  include <iostream.h>
 #  include <fstream.h>
-#include "util/EcceURL.H"
-#include "dsm/DavEDSI.H"
+#include "util/EcceURL.hpp"
+#include "dsm/DavEDSI.hpp"
 
 void usage() {
   cout << "usage putmetadata url key value-filename" << endl;

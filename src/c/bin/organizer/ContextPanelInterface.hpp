@@ -17,7 +17,7 @@
 #include <vector>
   using std::vector;
 
-#include "util/EcceURL.H"
+#include "util/EcceURL.hpp"
 
 #define wxID_PANEL_SELECTION 10200
 

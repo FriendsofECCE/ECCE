@@ -6,7 +6,7 @@
 #ifndef COMMANDEXCEPTION_HH
 #define COMMANDEXCEPTION_HH
 
-#include "util/EcceException.H"
+#include "util/EcceException.hpp"
 
 /**
  * SystemCommandException represents failures of system type commands.

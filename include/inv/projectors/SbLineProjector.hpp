@@ -57,7 +57,7 @@
 #ifndef _SB_LINE_PROJECTOR_
 #define _SB_LINE_PROJECTOR_
 
-#include "inv/projectors/SbProjector.H"
+#include "inv/projectors/SbProjector.hpp"
 
 // C-api: prefix=SbLineProj
 class SbLineProjector : public SbProjector

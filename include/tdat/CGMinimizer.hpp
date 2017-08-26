@@ -58,9 +58,9 @@
 #ifndef CGMINIMIZER_HH
 #define CGMINIMIZER_HH
 
-#include "tdat/FFCoords.H"
-#include "tdat/ForceField.H"
-#include "tdat/ObjectiveFunction.H"
+#include "tdat/FFCoords.hpp"
+#include "tdat/ForceField.hpp"
+#include "tdat/ObjectiveFunction.hpp"
 
 ////////////////////////////////////////////////////////////////////////////// 
 // Defaults (magic numbers) chosen for the problem at hand in units

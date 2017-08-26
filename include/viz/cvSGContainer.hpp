@@ -7,7 +7,7 @@
 using std::vector;
 using std::deque;
 
-#include "viz/SGContainer.H"
+#include "viz/SGContainer.hpp"
 
 class ChemColor;
 class ChemRadii;

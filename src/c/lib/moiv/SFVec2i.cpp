@@ -55,7 +55,7 @@
 
 #ident "$Revision: 22141 $"
 
-#include "inv/ChemKit/SFVec2i.H"
+#include "inv/ChemKit/SFVec2i.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

@@ -6,9 +6,9 @@
 #endif
 
 #include <wx/wx.h>
-#include "inv/SbLinear.H"
+#include "inv/SbLinear.hpp"
 
-#include "inv/SoWx/SoWxViewer.H"
+#include "inv/SoWx/SoWxViewer.hpp"
 
 class SbSphereSheetProjector;
 class SoFieldSensor;

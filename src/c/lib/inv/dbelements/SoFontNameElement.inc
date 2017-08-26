@@ -51,7 +51,7 @@
  _______________________________________________________________________
  */
 
-#include "inv/elements/SoFontNameElement.H"
+#include "inv/elements/SoFontNameElement.hpp"
 
 SO_ELEMENT_SOURCE(SoFontNameElement);
 

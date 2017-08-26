@@ -1,5 +1,5 @@
-#include "wxgui/GenericValidator.H" // for wxEVT_VALIDATION_EVENT
-#include "wxgui/SliderCombo.H"
+#include "wxgui/GenericValidator.hpp" // for wxEVT_VALIDATION_EVENT
+#include "wxgui/SliderCombo.hpp"
 
 
 ///////////////////////////////////////////////////////////////////////////////

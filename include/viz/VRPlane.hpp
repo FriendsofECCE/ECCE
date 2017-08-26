@@ -4,7 +4,7 @@
 class SoGLRenderAction;
 class RTDraggerNode;
 
-#include "inv/nodes/SoGroup.H"
+#include "inv/nodes/SoGroup.hpp"
 
 class  VRPlane : public SoGroup {
 

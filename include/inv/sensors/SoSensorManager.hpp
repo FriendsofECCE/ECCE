@@ -61,8 +61,8 @@
 #ifndef  _SO_SENSOR_MANAGER_
 #define  _SO_SENSOR_MANAGER_
 
-#include "inv/misc/SoBasic.H"
-#include "inv/SbTime.H"
+#include "inv/misc/SoBasic.hpp"
+#include "inv/SbTime.hpp"
 
 class SoSensor;
 class SoDelayQueueSensor;

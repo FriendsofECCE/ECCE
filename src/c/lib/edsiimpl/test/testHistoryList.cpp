@@ -2,7 +2,7 @@
 #include <fstream.h>
 #include <unistd.h>
 
-#include "dsm/HistoryList.H"
+#include "dsm/HistoryList.hpp"
 
 int main(int argc, char** argv)
 {

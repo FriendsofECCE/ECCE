@@ -58,9 +58,9 @@
 #define __SB_VECI_H__
 
 #include <math.h>
-#include "inv/SbBasic.H"
+#include "inv/SbBasic.hpp"
 
-#include "inv/ChemKit/ChemkitBasic.H"
+#include "inv/ChemKit/ChemkitBasic.hpp"
 
 // -----------------------------------
 //

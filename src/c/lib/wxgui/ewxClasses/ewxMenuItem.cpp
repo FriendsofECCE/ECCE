@@ -5,7 +5,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "wxgui/ewxMenuItem.H"
+#include "wxgui/ewxMenuItem.hpp"
 
 ewxMenuItem::ewxMenuItem() : wxMenuItem()
 {

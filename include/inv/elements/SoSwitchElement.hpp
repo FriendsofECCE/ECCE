@@ -56,7 +56,7 @@
 #ifndef  _SO_SWITCH_ELEMENT
 #define  _SO_SWITCH_ELEMENT
 
-#include "inv/elements/SoInt32Element.H"
+#include "inv/elements/SoInt32Element.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

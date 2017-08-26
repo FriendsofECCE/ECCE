@@ -2,7 +2,7 @@
 #include <fstream.h>
 #include <unistd.h>
 
-#include "dsm/GLQuery.H"
+#include "dsm/GLQuery.hpp"
 
 int main(int argc, char** argv)
 {

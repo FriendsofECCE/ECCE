@@ -6,7 +6,7 @@
 #ifndef  ASSIGNRESIDUEATOMSCMD_H
 #define  ASSIGNRESIDUEATOMSCMD_H
 
-#include "viz/FragCloneCmd.H"
+#include "viz/FragCloneCmd.hpp"
 
 class AssignResidueAtomsCmd : public FragCloneCmd
 {

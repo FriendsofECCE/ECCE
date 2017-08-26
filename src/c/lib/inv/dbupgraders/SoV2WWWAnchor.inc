@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "SoV2WWWAnchor.H"
-#include "inv/nodes/SoWWWAnchor.H"
-#include "inv/errors/SoReadError.H"
+#include "SoV2WWWAnchor.hpp"
+#include "inv/nodes/SoWWWAnchor.hpp"
+#include "inv/errors/SoReadError.hpp"
 
 SO_NODE_SOURCE(SoV2WWWAnchor);
 

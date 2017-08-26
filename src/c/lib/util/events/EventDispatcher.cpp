@@ -5,9 +5,9 @@
  */
 #include <iostream>
  using namespace std;
-#include "util/Event.H"
-#include "util/Listener.H"
-#include "util/EventDispatcher.H"
+#include "util/Event.hpp"
+#include "util/Listener.hpp"
+#include "util/EventDispatcher.hpp"
 
 using namespace ecce;
 

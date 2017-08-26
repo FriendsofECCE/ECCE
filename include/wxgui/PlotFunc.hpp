@@ -15,7 +15,7 @@
     #pragma interface "PlotFunc.H"
 #endif
 
-#include "wxgui/PlotCurv.H"
+#include "wxgui/PlotCurv.hpp"
 
 class WXDLLIMPEXP_FWD_PLOTCTRL wxPlotFunction;
 

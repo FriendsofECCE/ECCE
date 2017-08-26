@@ -61,13 +61,13 @@
 #ifndef _SB_PROJECTORS_
 #define _SB_PROJECTORS_
 
-#include "inv/projectors/SbSphereSectionProjector.H"
-#include "inv/projectors/SbSphereSheetProjector.H"
-#include "inv/projectors/SbSpherePlaneProjector.H"
-#include "inv/projectors/SbCylinderSectionProjector.H"
-#include "inv/projectors/SbCylinderPlaneProjector.H"
-#include "inv/projectors/SbCylinderSheetProjector.H"
-#include "inv/projectors/SbPlaneProjector.H"
-#include "inv/projectors/SbLineProjector.H"
+#include "inv/projectors/SbSphereSectionProjector.hpp"
+#include "inv/projectors/SbSphereSheetProjector.hpp"
+#include "inv/projectors/SbSpherePlaneProjector.hpp"
+#include "inv/projectors/SbCylinderSectionProjector.hpp"
+#include "inv/projectors/SbCylinderPlaneProjector.hpp"
+#include "inv/projectors/SbCylinderSheetProjector.hpp"
+#include "inv/projectors/SbPlaneProjector.hpp"
+#include "inv/projectors/SbLineProjector.hpp"
 
 #endif /* _SB_PROJECTORS_ */

@@ -1,7 +1,7 @@
 #ifndef EXPORTTABLEDIALOG_H
 #define EXPORTTABLEDIALOG_H
 
-#include "wxgui/ewxGenericFileDialog.H"
+#include "wxgui/ewxGenericFileDialog.hpp"
 
 class ewxGrid;
 

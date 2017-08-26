@@ -54,21 +54,21 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "inv/SbDict.H"
-#include "inv/SoDB.H"
-#include "inv/SoInput.H"
-#include "inv/SoNodeKitPath.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/nodekits/SoInteractionKit.H"
-#include "inv/nodekits/SoNodeKitListPart.H"
-#include "inv/nodes/SoGroup.H"
-#include "inv/nodes/SoNode.H"
-#include "inv/nodes/SoLabel.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoSwitch.H"
-#include "inv/actions/SoSearchAction.H"
-#include "inv/actions/SoHandleEventAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
+#include "inv/SbDict.hpp"
+#include "inv/SoDB.hpp"
+#include "inv/SoInput.hpp"
+#include "inv/SoNodeKitPath.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/nodekits/SoInteractionKit.hpp"
+#include "inv/nodekits/SoNodeKitListPart.hpp"
+#include "inv/nodes/SoGroup.hpp"
+#include "inv/nodes/SoNode.hpp"
+#include "inv/nodes/SoLabel.hpp"
+#include "inv/nodes/SoSeparator.hpp"
+#include "inv/nodes/SoSwitch.hpp"
+#include "inv/actions/SoSearchAction.hpp"
+#include "inv/actions/SoHandleEventAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
 
 SO_KIT_SOURCE(SoInteractionKit);
 

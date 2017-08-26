@@ -9,11 +9,11 @@
 using std::cout;
 using std::endl;
 
-#include "util/ErrMsg.H"
+#include "util/ErrMsg.hpp"
 
-#include "dsm/TGaussianBasisSet.H"
-#include "dsm/TGBSGroup.H"
-#include "dsm/JCode.H"
+#include "dsm/TGaussianBasisSet.hpp"
+#include "dsm/TGBSGroup.hpp"
+#include "dsm/JCode.hpp"
 
 const int TGaussianBasisSet::maxShell = (int)TGaussianBasisSet::k_shell;
 

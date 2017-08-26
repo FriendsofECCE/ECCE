@@ -56,8 +56,8 @@
 #ifndef  _SO_LABEL_
 #define  _SO_LABEL_
 
-#include "inv/fields/SoSFName.H"
-#include "inv/nodes/SoSubNode.H"
+#include "inv/fields/SoSFName.hpp"
+#include "inv/nodes/SoSubNode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

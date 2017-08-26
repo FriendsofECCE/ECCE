@@ -4,17 +4,17 @@
  *
  */
 
-#include "util/EventDispatcher.H"
-#include "util/Event.H"
+#include "util/EventDispatcher.hpp"
+#include "util/Event.hpp"
 using namespace ecce;
 
-#include "tdat/TAtm.H"
+#include "tdat/TAtm.hpp"
 
-#include "wxgui/WindowEvent.H"
+#include "wxgui/WindowEvent.hpp"
 
-#include "viz/SGFragment.H"
-#include "viz/SGContainer.H"
-#include "viz/AtomLabelsCmd.H"
+#include "viz/SGFragment.hpp"
+#include "viz/SGContainer.hpp"
+#include "viz/AtomLabelsCmd.hpp"
 
 
 static const char *NUB_TAG = "Nub";

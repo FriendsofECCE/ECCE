@@ -51,9 +51,9 @@
  _______________________________________________________________________
  */
 
-#include "SoV1LightModel.H"
-#include "inv/nodes/SoEnvironment.H"
-#include "inv/nodes/SoLightModel.H"
+#include "SoV1LightModel.hpp"
+#include "inv/nodes/SoEnvironment.hpp"
+#include "inv/nodes/SoLightModel.hpp"
 
 SO_NODE_SOURCE(SoV1LightModel);
 

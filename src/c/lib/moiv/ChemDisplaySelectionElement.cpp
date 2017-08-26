@@ -55,11 +55,11 @@
 
 #ident "$Revision: 22147 $"
 
-#include "inv/errors/SoDebugError.H"
+#include "inv/errors/SoDebugError.hpp"
 
-#include "inv/ChemKit/ChemDisplayPath.H"
-#include "inv/ChemKit/ChemDisplayPathList.H"
-#include "inv/ChemKit/ChemDisplaySelectionElement.H"
+#include "inv/ChemKit/ChemDisplayPath.hpp"
+#include "inv/ChemKit/ChemDisplayPathList.hpp"
+#include "inv/ChemKit/ChemDisplaySelectionElement.hpp"
 
 SO_ELEMENT_SOURCE(ChemDisplaySelectionElement);
 

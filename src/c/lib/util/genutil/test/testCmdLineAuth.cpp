@@ -3,7 +3,7 @@
 
 using namespace std;
 
-#include "util/CmdLineAuthListener.H"
+#include "util/CmdLineAuthListener.hpp"
 
 int main(int argc, char** argv)
 {

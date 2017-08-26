@@ -34,12 +34,12 @@
  *
  */
 
-#include "SoAddPrefix.H"
-#include "mymath.H"
-#include "mystdlib.H"
-#include "softrenderer.H"
-#include "softcurvemaps.H"
-#include "softsurfacemaps.H"
+#include "SoAddPrefix.hpp"
+#include "mymath.hpp"
+#include "mystdlib.hpp"
+#include "softrenderer.hpp"
+#include "softcurvemaps.hpp"
+#include "softsurfacemaps.hpp"
 
 
 _SoNurbsSoftRenderer::_SoNurbsSoftRenderer( void )

@@ -67,26 +67,26 @@
 #include <GL/gl.h>
 #endif /* __gl_h_ */
 
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoCallbackAction.H"
-#include "inv/actions/SoPickAction.H"
-#include "inv/actions/SoGetBoundingBoxAction.H"
-#include "inv/elements/SoGLClipPlaneElement.H"
-#include "inv/elements/SoFontNameElement.H"
-#include "inv/elements/SoFontSizeElement.H"
-#include "inv/elements/SoViewVolumeElement.H"
-#include "inv/nodes/SoClipPlane.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/actions/SoCallbackAction.hpp"
+#include "inv/actions/SoPickAction.hpp"
+#include "inv/actions/SoGetBoundingBoxAction.hpp"
+#include "inv/elements/SoGLClipPlaneElement.hpp"
+#include "inv/elements/SoFontNameElement.hpp"
+#include "inv/elements/SoFontSizeElement.hpp"
+#include "inv/elements/SoViewVolumeElement.hpp"
+#include "inv/nodes/SoClipPlane.hpp"
 
-#include "inv/ChemKit/ChemDisplayParam.H"
-#include "inv/ChemKit/ChemDisplayParamElement.H"
-#include "inv/ChemKit/ChemOverrideElement.H"
+#include "inv/ChemKit/ChemDisplayParam.hpp"
+#include "inv/ChemKit/ChemDisplayParamElement.hpp"
+#include "inv/ChemKit/ChemOverrideElement.hpp"
 
 /*
 	Porting to Windows:
 	Jamie Doornbos	2001/07/15
 	Daniel Soto	2002/02/05
 */
-#include "inv/ChemKit/FixFonts.H"
+#include "inv/ChemKit/FixFonts.hpp"
 
 const uint8_t defaultHighlightAtomBitmap[] =
     {0xc0, 0xc0,  0x61, 0x80,

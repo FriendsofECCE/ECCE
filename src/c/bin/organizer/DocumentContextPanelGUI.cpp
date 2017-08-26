@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "DocumentContextPanelGUI.H"
+#pragma implementation "DocumentContextPanelGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,11 +23,11 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxTextCtrl.hpp"
 ////@end includes
 
-#include "DocumentContextPanelGUI.H"
+#include "DocumentContextPanelGUI.hpp"
 
 ////@begin XPM images
 

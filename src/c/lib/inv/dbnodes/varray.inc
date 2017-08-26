@@ -39,11 +39,11 @@
  * 	Derrick Burns - 1991
  */
 
-#include "glimports.H"
-#include "myassert.H"
-#include "mystdio.H"
-#include "varray.H"
-#include "arc.H"
+#include "glimports.hpp"
+#include "myassert.hpp"
+#include "mystdio.hpp"
+#include "varray.hpp"
+#include "arc.hpp"
 #include <tr1/math.h>         // fabs()
 
 #define TINY 0.0001

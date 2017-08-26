@@ -56,7 +56,7 @@
 #ifndef  _SO_GL_COORDINATE_ELEMENT
 #define  _SO_GL_COORDINATE_ELEMENT
 
-#include "inv/elements/SoCoordinateElement.H"
+#include "inv/elements/SoCoordinateElement.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

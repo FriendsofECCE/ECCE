@@ -9,9 +9,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // library includes
-#include "util/ErrMsg.H"
-#include "tdat/Angle.H"
-#include "tdat/FFCoords.H"
+#include "util/ErrMsg.hpp"
+#include "tdat/Angle.hpp"
+#include "tdat/FFCoords.hpp"
 // application includes
 
 #define PI  3.14159265358979323846

@@ -58,7 +58,7 @@
 #ifndef  _SO_WRAPPER_KIT_
 #define  _SO_WRAPPER_KIT_
 
-#include "inv/nodekits/SoSeparatorKit.H"
+#include "inv/nodekits/SoSeparatorKit.hpp"
 
 
 ////////////////////////////////////////////////////////////

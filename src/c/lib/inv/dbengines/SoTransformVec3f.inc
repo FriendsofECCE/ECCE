@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/engines/SoTransformVec3f.H"
-#include "SoEngineUtil.H"
+#include "inv/engines/SoTransformVec3f.hpp"
+#include "SoEngineUtil.hpp"
 
 SO_ENGINE_SOURCE(SoTransformVec3f);
 

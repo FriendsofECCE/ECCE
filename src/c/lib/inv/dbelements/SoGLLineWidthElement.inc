@@ -52,10 +52,10 @@
  */
 
 #include <GL/gl.h>
-#include "inv/actions/SoGLRenderAction.H"
-#include "inv/elements/SoGLLineWidthElement.H"
-#include "inv/elements/SoViewportRegionElement.H"
-#include "inv/misc/SoState.H"
+#include "inv/actions/SoGLRenderAction.hpp"
+#include "inv/elements/SoGLLineWidthElement.hpp"
+#include "inv/elements/SoViewportRegionElement.hpp"
+#include "inv/misc/SoState.hpp"
 
 SO_ELEMENT_SOURCE(SoGLLineWidthElement);
 

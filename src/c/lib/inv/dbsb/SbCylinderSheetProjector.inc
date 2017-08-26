@@ -51,8 +51,8 @@
  _______________________________________________________________________
  */
 
-#include "inv/projectors/SbCylinderSheetProjector.H"
-#include "inv/errors/SoDebugError.H"
+#include "inv/projectors/SbCylinderSheetProjector.hpp"
+#include "inv/errors/SoDebugError.hpp"
 #include <stdio.h>
 
 ////////////////////////////////////////////////////////////////////////

@@ -9,9 +9,9 @@
 #include <string>
   using std::string;
 
-#include "util/InvalidException.H"
+#include "util/InvalidException.hpp"
 
-#include "wxgui/ewxGenericValidator.H"
+#include "wxgui/ewxGenericValidator.hpp"
 
 
 /**

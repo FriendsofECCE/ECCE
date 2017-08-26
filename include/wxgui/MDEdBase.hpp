@@ -7,18 +7,18 @@
 #define _MDEDBASE_H_
 
 
-#include "util/IOException.H"
-#include "util/EditListener.H"
+#include "util/IOException.hpp"
+#include "util/EditListener.hpp"
 
-#include "tdat/TaskApp.H"
-#include "tdat/FragmentSummary.H"
+#include "tdat/TaskApp.hpp"
+#include "tdat/FragmentSummary.hpp"
 
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/CalcDropHandler.H"
+#include "wxgui/WxDavAuth.hpp"
+#include "wxgui/CalcDropHandler.hpp"
 
-#include "wxgui/MDEdBaseGUI.H"
-#include "wxgui/MDPanelHelper.H"
-#include "wxgui/FeedbackSaveHandler.H"
+#include "wxgui/MDEdBaseGUI.hpp"
+#include "wxgui/MDPanelHelper.hpp"
+#include "wxgui/FeedbackSaveHandler.hpp"
 
 class JMSMessage;
 class WxJMSMessageDispatch;

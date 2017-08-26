@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "StructLibGUI.H"
+#pragma implementation "StructLibGUI.hpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -23,14 +23,14 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxBitmapButton.H"
-#include "wxgui/ewxChoice.H"
-#include "wxgui/ewxPanel.H"
-#include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxBitmap.H"
+#include "wxgui/ewxBitmapButton.hpp"
+#include "wxgui/ewxChoice.hpp"
+#include "wxgui/ewxPanel.hpp"
+#include "wxgui/ewxStaticText.hpp"
+#include "wxgui/ewxBitmap.hpp"
 ////@end includes
 
-#include "StructLibGUI.H"
+#include "StructLibGUI.hpp"
 
 ////@begin XPM images
 

@@ -56,10 +56,10 @@
 #ifndef  _SO_V2LOD_
 #define  _SO_V2LOD_
 
-#include "inv/fields/SoMFFloat.H"
-#include "inv/fields/SoSFVec3f.H"
-#include "inv/fields/SoSFNode.H"
-#include "inv/upgraders/SoUpgrader.H"
+#include "inv/fields/SoMFFloat.hpp"
+#include "inv/fields/SoSFVec3f.hpp"
+#include "inv/fields/SoSFNode.hpp"
+#include "inv/upgraders/SoUpgrader.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 //

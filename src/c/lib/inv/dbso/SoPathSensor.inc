@@ -51,10 +51,10 @@
  _______________________________________________________________________
  */
 
-#include "inv/misc/SoChildList.H"
-#include "inv/SoPath.H"
-#include "inv/errors/SoDebugError.H"
-#include "inv/sensors/SoPathSensor.H"
+#include "inv/misc/SoChildList.hpp"
+#include "inv/SoPath.hpp"
+#include "inv/errors/SoDebugError.hpp"
+#include "inv/sensors/SoPathSensor.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 //
