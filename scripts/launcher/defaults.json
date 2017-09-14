@@ -1,0 +1,42 @@
+{
+    "ECCE_REMOTE_SERVER": true,
+    "ECCE_SERVER_HOSTNAME": "localhost.localdomain", 
+    "ECCE_SERVER_HTTP_PORT": 8096,
+    "ECCE_SERVER_MQ_PORT": 8095,
+    "SLAVE": false, 
+
+    
+    "ECCE_DEBUG": false, 
+    
+    
+    "ECCE_DATA_DIR": "/home/ecce",
+    "ECCE_SERVER_USER": "ecce", 
+
+    
+    "ECCE_CODE_ORDER": "NWChem", 
+    "NWCHEM_PATH": "", 
+    "LC_ALL": "C", 
+    "WXPYTHON_PATH": "3rdparty/wxpython", 
+
+    
+    "ECCE_HELP": "http://FriendsofECCE.github.io/docs/old", 
+    "ECCE_BROWSER": "firefox", 
+    "ECCE_NO_VIZIMAGES": false,  
+    "ECCE_AUTO_ACCOUNTS": true, 
+    "ECCE_STORE_TRAJECTORIES": "yes", 
+    "ECCE_JOB_CHECK": true, 
+    "ECCE_JOB_FAILMAIL": false, 
+    "ECCE_JOB_COMMS": "stdio", 
+    "ECCE_JOB_PARSE_TIMEOUT": 5, 
+    "ECCE_JOB_LOGMODE": "yes,yes", 
+    "ECCE_JOB_LOGALL": true, 
+    "ECCE_JOB_MAXCONNECTS": 25, 
+    "ECCE_JOB_MAXQUICKCONNECTS": 5, 
+    "ECCE_JOB_MAXQUICKTIME": 60, 
+    "ECCE_RCOM_LOGMODE": false, 
+    "ECCE_WIREFRAME_LIMIT": 5000, 
+    "ECCE_MAX_CACHED_MO": 10, 
+    "ECCE_XTERM_FONT": "fixed", 
+    "ECCE_NWCHEM_DFT_USE_B3LYP": true, 
+    "ECCE_FILESIZE_WARNING": 10240 
+} 
