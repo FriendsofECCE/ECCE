@@ -38,3 +38,6 @@ install(DIRECTORY java/lib DESTINATION ${ECCE_APPS}/java)
 
 # Server
 install(DIRECTORY data/admin DESTINATION ${ECCE_SERVER}/data)
+
+# Install the ECCE launcher
+install(DIRECTORY scripts/launcher/ DESTINATION launcher)

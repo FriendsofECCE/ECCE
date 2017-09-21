@@ -9,7 +9,13 @@ import time
 import json
 import argparse
 
-ECCE_PATH = path.abspath(path.dirname(__file__))
+if "ECCE_PATH" in environ:
+    ECCE_PATH = environ["ECCE_PATH"]
+else:
+    # Just assume that we are ../ relative to this script
+    ECCE_PATH = path.abspath(path.dirname(__file__))
+    ECCE_PATH = path.abspath("{}/../".format(ECCE_PATH))
+
 ECCE_APP_PATH = "{}/apps".format(ECCE_PATH)
 ECCE_SERVER_PATH = "{}/server".format(ECCE_PATH)
 
