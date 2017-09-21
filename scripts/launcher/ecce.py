@@ -8,6 +8,7 @@ import tempfile
 import time
 import json
 import argparse
+import env
 
 if "ECCE_PATH" in environ:
     ECCE_PATH = environ["ECCE_PATH"]
@@ -19,6 +20,15 @@ else:
 ECCE_APP_PATH = "{}/apps".format(ECCE_PATH)
 ECCE_SERVER_PATH = "{}/server".format(ECCE_PATH)
 
+# Do some sanity checks to see if the path exists
+APP_INSTALLED = path.exists(ECCE_APP_PATH)
+SERVER_INSTALLED = path.exists(ECCE_SERVER_PATH)
+
+if not APP_INSTALLED and not SERVER_INSTALLED:
+    print("This script couldn't find an APP or a SERVER installation in the path {}".format(ECCE_PATH))
+    exit("Please check your installation or set the ECCE_PATH env variable (should only be necessary for debugging)")
+
+# Define major paths
 def main():
     """
     Parses the arguments and calls the appropriate ecce script/program
@@ -74,6 +84,7 @@ def get_env():
     # PATH manipulation
     env["ECCE_BIN_PATH"] = "{}/bin".format(env["ECCE_HOME"])
     env["ECCE_SCRIPT_PATH"] = "{}/scripts".format(env["ECCE_HOME"])
+    env["ECCE_REMOTE_SERVER"] = True
     parsers = "{}/scripts/parsers".format(env["ECCE_HOME"])
     basepath = environ.get("PATH", "/usr/bin:/usr/local/bin:/usr/sbin")
     env["PATH"] = "{bin}:{scripts}:{parsers}:{basepath}".format(
