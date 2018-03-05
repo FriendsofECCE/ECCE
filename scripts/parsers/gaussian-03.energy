@@ -330,7 +330,7 @@ sub printScalar() {
   print "key: $outkey\n";
   print "size:\n1\n";
   print "values:\n$value\n";
-  print "units:\nHartee\n";
+  print "units:\nHartree\n";
   print "END\n";
 }
 
