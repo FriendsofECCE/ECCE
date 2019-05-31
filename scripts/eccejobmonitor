@@ -2125,7 +2125,7 @@ sub JobCheck
     }
     elsif ($q eq 'slurm') #SLURM added by ANDY 28/72015 
     {
-        $cmd = "sacct -j $id -o State|tail -n 1 2>&1";
+        $cmd = "sacct -j $id -n -P -o State 2>&1";
         if (open(QUERY, "$cmd |"))
         {
             while (<QUERY>)
