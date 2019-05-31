@@ -2125,41 +2125,48 @@ sub JobCheck
     }
     elsif ($q eq 'slurm') #SLURM added by ANDY 28/72015
     {
-        $cmd = "squeue 2>&1";
+        $cmd = "sacct j $id -o State|tail -n 1 2>&1";
         if (open(QUERY, "$cmd |"))
         {
-            $gotState = 0;
             while (<QUERY>)
             {
-                LogMsg "JobCheck: Slurm squeue line: $_";
-                if (/^\s*$id/)
+                LogMsg "JobCheck Slurm status:  $_";
+
+                my $state = $_;
+                chomp $state;
+		$state =~ s/^\s+|\s+$//g;
+		my $capq = uc $q;
+
+		&MsgSendUp("$capq job id '$id' in state '$state'");
+
+                if (grep {$state eq $_} qw{RUNNING})
                 {
-                    my $state = (split)[4];
-
-                    &MsgSendUp("Slurm job id '$id' in state '$state'");
-
-                    if (grep {$state eq $_} qw{R})
-                    {
-                        $status = $JOB_STATE_RUNNING;
-                    }
-                    elsif (grep {$state eq $_} qw{PD})
-                    {
-                        $status = $JOB_STATE_PENDING;
-                    }
-                    $gotState = 1;
+                    $status = $JOB_STATE_RUNNING;
+                    $state = "RUNNING";
+					last;
+                }
+                elsif (grep {$state eq $_} qw{PENDING})
+                {
+                    $status = $JOB_STATE_PENDING;
+                    $state = "PENDING";
                     last;
                 }
-            }
-            if ($gotState == 0)
-            {
-                if ($gJobCheckState != $JOB_STATE_NONE)
+                elsif (grep {$state eq $_} qw{COMPLETING
+					     CANCELLED
+					     COMPLETED})
                 {
                     $status = $JOB_STATE_DONE;
+		    $state = "DONE";                    
+                    last;
+                }
+                else
+                {
+                    $status = $JOB_STATE_DONE;
+		    $state = "DONE";	                    
                 }
             }
-            close QUERY;
         }
-        else
+       else
         {
             &MsgSendErr($MSG_TYPE_E_WARN, "'$cmd' failed: $!");
         }
