@@ -2123,9 +2123,9 @@ sub JobCheck
 
         LogMsg "Globus status from eccejobstore: $state";
     }
-    elsif ($q eq 'slurm') #SLURM added by ANDY 28/72015
+    elsif ($q eq 'slurm')
     {
-        $cmd = "sacct -j $id -n -P -o State 2>&1";
+        $cmd = "sacct -j $id -P -o State 2>&1";
         if (open(QUERY, "$cmd |"))
         {
             while (<QUERY>)
@@ -2134,44 +2134,73 @@ sub JobCheck
 
                 my $state = $_;
                 chomp $state;
-		$state =~ s/^\s+|\s+$//g;
-		my $capq = uc $q;
+				$state =~ s/^\s+|\s+$//g;
 
-		&MsgSendUp("$capq job id '$id' in state '$state'");
+				my $capq = uc $q;
+                &MsgSendUp("$capq job id '$id' in state '$state'");
 
                 if (grep {$state eq $_} qw{RUNNING})
                 {
                     $status = $JOB_STATE_RUNNING;
-                    $state = "RUNNING";
 					last;
                 }
                 elsif (grep {$state eq $_} qw{PENDING})
                 {
                     $status = $JOB_STATE_PENDING;
-                    $state = "PENDING";
                     last;
                 }
                 elsif (grep {$state eq $_} qw{COMPLETING
-					     CANCELLED
-					     COMPLETED})
+											  COMPLETED})
                 {
                     $status = $JOB_STATE_DONE;
-		    $state = "DONE";                    
                     last;
                 }
                 else
                 {
-                    $status = $JOB_STATE_DONE;
-		    $state = "DONE";	                    
-                }
-            }
-        }
+                    $cmd = "squeue -h -a -j $id -o %T 2>&1";
+                    if (open(QUERY2, "$cmd |"))
+                    {
+                    while (<QUERY2>)
+					{
+
+				                my $state = $_;
+				                chomp $state;
+								$state =~ s/^\s+|\s+$//g;
+				
+								my $capq = uc $q;
+				                &MsgSendUp("$capq job id '$id' in state '$state'");
+				
+				                if (grep {$state eq $_} qw{RUNNING})
+				                {
+				                    $status = $JOB_STATE_RUNNING;
+									last;
+				                }
+				                elsif (grep {$state eq $_} qw{PENDING})
+				                {
+				                    $status = $JOB_STATE_PENDING;
+				                    last;
+				                }
+				                elsif (grep {$state eq $_} qw{COMPLETING
+															  #COMPLETED})
+				                {
+				                    $status = $JOB_STATE_DONE;
+				                    last;
+								}
+				                else
+				                {
+									$status = $JOB_STATE_DONE;								
+							    }    
+                    }
+                 }
+             }
+         }
+	 }
        else
         {
             &MsgSendErr($MSG_TYPE_E_WARN, "'$cmd' failed: $!");
         }
     }
-    else
+     else
     {
         if ($gJobCheckComplaintIssued == 0)
         {
