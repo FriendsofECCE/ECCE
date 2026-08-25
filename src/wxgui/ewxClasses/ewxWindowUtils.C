@@ -192,7 +192,7 @@ void ewxWindowUtils::setUnitFamily(wxWindow *top, const string& family)
                // Get converter & convert
                UnitConverter& uconv = uf.getUnitConverter(helper->getUnitClass());
                uconv.setBaseUnits(from);
-               string value = uconv.convertTo(text->GetValue().c_str(), to);
+               string value = uconv.convertTo(text->GetValue().ToStdString(), to);
                text->SetValue(value.c_str());
 
                // Now do range limits

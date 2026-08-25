@@ -161,7 +161,7 @@ void WxAccessControl::OnButtonChangeClick( wxCommandEvent& event )
 {
   changePermissions(p_projectUrl, 
                     p_readOnly->GetValue().ToStdString(), 
-                    p_readWrite->GetValue().c_str());
+                    p_readWrite->GetValue().ToStdString());
   event.Skip();
 }
 

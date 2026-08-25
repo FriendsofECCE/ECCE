@@ -780,7 +780,7 @@ bool GenericValidator::GetControlValue(int & val)
 #if wxUSE_TEXTCTRL
   if (m_validatorWindow->IsKindOf(CLASSINFO(wxTextCtrl)) ) {
     wxTextCtrl* pControl = (wxTextCtrl*) m_validatorWindow;
-    return StringConverter::toValue(pControl->GetValue().c_str(),val);
+    return StringConverter::toValue(pControl->GetValue().ToStdString(),val);
   } else
 #endif
     return false;
@@ -809,7 +809,7 @@ bool GenericValidator::GetControlValue(long & val)
 #if wxUSE_TEXTCTRL
   if (m_validatorWindow->IsKindOf(CLASSINFO(wxTextCtrl)) ) {
     wxTextCtrl* pControl = (wxTextCtrl*) m_validatorWindow;
-    return StringConverter::toValue(pControl->GetValue().c_str(),val);
+    return StringConverter::toValue(pControl->GetValue().ToStdString(),val);
   } else
 #endif
     return false;

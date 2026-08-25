@@ -55,7 +55,16 @@ class DndCalcDrop : public wxDropTarget
       CalcDropHandler *p_handler;
 
       wxDataObjectComposite * p_data;
-      wxURLDataObject * p_urldata;
+      // wx3.x's GTK wxURLDataObject is itself a wxDataObjectComposite (it
+      // now negotiates both text/uri-list and plain text formats), so it
+      // can no longer be nested inside another wxDataObjectComposite via
+      // Add() (which only takes a wxDataObjectSimple*). Most drag sources
+      // that offer text/uri-list also offer plain text, so use a plain
+      // wxTextDataObject here instead and read the dropped URL/path back
+      // via GetText() - functionally equivalent to wxURLDataObject::GetURL()
+      // on the non-GTK platforms, where wxURLDataObject is just a thin
+      // wxTextDataObject subclass anyway.
+      wxTextDataObject * p_urldata;
       wxFileDataObject * p_filedata;
 };
 

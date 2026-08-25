@@ -113,7 +113,7 @@ bool ewxConfig::DoWriteStringVector(const wxString& key,
   for (int i = 0; i < value.size(); i++) {
     wxString stringIndex;
     stringIndex << key << "/" << i;
-    ret &= Write(stringIndex, value[i]);
+    ret &= Write(stringIndex, wxString(value[i]));
     if (!ret) break; // bail early if failure detected
   }
 

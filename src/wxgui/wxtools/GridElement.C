@@ -7,6 +7,7 @@
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
 #include "wx/generic/grid.h"
+#include "wx/generic/gridctrl.h"
 #endif
 
 #include <stdlib.h>
@@ -264,7 +265,7 @@ wxString GridElement::getDateTimeValue()
     TDateTime::TimeFormat timeFormat =
       getTimeFormatPref();
 
-    TDateTime datetime(p_value.c_str());
+    TDateTime datetime(p_value.ToStdString());
 
     ret = datetime.toString(dateFormat, timeFormat).c_str();
   }

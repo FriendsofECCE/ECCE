@@ -5,6 +5,7 @@
  *
  *
  */
+#include "wx/icon.h"
 #include "dsm/Resource.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceType.H"

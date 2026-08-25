@@ -244,7 +244,7 @@ wxToolBar * TearableContent::ToolBarFromMenu(wxWindow *parent, wxMenu *menu)
   }
   while (iter != list.end()) {
     wxMenuItem *item = *iter;
-    tb->AddTool(item->GetId(), item->GetLabel(), item->GetBitmap(),
+    tb->AddTool(item->GetId(), item->GetItemLabelText(), item->GetBitmap(),
                 item->GetHelp(), item->GetKind());
     ++iter;
   }

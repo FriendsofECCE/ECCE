@@ -92,7 +92,7 @@ bool ExportTableDialog::writeCsv()
     string dir = GetDirectory().ToStdString();
     parent = EDSIFactory::getResource(dir);
     if (!parent) throw InvalidException("Null Resource", WHERE);
-    child = parent->createChild(GetFilename().c_str(), file);
+    child = parent->createChild(GetFilename().ToStdString(), file);
     if (!child) throw InvalidException("Null Resource", WHERE);
   } catch (EcceException& ex) {
     ret = false;
@@ -118,7 +118,7 @@ bool ExportTableDialog::writeCsv()
 
 void ExportTableDialog::notifyCreate(const string& url) const
 {
-  JMSPublisher publisher(GetName().c_str());
+  JMSPublisher publisher(GetName().ToStdString());
   JMSMessage *msg = publisher.newMessage();
   msg->addProperty("url", url);
   publisher.publish("ecce_url_created", *msg);

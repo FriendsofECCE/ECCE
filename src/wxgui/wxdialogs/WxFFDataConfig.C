@@ -69,7 +69,7 @@ vector<string> WxFFDataConfig::getFFNames()
   wxControlWithItems* ffChoice = (wxControlWithItems*) FindWindow(ID_CHOICE_FORCE_FIELD);
 
   for (int i = 0; i < ffChoice->GetCount(); i++) {
-    ret.push_back(ffChoice->GetString(i).c_str());
+    ret.push_back(ffChoice->GetString(i).ToStdString());
   }
 
   return ret;

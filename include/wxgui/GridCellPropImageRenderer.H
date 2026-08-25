@@ -10,6 +10,7 @@
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
 #include "wx/generic/grid.h"
+#include "wx/generic/gridctrl.h"
 #endif
 
 class GridPropElement;

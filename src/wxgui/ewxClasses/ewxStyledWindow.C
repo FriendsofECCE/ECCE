@@ -20,6 +20,7 @@
 #include <wx/spinctrl.h>
 #include <wx/statline.h>
 #include <wx/treectrl.h>
+#include <wx/listctrl.h>
 
 #include "util/Color.H"
 #include "util/Preferences.H"

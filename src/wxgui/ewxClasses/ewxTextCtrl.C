@@ -329,7 +329,7 @@ void ewxTextCtrl::SetBaseValue(wxString value)
       // Get converter and convert
       UnitConverter& uconv = uf.getUnitConverter(unitClass);
       uconv.setBaseUnits(baseUnit);
-      value = uconv.convertTo(value.c_str(), curUnit);
+      value = uconv.convertTo(value.ToStdString(), curUnit);
     }
   }
   SetValue(value);
@@ -362,7 +362,7 @@ wxString ewxTextCtrl::GetBaseValue()
          // Get converter & convert
          UnitConverter& uconv = uf.getUnitConverter(unitClass);
          uconv.setBaseUnits(to);
-         value = uconv.convertTo(value.c_str(), from).c_str();
+         value = uconv.convertTo(value.ToStdString(), from).c_str();
       }
    }
    return value;

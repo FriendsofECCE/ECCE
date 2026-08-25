@@ -84,20 +84,20 @@ void ewxLogTextCtrl::FlashOff(wxTimerEvent& WXUNUSED(event))
 }
 
 
-void ewxLogTextCtrl::DoLog(wxLogLevel level, const wxChar *szString, time_t t)
+void ewxLogTextCtrl::DoLogTextAtLevel(wxLogLevel level, const wxString &szString)
 {
   switch ( level ) {
   case wxLOG_FatalError:
     
-    DoLogString(wxString(_("Fatal error: ")) + szString +"\n", t);
-    DoLogString(_("Program aborted.\n"), t);
+    DoLogText(wxString(_("Fatal error: ")) + szString +"\n");
+    DoLogText(_("Program aborted.\n"));
     Flush();
     abort();
     break;
 
   case wxLOG_Error:
     
-    DoLogString(wxString(_("Error: ")) + szString +"\n", t);
+    DoLogText(wxString(_("Error: ")) + szString +"\n");
     if (p_statusBar) {
       p_statusBar->SetStatusText(szString, 1);
       p_statusBar->SetToolTip(szString);
@@ -110,7 +110,7 @@ void ewxLogTextCtrl::DoLog(wxLogLevel level, const wxChar *szString, time_t t)
     break;
 
   case wxLOG_Warning:
-    DoLogString(wxString(_("Warning: ")) + szString +"\n", t);
+    DoLogText(wxString(_("Warning: ")) + szString +"\n");
     if (p_statusBar) {
       p_statusBar->SetStatusText(szString, 1);
       p_statusBar->SetToolTip(szString);
@@ -133,7 +133,7 @@ void ewxLogTextCtrl::DoLog(wxLogLevel level, const wxChar *szString, time_t t)
       break;
   case wxLOG_Message:
   default:    // log unknown log levels too
-    DoLogString(szString, t);
+    DoLogText(szString);
     break;
 
   case wxLOG_Trace:
@@ -143,7 +143,7 @@ void ewxLogTextCtrl::DoLog(wxLogLevel level, const wxChar *szString, time_t t)
       wxString msg = level == wxLOG_Trace ? wxT("Trace: ")
         : wxT("Debug: ");
       msg << szString;
-      DoLogString(msg, t);
+      DoLogText(msg);
     }
 #endif
     break;

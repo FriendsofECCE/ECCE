@@ -127,7 +127,7 @@ WxMeasurePrompt::WxMeasurePrompt(wxWindow *parent,
 
 
     // 3) buttons if any
-    wxSizer *buttonSizer = CreateSeparatedButtonSizer(style & ButtonSizerFlags);
+    wxSizer *buttonSizer = CreateSeparatedButtonSizer(style & (wxOK|wxCANCEL|wxYES|wxNO|wxHELP|wxNO_DEFAULT|wxCANCEL_DEFAULT|wxAPPLY|wxCLOSE));
     if ( buttonSizer )
     {
         topsizer->Add(buttonSizer, wxSizerFlags(flagsBorder2).Expand());

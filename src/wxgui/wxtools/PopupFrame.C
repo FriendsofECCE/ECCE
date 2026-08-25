@@ -38,7 +38,7 @@ PopupFrame::PopupFrame( )
 }
 
 PopupFrame::PopupFrame( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
-  : Listener(caption.c_str())
+  : Listener(caption.ToStdString())
 {
    p_notifyClose = true;
    subscribe();

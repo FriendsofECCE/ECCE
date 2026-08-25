@@ -731,7 +731,7 @@ void GridEvtHandler::OnMouseMotion(wxMouseEvent &event)
         if (element != 0) {
           Resource *resource = element->getResource();
           if (resource != 0) {
-            urls += wxT(resource->getURL().toString()+"\n");
+            urls += wxString(resource->getURL().toString()) + "\n";
           }
         }
       }
@@ -831,8 +831,7 @@ void GridColWindowEvtHandler::OnColumnHeaderPaint(wxPaintEvent &event)
     rect.SetY( 1 );
     rect.SetWidth( colSize - 2 );
     rect.SetHeight( colHeight - 2 );
-    wxWindowDC *win_dc = (wxWindowDC*) &dc;
-    wxRendererNative::Get().DrawHeaderButton( win_dc->m_owner, dc, rect, 0 );
+    wxRendererNative::Get().DrawHeaderButton( dc.GetWindow(), dc, rect, 0 );
 #else
     int colRight = totColSize + colSize - 1;
 

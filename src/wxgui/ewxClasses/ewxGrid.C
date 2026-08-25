@@ -29,9 +29,9 @@ ewxGrid::ewxGrid(wxWindow* parent, wxWindowID id,
   PushEventHandler(new ewxHelpHandler(this));
 
   setStyles(this);
-  SetCellTextColour(getTextColor());
+  SetDefaultCellTextColour(getTextColor());
   SetDefaultCellBackgroundColour(getWindowColor());
-  SetCellTextFont(getNormalFont());
+  SetDefaultCellFont(getNormalFont());
   SetLabelTextColour(getTextColor());
   SetLabelBackgroundColour(getWindowColor());
   SetLabelFont(getNormalFont());

@@ -126,8 +126,8 @@ double CleanParameters::getForceCutoff() const
 
 void CleanParameters::saveSettings()
 {
-  Preferences prefs(GetName().c_str());
-  saveWindowSettings(GetName().c_str(), prefs, false);
+  Preferences prefs(GetName().ToStdString());
+  saveWindowSettings(GetName().ToStdString(), prefs, false);
   
   prefs.setInt("MAX_ITERATIONS", getMaxIterations());
   prefs.setFloat("CONVERGENCE", getConvergence());
@@ -139,8 +139,8 @@ void CleanParameters::saveSettings()
 
 void CleanParameters::restoreSettings()
 {
-  Preferences prefs(GetName().c_str());
-  restoreWindowSettings(GetName().c_str(), prefs, true);
+  Preferences prefs(GetName().ToStdString());
+  restoreWindowSettings(GetName().ToStdString(), prefs, true);
 
   int intValue;
   float floatValue;

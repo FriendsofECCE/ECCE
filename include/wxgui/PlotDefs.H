@@ -14,6 +14,7 @@
 
 #include "wx/defs.h"
 #include "wx/geometry.h"
+#include "wx/wxcrtvararg.h"
 
 //-----------------------------------------------------------------------------
 // The version of wxPlotCtrl

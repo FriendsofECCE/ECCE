@@ -169,7 +169,7 @@ wxDragResult GridDropTarget::OnData(wxCoord x, wxCoord y, wxDragResult def)
   wxArrayString filenames = p_filedata->GetFilenames();
   vector<EcceURL> urls;
   for (size_t i=0; i<filenames.GetCount(); ++i)
-    urls.push_back(filenames[i].c_str());
+    urls.push_back(filenames[i].ToStdString());
 
   if (filenames.GetCount() == 0) {
     wxStringTokenizer tkz(p_urldata->GetText(), wxT("\n"));

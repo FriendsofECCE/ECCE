@@ -80,9 +80,9 @@ PTDataFrame::PTDataFrame(int atomicNum, PerTabPanel * parent, wxWindowID id,
   p_isotopeGrid->CreateGrid(0, 3, wxGrid::wxGridSelectCells);
 
   //	Generate the comlumn label row
-  p_isotopeGrid->SetLabelValue( wxHORIZONTAL, "Mass Number", 0);
-  p_isotopeGrid->SetLabelValue( wxHORIZONTAL, "Abundance", 1);
-  p_isotopeGrid->SetLabelValue( wxHORIZONTAL, "Atomic Mass", 2);
+  p_isotopeGrid->SetColLabelValue( 0, "Mass Number" );
+  p_isotopeGrid->SetColLabelValue( 1, "Abundance" );
+  p_isotopeGrid->SetColLabelValue( 2, "Atomic Mass" );
 
   //	Remove the Row label
   p_isotopeGrid->SetRowLabelSize(1);
@@ -119,10 +119,10 @@ PTDataFrame::PTDataFrame(int atomicNum, PerTabPanel * parent, wxWindowID id,
 	strPtr = 0;
 	if (row || column) {
 	  if (row == 0) {
-	    p_ionPotentGrid->SetLabelValue(wxHORIZONTAL, strBuffer, column-1);
+	    p_ionPotentGrid->SetColLabelValue( column-1, strBuffer );
 	  }
 	  else if (column == 0) {
-	    p_ionPotentGrid->SetLabelValue(wxVERTICAL, strBuffer, row-1);
+	    p_ionPotentGrid->SetRowLabelValue( row-1, strBuffer );
 	  }
 	  else {
 	    p_ionPotentGrid->SetCellValue(row-1, column-1, strBuffer);
@@ -135,10 +135,10 @@ PTDataFrame::PTDataFrame(int atomicNum, PerTabPanel * parent, wxWindowID id,
 	strPtr = 0;
 	if (row || column) {
 	  if (row == 0) {
-	    p_ionPotentGrid->SetLabelValue(wxHORIZONTAL, strBuffer, column-1);
+	    p_ionPotentGrid->SetColLabelValue( column-1, strBuffer );
 	  }
 	  else if (column == 0) {
-	    p_ionPotentGrid->SetLabelValue(wxVERTICAL, strBuffer, row-1);
+	    p_ionPotentGrid->SetRowLabelValue( row-1, strBuffer );
 	  }
 	  else {
 	    p_ionPotentGrid->SetCellValue(row-1, column-1, strBuffer);

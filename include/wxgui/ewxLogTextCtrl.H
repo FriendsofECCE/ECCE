@@ -12,7 +12,7 @@ class ewxLogTextCtrl: public wxLogTextCtrl, public wxEvtHandler
 
 public:
   ewxLogTextCtrl(wxTextCtrl * textCtrl, wxStatusBar * statusBar);
-  virtual void DoLog(wxLogLevel level, const wxChar *szString, time_t t);
+  virtual void DoLogTextAtLevel(wxLogLevel level, const wxString &szString);
   virtual void OnContextMenu(wxContextMenuEvent& event);
   virtual void OnClearText(wxCommandEvent& event);
   virtual void OnShowGateway(wxCommandEvent& event);

@@ -85,7 +85,7 @@ wxDragResult DndCalcDrop::OnData(wxCoord x, wxCoord y, wxDragResult def)
     return wxDragNone;
   }
   else {
-    url = p_urldata->GetURL();
+    url = p_urldata->GetText();
   }
 
   if (p_handler && url != "") {
@@ -108,7 +108,7 @@ wxDragResult DndCalcDrop::OnData(wxCoord x, wxCoord y, wxDragResult def)
 void DndCalcDrop::resetData()
 {
   p_data = new wxDataObjectComposite;
-  p_urldata = new wxURLDataObject;
+  p_urldata = new wxTextDataObject;
   p_data->Add(p_urldata, true);
   p_filedata = new wxFileDataObject;
   p_data->Add(p_filedata);

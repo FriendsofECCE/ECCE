@@ -28,7 +28,7 @@ ewxColor::ewxColor( wxColour color )
 ewxColor::ewxColor( const wxString & colorName )
 {
   if (colorName[0] == '#' && colorName.Len() == 7)
-    *this = ewxColor(Color(colorName.c_str()));
+    *this = ewxColor(Color(colorName.ToStdString()));
   else 
   Set(colorName);
 }

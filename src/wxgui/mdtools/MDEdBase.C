@@ -404,7 +404,7 @@ void MDEdBase::setContext(const string& urlstr) throw (EcceException)
   if (menuBar) {
     string text = "on " + getTitle() + "...";
     item = menuBar->FindItem(ID_MENU_HELP);
-    item->SetText(text.c_str());
+    item->SetItemLabel(text);
   }
   getTitle();
 

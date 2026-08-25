@@ -251,7 +251,7 @@ bool SaveExperimentAsDialog::doSaveAsChemFileType(
   // type is determined from chem combo item, ex) "PDB (*.pdb,*.ent)"
   wxString sel = p_bitmapCombo->GetStringSelection();
   wxString types = sel.AfterFirst('(').BeforeLast(')'); // *.pdb,*.ent
-  StringTokenizer tokenizer(types.c_str());
+  StringTokenizer tokenizer(types.ToStdString());
   vector<string> tokens = tokenizer.tokenize(",");
   vector<string>::iterator token;
   wxString type = tokens[0];  // *.pdb
@@ -272,7 +272,7 @@ bool SaveExperimentAsDialog::doSaveAsChemFileType(
     filename << "." << type.Lower();
   }
   SFile *file = TempStorage::getTempFile();
-  file->move(file->pathroot() + "/" + filename.c_str());
+  file->move(file->pathroot() + "/" + filename.ToStdString());
 
   type = type.MakeUpper();
   if (type.IsSameAs("XYZ")) {
@@ -309,7 +309,7 @@ bool SaveExperimentAsDialog::doSaveAsChemFileType(
     parent = EDSIFactory::getResource(parentUrlStr);
     if (!parent) throw InvalidException("Null Resource", WHERE);
 
-    child = parent->createChild(filename.c_str(), file);
+    child = parent->createChild(filename.ToStdString(), file);
     if (!child) throw InvalidException("Null Resource", WHERE);
   } catch (EcceException& ex) {
     ret = false;
@@ -547,7 +547,7 @@ void SaveExperimentAsDialog::DoSetSaveAsFilterIndex(int index)
  */
 void SaveExperimentAsDialog::notifyCreate(const string& url) const
 {
-  JMSPublisher publisher(GetName().c_str());
+  JMSPublisher publisher(GetName().ToStdString());
   JMSMessage *msg = publisher.newMessage();
   msg->addProperty("url", url);
   publisher.publish("ecce_url_created", *msg);

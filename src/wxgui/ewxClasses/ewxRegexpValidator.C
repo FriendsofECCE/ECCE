@@ -170,7 +170,7 @@ bool ewxRegexpValidator::Validate(wxWindow *parent)
     } else {
        //NOTE:  The expression is constructed each time - could compile
        // it just once when set to improve performance
-       EcceRegexp re(p_expression.c_str());
+       EcceRegexp re(p_expression.ToStdString());
        int foundIdx = 0;
        int substrLength = 0;
        string result;
