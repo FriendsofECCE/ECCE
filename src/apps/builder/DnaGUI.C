@@ -126,7 +126,7 @@ void DnaGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer4, 0, wxGROW|wxALL, 2);
 
     ewxStaticText* itemStaticText5 = new ewxStaticText( itemPanel1, wxID_STATIC, _("+"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer4->Add(itemStaticText5, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer4->Add(itemStaticText5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxButton* itemButton6 = new ewxButton( itemPanel1, ID_BUTTON_DNA_AT, _("A"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT );
     if (ShowToolTips())

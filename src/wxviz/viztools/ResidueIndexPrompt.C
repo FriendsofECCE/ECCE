@@ -84,7 +84,7 @@ string ResidueIndexPrompt::getResidueName() const
 {
   ewxTextCtrl *txt =
           dynamic_cast<ewxTextCtrl*>(FindWindow(ID_TEXTCTRL_RESPROMPT_NAME));
-  return txt->GetValue().c_str();
+  return txt->GetValue().ToStdString();
 }
 
 

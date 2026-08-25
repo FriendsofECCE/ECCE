@@ -214,8 +214,18 @@ private:
   SoSceneManager * p_overlaySceneMgr; // manages the overlay scene graph
   SbBool p_clearFirst, p_clearOverlayFirst; // call clear() before rendering
   SbBool p_autoRedraw; // if TRUE, then we automatically redraw
-  XColor * p_mapColors, * p_overlayMapColors; // saved colors
+  // p_mapColors/p_overlayMapColors (X11 XColor* colormap members) removed:
+  // only ever used by the setColorMap() code below, which has been
+  // commented out (see "@todo Worry about color map later" in
+  // SoWxRenderArea.C) since before this port. wx3.x no longer pulls in
+  // raw X11 types like XColor, and there was no live use to preserve.
   int p_mapColorNum, p_overlayMapColorNum; // number of saved colors
+
+  // wx3.x wxGLCanvas no longer implicitly owns/creates a GL context the way
+  // wx2.8's did (no more GetContext()/no-arg SetCurrent()) - the canvas now
+  // just owns a window, and the context is a separate object we must create
+  // and manage explicitly.
+  wxGLContext * p_glContext;
 
   SoWxMouse * p_mouseDevice;
   SoWxKeyboard * p_keyboardDevice;

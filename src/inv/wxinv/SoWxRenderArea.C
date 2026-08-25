@@ -38,7 +38,13 @@ SoWxRenderArea::SoWxRenderArea(wxWindow * parent,
                                SbBool getMouseInput,
                                SbBool getKeyboardInput,
                                SbBool buildNow)
-  : wxGLCanvas(parent, id, pos, size, style, name, attribList, palette)
+  // wx3.x reordered wxGLCanvas's attribList-taking constructor's parameters
+  // relative to wx2.8 (attribList moved right after id, ahead of
+  // pos/size/style/name/palette rather than after them), and "name" is now
+  // wxString rather than a raw "const char *" (implicit conversion still
+  // applies).
+  : wxGLCanvas(parent, id, attribList, pos, size, style, name, palette),
+    p_glContext(NULL)
 {
   // GLWidget stuff
   p_glModes = SO_GLX_RGB | SO_GLX_DOUBLE | SO_GLX_ZBUFFER | SO_GLX_OVERLAY;
@@ -49,6 +55,10 @@ SoWxRenderArea::SoWxRenderArea(wxWindow * parent,
 
   p_windowResized = false;
   p_inPaint = false;
+
+  // wx3.x wxGLCanvas no longer implicitly creates/owns a GL context (that
+  // was wx2.8 behavior) - we must create and manage one explicitly now.
+  p_glContext = new wxGLContext(this);
 
   constructorCommon(getMouseInput, getKeyboardInput, buildNow);
 
@@ -76,6 +86,9 @@ SoWxRenderArea::~SoWxRenderArea()
   // if (overlayMapColors != NULL)
   //   free(overlayMapColors);
   
+  if (p_glContext != NULL)
+    delete p_glContext;
+
   if (p_mouseDevice != NULL)
     delete p_mouseDevice;
   if (p_keyboardDevice != NULL)
@@ -704,10 +717,10 @@ void SoWxRenderArea::redraw()
   wxPaintDC dc(this);
 
 #ifndef __WXMOTIF__
-  if (!GetContext()) return;
+  if (!p_glContext) return;
 #endif
 
-  SetCurrent();
+  SetCurrent(*p_glContext);
 
   // @todo Not here in Xt version. Wonder if should be done in GLWidget.
   glEnable(GL_DEPTH_TEST);
@@ -1222,8 +1235,11 @@ void SoWxRenderArea::OnSize(wxSizeEvent& event)
   cerr << "Enter SoWxRenderArea::OnSize\n";
 #endif
 
-  // this is also necessary to update the context on some platforms
-  wxGLCanvas::OnSize(event);
+  // wx2.8's wxGLCanvas had a base OnSize() that was necessary to chain up to
+  // on some platforms to keep the context valid; wx3.x's wxGLCanvas has no
+  // such handler (context validity is handled differently now - see
+  // p_glContext / SetCurrent() above), so there's nothing to chain to.
+  event.Skip();
 
   int w, h;
   GetClientSize(&w, &h);

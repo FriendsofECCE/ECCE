@@ -230,7 +230,7 @@ void CalcEdGUI::CreateControls()
     itemBoxSizer18->Add(itemBoxSizer19, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     ewxStaticText* itemStaticText20 = new ewxStaticText( itemFrame1, ID_STATIC_CALCED_CHARGE, _("Charge:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer19->Add(itemStaticText20, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer19->Add(itemStaticText20, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString itemComboBox21Strings[] = {
         _("-2"),
@@ -247,7 +247,7 @@ void CalcEdGUI::CreateControls()
     itemBoxSizer18->Add(itemBoxSizer22, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     ewxStaticText* itemStaticText23 = new ewxStaticText( itemFrame1, ID_STATIC_CALCED_SPIN_MULT, _("Spin Mult.:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer22->Add(itemStaticText23, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer22->Add(itemStaticText23, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString itemComboBox24Strings[] = {
         _("Singlet"),
@@ -269,7 +269,7 @@ void CalcEdGUI::CreateControls()
 
     ewxStaticText* itemStaticText27 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Name:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemStaticText27->Show(false);
-    itemBoxSizer26->Add(itemStaticText27, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer26->Add(itemStaticText27, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl28 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_CALCED_NAME, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemTextCtrl28->Show(false);
@@ -283,22 +283,22 @@ void CalcEdGUI::CreateControls()
     itemBoxSizer29->Add(itemFlexGridSizer30, 0, wxALIGN_TOP, 2);
 
     ewxNonBoldLabel* itemStaticText31 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Formula:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer30->Add(itemStaticText31, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer30->Add(itemStaticText31, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText32 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_FORMULA, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer30->Add(itemStaticText32, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer30->Add(itemStaticText32, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     ewxNonBoldLabel* itemStaticText33 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Atoms:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer30->Add(itemStaticText33, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer30->Add(itemStaticText33, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText34 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_ATOMS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer30->Add(itemStaticText34, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer30->Add(itemStaticText34, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     ewxNonBoldLabel* itemStaticText35 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Electrons:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer30->Add(itemStaticText35, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer30->Add(itemStaticText35, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText36 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_ELECTRONS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer30->Add(itemStaticText36, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer30->Add(itemStaticText36, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     itemBoxSizer29->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -306,16 +306,16 @@ void CalcEdGUI::CreateControls()
     itemBoxSizer29->Add(itemFlexGridSizer38, 0, wxALIGN_TOP, 5);
 
     ewxNonBoldLabel* itemStaticText39 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Symmetry:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer38->Add(itemStaticText39, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer38->Add(itemStaticText39, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText40 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_SYMMETRY, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer38->Add(itemStaticText40, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer38->Add(itemStaticText40, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     ewxNonBoldLabel* itemStaticText41 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Open Shells:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer38->Add(itemStaticText41, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer38->Add(itemStaticText41, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText42 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_OPEN_SHELLS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer38->Add(itemStaticText42, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer38->Add(itemStaticText42, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     wxStaticBox* itemStaticBoxSizer43Static = new wxStaticBox(itemFrame1, wxID_ANY, _("Basis Set"));
     wxStaticBoxSizer* itemStaticBoxSizer43 = new wxStaticBoxSizer(itemStaticBoxSizer43Static, wxHORIZONTAL);
@@ -345,28 +345,28 @@ void CalcEdGUI::CreateControls()
     itemBoxSizer49->Add(itemFlexGridSizer50, 0, wxALIGN_TOP, 2);
 
     ewxNonBoldLabel* itemStaticText51 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Name:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer50->Add(itemStaticText51, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer50->Add(itemStaticText51, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText52 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_BASIS_NAME, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer50->Add(itemStaticText52, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer50->Add(itemStaticText52, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     ewxNonBoldLabel* itemStaticText53 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Polarization:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer50->Add(itemStaticText53, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer50->Add(itemStaticText53, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText54 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_POLARIZATION, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer50->Add(itemStaticText54, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer50->Add(itemStaticText54, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     ewxNonBoldLabel* itemStaticText55 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Functions:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer50->Add(itemStaticText55, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer50->Add(itemStaticText55, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText56 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_FUNCTIONS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer50->Add(itemStaticText56, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer50->Add(itemStaticText56, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     ewxNonBoldLabel* itemStaticText57 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Primitives:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer50->Add(itemStaticText57, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer50->Add(itemStaticText57, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText58 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_PRIMITIVES, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer50->Add(itemStaticText58, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer50->Add(itemStaticText58, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     itemBoxSizer49->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -374,22 +374,22 @@ void CalcEdGUI::CreateControls()
     itemBoxSizer49->Add(itemFlexGridSizer60, 0, wxALIGN_TOP, 5);
 
     ewxNonBoldLabel* itemStaticText61 = new ewxNonBoldLabel( itemFrame1, ID_LABEL_CALCED_ECP, _("ECP Name:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer60->Add(itemStaticText61, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer60->Add(itemStaticText61, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText62 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_ECP, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer60->Add(itemStaticText62, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer60->Add(itemStaticText62, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     ewxNonBoldLabel* itemStaticText63 = new ewxNonBoldLabel( itemFrame1, ID_LABEL_CALCED_CD, _("CD Name:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer60->Add(itemStaticText63, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer60->Add(itemStaticText63, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText64 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_CD, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer60->Add(itemStaticText64, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer60->Add(itemStaticText64, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     ewxNonBoldLabel* itemStaticText65 = new ewxNonBoldLabel( itemFrame1, ID_LABEL_CALCED_XC, _("XC Name:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer60->Add(itemStaticText65, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer60->Add(itemStaticText65, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText66 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_XC, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer60->Add(itemStaticText66, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer60->Add(itemStaticText66, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     p_detailsBox = new wxStaticBox(itemFrame1, wxID_ANY, _("Settings"));
     wxStaticBoxSizer* itemStaticBoxSizer67 = new wxStaticBoxSizer(p_detailsBox, wxHORIZONTAL);
@@ -405,7 +405,7 @@ void CalcEdGUI::CreateControls()
     itemBoxSizer69->Add(itemBoxSizer70, 0, wxALIGN_LEFT|wxLEFT, 5);
 
     ewxStaticText* itemStaticText71 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Theory:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer70->Add(itemStaticText71, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer70->Add(itemStaticText71, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString* itemChoice72Strings = NULL;
     ewxChoice* itemChoice72 = new ewxChoice( itemFrame1, ID_CHOICE_CALCED_THEORY, wxDefaultPosition, wxDefaultSize, 0, itemChoice72Strings, 0 );
@@ -429,7 +429,7 @@ void CalcEdGUI::CreateControls()
     itemBoxSizer77->Add(itemBoxSizer78, 0, wxALIGN_LEFT|wxLEFT, 5);
 
     ewxStaticText* itemStaticText79 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Runtype:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer78->Add(itemStaticText79, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer78->Add(itemStaticText79, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString* itemChoice80Strings = NULL;
     ewxChoice* itemChoice80 = new ewxChoice( itemFrame1, ID_CHOICE_CALCED_RUNTYPE, wxDefaultPosition, wxDefaultSize, 0, itemChoice80Strings, 0 );

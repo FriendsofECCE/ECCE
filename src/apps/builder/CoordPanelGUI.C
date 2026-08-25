@@ -313,7 +313,7 @@ void CoordPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer20 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer5->Add(itemBoxSizer20, 0, wxGROW, 0);
     ewxStaticText* itemStaticText21 = new ewxStaticText( itemPanel4, wxID_STATIC, _("Apply to:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer20->Add(itemStaticText21, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer20->Add(itemStaticText21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice22Strings[] = {
         _("All"),
@@ -343,18 +343,18 @@ void CoordPanelGUI::CreateControls()
     p_translateSizer->Add(1, 1, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText29 = new ewxStaticText( itemPanel25, wxID_STATIC, _("X"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_translateSizer->Add(itemStaticText29, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    p_translateSizer->Add(itemStaticText29, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText30 = new ewxStaticText( itemPanel25, wxID_STATIC, _("Y"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_translateSizer->Add(itemStaticText30, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    p_translateSizer->Add(itemStaticText30, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText31 = new ewxStaticText( itemPanel25, wxID_STATIC, _("Z"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_translateSizer->Add(itemStaticText31, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    p_translateSizer->Add(itemStaticText31, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
     p_translateSizer->Add(1, 1, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText33 = new ewxStaticText( itemPanel25, wxID_STATIC, _("By"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_translateSizer->Add(itemStaticText33, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    p_translateSizer->Add(itemStaticText33, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 3);
 
     ewxTextCtrl* itemTextCtrl34 = new ewxTextCtrl( itemPanel25, ID_TRANS_BY_X, _("0.0"), wxDefaultPosition, wxSize(60, -1), 0 );
     p_translateSizer->Add(itemTextCtrl34, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxBOTTOM, 3);
@@ -372,7 +372,7 @@ void CoordPanelGUI::CreateControls()
     p_translateSizer->Add(itemCheckBox37, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM, 3);
 
     ewxStaticText* itemStaticText38 = new ewxStaticText( itemPanel25, wxID_STATIC, _("From"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_translateSizer->Add(itemStaticText38, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    p_translateSizer->Add(itemStaticText38, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 3);
 
     ewxTextCtrl* itemTextCtrl39 = new ewxTextCtrl( itemPanel25, ID_TRANS_FROM_X, _("0.0"), wxDefaultPosition, wxSize(60, -1), 0 );
     p_translateSizer->Add(itemTextCtrl39, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxBOTTOM, 3);
@@ -389,7 +389,7 @@ void CoordPanelGUI::CreateControls()
     p_translateSizer->Add(itemButton42, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 3);
 
     ewxStaticText* itemStaticText43 = new ewxStaticText( itemPanel25, wxID_STATIC, _("To"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_translateSizer->Add(itemStaticText43, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 3);
+    p_translateSizer->Add(itemStaticText43, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
 
     ewxTextCtrl* itemTextCtrl44 = new ewxTextCtrl( itemPanel25, ID_TRANS_TO_X, _("0.0"), wxDefaultPosition, wxSize(60, -1), 0 );
     p_translateSizer->Add(itemTextCtrl44, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 3);
@@ -413,7 +413,7 @@ void CoordPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer50 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer26->Add(itemBoxSizer50, 0, wxGROW, 0);
     ewxStaticText* itemStaticText51 = new ewxStaticText( itemPanel25, wxID_STATIC, _("Apply to:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer50->Add(itemStaticText51, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer50->Add(itemStaticText51, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice52Strings[] = {
         _("All"),
@@ -443,19 +443,19 @@ void CoordPanelGUI::CreateControls()
     itemFlexGridSizer57->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText59 = new ewxStaticText( itemPanel55, wxID_STATIC, _("X"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer57->Add(itemStaticText59, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer57->Add(itemStaticText59, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText60 = new ewxStaticText( itemPanel55, wxID_STATIC, _("Y"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer57->Add(itemStaticText60, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer57->Add(itemStaticText60, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText61 = new ewxStaticText( itemPanel55, wxID_STATIC, _("Z"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer57->Add(itemStaticText61, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer57->Add(itemStaticText61, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText62 = new ewxStaticText( itemPanel55, wxID_STATIC, _("Repeat"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer57->Add(itemStaticText62, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer57->Add(itemStaticText62, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText63 = new ewxStaticText( itemPanel55, wxID_STATIC, _("Dim.1"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer57->Add(itemStaticText63, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer57->Add(itemStaticText63, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 3);
 
     ewxTextCtrl* itemTextCtrl64 = new ewxTextCtrl( itemPanel55, ID_DUPLICATE_DIM1_X, _("1.0"), wxDefaultPosition, wxSize(60, -1), 0 );
     itemFlexGridSizer57->Add(itemTextCtrl64, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxBOTTOM, 3);
@@ -472,7 +472,7 @@ void CoordPanelGUI::CreateControls()
     itemFlexGridSizer57->Add(itemSpinCtrl67, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxBOTTOM, 3);
 
     ewxStaticText* itemStaticText68 = new ewxStaticText( itemPanel55, wxID_STATIC, _("Dim.2"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer57->Add(itemStaticText68, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer57->Add(itemStaticText68, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 3);
 
     ewxTextCtrl* itemTextCtrl69 = new ewxTextCtrl( itemPanel55, ID_DUPLICATE_DIM2_X, _("0.0"), wxDefaultPosition, wxSize(60, -1), 0 );
     itemFlexGridSizer57->Add(itemTextCtrl69, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxBOTTOM, 3);
@@ -489,7 +489,7 @@ void CoordPanelGUI::CreateControls()
     itemFlexGridSizer57->Add(itemSpinCtrl72, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxBOTTOM, 3);
 
     ewxStaticText* itemStaticText73 = new ewxStaticText( itemPanel55, wxID_STATIC, _("Dim.3"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer57->Add(itemStaticText73, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer57->Add(itemStaticText73, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
 
     ewxTextCtrl* itemTextCtrl74 = new ewxTextCtrl( itemPanel55, ID_DUPLICATE_DIM3_X, _("0.0"), wxDefaultPosition, wxSize(60, -1), 0 );
     itemFlexGridSizer57->Add(itemTextCtrl74, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 3);
@@ -538,18 +538,18 @@ void CoordPanelGUI::CreateControls()
     itemFlexGridSizer86->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText88 = new ewxStaticText( itemPanel84, wxID_STATIC, _("X"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer86->Add(itemStaticText88, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer86->Add(itemStaticText88, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText89 = new ewxStaticText( itemPanel84, wxID_STATIC, _("Y"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer86->Add(itemStaticText89, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer86->Add(itemStaticText89, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText90 = new ewxStaticText( itemPanel84, wxID_STATIC, _("Z"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer86->Add(itemStaticText90, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer86->Add(itemStaticText90, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
     itemFlexGridSizer86->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText92 = new ewxStaticText( itemPanel84, wxID_STATIC, _("Axis Start"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer86->Add(itemStaticText92, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer86->Add(itemStaticText92, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 3);
 
     ewxTextCtrl* itemTextCtrl93 = new ewxTextCtrl( itemPanel84, ID_ROTATE_START_X, _("0.0"), wxDefaultPosition, wxSize(60, -1), 0 );
     itemFlexGridSizer86->Add(itemTextCtrl93, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxBOTTOM, 3);
@@ -566,7 +566,7 @@ void CoordPanelGUI::CreateControls()
     itemFlexGridSizer86->Add(itemButton96, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 3);
 
     ewxStaticText* itemStaticText97 = new ewxStaticText( itemPanel84, wxID_STATIC, _("Axis End"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer86->Add(itemStaticText97, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer86->Add(itemStaticText97, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 3);
 
     ewxTextCtrl* itemTextCtrl98 = new ewxTextCtrl( itemPanel84, ID_ROTATE_END_X, _("1.0"), wxDefaultPosition, wxSize(60, -1), 0 );
     itemFlexGridSizer86->Add(itemTextCtrl98, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxBOTTOM, 3);
@@ -587,7 +587,7 @@ void CoordPanelGUI::CreateControls()
     itemFlexGridSizer86->Add(0, 0, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText104 = new ewxStaticText( itemPanel84, wxID_STATIC, _("By"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer86->Add(itemStaticText104, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer86->Add(itemStaticText104, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
 
     ewxTextCtrl* itemTextCtrl105 = new ewxTextCtrl( itemPanel84, ID_ROTATE_DEGREE, _("90.0"), wxDefaultPosition, wxSize(60, -1), 0 );
     if (ShowToolTips())
@@ -595,7 +595,7 @@ void CoordPanelGUI::CreateControls()
     itemFlexGridSizer86->Add(itemTextCtrl105, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText106 = new ewxStaticText( itemPanel84, wxID_STATIC, _("degree"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer86->Add(itemStaticText106, 0, wxALIGN_LEFT|wxALIGN_BOTTOM|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer86->Add(itemStaticText106, 0, wxALIGN_LEFT|wxALIGN_BOTTOM, 3);
 
     itemBoxSizer85->Add(0, 0, 1, wxALIGN_CENTER_HORIZONTAL, 0);
 
@@ -605,7 +605,7 @@ void CoordPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer109 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer85->Add(itemBoxSizer109, 0, wxGROW, 0);
     ewxStaticText* itemStaticText110 = new ewxStaticText( itemPanel84, wxID_STATIC, _("Apply to:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer109->Add(itemStaticText110, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer109->Add(itemStaticText110, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice111Strings[] = {
         _("All"),
@@ -630,7 +630,7 @@ void CoordPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer116 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer115->Add(itemBoxSizer116, 0, wxGROW, 0);
     ewxStaticText* itemStaticText117 = new ewxStaticText( itemPanel114, wxID_STATIC, _("Align to"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer116->Add(itemStaticText117, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer116->Add(itemStaticText117, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxRadioButton* itemRadioButton118 = new ewxRadioButton( itemPanel114, ID_ALIGN_TO_AXIS, _("Axis"), wxDefaultPosition, wxDefaultSize, wxRB_GROUP );
     itemRadioButton118->SetValue(false);
@@ -652,16 +652,16 @@ void CoordPanelGUI::CreateControls()
     itemFlexGridSizer120->Add(0, 0, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText122 = new ewxStaticText( itemPanel114, wxID_STATIC, _("n_x"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer120->Add(itemStaticText122, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer120->Add(itemStaticText122, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText123 = new ewxStaticText( itemPanel114, wxID_STATIC, _("n_y"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer120->Add(itemStaticText123, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer120->Add(itemStaticText123, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText124 = new ewxStaticText( itemPanel114, wxID_STATIC, _("n_z"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer120->Add(itemStaticText124, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer120->Add(itemStaticText124, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText125 = new ewxStaticText( itemPanel114, ID_STATIC_PLAX, _("Axis    "), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer120->Add(itemStaticText125, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer120->Add(itemStaticText125, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 3);
 
     ewxTextCtrl* itemTextCtrl126 = new ewxTextCtrl( itemPanel114, ID_ALIGN_NX, _("1.0"), wxDefaultPosition, wxSize(60, -1), 0 );
     itemFlexGridSizer120->Add(itemTextCtrl126, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxBOTTOM, 3);
@@ -691,7 +691,7 @@ void CoordPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer135 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer115->Add(itemBoxSizer135, 0, wxGROW, 0);
     ewxStaticText* itemStaticText136 = new ewxStaticText( itemPanel114, wxID_STATIC, _("Apply to:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer135->Add(itemStaticText136, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer135->Add(itemStaticText136, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice137Strings[] = {
         _("All"),

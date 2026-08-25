@@ -257,12 +257,12 @@ void DynamicsPanelGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer3, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText4 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Data Collection Steps:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText5 = new ewxStaticText( itemPanel1, wxID_STATIC, _("* "), wxDefaultPosition, wxDefaultSize, 0 );
     itemStaticText5->SetForegroundColour(wxColour(255, 0, 0));
     itemStaticText5->SetFont(wxFont(14, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
-    itemBoxSizer3->Add(itemStaticText5, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer3->Add(itemStaticText5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl6 = new ewxTextCtrl( itemPanel1, ID_TEXTCTRL_DYNMC_DATSTP, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer3->Add(itemTextCtrl6, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -284,7 +284,7 @@ void DynamicsPanelGUI::CreateControls()
     p_dynamicsVSizer->Add(itemBoxSizer11, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText12 = new ewxStaticText( itemPanel9, wxID_STATIC, _("Integration Algorithm:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer11->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer11->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice13Strings[] = {
         _("Standard Leapfrog"),
@@ -298,7 +298,7 @@ void DynamicsPanelGUI::CreateControls()
     p_dynamicsVSizer->Add(itemBoxSizer14, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText15 = new ewxStaticText( itemPanel9, wxID_STATIC, _("Equilibration Steps:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer14->Add(itemStaticText15, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer14->Add(itemStaticText15, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl16 = new ewxTextCtrl( itemPanel9, ID_TEXTCTRL_DYNMC_EQSTP, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer14->Add(itemTextCtrl16, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -307,24 +307,24 @@ void DynamicsPanelGUI::CreateControls()
     p_dynamicsVSizer->Add(itemBoxSizer17, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText18 = new ewxStaticText( itemPanel9, wxID_STATIC, _("Time Step:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer17->Add(itemStaticText18, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer17->Add(itemStaticText18, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl19 = new ewxTextCtrl( itemPanel9, ID_TEXTCTRL_DYNMC_TSTEP, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer17->Add(itemTextCtrl19, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText20 = new ewxStaticText( itemPanel9, wxID_STATIC_DYNMC_TSTEP, _("ps"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer17->Add(itemStaticText20, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer17->Add(itemStaticText20, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     itemBoxSizer17->Add(15, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText22 = new ewxStaticText( itemPanel9, wxID_STATIC, _("Initial Simulation Time:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer17->Add(itemStaticText22, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer17->Add(itemStaticText22, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl23 = new ewxTextCtrl( itemPanel9, ID_TEXTCTRL_DYNMC_ITIME, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer17->Add(itemTextCtrl23, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText24 = new ewxStaticText( itemPanel9, wxID_STATIC_DYNMC_ITIME, _("ps"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer17->Add(itemStaticText24, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer17->Add(itemStaticText24, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer25 = new wxBoxSizer(wxHORIZONTAL);
     p_dynamicsVSizer->Add(itemBoxSizer25, 0, wxALIGN_LEFT|wxALL, 0);
@@ -358,7 +358,7 @@ void DynamicsPanelGUI::CreateControls()
     itemBoxSizer36->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText38 = new ewxStaticText( p_recenterPanel, wxID_STATIC, _("Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer36->Add(itemStaticText38, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer36->Add(itemStaticText38, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl39 = new ewxTextCtrl( p_recenterPanel, ID_TEXTCTRL_DYNMC_CNTFRQ, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer36->Add(itemTextCtrl39, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -391,31 +391,31 @@ void DynamicsPanelGUI::CreateControls()
     itemPanel47->SetSizer(itemBoxSizer48);
 
     ewxStaticText* itemStaticText49 = new ewxStaticText( itemPanel47, wxID_STATIC, _("1:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer48->Add(itemStaticText49, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer48->Add(itemStaticText49, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl50 = new ewxTextCtrl( itemPanel47, ID_TEXTCTRL_DYNMC_FRAC1, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer48->Add(itemTextCtrl50, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText51 = new ewxStaticText( itemPanel47, wxID_STATIC, _("2:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer48->Add(itemStaticText51, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer48->Add(itemStaticText51, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl52 = new ewxTextCtrl( itemPanel47, ID_TEXTCTRL_DYNMC_FRAC2, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer48->Add(itemTextCtrl52, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText53 = new ewxStaticText( itemPanel47, wxID_STATIC, _("3:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer48->Add(itemStaticText53, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer48->Add(itemStaticText53, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl54 = new ewxTextCtrl( itemPanel47, ID_TEXTCTRL_DYNMC_FRAC3, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer48->Add(itemTextCtrl54, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText55 = new ewxStaticText( itemPanel47, wxID_STATIC, _("4:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer48->Add(itemStaticText55, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer48->Add(itemStaticText55, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl56 = new ewxTextCtrl( itemPanel47, ID_TEXTCTRL_DYNMC_FRAC4, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer48->Add(itemTextCtrl56, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText57 = new ewxStaticText( itemPanel47, wxID_STATIC, _("5:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer48->Add(itemStaticText57, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer48->Add(itemStaticText57, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl58 = new ewxTextCtrl( itemPanel47, ID_TEXTCTRL_DYNMC_FRAC5, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer48->Add(itemTextCtrl58, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -434,7 +434,7 @@ void DynamicsPanelGUI::CreateControls()
     itemPanel62->SetSizer(itemBoxSizer63);
 
     ewxStaticText* itemStaticText64 = new ewxStaticText( itemPanel62, wxID_STATIC, _("Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer63->Add(itemStaticText64, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer63->Add(itemStaticText64, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl65 = new ewxTextCtrl( itemPanel62, ID_TEXTCTRL_DYNMC_CMFRQ, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer63->Add(itemTextCtrl65, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -459,13 +459,13 @@ void DynamicsPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer72 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer71->Add(itemBoxSizer72, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText73 = new ewxStaticText( p_NVTPanel, wxID_STATIC, _("Temperature:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer72->Add(itemStaticText73, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer72->Add(itemStaticText73, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     ewxTextCtrl* itemTextCtrl74 = new ewxTextCtrl( p_NVTPanel, ID_TEXTCTRL_DYNMC_NVTTMP, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer72->Add(itemTextCtrl74, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText75 = new ewxStaticText( p_NVTPanel, wxID_STATIC_DYNMC_NVTTMP, _("Kelvin"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer72->Add(itemStaticText75, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer72->Add(itemStaticText75, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     itemBoxSizer72->Add(10, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
@@ -480,13 +480,13 @@ void DynamicsPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer79 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer71->Add(itemBoxSizer79, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText80 = new ewxStaticText( p_NVTPanel, wxID_STATIC, _("Solvent/System Relaxation Time:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer79->Add(itemStaticText80, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer79->Add(itemStaticText80, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     ewxTextCtrl* itemTextCtrl81 = new ewxTextCtrl( p_NVTPanel, ID_TEXTCTRL_DYNMC_SLVTIM, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer79->Add(itemTextCtrl81, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText82 = new ewxStaticText( p_NVTPanel, wxID_STATIC_DYNMC_SLVTIM, _("ps"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer79->Add(itemStaticText82, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer79->Add(itemStaticText82, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxPanel* itemPanel83 = new ewxPanel( p_NVTPanel, ID_PANEL_DYNMC_SLUTIM, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemBoxSizer71->Add(itemPanel83, 0, wxALIGN_LEFT|wxALL, 0);
@@ -494,13 +494,13 @@ void DynamicsPanelGUI::CreateControls()
     itemPanel83->SetSizer(itemBoxSizer84);
 
     ewxStaticText* itemStaticText85 = new ewxStaticText( itemPanel83, wxID_STATIC_DYNMC_SLUTXT, _("Solute Relaxation Time:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer84->Add(itemStaticText85, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer84->Add(itemStaticText85, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     ewxTextCtrl* itemTextCtrl86 = new ewxTextCtrl( itemPanel83, ID_TEXTCTRL_DYNMC_SLUTIM, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer84->Add(itemTextCtrl86, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText87 = new ewxStaticText( itemPanel83, wxID_STATIC_DYNMC_USLUTIM, _("ps"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer84->Add(itemStaticText87, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer84->Add(itemStaticText87, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     itemNotebook29->AddPage(itemPanel66, _("Temperature"));
 
@@ -524,40 +524,40 @@ void DynamicsPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer95 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer94->Add(itemBoxSizer95, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText96 = new ewxStaticText( p_NPTPanel, wxID_STATIC, _("Pressure:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer95->Add(itemStaticText96, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer95->Add(itemStaticText96, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     ewxTextCtrl* itemTextCtrl97 = new ewxTextCtrl( p_NPTPanel, ID_TEXTCTRL_DYNMC_NPTPRS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer95->Add(itemTextCtrl97, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText98 = new ewxStaticText( p_NPTPanel, wxID_STATIC_DYNMC_NPTPRS, _("N/m**2"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer95->Add(itemStaticText98, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer95->Add(itemStaticText98, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer99 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer94->Add(itemBoxSizer99, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText100 = new ewxStaticText( p_NPTPanel, wxID_STATIC, _("Pressure Relaxation Time:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer99->Add(itemStaticText100, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer99->Add(itemStaticText100, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     ewxTextCtrl* itemTextCtrl101 = new ewxTextCtrl( p_NPTPanel, ID_TEXTCTRL_DYNMC_PRSTIM, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer99->Add(itemTextCtrl101, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText102 = new ewxStaticText( p_NPTPanel, wxID_STATIC_DYNMC_PRSTIM, _("ps"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer99->Add(itemStaticText102, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer99->Add(itemStaticText102, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer103 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer94->Add(itemBoxSizer103, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText104 = new ewxStaticText( p_NPTPanel, wxID_STATIC, _("Compressibility:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer103->Add(itemStaticText104, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer103->Add(itemStaticText104, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     ewxTextCtrl* itemTextCtrl105 = new ewxTextCtrl( p_NPTPanel, ID_TEXTCTRL_DYNMC_CMPRSS, _T(""), wxDefaultPosition, wxSize(100, -1), 0 );
     itemBoxSizer103->Add(itemTextCtrl105, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText106 = new ewxStaticText( p_NPTPanel, wxID_STATIC_DYNMC_CMPRSS, _("m**2/N"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer103->Add(itemStaticText106, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer103->Add(itemStaticText106, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer107 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer94->Add(itemBoxSizer107, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText108 = new ewxStaticText( p_NPTPanel, wxID_STATIC, _("Volume Adjustment Algorithm:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer107->Add(itemStaticText108, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer107->Add(itemStaticText108, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     wxString itemChoice109Strings[] = {
         _("Isotropic"),
@@ -589,7 +589,7 @@ void DynamicsPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer116 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer115->Add(itemBoxSizer116, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText117 = new ewxStaticText( p_rethermalizationPanel, wxID_STATIC, _("Rethermalization Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer116->Add(itemStaticText117, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer116->Add(itemStaticText117, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     ewxTextCtrl* itemTextCtrl118 = new ewxTextCtrl( p_rethermalizationPanel, ID_TEXTCTRL_DYNMC_VELFRQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer116->Add(itemTextCtrl118, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -597,18 +597,18 @@ void DynamicsPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer119 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer115->Add(itemBoxSizer119, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText120 = new ewxStaticText( p_rethermalizationPanel, wxID_STATIC, _("Rethermalization Temperature:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer119->Add(itemStaticText120, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer119->Add(itemStaticText120, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     ewxTextCtrl* itemTextCtrl121 = new ewxTextCtrl( p_rethermalizationPanel, ID_TEXTCTRL_DYNMC_RTHTMP, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer119->Add(itemTextCtrl121, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText122 = new ewxStaticText( p_rethermalizationPanel, wxID_STATIC_DYNMC_RTHTMP, _("Kelvin"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer119->Add(itemStaticText122, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer119->Add(itemStaticText122, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer123 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer115->Add(itemBoxSizer123, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText124 = new ewxStaticText( p_rethermalizationPanel, wxID_STATIC, _("Fraction of Velocities to Rethermalize:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer123->Add(itemStaticText124, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer123->Add(itemStaticText124, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     ewxTextCtrl* itemTextCtrl125 = new ewxTextCtrl( p_rethermalizationPanel, ID_TEXTCTRL_DYNMC_VFRAC, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer123->Add(itemTextCtrl125, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -616,7 +616,7 @@ void DynamicsPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer126 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer115->Add(itemBoxSizer126, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText127 = new ewxStaticText( p_rethermalizationPanel, wxID_STATIC, _("Additional Rethermalization Options:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer126->Add(itemStaticText127, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer126->Add(itemStaticText127, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     wxString itemChoice128Strings[] = {
         _("Default"),
@@ -649,35 +649,35 @@ void DynamicsPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer135 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer134->Add(itemBoxSizer135, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText136 = new ewxStaticText( p_annealingPanel, wxID_STATIC, _("Final Temperature:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer135->Add(itemStaticText136, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer135->Add(itemStaticText136, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     ewxTextCtrl* itemTextCtrl137 = new ewxTextCtrl( p_annealingPanel, ID_TEXTCTRL_DYNMC_ANLTMP, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer135->Add(itemTextCtrl137, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText138 = new ewxStaticText( p_annealingPanel, wxID_STATIC_DYNMC_ANLTMP, _("Kelvin"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer135->Add(itemStaticText138, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer135->Add(itemStaticText138, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer139 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer134->Add(itemBoxSizer139, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText140 = new ewxStaticText( p_annealingPanel, wxID_STATIC, _("Starting Time:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer139->Add(itemStaticText140, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer139->Add(itemStaticText140, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 15);
 
     ewxTextCtrl* itemTextCtrl141 = new ewxTextCtrl( p_annealingPanel, ID_TEXTCTRL_DYNMC_IANL, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer139->Add(itemTextCtrl141, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText142 = new ewxStaticText( p_annealingPanel, wxID_STATIC_DYNMC_IANL, _("ps"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer139->Add(itemStaticText142, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer139->Add(itemStaticText142, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     itemBoxSizer139->Add(15, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText144 = new ewxStaticText( p_annealingPanel, wxID_STATIC, _("Final Time:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer139->Add(itemStaticText144, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer139->Add(itemStaticText144, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl145 = new ewxTextCtrl( p_annealingPanel, ID_TEXTCTRL_DYNMC_FANL, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer139->Add(itemTextCtrl145, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText146 = new ewxStaticText( p_annealingPanel, wxID_STATIC_DYNMC_FANL, _("ps"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer139->Add(itemStaticText146, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer139->Add(itemStaticText146, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     itemNotebook29->AddPage(itemPanel129, _("Annealing"));
 
@@ -693,10 +693,10 @@ void DynamicsPanelGUI::CreateControls()
     ewxStaticText* itemStaticText150 = new ewxStaticText( itemPanel1, wxID_STATIC, _("*"), wxDefaultPosition, wxDefaultSize, 0 );
     itemStaticText150->SetForegroundColour(wxColour(255, 0, 0));
     itemStaticText150->SetFont(wxFont(14, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
-    itemBoxSizer148->Add(itemStaticText150, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer148->Add(itemStaticText150, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText151 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Required value"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer148->Add(itemStaticText151, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    itemBoxSizer148->Add(itemStaticText151, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 3);
 
 ////@end DynamicsPanelGUI content construction
 }

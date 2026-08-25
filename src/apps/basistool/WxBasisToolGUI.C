@@ -403,7 +403,7 @@ void WxBasisToolGUI::CreateControls()
 
     ewxStaticText* itemStaticText43 = new ewxStaticText( itemPanel31, ID_STATIC_WXBASISTOOL_BASISSET_CATEGORY_1, _("You must first select\nan Orbital Basis Set"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE );
     itemStaticText43->Show(false);
-    itemBoxSizer32->Add(itemStaticText43, 0, wxALIGN_CENTER_HORIZONTAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer32->Add(itemStaticText43, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 3);
 
     itemNotebook9->AddPage(itemPanel31, _("Auxiliary"));
 
@@ -432,7 +432,7 @@ void WxBasisToolGUI::CreateControls()
     itemPanel51->SetSizer(itemBoxSizer52);
 
     ewxStaticText* itemStaticText53 = new ewxStaticText( itemPanel51, wxID_STATIC, _("Charge Fitting"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer52->Add(itemStaticText53, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer52->Add(itemStaticText53, 0, wxALIGN_LEFT|wxALL, 3);
 
     wxString* itemListBox54Strings = NULL;
     ewxListBox* itemListBox54 = new ewxListBox( itemPanel51, ID_LISTBOX_WXBASISTOOL_BASISSET_TYPE_10, wxDefaultPosition, wxDefaultSize, 0, itemListBox54Strings, wxLB_SINGLE );
@@ -446,7 +446,7 @@ void WxBasisToolGUI::CreateControls()
     itemPanel56->SetSizer(itemBoxSizer57);
 
     ewxStaticText* itemStaticText58 = new ewxStaticText( itemPanel56, wxID_STATIC, _("Exchange Fitting"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer57->Add(itemStaticText58, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer57->Add(itemStaticText58, 0, wxALIGN_LEFT|wxALL, 3);
 
     wxString* itemListBox59Strings = NULL;
     ewxListBox* itemListBox59 = new ewxListBox( itemPanel56, ID_LISTBOX_WXBASISTOOL_BASISSET_TYPE_11, wxDefaultPosition, wxDefaultSize, 0, itemListBox59Strings, wxLB_SINGLE );
@@ -501,7 +501,7 @@ void WxBasisToolGUI::CreateControls()
     itemBoxSizer74->Add(itemStaticLine75, 0, wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText76 = new ewxStaticText( itemPanel73, wxID_STATIC, _("Basis Set Selections"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer74->Add(itemStaticText76, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer74->Add(itemStaticText76, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticLine* itemStaticLine77 = new ewxStaticLine( itemPanel73, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer74->Add(itemStaticLine77, 1, wxALIGN_CENTER_VERTICAL, 3);
@@ -574,7 +574,7 @@ void WxBasisToolGUI::CreateControls()
     itemPanel93->SetSizer(itemBoxSizer94);
 
     ewxStaticText* itemStaticText95 = new ewxStaticText( itemPanel93, wxID_STATIC, _("Polarization Components:"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE );
-    itemBoxSizer94->Add(itemStaticText95, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer94->Add(itemStaticText95, 0, wxALIGN_LEFT|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer96 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer94->Add(itemBoxSizer96, 0, wxGROW, 3);
@@ -596,22 +596,22 @@ void WxBasisToolGUI::CreateControls()
     wxGridSizer* itemGridSizer101 = new wxGridSizer(3, 2, 0, 0);
     itemBoxSizer94->Add(itemGridSizer101, 0, wxGROW, 3);
     ewxStaticText* itemStaticText102 = new ewxStaticText( itemPanel93, wxID_STATIC, _("Functions:"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemGridSizer101->Add(itemStaticText102, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemGridSizer101->Add(itemStaticText102, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText103 = new ewxStaticText( itemPanel93, ID_STATIC_WXBASISTOOL_FUNCTIONS, _("40"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemGridSizer101->Add(itemStaticText103, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemGridSizer101->Add(itemStaticText103, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText104 = new ewxStaticText( itemPanel93, wxID_STATIC, _("Primitives:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemGridSizer101->Add(itemStaticText104, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemGridSizer101->Add(itemStaticText104, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText105 = new ewxStaticText( itemPanel93, ID_STATIC_WXBASISTOOL_PRIMATIVES, _("80"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemGridSizer101->Add(itemStaticText105, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemGridSizer101->Add(itemStaticText105, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText106 = new ewxStaticText( itemPanel93, wxID_STATIC, _("Eff. Primitives:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemGridSizer101->Add(itemStaticText106, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemGridSizer101->Add(itemStaticText106, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText107 = new ewxStaticText( itemPanel93, ID_STATIC_WXBASISTOOL_EFFPRIMATIVES, _("80"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemGridSizer101->Add(itemStaticText107, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemGridSizer101->Add(itemStaticText107, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemSplitterWindow4->SplitHorizontally(itemPanel5, itemPanel71, 300);
     itemBoxSizer3->Add(itemSplitterWindow4, 1, wxGROW, 3);

@@ -66,13 +66,13 @@ void WxTimeSpanEdit::createControls()
     szrMain->Add(p_minutesSpinCtrl, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
 
     p_daysLabelStaticText = new ewxStaticText( this, ID_STATIC_WXTIMESPANEDIT_DAYSLABEL, _("days"), wxDefaultPosition, wxDefaultSize, 0 );
-    szrMain->Add(p_daysLabelStaticText, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_TOP|wxADJUST_MINSIZE, 0);
+    szrMain->Add(p_daysLabelStaticText, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_TOP, 0);
 
     p_hoursLabelStaticText = new ewxStaticText( this, ID_STATIC_WXTIMESPANEDIT_HOURSLABEL, _("hours"), wxDefaultPosition, wxDefaultSize, 0 );
-    szrMain->Add(p_hoursLabelStaticText, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_TOP|wxADJUST_MINSIZE, 0);
+    szrMain->Add(p_hoursLabelStaticText, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_TOP, 0);
 
     p_minutesLabelStaticText = new ewxStaticText( this, ID_STATIC_WXTIMESPANEDIT_MINUTESLABEL, _("minutes"), wxDefaultPosition, wxDefaultSize, 0 );
-    szrMain->Add(p_minutesLabelStaticText, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_TOP|wxADJUST_MINSIZE, 0);
+    szrMain->Add(p_minutesLabelStaticText, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_TOP, 0);
 
     this->SetSizer(szrMain);
     this->Layout();

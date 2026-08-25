@@ -123,7 +123,7 @@ void SymmetryPanelGUI::CreateControls()
     itemBoxSizer2->Add(p_topSizer, 0, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText4 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Symmetry:"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_topSizer->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    p_topSizer->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxButton* itemButton5 = new ewxButton( itemPanel1, ID_BUTTON_SYMM_FIND, _("Find "), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT );
     if (ShowToolTips())
@@ -141,7 +141,7 @@ void SymmetryPanelGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer8, 0, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Threshold:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxTextCtrl* itemTextCtrl10 = new ewxTextCtrl( itemPanel1, ID_TEXTCTRL_SYMM_THRESHOLD, _("0.01"), wxDefaultPosition, wxSize(50, -1), 0 );
     if (ShowToolTips())
@@ -150,7 +150,7 @@ void SymmetryPanelGUI::CreateControls()
 
     ewxStaticText* itemStaticText11 = new ewxStaticText( itemPanel1, ID_STATIC_SYMM_THRESHOLD_UNIT, _("Angstrom"), wxDefaultPosition, wxDefaultSize, 0 );
     itemStaticText11->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
-    itemBoxSizer8->Add(itemStaticText11, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 2);
+    itemBoxSizer8->Add(itemStaticText11, 0, wxALIGN_BOTTOM|wxALL, 2);
 
     itemBoxSizer8->Add(1, 1, 1, wxALIGN_CENTER_VERTICAL|wxALL, 1);
 

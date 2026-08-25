@@ -130,7 +130,7 @@ void WxFeedbackGUI::CreateControls()
     p_topLineSizer->Add(1, 1, 1, wxALIGN_CENTER_VERTICAL|wxALL|wxFIXED_MINSIZE, 0);
 
     ewxStaticText* itemStaticText8 = new ewxStaticText( itemPanel1, wxID_STATIC_FEEDBACK_CONTEXT, _("Tool Context URL"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE );
-    p_topLineSizer->Add(itemStaticText8, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    p_topLineSizer->Add(itemStaticText8, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     p_topLineSizer->Add(1, 1, 1, wxALIGN_CENTER_VERTICAL|wxALL|wxFIXED_MINSIZE, 0);
 

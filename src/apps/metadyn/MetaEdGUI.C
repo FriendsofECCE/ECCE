@@ -181,7 +181,7 @@ void MetaEdGUI::CreateControls()
     itemBoxSizer14->Add(itemBoxSizer15, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     ewxStaticText* itemStaticText16 = new ewxStaticText( itemFrame1, ID_STATIC_METAED_CHARGE, _("Charge:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer15->Add(itemStaticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer15->Add(itemStaticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString itemComboBox17Strings[] = {
         _("-2"),
@@ -198,7 +198,7 @@ void MetaEdGUI::CreateControls()
     itemBoxSizer14->Add(itemBoxSizer18, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     ewxStaticText* itemStaticText19 = new ewxStaticText( itemFrame1, ID_STATIC_METAED_SPIN_MULT, _("Spin Mult.:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer18->Add(itemStaticText19, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer18->Add(itemStaticText19, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString itemComboBox20Strings[] = {
         _("Singlet"),
@@ -223,16 +223,16 @@ void MetaEdGUI::CreateControls()
     itemBoxSizer22->Add(itemFlexGridSizer23, 0, wxALIGN_TOP, 2);
 
     ewxNonBoldLabel* itemStaticText24 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Atoms:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer23->Add(itemStaticText24, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer23->Add(itemStaticText24, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText25 = new ewxStaticText( itemFrame1, ID_STATICTEXT_METAED_ATOMS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer23->Add(itemStaticText25, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer23->Add(itemStaticText25, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     ewxNonBoldLabel* itemStaticText26 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Electrons:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer23->Add(itemStaticText26, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer23->Add(itemStaticText26, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText27 = new ewxStaticText( itemFrame1, ID_STATICTEXT_METAED_ELECTRONS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer23->Add(itemStaticText27, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer23->Add(itemStaticText27, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     itemBoxSizer22->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -240,16 +240,16 @@ void MetaEdGUI::CreateControls()
     itemBoxSizer22->Add(itemFlexGridSizer29, 0, wxALIGN_TOP, 5);
 
     ewxNonBoldLabel* itemStaticText30 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Symmetry:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer29->Add(itemStaticText30, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer29->Add(itemStaticText30, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText31 = new ewxStaticText( itemFrame1, ID_STATICTEXT_METAED_SYMMETRY, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer29->Add(itemStaticText31, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer29->Add(itemStaticText31, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     ewxNonBoldLabel* itemStaticText32 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Open Shells:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer29->Add(itemStaticText32, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer29->Add(itemStaticText32, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText33 = new ewxStaticText( itemFrame1, ID_STATICTEXT_METAED_OPEN_SHELLS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer29->Add(itemStaticText33, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer29->Add(itemStaticText33, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     p_detailsBox = new wxStaticBox(itemFrame1, wxID_ANY, _("Theory/Runtype Settings"));
     wxStaticBoxSizer* itemStaticBoxSizer34 = new wxStaticBoxSizer(p_detailsBox, wxHORIZONTAL);
@@ -265,10 +265,10 @@ void MetaEdGUI::CreateControls()
     itemBoxSizer36->Add(itemBoxSizer37, 0, wxALIGN_LEFT|wxLEFT, 5);
 
     ewxStaticText* itemStaticText38 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Theory:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer37->Add(itemStaticText38, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer37->Add(itemStaticText38, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText39 = new ewxStaticText( itemFrame1, wxID_STATIC, _("PSPW"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer37->Add(itemStaticText39, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer37->Add(itemStaticText39, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxButton* itemButton40 = new ewxButton( itemFrame1, ID_BUTTON_METAED_THEORY, _("Theory Details..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer36->Add(itemButton40, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxBOTTOM, 5);
@@ -288,10 +288,10 @@ void MetaEdGUI::CreateControls()
     itemBoxSizer44->Add(itemBoxSizer45, 0, wxALIGN_LEFT|wxLEFT, 5);
 
     ewxStaticText* itemStaticText46 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Runtype:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer45->Add(itemStaticText46, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer45->Add(itemStaticText46, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText47 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Car-Parrinello"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer45->Add(itemStaticText47, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer45->Add(itemStaticText47, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer48 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer44->Add(itemBoxSizer48, 0, wxALIGN_LEFT, 5);

@@ -282,7 +282,7 @@ void PolyrateGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer5, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText6 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Scale Factor for Reverse Reaction Rates:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer5->Add(itemStaticText6, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer5->Add(itemStaticText6, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl7 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_PLYRT_SCLRV, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer5->Add(itemTextCtrl7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -291,13 +291,13 @@ void PolyrateGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer8, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Symmetry Factors:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer10 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer10, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText11 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Forward Reaction:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer10->Add(itemStaticText11, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer10->Add(itemStaticText11, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl12 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_PLYRT_SGMF, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer10->Add(itemTextCtrl12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -305,7 +305,7 @@ void PolyrateGUI::CreateControls()
     itemBoxSizer10->Add(50, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText14 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Reverse Reaction:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer10->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer10->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl15 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_PLYRT_SGMR, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer10->Add(itemTextCtrl15, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -314,7 +314,7 @@ void PolyrateGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer16, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText17 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Frequency Scale Factor:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer16->Add(itemStaticText17, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer16->Add(itemStaticText17, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl18 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_PLYRT_FSCL, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer16->Add(itemTextCtrl18, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -335,14 +335,14 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer24 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer23->Add(itemBoxSizer24, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText25 = new ewxStaticText( itemPanel22, wxID_STATIC, _("Temperatures at which to Evaluate Rate Constants:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer24->Add(itemStaticText25, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer24->Add(itemStaticText25, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer26 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer23->Add(itemBoxSizer26, 0, wxGROW|wxALL, 0);
     wxFlexGridSizer* itemFlexGridSizer27 = new wxFlexGridSizer(3, 2, 0, 0);
     itemBoxSizer26->Add(itemFlexGridSizer27, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
     ewxStaticText* itemStaticText28 = new ewxStaticText( itemPanel22, wxID_STATIC, _("Temperature:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer27->Add(itemStaticText28, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer27->Add(itemStaticText28, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl29 = new ewxTextCtrl( itemPanel22, ID_TEXTCTRL_PLYRT_TMPRTR, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer27->Add(itemTextCtrl29, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -378,7 +378,7 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer40 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer39->Add(itemBoxSizer40, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText41 = new ewxStaticText( itemPanel38, wxID_STATIC, _("Component"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer40->Add(itemStaticText41, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer40->Add(itemStaticText41, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice42Strings[] = {
         _("Reactant 1"),
@@ -394,10 +394,10 @@ void PolyrateGUI::CreateControls()
     wxFlexGridSizer* itemFlexGridSizer43 = new wxFlexGridSizer(4, 3, 0, 0);
     itemBoxSizer39->Add(itemFlexGridSizer43, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText44 = new ewxStaticText( itemPanel38, wxID_STATIC, _("Degeneracy"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer43->Add(itemStaticText44, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer43->Add(itemStaticText44, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText45 = new ewxStaticText( itemPanel38, wxID_STATIC, _("Energy"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer43->Add(itemStaticText45, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer43->Add(itemStaticText45, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer43->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
@@ -410,10 +410,10 @@ void PolyrateGUI::CreateControls()
     itemBoxSizer48->Add(itemTextCtrl49, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText50 = new ewxStaticText( itemPanel38, wxID_STATIC_PLYRT_NRG1, _("Hartree"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer48->Add(itemStaticText50, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 3);
+    itemBoxSizer48->Add(itemStaticText50, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 3);
 
     ewxStaticText* itemStaticText51 = new ewxStaticText( itemPanel38, wxID_STATIC, _("     (Ground State)"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer48->Add(itemStaticText51, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer48->Add(itemStaticText51, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer43->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
@@ -426,7 +426,7 @@ void PolyrateGUI::CreateControls()
     itemBoxSizer54->Add(itemTextCtrl55, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText56 = new ewxStaticText( itemPanel38, wxID_STATIC_PLYRT_NRG2, _("Hartree"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer54->Add(itemStaticText56, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 3);
+    itemBoxSizer54->Add(itemStaticText56, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 3);
 
     itemFlexGridSizer43->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
@@ -439,7 +439,7 @@ void PolyrateGUI::CreateControls()
     itemBoxSizer59->Add(itemTextCtrl60, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText61 = new ewxStaticText( itemPanel38, wxID_STATIC_PLYRT_NRG3, _("Hartree"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer59->Add(itemStaticText61, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer59->Add(itemStaticText61, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxButton* itemButton62 = new ewxButton( itemPanel38, ID_BUTTON_PLYRT_CLRST, _("Clear States"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer43->Add(itemButton62, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -453,7 +453,7 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer65 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer64->Add(itemBoxSizer65, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText66 = new ewxStaticText( itemPanel63, wxID_STATIC, _("Component"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer65->Add(itemStaticText66, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer65->Add(itemStaticText66, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice67Strings[] = {
         _("Reactant 1"),
@@ -467,12 +467,12 @@ void PolyrateGUI::CreateControls()
     itemBoxSizer65->Add(itemChoice67, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText68 = new ewxStaticText( itemPanel63, ID_STATICTEXT, _("\n\n"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer65->Add(itemStaticText68, 0, wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM|wxADJUST_MINSIZE, 5);
+    itemBoxSizer65->Add(itemStaticText68, 0, wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM, 5);
 
     ewxStaticText* itemStaticText69 = new ewxStaticText( itemPanel63, wxID_STATIC_PLYRT_CHKOPT, _("Warning: Additional hindered rotor\ntorsion mode options must be set\nto generate valid input file"), wxDefaultPosition, wxDefaultSize, 0 );
     itemStaticText69->SetForegroundColour(wxColour(255, 0, 0));
     itemStaticText69->Show(false);
-    itemBoxSizer65->Add(itemStaticText69, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer65->Add(itemStaticText69, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxNotebook* itemNotebook70 = new ewxNotebook( itemPanel63, ID_NOTEBOOK_PLYRT_ANHRM, wxDefaultPosition, wxDefaultSize, wxNB_TOP );
 
@@ -483,7 +483,7 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer73 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer72->Add(itemBoxSizer73, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText74 = new ewxStaticText( itemPanel71, wxID_STATIC, _("Stretching Mode:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer73->Add(itemStaticText74, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer73->Add(itemStaticText74, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl75 = new ewxTextCtrl( itemPanel71, ID_TEXTCTRL_PLYRT_MRSMD, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer73->Add(itemTextCtrl75, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -520,7 +520,7 @@ void PolyrateGUI::CreateControls()
     ewxStaticText* itemStaticText87 = new ewxStaticText( itemPanel84, wxID_STATIC, _("Torsion Mode:"), wxDefaultPosition, wxDefaultSize, 0 );
     if (ShowToolTips())
         itemStaticText87->SetToolTip(_("Use POLYRATE indexing for normal modes"));
-    itemBoxSizer86->Add(itemStaticText87, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer86->Add(itemStaticText87, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl88 = new ewxTextCtrl( itemPanel84, ID_TEXTCTRL_PLYRT_TRSNMD, _T(""), wxDefaultPosition, wxSize(40, -1), 0 );
     if (ShowToolTips())
@@ -528,7 +528,7 @@ void PolyrateGUI::CreateControls()
     itemBoxSizer86->Add(itemTextCtrl88, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText89 = new ewxStaticText( itemPanel84, wxID_STATIC, _("Number of Distinct Minima:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer86->Add(itemStaticText89, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer86->Add(itemStaticText89, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl90 = new ewxTextCtrl( itemPanel84, ID_TEXTCTRL_PLYRT_DMIN, _T(""), wxDefaultPosition, wxSize(40, -1), 0 );
     itemBoxSizer86->Add(itemTextCtrl90, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -536,7 +536,7 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer91 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer85->Add(itemBoxSizer91, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText92 = new ewxStaticText( itemPanel84, wxID_STATIC, _("Symmetry Number of Lowest Energy Minima:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer91->Add(itemStaticText92, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer91->Add(itemStaticText92, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl93 = new ewxTextCtrl( itemPanel84, ID_TEXTCTRL_PLYRT_SYMNUM, _T(""), wxDefaultPosition, wxSize(40, -1), 0 );
     itemBoxSizer91->Add(itemTextCtrl93, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -544,7 +544,7 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer94 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer85->Add(itemBoxSizer94, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText95 = new ewxStaticText( itemPanel84, wxID_STATIC, _("Number of Atoms in First Subgroup:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer94->Add(itemStaticText95, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer94->Add(itemStaticText95, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl96 = new ewxTextCtrl( itemPanel84, ID_TEXTCTRL_PLYRT_SBGRP, _T(""), wxDefaultPosition, wxSize(40, -1), 0 );
     itemBoxSizer94->Add(itemTextCtrl96, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -552,7 +552,7 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer97 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer85->Add(itemBoxSizer97, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText98 = new ewxStaticText( itemPanel84, wxID_STATIC, _("Parameterization Scheme:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer97->Add(itemStaticText98, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer97->Add(itemStaticText98, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice99Strings[] = {
         _("Frequency-Barrier"),
@@ -568,7 +568,7 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer100 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer85->Add(itemBoxSizer100, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText101 = new ewxStaticText( itemPanel84, wxID_STATIC, _("Approximation Level:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer100->Add(itemStaticText101, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer100->Add(itemStaticText101, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice102Strings[] = {
         _("Full"),
@@ -603,7 +603,7 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer110 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer109->Add(itemBoxSizer110, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText111 = new ewxStaticText( itemPanel108, wxID_STATIC, _("Mode:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer110->Add(itemStaticText111, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer110->Add(itemStaticText111, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString* itemChoice112Strings = NULL;
     ewxChoice* itemChoice112 = new ewxChoice( itemPanel108, ID_CHOICE_PLYRT_MODE, wxDefaultPosition, wxDefaultSize, 0, itemChoice112Strings, 0 );
@@ -612,7 +612,7 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer113 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer109->Add(itemBoxSizer113, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText114 = new ewxStaticText( itemPanel108, wxID_STATIC_PLYRT_DATTYP, _("Data Type:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer113->Add(itemStaticText114, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer113->Add(itemStaticText114, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice115Strings[] = {
         _("Barrier Heights"),
@@ -630,13 +630,13 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer116 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer109->Add(itemBoxSizer116, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText117 = new ewxStaticText( itemPanel108, wxID_STATIC, _("Data Values:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer116->Add(itemStaticText117, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer116->Add(itemStaticText117, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl118 = new ewxTextCtrl( itemPanel108, ID_TEXTCTRL_PLYRT_DVALS, _T(""), wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER );
     itemBoxSizer116->Add(itemTextCtrl118, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText119 = new ewxStaticText( itemPanel108, wxID_STATIC_PLYRT_DVALS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer116->Add(itemStaticText119, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer116->Add(itemStaticText119, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer120 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer109->Add(itemBoxSizer120, 0, wxALIGN_LEFT|wxALL, 0);
@@ -661,7 +661,7 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer127 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer126->Add(itemBoxSizer127, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText128 = new ewxStaticText( itemPanel125, wxID_STATIC, _("Mode:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer127->Add(itemStaticText128, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer127->Add(itemStaticText128, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString* itemChoice129Strings = NULL;
     ewxChoice* itemChoice129 = new ewxChoice( itemPanel125, ID_CHOICE_PLYRT_AMOD, wxDefaultPosition, wxDefaultSize, 0, itemChoice129Strings, 0 );
@@ -670,24 +670,24 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer130 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer126->Add(itemBoxSizer130, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText131 = new ewxStaticText( itemPanel125, wxID_STATIC, _("Minimum Value of Reaction Coordinate:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer130->Add(itemStaticText131, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer130->Add(itemStaticText131, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl132 = new ewxTextCtrl( itemPanel125, ID_TEXTCTRL_PLYRT_MINS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer130->Add(itemTextCtrl132, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText133 = new ewxStaticText( itemPanel125, wxID_STATIC_PLYRT_MINS, _("Bohr"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer130->Add(itemStaticText133, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer130->Add(itemStaticText133, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer134 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer126->Add(itemBoxSizer134, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText135 = new ewxStaticText( itemPanel125, wxID_STATIC, _("Maximum Value of Reaction Coordinate:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer134->Add(itemStaticText135, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer134->Add(itemStaticText135, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl136 = new ewxTextCtrl( itemPanel125, ID_TEXTCTRL_PLYRT_MAXS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer134->Add(itemTextCtrl136, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText137 = new ewxStaticText( itemPanel125, wxID_STATIC_PLYRT_MAXS, _("Bohr"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer134->Add(itemStaticText137, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer134->Add(itemStaticText137, 0, wxALIGN_BOTTOM|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer138 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer126->Add(itemBoxSizer138, 0, wxALIGN_LEFT|wxALL, 0);
@@ -720,7 +720,7 @@ void PolyrateGUI::CreateControls()
     wxBoxSizer* itemBoxSizer145 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer144->Add(itemBoxSizer145, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText146 = new ewxStaticText( itemPanel143, wxID_STATIC, _("Align Linear Component"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer145->Add(itemStaticText146, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer145->Add(itemStaticText146, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice147Strings[] = {
         _("Reactant 1"),
@@ -734,7 +734,7 @@ void PolyrateGUI::CreateControls()
     itemBoxSizer145->Add(itemChoice147, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText148 = new ewxStaticText( itemPanel143, wxID_STATIC, _("Axis:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer145->Add(itemStaticText148, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer145->Add(itemStaticText148, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice149Strings[] = {
         _("X"),

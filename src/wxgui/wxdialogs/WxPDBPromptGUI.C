@@ -124,19 +124,19 @@ void WxPDBPromptGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer3, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText4 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Read which model:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxSpinCtrl* itemSpinCtrl5 = new ewxSpinCtrl( itemDialog1, ID_SPINCTRL_PDBMODEL, _("1"), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 100, 1 );
     itemBoxSizer3->Add(itemSpinCtrl5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText6 = new ewxStaticText( itemDialog1, ID_PROMPT_MODEL_OPTIONS_TEXT, _("[1]"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer3->Add(itemStaticText6, 0, wxALIGN_BOTTOM|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 5);
+    itemBoxSizer3->Add(itemStaticText6, 0, wxALIGN_BOTTOM|wxRIGHT|wxTOP, 5);
 
     wxBoxSizer* itemBoxSizer7 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer7, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText8 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Alternate location:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer7->Add(itemStaticText8, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer7->Add(itemStaticText8, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString* itemChoice9Strings = NULL;
     ewxChoice* itemChoice9 = new ewxChoice( itemDialog1, ID_ALT_LOC_CHOICE, wxDefaultPosition, wxDefaultSize, 0, itemChoice9Strings, 0 );
@@ -147,7 +147,7 @@ void WxPDBPromptGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer10, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText11 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Select chain:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer10->Add(itemStaticText11, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer10->Add(itemStaticText11, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString* itemChoice12Strings = NULL;
     ewxChoice* itemChoice12 = new ewxChoice( itemDialog1, ID_CHAIN_CHOICE, wxDefaultPosition, wxDefaultSize, 0, itemChoice12Strings, 0 );

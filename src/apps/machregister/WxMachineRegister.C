@@ -158,7 +158,7 @@ void WxMachineRegister::initialize()
             s = p_codeNames[i] + ":";
 
             ewxStaticText* lbl = new ewxStaticText(panel, wxID_STATIC, (wxString)(s), wxDefaultPosition, wxDefaultSize, 0);
-            gridsizer->Add(lbl, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+            gridsizer->Add(lbl, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
 
             ewxTextCtrl* txt = new ewxTextCtrl(panel, (ID_TEXT_APPLICATIONS_ROOT + i), _T(""), wxDefaultPosition, wxDefaultSize, 0);
             gridsizer->Add(txt, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 5);
@@ -178,7 +178,7 @@ void WxMachineRegister::initialize()
         boxsizer->Add(gridsizer, 1, wxALIGN_CENTER_VERTICAL|wxALL, 8);
 
         ewxStaticText* lbl = new ewxStaticText(panel, wxID_STATIC, _("Perl 5:"), wxDefaultPosition, wxDefaultSize, 0);
-        gridsizer->Add(lbl, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+        gridsizer->Add(lbl, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
 
         ewxTextCtrl* txt = new ewxTextCtrl(panel, wxID_ANY, _T(""), wxDefaultPosition, wxDefaultSize, 0);
         gridsizer->Add(txt, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 5);
@@ -188,7 +188,7 @@ void WxMachineRegister::initialize()
         if (p_adminFlag)
         {
             ewxStaticText* lbl  = new ewxStaticText(panel, wxID_STATIC, _("Queue Mgr:"), wxDefaultPosition, wxDefaultSize, 0);
-            gridsizer->Add(lbl, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+            gridsizer->Add(lbl, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 
             ewxTextCtrl* txt = new ewxTextCtrl(panel, wxID_ANY, _T(""), wxDefaultPosition, wxDefaultSize, 0);
             gridsizer->Add(txt, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 5);

@@ -141,13 +141,13 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
     // A button to control color
     optionsSizer->AddSpacer(3);
     ewxStaticText* label = new ewxStaticText( panel, wxID_STATIC, _("Tensor Color:"), wxDefaultPosition, wxDefaultSize, 0 );
-    optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
     ewxButton* colorbtn = new ewxButton( panel, ID_BUTTON_MOMENTS_VECCOLOR, _T(""), wxDefaultPosition, wxSize(24, 24), wxBU_EXACTFIT );
     optionsSizer->Add(colorbtn, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     optionsSizer->AddSpacer(3);
     label = new ewxStaticText( panel, wxID_STATIC, _("Scale:"), wxDefaultPosition, wxDefaultSize, 0 );
-    optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
    // Initilialize button color
    ewxConfig *config = ewxConfig::getConfig(INIFILE);

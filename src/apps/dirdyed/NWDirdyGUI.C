@@ -259,7 +259,7 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer3->Add(itemBoxSizer4, 0, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText5 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Reactant 1"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer4->Add(itemStaticText5, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 3);
+    itemBoxSizer4->Add(itemStaticText5, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 3);
 
     wxBitmap itemBitmapButton6Bitmap(itemFrame1->GetBitmapResource(wxT("../../../data/client/pixmaps/gwbuilder2.xpm")));
     ewxBitmapButton* itemBitmapButton6 = new ewxBitmapButton( itemFrame1, ID_BITMAPBUTTON_DIRDY_BUILD_R1, itemBitmapButton6Bitmap, wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW|wxBU_EXACTFIT );
@@ -269,16 +269,16 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer4->Add(itemBoxSizer7, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 3);
 
     ewxNonBoldLabel* itemStaticText8 = new ewxNonBoldLabel( itemFrame1, ID_STATIC_DIRDY_FORMULA_LABEL_R1, _("Formula:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer7->Add(itemStaticText8, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer7->Add(itemStaticText8, 0, wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_FORMULA_R1, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer7->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 5);
+    itemBoxSizer7->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 5);
 
     wxBoxSizer* itemBoxSizer10 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer4->Add(itemBoxSizer10, 0, wxALIGN_LEFT|wxALL, 3);
 
     ewxStaticText* itemStaticText11 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CHARGE_R1, _("Charge:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer10->Add(itemStaticText11, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer10->Add(itemStaticText11, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     wxString itemComboBox12Strings[] = {
         _("-2"),
@@ -295,7 +295,7 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer4->Add(itemBoxSizer13, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 3);
 
     ewxStaticText* itemStaticText14 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_SPIN_R1, _("Spin:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer13->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer13->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     wxString* itemChoice15Strings = NULL;
     ewxChoice* itemChoice15 = new ewxChoice( itemFrame1, ID_CHOICE_DIRDY_SPIN_R1, wxDefaultPosition, wxDefaultSize, 0, itemChoice15Strings, 0 );
@@ -305,10 +305,10 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer4->Add(p_codeSizerR1, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 3);
 
     ewxStaticText* itemStaticText17 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CODE_CURRENT_R1, _("Current Code:"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_codeSizerR1->Add(itemStaticText17, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxADJUST_MINSIZE, 5);
+    p_codeSizerR1->Add(itemStaticText17, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText18 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CODE_NONE_R1, _("None"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_codeSizerR1->Add(itemStaticText18, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    p_codeSizerR1->Add(itemStaticText18, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     p_calcedSizerR1 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer4->Add(p_calcedSizerR1, 0, wxALIGN_LEFT|wxLEFT|wxTOP, 3);
@@ -321,7 +321,7 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer4->Add(5, 5, 1, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
 
     ewxStaticText* itemStaticText22 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Reactant 2"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer4->Add(itemStaticText22, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 3);
+    itemBoxSizer4->Add(itemStaticText22, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 3);
 
     wxBitmap itemBitmapButton23Bitmap(itemFrame1->GetBitmapResource(wxT("../../../data/client/pixmaps/gwbuilder2.xpm")));
     ewxBitmapButton* itemBitmapButton23 = new ewxBitmapButton( itemFrame1, ID_BITMAPBUTTON_DIRDY_BUILD_R2, itemBitmapButton23Bitmap, wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW|wxBU_EXACTFIT );
@@ -331,16 +331,16 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer4->Add(itemBoxSizer24, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 3);
 
     ewxNonBoldLabel* itemStaticText25 = new ewxNonBoldLabel( itemFrame1, ID_STATIC_DIRDY_FORMULA_LABEL_R2, _("Formula:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer24->Add(itemStaticText25, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer24->Add(itemStaticText25, 0, wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText26 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_FORMULA_R2, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer24->Add(itemStaticText26, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 5);
+    itemBoxSizer24->Add(itemStaticText26, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 5);
 
     wxBoxSizer* itemBoxSizer27 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer4->Add(itemBoxSizer27, 0, wxALIGN_LEFT|wxALL, 3);
 
     ewxStaticText* itemStaticText28 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CHARGE_R2, _("Charge:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer27->Add(itemStaticText28, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer27->Add(itemStaticText28, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     wxString itemComboBox29Strings[] = {
         _("-2"),
@@ -357,7 +357,7 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer4->Add(itemBoxSizer30, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 3);
 
     ewxStaticText* itemStaticText31 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_SPIN_R2, _("Spin:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer30->Add(itemStaticText31, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer30->Add(itemStaticText31, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     wxString* itemChoice32Strings = NULL;
     ewxChoice* itemChoice32 = new ewxChoice( itemFrame1, ID_CHOICE_DIRDY_SPIN_R2, wxDefaultPosition, wxDefaultSize, 0, itemChoice32Strings, 0 );
@@ -367,10 +367,10 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer4->Add(p_codeSizerR2, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 3);
 
     ewxStaticText* itemStaticText34 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CODE_CURRENT_R2, _("Current Code:"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_codeSizerR2->Add(itemStaticText34, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxADJUST_MINSIZE, 5);
+    p_codeSizerR2->Add(itemStaticText34, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText35 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CODE_NONE_R2, _("None"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_codeSizerR2->Add(itemStaticText35, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    p_codeSizerR2->Add(itemStaticText35, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     p_calcedSizerR2 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer4->Add(p_calcedSizerR2, 0, wxALIGN_LEFT|wxLEFT|wxTOP, 3);
@@ -386,7 +386,7 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer3->Add(itemBoxSizer39, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText40 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Transition State"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer39->Add(itemStaticText40, 0, wxALIGN_CENTER_HORIZONTAL|wxLEFT|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 3);
+    itemBoxSizer39->Add(itemStaticText40, 0, wxALIGN_CENTER_HORIZONTAL|wxLEFT|wxRIGHT|wxTOP, 3);
 
     wxBitmap itemBitmapButton41Bitmap(itemFrame1->GetBitmapResource(wxT("../../../data/client/pixmaps/gwbuilder2.xpm")));
     ewxBitmapButton* itemBitmapButton41 = new ewxBitmapButton( itemFrame1, ID_BITMAPBUTTON_DIRDY_BUILD_TS, itemBitmapButton41Bitmap, wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW|wxBU_EXACTFIT );
@@ -399,25 +399,25 @@ void NWDirdyGUI::CreateControls()
     itemFlexGridSizer42->Add(itemBoxSizer43, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
 
     ewxNonBoldLabel* itemStaticText44 = new ewxNonBoldLabel( itemFrame1, ID_STATIC_DIRDY_FORMULA_LABEL_TS, _("Formula:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer43->Add(itemStaticText44, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer43->Add(itemStaticText44, 0, wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText45 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_FORMULA_TS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer43->Add(itemStaticText45, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 5);
+    itemBoxSizer43->Add(itemStaticText45, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 5);
 
     wxBoxSizer* itemBoxSizer46 = new wxBoxSizer(wxHORIZONTAL);
     itemFlexGridSizer42->Add(itemBoxSizer46, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 3);
 
     ewxNonBoldLabel* itemStaticText47 = new ewxNonBoldLabel( itemFrame1, ID_STATIC_DIRDY_BARRIER_LABEL_TS, _("Barrier:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer46->Add(itemStaticText47, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxADJUST_MINSIZE, 5);
+    itemBoxSizer46->Add(itemStaticText47, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText48 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_BARRIER_TS, _("Unknown"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer46->Add(itemStaticText48, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer46->Add(itemStaticText48, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     wxBoxSizer* itemBoxSizer49 = new wxBoxSizer(wxHORIZONTAL);
     itemFlexGridSizer42->Add(itemBoxSizer49, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText50 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CHARGE_TS, _("Charge:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer49->Add(itemStaticText50, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer49->Add(itemStaticText50, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     wxString itemComboBox51Strings[] = {
         _("-2"),
@@ -434,7 +434,7 @@ void NWDirdyGUI::CreateControls()
     itemFlexGridSizer42->Add(itemBoxSizer52, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT, 3);
 
     ewxStaticText* itemStaticText53 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_SPIN_TS, _("Spin:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer52->Add(itemStaticText53, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer52->Add(itemStaticText53, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     wxString* itemChoice54Strings = NULL;
     ewxChoice* itemChoice54 = new ewxChoice( itemFrame1, ID_CHOICE_DIRDY_SPIN_TS, wxDefaultPosition, wxDefaultSize, 0, itemChoice54Strings, 0 );
@@ -444,10 +444,10 @@ void NWDirdyGUI::CreateControls()
     itemFlexGridSizer42->Add(p_codeSizerTS, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 3);
 
     ewxStaticText* itemStaticText56 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CODE_CURRENT_TS, _("Current Code:"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_codeSizerTS->Add(itemStaticText56, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxADJUST_MINSIZE, 5);
+    p_codeSizerTS->Add(itemStaticText56, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText57 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CODE_NONE_TS, _("None"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_codeSizerTS->Add(itemStaticText57, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    p_codeSizerTS->Add(itemStaticText57, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     p_calcedSizerTS = new wxBoxSizer(wxHORIZONTAL);
     itemFlexGridSizer42->Add(p_calcedSizerTS, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP, 3);
@@ -472,7 +472,7 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer3->Add(itemBoxSizer63, 0, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText64 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Product 1"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer63->Add(itemStaticText64, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 3);
+    itemBoxSizer63->Add(itemStaticText64, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 3);
 
     wxBitmap itemBitmapButton65Bitmap(itemFrame1->GetBitmapResource(wxT("../../../data/client/pixmaps/gwbuilder2.xpm")));
     ewxBitmapButton* itemBitmapButton65 = new ewxBitmapButton( itemFrame1, ID_BITMAPBUTTON_DIRDY_BUILD_P1, itemBitmapButton65Bitmap, wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW|wxBU_EXACTFIT );
@@ -482,16 +482,16 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer63->Add(itemBoxSizer66, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 3);
 
     ewxNonBoldLabel* itemStaticText67 = new ewxNonBoldLabel( itemFrame1, ID_STATIC_DIRDY_FORMULA_LABEL_P1, _("Formula:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer66->Add(itemStaticText67, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer66->Add(itemStaticText67, 0, wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText68 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_FORMULA_P1, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer66->Add(itemStaticText68, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 5);
+    itemBoxSizer66->Add(itemStaticText68, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 5);
 
     wxBoxSizer* itemBoxSizer69 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer63->Add(itemBoxSizer69, 0, wxALIGN_LEFT|wxALL, 3);
 
     ewxStaticText* itemStaticText70 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CHARGE_P1, _("Charge:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer69->Add(itemStaticText70, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer69->Add(itemStaticText70, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     wxString itemComboBox71Strings[] = {
         _("-2"),
@@ -508,7 +508,7 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer63->Add(itemBoxSizer72, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 3);
 
     ewxStaticText* itemStaticText73 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_SPIN_P1, _("Spin:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer72->Add(itemStaticText73, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer72->Add(itemStaticText73, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     wxString* itemChoice74Strings = NULL;
     ewxChoice* itemChoice74 = new ewxChoice( itemFrame1, ID_CHOICE_DIRDY_SPIN_P1, wxDefaultPosition, wxDefaultSize, 0, itemChoice74Strings, 0 );
@@ -518,10 +518,10 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer63->Add(p_codeSizerP1, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 3);
 
     ewxStaticText* itemStaticText76 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CODE_CURRENT_P1, _("Current Code:"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_codeSizerP1->Add(itemStaticText76, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxADJUST_MINSIZE, 5);
+    p_codeSizerP1->Add(itemStaticText76, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText77 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CODE_NONE_P1, _("None"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_codeSizerP1->Add(itemStaticText77, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    p_codeSizerP1->Add(itemStaticText77, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     p_calcedSizerP1 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer63->Add(p_calcedSizerP1, 0, wxALIGN_LEFT|wxLEFT|wxTOP, 3);
@@ -534,7 +534,7 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer63->Add(5, 5, 1, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
 
     ewxStaticText* itemStaticText81 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Product 2"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer63->Add(itemStaticText81, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 3);
+    itemBoxSizer63->Add(itemStaticText81, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 3);
 
     wxBitmap itemBitmapButton82Bitmap(itemFrame1->GetBitmapResource(wxT("../../../data/client/pixmaps/gwbuilder2.xpm")));
     ewxBitmapButton* itemBitmapButton82 = new ewxBitmapButton( itemFrame1, ID_BITMAPBUTTON_DIRDY_BUILD_P2, itemBitmapButton82Bitmap, wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW|wxBU_EXACTFIT );
@@ -544,16 +544,16 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer63->Add(itemBoxSizer83, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 3);
 
     ewxNonBoldLabel* itemStaticText84 = new ewxNonBoldLabel( itemFrame1, ID_STATIC_DIRDY_FORMULA_LABEL_P2, _("Formula:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer83->Add(itemStaticText84, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer83->Add(itemStaticText84, 0, wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText85 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_FORMULA_P2, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer83->Add(itemStaticText85, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 5);
+    itemBoxSizer83->Add(itemStaticText85, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 5);
 
     wxBoxSizer* itemBoxSizer86 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer63->Add(itemBoxSizer86, 0, wxALIGN_LEFT|wxALL, 3);
 
     ewxStaticText* itemStaticText87 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CHARGE_P2, _("Charge:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer86->Add(itemStaticText87, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer86->Add(itemStaticText87, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     wxString itemComboBox88Strings[] = {
         _("-2"),
@@ -570,7 +570,7 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer63->Add(itemBoxSizer89, 0, wxALIGN_LEFT|wxLEFT, 3);
 
     ewxStaticText* itemStaticText90 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_SPIN_P2, _("Spin:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer89->Add(itemStaticText90, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer89->Add(itemStaticText90, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     wxString* itemChoice91Strings = NULL;
     ewxChoice* itemChoice91 = new ewxChoice( itemFrame1, ID_CHOICE_DIRDY_SPIN_P2, wxDefaultPosition, wxDefaultSize, 0, itemChoice91Strings, 0 );
@@ -580,10 +580,10 @@ void NWDirdyGUI::CreateControls()
     itemBoxSizer63->Add(p_codeSizerP2, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 3);
 
     ewxStaticText* itemStaticText93 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CODE_CURRENT_P2, _("Current Code:"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_codeSizerP2->Add(itemStaticText93, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxADJUST_MINSIZE, 5);
+    p_codeSizerP2->Add(itemStaticText93, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
 
     ewxStaticText* itemStaticText94 = new ewxStaticText( itemFrame1, ID_STATIC_DIRDY_CODE_NONE_P2, _("None"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_codeSizerP2->Add(itemStaticText94, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    p_codeSizerP2->Add(itemStaticText94, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     p_calcedSizerP2 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer63->Add(p_calcedSizerP2, 0, wxALIGN_LEFT|wxLEFT|wxTOP, 3);

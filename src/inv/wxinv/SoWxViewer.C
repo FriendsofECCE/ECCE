@@ -48,6 +48,11 @@
 #include "inv/SoWx/SoWxInputFocus.H"
 #include "inv/SoWx/SoWxViewer.H"
 
+// GLUquadricObj/gluNewQuadric/gluDisk/gluPartialDisk (used below for the
+// viewer roll-feedback wheel) come from GLU, not core GL - wx3.x's headers
+// no longer pull this in transitively.
+#include <GL/glu.h>
+
 #include <iostream>
 using std::cerr;
 

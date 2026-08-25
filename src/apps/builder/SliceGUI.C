@@ -140,7 +140,7 @@ void SliceGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer3, 0, wxALIGN_LEFT|wxALL, 3);
 
     ewxStaticText* itemStaticText4 = new ewxStaticText( itemPanel1, wxID_STATIC, _("h: "), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 1);
+    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
     ewxSpinCtrl* itemSpinCtrl5 = new ewxSpinCtrl( itemPanel1, ID_SPINCTRL_SLICE_H, _("1"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, -100, 100, 1 );
     itemBoxSizer3->Add(itemSpinCtrl5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
@@ -148,7 +148,7 @@ void SliceGUI::CreateControls()
     itemBoxSizer3->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemPanel1, wxID_STATIC, _("k:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer3->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 1);
+    itemBoxSizer3->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
     ewxSpinCtrl* itemSpinCtrl8 = new ewxSpinCtrl( itemPanel1, ID_SPINCTRL_SLICE_K, _("1"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, -100, 100, 1 );
     itemBoxSizer3->Add(itemSpinCtrl8, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
@@ -156,7 +156,7 @@ void SliceGUI::CreateControls()
     itemBoxSizer3->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText10 = new ewxStaticText( itemPanel1, wxID_STATIC, _("l:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer3->Add(itemStaticText10, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 1);
+    itemBoxSizer3->Add(itemStaticText10, 0, wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
     ewxSpinCtrl* itemSpinCtrl11 = new ewxSpinCtrl( itemPanel1, ID_SPINCTRL_SLICE_L, _("1"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, -100, 100, 1 );
     itemBoxSizer3->Add(itemSpinCtrl11, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
@@ -180,7 +180,7 @@ void SliceGUI::CreateControls()
     itemBoxSizer16->Add(itemBoxSizer17, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText18 = new ewxStaticText( itemPanel15, wxID_STATIC, _("Plane 1:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer17->Add(itemStaticText18, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer17->Add(itemStaticText18, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxButton* itemButton19 = new ewxButton( itemPanel15, ID_BUTTON_SLICE_COLOR_1, _T(""), wxDefaultPosition, wxSize(24, 24), 0 );
     itemButton19->SetBackgroundColour(wxColour(0, 0, 11));
@@ -195,7 +195,7 @@ void SliceGUI::CreateControls()
     itemBoxSizer17->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText23 = new ewxStaticText( itemPanel15, wxID_STATIC, _("Offset "), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer17->Add(itemStaticText23, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer17->Add(itemStaticText23, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxSpinCtrl* itemSpinCtrl24 = new ewxSpinCtrl( itemPanel15, ID_SPINCTRL_SLICE_OFFSET_1, _("30"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, 0, 100, 30 );
     itemBoxSizer17->Add(itemSpinCtrl24, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -204,7 +204,7 @@ void SliceGUI::CreateControls()
     itemBoxSizer16->Add(itemBoxSizer25, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText26 = new ewxStaticText( itemPanel15, wxID_STATIC, _("Plane 2:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer25->Add(itemStaticText26, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer25->Add(itemStaticText26, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxButton* itemButton27 = new ewxButton( itemPanel15, ID_BUTTON_SLICE_COLOR_2, _T(""), wxDefaultPosition, wxSize(24, 24), 0 );
     itemBoxSizer25->Add(itemButton27, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -218,7 +218,7 @@ void SliceGUI::CreateControls()
     itemBoxSizer25->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText31 = new ewxStaticText( itemPanel15, wxID_STATIC, _("Offset "), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer25->Add(itemStaticText31, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer25->Add(itemStaticText31, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxSpinCtrl* itemSpinCtrl32 = new ewxSpinCtrl( itemPanel15, ID_SPINCTRL_SLICE_OFFSET_2, _("70"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, 0, 100, 70 );
     itemBoxSizer25->Add(itemSpinCtrl32, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);

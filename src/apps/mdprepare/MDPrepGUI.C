@@ -673,41 +673,41 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer8 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer7->Add(itemBoxSizer8, 0, wxGROW|wxALL, 0);
     ewxButton* itemButton9 = new ewxButton( itemPanel4, ID_BUTTON_MDPREP_CHEMSYS, _("Chemical System..."), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer8->Add(itemButton9, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer8->Add(itemButton9, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     itemBoxSizer8->Add(15, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText11 = new ewxStaticText( itemPanel4, wxID_STATIC, _("Name:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer8->Add(itemStaticText11, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer8->Add(itemStaticText11, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText12 = new ewxStaticText( itemPanel4, wxID_STATIC_MDPREP_FRAG_NAME, _("Name"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer8->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer8->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer13 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer7->Add(itemBoxSizer13, 0, wxALIGN_LEFT|wxALL, 0);
     itemBoxSizer13->Add(15, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxNonBoldLabel* itemStaticText15 = new ewxNonBoldLabel( itemPanel4, wxID_STATIC, _("Model:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer13->Add(itemStaticText15, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer13->Add(itemStaticText15, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText16 = new ewxStaticText( itemPanel4, wxID_STATIC_MDPREP_SLCT_MOD, _("Model"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer13->Add(itemStaticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer13->Add(itemStaticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer13->Add(10, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxNonBoldLabel* itemStaticText18 = new ewxNonBoldLabel( itemPanel4, wxID_STATIC_MDPREP_ALT_LOC_LABEL, _("Alternate Location:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer13->Add(itemStaticText18, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer13->Add(itemStaticText18, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText19 = new ewxStaticText( itemPanel4, wxID_STATIC_MDPREP_ALT_LOC, _("AltLoc"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer13->Add(itemStaticText19, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer13->Add(itemStaticText19, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer13->Add(10, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxNonBoldLabel* itemStaticText21 = new ewxNonBoldLabel( itemPanel4, wxID_STATIC, _("Chain(s):"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer13->Add(itemStaticText21, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer13->Add(itemStaticText21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText22 = new ewxStaticText( itemPanel4, wxID_STATIC_MDPREP_CHAIN, _("ID"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer13->Add(itemStaticText22, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer13->Add(itemStaticText22, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxPanel* itemPanel23 = new ewxPanel( itemPanel4, ID_PANEL_MDPREP_TOPOPT, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     p_mainTopoSizer->Add(itemPanel23, 1, wxGROW|wxALL, 0);
@@ -722,19 +722,19 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer27 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer24->Add(itemBoxSizer27, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText28 = new ewxStaticText( itemPanel23, wxID_STATIC, _("Histidine Default:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer27->Add(itemStaticText28, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer27->Add(itemStaticText28, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxRadioButton* itemRadioButton29 = new ewxRadioButton( itemPanel23, ID_RADIOBUTTON_MDPREP_HID, _("HID"), wxDefaultPosition, wxDefaultSize, wxRB_GROUP );
     itemRadioButton29->SetValue(true);
-    itemBoxSizer27->Add(itemRadioButton29, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer27->Add(itemRadioButton29, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxRadioButton* itemRadioButton30 = new ewxRadioButton( itemPanel23, ID_RADIOBUTTON_MDPREP_HIE, _("HIE"), wxDefaultPosition, wxDefaultSize, 0 );
     itemRadioButton30->SetValue(false);
-    itemBoxSizer27->Add(itemRadioButton30, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer27->Add(itemRadioButton30, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxRadioButton* itemRadioButton31 = new ewxRadioButton( itemPanel23, ID_RADIOBUTTON_MDPREP_HIP, _("HIP"), wxDefaultPosition, wxDefaultSize, 0 );
     itemRadioButton31->SetValue(false);
-    itemBoxSizer27->Add(itemRadioButton31, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer27->Add(itemRadioButton31, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxNotebook* itemNotebook32 = new ewxNotebook( itemPanel23, ID_NOTEBOOK, wxDefaultPosition, wxDefaultSize, wxNB_TOP );
 
@@ -750,7 +750,7 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer37 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer36->Add(itemBoxSizer37, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 0);
     ewxStaticText* itemStaticText38 = new ewxStaticText( p_solventPanel, wxID_STATIC, _("Solvent Options:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer37->Add(itemStaticText38, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer37->Add(itemStaticText38, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice39Strings[] = {
         _("Water"),
@@ -765,13 +765,13 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer40 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer36->Add(itemBoxSizer40, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 0);
     ewxStaticText* itemStaticText41 = new ewxStaticText( p_solventPanel, wxID_STATIC, _("PDB Solvent Name:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer40->Add(itemStaticText41, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer40->Add(itemStaticText41, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl42 = new ewxTextCtrl( p_solventPanel, ID_TEXTCTRL_MDPREP_SOL_NAM, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer40->Add(itemTextCtrl42, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText43 = new ewxStaticText( p_solventPanel, wxID_STATIC, _("Solvent Model:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer40->Add(itemStaticText43, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer40->Add(itemStaticText43, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl44 = new ewxTextCtrl( p_solventPanel, ID_TEXTCTRL_MDPREP_SOL_MOD, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer40->Add(itemTextCtrl44, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -782,7 +782,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer45->Add(itemStaticLine46, 0, wxGROW|wxALL, 3);
 
     ewxStaticText* itemStaticText47 = new ewxStaticText( itemPanel33, wxID_STATIC, _("Add Counter Ions"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer45->Add(itemStaticText47, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer45->Add(itemStaticText47, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine48 = new ewxStaticLine( itemPanel33, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer45->Add(itemStaticLine48, 1, wxGROW|wxALL, 3);
@@ -797,7 +797,7 @@ void MDPrepGUI::CreateControls()
     wxGridSizer* itemGridSizer52 = new wxGridSizer(2, 2, 3, 3);
     itemBoxSizer51->Add(itemGridSizer52, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
     ewxStaticText* itemStaticText53 = new ewxStaticText( p_ionPanel, wxID_STATIC, _("Counter Ion Name:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemGridSizer52->Add(itemStaticText53, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemGridSizer52->Add(itemStaticText53, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     wxString itemComboBox54Strings[] = {
         _("Cl"),
@@ -808,7 +808,7 @@ void MDPrepGUI::CreateControls()
     itemGridSizer52->Add(itemComboBox54, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText55 = new ewxStaticText( p_ionPanel, wxID_STATIC, _("Number of Counter Ions:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemGridSizer52->Add(itemStaticText55, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemGridSizer52->Add(itemStaticText55, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl56 = new ewxTextCtrl( p_ionPanel, ID_TEXTCTRL_MDPREP_CINUM, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemGridSizer52->Add(itemTextCtrl56, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -817,14 +817,14 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer51->Add(itemButton57, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText58 = new ewxStaticText( p_ionPanel, wxID_STATIC, _("Counter Ion Location Parameters:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer50->Add(itemStaticText58, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer50->Add(itemStaticText58, 0, wxALIGN_LEFT|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer59 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer50->Add(itemBoxSizer59, 0, wxGROW|wxLEFT, 10);
     wxFlexGridSizer* itemFlexGridSizer60 = new wxFlexGridSizer(4, 3, 3, 3);
     itemBoxSizer59->Add(itemFlexGridSizer60, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
     ewxStaticText* itemStaticText61 = new ewxStaticText( p_ionPanel, wxID_STATIC, _("Counter Ion Charge Scaling Factor:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer60->Add(itemStaticText61, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer60->Add(itemStaticText61, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl62 = new ewxTextCtrl( p_ionPanel, ID_TEXTCTRL_MDPREP_CISCALE, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer60->Add(itemTextCtrl62, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -832,7 +832,7 @@ void MDPrepGUI::CreateControls()
     itemFlexGridSizer60->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText64 = new ewxStaticText( p_ionPanel, wxID_STATIC, _("Size of Trial Grid for Counter Ion Positions:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer60->Add(itemStaticText64, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer60->Add(itemStaticText64, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl65 = new ewxTextCtrl( p_ionPanel, ID_TEXTCTRL_MDPREP_CIGRIDSZ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer60->Add(itemTextCtrl65, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -840,13 +840,13 @@ void MDPrepGUI::CreateControls()
     itemFlexGridSizer60->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText67 = new ewxStaticText( p_ionPanel, wxID_STATIC, _("Minimum Distance Between Atom and Counter Ion:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer60->Add(itemStaticText67, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer60->Add(itemStaticText67, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl68 = new ewxTextCtrl( p_ionPanel, ID_TEXTCTRL_MDPREP_CIMINDIS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer60->Add(itemTextCtrl68, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText69 = new ewxStaticText( p_ionPanel, wxID_STATIC_MDPREP_CIMINDIS, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer60->Add(itemStaticText69, 1, wxALIGN_LEFT|wxALIGN_BOTTOM|wxLEFT|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer60->Add(itemStaticText69, 1, wxALIGN_LEFT|wxALIGN_BOTTOM|wxLEFT|wxRIGHT|wxTOP, 3);
 
     wxBoxSizer* itemBoxSizer70 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer50->Add(itemBoxSizer70, 0, wxGROW|wxALL, 0);
@@ -865,7 +865,7 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer74 = new wxBoxSizer(wxVERTICAL);
     itemBoxSizer70->Add(itemBoxSizer74, 1, wxALIGN_CENTER_VERTICAL|wxALL, 0);
     ewxStaticText* itemStaticText75 = new ewxStaticText( p_ionPanel, wxID_STATIC, _("Counter Ion List:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer74->Add(itemStaticText75, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer74->Add(itemStaticText75, 0, wxALIGN_LEFT|wxALL, 0);
 
     wxString* itemListBox76Strings = NULL;
     ewxListBox* itemListBox76 = new ewxListBox( p_ionPanel, ID_LISTBOX_MDPREP_CILIST, wxDefaultPosition, wxSize(125, 75), 0, itemListBox76Strings, wxLB_SINGLE );
@@ -880,66 +880,66 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer79 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer78->Add(itemBoxSizer79, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText80 = new ewxStaticText( itemPanel77, wxID_STATIC, _("Indices of Last Molecule in Each Fraction:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer79->Add(itemStaticText80, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer79->Add(itemStaticText80, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxFlexGridSizer* itemFlexGridSizer81 = new wxFlexGridSizer(0, 8, 0, 0);
     itemBoxSizer78->Add(itemFlexGridSizer81, 0, wxALIGN_LEFT|wxALL, 5);
     ewxStaticText* itemStaticText82 = new ewxStaticText( itemPanel77, wxID_STATIC, _("1:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer81->Add(itemStaticText82, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer81->Add(itemStaticText82, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl83 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_MDPREP_FRAC1, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer81->Add(itemTextCtrl83, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText84 = new ewxStaticText( itemPanel77, wxID_STATIC, _("2:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer81->Add(itemStaticText84, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer81->Add(itemStaticText84, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl85 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_MDPREP_FRAC2, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer81->Add(itemTextCtrl85, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText86 = new ewxStaticText( itemPanel77, wxID_STATIC, _("3:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer81->Add(itemStaticText86, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer81->Add(itemStaticText86, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl87 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_MDPREP_FRAC3, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer81->Add(itemTextCtrl87, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText88 = new ewxStaticText( itemPanel77, wxID_STATIC, _("4:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer81->Add(itemStaticText88, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer81->Add(itemStaticText88, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl89 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_MDPREP_FRAC4, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer81->Add(itemTextCtrl89, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText90 = new ewxStaticText( itemPanel77, wxID_STATIC, _("5:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer81->Add(itemStaticText90, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer81->Add(itemStaticText90, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl91 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_MDPREP_FRAC5, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer81->Add(itemTextCtrl91, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText92 = new ewxStaticText( itemPanel77, wxID_STATIC, _("6:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer81->Add(itemStaticText92, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer81->Add(itemStaticText92, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl93 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_MDPREP_FRAC6, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer81->Add(itemTextCtrl93, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText94 = new ewxStaticText( itemPanel77, wxID_STATIC, _("7:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer81->Add(itemStaticText94, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer81->Add(itemStaticText94, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl95 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_MDPREP_FRAC7, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer81->Add(itemTextCtrl95, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText96 = new ewxStaticText( itemPanel77, wxID_STATIC, _("8:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer81->Add(itemStaticText96, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer81->Add(itemStaticText96, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl97 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_MDPREP_FRAC8, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer81->Add(itemTextCtrl97, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText98 = new ewxStaticText( itemPanel77, wxID_STATIC, _("9:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer81->Add(itemStaticText98, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer81->Add(itemStaticText98, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl99 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_MDPREP_FRAC9, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer81->Add(itemTextCtrl99, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText100 = new ewxStaticText( itemPanel77, wxID_STATIC, _("10:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer81->Add(itemStaticText100, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer81->Add(itemStaticText100, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl101 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_MDPREP_FRAC10, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer81->Add(itemTextCtrl101, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -950,7 +950,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer102->Add(itemStaticLine103, 0, wxGROW|wxALL, 3);
 
     ewxStaticText* itemStaticText104 = new ewxStaticText( itemPanel77, wxID_STATIC, _("Add Atom Links"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer102->Add(itemStaticText104, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer102->Add(itemStaticText104, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine105 = new ewxStaticLine( itemPanel77, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer102->Add(itemStaticLine105, 1, wxGROW|wxALL, 3);
@@ -966,13 +966,13 @@ void MDPrepGUI::CreateControls()
     itemFlexGridSizer109->AddGrowableCol(0);
     itemBoxSizer108->Add(itemFlexGridSizer109, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 3);
     ewxStaticText* itemStaticText110 = new ewxStaticText( p_linkPanel, wxID_STATIC, _("Atom 1:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer109->Add(itemStaticText110, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer109->Add(itemStaticText110, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl111 = new ewxTextCtrl( p_linkPanel, ID_TEXTCTRL_MDPREP_LNK_ATOM1, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer109->Add(itemTextCtrl111, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText112 = new ewxStaticText( p_linkPanel, wxID_STATIC, _("Atom 2:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer109->Add(itemStaticText112, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer109->Add(itemStaticText112, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl113 = new ewxTextCtrl( p_linkPanel, ID_TEXTCTRL_MDPREP_LNK_ATOM2, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer109->Add(itemTextCtrl113, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -995,7 +995,7 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer120 = new wxBoxSizer(wxVERTICAL);
     itemBoxSizer107->Add(itemBoxSizer120, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
     ewxStaticText* itemStaticText121 = new ewxStaticText( p_linkPanel, wxID_STATIC, _("Atom Link List:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer120->Add(itemStaticText121, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer120->Add(itemStaticText121, 0, wxALIGN_LEFT|wxALL, 0);
 
     wxString* itemListBox122Strings = NULL;
     ewxListBox* itemListBox122 = new ewxListBox( p_linkPanel, ID_LISTBOX_MDPREP_LNK_LIST, wxDefaultPosition, wxSize(-1, 125), 0, itemListBox122Strings, wxLB_SINGLE );
@@ -1043,7 +1043,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer136->Add(itemStaticLine137, 0, wxGROW|wxTOP|wxBOTTOM, 5);
 
     ewxStaticText* itemStaticText138 = new ewxStaticText( itemPanel126, wxID_STATIC, _("Translate"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer136->Add(itemStaticText138, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer136->Add(itemStaticText138, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine139 = new ewxStaticLine( itemPanel126, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer136->Add(itemStaticLine139, 1, wxGROW|wxTOP|wxBOTTOM, 5);
@@ -1068,7 +1068,7 @@ void MDPrepGUI::CreateControls()
     p_translateMolID->SetSizer(itemBoxSizer145);
 
     ewxStaticText* itemStaticText146 = new ewxStaticText( p_translateMolID, wxID_STATIC_MDPREP_TRNS_ID, _("Molecule ID:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer145->Add(itemStaticText146, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer145->Add(itemStaticText146, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl147 = new ewxTextCtrl( p_translateMolID, ID_TEXTCTRL_MDPREP_TRNS_ID, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer145->Add(itemTextCtrl147, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -1079,7 +1079,7 @@ void MDPrepGUI::CreateControls()
     p_translateAtomID->SetSizer(itemBoxSizer149);
 
     ewxStaticText* itemStaticText150 = new ewxStaticText( p_translateAtomID, wxID_STATIC_MDPREP_TRNS_INIT_AT, _("Initial Atom Index:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer149->Add(itemStaticText150, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer149->Add(itemStaticText150, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl151 = new ewxTextCtrl( p_translateAtomID, ID_TEXTCTRL_MDPREP_TRNS_INIT_AT, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer149->Add(itemTextCtrl151, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -1087,7 +1087,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer149->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText153 = new ewxStaticText( p_translateAtomID, wxID_STATIC_MDPREP_TRNS_FNL_AT, _("Final Atom Index:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer149->Add(itemStaticText153, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer149->Add(itemStaticText153, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl154 = new ewxTextCtrl( p_translateAtomID, ID_TEXTCTRL_MDPREP_TRNS_FNL_AT, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer149->Add(itemTextCtrl154, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -1097,36 +1097,36 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer156 = new wxBoxSizer(wxVERTICAL);
     itemBoxSizer155->Add(itemBoxSizer156, 0, wxALIGN_TOP|wxALL, 3);
     ewxStaticText* itemStaticText157 = new ewxStaticText( itemPanel126, wxID_STATIC, _("Translation Vector:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer156->Add(itemStaticText157, 0, wxALIGN_CENTER_HORIZONTAL|wxRIGHT|wxTOP|wxBOTTOM|wxADJUST_MINSIZE, 5);
+    itemBoxSizer156->Add(itemStaticText157, 0, wxALIGN_CENTER_HORIZONTAL|wxRIGHT|wxTOP|wxBOTTOM, 5);
 
     wxFlexGridSizer* itemFlexGridSizer158 = new wxFlexGridSizer(3, 3, 0, 0);
     itemBoxSizer155->Add(itemFlexGridSizer158, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
     ewxStaticText* itemStaticText159 = new ewxStaticText( itemPanel126, wxID_STATIC, _("X:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer158->Add(itemStaticText159, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer158->Add(itemStaticText159, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl160 = new ewxTextCtrl( itemPanel126, ID_TEXTCTRL_MDPREP_TRNS_X, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer158->Add(itemTextCtrl160, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText161 = new ewxStaticText( itemPanel126, wxID_STATIC_MDPREP_XTRNS_UNIT, _("nm"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemFlexGridSizer158->Add(itemStaticText161, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer158->Add(itemStaticText161, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL, 3);
 
     ewxStaticText* itemStaticText162 = new ewxStaticText( itemPanel126, wxID_STATIC, _("Y:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer158->Add(itemStaticText162, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer158->Add(itemStaticText162, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl163 = new ewxTextCtrl( itemPanel126, ID_TEXTCTRL_MDPREP_TRNS_Y, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer158->Add(itemTextCtrl163, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText164 = new ewxStaticText( itemPanel126, wxID_STATIC_MDPREP_YTRNS_UNIT, _("nm"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemFlexGridSizer158->Add(itemStaticText164, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer158->Add(itemStaticText164, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL, 3);
 
     ewxStaticText* itemStaticText165 = new ewxStaticText( itemPanel126, wxID_STATIC, _("Z:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer158->Add(itemStaticText165, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer158->Add(itemStaticText165, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl166 = new ewxTextCtrl( itemPanel126, ID_TEXTCTRL_MDPREP_TRNS_Z, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer158->Add(itemTextCtrl166, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText167 = new ewxStaticText( itemPanel126, wxID_STATIC_MDPREP_ZTRNS_UNIT, _("nm"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemFlexGridSizer158->Add(itemStaticText167, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer158->Add(itemStaticText167, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer168 = new wxBoxSizer(wxHORIZONTAL);
     p_translateVSizer->Add(itemBoxSizer168, 0, wxALIGN_LEFT|wxALL, 0);
@@ -1152,7 +1152,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer174->Add(itemStaticLine175, 0, wxGROW|wxTOP|wxBOTTOM, 5);
 
     ewxStaticText* itemStaticText176 = new ewxStaticText( itemPanel170, wxID_STATIC, _("Align Solute"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer174->Add(itemStaticText176, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer174->Add(itemStaticText176, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine177 = new ewxStaticLine( itemPanel170, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer174->Add(itemStaticLine177, 1, wxGROW|wxTOP|wxBOTTOM, 5);
@@ -1161,19 +1161,19 @@ void MDPrepGUI::CreateControls()
     itemFlexGridSizer178->AddGrowableCol(0);
     p_orientVSizer->Add(itemFlexGridSizer178, 0, wxALIGN_LEFT|wxALL, 3);
     ewxStaticText* itemStaticText179 = new ewxStaticText( itemPanel170, wxID_STATIC, _("Atom Translated to Origin:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer178->Add(itemStaticText179, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer178->Add(itemStaticText179, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl180 = new ewxTextCtrl( itemPanel170, ID_TEXTCTRL_MDPREP_ALGNI, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer178->Add(itemTextCtrl180, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText181 = new ewxStaticText( itemPanel170, wxID_STATIC, _("Atom Aligned with Z-Axis:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer178->Add(itemStaticText181, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer178->Add(itemStaticText181, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl182 = new ewxTextCtrl( itemPanel170, ID_TEXTCTRL_MDPREP_ALGNJ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer178->Add(itemTextCtrl182, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText183 = new ewxStaticText( itemPanel170, wxID_STATIC, _("Atom Aligned with X=Y Plane:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer178->Add(itemStaticText183, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer178->Add(itemStaticText183, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl184 = new ewxTextCtrl( itemPanel170, ID_TEXTCTRL_MDPREP_ALGNK, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer178->Add(itemTextCtrl184, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -1194,7 +1194,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer189->Add(itemStaticLine190, 0, wxGROW|wxTOP|wxBOTTOM, 5);
 
     ewxStaticText* itemStaticText191 = new ewxStaticText( itemPanel170, wxID_STATIC, _("Rotate Solute"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer189->Add(itemStaticText191, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer189->Add(itemStaticText191, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine192 = new ewxStaticLine( itemPanel170, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer189->Add(itemStaticLine192, 1, wxGROW|wxTOP|wxBOTTOM, 5);
@@ -1219,7 +1219,7 @@ void MDPrepGUI::CreateControls()
     p_orientMolID->SetSizer(itemBoxSizer198);
 
     ewxStaticText* itemStaticText199 = new ewxStaticText( p_orientMolID, wxID_STATIC_MDPREP_ORNT_ID, _("Molecule ID:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer198->Add(itemStaticText199, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer198->Add(itemStaticText199, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl200 = new ewxTextCtrl( p_orientMolID, ID_TEXTCTRL_MDPREP_ORNT_ID, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer198->Add(itemTextCtrl200, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -1230,13 +1230,13 @@ void MDPrepGUI::CreateControls()
     p_orientAtomID->SetSizer(itemBoxSizer202);
 
     ewxStaticText* itemStaticText203 = new ewxStaticText( p_orientAtomID, wxID_STATIC_MDPREP_ORNT_INIT_AT, _("Initial Atom Index:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer202->Add(itemStaticText203, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer202->Add(itemStaticText203, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl204 = new ewxTextCtrl( p_orientAtomID, ID_TEXTCTRL_MDPREP_ORNT_INIT_AT, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer202->Add(itemTextCtrl204, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText205 = new ewxStaticText( p_orientAtomID, wxID_STATIC_MDPREP_ORNT_FNL_AT, _("Final Atom Index:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer202->Add(itemStaticText205, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer202->Add(itemStaticText205, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl206 = new ewxTextCtrl( p_orientAtomID, ID_TEXTCTRL_MDPREP_ORNT_FNL_AT, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer202->Add(itemTextCtrl206, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -1244,33 +1244,33 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer207 = new wxBoxSizer(wxHORIZONTAL);
     p_orientVSizer->Add(itemBoxSizer207, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText208 = new ewxStaticText( itemPanel170, wxID_STATIC, _("Rotation Angle:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer207->Add(itemStaticText208, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer207->Add(itemStaticText208, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl209 = new ewxTextCtrl( itemPanel170, ID_TEXTCTRL_MDPREP_ORNT_ANGLE, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer207->Add(itemTextCtrl209, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText210 = new ewxStaticText( itemPanel170, wxID_STATIC_MDPREP_ORNT_ANGLE_UNIT, _("radians"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer207->Add(itemStaticText210, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer207->Add(itemStaticText210, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer211 = new wxBoxSizer(wxHORIZONTAL);
     p_orientVSizer->Add(itemBoxSizer211, 0, wxALIGN_LEFT|wxRIGHT|wxTOP|wxBOTTOM, 5);
     ewxStaticText* itemStaticText212 = new ewxStaticText( itemPanel170, wxID_STATIC, _("Rotation Vector:  "), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer211->Add(itemStaticText212, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 3);
+    itemBoxSizer211->Add(itemStaticText212, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 3);
 
     ewxStaticText* itemStaticText213 = new ewxStaticText( itemPanel170, wxID_STATIC, _("X:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer211->Add(itemStaticText213, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer211->Add(itemStaticText213, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl214 = new ewxTextCtrl( itemPanel170, ID_TEXTCTRL_MDPREP_ORNT_X, _T(""), wxDefaultPosition, wxSize(75, -1), 0 );
     itemBoxSizer211->Add(itemTextCtrl214, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText215 = new ewxStaticText( itemPanel170, wxID_STATIC, _("Y:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer211->Add(itemStaticText215, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer211->Add(itemStaticText215, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl216 = new ewxTextCtrl( itemPanel170, ID_TEXTCTRL_MDPREP_ORNT_Y, _T(""), wxDefaultPosition, wxSize(75, -1), 0 );
     itemBoxSizer211->Add(itemTextCtrl216, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText217 = new ewxStaticText( itemPanel170, wxID_STATIC, _("Z:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer211->Add(itemStaticText217, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer211->Add(itemStaticText217, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl218 = new ewxTextCtrl( itemPanel170, ID_TEXTCTRL_MDPREP_ORNT_Z, _T(""), wxDefaultPosition, wxSize(75, -1), 0 );
     itemBoxSizer211->Add(itemTextCtrl218, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -1291,36 +1291,36 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer224 = new wxBoxSizer(wxVERTICAL);
     itemBoxSizer223->Add(itemBoxSizer224, 0, wxALIGN_TOP|wxALL, 5);
     ewxStaticText* itemStaticText225 = new ewxStaticText( itemPanel221, wxID_STATIC, _("Simulation Box Dimensions:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer224->Add(itemStaticText225, 0, wxALIGN_CENTER_HORIZONTAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer224->Add(itemStaticText225, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 3);
 
     wxFlexGridSizer* itemFlexGridSizer226 = new wxFlexGridSizer(3, 3, 0, 0);
     itemBoxSizer223->Add(itemFlexGridSizer226, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
     ewxStaticText* itemStaticText227 = new ewxStaticText( itemPanel221, wxID_STATIC, _("X:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer226->Add(itemStaticText227, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer226->Add(itemStaticText227, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl228 = new ewxTextCtrl( itemPanel221, ID_TEXTCTRL_MDPREP_SETX, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer226->Add(itemTextCtrl228, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText229 = new ewxStaticText( itemPanel221, wxID_STATIC_MDPREP_SETX, _("nm"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemFlexGridSizer226->Add(itemStaticText229, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer226->Add(itemStaticText229, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL, 3);
 
     ewxStaticText* itemStaticText230 = new ewxStaticText( itemPanel221, wxID_STATIC, _("Y:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer226->Add(itemStaticText230, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer226->Add(itemStaticText230, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl231 = new ewxTextCtrl( itemPanel221, ID_TEXTCTRL_MDPREP_SETY, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer226->Add(itemTextCtrl231, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText232 = new ewxStaticText( itemPanel221, wxID_STATIC_MDPREP_SETY, _("nm"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemFlexGridSizer226->Add(itemStaticText232, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer226->Add(itemStaticText232, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL, 3);
 
     ewxStaticText* itemStaticText233 = new ewxStaticText( itemPanel221, wxID_STATIC, _("Z:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer226->Add(itemStaticText233, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer226->Add(itemStaticText233, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl234 = new ewxTextCtrl( itemPanel221, ID_TEXTCTRL_MDPREP_SETZ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer226->Add(itemTextCtrl234, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText235 = new ewxStaticText( itemPanel221, wxID_STATIC_MDPREP_SETZ, _("nm"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemFlexGridSizer226->Add(itemStaticText235, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer226->Add(itemStaticText235, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer236 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer222->Add(itemBoxSizer236, 0, wxALIGN_LEFT|wxALL, 0);
@@ -1341,7 +1341,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer240->Add(10, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText243 = new ewxStaticText( itemPanel238, wxID_STATIC, _("Options:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer240->Add(itemStaticText243, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer240->Add(itemStaticText243, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice244Strings[] = {
         _("Periodic"),
@@ -1359,7 +1359,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer246->Add(itemStaticLine247, 0, wxGROW|wxTOP|wxBOTTOM, 5);
 
     ewxStaticText* itemStaticText248 = new ewxStaticText( itemPanel238, wxID_STATIC, _("Solvation Parameters"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer246->Add(itemStaticText248, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer246->Add(itemStaticText248, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine249 = new ewxStaticLine( itemPanel238, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer246->Add(itemStaticLine249, 1, wxGROW|wxTOP|wxBOTTOM, 5);
@@ -1367,7 +1367,7 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer250 = new wxBoxSizer(wxHORIZONTAL);
     p_solvateVSizer->Add(itemBoxSizer250, 0, wxALIGN_LEFT|wxTOP, 5);
     ewxStaticText* itemStaticText251 = new ewxStaticText( itemPanel238, wxID_STATIC, _("Solvation Geometry:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer250->Add(itemStaticText251, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer250->Add(itemStaticText251, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice252Strings[] = {
         _("Default"),
@@ -1385,74 +1385,74 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer254 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer253->Add(itemBoxSizer254, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
     p_edgePanel = new ewxPanel( itemPanel238, ID_PANEL_MDPREP_SLV_EDGE, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
-    itemBoxSizer254->Add(p_edgePanel, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer254->Add(p_edgePanel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
     p_slvEdgeSizer = new wxBoxSizer(wxHORIZONTAL);
     p_edgePanel->SetSizer(p_slvEdgeSizer);
 
     ewxStaticText* itemStaticText257 = new ewxStaticText( p_edgePanel, wxID_STATIC_MDPREP_SLV_EDGE, _("Edge Dimension:"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_slvEdgeSizer->Add(itemStaticText257, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    p_slvEdgeSizer->Add(itemStaticText257, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl258 = new ewxTextCtrl( p_edgePanel, ID_TEXTCTRL_MDPREP_SLV_EDGE, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     p_slvEdgeSizer->Add(itemTextCtrl258, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText259 = new ewxStaticText( p_edgePanel, ID_STATICTEXT_MDPREP_SLV_EDGE_UNIT, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_slvEdgeSizer->Add(itemStaticText259, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    p_slvEdgeSizer->Add(itemStaticText259, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     itemBoxSizer254->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     p_spherePanel = new ewxPanel( itemPanel238, ID_PANEL_MDPREP_SLV_SPHERE, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
-    itemBoxSizer254->Add(p_spherePanel, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer254->Add(p_spherePanel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
     wxBoxSizer* itemBoxSizer262 = new wxBoxSizer(wxHORIZONTAL);
     p_spherePanel->SetSizer(itemBoxSizer262);
 
     ewxStaticText* itemStaticText263 = new ewxStaticText( p_spherePanel, wxID_STATIC_MDPREP_SLV_RAD, _("Sphere Radius:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer262->Add(itemStaticText263, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer262->Add(itemStaticText263, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl264 = new ewxTextCtrl( p_spherePanel, ID_TEXTCTRL_MDPREP_SLV_RAD, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer262->Add(itemTextCtrl264, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText265 = new ewxStaticText( p_spherePanel, ID_STATICTEXT_MDPREP_SLV_SPHERE_UNIT, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer262->Add(itemStaticText265, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer262->Add(itemStaticText265, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     p_slvBoxPanel = new ewxPanel( itemPanel238, ID_PANEL_MDPREP_SLV_BOX, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
-    itemBoxSizer253->Add(p_slvBoxPanel, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer253->Add(p_slvBoxPanel, 0, wxALIGN_LEFT|wxALL, 0);
     wxBoxSizer* itemBoxSizer267 = new wxBoxSizer(wxHORIZONTAL);
     p_slvBoxPanel->SetSizer(itemBoxSizer267);
 
     ewxStaticText* itemStaticText268 = new ewxStaticText( p_slvBoxPanel, wxID_STATIC_MDPREP_BOXDIM, _("Box:  "), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer267->Add(itemStaticText268, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer267->Add(itemStaticText268, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText269 = new ewxStaticText( p_slvBoxPanel, wxID_STATIC_MDPREP_SLV_X, _("X:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer267->Add(itemStaticText269, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer267->Add(itemStaticText269, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl270 = new ewxTextCtrl( p_slvBoxPanel, ID_TEXTCTRL_MDPREP_SLV_BOXX, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer267->Add(itemTextCtrl270, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText271 = new ewxStaticText( p_slvBoxPanel, wxID_STATIC_MDPREP_SLV_Y, _("Y:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer267->Add(itemStaticText271, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer267->Add(itemStaticText271, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl272 = new ewxTextCtrl( p_slvBoxPanel, ID_TEXTCTRL_MDPREP_SLV_BOXY, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer267->Add(itemTextCtrl272, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText273 = new ewxStaticText( p_slvBoxPanel, wxID_STATIC_MDPREP_SLV_Z, _("Z:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer267->Add(itemStaticText273, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer267->Add(itemStaticText273, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl274 = new ewxTextCtrl( p_slvBoxPanel, ID_TEXTCTRL_MDPREP_SLV_BOXZ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer267->Add(itemTextCtrl274, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText275 = new ewxStaticText( p_slvBoxPanel, wxID_STATIC_MDPREP_SLV_BOX_UNIT, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer267->Add(itemStaticText275, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer267->Add(itemStaticText275, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer276 = new wxBoxSizer(wxHORIZONTAL);
     p_solvateVSizer->Add(itemBoxSizer276, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 0);
     ewxStaticText* itemStaticText277 = new ewxStaticText( itemPanel238, wxID_STATIC, _("Minimum Periodic Solute-Solute Distance:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer276->Add(itemStaticText277, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer276->Add(itemStaticText277, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl278 = new ewxTextCtrl( itemPanel238, ID_TEXTCTRL_MDPREP_SLV_MINDIST, _("1.2"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer276->Add(itemTextCtrl278, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText279 = new ewxStaticText( itemPanel238, wxID_STATIC_MDPREP_SLV_MINDIST, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer276->Add(itemStaticText279, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer276->Add(itemStaticText279, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer280 = new wxBoxSizer(wxHORIZONTAL);
     p_solvateVSizer->Add(itemBoxSizer280, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 0);
@@ -1465,7 +1465,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer282->Add(itemStaticLine283, 0, wxGROW|wxTOP|wxBOTTOM, 5);
 
     ewxStaticText* itemStaticText284 = new ewxStaticText( itemPanel238, wxID_STATIC, _("Solvation Controls"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer282->Add(itemStaticText284, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer282->Add(itemStaticText284, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine285 = new ewxStaticLine( itemPanel238, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer282->Add(itemStaticLine285, 1, wxGROW|wxTOP|wxBOTTOM, 5);
@@ -1479,37 +1479,37 @@ void MDPrepGUI::CreateControls()
     itemFlexGridSizer287->Add(itemButton288, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText289 = new ewxStaticText( itemPanel238, wxID_STATIC, _("Minimum solute-solvent distance:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer287->Add(itemStaticText289, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer287->Add(itemStaticText289, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl290 = new ewxTextCtrl( itemPanel238, ID_TEXTCTRL_MDPREP_MINSOLV, _("0.23"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer287->Add(itemTextCtrl290, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM, 0);
 
     ewxStaticText* itemStaticText291 = new ewxStaticText( itemPanel238, wxID_STATIC_MDPREP_MINSOLV, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer287->Add(itemStaticText291, 1, wxALIGN_LEFT|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer287->Add(itemStaticText291, 1, wxALIGN_LEFT|wxALIGN_BOTTOM|wxALL, 0);
 
     ewxButton* itemButton292 = new ewxButton( itemPanel238, ID_BUTTON_MDPREP_SET_EXPND, _("Set"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer287->Add(itemButton292, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText293 = new ewxStaticText( itemPanel238, wxID_STATIC, _("Expand current simulation box size:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer287->Add(itemStaticText293, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer287->Add(itemStaticText293, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl294 = new ewxTextCtrl( itemPanel238, ID_TEXTCTRL_MDPREP_EXPND, _("0.1"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer287->Add(itemTextCtrl294, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM, 0);
 
     ewxStaticText* itemStaticText295 = new ewxStaticText( itemPanel238, wxID_STATIC_MDPREP_EXPND, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer287->Add(itemStaticText295, 0, wxALIGN_LEFT|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer287->Add(itemStaticText295, 0, wxALIGN_LEFT|wxALIGN_BOTTOM|wxALL, 0);
 
     ewxButton* itemButton296 = new ewxButton( itemPanel238, ID_BUTTON_MDPREP_SET_SLVTOL, _("Set"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer287->Add(itemButton296, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText297 = new ewxStaticText( itemPanel238, wxID_STATIC, _("Expand simulation box size after solvation:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer287->Add(itemStaticText297, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer287->Add(itemStaticText297, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl298 = new ewxTextCtrl( itemPanel238, ID_TEXTCTRL_MDPREP_SLVTOL, _("0.0"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer287->Add(itemTextCtrl298, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM, 0);
 
     ewxStaticText* itemStaticText299 = new ewxStaticText( itemPanel238, wxID_STATIC_MDPREP_SLVTOL, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer287->Add(itemStaticText299, 0, wxALIGN_LEFT|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer287->Add(itemStaticText299, 0, wxALIGN_LEFT|wxALIGN_BOTTOM|wxALL, 0);
 
     itemBoxSizer286->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -1522,7 +1522,7 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer303 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer302->Add(itemBoxSizer303, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 5);
     ewxStaticText* itemStaticText304 = new ewxStaticText( itemPanel301, wxID_STATIC, _("Remove Solvent:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer303->Add(itemStaticText304, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    itemBoxSizer303->Add(itemStaticText304, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM, 3);
 
     wxString itemChoice305Strings[] = {
         _("Inside Range"),
@@ -1535,7 +1535,7 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer306 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer302->Add(itemBoxSizer306, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 5);
     ewxStaticText* itemStaticText307 = new ewxStaticText( itemPanel301, wxID_STATIC, _("Coordinate Ranges:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer306->Add(itemStaticText307, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    itemBoxSizer306->Add(itemStaticText307, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM, 3);
 
     wxBoxSizer* itemBoxSizer308 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer302->Add(itemBoxSizer308, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 5);
@@ -1550,7 +1550,7 @@ void MDPrepGUI::CreateControls()
     itemFlexGridSizer310->Add(itemCheckBox311, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText312 = new ewxStaticText( itemPanel301, wxID_STATIC_MDPREP_XMIN, _("Minumum:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer310->Add(itemStaticText312, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer310->Add(itemStaticText312, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl313 = new ewxTextCtrl( itemPanel301, ID_TEXTCTRL_MDPREP_SLV_XMIN, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer310->Add(itemTextCtrl313, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -1558,20 +1558,20 @@ void MDPrepGUI::CreateControls()
     itemFlexGridSizer310->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText315 = new ewxStaticText( itemPanel301, wxID_STATIC_MDPREP_XMAX, _("Maximum:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer310->Add(itemStaticText315, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer310->Add(itemStaticText315, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl316 = new ewxTextCtrl( itemPanel301, ID_TEXTCTRL_MDPREP_SLV_XMAX, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer310->Add(itemTextCtrl316, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText317 = new ewxStaticText( itemPanel301, wxID_STATIC_MDPREP_SLV_XUNIT, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer310->Add(itemStaticText317, 0, wxALIGN_LEFT|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer310->Add(itemStaticText317, 0, wxALIGN_LEFT|wxALIGN_BOTTOM|wxALL, 5);
 
     ewxCheckBox* itemCheckBox318 = new ewxCheckBox( itemPanel301, ID_CHECKBOX_MDPREP_YRANGE, _("Y Range"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox318->SetValue(false);
     itemFlexGridSizer310->Add(itemCheckBox318, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText319 = new ewxStaticText( itemPanel301, wxID_STATIC_MDPREP_YMIN, _("Minimum:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer310->Add(itemStaticText319, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer310->Add(itemStaticText319, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl320 = new ewxTextCtrl( itemPanel301, ID_TEXTCTRL_MDPREP_SLV_YMIN, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer310->Add(itemTextCtrl320, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -1579,20 +1579,20 @@ void MDPrepGUI::CreateControls()
     itemFlexGridSizer310->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText322 = new ewxStaticText( itemPanel301, wxID_STATIC_MDPREP_YMAX, _("Maximum:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer310->Add(itemStaticText322, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer310->Add(itemStaticText322, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl323 = new ewxTextCtrl( itemPanel301, ID_TEXTCTRL_MDPREP_SLV_YMAX, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer310->Add(itemTextCtrl323, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText324 = new ewxStaticText( itemPanel301, wxID_STATIC_MDPREP_SLV_YUNIT, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer310->Add(itemStaticText324, 0, wxALIGN_LEFT|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer310->Add(itemStaticText324, 0, wxALIGN_LEFT|wxALIGN_BOTTOM|wxALL, 5);
 
     ewxCheckBox* itemCheckBox325 = new ewxCheckBox( itemPanel301, ID_CHECKBOX_MDPREP_ZRANGE, _("Z Range"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox325->SetValue(false);
     itemFlexGridSizer310->Add(itemCheckBox325, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText326 = new ewxStaticText( itemPanel301, wxID_STATIC_MDPREP_ZMIN, _("Minimum:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer310->Add(itemStaticText326, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer310->Add(itemStaticText326, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl327 = new ewxTextCtrl( itemPanel301, ID_TEXTCTRL_MDPREP_SLV_ZMIN, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer310->Add(itemTextCtrl327, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -1600,13 +1600,13 @@ void MDPrepGUI::CreateControls()
     itemFlexGridSizer310->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText329 = new ewxStaticText( itemPanel301, wxID_STATIC_MDPREP_ZMAX, _("Maximum:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer310->Add(itemStaticText329, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer310->Add(itemStaticText329, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl330 = new ewxTextCtrl( itemPanel301, ID_TEXTCTRL_MDPREP_SLV_ZMAX, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer310->Add(itemTextCtrl330, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText331 = new ewxStaticText( itemPanel301, wxID_STATIC_MDPREP_SLV_ZUNIT, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer310->Add(itemStaticText331, 0, wxALIGN_LEFT|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer310->Add(itemStaticText331, 0, wxALIGN_LEFT|wxALIGN_BOTTOM|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer332 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer302->Add(itemBoxSizer332, 0, wxALIGN_LEFT|wxALL, 0);
@@ -1622,7 +1622,7 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer336 = new wxBoxSizer(wxHORIZONTAL);
     p_modifyVSizer->Add(itemBoxSizer336, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText337 = new ewxStaticText( itemPanel334, wxID_STATIC, _("Replication Restrictions:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer336->Add(itemStaticText337, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer336->Add(itemStaticText337, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice338Strings[] = {
         _("None"),
@@ -1637,7 +1637,7 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer339 = new wxBoxSizer(wxHORIZONTAL);
     p_modifyVSizer->Add(itemBoxSizer339, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText340 = new ewxStaticText( itemPanel334, wxID_STATIC, _("Set Number of Repeat Units:  NX:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer339->Add(itemStaticText340, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer339->Add(itemStaticText340, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl341 = new ewxTextCtrl( itemPanel334, ID_TEXTCTRL_MDPREP_XREP, _("1"), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer339->Add(itemTextCtrl341, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -1645,7 +1645,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer339->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText343 = new ewxStaticText( itemPanel334, wxID_STATIC, _("NY:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer339->Add(itemStaticText343, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer339->Add(itemStaticText343, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl344 = new ewxTextCtrl( itemPanel334, ID_TEXTCTRL_MDPREP_YREP, _("1"), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer339->Add(itemTextCtrl344, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -1653,7 +1653,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer339->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText346 = new ewxStaticText( itemPanel334, wxID_STATIC_MDPREP_ZREP, _("NZ:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer339->Add(itemStaticText346, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer339->Add(itemStaticText346, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl347 = new ewxTextCtrl( itemPanel334, ID_TEXTCTRL_MDPREP_ZREP, _("1"), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer339->Add(itemTextCtrl347, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -1661,20 +1661,20 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer348 = new wxBoxSizer(wxHORIZONTAL);
     p_modifyVSizer->Add(itemBoxSizer348, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText349 = new ewxStaticText( itemPanel334, wxID_STATIC, _("Minimum Atom Separation in Different Copies:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer348->Add(itemStaticText349, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer348->Add(itemStaticText349, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl350 = new ewxTextCtrl( itemPanel334, ID_TEXTCTRL_MDPREP_MINRSEP, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer348->Add(itemTextCtrl350, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText351 = new ewxStaticText( itemPanel334, wxID_STATIC_MDPREP_MINRSEP, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer348->Add(itemStaticText351, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer348->Add(itemStaticText351, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer352 = new wxBoxSizer(wxVERTICAL);
     p_modifyVSizer->Add(itemBoxSizer352, 0, wxALIGN_LEFT|wxALL, 0);
     wxBoxSizer* itemBoxSizer353 = new wxBoxSizer(wxVERTICAL);
     itemBoxSizer352->Add(itemBoxSizer353, 0, wxALIGN_CENTER_HORIZONTAL|wxLEFT|wxRIGHT|wxTOP, 5);
     ewxStaticText* itemStaticText354 = new ewxStaticText( itemPanel334, wxID_STATIC, _("Apply Random Rotation to Repeat Unit About:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer353->Add(itemStaticText354, 0, wxALIGN_CENTER_HORIZONTAL|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 3);
+    itemBoxSizer353->Add(itemStaticText354, 0, wxALIGN_CENTER_HORIZONTAL|wxRIGHT|wxTOP, 3);
 
     wxBoxSizer* itemBoxSizer355 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer352->Add(itemBoxSizer355, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxBOTTOM, 5);
@@ -1719,13 +1719,13 @@ void MDPrepGUI::CreateControls()
     p_invertZDis->SetSizer(itemBoxSizer369);
 
     ewxStaticText* itemStaticText370 = new ewxStaticText( p_invertZDis, wxID_STATIC, _("Z-Axis Separation Distance:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer369->Add(itemStaticText370, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer369->Add(itemStaticText370, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl371 = new ewxTextCtrl( p_invertZDis, ID_TEXTCTRL_MDPREP_IZDIS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer369->Add(itemTextCtrl371, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText372 = new ewxStaticText( p_invertZDis, wxID_STATIC_MDPREP_IZDIS, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer369->Add(itemStaticText372, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer369->Add(itemStaticText372, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer373 = new wxBoxSizer(wxHORIZONTAL);
     p_modifyVSizer->Add(itemBoxSizer373, 0, wxALIGN_LEFT|wxALL, 0);
@@ -1738,7 +1738,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer375->Add(itemStaticLine376, 0, wxGROW|wxTOP|wxBOTTOM, 5);
 
     ewxStaticText* itemStaticText377 = new ewxStaticText( itemPanel334, wxID_STATIC, _("Skip Block in Replicate"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer375->Add(itemStaticText377, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer375->Add(itemStaticText377, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine378 = new ewxStaticLine( itemPanel334, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer375->Add(itemStaticLine378, 1, wxGROW|wxTOP|wxBOTTOM, 5);
@@ -1746,7 +1746,7 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer379 = new wxBoxSizer(wxHORIZONTAL);
     p_modifyVSizer->Add(itemBoxSizer379, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText380 = new ewxStaticText( itemPanel334, wxID_STATIC, _("Indices of Block to Skip:  NX:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer379->Add(itemStaticText380, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer379->Add(itemStaticText380, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl381 = new ewxTextCtrl( itemPanel334, ID_TEXTCTRL_MDPREP_SKIPX, _("1"), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer379->Add(itemTextCtrl381, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -1754,7 +1754,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer379->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText383 = new ewxStaticText( itemPanel334, wxID_STATIC, _("NY:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer379->Add(itemStaticText383, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer379->Add(itemStaticText383, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl384 = new ewxTextCtrl( itemPanel334, ID_TEXTCTRL_MDPREP_SKIPY, _("1"), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer379->Add(itemTextCtrl384, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -1762,7 +1762,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer379->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText386 = new ewxStaticText( itemPanel334, wxID_STATIC, _("NZ:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer379->Add(itemStaticText386, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer379->Add(itemStaticText386, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl387 = new ewxTextCtrl( itemPanel334, ID_TEXTCTRL_MDPREP_SKIPZ, _("1"), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer379->Add(itemTextCtrl387, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -1781,7 +1781,7 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer391 = new wxBoxSizer(wxVERTICAL);
     itemBoxSizer390->Add(itemBoxSizer391, 1, wxGROW|wxALL, 0);
     ewxStaticText* itemStaticText392 = new ewxStaticText( itemPanel123, wxID_STATIC, _("Command List:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer391->Add(itemStaticText392, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer391->Add(itemStaticText392, 0, wxALIGN_LEFT|wxALL, 0);
 
     wxString* itemListBox393Strings = NULL;
     ewxListBox* itemListBox393 = new ewxListBox( itemPanel123, ID_LISTBOX_MDPREP_CMDS, wxDefaultPosition, wxSize(425, 80), 0, itemListBox393Strings, wxLB_SINGLE );
@@ -1813,7 +1813,7 @@ void MDPrepGUI::CreateControls()
     itemPanel400->SetSizer(itemBoxSizer401);
 
     ewxStaticText* itemStaticText402 = new ewxStaticText( itemPanel400, wxID_STATIC, _("Potential of Mean Force Option:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer401->Add(itemStaticText402, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer401->Add(itemStaticText402, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString itemChoice403Strings[] = {
         _("zalign"),
@@ -1860,7 +1860,7 @@ void MDPrepGUI::CreateControls()
     itemPanel408->SetSizer(itemBoxSizer409);
 
     ewxStaticText* itemStaticText410 = new ewxStaticText( itemPanel408, wxID_STATIC_PMF_SELECT_ATOMS1, _("Atom Group 1"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer409->Add(itemStaticText410, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer409->Add(itemStaticText410, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl411 = new ewxTextCtrl( itemPanel408, ID_TEXTCTRL_PMF_SELECT_ATOMS1, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer409->Add(itemTextCtrl411, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -1868,7 +1868,7 @@ void MDPrepGUI::CreateControls()
     ewxStaticText* itemStaticText412 = new ewxStaticText( itemPanel408, ID_STATICTEXT_PMF_SELECT_ATOMS1, _("(#)"), wxDefaultPosition, wxDefaultSize, 0 );
     if (ShowToolTips())
         itemStaticText412->SetToolTip(_("Selection string identifier index."));
-    itemBoxSizer409->Add(itemStaticText412, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer409->Add(itemStaticText412, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxButton* itemButton413 = new ewxButton( itemPanel408, ID_BUTTON_PMF_SELECT_ATOMS1, _("Get sel."), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer409->Add(itemButton413, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -1882,7 +1882,7 @@ void MDPrepGUI::CreateControls()
     itemPanel415->SetSizer(itemBoxSizer416);
 
     ewxStaticText* itemStaticText417 = new ewxStaticText( itemPanel415, wxID_STATIC_PMF_SELECT_ATOMS_2, _("Atom Group 2"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer416->Add(itemStaticText417, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer416->Add(itemStaticText417, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl418 = new ewxTextCtrl( itemPanel415, ID_TEXTCTRL_PMF_SELECT_ATOMS2, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer416->Add(itemTextCtrl418, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -1890,7 +1890,7 @@ void MDPrepGUI::CreateControls()
     ewxStaticText* itemStaticText419 = new ewxStaticText( itemPanel415, ID_STATICTEXT_PMF_SELECT_ATOMS2, _("(#)"), wxDefaultPosition, wxDefaultSize, 0 );
     if (ShowToolTips())
         itemStaticText419->SetToolTip(_("Selection string identifier index."));
-    itemBoxSizer416->Add(itemStaticText419, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer416->Add(itemStaticText419, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxButton* itemButton420 = new ewxButton( itemPanel415, ID_BUTTON_PMF_SELECT_ATOMS2, _("Get sel."), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer416->Add(itemButton420, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -1904,7 +1904,7 @@ void MDPrepGUI::CreateControls()
     itemPanel422->SetSizer(itemBoxSizer423);
 
     ewxStaticText* itemStaticText424 = new ewxStaticText( itemPanel422, wxID_STATIC_PMF_SELECT_ATOMS3, _("Atom Group 3"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer423->Add(itemStaticText424, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer423->Add(itemStaticText424, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl425 = new ewxTextCtrl( itemPanel422, ID_TEXTCTRL_PMF_SELECT_ATOMS3, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer423->Add(itemTextCtrl425, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -1912,7 +1912,7 @@ void MDPrepGUI::CreateControls()
     ewxStaticText* itemStaticText426 = new ewxStaticText( itemPanel422, ID_STATICTEXT_PMF_SELECT_ATOMS3, _("(#)"), wxDefaultPosition, wxDefaultSize, 0 );
     if (ShowToolTips())
         itemStaticText426->SetToolTip(_("Selection string identifier index."));
-    itemBoxSizer423->Add(itemStaticText426, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer423->Add(itemStaticText426, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxButton* itemButton427 = new ewxButton( itemPanel422, ID_BUTTON_PMF_SELECT_ATOMS3, _("Get sel."), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer423->Add(itemButton427, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -1926,7 +1926,7 @@ void MDPrepGUI::CreateControls()
     itemPanel429->SetSizer(itemBoxSizer430);
 
     ewxStaticText* itemStaticText431 = new ewxStaticText( itemPanel429, wxID_STATIC_PMF_SELECT_ATOMS4, _("Atom Group 4"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer430->Add(itemStaticText431, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer430->Add(itemStaticText431, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl432 = new ewxTextCtrl( itemPanel429, ID_TEXTCTRL_PMF_SELECT_ATOMS4, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer430->Add(itemTextCtrl432, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -1934,7 +1934,7 @@ void MDPrepGUI::CreateControls()
     ewxStaticText* itemStaticText433 = new ewxStaticText( itemPanel429, ID_STATICTEXT_PMF_SELECT_ATOMS4, _("(#)"), wxDefaultPosition, wxDefaultSize, 0 );
     if (ShowToolTips())
         itemStaticText433->SetToolTip(_("Selection string identifier index."));
-    itemBoxSizer430->Add(itemStaticText433, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer430->Add(itemStaticText433, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxButton* itemButton434 = new ewxButton( itemPanel429, ID_BUTTON_PMF_SELECT_ATOMS4, _("Get sel."), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer430->Add(itemButton434, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -1948,22 +1948,22 @@ void MDPrepGUI::CreateControls()
     itemPanel436->SetSizer(itemBoxSizer437);
 
     ewxStaticText* itemStaticText438 = new ewxStaticText( itemPanel436, wxID_STATIC, _("Force 1"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer437->Add(itemStaticText438, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer437->Add(itemStaticText438, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl439 = new ewxTextCtrl( itemPanel436, ID_TEXTCTRL_PMF_FORCE1, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer437->Add(itemTextCtrl439, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText440 = new ewxStaticText( itemPanel436, wxID_STATIC_PMF_FORCE1_UNIT, _("(kJoule/Mole)/(nm**2)"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer437->Add(itemStaticText440, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer437->Add(itemStaticText440, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxStaticText* itemStaticText441 = new ewxStaticText( itemPanel436, wxID_STATIC, _("Force 2"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer437->Add(itemStaticText441, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer437->Add(itemStaticText441, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl442 = new ewxTextCtrl( itemPanel436, ID_TEXTCTRL_PMF_FORCE2, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer437->Add(itemTextCtrl442, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText443 = new ewxStaticText( itemPanel436, wxID_STATIC_PMF_FORCE2_UNIT, _("(kJoule/Mole)/(nm**2)"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer437->Add(itemStaticText443, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer437->Add(itemStaticText443, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxPanel* itemPanel444 = new ewxPanel( itemPanel398, ID_PANEL_PMF_FORCE_DISTANCE, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
     itemBoxSizer399->Add(itemPanel444, 0, wxGROW|wxALL, 5);
@@ -1971,22 +1971,22 @@ void MDPrepGUI::CreateControls()
     itemPanel444->SetSizer(itemBoxSizer445);
 
     ewxStaticText* itemStaticText446 = new ewxStaticText( itemPanel444, wxID_STATIC, _("Force 1"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer445->Add(itemStaticText446, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer445->Add(itemStaticText446, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl447 = new ewxTextCtrl( itemPanel444, ID_TEXTCTRL_PMF_FORCE1_DISTANCE, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer445->Add(itemTextCtrl447, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText448 = new ewxStaticText( itemPanel444, wxID_STATIC_PMF_FORCE1_DISTANCE_UNIT, _("(kJoule/Mole)/(nm**2)"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer445->Add(itemStaticText448, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer445->Add(itemStaticText448, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxStaticText* itemStaticText449 = new ewxStaticText( itemPanel444, wxID_STATIC, _("Force 2"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer445->Add(itemStaticText449, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer445->Add(itemStaticText449, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl450 = new ewxTextCtrl( itemPanel444, ID_TEXTCTRL_PMF_FORCE2_DISTANCE, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer445->Add(itemTextCtrl450, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText451 = new ewxStaticText( itemPanel444, wxID_STATIC_PMF_FORCE2_DISTANCE_UNIT, _("(kJoule/Mole)/(nm**2)"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer445->Add(itemStaticText451, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer445->Add(itemStaticText451, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxPanel* itemPanel452 = new ewxPanel( itemPanel398, ID_PANEL_PMF_FORCE_ANGLE, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
     itemBoxSizer399->Add(itemPanel452, 0, wxGROW|wxALL, 5);
@@ -1994,22 +1994,22 @@ void MDPrepGUI::CreateControls()
     itemPanel452->SetSizer(itemBoxSizer453);
 
     ewxStaticText* itemStaticText454 = new ewxStaticText( itemPanel452, wxID_STATIC, _("Force 1"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer453->Add(itemStaticText454, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer453->Add(itemStaticText454, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl455 = new ewxTextCtrl( itemPanel452, ID_TEXTCTRL_PMF_FORCE1_ANGLE, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer453->Add(itemTextCtrl455, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText456 = new ewxStaticText( itemPanel452, wxID_STATIC_PMF_FORCE1_ANGLE_UNIT, _("(kJoule/Mole)/(Radian**2)"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer453->Add(itemStaticText456, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer453->Add(itemStaticText456, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxStaticText* itemStaticText457 = new ewxStaticText( itemPanel452, wxID_STATIC, _("Force 2"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer453->Add(itemStaticText457, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer453->Add(itemStaticText457, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl458 = new ewxTextCtrl( itemPanel452, ID_TEXTCTRL_PMF_FORCE2_ANGLE, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer453->Add(itemTextCtrl458, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText459 = new ewxStaticText( itemPanel452, wxID_STATIC_PMF_FORCE2_ANGLE_UNIT, _("(kJoule/Mole)/(Radian**2)"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer453->Add(itemStaticText459, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer453->Add(itemStaticText459, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxPanel* itemPanel460 = new ewxPanel( itemPanel398, ID_PANEL_PMF_FORCE_TORSION, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
     itemBoxSizer399->Add(itemPanel460, 0, wxGROW|wxALL, 5);
@@ -2017,22 +2017,22 @@ void MDPrepGUI::CreateControls()
     itemPanel460->SetSizer(itemBoxSizer461);
 
     ewxStaticText* itemStaticText462 = new ewxStaticText( itemPanel460, wxID_STATIC, _("Force 1"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer461->Add(itemStaticText462, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer461->Add(itemStaticText462, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl463 = new ewxTextCtrl( itemPanel460, ID_TEXTCTRL_PMF_FORCE1_TORSION, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer461->Add(itemTextCtrl463, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText464 = new ewxStaticText( itemPanel460, wxID_STATIC_PMF_FORCE1_TORSION_UNIT, _("kJoule/Mol"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer461->Add(itemStaticText464, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer461->Add(itemStaticText464, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxStaticText* itemStaticText465 = new ewxStaticText( itemPanel460, wxID_STATIC, _("Force 2"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer461->Add(itemStaticText465, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer461->Add(itemStaticText465, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl466 = new ewxTextCtrl( itemPanel460, ID_TEXTCTRL_PMF_FORCE2_TORSION, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer461->Add(itemTextCtrl466, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText467 = new ewxStaticText( itemPanel460, wxID_STATIC_PMF_FORCE2_TORSION_UNIT, _("kJoule/Mol"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer461->Add(itemStaticText467, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer461->Add(itemStaticText467, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxPanel* itemPanel468 = new ewxPanel( itemPanel398, ID_PANEL_PMF_DISTANCE, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
     itemBoxSizer399->Add(itemPanel468, 0, wxGROW|wxALL, 5);
@@ -2040,22 +2040,22 @@ void MDPrepGUI::CreateControls()
     itemPanel468->SetSizer(itemBoxSizer469);
 
     ewxStaticText* itemStaticText470 = new ewxStaticText( itemPanel468, wxID_STATIC, _("Distance 1"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer469->Add(itemStaticText470, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer469->Add(itemStaticText470, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl471 = new ewxTextCtrl( itemPanel468, ID_TEXTCTRL_PMF_DISTANCE1, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer469->Add(itemTextCtrl471, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText472 = new ewxStaticText( itemPanel468, wxID_STATIC_PMF_DISTANCE1_UNIT, _("nm"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer469->Add(itemStaticText472, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer469->Add(itemStaticText472, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxStaticText* itemStaticText473 = new ewxStaticText( itemPanel468, wxID_STATIC, _("Distance 2"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer469->Add(itemStaticText473, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer469->Add(itemStaticText473, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl474 = new ewxTextCtrl( itemPanel468, ID_TEXTCTRL_PMF_DISTANCE2, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer469->Add(itemTextCtrl474, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText475 = new ewxStaticText( itemPanel468, wxID_STATIC_PMF_DISTANCE2_UNIT, _("nm"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer469->Add(itemStaticText475, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer469->Add(itemStaticText475, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxButton* itemButton476 = new ewxButton( itemPanel468, ID_BUTTON_PMF_DEFAULTS_DISTANCE, _("Calc. Defaults"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer469->Add(itemButton476, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -2066,22 +2066,22 @@ void MDPrepGUI::CreateControls()
     itemPanel477->SetSizer(itemBoxSizer478);
 
     ewxStaticText* itemStaticText479 = new ewxStaticText( itemPanel477, wxID_STATIC, _("Angle 1"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer478->Add(itemStaticText479, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer478->Add(itemStaticText479, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl480 = new ewxTextCtrl( itemPanel477, ID_TEXTCTRL_PMF_ANGLE1, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer478->Add(itemTextCtrl480, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText481 = new ewxStaticText( itemPanel477, wxID_STATIC_PMF_ANGLE1_UNIT, _("Radian"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer478->Add(itemStaticText481, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer478->Add(itemStaticText481, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxStaticText* itemStaticText482 = new ewxStaticText( itemPanel477, wxID_STATIC, _("Angle 2"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer478->Add(itemStaticText482, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer478->Add(itemStaticText482, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl483 = new ewxTextCtrl( itemPanel477, ID_TEXTCTRL_PMF_ANGLE2, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer478->Add(itemTextCtrl483, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText484 = new ewxStaticText( itemPanel477, wxID_STATIC_PMF_ANGLE2_UNIT, _("Radian"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer478->Add(itemStaticText484, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer478->Add(itemStaticText484, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxButton* itemButton485 = new ewxButton( itemPanel477, ID_BUTTON_PMF_DEFAULTS_ANGLE, _("Calc. Defaults"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer478->Add(itemButton485, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -2102,7 +2102,7 @@ void MDPrepGUI::CreateControls()
     wxBoxSizer* itemBoxSizer492 = new wxBoxSizer(wxVERTICAL);
     itemBoxSizer491->Add(itemBoxSizer492, 1, wxGROW|wxALL, 0);
     ewxStaticText* itemStaticText493 = new ewxStaticText( itemPanel398, wxID_STATIC, _("PMF Directives:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer492->Add(itemStaticText493, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer492->Add(itemStaticText493, 0, wxALIGN_LEFT|wxALL, 0);
 
     wxString* itemListBox494Strings = NULL;
     ewxListBox* itemListBox494 = new ewxListBox( itemPanel398, ID_LISTBOX_PMF_DIRECTIVES, wxDefaultPosition, wxSize(425, 80), 0, itemListBox494Strings, wxLB_SINGLE );
@@ -2144,39 +2144,39 @@ void MDPrepGUI::CreateControls()
     wxFlexGridSizer* itemFlexGridSizer506 = new wxFlexGridSizer(3, 3, 0, 0);
     itemBoxSizer505->Add(itemFlexGridSizer506, 0, wxALIGN_LEFT|wxLEFT|wxBOTTOM, 15);
     ewxStaticText* itemStaticText507 = new ewxStaticText( itemPanel504, wxID_STATIC, _("Heap:  "), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer506->Add(itemStaticText507, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer506->Add(itemStaticText507, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM, 3);
 
     ewxTextCtrl* itemTextCtrl508 = new ewxTextCtrl( itemPanel504, ID_TEXTCTRL_MDPREP_MEMHEAP, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer506->Add(itemTextCtrl508, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText509 = new ewxStaticText( itemPanel504, wxID_STATIC, _("Mb"), wxDefaultPosition, wxDefaultSize, 0 );
     itemStaticText509->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
-    itemFlexGridSizer506->Add(itemStaticText509, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer506->Add(itemStaticText509, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL, 3);
 
     ewxStaticText* itemStaticText510 = new ewxStaticText( itemPanel504, wxID_STATIC, _("Stack: "), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer506->Add(itemStaticText510, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer506->Add(itemStaticText510, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl511 = new ewxTextCtrl( itemPanel504, ID_TEXTCTRL_MDPREP_MEMSTK, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer506->Add(itemTextCtrl511, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText512 = new ewxStaticText( itemPanel504, wxID_STATIC, _("Mb"), wxDefaultPosition, wxDefaultSize, 0 );
     itemStaticText512->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
-    itemFlexGridSizer506->Add(itemStaticText512, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer506->Add(itemStaticText512, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL, 3);
 
     ewxStaticText* itemStaticText513 = new ewxStaticText( itemPanel504, wxID_STATIC, _("Global:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer506->Add(itemStaticText513, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer506->Add(itemStaticText513, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl514 = new ewxTextCtrl( itemPanel504, ID_TEXTCTRL_MDPREP_MEMGLBL, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer506->Add(itemTextCtrl514, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText515 = new ewxStaticText( itemPanel504, wxID_STATIC, _("Mb"), wxDefaultPosition, wxDefaultSize, 0 );
     itemStaticText515->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
-    itemFlexGridSizer506->Add(itemStaticText515, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer506->Add(itemStaticText515, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer516 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer500->Add(itemBoxSizer516, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText517 = new ewxStaticText( itemPanel499, wxID_STATIC, _("Print Level:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer516->Add(itemStaticText517, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer516->Add(itemStaticText517, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice518Strings[] = {
         _("Low"),
@@ -2195,7 +2195,7 @@ void MDPrepGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer519, 0, wxALIGN_LEFT|wxALL, 3);
 
     ewxButton* itemButton520 = new ewxButton( itemFrame1, ID_BUTTON_MDPREP_BUILDER, _("Builder..."), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer519->Add(itemButton520, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer519->Add(itemButton520, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     itemBoxSizer519->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 

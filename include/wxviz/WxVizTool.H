@@ -4,6 +4,7 @@
 #include <string>
 using std::string;
 #include "wx/fileconf.h"
+#include "wx/config.h"
 
 #include "util/Preferences.H"
 

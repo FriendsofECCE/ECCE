@@ -160,7 +160,7 @@ void ResidueIndexPromptGUI::CreateControls()
     p_sizerForInsertPopup->Add(itemChoice12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText13 = new ewxStaticText( itemDialog1, wxID_STATIC_NAME, _("Name"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_sizerForInsertPopup->Add(itemStaticText13, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    p_sizerForInsertPopup->Add(itemStaticText13, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl14 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_RESPROMPT_NAME, _("UNK"), wxDefaultPosition, wxSize(50, -1), 0 );
     p_sizerForInsertPopup->Add(itemTextCtrl14, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -169,7 +169,7 @@ void ResidueIndexPromptGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer15, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
 
     ewxStaticText* itemStaticText16 = new ewxStaticText( itemDialog1, wxID_STATIC, _("To avoid this dialog in the future, specify which residue\nyou intend to edit in the Residue Tool by checking the\nappropriate box."), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer15->Add(itemStaticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer15->Add(itemStaticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer17 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer17, 1, wxGROW|wxALL, 0);

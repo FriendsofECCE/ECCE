@@ -937,7 +937,7 @@ void SoWxExaminerViewer::switchMode(int newMode)
       // interactive count correctly (correct draw style). One
       // for the LEFT and one for MIDDLE mouse.
 
-      if ((wxGetMouseState().LeftDown()||wxGetMouseState().MiddleDown())
+      if ((wxGetMouseState().LeftIsDown()||wxGetMouseState().MiddleIsDown())
           && prevMode != SEEK_MODE)
         interactiveCountDec();
     }
@@ -995,7 +995,7 @@ void SoWxExaminerViewer::updateCursor()
   }
 
   // ...else set the right cursor for the viewer mode....
-  int cursorId = wxCURSOR_ARROW;
+  wxStockCursor cursorId = wxCURSOR_ARROW;
   switch(p_mode) {
   case PICK_MODE:
     cursorId = wxCURSOR_ARROW;

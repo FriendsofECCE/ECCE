@@ -426,9 +426,9 @@ void VizStyleChooser::setCSResidueOptions()
 {
    ewxChoice *choice;
    choice = ((ewxChoice*)FindWindow(ID_CHOICE_DSPLY_DSOPT));
-   string DSOpt = choice->GetStringSelection().c_str();
+   string DSOpt = choice->GetStringSelection().ToStdString();
    choice = ((ewxChoice*)FindWindow(ID_CHOICE_DSPLY_CSOPT));
-   string CSOpt = choice->GetStringSelection().c_str();
+   string CSOpt = choice->GetStringSelection().ToStdString();
    choice->Clear();
    
    // Get color scheme options from display descriptor
@@ -538,7 +538,7 @@ void VizStyleChooser::OnListboxDsplyGroupsSelected( wxCommandEvent& event )
    // no way of showing selection
    WxVizToolFW& fw = getFW();
    SGContainer& sg = fw.getSceneGraph();
-   string name = list->GetStringSelection().c_str();
+   string name = list->GetStringSelection().ToStdString();
    sg.selectStyle(name);
    SGFragment *frag = sg.getFragment();
    if (frag->numAtoms() > 0) {
@@ -588,7 +588,7 @@ void VizStyleChooser::OnButtonDsplyAddClick( wxCommandEvent& event )
 void VizStyleChooser::OnButtonDsplyUpdateClick( wxCommandEvent& event )
 {
    ewxListBox *lbox = ((ewxListBox*)FindWindow(ID_LISTBOX_DSPLY_GROUPS));
-   string name = lbox->GetStringSelection().c_str();
+   string name = lbox->GetStringSelection().ToStdString();
    if (name == "" ) {
       string msg = "You must select display style before updating";
       ewxMessageDialog prompt(this,msg.c_str(),"Display Style Update",
@@ -629,7 +629,7 @@ void VizStyleChooser::OnButtonDsplyRemoveClick( wxCommandEvent& event )
    int choice = lbox->GetSelection();
    if (choice >= 0) {
       if (lbox->GetCount() > 1) {
-         string name = lbox->GetString(lbox->GetSelection()).c_str();
+         string name = lbox->GetString(lbox->GetSelection()).ToStdString();
 
 
          WxVizToolFW& fw = getFW();
@@ -655,7 +655,7 @@ void VizStyleChooser::OnButtonDsplyRemoveClick( wxCommandEvent& event )
 void VizStyleChooser::OnChoiceDsplyDsoptSelected( wxCommandEvent& event )
 {
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_DSPLY_CSOPT));
-  string CSselection = menu->GetStringSelection().c_str();
+  string CSselection = menu->GetStringSelection().ToStdString();
   wxPanel *swoth = ((wxPanel*)FindWindow(ID_PANEL_DSPLY_SWOTH));
   swoth->Hide();
   if (p_hasResidues == 1) {
@@ -664,7 +664,7 @@ void VizStyleChooser::OnChoiceDsplyDsoptSelected( wxCommandEvent& event )
     setCSNoResidueOptions();
   }
   menu = ((ewxChoice*)FindWindow(ID_CHOICE_DSPLY_DSOPT));
-  string display = menu->GetStringSelection().c_str();
+  string display = menu->GetStringSelection().ToStdString();
   updateDisplayPanel(display);
   menu = ((ewxChoice*)FindWindow(ID_CHOICE_DSPLY_CSOPT));
   int selection = menu->FindString(CSselection.c_str());
@@ -676,7 +676,7 @@ void VizStyleChooser::OnChoiceDsplyDsoptSelected( wxCommandEvent& event )
   if (CSselection != "") {
      ewxConfig *config = ewxConfig::getConfig("vizstyles.ini");
      wxString ddstr = config->Read(display.c_str());
-     DisplayDescriptor dd(ddstr.c_str());
+     DisplayDescriptor dd(ddstr.ToStdString());
      refreshGUI(dd);
   } else {
      // This should not really ever happen
@@ -797,7 +797,7 @@ void VizStyleChooser::OnChoiceDsplyCsoptSelected( wxCommandEvent& event )
    ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_DSPLY_CSOPT));
    // only update the scheme panel from defaults in this case
    DisplayDescriptor dd;
-   dd.setColorScheme(menu->GetStringSelection().c_str());
+   dd.setColorScheme(menu->GetStringSelection().ToStdString());
    updateSchemePanel(dd);
    p_mainSizer->Layout();
    Fit();
@@ -881,7 +881,7 @@ string VizStyleChooser::getNewName(const DisplayDescriptor& dd)
    int num = 1;
    int nItems = lbox->GetCount();
    for (int idx=0; idx<nItems; idx++) {
-      string name = lbox->GetString(idx).c_str();
+      string name = lbox->GetString(idx).ToStdString();
       if (name.find("Custom") == 0) {
          int cur = 1;
          sscanf(name.c_str(), "Custom%d",&cur);
@@ -905,13 +905,13 @@ DisplayDescriptor *VizStyleChooser::buildDescriptor()
    DisplayDescriptor *display = new DisplayDescriptor();
    ewxChoice *choice;
    choice = ((ewxChoice*)FindWindow(ID_CHOICE_DSPLY_DSOPT));
-   display->setName(choice->GetStringSelection().c_str());
-   display->setStyle(choice->GetStringSelection().c_str());
+   display->setName(choice->GetStringSelection().ToStdString());
+   display->setStyle(choice->GetStringSelection().ToStdString());
    choice = ((ewxChoice*)FindWindow(ID_CHOICE_DSPLY_CSOPT));
-   display->setColorScheme(choice->GetStringSelection().c_str());
+   display->setColorScheme(choice->GetStringSelection().ToStdString());
 
    // Now add in additional values optional depending on the scheme
-   string scheme = choice->GetStringSelection().c_str();
+   string scheme = choice->GetStringSelection().ToStdString();
    if (scheme == "Block Color") {
       wxPanel *p = ((wxPanel*)FindWindow(ID_PANEL_DSPLY_BLOCKCOLOR));
       ewxColor color(p->GetBackgroundColour());

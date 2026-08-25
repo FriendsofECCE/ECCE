@@ -101,20 +101,20 @@ void MDTaskPanelGUI::CreateControls()
     itemPanel1->SetSizer(p_topSizer);
 
     p_nameSizer = new wxBoxSizer(wxHORIZONTAL);
-    p_topSizer->Add(p_nameSizer, 0, wxALIGN_LEFT|wxADJUST_MINSIZE, 5);
+    p_topSizer->Add(p_nameSizer, 0, wxALIGN_LEFT, 5);
 
     p_name = new ewxStaticText( itemPanel1, wxID_STATIC, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    p_nameSizer->Add(p_name, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    p_nameSizer->Add(p_name, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     p_codeSizer = new wxBoxSizer(wxHORIZONTAL);
-    p_topSizer->Add(p_codeSizer, 0, wxALIGN_LEFT|wxADJUST_MINSIZE, 5);
+    p_topSizer->Add(p_codeSizer, 0, wxALIGN_LEFT, 5);
 
     wxBitmap p_codeBitmapBitmap(wxNullBitmap);
     p_codeBitmap = new wxStaticBitmap( itemPanel1, wxID_STATIC, p_codeBitmapBitmap, wxDefaultPosition, wxDefaultSize, 0 );
     p_codeSizer->Add(p_codeBitmap, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     p_code = new ewxStaticText( itemPanel1, wxID_STATIC, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    p_codeSizer->Add(p_code, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    p_codeSizer->Add(p_code, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
 ////@end MDTaskPanelGUI content construction
 }

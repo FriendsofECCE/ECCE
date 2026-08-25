@@ -252,7 +252,7 @@ void FilesPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer9 = new wxBoxSizer(wxHORIZONTAL);
     p_trajectoryVSizer->Add(itemBoxSizer9, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText10 = new ewxStaticText( p_trajectoryPanel, wxID_STATIC, _("Trajectory and Restart File Storage:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer9->Add(itemStaticText10, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer9->Add(itemStaticText10, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString itemChoice11Strings[] = {
         _("Compute Resource Only"),
@@ -274,7 +274,7 @@ void FilesPanelGUI::CreateControls()
     itemBoxSizer14->Add(20, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText16 = new ewxStaticText( p_trajectoryPanel, wxID_STATIC_FILE_BTCSZ, _("Number of Steps per Batch:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer14->Add(itemStaticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer14->Add(itemStaticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl17 = new ewxTextCtrl( p_trajectoryPanel, ID_TEXTCTRL_FILE_BTCSZ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer14->Add(itemTextCtrl17, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -285,7 +285,7 @@ void FilesPanelGUI::CreateControls()
     itemBoxSizer18->Add(itemStaticLine19, 0, wxGROW|wxALL, 3);
 
     ewxStaticText* itemStaticText20 = new ewxStaticText( p_trajectoryPanel, wxID_STATIC, _("Coordinates in Trajectory File"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer18->Add(itemStaticText20, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer18->Add(itemStaticText20, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine21 = new ewxStaticLine( p_trajectoryPanel, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer18->Add(itemStaticLine21, 1, wxGROW|wxALL, 5);
@@ -306,7 +306,7 @@ void FilesPanelGUI::CreateControls()
     itemFlexGridSizer26->Add(itemCheckBox27, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText28 = new ewxStaticText( p_coordPanel, wxID_STATIC_FILE_CSUFRQ, _("Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer26->Add(itemStaticText28, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 10);
+    itemFlexGridSizer26->Add(itemStaticText28, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT, 10);
 
     ewxTextCtrl* itemTextCtrl29 = new ewxTextCtrl( p_coordPanel, ID_TEXTCTRL_FILE_CSUFRQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer26->Add(itemTextCtrl29, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -316,7 +316,7 @@ void FilesPanelGUI::CreateControls()
     itemFlexGridSizer26->Add(itemCheckBox30, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText31 = new ewxStaticText( p_coordPanel, wxID_STATIC_FILE_CSVFRQ, _("Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer26->Add(itemStaticText31, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 10);
+    itemFlexGridSizer26->Add(itemStaticText31, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT, 10);
 
     ewxTextCtrl* itemTextCtrl32 = new ewxTextCtrl( p_coordPanel, ID_TEXTCTRL_FILE_CSVFRQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer26->Add(itemTextCtrl32, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -327,7 +327,7 @@ void FilesPanelGUI::CreateControls()
     itemBoxSizer33->Add(itemStaticLine34, 0, wxGROW|wxALL, 3);
 
     ewxStaticText* itemStaticText35 = new ewxStaticText( p_trajectoryPanel, wxID_STATIC, _("Velocities in Trajectory File"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer33->Add(itemStaticText35, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer33->Add(itemStaticText35, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine36 = new ewxStaticLine( p_trajectoryPanel, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer33->Add(itemStaticLine36, 1, wxGROW|wxALL, 5);
@@ -348,7 +348,7 @@ void FilesPanelGUI::CreateControls()
     itemFlexGridSizer41->Add(itemCheckBox42, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText43 = new ewxStaticText( p_velocPanel, wxID_STATIC_FILE_VSUFRQ, _("Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer41->Add(itemStaticText43, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 10);
+    itemFlexGridSizer41->Add(itemStaticText43, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT, 10);
 
     ewxTextCtrl* itemTextCtrl44 = new ewxTextCtrl( p_velocPanel, ID_TEXTCTRL_FILE_VSUFRQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer41->Add(itemTextCtrl44, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -358,7 +358,7 @@ void FilesPanelGUI::CreateControls()
     itemFlexGridSizer41->Add(itemCheckBox45, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText46 = new ewxStaticText( p_velocPanel, wxID_STATIC_FILE_VSVFRQ, _("Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer41->Add(itemStaticText46, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 10);
+    itemFlexGridSizer41->Add(itemStaticText46, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT, 10);
 
     ewxTextCtrl* itemTextCtrl47 = new ewxTextCtrl( p_velocPanel, ID_TEXTCTRL_FILE_VSVFRQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer41->Add(itemTextCtrl47, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -369,7 +369,7 @@ void FilesPanelGUI::CreateControls()
     itemBoxSizer48->Add(itemStaticLine49, 0, wxGROW|wxALL, 3);
 
     ewxStaticText* itemStaticText50 = new ewxStaticText( p_trajectoryPanel, wxID_STATIC, _("Forces in Trajectory File"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer48->Add(itemStaticText50, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer48->Add(itemStaticText50, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine51 = new ewxStaticLine( p_trajectoryPanel, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer48->Add(itemStaticLine51, 1, wxGROW|wxALL, 5);
@@ -390,7 +390,7 @@ void FilesPanelGUI::CreateControls()
     itemFlexGridSizer56->Add(itemCheckBox57, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText58 = new ewxStaticText( p_forcePanel, wxID_STATIC_FILE_FSUFRQ, _("Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer56->Add(itemStaticText58, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 10);
+    itemFlexGridSizer56->Add(itemStaticText58, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT, 10);
 
     ewxTextCtrl* itemTextCtrl59 = new ewxTextCtrl( p_forcePanel, ID_TEXTCTRL_FILE_FSUFRQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer56->Add(itemTextCtrl59, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -400,7 +400,7 @@ void FilesPanelGUI::CreateControls()
     itemFlexGridSizer56->Add(itemCheckBox60, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText61 = new ewxStaticText( p_forcePanel, wxID_STATIC_FILE_FSVFRQ, _("Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer56->Add(itemStaticText61, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 10);
+    itemFlexGridSizer56->Add(itemStaticText61, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT, 10);
 
     ewxTextCtrl* itemTextCtrl62 = new ewxTextCtrl( p_forcePanel, ID_TEXTCTRL_FILE_FSVFRQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer56->Add(itemTextCtrl62, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -414,7 +414,7 @@ void FilesPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer65 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer64->Add(itemBoxSizer65, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText66 = new ewxStaticText( p_propPanel, wxID_STATIC, _("Frequency to Print Properties:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer65->Add(itemStaticText66, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer65->Add(itemStaticText66, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl67 = new ewxTextCtrl( p_propPanel, ID_TEXTCTRL_FILE_PRPFRQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer65->Add(itemTextCtrl67, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -434,7 +434,7 @@ void FilesPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer72 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer71->Add(itemBoxSizer72, 0, wxALIGN_LEFT|wxALL, 0);
     ewxStaticText* itemStaticText73 = new ewxStaticText( p_restartPanel, wxID_STATIC, _("Frequency to Write Restart File:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer72->Add(itemStaticText73, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer72->Add(itemStaticText73, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl74 = new ewxTextCtrl( p_restartPanel, ID_TEXTCTRL_FILE_RSTFRQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer72->Add(itemTextCtrl74, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -460,7 +460,7 @@ void FilesPanelGUI::CreateControls()
     itemBoxSizer79->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText82 = new ewxStaticText( itemPanel77, wxID_STATIC_FILE_MDFREQ, _("Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer79->Add(itemStaticText82, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer79->Add(itemStaticText82, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl83 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_FILE_MDFREQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer79->Add(itemTextCtrl83, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM, 3);
@@ -500,7 +500,7 @@ void FilesPanelGUI::CreateControls()
     itemFlexGridSizer94->Add(itemCheckBox95, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText96 = new ewxStaticText( itemPanel77, wxID_STATIC_FILE_STFREQ, _("Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer94->Add(itemStaticText96, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer94->Add(itemStaticText96, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl97 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_FILE_STFREQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer94->Add(itemTextCtrl97, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -510,7 +510,7 @@ void FilesPanelGUI::CreateControls()
     itemFlexGridSizer94->Add(itemCheckBox98, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText99 = new ewxStaticText( itemPanel77, wxID_STATIC_FILE_SEFREQ, _("Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer94->Add(itemStaticText99, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer94->Add(itemStaticText99, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl100 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_FILE_SEFREQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer94->Add(itemTextCtrl100, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -520,7 +520,7 @@ void FilesPanelGUI::CreateControls()
     itemFlexGridSizer94->Add(itemCheckBox101, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText102 = new ewxStaticText( itemPanel77, wxID_STATIC_FILE_SFFREQ, _("Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer94->Add(itemStaticText102, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer94->Add(itemStaticText102, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl103 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_FILE_SFFREQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer94->Add(itemTextCtrl103, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -530,7 +530,7 @@ void FilesPanelGUI::CreateControls()
     itemFlexGridSizer94->Add(itemCheckBox104, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText105 = new ewxStaticText( itemPanel77, wxID_STATIC_FILE_PMFFREQ, _("Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer94->Add(itemStaticText105, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer94->Add(itemStaticText105, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl106 = new ewxTextCtrl( itemPanel77, ID_TEXTCTRL_FILE_PMFFREQ, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer94->Add(itemTextCtrl106, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);

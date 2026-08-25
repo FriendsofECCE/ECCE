@@ -26,6 +26,8 @@ add_compile_options(-Wall -Wno-deprecated -Wno-sign-compare -Wno-non-virtual-dto
 
 find_package(XercesC REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(wxWidgets 3.2 REQUIRED COMPONENTS core base gl aui)
+include(${wxWidgets_USE_FILE})
 
 # Old build used "-I/usr/include/freetype2/freetype" as a baseline include
 # dir everywhere, because most FreeType headers this codebase includes
@@ -142,6 +144,21 @@ ecce_library(eccemoiv src/inv/moiv)
 target_compile_definitions(eccemoiv PRIVATE NDEBUG)
 target_link_libraries(eccemoiv PRIVATE OpenGL::GL OpenGL::GLU)
 
-# TODO once the wxWidgets 2.8->3.2 port is done:
-#   ecce_library(eccewxinv src/inv/wxinv) + find_package(wxWidgets 3.2 ...)
-#   + src/apps, src/wxgui, src/wxviz targets and final executables.
+# ------------------------------------------------------------------------
+# wxWidgets 2.8 -> 3.2 port (in progress). See
+# claude/ecce-modernization-status.md in the project docs for what's done.
+# ------------------------------------------------------------------------
+
+# --- src/inv/wxinv -> libeccewxinv.a (Open Inventor / wxWidgets bridge) ---
+ecce_library(eccewxinv src/inv/wxinv)
+target_compile_definitions(eccewxinv PRIVATE NDEBUG ${wxWidgets_DEFINITIONS})
+target_include_directories(eccewxinv PRIVATE ${wxWidgets_INCLUDE_DIRS})
+target_link_libraries(eccewxinv PRIVATE ${wxWidgets_LIBRARIES} OpenGL::GL OpenGL::GLU)
+
+# --- src/wxviz -> libeccewxviz.a ---
+ecce_library(eccewxviz src/wxviz/viewer src/wxviz/viztools)
+target_compile_definitions(eccewxviz PRIVATE ${wxWidgets_DEFINITIONS})
+target_include_directories(eccewxviz PRIVATE ${wxWidgets_INCLUDE_DIRS})
+target_link_libraries(eccewxviz PRIVATE ${wxWidgets_LIBRARIES} OpenGL::GL OpenGL::GLU)
+
+# TODO: src/apps, src/wxgui targets and final executables.

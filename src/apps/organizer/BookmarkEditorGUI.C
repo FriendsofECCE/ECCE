@@ -138,7 +138,7 @@ void BookmarkEditorGUI::CreateControls()
     itemBoxSizer3->Add(itemBoxSizer4, 0, wxGROW, 5);
 
     ewxStaticText* itemStaticText5 = new ewxStaticText( itemPanel2, wxID_STATIC, _("Name:"), wxDefaultPosition, wxSize(45, -1), wxALIGN_RIGHT );
-    itemBoxSizer4->Add(itemStaticText5, 0, wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM|wxADJUST_MINSIZE, 5);
+    itemBoxSizer4->Add(itemStaticText5, 0, wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM, 5);
 
     p_name = new ewxTextCtrl( itemPanel2, ID_BOOKMARK_NAME, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer4->Add(p_name, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -147,7 +147,7 @@ void BookmarkEditorGUI::CreateControls()
     itemBoxSizer3->Add(itemBoxSizer7, 0, wxGROW, 5);
 
     ewxStaticText* itemStaticText8 = new ewxStaticText( itemPanel2, wxID_STATIC, _("URL:"), wxDefaultPosition, wxSize(45, -1), wxALIGN_RIGHT );
-    itemBoxSizer7->Add(itemStaticText8, 0, wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer7->Add(itemStaticText8, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     p_url = new ewxTextCtrl( itemPanel2, ID_BOOKMARK_URL, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer7->Add(p_url, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);

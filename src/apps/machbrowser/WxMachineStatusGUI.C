@@ -113,7 +113,7 @@ void WxMachineStatusGUI::CreateControls()
 
     ewxStaticText* itemStaticText5 = new ewxStaticText( itemPanel3, ID_STATIC_WXMACHINESTATUS_MODE, _("(Mode)"), wxDefaultPosition, wxDefaultSize, 0 );
     itemStaticText5->SetFont(wxFont(10, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
-    itemBoxSizer4->Add(itemStaticText5, 0, wxGROW|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer4->Add(itemStaticText5, 0, wxGROW|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl6 = new ewxTextCtrl( itemPanel3, ID_TEXTCTRL_WXMACHINESTATUS_STATUS, _T(""), wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL );
     itemTextCtrl6->SetFont(wxFont(10, wxTELETYPE, wxNORMAL, wxNORMAL, false, _T("Courier 10 Pitch")));

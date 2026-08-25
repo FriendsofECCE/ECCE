@@ -206,7 +206,7 @@ void ControlPanelGUI::CreateControls()
     itemPanel10->SetSizer(itemBoxSizer11);
 
     ewxStaticText* itemStaticText12 = new ewxStaticText( itemPanel10, wxID_STATIC, _("Load Balancing Coupling Strength:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer11->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer11->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl13 = new ewxTextCtrl( itemPanel10, ID_TEXTCTRL_CNTRL_STRNGTH, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer11->Add(itemTextCtrl13, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -234,7 +234,7 @@ void ControlPanelGUI::CreateControls()
     itemBoxSizer19->Add(itemBoxSizer20, 0, wxALIGN_LEFT|wxLEFT, 15);
 
     ewxStaticText* itemStaticText21 = new ewxStaticText( itemPanel18, wxID_STATIC_CNTRL_CFREQ, _("Cell Size Adjustment Frequency:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer20->Add(itemStaticText21, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer20->Add(itemStaticText21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl22 = new ewxTextCtrl( itemPanel18, ID_TEXTCTRL_CNTRL_CFREQ, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer20->Add(itemTextCtrl22, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -243,7 +243,7 @@ void ControlPanelGUI::CreateControls()
     itemBoxSizer19->Add(itemBoxSizer23, 0, wxALIGN_LEFT|wxLEFT, 15);
 
     ewxStaticText* itemStaticText24 = new ewxStaticText( itemPanel18, wxID_STATIC_CNTRL_TSYNCH, _("Synchronization Time for Rebalancing:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer23->Add(itemStaticText24, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer23->Add(itemStaticText24, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice25Strings[] = {
         _("From Last Step"),
@@ -261,7 +261,7 @@ void ControlPanelGUI::CreateControls()
     itemBoxSizer26->Add(itemBitmapButton27, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText28 = new ewxStaticText( p_balancePanel, wxID_STATIC, _("Advanced Configuration Options"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer26->Add(itemStaticText28, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer26->Add(itemStaticText28, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer29 = new wxBoxSizer(wxHORIZONTAL);
     p_configVSizer->Add(itemBoxSizer29, 0, wxALIGN_LEFT|wxLEFT, 15);
@@ -293,7 +293,7 @@ void ControlPanelGUI::CreateControls()
     itemBoxSizer37->Add(10, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText39 = new ewxStaticText( itemPanel36, wxID_STATIC, _("NX:"), wxPoint(1, -1), wxDefaultSize, 0 );
-    itemBoxSizer37->Add(itemStaticText39, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer37->Add(itemStaticText39, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl40 = new ewxTextCtrl( itemPanel36, ID_TEXTCTRL_CNTRL_PX, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer37->Add(itemTextCtrl40, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -301,7 +301,7 @@ void ControlPanelGUI::CreateControls()
     itemBoxSizer37->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText42 = new ewxStaticText( itemPanel36, wxID_STATIC, _("NY:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer37->Add(itemStaticText42, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer37->Add(itemStaticText42, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl43 = new ewxTextCtrl( itemPanel36, ID_TEXTCTRL_CNTRL_PY, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer37->Add(itemTextCtrl43, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -309,7 +309,7 @@ void ControlPanelGUI::CreateControls()
     itemBoxSizer37->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText45 = new ewxStaticText( itemPanel36, wxID_STATIC, _("NZ:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer37->Add(itemStaticText45, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer37->Add(itemStaticText45, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl46 = new ewxTextCtrl( itemPanel36, ID_TEXTCTRL_CNTRL_PZ, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer37->Add(itemTextCtrl46, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -333,7 +333,7 @@ void ControlPanelGUI::CreateControls()
     itemBoxSizer51->Add(10, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText53 = new ewxStaticText( itemPanel50, wxID_STATIC, _("NX:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer51->Add(itemStaticText53, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer51->Add(itemStaticText53, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl54 = new ewxTextCtrl( itemPanel50, ID_TEXTCTRL_CNTRL_CX, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer51->Add(itemTextCtrl54, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -341,7 +341,7 @@ void ControlPanelGUI::CreateControls()
     itemBoxSizer51->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText56 = new ewxStaticText( itemPanel50, wxID_STATIC, _("NY:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer51->Add(itemStaticText56, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer51->Add(itemStaticText56, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl57 = new ewxTextCtrl( itemPanel50, ID_TEXTCTRL_CNTRL_CY, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer51->Add(itemTextCtrl57, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -349,7 +349,7 @@ void ControlPanelGUI::CreateControls()
     itemBoxSizer51->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText59 = new ewxStaticText( itemPanel50, wxID_STATIC, _("NZ:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer51->Add(itemStaticText59, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer51->Add(itemStaticText59, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl60 = new ewxTextCtrl( itemPanel50, ID_TEXTCTRL_CNTRL_CZ, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer51->Add(itemTextCtrl60, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);

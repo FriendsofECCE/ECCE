@@ -167,13 +167,13 @@ void SolvateEdGUI::CreateControls()
     itemBoxSizer13->Add(itemBoxSizer14, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText15 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Total Number of Atoms:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer14->Add(itemStaticText15, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer14->Add(itemStaticText15, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText16 = new ewxStaticText( itemFrame1, ID_STATIC_SLV_TATOMS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer14->Add(itemStaticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer14->Add(itemStaticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText17 = new ewxStaticText( itemFrame1, ID_STATIC_SLV_DIM_HEADER, _("System Dimensions"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer13->Add(itemStaticText17, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer13->Add(itemStaticText17, 0, wxALIGN_LEFT|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer18 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer13->Add(itemBoxSizer18, 0, wxALIGN_LEFT|wxALL, 0);
@@ -181,22 +181,22 @@ void SolvateEdGUI::CreateControls()
     itemBoxSizer18->Add(10, 5, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     ewxStaticText* itemStaticText20 = new ewxStaticText( itemFrame1, ID_STATIC_SLV_X_LABEL, _("X:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer18->Add(itemStaticText20, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM|wxADJUST_MINSIZE, 5);
+    itemBoxSizer18->Add(itemStaticText20, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM, 5);
 
     ewxStaticText* itemStaticText21 = new ewxStaticText( itemFrame1, ID_STATIC_SLV_X_DIM, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer18->Add(itemStaticText21, 1, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer18->Add(itemStaticText21, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText22 = new ewxStaticText( itemFrame1, ID_STATIC_SLV_Y_LABEL, _("Y:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer18->Add(itemStaticText22, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM|wxADJUST_MINSIZE, 5);
+    itemBoxSizer18->Add(itemStaticText22, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM, 5);
 
     ewxStaticText* itemStaticText23 = new ewxStaticText( itemFrame1, ID_STATIC_SLV_Y_DIM, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer18->Add(itemStaticText23, 1, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer18->Add(itemStaticText23, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText24 = new ewxStaticText( itemFrame1, ID_STATIC_SLV_Z_LABEL, _("Z:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer18->Add(itemStaticText24, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM|wxADJUST_MINSIZE, 5);
+    itemBoxSizer18->Add(itemStaticText24, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM, 5);
 
     ewxStaticText* itemStaticText25 = new ewxStaticText( itemFrame1, ID_STATIC_SLV_Z_DIM, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer18->Add(itemStaticText25, 1, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer18->Add(itemStaticText25, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxStaticBox* itemStaticBoxSizer26Static = new wxStaticBox(itemFrame1, wxID_ANY, _("Solvate Settings"));
     wxStaticBoxSizer* itemStaticBoxSizer26 = new wxStaticBoxSizer(itemStaticBoxSizer26Static, wxHORIZONTAL);
@@ -209,13 +209,13 @@ void SolvateEdGUI::CreateControls()
     itemBoxSizer27->Add(itemBoxSizer28, 0, wxALIGN_LEFT|wxRIGHT|wxTOP|wxBOTTOM, 0);
 
     ewxStaticText* itemStaticText29 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Solvent Radius Scaling Parameter:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer28->Add(itemStaticText29, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer28->Add(itemStaticText29, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl30 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_SLV_RAD, _("1.0"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer28->Add(itemTextCtrl30, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText31 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Minimum Number of Solvent Replicas"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer27->Add(itemStaticText31, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer27->Add(itemStaticText31, 0, wxALIGN_LEFT|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer32 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer27->Add(itemBoxSizer32, 0, wxALIGN_LEFT|wxALL, 5);
@@ -223,19 +223,19 @@ void SolvateEdGUI::CreateControls()
     itemBoxSizer32->Add(10, 5, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     ewxStaticText* itemStaticText34 = new ewxStaticText( itemFrame1, wxID_STATIC, _("nx:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer32->Add(itemStaticText34, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer32->Add(itemStaticText34, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl35 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_SLV_MIN_NX, _("1"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer32->Add(itemTextCtrl35, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText36 = new ewxStaticText( itemFrame1, wxID_STATIC, _("    ny:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer32->Add(itemStaticText36, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer32->Add(itemStaticText36, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl37 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_SLV_MIN_NY, _("1"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer32->Add(itemTextCtrl37, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText38 = new ewxStaticText( itemFrame1, wxID_STATIC, _("    nz:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer32->Add(itemStaticText38, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer32->Add(itemStaticText38, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl39 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_SLV_MIN_NZ, _("1"), wxDefaultPosition, wxDefaultSize, 0 );
     itemTextCtrl39->SetMaxLength(1);
@@ -245,7 +245,7 @@ void SolvateEdGUI::CreateControls()
     itemBoxSizer10->Add(itemBoxSizer40, 0, wxGROW|wxRIGHT|wxBOTTOM, 5);
 
     ewxStaticText* itemStaticText41 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Solvent:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer40->Add(itemStaticText41, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM|wxADJUST_MINSIZE, 5);
+    itemBoxSizer40->Add(itemStaticText41, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM, 5);
 
     wxString* itemComboBox42Strings = NULL;
     ewxComboBox* itemComboBox42 = new ewxComboBox( itemFrame1, ID_COMBOBOX_SOLVATEED_SOLVENT, _T(""), wxDefaultPosition, wxDefaultSize, 0, itemComboBox42Strings, wxCB_DROPDOWN );

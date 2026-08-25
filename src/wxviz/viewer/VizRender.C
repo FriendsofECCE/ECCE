@@ -353,12 +353,18 @@ void VizRender::loadDisplayStyle(SGViewer *viewer, SGContainer *sg)
   int styleId;
   config->Read("DefaultStyle", &styleId,
                ViewerEvtHandler::ID_STYLE_BALL_WIREFRAME);
+  // _T()/wxT() is only valid on string literals (it token-pastes an "L"
+  // prefix in Unicode builds) - it was being misapplied here to a runtime
+  // std::string expression, which happened to be silently a no-op in old
+  // ANSI-mode wx builds but is a hard preprocessor error under wx3.x, which
+  // is Unicode-only. wxStripMenuCodes() takes the std::string directly (via
+  // its implicit wxString conversion) instead.
   string style = wxStripMenuCodes(
-          _T(styleNames[styleId-ViewerEvtHandler::ID_STYLE_BALL_WIREFRAME])
-          ).c_str();
+          styleNames[styleId-ViewerEvtHandler::ID_STYLE_BALL_WIREFRAME]
+          ).ToStdString();
   string scheme = "Element";
   ewxConfig *styleconfig = ewxConfig::getConfig("vizstyles.ini");
-  string styledd = styleconfig->Read(style).c_str();
+  string styledd = styleconfig->Read(style).ToStdString();
   DisplayDescriptor *dd = 0;
   if (styledd != "")
      dd = new DisplayDescriptor(styledd);

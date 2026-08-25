@@ -241,14 +241,14 @@ void VizStyleChooserGUI::CreateControls()
     itemPanel3->SetSizer(itemFlexGridSizer4);
 
     ewxStaticText* itemStaticText5 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Display Style:"), wxDefaultPosition, wxSize(140, -1), 0 );
-    itemFlexGridSizer4->Add(itemStaticText5, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer4->Add(itemStaticText5, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString* itemChoice6Strings = NULL;
     ewxChoice* itemChoice6 = new ewxChoice( itemPanel3, ID_CHOICE_DSPLY_DSOPT, wxDefaultPosition, wxDefaultSize, 0, itemChoice6Strings, 0 );
     itemFlexGridSizer4->Add(itemChoice6, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Color Scheme:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText7, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer4->Add(itemStaticText7, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString* itemChoice8Strings = NULL;
     ewxChoice* itemChoice8 = new ewxChoice( itemPanel3, ID_CHOICE_DSPLY_CSOPT, wxDefaultPosition, wxDefaultSize, 0, itemChoice8Strings, 0 );
@@ -262,7 +262,7 @@ void VizStyleChooserGUI::CreateControls()
     itemPanel9->SetSizer(itemBoxSizer10);
 
     ewxStaticText* itemStaticText11 = new ewxStaticText( itemPanel9, wxID_STATIC, _("Color Spectrum:"), wxDefaultPosition, wxSize(140, -1), 0 );
-    itemBoxSizer10->Add(itemStaticText11, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer10->Add(itemStaticText11, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxPanel* itemPanel12 = new ewxPanel( itemFrame1, ID_PANEL_DSPLY_SWOTH, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemPanel12->Show(false);
@@ -272,7 +272,7 @@ void VizStyleChooserGUI::CreateControls()
     itemPanel12->SetSizer(itemBoxSizer13);
 
     ewxStaticText* itemStaticText14 = new ewxStaticText( itemPanel12, wxID_STATIC, _("Colors:"), wxDefaultPosition, wxSize(140, -1), 0 );
-    itemBoxSizer13->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer13->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxPanel* itemPanel15 = new ewxPanel( itemFrame1, ID_PANEL_DSPLY_BLOCKSCHEME, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemPanel15->Show(false);
@@ -282,7 +282,7 @@ void VizStyleChooserGUI::CreateControls()
     itemPanel15->SetSizer(itemBoxSizer16);
 
     ewxStaticText* itemStaticText17 = new ewxStaticText( itemPanel15, wxID_STATIC_DSPLY_BLOCKCOLOR, _("Color"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer16->Add(itemStaticText17, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer16->Add(itemStaticText17, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxPanel* itemPanel18 = new ewxPanel( itemPanel15, ID_PANEL_DSPLY_BLOCKCOLOR, wxDefaultPosition, wxSize(30, 20), wxSUNKEN_BORDER|wxTAB_TRAVERSAL );
     itemBoxSizer16->Add(itemPanel18, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -300,7 +300,7 @@ void VizStyleChooserGUI::CreateControls()
     itemBoxSizer21->Add(itemBitmapButton22, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText23 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Advanced Options"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer21->Add(itemStaticText23, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer21->Add(itemStaticText23, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxPanel* itemPanel24 = new ewxPanel( itemFrame1, ID_PANEL_DSPLY_CNTRLS, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
     p_mainSizer->Add(itemPanel24, 0, wxGROW|wxLEFT, 15);
@@ -316,13 +316,13 @@ void VizStyleChooserGUI::CreateControls()
     itemPanel26->SetSizer(itemFlexGridSizer27);
 
     ewxStaticText* itemStaticText28 = new ewxStaticText( itemPanel26, wxID_STATIC, _("Line Width:"), wxDefaultPosition, wxSize(140, -1), 0 );
-    itemFlexGridSizer27->Add(itemStaticText28, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer27->Add(itemStaticText28, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider29 = new wxSlider( itemPanel26, ID_SLIDER_DSPLY_LNWDTH, 1, 1, 10, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer27->Add(itemSlider29, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText30 = new ewxStaticText( itemPanel26, wxID_STATIC_DSPLY_LNWDTH, _("1"), wxDefaultPosition, wxSize(30, -1), 0 );
-    itemFlexGridSizer27->Add(itemStaticText30, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer27->Add(itemStaticText30, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     itemFlexGridSizer27->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
@@ -330,12 +330,12 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer27->Add(itemBoxSizer32, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText33 = new ewxStaticText( itemPanel26, wxID_STATIC, _("1"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer32->Add(itemStaticText33, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer32->Add(itemStaticText33, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer32->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText35 = new ewxStaticText( itemPanel26, wxID_STATIC, _("10"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer32->Add(itemStaticText35, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer32->Add(itemStaticText35, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer27->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -350,7 +350,7 @@ void VizStyleChooserGUI::CreateControls()
     itemBoxSizer38->Add(itemBoxSizer39, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText40 = new ewxStaticText( itemPanel37, wxID_STATIC, _("Cap Style:"), wxDefaultPosition, wxSize(140, -1), 0 );
-    itemBoxSizer39->Add(itemStaticText40, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer39->Add(itemStaticText40, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxRadioButton* itemRadioButton41 = new ewxRadioButton( itemPanel37, ID_RADIOBUTTON_DSPLY_NONE, _("None"), wxDefaultPosition, wxDefaultSize, wxRB_GROUP );
     itemRadioButton41->SetValue(false);
@@ -368,13 +368,13 @@ void VizStyleChooserGUI::CreateControls()
     itemBoxSizer38->Add(itemFlexGridSizer44, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText45 = new ewxStaticText( itemPanel37, wxID_STATIC_DSPLY_CYLRQTXT, _("Cylinder Quality:"), wxDefaultPosition, wxSize(140, -1), 0 );
-    itemFlexGridSizer44->Add(itemStaticText45, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer44->Add(itemStaticText45, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider46 = new wxSlider( itemPanel37, ID_SLIDER_DSPLY_CYLRQ, 56, 1, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer44->Add(itemSlider46, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText47 = new ewxStaticText( itemPanel37, wxID_STATIC_DSPLY_CYLRQ, _("56"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer44->Add(itemStaticText47, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer44->Add(itemStaticText47, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer44->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
@@ -382,23 +382,23 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer44->Add(itemBoxSizer49, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText50 = new ewxStaticText( itemPanel37, wxID_STATIC_DSPLY_CYLRQMIN, _("1%"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer49->Add(itemStaticText50, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer49->Add(itemStaticText50, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer49->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText52 = new ewxStaticText( itemPanel37, wxID_STATIC_DSPLY_CYLRQMAX, _("100%"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer49->Add(itemStaticText52, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer49->Add(itemStaticText52, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer44->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText54 = new ewxStaticText( itemPanel37, wxID_STATIC_DSPLY_CYLRADTXT, _("Cylinder Radius:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer44->Add(itemStaticText54, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer44->Add(itemStaticText54, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider55 = new wxSlider( itemPanel37, ID_SLIDER_DSPLY_CYLRAD, 14, 1, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer44->Add(itemSlider55, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText56 = new ewxStaticText( itemPanel37, wxID_STATIC_DSPLY_CYLRAD, _("14"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer44->Add(itemStaticText56, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer44->Add(itemStaticText56, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer44->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
@@ -406,23 +406,23 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer44->Add(itemBoxSizer58, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText59 = new ewxStaticText( itemPanel37, wxID_STATIC_DSPLY_CYLRADMIN, _("1%"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer58->Add(itemStaticText59, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer58->Add(itemStaticText59, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer58->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText61 = new ewxStaticText( itemPanel37, wxID_STATIC_DSPLY_CYLRADMAX, _("100%"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer58->Add(itemStaticText61, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer58->Add(itemStaticText61, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer44->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText63 = new ewxStaticText( itemPanel37, wxID_STATIC_DSPLY_RESRADTXT, _("Cylinder Radius:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer44->Add(itemStaticText63, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer44->Add(itemStaticText63, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider64 = new wxSlider( itemPanel37, ID_SLIDER_DSPLY_RESRAD, 10, 0, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer44->Add(itemSlider64, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText65 = new ewxStaticText( itemPanel37, wxID_STATIC_DSPLY_RESRAD, _("1.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer44->Add(itemStaticText65, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer44->Add(itemStaticText65, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer44->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
@@ -430,12 +430,12 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer44->Add(itemBoxSizer67, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText68 = new ewxStaticText( itemPanel37, wxID_STATIC_DSPLY_RESRADMIN, _("0.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer67->Add(itemStaticText68, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer67->Add(itemStaticText68, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer67->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText70 = new ewxStaticText( itemPanel37, wxID_STATIC_DSPLY_RESRADMAX, _("10.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer67->Add(itemStaticText70, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer67->Add(itemStaticText70, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer44->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
@@ -443,7 +443,7 @@ void VizStyleChooserGUI::CreateControls()
     itemBoxSizer38->Add(itemBoxSizer72, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText73 = new ewxStaticText( itemPanel37, wxID_STATIC, _("Cylinder Rendering:"), wxDefaultPosition, wxSize(140, -1), 0 );
-    itemBoxSizer72->Add(itemStaticText73, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer72->Add(itemStaticText73, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString* itemChoice74Strings = NULL;
     ewxChoice* itemChoice74 = new ewxChoice( itemPanel37, ID_CHOICE_DSPLY_BONDCYLINDER, wxDefaultPosition, wxDefaultSize, 0, itemChoice74Strings, 0 );
@@ -460,13 +460,13 @@ void VizStyleChooserGUI::CreateControls()
     itemBoxSizer76->Add(itemFlexGridSizer77, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText78 = new ewxStaticText( itemPanel75, wxID_STATIC, _("Sphere Quality:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer77->Add(itemStaticText78, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer77->Add(itemStaticText78, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider79 = new wxSlider( itemPanel75, ID_SLIDER_DSPLY_SPHRQ, 50, 1, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer77->Add(itemSlider79, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText80 = new ewxStaticText( itemPanel75, wxID_STATIC_DSPLY_SPHRQ, _("50"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer77->Add(itemStaticText80, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer77->Add(itemStaticText80, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer77->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
@@ -474,23 +474,23 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer77->Add(itemBoxSizer82, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText83 = new ewxStaticText( itemPanel75, wxID_STATIC, _("1%"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer82->Add(itemStaticText83, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer82->Add(itemStaticText83, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer82->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText85 = new ewxStaticText( itemPanel75, wxID_STATIC, _("100%"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer82->Add(itemStaticText85, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer82->Add(itemStaticText85, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer77->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText87 = new ewxStaticText( itemPanel75, wxID_STATIC_DSPLY_SPHSCLTXT, _("Ball and Stick Scale:"), wxDefaultPosition, wxSize(140, -1), 0 );
-    itemFlexGridSizer77->Add(itemStaticText87, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer77->Add(itemStaticText87, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider88 = new wxSlider( itemPanel75, ID_SLIDER_DSPLY_SPHSCL, 50, 1, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer77->Add(itemSlider88, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText89 = new ewxStaticText( itemPanel75, wxID_STATIC_DSPLY_SPHSCL, _("50"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer77->Add(itemStaticText89, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer77->Add(itemStaticText89, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer77->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
@@ -498,12 +498,12 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer77->Add(itemBoxSizer91, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText92 = new ewxStaticText( itemPanel75, wxID_STATIC_DSPLY_SPHSCLMIN, _("1%"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer91->Add(itemStaticText92, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer91->Add(itemStaticText92, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer91->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText94 = new ewxStaticText( itemPanel75, wxID_STATIC_DSPLY_SPHSCLMAX, _("100%"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer91->Add(itemStaticText94, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer91->Add(itemStaticText94, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer77->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
@@ -511,7 +511,7 @@ void VizStyleChooserGUI::CreateControls()
     itemBoxSizer76->Add(itemBoxSizer96, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText97 = new ewxStaticText( itemPanel75, ID_STATICTEXT1, _("Sphere Rendering:"), wxDefaultPosition, wxSize(140, -1), 0 );
-    itemBoxSizer96->Add(itemStaticText97, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer96->Add(itemStaticText97, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString* itemChoice98Strings = NULL;
     ewxChoice* itemChoice98 = new ewxChoice( itemPanel75, ID_CHOICE_DSPLY_ATOMSPHERE, wxDefaultPosition, wxDefaultSize, 0, itemChoice98Strings, 0 );
@@ -542,13 +542,13 @@ void VizStyleChooserGUI::CreateControls()
     itemBoxSizer100->Add(itemFlexGridSizer105, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
 
     ewxStaticText* itemStaticText106 = new ewxStaticText( itemPanel99, wxID_STATIC, _("Coil Width:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer105->Add(itemStaticText106, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer105->Add(itemStaticText106, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider107 = new wxSlider( itemPanel99, ID_SLIDER_DSPLY_COILW, 10, 0, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer105->Add(itemSlider107, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText108 = new ewxStaticText( itemPanel99, wxID_STATIC_DSPLY_COILW, _("1.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer105->Add(itemStaticText108, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer105->Add(itemStaticText108, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer105->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -556,23 +556,23 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer105->Add(itemBoxSizer110, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText111 = new ewxStaticText( itemPanel99, wxID_STATIC, _("0.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer110->Add(itemStaticText111, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer110->Add(itemStaticText111, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer110->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText113 = new ewxStaticText( itemPanel99, wxID_STATIC, _("10.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer110->Add(itemStaticText113, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer110->Add(itemStaticText113, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer105->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText115 = new ewxStaticText( itemPanel99, wxID_STATIC, _("Helix Radius:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer105->Add(itemStaticText115, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer105->Add(itemStaticText115, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider116 = new wxSlider( itemPanel99, ID_SLIDER_DSPLY_HLXRAD, 30, 0, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer105->Add(itemSlider116, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText117 = new ewxStaticText( itemPanel99, wxID_STATIC_DSPLY_HLXRAD, _("3.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer105->Add(itemStaticText117, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer105->Add(itemStaticText117, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer105->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -580,23 +580,23 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer105->Add(itemBoxSizer119, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText120 = new ewxStaticText( itemPanel99, wxID_STATIC, _("0.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer119->Add(itemStaticText120, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer119->Add(itemStaticText120, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer119->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText122 = new ewxStaticText( itemPanel99, wxID_STATIC, _("10.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer119->Add(itemStaticText122, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer119->Add(itemStaticText122, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer105->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText124 = new ewxStaticText( itemPanel99, wxID_STATIC, _("Helix Width:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer105->Add(itemStaticText124, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer105->Add(itemStaticText124, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider125 = new wxSlider( itemPanel99, ID_SLIDER_DSPLY_HLXW, 30, 0, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer105->Add(itemSlider125, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText126 = new ewxStaticText( itemPanel99, wxID_STATIC_DSPLY_HLXW, _("3.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer105->Add(itemStaticText126, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer105->Add(itemStaticText126, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer105->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -604,23 +604,23 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer105->Add(itemBoxSizer128, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText129 = new ewxStaticText( itemPanel99, wxID_STATIC, _("0.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer128->Add(itemStaticText129, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer128->Add(itemStaticText129, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer128->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText131 = new ewxStaticText( itemPanel99, wxID_STATIC, _("10.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer128->Add(itemStaticText131, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer128->Add(itemStaticText131, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer105->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText133 = new ewxStaticText( itemPanel99, wxID_STATIC, _("Sheet Width:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer105->Add(itemStaticText133, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer105->Add(itemStaticText133, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider134 = new wxSlider( itemPanel99, ID_SLIDER_DSPLY_SHTW, 30, 0, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer105->Add(itemSlider134, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText135 = new ewxStaticText( itemPanel99, wxID_STATIC_DSPLY_SHTW, _("3.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer105->Add(itemStaticText135, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer105->Add(itemStaticText135, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer105->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -628,23 +628,23 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer105->Add(itemBoxSizer137, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText138 = new ewxStaticText( itemPanel99, wxID_STATIC, _("0.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer137->Add(itemStaticText138, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer137->Add(itemStaticText138, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer137->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText140 = new ewxStaticText( itemPanel99, wxID_STATIC, _("10.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer137->Add(itemStaticText140, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer137->Add(itemStaticText140, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer105->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText142 = new ewxStaticText( itemPanel99, wxID_STATIC_DSPLY_RBTHKTXT, _("Ribbon Thickness:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer105->Add(itemStaticText142, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer105->Add(itemStaticText142, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider143 = new wxSlider( itemPanel99, ID_SLIDER_DSPLY_RBTHK, 10, 0, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer105->Add(itemSlider143, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText144 = new ewxStaticText( itemPanel99, wxID_STATIC_DSPLY_RBTHK, _("0.25"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer105->Add(itemStaticText144, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer105->Add(itemStaticText144, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer105->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -652,12 +652,12 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer105->Add(itemBoxSizer146, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText147 = new ewxStaticText( itemPanel99, wxID_STATIC_DSPLY_RBTHKMIN, _("0.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer146->Add(itemStaticText147, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer146->Add(itemStaticText147, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer146->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText149 = new ewxStaticText( itemPanel99, wxID_STATIC_DSPLY_RBTHKMAX, _("5.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer146->Add(itemStaticText149, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer146->Add(itemStaticText149, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer105->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -669,13 +669,13 @@ void VizStyleChooserGUI::CreateControls()
     itemPanel151->SetSizer(itemFlexGridSizer152);
 
     ewxStaticText* itemStaticText153 = new ewxStaticText( itemPanel151, wxID_STATIC, _("Cylinder Quality:"), wxDefaultPosition, wxSize(140, -1), 0 );
-    itemFlexGridSizer152->Add(itemStaticText153, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer152->Add(itemStaticText153, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider154 = new wxSlider( itemPanel151, ID_SLIDER_DSPLY_CCYLRQ, 70, 0, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer152->Add(itemSlider154, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText155 = new ewxStaticText( itemPanel151, wxID_STATIC_DSPLY_CCYLRQ, _("70"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer152->Add(itemStaticText155, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer152->Add(itemStaticText155, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer152->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -683,23 +683,23 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer152->Add(itemBoxSizer157, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText158 = new ewxStaticText( itemPanel151, wxID_STATIC, _("1%"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer157->Add(itemStaticText158, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer157->Add(itemStaticText158, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer157->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText160 = new ewxStaticText( itemPanel151, wxID_STATIC, _("100%"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer157->Add(itemStaticText160, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer157->Add(itemStaticText160, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer152->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText162 = new ewxStaticText( itemPanel151, wxID_STATIC, _("Cylinder Radius:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer152->Add(itemStaticText162, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer152->Add(itemStaticText162, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider163 = new wxSlider( itemPanel151, ID_SLIDER_DSPLY_CYLR, 23, 0, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer152->Add(itemSlider163, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText164 = new ewxStaticText( itemPanel151, wxID_STATIC_DSPLY_CYLR, _("2.3"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer152->Add(itemStaticText164, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer152->Add(itemStaticText164, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer152->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -707,23 +707,23 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer152->Add(itemBoxSizer166, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText167 = new ewxStaticText( itemPanel151, wxID_STATIC, _("0.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer166->Add(itemStaticText167, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer166->Add(itemStaticText167, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer166->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText169 = new ewxStaticText( itemPanel151, wxID_STATIC, _("10.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer166->Add(itemStaticText169, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer166->Add(itemStaticText169, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer152->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText171 = new ewxStaticText( itemPanel151, wxID_STATIC, _("Tube Radius:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer152->Add(itemStaticText171, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer152->Add(itemStaticText171, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxSlider* itemSlider172 = new wxSlider( itemPanel151, ID_SLIDER_DSPLY_TUBER, 7, 1, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL );
     itemFlexGridSizer152->Add(itemSlider172, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText173 = new ewxStaticText( itemPanel151, wxID_STATIC_DSPLY_TUBER, _("1.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer152->Add(itemStaticText173, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer152->Add(itemStaticText173, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer152->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -731,12 +731,12 @@ void VizStyleChooserGUI::CreateControls()
     itemFlexGridSizer152->Add(itemBoxSizer175, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText176 = new ewxStaticText( itemPanel151, wxID_STATIC, _("0.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer175->Add(itemStaticText176, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer175->Add(itemStaticText176, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer175->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText178 = new ewxStaticText( itemPanel151, wxID_STATIC, _("10.0"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer175->Add(itemStaticText178, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer175->Add(itemStaticText178, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemFlexGridSizer152->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -750,7 +750,7 @@ void VizStyleChooserGUI::CreateControls()
     p_mainSizer->Add(itemBoxSizer182, 1, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText183 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Current Styles:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer182->Add(itemStaticText183, 0, wxALIGN_TOP|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer182->Add(itemStaticText183, 0, wxALIGN_TOP|wxALL, 5);
 
     wxString* itemListBox184Strings = NULL;
     ewxListBox* itemListBox184 = new ewxListBox( itemFrame1, ID_LISTBOX_DSPLY_GROUPS, wxDefaultPosition, wxDefaultSize, 0, itemListBox184Strings, wxLB_SINGLE );

@@ -106,7 +106,7 @@ void WxBasisSetCoefficientsGUI::CreateControls()
     itemDialog1->SetSizer(itemBoxSizer2);
 
     ewxStaticText* itemStaticText3 = new ewxStaticText( itemDialog1, ID_STATIC_WXBASISSETCOEFFICIENTS_HEADER, _("Custom formatted for NWChem"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE );
-    itemBoxSizer2->Add(itemStaticText3, 0, wxGROW|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer2->Add(itemStaticText3, 0, wxGROW|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl4 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_WXBASISSETCOEFFICIENTS_DETAIL, _T(""), wxDefaultPosition, wxSize(300, 300), wxTE_MULTILINE|wxTE_READONLY );
     itemTextCtrl4->SetFont(wxFont(10, wxDEFAULT, wxNORMAL, wxNORMAL, false, _T("Luxi Mono")));

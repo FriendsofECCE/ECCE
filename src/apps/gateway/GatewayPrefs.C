@@ -523,11 +523,11 @@ void GatewayPrefs::addState(ResourceDescriptor::RUNSTATE state)
   ewxStaticText* label;
   
   label = new ewxStaticText(this, wxID_STATIC, WxState::getName(state, true), wxDefaultPosition, wxDefaultSize, 0 );
-  p_stateIconSizer->Add(label, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+  p_stateIconSizer->Add(label, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
   
   p_stateButton[state][0] = new StateButton(state, true, this);
-  p_stateIconSizer->Add(p_stateButton[state][0], 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+  p_stateIconSizer->Add(p_stateButton[state][0], 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
 
   p_stateButton[state][1] = new StateButton(state, false, this);
-  p_stateIconSizer->Add(p_stateButton[state][1], 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+  p_stateIconSizer->Add(p_stateButton[state][1], 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
 }

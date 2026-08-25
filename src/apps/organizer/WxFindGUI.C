@@ -127,7 +127,7 @@ void WxFindGUI::CreateControls()
     p_topSizer->Add(itemBoxSizer3, 0, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText4 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Find: "), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     p_find = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_FIND, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer3->Add(p_find, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -136,7 +136,7 @@ void WxFindGUI::CreateControls()
     p_topSizer->Add(itemBoxSizer6, 0, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemDialog1, wxID_STATIC, _("From:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     p_from = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_FROM, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer6->Add(p_from, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -145,7 +145,7 @@ void WxFindGUI::CreateControls()
     p_topSizer->Add(itemStaticLine9, 0, wxGROW|wxALL, 5);
 
     ewxStaticText* itemStaticText10 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Results:"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_topSizer->Add(itemStaticText10, 0, wxALIGN_CENTER_HORIZONTAL|wxADJUST_MINSIZE, 5);
+    p_topSizer->Add(itemStaticText10, 0, wxALIGN_CENTER_HORIZONTAL, 5);
 
     wxString* p_resultsStrings = NULL;
     p_results = new ewxListBox( itemDialog1, ID_LISTBOX_RESULTS, wxDefaultPosition, wxDefaultSize, 0, p_resultsStrings, wxLB_SINGLE|wxLB_NEEDED_SB|wxLB_SORT );

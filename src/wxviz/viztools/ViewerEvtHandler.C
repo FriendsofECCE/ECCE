@@ -372,12 +372,12 @@ void ViewerEvtHandler::doStyleChange(const wxString& style)
     string scheme = "Element";
     ewxConfig *config = ewxConfig::getConfig("vizstyles.ini");
     config->Write("/LastStyle", style);
-    string styledd = config->Read(style).c_str();
+    string styledd = config->Read(style).ToStdString();
     DisplayDescriptor *dd = 0;
     if (styledd != "")
        dd = new DisplayDescriptor(styledd);
     else
-       dd = new DisplayDescriptor("default", style.c_str(), scheme);
+       dd = new DisplayDescriptor("default", style.ToStdString(), scheme);
     if (!dd->isValid(dd->getStyle(), dd->getColorScheme(),
              sg.getFragment()->numResidues() > 0)) {
        dd->setColorScheme(dd->getDefaultColorScheme(dd->getStyle()));

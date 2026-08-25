@@ -178,7 +178,7 @@ void GatewayPrefsGUI::CreateControls()
     itemStaticBoxSizer3->Add(itemFlexGridSizer4, 0, wxGROW|wxALL, 5);
 
     ewxStaticText* itemStaticText5 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Color Theme:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText5, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer4->Add(itemStaticText5, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     wxString p_colorThemeStrings[] = {
         _("Site Default"),
@@ -192,7 +192,7 @@ void GatewayPrefsGUI::CreateControls()
     itemFlexGridSizer4->Add(p_colorTheme, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Font Size:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText7, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer4->Add(itemStaticText7, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     wxString p_fontSizeStrings[] = {
         _("Small"),
@@ -205,28 +205,28 @@ void GatewayPrefsGUI::CreateControls()
     itemFlexGridSizer4->Add(p_fontSize, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Date Format:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText9, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    itemFlexGridSizer4->Add(itemStaticText9, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     wxString* p_dateFormatStrings = NULL;
     p_dateFormat = new ewxChoice( itemFrame1, ID_DATEFORMAT_CHOICE, wxDefaultPosition, wxDefaultSize, 0, p_dateFormatStrings, 0 );
     itemFlexGridSizer4->Add(p_dateFormat, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText11 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Time Format:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText11, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer4->Add(itemStaticText11, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 
     wxString* p_timeFormatStrings = NULL;
     p_timeFormat = new ewxChoice( itemFrame1, ID_TIMEFORMAT_CHOICE, wxDefaultPosition, wxDefaultSize, 0, p_timeFormatStrings, 0 );
     itemFlexGridSizer4->Add(p_timeFormat, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 
     ewxStaticText* itemStaticText13 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Units:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText13, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer4->Add(itemStaticText13, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 
     wxString* p_unitStrings = NULL;
     p_unit = new ewxChoice( itemFrame1, ID_UNIT_CHOICE, wxDefaultPosition, wxDefaultSize, 0, p_unitStrings, 0 );
     itemFlexGridSizer4->Add(p_unit, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 
     ewxStaticText* itemStaticText15 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Notifications:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText15, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer4->Add(itemStaticText15, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 
     p_beepError = new ewxCheckBox( itemFrame1, ID_BEEPERROR_CHECKBOX, _("Beep on Errors"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     p_beepError->SetValue(true);
@@ -239,7 +239,7 @@ void GatewayPrefsGUI::CreateControls()
     itemFlexGridSizer4->Add(p_beepWarn, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 
     ewxStaticText* itemStaticText19 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Focus Behavior:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText19, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer4->Add(itemStaticText19, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 
     p_focus = new ewxCheckBox( itemFrame1, ID_FOCUS_FOLLOW_MOUSE, _("Follow Mouse"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     p_focus->SetValue(false);
@@ -299,22 +299,22 @@ void GatewayPrefsGUI::CreateControls()
     itemStaticBoxSizer30->Add(p_stateIconSizer, 1, wxGROW|wxALL, 5);
 
     ewxStaticText* itemStaticText32 = new ewxStaticText( itemFrame1, wxID_STATIC, _("State"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_stateIconSizer->Add(itemStaticText32, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    p_stateIconSizer->Add(itemStaticText32, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText33 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Default"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_stateIconSizer->Add(itemStaticText33, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    p_stateIconSizer->Add(itemStaticText33, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText34 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Custom"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_stateIconSizer->Add(itemStaticText34, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    p_stateIconSizer->Add(itemStaticText34, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText35 = new ewxStaticText( itemFrame1, wxID_STATIC, _("State"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_stateIconSizer->Add(itemStaticText35, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    p_stateIconSizer->Add(itemStaticText35, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText36 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Default"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_stateIconSizer->Add(itemStaticText36, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    p_stateIconSizer->Add(itemStaticText36, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText37 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Custom"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_stateIconSizer->Add(itemStaticText37, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxADJUST_MINSIZE, 0);
+    p_stateIconSizer->Add(itemStaticText37, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
 
     wxBoxSizer* itemBoxSizer38 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer38, 0, wxGROW, 0);

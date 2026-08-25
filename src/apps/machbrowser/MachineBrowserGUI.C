@@ -169,12 +169,12 @@ void MachineBrowserGUI::CreateControls()
     itemBoxSizer7->Add(itemStaticBitmap9, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText10 = new ewxStaticText( itemPanel3, wxID_STATIC, _("= Setup for Remote Access"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer7->Add(itemStaticText10, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer7->Add(itemStaticText10, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer7->Add(15, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText12 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Query"), wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT );
-    itemBoxSizer7->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer7->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxButton* itemButton13 = new ewxButton( itemPanel3, ID_BUTTON_MACHINEBROWSER_QUERYMACHINE, _("Machine"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer7->Add(itemButton13, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -192,12 +192,12 @@ void MachineBrowserGUI::CreateControls()
     itemBoxSizer4->Add(itemBoxSizer17, 0, wxGROW, 3);
 
     ewxStaticText* itemStaticText18 = new ewxStaticText( itemPanel3, ID_STATICTEXT_MACHINEBROWSER_MACHINENAME, _("(machine full name)"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer17->Add(itemStaticText18, 1, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer17->Add(itemStaticText18, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer17->Add(0, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText20 = new ewxStaticText( itemPanel3, ID_STATIC_MACHINEBROWSER_MODE, _("(Mode)"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemBoxSizer17->Add(itemStaticText20, 1, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer17->Add(itemStaticText20, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer17->Add(15, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 

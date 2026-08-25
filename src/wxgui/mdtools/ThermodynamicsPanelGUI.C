@@ -217,7 +217,7 @@ void ThermodynamicsPanelGUI::CreateControls()
     itemBoxSizer18->Add(itemBoxSizer19, 0, wxGROW, 5);
 
     ewxStaticText* itemStaticText20 = new ewxStaticText( itemPanel17, wxID_STATIC, _("Initial Conditions:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer19->Add(itemStaticText20, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer19->Add(itemStaticText20, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxRadioButton* itemRadioButton21 = new ewxRadioButton( itemPanel17, ID_RADIOBUTTON_THERM_INTEG_NEW, _("New"), wxDefaultPosition, wxDefaultSize, wxRB_GROUP );
     itemRadioButton21->SetValue(false);
@@ -254,7 +254,7 @@ void ThermodynamicsPanelGUI::CreateControls()
     itemBoxSizer24->Add(itemSpinCtrl26, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText27 = new ewxStaticText( itemPanel17, wxID_STATIC, _("ensembles out of"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer24->Add(itemStaticText27, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer24->Add(itemStaticText27, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxSpinCtrl* itemSpinCtrl28 = new ewxSpinCtrl( itemPanel17, ID_SPINCTRL_THERM_INTEG_ENSEMBLES_MAX, _("0"), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 100, 0 );
     itemBoxSizer24->Add(itemSpinCtrl28, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -263,25 +263,25 @@ void ThermodynamicsPanelGUI::CreateControls()
     itemBoxSizer18->Add(itemBoxSizer29, 0, wxGROW, 5);
 
     ewxStaticText* itemStaticText30 = new ewxStaticText( itemPanel17, wxID_STATIC, _("Max Statistical Error for each Ensemble:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer29->Add(itemStaticText30, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer29->Add(itemStaticText30, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl31 = new ewxTextCtrl( itemPanel17, ID_TEXTCTRL_THERM_INTEG_ERROR, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer29->Add(itemTextCtrl31, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText32 = new ewxStaticText( itemPanel17, wxID_STATIC_THERM_INTEG_ERROR, _("kJ/mol"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer29->Add(itemStaticText32, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer29->Add(itemStaticText32, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer33 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer18->Add(itemBoxSizer33, 0, wxGROW, 5);
 
     ewxStaticText* itemStaticText34 = new ewxStaticText( itemPanel17, wxID_STATIC, _("Max Drift in the Free Energy Result:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer33->Add(itemStaticText34, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer33->Add(itemStaticText34, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl35 = new ewxTextCtrl( itemPanel17, ID_TEXTCTRL_THERM_INTEG_DRIFT, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer33->Add(itemTextCtrl35, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText36 = new ewxStaticText( itemPanel17, wxID_STATIC_THERM_INTEG_DRIFT, _("kJ/mol/ps"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer33->Add(itemStaticText36, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer33->Add(itemStaticText36, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
 ////@end ThermodynamicsPanelGUI content construction
 }

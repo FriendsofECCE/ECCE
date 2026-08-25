@@ -221,7 +221,7 @@ void PBCGUI::CreateControls()
     itemBoxSizer7->Add(itemBoxSizer8, 0, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("Cell Type:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString itemChoice10Strings[] = {
         _("Lattice"),
@@ -236,7 +236,7 @@ void PBCGUI::CreateControls()
     itemBoxSizer7->Add(itemFlexGridSizer11, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 1);
 
     ewxStaticText* itemStaticText12 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("a1:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer11->Add(itemStaticText12, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer11->Add(itemStaticText12, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl13 = new ewxTextCtrl( p_latticePanel, ID_TEXTCTRL_PBC_A1X, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer11->Add(itemTextCtrl13, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
@@ -248,7 +248,7 @@ void PBCGUI::CreateControls()
     itemFlexGridSizer11->Add(itemTextCtrl15, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxStaticText* itemStaticText16 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("a2:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer11->Add(itemStaticText16, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer11->Add(itemStaticText16, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxTextCtrl* itemTextCtrl17 = new ewxTextCtrl( p_latticePanel, ID_TEXTCTRL_PBC_A2X, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer11->Add(itemTextCtrl17, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
@@ -260,7 +260,7 @@ void PBCGUI::CreateControls()
     itemFlexGridSizer11->Add(itemTextCtrl19, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxStaticText* itemStaticText20 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("a3:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer11->Add(itemStaticText20, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer11->Add(itemStaticText20, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxTextCtrl* itemTextCtrl21 = new ewxTextCtrl( p_latticePanel, ID_TEXTCTRL_PBC_A3X, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer11->Add(itemTextCtrl21, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
@@ -277,37 +277,37 @@ void PBCGUI::CreateControls()
     itemBoxSizer7->Add(itemFlexGridSizer24, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 2);
 
     ewxStaticText* itemStaticText25 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("a:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer24->Add(itemStaticText25, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer24->Add(itemStaticText25, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxTextCtrl* itemTextCtrl26 = new ewxTextCtrl( p_latticePanel, ID_TEXTCTRL_PBC_A, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer24->Add(itemTextCtrl26, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxStaticText* itemStaticText27 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("alpha:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer24->Add(itemStaticText27, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer24->Add(itemStaticText27, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxTextCtrl* itemTextCtrl28 = new ewxTextCtrl( p_latticePanel, ID_TEXTCTRL_PBC_ALPHA, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer24->Add(itemTextCtrl28, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxStaticText* itemStaticText29 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("b:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer24->Add(itemStaticText29, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer24->Add(itemStaticText29, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxTextCtrl* itemTextCtrl30 = new ewxTextCtrl( p_latticePanel, ID_TEXTCTRL_PBC_B, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer24->Add(itemTextCtrl30, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxStaticText* itemStaticText31 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("beta:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer24->Add(itemStaticText31, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer24->Add(itemStaticText31, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxTextCtrl* itemTextCtrl32 = new ewxTextCtrl( p_latticePanel, ID_TEXTCTRL_PBC_BETA, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer24->Add(itemTextCtrl32, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxStaticText* itemStaticText33 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("c:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer24->Add(itemStaticText33, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer24->Add(itemStaticText33, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxTextCtrl* itemTextCtrl34 = new ewxTextCtrl( p_latticePanel, ID_TEXTCTRL_PBC_C, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer24->Add(itemTextCtrl34, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxStaticText* itemStaticText35 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("gamma:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer24->Add(itemStaticText35, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    itemFlexGridSizer24->Add(itemStaticText35, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxTextCtrl* itemTextCtrl36 = new ewxTextCtrl( p_latticePanel, ID_TEXTCTRL_PBC_GAMMA, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer24->Add(itemTextCtrl36, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
@@ -353,7 +353,7 @@ void PBCGUI::CreateControls()
     itemBoxSizer7->Add(p_symSizer, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText50 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("Sym. Group"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_symSizer->Add(itemStaticText50, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    p_symSizer->Add(itemStaticText50, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     p_symSizer->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
@@ -368,19 +368,19 @@ void PBCGUI::CreateControls()
     itemStaticBoxSizer53->Add(itemBoxSizer54, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
 
     ewxStaticText* itemStaticText55 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("a:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer54->Add(itemStaticText55, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    itemBoxSizer54->Add(itemStaticText55, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxSpinCtrl* itemSpinCtrl56 = new ewxSpinCtrl( p_latticePanel, ID_SPINCTRL_PBC_XREP, _("1"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, 1, 100, 1 );
     itemBoxSizer54->Add(itemSpinCtrl56, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxStaticText* itemStaticText57 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("b:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer54->Add(itemStaticText57, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    itemBoxSizer54->Add(itemStaticText57, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxSpinCtrl* itemSpinCtrl58 = new ewxSpinCtrl( p_latticePanel, ID_SPINCTRL_PBC_YREP, _("1"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, 1, 100, 1 );
     itemBoxSizer54->Add(itemSpinCtrl58, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxStaticText* itemStaticText59 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("c:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer54->Add(itemStaticText59, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    itemBoxSizer54->Add(itemStaticText59, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxSpinCtrl* itemSpinCtrl60 = new ewxSpinCtrl( p_latticePanel, ID_SPINCTRL_PBC_ZREP, _("1"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, 1, 100, 1 );
     itemBoxSizer54->Add(itemSpinCtrl60, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);

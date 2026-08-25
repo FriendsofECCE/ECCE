@@ -210,7 +210,7 @@ void InteractionPanelGUI::CreateControls()
     itemBoxSizer5->Add(itemStaticLine6, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( p_parameterPanel, wxID_STATIC, _("Parameter Set"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer5->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer5->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine8 = new ewxStaticLine( p_parameterPanel, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer5->Add(itemStaticLine8, 1, wxGROW|wxALL, 3);
@@ -245,7 +245,7 @@ void InteractionPanelGUI::CreateControls()
     p_mainVSizer->Add(itemBoxSizer16, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText17 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Electrostatic Interaction Model:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer16->Add(itemStaticText17, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer16->Add(itemStaticText17, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice18Strings[] = {
         _("Particle-Mesh Ewald"),
@@ -265,7 +265,7 @@ void InteractionPanelGUI::CreateControls()
     p_EwaldSizer->Add(itemBoxSizer21, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText22 = new ewxStaticText( p_ewaldPanel, wxID_STATIC_INTRCT_GRID, _("Grid Points per Dimension:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer21->Add(itemStaticText22, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer21->Add(itemStaticText22, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     ewxTextCtrl* itemTextCtrl23 = new ewxTextCtrl( p_ewaldPanel, ID_TEXTCTRL_INTRCT_GRID, _("8"), wxDefaultPosition, wxSize(50, -1), 0 );
     itemBoxSizer21->Add(itemTextCtrl23, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -274,7 +274,7 @@ void InteractionPanelGUI::CreateControls()
     p_EwaldSizer->Add(itemBoxSizer24, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText25 = new ewxStaticText( p_ewaldPanel, wxID_STATIC_INTRCT_ECNV, _("Ewald Convergence Coefficient:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer24->Add(itemStaticText25, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer24->Add(itemStaticText25, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     ewxTextCtrl* itemTextCtrl26 = new ewxTextCtrl( p_ewaldPanel, ID_TEXTCTRL_INTRCT_EWTOL, _("0.0001"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer24->Add(itemTextCtrl26, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -282,7 +282,7 @@ void InteractionPanelGUI::CreateControls()
     itemBoxSizer24->Add(15, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText28 = new ewxStaticText( p_ewaldPanel, wxID_STATIC_INTRCT_ESPLINE, _("Cardinal B-Spline Order:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer24->Add(itemStaticText28, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer24->Add(itemStaticText28, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl29 = new ewxTextCtrl( p_ewaldPanel, ID_TEXTCTRL_INTRCT_ESPLINE, _("4"), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer24->Add(itemTextCtrl29, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -307,7 +307,7 @@ void InteractionPanelGUI::CreateControls()
     itemBoxSizer33->Add(itemBitmapButton35, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText36 = new ewxStaticText( p_ewaldPanel, wxID_STATIC, _("Advanced FFT Options"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer33->Add(itemStaticText36, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer33->Add(itemStaticText36, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     p_fftPanel = new ewxPanel( p_ewaldPanel, ID_PANEL_INTRCT_FFTOPT, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     p_FFTVSizer->Add(p_fftPanel, 0, wxALIGN_LEFT|wxLEFT, 30);
@@ -319,7 +319,7 @@ void InteractionPanelGUI::CreateControls()
     itemBoxSizer38->Add(itemBoxSizer39, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText40 = new ewxStaticText( p_fftPanel, wxID_STATIC_INTRCT_NFFT, _("Number of Processors:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer39->Add(itemStaticText40, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer39->Add(itemStaticText40, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl41 = new ewxTextCtrl( p_fftPanel, ID_TEXTCTRL_INTRCT_NFFT, _("2"), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer39->Add(itemTextCtrl41, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -327,7 +327,7 @@ void InteractionPanelGUI::CreateControls()
     itemBoxSizer39->Add(15, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText43 = new ewxStaticText( p_fftPanel, ID_STATICTEXT1, _("FFT Source:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer39->Add(itemStaticText43, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer39->Add(itemStaticText43, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice44Strings[] = {
         _("NWChem"),
@@ -348,7 +348,7 @@ void InteractionPanelGUI::CreateControls()
     itemBoxSizer46->Add(itemBoxSizer47, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText48 = new ewxStaticText( p_polarizationPanel, wxID_STATIC, _("Maximum Iterations:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer47->Add(itemStaticText48, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 15);
+    itemBoxSizer47->Add(itemStaticText48, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 15);
 
     ewxTextCtrl* itemTextCtrl49 = new ewxTextCtrl( p_polarizationPanel, ID_TEXTCTRL_INTRCT_MAXIT, _("14"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer47->Add(itemTextCtrl49, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -356,7 +356,7 @@ void InteractionPanelGUI::CreateControls()
     itemBoxSizer47->Add(15, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText51 = new ewxStaticText( p_polarizationPanel, wxID_STATIC, _("Convergence Tolerance:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer47->Add(itemStaticText51, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer47->Add(itemStaticText51, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl52 = new ewxTextCtrl( p_polarizationPanel, ID_TEXTCTRL_INTRCT_PTOL, _("0.001"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer47->Add(itemTextCtrl52, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -381,7 +381,7 @@ void InteractionPanelGUI::CreateControls()
     itemBoxSizer57->Add(itemStaticLine58, 0, wxGROW|wxALL, 3);
 
     ewxStaticText* itemStaticText59 = new ewxStaticText( p_cutoffPanel, wxID_STATIC, _("Cutoff Options"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer57->Add(itemStaticText59, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer57->Add(itemStaticText59, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine60 = new ewxStaticLine( p_cutoffPanel, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer57->Add(itemStaticLine60, 1, wxGROW|wxALL, 3);
@@ -401,19 +401,19 @@ void InteractionPanelGUI::CreateControls()
     p_cutoffVSizer->Add(p_cutoffHSizer, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText65 = new ewxStaticText( p_cutoffPanel, wxID_STATIC, _("Short-Ranged Cutoff:"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_cutoffHSizer->Add(itemStaticText65, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    p_cutoffHSizer->Add(itemStaticText65, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl66 = new ewxTextCtrl( p_cutoffPanel, ID_TEXTCTRL_INTRCT_SCUT, _("0.9"), wxDefaultPosition, wxDefaultSize, 0 );
     p_cutoffHSizer->Add(itemTextCtrl66, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText67 = new ewxStaticText( p_cutoffPanel, wxID_STATIC_INTRCT_SCUT, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_cutoffHSizer->Add(itemStaticText67, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    p_cutoffHSizer->Add(itemStaticText67, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer68 = new wxBoxSizer(wxHORIZONTAL);
     p_cutoffVSizer->Add(itemBoxSizer68, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText69 = new ewxStaticText( p_cutoffPanel, wxID_STATIC_INTRCT_SFREQ, _("Frequency to Update Short-Ranged Pair List:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer68->Add(itemStaticText69, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer68->Add(itemStaticText69, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl70 = new ewxTextCtrl( p_cutoffPanel, ID_TEXTCTRL_INTRCT_SFREQ, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer68->Add(itemTextCtrl70, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -428,19 +428,19 @@ void InteractionPanelGUI::CreateControls()
     itemBoxSizer72->Add(itemBoxSizer73, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText74 = new ewxStaticText( p_lcutoffPanel, wxID_STATIC_INTRCT_LCUT, _("Long-Ranged Cutoff:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer73->Add(itemStaticText74, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer73->Add(itemStaticText74, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl75 = new ewxTextCtrl( p_lcutoffPanel, ID_TEXTCTRL_INTRCT_LCUT, _("0.9"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer73->Add(itemTextCtrl75, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText76 = new ewxStaticText( p_lcutoffPanel, wxID_STATIC_INTRCT_ULCUT, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer73->Add(itemStaticText76, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer73->Add(itemStaticText76, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer77 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer72->Add(itemBoxSizer77, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
 
     ewxStaticText* itemStaticText78 = new ewxStaticText( p_lcutoffPanel, wxID_STATIC_INTRCT_LFREQ, _("Frequency to Update Long-Ranged Pair List:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer77->Add(itemStaticText78, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer77->Add(itemStaticText78, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl79 = new ewxTextCtrl( p_lcutoffPanel, ID_TEXTCTRL_INTRCT_LFREQ, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer77->Add(itemTextCtrl79, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);

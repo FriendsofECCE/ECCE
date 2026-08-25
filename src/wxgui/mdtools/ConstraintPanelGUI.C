@@ -187,7 +187,7 @@ void ConstraintPanelGUI::CreateControls()
     itemBoxSizer6->Add(itemFlexGridSizer7, 0, wxALIGN_LEFT|wxLEFT, 15);
 
     ewxStaticText* itemStaticText8 = new ewxStaticText( itemPanel5, wxID_STATIC_CONST_SLVITER, _("Maximum Solvent SHAKE Iterations:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer7->Add(itemStaticText8, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer7->Add(itemStaticText8, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl9 = new ewxTextCtrl( itemPanel5, ID_TEXTCTRL_CONST_SLVITER, _("100"), wxDefaultPosition, wxSize(50, -1), 0 );
     itemFlexGridSizer7->Add(itemTextCtrl9, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -195,7 +195,7 @@ void ConstraintPanelGUI::CreateControls()
     itemFlexGridSizer7->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText11 = new ewxStaticText( itemPanel5, wxID_STATIC_CONST_SLVTOL, _("SHAKE Tolerance:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer7->Add(itemStaticText11, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer7->Add(itemStaticText11, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer12 = new wxBoxSizer(wxHORIZONTAL);
     itemFlexGridSizer7->Add(itemBoxSizer12, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -204,10 +204,10 @@ void ConstraintPanelGUI::CreateControls()
     itemBoxSizer12->Add(itemTextCtrl13, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText14 = new ewxStaticText( itemPanel5, wxID_STATIC_CONST_SLVTOL_UNITS, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer12->Add(itemStaticText14, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer12->Add(itemStaticText14, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     ewxStaticText* itemStaticText15 = new ewxStaticText( itemPanel5, wxID_STATIC_CONST_SLUITER, _("Maximum Solute SHAKE Iterations:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer7->Add(itemStaticText15, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer7->Add(itemStaticText15, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl16 = new ewxTextCtrl( itemPanel5, ID_TEXTCTRL_CONST_SLUITER, _("100"), wxDefaultPosition, wxSize(50, -1), 0 );
     itemFlexGridSizer7->Add(itemTextCtrl16, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -215,7 +215,7 @@ void ConstraintPanelGUI::CreateControls()
     itemFlexGridSizer7->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText18 = new ewxStaticText( itemPanel5, wxID_STATIC_CONST_SLUTOL, _("SHAKE Tolerance:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer7->Add(itemStaticText18, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer7->Add(itemStaticText18, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer19 = new wxBoxSizer(wxHORIZONTAL);
     itemFlexGridSizer7->Add(itemBoxSizer19, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -224,13 +224,13 @@ void ConstraintPanelGUI::CreateControls()
     itemBoxSizer19->Add(itemTextCtrl20, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText21 = new ewxStaticText( itemPanel5, wxID_STATIC_CONST_SLUTOL_UNITS, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer19->Add(itemStaticText21, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer19->Add(itemStaticText21, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer22 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer6->Add(itemBoxSizer22, 0, wxALIGN_LEFT|wxLEFT, 15);
 
     ewxStaticText* itemStaticText23 = new ewxStaticText( itemPanel5, wxID_STATIC, _("SHAKE Options:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer22->Add(itemStaticText23, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer22->Add(itemStaticText23, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice24Strings[] = {
         _("Constrain All Molecules"),
@@ -248,7 +248,7 @@ void ConstraintPanelGUI::CreateControls()
     itemBoxSizer25->Add(itemStaticLine26, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText27 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Add Fixed Atoms"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer25->Add(itemStaticText27, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer25->Add(itemStaticText27, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine28 = new ewxStaticLine( itemPanel1, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer25->Add(itemStaticLine28, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -257,7 +257,7 @@ void ConstraintPanelGUI::CreateControls()
     p_constraintVSizer->Add(itemBoxSizer29, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText30 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Fix Atom Options:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer29->Add(itemStaticText30, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer29->Add(itemStaticText30, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString itemChoice31Strings[] = {
         _("Fix Solvent Atoms"),
@@ -285,7 +285,7 @@ void ConstraintPanelGUI::CreateControls()
     p_constraintVSizer->Add(itemBoxSizer36, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText37 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Selection Options:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer36->Add(itemStaticText37, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer36->Add(itemStaticText37, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString itemChoice38Strings[] = {
         _("Select Residue Range"),
@@ -303,7 +303,7 @@ void ConstraintPanelGUI::CreateControls()
     itemBoxSizer40->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText42 = new ewxStaticText( p_constrainResidue, wxID_STATIC_CONST_MINRES, _("Minimum Residue Index:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer40->Add(itemStaticText42, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer40->Add(itemStaticText42, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl43 = new ewxTextCtrl( p_constrainResidue, ID_TEXTCTRL_CONST_MINRES, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer40->Add(itemTextCtrl43, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -311,7 +311,7 @@ void ConstraintPanelGUI::CreateControls()
     itemBoxSizer40->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText45 = new ewxStaticText( p_constrainResidue, wxID_STATIC_CONST_MAXRES, _("Maximum Residue Index:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer40->Add(itemStaticText45, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer40->Add(itemStaticText45, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl46 = new ewxTextCtrl( p_constrainResidue, ID_TEXTCTRL_CONST_MAXRES, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer40->Add(itemTextCtrl46, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -333,18 +333,18 @@ void ConstraintPanelGUI::CreateControls()
     itemBoxSizer48->Add(itemRadioButton51, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText52 = new ewxStaticText( p_constrainRadius, wxID_STATIC_CONST_RADIUS, _("Radius:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer48->Add(itemStaticText52, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer48->Add(itemStaticText52, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl53 = new ewxTextCtrl( p_constrainRadius, ID_TEXTCTRL_CONST_RADIUS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer48->Add(itemTextCtrl53, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText54 = new ewxStaticText( p_constrainRadius, wxID_STATIC_CONST_RADIUS_UNITS, _("nm"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer48->Add(itemStaticText54, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer48->Add(itemStaticText54, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     itemBoxSizer48->Add(4, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText56 = new ewxStaticText( p_constrainRadius, wxID_STATIC_CONST_ATCENT, _("Atom Center:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer48->Add(itemStaticText56, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer48->Add(itemStaticText56, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl57 = new ewxTextCtrl( p_constrainRadius, ID_TEXTCTRL_CONST_ATCENT, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer48->Add(itemTextCtrl57, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -378,7 +378,7 @@ void ConstraintPanelGUI::CreateControls()
     itemBoxSizer63->Add(itemBoxSizer67, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText68 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Fixed Atom List:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer67->Add(itemStaticText68, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 3);
+    itemBoxSizer67->Add(itemStaticText68, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 3);
 
     wxString* itemListBox69Strings = NULL;
     ewxListBox* itemListBox69 = new ewxListBox( itemPanel1, ID_LISTBOX_CONST_FIXAT, wxDefaultPosition, wxSize(350, 80), 0, itemListBox69Strings, wxLB_SINGLE );

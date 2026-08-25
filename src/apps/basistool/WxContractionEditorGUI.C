@@ -134,7 +134,7 @@ void WxContractionEditorGUI::CreateControls()
     itemBoxSizer4->Add(itemBoxSizer5, 0, wxGROW, 3);
 
     ewxStaticText* itemStaticText6 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Element:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer5->Add(itemStaticText6, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer5->Add(itemStaticText6, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString* itemChoice7Strings = NULL;
     ewxChoice* itemChoice7 = new ewxChoice( itemPanel3, ID_CHOICE_WXCONTRACTIONEDITOR_ELEMENTS, wxDefaultPosition, wxDefaultSize, 0, itemChoice7Strings, 0 );
@@ -144,7 +144,7 @@ void WxContractionEditorGUI::CreateControls()
     itemBoxSizer4->Add(itemStaticLine8, 0, wxGROW|wxALL, 3);
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Contractions"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer4->Add(itemStaticText9, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer4->Add(itemStaticText9, 0, wxALIGN_LEFT|wxALL, 3);
 
     ewxGrid* itemGrid10 = new ewxGrid( itemPanel3, ID_GRID_WXCONTRACTIONEDITOR_CONTRACTIONS, wxDefaultPosition, wxSize(200, 150), wxDOUBLE_BORDER|wxHSCROLL|wxVSCROLL );
     itemGrid10->SetDefaultColSize(50);
@@ -164,7 +164,7 @@ void WxContractionEditorGUI::CreateControls()
     itemBoxSizer12->Add(itemBoxSizer13, 1, wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText14 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Summary"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer13->Add(itemStaticText14, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer13->Add(itemStaticText14, 0, wxALIGN_LEFT|wxALL, 3);
 
     ewxGrid* itemGrid15 = new ewxGrid( itemPanel3, ID_GRID_WXCONTRACTIONEDITOR_SUMMARY, wxDefaultPosition, wxSize(300, 150), wxNO_BORDER|wxHSCROLL|wxVSCROLL );
     itemGrid15->SetDefaultColSize(50);
@@ -193,7 +193,7 @@ void WxContractionEditorGUI::CreateControls()
     itemBoxSizer17->Add(itemWxParameterEdit19, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText20 = new ewxStaticText( itemPanel3, wxID_STATIC, _("diffuse functions to each L-value"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE );
-    itemBoxSizer16->Add(itemStaticText20, 0, wxGROW|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer16->Add(itemStaticText20, 0, wxGROW|wxALL, 3);
 
     ewxStaticLine* itemStaticLine21 = new ewxStaticLine( itemPanel3, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer4->Add(itemStaticLine21, 0, wxGROW|wxALL, 3);

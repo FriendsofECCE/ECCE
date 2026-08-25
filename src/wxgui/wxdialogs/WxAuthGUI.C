@@ -126,22 +126,22 @@ void WxAuthGUI::CreateControls()
     itemDialog1->SetSizer(itemBoxSizer3);
 
     ewxStaticText* itemStaticText4 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_PROMPT_LABEL, _("Please enter your data server user name and password:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_HORIZONTAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer5 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer3->Add(itemBoxSizer5, 0, wxALIGN_RIGHT|wxALL, 2);
 
     ewxStaticText* itemStaticText6 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_SERVER_LABEL, _("Server:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer5->Add(itemStaticText6, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM|wxADJUST_MINSIZE, 2);
+    itemBoxSizer5->Add(itemStaticText6, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_SERVER_VALUE, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer5->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM|wxADJUST_MINSIZE, 2);
+    itemBoxSizer5->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);
 
     wxBoxSizer* itemBoxSizer8 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer3->Add(itemBoxSizer8, 0, wxALIGN_RIGHT|wxLEFT|wxRIGHT|wxBOTTOM, 2);
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_USER_LABEL, _("User name:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM|wxADJUST_MINSIZE, 2);
+    itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);
 
     ewxTextCtrl* itemTextCtrl10 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_AUTH_USER, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer8->Add(itemTextCtrl10, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 2);
@@ -150,13 +150,13 @@ void WxAuthGUI::CreateControls()
     itemBoxSizer3->Add(itemBoxSizer11, 0, wxALIGN_RIGHT|wxLEFT|wxRIGHT, 2);
 
     ewxStaticText* itemStaticText12 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_PASSWD, _("Password:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer11->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM|wxADJUST_MINSIZE, 2);
+    itemBoxSizer11->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);
 
     ewxTextCtrl* itemTextCtrl13 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_AUTH_PASSWORD, _T(""), wxDefaultPosition, wxDefaultSize, wxTE_PASSWORD );
     itemBoxSizer11->Add(itemTextCtrl13, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);
 
     ewxStaticText* itemStaticText14 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_NEWPASSWD, _("New Password:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer11->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM|wxADJUST_MINSIZE, 2);
+    itemBoxSizer11->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);
 
     ewxTextCtrl* itemTextCtrl15 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_AUTH_NEWPASSWORD, _T(""), wxDefaultPosition, wxDefaultSize, wxTE_PASSWORD );
     itemBoxSizer11->Add(itemTextCtrl15, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);

@@ -121,22 +121,22 @@ void WxAccessControlGUI::CreateControls()
     p_topSizer->Add(itemBoxSizer3, 0, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText4 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Changing Access to:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     p_projectName = new ewxStaticText( itemFrame1, wxID_STATIC, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer3->Add(p_projectName, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer3->Add(p_projectName, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText6 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Enter user names separated by commas or spaces to change access permissions."), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    p_topSizer->Add(itemStaticText6, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 5);
+    p_topSizer->Add(itemStaticText6, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 5);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemFrame1, wxID_STATIC, _("The ALL keyword is used to give access to all users.                                      "), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    p_topSizer->Add(itemStaticText7, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxADJUST_MINSIZE, 5);
+    p_topSizer->Add(itemStaticText7, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT, 5);
 
     wxBoxSizer* itemBoxSizer8 = new wxBoxSizer(wxHORIZONTAL);
     p_topSizer->Add(itemBoxSizer8, 0, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Read-Only:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     p_readOnly = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_READONLY, _T(""), wxDefaultPosition, wxSize(365, -1), 0 );
     itemBoxSizer8->Add(p_readOnly, 1, wxGROW|wxALL, 5);
@@ -145,7 +145,7 @@ void WxAccessControlGUI::CreateControls()
     p_topSizer->Add(itemBoxSizer11, 0, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText12 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Read Write:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer11->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer11->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     p_readWrite = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_READWRITE, _T(""), wxDefaultPosition, wxSize(365, -1), 0 );
     itemBoxSizer11->Add(p_readWrite, 1, wxGROW|wxALL, 5);

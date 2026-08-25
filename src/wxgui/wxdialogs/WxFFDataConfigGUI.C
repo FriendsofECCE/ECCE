@@ -142,7 +142,7 @@ void WxFFDataConfigGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer3, 0, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText4 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Force Field:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString itemChoice5Strings[] = {
         _("NWChem")
@@ -155,7 +155,7 @@ void WxFFDataConfigGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer6, 0, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemDialog1, wxID_STATIC, _("NWChem Parameter Files"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer8 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer8, 1, wxGROW|wxRIGHT|wxTOP|wxBOTTOM, 0);
@@ -186,7 +186,7 @@ void WxFFDataConfigGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer16, 0, wxGROW|wxALL, 0);
 
     ewxStaticText* itemStaticText17 = new ewxStaticText( itemDialog1, wxID_STATIC, _("NWChem Segment Directories"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer16->Add(itemStaticText17, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer16->Add(itemStaticText17, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer18 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer18, 1, wxGROW|wxRIGHT|wxTOP|wxBOTTOM, 0);

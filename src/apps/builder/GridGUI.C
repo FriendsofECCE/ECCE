@@ -132,16 +132,16 @@ void GridGUI::CreateControls()
     itemFlexGridSizer4->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText6 = new ewxStaticText( itemDialog1, ID_STATICTEXT_GRIDX, _("X"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText6, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer4->Add(itemStaticText6, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemDialog1, ID_STATICTEXT_GRIDY, _("Y"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText7, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer4->Add(itemStaticText7, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText8 = new ewxStaticText( itemDialog1, ID_STATICTEXT_GRIDZ, _("Z"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText8, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer4->Add(itemStaticText8, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Res:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText9, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 1);
+    itemFlexGridSizer4->Add(itemStaticText9, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
     ewxTextCtrl* itemTextCtrl10 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_GRID_XRES, _("30"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer4->Add(itemTextCtrl10, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 1);
@@ -153,7 +153,7 @@ void GridGUI::CreateControls()
     itemFlexGridSizer4->Add(itemTextCtrl12, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
     ewxStaticText* itemStaticText13 = new ewxStaticText( itemDialog1, wxID_STATIC, _("From:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText13, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 1);
+    itemFlexGridSizer4->Add(itemStaticText13, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
     ewxTextCtrl* itemTextCtrl14 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRLGRID_FROMX, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer4->Add(itemTextCtrl14, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 1);
@@ -165,7 +165,7 @@ void GridGUI::CreateControls()
     itemFlexGridSizer4->Add(itemTextCtrl16, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
     ewxStaticText* itemStaticText17 = new ewxStaticText( itemDialog1, wxID_STATIC, _("To:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText17, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 1);
+    itemFlexGridSizer4->Add(itemStaticText17, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
     ewxTextCtrl* itemTextCtrl18 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_GRID_TOX, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer4->Add(itemTextCtrl18, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 1);
@@ -190,7 +190,7 @@ void GridGUI::CreateControls()
     itemBoxSizer21->Add(itemBoxSizer24, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText25 = new ewxStaticText( itemDialog1, wxID_STATIC, _("X=Y=Z"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer24->Add(itemStaticText25, 0, wxALIGN_CENTER_HORIZONTAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer24->Add(itemStaticText25, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl26 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_GRID_UNIFORM, _("30"), wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER );
     itemBoxSizer24->Add(itemTextCtrl26, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 1);

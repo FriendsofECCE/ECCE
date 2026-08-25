@@ -217,13 +217,13 @@ void NWDirdySetupGUI::CreateControls()
     itemFlexGridSizer3->Add(itemBoxSizer6, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Sym. Tolerance:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl8 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_NWDRDYSET_TOL, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer6->Add(itemTextCtrl8, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemFrame1, wxID_STATIC_NWDRDYSET_TOL, _("Bohr"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer6->Add(itemStaticText9, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer6->Add(itemStaticText9, 0, wxALIGN_BOTTOM|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer10 = new wxBoxSizer(wxHORIZONTAL);
     itemFlexGridSizer3->Add(itemBoxSizer10, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 0);
@@ -236,13 +236,13 @@ void NWDirdySetupGUI::CreateControls()
     itemFlexGridSizer3->Add(itemBoxSizer12, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText13 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Frag. Separation:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer12->Add(itemStaticText13, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer12->Add(itemStaticText13, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl14 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_NWDRDYSET_SEP, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer12->Add(itemTextCtrl14, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText15 = new ewxStaticText( itemFrame1, wxID_STATIC_NWDRDYSET_SEP, _("Bohr"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer12->Add(itemStaticText15, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer12->Add(itemStaticText15, 0, wxALIGN_BOTTOM|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer16 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer16, 0, wxGROW|wxALL, 0);
@@ -251,7 +251,7 @@ void NWDirdySetupGUI::CreateControls()
     itemBoxSizer16->Add(itemStaticLine17, 0, wxGROW|wxALL, 3);
 
     ewxStaticText* itemStaticText18 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Memory/Disk Limits"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer16->Add(itemStaticText18, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer16->Add(itemStaticText18, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticLine* itemStaticLine19 = new ewxStaticLine( itemFrame1, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer16->Add(itemStaticLine19, 1, wxGROW|wxALL, 3);
@@ -271,7 +271,7 @@ void NWDirdySetupGUI::CreateControls()
 
     ewxStaticText* itemStaticText24 = new ewxStaticText( itemFrame1, wxID_STATICTEXT_NWDRDYSET_MEMORY, _("MWords"), wxDefaultPosition, wxDefaultSize, 0 );
     itemStaticText24->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
-    itemBoxSizer21->Add(itemStaticText24, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer21->Add(itemStaticText24, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer25 = new wxBoxSizer(wxHORIZONTAL);
     itemFlexGridSizer20->Add(itemBoxSizer25, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -285,7 +285,7 @@ void NWDirdySetupGUI::CreateControls()
 
     ewxStaticText* itemStaticText28 = new ewxStaticText( itemFrame1, wxID_STATICTEXT_NWDRDYSET_DISK, _("MWords"), wxDefaultPosition, wxDefaultSize, 0 );
     itemStaticText28->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
-    itemBoxSizer25->Add(itemStaticText28, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer25->Add(itemStaticText28, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer29 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer29, 0, wxGROW|wxALL, 0);
@@ -294,7 +294,7 @@ void NWDirdySetupGUI::CreateControls()
     itemBoxSizer29->Add(itemStaticLine30, 0, wxGROW|wxALL, 3);
 
     ewxStaticText* itemStaticText31 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Theory"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer29->Add(itemStaticText31, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer29->Add(itemStaticText31, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticLine* itemStaticLine32 = new ewxStaticLine( itemFrame1, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer29->Add(itemStaticLine32, 1, wxGROW|wxALL, 3);
@@ -306,7 +306,7 @@ void NWDirdySetupGUI::CreateControls()
     itemFlexGridSizer33->Add(itemBoxSizer34, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText35 = new ewxStaticText( itemFrame1, wxID_STATIC, _("General Theory:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer34->Add(itemStaticText35, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer34->Add(itemStaticText35, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString* itemChoice36Strings = NULL;
     ewxChoice* itemChoice36 = new ewxChoice( itemFrame1, ID_CHOICE_NWDRDYSET_TH, wxDefaultPosition, wxDefaultSize, 0, itemChoice36Strings, 0 );
@@ -316,7 +316,7 @@ void NWDirdySetupGUI::CreateControls()
     itemFlexGridSizer33->Add(itemBoxSizer37, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText38 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Single Point:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer37->Add(itemStaticText38, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer37->Add(itemStaticText38, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString* itemChoice39Strings = NULL;
     ewxChoice* itemChoice39 = new ewxChoice( itemFrame1, ID_CHOICE_NWDRDYSET_SPTH, wxDefaultPosition, wxDefaultSize, 0, itemChoice39Strings, 0 );
@@ -338,19 +338,19 @@ void NWDirdySetupGUI::CreateControls()
     itemFlexGridSizer33->Add(itemBoxSizer44, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxNonBoldLabel* itemStaticText45 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC_NWDRDYSET_BASIS_LABEL, _("Name:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer44->Add(itemStaticText45, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    itemBoxSizer44->Add(itemStaticText45, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxBOTTOM, 3);
 
     ewxStaticText* itemStaticText46 = new ewxStaticText( itemFrame1, ID_STATIC_NWDRDYSET_BASIS_NAME, _("None"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer44->Add(itemStaticText46, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    itemBoxSizer44->Add(itemStaticText46, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxBOTTOM, 3);
 
     wxBoxSizer* itemBoxSizer47 = new wxBoxSizer(wxHORIZONTAL);
     itemFlexGridSizer33->Add(itemBoxSizer47, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxNonBoldLabel* itemStaticText48 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC_NWDRDYSET_SPBASIS_LABEL, _("Name:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer47->Add(itemStaticText48, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    itemBoxSizer47->Add(itemStaticText48, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxBOTTOM, 3);
 
     ewxStaticText* itemStaticText49 = new ewxStaticText( itemFrame1, ID_STATIC_NWDRDYSET_SPBASIS_NAME, _("None"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer47->Add(itemStaticText49, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxBOTTOM|wxADJUST_MINSIZE, 3);
+    itemBoxSizer47->Add(itemStaticText49, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxBOTTOM, 3);
 
     wxBoxSizer* itemBoxSizer50 = new wxBoxSizer(wxHORIZONTAL);
     itemFlexGridSizer33->Add(itemBoxSizer50, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -392,7 +392,7 @@ void NWDirdySetupGUI::CreateControls()
     itemBoxSizer60->Add(itemStaticLine61, 0, wxGROW|wxALL, 3);
 
     ewxStaticText* itemStaticText62 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Path Parameters"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer60->Add(itemStaticText62, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer60->Add(itemStaticText62, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticLine* itemStaticLine63 = new ewxStaticLine( itemFrame1, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer60->Add(itemStaticLine63, 1, wxGROW|wxALL, 3);
@@ -401,73 +401,73 @@ void NWDirdySetupGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer64, 0, wxALIGN_LEFT|wxRIGHT|wxTOP|wxBOTTOM, 0);
 
     ewxStaticText* itemStaticText65 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Minimum Energy Path Step Increment:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer64->Add(itemStaticText65, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer64->Add(itemStaticText65, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl66 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_NWDRDYSET_SSTEP, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer64->Add(itemTextCtrl66, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText67 = new ewxStaticText( itemFrame1, wxID_STATIC_NWDRDYSET_SSTEP, _("Bohr"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer64->Add(itemStaticText67, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer64->Add(itemStaticText67, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer68 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer68, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText69 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Increment for Saving Potential and Gradients:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer68->Add(itemStaticText69, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer68->Add(itemStaticText69, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl70 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_NWDRDYSET_SSV, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer68->Add(itemTextCtrl70, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText71 = new ewxStaticText( itemFrame1, wxID_STATIC_NWDRDYSET_SSV, _("Bohr"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer68->Add(itemStaticText71, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer68->Add(itemStaticText71, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer72 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer72, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText73 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Increment for Recalculating Hessian:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer72->Add(itemStaticText73, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer72->Add(itemStaticText73, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl74 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_NWDRDYSET_SHSS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer72->Add(itemTextCtrl74, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText75 = new ewxStaticText( itemFrame1, wxID_STATIC_NWDRDYSET_SHSS, _("Bohr"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer72->Add(itemStaticText75, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer72->Add(itemStaticText75, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer76 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer76, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText77 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Reduced Bimolecular Mass:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer76->Add(itemStaticText77, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer76->Add(itemStaticText77, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl78 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_NWDRDYSET_SMSS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer76->Add(itemTextCtrl78, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText79 = new ewxStaticText( itemFrame1, wxID_STATIC_NWDRDYSET_SMSS, _("amu"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer76->Add(itemStaticText79, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer76->Add(itemStaticText79, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer80 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer80, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText81 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Lower Limit of Reaction Coordinate:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer80->Add(itemStaticText81, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer80->Add(itemStaticText81, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl82 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_NWDRDYSET_SLM, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer80->Add(itemTextCtrl82, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText83 = new ewxStaticText( itemFrame1, wxID_STATIC_NWDRDYSET_SLM, _("Bohr"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer80->Add(itemStaticText83, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer80->Add(itemStaticText83, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer84 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer84, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText85 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Upper Limit of Reaction Coordinate:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer84->Add(itemStaticText85, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer84->Add(itemStaticText85, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl86 = new ewxTextCtrl( itemFrame1, ID_TEXTCTRL_NWDRDYSET_SLP, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer84->Add(itemTextCtrl86, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText87 = new ewxStaticText( itemFrame1, wxID_STATIC_NWDRDYSET_SLP, _("Bohr"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer84->Add(itemStaticText87, 0, wxALIGN_BOTTOM|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer84->Add(itemStaticText87, 0, wxALIGN_BOTTOM|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer88 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer88, 0, wxALIGN_LEFT|wxALL, 0);
@@ -480,7 +480,7 @@ void NWDirdySetupGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer90, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText91 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Integration Algorithm:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer90->Add(itemStaticText91, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer90->Add(itemStaticText91, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString itemChoice92Strings[] = {
         _("Euler"),

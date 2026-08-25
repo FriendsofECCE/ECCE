@@ -100,7 +100,7 @@ void SelectionPanel::atomSelection(bool clear, bool reverse)
   } else if (radio1->GetValue()) {
     Command *cmd = new SelectCmd("Select Element", &fw.getSceneGraph());
     cmd->getParameter("clear")->setBoolean(clear);
-    string element = ((ewxComboBox*)FindWindow(ID_COMBOBOX_ELMNT))->GetValue().c_str();
+    string element = ((ewxComboBox*)FindWindow(ID_COMBOBOX_ELMNT))->GetValue().ToStdString();
     cmd->getParameter("element")->setString(element);
     fw.execute(cmd);
   } else if (radio2->GetValue()) {
@@ -141,28 +141,28 @@ void SelectionPanel::residueSelection(bool clear, bool reverse)
     Command *cmd = new SelectCmd("Select Atom Type", &fw.getSceneGraph());
     cmd->getParameter("clear")->setBoolean(clear);
     string type =
-      ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_RES_ATYP))->GetValue().c_str();
+      ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_RES_ATYP))->GetValue().ToStdString();
     cmd->getParameter("atom_type")->setString(type);
     fw.execute(cmd);
   } else if (radio2->GetValue()) {
     Command *cmd = new SelectCmd("Select Atom Name", &fw.getSceneGraph());
     cmd->getParameter("clear")->setBoolean(clear);
     string name =
-      ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_RES_ANAM))->GetValue().c_str();
+      ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_RES_ANAM))->GetValue().ToStdString();
     cmd->getParameter("atom_name")->setString(name);
     fw.execute(cmd);
   } else if (radio3->GetValue()) {
     Command *cmd = new SelectCmd("Select Residue Name", &fw.getSceneGraph());
     cmd->getParameter("clear")->setBoolean(clear);
     string name =
-      ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_RESNAM))->GetValue().c_str();
+      ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_RESNAM))->GetValue().ToStdString();
     cmd->getParameter("residue_name")->setString(name);
     fw.execute(cmd);
   } else if (radio4->GetValue()) {
     Command *cmd = new SelectCmd("Select Chain", &fw.getSceneGraph());
     cmd->getParameter("clear")->setBoolean(clear);
     string chains =
-      ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_CHAIN))->GetValue().c_str();
+      ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_CHAIN))->GetValue().ToStdString();
     STLUtil::stripLeadingAndTrailingWhiteSpace(chains);
     vector<string> chainList;
     char buf[2];
@@ -213,7 +213,7 @@ void SelectionPanel::OnComboboxElmntEnter( wxCommandEvent& event )
 {
   ewxComboBox *combo = (ewxComboBox*)FindWindow(ID_COMBOBOX_ELMNT);
   TPerTab pertab;
-  if (pertab.isValid(combo->GetValue().c_str())) {
+  if (pertab.isValid(combo->GetValue().ToStdString())) {
     p_oldElement = combo->GetValue().c_str();
   } else {
     combo->SetValue(p_oldElement.c_str());

@@ -109,7 +109,7 @@ void WxPovrayOptionsGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer3, 0, wxGROW, 5);
 
     ewxStaticText* itemStaticText4 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Finish:"), wxDefaultPosition, wxSize(75, -1), 0 );
-    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString itemChoice5Strings[] = {
         _("Plastic"),
@@ -125,7 +125,7 @@ void WxPovrayOptionsGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer6, 0, wxGROW, 5);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Bonds:"), wxDefaultPosition, wxSize(75, -1), 0 );
-    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString itemChoice8Strings[] = {
         _("Bicolor-Proportional"),
@@ -140,7 +140,7 @@ void WxPovrayOptionsGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer9, 0, wxGROW, 5);
 
     ewxStaticText* itemStaticText10 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Isosurfaces:"), wxDefaultPosition, wxSize(75, -1), 0 );
-    itemBoxSizer9->Add(itemStaticText10, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer9->Add(itemStaticText10, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString itemChoice11Strings[] = {
         _("Glassy"),
@@ -159,13 +159,13 @@ void WxPovrayOptionsGUI::CreateControls()
     itemStaticBoxSizer12->Add(itemCheckBox13, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText14 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Width:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemStaticBoxSizer12->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemStaticBoxSizer12->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl15 = new ewxTextCtrl( itemPanel1, ID_POVRAY_WIDTH, _("800"), wxDefaultPosition, wxSize(50, -1), 0 );
     itemStaticBoxSizer12->Add(itemTextCtrl15, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText16 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Height:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemStaticBoxSizer12->Add(itemStaticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemStaticBoxSizer12->Add(itemStaticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl17 = new ewxTextCtrl( itemPanel1, ID_POVRAY_HEIGHT, _("600"), wxDefaultPosition, wxSize(50, -1), 0 );
     itemStaticBoxSizer12->Add(itemTextCtrl17, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);

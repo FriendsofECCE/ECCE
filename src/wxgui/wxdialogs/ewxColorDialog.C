@@ -129,13 +129,13 @@ void ewxColorDialog::CreateControls( wxColour color )
   wxBoxSizer* item4 = new wxBoxSizer(wxVERTICAL);
   item3->Add(item4, 0, wxGROW|wxALL, 0);
   wxStaticText* item5 = new wxStaticText( item1, wxID_STATIC, _("Basic Colors:"), wxDefaultPosition, wxDefaultSize, 0 );
-  item4->Add(item5, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 5);
+  item4->Add(item5, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 5);
   wxGridSizer* item6 = new wxGridSizer(6, 8, 0, 0);
   p_basicColorGrid = item6;
   item4->Add(item6, 0, wxALIGN_LEFT|wxALL, 5);
 
   //  wxStaticText* item55 = new wxStaticText( item1, wxID_STATIC, _("Custom colors:"), wxDefaultPosition, wxDefaultSize, 0 );
-  //  item4->Add(item55, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP|wxADJUST_MINSIZE, 5);
+  //  item4->Add(item55, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 5);
   //  wxGridSizer* item56 = new wxGridSizer(2, 8, 0, 0);
   //  p_customColorGrid = item56;
   //  item4->Add(item56, 0, wxALIGN_LEFT|wxALL, 5);
@@ -153,7 +153,7 @@ void ewxColorDialog::CreateControls( wxColour color )
   item73->Add(item77, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
 
   wxStaticText* item78 = new wxStaticText( item1, wxID_STATIC, _("Red:"), wxDefaultPosition, wxDefaultSize, 0 );
-  item77->Add(item78, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 1);
+  item77->Add(item78, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
   p_sliderRed = new wxSlider( item1, ID_SLIDER_RED, 0, 0, 255, wxDefaultPosition, wxSize(120, -1), wxSL_HORIZONTAL );
   item77->Add(p_sliderRed, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 1);
@@ -162,7 +162,7 @@ void ewxColorDialog::CreateControls( wxColour color )
   item77->Add(p_spinRed, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
   wxStaticText* item81 = new wxStaticText( item1, wxID_STATIC, _("Green:"), wxDefaultPosition, wxDefaultSize, 0 );
-  item77->Add(item81, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 1);
+  item77->Add(item81, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
   p_sliderGreen = new wxSlider( item1, ID_SLIDER_GREEN, 0, 0, 255, wxDefaultPosition, wxSize(120, -1), wxSL_HORIZONTAL );
   item77->Add(p_sliderGreen, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 1);
@@ -171,7 +171,7 @@ void ewxColorDialog::CreateControls( wxColour color )
   item77->Add(p_spinGreen, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
   wxStaticText* item84 = new wxStaticText( item1, wxID_STATIC, _("Blue:"), wxDefaultPosition, wxDefaultSize, 0 );
-  item77->Add(item84, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 1);
+  item77->Add(item84, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
   p_sliderBlue = new wxSlider( item1, ID_SLIDER_BLUE, 0, 0, 255, wxDefaultPosition, wxSize(120, -1), wxSL_HORIZONTAL );
   item77->Add(p_sliderBlue, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 1);

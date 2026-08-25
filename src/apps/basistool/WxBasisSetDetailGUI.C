@@ -126,7 +126,7 @@ void WxBasisSetDetailGUI::CreateControls()
     itemPanel5->SetSizer(itemBoxSizer6);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemPanel5, wxID_STATIC, _("References"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_LEFT|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_LEFT|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl8 = new ewxTextCtrl( itemPanel5, ID_TEXTCTRL_WXBASISSETDETAIL_REFERENCES, _T(""), wxDefaultPosition, wxSize(-1, 150), wxTE_MULTILINE|wxTE_READONLY );
     itemTextCtrl8->SetFont(wxFont(10, wxTELETYPE, wxNORMAL, wxNORMAL, false, _T("Courier 10 Pitch")));

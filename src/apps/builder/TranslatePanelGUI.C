@@ -111,7 +111,7 @@ void TranslatePanelGUI::CreateControls()
     itemBoxSizer3->Add(itemFlexGridSizer4, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxStaticText* itemStaticText5 = new ewxStaticText( itemPanel1, wxID_STATIC, _("X:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer4->Add(itemStaticText5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl6 = new ewxTextCtrl( itemPanel1, ID_TEXTCTRL_TRANSL_X, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer4->Add(itemTextCtrl6, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -120,7 +120,7 @@ void TranslatePanelGUI::CreateControls()
     itemFlexGridSizer4->Add(itemButton7, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText8 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Y:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText8, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer4->Add(itemStaticText8, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl9 = new ewxTextCtrl( itemPanel1, ID_TEXTCTRL_TRANSL_Y, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer4->Add(itemTextCtrl9, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -128,7 +128,7 @@ void TranslatePanelGUI::CreateControls()
     itemFlexGridSizer4->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText11 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Z:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer4->Add(itemStaticText11, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemFlexGridSizer4->Add(itemStaticText11, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl12 = new ewxTextCtrl( itemPanel1, ID_TEXTCTRL_TRANSL_Z, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer4->Add(itemTextCtrl12, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);

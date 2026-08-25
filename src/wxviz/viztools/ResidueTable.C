@@ -587,7 +587,7 @@ void ResidueTable::OnMenuClick( wxCommandEvent& event )
                     "*.*", wxFD_SAVE|wxFD_OVERWRITE_PROMPT);
               dlg.SetFilename(filename.c_str());
               if (dlg.ShowModal() == wxID_OK) {
-                 string path = dlg.GetPath().c_str();
+                 string path = dlg.GetPath().ToStdString();
                  SFile sfile(path);
                  p_segdir = sfile.pathroot();
 
@@ -626,7 +626,7 @@ void ResidueTable::OnMenuClick( wxCommandEvent& event )
 
               dlg.SetFilename(filename.c_str());
               if (dlg.ShowModal() == wxID_OK) {
-                 string path = dlg.GetPath().c_str();
+                 string path = dlg.GetPath().ToStdString();
                  SFile sfile(path);
                  p_fragdir = sfile.pathroot();
                  SegFactory segfactory;
@@ -704,10 +704,10 @@ void ResidueTable::OnSelectCell(wxGridEvent& event)
    if (event.GetCol() == EDITCOL) {
      setResEditIndex(event.GetRow(), false);
    } else {
-      string label = p_table->getGrid()->GetColLabelValue(event.GetCol()).c_str();
+      string label = p_table->getGrid()->GetColLabelValue(event.GetCol()).ToStdString();
       if (label.find("Chain",0) != string::npos) {
          vector<string> chains;
-         chains.push_back(p_table->getGrid()->GetCellValue(event.GetRow(),event.GetCol()).c_str());
+         chains.push_back(p_table->getGrid()->GetCellValue(event.GetRow(),event.GetCol()).ToStdString());
          SelectCmd *cmd = new SelectCmd("Select chain", &getFW().getSceneGraph()/*,getId()*/); 
          cmd->getParameter("clear")->setBoolean(true);
          cmd->getParameter("chains")->setStringList(chains);
@@ -715,7 +715,7 @@ void ResidueTable::OnSelectCell(wxGridEvent& event)
       }
       if (label.find("Name",0) == 0) {
          vector<string> names;
-         names.push_back(p_table->getGrid()->GetCellValue(event.GetRow(),event.GetCol()).c_str());
+         names.push_back(p_table->getGrid()->GetCellValue(event.GetRow(),event.GetCol()).ToStdString());
          SelectCmd *cmd = new SelectCmd("Select residue name", &getFW().getSceneGraph()/*,getId()*/);
          cmd->getParameter("clear")->setBoolean(true);
          cmd->getParameter("residues")->setStringList(names);

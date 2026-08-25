@@ -236,7 +236,7 @@ void SelectionPanelGUI::CreateControls()
     itemBoxSizer9->Add(itemSpinCtrl11, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 3);
 
     ewxStaticText* itemStaticText12 = new ewxStaticText( itemPanel4, wxID_STATIC, _("to"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer9->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 3);
+    itemBoxSizer9->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 3);
 
     ewxSpinCtrl* itemSpinCtrl13 = new ewxSpinCtrl( itemPanel4, ID_SPINCTRL_LAST_AT, _("1"), wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 9999999, 1 );
     itemBoxSizer9->Add(itemSpinCtrl13, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 3);
@@ -401,7 +401,7 @@ void SelectionPanelGUI::CreateControls()
     itemBoxSizer54->Add(itemTextCtrl55, 0, wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText56 = new ewxStaticText( itemPanel51, wxID_STATIC, _("to"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer54->Add(itemStaticText56, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 3);
+    itemBoxSizer54->Add(itemStaticText56, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 3);
 
     ewxTextCtrl* itemTextCtrl57 = new ewxTextCtrl( itemPanel51, ID_TEXTCTRL_MAXDIS, _("5.0"), wxDefaultPosition, wxSize(80, -1), wxTE_PROCESS_ENTER );
     itemBoxSizer54->Add(itemTextCtrl57, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 3);
@@ -422,7 +422,7 @@ void SelectionPanelGUI::CreateControls()
     itemBoxSizer60->Add(itemSpinCtrl61, 0, wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText62 = new ewxStaticText( itemPanel51, wxID_STATIC, _("to"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer60->Add(itemStaticText62, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxADJUST_MINSIZE, 3);
+    itemBoxSizer60->Add(itemStaticText62, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 3);
 
     ewxSpinCtrl* itemSpinCtrl63 = new ewxSpinCtrl( itemPanel51, ID_SPINCTRL_MAXBND, _("1"), wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 99999, 1 );
     itemBoxSizer60->Add(itemSpinCtrl63, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 3);

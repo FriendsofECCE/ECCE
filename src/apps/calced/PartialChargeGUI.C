@@ -152,7 +152,7 @@ void PartialChargeGUI::CreateControls()
     itemBoxSizer3->Add(itemStaticLine4, 0, wxGROW|wxALL, 5);
 
     ewxStaticText* itemStaticText5 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Group Command"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer3->Add(itemStaticText5, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer3->Add(itemStaticText5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine6 = new ewxStaticLine( itemDialog1, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer3->Add(itemStaticLine6, 1, wxGROW|wxALL, 5);
@@ -173,7 +173,7 @@ void PartialChargeGUI::CreateControls()
     itemBoxSizer10->Add(itemStaticLine11, 0, wxGROW|wxALL, 5);
 
     ewxStaticText* itemStaticText12 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Set Command"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer10->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer10->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticLine* itemStaticLine13 = new ewxStaticLine( itemDialog1, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer10->Add(itemStaticLine13, 1, wxGROW|wxALL, 5);
@@ -200,7 +200,7 @@ void PartialChargeGUI::CreateControls()
     itemPanel16->SetSizer(itemBoxSizer17);
 
     ewxStaticText* itemStaticText18 = new ewxStaticText( itemPanel16, wxID_STATIC, _("Fixed Atom Charge Value:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer17->Add(itemStaticText18, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer17->Add(itemStaticText18, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl19 = new ewxTextCtrl( itemPanel16, ID_TEXTCTRL_FIX_VALUE, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer17->Add(itemTextCtrl19, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -212,7 +212,7 @@ void PartialChargeGUI::CreateControls()
     itemPanel20->SetSizer(itemBoxSizer21);
 
     ewxStaticText* itemStaticText22 = new ewxStaticText( itemPanel20, wxID_STATIC, _("Total Fixed Charge Value:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer21->Add(itemStaticText22, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer21->Add(itemStaticText22, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl23 = new ewxTextCtrl( itemPanel20, ID_TEXTCTRL_TOTAL_CHRG, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer21->Add(itemTextCtrl23, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -245,7 +245,7 @@ void PartialChargeGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer32, 0, wxALIGN_LEFT, 0);
 
     ewxStaticText* itemStaticText33 = new ewxStaticText( itemDialog1, wxID_STATIC, _("ESP Command List:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer32->Add(itemStaticText33, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer32->Add(itemStaticText33, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer34 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer2->Add(itemBoxSizer34, 1, wxGROW, 0);

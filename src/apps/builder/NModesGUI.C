@@ -156,7 +156,7 @@ void NModesGUI::CreateControls()
     p_->Add(p_sliderSizer, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemVizPropertyPanel1, wxID_STATIC, _("Scale:"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_sliderSizer->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    p_sliderSizer->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     p_styleSizer = new wxBoxSizer(wxVERTICAL);
     itemBoxSizer5->Add(p_styleSizer, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
@@ -165,13 +165,13 @@ void NModesGUI::CreateControls()
     p_styleSizer->Add(p_animateSizer, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
 
     ewxStaticText* itemStaticText12 = new ewxStaticText( itemVizPropertyPanel1, wxID_STATIC, _("Delay: "), wxDefaultPosition, wxDefaultSize, 0 );
-    p_animateSizer->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    p_animateSizer->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl13 = new ewxTextCtrl( itemVizPropertyPanel1, ID_TEXTCTRL_NMODE_DELAY, _T(""), wxDefaultPosition, wxSize(30, -1), wxTE_PROCESS_ENTER );
     p_animateSizer->Add(itemTextCtrl13, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText14 = new ewxStaticText( itemVizPropertyPanel1, wxID_STATIC, _("50-5000 ms "), wxDefaultPosition, wxDefaultSize, 0 );
-    p_animateSizer->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    p_animateSizer->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     p_animateSizer->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 

@@ -113,19 +113,19 @@ void WxConfigureNwfsArchiveGUI::CreateControls()
     itemBoxSizer2->Add(itemFlexGridSizer3, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText4 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Username:"), wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT );
-    itemFlexGridSizer3->Add(itemStaticText4, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer3->Add(itemStaticText4, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl5 = new ewxTextCtrl( itemDialog1, ID_USERNAME, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer3->Add(itemTextCtrl5, 0, wxALIGN_LEFT|wxGROW|wxALL, 5);
 
     ewxStaticText* itemStaticText6 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Password:"), wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT );
-    itemFlexGridSizer3->Add(itemStaticText6, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer3->Add(itemStaticText6, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl7 = new ewxTextCtrl( itemDialog1, ID_PASSWORD, _T(""), wxDefaultPosition, wxDefaultSize, wxTE_PASSWORD );
     itemFlexGridSizer3->Add(itemTextCtrl7, 0, wxALIGN_LEFT|wxGROW|wxALL, 5);
 
     ewxStaticText* itemStaticText8 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Root Directory:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer3->Add(itemStaticText8, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemFlexGridSizer3->Add(itemStaticText8, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl9 = new ewxTextCtrl( itemDialog1, ID_ROOTDIR, _T(""), wxDefaultPosition, wxSize(125, -1), 0 );
     itemFlexGridSizer3->Add(itemTextCtrl9, 100, wxGROW|wxGROW|wxALL, 5);

@@ -108,10 +108,10 @@ void WxParameterEdit::createControls()
     szrMain->Add(p_valueSpinCtrl, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
 
     p_unitsStaticText = new ewxSmallLabel( this, ID_STATIC_WXPARAMETEREDIT_UNITSLABEL, _(""), wxDefaultPosition, wxDefaultSize, 0 );
-    szrRight->Add(p_unitsStaticText, 0, wxALIGN_BOTTOM|wxADJUST_MINSIZE, 5);
+    szrRight->Add(p_unitsStaticText, 0, wxALIGN_BOTTOM, 5);
 
     p_rangeStaticText = new ewxSmallLabel( this, ID_STATIC_WXPARAMETEREDIT_UNITSLABEL, _(""), wxDefaultPosition, wxDefaultSize, 0 );
-    szrRight->Add(p_rangeStaticText, 0, wxALIGN_BOTTOM|wxADJUST_MINSIZE, 5);
+    szrRight->Add(p_rangeStaticText, 0, wxALIGN_BOTTOM, 5);
 
     szrMain->Add(szrRight, 0, wxALIGN_CENTER_VERTICAL, 5);
 

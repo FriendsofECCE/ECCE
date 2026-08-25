@@ -488,7 +488,7 @@ void AtomTable::updateFragment(GridAtomElement *element)
   if (ap != 0) {
     prop = ap->getProp();
   }
-  string val = element->getValue().c_str();
+  string val = element->getValue().ToStdString();
 
   switch (prop) {
 
@@ -812,7 +812,7 @@ void AtomTable::notifySelections(vector<GridAtomElement*> *selections, bool send
  */
 void AtomTable::OnSelectCell(wxGridEvent& event)
 {
-   string label = p_table->getGrid()->GetColLabelValue(event.GetCol()).c_str();
+   string label = p_table->getGrid()->GetColLabelValue(event.GetCol()).ToStdString();
    STLUtil::stripLeadingWhiteSpace(label);
    if (label == "") {
       // This is the atom column
@@ -825,7 +825,7 @@ void AtomTable::OnSelectCell(wxGridEvent& event)
    }
    if (label.find("Name",0) == 0) {
       vector<string> names;
-      names.push_back(p_table->getGrid()->GetCellValue(event.GetRow(),event.GetCol()).c_str());
+      names.push_back(p_table->getGrid()->GetCellValue(event.GetRow(),event.GetCol()).ToStdString());
       SelectCmd *cmd = new SelectCmd("Select residue name", &getFW().getSceneGraph(),getId());
       cmd->getParameter("clear")->setBoolean(true);
       cmd->getParameter("residues")->setStringList(names);
@@ -841,7 +841,7 @@ void AtomTable::OnSelectCell(wxGridEvent& event)
    }
    if (label.find("Chain",0) != string::npos) {
       vector<string> chains;
-      chains.push_back(p_table->getGrid()->GetCellValue(event.GetRow(),event.GetCol()).c_str());
+      chains.push_back(p_table->getGrid()->GetCellValue(event.GetRow(),event.GetCol()).ToStdString());
       SelectCmd *cmd = new SelectCmd("Select chain", &getFW().getSceneGraph(),getId());
       cmd->getParameter("clear")->setBoolean(true);
       cmd->getParameter("chains")->setStringList(chains);

@@ -133,10 +133,10 @@ void PlaneGUI::CreateControls()
     itemPanel5->SetSizer(itemBoxSizer6);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemPanel5, wxID_STATIC, _("Miller Plane:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 2);
+    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxStaticText* itemStaticText8 = new ewxStaticText( itemPanel5, wxID_STATIC, _("h:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer6->Add(itemStaticText8, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer6->Add(itemStaticText8, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxSpinCtrl* itemSpinCtrl9 = new ewxSpinCtrl( itemPanel5, ID_SPINCTRL_PLANE_H, _("1"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, -10, 10, 1 );
     itemBoxSizer6->Add(itemSpinCtrl9, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -144,7 +144,7 @@ void PlaneGUI::CreateControls()
     itemBoxSizer6->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText11 = new ewxStaticText( itemPanel5, wxID_STATIC, _("k:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer6->Add(itemStaticText11, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer6->Add(itemStaticText11, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxSpinCtrl* itemSpinCtrl12 = new ewxSpinCtrl( itemPanel5, ID_SPINCTRL_PLANE_K, _("1"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, -10, 10, 1 );
     itemBoxSizer6->Add(itemSpinCtrl12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -152,7 +152,7 @@ void PlaneGUI::CreateControls()
     itemBoxSizer6->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText14 = new ewxStaticText( itemPanel5, wxID_STATIC, _("l:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer6->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer6->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxSpinCtrl* itemSpinCtrl15 = new ewxSpinCtrl( itemPanel5, ID_SPINCTRL_PLANE_L, _("1"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, -10, 10, 1 );
     itemBoxSizer6->Add(itemSpinCtrl15, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -166,7 +166,7 @@ void PlaneGUI::CreateControls()
     wxBoxSizer* itemBoxSizer18 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer17->Add(itemBoxSizer18, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
     ewxStaticText* itemStaticText19 = new ewxStaticText( itemPanel16, wxID_STATIC, _("A mean square plane will be generated based on the selection.\n Please select at least three atoms."), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer18->Add(itemStaticText19, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 5);
+    itemBoxSizer18->Add(itemStaticText19, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     itemNotebook4->AddPage(itemPanel16, _("Mean Planes"));
 
@@ -176,7 +176,7 @@ void PlaneGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer20, 0, wxALIGN_LEFT|wxALL, 5);
 
     ewxStaticText* itemStaticText21 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Name: "), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer20->Add(itemStaticText21, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer20->Add(itemStaticText21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl22 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_PLANE_NAME, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer20->Add(itemTextCtrl22, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
@@ -184,7 +184,7 @@ void PlaneGUI::CreateControls()
     itemBoxSizer20->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxStaticText* itemStaticText24 = new ewxStaticText( itemDialog1, wxID_STATIC, _("Color: "), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer20->Add(itemStaticText24, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 0);
+    itemBoxSizer20->Add(itemStaticText24, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxButton* itemButton25 = new ewxButton( itemDialog1, ID_BUTTON_PLANE_COLOR, _T(""), wxDefaultPosition, wxSize(24, 24), 0 );
     itemBoxSizer20->Add(itemButton25, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);

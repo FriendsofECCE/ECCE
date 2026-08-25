@@ -145,7 +145,7 @@ void WxConfigureAccessGUI::CreateControls()
     itemPanel7->SetSizer(itemBoxSizer8);
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemPanel7, wxID_STATIC, _("Remote Shell:"), wxDefaultPosition, wxSize(90, -1), wxALIGN_RIGHT );
-    itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString* itemChoice10Strings = NULL;
     ewxChoice* itemChoice10 = new ewxChoice( itemPanel7, ID_CHOICE_WXCONFIGUREACCESS_REMOTESHELL, wxDefaultPosition, wxDefaultSize, 0, itemChoice10Strings, 0 );

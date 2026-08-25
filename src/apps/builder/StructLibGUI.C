@@ -124,7 +124,7 @@ void StructLibGUI::CreateControls()
     wxBoxSizer* itemBoxSizer6 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer5->Add(itemBoxSizer6, 0, wxGROW|wxFIXED_MINSIZE, 3);
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemPanel4, wxID_STATIC, _("Libraries"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxADJUST_MINSIZE, 3);
+    itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxString* itemChoice8Strings = NULL;
     ewxChoice* itemChoice8 = new ewxChoice( itemPanel4, ID_CHOICE_STRUCTLIB_BOOKMARKS, wxDefaultPosition, wxDefaultSize, 0, itemChoice8Strings, 0 );
