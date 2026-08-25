@@ -244,7 +244,7 @@ int GUIValues::load(istream& inputsrc)
     // skip comment lines - can't use strtok
     comment = false;
     cptr = buf;
-    while (cptr != '\0') {
+    while (*cptr != '\0') {
       if (*cptr == ' ' ||  *cptr == '\t') {
         ;
       } else if (*cptr == '#') {

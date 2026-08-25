@@ -55,7 +55,7 @@ bool LineReader::getLine(string& line)
     // skip comment lines - can't use strtok
     bool comment = false;
     char *cptr = buf;
-    while (cptr != '\0') {
+    while (*cptr != '\0') {
       if (*cptr == ' ' ||  *cptr == '\t') {
         ;
       } else if (*cptr == '#') {

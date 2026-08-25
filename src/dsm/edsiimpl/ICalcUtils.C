@@ -306,7 +306,7 @@ TGBSConfig* ICalcUtils::importConfig(istream& infile)
   {
     line[0] = '\0';
 
-    if (infile.getline(line,500) <= 0) continue; 
+    if (!infile.getline(line, 500)) continue; 
 
     if (strncmp(line,"NameBasis", 9) == 0) { // basis set names follow
       
@@ -329,7 +329,7 @@ void ICalcUtils::importNumericalBasis(istream& infile, TGBSConfig* config) {
   while(!infile.eof()) {
 
     line[0] = '\0';
-    if (infile.getline(line,500) <= 0) continue;     
+    if (!infile.getline(line, 500)) continue;     
 
     if(strncmp(line, "EndNumericalBasis", 17) == 0) {  // Done with section
       break;
@@ -376,7 +376,7 @@ void ICalcUtils::importNameBasis(istream& infile, TGBSConfig* config) {
   while(!infile.eof()) {
 
     line[0] = '\0';
-    if (infile.getline(line,500) <= 0) continue; 
+    if (!infile.getline(line, 500)) continue; 
 
     sscanf(line, "%s", firstWord);
 
@@ -545,7 +545,7 @@ void ICalcUtils::importGBSContractions(istream& infile,
   {
     line[0] = '\0';
 
-    if (infile.getline(line, 500) <= 0) continue;
+    if (!infile.getline(line, 500)) continue;
 
     // Just to skip empty lines
     tmpline = line;

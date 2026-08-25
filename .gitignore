@@ -1,0 +1,5 @@
+
+# Build byproducts (this custom build system drops deps into source dirs)
+*.D
+/lib/
+/obj/

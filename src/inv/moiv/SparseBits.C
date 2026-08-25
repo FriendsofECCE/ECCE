@@ -11,7 +11,7 @@ using namespace std;
  */
 SparseBits::SparseBits() 
 {
-   //p_set.resize(100);
+   //p_set.rehash(100);
 }
 
 
@@ -24,7 +24,7 @@ SparseBits::SparseBits()
  */
 SparseBits::SparseBits(int bucketsize, bool /*set*/) 
 {
-   //p_set.resize(bucketsize);
+   //p_set.rehash(bucketsize);
 }
 
 
@@ -36,11 +36,11 @@ SparseBits::SparseBits(int bucketsize, bool /*set*/)
 SparseBits::SparseBits(const SparseBits& rhs) 
 {
    // Use the same bucket size
-   p_set.resize(rhs.p_set.bucket_count());
+   p_set.rehash(rhs.p_set.bucket_count());
 
    // Anything in rhs must be true so set everything in this that is set
    // in rhs.
-   hash_set<int, hash<int>, sbequint>::const_iterator it = rhs.p_set.begin();
+   unordered_set<int, hash<int>, sbequint>::const_iterator it = rhs.p_set.begin();
    while (it != rhs.p_set.end()) {
       setBit(*it);
       it++;
@@ -69,7 +69,7 @@ void SparseBits::resize(int size)
 {
    // Do nothing now.  Maybe later determine if bucket size needs to
    // be improved.
-   //p_set.resize(size);
+   //p_set.rehash(size);
 }
 
 /**
@@ -140,7 +140,7 @@ bool SparseBits::testBit(int index) const
 int SparseBits::firstTrue() const
 {
    int ret = -1;
-   hash_set<int, hash<int>, sbequint>::const_iterator it = p_set.begin();
+   unordered_set<int, hash<int>, sbequint>::const_iterator it = p_set.begin();
    while (it != p_set.end()) {
       if (*it < ret) {
          ret = *it;
@@ -211,7 +211,7 @@ int SparseBits::sum() const
 void SparseBits::getSetBits(vector<int>& setbits) const
 {
    setbits.clear();
-   hash_set<int, hash<int>, sbequint>::const_iterator it = p_set.begin();
+   unordered_set<int, hash<int>, sbequint>::const_iterator it = p_set.begin();
    while (it != p_set.end()) {
       setbits.push_back(*it);
       it++;
@@ -232,7 +232,7 @@ bool SparseBits::isEqual(const SparseBits& rhs)
 #ifdef builtinequal
       //ret = (p_set == rhs.p_set);
 #else
-      hash_set<int, hash<int>, sbequint>::const_iterator it = p_set.begin();
+      unordered_set<int, hash<int>, sbequint>::const_iterator it = p_set.begin();
       while (it != p_set.end()) {
          if ( ! rhs.testBit(*it) ) {
             break;
@@ -255,7 +255,7 @@ bool SparseBits::isEqual(const SparseBits& rhs)
 SparseBits SparseBits::operator|(const SparseBits& rhs)
 {
    SparseBits ret(*this);
-   hash_set<int, hash<int>, sbequint>::const_iterator it = rhs.p_set.begin();
+   unordered_set<int, hash<int>, sbequint>::const_iterator it = rhs.p_set.begin();
    while (it != rhs.p_set.end()) {
       ret.setBit(*it);
       it++;
@@ -271,7 +271,7 @@ SparseBits SparseBits::operator|(const SparseBits& rhs)
 SparseBits& SparseBits::operator|=(const SparseBits& rhs)
 {
    if (this != &rhs) {
-      hash_set<int, hash<int>, sbequint>::const_iterator it = rhs.p_set.begin();
+      unordered_set<int, hash<int>, sbequint>::const_iterator it = rhs.p_set.begin();
       while (it != p_set.end()) {
          setBit(*it);
          it++;
@@ -286,7 +286,7 @@ SparseBits& SparseBits::operator|=(const SparseBits& rhs)
  */
 SparseBits& SparseBits::operator^=(const SparseBits& rhs)
 {
-   hash_set<int, hash<int>, sbequint>::const_iterator it = rhs.p_set.begin();
+   unordered_set<int, hash<int>, sbequint>::const_iterator it = rhs.p_set.begin();
    while (it != rhs.p_set.end()) {
       bool set = (*it == (true ^ testBit(*it)));
       if (set) {

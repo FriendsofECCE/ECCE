@@ -1,3 +1,4 @@
+#include <strings.h>
 #include <iostream>
   using std::cout;
   using std::cerr;
@@ -166,7 +167,7 @@ bool JCode::get_bool(const string& key, bool& value) const
 
     retval = true;  // found value
 
-    value = (stricmp(tmp.c_str(),"true") == 0);
+    value = (strcasecmp(tmp.c_str(),"true") == 0);
   }
 
   return retval;
@@ -281,7 +282,7 @@ bool JCode::get_bool_list(const string& key, vector<bool>& value) const
     char *str = strdup(tmp.c_str());
     char* tok = strtok(str," \t");
     while (tok) {
-      if (stricmp(tok,"true") == 0) {
+      if (strcasecmp(tok,"true") == 0) {
         value.push_back(true);
       } else {
         value.push_back(false);

@@ -14,7 +14,10 @@
 #include <xercesc/dom/DOMNode.hpp>
 #include <xercesc/dom/DOMElement.hpp>
 #include <xercesc/dom/DOMNamedNodeMap.hpp>
-#include <xercesc/dom/DOMWriter.hpp>
+#include <xercesc/dom/DOMImplementationLS.hpp>
+#include <xercesc/dom/DOMLSSerializer.hpp>
+#include <xercesc/dom/DOMLSOutput.hpp>
+#include <xercesc/dom/DOMConfiguration.hpp>
   using namespace xercesc;
 
 
@@ -57,21 +60,27 @@ void BasicDOMWriter::write(const DOMNode& dn, ostream& os, bool escaped,
   DOMImplementation *impl = DOMImplementationRegistry::getDOMImplementation(xStr);
   delete [] xStr;
 
-  DOMWriter *dw = ((DOMImplementationLS*)impl)->createDOMWriter();
+  DOMLSSerializer *dw = ((DOMImplementationLS*)impl)->createLSSerializer();
+  DOMConfiguration *dc = dw->getDomConfig();
 
-  dw->setFeature(XMLUni::fgDOMWRTFormatPrettyPrint, prettyPrint);
-  
+  if (dc->canSetParameter(XMLUni::fgDOMWRTFormatPrettyPrint, prettyPrint))
+    dc->setParameter(XMLUni::fgDOMWRTFormatPrettyPrint, prettyPrint);
+
   PrintErrorHandler *peh = new PrintErrorHandler();
-  dw->setErrorHandler(peh);
+  dc->setParameter(XMLUni::fgDOMErrorHandler, peh);
 
-  XMLCh *uEncoding = XMLString::transcode(gEncoding.c_str());
-  dw->setEncoding(uEncoding);
-  delete [] uEncoding;
+  DOMLSOutput *output = ((DOMImplementationLS*)impl)->createLSOutput();
 
   MemBufFormatTarget destination;
-  dw->writeNode(&destination, dn);
+  output->setByteStream(&destination);
 
-  if (!peh->getMessages().empty()) 
+  XMLCh *uEncoding = XMLString::transcode(gEncoding.c_str());
+  output->setEncoding(uEncoding);
+  delete [] uEncoding;
+
+  dw->write(&dn, output);
+
+  if (!peh->getMessages().empty())
     throw EcceException(peh->getMessages(), WHERE);
 
   //XMLByte is an unsigned char, so just cast - transcode isn't needed
@@ -79,5 +88,6 @@ void BasicDOMWriter::write(const DOMNode& dn, ostream& os, bool escaped,
   os << results;
 
   delete peh;
-  delete dw;
-} 
+  output->release();
+  dw->release();
+}

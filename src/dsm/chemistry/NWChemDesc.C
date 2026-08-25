@@ -1475,7 +1475,7 @@ FFItem* NWChemDesc::parseNWChemTorsionData( ifstream& sfile, FFModel *model,
         break;
       }
       // get next line
-      if ( sfile.getline( buffer, BUFSIZE) == 0) {
+      if ( !sfile.getline( buffer, BUFSIZE) ) {
          break;
       }
    }

@@ -134,8 +134,7 @@ bool PropertyDoc::createContainer() {
   p_container = impl->createDocument( 0, xStr, 0);
   delete [] xStr;
 
-  p_container->setStandalone(true);
-  // p_container->setXmlStandalone(true); // Xerces 3.x
+  p_container->setXmlStandalone(true); // Xerces 3.x
 
   DOMElement *rootElement = p_container->getDocumentElement();
   //Set name

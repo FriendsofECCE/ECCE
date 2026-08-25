@@ -1,6 +1,7 @@
 #include <iostream>
   using std::cerr;
   using std::endl;
+#include <sstream>
 
 #include <xercesc/dom/DOMError.hpp>
 #include <xercesc/dom/DOMLocator.hpp>
@@ -28,20 +29,21 @@ bool PrintErrorHandler::handleError (const DOMError &domError)
   DOMLocator *location = domError.getLocation();
   char *msg = XMLString::transcode(message);
 
-  p_msgs.append("DOM Print error - severity: " + severity);
-  p_msgs.append("Line: " + location->getLineNumber());
-  p_msgs.append(" Column: " + location->getColumnNumber());
-  p_msgs.append(" Offset: " + location->getOffset());
-  p_msgs.append("\n");
-  p_msgs.append("Message: ");
-  p_msgs.append(msg);
-  p_msgs.append("\n");
+  std::ostringstream oss;
+  oss << "DOM Print error - severity: " << severity;
+  oss << "Line: " << location->getLineNumber();
+  oss << " Column: " << location->getColumnNumber();
+  oss << " Offset: " << location->getByteOffset();
+  oss << "\n";
+  oss << "Message: " << msg;
+  oss << "\n";
+  p_msgs.append(oss.str());
 
   cerr << "\n";
   cerr << "DOM Print error - severity: " << severity;
   cerr << "Line: " << location->getLineNumber();
   cerr << " Column: " << location->getColumnNumber();
-  cerr << " Offset: " << location->getOffset() << endl;
+  cerr << " Offset: " << location->getByteOffset() << endl;
   cerr << "Message: " << msg << endl;
 
   delete msg;

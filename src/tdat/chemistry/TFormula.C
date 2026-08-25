@@ -537,7 +537,7 @@ TFormula::parse_formula(const string& formula)
       count[count_index] = '\0';
       num_atoms = atoi(count);
       if (num_atoms <= 0)
-      return false;
+      return NULL;
     }
 
     if (num_atoms != 0) {

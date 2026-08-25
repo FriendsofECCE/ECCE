@@ -10,7 +10,7 @@
 #   You only need this file if you are compiling or linking with Xerces.
 ################################################################################
 
-XERCES_IFLAGS = -I$(ECCE_HOME)/$(ECCE_SYSDIR)3rdparty/xerces/include
-XERCES_LFLAGS = -Wl,-rpath=../3rdparty/xerces/lib -L$(ECCE_HOME)/$(ECCE_SYSDIR)3rdparty/xerces/lib
-XERCES_LIBS = -lxerces-c -lxerces-depdom
+XERCES_IFLAGS =
+XERCES_LFLAGS =
+XERCES_LIBS = -lxerces-c
 

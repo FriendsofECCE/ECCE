@@ -53,7 +53,8 @@ min( REAL x, REAL y ) { return ( x > y ) ? y : x; }
 inline int 
 absi( int x ) { return ( x < 0 ) ? -x : x; }
 
-inline REAL 
-abs( REAL x ) { return ( x < 0.0 ) ? -x : x; }
+/* REAL is float; std::abs(float) (pulled in via "using namespace std")
+ * already provides this exact overload, so defining our own here just
+ * creates an ambiguous/conflicting redeclaration on modern compilers. */
 
 #endif /* __glusimplemath_h_ */

@@ -3885,7 +3885,7 @@ bool Fragment::restoreCAR(istream& infile, double mult, bool genBonds)
   // First line: !BIOSYM archive 3
   const int MAXLINE = 255;
   char buf[MAXLINE+1];
-  if (infile.getline(buf,MAXLINE) && strstr(buf,"!BIOSYM") >= 0) {
+  if (infile.getline(buf,MAXLINE) && strstr(buf,"!BIOSYM") != NULL) {
      string line;
      vector<string> tlist;
 

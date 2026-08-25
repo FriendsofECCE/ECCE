@@ -1,16 +1,9 @@
 #include <vector>
 using std::vector;
 
-#if defined (__sun) || defined(__sgi)
-#include <hash_set>
-   using std::hash_set;
+#include <unordered_set>
+   using std::unordered_set;
    using std::hash;
-#endif
-#ifdef __GNUC__
-#include <ext/hash_set>
-   using __gnu_cxx::hash_set;
-   using __gnu_cxx::hash;
-#endif
 
 
    struct sbequint {
@@ -78,7 +71,7 @@ class SparseBits
 
    protected:
 
-      hash_set<int, hash<int>, sbequint> p_set;
+      unordered_set<int, hash<int>, sbequint> p_set;
 
 
    private:
