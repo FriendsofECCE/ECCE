@@ -13,7 +13,7 @@
 #endif
 
 #include "wx/wx.h"
-#include "wx/generic/filedlgg.h"
+#include "wx/generic/filectrlg.h"
 
 class Resource;
 

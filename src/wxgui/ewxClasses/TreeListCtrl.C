@@ -854,26 +854,26 @@ public:
 
     // attributes
     // get them - may be NULL
-    wxTreeItemAttr *GetAttributes() const { return m_attr; }
+    wxItemAttr *GetAttributes() const { return m_attr; }
     // get them ensuring that the pointer is not NULL
-    wxTreeItemAttr& Attr()
+    wxItemAttr& Attr()
     {
         if ( !m_attr )
         {
-            m_attr = new wxTreeItemAttr;
+            m_attr = new wxItemAttr;
             m_ownsAttr = true;
         }
         return *m_attr;
     }
     // set them
-    void SetAttributes(wxTreeItemAttr *attr)
+    void SetAttributes(wxItemAttr *attr)
     {
         if ( m_ownsAttr ) delete m_attr;
         m_attr = attr;
         m_ownsAttr = false;
     }
     // set them and delete when done
-    void AssignAttributes(wxTreeItemAttr *attr)
+    void AssignAttributes(wxItemAttr *attr)
     {
         SetAttributes(attr);
         m_ownsAttr = true;
@@ -892,7 +892,7 @@ private:
     wxArrayTreeListItems m_children; // list of children
     wxTreeListItem  *m_parent;       // parent of this item
 
-    wxTreeItemAttr     *m_attr;         // attributes???
+    wxItemAttr     *m_attr;         // attributes???
 
     // tree ctrl images for the normal, selected, expanded and
     // expanded+selected states
@@ -1446,7 +1446,7 @@ wxTreeListItem::wxTreeListItem (wxTreeListMainWindow *owner,
     m_owner = owner;
     m_parent = parent;
 
-    m_attr = (wxTreeItemAttr *)NULL;
+    m_attr = (wxItemAttr *)NULL;
     m_ownsAttr = false;
 
     // We don't know the height here yet.
@@ -2279,7 +2279,7 @@ void wxTreeListMainWindow::SendDeleteEvent (wxTreeListItem *item) {
     event.SetItem (item);
 #endif
     event.SetEventObject (m_owner);
-    m_owner->ProcessEvent (event);
+    m_owner->ProcessWindowEvent (event);
 }
 
 void wxTreeListMainWindow::Delete (const wxTreeItemId& itemId) {
@@ -2343,14 +2343,14 @@ void wxTreeListMainWindow::Expand (const wxTreeItemId& itemId) {
     event.SetItem (item);
 #endif
     event.SetEventObject (m_owner);
-    if (m_owner->ProcessEvent (event) && !event.IsAllowed()) return; // expand canceled
+    if (m_owner->ProcessWindowEvent (event) && !event.IsAllowed()) return; // expand canceled
 
     item->Expand();
     m_dirty = true;
 
     // send event to user code
     event.SetEventType (wxEVT_COMMAND_TREE_ITEM_EXPANDED);
-    m_owner->ProcessEvent (event);
+    m_owner->ProcessWindowEvent (event);
 }
 
 void wxTreeListMainWindow::ExpandAll (const wxTreeItemId& itemId) {
@@ -2382,7 +2382,7 @@ void wxTreeListMainWindow::Collapse (const wxTreeItemId& itemId) {
     event.SetItem (item);
 #endif
     event.SetEventObject (m_owner);
-    if (m_owner->ProcessEvent (event) && !event.IsAllowed()) return; // collapse canceled
+    if (m_owner->ProcessWindowEvent (event) && !event.IsAllowed()) return; // collapse canceled
 
     item->Collapse();
     m_dirty = true;
@@ -2859,7 +2859,7 @@ int wxTreeListMainWindow::GetLineHeight (wxTreeListItem *item) const {
 
 void wxTreeListMainWindow::PaintItem (wxTreeListItem *item, wxDC& dc) {
 
-    wxTreeItemAttr *attr = item->GetAttributes();
+    wxItemAttr *attr = item->GetAttributes();
 
     dc.SetFont (GetItemFont (item));
 
@@ -3439,7 +3439,7 @@ void wxTreeListMainWindow::OnChar (wxKeyEvent &event) {
         default:
             if (event.GetKeyCode() >= (int)' ') {
                 if (!m_findTimer->IsRunning()) m_findStr.Clear();
-                m_findStr.Append (event.GetKeyCode());
+                m_findStr.Append ((wxUniChar)event.GetKeyCode());
                 m_findTimer->Start (FIND_TIMER_TICKS, wxTIMER_ONE_SHOT);
                 wxTreeItemId prev = m_curItem? (wxTreeItemId*)m_curItem: (wxTreeItemId*)NULL;
                 while (true) {
@@ -3817,11 +3817,10 @@ void wxTreeListMainWindow::OnIdle (wxIdleEvent &WXUNUSED(event)) {
 
 void wxTreeListMainWindow::OnScroll (wxScrollWinEvent& event) {
     // FIXME
-#if defined(__WXGTK__) && !defined(__WXUNIVERSAL__)
-    wxScrolledWindow::OnScroll(event);
-#else
+    // wx3.x's wxScrolled<T>::OnScroll just forwards to HandleOnScroll() (see
+    // wx/scrolwin.h) - call that directly rather than through the removed
+    // wxScrolledWindow::OnScroll chain-up.
     HandleOnScroll( event );
-#endif
 
     if(event.GetOrientation() == wxHORIZONTAL) {
         m_owner->GetHeaderWindow()->Refresh();
@@ -4020,7 +4019,7 @@ void wxTreeListMainWindow::SetFocus() {
 }
 
 wxFont wxTreeListMainWindow::GetItemFont (wxTreeListItem *item) {
-    wxTreeItemAttr *attr = item->GetAttributes();
+    wxItemAttr *attr = item->GetAttributes();
 
     if (attr && attr->HasFont()) {
         return attr->GetFont();

@@ -34,13 +34,13 @@ using std::endl;
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxTextEntryDialog.H"
 
-IMPLEMENT_DYNAMIC_CLASS(ewxFileCtrl,wxFileCtrl)
+IMPLEMENT_DYNAMIC_CLASS(ewxFileCtrl,wxFileListCtrl)
 
 /**
  *
  */
 ewxFileCtrl::ewxFileCtrl() :
-  wxFileCtrl()
+  wxFileListCtrl()
 {
 }
 
@@ -57,7 +57,7 @@ ewxFileCtrl::ewxFileCtrl( wxWindow *win,
             long style,
             const wxValidator &validator,
             const wxString &name ) :
-  wxFileCtrl(win, id, wild, showHidden, pos, size, style, validator, name)
+  wxFileListCtrl(win, id, wild, showHidden, pos, size, style, validator, name)
 {
 }
 
@@ -76,7 +76,7 @@ ewxFileCtrl::~ewxFileCtrl()
 void ewxFileCtrl::ShowHidden( bool show )
 {
   Resource::setHideInternal(!show);
-  wxFileCtrl::ShowHidden(show);
+  wxFileListCtrl::ShowHidden(show);
 }
 
 
@@ -86,7 +86,7 @@ void ewxFileCtrl::ShowHidden( bool show )
 void ewxFileCtrl::UpdateFiles()
 {
   // if local, do the standard filesystem implementation
-  if (local) return wxFileCtrl::UpdateFiles();
+  if (local) return wxFileListCtrl::UpdateFiles();
 
   // don't do anything before ShowModal() call which sets m_dirName
   if (m_dirName == wxT("*")) return;
@@ -152,7 +152,7 @@ void ewxFileCtrl::UpdateFiles()
     }
   }
 
-  SortItems(m_sort_field, m_sort_foward);
+  SortItems(m_sort_field, m_sort_forward);
 }
 
 
@@ -161,7 +161,7 @@ void ewxFileCtrl::UpdateFiles()
  */
 void ewxFileCtrl::MakeDir()
 {
-  if (local) return wxFileCtrl::MakeDir();
+  if (local) return wxFileListCtrl::MakeDir();
 
   ResourceDescriptor rd = ResourceDescriptor::getResourceDescriptor();
   ResourceType * resType = rd.getResourceType(ResourceDescriptor::RT_COLLECTION,
@@ -207,7 +207,7 @@ void ewxFileCtrl::MakeDir()
     long id = Add(fd, item);
 
     if (id != -1) {
-      SortItems(m_sort_field, m_sort_foward);
+      SortItems(m_sort_field, m_sort_forward);
       id = FindItem(0, (long)fd);
       EnsureVisible(id);
     } else {
@@ -228,7 +228,7 @@ void ewxFileCtrl::MakeDir()
  */
 void ewxFileCtrl::GoToParentDir()
 {
-  if (local) return wxFileCtrl::GoToParentDir();
+  if (local) return wxFileListCtrl::GoToParentDir();
 
   wxString fname(EcceURL(m_dirName).getFilePathTail());
   m_dirName = (EcceURL(m_dirName)).getParent().toString();
@@ -249,7 +249,7 @@ void ewxFileCtrl::GoToParentDir()
  */
 void ewxFileCtrl::GoToHomeDir()
 {
-  if (local) return wxFileCtrl::GoToHomeDir();
+  if (local) return wxFileListCtrl::GoToHomeDir();
 
   GoToDir(EDSIServerCentral::getUserHome(
           EcceURL(m_dirName.c_str()).getEcceRoot()).toString());
@@ -261,7 +261,7 @@ void ewxFileCtrl::GoToHomeDir()
  */
 void ewxFileCtrl::GoToDir( const wxString &dir )
 {
-  if (local) return wxFileCtrl::GoToDir(dir);
+  if (local) return wxFileListCtrl::GoToDir(dir);
 
   m_dirName = dir;
   UpdateFiles();

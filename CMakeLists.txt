@@ -28,6 +28,7 @@ find_package(XercesC REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(wxWidgets 3.2 REQUIRED COMPONENTS core base gl aui)
 include(${wxWidgets_USE_FILE})
+find_package(PkgConfig)
 
 # Old build used "-I/usr/include/freetype2/freetype" as a baseline include
 # dir everywhere, because most FreeType headers this codebase includes
@@ -161,4 +162,43 @@ target_compile_definitions(eccewxviz PRIVATE ${wxWidgets_DEFINITIONS})
 target_include_directories(eccewxviz PRIVATE ${wxWidgets_INCLUDE_DIRS})
 target_link_libraries(eccewxviz PRIVATE ${wxWidgets_LIBRARIES} OpenGL::GL OpenGL::GLU)
 
-# TODO: src/apps, src/wxgui targets and final executables.
+# --- src/wxgui -> 5 separate libraries, matching the old per-subdir mapping ---
+ecce_library(eccewxgui
+  src/wxgui/ewxClasses
+  src/wxgui/jms
+  src/wxgui/pertable
+  src/wxgui/wxdialogs
+  src/wxgui/wxtools
+)
+target_compile_definitions(eccewxgui PRIVATE ${wxWidgets_DEFINITIONS})
+target_include_directories(eccewxgui PRIVATE ${wxWidgets_INCLUDE_DIRS})
+target_link_libraries(eccewxgui PRIVATE ${wxWidgets_LIBRARIES})
+
+ecce_library(eccewxguicomm src/wxgui/comm)
+target_compile_definitions(eccewxguicomm PRIVATE ${wxWidgets_DEFINITIONS})
+target_include_directories(eccewxguicomm PRIVATE ${wxWidgets_INCLUDE_DIRS})
+target_link_libraries(eccewxguicomm PRIVATE ${wxWidgets_LIBRARIES})
+
+ecce_library(eccewxguimd src/wxgui/mdtools)
+target_compile_definitions(eccewxguimd PRIVATE ${wxWidgets_DEFINITIONS})
+target_include_directories(eccewxguimd PRIVATE ${wxWidgets_INCLUDE_DIRS})
+target_link_libraries(eccewxguimd PRIVATE ${wxWidgets_LIBRARIES})
+
+ecce_library(eccewxplotctrl src/wxgui/wxplotctrl)
+target_compile_definitions(eccewxplotctrl PRIVATE ${wxWidgets_DEFINITIONS})
+target_include_directories(eccewxplotctrl PRIVATE ${wxWidgets_INCLUDE_DIRS})
+target_link_libraries(eccewxplotctrl PRIVATE ${wxWidgets_LIBRARIES})
+# Old build's src/wxgui/wxplotctrl/Makefile adds `pkg-config --cflags-only-I
+# gtk+-2.0` - this build targets wx3.2's GTK3 backend, so gtk+-3.0 is the
+# equivalent (the old gtk+-2.0 dev package isn't even installed here).
+pkg_check_modules(GTK3 QUIET gtk+-3.0)
+if(GTK3_FOUND)
+  target_include_directories(eccewxplotctrl PRIVATE ${GTK3_INCLUDE_DIRS})
+endif()
+
+ecce_library(eccewxthings src/wxgui/wxthings)
+target_compile_definitions(eccewxthings PRIVATE ${wxWidgets_DEFINITIONS})
+target_include_directories(eccewxthings PRIVATE ${wxWidgets_INCLUDE_DIRS})
+target_link_libraries(eccewxthings PRIVATE ${wxWidgets_LIBRARIES})
+
+# TODO: src/apps targets and final executables.

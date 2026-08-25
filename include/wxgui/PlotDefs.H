@@ -83,8 +83,22 @@ inline void PRINT_WXRECT2DDOUBLE(const wxString& str, const wxRect2DDouble& r) {
 
 // Skip the wxWidgets drawing routines since they calc an unnecessary bounding rect
 // You may turn this off by defining wxPLOTCTRL_FAST_GRAPHICS=0 to the compilier
+//
+// The GTK "fast path" below reaches into wx's internal wxWindowDCImpl and
+// raw GdkGC/GdkWindow structures to bypass wxDC. GdkGC does not exist at all
+// under GTK3 (Cairo replaced it), so this optimization is fundamentally
+// incompatible with the GTK3 backend this build uses (wxWidgets 3.2 on
+// modern Debian/Ubuntu is always built against GTK3) - it's not just a
+// missing-header issue, the drawing model it depends on is gone. Force it
+// off under wx3.x/GTK so PlotDraw.C falls back to the portable wxDC-based
+// path (slower, but correct); leave the MSW fast path alone since that one
+// isn't affected.
 #ifndef wxPLOTCTRL_FAST_GRAPHICS
-    #define wxPLOTCTRL_FAST_GRAPHICS 1
+    #if defined(__WXGTK__) && wxCHECK_VERSION(3, 0, 0)
+        #define wxPLOTCTRL_FAST_GRAPHICS 0
+    #else
+        #define wxPLOTCTRL_FAST_GRAPHICS 1
+    #endif
 #endif // wxPLOTCTRL_FAST_GRAPHICS
 
 // ----------------------------------------------------------------------------

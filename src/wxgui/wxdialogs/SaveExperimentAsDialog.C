@@ -20,6 +20,7 @@
 
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxConfig.H"
+#include "wxgui/ewxFileCtrl.H"
 #include "wxgui/ewxWindowUtils.H"
 
 #include "wxgui/SaveExperimentAsDialog.H"

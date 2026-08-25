@@ -1,6 +1,15 @@
 /**
  * @file
  *
+ * Rebuilt for wx3.2: wx2.8's wxGenericFileDialog (the base class this used
+ * to subclass) was removed entirely from wxWidgets, so this dialog now owns
+ * its layout and widgets directly, on top of wxFileDialogBase (which is
+ * still present and still supplies m_dir/m_fileName/m_path/m_wildCard/
+ * m_filterIndex/HasFdFlag()/AppendExtension()). The server-switching
+ * business logic (doSetServerChoice, HandleAction, goToHomeDir,
+ * saveSettings/restoreSettings, and friends) is carried over close to
+ * verbatim from the old implementation - none of that depended on
+ * wxGenericFileDialog internals, only the widget construction/ownership did.
  */
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
@@ -35,23 +44,37 @@ using std::replace;
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/WxResourceImageList.H"
 
-#define ID_PARENT_DIR  (wxID_FILEDLGG + 6)
-#define ID_LIST_CTRL  (wxID_FILEDLGG + 10)
-#define ID_SERVER_CHOICE (wxID_FILEDLGG + 101)
+enum {
+  ID_PARENT_DIR = wxID_HIGHEST + 5001,
+  ID_HOME_DIR,
+  ID_NEW_DIR,
+  ID_LIST_CTRL,
+  ID_TEXT_CTRL,
+  ID_CHOICE_CTRL,
+  ID_SERVER_CHOICE
+};
 
-IMPLEMENT_DYNAMIC_CLASS(ewxGenericFileDialog, wxGenericFileDialog)
+long ewxGenericFileDialog::ms_lastViewStyle = wxLC_LIST;
+bool ewxGenericFileDialog::ms_lastShowHidden = false;
 
-BEGIN_EVENT_TABLE(ewxGenericFileDialog,wxGenericFileDialog)
+IMPLEMENT_DYNAMIC_CLASS(ewxGenericFileDialog, wxDialog)
+
+BEGIN_EVENT_TABLE(ewxGenericFileDialog,wxDialog)
   EVT_CHOICE(ID_SERVER_CHOICE,ewxGenericFileDialog::onServerChoice)
   EVT_LIST_ITEM_SELECTED(ID_LIST_CTRL, ewxGenericFileDialog::OnSelected)
-  EVT_BUTTON(ID_PARENT_DIR, ewxGenericFileDialog::OnHome)
+  EVT_LIST_ITEM_ACTIVATED(ID_LIST_CTRL, ewxGenericFileDialog::OnActivated)
+  EVT_BUTTON(ID_PARENT_DIR,ewxGenericFileDialog::OnUpDir)
+  EVT_BUTTON(ID_HOME_DIR, ewxGenericFileDialog::OnHome)
+  EVT_BUTTON(ID_NEW_DIR, ewxGenericFileDialog::OnNewDir)
+  EVT_BUTTON(wxID_OK, ewxGenericFileDialog::OnOk)
+  EVT_TEXT_ENTER(ID_TEXT_CTRL, ewxGenericFileDialog::OnTextEnter)
 END_EVENT_TABLE()
 
 /**
  *
  */
-ewxGenericFileDialog::ewxGenericFileDialog() : 
-  wxGenericFileDialog()
+ewxGenericFileDialog::ewxGenericFileDialog() :
+  wxFileDialogBase()
 {
   init();
 }
@@ -64,13 +87,78 @@ ewxGenericFileDialog::ewxGenericFileDialog() :
 ewxGenericFileDialog::ewxGenericFileDialog( wxWindow * parent,
         const wxString& message, const EcceURL& defaultUrl,
         const wxString& wildCard, long style, const wxPoint& pos,
-        bool bypassGenericImpl) : 
-  wxGenericFileDialog()
+        bool bypassGenericImpl) :
+  wxFileDialogBase()
 {
   init();
   Create(parent, message, defaultUrl.getParent().toString(),
          defaultUrl.getFilePathTail(), wildCard, style, pos, bypassGenericImpl);
   restoreSettings();
+}
+
+
+
+/**
+ * Builds the dialog's own widgets and layout (this replaces what used to be
+ * wxGenericFileDialog's internal Create()).
+ */
+void ewxGenericFileDialog::createControls( bool bypassGenericImpl )
+{
+  wxBoxSizer * mainSizer = new wxBoxSizer(wxVERTICAL);
+
+  // server choice + current directory + navigation buttons
+  wxBoxSizer * dirSizer = new wxBoxSizer(wxHORIZONTAL);
+  p_serverChoice = new ewxChoice(this, ID_SERVER_CHOICE);
+  dirSizer->Add(p_serverChoice, 0, wxRIGHT|wxALIGN_CENTER_VERTICAL, 10);
+  m_static = new wxStaticText(this, wxID_ANY, wxEmptyString);
+  dirSizer->Add(m_static, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+  m_upDirButton = new wxButton(this, ID_PARENT_DIR, _("Up"));
+  dirSizer->Add(m_upDirButton, 0, wxLEFT, 5);
+  dirSizer->Add(new wxButton(this, ID_HOME_DIR, _("Home")), 0, wxLEFT, 5);
+  dirSizer->Add(new wxButton(this, ID_NEW_DIR, _("New Folder")), 0, wxLEFT, 5);
+  mainSizer->Add(dirSizer, 0, wxEXPAND|wxALL, 10);
+
+  // file listing
+  long style2 = ms_lastViewStyle;
+  if ( !HasFdFlag(wxFD_MULTIPLE) )
+      style2 |= wxLC_SINGLE_SEL;
+  style2 |= wxSUNKEN_BORDER;
+
+  wxSize list_size(500,240);
+  if (wxSystemSettings::GetScreenType() <= wxSYS_SCREEN_PDA)
+    list_size = wxSize(50,80);
+
+  m_list = new ewxFileCtrl(this, ID_LIST_CTRL, wxEmptyString,
+                            ms_lastShowHidden, wxDefaultPosition,
+                            list_size, style2);
+  mainSizer->Add(m_list, 1, wxEXPAND|wxLEFT|wxRIGHT, 10);
+
+  ignoreChanges.setOtherBool(&(m_list->ignoreChanges));
+  local.setOtherBool(&(m_list->local));
+
+  // filename entry
+  wxBoxSizer * fileSizer = new wxBoxSizer(wxHORIZONTAL);
+  fileSizer->Add(new wxStaticText(this, wxID_ANY, _("File name:")), 0,
+                  wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
+  m_text = new wxTextCtrl(this, ID_TEXT_CTRL, wxEmptyString,
+                          wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
+  fileSizer->Add(m_text, 1, wxALIGN_CENTER_VERTICAL);
+  mainSizer->Add(fileSizer, 0, wxEXPAND|wxLEFT|wxRIGHT|wxTOP, 10);
+
+  // wildcard filter
+  wxBoxSizer * filterSizer = new wxBoxSizer(wxHORIZONTAL);
+  filterSizer->Add(new wxStaticText(this, wxID_ANY, _("Files of type:")), 0,
+                    wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
+  m_choice = new wxChoice(this, ID_CHOICE_CTRL);
+  filterSizer->Add(m_choice, 1, wxALIGN_CENTER_VERTICAL);
+  mainSizer->Add(filterSizer, 0, wxEXPAND|wxALL, 10);
+
+  // OK/Cancel
+  wxSizer * buttonSizer = CreateSeparatedButtonSizer(wxOK|wxCANCEL);
+  if (buttonSizer)
+    mainSizer->Add(buttonSizer, 0, wxEXPAND|wxALL, 10);
+
+  SetSizerAndFit(mainSizer);
 }
 
 
@@ -87,58 +175,27 @@ bool ewxGenericFileDialog::Create( wxWindow *parent,
                                    const wxPoint& pos,
                                    bool bypassGenericImpl)
 {
-  if (!wxGenericFileDialog::Create(parent, message, wxEmptyString,
+  if (!wxFileDialogBase::Create(parent, message, wxEmptyString,
           wxEmptyString, wildCard, style, pos, wxDefaultSize,
-          wxFileDialogNameStr, bypassGenericImpl)) {
+          wxFileDialogNameStr)) {
+    return false;
+  }
+
+  if (!wxDialog::Create( parent, wxID_ANY, message, pos, wxDefaultSize,
+          wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER, wxFileDialogNameStr )) {
     return false;
   }
 
   SetName("FileDialog");
 
-  // replace wxFileCtrl with ewxFileCtrl
-  long style2 = ms_lastViewStyle;
-
-  if ( !HasFdFlag(wxFD_MULTIPLE) )
-      style2 |= wxLC_SINGLE_SEL;
-
-#ifdef __WXWINCE__
-  style2 |= wxSIMPLE_BORDER;
-#else
-  style2 |= wxSUNKEN_BORDER;
-#endif
-
-  wxSize list_size(500,240);
-  if (wxSystemSettings::GetScreenType() <= wxSYS_SCREEN_PDA)
-    list_size = wxSize(50,80);
-
-  wxFileCtrl  * oldList = m_list;
-  ewxFileCtrl * newList;
-  GetSizer()->Detach(oldList);
-  oldList->Destroy();
-  newList = new ewxFileCtrl(this, ID_LIST_CTRL, wxEmptyString,
-                            ms_lastShowHidden, wxDefaultPosition,
-                            list_size, style2);
-  m_list = newList;
-  GetSizer()->Insert( 2, m_list, 1, wxEXPAND | wxLEFT|wxRIGHT, 10 );
-  ignoreChanges.setOtherBool(&(newList->ignoreChanges));
-  local.setOtherBool(&(newList->local));
+  createControls(bypassGenericImpl);
 
   ignoreChanges = true;
 
+  SetWildcard(wildCard);
   SetFilterIndex(0);
 
-  // add server choicebox
-  p_serverChoice = new ewxChoice(this, ID_SERVER_CHOICE);
-  wxSizer * staticsizer = m_static->GetContainingSizer();
-  staticsizer->Prepend(p_serverChoice, 0, wxRIGHT|wxALIGN_CENTER, 10);
   initServerChoices();
-
-  // realign directory path to center vertically
-  staticsizer->GetItem(m_static)->SetFlag(wxALIGN_CENTER);
-
-  SetAutoLayout( true );
-  GetSizer()->Fit( this );
-  GetSizer()->SetSizeHints( this );
 
   ignoreChanges = false;
 
@@ -169,10 +226,10 @@ ewxGenericFileDialog::~ewxGenericFileDialog()
  */
 void ewxGenericFileDialog::SetPath(const wxString& path)
 {
-  if (local) return wxGenericFileDialog::SetPath(path);
+  if (local) return wxFileDialogBase::SetPath(path);
 
   m_path = path;
-  EcceURL url = path.c_str();
+  EcceURL url = path.ToStdString();
   m_fileName = url.getFilePathTail();
   m_dir = url.getParent().toString();
 }
@@ -268,7 +325,7 @@ wxString ewxGenericFileDialog::getType() const
 
 /**
  * Returns the extension of the selected file or filter (extension, not name).
- * If the selected file has an extension (*.ext), return it. Otherwise, if 
+ * If the selected file has an extension (*.ext), return it. Otherwise, if
  * more than one extension exists in filter, always returns the first listed.
  * Can return wxEmptyString if error occurs.
  */
@@ -332,26 +389,15 @@ vector<wxString> ewxGenericFileDialog::getSelectedWildcard() const
 
 
 /**
- *
+ * Single click on a list item: mirror the filename into the text ctrl (but
+ * don't act on it yet - that happens on activation/Enter/OK).
  */
 void ewxGenericFileDialog::OnSelected( wxListEvent &event )
 {
-  if (local) return wxGenericFileDialog::OnSelected(event);
+  if (local) { /* nothing extra needed for local browsing */ }
 
-  /*
-  static bool inSelected = false;
-
-  if (inSelected)
-    return;
-
-  inSelected = true;
-    */
   wxString filename( event.m_item.m_text );
 
-#ifdef __WXWINCE__
-  // No double-click on most WinCE devices, so do action immediately.
-  HandleAction( filename );
-#else
   if (filename == wxT("..")) return;
 
   wxString dir = m_list->GetDir();
@@ -362,8 +408,16 @@ void ewxGenericFileDialog::OnSelected( wxListEvent &event )
   ignoreChanges = true;
   m_text->SetValue( filename );
   ignoreChanges = false;
-#endif
-  //inSelected = false;
+}
+
+
+
+/**
+ * Double click (or Enter) on a list item: act on it immediately.
+ */
+void ewxGenericFileDialog::OnActivated( wxListEvent &event )
+{
+  HandleAction( event.m_item.m_text );
 }
 
 
@@ -383,6 +437,51 @@ void ewxGenericFileDialog::OnHome( wxCommandEvent &event )
 
 
 /**
+ *
+ */
+void ewxGenericFileDialog::OnUpDir( wxCommandEvent &event )
+{
+  ignoreChanges = true;
+  m_list->GoToParentDir();
+  m_list->SetFocus();
+  UpdateControls();
+  ignoreChanges = false;
+}
+
+
+
+/**
+ *
+ */
+void ewxGenericFileDialog::OnNewDir( wxCommandEvent &event )
+{
+  m_list->MakeDir();
+  UpdateControls();
+}
+
+
+
+/**
+ * OK button: act on whatever is currently in the filename text ctrl.
+ */
+void ewxGenericFileDialog::OnOk( wxCommandEvent &event )
+{
+  HandleAction( m_text->GetValue() );
+}
+
+
+
+/**
+ * Enter pressed in the filename text ctrl: same as clicking OK.
+ */
+void ewxGenericFileDialog::OnTextEnter( wxCommandEvent &event )
+{
+  HandleAction( m_text->GetValue() );
+}
+
+
+
+/**
  * Respond to server choicebox selection event.
  */
 void ewxGenericFileDialog::onServerChoice( wxCommandEvent &event )
@@ -397,14 +496,12 @@ void ewxGenericFileDialog::onServerChoice( wxCommandEvent &event )
  */
 void ewxGenericFileDialog::HandleAction( const wxString &fn )
 {
-  if (local) return wxGenericFileDialog::HandleAction( fn );
-  
     if (ignoreChanges)
         return;
 
     wxString filename( fn );
     wxString dir = m_list->GetDir();
-    EcceURL dirUrl = dir.c_str();
+    EcceURL dirUrl = dir.ToStdString();
 
     if (filename.empty()) return;
     if (filename == wxT(".")) return;
@@ -438,7 +535,7 @@ void ewxGenericFileDialog::HandleAction( const wxString &fn )
     if (filename.BeforeFirst(wxT('/')) == wxT("~"))
     {
         filename = wxString(EDSIServerCentral::getUserHome(
-                            EcceURL(m_dir.c_str()).getEcceRoot()).toString()) + 
+                            EcceURL(m_dir.c_str()).getEcceRoot()).toString()) +
                             filename.Remove(0, 1);
         dir = filename;
     }
@@ -517,9 +614,7 @@ void ewxGenericFileDialog::HandleAction( const wxString &fn )
 
     SetPath( filename );
 
-    wxCommandEvent event;
-
-    AcceptAndClose();
+    EndModal(wxID_OK);
 }
 
 
@@ -529,20 +624,20 @@ void ewxGenericFileDialog::HandleAction( const wxString &fn )
  */
 void ewxGenericFileDialog::UpdateControls()
 {
-  wxGenericFileDialog::UpdateControls();
-
-  string dir = m_list->GetDir().c_str();
+  wxString dir = m_list->GetDir();
   int n = p_serverChoice->GetSelection();
   if (n != wxNOT_FOUND) {
     string oldValue = p_lastDir[n];
+    string dirStr = dir.ToStdString();
     vector<string>::iterator it;
     it = find(p_lastDir.begin(), p_lastDir.end(), oldValue);
-    replace(it, it + 1, oldValue, dir);
+    replace(it, it + 1, oldValue, dirStr);
   }
 
-  m_upDirButton->Enable(dir != p_mountDir[n]);
+  string dirStr = dir.ToStdString();
+  m_upDirButton->Enable(dirStr != p_mountDir[n]);
 
-  wxString label = m_static->GetLabel();
+  wxString label = dir;
   label.Replace(wxString(p_mountDir[n]), "", false);
 #ifdef __UNIX__
   if (!label.StartsWith("/")) {
@@ -562,7 +657,7 @@ void ewxGenericFileDialog::EndModal(int retCode)
   if (retCode == wxID_OK) {
     saveSettings();
   }
-  wxGenericFileDialog::EndModal(retCode);
+  wxDialog::EndModal(retCode);
 }
 
 
@@ -595,7 +690,7 @@ void ewxGenericFileDialog::goToHomeDir()
 {
   int n = p_serverChoice->GetSelection();
   if (local) {
-    string home = wxGetUserHome( wxString() );
+    string home = wxGetUserHome( wxString() ).ToStdString();
     if (home.find(p_mountDir[n]) != 0) {
       m_list->GoToDir(p_mountDir[n]);
     } else {
@@ -619,6 +714,11 @@ void ewxGenericFileDialog::goToHomeDir()
 void ewxGenericFileDialog::init()
 {
   p_serverChoice = NULL;
+  m_list = NULL;
+  m_choice = NULL;
+  m_text = NULL;
+  m_static = NULL;
+  m_upDirButton = NULL;
   local = false;
   ignoreChanges = false;
 }
@@ -665,12 +765,14 @@ void ewxGenericFileDialog::initServerChoices()
     }
     delete serverList;
   }
+
+  p_lastDir = p_mountDir;
 }
 
 
 
 /**
- * Deletes the client data associated with each selection for the given 
+ * Deletes the client data associated with each selection for the given
  * choicebox.  Only necessary to call if using void* client data rather than
  * wxClientData or its derived classes.
  */
@@ -807,8 +909,7 @@ void ewxGenericFileDialog::restoreSettings()
 
   ewxConfig::closeConfigs();
 
-  setServerChoice(m_dir.c_str());
+  setServerChoice(m_dir.ToStdString());
 }
 
 #endif // wxUSE_FILEDLG
-
