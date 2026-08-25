@@ -3,7 +3,11 @@ using std::vector;
 
 #include <unordered_set>
    using std::unordered_set;
-   using std::hash;
+// Deliberately NOT "using std::hash" here (unlike unordered_set/vector
+// above) - this header gets included by files that also pull in the old
+// SGI <ext/hash_map> extension and declare their own unrelated
+// "using __gnu_cxx::hash", which conflicts with std::hash at global scope
+// if both are in play. Fully-qualify std::hash below instead.
 
 
    struct sbequint {
@@ -71,7 +75,7 @@ class SparseBits
 
    protected:
 
-      unordered_set<int, hash<int>, sbequint> p_set;
+      unordered_set<int, std::hash<int>, sbequint> p_set;
 
 
    private:

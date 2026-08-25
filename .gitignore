@@ -3,3 +3,4 @@
 *.D
 /lib/
 /obj/
+/build-cmake/
