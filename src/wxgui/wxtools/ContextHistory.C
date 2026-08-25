@@ -44,9 +44,9 @@ bool ContextHistory::SetContext(const wxString& context)
   p_context = context;
 
   // Check we don't already have this file
-  for (size_t i = 0; i < m_fileHistoryN; i++)
+  for (size_t i = 0; i < GetCount(); i++)
   {
-    if ( m_fileHistory[i] && ( context == m_fileHistory[i] ) )
+    if ( context == m_fileHistory[i] )
     {
       // we do have it, so return
       RefreshNames();
@@ -70,9 +70,9 @@ bool ContextHistory::SetContext(const wxString& context)
 bool ContextHistory::RemoveContext(const wxString& context)
 {
   // Check if we have this context
-  for (size_t i = 0; i < m_fileHistoryN; i++)
+  for (size_t i = 0; i < GetCount(); i++)
   {
-    if ( m_fileHistory[i] && ( context == m_fileHistory[i] ) )
+    if ( context == m_fileHistory[i] )
     {
       // we do have it, so remove it
       RemoveFileFromHistory(i);
@@ -88,12 +88,12 @@ bool ContextHistory::RenameContext(const wxString& oldName,
                                    const wxString& newName)
 {
   // Check if we have this context
-  for (size_t i = 0; i < m_fileHistoryN; i++)
+  for (size_t i = 0; i < GetCount(); i++)
   {
-    if ( m_fileHistory[i] && ( oldName == m_fileHistory[i] ) )
+    if ( oldName == m_fileHistory[i] )
     {
       // we do have it, so rename it
-      m_fileHistory[i] = newName.char_str();
+      m_fileHistory[i] = newName;
       RefreshNames();
       return true;
     }
@@ -111,7 +111,7 @@ void ContextHistory::RefreshNames()
 
     // refresh filenames
     wxString buf;
-    for ( size_t j = 0; j < m_fileHistoryN; j++ )
+    for ( size_t j = 0; j < GetCount(); j++ )
     {
       if (m_fileHistory[j] == p_context) {
         if (p_useNumbers)

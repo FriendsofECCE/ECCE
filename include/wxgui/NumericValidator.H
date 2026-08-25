@@ -468,8 +468,8 @@ void NumericValidator<T>::Convert(T & val,
   // Get converter
   UnitFactory& unitFactory = UnitFactory::getInstance();
   UnitConverter& converter =
-          unitFactory.getUnitConverter(p_unitsClass.c_str());
-  converter.setBaseUnits(from.c_str());
+          unitFactory.getUnitConverter(p_unitsClass.ToStdString());
+  converter.setBaseUnits(from.ToStdString());
 
   // convert value
   val = (T)converter.convertTo(val, to.c_str());
@@ -487,8 +487,8 @@ void NumericValidator<T>::Convert(T & min, T & max,
   // Get converter
   UnitFactory& unitFactory = UnitFactory::getInstance();
   UnitConverter& converter =
-          unitFactory.getUnitConverter(p_unitsClass.c_str());
-  converter.setBaseUnits(from.c_str());
+          unitFactory.getUnitConverter(p_unitsClass.ToStdString());
+  converter.setBaseUnits(from.ToStdString());
 
   // convert value
   min = (T)converter.convertTo(min, to.c_str());

@@ -88,7 +88,7 @@ void WxCalcImport::importCalc()
     bool status = false;
 
     // Verify the file is a readable regular file
-    string fileSpec = GetPath().c_str();
+    string fileSpec = GetPath().ToStdString();
 
     if (fileSpec == "")
       message = "No file specified for import.";
@@ -159,7 +159,7 @@ void WxCalcImport::importCalc()
 
     // Update preferences to this directory/filter for the next invocation
     // using the existing prefs instance created to read preferences above
-    string dir = GetDirectory().c_str();
+    string dir = GetDirectory().ToStdString();
     prefs.setString("CalcImport.Directory", dir);
     prefs.setInt("CalcImport.FilterIndex", GetFilterIndex());
     prefs.saveFile();

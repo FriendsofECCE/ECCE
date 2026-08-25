@@ -174,7 +174,7 @@ bool ewxRegexpValidator::Validate(wxWindow *parent)
        int foundIdx = 0;
        int substrLength = 0;
        string result;
-       result = re.match(val.c_str(), foundIdx, substrLength);
+       result = re.match(val.ToStdString(), foundIdx, substrLength);
        if (foundIdx == -1) {
          errormsg = _("'%s' is invalid");
          ok = FALSE;

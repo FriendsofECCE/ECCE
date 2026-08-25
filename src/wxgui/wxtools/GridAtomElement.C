@@ -256,7 +256,7 @@ bool GridAtomElement::isValidValue()
     case AtomProperty::AP_MASS:
       {
         double mass;
-        StringConverter::toDouble(p_value.c_str(), mass);
+        StringConverter::toDouble(p_value.ToStdString(), mass);
         ret = (mass > 0);
       }
       break;
@@ -269,21 +269,21 @@ bool GridAtomElement::isValidValue()
     case AtomProperty::AP_CG:
       {
         int chargeGroup;
-        StringConverter::toInt(p_value.c_str(), chargeGroup);
+        StringConverter::toInt(p_value.ToStdString(), chargeGroup);
         ret = (chargeGroup >= 0);
       }
       break;
     case AtomProperty::AP_PG:
       {
         int polarizationGroup;
-        StringConverter::toInt(p_value.c_str(), polarizationGroup);
+        StringConverter::toInt(p_value.ToStdString(), polarizationGroup);
         ret = (polarizationGroup >= 0);
       }
       break;
     case AtomProperty::AP_ENV:
       {
         int dihedralIndex;
-        StringConverter::toInt(p_value.c_str(), dihedralIndex);
+        StringConverter::toInt(p_value.ToStdString(), dihedralIndex);
         ret = (dihedralIndex >= 0);
       }
       break;
@@ -394,7 +394,7 @@ bool GridAtomElement::isValidAtomName()
 
   if (p_value.size() > 0) {
 
-    string val = p_value.c_str();
+    string val = p_value.ToStdString();
 
     bool validname = true;
     TPerTab pertab;
@@ -526,7 +526,7 @@ bool GridAtomElement::isValidBehavior()
     ret = true;
 
     // Do this to get standard capitalization
-    TAtm::BehaviorType type = TAtm::stringToBehaviorType(p_value.c_str());
+    TAtm::BehaviorType type = TAtm::stringToBehaviorType(p_value.ToStdString());
     string sval = TAtm::behaviorTypeToString(type);
     if (!p_value.IsSameAs(sval.c_str())) {
        p_value = sval;
@@ -539,7 +539,7 @@ bool GridAtomElement::isValidBehavior()
 
 bool GridAtomElement::isValidAtomType()
 {
-  string val = p_value.c_str();
+  string val = p_value.ToStdString();
   STLUtil::stripLeadingAndTrailingWhiteSpace(val);
   p_value = val;
 
@@ -552,7 +552,7 @@ bool GridAtomElement::isValidLinkType()
   bool ret = false;
 
   int val;
-  StringConverter::toInt(p_value.c_str(), val);
+  StringConverter::toInt(p_value.ToStdString(), val);
   if ((val >= 0) && (val <= TAtm::CROSSLINK)) {
     ret = true;
   }

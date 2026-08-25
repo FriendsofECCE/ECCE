@@ -18,7 +18,7 @@ WxUnitsPrompt::WxUnitsPrompt(wxWindow *parent, const bool& bondsPrompt)
 
 string WxUnitsPrompt::getUnits() const
 {
-  return p_units->GetStringSelection().c_str();
+  return p_units->GetStringSelection().ToStdString();
 }
 
 bool WxUnitsPrompt::getGenBonds() const

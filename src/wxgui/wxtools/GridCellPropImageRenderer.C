@@ -109,7 +109,7 @@ void GridCellPropImageRenderer::drawResourceIcon(GridPropElement *element,
                                                  bool isSelected)
 {
   int imageIdx;
-  if (StringConverter::toInt(element->getValue().c_str(), imageIdx)) {
+  if (StringConverter::toInt(element->getValue().ToStdString(), imageIdx)) {
     wxIcon icon = WxResourceImageList::getImageList()->GetIcon(imageIdx);
     drawIcon(icon, dc, rectCell, align);
   }
@@ -125,7 +125,7 @@ void GridCellPropImageRenderer::drawRunstateIcon(GridPropElement *element,
                                                  bool isSelected) 
 {
   drawIcon(WxStateImageList::getImageList()->GetIcon(
-           ResourceUtils::stringToState(element->getValue().c_str())),
+           ResourceUtils::stringToState(element->getValue().ToStdString())),
            dc, rectCell);
 }
 

@@ -234,7 +234,7 @@ void WxAuth::showChangeBtn(const bool& show)
 string WxAuth::getUser() 
 {
    ewxTextCtrl *t = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_AUTH_USER));
-   return t->GetValue().c_str();
+   return t->GetValue().ToStdString();
 }
 
 
@@ -244,7 +244,7 @@ string WxAuth::getUser()
 string WxAuth::getPassword()
 {
    ewxTextCtrl *t = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_AUTH_PASSWORD));
-   return t->GetValue().c_str();
+   return t->GetValue().ToStdString();
 }
 
 
@@ -254,6 +254,6 @@ string WxAuth::getPassword()
 string WxAuth::getNewPassword()
 {
    ewxTextCtrl *t = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_AUTH_NEWPASSWORD));
-   return t->GetValue().c_str();
+   return t->GetValue().ToStdString();
 }
 

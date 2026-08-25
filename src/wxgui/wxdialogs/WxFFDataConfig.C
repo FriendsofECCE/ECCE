@@ -54,7 +54,7 @@ string WxFFDataConfig::getFFName()
 {
   wxControlWithItems* ffChoice = 
           dynamic_cast<wxControlWithItems*>(FindWindow(ID_CHOICE_FORCE_FIELD));
-  return ffChoice->GetStringSelection().c_str();
+  return ffChoice->GetStringSelection().ToStdString();
 }
 
 
@@ -244,7 +244,7 @@ void WxFFDataConfig::OnCloseWindow( wxCloseEvent& event )
  */
 void WxFFDataConfig::OnChoiceForceFieldSelected( wxCommandEvent& event )
 {
-  doChoiceForceFieldSelected(event.GetString().c_str());
+  doChoiceForceFieldSelected(event.GetString().ToStdString());
 }
 
 
@@ -267,8 +267,8 @@ void WxFFDataConfig::OnButtonFfBrowseClick( wxCommandEvent& event )
     wxControlWithItems * control = 
             dynamic_cast<wxControlWithItems*>(FindWindow(ID_LISTBOX_FF));
     control->Append(dialog.GetPath());
-    string path = dialog.GetPath().c_str();
-    string dir = dialog.GetDirectory().c_str();
+    string path = dialog.GetPath().ToStdString();
+    string dir = dialog.GetDirectory().ToStdString();
     p_ffPaths[getFFName()].push_back(path);
 
     prefs.setString("LAST_DIR", dir);
@@ -326,7 +326,7 @@ void WxFFDataConfig::OnButtonSegBrowseClick( wxCommandEvent& event )
     wxControlWithItems * control = 
             dynamic_cast<wxControlWithItems*>(FindWindow(ID_LISTBOX_SEG));
     control->Append(dialog.GetPath());
-    string path = dialog.GetPath().c_str();
+    string path = dialog.GetPath().ToStdString();
     p_segPaths[getFFName()].push_back(path);
 
     prefs.setString("LAST_DIR", path);
@@ -492,12 +492,12 @@ void WxFFDataConfig::loadPreferences(const bool& usePrefs) throw (IOException)
     } else {
       // if force field from pref does not match any in list, select first
       control->SetSelection(0); // does not fire event
-      doChoiceForceFieldSelected(control->GetStringSelection().c_str());
+      doChoiceForceFieldSelected(control->GetStringSelection().ToStdString());
     }
   } else {
     // if no force field in prefs, select first in list
     control->SetSelection(0); // does not fire event
-    doChoiceForceFieldSelected(control->GetStringSelection().c_str());
+    doChoiceForceFieldSelected(control->GetStringSelection().ToStdString());
   }
 
   delete prefs;

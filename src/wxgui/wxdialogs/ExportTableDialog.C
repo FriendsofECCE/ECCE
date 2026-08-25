@@ -89,7 +89,7 @@ bool ExportTableDialog::writeCsv()
   Resource *parent = 0;
   Resource *child = 0;
   try {
-    string dir = GetDirectory().c_str();
+    string dir = GetDirectory().ToStdString();
     parent = EDSIFactory::getResource(dir);
     if (!parent) throw InvalidException("Null Resource", WHERE);
     child = parent->createChild(GetFilename().c_str(), file);

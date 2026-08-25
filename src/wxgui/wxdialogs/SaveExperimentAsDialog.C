@@ -302,7 +302,7 @@ bool SaveExperimentAsDialog::doSaveAsChemFileType(
   }
 
   // the fragment is in the temporary file, now put it where it belongs
-  string parentUrlStr = GetDirectory().c_str();
+  string parentUrlStr = GetDirectory().ToStdString();
   Resource *parent = 0;
   Resource *child = 0;
   try {
@@ -343,8 +343,8 @@ bool SaveExperimentAsDialog::doSaveAsChemistryTask(
 {
   bool ret = true;
 
-  string name = GetFilename().c_str();
-  string parentUrlStr = GetDirectory().c_str();
+  string name = GetFilename().ToStdString();
+  string parentUrlStr = GetDirectory().ToStdString();
   wxStringClientData *data = dynamic_cast<wxStringClientData*>(
           p_bitmapCombo->GetClientObject(p_bitmapCombo->GetSelection()));
   wxString resourceName = data->GetData();
@@ -586,6 +586,6 @@ void SaveExperimentAsDialog::restoreSettings()
 
   ewxConfig::closeConfigs();
 
-  setServerChoice(m_dir.c_str());
+  setServerChoice(m_dir.ToStdString());
 }
 

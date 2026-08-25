@@ -321,7 +321,7 @@ void ConstraintPanel::OnButtonConstFixaddClick( wxCommandEvent& event )
       int lower;
       bool validInt;
       text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_CONST_MINRES));
-      validInt = StringConverter::toInt(text->GetValue().c_str(),lower);
+      validInt = StringConverter::toInt(text->GetValue().ToStdString(),lower);
       if (validInt) {
         cmd.append(" ");
         cmd.append(text->GetValue().c_str());
@@ -352,7 +352,7 @@ void ConstraintPanel::OnButtonConstFixaddClick( wxCommandEvent& event )
       cmd.append(text->GetBaseValue().c_str());
       text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_CONST_ATCENT));
       cmd.append(" ");
-      string atm = text->GetValue().c_str();
+      string atm = text->GetValue().ToStdString();
       STLUtil::stripLeadingAndTrailingWhiteSpace(atm);
       if (atm.size() < 1) {
         validCmd = false;

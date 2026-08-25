@@ -523,11 +523,11 @@ bool ewxNumericValidator::Validate(wxWindow *parent)
     } catch (InvalidException ex) {
       if (isHard) {
         wxBell();
-        postMessage(errormsg.c_str());
+        postMessage(errormsg.ToStdString());
         return afterValidation(false);
       }
       else {
-        postMessage(errormsg.c_str());
+        postMessage(errormsg.ToStdString());
         return afterValidation(true);
       }
     }
@@ -764,9 +764,9 @@ void ewxNumericValidator::check(const wxString& valString, bool isHard,
   int tmp;
   double val;
 
-  if (StringConverter::toInt(valString.c_str(), tmp)) {
+  if (StringConverter::toInt(valString.ToStdString(), tmp)) {
     val = tmp;
-  } else if (!StringConverter::toDouble(valString.c_str(), val)) {
+  } else if (!StringConverter::toDouble(valString.ToStdString(), val)) {
     throw InvalidException("Invalid string entered", __FILE__, __LINE__);
   }
 

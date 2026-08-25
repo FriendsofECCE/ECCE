@@ -174,7 +174,7 @@ wxDragResult GridDropTarget::OnData(wxCoord x, wxCoord y, wxDragResult def)
   if (filenames.GetCount() == 0) {
     wxStringTokenizer tkz(p_urldata->GetText(), wxT("\n"));
     while (tkz.HasMoreTokens()) {
-      string str = tkz.GetNextToken().c_str();
+      string str = tkz.GetNextToken().ToStdString();
       if (str != "")
         urls.push_back(str);
     }

@@ -109,8 +109,8 @@ int GridElement::compare(GridElement *element,
         case GridProperty::PT_FLOAT:
           {
             double e1_d_val, e2_d_val;
-            StringConverter::toDouble(e1_val.c_str(), e1_d_val);
-            StringConverter::toDouble(e2_val.c_str(), e2_d_val);
+            StringConverter::toDouble(e1_val.ToStdString(), e1_d_val);
+            StringConverter::toDouble(e2_val.ToStdString(), e2_d_val);
             ret = (e1_d_val < e2_d_val) ? (-1) :
                   ((e1_d_val > e2_d_val) ? (1) : (0));
           }

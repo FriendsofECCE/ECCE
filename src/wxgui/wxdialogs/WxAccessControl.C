@@ -37,7 +37,7 @@ WxAccessControl::WxAccessControl( )
  * This class gets its icon from its parent, which has a TopLevelWindow.
  */
 WxAccessControl::WxAccessControl( wxWindow* parent, wxWindowID id,
-                                  const string& caption, const wxPoint& pos,
+                                  const wxString& caption, const wxPoint& pos,
                                   const wxSize& size, long style )
 {
   Create( parent, id, caption, pos, size, style );
@@ -160,7 +160,7 @@ void WxAccessControl::OnCloseWindow( wxCloseEvent& event )
 void WxAccessControl::OnButtonChangeClick( wxCommandEvent& event )
 {
   changePermissions(p_projectUrl, 
-                    p_readOnly->GetValue().c_str(), 
+                    p_readOnly->GetValue().ToStdString(), 
                     p_readWrite->GetValue().c_str());
   event.Skip();
 }

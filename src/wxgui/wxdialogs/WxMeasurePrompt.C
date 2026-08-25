@@ -163,7 +163,7 @@ void WxMeasurePrompt::OnOK(wxCommandEvent& WXUNUSED(event) )
     {
         // KLS need to set m_value all the time because GetValue returns it
         // regardless of whether or not wxUSE_VALIDATORS is defined
-        StringConverter::toDouble(m_textctrl->GetValue().c_str(),m_value);
+        StringConverter::toDouble(m_textctrl->GetValue().ToStdString(),m_value);
         EndModal( wxID_OK );
     }
 #else

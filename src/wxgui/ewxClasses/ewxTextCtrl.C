@@ -177,7 +177,7 @@ void ewxTextCtrl::setValueAsInt(int value)
  */
 int ewxTextCtrl::getValueAsInt()
 {
-   string valstr = GetValue().c_str();
+   string valstr = GetValue().ToStdString();
 
    // nasty bug sometimes reports values as floats with .00000 appended
    // just conveniently lop those off before int conversion
@@ -203,7 +203,7 @@ int ewxTextCtrl::getValueAsInt()
 int ewxTextCtrl::getBaseValueAsInt()
 {
    int value;
-   if (!StringConverter::toInt(GetBaseValue().c_str(), value)) {
+   if (!StringConverter::toInt(GetBaseValue().ToStdString(), value)) {
      throw BadDataException("Unable to convert to integer", WHERE);
    }
    return value;
@@ -268,7 +268,7 @@ void ewxTextCtrl::setValueAsDouble(double value, string curFamilyName)
 double ewxTextCtrl::getValueAsDouble()
 {
    double value;
-   if (!StringConverter::toDouble(GetValue().c_str(), value)) {
+   if (!StringConverter::toDouble(GetValue().ToStdString(), value)) {
      throw BadDataException("Unable to convert to double", WHERE);
    }
    return value;
@@ -283,7 +283,7 @@ double ewxTextCtrl::getValueAsDouble()
 double ewxTextCtrl::getBaseValueAsDouble()
 {
    double value;
-   if (!StringConverter::toDouble(GetBaseValue().c_str(), value)) {
+   if (!StringConverter::toDouble(GetBaseValue().ToStdString(), value)) {
      throw BadDataException("Unable to convert to double", WHERE);
    }
    return value;

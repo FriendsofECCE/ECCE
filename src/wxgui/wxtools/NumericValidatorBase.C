@@ -109,8 +109,8 @@ void NumericValidatorBase::SetBaseFamily(const wxString& family)
   INTERNALEXCEPTION(p_baseUnits.IsEmpty(),
           "Must only call SetBaseFamily or SetBaseUnits once");
   UnitFactory& unitFactory = UnitFactory::getInstance();
-  UnitFamily& unitFamily = unitFactory.getUnitFamily(family.c_str());
-  SetBaseUnits(unitFamily.get(p_unitsClass.c_str()));
+  UnitFamily& unitFamily = unitFactory.getUnitFamily(family.ToStdString());
+  SetBaseUnits(unitFamily.get(p_unitsClass.ToStdString()));
 }
 
 
@@ -119,8 +119,8 @@ void NumericValidatorBase::SetFamily(const wxString& family)
   if (p_unitsClass.IsEmpty()) return;
 
   UnitFactory& unitFactory = UnitFactory::getInstance();
-  UnitFamily& unitFamily = unitFactory.getUnitFamily(family.c_str());
-  SetUnits(unitFamily.get(p_unitsClass.c_str()));
+  UnitFamily& unitFamily = unitFactory.getUnitFamily(family.ToStdString());
+  SetUnits(unitFamily.get(p_unitsClass.ToStdString()));
 }
 
 

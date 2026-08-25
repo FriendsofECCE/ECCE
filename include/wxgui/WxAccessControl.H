@@ -27,7 +27,7 @@ class WxAccessControl : public WxAccessControlGUI
     WxAccessControl( );
     WxAccessControl( wxWindow* parent, 
                      wxWindowID id = SYMBOL_WXACCESSCONTROLGUI_IDNAME, 
-                     const string& caption = SYMBOL_WXACCESSCONTROLGUI_TITLE,
+                     const wxString& caption = SYMBOL_WXACCESSCONTROLGUI_TITLE,
                      const wxPoint& pos = SYMBOL_WXACCESSCONTROLGUI_POSITION,
                      const wxSize& size = SYMBOL_WXACCESSCONTROLGUI_SIZE, 
                      long style = SYMBOL_WXACCESSCONTROLGUI_STYLE ); 

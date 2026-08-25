@@ -44,7 +44,7 @@ EcceTool::EcceTool(wxWindow * parent, ResourceTool * resTool)
 EcceTool::EcceTool(wxWindow *parent, const wxString& name)
 {
   ResourceTool *resTool =
-          ResourceDescriptor::getResourceDescriptor().getTool(name.c_str());
+          ResourceDescriptor::getResourceDescriptor().getTool(name.ToStdString());
   p_bitmap = ewxBitmap(resTool->getIcon(), wxBITMAP_TYPE_XPM);
   Create(parent, resTool->getId(), resTool->getName());
 }

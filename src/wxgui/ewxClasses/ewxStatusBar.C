@@ -132,7 +132,7 @@ void ewxStatusBar::SetStatusText(const wxString& text, int i)
   switch (i) {
   case FIELD_SAVE:
     if (text == "READONLY" || text == "MODIFIED" || text == "EDIT")
-      setEditStatus(text.c_str());
+      setEditStatus(text.ToStdString());
     else
       wxStatusBar::SetStatusText(text, FIELD_LOG);
     break;
@@ -216,5 +216,5 @@ ResourceDescriptor::RUNSTATE ewxStatusBar::getRunState() const
 
 string ewxStatusBar::getContext() const
 {
-  return wxStatusBar::GetStatusText(FIELD_URL).c_str();
+  return wxStatusBar::GetStatusText(FIELD_URL).ToStdString();
 }
