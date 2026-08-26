@@ -89,7 +89,7 @@ static int last_step_count = 1;
 
 /* this acts as a strobe (while testing breakpoints).  It is set to true */
 /* every time a new debugger command is issued that is an action */
-static debug_new_action;
+static int debug_new_action;
 
 #define NO_LINE -1	/* if break point is not set by line number */
 
