@@ -147,6 +147,15 @@ private:
   void setTheDispatcher(WxJMSMessageDispatch *instance);
   void handleSigChild(int pid);
 
+  /** Lazily allocates p_toAppExec/p_toAppInvoke/p_toInvokeStatusCheck on
+      first use. This class is a base of some wxApp subclasses (e.g.
+      GatewayApp), so constructing these wxTimers eagerly in our own
+      constructor would run while the wxApp object itself is being built --
+      before wx has finished setting up the GTK/GLib event loop a timer
+      implementation needs. Deferring to first real use (always well after
+      OnInit()) avoids that. */
+  void ensureTimers();
+
   /** A pointer to the dispatcher that controls app startup. Each process
       should only have one of these.  Needed for sigchild handling to
       cleanup zombies without causing other problems. */

@@ -122,9 +122,28 @@ WxJMSMessageDispatch::WxJMSMessageDispatch(const string& app_name, bool app)
            (wxJmsCBFunc)&WxJMSMessageDispatch::internalInvokeMCB);
   }
 
-  p_toAppExec = new TimeOutAppExec(this);
-  p_toAppInvoke = new TimeOutAppInvoke(this);
-  p_toInvokeStatusCheck = new TimeOutInvokeStatusCheck(this);
+  // Not constructed here -- see ensureTimers() below. This constructor
+  // runs during wxApp construction for wxApp subclasses that also derive
+  // from WxJMSMessageDispatch (GatewayApp, WxAppJMSMessageDispatch), i.e.
+  // before wx's GUI/event-loop init; wx3.2 asserts if a wxTimer is
+  // constructed that early ("No timer implementation for this platform").
+  p_toAppExec = 0;
+  p_toAppInvoke = 0;
+  p_toInvokeStatusCheck = 0;
+}
+
+
+/**
+ * Lazily creates the three internal timers on first actual use. See the
+ * comment above for why this can't happen in the constructor.
+ */
+void WxJMSMessageDispatch::ensureTimers()
+{
+  if (!p_toAppExec) {
+    p_toAppExec = new TimeOutAppExec(this);
+    p_toAppInvoke = new TimeOutAppInvoke(this);
+    p_toInvokeStatusCheck = new TimeOutInvokeStatusCheck(this);
+  }
 }
 
 
@@ -163,18 +182,22 @@ void WxJMSMessageDispatch::disconnect()
          child=waitpid(-1, NULL, WNOHANG);
       }
 
-      p_toAppExec->Stop();
-      p_toAppInvoke->Stop();
-      p_toInvokeStatusCheck->Stop();
+      // May never have been allocated -- see ensureTimers() -- if this
+      // dispatcher never actually started/invoked an app.
+      if (p_toAppExec) {
+        p_toAppExec->Stop();
+        p_toAppInvoke->Stop();
+        p_toInvokeStatusCheck->Stop();
 
-      delete p_toAppExec;
-      p_toAppExec = 0;
+        delete p_toAppExec;
+        p_toAppExec = 0;
 
-      delete p_toAppInvoke;
-      p_toAppInvoke = 0;
+        delete p_toAppInvoke;
+        p_toAppInvoke = 0;
 
-      delete p_toInvokeStatusCheck;
-      p_toInvokeStatusCheck = 0;
+        delete p_toInvokeStatusCheck;
+        p_toInvokeStatusCheck = 0;
+      }
 
       delete p_publisher;      
       p_publisher = 0;
@@ -411,6 +434,8 @@ void WxJMSMessageDispatch::raiseMCB(JMSMessage& msg)
 ****************************************************************************/
 void WxJMSMessageDispatch::getAppMCB(JMSMessage& startMsg)
 {
+  ensureTimers();
+
   // First change the sender in the startMsg to be me instead
   // of the app it originally came from
   // 4/7/06 The above is from the original design.  Not sure if its needed.
@@ -578,6 +603,8 @@ void WxJMSMessageDispatch::appReadyMCB(JMSMessage& msg)
  */
 void WxJMSMessageDispatch::appExec()
 {
+  ensureTimers();
+
   for (int i = 0; i < p_startups.size(); i++) {
     
     if (p_startups[i].execStarted ) {
@@ -661,6 +688,8 @@ void WxJMSMessageDispatch::appExec()
  */
 void WxJMSMessageDispatch::appInvoke()
 {
+  ensureTimers();
+
   bool needTimeout = false;
   
   for (int i = 0; i < p_startups.size(); i++) {
@@ -731,6 +760,8 @@ void WxJMSMessageDispatch::sendFailedStatusMessage(int pid)
  */
 void WxJMSMessageDispatch::invokeStatusCheck()
 {
+  ensureTimers();
+
   vector<StartupPacket>::iterator it;
   bool needTimeout = false;
 
