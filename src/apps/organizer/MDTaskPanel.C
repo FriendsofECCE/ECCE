@@ -108,7 +108,7 @@ void MDTaskPanel::createControls()
   p_nameSizer->Prepend(p_state, 0, wxALL, 2);
 
   // set the name of this task to display
-  p_name->SetLabel(_T(taskjob->getName()));
+  p_name->SetLabel(taskjob->getName());
 
   // add the code/application bitmap
   p_codeBitmap->SetBitmap(WxResourceImageList::getBitmap(taskjob));
@@ -116,7 +116,7 @@ void MDTaskPanel::createControls()
   // set the name of the code/application to display
   string codeName;
   codeName = taskjob->getProp(VDoc::getEcceNamespace() + ":application");
-  p_code->SetLabel(_T(codeName));
+  p_code->SetLabel(codeName);
 
   // adjust the sizer for this task panel dynamically
   p_topSizer->Layout();

@@ -355,7 +355,7 @@ void WxMachineRegister::machineVendorTextEnterCB(wxCommandEvent& event)
 
             for (int idx = 0; idx < p_codeNames.size(); idx++)
             {
-                if (RefMachine::exePath(p_codeNames[idx].c_str(), fullname.c_str(), vendor.c_str()) != "")
+                if (RefMachine::exePath(p_codeNames[idx].c_str(), fullname.ToStdString(), vendor.c_str()) != "")
                 {
                     anyCode = true;
                     p_codePaths[idx]->SetValue(_("(EMSL default path)"));

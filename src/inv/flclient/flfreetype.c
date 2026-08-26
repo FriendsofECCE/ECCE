@@ -383,19 +383,17 @@ _flFTNewGlyphChar(FLFreeTypeFontStruct *fs, FLchar c, FT_GlyphSlot slot)
   return outline;
 }
 
-#if 111
-// GDB 2/9/12  Eliminate compiler warning
-extern void FT_Done_GlyphSlot(FT_GlyphSlot slot);
-#endif
-
 void
 _flFTDeleteGlyphChar(FLFreeTypeOutline *outline)
 {
   TRACE(("_flFTDeleteGlyphChar: outline=%p\n", outline));
 
-  if (outline) {
-    FT_Done_GlyphSlot(outline->glyph);
-  }
+  /* outline->glyph is always fs->face->glyph (see _flFTNewGlyphChar),
+   * i.e. a slot owned by the FT_Face, not one obtained via the removed
+   * FT_New_GlyphSlot() API - it must not (and, in modern FreeType, no
+   * longer can - FT_Done_GlyphSlot is no longer part of the public API)
+   * be freed here; it is released automatically when the face is
+   * destroyed. */
 }
 
 short

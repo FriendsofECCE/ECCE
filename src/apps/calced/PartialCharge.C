@@ -426,12 +426,12 @@ void PartialCharge::OnButtonAddCmdClick( wxCommandEvent& event )
     }
   } else if (menu->GetStringSelection() == "Methyl-Type Constraint") {
     text = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_GROUP1);
-    string grp1 = text->GetValue().c_str();
+    string grp1 = text->GetValue().ToStdString();
     vector<int> idx1, idx2;
     vector<string> elem1, elem2;
     parseAtomList(grp1, idx1, elem1);
     text = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_GROUP2);
-    string grp2 = text->GetValue().c_str();
+    string grp2 = text->GetValue().ToStdString();
     parseAtomList(grp2, idx2, elem2);
     if (idx1.size() == 1) {
       cmd = "constrain xhn";
@@ -1149,7 +1149,7 @@ void PartialCharge::updateConstraints()
    int nsize = list->GetCount();
    model->clear();
    for (int i=0; i < nsize; i++) {
-      model->add(stringToConstraint(list->GetString(i).c_str()));
+      model->add(stringToConstraint(list->GetString(i).ToStdString()));
    }
    // User made change so show save state icon
    p_calcEd->enableSave();

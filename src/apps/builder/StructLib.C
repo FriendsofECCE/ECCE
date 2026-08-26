@@ -389,7 +389,7 @@ void StructLib::structuresListItemSelectedCB( wxListEvent& event)
         //string style = "Stick";
         //string style = "Wireframe";
         ewxConfig *config = ewxConfig::getConfig("vizstyles.ini");
-        string bsStyle = config->Read(style).c_str();
+        string bsStyle = config->Read(style).ToStdString();
 
         DisplayDescriptor *dd = 0;
 

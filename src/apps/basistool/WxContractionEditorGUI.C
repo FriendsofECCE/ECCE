@@ -187,7 +187,7 @@ void WxContractionEditorGUI::CreateControls()
     itemWxParameterEdit19->setMaximum(100);
     itemWxParameterEdit19->setMinimum(1);
     itemWxParameterEdit19->setRangeVisible(1);
-    itemWxParameterEdit19->setUnitsLabel(_T(""));
+    itemWxParameterEdit19->setUnitsLabel("");
     itemWxParameterEdit19->setUnitsVisible(0);
     itemWxParameterEdit19->setValue(1);
     itemBoxSizer17->Add(itemWxParameterEdit19, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);

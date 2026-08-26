@@ -137,7 +137,7 @@ void DefaultVecPanel::fillTable()
               cellv = "";
            }
            p_grid->SetRowLabelValue(idx, cellv);
-           cellv = wxString::Format (_T(PrefLabels::DOUBLEFORMAT), vec->value(idx));
+           cellv = wxString::Format (PrefLabels::DOUBLEFORMAT, vec->value(idx));
            p_grid->SetCellValue(idx, 0, cellv);
         }
      }

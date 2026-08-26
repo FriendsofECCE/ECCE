@@ -9,6 +9,7 @@
 #include <wx/sizer.h>
 #include <wx/tglbtn.h> // EVT_TOGGLEBUTTON
 #include <wx/grid.h>
+#include <wx/listctrl.h>
 #include <wx/slider.h>
 
 #include "util/InternalException.H"

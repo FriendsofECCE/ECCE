@@ -142,10 +142,10 @@ void Vec3ColPanel::fillTable()
         wxString cellv;
         for (int idx=0; idx<nRows; idx++) {
            if (rowLabels) {
-              cellv = wxString::Format (wxString("%s=")+_T(PrefLabels::DOUBLEFORMAT), (*rowLabels)[idx].c_str(),vec->value(idx));
+              cellv = wxString::Format (wxString("%s=")+PrefLabels::DOUBLEFORMAT, (*rowLabels)[idx].c_str(),vec->value(idx));
            } else {
               // No labels
-              cellv = wxString::Format (_T(PrefLabels::DOUBLEFORMAT), vec->value(idx));
+              cellv = wxString::Format (PrefLabels::DOUBLEFORMAT, vec->value(idx));
            }
            cellv.Replace(" ","",true);
            p_grid->SetCellValue((idx/3),idx%3,cellv);

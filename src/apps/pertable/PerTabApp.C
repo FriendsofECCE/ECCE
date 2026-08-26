@@ -55,7 +55,7 @@ bool PerTabApp::OnInit()
   ewxApp::OnInit();
 
   if (argc>2 && strcmp(argv[1],"-pipe")==0) {
-    AuthCache::pipeClean(argv[2]);
+    AuthCache::pipeClean(argv[2].ToStdString());
   }
 
   p_perTabFrame = new PerTabFrame(NULL);

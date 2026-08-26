@@ -341,7 +341,7 @@ void SessionContextPanel::drawConnections(Session::LinkType linkType)
     if (roots.size() > 1) {
       vector<Resource*>::iterator root;
       for (root = roots.begin(); root != roots.end(); root++) {
-        wxWindow *rootWin = FindWindow(_T((*root)->getURL().toString()));
+        wxWindow *rootWin = FindWindow((*root)->getURL().toString());
         if (rootWin!=0 && rootWin->GetRect().GetRight()>maxRootWidth)
           maxRootWidth = rootWin->GetRect().GetRight();
       }
@@ -360,10 +360,10 @@ void SessionContextPanel::drawConnections(Session::LinkType linkType)
   for (task = tasks.begin(); task != tasks.end(); task++) {
     vector<Resource*> targets = p_session->getTargets((*task), linkType);
     vector<Resource*>::iterator target;
-    wxWindow *parent = FindWindow(_T((*task)->getURL().toString()));
+    wxWindow *parent = FindWindow((*task)->getURL().toString());
     if (parent != 0) {
       for (target = targets.begin(); target != targets.end(); target++) {
-        wxWindow *child = FindWindow(_T((*target)->getURL().toString()));
+        wxWindow *child = FindWindow((*target)->getURL().toString());
         if (child != 0) {
           int px, py, cx, cy, between;
           if (p_isVertical) {

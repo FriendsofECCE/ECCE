@@ -1019,7 +1019,7 @@ void GeomConstraints::gridCellChange(wxGridEvent& event)
           dynamic_cast<GridElement*>(table->getElement(event.GetRow(), event.GetCol()));
         if (element != 0) {
           double val;
-          StringConverter::toDouble(element->getValue().c_str(), val);
+          StringConverter::toDouble(element->getValue().ToStdString(), val);
           GeomConstraint *constraint = (*constraints)[event.GetRow()];
           GeomRestraint *restraint = dynamic_cast<GeomRestraint*>(constraint);
           if ((restraint) && (event.GetCol() == table->getColCount()-1)) {

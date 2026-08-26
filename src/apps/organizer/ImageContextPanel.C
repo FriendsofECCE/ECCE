@@ -115,7 +115,7 @@ void ImageContextPanel::refresh()
   string fileExt = StringConverter::getFileNameExt(p_itemData->getName());
   sfile->move(sfile->path() + "." + fileExt);
 
-  p_image = wxImage(_T(sfile->path()));
+  p_image = wxImage(sfile->path());
   sfile->remove();
   delete sfile;
 

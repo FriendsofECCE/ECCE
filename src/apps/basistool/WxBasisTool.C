@@ -3316,7 +3316,7 @@ void WxBasisTool::updateBasisSets(int index, bool slctFirst)
 
         for (it = names->begin(); it != names->end(); it++)
         {
-            p_basisSetTypeListBox[index]->Append(_T((char *)(*it)));
+            p_basisSetTypeListBox[index]->Append((char *)(*it));
         }
 
 //        displayBasisList(p_orbitalBSetsListBox[index], *names);

@@ -255,7 +255,7 @@ void SpinSpin::fillTable()
             } else {
                p_grid->SetCellValue(idx,1,"Out of Range");
             }
-            p_grid->SetCellValue(idx,2,wxString::Format (_T(PrefLabels::DOUBLEFORMAT), vec->value(idx)));
+            p_grid->SetCellValue(idx,2,wxString::Format (PrefLabels::DOUBLEFORMAT, vec->value(idx)));
          }
       }
 
@@ -387,8 +387,8 @@ void SpinSpin::showVectors(bool guessScale)
    set<string> props = getPropertyNames();
    string pname = *(props.begin());
    cmd->getParameter("property")->setString(pname);
-   cmd->getParameter("positive")->setString(pos.GetAsString(wxC2S_HTML_SYNTAX).c_str());
-   cmd->getParameter("negative")->setString(neg.GetAsString(wxC2S_HTML_SYNTAX).c_str());
+   cmd->getParameter("positive")->setString(pos.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
+   cmd->getParameter("negative")->setString(neg.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
    cmd->getParameter("Amplitude")->setDouble(p_slider->GetFloatValue());
    cmd->getParameter("rows")->setIntegerList(rows);
    if (guessScale) {

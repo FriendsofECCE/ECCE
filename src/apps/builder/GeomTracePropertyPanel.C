@@ -266,7 +266,7 @@ void GeomTracePropertyPanel::saveSettings()
   config->Write("GeomTrace/Recompute", p_recompute);
   config->Write("GeomTrace/Fold", p_fold);
   config->Write("GeomTrace/Delay", p_delay);
-  config->Write("GeomTrace/Prop", p_currentProp);
+  config->Write("GeomTrace/Prop", wxString(p_currentProp));
 }
 
 

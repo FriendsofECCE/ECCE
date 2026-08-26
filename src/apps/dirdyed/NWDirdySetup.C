@@ -447,7 +447,7 @@ void NWDirdySetup::restrictTheories(const SpinMult::SpinMultEnum& mult,
       if (!lastTheory.IsEmpty() && !lastTheory.IsSameAs("None") &&
           choice->GetStringSelection()!=lastTheory) {
         p_parent->getFeedback()->setMessage(("Overriding general theory " +
-              lastTheory + " to " + choice->GetStringSelection() + ".").c_str(),
+              lastTheory + " to " + choice->GetStringSelection() + ".").ToStdString(),
               WxFeedback::WARNING);
       }
     } else {
@@ -461,15 +461,15 @@ void NWDirdySetup::restrictTheories(const SpinMult::SpinMultEnum& mult,
         choice->SetSelection(0);
         if (!lastTheory.IsEmpty() && !lastTheory.IsSameAs("None")) {
           p_parent->getFeedback()->setMessage(("Overriding general theory " +
-              lastTheory + " to " + choice->GetStringSelection() + ".").c_str(),
+              lastTheory + " to " + choice->GetStringSelection() + ".").ToStdString(),
               WxFeedback::WARNING);
         }
       }
     }
 
-    model->setTheory(choice->GetStringSelection().c_str());
+    model->setTheory(choice->GetStringSelection().ToStdString());
     category = ((wxStringClientData*)choice->GetClientObject(choice->GetSelection()))->GetData();
-    model->setCategory((char*)category.c_str());
+    model->setCategory(category.ToStdString());
     p_parent->startGeneralTheoryApp(true);
   }
 
@@ -490,7 +490,7 @@ void NWDirdySetup::restrictTheories(const SpinMult::SpinMultEnum& mult,
       if (!lastSPTheory.IsEmpty() && !lastSPTheory.IsSameAs("None") &&
           spchoice->GetStringSelection()!=lastSPTheory) {
         p_parent->getFeedback()->setMessage(("Overriding single point theory " +
-          lastSPTheory + " to " + spchoice->GetStringSelection() + ".").c_str(),
+          lastSPTheory + " to " + spchoice->GetStringSelection() + ".").ToStdString(),
           WxFeedback::WARNING);
       }
     } else {
@@ -509,10 +509,10 @@ void NWDirdySetup::restrictTheories(const SpinMult::SpinMultEnum& mult,
       }
     }
 
-    model->setSPTheory(spchoice->GetStringSelection().c_str());
+    model->setSPTheory(spchoice->GetStringSelection().ToStdString());
     category = ((wxStringClientData*)spchoice->GetClientObject(
                                        spchoice->GetSelection()))->GetData();
-    model->setSPCategory((char*)category.c_str());
+    model->setSPCategory(category.ToStdString());
 
     if (spchoice->GetSelection() == 0) {
       getNWDirdyModel()->setUseSP(false);
@@ -536,9 +536,9 @@ void NWDirdySetup::OnCloseWindow( wxCloseEvent& event )
 void NWDirdySetup::OnChoiceNwdrdysetThSelected( wxCommandEvent& event )
 {
   ewxChoice *choice = ((ewxChoice*)FindWindow(ID_CHOICE_NWDRDYSET_TH));
-  getNWDirdyModel()->setTheory(choice->GetStringSelection().c_str());
+  getNWDirdyModel()->setTheory(choice->GetStringSelection().ToStdString());
   wxString category = ((wxStringClientData*)choice->GetClientObject(choice->GetSelection()))->GetData();
-  getNWDirdyModel()->setCategory((char*)category.c_str());
+  getNWDirdyModel()->setCategory(category.ToStdString());
   p_parent->startGeneralTheoryApp(true);
   p_parent->setSaveState(true);
   event.Skip();
@@ -547,10 +547,10 @@ void NWDirdySetup::OnChoiceNwdrdysetThSelected( wxCommandEvent& event )
 void NWDirdySetup::OnChoiceNwdrdysetSpthSelected( wxCommandEvent& event )
 {
   ewxChoice *choice = ((ewxChoice*)FindWindow(ID_CHOICE_NWDRDYSET_SPTH));
-  string sptheory = choice->GetStringSelection().c_str();
+  string sptheory = choice->GetStringSelection().ToStdString();
   getNWDirdyModel()->setSPTheory(sptheory);
   wxString category = ((wxStringClientData*)choice->GetClientObject(choice->GetSelection()))->GetData();
-  getNWDirdyModel()->setSPCategory((char*)category.c_str());
+  getNWDirdyModel()->setSPCategory(category.ToStdString());
 
   refreshBasisSetFields();
 

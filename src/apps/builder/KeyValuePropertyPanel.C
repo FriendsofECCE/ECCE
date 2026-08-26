@@ -84,7 +84,7 @@ void KeyValuePropertyPanel::refresh()
         key = nameIt->c_str();
       }
       wxString valueStr = 
-          wxString::Format (_T(PrefLabels::PRECISEDOUBLEFORMAT), 
+          wxString::Format (PrefLabels::PRECISEDOUBLEFORMAT, 
           tprop->scalarize());
       props[key] = valueStr.c_str();
       units[key] = tprop->units()=="NA"? "": tprop->units();

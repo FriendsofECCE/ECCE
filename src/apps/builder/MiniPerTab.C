@@ -149,18 +149,18 @@ void MiniPerTab::CreateControls()
           wxCommandEventHandler(MiniPerTab::OnCleanClick));
 
   wxArrayString bondLabels;
-  bondLabels.Add( wxT(TBond::orderToString(TBond::Single) ));
-  bondLabels.Add( wxT(TBond::orderToString(TBond::Double) ));
-  bondLabels.Add( wxT(TBond::orderToString(TBond::Triple) ));
-  bondLabels.Add( wxT(TBond::orderToString(TBond::Aromatic) ));
-  bondLabels.Add( wxT(TBond::orderToString(TBond::Metal) ));
+  bondLabels.Add( TBond::orderToString(TBond::Single));
+  bondLabels.Add( TBond::orderToString(TBond::Double));
+  bondLabels.Add( TBond::orderToString(TBond::Triple));
+  bondLabels.Add( TBond::orderToString(TBond::Aromatic));
+  bondLabels.Add( TBond::orderToString(TBond::Metal));
 
   wxArrayString bondImages;
-  bondImages.Add( wxT(TBond::orderToImage(TBond::Single)) );
-  bondImages.Add( wxT(TBond::orderToImage(TBond::Double)) );
-  bondImages.Add( wxT(TBond::orderToImage(TBond::Triple)) );
-  bondImages.Add( wxT(TBond::orderToImage(TBond::Aromatic)) );
-  bondImages.Add( wxT(TBond::orderToImage(TBond::Metal)) );
+  bondImages.Add( TBond::orderToImage(TBond::Single) );
+  bondImages.Add( TBond::orderToImage(TBond::Double) );
+  bondImages.Add( TBond::orderToImage(TBond::Triple) );
+  bondImages.Add( TBond::orderToImage(TBond::Aromatic) );
+  bondImages.Add( TBond::orderToImage(TBond::Metal) );
 
   p_bonds = new ImageDropDown(this, ID_BOND_SEL, wxEmptyString,
                               wxDefaultPosition, wxSize(100, 28),
@@ -172,34 +172,34 @@ void MiniPerTab::CreateControls()
   hSizer->Add(p_bonds, 0, wxALIGN_BOTTOM|wxLEFT|wxRIGHT|wxBOTTOM, 2);
 
   wxArrayString shapeLabels;
-  shapeLabels.Add( wxT(ShapeData::shapeToString(ShapeData::lone)) );
-  shapeLabels.Add( wxT(ShapeData::shapeToString(ShapeData::terminal)) );
-  shapeLabels.Add( wxT(ShapeData::shapeToString(ShapeData::linear)) );
-  shapeLabels.Add( wxT(ShapeData::shapeToString(ShapeData::bent)) );
-  shapeLabels.Add( wxT(ShapeData::shapeToString(ShapeData::trigonalPlanar)) );
-  shapeLabels.Add( wxT(ShapeData::shapeToString(ShapeData::pyramidal)) );
-  shapeLabels.Add( wxT(ShapeData::shapeToString(ShapeData::tetrahedral)) );
-  shapeLabels.Add( wxT(ShapeData::shapeToString(ShapeData::squarePlanar)) );
-  shapeLabels.Add( wxT(ShapeData::shapeToString(ShapeData::trigonalBipyramidal)) );
-  shapeLabels.Add( wxT(ShapeData::shapeToString(ShapeData::squarePyramidal)) );
-  shapeLabels.Add( wxT(ShapeData::shapeToString(ShapeData::octahedral)) );
-  shapeLabels.Add( wxT(ShapeData::shapeToString(ShapeData::cubic)) );
-  shapeLabels.Add( wxT(ShapeData::shapeToString(ShapeData::decahedral)) );
+  shapeLabels.Add( ShapeData::shapeToString(ShapeData::lone) );
+  shapeLabels.Add( ShapeData::shapeToString(ShapeData::terminal) );
+  shapeLabels.Add( ShapeData::shapeToString(ShapeData::linear) );
+  shapeLabels.Add( ShapeData::shapeToString(ShapeData::bent) );
+  shapeLabels.Add( ShapeData::shapeToString(ShapeData::trigonalPlanar) );
+  shapeLabels.Add( ShapeData::shapeToString(ShapeData::pyramidal) );
+  shapeLabels.Add( ShapeData::shapeToString(ShapeData::tetrahedral) );
+  shapeLabels.Add( ShapeData::shapeToString(ShapeData::squarePlanar) );
+  shapeLabels.Add( ShapeData::shapeToString(ShapeData::trigonalBipyramidal) );
+  shapeLabels.Add( ShapeData::shapeToString(ShapeData::squarePyramidal) );
+  shapeLabels.Add( ShapeData::shapeToString(ShapeData::octahedral) );
+  shapeLabels.Add( ShapeData::shapeToString(ShapeData::cubic) );
+  shapeLabels.Add( ShapeData::shapeToString(ShapeData::decahedral) );
 
   wxArrayString shapeImages;
-  shapeImages.Add( wxT(ShapeData::shapeToImage(ShapeData::lone)) );
-  shapeImages.Add( wxT(ShapeData::shapeToImage(ShapeData::terminal)) );
-  shapeImages.Add( wxT(ShapeData::shapeToImage(ShapeData::linear)) );
-  shapeImages.Add( wxT(ShapeData::shapeToImage(ShapeData::bent)) );
-  shapeImages.Add( wxT(ShapeData::shapeToImage(ShapeData::trigonalPlanar)) );
-  shapeImages.Add( wxT(ShapeData::shapeToImage(ShapeData::pyramidal)) );
-  shapeImages.Add( wxT(ShapeData::shapeToImage(ShapeData::tetrahedral)) );
-  shapeImages.Add( wxT(ShapeData::shapeToImage(ShapeData::squarePlanar)) );
-  shapeImages.Add( wxT(ShapeData::shapeToImage(ShapeData::trigonalBipyramidal)) );
-  shapeImages.Add( wxT(ShapeData::shapeToImage(ShapeData::squarePyramidal)) );
-  shapeImages.Add( wxT(ShapeData::shapeToImage(ShapeData::octahedral)) );
-  shapeImages.Add( wxT(ShapeData::shapeToImage(ShapeData::cubic)) );
-  shapeImages.Add( wxT(ShapeData::shapeToImage(ShapeData::decahedral)) );
+  shapeImages.Add( ShapeData::shapeToImage(ShapeData::lone) );
+  shapeImages.Add( ShapeData::shapeToImage(ShapeData::terminal) );
+  shapeImages.Add( ShapeData::shapeToImage(ShapeData::linear) );
+  shapeImages.Add( ShapeData::shapeToImage(ShapeData::bent) );
+  shapeImages.Add( ShapeData::shapeToImage(ShapeData::trigonalPlanar) );
+  shapeImages.Add( ShapeData::shapeToImage(ShapeData::pyramidal) );
+  shapeImages.Add( ShapeData::shapeToImage(ShapeData::tetrahedral) );
+  shapeImages.Add( ShapeData::shapeToImage(ShapeData::squarePlanar) );
+  shapeImages.Add( ShapeData::shapeToImage(ShapeData::trigonalBipyramidal) );
+  shapeImages.Add( ShapeData::shapeToImage(ShapeData::squarePyramidal) );
+  shapeImages.Add( ShapeData::shapeToImage(ShapeData::octahedral) );
+  shapeImages.Add( ShapeData::shapeToImage(ShapeData::cubic) );
+  shapeImages.Add( ShapeData::shapeToImage(ShapeData::decahedral) );
 
   p_shapes = new ImageDropDown(this, ID_SHAPE_SEL, wxEmptyString,
                                wxDefaultPosition, wxSize(60, 32),
@@ -232,7 +232,7 @@ void MiniPerTab::restoreSettings(wxConfig * config)
 void MiniPerTab::saveSettings(wxConfig * config)
 {
   for (int i=8; i<12; ++i) {
-    config->Write("/MiniPerTab/"+StringConverter::toString(i), p_elements[i]);
+    config->Write("/MiniPerTab/"+StringConverter::toString(i), wxString(p_elements[i]));
   }
 }
 
@@ -378,7 +378,7 @@ void MiniPerTab::OnMoreClick(wxCommandEvent &event)
 
 void MiniPerTab::OnBondSel(wxCommandEvent &event)
 {
-  string bond = p_bonds->GetStringSelection().c_str();
+  string bond = p_bonds->wxItemContainerImmutable::GetStringSelection().ToStdString();
   EventDispatcher::getDispatcher().publish(Event("BondChanged", bond));
   event.Skip();
 }
@@ -386,7 +386,7 @@ void MiniPerTab::OnBondSel(wxCommandEvent &event)
 
 void MiniPerTab::OnShapeSel(wxCommandEvent &event)
 {
-  string shape = p_shapes->GetStringSelection().c_str();
+  string shape = p_shapes->wxItemContainerImmutable::GetStringSelection().ToStdString();
   EventDispatcher::getDispatcher().publish(Event("ShapeChanged", shape));
   event.Skip();
 }
@@ -396,11 +396,11 @@ void MiniPerTab::OnShapeSel(wxCommandEvent &event)
 void MiniPerTab::OnChildFocus(wxChildFocusEvent &event)
 {
   if (event.GetWindow()->GetId() == ID_BOND_SEL) {
-    string bond = p_bonds->GetStringSelection().c_str();
+    string bond = p_bonds->wxItemContainerImmutable::GetStringSelection().ToStdString();
     EventDispatcher::getDispatcher().publish(Event("BondChanged", bond));
   }
   else if (event.GetWindow()->GetId() == ID_SHAPE_SEL) {
-    string shape = p_shapes->GetStringSelection().c_str();
+    string shape = p_shapes->wxItemContainerImmutable::GetStringSelection().ToStdString();
     EventDispatcher::getDispatcher().publish(Event("ShapeChanged", shape));
   }
   event.Skip();

@@ -137,11 +137,11 @@ void CalculationContextPanel::refresh()
   chemTask = dynamic_cast<ChemistryTask *>(p_itemData->getResource());
   if (chemTask) {
     if (chemTask->getThumbnail(thumbnail)) {
-      wxWindow *window = this->FindWindow(_T(BUILDER));
+      wxWindow *window = this->FindWindow(BUILDER);
       if (window) {
         EcceTool *button = dynamic_cast<EcceTool*>(window);
         if (button) {
-          wxBitmap bitmap(_T(thumbnail->path()), 
+          wxBitmap bitmap(thumbnail->path(), 
                           wxBITMAP_TYPE_JPEG);
           if (bitmap.Ok()) { // bitmap data found
             button->setBitMap(bitmap);
@@ -368,11 +368,11 @@ wxBoxSizer* CalculationContextPanel::createPropLabel(ResourceProperty *resProp)
   // create the label
   ewxNonBoldLabel *text = new ewxNonBoldLabel(this, 
       wxID_STATIC,              // don't care about the id
-      _T(resProp->getLabel()),  // text for use in label
+      resProp->getLabel(),  // text for use in label
       wxDefaultPosition,        // default only because I want to use a
       wxDefaultSize,            //    unique name next
       0,                        // no special styles set (default)
-      _T(resProp->getLabel())); // how we will refer to this window later
+      resProp->getLabel()); // how we will refer to this window later
 
   // add label to sizer to return
   box->Add(text,
@@ -443,7 +443,7 @@ wxBoxSizer* CalculationContextPanel::createPropHolder(ResourceProperty *resProp)
       wxDefaultPosition,        // default only because I want to give a
       wxDefaultSize,            //      unique name next
       0,                        // no special styles set (default)
-      _T(resProp->getName()));  // how we will refer to this window later
+      resProp->getName());  // how we will refer to this window later
 
   // add text portion of the property to sizer to return
   box->Add(text,
@@ -468,12 +468,12 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
   GridProperty::PropertyType type = resProp->getType();
 
   // get the label for this property
-  wxWindow *labelWin = FindWindow(_T(resProp->getLabel()));
+  wxWindow *labelWin = FindWindow(resProp->getLabel());
   ewxNonBoldLabel *label = dynamic_cast<ewxNonBoldLabel*>(labelWin);
   NULLPOINTEREXCEPTION(label, "failed to relocate label window");
 
   // get the text field associated with the property
-  wxWindow *propWin = FindWindow(_T(resProp->getName()));
+  wxWindow *propWin = FindWindow(resProp->getName());
   ewxStaticText *prop = dynamic_cast<ewxStaticText*>(propWin);
   NULLPOINTEREXCEPTION(prop, "failed to relocate property window");
 

@@ -7,6 +7,7 @@
 #include <limits>
 
 #include <wx/link.h>
+#include <wx/listctrl.h>
 
 #include "util/EventDispatcher.H"
 #include "util/InternalException.H"
@@ -423,19 +424,19 @@ void NModePanel::fillTable()
 
       for (int idx=0; idx<nRows; idx++) {
          p_grid->SetCellValue(idx,0,
-               wxString::Format (_T(PrefLabels::DOUBLEFORMAT), vec->value(idx)));
+               wxString::Format (PrefLabels::DOUBLEFORMAT, vec->value(idx)));
          if (syms && syms->size()>0) {
             p_grid->SetCellValue(idx,1,(*syms)[idx].c_str());
          }
 
          if (ivec != (PropVector*)0) {
             p_grid->SetCellValue(idx,2,
-                  wxString::Format (_T(PrefLabels::DOUBLEFORMAT), ivec->value(idx)));
+                  wxString::Format (PrefLabels::DOUBLEFORMAT, ivec->value(idx)));
          }
 
          if (rvec != (PropVector*)0) {
             p_grid->SetCellValue(idx,2,
-                  wxString::Format (_T(PrefLabels::DOUBLEFORMAT), rvec->value(idx)));
+                  wxString::Format (PrefLabels::DOUBLEFORMAT, rvec->value(idx)));
          }
       }
    }
@@ -475,7 +476,7 @@ void NModePanel::showMode(int index)
    Command *cmd = new NModeVectCmd("Normal Mode Vectors", &sg, expt);
    //cmd->getParameter("Amplitude")->setDouble(-1.); 
    cmd->getParameter("Mode")->setInteger(p_mode);
-   cmd->getParameter("Color")->setString(color.c_str());
+   cmd->getParameter("Color")->setString(color.ToStdString());
    cmd->getParameter("Sign")->setBoolean(sign);
    fw.execute(cmd);
    p_vecAmplitude = cmd->getParameter("Amplitude")->getDouble();
@@ -728,7 +729,7 @@ void NModePanel::OnButtonNmodeVeccolorClick( wxCommandEvent& event )
       wxCheckBox *tgl = (wxCheckBox*)FindWindow(ID_CHECKBOX_NMODE_VECSIGN);
       bool sign = tgl->IsChecked();
 
-      updateVectors(p_mode, p_slider->GetFloatValue(), sign, bgcolor.c_str());
+      updateVectors(p_mode, p_slider->GetFloatValue(), sign, bgcolor.ToStdString());
 
       btn->SetBackgroundColour(bgcolor);
 
@@ -788,7 +789,7 @@ void NModePanel::updateVectors()
 
    double value = static_cast<double>(p_slider->GetFloatValue());
 
-   updateVectors(p_mode, value, sign, color.c_str());
+   updateVectors(p_mode, value, sign, color.ToStdString());
 }
 
 

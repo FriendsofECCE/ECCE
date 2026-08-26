@@ -261,7 +261,7 @@ int PlotAnyPropertyPanel::getSelectionSize(ewxChoice* axis)
   wxStringClientData *stringData;
   if ((stringData = dynamic_cast<wxStringClientData*>(clientData))) {
     PropVector *prop = dynamic_cast<PropVector*>(
-            getCalculation()->getProperty(stringData->GetData().c_str()));
+            getCalculation()->getProperty(stringData->GetData().ToStdString()));
     ret = prop->rows();
   } else {
   }
@@ -276,7 +276,7 @@ void PlotAnyPropertyPanel::getSelectionData(ewxChoice* axis, double *values)
   wxStringClientData *stringData;
   if ((stringData = dynamic_cast<wxStringClientData*>(clientData))) {
     PropVector *prop = dynamic_cast<PropVector*>(
-            getCalculation()->getProperty(stringData->GetData().c_str()));
+            getCalculation()->getProperty(stringData->GetData().ToStdString()));
     vector<double> &vectorData = prop->values();
     copy(vectorData.begin(), vectorData.end(), values);
   } else {
@@ -292,7 +292,7 @@ void PlotAnyPropertyPanel::refreshAxisLabel(ewxChoice *axis)
   wxStringClientData *stringData;
   if ((stringData = dynamic_cast<wxStringClientData*>(clientData))) {
     TProperty *prop =
-            getCalculation()->getProperty(stringData->GetData().c_str());
+            getCalculation()->getProperty(stringData->GetData().ToStdString());
     label << prop->units();
   } else {
     label << axis->GetStringSelection();

@@ -9,10 +9,11 @@
   using std::vector;
 
 #include <wx/spinctrl.h> // for wxSpinEvent
+#include <wx/listctrl.h> // for wxListEvent
 #include "inv/draggers/SoDragger.H"
 #include "inv/nodes/SoEventCallback.H" 
 
-#include <wx/ewxaui/framemanager.H>
+#include "EwxAuiCompat.H"
 
 #include "util/CancelException.H"
 #include "util/CommandManager.H"
@@ -263,12 +264,12 @@ class Builder: public BuilderGUI,
       virtual void OnShowCmdClick( wxCommandEvent& event );
       virtual void OnToolMenuClick( wxCommandEvent& event );
 
-      virtual void OnPaneClose(ewxAuiManagerEvent& event);
-      virtual void OnPaneTakeFocus(ewxAuiManagerEvent& event);
-      virtual void OnPaneAddFocus(ewxAuiManagerEvent& event);
-      virtual void OnPaneOptions(ewxAuiManagerEvent& event);
-      virtual void OnPaneOpen(ewxAuiManagerEvent& event);
-      virtual void OnAuiUpdate(ewxAuiManagerEvent& event);
+      virtual void OnPaneClose(wxAuiManagerEvent& event);
+      virtual void OnPaneTakeFocus(wxAuiManagerEvent& event);
+      virtual void OnPaneAddFocus(wxAuiManagerEvent& event);
+      virtual void OnPaneOptions(wxAuiManagerEvent& event);
+      virtual void OnPaneOpen(wxAuiManagerEvent& event);
+      virtual void OnAuiUpdate(wxAuiManagerEvent& event);
 
       // Mode events
       virtual void OnModePrevClick( wxCommandEvent& event );
@@ -437,7 +438,7 @@ class Builder: public BuilderGUI,
       ewxTextCtrl *p_cmd;
 
       ViewerEvtHandler *p_viewerEvtHandler;
-      ewxAuiManager p_mgr;
+      wxAuiManager p_mgr;
 
       int p_toolCount;
       int p_toolbarCount;

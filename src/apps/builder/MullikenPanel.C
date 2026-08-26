@@ -181,7 +181,7 @@ bool MullikenPanel::Create(IPropCalculation *calculation,
   //GetSizer()->Add(treeSizer,0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
   GetSizer()->Add(treeSizer,1, wxEXPAND|wxGROW|wxALL, 0);
 
-  p_treelist = new wxTreeListCtrl (this, IDTREELIST, wxDefaultPosition, wxDefaultSize, wxTR_TWIST_BUTTONS|wxTR_NO_LINES|wxTR_HIDE_ROOT|wxTR_FULL_ROW_HIGHLIGHT|wxTR_EXTENDED);
+  p_treelist = new wxTreeListCtrl (this, IDTREELIST, wxDefaultPosition, wxDefaultSize, wxTR_TWIST_BUTTONS|wxTR_NO_LINES|wxTR_HIDE_ROOT|wxTR_FULL_ROW_HIGHLIGHT|wxTR_MULTIPLE);
   treeSizer->Add(p_treelist, 1,wxEXPAND|wxGROW|wxALL,1);
 
   // Create the columns
@@ -328,7 +328,7 @@ void MullikenPanel::fillUI()
            p_treelist->SetItemText (item, 1, wxString::Format (_T("%d"), idx+1));
            p_treelist->SetItemText (item, 2, symLabel.c_str());
            p_treelist->SetItemText (item, 3, "total atomic");
-           p_treelist->SetItemText (item, 4, wxString::Format (_T(PrefLabels::DOUBLEFORMAT), value));
+           p_treelist->SetItemText (item, 4, wxString::Format (PrefLabels::DOUBLEFORMAT, value));
 
 
            // This part does shell charges
@@ -361,7 +361,7 @@ void MullikenPanel::fillUI()
                        p_treelist->SetItemText (item, 1, _T(""));
                        p_treelist->SetItemText (item, 2, _T(""));
                        p_treelist->SetItemText (item, 3, shells[funcTypes[fdx]]);
-                       p_treelist->SetItemText (item, 4, wxString::Format (_T(PrefLabels::DOUBLEFORMAT), value));
+                       p_treelist->SetItemText (item, 4, wxString::Format (PrefLabels::DOUBLEFORMAT, value));
 
                        sidx++;
                     }

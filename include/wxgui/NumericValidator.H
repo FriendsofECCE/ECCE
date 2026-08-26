@@ -419,7 +419,7 @@ void NumericValidator<T>::OnChar(wxKeyEvent& event)
       val2 << val.Mid(0,point) << wxChar(keyCode) << val.Mid(point);
       val = val2;
       T tmp;
-      if (StringConverter::toValue(val.c_str(),tmp)) {
+      if (StringConverter::toValue(val.ToStdString(),tmp)) {
         good = true;
       }
     } else {
@@ -472,7 +472,7 @@ void NumericValidator<T>::Convert(T & val,
   converter.setBaseUnits(from.ToStdString());
 
   // convert value
-  val = (T)converter.convertTo(val, to.c_str());
+  val = (T)converter.convertTo(val, to.ToStdString());
 }
 
 
@@ -491,8 +491,8 @@ void NumericValidator<T>::Convert(T & min, T & max,
   converter.setBaseUnits(from.ToStdString());
 
   // convert value
-  min = (T)converter.convertTo(min, to.c_str());
-  max = (T)converter.convertTo(max, to.c_str());
+  min = (T)converter.convertTo(min, to.ToStdString());
+  max = (T)converter.convertTo(max, to.ToStdString());
 }
 
 #endif // NUMERICVALIDATOR_H

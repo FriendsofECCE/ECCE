@@ -721,8 +721,8 @@ void CalcEd::OnTextctrlCalcedNameEnter( wxCommandEvent& event )
 {
   if (p_frag) {
     enableSave();
-    p_frag->name(event.GetString().c_str());
-    p_fullFrag->name(event.GetString().c_str());
+    p_frag->name(event.GetString().ToStdString());
+    p_fullFrag->name(event.GetString().ToStdString());
   }
 
   event.Skip();
@@ -733,7 +733,7 @@ void CalcEd::OnComboboxCalcedChargeSelected( wxCommandEvent& event )
 {
   if (p_frag) {
     int value;
-    if (StringConverter::toInt(event.GetString().c_str(), value)) {
+    if (StringConverter::toInt(event.GetString().ToStdString(), value)) {
       enableSave();
       p_frag->charge(value);
       p_fullFrag->charge(value);
@@ -754,7 +754,7 @@ void CalcEd::OnComboboxCalcedChargeEnter( wxCommandEvent& event )
 
 void CalcEd::OnComboboxCalcedSpinMultSelected( wxCommandEvent& event )
 {
-  setSpinMult(SpinMult::toSpinMult(event.GetString().c_str()), true);
+  setSpinMult(SpinMult::toSpinMult(event.GetString().ToStdString()), true);
   setOpenShells(getSpinMult() - 1);
   restrictTheoriesBySpin();
   enableSave();
@@ -765,7 +765,7 @@ void CalcEd::OnComboboxCalcedSpinMultSelected( wxCommandEvent& event )
 
 void CalcEd::OnComboboxCalcedSpinMultEnter( wxCommandEvent& event )
 {
-  string valstr = event.GetString().c_str();
+  string valstr = event.GetString().ToStdString();
   if (valstr != "") {
     setSpinMult(SpinMult::toSpinMult(valstr), true);
     setOpenShells(getSpinMult() - 1);
@@ -1299,7 +1299,7 @@ int CalcEd::getOpenShells() const
 
   StringConverter::toInt(
           ((ewxStaticText*)FindWindow(ID_STATICTEXT_CALCED_OPEN_SHELLS))
-                  ->GetLabel().c_str(), ret);
+                  ->GetLabel().ToStdString(), ret);
 
   return ret;
 }
@@ -1402,7 +1402,7 @@ bool CalcEd::setTheory(const TTheory* value, const bool& overrideFlag)
           !rxnFlag) {
         p_feedback->setMessage(("Overriding theory " + lastTheoryName
                 + " to user preferred theory " + choice->GetStringSelection()
-                + ".").c_str(), WxFeedback::WARNING);
+                + ".").ToStdString(), WxFeedback::WARNING);
       }
     } else {
       // could not set theory from preferences, now try to find same category
@@ -1423,7 +1423,7 @@ bool CalcEd::setTheory(const TTheory* value, const bool& overrideFlag)
             ret = true;
           } else {
             p_feedback->setMessage(("Overriding theory " + lastTheoryName
-                    + " to " + choice->GetStringSelection() + ".").c_str(),
+                    + " to " + choice->GetStringSelection() + ".").ToStdString(),
                     WxFeedback::WARNING);
           }
         }
@@ -1441,7 +1441,7 @@ bool CalcEd::setTheory(const TTheory* value, const bool& overrideFlag)
           choice->SetSelection(0);
           if (!lastTheoryName.IsEmpty() && !lastTheoryName.IsSameAs("None")) {
             p_feedback->setMessage(("Overriding theory " + lastTheoryName
-                    + " to " + choice->GetStringSelection() + ".").c_str(),
+                    + " to " + choice->GetStringSelection() + ".").ToStdString(),
                     WxFeedback::WARNING);
           }
         }
@@ -1492,7 +1492,7 @@ bool CalcEd::setRuntype(const TRunType& value)
       if (!lastRuntypeName.IsEmpty() && !rxnFlag) {
         p_feedback->setMessage(("Overriding runtype " + lastRuntypeName
                 + " to user preferred runtype " + choice->GetStringSelection()
-                + ".").c_str(), WxFeedback::WARNING);
+                + ".").ToStdString(), WxFeedback::WARNING);
       }
     } else if (lastRuntypeName!=wxEmptyString &&
                choice->SetStringSelection(lastRuntypeName)) {
@@ -1500,7 +1500,7 @@ bool CalcEd::setRuntype(const TRunType& value)
       if (p_lastRuntype.name()!="" && !rxnFlag) {
         p_feedback->setMessage(("Overriding runtype " + p_lastRuntype.name()
                 + " to user preferred runtype " + choice->GetStringSelection()
-                + ".").c_str(), WxFeedback::WARNING);
+                + ".").ToStdString(), WxFeedback::WARNING);
       }
     } else {
       // could not set value from user preferences
@@ -1515,7 +1515,7 @@ bool CalcEd::setRuntype(const TRunType& value)
         choice->SetSelection(0);
         if (!lastRuntypeName.IsEmpty()) {
           p_feedback->setMessage(("Overriding runtype " + lastRuntypeName
-                  + " to " + choice->GetStringSelection() + ".").c_str(),
+                  + " to " + choice->GetStringSelection() + ".").ToStdString(),
                   WxFeedback::WARNING);
         }
       }
@@ -1600,7 +1600,7 @@ bool CalcEd::setSpinMult(const SpinMult::SpinMultEnum& value,
   else {
     // auto-select spin based on first available item
     combo->SetSelection(0);
-    p_spinMult = SpinMult::toSpinMult(combo->GetString(0).c_str());
+    p_spinMult = SpinMult::toSpinMult(combo->GetString(0).ToStdString());
   }
 
   // footprints 1530, needs to be set regardless
@@ -1898,7 +1898,7 @@ void CalcEd::restrictTheoriesBySpin(const bool& force)
     // remove restricted open shell (RO) theories
     // remove UMP5* for closed shell systems
     for (size_t i = 0; i < choice->GetCount(); /*i++*/) {
-      string name = choice->GetString(i).c_str();
+      string name = choice->GetString(i).ToStdString();
       if (name.find("RO") == 0 || name.find("UMP5") == 0) {
         choice->Delete(i);
       } else {
@@ -1908,7 +1908,7 @@ void CalcEd::restrictTheoriesBySpin(const bool& force)
   } else if ((int)spinMult-1 == openShells) {
     // remove restricted spin theories
     for (size_t i = 0; i < choice->GetCount(); /*i++*/) {
-      string name = choice->GetString(i).c_str();
+      string name = choice->GetString(i).ToStdString();
       if (name.find('R') == 0 && name.find('O') != 1) {
         choice->Delete(i);
       } else {
@@ -1918,7 +1918,7 @@ void CalcEd::restrictTheoriesBySpin(const bool& force)
   } else { // below the diagonal
     // remove restricted, unrestricted, restricted open shell spin theories
     for (size_t i = 0; i < choice->GetCount(); /*i++*/) {
-      string name = choice->GetString(i).c_str();
+      string name = choice->GetString(i).ToStdString();
       // RO handled by first (R)
       if (name.find('R') == 0 || name.find('U') == 0) {
         choice->Delete(i);
@@ -2148,7 +2148,7 @@ void CalcEd::refreshChemSysThumb()
   if (p_iCalc) {
     SFile *thumbnail = TempStorage::getTempFile();
     if (p_iCalc->getThumbnail(thumbnail)) {
-      wxBitmap bitmap(_T(thumbnail->path()), wxBITMAP_TYPE_JPEG);
+      wxBitmap bitmap(thumbnail->path(), wxBITMAP_TYPE_JPEG);
       if (bitmap.Ok()) 
         p_builderTool->setBitMap(bitmap);
       else
@@ -2794,7 +2794,7 @@ void CalcEd::getOrbitalParams(int &electrons, int &spin, int &frozenOrbs,
       coreElectrons += getCoreElectrons(p_frag->atomRef(i)->atomicNumber());
     }
 
-    string theory = getTheoryName().c_str();
+    string theory = getTheoryName().ToStdString();
     int openShells = 0;
     if (theory.find("RO") == 0 || theory.find('U') == 0) {
       openShells = getOpenShells();

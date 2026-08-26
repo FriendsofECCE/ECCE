@@ -9,6 +9,7 @@
 #include <wx/sizer.h>
 #include <wx/tglbtn.h> // EVT_TOGGLEBUTTON
 #include <wx/grid.h>
+#include <wx/listctrl.h>
 #include <wx/slider.h>
 
 #include "util/EventDispatcher.H"
@@ -222,7 +223,7 @@ void TensorTable::fillTable(PropVector *vec, int index)
          }
          if (i == startIdx) p_label->SetLabel(atomLabel.c_str());
          p_grid->SetCellValue(row,col,
-               wxString::Format (_T(PrefLabels::DOUBLEFORMAT), vec->value(i)));
+               wxString::Format (PrefLabels::DOUBLEFORMAT, vec->value(i)));
 
       }
 

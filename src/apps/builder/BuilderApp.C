@@ -80,7 +80,7 @@ bool BuilderApp::OnInit()
         usage();
         exit(-1);
       } else if (strcmp(argv[1], "-pipe") == 0) {
-        AuthCache::getCache().pipeIn(argv[++i]);
+        AuthCache::getCache().pipeIn(argv[++i].ToStdString());
       } else if (strcmp(argv[i], "-context") == 0) {
         // Might need index out of boundary check
         context = argv[++i];
@@ -433,7 +433,7 @@ void BuilderApp::invokeMCB(JMSMessage& msg)
         Target t(msg.getOriginalSenderName(), msg.getOriginalSenderId());
         JMSPublisher publisher(appName());
         JMSMessage * reply = publisher.newMessage(t);
-        reply->addProperty("value", valStr.c_str());
+        reply->addProperty("value", valStr.ToStdString());
         publisher.publish("ecce_getNWChemDistance", *reply);
         delete reply;
       } else if (action == "getNWChemAngle") {
@@ -446,7 +446,7 @@ void BuilderApp::invokeMCB(JMSMessage& msg)
         Target t(msg.getOriginalSenderName(), msg.getOriginalSenderId());
         JMSPublisher publisher(appName());
         JMSMessage * reply = publisher.newMessage(t);
-        reply->addProperty("value", valStr.c_str());
+        reply->addProperty("value", valStr.ToStdString());
         publisher.publish("ecce_getNWChemAngle", *reply);
         delete reply;
       } else if (action == "getNWChemTorsionAngle") {
@@ -461,7 +461,7 @@ void BuilderApp::invokeMCB(JMSMessage& msg)
         Target t(msg.getOriginalSenderName(), msg.getOriginalSenderId());
         JMSPublisher publisher(appName());
         JMSMessage * reply = publisher.newMessage(t);
-        reply->addProperty("value", valStr.c_str());
+        reply->addProperty("value", valStr.ToStdString());
         publisher.publish("ecce_getNWChemAngle", *reply);
         delete reply;
       } else if (action == "getcharge") {
@@ -477,7 +477,7 @@ void BuilderApp::invokeMCB(JMSMessage& msg)
         Target t(msg.getOriginalSenderName(), msg.getOriginalSenderId());
         JMSPublisher publisher(appName());
         JMSMessage * reply = publisher.newMessage(t);
-        reply->addProperty("charge", chargeStr.c_str());
+        reply->addProperty("charge", chargeStr.ToStdString());
         reply->addIntProperty("residue_status", residueStatus);
         publisher.publish("ecce_getcharge", *reply);
         delete reply;

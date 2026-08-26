@@ -1471,11 +1471,11 @@ void CalcMgr::OnUploadClick( wxCommandEvent& event )
                                          "Select file to upload", dir, 
                                          file,
                                          "All Files|*",
-                                         wxOPEN, wxDefaultPosition);
+                                         wxFD_OPEN, wxDefaultPosition);
   dlg->SetFilterIndex(1);
   if (dlg->ShowModal() == wxID_OK) {
     // access the file to upload through an SFile
-    string path = dlg->GetPath().c_str();
+    string path = dlg->GetPath().ToStdString();
     SFile *file = new SFile(path);
 
     // Upload to selected folder in the tree
@@ -1489,9 +1489,9 @@ void CalcMgr::OnUploadClick( wxCommandEvent& event )
   }
 
   // save the last directory and filename to calcmgr preferences
-  string directory = dlg->GetDirectory().c_str();
+  string directory = dlg->GetDirectory().ToStdString();
   prefs.setString("Organizer.UploadDir", directory);
-  string filename = dlg->GetFilename().c_str();
+  string filename = dlg->GetFilename().ToStdString();
   prefs.setString("Organizer.UploadFile", filename.c_str());
   prefs.saveFile();
 
@@ -1893,7 +1893,7 @@ void CalcMgr::OnTreectrlItemMenu( wxTreeEvent& event )
 
 void CalcMgr::OnPanelSelection( wxCommandEvent& event )
 {
-  vector<EcceURL> urls = EcceURL::toVector(event.GetString().c_str());
+  vector<EcceURL> urls = EcceURL::toVector(event.GetString().ToStdString());
   if (urls.size() == 1 && p_contextPanel != 0) {
     p_contextPanel->selectResource(urls[0]);
   }
@@ -3909,12 +3909,12 @@ void CalcMgr::download(WxResourceTreeItemData *itemData)
   ewxFileDialog *dlg = new ewxFileDialog(this, "Select download destination", 
                                          dir, 
                                          itemData->getName(), "*.*", 
-                                         wxSAVE|wxOVERWRITE_PROMPT, 
+                                         wxFD_SAVE|wxFD_OVERWRITE_PROMPT, 
                                          wxDefaultPosition);
   dlg->SetFilterIndex(1);
   if (dlg->ShowModal() == wxID_OK) {
     // make file from url of current directory plus filename (GetPath)
-    string path = dlg->GetPath().c_str();
+    string path = dlg->GetPath().ToStdString();
     SFile *file = new SFile(path);
 
     itemData->getResource()->getDocument(file);
@@ -3924,7 +3924,7 @@ void CalcMgr::download(WxResourceTreeItemData *itemData)
   }
 
   // save last directory to calcmgr preferences
-  string directory = dlg->GetDirectory().c_str();
+  string directory = dlg->GetDirectory().ToStdString();
   prefs.setString("Organizer.DownloadDir", directory);
   prefs.saveFile();
 

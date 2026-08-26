@@ -202,7 +202,7 @@ void TableAtomCoords::showVectors(bool guessScale)
    Command *cmd = new AtomCoordVecCmd(pname,&sg, expt);
    cmd->getParameter("property")->setString(pname);
    cmd->getParameter("Center")->setString("atom");
-   cmd->getParameter("neutral")->setString(color.GetAsString(wxC2S_HTML_SYNTAX).c_str());
+   cmd->getParameter("neutral")->setString(color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
    cmd->getParameter("Amplitude")->setDouble(p_slider->GetFloatValue());
    if (guessScale) {
       cmd->getParameter("newData")->setBoolean(guessScale);

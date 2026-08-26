@@ -85,11 +85,11 @@ Peptide::~Peptide()
 void Peptide::OnButtonAAClick( wxCommandEvent& event )
 {
    wxButton *btn = (wxButton*)event.GetEventObject();
-   string aa = btn->GetLabel().c_str();
+   string aa = btn->GetLabel().ToStdString();
    STLUtil::stripLeadingAndTrailingWhiteSpace(aa);
 
    ewxTextCtrl * text = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PEPTIDE_SEQUENCE);
-   string sequence = text->GetValue().c_str();
+   string sequence = text->GetValue().ToStdString();
    if (sequence.size() > 0) sequence.append("-"); 
    sequence.append(aa.c_str());
    text->SetValue(sequence.c_str());
@@ -118,10 +118,10 @@ void Peptide::OnButtonPeptideGenerateClick( wxCommandEvent& event )
       ewxTextCtrl *text;
 
       text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PEPTIDE_SEQUENCE));
-      string sequence = text->GetValue().c_str();
+      string sequence = text->GetValue().ToStdString();
       if (sequence.size() == 0) {
          // TODO this doesn't show up in status bar
-         ::wxLogWarning("You must specify a sequence.");
+         wxLogWarning("You must specify a sequence.");
       } else {
 
          Command *cmd = 0;

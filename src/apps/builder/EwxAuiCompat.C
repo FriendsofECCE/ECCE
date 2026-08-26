@@ -1,0 +1,7 @@
+#include "EwxAuiCompat.H"
+
+wxDEFINE_EVENT(wxEVT_EWXAUI_PANE_TAKE_FOCUS, wxAuiManagerEvent);
+wxDEFINE_EVENT(wxEVT_EWXAUI_PANE_ADD_FOCUS, wxAuiManagerEvent);
+wxDEFINE_EVENT(wxEVT_EWXAUI_PANE_OPTIONS, wxAuiManagerEvent);
+wxDEFINE_EVENT(wxEVT_EWXAUI_PANE_OPEN, wxAuiManagerEvent);
+wxDEFINE_EVENT(wxEVT_EWXAUI_UPDATE, wxAuiManagerEvent);

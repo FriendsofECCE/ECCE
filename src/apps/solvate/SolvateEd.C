@@ -911,7 +911,7 @@ void SolvateEd::refreshChemSysThumb()
   if (p_iCalc) {
     SFile *thumbnail = TempStorage::getTempFile();
     if (p_iCalc->getThumbnail(thumbnail)) {
-      wxBitmap bitmap(_T(thumbnail->path()), wxBITMAP_TYPE_JPEG);
+      wxBitmap bitmap(thumbnail->path(), wxBITMAP_TYPE_JPEG);
       if (bitmap.Ok()) 
         p_builderTool->setBitMap(bitmap);
       else

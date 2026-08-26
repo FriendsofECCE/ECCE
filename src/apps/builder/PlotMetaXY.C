@@ -289,13 +289,13 @@ void PlotMetaXY::doPlot()
     for (i=0; i<p_dataNames.size(); i++) {
       if (p_dataNames[i] == "METAVEC") {
         prop = dynamic_cast<PropVector*>(
-            getCalculation()->getProperty(p_dataNames[i].c_str()));
+            getCalculation()->getProperty(p_dataNames[i].ToStdString()));
         const Property_Ref *propRef =
-          PropFactory::getPropRef(p_dataNames[i].c_str());
+          PropFactory::getPropRef(p_dataNames[i].ToStdString());
         p_ylabel = propRef->long_name;
       } else if (p_dataNames[i] == "IKCPVEC") {
         keprop = dynamic_cast<PropTSVector*>(
-            getCalculation()->getProperty(p_dataNames[i].c_str()));
+            getCalculation()->getProperty(p_dataNames[i].ToStdString()));
         vector<double> &tmprtrData = keprop->values();
         int ksize = tmprtrData.size();
         p_Temperature = 0.0;

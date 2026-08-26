@@ -23,7 +23,7 @@ class WxProperties : public WxPropertiesGUI
     WxProperties( );
     WxProperties( wxWindow* parent,
                   wxWindowID id = SYMBOL_WXPROPERTIESGUI_IDNAME,
-                  const string& caption = SYMBOL_WXPROPERTIESGUI_TITLE,
+                  const string& caption = wxString(SYMBOL_WXPROPERTIESGUI_TITLE).ToStdString(),
                   const wxPoint& pos = SYMBOL_WXPROPERTIESGUI_POSITION,
                   const wxSize& size = SYMBOL_WXPROPERTIESGUI_SIZE,
                   long style = SYMBOL_WXPROPERTIESGUI_STYLE );

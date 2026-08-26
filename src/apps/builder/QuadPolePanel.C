@@ -131,10 +131,10 @@ void QuadPolePanel::fillTable()
         wxString cellv;
         for (int idx=0; idx<nRows; idx++) {
            if (rowLabels) {
-              cellv = wxString::Format (wxString("%s=")+_T(PrefLabels::DOUBLEFORMAT), (*rowLabels)[idx].c_str(),vec->value(idx));
+              cellv = wxString::Format (wxString("%s=")+PrefLabels::DOUBLEFORMAT, (*rowLabels)[idx].c_str(),vec->value(idx));
            } else {
               // No labels
-              cellv = wxString::Format (_T(PrefLabels::DOUBLEFORMAT), vec->value(idx));
+              cellv = wxString::Format (PrefLabels::DOUBLEFORMAT, vec->value(idx));
            }
            // Remove too much white space but make sure we have a space 
            // after the = or its too hard to read.
@@ -169,7 +169,7 @@ void QuadPolePanel::showVectors(bool guessScale)
    set<string> props = getPropertyNames();
    string pname = *(props.begin());
    cmd->getParameter("property")->setString(pname);
-   cmd->getParameter("neutral")->setString(color.GetAsString(wxC2S_HTML_SYNTAX).c_str());
+   cmd->getParameter("neutral")->setString(color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
    cmd->getParameter("Amplitude")->setDouble(p_slider->GetFloatValue());
    if (guessScale) {
       cmd->getParameter("newData")->setBoolean(guessScale);

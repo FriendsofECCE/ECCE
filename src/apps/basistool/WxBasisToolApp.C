@@ -49,7 +49,7 @@ bool WxBasisToolApp::OnInit()
     ewxApp::OnInit();
 
     if (argc>2 && strcmp(argv[1],"-pipe")==0) {
-      AuthCache::getCache().pipeIn(argv[2]);
+      AuthCache::getCache().pipeIn(argv[2].ToStdString());
     }
 
     p_basisToolFrame = new WxBasisTool(NULL);
@@ -66,7 +66,7 @@ bool WxBasisToolApp::OnInit()
         //      context relative to the user's home directory supplied as an option.
 
         string homePath = central.getDefaultUserHome().toString();
-        string calcName = argv[2];
+        string calcName = argv[2].ToStdString();
 
         EcceURL *url = new EcceURL(homePath + "/" + calcName);
 

@@ -19,9 +19,9 @@ bool PasswordDialogApp::OnInit()
 {
   ewxApp::OnInit();
 
-  char* type = argv[1];
-  char* host = argv[2];
-  char* user = argv[3];
+  std::string type = argv[1].ToStdString();
+  std::string host = argv[2].ToStdString();
+  std::string user = argv[3].ToStdString();
 
   WxAuth authDlg(NULL);
 

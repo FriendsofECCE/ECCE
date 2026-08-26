@@ -137,7 +137,7 @@ void EigenValPanel::fillTable()
 
            // Next three cols are components
            for (int cdx=0; cdx<3; cdx++) {
-              cellv = wxString::Format (_T(PrefLabels::DOUBLEFORMAT), vec->value((idx*3)+cdx));
+              cellv = wxString::Format (PrefLabels::DOUBLEFORMAT, vec->value((idx*3)+cdx));
               p_grid->SetCellValue(idx, cdx+2, cellv);
            }
 

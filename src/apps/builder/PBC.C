@@ -977,9 +977,9 @@ void PBC::OnSpinctrlPbcZrepTextUpdated( wxCommandEvent& event )
 void PBC::OnPbcGenerateClick( wxCommandEvent& event )
 {
    wxComboCtrl *cc = (wxComboCtrl*)FindWindow(ID_COMBO_SPACE_GROUP);
-   string sym = cc->GetValue().c_str();
+   string sym = cc->GetValue().ToStdString();
    if (!PointGroup::isSpaceGroup(sym)) {
-      ::wxLogWarning("You must specify a valid space group.");
+      wxLogWarning("You must specify a valid space group.");
    } else {
 
       SGFragment *frag = getFW().getSceneGraph().getFragment();
@@ -997,7 +997,7 @@ void PBC::OnPbcGenerateClick( wxCommandEvent& event )
          fw.execute(cmd);
       } catch (EcceException& ex) {
          frag->pointGroup(origsym); // restore
-         ::wxLogWarning("Unable to process space group.");
+         wxLogWarning("Unable to process space group.");
       }
    }
 
@@ -1062,7 +1062,7 @@ void PBC::OnButtonPbcCreateClick( wxCommandEvent& event )
 {
    SGFragment *frag = getFW().getSceneGraph().getFragment();
    if (frag->numAtoms() == 0) {
-      ::wxLogWarning("Import or build a fragment first.");
+      wxLogWarning("Import or build a fragment first.");
    } else {
       WxVizToolFW &fw = getFW();
       Command *cmd = new PBCCreateCmd("Create default lattice", 

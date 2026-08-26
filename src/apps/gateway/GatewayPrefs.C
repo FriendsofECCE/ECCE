@@ -289,7 +289,7 @@ void GatewayPrefs::saveSettings()
   // Save the color theme preference.
   Preferences colorPref = Preferences(PrefLabels::COLORPREFFILE);
   colorPref.setString(PrefLabels::COLORTHEME,
-                      p_colorTheme->GetStringSelection().c_str());
+                      p_colorTheme->GetStringSelection().ToStdString());
   colorPref.saveFile();
 
   // Save gateway preferences.

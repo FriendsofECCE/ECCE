@@ -764,9 +764,9 @@ void Builder::createMainPanel()
    
   setMode(ID_MODE_SELECT);
 
-  p_mgr.AddPane(mainPanel, ewxAuiPaneInfo().CenterPane().
+  p_mgr.AddPane(mainPanel, wxAuiPaneInfo().CenterPane().
           Name("Viewer").Caption("Viewer").CaptionVisible().
-          Show().Open().MaximizeButton()
+          Show().MaximizeButton()
           );
 }
 
@@ -912,9 +912,9 @@ void Builder::createToolPanels()
 
   p_structLib = new StructLib(this);
   p_structLib->configure();
-  ewxAuiPaneInfo pinfo;
+  wxAuiPaneInfo pinfo;
   pinfo.Name(NAME_TOOL_STRUCTLIB).Caption(NAME_TOOL_STRUCTLIB)
-          .Show(false).CaptionVisible(true).Right().AlwaysFixed(false);
+          .Show(false).CaptionVisible(true).Right().Resizable(true);
   p_mgr.AddPane(p_structLib, pinfo);
 }
 
@@ -1242,9 +1242,10 @@ void Builder::setContext(const string& url, const bool& force)
          vizpanel != vizpanels.end();
          ++vizpanel) {
       (*vizpanel)->setFocus(false);
-      ewxAuiPaneInfo &pane = p_mgr.GetPane(*vizpanel);
+      wxAuiPaneInfo &pane = p_mgr.GetPane(*vizpanel);
       if (pane.IsOk()) {
-        pane.Focus(false);
+        // NOTE: wxAuiPaneInfo::Focus() (ewxAUI addition) has no stock
+        // wx3.2 equivalent and is dropped here - see EwxAuiCompat.H.
         p_propertyPanelInfo[pane.window] = p_mgr.SavePaneInfo(pane);
       }
     }
@@ -1358,9 +1359,9 @@ void Builder::setContext(const string& url, const bool& force)
       doOpen = true;
     }
     if (doOpen) {
-      ewxAuiPaneInfo &info = p_mgr.GetPane(*panels.begin());
+      wxAuiPaneInfo &info = p_mgr.GetPane(*panels.begin());
       if (info.IsOk()) {
-        info.Open();
+        info.Show();
         p_mgr.Update(); // TODO is this needed yet or can it wait?
       }
     }
@@ -2054,7 +2055,7 @@ void Builder::OnOpenClick( wxCommandEvent& event )
   OpenCalculationDialog dialog(this);
   if (dialog.ShowModal() == wxID_CANCEL) return;
 
-  string path = dialog.GetPath().c_str();
+  string path = dialog.GetPath().ToStdString();
   EcceURL url(path);
   if (CalculationFactory::canOpen(url)) {
     setContext(url);
@@ -2076,7 +2077,7 @@ void Builder::OnImportChemsysClick(wxCommandEvent& event)
   // create temporary file for fragment reading
   SFile *file = TempStorage::getTempFile();
 
-  string path = dialog.GetPath().c_str();
+  string path = dialog.GetPath().ToStdString();
   EcceURL url(path);
   wxString type = dialog.getType();
   wxString ext = dialog.getExt().MakeUpper();
@@ -2327,13 +2328,13 @@ void Builder::updateUndoMenus()
   if (getCM()->isUndoable()) {
      string undoLabel = "Undo ";
      undoLabel += getCM()->getUndoLabel();
-     undo->SetText(undoLabel+"\tCtrl+z");
+     undo->SetItemLabel(undoLabel+"\tCtrl+z");
      undo->Enable(true);
      p_fileToolbar->EnableTool(wxID_UNDO, true);
      p_fileToolbar->SetToolShortHelp(wxID_UNDO, undoLabel);
   } else {
      string undoLabel = "Can\'t Undo\tCtrl+z";
-     undo->SetText(undoLabel.c_str());
+     undo->SetItemLabel(undoLabel);
      undo->Enable(false);
      p_fileToolbar->EnableTool(wxID_UNDO, false);
      p_fileToolbar->SetToolShortHelp(wxID_UNDO, "Can\'t Undo");
@@ -2344,12 +2345,12 @@ void Builder::updateUndoMenus()
     redo->Enable(true);
     string redoLabel = "Redo ";
     redoLabel += getCM()->getRedoLabel();
-    redo->SetText(redoLabel+"\tCtrl+y");
+    redo->SetItemLabel(redoLabel+"\tCtrl+y");
     p_fileToolbar->EnableTool(wxID_REDO, true);
     p_fileToolbar->SetToolShortHelp(wxID_REDO, redoLabel);
 
   } else {
-    redo->SetText("Can\'t Redo\tCtrl+y");
+    redo->SetItemLabel("Can\'t Redo\tCtrl+y");
     redo->Enable(false);
     p_fileToolbar->EnableTool(wxID_REDO, false);
     p_fileToolbar->SetToolShortHelp(wxID_REDO, "Can\'t Redo");
@@ -2604,7 +2605,7 @@ void Builder::updateForAnyEdit()
          GetMenuBar()->IsChecked(ViewerEvtHandler::ID_AUTO_RESIDUE) &&
          !isReadOnly() &&
          !p_mgr.GetPane("Residue Table").IsShown()) {
-      p_mgr.GetPane("Residue Table").Show(true).Open(true);
+      p_mgr.GetPane("Residue Table").Show(true).Show(true);
 
       // If its a viz tool, call virtual refresh to force updating
       // Works around bug where we can't override show because it gets
@@ -2828,7 +2829,7 @@ void Builder::OnModeNextClick( wxCommandEvent& event )
 
 void Builder::OnTextctrlCmdEnter( wxCommandEvent& event )
 {
-  string input = p_cmd->GetValue().c_str();
+  string input = p_cmd->GetValue().ToStdString();
   try {
     Command * cmd = createCommand(input);
     execute(cmd);
@@ -2986,7 +2987,7 @@ void Builder::OnViewerChoice( wxCommandEvent& event )
   sg->ref();
   SGViewer *viewer = new SGViewer(this, wxID_ANY);
   viewer->setSceneGraph(sg);
-  ewxAuiPaneInfo pinfo;
+  wxAuiPaneInfo pinfo;
   pinfo.Name(p_calculation->getURL().toString()).
           Caption(p_calculation->getURL().toString()).
           PinButton(true).MaximizeButton(true).MinimizeButton(true).
@@ -3053,25 +3054,25 @@ void Builder::OnModeBondClick( wxCommandEvent& event )
 void Builder::OnContextRadioClick( wxCommandEvent& event )
 {
   if (p_contextHistory->SetContext(event.GetId())) {
-    setContext(p_contextHistory->GetContext().c_str());
+    setContext(p_contextHistory->GetContext().ToStdString());
   }
 }
 
 
 void Builder::OnContextListClick( wxListEvent& event )
 {
-  setContext(event.GetText().c_str());
+  setContext(event.GetText().ToStdString());
 }
 
 
 void Builder::OnPropertyMenuClick( wxCommandEvent& event )
 {
   wxString name = p_propertyMenu->GetLabelText(event.GetId());
-  ewxAuiPaneInfo &pane = p_mgr.GetPane(name);
+  wxAuiPaneInfo &pane = p_mgr.GetPane(name);
   pane.Show(event.IsChecked());
   // If caption panel is toggled closed, open it by default
-  if (event.IsChecked() && !pane.IsOpen()) {
-    pane.Open(true);
+  if (event.IsChecked() && !pane.IsShown()) {
+    pane.Show(true);
     pane.Position(0);
   }
   p_mgr.Update();
@@ -3149,11 +3150,11 @@ void Builder::OnToolOrientClick( wxCommandEvent& event )
 
 void Builder::OnToolMenuClick( wxCommandEvent& event )
 {
-  ewxAuiPaneInfo &pane = p_mgr.GetPane(GetMenuBar()->GetLabel(event.GetId()));
+  wxAuiPaneInfo &pane = p_mgr.GetPane(GetMenuBar()->GetLabel(event.GetId()));
   pane.Show(event.IsChecked());
   // If caption panel is toggled closed, open it by default
-  if (event.IsChecked() && !pane.IsOpen()) {
-    pane.Open(true);
+  if (event.IsChecked() && !pane.IsShown()) {
+    pane.Show(true);
     pane.Position(0);
   }
   // If its a viz tool, call virtual refresh to force updating
@@ -3170,7 +3171,7 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
 }
 
 
-void Builder::OnPaneClose(ewxAuiManagerEvent& event)
+void Builder::OnPaneClose(wxAuiManagerEvent& event)
 {
   if (event.pane->name == NAME_TOOL_STRUCTLIB) {
     setMode(ID_MODE_SELECT);
@@ -3198,58 +3199,65 @@ void Builder::OnPaneClose(ewxAuiManagerEvent& event)
     // Without explicitly telling it to save the pane layout after processing
     // the close, it won't do it automatically like docked panes
     // GDB 3/26/10
-    ewxAuiManagerEvent evt(wxEVT_EWXAUI_UPDATE);
+    wxAuiManagerEvent evt(wxEVT_EWXAUI_UPDATE);
     AddPendingEvent(evt);
   }
 }
 
 
-void Builder::OnPaneTakeFocus(ewxAuiManagerEvent& event)
+void Builder::OnPaneTakeFocus(wxAuiManagerEvent& event)
 {
   wxBusyCursor c;
 
   // let the pane's window handle the event first
-  if (event.pane->window && event.pane->window->ProcessEvent(event)) {
+  if (event.pane->window && event.pane->window->GetEventHandler()->ProcessEvent(event)) {
     return;
   }
   // this will clear the focus on all viz panels while setting the given one
   VizPropertyPanel *panel;
   if ((panel = dynamic_cast<VizPropertyPanel*>(event.pane->window))) {
-    bool gettingFocus = !event.pane->HasFocus();
+    // NOTE: wxAuiPaneInfo has no HasFocus() in stock wx3.2 (it was an
+    // ewxAUI addition tied to the removed take-focus caption button, whose
+    // click is what used to drive this handler - see EwxAuiCompat.H).
+    bool gettingFocus = true;
     panel->setFocus(gettingFocus);
     // toggle it open if not already
-    if (gettingFocus && !event.pane->IsOpen()) {
-      event.pane->Open();
+    if (gettingFocus && !event.pane->IsShown()) {
+      event.pane->Show();
     }
   }
 }
 
 
-void Builder::OnPaneAddFocus(ewxAuiManagerEvent& event)
+void Builder::OnPaneAddFocus(wxAuiManagerEvent& event)
 {
   wxBusyCursor c;
 
   // let the pane's window handle the event first
-  if (event.pane->window && event.pane->window->ProcessEvent(event)) {
+  if (event.pane->window && event.pane->window->GetEventHandler()->ProcessEvent(event)) {
     return;
   }
   // clear focus on all viz panels that aren't pinned and set the given one
   VizPropertyPanel *panel;
   if ((panel = dynamic_cast<VizPropertyPanel*>(event.pane->window))) {
-    bool gettingFocus = !event.pane->IsPinned();
+    // NOTE: wxAuiPaneInfo has no IsPinned() in stock wx3.2 (it was an
+    // ewxAUI addition tied to the removed add-focus/pin caption button,
+    // whose click is what used to drive this handler - see
+    // EwxAuiCompat.H).
+    bool gettingFocus = true;
     panel->setPinned(gettingFocus);
     // toggle it open if not already
-    if (gettingFocus && !event.pane->IsOpen()) {
-      event.pane->Open();
+    if (gettingFocus && !event.pane->IsShown()) {
+      event.pane->Show();
     }
   }
 }
 
 
-void Builder::OnPaneOptions(ewxAuiManagerEvent& event)
+void Builder::OnPaneOptions(wxAuiManagerEvent& event)
 {
   // let the pane's window handle the event first
-  if (event.pane->window && event.pane->window->ProcessEvent(event)) {
+  if (event.pane->window && event.pane->window->GetEventHandler()->ProcessEvent(event)) {
     return;
   }
   TearableContentProvider * tcp;
@@ -3261,31 +3269,31 @@ void Builder::OnPaneOptions(ewxAuiManagerEvent& event)
 }
 
 
-void Builder::OnPaneOpen(ewxAuiManagerEvent& event)
+void Builder::OnPaneOpen(wxAuiManagerEvent& event)
 {
   wxBusyCursor c;
 
   // let the pane's window handle the event first
-  if (event.pane->window && event.pane->window->ProcessEvent(event)) {
+  if (event.pane->window && event.pane->window->GetEventHandler()->ProcessEvent(event)) {
     return;
   }
   VizPropertyPanel *panel;
   if ((panel = dynamic_cast<VizPropertyPanel*>(event.pane->window))) {
-    bool gettingFocus = !event.pane->IsOpen();
+    bool gettingFocus = !event.pane->IsShown();
     panel->setFocus(gettingFocus);
   }
 
   // custom user message for the case of animating trajectories with the
   // atom table open
   if (event.pane->name == "Trajectory" &&
-      !event.pane->IsOpen() &&
+      !event.pane->IsShown() &&
       p_mgr.GetPane(NAME_TOOL_ATOM_TABLE).IsShown()) {
     showMessage("Animating a trajectory with the atom table open will slow the frame rate.");
   }
 }
 
 
-void Builder::OnAuiUpdate(ewxAuiManagerEvent& event)
+void Builder::OnAuiUpdate(wxAuiManagerEvent& event)
 {
   savePaneLayout();
 }
@@ -3476,18 +3484,18 @@ void Builder::doSaveAs(const bool& imagesOnly)
       }
       
       // normally, temp filename is not changed, but it's needed for image conv
-      file->move(file->path() + "." + ext.c_str());
+      file->move(file->path() + "." + ext.ToStdString());
   
       if (writeFragmentToImageFile(file, type, ext)) {
         // now 'upload' new image where we really want it to go
-        string path = dialog.GetPath().c_str();
+        string path = dialog.GetPath().ToStdString();
         EcceURL url(path);
         Resource * resource = EDSIFactory::getResource(url.getParent());
         if (resource == 0) {
           // shouldn't happen
           wxLogError("Could not save as image for %s", url.toString().c_str());
         } else {
-          resource = resource->createChild(filename.c_str(), file);
+          resource = resource->createChild(filename.ToStdString(), file);
           if (resource == 0) {
             wxLogError("Could not save as image for %s",url.toString().c_str());
           } else {
@@ -3707,7 +3715,7 @@ bool Builder::writeFragmentToImageFile(SFile *file, wxString type, wxString ext)
     cmd->getParameter("blue")->setDouble(color[2]);
 
     if (type.StartsWith("Postscript")) {
-      cmd->getParameter("type")->setString(type.c_str());
+      cmd->getParameter("type")->setString(type.ToStdString());
       cmd->getParameter("filename")->setString(file->path());
       execute(cmd);
     } else { // ok, so create RGB and convert to format we want
@@ -3748,7 +3756,7 @@ bool Builder::readFragmentFromFile(SFile *file, wxString type, wxString ext)
   string units = "angstroms";
 
   AddFragmentCmd *cmd = new AddFragmentCmd("Add Fragment", getSG());
-  cmd->getParameter("streamType")->setString(ext.c_str());
+  cmd->getParameter("streamType")->setString(ext.ToStdString());
   cmd->getParameter("fileName")->setString(file->path());
   if (ext.IsSameAs("MVM",false)) {
       cmd->getParameter("genBondOrders")->setBoolean(false);
@@ -3886,9 +3894,9 @@ void Builder::savePaneLayout(const wxString& layoutName_)
   ewxConfig *config = ewxConfig::getConfig("wxbuilder.ini");
   wxString layoutPrefix = NAME_LAYOUT_PREFIX + layoutName + '/'; 
   // iterate over all panes and save their layout info
-  ewxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
+  wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
   for (size_t i = 0, count = panes.GetCount(); i < count; ++i) {
-    ewxAuiPaneInfo &pane = panes.Item(i);
+    wxAuiPaneInfo &pane = panes.Item(i);
     wxString info = p_mgr.SavePaneInfo(pane);
     if (dynamic_cast<PropertyPanel*>(pane.window)) {
       // prop panel layouts are save elsewhere
@@ -3936,7 +3944,7 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
   set<PropertyPanel*>::iterator ppanelIt;
   ppanels = PropertyPanel::getPanels();
   for (ppanelIt = ppanels.begin(); ppanelIt != ppanels.end(); ++ppanelIt) {
-    ewxAuiPaneInfo &pane = p_mgr.GetPane(*ppanelIt);
+    wxAuiPaneInfo &pane = p_mgr.GetPane(*ppanelIt);
     if (pane.IsOk()) {
       pane.window->Hide();
       p_mgr.DetachPane(*ppanelIt);
@@ -3946,9 +3954,9 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
   layoutPrefix += "/";
 
   // iterate over all panes and restore their layout info, if any
-  ewxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
+  wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
   for (size_t i = 0, count = panes.GetCount(); i < count; ++i) {
-    ewxAuiPaneInfo &pane = panes.Item(i);
+    wxAuiPaneInfo &pane = panes.Item(i);
     wxString info;
     if (config->Read(layoutPrefix + pane.name, &info)) {
       p_mgr.LoadPaneInfo(info, pane);
@@ -3959,12 +3967,12 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
   ppanels = PropertyPanel::getPanels(p_calculation->getURL().toString());
   for (ppanelIt = ppanels.begin(); ppanelIt != ppanels.end(); ++ppanelIt) {
     PropertyPanel *panel = *ppanelIt;
-    ewxAuiPaneInfo pane;
+    wxAuiPaneInfo pane;
     addPropertyPanel(panel, panel->getName());
     wxString info = p_propertyPanelInfo[panel];
     if (!info.IsEmpty()) {
       p_mgr.LoadPaneInfo(info, pane);
-      ewxAuiPaneInfo &p = p_mgr.GetPane(pane.name);
+      wxAuiPaneInfo &p = p_mgr.GetPane(pane.name);
       if (!p.IsOk()) {
         continue;
       }
@@ -3978,7 +3986,7 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
         GetMenuBar()->IsChecked(ViewerEvtHandler::ID_AUTO_RESIDUE) &&
         !isReadOnly() &&
         !p_mgr.GetPane("Residue Table").IsShown()) {
-     p_mgr.GetPane("Residue Table").Show(true).Open(true);
+     p_mgr.GetPane("Residue Table").Show(true).Show(true);
 
      // If its a viz tool, call virtual refresh to force updating
      // Works around bug where we can't override show because it gets
@@ -3993,7 +4001,7 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
      GetMenuBar()->Check(GetMenuBar()->FindMenuItem("Tools", "Residue Table"), true);
   } else if (frag->numResidues()==0 &&
                p_mgr.GetPane("Residue Table").IsShown()) {
-     p_mgr.GetPane("Residue Table").Show(false).Open(false);
+     p_mgr.GetPane("Residue Table").Show(false).Show(false);
 
      p_mgr.Update();
      GetMenuBar()->Check(GetMenuBar()->FindMenuItem("Tools", "Residue Table"), false);
@@ -4033,7 +4041,7 @@ void Builder::loadDefaultPaneLayout(const wxString& layoutName,
   for (int i=0; i<p_toolCount; ++i) {
     name = p_toolMenu->GetLabel(ID_TOOLMENU_ITEM+i);
     show = names.find(name) != names.end();
-    p_mgr.GetPane(name).Show(show).Open(show);
+    p_mgr.GetPane(name).Show(show).Show(show);
   }
  
   // special cases of positioning
@@ -4044,7 +4052,7 @@ void Builder::loadDefaultPaneLayout(const wxString& layoutName,
   } else if (layoutName == NAME_LAYOUT_DEFAULT) {
     // noop
   } else if (layoutName == NAME_LAYOUT_STRUCTLIB) {
-    p_mgr.GetPane(NAME_TOOL_STRUCTLIB).Show(true).Open(true).Right();
+    p_mgr.GetPane(NAME_TOOL_STRUCTLIB).Show(true).Show(true).Right();
   }
 
   names.clear();
@@ -4061,7 +4069,7 @@ void Builder::loadDefaultPaneLayout(const wxString& layoutName,
   for (int i=0; i<p_toolbarCount; ++i) {
     name = p_toolbarMenu->GetLabel(ID_TOOLBARMENU_ITEM+i);
     show = names.find(name) == names.end();
-    p_mgr.GetPane(name).Show(show).Open(show);
+    p_mgr.GetPane(name).Show(show).Show(show);
   }
 
   // save this default layout immediately
@@ -4449,17 +4457,18 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
                            const bool& readOnlyDisabled,
                            const bool& alwaysFixed)
 {
-  ewxAuiPaneInfo pinfo;
+  wxAuiPaneInfo pinfo;
   pinfo.Name(name).Caption(name).Show(false).CaptionVisible(true)
-          .Right().Position(p_toolCount).Fixed().AlwaysFixed();
+          .Right().Position(p_toolCount).Fixed();
   if (alwaysFixed) {
-    pinfo.AlwaysFixed(true).MaximizeButton(false);
+    pinfo.Fixed().MaximizeButton(false);
   } else {
-    pinfo.AlwaysFixed(false).MaximizeButton(true);
+    pinfo.Resizable(true).MaximizeButton(true);
   }
 
-  if (dynamic_cast<TearableContentProvider*>(panel))
-    pinfo.OptionsButton();
+  // NOTE: the OptionsButton() caption button (ewxAUI addition) has no
+  // stock wx3.2 wxAuiPaneInfo equivalent and is dropped here - see
+  // EwxAuiCompat.H.
 
   p_mgr.AddPane(panel, pinfo);
 
@@ -4479,7 +4488,7 @@ void Builder::addToolBar(wxToolBar * toolbar, const string& name)
 {
   toolbar->Realize();
   
-  ewxAuiPaneInfo pinfo;
+  wxAuiPaneInfo pinfo;
   pinfo.Name(name).Caption(name).ToolbarPane().Top().Position(p_toolbarCount).
           LeftDockable(false).RightDockable(false);
   p_mgr.AddPane(toolbar, pinfo);
@@ -4494,22 +4503,17 @@ void Builder::addToolBar(wxToolBar * toolbar, const string& name)
 void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
 {
   // Don't add this panel if it is already being managed
-  ewxAuiPaneInfo &pinfo = p_mgr.GetPane(panel);
+  wxAuiPaneInfo &pinfo = p_mgr.GetPane(panel);
   if (pinfo.IsOk()) {
     pinfo.Show();
   } else {
-    ewxAuiPaneInfo info = ewxAuiPaneInfo();
+    wxAuiPaneInfo info = wxAuiPaneInfo();
     info.DefaultPane();
     info.Name(name).Caption(name).CaptionVisible(true).
-            Left().Layer(2).Fixed().AlwaysFixed();
-    if ((dynamic_cast<VizPropertyPanel*>(panel))) {
-      info.TakeFocusButton();
-      if (panel->allowPin()) {
-        info.AddFocusButton();
-      }
-    }
-    if (dynamic_cast<TearableContentProvider*>(panel))
-      info.OptionsButton();
+            Left().Layer(2).Fixed();
+    // NOTE: the TakeFocusButton()/AddFocusButton()/OptionsButton() caption
+    // buttons (ewxAUI additions) have no stock wx3.2 wxAuiPaneInfo
+    // equivalent and are dropped here - see EwxAuiCompat.H.
     info.Position(p_propertyMenu->GetMenuItemCount());
     p_mgr.AddPane(panel, info);
   }
@@ -4912,7 +4916,7 @@ bool Builder::createSolventSoluteStyles(SGFragment& frag)
       // Only set the descriptor parameters if the display style is
       // being overriden to CPK.  Otherwise, render in the current style
       if (isWire) {
-         string cpkconfig = config->Read("/CPK").c_str();
+         string cpkconfig = config->Read("/CPK").ToStdString();
          DisplayDescriptor *cpk = 0;
          if (cpkconfig != "") {
             cpk = new DisplayDescriptor(cpkconfig);
@@ -4924,8 +4928,8 @@ bool Builder::createSolventSoluteStyles(SGFragment& frag)
       } else {
          // Restore from styles preferences
          ewxConfig *wxbuilder_ini = ewxConfig::getConfig("wxbuilder.ini");
-         string style = wxbuilder_ini->Read("/DefaultStyle", "CPK").c_str();
-         string styledd = wxbuilder_ini->Read(style).c_str();
+         string style = wxbuilder_ini->Read("/DefaultStyle", "CPK").ToStdString();
+         string styledd = wxbuilder_ini->Read(style).ToStdString();
          string scheme = "Element";
          DisplayDescriptor *dd = 0;
          if (styledd != "")
@@ -4950,7 +4954,7 @@ bool Builder::createSolventSoluteStyles(SGFragment& frag)
       // Solvent atoms will be made wireframe
       //
       DisplayDescriptor *wire = 0;
-      string wireconfig = config->Read("/Wireframe").c_str();
+      string wireconfig = config->Read("/Wireframe").ToStdString();
       if (wireconfig != "") {
          wire = new DisplayDescriptor(wireconfig.c_str());
       } else {

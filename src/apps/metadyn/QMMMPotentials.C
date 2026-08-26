@@ -1275,7 +1275,7 @@ void QMMMPotentials::gridCellChange(wxGridEvent& event)
           dynamic_cast<GridElement*>(table->getElement(event.GetRow(), event.GetCol()));
         if (element != 0) {
           double val;
-          StringConverter::toDouble(element->getValue().c_str(),val);
+          StringConverter::toDouble(element->getValue().ToStdString(),val);
           QMMMParams *param = (*params)[event.GetRow()];
           int natoms = param->getNumAtoms();
           param->setParamValue(val, event.GetCol()-natoms);

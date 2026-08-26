@@ -297,7 +297,7 @@ void WxLauncherGUI::CreateControls()
     itemWxParameterEdit20->setMaximum(100);
     itemWxParameterEdit20->setMinimum(1);
     itemWxParameterEdit20->setRangeVisible(1);
-    itemWxParameterEdit20->setUnitsLabel(_T(""));
+    itemWxParameterEdit20->setUnitsLabel("");
     itemWxParameterEdit20->setUnitsVisible(0);
     itemWxParameterEdit20->setValue(1);
     itemFlexGridSizer17->Add(itemWxParameterEdit20, 0, wxALIGN_LEFT|wxALIGN_BOTTOM, 3);
@@ -467,7 +467,7 @@ void WxLauncherGUI::CreateControls()
     itemWxParameterEdit64->setMaximum(100);
     itemWxParameterEdit64->setMinimum(1);
     itemWxParameterEdit64->setRangeVisible(1);
-    itemWxParameterEdit64->setUnitsLabel(_T(""));
+    itemWxParameterEdit64->setUnitsLabel("");
     itemWxParameterEdit64->setUnitsVisible(0);
     itemWxParameterEdit64->setValue(1);
     itemFlexGridSizer55->Add(itemWxParameterEdit64, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
@@ -489,7 +489,7 @@ void WxLauncherGUI::CreateControls()
     itemWxParameterEdit69->setMaximum(100);
     itemWxParameterEdit69->setMinimum(1);
     itemWxParameterEdit69->setRangeVisible(1);
-    itemWxParameterEdit69->setUnitsLabel(_T(""));
+    itemWxParameterEdit69->setUnitsLabel("");
     itemWxParameterEdit69->setUnitsVisible(0);
     itemWxParameterEdit69->setValue(1);
     if (ShowToolTips())
@@ -521,7 +521,7 @@ void WxLauncherGUI::CreateControls()
     itemWxParameterEdit76->setMaximum(100);
     itemWxParameterEdit76->setMinimum(1);
     itemWxParameterEdit76->setRangeVisible(1);
-    itemWxParameterEdit76->setUnitsLabel(_T(""));
+    itemWxParameterEdit76->setUnitsLabel("");
     itemWxParameterEdit76->setUnitsVisible(0);
     itemWxParameterEdit76->setValue(1);
     itemFlexGridSizer73->Add(itemWxParameterEdit76, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
@@ -543,7 +543,7 @@ void WxLauncherGUI::CreateControls()
     itemWxParameterEdit81->setMaximum(100);
     itemWxParameterEdit81->setMinimum(1);
     itemWxParameterEdit81->setRangeVisible(1);
-    itemWxParameterEdit81->setUnitsLabel(_T(""));
+    itemWxParameterEdit81->setUnitsLabel("");
     itemWxParameterEdit81->setUnitsVisible(0);
     itemWxParameterEdit81->setValue(1);
     itemFlexGridSizer78->Add(itemWxParameterEdit81, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);

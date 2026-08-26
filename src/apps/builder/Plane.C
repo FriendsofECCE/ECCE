@@ -91,7 +91,7 @@ bool   Plane::isTransparent() const
 string Plane::getName() const
 {
    ewxTextCtrl *txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLANE_NAME);
-   return txt->GetValue().c_str();
+   return txt->GetValue().ToStdString();
 }
 
 wxColour Plane::getColor() const

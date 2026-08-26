@@ -470,7 +470,7 @@ void MetaEd::OnComboboxMetaedChargeSelected( wxCommandEvent& event )
 {
   if (p_frag) {
     int value;
-    if (StringConverter::toInt(event.GetString().c_str(), value)) {
+    if (StringConverter::toInt(event.GetString().ToStdString(), value)) {
       enableSave();
       p_frag->charge(value);
       p_fullFrag->charge(value);
@@ -491,7 +491,7 @@ void MetaEd::OnComboboxMetaedChargeEnter( wxCommandEvent& event )
 
 void MetaEd::OnComboboxMetaedSpinMultSelected( wxCommandEvent& event )
 {
-  setSpinMult(SpinMult::toSpinMult(event.GetString().c_str()), true);
+  setSpinMult(SpinMult::toSpinMult(event.GetString().ToStdString()), true);
   setOpenShells(getSpinMult() - 1);
   enableSave();
 
@@ -501,7 +501,7 @@ void MetaEd::OnComboboxMetaedSpinMultSelected( wxCommandEvent& event )
 
 void MetaEd::OnComboboxMetaedSpinMultEnter( wxCommandEvent& event )
 {
-  string valstr = event.GetString().c_str();
+  string valstr = event.GetString().ToStdString();
   if (valstr != "") {
     setSpinMult(SpinMult::toSpinMult(valstr), true);
     setOpenShells(getSpinMult() - 1);
@@ -889,7 +889,7 @@ bool MetaEd::setSpinMult(const SpinMult::SpinMultEnum& value,
   else {
     // auto-select spin based on first available item
     combo->SetSelection(0);
-    p_spinMult = SpinMult::toSpinMult(combo->GetString(0).c_str());
+    p_spinMult = SpinMult::toSpinMult(combo->GetString(0).ToStdString());
   }
 
   // footprints 1530, needs to be set regardless
@@ -1172,7 +1172,7 @@ void MetaEd::refreshChemSysThumb()
   if (p_iCalc) {
     SFile *thumbnail = TempStorage::getTempFile();
     if (p_iCalc->getThumbnail(thumbnail)) {
-      wxBitmap bitmap(_T(thumbnail->path()), wxBITMAP_TYPE_JPEG);
+      wxBitmap bitmap(thumbnail->path(), wxBITMAP_TYPE_JPEG);
       if (bitmap.Ok()) 
         p_builderTool->setBitMap(bitmap);
       else

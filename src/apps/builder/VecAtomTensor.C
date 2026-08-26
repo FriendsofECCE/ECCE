@@ -423,8 +423,8 @@ void VecAtomTensor::showVectors(bool guessScale)
    set<string> props = getPropertyNames();
    string pname = *(props.begin());
    cmd->getParameter("property")->setString(pname);
-   cmd->getParameter("positive")->setString(pos.GetAsString(wxC2S_HTML_SYNTAX).c_str());
-   cmd->getParameter("negative")->setString(neg.GetAsString(wxC2S_HTML_SYNTAX).c_str());
+   cmd->getParameter("positive")->setString(pos.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
+   cmd->getParameter("negative")->setString(neg.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
    cmd->getParameter("Amplitude")->setDouble(p_slider->GetFloatValue());
    cmd->getParameter("Atoms")->setIntegerList(atoms);
    cmd->getParameter("newData")->setBoolean(guessScale);

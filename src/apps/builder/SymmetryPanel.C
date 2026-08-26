@@ -267,7 +267,7 @@ void SymmetryPanel::OnListChange(wxListEvent& event)
 void SymmetryPanel::assignSymmetry()
 {
    wxComboCtrl *cc = (wxComboCtrl*)FindWindow(ID_COMBO_SYMMETRY_GROUP);
-   string group = cc->GetValue().c_str();
+   string group = cc->GetValue().ToStdString();
 
    WxVizToolFW &fw = getFW();
 

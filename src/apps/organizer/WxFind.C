@@ -62,7 +62,7 @@ WxFind::~WxFind( )
  */
 void WxFind::setFrom(const string& value)
 {
-  p_from->SetValue(_T(value));
+  p_from->SetValue(value);
 }
 
 
@@ -109,7 +109,7 @@ void WxFind::OnFindButtonFindClick( wxCommandEvent& event )
   FindWindowById(ID_FIND_BUTTON_GO, this)->Enable(false);
 
   // get the url to search for descendants from
-  EcceURL url = p_from->GetValue().c_str();
+  EcceURL url = p_from->GetValue().ToStdString();
 
   // get the resource from the url
   Resource *resource;

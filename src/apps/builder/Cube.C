@@ -349,7 +349,7 @@ void Cube::updateSurface()
    ewxConfig *config = ewxConfig::getConfig(CONFIG_INIFILE);
    wxString stype = config->Read(CONFIG_SURFACE, CONFIG_SOLID);
    Command *cmd = new SurfDisplayTypeCmd("Surface Type", &sg, expt);
-   cmd->getParameter("IsosurfStyle")->setString(stype.c_str());
+   cmd->getParameter("IsosurfStyle")->setString(stype.ToStdString());
    fw.execute(cmd);
 }
 
@@ -531,7 +531,7 @@ void Cube::OnListLeftClick(wxListEvent& event)
       updateSurface();
 
       // only change label if this truly is a left click (could be a right one)
-      if (::wxGetMouseState().LeftDown()) {
+      if (::wxGetMouseState().LeftIsDown()) {
         p_textAGrid->SetLabel(grid->name());
       }
 
@@ -587,7 +587,7 @@ void Cube::OnCompute(wxCommandEvent& event)
     // generate the name
     wxString name;
     name << p_multA << "*" << labelA << " + " << p_multB << "*" << labelB;
-    grid->name(name.c_str());
+    grid->name(name.ToStdString());
     // generate the grid, add to our cache
     SingleGrid *gridA = p_propGrids->returnGrid(idxA);
     SingleGrid *gridB = p_propGrids->returnGrid(idxB);

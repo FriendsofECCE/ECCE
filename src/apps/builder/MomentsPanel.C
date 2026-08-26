@@ -218,7 +218,7 @@ void MomentsPanel::fillTable()
         p_grid->InsertRows(0,nRows/3);
         wxString cellv;
         for (int idx=0; idx<nRows; idx++) {
-           cellv = wxString::Format (_T(PrefLabels::DOUBLEFORMAT), vec->value(idx));
+           cellv = wxString::Format (PrefLabels::DOUBLEFORMAT, vec->value(idx));
            cellv.Replace(" ","",true);
            p_grid->SetCellValue((idx/3),idx%3,cellv);
         }
@@ -317,7 +317,7 @@ void MomentsPanel::showVectors(bool guessScale)
    set<string> props = getPropertyNames();
    string pname = *(props.begin());
    cmd->getParameter("property")->setString(pname);
-   cmd->getParameter("neutral")->setString(color.GetAsString(wxC2S_HTML_SYNTAX).c_str());
+   cmd->getParameter("neutral")->setString(color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
    cmd->getParameter("Amplitude")->setDouble(p_slider->GetFloatValue());
    if (guessScale) {
       cmd->getParameter("newData")->setBoolean(guessScale);

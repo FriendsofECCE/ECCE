@@ -601,7 +601,7 @@ void MetaPotentials::gridCellChange(wxGridEvent& event)
           dynamic_cast<GridElement*>(table->getElement(event.GetRow(), event.GetCol()));
         if (element != 0) {
           double val;
-          StringConverter::toDouble(element->getValue().c_str(),val);
+          StringConverter::toDouble(element->getValue().ToStdString(),val);
           MetaPotential *potential = (*potentials)[event.GetRow()];
           int natoms = potential->getNumAtoms();
           potential->setPotentialValue(val,event.GetCol()-natoms);

@@ -731,7 +731,7 @@ void MDPrep::showSolvatePanel()
 {
   ewxChoice *choice;
   choice = ((ewxChoice*)FindWindow(ID_CHOICE_MDPREP_SLV_GEOM));
-  string selection = choice->GetStringSelection().c_str();
+  string selection = choice->GetStringSelection().ToStdString();
   if (selection == "Cube" || selection == "Truncated Octahedron") {
     p_solvateVSizer->Show(p_edgePanel, true, true);
     p_solvateVSizer->Show(p_spherePanel, false, true);
@@ -2032,7 +2032,7 @@ void MDPrep::OnTextctrlMdprepSlvMindistEnter( wxCommandEvent& event )
 void MDPrep::OnComboboxMdprepCinameSelected( wxCommandEvent& event )
 {
   ewxComboBox *combo = ((ewxComboBox*)FindWindow(ID_COMBOBOX_MDPREP_CINAME));
-  string value = combo->GetValue().c_str();
+  string value = combo->GetValue().ToStdString();
   STLUtil::stripLeadingAndTrailingWhiteSpace(value);
   char atsym[3];
   if (value.size()>0) {
@@ -2049,7 +2049,7 @@ void MDPrep::OnComboboxMdprepCinameSelected( wxCommandEvent& event )
     isValidSymbol = pertab.isValid(atsym);
   }
   if (isValidSymbol) {
-    getPrepareModel().setCounterIonOpt(combo->GetValue().c_str());
+    getPrepareModel().setCounterIonOpt(combo->GetValue().ToStdString());
     getPrepareModel().setChangedTopology(true);
     setSaveState(true);
   } else {
@@ -2359,7 +2359,7 @@ void MDPrep::OnChoiceMdprepBcoptSelected( wxCommandEvent& event )
 void MDPrep::OnButtonMdprepSetbcClick( wxCommandEvent& event )
 {
   ewxChoice *choice = ((ewxChoice*)FindWindow(ID_CHOICE_MDPREP_BCOPT));
-  string selection = choice->GetStringSelection().c_str();
+  string selection = choice->GetStringSelection().ToStdString();
   if (selection == "Periodic") {
     addListCmd("  periodic");
   } else if (selection == "Vacuum") {
@@ -2371,7 +2371,7 @@ void MDPrep::OnButtonMdprepSetbcClick( wxCommandEvent& event )
 void MDPrep::OnChoiceMdprepSolventsSelected( wxCommandEvent& event )
 {
    ewxChoice *choice = ((ewxChoice*)FindWindow(ID_CHOICE_MDPREP_SOLVENTS));
-   string selection = choice->GetStringSelection().c_str();
+   string selection = choice->GetStringSelection().ToStdString();
    ewxTextCtrl *name = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_MDPREP_SOL_NAM));
    ewxTextCtrl *model = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_MDPREP_SOL_MOD));
    string sName, sModel;
@@ -2408,7 +2408,7 @@ void MDPrep::OnTextctrlMdprepSolNamEnter( wxCommandEvent& event )
   choice->SetStringSelection("Other");
   getPrepareModel().setSolventOption(choice->GetSelection());
   ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_MDPREP_SOL_NAM));
-  getPrepareModel().setSolventName(text->GetValue().c_str());
+  getPrepareModel().setSolventName(text->GetValue().ToStdString());
   getPrepareModel().setChangedTopology(true);
   setSaveState(true);
   event.Skip();
@@ -2420,7 +2420,7 @@ void MDPrep::OnTextctrlMdprepSolModEnter( wxCommandEvent& event )
   choice->SetStringSelection("Other");
   getPrepareModel().setSolventOption(choice->GetSelection());
   ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_MDPREP_SOL_MOD));
-  getPrepareModel().setSolventModel(text->GetValue().c_str());
+  getPrepareModel().setSolventModel(text->GetValue().ToStdString());
   getPrepareModel().setChangedTopology(true);
   setSaveState(true);
   event.Skip();
@@ -2432,7 +2432,7 @@ void MDPrep::OnTextctrlMdprepSolModEnter( wxCommandEvent& event )
 void MDPrep::OnChoiceMdprepSlvGeomSelected( wxCommandEvent& event )
 {
    ewxChoice *choice = ((ewxChoice*)FindWindow(ID_CHOICE_MDPREP_SLV_GEOM));
-   string selection = choice->GetStringSelection().c_str();
+   string selection = choice->GetStringSelection().ToStdString();
    if (selection == "Cube" || selection == "Truncated Octahedron") {
       p_edgePanel->Enable();
       p_spherePanel->Disable();
@@ -2465,7 +2465,7 @@ void MDPrep::OnChoiceMdprepSlvGeomSelected( wxCommandEvent& event )
 void MDPrep::OnButtonMdprepSolvateClick( wxCommandEvent& event )
 {
   ewxChoice *choice = ((ewxChoice*)FindWindow(ID_CHOICE_MDPREP_SLV_GEOM));
-  string selection = choice->GetStringSelection().c_str();
+  string selection = choice->GetStringSelection().ToStdString();
 
   string cmd = "  solvate";
 
@@ -3935,7 +3935,7 @@ void MDPrep::OnButtonMdprepUpClick( wxCommandEvent& event )
         p_listBox->Insert(buf,save-1);
         p_listBox->SetSelection(save-1);
         getPrepareModel().deleteCmdList(selections[0]);
-        getPrepareModel().insertCmdList(save-1, buf.c_str());
+        getPrepareModel().insertCmdList(save-1, buf.ToStdString());
         setSaveState(true);
       }
     }
@@ -3960,10 +3960,10 @@ void MDPrep::OnButtonMdprepDownClick( wxCommandEvent& event )
         getPrepareModel().deleteCmdList(selections[0]);
         if (save != count-2) {
           p_listBox->Insert(buf,save+1);
-          getPrepareModel().insertCmdList(save+1, buf.c_str());
+          getPrepareModel().insertCmdList(save+1, buf.ToStdString());
         } else {
           p_listBox->Append(buf);
-          getPrepareModel().appendCmdList(buf.c_str());
+          getPrepareModel().appendCmdList(buf.ToStdString());
         }
         p_listBox->SetSelection(save+1);
         setSaveState(true);
@@ -4165,7 +4165,7 @@ void MDPrep::doPmfSelectAtomsUpdated( int idText, int idIndex )
 {
   wxTextCtrl * text = dynamic_cast<wxTextCtrl*>(FindWindow(idText));
   wxStaticText * indexText = dynamic_cast<wxStaticText*>(FindWindow(idIndex));
-  int selection = getPrepareModel().getPmfSelection(text->GetValue().c_str());
+  int selection = getPrepareModel().getPmfSelection(text->GetValue().ToStdString());
   if (selection == -1) {
     indexText->SetLabel("(#)");
   } else {
@@ -4293,7 +4293,7 @@ void MDPrep::OnButtonPmfAddDirectiveClick( wxCommandEvent& event )
       if (textCtrl->IsShownOnScreen()) {
         if (textCtrl->IsEmpty()) { throw missingMsg; }
         command << getPrepareModel().
-                addPmfSelection(textCtrl->GetValue().c_str()) << " ";
+                addPmfSelection(textCtrl->GetValue().ToStdString()) << " ";
         doPmfSelectAtomsUpdated( selectAtomIds[i], selectAtomIndices[i] );
       }
     }
@@ -4324,7 +4324,7 @@ void MDPrep::OnButtonPmfAddDirectiveClick( wxCommandEvent& event )
     // add finished command to directives list
     wxListBox * listBox = (wxListBox*) FindWindow(ID_LISTBOX_PMF_DIRECTIVES);
     listBox->SetFirstItem(listBox->Append(command));
-    getPrepareModel().appendPmfCmdList(command.c_str());
+    getPrepareModel().appendPmfCmdList(command.ToStdString());
     setSaveState(true);
 
   } catch (string missingMsg) {
@@ -4350,7 +4350,7 @@ void MDPrep::doPmfRestoreDirective( wxString directive )
   bool hasAngle = false;
   bool hasTorsion = false;
 
-  StringTokenizer tokenizer(directive.c_str(), " ");
+  StringTokenizer tokenizer(directive.ToStdString(), " ");
   wxString token = tokenizer.next(); // "pmf"
   token = tokenizer.next(); // "all|combine|constraint|bias|<command>"
 
@@ -4468,7 +4468,7 @@ void MDPrep::OnButtonPmfUpClick( wxCommandEvent& event )
   listBox->Delete(index);
   getPrepareModel().deletePmfCmdList(index);
   listBox->Insert(value, index - 1);
-  getPrepareModel().insertPmfCmdList(index - 1, value.c_str());
+  getPrepareModel().insertPmfCmdList(index - 1, value.ToStdString());
   setSaveState(true);
   listBox->Select(index - 1);
   listBox->SetFirstItem(index - 1);
@@ -4493,7 +4493,7 @@ void MDPrep::OnButtonPmfDownClick( wxCommandEvent& event )
   listBox->Delete(index);
   getPrepareModel().deletePmfCmdList(index);
   listBox->Insert(value, index + 1);
-  getPrepareModel().insertPmfCmdList(index + 1, value.c_str());
+  getPrepareModel().insertPmfCmdList(index + 1, value.ToStdString());
   setSaveState(true);
   listBox->Select(index + 1);
   listBox->SetFirstItem(index + 1);
@@ -4508,7 +4508,7 @@ void MDPrep::OnButtonPmfDeleteClick( wxCommandEvent& event )
   if ((index = listBox->GetSelection()) != wxNOT_FOUND) {
     // clean-up select statement references --- UGLY and copied code elsewhere
     wxString directive = listBox->GetString(index);
-    StringTokenizer tokenizer(directive.c_str(), " ");
+    StringTokenizer tokenizer(directive.ToStdString(), " ");
     wxString token = tokenizer.next(); // "pmf"
     token = tokenizer.next(); // "all|combine|constraint|bias|command"
     if (token.IsSameAs("all") ||

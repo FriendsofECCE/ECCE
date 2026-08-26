@@ -236,7 +236,7 @@ string MoPanel::getSelectedType() const
    wxString col1 = p_mogrid->GetColLabelValue(0);
    bool haveTypes = col1 == "Type";
    if (haveTypes) {
-      return p_mogrid->GetCellValue(p_selectedRow,0).c_str();
+      return p_mogrid->GetCellValue(p_selectedRow,0).ToStdString();
    }
    return "alpha";
 }
@@ -462,7 +462,7 @@ int  MoPanel::fillTable(const string& type,
       // Column 2 - Energy
       if (!energy.empty()) {
          p_mogrid->SetCellValue(row, col++,
-               wxString::Format(_T(PrefLabels::DOUBLEFORMAT), energy[idx]));
+               wxString::Format(PrefLabels::DOUBLEFORMAT, energy[idx]));
       }
 
       // Col 3 - Occ # (might not have them)

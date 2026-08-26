@@ -1174,7 +1174,7 @@ SpinMult::SpinMultEnum NWDirdy::getSpinMult(const int& choiceId) const
   if (spin.IsEmpty()) {
     return SpinMult::unknown;
   } else {
-    return SpinMult::toSpinMult(spin.c_str());
+    return SpinMult::toSpinMult(spin.ToStdString());
   }
 }
 
@@ -2949,7 +2949,7 @@ void NWDirdy::OnComboboxDirdyChargeR1Selected( wxCommandEvent& event )
     delete tsfrag;
     ewxComboBox *tscombo =
                  ((ewxComboBox*)FindWindow(ID_COMBOBOX_DIRDY_CHARGE_TS));
-    string valstr = tscombo->GetValue().c_str();
+    string valstr = tscombo->GetValue().ToStdString();
     int tsval;
     if (StringConverter::toInt(valstr, tsval)) {
       // implement rules for conserving charge
@@ -3037,7 +3037,7 @@ void NWDirdy::OnChoiceDirdySpinR1Selected( wxCommandEvent& event )
     delete tsfrag;
 
     ewxChoice *tschoice = ((ewxChoice*)FindWindow(ID_CHOICE_DIRDY_SPIN_TS));
-    string spinstr = tschoice->GetStringSelection().c_str();
+    string spinstr = tschoice->GetStringSelection().ToStdString();
     int tsspin = (int)SpinMult::toSpinMult(spinstr) - 1;
 
     // implement rules for conserving charge
@@ -3137,7 +3137,7 @@ void NWDirdy::OnComboboxDirdyChargeR2Selected( wxCommandEvent& event )
     delete tsfrag;
     ewxComboBox *tscombo =
                  ((ewxComboBox*)FindWindow(ID_COMBOBOX_DIRDY_CHARGE_TS));
-    string valstr = tscombo->GetValue().c_str();
+    string valstr = tscombo->GetValue().ToStdString();
     int tsval;
     if (StringConverter::toInt(valstr, tsval)) {
       // implement rules for conserving charge
@@ -3225,7 +3225,7 @@ void NWDirdy::OnChoiceDirdySpinR2Selected( wxCommandEvent& event )
     delete tsfrag;
 
     ewxChoice *tschoice = ((ewxChoice*)FindWindow(ID_CHOICE_DIRDY_SPIN_TS));
-    string spinstr = tschoice->GetStringSelection().c_str();
+    string spinstr = tschoice->GetStringSelection().ToStdString();
     int tsspin = (int)SpinMult::toSpinMult(spinstr) - 1;
 
     // implement rules for conserving charge
@@ -3323,7 +3323,7 @@ void NWDirdy::OnComboboxDirdyChargeTsSelected( wxCommandEvent& event )
   if ((tsfrag = p_dirdyTask->getFragment(DirDyVTSTTask::TRANSITION))) {
     ewxComboBox *tscombo =
                  ((ewxComboBox*)FindWindow(ID_COMBOBOX_DIRDY_CHARGE_TS));
-    string valstr = tscombo->GetValue().c_str();
+    string valstr = tscombo->GetValue().ToStdString();
     int tsval;
     if (StringConverter::toInt(valstr, tsval)) {
       // implement rules for conserving charge
@@ -3461,7 +3461,7 @@ void NWDirdy::OnChoiceDirdySpinTsSelected( wxCommandEvent& event )
     delete tsfrag;
 
     ewxChoice *tschoice = ((ewxChoice*)FindWindow(ID_CHOICE_DIRDY_SPIN_TS));
-    string spinstr = tschoice->GetStringSelection().c_str();
+    string spinstr = tschoice->GetStringSelection().ToStdString();
     int tsspin = (int)SpinMult::toSpinMult(spinstr) - 1;
 
     // implement rules for conserving charge
@@ -3781,7 +3781,7 @@ void NWDirdy::OnComboboxDirdyChargeP1Selected( wxCommandEvent& event )
     delete tsfrag;
     ewxComboBox *tscombo =
                  ((ewxComboBox*)FindWindow(ID_COMBOBOX_DIRDY_CHARGE_TS));
-    string valstr = tscombo->GetValue().c_str();
+    string valstr = tscombo->GetValue().ToStdString();
     int tsval;
     if (StringConverter::toInt(valstr, tsval)) {
       // implement rules for conserving charge
@@ -3869,7 +3869,7 @@ void NWDirdy::OnChoiceDirdySpinP1Selected( wxCommandEvent& event )
     delete tsfrag;
 
     ewxChoice *tschoice = ((ewxChoice*)FindWindow(ID_CHOICE_DIRDY_SPIN_TS));
-    string spinstr = tschoice->GetStringSelection().c_str();
+    string spinstr = tschoice->GetStringSelection().ToStdString();
     int tsspin = (int)SpinMult::toSpinMult(spinstr) - 1;
 
     // implement rules for conserving charge
@@ -3969,7 +3969,7 @@ void NWDirdy::OnComboboxDirdyChargeP2Selected( wxCommandEvent& event )
     delete tsfrag;
     ewxComboBox *tscombo =
                  ((ewxComboBox*)FindWindow(ID_COMBOBOX_DIRDY_CHARGE_TS));
-    string valstr = tscombo->GetValue().c_str();
+    string valstr = tscombo->GetValue().ToStdString();
     int tsval;
     if (StringConverter::toInt(valstr, tsval)) {
       // implement rules for conserving charge
@@ -4057,7 +4057,7 @@ void NWDirdy::OnChoiceDirdySpinP2Selected( wxCommandEvent& event )
     delete tsfrag;
 
     ewxChoice *tschoice = ((ewxChoice*)FindWindow(ID_CHOICE_DIRDY_SPIN_TS));
-    string spinstr = tschoice->GetStringSelection().c_str();
+    string spinstr = tschoice->GetStringSelection().ToStdString();
     int tsspin = (int)SpinMult::toSpinMult(spinstr) - 1;
 
     // implement rules for conserving charge
@@ -4619,7 +4619,7 @@ bool NWDirdy::restrictSpin(const int& numElectrons, ewxChoice* choice,
   wxString spin = choice->GetStringSelection();
   int mult = 0;
   if (!spin.IsEmpty()) {
-    mult = (int)SpinMult::toSpinMult(spin.c_str());
+    mult = (int)SpinMult::toSpinMult(spin.ToStdString());
   }
   wxString currMult;
 
@@ -4821,7 +4821,7 @@ int NWDirdy::tsCharge(void)
   if ((tsfrag = p_dirdyTask->getFragment(DirDyVTSTTask::TRANSITION))) {
     ewxComboBox *tscombo =
                  ((ewxComboBox*)FindWindow(ID_COMBOBOX_DIRDY_CHARGE_TS));
-    string valstr = tscombo->GetValue().c_str();
+    string valstr = tscombo->GetValue().ToStdString();
     if (!StringConverter::toInt(valstr, charge)) {
       charge = 0;
     }

@@ -82,7 +82,7 @@ void BookmarkEditor::OnBookmarkNameUpdated( wxCommandEvent& event )
       p_userSelect = false;
       p_listBox->SetString(pos, value);
       p_userSelect = true;
-      setBookmarkName(pos, value.c_str());
+      setBookmarkName(pos, value.ToStdString());
     }
   }
   event.Skip();
@@ -101,7 +101,7 @@ void BookmarkEditor::OnBookmarkUrlUpdated( wxCommandEvent& event )
     }
     else {
       wxString value = p_url->GetValue();
-      setBookmarkUrl(pos, value.c_str());
+      setBookmarkUrl(pos, value.ToStdString());
     }
   }
   event.Skip();

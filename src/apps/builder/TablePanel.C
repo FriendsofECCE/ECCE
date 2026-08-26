@@ -116,7 +116,7 @@ void TablePanel::fillTable()
        wxString strval;
        for (ic=0; ic<cols; ic++) {
          for (ir=0; ir<rows; ir++) {
-           strval = wxString::Format (_T(PrefLabels::DOUBLEFORMAT), tab->value(ir,ic));
+           strval = wxString::Format (PrefLabels::DOUBLEFORMAT, tab->value(ir,ic));
            p_grid->SetCellValue(ir, ic, strval);
          }
        }

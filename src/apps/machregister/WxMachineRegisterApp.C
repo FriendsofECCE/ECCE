@@ -40,7 +40,7 @@ bool WxMachineRegisterApp::OnInit()
     bool admin = ((this->argc > 1) && (strcmp(this->argv[1], "-admin") == 0));
 
     if (!admin && this->argc>2 && strcmp(this->argv[1],"-pipe")==0) {
-      AuthCache::pipeClean(argv[2]);
+      AuthCache::pipeClean(argv[2].ToStdString());
     }
 
     p_rgstrFrame = new WxMachineRegister(NULL, admin);

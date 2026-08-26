@@ -279,7 +279,7 @@ void PartialCharges::fillUI()
          // The data columns
          wxString cellv;
          for (int jdx=FIXEDCOLS; jdx<numColumns; jdx++ ) {
-            cellv = wxString::Format (_T(PrefLabels::DOUBLEFORMAT), 
+            cellv = wxString::Format (PrefLabels::DOUBLEFORMAT, 
                   ptbl->value(idx,jdx-FIXEDCOLS));
             p_grid->SetCellValue(idx, jdx, cellv);
          }

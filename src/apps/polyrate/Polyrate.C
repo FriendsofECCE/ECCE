@@ -386,7 +386,7 @@ void Polyrate::refreshGUI()
    }
    menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPST));
    menu->SetSelection(0);
-   string component = convertString(menu->GetStringSelection().c_str());
+   string component = convertString(menu->GetStringSelection().ToStdString());
    text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_DEG1));
    text->setValueAsInt(model.getDegeneracy1(component));
    text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_NRG1));
@@ -1570,7 +1570,7 @@ void Polyrate::OnChoicePlyrtCmpstSelected( wxCommandEvent& event )
   int idx;
   ewxTextCtrl *text;
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPST));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_DEG1));
   idx = model.getDegeneracy1(component);
   text->setValueAsInt(idx);
@@ -1618,7 +1618,7 @@ void Polyrate::OnTextctrlPlyrtDeg1Enter( wxCommandEvent& event )
   PolyrateModel &model = getPolyrateModel();
   ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_DEG1));
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPST));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   model.setDegeneracy1(component,text->getValueAsInt());
   text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_NRG1));
   if (model.getDegeneracy1(component) > 0) {
@@ -1635,7 +1635,7 @@ void Polyrate::OnTextctrlPlyrtNrg1Enter( wxCommandEvent& event )
   PolyrateModel &model = getPolyrateModel();
   ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_NRG1));
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPST));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   double rval = text->getBaseValueAsDouble();
   if (rval != 0.0) {
     text->setValueAsDouble(0.0);
@@ -1651,7 +1651,7 @@ void Polyrate::OnTextctrlPlyrtDeg2Enter( wxCommandEvent& event )
   PolyrateModel &model = getPolyrateModel();
   ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_DEG2));
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPST));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   model.setDegeneracy2(component,text->getValueAsInt());
   text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_NRG2));
   if (model.getDegeneracy2(component) > 0) {
@@ -1673,7 +1673,7 @@ void Polyrate::OnTextctrlPlyrtNrg2Enter( wxCommandEvent& event )
   text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_NRG2));
   double rval2 = text->getBaseValueAsDouble();
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPST));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   if (rval2 != rval1 && rval2 != rval3) {
     model.setElectronicEnergy2(component,rval2);
   } else {
@@ -1694,7 +1694,7 @@ void Polyrate::OnTextctrlPlyrtDeg3Enter( wxCommandEvent& event )
   PolyrateModel &model = getPolyrateModel();
   ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_DEG3));
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPST));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   model.setDegeneracy3(component,text->getValueAsInt());
   text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_NRG3));
   if (model.getDegeneracy3(component) > 0) {
@@ -1716,7 +1716,7 @@ void Polyrate::OnTextctrlPlyrtNrg3Enter( wxCommandEvent& event )
   text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_NRG3));
   double rval3 = text->getBaseValueAsDouble();
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPST));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   if (rval3 != rval1 && rval3 != rval2) {
     model.setElectronicEnergy3(component,rval3);
   } else {
@@ -1761,7 +1761,7 @@ void Polyrate::OnButtonPlyrtClrstClick( wxCommandEvent& event )
     }
   }
   menu->SetSelection(0);
-  component = convertString(menu->GetStringSelection().c_str());
+  component = convertString(menu->GetStringSelection().ToStdString());
   text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_DEG1));
   text->setValueAsInt(model.getDegeneracy1(component));
   text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_NRG1));
@@ -1785,7 +1785,7 @@ void Polyrate::OnChoicePlyrtCmpmdSelected( wxCommandEvent& event )
 {
   PolyrateModel &model = getPolyrateModel();
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPMD));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   ewxListBox *list = ((ewxListBox*)FindWindow(ID_LISTBOX_PLYRT_TRSN));
   list->Clear();
   int numModes = model.getNumModes(component);
@@ -1842,7 +1842,7 @@ void Polyrate::OnButtonPlyrtMrsaddClick( wxCommandEvent& event )
   ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_MRSMD));
   int mode = text->getValueAsInt();
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPMD));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
 
   // Check to make sure that mode is not being used
   int numModes = model.getNumModes(component);
@@ -1879,9 +1879,9 @@ void Polyrate::OnButtonPlyrtMrsdelClick( wxCommandEvent& event )
   PolyrateModel &model = getPolyrateModel();
   int mode;
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPMD));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   ewxListBox *list = ((ewxListBox*)FindWindow(ID_LISTBOX_PLYRT_MRS));
-  string cmd = list->GetStringSelection().c_str();
+  string cmd = list->GetStringSelection().ToStdString();
   int idx = list->GetSelection();
   list->Delete(idx);
   model.translateMorse(cmd,mode);
@@ -1901,9 +1901,9 @@ void Polyrate::OnListboxPlyrtMrsSelected( wxCommandEvent& event )
   PolyrateModel &model = getPolyrateModel();
   int mode;
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPMD));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   ewxListBox *list = ((ewxListBox*)FindWindow(ID_LISTBOX_PLYRT_MRS));
-  string cmd = list->GetStringSelection().c_str();
+  string cmd = list->GetStringSelection().ToStdString();
   model.translateMorse(cmd,mode);
   ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_MRSMD));
   text->setValueAsInt(mode);
@@ -1920,7 +1920,7 @@ void Polyrate::OnButtonPlyrtTrsnadClick( wxCommandEvent& event )
   int imode;
   string component;
   menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPMD));
-  component = convertString(menu->GetStringSelection().c_str());
+  component = convertString(menu->GetStringSelection().ToStdString());
   string cmd = "  ";
   text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_TRSNMD));
   int ival = text->getValueAsInt();
@@ -1954,7 +1954,7 @@ void Polyrate::OnButtonPlyrtTrsnadClick( wxCommandEvent& event )
     sprintf(buf,"%4i",ival);
     cmd.append(buf);
     menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_SCHM));
-    string selection = menu->GetStringSelection().c_str();
+    string selection = menu->GetStringSelection().ToStdString();
     if (selection == "Frequency-Barrier") {
       cmd.append("  OW");
       scheme = "OW";
@@ -2007,9 +2007,9 @@ void Polyrate::OnButtonPlyrtTrsndlClick( wxCommandEvent& event )
   PolyrateModel &model = getPolyrateModel();
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPMD));
   string component;
-  component = convertString(menu->GetStringSelection().c_str());
+  component = convertString(menu->GetStringSelection().ToStdString());
   ewxListBox *list = ((ewxListBox*)FindWindow(ID_LISTBOX_PLYRT_TRSN));
-  string cmd = list->GetStringSelection().c_str();
+  string cmd = list->GetStringSelection().ToStdString();
   int idx = list->GetSelection();
   int mode, dmin, sym, ngrp;
   string scheme, level;
@@ -2022,7 +2022,7 @@ void Polyrate::OnButtonPlyrtTrsndlClick( wxCommandEvent& event )
     list->SetSelection(0);
   }
   if (list->GetCount() > 0) {
-    string cmd = list->GetStringSelection().c_str();
+    string cmd = list->GetStringSelection().ToStdString();
     int mode, imode, dmin, sym, ngrp;
     string scheme, level;
     model.translateTorsion(cmd, mode, dmin, sym, scheme, level, ngrp);
@@ -2044,13 +2044,13 @@ void Polyrate::OnListboxPlyrtTrsnSelected( wxCommandEvent& event )
   PolyrateModel &model = getPolyrateModel();
   ewxListBox *list = ((ewxListBox*)FindWindow(ID_LISTBOX_PLYRT_TRSN));
   if (list->GetCount()>0) {
-    string cmd = list->GetStringSelection().c_str();
+    string cmd = list->GetStringSelection().ToStdString();
     int mode, imode, dmin, sym, ngrp;
     string scheme, level;
     model.translateTorsion(cmd, mode, dmin, sym, scheme, level, ngrp);
     ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPMD));
     string component;
-    component = convertString(menu->GetStringSelection().c_str());
+    component = convertString(menu->GetStringSelection().ToStdString());
     menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_MODE));
     imode = model.getTorsionModeIndex(component,mode);
     setModeMenu();
@@ -2095,7 +2095,7 @@ void Polyrate::OnChoicePlyrtModeSelected( wxCommandEvent& event )
   PolyrateModel &model = getPolyrateModel();
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPMD));
   string component;
-  component = convertString(menu->GetStringSelection().c_str());
+  component = convertString(menu->GetStringSelection().ToStdString());
   menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_MODE));
   int mode = atoi(menu->GetStringSelection().c_str());
   string cmd = model.getTorsion(component, mode);
@@ -2123,7 +2123,7 @@ void Polyrate::OnChoicePlyrtDtypSelected( wxCommandEvent& event )
 {
   ewxStaticText *units = ((ewxStaticText*)FindWindow(wxID_STATIC_PLYRT_DVALS));
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_DTYP));
-  string selection = menu->GetStringSelection().c_str();
+  string selection = menu->GetStringSelection().ToStdString();
   string unit;
   if (selection == "Barrier Heights" || selection == "Excitation Energies" ||
       selection == "Barrier Frequencies") {
@@ -2140,14 +2140,14 @@ void Polyrate::OnChoicePlyrtDtypSelected( wxCommandEvent& event )
 void Polyrate::OnTextctrlPlyrtDvalsEnter( wxCommandEvent& event )
 {
   ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_DVALS));
-  string input = text->GetValue().c_str();
+  string input = text->GetValue().ToStdString();
   StringTokenizer tokenizer(input);
   vector<string> tokens = tokenizer.tokenize(" \t");
   int nvals = tokens.size();
   int i;
   bool isReal, isValid = true;
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_DTYP));
-  string selection = menu->GetStringSelection().c_str();
+  string selection = menu->GetStringSelection().ToStdString();
   if (selection == "Barrier Heights" || selection == "Excitation Energies" ||
       selection == "Barrier Frequencies" || selection == "Moments of Inertia") {
     isReal = true;
@@ -2186,14 +2186,14 @@ void Polyrate::OnButtonPlyrtOptaddClick( wxCommandEvent& event )
 {
   PolyrateModel &model = getPolyrateModel();
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPMD));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_MODE));
   int mode = atoi(menu->GetStringSelection().c_str());
   menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_DTYP));
   char buf[128];
   sprintf(buf,"    %d",mode);
   string cmd(buf);
-  string selection = menu->GetStringSelection().c_str();
+  string selection = menu->GetStringSelection().ToStdString();
   bool isReal, isValid = true;
   if (selection == "Barrier Heights") {
     cmd.append(" W ");
@@ -2218,7 +2218,7 @@ void Polyrate::OnButtonPlyrtOptaddClick( wxCommandEvent& event )
     isReal = true;
   }
   ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PLYRT_DVALS));
-  string values = text->GetValue().c_str();
+  string values = text->GetValue().ToStdString();
   // Check validity of options
   StringTokenizer tokenizer(values);
   vector<string> tokens = tokenizer.tokenize(" \t");
@@ -2261,7 +2261,7 @@ void Polyrate::OnButtonPlyrtOptdelClick( wxCommandEvent& event )
 {
   PolyrateModel &model = getPolyrateModel();
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPMD));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_MODE));
   int mode = atoi(menu->GetStringSelection().c_str());
   ewxListBox *list = ((ewxListBox*)FindWindow(ID_LISTBOX_PLYRT_OPTLST));
@@ -2278,7 +2278,7 @@ void Polyrate::OnListboxPlyrtOptlstSelected( wxCommandEvent& event )
 {
   PolyrateModel &model = getPolyrateModel();
   ewxListBox *list = ((ewxListBox*)FindWindow(ID_LISTBOX_PLYRT_OPTLST));
-  string cmd = list->GetStringSelection().c_str();
+  string cmd = list->GetStringSelection().ToStdString();
   string type, values;
   int mode;
   model.translateTorsionOpt(cmd,mode,type,values);
@@ -2328,7 +2328,7 @@ void Polyrate::OnChoicePlyrtCmpaxSelected( wxCommandEvent& event )
 {
   PolyrateModel &model = getPolyrateModel();
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPAX));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_AXIS));
   string axis;
   if (model.getLinearStatus(component)) {
@@ -2347,7 +2347,7 @@ void Polyrate::OnChoicePlyrtAxisSelected( wxCommandEvent& event)
 {
   PolyrateModel &model = getPolyrateModel();
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPAX));
-  string component = convertString(menu->GetStringSelection().c_str());
+  string component = convertString(menu->GetStringSelection().ToStdString());
   menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_AXIS));
   model.setComponentAxis(component, *(menu->GetStringSelection().c_str()));
   setSaveState(true);
@@ -2489,7 +2489,7 @@ void Polyrate::setModeMenu()
   ewxButton *button;
   ewxListBox *list;
   string component;
-  component = convertString(menu->GetStringSelection().c_str());
+  component = convertString(menu->GetStringSelection().ToStdString());
   int nmodes = model.getNumModes(component);
   int i, mode;
   char buf[32];
@@ -2539,7 +2539,7 @@ void Polyrate::checkTorsionOpts()
   PolyrateModel &model = getPolyrateModel();
   ewxChoice *menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_CMPMD));
   string component;
-  component = convertString(menu->GetStringSelection().c_str());
+  component = convertString(menu->GetStringSelection().ToStdString());
   menu = ((ewxChoice*)FindWindow(ID_CHOICE_PLYRT_MODE));
   int mode = atoi(menu->GetStringSelection().c_str());
   ewxStaticText *label = ((ewxStaticText*)FindWindow(wxID_STATIC_PLYRT_CHKOPT));

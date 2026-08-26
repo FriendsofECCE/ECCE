@@ -137,7 +137,7 @@ vector<string> TrajectoryStreamProvider::getFileSequence()
     wxString dirPath = file.pathroot();
     wxString name = file.filename();
     wxString ext = file.extension();
-    string nameStr = name.c_str();
+    string nameStr = name.ToStdString();
     size_t index = nameStr.find_last_not_of("0123456789");
     wxString filespec;
     if (index != string::npos) {
@@ -156,7 +156,7 @@ vector<string> TrajectoryStreamProvider::getFileSequence()
     wxArrayString files;
     wxDir::GetAllFiles(dirPath, &files, filespec, wxDIR_FILES);
     for (idx = 0; idx < files.Count(); ++idx) {
-      ret.push_back(files[idx].c_str());
+      ret.push_back(files[idx].ToStdString());
     }
   } else if (p_job) {
     // Determine where the trj files should be:
@@ -201,7 +201,7 @@ vector<string> TrajectoryStreamProvider::getFileSequence()
           if (file && !file->exists()) {
             file = p_job->getAnyFile(sortFiles[idx], file);
           }
-          ret.push_back(filepath.c_str());
+          ret.push_back(filepath.ToStdString());
           foundFlag = true;
         }
       }
@@ -232,7 +232,7 @@ vector<string> TrajectoryStreamProvider::getFileSequence()
         wxDir::GetAllFiles(path, &files, "*.trj", wxDIR_FILES);
         vector<string> unsortFiles;
         for (idx = 0; idx < files.Count(); ++idx) {
-          unsortFiles.push_back(files[idx].c_str());
+          unsortFiles.push_back(files[idx].ToStdString());
         }
         // Sadly, files are in jumbled order so sort them based on seq #
         // This took a few years to discover.  GDB 1/9/12
@@ -1202,10 +1202,10 @@ void TrajectoryPanel::SaveIt()
   Command * cmd;
   if (format == "POV-Ray") {
     cmd = new PovrayCmd("Render POV-Ray", &viewer);
-    cmd->getParameter("filename")->setString(outpath.c_str());
-    cmd->getParameter("finishStyle")->setString(p_model.povrayFinish.c_str());
-    cmd->getParameter("bondStyle")->setString(p_model.povrayBonds.c_str());
-    cmd->getParameter("isosurfaceStyle")->setString(p_model.povraySurfaces.c_str());
+    cmd->getParameter("filename")->setString(outpath.ToStdString());
+    cmd->getParameter("finishStyle")->setString(p_model.povrayFinish.ToStdString());
+    cmd->getParameter("bondStyle")->setString(p_model.povrayBonds.ToStdString());
+    cmd->getParameter("isosurfaceStyle")->setString(p_model.povraySurfaces.ToStdString());
   } else {
     cmd = new RenderFileCmd("Render File", &viewer);
     cmd->getParameter("width")->setInteger(width);
@@ -1214,7 +1214,7 @@ void TrajectoryPanel::SaveIt()
     cmd->getParameter("green")->setDouble(color[1]);
     cmd->getParameter("blue")->setDouble(color[2]);
     cmd->getParameter("type")->setString("RGB");
-    cmd->getParameter("filename")->setString(rgbpath.c_str());
+    cmd->getParameter("filename")->setString(rgbpath.ToStdString());
   }
 
   try {
@@ -1223,7 +1223,7 @@ void TrajectoryPanel::SaveIt()
     if (!getenv("ECCE_NO_VIZIMAGES") && format!="POV-Ray") {
       try {
         ImageConverter imconv;
-        imconv.convert(rgbpath.c_str(), outpath.c_str(), width, height,
+        imconv.convert(rgbpath.ToStdString(), outpath.ToStdString(), width, height,
                        8 /*image depth*/, true /*remove inFile*/);
       } catch (EcceException& ex) {
         wxString msg = "Unable to convert to image format " + format + ":\n";
@@ -1342,9 +1342,9 @@ void TrajectoryPanel::SetDisplayStyle(const DisplayStyle& style,
     }
     // Restore from styles preferences
     ewxConfig *config = ewxConfig::getConfig("wxbuilder.ini");
-    string style = config->Read("/DefaultStyle", "CPK").c_str();
+    string style = config->Read("/DefaultStyle", "CPK").ToStdString();
     //string style = "CPK";
-    string styledd = config->Read(style).c_str();
+    string styledd = config->Read(style).ToStdString();
     string scheme = "Element";
     DisplayDescriptor *dd = 0;
     if (styledd != "")
@@ -1387,8 +1387,8 @@ void TrajectoryPanel::SetDisplayStyle(const DisplayStyle& style,
   } else {
     // Restore from styles preferences
     ewxConfig *config = ewxConfig::getConfig("wxbuilder.ini");
-    string style = config->Read("/DefaultStyle", "CPK").c_str();
-    string styledd = config->Read(style).c_str();
+    string style = config->Read("/DefaultStyle", "CPK").ToStdString();
+    string styledd = config->Read(style).ToStdString();
     string scheme = "Element";
     DisplayDescriptor *dd = 0;
     if (styledd != "")

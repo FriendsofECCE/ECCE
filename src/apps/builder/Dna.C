@@ -135,10 +135,10 @@ void Dna::OnButtonDnaGenerateClick( wxCommandEvent& event )
   if (doit) {
      ewxTextCtrl *text;
      text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_DNA_SEQUENCE));
-     string sequence = text->GetValue().c_str();
+     string sequence = text->GetValue().ToStdString();
       if (sequence.size() == 0) {
          // TODO this doesn't show up in status bar
-         ::wxLogWarning("You must specify a sequence.");
+         wxLogWarning("You must specify a sequence.");
       } else {
 
          Command *cmd = 0;

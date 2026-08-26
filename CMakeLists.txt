@@ -26,9 +26,13 @@ add_compile_options(-Wall -Wno-deprecated -Wno-sign-compare -Wno-non-virtual-dto
 
 find_package(XercesC REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(wxWidgets 3.2 REQUIRED COMPONENTS core base gl aui)
+find_package(wxWidgets 3.2 REQUIRED COMPONENTS core base gl aui net)
 include(${wxWidgets_USE_FILE})
 find_package(PkgConfig)
+find_package(X11 REQUIRED)
+if(NOT X11_Xt_FOUND)
+  message(FATAL_ERROR "libXt (X Toolkit Intrinsics) not found - needed by src/comm/commxt/JobStore.C")
+endif()
 
 # Old build used "-I/usr/include/freetype2/freetype" as a baseline include
 # dir everywhere, because most FreeType headers this codebase includes
@@ -110,6 +114,13 @@ ecce_library(eccevizsg
 # --- src/comm -> 4 separate libraries ---
 ecce_library(eccecomm   src/comm/commtools)
 ecce_library(eccecommxt src/comm/commxt)
+# JobStore.C in this directory calls raw X Toolkit Intrinsics APIs
+# (XtAppAddSignal, XtCreateApplicationContext, etc.) directly - not part of
+# the wx port, this is the old build's async I/O/event-loop scaffolding for
+# eccejobstore. Link PUBLIC so every consumer of this static lib (jobstore,
+# launcher, mdprepare, organizer) picks up the Xt (and its X11 dependency)
+# linkage automatically without needing to list it themselves.
+target_link_libraries(eccecommxt PUBLIC X11::Xt X11::X11)
 ecce_library(eccercmd   src/comm/rcommand)
 ecce_library(ecceexp    src/comm/expect)
 # Old build's src/comm/expect/Makefile: CCFLAGS += -DNO_UNION_WAIT (this vendored
@@ -201,4 +212,102 @@ target_compile_definitions(eccewxthings PRIVATE ${wxWidgets_DEFINITIONS})
 target_include_directories(eccewxthings PRIVATE ${wxWidgets_INCLUDE_DIRS})
 target_link_libraries(eccewxthings PRIVATE ${wxWidgets_LIBRARIES})
 
-# TODO: src/apps targets and final executables.
+# ------------------------------------------------------------------------
+# src/apps -> the final executables. Each old src/apps/<name>/Makefile
+# defined PROGRAMS (usually one, matching the directory name) built from
+# every .C file in that directory, plus an ECCE_LIBS list of which of the
+# static libraries above to link against - see src/apps/<name>/Makefile in
+# git history for the exact old lists these were transcribed from. A few
+# apps (davutils, ecmd, jobstore) never included Makefile.wx at all and
+# have no wx dependency; the rest all do. builder and vizthumbnail also
+# pull in Makefile.gl (they link the Open Inventor/visualization stack).
+# ------------------------------------------------------------------------
+
+# Helper: define an executable from every .C source file in one directory.
+# link_libs are this app's own ECCE_LIBS list (as CMake target names, i.e.
+# without the old "-l" prefix - note libecceedsi.a is the CMake target
+# "eccedsi" here, not "ecceedsi", see the src/dsm section above).
+function(ecce_app name dir)
+  cmake_parse_arguments(ECCE_APP "WX;GL" "" "LINK" ${ARGN})
+  file(GLOB _srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/${dir}/*.C)
+  add_executable(${name} ${_srcs})
+  target_include_directories(${name} PRIVATE ${XercesC_INCLUDE_DIRS})
+  if(ECCE_APP_WX)
+    target_compile_definitions(${name} PRIVATE ${wxWidgets_DEFINITIONS})
+    target_include_directories(${name} PRIVATE ${wxWidgets_INCLUDE_DIRS})
+    target_link_libraries(${name} PRIVATE ${wxWidgets_LIBRARIES})
+  endif()
+  if(ECCE_APP_GL)
+    target_link_libraries(${name} PRIVATE OpenGL::GL OpenGL::GLU)
+  endif()
+  target_link_libraries(${name} PRIVATE ${ECCE_APP_LINK} ${XercesC_LIBRARIES})
+endfunction()
+
+# --- apps with no wx dependency ---
+ecce_app(load_tgbs src/apps/davutils
+  LINK eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(ecmd src/apps/ecmd
+  LINK eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+# jobstore builds two independent single-file programs from this directory,
+# each with its own main() - not combined into one binary (matches the old
+# Makefile's "multiple PROGRAMS -> each from its own matching .o" rule).
+add_executable(eccejobmaster src/apps/jobstore/eccejobmaster.C)
+target_include_directories(eccejobmaster PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(eccejobmaster PRIVATE
+  eccecommxt eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
+  ${XercesC_LIBRARIES})
+add_executable(eccejobstore src/apps/jobstore/eccejobstore.C)
+target_include_directories(eccejobstore PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(eccejobstore PRIVATE
+  eccecommxt eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
+  ${XercesC_LIBRARIES})
+
+# --- wx apps ---
+ecce_app(basistool src/apps/basistool WX
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(calced src/apps/calced WX
+  LINK eccecomm eccercmd ecceexp eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(dirdyed src/apps/dirdyed WX
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(gateway src/apps/gateway WX
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(launcher src/apps/launcher WX
+  LINK eccecommxt eccecomm eccercmd ecceexp eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(machbrowser src/apps/machbrowser WX
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd ecceexp eccetdat ecceutil)
+ecce_app(machregister src/apps/machregister WX
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(mddynamics src/apps/mddynamics WX
+  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(mdenergy src/apps/mdenergy WX
+  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(mdoptimize src/apps/mdoptimize WX
+  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(mdprepare src/apps/mdprepare WX
+  LINK eccewxgui eccewxplotctrl eccewxthings eccecommxt eccecomm eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(msgdialog src/apps/messagedialog WX
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(metadyn src/apps/metadyn WX
+  LINK eccecomm eccercmd ecceexp eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(organizer src/apps/organizer WX
+  LINK eccewxguicomm eccecommxt eccecomm eccercmd ecceexp eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(passdialog src/apps/passdialog WX
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(pertable src/apps/pertable WX
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(polyed src/apps/polyrate WX
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(solvate src/apps/solvate WX
+  LINK eccecomm eccercmd ecceexp eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+
+# --- wx + GL apps ---
+ecce_app(builder src/apps/builder WX GL
+  LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd ecceexp
+       eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
+       X11::X11 jpeg freetype)
+ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
+  LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
+
+# TODO: src/apps/symmetry (pure Fortran, no wx involvement - not part of the
+# wx port, deferred) and the build_ecce/install_ecce/create_ecce_bin
+# packaging scripts.

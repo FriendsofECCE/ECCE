@@ -249,7 +249,7 @@ void VecAtomSpectrum::fillUI()
            cellv = frag->atomRef(idx)->atomicSymbol().c_str();
            p_grid->SetCellValue(idx, 1, cellv);
 
-           cellv = wxString::Format (_T(PrefLabels::DOUBLEFORMAT), value);
+           cellv = wxString::Format (PrefLabels::DOUBLEFORMAT, value);
            p_grid->SetCellValue(idx, 2, cellv);
 
         }
