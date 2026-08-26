@@ -343,24 +343,77 @@ ecce_fortran_app(cleansym
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
 
 # ------------------------------------------------------------------------
-# Install rules. The old build_ecce/install_ecce/create_ecce_bin csh+Perl
-# scripts did much more than this (building a self-extracting binary
-# tarball with an interactive client/server installer wizard, separate
-# config for a remote compute-server component, etc.) - that whole
-# distribution model needs a decision from Andy before it's worth porting
-# (does he still want a self-extracting installer at all, or is a plain
-# `cmake --install` layout enough now that he's the one compiling). This
-# just covers the mechanical, uncontroversial part: dropping the built
-# executables and the data/ tree into a normal install prefix so the
-# CMake build is independently usable without the old scripts.
+# Install rules. Everything installs under /opt/ecce (see
+# CPACK_PACKAGING_INSTALL_PREFIX below) - the compiled apps still expect
+# an ECCE_HOME pointing at a directory with bin/ and data/ as siblings
+# (see src/util/genutil/Ecce.C, SFile.C's $ECCE_HOME expansion), which a
+# split FHS layout (bin in /usr/bin, data in /usr/share/...) doesn't give
+# them without a lot of path-handling surgery this session hasn't done.
 # ------------------------------------------------------------------------
-install(TARGETS
-  load_tgbs ecmd eccejobmaster eccejobstore
+set(ECCE_GUI_APPS
   basistool calced dirdyed gateway launcher machbrowser machregister
   mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
-  passdialog pertable polyed solvate builder vizthumbnail
-  autosym getfrag genmol genmollat cleansym
-  RUNTIME DESTINATION bin)
+  passdialog pertable polyed solvate builder vizthumbnail)
+set(ECCE_CLI_APPS
+  load_tgbs ecmd eccejobmaster eccejobstore
+  autosym getfrag genmol genmollat cleansym)
+
+install(TARGETS ${ECCE_GUI_APPS} ${ECCE_CLI_APPS} RUNTIME DESTINATION bin)
 if(EXISTS ${CMAKE_SOURCE_DIR}/data)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/data DESTINATION .)
 endif()
+
+# Thin /usr/bin wrapper scripts for the 19 GUI apps, so they land on PATH
+# and get ECCE_HOME set without the user having to source anything. These
+# are NEW scripts written for this build's flat single-platform bin/
+# layout - not a port of the old scripts/ecce, ebuilder, eviewer etc,
+# which assume a vendored 3rdparty Python interpreter, multi-platform
+# ECCE_SYSDIR subdirectories, and (for the top-level "ecce" launcher) the
+# Java/ActiveMQ JMS messaging server. Those, plus the Perl/Python helper
+# scripts in scripts/ (gbs*, eccejobmonitor, processmachine, pmf_gui.py/
+# prp_gui.py), are deliberately left out of this package for now - they're
+# exactly the peripheral Perl/Python pieces Andy's own forks have already
+# diverged on, so packaging this repo's copies would ship the wrong
+# version. Named "ecce-<app>" (not the bare old names like "builder") to
+# avoid colliding with unrelated commands already on a typical system's
+# PATH.
+foreach(_app ${ECCE_GUI_APPS})
+  set(_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-${_app})
+  file(WRITE ${_wrapper}
+"#!/bin/sh
+export ECCE_HOME=/opt/ecce
+exec \"$ECCE_HOME/bin/${_app}\" \"$@\"
+")
+  install(PROGRAMS ${_wrapper} DESTINATION /usr/bin)
+endforeach()
+
+# ------------------------------------------------------------------------
+# CPack: build a .deb instead of the old install_ecce self-extracting
+# installer. Run `cpack` (or `cpack -G DEB`) after building to produce it.
+# Runtime library deps are auto-detected from the actual linked .so's via
+# dpkg-shlibdeps (CPACK_DEBIAN_PACKAGE_SHLIBDEPS) rather than hand-listed,
+# so this stays correct as the wx/Xerces/Mesa package versions change.
+# ------------------------------------------------------------------------
+string(REGEX REPLACE "^v" "" _ecce_deb_version "${ECCE_VERSION_RAW}")
+string(REPLACE "-" "~" _ecce_deb_version "${_ecce_deb_version}")
+if(_ecce_deb_version STREQUAL "")
+  set(_ecce_deb_version "0.0.0")
+endif()
+
+set(CPACK_PACKAGE_NAME "ecce")
+set(CPACK_PACKAGE_VERSION "${_ecce_deb_version}")
+set(CPACK_PACKAGE_VENDOR "FriendsofECCE")
+set(CPACK_PACKAGE_CONTACT "Andy <caohlin.umu@gmail.com>")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+  "Extensible Computational Chemistry Environment - modeling/workflow GUI tools")
+set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/ecce")
+set(CPACK_GENERATOR "DEB")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_CONTACT}")
+set(CPACK_DEBIAN_PACKAGE_SECTION "science")
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+# RelWithDebInfo keeps -g everywhere (useful while porting - see the
+# CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
+# strip debug symbols out of the packaged copies only, not the build tree.
+set(CPACK_STRIP_FILES ON)
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+include(CPack)
