@@ -474,13 +474,29 @@ void DatagramUtil::loadServerPort() {
     */
     fileName += host + "_" + display;
 
-    // Read and parse the file:
-    ifstream infile(fileName.c_str());
+    // Read and parse the file. JMSDispatcher (the Java process
+    // ecce-gateway-start launches) writes this file shortly after it
+    // starts, and ecce-gateway-start already waits for it to appear
+    // before handing off to this process -- but that's a separate
+    // process seeing the file over what may be a network filesystem,
+    // and its check-then-launch isn't atomic with this read. So treat a
+    // missing/unreadable file as "not written yet" and retry briefly
+    // (up to ~5s, matching the scale of ecce-gateway-start's own wait
+    // loop for the same file) before giving up, rather than asserting
+    // on the very first attempt.
+    ifstream infile;
+    int attempt;
+    for (attempt = 0; attempt < 50; attempt++) {
+      infile.clear();
+      infile.open(fileName.c_str());
+      if (infile.good()) break;
+      usleep(100000); // 100ms
+    }
     string errMsg = "Could not open ";
     errMsg += fileName;
     EE_RT_ASSERT(infile.good(), EE_FATAL, errMsg);
 
-    infile >> JMSDISPATCH_PORT;    
+    infile >> JMSDISPATCH_PORT;
     infile.close();
 }
 
