@@ -53,6 +53,12 @@ include_directories(
 set(ECCE_VERSION_RAW "")
 if(EXISTS ${CMAKE_SOURCE_DIR}/data/client/config/Version)
   file(STRINGS ${CMAKE_SOURCE_DIR}/data/client/config/Version ECCE_VERSION_RAW LIMIT_COUNT 1)
+  # file(STRINGS ...) is a configure-time read, not a build dependency --
+  # CMake won't notice this file changed on a later `cmake --build` alone.
+  # Registering it here makes an edit to the Version file trigger an
+  # automatic reconfigure the next time anything is built.
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    ${CMAKE_SOURCE_DIR}/data/client/config/Version)
 endif()
 
 # ------------------------------------------------------------------------
