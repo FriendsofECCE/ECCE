@@ -47,6 +47,12 @@ else
     echo "ecce-gateway-start: no ActiveMQ broker installed at $ACTIVEMQ_HOME -- messaging will not work" >&2
   else
     echo "ecce-gateway-start: starting ActiveMQ broker..."
+    # The .deb doesn't preserve empty dirs, and ActiveMQ won't create these
+    # itself on a fresh install -- it just fails to bind its transport
+    # connectors, which shows up downstream as an EE_RT_ASSERT on a missing
+    # JMS port file rather than anything pointing at ActiveMQ. Guard here so
+    # gateway startup is self-healing regardless of what the package did.
+    mkdir -p "$ACTIVEMQ_HOME/data" "$ACTIVEMQ_HOME/logs"
     CP=""
     for f in "$ACTIVEMQ_HOME"/lib/*.jar; do CP="$f:$CP"; done
     (
