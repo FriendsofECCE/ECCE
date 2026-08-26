@@ -96,7 +96,11 @@ protected:
 
   void Initialize();
 
-  wxTimer     p_timer;
+  /** Lazily allocates p_timer on first real use. See the .C file for why
+      this can't be a plain value member constructed eagerly. */
+  void ensureTimer();
+
+  wxTimer    *p_timer;
   bool        p_timerEnabled;
 
   bool       *m_pBool;

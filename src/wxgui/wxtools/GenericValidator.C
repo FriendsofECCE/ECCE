@@ -156,6 +156,32 @@ GenericValidator::GenericValidator(wxArrayInt* val)
 GenericValidator::~GenericValidator()
 {
   ClearValue();
+  delete p_timer;
+  p_timer = 0;
+}
+
+
+/**
+ * Lazily allocates p_timer on first real use (from OnChar/OnLeaveWindow/
+ * OnEnterWindow -- always in response to a live UI event).
+ *
+ * p_timer can't be constructed eagerly in Initialize()/Copy() because this
+ * class has a global static instance -- DefaultValidator, declared at
+ * namespace scope in GenericValidator.H -- and since it's `const` at
+ * namespace scope it gets internal linkage, so every translation unit that
+ * includes the header gets its own private copy, each constructed during
+ * that TU's C++ static initialization, i.e. before main() runs and long
+ * before wx has an application object or event loop. Constructing a
+ * wxTimer that early hard-asserts under wx3.2 ("No timer implementation
+ * for this platform"), once per TU that includes this header. Deferring
+ * to first actual use sidesteps it. (Same issue, same fix, as its sibling
+ * class ewxGenericValidator.)
+ */
+void GenericValidator::ensureTimer()
+{
+  if (!p_timer) {
+    p_timer = new wxTimer(this, wxID_ANY);
+  }
 }
 
 
@@ -186,7 +212,7 @@ bool GenericValidator::Copy(const GenericValidator& that)
   m_pString = that.m_pString;
   m_pArrayInt = that.m_pArrayInt;
 
-  p_timer.SetOwner(this, wxID_ANY);
+  p_timer = 0;
   p_timerEnabled = that.p_timerEnabled;
 
   return ret;
@@ -1041,11 +1067,13 @@ bool GenericValidator::TransferFromWindow()
  */
 void GenericValidator::OnChar(wxKeyEvent& event)
 {
+  ensureTimer();
+
   if (event.GetKeyCode() == WXK_RETURN) {
-    if (p_timerEnabled) { p_timer.Stop(); }
+    if (p_timerEnabled) { p_timer->Stop(); }
     Validate(0);
   } else {
-    if (p_timerEnabled) { p_timer.Start(1000, true); }
+    if (p_timerEnabled) { p_timer->Start(1000, true); }
   }
   event.Skip();
 }
@@ -1058,6 +1086,8 @@ void GenericValidator::OnChar(wxKeyEvent& event)
  */
 void GenericValidator::OnLeaveWindow(wxMouseEvent& event)
 {
+  ensureTimer();
+
   p_timerEnabled = true;
 
   bool focusFollowMouse = false;
@@ -1067,7 +1097,7 @@ void GenericValidator::OnLeaveWindow(wxMouseEvent& event)
   if (focusFollowMouse) {
     Validate(0);
   } else {
-    p_timer.Start(1000, true);
+    p_timer->Start(1000, true);
   }
 
   event.Skip();
@@ -1084,7 +1114,9 @@ void GenericValidator::OnEnterWindow(wxMouseEvent& event)
   if ( !m_validatorWindow )
     return;
 
-  p_timer.Stop();
+  ensureTimer();
+
+  p_timer->Stop();
   p_timerEnabled = false;
 
   bool focusFollowMouse = false;
@@ -1244,7 +1276,7 @@ bool GenericValidator::HasValueChanged()
  */
 void GenericValidator::Initialize()
 {
-  p_timer.SetOwner(this, wxID_ANY);
+  p_timer = 0;
   p_timerEnabled = true;
 
   ClearValue();
