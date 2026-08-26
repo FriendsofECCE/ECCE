@@ -102,7 +102,7 @@ class Globals:
             if len(values) > 18:
               self.ChainedMetadynamics = int(values[18])
         except IndexError:
-            print "ERROR: wxPython code registration details dialog command line parameter missing!"
+            print("ERROR: wxPython code registration details dialog command line parameter missing!")
 
         if self.PortOut != 0:
           self.Socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

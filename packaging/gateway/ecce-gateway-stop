@@ -1,0 +1,33 @@
+#!/bin/bash
+# ecce-gateway-stop: stop the per-user JMSDispatcher relay and the
+# ActiveMQ broker started by ecce-gateway-start.
+
+set -u
+
+ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
+STATEDIR="$ECCE_REALUSERHOME/.ECCE"
+PIDFILE="$STATEDIR/jmsdispatcher.pid"
+
+if [ -f "$PIDFILE" ]; then
+  pid="$(cat "$PIDFILE")"
+  if kill -0 "$pid" 2>/dev/null; then
+    kill "$pid"
+    echo "ecce-gateway-stop: stopped JMSDispatcher (pid $pid)"
+  else
+    echo "ecce-gateway-stop: JMSDispatcher not running"
+  fi
+  rm -f "$PIDFILE"
+else
+  echo "ecce-gateway-stop: JMSDispatcher not running (no pidfile)"
+fi
+
+# The vendored ActiveMQ launcher (bin/activemq) doesn't leave its own
+# pidfile in this stock config, so find it by matching the same command
+# line pattern the old install_ecce stop_ecce_message_server.ecce used.
+mqpid="$(ps -eo pid,args | grep 'org.apache.activemq' | grep -v grep | awk '{print $1}' | head -n1)"
+if [ -n "${mqpid:-}" ]; then
+  kill "$mqpid"
+  echo "ecce-gateway-stop: stopped ActiveMQ broker (pid $mqpid)"
+else
+  echo "ecce-gateway-stop: ActiveMQ broker not running"
+fi

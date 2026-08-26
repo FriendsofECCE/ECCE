@@ -549,7 +549,7 @@ class Ged03TheoryPanel(EccePanel):
         try:
             self.memorySpin.Enable(self.memoryBox.GetValue())
         except wx.PyDeadObjectError:
-            print "Strange Error"
+            print("Strange Error")
 
         if EcceGlobals.Category == "SCF":
             self.diskSpin.Enable(self.diskBox.GetValue())

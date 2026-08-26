@@ -748,7 +748,7 @@ class NedTheoryPanel(EccePanel):
 
             if EcceGlobals.ReactionStudyFlag != 0:
                 xcFuncDefault =36 # CAO --changed from 15 to 37 to reflect added XCs
-            elif os.environ.has_key("ECCE_NWCHEM_DFT_USE_B3LYP"):
+            elif "ECCE_NWCHEM_DFT_USE_B3LYP" in os.environ:
                 if os.environ["ECCE_NWCHEM_DFT_USE_B3LYP"] == "true":
                     xcFuncDefault = 36 #  CAO -- changed from 7 to 8 to reflect reordering
             self.xcFunc = EcceComboBox(self,

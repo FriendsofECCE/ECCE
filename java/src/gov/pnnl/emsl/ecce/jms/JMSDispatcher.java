@@ -85,6 +85,15 @@ public class JMSDispatcher {
      private HashMap<String,TopicConnection> p_subscriberConnections;
 
     /**
+     *Tracks the MessageHandlers (and the DatagramSockets they own) created
+     *by subscribeServer(), keyed by subscriberID+subscriberName, so
+     *unsubscribe() can close them. Without this, every server-side
+     *subscription leaks one DatagramSocket file descriptor for the life
+     *of this process (see subscribeServer/unsubscribe).
+     */
+     private HashMap<String,LinkedList<MessageHandler>> p_serverSubscriberHandlers;
+
+    /**
      *Cache local subscriptions that will not go through the server:
      */
      private HashMap<String,HashMap<String,HashMap<String,MessageHandler>>> p_localSubscribers;
@@ -241,6 +250,7 @@ public class JMSDispatcher {
         p_publishers = new HashMap<String,TopicPublisher>(); 
         p_topics = new HashMap<String,Topic>();
         p_subscriberConnections = new HashMap<String,TopicConnection>();
+        p_serverSubscriberHandlers = new HashMap<String,LinkedList<MessageHandler>>();
         p_messageTopics = new HashMap<String,String>();
         p_packetQueue = new LinkedList<String>();
         p_localSubscribers = new HashMap<String,HashMap<String,HashMap<String,MessageHandler>>>();
@@ -847,10 +857,23 @@ public class JMSDispatcher {
             if (connection == null) {
                System.out.println(
                      "Can't unsubscribe - no subscriptions exist yet!");
-            } else {                    
+            } else {
                connection.close();
                p_subscriberConnections.remove(subscriberID +
                      subscriberName);
+            }
+
+            // Close the sockets opened for this subscriber's server-side
+            // MessageHandlers (subscribeServer) -- closing the JMS
+            // TopicConnection above stops delivery, but does not close
+            // the DatagramSocket each handler owns.
+            LinkedList<MessageHandler> serverHandlers =
+                p_serverSubscriberHandlers.remove(subscriberID + subscriberName);
+            if (serverHandlers != null) {
+               Iterator<MessageHandler> hit = serverHandlers.iterator();
+               while (hit.hasNext()) {
+                  hit.next().close();
+               }
             }
 
             // Now close local subscriptions:
@@ -861,9 +884,12 @@ public class JMSDispatcher {
             while(it.hasNext()) {
                appsForTopic = (HashMap) it.next();
                if(appsForTopic.containsKey(subscriberName)) {
-                  appsForName = 
+                  appsForName =
                      (HashMap) appsForTopic.get(subscriberName);
-                  appsForName.remove(subscriberID);
+                  Object removedHandler = appsForName.remove(subscriberID);
+                  if (removedHandler != null) {
+                     ((MessageHandler) removedHandler).close();
+                  }
                }
             }
 
@@ -935,7 +961,13 @@ public class JMSDispatcher {
             appsByTopic.put(subscriberName, appsByName);
         }
         // should only be one handler per topic per subscriber:
-        appsByName.put(subscriberID, handler);
+        MessageHandler oldHandler = appsByName.put(subscriberID, handler);
+        if (oldHandler != null) {
+            // Re-subscribing without an intervening unsubscribe would
+            // otherwise silently drop the old handler's socket reference
+            // and leak it.
+            oldHandler.close();
+        }
     }
             
     /**********************************************************************
@@ -983,22 +1015,33 @@ public class JMSDispatcher {
         // Create message handler
         MessageHandler handler = new MessageHandler(outPort, topicName,
                                                  subscriberID+subscriberName);
-        
+
+        // Track this handler so unsubscribe() can close its socket later
+        // (see p_serverSubscriberHandlers declaration).
+        String subscriberKey = subscriberID + subscriberName;
+        LinkedList<MessageHandler> handlers =
+            p_serverSubscriberHandlers.get(subscriberKey);
+        if (handlers == null) {
+            handlers = new LinkedList<MessageHandler>();
+            p_serverSubscriberHandlers.put(subscriberKey, handlers);
+        }
+        handlers.add(handler);
+
         // Get the topic connection for this subscriber:
-        TopicConnection connection = getSubscriberConnection(subscriberID, 
+        TopicConnection connection = getSubscriberConnection(subscriberID,
                                                              subscriberName);
         try {
-            
-            TopicSession session = connection.createTopicSession(false, 
+
+            TopicSession session = connection.createTopicSession(false,
                                                Session.AUTO_ACKNOWLEDGE);
             Topic topic = getTopic(topicName);
-            
+
             // subscribe
-            TopicSubscriber subscriber = 
+            TopicSubscriber subscriber =
                 session.createSubscriber(topic, messageSelector, false);
-            
+
             subscriber.setMessageListener(handler);
-            
+
         } catch (Exception e) {
             System.out.println("Failed to add subscriber:  " + subscriberID
                                + subscriberName +

@@ -25,7 +25,7 @@ def GetRangeBounds(range):
     #parse range into its different components
     #once dived in half, slice out the number portions of the range
     try: minString, maxString = range.split("..")
-    except ValueError: raise "BadRangeFormat"
+    except ValueError: raise ValueError("BadRangeFormat")
     minString = minString[1:]   #removes [ or ( from front of min
     maxString = maxString[:-1]  #removes ] or ) from back of max
 
@@ -33,13 +33,13 @@ def GetRangeBounds(range):
     #integer values
     lower = None
     upper = None
-    try: lower = string.atoi(minString)
+    try: lower = int(minString)
     except ValueError:
-        try: lower = string.atof(minString)
+        try: lower = float(minString)
         except ValueError: lower = None
-    try: upper = string.atoi(maxString)
+    try: upper = int(maxString)
     except ValueError:
-        try: upper = string.atof(maxString)
+        try: upper = float(maxString)
         except ValueError: upper = None
     return lower, upper
 
@@ -59,7 +59,7 @@ def InRange(range, value):
     minVal = None
 
     if EcceGlobals.DebugFlag == "DebugOn":
-        print "Value in check range ", value
+        print("Value in check range ", value)
 
     #clear message
     EcceGlobals.Message = ""
@@ -67,16 +67,16 @@ def InRange(range, value):
     #this function works the same whether the range/value is using float or
     #integer values
     try:
-        temp_val = string.atoi(str(value))
+        temp_val = int(str(value))
     except ValueError:
         try:
-            temp_val = string.atof(str(value))
+            temp_val = float(str(value))
         except ValueError:
-            raise "BadRangeValue"
+            raise ValueError("BadRangeValue")
 
     minVal, maxVal = GetRangeBounds(range)
 
-    if minVal <> None:
+    if minVal != None:
         if range[0] == "(":
             if temp_val <= minVal:
                 EcceGlobals.Message = "greater than %s." % str(minVal)
@@ -85,9 +85,9 @@ def InRange(range, value):
             if temp_val < minVal:
                 EcceGlobals.Message = "greater than or equal to %s."%str(minVal)
                 ret = False
-        else: raise "BadRangeFormat"
+        else: raise ValueError("BadRangeFormat")
 
-    if maxVal <> None:
+    if maxVal != None:
         if range[-1] == ")":
             if temp_val >= maxVal:
                 EcceGlobals.Message = "less than %s." % str(maxVal)
@@ -96,7 +96,7 @@ def InRange(range, value):
             if temp_val > maxVal:
                 EcceGlobals.Message = "less than or equal to %s." % str(maxVal)
                 ret = False
-        else: raise "BadRangeFormat"
+        else: raise ValueError("BadRangeFormat")
 
     return ret
 
@@ -704,7 +704,7 @@ class EcceFloatInput(wx.BoxSizer):
             self.save = value
         except ValueError:
             if EcceGlobals.EnableDebug:
-                print "ValueError in Save"
+                print("ValueError in Save")
 
 
     def NotDefault(self):
@@ -713,7 +713,7 @@ class EcceFloatInput(wx.BoxSizer):
             return self.default != value
         except ValueError:
             if EcceGlobals.EnableDebug:
-                print "ValueError in Function NotDefault"
+                print("ValueError in Function NotDefault")
             return True
 
 
@@ -723,7 +723,7 @@ class EcceFloatInput(wx.BoxSizer):
             return self.save != value
         except ValueError:
             if EcceGlobals.EnableDebug:
-                print "ValueError in Function NotSaved"
+                print("ValueError in Function NotSaved")
             return False
 
 

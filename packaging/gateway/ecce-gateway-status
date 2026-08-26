@@ -1,0 +1,29 @@
+#!/bin/bash
+# ecce-gateway-status: report whether the ActiveMQ broker and the
+# JMSDispatcher gateway relay are currently running.
+
+set -u
+
+ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
+STATEDIR="$ECCE_REALUSERHOME/.ECCE"
+PIDFILE="$STATEDIR/jmsdispatcher.pid"
+BROKER_PORT=8088
+
+port_open() {
+  (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1
+  status=$?
+  exec 3<&- 3>&- 2>/dev/null
+  return $status
+}
+
+if port_open "$BROKER_PORT"; then
+  echo "ActiveMQ broker:  running (port $BROKER_PORT)"
+else
+  echo "ActiveMQ broker:  not running"
+fi
+
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+  echo "JMSDispatcher:    running (pid $(cat "$PIDFILE"))"
+else
+  echo "JMSDispatcher:    not running"
+fi

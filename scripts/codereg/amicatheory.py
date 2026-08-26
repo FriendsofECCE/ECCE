@@ -547,7 +547,7 @@ class AmicaTheoryPanel(EccePanel):
             isOpenShell = (self.shell.GetValue() == "Open Shell")
             self.irrepNum.Enable(not isOpenShell)
             self.irrepLabel.Enable(isOpenShell)
-            for irrepItem in self.irrepInput.values():
+            for irrepItem in list(self.irrepInput.values()):
                 irrepItem.Enable(isOpenShell)
                 self.cplngLabel.Enable(isOpenShell)
                 self.cplngA.Enable(isOpenShell)

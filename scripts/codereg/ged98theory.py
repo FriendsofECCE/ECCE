@@ -384,7 +384,7 @@ class Ged98TheoryPanel(EccePanel):
         try:
             self.memorySpin.Enable(self.memoryBox.GetValue())
         except wx.PyDeadObjectError:
-            print "Strange Error"
+            print("Strange Error")
         if EcceGlobals.Category == "SCF":
             self.diskSpin.Enable(self.diskBox.GetValue())
         self.levelInput.Enable(self.levelBox.GetValue())

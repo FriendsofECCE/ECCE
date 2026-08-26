@@ -343,6 +343,121 @@ ecce_fortran_app(cleansym
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
 
 # ------------------------------------------------------------------------
+# The JMS gateway: Java JMSDispatcher relay + vendored ActiveMQ broker.
+#
+# Previously excluded entirely (see the old comment below, now corrected).
+# This wires up the single-machine "client and server both here" case
+# scripts/ecce/install_ecce used to configure interactively:
+#   - java/ is built with the existing Ant script (java/build/build.xml)
+#     into java/lib/ecce_jms.jar, installed alongside its activemq-all
+#     client jar under <prefix>/java/lib.
+#   - the vendored ActiveMQ 5.1.0 broker distribution
+#     (build/3rdparty-dists/apache-activemq-5.1.0-bin.tar.bz2) is
+#     extracted at build time and installed under <prefix>/server/activemq,
+#     using its stock localhost-only config (see packaging/gateway/
+#     ecce-gateway-start for the port this assumes).
+#   - siteconfig/jndi.properties (the JNDI/topic config JMSDispatcher and
+#     every JMS-using C++ app read via $ECCE_HOME/siteconfig) is installed
+#     with its provider URL repointed at localhost instead of the
+#     hardcoded PNNL host it ships with.
+#   - packaging/gateway/ecce-gateway-{start,stop,status} manage the broker
+#     + JMSDispatcher as a per-user, per-machine background pair, replacing
+#     the old ecce-admin/start_ecce_server csh scripts and the old
+#     "ecce" launcher's one-gateway-per-toolbar-process model (this
+#     package has no single controlling toolbar process - each app is
+#     independently launchable - so the gateway is instead started lazily,
+#     idempotently, by whichever app needs it first, and left running).
+# ------------------------------------------------------------------------
+find_program(ANT_EXECUTABLE ant)
+if(ANT_EXECUTABLE)
+  add_custom_command(
+    OUTPUT ${CMAKE_SOURCE_DIR}/java/lib/ecce_jms.jar
+    COMMAND ${ANT_EXECUTABLE} -f build.xml all
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/java/build
+    DEPENDS
+      ${CMAKE_SOURCE_DIR}/java/src/gov/pnnl/emsl/ecce/jms/JMSDispatcher.java
+      ${CMAKE_SOURCE_DIR}/java/src/gov/pnnl/emsl/ecce/jms/MessageHandler.java
+      ${CMAKE_SOURCE_DIR}/java/src/gov/pnnl/emsl/ecce/jms/MessageHelper.java
+      ${CMAKE_SOURCE_DIR}/java/src/gov/pnnl/emsl/ecce/jms/Execer.java
+      ${CMAKE_SOURCE_DIR}/java/src/gov/pnnl/emsl/ecce/jms/Sender.java
+      ${CMAKE_SOURCE_DIR}/java/src/gov/pnnl/emsl/ecce/jms/Target.java
+    COMMENT "Building ecce_jms.jar (ant)"
+  )
+  add_custom_target(ecce_jms ALL DEPENDS ${CMAKE_SOURCE_DIR}/java/lib/ecce_jms.jar)
+  install(FILES ${CMAKE_SOURCE_DIR}/java/lib/ecce_jms.jar
+                ${CMAKE_SOURCE_DIR}/java/lib/activemq-all-5.1.0.jar
+          DESTINATION java/lib)
+  set(ECCE_GATEWAY_JAVA_AVAILABLE TRUE)
+else()
+  message(WARNING "ant not found - the JMS gateway (java/) will not be built "
+                   "or packaged; ecce-gateway-start will have nothing to run.")
+  set(ECCE_GATEWAY_JAVA_AVAILABLE FALSE)
+endif()
+
+set(_activemq_tarball ${CMAKE_SOURCE_DIR}/build/3rdparty-dists/apache-activemq-5.1.0-bin.tar.bz2)
+if(EXISTS ${_activemq_tarball})
+  add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/activemq-extracted/activemq/bin/activemq
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/activemq-extracted
+    COMMAND ${CMAKE_COMMAND} -E tar xjf ${_activemq_tarball}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/activemq-extracted
+    COMMENT "Extracting vendored ActiveMQ 5.1.0 broker"
+  )
+  add_custom_target(ecce_activemq ALL
+    DEPENDS ${CMAKE_BINARY_DIR}/activemq-extracted/activemq/bin/activemq)
+  # linux-x86-32 is the vendored 32-bit Java Service Wrapper binary; this
+  # package only targets amd64 and dpkg-shlibdeps can't resolve a 32-bit
+  # ELF's deps without i386 multiarch libs present on the build host, so
+  # drop it rather than fight package-time shlibdeps for an arch we don't
+  # ship for. activemq/bin/activemq picks linux-x86-64 automatically.
+  install(DIRECTORY ${CMAKE_BINARY_DIR}/activemq-extracted/activemq
+          DESTINATION server
+          USE_SOURCE_PERMISSIONS
+          PATTERN "linux-x86-32" EXCLUDE)
+  set(ECCE_GATEWAY_BROKER_AVAILABLE TRUE)
+else()
+  message(WARNING "No vendored ActiveMQ tarball at ${_activemq_tarball} - "
+                   "the JMS broker will not be packaged.")
+  set(ECCE_GATEWAY_BROKER_AVAILABLE FALSE)
+endif()
+
+if(EXISTS ${CMAKE_SOURCE_DIR}/siteconfig/jndi.properties)
+  file(READ ${CMAKE_SOURCE_DIR}/siteconfig/jndi.properties _jndi_contents)
+  # The checked-in template points at PNNL's own broker; repoint it at the
+  # broker this package installs and starts locally (see ecce-gateway-start
+  # for the matching port).
+  string(REGEX REPLACE
+    "java\\.naming\\.provider\\.url[ \t]*=[ \t]*[^\r\n]*"
+    "java.naming.provider.url = tcp://localhost:8088"
+    _jndi_contents "${_jndi_contents}")
+  file(WRITE ${CMAKE_BINARY_DIR}/siteconfig-local/jndi.properties "${_jndi_contents}")
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/siteconfig/ DESTINATION siteconfig
+          PATTERN "jndi.properties" EXCLUDE
+          PATTERN "RemoteServer" EXCLUDE)
+  install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/jndi.properties
+          DESTINATION siteconfig)
+endif()
+
+install(PROGRAMS
+          ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-start
+          ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-stop
+          ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-status
+        DESTINATION bin)
+
+# Also put the gateway control scripts on PATH directly (like the ecce-<app>
+# wrappers) so `ecce-gateway-status` etc. work without needing $ECCE_HOME.
+foreach(_gw start stop status)
+  set(_gw_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-gateway-${_gw})
+  file(WRITE ${_gw_wrapper}
+"#!/bin/bash
+export ECCE_HOME=/opt/ecce
+export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
+exec \"$ECCE_HOME/bin/ecce-gateway-${_gw}\" \"$@\"
+")
+  install(PROGRAMS ${_gw_wrapper} DESTINATION /usr/bin)
+endforeach()
+
+# ------------------------------------------------------------------------
 # Install rules. Everything installs under /opt/ecce (see
 # CPACK_PACKAGING_INSTALL_PREFIX below) - the compiled apps still expect
 # an ECCE_HOME pointing at a directory with bin/ and data/ as siblings
@@ -377,11 +492,35 @@ endif()
 # version. Named "ecce-<app>" (not the bare old names like "builder") to
 # avoid colliding with unrelated commands already on a typical system's
 # PATH.
-foreach(_app ${ECCE_GUI_APPS})
+# ECCE_REALUSER/ECCE_REALUSERHOME are required (fatal EE_RT_ASSERT if unset
+# - see src/util/genutil/Ecce.C realUser()/realUserHome()) by every app, not
+# just the messaging-using ones; the previous wrapper never set them, so
+# every app would have aborted on first touching preferences/cache paths.
+# HOST must also be exported: the Java gateway writes its UDP port file
+# keyed by -DECCE_HOST (see JMSDispatcher.saveServerPort), while the C++
+# side reads it back keyed by the plain "HOST" env var (DatagramUtil::
+# loadServerPort, src/util/jms/JMSMessage.C) - tcsh set this automatically
+# for the old launcher; a plain sh/bash wrapper has to do it explicitly or
+# the two sides look for different filenames and JMS silently never
+# connects.
+set(ECCE_MESSAGING_APPS ${ECCE_GUI_APPS} eccejobmaster eccejobstore)
+
+foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
   set(_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-${_app})
+  list(FIND ECCE_MESSAGING_APPS ${_app} _msg_idx)
+  if(_msg_idx GREATER -1)
+    set(_gateway_start "if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi")
+  else()
+    set(_gateway_start "")
+  endif()
   file(WRITE ${_wrapper}
-"#!/bin/sh
+"#!/bin/bash
 export ECCE_HOME=/opt/ecce
+export ECCE_REALUSER=\${ECCE_REALUSER:-$(id -un)}
+export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
+export HOST=\${HOST:-$(hostname)}
+export DISPLAY=\${DISPLAY:-:0}
+${_gateway_start}
 exec \"$ECCE_HOME/bin/${_app}\" \"$@\"
 ")
   install(PROGRAMS ${_wrapper} DESTINATION /usr/bin)

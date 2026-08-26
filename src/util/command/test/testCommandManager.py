@@ -18,14 +18,14 @@ for X in range(len(DaysOfWeek)):
      mgr.addCommand(cmd)
 
 
-print mgr.getNumCommands()
-print sr.debugPrint()
+print(mgr.getNumCommands())
+print(sr.debugPrint())
 
 while (mgr.isUndoable()):
     mgr.undo()
-    print sr.debugPrint()
+    print(sr.debugPrint())
 
 while (mgr.isRedoable()):
     mgr.redo()
-    print sr.debugPrint()
+    print(sr.debugPrint())
 

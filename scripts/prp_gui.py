@@ -32,16 +32,16 @@ class PrpPanel(wx.Panel):
     self.propValue = []
     self.propIndex = {}
     if not self.ParseFiles():
-      print "No PRP files found\n"
+      print("No PRP files found\n")
       Sizer.Add(wx.StaticText(self, label="No PRP files found"))
       self.SetSizerAndFit(Sizer)
       return
 
     # We want the properties list to be sorted, so all parallel lists must
     # be sorted at the same time.
-    allLists = zip(self.propName, self.propUnit, self.propValue)
+    allLists = list(zip(self.propName, self.propUnit, self.propValue))
     allLists.sort()
-    self.propName, self.propUnit, self.propValue = zip(*allLists)
+    self.propName, self.propUnit, self.propValue = list(zip(*allLists))
     for i,prop in enumerate(self.propName):
       self.propIndex[prop] = i
 
@@ -130,8 +130,8 @@ class PrpPanel(wx.Panel):
 
   def CreateGnuplotInput(self):
     x = self.propIndex[self.XListBox.GetStringSelection()]
-    yStrings = map(self.YListBox.GetString, self.YListBox.GetSelections())
-    y = map(self.propIndex.get, yStrings)
+    yStrings = list(map(self.YListBox.GetString, self.YListBox.GetSelections()))
+    y = list(map(self.propIndex.get, yStrings))
     file = open(self.plotFilename, "w")
     title = ""
     if len(y) == 1:
@@ -231,7 +231,7 @@ class PrpPanel(wx.Panel):
     # 2) start with full list, remove entries not starting with filter
     # 3) re-set list items
     # 4) restore last selections, if possible
-    lastSelections = map(self.YListBox.GetString, self.YListBox.GetSelections())
+    lastSelections = list(map(self.YListBox.GetString, self.YListBox.GetSelections()))
     propName = []
     for prop in self.propName:
       if prop.lower().startswith(self.yFilter.GetValue().lower()):

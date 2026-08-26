@@ -1,0 +1,104 @@
+#!/bin/bash
+# ecce-gateway-start: idempotently ensure the ECCE JMS gateway (the
+# ActiveMQ broker plus the per-user JMSDispatcher relay) is running on
+# this machine, for this user, before an ECCE app that needs messaging
+# starts. Safe to call every time an app launches -- it does nothing if
+# the gateway is already up.
+#
+# This replaces the "-remote"-unaware half of the old install_ecce/
+# scripts/ecce launcher (see build/install_ecce, scripts/ecce) for the
+# common case this modern package targets: client and server on the same
+# machine, single user. It does not implement the old "-remote" flag /
+# siteconfig/RemoteServer split for pointing at a separate ECCE server
+# host -- set ECCE_NO_MESSAGING=1 and manage that by hand if you need it.
+
+set -u
+
+ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
+export ECCE_HOME
+export ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
+export ECCE_REALUSER="${ECCE_REALUSER:-$(id -un)}"
+export HOST="${HOST:-$(hostname)}"
+export DISPLAY="${DISPLAY:-:0}"
+
+STATEDIR="$ECCE_REALUSERHOME/.ECCE"
+mkdir -p "$STATEDIR"
+
+ACTIVEMQ_HOME="$ECCE_HOME/server/activemq"
+
+# The broker's listening port must match server/activemq/conf/activemq.xml's
+# <transportConnector name="openwire" uri="tcp://localhost:PORT"/>. The
+# vendored config ships with 8088 untouched (see packaging notes) -- if you
+# repoint it, update this too.
+BROKER_PORT=8088
+
+port_open() {
+  (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1
+  status=$?
+  exec 3<&- 3>&- 2>/dev/null
+  return $status
+}
+
+# --- 1. ActiveMQ broker -----------------------------------------------
+if port_open "$BROKER_PORT"; then
+  echo "ecce-gateway-start: broker already listening on $BROKER_PORT"
+else
+  if [ ! -x "$ACTIVEMQ_HOME/bin/activemq" ]; then
+    echo "ecce-gateway-start: no ActiveMQ broker installed at $ACTIVEMQ_HOME -- messaging will not work" >&2
+  else
+    echo "ecce-gateway-start: starting ActiveMQ broker..."
+    CP=""
+    for f in "$ACTIVEMQ_HOME"/lib/*.jar; do CP="$f:$CP"; done
+    (
+      cd "$ACTIVEMQ_HOME" || exit 1
+      CLASSPATH="$CP" nohup "$ACTIVEMQ_HOME/bin/activemq" \
+        >"$STATEDIR/activemq.log" 2>&1 &
+    )
+    i=0
+    while [ $i -lt 60 ]; do
+      if port_open "$BROKER_PORT"; then break; fi
+      i=$((i + 1))
+      sleep 0.5
+    done
+    if ! port_open "$BROKER_PORT"; then
+      echo "ecce-gateway-start: broker did not come up within 30s -- see $STATEDIR/activemq.log" >&2
+    fi
+  fi
+fi
+
+# --- 2. Per-session JMSDispatcher gateway relay ------------------------
+PIDFILE="$STATEDIR/jmsdispatcher.pid"
+PORTFILE="$STATEDIR/${HOST}_${DISPLAY}"
+
+running=0
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+  running=1
+fi
+
+if [ "$running" = "1" ]; then
+  echo "ecce-gateway-start: JMSDispatcher already running (pid $(cat "$PIDFILE"))"
+else
+  echo "ecce-gateway-start: starting JMSDispatcher..."
+  CP=""
+  for f in "$ECCE_HOME"/java/lib/*.jar; do CP="$f:$CP"; done
+  rm -f "$PORTFILE"
+  (
+    nohup java -DECCE_HOST="$HOST" -DDISPLAY="$DISPLAY" \
+      -DECCE_HOME="$ECCE_HOME" -DECCE_USERHOME="$ECCE_REALUSERHOME" \
+      -cp "$CP:$ECCE_HOME/siteconfig" \
+      gov.pnnl.emsl.ecce.jms.JMSDispatcher \
+      >"$STATEDIR/jmsdispatcher.log" 2>&1 &
+    echo $! >"$PIDFILE"
+  )
+  i=0
+  while [ ! -f "$PORTFILE" ] && [ $i -lt 40 ]; do
+    i=$((i + 1))
+    sleep 0.5
+  done
+  if [ ! -f "$PORTFILE" ]; then
+    echo "ecce-gateway-start: JMSDispatcher did not report ready within 20s -- see $STATEDIR/jmsdispatcher.log" >&2
+    exit 1
+  fi
+fi
+
+exit 0

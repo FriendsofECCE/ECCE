@@ -45,6 +45,19 @@ public class MessageHandler implements javax.jms.MessageListener {
       }
   }
   
+  /**
+   * Closes the UDP socket opened in the constructor. Must be called
+   * whenever this handler's subscription is torn down (unsubscribe,
+   * dispatcher shutdown, etc.) -- otherwise the DatagramSocket opened
+   * above leaks a file descriptor for the lifetime of the JMSDispatcher
+   * process. Safe to call more than once.
+   */
+  public void close() {
+      if (inSocket != null && !inSocket.isClosed()) {
+          inSocket.close();
+      }
+  }
+
   public void onMessage (Message msg) {
 
       if (!MessageHelper.messagingSuspended(subscriberID)){

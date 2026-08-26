@@ -70,7 +70,7 @@ class PmfPanel(wx.Panel):
       self.PlotHarmonic(files)
     else:
       self.BinFiles(files)
-      files = map(lambda x: x+".bin", files)
+      files = [x+".bin" for x in files]
       if self.radiobox.GetSelection() == 1:
         self.PlotBinCol2(files)
       if self.radiobox.GetSelection() == 2:
@@ -270,14 +270,14 @@ def frange(limit1, limit2=None, increment=1.):
   """
 
   if limit1 == limit2:
-    return (limit1 for n in xrange(1))
+    return (limit1 for n in range(1))
   if limit2 is None:
     limit2,limit1 = limit1,0.
   else:
     limit1 = float(limit1)
 
   count = int(math.ceil((limit2-limit1)/increment))
-  return ((limit1 + n*increment) for n in xrange(count))
+  return ((limit1 + n*increment) for n in range(count))
 
 
 def sorted(sortable):
