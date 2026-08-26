@@ -55,7 +55,7 @@ public:
   // General Methods
        void serialize(const Serializable &model, string &output, EcceMap &map);
        void deserialize(const string &input, Serializable &model, EcceMap &map)
-         throw (ParseException);
+;
        string mimetype() const;
        void exportFFAtoms(const FFModel &model, vector<int> sources,
 	                  ostrstream &outfile) const;
@@ -70,7 +70,7 @@ public:
        void exportFFImproper(const FFModel &model, vector<int> sources,
 	                  ostrstream &outfile) const;
        void loadCategories(FFModel *model, vector<string>& sources)
-	                  throw(IOException);
+;
        FFItem* parseNWChemAtomData( ifstream&, FFModel*, char*, int, 
 	                          const int, int, int*);
        FFItem* parseNWChemCrossData( ifstream&, FFModel*, char*, const int,

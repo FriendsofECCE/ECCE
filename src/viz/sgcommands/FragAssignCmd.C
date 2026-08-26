@@ -37,7 +37,7 @@ FragAssignCmd::~FragAssignCmd()
 }
 
 
-bool FragAssignCmd::execute() throw(EcceException)
+bool FragAssignCmd::execute()
 {
   SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
   SGFragment *frag = sg->getFragment();

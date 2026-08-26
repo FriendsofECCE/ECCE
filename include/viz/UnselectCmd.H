@@ -17,7 +17,7 @@ public:
   UnselectCmd(const string& name, Receiver * receiver);
   virtual ~UnselectCmd();
 
-  virtual bool execute() throw(EcceException);
+  virtual bool execute();
   virtual void undo();
 
 protected:

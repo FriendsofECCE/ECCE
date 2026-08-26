@@ -16,7 +16,7 @@ class BondEditCmd : public FragCloneCmd
       BondEditCmd(const string& name, Receiver * receiver);
       virtual ~BondEditCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual string getUndoLabel();
 
    protected:

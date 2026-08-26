@@ -25,7 +25,7 @@ class PovrayCmd : public Command
     PovrayCmd(const string& name, Receiver * receiver);
     ~PovrayCmd();
 
-    virtual bool execute() throw(EcceException);
+    virtual bool execute();
     virtual void undo();
 
   protected:

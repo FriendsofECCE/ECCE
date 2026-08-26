@@ -60,7 +60,7 @@ class NWChemMDModelXMLizer : public XMLSerializer
        */
       void deserialize(const std::string& data,
                        Serializable& object, EcceMap& properties) 
-                       throw (ParseException);
+;
 
       /**
        * Convert an object into its data and metadata.

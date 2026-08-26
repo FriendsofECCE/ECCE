@@ -17,7 +17,7 @@ class SelectRadiusCmd : public Command
       SelectRadiusCmd(const string& name, Receiver * receiver, const string& sender="");
       virtual ~SelectRadiusCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

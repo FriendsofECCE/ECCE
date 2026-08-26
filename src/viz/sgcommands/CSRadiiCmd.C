@@ -41,7 +41,7 @@ void CSRadiiCmd::init()
 
 
 
-bool CSRadiiCmd::execute() throw(EcceException)
+bool CSRadiiCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

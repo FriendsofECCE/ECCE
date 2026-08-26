@@ -13,7 +13,7 @@ class RenderFileCmd : public Command
       RenderFileCmd(const string& name, Receiver * receiver);
       ~RenderFileCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual bool isUndoable() const;
       virtual void undo();
 

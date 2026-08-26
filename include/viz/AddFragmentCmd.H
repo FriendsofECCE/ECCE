@@ -16,7 +16,7 @@ class AddFragmentCmd : public FragCloneCmd
       AddFragmentCmd(const string& name, Receiver * receiver);
       virtual ~AddFragmentCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

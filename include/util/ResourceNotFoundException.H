@@ -24,7 +24,7 @@ class ResourceNotFoundException : public EcceException
       ResourceNotFoundException(const ResourceNotFoundException& rhs);
 
 
-      virtual ~ResourceNotFoundException() throw ();
+      virtual ~ResourceNotFoundException() noexcept;
 
    protected:
 

@@ -44,7 +44,7 @@ void ShowHydrogensCmd::init()
 
 
 
-bool ShowHydrogensCmd::execute() throw(EcceException)
+bool ShowHydrogensCmd::execute()
 {
    bool ret = true;
 

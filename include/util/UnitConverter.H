@@ -30,27 +30,27 @@ class UnitConverter
      * This sets the units that all values will be converted to or from.
      */
     virtual void setBaseUnits(const string& base)
-             throw (InvalidException) = 0;
+ = 0;
 
     /**
      * Convert the value from the base units (defined with setBaseUnits) to
      * the units defined in toUnits.
      */
     virtual string convertTo(const string& value, const string& toUnits)
-             throw (InvalidException) = 0;
+ = 0;
              
     virtual double convertTo(double value, const string& toUnits)
-             throw (InvalidException) = 0;
+ = 0;
 
     /**
      * Convert the value to the base units (defined with setBaseUnits) from
      * the units defined in fromUnits.
      */
     virtual string convertFrom(const string& value, const string& fromUnits)
-             throw (InvalidException) = 0;
+ = 0;
 
     virtual double convertFrom(double value, const string& fromUnits)
-             throw (InvalidException) = 0;
+ = 0;
 
   protected:
 };

@@ -991,7 +991,7 @@ void Builder::interpretCommand(const string& command)
  * One tricky thing is the use of parameters that have no value.
  *   e.g. select all
  */
-Command *Builder::createCommand(const string& input) throw(EcceException)
+Command *Builder::createCommand(const string& input)
 {
    Command *cmd = 0;
    string cmdname;
@@ -1053,7 +1053,7 @@ Command *Builder::createCommand(const string& input) throw(EcceException)
 /**
  *
  */
-Command * Builder::createModeCommand(int modeId) throw(EcceException)
+Command * Builder::createModeCommand(int modeId)
 {
 
   Command * cmd = 0;
@@ -1155,7 +1155,7 @@ Command * Builder::createModeCommand(int modeId) throw(EcceException)
 }
 
 
-int Builder::checkResidueEditing() throw(CancelException)
+int Builder::checkResidueEditing()
 {
    int resIndex = -1;
    SGFragment *frag = getSG()->getFragment();

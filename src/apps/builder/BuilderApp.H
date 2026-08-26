@@ -50,8 +50,8 @@ public:
 
   string identify();
 
-  bool checkServer() throw (RetryException,EcceException);
-  bool checkServerSetup() throw (RetryException,EcceException);
+  bool checkServer();
+  bool checkServerSetup();
   bool checkUser();
   
   void usage();

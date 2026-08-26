@@ -19,7 +19,7 @@ class AngleEditCmd : public FragCloneCmd
       AngleEditCmd(const string& name, Receiver * receiver);
       virtual ~AngleEditCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

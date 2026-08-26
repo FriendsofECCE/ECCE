@@ -161,7 +161,6 @@ bool PolyrateTask::canModifyInputProvider()
 
 
 string PolyrateTask::import( const string& dir, const string& file)
-  throw(EcceException)
 {
   return "";
 }

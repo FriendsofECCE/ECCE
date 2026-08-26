@@ -19,7 +19,7 @@ class HydrogenBondsCmd : public Command
       HydrogenBondsCmd(const string& name, Receiver * receiver);
       virtual ~HydrogenBondsCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual bool isUndoable() const;
       virtual void undo();
 

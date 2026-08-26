@@ -53,7 +53,7 @@ void SetMassCmd::init()
 }
 
 
-bool SetMassCmd::execute() throw(EcceException)
+bool SetMassCmd::execute()
 {
   bool ret = false;
 

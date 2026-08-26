@@ -56,7 +56,6 @@ string PrepareModelXMLizer::mimetype() const
  */
 void PrepareModelXMLizer::deserialize(const string& data,
                        Serializable& object, EcceMap& properties)
-                       throw (ParseException)
 {
    // NOTE: For now at least, we aren't interested in any properties.
    PrepareModel *dobject = dynamic_cast<PrepareModel*>(&object);
@@ -465,7 +464,6 @@ void PrepareModelXMLizer::deserialize(const string& data,
 
 void PrepareModelXMLizer::serialize(const Serializable& object,
                         string& data, EcceMap& properties)
-
 {
    data = "";
 

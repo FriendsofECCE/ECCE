@@ -51,7 +51,7 @@ void SetSuffixCmd::init()
 
 
 
-bool SetSuffixCmd::execute() throw(EcceException)
+bool SetSuffixCmd::execute()
 {
   bool ret = false;
 

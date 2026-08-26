@@ -25,7 +25,7 @@ class NotImplementedException : public EcceException
       NotImplementedException(const NotImplementedException& rhs);
 
 
-      virtual ~NotImplementedException() throw ();
+      virtual ~NotImplementedException() noexcept;
 
    protected:
 

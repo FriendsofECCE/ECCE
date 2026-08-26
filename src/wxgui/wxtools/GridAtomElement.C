@@ -49,7 +49,6 @@
 static const char* vcouplingMap[] = {"Interior", "Tail", "Head", "Monomer"};
 
 GridAtomElement::GridAtomElement(TAtm *atom, AtomProperty *property) 
-  throw(InvalidException)
 {
   // Check to make sure valid AtomProperty
   if ((atom == 0) || (property == 0)) {
@@ -74,7 +73,6 @@ GridAtomElement::GridAtomElement(TAtm *atom, AtomProperty *property)
 
 
 GridAtomElement::GridAtomElement(Residue *res, AtomProperty *property) 
-  throw(InvalidException)
 {
   // Check to make sure valid AtomProperty
   if ((res == 0) || (property == 0)) {

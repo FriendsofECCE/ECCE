@@ -53,7 +53,7 @@ void SelectRadiusCmd::init()
 
 // @todo chain list
 // @todo radius
-bool SelectRadiusCmd::execute() throw(EcceException)
+bool SelectRadiusCmd::execute()
 {
 
   SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

@@ -16,7 +16,7 @@ class PBCEditLatticeCmd : public PBCCmd
       PBCEditLatticeCmd(const string& name, Receiver * receiver, SGFragment *base);
       ~PBCEditLatticeCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       void init();

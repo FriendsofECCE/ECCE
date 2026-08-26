@@ -39,7 +39,7 @@ void ClearResidueInfoCmd::init()
 
 
 
-bool ClearResidueInfoCmd::execute() throw(EcceException)
+bool ClearResidueInfoCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

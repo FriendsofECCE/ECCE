@@ -47,7 +47,7 @@ void DisplayAtomsCmd::init()
 
 
 
-bool DisplayAtomsCmd::execute() throw(EcceException)
+bool DisplayAtomsCmd::execute()
 {
   SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
   SGFragment *sgfrag = sg->getFragment();

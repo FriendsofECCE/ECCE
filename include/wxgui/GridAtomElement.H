@@ -19,9 +19,9 @@ class GridAtomElement : public GridElement
   public:
 
     GridAtomElement(TAtm *atom, AtomProperty *property)
-            throw(InvalidException);
+;
     GridAtomElement(Residue *res, AtomProperty *property)
-            throw(InvalidException);
+;
 
     virtual ~GridAtomElement();
 

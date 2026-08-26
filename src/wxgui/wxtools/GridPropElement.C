@@ -43,7 +43,6 @@
 
 
 GridPropElement::GridPropElement(Resource *resource, ResourceProperty *property)
-  throw(InvalidException)
 {
   // Check to make sure valid Resource and ResourceProperty
   // pointers are provided

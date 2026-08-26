@@ -16,7 +16,7 @@ class PBCCreateCmd : public FragCloneCmd
       PBCCreateCmd(const string& name, Receiver * receiver);
       ~PBCCreateCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

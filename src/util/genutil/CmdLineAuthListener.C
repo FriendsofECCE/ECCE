@@ -40,7 +40,6 @@ CmdLineAuthListener::~CmdLineAuthListener()
 
 // Prompt for the user name and password and return it.
 bool CmdLineAuthListener::getAuthorization(AuthEvent& event) 
-                                                   throw (RetryException)
 {
   string user, password;
 

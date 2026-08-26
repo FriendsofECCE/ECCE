@@ -14,7 +14,7 @@ class GenerateDNACmd : public FragCloneCmd
       GenerateDNACmd(const string& name, Receiver * receiver);
       virtual ~GenerateDNACmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

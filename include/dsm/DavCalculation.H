@@ -122,14 +122,14 @@ class DavCalculation : virtual public ICalculation
 
    virtual string getParseScriptArgs() const;
    virtual string import( const string& dir, const string& file) 
-        throw(EcceException);
+;
 
   protected:
 
     virtual void processImportParameters(const Preferences& params)
-      throw(IOException);
+;
 
-    DavCalculation(const EcceURL& url) throw(InvalidException);
+    DavCalculation(const EcceURL& url);
 
     string getXMLElementValue(const DOMDocument& doc, const string& name) const;
 

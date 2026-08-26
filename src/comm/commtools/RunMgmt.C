@@ -388,7 +388,6 @@ bool RunMgmt::registerLocalMachine(string& msg)
  */
 vector<string> RunMgmt::updateCacheFromDataServer(const TaskJob* job,
       const string& cacheDir, const string& filePattern, string& errorMessage)
-throw(EcceException)
 {
   // assume no problems come up?
   errorMessage = "";
@@ -437,7 +436,6 @@ throw(EcceException)
  */
 vector<string> RunMgmt::updateCacheFromComputeHost(const TaskJob* job,
       const string& cacheDir, const string& filePattern, string& errorMessage) 
-throw(EcceException)
 {
    // assume no problems come up :)
    errorMessage = "";
@@ -687,7 +685,6 @@ throw(EcceException)
 
 vector<string> RunMgmt::updateCacheFromDataArchive(const TaskJob* job,
       const string& cacheDir, const string& filePattern, string& errorMessage) 
-throw(EcceException)
 {
   vector<string> ret;
 

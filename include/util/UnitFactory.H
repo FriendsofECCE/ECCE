@@ -48,15 +48,15 @@ class UnitFactory
 
       virtual ~UnitFactory();
 
-      UnitConverter& getUnitConverter(string units) throw(InvalidException);
+      UnitConverter& getUnitConverter(string units);
       /**
        *  Provide a listing of all currently know converters. Useful for
        *  debugging.
        */
       vector<string> getConverterNames();
 
-      UnitFamily& getUnitFamily(const string& name) throw(InvalidException);
-      UnitFamily& getFamilyByFullName(const string & fullName) throw(InvalidException);
+      UnitFamily& getUnitFamily(const string& name);
+      UnitFamily& getFamilyByFullName(const string & fullName);
 
       /**
        *  Provide a listing of all know unit families. This should correspond

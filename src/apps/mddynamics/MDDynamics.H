@@ -41,7 +41,7 @@ class MDDynamics: public MDEdBase, public WxJMSListener
       // TaskApp virtuals
       virtual string getTitle() const;
 
-      void setContext(const string& url) throw (EcceException);
+      void setContext(const string& url);
       void resetPanel();
 
       /**

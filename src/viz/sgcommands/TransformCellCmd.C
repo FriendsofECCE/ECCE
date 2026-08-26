@@ -46,7 +46,7 @@ void TransformCellCmd::init()
 
 
 
-bool TransformCellCmd::execute() throw(EcceException)
+bool TransformCellCmd::execute()
 {
   bool ret = false;
   //cout << "TRANSFORM\n" << endl;

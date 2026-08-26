@@ -74,7 +74,7 @@ class Polyrate: public PolyrateGUI,
       virtual void processEditCompletion(const EditEvent& ee);
 
       virtual string getTitle() const;
-      virtual void setContext(const string& url) throw(EcceException);
+      virtual void setContext(const string& url);
       virtual void taskAppRaise();
       virtual void taskAppDestroy();
       virtual void taskAppShow();
@@ -130,11 +130,11 @@ class Polyrate: public PolyrateGUI,
 
    protected:
       void initProgressDialog();
-      void generateInputFile() throw(IOException);
+      void generateInputFile();
       bool checkComponent(DirDyVTSTTask::Component comp);
       Fragment* getComponentFragment(DirDyVTSTTask::Component comp);
       DavCalculation* getComponentTask(DirDyVTSTTask::Component comp);
-      void saveModelAndInputFile() throw(IOException);
+      void saveModelAndInputFile();
       void doQuit(const bool& force);
 
       void setRunState(ResourceDescriptor::RUNSTATE state);

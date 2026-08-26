@@ -45,7 +45,7 @@ void AlignCmd::init()
 
 
 
-bool AlignCmd::execute() throw(EcceException)
+bool AlignCmd::execute()
 {
    bool ret = false;
    setErrorMessage("");

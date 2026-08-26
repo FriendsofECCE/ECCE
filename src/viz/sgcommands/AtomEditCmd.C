@@ -54,7 +54,7 @@ void AtomEditCmd::init()
 }
 
 
-bool AtomEditCmd::execute() throw(EcceException)
+bool AtomEditCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

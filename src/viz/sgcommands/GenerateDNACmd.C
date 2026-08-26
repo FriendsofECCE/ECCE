@@ -43,7 +43,7 @@ void GenerateDNACmd::init()
 
 
 
-bool GenerateDNACmd::execute() throw(EcceException)
+bool GenerateDNACmd::execute()
 {
   bool ret = true;
 

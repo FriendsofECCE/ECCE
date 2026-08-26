@@ -20,7 +20,7 @@ class FindIrreduceFragCmd : public FragCloneCmd
       FindIrreduceFragCmd(const string& name, Receiver * receiver);
       virtual ~FindIrreduceFragCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

@@ -42,7 +42,7 @@ void MakeResidueCmd::init()
 
 
 
-bool MakeResidueCmd::execute() throw(EcceException)
+bool MakeResidueCmd::execute()
 {
    bool ret = false;
 

@@ -66,7 +66,7 @@ void DeleteCmd::init()
  * 9. delete empty residues
  * 10. renumber again since we are done deleting
  */
-bool DeleteCmd::execute() throw(EcceException)
+bool DeleteCmd::execute()
 {
    bool ret = false;
 

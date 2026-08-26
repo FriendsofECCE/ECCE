@@ -42,7 +42,7 @@ void CenterCmd::init()
 
 
 
-bool CenterCmd::execute() throw(EcceException)
+bool CenterCmd::execute()
 {
    bool ret = false;
 

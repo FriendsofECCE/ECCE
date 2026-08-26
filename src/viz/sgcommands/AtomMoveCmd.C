@@ -46,7 +46,7 @@ void AtomMoveCmd::init()
 }
 
 
-bool AtomMoveCmd::execute() throw(EcceException)
+bool AtomMoveCmd::execute()
 {
   bool ret = false;
 

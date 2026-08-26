@@ -59,10 +59,10 @@ class GeomConstraintModel : public Serializable
       vector<GeomConstraint*> *getAngleConstraints() const;
       vector<GeomConstraint*> *getTorsionConstraints() const;
 
-      void addConstraint(GeomConstraint *constraint) throw(InvalidException);
-      bool fixAtoms(const vector<int>& atoms) throw(InvalidException);
-      bool addConstraint(const vector<int>& atoms) throw(InvalidException);
-      bool addRestraint(const vector<int>& atoms) throw(InvalidException);
+      void addConstraint(GeomConstraint *constraint);
+      bool fixAtoms(const vector<int>& atoms);
+      bool addConstraint(const vector<int>& atoms);
+      bool addRestraint(const vector<int>& atoms);
       bool remove(const GeomConstraint *constraint);
       bool removeLike(const GeomConstraint& constraint);
 
@@ -75,7 +75,7 @@ class GeomConstraintModel : public Serializable
       int cleanUnmatchedAtoms();
 
       vector<TAtm*> *indicesToAtoms(const vector<int>& indices)  const
-         throw (InvalidException);
+;
 
    protected:
 

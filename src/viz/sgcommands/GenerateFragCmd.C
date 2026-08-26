@@ -43,7 +43,7 @@ void GenerateFragCmd::init()
 
 
 
-bool GenerateFragCmd::execute() throw(EcceException)
+bool GenerateFragCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

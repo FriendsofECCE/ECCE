@@ -26,6 +26,6 @@ NotImplementedException::NotImplementedException(
 {
 }
 
-NotImplementedException::~NotImplementedException() throw ()
+NotImplementedException::~NotImplementedException() noexcept
 {
 }

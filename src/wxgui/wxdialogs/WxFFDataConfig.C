@@ -407,7 +407,7 @@ void WxFFDataConfig::OnHelpClick( wxCommandEvent& event )
  * in reality is used in multiple applications (Builder, MDEditor, etc), 
  * so it should store its own preferences.
  */
-void WxFFDataConfig::loadPreferences(const bool& usePrefs) throw (IOException)
+void WxFFDataConfig::loadPreferences(const bool& usePrefs)
 {
   vector<string> ffNames = getFFNames();
   vector<string> tmp;

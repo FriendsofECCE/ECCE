@@ -668,7 +668,7 @@ void BuilderApp::setSelectionMCB(JMSMessage& msg)
 /**
  * Checks server to see if it's legit and properly setup.
  */
-bool BuilderApp::checkServer() throw (RetryException,EcceException)
+bool BuilderApp::checkServer()
 {
   EDSIServerCentral servers;
   return servers.checkServer();
@@ -679,7 +679,7 @@ bool BuilderApp::checkServer() throw (RetryException,EcceException)
  * Move this to separate function and command line option such as
  * gateway -check if its too slow
  */
-bool BuilderApp::checkServerSetup() throw (RetryException,EcceException)
+bool BuilderApp::checkServerSetup()
 {
   EDSIServerCentral servers;
   return servers.checkServerSetup();

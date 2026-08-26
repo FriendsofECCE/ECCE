@@ -13,7 +13,7 @@ class PBCReplicateCmd : public PBCCmd
       PBCReplicateCmd(const string& name, Receiver * receiver, SGFragment *base);
       ~PBCReplicateCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual bool isUndoable() const;
 
    protected:

@@ -23,7 +23,6 @@ class wxGrid;
 class EigenValPanel : public DefaultVecPanel,
                       public WxVizTool,
                       public Listener
-                
 {
   DECLARE_DYNAMIC_CLASS(EigenValPanel)
   DECLARE_EVENT_TABLE()

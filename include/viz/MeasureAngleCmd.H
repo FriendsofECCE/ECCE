@@ -20,7 +20,7 @@ class MeasureAngleCmd : public MeasureBaseCmd
       MeasureAngleCmd(const string& name, Receiver * receiver);
       virtual ~MeasureAngleCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

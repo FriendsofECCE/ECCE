@@ -49,7 +49,7 @@ void ESPConstraintModel::clear()
 
 
 ESPConstraint *
-ESPConstraintModel::get(int index) const throw (IndexOutOfRangeException)
+ESPConstraintModel::get(int index) const
 {
   ESPConstraint *ret = 0;
   if (index >= 0 && index < p_constraints.size()) {
@@ -72,7 +72,7 @@ void ESPConstraintModel::add(ESPConstraint *constraint)
   p_constraints.push_back(constraint);
 }
 
-bool ESPConstraintModel::remove(int index) throw (IndexOutOfRangeException) 
+bool ESPConstraintModel::remove(int index) 
 {
   bool ret = false;
   if (index >= 0 && index < p_constraints.size()) {

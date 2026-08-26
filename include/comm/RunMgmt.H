@@ -45,17 +45,17 @@ class RunMgmt
       static vector<string> updateCacheFromDataServer(const TaskJob* job,
             const string& cacheDir, const string& filePattern,
             string& errorMessage)
-         throw(EcceException);
+;
 
       static vector<string> updateCacheFromComputeHost(const TaskJob* job,
             const string& cacheDir, const string& filePattern,
             string& errorMessage)
-         throw(EcceException);
+;
 
       static vector<string> updateCacheFromDataArchive(const TaskJob* job,
             const string& cacheDir, const string& filePattern,
             string& errorMessage)
-         throw(EcceException);
+;
 };
 
 #endif 

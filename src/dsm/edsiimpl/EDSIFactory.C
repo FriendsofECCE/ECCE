@@ -670,7 +670,6 @@ void EDSIFactory::notifyState(const string & url, const string & state)
 EcceURL* EDSIFactory::createResource(EDSI* interface, 
                                      const string& name, 
                                      ResourceType* resourceType)
-  throw(InvalidException)
 {
   EcceURL *ret = 0;
 

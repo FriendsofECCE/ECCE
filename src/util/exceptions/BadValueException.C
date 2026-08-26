@@ -25,6 +25,6 @@ BadValueException::BadValueException(const BadValueException& rhs)
 {
 }
 
-BadValueException::~BadValueException() throw ()
+BadValueException::~BadValueException() noexcept
 {
 }

@@ -48,7 +48,6 @@ string FFDescXMLSerializer::mimetype() const
  */
 void FFDescXMLSerializer::deserialize(const string& data,
                        Serializable& object, EcceMap& properties)
-                       throw (ParseException)
 {
    // NOTE: For now at least, we aren't interested in any properties.
    FFDesc *dobject = dynamic_cast<FFDesc*>(&object);

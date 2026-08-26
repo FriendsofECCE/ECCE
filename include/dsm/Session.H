@@ -94,31 +94,31 @@ public:
 
   virtual EcceURL getLinkbaseId() const;
 
-  virtual void saveLinkbase() throw(DavException);
+  virtual void saveLinkbase();
 
   virtual vector<Resource *> * getChildren(bool refresh = false);
 
   virtual void addLink(Resource * source, Resource * target, 
                        LinkType linkType, string linkName = "")
-    throw(InvalidException);
+;
   
   virtual void removeLink(Resource * source, Resource * target, 
                   LinkType linkType, string linkName = "")
-    throw(InvalidException);
+;
   
   virtual void branch(Resource * source, Resource * target,
               LinkType linkType, string linkName = "",
               bool isPrimaryPath = true)
-    throw(InvalidException);
+;
 
   virtual void swap(Resource * source, Resource * target, 
             LinkType linkType, string linkName = "")
-    throw(InvalidException);
+;
 
   virtual bool addMember(Resource * res);
 
   virtual void addMemberAsTarget(Resource * target, Resource * source = 0)
-    throw(InvalidException);
+;
   
   virtual bool removeMember(Resource * res);
   
@@ -148,7 +148,7 @@ public:
   
   virtual void getDeleteMessage(bool & canDelete, string & message);
 
-  virtual void loadLinkbase() throw(DavException, ParseException);
+  virtual void loadLinkbase();
 
   static LinkType stringToLinkType(const string & linkType);
 

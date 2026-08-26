@@ -16,7 +16,7 @@ class DepthCueCmd : public Command
       DepthCueCmd(const string& name, Receiver * receiver);
       virtual ~DepthCueCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
       virtual bool isUndoable() const;
 

@@ -38,7 +38,7 @@ class Command
        * execute is called for initial execution and for the redo.
        * redo should typically not create additional undo data.
        */
-      virtual bool execute() throw(EcceException)=0;
+      virtual bool execute()=0;
 
       virtual bool isUndoable() const;
 
@@ -71,7 +71,7 @@ class Command
 
       void psuedoConstructor(const string& name, Receiver * receiver);
 
-      void parse(const string& data) throw(EcceException);
+      void parse(const string& data);
 
    protected:
       /** 

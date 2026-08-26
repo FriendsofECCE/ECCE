@@ -92,7 +92,7 @@ TCalculation::TCalculation(TCalculation* const calc) : ICalculation() {
     p_guiparams = (GUIValues*) 0;
 }
 
-bool TCalculation::isValid() throw (CancelException,RetryException)
+bool TCalculation::isValid()
 {
   return true;
 }

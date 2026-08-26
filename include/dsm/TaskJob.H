@@ -166,19 +166,16 @@ class TaskJob : public Job,
        * @throw EcceException - lots of possible errors
        */
       virtual string import( const string& dir, 
-                          const string& file) throw(EcceException)=0;
+                          const string& file)=0;
 
       virtual string getParseScriptArgs() const;
 
 
       virtual void setTaskModel(ITaskModel* model)
-                   throw(DavException,
-                         InvalidException);
+;
       virtual void getTaskModel(ITaskModel& model)
-                   throw(DavException,
-                         ParseException,
-                         InvalidException);
-      virtual string serializeModel(ITaskModel* model) throw(InvalidException);
+;
+      virtual string serializeModel(ITaskModel* model);
 
       virtual bool application(const JCode* code);
 
@@ -193,13 +190,13 @@ class TaskJob : public Job,
       virtual void updateProps();
 
       virtual void   processImportParameters(const Preferences& params)
-         throw(IOException);
+;
 
       static string reformatDate(const string& dateFromOutputFile);
 
-      Serializer* getSerializer(string& resourceName) throw(InvalidException);
+      Serializer* getSerializer(string& resourceName);
 
-      VDoc *getVDoc() const throw(InvalidException);
+      VDoc *getVDoc() const;
   
       VDoc *p_vdoc;        /**< Ecce Virtual Document */
 

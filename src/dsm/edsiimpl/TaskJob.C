@@ -1239,7 +1239,6 @@ EcceURL TaskJob::getDataFileUrl(JCode::CodeFileType type,
  * would override this method.
  */
 string TaskJob::import( const string& dir, const string& parseFileName) 
-   throw(EcceException)
 {
    string message;
 
@@ -1296,7 +1295,6 @@ string TaskJob::getParseScriptArgs() const
  * @param params key/value data generated from import script
  */
 void   TaskJob::processImportParameters(const Preferences& params)
-  throw (IOException)
 {
 
    string date, time;
@@ -1370,8 +1368,7 @@ string TaskJob::reformatDate(const string& dateFromOutputFile)
  *         serialized out to the DAV server, otherwise
  *         false is returned.
  */
-void TaskJob::setTaskModel(ITaskModel* model) throw(DavException,
-                                                    InvalidException)
+void TaskJob::setTaskModel(ITaskModel* model)
 {
   EcceMap props;
   string data = "";
@@ -1415,9 +1412,7 @@ void TaskJob::setTaskModel(ITaskModel* model) throw(DavException,
  *         deserialized from the DAV server, otherwise
  *         false is returned.
  */
-void TaskJob::getTaskModel(ITaskModel& model) throw(DavException,
-                                                    ParseException,
-                                                    InvalidException)
+void TaskJob::getTaskModel(ITaskModel& model)
 {
   EcceURL originalUrl = getEDSI()->getURL();
 
@@ -1462,7 +1457,7 @@ void TaskJob::getTaskModel(ITaskModel& model) throw(DavException,
  * Returns the serialized string for a model - not saved
  * to database.
  */
-string TaskJob::serializeModel(ITaskModel* model) throw(InvalidException)
+string TaskJob::serializeModel(ITaskModel* model)
 {
   EcceMap props;
   string data = "";
@@ -1492,7 +1487,7 @@ string TaskJob::serializeModel(ITaskModel* model) throw(InvalidException)
  *         for the type of task.  Caller is responsible
  *         for memory management.
  */
-Serializer* TaskJob::getSerializer(string& resourceName) throw(InvalidException)
+Serializer* TaskJob::getSerializer(string& resourceName)
 {
   Serializer *serializer = 0;
 
@@ -1546,7 +1541,7 @@ Serializer* TaskJob::getSerializer(string& resourceName) throw(InvalidException)
  *        creation failed.
  *
  */
-VDoc *TaskJob::getVDoc() const throw(InvalidException)
+VDoc *TaskJob::getVDoc() const
 {
   // Create VDoc
   if (p_vdoc == 0) {

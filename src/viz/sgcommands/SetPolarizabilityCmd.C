@@ -51,7 +51,7 @@ void SetPolarizabilityCmd::init()
 
 
 
-bool SetPolarizabilityCmd::execute() throw(EcceException)
+bool SetPolarizabilityCmd::execute()
 {
   bool ret = false;
 

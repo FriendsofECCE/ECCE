@@ -21,9 +21,9 @@ class InvalidException : public EcceException
       InvalidException(const char *message, const char *file, int line);
       InvalidException(const InvalidException& rhs);
 
-      virtual EcceException *clone() const throw ();
+      virtual EcceException *clone() const noexcept;
 
-      virtual ~InvalidException() throw ();
+      virtual ~InvalidException() noexcept;
 
    protected:
 

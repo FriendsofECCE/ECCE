@@ -38,7 +38,7 @@ class PropertyPanelFactory
 
   protected:
     PropertyPanelFactory();
-    void parsePropertyPanelDescriptorFile() throw (ParseException);
+    void parsePropertyPanelDescriptorFile();
     void createPropertyPanelDescriptions();
 
   private:

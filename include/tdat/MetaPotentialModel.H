@@ -43,8 +43,8 @@ class MetaPotentialModel : public Serializable
     vector<MetaPotential*> *get2SitePotentials() const;
     vector<MetaPotential*> *get3SitePotentials() const;
 
-    void addPotential(MetaPotential *mpot) throw(InvalidException);
-    bool addPotential(const vector<int>& atoms) throw(InvalidException);
+    void addPotential(MetaPotential *mpot);
+    bool addPotential(const vector<int>& atoms);
     bool remove(const MetaPotential *mpot);
 
     // Do we need this one?

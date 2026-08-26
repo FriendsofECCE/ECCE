@@ -2504,7 +2504,6 @@ void SGFragment::addFragment(const string& type,
       double x, double y, double z,
       bool genBondOrders,
       int modelNum, const string& altLoc, const string& chainId)
-throw(EcceException)
 {
    double mult = 1.0;
    if (units == "Bohr") mult = 0.529177;
@@ -2573,7 +2572,6 @@ throw(EcceException)
 }
 
 void SGFragment::generateDNA(string &sequence)
-  throw(EcceException)
 {
   EDSIServerCentral sc;
 
@@ -2841,7 +2839,6 @@ void SGFragment::generateDNA(string &sequence)
 }
 
 void SGFragment::generatePeptide(string &sequence)
-  throw(EcceException)
 {
   //
   // Validate sequence and verify that it can be translated into

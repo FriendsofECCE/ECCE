@@ -17,7 +17,7 @@ class SetPolarizationGroupCmd : public Command
       SetPolarizationGroupCmd(const string& name, Receiver * receiver, const string& sender="");
       ~SetPolarizationGroupCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

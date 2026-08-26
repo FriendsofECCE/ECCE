@@ -39,7 +39,7 @@ void GTStepCmd::init()
 }
 
 
-bool GTStepCmd::execute() throw(EcceException)
+bool GTStepCmd::execute()
 {
   SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
   SGFragment *sgfrag = (SGFragment*)sg->getFragment();

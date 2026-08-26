@@ -53,7 +53,7 @@ void BondEditCmd::init()
 
 
 
-bool BondEditCmd::execute() throw(EcceException)
+bool BondEditCmd::execute()
 {
   bool ret = false;
   setErrorMessage("");

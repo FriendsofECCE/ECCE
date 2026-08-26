@@ -30,6 +30,6 @@ RetryException::RetryException(const RetryException& rhs)
 
 
 
-RetryException::~RetryException() throw ()
+RetryException::~RetryException() noexcept
 {
 }

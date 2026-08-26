@@ -759,7 +759,7 @@ void ewxNumericValidator::parseRange(string range, bool isHard)
 void ewxNumericValidator::check(const wxString& valString, bool isHard,
                                 bool useMin, bool useMax,
                                 bool minOpen, bool maxOpen,
-                                double min, double max) throw (InvalidException)
+                                double min, double max)
 {
   int tmp;
   double val;

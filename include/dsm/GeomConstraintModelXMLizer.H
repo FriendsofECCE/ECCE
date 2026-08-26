@@ -33,7 +33,7 @@ class GeomConstraintModelXMLizer : public XMLSerializer
 
       void deserialize(const std::string& data,
                        Serializable& object, EcceMap& properties) 
-                       throw (ParseException);
+;
 
       void serialize(const Serializable& object, 
                      std::string& data, EcceMap& properties);

@@ -52,7 +52,6 @@ static string p_dcQualifierNamespace = "http://purl.org/dc/terms/";
  *
  */
 VDoc::VDoc(const EcceURL& url, bool createVdoc) 
-  throw(DavException, InvalidException)
 {
   // Set base URL
   p_base = url;
@@ -467,7 +466,7 @@ EcceURL VDoc::getConfiguration(const string& name)
  *
  * @return Configuration resource Url's.
  */
-vector<EcceURL> VDoc::getConfigurations() throw(DavException, ParseException)
+vector<EcceURL> VDoc::getConfigurations()
 {
   vector<EcceURL> urls;
 
@@ -530,7 +529,7 @@ EcceURL VDoc::getInput(const string& name)
  *
  * @return Input resource Url's.
  */
-vector<EcceURL> VDoc::getInputs() throw(DavException, ParseException)
+vector<EcceURL> VDoc::getInputs()
 {
   vector<EcceURL> urls;
 
@@ -594,7 +593,7 @@ EcceURL VDoc::getOutput(const string& name)
  *
  * @return Output resource Url's.
  */
-vector<EcceURL> VDoc::getOutputs() throw(DavException, ParseException)
+vector<EcceURL> VDoc::getOutputs()
 {
   vector<EcceURL> urls;
 
@@ -701,7 +700,7 @@ EcceURL VDoc::getFile(const string& name)
  *
  * @return File resource Url's.
  */
-vector<EcceURL> VDoc::getFiles() throw(DavException, ParseException)
+vector<EcceURL> VDoc::getFiles()
 {
   vector<EcceURL>::iterator fileIt;
   int i;
@@ -763,7 +762,7 @@ EcceURL VDoc::getProperty(const string& name)
  *
  * @return Property resource Url's.
  */
-vector<EcceURL> VDoc::getProperties() throw(DavException, ParseException)
+vector<EcceURL> VDoc::getProperties()
 {
   vector<EcceURL> propertyUrls;
 
@@ -793,7 +792,6 @@ vector<EcceURL> VDoc::getProperties() throw(DavException, ParseException)
 EcceURL VDoc::addConfiguration(
                 const string& name, 
                 istream* resource) 
-                throw(DavException)
 {
   bool isNewResource = true;
   EcceURL configurationUrl;
@@ -848,7 +846,6 @@ EcceURL VDoc::addConfiguration(
 EcceURL VDoc::addInput(
                 const string& name, 
                 istream* resource) 
-                throw(DavException)
 {
   bool isNewResource = true;
   EcceURL inputUrl;
@@ -903,7 +900,6 @@ EcceURL VDoc::addInput(
 EcceURL VDoc::addOutput(
                 const string& name, 
                 istream* resource) 
-                throw(DavException)
 {
   EcceURL outputUrl;
 
@@ -973,7 +969,6 @@ EcceURL VDoc::addOutput(
 EcceURL VDoc::addFile(
                 const string& name, 
                 istream* resource) 
-                throw(DavException)
 {
   EcceURL fileUrl;
 
@@ -1018,7 +1013,6 @@ EcceURL VDoc::addFile(
 EcceURL VDoc::addProperty(
                 const string& name, 
                 istream* resource) 
-                throw(DavException)
 {
   EcceURL propertyUrl;
 
@@ -1057,7 +1051,6 @@ EcceURL VDoc::addProperty(
 EcceURL VDoc::moveConfiguration(
                 const string& fromName, 
                 const string& toName) 
-                throw(DavException)
 {
   EcceURL *url;
   EcceURL fromUrl;
@@ -1138,7 +1131,6 @@ EcceURL VDoc::moveConfiguration(
 EcceURL VDoc::moveInput(
                 const string& fromName, 
                 const string& toName) 
-                throw(DavException)
 {
   EcceURL *url;
   EcceURL fromUrl;
@@ -1219,7 +1211,6 @@ EcceURL VDoc::moveInput(
 EcceURL VDoc::moveOutput(
                 const string& fromName, 
                 const string& toName) 
-                throw(DavException)
 {
   EcceURL *url;
   EcceURL fromUrl;
@@ -1304,7 +1295,6 @@ EcceURL VDoc::moveOutput(
 EcceURL VDoc::moveFile(
                 const string& fromName, 
                 const string& toName) 
-                throw(DavException)
 {
   EcceURL fromUrl;
   EcceURL toUrl;
@@ -1396,7 +1386,6 @@ EcceURL VDoc::moveFile(
 EcceURL VDoc::moveProperty(
                 const string& fromName, 
                 const string& toName) 
-                throw(DavException)
 {
   EcceURL *url;
   EcceURL fromUrl;
@@ -1443,7 +1432,7 @@ EcceURL VDoc::moveProperty(
  * @throw DavException DAV server access error
  *
  */
-void VDoc::removeConfiguration(const string& name) throw(DavException)
+void VDoc::removeConfiguration(const string& name)
 {
   vector<EcceURL> urls = getConfigurations();
   EcceURL *url = findUrl(urls, name);
@@ -1487,7 +1476,7 @@ void VDoc::removeConfiguration(const string& name) throw(DavException)
  * @throw DavException DAV server access error
  *
  */
-void VDoc::removeConfigurations() throw(DavException)
+void VDoc::removeConfigurations()
 {
   vector<EcceURL> urls = getConfigurations();
   vector<EcceURL> noUrls;
@@ -1513,7 +1502,7 @@ void VDoc::removeConfigurations() throw(DavException)
  * @throw DavException DAV server access error
  *
  */
-void VDoc::removeInput(const string& name) throw(DavException)
+void VDoc::removeInput(const string& name)
 {
   vector<EcceURL> urls = getInputs();
   EcceURL *url = findUrl(urls, name);
@@ -1556,7 +1545,7 @@ void VDoc::removeInput(const string& name) throw(DavException)
  * @throw DavException DAV server access error
  *
  */
-void VDoc::removeInputs() throw(DavException)
+void VDoc::removeInputs()
 {
   vector<EcceURL> urls = getInputs();
   vector<EcceURL> noUrls;
@@ -1582,7 +1571,7 @@ void VDoc::removeInputs() throw(DavException)
  * @throw DavException DAV server access error
  *
  */
-void VDoc::removeOutput(const string& name) throw(DavException)
+void VDoc::removeOutput(const string& name)
 {
   vector<EcceURL> urls = getOutputs();
   EcceURL *url = findUrl(urls, name);
@@ -1625,7 +1614,7 @@ void VDoc::removeOutput(const string& name) throw(DavException)
  * @throw DavException DAV server access error
  *
  */
-void VDoc::removeOutputs() throw(DavException)
+void VDoc::removeOutputs()
 {
   vector<EcceURL> urls = getOutputs();
   vector<EcceURL> noUrls;
@@ -1652,7 +1641,7 @@ void VDoc::removeOutputs() throw(DavException)
  * @throw DavException DAV server access error
  *
  */
-void VDoc::removeFile(const string& name) throw(DavException)
+void VDoc::removeFile(const string& name)
 {
   // Remove input - if exists
   removeInput(name);
@@ -1684,7 +1673,7 @@ void VDoc::removeFile(const string& name) throw(DavException)
  * @throw DavException DAV server access error
  *
  */
-void VDoc::removeFiles() throw(DavException)
+void VDoc::removeFiles()
 {
   vector<EcceURL> fileUrls = getFiles();
   removeInputs();
@@ -1703,7 +1692,7 @@ void VDoc::removeFiles() throw(DavException)
  * @throw DavException DAV server access error
  *
  */
-void VDoc::removeProperty(const string& name) throw(DavException)
+void VDoc::removeProperty(const string& name)
 {
   vector<EcceURL> urls = getProperties();
   EcceURL *url = findUrl(urls, name);
@@ -1726,7 +1715,7 @@ void VDoc::removeProperty(const string& name) throw(DavException)
  * @throw DavException DAV server access error
  *
  */
-void VDoc::removeProperties() throw(DavException)
+void VDoc::removeProperties()
 {
   vector<EcceURL> urls = getProperties();
   if (!p_edsi->removeResources(urls)) {
@@ -1743,7 +1732,7 @@ void VDoc::removeProperties() throw(DavException)
  * @return True if is a valid VDoc, otherwise false.
  *
  */
-bool VDoc::isVdoc() throw(DavException)
+bool VDoc::isVdoc()
 {
   bool ret = false;
   string resourceProp = VDoc::getEcceNamespace() + ":resourcetype";
@@ -1796,7 +1785,7 @@ bool VDoc::isVdoc() throw(DavException)
  *
  * @return True if it is a current VDoc, otherwise false.
  */
-bool VDoc::isCurrentVdoc() throw(DavException, InvalidException)
+bool VDoc::isCurrentVdoc()
 {
   bool ret = false;
   int version;
@@ -1857,7 +1846,6 @@ bool VDoc::isCurrentVdoc() throw(DavException, InvalidException)
  *
  */
 void VDoc::setVdoc(bool createVdoc) 
-       throw(DavException, InvalidException)
 {
   // DAV Property names
   p_moleculeProp = VDoc::getEcceNamespace() + ":moleculeDocument";
@@ -1969,7 +1957,7 @@ void VDoc::setVdoc(bool createVdoc)
  * @throw InvalidException Name of resource could not be determined.
  *
  */
-void VDoc::loadMoleculeName() throw(DavException, InvalidException)
+void VDoc::loadMoleculeName()
 {
   if (p_currentVdoc) {
 
@@ -2024,7 +2012,7 @@ void VDoc::loadMoleculeName() throw(DavException, InvalidException)
  * @throw InvalidException Name of resource could not be determined.
  *
  */
-void VDoc::loadOriginalMoleculeName() throw(DavException, InvalidException)
+void VDoc::loadOriginalMoleculeName()
 {
   p_originalMolecule = "";
 
@@ -2062,7 +2050,7 @@ void VDoc::loadOriginalMoleculeName() throw(DavException, InvalidException)
  * @throw InvalidException Name of resource could not be determined.
  *
  */
-void VDoc::loadEspConstraintsName() throw(DavException, InvalidException)
+void VDoc::loadEspConstraintsName()
 {
   if (p_currentVdoc) {
 
@@ -2113,7 +2101,7 @@ void VDoc::loadEspConstraintsName() throw(DavException, InvalidException)
  * @throw InvalidException Name of resource could not be determined.
  *
  */
-void VDoc::loadGeometryConstraintsName() throw(DavException, InvalidException)
+void VDoc::loadGeometryConstraintsName()
 {
   if (p_currentVdoc) {
 
@@ -2164,7 +2152,7 @@ void VDoc::loadGeometryConstraintsName() throw(DavException, InvalidException)
  * @throw InvalidException Name of resource could not be determined.
  *
  */
-void VDoc::loadMetaPotentialsName() throw(DavException, InvalidException)
+void VDoc::loadMetaPotentialsName()
 {
   if (p_currentVdoc) {
 
@@ -2217,7 +2205,7 @@ void VDoc::loadMetaPotentialsName() throw(DavException, InvalidException)
  * @throw InvalidException Name of resource could not be determined.
  *
  */
-void VDoc::loadQMMMTermsName() throw(DavException, InvalidException)
+void VDoc::loadQMMMTermsName()
 {
   if (p_currentVdoc) {
 
@@ -2270,7 +2258,7 @@ void VDoc::loadQMMMTermsName() throw(DavException, InvalidException)
  * @throw InvalidException Name of resource could not be determined.
  *
  */
-void VDoc::loadBasisSetName() throw(DavException, InvalidException)
+void VDoc::loadBasisSetName()
 {
   if (p_currentVdoc) {
 
@@ -2326,7 +2314,7 @@ void VDoc::loadBasisSetName() throw(DavException, InvalidException)
  * @throw InvalidException Name of resource could not be determined.
  *
  */
-void VDoc::loadRunLogName() throw(DavException, InvalidException)
+void VDoc::loadRunLogName()
 {
   if (p_currentVdoc) {
 
@@ -2382,7 +2370,7 @@ void VDoc::loadRunLogName() throw(DavException, InvalidException)
  * @throw InvalidException Name of resource could not be determined.
  *
  */
-void VDoc::loadSetupParametersName() throw(DavException, InvalidException)
+void VDoc::loadSetupParametersName()
 {
   if (p_currentVdoc) {
 
@@ -2431,7 +2419,7 @@ void VDoc::loadSetupParametersName() throw(DavException, InvalidException)
  * @throw DavException DAV server access error
  * @throw InvalidException Name of resource could not be determined.
  */
-void VDoc::loadMdPrepareName() throw(DavException, InvalidException)
+void VDoc::loadMdPrepareName()
 {
   p_mdPrepare = "";
 
@@ -2467,7 +2455,7 @@ void VDoc::loadMdPrepareName() throw(DavException, InvalidException)
  * @throw DavException DAV server access error
  * @throw InvalidException Name of resource could not be determined.
  */
-void VDoc::loadMdOptimizeName() throw(DavException, InvalidException)
+void VDoc::loadMdOptimizeName()
 {
   p_mdOptimize = "";
 
@@ -2503,7 +2491,7 @@ void VDoc::loadMdOptimizeName() throw(DavException, InvalidException)
  * @throw DavException DAV server access error
  * @throw InvalidException Name of resource could not be determined.
  */
-void VDoc::loadMdEnergyName() throw(DavException, InvalidException)
+void VDoc::loadMdEnergyName()
 {
   p_mdEnergy = "";
 
@@ -2539,7 +2527,7 @@ void VDoc::loadMdEnergyName() throw(DavException, InvalidException)
  * @throw DavException DAV server access error
  * @throw InvalidException Name of resource could not be determined.
  */
-void VDoc::loadMdDynamicsName() throw(DavException, InvalidException)
+void VDoc::loadMdDynamicsName()
 {
   p_mdDynamics = "";
 
@@ -2575,7 +2563,7 @@ void VDoc::loadMdDynamicsName() throw(DavException, InvalidException)
  * @throw DavException DAV server access error
  * @throw InvalidException Name of resource could not be determined.
  */
-void VDoc::loadThumbnailName() throw(DavException, InvalidException)
+void VDoc::loadThumbnailName()
 {
   p_thumbnail = "";
 
@@ -2614,7 +2602,7 @@ void VDoc::loadThumbnailName() throw(DavException, InvalidException)
  * @todo remove check for old property name, only done so
  *       older 4.0 developer calcs aren't broken.
  */
-void VDoc::loadConfigurationCollection() throw(DavException, InvalidException)
+void VDoc::loadConfigurationCollection()
 {
   if (p_currentVdoc) {
 
@@ -2665,7 +2653,7 @@ void VDoc::loadConfigurationCollection() throw(DavException, InvalidException)
  * @todo remove checks for old property names, only done so
  *       older 4.0 developer calcs aren't broken.
  */
-void VDoc::loadInputCollection() throw(DavException, InvalidException)
+void VDoc::loadInputCollection()
 {
   if (p_currentVdoc) {
 
@@ -2728,7 +2716,7 @@ void VDoc::loadInputCollection() throw(DavException, InvalidException)
  *       older 4.0 developer calcs aren't broken.
  *
  */
-void VDoc::loadOutputCollection() throw(DavException, InvalidException)
+void VDoc::loadOutputCollection()
 {
   if (p_currentVdoc) {
 
@@ -2789,7 +2777,7 @@ void VDoc::loadOutputCollection() throw(DavException, InvalidException)
  * @throw InvalidException Name of collection could not be determined.
  *
  */
-void VDoc::loadFileCollection() throw(DavException, InvalidException)
+void VDoc::loadFileCollection()
 {
   if (p_currentVdoc) {
 
@@ -2828,7 +2816,7 @@ void VDoc::loadFileCollection() throw(DavException, InvalidException)
  * @throw InvalidException Name of collection could not be determined.
  *
  */
-void VDoc::loadPropertyCollection() throw(DavException, InvalidException)
+void VDoc::loadPropertyCollection()
 {
   if (p_currentVdoc) {
 
@@ -2870,7 +2858,7 @@ void VDoc::loadPropertyCollection() throw(DavException, InvalidException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createMoleculeName() throw(DavException)
+void VDoc::createMoleculeName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -2889,7 +2877,7 @@ void VDoc::createMoleculeName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createOriginalMoleculeName() throw(DavException)
+void VDoc::createOriginalMoleculeName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -2908,7 +2896,7 @@ void VDoc::createOriginalMoleculeName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createEspConstraintsName() throw(DavException)
+void VDoc::createEspConstraintsName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -2927,7 +2915,7 @@ void VDoc::createEspConstraintsName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createGeometryConstraintsName() throw(DavException)
+void VDoc::createGeometryConstraintsName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -2946,7 +2934,7 @@ void VDoc::createGeometryConstraintsName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createMetaPotentialsName() throw(DavException)
+void VDoc::createMetaPotentialsName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -2965,7 +2953,7 @@ void VDoc::createMetaPotentialsName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createQMMMTermsName() throw(DavException)
+void VDoc::createQMMMTermsName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -2984,7 +2972,7 @@ void VDoc::createQMMMTermsName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createBasisSetName() throw(DavException)
+void VDoc::createBasisSetName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -3003,7 +2991,7 @@ void VDoc::createBasisSetName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createRunLogName() throw(DavException)
+void VDoc::createRunLogName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -3022,7 +3010,7 @@ void VDoc::createRunLogName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createSetupParametersName() throw(DavException)
+void VDoc::createSetupParametersName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -3041,7 +3029,7 @@ void VDoc::createSetupParametersName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createMdPrepareName() throw(DavException)
+void VDoc::createMdPrepareName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -3060,7 +3048,7 @@ void VDoc::createMdPrepareName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createMdOptimizeName() throw(DavException)
+void VDoc::createMdOptimizeName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -3079,7 +3067,7 @@ void VDoc::createMdOptimizeName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createMdEnergyName() throw(DavException)
+void VDoc::createMdEnergyName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -3098,7 +3086,7 @@ void VDoc::createMdEnergyName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createMdDynamicsName() throw(DavException)
+void VDoc::createMdDynamicsName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -3117,7 +3105,7 @@ void VDoc::createMdDynamicsName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createThumbnailName() throw(DavException)
+void VDoc::createThumbnailName()
 {
   p_edsi->setURL(p_base);
   vector<MetaDataResult> results(1);
@@ -3136,7 +3124,7 @@ void VDoc::createThumbnailName() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createConfigurationCollection() throw(DavException)
+void VDoc::createConfigurationCollection()
 {
   createVdocCollection(p_configurationCollection);
 
@@ -3157,7 +3145,7 @@ void VDoc::createConfigurationCollection() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createInputCollection() throw(DavException)
+void VDoc::createInputCollection()
 {
   createVdocCollection(p_inputCollection);
 
@@ -3178,7 +3166,7 @@ void VDoc::createInputCollection() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createOutputCollection() throw(DavException)
+void VDoc::createOutputCollection()
 {
   createVdocCollection(p_outputCollection);
 
@@ -3199,7 +3187,7 @@ void VDoc::createOutputCollection() throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createPropertyCollection() throw(DavException)
+void VDoc::createPropertyCollection()
 {
   createVdocCollection(p_propertyCollection);
 
@@ -3225,7 +3213,7 @@ void VDoc::createPropertyCollection() throw(DavException)
  *
  * @return List of resources identified by the document.
  */
-vector<string> VDoc::parseDoc(const string& document) throw(ParseException)
+vector<string> VDoc::parseDoc(const string& document)
 {
   vector<string> ret;
 
@@ -3312,7 +3300,7 @@ vector<string> VDoc::getDocItems(DOMDocument *domDocument)
  * @return Pointer to a JCode.  Null returned if no Value for :application.
  *
  */
-const JCode* VDoc::getApplication() throw(DavException)
+const JCode* VDoc::getApplication()
 {
   const JCode* tcode = 0;  
 
@@ -3507,7 +3495,7 @@ bool VDoc::isOutputType(const EcceURL& url)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::saveConfigurations(const vector<EcceURL>& urls) throw(DavException)
+void VDoc::saveConfigurations(const vector<EcceURL>& urls)
 {
   // Need to restore setting when done
   EcceURL origUrl = p_edsi->getURL();
@@ -3545,7 +3533,7 @@ void VDoc::saveConfigurations(const vector<EcceURL>& urls) throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::saveInputs(const vector<EcceURL>& urls) throw(DavException)
+void VDoc::saveInputs(const vector<EcceURL>& urls)
 {
   // Need to restore setting when done
   EcceURL origUrl = p_edsi->getURL();
@@ -3583,7 +3571,7 @@ void VDoc::saveInputs(const vector<EcceURL>& urls) throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::saveOutputs(const vector<EcceURL>& urls) throw(DavException)
+void VDoc::saveOutputs(const vector<EcceURL>& urls)
 {
   // Need to restore setting when done
   EcceURL origUrl = p_edsi->getURL();
@@ -3619,7 +3607,7 @@ void VDoc::saveOutputs(const vector<EcceURL>& urls) throw(DavException)
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::saveProperties() throw(DavException)
+void VDoc::saveProperties()
 {
   // Need to restore setting when done
   EcceURL origUrl = p_edsi->getURL();
@@ -3714,7 +3702,7 @@ void VDoc::endDoc(string& document)
  * @return True if url exists, otherwise false.
  *
  */
-bool VDoc::resourceExists(const EcceURL& url) throw(DavException)
+bool VDoc::resourceExists(const EcceURL& url)
 {
   bool ret = false;
 
@@ -3744,7 +3732,7 @@ bool VDoc::resourceExists(const EcceURL& url) throw(DavException)
  * @return True if property exists, otherwise false.
  *
  */
-bool VDoc::propertyExists(const EcceURL& url, const string& property) throw(DavException)
+bool VDoc::propertyExists(const EcceURL& url, const string& property)
 {
   bool ret = false;
 
@@ -3882,7 +3870,7 @@ vector<EcceURL> VDoc::getVdocUrls(const vector<string>& paths) const
  * @throw DavException DAV server access error.
  *
  */
-void VDoc::createVdocCollection(const string& collectionName) throw (DavException)
+void VDoc::createVdocCollection(const string& collectionName)
 {
   if (!collectionName.empty()) {
     EcceURL collectionUrl = getVdocUrl(collectionName);

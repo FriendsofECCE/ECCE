@@ -17,7 +17,7 @@ class SetMassCmd : public FragCloneCmd
       SetMassCmd(const string& name, Receiver * receiver, const string& sender="");
       ~SetMassCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
 

@@ -59,7 +59,6 @@ string NWDirdyModelXMLizer::mimetype() const
 
 void NWDirdyModelXMLizer::deserialize(const string& data,
                        Serializable& object, EcceMap& properties)
-                       throw (ParseException)
 {
    // NOTE: For now at least, we aren't interested in any properties.
    NWDirdyModel *dobject = dynamic_cast<NWDirdyModel*>(&object);
@@ -229,7 +228,6 @@ void NWDirdyModelXMLizer::deserialize(const string& data,
 
 void NWDirdyModelXMLizer::serialize(const Serializable& object,
                         string& data, EcceMap& properties)
-
 {
    data = "";
 

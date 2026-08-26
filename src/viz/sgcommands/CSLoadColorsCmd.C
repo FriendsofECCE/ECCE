@@ -42,7 +42,7 @@ void CSLoadColorsCmd::init()
 
 
 
-bool CSLoadColorsCmd::execute() throw(EcceException)
+bool CSLoadColorsCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

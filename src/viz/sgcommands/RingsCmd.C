@@ -42,7 +42,7 @@ void RingsCmd::init()
 
 
 
-bool RingsCmd::execute() throw(EcceException)
+bool RingsCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

@@ -42,7 +42,7 @@ void IsoSurfaceCmd::init()
 
 }
 
-bool IsoSurfaceCmd::execute() throw(EcceException)
+bool IsoSurfaceCmd::execute()
 {
   SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
 

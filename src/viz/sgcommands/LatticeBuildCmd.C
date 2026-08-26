@@ -53,7 +53,7 @@ void LatticeBuildCmd::init()
 
 
 
-bool LatticeBuildCmd::execute() throw(EcceException)
+bool LatticeBuildCmd::execute()
 {
    bool ret = false;
 

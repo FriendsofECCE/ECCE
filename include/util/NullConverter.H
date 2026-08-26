@@ -19,16 +19,16 @@ class NullConverter: public BaseUnitConverter
     virtual ~NullConverter();
 
     virtual string convertTo(const string& value, const string& toUnits)
-             throw (InvalidException);
+;
              
     virtual double convertTo(double value, const string& toUnits)
-             throw (InvalidException);
+;
 
     virtual string convertFrom(const string& value, const string& fromUnits)
-             throw (InvalidException);
+;
 
     virtual double convertFrom(double value, const string& fromUnits)
-             throw (InvalidException);
+;
 
   protected:
     // valid that the argument is a valid unit

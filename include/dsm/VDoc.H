@@ -85,68 +85,68 @@ class VDoc {
     string getPolyrateName() const;
 
     EcceURL         getConfiguration(const string& name);
-    vector<EcceURL> getConfigurations() throw(DavException, ParseException);
+    vector<EcceURL> getConfigurations();
     EcceURL         getInput(const string& name);
-    vector<EcceURL> getInputs() throw(DavException, ParseException);
+    vector<EcceURL> getInputs();
     EcceURL         getOutput(const string& name);
-    vector<EcceURL> getOutputs() throw(DavException, ParseException);
+    vector<EcceURL> getOutputs();
     EcceURL         getFile(const string& name);
-    vector<EcceURL> getFiles() throw(DavException, ParseException);
+    vector<EcceURL> getFiles();
     EcceURL         getProperty(const string& name);
-    vector<EcceURL> getProperties() throw(DavException, ParseException);
+    vector<EcceURL> getProperties();
 
     EcceURL addConfiguration(
               const string& name, 
               istream* resource) 
-              throw(DavException);
+;
     EcceURL addInput(
               const string& name, 
               istream* resource) 
-              throw(DavException);
+;
     EcceURL addOutput(
               const string& name, 
               istream* resource) 
-              throw(DavException);
+;
     EcceURL addFile(
               const string& name, 
               istream* resource) 
-              throw(DavException);
+;
     EcceURL addProperty(
               const string& name, 
               istream* resource) 
-              throw(DavException);
+;
 
     EcceURL moveConfiguration(
               const string& fromName, 
               const string& toName) 
-              throw(DavException);
+;
     EcceURL moveInput(
               const string& fromName, 
               const string& toName) 
-              throw(DavException);
+;
     EcceURL moveOutput(
             const string& fromName, 
             const string& toName) 
-            throw(DavException);
+;
     EcceURL moveFile(
             const string& fromName, 
             const string& toName) 
-            throw(DavException);
+;
     EcceURL moveProperty(
             const string& fromName, 
             const string& toName) 
-            throw(DavException);
+;
 
-    void removeConfiguration(const string& name) throw(DavException);
-    void removeConfigurations() throw(DavException);
-    void removeInput(const string& name) throw(DavException);
-    void removeInputs() throw(DavException);
-    void removeOutput(const string& name) throw(DavException);
-    void removeOutputs() throw(DavException);
-    void removeFile(const string& name) throw(DavException);
-    void removeFiles() throw(DavException);
-    void removeProperty(const string& name) throw(DavException);
-    void removeProperties() throw(DavException);
+    void removeConfiguration(const string& name);
+    void removeConfigurations();
+    void removeInput(const string& name);
+    void removeInputs();
+    void removeOutput(const string& name);
+    void removeOutputs();
+    void removeFile(const string& name);
+    void removeFiles();
+    void removeProperty(const string& name);
+    void removeProperties();
 
 
 
@@ -155,81 +155,81 @@ class VDoc {
     // Only EDSIFactory can create a VDoc
     VDoc(const EcceURL& url, 
          bool createVdoc = false) 
-         throw(DavException, InvalidException);
+;
 
   private:
 
-    bool isVdoc() throw(DavException);
-    bool isCurrentVdoc() throw(DavException, InvalidException);
+    bool isVdoc();
+    bool isCurrentVdoc();
     void setVdoc(bool createVdoc) 
-      throw(DavException, InvalidException);
+;
 
-    void loadMoleculeName() throw(DavException, InvalidException);
-    void loadOriginalMoleculeName() throw(DavException, InvalidException);
-    void loadEspConstraintsName() throw(DavException, InvalidException);
-    void loadGeometryConstraintsName() throw(DavException, InvalidException);
-    void loadMetaPotentialsName() throw(DavException, InvalidException);
-    void loadQMMMTermsName() throw(DavException, InvalidException);
-    void loadBasisSetName() throw(DavException, InvalidException);
-    void loadRunLogName() throw(DavException, InvalidException);
-    void loadSetupParametersName() throw(DavException, InvalidException);
-    void loadMdPrepareName() throw(DavException, InvalidException);
-    void loadMdOptimizeName() throw(DavException, InvalidException);
-    void loadMdEnergyName() throw(DavException, InvalidException);
-    void loadMdDynamicsName() throw(DavException, InvalidException);
-    void loadThumbnailName() throw(DavException, InvalidException);
-    void loadConfigurationCollection() throw(DavException, InvalidException);
-    void loadInputCollection() throw(DavException, InvalidException);
-    void loadOutputCollection() throw(DavException, InvalidException);
-    void loadFileCollection() throw(DavException, InvalidException);
-    void loadPropertyCollection() throw(DavException, InvalidException);
+    void loadMoleculeName();
+    void loadOriginalMoleculeName();
+    void loadEspConstraintsName();
+    void loadGeometryConstraintsName();
+    void loadMetaPotentialsName();
+    void loadQMMMTermsName();
+    void loadBasisSetName();
+    void loadRunLogName();
+    void loadSetupParametersName();
+    void loadMdPrepareName();
+    void loadMdOptimizeName();
+    void loadMdEnergyName();
+    void loadMdDynamicsName();
+    void loadThumbnailName();
+    void loadConfigurationCollection();
+    void loadInputCollection();
+    void loadOutputCollection();
+    void loadFileCollection();
+    void loadPropertyCollection();
 
-    void createMoleculeName() throw(DavException);
-    void createOriginalMoleculeName() throw(DavException);
-    void createEspConstraintsName() throw(DavException);
-    void createGeometryConstraintsName() throw(DavException);
-    void createMetaPotentialsName() throw(DavException);
-    void createQMMMTermsName() throw(DavException);
-    void createBasisSetName() throw(DavException);
-    void createRunLogName() throw(DavException);
-    void createSetupParametersName() throw(DavException);
-    void createMdPrepareName() throw(DavException);
-    void createMdOptimizeName() throw(DavException);
-    void createMdEnergyName() throw(DavException);
-    void createMdDynamicsName() throw(DavException);
-    void createThumbnailName() throw(DavException);
-    void createConfigurationCollection() throw(DavException);
-    void createInputCollection() throw(DavException);
-    void createOutputCollection() throw(DavException);
-    void createPropertyCollection() throw(DavException);
+    void createMoleculeName();
+    void createOriginalMoleculeName();
+    void createEspConstraintsName();
+    void createGeometryConstraintsName();
+    void createMetaPotentialsName();
+    void createQMMMTermsName();
+    void createBasisSetName();
+    void createRunLogName();
+    void createSetupParametersName();
+    void createMdPrepareName();
+    void createMdOptimizeName();
+    void createMdEnergyName();
+    void createMdDynamicsName();
+    void createThumbnailName();
+    void createConfigurationCollection();
+    void createInputCollection();
+    void createOutputCollection();
+    void createPropertyCollection();
 
-    vector<string> parseDoc(const string& document) throw(ParseException);
+    vector<string> parseDoc(const string& document);
     vector<string> getDocItems(DOMDocument *domDocument);
 
-    const JCode *getApplication() throw(DavException);
+    const JCode *getApplication();
     bool isInputFilename(const string& name);
     bool isInputType(const EcceURL& url);
     bool isOutputFilename(const string& name);
     bool isOutputType(const EcceURL& url);
 
-    void saveConfigurations(const vector<EcceURL>& urls) throw(DavException);
-    void saveInputs(const vector<EcceURL>& urls) throw(DavException);
-    void saveOutputs(const vector<EcceURL>& urls) throw(DavException);
-    void saveProperties() throw(DavException);
+    void saveConfigurations(const vector<EcceURL>& urls);
+    void saveInputs(const vector<EcceURL>& urls);
+    void saveOutputs(const vector<EcceURL>& urls);
+    void saveProperties();
     void startDoc(string& document);
     void addDocItem(string& document, const string& path);
     void endDoc(string& document);
 
-    bool resourceExists(const EcceURL& url) throw(DavException);
+    bool resourceExists(const EcceURL& url);
     bool propertyExists(const EcceURL& url, const string& name) 
-           throw(DavException);
+;
     string getVdocPath(
              const string& collection, 
              const string& resource = "") const;
     void trimSlash(string& value) const;
     EcceURL getVdocUrl(const string& path) const;
     vector<EcceURL> getVdocUrls(const vector<string>& paths) const;
-    void createVdocCollection(const string& collectionName) throw (DavException);
+    void createVdocCollection(const string& collectionName);
 
     EcceURL* findUrl(const vector<EcceURL>& urls, const string& name) const;
     EcceURL createConfigurationUrl(const string& name) const;

@@ -13,7 +13,7 @@ class LatticeBuildCmd : public FragCloneCmd
       LatticeBuildCmd(const string& name, Receiver * receiver);
       ~LatticeBuildCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       void init();

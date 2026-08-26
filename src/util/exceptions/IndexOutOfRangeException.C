@@ -76,13 +76,13 @@ IndexOutOfRangeException::IndexOutOfRangeException(
 
 
 
-IndexOutOfRangeException::~IndexOutOfRangeException() throw ()
+IndexOutOfRangeException::~IndexOutOfRangeException() noexcept
 {
 }
 
 
 
-EcceException *IndexOutOfRangeException::clone() const throw()
+EcceException *IndexOutOfRangeException::clone() const noexcept
 {
    return new IndexOutOfRangeException(*this);
 }
@@ -92,7 +92,7 @@ EcceException *IndexOutOfRangeException::clone() const throw()
 /**
  * Overload of std::exception::what()
  */
-const char *IndexOutOfRangeException::what() const throw()
+const char *IndexOutOfRangeException::what() const noexcept
 {
    string ret = formatMessage(p_value, p_lower, p_upper);;
    return ret.c_str();

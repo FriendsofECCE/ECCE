@@ -40,7 +40,7 @@ void PBCEquivRectCmd::init()
 
 
 
-bool PBCEquivRectCmd::execute() throw(EcceException)
+bool PBCEquivRectCmd::execute()
 {
    bool ret = false;
 

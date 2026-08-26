@@ -154,8 +154,8 @@ class NWDirdyModel : public ITaskModel
       void setNumAtomsReact2(int num);
 
       /* ITaskModel virtuals */
-      virtual void generateInputFile() throw(InvalidException);
-      virtual void run() throw(InvalidException);
+      virtual void generateInputFile();
+      virtual void run();
       void reset();
 
    private:

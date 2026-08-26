@@ -38,7 +38,6 @@ TemperatureConverter::~TemperatureConverter()
  * relation.
  */
 string TemperatureConverter::convertTo(const string& value, const string& toUnits)
-   throw (InvalidException)
 {
    string ret = value;
    if (!checkString(toUnits)) {
@@ -55,7 +54,6 @@ string TemperatureConverter::convertTo(const string& value, const string& toUnit
 }
 
 double TemperatureConverter::convertTo(double value, const string& toUnits)
-   throw (InvalidException)
 {
    double ret = value;
    if (!checkString(toUnits)) {
@@ -68,7 +66,6 @@ double TemperatureConverter::convertTo(double value, const string& toUnits)
 }
 
 string TemperatureConverter::convertFrom(const string& value, const string& fromUnits)
-   throw (InvalidException)
 {
    string ret = value;
    if (!checkString(fromUnits)) {
@@ -85,7 +82,6 @@ string TemperatureConverter::convertFrom(const string& value, const string& from
 }
 
 double TemperatureConverter::convertFrom(double value, const string& fromUnits)
-   throw (InvalidException)
 {
    double ret = value;
    if (!checkString(fromUnits)) {

@@ -26,6 +26,6 @@ ResourceNotFoundException::ResourceNotFoundException(
 {
 }
 
-ResourceNotFoundException::~ResourceNotFoundException() throw ()
+ResourceNotFoundException::~ResourceNotFoundException() noexcept
 {
 }

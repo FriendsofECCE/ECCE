@@ -20,7 +20,7 @@ class GridPropElement : public GridElement
   public:
 
     GridPropElement(Resource *resource, 
-                    ResourceProperty *property) throw(InvalidException);
+                    ResourceProperty *property);
 
     virtual ~GridPropElement();
 

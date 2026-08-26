@@ -329,8 +329,8 @@ class Builder: public BuilderGUI,
       
       IPropCalculation* createCalculation(const string& url);
 
-      Command * createCommand(const string& input) throw(EcceException);
-      Command * createModeCommand(int modeId) throw(EcceException);
+      Command * createCommand(const string& input);
+      Command * createModeCommand(int modeId);
 
       void addToolPanel(wxWindow *panel, const string& name,
                         const bool& readOnlyDisabled=true,
@@ -342,7 +342,7 @@ class Builder: public BuilderGUI,
 
       void toggleTool(int id, bool isChecked);
       bool getToolState(int id) const;
-      int checkResidueEditing() throw(CancelException);
+      int checkResidueEditing();
 
       bool createSolventSoluteStyles(SGFragment& frag);
       bool getPDBOptions(const string& filename, string& altLoc,

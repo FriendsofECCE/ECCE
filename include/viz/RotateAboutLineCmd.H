@@ -10,7 +10,7 @@ class RotateAboutLineCmd : public Command
       RotateAboutLineCmd(const string& name, Receiver * receiver);
       ~RotateAboutLineCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

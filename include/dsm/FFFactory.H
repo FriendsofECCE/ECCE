@@ -29,7 +29,7 @@ class FFFactory {
        * Caller currently responsible for memory.
        */
       FFDesc *getFFDescriptor(const string& name) 
-               throw (InvalidException, ParseException);
+;
 
    protected:
 

@@ -27,7 +27,7 @@ IOException::IOException(const IOException& rhs)
 {
 }
 
-IOException::~IOException() throw ()
+IOException::~IOException() noexcept
 {
 }
 

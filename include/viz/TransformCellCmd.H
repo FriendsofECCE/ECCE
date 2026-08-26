@@ -15,7 +15,7 @@ class TransformCellCmd : public FragCloneCmd
       TransformCellCmd(const string& name,Receiver *receiver);
       ~TransformCellCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

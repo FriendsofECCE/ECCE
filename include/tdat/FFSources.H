@@ -47,7 +47,7 @@ class FFSources
       int    getSourceID( string&) const;
       int    getNewSourceID( void) const;
       int    getSourceCount( void) const;
-      string getSourceName( int) const throw (IndexOutOfRangeException);
+      string getSourceName( int) const;
       string getNewSourceName() const;
 
       static const char* NEW_SOURCE;

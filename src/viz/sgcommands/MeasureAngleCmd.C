@@ -42,7 +42,7 @@ void MeasureAngleCmd::init()
 
 
 
-bool MeasureAngleCmd::execute() throw(EcceException)
+bool MeasureAngleCmd::execute()
 {
    bool ret = false;
 

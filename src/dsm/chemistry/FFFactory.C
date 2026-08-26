@@ -30,7 +30,6 @@ FFFactory::~FFFactory( )
 }
 
 FFDesc *FFFactory::getFFDescriptor(const string& name) 
-      throw (InvalidException,ParseException)
 {
    // Generate file name path
    string path = Ecce::ecceDataPath();

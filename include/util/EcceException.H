@@ -59,12 +59,12 @@ class EcceException : public runtime_error
       EcceException(const string& message, const char *file, int line);
       EcceException(const char *message, const char *file, int line);
       EcceException(const EcceException& rhs);
-      virtual ~EcceException() throw ();
+      virtual ~EcceException() noexcept;
 
-      virtual EcceException *clone() const throw ();
-      virtual void report() const throw();
+      virtual EcceException *clone() const noexcept;
+      virtual void report() const noexcept;
 
-      virtual const char *what() const throw();
+      virtual const char *what() const noexcept;
 
       static void setDefaultHandler();
       static void log(const string& msg);

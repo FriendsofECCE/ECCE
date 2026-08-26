@@ -40,7 +40,7 @@ void NModeVectCmd::init()
    addParameter(new CommandParameter("Sign", false));
 }
 
-bool NModeVectCmd::execute() throw(EcceException)
+bool NModeVectCmd::execute()
 {
    bool ret = false;
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

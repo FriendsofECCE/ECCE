@@ -15,7 +15,7 @@ class ShowHydrogensCmd : public Command
       ShowHydrogensCmd(const string& name, Receiver * receiver);
       virtual ~ShowHydrogensCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
       virtual bool isUndoable() const;
 

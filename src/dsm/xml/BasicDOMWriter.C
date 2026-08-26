@@ -44,7 +44,7 @@ string BasicDOMWriter::XMLDocumentDeclaration(void)
  * You need to look at the Xerces XMLFormatter code (formatBuf).
  */
 void BasicDOMWriter::write(const DOMNode& dn, ostream& os, bool escaped, 
-                           bool prettyPrint) throw (EcceException)
+                           bool prettyPrint)
 {
   try {
     XMLPlatformUtils::Initialize();

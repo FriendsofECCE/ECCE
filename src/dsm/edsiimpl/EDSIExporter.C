@@ -77,7 +77,7 @@ void EDSIExporter::setTargetURL(const EcceURL& targetURL)
  * an IOException is used, no return url can be communicated.  So
  * upstream callers can't show or delete partial exported urls.
  */
-EcceURL EDSIExporter::xport() throw (IOException)
+EcceURL EDSIExporter::xport()
 {
 
   // Create source and target EDSI
@@ -145,7 +145,6 @@ EcceURL EDSIExporter::xport() throw (IOException)
 
 
 bool EDSIExporter::exportResource(EDSI &source, EDSI &target, bool checkName)
-      throw(IOException)
 {
   string resourceName;
   EcceURL *checkURL;
@@ -220,7 +219,6 @@ bool EDSIExporter::exportResource(EDSI &source, EDSI &target, bool checkName)
 
 
 bool EDSIExporter::exportCollection(EDSI &source, EDSI &target)
-         throw(IOException)
 {
   string collectionName;
   EcceURL *colURL;
@@ -261,7 +259,7 @@ bool EDSIExporter::exportCollection(EDSI &source, EDSI &target)
 }
 
 
-void EDSIExporter::exportMetaData(EDSI &source, EDSI &target) throw(IOException)
+void EDSIExporter::exportMetaData(EDSI &source, EDSI &target)
 {
   vector<MetaDataRequest> requests;
   vector<MetaDataResult> sourceProperties;

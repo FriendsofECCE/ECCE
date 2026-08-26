@@ -66,12 +66,12 @@ class Any
       static    TypeCode getTypeCodeFromString(const string& stype);
       string    toString() const;
 
-      int             getInteger() const throw(MismatchedTypeException);
-      bool            getBoolean() const throw(MismatchedTypeException);
-      double          getDouble() const throw(MismatchedTypeException);
-      string          getString() const throw(MismatchedTypeException);
-      vector<int>    *getIntegerList() const throw(MismatchedTypeException);
-      vector<string> *getStringList() const throw(MismatchedTypeException);
+      int             getInteger() const;
+      bool            getBoolean() const;
+      double          getDouble() const;
+      string          getString() const;
+      vector<int>    *getIntegerList() const;
+      vector<string> *getStringList() const;
 
       void setInteger(int val);
       void setBoolean(bool val);

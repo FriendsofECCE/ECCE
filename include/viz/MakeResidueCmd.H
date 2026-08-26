@@ -16,7 +16,7 @@ class MakeResidueCmd : public FragCloneCmd
       MakeResidueCmd(const string& name, Receiver * receiver);
       virtual ~MakeResidueCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

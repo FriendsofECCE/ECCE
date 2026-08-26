@@ -76,7 +76,7 @@ CSocketError::string_type CSocketError::message(void) const
 
 // Constructors: CSocket **************************************************
 
-CSocket::CSocket(const csocket& other) throw (CSocketError)
+CSocket::CSocket(const csocket& other)
 // Pre: Assigned(other)
 // Modifies:
 // Post: Create a new CSocket identical to <other>.
@@ -85,7 +85,7 @@ CSocket::CSocket(const csocket& other) throw (CSocketError)
     throw CSocketError(CSocketError::CreateError);
 }
 
-CSocket::CSocket(const CSocket& other) throw (CSocketError)
+CSocket::CSocket(const CSocket& other)
 // Pre: Assigned(other)
 // Modifies:
 // Post: Create a new CSocket identical to <other>.
@@ -106,7 +106,7 @@ CSocket::~CSocket(void)
 
 // CSocket::operator = *****************************************************
 
-CSocket& CSocket::operator = (const CSocket& other) throw (CSocketError)
+CSocket& CSocket::operator = (const CSocket& other)
 // Pre: Assigned(other)
 // Modifies: sock_
 // Post: Copy <other> to *this and return *this
@@ -134,7 +134,7 @@ int CSocket::fd(void) const
 
 CSocket::size_type CSocket::flush(
   size_type seconds,
-  size_type microseconds) throw (CSocketError)
+  size_type microseconds)
 // Pre: Assigned(seconds), Assigned(microseconds)
 // Modifies:
 // Post: Flush all incoming data to this socket.
@@ -180,7 +180,7 @@ CSocket::string_type CSocket::IPAddress(void) const
 
 bool CSocket::poll(
   size_type seconds,
-  size_type microseconds) throw (CSocketError)
+  size_type microseconds)
 // Pre: Assigned(seconds), Assigned(microseconds)
 // Modifies:
 // Post: Check for socket input. Return true if there is input.
@@ -209,7 +209,7 @@ CSocket::port_type CSocket::portNumber(void) const
 CSocket::size_type CSocket::receive(
   void *    buff,
   size_type nbytes,
-  int       flags) throw (CSocketError)
+  int       flags)
 // Pre: Assigned(buff)   -- buffer to use
 //      Assigned(nbytes) -- buffer capacity
 // Modifies: <buffer>
@@ -228,7 +228,7 @@ CSocket::size_type CSocket::receive(
 
 // CSocket::send **********************************************************
 
-CSocket::size_type CSocket::send(const string_type& s) throw (CSocketError)
+CSocket::size_type CSocket::send(const string_type& s)
 // Pre: Assigned(s) -- string to send
 // Modifies:
 // Post: Send a string and return the length of the message sent.
@@ -244,7 +244,7 @@ CSocket::size_type CSocket::send(const string_type& s) throw (CSocketError)
 
 CSocket::size_type CSocket::send(
   const void * buff,
-  size_type    nbytes) throw (CSocketError)
+  size_type    nbytes)
 // Pre: Assigned(buff)   -- buffer to use
 //      Assigned(nbytes) -- message length
 // Modifies:
@@ -263,7 +263,7 @@ CSocket::size_type CSocket::send(
 
 CClientSocket::CClientSocket(
   const string_type& host,
-  port_type          port) throw (CSocketError)
+  port_type          port)
   : CSocket()
 // Pre: Assigned(host), Assigned(port)
 // Modifies:
@@ -275,7 +275,7 @@ CClientSocket::CClientSocket(
 
 // Constructor: CServerSocket ********************************************
 
-CServerSocket::CServerSocket(port_type port) throw (CSocketError)
+CServerSocket::CServerSocket(port_type port)
   : CSocket()
 // Pre: Assigned(port)
 // Modifies:
@@ -287,7 +287,7 @@ CServerSocket::CServerSocket(port_type port) throw (CSocketError)
 
 // CServerSocket::accept **************************************************
 
-CSocket CServerSocket::accept(void) const throw (CSocketError)
+CSocket CServerSocket::accept(void) const
 // Pre:
 // Modifies:
 // Post: Wait for a connection to this server and return a new CSocket
@@ -346,7 +346,7 @@ CFileTX::size_type CFileTX::receive(
   CSocket&     sock,
   void *       buffer,
   size_type    bufLen,
-  status_type& status) throw (CSocketError)
+  status_type& status)
 // Pre: Assigned(sock), Assigned(buffer), Assigned(bufLen), Assigned(status)
 // Modifies: status
 // Post: Receive a transfer from <sock> and return the number of bytes read.
@@ -371,7 +371,7 @@ CFileTX::size_type CFileTX::send(
   void *             buffer,
   size_type          bufLen,
   const string_type& src,
-  const string_type& dst) throw (CSocketError)
+  const string_type& dst)
 // Pre: Assigned(sock), Assigned(buffer), Assigned(bufLen),
 //      Assigned(src), Assigned(dst)
 // Modifies:

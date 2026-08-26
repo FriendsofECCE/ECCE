@@ -84,7 +84,7 @@ FFCategory::~FFCategory( void)
 //         index is invalid, the return source index is also invalid.
 //
 ////////////////////////////////////////////////////////////////////////////////
-int FFCategory::getItemSourceID( int itemID) const  throw(std::range_error)
+int FFCategory::getItemSourceID( int itemID) const
 {
    int srcID = INVALID_INDEX;
    if ( isValidItemID( itemID))
@@ -198,7 +198,6 @@ void FFCategory::getFFItems( vector<int>& srcIDs, vector<string>& names,
 //                pointer is returned.
 ////////////////////////////////////////////////////////////////////////////////
 const FFItem* FFCategory::getFFItem( int typeID, int idx) 
-                                                         throw(std::range_error)
 {
    FFItem* retVal = 0;
 
@@ -223,7 +222,7 @@ const FFItem* FFCategory::getFFItem( int typeID, int idx)
 //         index is invalid, a null pointer is returned.
 //
 ////////////////////////////////////////////////////////////////////////////////
-string FFCategory::getTypeName( int typeID)  const throw( std::range_error)
+string FFCategory::getTypeName( int typeID)  const
 {
    string name;
    if ( isValidTypeID( typeID))
@@ -433,8 +432,7 @@ FFType::TYPE_SRC_STATUS FFCategory::getTypeSrcStatus( FFType* fftype, int newSrc
  *  @throw IndexOutOfRangeException if either the FFType index is out of range
  *  or the current item index is out of range.
  */
-int FFCategory::getAtomicNo( int typeID)  throw (InvalidException, 
-                                                 IndexOutOfRangeException)
+int FFCategory::getAtomicNo( int typeID)
 {
    //  test if this is category contains Atoms
    if ( getCategoryType() != ATOM_TYPE)
@@ -490,7 +488,6 @@ int FFCategory::getTypeItemCount( int typeID)  const
 //
 ////////////////////////////////////////////////////////////////////////////////
 int FFCategory::getTypeItemID( int typeID, int idx) const 
-                                                         throw(std::range_error)
 {
    int itemID;                    // does not return if any indices are invalid
    if ( isValidTypeID( typeID))  {
@@ -610,7 +607,7 @@ void FFCategory::orderNameComponents( string& name)
 }
 
 #ifdef GET_TYPE
-(const FFType)* FFCategory::getType( int typeID) throw (IndexOutOfRangeException)
+(const FFType)* FFCategory::getType( int typeID)
 {
    const FFType* type = (FFType*)0;
    if ( ! isValidTypeID( typeID))  {
@@ -787,7 +784,7 @@ void FFCategory::addFFItem( int typeID, FFItem *ffItem)
 //  Return:  true if the model has changed, false otherwise
 //
 ////////////////////////////////////////////////////////////////////////////////
-bool FFCategory::removeFFType( int typeID) throw(std::invalid_argument)  {
+bool FFCategory::removeFFType( int typeID)  {
 
    bool removed = false;
 
@@ -885,7 +882,7 @@ void FFCategory::rebuildTypeNameMap()  {
 //         invalid, a null pointer is returned.
 //
 ////////////////////////////////////////////////////////////////////////////////
-FFType* FFCategory::getType( int typeID)  const throw (IndexOutOfRangeException) // private method
+FFType* FFCategory::getType( int typeID)  const // private method
 {
    if ( ! isValidTypeID( typeID))
       throw IndexOutOfRangeException( 0, p_ffTypes.size(), typeID, WHERE);
@@ -906,7 +903,7 @@ FFType* FFCategory::getType( int typeID)  const throw (IndexOutOfRangeException)
 //         invalid_argument exception is thrown.
 //
 ////////////////////////////////////////////////////////////////////////////////
-FFType* FFCategory::getType( const string& typeName) throw(InvalidException) // private method
+FFType* FFCategory::getType( const string& typeName) // private method
 {
    map<string, int>::iterator iter = p_ffTypeNames.find( typeName);
    if ( iter == p_ffTypeNames.end())
@@ -939,7 +936,6 @@ FFType* FFCategory::getType( const string& typeName) throw(InvalidException) // 
 //
 ////////////////////////////////////////////////////////////////////////////////
 bool FFCategory::removeFFItem( const string& typeName, int idx) 
-                                                   throw(std::invalid_argument)
 {
    bool bVal = false;
 

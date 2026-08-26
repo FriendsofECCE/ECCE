@@ -41,7 +41,7 @@ void RemoveGhostsCmd::init()
 
 
 
-bool RemoveGhostsCmd::execute() throw(EcceException)
+bool RemoveGhostsCmd::execute()
 {
    bool ret = true;
 

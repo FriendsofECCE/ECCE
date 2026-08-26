@@ -51,12 +51,12 @@ class CommandParameter
       string toString() const;
       const Any&   getAny() const;
 
-      int          getInteger() const throw(MismatchedTypeException);
-      bool         getBoolean() const throw(MismatchedTypeException);
-      double       getDouble() const throw(MismatchedTypeException);
-      string       getString() const throw(MismatchedTypeException);
-      vector<int> *getIntegerList() const throw(MismatchedTypeException);
-      vector<string> *getStringList() const throw(MismatchedTypeException);
+      int          getInteger() const;
+      bool         getBoolean() const;
+      double       getDouble() const;
+      string       getString() const;
+      vector<int> *getIntegerList() const;
+      vector<string> *getStringList() const;
 
       void setInteger(int val);
       void setBoolean(bool val);
@@ -64,15 +64,15 @@ class CommandParameter
       void setString(const string& val);
       void setIntegerList(const vector<int>& val);
       void setStringList(const vector<string>& val);
-      void set(const string& value) throw(EcceException,MismatchedTypeException);
+      void set(const string& value);
 
 
-      int          getDefaultInteger() const throw(MismatchedTypeException);
-      bool         getDefaultBoolean() const throw(MismatchedTypeException);
-      double       getDefaultDouble() const throw(MismatchedTypeException);
-      string       getDefaultString() const throw(MismatchedTypeException);
-      vector<int> *getDefaultIntegerList() const throw(MismatchedTypeException);
-      vector<string> *getDefaultStringList() const throw(MismatchedTypeException);
+      int          getDefaultInteger() const;
+      bool         getDefaultBoolean() const;
+      double       getDefaultDouble() const;
+      string       getDefaultString() const;
+      vector<int> *getDefaultIntegerList() const;
+      vector<string> *getDefaultStringList() const;
 
       void resetToDefault();
 

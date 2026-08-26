@@ -43,7 +43,7 @@ void CSStyleCmd::init()
 
 
 
-bool CSStyleCmd::execute() throw(EcceException)
+bool CSStyleCmd::execute()
 {
    bool ret = false;
    setErrorMessage("");

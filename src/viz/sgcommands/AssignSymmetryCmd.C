@@ -45,7 +45,7 @@ void AssignSymmetryCmd::init()
 
 
 
-bool AssignSymmetryCmd::execute() throw(EcceException)
+bool AssignSymmetryCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

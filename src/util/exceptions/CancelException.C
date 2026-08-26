@@ -22,6 +22,6 @@ CancelException::CancelException() : EcceException()
 }
 
 
-CancelException::~CancelException() throw ()
+CancelException::~CancelException() noexcept
 {
 }

@@ -95,7 +95,7 @@ void PropGrids::addGrid(SingleGrid *grid)
 // Description:
 //   Read a Gaussian format cube file
 ////////////////////////////////////////////////////////////////////////////////
-bool PropGrids::readCubeFile(istream &infile) throw (IOException)
+bool PropGrids::readCubeFile(istream &infile)
 {
   bool isMOdata = false;
   string title = "";

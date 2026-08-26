@@ -28,7 +28,7 @@ class MDEnergy: public MDEdBase, public WxJMSListener
 
       // TaskApp virtuals
       virtual string getTitle() const;
-      virtual void setContext(const string& url) throw (EcceException);
+      virtual void setContext(const string& url);
       void resetPanel();
 
    protected:

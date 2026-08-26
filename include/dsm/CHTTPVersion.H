@@ -27,7 +27,7 @@ public :
   CHTTPVersion(
     unsigned major = 1,
     unsigned minor = 1) : major_(major), minor_(minor) {}
-  CHTTPVersion(const string_type&) throw(CHTTPVersion::ParseError);
+  CHTTPVersion(const string_type&);
   CHTTPVersion(const CHTTPVersion& other)
     : major_(other.major_), minor_(other.minor_) {}
 

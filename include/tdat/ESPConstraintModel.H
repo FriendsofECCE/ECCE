@@ -49,7 +49,7 @@ public:
     const Fragment& getFragment() const;
 
     /** Get the nth constraint. */
-    ESPConstraint *get(int index) const throw (IndexOutOfRangeException);
+    ESPConstraint *get(int index) const;
 
     /** Create a new constraint of the specified type. */
     void add(ESPConstraint::Type type);
@@ -67,7 +67,7 @@ public:
     int generateFixedConstraints(const vector<int>& atoms);
 
     /** remove n'th constraint. */
-    bool remove(int index) throw (IndexOutOfRangeException);
+    bool remove(int index);
 
     /** Compute bitmap of unconstrained atoms using Fragment. */
     std::vector<bool> unconstrained();

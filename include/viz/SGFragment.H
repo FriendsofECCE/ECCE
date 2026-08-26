@@ -82,9 +82,9 @@ public:
           double x=0.0, double y=0.0, double z=0.0,
           bool genBondOrders=true,
           int modelNum=1, const string& altLoc=" ", const string& chainId=" ") 
-       throw(EcceException);
-    virtual void generateDNA(string &sequence) throw(EcceException);
-    virtual void generatePeptide(string &sequence) throw(EcceException);
+;
+    virtual void generateDNA(string &sequence);
+    virtual void generatePeptide(string &sequence);
 
     virtual bool deleteSelectedBonds();
     virtual bool deleteSelectedAtoms(const vector<bool>& selAtoms);

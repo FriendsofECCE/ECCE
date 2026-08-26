@@ -22,7 +22,7 @@ public:
 
   enum AtomLabelType { NONE=0, ELEMENT, ATOMNAME, CHARGE2, CHARGE3, CHARGE4, TYPE };
 
-  virtual bool execute() throw(EcceException);
+  virtual bool execute();
   virtual void undo();
   virtual bool isUndoable() const;
 

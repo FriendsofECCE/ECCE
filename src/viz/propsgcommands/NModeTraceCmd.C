@@ -61,7 +61,7 @@ void NModeTraceCmd::init()
 }
 
 
-bool NModeTraceCmd::execute() throw(EcceException)
+bool NModeTraceCmd::execute()
 {
    bool ret = false;
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

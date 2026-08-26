@@ -30,7 +30,6 @@ NullConverter::~NullConverter()
  * @return the value passed in.
  */
 string NullConverter::convertTo(const string& value, const string& toUnits)
-  throw (InvalidException)
 {
   return value;
 }
@@ -40,7 +39,6 @@ string NullConverter::convertTo(const string& value, const string& toUnits)
  * @return the value passed in.
  */
 double NullConverter::convertTo(double value, const string& toUnits)
-  throw (InvalidException)
 {
   return value;
 }
@@ -50,7 +48,6 @@ double NullConverter::convertTo(double value, const string& toUnits)
  * @return the value passed in.
  */
 string NullConverter::convertFrom(const string& value, const string& fromUnits)
-  throw (InvalidException)
 {
   return value;
 }
@@ -60,7 +57,6 @@ string NullConverter::convertFrom(const string& value, const string& fromUnits)
  * @return the value passed in.
  */
 double NullConverter::convertFrom(double value, const string& fromUnits)
-  throw (InvalidException)
 {
   return value;
 }

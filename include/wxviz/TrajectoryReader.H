@@ -44,7 +44,7 @@ class TrajectoryReader
     virtual bool readStep(const long& step,
             const bool& readVelocities=false,
             const bool& readForces=false) 
-            throw (IOException) = 0;
+ = 0;
 
     // setters
     virtual void setFileNames(const vector<string>& fileNames,

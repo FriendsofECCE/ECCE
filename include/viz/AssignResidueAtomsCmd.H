@@ -14,7 +14,7 @@ class AssignResidueAtomsCmd : public FragCloneCmd
       AssignResidueAtomsCmd(const string& name, Receiver * receiver);
       virtual ~AssignResidueAtomsCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

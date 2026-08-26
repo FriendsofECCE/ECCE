@@ -25,6 +25,6 @@ BadDataException::BadDataException(const BadDataException& rhs)
 {
 }
 
-BadDataException::~BadDataException() throw ()
+BadDataException::~BadDataException() noexcept
 {
 }

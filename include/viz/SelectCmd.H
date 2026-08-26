@@ -17,7 +17,7 @@ class SelectCmd : public Command
       SelectCmd(const string& name, Receiver * receiver, const string& sender="");
       virtual ~SelectCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

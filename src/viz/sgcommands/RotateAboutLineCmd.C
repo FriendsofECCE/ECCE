@@ -50,7 +50,7 @@ void RotateAboutLineCmd::init()
 
 
 
-bool RotateAboutLineCmd::execute() throw(EcceException)
+bool RotateAboutLineCmd::execute()
 {
    bool ret = false;
 

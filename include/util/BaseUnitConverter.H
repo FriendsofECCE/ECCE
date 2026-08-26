@@ -31,19 +31,19 @@ class BaseUnitConverter : public UnitConverter
     virtual ~BaseUnitConverter() {};
 
     virtual void setBaseUnits(const string& base)
-             throw (InvalidException);
+;
 
     virtual string convertTo(const string& value, const string& toUnits)
-             throw (InvalidException);
+;
              
     virtual double convertTo(double value, const string& toUnits)
-             throw (InvalidException);
+;
 
     virtual string convertFrom(const string& value, const string& fromUnits)
-             throw (InvalidException);
+;
 
     virtual double convertFrom(double value, const string& fromUnits)
-             throw (InvalidException);
+;
 
   protected:
 

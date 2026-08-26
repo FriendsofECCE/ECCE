@@ -101,7 +101,7 @@ EcceException::EcceException(const char *message, const char *file, int line)
 
 
 
-EcceException *EcceException::clone() const throw()
+EcceException *EcceException::clone() const noexcept
 {
    return new EcceException(*this);
 }
@@ -111,7 +111,7 @@ EcceException *EcceException::clone() const throw()
 /**
  * Destructor.
  */
-EcceException::~EcceException() throw ()
+EcceException::~EcceException() noexcept
 {
 }
 
@@ -150,7 +150,7 @@ void EcceException::saveLast()
  * The message text is reported along with the file and line number
  * if available.
  */
-void EcceException::report() const throw()
+void EcceException::report() const noexcept
 {
    if (p_file.size() > 0 ) {
       char buf[32];
@@ -165,7 +165,7 @@ void EcceException::report() const throw()
 /**
  * Overload of std::exception::what()
  */
-const char *EcceException::what() const throw()
+const char *EcceException::what() const noexcept
 {
    string baseMessage = runtime_error::what();
    return baseMessage.c_str();

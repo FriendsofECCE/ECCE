@@ -51,7 +51,7 @@ void SetConnectionCmd::init()
 
 
 
-bool SetConnectionCmd::execute() throw(EcceException)
+bool SetConnectionCmd::execute()
 {
   bool ret = false;
 

@@ -16,7 +16,7 @@
 
 // Constructor: CHTTPHeader ************************************************
 
-CHTTPHeader::CHTTPHeader(const string_type& s) throw(CHTTPHeader::ParseError)
+CHTTPHeader::CHTTPHeader(const string_type& s)
   : values_()
 // Pre: Assigned(s)
 // Modifies:

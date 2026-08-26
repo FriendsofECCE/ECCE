@@ -765,7 +765,7 @@ vector<string> ResourceDescriptor::getMdUnits()
  * @throw ParseException indicates parsing failed
  *
  */
-void ResourceDescriptor::parseResourceDescriptorFile() throw (ParseException)
+void ResourceDescriptor::parseResourceDescriptorFile()
 {
   string file = Ecce::ecceDataPath();
   file += "/client/config/ResourceDescriptor";

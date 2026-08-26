@@ -40,7 +40,7 @@ void PBCSuperCmd::init()
 
 
 
-bool PBCSuperCmd::execute() throw(EcceException)
+bool PBCSuperCmd::execute()
 {
    bool ret = true;
 

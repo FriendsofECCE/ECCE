@@ -16,7 +16,7 @@ class InsertResidueCmd : public FragCloneCmd
       InsertResidueCmd(const string& name, Receiver * receiver);
       virtual ~InsertResidueCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

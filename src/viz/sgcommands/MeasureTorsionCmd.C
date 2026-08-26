@@ -42,7 +42,7 @@ void MeasureTorsionCmd::init()
 
 
 
-bool MeasureTorsionCmd::execute() throw(EcceException)
+bool MeasureTorsionCmd::execute()
 {
    bool ret = false;
 

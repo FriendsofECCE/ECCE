@@ -17,7 +17,7 @@ class ClearMeasuresCmd : public Command
       ClearMeasuresCmd(const string& name, Receiver * receiver);
       virtual ~ClearMeasuresCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual bool isUndoable() const;
       virtual void undo();
 

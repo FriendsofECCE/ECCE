@@ -22,7 +22,7 @@ class NullPointerException : public EcceException
       NullPointerException(const NullPointerException& rhs);
 
 
-      virtual ~NullPointerException() throw ();
+      virtual ~NullPointerException() noexcept;
 
    protected:
 

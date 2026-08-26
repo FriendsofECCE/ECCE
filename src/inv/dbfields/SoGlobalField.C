@@ -202,7 +202,6 @@ SoGlobalField::SoGlobalField(const SbName &name, SoField *field)
 SoGlobalField::~SoGlobalField()
 //
 //////////////////////////////////////////////////////////////////////////////
-
 {
     // If fieldData is NULL, don't delete the entry. This happens only
     // for the "dummy" instance that is created to read in a real
@@ -246,7 +245,6 @@ void
 SoGlobalField::changeName(const SbName &newName)
 //
 //////////////////////////////////////////////////////////////////////////////
-
 {
     // Remove old entry from dictionary
     unsigned long key = (unsigned long)(getName().getString());

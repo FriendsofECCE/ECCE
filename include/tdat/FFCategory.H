@@ -56,21 +56,20 @@ class FFCategory {
       // Accessors--------------------------------------------------------------
             string    getName( void) const;
        eCategoryTypes getCategoryType( void) ;
-      const FFItem*   getFFItem( int, int)  throw(std::range_error);
+      const FFItem*   getFFItem( int, int);
             void      getFFItems( vector<int>& srcIDs, vector<string>&,
                                                               vector<FFItem*>&);
-            int       getItemSourceID( int) const  throw(std::range_error);
+            int       getItemSourceID( int) const;
             int       getTypeCount( void) const;
             int       getTypeID( string, bool flag = false);
             int       getMatchingTypeID( const string&);
             void      getTypeSourceIDs( int, vector<int>&)  const;
-            string    getTypeName( int) const throw(std::range_error);
+            string    getTypeName( int) const;
             void      getTypeNameComponents( const string&,vector<string>&, int);
             string    getTypeNameAndSrcStatus( int, int, int*) const;
             FFType::TYPE_SRC_STATUS getTypeSrcStatus( int, int) const;
-            int      getAtomicNo( int typeID) throw (InvalidException, 
-	                                             IndexOutOfRangeException);
-            int      getTypeItemID( int, int) const throw(std::range_error);
+            int      getAtomicNo( int typeID);
+            int      getTypeItemID( int, int) const;
             int      getTypeItemCount( int) const;
 
             void     print( void) const;
@@ -79,8 +78,8 @@ class FFCategory {
             void addFFType( FFType*);
             void addFFItem( int, FFItem*);
             void addFFItem( const string&, FFItem*);
-            bool removeFFItem( const string&, int) throw(std::invalid_argument);
-            bool removeFFType( int)  throw(std::invalid_argument);
+            bool removeFFItem( const string&, int);
+            bool removeFFType( int);
             void rebuildTypeNameMap();
             void sortByTypeName( void);
 	    void setAtomicNoID( int atomicNoID);
@@ -117,8 +116,8 @@ class FFCategory {
       bool           endMatches( string&, string&);
       void           orderNameComponents( string&) ;
       void           parseTypeName( const string&, vector<string>&, int);
-      FFType*        getType( int typeID) const throw (IndexOutOfRangeException);
-      FFType*        getType( const string& typeName) throw (InvalidException);
+      FFType*        getType( int typeID) const;
+      FFType*        getType( const string& typeName);
       FFType::TYPE_SRC_STATUS getTypeSrcStatus( FFType*, int) const;
 
 }; // FFCategory

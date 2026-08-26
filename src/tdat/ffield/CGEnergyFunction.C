@@ -42,7 +42,6 @@ void CGEnergyFunction::setForceField(ForceField *ffield)
  *        debug mechanism.
  */
 double CGEnergyFunction::getValue(bool& canceled, FFCoordinates *coords) const
-       throw (InvalidException)
 {
   double ret;
   try  {
@@ -65,7 +64,6 @@ double CGEnergyFunction::getValue(bool& canceled, FFCoordinates *coords) const
 FFCoordinates* CGEnergyFunction::getGradient( bool& canceled,
                                              const FFCoordinates *coords,
                                              FFCoordinates *gradient) const
-       throw (InvalidException)
 {
   FFCoordinates * ret;
   try  {

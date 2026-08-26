@@ -17,7 +17,7 @@ class IsoSurfaceCmd : public PropCmd
                   IPropCalculation *calc);
     ~IsoSurfaceCmd();
     void init();
-    bool execute() throw(EcceException);
+    bool execute();
 
   protected:
 

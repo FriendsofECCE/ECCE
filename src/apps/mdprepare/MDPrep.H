@@ -81,7 +81,7 @@ class MDPrep: public MDPrepGUI,
 
       // TaskApp virtuals
       virtual string getTitle() const;
-      virtual void setContext(const string& url) throw(EcceException);
+      virtual void setContext(const string& url);
       virtual void taskAppRaise();
       virtual void taskAppDestroy();
       virtual void taskAppShow();
@@ -98,8 +98,8 @@ class MDPrep: public MDPrepGUI,
    protected:
       void initProgressDialog();
       void reloadFragSummary(MdTask *task);
-      void generateInputFile(MdTask *task) throw(IOException);
-      void saveModelAndInputFile(MdTask *task) throw(IOException);
+      void generateInputFile(MdTask *task);
+      void saveModelAndInputFile(MdTask *task);
       void doQuit(bool force, bool notifyEditor);
 
       void setRunState(ResourceDescriptor::RUNSTATE state);

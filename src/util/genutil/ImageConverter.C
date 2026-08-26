@@ -62,7 +62,6 @@ void ImageConverter::convert(const string& inFile,
                              const string& outFile,
                              const int& width, const int& height,
                              const int& depth, const bool& rmInFile)
-   throw (BadValueException)
 {
   // Get the image type and check to make sure it is supported
   SFile file(outFile);

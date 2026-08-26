@@ -87,7 +87,6 @@ Session::~Session()
  * Before linkbase is loaded, make sure children are loaded first.
  */
 void Session::loadLinkbase()
-  throw(DavException, ParseException)
 {
   p_linkbaseLoaded = true;
   
@@ -127,7 +126,6 @@ void Session::loadLinkbase()
  * The linkbase should be saved whenever the member list and link list are changed
  */
 void Session::saveLinkbase()
-  throw(DavException)
 {
   // Set URL for Linkbase and perform serialization
   getEDSI()->setURL(getLinkbaseId());
@@ -202,7 +200,7 @@ vector<Resource*> * Session::getChildren(bool refresh)
 void Session::addLink(Resource * source,
                       Resource * target, 
                       LinkType linkType,
-                      string linkName) throw(InvalidException)
+                      string linkName)
 {
   if (!p_linkbaseLoaded)
     loadLinkbase();
@@ -283,7 +281,7 @@ void Session::addLink(Resource * source,
 void Session::removeLink(Resource * source,
                          Resource * target,
                          LinkType linkType,
-                         string linkName) throw(InvalidException)
+                         string linkName)
 {
   if (!p_linkbaseLoaded)
     loadLinkbase();
@@ -351,7 +349,7 @@ void Session::branch(Resource *source,
                      Resource *target,
                      LinkType linkType,
                      string linkName,
-                     bool isPrimaryPath) throw(InvalidException)
+                     bool isPrimaryPath)
 {
   if (!p_linkbaseLoaded)
     loadLinkbase();
@@ -426,7 +424,7 @@ void Session::branch(Resource *source,
 void Session::swap(Resource * source, 
                    Resource * target,
                    LinkType linkType,
-                   string linkName) throw(InvalidException)
+                   string linkName)
 {
   if (!p_linkbaseLoaded)
     loadLinkbase();
@@ -1261,7 +1259,6 @@ EcceURL Session::getLinkbaseId() const
 
 
 void Session::addMemberAsTarget(Resource * target, Resource * source)
-  throw(InvalidException)
 {
   if (!p_linkbaseLoaded)
     (const_cast<Session *>(this))->loadLinkbase();

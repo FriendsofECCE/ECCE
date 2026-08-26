@@ -16,7 +16,7 @@ class IsoValueCmd : public PropCmd
       IsoValueCmd(const string& name, Receiver *, IPropCalculation *);
       ~IsoValueCmd();
       void init();
-      bool execute() throw(EcceException);
+      bool execute();
 
    protected:
 

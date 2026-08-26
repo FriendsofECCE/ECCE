@@ -44,7 +44,7 @@ void TwoDMoveCmd::init()
 
 
 
-bool TwoDMoveCmd::execute() throw(EcceException)
+bool TwoDMoveCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

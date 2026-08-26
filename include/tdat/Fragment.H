@@ -103,7 +103,7 @@ class Fragment
       virtual void addHydrogenBonds(void);
       virtual bool changeBond(TAtm *atm1, TAtm *atm2, float order);
       virtual void bondAtoms(TAtm *atm1, TAtm *atm2, float order,
-            const DisplayStyle& style) throw(EcceException);
+            const DisplayStyle& style);
       virtual void setEnvIndices(void);
       virtual void generateShapes(void);
       virtual bool generateShape(TAtm *atm);

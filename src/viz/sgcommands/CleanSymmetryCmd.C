@@ -44,7 +44,7 @@ void CleanSymmetryCmd::init()
 
 
 
-bool CleanSymmetryCmd::execute() throw(EcceException)
+bool CleanSymmetryCmd::execute()
 {
    bool ret = false;
 

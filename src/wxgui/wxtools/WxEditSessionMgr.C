@@ -184,7 +184,7 @@ void WxEditSessionMgr::edit(SFile* file,
       const string& id, 
       EditListener *l,
       bool readOnly, 
-      const string & name) throw(EcceException)
+      const string & name)
 {
 
    if (file != (SFile*)0) {
@@ -207,7 +207,7 @@ void WxEditSessionMgr::edit(const string& text,
       const string& id, 
       EditListener *l,
       bool readOnly, 
-      const string& name) throw(EcceException)
+      const string& name)
 {
 
    SFile* file = makeTemporaryFile(text);
@@ -338,7 +338,7 @@ void WxEditSessionMgr::editFile(SFile* file,
       const string& id, 
       EditListener *l,
       bool readOnly,
-      const string& name) throw(EcceException)
+      const string& name)
 {
 
    UserEditor editor;

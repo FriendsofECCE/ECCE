@@ -41,7 +41,7 @@ class WxDavAuth : public AuthEventListener
       void setAuthDialogParent(wxWindow *window);
 
       // AuthEvent virtuals
-      bool getAuthorization(AuthEvent& event) throw (RetryException);
+      bool getAuthorization(AuthEvent& event);
       void authorizationAccepted(const AuthEvent& event);
 
       // methods for stand alone usage

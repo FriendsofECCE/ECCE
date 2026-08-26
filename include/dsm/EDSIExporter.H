@@ -23,15 +23,15 @@ class EDSIExporter {
     void setTargetURL(const EcceURL& targetURL);
     
 
-    EcceURL xport() throw (IOException);
+    EcceURL xport();
     void logExport();
 
   private:
 
     bool exportResource(EDSI &source, EDSI &target, bool checkName = false) 
-       throw(IOException);
-    bool exportCollection(EDSI &source, EDSI &target) throw(IOException);
-    void exportMetaData(EDSI &source, EDSI &target) throw(IOException);
+;
+    bool exportCollection(EDSI &source, EDSI &target);
+    void exportMetaData(EDSI &source, EDSI &target);
     bool isResource(EDSI &edsi);
     bool isCollection(EDSI &edsi);
     bool isDAVExport(EDSI &source, EDSI &target);

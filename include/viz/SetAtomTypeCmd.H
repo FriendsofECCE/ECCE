@@ -17,7 +17,7 @@ class SetAtomTypeCmd : public Command
       SetAtomTypeCmd(const string& name, Receiver * receiver, const string& sender="");
       ~SetAtomTypeCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

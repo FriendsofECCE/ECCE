@@ -300,7 +300,7 @@ void ComputeMoCmd::computeMinMax (
  *   Code has been thoroughly tested against Gaussian cube files.
  *   Sphericals are not implemented yet.
  */
-bool ComputeMoCmd::execute() throw(EcceException)
+bool ComputeMoCmd::execute()
 {
   bool ret = false ;
 

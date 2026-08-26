@@ -20,7 +20,7 @@ class RetryException : public EcceException
       RetryException(const char *message, const char *file, int line);
       RetryException(const RetryException& rhs);
 
-      virtual ~RetryException() throw ();
+      virtual ~RetryException() noexcept;
 
    protected:
 

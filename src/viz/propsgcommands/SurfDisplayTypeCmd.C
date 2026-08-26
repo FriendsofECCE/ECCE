@@ -23,7 +23,7 @@ void SurfDisplayTypeCmd::init()
    addParameter(new CommandParameter("IsosurfStyle", "Solid"));
 }
 
-bool SurfDisplayTypeCmd::execute() throw(EcceException)
+bool SurfDisplayTypeCmd::execute()
 {
   SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
   string displayType = getParameter("IsosurfStyle")->getString();;

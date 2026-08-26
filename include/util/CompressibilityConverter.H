@@ -19,10 +19,10 @@ class CompressibilityConverter: public BaseUnitConverter
     virtual ~CompressibilityConverter();
 
     string convertTo(const string &value, const string &toUnits)
-               throw (InvalidException);
+;
 
     double convertTo(double value, const string &toUnits)
-               throw (InvalidException);
+;
   private:
 
 };

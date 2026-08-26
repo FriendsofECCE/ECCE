@@ -41,7 +41,7 @@ void AddVectorCmd::init()
    addParameter(new CommandParameter("negative", "#ff3333"));
 }
 
-bool AddVectorCmd::execute() throw(EcceException)
+bool AddVectorCmd::execute()
 {
    bool ret = true;
 

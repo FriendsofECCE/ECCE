@@ -38,7 +38,6 @@ PressureConverter::~PressureConverter()
  * to N/m**2
  */
 string PressureConverter::convertTo(const string& value, const string& toUnits)
-  throw (InvalidException)
 {
   string ret = value;
   if (!checkString(toUnits)) {
@@ -60,7 +59,6 @@ string PressureConverter::convertTo(const string& value, const string& toUnits)
 
 
 double PressureConverter::convertTo(double value, const string& toUnits)
-  throw (InvalidException)
 {
   double ret = value;
   if (!checkString(toUnits)) {

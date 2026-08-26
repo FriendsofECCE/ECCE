@@ -224,7 +224,6 @@ vector<GeomConstraint*> *GeomConstraintModel::getTorsionConstraints() const
  * @throw InvalidException if any rule is violated. 
  */
 void GeomConstraintModel::addConstraint(GeomConstraint *constraint) 
-           throw(InvalidException)
 {
    GeomRestraint *restraint  = dynamic_cast<GeomRestraint*>(constraint);
 
@@ -434,7 +433,6 @@ void GeomConstraintModel::categorize(int& nFixedAtoms,
  * @return true if duplicates were discarded
  */
 bool GeomConstraintModel::fixAtoms(const vector<int>& atoms)
-           throw(InvalidException)
 {
    bool ret = false;
    vector<GeomConstraint*> *constraints = getAtomConstraints();
@@ -478,7 +476,6 @@ bool GeomConstraintModel::fixAtoms(const vector<int>& atoms)
  * @return true if duplicates were discarded
  */
 bool GeomConstraintModel::addConstraint(const vector<int>& atoms)
-           throw(InvalidException)
 {
    bool ret = false;
    if (atoms.size() < 2 || atoms.size() > 4) {
@@ -526,7 +523,6 @@ bool GeomConstraintModel::addConstraint(const vector<int>& atoms)
  * @return true if duplicates were discarded
  */
 bool GeomConstraintModel::addRestraint(const vector<int>& atoms)
-           throw(InvalidException)
 {
    bool ret = false;
    if (atoms.size() < 2 || atoms.size() > 4) {
@@ -698,7 +694,6 @@ int GeomConstraintModel::cleanUnmatchedAtoms()
  */
 vector<TAtm*> *
 GeomConstraintModel::indicesToAtoms(const vector<int>& indices) const
-                                    throw (InvalidException)
 {
    vector<TAtm*> *ret = new vector<TAtm*>;
    if (p_frag) {

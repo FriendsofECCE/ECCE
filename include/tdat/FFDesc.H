@@ -49,16 +49,16 @@ class FFDesc : protected vector<FFCategoryDesc*>,  public Serializable {
       vector<string> getCategoryNames() const;
 
       const FFCategoryDesc& getCategory(int index) const 
-                   throw(std::range_error);
+;
 
       const FFCategoryDesc& getCategoryByName(const string& name) const
-                   throw(std::range_error);
+;
 
       /** add category - no checking on uniqueness */
       void addCategory(FFCategoryDesc *category);
 
       /** remove category - range_error if name not defined. */
-      void removeCategory(const string& name) throw(std::range_error);
+      void removeCategory(const string& name);
 
       void clear();
 

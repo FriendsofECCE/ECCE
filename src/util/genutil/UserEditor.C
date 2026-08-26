@@ -83,7 +83,7 @@ void UserEditor::getEditCommand(const SFile& file,
       string& exe, 
       char *args[], int maxArgs,
       const string& name, 
-      bool readOnly) throw(InvalidException)
+      bool readOnly)
 {
   int curArg = 0;
 

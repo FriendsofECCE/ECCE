@@ -56,7 +56,6 @@ string NWChemMDModelXMLizer::mimetype() const
  */
 void NWChemMDModelXMLizer::deserialize(const string& data,
                        Serializable& object, EcceMap& properties)
-                       throw (ParseException)
 {
    // NOTE: For now at least, we aren't interested in any properties.
    NWChemMDModel *dobject = dynamic_cast<NWChemMDModel*>(&object);

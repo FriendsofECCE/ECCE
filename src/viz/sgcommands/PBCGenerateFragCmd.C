@@ -45,7 +45,7 @@ void PBCGenerateFragCmd::init()
 
 
 
-bool PBCGenerateFragCmd::execute() throw(EcceException)
+bool PBCGenerateFragCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

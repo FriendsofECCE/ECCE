@@ -10,7 +10,7 @@ class CenterViewCmd : public Command
       CenterViewCmd(const string& name, Receiver * receiver);
       ~CenterViewCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
       virtual bool isUndoable() const;
 

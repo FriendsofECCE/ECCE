@@ -21,7 +21,7 @@ class GenerateGhostsCmd : public FragCloneCmd
       GenerateGhostsCmd(const string& name, Receiver * receiver);
       virtual ~GenerateGhostsCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

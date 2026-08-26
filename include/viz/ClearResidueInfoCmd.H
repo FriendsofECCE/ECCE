@@ -16,7 +16,7 @@ class ClearResidueInfoCmd : public FragCloneCmd
       ClearResidueInfoCmd(const string& name, Receiver * receiver);
       virtual ~ClearResidueInfoCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

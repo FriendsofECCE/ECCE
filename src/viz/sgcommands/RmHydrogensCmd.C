@@ -44,7 +44,7 @@ void RmHydrogensCmd::init()
    setHelpMessage("Convert all lone  hydrogen atoms to bonding sites.");
 }
 
-bool RmHydrogensCmd::execute() throw(EcceException)
+bool RmHydrogensCmd::execute()
 {
   bool ret = false;
 

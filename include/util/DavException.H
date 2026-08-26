@@ -19,7 +19,7 @@ class DavException : public EcceException
       DavException(const char *message, const char *file, int line);
       DavException(const DavException& rhs);
 
-      virtual ~DavException() throw ();
+      virtual ~DavException() noexcept;
 
    protected:
 

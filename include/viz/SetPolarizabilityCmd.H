@@ -17,7 +17,7 @@ class SetPolarizabilityCmd : public Command
       SetPolarizabilityCmd(const string& name, Receiver * receiver, const string& sender="");
       ~SetPolarizabilityCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

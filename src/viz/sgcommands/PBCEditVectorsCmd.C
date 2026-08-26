@@ -50,7 +50,7 @@ void PBCEditVectorsCmd::init()
 
 
 
-bool PBCEditVectorsCmd::execute() throw(EcceException)
+bool PBCEditVectorsCmd::execute()
 {
    bool ret = true;
 

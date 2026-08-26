@@ -23,7 +23,7 @@ class InternalException : public EcceException
       InternalException(const InternalException& rhs);
 
 
-      virtual ~InternalException() throw ();
+      virtual ~InternalException() noexcept;
 
    protected:
 

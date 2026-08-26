@@ -21,7 +21,7 @@ class AuthEventListener
   // Implement this method and add self as listener to providers of this
   // event.  Returning false means no password was retrieved.  Otherwise,
   // should return user and password (unencrypted).
-  virtual bool getAuthorization(AuthEvent& event) throw (RetryException) = 0;
+  virtual bool getAuthorization(AuthEvent& event) = 0;
 
   // When getAuthorization returns true, we still don't know if that
   // info was valid.  This method gets called when it has been determined

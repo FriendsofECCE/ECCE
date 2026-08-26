@@ -14,7 +14,7 @@ class GeneratePeptideCmd : public FragCloneCmd
       GeneratePeptideCmd(const string& name, Receiver * receiver);
       virtual ~GeneratePeptideCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

@@ -53,7 +53,7 @@ class Resource {
     virtual ~Resource();
 
     virtual EcceURL getURL() const;
-    virtual bool isValid() throw (RetryException, CancelException);
+    virtual bool isValid();
     virtual bool copy(EcceURL& target);
     virtual bool move(EcceURL& target);
 
@@ -133,9 +133,9 @@ class Resource {
     };
 
     Resource();
-    Resource(const EcceURL& resourceId) throw(InvalidException);
+    Resource(const EcceURL& resourceId);
 
-    EDSI *getEDSI() const throw(InvalidException);
+    EDSI *getEDSI() const;
 
     virtual bool setURL(const EcceURL& url);
     virtual Resource * addChild(const EcceURL & childUrl);

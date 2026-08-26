@@ -46,7 +46,7 @@ class PropGrids
    void addGrid(SingleGrid *);
 
 // General methods
-    bool        readCubeFile(istream &infile) throw (IOException);
+    bool        readCubeFile(istream &infile);
     bool        compare(PropGrids *grids);
     bool        absorb(PropGrids *grids);
 

@@ -25,6 +25,6 @@ NullPointerException::NullPointerException(const NullPointerException& rhs)
 {
 }
 
-NullPointerException::~NullPointerException() throw ()
+NullPointerException::~NullPointerException() noexcept
 {
 }

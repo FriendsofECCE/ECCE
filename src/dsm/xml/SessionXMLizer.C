@@ -82,7 +82,6 @@ string SessionXMLizer::mimetype() const
 void SessionXMLizer::deserialize(const string & data,
                                  Serializable & object, 
                                  EcceMap & properties)
-  throw (ParseException)
 {
   Session * session = dynamic_cast<Session *>(&object);
   if (session) {

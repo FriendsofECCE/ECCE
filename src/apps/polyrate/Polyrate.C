@@ -534,7 +534,7 @@ void Polyrate::identifyMCB(JMSMessage&)
 /**
  * Reset the gui to the task at the specified url.
  */
-void Polyrate::setContext(const string& urlstr) throw (EcceException)
+void Polyrate::setContext(const string& urlstr)
 {
   wxBusyCursor busy;
 
@@ -648,7 +648,7 @@ void Polyrate::doQuit(const bool& force)
 /**
  * Save the model, generate and save input file.
  */
-void Polyrate::saveModelAndInputFile() throw(IOException)
+void Polyrate::saveModelAndInputFile()
 {
    PolyrateModel& model = getPolyrateModel();
    p_polyrateTask->setTaskModel(&model);
@@ -940,7 +940,7 @@ void Polyrate::OnCloseWindow( wxCloseEvent& event )
  * @throw IOException if the input file generation failed for some reason or
  *       we couldn't upload the data.
  */
-void Polyrate::generateInputFile() throw(IOException)
+void Polyrate::generateInputFile()
 {
   SDirectory *dir =
     TempStorage::getTempJobDirectory(p_polyrateTask->getURL().getFilePathTail().c_str());

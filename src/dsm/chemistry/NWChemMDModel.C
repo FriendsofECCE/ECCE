@@ -217,12 +217,12 @@ FilesModel* NWChemMDModel::getFilesModel() const
   return p_filesModel;
 }
 
-void NWChemMDModel::generateInputFile() throw(InvalidException)
+void NWChemMDModel::generateInputFile()
 {
    throw NotImplementedException("generateInputFile not implemented",WHERE);
 }
 
-void NWChemMDModel::run() throw(InvalidException)
+void NWChemMDModel::run()
 {
    throw NotImplementedException("run not implemented",WHERE);
 }

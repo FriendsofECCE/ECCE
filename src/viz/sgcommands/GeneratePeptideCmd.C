@@ -43,7 +43,7 @@ void GeneratePeptideCmd::init()
 
 
 
-bool GeneratePeptideCmd::execute() throw(EcceException)
+bool GeneratePeptideCmd::execute()
 {
   bool ret = true;
 

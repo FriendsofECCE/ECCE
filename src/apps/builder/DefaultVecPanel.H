@@ -14,7 +14,6 @@ class wxGrid;
  * 
  */
 class DefaultVecPanel : public PropertyPanel
-                
 {
   DECLARE_DYNAMIC_CLASS(DefaultVecPanel)
   DECLARE_EVENT_TABLE()

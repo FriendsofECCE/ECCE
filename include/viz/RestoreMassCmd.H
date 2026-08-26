@@ -18,7 +18,7 @@ class RestoreMassCmd : public FragCloneCmd
       RestoreMassCmd(const string& name, Receiver * receiver);
       ~RestoreMassCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
 

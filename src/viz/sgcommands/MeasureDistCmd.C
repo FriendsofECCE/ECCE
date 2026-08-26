@@ -43,7 +43,7 @@ void MeasureDistCmd::init()
 
 
 
-bool MeasureDistCmd::execute() throw(EcceException)
+bool MeasureDistCmd::execute()
 {
    bool ret = false;
 

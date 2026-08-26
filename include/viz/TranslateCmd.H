@@ -10,7 +10,7 @@ class TranslateCmd : public Command
       TranslateCmd(const string& name, Receiver * receiver);
       ~TranslateCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

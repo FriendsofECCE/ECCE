@@ -14,7 +14,7 @@ project(ECCE CXX C Fortran)
 # claude/ecce-modernization-status.md in the project docs for full status.
 # ------------------------------------------------------------------------
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -308,6 +308,59 @@ ecce_app(builder src/apps/builder WX GL
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
 
-# TODO: src/apps/symmetry (pure Fortran, no wx involvement - not part of the
-# wx port, deferred) and the build_ecce/install_ecce/create_ecce_bin
-# packaging scripts.
+# --- src/apps/symmetry -> 5 standalone Fortran executables, no wx involvement.
+# Mirrors the old Makefile's "default:" target exactly (testnames is a
+# dev/test-only program the old default build skipped - left out here too).
+# Each program links only the specific .f/.f90 object files its old Makefile
+# rule listed, not every source file in the directory (unlike ecce_app(),
+# which links a whole directory - this old Makefile was per-program instead).
+function(ecce_fortran_app name)
+  cmake_parse_arguments(ECCE_FAPP "" "" "SOURCES" ${ARGN})
+  add_executable(${name} ${ECCE_FAPP_SOURCES})
+  # Several of these programs independently compile the same spnames.f90 /
+  # spgen.f90 module sources - give each target its own .mod output
+  # directory so Ninja doesn't see two targets writing the same
+  # spnames.mod/spgen.mod file (they're identical content, but CMake/Ninja
+  # doesn't know that and refuses to build with a shared output).
+  set_target_properties(${name} PROPERTIES
+    Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${name}.mod)
+endfunction()
+
+set(_sym_dir ${CMAKE_SOURCE_DIR}/src/apps/symmetry)
+ecce_fortran_app(autosym
+  SOURCES ${_sym_dir}/autosym.f ${_sym_dir}/geom_hnd.f ${_sym_dir}/deter3.f ${_sym_dir}/errquit.f)
+ecce_fortran_app(getfrag
+  SOURCES ${_sym_dir}/getfrag.f ${_sym_dir}/findfrag.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
+          ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+ecce_fortran_app(genmol
+  SOURCES ${_sym_dir}/genmol.f ${_sym_dir}/dosymops.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
+          ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+ecce_fortran_app(genmollat
+  SOURCES ${_sym_dir}/genmollat.f ${_sym_dir}/dosymops.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
+          ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+ecce_fortran_app(cleansym
+  SOURCES ${_sym_dir}/cleansym.f ${_sym_dir}/sym_avg.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
+          ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+
+# ------------------------------------------------------------------------
+# Install rules. The old build_ecce/install_ecce/create_ecce_bin csh+Perl
+# scripts did much more than this (building a self-extracting binary
+# tarball with an interactive client/server installer wizard, separate
+# config for a remote compute-server component, etc.) - that whole
+# distribution model needs a decision from Andy before it's worth porting
+# (does he still want a self-extracting installer at all, or is a plain
+# `cmake --install` layout enough now that he's the one compiling). This
+# just covers the mechanical, uncontroversial part: dropping the built
+# executables and the data/ tree into a normal install prefix so the
+# CMake build is independently usable without the old scripts.
+# ------------------------------------------------------------------------
+install(TARGETS
+  load_tgbs ecmd eccejobmaster eccejobstore
+  basistool calced dirdyed gateway launcher machbrowser machregister
+  mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
+  passdialog pertable polyed solvate builder vizthumbnail
+  autosym getfrag genmol genmollat cleansym
+  RUNTIME DESTINATION bin)
+if(EXISTS ${CMAKE_SOURCE_DIR}/data)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/data DESTINATION .)
+endif()

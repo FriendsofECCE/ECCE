@@ -16,7 +16,7 @@ class DisplayAtomsCmd : public Command
       DisplayAtomsCmd(const string& name, Receiver * receiver);
       virtual ~DisplayAtomsCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
       virtual bool isUndoable() const;

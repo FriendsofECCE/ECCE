@@ -51,7 +51,6 @@ string ESPConstraintModelXMLizer::mimetype() const
  */
 void ESPConstraintModelXMLizer::deserialize(const string& data,
                        Serializable& object, EcceMap& properties)
-                       throw (ParseException)
 {
    // NOTE: For now at least, we aren't interested in any properties.
    ESPConstraintModel *dobject = dynamic_cast<ESPConstraintModel*>(&object);
@@ -132,7 +131,6 @@ void ESPConstraintModelXMLizer::deserialize(const string& data,
 
 void ESPConstraintModelXMLizer::serialize(const Serializable& object,
                         string& data, EcceMap& properties)
-
 {
    data = "";
 

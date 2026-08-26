@@ -10,7 +10,7 @@ class DumpSGCmd : public Command
       DumpSGCmd(const string& name, Receiver * receiver);
       ~DumpSGCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual bool isUndoable() const;
       virtual void undo();
 

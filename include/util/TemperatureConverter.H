@@ -24,16 +24,16 @@ class TemperatureConverter: public BaseUnitConverter
      *  temperature conversions are not simple scaling relations
      */
     string convertTo(const string &value, const string &toUnits)
-               throw (InvalidException);
+;
 
     double convertTo(double value, const string &toUnits)
-               throw (InvalidException);
+;
 
     string convertFrom(const string &value, const string &toUnits)
-               throw (InvalidException);
+;
 
     double convertFrom(double value, const string &toUnits)
-               throw (InvalidException);
+;
 
     double convertToK(double value, const string &fromUnits);
 

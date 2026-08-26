@@ -37,7 +37,7 @@ SpinSpinTensorCmd::~SpinSpinTensorCmd()
  * Override superclass just to handle the case where no atoms are selected.
  * In this case, we clear the scene.  Otherwise, invoke super's execute.
  */
-bool SpinSpinTensorCmd::execute() throw(EcceException)
+bool SpinSpinTensorCmd::execute()
 {
    bool ret = true;
 

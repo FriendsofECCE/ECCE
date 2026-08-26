@@ -157,7 +157,7 @@ public:
                             double nonBondCutoff=100.0,
                             double lineSearchRange=1.e-1,
                             int  maxCGLineSteps=200,
-                            double lineTol=2.0e-4 ) throw (CancelException);
+                            double lineTol=2.0e-4 );
 
   void moveOverLappingAtoms( FFCoordinates* coords );
   bool checkInterrupt();

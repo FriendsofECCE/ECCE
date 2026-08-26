@@ -13,7 +13,7 @@ class NModeStepCmd : public PropCmd
       NModeStepCmd(const string& name, Receiver *, IPropCalculation *);
       ~NModeStepCmd();
       void init();
-      bool execute() throw(EcceException);
+      bool execute();
 
    protected:
 

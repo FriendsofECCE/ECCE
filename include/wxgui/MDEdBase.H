@@ -83,9 +83,9 @@ class MDEdBase: public MDEdBaseGUI,
       virtual void clearContext();
 
       virtual void doQuit(bool force, bool notifyEditor);
-      virtual void setContext(const string& url) throw (EcceException);
-      virtual void generateInputFile(MdTask *task) throw(IOException);
-      virtual void saveModelAndInputFile(MdTask *task) throw(IOException);
+      virtual void setContext(const string& url);
+      virtual void generateInputFile(MdTask *task);
+      virtual void saveModelAndInputFile(MdTask *task);
       virtual void resetPanel();
       void enableLaunch(bool flag);
 

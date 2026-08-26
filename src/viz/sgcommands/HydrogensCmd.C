@@ -44,7 +44,7 @@ void HydrogensCmd::init()
    setHelpMessage("Convert all nubs to hydrogen atoms");
 }
 
-bool HydrogensCmd::execute() throw(EcceException)
+bool HydrogensCmd::execute()
 {
   bool ret = false;
 

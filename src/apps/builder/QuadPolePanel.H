@@ -12,7 +12,6 @@
  *   b) may render the table differently
  */
 class QuadPolePanel : public MomentsPanel 
-                
 {
    DECLARE_DYNAMIC_CLASS(QuadPolePanel)
 

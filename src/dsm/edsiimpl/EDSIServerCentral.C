@@ -89,7 +89,7 @@ EDSIServerCentral::~EDSIServerCentral()
 }
 
 
-bool EDSIServerCentral::checkServer() throw (RetryException,EcceException)
+bool EDSIServerCentral::checkServer()
 {
   bool ret = true;
   loadMountPointInfo();
@@ -162,7 +162,7 @@ string EDSIServerCentral::readRealm()
 /**
  * Returns false if canceled or too many retries without completing checks.
  */
-bool EDSIServerCentral::checkServerSetup() throw (RetryException,EcceException)
+bool EDSIServerCentral::checkServerSetup()
 {
   bool ret = true;
 

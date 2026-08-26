@@ -16,7 +16,7 @@ class SetCoordinatesCmd : public Command
       SetCoordinatesCmd(const string& name, Receiver * receiver, const string& sender="");
       ~SetCoordinatesCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

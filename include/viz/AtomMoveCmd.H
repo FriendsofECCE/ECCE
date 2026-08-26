@@ -16,7 +16,7 @@ public:
   AtomMoveCmd(const string& name, Receiver * receiver);
   ~AtomMoveCmd();
   void init();
-  virtual bool execute() throw(EcceException);
+  virtual bool execute();
   virtual void undo();
   virtual bool isUndoable() const;
 

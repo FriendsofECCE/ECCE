@@ -51,7 +51,7 @@ void SetBehaviorCmd::init()
 
 
 
-bool SetBehaviorCmd::execute() throw(EcceException)
+bool SetBehaviorCmd::execute()
 {
   bool ret = false;
 

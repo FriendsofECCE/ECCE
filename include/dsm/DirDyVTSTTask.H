@@ -58,7 +58,7 @@ class DirDyVTSTTask : virtual public DavCalculation
       virtual string getParseScriptArgs() const;
 
       virtual string import( const string& dir, const string& file)
-               throw(EcceException);
+;
 
       static string componentTypeToString(DirDyVTSTTask::Component comp);
       static DirDyVTSTTask::Component stringToComponentType(const string& str);

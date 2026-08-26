@@ -35,7 +35,7 @@ static string genFrag = "./genmol";
 static string genLatticeFrag = "./genmollat";
 
 
-void SymmetryOps::addGhosts(Fragment& frag) throw(IOException)
+void SymmetryOps::addGhosts(Fragment& frag)
 {
    string group = frag.pointGroup();
 
@@ -72,7 +72,6 @@ void SymmetryOps::removeGhosts(Fragment& frag)
 
 
 void SymmetryOps::findIrreducible(Fragment& frag, double threshold, const string& group)
-   throw(IOException,InvalidException)
 {
    if (frag.numAtoms() == 0) return;
 
@@ -154,7 +153,6 @@ void SymmetryOps::findIrreducible(Fragment& frag, double threshold, const string
 
 
 void SymmetryOps::generateLatticeFragment(Fragment& frag, double threshold)
-throw(IOException,InvalidException)
 {
    if (frag.numAtoms() == 0) return;
 //   if (frag.pointGroup() == "C1") return;
@@ -232,7 +230,6 @@ throw(IOException,InvalidException)
 
 
 void SymmetryOps::generateFragment(Fragment& frag, double threshold)
-throw(IOException,InvalidException)
 {
    if (frag.numAtoms() == 0) return;
    if (frag.pointGroup() == "C1") return;
@@ -303,7 +300,6 @@ throw(IOException,InvalidException)
 
 
 void SymmetryOps::clean(Fragment& frag, double threshold, const string& group)
-   throw(IOException,InvalidException)
 {
    if (frag.numAtoms() == 0) return;
 
@@ -362,7 +358,6 @@ void SymmetryOps::clean(Fragment& frag, double threshold, const string& group)
  * @return symmetry group name 
  */
 string SymmetryOps::find(Fragment& frag, double threshold) 
-  throw(IOException, InvalidException)
 {
    string group = "C1";
 
@@ -429,7 +424,7 @@ string SymmetryOps::find(Fragment& frag, double threshold)
  */
 SFile SymmetryOps::dumpGetFragCoordinates(const Fragment& frag, int nGhosts, 
       double threshold,
-      const string& group) throw(IOException)
+      const string& group)
 {
    // Create input file
    SFile* inFile = TempStorage::getTempFile();
@@ -466,7 +461,7 @@ SFile SymmetryOps::dumpGetFragCoordinates(const Fragment& frag, int nGhosts,
 
 SFile SymmetryOps::dumpLatticeFrag(Fragment& frag, int nGhosts, 
       double threshold,
-      const string& group) throw(IOException)
+      const string& group)
 {
    // Check for valid LatticeDef object
    LatticeDef *lattice = frag.getLattice();
@@ -524,7 +519,7 @@ SFile SymmetryOps::dumpLatticeFrag(Fragment& frag, int nGhosts,
  */
 SFile SymmetryOps::dumpCoordinates(const Fragment& frag, int nGhosts, 
       double threshold,
-      const string& group) throw(IOException)
+      const string& group)
 {
    // Create input file
    SFile* inFile = TempStorage::getTempFile();
@@ -571,7 +566,7 @@ SFile SymmetryOps::dumpCoordinates(const Fragment& frag, int nGhosts,
  * ...
  */
 SFile SymmetryOps::dumpCoordinates(const Fragment& frag, int nGhosts, 
-      double threshold) throw(IOException)
+      double threshold)
 {
    // Create input file
    SFile* inFile = TempStorage::getTempFile();
@@ -617,7 +612,7 @@ SFile SymmetryOps::dumpCoordinates(const Fragment& frag, int nGhosts,
  * ...
  */
 void SymmetryOps::loadCoordinates(Fragment& frag, const vector<int>& indices,
-      const SFile& outFile) throw(IOException) 
+      const SFile& outFile) 
 {
     // read in new file
     FILE* fp = fopen((char*)outFile.path().c_str(), "r");
@@ -656,7 +651,7 @@ void SymmetryOps::loadCoordinates(Fragment& frag, const vector<int>& indices,
  * Group name is converted to mixed case convention.
  */
 string SymmetryOps::readSymmetry(Fragment& frag, const vector<int>& indices, 
-        const SFile& outFile) throw(IOException)
+        const SFile& outFile)
 {
    char group[8];
 
@@ -744,7 +739,7 @@ bool SymmetryOps::hasDuplicates(const Fragment& frag)
  * removed from the fragment
  */
 void SymmetryOps::readIrrAtoms(vector<int>& listofatoms, 
-      const SFile& data) throw(IOException)
+      const SFile& data)
 {
     // read in new file
    FILE* fp = fopen((char*)data.path().c_str(), "r");

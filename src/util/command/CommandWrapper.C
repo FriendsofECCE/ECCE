@@ -25,7 +25,7 @@ void CommandWrapper::setCommand(const string& cmd)
    p_cmd = cmd;
 }
 
-void CommandWrapper::execute() throw(SystemCommandException)
+void CommandWrapper::execute()
 {
    string cmd = getCommand();
    int istatus = system(cmd.c_str());

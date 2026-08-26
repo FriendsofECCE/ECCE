@@ -48,7 +48,7 @@ void AssignResidueAtomsCmd::init()
    setHelpMessage(" ");
 }
 
-bool AssignResidueAtomsCmd::execute() throw(EcceException)
+bool AssignResidueAtomsCmd::execute()
 {
    bool ret = false;
 

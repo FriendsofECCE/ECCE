@@ -101,7 +101,6 @@ bool GBSRules::checkOrbitalCoverage(const TGBSConfig* config)
 Precondition:  config is not NULL
 *******************************************************************/
 bool GBSRules::checkECPCoverage(TGBSConfig* config)
-
 {
   TGBSConfig::iterator config_it;
   bool ret = true;

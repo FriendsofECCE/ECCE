@@ -16,7 +16,7 @@ class PBCEquivRectCmd : public PBCCmd
       PBCEquivRectCmd(const string& name, Receiver * receiver, SGFragment *base);
       ~PBCEquivRectCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       void init();

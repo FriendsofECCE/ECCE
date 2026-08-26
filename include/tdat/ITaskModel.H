@@ -36,9 +36,9 @@ class ITaskModel : public Receiver, public Serializable
     virtual void  setUrl(string url);
     virtual string getUrl() const;
 
-    virtual void generateInputFile() throw(InvalidException) = 0;
+    virtual void generateInputFile() = 0;
 
-    virtual void run() throw(InvalidException) = 0;
+    virtual void run() = 0;
 
 
     // Receiver virtuals

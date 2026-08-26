@@ -89,7 +89,7 @@ class XMLSerializer : public Serializer
        */
       virtual void deserialize(const std::string& data, 
                                Serializable& object, EcceMap& properties) 
-                                                throw (ParseException) = 0;
+ = 0;
 
       /**
        * Convert an object into its data and metadata.

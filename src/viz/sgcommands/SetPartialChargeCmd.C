@@ -51,7 +51,7 @@ void SetPartialChargeCmd::init()
 
 
 
-bool SetPartialChargeCmd::execute() throw(EcceException)
+bool SetPartialChargeCmd::execute()
 {
   bool ret = false;
 

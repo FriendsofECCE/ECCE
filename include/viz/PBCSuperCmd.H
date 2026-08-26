@@ -18,7 +18,7 @@ class PBCSuperCmd : public PBCCmd
       PBCSuperCmd(const string& name, Receiver * receiver, SGFragment *base);
       ~PBCSuperCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
       virtual bool shouldAutoReplicate() const;
       virtual bool shouldAutoReplicateOnUndo() const;

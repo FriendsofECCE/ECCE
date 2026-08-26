@@ -51,7 +51,7 @@ void SetPolarizationGroupCmd::init()
 
 
 
-bool SetPolarizationGroupCmd::execute() throw(EcceException)
+bool SetPolarizationGroupCmd::execute()
 {
   bool ret = false;
 

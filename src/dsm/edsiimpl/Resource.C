@@ -67,7 +67,7 @@ Resource::Resource()
  * @param resourceId
  * @throw InvalidException
  */
-Resource::Resource(const EcceURL& resourceId) throw(InvalidException)
+Resource::Resource(const EcceURL& resourceId)
 {
   p_url = resourceId;
   p_edsi = 0;
@@ -219,7 +219,7 @@ bool Resource::setURL(const EcceURL& url)
  * @return Returns true if the task was found, otherwise
  *         false is returned.
  */
-bool Resource::isValid() throw (RetryException, CancelException)
+bool Resource::isValid()
 {
   // Make sure tho set to current resource url before executing
   getEDSI()->setURL(getURL());
@@ -1166,7 +1166,7 @@ vector<EcceURL> Resource::descendantSearch(const string& key,
  * @throw InvalidException Indicates that the EDSI interface
  *        creation failed.
  */
-EDSI *Resource::getEDSI() const throw(InvalidException)
+EDSI *Resource::getEDSI() const
 {
   // Create EDSI
   if (p_edsi == 0) {

@@ -25,6 +25,6 @@ InternalException::InternalException(const InternalException& rhs)
 {
 }
 
-InternalException::~InternalException() throw ()
+InternalException::~InternalException() noexcept
 {
 }

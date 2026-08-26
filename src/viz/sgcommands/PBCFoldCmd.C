@@ -40,7 +40,7 @@ void PBCFoldCmd::init()
 
 
 
-bool PBCFoldCmd::execute() throw(EcceException)
+bool PBCFoldCmd::execute()
 {
    bool ret = false;
 

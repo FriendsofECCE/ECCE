@@ -66,7 +66,6 @@ vector<string> FFDesc::getCategoryNames() const
  * Get a category by index.
  */
 const FFCategoryDesc& FFDesc::getCategory(int index) const
-                         throw(std::range_error)
 {
    if (index < 0 || index >= size()) 
       throw std::range_error("Illegal range in FFDesc::getCategory()");
@@ -78,7 +77,6 @@ const FFCategoryDesc& FFDesc::getCategory(int index) const
  * Get a category by name.
  */
 const FFCategoryDesc& FFDesc::getCategoryByName(const string& name) const
-                         throw(std::range_error)
 {
    int idx = index(name);
 
@@ -118,7 +116,7 @@ void FFDesc::clear()
  * Removes a category of the given name.
  * Memory for each category is freed.
  */
-void FFDesc::removeCategory(const string& name) throw(std::range_error)
+void FFDesc::removeCategory(const string& name)
 {
    int idx = index(name);
    if (idx >= 0) {

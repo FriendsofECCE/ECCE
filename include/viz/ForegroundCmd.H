@@ -14,7 +14,7 @@ public:
   ForegroundCmd(const string& name, Receiver * receiver);
   ~ForegroundCmd();
 
-  virtual bool execute() throw(EcceException);
+  virtual bool execute();
   virtual void undo();
   virtual bool isUndoable() const;
 

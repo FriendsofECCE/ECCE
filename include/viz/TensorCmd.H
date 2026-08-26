@@ -22,7 +22,7 @@ class TensorCmd : public AddVectorCmd
 
 
       /* Override to handle the case of displaying no vectors. */
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
       // CmdAddVector methods
       virtual bool getDisplacements(vector<double*>& displacements,

@@ -43,7 +43,7 @@ void FindIrreduceFragCmd::init()
 
 
 
-bool FindIrreduceFragCmd::execute() throw(EcceException)
+bool FindIrreduceFragCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

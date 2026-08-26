@@ -37,7 +37,7 @@ void ShowFragCmd::init()
 }
 
 
-bool ShowFragCmd::execute() throw(EcceException)
+bool ShowFragCmd::execute()
 {
    bool ret = true;
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

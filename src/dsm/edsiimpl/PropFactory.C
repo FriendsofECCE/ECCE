@@ -402,7 +402,7 @@ string Property_Ref::storagetype() const {
 //    ** This function should only be called once, when the propRefList
 //    vector is empty.
 ///////////////////////////////////////////////////////////////////////////////
-void PropFactory::initialize() throw (EcceException)
+void PropFactory::initialize()
 {
 // Open file containing Property_Ref data:
 // Set up connection to DAV server via EDSI interface:

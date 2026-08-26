@@ -27,7 +27,7 @@ public :
 
   // Constructors
   CCookie(void);
-  CCookie(const string_type&) throw(CCookie::ParseError);
+  CCookie(const string_type&);
   CCookie(const CCookie&);
 
   // Destructor

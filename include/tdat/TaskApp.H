@@ -39,7 +39,7 @@ class TaskApp
       void setCloseListener(TaskAppCloseListener *l);
       void notifyClose();
 
-      virtual void setContext(const string& url) throw(EcceException);
+      virtual void setContext(const string& url);
 
       /** Raise app to top of desktop */
       virtual void taskAppRaise() = 0;

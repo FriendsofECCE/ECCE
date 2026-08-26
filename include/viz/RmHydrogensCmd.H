@@ -17,7 +17,7 @@ class RmHydrogensCmd : public FragCloneCmd
       RmHydrogensCmd(const string& name, Receiver * receiver);
       virtual ~RmHydrogensCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

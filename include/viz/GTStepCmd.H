@@ -9,7 +9,7 @@ class GTStepCmd : public PropCmd
     GTStepCmd(const string& name, Receiver *, IPropCalculation *);
     virtual ~GTStepCmd();
 
-    virtual bool execute() throw(EcceException);
+    virtual bool execute();
 
   protected:
     virtual void init();

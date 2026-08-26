@@ -69,7 +69,7 @@ public :
 
   // Constructors
   CHTTPResponse(void);
-  CHTTPResponse(const string_type&) throw(CHTTPResponse::ParseError);
+  CHTTPResponse(const string_type&);
   CHTTPResponse(const CHTTPResponse& other)
     : HTTPVersion_(other.HTTPVersion_), reasonPhrase_(other.reasonPhrase_),
       status_(other.status_) {}

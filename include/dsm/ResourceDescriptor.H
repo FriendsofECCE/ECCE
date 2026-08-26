@@ -255,7 +255,7 @@ class ResourceDescriptor
 
   private:
 
-    void parseResourceDescriptorFile() throw (ParseException);
+    void parseResourceDescriptorFile();
   
     void createResourceTypes();
     void loadResourceTypes();

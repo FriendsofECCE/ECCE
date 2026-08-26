@@ -37,7 +37,7 @@ public:
          int             getSourceID( void) const;
          int             getParamCount( void) const;
    const string&         getParam( const int paramID) const 
-                                              throw (IndexOutOfRangeException);
+;
    const vector<string>& getParams( void) const;
    const string&         getAnnotation( void) const;
          bool            isRemoved( void) const;

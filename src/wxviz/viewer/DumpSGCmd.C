@@ -22,7 +22,7 @@ void DumpSGCmd::init()
    addParameter(new CommandParameter("file","sgdump.txt"));
 }
 
-bool DumpSGCmd::execute() throw(EcceException)
+bool DumpSGCmd::execute()
 {
    SGViewer *viewer = dynamic_cast<SGViewer*>(getReceiver());
 

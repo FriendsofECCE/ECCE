@@ -21,7 +21,7 @@ void AxisCmd::init()
    addParameter(new CommandParameter("switch","false"));
 }
 
-bool AxisCmd::execute() throw(EcceException)
+bool AxisCmd::execute()
 {
   SGViewer *viewer = dynamic_cast<SGViewer*>(getReceiver());
 

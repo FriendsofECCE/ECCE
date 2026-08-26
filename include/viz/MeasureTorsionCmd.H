@@ -20,7 +20,7 @@ class MeasureTorsionCmd : public MeasureBaseCmd
       MeasureTorsionCmd(const string& name, Receiver * receiver);
       virtual ~MeasureTorsionCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

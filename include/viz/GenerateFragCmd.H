@@ -21,7 +21,7 @@ class GenerateFragCmd : public FragCloneCmd
       GenerateFragCmd(const string& name, Receiver * receiver);
       virtual ~GenerateFragCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

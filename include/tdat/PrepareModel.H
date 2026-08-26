@@ -99,8 +99,8 @@ class PrepareModel : public ITaskModel
       virtual ~PrepareModel();
 
       /* Task Model virtuals */
-      virtual void generateInputFile() throw(InvalidException);
-      virtual void run() throw(InvalidException);
+      virtual void generateInputFile();
+      virtual void run();
 
       bool prescanPDB(const string& url);
       void reset();

@@ -213,7 +213,6 @@ string FFCategoryDesc::getLabel() const
  * @return index of parameter with matching label
  */
 int FFCategoryDesc::getParamIDByLabel( string paramLabel) 
-                                                 throw (InvalidException) 
 {
    int index = -1;
 

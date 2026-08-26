@@ -42,7 +42,7 @@ class QMMMModel : public Serializable
 
     vector<QMMMParams*> *getQMMMTerms(string type) const;
 
-    void addQMMMTerm(QMMMParams *term) throw(InvalidException);
+    void addQMMMTerm(QMMMParams *term);
     bool remove(const QMMMParams *term);
     int numQMMMTerms() const;
     QMMMParams* getQMMMTerm(int idx) const;

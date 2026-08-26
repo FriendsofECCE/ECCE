@@ -16,7 +16,7 @@ class PBCEditVectorsCmd : public PBCCmd
       PBCEditVectorsCmd(const string& name, Receiver * receiver, SGFragment *base);
       ~PBCEditVectorsCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       void init();

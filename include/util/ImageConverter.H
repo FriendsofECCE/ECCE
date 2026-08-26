@@ -29,7 +29,7 @@ class ImageConverter
       void convert(const string& inFile, const string& outFile,
                    const int& width, const int& height,
                    const int& depth, const bool& rmInFile) 
-         throw (BadValueException);
+;
 
 
    protected:

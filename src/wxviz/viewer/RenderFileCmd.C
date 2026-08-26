@@ -28,7 +28,7 @@ void RenderFileCmd::init()
    addParameter(new CommandParameter("blue",0.0));
 }
 
-bool RenderFileCmd::execute() throw(EcceException)
+bool RenderFileCmd::execute()
 {
    // check whether site has disabled creation of image files because of
    // lack of OpenGL offscreen rendering

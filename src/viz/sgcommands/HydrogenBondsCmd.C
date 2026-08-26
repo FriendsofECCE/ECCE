@@ -90,7 +90,7 @@ void HydrogenBondsCmd::init()
 
 
 
-bool HydrogenBondsCmd::execute() throw(EcceException)
+bool HydrogenBondsCmd::execute()
 {
    bool ret = true;
 

@@ -57,7 +57,7 @@ class ChemistryTask : virtual public TaskJob
       virtual bool getThumbnail(SFile* file) const;
 
       virtual string import( const string& dir, const string& file) 
-         throw(EcceException);
+;
       virtual string getParseScriptArgs() const;
 
    protected:
@@ -67,7 +67,7 @@ class ChemistryTask : virtual public TaskJob
 
       void importFragment(const string& fragFile, const Preferences& params);
       virtual void  processImportParameters(const Preferences& params)
-         throw(IOException);
+;
 
       vector<string> p_atomTypes; // used for reaction studies
 };

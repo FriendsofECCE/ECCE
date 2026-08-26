@@ -46,7 +46,7 @@ class TCalculation : virtual public ICalculation
 
   // Resource virtuals
     virtual EcceURL getURL(void) const;
-    virtual bool isValid() throw (RetryException, CancelException);
+    virtual bool isValid();
     virtual bool remove(void);          // destroys an entire calculation
     virtual bool move(EcceURL& target); // moves an entire calculation
     virtual string messages(void) const;

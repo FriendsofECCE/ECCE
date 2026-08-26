@@ -18,7 +18,7 @@ class CancelException : public EcceException
       CancelException(const char *file, int line);
       CancelException(const CancelException& rhs);
 
-      virtual ~CancelException() throw ();
+      virtual ~CancelException() noexcept;
 
 
    protected:

@@ -867,7 +867,7 @@ void NWDirdy::identifyMCB(JMSMessage&)
 /**
  * Reset the gui to the task at the specified url.
  */
-void NWDirdy::setContext(const string& urlstr) throw (EcceException)
+void NWDirdy::setContext(const string& urlstr)
 {
   wxBusyCursor busy;
 
@@ -1044,7 +1044,7 @@ void NWDirdy::doQuit(const bool& force)
 /**
  * Save the model, generate and save input file.
  */
-bool NWDirdy::saveModelAndInputFile(const bool& reportFlag) throw(IOException)
+bool NWDirdy::saveModelAndInputFile(const bool& reportFlag)
 {
    bool saveDoneFlag = false;
    NWDirdyModel& model = getNWDirdyModel();
@@ -2097,7 +2097,7 @@ void NWDirdy::OnCloseWindow( wxCloseEvent& event )
  * @throw IOException if the input file generation failed for some reason or
  *       we couldn't upload the data.
  */
-bool NWDirdy::generateInputFile() throw(IOException)
+bool NWDirdy::generateInputFile()
 {
   if (!p_dirdyTask->removeInputFiles()) {
     p_feedback->setMessage("Unable to remove input file before regeneration.",

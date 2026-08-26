@@ -26,6 +26,6 @@ MismatchedTypeException::MismatchedTypeException(
 {
 }
 
-MismatchedTypeException::~MismatchedTypeException() throw ()
+MismatchedTypeException::~MismatchedTypeException() noexcept
 {
 }

@@ -23,11 +23,11 @@ class SystemCommandException : public EcceException
                              const char *file, int line);
       SystemCommandException(const SystemCommandException& rhs);
 
-      virtual ~SystemCommandException() throw ();
+      virtual ~SystemCommandException() noexcept;
 
-      virtual EcceException *clone() const throw ();
+      virtual EcceException *clone() const noexcept;
 
-      virtual const char *what() const throw ();
+      virtual const char *what() const noexcept;
 
 
    protected:

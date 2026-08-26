@@ -47,7 +47,7 @@ void SliceCmd::init()
 
 
 
-bool SliceCmd::execute() throw(EcceException)
+bool SliceCmd::execute()
 {
   bool ret = false;
 

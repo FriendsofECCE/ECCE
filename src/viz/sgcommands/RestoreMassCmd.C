@@ -46,7 +46,7 @@ void RestoreMassCmd::init()
 }
 
 
-bool RestoreMassCmd::execute() throw(EcceException)
+bool RestoreMassCmd::execute()
 {
    bool ret = false;
 

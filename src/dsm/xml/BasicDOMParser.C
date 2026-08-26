@@ -27,7 +27,7 @@ BasicDOMParser::~BasicDOMParser()
 {
 }
 
-void BasicDOMParser::initialize() throw (EcceException)
+void BasicDOMParser::initialize()
 {
   try
   {
@@ -46,7 +46,7 @@ void BasicDOMParser::initialize() throw (EcceException)
  * responsible for cleaning the document by calling the release() method
  */
 DOMDocument* BasicDOMParser::parse(const InputSource& is,
-                             const bool& logErrors) throw (ParseException)
+                             const bool& logErrors)
 {
   initialize();
 
@@ -84,7 +84,7 @@ DOMDocument* BasicDOMParser::parse(const InputSource& is,
  * for cleaning the document by calling the release() method
  */
 DOMDocument* BasicDOMParser::parse(const SFile& file,
-                             const bool& logErrors) throw (ParseException)
+                             const bool& logErrors)
 {
 
   initialize();
@@ -105,7 +105,7 @@ DOMDocument* BasicDOMParser::parse(const SFile& file,
  * for cleaning the document by calling the release() method
  */
 DOMDocument* BasicDOMParser::parse(istream& data,
-                             const bool& logErrors) throw (ParseException)
+                             const bool& logErrors)
 {
 
   initialize();
@@ -137,7 +137,7 @@ DOMDocument* BasicDOMParser::parse(istream& data,
  * for cleaning the document by calling the release() method
  */
 DOMDocument* BasicDOMParser::parse(const string& data,
-                             const bool& logErrors) throw (ParseException)
+                             const bool& logErrors)
 {
 
   initialize();

@@ -27,7 +27,7 @@ CHTTPResponse::CHTTPResponse(void)
   reasonPhrase_ = reasonPhrase(status_);
 }
 
-CHTTPResponse::CHTTPResponse(const string_type& s) throw(CHTTPResponse::ParseError)
+CHTTPResponse::CHTTPResponse(const string_type& s)
   : HTTPVersion_(), reasonPhrase_(""), status_(OK)
 // Pre: Assigned(s)
 // Modifies:

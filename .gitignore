@@ -4,3 +4,4 @@
 /lib/
 /obj/
 /build-cmake/
+src/apps/symmetry/*.mod

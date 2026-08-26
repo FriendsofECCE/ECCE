@@ -16,7 +16,7 @@ class TwoDMoveCmd : public FragCloneCmd
       TwoDMoveCmd(const string& name, Receiver * receiver);
       virtual ~TwoDMoveCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

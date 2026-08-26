@@ -190,7 +190,7 @@ void MDEdBase::doSaveButtonClick(wxCommandEvent &event)
 /**
  * Save the model, generate and save input file.
  */
-void MDEdBase::saveModelAndInputFile(MdTask *task) throw(IOException)
+void MDEdBase::saveModelAndInputFile(MdTask *task)
 {
    if (task) {
       NWChemMDModel& model = getNWChemMDModel();
@@ -230,7 +230,7 @@ void MDEdBase::enableLaunch(bool flag)
  * @throw IOException if the input file generation failed for some reason or
  *       we couldn't upload the data.
  */
-void MDEdBase::generateInputFile(MdTask *task) throw(IOException)
+void MDEdBase::generateInputFile(MdTask *task)
 {
    NWChemMDModel& model = getNWChemMDModel();
 
@@ -333,7 +333,7 @@ void MDEdBase::clearContext()
    p_notebook->Disable();
 }
 
-void MDEdBase::setContext(const string& urlstr) throw (EcceException)
+void MDEdBase::setContext(const string& urlstr)
 {
   ResourceDescriptor::RUNSTATE state = ResourceDescriptor::STATE_CREATED;
   if (p_model) {

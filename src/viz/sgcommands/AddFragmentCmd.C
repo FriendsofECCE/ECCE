@@ -64,7 +64,7 @@ void AddFragmentCmd::init()
 
 
 
-bool AddFragmentCmd::execute() throw(EcceException)
+bool AddFragmentCmd::execute()
 {
    bool ret = true;
 

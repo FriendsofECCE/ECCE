@@ -260,7 +260,6 @@ bool DirDyVTSTTask::canModifyInputProvider()
 
 
 string DirDyVTSTTask::import( const string& dir, const string& file)
-  throw(EcceException)
 {
   return "";
 }

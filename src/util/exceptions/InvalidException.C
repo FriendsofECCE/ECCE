@@ -24,10 +24,10 @@ InvalidException::InvalidException(const InvalidException& rhs)
 {
 }
 
-InvalidException::~InvalidException() throw ()
+InvalidException::~InvalidException() noexcept
 {
 }
-EcceException *InvalidException::clone() const throw()
+EcceException *InvalidException::clone() const noexcept
 {
    return new InvalidException(*this);
 }

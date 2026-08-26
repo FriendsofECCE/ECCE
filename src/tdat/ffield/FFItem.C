@@ -114,7 +114,6 @@ int FFItem::getParamCount( void) const
  *
  */
 const string& FFItem::getParam( const int paramID) const 
-                                      throw (IndexOutOfRangeException)
 {
   if ( paramID < 0 || paramID >= p_ffParameters.size()) {
      throw IndexOutOfRangeException( 0, p_ffParameters.size(), paramID, WHERE);

@@ -34,7 +34,7 @@ class WxFFDataConfig : public WxFFDataConfigGUI
     vector<string> getFFPaths(string ffName);
     vector<string> getSegPaths(string ffName);
 
-    void loadPreferences(const bool& usePrefs=true) throw (IOException);
+    void loadPreferences(const bool& usePrefs=true);
     void savePreferences();
 
   protected:

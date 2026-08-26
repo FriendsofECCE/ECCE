@@ -48,7 +48,7 @@ void AddSegmentHCmd::init()
                   "segment files");
 }
 
-bool AddSegmentHCmd::execute() throw(EcceException)
+bool AddSegmentHCmd::execute()
 {
   bool ret = false;
 

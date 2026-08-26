@@ -16,7 +16,7 @@ class SelectAllCmd : public Command
       SelectAllCmd(const string& name, Receiver * receiver);
       virtual ~SelectAllCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

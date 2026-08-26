@@ -126,7 +126,7 @@ BasicAuth *WxDavAuth::getAuthorization(const string& url, const string& user)
  * @throw RetryException after n user prompts
  * @return true if there is a new value to try.
  */
-bool WxDavAuth::getAuthorization(AuthEvent& event) throw (RetryException)
+bool WxDavAuth::getAuthorization(AuthEvent& event)
 {
    bool ret = false;
 

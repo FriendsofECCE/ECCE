@@ -48,7 +48,7 @@ void FFType::addItemID( int ffitemID)
  *  this force field type.
  *
  */
-int FFType::getLastItemID( void) const  throw (InvalidException)  {
+int FFType::getLastItemID( void) const  {
 
   if ( p_ffItemIDs.empty()) {
 #if 0000
@@ -74,7 +74,7 @@ int FFType::getLastItemID( void) const  throw (InvalidException)  {
  *
  *  @throw IndexOutOfRangeException if input index is not valid (in range)
  */
-void FFType::removeItemID( int index)  throw(IndexOutOfRangeException)
+void FFType::removeItemID( int index)
 {
    if ( index < 0 || index >= p_ffItemIDs.size()) 
       throw IndexOutOfRangeException(0, p_ffItemIDs.size(), index, WHERE);
@@ -127,7 +127,7 @@ int FFType::getItemCount( void) const
  *
  *  @throw IndexOutOfRangeException if input "index" is out of range.
  */
-int FFType::getItemID(int index) const throw(IndexOutOfRangeException)
+int FFType::getItemID(int index) const
 {
    if ( index < 0 || index >= p_ffItemIDs.size()) 
       throw IndexOutOfRangeException(0, p_ffItemIDs.size(), index, WHERE);

@@ -32,7 +32,7 @@ class UserEditor
       virtual void   getEditCommand(const SFile& file, 
                             string& exe, char *args[], int maxArgs,
                             const string& name, bool readOnly=false)
-                            throw(InvalidException);
+;
       void freeArguments(char *args[]);
 
    protected:

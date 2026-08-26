@@ -134,13 +134,13 @@ NWDirdyModel::~NWDirdyModel()
     delete p_prod2;
 }
 
-void NWDirdyModel::generateInputFile() throw(InvalidException)
+void NWDirdyModel::generateInputFile()
 {
    throw NotImplementedException("generateInputFile not implemented",WHERE);
 }
 
 
-void NWDirdyModel::run() throw(InvalidException)
+void NWDirdyModel::run()
 {
    throw NotImplementedException("run not implemented",WHERE);
 }

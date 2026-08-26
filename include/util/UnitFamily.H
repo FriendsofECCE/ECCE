@@ -38,7 +38,7 @@ class UnitFamily : protected EcceMap {
 
       string getFullName() const;
 
-      string get(const string& unitclass) const throw(InvalidException);
+      string get(const string& unitclass) const;
 
    protected:
 

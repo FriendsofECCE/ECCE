@@ -16,7 +16,7 @@ class PBCFoldCmd : public PBCCmd
       PBCFoldCmd(const string& name, Receiver * receiver, SGFragment *base);
       ~PBCFoldCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       void init();

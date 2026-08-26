@@ -34,7 +34,7 @@ public:
 
   void deserialize(const string & data,
                    Serializable & object,
-                   EcceMap & properties) throw (ParseException);
+                   EcceMap & properties);
 
   void serialize(const Serializable& object,
                  string& data,

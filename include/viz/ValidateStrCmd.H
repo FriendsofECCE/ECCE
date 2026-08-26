@@ -14,7 +14,7 @@ class ValidateStrCmd : public FragCloneCmd
       ValidateStrCmd(const string& name, Receiver * receiver);
       virtual ~ValidateStrCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

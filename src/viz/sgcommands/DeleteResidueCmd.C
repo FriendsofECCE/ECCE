@@ -41,7 +41,7 @@ void DeleteResidueCmd::init()
 
 
 
-bool DeleteResidueCmd::execute() throw(EcceException)
+bool DeleteResidueCmd::execute()
 {
    bool ret = false;
 

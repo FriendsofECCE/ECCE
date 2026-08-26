@@ -393,7 +393,7 @@ void GatewayApp::sendIconify(int iconicState)
 /**
  * Checks server to see if it's legit and properly setup.
  */
-bool GatewayApp::checkServer() throw (RetryException,EcceException)
+bool GatewayApp::checkServer()
 {
   EDSIServerCentral servers;
   return servers.checkServer();
@@ -404,7 +404,7 @@ bool GatewayApp::checkServer() throw (RetryException,EcceException)
  * Move this to separate function and command line option such as
  * gateway -check if its too slow
  */
-bool GatewayApp::checkServerSetup() throw (RetryException,EcceException)
+bool GatewayApp::checkServerSetup()
 {
   EDSIServerCentral servers;
   return servers.checkServerSetup();

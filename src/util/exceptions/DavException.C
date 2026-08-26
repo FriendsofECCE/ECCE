@@ -27,7 +27,7 @@ DavException::DavException(const DavException& rhs)
 {
 }
 
-DavException::~DavException() throw ()
+DavException::~DavException() noexcept
 {
 }
 

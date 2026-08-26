@@ -32,7 +32,7 @@ class PolyrateTask : virtual public DavCalculation
       virtual bool canModifyInputProvider();
 
       virtual string import( const string& dir, const string& file)
-               throw(EcceException);
+;
 
       virtual bool remove();
       virtual bool copy(EcceURL& target);

@@ -32,7 +32,7 @@ void UnselectCmd::init()
 }
 
 
-bool UnselectCmd::execute() throw(EcceException)
+bool UnselectCmd::execute()
 {
 
   SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

@@ -40,7 +40,7 @@ void ValidateStrCmd::init()
    setHelpMessage("Assign properties to atoms from fragment and segment files");
 }
 
-bool ValidateStrCmd::execute() throw(EcceException)
+bool ValidateStrCmd::execute()
 {
   bool ret = false;
 

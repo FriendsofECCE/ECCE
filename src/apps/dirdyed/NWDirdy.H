@@ -91,7 +91,7 @@ class NWDirdy: public NWDirdyGUI,
       virtual void processEditCompletion(const EditEvent& ee);
 
       virtual string getTitle() const;
-      virtual void setContext(const string& url) throw(EcceException);
+      virtual void setContext(const string& url);
       virtual void freeContext();
       virtual void taskAppRaise();
       virtual void taskAppDestroy();
@@ -131,7 +131,7 @@ class NWDirdy: public NWDirdyGUI,
 
    protected:
       void initProgressDialog();
-      bool generateInputFile() throw(IOException);
+      bool generateInputFile();
       bool checkUniqueAtomIds(Fragment *frag1, Fragment *frag2, Fragment *ts,
                               const bool& reactFlag);
       bool checkUniqueTSAtomIds(Fragment *ts);
@@ -139,7 +139,7 @@ class NWDirdy: public NWDirdyGUI,
       bool checkComponent(DirDyVTSTTask::Component comp);
       bool removeComponent(DirDyVTSTTask::Component comp);
       Resource *getComponent(DirDyVTSTTask::Component comp);
-      bool saveModelAndInputFile(const bool& reportFlag) throw(IOException);
+      bool saveModelAndInputFile(const bool& reportFlag);
       void doQuit(const bool& force);
       void separateFragments(Fragment *frag1, Fragment *frag2, Fragment *ts);
       void alignFragment(Fragment *frag);

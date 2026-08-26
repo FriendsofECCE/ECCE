@@ -436,7 +436,6 @@ WxResourceTreeCtrl::findNode(const EcceURL & targetUrl,
                              WxResourceTreeItemData * current,
                              bool openWhenFound,
                              bool loadFromServer)
-
 {
   EcceURL currentUrl = current->getUrl();
 

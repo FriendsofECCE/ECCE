@@ -15,7 +15,7 @@ class BackgroundCmd : public Command
       BackgroundCmd(const string& name, Receiver * receiver);
       ~BackgroundCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
       virtual bool isUndoable() const;
 

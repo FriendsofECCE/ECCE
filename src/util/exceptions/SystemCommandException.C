@@ -43,7 +43,7 @@ SystemCommandException::SystemCommandException(const SystemCommandException& rhs
 
 
 
-SystemCommandException::~SystemCommandException() throw ()
+SystemCommandException::~SystemCommandException() noexcept
 {
 }
 
@@ -51,7 +51,7 @@ SystemCommandException::~SystemCommandException() throw ()
 /**
  * Reports the exception contents with error code and message text.
  */
-const char *SystemCommandException::what() const throw()
+const char *SystemCommandException::what() const noexcept
 {
   string ret;
 
@@ -64,7 +64,7 @@ const char *SystemCommandException::what() const throw()
 }
 
 
-EcceException *SystemCommandException::clone() const throw()
+EcceException *SystemCommandException::clone() const noexcept
 {
    return new SystemCommandException(*this);
 }

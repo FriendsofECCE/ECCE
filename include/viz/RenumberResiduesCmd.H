@@ -19,7 +19,7 @@ class RenumberResiduesCmd : public FragCloneCmd
       RenumberResiduesCmd(const string& name, Receiver * receiver);
       virtual ~RenumberResiduesCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

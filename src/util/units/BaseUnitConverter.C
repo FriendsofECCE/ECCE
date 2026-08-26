@@ -37,7 +37,6 @@ void BaseUnitConverter::addConversion(const string& unit, double value)
  * @throw InvalidException if the unit is not supported.
  */
 void BaseUnitConverter::setBaseUnits(const string& unit)
-  throw (InvalidException)
 {
   if (!checkString(unit)) {
     throw InvalidException(unit + " is an unknown unit.", WHERE);
@@ -112,7 +111,6 @@ string BaseUnitConverter::getErrorMessage(const string& from, const string& to)
  * @throw InvalidException - toUnits are unknown.
  */
 string BaseUnitConverter::convertTo(const string& value, const string& toUnits)
-  throw (InvalidException)
 {
   string ret = value;
   if (!checkString(toUnits)) {
@@ -140,7 +138,6 @@ string BaseUnitConverter::convertTo(const string& value, const string& toUnits)
  * @throw InvalidException - toUnits are unknown.
  */
 double BaseUnitConverter::convertTo(double value, const string& toUnits)
-  throw (InvalidException)
 {
   if (!checkString(toUnits)) {
     throw InvalidException(getErrorMessage(p_base, toUnits), WHERE);
@@ -163,7 +160,6 @@ double BaseUnitConverter::convertTo(double value, const string& toUnits)
  * @throw InvalidException - fromUnits are unknown.
  */
 string BaseUnitConverter::convertFrom(const string& value, const string& fromUnits)
-  throw (InvalidException)
 {
   string ret = value;
 
@@ -192,7 +188,6 @@ string BaseUnitConverter::convertFrom(const string& value, const string& fromUni
  * @throw InvalidException - fromUnits are unknown.
  */
 double BaseUnitConverter::convertFrom(double value, const string& fromUnits)
-  throw (InvalidException)
 {
   if (!checkString(fromUnits)) {
     throw InvalidException(getErrorMessage(fromUnits, p_base), WHERE);

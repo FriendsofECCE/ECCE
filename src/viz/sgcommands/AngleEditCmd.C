@@ -43,7 +43,7 @@ void AngleEditCmd::init()
 
 
 
-bool AngleEditCmd::execute() throw(EcceException)
+bool AngleEditCmd::execute()
 {
    bool ret = false;
 

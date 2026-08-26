@@ -1919,7 +1919,7 @@ bool Fragment::changeBond(TAtm *atm1, TAtm *atm2, float order)
  * to itself or no nubs are available.
  */
 void Fragment::bondAtoms(TAtm *atm1, TAtm *atm2, float order,
-      const DisplayStyle& style) throw (EcceException)
+      const DisplayStyle& style)
 {
    TAtm *parent1=0, *nub1=0, *parent2=0, *nub2=0;
 

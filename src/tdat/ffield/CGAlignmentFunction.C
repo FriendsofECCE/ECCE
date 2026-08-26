@@ -37,7 +37,6 @@ CGAlignmentFunction::~CGAlignmentFunction()
 }
 
 double CGAlignmentFunction::getValue(bool& cancel, FFCoordinates *coords) const
-       throw (InvalidException)
 {
   double value = 0.0;
   try  {
@@ -76,7 +75,6 @@ double CGAlignmentFunction::getValue(bool& cancel, FFCoordinates *coords) const
 FFCoordinates* CGAlignmentFunction::getGradient(bool& canceled,
                          const FFCoordinates *coords,
                          FFCoordinates *gradient) const
-       throw (InvalidException)
 {
   try  {
     int i,j,k,l;

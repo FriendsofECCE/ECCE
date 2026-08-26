@@ -124,14 +124,14 @@ const Any& CommandParameter::getAny() const
 
 
 
-int CommandParameter::getInteger() const throw(MismatchedTypeException)
+int CommandParameter::getInteger() const
 {
   return p_value.getInteger();
 }
 
 
 
-double CommandParameter::getDouble() const throw(MismatchedTypeException)
+double CommandParameter::getDouble() const
 {
   return p_value.getDouble();
 }
@@ -139,7 +139,7 @@ double CommandParameter::getDouble() const throw(MismatchedTypeException)
 
 
 
-string CommandParameter::getString() const throw(MismatchedTypeException)
+string CommandParameter::getString() const
 {
   return p_value.getString();
 }
@@ -147,7 +147,6 @@ string CommandParameter::getString() const throw(MismatchedTypeException)
 
 
 vector<int>* CommandParameter::getIntegerList() const 
-        throw(MismatchedTypeException)
 {
   return p_value.getIntegerList();
 }
@@ -156,7 +155,6 @@ vector<int>* CommandParameter::getIntegerList() const
 
 
 vector<string>* CommandParameter::getStringList() const 
-        throw(MismatchedTypeException)
 {
   return p_value.getStringList();
 }
@@ -164,14 +162,14 @@ vector<string>* CommandParameter::getStringList() const
 
 
 
-bool CommandParameter::getBoolean() const throw(MismatchedTypeException)
+bool CommandParameter::getBoolean() const
 {
   return p_value.getBoolean();
 }
 
 
 
-int CommandParameter::getDefaultInteger() const throw(MismatchedTypeException)
+int CommandParameter::getDefaultInteger() const
 {
   return p_default.getInteger();
 }
@@ -179,7 +177,7 @@ int CommandParameter::getDefaultInteger() const throw(MismatchedTypeException)
 
 
 
-double CommandParameter::getDefaultDouble() const throw(MismatchedTypeException)
+double CommandParameter::getDefaultDouble() const
 {
   return p_default.getDouble();
 }
@@ -187,7 +185,7 @@ double CommandParameter::getDefaultDouble() const throw(MismatchedTypeException)
 
 
 
-string CommandParameter::getDefaultString() const throw(MismatchedTypeException)
+string CommandParameter::getDefaultString() const
 {
   return p_default.getString();
 }
@@ -195,7 +193,6 @@ string CommandParameter::getDefaultString() const throw(MismatchedTypeException)
 
 
 vector<int>* CommandParameter::getDefaultIntegerList() const 
-        throw(MismatchedTypeException)
 {
   return p_default.getIntegerList();
 }
@@ -204,7 +201,6 @@ vector<int>* CommandParameter::getDefaultIntegerList() const
 
 
 vector<string>* CommandParameter::getDefaultStringList() const 
-        throw(MismatchedTypeException)
 {
   return p_default.getStringList();
 }
@@ -212,7 +208,7 @@ vector<string>* CommandParameter::getDefaultStringList() const
 
 
 
-bool CommandParameter::getDefaultBoolean() const throw(MismatchedTypeException)
+bool CommandParameter::getDefaultBoolean() const
 {
   return p_default.getBoolean();
 }
@@ -243,7 +239,6 @@ string CommandParameter::toString() const
  * Lists must be comma delimited with no spaces.
  */
 void CommandParameter::set(const string& value) 
-       throw(EcceException,MismatchedTypeException)
 {
    Any::TypeCode type = p_value.getTypeCode();
    if (type == Any::aInt) {

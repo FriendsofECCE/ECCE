@@ -46,7 +46,7 @@ ITaskModel& TaskApp::getModel() const
 }
 
 
-void TaskApp::setContext(const string& url) throw(EcceException)
+void TaskApp::setContext(const string& url)
 {
 }
 

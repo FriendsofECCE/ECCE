@@ -51,7 +51,7 @@ void SetAtomTypeCmd::init()
 
 
 
-bool SetAtomTypeCmd::execute() throw(EcceException)
+bool SetAtomTypeCmd::execute()
 {
   bool ret = false;
 

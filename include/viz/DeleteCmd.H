@@ -25,7 +25,7 @@ class DeleteCmd : public FragCloneCmd
       DeleteCmd(const string& name, Receiver * receiver);
       virtual ~DeleteCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       //virtual string getUndoLabel();
 
    protected:

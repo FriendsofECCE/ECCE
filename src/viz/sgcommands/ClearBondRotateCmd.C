@@ -23,7 +23,7 @@ void ClearBondRotateCmd::init()
 }
 
 
-bool ClearBondRotateCmd::execute() throw(EcceException)
+bool ClearBondRotateCmd::execute()
 {
   SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
 

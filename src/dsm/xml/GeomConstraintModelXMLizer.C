@@ -78,7 +78,6 @@ string GeomConstraintModelXMLizer::mimetype() const
  */
 void GeomConstraintModelXMLizer::deserialize(const string& data,
                        Serializable& object, EcceMap& properties)
-                       throw (ParseException)
 {
 
    // NOTE: For now at least, we aren't interested in any properties.
@@ -287,7 +286,6 @@ void GeomConstraintModelXMLizer::deserializeConstraints(
  */
 void GeomConstraintModelXMLizer::serialize(const Serializable& object,
                         string& data, EcceMap& properties)
-
 {
    data = "";
    const GeomConstraintModel *dobject = 

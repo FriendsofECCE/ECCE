@@ -75,7 +75,6 @@ string MetaPotentialModelXMLizer::mimetype() const
  */
 void MetaPotentialModelXMLizer::deserialize(const string& data,
                        Serializable& object, EcceMap& properties)
-                       throw (ParseException)
 {
 
    // NOTE: For now at least, we aren't interested in any properties.
@@ -190,7 +189,6 @@ void MetaPotentialModelXMLizer::deserializePotentials(
  */
 void MetaPotentialModelXMLizer::serialize(const Serializable& object,
                         string& data, EcceMap& properties)
-
 {
    data = "";
    const MetaPotentialModel *dobject = 

@@ -71,14 +71,14 @@ public :
 
   // Constructors
   CSocket(void) {}
-  CSocket(const csocket&) throw (CSocketError);
-  CSocket(const CSocket&) throw (CSocketError);
+  CSocket(const csocket&);
+  CSocket(const CSocket&);
 
   // Destructor
   virtual ~CSocket(void);
 
   // Assignment operator
-  CSocket& operator = (const CSocket&) throw (CSocketError);
+  CSocket& operator = (const CSocket&);
 
   // Type-cast to csocket *.
   operator const csocket * (void) const { return &sock_; }
@@ -95,7 +95,7 @@ public :
   // <seconds, microseconds> determines how long to wait
   virtual size_type flush(
     size_type seconds      = 0,
-    size_type microseconds = 0) throw (CSocketError);
+    size_type microseconds = 0);
 
   // Return the IP address of this socket.  Return "" if there is an error.
   virtual string_type IPAddress(void) const;
@@ -106,7 +106,7 @@ public :
   // <seconds, microseconds> determine how long to wait.
   virtual bool poll(
     size_type seconds      = 0,
-    size_type microseconds = 0) throw (CSocketError);
+    size_type microseconds = 0);
 
   // Return the socket port number.
   virtual port_type portNumber(void) const;
@@ -119,14 +119,14 @@ public :
   virtual size_type receive(
     void *    buff,
     size_type nbytes,
-    int       flags = 0) throw (CSocketError);
+    int       flags = 0);
  
   // Send a message on this socket and return the length of the message sent.
   // If no messages space is available at the socket to hold the message
   // to be transmitted, send() blocks until space is available.
-  virtual size_type send(const string_type&) throw (CSocketError);
+  virtual size_type send(const string_type&);
   virtual size_type send(const void * buff, size_type nbytes)
-    throw (CSocketError);
+;
 
 protected :
 
@@ -140,18 +140,18 @@ class CClientSocket : public CSocket
 public :
 
   // Constructors
-  CClientSocket(const csocket& s) throw (CSocketError) : CSocket(s) {}
+  CClientSocket(const csocket& s) : CSocket(s) {}
   CClientSocket(
     const string_type& host,
-    port_type          port) throw (CSocketError);
-  CClientSocket(const CClientSocket& other) throw (CSocketError)
+    port_type          port);
+  CClientSocket(const CClientSocket& other)
     : CSocket(other) {}
 
   // Destructor
   virtual ~CClientSocket(void) {}
 
   // Assignment operator
-  CClientSocket& operator = (const CClientSocket& other) throw (CSocketError)
+  CClientSocket& operator = (const CClientSocket& other)
   { CSocket::operator = (other); return *this; }
 };
 
@@ -163,22 +163,22 @@ public :
 
   // Constructors
   // NOTE: A port number of 0 selects an unsused socket address
-  CServerSocket(port_type = 0) throw (CSocketError);
-  CServerSocket(const csocket& s) throw (CSocketError) : CSocket(s) {}
-  CServerSocket(const CServerSocket& other) throw (CSocketError)
+  CServerSocket(port_type = 0);
+  CServerSocket(const csocket& s) : CSocket(s) {}
+  CServerSocket(const CServerSocket& other)
     : CSocket(other) {}
 
   // Destructor
   virtual ~CServerSocket(void) {}
 
   // Assignment operator
-  CServerSocket& operator = (const CServerSocket& other) throw (CSocketError)
+  CServerSocket& operator = (const CServerSocket& other)
   { CSocket::operator = (other); return *this; }
 
   // Wait for a connection to this server and return a new CSocket
   // instance accepted.  If there are no connection requests pending,
   // accept() blocks until one arrives.
-  virtual CSocket accept(void) const throw (CSocketError);
+  virtual CSocket accept(void) const;
 };
 
 // class: CFileTX **********************************************************
@@ -227,7 +227,7 @@ public :
     CSocket&     sock,
     void *       buffer,
     size_type    bufLen,
-    status_type& status) throw (CSocketError);
+    status_type& status);
 
   // Send the file <src> over <sock> as <dst> and return the number of
   // bytes sent.  Use the buffer specified by <buffer> and <bufLen> to
@@ -238,7 +238,7 @@ public :
     void *             buffer,
     size_type          bufLen,
     const string_type& src,
-    const string_type& dst = "") throw (CSocketError);
+    const string_type& dst = "");
 
   // Get/Set user data
   long userData(void) const { return tx_getUserData(this); }

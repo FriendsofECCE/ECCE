@@ -16,7 +16,7 @@ class GenBondsCmd : public FragCloneCmd
       GenBondsCmd(const string& name, Receiver * receiver);
       virtual ~GenBondsCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

@@ -916,7 +916,6 @@ bool ChemistryTask::load(ostream& data, EcceMap& props) const
  * method.  Most subclasses will want to override this method.
  */
 string ChemistryTask::import( const string& dir, const string& parseFileName) 
-   throw(EcceException)
 {
    string message;
 
@@ -1018,7 +1017,6 @@ string ChemistryTask::getParseScriptArgs() const
  * parameters are handled directly in the import method.
  */
 void   ChemistryTask::processImportParameters(const Preferences& params)
-  throw (IOException)
 {
    TaskJob::processImportParameters(params);
 }

@@ -13,7 +13,7 @@ class NewPlaneCmd : public FragCloneCmd
       NewPlaneCmd(const string& name, Receiver * receiver);
       ~NewPlaneCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       void init();

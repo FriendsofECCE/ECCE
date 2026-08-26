@@ -1609,7 +1609,6 @@ int TGBSConfig::num_functions
  TagCountMap tagCounts           // tells how many atoms of each element
                                  // are in the molecule
 ) 
-
 {
   return count(TGBSConfig::NumFunctions, tagCounts);
 }

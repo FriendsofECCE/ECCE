@@ -115,7 +115,7 @@ class EDSIFactory {
     static EcceURL* createResource(EDSI* interface, 
                                    const string& name, 
                                    ResourceType* resourceType) 
-                                   throw(InvalidException);
+;
 
     static EcceURL* createCalculation(EDSI* interface, 
                                   const string& name,

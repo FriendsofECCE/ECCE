@@ -65,13 +65,13 @@ class MdTask : virtual public PropertyTask
     bool getTaskFragmentSummary(FragmentSummary& fragSum);
     bool hasInputFragment();
 
-    string getSystemName() const throw(InvalidException, DavException);
+    string getSystemName() const;
     string getCalcName() const; 
     string getOriginalFragmentName() const;
     string getOutputFragmentName() const;
     string getInputFragmentName() const;
-    string getRestartName() const throw(InvalidException, DavException);
-    string getTopologyName() const throw(InvalidException, DavException);
+    string getRestartName() const;
+    string getTopologyName() const;
     string getMdOutputName() const;
 
     MdTask *getPdbProvider();
@@ -98,7 +98,7 @@ class MdTask : virtual public PropertyTask
     bool getFragmentSummary(FragmentSummary& fragSum, const EcceURL& url);
     bool getOriginalFragmentProperties(FragmentSummary& fragSum);
 
-    MdTask(const EcceURL& url) throw(InvalidException);
+    MdTask(const EcceURL& url);
     bool getFragment(Fragment& frag, const EcceURL& url);
 
   private:

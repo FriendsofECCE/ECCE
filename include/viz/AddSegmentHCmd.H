@@ -14,7 +14,7 @@ class AddSegmentHCmd : public FragCloneCmd
       AddSegmentHCmd(const string& name, Receiver * receiver);
       virtual ~AddSegmentHCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

@@ -41,7 +41,7 @@ void GenerateGhostsCmd::init()
 
 
 
-bool GenerateGhostsCmd::execute() throw(EcceException)
+bool GenerateGhostsCmd::execute()
 {
    bool ret = true;
 

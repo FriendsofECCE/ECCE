@@ -77,7 +77,6 @@ string TrajectoryReaderNWChem::getCurrentFileName()
 
 bool TrajectoryReaderNWChem::readStep(const long& step,
         const bool& readVelocities, const bool& readForces)
-        throw (IOException)
 {
    if (step >= getStepCount()) {
       // don't bother if the requested step is outside valid range
@@ -451,7 +450,7 @@ void TrajectoryReaderNWChem::processVectors(const vector<bool>& atoms)
 /**
  * Read the header section of an nwchem trajectory file.
  */
-void TrajectoryReaderNWChem::readHeader() throw (IOException)
+void TrajectoryReaderNWChem::readHeader()
 {
   if (p_isHeaderRead) {
     return;
@@ -834,7 +833,6 @@ void TrajectoryReaderNWChem::indexFiles()
 
 
 void TrajectoryReaderNWChem::changeStreamForStep(const long& step)
-        throw (IOException)
 {
   if (p_fileName != p_stepToFileName[step]) {
     p_fileName = p_stepToFileName[step];

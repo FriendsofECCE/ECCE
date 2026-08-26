@@ -47,7 +47,7 @@ void PBCEditLatticeCmd::init()
 
 
 
-bool PBCEditLatticeCmd::execute() throw(EcceException)
+bool PBCEditLatticeCmd::execute()
 {
    bool ret = true;
 

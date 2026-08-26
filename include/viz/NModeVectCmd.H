@@ -13,7 +13,7 @@ class NModeVectCmd : public PropCmd
       NModeVectCmd(const string& name, Receiver *, IPropCalculation *);
       ~NModeVectCmd();
       void init();
-      bool execute() throw(EcceException);
+      bool execute();
 
    protected:
 

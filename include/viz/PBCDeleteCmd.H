@@ -16,7 +16,7 @@ class PBCDeleteCmd : public PBCCmd
       PBCDeleteCmd(const string& name, Receiver * receiver, SGFragment *base);
       ~PBCDeleteCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual bool shouldAutoReplicate() const;
 
    protected:

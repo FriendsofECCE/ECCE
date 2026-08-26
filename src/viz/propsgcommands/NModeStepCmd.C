@@ -38,7 +38,7 @@ void NModeStepCmd::init()
 }
 
 
-bool NModeStepCmd::execute() throw(EcceException)
+bool NModeStepCmd::execute()
 {
    bool ret = false;
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

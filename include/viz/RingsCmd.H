@@ -16,7 +16,7 @@ class RingsCmd : public Command
       RingsCmd(const string& name, Receiver * receiver);
       virtual ~RingsCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
       virtual bool isUndoable() const;
 

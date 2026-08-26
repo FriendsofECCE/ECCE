@@ -17,7 +17,7 @@ class SetEnvIndexCmd : public Command
       SetEnvIndexCmd(const string& name, Receiver * receiver, const string& sender="");
       ~SetEnvIndexCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

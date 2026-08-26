@@ -29,7 +29,7 @@ class AddVectorCmd : public PropCmd
 
       // VCommand methods (probably won't need to override these)
       virtual void init();
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
       // Virtual methods with default behavior that can be overridden
       virtual void getCenters(vector<double*>& centers);

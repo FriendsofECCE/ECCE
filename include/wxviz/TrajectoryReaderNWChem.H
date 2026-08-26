@@ -32,16 +32,16 @@ class TrajectoryReaderNWChem : public TrajectoryReader
     virtual bool readStep(const long& step,
             const bool& readVelocities=false,
             const bool& readForces=false)
-            throw (IOException);
+;
 
     virtual void setFileNames(const vector<string>& fileNames,
                               const bool& useSolvent=false);
     virtual void processVectors(const vector<bool>& atoms);
 
   protected:
-    void readHeader() throw (IOException);
+    void readHeader();
     void indexFiles();
-    void changeStreamForStep(const long& step) throw (IOException);
+    void changeStreamForStep(const long& step);
 
     // Molecule configuration data. This needs to be stored during
     // the trajectory to manage parsing and display of the trajectory

@@ -12,7 +12,7 @@ public:
   BondRotateCmd(const string& name, Receiver * receiver);
   ~BondRotateCmd();
   void init();
-  virtual bool execute() throw(EcceException);
+  virtual bool execute();
   virtual void undo();
   virtual bool isUndoable() const;
 

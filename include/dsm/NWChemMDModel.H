@@ -43,8 +43,8 @@ class NWChemMDModel : public ITaskModel
       virtual ~NWChemMDModel();
 
       /* Task Model virtuals */
-      virtual void generateInputFile() throw(InvalidException);
-      virtual void run() throw(InvalidException);
+      virtual void generateInputFile();
+      virtual void run();
 
       /* Set pointers for models */
       void setInteractionModel(InteractionModel *model);

@@ -147,7 +147,6 @@ vector<QMMMParams*> *QMMMModel::getQMMMTerms(string type) const
  * @throw InvalidException if any rule is violated. 
  */
 void QMMMModel::addQMMMTerm(QMMMParams *term) 
-           throw(InvalidException)
 {
   int idx, jdx;
   bool found = false;

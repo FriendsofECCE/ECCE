@@ -23,7 +23,7 @@ class PropCmd : public Command
       virtual ~PropCmd() { p_calc = 0;}
 
 
-      virtual bool execute() throw(EcceException) {return false;}
+      virtual bool execute() {return false;}
       virtual void undo() {;}
       virtual bool isUndoable() { return false;}
       IPropCalculation *getCalculation() { return p_calc;}

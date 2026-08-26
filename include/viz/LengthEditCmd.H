@@ -19,7 +19,7 @@ class LengthEditCmd : public FragCloneCmd
       LengthEditCmd(const string& name, Receiver * receiver);
       virtual ~LengthEditCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

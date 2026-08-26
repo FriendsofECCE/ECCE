@@ -17,7 +17,7 @@ class SetChargeGroupCmd : public Command
       SetChargeGroupCmd(const string& name, Receiver * receiver, const string& sender="");
       ~SetChargeGroupCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

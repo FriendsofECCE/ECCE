@@ -149,7 +149,6 @@ const FFDesc& FFModel::getDesc()
 //////////////////////////////////////////////////////////////////////////////
 void FFModel::getTypeNameComponents( int catID, const string& typeName, 
                                      vector<string>& components) const
-                                                         throw(std::range_error)
 {
    int numAtoms = 0;
    if ( isValidCategoryIndex( catID))  {
@@ -363,7 +362,6 @@ void FFModel::getSourceNames( vector<string>& names) const  {
 //
 ////////////////////////////////////////////////////////////////////////////////
 const FFCategoryDesc& FFModel::getCatDesc( int catIdx) const 
-                                                        throw(std::range_error)
 {
    if ( catIdx < 0 || catIdx >= p_ffCatNames.size())
       throw std::range_error("Illegal range in FFModel::getCatDesc()");
@@ -385,7 +383,7 @@ const FFCategoryDesc& FFModel::getCatDesc( int catIdx) const
 // Return: none
 //
 ////////////////////////////////////////////////////////////////////////////////
-void FFModel::initializeFFCategories() throw (std::range_error) {
+void FFModel::initializeFFCategories() {
 
    p_ffCatNames.clear();
    p_ffCategories.clear();
@@ -476,7 +474,6 @@ void FFModel::getFFItems( int catIdx, vector<int> srcIDs,
 // Throws: range_error exception iff catIdx is invalid
 ////////////////////////////////////////////////////////////////////////////////
 const FFItem* FFModel::getFFItem( int catIdx, int typeIdx, int idx)  const  
-                                                        throw(std::range_error)
 {
    const FFItem* ffitem = NULL;
 
@@ -596,7 +593,6 @@ bool FFModel::removeFFItem( int catID, int idx, const string& typeName)
 // XXX synchronize
 ////////////////////////////////////////////////////////////////////////////////
 void FFModel::load( const string& ffName, vector<string>& sources) 
-                                           throw(IOException)
 {
    EE_ASSERT( !ffName.empty(), EE_FATAL, "force field name is null");
 

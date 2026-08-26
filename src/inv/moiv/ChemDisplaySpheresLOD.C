@@ -1025,7 +1025,6 @@ void ChemDisplay::LODgNormalSphereRICI(const SbBool doHydrogens,
 	const float radScale, const float *atomRadii,
 	const SbColor *atomColors,
 	const ChemBaseData *chemData, const MFVec2i &theAtomIndex)
-
 {
 	computeLODgSphereRI(doHydrogens,radScale,atomRadii,chemData,theAtomIndex);
 	renderLODgNormalSphereCI(atomColors,chemData);
@@ -1097,7 +1096,6 @@ void ChemDisplay::LODgNormalSphereRICA(const SbBool doHydrogens,
 	const float radScale, const float *atomRadii,
 	const SbColor *atomColors,
 	const ChemBaseData *chemData, const MFVec2i &theAtomIndex)
-
 {
 	computeLODgSphereRI(doHydrogens,radScale,atomRadii,chemData,theAtomIndex);
 	renderLODgNormalSphereCA(atomColors,chemData);
@@ -1166,7 +1164,6 @@ void ChemDisplay::LODgNormalSphereRICO(const SbBool doHydrogens,
 	const float radScale, const float *atomRadii,
 	const SbColor *atomColors,
 	const ChemBaseData *chemData, const MFVec2i &theAtomIndex)
-
 {
 	computeLODgSphereRI(doHydrogens,radScale,atomRadii,chemData,theAtomIndex);
 	renderLODgNormalSphereCO(atomColors,chemData);
@@ -1232,7 +1229,6 @@ void ChemDisplay::LODgNormalSphereRACI(const SbBool doHydrogens,
 	const float radScale, const float *atomRadii,
 	const SbColor *atomColors,
 	const ChemBaseData *chemData, const MFVec2i &theAtomIndex)
-
 {
 	computeLODgSphereRA(doHydrogens,radScale,atomRadii,chemData,theAtomIndex);
 	renderLODgNormalSphereCI(atomColors,chemData);
@@ -1302,7 +1298,6 @@ void ChemDisplay::LODgNormalSphereRACA(const SbBool doHydrogens,
 	const float radScale, const float *atomRadii,
 	const SbColor *atomColors,
 	const ChemBaseData *chemData, const MFVec2i &theAtomIndex)
-
 {
 	computeLODgSphereRA(doHydrogens,radScale,atomRadii,chemData,theAtomIndex);
 	renderLODgNormalSphereCA(atomColors,chemData);
@@ -1371,7 +1366,6 @@ void ChemDisplay::LODgNormalSphereRACO(const SbBool doHydrogens,
 	const float radScale, const float *atomRadii,
 	const SbColor *atomColors,
 	const ChemBaseData *chemData, const MFVec2i &theAtomIndex)
-
 {
 	computeLODgSphereRA(doHydrogens,radScale,atomRadii,chemData,theAtomIndex);
 	renderLODgNormalSphereCO(atomColors,chemData);
@@ -1438,7 +1432,6 @@ void ChemDisplay::LODgNormalSphereROCI(const SbBool doHydrogens,
 	const float radScale, const float *atomRadii,
 	const SbColor *atomColors,
 	const ChemBaseData *chemData, const MFVec2i &theAtomIndex)
-
 {
 	computeLODgSphereRO(doHydrogens,radScale,atomRadii,chemData,theAtomIndex);
 	renderLODgNormalSphereCI(atomColors,chemData);
@@ -1508,7 +1501,6 @@ void ChemDisplay::LODgNormalSphereROCA(const SbBool doHydrogens,
 	const float radScale, const float *atomRadii,
 	const SbColor *atomColors,
 	const ChemBaseData *chemData, const MFVec2i &theAtomIndex)
-
 {
 	computeLODgSphereRO(doHydrogens,radScale,atomRadii,chemData,theAtomIndex);
 	renderLODgNormalSphereCA(atomColors,chemData);
@@ -1576,7 +1568,6 @@ void ChemDisplay::LODgNormalSphereROCO(const SbBool doHydrogens,
 	const float radScale, const float *atomRadii,
 	const SbColor *atomColors,
 	const ChemBaseData *chemData, const MFVec2i &theAtomIndex)
-
 {
 	computeLODgSphereRO(doHydrogens,radScale,atomRadii,chemData,theAtomIndex);
 	renderLODgNormalSphereCO(atomColors,chemData);

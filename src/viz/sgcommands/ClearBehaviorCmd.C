@@ -48,7 +48,7 @@ void ClearBehaviorCmd::init()
 
 
 
-bool ClearBehaviorCmd::execute() throw(EcceException)
+bool ClearBehaviorCmd::execute()
 {
   bool ret = false;
 

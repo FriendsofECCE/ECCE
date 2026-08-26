@@ -22,7 +22,7 @@ class BadDataException : public EcceException
       BadDataException(const BadDataException& rhs);
 
 
-      virtual ~BadDataException() throw ();
+      virtual ~BadDataException() noexcept;
 
    protected:
 

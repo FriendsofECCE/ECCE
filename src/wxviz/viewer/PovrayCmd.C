@@ -91,7 +91,7 @@ void PovrayCmd::init()
    addParameter(new CommandParameter("isosurfaceStyle","Glassy"));
 }
 
-bool PovrayCmd::execute() throw(EcceException)
+bool PovrayCmd::execute()
 {
    setErrorMessage("");
    SGViewer *viewer = dynamic_cast<SGViewer*>(getReceiver());

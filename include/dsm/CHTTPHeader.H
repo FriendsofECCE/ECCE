@@ -94,7 +94,7 @@ public :
 
   // Constructors
   CHTTPHeader(void) : values_() {}
-  CHTTPHeader(const string_type&) throw(CHTTPHeader::ParseError);
+  CHTTPHeader(const string_type&);
   CHTTPHeader(const CHTTPHeader& other) : values_(other.values_) {}
 
   // Destructor

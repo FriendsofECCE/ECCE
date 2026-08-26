@@ -19,7 +19,7 @@ class RemoveGhostsCmd : public FragCloneCmd
       RemoveGhostsCmd(const string& name, Receiver * receiver);
       virtual ~RemoveGhostsCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

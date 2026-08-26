@@ -44,7 +44,7 @@ void TranslateCmd::init()
 
 
 
-bool TranslateCmd::execute() throw(EcceException)
+bool TranslateCmd::execute()
 {
    bool ret = false;
 

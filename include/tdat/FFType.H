@@ -40,13 +40,13 @@ class FFType {
    virtual ~FFType(void);
 
          int     getItemCount( void) const;
-         int     getItemID( int index) const throw(IndexOutOfRangeException);
+         int     getItemID( int index) const;
    const string& getName( void) const;
          void    print( void) const;
-         int     getLastItemID( void) const throw (InvalidException);
+         int     getLastItemID( void) const;
 
          void    addItemID( int ffitemID);
-         void    removeItemID( int index)  throw(IndexOutOfRangeException);
+         void    removeItemID( int index);
 
    static const int INVALID_ID;
 

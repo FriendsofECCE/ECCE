@@ -31,7 +31,7 @@ DefaultDavAuth::~DefaultDavAuth()
 // Get auth from cache and that is all.  If retry count is >1 return false
 // Useful for things like jobstore.  So no need to throw exception or
 // perhaps use execption to implement this.
-bool DefaultDavAuth::getAuthorization(AuthEvent& event) throw (RetryException)
+bool DefaultDavAuth::getAuthorization(AuthEvent& event)
 {
    bool ret = false;
 

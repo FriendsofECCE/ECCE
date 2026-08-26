@@ -45,7 +45,7 @@ void DepthCueCmd::init()
 
 
 
-bool DepthCueCmd::execute() throw(EcceException)
+bool DepthCueCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

@@ -65,7 +65,6 @@ UnitFactory& UnitFactory::getInstance()
 }
 
 UnitConverter& UnitFactory::getUnitConverter(string units)
-  throw (InvalidException)
 {
    ConverterIterator it = p_converters.find(units);
 
@@ -89,7 +88,6 @@ vector<string> UnitFactory::getConverterNames()
 }
 
 UnitFamily& UnitFactory::getUnitFamily(const string& family) 
-             throw(InvalidException)
 {
    FamilyIterator it = p_families.find(family);
 
@@ -102,7 +100,6 @@ UnitFamily& UnitFactory::getUnitFamily(const string& family)
 
 
 UnitFamily& UnitFactory::getFamilyByFullName(const string & fullName)
-  throw(InvalidException)
 {
   FamilyIterator it = p_families.begin();
   while ( it != p_families.end() ) {

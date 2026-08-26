@@ -92,13 +92,13 @@ PolyrateModel::~PolyrateModel()
 {
 }
 
-void PolyrateModel::generateInputFile() throw(InvalidException)
+void PolyrateModel::generateInputFile()
 {
    throw NotImplementedException("generateInputFile not implemented",WHERE);
 }
 
 
-void PolyrateModel::run() throw(InvalidException)
+void PolyrateModel::run()
 {
    throw NotImplementedException("run not implemented",WHERE);
 }

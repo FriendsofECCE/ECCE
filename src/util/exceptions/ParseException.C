@@ -37,7 +37,7 @@ ParseException::ParseException(const ParseException& rhs)
 
 
 
-ParseException::~ParseException() throw ()
+ParseException::~ParseException() noexcept
 {
 }
 
@@ -47,7 +47,7 @@ ParseException::Severity ParseException::severity() const
    return p_severity;
 }
 
-EcceException *ParseException::clone() const throw()
+EcceException *ParseException::clone() const noexcept
 {
    return new ParseException(*this);
 }

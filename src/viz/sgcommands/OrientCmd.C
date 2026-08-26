@@ -43,7 +43,7 @@ void OrientCmd::init()
 
 // @todo chain list
 // @todo radius
-bool OrientCmd::execute() throw(EcceException)
+bool OrientCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

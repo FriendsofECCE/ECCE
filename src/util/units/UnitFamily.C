@@ -60,7 +60,7 @@ UnitFamily& UnitFamily::operator=(const UnitFamily& rhs)
  *
  * @throw InvalidException if unitclass is not defined for this family.
  */
-string UnitFamily::get(const string& unitclass) const throw(InvalidException)
+string UnitFamily::get(const string& unitclass) const
 {
    string ret;
 #if 000

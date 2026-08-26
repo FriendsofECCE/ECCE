@@ -42,7 +42,7 @@ void ClearMeasuresCmd::init()
 
 
 
-bool ClearMeasuresCmd::execute() throw(EcceException)
+bool ClearMeasuresCmd::execute()
 {
    bool ret = false;
 

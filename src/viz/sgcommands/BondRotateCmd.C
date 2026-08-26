@@ -42,7 +42,7 @@ void BondRotateCmd::init()
 }
 
 
-bool BondRotateCmd::execute() throw(EcceException)
+bool BondRotateCmd::execute()
 {
   bool ret = false;
 

@@ -87,7 +87,7 @@ void NWChemDesc::serialize(const Serializable &sModel, string &output,
 //    Temporary implementation of other methods in Serializer
 ////////////////////////////////////////////////////////////////////////////////
 void NWChemDesc::deserialize(const string &input, Serializable &model,
-  EcceMap &map) throw(ParseException)
+  EcceMap &map)
 {}
 string NWChemDesc::mimetype() const
 {
@@ -953,7 +953,6 @@ vector<bool> NWChemDesc::findInversions(TAtm *atm, vector<TBond*> list,
 //    Load parameters from the source files listed in sources
 ////////////////////////////////////////////////////////////////////////////////
 void NWChemDesc::loadCategories(FFModel *model, vector<string>& sources)
-                 throw(IOException)
 {
 
    FFSources ffSources;

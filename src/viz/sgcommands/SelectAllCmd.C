@@ -39,7 +39,7 @@ void SelectAllCmd::init()
 
 
 
-bool SelectAllCmd::execute() throw(EcceException)
+bool SelectAllCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

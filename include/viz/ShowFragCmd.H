@@ -13,7 +13,7 @@ class ShowFragCmd : public PropCmd
       ShowFragCmd(const string& name, Receiver *, IPropCalculation *);
       ~ShowFragCmd();
       void init();
-      bool execute() throw(EcceException);
+      bool execute();
 
    protected:
 

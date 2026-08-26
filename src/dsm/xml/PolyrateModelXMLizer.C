@@ -59,7 +59,6 @@ string PolyrateModelXMLizer::mimetype() const
 
 void PolyrateModelXMLizer::deserialize(const string& data,
                        Serializable& object, EcceMap& properties)
-                       throw (ParseException)
 {
    // NOTE: For now at least, we aren't interested in any properties.
    PolyrateModel *dobject = dynamic_cast<PolyrateModel*>(&object);
@@ -247,7 +246,6 @@ void PolyrateModelXMLizer::deserialize(const string& data,
 
 void PolyrateModelXMLizer::serialize(const Serializable& object,
                         string& data, EcceMap& properties)
-
 {
    data = "";
 

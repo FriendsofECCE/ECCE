@@ -106,7 +106,7 @@ class ewxNumericValidator : public ewxGenericValidator
     void check(const wxString& val, bool isHard,
                bool noMin, bool noMax,
                bool minOpen, bool maxOpen,
-               double min, double max) throw (InvalidException);
+               double min, double max);
 
     void initHardRange();
     void initSoftRange();

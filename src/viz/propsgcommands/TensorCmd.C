@@ -30,7 +30,7 @@ TensorCmd::~TensorCmd()
  * Override superclass just to handle the case where no atoms are selected.
  * In this case, we clear the scene.  Otherwise, invoke super's execute.
  */
-bool TensorCmd::execute() throw(EcceException)
+bool TensorCmd::execute()
 {
    bool ret = true;
 

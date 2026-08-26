@@ -28,7 +28,7 @@ public:
 
     virtual void setCommand(const string& cmd);
     virtual string getCommand();
-    virtual void execute() throw(SystemCommandException);
+    virtual void execute();
 
 
 protected:

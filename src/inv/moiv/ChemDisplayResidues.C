@@ -6853,7 +6853,6 @@ printf ("In ChemDisplay::pickSchematics\n" );
 ////////////////////////////////////////////////////////////////////////
 void ChemDisplay::bBoxResiduesAsCylinders(SoState *state, ChemDisplayParam *cdp,
 																					int32_t &count, SbBox3f &box, SbVec3f &center)
-
 {
 	float rad;
 	SbVec3f coords1, coords2,tmpVec;
@@ -6926,7 +6925,6 @@ void ChemDisplay::bBoxResiduesAsSchematic(SoState *state, ChemDisplayParam *cdp,
 
 void ChemDisplay::bBoxResiduesNone(SoState *state, ChemDisplayParam *cdp,
 																	 int32_t &count, SbBox3f &box,SbVec3f &center)
-
 {
 	// TO DO: Any other idea?
 	bBoxResiduesAsRibbons(state, cdp, count, box, center);

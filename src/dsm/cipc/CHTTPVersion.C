@@ -15,7 +15,7 @@
 
 // Constructor: CHTTPVersion ***********************************************
 
-CHTTPVersion::CHTTPVersion(const string_type& v) throw(CHTTPVersion::ParseError)
+CHTTPVersion::CHTTPVersion(const string_type& v)
   : major_(1), minor_(1)
 // Pre: Assigned(v)
 // Modifies:

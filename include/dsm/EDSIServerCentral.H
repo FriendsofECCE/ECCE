@@ -42,8 +42,8 @@ class EDSIServerCentral
     EDSIServerCentral();
     virtual ~EDSIServerCentral();
 
-    bool checkServer() throw (RetryException,EcceException);
-    bool checkServerSetup() throw (RetryException,EcceException);
+    bool checkServer();
+    bool checkServerSetup();
     bool checkDefaultGBSL();
 
          /**

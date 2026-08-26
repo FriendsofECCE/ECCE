@@ -16,7 +16,7 @@ class OrientCmd : public FragCloneCmd
       OrientCmd(const string& name, Receiver * receiver);
       virtual ~OrientCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

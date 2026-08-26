@@ -17,7 +17,7 @@ class SetBehaviorCmd : public FragCloneCmd
       SetBehaviorCmd(const string& name, Receiver * receiver, const string& sender="");
       ~SetBehaviorCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
 

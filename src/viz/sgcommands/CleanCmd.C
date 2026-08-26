@@ -54,7 +54,7 @@ void CleanCmd::init()
 
 
 
-bool CleanCmd::execute() throw(EcceException)
+bool CleanCmd::execute()
 {
    bool ret = false;
 

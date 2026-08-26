@@ -15,7 +15,7 @@ class SliceCmd : public FragCloneCmd
       SliceCmd(const string& name, Receiver * receiver);
       ~SliceCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

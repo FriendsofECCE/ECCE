@@ -53,7 +53,7 @@ class FFCategoryDesc  {
             int                       getNumAtomRules() const;
             int                       getMaxAtomLength() const;
             vector< vector<bool> >    getAtomRules() const;
-            int                       getParamIDByLabel( string) throw (InvalidException);
+            int                       getParamIDByLabel( string);
             void                      print();
 
       //-- Modifiers -----------------------------------------------------------

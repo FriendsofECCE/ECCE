@@ -20,7 +20,7 @@ class IOException : public EcceException
       IOException(const char *message, const char *file, int line);
       IOException(const IOException& rhs);
 
-      virtual ~IOException() throw ();
+      virtual ~IOException() noexcept;
 
    protected:
 

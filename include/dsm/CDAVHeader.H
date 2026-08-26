@@ -35,7 +35,7 @@ public :
 
   // Constructors
   CDAVHeader(void) : parent() {}
-  CDAVHeader(const string_type& s) throw(ParseError) : parent(s) {}
+  CDAVHeader(const string_type& s) : parent(s) {}
   CDAVHeader(const CDAVHeader& other) : parent(other) {}
 
   // Destructor

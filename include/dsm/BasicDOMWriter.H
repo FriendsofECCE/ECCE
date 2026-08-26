@@ -23,7 +23,7 @@ class BasicDOMWriter
   public:
     static string XMLDocumentDeclaration();
     static void write(const DOMNode& dn, ostream& os, bool escaped,
-                      bool prettyPrint=false) throw (EcceException);
+                      bool prettyPrint=false);
 
 
 };

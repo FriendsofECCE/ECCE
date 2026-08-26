@@ -29,7 +29,7 @@ class CleanSymmetryCmd : public FragCloneCmd
       CleanSymmetryCmd(const string& name, Receiver * receiver);
       virtual ~CleanSymmetryCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

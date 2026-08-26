@@ -45,7 +45,7 @@ void PBCDeleteCmd::init()
  * the sqare unit lattice.
  * Someday maybe we'll plug in an nwchem module to figure out a good one.
  */
-bool PBCDeleteCmd::execute() throw(EcceException)
+bool PBCDeleteCmd::execute()
 {
    bool ret = false;
 

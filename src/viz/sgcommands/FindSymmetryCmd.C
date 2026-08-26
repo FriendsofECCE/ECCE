@@ -43,7 +43,7 @@ void FindSymmetryCmd::init()
 
 
 
-bool FindSymmetryCmd::execute() throw(EcceException)
+bool FindSymmetryCmd::execute()
 {
 
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

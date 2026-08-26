@@ -158,7 +158,6 @@ vector<MetaPotential*> *MetaPotentialModel::get3SitePotentials() const
  * @throw InvalidException if any rule is violated. 
  */
 void MetaPotentialModel::addPotential(MetaPotential *mpot) 
-           throw(InvalidException)
 {
    p_mpotential.push_back(mpot);
 }
@@ -203,7 +202,6 @@ void MetaPotentialModel::categorize(int& nFixedAtoms,
  * @return true if duplicates were discarded
  */
 bool MetaPotentialModel::addPotential(const vector<int>& atoms)
-           throw(InvalidException)
 {
    bool ret = false;
    if (atoms.size() < 2 || atoms.size() > 3) {

@@ -51,7 +51,7 @@ void SetChargeGroupCmd::init()
 
 
 
-bool SetChargeGroupCmd::execute() throw(EcceException)
+bool SetChargeGroupCmd::execute()
 {
   bool ret = false;
 

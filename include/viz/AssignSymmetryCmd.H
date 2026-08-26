@@ -20,7 +20,7 @@ class AssignSymmetryCmd : public Command
       AssignSymmetryCmd(const string& name, Receiver * receiver);
       virtual ~AssignSymmetryCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

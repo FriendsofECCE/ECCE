@@ -35,7 +35,6 @@ CompressibilityConverter::~CompressibilityConverter()
  * notation for small values of the compressibility.
  */
 string CompressibilityConverter::convertTo(const string& value, const string& toUnits)
-   throw (InvalidException)
 {
    string ret = value;
    if (!checkString(toUnits)) {
@@ -57,7 +56,6 @@ string CompressibilityConverter::convertTo(const string& value, const string& to
 
 
 double CompressibilityConverter::convertTo(double value, const string& toUnits)
-   throw (InvalidException)
 {
    double ret = value;
    if (!checkString(toUnits)) {

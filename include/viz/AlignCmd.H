@@ -10,7 +10,7 @@ class AlignCmd : public Command
       AlignCmd(const string& name, Receiver * receiver);
       ~AlignCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

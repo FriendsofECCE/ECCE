@@ -19,7 +19,7 @@ class TorsionEditCmd : public FragCloneCmd
       TorsionEditCmd(const string& name, Receiver * receiver);
       virtual ~TorsionEditCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

@@ -15,7 +15,7 @@ class CleanCmd : public FragCloneCmd
       CleanCmd(const string& name, Receiver * receiver, ProgressMonitor *mon=0);
       ~CleanCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

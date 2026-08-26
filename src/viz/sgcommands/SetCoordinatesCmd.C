@@ -53,7 +53,7 @@ void SetCoordinatesCmd::init()
 
 
 
-bool SetCoordinatesCmd::execute() throw(EcceException)
+bool SetCoordinatesCmd::execute()
 {
   bool ret = false;
 

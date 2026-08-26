@@ -56,7 +56,7 @@ class FFModel : public Subject, public Serializable
       vector< string>     p_ffCatNames;
 
       bool isValidCategoryIndex( int) const;
-      void initializeFFCategories() throw(std::range_error);
+      void initializeFFCategories();
       void clear( void);
 
    /*=========================================================================*/
@@ -73,7 +73,7 @@ class FFModel : public Subject, public Serializable
       ~FFModel(void);
 
       // Modifiers
-      void load( const string&, vector<string>&) throw(IOException);
+      void load( const string&, vector<string>&);
       void addNewFFItem( int, const string&, vector<string>&, string&);
       bool removeFFItem( int, int, const string&);
       int  getNewSourceID( void);
@@ -97,7 +97,7 @@ class FFModel : public Subject, public Serializable
       string       getSourceName( int, int, int) const;
       void         getSourceNames( vector<string>&) const;
       void         getTypeNameComponents( int, const string&, 
-                                vector<string>&) const throw(std::range_error);
+                                vector<string>&) const;
       string       mapTypeIDToName( int, int);
       string       mapTypeIDToName( int, int, int*);
       int          mapTypeNameToID( int, const string&) const;
@@ -105,13 +105,13 @@ class FFModel : public Subject, public Serializable
                                                         vector<FFItem*>&) const;
       int          getCategoryID( string);
       FFCategory*  getCategory(int);
-const FFItem*      getFFItem( int, int, int) const throw(std::range_error);
+const FFItem*      getFFItem( int, int, int) const;
       vector<int>  selectedSources() const;
 const FFDesc& getDesc( void);
       int numElectrostaticStrings(void);   // needed?
       int numRelativeStrings(void);        // needed?
       int numParametersStrings(void);      // needed?
-const FFCategoryDesc& getCatDesc( int) const throw(std::range_error);
+const FFCategoryDesc& getCatDesc( int) const;
 
 
       enum ffNameStatus { VALID_TYPENAME,

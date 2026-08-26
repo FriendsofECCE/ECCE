@@ -22,7 +22,7 @@ class MismatchedTypeException : public EcceException
       MismatchedTypeException(const char *message, const char *file, int line);
       MismatchedTypeException(const MismatchedTypeException& rhs);
 
-      virtual ~MismatchedTypeException() throw ();
+      virtual ~MismatchedTypeException() noexcept;
 
    protected:
 

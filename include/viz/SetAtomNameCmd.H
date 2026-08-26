@@ -17,7 +17,7 @@ class SetAtomNameCmd : public Command
       SetAtomNameCmd(const string& name, Receiver * receiver, const string& sender="");
       ~SetAtomNameCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

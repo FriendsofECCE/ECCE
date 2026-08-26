@@ -17,7 +17,7 @@ class ClearBehaviorCmd : public FragCloneCmd
       ClearBehaviorCmd(const string& name, Receiver * receiver, const string& sender="");
       ~ClearBehaviorCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
 

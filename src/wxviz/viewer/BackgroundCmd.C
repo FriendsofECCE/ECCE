@@ -22,7 +22,7 @@ void BackgroundCmd::init()
 }
 
 
-bool BackgroundCmd::execute() throw(EcceException)
+bool BackgroundCmd::execute()
 {
   SGViewer *viewer = dynamic_cast<SGViewer*>(getReceiver());
 

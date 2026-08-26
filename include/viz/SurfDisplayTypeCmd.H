@@ -13,7 +13,7 @@ class SurfDisplayTypeCmd : public PropCmd
     SurfDisplayTypeCmd(const string& name, Receiver *, IPropCalculation *);
     ~SurfDisplayTypeCmd();
     void init();
-    bool execute() throw(EcceException);
+    bool execute();
 
   protected:
 

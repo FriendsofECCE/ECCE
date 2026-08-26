@@ -41,7 +41,7 @@ void GenBondsCmd::init()
 
 
 
-bool GenBondsCmd::execute() throw(EcceException)
+bool GenBondsCmd::execute()
 {
    bool ret = false;
 

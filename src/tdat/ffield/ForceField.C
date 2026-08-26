@@ -457,7 +457,7 @@ void ForceField::optimize(int  maxSteps,
     double  nonBondCutoff,
     double  lineSearchRange,
     int  maxLineSteps,
-    double  lineTol ) throw (CancelException)
+    double  lineTol )
 {
 
   // convert from Hartree/Bohr

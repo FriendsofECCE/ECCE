@@ -23,7 +23,7 @@ class BadValueException : public EcceException
       BadValueException(const BadValueException& rhs);
 
 
-      virtual ~BadValueException() throw ();
+      virtual ~BadValueException() noexcept;
 
    protected:
 

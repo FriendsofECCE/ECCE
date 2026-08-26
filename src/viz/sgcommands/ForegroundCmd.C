@@ -36,7 +36,7 @@ void ForegroundCmd::init()
 }
 
 
-bool ForegroundCmd::execute() throw(EcceException)
+bool ForegroundCmd::execute()
 {
   SGContainer * sg = dynamic_cast<SGContainer*>(getReceiver());
 

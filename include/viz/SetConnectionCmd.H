@@ -17,7 +17,7 @@ class SetConnectionCmd : public Command
       SetConnectionCmd(const string& name, Receiver * receiver, const string& sender="");
       ~SetConnectionCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

@@ -17,7 +17,7 @@ public:
   virtual ~CmdLineAuthListener();
 
    // AuthEvent virtuals
-   bool getAuthorization(AuthEvent& event) throw (RetryException);
+   bool getAuthorization(AuthEvent& event);
    void authorizationAccepted(const AuthEvent& event);
 
 protected:

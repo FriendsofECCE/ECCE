@@ -54,7 +54,7 @@ void PBCReplicateCmd::init()
 
 
 
-bool PBCReplicateCmd::execute() throw(EcceException)
+bool PBCReplicateCmd::execute()
 {
    bool ret = false;  // effectively not undoable
 

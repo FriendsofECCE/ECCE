@@ -29,7 +29,7 @@ class FragCloneCmd : public Command
       virtual void clearUndoFragment();
       virtual void restoreRedoState(SGFragment *frag);
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

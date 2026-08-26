@@ -17,7 +17,7 @@ class SelectBondDisCmd : public Command
       SelectBondDisCmd(const string& name, Receiver * receiver, const string& sender="");
       virtual ~SelectBondDisCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

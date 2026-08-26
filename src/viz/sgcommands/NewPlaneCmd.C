@@ -59,7 +59,7 @@ void NewPlaneCmd::init()
 
 
 
-bool NewPlaneCmd::execute() throw(EcceException)
+bool NewPlaneCmd::execute()
 {
    bool ret = false;
 

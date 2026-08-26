@@ -304,7 +304,7 @@ Any::TypeCode Any::getTypeCodeFromString(const string& stype)
  * @throw MismatchedTypeException if the value is not an integer.
  * @todo maybe do type conversion for double/bool?
  */
-int Any::getInteger() const throw(MismatchedTypeException)
+int Any::getInteger() const
 {
    int value = 0;
    if (p_type == aInt) {
@@ -323,7 +323,7 @@ int Any::getInteger() const throw(MismatchedTypeException)
  * @throw MismatchedTypeException if the value is not a double.
  * @todo maybe do type conversion for double?
  */
-double Any::getDouble() const throw(MismatchedTypeException)
+double Any::getDouble() const
 {
    double value = 0.;
    if (p_type == aDouble) {
@@ -341,7 +341,7 @@ double Any::getDouble() const throw(MismatchedTypeException)
  * Get the value as a bool.
  * @throw MismatchedTypeException if the value is not a bool.
  */
-bool Any::getBoolean() const throw(MismatchedTypeException)
+bool Any::getBoolean() const
 {
    bool value = false;
    if (p_type == aBool) {
@@ -359,7 +359,7 @@ bool Any::getBoolean() const throw(MismatchedTypeException)
  * Get the value as a string.
  * @throw MismatchedTypeException if the value is not a string.
  */
-string Any::getString() const throw(MismatchedTypeException)
+string Any::getString() const
 {
    string value;
    if (p_type == aString) {
@@ -378,7 +378,7 @@ string Any::getString() const throw(MismatchedTypeException)
  * @return a copy of the integer vector.  Caller is responsible for memory
  * @throw MismatchedTypeException if the value is not an integer list.
  */
-vector<int>* Any::getIntegerList() const throw(MismatchedTypeException)
+vector<int>* Any::getIntegerList() const
 {
    vector<int>* ret = 0;
    if (p_type == aIntList) {
@@ -398,7 +398,7 @@ vector<int>* Any::getIntegerList() const throw(MismatchedTypeException)
  * @return a copy of the string vector.  Caller is responsible for memory
  * @throw MismatchedTypeException if the value is not an string list.
  */
-vector<string>* Any::getStringList() const throw(MismatchedTypeException)
+vector<string>* Any::getStringList() const
 {
    vector<string>* ret = 0;
    if (p_type == aStringList) {

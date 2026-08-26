@@ -19,7 +19,7 @@ class DeleteResidueCmd : public FragCloneCmd
       DeleteResidueCmd(const string& name, Receiver * receiver);
       virtual ~DeleteResidueCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
 
    protected:
       virtual void init();

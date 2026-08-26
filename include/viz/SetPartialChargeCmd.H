@@ -18,7 +18,7 @@ class SetPartialChargeCmd : public Command
       SetPartialChargeCmd(const string& name, Receiver * receiver, const string& sender="");
       ~SetPartialChargeCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

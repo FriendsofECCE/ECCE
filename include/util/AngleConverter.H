@@ -20,10 +20,10 @@ class AngleConverter: public BaseUnitConverter
     virtual ~AngleConverter();
 
     string convertTo(const string &value, const string &toUnits)
-               throw (InvalidException);
+;
 
     double convertTo(double value, const string &toUnits)
-               throw (InvalidException);
+;
 
 };
 #endif

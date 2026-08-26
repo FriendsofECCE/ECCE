@@ -23,11 +23,11 @@ class ObjectiveFunction
 public:
 
    virtual double getValue(bool& canceled, FFCoordinates *coords) const 
-     throw (InvalidException) = 0;
+ = 0;
    virtual FFCoordinates* getGradient(bool& canceled, 
                                       const FFCoordinates *coords,
                                       FFCoordinates *gradient) const
-     throw (InvalidException) = 0;
+ = 0;
 
 private:
 

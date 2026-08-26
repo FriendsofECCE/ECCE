@@ -16,7 +16,7 @@ class CSLoadColorsCmd : public Command
       CSLoadColorsCmd(const string& name, Receiver * receiver);
       virtual ~CSLoadColorsCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
       virtual bool isUndoable() const;
 

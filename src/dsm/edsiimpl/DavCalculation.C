@@ -63,7 +63,7 @@ using namespace xercesc;
 /**
  * Protected because only EDSIFactory can create a calculation 
  */
-DavCalculation::DavCalculation(const EcceURL& eurl) throw(InvalidException)  {
+DavCalculation::DavCalculation(const EcceURL& eurl)  {
   p_url = eurl;
   p_edsi = 0;
   p_vdoc = 0;
@@ -1950,7 +1950,6 @@ DavCalculation::TheoryType DavCalculation::stringToTheoryType(const string& str)
  * method.  These files are removed at the end.
  */
 string DavCalculation::import( const string& dir, const string& parseFileName) 
-   throw(EcceException)
 {
    string message;
 
@@ -2084,7 +2083,6 @@ string DavCalculation::getParseScriptArgs() const
  * <li> ES.ChemSys.Multiplicity
  */
 void DavCalculation::processImportParameters(const Preferences& params) 
-      throw(IOException)
 {
    ChemistryTask::processImportParameters(params);
 

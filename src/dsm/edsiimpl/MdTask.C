@@ -35,7 +35,7 @@
  *        to the Dav server could not be established or the MdTask's 
  *        virtual document could not be created.
  */
-MdTask::MdTask(const EcceURL& eurl) throw(InvalidException)  
+MdTask::MdTask(const EcceURL& eurl)  
 {
   p_url = eurl;
   p_edsi = 0;
@@ -765,7 +765,7 @@ bool MdTask::getOriginalFragmentProperties(FragmentSummary& fragSum)
  *         input file.
  *         
  */
-string MdTask::getSystemName() const throw(InvalidException, DavException)
+string MdTask::getSystemName() const
 {
   return ResourceUtils::contentTypeToString(ResourceDescriptor::CT_SESSION);
 }
@@ -831,7 +831,7 @@ string MdTask::getInputFragmentName() const
  *
  * @return returns the name of the output restart file name
  */
-string MdTask::getRestartName() const throw(InvalidException, DavException)
+string MdTask::getRestartName() const
 {
   string restartName = getSystemName() + "_" + getCalcName();
 
@@ -858,7 +858,7 @@ string MdTask::getRestartName() const throw(InvalidException, DavException)
  * @return returns the topology file name that is generated
  *         by an MD prepare task.
  */
-string MdTask::getTopologyName() const throw(InvalidException, DavException)
+string MdTask::getTopologyName() const
 {
   return getSystemName() + ".top";
 }

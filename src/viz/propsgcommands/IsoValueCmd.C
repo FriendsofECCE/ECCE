@@ -35,7 +35,7 @@ void IsoValueCmd::init()
    addParameter(new CommandParameter("negativeGreen", 1.0));
 }
 
-bool IsoValueCmd::execute() throw(EcceException)
+bool IsoValueCmd::execute()
 {
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
 

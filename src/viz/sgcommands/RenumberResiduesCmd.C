@@ -38,7 +38,7 @@ void RenumberResiduesCmd::init()
 
 
 
-bool RenumberResiduesCmd::execute() throw(EcceException)
+bool RenumberResiduesCmd::execute()
 {
    bool ret = false;
 

@@ -45,7 +45,7 @@ void AtomLabelsCmd::init()
 
 
 
-bool AtomLabelsCmd::execute() throw(EcceException)
+bool AtomLabelsCmd::execute()
 {
   SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
   SGFragment *frag = sg->getFragment();

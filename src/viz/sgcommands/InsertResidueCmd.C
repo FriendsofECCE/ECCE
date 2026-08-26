@@ -42,7 +42,7 @@ void InsertResidueCmd::init()
 
 
 
-bool InsertResidueCmd::execute() throw(EcceException)
+bool InsertResidueCmd::execute()
 {
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
    SGFragment *frag = sg->getFragment();

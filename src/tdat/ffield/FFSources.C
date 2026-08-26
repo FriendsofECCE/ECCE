@@ -103,7 +103,7 @@ int FFSources::getSourceCount()  const
 //
 //
 ////////////////////////////////////////////////////////////////////////////////
-string FFSources::getSourceName(int sid) const throw(IndexOutOfRangeException)
+string FFSources::getSourceName(int sid) const
 {
    string path;
    if ( sid >= 0 && sid < p_sources.size()) {

@@ -203,7 +203,7 @@ string Command::getErrorMessage() const
 }
 
 
-void Command::parse(const string& data) throw(EcceException)
+void Command::parse(const string& data)
 {
    if (data != "") {
       StringTokenizer tokenizer(data," ");

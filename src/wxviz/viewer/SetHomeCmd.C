@@ -18,7 +18,7 @@ void SetHomeCmd::init()
 {
 }
 
-bool SetHomeCmd::execute() throw(EcceException)
+bool SetHomeCmd::execute()
 {
   SGViewer *viewer = dynamic_cast<SGViewer*>(getReceiver());
   viewer->saveHomePosition();

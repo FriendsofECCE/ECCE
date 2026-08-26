@@ -16,7 +16,7 @@ class AtomEditCmd : public FragCloneCmd
       AtomEditCmd(const string& name, Receiver * receiver);
       virtual ~AtomEditCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual string getUndoLabel();
 
    protected:

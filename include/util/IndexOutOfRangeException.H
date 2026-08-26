@@ -22,11 +22,11 @@ class IndexOutOfRangeException : public EcceException
       IndexOutOfRangeException(int lower, size_t upper, int value,
                                const char *file, int line);
       IndexOutOfRangeException(const IndexOutOfRangeException& rhs);
-      virtual ~IndexOutOfRangeException() throw ();
+      virtual ~IndexOutOfRangeException() noexcept;
 
-      virtual EcceException *clone() const throw ();
+      virtual EcceException *clone() const noexcept;
 
-      virtual const char *what() const throw();
+      virtual const char *what() const noexcept;
 
    protected:
 

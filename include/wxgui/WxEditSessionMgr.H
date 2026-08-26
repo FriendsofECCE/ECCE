@@ -32,10 +32,10 @@ class WxEditSessionMgr
       static bool isEditSessionInProgress();
 
       void edit(SFile* file, const string& id, EditListener *l,
-            bool readonly=true, const string & name= 0) throw(EcceException);
+            bool readonly=true, const string & name= 0);
 
       void edit(const string& text, const string& id, EditListener *l,
-            bool readonly=true, const string & name= 0) throw(EcceException);
+            bool readonly=true, const string & name= 0);
 
 
    protected:
@@ -49,7 +49,7 @@ class WxEditSessionMgr
       //static void checkFileWrite(XtPointer clientData, XtIntervalId *);
 
       void editFile(SFile* file, const string& id, EditListener *l,
-            bool readOnly=true,const string & name=0) throw(EcceException);
+            bool readOnly=true,const string & name=0);
 
 
       SFile* makeTemporaryFile(const string& data);

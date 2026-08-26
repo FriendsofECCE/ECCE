@@ -79,7 +79,6 @@ string QMMMModelXMLizer::mimetype() const
  */
 void QMMMModelXMLizer::deserialize(const string& data,
                        Serializable& object, EcceMap& properties)
-                       throw (ParseException)
 {
 
    // NOTE: For now at least, we aren't interested in any properties.
@@ -212,7 +211,6 @@ void QMMMModelXMLizer::deserializeQMMMTerms(
  */
 void QMMMModelXMLizer::serialize(const Serializable& object,
                         string& data, EcceMap& properties)
-
 {
    data = "";
    const QMMMModel *dobject = 

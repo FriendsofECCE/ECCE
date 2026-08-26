@@ -43,7 +43,7 @@ class ESPConstraintModelXMLizer : public XMLSerializer
        */
       void deserialize(const string& data,
                        Serializable& object, EcceMap& properties) 
-                       throw (ParseException);
+;
 
       /**
        * Convert an object into its data and metadata.

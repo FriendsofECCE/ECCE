@@ -39,7 +39,6 @@ AngleConverter::~AngleConverter()
  * number of significant figures if we are converting to degrees.
  */
 string AngleConverter::convertTo(const string& value, const string& toUnits)
-   throw (InvalidException)
 {
    string ret = value;
    if (!checkString(toUnits)) {
@@ -61,7 +60,6 @@ string AngleConverter::convertTo(const string& value, const string& toUnits)
 
 
 double AngleConverter::convertTo(double value, const string& toUnits)
-   throw (InvalidException)
 {
    double ret = value;
    if (!checkString(toUnits)) {

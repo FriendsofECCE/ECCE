@@ -22,9 +22,9 @@ class ParseException : public EcceException
       ParseException(ParseException::Severity severity, const char *message,
                      const char *file, int line);
       ParseException(const ParseException& rhs);
-      virtual ~ParseException() throw ();
+      virtual ~ParseException() noexcept;
 
-      virtual EcceException *clone() const throw ();
+      virtual EcceException *clone() const noexcept;
 
       virtual ParseException::Severity severity() const;
 

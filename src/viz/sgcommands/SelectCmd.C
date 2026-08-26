@@ -66,7 +66,7 @@ void SelectCmd::init()
 
 // @todo chain list
 // @todo radius
-bool SelectCmd::execute() throw(EcceException)
+bool SelectCmd::execute()
 {
    bool ret = false;
 

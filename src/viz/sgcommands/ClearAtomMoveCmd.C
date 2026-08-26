@@ -23,7 +23,7 @@ void ClearAtomMoveCmd::init()
 }
 
 
-bool ClearAtomMoveCmd::execute() throw(EcceException)
+bool ClearAtomMoveCmd::execute()
 {
   SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
 

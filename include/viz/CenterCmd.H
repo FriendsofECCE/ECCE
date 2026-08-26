@@ -13,7 +13,7 @@ class CenterCmd : public Command
       CenterCmd(const string& name, Receiver * receiver);
       ~CenterCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
       virtual string getUndoLabel();
 

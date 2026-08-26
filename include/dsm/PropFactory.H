@@ -145,7 +145,7 @@ class PropFactory
 
   // Methods:
      // Loads propRefList one time only from file:
-     static void initialize(void) throw (EcceException);
+     static void initialize(void);
 
   // State
      static vector<Property_Ref>  propRefList;

@@ -15,7 +15,6 @@ class wxGrid;
  * Values are assumed to be doubles
  */
 class Vec3ColPanel : public PropertyPanel
-                
 {
   DECLARE_DYNAMIC_CLASS(Vec3ColPanel)
   DECLARE_EVENT_TABLE()

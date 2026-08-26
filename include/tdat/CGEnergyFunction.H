@@ -41,11 +41,11 @@ public:
   * Methods
   */
    virtual double getValue(bool& canceled, FFCoordinates *coords ) const
-                  throw (InvalidException);
+;
    virtual FFCoordinates* getGradient(bool& canceled,
                               const FFCoordinates *coords,
                               FFCoordinates *gradient) const
-                          throw (InvalidException);
+;
 
 private:
    ForceField *p_ffield;

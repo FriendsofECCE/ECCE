@@ -1298,7 +1298,7 @@ void MDPrep::prefsMCB(JMSMessage& msg)
 /**
  * Reset the gui to the task at the specified url.
  */
-void MDPrep::setContext(const string& urlstr) throw (EcceException)
+void MDPrep::setContext(const string& urlstr)
 {
    wxBusyCursor busy;
 
@@ -1475,7 +1475,7 @@ void MDPrep::doQuit(bool force, bool notifyEditor)
 /**
  * Save the model, generate and save input file.
  */
-void MDPrep::saveModelAndInputFile(MdTask *task) throw(IOException)
+void MDPrep::saveModelAndInputFile(MdTask *task)
 {
 
    PrepareModel& model = getPrepareModel();
@@ -3373,7 +3373,7 @@ void MDPrep::OnCloseWindow( wxCloseEvent& event )
  * @throw IOException if the input file generation failed for some reason or
  *       we couldn't upload the data.
  */
-void MDPrep::generateInputFile(MdTask *task) throw(IOException)
+void MDPrep::generateInputFile(MdTask *task)
 {
    PrepareModel& model = getPrepareModel();
 

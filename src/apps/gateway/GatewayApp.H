@@ -45,8 +45,8 @@ protected:
   void sendIconify(int iconicState);
   void notifyExit();
 
-  bool checkServer() throw (RetryException,EcceException);
-  bool checkServerSetup() throw (RetryException,EcceException);
+  bool checkServer();
+  bool checkServerSetup();
   bool checkUser();
   void reconnectJobStoreMessaging();
 

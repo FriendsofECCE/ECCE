@@ -16,7 +16,7 @@ class CSStyleCmd : public Command
       CSStyleCmd(const string& name, Receiver * receiver);
       virtual ~CSStyleCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
       virtual bool isUndoable() const;

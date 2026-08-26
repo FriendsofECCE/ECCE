@@ -18,7 +18,7 @@ void CenterViewCmd::init()
 }
 
 
-bool CenterViewCmd::execute() throw(EcceException)
+bool CenterViewCmd::execute()
 {
   SGViewer *viewer = dynamic_cast<SGViewer*>(getReceiver());
   viewer->viewAll();

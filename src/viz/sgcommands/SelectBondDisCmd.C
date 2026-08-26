@@ -52,7 +52,7 @@ void SelectBondDisCmd::init()
 
 // @todo chain list
 // @todo radius
-bool SelectBondDisCmd::execute() throw(EcceException)
+bool SelectBondDisCmd::execute()
 {
 
   SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());

@@ -44,7 +44,7 @@ void TorsionEditCmd::init()
 
 
 
-bool TorsionEditCmd::execute() throw(EcceException)
+bool TorsionEditCmd::execute()
 {
    bool ret = false;
 

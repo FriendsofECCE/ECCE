@@ -1119,12 +1119,12 @@ bool PrepareModel::getChangedTopology() const
   return p_changedTopology;
 }
 
-void PrepareModel::generateInputFile() throw(InvalidException)
+void PrepareModel::generateInputFile()
 {
    throw NotImplementedException("generateInputFile not implemented",WHERE);
 }
 
-void PrepareModel::run() throw(InvalidException)
+void PrepareModel::run()
 {
    throw NotImplementedException("run not implemented",WHERE);
 }

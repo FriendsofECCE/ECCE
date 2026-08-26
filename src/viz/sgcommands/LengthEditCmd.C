@@ -42,7 +42,7 @@ void LengthEditCmd::init()
 
 
 
-bool LengthEditCmd::execute() throw(EcceException)
+bool LengthEditCmd::execute()
 {
    bool ret = false;
 

@@ -118,7 +118,7 @@ void MDOptimize::initializeModel()
 }
 
 
-void MDOptimize::setContext(const string& url) throw (EcceException)
+void MDOptimize::setContext(const string& url)
 {
    wxBusyCursor busy;
    MDEdBase::setContext(url);

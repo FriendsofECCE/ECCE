@@ -10,7 +10,7 @@ class SetHomeCmd : public Command
       SetHomeCmd(const string& name, Receiver * receiver);
       ~SetHomeCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

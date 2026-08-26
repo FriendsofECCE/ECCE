@@ -51,7 +51,7 @@ void SetEnvIndexCmd::init()
 
 
 
-bool SetEnvIndexCmd::execute() throw(EcceException)
+bool SetEnvIndexCmd::execute()
 {
   bool ret = false;
 

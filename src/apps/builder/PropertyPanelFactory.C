@@ -135,7 +135,6 @@ PropertyPanelFactory::PropertyPanelFactory()
 
 
 void PropertyPanelFactory::parsePropertyPanelDescriptorFile()
-throw (ParseException)
 {
   string file = Ecce::ecceDataPath();
   file += "/client/config/PropertyPanelDescriptor.xml";

@@ -17,7 +17,7 @@ class SetSuffixCmd : public Command
       SetSuffixCmd(const string& name, Receiver * receiver, const string& sender="");
       ~SetSuffixCmd();
 
-      virtual bool execute() throw(EcceException);
+      virtual bool execute();
       virtual void undo();
 
    protected:

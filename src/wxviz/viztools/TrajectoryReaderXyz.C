@@ -79,7 +79,6 @@ string TrajectoryReaderXyz::getCurrentFileName()
 
 bool TrajectoryReaderXyz::readStep(const long& step,
         const bool& readVelocities, const bool& readForces)
-        throw (IOException)
 {
   if (step >= getStepCount()) {
     // don't bother if the requested step is outside valid range
@@ -256,7 +255,7 @@ void TrajectoryReaderXyz::processVectors(const vector<bool>& atoms)
 }
 
 
-void TrajectoryReaderXyz::readHeader() throw (IOException)
+void TrajectoryReaderXyz::readHeader()
 {
   if (p_isHeaderRead) {
     return;
@@ -350,7 +349,6 @@ void TrajectoryReaderXyz::indexFiles()
 
 
 void TrajectoryReaderXyz::changeStreamForStep(const long& step)
-        throw (IOException)
 {
   if (p_fileName != p_stepToFileName[step]) {
     p_fileName = p_stepToFileName[step];

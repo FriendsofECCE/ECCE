@@ -46,7 +46,7 @@ void PBCCreateCmd::init()
  * the sqare unit lattice.
  * Someday maybe we'll plug in an nwchem module to figure out a good one.
  */
-bool PBCCreateCmd::execute() throw(EcceException)
+bool PBCCreateCmd::execute()
 {
    bool ret = false;
 
