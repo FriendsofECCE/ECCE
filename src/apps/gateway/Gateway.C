@@ -96,11 +96,17 @@ Gateway::Gateway( GatewayApp* app, wxWindow* parent,
   p_winMenu = NULL;
   p_prefsDlg = new GatewayPrefs(NULL);
   p_app->registerTopShell(p_prefsDlg);
-  p_timer = new wxTimer(this);
   p_targetList.clear();
   p_preference = new Preferences(PrefLabels::GATEWAYPREFFILE);
 
   Create( parent, id, caption, pos, size, style );
+
+  // Must come after Create(): wxTimer(this) registers an event handler
+  // against this frame's peer window, which doesn't exist until Create()
+  // has realized it. Constructing the timer first left it attached to an
+  // unrealized wxFrame -- wx2.8's GTK timer path tolerated that silently,
+  // but wx3.2 asserts on it (harmless spam, but noisy and worth not doing).
+  p_timer = new wxTimer(this);
 
   SetIcon(wxIcon(ewxBitmap::pixmapFile("gateway64.xpm"), wxBITMAP_TYPE_XPM));
 
