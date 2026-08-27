@@ -47,12 +47,29 @@ else
     echo "ecce-gateway-start: no ActiveMQ broker installed at $ACTIVEMQ_HOME -- messaging will not work" >&2
   else
     echo "ecce-gateway-start: starting ActiveMQ broker..."
-    # The .deb doesn't preserve empty dirs, and ActiveMQ won't create these
-    # itself on a fresh install -- it just fails to bind its transport
-    # connectors, which shows up downstream as an EE_RT_ASSERT on a missing
-    # JMS port file rather than anything pointing at ActiveMQ. Guard here so
-    # gateway startup is self-healing regardless of what the package did.
-    mkdir -p "$ACTIVEMQ_HOME/data" "$ACTIVEMQ_HOME/logs"
+    # $ACTIVEMQ_HOME is a shared, package-owned install (root:root,
+    # not group/other-writable -- confirmed on a real .deb install, not
+    # just theorized) since it's meant to be installed once and used by
+    # every user on the machine. But activemq.xml's persistence store,
+    # its lock file, and log4j's log file all live under
+    # ${activemq.base}/data -- which defaults to $ACTIVEMQ_HOME itself
+    # if ACTIVEMQ_BASE isn't set, so every user's broker instance was
+    # trying to write into that shared read-only tree and failing
+    # (java.io.FileNotFoundException on .../data/lock), which then
+    # shows up downstream as an EE_RT_ASSERT on a missing JMS port file
+    # (JMSDispatcher can't reach a broker that never came up) rather
+    # than anything pointing at ActiveMQ or permissions.
+    #
+    # Fix: point ACTIVEMQ_BASE at this user's own per-user state dir
+    # instead, matching how JMSDispatcher's own PID/port files already
+    # work. The launcher also builds its classpath from
+    # ${ACTIVEMQ_BASE}/conf though, so that per-user base dir needs a
+    # conf/ too -- symlink it back to the shared, read-only config
+    # rather than copying (nothing there needs to be writable).
+    ACTIVEMQ_BASE="$STATEDIR/activemq"
+    mkdir -p "$ACTIVEMQ_BASE/data"
+    [ -e "$ACTIVEMQ_BASE/conf" ] || ln -s "$ACTIVEMQ_HOME/conf" "$ACTIVEMQ_BASE/conf"
+    export ACTIVEMQ_BASE
     CP=""
     for f in "$ACTIVEMQ_HOME"/lib/*.jar; do CP="$f:$CP"; done
     (
