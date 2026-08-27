@@ -402,11 +402,19 @@ endif()
 
 set(_activemq_tarball ${CMAKE_SOURCE_DIR}/build/3rdparty-dists/apache-activemq-5.1.0-bin.tar.bz2)
 if(EXISTS ${_activemq_tarball})
+  # WORKING_DIRECTORY applies to every COMMAND line in this rule, including
+  # the one that's supposed to create it -- on a from-scratch build tree
+  # (no stale activemq-extracted/ left over from a previous run) that made
+  # the very first command `cd` into a directory that doesn't exist yet.
+  # Use a WORKING_DIRECTORY that's guaranteed to already exist (the build
+  # dir itself) and explicitly `cmake -E chdir` into the subdir only for
+  # the extraction step, after make_directory has created it.
   add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/activemq-extracted/activemq/bin/activemq
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/activemq-extracted
-    COMMAND ${CMAKE_COMMAND} -E tar xjf ${_activemq_tarball}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/activemq-extracted
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/activemq-extracted
+            ${CMAKE_COMMAND} -E tar xjf ${_activemq_tarball}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Extracting vendored ActiveMQ 5.1.0 broker"
   )
   add_custom_target(ecce_activemq ALL
