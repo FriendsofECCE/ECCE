@@ -825,8 +825,14 @@ SoOffscreenRenderer::initPixmap(
         return FALSE;
     }
 
-    // Create a GLX Context
-    if ((cx = glXCreateContext(dpy, vi, NULL, FALSE)) == NULL) {
+    // Create a GLX Context. Direct rendering (not the FALSE/indirect this
+    // originally requested) -- modern proprietary GPU drivers (confirmed:
+    // NVIDIA) fail indirect GLX context creation outright
+    // (X_GLXCreateContext / BadValue), which made offscreen thumbnail
+    // rendering fail every time on this class of hardware. Reproduced and
+    // confirmed fixed with a minimal standalone GLX pixmap test isolating
+    // just this one flag before changing the real code.
+    if ((cx = glXCreateContext(dpy, vi, NULL, TRUE)) == NULL) {
         XCloseDisplay(dpy);
         dpy = NULL;
         return FALSE;

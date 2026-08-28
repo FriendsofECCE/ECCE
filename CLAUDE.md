@@ -1086,6 +1086,35 @@ thumbnails may still just not get generated. Worth a follow-up look if
 thumbnails turn out to be silently missing rather than genuinely working
 end-to-end.
 
+## Offscreen thumbnail rendering ("Unable to render scene graph") — FIXED (2026-08-28)
+
+Follow-up to the crash fix above: once the crash was gone, the underlying
+render failure itself was still there (a clean warning instead of a
+segfault, but Organizer's thumbnails still weren't actually being
+generated). Root-caused with a minimal, isolated repro rather than
+guessing inside the real app — a standalone ~40-line C program replicating
+just `XOpenDisplay` → `glXChooseVisual` → `glXCreateContext` →
+`XCreatePixmap` → `glXCreateGLXPixmap` → `glXMakeCurrent`, the exact
+sequence `SoOffscreenRenderer::initPixmap()`
+(`src/inv/dbso/SoOffscreenRenderer.inc`) uses. Reproduced the exact
+failure immediately: `glXCreateContext` throws a real X protocol error
+(`X_GLXCreateContext` / `BadValue`), not just a `NULL` return.
+
+Root cause: `glXCreateContext(dpy, vi, NULL, FALSE)` — the 4th argument,
+`FALSE`, requests **indirect** GLX rendering. This code is old enough
+that indirect rendering was a reasonable default at the time; modern
+proprietary GPU drivers (confirmed here: NVIDIA) don't support creating
+indirect GLX contexts at all and fail outright rather than silently
+falling back. Confirmed the fix in the standalone repro first (flip
+`FALSE` → `TRUE`, same call sequence renders successfully end to end)
+before touching the real source, then applied the one-line fix directly
+to `initPixmap()`. Confirmed via grep this is the only `glXCreateContext`
+call site in the tree — no sibling instances elsewhere.
+
+Not yet re-verified live (found, fixed, rebuilt, and packaged in the same
+round as the crash fix above — needs a real retest generating an actual
+Organizer thumbnail).
+
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
 `*GUI.C` files in ~15 other `ECCE_GUI_APPS` (confirmed via grep — e.g.
