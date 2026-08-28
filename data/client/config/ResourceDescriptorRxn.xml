@@ -3158,7 +3158,7 @@
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
       <Normal>taskconrxmetadyn.xpm</Normal>
-      <Selected>tasconkrxmetadyn.xpm</Selected>
+      <Selected>taskconrxmetadyn.xpm</Selected>
       <Expanded>taskconrxmetadyn.xpm</Expanded>
       <SelectedExpanded>taskconrxmetadyn.xpm</SelectedExpanded>
     </Icons>

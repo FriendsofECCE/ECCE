@@ -435,6 +435,45 @@ else()
   set(ECCE_GATEWAY_BROKER_AVAILABLE FALSE)
 endif()
 
+# Help content: BrowserHelp::initialize() (src/util/genutil/BrowserHelp.C)
+# throws NullPointerException -- uncaught, crashing the whole app -- if
+# ECCE_HELP isn't set in the environment when any Help button is clicked.
+# None of the app wrapper scripts set it (an old gap, not a regression --
+# the old scripts/runtime_setup this replaces apparently did). Extract the
+# vendored help content this package already ships
+# (data/admin/dataserver/help/eccehelp.tar) into the layout help.urls'
+# entries expect (an "EcceHelp/" subdirectory containing homepage.html,
+# etc. -- confirmed against the tarball's actual contents and against
+# BrowserHelp::initialize()'s own p_filePrefix construction, which is
+# hardcoded to ecceDataPath()/client/WebHelp/), then point ECCE_HELP at it
+# in the wrapper scripts below. Entries in help.urls that need the CGI
+# help backend (cgi-bin/help/cshelp, toolhelp) will still 404 in the
+# browser -- that backend isn't packaged (same "deferred, degrades
+# gracefully rather than crashing" pattern as the data server's CGI
+# account flow) -- but at least Help no longer crashes the app, and the
+# static homepage/topic pages that don't need it work.
+set(_ecce_help_tarball ${CMAKE_SOURCE_DIR}/data/admin/dataserver/help/eccehelp.tar)
+if(EXISTS ${_ecce_help_tarball})
+  add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp/homepage.html
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp
+            ${CMAKE_COMMAND} -E tar xf ${_ecce_help_tarball}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Extracting vendored ECCE help content"
+  )
+  add_custom_target(ecce_help ALL
+    DEPENDS ${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp/homepage.html)
+  install(DIRECTORY ${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp
+          DESTINATION data/client/WebHelp)
+  set(ECCE_HELP_AVAILABLE TRUE)
+else()
+  message(WARNING "No vendored help tarball at ${_ecce_help_tarball} - "
+                   "Help will still work (won't crash) but ECCE_HELP will "
+                   "point at a location with no content.")
+  set(ECCE_HELP_AVAILABLE FALSE)
+endif()
+
 if(EXISTS ${CMAKE_SOURCE_DIR}/siteconfig/jndi.properties)
   file(READ ${CMAKE_SOURCE_DIR}/siteconfig/jndi.properties _jndi_contents)
   # The checked-in template points at PNNL's own broker; repoint it at the
@@ -597,8 +636,13 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
   list(FIND ECCE_MESSAGING_APPS ${_app} _msg_idx)
   if(_msg_idx GREATER -1)
     set(_gateway_start "if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi")
+    # Same app set as messaging: apps that need the JMS gateway also need
+    # data-server (EDSI/WebDAV) access, per EDSIServerCentral::
+    # checkServerSetup() -- see ecce-dataserver-start.
+    set(_dataserver_start "if [ -z \"$ECCE_NO_DATASERVER\" ]; then \"$ECCE_HOME/bin/ecce-dataserver-start\" || true; fi")
   else()
     set(_gateway_start "")
+    set(_dataserver_start "")
   endif()
   file(WRITE ${_wrapper}
 "#!/bin/bash
@@ -607,7 +651,9 @@ export ECCE_REALUSER=\${ECCE_REALUSER:-$(id -un)}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
 export DISPLAY=\${DISPLAY:-:0}
+export ECCE_HELP=\${ECCE_HELP:-file:///opt/ecce/data/client/WebHelp/}
 ${_gateway_start}
+${_dataserver_start}
 exec \"$ECCE_HOME/bin/${_app}\" \"$@\"
 ")
   install(PROGRAMS ${_wrapper} DESTINATION /usr/bin)

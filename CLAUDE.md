@@ -398,6 +398,104 @@ are now fixed and committed. What's left:
   specifically since the manually-scoped guard there already works and
   wasn't worth risking a change to.
 
+## Post-login usability bugs found by actually using the app (2026-08-28)
+
+Once login worked end-to-end (previous sections), several real bugs
+surfaced simply by clicking around the running GUI. All fixed except the
+last, and none related to the wx3.2/GTK3 layout-reentrancy class above —
+worth keeping separate for that reason.
+
+### Organizer: missing xpm icon — FIXED
+Clicking Organizer threw an error about a missing xpm file. Root cause: a
+letter-transposition typo in `data/client/config/ResourceDescriptorRxn.xml`
+line 3161 — `<Selected>tasconkrxmetadyn.xpm</Selected>` vs the correct
+`taskconrxmetadyn.xpm` (matching the real file in
+`data/client/pixmaps/`, and matching the `<Normal>`/`<Expanded>`/
+`<SelectedExpanded>` entries in the same block, which all had it right).
+Fixed by correcting the one typo'd entry. Verified via grep across every
+`ResourceDescriptor*.xml` that this was the only missing-icon reference (24
+total icon references checked, zero missing after the fix).
+
+### Gateway: crash on clicking Help — FIXED
+`BrowserHelp::initialize()` (`src/util/genutil/BrowserHelp.C:138`) throws an
+uncaught `NullPointerException` if the `ECCE_HELP` env var isn't set — and
+nothing in `Gateway.C`'s `wxID_HELP` handler catches it, so the whole app
+dies. This build's wrapper scripts never set `ECCE_HELP` at all (nothing
+did, historically — the old tcsh launcher scripts this build deliberately
+doesn't use apparently did). Fixed two ways together:
+1. `CMakeLists.txt`'s per-app wrapper `file(WRITE)` block now exports
+   `ECCE_HELP=file:///opt/ecce/data/client/WebHelp/` by default (only if
+   unset, so it's still user-overridable).
+2. That path needs real content to point at: added a new CMake block
+   (mirrors the existing ActiveMQ-tarball-extraction pattern) that extracts
+   the already-vendored-but-never-wired-up
+   `data/admin/dataserver/help/eccehelp.tar` into
+   `${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp/` at build time and
+   installs it to `data/client/WebHelp/EcceHelp/` — confirmed via `tar tf`
+   that `homepage.html` sits at the tarball's root. `BrowserHelp::URL()`
+   prepends `ECCE_HELP` directly for any non-`http://` help reference (see
+   `data/client/config/help.urls`'s own comment), so this now resolves to
+   real local file:// help content instead of crashing.
+
+Not ported (deliberately, matches the "degrades gracefully" pattern used
+for the data server's CGI account-creation flow): the `cgi-bin/help/
+cshelp`/`toolhelp` dynamic help backend some `help.urls` entries reference —
+those specific entries will 404 gracefully rather than resolve, everything
+else (the bulk of `help.urls`, including Gateway's own homepage) works.
+
+### Periodic Table: window opens but content area completely blank — FIXED
+`ecce-pertable` opened a correctly-sized window (confirmed via `xwininfo`:
+640×467, not a zero-size bug) with menu bar intact, but the entire element
+grid was blank — no visible buttons, just faint single-pixel dots at each
+element's grid position (confirmed via screenshot; the *positions* were
+already correct, matching the periodic table's real shape, which is what
+pointed at a per-item sizing bug rather than a data-loading or layout-
+positioning one).
+
+Root cause: `PerTabPanel.C:162`, each `ElementButton`'s
+`wxGridBagSizer::Add()` call passed `wxEXPAND|wxALL|wxALIGN_CENTER`.
+Combining `wxEXPAND` with an alignment flag on the same item is a
+documented wx footgun — alignment can suppress the expand behavior instead
+of being (as the docs say it should be) ignored in favor of it. Each
+`ElementButton` only learns its own real size *inside its first
+`OnPaint()`* (`ElementButton::OnPaint()` calls `SetMinSize()` based on
+measured text extents — a chicken-and-egg pattern: it needs to be painted
+to know its size, and needs a size to be painted), so before that first
+paint its best/min size defaults to near-zero — and with `wxALIGN_CENTER`
+in the mix, the sizer centered that near-zero-size item within its
+(correctly large, growable) cell instead of expanding it to fill it. Fixed
+by dropping `wxALIGN_CENTER`, leaving just `wxEXPAND|wxALL` — confirmed via
+rebuild + screenshot that the full 118-element table now renders correctly,
+colored and labeled, filling the window.
+
+The panel's *other* `wxALIGN_CENTER`+`wxEXPAND` combination
+(`PerTabPanel.C:148`, the outer `wxBoxSizer` holding the whole grid) was
+left alone — confirmed by the same screenshot that it isn't causing a
+problem (a plain `wxBoxSizer` apparently doesn't hit the same wx quirk a
+`wxGridBagSizer` does here). Not changed without evidence it's broken.
+
+**Worth checking**: `MiniPerTab.C` (`src/apps/builder/`) reuses this same
+`PerTabPanel` in `isMini` mode for the Builder's embedded periodic table —
+this fix should apply there too, but hasn't been visually re-verified
+against Builder specifically yet.
+
+### Builder: crash when building molecules — NOT YET DIAGNOSED
+Reported 2026-08-28, not yet root-caused. A `coredumpctl list` hit exists
+(`PID 968563, SIGSEGV`) but **no coredump was actually stored** — the
+terminal `ecce-builder` was launched from had `ulimit -c 0` (Debian's
+default), and `systemd-coredump` (confirmed active/correctly configured:
+`core_pattern` is `|/usr/lib/systemd/systemd-coredump ...`) honors the
+crashing process's own `RLIMIT_CORE` when deciding whether to persist a
+core — 0 means discard.
+
+**Next step**: reproduce again with `ulimit -c unlimited` set in the
+launching shell first, then `coredumpctl gdb builder` (or `coredumpctl
+list` to find the new entry) to get a real backtrace instead of guessing.
+No GUI input-automation tool (`xdotool` or equivalent) is installed on this
+box, so this crash can't be reproduced headlessly/non-interactively the way
+the periodic-table and Help bugs above were — needs a human driving the
+actual "build a molecule" interaction once with a coredump enabled.
+
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
 `*GUI.C` files in ~15 other `ECCE_GUI_APPS` (confirmed via grep — e.g.

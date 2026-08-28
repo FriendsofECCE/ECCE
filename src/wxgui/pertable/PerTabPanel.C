@@ -159,7 +159,7 @@ void PerTabPanel::createControls(bool isMultiSelect,
     p_elementSizer->Add((wxWindow *)(p_elements[i]),
                         wxGBPosition(p_refTPerTab->row(i)+p_refTPerTab->row(i)/8-1,
                                      p_refTPerTab->column(i)-1),
-                        wxGBSpan(1, 1), wxEXPAND|wxALL|wxALIGN_CENTER, 0);
+                        wxGBSpan(1, 1), wxEXPAND|wxALL, 0);
 
     p_elementInfo[i]->covalentRadius = p_tPerTab->covalentRadius(i);
     p_elementInfo[i]->vanderWaalsRadius = p_tPerTab->vwr(i);
