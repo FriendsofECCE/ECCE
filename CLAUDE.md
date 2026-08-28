@@ -121,121 +121,170 @@ path would let `gateway` get past this check without standing up Apache,
 but `DataServers` is root-owned; doing this needs explicit sign-off before
 touching it (asked, not yet done as of this writing).
 
-## New, separate bug found: `GatewayPrefs::Show()` reentrancy crash — UNRESOLVED
+## `GatewayPrefs::Show()` reentrancy crash — FIXED, committed (2026-08-28)
 
-Found 2026-08-28, same evening as the fix above, while trying to visually
-verify the fix on a real display. **This is a different bug from the one
-just fixed** — same root cause *class* (wx3.2/GTK3 `DoSetSize`/`Layout`
-reentrancy), different trigger, not yet covered by any guard. Not a
-regression from the fix above; it's a pre-existing latent bug nobody had
+Found 2026-08-28, same evening as the construction-time fix above, while
+trying to visually verify that fix on a real display. **A different bug
+from the construction-time one** — same root cause *class* (wx3.2/GTK3
+`DoSetSize`/`Layout` reentrancy), different trigger. Not a regression from
+the construction-time fix; it's a pre-existing latent bug nobody had
 reached before, because `gateway` always died at the `DataServers` check
 (previous section) before a user could ever click Preferences.
 
-### How it was found
-A standalone test harness was written (not committed — lived at
-`/tmp/claude-1000/.../scratchpad/GatewayPrefsVisualTest.C` in that session's
-scratchpad, gone once that session ends) that constructs `GatewayPrefs`
-directly and calls `Show(true)` on it, bypassing `GatewayApp::OnInit()`'s
+**This is fixed and committed** (commit `3c50f03`, branch `modernize-build`).
+Root cause: `Gateway.C:477`'s `p_prefsDlg->Show(true)` (the real "open
+Preferences" handler, not a test artifact) triggers the same
+`DoSetSize -> wxEVT_SIZE -> InternalOnSize -> Layout() ->
+RepositionChildren -> DoSetSize` cycle as the construction-time bug, but
+starting *asynchronously*, well after `Show()` (and `wxEVT_SHOW`) have
+already returned/fired — confirmed via a targeted gdb capture (a
+conditional Python breakpoint that only stops on genuine `Layout()`
+self-reentrancy, not just any call, avoiding the need to unwind the full
+crash stack) that the storm begins inside GTK's own recursive
+size-allocate cascade, reached through `wxPizza::size_allocate_child()`.
+
+Four timing-based release strategies were tried first and all rejected —
+see "History: four failed release strategies" below for the detail. The
+key realization that unblocked this: **stop guessing when the trigger
+happens and detect it directly**. `SizeEventSuppressor::FilterEvent`
+(the same class already used for the construction-time fix) now also
+swallows a `wxEVT_SIZE` whenever a call to `Layout()` is already on the
+stack when it arrives — i.e. it's genuinely reentrant, not just any
+resize — checked via glibc's raw `backtrace()`/`backtrace_symbols()`
+(`<execinfo.h>`). An earlier attempt at this exact idea using
+`wxStackWalker` crashed with `SIGBUS` from this call context (not further
+diagnosed *why* — just confirmed unsafe here); raw `backtrace()` bypasses
+wx's wrapper entirely and worked cleanly. Symbol names come back mangled
+(e.g. `_ZN12wxWindowBase6LayoutEv`), but a mangled name still contains the
+original identifier as a length-prefixed substring, so a plain `strstr()`
+for `"Layout"` matches correctly with no demangling needed (confirmed via
+`nm -D` on the installed `libwx_gtk3u_core-3.2.so.0` that these symbols
+are present in the dynamic symbol table before relying on this).
+
+This mechanism needed no changes to `GatewayPrefs.H` at all (no `Show()`
+override, no timer, no new member state) — it's a pure addition inside
+the existing global `wxEventFilter`, always active, reacting to actual
+reentrancy rather than any fixed time window.
+
+**Verified**: 20/20 safely-capped runs of a standalone test harness
+driving the real `Show(true)` path (including three 30-second runs), plus
+12/12 runs of the actual `gateway` binary confirming the construction-time
+fix still works with no regression (important since the new check runs on
+every `wxEVT_SIZE` process-wide, not just within `GatewayPrefs`).
+
+### Test harness (reusable for future work here)
+Not committed — lived at `.../scratchpad/GatewayPrefsVisualTest.C` in the
+session that wrote it, gone once that session ends. A ~15-line wxApp
+subclass, trivial to rewrite: `Ecce::initialize()`, `new GatewayPrefs(NULL)`,
+`dlg->Show(true)`, `SetTopWindow(dlg)`. Bypasses `GatewayApp::OnInit()`'s
 server checks entirely (per `GatewayPrefs.H`'s own header comment: "this
-dialog can become a standalone app"). Compiled and linked manually against
+dialog can become a standalone app"), compiled and linked manually against
 the already-built `gateway` object files (`GatewayPrefs.C.o`,
-`GatewayPrefsGUI.C.o`, `StateButton.C.o`) and static libs — see that
-session's transcript for the exact compile/link commands if this needs
-reconstructing; it's a ~15-line wxApp subclass, trivial to rewrite from
-scratch too.
+`GatewayPrefsGUI.C.o`, `StateButton.C.o`) and static libs, same compiler
+flags `ninja -t commands` shows for the real `gateway` target.
 
-**Safety note for whoever runs this again**: the first run had no memory
-cap and grew to 40GB+ RSS, freezing the machine — this exact failure mode
-was already documented above ("multiple GB of RSS... OOM-killed after
-~20s") and should have been guarded against from the start. Every run after
-that used a hard, kernel-enforced cap that actually contains it:
+**Safety note, hard-learned**: the first run of this harness had no memory
+cap at all and grew to 40GB+ RSS, freezing the machine — this exact
+failure mode was already documented above ("multiple GB of RSS...
+OOM-killed after ~20s") and should have been guarded against from the
+start. Every run after that used a hard, kernel-enforced cap:
 ```
-systemd-run --user --scope -p MemoryMax=512M -p MemoryHigh=384M -p TasksMax=64 --collect \
-  timeout -s KILL 10 bash -c "ulimit -s 8192; ulimit -v 1000000; '<binary>'"
+systemd-run --user --scope -p MemoryMax=1G -p MemoryHigh=768M -p TasksMax=64 --collect \
+  timeout -s KILL 15 bash -c "ulimit -s 8192; ulimit -v 2000000; '<binary>'"
 ```
-`ulimit` alone (as used for the construction-time crash above) is
-insufficient for a fresh, unverified code path — it caps the *stack*, but an
-unbounded heap-growth variant of this same bug class would sail past it.
-Use the `systemd-run` wrapper for **any** further live testing of this
-specific bug, not just `ulimit`.
+`ulimit` alone (as used for the construction-time crash) is insufficient
+for a fresh, unverified code path — it caps the *stack*, but an unbounded
+heap-growth variant of this same bug class would sail past it. Use the
+`systemd-run` wrapper for any further live testing of a fresh hypothesis
+in this codebase, not just `ulimit`. One exception: capturing a full,
+deep crash backtrace with gdb needs the *opposite* — gdb itself needs more
+memory/time than the crashing process to unwind 100,000+ frames, so a
+tight cap starves gdb, not just the target (see "the breakthrough" below
+for how this was worked around).
 
-### Root cause (confirmed via gdb + a diagnostic trace, fix not yet found)
-`Gateway.C:477` (`case wxID_PREFERENCE:`) does a plain
-`p_prefsDlg->Show(true); p_prefsDlg->Raise();` to open the Preferences
-dialog — this is the real, normal interactive code path, not a test
-artifact. Calling `Show(true)` on this previously-hidden frame triggers the
-same `DoSetSize -> wxEVT_SIZE -> InternalOnSize -> Layout() ->
-RepositionChildren -> DoSetSize` cycle as the construction-time bug,
-confirmed via gdb backtrace (identical shape to the original crash).
+### History: four failed release strategies, before the working fix
+Kept for precedent — if a similar reentrancy bug shows up elsewhere (see
+"Also still worth doing" below), these are already-ruled-out approaches:
 
-Critically, **the storm happens after `Show()` already returned**, not
-synchronously inside it — confirmed by instrumenting the test harness with
-`fprintf` markers before/after the `Show(true)` call: `OnInit()` completes
-and returns cleanly every time, and the crash happens later, inside the wx
-main event loop (processing ~12,500 `FilterEvent` calls before segfaulting).
-This means GTK's realize/configure/size-allocate negotiation for this
-widget tree spans **multiple event-loop turns**, not one synchronous call —
-unlike `Fit()` at construction time, which is a single synchronous call
-suppression can cleanly bracket.
+**Attempt 1 — synchronous `Show()` wrapper**: arm the existing
+`g_suppressSizeEventsDuringFit` guard, call the base `Show()`, then disarm
+synchronously — same pattern as the construction-time fix. Failed:
+confirmed via trace that `OnInit()` (and therefore this synchronous
+wrapper) completes and returns *before* the actual storm starts, so
+nothing was suppressed by the time it happened.
 
-Two fix attempts were tried and both failed (tried live, safely capped,
-then reverted — the tree is back to the clean `94ed704` commit state, no
-half-finished attempt left in place):
-1. **Override `GatewayPrefs::Show()`** to arm the existing
-   `g_suppressSizeEventsDuringFit` guard, call the base `Show()`, then
-   disarm synchronously — same pattern as the construction-time fix. Failed:
-   confirmed via trace that `OnInit()` (and therefore this synchronous
-   wrapper) completes and returns *before* the actual storm starts, so
-   nothing was suppressed by the time it happened.
-2. **Same override, but disarm via `CallAfter()`** (runs once the event
-   loop has drained everything currently queued) instead of disarming
-   immediately. Failed: the trace showed the flow working as designed —
-   `finishShowSuppression()` fires, calls one manual `Layout()` while still
-   suppressed, disarms — but a *separate*, later storm still starts right
-   after, with suppression already off (~12,500 `FilterEvent` calls, all
-   `suppress=0`, right after the "suppress now false" log line). One
-   `CallAfter` round evidently isn't enough — GTK's negotiation for this
-   widget tree apparently needs more than one event-loop turn to settle,
-   and the single manual `Layout()` call doesn't converge it either.
-3. **Bind `wxEVT_SHOW` as the release signal, plus a 2s safety-net
-   `wxTimer`**, based on reading wxWidgets' actual GTK3 backend source
-   (`src/gtk/toplevel.cpp`, `wxTopLevelWindowGTK::Show()`/
-   `GTKDoAfterShow()`/`GTKUpdateClientSizeIfNecessary()` — see "Is this a
-   wx version issue?" below). Theory: `Show(true)` on wxGTK3 can defer the
-   actual `gtk_widget_show()` while it round-trips with the window manager
-   for `_NET_FRAME_EXTENTS`, and only once that completes does it apply a
-   pending client-size fit and send `wxEVT_SHOW` — so binding release to
-   that event should bracket the real trigger regardless of how many
-   event-loop turns the WM round-trip takes. Failed anyway, still crashed
-   the same way. Not fully diagnosed why — see "diagnostic dead end" below;
-   this specific theory was not conclusively ruled in or out.
+**Attempt 2 — disarm via `CallAfter()`** (runs once the event loop has
+drained everything currently queued) instead of disarming immediately.
+Failed: the trace showed the flow working as designed — the callback
+fires, calls one manual `Layout()` while still suppressed, disarms — but
+a *separate*, later storm still starts right after, with suppression
+already off. One `CallAfter` round wasn't enough.
 
-### Diagnostic dead end: gdb backtraces can't reach the real trigger here
-After attempt 3 also failed, tried to find the true (non-recursed) entry
-point into the storm directly, rather than keep guessing mechanisms:
-- Broke on `wxWindowBase::InternalOnSize` and captured the very first hit
-  of the whole program: it's an ordinary, harmless, expected size event
-  fired while constructing a `wxStaticBox` in `CreateControls()` — routine
-  construction-time noise, not the storm. This approach doesn't
-  distinguish "routine call" from "start of runaway recursion" and isn't
-  useful as-is (would need a real reentrancy check — e.g. is
-  `InternalOnSize` already on the stack N frames up — not just a hit
-  counter, to be useful).
-- Tried instead to capture the *bottom* of the stack at the moment of the
-  crash (`bt -40` — oldest frames, closest to program entry — as opposed
-  to `bt 40` which only ever shows the same repeating ~11-frame cycle near
-  the top). This is the right idea but hit a practical wall: gdb itself
-  needs real memory and CPU time to unwind and symbolize 100,000+ frames,
-  and that need is directly in tension with the memory/time caps this bug
-  requires for safety (see the `systemd-run` note above) — a 15s timeout
-  cut gdb off mid-unwind; a 120s timeout let gdb run out of virtual memory
-  instead (`./gdb/utils.c:666: internal-error: virtual memory exhausted`)
-  and dumped raw unsymbolized addresses. Whoever picks this up needs a
-  setup where gdb itself has more room than the crashing process does —
-  e.g. run gdb unconfined, only cap the *inferior* process (may need
-  `set exec-wrapper` or a `catch signal` + immediate `bt -60` before any
-  further recursion, rather than letting it run all the way to the actual
-  stack-limit SIGSEGV) — not attempted yet.
+**Attempt 3 — bind `wxEVT_SHOW` as the release signal, plus a 2s
+safety-net `wxTimer`**, based on reading wxWidgets' GTK3 backend source
+(`src/gtk/toplevel.cpp`, `wxTopLevelWindowGTK::Show()`/
+`GTKDoAfterShow()`/`GTKUpdateClientSizeIfNecessary()` — see "Is this a wx
+version issue?" below). Theory: `Show(true)` on wxGTK3 can defer the
+actual `gtk_widget_show()` while it round-trips with the window manager
+for `_NET_FRAME_EXTENTS`, and only once that completes does it send
+`wxEVT_SHOW` — so binding release to that event should bracket the real
+trigger. Failed anyway. A follow-up gdb capture (see below) later showed
+why: the real trigger happens well after `wxEVT_SHOW` fires, not bounded
+by it as the theory assumed.
+
+**Attempt 4 — fixed 1.5s timer as the sole release mechanism** (dropping
+the idle-quiescence debounce that was tried in between and also failed —
+it detected a real but misleading lull before the actual GTK cascade even
+started, releasing too early). This one is the most important negative
+result: **non-deterministic**. 10/13 runs survived in one batch; a
+separate batch was 5/8. Since only the timer duration changes between
+runs, and 1.5s isn't a reliably safe threshold, no fixed duration can be
+trusted — the real trigger's timing genuinely varies run to run.
+
+### The breakthrough: catching the trigger directly instead of timing it
+After attempt 3 failed, rather than keep guessing release points, tried
+to find the true entry point into the storm directly:
+- Breaking on `wxWindowBase::InternalOnSize` and capturing the very first
+  hit of the whole program wasn't useful — it's ordinary construction-time
+  noise (a `wxStaticBox` being created), not the storm; a hit counter
+  can't distinguish routine calls from the start of runaway recursion.
+- Capturing the *bottom* of the stack at crash time (`bt -40`, oldest
+  frames) hit a practical wall: gdb itself needs real memory/CPU to
+  unwind and symbolize 100,000+ frames, directly in tension with the
+  safety caps this bug requires — a short timeout cut gdb off mid-unwind,
+  a long one let gdb itself run out of virtual memory
+  (`./gdb/utils.c:666: internal-error: virtual memory exhausted`).
+- **What worked**: a gdb Python breakpoint (`gdb -x script.py`) on
+  `wxWindowBase::Layout` whose `stop()` method walks up to 100 frames via
+  `gdb.newest_frame()`/`.older()` and only actually stops if `"Layout"`
+  appears in 2+ frame names — i.e. only on genuine self-reentrancy, not
+  just any call. This catches the *first* reentrant call, at a shallow
+  depth (tens of frames, not 100,000+), so gdb can unwind and print it
+  instantly with no memory pressure at all. This single technique is what
+  unblocked the whole investigation — see `/tmp/reentrant_break.py` in
+  that session's transcript if reconstructing it.
+- That capture showed the real trigger: the storm starts inside
+  `wxPizza::size_allocate_child()` (wx's internal GTK container class),
+  reached through GTK's own recursive native `size_allocate` signal
+  cascade (`gtk_widget_size_allocate_with_baseline` calling itself down
+  through nested containers — normal GTK behavior), which at some depth
+  calls back into wx's C++ `wxEVT_SIZE` dispatch and recurses
+  independently on top of it. Confirmed via the `[TEST]` markers that
+  this happens *after* `OnInit()` (and therefore `Show()` and
+  `wxEVT_SHOW`) have already returned — explaining why attempts 1-3 all
+  released too early, and why attempt 4's timer was racing something with
+  inherently variable timing (matches this being driven by GTK/window-
+  manager negotiation, not anything in ECCE's own control flow).
+- This same technique also correctly identified a *false positive*: a
+  legitimate 5-deep nested `wxGridSizer` → `wxStaticBoxSizer` →
+  `wxBoxSizer` layout pass also has "2+ Layout frames," but terminates
+  cleanly after 48 total frames with no further recursion — i.e. ordinary
+  nested layout work, not the pathological storm. The eventual fix (next
+  section) swallows this case too, same as it swallows the real storm,
+  which turned out to be fine: sizers position children via direct
+  `SetDimension`/`DoSetSize` calls during the same `Layout()` pass, not by
+  relying on the swallowed event's own cascade, so correctness doesn't
+  depend on that inner event actually re-dispatching.
 
 ### Is this a wx version issue? Yes, plausibly — but not fully confirmed
 Researched whether this class of bug is a known wx3.2/GTK3 regression
@@ -277,33 +326,32 @@ machinery existed under the old toolkit ECCE originally targeted):
   precisely enough to say that with full certainty, or to know whether an
   upstream wx patch/newer wx point release might already fix it.
 
-### Next steps for whoever picks this up
-- Get a real backtrace to the true trigger first, before another fix
-  attempt — see "diagnostic dead end" above for why the last three
-  attempts were all somewhat shots in the dark, and what a working
-  diagnostic setup might need (gdb unconfined, only the inferior capped).
-- Once the real trigger is known, the fix likely needs suppression held
-  across as many event-loop turns as it actually takes to settle, not a
-  fixed one or two — e.g. a debounced approach: on each `wxEVT_SIZE` that
-  would otherwise be let through, re-arm suppression and re-schedule
-  another `CallAfter`, only doing the final un-suppressed `Layout()` once a
-  round genuinely produces no further churn.
-- Alternative angle worth investigating first: *why* does this widget tree
-  need multiple rounds to settle on first realize, when a single manual
-  `Layout()` pass was sufficient at construction time? If that's
-  answerable, a targeted fix (e.g. pre-sizing something before `Show()`)
-  might avoid needing the debounce complexity at all.
-- Rebuild the test harness from scratch (see "How it was found" above) —
-  it wasn't committed and won't persist across sessions. Always run it
-  under the `systemd-run` memory cap, never bare.
-- Test repeatedly once a fix seems to work — timing here has already proven
-  inconsistent enough (this bug went unnoticed through 8+ clean runs of the
-  full `gateway` binary, because those never reached the `Show()` call) that
-  one clean run should not be trusted alone.
-- Once actually fixed: manually resize both the main toolbar and the
-  Preferences dialog interactively, per the original investigation's
-  checklist — still not done, still blocked on either this bug or a working
-  `DataServers` setup (see above).
+### Still open after this fix
+Both known reentrancy crashes (construction-time and `Show()`-triggered)
+are now fixed and committed. What's left:
+- **Manual interactive resize testing** — still not done. Both fixes are
+  verified via safely-capped automated runs (no crash across many
+  repetitions), not by an actual human resizing the real toolbar and
+  Preferences dialog on screen, per the original investigation's
+  checklist. Still blocked on either a working `DataServers` setup or the
+  standalone test harness (see above) — the harness never actually
+  `Raise()`s/focuses the window in a way that's been confirmed visually
+  correct, only confirmed non-crashing.
+- **`FilterEvent` now runs `backtrace()`/`backtrace_symbols()` on every
+  `wxEVT_SIZE` process-wide** (when not already in the manually-suppressed
+  construction window) — correctness is verified, but performance/overhead
+  during rapid real interactive resizing (a user actively dragging a
+  window edge, which can fire many `wxEVT_SIZE` events per second) hasn't
+  been measured. `backtrace_symbols()` calls `malloc` internally and does
+  real symbol-table work each time; worth profiling if resizing ever feels
+  laggy once there's a real display session to check on.
+- Consider whether the two guards in `GatewayPrefs.C`
+  (`g_suppressSizeEventsDuringFit` for construction,
+  `isReentrantSizeEvent()` for everything else) should be consolidated —
+  the second one is actually more general and might have been sufficient
+  alone for construction too, just not verified against that path
+  specifically since the manually-scoped guard there already works and
+  wasn't worth risking a change to.
 
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
