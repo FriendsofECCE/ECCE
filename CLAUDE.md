@@ -91,35 +91,80 @@ for a new crash signature once already and wasted real time. A missing
 `ECCE_SYSDIR` now fails gracefully (see the `94ed704` fix above) rather than
 segfaulting, but still export it to reach the real code paths cleanly.
 
-### DataServers / EDSI data server — separate, unported piece of infra
+### DataServers / EDSI data server — FIXED, implemented (2026-08-28)
 `gateway` fully constructs its GUI (the crash-prone path above) *before*
-`GatewayApp::OnInit()` (`GatewayApp.C:142`/`164`) checks connectivity to the
-EDSI/WebDAV "ECCE Server" listed in `/opt/ecce/siteconfig/DataServers`. That
-config's default entry is still the real PNNL production URL
-(`http://eccetera.emsl.pnl.gov:8096/Ecce`), unreachable from a dev sandbox,
-so `EDSIServerCentral::checkServerSetup()` (`EDSIServerCentral.C:193-216`,
-untouched legacy code) hard `exit(1)`s with a `cerr` message — no dialog, no
-offline mode. This is old, pre-existing behavior, not a regression.
+`GatewayApp::OnInit()` checks connectivity to the EDSI/WebDAV "ECCE Server"
+listed in `/opt/ecce/siteconfig/DataServers`, in
+`EDSIServerCentral::checkServerSetup()` (`EDSIServerCentral.C:193-216`,
+untouched legacy code, hard `exit(1)`s with a `cerr` message on failure — no
+dialog, no offline mode).
 
-Architecturally: old ECCE's "server" was actually **two** independent
+Architecturally, old ECCE's "server" was actually **two** independent
 pieces, both started by `build/server_admin/start_ecce_server.ecce` — an
-Apache 2.2 + `mod_dav` **data server** (`start_ecce_data_server.ecce`, via
-`apachectl`; a vendored `httpd-2.2.25.tar.bz2` sits unused in
-`build/3rdparty-dists/` alongside the account/htaccess CGI scripts in
-`build/server_admin/`) and an ActiveMQ **message server**
-(`start_ecce_message_server.ecce`). The modernization session's JMS gateway
-work (see the claude.ai project doc) ported and packaged the *message*
-server only (`ecce-gateway-start`) — the *data* server half has never been
-touched. Standing it up for real is a separate task comparable in scope to
-that JMS porting work, not something to fold into this crash investigation.
+Apache + `mod_dav` **data server** and an ActiveMQ **message server**. The
+message server was already ported in an earlier session (`ecce-gateway-start`).
+The data server is now ported too — a per-user, non-root Debian `apache2`
+2.4 instance (not the vendored `httpd-2.2.25.tar.bz2`, which risks a real
+`mod_ssl`-vs-OpenSSL-3.x build break for no functional gain; ECCE's config
+needs nothing 2.2 has that 2.4 lacks). New files:
+`packaging/dataserver/httpd.conf.ecce` (2.2→2.4-ported config, LoadModule
+block added since Debian's apache2 is DSO-based and the legacy template
+assumed a static build) and `packaging/dataserver/ecce-dataserver-{start,
+stop,status,adduser}` (mirroring `ecce-gateway-*`'s idioms exactly). Runs
+under `$ECCE_REALUSERHOME/.ECCE/dataserver`, port 8096, seeded from the
+already-shipped `data/admin/dataserver/server_config/data_server_files.tar`.
+`CMakeLists.txt` repoints `siteconfig/DataServers` (both `<Url>` and
+`<BasisSet>`, same `file(READ)`/`REGEX REPLACE`/`file(WRITE)` pattern as
+`jndi.properties`) to `localhost`, flips `ECCE_AUTO_ACCOUNTS` off in
+`siteconfig/site_runtime` (the Perl CGI self-service account flow is
+deliberately deferred — a missing CGI degrades gracefully in the client,
+confirmed by tracing `EcceDAVClient::doPost()`; use `ecce-dataserver-adduser`
+instead), and adds `apache2, apache2-utils` to `CPACK_DEBIAN_PACKAGE_DEPENDS`
+(`dpkg-shlibdeps` only catches linked `.so`s, not a spawned subprocess).
 
-`EDSIFactory` does support a `file://` (or empty-protocol) scheme via
-`FileEDSI` (`src/dsm/edsiimpl/FileEDSI.C`) — just `stat()`s a local
-directory, no network — which is how old ECCE could plausibly run without a
-real server. Pointing `DataServers`' default `<Url>` at a local `file://`
-path would let `gateway` get past this check without standing up Apache,
-but `DataServers` is root-owned; doing this needs explicit sign-off before
-touching it (asked, not yet done as of this writing).
+**Two real bugs found and fixed while verifying, both worth knowing if this
+ever needs revisiting**:
+1. The vendored seed data's own `.htaccess` files (under `Ecce/users/`,
+   `Ecce/share/`) use legacy `Order`/`Allow`/`Deny` syntax — Apache 2.4
+   refuses to load them without `mod_access_compat` (`Invalid command
+   'Allow'`). Loaded that module rather than rewriting vendored data files.
+2. **The actual root cause of `checkServerSetup()` still failing after
+   everything else was correct**: `Options Indexes` was set on the `Ecce/`
+   directory (matching the legacy config) but `mod_autoindex` was never
+   loaded — without it, a bare directory request with no `index.html`
+   returns 404 instead of a listing. `EDSIServerCentral`'s very first check
+   is a HEAD against the bare `<Url>` from `DataServers`
+   (`http://localhost:8096/Ecce`, no trailing slash) — Apache 301-redirects
+   that to `/Ecce/` (a behavior `EcceDAVClient::execute()` already has
+   built-in retry logic for, confirmed reading the code — a "GDB 4/26/02
+   Hack to support Apache2" comment shows this exact problem was already
+   solved once before, decades ago), but the *retried* request against
+   `/Ecce/` was **also** 404ing because of the missing `mod_autoindex` —
+   which `DavEDSI::resourceExists()` correctly reports as "doesn't exist"
+   (empty error message, not a connection failure — confirmed via a
+   temporary diagnostic trace, since removed), exactly matching the generic
+   "cannot establish a connection" message this investigation started from.
+   Fixed by loading `mod_autoindex`.
+
+**Verified end-to-end against the real `gateway` binary**, not just raw
+`curl`: `ecce-dataserver-start` + `ecce-dataserver-adduser -b <user> <pass>`,
+then the exact repro command from "Fast repro" above — `gateway` no longer
+hits the hard `exit(1)` path at all; it runs past `checkServerSetup()` into
+real application UI, confirmed both by process still running past the repro
+window and by an actual screenshot showing a genuine "ECCE Authentication"
+dialog (username pre-filled, waiting for a password) on screen. Also
+confirmed: the negative path (data server stopped → `gateway` still cleanly
+`exit(1)`s with the original message, so the fix isn't a no-op) and start
+idempotency (running `ecce-dataserver-start` twice doesn't re-seed over live
+data).
+
+Not yet done: actually typing a password into that dialog and confirming
+what happens next in the GUI flow (a `Gtk-CRITICAL: gtk_editable_get_chars`
+warning appears periodically while the dialog is up — not fatal, dialog
+still renders and accepts input, but worth a look if anything downstream of
+login misbehaves). `EDSIFactory` also supports a `file://` (or
+empty-protocol) scheme via `FileEDSI` for a no-server-at-all setup, if ever
+wanted instead — not needed now that the real data server works.
 
 ## `GatewayPrefs::Show()` reentrancy crash — FIXED, committed (2026-08-28)
 
