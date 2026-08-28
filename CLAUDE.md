@@ -1606,6 +1606,19 @@ reinstalled" caveat as `gensub`, plus this one needs an actual
 successful submission to reach the point where `eccejobmonitor` gets
 copied over at all.
 
+### VERIFIED end-to-end (2026-08-29): first successful real job
+
+Andy reinstalled the package and ran a real Gaussian 16 RHF/6-31G
+calculation on CH4 against the `niobium` machine registration —
+**completed successfully**. This is full, live confirmation of the
+entire chain fixed this session, not just the individual standalone
+repros documented above: Gateway login → Quick Basis Menu save
+(`std2NWChem` `$PATH` fix) → Machine Registration (`processmachine`
+packaging fix) → job launch (`gensub` packaging fix) → job monitoring
+(`eccejobmonitor` packaging fix, found via the audit above) all had to
+work, in sequence, for this run to finish. First real calculation to run
+to completion since this modernization effort's wx3.2/GTK3 port began.
+
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
 `*GUI.C` files in ~15 other `ECCE_GUI_APPS` (confirmed via grep — e.g.
