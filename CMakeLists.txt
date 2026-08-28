@@ -597,8 +597,6 @@ install(PROGRAMS
         DESTINATION bin)
 install(FILES ${CMAKE_SOURCE_DIR}/packaging/dataserver/httpd.conf.ecce
         DESTINATION server/httpd-conf)
-install(PROGRAMS ${CMAKE_SOURCE_DIR}/packaging/dataserver/populate-gbs-metadata.py
-        DESTINATION server/httpd-conf)
 
 foreach(_ds start stop status adduser)
   set(_ds_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-dataserver-${_ds})
@@ -698,6 +696,7 @@ export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
 export DISPLAY=\${DISPLAY:-:0}
 export ECCE_HELP=\${ECCE_HELP:-http://localhost:8096/}
+export PATH=\"$ECCE_HOME/scripts/parsers:$PATH\"
 ${_gateway_start}
 ${_dataserver_start}
 exec \"$ECCE_HOME/bin/${_app}\" \"$@\"
@@ -723,6 +722,7 @@ export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
 export DISPLAY=\${DISPLAY:-:0}
 export ECCE_HELP=\${ECCE_HELP:-http://localhost:8096/}
+export PATH=\"$ECCE_HOME/scripts/parsers:$PATH\"
 export ECCE_INVOKE_VIEWER=1
 export ECCE_INVOKE_FROMECCE=1
 if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi

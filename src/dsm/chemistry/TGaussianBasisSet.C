@@ -210,7 +210,12 @@ TGaussianBasisSet::TGaussianBasisSet(const TGaussianBasisSet& gbs,
 *******************************************************************/
 TGaussianBasisSet::GBSType TGaussianBasisSet::strToType(string type)
 {
-  TGaussianBasisSet::GBSType gbsType;
+  // Real vendored *.meta sidecar files legitimately leave this field
+  // blank for plain orbital basis sets (the type is implied by which
+  // category index file the basis set was found under, not restated per
+  // file) -- default to Unknown rather than leaving gbsType uninitialized
+  // so an empty/unrecognized string doesn't produce undefined behavior.
+  TGaussianBasisSet::GBSType gbsType = TGaussianBasisSet::UnknownGBSType;
   if (type == "pople")
     gbsType = TGaussianBasisSet::pople;
   else if (type == "other_segmented")
@@ -284,10 +289,15 @@ TGaussianBasisSet::AngularMomentum TGaussianBasisSet::charToShell(char ch)
  Method : stringToContType
  Summary: 
 *******************************************************************/
-TGaussianBasisSet::ContractionType 
+TGaussianBasisSet::ContractionType
                    TGaussianBasisSet::strToContType(string ct)
 {
-  TGaussianBasisSet::ContractionType contType;
+  // See strToType()'s comment: real vendored *.meta sidecar files
+  // legitimately leave this field blank for plain orbital basis sets --
+  // default rather than leave contType uninitialized on an empty/
+  // unrecognized string.
+  TGaussianBasisSet::ContractionType contType =
+                   TGaussianBasisSet::UnknownContType;
   if (ct == "AnyConType")
     contType = TGaussianBasisSet::AnyConType;
   else if (ct == "Uncontracted")
@@ -307,11 +317,16 @@ TGaussianBasisSet::ContractionType
  Method : stringToCoordSys
  Summary: 
 *******************************************************************/
-TGaussianBasisSet::CoordinateSystem 
+TGaussianBasisSet::CoordinateSystem
                    TGaussianBasisSet::strToCoordSys(string cs)
 {
-  TGaussianBasisSet::CoordinateSystem coordSys;
- 
+  // See strToType()'s comment: real vendored *.meta sidecar files
+  // legitimately leave this field blank for plain orbital basis sets --
+  // default rather than leave coordSys uninitialized on an empty/
+  // unrecognized string.
+  TGaussianBasisSet::CoordinateSystem coordSys =
+                   TGaussianBasisSet::UnknownCoordSys;
+
   if (cs == "Y")
     coordSys = TGaussianBasisSet::Spherical;
   else if (cs == "N")

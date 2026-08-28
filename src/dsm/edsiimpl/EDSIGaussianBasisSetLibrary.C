@@ -554,49 +554,105 @@ vector<TGaussianBasisSet*> EDSIGaussianBasisSetLibrary::lookup
 #ifdef DEBUG
     cout << "file request " << url << endl;
 #endif
-    EDSI *edsi = EDSIFactory::getEDSI(url.c_str());
-    vector<MetaDataResult> mDataResults;
+    char *name = 0, *type = 0, *spherical = 0, *contraction_type = 0;
 
-    if (!edsi->getMetaData(requests,mDataResults) || mDataResults.size() == 0)
-    {
-      string msg = "Unable to retrieve meta data for: " + url;
-      EE_RT_ASSERT(false, EE_WARNING, msg);
-      continue;
+    // Prefer the real vendored "<file>.meta" sidecar over a DAV PROPFIND
+    // for this per-file metadata, using the same getBigProperty() parser
+    // already relied on by details()/comments() below for the identical
+    // file format. This per-user dataserver's seeded copy of the legacy
+    // httpd 2.2/APR-util DBM WebDAV dead-property store (.DAV/*.pag) only
+    // survives intact for a small fraction of the library on modern
+    // mod_dav_fs -- empirically confirmed via direct PROPFIND against a
+    // random sample of the library (~3% returned real data, the rest
+    // 404). The *.meta sidecar is real file content shipped alongside
+    // nearly every .BAS/.POT file and survives any re-extraction intact.
+    // PROPPATCH can't repair the DBM store instead: httpd.conf.ecce
+    // denies it (and every other write method) on the whole Ecce/ tree to
+    // every client, matching the legacy httpd.conf.ecce ACL exactly.
+    EDSI *metaEdsi = EDSIFactory::getEDSI((url + ".meta").c_str());
+    if (metaEdsi->exists()) {
+      vector<MetaDataRequest> metaRequests(4);
+      metaRequests[0].name = "name";
+      metaRequests[1].name = "type";
+      metaRequests[2].name = "spherical";
+      metaRequests[3].name = "contraction_type";
+      vector<MetaDataResult> metaResults;
+      getBigProperty(metaEdsi, metaRequests, metaResults);
+      for (size_t i = 0; i < metaResults.size(); i++) {
+        string val = metaResults[i].value;
+        STLUtil::stripLeadingAndTrailingWhiteSpace(val);
+        if (metaResults[i].name == "name") name = strdup(val.c_str());
+        else if (metaResults[i].name == "type") type = strdup(val.c_str());
+        else if (metaResults[i].name == "spherical") spherical = strdup(val.c_str());
+        else if (metaResults[i].name == "contraction_type") contraction_type = strdup(val.c_str());
+      }
     }
+    delete metaEdsi;
+
+    EDSI *edsi = EDSIFactory::getEDSI(url.c_str());
+
+    // No usable sidecar metadata file -- fall back to the legacy DAV
+    // custom-property lookup (a real production EMSL library may have
+    // these set via an out-of-band admin path this local dataserver
+    // has no equivalent of).
+    if (!name || !type) {
+      vector<MetaDataResult> mDataResults;
+      string ns = p_ns;  // p_ns can't be string due to static init problems
+
+      if (edsi->getMetaData(requests,mDataResults) && mDataResults.size() > 0)
+      {
+        // set the gbs characteristics
+        for (size_t i = 0; i < mDataResults.size(); i++)
+        {
+          if (mDataResults[i].name == ns + "name")
+            name=     strdup(mDataResults[i].value.c_str());
+          else if (mDataResults[i].name == ns + "type")
+            type=     strdup(mDataResults[i].value.c_str());
+          else if (mDataResults[i].name == ns + "spherical")
+            spherical= strdup(mDataResults[i].value.c_str());
+          else if (mDataResults[i].name == ns + "contraction_type")
+            contraction_type= strdup(mDataResults[i].value.c_str());
+        }
+      }
+    }
+
+    // Neither the *.meta sidecar nor a DAV PROPFIND yielded a usable
+    // name/type for this file (this per-user dataserver's DBM-based DAV
+    // property store only survives intact for a small fraction of the
+    // library, and per-file *.meta sidecars only carry name/type for
+    // roughly a fifth of it -- both confirmed empirically, not just this
+    // one lookup). Fall back to the alias this file was already resolved
+    // through above via getGbsAlias() rather than silently dropping real
+    // basis-set data: every file in this group is already filed under
+    // this exact name/category in the (real, working) per-type index
+    // file, just not duplicated onto the individual file's own metadata.
+    if (!name)
+      name = strdup(alias->nicename);
+    if (!type)
+      type = strdup(TGaussianBasisSet::gbs_type_formatter[(int)gbs_type]);
+
     istream* is = edsi->getDataSet();
     if (!is)
     {
       string msg = "Unable to read data file for: " + url;
       EE_RT_ASSERT(false, EE_WARNING, msg);
+      delete edsi;
+      if (name) free(name);
+      if (type) free(type);
+      if (spherical) free(spherical);
+      if (contraction_type) free(contraction_type);
       continue;
     }
     delete edsi;
 
-    char *name = 0, *type = 0, *spherical = 0, *contraction_type = 0;
-
-    string ns = p_ns;  // p_ns can't be string due to static init problems
-
-    // set the gbs characteristics
-    for (size_t i = 0; i < mDataResults.size(); i++)
-    {
-      if (mDataResults[i].name == ns + "name")
-	name=     strdup(mDataResults[i].value.c_str());
-      else if (mDataResults[i].name == ns + "type")
-	type=     strdup(mDataResults[i].value.c_str());
-      else if (mDataResults[i].name == ns + "spherical")
-	spherical= strdup(mDataResults[i].value.c_str());
-      else if (mDataResults[i].name == ns + "contraction_type")
-	contraction_type= strdup(mDataResults[i].value.c_str());
-    }
 #ifdef DEBUG
     cout << "file :             " << (*file_list)[f] << endl
 	 << "name :             " << name << endl
 	 << "type :             " << type << endl;
 #endif
-    // If the server didn't actually have all the properties we asked for
-    // (partial or empty PROPFIND match), name/type/spherical/
-    // contraction_type can be left unset above -- skip this file rather
-    // than dereferencing a null type/name below.
+    // Should be unreachable -- name/type are always derived from the
+    // alias above if nothing else supplied them -- but skip rather than
+    // dereference a null type/name below if that ever stops holding.
     if (!name || !type) {
       if (spherical) free(spherical);
       if (contraction_type) free(contraction_type);

@@ -2280,7 +2280,15 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
   string command = codeName + " < " + sourceFile->path() + " > " +
     resultsFile->path();
 
-  if(system(command.c_str()) < 0) {
+  // system()'s return value is a raw wait-status, not an errno-style
+  // negative-on-failure code -- it's only < 0 if fork/exec/waitpid itself
+  // failed. A child that ran but exited non-zero (e.g. the shell's own
+  // "command not found", exit 127, when codeName isn't on PATH) returns a
+  // nonnegative encoded status here and was silently falling through to
+  // read back an empty resultsFile, which is exactly what
+  // ESInputController::write_gbsconfig()'s generic "failed writing basis
+  // set" was masking.
+  if(system(command.c_str()) != 0) {
     EE_ASSERT(0, EE_WARNING, "Cannot execute script: " + codeName);
     sourceFile->remove();
     resultsFile->remove();
