@@ -145,7 +145,7 @@ void PerTabPanel::createControls(bool isMultiSelect,
   int padding = 15;
   if (p_isMini)
     padding = 2;
-  p_topSizer->Add(p_elementSizer, 1, wxEXPAND|wxALL|wxALIGN_CENTER, padding);
+  p_topSizer->Add(p_elementSizer, 1, wxEXPAND|wxALL, padding);
 
   p_elementSizer->SetEmptyCellSize(wxSize(1,1));
 

@@ -1224,6 +1224,86 @@ the real, running Builder/CalcEd GUI** — no interactive access to retest
 "Quick Basis Menu" → "6-31G" → check for the coverage error live; that's
 the next thing to confirm once there's a live session again.
 
+## "Regenerate thumbnail on demand, independent of Save" — already exists, no new code needed (2026-08-28)
+
+User wanted `Ctrl+S` to regenerate the thumbnail every time, even when
+the structure hasn't changed (`updateSave()` correctly disables Save,
+and its `Ctrl+s` accelerator with it, whenever nothing is dirty — see the
+Builder crash section above; confirmed this is intentional, standard
+"nothing to save" behavior, not a bug). Rather than change core Save
+semantics, asked whether to always-enable Save vs. add a separate,
+dirty-independent thumbnail action — chose the latter.
+
+Turned out to already exist: `Builder`'s File menu has **"Create
+Thumbnail"** (`ID_SAVE_THUMB` → `OnSaveThumbClick()` → `doSaveThumb()`,
+`src/apps/builder/BuilderGUI.C`/`Builder.C`), enabled purely by "is there
+a valid calculation context" (`updatePropertyMenus()`'s
+`dynamic_cast<Resource*>(p_calculation)` check) — **already completely
+independent of the dirty flag**, and `doSaveThumb()` itself has no dirty
+check either. No new menu item, no new code — just needed the crash fix
+above (this calls the exact same `VizRender::thumbnail()` that was
+crashing and failing to render) for this pre-existing feature to actually
+work. Not yet confirmed live that the menu item is visible/clickable in
+practice — worth a quick look next session.
+
+## Basis Set Tool editor "looks weird" — periodic table FIXED, column widths still open (2026-08-28)
+
+Investigated via the same no-interaction screenshot technique used for
+the periodic-table and Help bugs earlier (`basistool` opens to a usable
+default state standalone, no GUI clicking needed to see the bug). Two
+separate issues found, one fixed, one still open.
+
+### Fixed: mini periodic table rendered as an unreadable hatched strip
+The "Chemical Formula" element-picker (`WxBasisTool.C` embeds
+`PerTabPanel` in `isMini` mode, same class as the standalone Periodic
+Table app fixed earlier, and `Builder`'s own `MiniPerTab` — see that
+section's "worth checking" note, now checked) rendered as a thin strip of
+tiny black-and-white hatched rectangles, not distinguishable element
+buttons. **Not the same root cause as the standalone Periodic Table
+bug** — that fix (drop `wxALIGN_CENTER` from the per-button sizer flags)
+was already in place here and had zero effect on this symptom, confirmed
+via screenshot before looking further.
+
+Actual cause, in the *designer-generated* `WxBasisToolGUI.C`:
+`itemBoxSizer64->Add(itemPanel68, 1, wxGROW|wxFIXED_MINSIZE, 0);` —
+`wxFIXED_MINSIZE` locks a sizer item to whatever (near-zero) best-size it
+happens to have **at the moment it's added to the sizer**, permanently
+ignoring any size hint set afterward. `itemPanel68` is the *empty*
+placeholder panel added to the sizer *before* the real `PerTabPanel`
+child gets created and put inside it — so the panel was permanently
+frozen at its pre-content, near-zero size. Confirmed two prior,
+independent attempts at fixing this were already sitting commented-out
+right next to the panel's construction in `WxBasisTool.C` (both explicit
+`SetMinSize()` hints) — neither could have worked regardless of the
+value chosen, since `wxFIXED_MINSIZE` on the *parent* sizer item ignores
+child size hints entirely. Fixed by removing `wxFIXED_MINSIZE`, keeping
+`wxGROW`. Confirmed via screenshot: full 118-element, correctly colored
+and labeled periodic table, matching the already-fixed standalone tool's
+appearance. As a side effect, the basis-set list panel above it also
+now shows properly (more rows, category headers visible) — apparently
+the same layout pass was also constraining that sibling panel.
+
+### Still open: grid column headers truncated ("Polarizatio", "T Charg", "T Exchan")
+`WxBasisTool::setGridColumnVisible()` hardcodes `SetColSize(col, 30)` for
+the ECP/Fit-Charge/Fit-Exchange columns specifically — 30px is too narrow
+for their header text even with the `AutoSize()` call immediately after,
+which apparently doesn't widen based on header-label length (possibly
+computing width from cell *content* only, and cells are empty in this
+no-molecule-loaded state — not confirmed). Tried raising the hardcoded
+value to 85px; **no visible change** in a follow-up screenshot, so
+`AutoSize()` (or something else downstream) is winning over the explicit
+width, same failure signature as the periodic-table fix's own
+`SetMinSize()` dead end before `wxFIXED_MINSIZE` was found — some other
+constraint here hasn't been identified yet. Also: the "Polarization"/
+"Diffuse"/"Rydberg" columns showing the *same* truncation aren't even
+routed through `setGridColumnVisible()` at all (grepped — no call site
+for those columns), so whatever's actually setting their initial width
+is a still-undiscovered separate code path. Left the 85px change in
+place (harmless, may help in states not visible in this screenshot) but
+this needs real investigation before claiming it's fixed. Purely
+cosmetic — doesn't block using the grid, unlike the periodic table issue
+above which did.
+
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
 `*GUI.C` files in ~15 other `ECCE_GUI_APPS` (confirmed via grep — e.g.

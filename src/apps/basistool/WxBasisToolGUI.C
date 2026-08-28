@@ -480,7 +480,13 @@ void WxBasisToolGUI::CreateControls()
     itemBoxSizer65->Add(itemStaticText67, 1, wxALIGN_BOTTOM|wxLEFT|wxRIGHT|wxTOP, 3);
 
     ewxPanel* itemPanel68 = new ewxPanel( itemPanel63, ID_PANEL_WXBASISTOOL_PERTABLE, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
-    itemBoxSizer64->Add(itemPanel68, 1, wxGROW|wxFIXED_MINSIZE, 0);
+    // wxFIXED_MINSIZE locks this item to whatever (near-zero) best-size it
+    // has at insertion time, before the embedded PerTabPanel is even
+    // created -- permanently ignoring any later SetMinSize() call and
+    // squashing the mini periodic table into an unusable strip. Confirmed
+    // via screenshot this was the actual constraint, not PerTabPanel's own
+    // layout.
+    itemBoxSizer64->Add(itemPanel68, 1, wxGROW, 0);
     wxBoxSizer* itemBoxSizer69 = new wxBoxSizer(wxHORIZONTAL);
     itemPanel68->SetSizer(itemBoxSizer69);
 

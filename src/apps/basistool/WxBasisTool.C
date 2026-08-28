@@ -372,7 +372,12 @@ void WxBasisTool::initControls()
 
 //    p_elementsTable = new PerTabPanel(p_moleculePanel, ID_PERTAB_WXBASISTOOL_ELEMENTS, wxDefaultPosition, wxSize(-1, 320), wxNO_BORDER );
     p_elementsTable = new PerTabPanel(p_elementsPanel, true, ID_ITEM_DEFAULT, false, false, false, ID_PERTAB_WXBASISTOOL_ELEMENTS, wxDefaultPosition, wxDefaultSize, wxNO_BORDER );
-    //p_elementsTable->SetMinSize(wxSize(320, 200));
+    // wxDefaultSize + relying purely on the sizer to grow this to a usable
+    // height doesn't work under wx3.2/GTK3 -- confirmed via screenshot,
+    // renders as an unusably squashed strip. Two earlier, independent
+    // attempts at an explicit min-size hint here were both left commented
+    // out rather than landed; this is that fix, actually applied.
+    p_elementsTable->SetMinSize(wxSize(-1, 200));
     wxSizer* szrElmts = p_elementsPanel->GetSizer();
     szrElmts->Add(p_elementsTable, 1, wxGROW|wxALL, 3);
    // szrElmts->Layout();
@@ -2916,7 +2921,12 @@ void WxBasisTool::setGridColumnVisible(int col, bool vsbl)
     for (int i = 0; i < 3; i++)
     {
         p_contextBasisSetsGrid[i]->SetColLabelValue(col, (vsbl ? p_columnLabels[col] : ""));
-        p_contextBasisSetsGrid[i]->SetColSize(col, (vsbl ? 30 : 0));
+        // 30px was too narrow to fit column headers like "Polarization" or
+        // "Fit Charge" even with the AutoSize() call below -- confirmed via
+        // screenshot they were rendering truncated ("Polarizatio", "T
+        // Charg"). AutoSize() still runs and may widen further for actual
+        // cell content; this just raises the floor for the header text.
+        p_contextBasisSetsGrid[i]->SetColSize(col, (vsbl ? 85 : 0));
         p_contextBasisSetsGrid[i]->AutoSize();
     }
 }
