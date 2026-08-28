@@ -54,6 +54,64 @@
 //using std::cerr;
 //using std::endl;
 
+namespace {
+
+  // Guards against a resize/layout reentrancy bug on this wx3.2/GTK3
+  // combination: Fit() below can trigger a wxEVT_SIZE -> InternalOnSize
+  // -> Layout() cascade that never converges, observed recursing on the
+  // order of 100,000+ stack frames deep before crashing (SIGSEGV once the
+  // stack limit is hit; uncapped, it consumes multiple GB of RSS and gets
+  // OOM-killed after ~20s). Two earlier attempts at fixing this centrally
+  // in ewxFrame/ewxDialog (a Freeze()/Thaw() around DoSetSize(), then a
+  // depth-capped guard around Layout()) both failed to stop it -- repeat
+  // crashes showed the exact same ~12,470-iteration recursion signature
+  // either way, unchanged. Backtrace evidence across multiple runs shows
+  // why: the window that ends up cycling isn't reliably the top-level
+  // ewxFrame/ewxDialog itself -- it can be any child control (seen
+  // happening on a plain wxStaticText mid-construction in one run), and
+  // none of those inherit from the classes we overrode.
+  //
+  // Rather than continuing to guess which C++ class needs a virtual
+  // override, this blocks the trigger at the one point that's been
+  // consistent across every single captured backtrace: the Fit() call
+  // itself. A global wxEventFilter swallows wxEVT_SIZE process-wide for
+  // the duration of that one call, so no window's InternalOnSize() (and
+  // therefore no Layout()) ever fires reentrantly while it runs,
+  // regardless of which widget wx happens to be resizing at the time.
+  // Fit()'s own size computation (querying the sizer's min size and
+  // calling SetSize()) does not depend on those events actually being
+  // processed, so this doesn't change what size gets requested -- it
+  // only stops that request from cascading into itself. A single
+  // explicit, non-reentrant Layout() call right after restores correct
+  // child positions once the storm-prone event path is no longer live.
+  bool g_suppressSizeEventsDuringFit = false;
+
+  class SizeEventSuppressor : public wxEventFilter
+  {
+  public:
+    virtual int FilterEvent(wxEvent& event) wxOVERRIDE
+    {
+      if (g_suppressSizeEventsDuringFit &&
+          event.GetEventType() == wxEVT_SIZE) {
+        return Event_Processed;
+      }
+      return Event_Skip;
+    }
+  };
+
+  SizeEventSuppressor g_sizeEventSuppressor;
+  bool g_sizeEventFilterInstalled = false;
+
+  void ensureSizeEventFilterInstalled()
+  {
+    if (!g_sizeEventFilterInstalled) {
+      wxEvtHandler::AddFilter(&g_sizeEventSuppressor);
+      g_sizeEventFilterInstalled = true;
+    }
+  }
+
+}
+
 /**
  * Empty constructor, should never be used.
  */
@@ -122,7 +180,17 @@ GatewayPrefs::GatewayPrefs( wxWindow* parent, wxWindowID id,
   SetSize(size);
 #endif
 
+  // See the SizeEventSuppressor writeup near the top of this file: Fit()
+  // is the confirmed trigger for a wx3.2/GTK3 resize/layout reentrancy
+  // bug that has been crashing this app. Swallow wxEVT_SIZE process-wide
+  // only for the duration of this one call, then do one manual,
+  // non-reentrant Layout() to fix up final child positions.
+  ensureSizeEventFilterInstalled();
+  g_suppressSizeEventsDuringFit = true;
   Fit();
+  Layout();
+  g_suppressSizeEventsDuringFit = false;
+
   Show(false);
 }
 

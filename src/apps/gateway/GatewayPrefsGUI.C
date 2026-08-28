@@ -35,6 +35,48 @@
 ////@begin XPM images
 
 ////@end XPM images
+
+namespace {
+
+  // See the identical guard in GatewayPrefs.C for the full writeup of the
+  // wx3.2/GTK3 resize/layout reentrancy bug this works around (a runaway
+  // wxEVT_SIZE -> InternalOnSize -> Layout() recursion that never
+  // converges). GatewayPrefs.C's own guard -- installed inside
+  // GatewayPrefs's constructor body, around *its* Fit() call -- turned out
+  // not to fix the gateway crash. Root cause: this file's Create() below
+  // calls GetSizer()->Fit(this) as part of GatewayPrefsGUI's own
+  // construction, which (by C++ construction order) fully completes
+  // *before* GatewayPrefs's constructor body -- and therefore its guard --
+  // ever runs. This is a separate instance of the same guard, scoped to
+  // this file's own Fit() call, to test whether that's really the trigger.
+  bool g_suppressSizeEventsDuringCreate = false;
+
+  class CreateSizeEventSuppressor : public wxEventFilter
+  {
+  public:
+    virtual int FilterEvent(wxEvent& event) wxOVERRIDE
+    {
+      if (g_suppressSizeEventsDuringCreate &&
+          event.GetEventType() == wxEVT_SIZE) {
+        return Event_Processed;
+      }
+      return Event_Skip;
+    }
+  };
+
+  CreateSizeEventSuppressor g_createSizeEventSuppressor;
+  bool g_createSizeEventFilterInstalled = false;
+
+  void ensureCreateSizeEventFilterInstalled()
+  {
+    if (!g_createSizeEventFilterInstalled) {
+      wxEvtHandler::AddFilter(&g_createSizeEventSuppressor);
+      g_createSizeEventFilterInstalled = true;
+    }
+  }
+
+}
+
 const wxWindowID GatewayPrefsGUI::ID_SHOWBUSY_CHECKBOX = wxNewId();
 const wxWindowID GatewayPrefsGUI::ID_BEEPWARN_CHECKBOX = wxNewId();
 const wxWindowID GatewayPrefsGUI::ID_ALWAYS_ON_TOP = wxNewId();
@@ -151,7 +193,18 @@ bool GatewayPrefsGUI::Create( wxWindow* parent, wxWindowID id, const wxString& c
     ewxFrame::Create( parent, id, caption, pos, size, style );
 
     CreateControls();
+
+    // See the CreateSizeEventSuppressor writeup near the top of this file:
+    // this Fit() call is the newly-suspected real trigger for the
+    // gateway resize/layout reentrancy crash. Swallow wxEVT_SIZE
+    // process-wide only for the duration of this one call, then do one
+    // manual, non-reentrant Layout() to fix up final child positions --
+    // same pattern as GatewayPrefs.C's own (previously ineffective) guard.
+    ensureCreateSizeEventFilterInstalled();
+    g_suppressSizeEventsDuringCreate = true;
     GetSizer()->Fit(this);
+    Layout();
+    g_suppressSizeEventsDuringCreate = false;
     GetSizer()->SetSizeHints(this);
     Centre();
 ////@end GatewayPrefsGUI creation
@@ -168,7 +221,6 @@ void GatewayPrefsGUI::CreateControls()
     GatewayPrefsGUI* itemFrame1 = this;
 
     wxBoxSizer* itemBoxSizer2 = new wxBoxSizer(wxVERTICAL);
-    itemFrame1->SetSizer(itemBoxSizer2);
 
     wxStaticBox* itemStaticBoxSizer3Static = new wxStaticBox(itemFrame1, wxID_ANY, _("Global Preferences"));
     wxStaticBoxSizer* itemStaticBoxSizer3 = new wxStaticBoxSizer(itemStaticBoxSizer3Static, wxVERTICAL);
@@ -335,6 +387,18 @@ void GatewayPrefsGUI::CreateControls()
     itemBoxSizer38->Add(itemButton44, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     itemBoxSizer38->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+
+    // Moved SetSizer() here from right after itemBoxSizer2 was created,
+    // at the very top of this function. Calling it that early gave
+    // itemFrame1 a live, auto-layout-enabled sizer for the entire rest of
+    // construction, so every subsequent ->Add() and every child
+    // control's own SetFont()/DoSetSize() call could trigger a real
+    // Layout() pass over a still-partially-built sizer tree -- a
+    // plausible trigger for the resize/Layout reentrancy bug that's been
+    // crashing this app (see ewxFrame.H/ewxDialog.H for the fuller
+    // writeup of that bug). Attaching the sizer only once the whole tree
+    // is fully built removes that mid-construction trigger entirely.
+    itemFrame1->SetSizer(itemBoxSizer2);
 
 ////@end GatewayPrefsGUI content construction
 }
