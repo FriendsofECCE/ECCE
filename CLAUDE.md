@@ -985,7 +985,14 @@ before... How To tab gives internal server error on the left panel"
 touching anything further, rather than guessing at more CGI scripts to
 patch blind.
 
-## Basis set / theory validation false errors — FIXED (2026-08-28)
+## `scripts/parsers` packaging gap — real fix, but NOT the basis-set error's cause (2026-08-28)
+
+Genuinely fixed a real packaging gap (below) while investigating the
+basis-set/theory validation errors — but this turned out to be the wrong
+tree entirely for *that* bug. **The actual root cause and real fix are in
+the next section** ("Basis set library metadata — FIXED"); left this
+section as-is rather than deleting it, since the packaging gap it
+describes is real and worth having fixed regardless.
 
 Reported while testing a real NWChem calculation setup (draw CH4 in
 Builder, set SCF/RHF theory, open the basis set editor): spurious
@@ -1114,6 +1121,108 @@ call site in the tree — no sibling instances elsewhere.
 Not yet re-verified live (found, fixed, rebuilt, and packaged in the same
 round as the crash fix above — needs a real retest generating an actual
 Organizer thumbnail).
+
+## Basis set library metadata — FIXED for 9 core basis sets (2026-08-28)
+
+The real root cause of "selected configuration doesn't cover all
+elements" (false, for every basis set, every element, always) and
+`Theory Details` doing nothing. Traced the actual code path clicking
+"Quick Basis Menu" exercises: `CalcEd::OnMenuCalcedBasisSetSelected()`
+(`src/apps/calced/CalcEd.C`) → `EDSIGaussianBasisSetLibrary::simpleLookup()`
+→ `lookup()` (`src/dsm/edsiimpl/EDSIGaussianBasisSetLibrary.C`) — this is
+**pure DAV/EDSI data retrieval**, unrelated to `TGBSConfig.C`'s
+`system()`/`GBSExport` call from the section above (a completely
+different code path, only reached later, when actually *submitting* a
+job — not when validating a selection in the editor).
+
+`lookup()` needs, over WebDAV, from `<BasisSet>` in `siteconfig/
+DataServers` (`http://localhost:8096/Ecce/system/GaussianBasisSetLibrary`,
+confirmed already correctly repointed from an earlier session's data
+server work):
+1. A per-GBS-type alias index (a plain file, e.g. `.../
+   GaussianBasisSetLibrary/other_generally_contracted`, listing every
+   basis set of that type with `name=`/`files=`/`atoms=` entries) — tried
+   first via a direct file fetch, with a DAV-custom-property fallback if
+   that 404s.
+2. Custom DAV properties (`http://www.emsl.pnl.gov/ecce:name` /`:type`
+   /`:spherical` /`:contraction_type`) set directly on each individual
+   `.BAS`/`.POT` file.
+
+**Neither existed at all** — confirmed via direct `curl`: the type-index
+file 404s, and a `PROPFIND` on the library collection and on individual
+files returns only Apache's own standard properties, none of the
+`ecce:`-namespaced ones. Traced *why* to the very first data-server
+session's own documented decision: the vendored seed data's `.DAV/`
+property-store directory (old httpd/APR-util DBM format) was deliberately
+stripped during seeding as a "format-compatibility... unverified, costs
+nothing since it's optional metadata" call — **that assessment was wrong
+for this one case**: this specific metadata isn't optional decoration,
+it's load-bearing for the entire basis-set-library feature. Also found
+*while* this file's `.BAS.descriptor` files (see below) explain where the
+original metadata was *supposed* to come from: `scripts/gbsDescriber`
+(confirmed genuinely unported Python 2 in the section above) generates
+raw `.pag`/`.dir` files in httpd 2.2/APR-util's own undocumented internal
+DBM binary format (hand-computed byte offsets, `chr()` arithmetic) — even
+a perfect Python 3 port of that script would produce output **modern
+`mod_dav_fs` can't read at all**, a completely different, incompatible
+on-disk format. Porting `gbsDescriber` was a dead end regardless of the
+Python 2 issue; the real fix needed to go through DAV's own standard,
+version-independent `PROPPATCH` protocol instead of trying to forge
+Apache-internal files.
+
+**Fixed via a new script**, `packaging/dataserver/populate-gbs-metadata.py`
+(Python 3, no relation to `gbsDescriber` beyond solving the same
+underlying problem correctly): generates the per-type index files and
+`PROPPATCH`es the per-file properties over plain HTTP against the running
+data server. Wired into `ecce-dataserver-start`, gated by the same
+"already done" idempotency check pattern as the DocumentRoot seed (using
+the presence of one output file, `other_generally_contracted`, as the
+marker) — runs once, automatically, on first start, for any install, not
+just a manual one-off fix on this session's own data server.
+
+**Deliberately scoped to 9 of the 17 "Quick Basis Menu" entries**
+(`CalcEd::p_BASIS_QUICK_PICKS`), not all 897 files in the library:
+- `6-31G`, `cc-pVDZ`, `cc-pVTZ`, `aug-cc-pVDZ`, `aug-cc-pVTZ`, `def2-svp`,
+  `def2-svpd`, `def2-tzvp` — single self-contained file each, full H-Rn
+  (or similar) coverage, high confidence.
+- `6-31G*` — correctly combines **two** real files (`6-31G.BAS` for base
+  H-Zn coverage + `6-31GS.BAS` for heavy-atom-only polarization data) —
+  confirmed via direct inspection that `6-31GS.BAS` genuinely has no H/He
+  entries **by design** (standard 6-31G* chemistry never adds polarization
+  functions to H/He), not a data gap, so this needed real two-file
+  aggregation to get right, not a single-file guess.
+- `6-31++G`, `6-31+G*`, `6-31++G**` (diffuse-function variants) —
+  **deliberately NOT populated**. Their only file in this library is a
+  genuine 0-byte `-AGG` placeholder, with no real diffuse-function
+  component file anywhere in the library to combine it with. Guessing at
+  a composition here risks silently serving a scientifically **wrong**
+  basis set for a real calculation with no warning — strictly worse than
+  these 3 continuing to correctly report "not found" until someone with
+  real NWChem basis-set-library domain knowledge does this properly.
+- `DZVP (DFT Orbital)`, `DZVP2 (DFT Orbital)`, `TZVP (DFT Orbital)` — no
+  matching `.BAS` files exist in this library **at all**, under any name
+  searched. A data-completeness gap, not a metadata one — nothing to
+  populate.
+
+**Also fixed, found reading this same code end to end**: another
+uninitialized-pointer bug, same class as the `VizRender.C` ones above —
+`lookup()`'s `char *name, *type, *spherical, *contraction_type;` (no
+initializer) get dereferenced (`strncmp(type, "ecp", 3)`, etc.)
+unconditionally once *any* property comes back from a file's `PROPFIND`,
+even if that one specific property (e.g. `type`) didn't. Initialized all
+four to `0` and added an explicit `if (!name || !type) { ...; continue; }`
+skip rather than proceeding into undefined behavior on a partial-match
+response.
+
+**Verified**: full HTTP round-trip against the live local data server —
+type-index file fetch returns real `name=`/`files=`/`atoms=` data
+including correct C/H coverage for `6-31G` and `6-31G*` (confirmed no
+false negative for CH4's actual elements), `PROPFIND` on `6-31GS.BAS`
+returns all 4 custom properties correctly, idempotency gate logic tested
+in isolation (fires once, skips on re-run). **Not yet verified against
+the real, running Builder/CalcEd GUI** — no interactive access to retest
+"Quick Basis Menu" → "6-31G" → check for the coverage error live; that's
+the next thing to confirm once there's a live session again.
 
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other

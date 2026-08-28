@@ -597,6 +597,8 @@ install(PROGRAMS
         DESTINATION bin)
 install(FILES ${CMAKE_SOURCE_DIR}/packaging/dataserver/httpd.conf.ecce
         DESTINATION server/httpd-conf)
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/packaging/dataserver/populate-gbs-metadata.py
+        DESTINATION server/httpd-conf)
 
 foreach(_ds start stop status adduser)
   set(_ds_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-dataserver-${_ds})

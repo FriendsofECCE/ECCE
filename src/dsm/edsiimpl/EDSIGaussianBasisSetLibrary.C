@@ -572,7 +572,7 @@ vector<TGaussianBasisSet*> EDSIGaussianBasisSetLibrary::lookup
     }
     delete edsi;
 
-    char *name, *type, *spherical, *contraction_type;
+    char *name = 0, *type = 0, *spherical = 0, *contraction_type = 0;
 
     string ns = p_ns;  // p_ns can't be string due to static init problems
 
@@ -593,9 +593,19 @@ vector<TGaussianBasisSet*> EDSIGaussianBasisSetLibrary::lookup
 	 << "name :             " << name << endl
 	 << "type :             " << type << endl;
 #endif
+    // If the server didn't actually have all the properties we asked for
+    // (partial or empty PROPFIND match), name/type/spherical/
+    // contraction_type can be left unset above -- skip this file rather
+    // than dereferencing a null type/name below.
+    if (!name || !type) {
+      if (spherical) free(spherical);
+      if (contraction_type) free(contraction_type);
+      continue;
+    }
+
     // set the meta data properties:
     gbs = new TGaussianBasisSet;
-    
+
     if( !strncmp(type,"ecp",3) )    // ECP
       setAttributes(gbs, name, type);
     else 

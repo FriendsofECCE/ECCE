@@ -93,4 +93,23 @@ if ! port_open "$PORT"; then
   exit 1
 fi
 
+# Populate the Gaussian Basis Set library's DAV metadata (per-type alias
+# index files + per-file name/type/spherical/contraction_type properties)
+# the first time only -- needed for Builder/CalcEd's "Quick Basis Menu" to
+# resolve basis sets at all; without it, EDSIGaussianBasisSetLibrary's
+# lookups come back empty and every basis set falsely reports "doesn't
+# cover all elements", regardless of which elements or basis set. See
+# populate-gbs-metadata.py's own header for the full story and scope.
+# Needs the server actually up (it's an HTTP-based PROPPATCH), hence run
+# here, not alongside the DocumentRoot seed above.
+GBS_LIBRARY_DIR="$DATAROOT/Ecce/system/GaussianBasisSetLibrary"
+GBS_POPULATE_SCRIPT="$ECCE_HOME/server/httpd-conf/populate-gbs-metadata.py"
+if [ -d "$GBS_LIBRARY_DIR" ] && [ ! -f "$GBS_LIBRARY_DIR/other_generally_contracted" ]; then
+  if [ -f "$GBS_POPULATE_SCRIPT" ]; then
+    python3 "$GBS_POPULATE_SCRIPT" "$GBS_LIBRARY_DIR" \
+      "http://localhost:$PORT/Ecce/system/GaussianBasisSetLibrary" \
+      || echo "ecce-dataserver-start: GBS metadata population failed (non-fatal, Quick Basis Menu may not work)" >&2
+  fi
+fi
+
 exit 0
