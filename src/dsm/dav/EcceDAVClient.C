@@ -1065,7 +1065,21 @@ bool EcceDAVClient::getBody
     size_type nRead;
 
     while ((nRead = p_client.getBody(buff, bsz)) > 0) {
-      (*mem) << buff;
+      // Was "(*mem) << buff", which treats buff as a null-terminated
+      // C-string. buff is a fixed 1500-byte scratch buffer reused across
+      // iterations and getBody() does NOT null-terminate it, so whenever
+      // nRead < bsz (the common case), operator<< kept reading past the
+      // real data into stale bytes left over from the previous iteration
+      // (or uninitialized stack garbage on the first pass) until it
+      // happened to hit a stray zero byte -- appending far more than nRead
+      // bytes into this ostrstream on every iteration, with the stream
+      // reallocating and copying its whole contents each time it grew.
+      // That's an unbounded, rapidly compounding allocation loop with no
+      // corresponding disk I/O, on any DAV/EDSI response that omits
+      // Content-Length and isn't chunked -- observed OOM-killing the
+      // gateway process (anon-rss ~2GB in ~23s against a 2GiB cgroup cap).
+      // write() copies exactly the nRead bytes actually received.
+      mem->write(buff, nRead);
       totalRead += nRead;
     }
 
