@@ -332,7 +332,8 @@ bool RunMgmt::registerLocalMachine(string& msg)
         // Outside PNNL, register the bundled version of NWChem
         string path = Ecce::ecceHome();
         path += "/";
-        path += getenv("ECCE_SYSDIR");
+        const char* sysdir = getenv("ECCE_SYSDIR");
+        if (sysdir) path += sysdir;
         path += "3rdparty/";
         path += "nwchem/bin/nwchem";
 

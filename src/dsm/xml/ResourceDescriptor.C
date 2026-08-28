@@ -773,7 +773,8 @@ void ResourceDescriptor::parseResourceDescriptorFile()
 
   string path = Ecce::ecceHome();
   path += "/";
-  path += getenv("ECCE_SYSDIR");
+  const char* sysdir = getenv("ECCE_SYSDIR");
+  if (sysdir) path += sysdir;
   path += "bin/dirdyed";
 
   if (!access(path.c_str(), F_OK)) {

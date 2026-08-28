@@ -2395,7 +2395,8 @@ bool NWDirdy::generateInputFile()
   // calls work such as invoking the theory details dialog
   string binDir = Ecce::ecceHome();
   binDir += "/";
-  binDir += getenv("ECCE_SYSDIR");
+  const char* sysdir = getenv("ECCE_SYSDIR");
+  if (sysdir) binDir += sysdir;
   binDir += "bin";
   chdir(binDir.c_str());
 

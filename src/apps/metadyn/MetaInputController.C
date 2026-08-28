@@ -201,7 +201,8 @@ bool MetaEd::write_setup(const string& output_file)
         // Need to temporarily chdir back to bin directory to call genmol
         string binDir = Ecce::ecceHome();
         binDir += "/";
-        binDir += getenv("ECCE_SYSDIR");
+        const char* sysdir = getenv("ECCE_SYSDIR");
+        if (sysdir) binDir += sysdir;
         binDir += "bin";
         string currDir = changeWD(binDir);
         frag->generateFullMolecule();
