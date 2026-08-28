@@ -495,7 +495,7 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   string msg = "";
   RunMgmt::registerLocalMachine(msg);
   if (msg != "") {
-    wxLogMessage(msg.c_str(), 0);
+    wxLogMessage("%s", msg.c_str());
   }
 
 
@@ -2064,7 +2064,7 @@ void Builder::OnOpenClick( wxCommandEvent& event )
     string msg = "Cannot open " + url.toString() + " as a new context (for "
                  "viewing output properties from a calculation, you must "
                  "use the Import Calculation menu option).";
-    wxLogWarning(msg.c_str(), 0);
+    wxLogWarning("%s", msg.c_str());
   }
 }
 
@@ -2176,9 +2176,9 @@ CommandManager* Builder::getCM()
 void Builder::showMessage(const string& msg, bool error )
 {
   if (error) {
-    wxLogError(msg.c_str(), 0);
+    wxLogError("%s", msg.c_str());
   } else {
-    wxLogWarning(msg.c_str(), 0);
+    wxLogWarning("%s", msg.c_str());
   }
 }
 
@@ -2403,7 +2403,7 @@ void Builder::OnRedoClick( wxCommandEvent& event )
       updateUndoMenus();
 
    } catch (EcceException& ex) {
-      wxLogWarning(ex.what(), 0);
+      wxLogWarning("%s", ex.what());
    }
 
 }

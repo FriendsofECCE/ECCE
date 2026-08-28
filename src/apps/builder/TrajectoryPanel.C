@@ -1186,7 +1186,7 @@ void TrajectoryPanel::SaveIt()
   }
 
   wxString msg = "Saving " + outpath;
-  wxLogMessage(msg, 0);
+  wxLogMessage("%s", msg);
 
   SGViewer &viewer = getFW().getViewer();
   wxSize size = viewer.GetSize();
@@ -1228,13 +1228,13 @@ void TrajectoryPanel::SaveIt()
       } catch (EcceException& ex) {
         wxString msg = "Unable to convert to image format " + format + ":\n";
         msg += ex.what();
-        wxLogError(msg, 0);
+        wxLogError("%s", msg);
       }
     }
   } catch (EcceException& ex) {
     wxString msg = "PovrayCmd or RenderFileCmd failed:\n";
     msg += ex.what();
-    wxLogError(msg, 0);
+    wxLogError("%s", msg);
     return;
   }
 }

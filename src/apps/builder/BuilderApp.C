@@ -550,7 +550,7 @@ void BuilderApp::invokeStatusMCB(JMSMessage& msg)
 
   if (status == "failed")
   {
-    wxLogError(errMsg, 0);
+    wxLogError("%s", errMsg);
   }
 }
 

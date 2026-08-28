@@ -831,7 +831,6 @@ void ewxNumericValidator::postMessage(const string& msg)
      WxFeedback *feedback = WxFeedback::getFeedback(
                                            (wxWindow*)m_validatorWindow);
      if (feedback) feedback->setMessage(msg);
-     // GDB 3/4/12  Added 0 arg to suppress compiler warning
-     else wxLogMessage(msg.c_str(),0);
+     else wxLogMessage("%s", msg.c_str());
 }
 

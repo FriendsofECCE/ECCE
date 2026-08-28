@@ -479,22 +479,87 @@ problem (a plain `wxBoxSizer` apparently doesn't hit the same wx quirk a
 this fix should apply there too, but hasn't been visually re-verified
 against Builder specifically yet.
 
-### Builder: crash when building molecules — NOT YET DIAGNOSED
-Reported 2026-08-28, not yet root-caused. A `coredumpctl list` hit exists
-(`PID 968563, SIGSEGV`) but **no coredump was actually stored** — the
-terminal `ecce-builder` was launched from had `ulimit -c 0` (Debian's
-default), and `systemd-coredump` (confirmed active/correctly configured:
-`core_pattern` is `|/usr/lib/systemd/systemd-coredump ...`) honors the
-crashing process's own `RLIMIT_CORE` when deciding whether to persist a
-core — 0 means discard.
+### Builder: crash when building molecules — FIXED (2026-08-28)
 
-**Next step**: reproduce again with `ulimit -c unlimited` set in the
-launching shell first, then `coredumpctl gdb builder` (or `coredumpctl
-list` to find the new entry) to get a real backtrace instead of guessing.
-No GUI input-automation tool (`xdotool` or equivalent) is installed on this
-box, so this crash can't be reproduced headlessly/non-interactively the way
-the periodic-table and Help bugs above were — needs a human driving the
-actual "build a molecule" interaction once with a coredump enabled.
+First attempt at a coredump failed: `ulimit -c unlimited` in the launching
+shell hit `bash: ulimit: core file size: cannot modify limit: Operation not
+permitted` — the shell's *hard* limit was already stuck at 0 (confirmed via
+`ulimit -Hc`), and a non-root process can only lower a hard limit, never
+raise it back, regardless of `/etc/security/limits.d/*` being correctly
+configured for `infinity` (that only applies to freshly-spawned sessions
+that go through PAM, not this already-running shell). Worked around
+without needing root or a relogin: `systemd-run --user -p
+LimitCORE=infinity --pipe --collect <cmd>` sets the resource limit directly
+on a *fresh* transient unit, bypassing the stuck shell entirely. (Note:
+must be a plain `systemd-run --user` transient *service*, not `--scope` —
+`--scope` rejected `-p LimitCORE=...` with "Unknown assignment" on this
+systemd version; some exec-related unit properties aren't settable on
+scopes.) With that, a real coredump was captured on the next repro.
+
+Root cause: `Builder::showMessage()` (`Builder.C:2176`, now fixed) —
+```cpp
+wxLogError(msg.c_str(), 0);      // msg used AS the format string
+```
+`wxLogError`/`wxLogWarning`/`wxLogMessage` treat their first argument as a
+**printf-style format string**, not literal text — but `msg` here is
+dynamic, runtime-generated content (confirmed via the crash backtrace:
+`Builder::execute()` → `Builder::reportError(ex.what())` → `showMessage()`,
+i.e. an arbitrary `EcceException::what()` message from a failed
+builder command, which can legitimately contain a literal `%`, e.g. a
+percentage or stray symbol in a validation-error message). A `%s` (or
+`%o`, etc.) inside that text with no corresponding vararg reads whatever
+garbage happens to be in the next unfilled argument slot — a classic
+uncontrolled-format-string bug. When that garbage is an invalid pointer
+(as it was in the field), `wxFormatString::AsWChar()` segfaults trying to
+dereference it. The crash backtrace pinpointed this precisely (extracted
+via `coredumpctl dump <PID> -o core; gdb build-cmake/builder core` — note:
+`coredumpctl gdb` alone resolves against the *installed*, CPack-stripped
+`/opt/ecce/bin/builder`, which has no debug symbols per
+`CPACK_STRIP_FILES ON`; pointing gdb at the unstripped `build-cmake/`
+binary with the same core file resolves full symbols and source lines):
+```
+#1  wxFormatString::AsWChar()
+#2  wxFormatString::operator wchar_t const*()
+#3  wxLogger::Log<int>(...)
+#4  Builder::showMessage(msg, error=true) at Builder.C:2179
+#5  Builder::reportError(msg) at Builder.C:970
+#6  Builder::execute(cmd, batch=false) at Builder.C:2246   <- catch (EcceException&) { reportError(ex.what()); }
+#7  Builder::processSelectionChange(sel) at Builder.C:1550
+```
+
+Fixed by always passing a literal `"%s"` format with the message as its
+substituted argument: `wxLogError("%s", msg.c_str())`. Grepped for the same
+anti-pattern across the whole tree (`wxLog(Error|Warning|Message)\(` calls
+without a literal format string) and found **8 more identical sites**, all
+clearly copy-pasted from the same origin — one still had the original
+author's own comment nailing exactly why: `ewxNumericValidator.C:834`,
+`// GDB 3/4/12  Added 0 arg to suppress compiler warning`. That stray `, 0`
+across all 9 sites was never a real second argument; it was added purely
+to silence `-Wformat-security`'s "format string is not a string literal"
+warning without addressing what the warning was actually about. Fixed all
+9, same pattern, in `Builder.C` (×4), `TrajectoryPanel.C` (×3),
+`BuilderApp.C` (×1), `ewxNumericValidator.C` (×1).
+
+**Verified two ways**:
+1. Real repro, real fix: rebuilt `builder`+`ninja` (whole tree) clean after
+   the fix, no new warnings introduced.
+2. Standalone mechanism proof (not full build's-worth): a tiny wx console
+   app calling both the buggy and fixed pattern with `"...95% of maximum
+   (%s)..."` (memory-capped via `systemd-run` per the standing safety
+   practice below) — buggy version corrupts/misinterprets the message
+   (confirmed two ways: a `%o`-shaped message silently ate a wrong
+   character range, and a `%s`-shaped message read garbage from an
+   unfilled vararg slot instead of crashing *this specific run* — true
+   undefined behavior, non-deterministic depending on what's in that
+   register/stack slot, matching this repo's established pattern of UB
+   bugs not reproducing identically every run); fixed version preserves
+   the message verbatim in both cases.
+
+This is unrelated to the wx3.2/GTK3 layout-reentrancy bug class
+documented above — a plain uncontrolled-format-string bug, not
+wx-version-specific, that just happened to go unnoticed until dynamic,
+runtime-generated error text with a `%` in it hit one of these 9 call
+sites for the first time.
 
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
