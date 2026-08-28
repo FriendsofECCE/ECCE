@@ -24,6 +24,10 @@
 #include "wx/wx.h"
 #endif
 
+#include <execinfo.h>
+#include <cstring>
+#include <cstdlib>
+
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
 #include "util/Preferences.H"
@@ -86,14 +90,65 @@ namespace {
   // child positions once the storm-prone event path is no longer live.
   bool g_suppressSizeEventsDuringFit = false;
 
+  // Second, independent guard: catches the *other* trigger for this same
+  // reentrancy bug, seen when this dialog is first Show()n rather than
+  // during construction. That storm starts asynchronously, well after
+  // Show() (and wxEVT_SHOW) have already returned/fired -- confirmed via
+  // a gdb capture, and confirmed non-deterministic to bracket with any
+  // fixed release point (synchronous wrap, CallAfter, wxEVT_SHOW, a fixed
+  // 1.5s timer -- all tried, all either failed outright or proved
+  // unreliable across repeated runs). Rather than guess when to release,
+  // detect the actual trigger directly: a wxEVT_SIZE is genuinely
+  // reentrant if a call to Layout() is already on the stack when it
+  // arrives.
+  //
+  // A first attempt at this used wxStackWalker, which itself crashed with
+  // SIGBUS (wxStackWalker::InitFrames) when called from this filter's
+  // call context -- not safe here for reasons not further diagnosed.
+  // This uses glibc's backtrace()/backtrace_symbols() directly instead
+  // (<execinfo.h>), bypassing wx's wrapper entirely. Symbol names come
+  // back mangled (no demangling attempted, since none is needed): e.g.
+  // wxWindowBase::Layout() appears as "_ZN12wxWindowBase6LayoutEv" in the
+  // dynamic symbol table (confirmed via nm -D on the installed
+  // libwx_gtk3u_core-3.2.so.0), and mangled names still contain the
+  // original identifier text as a length-prefixed substring, so a plain
+  // strstr() for "Layout" matches correctly without needing to demangle.
+  // Capped at a shallow frame count -- only needs to look a few frames
+  // up, not unwind deeply -- so this stays cheap on every wxEVT_SIZE.
+  bool isReentrantSizeEvent()
+  {
+    static const int kMaxFrames = 25;
+    void* frames[kMaxFrames];
+    int frameCount = backtrace(frames, kMaxFrames);
+    if (frameCount <= 0) return false;
+
+    char** symbols = backtrace_symbols(frames, frameCount);
+    if (!symbols) return false;
+
+    int layoutHits = 0;
+    bool reentrant = false;
+    for (int i = 0; i < frameCount; i++) {
+      if (symbols[i] && strstr(symbols[i], "Layout") != NULL) {
+        layoutHits++;
+        if (layoutHits >= 2) {
+          reentrant = true;
+          break;
+        }
+      }
+    }
+    free(symbols);
+    return reentrant;
+  }
+
   class SizeEventSuppressor : public wxEventFilter
   {
   public:
     virtual int FilterEvent(wxEvent& event) wxOVERRIDE
     {
-      if (g_suppressSizeEventsDuringFit &&
-          event.GetEventType() == wxEVT_SIZE) {
-        return Event_Processed;
+      if (event.GetEventType() == wxEVT_SIZE) {
+        if (g_suppressSizeEventsDuringFit || isReentrantSizeEvent()) {
+          return Event_Processed;
+        }
       }
       return Event_Skip;
     }
