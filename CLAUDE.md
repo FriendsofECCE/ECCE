@@ -1670,18 +1670,88 @@ generated input by hand to confirm: adding the functional (e.g.
 `rB3LYP`) fixed it. **This is very likely the same bug**, not
 independently confirmed live yet.
 
-**UNVERIFIED — this is the most important thing to check next**,
-ranked above everything else still open in this file. Specifically
-unverified: whether the dialog *logic* itself (not just its imports) is
-actually Classic/Phoenix-API-compatible once it can run at all — the
-32d2806 commit's own caveat, still open. Needs, in order: (1) package
-reinstalled, (2) `python3-wxgtk4.0` actually installed (a real new apt
-dependency this pass added — a plain `dpkg -i` may report it as missing
-depending on how it's run; `apt-get install -f` or `apt install ./ecce_
-8.0.0_amd64.deb` afterward should pull it in), (3) live retest: open
-Calc Editor, pick a DFT theory, click "Theory Details", confirm the
-dialog actually opens and a functional can be selected end-to-end into
-a real job.
+### Update (2026-08-29, same day): reinstalled, real Classic→Phoenix bugs found and fixed for Gaussian-16's theory dialog
+
+Andy reinstalled (`sudo apt-get install -f` after a plain `dpkg -i`
+correctly reported the new `python3-wxgtk4.0` dependency as unmet, exactly
+as anticipated above) and retested live. Confirmed still broken —
+terminal output showed a real `TypeError` from `wx.Font()`. **With
+`python3-wxgtk4.0` now actually installed on niobium, this became
+directly testable and fixable for real** — no more guessing from source
+reading alone.
+
+Root-caused and fixed four genuine Classic→Phoenix API breaks, all in
+the two files every `codereg/*.py` script shares (`globals.py`,
+`templates.py`), found by iterating: run the real script standalone with
+a real bound UDP socket standing in for `CalcEd`'s side of the IPC
+protocol (`ged16theory.py <outfile> <port> GUIValues Writable DebugOff
+DFT RDFT Geometry TestCalc 0 11 12 13 14 15 16 17`), fix whatever it
+throws, repeat:
+
+1. `wx.Font(pointSize=.., family=.., style=.., weight=.., face=..)` —
+   Classic's keyword names don't match any Phoenix overload (`face` is
+   `faceName` in Phoenix; mixing legacy keyword names confuses Phoenix's
+   overload resolution entirely, confirmed via a `TypeError` listing all
+   7 rejected candidate overloads). Rewrote using `wx.FontInfo`, the
+   modern, unambiguous, non-deprecated way to build a `wx.Font` — e.g.
+   `wx.Font(wx.FontInfo(8).FaceName("Helvetica").Bold())`.
+2. `wx.RESIZE_BOX` doesn't exist in Phoenix at all (a legacy, effectively
+   Windows-only decorative style bit; there's no separate "resize box"
+   concept from `wx.RESIZE_BORDER` on GTK regardless) — dropped from the
+   `~(wx.RESIZE_BORDER|wx.RESIZE_BOX|wx.MAXIMIZE_BOX)` frame-style
+   expression in `EcceFrame.__init__`.
+3. `Sizer.Add(item=(0,0), ...)` — Phoenix has no `item` keyword on
+   `Sizer.Add()` at all; the two spacer-adding call sites needed the
+   size tuple passed positionally instead for SIP's `wx.Size` conversion
+   to apply.
+4. `wx.ShowEvent.GetShow()` was renamed `IsShown()` in Phoenix
+   (`AttributeError`, only reached once the DFT-specific code path in
+   `Ged16TheoryFrame` bound `wx.EVT_SHOW`).
+
+**Also found, and this one is the actual reason `32d2806`'s "port"
+wasn't sufficient on its own**: `EcceGlobals.Socket.send(str)` —
+`socket.send()` requires `bytes` in Python 3, not `str`. This is a real
+Python-2-ism `python3 -m py_compile` can never catch (it's syntactically
+valid Python 3, just wrong at runtime) — six call sites across
+`globals.py`/`templates.py`, all fixed with `.encode()`.
+
+**Verified working end-to-end**, not just "doesn't crash": ran
+`ged16theory.py` with `RestoreFlag=GUIValues` (the real interactive
+path `CalcEd`'s "Theory Details" button uses, not the `NO_GUIValues`
+defaults-only path) for both an SCF theory and a DFT theory
+(`category=DFT theory=RDFT`), screenshotted the live X11 window both
+times (`xwininfo` + `import -window`). Both render completely correctly
+— a real, working "ECCE Gaussian-16 Editor: Theory Details" dialog with
+all its sections (SCF Convergence, DFT Convergence, Solvation), and
+critically, the DFT one shows a working **"Exchange-Correlation
+Functionals: Combined XC: PBE0 (hybrid)"** dropdown — this is the exact
+control the original bug report needed. The `NO_GUIValues` path (used
+for CalcEd's own startup default-population, not the interactive
+button) also verified separately: clean `#STARTED`/full settings
+dump/`#INITIALIZED`/`#CLOSING` UDP sequence, no exceptions.
+
+Also removed two stale, tracked Python 2 bytecode files
+(`scripts/codereg/{globals,templates}.pyc`) left over from before the
+32d2806 port — harmless (Python 3 never looks for a bare `.pyc` next to
+a `.py` file, only versioned ones under `__pycache__/`) but pure
+clutter.
+
+**Still not done — explicitly on the list for a follow-up session**:
+only `ged16theory.py` (+ the two shared files) has been exercised this
+way. The other 13 code-specific scripts (`amicatheory.py`,
+`ged03{runtype,theory}.py`, `ged09{runtype,theory}.py`,
+`ged16runtype.py`, `ged98{runtype,theory}.py`,
+`guk{runtype,theory}.py`, `meta{rtyp,thry}.py`,
+`ned{runtype,theory}.py`) haven't been run yet — they share the two
+fixed files so the four Phoenix-API bugs above are almost certainly
+fixed for all of them too, but each script may have its own
+additional, not-yet-discovered bugs beyond what's in the shared base
+(exactly the same way `ged16theory.py`'s own code was clean and every
+bug found so far happened to be in `globals.py`/`templates.py` — that
+won't necessarily hold for the others). Test each the same way: run
+standalone with a real bound UDP socket, both `GUIValues` and
+`NO_GUIValues` restore modes, screenshot the live window, fix whatever
+breaks.
 
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other

@@ -1,11 +1,24 @@
-import wx
 import sys
 import os
 import signal
 import string
 import socket
 
-app = wx.PySimpleApp()
+# This whole legacy codebase combines wx.EXPAND with alignment flags
+# (e.g. wx.ALIGN_CENTER_VERTICAL) on the same sizer item throughout --
+# harmless (wx.EXPAND always overrides alignment in a box sizer either
+# way, confirmed via the assertion's own message), but modern wxWidgets
+# 3.2 raises a hard C++ assertion for it that Phoenix propagates as a
+# fatal Python exception, unlike wx2.8 which just silently ignored the
+# combination. Suppressing this check (wx's own documented escape
+# hatch) is far lower-risk than auditing every .Add() call across
+# templates.py and ~15 dialog scripts for a purely cosmetic warning.
+# Must be set before `import wx`.
+os.environ.setdefault("WXSUPPRESS_SIZER_FLAGS_CHECK", "1")
+
+import wx
+
+app = wx.App()
 
 class Globals:
     # CONSTANTS
@@ -69,16 +82,15 @@ class Globals:
     def __init__(self, values):
         self.ErrorColour = wx.Colour(255, 75, 85)
         self.WarningColour = wx.Colour(255, 255, 198)
-        self.FontDefault = wx.Font(pointSize = 8,
-                                   family = wx.DEFAULT,
-                                   style = wx.NORMAL,
-                                   weight = wx.BOLD,
-                                   face = "Helvetica")
-        self.ScriptFontDefault = wx.Font(pointSize = 8,
-                                         family = wx.DEFAULT,
-                                         style = wx.NORMAL,
-                                         weight = wx.NORMAL,
-                                         face = "Helvetica")
+        # wxPython Classic's wx.Font(pointSize=.., family=.., style=..,
+        # weight=.., face=..) keyword form doesn't match any Phoenix
+        # overload (the keyword is "faceName", not "face", and mixing
+        # legacy keyword names trips up Phoenix's overload resolution
+        # entirely -- confirmed via a live TypeError listing all 7
+        # candidate overloads rejecting it). wx.FontInfo is the modern,
+        # non-deprecated, unambiguous way to build a wx.Font in Phoenix.
+        self.FontDefault = wx.Font(wx.FontInfo(8).FaceName("Helvetica").Bold())
+        self.ScriptFontDefault = wx.Font(wx.FontInfo(8).FaceName("Helvetica"))
 
         # PARAMETER INITIALIZED CONSTANTS
         try:
@@ -113,6 +125,10 @@ class Globals:
           else:
               pid = os.getpid()
               line = line + " " + str(pid) + "\n"
-          self.Socket.send(line)
+          # socket.send() takes bytes in Python 3, not str -- a real
+          # Python 2-ism the earlier syntax-only port (py_compile
+          # doesn't catch this) missed. Same fix needed everywhere else
+          # this socket is used, in templates.py.
+          self.Socket.send(line.encode())
 
 EcceGlobals = Globals(sys.argv)

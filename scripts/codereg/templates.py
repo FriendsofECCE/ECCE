@@ -107,9 +107,13 @@ class EcceFrame(wx.Frame):
     """Ecce styled wxFrame."""
 
     def __init__(self, parent, title, id=-1):
+        # wx.RESIZE_BOX doesn't exist in Phoenix (a legacy, effectively
+        # Windows-only decorative style bit Classic had; there's no
+        # separate "resize box" concept from RESIZE_BORDER on GTK either
+        # way, so dropping it changes nothing here).
         wx.Frame.__init__(self, parent, id, title,
                           style = wx.DEFAULT_FRAME_STYLE &
-                          ~(wx.RESIZE_BORDER|wx.RESIZE_BOX|wx.MAXIMIZE_BOX))
+                          ~(wx.RESIZE_BORDER|wx.MAXIMIZE_BOX))
 
         self.SetFont(EcceGlobals.FontDefault)
         wx.ToolTip.Enable(EcceGlobals.ShowTip)
@@ -234,7 +238,10 @@ class EcceBoxSizer(wx.BoxSizer):
 
 
     def AddSpace(self):
-        self.gridSizer.Add(item = (0, 0), proportion = 0,
+        # Phoenix has no "item" keyword on Sizer.Add() -- the spacer size
+        # tuple has to be passed positionally for SIP's wx.Size
+        # conversion to apply.
+        self.gridSizer.Add((0, 0), proportion = 0,
                            flag = EcceGlobals.FlagDefault,
                            border = EcceGlobals.BorderDefault)
 
@@ -327,7 +334,8 @@ class EccePanel(wx.Panel):
 
 
     def OnShow(self, event):
-        if event.GetShow():
+        # wx.ShowEvent.GetShow() was renamed IsShown() in Phoenix.
+        if event.IsShown():
             self.CheckDependency()
             self.SetFocus()
 
@@ -346,7 +354,8 @@ class EccePanel(wx.Panel):
         
         # buttons
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttonSizer.Add(item = (0,0), proportion =EcceGlobals.ProportionDefault,
+        # See AddSpace() above re: no "item" keyword in Phoenix.
+        buttonSizer.Add((0,0), proportion =EcceGlobals.ProportionDefault,
                         flag = EcceGlobals.FlagDefault, border = 0)
 
         self.closeButton = wx.Button(self, label = "Close")
@@ -400,7 +409,7 @@ class EccePanel(wx.Panel):
                 if EcceGlobals.RestoreFlag == "NO_GUIValues":
                   EcceGlobals.BatchValues.append(widget.ExportSetting()+"\n")
                 else:
-                  EcceGlobals.Socket.send(widget.ExportSetting()+"\n")
+                  EcceGlobals.Socket.send((widget.ExportSetting()+"\n").encode())
                 self.CheckButtonEnables()
                 event.GetEventObject().Save()
             else:
@@ -412,7 +421,7 @@ class EccePanel(wx.Panel):
     def OnClose(self, event):
         if (EcceGlobals.ReadOnlyFlag == "Writable"):
             if EcceGlobals.PortOut != 0:
-                EcceGlobals.Socket.send("#CLOSING\n")
+                EcceGlobals.Socket.send("#CLOSING\n".encode())
         if EcceGlobals.PortOut != 0:
             EcceGlobals.Socket.close()
         self.GetParent().Destroy()
@@ -530,7 +539,7 @@ class EccePanel(wx.Panel):
                 if EcceGlobals.RestoreFlag == "NO_GUIValues":
                   EcceGlobals.BatchValues.append(setting.ExportSetting()+"\n")
                 else:
-                  EcceGlobals.Socket.send(setting.ExportSetting()+"\n")
+                  EcceGlobals.Socket.send((setting.ExportSetting()+"\n").encode())
 
         # Need to trigger dependencies so they are completed before the
         # initialized message.  Otherwise they can make it look like the
@@ -542,11 +551,11 @@ class EccePanel(wx.Panel):
           if EcceGlobals.RestoreFlag == "NO_GUIValues":
             EcceGlobals.BatchValues.append("#INITIALIZED\n")
           else:
-            EcceGlobals.Socket.send("#INITIALIZED\n")
+            EcceGlobals.Socket.send("#INITIALIZED\n".encode())
 
         if EcceGlobals.RestoreFlag == "NO_GUIValues":
             # Send the batched list of values over the socket
-            EcceGlobals.Socket.send(''.join(EcceGlobals.BatchValues))
+            EcceGlobals.Socket.send(''.join(EcceGlobals.BatchValues).encode())
             self.OnClose(None)
         else:
             EcceGlobals.EventLoopStarted = True
