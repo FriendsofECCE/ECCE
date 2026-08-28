@@ -1454,6 +1454,113 @@ verified against the real GUI** — needs the package reinstalled (still
 blocked on `sudo`, same as the basis-set fix) and a live "Machine
 Registration → fill in fields → Save" retest.
 
+## Machine Browser: GTK-CRITICAL spam at launch — FIXED (2026-08-29)
+
+User report: "lots of error messages in the terminal" from `machbrowser`,
+immediately at launch, e.g. `gtk_text_buffer_get_start_iter: assertion
+'GTK_IS_TEXT_BUFFER (buffer)' failed` (×2, for the status text ctrl) and
+`gtk_editable_get_chars: assertion 'GTK_IS_EDITABLE (editable)' failed`
+(×3, for single-line entries elsewhere in the same window). Not fatal —
+the app kept running — but real, reproducible on every launch, not just
+under a debugger.
+
+Root-caused directly via `G_DEBUG=fatal-criticals` (turns a GTK
+"critical" log into a real `SIGTRAP`, so `gdb -batch -ex run -ex bt`
+catches an exact, shallow backtrace right at the offending call instead
+of just a log line with no context — much faster than guessing from 5
+scattered warnings):
+```
+wxTextCtrl::DoGetValue -> wxTextEntry::DoSetValue -> wxTextCtrlBase::SetValue
+  -> ewxTextCtrl::SetValidator (ewxTextCtrl.C:159) -> wxWindowBase::CreateBase
+  -> wxTextCtrl::Create -> ewxTextCtrl::Create -> ewxTextCtrl ctor
+  -> MachineBrowserGUI::CreateControls
+```
+`wxWindowBase::CreateBase()` (part of the *base* `wxWindow::Create()`
+sequence) installs any validator passed to the constructor by calling
+`SetValidator()` — and `ewxTextCtrl`'s override of that function
+unconditionally calls `SetValue(gv->getValue())` to self-seed from an
+`ewxGenericValidator`. That's fine when `SetValidator()` is called
+explicitly *after* construction (the intended use case, per its own
+comment: "the text field's default value is set from the validator's
+current value") — but `CreateBase()` calls it *during* `Create()`,
+before the native `GtkWidget`/`GtkTextBuffer` exists yet, so `SetValue()`
+tries to touch a buffer that isn't there. Confirmed this is genuinely
+redundant in the premature case: `Create()`'s own `value` parameter
+already seeds the control's initial text through the normal creation
+path, so skipping the self-seed here loses nothing.
+
+**Fixed**: guarded the self-seed with `GetHandle()` (returns the native
+`GtkWidget*`, null until the native peer actually exists) in
+`ewxTextCtrl::SetValidator()` (`src/wxgui/ewxClasses/ewxTextCtrl.C`) — one
+line, no behavior change for the real (post-construction) use case.
+
+**Verified**: same `G_DEBUG=fatal-criticals` + `machbrowser` launch,
+before and after — zero GTK-CRITICALs after the fix (previously 2+3 on
+every single launch, every time). This is a generic `ewxTextCtrl` fix,
+not `machbrowser`-specific — every app using `ewxTextCtrl` with a
+validator (most of them, via the wx-designer-generated `*GUI.C` files)
+was hitting the same premature-`SetValue()` path at startup; this should
+quiet the same class of warning wherever else it was firing unnoticed
+(nothing else was specifically reported, but this matches the pattern
+already noted for `WxJMSMessageDispatch`'s auth dialog in the "Post-login
+usability bugs" section above — `gtk_editable_get_chars` — likely the
+exact same root cause, not independently re-verified there).
+
+## `gensub`: job submission fails with "Command not found" — FIXED (2026-08-29)
+
+Found while chasing a *different*, initially more alarming report:
+launching a Gaussian 16 job appeared to freeze the whole app ("mouse
+cursor spinning, then ECCE is not responding"). That turned out to be a
+red herring, self-diagnosed live by the user: the machine had been
+registered under the literal name `127.0.0.1` rather than its real
+hostname, and the remote-shell connection attempt hung on that (not
+independently root-caused — renaming the registration to the machine's
+actual hostname, `niobium`, immediately fixed the hang and let the
+connection open). Worth revisiting if a *real* remote host (not a
+loopback naming quirk) is ever reported hanging the same way — `RCommand`
+opening a first-time SSH connection with no `BatchMode`/
+`StrictHostKeyChecking` handling would be a classic way to hang forever
+on an unattended host-key prompt, but not confirmed as the cause here.
+
+Once past that, the *real*, reproducible bug: "Verifying remote
+login... Validating local directory... Validating job... Generating job
+submission script... **ERROR: Could not find command gensub -v  -p
+subParams** / Submit script generation failed: gensub: Command not
+found." Traced to `Launch.C:2372`
+(`src/comm/commxt/Launch.C`): `p_localconn->execout("gensub -v  -p
+subParams", output)` — a **bare command name**, run locally (not on the
+remote machine), with **no full-path fallback at all** (unlike
+`std2NWChem`, which at least had `scripts/parsers` on `$PATH` once that
+earlier fix landed). `scripts/gensub` was never added to `CMakeLists.txt`
+either — same packaging gap as `std2NWChem`/`processmachine` before this
+session, just never reached until a real job launch was attempted.
+
+Confirmed portable before packaging, same diligence as the other
+`scripts/*` fixes this session: `perl -c` clean, **zero** `use`/`require`
+statements (fully self-contained core Perl, no module dependencies at
+all), no hardcoded EMSL paths — only reads already-installed,
+already-readable package content (`$ECCE_HOME/siteconfig`,
+`$ECCE_HOME/data/client/config/Version`).
+
+**Fixed**: added an `install(PROGRAMS ...)` rule for `scripts/gensub`
+(mirroring `scripts/processmachine`'s). Since `gensub` lives directly
+under `scripts/`, not `scripts/parsers/`, and is invoked with **no**
+full-path fallback, also widened the wrapper template's `$PATH` from
+just `$ECCE_HOME/scripts/parsers` to `$ECCE_HOME/scripts:$ECCE_HOME/
+scripts/parsers` (both `CMakeLists.txt` wrapper blocks — the shared
+`ECCE_GUI_APPS`/`ECCE_CLI_APPS` loop and the separate `ecce-viewer`
+wrapper).
+
+**Verified**: confirmed `gensub` present, executable, in the rebuilt
+`.deb` (`dpkg-deb -c ecce_8.0.0_amd64.deb | grep gensub`). Ran the real
+script directly (no GUI/job context available) with a deliberately
+missing params file — failed fast and cleanly ("Param file specified but
+not found") rather than hanging, confirming it won't introduce a new
+freeze once wired up. **Not yet verified against a real job launch** —
+needs the package reinstalled (still blocked on `sudo`, same caveat as
+every other fix this session) and a live Gaussian 16 (or any code)
+launch retest against a properly-named machine.
+
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
 `*GUI.C` files in ~15 other `ECCE_GUI_APPS` (confirmed via grep — e.g.

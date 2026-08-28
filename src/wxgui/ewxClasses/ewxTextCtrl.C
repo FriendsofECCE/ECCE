@@ -155,7 +155,18 @@ void ewxTextCtrl::SetValidator(const wxValidator& validator)
    const ewxGenericValidator *gv =
       dynamic_cast<const ewxGenericValidator*>(&validator);
 
-   if (gv) {
+   // wxWindowBase::CreateBase() installs a passed-in validator via this
+   // same SetValidator() override partway through Create() -- at that
+   // point GetHandle() (the native GtkWidget*) is still null, so
+   // SetValue() below would hit GTK-CRITICALs trying to touch a
+   // GtkTextBuffer that doesn't exist yet (confirmed via gdb backtrace:
+   // wxTextCtrl::Create -> wxWindowBase::CreateBase -> this ->
+   // SetValue -> DoGetValue -> gtk_text_buffer_get_start_iter on a null
+   // buffer). Harmless to skip in that case: Create()'s own `value`
+   // parameter already seeds the control's initial text through the
+   // normal creation path, so this self-seed is only meaningful (and
+   // only safe) when SetValidator() is called explicitly post-creation.
+   if (gv && GetHandle()) {
       SetValue(gv->getValue());
    }
 }

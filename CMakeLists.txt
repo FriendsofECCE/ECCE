@@ -668,6 +668,21 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/processmachine)
           DESTINATION scripts)
 endif()
 
+# scripts/gensub: job-submission-script generator, invoked as a bare
+# command (Launch.C:2372, `p_localconn->execout("gensub -v  -p subParams",
+# ...)`, relying entirely on $PATH -- unlike processmachine/std2NWChem
+# above, this one has no full-path fallback at all, so it needs
+# $ECCE_HOME/scripts (not just scripts/parsers) on PATH; see the wrapper
+# template below. Same diligence as the other scripts/ fixes: perl -c
+# clean, no hardcoded EMSL paths, reads only already-installed,
+# already-readable package content ($ECCE_HOME/siteconfig,
+# $ECCE_HOME/data/client/config/Version) -- a pure packaging gap, not a
+# porting job.
+if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/gensub)
+  install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/gensub
+          DESTINATION scripts)
+endif()
+
 # Thin /usr/bin wrapper scripts for the 19 GUI apps, so they land on PATH
 # and get ECCE_HOME set without the user having to source anything. These
 # are NEW scripts written for this build's flat single-platform bin/
@@ -716,7 +731,7 @@ export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
 export DISPLAY=\${DISPLAY:-:0}
 export ECCE_HELP=\${ECCE_HELP:-http://localhost:8096/}
-export PATH=\"$ECCE_HOME/scripts/parsers:$PATH\"
+export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 ${_gateway_start}
 ${_dataserver_start}
 exec \"$ECCE_HOME/bin/${_app}\" \"$@\"
@@ -742,7 +757,7 @@ export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
 export DISPLAY=\${DISPLAY:-:0}
 export ECCE_HELP=\${ECCE_HELP:-http://localhost:8096/}
-export PATH=\"$ECCE_HOME/scripts/parsers:$PATH\"
+export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 export ECCE_INVOKE_VIEWER=1
 export ECCE_INVOKE_FROMECCE=1
 if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi
