@@ -115,9 +115,9 @@ bool VizRender::thumbnail(const string& urlstr, int width, int height,
       throw EcceException(p_msg, __FILE__, __LINE__);
     }
 
-  } catch (string& error) {
-    //cout << error << endl;
-    p_msg += "VizRender::thumbnail(url) error:\n" + error;
+  } catch (EcceException& ex) {
+    p_msg += "VizRender::thumbnail(url) error:\n";
+    p_msg += ex.what();
     ret = false;
   }
   return ret;
@@ -137,8 +137,8 @@ bool VizRender::thumbnail(SoNode *root, ChemistryTask *task,
   }
 
   // declared here in case of exception thrown
-  SFile *rgbFile;
-  SFile *jpegFile;
+  SFile *rgbFile = 0;
+  SFile *jpegFile = 0;
 
   try {
     rgbFile = TempStorage::getTempFile();
@@ -166,8 +166,9 @@ bool VizRender::thumbnail(SoNode *root, ChemistryTask *task,
       throw EcceException("Could not set thumbnail to ChemistryTask "
               + task->messages(), __FILE__, __LINE__);
     }
-  } catch (string& error) {
-    p_msg += "VizRender::thumbnail(SoNode) error:\n" + error;
+  } catch (EcceException& ex) {
+    p_msg += "VizRender::thumbnail(SoNode) error:\n";
+    p_msg += ex.what();
     ret = false;
   }
 
@@ -194,7 +195,7 @@ bool VizRender::file(SoNode *root, SFile *file, string type,
   bool ret = true;
 
   // declared here in case of exception thrown
-  FILE * myFile;
+  FILE * myFile = 0;
 
   try {
     // Create a viewport to render the scene into.

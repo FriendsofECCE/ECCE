@@ -1031,6 +1031,61 @@ Not yet re-verified live against the user's real CH4/NWChem calculation
 (found, fixed, and packaged in the same round as the Help CGI round-2
 fixes above — needs `dpkg -i` + a real basis-set-editor retest).
 
+## Builder crash on thumbnail generation (very likely = "Ctrl+S closes Builder") — FIXED (2026-08-28)
+
+User report was an actual SIGSEGV with a clean, readable pre-crash
+message this time (`Throw Log: ... In VizRender.C line: 230 Unable to
+render scene graph`) — clean and readable specifically *because* of the
+`EcceException::what()` dangling-pointer fix earlier tonight; before that
+fix this same message would likely have been garbage, like the builder
+SSSR crash investigation's `Throw Log` output was.
+
+Two independent, real bugs found reading `src/wxviz/viewer/VizRender.C`
+end to end (three call sites: `VizRender::file()`, and two overloads of
+`VizRender::thumbnail()`, called from `Builder::doSaveThumb()` — invoked
+automatically right after every `Builder::doSave()`, which is exactly
+what Ctrl+S triggers):
+1. **Uninitialized pointers "declared here in case of exception thrown"**:
+   `VizRender::file()`'s `FILE * myFile;` and `VizRender::thumbnail(SoNode*,
+   ...)`'s `SFile *rgbFile;`/`*jpegFile;` were never initialized at
+   declaration. Each function's own cleanup code (`if (myFile)
+   fclose(myFile);` etc.) runs on the failure path specifically to handle
+   this "in case of exception" scenario — but on that exact path, before
+   my fix, the pointer being checked was uninitialized stack garbage, not
+   actually null. `if (garbage_that_looks_truthy) fclose(garbage_pointer);`
+   is undefined behavior — the actual segfault. Fixed by initializing all
+   three to `0` at declaration, so the "in case of exception" path they
+   were written for actually behaves as intended.
+2. **`catch (string& error)` doesn't catch `EcceException`** (extends
+   `std::runtime_error`, not `std::string`) — found in all three
+   functions in this file. Every `throw EcceException(...)` inside these
+   try blocks (including the "Unable to render scene graph" one that
+   triggered this report) was going completely uncaught, propagating out
+   of the function entirely and very plausibly reaching
+   `std::terminate()`/`abort()` further up the call stack — independently
+   enough to explain a hard crash even without bug 1. Fixed all three to
+   `catch (EcceException& ex)`, matching the pattern used correctly
+   elsewhere in this same codebase. Confirmed via grep this exact
+   mismatched-catch pattern doesn't appear anywhere else in the tree —
+   isolated to this one file.
+
+**Very likely the same bug as "Ctrl+S closes Builder"** (reported
+separately, still open as of this fix): the user later confirmed Ctrl+S
+does *not* crash when re-saving an already-existing, previously-saved
+structure, only account for a first save — consistent with thumbnail
+generation (which fires from `doSave()` on every save) hitting a code
+path exercised differently, or for the first time, on a brand-new
+resource. Not yet confirmed live — needs the user to retest the exact
+"draw new structure, Ctrl+S" sequence that originally triggered it.
+
+**Not investigated**: *why* `SoOffscreenRenderer::render()` fails in the
+first place ("Unable to render scene graph"), which is what triggers this
+whole path. Both bugs above make that failure survivable (a message in
+`p_msg`, not a crash) rather than fixing the underlying render failure --
+thumbnails may still just not get generated. Worth a follow-up look if
+thumbnails turn out to be silently missing rather than genuinely working
+end-to-end.
+
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
 `*GUI.C` files in ~15 other `ECCE_GUI_APPS` (confirmed via grep — e.g.
