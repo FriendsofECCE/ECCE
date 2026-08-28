@@ -56,6 +56,8 @@ public:
 
   void setTransparencyType(SoGLRenderAction::TransparencyType type);
 
+  void refreshRenderArea();
+
   
   virtual void setSceneGraph(SoNode *); 
   SoNode *getSceneGraph();

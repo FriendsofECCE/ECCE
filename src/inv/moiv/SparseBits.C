@@ -84,7 +84,7 @@ void SparseBits::setBitTo(int index, bool value)
   if (value == true) {
     p_set.insert(index);
   } else {
-    p_set.erase(p_set.find(index));
+    p_set.erase(index);
   }
 }
 
@@ -116,7 +116,7 @@ void SparseBits::setBit(int index)
  */
 void SparseBits::clearBit(int index)
 {
-   p_set.erase(p_set.find(index));
+   p_set.erase(index);
 }
 
 
@@ -272,7 +272,7 @@ SparseBits& SparseBits::operator|=(const SparseBits& rhs)
 {
    if (this != &rhs) {
       unordered_set<int, std::hash<int>, sbequint>::const_iterator it = rhs.p_set.begin();
-      while (it != p_set.end()) {
+      while (it != rhs.p_set.end()) {
          setBit(*it);
          it++;
       }
@@ -288,7 +288,7 @@ SparseBits& SparseBits::operator^=(const SparseBits& rhs)
 {
    unordered_set<int, std::hash<int>, sbequint>::const_iterator it = rhs.p_set.begin();
    while (it != rhs.p_set.end()) {
-      bool set = (*it == (true ^ testBit(*it)));
+      bool set = !testBit(*it);
       if (set) {
          setBit(*it);
       } else {

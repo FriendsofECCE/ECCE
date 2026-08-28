@@ -561,6 +561,203 @@ wx-version-specific, that just happened to go unnoticed until dynamic,
 runtime-generated error text with a `%` in it hit one of these 9 call
 sites for the first time.
 
+## `EcceException::what()` dangling pointer — FIXED (2026-08-28)
+
+Found while investigating the builder crash above: `what()`
+(`src/util/exceptions/EcceException.C`) built a local `std::string
+baseMessage` and returned `baseMessage.c_str()` — a pointer into a stack
+object destroyed the moment `what()` returns. Every caller of `ex.what()`
+across the whole codebase was reading freed stack memory, which happened to
+look correct most of the time (undefined behavior, not consistently wrong)
+but explains both the garbled `Throw Log:` text seen while investigating
+the crash above (binary garbage instead of the real exception message) and
+plausibly contributed to the original crash's non-determinism. Fixed by
+returning `runtime_error::what()` directly — the base class already owns a
+copy of the message with a lifetime tied to the exception object, no
+temporary needed.
+
+## Structure Library: blank list after selecting any library — FIXED (2026-08-28)
+
+`Builder`'s "Import from structure library" panel populated the `Libraries`
+dropdown correctly (reading top-level folder names via `EDSIFactory`/
+`FileEDSI`, confirmed working via live gdb tracing) but the list of
+structures/folders below it stayed completely blank no matter which library
+was selected — confirmed via gdb that `Resource::getChildren()` DID
+correctly resolve every child (folder or `.mvm` file) and that
+`wxListCtrl::InsertItem()` WAS being called the right number of times; the
+data pipeline was fully correct.
+
+Root cause: `StructLib.C`'s `refreshStructures()` builds each row as a
+`wxListItem` and calls `InsertItem(item)` (the overload that inserts at
+`item.m_itemId`) without ever calling `item.SetId(...)` — `m_itemId`
+defaults to an invalid index. A minimal standalone repro (`wxListCtrl` in
+`wxLC_LIST` mode, same `wxImageList`/icon setup) reproduced this exactly:
+`./src/generic/listctrl.cpp(4609): assert ""item.m_itemId >= 0"" failed in
+InsertItem()`. In a RelWithDebInfo build the assert doesn't abort, so the
+app just silently drops every item instead of crashing. The function's own
+comment ("all new items put into the list appear at index = 0... insert
+them in reverse order") shows the ORIGINAL intent was always index 0 — it
+was just never actually set. Fixed by adding `item.SetId(0);` at both
+`InsertItem()` call sites (folder branch and file branch). Confirmed no
+other `wxListCtrl::InsertItem(wxListItem&)` call sites exist without an
+explicit ID elsewhere in the tree (`ewxFileCtrl.C` already sets
+`item.m_itemId = 0` directly; `WxTableView.C` uses the different
+`InsertItem(long, wxString, int)` overload that takes the index as a plain
+argument, unaffected).
+
+## `SparseBits` — real crash + two latent logic bugs — FIXED (2026-08-28)
+
+A second, distinct builder crash (SIGSEGV) surfaced once the structure
+library fix above let real structures actually get imported and rendered.
+Root-caused via a real coredump (see "Getting a coredump" note below) +
+`gdb bt` against the unstripped `build-cmake/builder` binary:
+```
+SparseBits::operator^=      SparseBits.C:295 -> clearBit(*it)
+  -> std::unordered_set::erase(iterator)   <- crash here
+ChemSSSR::findFragments      ChemSSSR.C:1646
+ChemSSSR::ChemSSSR (ctor)    ChemSSSR.C:585
+ChemDisplay::generateDoubleBondList / computeBBox
+```
+Ring-perception (SSSR) on a freshly-imported 52-atom structure crashed
+inside `SparseBits`, `src/inv/moiv/SparseBits.C`. Two independent bugs
+stacked together:
+1. `operator^=` (line 291, now fixed): `bool set = (*it == (true ^
+   testBit(*it)));` compares an arbitrary **integer bit index** (`*it`,
+   e.g. 0-51) against a **bool** XOR result — nonsensical, and only ever
+   true by accident when the index happens to be 0 or 1. The correct XOR
+   logic is simply `!testBit(*it)` (rhs's bit is known true for every
+   `*it` in `rhs.p_set`, so the XOR result is just "not already set here").
+   The bug meant `clearBit()` got called for indices NOT actually present
+   in the set far more often than intended.
+2. `clearBit()` and `setBitTo(..., false)` (now fixed): both did
+   `p_set.erase(p_set.find(index))` — if `index` isn't present, `find()`
+   returns `end()`, and **erasing `end()` is undefined behavior**. That's
+   the actual segfault. Fixed by using safe erase-by-key,
+   `p_set.erase(index)` (a no-op if absent), everywhere this pattern
+   appeared.
+
+Also found and fixed while reading this same ~30-line block:
+`operator|=` iterates `rhs.p_set.begin()` but its loop condition compared
+against `p_set.end()` (`this`'s end iterator, not `rhs`'s) — comparing
+iterators from two different `unordered_set` instances is undefined
+behavior. Fixed to compare against `rhs.p_set.end()`. Not the crash seen
+here, but the same function block, same bug class, same file — fixed
+alongside the other two rather than left for a future session to rediscover.
+
+Verified via `ninja builder` (clean rebuild) + reproducing the exact import
+that crashed before, with a coredump-enabled launch (see below) as a
+safety net — no crash, no new coredump.
+
+### Getting a coredump when `ulimit -c unlimited` fails with "Operation not permitted"
+Hit this mid-investigation: the launching shell's *hard* core-size limit
+was already 0 (`ulimit -Hc` → `0`), and a non-root process can only lower a
+hard limit, never raise it — `/etc/security/limits.d/*` being correctly
+configured for `infinity` doesn't matter for an *already-running* shell
+that predates that config taking effect. Fix that doesn't need root or a
+relogin: launch through a **transient systemd unit**, not `ulimit`:
+```
+systemd-run --user -p LimitCORE=infinity --pipe --collect \
+  env <the usual ECCE_HOME=... etc> ./builder
+```
+Must be a plain `systemd-run --user` **service** (no `--scope`) —
+`--scope` rejected `-p LimitCORE=...` with "Unknown assignment" on this
+systemd version; some exec-related unit properties aren't settable on
+scopes. Once captured, resolve full symbols/source lines against the
+**unstripped build-tree binary**, not the installed one (CPack strips the
+latter — see the first builder-crash section above for the same gotcha):
+`coredumpctl dump <PID> -o core.dump; gdb build-cmake/builder core.dump`.
+
+### `perf` profiling needs `perf_event_paranoid` lowered
+`perf record -p <pid>` failed outright with a permissions error even after
+installing `linux-perf` — Debian's default `kernel.perf_event_paranoid=3`
+blocks it entirely for non-root. Fixed (session-only, not persisted) via
+`sudo sysctl kernel.perf_event_paranoid=1`. Add `kernel.perf_event_paranoid
+= 1` to `/etc/sysctl.conf` if this needs to survive a reboot.
+
+## Builder 3D viewer: rotation/insertion never redrew until an unrelated event — PARTIALLY FIXED (2026-08-28)
+
+Two symptoms, same root cause: newly-added structures (via "Import from
+Structure Library") and camera rotation (both the dedicated toolbar
+"Rotate" mode and right-click-drag in Select mode) updated their
+**underlying state correctly** (confirmed: atom count and the Rotation
+X/Y/Z fields at the bottom of the viewer updated) but the **3D viewport
+never visibly repainted** until some unrelated later event (switching
+modes, then clicking) forced a repaint — at which point it "jumped" to
+show the fully-accumulated state all at once.
+
+Root cause: this is Open Inventor's own `SoSceneManager` render-callback
+mechanism (`SoWxRenderArea::renderCB`,
+`src/inv/wxinv/SoWxRenderArea.C:1038`) not firing reliably during
+interactive drag/command-execution under wx3.2/GTK3 — matching a
+previous developer's own diagnosis, left as a comment right at the exact
+spot that needed it (`SGViewer::processEvent`,
+`src/wxviz/viewer/SGViewer.C`): `// @todo This wasn't needed. Some
+callback function is not working! //  Refresh(false);` — i.e. someone
+already found this exact gap and gave up rather than root-causing why the
+"working" mechanism wasn't firing. `renderCB` itself, when it *does* fire,
+correctly does `renderArea->Refresh(false); renderArea->Update();` — that
+became the template for the fix.
+
+Fixed two call sites to explicitly force what `renderCB` was supposed to
+be doing automatically:
+- `SGViewer::processEvent()` (mouse-move/drag handling) — re-enabled the
+  commented-out call, now `p_renderArea->Refresh(false);
+  p_renderArea->Update();` (targeting the actual `wxGLCanvas` child
+  directly, not `this`/the wrapping `wxPanel` — see flicker note below).
+- `Builder::execute()` (`src/apps/builder/Builder.C`, after a command
+  successfully modifies the scene graph) — added a new public
+  `SGViewer::refreshRenderArea()` wrapper (declared in `SGViewer.H`) since
+  `p_renderArea` itself is `protected` on the base `SoWxViewer` and not
+  reachable from `Builder.C`, which only holds a `p_viewer` pointer by
+  composition, not inheritance.
+
+**Structure-library insertion is fully fixed and confirmed** ("Insertion
+works perfectly" — user, live-tested). **Rotation is now live/responsive
+but flickers** — confirmed via the user's own memory that old
+(pre-wx3.2-port) ECCE did NOT flicker, so this is a wx3.2/GTK3 regression,
+not inherent to the old immediate-mode renderer. Four variants tried
+live, in order, none eliminated the flicker without a worse regression:
+1. `Refresh(false)` on `this` (the wrapping `wxPanel`, not the render
+   area) — compiled, but was refreshing the wrong window (an old
+   commented-out leftover verbatim).
+2. `p_renderArea->Refresh(false)` alone — **rotation became responsive**,
+   flickers.
+3. `p_renderArea->scheduleRedraw()` instead of `Refresh()` — regression:
+   back to no live update at all. `scheduleRedraw()` only marks something
+   dirty for the *existing* (broken) auto-redraw path to pick up later; it
+   doesn't force an actual paint the way `Refresh()`+`Update()` does.
+4. `p_renderArea->Refresh(false); p_renderArea->Update();` (matching
+   `renderCB`'s own pattern exactly) — still flickers, no better than
+   plain `Refresh()`.
+5. Same as #4 but guarded with a new `p_inPaint` reentrancy check
+   (mirroring the guard `renderCB` itself uses) — regression: flicker
+   *and* dropped/jumping frames, worse than #4.
+
+**Left in place: variant #4** (`Refresh()`+`Update()`, no guard) — the
+best of the tried options: fully responsive, matches the codebase's own
+existing pattern for this exact purpose, flicker is a cosmetic regression
+rather than a functional blocker. The `isInPaint()` public accessor added
+for variant #5 was removed again since nothing uses it in the final state.
+
+**Not yet root-caused**: *why* `renderCB` doesn't fire reliably in the
+first place (the deeper question, unanswered) — worth checking whether
+`p_sceneMgr`'s attached scene graph actually includes the camera node
+`rotateCamera()`/`spinCamera()` mutate, since Inventor's field-notification
+system only triggers a scene manager's callback for changes within the
+graph it's actually watching. Also unexplored: whether GTK3's compositing
+model changed how `wxGLCanvas`'s double-buffered `SwapBuffers()`
+interacts with an externally-forced `wxWindow::Update()` in a way GTK2
+tolerated but GTK3 doesn't — the user's confirmation that old ECCE never
+flickered points at exactly this class of explanation. A profiling
+session (`perf record` while dragging, see note above for the
+`perf_event_paranoid` gotcha) showed essentially **zero** time in any
+`SoGL`/OpenGL/`SoWxRenderArea` code during rotation — all measurable cost
+was in wx's own event-dispatch/idle-event machinery
+(`wxWindowBase::SendIdleEvents`, `wxToolBarBase::UpdateWindowUI`,
+`wxEventHashTable::HandleEvent`) — so the flicker is very unlikely to be a
+raw rendering-performance problem; it's specifically a paint-timing/
+compositing issue.
+
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
 `*GUI.C` files in ~15 other `ECCE_GUI_APPS` (confirmed via grep — e.g.

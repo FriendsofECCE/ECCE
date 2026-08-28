@@ -919,8 +919,15 @@ void SGViewer::processEvent( wxEvent * event )
 #ifdef SOWXDEBUG
   cerr << "Leave SoWxExaminerViewer::processEvent\n";
 #endif
-  // @todo This wasn't needed. Some callback function is not working!
-  //  Refresh(false);
+  p_renderArea->Refresh(false);
+  p_renderArea->Update();
+}
+
+
+void SGViewer::refreshRenderArea()
+{
+  p_renderArea->Refresh(false);
+  p_renderArea->Update();
 }
 
 

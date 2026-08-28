@@ -167,8 +167,7 @@ void EcceException::report() const noexcept
  */
 const char *EcceException::what() const noexcept
 {
-   string baseMessage = runtime_error::what();
-   return baseMessage.c_str();
+   return runtime_error::what();
 }
 
 

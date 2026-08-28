@@ -2258,6 +2258,7 @@ bool Builder::execute(Command *cmd, bool batch)
       SGFragment *frag = NULL;
       if (getSG() && (frag = getSG()->getFragment()))
          setSelection(frag->m_atomHighLight, frag->m_bondHighLight);
+      p_viewer->refreshRenderArea();
    }
    return didit;
 }

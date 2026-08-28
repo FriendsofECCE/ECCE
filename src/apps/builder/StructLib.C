@@ -535,6 +535,7 @@ void StructLib::refreshStructures()
             {
                 wxListItem item;
 
+                item.SetId(0);
                 item.SetImage(0);
                 item.SetText(fname);
                 item.SetData(rsrcChld);
@@ -554,6 +555,7 @@ void StructLib::refreshStructures()
                 {
                     wxListItem item;
 
+                    item.SetId(0);
                     item.SetImage(1);
                     item.SetText(StringConverter::getFileNameBase(fname));
                     item.SetData(rsrcChld);
