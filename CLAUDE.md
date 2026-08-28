@@ -1290,29 +1290,13 @@ identical crash signature (`strToType`/`strToCoordSys`/`strToContType` on
 real, blank-field vendored `.meta` data) as the standalone repro's
 `cc-pVDZ` segfault, fixed above.
 
-**NOT fixed, separate and out of scope for this pass**: "Runtype details
-and theory details don't open" / "Clicking on Theory Details doesn't do
-anything" (this exact symptom was already reported earlier this session).
-Traced: `CalcEd::startTheoryApp()`/`startRuntypeApp()`
-(`src/apps/calced/CalcEd.C:2826`) `system()`-launch a *separate* wxPython
-GUI process from `JCode::getTheoryRunTypeEditorNames()`
-(`src/dsm/xml/JCode.C:603`), resolved to `$ECCE_HOME/scripts/codereg/
-<name>.py` (e.g. `nedtheory.py`, `ged16runtype.py` — one pair per code,
-~15 scripts total, UDP-socket IPC back to the C++ parent). **`scripts/
-codereg` is never installed** — `CMakeLists.txt` only installs `scripts/
-parsers` (confirmed above); `/opt/ecce/scripts/` has no `codereg/`
-directory at all, so the `system()` call always fails, silently (same
-"nothing checks the exit status" pattern as the `std2NWChem` bug above,
-just never noticed because there's no save-time error message on this
-path — the button just does nothing). This is a materially bigger job
-than the `std2NWChem` PATH fix: `scripts/codereg/*.py` is genuine
-**Python 2 wxPython 2.8** (a different binding entirely from the C++
-wx3.2 already ported this session, confirmed via `file`), needing a real
-Python 2→3 *and* wxPython→wx4/Phoenix port across ~15 files before it can
-even be packaged, not just a missing `install()` rule. Deliberately not
-attempted in this pass — scoped, documented, and left for a dedicated
-session with GUI access to verify against, per this session's own
-established rule about not guessing at unverifiable GUI-facing changes.
+**Was wrongly marked "NOT fixed, out of scope" here — corrected below.**
+The claim that `scripts/codereg/*.py` was "genuine Python 2 wxPython
+2.8" was asserted from running `file` on the scripts, which doesn't
+distinguish Python 2 from 3 — never actually verified. See "Theory
+Details dialog / missing DFT functional" further down for the real
+story: an earlier session had already ported these to Python 3, and the
+actual fix needed was much smaller than claimed here.
 
 **Not yet done**: reinstalling the rebuilt `.deb` — this session has no
 passwordless `sudo`, so `dpkg -i build-cmake/ecce_8.0.0_amd64.deb` needs
@@ -1596,10 +1580,9 @@ supersede (see the wrapper comment in `CMakeLists.txt`), or manual/
 admin-only tooling meant to be run by a human once (e.g. `load_tgbs.C`'s
 own header comment: "BEFORE running this program, you need to run
 `gbsDAVConverter`" — a prep step for a rarely-used dev tool, not
-something ECCE itself ever shells out to). `scripts/codereg/` (Theory/
-Runtype Details) is the one remaining real reference that's *not* a
-packaging gap — already documented above as a genuine Python 2/wxPython
-2.8 porting job, deliberately deferred.
+something ECCE itself ever shells out to). `scripts/codereg/`'s status
+at this point in the audit was wrong — see "Theory Details dialog /
+missing DFT functional" further down for the correction.
 
 **Not yet verified against a real job launch** — same "needs the package
 reinstalled" caveat as `gensub`, plus this one needs an actual
@@ -1618,6 +1601,87 @@ packaging fix) → job launch (`gensub` packaging fix) → job monitoring
 (`eccejobmonitor` packaging fix, found via the audit above) all had to
 work, in sequence, for this run to finish. First real calculation to run
 to completion since this modernization effort's wx3.2/GTK3 port began.
+
+## Theory Details dialog / missing DFT functional — FIX ATTEMPTED, UNVERIFIED, STILL THE TOP PRIORITY (2026-08-29)
+
+**Correcting an earlier claim in this file**: two prior sections above
+("Basis set library metadata", the `scripts/*` packaging audit) asserted
+`scripts/codereg/*.py` (the Theory/Runtype "Details" dialogs, e.g. the
+button that lets you pick a DFT exchange-correlation functional) was
+unported Python 2 + wxPython 2.8, needing a real port, and left it
+alone. **That was asserted from running `file` on the scripts, which
+doesn't distinguish Python 2 from 3 — never actually verified.** Andy
+caught the inconsistency directly ("I thought you had already fixed
+that?") and it was worth checking properly rather than defending the
+original claim.
+
+Checked properly: all 21 `scripts/*.py` files, including every file
+under `codereg/`, already compile clean under `python3` and import
+`wx` (Phoenix-style), not the Classic `from wxPython.wx import *`. Git
+blame traces this to an **earlier session's own commit**, `32d2806`
+("Fix JMS fd leak (#5)... port Python scripts to Python 3", 2026-08-26)
+— its own message already said exactly this: "All 21 repo .py files now
+compile clean under python3. wxPython Classic -> Phoenix API
+compatibility for the wx-using scripts not yet verified (no wxPython/
+display in this sandbox)." That caveat was still true and unresolved,
+but the Python-2-ness this file claimed was already false at the time
+it was written.
+
+**What was actually still broken**, once checked for real:
+1. `scripts/codereg` was never added to `CMakeLists.txt`'s install
+   rules — same packaging-gap shape as every other fix in the audit
+   above.
+2. `JCode::getTheoryRunTypeEditorNames()` (`src/dsm/xml/JCode.C:603`)
+   hardcoded a bare `python` (not `python3`) to invoke these scripts —
+   Debian 13 has no bare `python` on `PATH` by default, so this would
+   have failed regardless of packaging. Also prepended a legacy
+   `LD_LIBRARY_PATH=../3rdparty/wxwidgets/lib:...` from the old
+   vendored-3rdparty multi-platform layout — relative paths that never
+   resolved to anything real in this build's flat layout, now dead
+   weight now that a real Debian package resolves its own linking.
+3. **`python3-wxgtk4.0` (the Phoenix wxPython bindings) isn't installed
+   on this system at all** (`python3 -c "import wx"` →
+   `ModuleNotFoundError`) — needed either way, packaging fix or not.
+   Available in Debian 13's repos (`python3-wxgtk4.0`, `4.2.3+dfsg-2`),
+   just never added as a dependency.
+
+**Fixed**: `python3` + dropped the legacy `LD_LIBRARY_PATH` prefix in
+`JCode.C`; added `install(DIRECTORY scripts/codereg ...)` to
+`CMakeLists.txt`; added `python3-wxgtk4.0` to
+`CPACK_DEBIAN_PACKAGE_DEPENDS` (dpkg-shlibdeps only catches linked
+`.so`s, not a spawned `python3` subprocess's own module needs, same
+reasoning as the existing `apache2`/`apache2-utils` entries).
+
+**Why this matters more than it looked like at first**: traced how a
+selected theory's DFT functional actually reaches the generated input
+file. The Details dialog reports back to `CalcEd` over a UDP socket
+(`CalcEd::OnTheoryIPC()` → `processTheoryInput()` →
+`p_GUIValues->append(databuf)`), and `write_setup()`
+(`ESInputController.C`) dumps `p_GUIValues` straight into the `.param`
+file the Perl parser (`scripts/parsers/ai.gauss16`, etc.) reads
+`XCFunctionals`/`ExchangeFunctionals`/`CorrelationFunctionals` from to
+build the theory keyword line. With the dialog never launching, that
+key was simply never set — this is confirmed to be the root cause of a
+*separately*-reported, real failure: Andy's first real Gaussian 16 job
+used RDFT with no functional selected, producing a keyword line reading
+`#P r/6-31g` (a bare `r`, no functional, before the `/`) — an "ambiguous
+keyword" error from Gaussian itself, not from ECCE. Andy edited the
+generated input by hand to confirm: adding the functional (e.g.
+`rB3LYP`) fixed it. **This is very likely the same bug**, not
+independently confirmed live yet.
+
+**UNVERIFIED — this is the most important thing to check next**,
+ranked above everything else still open in this file. Specifically
+unverified: whether the dialog *logic* itself (not just its imports) is
+actually Classic/Phoenix-API-compatible once it can run at all — the
+32d2806 commit's own caveat, still open. Needs, in order: (1) package
+reinstalled, (2) `python3-wxgtk4.0` actually installed (a real new apt
+dependency this pass added — a plain `dpkg -i` may report it as missing
+depending on how it's run; `apt-get install -f` or `apt install ./ecce_
+8.0.0_amd64.deb` afterward should pull it in), (3) live retest: open
+Calc Editor, pick a DFT theory, click "Theory Details", confirm the
+dialog actually opens and a functional can be selected end-to-end into
+a real job.
 
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other

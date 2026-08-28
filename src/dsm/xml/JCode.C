@@ -629,12 +629,16 @@ bool JCode::getTheoryRunTypeEditorNames(string& theory, string& runtype) const
     pyfile += theory;
     SFile sfile(pyfile);
 
-    // Trickiness to invoke wx enabled python.  Need to pass $LD_LIBRARY_PATH
-    // to find the wxWidgets shared libraries plus any system libraries
-    // in case the local version isn't compatible (e.g. 32-bit distributions)
-    theory = "LD_LIBRARY_PATH=../3rdparty/wxwidgets/lib:../3rdparty/system/lib"
-             ":../3rdparty/local/lib python " + pyfile;
- 
+    // The old vendored-3rdparty multi-platform layout needed an explicit
+    // LD_LIBRARY_PATH to find its own bundled wxWidgets shared libs; this
+    // build uses the distro's own python3-wxgtk4.0 package (a real
+    // Debian dependency, resolved via the normal system linker paths),
+    // so that's not needed here -- and those old relative
+    // "../3rdparty/..." paths never resolved to anything real in this
+    // build's flat single-platform layout anyway. Also python -> python3:
+    // Debian 13 has no bare "python" on PATH by default.
+    theory = "python3 " + pyfile;
+
     // Note that this will return just the theorydialog value if the
     // script does not exist in codereg which is the proper fallback if the
     // detail dialog is an executable in the platform/*/bin directory
@@ -654,9 +658,8 @@ bool JCode::getTheoryRunTypeEditorNames(string& theory, string& runtype) const
     pyfile += runtype;
     SFile sfile(pyfile);
 
-    runtype = "LD_LIBRARY_PATH=../3rdparty/wxwidgets/lib:../3rdparty/system/lib"
-              ":../3rdparty/local/lib python " + pyfile;
-    
+    runtype = "python3 " + pyfile;
+
     // Note that this will return just the runtypedialog value if the
     // script does not exist in codereg which is the proper fallback if the
     // detail dialog is an executable in the platform/*/bin directory

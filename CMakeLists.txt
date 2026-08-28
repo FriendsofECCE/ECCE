@@ -698,19 +698,46 @@ endif()
 # CPAN deps), no hardcoded EMSL paths despite being a large (4800+ line)
 # legacy script.
 #
-# The rest of that audit came back clean: scripts/codereg (Theory/Runtype
-# Details) is the one already-documented case that's a real port, not a
-# packaging gap (see "Basis set library metadata" above); everything else
-# under scripts/ (ecce, ebuilder, eviewer, epmf, eprp, ecce_checks,
-# ecce_env, runtime_setup*, sysdir, gbsDAVConverter, gbsNWChemConverter,
+# The rest of that audit came back clean: everything else under scripts/
+# (ecce, ebuilder, eviewer, epmf, eprp, ecce_checks, ecce_env,
+# runtime_setup*, sysdir, gbsDAVConverter, gbsNWChemConverter,
 # gbsDescriber, pmf_gui.py, prp_gui.py) has zero references from any
 # compiled C++ code -- they're either top-level launcher scripts this
 # build's own ecce-<app> wrappers already supersede (documented rationale
 # above), or manual/admin-only tooling invoked by a human, not by ECCE
-# itself.
+# itself. scripts/codereg was wrongly written off in an earlier pass of
+# this same audit as "a real Python 2/wxPython port, not a packaging
+# gap" -- corrected below, it's actually the same packaging-gap shape as
+# everything else here, just with one extra piece (a real apt
+# dependency).
 if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/eccejobmonitor)
   install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/eccejobmonitor
           DESTINATION scripts)
+endif()
+
+# scripts/codereg: Theory/Runtype "Details" dialogs (JCode::
+# getTheoryRunTypeEditorNames(), src/dsm/xml/JCode.C). Wrongly assessed in
+# an earlier pass of the audit above as unported Python 2/wxPython
+# Classic and left alone -- actually already Python-3-ported by an
+# earlier session (commit 32d2806: all 21 scripts/*.py files, including
+# these, confirmed compiling clean under python3, `import wx` not the
+# Classic `from wxPython.wx import *`). The two real gaps: (1) this
+# directory was never installed (same shape as every other scripts/
+# fix above), and (2) JCode.C hardcoded `python` (not `python3` -- fixed
+# alongside this) plus a legacy `LD_LIBRARY_PATH=../3rdparty/...` prefix
+# left over from the old vendored-3rdparty multi-platform layout, neither
+# of which resolves to anything in this build's flat layout (also
+# removed -- the distro's own python3-wxgtk4.0 package, added as a real
+# apt dependency below, resolves its own shared-library deps normally).
+# NOT verified against the actual wxPython Phoenix API surface inside
+# these scripts -- python3-wxgtk4.0 isn't installed in this sandbox and
+# can't be without sudo, so whether the dialog *logic* itself (not just
+# imports) is Classic/Phoenix-compatible is still an open question the
+# 32d2806 commit message already flagged and this pass couldn't close.
+if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/codereg)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/scripts/codereg
+          DESTINATION scripts
+          USE_SOURCE_PERMISSIONS)
 endif()
 
 # Thin /usr/bin wrapper scripts for the 19 GUI apps, so they land on PATH
@@ -823,7 +850,11 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # dpkg-shlibdeps only catches linked .so's, not a spawned subprocess --
 # apache2 (the data server, see ecce-dataserver-start above) is invoked
 # as an external binary, not linked, so it has to be listed explicitly.
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils")
+# python3-wxgtk4.0 is the same story for scripts/codereg's Theory/Runtype
+# Details dialogs (see the scripts/codereg install() block above) -- a
+# spawned `python3 .../codereg/*.py`, not a linked dependency of any
+# ECCE binary, so dpkg-shlibdeps can't see it either.
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0")
 # RelWithDebInfo keeps -g everywhere (useful while porting - see the
 # CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
 # strip debug symbols out of the packaged copies only, not the build tree.
