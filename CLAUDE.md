@@ -197,20 +197,102 @@ half-finished attempt left in place):
    `CallAfter` round evidently isn't enough — GTK's negotiation for this
    widget tree apparently needs more than one event-loop turn to settle,
    and the single manual `Layout()` call doesn't converge it either.
+3. **Bind `wxEVT_SHOW` as the release signal, plus a 2s safety-net
+   `wxTimer`**, based on reading wxWidgets' actual GTK3 backend source
+   (`src/gtk/toplevel.cpp`, `wxTopLevelWindowGTK::Show()`/
+   `GTKDoAfterShow()`/`GTKUpdateClientSizeIfNecessary()` — see "Is this a
+   wx version issue?" below). Theory: `Show(true)` on wxGTK3 can defer the
+   actual `gtk_widget_show()` while it round-trips with the window manager
+   for `_NET_FRAME_EXTENTS`, and only once that completes does it apply a
+   pending client-size fit and send `wxEVT_SHOW` — so binding release to
+   that event should bracket the real trigger regardless of how many
+   event-loop turns the WM round-trip takes. Failed anyway, still crashed
+   the same way. Not fully diagnosed why — see "diagnostic dead end" below;
+   this specific theory was not conclusively ruled in or out.
+
+### Diagnostic dead end: gdb backtraces can't reach the real trigger here
+After attempt 3 also failed, tried to find the true (non-recursed) entry
+point into the storm directly, rather than keep guessing mechanisms:
+- Broke on `wxWindowBase::InternalOnSize` and captured the very first hit
+  of the whole program: it's an ordinary, harmless, expected size event
+  fired while constructing a `wxStaticBox` in `CreateControls()` — routine
+  construction-time noise, not the storm. This approach doesn't
+  distinguish "routine call" from "start of runaway recursion" and isn't
+  useful as-is (would need a real reentrancy check — e.g. is
+  `InternalOnSize` already on the stack N frames up — not just a hit
+  counter, to be useful).
+- Tried instead to capture the *bottom* of the stack at the moment of the
+  crash (`bt -40` — oldest frames, closest to program entry — as opposed
+  to `bt 40` which only ever shows the same repeating ~11-frame cycle near
+  the top). This is the right idea but hit a practical wall: gdb itself
+  needs real memory and CPU time to unwind and symbolize 100,000+ frames,
+  and that need is directly in tension with the memory/time caps this bug
+  requires for safety (see the `systemd-run` note above) — a 15s timeout
+  cut gdb off mid-unwind; a 120s timeout let gdb run out of virtual memory
+  instead (`./gdb/utils.c:666: internal-error: virtual memory exhausted`)
+  and dumped raw unsymbolized addresses. Whoever picks this up needs a
+  setup where gdb itself has more room than the crashing process does —
+  e.g. run gdb unconfined, only cap the *inferior* process (may need
+  `set exec-wrapper` or a `catch signal` + immediate `bt -60` before any
+  further recursion, rather than letting it run all the way to the actual
+  stack-limit SIGSEGV) — not attempted yet.
+
+### Is this a wx version issue? Yes, plausibly — but not fully confirmed
+Researched whether this class of bug is a known wx3.2/GTK3 regression
+(GTK3 didn't exist when wx2.8 was released in 2008, so none of this
+machinery existed under the old toolkit ECCE originally targeted):
+- wxWidgets GitHub issues [#17585](https://github.com/wxWidgets/wxWidgets/issues/17585)
+  ("GTK+3.20 sizing failures") and [#22668](https://github.com/wxWidgets/wxWidgets/issues/22668)
+  ("GTK3 Refresh or Layout bug when hiding and showing multiple panels")
+  document real, acknowledged GTK3-specific sizing/layout bugs in
+  wxWidgets, including cases where `SetSize()` calls get silently
+  overridden after `Fit()`, and layout bugs specifically tied to
+  `Show()`/`Hide()` cycles on GTK3.
+- wxWidgets' own GTK3 backend (`src/gtk/toplevel.cpp`, confirmed against
+  the `v3.2.8` tag — matches the installed `libwxgtk3.2-1t64 3.2.8+dfsg-2`
+  on niobium) has machinery that has no GTK2/wx2.8 equivalent:
+  `wxTopLevelWindowGTK::GTKDoAfterShow()`, `GTKUpdateClientSizeIfNecessary()`,
+  `m_pendingFittingClientSizeFlags`, and a documented deferred-`Show()`
+  path that waits for a `_NET_REQUEST_FRAME_EXTENTS` window-manager
+  property notification before actually realizing the window. This is
+  genuinely new surface area introduced by the GTK3 backend.
+- wx's own GTK3 `size_allocate` signal callback already has a recursion
+  guard (`wxRecursionGuard setInSizeAllocate(g_inSizeAllocate)`) — but
+  that protects GTK's *native* signal callback from reentering itself, a
+  different code path from the one actually crashing here (our storm is
+  entirely within wx's own C++-level `wxEVT_SIZE`/`InternalOnSize`/
+  `Layout()` event dispatch, which has no equivalent guard). This may
+  explain why wx's own upstream fixes for the GTK3 issues above don't
+  cover this specific case.
+- **Caveat**: the wx-source research above came from an AI-summarized
+  fetch of `toplevel.cpp`, not a byte-exact reading of the full ~180-line
+  `Show()` function — treat the specific claims about exactly when
+  `wxEVT_SHOW` fires as directionally credible, not verified fact. Worth
+  re-reading that function directly (not summarized) before trusting a
+  fix design on it again.
+- **Bottom line**: strong circumstantial evidence this class of bug is
+  substantially a wx3.2/GTK3 regression rather than something pre-existing
+  in ECCE's code that wx2.8/GTK2 simply tolerated — but the exact trigger
+  for *this* widget tree's non-convergence hasn't been pinned down
+  precisely enough to say that with full certainty, or to know whether an
+  upstream wx patch/newer wx point release might already fix it.
 
 ### Next steps for whoever picks this up
-- The fix likely needs suppression held across **multiple** event-loop
-  turns, not one — e.g. a debounced approach: on each `wxEVT_SIZE` that
+- Get a real backtrace to the true trigger first, before another fix
+  attempt — see "diagnostic dead end" above for why the last three
+  attempts were all somewhat shots in the dark, and what a working
+  diagnostic setup might need (gdb unconfined, only the inferior capped).
+- Once the real trigger is known, the fix likely needs suppression held
+  across as many event-loop turns as it actually takes to settle, not a
+  fixed one or two — e.g. a debounced approach: on each `wxEVT_SIZE` that
   would otherwise be let through, re-arm suppression and re-schedule
   another `CallAfter`, only doing the final un-suppressed `Layout()` once a
-  round genuinely produces no further churn. This is meaningfully more
-  complex than the construction-time fix and deserves careful, patient
-  implementation rather than more guess-and-check live iteration.
+  round genuinely produces no further churn.
 - Alternative angle worth investigating first: *why* does this widget tree
-  need multiple GTK negotiation rounds to settle on first realize, when a
-  single manual `Layout()` pass was sufficient at construction time? If
-  that's answerable, a targeted fix (e.g. pre-sizing something before
-  `Show()`) might avoid needing the debounce complexity at all.
+  need multiple rounds to settle on first realize, when a single manual
+  `Layout()` pass was sufficient at construction time? If that's
+  answerable, a targeted fix (e.g. pre-sizing something before `Show()`)
+  might avoid needing the debounce complexity at all.
 - Rebuild the test harness from scratch (see "How it was found" above) —
   it wasn't committed and won't persist across sessions. Always run it
   under the `systemd-run` memory cap, never bare.
