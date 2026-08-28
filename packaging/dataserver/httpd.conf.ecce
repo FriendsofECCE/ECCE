@@ -254,7 +254,7 @@ AddType  chemical/x-gamessuk-output .gko
 </FilesMatch>
 
 ErrorLog "logs/error_log"
-LogLevel crit
+LogLevel error
 
 <IfModule log_config_module>
     LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined

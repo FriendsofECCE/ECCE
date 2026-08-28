@@ -631,6 +631,23 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/data)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/data DESTINATION .)
 endif()
 
+# scripts/parsers: per-code basis-set translation and I/O-format scripts
+# (e.g. NWChem.edml's <BasisTranslationScript>std2NWChem</BasisTranslationScript>,
+# looked up via JCode::getScript() -> TGBSConfig.C, which shells out to
+# whichever one the active code needs). Genuinely modern, working Perl
+# already (use strict, Getopt::Std, confirmed syntax-clean on this
+# system's Perl 5.40) -- this was a pure packaging gap, not a porting
+# job, unlike scripts/gbs* (real Python 2, still unported -- separate,
+# not currently reachable via any wired-up UI path, left alone for now).
+# Distinct from the scripts/ecce/ebuilder/eviewer-class launcher scripts
+# deliberately not ported (see the wrapper comment below) -- this is
+# actual calculation-setup logic, not a launcher.
+if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/parsers)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/scripts/parsers
+          DESTINATION scripts
+          USE_SOURCE_PERMISSIONS)
+endif()
+
 # Thin /usr/bin wrapper scripts for the 19 GUI apps, so they land on PATH
 # and get ECCE_HOME set without the user having to source anything. These
 # are NEW scripts written for this build's flat single-platform bin/

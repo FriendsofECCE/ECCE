@@ -948,6 +948,89 @@ template changes only take effect on a fresh `apache2` start, not an
 already-running instance — see the earlier `/EcceHelp` Alias section for
 the same caveat).
 
+## Help CGI backend, round 2: 3 more scripts + SSI + LogLevel — FIXED (2026-08-28)
+
+Follow-up to the section above, once real click-through testing (not just
+`curl`) started surfacing more of the same class of gap:
+- **Only `toolhelp`/`cshelp` were patched; 3 more navigation scripts
+  needed the identical fix**: `key_topics` and `examples` (the "How To"
+  and "Examples" tab content, invoked from `js_eccehelp.js`'s
+  `startPage()` — `top.list.location.href =
+  '/cgi-bin/EcceHelp/key_topics?...'`) and `openindex` (the master
+  index). Same 3-part patch (shebang, `$help_dir`, absolute
+  `require`) — `patch-help-cgi.sh` generalized to a `nav_scripts` list
+  covering all 5. **Deliberately still not patched**:
+  `EcceQSubmissionForm.pl`/`SubmitToEcceQueue.pl` — even fixed, they'd
+  still fail trying to reach PNNL's own long-gone mail/queue servers, a
+  real external-network problem, not an environment-path one like the
+  rest of this tarball.
+- **SSI (`<!--#include-->`) directives were being served back as literal
+  text**, not processed — confirmed via `curl` showing the raw comment
+  syntax in the response instead of the included fragment's content, so
+  every `.shtml` page's actual body and links were simply missing.
+  `mod_include` was never loaded, and neither `Includes` (in `Options`)
+  nor `AddOutputFilter INCLUDES .shtml` were set on the `/EcceHelp`
+  `<Directory>` block. Fixed in `httpd.conf.ecce`.
+- **`LogLevel crit`** (inherited unchanged from the legacy template) was
+  hiding the actual Perl error behind these bugs entirely — a CGI script
+  failure normally logs at `error`, well below `crit`. Lowered to
+  `LogLevel error` so future help-CGI (or any Apache-side) issues are
+  actually diagnosable from `logs/error_log` instead of needing a `curl`
+  reproduction every time.
+
+Confirmed via the user's own live click-through: "Clicking now leads to
+new pages" (round 1 alone got the top-level nav working) → "same issue as
+before... How To tab gives internal server error on the left panel"
+(round 2's actual trigger) → traced end-to-end via `js_eccehelp.js` before
+touching anything further, rather than guessing at more CGI scripts to
+patch blind.
+
+## Basis set / theory validation false errors — FIXED (2026-08-28)
+
+Reported while testing a real NWChem calculation setup (draw CH4 in
+Builder, set SCF/RHF theory, open the basis set editor): spurious
+"selected configuration doesn't cover all elements" and "group not
+defined" errors for definitely-covered elements (C, H — any basis set
+covers these), regardless of which theory/runtype was selected, and
+"Theory Details" doing nothing when clicked.
+
+User's own hunch ("I think these are managed by perl/python programs")
+was exactly right, but not `scripts/gbs*` (the `gbsDAVConverter`/
+`gbsDescriber`/`gbsNWChemConverter` trio already flagged in this repo's
+own history as unported/diverged) — those turned out to be unrelated to
+this specific bug, still genuinely unported (confirmed `gbsDescriber` is
+real, un-migrated Python 2 — `chr(004)`-style octal literals are an
+outright `SyntaxError` on Python 3 — left alone, not currently reachable
+from any wired-up UI path, so out of scope for this fix). The actual
+dependency, traced via `TGBSConfig.C`'s `system()` call →
+`JCode::getScript("GBSExport")` → `get_string("BasisTranslationScript")`
+→ `NWChem.edml`'s `<BasisTranslationScript>std2NWChem</BasisTranslationScript>`,
+is `scripts/parsers/std2NWChem` (+ two required modules,
+`rdStandardGBS.pm`/`wrNWChemGBS.pm`) — genuinely modern, already-working
+Perl (`use strict`, `Getopt::Std`, no deprecated `getopts.pl` this time),
+just never installed/packaged at all. **A pure packaging gap, not a
+porting job** — confirmed via `perl -c` on all three files (clean) and a
+real end-to-end smoke test (`echo "" | perl std2NWChem` → valid NWChem
+basis-block stub output, no crash, no missing-module errors). Fixed by
+adding `install(DIRECTORY scripts/parsers DESTINATION scripts)` to
+`CMakeLists.txt` — `std2NWChem` itself already does
+`push(@INC, "$ENV{ECCE_HOME}/scripts/parsers")`, and `ECCE_HOME` is
+already exported by every `ecce-<app>` wrapper, so no further wiring
+needed.
+
+Scoped deliberately narrow tonight: only `scripts/parsers/` (used by
+`GBSExport` and presumably other codes' basis/translation needs via the
+same `JCode::getScript()` mechanism, not just NWChem) was packaged —
+*not* the rest of `scripts/` (the `ecce`/`ebuilder`/`eviewer`-class
+launcher scripts, or the still-genuinely-unported `gbs*` trio), which
+remain out of scope per this file's existing documented reasoning
+(diverged forks, missing Python 3 port, launcher scripts superseded by
+this build's own `ecce-<app>` wrappers).
+
+Not yet re-verified live against the user's real CH4/NWChem calculation
+(found, fixed, and packaged in the same round as the Help CGI round-2
+fixes above — needs `dpkg -i` + a real basis-set-editor retest).
+
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
 `*GUI.C` files in ~15 other `ECCE_GUI_APPS` (confirmed via grep — e.g.
