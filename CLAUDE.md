@@ -1561,6 +1561,51 @@ needs the package reinstalled (still blocked on `sudo`, same caveat as
 every other fix this session) and a live Gaussian 16 (or any code)
 launch retest against a properly-named machine.
 
+## Audit: every "$ECCE_HOME/scripts/*" reference in the codebase — one more gap found and fixed (2026-08-29)
+
+After hitting the same "helper script never packaged" bug three times in
+a row (`std2NWChem`, `processmachine`, `gensub`), Andy flagged the
+pattern directly. Rather than keep fixing these one at a time as they're
+hit live, audited every reference systematically: `grep -rn '"/scripts/'
+src/` (the literal path fragment every genuine shell-out to a `scripts/`
+helper should contain, whether built via `Ecce::ecceHome() + "/scripts/
+..."` or via `Ecce::ecceDataControllersPath()`), then checked each hit.
+
+**One more real gap found**: `scripts/eccejobmonitor`
+(`src/comm/commxt/Launch.C:1566,1642`) — SCP'd to the remote machine as
+part of job submission, then run there (`perl eccejobmonitor
+-configFile eccejobmonitor.conf`, per `src/comm/commxt/JobStore.C:1608`)
+to report job progress/completion back to ECCE. Would have failed the
+exact same way `gensub` did, just one step later in the launch sequence
+(after a submission script actually got generated). Confirmed portable
+before packaging, same diligence as the other `scripts/*` fixes: `perl
+-c` clean, only core modules (`POSIX`, `Socket`, no CPAN dependencies),
+no hardcoded EMSL paths, despite being a large (4800+ line) legacy
+script. **Fixed**: added an `install(PROGRAMS ...)` rule, mirroring
+`gensub`'s — no wrapper `$PATH` change needed this time, since it's
+referenced via a full path, not a bare command.
+
+**Everything else in `scripts/` came back clean** — confirmed each has
+*zero* references from any compiled C++ code, not just "wasn't grepped
+for a false-positive-prone short name": `ecce`, `ebuilder`, `eviewer`,
+`epmf`, `eprp`, `ecce_checks`, `ecce_env`, `runtime_setup`/
+`runtime_setup.sh`, `sysdir`, `gbsDAVConverter`, `gbsNWChemConverter`,
+`gbsDescriber`, `pmf_gui.py`, `prp_gui.py`. These are either top-level
+launcher scripts this build's own `ecce-<app>` wrappers already
+supersede (see the wrapper comment in `CMakeLists.txt`), or manual/
+admin-only tooling meant to be run by a human once (e.g. `load_tgbs.C`'s
+own header comment: "BEFORE running this program, you need to run
+`gbsDAVConverter`" — a prep step for a rarely-used dev tool, not
+something ECCE itself ever shells out to). `scripts/codereg/` (Theory/
+Runtype Details) is the one remaining real reference that's *not* a
+packaging gap — already documented above as a genuine Python 2/wxPython
+2.8 porting job, deliberately deferred.
+
+**Not yet verified against a real job launch** — same "needs the package
+reinstalled" caveat as `gensub`, plus this one needs an actual
+successful submission to reach the point where `eccejobmonitor` gets
+copied over at all.
+
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
 `*GUI.C` files in ~15 other `ECCE_GUI_APPS` (confirmed via grep — e.g.

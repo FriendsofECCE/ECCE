@@ -683,6 +683,36 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/gensub)
           DESTINATION scripts)
 endif()
 
+# scripts/eccejobmonitor: found via an audit of every "$ECCE_HOME/scripts/"
+# reference in src/ after the gensub fix, prompted by hitting three of
+# these packaging gaps in a row live (std2NWChem, processmachine,
+# gensub) -- rather than wait to hit the next one, grepped for
+# `"/scripts/` across the whole tree and checked every hit. This is the
+# one other real gap: Launch.C's moveJobMonitoringFiles()/similar SCPs
+# $ECCE_HOME/scripts/eccejobmonitor to the remote machine as part of job
+# submission (a full-path reference, not $PATH-dependent, so no wrapper
+# change needed) then runs `perl eccejobmonitor -configFile ...` there to
+# report job progress/completion back to ECCE -- would have failed the
+# same way gensub did, just one step later in the launch sequence.
+# Confirmed portable: perl -c clean, only core modules (POSIX, Socket, no
+# CPAN deps), no hardcoded EMSL paths despite being a large (4800+ line)
+# legacy script.
+#
+# The rest of that audit came back clean: scripts/codereg (Theory/Runtype
+# Details) is the one already-documented case that's a real port, not a
+# packaging gap (see "Basis set library metadata" above); everything else
+# under scripts/ (ecce, ebuilder, eviewer, epmf, eprp, ecce_checks,
+# ecce_env, runtime_setup*, sysdir, gbsDAVConverter, gbsNWChemConverter,
+# gbsDescriber, pmf_gui.py, prp_gui.py) has zero references from any
+# compiled C++ code -- they're either top-level launcher scripts this
+# build's own ecce-<app> wrappers already supersede (documented rationale
+# above), or manual/admin-only tooling invoked by a human, not by ECCE
+# itself.
+if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/eccejobmonitor)
+  install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/eccejobmonitor
+          DESTINATION scripts)
+endif()
+
 # Thin /usr/bin wrapper scripts for the 19 GUI apps, so they land on PATH
 # and get ECCE_HOME set without the user having to source anything. These
 # are NEW scripts written for this build's flat single-platform bin/
