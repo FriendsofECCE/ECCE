@@ -1,0 +1,295 @@
+#
+# ECCE data server config, ported from build/server_admin/httpd.conf.ecce
+# (originally written for a statically-built Apache 2.2.10) to run as a
+# per-user, non-root instance under Debian 13's packaged apache2 2.4.
+#
+# Deliberate departures from the legacy template, see packaging plan
+# (CLAUDE.md "DataServers / EDSI data server" section) for the full
+# rationale:
+#   - Explicit LoadModule block added: the legacy file assumed a static
+#     build with no DSO modules to load. Debian's apache2 is DSO-based.
+#   - No User/Group directives: this instance is started by, and runs
+#     entirely as, the invoking user -- never as root -- so there is no
+#     privilege to drop. (Apache only needs User/Group when started as
+#     root and dropping privileges afterward.)
+#   - Order/Allow/Deny -> Require (mod_authz_core, Apache 2.4 access
+#     control syntax; 2.2's Order/Allow/Deny is mod_access_compat, which
+#     still exists in 2.4 but there's no reason to depend on a compat
+#     shim for a from-scratch config).
+#   - LockFile -> Mutex (2.4 directive; LockFile was removed).
+#   - SS_COMPRESSION filter directives removed (deferred -- see plan;
+#     bandwidth optimization only, not required for correctness. The
+#     module would need a 2.2->2.4 ABI port before it could be reloaded).
+#   - TypesConfig points at the system /etc/mime.types rather than a
+#     server-root-relative conf/mime.types, since this ServerRoot has no
+#     bundled Apache conf tree of its own.
+#
+# ##HTTPDROOT## and ##DATAROOT## are deliberately left as literal
+# placeholders here, NOT resolved at package-install time -- they resolve
+# to a per-user path ($ECCE_REALUSERHOME/.ECCE/dataserver/...) that
+# doesn't exist until a specific user runs ecce-dataserver-start, which
+# is what actually substitutes them (via sed) into the live config it
+# writes to $STATEDIR/conf/httpd.conf. Do not try to "fix" this by moving
+# the substitution into CMake -- there is no single answer to substitute
+# at build time.
+
+ServerRoot "##HTTPDROOT##"
+Listen ##PORT##
+ServerAdmin ##EMAIL##
+ServerName ##SERVER##
+PidFile "##HTTPDROOT##/logs/httpd.pid"
+
+Mutex file:##HTTPDROOT##/logs default
+
+LoadModule mpm_prefork_module   /usr/lib/apache2/modules/mod_mpm_prefork.so
+LoadModule authz_core_module    /usr/lib/apache2/modules/mod_authz_core.so
+LoadModule authn_core_module    /usr/lib/apache2/modules/mod_authn_core.so
+LoadModule authz_host_module    /usr/lib/apache2/modules/mod_authz_host.so
+# The vendored seed data (data/admin/dataserver/server_config/
+# data_server_files.tar) ships its own .htaccess files using legacy
+# Order/Allow/Deny syntax (2.2-era) under directories AllowOverride lets
+# .htaccess control (Ecce/users, Ecce/share). Load the compat shim so
+# those vendored files keep working as-is, rather than rewriting data we
+# don't own the source of.
+LoadModule access_compat_module /usr/lib/apache2/modules/mod_access_compat.so
+LoadModule auth_basic_module    /usr/lib/apache2/modules/mod_auth_basic.so
+LoadModule authn_file_module    /usr/lib/apache2/modules/mod_authn_file.so
+LoadModule authz_user_module    /usr/lib/apache2/modules/mod_authz_user.so
+LoadModule dav_module           /usr/lib/apache2/modules/mod_dav.so
+LoadModule dav_fs_module        /usr/lib/apache2/modules/mod_dav_fs.so
+LoadModule dav_lock_module      /usr/lib/apache2/modules/mod_dav_lock.so
+LoadModule mime_module          /usr/lib/apache2/modules/mod_mime.so
+LoadModule alias_module         /usr/lib/apache2/modules/mod_alias.so
+LoadModule cgi_module           /usr/lib/apache2/modules/mod_cgi.so
+LoadModule env_module           /usr/lib/apache2/modules/mod_env.so
+LoadModule setenvif_module      /usr/lib/apache2/modules/mod_setenvif.so
+LoadModule dir_module           /usr/lib/apache2/modules/mod_dir.so
+# "Options Indexes" (set below on Ecce/ and DocumentRoot) needs this to
+# actually generate a response for a directory with no index.html --
+# without it, a bare collection URL like the <Url> from DataServers
+# (http://host:port/Ecce, no filename) 404s instead of listing, which
+# broke EDSIServerCentral::checkServerSetup()'s existence check.
+LoadModule autoindex_module     /usr/lib/apache2/modules/mod_autoindex.so
+
+DocumentRoot "##DATAROOT##"
+
+# ECCE DAV specific directives
+DavDepthInfinity on
+DavLockDB "##HTTPDROOT##/logs/DAVLock"
+DavMinTimeout 600
+
+<Directory />
+    Options FollowSymLinks
+    AllowOverride None
+    Require all denied
+</Directory>
+
+<Directory "##DATAROOT##">
+    Options Indexes FollowSymLinks Includes
+    AllowOverride None
+    Require all granted
+</Directory>
+
+# --
+# -- Default ECCE DAV directives start here (unchanged from the legacy
+# -- template except Order/Allow/Deny -> Require)
+# --
+
+# ECCE MIME types
+# Virtual Doc
+AddType  chemical/x-ecce-mvm           .ecce_mvm .mvm
+AddType  chemical/x-ecce-basisset      .ecce_basisset
+AddType  text/x-xml-log                .ecce_run_log
+AddType  chemical/x-gaussian-cube      .cub .cube
+AddType  chemical/x-geom-constraint    .gcst
+AddType  chemical/x-esp-constraint     .ecst
+AddType  chemical/x-pdb                .pdb
+
+# Amica
+AddType  chemical/x-amica-input        .amica_in
+AddType  chemical/x-amica-aux-basisset .bas
+
+# NWChem
+AddType  chemical/x-nwchem-input         .nw
+AddType  chemical/x-nwchem-output        .nwout
+AddType  chemical/x-nwchem-mo            .nw_mo
+AddType  chemical/x-nwchem-restart       .rst .qrs
+AddType  chemical/x-nwchem-topology      .top
+AddType  chemical/x-nwchem-esp           .q
+AddType  chemical/x-nwchem-md-properties .prp
+AddType  chemical/x-nwchem-md-output     .mdout
+AddType  chemical/x-nwchem-md-trajectory .trj
+AddType  chemical/x-nwchem-md-pmf        .pmf
+
+# DirDyVTST
+AddType  chemical/x-nwdirdy-file30       .file30
+
+# POLYRATE
+AddType  chemical/x-polyrate-input       .fu5
+AddType  chemical/x-polyrate-output      .fu6
+
+# Gaussian (general)
+AddType  chemical/x-gaussian-checkpoint .chk
+
+# Gaussian-09
+AddType  chemical/x-gaussian09-input  .g09in
+AddType  chemical/x-gaussian09-output .g09out
+
+# Gaussian-16
+AddType  chemical/x-gaussian16-input  .g16in
+AddType  chemical/x-gaussian16-output .g16out
+
+# Gaussian-03
+AddType  chemical/x-gaussian03-input  .g03in
+AddType  chemical/x-gaussian03-output .g03out
+
+# Gaussian-98
+AddType  chemical/x-gaussian98-input  .g98in
+AddType  chemical/x-gaussian98-output .g98out
+
+# Gaussian-94
+AddType  chemical/x-gaussian94-input  .g94in
+AddType  chemical/x-gaussian94-output .g94out
+
+# Gaussian-92
+AddType  chemical/x-gaussian92-input  .g92in
+AddType  chemical/x-gaussian92-output .g92out
+
+# GAMESS-UK
+AddType  chemical/x-gamessuk-input .gki
+AddType  chemical/x-gamessuk-output .gko
+
+# ECCE Server Side Compression: deferred, see header comment. The
+# SetOutputFilter/SetInputFilter SS_COMPRESSION directives and their
+# ssc* settings from the legacy template are intentionally omitted here.
+
+# The top level ECCE DAV directory. Turn DAV on, allow web browser access,
+# enable only read operations by default. Realm is "Ecce" for all ECCE
+# system files.
+<Directory "##DATAROOT##/Ecce">
+  AuthName "Ecce"
+  AuthUserFile ##HTTPDROOT##/users
+  AuthType Basic
+  AllowOverride None
+  DAV On
+
+  Options Indexes
+  Require all granted
+    <Limit HEAD GET POST OPTIONS PROPFIND>
+        Require all granted
+    </Limit>
+    <Limit MKCOL PUT DELETE LOCK UNLOCK COPY MOVE PROPPATCH>
+        Require all denied
+    </Limit>
+  Require valid-user
+</Directory>
+
+# The share directory needs to be modified to allow users to create
+# collections of their own.
+<Directory "##DATAROOT##/Ecce/share">
+    AllowOverride AuthConfig Limit
+</Directory>
+
+# The StructureLibrary directory needs copy/read access but no modify.
+<Directory "##DATAROOT##/Ecce/share/StructureLibrary">
+    <Limit OPTIONS HEAD GET PROPFIND>
+        Require all granted
+    </Limit>
+    <Limit COPY DELETE MKCOL PUT PROPPATCH LOCK UNLOCK MOVE POST>
+        Require all denied
+    </Limit>
+</Directory>
+
+# The users area has open access but is overridden by htaccess files to
+# allow authentication by users to their own directory.
+<Directory "##DATAROOT##/Ecce/users">
+   AllowOverride AuthConfig Limit
+</Directory>
+
+# Don't allow users to remove/modify their home folder.
+<LocationMatch "^/Ecce/users/[A-Za-z0-9]+/*$">
+    <Limit COPY DELETE MKCOL PUT PROPPATCH LOCK UNLOCK MOVE POST>
+        Require all denied
+    </Limit>
+</LocationMatch>
+
+# Don't allow users to remove/modify the ECCE share folder.
+<LocationMatch "^/Ecce/share/*$">
+    <Limit COPY DELETE MKCOL PUT PROPPATCH LOCK UNLOCK MOVE POST>
+        Require all denied
+    </Limit>
+</LocationMatch>
+
+# --
+# -- Default ECCE DAV directives end here
+# --
+
+<IfModule dir_module>
+    DirectoryIndex index.html
+</IfModule>
+
+<FilesMatch "^\.ht">
+    Require all denied
+</FilesMatch>
+
+ErrorLog "logs/error_log"
+LogLevel crit
+
+<IfModule log_config_module>
+    LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+    LogFormat "%h %l %u %t \"%r\" %>s %b" common
+    CustomLog "logs/access_log" common
+</IfModule>
+
+<IfModule alias_module>
+    ScriptAlias /cgi-bin/ "##HTTPDROOT##/cgi-bin/"
+</IfModule>
+
+<Directory "##HTTPDROOT##/cgi-bin">
+    AllowOverride None
+    Options None
+    Require all granted
+    <Files ecce_htaccess>
+      AuthName "Ecce-script"
+      AuthUserFile ##HTTPDROOT##/users
+      AuthType Basic
+      Require valid-user
+    </Files>
+</Directory>
+
+DefaultType text/plain
+
+<IfModule mime_module>
+    TypesConfig /etc/mime.types
+    AddEncoding x-compress .Z
+    AddEncoding x-gzip .gz .tgz
+    AddType application/x-compress .Z
+    AddType application/x-gzip .gz .tgz
+    AddType image/x-icon .ico
+</IfModule>
+
+# Special directive to cause automatic redirects on collections without
+# trailing slashes instead of giving 301 errors and forcing the request
+# to be issued again.
+SetEnv redirect-carefully true
+
+# Disables redirects on non-GET requests for a directory that does not
+# include the trailing slash -- fixes WebDAV clients (WebFolders, Apple's
+# DAV filesystem, gnome-vfs) that don't handle those redirects correctly.
+BrowserMatch "Microsoft Data Access Internet Publishing Provider" redirect-carefully
+BrowserMatch "^WebDrive" redirect-carefully
+BrowserMatch "^WebDAVFS/1.[0123]" redirect-carefully
+BrowserMatch "^gnome-vfs" redirect-carefully
+BrowserMatch "^XML Spy" redirect-carefully
+BrowserMatch "^Dreamweaver-WebDAV-SCM1" redirect-carefully
+
+# ECCE's own DAV client (EcceDAVClient.C, HTTPDefUserAgent in
+# src/dsm/cipc/CHTTPDefs.C) sends this literal, unchanged-since-forever
+# User-Agent. It has the same problem the clients above do: a HEAD/exists
+# check against a collection URL with no trailing slash (e.g. the bare
+# <Url> from siteconfig/DataServers) gets a 301 redirect that
+# EDSIServerCentral::checkServerSetup()'s exists() check doesn't follow,
+# which it can't distinguish from a real connection failure -- confirmed
+# via a direct repro against this exact config (see CLAUDE.md "DataServers
+# / EDSI data server").
+BrowserMatch "^Mozilla/5\.25 Netscape/5\.0" redirect-carefully

@@ -1,0 +1,29 @@
+#!/bin/bash
+# ecce-dataserver-status: report whether the per-user data server started
+# by ecce-dataserver-start is currently running.
+
+set -u
+
+ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
+STATEDIR="$ECCE_REALUSERHOME/.ECCE/dataserver"
+PIDFILE="$STATEDIR/logs/httpd.pid"
+PORT=8096
+
+port_open() {
+  (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1
+  status=$?
+  exec 3<&- 3>&- 2>/dev/null
+  return $status
+}
+
+if port_open "$PORT"; then
+  echo "Data server:  running (port $PORT)"
+else
+  echo "Data server:  not running"
+fi
+
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+  echo "httpd:        running (pid $(cat "$PIDFILE"))"
+else
+  echo "httpd:        not running"
+fi

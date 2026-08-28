@@ -1,0 +1,22 @@
+#!/bin/bash
+# ecce-dataserver-stop: stop the per-user data server started by
+# ecce-dataserver-start.
+
+set -u
+
+ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
+STATEDIR="$ECCE_REALUSERHOME/.ECCE/dataserver"
+CONF="$STATEDIR/httpd.conf"
+PIDFILE="$STATEDIR/logs/httpd.pid"
+
+if [ ! -f "$CONF" ]; then
+  echo "ecce-dataserver-stop: data server not running (no config at $CONF)"
+  exit 0
+fi
+
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+  apache2 -f "$CONF" -k stop
+  echo "ecce-dataserver-stop: stopped data server (pid $(cat "$PIDFILE"))"
+else
+  echo "ecce-dataserver-stop: data server not running"
+fi

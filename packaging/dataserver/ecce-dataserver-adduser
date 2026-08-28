@@ -1,0 +1,83 @@
+#!/bin/bash
+# ecce-dataserver-adduser: add an account to this user's ECCE data server
+# (see ecce-dataserver-start). Bash port of the legacy
+# build/server_admin/add_ecce_user.ecce (csh), against Debian's
+# apache2-utils htpasswd instead of a vendored one, and against the
+# per-user $STATEDIR this package uses instead of a shared server root.
+#
+# Usage:
+#   ecce-dataserver-adduser                       interactive prompts
+#   ecce-dataserver-adduser -b USER PASS [FIRST] [LAST]
+#                                                  non-interactive (scripting/testing)
+
+set -u
+
+ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
+STATEDIR="$ECCE_REALUSERHOME/.ECCE/dataserver"
+
+if [ ! -d "$STATEDIR" ]; then
+  echo "ecce-dataserver-adduser: $STATEDIR doesn't exist -- run ecce-dataserver-start first" >&2
+  exit 1
+fi
+
+batch=0
+if [ "${1:-}" = "-b" ]; then
+  batch=1
+  shift
+  userid="${1:?username required}"
+  password="${2:?password required}"
+  firstname="${3:-}"
+  lastname="${4:-}"
+else
+  echo ""
+  echo "Add an ECCE data server user account."
+  echo ""
+  read -r -p "First name? " firstname
+  read -r -p "Last name? " lastname
+  read -r -p "User name? " userid
+  echo ""
+  echo "Entry confirmation:"
+  echo ""
+  echo "First name: ${firstname}"
+  echo "Last name: ${lastname}"
+  echo "User name: ${userid}"
+  echo ""
+  read -r -p "Is this information correct? [yes/no] " response
+  echo ""
+  case "$response" in
+    [Yy]|[Yy][Ee][Ss]) ;;
+    *) echo "Cancelled."; exit 0 ;;
+  esac
+fi
+
+if [ ! -f "$STATEDIR/users" ]; then
+  if [ "$batch" = "1" ]; then
+    htpasswd -c -b "$STATEDIR/users" "$userid" "$password"
+  else
+    htpasswd -c "$STATEDIR/users" "$userid"
+  fi
+else
+  if [ "$batch" = "1" ]; then
+    htpasswd -b "$STATEDIR/users" "$userid" "$password"
+  else
+    htpasswd "$STATEDIR/users" "$userid"
+  fi
+fi
+
+USERDIR="$STATEDIR/htdocs/Ecce/users/$userid"
+mkdir -p "$USERDIR"
+cat > "$USERDIR/.htaccess" <<EOF
+# ECCE .htaccess File #
+#
+## DO NOT EDIT ## - file automatically generated
+#
+#R##R#
+#RW#${userid}#RW#
+AuthName Ecce-${firstname}.${lastname}
+<Limit OPTIONS HEAD GET PUT DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK POST>
+Allow from all
+require user ${userid} ecceadm
+</Limit>
+EOF
+
+echo "ecce-dataserver-adduser: account '$userid' ready at $USERDIR"

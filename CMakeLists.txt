@@ -445,12 +445,54 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/siteconfig/jndi.properties)
     "java.naming.provider.url = tcp://localhost:8088"
     _jndi_contents "${_jndi_contents}")
   file(WRITE ${CMAKE_BINARY_DIR}/siteconfig-local/jndi.properties "${_jndi_contents}")
-  install(DIRECTORY ${CMAKE_SOURCE_DIR}/siteconfig/ DESTINATION siteconfig
-          PATTERN "jndi.properties" EXCLUDE
-          PATTERN "RemoteServer" EXCLUDE)
-  install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/jndi.properties
-          DESTINATION siteconfig)
 endif()
+
+if(EXISTS ${CMAKE_SOURCE_DIR}/siteconfig/DataServers)
+  file(READ ${CMAKE_SOURCE_DIR}/siteconfig/DataServers _dataservers_contents)
+  # Same idea as jndi.properties above, for the data server (see
+  # packaging/dataserver/ below): the checked-in template points at the
+  # real PNNL production server; repoint it at the data server this
+  # package installs and starts locally (see ecce-dataserver-start for
+  # the matching port). Both the default <Url> and the <BasisSet> URL
+  # share this hostname, and nothing else in the file does, so one
+  # substring replace covers both.
+  string(REPLACE "eccetera.emsl.pnl.gov" "localhost"
+    _dataservers_contents "${_dataservers_contents}")
+  file(WRITE ${CMAKE_BINARY_DIR}/siteconfig-local/DataServers "${_dataservers_contents}")
+endif()
+
+if(EXISTS ${CMAKE_SOURCE_DIR}/siteconfig/site_runtime)
+  file(READ ${CMAKE_SOURCE_DIR}/siteconfig/site_runtime _site_runtime_contents)
+  # ECCE_AUTO_ACCOUNTS drives EDSIServerCentral::checkServerSetup()'s
+  # self-service account-creation POST against cgi-bin/ecce_accounts,
+  # which this package doesn't install (the Perl CGI auto-provisioning
+  # flow is deliberately deferred, see packaging/dataserver/ -- a missing
+  # CGI degrades gracefully in the client, but there's no reason to
+  # attempt a request that can never succeed). Flip it off; accounts are
+  # created with ecce-dataserver-adduser instead.
+  string(REGEX REPLACE
+    "ECCE_AUTO_ACCOUNTS[ \t]+yes"
+    "ECCE_AUTO_ACCOUNTS no"
+    _site_runtime_contents "${_site_runtime_contents}")
+  file(WRITE ${CMAKE_BINARY_DIR}/siteconfig-local/site_runtime "${_site_runtime_contents}")
+endif()
+
+# Single directory install for everything in siteconfig/ *except* the
+# four files rewritten above, which install from their resolved
+# siteconfig-local/ copies instead. (Deliberately one combined
+# install(DIRECTORY) rather than one per rewritten file above -- two
+# separate install(DIRECTORY siteconfig/ ...) calls with different
+# exclude sets would both run at install time and race on which version
+# of the non-excluded files wins.)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/siteconfig/ DESTINATION siteconfig
+        PATTERN "jndi.properties" EXCLUDE
+        PATTERN "RemoteServer" EXCLUDE
+        PATTERN "DataServers" EXCLUDE
+        PATTERN "site_runtime" EXCLUDE)
+install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/jndi.properties
+              ${CMAKE_BINARY_DIR}/siteconfig-local/DataServers
+              ${CMAKE_BINARY_DIR}/siteconfig-local/site_runtime
+        DESTINATION siteconfig)
 
 install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-start
@@ -469,6 +511,37 @@ export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 exec \"$ECCE_HOME/bin/ecce-gateway-${_gw}\" \"$@\"
 ")
   install(PROGRAMS ${_gw_wrapper} DESTINATION /usr/bin)
+endforeach()
+
+# ------------------------------------------------------------------------
+# ECCE data server (EDSI/WebDAV) - the other half of old ECCE's server
+# side, independent of the JMS gateway above. Runs as a per-user,
+# non-root Debian apache2 instance under $ECCE_REALUSERHOME/.ECCE/
+# dataserver -- see packaging/dataserver/httpd.conf.ecce and
+# ecce-dataserver-start for the full rationale. Requires the apache2 and
+# apache2-utils packages at runtime (see CPACK_DEBIAN_PACKAGE_DEPENDS
+# below); nothing to vendor/extract here since both are ordinary Debian
+# packages, unlike ActiveMQ above.
+# ------------------------------------------------------------------------
+install(PROGRAMS
+          ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-start
+          ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-stop
+          ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-status
+          ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-adduser
+        DESTINATION bin)
+install(FILES ${CMAKE_SOURCE_DIR}/packaging/dataserver/httpd.conf.ecce
+        DESTINATION server/httpd-conf)
+
+foreach(_ds start stop status adduser)
+  set(_ds_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-dataserver-${_ds})
+  file(WRITE ${_ds_wrapper}
+"#!/bin/bash
+export ECCE_HOME=/opt/ecce
+export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
+export ECCE_REALUSER=\${ECCE_REALUSER:-\$(id -un)}
+exec \"$ECCE_HOME/bin/ecce-dataserver-${_ds}\" \"$@\"
+")
+  install(PROGRAMS ${_ds_wrapper} DESTINATION /usr/bin)
 endforeach()
 
 # ------------------------------------------------------------------------
@@ -564,6 +637,10 @@ set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_CONTACT}")
 set(CPACK_DEBIAN_PACKAGE_SECTION "science")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+# dpkg-shlibdeps only catches linked .so's, not a spawned subprocess --
+# apache2 (the data server, see ecce-dataserver-start above) is invoked
+# as an external binary, not linked, so it has to be listed explicitly.
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils")
 # RelWithDebInfo keeps -g everywhere (useful while porting - see the
 # CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
 # strip debug symbols out of the packaged copies only, not the build tree.

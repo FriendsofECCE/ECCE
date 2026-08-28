@@ -1,0 +1,85 @@
+#!/bin/bash
+# ecce-dataserver-start: idempotently ensure the ECCE EDSI data server (a
+# per-user, non-root Apache instance serving WebDAV over the seed
+# Ecce/ tree) is running on this machine, for this user, before an ECCE
+# app that needs it starts. Safe to call every time an app launches -- it
+# does nothing if the data server is already up.
+#
+# This is the WebDAV counterpart to ecce-gateway-start (which handles the
+# JMS/ActiveMQ message server -- a separate, independent piece of old
+# ECCE's server side). See packaging/dataserver/httpd.conf.ecce for the
+# full rationale behind running as a per-user, non-root instance rather
+# than a shared system service.
+
+set -u
+
+ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
+export ECCE_HOME
+export ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
+export ECCE_REALUSER="${ECCE_REALUSER:-$(id -un)}"
+
+STATEDIR="$ECCE_REALUSERHOME/.ECCE/dataserver"
+DATAROOT="$STATEDIR/htdocs"
+PORT=8096
+
+port_open() {
+  (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1
+  status=$?
+  exec 3<&- 3>&- 2>/dev/null
+  return $status
+}
+
+if port_open "$PORT"; then
+  echo "ecce-dataserver-start: data server already listening on $PORT"
+  exit 0
+fi
+
+mkdir -p "$STATEDIR/logs" "$STATEDIR/cgi-bin"
+
+# Seed the DocumentRoot from the vendored tree the first time only --
+# never re-extract over live user data on a subsequent start.
+if [ ! -d "$DATAROOT/Ecce" ]; then
+  SEED_TAR="$ECCE_HOME/data/admin/dataserver/server_config/data_server_files.tar"
+  if [ ! -f "$SEED_TAR" ]; then
+    echo "ecce-dataserver-start: no seed data at $SEED_TAR -- cannot initialize data server" >&2
+    exit 1
+  fi
+  echo "ecce-dataserver-start: seeding data server document root..."
+  mkdir -p "$DATAROOT"
+  tar -xf "$SEED_TAR" -C "$DATAROOT"
+fi
+
+# An empty htpasswd file so AuthUserFile always points at something that
+# exists (Apache errors on a missing AuthUserFile even before a login is
+# attempted). Use ecce-dataserver-adduser to actually add an account.
+[ -f "$STATEDIR/users" ] || : > "$STATEDIR/users"
+
+# Resolve the packaged config template's per-user placeholders. See the
+# comment at the top of httpd.conf.ecce for why this can't be done at
+# package-install time.
+CONF_TEMPLATE="$ECCE_HOME/server/httpd-conf/httpd.conf.ecce"
+if [ ! -f "$CONF_TEMPLATE" ]; then
+  echo "ecce-dataserver-start: no config template at $CONF_TEMPLATE" >&2
+  exit 1
+fi
+sed -e "s|##HTTPDROOT##|$STATEDIR|g" \
+    -e "s|##DATAROOT##|$DATAROOT|g" \
+    -e "s|##PORT##|$PORT|g" \
+    -e "s|##EMAIL##|$ECCE_REALUSER@localhost|g" \
+    -e "s|##SERVER##|localhost|g" \
+    "$CONF_TEMPLATE" > "$STATEDIR/httpd.conf"
+
+echo "ecce-dataserver-start: starting data server on port $PORT..."
+apache2 -f "$STATEDIR/httpd.conf" -k start
+i=0
+while [ $i -lt 40 ]; do
+  if port_open "$PORT"; then break; fi
+  i=$((i + 1))
+  sleep 0.5
+done
+if ! port_open "$PORT"; then
+  echo "ecce-dataserver-start: data server did not come up within 20s -- see $STATEDIR/logs/error_log" >&2
+  exit 1
+fi
+
+exit 0
