@@ -758,6 +758,129 @@ was in wx's own event-dispatch/idle-event machinery
 raw rendering-performance problem; it's specifically a paint-timing/
 compositing issue.
 
+## Help: page opened but broken images / dead links — FIXED (2026-08-28)
+
+Once the earlier `ECCE_HELP` crash fix (see above) had Help actually
+opening a page, two further problems surfaced:
+1. **Every embedded image was broken.** The vendored help HTML uses
+   *absolute* paths for images, e.g. `<img src="/EcceHelp/media/foo.gif">`
+   — correct only when served over HTTP with `/EcceHelp` as a real URL
+   root (its original PNNL deployment target). Pointing `ECCE_HELP` at a
+   raw `file:///opt/ecce/data/client/WebHelp/` URL (the previous fix)
+   made the *page itself* load fine (relative links work), but a browser
+   resolves that same absolute `/EcceHelp/...` path against the
+   filesystem root, not the help tree — nothing there, so every image
+   404'd locally.
+2. **Some links 404 for a different, already-known reason**: entries like
+   `/cgi-bin/EcceHelp/toolhelp?...` need the dynamic CGI help backend,
+   which is deliberately not packaged (same "deferred, degrades
+   gracefully" pattern as the data server's CGI account-creation flow,
+   documented earlier in this file) — expected, not a new bug.
+
+Fixed #1 by serving the help content through the **data server's Apache
+instance** (already running on every GUI app launch) instead of a raw
+`file://` URL, rather than rewriting every absolute path in vendored HTML:
+- `packaging/dataserver/httpd.conf.ecce`: added an `Alias /EcceHelp
+  "/opt/ecce/data/client/WebHelp/EcceHelp"` (+ matching `<Directory>`
+  block) — a literal path is correct here since this is fixed,
+  package-installed content under `ECCE_HOME`, not per-user state like
+  the rest of this config (which uses `##DATAROOT##`).
+- `CMakeLists.txt`: `ECCE_HELP` default changed from
+  `file:///opt/ecce/data/client/WebHelp/` to `http://localhost:8096/`
+  (port 8096 = the data server's fixed port, confirmed against
+  `ecce-dataserver-start`'s own `PORT=8096`). `mod_alias` was already
+  loaded (needed for the pre-existing `ScriptAlias /cgi-bin/`), so no new
+  Apache module needed.
+
+As a side effect, #2's failure mode improves too: a `/cgi-bin/...` help
+link now hits Apache and gets a proper HTTP 404 instead of a raw browser
+"file not found" error — same underlying limitation, cleaner failure.
+
+Not yet re-verified live (found and fixed together with the pipe-hang bug
+below, in the same package rebuild) — check images render and the
+homepage's internal links resolve correctly on the next Help click.
+
+## Gateway freeze (real hang, not a repaint bug) clicking "Viewer" — FIXED (2026-08-28)
+
+Distinct from every other "state updates but doesn't repaint" bug in this
+file — this was a **genuine, unrecoverable hang**: the whole Gateway
+window stopped responding to everything (not just the clicked button),
+showed a busy-cursor, and needed `kill -9` from a shell to escape (a
+desktop-level "force quit" wasn't enough — the process wasn't merely slow
+to repaint, its main thread was truly blocked in a kernel syscall).
+Confirmed via a live `gdb -p <pid> -batch -ex "thread apply all bt"`
+snapshot: the main thread was stuck in `open64()`, called from wx/GTK
+internals by way of unresolved (stripped-binary) ECCE frames.
+
+**Two bugs, stacked**: a genuine missing-executable bug that made the
+hang inevitable, plus the blocking-`open()` bug that turned "child fails
+to start" into "gateway hangs forever" instead of a clean error.
+
+### Bug 1: "Viewer" invoked a command this build never packaged
+Traced the full `Gateway → JMS "ecce_get_app" → WxJMSMessageDispatch::
+getAppMCB()/appExec()` app-launch pipeline (`src/wxgui/jms/
+WxJMSMessageDispatch.C`) end to end. `GatewayApp.C:113` registers
+`Gateway` itself as the one process allowed to spawn other apps
+(`registerMyselfAsAppExecer()`, comment: *"only gateway calls this"*) —
+so this isn't a missing-daemon problem (a `launcher` process not running
+was an early, wrong hypothesis, ruled out once `registerMyselfAsAppExecer`
+was found). `appExec()` (`WxJMSMessageDispatch.C:604`) `fork()`s and
+`execv("/bin/sh", ["-c", "<InvokeArg> -pipe <authpipe>"])`, where
+`<InvokeArg>` comes straight from `ResourceDescriptor.xml`'s
+`<Tool name="CalculationViewer"><InvokeArg>viewer</InvokeArg>`. **`viewer`
+doesn't exist anywhere in this build** (`which viewer` → nothing) — it's
+one of the legacy `scripts/*` csh wrappers this modernization already
+deliberately left unpackaged (same category as `ecce`, `ebuilder`, per
+the existing `ECCE_GUI_APPS` wrapper comment in `CMakeLists.txt`), and
+nobody had reached this specific code path before to notice. The shell's
+`execv` of a nonexistent command fails immediately, so the child never
+gets far enough to open its end of the auth pipe — which is what made
+bug 2 below actually manifest.
+
+`scripts/viewer` (csh) turned out to do something simple once read: it's
+not a separate app at all, just `builder` re-exec'd with two extra env
+vars (`ECCE_INVOKE_VIEWER`, `ECCE_INVOKE_FROMECCE`) that put it into a
+read-only/view mode — confirmed still fully intact, unmodified legacy
+logic in `BuilderApp.C` (`getenv("ECCE_INVOKE_VIEWER") ? CALCVIEWER :
+BUILDER`, etc.) and `ViewerEvtHandler.C`. Fixed by adding a dedicated
+`ecce-viewer` wrapper (`CMakeLists.txt`, alongside the main
+`ECCE_GUI_APPS` wrapper loop — a one-off since there's no separate
+`viewer` build target) that sets those two env vars and execs
+`$ECCE_HOME/bin/builder`, and repointing both `ResourceDescriptor.xml` and
+`ResourceDescriptorRxn.xml`'s `<InvokeArg>` from the legacy bare `viewer`
+to `ecce-viewer` — matching this build's `ecce-<app>` naming convention
+specifically *because* a bare `viewer` on `$PATH` is exactly the kind of
+generic-name collision risk that convention exists to avoid (see the
+existing comment on the main wrapper loop).
+
+### Bug 2: the blocking pipe open turned "child fails" into "gateway hangs forever"
+`AuthCache::pipeOut()` (`src/tdat/resources/AuthCache.C`), used to share
+cached login credentials from `gateway` to the about-to-launch child via a
+named pipe (`mkfifo` + a plain `open(pipeName, O_WRONLY)`). Opening the
+write end of a FIFO **blocks until a reader opens the read end** — with
+bug 1 in place, nothing ever did, so `gateway` blocked forever. **The
+original author already diagnosed this exact failure mode and left a
+comment describing the needed fix, never implemented**: *"Blocking here
+is suboptimal because the caller (e.g. gateway) will go out to lunch if
+the child app doesn't start properly. Some kind of timeout after a few
+seconds would be much preferred."*
+
+Implemented exactly that: `open()` with `O_NONBLOCK` (returns immediately
+with `ENXIO` instead of blocking when no reader exists yet) in a
+poll-with-timeout loop, up to 10 seconds — matching the *already-existing*
+timeout convention in the paired `pipeIn()` function a few lines below
+(which waits up to 10 seconds, 1 second at a time, for the pipe to even
+exist). On timeout, `fd` stays `-1` and the function falls through to its
+existing (already-correct) "give up quietly" path — no new failure mode,
+just bounded instead of unbounded blocking. Kept even after fixing bug 1:
+it's real, independently-justified robustness (any future tool whose
+child genuinely fails to start, for any reason, no longer hangs the
+launching app forever), not just a workaround for bug 1's specific
+trigger.
+
+Not yet re-verified live (found and fixed together, same package rebuild,
+not yet re-tested against a real "click Viewer" repro).
+
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
 `*GUI.C` files in ~15 other `ECCE_GUI_APPS` (confirmed via grep — e.g.

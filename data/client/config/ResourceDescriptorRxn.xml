@@ -3917,7 +3917,7 @@
     <Tool name="CalculationViewer">
       <MenuItem>Viewe&amp;r...&#x9;Ctrl+R</MenuItem>
       <Label>Viewer</Label>
-      <InvokeArg>viewer</InvokeArg>
+      <InvokeArg>ecce-viewer</InvokeArg>
       <Icon>gwviewer2.xpm</Icon>
       <Gateway>2</Gateway>
     </Tool>

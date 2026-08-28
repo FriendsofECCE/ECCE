@@ -90,6 +90,19 @@ DavMinTimeout 600
     Require all granted
 </Directory>
 
+# Serve the packaged local help content here too, so its absolute
+# /EcceHelp/... image and link references resolve correctly. Opened
+# directly as a file:// URL those same absolute paths resolve against the
+# filesystem root instead of the help tree, breaking every embedded image.
+# This is fixed, package-installed content under ECCE_HOME (not per-user),
+# so a literal /opt/ecce path is correct here, unlike ##DATAROOT##.
+Alias /EcceHelp "/opt/ecce/data/client/WebHelp/EcceHelp"
+<Directory "/opt/ecce/data/client/WebHelp/EcceHelp">
+    Options Indexes FollowSymLinks
+    AllowOverride None
+    Require all granted
+</Directory>
+
 # --
 # -- Default ECCE DAV directives start here (unchanged from the legacy
 # -- template except Order/Allow/Deny -> Require)

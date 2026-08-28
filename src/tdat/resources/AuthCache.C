@@ -107,11 +107,17 @@ void AuthCache::pipeOut(const string& pipeName)
 {
   // pipeName will be a unique name per invocation
   if (mkfifo(pipeName.c_str(), S_IRUSR|S_IWUSR) == 0) {
-    // Open will block until the reader opens the pipe as well
-    // Blocking here is suboptimal because the caller (e.g. gateway) will go
-    // out to lunch if the child app doesn't start properly.  Some kind of
-    // timeout after a few seconds would be much preferred.
-    int fd = open(pipeName.c_str(), O_WRONLY);
+    // A plain O_WRONLY open() blocks until a reader opens the pipe too --
+    // if the child app never starts properly, the caller (e.g. gateway)
+    // hangs forever. O_NONBLOCK makes open() fail immediately with ENXIO
+    // instead of blocking when there's no reader yet, so poll for up to
+    // 10 seconds (matching pipeIn()'s own existing timeout) rather than
+    // waiting indefinitely.
+    int fd = -1;
+    for (int it = 0; it < 10 && fd == -1; it++) {
+      fd = open(pipeName.c_str(), O_WRONLY|O_NONBLOCK);
+      if (fd == -1) sleep(1);
+    }
     if (fd != -1) {
       string line;
       line = StringConverter::toString(p_memcache.size()) + "\n";

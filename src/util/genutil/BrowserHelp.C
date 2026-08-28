@@ -196,14 +196,15 @@ void BrowserHelp::displayURL(const string& url, bool new_window)
    if (!end) i2 = url.size()-1;
    string noQuoteUrl = url.substr(i1,i2-i1+1);
 
-   string cmd;
-
-   cmd = p_helpCmd + " -remote 'openURL(" + noQuoteUrl;
-   cmd += new_window? ", new-window)' 2> /dev/null": ")' 2> /dev/null";
-   int status = system(cmd.c_str());
-   if (status != 0) {
-      cmd = p_helpCmd + " '" + noQuoteUrl + "'" + "&";
-      system(cmd.c_str());
-   }
+   // The old Netscape/Mozilla "-remote openURL(...)" remote-control
+   // protocol isn't honored by modern browsers -- they just start (or
+   // raise) normally, ignoring the URL entirely, and still exit 0, so the
+   // old exit-status-based fallback below never triggered. Pass the URL
+   // as a plain argument instead, which every modern browser (including
+   // Firefox) supports directly.
+   string cmd = p_helpCmd;
+   if (new_window) cmd += " --new-window";
+   cmd += " '" + noQuoteUrl + "' 2> /dev/null &";
+   system(cmd.c_str());
 }
 

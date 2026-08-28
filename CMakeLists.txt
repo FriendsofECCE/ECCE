@@ -446,12 +446,19 @@ endif()
 # etc. -- confirmed against the tarball's actual contents and against
 # BrowserHelp::initialize()'s own p_filePrefix construction, which is
 # hardcoded to ecceDataPath()/client/WebHelp/), then point ECCE_HELP at it
-# in the wrapper scripts below. Entries in help.urls that need the CGI
-# help backend (cgi-bin/help/cshelp, toolhelp) will still 404 in the
-# browser -- that backend isn't packaged (same "deferred, degrades
-# gracefully rather than crashing" pattern as the data server's CGI
-# account flow) -- but at least Help no longer crashes the app, and the
-# static homepage/topic pages that don't need it work.
+# in the wrapper scripts below. ECCE_HELP is an http:// URL served by the
+# data server's Apache instance (see packaging/dataserver/httpd.conf.ecce's
+# "/EcceHelp" Alias), not a raw file:// path -- the help content's own HTML
+# uses absolute paths like "/EcceHelp/media/foo.gif" for every image and
+# many links, which only resolve correctly against an HTTP server where
+# "/EcceHelp" is a real URL root; opened as file://, a browser resolves
+# that same absolute path against the filesystem root instead, breaking
+# every embedded image. Entries in help.urls that need the CGI help
+# backend (cgi-bin/help/cshelp, toolhelp) will still 404 -- that backend
+# isn't packaged (same "deferred, degrades gracefully rather than
+# crashing" pattern as the data server's CGI account flow) -- but at least
+# Help no longer crashes the app, and the static homepage/topic pages that
+# don't need it, images included, work.
 set(_ecce_help_tarball ${CMAKE_SOURCE_DIR}/data/admin/dataserver/help/eccehelp.tar)
 if(EXISTS ${_ecce_help_tarball})
   add_custom_command(
@@ -651,13 +658,39 @@ export ECCE_REALUSER=\${ECCE_REALUSER:-$(id -un)}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
 export DISPLAY=\${DISPLAY:-:0}
-export ECCE_HELP=\${ECCE_HELP:-file:///opt/ecce/data/client/WebHelp/}
+export ECCE_HELP=\${ECCE_HELP:-http://localhost:8096/}
 ${_gateway_start}
 ${_dataserver_start}
 exec \"$ECCE_HOME/bin/${_app}\" \"$@\"
 ")
   install(PROGRAMS ${_wrapper} DESTINATION /usr/bin)
 endforeach()
+
+# "Viewer" isn't a separate build target -- the legacy scripts/viewer
+# csh wrapper (not packaged, along with the rest of scripts/ -- see the
+# ECCE_GUI_APPS wrapper comment above) just re-execs builder with two
+# extra env vars that put it into a read-only/view-only mode. Gateway's
+# "Viewer" toolbar button invokes this by name via ResourceDescriptor.xml's
+# <InvokeArg>, which now points at ecce-viewer (not the legacy bare
+# "viewer" -- avoids exactly the PATH-collision risk the ecce-<app>
+# naming convention above already guards against; see ResourceDescriptor*
+# .xml's InvokeArg edits alongside this).
+set(_viewer_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-viewer)
+file(WRITE ${_viewer_wrapper}
+"#!/bin/bash
+export ECCE_HOME=/opt/ecce
+export ECCE_REALUSER=\${ECCE_REALUSER:-$(id -un)}
+export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
+export HOST=\${HOST:-$(hostname)}
+export DISPLAY=\${DISPLAY:-:0}
+export ECCE_HELP=\${ECCE_HELP:-http://localhost:8096/}
+export ECCE_INVOKE_VIEWER=1
+export ECCE_INVOKE_FROMECCE=1
+if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi
+if [ -z \"$ECCE_NO_DATASERVER\" ]; then \"$ECCE_HOME/bin/ecce-dataserver-start\" || true; fi
+exec \"$ECCE_HOME/bin/builder\" \"$@\"
+")
+install(PROGRAMS ${_viewer_wrapper} DESTINATION /usr/bin)
 
 # ------------------------------------------------------------------------
 # CPack: build a .deb instead of the old install_ecce self-extracting
