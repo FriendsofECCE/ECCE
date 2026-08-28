@@ -1406,6 +1406,54 @@ this needs real investigation before claiming it's fixed. Purely
 cosmetic — doesn't block using the grid, unlike the periodic table issue
 above which did.
 
+## Machine Registration: "Unable to save changes to machine registration!" — FIXED (2026-08-29)
+
+Same bug *class* as the `std2NWChem`/basis-set save failure above (a
+`scripts/` helper never installed), found from a fresh user report, not a
+regression from that fix. `WxMachineRegister::machineChangeButtonClickedCB()`
+(`src/apps/machregister/WxMachineRegister.C:473`) shells out to
+`Ecce::ecceHome() + "/scripts/processmachine"` (a **full path**, not
+relying on `$PATH` like `std2NWChem` did) via a CGI-POST-style
+`system()` call (`CONTENT_LENGTH` env var + form-encoded stdin) and
+correctly checks the exit status (`status >> 8`, `!= 0`) — the error
+message itself was accurate, just pointing at a script that was never
+packaged. `find /opt/ecce -iname processmachine` came back empty;
+`scripts/processmachine` was never added to `CMakeLists.txt`'s install
+rules at all (only `scripts/parsers` was, from the earlier basis-set fix).
+
+Confirmed genuinely portable before fixing, same diligence as
+`scripts/parsers`: `perl -c` clean, no `CGI.pm`/module dependency, no
+hardcoded EMSL paths in its active code (its one CVS/svn revision-control
+integration branch is already commented out in the script itself, not
+something this session had to remove). It also **already** does the
+correct shared-vs-per-user split without any changes needed: a
+`siteconfig` form field (from `p_adminFlag`, itself only ever `true` when
+`machregister` is launched with a literal `-admin` argv — Gateway's own
+"Machine Registration" tool invokes it with no such flag) branches
+between `$ECCE_HOME/siteconfig` (the read-only, root-owned package tree —
+correctly admin-only, matching this build's established pattern for the
+JMS broker and data server) and `$ECCE_REALUSERHOME/.ECCE` (always
+writable) — so ordinary, non-admin use was always going to resolve to the
+writable path once the script existed at all.
+
+**Fixed**: added an `install(PROGRAMS ...)` rule for `scripts/
+processmachine` to `CMakeLists.txt`, mirroring the `scripts/parsers`
+block immediately above it.
+
+**Verified**: ran the real script directly (not through the GUI — no
+interactive access) with a realistic form-encoded payload matching what
+`WxMachineRegister::collectSettings()` builds (`siteconfig=false` +
+all of `@addgottahaves`'s required fields: `machine`, `name`, `qmgr`,
+`type`, `nodes`, `vendor`, `model`, `processor`), `ECCE_REALUSERHOME`
+pointed at a scratch directory — exit status 0, and a correctly
+tab-delimited `MyMachines` entry written (`testmachine	
+testhost.example.com	Unspecified	Unspecified	Unspecified	4:1	ssh	...`).
+Confirmed present, executable, in the rebuilt `.deb`
+(`dpkg-deb -c ecce_8.0.0_amd64.deb | grep processmachine`). **Not yet
+verified against the real GUI** — needs the package reinstalled (still
+blocked on `sudo`, same as the basis-set fix) and a live "Machine
+Registration → fill in fields → Save" retest.
+
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
 `*GUI.C` files in ~15 other `ECCE_GUI_APPS` (confirmed via grep — e.g.
