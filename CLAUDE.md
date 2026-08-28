@@ -881,6 +881,73 @@ trigger.
 Not yet re-verified live (found and fixed together, same package rebuild,
 not yet re-tested against a real "click Viewer" repro).
 
+## Help CGI backend (context-sensitive help links) — ported (2026-08-28)
+
+Previously documented as deliberately deferred (a `/cgi-bin/EcceHelp/
+toolhelp?...` link 404ing "gracefully"). Turned out to be genuinely
+tractable once actually read, unlike the data server's account-creation
+CGI (which needs `CGI.pm`, dropped from Perl core in 5.22+): `toolhelp`
+and `cshelp` (`data/admin/dataserver/help/eccehelp.tar`'s `cgi-bin/`) only
+depend on `getopts.pl`, a Perl-4-era library still bundled with modern
+Perl (confirmed working on Debian 13's Perl 5.40) — no missing-module
+blocker at all.
+
+Three real, independent compatibility breaks, all in decades-old assumed
+environment details rather than the scripts' own logic:
+1. **Shebang**: `#!/msrc/apps/bin/perl` (PNNL's own path) → `#!/usr/bin/perl`.
+2. **Hardcoded server path**: `global.pl`'s `$help_dir =
+   '/msrc/proj/ecce/www/help'` → this install's real path,
+   `/opt/ecce/data/client/WebHelp/EcceHelp`.
+3. **`require 'global.pl'` with no path** — relies on `.` (current
+   directory) being in Perl's `@INC`, true when this was written, **false
+   since Perl 5.26 removed it by default for security** — silent
+   `Can't locate global.pl in @INC` failure on any current Perl. Fixed to
+   an absolute path (`require '/opt/ecce/.../cgi-bin/global.pl'`) rather
+   than fighting `@INC`/cwd — this is fixed, package-installed content,
+   an absolute path is simplest and correct, same reasoning as fix #2.
+
+All three patched at build time by a new standalone script,
+`packaging/dataserver/patch-help-cgi.sh`, invoked from a new
+`ecce_help_cgi_patch` CMake custom target right after the existing help-
+tarball extraction (`CMakeLists.txt`). **Kept as a standalone script
+rather than inlined `sed` commands directly in `CMakeLists.txt`**: a first
+attempt inlining them hit real, hard-to-read breakage — CMake's own
+command-argument escaping doesn't survive a literal `$help_dir = ...`
+sed pattern through nested CMake→shell→sed quoting layers (silently
+mangled the output command in ways that only showed up at build time, not
+at configure time) — not worth fighting further versus just shelling out
+to one `.sh` file with normal, unmangled quoting.
+
+`ecce-dataserver-start` also now seeds `$STATEDIR/cgi-bin/EcceHelp/` from
+the patched, installed copy on first run (same idempotent "only if
+missing" pattern as the existing DocumentRoot seed) — this is what makes
+`ScriptAlias /cgi-bin/ "##HTTPDROOT##/cgi-bin/"` (pre-existing, originally
+added for the still-unimplemented account-creation CGI) actually resolve
+`/cgi-bin/EcceHelp/toolhelp` to a real, executable script.
+
+**A fourth, separate bug found immediately after the CGI scripts
+themselves started working**: `toolhelp` correctly generates a new
+frameset pointing its "main" frame at a real `.shtml` content page (e.g.
+`/EcceHelp/gateway/overview.shtml`), but that page's actual body text and
+every link on it come from `<!--#include file="..."-->` Server Side
+Include directives — and Apache was serving those back as literal,
+unprocessed text (confirmed via `curl`: the raw `<!--#include-->` comment
+syntax visible in the response, not the included content). `mod_include`
+was never loaded, and neither `Includes` (an `Options` value) nor
+`AddOutputFilter INCLUDES .shtml` were ever set on the new `/EcceHelp`
+`<Directory>` block (`##DATAROOT##`'s block already had `Includes` — for
+the DAV tree, not help content). Fixed by adding `LoadModule
+include_module`, `Includes` in `Options`, and `AddType text/html
+.shtml` + `AddOutputFilter INCLUDES .shtml`, all in
+`packaging/dataserver/httpd.conf.ecce`'s `/EcceHelp` block.
+
+Not yet re-verified live end-to-end (found and fixed together with the
+CGI scripts themselves, same package rebuild) — needs a real click-through
+from a context-sensitive help link, past a data-server restart (config
+template changes only take effect on a fresh `apache2` start, not an
+already-running instance — see the earlier `/EcceHelp` Alias section for
+the same caveat).
+
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
 `*GUI.C` files in ~15 other `ECCE_GUI_APPS` (confirmed via grep — e.g.

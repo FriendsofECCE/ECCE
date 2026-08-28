@@ -54,6 +54,17 @@ fi
 # attempted). Use ecce-dataserver-adduser to actually add an account.
 [ -f "$STATEDIR/users" ] || : > "$STATEDIR/users"
 
+# Seed the context-sensitive help CGI scripts (toolhelp/cshelp -- see
+# CMakeLists.txt's ecce_help_cgi_patch step for how these get patched for
+# this install) the first time only, same idempotency rule as the
+# DocumentRoot seed above. The account-creation CGI this same cgi-bin/
+# could eventually also host is deliberately still not seeded here.
+HELP_CGI_SRC="$ECCE_HOME/data/client/WebHelp/EcceHelp/cgi-bin"
+if [ ! -e "$STATEDIR/cgi-bin/EcceHelp" ] && [ -d "$HELP_CGI_SRC" ]; then
+  cp -r "$HELP_CGI_SRC" "$STATEDIR/cgi-bin/EcceHelp"
+  chmod +x "$STATEDIR/cgi-bin/EcceHelp/toolhelp" "$STATEDIR/cgi-bin/EcceHelp/cshelp"
+fi
+
 # Resolve the packaged config template's per-user placeholders. See the
 # comment at the top of httpd.conf.ecce for why this can't be done at
 # package-install time.

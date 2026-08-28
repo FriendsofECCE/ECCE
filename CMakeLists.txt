@@ -454,11 +454,12 @@ endif()
 # "/EcceHelp" is a real URL root; opened as file://, a browser resolves
 # that same absolute path against the filesystem root instead, breaking
 # every embedded image. Entries in help.urls that need the CGI help
-# backend (cgi-bin/help/cshelp, toolhelp) will still 404 -- that backend
-# isn't packaged (same "deferred, degrades gracefully rather than
-# crashing" pattern as the data server's CGI account flow) -- but at least
-# Help no longer crashes the app, and the static homepage/topic pages that
-# don't need it, images included, work.
+# backend (cgi-bin/help/cshelp, toolhelp) now work too -- see the
+# ecce_help_cgi_patch step below, which patches the vendored Perl scripts'
+# shebang and hardcoded PNNL path for this install, and
+# ecce-dataserver-start, which seeds them into the per-user cgi-bin/
+# alongside the pre-existing (still-unimplemented) account-creation CGI
+# slot.
 set(_ecce_help_tarball ${CMAKE_SOURCE_DIR}/data/admin/dataserver/help/eccehelp.tar)
 if(EXISTS ${_ecce_help_tarball})
   add_custom_command(
@@ -471,6 +472,25 @@ if(EXISTS ${_ecce_help_tarball})
   )
   add_custom_target(ecce_help ALL
     DEPENDS ${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp/homepage.html)
+
+  # The vendored toolhelp/cshelp CGI scripts (context-sensitive help,
+  # invoked from within ECCE apps) hardcode PNNL's own 1990s server path
+  # and Perl location. Neither script depends on CGI.pm (unlike the data
+  # server's still-unported account-creation CGI) -- just the ancient but
+  # still-bundled getopts.pl -- so patching these two values is enough to
+  # make them work as-is against this install.
+  set(_help_cgi_dir ${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp/cgi-bin)
+  add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/ecce-help-extracted/.help-cgi-patched
+    COMMAND bash ${CMAKE_SOURCE_DIR}/packaging/dataserver/patch-help-cgi.sh ${_help_cgi_dir}
+    COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/ecce-help-extracted/.help-cgi-patched
+    DEPENDS ${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp/homepage.html
+            ${CMAKE_SOURCE_DIR}/packaging/dataserver/patch-help-cgi.sh
+    COMMENT "Patching vendored help CGI scripts (shebang, help_dir) for this install"
+  )
+  add_custom_target(ecce_help_cgi_patch ALL
+    DEPENDS ${CMAKE_BINARY_DIR}/ecce-help-extracted/.help-cgi-patched)
+
   install(DIRECTORY ${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp
           DESTINATION data/client/WebHelp)
   set(ECCE_HELP_AVAILABLE TRUE)

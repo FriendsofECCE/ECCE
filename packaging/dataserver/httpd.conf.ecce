@@ -70,6 +70,12 @@ LoadModule dir_module           /usr/lib/apache2/modules/mod_dir.so
 # (http://host:port/Ecce, no filename) 404s instead of listing, which
 # broke EDSIServerCentral::checkServerSetup()'s existence check.
 LoadModule autoindex_module     /usr/lib/apache2/modules/mod_autoindex.so
+# The vendored help content's .shtml pages use Server Side Includes
+# (<!--#include file="..."-->) to assemble each page's actual body text
+# and links out of smaller fragment files -- without this, Apache serves
+# those directives back as literal, unprocessed text and the page's real
+# content (and every link in it) never appears.
+LoadModule include_module       /usr/lib/apache2/modules/mod_include.so
 
 DocumentRoot "##DATAROOT##"
 
@@ -98,9 +104,11 @@ DavMinTimeout 600
 # so a literal /opt/ecce path is correct here, unlike ##DATAROOT##.
 Alias /EcceHelp "/opt/ecce/data/client/WebHelp/EcceHelp"
 <Directory "/opt/ecce/data/client/WebHelp/EcceHelp">
-    Options Indexes FollowSymLinks
+    Options Indexes FollowSymLinks Includes
     AllowOverride None
     Require all granted
+    AddType text/html .shtml
+    AddOutputFilter INCLUDES .shtml
 </Directory>
 
 # --
