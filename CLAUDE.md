@@ -1316,3 +1316,23 @@ realize behavior (the new bug above) — not "`Fit()`+`SetSizeHints()` is
 inherently dangerous." Treat this as a watch-list item if any other app is
 ever reported freezing/crashing on startup or on opening a dialog, not as
 something to preemptively patch without evidence.
+
+**Second watch-list item, same shape**: `wxFIXED_MINSIZE` (the sizer-item
+flag behind the Basis Set Tool's mini periodic table fix above) appears
+73 times across the tree — but the overwhelming majority are in `.pjd`
+wx-designer *project* files, not the compiled `.C` sources those files
+generate (this build doesn't regenerate `.C` from `.pjd` at build time,
+so `.pjd` content is inert for runtime behavior either way). The actual
+compiled call sites, not yet individually checked: `Gateway.H`,
+`src/apps/machbrowser/MachineBrowserGUI.C`,
+`src/apps/builder/StructLibGUI.C`,
+`src/apps/machbrowser/WxMachineStatusGUI.C`,
+`src/apps/organizer/CalcMgr.C`,
+`src/apps/organizer/NoAccessContextPanelGUI.C`,
+`src/wxgui/wxtools/WxFeedbackGUI.C`. `wxFIXED_MINSIZE` is only a bug when
+the wrapped item's content changes *after* it's added to the sizer (an
+empty placeholder later filled with a real child, exactly what happened
+here) — it's harmless, even useful, when the item already has its final
+size at insertion time. No evidence any of these other 7 have the same
+"empty placeholder, filled later" pattern; not preemptively touching them
+without a reported symptom, same reasoning as the item above.
