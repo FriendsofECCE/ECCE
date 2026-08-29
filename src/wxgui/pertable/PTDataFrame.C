@@ -91,7 +91,7 @@ PTDataFrame::PTDataFrame(int atomicNum, PerTabPanel * parent, wxWindowID id,
   //	Set Readonly
   p_isotopeGrid->SetReadOnly(true);
   
-  p_isotopeSizer->Add(p_isotopeGrid, 1, wxGROW|wxALIGN_CENTER|wxALL, 10);
+  p_isotopeSizer->Add(p_isotopeGrid, 1, wxGROW|wxALL, 10);
 
   //	Set Readonly
   p_ionPotentGrid->SetReadOnly(true);
@@ -196,7 +196,8 @@ void PTDataFrame::setContent(int atomicNum)
   p_isoTableLabel->SetLabel("Significant Isotopes of " + p_parent->getTPerTab()->name(atomicNum));
   //	Refresh Table Section on the right
   //		First delete current data table
-  p_isotopeGrid->DeleteRows(0, p_isotopeGrid->GetNumberRows());
+  if (p_isotopeGrid->GetNumberRows() > 0)
+    p_isotopeGrid->DeleteRows(0, p_isotopeGrid->GetNumberRows());
   
   //		Then create new data entries
   vector<TRefIsotope *> * iso = p_tChartNuclides->isotopeList(atomicNum);
@@ -224,8 +225,10 @@ void PTDataFrame::setContent(int atomicNum)
   p_dataPanel->Layout();
 
 
-  p_ionPotentGrid->MakeCellVisible(atomicNum-1, 0);
-  p_ionPotentGrid->SelectRow(atomicNum-1);
+  if (atomicNum > 0) {
+    p_ionPotentGrid->MakeCellVisible(atomicNum-1, 0);
+    p_ionPotentGrid->SelectRow(atomicNum-1);
+  }
 
 
   p_customColorPanel->SetBackgroundColour(p_parent->getUserElementColor(atomicNum));

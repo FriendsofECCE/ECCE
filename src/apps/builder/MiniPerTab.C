@@ -253,10 +253,15 @@ void MiniPerTab::setElements()
         p_gridSizer->Add(5, 5, wxGBPosition(j,i));
       }
       else if (i<7) {
+        // wxSize(28, 24) used to be hardcoded here; under this system's
+        // GTK3 theme that's too small for the button's own padding/border
+        // to fit its 17x17 content region ("Negative content width"
+        // GTK-WARNING spam on every launch). Let the button size itself
+        // to its label instead of guessing a fixed pixel size.
         p_eltBtns[index] = new wxToggleButton(this, index+ID_ELT_BASE,
                                               p_elements[index],
                                               wxDefaultPosition,
-                                              wxSize(28, 24));
+                                              wxDefaultSize);
         ewxColor col;
         if (prefs.getString(p_elements[index]+".Color", color))
           col = ewxColor(color);

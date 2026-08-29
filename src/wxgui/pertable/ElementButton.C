@@ -52,6 +52,39 @@ ElementButton::ElementButton(int atomicNum, PerTabPanel * parent,
   p_atomicNumStr = StringConverter::toString(atomicNum);
   p_symbol = parent->getTPerTab()->atomicSymbol(atomicNum);
   clearSizeInfo();
+
+  // Compute size metrics eagerly with a client DC (not a paint DC), so a
+  // sizer's Fit()/GetBestSize() computed before this button's first
+  // OnPaint (e.g. a popup Fit() before it's ever shown) still sees the
+  // real size instead of the zero-size default.
+  wxClientDC dc(this);
+  computeSizeMetrics(dc);
+
+  int borderWidth = p_parent->isMini() ? 1 : 2;
+  int width = p_symbolWidth + borderWidth * 2;
+  int height = p_symbolHeight + borderWidth * 2;
+  if (p_parent->isShowNumber()) {
+    width = (p_symbolWidth>p_numWidth ? p_symbolWidth:p_numWidth) +
+      borderWidth * 2;
+    height += p_numHeight;
+  }
+  SetMinSize(wxSize(width, height));
+}
+
+
+void ElementButton::computeSizeMetrics(wxDC& dc)
+{
+  if (p_parent->isMini()) {
+    p_numWidth = 1;
+    p_numHeight = 1;
+    dc.SetFont(getSmallLabelFont());
+  }
+  else {
+    dc.SetFont(getAtomicNumFont());
+    dc.GetTextExtent(p_atomicNumStr, &p_numWidth, &p_numHeight);
+    dc.SetFont(getBoldFont());
+  }
+  dc.GetTextExtent(p_symbol, &p_symbolWidth, &p_symbolHeight);
 }
 
 
@@ -165,19 +198,10 @@ void ElementButton::OnPaint( wxPaintEvent& event )
                    GetSize().GetX()-borderWidth*2,
                    GetSize().GetY()-borderWidth*2);
 
-  // Initialize the width, run only once
+  // Initialize the width, run only once (may already be set by the
+  // constructor's eager computation)
   if (p_numHeight == 0) {
-    if (p_parent->isMini()) {
-      p_numWidth = 1;
-      p_numHeight = 1;
-      dc.SetFont(getSmallLabelFont());
-    }
-    else {
-      dc.SetFont(getAtomicNumFont());
-      dc.GetTextExtent(p_atomicNumStr, &p_numWidth, &p_numHeight);
-      dc.SetFont(getBoldFont());
-    }
-    dc.GetTextExtent(p_symbol, &p_symbolWidth, &p_symbolHeight);
+    computeSizeMetrics(dc);
   }
 
   int width = p_symbolWidth + borderWidth * 2;

@@ -81,6 +81,8 @@ protected:
 
   ElementButton();
 
+  void computeSizeMetrics(wxDC& dc);
+
   int p_atomicNum;
   string p_atomicNumStr;
   string p_symbol;
