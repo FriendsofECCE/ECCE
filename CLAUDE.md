@@ -1331,6 +1331,42 @@ above is verified via a standalone repro linked against the real build's
 libraries, not the real Builder/CalcEd UI, since there's no GUI automation
 tool available in this session.
 
+### Correction (2026-08-29): the 6 "permanently unresolvable" quick picks aren't
+
+In conversation (not previously written into this file, so nothing above
+needed fixing, but worth recording here so it isn't asserted again): 3 of
+the 17 Quick Basis Menu picks (`6-31++G`, `6-31+G*`, `6-31++G**`) were
+claimed to have "no real diffuse-function component file anywhere in the
+library," and 3 more (`DZVP`, `DZVP2`, `TZVP`, all "(DFT Orbital)") were
+claimed to have "no matching `.BAS` file... under any name." **Both
+claims were wrong**, caught when Andy asked directly whether these were
+ever fixed. Checked properly:
+
+- The diffuse-function trio's alias entries (`pople` index file) list 3-4
+  files each, e.g. `6-31++G` → `6-31PPG-AGG.BAS 6-31G.BAS POPLDIFF.BAS`.
+  The `-AGG` file genuinely is a 0-byte placeholder (confirmed against the
+  original vendored tar, unchanged since 2015) — but it's *supposed* to
+  be, `lookup()`'s own dummy-aggregate-skip logic deliberately ignores it
+  and reads the real data from the sibling files instead.
+  `POPLDIFF.BAS` (1729 bytes) has real exponent/coefficient data for the
+  diffuse functions. The claim likely came from seeing the 0-byte `-AGG`
+  file and not checking the rest of the alias's file list.
+- The DFT-orbital trio resolves to real files under a *different* name
+  than the quick-pick label: `DZVP (DFT Orbital)` → `DGAUSS_DZVP.BAS`
+  (+ two Coulomb/Exchange fitting files), not a file literally named
+  `DZVP.BAS`. The claim likely came from searching for the display name
+  as a filename and not checking the alias mapping.
+
+**Verified**: standalone repro against all 6 — every one now produces
+real, non-empty `dump()` output (100-170+ bytes of correctly-attributed
+per-element library references or exponent data, matching the pattern of
+every other working quick pick). This means, as far as this session can
+tell, **all 17 of 17** Quick Basis Menu picks resolve correctly, not 9 or
+11 — not independently confirmed live yet (same reinstall+GUI-retest
+caveat as everywhere else in this section), but the standalone repro
+exercises the identical `TGBSConfig::dump()` code path `write_gbsconfig()`
+calls, so there's no reason to expect the real GUI to behave differently.
+
 ## "Regenerate thumbnail on demand, independent of Save" — already exists, no new code needed (2026-08-28)
 
 User wanted `Ctrl+S` to regenerate the thumbnail every time, even when
