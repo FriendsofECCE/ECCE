@@ -23,11 +23,10 @@ bringing the application itself back to life.
 |---|---|
 | ![Gateway toolbar](docs/screenshots/gateway.png) | ![Organizer showing a calculation](docs/screenshots/organizer.png) |
 
-![Viewer showing a molecule, energies, and molecular orbitals](docs/screenshots/viewer.png)
+![Viewer showing a computed molecular orbital](docs/screenshots/viewer.png)
 
-(This is a genuine alpha release — the Viewer screenshot above shows some
-real rough edges in the property-panel layout that are actively being
-worked on, not a polished mockup.)
+The Viewer screenshot above shows a real computed MO isosurface (MO 5) on
+a genuine calculation — real output, not a mockup.
 
 ## What's new in this release
 
