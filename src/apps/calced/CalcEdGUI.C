@@ -239,7 +239,7 @@ void CalcEdGUI::CreateControls()
         _("1"),
         _("2")
     };
-    ewxComboBox* itemComboBox21 = new ewxComboBox( itemFrame1, ID_COMBOBOX_CALCED_CHARGE, _("0"), wxDefaultPosition, wxSize(50, -1), 5, itemComboBox21Strings, wxCB_DROPDOWN );
+    ewxComboBox* itemComboBox21 = new ewxComboBox( itemFrame1, ID_COMBOBOX_CALCED_CHARGE, _("0"), wxDefaultPosition, wxSize(65, -1), 5, itemComboBox21Strings, wxCB_DROPDOWN );
     itemComboBox21->SetStringSelection(_("0"));
     itemBoxSizer19->Add(itemComboBox21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -256,7 +256,7 @@ void CalcEdGUI::CreateControls()
         _("Septet"),
         _("Nontet")
     };
-    ewxComboBox* itemComboBox24 = new ewxComboBox( itemFrame1, ID_COMBOBOX_CALCED_SPIN_MULT, _("Singlet"), wxDefaultPosition, wxSize(75, -1), 5, itemComboBox24Strings, wxCB_DROPDOWN );
+    ewxComboBox* itemComboBox24 = new ewxComboBox( itemFrame1, ID_COMBOBOX_CALCED_SPIN_MULT, _("Singlet"), wxDefaultPosition, wxSize(105, -1), 5, itemComboBox24Strings, wxCB_DROPDOWN );
     itemComboBox24->SetStringSelection(_("Singlet"));
     itemBoxSizer22->Add(itemComboBox24, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
