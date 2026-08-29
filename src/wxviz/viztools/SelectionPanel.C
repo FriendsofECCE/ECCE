@@ -17,10 +17,15 @@
 #include "wx/wx.h"
 #endif
 
+#include <set>
+#include <vector>
+
 #include "util/STLUtil.H"
 
 #include "tdat/TPerTab.H"
+#include "tdat/TAtm.H"
 
+#include "viz/SGFragment.H"
 #include "viz/SelectCmd.H"
 #include "viz/SelectRadiusCmd.H"
 #include "viz/SelectBondDisCmd.H"
@@ -558,12 +563,47 @@ void SelectionPanel::OnButtonDisClearClick( wxCommandEvent& event )
 
 void SelectionPanel::eventMCB(const Event& event)
 {
-  
+
   string name = event.getName();
   string value = event.getValue();
-  
+
   if (name == "ResidueChange" || name == "GeomChange") {
     SGFragment *frag = getFW().getSceneGraph().getFragment();
     p_residuePanel->Enable(frag->numResidues() != 0);
+    updateElementChoices(frag);
   }
+}
+
+/**
+ * Element Type combo box was a hardcoded H/C/N/O list -- still editable
+ * (TPerTab::isValid() in OnComboboxElmntEnter already accepts any real
+ * element symbol typed in), but with no indication that other elements
+ * present in the loaded molecule were selectable at all. Keeps H, C, N,
+ * O first (matching the original default order) and appends whatever
+ * other elements actually appear in the current fragment.
+ */
+void SelectionPanel::updateElementChoices(SGFragment* frag)
+{
+  ewxComboBox *combo = (ewxComboBox*)FindWindow(ID_COMBOBOX_ELMNT);
+  wxString current = combo->GetValue();
+
+  std::vector<string> elements;
+  elements.push_back("H");
+  elements.push_back("C");
+  elements.push_back("N");
+  elements.push_back("O");
+  std::set<string> seen(elements.begin(), elements.end());
+
+  for (size_t i = 0; i < frag->numAtoms(); ++i) {
+    string symbol = frag->atomRef(i)->atomicSymbol();
+    if (seen.insert(symbol).second) {
+      elements.push_back(symbol);
+    }
+  }
+
+  combo->Clear();
+  for (std::vector<string>::iterator it = elements.begin(); it != elements.end(); ++it) {
+    combo->Append(*it);
+  }
+  combo->SetValue(current);
 }

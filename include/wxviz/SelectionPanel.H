@@ -14,6 +14,8 @@
 #include "util/Listener.H"
 using namespace ecce;
 
+class SGFragment;
+
 
 /*!
  * SelectionPanel class declaration
@@ -145,6 +147,8 @@ public:
   virtual void eventMCB(const Event& event);
 
 private:
+
+  void updateElementChoices(SGFragment* frag);
 
   string p_oldElement;
 };
