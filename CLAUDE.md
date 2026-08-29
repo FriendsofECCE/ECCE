@@ -1623,7 +1623,7 @@ packaging fix) → job launch (`gensub` packaging fix) → job monitoring
 work, in sequence, for this run to finish. First real calculation to run
 to completion since this modernization effort's wx3.2/GTK3 port began.
 
-## Theory Details dialog / missing DFT functional — FIX ATTEMPTED, UNVERIFIED, STILL THE TOP PRIORITY (2026-08-29)
+## Theory Details dialog / missing DFT functional — FIXED, all 14 codereg scripts verified (2026-08-29)
 
 **Correcting an earlier claim in this file**: two prior sections above
 ("Basis set library metadata", the `scripts/*` packaging audit) asserted
@@ -1757,22 +1757,39 @@ Also removed two stale, tracked Python 2 bytecode files
 a `.py` file, only versioned ones under `__pycache__/`) but pure
 clutter.
 
-**Still not done — explicitly on the list for a follow-up session**:
-only `ged16theory.py` (+ the two shared files) has been exercised this
-way. The other 13 code-specific scripts (`amicatheory.py`,
-`ged03{runtype,theory}.py`, `ged09{runtype,theory}.py`,
-`ged16runtype.py`, `ged98{runtype,theory}.py`,
-`guk{runtype,theory}.py`, `meta{rtyp,thry}.py`,
-`ned{runtype,theory}.py`) haven't been run yet — they share the two
-fixed files so the four Phoenix-API bugs above are almost certainly
-fixed for all of them too, but each script may have its own
-additional, not-yet-discovered bugs beyond what's in the shared base
-(exactly the same way `ged16theory.py`'s own code was clean and every
-bug found so far happened to be in `globals.py`/`templates.py` — that
-won't necessarily hold for the others). Test each the same way: run
-standalone with a real bound UDP socket, both `GUIValues` and
-`NO_GUIValues` restore modes, screenshot the live window, fix whatever
-breaks.
+### Follow-up (same day): the other 13 scripts, all verified clean
+
+Went through the remaining `amicatheory.py`, `ged03{runtype,theory}.py`,
+`ged09{runtype,theory}.py`, `ged16runtype.py`, `ged98{runtype,theory}.py`,
+`guk{runtype,theory}.py`, `meta{rtyp,thry}.py`, `ned{runtype,theory}.py`
+the same way, via a small reusable driver
+(`test_codereg.py` — real bound UDP socket standing in for `CalcEd`'s
+side of the IPC, both `NO_GUIValues` and `GUIValues` restore modes,
+screenshot the live window when one appears). Ran all 14 scripts across
+every `Category` each one actually branches on (`SCF`, `DFT`, `MP`,
+`CC`, `CI`, `SE`, `NWPW` — whichever a given script checks for).
+
+**One more real bug found**, same class as before: `wx.StaticLine_
+GetDefaultSize()` (Classic's module-level static-method naming) doesn't
+exist in Phoenix — it's `wx.StaticLine.GetDefaultSize()` (a real class
+method) there. One call site in `templates.py`
+(`EcceLineLabelSeparator.__init__`), hit by `guktheory.py` specifically
+(the first script whose theory options include this separator widget)
+but shared by all of them. Fixed the same way as yesterday's four:
+confirmed the failing call, confirmed the Phoenix-correct replacement
+interactively first, then patched the shared file.
+
+**Verified working end-to-end for every one of the 14 scripts**: clean
+run in both restore modes, no exceptions, and a real rendered screenshot
+in `GUIValues` mode for each — spot-checked several visually (not just
+"no exception raised"): `guktheory.py` renders its full DFT
+Exchange-Correlation Functionals section (confirming the `StaticLine`
+fix), `amicatheory.py`/`metathry.py`/`nedruntype.py`/`gukruntype.py`/
+`ged09runtype.py` all render correctly with real widgets, correct
+layout, no garbled/missing sections. This closes out the "codereg"
+Classic→Phoenix porting work — five real API-rename bugs total across
+`globals.py`/`templates.py` (the shared base every script imports), all
+fixed, all 14 scripts confirmed rendering live.
 
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other

@@ -160,7 +160,10 @@ class EcceLineLabelSeparator(wx.BoxSizer):
     def __init__(self, parent, label):
         wx.BoxSizer.__init__(self, wx.HORIZONTAL)
         self.Add(wx.StaticLine(parent, 
-                               size = (10, wx.StaticLine_GetDefaultSize())),
+                               # wx.StaticLine_GetDefaultSize() (Classic's
+                               # module-level static-method naming) is
+                               # wx.StaticLine.GetDefaultSize() in Phoenix.
+                               size = (10, wx.StaticLine.GetDefaultSize())),
                  proportion = 0,
                  flag = EcceGlobals.FlagDefault,
                  border = 0)
