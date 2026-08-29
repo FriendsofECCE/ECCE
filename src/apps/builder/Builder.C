@@ -4480,6 +4480,16 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
     pinfo.Fixed().MaximizeButton(false);
   } else {
     pinfo.Resizable(true).MaximizeButton(true);
+    // A resizable pane is only actually recoverable if there's a resize
+    // grip left to grab -- some panels' content reports a near-zero best
+    // size (before it's ever been painted/populated), which without a
+    // floor lets the pane collapse to the point where docked it's
+    // invisible and floating there's no border left to drag back up.
+    // Reported live: Atom Table and Log (both already alwaysFixed=false
+    // before this session) collapsing the same way as the newly-
+    // resizable panels, confirming this is a pane-level floor problem,
+    // not something specific to any one panel's own layout.
+    pinfo.MinSize(wxSize(200, 150));
   }
 
   // NOTE: the OptionsButton() caption button (ewxAUI addition) has no
@@ -4527,6 +4537,11 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     info.DefaultPane();
     info.Name(name).Caption(name).CaptionVisible(true).
             Left().Layer(2).Resizable(true);
+    // See the identical MinSize() call/comment in addToolPanel() -- a
+    // resizable pane is only recoverable if there's a resize grip left
+    // to grab once collapsed, and several panels' content reports a
+    // near-zero best size before it's ever been painted/populated.
+    info.MinSize(wxSize(200, 150));
     // Only this small default subset is shown for a freshly opened
     // calculation -- previously every single relevant panel was
     // force-opened at once (updatePropertyMenus() creates a panel for
