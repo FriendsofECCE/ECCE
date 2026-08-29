@@ -1,6 +1,6 @@
 # ECCE — context for Claude Code sessions in this repo
 
-This repo (`FriendsofECCE/ECCE`, `develop` branch, local checkout on niobium)
+This repo (`FriendsofECCE/ECCE`, `main` branch, local checkout on niobium)
 is mid-modernization: porting a ~1200-file legacy scientific C++/wxWidgets
 codebase (wx 2.8 → 3.2, C++14 → 17, `build_ecce`/recursive-make → CMake,
 Python 2 → 3) rather than rewriting it. Full history and status lives in a
@@ -16,13 +16,34 @@ Andy runs Debian 13 ("trixie") on his own machines (niobium included) —
 default to Debian conventions, not Ubuntu, for anything environment/package
 related, unless told otherwise.
 
+## Branch structure (as of 2026-08-29)
+This repo now uses a single active branch, `main` — it's the GitHub default
+and the only branch you should ever need to work on or push to. Releases are
+marked with tags (e.g. `v7.3.4-beta` was the last one cut), not a separate
+release branch. If anything here still says `develop` or `modernize-build`,
+treat that as referring to `main` — those names were merged into it.
+
+Everything that used to be scattered across `develop` (the long-running but
+stale nominal default), `modernize-build` (where all of this modernization
+work actually happened, forked from `develop`'s tip with zero divergence),
+`stable`, `master`, and `make` has been consolidated: `main` is exactly
+`modernize-build`'s former tip, pushed under the new name and made the
+default. The old branches weren't deleted, just renamed to `archive/develop`,
+`archive/modernize-build`, `archive/stable`, `archive/master`, `archive/make`
+— full history is still there if anything needs digging up, but there's no
+reason to branch from or compare against them going forward. A same-session
+audit found `stable` had nothing `develop` was missing except two Quick Basis
+Menu entries (deliberately not ported over — "when in doubt, stick with
+develop, not stable" was the standing call) and was otherwise strictly
+behind (older XC-functional mappings, a real bug in `std2Gaussian-16` calling
+the wrong writer function, a smaller vendored basis-set library) — so nothing
+of substance was lost in the consolidation.
+
 ## Where things are
 - Build directory: `build-cmake` (NOT `cmake-build`). Rebuild with `ninja`
   from inside it, or `cmake --build .`.
-- This investigation happened directly on branch `modernize-build` (NOT a
-  separate `modernize-build-fixes` branch, despite what an earlier version
-  of this doc said — that branch either never existed on this checkout or
-  the work just landed directly on `modernize-build` instead). Fixes below
+- All the modernization work in this file happened directly on `main` (until
+  today named `modernize-build` — see "Branch structure" above). Fixes below
   are **committed** here, not sitting uncommitted.
 - The wider modernization work (wx port, JMS gateway messaging, CMake/CPack
   packaging, Python 3 port) is documented in full in the claude.ai project
@@ -38,7 +59,7 @@ children, one of which resizing fires another size event — recursing
 without ever converging (~12,470 repeating iterations / 100,000+ stack
 frames before crashing).
 
-**This is fixed and committed** (commit `aeb332f`, branch `modernize-build`).
+**This is fixed and committed** (commit `aeb332f`, branch `main`, formerly `modernize-build`).
 Root cause, precisely: both `GatewayPrefs.C` and `GatewayPrefsGUI.C` had a
 `wxEventFilter`-based guard (attempts 4 and 5 below) that suppressed
 `wxEVT_SIZE` only for the duration of their `Fit()` call, then **re-enabled**
@@ -176,7 +197,7 @@ the construction-time fix; it's a pre-existing latent bug nobody had
 reached before, because `gateway` always died at the `DataServers` check
 (previous section) before a user could ever click Preferences.
 
-**This is fixed and committed** (commit `3c50f03`, branch `modernize-build`).
+**This is fixed and committed** (commit `3c50f03`, branch `main`, formerly `modernize-build`).
 Root cause: `Gateway.C:477`'s `p_prefsDlg->Show(true)` (the real "open
 Preferences" handler, not a test artifact) triggers the same
 `DoSetSize -> wxEVT_SIZE -> InternalOnSize -> Layout() ->
