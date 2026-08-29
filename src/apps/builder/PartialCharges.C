@@ -289,7 +289,16 @@ void PartialCharges::fillUI()
       // Set color spectrum
       computeColors();
       //setColorTable();  // wait for recieve focus?
+      // SelectRow() fires a real wxEVT_GRID_RANGE_SELECT, which
+      // OnGridRangeSelect() below would otherwise propagate into
+      // frag->m_atomHighLight -- leaking this cosmetic, construction-time
+      // row selection into the shared 3D-viewer selection state (visible
+      // as an atom always appearing pre-selected on open). Guard it the
+      // same way OnGridRangeSelect() already guards its own internal
+      // selection syncing.
+      p_internalSelect = true;
       p_grid->SelectRow(0);
+      p_internalSelect = false;
 
    }
    p_grid->AutoSize();

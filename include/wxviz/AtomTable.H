@@ -86,6 +86,14 @@ class AtomTable : public MoleculeDataTable,
     /** map atom indices to table indices to deal with the fact that the
        table does not display all atoms. -1 = notdisplayed */
     vector<int> p_atommap;
+
+    /** Guards OnSelectCell against firing a real SelectCmd in response to
+        our own programmatic grid updates (fillTable/fastFillTable/
+        setSelections) rather than a genuine user click -- including
+        wxGrid's own default cell-cursor positioning, which fires
+        EVT_GRID_SELECT_CELL on its own once the grid is first populated
+        and realized. */
+    bool p_internalSelect;
 };
 
 #endif

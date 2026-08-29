@@ -90,7 +90,8 @@ END_EVENT_TABLE()
  *  if multipel subclasses are created because they can't be uniquely named.
  *  Default constructure is required for the IMPLEMENT_DYNAMIC_CLASS
  */
-AtomTable::AtomTable() : MoleculeDataTable()
+AtomTable::AtomTable() : MoleculeDataTable(),
+  p_internalSelect(false)
 {}
 
 
@@ -99,7 +100,8 @@ AtomTable::AtomTable(wxWindow* parent,
                      const wxPoint& pos,
                      const wxSize& size,
                      long style)
-  : MoleculeDataTable()
+  : MoleculeDataTable(),
+    p_internalSelect(false)
 {
   Create(parent, id, pos, size, style);
 }
@@ -192,11 +194,17 @@ wxWindow* AtomTable::GetTearableContent()
  */
 void AtomTable::fillTable()
 {
+  // Populating the grid below realizes it and can trigger wxGrid's own
+  // default cell-cursor positioning, which fires EVT_GRID_SELECT_CELL on
+  // its own -- guard the whole repopulation (through setSelections()
+  // below) so that doesn't get mistaken for a genuine user click.
+  p_internalSelect = true;
+
   // Get fragment/atoms
   SGFragment *frag = getFW().getSceneGraph().getFragment();
   int numAtoms = frag->numAtoms();
 
-  p_atommap.clear(); 
+  p_atommap.clear();
   p_atommap.resize(numAtoms,-1);
 
 
@@ -295,6 +303,8 @@ void AtomTable::fillTable()
 
   }
 
+  p_internalSelect = false;
+
   //TODO make this into a generic method on ToolboxControl
   // Is this dead code??
   char buf[128];
@@ -319,7 +329,10 @@ void AtomTable::fastFillTable()
    // atoms/bonds selected - bad for: copy/new/paste.
    if (numAtoms == 0) return;
 
-   p_atommap.clear(); 
+   // See fillTable() for why this guard is needed.
+   p_internalSelect = true;
+
+   p_atommap.clear();
    p_atommap.resize(numAtoms,-1);
 
 
@@ -400,6 +413,7 @@ void AtomTable::fastFillTable()
 
    }
 
+   p_internalSelect = false;
 }
 
 
@@ -419,6 +433,12 @@ void AtomTable::setSelections()
   size_t rows = p_table->getRowCount();
   size_t cols = p_table->getColCount();
 
+  // Guard OnSelectCell against the row selection below (and against
+  // clearSelectedRows() just above it) -- save/restore rather than a
+  // flat true/false so this stays correct when called from within
+  // fillTable()/fastFillTable(), which already guard their own callers.
+  bool wasInternalSelect = p_internalSelect;
+  p_internalSelect = true;
   p_table->clearSelectedRows();
 
   if (((rows > 0) && (cols > 0)) && hl->size() > 0) {
@@ -469,6 +489,8 @@ void AtomTable::setSelections()
     p_table->getGrid()->EndBatch();
 
   }
+
+  p_internalSelect = wasInternalSelect;
 
 //timer.stop();
 //cout << "done getting selections :: elapsed time " << timer.elapsedTime() << endl;
@@ -812,6 +834,11 @@ void AtomTable::notifySelections(vector<GridAtomElement*> *selections, bool send
  */
 void AtomTable::OnSelectCell(wxGridEvent& event)
 {
+   if (p_internalSelect) {
+      event.Skip();
+      return;
+   }
+
    string label = p_table->getGrid()->GetColLabelValue(event.GetCol()).ToStdString();
    STLUtil::stripLeadingWhiteSpace(label);
    if (label == "") {
