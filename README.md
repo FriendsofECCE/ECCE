@@ -17,6 +17,18 @@ changes under the hood to make future maintenance easier, on top of
 bringing the application itself back to life.
 
 
+## Screenshots
+
+| Gateway | Organizer |
+|---|---|
+| ![Gateway toolbar](docs/screenshots/gateway.png) | ![Organizer showing a calculation](docs/screenshots/organizer.png) |
+
+![Viewer showing a molecule, energies, and molecular orbitals](docs/screenshots/viewer.png)
+
+(This is a genuine alpha release — the Viewer screenshot above shows some
+real rough edges in the property-panel layout that are actively being
+worked on, not a polished mockup.)
+
 ## What's new in this release
 
 ECCE hadn't run on a current Linux system in years — the underlying tools
