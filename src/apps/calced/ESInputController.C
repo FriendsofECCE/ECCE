@@ -406,24 +406,32 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
           message = "Input files could not be generated--parser file " +
                     parser_path + " not found";
         else {
+          // Run by full path (parser_path), not the bare name (parser) --
+          // execout() shells this out via the invoking process's own
+          // inherited $PATH, which only has scripts/parsers on it because
+          // the installed ecce-<app> wrapper adds it there. Anything that
+          // launches this binary directly (a dev build run straight out
+          // of build-cmake/, skipping the wrapper) has no such PATH entry
+          // and this failed outright -- already have the correct full
+          // path right here, so just use it instead of depending on PATH.
           if (ecp_flag)
-            parser += " -e";
+            parser_path += " -e";
           if (spherical_flag)
-            parser += " -s";
+            parser_path += " -s";
 
-          parser += " -n " + tempFileName + " -p -f";
+          parser_path += " -n " + tempFileName + " -p -f";
           if (esp_file_flag)
-            parser += " -q";
+            parser_path += " -q";
           if (con_file_flag)
-            parser += " -c";
+            parser_path += " -c";
           if (basis_file_flag)
-            parser += " -b";
-          parser += " -t " + orig_input_file;
+            parser_path += " -b";
+          parser_path += " -t " + orig_input_file;
 
-          string warning; 
-          if (!localconn.execout(parser, message))
+          string warning;
+          if (!localconn.execout(parser_path, message))
             message = "Input files could not be generated--input parsing "
-                      "command " + parser + " failed";
+                      "command " + parser_path + " failed";
           else {
             string pretty_cmd = "prettyInput <" + orig_input_file +
                                 " >" + input_file;
