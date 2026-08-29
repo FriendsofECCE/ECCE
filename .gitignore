@@ -5,3 +5,6 @@
 /obj/
 /build-cmake/
 src/apps/symmetry/*.mod
+
+# Claude Code local session/settings state, not repo content
+/.claude/
