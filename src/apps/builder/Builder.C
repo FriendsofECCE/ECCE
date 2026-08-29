@@ -868,7 +868,13 @@ void Builder::createToolPanels()
   addToolPanel(p_contextPanel, NAME_TOOL_CONTEXT, false);
 
   p_pertab = new MiniPerTab(this, -1);
-  addToolPanel(p_pertab, NAME_TOOL_BUILD);
+  // alwaysFixed=false: Build's fixed size (the default) is locked in at
+  // construction time and never revisited, but its content (12 element
+  // buttons + Add H/Del H row) can need more vertical room than that --
+  // seen live as buttons clipped/inaccessible with no way to resize the
+  // pane to reveal them. Same fix already applied to Atom Table/Residue
+  // Table/Log below, for the same reason.
+  addToolPanel(p_pertab, NAME_TOOL_BUILD, true, false);
 
   CoordPanel * coordtools = new CoordPanel(this);
   addToolPanel(coordtools, NAME_TOOL_COORDINATES);
