@@ -5,32 +5,105 @@ The Extensible Computational Chemistry Environment (ECCE, pronounced
 and data management framework for setting up, running, and analyzing
 computational chemistry calculations.
 
-As PNNL/EMSL stopped supporting ECCE, we forked the source code and
-maintain it here.
+PNNL/EMSL stopped supporting ECCE, so we forked the source and maintain it
+here.
 
-**Status: heading toward a first alpha/beta release.** This fork is a
-from-scratch modernization of the original codebase — not a rewrite. The
-same ~1200-file C++ application, same chemistry logic, ported forward onto
-current tools:
+**Status: heading toward a first alpha/beta release.**
 
-* Build system: CMake/CPack, replacing the old `build_ecce` recursive-make
-  workflow. Produces a single `.deb` package.
-* GUI toolkit: wxWidgets 3.2 (was 2.8), on GTK3.
-* Language/runtime: C++17 (was C++14-ish/pre-C++11-in-places), Python 3
-  (was Python 2) for the helper GUI scripts.
-* Messaging: the JMS gateway now runs on the Debian-packaged ActiveMQ
-  broker instead of a bundled 2008-era jar.
-* Packaging: no bundled third-party sources build from scratch anymore —
-  wxWidgets, Xerces-C, Mesa/OpenGL, Apache, and ActiveMQ all come from
-  Debian's own repositories.
-* Target platform: Debian 13 ("trixie"). Other distributions may work but
-  aren't currently tested.
+## What's new in this release
 
-See [`GETTING_STARTED.md`](GETTING_STARTED.md) for build, install, and
-first-login instructions. `CLAUDE.md` and `ECCE_modernization_status.md`
-carry the detailed, dated history of the modernization work itself (root
-causes, fixes, what's still open) if you want the full story behind any
-particular change.
+ECCE hadn't run on a current Linux system in years — the underlying tools
+it was built on are over a decade out of date. This release brings the
+same application back to life on modern Debian, with a long list of bugs
+fixed along the way. Highlights:
+
+* **It runs on current Linux again.** The whole application has been
+  carried forward onto up-to-date system libraries and compilers, so it
+  actually builds and runs on a current Debian system rather than
+  requiring museum-piece software.
+* **One-command install.** A single package installs everything, instead
+  of the old multi-step manual setup.
+* **Much more stable.** Dozens of crashes and freezes were found and
+  fixed — on startup, opening dialogs, building molecules, saving jobs,
+  and more.
+* **Smooth 3D viewer.** Rotating and zooming a molecule used to stutter,
+  jump, or just not update — that's fixed.
+* **Molecule builder works properly again.** The periodic table/element
+  picker, atom selection, and thumbnail generation all had real bugs that
+  are now fixed.
+* **Basis sets work correctly.** Selecting a basis set and saving a job
+  now reliably produces correct input files, including basis sets that
+  previously failed silently.
+* **Local help works offline.** No network access or external service
+  needed.
+* **Jobs run start to finish.** Machine registration, job submission, and
+  job monitoring were all broken in various ways and are now fixed —
+  calculations run to completion.
+
+The full, detailed history of what was fixed and why lives in `CLAUDE.md`
+and `ECCE_modernization_status.md`, if you want the technical story behind
+any particular change.
+
+## Installation and getting started
+
+This covers a clean install on Debian 13 ("trixie") through to your first
+login. (Other distributions may work but aren't currently tested.)
+
+### 1. Build
+
+```
+mkdir -p build-cmake && cd build-cmake
+cmake ..
+ninja
+```
+
+### 2. Package and install
+
+```
+cpack -G DEB
+sudo apt-get install -y apache2 apache2-utils   # data server dependency
+sudo dpkg -i ecce_<version>_amd64.deb
+sudo apt-get install -f                         # pulls in any remaining dependencies
+```
+
+This installs to `/opt/ecce` and puts the apps on your `PATH` as
+`ecce-<app>` — e.g. `ecce-gateway`, `ecce-organizer`, `ecce-builder`,
+`ecce-pertable` — runnable by name, no environment setup required.
+
+### 3. Create your account
+
+ECCE needs a client and a server side even when both run on the same
+machine. The background services start automatically the first time you
+launch an app, but you need to create a login once, up front:
+
+```
+ecce-dataserver-start          # if not already running
+ecce-dataserver-adduser        # interactive: prompts for name, username, password
+```
+
+Use a username matching your Linux username — that's what the login
+dialog defaults to.
+
+### 4. Log in
+
+```
+ecce-gateway
+```
+
+This opens ECCE's main toolbar. Log in with the username/password you just
+created. From there you can open the other tools — Organizer, Builder,
+Periodic Table, and so on.
+
+### Troubleshooting
+
+See [`GETTING_STARTED.md`](GETTING_STARTED.md) for more detail on each of
+these steps, known rough edges, and troubleshooting tips if something
+doesn't come up cleanly.
+
+## Registering a compute machine
+
+*(To be added — covers registering the clusters/workstations you'll
+submit calculations to.)*
 
 ## Branches and releases
 
