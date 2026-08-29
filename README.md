@@ -1,4 +1,5 @@
 # ECCE
+After a LOT of work we have finally revived ECCE again -- it now compiles on modern linux systems (tested on debian 13.6). This is a major milestone, and we are therefore at version 8.0.0 now. Not only that, but we've also made a lot of changes under the hood to make future maintenance easier.
 
 The Extensible Computational Chemistry Environment (ECCE, pronounced
 "etch-ā") is a graphical user interface, scientific visualization toolkit,
@@ -140,8 +141,19 @@ doesn't come up cleanly.
 
 ## Registering a compute machine
 
-*(To be added — covers registering the clusters/workstations you'll
-submit calculations to.)*
+Start ecce-gateway, then click on machine browser. Go to machine, select register machines ... and register your new machine.
+
+The simplest case is that of running everything locally. Set Machine to localhost, and Name to whatever identifying name you want. Vendor, model, and processor don't matter. Set total # of processors to an appropriate value, and nodes to 1.
+
+I've tested ssh for communication.
+
+As an example I've installed gaussian 16 in the folder /opt/gaussian/g16, so for the Gaussian-16 field I've used /opt/gaussian/g16/g16
+
+I've also tested NWChem installed from the debian 13 repos. Use /usr/bin/nwchem for path.
+
+For Perl 5, I've used /usr/bin/perl 
+
+You can get paths by using the linux command 'which', e.g. 'which perl'.
 
 ## Branches and releases
 
