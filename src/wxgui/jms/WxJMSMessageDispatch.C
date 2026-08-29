@@ -634,7 +634,17 @@ void WxJMSMessageDispatch::appExec()
         // The InvokArg XML specification should prepend "./" when the app
         // is in the bin directory.  When it isn't, such as for the viewer
         // wrapper script, then don't prepend "./" and $PATH should find it
-        string apppath = rd.getTool(app)->getInvokeArg() +
+        //
+        // That "./" convention only actually works if this process's own
+        // cwd happens to be $ECCE_HOME/bin -- nothing ever guaranteed that
+        // (none of the ecce-<app> wrapper scripts cd there, so it depends
+        // entirely on whatever directory the user happened to be in when
+        // gateway itself was launched). Confirmed live: a gateway started
+        // from an arbitrary cwd fails every "./<app>" launch with
+        // "/bin/sh: 1: ./organizer: not found". cd into bin explicitly so
+        // this doesn't depend on gateway's own launch-time cwd.
+        string apppath = "cd \"" + string(Ecce::ecceHome()) + "/bin\" && " +
+                         rd.getTool(app)->getInvokeArg() +
                          " -pipe " + authPipeName;
         argv[2] = (char*)apppath.c_str();
         char path[] = "/bin/sh";

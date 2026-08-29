@@ -587,6 +587,29 @@ vector<TGaussianBasisSet*> EDSIGaussianBasisSetLibrary::lookup
         else if (metaResults[i].name == "contraction_type") contraction_type = strdup(val.c_str());
       }
     }
+    // A *.meta sidecar can have the "name"/"type" markers present but
+    // genuinely empty (confirmed: real vendored sidecars legitimately
+    // leave "type" blank for plain orbital basis sets, since the type is
+    // implied by which category index file the set is filed under, not
+    // restated per file). An empty string is non-null, so it was passing
+    // the "did we get something usable" checks below unexamined and
+    // skipping both the PROPFIND and alias-derived fallback tiers --
+    // producing a real, reproduced bug: TGaussianBasisSet::setAttributes()
+    // maps an empty type through strToType() to UnknownGBSType, and
+    // isOrbital(UnknownGBSType) is false, so a genuine orbital basis set
+    // (e.g. def2-svp) got miscategorized AUXILIARY in the persisted
+    // TGBSConfig. dump()'s own type-based routing still defaults
+    // unrecognized types into the orbital bucket, so the raw numeric data
+    // came out fine either way -- but downstream code that reads the
+    // persisted Category (confirmed: wrGaussian16GBS.pm) treated
+    // AUXILIARY as "not a top-level basis set" and silently dropped it,
+    // producing a save with no error message and an empty basis block in
+    // the generated input. Normalize empty-string results back to null so
+    // they fall through to the next tier exactly like a missing result
+    // would.
+    if (name && name[0] == '\0') { free(name); name = 0; }
+    if (type && type[0] == '\0') { free(type); type = 0; }
+
     delete metaEdsi;
 
     EDSI *edsi = EDSIFactory::getEDSI(url.c_str());
@@ -614,6 +637,12 @@ vector<TGaussianBasisSet*> EDSIGaussianBasisSetLibrary::lookup
             contraction_type= strdup(mDataResults[i].value.c_str());
         }
       }
+      // Same empty-string-counts-as-missing normalization as the *.meta
+      // tier above, for consistency (PROPFIND has only ever been observed
+      // to return real, complete data or fail outright in this codebase's
+      // testing, but don't rely on that holding for every server).
+      if (name && name[0] == '\0') { free(name); name = 0; }
+      if (type && type[0] == '\0') { free(type); type = 0; }
     }
 
     // Neither the *.meta sidecar nor a DAV PROPFIND yielded a usable

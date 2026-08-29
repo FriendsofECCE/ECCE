@@ -1827,6 +1827,198 @@ Classic→Phoenix porting work — five real API-rename bugs total across
 `globals.py`/`templates.py` (the shared base every script imports), all
 fixed, all 14 scripts confirmed rendering live.
 
+## Every Gateway-launched tool (Organizer, Builder, CalcEd, ...) fails with "./<app>: not found" unless launched with the right cwd — FIXED, verified live (2026-08-29)
+
+Found by accident, the first time this whole modernization effort anyone
+(this session included) clicked an icon in an *actual running* Gateway
+window rather than launching an app directly from the command line.
+Clicking "Organizer" produced a generic "Unable to start the
+application" dialog; the real error was in the Gateway process's own
+stdout: `/bin/sh: 1: ./organizer: not found`.
+
+Root cause: every tool in `ResourceDescriptor.xml` is registered with a
+**relative** `InvokeArg`, e.g. `<InvokeArg>./organizer</InvokeArg>` —
+confirmed via `grep`, this is *every* tool except `ecce-viewer` (already
+fixed to be `$PATH`-resolvable earlier this session). `WxJMSMessage
+Dispatch::appExec()` (`src/wxgui/jms/WxJMSMessageDispatch.C:604`), which
+actually `fork()`s and `execv("/bin/sh", ["-c", "<InvokeArg> -pipe
+<path>"])` the child, has its own comment explaining the intent: `"The
+InvokArg XML specification should prepend './' when the app is in the
+bin directory."` — but nothing ever *guaranteed* Gateway's own working
+directory was `/opt/ecce/bin` when this runs. None of the `ecce-<app>`
+wrapper scripts `cd` there before `exec`ing Gateway, so its cwd is
+whatever directory the user (or, in this case, the assistant testing it)
+happened to be in when Gateway itself was started. If that's `/opt/ecce/
+bin`, clicking any tool works by coincidence; anywhere else, every
+single tool launch fails identically and silently (no cwd-specific error
+ever reaches the user, just the generic "Unable to start the
+application").
+
+**Fixed**: `appExec()`'s constructed shell command now explicitly `cd`s
+into `$ECCE_HOME/bin` before running the `InvokeArg`, instead of relying
+on inherited cwd — `"cd \"" + string(Ecce::ecceHome()) + "/bin\" && " +
+rd.getTool(app)->getInvokeArg() + " -pipe " + authPipeName`. Doesn't
+affect the `ecce-viewer` case (already `$PATH`-resolvable, unaffected by
+`cd`).
+
+**Verified live, full chain**: logged into a freshly-reinstalled Gateway
+(real `andy` data-server account, real password), clicked "Organizer" —
+opened cleanly, showing real saved calculations. From there, opened
+`Calculation-6-1`'s editor — real `calced` window opened (same bug,
+same fix). From there, clicked "Theory Details..." — the real
+`ged16theory.py` dialog opened too, showing the already-restored
+`PBE0 (hybrid)` functional selection. This is the first time in this
+entire modernization effort that Gateway → Organizer → CalcEd → Theory
+Details has been confirmed working end-to-end through the actual running
+application, not a standalone repro.
+
+## `def2-svp` (and any ECP basis with a blank `.meta` type field) saved with an empty basis block, no error — FIXED (2026-08-29)
+
+Andy reported: opened an existing calculation (`Calculation-7`, Gaussian-16,
+`def2-svp` basis, DFT/RPBE1PBE, Geometry optimization), saw no error on
+save, but the saved input file's basis-set punch block was completely
+empty — just blank lines where the `H`/`C` exponent data should be, right
+after a route line correctly reading `#P rPBE1PBE/GEN`.
+
+Root-caused via the *persisted* data, not another repro of `dump()` in
+isolation (which kept succeeding — see below for why that was misleading).
+`Calculation-7`'s saved `Parameters/BasisSet.ecce_basisset` XML showed the
+smoking gun directly:
+```xml
+<BasisSet Type="UnknownGBSType">def2-svp</BasisSet>
+...
+Type=UnknownGBSType Category=AUXILIARY Spherical=UnknownCoordSys ContType=UnknownContType
+```
+`def2-svp`'s real type is `ECPOrbital`/`ORBITAL` — this is really a
+plain orbital basis set that happens to need an ECP core-potential,
+same as most `def2-*` sets. Traced to a genuine bug in this session's
+own `EDSIGaussianBasisSetLibrary::lookup()` fallback chain (the `.meta`
+sidecar → PROPFIND → alias-derived tiers added a few days ago, see
+"Basis set library metadata" above): a real vendored `.meta` sidecar can
+have the `type` *marker* present but **empty** — already known and
+documented as normal for plain orbital basis sets — but the code only
+checked `!type` (null-pointer check) to decide whether a tier's result
+was "usable" and worth stopping at. An empty string is non-null, so it
+passed that check, and the (correct, real) data in the next tiers
+(PROPFIND, which does have `def2-svp.BAS` → `ECPOrbital` correctly —
+confirmed live via `curl -X PROPFIND`) was never even tried.
+
+The empty type then fed into `TGaussianBasisSet::setAttributes()`:
+`strToType("")` → `UnknownGBSType` (safely, no crash — this session's
+own earlier uninitialized-enum fix), and `isOrbital(UnknownGBSType)` is
+`false`, so `p_category` got set to `AUXILIARY` instead of `ORBITAL`.
+
+**Why `dump()` kept looking fine in every standalone repro**: `dump()`'s
+own type-based routing (`if (p_type==exchange) ... elsif (p_type==
+polarization||...) ... else /* orbital */`) treats any *unrecognized*
+type as the default "orbital" bucket too, so the raw numeric exponent
+data still ended up in the right place in `dump()`'s own return value —
+confirmed by testing `dump()` directly against `def2-svp` repeatedly,
+every time producing correct, complete, non-empty output, which sent
+this investigation looking in the wrong place for a while. The actual
+failure is downstream, in code that reads the **persisted** `Category`
+field specifically (confirmed: `wrGaussian16GBS.pm`, the Gaussian-16
+basis-set writer) and treats `AUXILIARY` as "not a top-level basis set,"
+silently dropping it — with no error surfaced anywhere, since
+`write_gbsconfig()`'s own `charData[0]!='\0'` success check never sees
+this: the raw data it captured *was* non-empty, right up until a later
+stage discarded it based on the wrong category tag.
+
+**Fixed**: normalize an empty-but-present `name`/`type` result back to
+null immediately after each tier (the `.meta` sidecar tier and the
+PROPFIND tier), so it correctly falls through to the next tier exactly
+like a genuinely missing result would, instead of being accepted as a
+final (wrong) answer.
+
+**Verified**: direct `lookup()` call for `def2-svp` now reports
+`type=ECPOrbital category=ORBITAL` (was `UnknownGBSType`/`AUXILIARY`).
+Re-ran the full 20-basis-set regression sweep from the earlier metadata
+work (all 9 original quick picks, the 6 "previously thought
+unresolvable" ones, plus `3-21G`/`STO-3G`/`6-311G**`/`ADZP`/`cc-pVQZ`) —
+all 20 still produce non-empty, correct `dump()` output, zero
+regressions from this change.
+
+**Not yet done**: re-verified only via standalone `lookup()`/`dump()`
+calls and reading the persisted XML directly, not by actually re-saving
+`Calculation-7` through the live GUI and confirming the regenerated
+input file has real punch data this time (the "Quick Basis Menu" popup
+button didn't visibly open when clicked live — either a click-targeting
+miss or a `wxPopupTransientWindow`-class bug worth checking alongside
+the periodic table one below). Also unconfirmed: whether *this* same bug
+explains the user-reported "Builder can't change element, stuck on
+Carbon" and "no periodic table" — separately investigated below, not
+related to this one.
+
+## Builder: periodic table doesn't appear when picking an element — investigated, not yet fixed (2026-08-29)
+
+User report: "in the Builder window I can't change the element. I'm
+stuck with Carbon. I'm supposed to get a periodic table, but I don't."
+
+Investigated via a dedicated subagent read-through of `Builder.C`,
+`MiniPerTab.C/.H`, and `PerTabPanel.C/.H` (no code changes made yet).
+Two real findings, not mutually exclusive:
+
+1. **Non-obvious UX, not obviously a bug**: the toolbar's "Choose Build
+   Element" tool (`ID_MODE_ATOM`) only pops up the full periodic table
+   when clicked a *second* time, after it's already the active tool
+   (`Builder::OnModeElementClick`, `Builder.C:3009-3021`) — `if
+   (getToolState(ID_MODE_ATOM) && !event.IsChecked())`. The *first*
+   click just re-publishes the currently-selected element (Carbon, the
+   default) with no popup at all. A first-time user clicking it once,
+   expecting a picker, sees nothing happen — exactly matching "stuck
+   with Carbon." MiniPerTab's own "More…" button (`ID_SHOW_TABLE`,
+   `MiniPerTab.C:275-276`) reaches the same popup independently of this
+   toolbar-click-count quirk, and is worth trying as a direct test.
+2. **Genuinely unverified this week**: the popup mechanism itself
+   (`TearableContent` / `wxPopupTransientWindow`,
+   `src/wxgui/wxtools/TearableContent.C:144-225`) was never touched or
+   re-verified as part of this session's wx3.2/GTK3 fixes — only
+   `PerTabPanel.C` (the `wxEXPAND`+`wxALIGN_CENTER` fix) and
+   `WxBasisToolGUI.C` (the `wxFIXED_MINSIZE` fix) were. `wxPopup
+   TransientWindow` has documented GTK3 fragility elsewhere (fails to
+   show, appears off-screen, or dismisses instantly without a proper
+   grab) — a real candidate, not yet confirmed either way.
+
+MiniPerTab's own 12-button quick-pick strip (H/C/N/O/F/Si/P/S/Cl/K/Ca/Mg,
+`MiniPerTab.C:240-286`) does **not** reuse `PerTabPanel`/`ElementButton`
+at all — plain `wxToggleButton`s, not subject to either of this week's
+two already-fixed periodic-table footguns. Element-selection state
+wiring (`ElementButton` → `PerTabPanel::fireSelectionChanged` → `Event
+Dispatcher` → `Builder::eventMCB`, `Builder.C:2536-2543`) was read
+through and looks correct — not implicated.
+
+**To distinguish, next time there's GUI access**: (a) try MiniPerTab's
+12-button strip directly — if elements don't change even from there,
+it's a wiring bug, not a popup one; (b) click the atom-mode toolbar
+button *twice* and check whether anything renders anywhere on screen,
+even off-screen/behind other windows; (c) try "More…" independently.
+Live testing attempted once this session (clicking a "Quick Basis Menu"
+button in a different dialog, `WxBasisTool`) also failed to visibly open
+a popup — circumstantial support for the `wxPopupTransientWindow`
+hypothesis, but could equally have been a click-coordinate miss; not
+conclusive either way.
+
+## Organizer: right-click / "New" menu feature request (2026-08-29, not yet implemented)
+
+Andy: "in order to take a completed calculation and use it to start the
+next one you need to go to Edit/Duplicate for rerun or with last
+geometry. I feel these should be options when you right-click a finished
+calculation. Maybe under New, even (right now it just says project) ...
+I don't see why project is an option when clicking on a calculation.
+To get a new calculation I need to click on andy, which is also weird."
+
+A real, reasonably-scoped usability request, not a bug — queued, not
+started. Three related complaints bundled together: (1) "Duplicate for
+rerun"/"Duplicate with last geometry" should be reachable from a
+right-click context menu on a finished calculation, not buried under
+Edit; (2) the right-click menu currently offers a generic "Project" entry
+that doesn't make sense in context on a calculation; (3) creating a new
+calculation currently requires navigating up to the username node in the
+tree, which isn't where a user would intuitively look. Not investigated
+further yet — first step next time would be reading Organizer's
+context-menu construction code to see how per-node-type menu items are
+currently decided, before proposing a concrete fix.
+
 ## Also still worth doing (from the original investigation, unchanged)
 This same `Fit()`/`SetSizeHints()` structure exists across dozens of other
 `*GUI.C` files in ~15 other `ECCE_GUI_APPS` (confirmed via grep — e.g.
