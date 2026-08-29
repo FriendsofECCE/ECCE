@@ -35,6 +35,8 @@
 #include "wxgui/ewxTextCtrl.H"
 ////@end includes
 
+#include "wxgui/ewxBitmap.H"
+
 #include "CalcEdGUI.H"
 
 ////@begin XPM images
@@ -330,7 +332,14 @@ void CalcEdGUI::CreateControls()
     wxBoxSizer* itemBoxSizer46 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer45->Add(itemBoxSizer46, 0, wxALIGN_LEFT, 5);
 
-    ewxButton* itemButton47 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_BASIS_QUICK, _("Quick Basis Menu  V "), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxButton* itemButton47 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_BASIS_QUICK, _("Quick Basis Menu"), wxDefaultPosition, wxDefaultSize, 0 );
+    // The trailing literal "V" this label used to end with was a plain-text
+    // stand-in for a dropdown-arrow indicator (predates reliable Unicode
+    // glyph rendering) -- replaced with the same down-arrow bitmap already
+    // used elsewhere in the app (e.g. MDPrepGUI's reorder buttons) instead
+    // of another ad hoc text character.
+    itemButton47->SetBitmap(ewxBitmap(_T("1downarrow.xpm"), wxBITMAP_TYPE_XPM));
+    itemButton47->SetBitmapPosition(wxRIGHT);
     itemBoxSizer46->Add(itemButton47, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxCheckBox* itemCheckBox48 = new ewxCheckBox( itemFrame1, ID_CHECKBOX_CALCED_USE_EXPONENTS, _("Use Exponents\n&& Coefficients"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
