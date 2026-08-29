@@ -800,6 +800,20 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    INTERNALEXCEPTION(escalc, "Cannot down cast to ICalucation");
    SGContainer& sg = fw.getSceneGraph();
 
+   // p_isValid can go false after this button was last enabled --
+   // updateUIOptions() enables/disables it based only on whether the
+   // calculation has a valid basis set, but fillUI() can separately mark
+   // p_isValid false afterward (e.g. "no MO coefficients", a calculation
+   // that never finished/failed) without ever re-touching the button's
+   // enabled state. Building and executing ComputeMoCmd against missing
+   // coefficient data crashed; guard here directly rather than relying
+   // on the button's enabled state always being kept in sync.
+   if (!p_isValid) {
+      fw.showMessage("This calculation does not have the data needed to "
+            "compute orbitals.", false);
+      return;
+   }
+
    // Take the focus
    setFocus(true);
 
