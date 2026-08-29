@@ -49,18 +49,31 @@ any particular change.
 This covers a clean install on Debian 13 ("trixie") through to your first
 login. (Other distributions may work but aren't currently tested.)
 
-### 1. Build
+### 1. Check out and build
 
 ```
+git clone https://github.com/FriendsofECCE/ECCE.git
+cd ECCE
 mkdir -p build-cmake && cd build-cmake
 cmake ..
 ninja
 ```
 
-### 2. Package and install
+### 2. Package
 
 ```
 cpack -G DEB
+```
+
+This produces `ecce_<version>_amd64.deb` in `build-cmake/`.
+
+### 3. Install
+
+Either install the package you just built, or skip steps 1-2 entirely and
+download a prebuilt `.deb` from the
+[Releases page](https://github.com/FriendsofECCE/ECCE/releases):
+
+```
 sudo apt-get install -y apache2 apache2-utils   # data server dependency
 sudo dpkg -i ecce_<version>_amd64.deb
 sudo apt-get install -f                         # pulls in any remaining dependencies
@@ -70,7 +83,7 @@ This installs to `/opt/ecce` and puts the apps on your `PATH` as
 `ecce-<app>` — e.g. `ecce-gateway`, `ecce-organizer`, `ecce-builder`,
 `ecce-pertable` — runnable by name, no environment setup required.
 
-### 3. Create your account
+### 4. Create your account
 
 ECCE needs a client and a server side even when both run on the same
 machine. The background services start automatically the first time you
@@ -84,7 +97,7 @@ ecce-dataserver-adduser        # interactive: prompts for name, username, passwo
 Use a username matching your Linux username — that's what the login
 dialog defaults to.
 
-### 4. Log in
+### 5. Start ECCE
 
 ```
 ecce-gateway
@@ -122,8 +135,8 @@ with tags, not separate release branches.
   on user requirements.
 * A graphical user interface for basis set selection.
 * Remote submission of calculations to Unix/Linux workstations, Linux
-  clusters, and supercomputers, via PBS, LSF, NQE/NQS, LoadLeveler, and
-  Maui Scheduler queue management.
+  clusters, and supercomputers, via PBS, LSF, Slurm, Moab, SGE,
+  LoadLeveler, and Maui Scheduler queue management.
 * Three-dimensional visualization and graphical display of molecular data
   and properties, both while jobs are running and after completion.
   Molecular orbitals and vibrational frequencies are among the properties
