@@ -13,6 +13,7 @@ using std::ends;
 using std::vector;
   
 #include <math.h>
+#include <unistd.h>
 
 // Remove some of these three once the calls are in SoWx::init
 #include "inv/nodes/SoPerspectiveCamera.H"
@@ -4831,7 +4832,7 @@ void Builder::deleteSelection()
 
 void Builder::quit(const bool& allowCancel)
 {
-  int ret;
+  int ret = wxID_YES;
   long buttonFlags = wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION;
   buttonFlags |= allowCancel ? wxCANCEL : 0;
   ewxMessageDialog dlg(this, "The current calculation has unsaved changes!  "
@@ -4875,7 +4876,14 @@ void Builder::quit(const bool& allowCancel)
     // GDB 1/22/09 Tired of seg faults so lets see if we can exit ungracefully
     // to avoid that annoyance
     // Destroy();
-    exit(0);
+    // exit() still runs full C++/shared-library static destructor teardown
+    // (__cxa_finalize/_dl_fini), which is exactly where the segfault this
+    // comment is talking about actually happens (confirmed via a real
+    // core dump: crash inside libwx_gtk3u_core's own global destructors,
+    // reached from exit() -> __run_exit_handlers -> _dl_fini). _exit()
+    // skips all of that and terminates immediately, which is what "exit
+    // ungracefully" actually needs.
+    _exit(0);
   }
 }
 
