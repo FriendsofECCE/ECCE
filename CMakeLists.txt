@@ -191,6 +191,13 @@ target_compile_definitions(eccewxgui PRIVATE ${wxWidgets_DEFINITIONS})
 target_include_directories(eccewxgui PRIVATE ${wxWidgets_INCLUDE_DIRS})
 target_link_libraries(eccewxgui PRIVATE ${wxWidgets_LIBRARIES})
 
+# ewxApp.C installs a g_log_set_writer_func() filter for a known-benign
+# wxWidgets/GTK3 backend warning (see the comment there) -- needs GLib's
+# own headers directly, which wxWidgets_INCLUDE_DIRS doesn't expose.
+pkg_check_modules(GLIB2 REQUIRED glib-2.0)
+target_include_directories(eccewxgui PRIVATE ${GLIB2_INCLUDE_DIRS})
+target_link_libraries(eccewxgui PRIVATE ${GLIB2_LIBRARIES})
+
 ecce_library(eccewxguicomm src/wxgui/comm)
 target_compile_definitions(eccewxguicomm PRIVATE ${wxWidgets_DEFINITIONS})
 target_include_directories(eccewxguicomm PRIVATE ${wxWidgets_INCLUDE_DIRS})
