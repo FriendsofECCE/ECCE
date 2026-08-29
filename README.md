@@ -13,32 +13,33 @@ here.
 ## What's new in this release
 
 ECCE hadn't run on a current Linux system in years — the underlying tools
-it was built on are over a decade out of date. This release brings the
-same application back to life on modern Debian, with a long list of bugs
-fixed along the way. Highlights:
+it was built on were over a decade out of date. This release doesn't add
+new end-user features; it's a from-scratch modernization that keeps the
+same application running on current software, replacing years-old
+bundled dependencies with current, distro-maintained ones:
 
-* **It runs on current Linux again.** The whole application has been
-  carried forward onto up-to-date system libraries and compilers, so it
-  actually builds and runs on a current Debian system rather than
-  requiring museum-piece software.
 * **One-command install.** A single package installs everything, instead
   of the old multi-step manual setup.
-* **Much more stable.** Dozens of crashes and freezes were found and
-  fixed — on startup, opening dialogs, building molecules, saving jobs,
-  and more.
-* **Smooth 3D viewer.** Rotating and zooming a molecule used to stutter,
-  jump, or just not update — that's fixed.
-* **Molecule builder works properly again.** The periodic table/element
-  picker, atom selection, and thumbnail generation all had real bugs that
-  are now fixed.
-* **Basis sets work correctly.** Selecting a basis set and saving a job
-  now reliably produces correct input files, including basis sets that
-  previously failed silently.
-* **Local help works offline.** No network access or external service
-  needed.
-* **Jobs run start to finish.** Machine registration, job submission, and
-  job monitoring were all broken in various ways and are now fixed —
-  calculations run to completion.
+* **Build system**: CMake/CPack replaces the old `build_ecce`/
+  recursive-make workflow.
+* **GUI toolkit**: wxWidgets 2.8.12 → 3.2.8, running on GTK3 instead of
+  GTK2.
+* **XML library**: Xerces-C 2.8.0 → 3.2.4.
+* **OpenGL/Mesa**: a 2006-era bundled Mesa 6.5.3 → the system's current
+  Mesa (25.0.7).
+* **Language runtime**: Python 2 → Python 3 (3.13) for the helper GUI
+  scripts.
+* **Messaging**: the JMS broker moved from a bundled ActiveMQ 5.1.0
+  (2008) to Debian's packaged ActiveMQ 5.17.6.
+* **Data server**: moved from a vendored Apache httpd 2.2.25 build to
+  Debian's packaged Apache 2.4.68.
+* **Target platform**: Debian 13 ("trixie"), instead of a decade-old
+  reference distro.
+
+Porting a ~1200-file codebase across two major GUI-toolkit versions and a
+completely different build system inevitably introduced its own new bugs
+along the way — those were found and fixed too, but as stabilization work
+to reach parity with the previous release, not as new value on top of it.
 
 The full, detailed history of what was fixed and why lives in `CLAUDE.md`
 and `ECCE_modernization_status.md`, if you want the technical story behind
