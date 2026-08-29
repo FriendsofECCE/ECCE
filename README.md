@@ -8,7 +8,7 @@ computational chemistry calculations.
 PNNL/EMSL stopped supporting ECCE, so we forked the source and maintain it
 here.
 
-**Status: heading toward a first alpha/beta release.**
+**v8.0.0-alpha.1 — "Phoenix" — 2026-08-29**
 
 ## What's new in this release
 
