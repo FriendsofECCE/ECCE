@@ -461,8 +461,14 @@ void SGViewer::rotateCamera(const SbRotation &rot)
   
   // apply new rotation to the camera
   camRot = rot * camRot;
+
+  // Same two-separate-field-notification hazard as
+  // SoWxExaminerViewer::rotateCamera -- see there for the full
+  // rationale (this is a duplicate of that function, "copied exactly").
+  SbBool wasNotifyEnabled = p_camera->orientation.enableNotify(FALSE);
   p_camera->orientation = camRot;
-  
+  p_camera->orientation.enableNotify(wasNotifyEnabled);
+
   // reposition camera to look at pt of interest
   mx = camRot;
   forward.setValue( -mx[2][0], -mx[2][1], -mx[2][2]);
@@ -752,6 +758,16 @@ SbBool SGViewer::processCommonEvents(wxEvent * event)
     }
     if (mouseEvent->GetWheelRotation()) {
       zoomCamera(mouseEvent->GetWheelRotation()*1.0/mouseEvent->GetWheelDelta());
+      // processCommonEvents() returning true makes processEvent() take
+      // an early return (see its "if (processCommonEvents(event)) return;"
+      // at the top) -- skipping the Refresh()/Update() calls at its own
+      // end that every other interaction (rotate, pan, dolly) relies on
+      // to actually force a repaint. Without this, zoomCamera() above
+      // updates the camera correctly, but nothing paints it -- the
+      // change sits invisible until some *other* interaction happens to
+      // trigger a repaint later. Force it here instead.
+      p_renderArea->Refresh(false);
+      p_renderArea->Update();
       return true;
     }
   }
@@ -992,8 +1008,15 @@ void SGViewer::zoomCamera(float delta)
     SbMatrix mx;
     mx = p_camera->orientation.getValue();
     SbVec3f forward(-mx[2][0], -mx[2][1], -mx[2][2]);
+    // Same two-separate-field-notification hazard as rotateCamera() in
+    // SoWxExaminerViewer.C -- suppress notification on the first field
+    // so position and focalDistance land as a single, consistent update
+    // rather than risking a render in between with the new position but
+    // the old focalDistance still in effect.
+    SbBool wasNotifyEnabled = p_camera->position.enableNotify(FALSE);
     p_camera->position = p_camera->position.getValue() +
       (focalDistance - newFocalDist) * forward;
+    p_camera->position.enableNotify(wasNotifyEnabled);
     p_camera->focalDistance = newFocalDist;
   }
 }

@@ -1087,7 +1087,7 @@ void SoWxExaminerViewer::rotateCamera(const SbRotation &rot)
 
   if (p_camera == NULL)
     return;
-  
+
   // get center of rotation
   SbRotation camRot = p_camera->orientation.getValue();
   float radius = p_camera->focalDistance.getValue();
@@ -1096,11 +1096,26 @@ void SoWxExaminerViewer::rotateCamera(const SbRotation &rot)
   SbVec3f forward( -mx[2][0], -mx[2][1], -mx[2][2]);
   SbVec3f center = p_camera->position.getValue()
     + radius * forward;
-  
+
   // apply new rotation to the camera
   camRot = rot * camRot;
+
+  // orientation and position are set as two separate field notifications
+  // below. If a render gets triggered by the first (e.g. via the scene
+  // manager's own field-change notification -> renderCB, both real and
+  // apparently synchronous under this wx3.2/GTK3 build) before the
+  // second one lands, that paints a genuinely inconsistent frame: the
+  // new rotation with the *old*, not-yet-recentered position -- visibly
+  // displaced, by an amount proportional to how far `forward` moved,
+  // i.e. proportional to the size of this rotation step. Fast mouse
+  // movement -> bigger per-step rotation -> bigger visible displacement,
+  // alternating with the correct frame on every subsequent step --
+  // matches the reported symptom exactly. Suppress notification on the
+  // first field so only one, fully-consistent, notification fires.
+  SbBool wasNotifyEnabled = p_camera->orientation.enableNotify(FALSE);
   p_camera->orientation = camRot;
-  
+  p_camera->orientation.enableNotify(wasNotifyEnabled);
+
   // reposition camera to look at pt of interest
   mx = camRot;
   forward.setValue( -mx[2][0], -mx[2][1], -mx[2][2]);
@@ -1201,10 +1216,14 @@ void SoWxExaminerViewer::dollyCamera(const SbVec2s &newLocator)
     SbMatrix mx;
     mx = p_camera->orientation.getValue();
     SbVec3f forward(-mx[2][0], -mx[2][1], -mx[2][2]);
-    p_camera->position = p_camera->position.getValue() + 
+    // Same two-separate-field-notification hazard as rotateCamera()
+    // above -- see there for the full rationale.
+    SbBool wasNotifyEnabled = p_camera->position.enableNotify(FALSE);
+    p_camera->position = p_camera->position.getValue() +
       (focalDistance - newFocalDist) * forward;
+    p_camera->position.enableNotify(wasNotifyEnabled);
     p_camera->focalDistance = newFocalDist;
   }
-  
+
   p_locator = newLocator;
 }
