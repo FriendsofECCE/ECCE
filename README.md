@@ -1,5 +1,12 @@
 # ECCE
-After a LOT of work we have finally revived ECCE again -- it now compiles on modern linux systems (tested on debian 13.6). This is a major milestone, and we are therefore at version 8.0.0 now. Not only that, but we've also made a lot of changes under the hood to make future maintenance easier.
+
+**v8.0.0-alpha.1 — "Phoenix" — 2026-08-29**
+
+After a lot of work, we've finally revived ECCE — it now compiles and
+runs on modern Linux systems again (tested on Debian 13). This is a major
+milestone, and the reason we're at version 8.0.0: we've made a lot of
+changes under the hood to make future maintenance easier, on top of
+bringing the application itself back to life.
 
 The Extensible Computational Chemistry Environment (ECCE, pronounced
 "etch-ā") is a graphical user interface, scientific visualization toolkit,
@@ -8,8 +15,6 @@ computational chemistry calculations.
 
 PNNL/EMSL stopped supporting ECCE, so we forked the source and maintain it
 here.
-
-**v8.0.0-alpha.1 — "Phoenix" — 2026-08-29**
 
 ## What's new in this release
 
@@ -141,19 +146,25 @@ doesn't come up cleanly.
 
 ## Registering a compute machine
 
-Start ecce-gateway, then click on machine browser. Go to machine, select register machines ... and register your new machine.
+Start `ecce-gateway`, then open Machine Browser. Go to Machine → Register
+Machines… and register your new machine.
 
-The simplest case is that of running everything locally. Set Machine to localhost, and Name to whatever identifying name you want. Vendor, model, and processor don't matter. Set total # of processors to an appropriate value, and nodes to 1.
+The simplest case is running everything locally: set Machine to
+`localhost`, and Name to whatever identifying name you want. Vendor,
+model, and processor don't matter. Set the total number of processors to
+an appropriate value, and nodes to 1.
 
-I've tested ssh for communication.
+SSH has been tested and works for communication with the machine.
 
-As an example I've installed gaussian 16 in the folder /opt/gaussian/g16, so for the Gaussian-16 field I've used /opt/gaussian/g16/g16
+Each computational code needs the full path to its executable. Examples
+from testing:
 
-I've also tested NWChem installed from the debian 13 repos. Use /usr/bin/nwchem for path.
+* **Gaussian 16**, installed under `/opt/gaussian/g16`: use
+  `/opt/gaussian/g16/g16`.
+* **NWChem**, installed from the Debian 13 repos: use `/usr/bin/nwchem`.
+* **Perl 5**: use `/usr/bin/perl`.
 
-For Perl 5, I've used /usr/bin/perl 
-
-You can get paths by using the linux command 'which', e.g. 'which perl'.
+Find the right path for anything else with `which`, e.g. `which perl`.
 
 ## Branches and releases
 
