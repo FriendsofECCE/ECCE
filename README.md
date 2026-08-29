@@ -1,5 +1,13 @@
 # ECCE
 
+The Extensible Computational Chemistry Environment (ECCE, pronounced
+"etch-ā") is a graphical user interface, scientific visualization toolkit,
+and data management framework for setting up, running, and analyzing
+computational chemistry calculations.
+
+PNNL/EMSL stopped supporting ECCE, so we forked the source and maintain it
+here.
+
 **v8.0.0-alpha.1 — "Phoenix" — 2026-08-29**
 
 After a lot of work, we've finally revived ECCE — it now compiles and
@@ -8,13 +16,6 @@ milestone, and the reason we're at version 8.0.0: we've made a lot of
 changes under the hood to make future maintenance easier, on top of
 bringing the application itself back to life.
 
-The Extensible Computational Chemistry Environment (ECCE, pronounced
-"etch-ā") is a graphical user interface, scientific visualization toolkit,
-and data management framework for setting up, running, and analyzing
-computational chemistry calculations.
-
-PNNL/EMSL stopped supporting ECCE, so we forked the source and maintain it
-here.
 
 ## What's new in this release
 
