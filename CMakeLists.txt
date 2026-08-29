@@ -844,6 +844,15 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # spawned `python3 .../codereg/*.py`, not a linked dependency of any
 # ECCE binary, so dpkg-shlibdeps can't see it either.
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, activemq")
+# NWChem is a real Debian package (confirmed working: /usr/bin/nwchem,
+# symlinked to nwchem.openmpi by the package itself) and the auto-register-
+# this-machine flow (RunMgmt::registerLocalMachine()) defaults new machine
+# registrations to it -- Recommends (not Depends) so `apt-get install
+# ecce`/`apt-get install -f` pulls it in by default, matching that
+# auto-registration default, without unconditionally forcing NWChem +
+# its MPI/Fortran runtime dependencies onto anyone who explicitly opts
+# out via --no-install-recommends.
+set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem")
 # RelWithDebInfo keeps -g everywhere (useful while porting - see the
 # CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
 # strip debug symbols out of the packaged copies only, not the build tree.

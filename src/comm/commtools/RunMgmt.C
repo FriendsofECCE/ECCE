@@ -308,6 +308,7 @@ bool RunMgmt::registerLocalMachine(string& msg)
       // Within PNNL, use the AFS installations of codes as defined in the
       // CONFIG.<vendor> files.
       bool emslFlag = false;
+      bool nwchemFlag = false;
       // Even though a machine has a .pnl.domain does not mean it is using
       // the EMSL maintained version of ECCE or has AFS access.  GDB 3/24/12
       if (machine.find(".pnl.gov")==machine.length()-8 &&
@@ -329,15 +330,24 @@ bool RunMgmt::registerLocalMachine(string& msg)
         }
         settings += paths;
       } else {
-        // Outside PNNL, register the bundled version of NWChem
-        string path = Ecce::ecceHome();
-        path += "/";
-        const char* sysdir = getenv("ECCE_SYSDIR");
-        if (sysdir) path += sysdir;
-        path += "3rdparty/";
-        path += "nwchem/bin/nwchem";
-
-        settings += "&registeredcodes=NWChem,&NWChem=" + path;
+        // Outside PNNL: this fork ships no vendored/bundled NWChem (the
+        // old "3rdparty/nwchem/bin/nwchem" path this used to default to
+        // was never actually packaged in the CMake/CPack build -- it
+        // always pointed at a file that doesn't exist, silently seeding
+        // a broken machine registration). NWChem is a real, Debian-
+        // packaged `nwchem` dependency instead (see
+        // CPACK_DEBIAN_PACKAGE_DEPENDS in CMakeLists.txt) -- default to
+        // its real install path, but only if it's actually present on
+        // this machine, so a missing/skipped dependency still results in
+        // an honest "nothing pre-configured" registration rather than
+        // another silently-wrong path.
+        string path = "/usr/bin/nwchem";
+        SFile nwchemBin(path);
+        nwchemFlag = nwchemBin.exists();
+        if (nwchemFlag)
+          settings += "&registeredcodes=NWChem,&NWChem=" + path;
+        else
+          settings += "&registeredcodes=";
       }
 
       settings += "&qmgrPath=&AA=false&qmgr=None&numQueues=0";
@@ -360,8 +370,11 @@ bool RunMgmt::registerLocalMachine(string& msg)
             "single processor " + vendor + " workstation using ssh.  ";
         if (emslFlag)
           msg += "Paths to codes have been set based on EMSL defaults.  ";
+        else if (nwchemFlag)
+          msg += "The NWChem installation found at /usr/bin/nwchem will be used.  ";
         else
-          msg += "The NWChem distribution bundled with ECCE will be used.  ";
+          msg += "No computational codes were found pre-installed; register "
+              "paths to the codes you have manually.  ";
         msg += "These settings can be changed using the \"Register "
             "Machines...\" option from the Launcher Job menu.\n";
 
