@@ -349,7 +349,7 @@ ecce_fortran_app(cleansym
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
 
 # ------------------------------------------------------------------------
-# The JMS gateway: Java JMSDispatcher relay + vendored ActiveMQ broker.
+# The JMS gateway: Java JMSDispatcher relay + ActiveMQ broker.
 #
 # Previously excluded entirely (see the old comment below, now corrected).
 # This wires up the single-machine "client and server both here" case
@@ -357,11 +357,19 @@ ecce_fortran_app(cleansym
 #   - java/ is built with the existing Ant script (java/build/build.xml)
 #     into java/lib/ecce_jms.jar, installed alongside its activemq-all
 #     client jar under <prefix>/java/lib.
-#   - the vendored ActiveMQ 5.1.0 broker distribution
-#     (build/3rdparty-dists/apache-activemq-5.1.0-bin.tar.bz2) is
-#     extracted at build time and installed under <prefix>/server/activemq,
-#     using its stock localhost-only config (see packaging/gateway/
-#     ecce-gateway-start for the port this assumes).
+#   - the ActiveMQ broker itself is the Debian-packaged `activemq` (not
+#     vendored -- see the "Migrate 3rd Party Libraries" project history
+#     for why this changed from a bundled 5.1.0 binary distribution: the
+#     package's own /usr/bin/activemq launcher script respects the same
+#     ACTIVEMQ_HOME/ACTIVEMQ_BASE overrides the old vendored one did,
+#     with no root-owned single-instance service involved, so the
+#     per-user launch model below didn't need to change, just which
+#     broker it launches). Our own known-working config
+#     (packaging/gateway/activemq.xml.ecce, installed to
+#     server/activemq-conf/activemq.xml) is copied into place per-user by
+#     ecce-gateway-start rather than relying on the package's own default
+#     (/etc/activemq/, root-owned, wrong port) -- see that script for the
+#     full rationale.
 #   - siteconfig/jndi.properties (the JNDI/topic config JMSDispatcher and
 #     every JMS-using C++ app read via $ECCE_HOME/siteconfig) is installed
 #     with its provider URL repointed at localhost instead of the
@@ -400,40 +408,11 @@ else()
   set(ECCE_GATEWAY_JAVA_AVAILABLE FALSE)
 endif()
 
-set(_activemq_tarball ${CMAKE_SOURCE_DIR}/build/3rdparty-dists/apache-activemq-5.1.0-bin.tar.bz2)
-if(EXISTS ${_activemq_tarball})
-  # WORKING_DIRECTORY applies to every COMMAND line in this rule, including
-  # the one that's supposed to create it -- on a from-scratch build tree
-  # (no stale activemq-extracted/ left over from a previous run) that made
-  # the very first command `cd` into a directory that doesn't exist yet.
-  # Use a WORKING_DIRECTORY that's guaranteed to already exist (the build
-  # dir itself) and explicitly `cmake -E chdir` into the subdir only for
-  # the extraction step, after make_directory has created it.
-  add_custom_command(
-    OUTPUT ${CMAKE_BINARY_DIR}/activemq-extracted/activemq/bin/activemq
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/activemq-extracted
-    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/activemq-extracted
-            ${CMAKE_COMMAND} -E tar xjf ${_activemq_tarball}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMENT "Extracting vendored ActiveMQ 5.1.0 broker"
-  )
-  add_custom_target(ecce_activemq ALL
-    DEPENDS ${CMAKE_BINARY_DIR}/activemq-extracted/activemq/bin/activemq)
-  # linux-x86-32 is the vendored 32-bit Java Service Wrapper binary; this
-  # package only targets amd64 and dpkg-shlibdeps can't resolve a 32-bit
-  # ELF's deps without i386 multiarch libs present on the build host, so
-  # drop it rather than fight package-time shlibdeps for an arch we don't
-  # ship for. activemq/bin/activemq picks linux-x86-64 automatically.
-  install(DIRECTORY ${CMAKE_BINARY_DIR}/activemq-extracted/activemq
-          DESTINATION server
-          USE_SOURCE_PERMISSIONS
-          PATTERN "linux-x86-32" EXCLUDE)
-  set(ECCE_GATEWAY_BROKER_AVAILABLE TRUE)
-else()
-  message(WARNING "No vendored ActiveMQ tarball at ${_activemq_tarball} - "
-                   "the JMS broker will not be packaged.")
-  set(ECCE_GATEWAY_BROKER_AVAILABLE FALSE)
-endif()
+# The broker itself now comes from the Debian `activemq` package (see
+# CPACK_DEBIAN_PACKAGE_DEPENDS below) rather than a vendored tarball --
+# nothing to extract/install here, just our own config template (installed
+# above, alongside the ecce-gateway-* scripts).
+set(ECCE_GATEWAY_BROKER_AVAILABLE TRUE)
 
 # Help content: BrowserHelp::initialize() (src/util/genutil/BrowserHelp.C)
 # throws NullPointerException -- uncaught, crashing the whole app -- if
@@ -565,6 +544,9 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-stop
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-status
         DESTINATION bin)
+install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/activemq.xml.ecce
+        DESTINATION server/activemq-conf
+        RENAME activemq.xml)
 
 # Also put the gateway control scripts on PATH directly (like the ecce-<app>
 # wrappers) so `ecce-gateway-status` etc. work without needing $ECCE_HOME.
@@ -854,7 +836,7 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # Details dialogs (see the scripts/codereg install() block above) -- a
 # spawned `python3 .../codereg/*.py`, not a linked dependency of any
 # ECCE binary, so dpkg-shlibdeps can't see it either.
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, activemq")
 # RelWithDebInfo keeps -g everywhere (useful while porting - see the
 # CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
 # strip debug symbols out of the packaged copies only, not the build tree.

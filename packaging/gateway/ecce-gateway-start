@@ -24,12 +24,12 @@ export DISPLAY="${DISPLAY:-:0}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
 mkdir -p "$STATEDIR"
 
-ACTIVEMQ_HOME="$ECCE_HOME/server/activemq"
+ACTIVEMQ_HOME="/usr/share/activemq"
 
-# The broker's listening port must match server/activemq/conf/activemq.xml's
-# <transportConnector name="openwire" uri="tcp://localhost:PORT"/>. The
-# vendored config ships with 8088 untouched (see packaging notes) -- if you
-# repoint it, update this too.
+# The broker's listening port must match packaging/gateway/activemq.xml.ecce's
+# <transportConnector name="openwire" uri="tcp://localhost:PORT"/>, and
+# siteconfig/jndi.properties' java.naming.provider.url. Our shipped config
+# uses 8088 -- if you repoint it, update those too.
 BROKER_PORT=8088
 
 port_open() {
@@ -43,38 +43,66 @@ port_open() {
 if port_open "$BROKER_PORT"; then
   echo "ecce-gateway-start: broker already listening on $BROKER_PORT"
 else
-  if [ ! -x "$ACTIVEMQ_HOME/bin/activemq" ]; then
-    echo "ecce-gateway-start: no ActiveMQ broker installed at $ACTIVEMQ_HOME -- messaging will not work" >&2
+  # The Debian activemq package ships /usr/bin/activemq as its own launcher
+  # script, but that script's invokeJar() has a real quoting bug on this
+  # system (its `sh -c "$JAVACMD ..."` construction fails with a bare
+  # "command not found" -- confirmed directly, not theorized; some
+  # interaction between its DOIT_PREFIX handling and this shell/version
+  # combination). Rather than depend on that, invoke java directly
+  # ourselves with the same JVM args and activemq.* system properties that
+  # script would have computed -- verified this launches identically by
+  # capturing the script's own (correct, up to the quoting bug) computed
+  # command line before it fails, and testing this exact invocation
+  # standalone: broker actually comes up and accepts connections.
+  #
+  # ACTIVEMQ_HOME is a shared, package-owned install (root:root, not
+  # group/other-writable) since it's meant to be installed once and used
+  # by every user on the machine -- so activemq.base (persistence store,
+  # lock file, log file) must NOT default to it, or every user's broker
+  # instance fails writing there. Point ACTIVEMQ_BASE at this user's own
+  # per-user state dir instead, matching how JMSDispatcher's own PID/port
+  # files already work. Unlike the old vendored 5.1.0 tarball (which
+  # shipped its own conf/ alongside bin/, letting this be a symlink back
+  # to $ACTIVEMQ_HOME/conf), the Debian package keeps its own default
+  # config under /etc/activemq/ entirely separately from
+  # /usr/share/activemq -- and we don't want that shared, root-owned,
+  # single-instance config anyway (it defaults to port 61616, not the
+  # 8088 siteconfig/jndi.properties expects). So ship and copy our own
+  # known-working config instead of symlinking to anything
+  # system-provided.
+  if [ ! -d "$ACTIVEMQ_HOME" ]; then
+    echo "ecce-gateway-start: no ActiveMQ broker installed (apt install activemq) -- messaging will not work" >&2
   else
     echo "ecce-gateway-start: starting ActiveMQ broker..."
-    # $ACTIVEMQ_HOME is a shared, package-owned install (root:root,
-    # not group/other-writable -- confirmed on a real .deb install, not
-    # just theorized) since it's meant to be installed once and used by
-    # every user on the machine. But activemq.xml's persistence store,
-    # its lock file, and log4j's log file all live under
-    # ${activemq.base}/data -- which defaults to $ACTIVEMQ_HOME itself
-    # if ACTIVEMQ_BASE isn't set, so every user's broker instance was
-    # trying to write into that shared read-only tree and failing
-    # (java.io.FileNotFoundException on .../data/lock), which then
-    # shows up downstream as an EE_RT_ASSERT on a missing JMS port file
-    # (JMSDispatcher can't reach a broker that never came up) rather
-    # than anything pointing at ActiveMQ or permissions.
-    #
-    # Fix: point ACTIVEMQ_BASE at this user's own per-user state dir
-    # instead, matching how JMSDispatcher's own PID/port files already
-    # work. The launcher also builds its classpath from
-    # ${ACTIVEMQ_BASE}/conf though, so that per-user base dir needs a
-    # conf/ too -- symlink it back to the shared, read-only config
-    # rather than copying (nothing there needs to be writable).
     ACTIVEMQ_BASE="$STATEDIR/activemq"
-    mkdir -p "$ACTIVEMQ_BASE/data"
-    [ -e "$ACTIVEMQ_BASE/conf" ] || ln -s "$ACTIVEMQ_HOME/conf" "$ACTIVEMQ_BASE/conf"
+    mkdir -p "$ACTIVEMQ_BASE/data" "$ACTIVEMQ_BASE/conf"
+    [ -e "$ACTIVEMQ_BASE/conf/activemq.xml" ] || cp "$ECCE_HOME/server/activemq-conf/activemq.xml" "$ACTIVEMQ_BASE/conf/activemq.xml"
     export ACTIVEMQ_BASE
     CP=""
     for f in "$ACTIVEMQ_HOME"/lib/*.jar; do CP="$f:$CP"; done
     (
       cd "$ACTIVEMQ_HOME" || exit 1
-      CLASSPATH="$CP" nohup "$ACTIVEMQ_HOME/bin/activemq" \
+      nohup java -Xms512M -Xmx512M -Dorg.apache.activemq.UseDedicatedTaskRunner=true \
+        --add-reads=java.xml=java.logging \
+        --add-opens java.base/java.security=ALL-UNNAMED \
+        --add-opens java.base/java.net=ALL-UNNAMED \
+        --add-opens java.base/java.lang=ALL-UNNAMED \
+        --add-opens java.base/java.util=ALL-UNNAMED \
+        --add-opens java.naming/javax.naming.spi=ALL-UNNAMED \
+        --add-opens java.rmi/sun.rmi.transport.tcp=ALL-UNNAMED \
+        --add-opens java.base/java.util.concurrent=ALL-UNNAMED \
+        --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED \
+        --add-exports=java.base/sun.net.www.protocol.http=ALL-UNNAMED \
+        --add-exports=java.base/sun.net.www.protocol.https=ALL-UNNAMED \
+        --add-exports=java.base/sun.net.www.protocol.jar=ALL-UNNAMED \
+        --add-exports=jdk.xml.dom/org.w3c.dom.html=ALL-UNNAMED \
+        --add-exports=jdk.naming.rmi/com.sun.jndi.url.rmi=ALL-UNNAMED \
+        -Dactivemq.classpath="$ACTIVEMQ_BASE/conf:$CP" \
+        -Dactivemq.home="$ACTIVEMQ_HOME" \
+        -Dactivemq.base="$ACTIVEMQ_BASE" \
+        -Dactivemq.conf="$ACTIVEMQ_BASE/conf" \
+        -Dactivemq.data="$ACTIVEMQ_BASE/data" \
+        -jar "$ACTIVEMQ_HOME/bin/activemq.jar" start \
         >"$STATEDIR/activemq.log" 2>&1 &
     )
     i=0

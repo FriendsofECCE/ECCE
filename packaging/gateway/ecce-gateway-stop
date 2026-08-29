@@ -21,9 +21,9 @@ else
   echo "ecce-gateway-stop: JMSDispatcher not running (no pidfile)"
 fi
 
-# The vendored ActiveMQ launcher (bin/activemq) doesn't leave its own
-# pidfile in this stock config, so find it by matching the same command
-# line pattern the old install_ecce stop_ecce_message_server.ecce used.
+# The ActiveMQ launcher (bin/activemq) doesn't leave its own pidfile in
+# this config, so find it by matching the same command line pattern the
+# old install_ecce stop_ecce_message_server.ecce used.
 mqpid="$(ps -eo pid,args | grep 'org.apache.activemq' | grep -v grep | awk '{print $1}' | head -n1)"
 if [ -n "${mqpid:-}" ]; then
   kill "$mqpid"
