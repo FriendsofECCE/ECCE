@@ -82,17 +82,26 @@ class AtomTable : public MoleculeDataTable,
 
     void OnMenuClick( wxCommandEvent& event );
     void OnSelectCell( wxGridEvent& event);
+    virtual void gridRangeSelect( wxGridRangeSelectEvent& event);
 
     /** map atom indices to table indices to deal with the fact that the
        table does not display all atoms. -1 = notdisplayed */
     vector<int> p_atommap;
 
-    /** Guards OnSelectCell against firing a real SelectCmd in response to
-        our own programmatic grid updates (fillTable/fastFillTable/
-        setSelections) rather than a genuine user click -- including
-        wxGrid's own default cell-cursor positioning, which fires
-        EVT_GRID_SELECT_CELL on its own once the grid is first populated
-        and realized. */
+    /** Guards OnSelectCell/gridRangeSelect against firing a real SelectCmd
+        in response to our own programmatic grid updates (fillTable/
+        fastFillTable/setSelections) rather than a genuine user click --
+        including wxGrid's own default cell-cursor/range bookkeeping,
+        which fires EVT_GRID_SELECT_CELL and EVT_GRID_RANGE_SELECT on its
+        own once the grid is first populated and realized. setSelections()
+        additionally Disconnects gridRangeSelect for its own internal row
+        selection loop, but only when there's an existing highlight to
+        restore (hl->size() > 0) -- a freshly opened structure has none,
+        so that bracket never engages, leaving gridRangeSelect's base
+        class implementation (MoleculeDataTable::gridRangeSelect(), which
+        has no knowledge of this flag at all) fully live during the very
+        first fillTable()/fastFillTable() population. This override closes
+        that gap directly, the same way OnSelectCell already does. */
     bool p_internalSelect;
 };
 

@@ -877,6 +877,30 @@ void AtomTable::OnSelectCell(wxGridEvent& event)
    event.Skip();
 }
 
+/**
+ * Root-caused live: opening a fresh structure (no existing highlight)
+ * pre-selected its first atom, even after OnSelectCell was already
+ * guarded against this same class of bug. setSelections()'s Disconnect/
+ * Connect bracket around MoleculeDataTable::gridRangeSelect only engages
+ * when there's an existing highlight to restore (hl->size() > 0) -- a
+ * freshly opened structure has none, so the base class's gridRangeSelect
+ * (which has no knowledge of p_internalSelect at all) stayed fully live
+ * during fillTable()/fastFillTable()'s own grid population, and wx's
+ * internal range-selection bookkeeping fired a spurious
+ * EVT_GRID_RANGE_SELECT that reached all the way to a real SelectCmd.
+ * Confirmed via live gdb: SelectCmd::execute <- Builder::execute <-
+ * AtomTable::notifySelections <- MoleculeDataTable::gridRangeSelect <-
+ * wxGridSelection::Select, on every single fresh structure load.
+ */
+void AtomTable::gridRangeSelect(wxGridRangeSelectEvent& event)
+{
+   if (p_internalSelect) {
+      event.Skip();
+      return;
+   }
+   MoleculeDataTable::gridRangeSelect(event);
+}
+
 
 void AtomTable::OnMenuClick( wxCommandEvent& event )
 {
