@@ -149,12 +149,23 @@ doesn't come up cleanly.
 Start `ecce-gateway`, then open Machine Browser. Go to Machine → Register
 Machines… and register your new machine.
 
-The simplest case is running everything locally: set Machine to
-`localhost`, and Name to whatever identifying name you want. Vendor,
-model, and processor don't matter. Set the total number of processors to
-an appropriate value, and nodes to 1.
+The simplest case is running everything locally: set Machine to your
+machine's real hostname (run `hostname` to find it), and Name to whatever
+identifying name you want. Vendor, model, and processor don't matter. Set
+the total number of processors to an appropriate value, and nodes to 1.
 
 SSH has been tested and works for communication with the machine.
+
+**Using `localhost` instead of the real hostname**: this also works, but
+needs one extra one-time step first. `localhost` resolves to both an
+IPv4 and an IPv6 address on most systems, and SSH treats each address as
+a separate host identity with its own trusted key — if you've only ever
+connected to your machine by its real hostname (or never connected to
+`localhost` at all), the very first `localhost` connection SSH tries
+might hit an address whose key isn't trusted yet, which fails silently
+(no prompt) when ECCE tries it non-interactively. Fix it once, up front,
+by running `ssh localhost` in a terminal and accepting the host key
+prompt — after that, registering `localhost` in ECCE works fine.
 
 Each computational code needs the full path to its executable. Examples
 from testing:
