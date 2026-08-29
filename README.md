@@ -21,12 +21,9 @@ bringing the application itself back to life.
 
 | Gateway | Organizer |
 |---|---|
-| ![Gateway toolbar](docs/screenshots/gateway.png) | ![Organizer showing a calculation](docs/screenshots/organizer.png) |
+| ![Gateway](docs/screenshots/gateway.png) | ![Organizer](docs/screenshots/organizer.png) |
 
-![Viewer showing a computed molecular orbital](docs/screenshots/viewer.png)
-
-The Viewer screenshot above shows a real computed MO isosurface (MO 5) on
-a genuine calculation — real output, not a mockup.
+![Viewer](docs/screenshots/viewer.png)
 
 ## What's new in this release
 
