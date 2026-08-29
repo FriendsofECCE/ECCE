@@ -50,17 +50,39 @@ any particular change.
 This covers a clean install on Debian 13 ("trixie") through to your first
 login. (Other distributions may work but aren't currently tested.)
 
-### 1. Check out and build
+### 1. Install build dependencies
+
+```
+sudo apt-get install -y \
+  build-essential gfortran cmake ninja-build \
+  libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
+  libgtk-3-dev libx11-dev libice-dev \
+  default-jdk ant git
+```
+
+Versions confirmed working, from a real Debian 13 ("trixie") install:
+CMake 3.31, wxWidgets 3.2.8, Xerces-C 3.2.4, GTK3 3.24, OpenJDK 21, Ant
+1.10. `cmake_minimum_required` in `CMakeLists.txt` sets a hard floor of
+CMake 3.16 and wxWidgets 3.2 (older wx won't work — this is a wx3.2-only
+port); nothing else pins a specific minimum, but older versions of the
+rest haven't been tested.
+
+### 2. Check out and build
 
 ```
 git clone https://github.com/FriendsofECCE/ECCE.git
 cd ECCE
 mkdir -p build-cmake && cd build-cmake
-cmake ..
+cmake -G Ninja ..
 ninja
 ```
 
-### 2. Package
+The `-G Ninja` matters: without it, `cmake` falls back to its default
+generator (Unix Makefiles on Debian), which produces a working build too,
+but via `make` instead of the `ninja` command used everywhere else in this
+document and in `CLAUDE.md`.
+
+### 3. Package
 
 ```
 cpack -G DEB
@@ -68,11 +90,13 @@ cpack -G DEB
 
 This produces `ecce_<version>_amd64.deb` in `build-cmake/`.
 
-### 3. Install
+### 4. Install
 
-Either install the package you just built, or skip steps 1-2 entirely and
+Either install the package you just built, or skip steps 1-3 entirely and
 download a prebuilt `.deb` from the
-[Releases page](https://github.com/FriendsofECCE/ECCE/releases):
+[Releases page](https://github.com/FriendsofECCE/ECCE/releases) — a
+prebuilt package still needs the *runtime* dependencies below, just not
+the build-time ones from step 1:
 
 ```
 sudo apt-get install -y apache2 apache2-utils   # data server dependency
@@ -84,7 +108,7 @@ This installs to `/opt/ecce` and puts the apps on your `PATH` as
 `ecce-<app>` — e.g. `ecce-gateway`, `ecce-organizer`, `ecce-builder`,
 `ecce-pertable` — runnable by name, no environment setup required.
 
-### 4. Create your account
+### 5. Create your account
 
 ECCE needs a client and a server side even when both run on the same
 machine. The background services start automatically the first time you
@@ -98,7 +122,7 @@ ecce-dataserver-adduser        # interactive: prompts for name, username, passwo
 Use a username matching your Linux username — that's what the login
 dialog defaults to.
 
-### 5. Start ECCE
+### 6. Start ECCE
 
 ```
 ecce-gateway

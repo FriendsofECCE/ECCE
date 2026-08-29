@@ -1,23 +1,38 @@
 # Getting started with ECCE (modernized build)
 
 This covers building, installing, and running this fork of ECCE on Debian
-13 ("trixie") — from a clean checkout to a working login. It documents the
-`modernize-build` branch's CMake/CPack packaging, not the old
-`build_ecce`/recursive-make workflow.
+13 ("trixie") — from a clean checkout to a working login. It documents
+`main`'s CMake/CPack packaging, not the old `build_ecce`/recursive-make
+workflow.
 
-## 1. Build
+## 1. Install build dependencies
+
+```
+sudo apt-get install -y \
+  build-essential gfortran cmake ninja-build \
+  libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
+  libgtk-3-dev libx11-dev libice-dev \
+  default-jdk ant git
+```
+
+## 2. Build
 
 ```
 mkdir -p build-cmake && cd build-cmake
-cmake ..
+cmake -G Ninja ..
 ninja
 ```
+
+`-G Ninja` matters here: plain `cmake ..` falls back to its default
+generator (Unix Makefiles on Debian) instead of Ninja, which still builds
+but via `make`, not the `ninja` command used everywhere else in this
+document.
 
 This produces the 19 GUI apps (`gateway`, `organizer`, `builder`,
 `pertable`, ...) plus the CLI apps, all statically linked against the
 in-tree libraries.
 
-## 2. Package and install
+## 3. Package and install
 
 ```
 cd build-cmake
@@ -35,7 +50,7 @@ The package installs to `/opt/ecce` and drops thin wrapper scripts named
 below runs as a real Apache instance), not just build-time — `dpkg -i` will
 fail to configure without them if `apt-get install` wasn't run first.
 
-## 3. Start the background services
+## 4. Start the background services
 
 ECCE has always been a client/server app; this fork packages both server
 pieces as **per-user background services** (not system daemons — no root
@@ -54,7 +69,7 @@ launch multiple apps back to back). Set `ECCE_NO_MESSAGING=1` or
 `ECCE_NO_DATASERVER=1` to skip auto-start (e.g. for debugging one app in
 isolation).
 
-## 4. Create a data-server account
+## 5. Create a data-server account
 
 The data server ships with account auto-creation turned off
 (`ECCE_AUTO_ACCOUNTS no`), so create your login manually, once, before first
@@ -69,7 +84,7 @@ ecce-dataserver-adduser        # interactive: prompts for name + username,
 Use a `userid` matching your Unix username (`$USER`) — that's what
 `gateway`'s login dialog defaults to.
 
-## 5. Log in
+## 6. Log in
 
 Launch the client, e.g.:
 
@@ -82,7 +97,7 @@ dialog — log in with the username/password you just created. From the
 gateway toolbar you can open the other tools (Organizer, Builder, Periodic
 Table, ...).
 
-## 6. Getting help
+## 7. Getting help
 
 `ecce-<app>`'s Help menu opens local HTML content shipped in the package
 (`/opt/ecce/data/client/WebHelp/`) — no network access or external CGI
