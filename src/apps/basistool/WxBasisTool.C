@@ -434,6 +434,12 @@ void WxBasisTool::initControls()
             p_contextBasisSetsGrid[i]->SetColLabelValue(j, p_columnLabels[j]);
             p_contextBasisSetsGrid[i]->SetColMinimalAcceptableWidth(0);
         }
+        // The wx-designer-generated default column widths (WxBasisToolGUI.C)
+        // are too narrow for these header labels, and nothing else widens
+        // them until a molecule/basis-set context populates the grid later
+        // (see setGbsToTable()/setGridColumnVisible()) -- widen now too, so
+        // headers aren't truncated in the tool's initial, empty state.
+        widenColumnsToFitLabels(p_contextBasisSetsGrid[i]);
     }
 
     itemID = ID_BUTTON_WXBASISTOOL_DETAILS;
@@ -2869,6 +2875,30 @@ void WxBasisTool::setGbsToTable(ewxGrid* grid, int row, TGBSGroup* group)
     //                        XmNxrtTblPixelHeightContext, XRTTBL_VARIABLE,
       //                      NULL);
         grid->AutoSize();
+        widenColumnsToFitLabels(grid);
+    }
+}
+
+// AutoSize() sizes each column to fit its widest cell content, and with no
+// molecule loaded (all cells empty) that leaves every column sized to just
+// its header label -- but consistently a few pixels short of the label's
+// own rendered width (confirmed via screenshot: "Polarizatio", "T Charg",
+// "T Exchan", each cut by 1-2 characters), so re-measure each visible
+// column's label directly and widen if AutoSize() undersized it.
+void WxBasisTool::widenColumnsToFitLabels(ewxGrid* grid)
+{
+    wxClientDC dc(grid);
+    dc.SetFont(grid->GetLabelFont());
+    for (int col = 0; col < grid->GetNumberCols(); col++)
+    {
+        wxString label = grid->GetColLabelValue(col);
+        if (label.IsEmpty())
+            continue;
+        int textWidth, textHeight;
+        dc.GetTextExtent(label, &textWidth, &textHeight);
+        int needed = textWidth + 16;  // padding to match the grid label's own margins
+        if (grid->GetColSize(col) < needed)
+            grid->SetColSize(col, needed);
     }
 }
 
@@ -2921,13 +2951,14 @@ void WxBasisTool::setGridColumnVisible(int col, bool vsbl)
     for (int i = 0; i < 3; i++)
     {
         p_contextBasisSetsGrid[i]->SetColLabelValue(col, (vsbl ? p_columnLabels[col] : ""));
-        // 30px was too narrow to fit column headers like "Polarization" or
-        // "Fit Charge" even with the AutoSize() call below -- confirmed via
-        // screenshot they were rendering truncated ("Polarizatio", "T
-        // Charg"). AutoSize() still runs and may widen further for actual
-        // cell content; this just raises the floor for the header text.
         p_contextBasisSetsGrid[i]->SetColSize(col, (vsbl ? 85 : 0));
+        // AutoSize() re-sizes every column to fit its cell content, which
+        // silently undoes the SetColSize() above for any column whose
+        // header label is wider than its (possibly empty) cell content --
+        // widenColumnsToFitLabels() re-widens anything AutoSize() left too
+        // narrow for its own label text. See that method for why.
         p_contextBasisSetsGrid[i]->AutoSize();
+        widenColumnsToFitLabels(p_contextBasisSetsGrid[i]);
     }
 }
 

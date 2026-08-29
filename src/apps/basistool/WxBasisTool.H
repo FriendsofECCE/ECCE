@@ -204,6 +204,7 @@ class WxBasisTool: public WxBasisToolGUI,
     //    void showColumn(int c);
     //    void hideColumn(int c);
         void setGridColumnVisible(int col, bool vsbl);
+        void widenColumnsToFitLabels(ewxGrid* grid);
      //   void resizeHack();
      //   bool addAllowed() const;
         void addBasisSet(string name);
