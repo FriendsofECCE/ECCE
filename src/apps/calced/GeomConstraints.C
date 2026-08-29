@@ -442,10 +442,12 @@ void GeomConstraints::filterConstraints(vector<GeomConstraint*>& constraints)
 {
   vector<GeomConstraint*>::iterator it;
   
+  // erase(it) invalidates it, so it must be reseated from erase's return
+  // value rather than reused as-is on the next loop check.
   it = constraints.begin();
   while (it != constraints.end()) {
     if (dynamic_cast<GeomRestraint*>(*it)) {
-      constraints.erase(it);
+      it = constraints.erase(it);
     }
     else {
       it++;
@@ -458,10 +460,12 @@ void GeomConstraints::filterRestraints(vector<GeomConstraint*>& constraints)
 {
   vector<GeomConstraint*>::iterator it;
   
+  // erase(it) invalidates it, so it must be reseated from erase's return
+  // value rather than reused as-is on the next loop check.
   it = constraints.begin();
   while (it != constraints.end()) {
     if (!dynamic_cast<GeomRestraint*>(*it)) {
-      constraints.erase(it);
+      it = constraints.erase(it);
     }
     else {
       it++;

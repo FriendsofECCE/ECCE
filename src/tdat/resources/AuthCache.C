@@ -320,7 +320,10 @@ string AuthCache::forMachine(const string& url, const string& user, int retryCou
          if (cur->url == url && cur->user == user) {
             if (retryCount == idx) {
                if (cur->pass.length() == 0) {
-                  p_memcache.erase(it);
+                  // erase(it) invalidates it, so it must be reseated from
+                  // erase's return value rather than left to be reused by
+                  // the loop's condition check.
+                  it = p_memcache.erase(it);
                   delete cur;
                } else {
                   ret = cur->pass;
@@ -398,7 +401,10 @@ string AuthCache::find(const string& url, const string& user, int retryCount)
          if (cur->url == url && cur->user == user) {
             if (retryCount == idx) {
                if (cur->pass.length() == 0) {
-                  p_memcache.erase(it);
+                  // erase(it) invalidates it, so it must be reseated from
+                  // erase's return value rather than left to be reused by
+                  // the loop's condition check.
+                  it = p_memcache.erase(it);
                   delete cur;
                } else {
                   ret = cur->pass;
@@ -445,7 +451,10 @@ string AuthCache::findBest(const string& url, const string& user,
       if (cur->user == user && url.find(server) == 0) {
          if (retryCount == idx) {
             if (cur->pass.length() == 0) {
-               p_memcache.erase(it);
+               // erase(it) invalidates it, so it must be reseated from
+               // erase's return value rather than left to be reused by
+               // the loop's condition check.
+               it = p_memcache.erase(it);
                delete cur;
             } else {
                ret = cur->pass;
@@ -476,7 +485,10 @@ string AuthCache::findAny(const string& url, string& user, int retryCount)
       if (cur->url == url) {
          if (which == idx) {
             if (cur->pass.length() == 0) {
-               p_memcache.erase(it);
+               // erase(it) invalidates it, so it must be reseated from
+               // erase's return value rather than left to be reused by
+               // the loop's condition check.
+               it = p_memcache.erase(it);
                delete cur;
             } else {
                user = cur->user;

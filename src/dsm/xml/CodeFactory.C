@@ -185,7 +185,9 @@ vector<const JCode*> *CodeFactory::getBasisCodes()
     rules = (*it)->exists("GaussianBasisSetRules");
     (*it)->get_string("BasisTranslationScript",script);
     if (!rules || script.empty()) {
-      caps->erase(it);
+      // erase(it) invalidates it, so it must be reseated from erase's
+      // return value rather than reused as-is on the next loop check.
+      it = caps->erase(it);
     } else {
       // only advance iterator if the current entry is not removed
       // otherwise a nasty bug will be introduced and it will skip

@@ -469,11 +469,15 @@ bool MachinePreferences::remove(string key)
 
         if (prefs->getItemKey() == key)
         {
-            p_prefsElmts->erase(itr);
+            // erase(itr) invalidates itr, so it must be reseated from
+            // erase's return value rather than incremented afterward.
+            itr = p_prefsElmts->erase(itr);
             done = true;
         }
-
-        itr++;
+        else
+        {
+            itr++;
+        }
     }
 
     return done;
@@ -495,12 +499,16 @@ void MachinePreferences::moveItemToFront(string key)
 
         if (prefs->getItemKey() == key)
         {
-            p_prefsElmts->erase(itr);
+            // erase(itr) invalidates itr, so it must be reseated from
+            // erase's return value rather than incremented afterward.
+            itr = p_prefsElmts->erase(itr);
             p_prefsElmts->insert(p_prefsElmts->begin(), prefs);
             done = true;
         }
-
-        itr++;
+        else
+        {
+            itr++;
+        }
     }
 }
 

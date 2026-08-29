@@ -56,10 +56,12 @@ void EventDispatcher::subscribe(Listener *l)
 
 void EventDispatcher::unsubscribe(const Listener *l)
 {
+   // erase(it) invalidates it, so it must be reseated from erase's return
+   // value rather than reused as-is on the next loop check.
    vector<Listener*>::iterator it = p_listeners.begin();
    while (it != p_listeners.end()) {
       if ((*it) == l) {
-         p_listeners.erase(it);
+         it = p_listeners.erase(it);
       } else {
          it++;
       }

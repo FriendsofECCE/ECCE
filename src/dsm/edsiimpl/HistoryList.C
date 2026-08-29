@@ -99,12 +99,17 @@ void HistoryList::add(const EcceURL& url)
     }
     */
 
-    // If the url is in the list already, remove the previous appearances
+    // If the url is in the list already, remove the previous appearances.
+    // erase(it) invalidates it, so it must be reseated from erase's return
+    // value instead of decrementing an already-invalidated iterator (the
+    // old --it relied on the for-loop's own ++it to cancel back out, but
+    // both operated on a dangling iterator in between).
     vector<EcceURL>::iterator it = begin();
-    for (; it != end(); ++it) {
+    while (it != end()) {
       if ((*it) == url) {
-        erase(it);
-        --it;
+        it = erase(it);
+      } else {
+        ++it;
       }
     }
 

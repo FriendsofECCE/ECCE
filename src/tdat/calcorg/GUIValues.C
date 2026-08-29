@@ -163,24 +163,30 @@ int GUIValues::operator!=(const GUIValues& rhs) const
 
 void GUIValues::clear()
 {
-  GUIValues::iterator it;
-  for (it=begin(); it!=end(); it++) {
+  // erase(it) invalidates it, so it must be reseated from erase's return
+  // value rather than incremented afterward (the old for-loop's it++
+  // incremented an already-dangling iterator -- undefined behavior that
+  // crashed intermittently depending on heap state).
+  GUIValues::iterator it = begin();
+  while (it != end()) {
     // have to delete pointer
     delete (*it).second;
-    erase(it);
+    it = erase(it);
   }
-  map<const string,GUIValue*,less<string> >::clear();
 }
 
 void GUIValues::deletePrefix(const string& prefix)
 {
-  GUIValues::iterator it;
-
-  for (it=begin(); it!=end(); it++)
+  // Same erase-invalidates-iterator hazard as clear() above.
+  GUIValues::iterator it = begin();
+  while (it != end()) {
     if ((*it).first.find(prefix) == 0) {
       delete (*it).second;
-      erase(it);
+      it = erase(it);
+    } else {
+      ++it;
     }
+  }
 }
 
 

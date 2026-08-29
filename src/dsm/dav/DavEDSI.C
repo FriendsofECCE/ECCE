@@ -694,10 +694,12 @@ bool DavEDSI::appendDataSet(istream& putStream, int bytesToOverwrite)
  Summary: Removes all MetaDataResults with a blank name
 **************************************************************************/
 void DavEDSI::removeBadMetaDataRequests(vector<MetaDataResult>& requests) {
+    // erase(removeIt) invalidates removeIt, so it must be reseated from
+    // erase's return value rather than reused as-is on the next loop check.
     vector<MetaDataResult>::iterator removeIt = requests.begin();
     while (removeIt != requests.end()) {
       if ((*removeIt).name == "")
-        requests.erase(removeIt);
+        removeIt = requests.erase(removeIt);
       else
         removeIt++;
     }
@@ -709,10 +711,12 @@ void DavEDSI::removeBadMetaDataRequests(vector<MetaDataResult>& requests) {
 **************************************************************************/
 void DavEDSI::removeBadMetaDataRequests(vector<MetaDataRequest>& requests) 
 {
+  // erase(removeIt) invalidates removeIt, so it must be reseated from
+  // erase's return value rather than reused as-is on the next loop check.
   vector<MetaDataRequest>::iterator removeIt = requests.begin();
   while (removeIt != requests.end()) {
     if ((*removeIt).name == "")  {
-      requests.erase(removeIt);
+      removeIt = requests.erase(removeIt);
     } else {
       removeIt++;
     }
@@ -1455,8 +1459,9 @@ void DavEDSI::addNamespaceAlias( vector<DavNameSpaceAlias>& nameSpaces,
   vector<DavNameSpaceAlias>::iterator it = nameSpaces.begin();
   while (it != nameSpaces.end()) {
     if ((*it).Alias == alias) {
-      // erase operation will increment iterator
-      nameSpaces.erase(it);
+      // erase(it) invalidates it; reseat from erase's return value instead
+      // of assuming it auto-advances.
+      it = nameSpaces.erase(it);
     }
     else {
       it++;

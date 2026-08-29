@@ -288,13 +288,13 @@ void TGBSConfig::remove(const char* elementName) {
           delete (*it).second;
         }
 
-        erase(it);
+        // erase(it) invalidates it, so it must be reseated from erase's
+        // return value -- it is NOT already advanced by erase() itself.
+        it = erase(it);
         eraseFlag = true;
         break;
       }
     }
-    // don't advance iterator if we erased the current entry because
-    // it has already been advanced to the next valid entry
     if (!eraseFlag)
       it++;
   }
