@@ -2051,3 +2051,494 @@ here) — it's harmless, even useful, when the item already has its final
 size at insertion time. No evidence any of these other 7 have the same
 "empty placeholder, filled later" pattern; not preemptively touching them
 without a reported symptom, same reasoning as the item above.
+
+## Builder: periodic table popup never appeared — FIXED (2026-08-29)
+
+Follow-up to the "investigated, not yet fixed" section above — this time
+root-caused with a standalone repro instead of guessing from source: a
+small offline test program (`popup_repro.C`, compiled against the real
+`libeccewxgui.a`/etc., run under a `systemd-run --scope -p MemoryMax=1G`
+cap per this project's standing safety practice) that constructs a
+`PerTabPanel`+`TearableContent` exactly like `MiniPerTab::OnMoreClick()`
+does, with no GUI clicking needed to trigger it.
+
+Three real, independent bugs stacked in the same construction path, found
+one at a time as each new one blocked the previous fix from being
+verified:
+
+1. **`PerTabPanel::createControls()` (`PerTabPanel.C:222`) unconditionally
+   constructs a hidden `PTDataFrame`** (the "Atomic Data..." popup) every
+   single time *any* periodic table is built, mini or full — and that
+   construction path tripped three genuine bugs of its own in
+   `PTDataFrame.C`, each only reachable because nothing had ever
+   constructed a `PerTabPanel` outside a normal already-shown top-level
+   frame before:
+   - `PTDataFrame.C:94` — `wxGROW|wxALIGN_CENTER|wxALL` on a `wxBoxSizer`
+     item (`p_isotopeSizer`) — the exact same wx consistency-check
+     footgun already fixed twice this session (standalone Periodic Table,
+     Basis Set Tool) — `wxALIGN_CENTER` dropped, matching those fixes.
+   - `PTDataFrame.C:199` (`setContent()`) — `DeleteRows(0,
+     GetNumberRows())` called unconditionally; on the very first call
+     (construction, 0 rows) this is `DeleteRows(0,0)`, which
+     `wxGridStringTable` asserts as invalid. Guarded with `if
+     (GetNumberRows() > 0)`.
+   - `PTDataFrame.C:228-229` — `MakeCellVisible(atomicNum-1, 0)` /
+     `SelectRow(atomicNum-1)` called with the constructor's sentinel
+     `atomicNum=0` (real elements are always 1-118; 0 means "nothing
+     selected yet") — `atomicNum-1 = -1`, an invalid row. Guarded with
+     `if (atomicNum > 0)`.
+
+   Under this system's wx3.2 build, these aren't just warnings — they're
+   **blocking modal assert dialogs** that stop the whole construction
+   (and therefore the whole popup) dead, with the dialog itself
+   apparently never becoming visible/focused — which is exactly what
+   "click More… and nothing happens" looks like from the user's side.
+   Confirmed via `gdb -batch -ex "break wxOnAssert" -ex bt` catching each
+   one's exact call site and caller chain in turn.
+
+2. **`ElementButton`'s size was only ever computed inside `OnPaint()`**
+   (`ElementButton.C`, pre-existing code, not one of today's new bugs) —
+   fine for a normal top-level frame (which gets a paint pass before
+   anyone calls `Fit()`/`GetBestSize()` again), but a `wxPopupTransientWindow`
+   never gets painted before its own construction-time `Fit()` call
+   (`TearableContent::SetContent()`), so every one of the 118 buttons
+   still reported its near-zero pre-paint size — confirmed via the repro:
+   popup constructed successfully (no crash) but sized **39×24 pixels**,
+   completely imperceptible, indistinguishable from "no periodic table"
+   even though `IsShown()` was `true`. Fixed by factoring the size-metric
+   computation (font extents via `dc.GetTextExtent()`) out of `OnPaint()`
+   into a new shared `computeSizeMetrics(wxDC&)`, called eagerly from the
+   constructor via a `wxClientDC` (works pre-paint, unlike `wxPaintDC`)
+   as well as lazily from `OnPaint()` (guarded by the existing "run once"
+   check, so the normal non-popup path is unaffected). Confirmed via the
+   repro: popup now sizes to a real **327×122**, matching the shape of a
+   full periodic table.
+
+**Verified two ways**: the standalone repro (deterministic, log-based:
+exact popup size and screen position, no crash, no assert) and live, by
+the user, in the real rebuilt `builder` — "On the flip side, now I CAN
+change atoms. The periodic table is pretty small, but legible." First
+confirmed live use of the Builder periodic table this whole modernization
+effort.
+
+Also fixed alongside (same investigation, different artifact): the
+`wxInitAllImageHandlers()` call needed to load `tear.xpm` (`TearButton`,
+part of the same popup) turned out to already exist correctly in
+`ewxApp::OnInit()` — the repro's own bare `wxApp`-derived test harness was
+just skipping it, not a real bug. No source change; noted here only so a
+future session doesn't rediscover the same false lead.
+
+## Builder: segfault on quit shortly after editing — FIXED (2026-08-29)
+
+Found while the user was live-testing the periodic table fix above:
+closing `builder` after making edits (not on every close — intermittent)
+crashed with `SIGSEGV`. Root-caused via a real core dump (captured by
+launching `builder` through `systemd-run --user -p LimitCORE=infinity`
+— the launching shell's own hard `RLIMIT_CORE` was stuck at 0 per this
+session's now-familiar gotcha, documented earlier in this file for the
+`builder`/SparseBits crash; the systemd-run wrapper bypasses it the same
+way).
+
+Two real bugs in `Builder::quit()` (`Builder.C:4832-4880`), found in the
+same ~10-line function:
+
+1. **`int ret;` declared with no initializer** (line 4834) — the `for`
+   loop that's supposed to set it (prompting "save before quitting?" for
+   each dirty calculation) never runs at all if nothing is dirty, leaving
+   `ret` as uninitialized stack garbage read a few lines later at `if
+   (ret != wxID_CANCEL)`. Confirmed via a real compiler warning
+   (`-Wmaybe-uninitialized`) that had been sitting in every build log all
+   session without being investigated. Fixed: `int ret = wxID_YES;`.
+2. **The actual crash**: `exit(0)`, called right after, still runs full
+   C++/shared-library static-destructor teardown
+   (`__cxa_finalize`/`_dl_fini`) — and something in `libwx_gtk3u_core`'s
+   own global destructors segfaults during that teardown. The line has
+   its own decade-old comment admitting a previous developer already
+   fought this exact class of bug: *"GDB 1/22/09 Tired of seg faults so
+   lets see if we can exit ungracefully to avoid that annoyance"* / `//
+   Destroy();` — they correctly diagnosed that skipping wx's own
+   `Destroy()` cleanup was the right instinct, just reached for the wrong
+   function: `exit()` was never going to skip the crash, because DSO
+   teardown happens regardless of whether `Destroy()` itself runs.
+   `_exit()` (needs `<unistd.h>`, added) actually terminates immediately
+   with no atexit/static-destructor processing at all — confirmed via the
+   crash backtrace that the segfault's every frame is *inside* that
+   teardown machinery (`Builder::quit` → `exit` → `__run_exit_handlers`
+   → `_dl_fini` → an anonymous frame inside `libwx_gtk3u_core-3.2.so.0`),
+   so skipping it entirely is a complete fix, not a narrower workaround.
+
+**Verified**: real core dump analyzed before the fix (crash confirmed
+inside DSO teardown, reached via exactly this code path); after the fix,
+rebuilt and reinstalled, user confirmed closing the app no longer
+crashes in the same session where the next bug (below) was found.
+
+## `GUIValues` iterator-invalidation crash (calced, "changing charge then theory") — FIXED, audited codebase-wide (2026-08-29)
+
+User report, precisely diagnosed by the user themselves before any code
+was read: in `calced` (Calculation Editor), changing an NH4+ structure's
+charge from 0 to 1 (which changes the valid spin multiplicity to
+singlet, opening up restricted theories like RDFT that need a closed
+shell) then changing the theory from `ROHF` to `RDFT` **without saving in
+between** crashed reproducibly; saving first made the same theory change
+crash-free. That "doesn't crash if I save first" observation was the key
+clue — it pointed at something wrong in *unsaved, in-memory* state
+specifically, not the theory-list logic itself.
+
+Root-caused via a real core dump (same `systemd-run -p
+LimitCORE=infinity` technique as the `Builder::quit()` bug above, this
+time applied to `gateway` itself rather than the individual child app —
+child processes inherit their parent's `RLIMIT_CORE` across `fork()`, so
+launching `gateway` this way made *every* app it spawns, `calced`
+included, core-dump-capable without needing to relaunch each one
+separately). `gdb bt` (careful to request the *innermost* frames —
+`bt 25`, not `bt -40`, which shows the outermost frames instead and had
+initially hidden the actual crash site) pinpointed it exactly:
+
+```
+CalcEd::OnChoiceCalcedTheorySelected → doTheoryChange → resetTheoryDetails
+  → GUIValues::~GUIValues → GUIValues::clear()
+    → std::_Rb_tree_iterator::operator++  <- crash, inside std::_Rb_tree_increment
+```
+
+`GUIValues::clear()` (`src/tdat/calcorg/GUIValues.C:164`, `GUIValues`
+publicly inherits `std::map`):
+```cpp
+for (it=begin(); it!=end(); it++) {
+  delete (*it).second;
+  erase(it);          // invalidates it
+}                      // then the for-loop's own it++ increments the
+                       // now-dangling it -- undefined behavior
+```
+Textbook iterator-invalidation bug: `map::erase(iterator)` invalidates
+that exact iterator; the `for` loop's own increment clause then advances
+the already-dangling `it`, which is undefined behavior — sometimes
+"working" by accident (freed node memory not yet reused/overwritten),
+sometimes corrupting the tree enough that `_Rb_tree_increment` dereferences
+garbage and segfaults, matching the user's own "doesn't crash if I save
+first" observation (saving happens to change memory allocation patterns
+enough to dodge the UB, not because saving itself does anything
+protective). Fixed by reseating `it` from `erase()`'s C++11 return value
+instead of a separate incrementing outside the assignment:
+```cpp
+GUIValues::iterator it = begin();
+while (it != end()) {
+  delete (*it).second;
+  it = erase(it);
+}
+```
+`GUIValues::deletePrefix()` (same file, line 175) had the identical
+shape and was fixed the same way.
+
+**Given this exact bug shape had now appeared twice in one file**,
+audited the whole codebase for it (per this project's own standing
+"audit after ~3 hits of the same bug shape" convention) rather than
+stopping at the two already found: grepped every `erase(it)`-shaped call
+site (~116 total across `erase(it)`, `erase(iter)`, and half a dozen
+other common iterator variable names), and individually triaged each one
+by reading its actual surrounding loop and container type — the bug only
+exists when the *same loop* continues iterating the just-invalidated
+iterator afterward; erase-then-`break`/`return`, single-shot
+`find()`-then-`erase()`, or an iterator already reassigned before further
+use are all safe despite superficially resembling the pattern. This
+found **15 more genuine instances**, same shape, same fix, all
+confirmed to compile clean in a full rebuild:
+`EventDispatcher.C:62`, `GeomConstraints.C:448,464`, `DavEDSI.C:1459,700,715`,
+`CodeFactory.C:188`, `HistoryList.C:106` (this one had a doubled version
+of the mistake: `erase(it); --it;` relying on the *for-loop's own* `++it`
+to cancel back out — both operations touched a dangling iterator),
+`MachinePreferences.C:472,498`, `TGBSConfig.C:291` (had a comment flatly
+asserting `std::map::erase()` "increments" the iterator — false, and the
+misconception that presumably caused several of these sites in the first
+place), and `AuthCache.C:323,401,448,479`.
+
+Two related-but-different bugs were found and deliberately **not**
+touched (out of scope for this specific pattern, flagged for a future
+session): `GeomConstraintModel.C:595-596` dereferences `*it` **after**
+already erasing it (wrong order, not the same shape as the invalidation
+bug here), and `Fragment.C:6008` erases without checking `find()`
+actually succeeded first (erasing `end()` is its own separate UB, same
+bug *class* the `SparseBits` fix earlier this session addressed, just a
+different call site never audited for it).
+
+**Verified**: full `ninja` rebuild after all 16 fixes (the original
+`GUIValues.C` one plus the 15 from the audit) succeeded with no new
+errors — every GUI app links `libeccetdat.a`
+(where `GUIValues.C`/most of the audited files live), so this was a
+whole-tree rebuild, not an isolated one. Not yet re-verified live against
+the exact charge-then-theory repro (found and fixed while the user was
+away from the machine) — worth a quick confirmation next session, though
+confidence is high given the root cause is a textbook, unambiguous
+pattern rather than a guess.
+
+## Builder/Viewer: atom always pre-selected (pink) on opening a run calculation — FIXED (2026-08-29)
+
+User report: opening certain calculations in Builder (or the read-only
+Viewer, same binary in `CALCVIEWER` mode) showed an atom already
+selected/highlighted, with no click — always the *first* atom in the
+structure, never changing with mouse hover, only changing once the user
+made a real selection. Correlated (initially, and largely correctly)
+with calculations that had actually been run — `Props/GEOMTRACE` present
+vs. absent tracked the symptom closely, though not perfectly (a
+single-point energy calc with `GEOMTRACE` present but only one step also
+showed it, ruling out a "multi-step trajectory" theory specifically and
+pointing at "has real computed property data" more generally).
+
+**A real, independent bug was found and fixed along the way that turned
+out not to be the cause**: `PartialCharges::fillUI()` called
+`p_grid->SelectRow(0)` to cosmetically pre-highlight its own first grid
+row, with no guard — genuinely leaked into `frag->m_atomHighLight` via
+this class's own `OnGridRangeSelect()` handler (same event-feedback-loop
+shape as the actual bug below). Fixed with the same `p_internalSelect`
+guard pattern already used elsewhere in this codebase. Real bug, worth
+having fixed, but PartialCharges turned out not to even be one of the
+panels auto-opened for the calcs that were actually reproducing the
+pink-atom symptom — a coincidental parallel bug, not the cause.
+
+**The actual root cause**: `AtomTable::OnSelectCell()`
+(`src/wxviz/viztools/AtomTable.C`), bound to `EVT_GRID_SELECT_CELL`, had
+**no guard at all** — confirmed live via gdb (see technique note below)
+that it fires via `wxGrid::UpdateCurrentCellOnRedim()` →
+`SetCurrentCell()` → `SendEvent()`, i.e. wx's *own* internal "current
+cell" bookkeeping updating itself whenever the grid's row/column count
+changes (exactly what happens every time the table repopulates for a
+newly-opened calc) — not a real user click at all. Unguarded, this
+directly executes `SelectCmd("Select element", element=<row 0's atom
+symbol>, clear=true)`, genuinely selecting every atom of that element
+(row 0's element, i.e. the first atom — matching "always the first atom"
+exactly). The codebase's *own* `AtomTable::setSelections()` (the sibling
+function that reflects the fragment's real selection back into the
+grid) already explicitly disconnects a *different* grid event
+(`wxEVT_GRID_RANGE_SELECT`) for exactly this reason, with its own
+comment explaining why (`"Disable gridRangeSelect - necessary to avoid
+re-selection of the scenegraph"`) — `OnSelectCell` was simply never
+covered by that existing awareness.
+
+Fixed by adding the missing guard, following the codebase's own
+established convention: new `bool p_internalSelect` member (`AtomTable.H`),
+checked at the top of `OnSelectCell()` (skip + `event.Skip()` if true),
+and set around every internal grid-repopulation path that could trigger
+it — `fillTable()`, `fastFillTable()`, and `setSelections()` itself
+(the latter using save/restore-previous-value semantics rather than a
+flat true/false, since it's called both standalone from
+`eventMCB`'s `"SelectionChanged"` reaction *and* from inside the
+already-guarded `fillTable()`/`fastFillTable()` — a flat overwrite would
+have prematurely un-guarded the outer caller's remaining work).
+
+**Verified two ways**: live gdb confirmed `p_internalSelect == true` at
+the exact moment `OnSelectCell()` gets hit via the `UpdateCurrentCellOnRedim`
+path (i.e., the guard is actually engaged when it matters, not just
+present in the source) — and, more importantly, the user confirmed live
+that the symptom is gone across every calculation that previously showed
+it (8, 9, 9-1, 11, 6, 7).
+
+### Live-debugging technique notes (both successes and mistakes, worth keeping)
+
+This investigation needed live process debugging (extensive static
+reading across a dozen-plus candidate files didn't find it — the actual
+trigger, wx's own internal grid-redim bookkeeping, has no application-code
+call site to grep for at all). Two real mistakes made along the way, kept
+here so they aren't repeated:
+
+1. **A `gdb` *hardware watchpoint* on `m_atomHighLight`'s underlying
+   buffer pointer froze the live application** ("ECCE is not responding")
+   — almost certainly a silent fallback to a *software* watchpoint
+   (single-steps every instruction to check the watched value after each
+   one), catastrophically slow compared to a real hardware watchpoint.
+   Killing the stuck `gdb` process abruptly then **crashed the actual
+   `builder` process it was attached to** (confirmed via
+   `systemd-coredump` logs) — abruptly detaching a tracer mid-trap is not
+   safe. **Function-entry breakpoints (not watchpoints) were the safe,
+   correct tool here** — near-zero overhead, no freeze, confirmed across
+   many repeated attach/detach cycles once switched to this approach.
+2. **`gdb -p <PID>` (bare attach, no explicit binary path) silently failed
+   to resolve any application symbols** ("Function ... not defined",
+   breakpoint left permanently pending) on this system — the fix is the
+   two-positional-argument form, `gdb -batch -x script.py <path-to-binary> <PID>`,
+   which resolves symbols correctly every time it was tried.
+
+The technique that actually worked, reusable for a future live-debugging
+session in this codebase: a bash loop polling `pgrep -f "^\./builder
+-pipe"` every 0.1s (Organizer/Gateway launch `builder`/`calced`/etc. via
+a relative `./<app>` path with `cwd=$ECCE_HOME/bin`, per the earlier cwd
+fix elsewhere in this file — the polling pattern must match that exact
+form), which attaches within a fraction of a second of the user actually
+clicking to open something — fast enough in practice to catch
+even the *initial* load of a freshly-opened calculation, not just
+later interaction with an already-open one.
+
+## ActiveMQ migrated from vendored 5.1.0 to Debian-packaged 5.17.6 — DONE (2026-08-29)
+
+Last of the five originally-bundled 3rd-party dependencies (GitHub #30/#4)
+to move to a platform-provided version — wxWidgets/wxPython, Xerces, Mesa,
+and Apache httpd were already done in earlier sessions; ActiveMQ was the
+holdout because, unlike those, it's not compiled from source, so it never
+carried the same "API changed, sudden build break" risk — the real risk
+turned out to be config/protocol compatibility, and it was real.
+
+**What changed**: `CMakeLists.txt` no longer extracts
+`build/3rdparty-dists/apache-activemq-5.1.0-bin.tar.bz2` (that tarball is
+now inert, unreferenced — same status as the already-unused vendored Mesa
+tarball) — `activemq` is now a `CPACK_DEBIAN_PACKAGE_DEPENDS` entry
+instead. `ecce-gateway-start`'s `ACTIVEMQ_HOME` points at
+`/usr/share/activemq` (the package's install location) rather than our
+own extracted tree.
+
+**Two real bugs found while verifying, both blocking, neither obvious
+from reading the package alone**:
+
+1. **The Debian package's own `/usr/bin/activemq` launcher script has a
+   genuine shell-quoting bug** on this system — its `invokeJar()`
+   function builds the final java invocation as `$DOIT_PREFIX
+   "\"$JAVACMD\" $ACTIVEMQ_OPTS ..."` (a `sh -c "big quoted string"`
+   construction), which failed with a bare `command not found` every
+   time, confirmed by direct testing, not inferred. Worked around by
+   *not* depending on that script at all — `ecce-gateway-start` now
+   invokes `java` directly with the same JVM args (`--add-opens`/
+   `--add-exports` module flags for Java 21) and `-Dactivemq.*` system
+   properties that script would have computed, captured by reading its
+   source and testing the equivalent direct invocation standalone before
+   wiring it into the real script.
+2. **Config schema drift**: the vendored 5.1.0-era config's
+   `<amqPersistenceAdapter>` persistence element was removed in later
+   ActiveMQ releases (replaced by `<kahaDB>`) — confirmed by diffing
+   against the Debian package's own default config
+   (`/etc/activemq/instances-available/main/activemq.xml`, not used
+   directly since it's root-owned/single-instance and defaults to the
+   wrong port, but a reliable reference for what the current schema
+   expects). Our own config (`packaging/gateway/activemq.xml.ecce`,
+   installed to `server/activemq-conf/activemq.xml`, copied into each
+   user's `$STATEDIR/activemq/conf/` by `ecce-gateway-start` rather than
+   symlinked anywhere system-provided) was rewritten against the modern
+   schema, keeping our port (8088, matching `siteconfig/jndi.properties`)
+   and destinationPolicy/systemUsage tuning from the old config. A
+   follow-up, self-inflicted bug during this same rewrite: the new
+   config's own explanatory XML *comment* used `--` as a plain-English
+   dash, which is invalid inside an XML comment by spec — an older/more
+   lenient parser apparently tolerated the 5.1.0-era config's identical
+   habit, but this system's parser (Java 21's built-in Xerces) rejects it
+   outright (`SAXParseException: The string "--" is not permitted within
+   comments`). Fixed by not using literal `--` inside the comment.
+
+**Verified end-to-end**, not just "the process starts": ran the real
+`ecce-gateway-start` script (not a manual workaround) from a fully clean
+state — broker comes up and listens on 8088, `JMSDispatcher` connects
+with a clean (empty) log, and a real Gateway → Organizer app launch (the
+actual `ecce_get_app` JMS message flow this whole broker exists to
+carry) works, confirmed live.
+
+**Not changed, deliberately**: the C++ client side still links against
+the old vendored `activemq-all-5.1.0.jar` (`java/lib/`), not the newer
+client jars the Debian package also ships
+(`/usr/share/java/activemq-client-5.17.6.jar` etc.) — ActiveMQ's OpenWire
+wire protocol is strongly backward-compatible, confirmed here empirically
+(the 5.1.0 client talks to the 5.17.6 broker with no issue), and
+upgrading the client jar too is a separable, lower-priority change, not
+needed for this migration's goal.
+
+## Builder 3D viewer flicker/jump — ACTUALLY FIXED this time (2026-08-29), superseding the old "flicker" section above
+
+The "flicker" section earlier in this file (dated 2026-08-28) described a
+cosmetic flicker during rotation, worked around but never root-caused,
+with several release-timing strategies tried and rejected. **That
+investigation was chasing the wrong bug.** Once actually re-tested live
+this session, what the user experienced wasn't subtle flicker at all —
+it was the model periodically *jumping to a visibly displaced position*
+and back, worse the faster the mouse moved, only during rotation (pan
+was always smooth; zoom had a related but distinct bug, below). Found
+via live gdb (function-entry breakpoints only, never watchpoints — see
+the safety note in the AtomTable section above, which still applies) by
+tracing the *actual* call path live instead of guessing: confirmed
+`SGViewer::rotateCamera`, `Builder::rotateTo`, and
+`Builder::OnRotX/Y/Z` are **not** on the live mouse-drag rotation path at
+all (an initial hypothesis built on pattern-matching against two
+already-confirmed bugs elsewhere this session, without live
+verification this time — wrong, and a good reminder why the verify step
+matters even when a theory *feels* solid). The real, confirmed-live path
+is `Builder::mouseEvent()` (display-only) + `SoWxExaminerViewer::spinCamera()`
++ its own internal `rotateCamera()`.
+
+**Root cause**: `SoWxExaminerViewer::rotateCamera()` (and its duplicate,
+`SGViewer::rotateCamera`, "copied exactly" per its own comment) updates
+the camera's `orientation` field and then, in a **separate statement**,
+recomputes and sets `position` to keep the camera centered on the same
+orbit point. Setting `orientation` triggers Open Inventor's field-change
+notification chain — which, confirmed via the earlier `renderCB`
+investigation, synchronously reaches a real `Refresh()`+`Update()` call
+under this build. If that fires *between* the two field sets, a real
+frame gets painted with the *new* rotation but the *old*, not-yet-recentered
+position — genuinely displaced, not just torn or flickering. The
+displacement is proportional to how far the orbit-recentering math had
+to move the camera to compensate, which scales with the rotation angle
+of that step — exactly matching the user's own diagnosis, arrived at
+through careful live testing before any fix was in place: "the
+displacement of the second structure is greater the faster I move the
+mouse" and "not chasing the cursor — it's the speed of mouse movement."
+Fixed by wrapping the `orientation` field set with
+`enableNotify(FALSE)`/`enableNotify(prev)` so only the second
+(`position`) set's notification actually fires, carrying both changes
+to the renderer as one atomic, self-consistent update. Applied to both
+`SoWxExaminerViewer::rotateCamera` (the live one) and
+`SGViewer::rotateCamera` (the dead-on-this-path duplicate, fixed anyway
+for consistency since other callers may reach it).
+
+**Same shape, two more call sites, found by inspection once the pattern
+was known**: `SGViewer::zoomCamera()` (scroll-wheel zoom) and
+`SoWxExaminerViewer::dollyCamera()` (click-drag zoom) both set `position`
+then `focalDistance` as two separate statements — same hazard, same fix
+(suppress notification on the `position` set this time, since it's set
+first in these two).
+
+**A completely separate, unrelated zoom bug, found only because the
+notification fix alone didn't make zoom smooth**: scroll-wheel zoom
+often did nothing visible at all until some *other* interaction (e.g.
+right-click-drag) happened — confirmed live that `zoomCamera()` **was**
+being called with sane values every scroll (`gdb` capture: a clean
+stream of `delta=-1`/`delta=1`/occasional `delta=-2`, ruling out an
+earlier "tiny fractional touchpad delta" hypothesis), so the camera
+state was correct; nothing was painting it. Root cause:
+`SGViewer::processCommonEvents()` — called at the very top of
+`processEvent()` via `if (processCommonEvents(event)) return;` — handles
+wheel events *itself*, calling `zoomCamera()` and returning `true`
+immediately. That `return true` makes `processEvent()` take its early
+return, **skipping the `Refresh()`/`Update()` calls at the end of
+`processEvent()` that every other interaction (rotate, pan, dolly)
+relies on** to force a repaint. The zoom took effect in memory but sat
+unpainted until an unrelated interaction happened to trigger a redraw
+later. Fixed by adding the same `Refresh(false)`/`Update()` pair
+directly in `processCommonEvents()`'s wheel-handling branch, before its
+`return true`.
+
+**Two real dead ends during this investigation, kept here so they aren't
+retried**:
+- `SetBackgroundStyle(wxBG_STYLE_PAINT)` on `SoWxRenderArea` (a
+  plausible GTK3-migration-gotcha theory: this call is genuinely needed
+  under wx3.x/GTK3 for windows that paint their own full client area,
+  and its absence here looked like a real gap) — built, tested live,
+  had **zero effect** on the actual bug (which turned out to be the
+  notification-ordering issue above, not a compositor-paint-timing
+  issue at all) and very likely caused a real regression (scroll-wheel
+  zoom stopped updating until a click, reported immediately after this
+  was live) — reverted.
+- A guard (`p_internalRotSet`) added to `Builder::OnRotX/Y/Z` and the
+  `mouseEvent()` `SetValue()` calls that feed them, based on the
+  (incorrect, never live-verified before implementing) assumption that
+  `wxSpinCtrl::SetValue()` fires a real `EVT_SPINCTRL` under this
+  wx3.2/GTK3 build the same way `wxGrid::SelectRow()` and
+  `wxGrid::SetCurrentCell()` were *already confirmed* to do elsewhere
+  this session. Live gdb during an actual rotation drag showed
+  `OnRotX`/`OnRotY`/`OnRotZ` **never fire** — reverted; that whole
+  "spin control feedback loop" theory doesn't apply to this build after
+  all, despite fitting the established pattern of similar bugs
+  found earlier the same day.
+
+**Verified live** for all interactions, by the user, after each fix
+landed: rotation ("Smooth! It's fixed now"), translation (already
+smooth throughout, unaffected), scroll-wheel zoom ("tested, smooth!"),
+and click-drag zoom via Ctrl+right-click-drag ("also smooth!") — the
+`dollyCamera()` half of the `enableNotify` fix. Click-drag zoom (dolly)
+uses right-click+Ctrl+drag, not left-click as initially assumed when
+re-testing — not a bug, just a discoverability note for next time.
+
+Both known viewer flicker/responsiveness bugs (this section) are now
+fully fixed and confirmed across every interaction mode. GitHub #46 can
+be closed.
