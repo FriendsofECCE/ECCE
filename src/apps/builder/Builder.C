@@ -4221,6 +4221,14 @@ void Builder::updatePropertyMenus()
   }
 
   // create any missing property panels
+  // Every relevant property panel gets created (so it has a Property-menu
+  // entry and is one click away), but only this small default subset is
+  // actually shown for a freshly opened calculation -- previously every
+  // single relevant panel was force-opened at once, regardless of how
+  // many that was, which made the whole property area unusable both from
+  // being crowded and from each individual panel getting too little
+  // space to lay out properly. See addPropertyPanel() for where this
+  // list actually takes effect.
   PropertyPanelFactory &ppf = PropertyPanelFactory::getPropertyPanelFactory();
   names = ppf.getPanelNamesForProperties(p_calculation->propertyNames());
   for (name = names.begin(); name != names.end(); ++name) {
@@ -4518,7 +4526,28 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     wxAuiPaneInfo info = wxAuiPaneInfo();
     info.DefaultPane();
     info.Name(name).Caption(name).CaptionVisible(true).
-            Left().Layer(2).Fixed();
+            Left().Layer(2).Resizable(true);
+    // Only this small default subset is shown for a freshly opened
+    // calculation -- previously every single relevant panel was
+    // force-opened at once (updatePropertyMenus() creates a panel for
+    // every property the calculation has data for), which made the
+    // whole property area unusable both from being crowded and from
+    // each individual panel getting too little space to lay out
+    // properly. Everything else still gets created here (so it has a
+    // Property-menu entry, via AppendCheckItem() below, and is one click
+    // away), just not shown by default. Decided here rather than by the
+    // caller showing/hiding afterward, so the menu checkbox's initial
+    // Check(pinfo.IsShown()) state below is correct from the start.
+    static const set<string> defaultShownPanels = {
+      "Calculation Summary", "Energies", "Geometry Trace", "MOs"
+    };
+    info.Show(defaultShownPanels.find(name) != defaultShownPanels.end());
+    // Was .Fixed() with no way to override -- every property panel
+    // (Energies, Geometry Trace, MOs, ...) was permanently locked at
+    // whatever size it happened to get on first show, both docked (no
+    // way to make it taller) and floating (dragged out, it could
+    // collapse to a tiny unresizable box). Same root cause/fix as the
+    // Build tool panel elsewhere in this file.
     // NOTE: the TakeFocusButton()/AddFocusButton()/OptionsButton() caption
     // buttons (ewxAUI additions) have no stock wx3.2 wxAuiPaneInfo
     // equivalent and are dropped here - see EwxAuiCompat.H.
