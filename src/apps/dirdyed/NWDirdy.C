@@ -4600,6 +4600,20 @@ string NWDirdy::buildTheoryArgs(const string& theoryType)
   if (frag != (Fragment*)0)
     delete frag;
 
+  // scripts/codereg/globals.py's shared Globals base class optionally
+  // parses a 19th positional argument as ChainedMetadynamics (an int) --
+  // a MetaDyn/metartyp.py-specific flag, meaningless for DirDyVTST, but
+  // globals.py doesn't know which script is calling it and tries to
+  // parse whatever's there regardless. Without this, the three Color::*
+  // arguments below shifted into that slot, and globals.py crashed
+  // trying to int() a hex color string (confirmed against a real user
+  // report: "ValueError: invalid literal for int() with base 10:
+  // '#e0e1e1'"). The actual value doesn't matter for DirDyVTST -- 0
+  // ("not chained") is globals.py's own default when this argument is
+  // absent entirely, used here just to keep the positional argument
+  // list correctly aligned for every script sharing this base class.
+  args += " 0";
+
   args += " \"";
   args += Color::WINDOW;
   args += "\" \"";

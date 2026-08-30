@@ -112,7 +112,19 @@ class Globals:
             self.NumVirtualOrbs = int(values[16])
             self.NumNormalModes = int(values[17])
             if len(values) > 18:
-              self.ChainedMetadynamics = int(values[18])
+              # This field is only meaningful to metartyp.py; every other
+              # codereg script (theory dialogs especially) can end up with
+              # something else entirely at this position depending on what
+              # its own C++ caller appends after the required arguments
+              # (e.g. display colors) -- confirmed against a real crash
+              # report where this int() raised ValueError on a hex color
+              # string. Not fatal to the rest of __init__: keep the class
+              # default (0) rather than aborting parsing of a script that
+              # never uses this value in the first place.
+              try:
+                self.ChainedMetadynamics = int(values[18])
+              except ValueError:
+                pass
         except IndexError:
             print("ERROR: wxPython code registration details dialog command line parameter missing!")
 
