@@ -5,7 +5,26 @@ name: Build
 # display (Xvfb) and per-user service setup (see GETTING_STARTED.md) that
 # isn't worth the complexity for a build-health check. The goal is early,
 # continuous signal on "does this even compile here", especially for
-# platforms (Fedora, macOS) nobody is routinely building on locally.
+# platforms nobody is routinely building on locally.
+#
+# Target platforms and why:
+#   - Debian: what the primary maintainer actually develops on.
+#   - Ubuntu: most popular desktop/CI Linux distro.
+#   - RHEL family: what a lot of institutional/cluster environments run.
+#     GitHub Actions has no real RHEL runner (needs a subscription), so
+#     this uses Rocky Linux -- a bug-for-bug free rebuild of RHEL from
+#     the same sources, the standard stand-in for "does this work on
+#     RHEL" in CI that doesn't have a Red Hat subscription to spend.
+#   - WSL2: NOT a separate job. WSL2 runs a real Linux kernel with a real
+#     distro userland (Ubuntu by default) on top of it -- there's no
+#     separate "WSL2 build" to test, the Ubuntu/Debian jobs below already
+#     cover it directly. The one WSL2-relevant wrinkle, filename
+#     case-collisions (#40), is actually a non-issue for WSL2 specifically
+#     (its ext4-backed filesystem is case-sensitive like any other Linux
+#     disk) -- it only bites on a native-Windows checkout or a default
+#     case-insensitive macOS volume.
+#   - macOS: tracks GitHub #3 (currently expected to fail -- see the job
+#     below for why).
 
 on:
   push:
@@ -15,6 +34,28 @@ on:
   workflow_dispatch: {}
 
 jobs:
+  debian:
+    name: Debian (apt, containerized)
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y \
+            build-essential gfortran cmake ninja-build \
+            libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
+            libgtk-3-dev libx11-dev libice-dev \
+            default-jdk ant git
+
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -G Ninja -B build-cmake
+
+      - name: Build
+        run: cmake --build build-cmake
+
   ubuntu:
     name: Ubuntu (apt)
     runs-on: ubuntu-latest
@@ -36,6 +77,40 @@ jobs:
       - name: Build
         run: cmake --build build-cmake
 
+  rocky:
+    name: Rocky Linux (dnf, RHEL family, containerized)
+    runs-on: ubuntu-latest
+    container: rockylinux:9
+    steps:
+      - name: Install build dependencies
+        run: |
+          dnf install -y epel-release
+          dnf install -y \
+            gcc gcc-c++ gcc-gfortran make cmake ninja-build git \
+            wxGTK-devel xerces-c-devel \
+            mesa-libGL-devel mesa-libGLU-devel \
+            gtk3-devel libX11-devel libICE-devel \
+            java-latest-openjdk-devel ant
+
+      # actions/checkout doesn't work reliably inside an arbitrary
+      # container image (no git-installed-as-a-prereq guarantee, and the
+      # container user often isn't the checkout action's expected uid) --
+      # install git above first, then check out manually instead.
+      - name: Check out source
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clone --depth 1 --branch "${GITHUB_REF_NAME}" \
+            "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_WORKSPACE" \
+            || git clone --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_WORKSPACE"
+
+      - name: Configure
+        working-directory: ${{ github.workspace }}
+        run: cmake -G Ninja -B build-cmake
+
+      - name: Build
+        working-directory: ${{ github.workspace }}
+        run: cmake --build build-cmake
+
   fedora:
     name: Fedora (dnf, containerized)
     runs-on: ubuntu-latest
@@ -50,10 +125,6 @@ jobs:
             gtk3-devel libX11-devel libICE-devel \
             java-latest-openjdk-devel ant
 
-      # actions/checkout doesn't work reliably inside an arbitrary
-      # container image (no git-installed-as-a-prereq guarantee, and the
-      # container user often isn't the checkout action's expected uid) --
-      # install git above first, then check out manually instead.
       - name: Check out source
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
