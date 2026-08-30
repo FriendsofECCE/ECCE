@@ -84,7 +84,13 @@ jobs:
     steps:
       - name: Install build dependencies
         run: |
-          dnf install -y epel-release
+          dnf install -y epel-release 'dnf-command(config-manager)'
+          # ninja-build and a few -devel packages live in the CodeReady
+          # Builder repo, not EPEL itself -- EPEL's own release package
+          # prints a reminder about this ("Many EPEL packages require the
+          # CRB repository... /usr/bin/crb enable") but doesn't enable it
+          # automatically.
+          dnf config-manager --set-enabled crb
           dnf install -y \
             gcc gcc-c++ gcc-gfortran make cmake ninja-build git \
             wxGTK-devel xerces-c-devel \

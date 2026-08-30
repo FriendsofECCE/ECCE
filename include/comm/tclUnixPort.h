@@ -503,14 +503,18 @@ extern char **environ;
 #endif
 
 /*
- * At present (12/91) not all stdlib.h implementations declare strtod.
- * The declaration below is here to ensure that it's declared, so that
- * the compiler won't take the default approach of assuming it returns
- * an int.  There's no ANSI prototype for it because there would end
- * up being too many conflicts with slightly-different prototypes.
+ * The K&R-style `extern double strtod();` that used to be here (a
+ * defensive 1991-era fallback for stdlib.h implementations that might
+ * not declare strtod at all) conflicts with modern glibc's own
+ * prototyped declaration under newer C standard defaults, where empty
+ * parens mean "no arguments" rather than "unspecified arguments" --
+ * confirmed via a real Fedora CI build failure ("conflicting types for
+ * 'strtod'; have 'double(void)'"), not reproducible on Debian's older
+ * default GCC C-standard version. stdlib.h (already included) has
+ * declared strtod correctly on every platform this actually targets for
+ * decades now, so just drop the redundant declaration instead of trying
+ * to guard it.
  */
-
-extern double strtod();
 
 /*
  * There is no platform-specific panic routine for Unix in the Tcl internals.
