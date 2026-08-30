@@ -72,12 +72,6 @@ public:
     string        libPath(void) const;
     string        sourceFile(void) const;
     string        shell(void) const;
-    // "forceBashShell: true" in this machine's CONFIG file -- forces
-    // RCommand's remote login sequence to use bash syntax (experimental)
-    // regardless of tcsh's actual availability. No GUI for this yet
-    // (hand-edit the CONFIG file, or set ECCE_FORCE_BASH_SHELL instead);
-    // see RCommand::exec().
-    bool          forceBashShell(void) const;
     string        globusContact(void) const;
     string        frontendMachine(void) const;
     string        frontendBypass(void) const;

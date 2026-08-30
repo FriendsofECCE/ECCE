@@ -45,14 +45,11 @@ public:
 
   // Operations
     bool isOpen(void);    // Check connection status
-    // Which dialect exec()'s post-login environment setup ended up using
-    // for this connection -- csh/tcsh (the long-tested default) unless
-    // tcsh genuinely isn't available on the remote machine, or the
-    // machine's RefMachine config forces bash for testing
-    // ("forceBashShell: true", or the ECCE_FORCE_BASH_SHELL env var).
-    // Only meaningful after exec() has run once. Bash support is new and
-    // considered experimental -- see RCommand.C's exec() for the detection
-    // logic.
+    // Which dialect the post-login environment setup used for this
+    // connection -- true only when the machine's configured shell
+    // (RefMachine::shell(), passed in here as locShell) is literally
+    // "bash"; csh/tcsh/anything else uses the original, long-tested
+    // csh-style syntax. Only meaningful after a connection attempt.
     bool remoteShellIsBash(void) const;
     bool fileOp(const string& op, const string& filename);
     bool exists(const string& filename);

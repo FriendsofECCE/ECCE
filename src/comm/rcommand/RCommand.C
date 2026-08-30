@@ -35,7 +35,6 @@
 #include "util/Ecce.H"
 
 #include "tdat/AuthCache.H"
-#include "tdat/RefMachine.H"
 
 #include "comm/RCommand.H"
 
@@ -1085,6 +1084,27 @@ hopToIt:
                                exp_glob, "telnet> $", 11,
                                exp_glob, "login: $", 12,
                                exp_glob, "Authentication succeeded", 14,
+                               // Modern OpenSSH's actual -v output for a
+                               // successful key-based (no password prompt)
+                               // login is "Authenticated to <host> ...
+                               // using \"publickey\"." -- not the literal
+                               // "Authentication succeeded" text above,
+                               // which this decades-old pattern list has
+                               // apparently always expected. Confirmed via
+                               // a direct `ssh -v` run against a real
+                               // key-trusted host: this is genuinely what
+                               // current OpenSSH prints, not a fluke.
+                               // Without this, a key-authenticated
+                               // connection is never recognized as
+                               // successful and the loop times out --
+                               // reported live as "Failed to open remote
+                               // shell ... (incorrect password?)" against
+                               // a machine that never even prompted for
+                               // one. Password-based logins were already
+                               // fine (they complete via the "+hi+\r\n"
+                               // echo marker below, once the shell after a
+                               // successful password entry is reached).
+                               exp_glob, "Authenticated to*", 14,
                                exp_glob, "+hi+\r\n", 14,
                                exp_end)) {
 
@@ -1249,71 +1269,36 @@ hopToIt:
   }
 
   // Which dialect is actually listening on the other end of this
-  // connection? Historically this whole login sequence assumed csh/tcsh
+  // connection? Originally this whole login sequence assumed csh/tcsh
   // unconditionally -- fine as long as the remote account's login shell
   // actually is tcsh, broken (silently: setenv/if ($?VAR) is invalid bash
   // syntax) if it's bash instead, which is entirely outside ECCE's
-  // control on a shared cluster account. Bash support is new and
-  // EXPERIMENTAL -- only takes effect when tcsh genuinely isn't available,
-  // or when explicitly forced (for testing this code path without needing
-  // an actual bash-only machine to test against).
+  // control on a shared cluster account.
   //
-  // Forcing: RefMachine's "forceBashShell: true" config key (no GUI for
-  // this yet -- hand-edit the machine's CONFIG file), or the
-  // ECCE_FORCE_BASH_SHELL env var (quicker for ad-hoc testing, no machine
-  // registration needed). Either skips detection entirely.
+  // An earlier version of this fix ran an active probe here (checking
+  // specifically for a `tcsh` binary) -- wrong, and it caused exactly
+  // this failure mode live: this box has plain `csh` (which the SSH
+  // remote command above already launched successfully, confirmed by
+  // reaching this point at all -- see shellCommand()'s "echo +hi+ && "
+  // + locShell construction, matched via the "+hi+\r\n" pattern in the
+  // login loop above) but no separate `tcsh` binary, so the probe
+  // concluded "no tcsh, use bash" and sent bash syntax (PS1=...) to an
+  // actual csh session, which doesn't understand it -- no "+go+" prompt
+  // ever appeared, hanging expect1() below indefinitely.
   //
-  // Auto-detection: probe with a command that is valid, and behaves
-  // identically, whether the shell that answers it is bash or tcsh --
-  // pure variable expansion and command chaining, no dialect-specific
-  // syntax -- so it's safe to send before we've committed to any
-  // dialect-specific syntax (including the sentinel-prompt command right
-  // after this). Uses expect2() rather than expect1() because we don't
-  // have a reliable prompt pattern to anchor on yet -- that's the whole
-  // point of the sentinel-prompt command this probe runs before.
-  // This whole login sequence -- including the block below -- also runs
-  // for RCommand("system")/"-f", the *local*-machine connection used to
-  // replace plain system() calls (ESInputController.C, JobStore.C,
-  // Launch.C, ...), not just genuine remote connections: it's a locally
-  // spawned shell talking over a pty, same handshake either way. That's
-  // pre-existing, unrelated to this change. But it means the probe below
-  // -- meant only for the "remote account's login shell might be bash"
-  // problem (Point 2) -- must NOT run for local connections at all: this
-  // was reported live as a hang/error ("Unable to create local command
-  // shell") the very first time this shipped, exactly here. Point 1 (the
-  // local shell) is explicitly a separate, not-yet-started piece of work
-  // (see RCommand::shellCommand()'s locShell-based -fc/-f/-i flag
-  // construction) -- until that's done deliberately, local connections
-  // must behave exactly as they did before this whole feature existed.
-  bool isLocalConnection = (machine == "system" || machine == "-f");
-  bool useBash = false;
-  bool forcedBash = false;
-  if (!isLocalConnection)
-    forcedBash = (getenv("ECCE_FORCE_BASH_SHELL") != 0);
-  if (!isLocalConnection && !forcedBash) {
-    RefMachine* forceCheckMachine = RefMachine::refLookup(theMachine);
-    if (forceCheckMachine && forceCheckMachine->forceBashShell())
-      forcedBash = true;
-  }
-  if (isLocalConnection) {
-    useBash = false;
-  } else if (forcedBash) {
-    useBash = true;
-  } else {
-    if (!expwrite("tcsh -c 'echo ECCE_HAS_TCSH' || echo ECCE_NO_TCSH"))
-      return;
-    // Patterns are anchored on a leading \r\n (matching every other
-    // expect1() call in this function below) so the match can only land
-    // on the command's actual output, printed on its own fresh line --
-    // not on the terminal's live echo of the command we just typed, which
-    // contains the literal substring "ECCE_HAS_TCSH" mid-line as part of
-    // the command text itself and would otherwise false-positive on every
-    // single connection regardless of whether tcsh is really there.
-    // Default to tcsh (today's long-tested behavior) if detection itself
-    // is inconclusive -- e.g. expect2() times out/loses the connection --
-    // rather than gambling on the new, less-tested bash path.
-    useBash = (expect2("\r\nECCE_HAS_TCSH", "\r\nECCE_NO_TCSH") == 2);
-  }
+  // The actual fix needs no probe at all: reaching this point already
+  // proves locShell (whatever shell RefMachine::shell() configured for
+  // this machine -- "csh" by default) is genuinely present and working,
+  // since shellCommand() already used that exact value to build the SSH
+  // remote command, and we just matched its "+hi+" echo. So just check
+  // locShell's own value directly -- it's already the single source of
+  // truth for what's actually running, no separate detection needed.
+  // Only "bash" gets the new syntax; csh, tcsh, zsh, sh, or anything
+  // else configured all get the original, long-tested csh-style syntax
+  // (zsh nominally isn't csh-compatible either, but nobody's configuring
+  // zsh as locShell today, and this errs toward the safer, unchanged
+  // default rather than guessing).
+  bool useBash = (locShell == "bash");
   p_remoteBash = useBash;
 
   // Login failure is caught by trying to set the prompt.
@@ -1530,6 +1515,27 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
                                exp_glob, "telnet> $", 11,
                                exp_glob, "login: $", 12,
                                exp_glob, "Authentication succeeded", 14,
+                               // Modern OpenSSH's actual -v output for a
+                               // successful key-based (no password prompt)
+                               // login is "Authenticated to <host> ...
+                               // using \"publickey\"." -- not the literal
+                               // "Authentication succeeded" text above,
+                               // which this decades-old pattern list has
+                               // apparently always expected. Confirmed via
+                               // a direct `ssh -v` run against a real
+                               // key-trusted host: this is genuinely what
+                               // current OpenSSH prints, not a fluke.
+                               // Without this, a key-authenticated
+                               // connection is never recognized as
+                               // successful and the loop times out --
+                               // reported live as "Failed to open remote
+                               // shell ... (incorrect password?)" against
+                               // a machine that never even prompted for
+                               // one. Password-based logins were already
+                               // fine (they complete via the "+hi+\r\n"
+                               // echo marker below, once the shell after a
+                               // successful password entry is reached).
+                               exp_glob, "Authenticated to*", 14,
                                exp_glob, "+hi+\r\n", 14,
                                exp_end)) {
 

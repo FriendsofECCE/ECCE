@@ -306,19 +306,6 @@ string RefMachine::shell(void) const
   return shell;
 }
 
-bool RefMachine::forceBashShell(void) const
-{
-  string configName = RefMachine::configFile(refname());
-
-  EcceMap *config = EcceMap::load(configName);
-
-  string tmp;
-  bool force = config->findValue("forceBashShell", tmp) && tmp == "true";
-  delete config;
-
-  return force;
-}
-
 string RefMachine::globusContact(void) const
 {
   string contact = "";
