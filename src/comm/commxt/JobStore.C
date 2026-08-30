@@ -260,6 +260,20 @@ void jobstore_main(RCommand* rconn, const string& jobId,
   DefaultDavAuth authhandler;
   EDSIFactory::addAuthEventListener(&authhandler);
 
+  // init X -- moved ahead of init()/initConn()/initDAV() below. Those
+  // three can each call fail()/restart()/restartSystem() on any of a
+  // long list of ordinary, expected-to-happen failures (bad config,
+  // unreachable compute server, a calc whose DAV resource fails to
+  // load) -- and every one of those functions calls initMessaging(),
+  // which calls XtAppAddInput(appContext, ...). With appContext still
+  // default-constructed (this static wasn't assigned yet), that's a
+  // segfault inside libXt itself, not a clean error report. Confirmed
+  // live via a real core dump: a deliberately-broken calc URL crashed
+  // eccejobstore inside XtAppAddInput() from calcLoad()'s fail() call,
+  // instead of reporting "resource failed to load" and exiting cleanly.
+  XtToolkitInitialize();
+  appContext = XtCreateApplicationContext();
+
   init();
 
   // connect to server
@@ -267,11 +281,7 @@ void jobstore_main(RCommand* rconn, const string& jobId,
 
   initDAV();
 
-  // init X
-  XtToolkitInitialize();
-  appContext = XtCreateApplicationContext();
-
-  initSignals(); 
+  initSignals();
 
   // invoke eccejobmonitor
   initMon();
@@ -564,6 +574,14 @@ void calcStoreData(string parseType, int callCount,
 // ------------------------------------------------------------------------- //
 void calcUpdateState(ResourceDescriptor::RUNSTATE state)
 {
+  // calculation stays NULL until calcLoad() successfully assigns it --
+  // fail()/restart()/restartSystem() call calcUpdateState()
+  // unconditionally, though, including on calcLoad()'s own
+  // EDSIFactory::getResource() failure path, where calculation is still
+  // NULL. Confirmed live via a real core dump. Nothing meaningful to
+  // update if the calc resource itself never loaded.
+  if (!calculation) return;
+
   if (state < ResourceDescriptor::STATE_COMPLETED) {
     if (state == ResourceDescriptor::STATE_RUNNING) {
       TDateTime sdate;
@@ -625,8 +643,11 @@ void cleanup(int exitStatus)
   delete jobparser;
   goodbye(exitStatus);
 
-  // don't add the "close document" tags for a restart
-  if (exitStatus != 2)
+  // don't add the "close document" tags for a restart. calculation can
+  // still be NULL here (calcLoad()'s own getResource() failure reaching
+  // cleanup() via fail()) -- confirmed live via a real core dump, same
+  // shape as the other calculation-NULL fixes in this file.
+  if (exitStatus != 2 && calculation)
     calculation->endJobLog("eccejobstore");
 }
 
@@ -1417,8 +1438,12 @@ void goodbye(int exitStatus)
 
   logMessage("eccejobstore exit", msg);
 
-  // Email failures to ecce-test if ECCE_JOB_ALLFAILMAIL tells us to
-  if (exitStatus != 0) {
+  // Email failures to ecce-test if ECCE_JOB_ALLFAILMAIL tells us to.
+  // calculation can still be NULL here -- fail() reaches goodbye() via
+  // cleanup() even when calcLoad()'s own EDSIFactory::getResource()
+  // call is what failed in the first place. Confirmed live via a real
+  // core dump.
+  if (exitStatus != 0 && calculation) {
     string url = calculation->getURL().toString();
     string failmail = getenv("ECCE_JOB_ALLFAILMAIL")?
                       getenv("ECCE_JOB_ALLFAILMAIL"): "";
@@ -1995,15 +2020,25 @@ void logErr(const char* event, const string& msg)
 void logPrint(const ActivityLog::EventType type,
               const char* event, const string& msg)
 {
-  if (logModeJobStore!=::LOGMODE_NO && event && !msg.empty()) { 
+  if (logModeJobStore!=::LOGMODE_NO && event && !msg.empty()) {
     TDateTime date;
     string logEntry = ActivityLog::entry(type, event, date, msg.c_str());
+    // Always echo to stderr too, not just as a fallback when the DAV job
+    // log write itself fails below. fail()/restart()/restartSystem() can
+    // all be reached before logIsOpen is ever set true (any early
+    // failure in init()/initConn()/initDAV(), before the calc's own DAV
+    // resource has loaded) -- previously logIsOpen==false meant the
+    // *entire* failure reason was silently dropped, with nothing written
+    // anywhere: eccejobstore.log (stdout+stderr, captured by
+    // eccejobmaster's own redirect) came back completely empty even for
+    // a real, specific failure, making this class of bug nearly
+    // impossible to diagnose after the fact from the logs alone.
+    cerr << programName << ": " << logEntry << endl;
     if (logIsOpen) {
       if (!calculation->appendJobLog(logEntry.c_str())) {
         // don't set logIsOpen to false--make it try to append to the log
         // each time because on calc renames it can fail intermittently
         // logIsOpen = false;
-        cerr << programName << ": " << logEntry << endl;
       }
     }
   }
