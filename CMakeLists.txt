@@ -59,8 +59,19 @@ endif()
 # build. (One file, flclient/flfreetype.c, also needs <ft2build.h> itself,
 # which lives at the freetype2 root one level up - handled separately below,
 # on just the ecceinv target, matching the old per-directory Makefile.)
+# Homebrew's freetype2 package lands at /opt/homebrew (Apple Silicon) or
+# /usr/local (Intel Mac) instead of /usr -- neither hardcoded Linux path
+# above exists there at all, and find_path() silently returns
+# "...-NOTFOUND" rather than erroring, which only surfaces later as a
+# baffling "Found relative path while evaluating include directories"
+# CMake generate-step error. Confirmed via a real macOS CI run.
 find_path(FREETYPE_UNQUALIFIED_INCLUDE_DIR ftoutln.h
-  PATHS /usr/include/freetype2/freetype /usr/include/freetype)
+  PATHS /usr/include/freetype2/freetype /usr/include/freetype
+        /opt/homebrew/include/freetype2/freetype
+        /usr/local/include/freetype2/freetype)
+if(NOT FREETYPE_UNQUALIFIED_INCLUDE_DIR)
+  message(FATAL_ERROR "FreeType's freetype/ include subdir (ftoutln.h) not found -- searched the usual Linux and Homebrew locations")
+endif()
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/include
@@ -175,8 +186,14 @@ target_link_libraries(ecceinv PRIVATE OpenGL::GL OpenGL::GLU)
 # on top of the baseline include dir: some FreeType headers (ft2build.h) live at
 # the top of the freetype2 include tree, others (ftoutln.h etc, used elsewhere in
 # this codebase) live one level down - both are needed.
+# Same Homebrew-path gap as FREETYPE_UNQUALIFIED_INCLUDE_DIR above.
 find_path(FREETYPE_ROOT_INCLUDE_DIR ft2build.h
-  PATHS /usr/include/freetype2 /usr/include)
+  PATHS /usr/include/freetype2 /usr/include
+        /opt/homebrew/include/freetype2
+        /usr/local/include/freetype2)
+if(NOT FREETYPE_ROOT_INCLUDE_DIR)
+  message(FATAL_ERROR "FreeType's ft2build.h not found -- searched the usual Linux and Homebrew locations")
+endif()
 target_include_directories(ecceinv PRIVATE ${FREETYPE_ROOT_INCLUDE_DIR})
 
 ecce_library(eccemoiv src/inv/moiv)
