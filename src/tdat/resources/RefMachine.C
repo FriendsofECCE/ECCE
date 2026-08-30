@@ -292,7 +292,19 @@ string RefMachine::sourceFile(void) const
 
 string RefMachine::shell(void) const
 {
-  string shell = "csh";
+  // "bash" by default -- csh/tcsh is a real, still-supported option (set
+  // "shell: csh" or "shell: tcsh" in this machine's CONFIG file for a
+  // machine/account that genuinely needs it), just no longer assumed.
+  // Historically this defaulted to "csh" unconditionally, which meant
+  // ECCE required tcsh to be installed -- on the *local* machine running
+  // ECCE (RCommand::shellCommand()'s locShell-based -fc/-f/-i local-
+  // wrapper invocation, not yet updated to be dialect-aware -- see
+  // CLAUDE.md) and, via this exact field, on every remote machine too --
+  // even though nothing about ECCE's own job-launch mechanics actually
+  // needs csh specifically. Fewer hard dependencies, fewer places this
+  // breaks on a machine that simply doesn't have csh/tcsh installed
+  // (confirmed live: neither this build machine nor niobium do).
+  string shell = "bash";
 
   string configName = RefMachine::configFile(refname());
 

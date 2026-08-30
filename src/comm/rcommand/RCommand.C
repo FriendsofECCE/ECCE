@@ -2737,7 +2737,13 @@ bool RCommand::execout(const string& command, string& output,
   bool status = false;
   string cmdstat = command;
 
-  cmdstat.append("; echo CMDSTAT=$status");
+  // $status is csh/tcsh's exit-status variable; bash/sh use $? instead --
+  // $status is simply unset in bash, so this would silently always
+  // produce an empty "CMDSTAT=" with no digit, matching none of the
+  // patterns below and failing every single remote command with "No
+  // status returned". Confirmed via a live standalone repro against a
+  // real bash remote connection.
+  cmdstat.append(p_remoteBash ? "; echo CMDSTAT=$?" : "; echo CMDSTAT=$status");
 
   if (timeout != 0)
     exp_timeout = timeout;
@@ -2806,13 +2812,20 @@ bool RCommand::execout(const string& command, string& output,
   // mpp2 so maybe this fix can be conditionalized based on the machine.
   RCommand::expMungedOutputFix();
 
-  char* line = strstr(exp_buffer, "$status\r\n");
+  // Matches whichever status-variable text was actually echoed back as
+  // part of the command's own terminal echo (see cmdstat construction
+  // above) -- "$status" (7 chars) for csh/tcsh, "$?" (2 chars) for bash.
+  const char* statusVarEcho = p_remoteBash ? "$?" : "$status";
+  int statusVarLen = p_remoteBash ? 2 : 7;
+  string nlPattern = string(statusVarEcho) + "\r\n";
+  string crPattern = string(statusVarEcho) + "\r";
+  char* line = strstr(exp_buffer, nlPattern.c_str());
 
   if (line != NULL)
-    output = line+9;
-  else if ((line = strstr(exp_buffer, "$status\r")) != NULL)
+    output = line + statusVarLen + 2;
+  else if ((line = strstr(exp_buffer, crPattern.c_str())) != NULL)
     // this fixes some weird problem that occured on a Dell Linux workstation
-    output = line+10;
+    output = line + statusVarLen + 3;
   else if (status)
     output = "";
   else
@@ -4094,7 +4107,8 @@ bool RCommand::shellput(const char** fromFiles, const string& toFile)
       sprintf(buf, "%d", nread);
       string nreadstr = buf;
 
-      cmdstat = "dd ibs=1 of=" + fullToFile + " count=" + nreadstr + "; echo CMDSTAT=$status";
+      cmdstat = "dd ibs=1 of=" + fullToFile + " count=" + nreadstr +
+                (p_remoteBash ? "; echo CMDSTAT=$?" : "; echo CMDSTAT=$status");
 
       if (!expwrite(cmdstat)) return false;
       // scan until start of file to be transferred
@@ -4270,7 +4284,8 @@ bool RCommand::shellget(const char** fromFiles, const string& toFile)
         ofstream os(fullToFile.c_str());
 
         if (os) {
-          cmd = "cat " + globbedFile + "; echo CMDSTAT=$status";
+          cmd = "cat " + globbedFile +
+                (p_remoteBash ? "; echo CMDSTAT=$?" : "; echo CMDSTAT=$status");
           if (!expwrite(cmd)) return false;
 
           // the commented out logic was failing because I found that
