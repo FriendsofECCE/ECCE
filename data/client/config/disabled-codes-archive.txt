@@ -1,0 +1,1944 @@
+ECCE — archived, disabled computational-code menu registrations
+==================================================================
+
+These <ResourceType> blocks were cut out of ResourceDescriptor.xml
+and ResourceDescriptorRxn.xml on 2026-08-30 (see issue #11 and the
+related removal discussion) to stop AMICA, Gaussian-03, Gaussian-98,
+and MetaDyn/Metadynamics from appearing as "New ... Calculation"
+menu options. Kept here verbatim, not deleted, specifically so
+re-enabling any of them later is a straightforward copy-paste.
+
+Deliberately not a .xml file -- this whole file is a set of
+unrelated top-level fragments, not one well-formed XML document,
+so nothing should ever try to parse it directly.
+
+The underlying .edml capability files, parser scripts, and app code
+for these were NOT touched or removed -- only the menu-registration
+XML blocks below. To re-enable a code:
+  1. Copy its block back into the matching XML file at any
+     top-level position (order among <ResourceType> siblings does
+     not matter).
+  2. For MetaDyn specifically, also restore the matching
+     <Tool name="MetadynamicsEditor"> entry (archived below too).
+
+
+==================================================================
+From ResourceDescriptor.xml: Gaussian-98 (was lines 496-763)
+==================================================================
+  <!-- Gaussian-98 electronic structure calculation resource -->
+  <ResourceType name="gaussian98_es" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Gaussian-98">
+    <SortPriority>50</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>calcgaussian.xpm</Normal>
+      <Selected>calcgaussian.xpm</Selected>
+      <Expanded>calcgaussian.xpm</Expanded>
+      <SelectedExpanded>calcgaussian.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Calculation</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New Gaussian-98 Calculation...</MenuItem>
+    <DescriptorFile>Gaussian-98.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Basistool">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <!--
+      <RunManagementTask name="manageFiles">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      -->
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+
+==================================================================
+From ResourceDescriptor.xml: Gaussian-03 (was lines 764-1031)
+==================================================================
+  <!-- Gaussian-03 electronic structure calculation resource -->
+  <ResourceType name="gaussian03_es" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Gaussian-03">
+    <SortPriority>60</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>calcgaussian03.xpm</Normal>
+      <Selected>calcgaussian03.xpm</Selected>
+      <Expanded>calcgaussian03.xpm</Expanded>
+      <SelectedExpanded>calcgaussian03.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Calculation</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New Gaussian-03 Calculation...</MenuItem>
+    <DescriptorFile>Gaussian-03.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContianedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Basistool">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <!--
+      <RunManagementTask name="manageFiles">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      -->
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+
+==================================================================
+From ResourceDescriptor.xml: Amica (was lines 1542-1809)
+==================================================================
+  <!-- Amica electronic structure calculation resource -->
+  <ResourceType name="amica_es" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Amica">
+    <SortPriority>70</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>calcamica.xpm</Normal>
+      <Selected>calcamica.xpm</Selected>
+      <Expanded>calcamica.xpm</Expanded>
+      <SelectedExpanded>calcamica.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Calculation</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New Amica Calculation...</MenuItem>
+    <DescriptorFile>Amica.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Basistool">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <!--
+      <RunManagementTask name="manageFiles">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      -->
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+
+==================================================================
+From ResourceDescriptorRxn.xml: Gaussian-98 (was lines 487-741)
+==================================================================
+  <!-- Gaussian-98 electronic structure calculation resource -->
+  <ResourceType name="gaussian98_es" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Gaussian-98">
+    <SortPriority>50</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>calcgaussian.xpm</Normal>
+      <Selected>calcgaussian.xpm</Selected>
+      <Expanded>calcgaussian.xpm</Expanded>
+      <SelectedExpanded>calcgaussian.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Calculation</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New Gaussian-98 Calculation...</MenuItem>
+    <DescriptorFile>Gaussian-98.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Basistool">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+
+==================================================================
+From ResourceDescriptorRxn.xml: Gaussian-03 (was lines 1254-1508)
+==================================================================
+  <!-- Gaussian-03 electronic structure calculation resource -->
+  <ResourceType name="gaussian03_es" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Gaussian-03">
+    <SortPriority>60</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>calcgaussian03.xpm</Normal>
+      <Selected>calcgaussian03.xpm</Selected>
+      <Expanded>calcgaussian03.xpm</Expanded>
+      <SelectedExpanded>calcgaussian03.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Calculation</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New Gaussian-03 Calculation...</MenuItem>
+    <DescriptorFile>Gaussian-03.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContianedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Basistool">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+
+==================================================================
+From ResourceDescriptorRxn.xml: Amica (was lines 1509-1763)
+==================================================================
+  <!-- Amica electronic structure calculation resource -->
+  <ResourceType name="amica_es" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Amica">
+    <SortPriority>70</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>calcamica.xpm</Normal>
+      <Selected>calcamica.xpm</Selected>
+      <Expanded>calcamica.xpm</Expanded>
+      <SelectedExpanded>calcamica.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Calculation</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New Amica Calculation...</MenuItem>
+    <DescriptorFile>Amica.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Basistool">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="CalculationEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+
+==================================================================
+From ResourceDescriptorRxn.xml: MetaDyn/Metadynamics (was lines 3154-3397)
+==================================================================
+  <!-- NWChem Reaction Metadynamics resource -->
+  <ResourceType name="nwchem_rxn_metadyn" resourceType="virtual_document" contentType="ecceCalculation"
+    applicationType="Metadynamics">
+    <SortPriority>30</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>taskconrxmetadyn.xpm</Normal>
+      <Selected>taskconrxmetadyn.xpm</Selected>
+      <Expanded>taskconrxmetadyn.xpm</Expanded>
+      <SelectedExpanded>taskconrxmetadyn.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Metadynamics</Label>
+    <RootTask>false</RootTask>
+    <StateBased>true</StateBased>
+    <MenuItem>New NWChem Metadynamics...</MenuItem>
+    <DescriptorFile>MetaDyn.edml</DescriptorFile>
+    <FactoryCategory>EsCalculation</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="condensed_reaction_study"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="MetadynamicsEditor">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="MetadynamicsEditor">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRestart">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Ready"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
+
+==================================================================
+From ResourceDescriptorRxn.xml: MetadynamicsEditor Tool registration
+(orphaned once the Metadynamics ResourceType above is removed --
+nothing else invokes it)
+==================================================================
+    <Tool name="MetadynamicsEditor">
+      <MenuItem>Metadynamics &amp;Editor...&#x9;Ctrl+E</MenuItem>
+      <Label>Metadynamics Editor</Label>
+      <InvokeArg>./metadyn</InvokeArg>
+      <Icon>gweditor2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+
+==================================================================
+From ResourceDescriptorRxn.xml: MetadynamicsEditor ToolPropertyView
+(orphaned once the Metadynamics ResourceType/Tool above are removed)
+==================================================================
+    <ToolPropertyView contentType="ecceCalculation" tool="MetadynamicsEditor">
+      <MenuItem>Code Setup</MenuItem>
+      <Order>5</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+      <Property>
+        <Label>Theory:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>theory</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Runtype:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>runtype</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+
+==================================================================
+Dangling <ContainsResource> list entries also removed (the
+ResourceType definitions they pointed at are the ones archived
+above) -- these are one-line list entries inside other resource
+types' <Contains> lists (e.g. "project" or "gas_reaction_study"
+listing what it can contain). To restore, just add the line back
+into the corresponding <Contains> block.
+==================================================================
+ResourceDescriptor.xml line 188 area:
+          <ContainsResource name="gaussian03_es"/>
+          <ContainsResource name="gaussian98_es"/>
+          <ContainsResource name="amica_es"/>
+ResourceDescriptorRxn.xml (project Contains list):
+          <ContainsResource name="gaussian03_es"/>
+          <ContainsResource name="gaussian98_es"/>
+          <ContainsResource name="amica_es"/>
+ResourceDescriptorRxn.xml (gas_reaction_study Contains list):
+          <ContainsResource name="nwchem_rxn_metadyn"/>
+ResourceDescriptorRxn.xml (condensed_reaction_study or similar Contains list):
+          <ContainsResource name="gaussian03_es"/>
+          <ContainsResource name="gaussian98_es"/>
