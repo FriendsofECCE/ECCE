@@ -107,9 +107,14 @@ double PropVecTable::value(int table, int row, int col) const
   // Assumes index is within bounds of the vectors
 
   if (table >= p_values->size() || row >= p_numRows || col >= p_numColumns
-      || table < 0 || row < 0 || col < 0)
+      || table < 0 || row < 0 || col < 0) {
+    // Same fall-through-after-warning bug shape fixed in PropTable::value()
+    // -- EE_WARNING doesn't stop execution, so return early instead of
+    // falling through to the unguarded access below.
     EE_RT_ASSERT(false, EE_WARNING,
           "trying to access out-of-bounds index in PropVecTable");
+    return 0.0;
+  }
 
   int index = row * p_numColumns + col;
   return (*p_values)[table][index];
@@ -229,7 +234,7 @@ void PropVecTable::setData(istream& istrm)
    // Add values for one table:
       for (int i=0; i<(p_numRows*p_numColumns); i++)
       {
-        if (!istrm.getline(line,255));
+        if (!istrm.getline(line,255))
           EE_RT_ASSERT(false, EE_FATAL,
                 "size specified in file is greater than the number of values");
 

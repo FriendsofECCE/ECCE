@@ -97,9 +97,17 @@ double PropTable::value(int row, int col) const
   // Return the value for the given row/column index
   // Assumes index is within bounds of the vector
 
-  if (row >= p_numRows || col >= p_numColumns || row < 0 || col < 0)
+  if (row >= p_numRows || col >= p_numColumns || row < 0 || col < 0) {
+    // EE_WARNING only logs, it doesn't stop execution -- falling through to
+    // the unguarded vector access below on an out-of-bounds row/col is a
+    // real crash (vector::operator[] doesn't bounds-check), matching the
+    // exact "ASSERTION PropTable.C: ... out-of-bounds index in PropTable"
+    // freeze/crash reported computing MOs one AO at a time (GitHub #27,
+    // #28). Return early instead of falling through.
     EE_RT_ASSERT(false, EE_WARNING,
                  "trying to access out-of-bounds index in PropTable");
+    return 0.0;
+  }
 
   int index = row * p_numColumns + col;
   return (*p_values)[index];

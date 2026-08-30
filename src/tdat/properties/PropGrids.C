@@ -325,9 +325,15 @@ bool PropGrids::readCubeFile(istream &infile)
 ////////////////////////////////////////////////////////////////////////////////
 SingleGrid* PropGrids::returnGrid(int i) const
 {
-  if (i >= p_grids.size() || i < 0)
+  if (i >= p_grids.size() || i < 0) {
+    // Same fall-through-after-warning bug shape fixed across the Prop*.C
+    // family (PropTable, PropVector, PropVecTable, ...) -- EE_WARNING
+    // doesn't stop execution, so return early instead of falling through
+    // to the unguarded access below.
     EE_RT_ASSERT(false, EE_WARNING,
             "trying to access out-of-bounds index in PropGrids::returnGrid");
+    return 0;
+  }
   return p_grids[i];
 }
 

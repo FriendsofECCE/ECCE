@@ -132,7 +132,7 @@ string RunMgmt::terminate(const TaskJob *calc)
                       launch.machine + " not issued--process not found";
               else {
                 ret = rcmd.commError();
-                if (ret.find("No status returned") != string::npos);
+                if (ret.find("No status returned") != string::npos)
                   ret = "Request to terminate job " + id + " on " +
                         launch.machine + " not issued--process not found";
               }

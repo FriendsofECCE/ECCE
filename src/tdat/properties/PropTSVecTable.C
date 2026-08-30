@@ -246,7 +246,7 @@ void PropTSVecTable::setData(istream& istrm)
    // Add values for one table:
       for (int i=0; i<(p_numRows*p_numColumns); i++)
       {
-        if (!istrm.getline(line,255));
+        if (!istrm.getline(line,255))
           EE_RT_ASSERT(false, EE_WARNING,
                 "size specified in file is greater than the number of values");
 

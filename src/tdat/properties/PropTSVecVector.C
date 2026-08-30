@@ -90,9 +90,19 @@ double PropTSVecVector::value(int vec, int row) const
   // Return the value for the given row/column index
   // Assumes index is within bounds of the vectors
 
-  EE_ASSERT(vec < p_values->size() && (*p_values)[vec].size() < row,
-            EE_FATAL,
-            "trying to access out-of-bounds index in PropTSVecVector")
+  // The original condition here was inverted (`size() < row` instead of
+  // `row < size()`) and EE_FATAL -- meaning every VALID call (row genuinely
+  // in bounds) tripped the assert and exit(1)'d the whole process, while a
+  // genuinely out-of-bounds row (row >= size, expr true) sailed through to
+  // the unguarded access below. Fixed to the correct comparison, and to the
+  // same warn-and-return-early pattern used by every sibling Prop*::value()
+  // accessor in this file family (PropTable, PropVector, PropVecTable, ...).
+  if (vec < 0 || vec >= p_values->size() ||
+      row < 0 || row >= (*p_values)[vec].size()) {
+    EE_RT_ASSERT(false, EE_WARNING,
+                 "trying to access out-of-bounds index in PropTSVecVector");
+    return 0.0;
+  }
 
   return (*p_values)[vec][row];
 }

@@ -76,9 +76,14 @@ string PropVecString::value(int row) const
   // Return the value for the given row index
   // Assumes index is within bounds of the vector
 
-  if (row < 0 || row >= p_values->size())
+  if (row < 0 || row >= p_values->size()) {
+    // Same fall-through-after-warning bug shape fixed in PropTable::value()
+    // -- EE_WARNING doesn't stop execution, so return early instead of
+    // falling through to the unguarded access below.
     EE_RT_ASSERT(false, EE_WARNING,
           "trying to access out-of-bounds index in PropVecString");
+    return "";
+  }
 
   return (*p_values)[row];
 }
@@ -145,7 +150,7 @@ void PropVecString::setData(istream& istrm)
 // Loop through the values, assigning to vector
    for (int i=0; i<numRows; i++)
    {
-     if (!istrm.getline(line,255));
+     if (!istrm.getline(line,255))
        EE_RT_ASSERT(false, EE_FATAL,
              "size specified in file is greater than the number of values");
 

@@ -72,9 +72,14 @@ string PropTSVecString::value(int row) const
   // Return the value for the given row index
   // Assumes index is within bounds of the vector
 
-  if (row < 0 || row >= p_values->size())
+  if (row < 0 || row >= p_values->size()) {
+    // Same fall-through-after-warning bug shape fixed in PropTable::value()
+    // -- EE_WARNING doesn't stop execution, so return early instead of
+    // falling through to the unguarded access below.
     EE_RT_ASSERT(false, EE_WARNING,
                  "trying to access out-of-bounds index in PropTSVecString");
+    return "";
+  }
 
   return (*p_values)[row];
 }

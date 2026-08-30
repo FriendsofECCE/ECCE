@@ -108,9 +108,15 @@ double PropVector::value(int row) const
   // Return the value for the given row index
   // Assumes index is within bounds of the vector
 
-  if (row < 0 || row >= p_values->size())
+  if (row < 0 || row >= p_values->size()) {
+    // EE_WARNING only logs; it doesn't stop execution, so falling through
+    // to the unguarded access below on an out-of-bounds row is a real
+    // crash (vector::operator[] doesn't bounds-check). Same bug shape
+    // fixed in PropTable::value() -- return early instead.
     EE_RT_ASSERT(false, EE_WARNING,
           "trying to access out-of-bounds index in PropVector");
+    return 0.0;
+  }
 
   return (*p_values)[row];
 }
