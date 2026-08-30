@@ -2212,6 +2212,15 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     return;
   }
 
+  // Whether the selected node is itself a calculation -- used below both
+  // to gate the Duplicate items (GitHub #47) and to fold them into this
+  // same "New..." submenu (per feedback on the first version of this fix:
+  // top-level Cut/Copy/Duplicate/etc. is the wrong place for something
+  // that's really "make a new thing from this one").
+  bool isCalculationNode = itemData && itemData->getResource() &&
+      itemData->getResource()->getContentType() ==
+          ResourceDescriptor::CT_CALCULATION;
+
   // build the "new" part of the context menu first
   // the variables to iterate through what "can be contained"
   vector<ResourceType *> resVec;
@@ -2236,8 +2245,17 @@ void CalcMgr::getContextMenu(wxMenu & menu)
         dynamic_cast<Session *>(itemData->getResource())->numMembers() == 0)
       resItor += 5;
   }
+  if (isCalculationNode) {
+    if (!resVec.empty())
+      newMenu->AppendSeparator();
+    newMenu->Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
+    newMenu->Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
+  }
   menu.Append(wxID_NEW, _T("New..."), newMenu);
-  menu.Enable(wxID_NEW, !resVec.empty());
+  // Enable "New..." if there's something to create under this node OR
+  // (a calculation can't contain anything, but still needs "New..."
+  // reachable for Duplicate, which now lives inside it) it's a calculation.
+  menu.Enable(wxID_NEW, !resVec.empty() || isCalculationNode);
   menu.AppendSeparator();
 
   // build the standard part of the context menu
@@ -2274,22 +2292,6 @@ void CalcMgr::getContextMenu(wxMenu & menu)
       item->SetBitmap(wxBitmap(ewxBitmap((*toolItor)->getIcon())
                                .ConvertToImage().Scale(16,16)));
       menu.Append(item);
-    }
-
-    // "Duplicate for Rerun"/"Duplicate Setup with Last Geometry" are only
-    // ever offered from the static Edit menu (see the isCalculation-gated
-    // menuBar->Enable(wxID_DUPLICATE...) block below in updateMenu-style
-    // code) -- not from this dynamic per-resource-type context menu, even
-    // though they're exactly the operations someone right-clicking a
-    // finished calculation is most likely to want (GitHub #47). wxID_
-    // DUPLICATE/wxID_DUPLICATE2 are already wired via EVT_MENU regardless
-    // of which menu dispatches them, so just appending them here is enough.
-    if (itemData && itemData->getResource() &&
-        itemData->getResource()->getContentType() ==
-            ResourceDescriptor::CT_CALCULATION) {
-      menu.AppendSeparator();
-      menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
-      menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
     }
 
     if (p_currentSelection[0].isSystemFolder()) {
