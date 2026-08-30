@@ -12,7 +12,7 @@ here.
 
 After a lot of work, we've finally revived ECCE — it now compiles and
 runs on modern Linux systems again (tested on Debian 13). This is a major
-milestone, and the reason we're at version 8.0.0: we've made a lot of
+milestone, and the reason we're at version 8: we've made a lot of
 changes under the hood to make future maintenance easier, on top of
 bringing the application itself back to life.
 
