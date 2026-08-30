@@ -1312,7 +1312,28 @@ hopToIt:
   // By echoing out $prompt we should be able to work around this and
   // get reliable checks for good logins.
   if (useBash) {
-    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'")) return;
+    // bash's bracketed-paste mode (readline emitting \e[?2004h before
+    // and \e[?2004l after every prompt) breaks every "\r\n+go+"-style
+    // pattern match downstream: it inserts the escape sequence *between*
+    // the \r\n and the prompt text, so the literal "\r\n+go+" adjacency
+    // every match in this file assumes never actually appears in the
+    // raw stream. Confirmed live, directly: a real connection with a
+    // real password succeeded completely (confirmed via an
+    // ECCE_RCOM_LOGMODE trace showing a correct "date" command result),
+    // but exec("date") inside isOpen() still reported failure, and every
+    // report of this looked identical to a wrong password from the
+    // outside (RCommand's own generic "(incorrect password?)" fallback
+    // message) -- unrelated to auth. Only reachable via RCommand's
+    // "shellCommand()"-selected local-shell path (same-domain targets
+    // get spawned as a plain "bash -f", not through ssh -v, which
+    // doesn't hit this), so a purely-ssh-based repro never surfaced it.
+    // Disabling it once, right after setting the prompt, keeps it off
+    // for the rest of the session -- readline re-emits the escape
+    // sequence around every future prompt otherwise, since it's a
+    // per-prompt readline behavior, not a one-time startup message.
+    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; "
+                  "bind 'set enable-bracketed-paste off' 2>/dev/null"))
+      return;
   } else {
     if (!expwrite("unalias precmd; set prompt=+go+; unset echo")) return;
   }
@@ -1721,7 +1742,11 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
   // By echoing out $prompt we should be able to work around this and
   // get reliable checks for good logins.
   if (useBash) {
-    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'")) return false;
+    // See the main constructor's identical setup line above for the
+    // full story on why bracketed-paste mode needs disabling here too.
+    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; "
+                  "bind 'set enable-bracketed-paste off' 2>/dev/null"))
+      return false;
   } else {
     if (!expwrite("unalias precmd; set prompt=+go+; unset echo")) return false;
   }
