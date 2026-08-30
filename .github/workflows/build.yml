@@ -1,11 +1,21 @@
 name: Build
 
-# Compile-only CI: configure + build the C++ tree on each platform. This
-# does NOT package (cpack), install, or run the GUI apps -- that needs a
-# display (Xvfb) and per-user service setup (see GETTING_STARTED.md) that
-# isn't worth the complexity for a build-health check. The goal is early,
-# continuous signal on "does this even compile here", especially for
-# platforms nobody is routinely building on locally.
+# Build + package (cpack) on each platform, uploaded as workflow
+# artifacts. This does NOT install or run the GUI apps -- that needs a
+# display (Xvfb) and per-user service setup (see GETTING_STARTED.md), a
+# lot more complexity than a build-and-package health check warrants.
+# Packaging itself needs neither: cpack just archives already-built
+# binaries, no display involved. The goal is early, continuous signal on
+# "does this even compile (and package) here", especially for platforms
+# nobody is routinely building on locally.
+#
+# RPM packages built here are real .rpm artifacts, but incomplete ones --
+# CPACK_RPM_PACKAGE_REQUIRES (the RPM equivalent of the existing
+# CPACK_DEBIAN_PACKAGE_DEPENDS) isn't set yet, so the package won't
+# auto-pull its runtime deps (apache2 equivalent, activemq, wx python
+# bindings, ...) the way the .deb does. Worth fixing before treating
+# these as real release artifacts, not before treating them as "does
+# cpack's RPM generator work at all here" signal.
 #
 # Target platforms and why:
 #   - Debian: what the primary maintainer actually develops on.
@@ -45,8 +55,8 @@ jobs:
           apt-get install -y \
             build-essential gfortran cmake ninja-build \
             libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
-            libgtk-3-dev libx11-dev libice-dev libxt-dev \
-            default-jdk ant git
+            libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
+            default-jdk ant git dpkg-dev
 
       - uses: actions/checkout@v4
 
@@ -55,6 +65,15 @@ jobs:
 
       - name: Build
         run: cmake --build build-cmake
+
+      - name: Package
+        working-directory: build-cmake
+        run: cpack -G DEB
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ecce-debian-trixie-deb
+          path: build-cmake/*.deb
 
   ubuntu:
     name: Ubuntu (apt)
@@ -68,14 +87,23 @@ jobs:
           sudo apt-get install -y \
             build-essential gfortran cmake ninja-build \
             libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
-            libgtk-3-dev libx11-dev libice-dev libxt-dev \
-            default-jdk ant git
+            libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
+            default-jdk ant git dpkg-dev
 
       - name: Configure
         run: cmake -G Ninja -B build-cmake
 
       - name: Build
         run: cmake --build build-cmake
+
+      - name: Package
+        working-directory: build-cmake
+        run: cpack -G DEB
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ecce-ubuntu-latest-deb
+          path: build-cmake/*.deb
 
   rocky:
     name: Rocky Linux (dnf, RHEL family, containerized)
@@ -92,7 +120,7 @@ jobs:
           # automatically.
           dnf config-manager --set-enabled crb
           dnf install -y \
-            gcc gcc-c++ gcc-gfortran make cmake ninja-build git \
+            gcc gcc-c++ gcc-gfortran make cmake ninja-build git rpm-build \
             wxGTK-devel xerces-c-devel \
             mesa-libGL-devel mesa-libGLU-devel \
             gtk3-devel libX11-devel libICE-devel libXt-devel libjpeg-turbo-devel \
@@ -117,6 +145,15 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: cmake --build build-cmake
 
+      - name: Package
+        working-directory: ${{ github.workspace }}/build-cmake
+        run: cpack -G RPM
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ecce-rockylinux9-rpm
+          path: build-cmake/*.rpm
+
   fedora:
     name: Fedora (dnf, containerized)
     runs-on: ubuntu-latest
@@ -125,7 +162,7 @@ jobs:
       - name: Install build dependencies
         run: |
           dnf install -y \
-            gcc gcc-c++ gcc-gfortran make cmake ninja-build git \
+            gcc gcc-c++ gcc-gfortran make cmake ninja-build git rpm-build \
             wxGTK-devel xerces-c-devel \
             mesa-libGL-devel mesa-libGLU-devel \
             gtk3-devel libX11-devel libICE-devel libXt-devel libjpeg-turbo-devel \
@@ -145,6 +182,15 @@ jobs:
       - name: Build
         working-directory: ${{ github.workspace }}
         run: cmake --build build-cmake
+
+      - name: Package
+        working-directory: ${{ github.workspace }}/build-cmake
+        run: cpack -G RPM
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ecce-fedora-latest-rpm
+          path: build-cmake/*.rpm
 
   macos:
     name: macOS (Homebrew)
