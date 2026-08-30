@@ -8,10 +8,8 @@ computational chemistry calculations.
 PNNL/EMSL stopped supporting ECCE, so we forked the source (with their blessing) and maintain it
 here.
 
-**v8.0.3 — "Phoenix" — 2026-08-30**
-
 After a lot of work, we've finally revived ECCE — it now compiles and
-runs on modern Linux systems again (tested on Debian 13). This is a major
+runs on modern Linux systems again (tested primarily on Debian 13, but also fedora and Rocks.). This is a major
 milestone, and the reason we're at version 8: we've made a lot of
 changes under the hood to make future maintenance easier, on top of
 bringing the application itself back to life.
