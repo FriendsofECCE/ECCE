@@ -1692,7 +1692,21 @@ void initMon(void)
       if (!remoteconn->expwrite(cmd))
         restart("System", remoteconn->commError());
 
-      if (remoteconn->expect1("\r\n") != 1)
+      // A bare "\r\n" pattern matches the FIRST newline anywhere in the
+      // growing read buffer -- confirmed live, directly, as a genuine
+      // race: without artificial delay (e.g. verbose logging enabled,
+      // which happens to add just enough), this consistently matched
+      // way too early against a leftover/unrelated newline, before the
+      // command's own real echo had even fully arrived -- then the
+      // *actual* echo text (which contains this command's own literal
+      // "echo eccejobmonitor_went_bye_bye" suffix) showed up on a
+      // subsequent raw fd read and got misread as eccejobmonitor having
+      // already died, instantly, every time. Anchoring on the full,
+      // known command text instead of a generic "\r\n" removes the
+      // ambiguity outright -- same fix shape as several RCommand.C
+      // fixes earlier today, just needed here too since this is a
+      // separate expect1() call in a different file.
+      if (remoteconn->expect1((cmd + "\r\n").c_str()) != 1)
         restart("System", "Did not receive eccejobmonitor command echo");
 
       if (remoteconn->expect1("\r\n+go+") != 1)
@@ -1717,7 +1731,15 @@ void initMon(void)
         if (!remoteconn->expwrite(cmd))
           restart("System", remoteconn->commError());
 
-        if (remoteconn->expect1("\r\n") != 1)
+        // See the socketComms branch above for the full story: a bare
+        // "\r\n" pattern races against the command's own echo arriving
+        // in multiple reads, confirmed live as the actual root cause of
+        // a "job monitor died instantly" report on every single
+        // attempt (100% reproduction without artificial delay) even
+        // though the real eccejobmonitor process was running correctly
+        // the whole time. Anchoring on the full known command text
+        // removes the race.
+        if (remoteconn->expect1((cmd + "\r\n").c_str()) != 1)
           restart("System", "Did not receive eccejobmonitor command echo");
         else {
           message = "Started job monitor (stdio comms) with command: ";
