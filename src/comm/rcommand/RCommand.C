@@ -2955,41 +2955,43 @@ bool RCommand::execbg(const string& command, string& output,
 
   bool status = false;
 
-  if (!expwrite(command + "&; sleep 2")) return false;
+  // Old approach sent "command&; sleep 2" and hoped an asynchronous
+  // job-control "Exit N" notification would arrive before the next
+  // prompt, on the theory that 2 seconds was "a semi-reliable" window
+  // (GDB's own 2001 comment, quoted in git history) -- and extracted
+  // `output` by text-slicing everything after the command's own echoed
+  // "; sleep 2" text. Confirmed live, directly, that this is broken
+  // under bash run without job control -- every RCommand-spawned
+  // "bash -i" session here reports "no job control in this shell" (see
+  // every login trace this session), so there is no "Exit N" message to
+  // ever catch, and the "; sleep 2" text-slicing produced outright
+  // corrupted output: a real job submission's `output` came back as the
+  // command's own echoed source text, e.g. "./submit__Calculation-5&;
+  // sleep 2" -- which Launch.C's bgFlag job-id parsing (expecting a
+  // "[1] 12345"-style job-control PID notification, per
+  // siteconfig/QueueManagers' Shell manager) then accepted whole-cloth
+  // as the "job id" (its own fallback for "no ']' found" is "use the
+  // untouched string"), corrupting the eccejobmaster launch command
+  // built from it and leaving the calculation stuck with no way to
+  // reconnect job monitoring later.
+  //
+  // $! (PID of the most recently backgrounded job) is a POSIX shell
+  // builtin available in bash, dash, AND csh/tcsh alike, with or
+  // without job control -- unlike a job-control notification, it's
+  // always populated the instant a command is backgrounded, so this
+  // sidesteps the whole "wait and hope" heuristic entirely. Echoing it
+  // immediately with an unambiguous marker (same reasoning as
+  // fileOp()'s TRUE/FALSE redesign) reuses one reliable mechanism
+  // instead of two fragile ones. Launch.C needs no changes: its
+  // existing "no ']' found -> use the string as-is" fallback already
+  // does exactly the right thing with a clean, bare PID.
+  if (!expwrite(command + " & echo RC_EXECBG_PID=$!")) return false;
 
-  // This implementation trades off reliability of the return status for
-  // quick turnaround.  Since the "Exit" message from a background
-  // command is an asynchronous event I would have to wait for a timeout
-  // to occur to be fairly certain the command succeeded.  Even this wouldn't
-  // be guaranteed reliable.  There are also problems relying on the timeout
-  // if the command happens to finish (say an xterm started in the background
-  // that the user immediately closes) before the timeout period elapses.
-  // I do attempt to catch background command exits when the "Exit" comes back
-  // prior to the shell prompt.  But, for the most part, developers using
-  // execbg should not depend on the return value being correct like they
-  // can with the non-background exec methods.
-
-  // GDB 7/15/01  Thought of a little trick to get a semi-reliable return value
-  // from execbg.  If you put the remote connection to sleep just after
-  // issuing the background command then any Exit messages from the command
-  // will be queued and output before the prompt is returned.  It's not 100%
-  // guaranteed reliable (I thought 2 seconds would be the best compromise
-  // between turnaround and reliability) but it is significantly better than
-  // never getting a failure.  This makes the comments above obsolete but I
-  // wanted to preserve them so that all impacts were understood.
-
-  switch (expect2("Exit*\r\n+go+", "\r\n+go+")) {
+  int matchResult = expect1("RC_EXECBG_PID=*\r\n+go+");
+  switch (matchResult) {
     case 1:
-      if (errorMessage != "")
-        p_errMessage = errorMessage;
-      else
-        p_errMessage = "Failed executing background command " + command;
-      break;
-
-    case 2:
-      p_background = true;
       status = true;
-      *exp_match = '\0';
+      p_background = true;
       break;
 
     case EXP_TIMEOUT:
@@ -3003,19 +3005,44 @@ bool RCommand::execbg(const string& command, string& output,
       break;
 
     default:
-      p_errMessage = "Unexpected output executing background command "+ command;
+      if (errorMessage != "")
+        p_errMessage = errorMessage;
+      else
+        p_errMessage = "Failed executing background command " + command;
   }
 
   RCommand::expMungedOutputFix();
 
-  char* line = strstr(exp_buffer, "; sleep 2\r\n");
+  // Extract the marker's value BEFORE truncating exp_buffer at the
+  // match -- unlike execout() (which searches for text that comes
+  // *before* its own match point, so truncating there is harmless),
+  // the PID text here is *inside* the matched region itself, so
+  // truncating first would wipe out exactly the value being extracted.
+  // Confirmed live: this was the actual cause of a first attempt at
+  // this fix coming back with an empty output every time.
+  //
+  // Take the LAST occurrence of the marker, not the first: the buffer
+  // contains it twice -- once in the terminal's own echo of the raw,
+  // unexpanded command text we typed ("echo RC_EXECBG_PID=$!", literal
+  // "$!"), and once in the shell's real, expanded output
+  // ("RC_EXECBG_PID=12345"). strstr()'s first hit is always the echo,
+  // confirmed live: an earlier version of this fix using the first
+  // occurrence captured the literal string "$!" as the "PID" every
+  // single run. Same underlying lesson as fileOp()'s original bug
+  // (matching a command's own echo instead of its real output), just
+  // solved by taking the last hit instead of anchoring on "\r\n".
+  const char* marker = "RC_EXECBG_PID=";
+  char* line = strstr(exp_buffer, marker);
+  char* nextHit;
+  while (line != NULL && (nextHit = strstr(line + 1, marker)) != NULL)
+    line = nextHit;
 
-  if (line != NULL)
-    output = line+11;
-  else if ((line = strstr(exp_buffer, "; sleep 2\r")) != NULL)
-    // this fixes some weird problem that occured on a Dell Linux workstation
-    output = line+12;
-  else if (status)
+  if (line != NULL) {
+    output = line + strlen(marker);
+    string::size_type pos = output.find_first_of("\r\n");
+    if (pos != string::npos)
+      output = output.substr(0, pos);
+  } else if (status)
     output = "";
   else
     output = exp_buffer;

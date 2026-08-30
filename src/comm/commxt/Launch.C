@@ -2129,7 +2129,14 @@ bool Launch::startJobStore(const string& importDir)
       p_lastMessage = "Unable to start eccejobmaster with: " + clientCmd;
     }
 
-    updateState();
+    // updateState() used to run unconditionally here, even when
+    // eccejobmaster failed to start -- confirmed live, directly: this
+    // left a calculation stuck showing "submitted" forever after a
+    // failed launch, with no monitoring process actually running to
+    // ever move it out of that state again. Only advance the state on
+    // an eccejobmaster launch that actually succeeded.
+    if (ret)
+      updateState();
 
     // Write the current authentication cache to a pipe for eccejobmaster
     AuthCache::getCache().pipeOut(pipeName);
