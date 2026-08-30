@@ -265,7 +265,18 @@ bool WxResourceTreeCtrl::loadChildren(WxResourceTreeItemData * node, bool refres
   timer.start();
 #endif
 
-  vector<Resource *> * children = node->getResource()->getChildren(refresh);
+  // getResource() can legitimately return null -- confirmed via a real
+  // core dump, hit during Organizer's own automatic startup tree-load
+  // (mountEDSIProviders() -> autoOpen() -> findNode() -> here), when the
+  // resource failed to load (e.g. the data server wasn't reachable/ready
+  // yet). Previously dereferenced unconditionally.
+  Resource * resource = node->getResource();
+  if (resource == 0) {
+    p_loadingChildren = false;
+    return false;
+  }
+
+  vector<Resource *> * children = resource->getChildren(refresh);
 
 #ifdef cputimetest
   timer.stop();

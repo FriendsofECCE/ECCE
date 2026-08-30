@@ -2165,6 +2165,15 @@ bool CalcMgr::getTypeAndState(WxResourceTreeItemData * itemData,
 
   if (itemData != 0) {
     Resource * res = itemData->getResource();
+    // getResource() can legitimately return null (e.g. the resource
+    // failed to load because the data server wasn't reachable/ready
+    // yet) -- confirmed via a real core dump hit on every cold start,
+    // in TreeEvtHandler::OnSetFocus() -> onSelectionChange() ->
+    // getFileMenu() -> here, same bug shape as the WxResourceTreeCtrl
+    // fix alongside this one.
+    if (res == 0) {
+      return false;
+    }
     resType = res->getDescriptor();
     if (resType == 0) {
       return false;
@@ -4868,7 +4877,10 @@ void CalcMgr::onSelectionChange(bool selectInTree)
   }
   else {
     itemData = findNode(p_currentSelection[0], false, true);
-    if (itemData && itemData->getResource()->hasAccess()) {
+    // getResource() can legitimately be null (e.g. resource failed to
+    // load) -- confirmed via a real core dump hit on cold start, same
+    // bug shape fixed twice already just above this call chain.
+    if (itemData && itemData->getResource() && itemData->getResource()->hasAccess()) {
       bool isProject = (itemData->getResource()->getContentType() ==
                         ResourceDescriptor::CT_PROJECT);
       bool isCalculation = (itemData->getResource()->getContentType() ==
@@ -4959,7 +4971,15 @@ void CalcMgr::focusOnTree()
 {
   p_focusOnTree = true;
   onSelectionChange(false);
-  p_contextPanel->loseFocus();
+  // p_contextPanel can still be null here -- confirmed via a real core
+  // dump: the tree control can receive a GTK focus-in event (wired to
+  // this via TreeEvtHandler::OnSetFocus()) during CalcMgr::Create()
+  // itself, before p_contextPanel has been constructed yet. Same
+  // premature-event-during-construction bug class as the Gateway/
+  // GatewayPrefs layout crashes fixed earlier this session, just hit
+  // via focus instead of size events.
+  if (p_contextPanel != 0)
+    p_contextPanel->loseFocus();
 }
 
 
