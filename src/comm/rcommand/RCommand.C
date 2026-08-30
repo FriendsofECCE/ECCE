@@ -1271,14 +1271,33 @@ hopToIt:
   // after this). Uses expect2() rather than expect1() because we don't
   // have a reliable prompt pattern to anchor on yet -- that's the whole
   // point of the sentinel-prompt command this probe runs before.
+  // This whole login sequence -- including the block below -- also runs
+  // for RCommand("system")/"-f", the *local*-machine connection used to
+  // replace plain system() calls (ESInputController.C, JobStore.C,
+  // Launch.C, ...), not just genuine remote connections: it's a locally
+  // spawned shell talking over a pty, same handshake either way. That's
+  // pre-existing, unrelated to this change. But it means the probe below
+  // -- meant only for the "remote account's login shell might be bash"
+  // problem (Point 2) -- must NOT run for local connections at all: this
+  // was reported live as a hang/error ("Unable to create local command
+  // shell") the very first time this shipped, exactly here. Point 1 (the
+  // local shell) is explicitly a separate, not-yet-started piece of work
+  // (see RCommand::shellCommand()'s locShell-based -fc/-f/-i flag
+  // construction) -- until that's done deliberately, local connections
+  // must behave exactly as they did before this whole feature existed.
+  bool isLocalConnection = (machine == "system" || machine == "-f");
   bool useBash = false;
-  bool forcedBash = (getenv("ECCE_FORCE_BASH_SHELL") != 0);
-  if (!forcedBash) {
+  bool forcedBash = false;
+  if (!isLocalConnection)
+    forcedBash = (getenv("ECCE_FORCE_BASH_SHELL") != 0);
+  if (!isLocalConnection && !forcedBash) {
     RefMachine* forceCheckMachine = RefMachine::refLookup(theMachine);
     if (forceCheckMachine && forceCheckMachine->forceBashShell())
       forcedBash = true;
   }
-  if (forcedBash) {
+  if (isLocalConnection) {
+    useBash = false;
+  } else if (forcedBash) {
     useBash = true;
   } else {
     if (!expwrite("tcsh -c 'echo ECCE_HAS_TCSH' || echo ECCE_NO_TCSH"))
