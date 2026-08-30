@@ -2138,7 +2138,13 @@ bool Launch::startJobStore(const string& importDir)
     }
 
     clientCmd += " -configFile ";
-    clientCmd +=  p_cache->directory + "/eccejobstore.conf &";
+    clientCmd +=  p_cache->directory + "/eccejobstore.conf";
+    // Explicit redirect avoids nohup's own default behavior of writing
+    // a stray nohup.out into Gateway's own working directory (confirmed
+    // live: this is exactly what was creating /home/andy/nohup.out) --
+    // same reasoning as the RCommand::execbg() fix for the compute-job
+    // side of this same nohup pattern.
+    clientCmd += " > /dev/null 2>&1 &";
 
 
 #if (!defined(INSTALL) && defined(DEBUG))

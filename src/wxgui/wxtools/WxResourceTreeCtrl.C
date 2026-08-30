@@ -245,9 +245,31 @@ bool WxResourceTreeCtrl::loadChildren(WxResourceTreeItemData * node, bool refres
   // event back into the application, which can re-enter loadChildren()
   // while an outer call for a different node is still iterating its own
   // children vector below -- corrupting that iteration (confirmed via a
-  // real core dump). The outer call is already correctly populating the
-  // tree; silently declining a reentrant load loses no real work.
-  if (p_loadingChildren) return false;
+  // real core dump).
+  //
+  // Simply declining the reentrant call (as an earlier version of this
+  // fix did) avoids the crash but silently drops real work: this is
+  // usually the ONLY call that will ever load the just-selected node's
+  // own children (findNode()'s own direct loadChildren() calls only
+  // cover nodes further up the path, not the target itself) --
+  // confirmed live: "Show ECCE Internal Files" stopped crashing but
+  // then never actually showed anything, because the load that would
+  // have populated it was the one being declined every time.
+  //
+  // Defer instead of dropping: re-resolve the node by URL (not the raw
+  // pointer, which may not survive to the next idle event) once the
+  // current, still-unwinding call stack is done, and load it then, via
+  // a direct loadChildren() call rather than another findNode() (which
+  // would re-trigger SelectItem() and this same reentrancy).
+  if (p_loadingChildren) {
+    EcceURL deferredUrl = node->getUrl();
+    CallAfter([this, deferredUrl]() {
+      WxResourceTreeItemData * target = findNode(deferredUrl, false, false);
+      if (target != 0)
+        loadChildren(target, false);
+    });
+    return false;
+  }
   p_loadingChildren = true;
 
   // If refresh, clear the children first
