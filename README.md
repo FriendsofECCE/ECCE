@@ -274,6 +274,14 @@ Issues and pull requests are welcome — see the
 a crash or a build failure, a lot of prior investigation may already be
 recorded in `CLAUDE.md`; worth a search before filing something new.
 
+**A note on AI use**: a lot of this modernization effort — including many
+commits, and many of the comments you'll see on issues and pull requests —
+was done with heavy use of Claude (Anthropic's AI assistant), under the
+maintainer's direction and review. We're not hiding this per-comment; this
+note is the disclosure. Treat AI-authored analysis the same as you would
+any other contributor's: useful, but verify anything you're relying on,
+especially root-cause claims in older issue threads.
+
 ## License
 
 See [`LICENSE`](LICENSE).
