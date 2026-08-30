@@ -122,11 +122,24 @@ vector<Resource*> * TaskJob::getChildren(bool refresh)
   vector<Resource*>::iterator resItor;
 
   // Hide the Parameters and Props folder if developer flag is not set
+  //
+  // Both loops here used to call ret->erase(resItor) without reseating
+  // resItor from erase()'s return value -- erase() invalidates the
+  // iterator it's given, so the *next* loop check (resItor != ret->end())
+  // read a dangling iterator, undefined behavior. Confirmed as the real
+  // explanation for internal files (and, without ECCE_DEVELOPER set,
+  // Parameters/Props) never actually appearing even once "Show ECCE
+  // Internal Files" is on and nothing crashes: this UB was silently
+  // dropping whatever child happened to land right after the erased
+  // entry from the rest of the iteration, not just the entry meant to
+  // be filtered. Same bug shape as 16 other sites fixed earlier today
+  // (GUIValues.C, DavEDSI.C, etc.) -- reseat from erase()'s return value
+  // instead of a separate resItor++ outside the erase branch.
   if (userFlag) {
     for (resItor = ret->begin(); resItor != ret->end();) {
       if ((*resItor)->getName() == "Parameters" ||
           (*resItor)->getName() == "Props" ) {
-        ret->erase(resItor);
+        resItor = ret->erase(resItor);
       } else {
         resItor++;
       }
@@ -137,11 +150,11 @@ vector<Resource*> * TaskJob::getChildren(bool refresh)
     for (resItor = ret->begin(); resItor != ret->end();) {
       if ((*resItor)->getName() == "Inputs" ||
           (*resItor)->getName() == "Outputs" ) {
-        ret->erase(resItor);
+        resItor = ret->erase(resItor);
       }
       else if (!userFlag && ((*resItor)->getName() == "Parameters" ||
                              (*resItor)->getName() == "Props" )) {
-        ret->erase(resItor);
+        resItor = ret->erase(resItor);
       } else {
         resItor++;
       }
