@@ -78,6 +78,15 @@ include_directories(
   ${FREETYPE_UNQUALIFIED_INCLUDE_DIR}
 )
 
+if(APPLE)
+  # ~90 files across the tree spell OpenGL headers the Linux/X11 way
+  # ("GL/gl.h", "GL/glu.h") -- Apple's own OpenGL framework headers live
+  # under "OpenGL/" instead. A forwarding shim here (packaging/macos-
+  # compat/GL/{gl,glu}.h) avoids editing every one of those call sites;
+  # placed last so it never shadows a real GL/ dir if one somehow exists.
+  include_directories(AFTER ${CMAKE_SOURCE_DIR}/packaging/macos-compat)
+endif()
+
 set(ECCE_VERSION_RAW "")
 if(EXISTS ${CMAKE_SOURCE_DIR}/data/client/config/Version)
   file(STRINGS ${CMAKE_SOURCE_DIR}/data/client/config/Version ECCE_VERSION_RAW LIMIT_COUNT 1)
