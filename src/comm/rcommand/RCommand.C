@@ -379,7 +379,28 @@ string RCommand::shellCommand(const string& remShell, const string& machine,
   string echoshell = "echo +hi+ && " + locShell + " -f";
 
   static const char* minl  =  "-l";
-  static const char* cmd[] = {"echo", "+hi+", "&&", "", "-i", 0};
+  // bash spawned this way (as the remote command of a real ssh session,
+  // as opposed to the same-domain "local shell" exp_spawnv() shortcut
+  // built from echoshell above) has a confirmed, reproducible bug:
+  // readline duplicates a trailing fragment of a long command line's
+  // echo a second time after the real, correct echo -- and since a
+  // caller's command text can legitimately contain its own "did this
+  // die" marker as a literal substring (e.g. job monitoring's "echo
+  // eccejobmonitor_went_bye_bye"), that duplicate reads as a false
+  // "command already finished" signal. Confirmed live, directly: the
+  // identical test over the "local shell" shortcut (which also runs
+  // bash, just not through ssh) never reproduces this -- so it's
+  // specific to interactive bash under a real pty-forwarded ssh
+  // session, not bash in general. --noediting disables readline
+  // entirely while keeping -i (interactive: reads ~/.bashrc, sets a
+  // default prompt, etc.) intact.
+  // bash requires GNU long options before short options in the same
+  // invocation ("bash -i --noediting" errors with "--: invalid option";
+  // "bash --noediting -i" is the form that actually works) -- confirmed
+  // directly.
+  static const char* cmdBash[] = {"echo", "+hi+", "&&", "", "--noediting", "-i", 0};
+  static const char* cmdOther[] = {"echo", "+hi+", "&&", "", "-i", 0};
+  const char** cmd = (locShell == "bash") ? cmdBash : cmdOther;
   cmd[3] = strdup(locShell.c_str());
 
   // ssh verbose flag for recognizing authentication success/failure
