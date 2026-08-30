@@ -3031,7 +3031,23 @@ bool RCommand::execbg(const string& command, string& output,
   // instead of two fragile ones. Launch.C needs no changes: its
   // existing "no ']' found -> use the string as-is" fallback already
   // does exactly the right thing with a clean, bare PID.
-  if (!expwrite(command + " & echo RC_EXECBG_PID=$!")) return false;
+  // nohup: without it, the backgrounded command is still a member of
+  // this connection's own session -- if the connection closes (e.g.
+  // RCommand's destructor runs once Launch::doLaunch() returns) while
+  // the command is still running, it gets SIGHUP'd along with
+  // everything else in that session. Confirmed live: a real, longer-
+  // running job submitted this way died mid-computation with the
+  // compute code's own crash log reporting "Error: hangup" -- neither
+  // this call nor the generated submit script itself
+  // (Launch::generateJobSubmissionFile()) had ever protected against
+  // this, it just was never exercised long enough to matter until job
+  // submission started reliably working today. Explicit redirect avoids
+  // nohup's own default behavior of creating a stray nohup.out in the
+  // run directory when stdout isn't already redirected -- this command
+  // already handles its own output via generated shell-script
+  // redirects, nothing here needs to see it.
+  if (!expwrite("nohup " + command + " > /dev/null 2>&1 & echo RC_EXECBG_PID=$!"))
+    return false;
 
   int matchResult = expect1("RC_EXECBG_PID=*\r\n+go+");
   switch (matchResult) {
