@@ -528,6 +528,15 @@ bool Launch::validateRemoteLogin(void)
     ret = p_connection->isOpen();
     if (!ret)
       p_lastMessage = p_connection->commError();
+    else
+      // Surfaces which shell dialect this connection actually ended up
+      // using, in the same status area that already shows "Job id is
+      // ..." via p_infoMessage below -- requested directly (issue #61)
+      // after several rounds of live debugging where the *only* way to
+      // tell bash from csh/tcsh was to read a raw connection trace.
+      p_infoMessage = "Connected (" +
+        string(p_connection->remoteShellIsBash() ? "bash" : "csh/tcsh") +
+        " shell)";
   }
 
   return ret;
