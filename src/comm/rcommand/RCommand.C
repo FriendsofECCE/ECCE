@@ -35,6 +35,7 @@
 #include "util/Ecce.H"
 
 #include "tdat/AuthCache.H"
+#include "tdat/RefMachine.H"
 
 #include "comm/RCommand.H"
 
@@ -949,6 +950,7 @@ RCommand::RCommand(const string& machine, const string& remShell,
   p_connected = false;
   p_background = false;
   p_hopCount = 0;
+  p_remoteBash = false;
 
   if (getenv("ECCE_RCOM_DEBUGGING"))
     exp_is_debugging = 1;
@@ -1246,6 +1248,55 @@ hopToIt:
     if (!expwrite(cmd)) return;
   }
 
+  // Which dialect is actually listening on the other end of this
+  // connection? Historically this whole login sequence assumed csh/tcsh
+  // unconditionally -- fine as long as the remote account's login shell
+  // actually is tcsh, broken (silently: setenv/if ($?VAR) is invalid bash
+  // syntax) if it's bash instead, which is entirely outside ECCE's
+  // control on a shared cluster account. Bash support is new and
+  // EXPERIMENTAL -- only takes effect when tcsh genuinely isn't available,
+  // or when explicitly forced (for testing this code path without needing
+  // an actual bash-only machine to test against).
+  //
+  // Forcing: RefMachine's "forceBashShell: true" config key (no GUI for
+  // this yet -- hand-edit the machine's CONFIG file), or the
+  // ECCE_FORCE_BASH_SHELL env var (quicker for ad-hoc testing, no machine
+  // registration needed). Either skips detection entirely.
+  //
+  // Auto-detection: probe with a command that is valid, and behaves
+  // identically, whether the shell that answers it is bash or tcsh --
+  // pure variable expansion and command chaining, no dialect-specific
+  // syntax -- so it's safe to send before we've committed to any
+  // dialect-specific syntax (including the sentinel-prompt command right
+  // after this). Uses expect2() rather than expect1() because we don't
+  // have a reliable prompt pattern to anchor on yet -- that's the whole
+  // point of the sentinel-prompt command this probe runs before.
+  bool useBash = false;
+  bool forcedBash = (getenv("ECCE_FORCE_BASH_SHELL") != 0);
+  if (!forcedBash) {
+    RefMachine* forceCheckMachine = RefMachine::refLookup(theMachine);
+    if (forceCheckMachine && forceCheckMachine->forceBashShell())
+      forcedBash = true;
+  }
+  if (forcedBash) {
+    useBash = true;
+  } else {
+    if (!expwrite("tcsh -c 'echo ECCE_HAS_TCSH' || echo ECCE_NO_TCSH"))
+      return;
+    // Patterns are anchored on a leading \r\n (matching every other
+    // expect1() call in this function below) so the match can only land
+    // on the command's actual output, printed on its own fresh line --
+    // not on the terminal's live echo of the command we just typed, which
+    // contains the literal substring "ECCE_HAS_TCSH" mid-line as part of
+    // the command text itself and would otherwise false-positive on every
+    // single connection regardless of whether tcsh is really there.
+    // Default to tcsh (today's long-tested behavior) if detection itself
+    // is inconclusive -- e.g. expect2() times out/loses the connection --
+    // rather than gambling on the new, less-tested bash path.
+    useBash = (expect2("\r\nECCE_HAS_TCSH", "\r\nECCE_NO_TCSH") == 2);
+  }
+  p_remoteBash = useBash;
+
   // Login failure is caught by trying to set the prompt.
   // Can't parse for a successful login without the expwrite because I don't
   // know what the prompt might be if the user overrides the default "%" in
@@ -1256,7 +1307,11 @@ hopToIt:
   // on a line with other output instead of by itself as it should elsewhere.
   // By echoing out $prompt we should be able to work around this and
   // get reliable checks for good logins.
-  if (!expwrite("unalias precmd; set prompt=+go+; unset echo")) return;
+  if (useBash) {
+    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'")) return;
+  } else {
+    if (!expwrite("unalias precmd; set prompt=+go+; unset echo")) return;
+  }
   if (expect1("+go+$") != 1) {
     p_errMessage =
       "Unsuccessful remote shell login--invalid username or password";
@@ -1269,14 +1324,17 @@ hopToIt:
   // Set timeout back to normal
   exp_timeout = RC_EXEC_TIMEOUT;
 
-  if (!expwrite("unalias *")) return;
-  if (expect1("\r\n+go+$") != 1) {
-    p_errMessage = "Unsuccessful remote shell login--unalias * failed";
-    return;
+  if (!useBash) {
+    if (!expwrite("unalias *")) return;
+    if (expect1("\r\n+go+$") != 1) {
+      p_errMessage = "Unsuccessful remote shell login--unalias * failed";
+      return;
+    }
   }
 
   if (p_shell == "telnet") {
-    if (!expwrite("setenv TERM xterm")) return;
+    cmd = useBash ? "export TERM=xterm" : "setenv TERM xterm";
+    if (!expwrite(cmd)) return;
     if (expect1("\r\n+go+$") != 1) {
       p_errMessage = "Unsuccessful telnet login--setenv TERM xterm failed";
       return;
@@ -1285,45 +1343,70 @@ hopToIt:
 
   // set $PATH
   if (shellPath != "") {
-    cmd = "if ($?PATH) setenv PATH \"" + shellPath + ":${PATH}\"";
-    if (!expwrite(cmd)) return;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful remote shell login--setenv PATH " +
-                     shellPath + ":${PATH} failed";
-      return;
-    }
-    cmd = "if ($?PATH == 0) setenv PATH \"" + shellPath + "\"";
-    if (!expwrite(cmd)) return;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful remote shell login--setenv PATH " +
-                     shellPath + " failed";
-      return;
+    if (useBash) {
+      // Safe even if $PATH happens to be unset (prefix + trailing colon,
+      // harmless) -- no need for tcsh's two-branch $?PATH existence check.
+      cmd = "export PATH=\"" + shellPath + ":${PATH}\"";
+      if (!expwrite(cmd)) return;
+      if (expect1("\r\n+go+$") != 1) {
+        p_errMessage = "Unsuccessful remote shell login--export PATH " +
+                       shellPath + ":${PATH} failed";
+        return;
+      }
+    } else {
+      cmd = "if ($?PATH) setenv PATH \"" + shellPath + ":${PATH}\"";
+      if (!expwrite(cmd)) return;
+      if (expect1("\r\n+go+$") != 1) {
+        p_errMessage = "Unsuccessful remote shell login--setenv PATH " +
+                       shellPath + ":${PATH} failed";
+        return;
+      }
+      cmd = "if ($?PATH == 0) setenv PATH \"" + shellPath + "\"";
+      if (!expwrite(cmd)) return;
+      if (expect1("\r\n+go+$") != 1) {
+        p_errMessage = "Unsuccessful remote shell login--setenv PATH " +
+                       shellPath + " failed";
+        return;
+      }
     }
   }
 
   // set $LD_LIBRARY_PATH
   if (libPath != "") {
-    cmd = "if ($?LD_LIBRARY_PATH) setenv LD_LIBRARY_PATH \"" +
-          libPath + ":${LD_LIBRARY_PATH}\"";
-    if (!expwrite(cmd)) return;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful remote shell login--setenv LD_LIBRARY_PATH "+
-                     libPath + ":${LD_LIBRARY_PATH} failed";
-      return;
-    }
-    cmd = "if ($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH \"" +
-                     libPath + "\"";
-    if (!expwrite(cmd)) return;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful remote shell login--setenv LD_LIBRARY_PATH "+
-                     libPath + " failed";
-      return;
+    if (useBash) {
+      cmd = "export LD_LIBRARY_PATH=\"" + libPath + ":${LD_LIBRARY_PATH}\"";
+      if (!expwrite(cmd)) return;
+      if (expect1("\r\n+go+$") != 1) {
+        p_errMessage =
+          "Unsuccessful remote shell login--export LD_LIBRARY_PATH "+
+          libPath + ":${LD_LIBRARY_PATH} failed";
+        return;
+      }
+    } else {
+      cmd = "if ($?LD_LIBRARY_PATH) setenv LD_LIBRARY_PATH \"" +
+            libPath + ":${LD_LIBRARY_PATH}\"";
+      if (!expwrite(cmd)) return;
+      if (expect1("\r\n+go+$") != 1) {
+        p_errMessage = "Unsuccessful remote shell login--setenv LD_LIBRARY_PATH "+
+                       libPath + ":${LD_LIBRARY_PATH} failed";
+        return;
+      }
+      cmd = "if ($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH \"" +
+                       libPath + "\"";
+      if (!expwrite(cmd)) return;
+      if (expect1("\r\n+go+$") != 1) {
+        p_errMessage = "Unsuccessful remote shell login--setenv LD_LIBRARY_PATH "+
+                       libPath + " failed";
+        return;
+      }
     }
   }
 
   // source file, if specified
   if (sourceFile != "") {
-    cmd = "if (-e " + sourceFile + ") source " + sourceFile;
+    cmd = useBash ?
+      ("[ -e " + sourceFile + " ] && source " + sourceFile) :
+      ("if (-e " + sourceFile + ") source " + sourceFile);
     if (!expwrite(cmd)) return;
     if (expect1("\r\n+go+$") != 1) {
       p_errMessage = "Unsuccessful remote shell login--source " +
@@ -2837,6 +2920,11 @@ bool RCommand::execbg(const string& command, string& output,
     output = exp_buffer;
 
   return status;
+}
+
+bool RCommand::remoteShellIsBash(void) const
+{
+  return p_remoteBash;
 }
 
 bool RCommand::isOpen(void)
