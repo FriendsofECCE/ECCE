@@ -52,7 +52,10 @@ private:
 };
 
 
-class GUIValues : public map<const string, GUIValue*, less<string> >
+// "string", not "const string" -- see DavPropCache.H for why: std::map
+// already makes keys const internally, and the explicit const here is
+// redundant at best, iterator-type-breaking on newer libc++ at worst.
+class GUIValues : public map<string, GUIValue*, less<string> >
 {
 public:
   GUIValues();

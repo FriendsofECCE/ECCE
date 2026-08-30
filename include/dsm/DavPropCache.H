@@ -33,7 +33,17 @@ class EDSI;
 class VDoc;
 class PropertyDoc;
 
-typedef   map<const string, int, less<string> > TSSTEPS;
+// Deliberately "string", not "const string" -- std::map already makes
+// keys const internally (value_type is pair<const Key, T>), so the
+// explicit const here was always redundant. On newer libc++ (confirmed:
+// Xcode 26.6 on macOS CI) it's worse than redundant: map<const string,
+// int> is treated as a genuinely different, iterator-incompatible type
+// from plain map<string, int>, breaking every "map<string, int,
+// less<string>>::iterator" declaration in DavPropCache.C that assigns
+// from p_tspropsteps.find()/.end(). libstdc++ (Linux) tolerated it;
+// libc++ does not. Not observed as a runtime bug anywhere -- purely a
+// stricter-toolchain compile break.
+typedef   map<string, int, less<string> > TSSTEPS;
 
 class DavPropCache : public IPropCache {
 
