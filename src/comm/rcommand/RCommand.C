@@ -2714,9 +2714,25 @@ bool RCommand::executable(const string& filename)
 
 bool RCommand::cd(const string& directory)
 {
-  // Because cd is interpreted by the C shell it doesn't work to append an
-  // echo $status to the end.  The only way to recognize success is to check
-  // if exists and then cd to it checking if an error string is output.
+  // Old comment here claimed "cd is interpreted by the C shell [so] it
+  // doesn't work to append an echo $status to the end", and instead
+  // hand-rolled success detection by literal-text-matching the command's
+  // own echo in exp_buffer and checking whether anything followed it.
+  // Confirmed live, directly, that this hand-rolled check is simply
+  // broken under bash: a `cd /tmp` that provably succeeded (confirmed
+  // via a follow-up `pwd` genuinely showing /tmp) was still reported as
+  // a failure -- exp_buffer's post-match state after expect1()'s own
+  // "\r\n+go+$" truncation doesn't leave the buffer in the shape this
+  // code assumed. Same bug class as the old fileOp() -- reinventing
+  // success detection instead of using the one mechanism (execout()'s
+  // $?/$status check) already proven reliable throughout this whole
+  // session's real job launches. `cd` is a shell builtin in bash, dash,
+  // AND csh/tcsh alike, and all of them set $?/$status from it just
+  // like any other command -- there's no actual C-shell-specific
+  // limitation here. Running it via execout() (no subshell involved,
+  // since this is one command line sent to the existing persistent
+  // remote shell) changes that shell's real working directory exactly
+  // as before, it just detects success correctly now.
 
   if (!p_connected) return false;
 
@@ -2726,33 +2742,13 @@ bool RCommand::cd(const string& directory)
     return false;
   }
 
-  string cdcmd = "cd " + directory;
-
-  if (!expwrite(cdcmd)) return false;
-  switch (expect1("\r\n+go+$")) {
-    case 1:
-      *exp_match = '\0';
-      break;
-
-    case EXP_EOF:
-      p_errMessage = "Unexpected termination of remote shell executing cd to "
-                     + directory;
-      break;
-
-    case EXP_TIMEOUT:
-      p_errMessage = "Unexpected timeout executing cd to " + directory;
-      break;
-
-    default:
-      p_errMessage = "Unexpected output executing cd to " + directory;
+  string output;
+  if (!execout("cd " + directory, output)) {
+    p_errMessage = "Unable to cd to " + directory;
+    return false;
   }
 
-  cdcmd += "\r\n";
-  RCommand::expMungedOutputFix();
-  char* line = strstr(exp_buffer, cdcmd.c_str());
-  string output = (line != NULL)? line+cdcmd.length(): "";
-
-  return output=="";
+  return true;
 }
 
 bool RCommand::which(const string& filename, string& path)
