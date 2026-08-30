@@ -227,7 +227,10 @@ int csocket_openServer(
 
   /* Let the socket be reused right away */
   setsockopt(s->sock_, SOL_SOCKET, SO_REUSEADDR, (char *) &on, sizeof(on));
-  if (bind(s->sock_, (struct sockaddr *) &(s->addr_), sizeof(s->addr_) )
+  // ::-qualified defensively, same reasoning as the JMSSubscriber.C fix:
+  // avoids any ambiguity with std::bind on toolchains that resolve it
+  // more aggressively than expected.
+  if (::bind(s->sock_, (struct sockaddr *) &(s->addr_), sizeof(s->addr_) )
       == -1)
   {
 #ifdef DEBUG

@@ -66,7 +66,12 @@ void JMSSubscriber::initSocket() {
     addIN.sin_port        = htons(0); // let the port get chosen dynamically
     addIN.sin_addr.s_addr = INADDR_ANY;
     
-    if ( bind(s, (struct sockaddr *)&addIN, sizeof(addIN) ) < 0 ) {
+    // Explicitly ::-qualified: this file has "using namespace std;" above,
+    // and newer libc++ (confirmed: Xcode 26.6 on macOS CI) resolves the
+    // unqualified call as ambiguous with std::bind() instead of clearly
+    // preferring the POSIX socket function -- a real macOS build break,
+    // not present on the Linux toolchains that don't hit this ambiguity.
+    if ( ::bind(s, (struct sockaddr *)&addIN, sizeof(addIN) ) < 0 ) {
       perror (("Can't bind subscriber socket for + " + getMyName()).c_str());
       close(s);
 
