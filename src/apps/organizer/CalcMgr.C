@@ -2275,6 +2275,23 @@ void CalcMgr::getContextMenu(wxMenu & menu)
                                .ConvertToImage().Scale(16,16)));
       menu.Append(item);
     }
+
+    // "Duplicate for Rerun"/"Duplicate Setup with Last Geometry" are only
+    // ever offered from the static Edit menu (see the isCalculation-gated
+    // menuBar->Enable(wxID_DUPLICATE...) block below in updateMenu-style
+    // code) -- not from this dynamic per-resource-type context menu, even
+    // though they're exactly the operations someone right-clicking a
+    // finished calculation is most likely to want (GitHub #47). wxID_
+    // DUPLICATE/wxID_DUPLICATE2 are already wired via EVT_MENU regardless
+    // of which menu dispatches them, so just appending them here is enough.
+    if (itemData && itemData->getResource() &&
+        itemData->getResource()->getContentType() ==
+            ResourceDescriptor::CT_CALCULATION) {
+      menu.AppendSeparator();
+      menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
+      menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
+    }
+
     if (p_currentSelection[0].isSystemFolder()) {
       menu.Enable(wxID_CUT, false);
       menu.Enable(wxID_RENAME, false);

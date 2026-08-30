@@ -247,8 +247,7 @@
     <Relationships>
       <Containment>
         <Contains>
-          <ContainsResource name="project"/>
-        </Contains>
+          </Contains>
         <ContainedBy>
           <ContainedByResource name="project"/>
         </ContainedBy>
@@ -504,8 +503,7 @@
     <Relationships>
       <Containment>
         <Contains>
-          <ContainsResource name="project"/>
-        </Contains>
+          </Contains>
         <ContainedBy>
           <ContianedByResource name="project"/>
         </ContainedBy>
@@ -760,8 +758,7 @@
     <Relationships>
       <Containment>
         <Contains>
-          <ContainsResource name="project"/>
-        </Contains>
+          </Contains>
         <ContainedBy>
           <ContianedByResource name="project"/>
         </ContainedBy>
@@ -1015,8 +1012,7 @@
     <Relationships>
       <Containment>
         <Contains>
-          <ContainsResource name="project"/>
-        </Contains>
+          </Contains>
         <ContainedBy>
           <ContainedByResource name="project"/>
         </ContainedBy>
@@ -2300,8 +2296,7 @@
     <Relationships>
       <Containment>
         <Contains>
-          <ContainsResource name="project"/>
-        </Contains>
+          </Contains>
         <ContainedBy>
           <ContainedByResource name="condensed_reaction_study"/>
         </ContainedBy>
@@ -2441,8 +2436,7 @@
     <Relationships>
       <Containment>
         <Contains>
-          <ContainsResource name="project"/>
-        </Contains>
+          </Contains>
         <ContainedBy>
           <ContainedByResource name="gas_reaction_study"/>
         </ContainedBy>
@@ -2661,8 +2655,7 @@
     <Relationships>
       <Containment>
         <Contains>
-          <ContainsResource name="project"/>
-        </Contains>
+          </Contains>
         <ContainedBy>
           <ContainedByResource name="gas_reaction_study"/>
         </ContainedBy>
