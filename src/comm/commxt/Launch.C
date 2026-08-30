@@ -503,7 +503,13 @@ bool Launch::validateRemoteLogin(void)
   RefMachine* refMachine = RefMachine::refLookup(p_cache->machineName);
   if (refMachine != (RefMachine*)0) {
     p_cache->fullMachineName = refMachine->fullname();
-    string locShell = refMachine->shell();
+    // See the launcher's "Use csh/tcsh" checkbox for the full story --
+    // a real, confirmed bug where bash spawned over a real ssh
+    // connection (not the same-domain "local shell" shortcut) can
+    // duplicate its own command echo, which downstream code can misread
+    // as the command having already finished/died. Checked by default.
+    string locShell = ((*p_options)["##forcecsh##"] == "true") ?
+                       "csh" : refMachine->shell();
     string shellPath = refMachine->shellPath();
     string libPath = refMachine->libPath();
     string sourceFile = refMachine->sourceFile();
@@ -1049,6 +1055,13 @@ bool Launch::generateJobMonitoringFiles(void)
     storeConfigFile << "codeName: " << p_cache->appName << endl;
     storeConfigFile << "remoteDir: " << p_cache->remoteDir << endl;
     storeConfigFile << "remoteShell: " << p_cache->remoteShell << endl;
+    // See the launcher's "Use csh/tcsh" checkbox and validateRemoteLogin()
+    // for the full story -- eccejobstore runs as a separate process and
+    // does its own RefMachine::shell() lookup for job monitoring's
+    // connection, so the launcher's own choice has to be handed down
+    // through this config file to actually apply there too.
+    if ((*p_options)["##forcecsh##"] == "true")
+      storeConfigFile << "forceShell: csh" << endl;
     storeConfigFile << "userName: " << p_cache->userName << endl;
     storeConfigFile << "importDir: " << p_cache->importDir << endl;
     if (p_cache->mdStoreTrj == 1)

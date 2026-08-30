@@ -46,6 +46,7 @@
 
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxButton.H"
+#include "wxgui/ewxCheckBox.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxMenuBar.H"
 #include "wxgui/ewxMenuItem.H"
@@ -235,6 +236,8 @@ void WxLauncher::createControls()
     p_calcDrctyTextCtrl     =     (ewxTextCtrl *)(FindWindow(ID_TEXTCTRL_WXLAUNCHER_CALCDIR));
     p_scratchDrctyPanel     =        (ewxPanel *)(FindWindow(ID_PANEL_WXLAUNCHER_SCRATCHDIR));
     p_scratchDrctyTextCtrl  =     (ewxTextCtrl *)(FindWindow(ID_TEXTCTRL_WXLAUNCHER_SCRATCHDIR));
+
+    p_forceCshCheckBox      =    (ewxCheckBox *)(FindWindow(ID_CHECKBOX_WXLAUNCHER_FORCECSH));
 
     p_launchButton          =       (ewxButton *)(FindWindow(ID_BUTTON_WXLAUNCHER_LAUNCH));
     p_launchButton->Enable(false);
@@ -2310,6 +2313,17 @@ void WxLauncher::buildArgs(EcceMap& kvargs)
           kvargs["##password2##"] = ptext2;
         }
     }
+
+    // Checked (default) forces csh/tcsh for this launch's connections
+    // regardless of the machine's configured shell -- see
+    // Launch::validateRemoteLogin(). Added as a stopgap after a real,
+    // confirmed bug: bash spawned over a real ssh session (not the
+    // same-domain "local shell" shortcut) intermittently duplicates its
+    // own command echo, which job monitoring misreads as the job having
+    // died instantly. csh over the same ssh path doesn't hit this.
+    // Uncheck only to test/troubleshoot bash specifically.
+    if (p_forceCshCheckBox != 0)
+        kvargs["##forcecsh##"] = p_forceCshCheckBox->GetValue() ? "true" : "false";
 
     if (ldat.remoteShell.find("Globus") != string::npos)
         kvargs["##globus##"] = "true";

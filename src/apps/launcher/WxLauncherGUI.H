@@ -223,6 +223,7 @@ public:
     static const wxWindowID ID_PANEL_WXLAUNCHER_CALCDIR;
     static const wxWindowID ID_PARAMEDIT_WXLAUNCHER_MINSCRATCH;
     static const wxWindowID ID_CHOICE_WXLAUNCHER_QUEUE;
+    static const wxWindowID ID_CHECKBOX_WXLAUNCHER_FORCECSH;
     static const wxWindowID ID_BUTTON_WXLAUNCHER_LAUNCH;
     static const wxWindowID ID_PANEL_WXLAUNCHER_MAXMEMORY;
     static const wxWindowID ID_MENUITEM_WXLAUNCHER_HELPSUPPORT;

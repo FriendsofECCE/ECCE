@@ -31,6 +31,7 @@
 #include "WxLauncherGUI.H"
 
 class ewxButton;
+class ewxCheckBox;
 class ewxChoice;
 class ewxMenuItem;
 class ewxPanel;
@@ -270,6 +271,7 @@ class WxLauncher : public WxLauncherGUI,
         ewxPanel            *p_scratchDrctyPanel;
         ewxTextCtrl         *p_scratchDrctyTextCtrl;
 
+        ewxCheckBox         *p_forceCshCheckBox;
         ewxButton           *p_launchButton;
 
         ewxMenuItem         *p_jobSaveMenuItem;

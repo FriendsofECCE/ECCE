@@ -232,6 +232,7 @@ static string cpServerRef;
 static string cpServerName;
 static string cpRemoteShell;
 static string cpLocalShell;
+static string cpForceShell;
 static string cpUserName;
 static string cpImportDir;
 static string cpMdStoreTrj;
@@ -706,6 +707,10 @@ void configRead(const string& fileName)
   if (!param->findValue("remoteShell", cpRemoteShell)) {
     message += "\nMissing 'remoteShell' parameter";
   }
+  // Optional -- only present when the launcher's "Use csh/tcsh" checkbox
+  // was ticked. See Launch::generateJobMonitoringFiles() and
+  // validateRemoteLogin() for the full story.
+  (void)param->findValue("forceShell", cpForceShell);
   if (!param->findValue("userName", cpUserName)) {
     message += "\nMissing 'userName' parameter";
   }
@@ -1586,7 +1591,7 @@ void initConn(void)
 
   logMessage("Compute Server", message);
 
-  cpLocalShell = refMachine->shell();
+  cpLocalShell = (cpForceShell != "") ? cpForceShell : refMachine->shell();
 
   string shellPath = refMachine->shellPath();
   string libPath = refMachine->libPath();
