@@ -474,6 +474,21 @@ if(EXISTS ${_ecce_help_tarball})
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp
     COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp
             ${CMAKE_COMMAND} -E tar xf ${_ecce_help_tarball}
+    # The vendored tarball itself ships 3 genuinely corrupt entries under
+    # basis/ and builder/ -- filenames containing literal HTML markup
+    # (quotes, "<", ">", spaces, e.g. `overview_top"> <!-- #begineditable
+    # "title.html`), not real help pages. Confirmed via `tar tf` against
+    # the tarball directly -- this is decades-old corruption in the
+    # vendored PNNL content itself, not something this build introduced.
+    # Harmless for a DEB build (dpkg-deb tolerates the odd filename) but
+    # a real, reproducible CI failure for RPM packaging specifically
+    # ("CPack Error: Problem compressing the directory" -- rpmbuild's
+    # file-list handling rejects them outright), and not guaranteed safe
+    # on every filesystem/locale a DEB build might run under either.
+    # None of these 3 files are reachable from help.urls or any real
+    # navigation path (their "content" is a stray HTML comment fragment,
+    # not a page), so deleting them costs nothing.
+    COMMAND bash -c "find '${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp' -name '*begineditable*' -delete"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Extracting vendored ECCE help content"
   )
