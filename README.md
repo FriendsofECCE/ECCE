@@ -25,36 +25,7 @@ bringing the application itself back to life.
 
 ![Viewer](docs/screenshots/viewer.png)
 
-## What's new in v8.0.1
-
-Real bug fixes and small new functionality on top of v8.0.0's from-scratch
-modernization, found and fixed during live use:
-
-* **Fixed**: a 9-year-old crash opening DirDyVTST's Theory Details dialog
-  (an argument-position mismatch between the C++ caller and the Python
-  dialog script).
-* **Fixed**: a family of out-of-bounds crashes across 8 property-table
-  classes used to display MO/energy/geometry data, plus 6 copy-pasted
-  variants of the same bug shape.
-* **Fixed**: Organizer's right-click menu on a calculation offered a
-  nonsensical "New → Project" option (a copy-paste artifact); added
-  Duplicate-for-rerun to the same context menu.
-* **Fixed**: a 2013-era reported bug where creating a new item under a
-  shared parent directory silently collapsed unrelated sibling
-  directories elsewhere in the Organizer tree.
-* **Fixed**: two build dependencies (`libxt-dev`, `libjpeg-dev`) that
-  were never actually declared, only working on Debian by transitive
-  luck via other packages.
-* **New**: Gateway has a "Quit and Stop Server" exit option, not just
-  plain "Quit".
-* **New**: remote machine connections support bash login shells as well
-  as tcsh (experimental — tcsh remains the default, long-tested path).
-* **Removed from menus** (reversibly — code kept, easy to restore):
-  AMICA, Gaussian-03, Gaussian-98, MetaDyn, no longer actively
-  maintained/relevant.
-* **Infrastructure**: CI now builds and packages (DEB/RPM) this on
-  Debian, Ubuntu, Fedora, and Rocky Linux on every push. Windows
-  guidance added: use WSL2, not Cygwin or a native build.
+## For changes past 8.0.0, see the release notes for the specific release.
 
 ## What's new in v8.0.0
 
