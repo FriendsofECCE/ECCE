@@ -332,14 +332,21 @@ void CalcEdGUI::CreateControls()
     wxBoxSizer* itemBoxSizer46 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer45->Add(itemBoxSizer46, 0, wxALIGN_LEFT, 5);
 
-    ewxButton* itemButton47 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_BASIS_QUICK, _("Quick Basis Menu"), wxDefaultPosition, wxDefaultSize, 0 );
     // The trailing literal "V" this label used to end with was a plain-text
     // stand-in for a dropdown-arrow indicator (predates reliable Unicode
-    // glyph rendering) -- replaced with the same down-arrow bitmap already
-    // used elsewhere in the app (e.g. MDPrepGUI's reorder buttons) instead
-    // of another ad hoc text character.
-    itemButton47->SetBitmap(ewxBitmap(_T("1downarrow.xpm"), wxBITMAP_TYPE_XPM));
-    itemButton47->SetBitmapPosition(wxRIGHT);
+    // glyph rendering). A later fix replaced that with 1downarrow.xpm (a
+    // glossy, gradient-shaded orange orb -- 2000s "Web 2.0 gel button"
+    // style icon art, not a flat chevron), reasoning that Unicode glyph
+    // rendering was unreliable at the time -- but on the current wx3.2/
+    // GTK3 target that's no longer true, and the mismatch between that
+    // icon's heavy skeuomorphic styling and the flat native dropdown
+    // arrows GTK3 draws on every wxChoice/wxComboBox elsewhere on this
+    // same panel (Theory, Runtype, Charge, Spin Mult) looked exactly as
+    // out of place as reported. Using a real Unicode down-triangle
+    // (U+25BC) in the label instead renders with the system font/theme,
+    // like every other piece of text in the app, instead of a hand-drawn
+    // raster asset.
+    ewxButton* itemButton47 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_BASIS_QUICK, _("Quick Basis Menu ▼"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer46->Add(itemButton47, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxCheckBox* itemCheckBox48 = new ewxCheckBox( itemFrame1, ID_CHECKBOX_CALCED_USE_EXPONENTS, _("Use Exponents\n&& Coefficients"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
