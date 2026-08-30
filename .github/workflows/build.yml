@@ -95,7 +95,7 @@ jobs:
             gcc gcc-c++ gcc-gfortran make cmake ninja-build git \
             wxGTK-devel xerces-c-devel \
             mesa-libGL-devel mesa-libGLU-devel \
-            gtk3-devel libX11-devel libICE-devel libXt-devel \
+            gtk3-devel libX11-devel libICE-devel libXt-devel libjpeg-turbo-devel \
             java-latest-openjdk-devel ant
 
       # actions/checkout doesn't work reliably inside an arbitrary
@@ -128,7 +128,7 @@ jobs:
             gcc gcc-c++ gcc-gfortran make cmake ninja-build git \
             wxGTK-devel xerces-c-devel \
             mesa-libGL-devel mesa-libGLU-devel \
-            gtk3-devel libX11-devel libICE-devel libXt-devel \
+            gtk3-devel libX11-devel libICE-devel libXt-devel libjpeg-turbo-devel \
             java-latest-openjdk-devel ant
 
       - name: Check out source

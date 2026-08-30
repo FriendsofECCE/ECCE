@@ -133,6 +133,18 @@ ecce_library(ecceexp    src/comm/expect)
 # Tcl/Expect code's WAIT_STATUS_TYPE macro defaults to the BSD "union wait" type,
 # which glibc has never provided on Linux - NO_UNION_WAIT selects plain "int").
 target_compile_definitions(ecceexp PRIVATE NO_UNION_WAIT)
+# This vendored ~1990s Expect/Tcl C code is riddled with K&R-style empty-
+# parens forward declarations (e.g. `char *exp_printify();`) later defined
+# and called with real arguments -- valid, unambiguous C when empty parens
+# mean "unspecified arguments" (K&R/C89 through GNU's default extensions),
+# but a hard error under newer C standard defaults where empty parens mean
+# "takes no arguments" instead. Confirmed via real Fedora CI build failures
+# ("too many arguments to function 'exp_printify'; expected 0, have 1") not
+# reproducible on Debian, whose older default GCC has an older default C
+# standard. Pin this one vendored target to gnu17 (K&R-compatible empty-
+# parens semantics) rather than rewriting decades-old third-party prototypes
+# throughout exp_clib.c and friends.
+target_compile_options(ecceexp PRIVATE $<$<COMPILE_LANGUAGE:C>:-std=gnu17>)
 
 # --- src/inv -> libecceinv.a + libeccemoiv.a (libeccewxinv.a needs wx, TODO) ---
 ecce_library(ecceinv
