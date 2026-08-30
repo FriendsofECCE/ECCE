@@ -5,7 +5,7 @@ The Extensible Computational Chemistry Environment (ECCE, pronounced
 and data management framework for setting up, running, and analyzing
 computational chemistry calculations.
 
-PNNL/EMSL stopped supporting ECCE, so we forked the source and maintain it
+PNNL/EMSL stopped supporting ECCE, so we forked the source (with their blessing) and maintain it
 here.
 
 **v8.0.0-alpha.2 — "Phoenix" — 2026-08-29**
