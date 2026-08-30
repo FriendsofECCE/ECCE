@@ -5,6 +5,11 @@ This covers building, installing, and running this fork of ECCE on Debian
 `main`'s CMake/CPack packaging, not the old `build_ecce`/recursive-make
 workflow.
 
+CI also builds this clean on Ubuntu, Fedora, and Rocky Linux (RHEL
+family) — the steps below apply there too, adjusted for the distro's
+package manager. **On Windows, use WSL2** (not Cygwin, not a native
+build) — see the README's "Platform support" section for why.
+
 ## 1. Install build dependencies
 
 ```

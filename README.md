@@ -63,7 +63,31 @@ any particular change.
 ## Installation and getting started
 
 This covers a clean install on Debian 13 ("trixie") through to your first
-login. (Other distributions may work but aren't currently tested.)
+login.
+
+### Platform support
+
+CI (see `.github/workflows/build.yml`) builds this on every push against
+Debian, Ubuntu, Fedora, and Rocky Linux (a free RHEL rebuild, standing in
+for the RHEL family, which needs a subscription for a real CI runner) --
+all four currently build clean.
+
+**Windows**: use **WSL2**, not Cygwin and not a native Windows build.
+WSL2 runs a real Linux kernel and userland (Ubuntu by default) under
+Windows, so the Ubuntu/Debian instructions below apply directly with no
+porting needed -- install WSL2, install a Debian or Ubuntu distro inside
+it, and follow this guide as-is. Native Windows and Cygwin are both a
+much larger undertaking: ECCE's process-launch and credential-handoff
+code (`fork()`+`execv()`, named-pipe/FIFO handoff, a remote-shell layer
+that assumes a POSIX login shell) is POSIX down to the architecture, not
+just the toolkit version -- real porting work, not a packaging exercise.
+See [#18](https://github.com/FriendsofECCE/ECCE/issues/18) for the fuller
+reasoning.
+
+**macOS**: not supported yet, tracked in
+[#3](https://github.com/FriendsofECCE/ECCE/issues/3) -- also in CI (best
+effort, allowed to fail) to track progress with a real, current compile
+log.
 
 ### 1. Install build dependencies
 
