@@ -1701,6 +1701,15 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
     if (!expwrite(cmd)) return false;
   }
 
+  // Same dialect handling as the main constructor above (see its
+  // comments for the full story of why this exists): reaching this
+  // point already proves locShell is genuinely present and working on
+  // the hop machine, since shellCommand()/the cmd above already used
+  // that exact value and we're about to match its output. No separate
+  // detection needed, just check locShell's own value directly.
+  bool useBash = (locShell == "bash");
+  p_remoteBash = useBash;
+
   // Login failure is caught by trying to set the prompt.
   // Can't parse for a successful login without the expwrite because I don't
   // know what the prompt might be if the user overrides the default "%" in
@@ -1711,7 +1720,11 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
   // on a line with other output instead of by itself as it should elsewhere.
   // By echoing out $prompt we should be able to work around this and
   // get reliable checks for good logins.
-  if (!expwrite("unalias precmd; set prompt=+go+; unset echo")) return false;
+  if (useBash) {
+    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'")) return false;
+  } else {
+    if (!expwrite("unalias precmd; set prompt=+go+; unset echo")) return false;
+  }
   if (expect1("+go+$") != 1) {
     p_errMessage =
       "Unsuccessful remote shell login--invalid username or password";
@@ -1724,14 +1737,17 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
   // Set timeout back to normal
   exp_timeout = RC_EXEC_TIMEOUT;
 
-  if (!expwrite("unalias *")) return false;
-  if (expect1("\r\n+go+$") != 1) {
-    p_errMessage = "Unsuccessful remote shell login--unalias * failed";
-    return false;
+  if (!useBash) {
+    if (!expwrite("unalias *")) return false;
+    if (expect1("\r\n+go+$") != 1) {
+      p_errMessage = "Unsuccessful remote shell login--unalias * failed";
+      return false;
+    }
   }
 
   if (p_shell == "telnet") {
-    if (!expwrite("setenv TERM xterm")) return false;
+    cmd = useBash ? "export TERM=xterm" : "setenv TERM xterm";
+    if (!expwrite(cmd)) return false;
     if (expect1("\r\n+go+$") != 1) {
       p_errMessage = "Unsuccessful telnet login--setenv TERM xterm failed";
       return false;
@@ -1740,45 +1756,68 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
 
   // set $PATH
   if (shellPath != "") {
-    cmd = "if ($?PATH) setenv PATH \"" + shellPath + ":${PATH}\"";
-    if (!expwrite(cmd)) return false;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful remote shell login--setenv PATH " +
-                     shellPath + ":${PATH} failed";
-      return false;
-    }
-    cmd = "if ($?PATH == 0) setenv PATH \"" + shellPath + "\"";
-    if (!expwrite(cmd)) return false;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful remote shell login--setenv PATH " +
-                     shellPath + " failed";
-      return false;
+    if (useBash) {
+      cmd = "export PATH=\"" + shellPath + ":${PATH}\"";
+      if (!expwrite(cmd)) return false;
+      if (expect1("\r\n+go+$") != 1) {
+        p_errMessage = "Unsuccessful remote shell login--export PATH " +
+                       shellPath + ":${PATH} failed";
+        return false;
+      }
+    } else {
+      cmd = "if ($?PATH) setenv PATH \"" + shellPath + ":${PATH}\"";
+      if (!expwrite(cmd)) return false;
+      if (expect1("\r\n+go+$") != 1) {
+        p_errMessage = "Unsuccessful remote shell login--setenv PATH " +
+                       shellPath + ":${PATH} failed";
+        return false;
+      }
+      cmd = "if ($?PATH == 0) setenv PATH \"" + shellPath + "\"";
+      if (!expwrite(cmd)) return false;
+      if (expect1("\r\n+go+$") != 1) {
+        p_errMessage = "Unsuccessful remote shell login--setenv PATH " +
+                       shellPath + " failed";
+        return false;
+      }
     }
   }
 
   // set $LD_LIBRARY_PATH
   if (libPath != "") {
-    cmd = "if ($?LD_LIBRARY_PATH) setenv LD_LIBRARY_PATH \"" +
-          libPath + ":${LD_LIBRARY_PATH}\"";
-    if (!expwrite(cmd)) return false;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful remote shell login--setenv LD_LIBRARY_PATH "+
-                     libPath + ":${LD_LIBRARY_PATH} failed";
-      return false;
-    }
-    cmd = "if ($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH \"" +
-                     libPath + "\"";
-    if (!expwrite(cmd)) return false;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful remote shell login--setenv LD_LIBRARY_PATH "+
-                     libPath + " failed";
-      return false;
+    if (useBash) {
+      cmd = "export LD_LIBRARY_PATH=\"" + libPath + ":${LD_LIBRARY_PATH}\"";
+      if (!expwrite(cmd)) return false;
+      if (expect1("\r\n+go+$") != 1) {
+        p_errMessage =
+          "Unsuccessful remote shell login--export LD_LIBRARY_PATH "+
+          libPath + ":${LD_LIBRARY_PATH} failed";
+        return false;
+      }
+    } else {
+      cmd = "if ($?LD_LIBRARY_PATH) setenv LD_LIBRARY_PATH \"" +
+            libPath + ":${LD_LIBRARY_PATH}\"";
+      if (!expwrite(cmd)) return false;
+      if (expect1("\r\n+go+$") != 1) {
+        p_errMessage = "Unsuccessful remote shell login--setenv LD_LIBRARY_PATH "+
+                       libPath + ":${LD_LIBRARY_PATH} failed";
+        return false;
+      }
+      cmd = "if ($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH \"" +
+                       libPath + "\"";
+      if (!expwrite(cmd)) return false;
+      if (expect1("\r\n+go+$") != 1) {
+        p_errMessage = "Unsuccessful remote shell login--setenv LD_LIBRARY_PATH "+
+                       libPath + " failed";
+        return false;
+      }
     }
   }
 
   // source file, if specified
   if (sourceFile != "") {
-    cmd = "if (-e " + sourceFile + ") source " + sourceFile;
+    cmd = useBash ?
+      ("[ -e " + sourceFile + " ] && source " + sourceFile) :
+      ("if (-e " + sourceFile + ") source " + sourceFile);
     if (!expwrite(cmd)) return false;
     if (expect1("\r\n+go+$") != 1) {
       p_errMessage = "Unsuccessful remote shell login--source " +
@@ -2609,15 +2648,43 @@ bool RCommand::fileOp(const string& op, const string& filename)
         opone=="x" || opone=="o" || opone=="z"))
     return false;
 
-  string cmd;
-  if (filename == "~")
-    cmd = "if (-" + opone + " " + filename + "/) echo TRUE";
-  else
-    cmd = "if (-" + opone + " " + filename + ") echo TRUE";
+  // Previous approaches here both had real, confirmed-live bugs:
+  //   1. csh's `if (-x file) echo TRUE` is not valid bash -- bash parses
+  //      `(...)` as a subshell, so `-x` is interpreted as an attempt to
+  //      run a command literally named "-x". Needed dialect branching.
+  //   2. A hand-rolled "echo TRUE"/"echo FALSE" + expect2() pattern
+  //      match (two attempts) was never reliable: an unanchored pattern
+  //      matched the command's own terminal echo (it contains the
+  //      literal substring "echo TRUE"); anchoring that with "\r\n...$"
+  //      fixed the false-positive but introduced a genuine, reproducible
+  //      race under fast back-to-back calls (confirmed via 10 repeated
+  //      live runs: correct results only when artificial delay --
+  //      verbose logging -- was inserted between send and match,
+  //      otherwise frequent 30s timeouts/wrong results) -- almost
+  //      certainly the vendored 1990s Expect matcher not handling a
+  //      "$"-anchored, end-of-buffer pattern correctly across output
+  //      that arrives in more than one incremental read.
+  //
+  // Sidesteps both: `test`/`[` is a real external command
+  // (/usr/bin/test, or a builtin with identical POSIX syntax/exit-status
+  // semantics in bash, dash, AND csh/tcsh) -- no dialect branching
+  // needed at all. And rather than reinvent pattern matching, this just
+  // hands the test off to execout(), which already reliably detects
+  // success/failure via $?/$status (the exact mechanism proven across
+  // this whole session's real end-to-end job launches) -- its own
+  // pattern ("CMDSTAT=0*\r\n+go+", no leading anchor) is naturally
+  // robust to fragmented reads because "CMDSTAT=" only ever appears in
+  // real output, never in the command's own echoed source text, so it
+  // doesn't need the strict end-of-buffer anchor that made fileOp()'s
+  // own pattern fragile.
+  // "o" (csh's "owned by you") has no lowercase equivalent in POSIX
+  // test -- bash/POSIX use capital -O for this.
+  string bashOpone = (opone == "o") ? "O" : opone;
+  string testTarget = (filename == "~") ? (filename + "/") : filename;
+  string cmd = "test -" + bashOpone + " " + testTarget;
 
-  if (!expwrite(cmd)) return false;
-
-  return expect2("\n*TRUE*\r\n+go+$", "\r\n+go+$")==1;
+  string output;
+  return execout(cmd, output, "", 0);
 }
 
 
