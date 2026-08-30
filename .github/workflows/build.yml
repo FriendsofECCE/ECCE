@@ -163,9 +163,14 @@ jobs:
       - name: Install build dependencies
         run: |
           brew install cmake ninja wxwidgets xerces-c ant gcc
+          # src/comm/commxt/JobStore.C calls raw X Toolkit Intrinsics
+          # (XtAppAddSignal etc.) directly -- macOS has no native
+          # equivalent and doesn't ship X11 at all by default. XQuartz
+          # is the standard way to get real X11/Xt headers+libs on macOS.
+          brew install --cask xquartz
 
       - name: Configure
-        run: cmake -G Ninja -B build-cmake
+        run: cmake -G Ninja -B build-cmake -DCMAKE_PREFIX_PATH=/opt/X11
 
       - name: Build
         run: cmake --build build-cmake
