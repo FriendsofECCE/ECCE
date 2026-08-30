@@ -9,6 +9,7 @@
  */
 
 #include <signal.h>
+#include <cstdlib>
 
 #if defined(__GNUG__) && !defined(__APPLE__)
 #pragma implementation "Gateway.H"
@@ -563,8 +564,28 @@ void Gateway::exitGateway()
     ewxMessageDialog dlg(this, "Do you really want to quit?", "Quit ECCE",
                          wxOK|wxCANCEL|wxICON_QUESTION,
                          wxDefaultPosition);
-    if (dlg.ShowModal() == wxID_OK)
+    // GitHub #52: plain Quit only ever closed the GUI client -- the
+    // background services (JMS broker, data server) are deliberately
+    // left running (they're meant to persist across app launches so you
+    // don't pay startup cost every time), but there was no way to also
+    // stop them without dropping to a terminal for ecce-gateway-stop/
+    // ecce-dataserver-stop. Offer that as a third button on the same
+    // confirm dialog instead of a separate menu (Gateway has no menu bar
+    // at all -- just a toolbar).
+    dlg.AddButton(ID_GATEWAY_QUIT_STOP_SERVER, "Quit and Stop Server");
+    int result = dlg.ShowModal();
+    if (result == wxID_OK)
       quit(true);
+    else if (result == ID_GATEWAY_QUIT_STOP_SERVER) {
+      quit(true);
+      // Run after quit(true): lets Gateway's own JMS disconnect/notify
+      // happen normally while the broker is still up, rather than racing
+      // it. quit(true) calls Destroy(), which schedules window teardown
+      // asynchronously rather than freeing `this` synchronously, so
+      // running more code in this function afterwards is safe.
+      (void)system("ecce-gateway-stop");
+      (void)system("ecce-dataserver-stop");
+    }
   } else {
     quit(true);
   }

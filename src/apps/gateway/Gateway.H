@@ -33,6 +33,7 @@ using std::vector;
 #define wxID_FEEDBACK 10001
 #define wxID_PREFERENCE 10002
 #define wxID_WINLIST 10003
+#define ID_GATEWAY_QUIT_STOP_SERVER 10004
 
 #define ID_GATEWAY_APPSBASE 11000
 
