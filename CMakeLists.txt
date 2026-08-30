@@ -16,6 +16,23 @@ project(ECCE CXX C Fortran)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Every .c (not .C) file in this tree (33 total, under src/comm/expect,
+# src/inv/dbnodes, src/inv/flclient, src/inv/image, src/wxgui/wxplotctrl)
+# is vendored ~1990s third-party C, riddled with K&R-style empty-parens
+# forward declarations (e.g. `char *exp_printify();`, later defined and
+# called with real arguments) -- valid, unambiguous C when empty parens
+# mean "unspecified arguments" (K&R/C89 through GNU's own default
+# extensions), a hard error under newer C standard defaults where empty
+# parens instead mean "takes no arguments". Confirmed via real Fedora CI
+# build failures (newer default GCC) not reproducible on Debian/Ubuntu
+# (older default GCC) -- pin C compilation tree-wide to gnu17 rather than
+# rewriting decades-old third-party prototypes file by file as each one
+# surfaces on whichever platform's default happens to be newest this
+# month. Only affects .c compilation -- CMAKE_CXX_STANDARD above is
+# separate and unaffected.
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -133,18 +150,10 @@ ecce_library(ecceexp    src/comm/expect)
 # Tcl/Expect code's WAIT_STATUS_TYPE macro defaults to the BSD "union wait" type,
 # which glibc has never provided on Linux - NO_UNION_WAIT selects plain "int").
 target_compile_definitions(ecceexp PRIVATE NO_UNION_WAIT)
-# This vendored ~1990s Expect/Tcl C code is riddled with K&R-style empty-
-# parens forward declarations (e.g. `char *exp_printify();`) later defined
-# and called with real arguments -- valid, unambiguous C when empty parens
-# mean "unspecified arguments" (K&R/C89 through GNU's default extensions),
-# but a hard error under newer C standard defaults where empty parens mean
-# "takes no arguments" instead. Confirmed via real Fedora CI build failures
-# ("too many arguments to function 'exp_printify'; expected 0, have 1") not
-# reproducible on Debian, whose older default GCC has an older default C
-# standard. Pin this one vendored target to gnu17 (K&R-compatible empty-
-# parens semantics) rather than rewriting decades-old third-party prototypes
-# throughout exp_clib.c and friends.
-target_compile_options(ecceexp PRIVATE $<$<COMPILE_LANGUAGE:C>:-std=gnu17>)
+# (K&R empty-parens prototype conflicts in this vendored code are handled
+# by the tree-wide CMAKE_C_STANDARD gnu17 setting above, not a per-target
+# override here -- the same bug shape turned out to also be present in
+# src/inv/image's vendored C, not just here.)
 
 # --- src/inv -> libecceinv.a + libeccemoiv.a (libeccewxinv.a needs wx, TODO) ---
 ecce_library(ecceinv
