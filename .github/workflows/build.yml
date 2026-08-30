@@ -1,0 +1,94 @@
+name: Build
+
+# Compile-only CI: configure + build the C++ tree on each platform. This
+# does NOT package (cpack), install, or run the GUI apps -- that needs a
+# display (Xvfb) and per-user service setup (see GETTING_STARTED.md) that
+# isn't worth the complexity for a build-health check. The goal is early,
+# continuous signal on "does this even compile here", especially for
+# platforms (Fedora, macOS) nobody is routinely building on locally.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  ubuntu:
+    name: Ubuntu (apt)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential gfortran cmake ninja-build \
+            libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
+            libgtk-3-dev libx11-dev libice-dev \
+            default-jdk ant git
+
+      - name: Configure
+        run: cmake -G Ninja -B build-cmake
+
+      - name: Build
+        run: cmake --build build-cmake
+
+  fedora:
+    name: Fedora (dnf, containerized)
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - name: Install build dependencies
+        run: |
+          dnf install -y \
+            gcc gcc-c++ gcc-gfortran make cmake ninja-build git \
+            wxGTK-devel xerces-c-devel \
+            mesa-libGL-devel mesa-libGLU-devel \
+            gtk3-devel libX11-devel libICE-devel \
+            java-latest-openjdk-devel ant
+
+      # actions/checkout doesn't work reliably inside an arbitrary
+      # container image (no git-installed-as-a-prereq guarantee, and the
+      # container user often isn't the checkout action's expected uid) --
+      # install git above first, then check out manually instead.
+      - name: Check out source
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clone --depth 1 --branch "${GITHUB_REF_NAME}" \
+            "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_WORKSPACE" \
+            || git clone --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_WORKSPACE"
+
+      - name: Configure
+        working-directory: ${{ github.workspace }}
+        run: cmake -G Ninja -B build-cmake
+
+      - name: Build
+        working-directory: ${{ github.workspace }}
+        run: cmake --build build-cmake
+
+  macos:
+    name: macOS (Homebrew)
+    runs-on: macos-latest
+    # Known-unsupported today (GitHub #3) -- ECCE's offscreen-rendering
+    # path (src/inv/dbso/SoOffscreenRenderer.inc) calls raw Xlib/GLX
+    # (XOpenDisplay/glXCreateContext), which has no macOS-native
+    # equivalent (Cocoa/NSOpenGL, or GLX only via XQuartz). This job is
+    # here to track the gap with a real, current compile log instead of
+    # nothing -- it's expected to fail until #3 gets real porting work,
+    # not a sign the workflow itself is broken.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          brew install cmake ninja wxwidgets xerces-c ant
+
+      - name: Configure
+        run: cmake -G Ninja -B build-cmake
+
+      - name: Build
+        run: cmake --build build-cmake
