@@ -37,6 +37,8 @@
 
 #include <iostream>
 using std::cerr;
+#include <set>
+using std::set;
 using std::endl;
 
 #include "wx/treectrl.h"
@@ -607,6 +609,35 @@ void WxResourceTreeCtrl::refresh(WxResourceTreeItemData * node)
   }
 
   if (setExpandable(node)) {
+    // loadChildren(node, true) deletes and rebuilds *every* direct child of
+    // node, not just the one that actually changed -- freshly-rebuilt items
+    // default to collapsed, so any sibling the user had expanded (e.g. a
+    // second job directory open alongside the one they're actually working
+    // in) silently collapses too. Recording which children were expanded
+    // beforehand and re-expanding their same-URL replacements afterward
+    // fixes this without changing refresh()'s actual reload semantics --
+    // GitHub #1, reported originally in 2013 ("creating a new directory
+    // causes all open directories lower in rank to auto-close"), still
+    // reproducible via the exact mechanism this fixes: CalcMgr::
+    // createResource() calls refresh(parent), and parent is whatever's
+    // currently selected -- typically the shared parent directory you
+    // right-clicked to create the new child under, not just the new child
+    // itself.
+    std::set<string> expandedUrls;
+    {
+      wxTreeItemId nodeId = node->GetId();
+      wxTreeItemIdValue cookie;
+      wxTreeItemId childId = GetFirstChild(nodeId, cookie);
+      for (; childId.IsOk(); childId = GetNextChild(nodeId, cookie)) {
+        if (IsExpanded(childId)) {
+          WxResourceTreeItemData * child =
+            dynamic_cast<WxResourceTreeItemData *>(GetItemData(childId));
+          if (child && child->getResource())
+            expandedUrls.insert(child->getResource()->getURL().toString());
+        }
+      }
+    }
+
     loadChildren(node, true);
     wxTreeItemId nodeId = node->GetId();
     wxTreeItemIdValue cookie;
@@ -616,6 +647,11 @@ void WxResourceTreeCtrl::refresh(WxResourceTreeItemData * node)
         dynamic_cast<WxResourceTreeItemData *>(GetItemData(childId));
       child->getResource()->clearChildren();
       DeleteChildren(childId);
+      // Re-expanding triggers the normal wxEVT_TREE_ITEM_EXPANDING handler
+      // (CalcMgr::OnTreectrlItemExpanding), which lazily loads this child's
+      // own children exactly as if the user had expanded it themselves.
+      if (expandedUrls.count(child->getResource()->getURL().toString()))
+        Expand(childId);
     }
   }
 
