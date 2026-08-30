@@ -629,7 +629,12 @@ void cleanup(int exitStatus)
     if (socketComms)
       socketClose();
 
-    if (remoteconn->isOpen()) {
+    // interactPort() deletes remoteconn and nulls it out once socket
+    // comms takes over -- same real bug shape as the interactGetOutput()
+    // fix above, just hit on successful completion instead of during
+    // monitoring. Guarding rather than assuming remoteconn is always
+    // still live here.
+    if (remoteconn != (RCommand*)0 && remoteconn->isOpen()) {
       (void)remoteconn->exec("/bin/rm -f eccejobmonitor eccejobmonitor.conf "
                              "eccejobmonitor.propbuf *.desc");
       delete remoteconn;
@@ -1172,7 +1177,7 @@ void interactGetFiles(void)
       (refMachine->frontendMachine()!="" &&
        (refMachine->frontendBypass()=="" ||
         !RCommand::isSameDomain(refMachine->frontendBypass())))) {
-    if (remoteconn->isOpen()) {
+    if (remoteconn != (RCommand*)0 && remoteconn->isOpen()) {
       logMessage("Benchmark", "Before shell based file transfer of output files");
       status = remoteconn->shellget((const char**)fileStrs, calcdir);
       logMessage("Benchmark", "After shell based file transfer of output files");
@@ -1693,6 +1698,25 @@ void initMon(void)
     }
 
     if (socketComms) {
+      // interactPort() below deletes remoteconn (closes the ssh/pty
+      // session) the moment the socket handshake succeeds, since "all
+      // further comms is over socket" -- but eccejobmonitor is still
+      // sitting in that session's process group as a backgrounded job.
+      // Under bash, closing the session sends it SIGHUP (confirmed
+      // today, same root cause as the execbg()/RCommand.C fix for
+      // long-running compute jobs dying the same way) -- killing the
+      // monitor right as socket comms takes over, so it can never send
+      // its next heartbeat. Matches this issue's symptom exactly
+      // (socket comms only; stdio comms never closes remoteconn mid-
+      // session so it isn't affected). csh already ignores SIGHUP for
+      // backgrounded jobs on session exit (confirmed empirically
+      // today), so only bash needs the explicit trap. Deliberately NOT
+      // using nohup here: nohup redirects stdout to nohup.out when it's
+      // still a tty, which would break the port-handshake read below
+      // (and the stdio-comms path's entire comms stream) that depends
+      // on eccejobmonitor's stdout staying attached to this pty.
+      if (cpLocalShell == "bash")
+        cmd = "(trap '' HUP; " + cmd + ")";
       cmd += "&";
       if (!remoteconn->expwrite(cmd))
         restart("System", remoteconn->commError());
@@ -1937,15 +1961,31 @@ void interactGetOutput(void)
 
   XtRemoveInput(jobMonitorId);
 
-  // check status of remote shell and prep it for further usage
-  // transferring output files, etc.
-  (void)remoteconn->expect1("\r\n+go+$");
-  if (remoteconn->isOpen())
-    logMessage("Benchmark", "eccejobmonitor done--"
-               "remote shell connection open");
-  else
-    logMessage("Benchmark", "eccejobmonitor done--"
-               "remote shell connection is not available");
+  // interactPort() deletes remoteconn and nulls it out the instant a
+  // socketComms handshake succeeds ("close remote shell since all
+  // further comms is over socket") -- and jmPORT sets doneFlag=true
+  // specifically to return here right after that happens, so this is
+  // the common case for socket comms, not a rare edge case. Calling
+  // through remoteconn unconditionally below was a genuine
+  // use-after-free/null-dereference on every successful socket-comms
+  // connection: found by tracing why socket comms (issue #65) never
+  // got past the initial handshake even when eccejobmonitor's own
+  // side connected correctly -- accessing the freed RCommand's stale
+  // internal fd here plausibly explains the observed busy CPU loop and
+  // eventual 3-minute heartbeat timeout (a corrupted/recycled fd value
+  // being read from freed memory, retried internally by the expect
+  // library, rather than a clean crash).
+  if (remoteconn != (RCommand*)0) {
+    // check status of remote shell and prep it for further usage
+    // transferring output files, etc.
+    (void)remoteconn->expect1("\r\n+go+$");
+    if (remoteconn->isOpen())
+      logMessage("Benchmark", "eccejobmonitor done--"
+                 "remote shell connection open");
+    else
+      logMessage("Benchmark", "eccejobmonitor done--"
+                 "remote shell connection is not available");
+  }
 }
 
 
