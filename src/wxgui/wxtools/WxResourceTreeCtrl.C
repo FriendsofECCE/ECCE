@@ -468,7 +468,25 @@ WxResourceTreeCtrl::findNode(const EcceURL & targetUrl,
 
   if (targetUrl == currentUrl) {
     if (openWhenFound) {
+      // SelectItem() fires wxEVT_TREE_SEL_CHANGED synchronously, which
+      // re-enters onSelectionChange() -> loadChildren() for whatever
+      // node is now selected -- a DIFFERENT reentrancy path than the
+      // one loadChildren()'s own guard was written for (that one
+      // guards loadChildren() against itself; here findNode(), not
+      // loadChildren(), is what's on the stack when the reentrant
+      // event fires, so that guard was never engaged). Confirmed via a
+      // real core dump: the reentrant loadChildren() call crashed
+      // iterating a children vector corrupted by this same recursive
+      // findNode()/autoOpen() traversal still being mid-flight.
+      // Reusing the same p_loadingChildren flag here blocks just this
+      // reentrant call, not findNode()'s own direct loadChildren()
+      // calls elsewhere in this function -- the outer traversal is
+      // already correctly populating the tree, so silently declining
+      // the reentrant load loses no real work, same reasoning as
+      // loadChildren()'s own guard.
+      p_loadingChildren = true;
       SelectItem(current->GetId());
+      p_loadingChildren = false;
 
       // open projects/sessions in the tree when they are created on the
       // assumption the user most likely will want to work in it

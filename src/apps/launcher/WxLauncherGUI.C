@@ -721,8 +721,8 @@ void WxLauncherGUI::CreateControls()
 
     ewxCheckBox* itemCheckBoxForceCsh = new ewxCheckBox( itemPanel3, ID_CHECKBOX_WXLAUNCHER_FORCECSH, _("Use csh/tcsh"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     if (ShowToolTips())
-        itemCheckBoxForceCsh->SetToolTip(_("Force csh/tcsh for this connection instead of the machine's configured shell (bash).\nBash is confirmed working (both the ssh echo-duplication bug and the\nSIGHUP-on-background-job bug it used to hit are fixed) -- unchecked by\ndefault. Check this only to test/troubleshoot csh/tcsh specifically."));
-    itemCheckBoxForceCsh->SetValue(false);
+        itemCheckBoxForceCsh->SetToolTip(_("Force csh/tcsh for this connection instead of the machine's configured shell (bash).\nChecked by default: real job submissions on niobium have repeatedly hit\na SIGHUP hangup under bash (Gaussian dying mid-SCF with \"Error: hangup\")\nthat csh does not -- root cause not yet found despite several attempts.\nUncheck only to retest bash once that's root-caused."));
+    itemCheckBoxForceCsh->SetValue(true);
     itemBoxSizer124->Add(itemCheckBoxForceCsh, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxButton* itemButton128 = new ewxButton( itemPanel3, ID_BUTTON_WXLAUNCHER_LAUNCH, _("Launch"), wxDefaultPosition, wxDefaultSize, 0 );
