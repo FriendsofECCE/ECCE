@@ -75,7 +75,7 @@ using std::endl;
  * Constructor.
  */
 WxResourceTreeCtrl::WxResourceTreeCtrl()
-  : ewxTreeCtrl()
+  : ewxTreeCtrl(), p_loadingChildren(false)
 {
 
 }
@@ -91,7 +91,7 @@ WxResourceTreeCtrl::WxResourceTreeCtrl(wxWindow* parent,
                                        long style,
                                        const wxValidator& validator,
                                        const wxString& name)
-  : ewxTreeCtrl()
+  : ewxTreeCtrl(), p_loadingChildren(false)
 {
   Create(parent, id, pos, size, style, validator, name);
 }
@@ -240,12 +240,23 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addRoot(const string& name,
  */
 bool WxResourceTreeCtrl::loadChildren(WxResourceTreeItemData * node, bool refresh)
 {
+  // Reentrancy guard -- see the .H file for the full story. findNode()'s
+  // own SelectItem() call synchronously fires a tree-selection-changed
+  // event back into the application, which can re-enter loadChildren()
+  // while an outer call for a different node is still iterating its own
+  // children vector below -- corrupting that iteration (confirmed via a
+  // real core dump). The outer call is already correctly populating the
+  // tree; silently declining a reentrant load loses no real work.
+  if (p_loadingChildren) return false;
+  p_loadingChildren = true;
+
   // If refresh, clear the children first
   if (refresh) {
     DeleteChildren(node->GetId());
   }
   // If not refresh and has children already, return without doing anything
   else if (GetChildrenCount(node->GetId(), false) != 0) {
+    p_loadingChildren = false;
     return true;
   }
 
@@ -284,6 +295,7 @@ bool WxResourceTreeCtrl::loadChildren(WxResourceTreeItemData * node, bool refres
   cerr << "create tree  nodes..." << timer.elapsedTime() << endl;
 #endif
 
+  p_loadingChildren = false;
   return children != 0;
 }
 

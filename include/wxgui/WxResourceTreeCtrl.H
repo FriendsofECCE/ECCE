@@ -134,6 +134,16 @@ private:
   bool p_homeAsRoot;
   bool p_showRunStates;
   int p_treeSort;
+  // Guards against a real, confirmed reentrancy crash: findNode()'s own
+  // SelectItem() call synchronously fires a tree-selection-changed
+  // event back into the application (CalcMgr::OnTreectrlSelChanged ->
+  // onSelectionChange), which can call back into loadChildren() while
+  // an outer loadChildren() call for a different node is still
+  // iterating its own children vector -- corrupting that iterator.
+  // Confirmed via a real core dump (SIGSEGV dereferencing a freed/
+  // invalidated iterator in loadChildren()'s for loop), triggered live
+  // by Organizer's "Show ECCE Internal Files" menu item.
+  bool p_loadingChildren;
 };
 
 #endif
