@@ -96,7 +96,7 @@ sudo apt-get install -y \
   build-essential gfortran cmake ninja-build \
   libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
   libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-  default-jdk ant git
+  default-jdk ant activemq git
 ```
 
 Versions confirmed working, from a real Debian 13 ("trixie") install:
