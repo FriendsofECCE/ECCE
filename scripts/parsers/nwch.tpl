@@ -4,7 +4,7 @@ Start  ##title##
 
 echo
 
-Memory ##MemorySize## mw
+Memory ##MemorySize## gb
 
 ##Charge##
 

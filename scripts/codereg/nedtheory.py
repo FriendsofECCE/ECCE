@@ -96,7 +96,7 @@ class NedTheoryPanel(EccePanel):
 
             self.memSize = EcceSpinCtrl(self,
                                         hardRange = "[0..)",
-                                        unit = "Megawords",
+                                        unit = "Gigabytes / core",
                                         name = "ES.Theory.SCF.MemorySize",
                                         default = 2,
                                         export = 1)
