@@ -27,7 +27,7 @@
 sub getGaussianGBS {
   my($mvmFile, $filename) = @_;
   # Initialize variables
-  my ($numPrimitives,$center,$orbital,
+  my ($numPrimitives,@centersInGroup,$orbital,
       @contractionList,@contractionSet,
       @orbitalList,%atomList,@centers,$getdata,%gbs);
   $getdata = 0;
@@ -79,16 +79,46 @@ sub getGaussianGBS {
       }
     }
 
-    # Read line containing the center numbers
-    # Assume that all of the centers have the same atomic symbol
-    # (Read only the first one and ignore the rest)
-    # Get the atomic symbol by indexing into the @centers array that
-    # was read from the mvm format file. Subtract one to get the
-    # array item counting from 0 instead of 1.
-    if (/^\s*Centers:\s(.{3})/)
+    # Read line containing the center numbers. A "Centers:" line can list
+    # centers of DIFFERENT elements sharing one basis (e.g. a single "use
+    # 6-31G for both C and H" group is completely normal in a real GEN
+    # basis specification), and Gaussian wraps long center lists across
+    # multiple consecutive "Centers:" lines before the shared basis name
+    # -- confirmed directly against real Gaussian 16 log output.
+    #
+    # The previous version of this parser used `(.{3})` to grab 3
+    # characters right after "Centers:\s" (one space), which for Gaussian's
+    # right-justified number columns is almost always still whitespace,
+    # not the digit -- confirmed live: for "Centers:       1", $1 came
+    # back as three spaces, and Perl's numeric coercion of that is 0, so
+    # `$centers[$1-1]` was `$centers[-1]` -- Perl's *last* array element,
+    # not the first center in the list. Every group in a molecule ended
+    # up keyed by whatever element the *last* atom in the whole molecule
+    # happens to be, with each new group's data silently overwriting the
+    # previous one in %gbs. Confirmed directly: a 2-group mixed-basis
+    # test (C atoms on one named basis, H atoms on another) came back
+    # with only an "H" entry -- the entire C group's data vanished.
+    # This is at minimum a real, direct contributor to GitHub #28/#29
+    # (both triggered by a real Gaussian log with more than one "Centers:"
+    # group) -- for the specific reported repros, which use named-library
+    # references ("cc-pvdz"/"cc-pvtz") rather than explicit numeric
+    # primitives, Gaussian's own log doesn't expand the name into
+    # primitives in this section at all, so this fix alone isn't
+    # sufficient for that exact case -- see the accompanying issue
+    # comment for what's still needed there.
+    #
+    # Fixed to collect every center number from every "Centers:" line in
+    # the group (resetting the collection only when a *new* group starts,
+    # i.e. right after the previous group's "****"), then storing the
+    # orbital data under every distinct element symbol among them once
+    # the group's terminating "****" is reached.
+    if (/^\s*Centers:\s*(.*)$/)
     {
       $getdata = 1;
-      $center = $centers[$1-1];
+      foreach my $centerNum (split(/\s+/, $1)) {
+        next if ($centerNum eq "");
+        push(@centersInGroup, $centers[$centerNum-1]);
+      }
     }
 
     # Read line containing the orbital and the number of primitives
@@ -114,10 +144,17 @@ sub getGaussianGBS {
     if (/\*\*\*\*/)
     {
       if($getdata == 1) {
-        # Save off the data for the center
-        $gbs{$center} = [@orbitalList];
+        # Save off the data for every distinct element among all the
+        # centers collected for this group (not just the first one --
+        # see the "Centers:" handling above for why that was wrong).
+        my %seen;
+        foreach my $symbol (@centersInGroup) {
+          next if ($seen{$symbol}++);
+          $gbs{$symbol} = [@orbitalList];
+        }
         @orbitalList = ();
       }
+      @centersInGroup = ();
       $getdata = 0;
     }
 
