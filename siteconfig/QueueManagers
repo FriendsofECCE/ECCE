@@ -189,7 +189,26 @@ SGE|jobIdParseLeadingText:   job
 # reordering doesn't lose the original "let the code react to SIGINT
 # first" intent's real purpose. The trailing SIGINT is still sent, as
 # a harmless (already-tolerated "no such process") extra nudge.
-Shell|submitCommand:          ##priority## ./##script##&
+# TEMPORARY diagnostic instrumentation (2026-09-03) for the still-unsolved
+# bash "Error: hangup" bug -- a real SIGHUP reaching the compute process
+# (confirmed via Gaussian's own crash handler + register dump), intermittent
+# ("random" per live testing: 2 of 3 jobs in one batch, then another
+# failure after a duplicate-and-rerun), not reproduced by any standalone
+# repro of RCommand's own connection-teardown sequence run so far. This
+# wraps the actual submission in strace, tracing only signal delivery
+# (-e trace=signal), which -- unlike a register dump -- records the
+# *sender* PID for any signal actually sent via kill()/similar (a
+# kernel-generated terminal hangup shows as sender-less/SI_KERNEL instead,
+# which by itself would be a useful, different data point: it would
+# confirm a pty/connection-teardown cause over some other process
+# explicitly signaling the job). Falls back to plain, untraced execution
+# if strace isn't installed (it isn't on niobium as of this writing --
+# `sudo apt install strace` first) rather than failing job submission
+# outright. Log lands at "<script name>.strace.log" in the job's own run
+# directory. REVERT to the plain "##priority## ./##script##&" line once
+# this has caught something -- leaving it in place forever adds strace
+# overhead to every job launch for no ongoing benefit.
+Shell|submitCommand:          ##priority## sh -c 'if command -v strace >/dev/null 2>&1; then strace -f -tt -e trace=signal -o "##script##.strace.log" ./##script##; else ./##script##; fi'&
 Shell|cancelCommand:          kill -##signal## -`ps -p ##id## -o pgid | tail -n 1 | tr -d ' '`; kill -INT ##id##
 Shell|queryJobCommand:        ps -eaf | grep ##id## | grep ##user##
 Shell|queryMachineCommand:    uptime
