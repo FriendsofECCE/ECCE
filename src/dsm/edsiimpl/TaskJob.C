@@ -162,7 +162,18 @@ vector<Resource*> * TaskJob::getChildren(bool refresh)
     p_localHideInternal = true;
   }
   else if (!isHideInternal() && p_localHideInternal && !refresh) {
-    getChildren(true);
+    // The recursive call's return value was being discarded here, and
+    // this function fell through to return its OWN, now-stale `ret`
+    // instead -- confirmed via a real coredump (SIGSEGV in
+    // WxResourceTreeCtrl::loadChildren() iterating a dangling
+    // `children` pointer). Resource::getChildren(refresh=true) calls
+    // clearChildren() and reassigns p_children to a brand new vector --
+    // deleting the very vector this function's own `ret` (captured
+    // above with refresh=false) still points to. The recursive call
+    // above was therefore invalidating its own caller's return value
+    // out from under it, on every single "Show ECCE Internal Files"
+    // toggle. Capturing the recursive call's result fixes it.
+    ret = getChildren(true);
   }
   return ret;
 }
