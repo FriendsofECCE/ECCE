@@ -5,15 +5,14 @@ The Extensible Computational Chemistry Environment (ECCE, pronounced
 and data management framework for setting up, running, and analyzing
 computational chemistry calculations.
 
-PNNL/EMSL stopped supporting ECCE (2017?), so we forked the source (with their blessing) and maintain it
-here.
+PNNL/EMSL stopped supporting ECCE around 2017, so we forked the source
+(with their blessing) and maintain it here.
 
-After a lot of work, we've finally revived ECCE — it now compiles and
-runs on modern Linux systems again (tested primarily on Debian 13, but also fedora and Rocks.). This is a major
-milestone, and the reason we're at version 8: we've made a lot of
-changes under the hood to make future maintenance easier, on top of
-bringing the application itself back to life.
-
+ECCE compiles and runs on modern Linux systems again — tested primarily
+on Debian 13, and also on Fedora and Rocky Linux. That's why we're at
+version 8: reaching it took a real modernization of the build system and
+every major dependency, not just a recompile, on top of bringing the
+application itself back to life.
 
 ## Screenshots
 
@@ -22,8 +21,6 @@ bringing the application itself back to life.
 | ![Gateway](docs/screenshots/gateway.png) | ![Organizer](docs/screenshots/organizer.png) |
 
 ![Viewer](docs/screenshots/viewer.png)
-
-## For changes past 8.0.0, see the release notes for the specific release.
 
 ## What's new in v8.0.0
 
@@ -56,9 +53,16 @@ completely different build system inevitably introduced its own new bugs
 along the way — those were found and fixed too, but as stabilization work
 to reach parity with the previous release, not as new value on top of it.
 
-The full, detailed history of what was fixed and why lives in `CLAUDE.md`
-and `ECCE_modernization_status.md`, if you want the technical story behind
-any particular change.
+The releases since 8.0.0 continue that stabilization: real calculations
+run end to end now (job launch, remote monitoring, basis-set selection,
+theory setup), and a long list of crashes and silent failures surfaced by
+actually using the application have been root-caused and fixed rather
+than papered over. See the notes on each
+[release](https://github.com/FriendsofECCE/ECCE/releases) for specifics.
+The full, detailed history of what was fixed and why — including dead
+ends, not just the fixes that worked — lives in `docs/HISTORY.md`.
+`CLAUDE.md` has the current, condensed map of the codebase and the bug
+patterns worth knowing about.
 
 ## Installation and getting started
 
@@ -241,7 +245,7 @@ with tags, not separate release branches.
 Issues and pull requests are welcome — see the
 [issue tracker](https://github.com/FriendsofECCE/ECCE/issues). If you hit
 a crash or a build failure, a lot of prior investigation may already be
-recorded in `CLAUDE.md`; worth a search before filing something new.
+recorded in `docs/HISTORY.md`; worth a search before filing something new.
 
 **A note on AI use**: a lot of this modernization effort — including many
 commits, and many of the comments you'll see on issues and pull requests —
