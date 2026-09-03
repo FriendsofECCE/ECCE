@@ -2006,7 +2006,12 @@ void WxLauncher::updateControls(Launchdata ldat)
     // ldat.forceCsh means this job predates the field (or has never been
     // launched) -- leave the checkbox at its constructed default (checked)
     // rather than guessing.
-    if (p_forceCshCheckBox != 0 && !ldat.forceCsh.empty())
+    // IsEnabled() guard: the checkbox is locked on (see WxLauncherGUI.C,
+    // github.com/FriendsofECCE/ECCE#69) while bash's two confirmed local-
+    // connection bugs are unfixed -- reopening an old job that was
+    // actually run with bash unchecked must not silently uncheck it again.
+    if (p_forceCshCheckBox != 0 && p_forceCshCheckBox->IsEnabled() &&
+        !ldat.forceCsh.empty())
     {
         p_forceCshCheckBox->SetValue(ldat.forceCsh == "true");
         p_prefsEdited = true;
