@@ -63,11 +63,12 @@ struct Launchdata {
   unsigned long minscratch; /**< Minimum available disk space (Mb) */
   string maxwall;           /**< Maximum amount of time for job to finish */
   string remoteShell;       /**< Type of remote communications shell */
+  string forceCsh;          /**< "true"/"false", or empty if never explicitly set */
 
   Launchdata()
   {
     nodes=totalprocs=maxmemory=minscratch = 0;
-    machine=rundir=scratchdir=user=queue=priority=maxwall=remoteShell="";
+    machine=rundir=scratchdir=user=queue=priority=maxwall=remoteShell=forceCsh="";
   };
 };
 

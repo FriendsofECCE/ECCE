@@ -2001,6 +2001,17 @@ void WxLauncher::updateControls(Launchdata ldat)
         p_prefsEdited = true;
     }
 
+    // Restore the "Use csh/tcsh" checkbox from whatever was actually used
+    // the last time this job's launch settings were saved. An empty
+    // ldat.forceCsh means this job predates the field (or has never been
+    // launched) -- leave the checkbox at its constructed default (checked)
+    // rather than guessing.
+    if (p_forceCshCheckBox != 0 && !ldat.forceCsh.empty())
+    {
+        p_forceCshCheckBox->SetValue(ldat.forceCsh == "true");
+        p_prefsEdited = true;
+    }
+
     if (p_slctPrefs->isOptionSupported("UN") && !ldat.user.empty())
     {
         if (ldat.user != p_slctPrefs->getUsername())
@@ -2594,6 +2605,9 @@ void WxLauncher::saveJob()
     ldat.remoteShell = p_slctPrefs->getRemoteShell();
     ldat.rundir = p_slctPrefs->getRemoteDirectory();
     ldat.scratchdir = p_slctPrefs->getScratchDirectory();
+
+    if (p_forceCshCheckBox != 0)
+        ldat.forceCsh = p_forceCshCheckBox->GetValue() ? "true" : "false";
 
     if (p_slctPrefs->isOptionSupported("UN"))
     {
