@@ -144,6 +144,16 @@ private:
   // invalidated iterator in loadChildren()'s for loop), triggered live
   // by Organizer's "Show ECCE Internal Files" menu item.
   bool p_loadingChildren;
+
+  // Retry helper for loadChildren()'s reentrancy guard: re-checks
+  // p_loadingChildren and, if a rebuild is still in flight, re-defers
+  // itself via CallAfter as many times as it takes -- unlike a
+  // fixed-depth nested guard, this has no limit on how many overlapping
+  // toggles (e.g. rapidly clicking "Show ECCE Internal Files" more than
+  // twice) it can ride out before finally loading. See loadChildren()'s
+  // own comment for the full history of why this can't just decline or
+  // drop the reentrant call.
+  void retryLoadChildren(const EcceURL& url);
 };
 
 #endif

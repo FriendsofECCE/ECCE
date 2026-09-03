@@ -263,11 +263,7 @@ bool WxResourceTreeCtrl::loadChildren(WxResourceTreeItemData * node, bool refres
   // would re-trigger SelectItem() and this same reentrancy).
   if (p_loadingChildren) {
     EcceURL deferredUrl = node->getUrl();
-    CallAfter([this, deferredUrl]() {
-      WxResourceTreeItemData * target = findNode(deferredUrl, false, false);
-      if (target != 0)
-        loadChildren(target, false);
-    });
+    CallAfter([this, deferredUrl]() { retryLoadChildren(deferredUrl); });
     return false;
   }
   p_loadingChildren = true;
@@ -330,6 +326,35 @@ bool WxResourceTreeCtrl::loadChildren(WxResourceTreeItemData * node, bool refres
 
   p_loadingChildren = false;
   return children != 0;
+}
+
+
+/**
+ * Retry helper for loadChildren()'s reentrancy guard. See the .H file
+ * and loadChildren()'s own comment for the full history: this can't
+ * just decline the reentrant call (silently drops the only load that
+ * would ever populate the target node) or defer a fixed number of
+ * times (a real, live-confirmed case: "Show ECCE Internal Files"
+ * toggled more than twice in quick succession, via the menu's
+ * startDisabler()/stopDisabler() bracketing each individual click but
+ * not the async tree rebuild each one kicks off, so nothing stops a
+ * third click before the first two have finished settling). Keep
+ * re-deferring via CallAfter, however many times it takes, until no
+ * rebuild is in flight, then load using the most recently requested
+ * URL -- not the raw node pointer, which may not survive to the next
+ * idle event, and not another findNode() call, which would re-trigger
+ * the SelectItem()-driven reentrancy this whole mechanism exists to
+ * avoid.
+ */
+void WxResourceTreeCtrl::retryLoadChildren(const EcceURL& url)
+{
+  if (p_loadingChildren) {
+    CallAfter([this, url]() { retryLoadChildren(url); });
+    return;
+  }
+  WxResourceTreeItemData * target = findNode(url, false, false);
+  if (target != 0)
+    loadChildren(target, false);
 }
 
 
