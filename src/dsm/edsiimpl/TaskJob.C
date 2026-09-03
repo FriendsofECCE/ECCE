@@ -1825,12 +1825,19 @@ bool TaskJob::resetForRerun(const ResourceDescriptor::RUNSTATE& toState)
   setRerun(true);
 
   // special STTR logic to reset state of linked reaction study tasks
+  // getResource() can legitimately return null (data server hiccup,
+  // parent already deleted, etc. -- same class of gap fixed elsewhere
+  // in run management this session); guard rather than crash a
+  // "Reset for Rerun"/"Duplicate for Rerun" over what should just skip
+  // the (inapplicable, if parent can't be resolved) reaction-study logic.
   Resource* parent = EDSIFactory::getResource(getURL().getParent());
-  if (parent->getApplicationType() == ResourceDescriptor::AT_REACTION_STUDY) {
-    resetReactionTasks();
-  } else if (parent->getApplicationType() ==
-             ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
-    resetCondensedReactionTasks();
+  if (parent != 0) {
+    if (parent->getApplicationType() == ResourceDescriptor::AT_REACTION_STUDY) {
+      resetReactionTasks();
+    } else if (parent->getApplicationType() ==
+               ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
+      resetCondensedReactionTasks();
+    }
   }
   
   return ret;

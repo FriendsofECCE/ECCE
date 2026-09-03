@@ -1597,8 +1597,11 @@ string MetaEd::buildTheoryRuntypeArgs(const bool& isTheory) const
   args += " \"Car-Parrinello\"";
   args += " \"" + p_iCalc->getName() + "\"";
 
+  // getResource() can legitimately return null (same class of gap
+  // fixed elsewhere in run management this session) -- fall through to
+  // the non-condensed-reaction-study default rather than crash.
   Resource *parent = EDSIFactory::getResource(p_iCalc->getURL().getParent());
-  if (parent->getApplicationType() == ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
+  if (parent != 0 && parent->getApplicationType() == ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
     args += " 1";
   } else {
     args += " 0";

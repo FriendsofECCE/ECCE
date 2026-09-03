@@ -1328,9 +1328,13 @@ void CalcMgr::OnRenameClick( wxCommandEvent& event )
 
     // special STTR reaction rate study logic to prevent renaming the
     // reactant/product/transition-state calculations because that corrupts
-    // the reaction study
+    // the reaction study. getResource() can legitimately return null
+    // (same class of gap fixed elsewhere in run management this
+    // session) -- guard rather than crash renaming over inapplicable
+    // reaction-study logic.
     Resource *parent = EDSIFactory::getResource(res->getURL().getParent());
-    if (parent->getApplicationType() == ResourceDescriptor::AT_REACTION_STUDY) {
+    if (parent != 0 &&
+        parent->getApplicationType() == ResourceDescriptor::AT_REACTION_STUDY) {
       string name = res->getName();
       if (name=="Transition-State" ||
           name=="Reactant1" || name=="Reactant2" ||
@@ -1961,6 +1965,8 @@ void CalcMgr::deleteSelection()
   for (; itor != selection.end(); itor++) {
 
     Resource *currentRes = EDSIFactory::getResource(*itor);
+    if (currentRes == 0)
+      continue;
 
     bool allowedForDelete;
     string msg, name;
@@ -1969,11 +1975,14 @@ void CalcMgr::deleteSelection()
     // special STTR reaction rate study logic to prevent the deletion
     // of the reactant/product/transition-state calculations for gas phase
     // and not to delete a non-leaf calculation for condensed phase
-    // no need to check this if deletes are already prevented
+    // no need to check this if deletes are already prevented.
+    // getResource() can legitimately return null here too -- guard
+    // rather than crash the whole delete loop over inapplicable
+    // reaction-study logic for one item.
     if (allowedForDelete) {
       Resource *parent = EDSIFactory::getResource(
                                          currentRes->getURL().getParent());
-      if (parent->getApplicationType() ==
+      if (parent != 0 && parent->getApplicationType() ==
                   ResourceDescriptor::AT_REACTION_STUDY) {
         name = currentRes->getName();
         if (name=="Transition-State" ||
@@ -1982,7 +1991,7 @@ void CalcMgr::deleteSelection()
           allowedForDelete = false;
           msg = "Cannot delete reaction study calculation \"" + name + "\".";
         }
-      } else if (parent->getApplicationType() ==
+      } else if (parent != 0 && parent->getApplicationType() ==
                  ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
         Session *session = dynamic_cast<Session*>(parent);
         vector<Resource *> targets =

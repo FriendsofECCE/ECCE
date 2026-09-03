@@ -76,11 +76,15 @@ bool ChemistryTask::fragment(Fragment* frag)
   string moleculeName = getVDoc()->getMoleculeName();
   EcceURL moleculeUrl;
 
+  // getResource() can legitimately return null (same class of gap
+  // fixed elsewhere in run management this session) -- both uses of
+  // `parent` below are guarded to fall through to the non-reaction-
+  // study default rather than crash.
   Resource *parent = EDSIFactory::getResource(getURL().getParent());
 
   if (frag && frag->numAtoms()>0) { // save fragment to file
     // STTR logic first
-    if (parent->getApplicationType() == ResourceDescriptor::AT_REACTION_STUDY) {
+    if (parent != 0 && parent->getApplicationType() == ResourceDescriptor::AT_REACTION_STUDY) {
       if (getName() == "Transition-State") {
         // for the transition state, do atom typing to uniquely
         // identify each atom
@@ -170,8 +174,9 @@ bool ChemistryTask::fragment(Fragment* frag)
   }
 
   if (ret) {
-    if (parent->getApplicationType()!=ResourceDescriptor::AT_REACTION_STUDY &&
-        parent->getApplicationType()!=ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
+    if (parent == 0 ||
+        (parent->getApplicationType()!=ResourceDescriptor::AT_REACTION_STUDY &&
+         parent->getApplicationType()!=ResourceDescriptor::AT_CONDENSED_REACTION_STUDY)) {
       setState(ResourceDescriptor::STATE_CREATED);
     } else {
       if (getApplicationType()!=ResourceDescriptor::AT_DRDVTST &&
