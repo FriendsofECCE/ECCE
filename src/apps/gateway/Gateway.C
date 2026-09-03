@@ -112,6 +112,25 @@ Gateway::Gateway( GatewayApp* app, wxWindow* parent,
   SetIcon(wxIcon(ewxBitmap::pixmapFile("gateway64.xpm"), wxBITMAP_TYPE_XPM));
 
   restoreWindowSettings(GATEWAY, *p_preference, false);
+
+  // GitHub #67: on at least one real dual-monitor setup (3840x1200), the
+  // window ends up with zero height here -- "gtk_window_resize: assertion
+  // 'height > 0' failed", leaving only the title bar visible with no way
+  // to resize it back (no resize handle on an already-realized, correctly-
+  // positioned-but-invisible window). CreateControls() above already
+  // computed a real size from the toolbar orientation/icon count
+  // (68*(i+2) x 68, or the transpose for a vertical toolbar), so this
+  // should be unreachable in the normal case -- restoreWindowSettings()
+  // right above passes restoreSize=false, which should leave whatever
+  // CreateControls() set untouched. Not independently reproduced or
+  // root-caused (no dual-monitor GTK setup available to test against),
+  // so this is a safety net, not a real fix: if the size is ever
+  // invalid regardless of why, fall back to CreateControls()'s own
+  // minimum toolbar cell size rather than leaving an unusable window.
+  int curW, curH;
+  GetSize(&curW, &curH);
+  if (curW <= 0 || curH <= 0)
+    SetSize(curW <= 0 ? 68 : curW, curH <= 0 ? 68 : curH);
 }
 
 
