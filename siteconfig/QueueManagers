@@ -189,26 +189,18 @@ SGE|jobIdParseLeadingText:   job
 # reordering doesn't lose the original "let the code react to SIGINT
 # first" intent's real purpose. The trailing SIGINT is still sent, as
 # a harmless (already-tolerated "no such process") extra nudge.
-# TEMPORARY diagnostic instrumentation (2026-09-03) for the still-unsolved
-# bash "Error: hangup" bug -- a real SIGHUP reaching the compute process
-# (confirmed via Gaussian's own crash handler + register dump), intermittent
-# ("random" per live testing: 2 of 3 jobs in one batch, then another
-# failure after a duplicate-and-rerun), not reproduced by any standalone
-# repro of RCommand's own connection-teardown sequence run so far. This
-# wraps the actual submission in strace, tracing only signal delivery
-# (-e trace=signal), which -- unlike a register dump -- records the
-# *sender* PID for any signal actually sent via kill()/similar (a
-# kernel-generated terminal hangup shows as sender-less/SI_KERNEL instead,
-# which by itself would be a useful, different data point: it would
-# confirm a pty/connection-teardown cause over some other process
-# explicitly signaling the job). Falls back to plain, untraced execution
-# if strace isn't installed (it isn't on niobium as of this writing --
-# `sudo apt install strace` first) rather than failing job submission
-# outright. Log lands at "<script name>.strace.log" in the job's own run
-# directory. REVERT to the plain "##priority## ./##script##&" line once
-# this has caught something -- leaving it in place forever adds strace
-# overhead to every job launch for no ongoing benefit.
-Shell|submitCommand:          ##priority## sh -c 'if command -v strace >/dev/null 2>&1; then strace -f -tt -e trace=signal -o "##script##.strace.log" ./##script##; else ./##script##; fi'&
+# REVERTED 2026-09-03: the strace-wrapping version of this line broke
+# job submission outright -- every job (bash and csh, NWChem and
+# Gaussian, both machines tried) got stuck at "submitted" with no
+# output, immediately after this landed. Never actually verified
+# through the real compiled RCommand::execbg()/Launch.C pipeline before
+# being deployed -- only through a hand-written simulation of the
+# connection sequence, which apparently wasn't faithful enough. Reverted
+# unconditionally rather than debugged further live, given it was
+# blocking real work; if this diagnostic approach gets revisited, it
+# needs to be tested against the real eccejobstore binary first, not a
+# simulation of it.
+Shell|submitCommand:          ##priority## ./##script##&
 Shell|cancelCommand:          kill -##signal## -`ps -p ##id## -o pgid | tail -n 1 | tr -d ' '`; kill -INT ##id##
 Shell|queryJobCommand:        ps -eaf | grep ##id## | grep ##user##
 Shell|queryMachineCommand:    uptime
