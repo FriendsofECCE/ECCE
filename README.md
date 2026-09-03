@@ -22,13 +22,13 @@ application itself back to life.
 
 ![Viewer](docs/screenshots/viewer.png)
 
-## What's new in v8.0.0
+## What's new in version 8
 
 ECCE hadn't run on a current Linux system in years — the underlying tools
-it was built on were over a decade out of date. This release doesn't add
-new end-user features; it's a from-scratch modernization that keeps the
-same application running on current software, replacing years-old
-bundled dependencies with current, distro-maintained ones:
+it was built on were over a decade out of date. Version 8 doesn't add
+new end-user features on its own; it's a from-scratch modernization that
+keeps the same application running on current software, replacing
+years-old bundled dependencies with current, distro-maintained ones:
 
 * **One-command install.** A single package installs everything, instead
   of the old multi-step manual setup.
