@@ -172,12 +172,25 @@ SGE|jobIdParseLeadingText:   job
 # The submit command must be done in the background unlike the
 # queue submit command.
 # Killing a job on a workstation requires a code dependent signal.
-# Also, send SIGINT to submit script first because otherwise codes
-# that catch it will exit normally and we might not differentiate between
-# killed and incomplete states.
 #
+# The process group id must be captured *before* any signal is sent
+# (not after SIGINT, as this used to do): `ps -o pgid`'s output is
+# right-justified with a leading space to pad the column, so
+# "-`ps ... -o pgid`" alone previously expanded to something like
+# "- 12345" (two words: a bare, invalid "-" and a separate "12345"),
+# not "-12345" -- confirmed live, this made the whole cancel command
+# fail outright ("kill: -: arguments must be process or job IDs"),
+# leaving the actual compute process (Gaussian/NWChem/etc, not just its
+# submit-script wrapper) still running. `tr -d ' '` strips it. Capturing
+# the pgid up front, before the process might already be gone (e.g. an
+# onintr handler in the submit script reacting to SIGINT), also removes
+# a second, narrower race on top of the formatting bug; RunMgmt::terminate()
+# already writes .ecce.status itself before this command ever runs, so
+# reordering doesn't lose the original "let the code react to SIGINT
+# first" intent's real purpose. The trailing SIGINT is still sent, as
+# a harmless (already-tolerated "no such process") extra nudge.
 Shell|submitCommand:          ##priority## ./##script##&
-Shell|cancelCommand:          kill -INT ##id##; kill -##signal## -`ps -p ##id## -o pgid | tail -n 1`
+Shell|cancelCommand:          kill -##signal## -`ps -p ##id## -o pgid | tail -n 1 | tr -d ' '`; kill -INT ##id##
 Shell|queryJobCommand:        ps -eaf | grep ##id## | grep ##user##
 Shell|queryMachineCommand:    uptime
 Shell|queryQueueCommand:      ps -eaf
