@@ -434,6 +434,18 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName)
   // Set flag for whether a frontend machine is needed, which means
   // to do the single RCommand based job launch and file transfer
   RefMachine* refMachine = RefMachine::refLookup(p_cache->machineName);
+  if (refMachine == (RefMachine*)0) {
+    // A job's persisted machine name can legitimately no longer match any
+    // currently-registered machine (e.g. after a machine rename) --
+    // refLookup() returns null by design in that case. Without this
+    // guard, this constructor-time null deref pre-empts the graceful
+    // "not a registered ECCE machine" handling this class already has
+    // further down (see p_lastMessage's use around doLaunch()) -- that
+    // code is unreachable for this exact case because this runs first.
+    p_valid = false;
+    p_lastMessage = p_cache->machineName + " is not a registered ECCE machine";
+    return;
+  }
   p_cache->frontendFlag = refMachine->singleConnect() ||
                        (refMachine->frontendMachine()!="" &&
                         (refMachine->frontendBypass()=="" ||
@@ -1750,7 +1762,7 @@ bool Launch::doLaunch(void)
 
       // Check if this machine requires users to submit the job
       RefMachine* refMachine = RefMachine::refLookup(p_cache->machineName);
-      if (refMachine->userSubmit()) {
+      if (refMachine != (RefMachine*)0 && refMachine->userSubmit()) {
         // Prompt the user for the job id
         string jobCmd = "./msgdialog prompt 'Enter Job ID' 'After submitting the job, enter the job ID that was returned:'";
         FILE* jobPtr;
@@ -2012,14 +2024,19 @@ bool Launch::launchGlobus(void)
 
     RefMachine* refMachine = RefMachine::refLookup(p_cache->machineName);
 
-    ret = RCommand::globusrun(command.c_str(), output, errMessage,
-                              p_cache->fullMachineName,
-                              refMachine->globusContact(), password, queueRSL);
-    if (!ret) {
-      p_lastMessage = errMessage;
-      if (output != "") {
-        p_lastMessage += "\nJob submission output: ";
-        p_lastMessage += output;
+    if (refMachine == (RefMachine*)0) {
+      ret = false;
+      p_lastMessage = p_cache->machineName + " is not a registered ECCE machine";
+    } else {
+      ret = RCommand::globusrun(command.c_str(), output, errMessage,
+                                p_cache->fullMachineName,
+                                refMachine->globusContact(), password, queueRSL);
+      if (!ret) {
+        p_lastMessage = errMessage;
+        if (output != "") {
+          p_lastMessage += "\nJob submission output: ";
+          p_lastMessage += output;
+        }
       }
     }
   } else {

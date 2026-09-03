@@ -137,6 +137,15 @@ string EcceShell::remoteShell
 
   RefMachine* refMachine = RefMachine::refLookup(machineName);
   EE_RT_ASSERT(refMachine,EE_WARNING,"No RefMachine object");
+  if (!refMachine) {
+    // EE_WARNING never aborts (that's EE_FATAL only), so this guard is
+    // the only thing standing between a machine name that's no longer
+    // registered (e.g. renamed after a job referencing it was launched)
+    // and a null dereference below. See RunMgmt::terminate() for the
+    // same pattern found elsewhere in the run-management code path.
+    p_status = -1;
+    return "Machine \"" + machineName + "\" is not currently registered.";
+  }
 
   bool frontendFlag = refMachine->singleConnect() ||
                       (refMachine->frontendMachine()!="" &&

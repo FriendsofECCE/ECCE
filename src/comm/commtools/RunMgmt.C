@@ -79,6 +79,19 @@ string RunMgmt::terminate(const TaskJob *calc)
 
     RefMachine* refMachine = RefMachine::refLookup(launch.machine);
     EE_ASSERT(refMachine,EE_WARNING,"No RefMachine object");
+    if (!refMachine) {
+      // EE_ASSERT above is EE_WARNING, not EE_FATAL -- it logs (or, in an
+      // INSTALL build, does nothing at all) but never stops execution, so
+      // this guard is the only thing standing between a legitimately
+      // missing machine registration and a null dereference below. Real,
+      // reachable case: a job's persisted launch.machine (e.g. an old
+      // "127.0.0.1") no longer matches any currently-registered machine
+      // refname/fullname (e.g. after renaming the registration to a real
+      // hostname) -- refLookup() returns null by design in that case, not
+      // as a bug.
+      return "Request to terminate job " + id + " not issued--machine \"" +
+             launch.machine + "\" is not currently registered";
+    }
 
     bool isGlobus = RCommand::isRemote(refMachine->fullname(),
                      launch.remoteShell, launch.user) && 
@@ -195,6 +208,15 @@ string RunMgmt::cleanServerDirs(const TaskJob *calc)
       RefMachine* refMachine = RefMachine::refLookup(launch.machine);
 
       EE_ASSERT(refMachine,EE_WARNING,"No RefMachine object");
+      if (!refMachine) {
+        // See RunMgmt::terminate() for why this guard is necessary despite
+        // the EE_ASSERT above: it's EE_WARNING, not EE_FATAL, so it never
+        // stops execution on its own. A job whose persisted launch.machine
+        // no longer matches any currently-registered machine (e.g. after a
+        // machine rename) hits this legitimately, not as a bug.
+        return "Could not remove calculation directory contents--"
+               "machine \"" + launch.machine + "\" is not currently registered";
+      }
       RCommand rcmd(launch.machine, launch.remoteShell, refMachine->shell(),
                     launch.user, "", refMachine->frontendMachine(),
                     refMachine->frontendBypass());

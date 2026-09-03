@@ -3158,6 +3158,15 @@ void CalcMgr::tailOutputFile(WxResourceTreeItemData *itemData)
     user = launch.user;
 
     RefMachine* refMachine = RefMachine::refLookup(launch.machine);
+    if (!refMachine) {
+      // A job's persisted launch.machine can legitimately no longer match
+      // any currently-registered machine (e.g. after a machine rename) --
+      // refLookup() returns null by design in that case, not as a bug.
+      // See RunMgmt::terminate() for the same pattern.
+      setMessage("No job information available--machine \"" + launch.machine +
+                 "\" is not currently registered.");
+      return;
+    }
 
     Jobdata job = calc->jobdata();
     pathFull = job.jobpath;
@@ -3216,6 +3225,14 @@ void CalcMgr::shellInRunDir(WxResourceTreeItemData *itemData)
   user = launch.user;
 
   RefMachine* refMachine = RefMachine::refLookup(launch.machine);
+  if (!refMachine) {
+    // See tailOutputFile()/RunMgmt::terminate() for why this is a real,
+    // reachable case (e.g. a machine renamed after this job was launched)
+    // and not just defensive padding.
+    setMessage("Unable to open shell--machine \"" + launch.machine +
+               "\" is not currently registered.");
+    return;
+  }
 
   pathBase = launch.rundir;
 
