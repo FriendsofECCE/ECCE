@@ -377,22 +377,23 @@ string RCommand::shellCommand(const string& remShell, const string& machine,
   static const char* minfc  =  "-fc";
   static const char* minc  =  "-c";
 
-  // "-f" is csh/tcsh syntax for "fast: skip .cshrc" -- the whole point
-  // of this inner shell (it should pick up the calling process's own
-  // environment, not layer a second rc file's worth of aliases/prompts/
-  // hooks on top). bash has no equivalent meaning for "-f": there it
-  // means "disable pathname expansion" and, critically, does NOT stop
-  // an interactive, non-login bash (which this is: no "-c", stdin is
-  // the pty, so it reads commands interactively) from sourcing
-  // ~/.bashrc. Confirmed live: "bash -f" attached to a pty here loads
-  // the user's real colored PS1 and full .bashrc, not a clean shell --
-  // exactly the reproducible-but-nondeterministic bash job-submission
-  // "hangup" bug this was traced from (issue #59), since whatever a
-  // given user's .bashrc happens to do runs, unasked-for, inside the
-  // very shell used to background compute jobs. "--norc --noprofile"
-  // is bash's actual "skip rc files" equivalent.
-  string echoshell = "echo +hi+ && " + locShell +
-      ((locShell == "bash") ? " --norc --noprofile" : " -f");
+  // REVERTED 2026-09-03: "--norc --noprofile" (instead of csh-style "-f")
+  // for bash here was well-intentioned (see git history) but turned out
+  // to be actively harmful for at least one real setup: it skips
+  // ~/.bashrc entirely, and for a user whose .bashrc is what actually
+  // sets up a compute code's environment (e.g. sourcing a vendor
+  // profile script that exports GAUSS_ARCHDIR/GAUSS_BSDDIR/G16BASIS/etc
+  // -- more than the ECCE-generated submit script itself sets), that
+  // silently broke job launches that depended on it, coinciding exactly
+  // with the fix landing. Reverted pending a fix that doesn't assume
+  // anything about what a user's dotfiles do or don't need to provide --
+  // e.g. having ECCE's own generated submit scripts source the same
+  // vendor profile explicitly, so job correctness never depends on
+  // ~/.bashrc content one way or the other. The original bracketed-
+  // paste-mode issue this was investigating is independent and still
+  // handled further down (the "unalias -a...bind...enable-bracketed-
+  // paste off" block).
+  string echoshell = "echo +hi+ && " + locShell + " -f";
 
   static const char* minl  =  "-l";
   // bash spawned this way (as the remote command of a real ssh session,

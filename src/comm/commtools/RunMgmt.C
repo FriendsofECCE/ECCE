@@ -129,7 +129,20 @@ string RunMgmt::terminate(const TaskJob *calc)
     // with this strategy.
     if (rcmd.isOpen()) {
       if (rcmd.directory(job.jobpath)) {
-        string fixStatus = "echo 302 >! ";
+        // ">!" is csh/tcsh-only ("clobber even if noclobber is set");
+        // bash doesn't recognize it as part of the redirect operator at
+        // all, so "echo 302 >! /path/.ecce.status" was parsed as
+        // "redirect to a file literally named '!', then pass the real
+        // path as a second, meaningless argument to echo" -- confirmed
+        // live: it silently wrote a file named "!" instead of
+        // .ecce.status (a different bug than the exec() failure this
+        // command sometimes also produces, but real either way). Plain
+        // ">" behaves identically in both shells for this purpose --
+        // noclobber isn't on by default in either, and even if a user's
+        // shell config enabled it, there's no reason this internal,
+        // ECCE-controlled status write should ever want to fail because
+        // of it.
+        string fixStatus = "echo 302 > ";
         fixStatus += job.jobpath + "/.ecce.status";
         if (rcmd.exec(fixStatus)) {
           string outstr;
