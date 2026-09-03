@@ -1,4 +1,4 @@
-%Mem=##MemorySize##000000
+%Mem=##MemorySize##GB
 ##CheckpointFile##
 ##G98Route## 
 

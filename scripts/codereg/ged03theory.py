@@ -79,9 +79,9 @@ class Ged03TheoryPanel(EccePanel):
         
         self.memorySpin = EcceSpinCtrl(self,
                                        hardRange = "[0..)",
-                                       unit = "Megawords",
+                                       unit = "Gigabytes",
                                        name = "ES.Theory.SCF.MemorySize",
-                                       default = 4,
+                                       default = 6,
                                        export = 1)
         memorySizer.AddWidget(self.memorySpin)
 
