@@ -14,8 +14,10 @@ if [ ! -f "$CONF" ]; then
   exit 0
 fi
 
+APACHE2_BIN="$(command -v apache2 2>/dev/null || echo /usr/sbin/apache2)"
+
 if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
-  apache2 -f "$CONF" -k stop
+  "$APACHE2_BIN" -f "$CONF" -k stop
   echo "ecce-dataserver-stop: stopped data server (pid $(cat "$PIDFILE"))"
 else
   echo "ecce-dataserver-stop: data server not running"

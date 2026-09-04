@@ -22,6 +22,20 @@ STATEDIR="$ECCE_REALUSERHOME/.ECCE/dataserver"
 DATAROOT="$STATEDIR/htdocs"
 PORT=8096
 
+# Debian only puts /usr/sbin (where the apache2 binary lives) on PATH for
+# root -- a regular user's login/desktop session PATH does not include it
+# (confirmed via `systemctl --user show-environment` and gnome-session's
+# own /proc/<pid>/environ). Relying on bare `apache2` here silently fails
+# with "command not found" for any non-root, non-customized-PATH user,
+# which then surfaces downstream as bin/gateway's opaque "cannot
+# establish a connection to the ECCE Server" dialog instead of an actual
+# error from this script. Resolve a full path instead.
+APACHE2_BIN="$(command -v apache2 2>/dev/null || echo /usr/sbin/apache2)"
+if [ ! -x "$APACHE2_BIN" ]; then
+  echo "ecce-dataserver-start: no apache2 binary found (looked on PATH and at /usr/sbin/apache2) -- install apache2" >&2
+  exit 1
+fi
+
 port_open() {
   (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1
   status=$?
@@ -81,7 +95,7 @@ sed -e "s|##HTTPDROOT##|$STATEDIR|g" \
     "$CONF_TEMPLATE" > "$STATEDIR/httpd.conf"
 
 echo "ecce-dataserver-start: starting data server on port $PORT..."
-apache2 -f "$STATEDIR/httpd.conf" -k start
+"$APACHE2_BIN" -f "$STATEDIR/httpd.conf" -k start
 i=0
 while [ $i -lt 40 ]; do
   if port_open "$PORT"; then break; fi
