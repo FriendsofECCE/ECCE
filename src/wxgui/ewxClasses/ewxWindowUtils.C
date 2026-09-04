@@ -71,17 +71,30 @@ void ewxWindowUtils::restoreWindowSettings(wxWindow *win,
                                            bool restoreSize)
 {
   int x, y;
-  int width=wxDefaultCoord;
-  int height=wxDefaultCoord;
 
   config->Read("/Window/X", &x, wxDefaultCoord);
   config->Read("/Window/Y", &y, wxDefaultCoord);
 
   if (restoreSize) {
+    int width=wxDefaultCoord;
+    int height=wxDefaultCoord;
     config->Read("/Window/Height", &height, wxDefaultCoord);
     config->Read("/Window/Width", &width, wxDefaultCoord);
+    win->SetSize(x, y, width, height, wxSIZE_AUTO);
+  } else {
+    // GitHub #67: passing -1/wxDefaultCoord for width/height here does
+    // NOT mean "leave the size alone" under the default wxSIZE_AUTO
+    // flag -- it means "recompute via best-size", which re-triggers
+    // Layout() on whatever sizer the caller just built in its own
+    // constructor (e.g. Gateway::CreateControls()'s toolbar sizer).
+    // On at least one real dual-monitor GTK3 setup that reentrant
+    // Layout()/DoSetSize pass computes an invalid (<=0) height and GTK
+    // asserts ("gtk_window_resize: assertion 'height > 0' failed"),
+    // leaving the window's real height clobbered even though the
+    // caller had already set a correct one. When we're not restoring
+    // size, don't touch it at all -- just reposition.
+    win->Move(x, y);
   }
-  win->SetSize(x, y, width, height, wxSIZE_AUTO);
 }
 
 
@@ -126,7 +139,6 @@ bool ewxWindowUtils::restoreWindowSettings(wxWindow *win,
    bool ret = true;
 
    int x=-1 ,y=-1;
-   int width=-1 ,height=-1;
 
    prefs.getInt(prefix+".X",x);
    prefs.getInt(prefix+".Y",y);
@@ -136,14 +148,22 @@ bool ewxWindowUtils::restoreWindowSettings(wxWindow *win,
       y = -1;
 
    if (restoreSize) {
+      int width=-1 ,height=-1;
       prefs.getInt(prefix+".Height",height);
       prefs.getInt(prefix+".Width",width);
       if (height < 0)
          height = -1;
       if (width < 0)
          width = -1;
+      win->SetSize(x, y, width, height);
+   } else {
+      // GitHub #67: see the ewxConfig overload above for the full
+      // explanation -- SetSize(x, y, -1, -1) is not a no-op for size
+      // under wx3.2/GTK3's default wxSIZE_AUTO, it recomputes and can
+      // clobber the caller's already-correct size via a reentrant
+      // Layout() pass. Reposition only.
+      win->Move(x, y);
    }
-   win->SetSize(x, y, width, height);
    return ret;
 }
 
