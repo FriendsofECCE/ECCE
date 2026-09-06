@@ -32,6 +32,41 @@ class OrcaTheoryPanel(EccePanel):
         scfSizer.AddWidget(self.maxIterationsSpin)
         self.panelSizer.Add(scfSizer)
 
+        # MEMORY -- ORCA's "%maxcore" is memory PER CORE, in MB (confirmed
+        # against a real ORCA 6.1.1 run: reported "Max core memory ... N MB"
+        # matches the per-process setting, not a job total) -- same
+        # convention as NWChem's "Gigabytes / core" MemorySize widget in
+        # nedtheory.py, not Gaussian's job-total "Gigabytes" one. Uses
+        # ORCA's own native unit (MB) directly rather than converting
+        # through GB.
+        memSizer = EcceBoxSizer(self, label="Memory", cols=1)
+        self.memSize = EcceSpinCtrl(self,
+                                    hardRange="[0..)",
+                                    unit="Megabytes / core",
+                                    name="ES.Theory.SCF.MemorySize",
+                                    default=1000,
+                                    label="Memory Per Core:",
+                                    export=1)
+        memSizer.AddWidget(self.memSize)
+        self.panelSizer.Add(memSizer)
+
+        # PROCESSORS -- lets a job's "%pal nprocs N end" block be set
+        # explicitly at edit time (e.g. for a manually-run input file),
+        # independent of whatever processor count Launch later requests.
+        # gensub's orca() sub only injects its own %pal block if the
+        # input file doesn't already have one from here, so an explicit
+        # choice here always wins over the launch-time queue setting --
+        # leave at 1 (the default) to let Launch's queue choice decide.
+        procSizer = EcceBoxSizer(self, label="Parallel", cols=1)
+        self.numProcs = EcceSpinCtrl(self,
+                                     hardRange="[1..)",
+                                     name="ES.Theory.SCF.NumProcessors",
+                                     default=1,
+                                     label="Processors:",
+                                     export=1)
+        procSizer.AddWidget(self.numProcs)
+        self.panelSizer.Add(procSizer)
+
         # DFT FUNCTIONAL -- keep in sync with ai.orca's DFTXCFun map
         if EcceGlobals.Category == "DFT":
             dftSizer = EcceBoxSizer(self, label="DFT Functional", cols=1)

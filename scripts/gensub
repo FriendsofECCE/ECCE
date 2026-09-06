@@ -1170,7 +1170,65 @@ sub amica()
 # Description
 #   GAMESS-UK
 ###########################################################################
-sub gamessuk() 
+###########################################################################
+# Description
+#   ORCA (issue #38)
+#
+#   Unlike NWChem/GAMESS-UK/etc, ORCA must never be wrapped in an
+#   external "mpirun -np N" -- its own driver launches mpirun
+#   internally, controlled by a "%pal nprocs N end" block that has to
+#   be IN THE INPUT FILE. ai.orca (scripts/parsers/ai.orca) can write
+#   that block itself now, from a Processors setting in the theory
+#   dialog -- but only if the user explicitly set it above the default
+#   of 1, since the real launch-time processor count isn't known yet
+#   when the calc editor built the input file. If the user didn't set
+#   it explicitly, it's prepended here instead, right before running,
+#   now that $::totalprocs is finally known. Confirmed against a real
+#   ORCA 6.1.1 install: plain "orca file.inp" with a %pal block (either
+#   one) runs a real multi-process MPI job; wrapping it in mpirun
+#   yourself is not how ORCA parallelism works and was not tested (nor
+#   needed). Also confirmed: ORCA silently uses the LAST %pal block if
+#   there happen to be two, so this checks the input file directly
+#   rather than risking an explicit edit-time choice getting overridden
+#   by (or itself overriding) the queue's actual allocation.
+###########################################################################
+sub orca()
+{
+  use strict vars;
+  my ($retval,$orca,$cmd,$hasOwnPal,$content);
+  $retval = "";
+  $orca = $::config{$::lccode};
+  if ($orca eq "") { die "Path for ORCA not found"; }
+  $cmd = $::config{"orcacommand"};
+
+  $retval .= "set orca = $orca\n";
+  $retval .= "if (\$\?ECCE_ORCA) then\n  set orca = \$ECCE_ORCA\nendif\n";
+  $retval .= "echo \"Using ORCA path: \$orca\" >> $::logfile\n";
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $hasOwnPal = 0;
+    if (open(my $fh, "<", $::inFile)) {
+      local $/;
+      $content = <$fh>;
+      close($fh);
+      $hasOwnPal = 1 if (defined($content) && $content =~ /%pal\b/i);
+    }
+    if ($::totalprocs > 1 && !$hasOwnPal) {
+      $retval .= "\n$::CC - Prepend %pal so ORCA's own driver launches mpirun itself\n";
+      $retval .= "if ( ! -e $::inFile.orig ) cp $::inFile $::inFile.orig\n";
+      $retval .= "echo '%pal nprocs $::totalprocs end' > $::inFile.tmp\n";
+      $retval .= "cat $::inFile.orig >> $::inFile.tmp\n";
+      $retval .= "mv $::inFile.tmp $::inFile\n";
+    }
+    $retval .= "\$orca $::inFile >&! $::outFile\n";
+  }
+  return $retval;
+  nouse strict vars;
+}
+
+sub gamessuk()
 {
   use strict vars;
   my ($retval,$gamessuk,$cmd);

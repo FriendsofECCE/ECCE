@@ -131,6 +131,23 @@ sub ORCARoute {
 # left in the output verbatim instead of being blanked.
 sub ORCABlocks {
   my $result = "";
+  # %maxcore is memory per core, in MB -- see orcatheory.py's MemorySize
+  # widget comment for why this differs from Gaussian's job-total %Mem.
+  my $maxcore = $AbiDict{"ES.Theory.SCF.MemorySize"};
+  if ($maxcore ne "") {
+    $result .= "%maxcore $maxcore\n";
+  }
+  # %pal nprocs N: only written if the user explicitly set Processors>1
+  # in the theory dialog. Left at the default (1, no block at all) lets
+  # gensub's orca() sub inject the actual launch-time queue processor
+  # count instead -- confirmed empirically that ORCA just uses the LAST
+  # %pal block if there happen to be two, so gensub only adds its own
+  # when this one is absent, rather than risking the launch-time
+  # allocation being silently overridden by a stale edit-time choice.
+  my $nprocs = $AbiDict{"ES.Theory.SCF.NumProcessors"};
+  if ($nprocs ne "" && $nprocs > 1) {
+    $result .= "%pal nprocs $nprocs end\n";
+  }
   my $maxiter = $AbiDict{"ES.Theory.SCF.ConvergenceIterations"};
   if ($maxiter ne "") {
     $result .= "%scf\n  MaxIter $maxiter\nend\n";
