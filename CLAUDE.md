@@ -63,6 +63,80 @@ accurate) for the full pipeline; short version:
   `scripts/codereg`. If a script mysteriously isn't found only in the
   packaged app, check `CMakeLists.txt` first.
 
+#### New-code checklist (gotchas found integrating ORCA, issue #38)
+Six real bugs surfaced adding one new code, none obvious from reading
+`ai.<code>`/`*.expt` alone — check these explicitly for the next one
+(GAMESS-US, Dalton, ...) rather than re-discovering them live:
+- **Don't trust `ai.<code>`'s own comments for the `.frag`/`.param`/
+  `.basis` format** — verify against the actual C++ writers instead:
+  `ESInputController.C`'s `write_cs()`/`write_setup()`/
+  `write_gbsconfig()` (`CalcEd::write_setup` in particular — the real
+  key list, e.g. `Category`/`Theory`/`RunType`/`Charge`/
+  `ChemSys.Multiplicity`, plus whatever `GUIValues::dumpKeyVals()`
+  exports from the theory/runtype dialogs). A sibling code's own
+  scripts can be stale or written against slightly different
+  assumptions than what the GUI actually emits today.
+- **Two parallel resource-graph files, not one**: `ResourceDescriptor.
+  xml` *and* `ResourceDescriptorRxn.xml` (used for reaction-study
+  projects) each need the new code's full `<ResourceType>` block *and*
+  a `<ContainsResource name="..._es"/>` entry on `project` — missing
+  either makes the "New Calculation" menu (and, in the Rxn file,
+  the CalcEd code-switch toolbar) silently omit the code, with no
+  error anywhere. `CodeFactory::getFullySupportedCodes()` (used by
+  CalcEd's code-switch *buttons*) auto-discovers `.edml` files by
+  directory scan; the "New..." *menu* (`CalcMgr::getContextMenu`/
+  `SessionContextPanel.C`) instead reads the clicked node's own
+  `ResourceType::getContains()` — two different mechanisms, only one
+  of which is automatic.
+- **`<DataFiles>` filenames need a distinctive extension**, not
+  something generic like `.in`/`.out` — Apache has no built-in MIME
+  mapping for those, so the uploaded file's `Content-Type` silently
+  becomes `DefaultType text/plain`, and ECCE's mimetype-filtered
+  "find the primary input file" lookup then can't match it against
+  the `.edml`'s declared mimetype *even though the file exists on
+  disk* — looks exactly like a save failure, isn't one. Add a matching
+  `AddType` line to `packaging/dataserver/httpd.conf.ecce` (see the
+  other codes' `.g16in`/`.nw`/`.gki`-style entries there). This is a
+  per-user template resolved into `$STATEDIR/httpd.conf` fresh on
+  every `ecce-dataserver-start` — but only when the dataserver isn't
+  already running (early exit if the port's listening), so testing a
+  `httpd.conf.ecce` change needs `ecce-dataserver-stop` first, not
+  just an app relaunch.
+- **`<LaunchPreprocessor>` is required, unconditionally** —
+  `Launch::postProcessInput()` shells out to `JCode::launchPPScript()`
+  with no empty-string check, so a code without one fails launch with
+  a bare `-p postParams` (empty command name) "command not found",
+  which reads like a shell/PATH problem but isn't. Even a trivial
+  script is needed if there's nothing to post-process. This script,
+  not the input generator, is also the *correct* place for genuinely
+  launch-time-only info the input generator can't know at edit time
+  (processor count, scratch dir path) — it receives a `postParams`
+  dictionary with the real values (see `nwchem.launchpp` for the
+  pattern: read `-p <paramfile>`, rewrite the already-generated input
+  file in place, idempotently).
+- **`rdStandardGBS.pm`'s "NameBasis" format has two undocumented
+  requirements** that every existing `*.expt`'s writer actually
+  violates (silently broken there too, not just for a new code): the
+  `basis "ao basis" <type>` line needs a literal trailing `print`
+  keyword, and `<atom> library "<name>"` lines must NOT be indented —
+  neither requirement matches the whitespace tolerance the format's
+  own `NameBasis`/`EndNameBasis` markers get. Get either wrong and a
+  named-library basis assignment silently translates to nothing, with
+  no error.
+- **No `CMakeLists.txt install()` changes needed** for a new code's
+  own files — unlike the *other* `scripts/*` gotcha above, `scripts/
+  parsers`, `scripts/codereg`, and `data/` are already installed as
+  whole directories (`install(DIRECTORY ...)`), so new files under
+  them are packaged automatically.
+
+Separately (found the same way, but not code-registration-specific,
+so don't expect it to recur per-code): `VDoc::isCurrentVdoc()` had a
+version-string parsing bug that broke saving *any* calc's input file
+on this build, misread as a new-code-specific issue at first because
+it was hit while testing one. Already fixed — if a save fails with
+"input file copy to DAV failed" / 409 Conflict on a build after this
+fix, it's a genuinely new problem, not a repeat of that one.
+
 ### The two background services ("the server")
 Almost entirely new in this fork — not in the original app's docs.
 Both per-user, both non-root, both started automatically by the
