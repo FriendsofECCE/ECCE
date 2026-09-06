@@ -4172,7 +4172,16 @@ sub PDTypesEnable
     foreach (@parseTypes)
     {
         # we don't expect pseudo-type 'all' to be in the parse descriptor table
-        next if ($_ eq 'all');
+        # (case-insensitive: Launch.C actually sends "parseTypes ALL", not
+        # lowercase "all" -- found live chasing an ORCA GEOMTRACE property
+        # that silently never got extracted despite a correct Begin/End
+        # match. With the case mismatch, "ALL" fails this check and the
+        # deletion loop below (also fixed) treats %gPdCount as never
+        # populated, deleting every not-yet-enabled parse descriptor --
+        # not ORCA-specific, and not caught before now because whatever
+        # extraction path scalar properties like TE go through must not
+        # route through this same PD-matching table.)
+        next if (lc($_) eq 'all');
 
         # we do expect other types to be in the parse descriptor table
         if (&PDTypeExists($_))
@@ -4194,7 +4203,7 @@ sub PDTypesEnable
     }
 
     # delete the parse types that are not enabled
-    if ($parseTypes !~ /\ball\b/)
+    if ($parseTypes !~ /\ball\b/i)
     {
         foreach (keys %gPdTable)
         {
