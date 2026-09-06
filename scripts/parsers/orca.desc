@@ -15,10 +15,18 @@ Frequency=all
 End=CARTESIAN COORDINATES \(A\.U\.\)
 [END]
 
-[TE][TEVEC]
+[TE]
 Script=orca.energy
 Begin=FINAL SINGLE POINT ENERGY
 Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[TEVEC]
+Script=orca.energy
+Begin=FINAL SINGLE POINT ENERGY
+Frequency=all
 Skip=0
 Lines=1
 [END]

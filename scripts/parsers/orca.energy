@@ -6,8 +6,16 @@
 # Energy) property. Reduced scope covers RHF/UHF/RDFT/UDFT only, all of
 # which share this one energy line regardless of method -- unlike
 # Gaussian's gaussian-16.energy, which has to pattern-match a different
-# "SCF Done:" label per theory. Modeled on nwchem.te for the TE/TEVEC
-# output shape.
+# "SCF Done:" label per theory.
+#
+# orca.desc calls this script from two separate entries sharing the
+# same Begin pattern but different Frequency -- [TE] (Frequency=last,
+# the converged energy) and [TEVEC] (Frequency=all, one point per
+# optimization cycle, for the energy-vs-step plot). $key (ARGV[0], the
+# bracket name) tells us which one triggered this invocation, matching
+# the pattern nwchem.desc's own [TEPROP]/[TEVEC] split uses (see
+# nwchem.te) rather than one script unconditionally emitting both keys
+# every time regardless of which entry fired.
 #
 # Sample input line:
 #   FINAL SINGLE POINT ENERGY       -74.965901192189
@@ -25,17 +33,9 @@ if (/FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)/) {
 }
 exit(0) if (!defined($value));
 
-print "key: TE\n";
+print "key: $key\n";
 print "size:\n1\n";
 print "values:\n$value\n";
 print "units:\nHartree\n";
 print "END\n";
-
-if ($runtype =~ /Geo/i) {
-  print "key: TEVEC\n";
-  print "size:\n1\n";
-  print "values:\n$value\n";
-  print "units:\nHartree\n";
-  print "END\n";
-}
 exit(0);
