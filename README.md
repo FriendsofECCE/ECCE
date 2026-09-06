@@ -57,7 +57,35 @@ The releases since 8.0.0 continue that stabilization: real calculations
 run end to end now (job launch, remote monitoring, basis-set selection,
 theory setup), and a long list of crashes and silent failures surfaced by
 actually using the application have been root-caused and fixed rather
-than papered over. See the notes on each
+than papered over.
+
+### Release history
+
+- **v8.0.7** — Adds ORCA as a registered code (job setup, submission, and
+  collection now work end-to-end; property display in the viewer is
+  still basic); fixes a version-parsing bug that could silently break
+  saving on *any* calculation, not just ORCA's.
+- **v8.0.6** — Fixes the data server failing to start for ordinary
+  (non-root) users, and a zero-height Gateway window crash on
+  multi-monitor setups.
+- **v8.0.5** — Fixes "Terminate" not actually killing running jobs,
+  several null-pointer crashes (rename/delete/rerun/tree view), and
+  per-code memory-unit display in Theory Details; documents two
+  unresolved bash-as-local-shell bugs.
+- **v8.0.4** — Fixes four Organizer startup crashes, a job-monitoring
+  socket crash, and a resource-tree reentrancy crash; adds macOS build
+  fixes.
+- **v8.0.3** — Major reliability pass on remote job submission/
+  monitoring over SSH (bash echo/pasting bugs, hung connections, dying
+  background jobs), plus more crash fixes and cross-platform
+  (macOS/RPM) packaging fixes.
+- **v8.0.0-alpha.2** — Second alpha: fixes an atom-mis-selection bug and
+  two crash bugs, cleans up default property-panel layout.
+- **v8.0.0-alpha.1** — Initial modernization release: ports the
+  ~1200-file codebase to current Debian, wxWidgets 3.2/GTK3, CMake,
+  Python 3, and current XML/OpenGL/messaging/data-server dependencies.
+
+See the notes on each
 [release](https://github.com/FriendsofECCE/ECCE/releases) for specifics.
 The full, detailed history of what was fixed and why — including dead
 ends, not just the fixes that worked — lives in `docs/HISTORY.md`.
