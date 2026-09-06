@@ -1805,14 +1805,28 @@ bool VDoc::isCurrentVdoc()
 
         createdWithVal = results[i].value;
 
-        // Remove 'v'
-        if (!createdWithVal.empty()) {
+        // Remove a leading 'v' if present -- older builds stamped
+        // "createdWith" as e.g. "v8.0.6"; this build (and apparently
+        // any other reachable from here) stamps it bare, e.g. "8.0.7",
+        // so unconditionally erasing the first character was removing
+        // the actual major version digit instead of a 'v' that was
+        // never there, leaving a single "." behind that never parses
+        // as an int -- isCurrentVdoc() was silently returning false
+        // for every calc saved by this build, regardless of code,
+        // falling back to the pre-v4 legacy "Files" collection layout
+        // instead of "Inputs"/"Outputs"/etc, which the dataserver then
+        // rejects with 409 Conflict since that directory was never
+        // created. Found live via a real ORCA save failure, but not
+        // ORCA-specific -- confirmed by reading the actual "createdWith"
+        // property directly off disk.
+        if (!createdWithVal.empty() &&
+            (createdWithVal[0] == 'v' || createdWithVal[0] == 'V')) {
           createdWithVal.erase(0,1); // remove 'v'
         }
 
         // Erase all char's except primary version number
         if (createdWithVal.size() >= 2) {
-          createdWithVal.erase(1); 
+          createdWithVal.erase(1);
         }
 
       }
