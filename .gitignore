@@ -5,6 +5,7 @@
 /obj/
 /build-cmake/
 src/apps/symmetry/*.mod
+__pycache__/
 
 # Claude Code local session/settings state, not repo content
 /.claude/
