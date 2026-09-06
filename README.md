@@ -238,6 +238,7 @@ from testing:
 * **Gaussian 16**, installed under `/opt/gaussian/g16`: use
   `/opt/gaussian/g16/g16`.
 * **NWChem**, installed from the Debian 13 repos: use `/usr/bin/nwchem`.
+* **ORCA**, installed under `/opt/orca/orca_6_1_1_linux_x86-64_shared_openmpi418_nodmrg`: use `/opt/orca/orca_6_1_1_linux_x86-64_shared_openmpi418_nodmrg/orca`.
 * **Perl 5**: use `/usr/bin/perl`.
 
 Find the right path for anything else with `which`, e.g. `which perl`.
