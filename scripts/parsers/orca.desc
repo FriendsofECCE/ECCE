@@ -23,9 +23,18 @@ Skip=0
 Lines=1
 [END]
 
+# Textually distinct from [TE]'s Begin above even though it matches the
+# identical real text -- eccejobmonitor keys its whole parse-type table
+# by the literal Begin string (PDFileRead's "$parseHandle =
+# $pdBuf{$PD_KEY_BEGIN}"), and silently drops any later entry whose
+# Begin collides with an earlier one already in the table ("silently
+# ignore duplicate parse handles"). TE and TEVEC both have to match
+# "FINAL SINGLE POINT ENERGY" but need different Frequency values, so
+# the two Begin strings are wrapped differently (non-capturing group,
+# functionally a no-op) purely to avoid colliding on this hash key.
 [TEVEC]
 Script=orca.energy
-Begin=FINAL SINGLE POINT ENERGY
+Begin=(?:FINAL SINGLE POINT ENERGY)
 Frequency=all
 Skip=0
 Lines=1

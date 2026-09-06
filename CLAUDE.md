@@ -128,6 +128,18 @@ Six real bugs surfaced adding one new code, none obvious from reading
   parsers`, `scripts/codereg`, and `data/` are already installed as
   whole directories (`install(DIRECTORY ...)`), so new files under
   them are packaged automatically.
+- **A `.desc` parse-type's `Begin` value is also its hash key** —
+  `scripts/eccejobmonitor`'s `PDFileRead()` keys its whole parse-type
+  table by the literal `Begin` string (`$parseHandle =
+  $pdBuf{$PD_KEY_BEGIN}`), and *silently* drops any later entry whose
+  `Begin` collides with one already read ("silently ignore duplicate
+  parse handles" — no error, no log). Two entries that legitimately
+  need to match the identical real output text (e.g. one code's
+  "converged energy" a `Frequency=last` and its own "energy at every
+  step" at `Frequency=all`, both matching the same line) need
+  textually different `Begin` values to coexist — a harmless
+  non-capturing-group wrapper on one of them (`(?:...)`) is enough,
+  since it changes the string without changing what it matches.
 
 Separately (found the same way, but not code-registration-specific,
 so don't expect it to recur per-code): `VDoc::isCurrentVdoc()` had a
