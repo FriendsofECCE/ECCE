@@ -15,26 +15,23 @@ Frequency=all
 End=CARTESIAN COORDINATES \(A\.U\.\)
 [END]
 
-[TE]
+# TE and TEVEC as two separate parse types (one Frequency=last, one
+# Frequency=all) does NOT work for ORCA, unlike NWChem's own [TEPROP]/
+# [TEVEC] split it was modeled on: NWChem has two genuinely different
+# marker phrases for these ("task_energy" vs "task_gradient"), but
+# ORCA prints the identical "FINAL SINGLE POINT ENERGY" text for both
+# purposes. eccejobmonitor's PDMatchBegin() returns the first parse
+# type whose Begin matches a given line and never checks the rest for
+# that same line -- with two entries matching identical text, whichever
+# happens to be checked first permanently starves the other for the
+# whole run (confirmed live: TEVEC matched 10/10 times, TE never
+# matched once). Single combined entry instead, Frequency=all: every
+# match re-emits both TE and TEVEC (see orca.energy), so TE just keeps
+# getting overwritten and naturally ends up holding the last value once
+# matching stops, while TEVEC accumulates the full per-step trace.
+[TE][TEVEC]
 Script=orca.energy
 Begin=FINAL SINGLE POINT ENERGY
-Frequency=last
-Skip=0
-Lines=1
-[END]
-
-# Textually distinct from [TE]'s Begin above even though it matches the
-# identical real text -- eccejobmonitor keys its whole parse-type table
-# by the literal Begin string (PDFileRead's "$parseHandle =
-# $pdBuf{$PD_KEY_BEGIN}"), and silently drops any later entry whose
-# Begin collides with an earlier one already in the table ("silently
-# ignore duplicate parse handles"). TE and TEVEC both have to match
-# "FINAL SINGLE POINT ENERGY" but need different Frequency values, so
-# the two Begin strings are wrapped differently (non-capturing group,
-# functionally a no-op) purely to avoid colliding on this hash key.
-[TEVEC]
-Script=orca.energy
-Begin=(?:FINAL SINGLE POINT ENERGY)
 Frequency=all
 Skip=0
 Lines=1

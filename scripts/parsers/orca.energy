@@ -8,14 +8,21 @@
 # Gaussian's gaussian-16.energy, which has to pattern-match a different
 # "SCF Done:" label per theory.
 #
-# orca.desc calls this script from two separate entries sharing the
-# same Begin pattern but different Frequency -- [TE] (Frequency=last,
-# the converged energy) and [TEVEC] (Frequency=all, one point per
-# optimization cycle, for the energy-vs-step plot). $key (ARGV[0], the
-# bracket name) tells us which one triggered this invocation, matching
-# the pattern nwchem.desc's own [TEPROP]/[TEVEC] split uses (see
-# nwchem.te) rather than one script unconditionally emitting both keys
-# every time regardless of which entry fired.
+# orca.desc's single [TE][TEVEC] entry (Frequency=all) invokes this
+# once per "FINAL SINGLE POINT ENERGY" occurrence (once per geometry
+# step, if any, plus the final one). ORCA has no separate marker text
+# for "the converged energy" vs "energy at this step" the way NWChem
+# does (task_energy vs task_gradient), so unlike nwchem.te this can't
+# decide what to print from $key (ARGV[0]) -- when eccejobmonitor reads
+# a combined "[TE][TEVEC]" bracket the two names are captured as one
+# opaque internal type label, not passed through separately. Instead,
+# always emit both keys every time, exactly like nwchem.te does when
+# runtype=~/Geo/: TE is a plain overwriting value, so it just keeps
+# getting replaced and naturally ends up holding the last (converged)
+# energy once matching stops; TEVEC accumulates every instance into the
+# full per-step trace. (A genuine two-entry split with different
+# Frequency values was tried first and doesn't work here -- see
+# orca.desc's comment on this entry for why.)
 #
 # Sample input line:
 #   FINAL SINGLE POINT ENERGY       -74.965901192189
@@ -33,7 +40,13 @@ if (/FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)/) {
 }
 exit(0) if (!defined($value));
 
-print "key: $key\n";
+print "key: TE\n";
+print "size:\n1\n";
+print "values:\n$value\n";
+print "units:\nHartree\n";
+print "END\n";
+
+print "key: TEVEC\n";
 print "size:\n1\n";
 print "values:\n$value\n";
 print "units:\nHartree\n";
