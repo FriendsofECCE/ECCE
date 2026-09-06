@@ -1,0 +1,356 @@
+#!/usr/bin/env perl
+################################################################################
+# FILENAME:  ai.orca
+#
+# SYNTAX: ai.orca -p -f -b -c -n <basename> -t <template> [-h] [-v]
+#
+# PURPOSE:
+#       Take an AbiChem generated dictionary and produce an ORCA input file.
+#       Modeled on ai.gauss16 (see that file for the sibling Gaussian-16
+#       version) -- the generic dictionary/geometry/constraint file readers
+#       and the ##tag## template substitution engine (modifyInputFile) are
+#       copied verbatim since they are code-agnostic.
+#
+# STATUS (issue #38): REDUCED SCOPE first cut, matching the method/runtype
+# set in data/client/cap/ORCA.edml -- RHF/UHF/RDFT/UDFT crossed with
+# Energy/Gradient/Geometry/Vibration/GeoVib. No MP2/CC/CI, no basis-set
+# route-card shortcut (always writes the explicit %basis block from
+# wrORCAGBS.pm), no geometry constraints, no symmetry handling.
+#
+# The "! <keywords>" line and %basis block below have been verified against
+# a real ORCA 6.1.1 install (RHF/UHF/RKS/UKS + EnGrad/Opt/Freq keywords, and
+# an explicit NewGTO basis block, all round-tripped successfully -- see
+# 2026-09-06 session). The %scf/%geom convergence blocks have NOT been
+# round-tripped and use approximate/default settings -- check before relying
+# on tight convergence behavior.
+#
+################################################################################
+
+use Getopt::Std;
+use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t);
+
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+require "pertab.pl";
+&loadPT;
+
+$| = 1;
+
+&getopts(':n:t:pfbchv');
+&handle_options;
+
+%AbiDict = ();
+
+if ($TplFILE eq "") {
+  &usage;
+}
+
+&verifyAbiFile;
+&verifyFragFile;
+&verifyCnstrntFile;
+&readDict;
+&verifyGBSFile;
+&readChemSys;
+&readCnstrntFile;
+&modifyInputFile;
+&cleanup;
+exit(0);
+
+################################################################################
+# Generic ##tag## substitution engine -- identical to ai.gauss16's
+# modifyInputFile. Walks the template line by line, replaces ##key## with
+# either &key(value) if such a sub exists, else the raw dictionary value,
+# else (no match at any level of the dot-separated key) drops the line.
+################################################################################
+sub modifyInputFile {
+  local($keysave, $key, $subname, $prefix, $postfix, $finished);
+  $inputFile = $TplFILE;
+  open(TEMPLATE, $inputFile);
+  open(NEWFILE, ">tmpfile");
+  while (<TEMPLATE>) {
+    if (/([^#]*)##([^#]*)##(.*)/) {
+      $prefix = $1;
+      $postfix = $3;
+      $keysave = $key = $2;
+      $finished = 0;
+      while ($finished == 0) {
+        $subname = $key;
+        $subname =~ s/\./_/g;
+        if (defined($AbiDict{$key})) {
+          $finished = 1;
+          $value = $AbiDict{$key};
+          $fct = "&$subname('$value')";
+          $result = eval $fct;
+          if (!(defined $result)) {
+            s/##$keysave##/$value/;
+          } elsif ($result ne "") {
+            $_ = $prefix . $result . $postfix . "\n";
+          }
+        } else {
+          $finished = 1;
+          $fct = "&$subname";
+          $result = eval $fct;
+          if (!(defined $result)) {
+            if (index($key, ".") >= $[) {
+              $key =~ s/\.[^\.]*$//;
+              $finished = 0;
+            } else {
+              $_ = "";
+            }
+          } elsif ($result ne "") {
+            $_ = $prefix . $result . $postfix . "\n";
+          }
+        }
+      }
+    }
+    print(NEWFILE);
+  }
+  close(TEMPLATE);
+  close(NEWFILE);
+}
+
+################################################################################
+# Code-specific tag resolvers
+################################################################################
+
+# The "! keyword keyword ..." line
+sub ORCARoute {
+  my $route = "! ";
+  $route .= &Theory($AbiDict{"Category"}, $AbiDict{"Theory"}) . " ";
+  if ($useExplicitBasis == 0) {
+    $route .= "$NameBasis ";
+  }
+  $route .= &RunType($AbiDict{"RunType"});
+  $route =~ s/\s+/ /g;
+  $route =~ s/\s+$//;
+  return $route;
+}
+
+# %scf / %geom blocks -- approximate, unverified (see header note).
+# Per the modifyInputFile contract (see ai.gauss16's CheckpointFile), a
+# sub returning "" must also set $_ = "" itself, or the ##tag## text is
+# left in the output verbatim instead of being blanked.
+sub ORCABlocks {
+  my $result = "";
+  my $maxiter = $AbiDict{"ES.Theory.SCF.ConvergenceIterations"};
+  if ($maxiter ne "") {
+    $result .= "%scf\n  MaxIter $maxiter\nend\n";
+  }
+  my $runtype = $AbiDict{"RunType"};
+  if ($runtype =~ /Geo/i) {
+    my $maxsteps = $AbiDict{"ES.Runtype.GeomOpt.MaximumStepsValue"};
+    if ($maxsteps ne "") {
+      $result .= "%geom\n  MaxIter $maxsteps\nend\n";
+    }
+  }
+  $_ = $result;
+  return $result;
+}
+
+# Inline the already-translated %basis block written by wrORCAGBS.pm
+# (via std2ORCA) into $BasisFILE -- unless it was a named-library
+# shortcut ("useRouteCard <name>"), in which case the name already went
+# onto the "!" line in ORCARoute and nothing needs to be inlined here.
+sub ORCABasis {
+  my $result = "";
+  if ($useExplicitBasis == 1) {
+    open(GBS, $BasisFILE) || die "ai.orca error: Couldn't open $BasisFILE\n";
+    while (<GBS>) { $result .= $_; }
+    close(GBS);
+  }
+  $_ = $result;
+  return $result;
+}
+
+sub Theory {
+  my ($category, $theory) = @_;
+  my $result;
+
+  if ($category eq "DFT") {
+    my $functional = &DFTXCFun($AbiDict{"ES.Theory.DFT.XCFunctionals"});
+    if ($theory eq "UDFT") {
+      $result = "UKS $functional";
+    } else {
+      $result = "RKS $functional";
+    }
+  } elsif ($theory eq "RHF") {
+    $result = "HF";
+  } elsif ($theory eq "UHF") {
+    $result = "UHF";
+  } else {
+    die "ai.orca error: unsupported theory '$theory' (reduced scope covers RHF/UHF/RDFT/UDFT only)\n";
+  }
+  return $result;
+}
+
+# Translate ECCE's descriptive functional label to ORCA's keyword. Only a
+# handful of common functionals are mapped since orcatheory.py (the
+# Theory Details dialog that will define the descriptive labels) hasn't
+# been written yet -- extend this table to match whatever labels that
+# dialog ends up using, the way DFTXCFun in ai.gauss16 does for Gaussian.
+sub DFTXCFun {
+  my ($xcFun) = @_;
+  my %map = (
+    "B3LYP"  => "B3LYP",
+    "PBE0"   => "PBE0",
+    "PBE"    => "PBE",
+    "BP86"   => "BP86",
+    "BLYP"   => "BLYP",
+    "TPSS"   => "TPSS",
+    "M06L"   => "M06L",
+    "M06"    => "M06",
+  );
+  return $map{$xcFun} || $xcFun;
+}
+
+sub RunType {
+  my ($runtype) = @_;
+  my $result;
+
+  if ($runtype eq "Energy") {
+    $result = "";
+  } elsif ($runtype eq "Gradient") {
+    $result = "EnGrad";
+  } elsif ($runtype eq "Geometry") {
+    $result = "Opt";
+  } elsif ($runtype eq "Vibration") {
+    $result = "Freq";
+  } elsif ($runtype eq "GeoVib") {
+    $result = "Opt Freq";
+  } elsif ($runtype eq "Magnetic") {
+    $result = "NMR";
+  } else {
+    die "ai.orca error: unsupported runtype '$runtype' (reduced scope covers Energy/Gradient/Geometry/Vibration/GeoVib/Magnetic only)\n";
+  }
+  return $result;
+}
+
+sub ChargeAndMultiplicity {
+  my $charge = ($AbiDict{"Charge"} eq "") ? 0 : $AbiDict{"Charge"};
+  return $charge . " " . &Multiplicity;
+}
+
+sub Multiplicity {
+  my $multiplicity = 1;
+  if ($AbiDict{"ChemSys.Multiplicity"} =~ /(\d+)/) {
+    $multiplicity = $1;
+  }
+  return $multiplicity;
+}
+
+# " Symbol X Y Z" per atom, one per line -- same format Gaussian's chemsys
+# sub emits, and what ORCA's "* xyz charge mult ... *" block expects.
+sub chemsys {
+  ($chemsys_atoms != 0) || die "ai.orca error: Fragment has no atoms!\n";
+  for (my $index = 0; $index < $chemsys_atoms; $index++) {
+    my $symbol = $tags{$index};
+    print(NEWFILE " $symbol     $coords{$index,0}     ");
+    print(NEWFILE "$coords{$index,1}     $coords{$index,2}\n");
+  }
+  $_ = "";
+}
+
+################################################################################
+# Generic file I/O -- copied from ai.gauss16, code-agnostic
+################################################################################
+
+sub verifyAbiFile {
+  open(ABIDICT, $AbiFILE) || die "ai.orca error: Couldn't open $AbiFILE\n";
+}
+
+sub verifyFragFile {
+  open(CHEMSYS, $FragFILE) || die "ai.orca error: Couldn't open $FragFILE\n";
+}
+
+sub verifyCnstrntFile {
+  if ($CnstrntFILE ne "") {
+    open(GEOCNST, $CnstrntFILE);
+  }
+}
+
+# Mirrors ai.gauss16's verifyGBSFile: std2ORCA/wrORCAGBS.pm write either
+# a single "useRouteCard <name>" line (named library basis, put on the
+# "!" line instead) or the full explicit %basis block.
+sub verifyGBSFile {
+  $useExplicitBasis = 1;
+  open(GBS, $BasisFILE) || die "ai.orca error: Couldn't open $BasisFILE\n";
+  while (<GBS>) {
+    if (/useRouteCard\s+(\S*)/) {
+      $useExplicitBasis = 0;
+      $NameBasis = $1;
+    }
+  }
+  close(GBS);
+}
+
+sub cleanup {
+  system("/bin/mv -f tmpfile '$inputFile'");
+  close(ABIDICT);
+}
+
+sub readDict {
+  while (<ABIDICT>) {
+    $_ =~ s/\s*!.*$//;
+    if (/:/) {
+      my ($key, $value) = split(/:/);
+      $key =~ s/^\s*//;
+      $key =~ s/\s*$//;
+      $value =~ s/^\s*//;
+      $value =~ s/\s*$//;
+      my $tagkey = $key;
+      while ($tagkey ne "") {
+        $AbiDict{$tagkey} = $value;
+        $tagkey =~ s/^[^\.]*//;
+        $tagkey =~ s/^\.//;
+      }
+    }
+  }
+}
+
+sub readChemSys {
+  my $symbols = 0;
+  $chemsys_atoms = 0;
+  $_ = <CHEMSYS>;
+  while (<CHEMSYS>) {
+    if (/^num_atoms:/) {
+      (undef, $chemsys_atoms) = split;
+    } elsif (/^title:/) {
+      (undef, $chemsys_name) = split;
+    } elsif (/^atom_info:/) {
+      $symbols = /symbol/;
+    } elsif (/^atom_list:/) {
+      for (my $index = 0; $index < $chemsys_atoms; $index++) {
+        $_ = <CHEMSYS>;
+        ($tags{$index}, $coords{$index,0}, $coords{$index,1}, $coords{$index,2}) = split;
+        if (!$symbols) {
+          $tags{$index} = $number_to_symbol{$tags{$index}};
+        }
+      }
+    }
+  }
+}
+
+# Constraint file support is out of reduced scope -- stub so the pipeline
+# doesn't break if calced ever writes a .con file. Revisit alongside
+# GeometryConstraintRules in ORCA.edml.
+sub readCnstrntFile {
+}
+
+sub usage {
+  print "Usage: ai.orca -p -f -b -n <basename> -t <template>\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}
+
+sub handle_options {
+  &usage && exit if ($opt_h || $opt_help);
+  my $revision = '$Revision: 1 $';
+  $revision =~ s/\$//g;
+  print "$revision\n" if ($opt_v);
+  exit if ($opt_v);
+  $AbiFILE = "$opt_n.param" if ($opt_p);
+  $FragFILE = "$opt_n.frag" if ($opt_f);
+  $BasisFILE = "$opt_n.basis" if ($opt_b);
+  $CnstrntFILE = "$opt_n.con" if ($opt_c);
+  $TplFILE = $opt_t;
+}

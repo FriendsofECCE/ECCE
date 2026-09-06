@@ -1,0 +1,46 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts one "CARTESIAN COORDINATES (ANGSTROEM)" block from ORCA output
+# (one per geometry step, plus the final geometry) into ECCE's standard
+# GEOMTRACE table format. Modeled on gaussian-16.geomtrace / nwchem.geomtrace
+# but ORCA's row format has no leading atom index and no "D" exponent
+# notation, e.g.:
+#   O     -0.026745    0.000000   -0.019159
+#   H      0.012871    0.000000    0.969456
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my @coordlines;
+my $rowLabels = "";
+my $index = 0;
+while (<STDIN>) {
+  if (/^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
+    my ($symbol, $x, $y, $z) = ($1, $2, $3, $4);
+    push(@coordlines, "$x $y $z");
+    $rowLabels .= " " . ($index + 1) . "-$symbol";
+    $index++;
+  } else {
+    last;
+  }
+}
+
+my $size = $#coordlines + 1;
+if ($size >= 1) {
+  print "key: GEOMTRACE\n";
+  print "size:\n1 $size 3\n";
+  print "rowlabels:\n$rowLabels\n";
+  print "columnlabels:\nX Y Z\n";
+  print "values:\n";
+  foreach my $line (@coordlines) {
+    print " $line\n";
+  }
+  print "units:\nAngstrom\n";
+  print "END\n";
+}
+exit(0);

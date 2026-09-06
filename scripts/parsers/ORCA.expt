@@ -1,0 +1,290 @@
+#!/usr/bin/env perl
+###############################################################################
+# FILENAME:  ORCA.expt
+#
+# SYNTAX: ORCA.expt <outfile>
+#
+# PURPOSE:
+#       Reads an ORCA output file (for a job ORCA ran outside of ECCE)
+#       and generates the ECCE .frag/.param/.gbs triple, so it can be
+#       imported as a completed calculation. Modeled on Gaussian-16.expt,
+#       but ORCA's output is much easier to reverse-parse: unlike
+#       Gaussian's route-section reconstruction, ORCA echoes its own
+#       input file verbatim near the top of the log under an
+#       "INPUT FILE" / "NAME = ..." / "|  N> ..." block, so the "!"
+#       keyword line and "* xyz charge mult" line can just be read back
+#       directly instead of decoded from scattered output text.
+#
+# STATUS (issue #38): REDUCED SCOPE, matching ai.orca -- only recognizes
+# the RHF/UHF/RKS/UKS + Opt/Freq/EnGrad keyword vocabulary ai.orca
+# itself generates, and only reconstructs a basis set when it was
+# specified by library name (e.g. "! RKS B3LYP def2-SVP") -- reversing
+# an explicit %basis/NewGTO block back into ECCE's standard basis-set
+# format is NOT implemented (would need a real inverse of
+# rdStandardGBS.pm/wrORCAGBS.pm; flagged here rather than guessed at).
+# Verified against a real ORCA 6.1.1 H2O RHF/STO-3G Opt+Freq run
+# (2026-09-06 session) -- every regex below was checked against that
+# file's actual "INPUT FILE" echo and "CARTESIAN COORDINATES (ANGSTROEM)"
+# blocks, not written from documentation alone.
+#
+###############################################################################
+
+use Getopt::Std;
+
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+require "wrORCAGBS.pm";  # for %NameToBasis / setupBasisTranslation
+
+$| = 1;
+
+&getopts(':hv');
+&handle_options;
+
+if ($#ARGV != 0) {
+  &usage;
+}
+
+&setupBasisTranslation;
+foreach my $ecceName (keys %NameToBasis) {
+  $BasisToName{uc($NameToBasis{$ecceName})} = $ecceName;
+}
+
+open(INPUT, $ARGV[0]) || die "Can't locate log file $ARGV[0]";
+&getVersion;
+&getInputEcho;
+&parseKeywordLine;
+&getChargeAndMultiplicity;
+&getMolecule;
+&writeDictAndMVM($ARGV[0]);
+exit(0);
+
+###############################################################################
+# Program Version 6.1.1  -  RELEASE   -
+###############################################################################
+sub getVersion {
+  while (<INPUT>) {
+    if (/Program Version\s+(\S+)/) {
+      $version = $1;
+      last;
+    }
+  }
+}
+
+###############################################################################
+# ================================================================================
+#                                       INPUT FILE
+# ================================================================================
+# NAME = h2o.inp
+# |  1> ! HF STO-3G Opt Freq
+# |  2>
+# |  3> * xyz 0 1
+# |  4> O   0.000000   0.000000   0.000000
+# ...
+# |  9>                          ****END OF INPUT****
+###############################################################################
+sub getInputEcho {
+  while (<INPUT>) {
+    last if (/^\s*INPUT FILE\s*$/);
+  }
+  $_ = <INPUT>;  # ====... line
+  $_ = <INPUT>;  # NAME = ...
+  @inputEchoLines = ();
+  while (<INPUT>) {
+    last if (/END OF INPUT/);
+    if (/^\|\s*\d+>\s?(.*)$/) {
+      push(@inputEchoLines, $1);
+    }
+  }
+}
+
+###############################################################################
+# Decode the "! <keywords>" line into Category/Theory/RunType/basis name.
+# Only recognizes the vocabulary ai.orca itself generates -- anything else
+# (MP2/CC/CI methods, other DFT functionals, other runtypes) is left
+# undefined rather than guessed at.
+###############################################################################
+sub parseKeywordLine {
+  my ($kwline) = grep(/^!/, @inputEchoLines);
+  return if (!defined($kwline));
+  $kwline =~ s/^!\s*//;
+  my @tokens = split(/\s+/, $kwline);
+
+  my %xcFunctionals = map { uc($_) => $_ }
+                      ("B3LYP","PBE0","PBE","BP86","BLYP","TPSS","M06L","M06");
+
+  # Recognized-but-out-of-reduced-scope runtype keywords: seeing one of
+  # these must NOT fall through to the Energy default below (that was
+  # the actual bug -- an IRC or NMR job was silently mislabeled
+  # "RunType: Energy" instead of either being recognized properly or
+  # left blank). NMR is now handled properly (-> Magnetic); this list
+  # is deliberately short (just what's been tested) and not exhaustive
+  # of every ORCA runtype keyword.
+  my %unsupportedRuntypeTokens = map { $_ => 1 } ("IRC","NEB","SCANTS");
+
+  my ($sawHF, $sawUHF, $sawRKS, $sawUKS,
+      $sawOpt, $sawFreq, $sawEnGrad, $sawNMR, $sawUnsupportedRuntype);
+  foreach my $tok (@tokens) {
+    my $ucTok = uc($tok);
+    if ($ucTok eq "HF") { $sawHF = 1; }
+    elsif ($ucTok eq "UHF") { $sawUHF = 1; }
+    elsif ($ucTok eq "RKS") { $sawRKS = 1; }
+    elsif ($ucTok eq "UKS") { $sawUKS = 1; }
+    elsif (exists($xcFunctionals{$ucTok})) { $xcFunctional = $xcFunctionals{$ucTok}; }
+    elsif ($tok eq "Opt") { $sawOpt = 1; }
+    elsif ($tok eq "Freq") { $sawFreq = 1; }
+    elsif ($tok eq "EnGrad") { $sawEnGrad = 1; }
+    elsif ($ucTok eq "NMR") { $sawNMR = 1; }
+    elsif (exists($unsupportedRuntypeTokens{$ucTok})) { $sawUnsupportedRuntype = 1; }
+    # Any other token is either a basis name or an auxiliary/
+    # performance keyword (RIJCOSX, def2/J, TightSCF, ...) that ORCA
+    # jobs commonly carry -- only accept it as the basis name if it's
+    # actually a known library name, so e.g. "TightSCF" appearing after
+    # the real basis name can't silently overwrite it and wipe out the
+    # whole basis assignment on import (confirmed happening before this
+    # fix, 2026-09-06 session).
+    elsif (exists($BasisToName{$ucTok})) { $basisName = $tok; }
+  }
+
+  if ($sawUKS || $sawRKS) {
+    $theoryCat = "DFT";
+    $theory = $sawUKS ? "UDFT" : "RDFT";
+  } elsif ($sawUHF) {
+    $theoryCat = "SCF";
+    $theory = "UHF";
+  } elsif ($sawHF) {
+    $theoryCat = "SCF";
+    $theory = "RHF";
+  }
+
+  if ($sawOpt && $sawFreq) { $runType = "GeoVib"; }
+  elsif ($sawOpt) { $runType = "Geometry"; }
+  elsif ($sawFreq) { $runType = "Vibration"; }
+  elsif ($sawEnGrad) { $runType = "Gradient"; }
+  elsif ($sawNMR) { $runType = "Magnetic"; }
+  elsif ($sawUnsupportedRuntype) { $runType = undef; }
+  else { $runType = "Energy"; }
+}
+
+###############################################################################
+# "* xyz <charge> <multiplicity>" line from the input echo
+###############################################################################
+sub getChargeAndMultiplicity {
+  my ($xyzline) = grep(/^\*\s*xyz/i, @inputEchoLines);
+  return if (!defined($xyzline));
+  if ($xyzline =~ /^\*\s*xyz\s+(-?\d+)\s+(\d+)/i) {
+    $charge = $1;
+    $multiplicity = $2;
+  }
+}
+
+###############################################################################
+# Use the LAST "CARTESIAN COORDINATES (ANGSTROEM)" block in the file as the
+# geometry -- for a geometry optimization this is the converged structure;
+# for a single point it is (and, checked against real output, always is)
+# the only such block ORCA prints.
+###############################################################################
+sub getMolecule {
+  my @atoms;
+  while (<INPUT>) {
+    if (/^CARTESIAN COORDINATES \(ANGSTROEM\)/) {
+      $_ = <INPUT>;  # dashes
+      my @thisBlock;
+      while (<INPUT>) {
+        if (/^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
+          push(@thisBlock, [$1, $2, $3, $4]);
+        } else {
+          last;
+        }
+      }
+      @atoms = @thisBlock if (@thisBlock);
+    }
+  }
+  return if (!@atoms);
+
+  ($title = $ARGV[0]) =~ s/\.[^.]*$//;
+  $molecule = "title:\t$title\n";
+  $molecule .= "type:\tmolecule\n";
+  $molecule .= "charge:\t" . (defined($charge) ? $charge : 0) . "\n";
+  $molecule .= "num_atoms:\t" . ($#atoms + 1) . "\n";
+  $molecule .= "atom_info:\tsymbol cart\n";
+  $molecule .= "atom_list:\n";
+  foreach my $atomRef (@atoms) {
+    my ($symbol, $x, $y, $z) = @{$atomRef};
+    $molecule .= " $symbol $x $y $z\n";
+    $atomList{$symbol} = $symbol;
+  }
+}
+
+# Note: ORCA prints only a total elapsed duration at the very end
+# ("TOTAL RUN TIME: 0 days ... msec"), not wall-clock start/end
+# timestamps the way Gaussian does -- StartDate/StartTime/EndDate/
+# EndTime are left out of the .param rather than fabricated.
+
+###############################################################################
+# Write the .param dictionary and .frag molecule, mirroring
+# Gaussian-16.expt's writeDictAndMVM. Only writes a .gbs (basis set) file
+# when the basis was named on the keyword line and recognized in
+# %BasisToName (the reverse of wrORCAGBS.pm's %NameToBasis) -- an
+# explicit basis block has no reverse-translation path yet (see header).
+###############################################################################
+sub writeDictAndMVM {
+  my ($rootFile) = @_;
+  $rootFile =~ s/\.[^.]*$//;
+
+  open(PARAMS, ">$rootFile.param");
+  print(PARAMS "title:\t$title\n") if (defined($title));
+  print(PARAMS "version:\t$version\n") if (defined($version));
+  print(PARAMS "Category:\t$theoryCat\n") if (defined($theoryCat));
+  print(PARAMS "Theory:\t$theory\n") if (defined($theory));
+  print(PARAMS "RunType:\t$runType\n") if (defined($runType));
+  print(PARAMS "Charge:\t" . (defined($charge) ? $charge : 0) . "\n");
+  print(PARAMS "ChemSys.Multiplicity:\t" .
+        (defined($multiplicity) ? $multiplicity : 1) . "\n");
+  print(PARAMS "ES.Theory.DFT.XCFunctionals:\t$xcFunctional\n")
+        if (defined($xcFunctional));
+  close(PARAMS);
+
+  open(MOL, ">$rootFile.frag");
+  print(MOL "$molecule") if (defined($molecule));
+  close(MOL);
+
+  if (defined($basisName) && exists($BasisToName{uc($basisName)})) {
+    my $ecceName = $BasisToName{uc($basisName)};
+    open(GBS, ">$rootFile.gbs");
+    print(GBS "NameBasis\n");
+    # rdStandardGBS.pm requires the trailing "print" keyword (borrowed
+    # from NWChem's own basis-block syntax) or it silently fails to
+    # recognize this as a named-library basis at all -- found by
+    # actually round-tripping this file through std2ORCA, and true of
+    # every other code's *.expt in this repo too (Gaussian-16/09/03/98/
+    # 94, GAMESS-UK, NWChem all write this line without "print").
+    print(GBS "basis \"ao basis\" spherical print\n");  # ORCA's usual
+                                                   # default; not checked
+                                                   # against "! Cartesian" jobs
+    foreach my $atsym (keys %atomList) {
+      # NOT indented: rdStandardGBS.pm's library-line regex
+      # (/^(\w+)\s+library\s+(\".+\")$/i) anchors at column 0 with no
+      # leading-whitespace tolerance, unlike its NameBasis/EndNameBasis
+      # matches -- confirmed by round-tripping this file through
+      # std2ORCA. Every other code's *.expt in this repo indents this
+      # line exactly like the first draft here did, so their named-
+      # library basis import path is very likely silently broken the
+      # same way (see the "print" keyword bug noted above too).
+      print(GBS "$atsym library \"$ecceName\"\n");
+    }
+    print(GBS "END\n");
+    print(GBS "EndNameBasis\n");
+    close(GBS);
+  }
+}
+
+sub usage {
+  print "Usage: ORCA.expt <outfile>\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}
+
+sub handle_options {
+  &usage && exit if ($opt_h || $opt_help);
+  exit if ($opt_v);
+}

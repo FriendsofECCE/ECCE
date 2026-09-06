@@ -1,0 +1,47 @@
+# Parse descriptor for ORCA output file (issue #38, reduced scope:
+# geometry trace, total energy, vibrational frequencies, NMR shielding).
+#
+# Grounded in real ORCA 6.1.1 runs (2026-09-06 session) -- see
+# orca.geomtrace/orca.energy/orca.vibfreq/orca.isoshield/
+# orca.shieldtensor for the exact line shapes each Begin/Skip/End pair
+# was checked against. Not yet checked against larger systems where
+# column widths or line wrapping could differ.
+
+[GEOMTRACE]
+Script=orca.geomtrace
+Begin=CARTESIAN COORDINATES \(ANGSTROEM\)
+Skip=1
+Frequency=all
+End=CARTESIAN COORDINATES \(A\.U\.\)
+[END]
+
+[TE][TEVEC]
+Script=orca.energy
+Begin=FINAL SINGLE POINT ENERGY
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[VIBFREQ]
+Script=orca.vibfreq
+Begin=VIBRATIONAL FREQUENCIES
+Skip=4
+Frequency=last
+End=NORMAL MODES
+[END]
+
+[ISOSHIELD][ANISOSHIELD]
+Script=orca.isoshield
+Begin=CHEMICAL SHIELDING SUMMARY \(ppm\)
+Skip=5
+Frequency=last
+End=NMR shielding tensor
+[END]
+
+[SHIELDTENSOR][SHIELDEIGVAL]
+Script=orca.shieldtensor
+Begin=CHEMICAL SHIELDINGS \(ppm\)
+Frequency=first
+End=CHEMICAL SHIELDING SUMMARY
+[END]

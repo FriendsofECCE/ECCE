@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   See online documenation at http://www.emsl.pnl.gov:2080/docs/ecce
+
+   ORCA support (issue #38), reduced-scope first cut: RHF/UHF/RDFT/UDFT
+   crossed with Energy/Gradient/Geometry/Vibration/GeoVib only, no MP2/
+   CC/CI. Cloned from Gaussian-16.edml. All of <Editor>'s dialog
+   scripts (orcatheory.py/orcaruntype.py) and <IntegrationFiles>
+   targets (ai.orca, std2ORCA, orca.tpl, ORCA.desc's underlying
+   scripts) now exist and the input-generation half has been verified
+   end to end against a real ORCA 6.1.1 install (2026-09-06 session):
+   ai.orca's generated input files were run for real and converged.
+   The ORCA.expt output importer (for reading externally-run jobs back
+   into ECCE, as opposed to parsing jobs ECCE itself submitted) is not
+   yet written. GaussianBasisSetRules/MOOrdering below are still
+   placeholders carried over unmodified from Gaussian-16.edml and have
+   not been checked against ORCA's actual basis-set/MO conventions.
+-->
+
+<appdescriptor>
+
+<GaussianBasisSetRules>
+  <MaxLValue>6</MaxLValue>
+  <ECPS>True</ECPS>
+  <GeneralContractions>False</GeneralContractions>
+  <PreferOptimization>	True</PreferOptimization>
+  <MaxPrimitives>100 100 100 100 100 100</MaxPrimitives>
+  <MaxSharedExponent>      1 </MaxSharedExponent>
+  <SphericalCoordinates>	True </SphericalCoordinates>
+  <DFTFitting>		False</DFTFitting>
+  <RecommendDFTCharge>	False </RecommendDFTCharge>
+  <RequireFullDFT>         False </RequireFullDFT>
+  <MaxTotalFunctions>	64000</MaxTotalFunctions>
+  <MaxTotalPrimitives>	7500</MaxTotalPrimitives>
+  <MultipleOrbitals>	false</MultipleOrbitals>
+  <LibraryNames>	True</LibraryNames>
+  <AllowMultipleOrbitals>False</AllowMultipleOrbitals>
+</GaussianBasisSetRules>
+
+
+<!--
+  Enables Geometry and Partial Charge sub dialogs if runtype is appropriate
+-->
+<SupportsConstraints>true</SupportsConstraints>
+
+
+<GeometryConstraintRules>
+  <SupportsAtomConstraints>true</SupportsAtomConstraints>
+  <SupportsConstrainBonds>true</SupportsConstrainBonds>
+  <SupportsConstrainAngles>true</SupportsConstrainAngles>
+  <SupportsConstrainTorsions>true</SupportsConstrainTorsions>
+  <SupportsRestrainBonds>false</SupportsRestrainBonds>
+  <SupportsRestrainAngles>false</SupportsRestrainAngles>
+  <SupportsRestrainTorsions>false</SupportsRestrainTorsions>
+  <SupportsFixedAtomsAndConstraints>true</SupportsFixedAtomsAndConstraints>
+  <SupportsFixedAtomsAndRestraints>false</SupportsFixedAtomsAndRestraints>
+  <SupportsMixedConstraintsAndRestraints>false</SupportsMixedConstraintsAndRestraints>
+</GeometryConstraintRules>
+
+
+<MOOrdering type="cartesian" >
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="xx" a2="yy" a3="zz" a4="xy" a5="xz"
+    a6="yz"></lshell>
+   <lshell lval="3" a1="xxx" a2="yyy" a3="zzz" a4="xyy" a5="xxy" a6="xxz"
+    a7="xzz" a8="yzz" a9="yyz" a10="xyz"></lshell>
+   <lshell lval="4" a1="zzzz" a2="yzzz" a3="yyzz" a4="yyyz" a5="yyyy"
+    a6="xzzz" a7="xyzz" a8="xyyz" a9="xyyy" a10="xxzz"
+    a11="xxyz" a12="xxyy" a13="xxxz" a14="xxxy"
+    a15="xxxx"></lshell>
+</MOOrdering>
+
+<MOOrdering type="spherical" >
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="-xx/2-yy/2+zz" a2="xz" a3="yz" a4="xx/2-yy/2"
+    a5="xy"></lshell>
+   <lshell lval="3" a1="-3xxz/2-3yyz/2+zzz" a2="-xxx/2-xyy/2+2xzz"
+    a3="-xxy/2-yyy/2+2yzz" a4="xxz/2-yyz/2" a5="xyz"
+    a6="xxx/2-3xyy/2" a7="3xxy/2-yyy/2"></lshell>
+</MOOrdering>
+
+
+<!-- Minimum-support method list per issue #38: RHF/UHF and RDFT/UDFT,
+     each with Energy/Gradient/Geometry/Vibration/GeoVib runtypes, plus
+     Magnetic (NMR shielding) for the closed-shell theories only. NMR
+     shielding is a closed-shell property in ORCA (open-shell magnetic
+     properties are EPR, a different keyword/property set, not covered
+     here). Extend with MP2/CC/CI categories once the basics round-trip. -->
+<Editor theorydialog="orcatheory.py" runtypedialog="orcaruntype.py">
+  <Theory category="SCF" name="RHF">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>Magnetic</runtype>
+  </Theory>
+  <Theory category="SCF" name="UHF">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="DFT" name="RDFT">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+    <runtype>Magnetic</runtype>
+  </Theory>
+  <Theory category="DFT" name="UDFT">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+
+  <TheorySummary>
+    <item key="ES.Theory.SCF.Direct" label="SCF Integrals"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.SCF.ConvergenceAlgorithm" label="SCF Conv. Algorithm"></item>
+  </TheorySummary>
+  <TheorySummary topLabel="SCF Convergence-">
+    <item key="ES.Theory.SCF.ConvergenceDensity.Value" label="Density"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.SCF.ConvergenceIterations" label="SCF Max. Iterations"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.DFT.XCFunctionals" label="DFT Combined Func."></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.DFT.ExchangeFunctionals" label="DFT Exchange Func."></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.DFT.CorrelationFunctionals" label="DFT Corr Func."></item>
+  </TheorySummary>
+
+  <RuntypeSummary topLabel="Geom. Convergence-">
+    <item key="ES.Runtype.GeomOpt.ConvergenceGradient.Value" label="Gradient"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.SearchFor" label="Search for"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.MaximumStepsValue" label="Max. Steps"></item>
+  </RuntypeSummary>
+</Editor>
+
+
+<!-- Raw File Naming Conventions
+-->
+
+<DataFiles>
+  <Input   type="primary" mimetype="chemical/x-orca-input" comment="true" commentstring="#">orca.in</Input>
+  <Output type="primary" mimetype="chemical/x-orca-output">orca.out</Output>
+  <Output type="parse" verifypattern="O   R   C   A" mimetype="chemical/x-orca-output">orca.out</Output>
+</DataFiles>
+
+<!-- Names of files required for code integration.  These files are
+     assumed to be in the ecce path as managed by the ecce_env script.
+     All exist under scripts/parsers except ORCA.expt (issue #38,
+     output importer not yet written). -->
+<IntegrationFiles>
+  <Template>orca.tpl</Template>
+  <InputGenerator>ai.orca</InputGenerator>
+  <Importer>ORCA.expt</Importer>
+  <ParseSpecification>orca.desc</ParseSpecification>
+  <BasisTranslationScript>std2ORCA</BasisTranslationScript>
+</IntegrationFiles>
+
+</appdescriptor>

@@ -1,0 +1,70 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts the full per-atom 3x3 NMR shielding tensor and its principal
+# (diagonalized) values from ORCA's "CHEMICAL SHIELDINGS (ppm)" section,
+# which repeats one sub-block per nucleus, e.g.:
+#
+#    Nucleus   0O :
+#    ...
+#   Total shielding tensor (ppm):
+#              351.151          0.000       -10.516
+#                0.000        323.883         0.000
+#              -10.629          0.000       358.438
+#    Diagonalized sT*s matrix:
+#    sDSO ...
+#    sPSO ...
+#    Total          323.883          343.612          365.978  iso=     344.491
+#
+# One invocation (Frequency=first in orca.desc) loops internally over
+# every nucleus sub-block, mirroring gaussian-16.shieldtensor's
+# single-invocation-multi-atom-loop approach rather than trying to call
+# this once per nucleus.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my (@rowlabels, @tensorValues, @eigvals);
+my ($nucleusIdx, $element);
+while (<STDIN>) {
+  if (/^\s*Nucleus\s+(\d+)(\S+?)\s*:/) {
+    $nucleusIdx = $1;
+    $element = $2;
+  } elsif (/^Total shielding tensor \(ppm\):/) {
+    push(@rowlabels, "$nucleusIdx-$element");
+    foreach my $i (1..3) {
+      $_ = <STDIN>;
+      if (/(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
+        push(@tensorValues, $1, $2, $3);
+      }
+    }
+  } elsif (/^\s*Total\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+iso=/) {
+    push(@eigvals, $1, $2, $3);
+  }
+}
+
+my $nrows = $#rowlabels + 1;
+exit(0) if ($nrows < 1);
+
+print "key: SHIELDTENSOR\n";
+print "size:\n" . ($nrows * 9) . "\n";
+print "rowlabels:\n";
+print join(" ", map { my $l = $_; map { "$l$_" } ("-XX","-XY","-XZ","-YX","-YY","-YZ","-ZX","-ZY","-ZZ") } @rowlabels);
+print "\n";
+print "values:\n" . join(" ", @tensorValues) . "\n";
+print "units:\nppm\n";
+print "END\n";
+
+print "key: SHIELDEIGVAL\n";
+print "size:\n" . ($nrows * 3) . "\n";
+print "rowlabels:\n";
+print join(" ", map { my $l = $_; map { "$l-$_" } (1,2,3) } @rowlabels);
+print "\n";
+print "values:\n" . join(" ", @eigvals) . "\n";
+print "units:\nppm\n";
+print "END\n";
+exit(0);

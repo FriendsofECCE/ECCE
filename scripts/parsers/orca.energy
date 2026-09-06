@@ -1,0 +1,41 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts ORCA's "FINAL SINGLE POINT ENERGY" line into ECCE's TE (Total
+# Energy) property. Reduced scope covers RHF/UHF/RDFT/UDFT only, all of
+# which share this one energy line regardless of method -- unlike
+# Gaussian's gaussian-16.energy, which has to pattern-match a different
+# "SCF Done:" label per theory. Modeled on nwchem.te for the TE/TEVEC
+# output shape.
+#
+# Sample input line:
+#   FINAL SINGLE POINT ENERGY       -74.965901192189
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+$_ = <STDIN>;
+my $value;
+if (/FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)/) {
+  $value = $1;
+}
+exit(0) if (!defined($value));
+
+print "key: TE\n";
+print "size:\n1\n";
+print "values:\n$value\n";
+print "units:\nHartree\n";
+print "END\n";
+
+if ($runtype =~ /Geo/i) {
+  print "key: TEVEC\n";
+  print "size:\n1\n";
+  print "values:\n$value\n";
+  print "units:\nHartree\n";
+  print "END\n";
+}
+exit(0);

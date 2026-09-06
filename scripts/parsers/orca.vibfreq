@@ -1,0 +1,49 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts vibrational frequencies from ORCA's "VIBRATIONAL FREQUENCIES"
+# block into ECCE's VIBFREQ property (a PropVector). Modeled on
+# nwchem.vibfreq for the output shape. Includes the six (five for linear
+# molecules) near-zero translation/rotation modes ORCA lists along with
+# the real vibrations, same as the raw source -- not filtered here.
+#
+# Sample input lines:
+#      0:       0.00 cm**-1
+#      6:    2169.83 cm**-1
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my @values;
+while (<STDIN>) {
+  if (/^\s*\d+:\s*(-?\d+\.\d+)\s*cm\*\*-1/) {
+    push(@values, $1);
+  } else {
+    last;
+  }
+}
+
+my $nfrequencies = $#values + 1;
+exit(0) if ($nfrequencies < 1);
+
+print "key: VIBFREQ\n";
+print "size:\n$nfrequencies\n";
+print "rowlabels:\n";
+foreach my $i (1 .. $nfrequencies) {
+  print " $i ";
+  print "\n" if (($i % 10) == 0);
+}
+print "\n" if (($nfrequencies % 10) != 0);
+print "values:\n";
+foreach my $i (1 .. $nfrequencies) {
+  print " $values[$i-1]";
+  print "\n" if (($i % 10) == 0);
+}
+print "\n" if (($nfrequencies % 10) != 0);
+print "units:\ncm-1\n";
+print "END\n";
+exit(0);

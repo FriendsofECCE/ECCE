@@ -1,0 +1,50 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts per-atom isotropic NMR shielding and anisotropy from ORCA's
+# "CHEMICAL SHIELDING SUMMARY (ppm)" table into ECCE's ISOSHIELD/
+# ANISOSHIELD properties. Modeled on gaussian-16.shieldtensor's
+# ISOSHIELD/ANISOSHIELD output shape, but sourced from ORCA's own
+# ready-made summary table rather than reconstructing iso/anisotropy
+# from the raw per-nucleus tensor blocks (see orca.shieldtensor for
+# those, from the same NMR run).
+#
+# Sample input lines:
+#   Nucleus  Element    Isotropic     Anisotropy
+#   -------  -------  ------------   ------------
+#       0       O          344.491         32.230
+#       1       H           31.666         18.594
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my (@rowlabels, @iso, @aniso);
+while (<STDIN>) {
+  if (/^\s*(\d+)\s+(\S+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
+    push(@rowlabels, "$1-$2");
+    push(@iso, $3);
+    push(@aniso, $4);
+  }
+}
+
+my $n = $#rowlabels + 1;
+exit(0) if ($n < 1);
+
+print "key: ISOSHIELD\n";
+print "size:\n$n\n";
+print "rowlabels:\n" . join(" ", @rowlabels) . "\n";
+print "values:\n" . join(" ", @iso) . "\n";
+print "units:\nppm\n";
+print "END\n";
+
+print "key: ANISOSHIELD\n";
+print "size:\n$n\n";
+print "rowlabels:\n" . join(" ", @rowlabels) . "\n";
+print "values:\n" . join(" ", @aniso) . "\n";
+print "units:\nppm\n";
+print "END\n";
+exit(0);
