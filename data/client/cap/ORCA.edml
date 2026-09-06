@@ -182,6 +182,7 @@
   <Importer>ORCA.expt</Importer>
   <ParseSpecification>orca.desc</ParseSpecification>
   <BasisTranslationScript>std2ORCA</BasisTranslationScript>
+  <LaunchPreprocessor>orca.launchpp</LaunchPreprocessor>
 </IntegrationFiles>
 
 </appdescriptor>

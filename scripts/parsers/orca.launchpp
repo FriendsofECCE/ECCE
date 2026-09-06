@@ -1,0 +1,83 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Purpose:
+#   Post-process the generated ORCA input file to add launch control
+#   information not known at edit time -- specifically the real
+#   processor count Launch actually requested, via "%pal nprocs N end".
+#   Modeled on nwchem.launchpp; see that file for the general mechanism
+#   (Launch::postProcessInput() in src/comm/commxt/Launch.C writes a
+#   "postParams" dictionary -- inputFile/numProcs/numNodes/runDir/
+#   scratchDir/machineName -- and every code's <LaunchPreprocessor>
+#   script is required to exist, even as a no-op, or the launch fails
+#   outright with an empty shelled-out command).
+#
+#   Only touches %pal when numProcs > 1 -- ai.orca already omits %pal
+#   entirely for serial jobs (or writes its own from an explicit
+#   Processors theory-dialog setting; see ai.orca's ORCABlocks), and
+#   ORCA defaults to serial with no %pal block at all, so there's
+#   nothing to inject for the common single-processor case.
+#
+#   Must be smart enough to reprocess a file that already has a %pal
+#   line (idempotent on relaunch) -- replaces it in place rather than
+#   appending a second one. Confirmed against a real ORCA 6.1.1 run
+#   that a duplicate %pal block isn't an error (ORCA just uses the
+#   last one), but only one is written here regardless, on principle.
+#
+##############################################################################
+
+use Getopt::Std;
+
+&getopts('p:v');
+
+if ($opt_v) {
+  $revision = '$Revision: 1.0';
+  $revision =~ (s/\$//g);
+  print "$revision\n";
+  exit 0;
+}
+
+open(PARAMDICT, "<$opt_p") || die "parameter file does not exist!\n";
+while (<PARAMDICT>) {
+  $_ =~ s/\s*!.*$//;
+  if (/:/) {
+    my ($key, $value) = split(/:/);
+    $key =~ s/^\s*//;
+    $key =~ s/\s*$//;
+    $value =~ s/^\s*//;
+    $value =~ s/\s*$//;
+    $ParamDict{$key} = $value if ($key ne "");
+  }
+}
+close(PARAMDICT);
+
+my $numProcs = $ParamDict{'numProcs'};
+exit(0) if (!defined($numProcs) || $numProcs <= 1);
+
+unless (open(INFILE, $ParamDict{'inputFile'})) {
+  die "Cannot open ORCA input file $ParamDict{'inputFile'}";
+}
+my @contents = <INFILE>;
+close(INFILE);
+
+if (!-w $ParamDict{'inputFile'}) {
+  die "Cannot write to ORCA input file $ParamDict{'inputFile'}!";
+}
+
+my $palLine = "%pal nprocs $numProcs end\n";
+my $replaced = 0;
+foreach my $line (@contents) {
+  if ($line =~ /^\s*%pal\b/i) {
+    $line = $palLine;
+    $replaced = 1;
+  }
+}
+
+unless (open(PPFILE, ">$ParamDict{'inputFile'}")) {
+  die "Cannot overwrite ORCA input file $ParamDict{'inputFile'}";
+}
+print PPFILE $palLine if (!$replaced);
+print PPFILE @contents;
+close(PPFILE);
+
+exit(0);
