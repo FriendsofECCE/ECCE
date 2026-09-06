@@ -196,7 +196,7 @@ dialog defaults to.
 ### 6. Start ECCE
 
 ```
-ecce-gateway
+ecce
 ```
 
 This opens ECCE's main toolbar. Log in with the username/password you just
