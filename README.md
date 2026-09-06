@@ -74,7 +74,7 @@ than papered over.
   unresolved bash-as-local-shell bugs.
 - **v8.0.4** — Fixes four Organizer startup crashes, a job-monitoring
   socket crash, and a resource-tree reentrancy crash; adds macOS build
-  fixes.
+  fixes. Note that building does not work on macOS -- these are preparatory fixes.
 - **v8.0.3** — Major reliability pass on remote job submission/
   monitoring over SSH (bash echo/pasting bugs, hung connections, dying
   background jobs), plus more crash fixes and cross-platform
