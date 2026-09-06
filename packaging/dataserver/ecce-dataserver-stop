@@ -14,11 +14,27 @@ if [ ! -f "$CONF" ]; then
   exit 0
 fi
 
-APACHE2_BIN="$(command -v apache2 2>/dev/null || echo /usr/sbin/apache2)"
-
+PID=""
 if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
-  "$APACHE2_BIN" -f "$CONF" -k stop
-  echo "ecce-dataserver-stop: stopped data server (pid $(cat "$PIDFILE"))"
+  PID="$(cat "$PIDFILE")"
+else
+  # Pidfile missing or stale -- seen live: a long-running instance was
+  # still genuinely bound to its port with no pidfile at all, and this
+  # script reported "not running" and gave up, leaving no way to stop
+  # it short of a manual `kill`. Fall back to finding the actual master
+  # process directly by its exact config path (a unique-enough
+  # substring of its command line -- deliberately not anchoring on the
+  # apache2 binary's own path, since that can be invoked via different
+  # prefixes/aliases than what shows up in `ps`) rather than trusting
+  # the pidfile alone. -o picks the oldest match, i.e. the prefork
+  # master rather than one of its forked workers, which share the
+  # exact same command line.
+  PID="$(pgrep -f -o -- "-f $CONF -k start" 2>/dev/null)"
+fi
+
+if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+  kill -TERM "$PID"
+  echo "ecce-dataserver-stop: stopped data server (pid $PID)"
 else
   echo "ecce-dataserver-stop: data server not running"
 fi
