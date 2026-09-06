@@ -847,6 +847,20 @@ exec \"$ECCE_HOME/bin/${_app}\" \"$@\"
   install(PROGRAMS ${_wrapper} DESTINATION /usr/bin)
 endforeach()
 
+# Plain "ecce" is what people actually expect to type -- gateway is the
+# top-level launcher every other app is meant to be reached through (see
+# CLAUDE.md's "the two background services" section), but until now only
+# "ecce-gateway" existed, named that way to dodge the PATH-collision risk
+# every ecce-<app> wrapper above already guards against. This just execs
+# that same wrapper, so it inherits its env setup rather than duplicating
+# it.
+set(_ecce_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce)
+file(WRITE ${_ecce_wrapper}
+"#!/bin/bash
+exec ecce-gateway \"$@\"
+")
+install(PROGRAMS ${_ecce_wrapper} DESTINATION /usr/bin)
+
 # "Viewer" isn't a separate build target -- the legacy scripts/viewer
 # csh wrapper (not packaged, along with the rest of scripts/ -- see the
 # ECCE_GUI_APPS wrapper comment above) just re-execs builder with two
