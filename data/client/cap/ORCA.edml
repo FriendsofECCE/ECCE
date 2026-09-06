@@ -158,10 +158,18 @@
 <!-- Raw File Naming Conventions
 -->
 
+<!-- .orcain/.orcaout, not the generic .in/.out first tried here: Apache
+     has no built-in MIME mapping for those, so the file's Content-Type
+     silently fell back to text/plain, and ECCE's mimetype-filtered
+     lookup for the primary input file couldn't match it against
+     chemical/x-orca-input even though the file existed on disk (see
+     packaging/dataserver/httpd.conf.ecce's ORCA AddType lines, added
+     alongside this fix). Every other code's DataFiles block uses an
+     equally distinctive extension for the same reason. -->
 <DataFiles>
-  <Input   type="primary" mimetype="chemical/x-orca-input" comment="true" commentstring="#">orca.in</Input>
-  <Output type="primary" mimetype="chemical/x-orca-output">orca.out</Output>
-  <Output type="parse" verifypattern="O   R   C   A" mimetype="chemical/x-orca-output">orca.out</Output>
+  <Input   type="primary" mimetype="chemical/x-orca-input" comment="true" commentstring="#">orca.orcain</Input>
+  <Output type="primary" mimetype="chemical/x-orca-output">orca.orcaout</Output>
+  <Output type="parse" verifypattern="O   R   C   A" mimetype="chemical/x-orca-output">orca.orcaout</Output>
 </DataFiles>
 
 <!-- Names of files required for code integration.  These files are
