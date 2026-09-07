@@ -21,6 +21,18 @@ intentionally *not* a running log of past sessions. For that, see
   `cmake --build .` from inside it.
 - `GETTING_STARTED.md` (repo root) has the full build/package/install/
   first-login walkthrough. Don't reproduce it here.
+- **Memory settings should be entered/labeled in GB everywhere, for
+  every code** — Andy's explicit UX preference (2026-09-07), not each
+  code's native convention. The wire format still has to match what
+  each code's input file actually expects (words for GAMESS-UK, MB for
+  ORCA's `%maxcore`, a `gb`/`GB` suffix NWChem and Gaussian both accept
+  natively) — convert at the point closest to the generated input
+  (`ai.<code>`/the `.tpl`), not by changing what the wire format itself
+  accepts. See `scripts/codereg/{ged*,nedtheory,orcatheory,guktheory,
+  metathry}.py` for the pattern. One label still doesn't match despite
+  a verified-correct source and a verified-correct running process —
+  see issue #77 before assuming a future "fix" here is wrong; the bug
+  is downstream in `calced`'s C++ side, not in these Python dialogs.
 
 ## Code map — where the role of each part is
 
@@ -152,6 +164,26 @@ Six real bugs surfaced adding one new code, none obvious from reading
   converged) value once matching stops, while a step-vector-typed key
   accumulates the full per-step trace from the same invocations.
 
+- **A `.desc` entry's `Skip=N` counts the `Begin`-matching line itself**,
+  not N lines *after* it (`scripts/eccejobmonitor`'s Begin/Skip/End
+  line-feeding algorithm decrements `lineSkip` starting from the Begin
+  match's own iteration). Getting this off by one leaves whatever
+  separator/dashed/blank line immediately follows `Begin` as the
+  *first* line fed to the parse script — harmless for a script that
+  tolerantly skips non-matching lines, but silently produces **zero**
+  output, every single invocation, for any script that does `if
+  (matches) {...} else { last }` on its first read (a common, natural
+  pattern for "read atom rows until the shape changes"). This was the
+  root cause of ORCA's `GEOMTRACE`/`VIBFREQ` properties never
+  extracting through the real monitor pipeline despite their `Begin`
+  regex matching correctly in isolation — found only by simulating
+  eccejobmonitor's actual algorithm against real captured output, not
+  by hand-testing the parser script with manually-picked line ranges
+  (which is exactly what let it hide through an earlier live-debugging
+  session). If a new `.desc` entry's script produces no output despite
+  a confirmed-matching `Begin`, simulate the real Skip/End feed before
+  suspecting the regex or the script's own logic.
+
 Separately (found the same way, but not code-registration-specific,
 so don't expect it to recur per-code): `VDoc::isCurrentVdoc()` had a
 version-string parsing bug that broke saving *any* calc's input file
@@ -234,6 +266,38 @@ Both per-user, both non-root, both started automatically by the
   exception-object lifetime (fixed from a dangling-stack-string bug) —
   if you see garbled `Throw Log:` text anywhere, that fix predates it and
   something new is wrong, not a repeat.
+- **wx3.2 AUI port dropped the custom "ewxAUI" pane-caption buttons
+  (take focus / pin / options / open) the original app was built
+  against** (`src/apps/builder/EwxAuiCompat.H` documents this), and
+  nothing replaced them as the trigger for `VizPropertyPanel::
+  receiveFocus()` — which is what activates essentially every 3-D
+  overlay in the viewer (vector/tensor arrows for dipole/quadrupole/
+  gradient, Mulliken charge coloring, geometry-trace and vibration-mode
+  animation, ...). Only the MOs panel had an independent workaround
+  (its own "Compute" button calls `setFocus(true)` directly); every
+  other `VizPropertyPanel` subclass was silently dead — correct
+  extraction, correct data, zero visual output, no error. Fixed by
+  binding `EVT_CHILD_FOCUS` on `Builder` (bubbles from any descendant
+  control to the top-level frame) and walking up to the owning
+  `VizPropertyPanel` — not `EVT_AUI_PANE_ACTIVATED`, which looks like
+  the obvious stock-wx3.2 replacement but only fires when the pane's
+  *own* bare window receives focus directly (`wxAuiManager::GetPane()`
+  requires an exact pointer match, no ancestor walk), never when focus
+  lands on a nested control inside it — the overwhelmingly common case.
+  If a new property panel's viz still doesn't show after this fix,
+  check whether it overrides `receiveFocus()`/`loseFocus()` at all
+  before assuming the trigger is broken again.
+- **`SoWxRenderArea::renderCB` silently drops a redraw** if Inventor's
+  scene-graph-touch notification fires while a paint is already in
+  flight (`p_inPaint`), with no retry — the sensor has already fired
+  and won't fire again on its own. Manifests as geometry-trace/
+  vibration step-through updating unreliably (works for the first
+  step or two, then stops) and looped animation never visibly
+  animating at all, while whatever reads the same step data via a pull
+  model (e.g. the atom table) stays perfectly in sync — a strong tell
+  that a symptom is this bug rather than a data problem. Fixed with a
+  pending-redraw flag (`p_redrawPending`) that `OnPaint()` checks and
+  acts on once the in-flight paint finishes.
 
 ## Where the history lives
 This file used to be a session-by-session diary and grew to ~2500 lines.

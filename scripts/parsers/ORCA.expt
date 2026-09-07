@@ -251,24 +251,19 @@ sub writeDictAndMVM {
     my $ecceName = $BasisToName{uc($basisName)};
     open(GBS, ">$rootFile.gbs");
     print(GBS "NameBasis\n");
-    # rdStandardGBS.pm requires the trailing "print" keyword (borrowed
-    # from NWChem's own basis-block syntax) or it silently fails to
-    # recognize this as a named-library basis at all -- found by
-    # actually round-tripping this file through std2ORCA, and true of
-    # every other code's *.expt in this repo too (Gaussian-16/09/03/98/
-    # 94, GAMESS-UK, NWChem all write this line without "print").
+    # This "print" keyword and the unindented library lines below were
+    # originally required to work around two overly strict regexes in
+    # rdStandardGBS.pm (no leading-whitespace tolerance on either line,
+    # and a mandatory trailing "print" on the basis line) that broke
+    # named-library basis import for every other code's *.expt in this
+    # repo (Gaussian-16/09/03/98/94, GAMESS-UK, NWChem all write this
+    # line indented and without "print"). rdStandardGBS.pm has since
+    # been fixed (issue #72) to tolerate both, so this exact formatting
+    # is no longer required -- kept as-is since it's already correct.
     print(GBS "basis \"ao basis\" spherical print\n");  # ORCA's usual
                                                    # default; not checked
                                                    # against "! Cartesian" jobs
     foreach my $atsym (keys %atomList) {
-      # NOT indented: rdStandardGBS.pm's library-line regex
-      # (/^(\w+)\s+library\s+(\".+\")$/i) anchors at column 0 with no
-      # leading-whitespace tolerance, unlike its NameBasis/EndNameBasis
-      # matches -- confirmed by round-tripping this file through
-      # std2ORCA. Every other code's *.expt in this repo indents this
-      # line exactly like the first draft here did, so their named-
-      # library basis import path is very likely silently broken the
-      # same way (see the "print" keyword bug noted above too).
       print(GBS "$atsym library \"$ecceName\"\n");
     }
     print(GBS "END\n");

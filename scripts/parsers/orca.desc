@@ -1,16 +1,35 @@
-# Parse descriptor for ORCA output file (issue #38, reduced scope:
-# geometry trace, total energy, vibrational frequencies, NMR shielding).
+# Parse descriptor for ORCA output file (issue #38, extended per #74/#76:
+# geometry trace, total/decomposed energy, gradient, dipole/quadrupole,
+# Mulliken charges, molecular orbitals, vibrational frequencies, NMR
+# shielding).
 #
-# Grounded in real ORCA 6.1.1 runs (2026-09-06 session) -- see
-# orca.geomtrace/orca.energy/orca.vibfreq/orca.isoshield/
-# orca.shieldtensor for the exact line shapes each Begin/Skip/End pair
-# was checked against. Not yet checked against larger systems where
-# column widths or line wrapping could differ.
+# Grounded in real ORCA 6.1.1 runs (2026-09-06/07 sessions) -- see the
+# individual orca.* scripts for the exact line shapes each Begin/Skip/End
+# pair was checked against, INCLUDING actually simulating eccejobmonitor's
+# real Begin/Skip/End line-feeding algorithm against captured output
+# (not just testing each script by hand-picking the right lines) --
+# Skip=N skips N lines total starting from and including the Begin line
+# itself, not N lines after it, which is easy to get off by one for any
+# script that stops at the first non-matching line (hit both GEOMTRACE
+# and VIBFREQ, see their entries below). Not yet checked against larger
+# systems where column widths or line wrapping could differ.
 
+# Skip=2, not 1: eccejobmonitor's Skip count includes the Begin-matching
+# line itself (verified against the real line-feeding algorithm in
+# scripts/eccejobmonitor -- Skip=N skips N lines total starting from and
+# including Begin, not N lines after it), so skipping just the header
+# line (Skip=1) left the "---" dashed separator as the first line fed to
+# orca.geomtrace, which breaks immediately on any non-atom first line and
+# silently produced zero output on every single invocation via the real
+# monitor pipeline (confirmed by simulating the exact algorithm against a
+# real captured ORCA 6.1.1 run this session). This was the root cause of
+# GitHub issue #74's "GEOMTRACE never gets extracted despite a correct
+# [Begin] match" mystery -- the Begin regex genuinely does match, but the
+# script byte after it never saw usable data.
 [GEOMTRACE]
 Script=orca.geomtrace
 Begin=CARTESIAN COORDINATES \(ANGSTROEM\)
-Skip=1
+Skip=2
 Frequency=all
 End=CARTESIAN COORDINATES \(A\.U\.\)
 [END]
@@ -37,12 +56,98 @@ Skip=0
 Lines=1
 [END]
 
+# ORCA's "TOTAL SCF ENERGY" block repeats once per SCF evaluation (once
+# per geometry step during an optimization), same shape every time --
+# confirmed against a real ORCA 6.1.1 RHF/STO-3G Opt+Freq run (this
+# session). Split into two entries since the two line groups aren't
+# contiguous in ORCA's output (a blank line and a "Virial components:"
+# header separate them); no ECCE property key exists for "Electronic
+# Energy" itself, only its two components (ONEELEC/TWOELEC), matching
+# NWChem/Gaussian's own key set.
+[NNREPUL][ONEELEC][TWOELEC]
+Script=orca.energydecomp
+Begin=Nuclear Repulsion\s*:
+Frequency=all
+Skip=0
+Lines=4
+[END]
+
+[PE][KE]
+Script=orca.energydecomp
+Begin=Potential Energy\s*:
+Frequency=all
+Skip=0
+Lines=2
+[END]
+
+# Requires ai.orca's unconditional "%output Print[P_MOs] 1 end" block
+# (added alongside this) -- without it ORCA doesn't print MO coefficients
+# to text output at all. Deriving ORBENG/ORBOCC from this block instead of
+# the separate "ORBITAL ENERGIES" section since that section truncates to
+# the first 10 virtuals by default while this one prints every orbital.
+[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA]
+Script=orca.mo
+Begin=MOLECULAR ORBITALS
+Skip=2
+Frequency=last
+End=MULLIKEN POPULATION ANALYSIS
+[END]
+
+[EGRAD][EGRADVEC]
+Script=orca.egradvec
+Begin=CARTESIAN GRADIENT
+Skip=3
+Frequency=all
+End=TIMINGS
+[END]
+
+[DIPOLE]
+Script=orca.dipole
+Begin=Total Dipole Moment
+Frequency=last
+End=Rotational spectrum
+[END]
+
+# Requires ai.orca's unconditional "%elprop Quadrupole true end" block
+# (added alongside this) -- ORCA does not compute the quadrupole moment
+# by default.
+[QUADPOLE]
+Script=orca.quadpole
+Begin=QUADRUPOLE MOMENT
+Frequency=last
+End=diagonalized tensor:
+[END]
+
+[MULLIKEN]
+Script=orca.mulliken
+Begin=MULLIKEN ATOMIC CHARGES
+Skip=2
+Frequency=last
+End=Sum of atomic charges
+[END]
+
+# Skip=5, not 4 -- same off-by-one as GEOMTRACE above (Skip counts the
+# Begin line itself): the block is Begin/dashes/blank/"Scaling factor..."
+# /blank/data, so 4 only reaches the second blank line, which
+# orca.vibfreq's "else { last }" then treats as end-of-data immediately,
+# producing zero frequencies. Confirmed by simulation against a real run.
 [VIBFREQ]
 Script=orca.vibfreq
 Begin=VIBRATIONAL FREQUENCIES
-Skip=4
+Skip=5
 Frequency=last
 End=NORMAL MODES
+[END]
+
+# Without this, the Vibration entry doesn't appear in the Properties
+# menu at all -- PropertyPanelDescriptor.xml's "Vibrational Frequencies"
+# panel is gated on VIB (mode displacement vectors), not VIBFREQ.
+[VIB]
+Script=orca.vib
+Begin=NORMAL MODES
+Skip=7
+Frequency=last
+End=IR SPECTRUM
 [END]
 
 [ISOSHIELD][ANISOSHIELD]

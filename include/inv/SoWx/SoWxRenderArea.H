@@ -275,6 +275,11 @@ private:
   bool p_windowResized;
 
   bool p_inPaint;
+  // Set when Inventor's renderCB fires while a paint is already in
+  // flight (p_inPaint) -- that redraw request is otherwise silently
+  // dropped with no retry, which is what made geometry-trace/vibration
+  // step-through and looped animation update unreliably (see OnPaint()).
+  bool p_redrawPending;
 };
 
 #endif

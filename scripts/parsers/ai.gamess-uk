@@ -221,9 +221,30 @@ sub scfType {
 ##############################################################################
 #
 #  Description:
+#      Convert the Theory Details dialog's "Memory" value (entered in
+#      Gigabytes, per Andy's preference for GB everywhere in the UX) into
+#      the megawords GAMESS-UK's native "Memory" directive needs -- the
+#      template (gamess-uk.tpl: "Memory ##MemorySize##000000") appends a
+#      literal x10^6 to whatever this returns, converting megawords to
+#      raw words, so this only needs to do the GB->megawords step: 1 GB
+#      (10^9 bytes, decimal) / 8 bytes-per-word (double precision) =
+#      125,000,000 words = 125 megawords.
+#
+##############################################################################
+sub MemorySize {
+  local($gb, $megawords);
+  $gb = $AbiDict{"ES.Theory.MemorySize"};
+  $megawords = int($gb * 125);
+  $_ = $megawords;
+  return $megawords;
+}
+
+##############################################################################
+#
+#  Description:
 #      Add nosym directive to input if needed
 #
-############################################################################## 
+##############################################################################
 sub Symmetry {
   local($result, $usesymm);
   $usesymm = $AbiDict{"ES.Theory.UseSymmetry"};

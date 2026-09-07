@@ -36,9 +36,9 @@ class MetaTheoryPanel(EccePanel):
 
         self.memSize = EcceSpinCtrl(self,
                                     hardRange = "[0..)",
-                                    unit = "Megawords",
+                                    unit = "Gigabytes",
                                     name = "ES.Theory.SCF.MemorySize",
-                                    default = 400,
+                                    default = 1,
                                     export = 1)
         memorySizer.AddWidget(self.memSize)
 

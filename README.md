@@ -61,6 +61,17 @@ than papered over.
 
 ### Release history
 
+- **v8.0.8** — Fixes named-library basis-set import, silently broken for
+  every registered code except ORCA; extends ORCA's viewer support
+  (energy decomposition, gradients, dipole/quadrupole, Mulliken charges,
+  molecular orbitals, vibration mode data) and fixes the real bugs
+  behind its geometry trace never showing more than one step or the
+  optimized structure. Also fixes a systemic wx3.2-port regression that
+  silently disabled 3-D vector/tensor/color visualization (dipole,
+  quadrupole, gradient, Mulliken charges) for every code, a dropped-
+  redraw bug behind unreliable geometry/vibration step animation, and
+  converts memory settings to GB everywhere in the UX (GAMESS-UK,
+  NWChem plane-wave, ORCA).
 - **v8.0.7** — Adds ORCA as a registered code (job setup, submission, and
   collection now work end-to-end; property display in the viewer is
   still basic); fixes a version-parsing bug that could silently break

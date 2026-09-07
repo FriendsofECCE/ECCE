@@ -1,0 +1,35 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts ORCA's "MULLIKEN ATOMIC CHARGES" block into ECCE's MULLIKEN
+# property. Confirmed against a real ORCA 6.1.1 RHF/STO-3G run:
+#
+#    0 O :   -0.354958
+#    1 H :    0.177479
+#    2 H :    0.177479
+#   Sum of atomic charges:   -0.0000000
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my @values;
+while (<STDIN>) {
+  last if (/Sum of atomic charges/);
+  if (/^\s*\d+\s+\S+\s*:\s*(-?\d+\.\d+)/) {
+    push(@values, $1);
+  }
+}
+
+if (@values) {
+  print "key: MULLIKEN\n";
+  print "size:\n", scalar(@values), "\n";
+  print "values:\n";
+  print join(" ", @values), "\n";
+  print "units:\ne\n";
+  print "END\n";
+}
+exit(0);

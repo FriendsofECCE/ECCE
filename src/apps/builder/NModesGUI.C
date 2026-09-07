@@ -110,8 +110,18 @@ bool NModesGUI::Create( IPropCalculation* calculation, wxWindow* parent, wxWindo
     VizPropertyPanel::Create( calculation, parent, id, pos, size, style );
 
     CreateControls();
-    GetSizer()->Fit(this);
-    GetSizer()->SetSizeHints(this);
+    // Deliberately NOT calling GetSizer()->Fit()/SetSizeHints() here (as
+    // the wxFormBuilder-generated code originally did): at this point
+    // CreateControls() has only built the placeholder controls (e.g. an
+    // empty 5x5 grid), not real content -- NModePanel::Create() (the only
+    // subclass that ever instantiates this) already does the equivalent
+    // Fit()/SetSizeHints() call itself, later, after initialize() has
+    // populated real data. Computing a best-size from placeholder content
+    // this early was a suspected contributor to a wx3.2/GTK3 AUI-dock
+    // layout crash on GeoVib jobs (a near-zero best size reported before
+    // the panel is ever painted/populated, while multiple panels compete
+    // for the same dock stack) -- see the CLAUDE.md wx3.2/GTK3 reentrancy
+    // pitfall note.
 ////@end NModesGUI creation
     return true;
 }

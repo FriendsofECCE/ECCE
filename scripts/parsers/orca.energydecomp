@@ -1,0 +1,48 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts ORCA's "TOTAL SCF ENERGY" block into ECCE's energy-decomposition
+# properties. This block repeats once per SCF evaluation (e.g. once per
+# geometry step during an optimization, Frequency=all), same shape every
+# time -- confirmed against a real ORCA 6.1.1 RHF/STO-3G Opt+Freq run:
+#
+#   Nuclear Repulsion  :          9.08829372414239 Eh             247.30504 eV
+#   Electronic Energy  :        -84.05269854845179 Eh           -2287.19021 eV
+#   One Electron Energy:       -122.18134460029798 Eh           -3324.72341 eV
+#   Two Electron Energy:         38.12864605184619 Eh            1037.53321 eV
+#   ...
+#   Potential Energy   :       -149.52710387406611 Eh           -4068.83935 eV
+#   Kinetic Energy     :         74.56269904975672 Eh            2028.95419 eV
+#
+# orca.desc invokes this once for the "Nuclear Repulsion"/"Electronic
+# Energy"/"One Electron Energy"/"Two Electron Energy" 4-line group (no
+# ECCE property key exists for "Electronic Energy" itself -- ONEELEC +
+# TWOELEC already represent its two components, matching NWChem/Gaussian's
+# own key set) and separately for the "Potential Energy"/"Kinetic Energy"
+# 2-line group, since the two groups aren't contiguous in ORCA's output.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my %propKey = (
+  "Nuclear Repulsion"   => "NNREPUL",
+  "One Electron Energy" => "ONEELEC",
+  "Two Electron Energy" => "TWOELEC",
+  "Potential Energy"    => "PE",
+  "Kinetic Energy"      => "KE",
+);
+
+while (<STDIN>) {
+  if (/^(Nuclear Repulsion|One Electron Energy|Two Electron Energy|Potential Energy|Kinetic Energy)\s*:\s*(-?\d+\.\d+)\s+Eh/) {
+    print "key: $propKey{$1}\n";
+    print "size:\n1\n";
+    print "values:\n$2\n";
+    print "units:\nHartree\n";
+    print "END\n";
+  }
+}
+exit(0);

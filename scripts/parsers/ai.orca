@@ -131,10 +131,23 @@ sub ORCARoute {
 # left in the output verbatim instead of being blanked.
 sub ORCABlocks {
   my $result = "";
-  # %maxcore is memory per core, in MB -- see orcatheory.py's MemorySize
-  # widget comment for why this differs from Gaussian's job-total %Mem.
-  my $maxcore = $AbiDict{"ES.Theory.SCF.MemorySize"};
-  if ($maxcore ne "") {
+  # Unconditionally request full MO coefficient printing to the text
+  # output -- without this, ORCA only prints orbital energies/occupations
+  # (ORBITAL ENERGIES) and leaves the coefficient matrix in the binary
+  # .gbw file, which orca.mo (the MO parser) cannot read. Verified this
+  # flag makes ORCA print a "MOLECULAR ORBITALS" text block identical in
+  # intent to Gaussian's fort.7 dump / NWChem's inline MO printing.
+  $result .= "%output\n  Print[P_MOs] 1\nend\n";
+  # Unconditionally request the quadrupole moment (not computed by
+  # default) so orca.quadpole has something to parse -- verified this
+  # alone is enough to make ORCA print a "QUADRUPOLE MOMENT" section; no
+  # equivalent flag exists for octupole/hexadecapole moments in ORCA.
+  $result .= "%elprop\n  Quadrupole true\nend\n";
+  # %maxcore is memory per core, in MB -- the Theory Details dialog takes
+  # GB (per-core) for UX consistency with the other codes, so convert.
+  my $maxcoreGB = $AbiDict{"ES.Theory.SCF.MemorySize"};
+  if ($maxcoreGB ne "") {
+    my $maxcore = int($maxcoreGB * 1000);
     $result .= "%maxcore $maxcore\n";
   }
   # %pal nprocs N: only written if the user explicitly set Processors>1

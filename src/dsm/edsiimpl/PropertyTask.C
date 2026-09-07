@@ -199,11 +199,15 @@ TProperty* PropertyTask::updateProperty(const string& name, const string& value)
 
 
   // This section of code is here to handle timing related issues with real
-  // time monitoring of step data.  Note that the code only executes
-  // for PropTSVector data.
+  // time monitoring of step data.  Applies to both PropTSVector (one value
+  // per step, e.g. TEVEC) and PropTSVecTable (one 2-D table per step, e.g.
+  // GEOMTRACE) -- originally PropTSVector-only, which left PropTSVecTable
+  // exposed to the same race with no protection at all: a dropped/reordered
+  // notification could silently collapse a live-monitored geometry trace to
+  // a single step (see GitHub issue #74).
   // Two potential problems occur:
-  // 1) When a property is first loaded from the data server, it may have 
-  //    picked up more steps and be ahead of messaging.  In this case, this 
+  // 1) When a property is first loaded from the data server, it may have
+  //    picked up more steps and be ahead of messaging.  In this case, this
   //    method should just return.  It used to append the data again leaving
   //    some duplicates at the beginning of the graph
   // 2) If the calcviewer is busy enough, particularly stuck processing such as
@@ -211,11 +215,15 @@ TProperty* PropertyTask::updateProperty(const string& name, const string& value)
   //    no events are processed.  Since we use UDP for messaging, data is lost.
   //    This chunk of code detects that and reloads the data from scratch.
   if (property) {
-     if (property->classType() == TProperty::PROPTSVECTOR) {
-        PropTSVector *tsvec = dynamic_cast<PropTSVector*>(property);
+     TProperty::ClassType ptype = property->classType();
+     if (ptype == TProperty::PROPTSVECTOR || ptype == TProperty::PROPTSVECTABLE) {
+        TProperty *orig = property;
+        int currentCount = (ptype == TProperty::PROPTSVECTOR) ?
+              dynamic_cast<PropTSVector*>(property)->rows() :
+              dynamic_cast<PropTSVecTable*>(property)->tables();
         // WARNING: we require this exact string to parse out the step number.
-        // Extra spaces or whatever will break this code.  
-        // Don't want to xml parse twice though.  The '13' is the length of the 
+        // Extra spaces or whatever will break this code.
+        // Don't want to xml parse twice though.  The '13' is the length of the
         // pattern + 1 for the presumed following double quote.
         // XML looks like: <step number="8356">2.66737E+04</step>
         size_t pos = value.find("step number=");
@@ -223,17 +231,17 @@ TProperty* PropertyTask::updateProperty(const string& name, const string& value)
            // have a step property
            char *tail = 0;
            const char *chunk = value.c_str();
-           int step = (int)strtol(&chunk[pos+13],&tail,10); 
+           int step = (int)strtol(&chunk[pos+13],&tail,10);
 
            // This can happen especially at applications startup time where
-           // an updated came in, which forced getting the property which by 
+           // an updated came in, which forced getting the property which by
            // then has the data in the message.  So just return
-           if (tsvec->rows() >= step) return property;
+           if (currentCount >= step) return property;
 
 
-           if (tsvec->rows()+1 < step) {
+           if (currentCount+1 < step) {
               // have to erase or getProperty fails....
-              map<string, TProperty* , less<string> >::iterator cur = 
+              map<string, TProperty* , less<string> >::iterator cur =
                  p_properties.find(name);
               p_properties.erase(cur);
               property = getProperty(name);
@@ -241,12 +249,12 @@ TProperty* PropertyTask::updateProperty(const string& name, const string& value)
                  // New one has been loaded and put in cache.  Delete old one
                  // and return without further processing - again to avoid
                  // double buffering
-                 delete tsvec;
+                 delete orig;
                  return property;
               } else {
                  // Put old one back and try again next time
-                 property = tsvec;
-                 putTProperty(name, tsvec);
+                 property = orig;
+                 putTProperty(name, orig);
               }
            }
         }

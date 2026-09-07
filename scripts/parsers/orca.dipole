@@ -1,0 +1,39 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts ORCA's "Total Dipole Moment" line (from the "DIPOLE MOMENT"
+# section) into ECCE's DIPOLE property. Confirmed against a real ORCA
+# 6.1.1 RHF/STO-3G run:
+#
+#   Total Dipole Moment    :     -0.000000000       0.000000000       0.672453840
+#
+# ORCA prints this in atomic units (e*Bohr); ECCE's DIPOLE convention
+# (see nwchem.dipole/gaussian-16.dipole) is Debye, so convert using the
+# same conversion factor ORCA itself uses -- back-derived from a real run
+# by comparing its own "Total Dipole Moment" (a.u.) against its own
+# "Magnitude (Debye)" line for the same job (2.5417980, not the more
+# commonly cited CODATA 2.5417463 -- close enough to matter for exact
+# consistency with what ORCA's own output would otherwise show).
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $AU_TO_DEBYE = 2.5417980;
+
+while (<STDIN>) {
+  if (/Total Dipole Moment\s*:\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
+    my ($x, $y, $z) = ($1 * $AU_TO_DEBYE, $2 * $AU_TO_DEBYE, $3 * $AU_TO_DEBYE);
+    print "key: DIPOLE\n";
+    print "size:\n3\n";
+    print "rowlabels:\nX Y Z\n";
+    print "values:\n$x $y $z\n";
+    print "units:\nDebye\n";
+    print "END\n";
+    last;
+  }
+}
+exit(0);

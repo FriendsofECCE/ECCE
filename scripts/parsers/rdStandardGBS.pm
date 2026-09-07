@@ -84,7 +84,7 @@ $|=1;
 
     # Parse explicit list of coefficients and exponents
     if ($readingNameBasis == 0 && $readingNumericalBasis == 1) {
-      if (/^basis \"(\w\w) basis\" (\w+) print/)
+      if (/^\s*basis \"(\w\w) basis\" (\w+)(\s+print)?/)
       {
         $coordinants = $2;
         if ($1 eq "ao")
@@ -238,7 +238,7 @@ $|=1;
     # Parse basis set library names
     } elsif ($readingNameBasis == 1 && $readingNumericalBasis == 0) {
 
-      if (/^basis \"(\w\w) basis\" (\w+) print/)
+      if (/^\s*basis \"(\w\w) basis\" (\w+)(\s+print)?/)
       {
         $coordinants = $2;
         if ($1 eq "ao")
@@ -259,7 +259,7 @@ $|=1;
       }
 
       # Read line containing the Atomic Symbol and basis set
-      if ( (/^(\w+)\s+library\s+(\".+\")$/i) )
+      if ( (/^\s*(\w+)\s+library\s+(\".+\")$/i) )
       {
         $center = $1;
         $basisName = $2;

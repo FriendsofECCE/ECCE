@@ -1,0 +1,56 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts ORCA's "CARTESIAN GRADIENT" block into ECCE's EGRADVEC property,
+# plus EGRAD from the "Norm of the Cartesian gradient" line that follows it.
+# Repeats once per geometry step during an optimization (Frequency=all),
+# confirmed against a real ORCA 6.1.1 RHF/STO-3G Opt+Freq run:
+#
+#    1   O   :   -0.000000000    0.000000000    0.043308540
+#    2   H   :    0.000000000   -0.012602199   -0.021654270
+#    3   H   :   -0.000000000    0.012602199   -0.021654270
+#
+#    Norm of the Cartesian gradient     ...    0.0559560123
+#
+# ORCA labels this section "GRADIENT" (not "Forces", unlike Gaussian), so
+# unlike gaussian-16.egradvec no sign flip is needed -- same convention as
+# nwchem.egradvec.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my @values;
+my $natom = 0;
+while (<STDIN>) {
+  if (/^\s*\d+\s+\S+\s*:\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
+    push(@values, $1, $2, $3);
+    $natom++;
+  } elsif (/Norm of the Cartesian gradient\s*\.+\s*(-?\d+\.\d+)/) {
+    print "key: EGRAD\n";
+    print "size:\n1\n";
+    print "values:\n$1\n";
+    print "units:\nHartree/Bohr\n";
+    print "END\n";
+    last;
+  }
+}
+
+if ($natom > 0) {
+  print "key: EGRADVEC\n";
+  print "size:\n$natom 3\n";
+  print "rowlabels:\n";
+  for (my $i = 1; $i <= $natom; $i++) { print "$i "; }
+  print "\ncolumnlabels:\nX Y Z\n";
+  print "values:\n";
+  for (my $i = 0; $i <= $#values; $i++) {
+    print "$values[$i] ";
+    print "\n" if (($i % 3) == 2);
+  }
+  print "units:\nHartree/Bohr\n";
+  print "END\n";
+}
+exit(0);

@@ -48,8 +48,8 @@ class GUKTheoryPanel(EccePanel):
 
     self.memSize = EcceSpinCtrl(self, label = "Memory:",
                                 name = "ES.Theory.MemorySize",
-                                default = 20,
-                                unit = "Megawords",
+                                default = 1,
+                                unit = "Gigabytes",
                                 hardRange = "[0..)",
                                 export = 1)
     self.memoryLayout.AddWidget(self.memSize)

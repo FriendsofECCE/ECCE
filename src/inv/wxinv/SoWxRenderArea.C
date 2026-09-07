@@ -55,6 +55,7 @@ SoWxRenderArea::SoWxRenderArea(wxWindow * parent,
 
   p_windowResized = false;
   p_inPaint = false;
+  p_redrawPending = false;
 
   // wx3.x wxGLCanvas no longer implicitly creates/owns a GL context (that
   // was wx2.8 behavior) - we must create and manage one explicitly now.
@@ -1043,9 +1044,19 @@ void SoWxRenderArea::renderCB(void *p, SoSceneManager *)
 #endif
 
   SoWxRenderArea * renderArea = (SoWxRenderArea *)(p);
-  if (renderArea && !renderArea->p_inPaint) {
-    renderArea->Refresh(false);
-    renderArea->Update();
+  if (renderArea) {
+    if (!renderArea->p_inPaint) {
+      renderArea->Refresh(false);
+      renderArea->Update();
+    } else {
+      // A paint is already in flight (e.g. this callback re-entered from
+      // inside OnPaint's own redraw()/Update() call) -- Inventor's sensor
+      // has already fired and won't fire again on its own for this
+      // change, so simply doing nothing here drops the redraw permanently
+      // rather than deferring it. Record that one more redraw is owed;
+      // OnPaint() below checks this flag once it's done and retries.
+      renderArea->p_redrawPending = true;
+    }
   }
 
 #ifdef SOWXDEBUG
@@ -1219,6 +1230,15 @@ void SoWxRenderArea::OnPaint( wxPaintEvent& WXUNUSED(event) )
   // @todo Should also capture EVT_ICONIZE( FRAME::OnIconize )
   // and do deactive() waitForExpose=true etc.
   p_inPaint = false;
+
+  // If a scene-graph change touched the graph while this paint was still
+  // in flight, renderCB() couldn't act on it and set this flag instead of
+  // silently dropping it (see renderCB() above) -- act on it now.
+  if (p_redrawPending) {
+    p_redrawPending = false;
+    Refresh(false);
+    Update();
+  }
 
 #ifdef SOWXDEBUG
   cerr << "Leave SoWxRenderArea::OnPaint\n";

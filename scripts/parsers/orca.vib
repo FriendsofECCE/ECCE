@@ -1,0 +1,90 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts ORCA's "NORMAL MODES" block into ECCE's VIB property (per-mode
+# Cartesian atom-displacement vectors, needed for the 3-D vibration
+# animation viewer -- without it, the Vibration entry doesn't even appear
+# in the Properties menu, since PropertyPanelDescriptor.xml's
+# "Vibrational Frequencies" panel is gated on VIB, not VIBFREQ).
+#
+# Same column-group layout as orca.mo's MOLECULAR ORBITALS block (up to 6
+# columns per group, repeated until all modes are covered, no blank line
+# between groups), but simpler -- no eigenvalue/occupation rows, and rows
+# are flattened Cartesian DOF (atom*3+coord), not basis functions:
+#
+#                   0          1          2          3          4          5
+#       0       0.000000   0.000000   0.000000   0.000000   0.000000   0.000000
+#       1       0.000000   0.000000   0.000000   0.000000   0.000000   0.000000
+#       ...
+#       8       0.000000   0.000000   0.000000   0.000000   0.000000   0.000000
+#                   6          7          8
+#       0      -0.000000   0.000000  -0.000000
+#       ...
+#
+# Includes all 3N modes (translation/rotation included), same as
+# orca.vibfreq, for consistency with VIBFREQ's own row count.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my %matrix; # $matrix{row}{col} = value, row = atom*3+coord, col = mode index
+my $nrows = 0;
+my $ncols = 0;
+while (<STDIN>) {
+  chomp;
+  next if (/^\s*$/);
+  if (/^\s*\d+(\s+\d+)*\s*$/) {
+    my @modeIdx = split(' ', $_);
+    $ncols = $modeIdx[$#modeIdx] + 1 if ($modeIdx[$#modeIdx] + 1 > $ncols);
+    my $row = 0;
+    while (<STDIN>) {
+      chomp;
+      last if (/^\s*$/ || /^\s*\d+(\s+\d+)*\s*$/ && $_ !~ /\./);
+      if (/^\s*\d+\s+(.+)$/) {
+        my @vals = split(' ', $1);
+        for my $j (0 .. $#modeIdx) {
+          $matrix{$row}{$modeIdx[$j]} = $vals[$j];
+        }
+        $row++;
+      }
+    }
+    $nrows = $row if ($row > $nrows);
+    # the line that ended the inner loop is either blank (end of block) or
+    # the next column-group's header -- re-process it as a header if so
+    redo if (/^\s*\d+(\s+\d+)*\s*$/);
+  }
+}
+
+my $natoms = $nrows / 3;
+my $nmodes = $ncols;
+exit(0) if ($natoms < 1 || $nmodes < 1);
+
+print "key: VIB\n";
+print "size:\n$nmodes $natoms 3\n";
+print "vectorlabels:\n";
+for my $i (1 .. $nmodes) {
+  print " NA ";
+  print "\n" if (($i % 10) == 0);
+}
+print "\nrowlabels:\n";
+for my $i (1 .. $natoms) {
+  print " $i ";
+  print "\n" if (($i % 10) == 0);
+}
+print "\ncolumnlabels:\nX Y Z\n";
+print "values:\n";
+for my $m (0 .. $nmodes - 1) {
+  for my $a (0 .. $natoms - 1) {
+    for my $c (0 .. 2) {
+      printf("%.15e ", $matrix{$a * 3 + $c}{$m});
+    }
+    print "\n";
+  }
+}
+print "units:\nAngstrom\n";
+print "END\n";
+exit(0);

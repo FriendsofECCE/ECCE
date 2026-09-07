@@ -1,0 +1,36 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts ORCA's "QUADRUPOLE MOMENT" total-tensor (TOT) line into ECCE's
+# QUADPOLE property. Requires "%elprop Quadrupole true end" in the input
+# (added to ai.orca) -- ORCA does not compute this by default. Confirmed
+# against a real ORCA 6.1.1 RHF/STO-3G run:
+#
+#                 XX              YY              ZZ              XY              XZ              YZ
+#   TOT       -4.538728632    -3.248204256    -3.871875993    -0.000000000     0.000000000    -0.000000000 (a.u.)
+#
+# Reordered to ECCE's XX/XY/XZ/YY/YZ/ZZ convention (see gaussian-16.quadpole).
+# Note: ORCA has no octupole/hexadecapole moment output -- unlike Gaussian,
+# it isn't a supported property, so there's no OCTAPOLE/HEXPOLE equivalent
+# to add here.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+while (<STDIN>) {
+  if (/^\s*TOT\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
+    my ($xx, $yy, $zz, $xy, $xz, $yz) = ($1, $2, $3, $4, $5, $6);
+    print "key: QUADPOLE\n";
+    print "size:\n6\n";
+    print "rowlabels:\nXX XY XZ YY YZ ZZ\n";
+    print "values:\n$xx $xy $xz $yy $yz $zz\n";
+    print "units:\nau\n";
+    print "END\n";
+    last;
+  }
+}
+exit(0);

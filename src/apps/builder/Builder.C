@@ -202,6 +202,22 @@ BEGIN_EVENT_TABLE( Builder, BuilderGUI )
                     Builder::OnContextRadioClick )
     EVT_LIST_ITEM_SELECTED( ContextPanel::ID_LIST, Builder::OnContextListClick )
     EVT_EWXAUI_PANE_CLOSE(Builder::OnPaneClose)
+    // Stock wx3.2 replacement for the dropped ewxAUI "take focus" caption
+    // button (see EwxAuiCompat.H) -- wxChildFocusEvent is a wxCommandEvent
+    // and so bubbles up the window hierarchy to Builder (the top-level
+    // managed frame) whenever ANY descendant control anywhere in a pane
+    // receives keyboard focus (clicking into it, tabbing into it, etc),
+    // giving a real, always-available trigger requiring no custom UI.
+    // NOTE: this is bound here rather than relying on wxAuiManager's own
+    // EVT_AUI_PANE_ACTIVATED/OnChildFocus, because wxAuiManager::GetPane()
+    // requires an EXACT match against the pane's own top window
+    // (framemanager.cpp's GetPane(wxWindow*): "if (p.window == window)",
+    // no ancestor walk) -- so it only ever fires when the pane's own bare
+    // panel object receives focus directly, never when focus lands on a
+    // control nested inside it (a grid, listbox, etc), which is the
+    // overwhelmingly common case. Walking up from the focused window
+    // ourselves in OnChildFocus below avoids that exact-match miss.
+    EVT_CHILD_FOCUS(Builder::OnChildFocus)
     EVT_EWXAUI_PANE_TAKE_FOCUS(Builder::OnPaneTakeFocus)
     EVT_EWXAUI_PANE_ADD_FOCUS(Builder::OnPaneAddFocus)
     EVT_EWXAUI_PANE_OPTIONS(Builder::OnPaneOptions)
@@ -3213,6 +3229,27 @@ void Builder::OnPaneClose(wxAuiManagerEvent& event)
 }
 
 
+void Builder::OnChildFocus(wxChildFocusEvent& event)
+{
+  // See the comment on this event's binding in the event table above.
+  // Walk up from whatever control just received focus until we find the
+  // VizPropertyPanel that owns it (the focused window is usually a child
+  // control nested inside the panel, not the panel itself), then treat
+  // that exactly like the old ewxAUI "take focus" caption-button click.
+  // setFocus(true) -> doFocus() already clears focus off any other viz
+  // panel for the same calc, so no explicit loop is needed here.
+  wxWindow *win = event.GetWindow();
+  VizPropertyPanel *panel = NULL;
+  while (win && !(panel = dynamic_cast<VizPropertyPanel*>(win))) {
+    win = win->GetParent();
+  }
+  if (panel && !panel->hasFocus()) {
+    panel->setFocus(true);
+  }
+  event.Skip();
+}
+
+
 void Builder::OnPaneTakeFocus(wxAuiManagerEvent& event)
 {
   wxBusyCursor c;
@@ -4554,7 +4591,7 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     // caller showing/hiding afterward, so the menu checkbox's initial
     // Check(pinfo.IsShown()) state below is correct from the start.
     static const set<string> defaultShownPanels = {
-      "Calculation Summary", "Energies", "Geometry Trace", "MOs"
+      "Calculation Summary", "Energies", "MOs"
     };
     info.Show(defaultShownPanels.find(name) != defaultShownPanels.end());
     // Was .Fixed() with no way to override -- every property panel

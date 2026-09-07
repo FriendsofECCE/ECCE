@@ -337,7 +337,11 @@ if (defined($ParamDict{"ES.Theory.SCF.Memory"}) &&
              $ParamDict{"ES.Theory.SCF.Memory"} == 1) {
   if (defined($ParamDict{"ES.Theory.SCF.MemorySize"})) {
     $value = $ParamDict{"ES.Theory.SCF.MemorySize"};
-    print "memory $value mw\n\n";
+    # NWChem's "memory" directive accepts a "gb" unit suffix directly
+    # (same directive nedtheory.py's regular SCF memory setting already
+    # uses -- "Memory ##MemorySize## gb"), so this needs no numeric
+    # conversion, just matching the dialog's GB label below.
+    print "memory $value gb\n\n";
   }
 }
 

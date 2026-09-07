@@ -36,15 +36,15 @@ class OrcaTheoryPanel(EccePanel):
         # against a real ORCA 6.1.1 run: reported "Max core memory ... N MB"
         # matches the per-process setting, not a job total) -- same
         # convention as NWChem's "Gigabytes / core" MemorySize widget in
-        # nedtheory.py, not Gaussian's job-total "Gigabytes" one. Uses
-        # ORCA's own native unit (MB) directly rather than converting
-        # through GB.
+        # nedtheory.py. Entered value is per-core GB; ai.orca's
+        # ORCABlocks converts it to the MB/core ORCA's own %maxcore
+        # directive actually needs.
         memSizer = EcceBoxSizer(self, label="Memory", cols=1)
         self.memSize = EcceSpinCtrl(self,
                                     hardRange="[0..)",
-                                    unit="Megabytes / core",
+                                    unit="Gigabytes / core",
                                     name="ES.Theory.SCF.MemorySize",
-                                    default=1000,
+                                    default=1,
                                     label="Memory Per Core:",
                                     export=1)
         memSizer.AddWidget(self.memSize)
