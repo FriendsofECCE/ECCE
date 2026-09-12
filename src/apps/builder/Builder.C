@@ -4607,11 +4607,20 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     p_mgr.AddPane(panel, info);
   }
 
-  // add to property menu and Check its item
+  // add to property menu and Check its item -- re-fetch from the manager
+  // rather than reusing `pinfo`: when the pane didn't exist yet, `pinfo`
+  // above was bound to wxAuiManager's not-found sentinel
+  // (wxAuiNullPaneInfo), whose IsShown() defaults to true (state==0, no
+  // optionHidden flag) regardless of what Show() was just called with on
+  // the separate `info` object passed to AddPane() -- AddPane() copies
+  // `info` into its own internal entry, it doesn't mutate the sentinel
+  // `pinfo` still refers to. That made every property-menu item show as
+  // checked/selected on open, even for panels deliberately left hidden by
+  // the defaultShownPanels logic above.
+  wxAuiPaneInfo &added = p_mgr.GetPane(panel);
   p_propertyMenu->AppendCheckItem(
           ID_PROPERTY_MENU_BASE+p_propertyMenu->GetMenuItemCount(),
-          //name, "")->Check(panel->isDismissed());
-          name, "")->Check(pinfo.IsShown());
+          name, "")->Check(added.IsShown());
 }
 
 

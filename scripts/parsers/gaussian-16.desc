@@ -190,7 +190,7 @@ End= Leave Link 1002
 
 [MULLIKEN]
 Script=gaussian-16.mulliken
-Begin= Mulliken atomic charges\:
+Begin= Mulliken (atomic )?charges\:
 Skip=2
 Frequency=all
 End= Sum of Mulliken

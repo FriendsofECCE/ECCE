@@ -146,7 +146,18 @@ void NModesGUI::CreateControls()
     itemGrid4->SetDefaultRowSize(25);
     itemGrid4->SetColLabelSize(40);
     itemGrid4->SetRowLabelSize(50);
-    itemGrid4->CreateGrid(5, 5, wxGrid::wxGridSelectRows);
+    // CreateGrid() itself (below, not here) is deferred to the end of this
+    // function, after every other control is constructed -- it internally
+    // calls wxGrid::SetTable(), which on wx3.2/GTK3 synchronously fires a
+    // wxEVT_GRID_SELECT_CELL event. NModePanel::OnModeSelection (bound to
+    // that event) calls showMode(), which does
+    // FindWindow(ID_BUTTON_NMODE_VECCOLOR) and dereferences the result
+    // unchecked -- that button (itemButton20 below) and the "Use Negative
+    // Displacement" checkbox didn't exist yet when CreateGrid() ran here,
+    // so FindWindow() returned NULL and showMode() segfaulted on
+    // btn->GetBackgroundColour(), reliably crashing builder on opening any
+    // job with vibrational (VIB) data. Sizer membership/position is set
+    // here as before; only the CreateGrid() call itself moves.
     p_gridPlotSizer->Add(itemGrid4, 1, wxGROW|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer5 = new wxBoxSizer(wxVERTICAL);
@@ -210,6 +221,10 @@ void NModesGUI::CreateControls()
     p_vectorSizer->Add(itemCheckBox21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
 ////@end NModesGUI content construction
+
+    // See the comment at itemGrid4's construction above -- this must run
+    // after every sibling control above it exists.
+    itemGrid4->CreateGrid(5, 5, wxGrid::wxGridSelectRows);
 }
 
 /*!

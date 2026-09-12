@@ -172,9 +172,10 @@ bool NModePanel::Create(IPropCalculation *calculation,
    text->setValueAsInt(delay);
    p_loopSpeed = delay;
 
-   // From here on every control OnModeSelection()/showMode() touch via
-   // FindWindow() actually exists -- safe to stop ignoring grid
-   // selection events (see the guard in OnModeSelection()).
+   // Construction is fully finished as of here -- every control
+   // OnModeSelection()/showMode() touch via FindWindow() actually
+   // exists, so it's safe to stop ignoring premature grid selection
+   // events (see the guards in OnModeSelection() and showMode()).
    p_isValid = true;
 
    initialize();
@@ -455,6 +456,17 @@ void NModePanel::fillTable()
  */
 void NModePanel::showMode(int index)
 {
+   // OnModeSelection() already guards against the premature
+   // wxEVT_GRID_SELECT_CELL that wxGrid::SetTable() fires synchronously
+   // during CreateControls() (see the comment there). This second check
+   // is defense-in-depth for any other path into showMode() -- e.g.
+   // selectMode() re-selecting a grid row -- that could reach here before
+   // Create() has finished building sibling controls this function
+   // depends on (p_slider, ...).
+   if (!p_isValid) {
+      return;
+   }
+
    p_currentStep = 0;
    p_mode = index;
 

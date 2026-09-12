@@ -221,6 +221,26 @@ Both per-user, both non-root, both started automatically by the
   job/comm layer, general utilities. No wx dependency.
 
 ### Known pitfall classes (found more than once — check for siblings)
+- **A `.desc` entry's `Begin` wording can silently stop matching between
+  versions of the same code**, not just between different codes.
+  `gaussian-16.desc`'s `MULLIKEN` entry had `Begin= Mulliken atomic
+  charges\:`, copied from `gaussian-09.desc`/`gaussian-03.desc` — but
+  Gaussian 16 actually prints "Mulliken charges:" (no "atomic").
+  `Gaussian-16.expt` (the full-output post-hoc parser) has no Mulliken
+  handling of its own, so this property is *only* ever captured live
+  via `eccejobmonitor` — the mismatched `Begin` regex meant it was
+  silently never extracted, for every G16 job, ever (#80). Same
+  no-error/job-completes-normally shape as the other `.desc` bugs
+  here. Fixed with an alternation (`Mulliken (atomic )?charges\:`)
+  rather than assuming the new wording fully replaced the old one.
+  **Caveat that applies to any fix in this family**: because there's
+  no reparse-from-saved-output path for a live-monitor-only property,
+  fixing the regex does *not* retroactively recover data for
+  already-completed jobs parsed under the old pattern — only a fresh
+  run monitored under the fixed `.desc` will have the property. If a
+  "we fixed the parser but the old job still shows nothing" report
+  comes in, check whether the job actually predates the fix before
+  assuming it didn't work.
 - **`eccejobmonitor`'s "enable all parse types" check is case-sensitive**
   (`scripts/eccejobmonitor`, `PDTypesEnable()`) — it only recognizes
   lowercase `all`, but `Launch.C` hardcodes `"parseTypes ALL"`
@@ -244,6 +264,37 @@ Both per-user, both non-root, both started automatically by the
   else — see `docs/HISTORY.md` for the working detection technique
   (backtrace-based reentrancy check in a `wxEventFilter`, not a fixed
   timer).
+- **`wxGrid::CreateGrid()`/`SetTable()` synchronously fires
+  `wxEVT_GRID_SELECT_CELL`** on wx3.2/GTK3 — immediately, during
+  construction, not deferred to the event loop the way it effectively
+  was on wx2.8/GTK2. A grid built early in a panel's `CreateControls()`
+  (e.g. `NModesGUI`'s vibration-mode grid) can reach an
+  `EVT_GRID_SELECT_CELL`-bound handler in a subclass (`NModePanel::
+  OnModeSelection` → `showMode()`) that dereferences sibling
+  controls/members not constructed yet — including ones that don't
+  exist until a *separate, later-running* function does (`p_slider`,
+  only built in `NModePanel::Create()` itself, after the
+  `NModesGUI::Create()`/`CreateControls()` call that triggers the
+  event) — so reordering statements within the one function that
+  triggered it isn't guaranteed to be enough; every dependency the
+  handler touches needs to actually exist first. Reliably segfaulted
+  `builder` on opening *any* job with vibrational (`VIB`) data (#78).
+  Fixed by wiring up the panel's already-declared-but-dead `p_isValid`
+  flag as a real "construction is fully finished" guard: the handler's
+  target function returns immediately if not yet valid, and the flag
+  is set `true` only once every control exists, right before the
+  panel's own legitimate first call into that function. Fixed twice,
+  independently, on two machines during the same investigation window
+  (#78) — one pass guards in `OnModeSelection()` itself, the other
+  guards inside `showMode()`; both landed and were kept as layered
+  defense-in-depth rather than picking one, along with deferring
+  `NModesGUI::CreateControls()`'s `CreateGrid()` call to the end of the
+  function (belt-and-suspenders against the narrower null-button
+  dereference that a first, incomplete pass at this fix hit). Check for
+  the same shape (an early-constructed grid/combo/list whose "populate
+  my data" call synchronously fires a selection/change event into a
+  handler with unmet dependencies) in any other panel that builds a
+  grid before finishing `CreateControls()`.
 - **`wxEXPAND|wxALIGN_CENTER` on the same sizer item** — a documented wx
   footgun; alignment can suppress expand instead of being ignored.
   Combined with a widget that only learns its own size inside its first
