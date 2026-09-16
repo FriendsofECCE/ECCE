@@ -755,10 +755,10 @@
     <SortPriority>65</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>calcany.xpm</Normal>
-      <Selected>calcany.xpm</Selected>
-      <Expanded>calcany.xpm</Expanded>
-      <SelectedExpanded>calcany.xpm</SelectedExpanded>
+      <Normal>calcorca.xpm</Normal>
+      <Selected>calcorca.xpm</Selected>
+      <Expanded>calcorca.xpm</Expanded>
+      <SelectedExpanded>calcorca.xpm</SelectedExpanded>
     </Icons>
     <Label>Calculation</Label>
     <StateBased>true</StateBased>
