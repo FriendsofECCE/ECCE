@@ -12,6 +12,24 @@
 #      0:       0.00 cm**-1
 #      6:    2169.83 cm**-1
 #
+# When symmetry is in use (UseSym, or ORCA detects one on its own),
+# ORCA inserts an extra "Point group:  <PG>" line plus an "Irrep"
+# column header between the scaling-factor line and the first data
+# line -- absent when symmetry is off. Skip=N in orca.desc is a fixed
+# count and can't conditionally handle both shapes, so this used to
+# stop at the first non-matching line (the natural, established
+# pattern elsewhere in this codebase, e.g. GEOMTRACE's own script) --
+# but that meant Skip's fixed offset landed one line short of real
+# data whenever the point-group line was present, and the *first* fed
+# line (the "Irrep" header) failed the match immediately, silently
+# producing zero frequencies. Confirmed live against a real ORCA 6.1.1
+# run with UseSym (this session) -- VIBFREQ came back empty. Fixed by
+# skipping non-matching lines instead of stopping at the first one;
+# orca.desc's Skip is set low enough to work as the common starting
+# point for both shapes, and End=NORMAL MODES still bounds how far
+# this reads, so there's nothing else in that window this could
+# accidentally over-read into.
+#
 ################################################################################
 
 $| = 1;
@@ -22,8 +40,6 @@ my @values;
 while (<STDIN>) {
   if (/^\s*\d+:\s*(-?\d+\.\d+)\s*cm\*\*-1/) {
     push(@values, $1);
-  } else {
-    last;
   }
 }
 

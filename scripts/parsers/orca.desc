@@ -126,15 +126,21 @@ Frequency=last
 End=Sum of atomic charges
 [END]
 
-# Skip=5, not 4 -- same off-by-one as GEOMTRACE above (Skip counts the
-# Begin line itself): the block is Begin/dashes/blank/"Scaling factor..."
-# /blank/data, so 4 only reaches the second blank line, which
-# orca.vibfreq's "else { last }" then treats as end-of-data immediately,
-# producing zero frequencies. Confirmed by simulation against a real run.
+# Skip=4 (Begin/dashes/blank/"Scaling factor..."): only needs to land
+# past the boilerplate common to every run -- with symmetry in use
+# (UseSym, or ORCA auto-detecting one), a "Point group:"+"Irrep" header
+# pair is inserted right after this point, absent otherwise, so a
+# fixed Skip can't reliably land exactly on the first data line either
+# way. orca.vibfreq now skips non-matching lines itself instead of
+# stopping at the first one (this used to be Skip=5 relying on the
+# script's old stop-at-first-non-match behavior, which silently
+# produced zero frequencies whenever the symmetry lines were present --
+# confirmed live against a real ORCA 6.1.1 run, both with and without
+# UseSym, this session).
 [VIBFREQ]
 Script=orca.vibfreq
 Begin=VIBRATIONAL FREQUENCIES
-Skip=5
+Skip=4
 Frequency=last
 End=NORMAL MODES
 [END]
