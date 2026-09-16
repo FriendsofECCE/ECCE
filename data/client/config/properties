@@ -133,7 +133,18 @@ Energy		Gx Energy				GXENERGY	Energy		PropValue
 Energy		Heat of Formation			HFENERGY	Energy		PropValue
 #
 Energy		Zero Point Energy			EZEROPT		Energy		PropValue
-#							   		     
+#
+# Thermochemistry (298.15K, 1 atm ideal-gas statistical mechanics) --
+# headline values only (U, H, T*S, G); the individual vibrational/
+# rotational/translational correction components ORCA also reports
+# aren't broken out as their own properties yet, same way NNREPUL/
+# ONEELEC/TWOELEC decompose TE. New infrastructure: no code extracted
+# any of these before ORCA (2026-09 session).
+Energy		Total Thermal Energy			ETHERM		Energy		PropValue
+Energy		Total Enthalpy				ENTHALPY	Energy		PropValue
+Energy		Entropy Term (T*S)			ENTROPY		Energy		PropValue
+Energy		Gibbs Free Energy			EGIBBS		Energy		PropValue
+#
 #
 Energy		Total Energy Vector			TEVEC		Energy		PropTSVector<Geometry Step>
 Energy		Kinetic Energy Vector			KEVEC		Energy		PropTSVector<Geometry Step>

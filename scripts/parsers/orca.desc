@@ -195,6 +195,44 @@ Skip=0
 Lines=1
 [END]
 
+# Headline thermochemistry (Total Thermal Energy, Total Enthalpy, the
+# T*S entropy term, Gibbs Free Energy) -- new property infrastructure,
+# no code extracted any of these before (see data/client/config/
+# properties). Real lines verified against a captured ORCA output
+# (THERMOCHEMISTRY AT 298.15K section); see orca.thermo's own header
+# for the exact text and the EGIBBS wording caveat.
+[ETHERM]
+Script=orca.thermo
+Begin=Total thermal energy
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[ENTHALPY]
+Script=orca.thermo
+Begin=Total Enthalpy
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[ENTROPY]
+Script=orca.thermo
+Begin=Final entropy term
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[EGIBBS]
+Script=orca.thermo
+Begin=Final Gibbs free
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 [ISOSHIELD][ANISOSHIELD]
 Script=orca.isoshield
 Begin=CHEMICAL SHIELDING SUMMARY \(ppm\)

@@ -1,0 +1,58 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts the headline thermochemistry values (Total Thermal Energy,
+# Total Enthalpy, the T*S entropy term, Gibbs Free Energy) from ORCA's
+# THERMOCHEMISTRY block. Shared across all four .desc entries (ETHERM/
+# ENTHALPY/ENTROPY/EGIBBS), each with its own Begin match -- but the
+# output key is decided by pattern-matching the line's own content,
+# NOT $ARGV[0]/$key: nwchem.scalar's own header comment documents that
+# eccejobmonitor doesn't reliably pass the triggering bracket's key
+# through that argument for every invocation shape (it can be a PID
+# number instead) -- same shared-script idiom as nwchem.scalar, for
+# the same reason.
+#
+# Real captured lines this was checked against (labels/layout stable
+# from an old ORCA 3.0.3 run through ORCA 6.1's own tutorial docs):
+#   Total thermal energy                   -231.94028769 Eh
+#   Total Enthalpy                    ...   -231.93934348 Eh
+#   Final entropy term                ...      0.03177531 Eh     19.94 kcal/mol
+#   Final Gibbs free enthalpy         ...   -231.97111880 Eh
+# ORCA 6.1's own docs quote the last of these as "Final Gibbs free
+# energy" rather than "...enthalpy" -- not independently confirmed
+# which wording a real 6.1 run prints, so both the .desc Begin and the
+# match below only require the stable "Final Gibbs free" prefix.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+$_ = <STDIN>;
+my $propKey;
+if (/Total thermal energy/) {
+  $propKey = "ETHERM";
+} elsif (/Total Enthalpy/) {
+  $propKey = "ENTHALPY";
+} elsif (/Final entropy term/) {
+  $propKey = "ENTROPY";
+} elsif (/Final Gibbs free/) {
+  $propKey = "EGIBBS";
+} else {
+  exit(0);
+}
+
+my $value = 0.0;
+if (/(-?\d+\.\d+)\s*Eh/) {
+  $value = $1;
+}
+
+print "key: $propKey\n";
+print "size:\n1\n";
+print "values:\n$value\n";
+print "units:\nHartree\n";
+print "END\n";
+
+exit(0);
