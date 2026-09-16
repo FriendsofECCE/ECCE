@@ -84,6 +84,14 @@ bool NModeStepCmd::execute()
       }
    }
 
+   // ChemDisplay nodes hold a raw pointer to their ChemData, not an
+   // SoSFNode field, so baseFrag->touch() alone doesn't reach their
+   // render cache -- touchChemDisplay() re-assigns the display's own
+   // atomIndex/bondIndex fields, which is what actually invalidates it
+   // and forces a redraw. Same idiom ShowFragCmd uses for geometry-trace
+   // stepping; without it, only pull-model readers (grid/atom table)
+   // see the new step, matching the bug's reported symptom.
+   sg->touchChemDisplay(baseFrag);
    baseFrag->touch();
    sg->adjustMeasures();
 
