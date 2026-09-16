@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts the <S**2> spin-contamination expectation value into ECCE's
+# S2 property. Only printed by ORCA for open-shell (UHF/UKS) jobs --
+# verified against a real ORCA 6.1.1 UHF/STO-3G run (OH radical
+# doublet); a closed-shell run simply never prints this line, so this
+# parse type never matches and S2 stays unset, which is correct (S2=0
+# trivially for a closed-shell singlet, not worth displaying).
+#
+# Sample real input line:
+#   Expectation value of <S**2>     :     0.753262
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $line = <STDIN>;
+my $value = 0.0;
+if (defined($line) && $line =~ /:\s*(-?\d+\.\d+)/) {
+  $value = $1;
+}
+
+print "key: S2\n";
+print "size:\n1\n";
+print "values:\n$value\n";
+print "END\n";
+
+exit(0);

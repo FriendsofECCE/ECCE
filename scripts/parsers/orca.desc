@@ -263,6 +263,17 @@ Skip=0
 Lines=1
 [END]
 
+# Only printed for open-shell (UHF/UKS) jobs; verified against a real
+# ORCA 6.1.1 UHF run. Never matches for closed-shell jobs, which is
+# correct (S2 stays unset rather than shown as a meaningless 0).
+[S2]
+Script=orca.s2
+Begin=Expectation value of <S\*\*2>
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 [ISOSHIELD][ANISOSHIELD]
 Script=orca.isoshield
 Begin=CHEMICAL SHIELDING SUMMARY \(ppm\)
