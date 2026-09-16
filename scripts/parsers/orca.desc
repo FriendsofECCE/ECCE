@@ -274,6 +274,18 @@ Skip=0
 Lines=1
 [END]
 
+# Only present when the input requests CHELPG (ORCA doesn't compute
+# ESP charges by default) -- real block verified against a captured
+# ORCA 6.1.1 run. Skip=2 (Begin+dashes), End bounds it before the
+# "Total charge:" summary line.
+[ESPCHARGE]
+Script=orca.espcharge
+Begin=CHELPG Charges
+Skip=2
+Frequency=last
+End=Total charge:
+[END]
+
 [ISOSHIELD][ANISOSHIELD]
 Script=orca.isoshield
 Begin=CHEMICAL SHIELDING SUMMARY \(ppm\)

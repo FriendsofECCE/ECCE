@@ -1,0 +1,47 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts ORCA's "CHELPG Charges" block into ECCE's ESPCHARGE property
+# (a PropTable<Atom,Charge> -- modeled on orca.egradvec's PropTable<
+# Atom,Coordinate> output shape, just a single "Charge" column instead
+# of X/Y/Z). Only present when the job's input requests CHELPG (ORCA
+# does not compute ESP charges by default).
+#
+# Sample real input, verified against a real ORCA 6.1.1 RHF/STO-3G
+# CHELPG run:
+#   CHELPG Charges
+#   --------------------------------
+#     0   O   :      -0.618788
+#     1   H   :       0.309403
+#     2   H   :       0.309386
+#   --------------------------------
+#   Total charge:    -0.000000
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my (@rowlabels, @values);
+while (<STDIN>) {
+  if (/^\s*(\d+)\s+(\S+)\s*:\s*(-?\d+\.\d+)/) {
+    push(@rowlabels, "$1-$2");
+    push(@values, $3);
+  }
+}
+
+my $n = $#rowlabels + 1;
+exit(0) if ($n < 1);
+
+print "key: ESPCHARGE\n";
+print "size:\n$n 1\n";
+print "rowlabels:\n" . join(" ", @rowlabels) . "\n";
+print "columnlabels:\nCharge\n";
+print "values:\n";
+foreach my $v (@values) { print "$v\n"; }
+print "units:\ne\n";
+print "END\n";
+
+exit(0);
