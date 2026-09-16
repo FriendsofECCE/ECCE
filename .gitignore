@@ -6,6 +6,7 @@
 /build-cmake/
 src/apps/symmetry/*.mod
 __pycache__/
+/java/lib/ecce_jms.jar
 
 # Claude Code local session/settings state, not repo content
 /.claude/
