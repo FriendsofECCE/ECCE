@@ -1,0 +1,38 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts elapsed (wall) run time into ECCE's ETIME property, from
+# ORCA's final "TOTAL RUN TIME:" line -- the only aggregate timing
+# figure ORCA prints in one place; deliberately not mapped to CPUSEC,
+# since this is wall time (this is an OpenMPI build; CPU time could
+# differ from it under parallel execution) and ORCA has no equivalent
+# single aggregate "total CPU time" line to source CPUSEC from.
+# Same days/hours/minutes/seconds parsing gaussian-16.cpusec already
+# uses for its own (CPU time) line.
+#
+# Sample real input line, verified against a real ORCA 6.1.1 run:
+#   TOTAL RUN TIME: 0 days 0 hours 0 minutes 2 seconds 571 msec
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $line = <STDIN>;
+my $etime = 0.0;
+if (defined($line) &&
+    $line =~ /(\S+)\s*days\s*(\S+)\s*hours\s*(\S+)\s*minutes\s*(\S+)\s*seconds/) {
+  my ($days, $hours, $minutes, $seconds) = ($1, $2, $3, $4);
+  my $fullhours = 24.0*$days + $hours;
+  my $fullminutes = 60.0*$fullhours + $minutes;
+  $etime = 60.0*$fullminutes + $seconds;
+}
+
+print "key: ETIME\n";
+print "size:\n1\n";
+print "values:\n$etime\n";
+print "END\n";
+
+exit(0);

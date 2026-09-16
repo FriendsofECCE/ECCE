@@ -252,6 +252,17 @@ Skip=0
 Lines=1
 [END]
 
+# Real line verified against a captured ORCA output:
+#   TOTAL RUN TIME: 0 days 0 hours 0 minutes 2 seconds 571 msec
+# Deliberately not CPUSEC -- see orca.etime's header comment for why.
+[ETIME]
+Script=orca.etime
+Begin=TOTAL RUN TIME:
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 [ISOSHIELD][ANISOSHIELD]
 Script=orca.isoshield
 Begin=CHEMICAL SHIELDING SUMMARY \(ppm\)
