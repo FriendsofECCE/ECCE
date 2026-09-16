@@ -98,6 +98,14 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>Point Group</name>
+    <class>PntGrpPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="PNTGRP"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>Spin-Spin Indirect Coupling Tensor</name>
     <class>SpinSpin</class>
     <consumer>true</consumer>

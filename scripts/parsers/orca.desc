@@ -170,6 +170,18 @@ Frequency=last
 End=The first frequency considered to be a vibration
 [END]
 
+# Single line, e.g. "Point Group:  C2v, Symmetry Number:   2" -- real
+# ORCA 6.1.1 sample from a captured H2O/RHF/STO-3G run (see issue #74's
+# original report). Frequency=last: takes the final (post-optimization,
+# if any) point group if ORCA ever prints this more than once in a run.
+[PNTGRP]
+Script=orca.pntgrp
+Begin=Point Group:
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 [ISOSHIELD][ANISOSHIELD]
 Script=orca.isoshield
 Begin=CHEMICAL SHIELDING SUMMARY \(ppm\)

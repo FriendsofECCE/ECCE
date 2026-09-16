@@ -1,0 +1,33 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts the point group from ORCA's "Point Group: <PG>, Symmetry
+# Number: <N>" line into ECCE's PNTGRP property (a PropTSVecString).
+# Modeled on gaussian-16.symmetry/nwchem.symmetry for the output shape
+# (just the point group label, not the symmetry number).
+#
+# Sample input line, verified against a real captured ORCA 6.1.1
+# H2O/RHF/STO-3G run (Andy's session, 2026-09-06, see GitHub issue #74):
+#   Point Group:  C2v, Symmetry Number:   2
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $line = <STDIN>;
+chomp($line) if (defined $line);
+
+my $pntgrp = "C1";
+if (defined($line) && $line =~ /Point Group:\s*([^\s,]+)\s*,/) {
+  $pntgrp = $1;
+}
+
+print "key: PNTGRP\n";
+print "size: \n1\n";
+print "values: \n$pntgrp\n";
+print "END\n";
+
+exit(0);
