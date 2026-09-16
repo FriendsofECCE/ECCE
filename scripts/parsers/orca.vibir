@@ -1,0 +1,69 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts IR intensities from ORCA's "IR SPECTRUM" block into ECCE's
+# VIBIR property (a PropVector). Modeled on orca.vibfreq for the output
+# shape, but with one real difference that has to be handled explicitly:
+# unlike VIBRATIONAL FREQUENCIES (which lists every mode, 0-indexed,
+# including the near-zero translation/rotation modes), IR SPECTRUM only
+# lists the real vibrational modes -- the first six (five for a linear
+# molecule) are omitted entirely, so the first "Mode" column value seen
+# here is typically 6, not 0. VIBIR has to stay the same length and
+# row-for-row aligned with VIBFREQ (NModePanel's table/graph index both
+# PropVectors by the same row idx, not by a shared mode-number column),
+# so this pads the leading skipped modes with 0.0 intensity rather than
+# just emitting however many rows IR SPECTRUM itself printed.
+#
+# Sample input lines (real ORCA 6.1 output, from the ORCA docs' IR
+# tutorial -- https://www.faccts.de/docs/orca/6.1/tutorials/spec/IR.html,
+# not yet independently verified against a live run in this environment):
+#  Mode   freq       eps      Int      T**2         TX        TY        TZ
+#        cm**-1   L/(mol*cm) km/mol    a.u.
+# ----------------------------------------------------------------------------
+#   6:    405.17   0.000000    0.00  0.000000  ( 0.000000  0.000000 -0.000000)
+#  10:    676.63   0.025862  130.70  0.011928  (-0.000000  0.000000 -0.109214)
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my %intensity;
+my $maxmode = -1;
+while (<STDIN>) {
+  if (/^\s*(\d+):\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+\(/) {
+    my ($mode, $int) = ($1, $4);
+    $intensity{$mode} = $int;
+    $maxmode = $mode if ($mode > $maxmode);
+  } else {
+    last;
+  }
+}
+
+# Total mode count is inferred from the highest mode index seen (modes
+# are 0-indexed and consecutive); the skipped leading translation/
+# rotation modes default to 0.0 intensity, same as NWChem/Gaussian show
+# for those rows.
+my $nfrequencies = $maxmode + 1;
+exit(0) if ($nfrequencies < 1);
+
+print "key: VIBIR\n";
+print "size:\n$nfrequencies\n";
+print "rowlabels:\n";
+foreach my $i (1 .. $nfrequencies) {
+  print " $i ";
+  print "\n" if (($i % 10) == 0);
+}
+print "\n" if (($nfrequencies % 10) != 0);
+print "values:\n";
+foreach my $i (0 .. $nfrequencies - 1) {
+  my $val = exists($intensity{$i}) ? $intensity{$i} : 0.0;
+  print " $val";
+  print "\n" if ((($i+1) % 10) == 0);
+}
+print "\n" if (($nfrequencies % 10) != 0);
+print "units:\nKM/Mole\n";
+print "END\n";
+exit(0);

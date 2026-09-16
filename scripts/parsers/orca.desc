@@ -150,6 +150,26 @@ Frequency=last
 End=IR SPECTRUM
 [END]
 
+# IR SPECTRUM's own block only lists the real vibrational modes (starts
+# at Mode 6 for a nonlinear molecule, 5 if linear) -- unlike
+# VIBRATIONAL FREQUENCIES above, it omits the near-zero translation/
+# rotation modes entirely. orca.vibir pads those back in with 0.0
+# intensity so VIBIR stays the same length and row-aligned with VIBFREQ
+# (NModePanel indexes both PropVectors by the same row, not a shared
+# mode-number column). Skip=6, same off-by-one convention as GEOMTRACE/
+# VIBFREQ above (counts the Begin line itself): block is Begin/dashes/
+# blank/header/units-header/dashes, so data starts on line 7.
+# Grounded in the real ORCA 6.1.1 sample block from ORCA's own docs
+# (faccts.de IR tutorial, 2026-09 session) -- not yet independently
+# verified against a live run in this environment.
+[VIBIR]
+Script=orca.vibir
+Begin=IR SPECTRUM
+Skip=6
+Frequency=last
+End=The first frequency considered to be a vibration
+[END]
+
 [ISOSHIELD][ANISOSHIELD]
 Script=orca.isoshield
 Begin=CHEMICAL SHIELDING SUMMARY \(ppm\)
