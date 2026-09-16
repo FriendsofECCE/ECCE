@@ -172,6 +172,11 @@ bool NModePanel::Create(IPropCalculation *calculation,
    text->setValueAsInt(delay);
    p_loopSpeed = delay;
 
+   // From here on every control OnModeSelection()/showMode() touch via
+   // FindWindow() actually exists -- safe to stop ignoring grid
+   // selection events (see the guard in OnModeSelection()).
+   p_isValid = true;
+
    initialize();
 
    GetSizer()->Fit(this);
@@ -773,6 +778,27 @@ void NModePanel::OnRadioboxSelected( wxCommandEvent& event )
 
 void NModePanel::OnModeSelection( wxGridEvent& event )
 {
+   // wxGrid::CreateGrid() (NModesGUI::CreateControls(), building the
+   // placeholder 5x5 grid) fires a real EVT_GRID_SELECT_CELL synchronously
+   // as part of construction, well before Create() has gotten back from
+   // NModesGUI::Create() to build this panel's own sibling controls (the
+   // color button, sign checkbox, ...). showMode() unconditionally
+   // dereferences those via FindWindow(), so handling this premature event
+   // segfaults on a null FindWindow() result -- confirmed live (crash in
+   // wxWindowBase::GetBackgroundColour() called on a null button pointer,
+   // via OnModeSelection -> showMode, entered from inside
+   // NModesGUI::CreateControls() -> wxGrid::CreateGrid() ->
+   // UpdateCurrentCellOnRedim() -> SetCurrentCell() -> SendEvent()).
+   // p_isValid (already a member, previously set but never checked) is
+   // the guard: Create() flips it true only once every control this
+   // handler touches actually exists. The real, wanted mode-0 selection
+   // happens moments later via Create()'s own initialize() -> showMode()
+   // call, once p_isValid is true, so simply ignoring this early one
+   // loses nothing.
+   if (!p_isValid) {
+      event.Skip();
+      return;
+   }
    p_mode = p_selectedRow = event.GetRow();
    showMode(p_mode);
    event.Skip();
