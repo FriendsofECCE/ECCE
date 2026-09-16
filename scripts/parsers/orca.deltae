@@ -1,0 +1,49 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts the per-SCF-iteration energy change (Delta-E) into ECCE's
+# DELTAE property (a PropTSVector<Wave Step> -- one value accumulated
+# per invocation, Frequency=all in orca.desc).
+#
+# Unlike VIBFREQ/GEOMTRACE-style sections, ORCA's SCF iteration table
+# has no single stable header text to anchor a Skip-based block on: it
+# alternates between at least two different column-header variants
+# within the *same* SCF (observed live: "...DIISErr   Damp..." during
+# plain DIIS, "...MaxGrad..." once SOSCF kicks in), with unpredictable
+# "*** ... ***" status lines interspersed between data rows -- checked
+# against a real ORCA 6.1.1 optimization (5 SCF cycles' worth) where
+# the exact set of interleaved messages differed cycle to cycle.
+#
+# So orca.desc's Begin matches the iteration *data* line shape
+# directly instead of a section header (Frequency=all, one instance
+# per iteration, same idiom as GEOMTRACE matching a repeating marker):
+#   ^\s*\d+\s+-?\d+\.\d+\s+-?\d+\.\d+[eE][+-]\d+
+# i.e. iteration number, a high-precision plain-decimal energy, then
+# an exponential-notation Delta-E -- checked directly against the full
+# real output file (grep, not just the intended section) and produced
+# zero false-positive matches anywhere else in it.
+#
+# Sample real input line:
+#     5    -74.9630125621605288    -1.99e-02  1.14e-03  4.56e-03  1.98e-03     0.0
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $line = <STDIN>;
+my $deltae = 0.0;
+if (defined($line) &&
+    $line =~ /^\s*\d+\s+-?\d+\.\d+\s+(-?\d+\.\d+[eE][+-]\d+)/) {
+  $deltae = $1;
+}
+
+print "key: DELTAE\n";
+print "size: \n1\n";
+print "values: \n$deltae\n";
+print "units:\nHartree\n";
+print "END\n";
+
+exit(0);

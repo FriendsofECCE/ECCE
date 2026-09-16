@@ -239,6 +239,19 @@ Skip=0
 Lines=1
 [END]
 
+# Matches the SCF iteration data line's own shape directly rather than
+# anchoring on a section header -- see orca.deltae's header comment for
+# why (no single stable header text works; verified live against a
+# real ORCA 6.1.1 run, zero false-positive matches elsewhere in a full
+# real output file).
+[DELTAE]
+Script=orca.deltae
+Begin=^\s*\d+\s+-?\d+\.\d+\s+-?\d+\.\d+[eE][+-]\d+
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
 [ISOSHIELD][ANISOSHIELD]
 Script=orca.isoshield
 Begin=CHEMICAL SHIELDING SUMMARY \(ppm\)
