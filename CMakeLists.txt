@@ -839,6 +839,20 @@ export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
 export DISPLAY=\${DISPLAY:-:0}
 export ECCE_HELP=\${ECCE_HELP:-http://localhost:8096/}
+# wxWidgets 3.2's GTK3 backend was ported/tested against X11 window-
+# sizing semantics (synchronous configure, geometry hints honored on
+# first show); under a native GNOME Wayland session, GTK3's Wayland
+# backend negotiates initial window size with the compositor
+# asynchronously instead, and several of this app's frames (confirmed
+# live: the Gateway launcher toolbar, the Authentication dialog) come
+# up with a collapsed/garbled size as a result -- forcing XWayland
+# (the same rootless X11 compat layer already used for DISPLAY=:0
+# above) sidesteps it, same fix commonly used for other legacy GTK
+# apps under Wayland. Only takes effect on an actual Wayland session;
+# harmless no-op under a plain X11 session, and left overridable.
+if [ \"\$XDG_SESSION_TYPE\" = \"wayland\" ]; then
+  export GDK_BACKEND=\${GDK_BACKEND:-x11}
+fi
 export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 ${_gateway_start}
 ${_dataserver_start}
