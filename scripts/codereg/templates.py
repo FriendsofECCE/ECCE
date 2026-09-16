@@ -519,11 +519,29 @@ class EccePanel(wx.Panel):
                         if (setting.GetName() == name):
                             if valType == "integer_input":
                                 setting.SetValue(int(value))
-                                setting.SetUnit(unit)
+                                # Deliberately NOT setting.SetUnit(unit) here
+                                # (issue #77): `unit` is whatever calced's
+                                # GUIValues dump carried for this field, which
+                                # can be stale persisted data from whenever
+                                # this calc's settings were last saved -- e.g.
+                                # a Gaussian MemorySize field saved before the
+                                # GB-everywhere UX change would still say
+                                # "Megawords" in that stored dump forever
+                                # after, even though ged16theory.py's own
+                                # constructor (the actual source of truth for
+                                # what unit the generated input file's
+                                # ##MemorySize##GB template slot expects) has
+                                # said "Gigabytes" ever since. The value
+                                # itself is legitimately meant to persist
+                                # across sessions; the unit label isn't -- it
+                                # should always reflect what this script's own
+                                # widget was just constructed with, never a
+                                # historical snapshot.
                             elif valType == "float_input" or \
                                  valType == "exponential_input":
                                 setting.SetValue(value)
-                                setting.SetUnit(unit)
+                                # See the integer_input case just above for
+                                # why SetUnit(unit) is deliberately omitted.
                             elif valType == "toggle_input":
                                 setting.SetValue(value == "1")
                             elif valType == "text_input":
