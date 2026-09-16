@@ -32,7 +32,8 @@ $| = 1;
   }
 #
   $size = $#result + 1;
-  print "key: FERMICON\n";
+  # Emits FERMI, not FERMICON: the existing FERMI property (Fermi Contact) is what this actually parses -- FERMICON was a naming split with no properties-file entry of its own, so the value never surfaced anywhere.
+  print "key: FERMI\n";
   print "size:\n$size\n";
   print "rowlabels:\n";
   print "@atomlabels\n";
