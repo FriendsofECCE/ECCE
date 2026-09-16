@@ -182,6 +182,19 @@ Skip=0
 Lines=1
 [END]
 
+# Real line verified against a captured ORCA output (THERMOCHEMISTRY AT
+# 298.15K section -- checked against an old ORCA 3.0.3 capture, wording
+# identical to ORCA 6.1's own tutorial docs). ORCA already prints Eh
+# directly, unlike NWChem's kcal/mol-only line, so no unit conversion
+# needed in the script.
+[EZEROPT]
+Script=orca.ezeropt
+Begin=Zero point energy
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 [ISOSHIELD][ANISOSHIELD]
 Script=orca.isoshield
 Begin=CHEMICAL SHIELDING SUMMARY \(ppm\)
