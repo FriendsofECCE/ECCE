@@ -62,6 +62,7 @@ BEGIN_EVENT_TABLE( NModePanel, NModesGUI )
     EVT_GRID_SELECT_CELL(NModePanel::OnModeSelection)
 
     EVT_RADIOBOX( ID_RADIOBOX_NMODE_VIZTYPE, NModePanel::OnRadioboxSelected )
+    EVT_UPDATE_UI( ID_RADIOBOX_NMODE_VIZTYPE, NModePanel::OnRadioboxUpdateUI )
     EVT_TIMER(wxID_ANY, NModePanel::OnTimer)
     EVT_PLOTCTRL_CLICKED(wxID_ANY, NModePanel::OnPlotClick)
     EVT_PLOTCTRL_POINT_CLICKED(wxID_ANY, NModePanel::OnPointClick)
@@ -84,7 +85,8 @@ NModePanel::NModePanel()
     p_currentStep(0),
     p_mode(0),
     p_numAnimations(0),
-    p_isValid(false)
+    p_isValid(false),
+    p_lastRadioSel(-1)
 {
    p_vecAmplitude = 1.0;
    p_aniAmplitude = 1.0;
@@ -105,7 +107,8 @@ NModePanel::NModePanel(IPropCalculation *calculation,
     p_currentStep(0),
     p_mode(0),
     p_numAnimations(0),
-    p_isValid(false)
+    p_isValid(false),
+    p_lastRadioSel(-1)
 {
    Create(calculation, parent, id, pos, size, style, name);
    p_vecAmplitude = 1.0;
@@ -701,7 +704,8 @@ void NModePanel::OnSliderTextEnter(wxCommandEvent& event)
 void NModePanel::receiveFocus()
 {
    wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
-   if (radbox->GetSelection() == 0) {
+   p_lastRadioSel = radbox->GetSelection();
+   if (p_lastRadioSel == 0) {
       showAnimationMode();
    } else {
       showVectorMode();
@@ -779,13 +783,54 @@ void NModePanel::OnCheckboxNmodeVecsignClick( wxCommandEvent& event )
 void NModePanel::OnRadioboxSelected( wxCommandEvent& event )
 {
    wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
+   p_lastRadioSel = radbox->GetSelection();
    setSlider();
-   if (radbox->GetSelection() == 0) {
+   if (p_lastRadioSel == 0) {
       showAnimationMode();
    } else {
       showVectorMode();
    }
    event.Skip();
+}
+
+/**
+ * Confirmed live (strace on an instrumented build, synthetic click
+ * synced with the trace window): clicking the Animation/Vector radio
+ * box toggles the native GTK widget's own selected bullet, but
+ * OnRadioboxSelected() below is never entered -- zero writes from any
+ * of its instrumented call sites, for either the real click or a
+ * synced synthetic one. wxEVT_COMMAND_RADIOBOX_SELECTED is not
+ * reaching this object under wx3.2/GTK3 for this control.
+ *
+ * This handler was added as a suspected fix: EVT_UPDATE_UI is a
+ * wx-level idle-time poll, independent of whatever GTK signal wiring
+ * is failing for the click event, so in theory it should still detect
+ * radbox->GetSelection() changing even when the native event doesn't
+ * arrive. Built, packaged, and live-tested (2026-09-17) -- no visible
+ * difference; the Animation/Vector display still doesn't switch. That
+ * means either this EVT_UPDATE_UI handler also isn't firing for this
+ * control, or the display-switch code path itself (showAnimationMode/
+ * showVectorMode) isn't the actual mechanism behind what's visible in
+ * the panel, or the installed package still wasn't picking up this
+ * binary for some reason not yet ruled out. Not root-caused. Next
+ * session: don't assume this fix works, and don't re-spend time
+ * re-deriving the "native event never arrives" fact above -- it's
+ * solid (syscall-level trace, synced click) -- but treat the
+ * EVT_UPDATE_UI theory and everything below it as unverified.
+ */
+void NModePanel::OnRadioboxUpdateUI( wxUpdateUIEvent& event )
+{
+   wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
+   int sel = radbox->GetSelection();
+   if (sel != p_lastRadioSel) {
+      p_lastRadioSel = sel;
+      setSlider();
+      if (sel == 0) {
+         showAnimationMode();
+      } else {
+         showVectorMode();
+      }
+   }
 }
 
 void NModePanel::OnModeSelection( wxGridEvent& event )

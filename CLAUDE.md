@@ -349,6 +349,44 @@ Both per-user, both non-root, both started automatically by the
   that a symptom is this bug rather than a data problem. Fixed with a
   pending-redraw flag (`p_redrawPending`) that `OnPaint()` checks and
   acts on once the in-flight paint finishes.
+- **OPEN, UNRESOLVED (2026-09-17): the Vibrational Frequencies panel's
+  Animation/Vector radio box doesn't deliver its click event under
+  wx3.2/GTK3** — confirmed live via strace (syscall-level, a synthetic
+  click synced exactly with the trace window): the native GTK widget's
+  own selected bullet toggles correctly, but `NModePanel::
+  OnRadioboxSelected()` is never entered — zero evidence of it running,
+  for a real click or a synced synthetic one. This is *not* the same
+  bug as the `p_isValid`/`CreateGrid()` construction-ordering issue
+  above (which is fixed) — this is later, after the panel is fully
+  built and idle, on an ordinary click. Symptom: switching the radio
+  does nothing (no row swap, no vector-arrows/animate-mode switch,
+  Play button never appears) since the whole display-mode switch is
+  gated on that event firing. An `EVT_UPDATE_UI`-based idle-poll
+  workaround was added (`NModePanel::OnRadioboxUpdateUI`, compares
+  `radbox->GetSelection()` each idle tick against a cached
+  `p_lastRadioSel`) on the theory that this sidesteps whatever GTK
+  signal wiring is failing for the click event specifically. Built,
+  packaged, and live-tested same day — **no visible difference**, so
+  this fix does not actually work, or doesn't work for the reason
+  assumed. Don't trust the code comment above `OnRadioboxUpdateUI()`
+  to mean this is fixed — re-verify live before believing it. Next
+  session should treat the "native event never fires" diagnosis as
+  solid (already re-derived twice, syscall-level) but budget fresh
+  investigation for *why* the workaround didn't help — candidates not
+  yet ruled out: whether `EVT_UPDATE_UI` is actually reaching this
+  window at all (same category of failure as the click event, would
+  need its own strace/instrumented-build check), whether
+  `showAnimationMode()`/`showVectorMode()` are even the code path
+  actually driving what's visible in the panel (unverified assumption
+  going in), or a packaging/install mismatch (binary in the `.deb`
+  not matching what was last built — check md5sum/mtime of
+  `/opt/ecce/bin/builder` against `build-cmake/builder` before
+  re-testing anything, this bit a previous round in the same session).
+  This also blocks separately verifying whether `NModeStepCmd`'s
+  redraw fix (`07e7bf9` plus this session's `ret=true` correction)
+  actually animates once display-mode switching works at all — that
+  is *still unverified end-to-end* despite the code-level trace in
+  `NModeStepCmd.C`/`Builder::execute()` looking sound.
 
 ## Where the history lives
 This file used to be a session-by-session diary and grew to ~2500 lines.

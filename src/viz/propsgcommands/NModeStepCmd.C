@@ -71,6 +71,8 @@ bool NModeStepCmd::execute()
 
    if (nmtrace) {
 
+      ret = true;
+
       int table = 0 ;  // we only have one table
 
       // reset the coordinates in the fragment for each atom

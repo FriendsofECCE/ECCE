@@ -79,6 +79,7 @@ class NModePanel : public NModesGUI,
       void OnEndSliderMotion(wxScrollEvent& event);
       void OnSliderTextEnter(wxCommandEvent& event);
       void OnRadioboxSelected( wxCommandEvent& event );
+      void OnRadioboxUpdateUI( wxUpdateUIEvent& event );
       void OnModeSelection( wxGridEvent& event );
       void OnCheckboxNmodeVecsignClick( wxCommandEvent& event );
       void OnTimer( wxTimerEvent& event );
@@ -104,6 +105,7 @@ class NModePanel : public NModesGUI,
       int         p_mode;
       int         p_numAnimations;
       bool        p_isValid;
+      int         p_lastRadioSel;
       float       p_vecAmplitude; // varies for vector vs animation
       float       p_aniAmplitude; // varies for vector vs animation
 
