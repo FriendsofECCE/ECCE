@@ -74,6 +74,35 @@ accurate) for the full pipeline; short version:
   close to what you need rather than inventing a new shape).
 - **`scripts/gensub`** / **`scripts/eccejobmonitor`** — job-submission
   script generation and remote progress reporting.
+
+#### How a property gets from disk into the Properties menu
+Worth knowing before concluding "property X can never display":
+`PropertyTask::propertyNames()` (`src/dsm/edsiimpl/PropertyTask.C`)
+lists the calc's `Props/` collection over WebDAV — so the menu is
+driven by **what's actually on disk**, never a static list. Those keys
+go to `PropertyPanelFactory::getPanelNamesForProperties()`
+(`src/apps/builder/`), which matches them against
+`data/client/config/PropertyPanelDescriptor.xml`, where a panel claims
+keys by literal `name=`, or by `class=`/`type=`/`indexedBy=` resolved
+through `data/client/config/properties`. `Builder::createPropertyPanel()`
+then instantiates each matched panel — and **silently drops it, menu
+entry and all, if `panel->isRelevant(propCalc)` returns false**
+(`Builder.C`), which is why a missing menu item is not evidence that
+extraction failed.
+- **Most property keys are deliberately *not* panel triggers** — a
+  panel is triggered by one key and reads its companions itself. `MO`
+  triggers `MoPanel`, which then reads `ORBENG`/`ORBENGBETA`/`ORBOCC`/
+  `ORBOCCBETA`/`ORBSYM`/`MOBETA` directly; `VIB` triggers `NModePanel`,
+  which reads `VIBFREQ`/`VIBIR`/`VIBRAM`; `MULLIKEN` triggers
+  `MullikenPanel`, which reads `MLKNSHELL`. Cross-referencing emitted
+  keys against `PropertyPanelDescriptor.xml` alone therefore reports a
+  pile of false "no display path" gaps — grep `src/apps/builder/*.C`
+  for the key before believing one.
+- A `.desc` bracket group's key names are **labels, not the stored
+  key** — what actually gets stored is whatever the parser script
+  `print`s as `key: NAME`. The two can disagree (see `[TGRADCPVEC]` in
+  `nwchem.desc`, whose script emits `EGRADVEC`), so audit the scripts'
+  emissions, not the `.desc` brackets.
 - **NWChem's `.desc` `Begin` patterns (`%begin%`/`%end%`/`task_*`) don't
   match raw NWChem stdout at all, and look bizarre if you try** — they
   match a *separate*, machine-tagged trace file that NWChem writes via
