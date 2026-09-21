@@ -2,6 +2,10 @@
   using std::flush;
   using std::ofstream;
 #include <signal.h>
+#include <errno.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include <wx/combo.h>
 
@@ -2823,6 +2827,75 @@ unsigned long CalcEd::getCoreElectrons(const unsigned long atomicNumber) const
 }
 
 
+/**
+ * Launches cmd (a full "python3 <script> <args>..." command line, no
+ * trailing "&") as a fully detached process via a double-fork, so that
+ * calced is never left with a child of the dialog process to reap.
+ *
+ * The wxPython Theory/Runtype "details" dialogs launched from here
+ * report their results back to calced over a localhost UDP socket
+ * (see startTheoryApp()/startRuntypeApp() and OnTheoryIPC()/
+ * OnRuntypeIPC()) rather than through the subprocess's exit status or
+ * stdout, so calced has no need to keep the dialog process itself as a
+ * child at all -- this only needs to guarantee no zombie is left
+ * behind (issue #79).
+ *
+ * The previous approach, system((cmd+"&").c_str()), leaves calced as
+ * the direct parent of the intermediate /bin/sh that system() itself
+ * forks to run "cmd &". Reaping that shell races with
+ * WxEditSessionMgr's own SIGCHLD handler (editSessionCompleted(),
+ * installed process-wide -- not scoped to its own children -- for the
+ * annotation editor sessions also started from CalcEd), which reaps at
+ * most one child per signal with no loop. Losing that race leaves a
+ * "[sh] <defunct>" zombie with no guarantee any further SIGCHLD will
+ * ever arrive to clean it up, since signals don't queue.
+ *
+ * Doing our own explicit double-fork sidesteps that race rather than
+ * competing in it: the immediate child here does nothing but fork the
+ * real command and _exit() right away, so the blocking waitpid() below
+ * returns almost immediately -- it is not waiting on the dialog's
+ * lifetime, only on this short-lived intermediate process. If
+ * WxEditSessionMgr's handler happens to win the race and reaps our
+ * intermediate child first, waitpid() here just gets back an
+ * already-reaped pid (ECHILD) -- also not a zombie, so either outcome
+ * is safe, and nothing here changes how WxEditSessionMgr's own
+ * children, or any wxProcess-based subprocess elsewhere, get reaped.
+ * The real dialog process (the grandchild) is reparented directly to
+ * init when the intermediate child exits, so calced never has it as a
+ * child to reap in the first place.
+ */
+bool CalcEd::launchDetachedApp(const string& cmd)
+{
+  pid_t pid = fork();
+
+  if (pid < 0) {
+    return false;
+  }
+
+  if (pid == 0) {
+    // Intermediate child: fork the real command and exit immediately,
+    // so the grandchild running it is orphaned straight to init rather
+    // than staying a child of calced.
+    pid_t pid2 = fork();
+    if (pid2 == 0) {
+      execl("/bin/sh", "sh", "-c", cmd.c_str(), (char*)NULL);
+      _exit(127);  // exec failed
+    }
+    _exit((pid2 < 0) ? 1 : 0);
+  }
+
+  // Parent (calced): reap the short-lived intermediate child.  It only
+  // forks the grandchild and exits, so this returns almost instantly.
+  int status = 0;
+  pid_t waited;
+  do {
+    waited = waitpid(pid, &status, 0);
+  } while ((waited == -1) && (errno == EINTR));
+
+  return true;
+}
+
+
 void CalcEd::startTheoryApp(const bool& localInitFlag)
 {
   string cmd, otherCmd;
@@ -2895,7 +2968,7 @@ void CalcEd::startTheoryApp(const bool& localInitFlag)
 #endif
 
     string err;
-    if (system((cmd+"&").c_str()) < 0) {
+    if (!launchDetachedApp(cmd)) {
       p_feedback->setMessage("Unable to invoke theory details dialog",
                              WxFeedback::ERROR);
     } else {
@@ -2981,7 +3054,7 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
 #endif
 
     string err;
-    if (system((cmd+"&").c_str()) < 0) {
+    if (!launchDetachedApp(cmd)) {
       p_feedback->setMessage("Unable to invoke runtype details dialog",
                              WxFeedback::ERROR);
     } else {

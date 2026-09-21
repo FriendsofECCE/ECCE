@@ -231,6 +231,7 @@ class CalcEd: public CalcEdGUI,
     unsigned long getCoreElectrons(const unsigned long atomicNumber) const;
 
     // wxPython IPC functions
+    bool launchDetachedApp(const string& cmd);
     void startTheoryApp(const bool& localInitFlag);
     void startRuntypeApp(const bool& localInitFlag);
     void OnTheoryIPC(wxSocketEvent& event);
