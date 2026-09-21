@@ -129,6 +129,36 @@ CASES = [
         },
     ),
 
+    dict(
+        name='g16-h2o-nmr',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2o_nmr.log',
+        # RHF/STO-3G NMR on water. Added to cover the magnetic-shielding
+        # entry, which no fixture exercised before -- gaussian-16.desc had
+        # 30 of 50 parse types never firing, and the ORCA equivalent of
+        # this one turned out to be silently dead (see orca.desc's
+        # [ISOSHIELD] End-starvation fix), so it was worth checking that
+        # Gaussian's is not.
+        parse_args=('.', 'Magnetic', 'SCF', 'RHF', '0'),
+        silent_ok={
+            'DELTAE': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'RMSDP': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'ESCF1][ESCFVEC': 'runtype-gated to /Geo/i (see g16-co-freq).',
+        },
+        expect={
+            # One script emits all four keys from the one shielding block.
+            # Values checked by hand against the log: O is isotropic
+            # 365.6728 / anisotropy 4.1792 with eigenvalues 363.1113
+            # 365.4481 368.4589; H is isotropic 33.6821.
+            'SHIELDTENSOR][ISOSHIELD][ANISOSHIELD][SHIELDEIGVAL': dict(keys={
+                'ISOSHIELD': {'values_contain': '365.6728'},
+                'ANISOSHIELD': {'values_contain': '4.1792'},
+                'SHIELDTENSOR': {},
+                'SHIELDEIGVAL': {'values_contain': '363.1113'},
+            }),
+        },
+    ),
+
     # -----------------------------------------------------------------
     # NWChem (ecce_print traces)
     # -----------------------------------------------------------------

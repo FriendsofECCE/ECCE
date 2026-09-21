@@ -461,3 +461,23 @@ touched.)
 Then `../run_tests.py --update` and **review the golden diff**: a new code
 version will legitimately shift timings and formatting, but a change in a
 *value* or in which parse types fire is exactly the thing this suite is for.
+
+### gaussian-16/h2o_nmr.{gjf,log}
+
+Gaussian 16 RevC.01, `#P RHF/STO-3G NMR Pop=(MK) NoSymm`, water at its
+STO-3G geometry. Generated 2026-09-21 on niobium with
+`/opt/gaussian/g16/g16`.
+
+Added to cover `[SHIELDTENSOR][ISOSHIELD][ANISOSHIELD][SHIELDEIGVAL]`,
+which no fixture exercised before — `gaussian-16.desc` had 30 of its 50
+parse types never firing. The ORCA equivalent of this entry turned out
+to be silently dead (see `orca.desc`'s `[ISOSHIELD]` End-starvation
+fix), so it was worth establishing that Gaussian's is not. **It is
+not**: all four keys come out of the one block, values matching the log
+by hand (O isotropic 365.6728, anisotropy 4.1792, eigenvalues 363.1113
+/ 365.4481 / 368.4589; both H isotropic 33.6821).
+
+`Pop=(MK)` is in the deck but `[ESP]` still does not fire: it is a
+`File=`-rule parse type reading `grid.dat`, which this run does not
+produce, and `File=` rules are excluded from line matching anyway. ESP
+coverage would need a different setup.
