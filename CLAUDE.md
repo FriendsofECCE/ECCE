@@ -189,7 +189,51 @@ Six real bugs surfaced adding one new code, none obvious from reading
   own files — unlike the *other* `scripts/*` gotcha above, `scripts/
   parsers`, `scripts/codereg`, and `data/` are already installed as
   whole directories (`install(DIRECTORY ...)`), so new files under
-  them are packaged automatically.
+  them are packaged automatically. (Confirmed still true adding MOPAC.)
+
+#### Added from integrating MOPAC (issue #86) — the second code through
+  this checklist. Everything above held up; these are the gaps it found.
+- **`scripts/gensub` needs a `sub <lccode>()` per code**, or the job
+  simply cannot be launched — `$fct = $lccode` is a bare dispatch on
+  the lowercased application type. Not mentioned anywhere in the list
+  above and easy to miss, since it isn't in the per-code file set.
+- **Let the *code* dictate the input filename, not the checklist.** The
+  "use a distinctive extension, not `.in`/`.out`" rule above is about
+  Apache MIME mapping, and following it naively broke MOPAC: MOPAC
+  derives its output name by stripping a known extension **by
+  substring**, so `mopac.mopin` makes it write a file literally named
+  `mopac    in.out`. Pick whatever extension the code demands, add the
+  `AddType` for *that*; and if the code forces a generic output name,
+  symlink the declared name onto it in `gensub` **before** the run —
+  renaming afterwards is too late, live monitoring needs to tail the
+  file during the job.
+- **Test the `.desc` against a molecule with degenerate vibrations**
+  (CH₄, benzene), never just water. MOPAC's `DESCRIPTION OF VIBRATIONS`
+  collapses degenerate modes (7 stanzas for CH₄) while `NORMAL
+  COORDINATE ANALYSIS` lists all 9 — sourcing VIBFREQ and VIB from the
+  two different blocks silently misaligns them, the same trap as ORCA's
+  VIBFREQ/VIBIR. C₂ᵥ water cannot show this.
+- **Run *every* runtype's output through the simulation, not just the
+  richest one.** MOPAC prints `FINAL HEAT OF FORMATION =` for an
+  optimization but `HEAT OF FORMATION =` for a FORCE job, so a
+  Vibration-only job extracted no energy at all — invisible in the
+  optimization output, which looks perfect.
+- **XML comments may not contain `--`**, which the prose style used
+  throughout this file uses constantly. It silently made `MOPAC.edml`
+  and both `ResourceDescriptor` files non-well-formed.
+- **Keep `len(TEVEC) <= len(GEOMTRACE)`.** `GeomTracePropertyPanel`
+  plots any `PropTSVector<Geometry Step>` alongside GEOMTRACE, and
+  `OnPointClick` passes the curve index straight to `GTStepCmd` — an
+  index past the last GEOMTRACE frame trips `PropTSVecTable::value()`'s
+  bounds check and the atoms collapse to the origin. If a code prints a
+  per-cycle energy trace but not per-cycle geometries, don't map it to
+  TEVEC.
+- **`ResourceDescriptor.xml`'s `project` `<Contains>` list is missing
+  `gaussian16_es`, `gaussian09_es` and `orca_es`** — latent rather than
+  live only because `ResourceDescriptor.C` switches to the `Rxn.xml`
+  variant whenever `bin/dirdyed` exists, and it does on this build. If
+  `dirdyed` is ever dropped, three codes vanish from the New-Calculation
+  menu at once.
 - **A `.desc` parse-type's `Begin` value is also its hash key, AND its
   match priority** — `scripts/eccejobmonitor`'s `PDFileRead()` keys its
   whole parse-type table by the literal `Begin` string (`$parseHandle =
