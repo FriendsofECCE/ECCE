@@ -112,22 +112,42 @@ int PropTSVecTable::tables(void) const
 double PropTSVecTable::value(int table, int row, int col) const
 {
   // Return the value for the given table/row/column index
-  // Assumes index is within bounds of the vectors
-  double ret = 0;  
+  double ret = 0;
 
   if (p_values == 0) {
     EE_RT_ASSERT(false, EE_WARNING, "Cannot access value - table is "
 		 "empty.");
   }
 
-  else if (table >= p_values->size() || row >= p_numRows || 
+  else if (table >= (int)p_values->size() || row >= p_numRows ||
 	   col >= p_numColumns || table < 0 || row < 0 || col < 0) {
     EE_RT_ASSERT(false, EE_WARNING,
                  "trying to access out-of-bounds index in PropTSVecTable");
   }
   else {
     int index = row * p_numColumns + col;
-    ret = (*p_values)[table][index];
+    // p_numRows/p_numColumns describe the *declared* shape of the series,
+    // which setValues() takes from a single rows/columns attribute on the
+    // stored property document.  Individual tables in the series are NOT
+    // guaranteed to actually have p_numRows*p_numColumns entries -- only
+    // appendTable() enforces that, and the DAV load path (PropertyTask::
+    // getPropTSVecTable -> setValues) bypasses it entirely.  A parser that
+    // emits steps of differing lengths under one property key therefore
+    // produces a series where a row/col pair that passes the check above
+    // still indexes past the end of this particular table's vector (see
+    // GitHub issue #27: the Gaussian .desc files route "Input orientation",
+    // "Z-Matrix orientation" and "Standard orientation" blocks -- which have
+    // different atom counts when dummy centres are present -- into the one
+    // GEOMTRACE key).  Validate against the real vector size too, otherwise
+    // this is a silent heap over-read rather than a diagnosable warning.
+    if (index >= (int)(*p_values)[table].size()) {
+      EE_RT_ASSERT(false, EE_WARNING,
+                   "trying to access out-of-bounds index in PropTSVecTable "
+                   "(this table is shorter than the series' declared "
+                   "rows*columns)");
+    } else {
+      ret = (*p_values)[table][index];
+    }
   }
   return ret;
 }
@@ -136,6 +156,14 @@ double PropTSVecTable::value(int table, int row, int col) const
 
 const vector<double>& PropTSVecTable::values(int table) const
 {
+  // Bounds-check: callers index this by a step number that comes from
+  // elsewhere (playback sliders, a sibling property's step count, ...).
+  static const vector<double> empty;
+  if (p_values == 0 || table < 0 || table >= (int)p_values->size()) {
+    EE_RT_ASSERT(false, EE_WARNING,
+                 "trying to access out-of-bounds table in PropTSVecTable");
+    return empty;
+  }
   return (*p_values)[table]; // return values for one table
 }
 
@@ -259,10 +287,40 @@ void PropTSVecTable::setData(istream& istrm)
 }
 void PropTSVecTable::setValues(vector<vector<double> >* data,  unsigned long rows, unsigned long columns)
 {
+   // This is the path the DAV load takes (PropertyTask::getPropTSVecTable):
+   // rows/columns come from a single pair of attributes on the property
+   // document -- which putTSProp only ever writes from the *first* step --
+   // while data holds one vector per <step> element, each of whatever length
+   // that step's parse script happened to emit.  Nothing here used to check
+   // that the two agreed, so a series with non-uniform steps was accepted
+   // silently and every subsequent value() call on a short step read past the
+   // end of its vector (GitHub issue #27).  Drop the steps that cannot be
+   // interpreted under the declared shape rather than keeping them as
+   // landmines; the accessors bounds-check as a backstop.
+   if (p_values != 0 && p_values != data) delete p_values;   // was leaked
+
    p_numRows = rows;
    p_numColumns = columns;
    p_values = data;
 
+   if (p_values != 0 && p_numRows > 0 && p_numColumns > 0) {
+      size_t expected = (size_t)p_numRows * (size_t)p_numColumns;
+      size_t dropped = 0;
+      vector< vector<double> >::iterator it = p_values->begin();
+      while (it != p_values->end()) {
+         if (it->size() != expected) {
+            it = p_values->erase(it);   // NB: reassign, don't it++ after erase
+            dropped++;
+         } else {
+            ++it;
+         }
+      }
+      if (dropped > 0) {
+         EE_RT_ASSERT(false, EE_WARNING,
+                      "PropTSVecTable: discarded step(s) whose size does not "
+                      "match the property's declared rows*columns");
+      }
+   }
 }
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -278,17 +336,30 @@ void PropTSVecTable::appendTable(int rows, int cols,
      p_numColumns = cols;
   }
 
-// make sure input vector matches its specified size
-   if (values.size() != (rows * cols))
+// make sure input vector matches its specified size.
+// This used to warn and then push the mismatched vector anyway -- EE_WARNING
+// only logs, it does not stop execution, so the malformed table still entered
+// the series and every later value() call on it read past its end.  Same
+// fall-through-after-warning shape fixed across this file family in f8e3be6.
+   if (values.size() != (size_t)(rows * cols)) {
      EE_RT_ASSERT(false, EE_WARNING,
-                  "input vector length does not match specified size");
+                  "input vector length does not match specified size - "
+                  "table not appended");
+     return;
+   }
 
 // make sure the table being appended is the same size as the rest
-// of the tables in the vector
-   if (rows != p_numRows || cols != p_numColumns)
-     EE_RT_ASSERT(false, EE_FATAL,
+// of the tables in the vector.
+// Previously EE_FATAL, i.e. exit(1): a code whose output happens to yield a
+// differently shaped step (see issue #27) killed the whole application rather
+// than dropping the step.  Refuse the append and warn instead; the storage
+// layer (PropertyTask::updatePropTSVecTable) already drops such steps.
+   if (rows != p_numRows || cols != p_numColumns) {
+     EE_RT_ASSERT(false, EE_WARNING,
            "trying to append a table that is not the same size as "
-           "the other tables in the vector");
+           "the other tables in the vector - table not appended");
+     return;
+   }
 
    p_values->push_back(values);
 

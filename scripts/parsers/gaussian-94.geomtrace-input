@@ -39,10 +39,16 @@ $| = 1;
       s/^\s*//;    # Get rid of leading blanks
       s/D/e/g;     # Use "e" in exponentials
       ($atomIndex,$atomicNumber,$xcoord,$ycoord,$zcoord) = split(/ +/,$_);
+      # Skip Gaussian dummy centres (atomic number -1) -- see GitHub issue
+      # #27 and the identical guard in gaussian-{03,09,16}.geomtrace.
+      next if ($atomicNumber < 0);
       $line = join(" ",($xcoord,$ycoord,$zcoord));
 #    $line = join(" ",($atomicSymbol[$atomicNumber],$xcoord,$ycoord,$zcoord));
       push(@coordlines,$line);    
-      $line = join("-",$atomIndex,($atomicSymbol[$atomicNumber]));
+      # Renumber sequentially: with dummy centres skipped, Gaussian's own
+      # centre numbers no longer match the row index (or ECCE's atom
+      # numbering), which is all this label is for.
+      $line = join("-",++$rowIndex,($atomicSymbol[$atomicNumber]));
       $rowLabels .= " $line";
     } else {
       last;

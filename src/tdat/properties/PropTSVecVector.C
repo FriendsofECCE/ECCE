@@ -111,6 +111,13 @@ double PropTSVecVector::value(int vec, int row) const
 
 const vector<double>& PropTSVecVector::values(int vec) const
 {
+  // value() bounds-checks; this accessor did not (issue #27 audit).
+  static const vector<double> empty;
+  if (p_values == 0 || vec < 0 || vec >= (int)p_values->size()) {
+    EE_RT_ASSERT(false, EE_WARNING,
+                 "trying to access out-of-bounds vector in PropTSVecVector");
+    return empty;
+  }
   return (*p_values)[vec]; // return values for one vector
 }
 

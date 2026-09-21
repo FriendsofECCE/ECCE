@@ -40,10 +40,27 @@ $| = 1;
       s/D/e/g;     # Use "e" in exponentials
       ($atomIndex,$atomicNumber,$atomicType,$xcoord,$ycoord,$zcoord) =
                                                           split(/ +/,$_);
+      # Skip Gaussian dummy centres (atomic number -1, i.e. an "X" in a
+      # Z-matrix).  They are printed in the "Z-Matrix orientation" block but
+      # NOT in the "Input orientation"/"Standard orientation" blocks, and all
+      # three blocks are routed into the single GEOMTRACE property key by the
+      # gaussian-*.desc files (this script hardcodes 'key: GEOMTRACE'
+      # regardless of which parse type invoked it).  Including them therefore
+      # produced a PropTSVecTable whose steps have different row counts --
+      # GitHub issue #27 -- and, because a dummy can sit anywhere in the
+      # centre list, shifted every following atom's coordinates onto the
+      # wrong atom in the geometry trace.  ECCE's chemical system has no
+      # dummy atoms, so dropping them here makes each step line up 1:1 with
+      # the fragment.  Ghost/Bq centres (atomic number 0) are kept: they
+      # appear consistently in every orientation block.
+      next if ($atomicNumber < 0);
       $line = join(" ",($xcoord,$ycoord,$zcoord));
 #    $line = join(" ",($atomicSymbol[$atomicNumber],$xcoord,$ycoord,$zcoord));
       push(@coordlines,$line);    
-      $line = join("-",$atomIndex,($atomicSymbol[$atomicNumber]));
+      # Renumber sequentially: with dummy centres skipped, Gaussian's own
+      # centre numbers no longer match the row index (or ECCE's atom
+      # numbering), which is all this label is for.
+      $line = join("-",++$rowIndex,($atomicSymbol[$atomicNumber]));
       $rowLabels .= " $line";
     } else {
       last;

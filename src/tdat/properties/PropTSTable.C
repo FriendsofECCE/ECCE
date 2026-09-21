@@ -106,7 +106,7 @@ double PropTSTable::value(int table, int row, int col) const
   // Return the value for the given table/row/column index
   // Assumes index is within bounds of the vectors
 
-  if (table >= p_values->size() || row >= p_numRows || col >= p_numColumns
+  if (table >= (int)p_values->size() || row >= p_numRows || col >= p_numColumns
       || table < 0 || row < 0 || col < 0) {
     // Same fall-through-after-warning bug shape fixed in PropTable::value()
     // -- EE_WARNING doesn't stop execution, so return early instead of
@@ -117,6 +117,16 @@ double PropTSTable::value(int table, int row, int col) const
   }
 
   int index = row * p_numColumns + col;
+  // p_numRows/p_numColumns describe the declared shape; setValues() accepts
+  // whatever the stored document contains, so an individual table can be
+  // shorter than rows*columns (see GitHub issue #27 and PropTSVecTable.C).
+  // Check the real vector size too - otherwise this is a silent over-read.
+  if (index >= (int)(*p_values)[table].size()) {
+    EE_RT_ASSERT(false, EE_WARNING,
+          "trying to access out-of-bounds index in PropTSTable (this table is "
+          "shorter than the declared rows*columns)");
+    return 0.0;
+  }
   return (*p_values)[table][index];
 }
 
@@ -124,6 +134,12 @@ double PropTSTable::value(int table, int row, int col) const
 
 const vector<double>& PropTSTable::values(int table) const
 {
+  static const vector<double> empty;
+  if (p_values == 0 || table < 0 || table >= (int)p_values->size()) {
+    EE_RT_ASSERT(false, EE_WARNING,
+          "trying to access out-of-bounds table in PropTSTable");
+    return empty;
+  }
   return (*p_values)[table]; // return values for one table
 }
 
@@ -261,16 +277,23 @@ void PropTSTable::appendTable(int rows, int cols,
   }
 
 // make sure input vector matches its specified size
-   if (values.size() != rows * cols) 
-     EE_RT_ASSERT(false, EE_FATAL,
-                  "input vector length does not match specified size");
+   if (values.size() != (size_t)(rows * cols)) {
+     // Was EE_FATAL (exit(1)): malformed parser output killed the whole
+     // application instead of dropping one table.  Refuse the append instead.
+     EE_RT_ASSERT(false, EE_WARNING,
+                  "input vector length does not match specified size - "
+                  "table not appended");
+     return;
+   }
 
 // make sure the table being appended is the same size as the rest
 // of the tables in the vector
-   if (rows != p_numRows || cols != p_numColumns)
-      EE_RT_ASSERT(false, EE_FATAL,
+   if (rows != p_numRows || cols != p_numColumns) {
+      EE_RT_ASSERT(false, EE_WARNING,
             "trying to append a table that is not the same size as "
-            "the other tables in the vector");
+            "the other tables in the vector - table not appended");
+      return;
+   }
 
    p_values->push_back(values);
 }
