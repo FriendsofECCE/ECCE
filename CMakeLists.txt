@@ -785,10 +785,18 @@ endif()
 # can't be without sudo, so whether the dialog *logic* itself (not just
 # imports) is Classic/Phoenix-compatible is still an open question the
 # 32d2806 commit message already flagged and this pass couldn't close.
+# PATTERN EXCLUDE __pycache__: install(DIRECTORY) takes whatever is in the
+# source tree, so any developer who has run these scripts (or merely
+# python3 -m py_compile on them, as a syntax check) leaves a __pycache__
+# directory behind and its .pyc files get packaged into the .deb. They are
+# interpreter-version-stamped (cpython-313 etc.) and serve no purpose in
+# the package; exclude them so the package contents can't depend on
+# whether the build host happened to byte-compile anything first.
 if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/codereg)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/scripts/codereg
           DESTINATION scripts
-          USE_SOURCE_PERMISSIONS)
+          USE_SOURCE_PERMISSIONS
+          PATTERN "__pycache__" EXCLUDE)
 endif()
 
 # Thin /usr/bin wrapper scripts for the 19 GUI apps, so they land on PATH
