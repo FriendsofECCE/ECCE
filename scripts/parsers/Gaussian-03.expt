@@ -166,6 +166,35 @@ sub writeDictAndMVM {
         }
         system("$translator $rootFile.frag $rootFile.gbs.tmp import > $rootFile.gbs");
       }
+    } elsif ($useNameBasis == 2) {
+      #
+      # A GEN basis specification whose groups are all *named library*
+      # references (see getGeneralBasis).  Gaussian never expands those
+      # into primitives in the log, so the numerical translator above
+      # would produce a structurally valid but completely EMPTY basis
+      # file -- which is what ECCE reports as "This calculation does not
+      # have a valid basis set. Orbitals cannot be computed." (issue #29).
+      # getGeneralBasis has already resolved every group's name through
+      # %NameToBasis and mapped its center numbers to element symbols,
+      # leaving %genNamedBasis as element => ECCE library name.
+      #
+      if (-f "$rootFile.gbs") {
+        system("rm $rootFile.gbs");
+      }
+      if ($sphericalBasis eq "true") {
+        $type = "spherical";
+      } else {
+        $type = "cartesian";
+      }
+      open(GBS, ">$rootFile.gbs");
+      print(GBS "NameBasis\n");
+      print(GBS "basis \"ao basis\" $type\n");
+      foreach $atsym (sort keys(%genNamedBasis)) {
+        print(GBS "$atsym library \"$genNamedBasis{$atsym}\"\n");
+      }
+      print(GBS "END\n");
+      print(GBS "EndNameBasis\n");
+      close(GBS);
     } else {
       #Try and see if we can come up with a named basis for system
       if (-f "$rootFile.gbs") {
@@ -886,6 +915,10 @@ sub getMolecule {
   local($charge) = @_;
   local($atomSection,$find_geom,$centerNum,$atomNum,$x,$y,$z,$atsym);
   $find_geom = 0;
+  # Center number => element symbol.  A GEN basis specification refers to
+  # atoms by center number ("Centers:  1  5  8 ..."), so getGeneralBasis
+  # needs this to work out which element each basis group applies to.
+  @centerSymbols = ();
 #########################################################################
 #  Look for a geometry in "Standard orientation"
 #########################################################################
@@ -906,6 +939,7 @@ sub getMolecule {
         ($centerNum,$atomNum,$atomType,$x,$y,$z) = split;
         if ($atomNum > 0) {
           $atsym = $atomicSymbol[$atomNum];
+          $centerSymbols[$centerNum] = $atsym;
           $atomSection .= " $atomicSymbol[$atomNum] $x $y $z\n";
           if (!defined($atomList{$atsym})) {
             $atomList{$atsym} = $atsym;
@@ -938,6 +972,7 @@ sub getMolecule {
           ($centerNum,$atomNum,$atomType,$x,$y,$z) = split;
           if ($atomNum > 0) {
             $atsym = $atomicSymbol[$atomNum];
+            $centerSymbols[$centerNum] = $atsym;
             $atomSection .= " $atomicSymbol[$atomNum] $x $y $z\n";
             if (!defined($atomList{$atsym})) {
               $atomList{$atsym} = $atsym;
@@ -971,6 +1006,7 @@ sub getMolecule {
           ($centerNum,$atomNum,$atomType,$x,$y,$z) = split;
           if ($atomNum > 0) {
             $atsym = $atomicSymbol[$atomNum];
+            $centerSymbols[$centerNum] = $atsym;
             $atomSection .= " $atomicSymbol[$atomNum] $x $y $z\n";
             if (!defined($atomList{$atsym})) {
               $atomList{$atsym} = $atsym;
@@ -993,11 +1029,41 @@ sub getMolecule {
 ##    or a line containing "basis functions" that appears at the end
 ##    of link301.
 ##
+##    A GEN block is a sequence of groups.  Each group is one or more
+##    "Centers:" lines (Gaussian wraps a long center list over several
+##    of them) followed by that group's basis specification, terminated
+##    by "****".  The specification comes in two flavours:
+##
+##      Centers:       1      2        Centers:  1  5  8  2 ...
+##      S 3 1.00                       Centers: 11
+##          Exponent= ... Coeff= ...    cc-pvtz
+##      ****                           ****
+##      (explicit primitives)          (named library reference)
+##
+##    Gaussian never expands a named library reference into primitives
+##    in the log -- it echoes only the bare name -- so handing that to
+##    the gaussian-942std numerical translator yields an empty basis
+##    file and ECCE then reports "This calculation does not have a
+##    valid basis set" (issue #29).  So classify each group here and,
+##    when every group is a named reference, resolve the names through
+##    %NameToBasis (per group, mapping the group's center numbers to
+##    element symbols via @centerSymbols built in getMolecule) and let
+##    writeDictAndMVM emit a NameBasis block instead.
+##
+##    $useNameBasis: 0 = numerical translation (unchanged legacy path),
+##    1 = single named basis for the whole molecule (non-GEN route
+##    section basis, see getNameBasis), 2 = per-element named bases
+##    resolved from a GEN block, in %genNamedBasis.
+##
 sub getGeneralBasis {
   local($started);
   $started = 0;
   $anyCenters = 0;
   $useNameBasis = 0;
+  @genGroups = ();
+  %genNamedBasis = ();
+  my $curCenters = undef;
+  my ($curName, $curNumeric, $curOther);
   while (<INPUT>) {
     if (/ basis functions /) {
       last;
@@ -1021,11 +1087,127 @@ sub getGeneralBasis {
         $anyCenters = 1;
       }
       $basisData .= $_;
+
+      if (/^\s*Centers:\s*(.*?)\s*$/) {
+        if (!defined($curCenters)) {
+          $curCenters = [];
+          $curName = undef; $curNumeric = 0; $curOther = 0;
+        }
+        foreach my $centerNum (split(/\s+/, $1)) {
+          next if ($centerNum eq "");
+          push(@$curCenters, $centerNum);
+        }
+      } elsif (/\*\*\*\*/) {
+        if (defined($curCenters)) {
+          push(@genGroups, { "centers" => $curCenters,
+                             "name"    => $curName,
+                             "numeric" => $curNumeric,
+                             "other"   => $curOther });
+        }
+        $curCenters = undef;
+      } elsif (defined($curCenters)) {
+        if (/Exponent=/ || /Coefficients=/) {
+          # explicit primitive data
+          $curNumeric = 1;
+        } elsif (/^\s*(\S+)\s*$/) {
+          # a line holding exactly one token is a library name
+          if (defined($curName)) {
+            $curOther = 1;
+          } else {
+            $curName = $1;
+          }
+        } elsif (/^\s*\S+\s+\d+\s+[\d.]+\s*$/) {
+          # an orbital header such as "S   3 1.00"
+          $curNumeric = 1;
+        } else {
+          # something this parser does not understand (ECP cards, ...)
+          $curOther = 1;
+        }
+      }
     }
   }
   if ($anyCenters == 0) {
     $basisData = "";
+    return;
   }
+
+  #
+  # Classify the block as a whole.  Anything that is not purely named
+  # library references is left to the legacy numerical path untouched.
+  #
+  my ($nNamed, $nNumeric, $nOther) = (0, 0, 0);
+  foreach my $group (@genGroups) {
+    if ($group->{"other"}) {
+      $nOther++;
+    } elsif ($group->{"numeric"}) {
+      $nNumeric++;
+    } elsif (defined($group->{"name"})) {
+      $nNamed++;
+    } else {
+      $nOther++;
+    }
+  }
+  return if ($nNamed == 0);
+
+  if ($nNumeric > 0 || $nOther > 0) {
+    print "Basis: The GEN basis specification mixes named basis set " .
+          "library references with explicit primitive data (or with " .
+          "cards this parser does not recognize).  ECCE cannot " .
+          "represent that combination, so no basis set was imported.\n";
+    $basisData = "";
+    return;
+  }
+
+  #
+  # Every group is a named library reference.  Resolve each name and
+  # map the group's center numbers onto element symbols.  Any failure
+  # here aborts the whole basis rather than writing partial data.
+  #
+  my %elemBasis;
+  foreach my $group (@genGroups) {
+    my $rawName = $group->{"name"};
+    my $key = lc($rawName);
+    $key =~ s/^\s*//;
+    $key =~ s/\s*$//;
+    if (!defined($NameToBasis{$key})) {
+      print "Basis: The GEN basis specification references basis set " .
+            "\"$rawName\", which is not in the ECCE basis set library.  " .
+            "No basis set was imported.\n";
+      $basisData = "";
+      return;
+    }
+    my $library = $NameToBasis{$key};
+    foreach my $centerNum (@{$group->{"centers"}}) {
+      my $atsym = $centerSymbols[$centerNum];
+      if (!defined($atsym)) {
+        print "Basis: The GEN basis specification assigns a basis set to " .
+              "center $centerNum, which has no matching atom in the " .
+              "parsed geometry.  No basis set was imported.\n";
+        $basisData = "";
+        return;
+      }
+      if (defined($elemBasis{$atsym}) && $elemBasis{$atsym} ne $library) {
+        print "Basis: The GEN basis specification assigns more than one " .
+              "basis set ($elemBasis{$atsym} and $library) to element " .
+              "$atsym.  ECCE assigns basis sets per element, not per " .
+              "atom, so no basis set was imported.\n";
+        $basisData = "";
+        return;
+      }
+      $elemBasis{$atsym} = $library;
+    }
+  }
+  foreach my $atsym (keys(%atomList)) {
+    if (!defined($elemBasis{$atsym})) {
+      print "Basis: The GEN basis specification does not assign a basis " .
+            "set to element $atsym.  No basis set was imported.\n";
+      $basisData = "";
+      return;
+    }
+  }
+
+  %genNamedBasis = %elemBasis;
+  $useNameBasis = 2;
 }
 
 sub getNameBasis {
