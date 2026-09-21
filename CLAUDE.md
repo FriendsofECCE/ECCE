@@ -171,15 +171,20 @@ Six real bugs surfaced adding one new code, none obvious from reading
   dictionary with the real values (see `nwchem.launchpp` for the
   pattern: read `-p <paramfile>`, rewrite the already-generated input
   file in place, idempotently).
-- **`rdStandardGBS.pm`'s "NameBasis" format has two undocumented
-  requirements** that every existing `*.expt`'s writer actually
-  violates (silently broken there too, not just for a new code): the
-  `basis "ao basis" <type>` line needs a literal trailing `print`
-  keyword, and `<atom> library "<name>"` lines must NOT be indented —
-  neither requirement matches the whitespace tolerance the format's
-  own `NameBasis`/`EndNameBasis` markers get. Get either wrong and a
-  named-library basis assignment silently translates to nothing, with
-  no error.
+- **`rdStandardGBS.pm`'s "NameBasis" format used to have two
+  undocumented requirements — FIXED in `78bb8d0`, don't "re-fix" the
+  `*.expt` writers for it.** The original PNNL parser matched
+  `/^basis \"(\w\w) basis\" (\w+) print/` and
+  `/^(\w+)\s+library\s+(\".+\")$/i`, so the `basis "ao basis" <type>`
+  line needed a literal trailing `print` keyword and `<atom> library
+  "<name>"` lines could not be indented — which every existing
+  `*.expt`'s writer violated, silently translating named-library basis
+  assignments to nothing with no error. `78bb8d0` relaxed both
+  (`(\s+print)?`, and `^\s*` on each), so indented lines and a missing
+  `print` are now both accepted. What *is* still required: the library
+  line must end immediately after the quoted name (no trailing text),
+  and the coordinants token must be a bare word (`spherical`/
+  `cartesian`). Verified against the current file 2026-09-21.
 - **No `CMakeLists.txt install()` changes needed** for a new code's
   own files — unlike the *other* `scripts/*` gotcha above, `scripts/
   parsers`, `scripts/codereg`, and `data/` are already installed as

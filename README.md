@@ -61,6 +61,20 @@ than papered over.
 
 ### Release history
 
+- **v8.10.0** — Property-pipeline correctness pass across Gaussian,
+  NWChem and ORCA, verified against real jobs run with the actual
+  binaries rather than by reading code. Fixes Gaussian diatomic
+  frequency jobs, which produced no vibrational data at all; emits
+  Gaussian vibrational mode symmetries, which were parsed and then
+  silently discarded; fixes NWChem's spin-contamination (S²) check,
+  which matched any line containing the digit 2; and routes
+  Car-Parrinello gradients to their own property instead of
+  overwriting the ordinary gradient. Extends ORCA's Theory/Runtype
+  dialogs toward Gaussian/NWChem parity (SCF and geometry convergence,
+  RIJCOSX with auxiliary basis, analytic vs numerical frequencies, and
+  a wider DFT functional list), with every route-card keyword verified
+  against a real ORCA install. Also stops `calced` leaking a zombie
+  process on every Theory/Runtype dialog open.
 - **v8.0.8** — Fixes named-library basis-set import, silently broken for
   every registered code except ORCA; extends ORCA's viewer support
   (energy decomposition, gradients, dipole/quadrupole, Mulliken charges,
