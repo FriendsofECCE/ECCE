@@ -80,6 +80,14 @@ sub modifyInputFile {
           $value = $AbiDict{$key};
           $fct = "&$subname('$value')";
           $result = eval $fct;
+          # #92: eval catches a die() inside the resolver, and the engine
+          # reads undef as "no such sub / no substitution" -- so a
+          # deliberate error used to vanish along with the tag's line and
+          # the script exited 0 with a quietly incomplete deck. Re-raise
+          # anything that is a real error; an "Undefined subroutine"
+          # failure IS the no-substitution case the engine relies on, so
+          # it stays silent.
+          if ($@ && $@ !~ /Undefined subroutine/) { die $@; }
           if (!(defined $result)) {
             s/##$keysave##/$value/;
           } elsif ($result ne "") {
@@ -89,6 +97,14 @@ sub modifyInputFile {
           $finished = 1;
           $fct = "&$subname";
           $result = eval $fct;
+          # #92: eval catches a die() inside the resolver, and the engine
+          # reads undef as "no such sub / no substitution" -- so a
+          # deliberate error used to vanish along with the tag's line and
+          # the script exited 0 with a quietly incomplete deck. Re-raise
+          # anything that is a real error; an "Undefined subroutine"
+          # failure IS the no-substitution case the engine relies on, so
+          # it stays silent.
+          if ($@ && $@ !~ /Undefined subroutine/) { die $@; }
           if (!(defined $result)) {
             if (index($key, ".") >= $[) {
               $key =~ s/\.[^\.]*$//;
