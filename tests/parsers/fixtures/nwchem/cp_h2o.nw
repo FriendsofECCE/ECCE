@@ -1,0 +1,26 @@
+echo
+title "CP test"
+scratch_dir ./scratch
+permanent_dir .
+ecce_print cp_h2o.eprint
+
+geometry units angstrom noautosym noautoz
+  O 0.0 0.0 0.0
+  H 0.0 0.757 0.587
+  H 0.0 -0.757 0.587
+end
+
+nwpw
+  simulation_cell
+    SC 8.0
+  end
+  cutoff 10.0
+  car-parrinello
+    time_step 5.0
+    fake_mass 500.0
+    loop 5 5
+  end
+end
+
+task pspw energy
+task pspw car-parrinello

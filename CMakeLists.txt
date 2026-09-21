@@ -949,3 +949,26 @@ set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem")
 set(CPACK_STRIP_FILES ON)
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 include(CPack)
+
+# ---------------------------------------------------------------------------
+# Tests
+#
+# tests/parsers is a standalone, script-level regression suite for the
+# parser / property pipeline: it replays checked-in chemistry-code output
+# through the real .desc Begin/Skip/Lines/End/Frequency algorithm and the
+# real scripts/parsers/* scripts and diffs the extracted properties against
+# checked-in expected output.  It needs only python3 and perl -- no build,
+# no GUI, no ECCE services, no chemistry codes -- so it is registered here
+# purely so `ctest` picks it up; nothing else in the build depends on it,
+# and the fixtures are deliberately NOT installed into the package.
+#
+#     cd build-cmake && ctest -R parsers --output-on-failure
+# ---------------------------------------------------------------------------
+enable_testing()
+find_program(PYTHON3_EXECUTABLE NAMES python3)
+if(PYTHON3_EXECUTABLE)
+  add_test(NAME parsers
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/run_tests.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+endif()

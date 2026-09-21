@@ -1,0 +1,13 @@
+start h2o3
+title "water opt freq test with ecce_print distinct ext"
+echo
+geometry units angstroms
+  O   0.000000   0.000000   0.000000
+  H   0.000000   0.000000   0.960000
+  H   0.926000   0.000000  -0.240000
+end
+basis
+  * library STO-3G
+end
+ecce_print h2o_opt.eprint
+task scf optimize

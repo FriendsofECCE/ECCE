@@ -1,0 +1,534 @@
+%begin%input file%1%char
+echo
+title "CP test"
+scratch_dir ./scratch
+permanent_dir .
+ecce_print ecce.out
+
+geometry units angstrom noautosym noautoz
+  O 0.0 0.0 0.0
+  H 0.0 0.757 0.587
+  H 0.0 -0.757 0.587
+end
+
+nwpw
+  simulation_cell
+    SC 8.0
+  end
+  cutoff 10.0
+  car-parrinello
+    time_step 5.0
+    fake_mass 500.0
+    loop 5 5
+  end
+end
+
+task pspw energy
+task pspw car-parrinello
+%end%input file%1%char
+%begin%version%1%char
+Mon_May_12_21:20:53_2025 Version 7.2.3
+%end%version%1%char
+%begin%entry%1%char
+task_energy
+%end%entry%1%char
+task_energy%begin%entry%1%char
+pspw
+task_energy%end%entry%1%char
+task_energy pspw%begin%iteration counter%1%int
+10 
+task_energy pspw%end%iteration counter%1%int
+task_energy pspw%begin%iterative total energy difference%1%double
+-2.42670987912007e-01 
+task_energy pspw%end%iterative total energy difference%1%double
+task_energy pspw%begin%iterative total density difference%1%double
+2.82897331227607e-03 
+task_energy pspw%end%iterative total density difference%1%double
+task_energy pspw%begin%iteration counter%1%int
+20 
+task_energy pspw%end%iteration counter%1%int
+task_energy pspw%begin%iterative total energy difference%1%double
+-1.59602364801419e-02 
+task_energy pspw%end%iterative total energy difference%1%double
+task_energy pspw%begin%iterative total density difference%1%double
+6.69018830036572e-05 
+task_energy pspw%end%iterative total density difference%1%double
+task_energy pspw%begin%iteration counter%1%int
+30 
+task_energy pspw%end%iteration counter%1%int
+task_energy pspw%begin%iterative total energy difference%1%double
+-1.32677352026924e-02 
+task_energy pspw%end%iterative total energy difference%1%double
+task_energy pspw%begin%iterative total density difference%1%double
+3.09920503221800e-05 
+task_energy pspw%end%iterative total density difference%1%double
+task_energy pspw%begin%iteration counter%1%int
+40 
+task_energy pspw%end%iteration counter%1%int
+task_energy pspw%begin%iterative total energy difference%1%double
+-1.33685246963466e-03 
+task_energy pspw%end%iterative total energy difference%1%double
+task_energy pspw%begin%iterative total density difference%1%double
+1.07424033768966e-04 
+task_energy pspw%end%iterative total density difference%1%double
+task_energy pspw%begin%iteration counter%1%int
+50 
+task_energy pspw%end%iteration counter%1%int
+task_energy pspw%begin%iterative total energy difference%1%double
+-4.02367744634091e-06 
+task_energy pspw%end%iterative total energy difference%1%double
+task_energy pspw%begin%iterative total density difference%1%double
+8.10165638273782e-08 
+task_energy pspw%end%iterative total density difference%1%double
+task_energy pspw%begin%iteration counter%1%int
+60 
+task_energy pspw%end%iteration counter%1%int
+task_energy pspw%begin%iterative total energy difference%1%double
+-8.60204210084703e-08 
+task_energy pspw%end%iterative total energy difference%1%double
+task_energy pspw%begin%iterative total density difference%1%double
+1.31371308075722e-09 
+task_energy pspw%end%iterative total density difference%1%double
+task_energy pspw%begin%total energy%1%double
+-1.51528054894565e+01 
+task_energy pspw%end%total energy%1%double
+task_energy pspw%begin%nuclear repulsion energy%1%double
+-4.17192264021031e+00 
+task_energy pspw%end%nuclear repulsion energy%1%double
+task_energy pspw%begin%coulomb energy%1%double
+7.93655816707900e+00 
+task_energy pspw%end%coulomb energy%1%double
+task_energy pspw%begin%exchange energy%1%double
+-3.61510756314281e+00 
+task_energy pspw%end%exchange energy%1%double
+task_energy pspw%begin%correlation energy%1%double
+-3.61510756314281e+00 
+task_energy pspw%end%correlation energy%1%double
+task_energy pspw%begin%total dipole%3%double
+-2.28477594536631e-04 -4.63868794603726e-07 3.84736125996842e-02 
+task_energy pspw%end%total dipole%3%double
+task_energy pspw%begin%alpha dipole%3%double
+-2.28477594536631e-04 -4.63868794603726e-07 3.84736125996842e-02 
+task_energy pspw%end%alpha dipole%3%double
+task_energy pspw%begin%beta dipole%3%double
+-2.28477594536631e-04 -4.63868794603726e-07 3.84736125996842e-02 
+task_energy pspw%end%beta dipole%3%double
+task_energy pspw%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 5.54634577648230e-02 
+task_energy pspw%end%nuclear dipole%3%double
+task_energy pspw%begin%exit%2%char
+pspw
+ok
+task_energy pspw%end%exit%1%char
+task_energy%begin%entry%1%char
+pspw
+task_energy%end%entry%1%char
+task_energy pspw%begin%iteration counter%1%int
+10 
+task_energy pspw%end%iteration counter%1%int
+task_energy pspw%begin%iterative total energy difference%1%double
+-1.42458413346702e-04 
+task_energy pspw%end%iterative total energy difference%1%double
+task_energy pspw%begin%iterative total density difference%1%double
+2.27259623365344e-06 
+task_energy pspw%end%iterative total density difference%1%double
+task_energy pspw%begin%iteration counter%1%int
+20 
+task_energy pspw%end%iteration counter%1%int
+task_energy pspw%begin%iterative total energy difference%1%double
+-4.10293548469554e-07 
+task_energy pspw%end%iterative total energy difference%1%double
+task_energy pspw%begin%iterative total density difference%1%double
+4.79137936323561e-09 
+task_energy pspw%end%iterative total density difference%1%double
+task_energy pspw%begin%iteration counter%1%int
+30 
+task_energy pspw%end%iteration counter%1%int
+task_energy pspw%begin%iterative total energy difference%1%double
+-9.65193667212816e-08 
+task_energy pspw%end%iterative total energy difference%1%double
+task_energy pspw%begin%iterative total density difference%1%double
+5.73705160657232e-10 
+task_energy pspw%end%iterative total density difference%1%double
+task_energy pspw%begin%total energy%1%double
+-1.61654464371164e+01 
+task_energy pspw%end%total energy%1%double
+task_energy pspw%begin%nuclear repulsion energy%1%double
+-4.17192264021031e+00 
+task_energy pspw%end%nuclear repulsion energy%1%double
+task_energy pspw%begin%coulomb energy%1%double
+9.46765845356363e+00 
+task_energy pspw%end%coulomb energy%1%double
+task_energy pspw%begin%exchange energy%1%double
+-3.91013027822704e+00 
+task_energy pspw%end%exchange energy%1%double
+task_energy pspw%begin%correlation energy%1%double
+-3.91013027822704e+00 
+task_energy pspw%end%correlation energy%1%double
+task_energy pspw%begin%total dipole%3%double
+-3.63626041047498e-05 5.46026907418106e-09 -4.01580273104859e-03 
+task_energy pspw%end%total dipole%3%double
+task_energy pspw%begin%alpha dipole%3%double
+-3.63626041047498e-05 5.46026907418106e-09 -4.01580273104859e-03 
+task_energy pspw%end%alpha dipole%3%double
+task_energy pspw%begin%beta dipole%3%double
+-3.63626041047498e-05 5.46026907418106e-09 -4.01580273104859e-03 
+task_energy pspw%end%beta dipole%3%double
+task_energy pspw%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 5.54634577648230e-02 
+task_energy pspw%end%nuclear dipole%3%double
+task_energy pspw%begin%exit%2%char
+pspw
+ok
+task_energy pspw%end%exit%1%char
+task_energy%begin%cpu time%1%double
+4.07250000000000e-01 
+task_energy%end%cpu time%1%double
+task_energy%begin%wall time%1%double
+3.51479860000000e-01 
+task_energy%end%wall time%1%double
+task_energy%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -1.17400000000000e-01 
+0.00000000000000e+00 7.57000000000000e-01 4.69600000000000e-01 
+0.00000000000000e+00 -7.57000000000000e-01 4.69600000000000e-01 
+task_energy%end%cartesian coordinates%3 3%double
+task_energy%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_energy%end%atomic charges%3%double
+task_energy%begin%atomic tags%3%char
+O
+H
+H
+task_energy%end%atomic tags%3%char
+task_energy%begin%group name%1%char
+C1
+task_energy%end%group name%1%char
+task_energy%begin%total energy%1%double
+-1.61654464371164e+01 
+task_energy%end%total energy%1%double
+task_energy%begin%exit%2%char
+task_energy
+ok
+task_energy%end%exit%1%char
+%begin%single task cpu time%1%double
+4.07390000000000e-01 
+%end%single task cpu time%1%double
+%begin%single task wall time%1%double
+3.51630825000000e-01 
+%end%single task wall time%1%double
+%begin%entry%1%char
+task_Car-Parrinello
+%end%entry%1%char
+task_Car-Parrinello%begin%entry%1%char
+task_car-parrinello
+task_Car-Parrinello%end%entry%1%char
+task_Car-Parrinello task_car-parrinello%begin%cartesian coordinates%3 3%double
+4.16318174319295e-08 -4.75241492576799e-11 -1.17875868224790e-01 
+-1.66476842835288e-07 7.58438388812641e-01 4.71502867429962e-01 
+-1.66471743644784e-07 -7.58438388432569e-01 4.71502867283723e-01 
+task_Car-Parrinello task_car-parrinello%end%cartesian coordinates%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%lattice vectors%3 3%double
+8.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 8.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 8.00000000000000e+00 
+task_Car-Parrinello task_car-parrinello%end%lattice vectors%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_Car-Parrinello task_car-parrinello%end%atomic charges%3%double
+task_Car-Parrinello task_car-parrinello%begin%atomic tags%3%char
+O
+H
+H
+task_Car-Parrinello task_car-parrinello%end%atomic tags%3%char
+task_Car-Parrinello task_car-parrinello%begin%group name%1%char
+C1
+task_Car-Parrinello task_car-parrinello%end%group name%1%char
+task_Car-Parrinello task_car-parrinello%begin%total energy%1%double
+-1.61654472219501e+01 
+task_Car-Parrinello task_car-parrinello%end%total energy%1%double
+task_Car-Parrinello task_car-parrinello%begin%total kinetic%1%double
+5.32912792989023e-04 
+task_Car-Parrinello task_car-parrinello%end%total kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%potential energy%1%double
+-1.61659801347430e+01 
+task_Car-Parrinello task_car-parrinello%end%potential energy%1%double
+task_Car-Parrinello task_car-parrinello%begin%electron kinetic%1%double
+1.05307002822395e-05 
+task_Car-Parrinello task_car-parrinello%end%electron kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%ion kinetic%1%double
+5.22382092706784e-04 
+task_Car-Parrinello task_car-parrinello%end%ion kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%time%1%double
+2.50000000000000e+01 
+task_Car-Parrinello task_car-parrinello%end%time%1%double
+task_Car-Parrinello task_car-parrinello%begin%total gradient%3 3%double
+-6.28072303788639e-06 1.53636899289000e-09 -6.53859769053264e-02 
+-4.98661659849563e-06 2.76953366714519e-02 3.90802826402481e-02 
+-4.98654787456660e-06 -2.76953289442721e-02 3.90802804999146e-02 
+task_Car-Parrinello task_car-parrinello%end%total gradient%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%gradient norm%1%double
+-1.61654472219501e+01 
+task_Car-Parrinello task_car-parrinello%end%gradient norm%1%double
+task_Car-Parrinello task_car-parrinello%begin%orbital gradient norm%1%double
+5.22382092706784e-04 
+task_Car-Parrinello task_car-parrinello%end%orbital gradient norm%1%double
+task_Car-Parrinello task_car-parrinello%begin%exit%2%char
+task_car-parrinello
+ok
+task_Car-Parrinello task_car-parrinello%end%exit%1%char
+task_Car-Parrinello%begin%entry%1%char
+task_car-parrinello
+task_Car-Parrinello%end%entry%1%char
+task_Car-Parrinello task_car-parrinello%begin%cartesian coordinates%3 3%double
+1.59037866751897e-07 -1.59443654967933e-10 -1.19212890797495e-01 
+-6.35957401654262e-07 7.62383159531473e-01 4.76849256526208e-01 
+-6.35940780990032e-07 -7.62383158256329e-01 4.76849256046671e-01 
+task_Car-Parrinello task_car-parrinello%end%cartesian coordinates%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%lattice vectors%3 3%double
+8.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 8.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 8.00000000000000e+00 
+task_Car-Parrinello task_car-parrinello%end%lattice vectors%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_Car-Parrinello task_car-parrinello%end%atomic charges%3%double
+task_Car-Parrinello task_car-parrinello%begin%atomic tags%3%char
+O
+H
+H
+task_Car-Parrinello task_car-parrinello%end%atomic tags%3%char
+task_Car-Parrinello task_car-parrinello%begin%group name%1%char
+C1
+task_Car-Parrinello task_car-parrinello%end%group name%1%char
+task_Car-Parrinello task_car-parrinello%begin%total energy%1%double
+-1.61654481491255e+01 
+task_Car-Parrinello task_car-parrinello%end%total energy%1%double
+task_Car-Parrinello task_car-parrinello%begin%total kinetic%1%double
+1.91086045153745e-03 
+task_Car-Parrinello task_car-parrinello%end%total kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%potential energy%1%double
+-1.61673590095770e+01 
+task_Car-Parrinello task_car-parrinello%end%potential energy%1%double
+task_Car-Parrinello task_car-parrinello%begin%electron kinetic%1%double
+1.52385333098791e-04 
+task_Car-Parrinello task_car-parrinello%end%electron kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%ion kinetic%1%double
+1.75847511843866e-03 
+task_Car-Parrinello task_car-parrinello%end%ion kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%time%1%double
+5.00000000000000e+01 
+task_Car-Parrinello task_car-parrinello%end%time%1%double
+task_Car-Parrinello task_car-parrinello%begin%total gradient%3 3%double
+-4.27634114777884e-06 2.16521677884819e-09 -6.14743903186801e-02 
+-3.85340336734301e-06 2.11745154360192e-02 3.37546047553536e-02 
+-3.85336643235626e-06 -2.11745146078124e-02 3.37546049765742e-02 
+task_Car-Parrinello task_car-parrinello%end%total gradient%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%gradient norm%1%double
+-1.61654481491255e+01 
+task_Car-Parrinello task_car-parrinello%end%gradient norm%1%double
+task_Car-Parrinello task_car-parrinello%begin%orbital gradient norm%1%double
+1.75847511843866e-03 
+task_Car-Parrinello task_car-parrinello%end%orbital gradient norm%1%double
+task_Car-Parrinello task_car-parrinello%begin%exit%2%char
+task_car-parrinello
+ok
+task_Car-Parrinello task_car-parrinello%end%exit%1%char
+task_Car-Parrinello%begin%entry%1%char
+task_car-parrinello
+task_Car-Parrinello%end%entry%1%char
+task_Car-Parrinello task_car-parrinello%begin%cartesian coordinates%3 3%double
+3.35930384717542e-07 -2.74214554059334e-10 -1.21302922616614e-01 
+-1.34331024423023e-06 7.68258627518399e-01 4.85206724394566e-01 
+-1.34327789068100e-06 -7.68258625325380e-01 4.85206723600288e-01 
+task_Car-Parrinello task_car-parrinello%end%cartesian coordinates%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%lattice vectors%3 3%double
+8.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 8.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 8.00000000000000e+00 
+task_Car-Parrinello task_car-parrinello%end%lattice vectors%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_Car-Parrinello task_car-parrinello%end%atomic charges%3%double
+task_Car-Parrinello task_car-parrinello%begin%atomic tags%3%char
+O
+H
+H
+task_Car-Parrinello task_car-parrinello%end%atomic tags%3%char
+task_Car-Parrinello task_car-parrinello%begin%group name%1%char
+C1
+task_Car-Parrinello task_car-parrinello%end%group name%1%char
+task_Car-Parrinello task_car-parrinello%begin%total energy%1%double
+-1.61654492348894e+01 
+task_Car-Parrinello task_car-parrinello%end%total energy%1%double
+task_Car-Parrinello task_car-parrinello%begin%total kinetic%1%double
+3.75475809480722e-03 
+task_Car-Parrinello task_car-parrinello%end%total kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%potential energy%1%double
+-1.61692039929842e+01 
+task_Car-Parrinello task_car-parrinello%end%potential energy%1%double
+task_Car-Parrinello task_car-parrinello%begin%electron kinetic%1%double
+3.51724413232752e-04 
+task_Car-Parrinello task_car-parrinello%end%electron kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%ion kinetic%1%double
+3.40303368157447e-03 
+task_Car-Parrinello task_car-parrinello%end%ion kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%time%1%double
+7.50000000000000e+01 
+task_Car-Parrinello task_car-parrinello%end%time%1%double
+task_Car-Parrinello task_car-parrinello%begin%total gradient%3 3%double
+-1.71378553577397e-06 1.33422151728834e-09 -6.05734622881866e-02 
+-2.16830712969250e-06 1.57538601076632e-02 2.88379977039970e-02 
+-2.16820976836064e-06 -1.57538662970584e-02 2.88380001465156e-02 
+task_Car-Parrinello task_car-parrinello%end%total gradient%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%gradient norm%1%double
+-1.61654492348894e+01 
+task_Car-Parrinello task_car-parrinello%end%gradient norm%1%double
+task_Car-Parrinello task_car-parrinello%begin%orbital gradient norm%1%double
+3.40303368157447e-03 
+task_Car-Parrinello task_car-parrinello%end%orbital gradient norm%1%double
+task_Car-Parrinello task_car-parrinello%begin%exit%2%char
+task_car-parrinello
+ok
+task_Car-Parrinello task_car-parrinello%end%exit%1%char
+task_Car-Parrinello%begin%entry%1%char
+task_car-parrinello
+task_Car-Parrinello%end%entry%1%char
+task_Car-Parrinello task_car-parrinello%begin%cartesian coordinates%3 3%double
+5.47541506829852e-07 -3.31347311710969e-10 -1.24048463470697e-01 
+-2.18949697718569e-06 7.75548937192153e-01 4.96185394158343e-01 
+-2.18944158431825e-06 -7.75548934542218e-01 4.96185393267703e-01 
+task_Car-Parrinello task_car-parrinello%end%cartesian coordinates%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%lattice vectors%3 3%double
+8.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 8.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 8.00000000000000e+00 
+task_Car-Parrinello task_car-parrinello%end%lattice vectors%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_Car-Parrinello task_car-parrinello%end%atomic charges%3%double
+task_Car-Parrinello task_car-parrinello%begin%atomic tags%3%char
+O
+H
+H
+task_Car-Parrinello task_car-parrinello%end%atomic tags%3%char
+task_Car-Parrinello task_car-parrinello%begin%group name%1%char
+C1
+task_Car-Parrinello task_car-parrinello%end%group name%1%char
+task_Car-Parrinello task_car-parrinello%begin%total energy%1%double
+-1.61654501062430e+01 
+task_Car-Parrinello task_car-parrinello%end%total energy%1%double
+task_Car-Parrinello task_car-parrinello%begin%total kinetic%1%double
+5.62679695148809e-03 
+task_Car-Parrinello task_car-parrinello%end%total kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%potential energy%1%double
+-1.61710769031945e+01 
+task_Car-Parrinello task_car-parrinello%end%potential energy%1%double
+task_Car-Parrinello task_car-parrinello%begin%electron kinetic%1%double
+5.49848992754478e-04 
+task_Car-Parrinello task_car-parrinello%end%electron kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%ion kinetic%1%double
+5.07694795873361e-03 
+task_Car-Parrinello task_car-parrinello%end%ion kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%time%1%double
+1.00000000000000e+02 
+task_Car-Parrinello task_car-parrinello%end%time%1%double
+task_Car-Parrinello task_car-parrinello%begin%total gradient%3 3%double
+3.13615085721019e-07 9.64324279972227e-10 -4.31729417206352e-02 
+-5.38044962543483e-08 8.73570650101652e-03 2.27955820809412e-02 
+-5.38453690228216e-08 -8.73571733433676e-03 2.27955862053139e-02 
+task_Car-Parrinello task_car-parrinello%end%total gradient%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%gradient norm%1%double
+-1.61654501062430e+01 
+task_Car-Parrinello task_car-parrinello%end%gradient norm%1%double
+task_Car-Parrinello task_car-parrinello%begin%orbital gradient norm%1%double
+5.07694795873361e-03 
+task_Car-Parrinello task_car-parrinello%end%orbital gradient norm%1%double
+task_Car-Parrinello task_car-parrinello%begin%exit%2%char
+task_car-parrinello
+ok
+task_Car-Parrinello task_car-parrinello%end%exit%1%char
+task_Car-Parrinello%begin%entry%1%char
+task_car-parrinello
+task_Car-Parrinello%end%entry%1%char
+task_Car-Parrinello task_car-parrinello%begin%cartesian coordinates%3 3%double
+7.60648379631019e-07 -2.91659580532679e-10 -1.27306500175308e-01 
+-3.04166187192580e-06 7.83634332047159e-01 5.09213394992452e-01 
+-3.04158931499619e-06 -7.83634329714625e-01 5.09213394367067e-01 
+task_Car-Parrinello task_car-parrinello%end%cartesian coordinates%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%lattice vectors%3 3%double
+8.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 8.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 8.00000000000000e+00 
+task_Car-Parrinello task_car-parrinello%end%lattice vectors%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_Car-Parrinello task_car-parrinello%end%atomic charges%3%double
+task_Car-Parrinello task_car-parrinello%begin%atomic tags%3%char
+O
+H
+H
+task_Car-Parrinello task_car-parrinello%end%atomic tags%3%char
+task_Car-Parrinello task_car-parrinello%begin%group name%1%char
+C1
+task_Car-Parrinello task_car-parrinello%end%group name%1%char
+task_Car-Parrinello task_car-parrinello%begin%total energy%1%double
+-1.61654505656151e+01 
+task_Car-Parrinello task_car-parrinello%end%total energy%1%double
+task_Car-Parrinello task_car-parrinello%begin%total kinetic%1%double
+7.16765321263414e-03 
+task_Car-Parrinello task_car-parrinello%end%total kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%potential energy%1%double
+-1.61726182188278e+01 
+task_Car-Parrinello task_car-parrinello%end%potential energy%1%double
+task_Car-Parrinello task_car-parrinello%begin%electron kinetic%1%double
+7.46538259539610e-04 
+task_Car-Parrinello task_car-parrinello%end%electron kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%ion kinetic%1%double
+6.42111495309453e-03 
+task_Car-Parrinello task_car-parrinello%end%ion kinetic%1%double
+task_Car-Parrinello task_car-parrinello%begin%time%1%double
+1.25000000000000e+02 
+task_Car-Parrinello task_car-parrinello%end%time%1%double
+task_Car-Parrinello task_car-parrinello%begin%total gradient%3 3%double
+2.52253383274940e-06 -7.87462529195665e-10 -3.03160803595703e-02 
+2.21769788527396e-06 1.94335240706200e-03 1.64592555276313e-02 
+2.21727051054148e-06 -1.94336344560675e-03 1.64592597264775e-02 
+task_Car-Parrinello task_car-parrinello%end%total gradient%3 3%double
+task_Car-Parrinello task_car-parrinello%begin%gradient norm%1%double
+-1.61654505656151e+01 
+task_Car-Parrinello task_car-parrinello%end%gradient norm%1%double
+task_Car-Parrinello task_car-parrinello%begin%orbital gradient norm%1%double
+6.42111495309453e-03 
+task_Car-Parrinello task_car-parrinello%end%orbital gradient norm%1%double
+task_Car-Parrinello task_car-parrinello%begin%exit%2%char
+task_car-parrinello
+ok
+task_Car-Parrinello task_car-parrinello%end%exit%1%char
+task_Car-Parrinello%begin%exit%2%char
+task_Car-Parrinello
+ok
+task_Car-Parrinello%end%exit%1%char
+%begin%total dipole%3%double
+1.45099707122337e-05 -6.14512967572997e-09 -1.33975571676501e-03 
+%end%total dipole%3%double
+%begin%alpha dipole%3%double
+1.45099707122337e-05 -6.14512967572997e-09 -1.33975571676501e-03 
+%end%alpha dipole%3%double
+%begin%beta dipole%3%double
+1.45099707122337e-05 -6.14512967572997e-09 -1.33975571676501e-03 
+%end%beta dipole%3%double
+%begin%nuclear dipole%3%double
+-3.58896974503325e-07 1.37613809236825e-10 6.01376449925135e-02 
+%end%nuclear dipole%3%double
+%begin%single task cpu time%1%double
+5.37150000000001e-02 
+%end%single task cpu time%1%double
+%begin%single task wall time%1%double
+5.38497280000001e-02 
+%end%single task wall time%1%double
+%begin%all tasks cpu time%1%double
+5.80693000000000e-01 
+%end%all tasks cpu time%1%double
+%begin%all tasks wall time%1%double
+4.22150596000000e-01 
+%end%all tasks wall time%1%double

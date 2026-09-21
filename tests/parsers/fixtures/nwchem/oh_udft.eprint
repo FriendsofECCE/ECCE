@@ -1,0 +1,355 @@
+%begin%input file%1%char
+start ohudft
+title "OH radical UB3LYP single point ecce_print"
+echo
+charge 0
+geometry units angstroms
+  O   0.000000   0.000000   0.000000
+  H   0.000000   0.000000   0.970000
+end
+basis
+  * library STO-3G
+end
+ecce_print ohudft.eprint
+dft
+  mult 2
+  xc b3lyp
+  mulliken
+end
+task dft
+%end%input file%1%char
+%begin%version%1%char
+Mon_May_12_21:20:53_2025 Version 7.2.3
+%end%version%1%char
+%begin%entry%1%char
+task_energy
+%end%entry%1%char
+task_energy%begin%entry%1%char
+load_basis
+task_energy%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_energy load_basis%begin%exit%2%char
+load_basis
+ok
+task_energy load_basis%end%exit%1%char
+task_energy%begin%entry%1%char
+bas_input
+task_energy%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_energy bas_input%begin%exit%2%char
+bas_input
+ok
+task_energy bas_input%end%exit%1%char
+task_energy%begin%group class names%5%char
+e
+c2
+c4
+si.v
+si.d
+task_energy%end%group class names%5%char
+task_energy%begin%group irrep names%5%char
+a1
+a2
+b1
+b2
+e
+task_energy%end%group irrep names%5%char
+task_energy%begin%entry%1%char
+dft
+task_energy%end%entry%1%char
+task_energy dft%begin%total mulliken atomic charges%2%double
+-3.29002878699377e-01 3.29002878699377e-01 
+task_energy dft%end%total mulliken atomic charges%2%double
+task_energy dft%begin%total mulliken shell charges%4%double
+1.99889101695456e+00 1.90756163467948e+00 4.42255022706534e+00 6.70997121300623e-01 
+task_energy dft%end%total mulliken shell charges%4%double
+task_energy dft%begin%spin mulliken atomic charges%2%double
+7.00000000000000e+00 1.00000000000000e+00 
+task_energy dft%end%spin mulliken atomic charges%2%double
+task_energy dft%begin%spin mulliken shell charges%4%double
+0.00000000000000e+00 0.00000000000000e+00 1.00000000000000e+00 0.00000000000000e+00 
+task_energy dft%end%spin mulliken shell charges%4%double
+task_energy dft%begin%iteration counter%1%int
+1 
+task_energy dft%end%iteration counter%1%int
+task_energy dft%begin%iterative total energy difference%1%double
+-7.89640788968558e+01 
+task_energy dft%end%iterative total energy difference%1%double
+task_energy dft%begin%iterative total density difference%1%double
+4.72598151030663e-02 
+task_energy dft%end%iterative total density difference%1%double
+task_energy dft%begin%iteration counter%1%int
+2 
+task_energy dft%end%iteration counter%1%int
+task_energy dft%begin%iterative total energy difference%1%double
+-1.41769031511103e-02 
+task_energy dft%end%iterative total energy difference%1%double
+task_energy dft%begin%iterative total density difference%1%double
+9.03110221929794e-03 
+task_energy dft%end%iterative total density difference%1%double
+task_energy dft%begin%iteration counter%1%int
+3 
+task_energy dft%end%iteration counter%1%int
+task_energy dft%begin%iterative total energy difference%1%double
+-3.18693891242106e-03 
+task_energy dft%end%iterative total energy difference%1%double
+task_energy dft%begin%iterative total density difference%1%double
+3.77860230930801e-03 
+task_energy dft%end%iterative total density difference%1%double
+task_energy dft%begin%iteration counter%1%int
+4 
+task_energy dft%end%iteration counter%1%int
+task_energy dft%begin%iterative total energy difference%1%double
+-4.39030128418949e-04 
+task_energy dft%end%iterative total energy difference%1%double
+task_energy dft%begin%iterative total density difference%1%double
+1.70572143638736e-03 
+task_energy dft%end%iterative total density difference%1%double
+task_energy dft%begin%iteration counter%1%int
+5 
+task_energy dft%end%iteration counter%1%int
+task_energy dft%begin%iterative total energy difference%1%double
+-7.03743843502025e-05 
+task_energy dft%end%iterative total energy difference%1%double
+task_energy dft%begin%iterative total density difference%1%double
+7.88861582955493e-04 
+task_energy dft%end%iterative total density difference%1%double
+task_energy dft%begin%iteration counter%1%int
+6 
+task_energy dft%end%iteration counter%1%int
+task_energy dft%begin%iterative total energy difference%1%double
+-1.21403711261792e-05 
+task_energy dft%end%iterative total energy difference%1%double
+task_energy dft%begin%iterative total density difference%1%double
+3.25386415098946e-04 
+task_energy dft%end%iterative total density difference%1%double
+task_energy dft%begin%iteration counter%1%int
+7 
+task_energy dft%end%iteration counter%1%int
+task_energy dft%begin%iterative total energy difference%1%double
+-1.99077210538690e-06 
+task_energy dft%end%iterative total energy difference%1%double
+task_energy dft%begin%iterative total density difference%1%double
+1.57496538524427e-04 
+task_energy dft%end%iterative total density difference%1%double
+task_energy dft%begin%iteration counter%1%int
+8 
+task_energy dft%end%iteration counter%1%int
+task_energy dft%begin%iterative total energy difference%1%double
+-3.84129890562690e-07 
+task_energy dft%end%iterative total energy difference%1%double
+task_energy dft%begin%iterative total density difference%1%double
+3.59624300197789e-05 
+task_energy dft%end%iterative total density difference%1%double
+task_energy dft%begin%iteration counter%1%int
+9 
+task_energy dft%end%iteration counter%1%int
+task_energy dft%begin%iterative total energy difference%1%double
+-1.79310006842570e-08 
+task_energy dft%end%iterative total energy difference%1%double
+task_energy dft%begin%iterative total density difference%1%double
+1.87069317812334e-05 
+task_energy dft%end%iterative total density difference%1%double
+task_energy dft%begin%iteration counter%1%int
+10 
+task_energy dft%end%iteration counter%1%int
+task_energy dft%begin%iterative total energy difference%1%double
+-4.94181051635678e-09 
+task_energy dft%end%iterative total energy difference%1%double
+task_energy dft%begin%iterative total density difference%1%double
+1.17057346284866e-05 
+task_energy dft%end%iterative total density difference%1%double
+task_energy dft%begin%iteration counter%1%int
+11 
+task_energy dft%end%iteration counter%1%int
+task_energy dft%begin%iterative total energy difference%1%double
+-1.59424473622494e-09 
+task_energy dft%end%iterative total energy difference%1%double
+task_energy dft%begin%iterative total density difference%1%double
+4.85074484712397e-06 
+task_energy dft%end%iterative total density difference%1%double
+task_energy dft%begin%total mulliken atomic charges%2%double
+-1.68043603947222e-01 1.68043603947221e-01 
+task_energy dft%end%total mulliken atomic charges%2%double
+task_energy dft%begin%total mulliken shell charges%4%double
+1.99871812814474e+00 1.94107773613645e+00 4.22824773966603e+00 8.31956396052779e-01 
+task_energy dft%end%total mulliken shell charges%4%double
+task_energy dft%begin%spin mulliken atomic charges%2%double
+6.96342948754922e+00 1.03657051245078e+00 
+task_energy dft%end%spin mulliken atomic charges%2%double
+task_energy dft%begin%spin mulliken shell charges%4%double
+2.96104689922336e-05 1.02376780043867e-02 1.02630322397740e+00 -3.65705124507823e-02 
+task_energy dft%end%spin mulliken shell charges%4%double
+task_energy dft%begin%total mulliken atomic charges%2%double
+-1.10980999186419e-01 1.10980999186419e-01 
+task_energy dft%end%total mulliken atomic charges%2%double
+task_energy dft%begin%total mulliken shell charges%4%double
+1.99816674290143e+00 1.86200519276143e+00 4.25080906352356e+00 8.89019000813581e-01 
+task_energy dft%end%total mulliken shell charges%4%double
+task_energy dft%begin%total mulliken atomic charges%2%double
+6.97057768005950e+00 1.02942231994050e+00 
+task_energy dft%end%total mulliken atomic charges%2%double
+task_energy dft%begin%total mulliken shell charges%4%double
+1.10762488176803e-04 6.61539465167833e-03 1.02269616280064e+00 -2.94223199404981e-02 
+task_energy dft%end%total mulliken shell charges%4%double
+task_energy dft%begin%total dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 4.78529249723983e-01 
+task_energy dft%end%total dipole%3%double
+task_energy dft%begin%alpha electronic dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 3.64200958167557e-01 
+task_energy dft%end%alpha electronic dipole%3%double
+task_energy dft%begin%beta electronic dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 1.14328291556426e-01 
+task_energy dft%end%beta electronic dipole%3%double
+task_energy dft%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_energy dft%end%nuclear dipole%3%double
+task_energy dft%begin%total quadrupole%6%double
+-3.70798594365241e+00 0.00000000000000e+00 0.00000000000000e+00 -3.70798594365241e+00 
+0.00000000000000e+00 -3.18065526434139e+00 
+task_energy dft%end%total quadrupole%6%double
+task_energy dft%begin%alpha electronic quadrupole%6%double
+-2.14569253475617e+00 0.00000000000000e+00 0.00000000000000e+00 -2.14569253475617e+00 
+0.00000000000000e+00 -3.20487897568700e+00 
+task_energy dft%end%alpha electronic quadrupole%6%double
+task_energy dft%begin%beta electronic quadrupole%6%double
+-1.56229340889624e+00 0.00000000000000e+00 0.00000000000000e+00 -1.56229340889624e+00 
+0.00000000000000e+00 -2.96245576517039e+00 
+task_energy dft%end%beta electronic quadrupole%6%double
+task_energy dft%begin%nuclear quadrupole%6%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 2.98667947651600e+00 
+task_energy dft%end%nuclear quadrupole%6%double
+task_energy dft%begin%molecular orbital energies dft alpha%6%double
+-1.88691718395821e+01 -9.23489791071805e-01 -3.43730669630344e-01 -2.15722633391093e-01 
+-2.15722633391093e-01 3.71644302388591e-01 
+task_energy dft%end%molecular orbital energies dft alpha%6%double
+task_energy dft%begin%molecular orbital occupations dft alpha%6%double
+1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+1.00000000000000e+00 0.00000000000000e+00 
+task_energy dft%end%molecular orbital occupations dft alpha%6%double
+task_energy dft%begin%molecular orbital symmetries dft alpha%6%int
+1 1 1 5 5 1 
+task_energy dft%end%molecular orbital symmetries dft alpha%6%int
+task_energy dft%begin%molecular orbital range dft alpha%2%int
+1 6 
+task_energy dft%end%molecular orbital range dft alpha%2%int
+task_energy dft%begin%molecular orbital vectors dft alpha%6 6%double
+ 0.994 0.027 2*0.0 0.004 -0.008
+ -0.240 0.881 2*0.0 0.169 0.208
+ 0.111 -0.546 2*0.0 0.674 0.501
+ 2*0.0 0.883 -0.469 2*0.0
+ 2*0.0 0.469 0.883 2*0.0
+ 0.088 -0.593 2*0.0 -0.871 1.140
+task_energy dft%end%molecular orbital vectors dft alpha%6 6%double
+task_energy dft%begin%molecular orbital energies dft beta%6%double
+-1.88533884024277e+01 -8.55201719102259e-01 -3.14058577542555e-01 -6.48666843671636e-02 
+-6.48666843671635e-02 3.90805835070366e-01 
+task_energy dft%end%molecular orbital energies dft beta%6%double
+task_energy dft%begin%molecular orbital occupations dft beta%6%double
+1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 
+task_energy dft%end%molecular orbital occupations dft beta%6%double
+task_energy dft%begin%molecular orbital symmetries dft beta%6%int
+1 1 1 5 5 1 
+task_energy dft%end%molecular orbital symmetries dft beta%6%int
+task_energy dft%begin%molecular orbital range dft beta%2%int
+1 6 
+task_energy dft%end%molecular orbital range dft beta%2%int
+task_energy dft%begin%molecular orbital vectors dft beta%6 6%double
+ 0.994 0.026 2*0.0 0.004 -0.008
+ -0.233 0.843 2*0.0 0.176 0.257
+ -0.123 0.593 2*0.0 -0.650 -0.512
+ 2*0.0 0.543 0.840 2*0.0
+ 2*0.0 0.840 -0.543 2*0.0
+ 0.091 -0.604 2*0.0 -0.887 1.125
+task_energy dft%end%molecular orbital vectors dft beta%6 6%double
+task_energy dft%begin%total energy%1%double
+-7.46176182378139e+01 
+task_energy dft%end%total energy%1%double
+task_energy dft%begin%nuclear repulsion energy%1%double
+4.36434844535834e+00 
+task_energy dft%end%nuclear repulsion energy%1%double
+task_energy dft%begin%coulomb energy%1%double
+4.20788491641767e+01 
+task_energy dft%end%coulomb energy%1%double
+task_energy dft%begin%exchange energy%1%double
+-8.95382664481591e+00 
+task_energy dft%end%exchange energy%1%double
+task_energy dft%begin%exit%2%char
+dft
+ok
+task_energy dft%end%exit%1%char
+task_energy%begin%cpu time%1%double
+1.05607000000000e-01 
+task_energy%end%cpu time%1%double
+task_energy%begin%wall time%1%double
+1.21624069000000e-01 
+task_energy%end%wall time%1%double
+task_energy%begin%cartesian coordinates%3 2%double
+0.00000000000000e+00 0.00000000000000e+00 -1.07777777777778e-01 
+0.00000000000000e+00 0.00000000000000e+00 8.62222222222223e-01 
+task_energy%end%cartesian coordinates%3 2%double
+task_energy%begin%atomic charges%2%double
+8.00000000000000e+00 1.00000000000000e+00 
+task_energy%end%atomic charges%2%double
+task_energy%begin%atomic tags%2%char
+O
+H
+task_energy%end%atomic tags%2%char
+task_energy%begin%group name%1%char
+C4v
+task_energy%end%group name%1%char
+task_energy%begin%total energy%1%double
+-7.46176182380812e+01 
+task_energy%end%total energy%1%double
+task_energy%begin%exit%2%char
+task_energy
+ok
+task_energy%end%exit%1%char
+%begin%single task cpu time%1%double
+1.05823000000000e-01 
+%end%single task cpu time%1%double
+%begin%single task wall time%1%double
+1.21861467000000e-01 
+%end%single task wall time%1%double
+%begin%all tasks cpu time%1%double
+1.41105000000000e-01 
+%end%all tasks cpu time%1%double
+%begin%all tasks wall time%1%double
+1.39847726000000e-01 
+%end%all tasks wall time%1%double

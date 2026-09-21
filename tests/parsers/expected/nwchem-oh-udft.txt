@@ -1,0 +1,276 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    nwchem-oh-udft
+desc:    nwchem.desc
+fixture: nwchem/oh_udft.eprint (355 lines)
+args:    '.' 'Energy' 'DFT' 'UDFT' '1'
+
+[GEOMPROP]  Script=nwchem.geomtrace  Freq=last  Skip=-  Lines=-
+  Begin=^task_energy%begin%cartesian coordinates
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=323 fed=4 rc=0 first-fed='task_energy%begin%cartesian coordinates%3 2%double'
+    key: GEOMTRACE
+      size: 1 2 3
+      rowlabels: 0 1
+      columnlabels: X Y Z
+      values: 0.000000000000000e+00 0.000000000000000e+00 -1.077777777777780e-01 0.000000000000000e+00 0.000000000000000e+00 8.622222222222230e-01
+      units: Angstrom
+
+[MO]  Script=nwchem.mo  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital vectors dft alpha
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=271 fed=8 rc=0 first-fed='task_energy dft%begin%molecular orbital vectors dft alpha%6 6%double'
+    key: MO
+      size: 6 6
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6
+      values: 0.994 0.027 0.0 0.0 0.004 -0.008 -0.240 0.881 0.0 0.0 0.169 0.208 0.111 -0.546 0.0 0.0 0.674 0.501 0.0 0.0 0.883 -0.469 0.0 0.0 0.0 0.0 0.469 0.883 0.0 0.0 0.088 -0.593 0.0 0.0 -0.871 1.140
+
+[MOBETA]  Script=nwchem.mo  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital vectors dft beta
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=293 fed=8 rc=0 first-fed='task_energy dft%begin%molecular orbital vectors dft beta%6 6%double'
+    key: MOBETA
+      size: 6 6
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6
+      values: 0.994 0.026 0.0 0.0 0.004 -0.008 -0.233 0.843 0.0 0.0 0.176 0.257 -0.123 0.593 0.0 0.0 -0.650 -0.512 0.0 0.0 0.543 0.840 0.0 0.0 0.0 0.0 0.840 -0.543 0.0 0.0 0.091 -0.604 0.0 0.0 -0.887 1.125
+
+[ORBENG1]  Script=nwchem.orbeng  Freq=last  Skip=-  Lines=-
+  Begin=orbital energies dft alpha
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=257 fed=4 rc=0 first-fed='task_energy dft%begin%molecular orbital energies dft alpha%6%double'
+    key: ORBENG
+      size: 6
+      rowlabels: 1 2 3 4 5 6
+      values: -1.88691718395821e+01 -9.23489791071805e-01 -3.43730669630344e-01 -2.15722633391093e-01 -2.15722633391093e-01 3.71644302388591e-01
+      units: Hartree
+
+[ORBENGBETA1]  Script=nwchem.orbeng  Freq=last  Skip=-  Lines=-
+  Begin=orbital energies dft beta
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=279 fed=4 rc=0 first-fed='task_energy dft%begin%molecular orbital energies dft beta%6%double'
+    key: ORBENGBETA
+      size: 6
+      rowlabels: 1 2 3 4 5 6
+      values: -1.88533884024277e+01 -8.55201719102259e-01 -3.14058577542555e-01 -6.48666843671636e-02 -6.48666843671635e-02 3.90805835070366e-01
+      units: Hartree
+
+[ORBOCC1]  Script=nwchem.orbocc  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital occupations dft alpha
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=261 fed=4 rc=0 first-fed='task_energy dft%begin%molecular orbital occupations dft alpha%6%double'
+    key: ORBOCC
+      size: 6
+      rowlabels: 1 2 3 4 5 6
+      values: 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 0.00000000000000e+00
+
+[ORBOCCBETA1]  Script=nwchem.orbocc  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital occupations dft beta
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=283 fed=4 rc=0 first-fed='task_energy dft%begin%molecular orbital occupations dft beta%6%double'
+    key: ORBOCCBETA
+      size: 6
+      rowlabels: 1 2 3 4 5 6
+      values: 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00
+
+[CPUSEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%all tasks cpu time
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=350 fed=2 rc=0 first-fed='%begin%all tasks cpu time%1%double'
+    key: CPUSEC
+      size: 1
+      values: 1.41105000000000e-01
+
+[ETIME]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%all tasks wall time
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=353 fed=2 rc=0 first-fed='%begin%all tasks wall time%1%double'
+    key: ETIME
+      size: 1
+      values: 1.39847726000000e-01
+
+[NNREPUL]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%nuclear repulsion
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=304 fed=2 rc=0 first-fed='task_energy dft%begin%nuclear repulsion energy%1%double'
+    key: NNREPUL
+      size: 1
+      values: 4.36434844535834e+00
+      units: Hartree
+
+[MULLIKEN]  Script=nwchem.mulliken  Freq=last  Skip=-  Lines=-
+  Begin=begin%total mulliken atomic
+  End=task
+  begins=4 delivered=1 buffered_away=3
+  block 1: begin-line=223 fed=3 rc=0 first-fed='task_energy dft%begin%total mulliken atomic charges%2%double'
+    key: MULLIKEN
+      size: 2
+      values: 6.97057768005950e+00 1.02942231994050e+00
+      units: e
+
+[MLKNSHELL]  Script=nwchem.mlknshell  Freq=last  Skip=-  Lines=-
+  Begin=begin%total mulliken shell
+  End=task
+  begins=4 delivered=1 buffered_away=3
+  block 1: begin-line=226 fed=3 rc=0 first-fed='task_energy dft%begin%total mulliken shell charges%4%double'
+    key: MLKNSHELL
+      size: 4
+      rowlabels: 1 2 3 4
+      values: 1.10762488176803e-04 6.61539465167833e-03 1.02269616280064e+00 -2.94223199404981e-02 nunits: e
+
+[TEPROP]  Script=nwchem.te  Freq=last  Skip=-  Lines=-
+  Begin=^task_energy%begin%total energy
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=337 fed=3 rc=0 first-fed='task_energy%begin%total energy%1%double'
+    key: TE
+      size: 1
+      values: -7.46176182380812e+01
+      units: Hartree
+
+[DELTAE]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%iterative total energy difference
+  begins=11 delivered=11 buffered_away=0
+  block 1: begin-line=109 fed=2 rc=0 first-fed='task_energy dft%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -7.89640788968558e+01
+      units: Hartree
+  block 2: begin-line=118 fed=2 rc=0 first-fed='task_energy dft%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -1.41769031511103e-02
+      units: Hartree
+  block 3: begin-line=127 fed=2 rc=0 first-fed='task_energy dft%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -3.18693891242106e-03
+      units: Hartree
+  block 4: begin-line=136 fed=2 rc=0 first-fed='task_energy dft%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -4.39030128418949e-04
+      units: Hartree
+  block 5: begin-line=145 fed=2 rc=0 first-fed='task_energy dft%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -7.03743843502025e-05
+      units: Hartree
+  block 6: begin-line=154 fed=2 rc=0 first-fed='task_energy dft%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -1.21403711261792e-05
+      units: Hartree
+  block 7: begin-line=163 fed=2 rc=0 first-fed='task_energy dft%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -1.99077210538690e-06
+      units: Hartree
+  block 8: begin-line=172 fed=2 rc=0 first-fed='task_energy dft%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -3.84129890562690e-07
+      units: Hartree
+  block 9: begin-line=181 fed=2 rc=0 first-fed='task_energy dft%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -1.79310006842570e-08
+      units: Hartree
+  block 10: begin-line=190 fed=2 rc=0 first-fed='task_energy dft%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -4.94181051635678e-09
+      units: Hartree
+  block 11: begin-line=199 fed=2 rc=0 first-fed='task_energy dft%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -1.59424473622494e-09
+      units: Hartree
+
+[DIPOLE][MP2DIPOLE]  Script=nwchem.dipole  Freq=all  Skip=-  Lines=2
+  Begin=begin%total dipole
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=229 fed=2 rc=0 first-fed='task_energy dft%begin%total dipole%3%double'
+    key: DIPOLE
+      size: 3
+      rowlabels: x y z
+      values: 0 0 1.21630937695393
+      units: Debye
+
+[QUADPOLE]  Script=nwchem.quadpole  Freq=all  Skip=1  Lines=2
+  Begin=begin%total quadrupole
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=241 fed=2 rc=0 first-fed='-3.70798594365241e+00 0.00000000000000e+00 0.00000000000000e+00 -3.70798594365241e+00'
+    key: QUADPOLE
+      size: 6
+      rowlabels: xx xy xz yy yz zz
+      values: -4.98691108346351 0 0 -4.98691108346351 0 -4.27769825222064
+      units: au
+
+[COULOMB]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%coulomb energy
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=307 fed=2 rc=0 first-fed='task_energy dft%begin%coulomb energy%1%double'
+    key: COULOMB
+      size: 1
+      values: 4.20788491641767e+01
+      units: Hartree
+
+[EXCHANGE]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%exchange energy
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=310 fed=2 rc=0 first-fed='task_energy dft%begin%exchange energy%1%double'
+    key: EXCHANGE
+      size: 1
+      values: -8.95382664481591e+00
+      units: Hartree
+
+[PNTGRP]  Script=nwchem.symmetry  Freq=all  Skip=1  Lines=1
+  Begin=begin%group name
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=334 fed=1 rc=0 first-fed='C4v'
+    key: PNTGRP
+      size: 1
+      values: C4v
+
+[SYMLAB]  Script=nwchem.symlab  Freq=last  Skip=-  Lines=-
+  Begin=begin%group irrep names
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=84 fed=7 rc=0 first-fed='task_energy%begin%group irrep names%5%char'
+    (script emitted no property)
+
+[MOLAB4]  Script=nwchem.molab  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital symmetries dft alpha%
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=265 fed=3 rc=0 first-fed='task_energy dft%begin%molecular orbital symmetries dft alpha%6%int'
+    key: ORBSYM
+      size: 6
+      values: a1 a1 a1 e e a1
+
+[MOLAB5]  Script=nwchem.molab  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital symmetries dft beta%
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=287 fed=3 rc=0 first-fed='task_energy dft%begin%molecular orbital symmetries dft beta%6%int'
+    key: ORBSYMBETA
+      size: 6
+      values: a1 a1 a1 e e a1
+
+[VERSION]  Script=nwchem.version  Freq=last  Skip=-  Lines=-
+  Begin=begin%version%
+  End=end%
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=21 fed=3 rc=0 first-fed='%begin%version%1%char'
+    key: VERSION
+      size: 1
+      values: Mon_May_12_21:20:53_2025 Version 7.2.3
+

@@ -26,7 +26,7 @@ $| = 1;
       last; 
     } else {
       ($junk0,$junk1,$junk2,$value) = split(/ +/,$_);
-      chop($value);
+      chomp($value);
       push(@result,($value));
     }
   }

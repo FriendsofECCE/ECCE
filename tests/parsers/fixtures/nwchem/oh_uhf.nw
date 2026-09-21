@@ -1,0 +1,17 @@
+start ohuhf
+title "OH radical UHF single point ecce_print"
+echo
+charge 0
+geometry units angstroms
+  O   0.000000   0.000000   0.000000
+  H   0.000000   0.000000   0.970000
+end
+basis
+  * library STO-3G
+end
+ecce_print oh_uhf.eprint
+scf
+  uhf
+  nopen 1
+end
+task scf

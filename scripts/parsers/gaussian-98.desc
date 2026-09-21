@@ -182,7 +182,7 @@ End= Leave Link 1002
 
 [MULLIKEN]
 Script=gaussian-03.mulliken
-Begin= Total atomic charges\:
+Begin= Total atomic charges( and spin densities)?\:
 Skip=2
 Frequency=all
 End= Sum of Mulliken

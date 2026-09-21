@@ -1,0 +1,523 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    nwchem-cp
+desc:    nwchem.desc
+fixture: nwchem/cp_h2o.eprint (534 lines)
+args:    '.' 'Car-Parrinello' 'Plane Wave' 'PSPW' '0'
+
+[GEOMPROP]  Script=nwchem.geomtrace  Freq=last  Skip=-  Lines=-
+  Begin=^task_energy%begin%cartesian coordinates
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=190 fed=5 rc=0 first-fed='task_energy%begin%cartesian coordinates%3 3%double'
+    (script emitted no property)
+
+[GEOMCAR]  Script=nwchem.geomtrace  Freq=all  Skip=-  Lines=-
+  Begin=task_car-parrinello%begin%cartesian coordinates
+  End=task
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=225 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%cartesian coordinates%3 3%double'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: 4.163181743192950e-08 -4.752414925767990e-11 -1.178758682247900e-01 -1.664768428352880e-07 7.584383888126410e-01 4.715028674299620e-01 -1.664717436447840e-07 -7.584383884325691e-01 4.715028672837230e-01
+      units: Angstrom
+  block 2: begin-line=282 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%cartesian coordinates%3 3%double'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: 1.590378667518970e-07 -1.594436549679330e-10 -1.192128907974950e-01 -6.359574016542620e-07 7.623831595314730e-01 4.768492565262080e-01 -6.359407809900319e-07 -7.623831582563290e-01 4.768492560466710e-01
+      units: Angstrom
+  block 3: begin-line=339 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%cartesian coordinates%3 3%double'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: 3.359303847175420e-07 -2.742145540593340e-10 -1.213029226166140e-01 -1.343310244230230e-06 7.682586275183990e-01 4.852067243945660e-01 -1.343277890681000e-06 -7.682586253253800e-01 4.852067236002880e-01
+      units: Angstrom
+  block 4: begin-line=396 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%cartesian coordinates%3 3%double'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: 5.475415068298520e-07 -3.313473117109690e-10 -1.240484634706970e-01 -2.189496977185690e-06 7.755489371921530e-01 4.961853941583430e-01 -2.189441584318250e-06 -7.755489345422180e-01 4.961853932677030e-01
+      units: Angstrom
+  block 5: begin-line=453 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%cartesian coordinates%3 3%double'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: 7.606483796310190e-07 -2.916595805326790e-10 -1.273065001753080e-01 -3.041661871925800e-06 7.836343320471590e-01 5.092133949924520e-01 -3.041589314996190e-06 -7.836343297146250e-01 5.092133943670670e-01
+      units: Angstrom
+
+[CPUSEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%all tasks cpu time
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=529 fed=2 rc=0 first-fed='%begin%all tasks cpu time%1%double'
+    key: CPUSEC
+      size: 1
+      values: 5.80693000000000e-01
+
+[ETIME]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%all tasks wall time
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=532 fed=2 rc=0 first-fed='%begin%all tasks wall time%1%double'
+    key: ETIME
+      size: 1
+      values: 4.22150596000000e-01
+
+[NNREPUL]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%nuclear repulsion
+  begins=2 delivered=2 buffered_away=0
+  block 1: begin-line=95 fed=2 rc=0 first-fed='task_energy pspw%begin%nuclear repulsion energy%1%double'
+    key: NNREPUL
+      size: 1
+      values: -4.17192264021031e+00
+      units: Hartree
+  block 2: begin-line=156 fed=2 rc=0 first-fed='task_energy pspw%begin%nuclear repulsion energy%1%double'
+    key: NNREPUL
+      size: 1
+      values: -4.17192264021031e+00
+      units: Hartree
+
+[TEPROP]  Script=nwchem.te  Freq=last  Skip=-  Lines=-
+  Begin=^task_energy%begin%total energy
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=206 fed=3 rc=0 first-fed='task_energy%begin%total energy%1%double'
+    key: TE
+      size: 1
+      values: -1.61654464371164e+01
+      units: Hartree
+
+[DELTAE]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%iterative total energy difference
+  begins=9 delivered=9 buffered_away=0
+  block 1: begin-line=41 fed=2 rc=0 first-fed='task_energy pspw%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -2.42670987912007e-01
+      units: Hartree
+  block 2: begin-line=50 fed=2 rc=0 first-fed='task_energy pspw%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -1.59602364801419e-02
+      units: Hartree
+  block 3: begin-line=59 fed=2 rc=0 first-fed='task_energy pspw%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -1.32677352026924e-02
+      units: Hartree
+  block 4: begin-line=68 fed=2 rc=0 first-fed='task_energy pspw%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -1.33685246963466e-03
+      units: Hartree
+  block 5: begin-line=77 fed=2 rc=0 first-fed='task_energy pspw%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -4.02367744634091e-06
+      units: Hartree
+  block 6: begin-line=86 fed=2 rc=0 first-fed='task_energy pspw%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -8.60204210084703e-08
+      units: Hartree
+  block 7: begin-line=129 fed=2 rc=0 first-fed='task_energy pspw%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -1.42458413346702e-04
+      units: Hartree
+  block 8: begin-line=138 fed=2 rc=0 first-fed='task_energy pspw%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -4.10293548469554e-07
+      units: Hartree
+  block 9: begin-line=147 fed=2 rc=0 first-fed='task_energy pspw%begin%iterative total energy difference%1%double'
+    key: DELTAE
+      size: 1
+      values: -9.65193667212816e-08
+      units: Hartree
+
+[DIPOLE][MP2DIPOLE]  Script=nwchem.dipole  Freq=all  Skip=-  Lines=2
+  Begin=begin%total dipole
+  begins=3 delivered=3 buffered_away=0
+  block 1: begin-line=107 fed=2 rc=0 first-fed='task_energy pspw%begin%total dipole%3%double'
+    key: DIPOLE
+      size: 3
+      rowlabels: x y z
+      values: -0.000580736581554994 -1.17904593058473e-06 0.0977909204030489
+      units: Debye
+  block 2: begin-line=168 fed=2 rc=0 first-fed='task_energy pspw%begin%total dipole%3%double'
+    key: DIPOLE
+      size: 3
+      rowlabels: x y z
+      values: -9.24252307849135e-05 1.38787262836049e-08 -0.0102072308444865
+      units: Debye
+  block 3: begin-line=511 fed=2 rc=0 first-fed='%begin%total dipole%3%double'
+    key: DIPOLE
+      size: 3
+      rowlabels: x y z
+      values: 3.68809502173514e-05 -1.56194816753615e-08 -0.00340534552917893
+      units: Debye
+
+[CORRELTN]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%correlation energy
+  begins=2 delivered=2 buffered_away=0
+  block 1: begin-line=104 fed=2 rc=0 first-fed='task_energy pspw%begin%correlation energy%1%double'
+    key: CORRELTN
+      size: 1
+      values: -3.61510756314281e+00
+      units: Hartree
+  block 2: begin-line=165 fed=2 rc=0 first-fed='task_energy pspw%begin%correlation energy%1%double'
+    key: CORRELTN
+      size: 1
+      values: -3.91013027822704e+00
+      units: Hartree
+
+[COULOMB]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%coulomb energy
+  begins=2 delivered=2 buffered_away=0
+  block 1: begin-line=98 fed=2 rc=0 first-fed='task_energy pspw%begin%coulomb energy%1%double'
+    key: COULOMB
+      size: 1
+      values: 7.93655816707900e+00
+      units: Hartree
+  block 2: begin-line=159 fed=2 rc=0 first-fed='task_energy pspw%begin%coulomb energy%1%double'
+    key: COULOMB
+      size: 1
+      values: 9.46765845356363e+00
+      units: Hartree
+
+[EXCHANGE]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%exchange energy
+  begins=2 delivered=2 buffered_away=0
+  block 1: begin-line=101 fed=2 rc=0 first-fed='task_energy pspw%begin%exchange energy%1%double'
+    key: EXCHANGE
+      size: 1
+      values: -3.61510756314281e+00
+      units: Hartree
+  block 2: begin-line=162 fed=2 rc=0 first-fed='task_energy pspw%begin%exchange energy%1%double'
+    key: EXCHANGE
+      size: 1
+      values: -3.91013027822704e+00
+      units: Hartree
+
+[PNTGRP]  Script=nwchem.symmetry  Freq=all  Skip=1  Lines=1
+  Begin=begin%group name
+  begins=6 delivered=6 buffered_away=0
+  block 1: begin-line=203 fed=1 rc=0 first-fed='C1'
+    key: PNTGRP
+      size: 1
+      values: C1
+  block 2: begin-line=243 fed=1 rc=0 first-fed='C1'
+    key: PNTGRP
+      size: 1
+      values: C1
+  block 3: begin-line=300 fed=1 rc=0 first-fed='C1'
+    key: PNTGRP
+      size: 1
+      values: C1
+  block 4: begin-line=357 fed=1 rc=0 first-fed='C1'
+    key: PNTGRP
+      size: 1
+      values: C1
+  block 5: begin-line=414 fed=1 rc=0 first-fed='C1'
+    key: PNTGRP
+      size: 1
+      values: C1
+  block 6: begin-line=471 fed=1 rc=0 first-fed='C1'
+    key: PNTGRP
+      size: 1
+      values: C1
+
+[VERSION]  Script=nwchem.version  Freq=last  Skip=-  Lines=-
+  Begin=begin%version%
+  End=end%
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=29 fed=3 rc=0 first-fed='%begin%version%1%char'
+    key: VERSION
+      size: 1
+      values: Mon_May_12_21:20:53_2025 Version 7.2.3
+
+[TECPVEC]  Script=nwchem.cp  Freq=all  Skip=-  Lines=-
+  Begin=task_car-parrinello%begin%total energy
+  End=task
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=246 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total energy%1%double'
+    key: TECPVEC
+      size: 1
+      values: -1.61654472219501e+01
+      units: a.u.
+  block 2: begin-line=303 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total energy%1%double'
+    key: TECPVEC
+      size: 1
+      values: -1.61654481491255e+01
+      units: a.u.
+  block 3: begin-line=360 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total energy%1%double'
+    key: TECPVEC
+      size: 1
+      values: -1.61654492348894e+01
+      units: a.u.
+  block 4: begin-line=417 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total energy%1%double'
+    key: TECPVEC
+      size: 1
+      values: -1.61654501062430e+01
+      units: a.u.
+  block 5: begin-line=474 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total energy%1%double'
+    key: TECPVEC
+      size: 1
+      values: -1.61654505656151e+01
+      units: a.u.
+
+[KECPVEC]  Script=nwchem.cp  Freq=all  Skip=-  Lines=-
+  Begin=task_car-parrinello%begin%total kinetic
+  End=task
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=249 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total kinetic%1%double'
+    key: KECPVEC
+      size: 1
+      values: 5.32912792989023e-04
+      units: a.u.
+  block 2: begin-line=306 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total kinetic%1%double'
+    key: KECPVEC
+      size: 1
+      values: 1.91086045153745e-03
+      units: a.u.
+  block 3: begin-line=363 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total kinetic%1%double'
+    key: KECPVEC
+      size: 1
+      values: 3.75475809480722e-03
+      units: a.u.
+  block 4: begin-line=420 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total kinetic%1%double'
+    key: KECPVEC
+      size: 1
+      values: 5.62679695148809e-03
+      units: a.u.
+  block 5: begin-line=477 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total kinetic%1%double'
+    key: KECPVEC
+      size: 1
+      values: 7.16765321263414e-03
+      units: a.u.
+
+[PECPVEC]  Script=nwchem.cp  Freq=all  Skip=-  Lines=-
+  Begin=task_car-parrinello%begin%potential energy
+  End=task
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=252 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%potential energy%1%double'
+    key: PECPVEC
+      size: 1
+      values: -1.61659801347430e+01
+      units: a.u.
+  block 2: begin-line=309 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%potential energy%1%double'
+    key: PECPVEC
+      size: 1
+      values: -1.61673590095770e+01
+      units: a.u.
+  block 3: begin-line=366 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%potential energy%1%double'
+    key: PECPVEC
+      size: 1
+      values: -1.61692039929842e+01
+      units: a.u.
+  block 4: begin-line=423 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%potential energy%1%double'
+    key: PECPVEC
+      size: 1
+      values: -1.61710769031945e+01
+      units: a.u.
+  block 5: begin-line=480 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%potential energy%1%double'
+    key: PECPVEC
+      size: 1
+      values: -1.61726182188278e+01
+      units: a.u.
+
+[EKCPVEC]  Script=nwchem.cp  Freq=all  Skip=-  Lines=-
+  Begin=task_car-parrinello%begin%electron kinetic
+  End=task
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=255 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%electron kinetic%1%double'
+    key: EKCPVEC
+      size: 1
+      values: 1.05307002822395e-05
+      units: a.u.
+  block 2: begin-line=312 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%electron kinetic%1%double'
+    key: EKCPVEC
+      size: 1
+      values: 1.52385333098791e-04
+      units: a.u.
+  block 3: begin-line=369 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%electron kinetic%1%double'
+    key: EKCPVEC
+      size: 1
+      values: 3.51724413232752e-04
+      units: a.u.
+  block 4: begin-line=426 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%electron kinetic%1%double'
+    key: EKCPVEC
+      size: 1
+      values: 5.49848992754478e-04
+      units: a.u.
+  block 5: begin-line=483 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%electron kinetic%1%double'
+    key: EKCPVEC
+      size: 1
+      values: 7.46538259539610e-04
+      units: a.u.
+
+[IKCPVEC]  Script=nwchem.cp  Freq=all  Skip=-  Lines=-
+  Begin=task_car-parrinello%begin%ion kinetic
+  End=task
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=258 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%ion kinetic%1%double'
+    key: IKCPVEC
+      size: 1
+      values: 5.22382092706784e-04
+      units: a.u.
+  block 2: begin-line=315 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%ion kinetic%1%double'
+    key: IKCPVEC
+      size: 1
+      values: 1.75847511843866e-03
+      units: a.u.
+  block 3: begin-line=372 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%ion kinetic%1%double'
+    key: IKCPVEC
+      size: 1
+      values: 3.40303368157447e-03
+      units: a.u.
+  block 4: begin-line=429 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%ion kinetic%1%double'
+    key: IKCPVEC
+      size: 1
+      values: 5.07694795873361e-03
+      units: a.u.
+  block 5: begin-line=486 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%ion kinetic%1%double'
+    key: IKCPVEC
+      size: 1
+      values: 6.42111495309453e-03
+      units: a.u.
+
+[TIMECPVEC]  Script=nwchem.cp  Freq=all  Skip=-  Lines=-
+  Begin=task_car-parrinello%begin%time
+  End=task
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=261 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%time%1%double'
+    key: TIMECPVEC
+      size: 1
+      values: 2.50000000000000e+01
+      units: a.u.
+  block 2: begin-line=318 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%time%1%double'
+    key: TIMECPVEC
+      size: 1
+      values: 5.00000000000000e+01
+      units: a.u.
+  block 3: begin-line=375 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%time%1%double'
+    key: TIMECPVEC
+      size: 1
+      values: 7.50000000000000e+01
+      units: a.u.
+  block 4: begin-line=432 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%time%1%double'
+    key: TIMECPVEC
+      size: 1
+      values: 1.00000000000000e+02
+      units: a.u.
+  block 5: begin-line=489 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%time%1%double'
+    key: TIMECPVEC
+      size: 1
+      values: 1.25000000000000e+02
+      units: a.u.
+
+[TGRADCPVEC]  Script=nwchem.egradvec  Freq=all  Skip=-  Lines=-
+  Begin=task_car-parrinello%begin%total gradient
+  End=task
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=264 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total gradient%3 3%double'
+    key: TGRADCPVEC
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: -6.280723037886390e-06 1.536368992890000e-09 -6.538597690532640e-02 -4.986616598495630e-06 2.769533667145190e-02 3.908028264024810e-02 -4.986547874566600e-06 -2.769532894427210e-02 3.908028049991460e-02
+      units: Hartree/Bohr
+  block 2: begin-line=321 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total gradient%3 3%double'
+    key: TGRADCPVEC
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: -4.276341147778840e-06 2.165216778848190e-09 -6.147439031868010e-02 -3.853403367343010e-06 2.117451543601920e-02 3.375460475535360e-02 -3.853366432356260e-06 -2.117451460781240e-02 3.375460497657420e-02
+      units: Hartree/Bohr
+  block 3: begin-line=378 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total gradient%3 3%double'
+    key: TGRADCPVEC
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: -1.713785535773970e-06 1.334221517288340e-09 -6.057346228818660e-02 -2.168307129692500e-06 1.575386010766320e-02 2.883799770399700e-02 -2.168209768360640e-06 -1.575386629705840e-02 2.883800014651560e-02
+      units: Hartree/Bohr
+  block 4: begin-line=435 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total gradient%3 3%double'
+    key: TGRADCPVEC
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: 3.136150857210190e-07 9.643242799722271e-10 -4.317294172063520e-02 -5.380449625434830e-08 8.735706501016519e-03 2.279558208094120e-02 -5.384536902282160e-08 -8.735717334336760e-03 2.279558620531390e-02
+      units: Hartree/Bohr
+  block 5: begin-line=492 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%total gradient%3 3%double'
+    key: TGRADCPVEC
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: 2.522533832749400e-06 -7.874625291956650e-10 -3.031608035957030e-02 2.217697885273960e-06 1.943352407062000e-03 1.645925552763130e-02 2.217270510541480e-06 -1.943363445606750e-03 1.645925972647750e-02
+      units: Hartree/Bohr
+
+[GRADNORMCPVEC]  Script=nwchem.cp  Freq=all  Skip=-  Lines=-
+  Begin=task_car-parrinello%begin%gradient norm
+  End=task
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=269 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%gradient norm%1%double'
+    key: GRADNORMCPVEC
+      size: 1
+      values: -1.61654472219501e+01
+      units: a.u.
+  block 2: begin-line=326 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%gradient norm%1%double'
+    key: GRADNORMCPVEC
+      size: 1
+      values: -1.61654481491255e+01
+      units: a.u.
+  block 3: begin-line=383 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%gradient norm%1%double'
+    key: GRADNORMCPVEC
+      size: 1
+      values: -1.61654492348894e+01
+      units: a.u.
+  block 4: begin-line=440 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%gradient norm%1%double'
+    key: GRADNORMCPVEC
+      size: 1
+      values: -1.61654501062430e+01
+      units: a.u.
+  block 5: begin-line=497 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%gradient norm%1%double'
+    key: GRADNORMCPVEC
+      size: 1
+      values: -1.61654505656151e+01
+      units: a.u.
+
+[OGRADNORMCPVEC]  Script=nwchem.cp  Freq=all  Skip=-  Lines=-
+  Begin=task_car-parrinello%begin%orbital gradient norm
+  End=task
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=272 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%orbital gradient norm%1%double'
+    key: OGRADNORMCPVEC
+      size: 1
+      values: 5.22382092706784e-04
+      units: a.u.
+  block 2: begin-line=329 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%orbital gradient norm%1%double'
+    key: OGRADNORMCPVEC
+      size: 1
+      values: 1.75847511843866e-03
+      units: a.u.
+  block 3: begin-line=386 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%orbital gradient norm%1%double'
+    key: OGRADNORMCPVEC
+      size: 1
+      values: 3.40303368157447e-03
+      units: a.u.
+  block 4: begin-line=443 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%orbital gradient norm%1%double'
+    key: OGRADNORMCPVEC
+      size: 1
+      values: 5.07694795873361e-03
+      units: a.u.
+  block 5: begin-line=500 fed=3 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%orbital gradient norm%1%double'
+    key: OGRADNORMCPVEC
+      size: 1
+      values: 6.42111495309453e-03
+      units: a.u.
+

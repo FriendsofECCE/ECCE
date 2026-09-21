@@ -1,0 +1,444 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    nwchem-h2o-opt
+desc:    nwchem.desc
+fixture: nwchem/h2o_opt.eprint (1342 lines)
+args:    '.' 'Geometry' 'SCF' 'RHF' '0'
+
+[EGRADVEC]  Script=nwchem.egradvec  Freq=all  Skip=-  Lines=-
+  Begin=task_gradient%begin%total gradient
+  End=task
+  begins=4 delivered=4 buffered_away=0
+  block 1: begin-line=271 fed=5 rc=0 first-fed='task_optimize driver task_gradient%begin%total gradient%3 3%double'
+    key: EGRADVEC
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: 6.078093358030840e-02 3.761156754393090e-03 0.000000000000000e+00 -2.865512155799580e-02 2.106485336377430e-02 0.000000000000000e+00 -3.212581202231800e-02 -2.482601011816940e-02 0.000000000000000e+00
+      units: Hartree/Bohr
+  block 2: begin-line=639 fed=5 rc=0 first-fed='task_optimize driver task_gradient%begin%total gradient%3 3%double'
+    key: EGRADVEC
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: 5.502143785554030e-04 -1.030012048302940e-03 0.000000000000000e+00 -7.178010296269300e-04 -3.141857093818420e-03 0.000000000000000e+00 1.675866510693070e-04 4.171869142121750e-03 0.000000000000000e+00
+      units: Hartree/Bohr
+  block 3: begin-line=995 fed=5 rc=0 first-fed='task_optimize driver task_gradient%begin%total gradient%3 3%double'
+    key: EGRADVEC
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: -4.886188106656421e-04 -8.015126561378150e-05 0.000000000000000e+00 2.086073813227780e-04 -1.618226335025060e-04 0.000000000000000e+00 2.800114293459720e-04 2.419738991168430e-04 0.000000000000000e+00
+      units: Hartree/Bohr
+  block 4: begin-line=1296 fed=5 rc=0 first-fed='task_optimize driver task_gradient%begin%total gradient%3 3%double'
+    key: EGRADVEC
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: -3.013195488232870e-05 3.563317468460720e-05 0.000000000000000e+00 2.997557214801110e-05 -3.183184510602290e-05 0.000000000000000e+00 1.563827356498850e-07 -3.801329578667630e-06 0.000000000000000e+00
+      units: Hartree/Bohr
+
+[EGRAD]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=task_gradient%begin%gradient norm
+  begins=4 delivered=4 buffered_away=0
+  block 1: begin-line=276 fed=2 rc=0 first-fed='task_optimize driver task_gradient%begin%gradient norm%1%double'
+    key: EGRAD
+      size: 1
+      values: 8.13738950907880e-02
+      units: Hartree/Bohr
+  block 2: begin-line=644 fed=2 rc=0 first-fed='task_optimize driver task_gradient%begin%gradient norm%1%double'
+    key: EGRAD
+      size: 1
+      values: 5.40210536945859e-03
+      units: Hartree/Bohr
+  block 3: begin-line=1000 fed=2 rc=0 first-fed='task_optimize driver task_gradient%begin%gradient norm%1%double'
+    key: EGRAD
+      size: 1
+      values: 6.72185941678352e-04
+      units: Hartree/Bohr
+  block 4: begin-line=1301 fed=2 rc=0 first-fed='task_optimize driver task_gradient%begin%gradient norm%1%double'
+    key: EGRAD
+      size: 1
+      values: 6.40619519973794e-05
+      units: Hartree/Bohr
+
+[GEOMTRACE]  Script=nwchem.geomtrace  Freq=all  Skip=-  Lines=-
+  Begin=task_gradient%begin%cartesian coordinates
+  End=task
+  begins=4 delivered=4 buffered_away=0
+  block 1: begin-line=252 fed=5 rc=0 first-fed='task_optimize driver task_gradient%begin%cartesian coordinates%3 3%double'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: -1.172941379840630e-01 9.193446446113380e-04 0.000000000000000e+00 4.660174944545490e-01 -7.615421556698651e-01 0.000000000000000e+00 4.723356094179560e-01 7.541873985129750e-01 0.000000000000000e+00
+      units: Angstrom
+  block 2: begin-line=620 fed=5 rc=0 first-fed='task_optimize driver task_gradient%begin%cartesian coordinates%3 3%double'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: -1.470483802566120e-01 -4.917147248663580e-04 0.000000000000000e+00 4.802324848137050e-01 -7.672574173724900e-01 0.000000000000000e+00 4.878748613313490e-01 7.613137195850770e-01 0.000000000000000e+00
+      units: Angstrom
+  block 3: begin-line=976 fed=5 rc=0 first-fed='task_optimize driver task_gradient%begin%cartesian coordinates%3 3%double'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: -1.504224608085560e-01 -1.393821784451410e-04 0.000000000000000e+00 4.820903071932700e-01 -7.612776722763320e-01 0.000000000000000e+00 4.893911195037270e-01 7.549816419424979e-01 0.000000000000000e+00
+      units: Angstrom
+  block 4: begin-line=1277 fed=5 rc=0 first-fed='task_optimize driver task_gradient%begin%cartesian coordinates%3 3%double'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: -1.501910849629550e-01 -9.839042842024721e-05 0.000000000000000e+00 4.819925262361460e-01 -7.612463878005140e-01 0.000000000000000e+00 4.892575246152520e-01 7.549093657166550e-01 0.000000000000000e+00
+      units: Angstrom
+
+[MO]  Script=nwchem.mo  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital vectors R
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=182 fed=9 rc=0 first-fed='task_optimize driver task_gradient scf%begin%molecular orbital vectors RHF%7 7%double'
+    key: MO
+      size: 7 7
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7
+      values: 0.994 0.027 0.004 0.0 0.0 -0.006 -0.006 -0.233 0.834 0.129 0.0 0.0 0.158 0.159 0.0 -0.003 0.005 0.606 0.0 -0.445 0.445 0.103 -0.536 0.777 -0.005 0.0 0.279 0.277 0.0 0.0 0.0 0.0 1.000 0.0 0.0 -0.132 0.883 0.742 -0.017 0.0 -0.806 -0.786 -0.002 0.015 0.016 0.990 0.0 0.826 -0.850
+
+[ORBENG2]  Script=nwchem.orbeng  Freq=last  Skip=-  Lines=-
+  Begin=orbital energies R
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=168 fed=4 rc=0 first-fed='task_optimize driver task_gradient scf%begin%molecular orbital energies RHF%7%double'
+    key: ORBENG
+      size: 7
+      rowlabels: 1 2 3 4 5 6 7
+      values: -2.02418499253186e+01 -1.26783297028959e+00 -6.17370053998517e-01 -4.52834676762607e-01 -3.91160819310024e-01 6.04536831351686e-01 7.41151943864139e-01
+      units: Hartree
+
+[ORBOCC2]  Script=nwchem.orbocc  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital occupations R
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=172 fed=4 rc=0 first-fed='task_optimize driver task_gradient scf%begin%molecular orbital occupations RHF%7%double'
+    key: ORBOCC
+      size: 7
+      rowlabels: 1 2 3 4 5 6 7
+      values: 2.00000000000000e+00 2.00000000000000e+00 2.00000000000000e+00 2.00000000000000e+00 2.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00
+
+[CPUSEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%all tasks cpu time
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1337 fed=2 rc=0 first-fed='%begin%all tasks cpu time%1%double'
+    key: CPUSEC
+      size: 1
+      values: 2.67652000000000e-01
+
+[ETIME]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%all tasks wall time
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1340 fed=2 rc=0 first-fed='%begin%all tasks wall time%1%double'
+    key: ETIME
+      size: 1
+      values: 1.95676417000000e-01
+
+[NNREPUL]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%nuclear repulsion
+  begins=6 delivered=6 buffered_away=0
+  block 1: begin-line=134 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%nuclear repulsion energy%1%double'
+    key: NNREPUL
+      size: 1
+      values: 9.18443344517181e+00
+      units: Hartree
+  block 2: begin-line=375 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%nuclear repulsion energy%1%double'
+    key: NNREPUL
+      size: 1
+      values: 8.71041505793698e+00
+      units: Hartree
+  block 3: begin-line=525 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%nuclear repulsion energy%1%double'
+    key: NNREPUL
+      size: 1
+      values: 8.88834541983657e+00
+      units: Hartree
+  block 4: begin-line=737 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%nuclear repulsion energy%1%double'
+    key: NNREPUL
+      size: 1
+      values: 8.91744350814735e+00
+      units: Hartree
+  block 5: begin-line=881 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%nuclear repulsion energy%1%double'
+    key: NNREPUL
+      size: 1
+      values: 8.90403516150224e+00
+      units: Hartree
+  block 6: begin-line=1093 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%nuclear repulsion energy%1%double'
+    key: NNREPUL
+      size: 1
+      values: 8.90632961352895e+00
+      units: Hartree
+
+[MULLIKEN]  Script=nwchem.mulliken  Freq=last  Skip=-  Lines=-
+  Begin=begin%total mulliken atomic
+  End=task
+  begins=6 delivered=1 buffered_away=5
+  block 1: begin-line=1099 fed=3 rc=0 first-fed='task_optimize driver task_energy scf%begin%total mulliken atomic charges%3%double'
+    key: MULLIKEN
+      size: 3
+      values: -3.30512303602269e-01 1.65248721525248e-01 1.65263582077023e-01
+      units: e
+
+[MLKNSHELL]  Script=nwchem.mlknshell  Freq=last  Skip=-  Lines=-
+  Begin=begin%total mulliken shell
+  End=task
+  begins=6 delivered=1 buffered_away=5
+  block 1: begin-line=1102 fed=4 rc=0 first-fed='task_optimize driver task_energy scf%begin%total mulliken shell charges%5%double'
+    key: MLKNSHELL
+      size: 5
+      rowlabels: 1 2 3 4 5
+      values: 1.99783558376459e+00 1.84893575617702e+00 4.48374096366066e+00 8.34751278474752e-01 8.34736417922977e-01 nunits: e
+
+[TEVEC]  Script=nwchem.te  Freq=all  Skip=-  Lines=-
+  Begin=task_gradient%begin%total energy
+  End=task
+  begins=4 delivered=4 buffered_away=0
+  block 1: begin-line=268 fed=3 rc=0 first-fed='task_optimize driver task_gradient%begin%total energy%1%double'
+    key: TE
+      size: 1
+      values: -7.49630723104582e+01
+      units: Hartree
+    key: TEVEC
+      size: 1
+      values: -7.49630723104582e+01
+      units: Hartree
+  block 2: begin-line=636 fed=3 rc=0 first-fed='task_optimize driver task_gradient%begin%total energy%1%double'
+    key: TE
+      size: 1
+      values: -7.49658550712696e+01
+      units: Hartree
+    key: TEVEC
+      size: 1
+      values: -7.49658550712696e+01
+      units: Hartree
+  block 3: begin-line=992 fed=3 rc=0 first-fed='task_optimize driver task_gradient%begin%total energy%1%double'
+    key: TE
+      size: 1
+      values: -7.49659009962720e+01
+      units: Hartree
+    key: TEVEC
+      size: 1
+      values: -7.49659009962720e+01
+      units: Hartree
+  block 4: begin-line=1293 fed=3 rc=0 first-fed='task_optimize driver task_gradient%begin%total energy%1%double'
+    key: TE
+      size: 1
+      values: -7.49659011909448e+01
+      units: Hartree
+    key: TEVEC
+      size: 1
+      values: -7.49659011909448e+01
+      units: Hartree
+
+[DIPOLE][MP2DIPOLE]  Script=nwchem.dipole  Freq=all  Skip=-  Lines=2
+  Begin=begin%total dipole
+  begins=6 delivered=6 buffered_away=0
+  block 1: begin-line=147 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%total dipole%3%double'
+    key: DIPOLE
+      size: 3
+      rowlabels: x y z
+      values: 1.72435578928057 -0.00778174544015598 -1.45302564217476e-17
+      units: Debye
+  block 2: begin-line=388 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%total dipole%3%double'
+    key: DIPOLE
+      size: 3
+      rowlabels: x y z
+      values: 1.68468859326886 -0.00914288586085894 -2.57322122721059e-17
+      units: Debye
+  block 3: begin-line=538 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%total dipole%3%double'
+    key: DIPOLE
+      size: 3
+      rowlabels: x y z
+      values: 1.70167649617641 -0.00841546887285173 -2.16105805569384e-17
+      units: Debye
+  block 4: begin-line=750 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%total dipole%3%double'
+    key: DIPOLE
+      size: 3
+      rowlabels: x y z
+      values: 1.71508138886759 -0.00804696078768792 -2.21172983919942e-17
+      units: Debye
+  block 5: begin-line=894 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%total dipole%3%double'
+    key: DIPOLE
+      size: 3
+      rowlabels: x y z
+      values: 1.70896179158074 -0.0082215300596545 -2.18857647632692e-17
+      units: Debye
+  block 6: begin-line=1106 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%total dipole%3%double'
+    key: DIPOLE
+      size: 3
+      rowlabels: x y z
+      values: 1.70918617506159 -0.0081911264618728 -2.18300693729295e-17
+      units: Debye
+
+[QUADPOLE]  Script=nwchem.quadpole  Freq=all  Skip=1  Lines=2
+  Begin=begin%total quadrupole
+  begins=6 delivered=6 buffered_away=0
+  block 1: begin-line=156 fed=2 rc=0 first-fed='-4.01029434147072e+00 2.70127122672681e-03 -2.15312127660722e-18 -3.23908849331792e+00'
+    key: QUADPOLE
+      size: 6
+      rowlabels: xx xy xz yy yz zz
+      values: -5.39348897308173 0.00363296938680838 -2.89575648924309e-18 -4.3562857446367 -3.27065725771651e-17 -6.09472389220513
+      units: au
+  block 2: begin-line=397 fed=2 rc=0 first-fed='-4.03588075578606e+00 2.02446818963864e-03 -5.19820904052901e-18 -3.36196110846631e+00'
+    key: QUADPOLE
+      size: 6
+      rowlabels: xx xy xz yy yz zz
+      values: -5.42790042314499 0.00272272953739509 -6.99112851890691e-18 -4.52153847634853 -4.27346761789686e-17 -6.14482585457936
+      units: au
+  block 3: begin-line=547 fed=2 rc=0 first-fed='-4.02727327232893e+00 2.33912905484157e-03 -3.90371321248320e-18 -3.31402606606453e+00'
+    key: QUADPOLE
+      size: 6
+      rowlabels: xx xy xz yy yz zz
+      values: -5.41632412396117 0.00314592039627603 -5.25014684031399e-18 -4.45707011053691 -3.88985823550497e-17 -6.12596132937604
+      units: au
+  block 4: begin-line=759 fed=2 rc=0 first-fed='-4.02071537355419e+00 2.17023683043327e-03 -3.85691365313358e-18 -3.35367566224276e+00'
+    key: QUADPOLE
+      size: 6
+      rowlabels: xx xy xz yy yz zz
+      values: -5.40750433376214 0.00291877538585484 -5.18720559814954e-18 -4.51039528858257 -3.89877501357026e-17 -6.12482932452249
+      units: au
+  block 5: begin-line=903 fed=2 rc=0 first-fed='-4.02374687405221e+00 2.24255844947197e-03 -3.87791288480837e-18 -3.33550788487716e+00'
+    key: QUADPOLE
+      size: 6
+      rowlabels: xx xy xz yy yz zz
+      values: -5.41158143212843 0.0030160415268378 -5.21544769582051e-18 -4.48596124495803 -3.89486693416231e-17 -6.12535657423267
+      units: au
+  block 6: begin-line=1115 fed=2 rc=0 first-fed='-4.02362270373349e+00 2.24979395388381e-03 -3.85982414348080e-18 -3.33495327654672e+00'
+    key: QUADPOLE
+      size: 6
+      rowlabels: xx xy xz yy yz zz
+      values: -5.41141443410091 0.00302577263631183 -5.19111994863291e-18 -4.48521534611373 -3.88999252003035e-17 -6.1251160113047
+      units: au
+
+[ONEELEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%one\-electron
+  begins=6 delivered=6 buffered_away=0
+  block 1: begin-line=128 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%one-electron energy%1%double'
+    key: ONEELEC
+      size: 1
+      values: -1.22352914619901e+02
+      units: Hartree
+  block 2: begin-line=369 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%one-electron energy%1%double'
+    key: ONEELEC
+      size: 1
+      values: -1.21474759460410e+02
+      units: Hartree
+  block 3: begin-line=519 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%one-electron energy%1%double'
+    key: ONEELEC
+      size: 1
+      values: -1.21807547733231e+02
+      units: Hartree
+  block 4: begin-line=731 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%one-electron energy%1%double'
+    key: ONEELEC
+      size: 1
+      values: -1.21848428616986e+02
+      units: Hartree
+  block 5: begin-line=875 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%one-electron energy%1%double'
+    key: ONEELEC
+      size: 1
+      values: -1.21829584602077e+02
+      units: Hartree
+  block 6: begin-line=1087 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%one-electron energy%1%double'
+    key: ONEELEC
+      size: 1
+      values: -1.21833832774803e+02
+      units: Hartree
+
+[TWOELEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%two\-electron
+  begins=6 delivered=6 buffered_away=0
+  block 1: begin-line=131 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%two-electron energy%1%double'
+    key: TWOELEC
+      size: 1
+      values: 3.82054088642714e+01
+      units: Hartree
+  block 2: begin-line=372 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%two-electron energy%1%double'
+    key: TWOELEC
+      size: 1
+      values: 3.77995664252492e+01
+      units: Hartree
+  block 3: begin-line=522 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%two-electron energy%1%double'
+    key: TWOELEC
+      size: 1
+      values: 3.79533472421245e+01
+      units: Hartree
+  block 4: begin-line=734 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%two-electron energy%1%double'
+    key: TWOELEC
+      size: 1
+      values: 3.79651173005387e+01
+      units: Hartree
+  block 5: begin-line=878 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%two-electron energy%1%double'
+    key: TWOELEC
+      size: 1
+      values: 3.79596484443024e+01
+      units: Hartree
+  block 6: begin-line=1090 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%two-electron energy%1%double'
+    key: TWOELEC
+      size: 1
+      values: 3.79616019703290e+01
+      units: Hartree
+
+[PNTGRP]  Script=nwchem.symmetry  Freq=all  Skip=1  Lines=1
+  Begin=begin%group name
+  begins=7 delivered=7 buffered_away=0
+  block 1: begin-line=265 fed=1 rc=0 first-fed='Cs'
+    key: PNTGRP
+      size: 1
+      values: Cs
+  block 2: begin-line=432 fed=1 rc=0 first-fed='Cs'
+    key: PNTGRP
+      size: 1
+      values: Cs
+  block 3: begin-line=633 fed=1 rc=0 first-fed='Cs'
+    key: PNTGRP
+      size: 1
+      values: Cs
+  block 4: begin-line=794 fed=1 rc=0 first-fed='Cs'
+    key: PNTGRP
+      size: 1
+      values: Cs
+  block 5: begin-line=989 fed=1 rc=0 first-fed='Cs'
+    key: PNTGRP
+      size: 1
+      values: Cs
+  block 6: begin-line=1150 fed=1 rc=0 first-fed='Cs'
+    key: PNTGRP
+      size: 1
+      values: Cs
+  block 7: begin-line=1290 fed=1 rc=0 first-fed='Cs'
+    key: PNTGRP
+      size: 1
+      values: Cs
+
+[SYMLAB]  Script=nwchem.symlab  Freq=last  Skip=-  Lines=-
+  Begin=begin%group irrep names
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=85 fed=4 rc=0 first-fed='task_optimize driver task_gradient scf%begin%group irrep names%2%char'
+    (script emitted no property)
+
+[MOLAB1]  Script=nwchem.molab  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital symmetries R
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=176 fed=3 rc=0 first-fed='task_optimize driver task_gradient scf%begin%molecular orbital symmetries RHF%7%int'
+    key: ORBSYM
+      size: 7
+      values: a' a' a' a' a" a' a'
+
+[VERSION]  Script=nwchem.version  Freq=last  Skip=-  Lines=-
+  Begin=begin%version%
+  End=end%
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=16 fed=3 rc=0 first-fed='%begin%version%1%char'
+    key: VERSION
+      size: 1
+      values: Mon_May_12_21:20:53_2025 Version 7.2.3
+
