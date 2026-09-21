@@ -119,10 +119,68 @@ sub ORCARoute {
   if ($useExplicitBasis == 0) {
     $route .= "$NameBasis ";
   }
-  $route .= &RunType($AbiDict{"RunType"});
+  $route .= &RunType($AbiDict{"RunType"}) . " ";
+  $route .= &RIJCOSXToken . " ";
+  $route .= &SCFConvergenceToken . " ";
+  $route .= &GeomConvergenceToken . " ";
+  $route .= &FreqMethodToken;
   $route =~ s/\s+/ /g;
   $route =~ s/\s+$//;
   return $route;
+}
+
+# "! RIJCOSX <auxbasis>" -- RI-J + chain-of-spheres approximate
+# exchange. Verified against real ORCA 6.1.1 for both DFT (RKS) and HF:
+# COSX grid generation and "Your calculation utilizes the auxiliary
+# basis: <name>" both confirmed in the output.
+sub RIJCOSXToken {
+  my $result = "";
+  if ($AbiDict{"ES.Theory.SCF.UseRIJCOSX"} eq "1") {
+    my $auxBasis = $AbiDict{"ES.Theory.SCF.RIJCOSXAuxBasis"};
+    $auxBasis = "def2/J" if ($auxBasis eq "");
+    $result = "RIJCOSX $auxBasis";
+  }
+  return $result;
+}
+
+# "! LooseSCF|TightSCF|VeryTightSCF" -- "Normal" (ORCA's own default)
+# emits nothing. Verified against real ORCA 6.1.1: each keyword
+# visibly changes the printed SCF "Convergence Tolerance" TolE/TolErr
+# values.
+sub SCFConvergenceToken {
+  my %map = (
+    "Loose"      => "LooseSCF",
+    "Tight"      => "TightSCF",
+    "Very Tight" => "VeryTightSCF",
+  );
+  return $map{$AbiDict{"ES.Theory.SCF.ConvergenceTolerance"}} || "";
+}
+
+# "! LooseOpt|TightOpt|VeryTightOpt" for a geometry-optimization
+# runtype -- "Normal" emits nothing. Verified against real ORCA 6.1.1:
+# each keyword visibly changes the printed geometry-optimization
+# "Convergence Tolerances" TolE value.
+sub GeomConvergenceToken {
+  my $runtype = $AbiDict{"RunType"};
+  return "" if ($runtype !~ /Geo/i);
+  my %map = (
+    "Loose"      => "LooseOpt",
+    "Tight"      => "TightOpt",
+    "Very Tight" => "VeryTightOpt",
+  );
+  return $map{$AbiDict{"ES.Runtype.GeomOpt.ConvergenceGradient"}} || "";
+}
+
+# "! NumFreq" for a numerical-Hessian frequency calculation -- the
+# default (Analytic, no extra keyword) is ORCA's own "Freq"/"Opt Freq"
+# analytic-Hessian behavior. Verified against real ORCA 6.1.1: NumFreq
+# runs a visibly distinct "ORCA NUMERICAL FREQUENCIES" module instead
+# of the analytic Hessian path.
+sub FreqMethodToken {
+  my $runtype = $AbiDict{"RunType"};
+  return "" if ($runtype !~ /Vib/i);
+  return ($AbiDict{"ES.Runtype.Vibration.Method"} eq "Numerical") ?
+    "NumFreq" : "";
 }
 
 # %scf / %geom blocks -- approximate, unverified (see header note).
@@ -220,14 +278,21 @@ sub Theory {
 sub DFTXCFun {
   my ($xcFun) = @_;
   my %map = (
-    "B3LYP"  => "B3LYP",
-    "PBE0"   => "PBE0",
-    "PBE"    => "PBE",
-    "BP86"   => "BP86",
-    "BLYP"   => "BLYP",
-    "TPSS"   => "TPSS",
-    "M06L"   => "M06L",
-    "M06"    => "M06",
+    "B3LYP"     => "B3LYP",
+    "PBE0"      => "PBE0",
+    "PBE"       => "PBE",
+    "revPBE"    => "revPBE",
+    "RPBE"      => "RPBE",
+    "BP86"      => "BP86",
+    "BLYP"      => "BLYP",
+    "B97-D3"    => "B97-D3",
+    "TPSS"      => "TPSS",
+    "TPSSh"     => "TPSSh",
+    "M06L"      => "M06L",
+    "M06"       => "M06",
+    "M062X"     => "M062X",
+    "CAM-B3LYP" => "CAM-B3LYP",
+    "wB97X-D3"  => "wB97X-D3",
   );
   return $map{$xcFun} || $xcFun;
 }

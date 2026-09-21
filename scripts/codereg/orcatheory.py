@@ -11,6 +11,14 @@ from templates import *
 # input generator grows to match. The XCFunctionals choice list below
 # is kept in lockstep with ai.orca's DFTXCFun translation table -- every
 # entry here must have a matching entry there.
+#
+# 2026-09-21 session (Priority 2, issue #38 follow-up): added SCF
+# convergence tolerance, RIJCOSX (+ auxiliary basis), and widened the
+# DFT functional list -- every new "! <keyword>" route-card token added
+# here was round-tripped against a real ORCA 6.1.1 install first (small
+# water-molecule single points/opts; see scratch test notes in the PR/
+# issue discussion). Geometry/Frequency runtype-specific options went
+# into orcaruntype.py instead, matching Gaussian-16's split.
 
 class OrcaTheoryFrame(EcceFrame):
     def __init__(self, parent, title, app, helpURL=""):
@@ -22,7 +30,12 @@ class OrcaTheoryPanel(EccePanel):
     def __init__(self, parent, helpURL=""):
         EccePanel.__init__(self, parent, helpURL)
 
-        # SCF CONVERGENCE
+        # SCF CONVERGENCE -- ConvergenceTolerance maps to one of ORCA's
+        # own simple-input convergence keywords (e.g. "! TightSCF") on
+        # the route line; "Normal" emits nothing (ORCA's own default).
+        # Verified against real ORCA 6.1.1: LooseSCF/TightSCF/
+        # VeryTightSCF all accepted and visibly changed the printed
+        # "Convergence Tolerance" TolE/TolErr values.
         scfSizer = EcceBoxSizer(self, label="SCF Convergence", cols=2)
         self.maxIterationsSpin = EcceSpinCtrl(self,
                                               hardRange="[0..)",
@@ -30,7 +43,45 @@ class OrcaTheoryPanel(EccePanel):
                                               default=64,
                                               label="Max. Iterations:")
         scfSizer.AddWidget(self.maxIterationsSpin)
+
+        scfConvChoice = ["Normal",
+                         "Loose",
+                         "Tight",
+                         "Very Tight"]
+        self.scfConv = EcceComboBox(self,
+                                    choices=scfConvChoice,
+                                    name="ES.Theory.SCF.ConvergenceTolerance",
+                                    default=0,
+                                    label="Convergence:",
+                                    export=1)
+        scfSizer.AddWidget(self.scfConv)
         self.panelSizer.Add(scfSizer)
+
+        # RIJCOSX -- RI-J + "chain of spheres" approximate exchange, the
+        # single most common speed knob in real-world ORCA input files.
+        # Verified against real ORCA 6.1.1 (both "RKS B3LYP ... RIJCOSX
+        # def2/J" and "HF ... RIJCOSX def2/J") -- COSX grid generation
+        # and "Your calculation utilizes the auxiliary basis: def2/J"
+        # both confirmed in the output, for DFT and HF alike.
+        riSizer = EcceBoxSizer(self, label="RI Approximation", cols=2)
+        self.useRIJCOSX = EcceCheckBox(self,
+                                       label=" Use RIJCOSX",
+                                       name="ES.Theory.SCF.UseRIJCOSX",
+                                       default=False,
+                                       export=1)
+        riSizer.AddWidget(self.useRIJCOSX)
+
+        auxBasisChoice = ["def2/J",
+                          "def2/JK",
+                          "SARC/J"]
+        self.auxBasis = EcceComboBox(self,
+                                     choices=auxBasisChoice,
+                                     name="ES.Theory.SCF.RIJCOSXAuxBasis",
+                                     default=0,
+                                     label="Auxiliary Basis:",
+                                     export=1)
+        riSizer.AddWidget(self.auxBasis)
+        self.panelSizer.Add(riSizer)
 
         # MEMORY -- ORCA's "%maxcore" is memory PER CORE, in MB (confirmed
         # against a real ORCA 6.1.1 run: reported "Max core memory ... N MB"
@@ -71,14 +122,25 @@ class OrcaTheoryPanel(EccePanel):
         if EcceGlobals.Category == "DFT":
             dftSizer = EcceBoxSizer(self, label="DFT Functional", cols=1)
 
+            # Every entry verified as a real ORCA 6.1.1 route-card
+            # keyword (small water-molecule RKS single points, no
+            # "ERROR"/"not recognized" and a normal SCF run for each) --
+            # keep in lockstep with ai.orca's DFTXCFun map.
             xcFuncChoice = ["B3LYP",
                             "PBE0",
                             "PBE",
+                            "revPBE",
+                            "RPBE",
                             "BP86",
                             "BLYP",
+                            "B97-D3",
                             "TPSS",
+                            "TPSSh",
                             "M06L",
-                            "M06"]
+                            "M06",
+                            "M062X",
+                            "CAM-B3LYP",
+                            "wB97X-D3"]
             self.xcFunc = EcceComboBox(self,
                                        choices=xcFuncChoice,
                                        name="ES.Theory.DFT.XCFunctionals",
@@ -91,7 +153,7 @@ class OrcaTheoryPanel(EccePanel):
         self.AddButtons()
 
     def CheckDependency(self):
-        pass
+        self.auxBasis.Enable(self.useRIJCOSX.GetValue())
 
 
 frame = OrcaTheoryFrame(None,
