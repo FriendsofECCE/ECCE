@@ -1,0 +1,6 @@
+PM7 1SCF GRADIENTS CHARGE=0 SINGLET
+water single point gradient
+ECCE MOPAC regression fixture
+O    0.000000    0.000000    0.000000
+H    0.000000    0.000000    0.960000
+H    0.926000    0.000000   -0.240000

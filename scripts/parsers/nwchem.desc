@@ -292,7 +292,12 @@ Lines=2
 
 [RESIDNORM]
 Script=nwchem.scalar
-Begin=begin%rms error
+# NWChem 7.2.3 tags this "ccsd rms error"; "rms error" on its own is not
+# emitted by any module (verified against the tag strings in the 7.2.3
+# binary), so the bare Begin could never match and the Residual Norm
+# property was silently never extracted.  Alternation rather than
+# replacement, in case an older/other module does use the short form.
+Begin=begin%(?:ccsd )?rms error
 Frequency=all
 Lines=2
 [END]
@@ -349,7 +354,12 @@ Lines=2
 
 [CORRELTN]
 Script=nwchem.scalar
-Begin=begin%correlation energy
+# mp2/dft tag this "correlation energy"; the ccsd module tags its own as
+# "ccsd correlation energy", so a plain "task ccsd(t)" job used to yield
+# no Correlation Energy at all.  With the alternation a combined
+# mp2-then-ccsd job matches twice and, Frequency=all being an overwriting
+# scalar, ends up holding the CCSD value -- the later task's.
+Begin=begin%(?:ccsd )?correlation energy
 Frequency=all
 Lines=2
 [END]

@@ -360,7 +360,11 @@ def coverage_report(res, ran_cases, verbose):
         live = desc.live_entries()
         fired = set()
         for result in results:
-            for entry in live:
+            # Each case re-reads the .desc, so entry objects differ between
+            # results and blocks_for()'s identity test only ever matched the
+            # first result's.  Use each result's own entries (line numbers
+            # are the stable identity across re-reads of the same file).
+            for entry in result.desc.live_entries():
                 if result.blocks_for(entry):
                     fired.add(entry.line)
         never = [e for e in live if e.line not in fired]

@@ -1,0 +1,137 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    mopac-ch4-geovib
+desc:    mopac.desc
+fixture: mopac/ch4_geovib.out (665 lines)
+args:    '.' 'GeoVib' 'SE' 'RPM7' '0'
+
+[TE][TEVEC][HFENERGY]  Script=mopac.energy  Freq=all  Skip=0  Lines=1
+  Begin=HEAT OF FORMATION\s*=
+  begins=3 delivered=3 buffered_away=0
+  block 1: begin-line=104 fed=1 rc=0 first-fed='          FINAL HEAT OF FORMATION =        -14.40441 KCAL/MOL =     -60.26807 KJ/MOL'
+    key: TE
+      size: 1
+      values: -14.40441
+      units: kcal/mol
+    key: TEVEC
+      size: 1
+      values: -14.40441
+      units: kcal/mol
+    key: HFENERGY
+      size: 1
+      values: -14.40441
+      units: kcal/mol
+  block 2: begin-line=255 fed=1 rc=0 first-fed='          HEAT OF FORMATION =     -14.404414 KCALS/MOLE'
+    key: TE
+      size: 1
+      values: -14.404414
+      units: kcal/mol
+    key: HFENERGY
+      size: 1
+      values: -14.404414
+      units: kcal/mol
+  block 3: begin-line=335 fed=1 rc=0 first-fed='          HEAT OF FORMATION =     -14.404414 KCALS/MOLE'
+    key: TE
+      size: 1
+      values: -14.404414
+      units: kcal/mol
+    key: HFENERGY
+      size: 1
+      values: -14.404414
+      units: kcal/mol
+
+[GEOMTRACE]  Script=mopac.geomtrace  Freq=all  Skip=1  Lines=-
+  Begin=^\s*CARTESIAN COORDINATES\s*$
+  End=Empirical Formula|General Reference for
+  begins=3 delivered=3 buffered_away=0
+  block 1: begin-line=42 fed=10 rc=0 first-fed=''
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.0000 0.0000 0.0000 0.6290 0.6290 0.6290 -0.6290 -0.6290 0.6290 -0.6290 0.6290 -0.6290 0.6290 -0.6290 -0.6290
+      units: Angstrom
+  block 2: begin-line=141 fed=9 rc=0 first-fed=''
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.000000000 -0.000000000 -0.000000183 0.626527549 0.626527282 0.626539585 -0.626527549 -0.626527282 0.626539585 -0.626527514 0.626527248 -0.626539269 0.626527514 -0.626527247 -0.626539269
+      units: Angstrom
+  block 3: begin-line=226 fed=10 rc=0 first-fed=''
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.0000 -0.0000 -0.0000 0.6265 0.6265 0.6265 -0.6265 -0.6265 0.6265 -0.6265 0.6265 -0.6265 0.6265 -0.6265 -0.6265
+      units: Angstrom
+
+[MULLIKEN][DIPOLE]  Script=mopac.charges  Freq=last  Skip=3  Lines=-
+  Begin=NET ATOMIC CHARGES
+  End=^\s*SUM\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=161 fed=9 rc=0 first-fed='    1          C          -0.603058        4.6031     1.04478     3.55828'
+    key: MULLIKEN
+      size: 5
+      values: -0.603058 0.150764 0.150764 0.150764 0.150764
+      units: e
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: -0.000 0.000 0.000
+      units: Debye
+
+[PNTGRP]  Script=mopac.pntgrp  Freq=last  Skip=0  Lines=1
+  Begin=MOLECULAR POINT GROUP
+  begins=3 delivered=1 buffered_away=2
+  block 1: begin-line=245 fed=1 rc=0 first-fed='      MOLECULAR POINT GROUP   :   Td'
+    key: PNTGRP
+      size: 1
+      values: Td
+
+[VIBFREQ][VIBSYM][VIB]  Script=mopac.vib  Freq=last  Skip=1  Lines=-
+  Begin=NORMAL COORDINATE ANALYSIS
+  End=MASS-WEIGHTED COORDINATE ANALYSIS
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=340 fed=49 rc=0 first-fed=''
+    key: VIBFREQ
+      size: 9
+      rowlabels: 1 2 3 4 5 6 7 8 9
+      values: 1291.1 1291.1 1306.4 1306.4 1306.4 2689.9 2689.9 2689.9 2813.5
+      units: cm-1
+    key: VIBSYM
+      size: 9
+      values: 1E 1E 1T2 1T2 1T2 2T2 2T2 2T2 1A1
+    key: VIB
+      size: 9 5 3
+      vectorlabels: NA NA NA NA NA NA NA NA NA
+      rowlabels: 1 2 3 4 5
+      columnlabels: X Y Z
+      values: 0.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 -0.000000000000000e+00 -2.127000000000000e-01 -1.314000000000000e-01 -2.005000000000000e-01 -7.090000000000000e-02 1.314000000000000e-01 2.076000000000000e-01 6.590000000000000e-02 -1.228000000000000e-01 -7.100000000000000e-03 2.177000000000000e-01 1.228000000000000e-01 0.000000000000000e+00 0.000000000000000e+00 -0.000000000000000e ...[3035 chars]
+      units: Angstrom
+
+[EZEROPT]  Script=mopac.ezeropt  Freq=last  Skip=0  Lines=1
+  Begin=ZERO POINT ENERGY
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=337 fed=1 rc=0 first-fed='          ZERO POINT ENERGY      24.852 KCAL/MOL'
+    key: EZEROPT
+      size: 1
+      values: 24.852
+      units: kcal/mol
+
+[IP]  Script=mopac.ip  Freq=last  Skip=0  Lines=1
+  Begin=IONIZATION POTENTIAL
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=111 fed=1 rc=0 first-fed='          IONIZATION POTENTIAL    =         13.727659 EV'
+    key: IP
+      size: 1
+      values: 13.727659
+      units: eV
+
+[ETIME]  Script=mopac.etime  Freq=last  Skip=0  Lines=1
+  Begin=TOTAL JOB TIME:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=663 fed=1 rc=0 first-fed=' TOTAL JOB TIME:             0.10 SECONDS'
+    key: ETIME
+      size: 1
+      values: 0.10
+

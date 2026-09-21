@@ -194,7 +194,8 @@ args:    '.' 'Geometry' 'SCF' 'RHF' '0'
     key: MLKNSHELL
       size: 5
       rowlabels: 1 2 3 4 5
-      values: 1.99783558376459e+00 1.84893575617702e+00 4.48374096366066e+00 8.34751278474752e-01 8.34736417922977e-01 nunits: e
+      values: 1.99783558376459e+00 1.84893575617702e+00 4.48374096366066e+00 8.34751278474752e-01 8.34736417922977e-01
+      units: e
 
 [TEVEC]  Script=nwchem.te  Freq=all  Skip=-  Lines=-
   Begin=task_gradient%begin%total energy

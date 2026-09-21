@@ -137,23 +137,43 @@ End=Sum of atomic charges
 # produced zero frequencies whenever the symmetry lines were present --
 # confirmed live against a real ORCA 6.1.1 run, both with and without
 # UseSym, this session).
+#
+# End is the unanchored-dashes line that ORCA prints immediately BEFORE
+# the "NORMAL MODES" header, NOT "NORMAL MODES" itself.  That matters,
+# and it is not cosmetic: eccejobmonitor consumes the End-matching line
+# as part of this block, so an End of "NORMAL MODES" ate the very line
+# [VIB]'s Begin needs and [VIB] could therefore NEVER fire -- the exact
+# End-line starvation hazard mopac.desc's header warns about.  Effect:
+# every ORCA frequency job extracted VIBFREQ but no VIB at all, which
+# (see [VIB] below) means the "Vibrational Frequencies" panel never
+# appeared in the Properties menu for any ORCA job, with no error
+# anywhere.  Found 2026-09-21 by tests/parsers on a real ORCA 6.1.1
+# RHF/STO-3G Opt Freq run.
+# The pattern is anchored and requires an unindented run of dashes, so
+# it cannot match the indented separator lines inside other blocks.
 [VIBFREQ]
 Script=orca.vibfreq
 Begin=VIBRATIONAL FREQUENCIES
 Skip=4
 Frequency=last
-End=NORMAL MODES
+End=^-{4,}\s*$
 [END]
 
 # Without this, the Vibration entry doesn't appear in the Properties
 # menu at all -- PropertyPanelDescriptor.xml's "Vibrational Frequencies"
 # panel is gated on VIB (mode displacement vectors), not VIBFREQ.
+#
+# End is the dashes line before the "IR SPECTRUM" header, not
+# "IR SPECTRUM" itself, for the same reason [VIBFREQ] above stops before
+# "NORMAL MODES": consuming the header line would starve [VIBIR] the
+# moment [VIB] started firing (it only looked healthy before because
+# [VIB] never fired at all).
 [VIB]
 Script=orca.vib
 Begin=NORMAL MODES
 Skip=7
 Frequency=last
-End=IR SPECTRUM
+End=^-{4,}\s*$
 [END]
 
 # IR SPECTRUM's own block only lists the real vibrational modes (starts
@@ -286,10 +306,24 @@ Frequency=last
 End=Total charge:
 [END]
 
+# Begin is the summary table's own COLUMN HEADER, not the
+# "CHEMICAL SHIELDING SUMMARY (ppm)" section header one would reach for
+# first.  [SHIELDTENSOR] below ends on "CHEMICAL SHIELDING SUMMARY", and
+# eccejobmonitor consumes an End-matching line as part of that block, so
+# a Begin of "CHEMICAL SHIELDING SUMMARY \(ppm\)" could NEVER match --
+# ISOSHIELD/ANISOSHIELD were silently never extracted from any ORCA NMR
+# job (found 2026-09-21 by tests/parsers against a real ORCA 6.1.1
+# RHF/STO-3G NMR run; same End-line starvation family as [VIBFREQ]/[VIB]
+# above).  Anchoring past the other entry's End line fixes it without
+# touching [SHIELDTENSOR], whose own Begin line IS its first fed line
+# (no Skip), so its End cannot simply be moved onto a dashes line.
+# Skip=1 (the Begin line only): orca.isoshield ignores every line that
+# is not a "<n> <El> <iso> <aniso>" row, so the dashes line under the
+# header is harmless and need not be counted.
 [ISOSHIELD][ANISOSHIELD]
 Script=orca.isoshield
-Begin=CHEMICAL SHIELDING SUMMARY \(ppm\)
-Skip=5
+Begin=^\s*Nucleus\s+Element\s+Isotropic
+Skip=1
 Frequency=last
 End=NMR shielding tensor
 [END]

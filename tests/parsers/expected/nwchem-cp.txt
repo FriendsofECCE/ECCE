@@ -163,7 +163,7 @@ args:    '.' 'Car-Parrinello' 'Plane Wave' 'PSPW' '0'
       units: Debye
 
 [CORRELTN]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
-  Begin=begin%correlation energy
+  Begin=begin%(?:ccsd )?correlation energy
   begins=2 delivered=2 buffered_away=0
   block 1: begin-line=104 fed=2 rc=0 first-fed='task_energy pspw%begin%correlation energy%1%double'
     key: CORRELTN

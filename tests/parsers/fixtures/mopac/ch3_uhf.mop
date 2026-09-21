@@ -1,0 +1,7 @@
+PM7 UHF 1SCF CHARGE=0 DOUBLET
+methyl radical UHF doublet
+ECCE MOPAC regression fixture
+C    0.000000    0.000000    0.000000
+H    1.078000    0.000000    0.000000
+H   -0.539000    0.933000    0.000000
+H   -0.539000   -0.933000    0.000000

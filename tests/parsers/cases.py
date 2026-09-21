@@ -192,6 +192,666 @@ CASES = [
             'GEOMTRACE': dict(min_blocks=2, keys={'GEOMTRACE': {}}),
         },
     ),
+
+    # -----------------------------------------------------------------
+    # NWChem, issue #45 round 2: the property/correlated-method paths the
+    # first pass could not cover for lack of the right job types.
+    # -----------------------------------------------------------------
+    dict(
+        # `task scf property` on a closed-shell molecule run UHF -- the one
+        # wavefunction NWChem 7.2.3 will compute *all* of shielding,
+        # spin-spin, efield, efieldgrad and electrondensity for.  (RHF
+        # refuses spin-spin: "needs UHF wave function"; a genuinely
+        # open-shell UHF refuses it too: "needs closed shell UHF!".)
+        name='nwchem-h2o-property',
+        desc='nwchem.desc',
+        fixture='nwchem/h2o_prop.eprint',
+        parse_args=('.', 'Property', 'SCF', 'UHF', '0'),
+        silent_ok={
+            'MOLAB2': 'This job is C1, so NWChem emits no "group irrep '
+                      'names" block; [SYMLAB] never fires, the parseSym '
+                      'side file nwchem.molab reads is never written, and '
+                      'the numeric MO symmetry indices have nothing to map '
+                      'to. NWChem itself prints no labels for C1 either.',
+            'MOLAB3': 'See MOLAB2 -- same C1 case, beta spin.',
+        },
+        expect={
+            # NMR shielding: one nwchem.nmr invocation, four properties.
+            # Values are the raw ecce_print numbers, unchanged.
+            'SHIELDTENSOR': dict(blocks=1, keys={
+                'ISOSHIELD': {
+                    'values': '3.65691596574806e+02 3.36736926051824e+01 '
+                              '3.36736926051824e+01',
+                    'rowlabels': 'O H H',
+                    'units': 'ppm'},
+                'ANISOSHIELD': {
+                    'values': '4.02300283803942e+00 1.51661427193216e+01 '
+                              '1.51661427193216e+01',
+                    'units': 'ppm'},
+                # 3 atoms x 9 tensor components, in the atom order of the
+                # geometry -- pinned via the label vector, whose generation
+                # is the fiddly part of nwchem.nmr.
+                'SHIELDTENSOR': {
+                    'size': '27',
+                    'rowlabels': 'O-1-XX O-1-YX O-1-ZX O-1-XY O-1-YY O-1-ZY '
+                                 'O-1-XZ O-1-YZ O-1-ZZ H-2-XX H-2-YX H-2-ZX '
+                                 'H-2-XY H-2-YY H-2-ZY H-2-XZ H-2-YZ H-2-ZZ '
+                                 'H-3-XX H-3-YX H-3-ZX H-3-XY H-3-YY H-3-ZY '
+                                 'H-3-XZ H-3-YZ H-3-ZZ',
+                    'values_contain': '3.68373598466833e+02'},
+                'SHIELDEIGVAL': {
+                    'size': '9',
+                    'values_contain': '3.63677154189583e+02',
+                    'units': 'ppm'},
+            }),
+            # Property module: [EFIELD]'s Begin/End are both '^EField', and
+            # the block really does run from the module's entry line to its
+            # exit line -- pin the whole table so an off-by-one block would
+            # show up as a short/shifted value list.
+            'EFIELD': dict(blocks=1, keys={'EFIELD': {
+                'size': '3 3',
+                'columnlabels': 'X Y Z',
+                'values': '8.326672684688670e-16 -7.706535093075340e-17 '
+                          '3.910117256700740e-01 -8.553998786128360e-02 '
+                          '-5.613401779950160e-17 -2.756576639075070e-02 '
+                          '8.553998786128340e-02 1.041423697688570e-16 '
+                          '-2.756576639075090e-02',
+                'units': 'e/Bohr**2'}}),
+            # End='^EFG' (upper case) really is what closes the lower-case
+            # '^efg' block: NWChem prints the module name capitalised on the
+            # exit line.  If that ever changes the block runs away to EOF.
+            'EFIELDGRAD': dict(blocks=1, keys={
+                'EFIELDGRAD': {'size': '27',
+                               'values_contain': '-2.34593896764136e+00',
+                               'units': 'e/Bohr**3'},
+                'EFIELDASYMM': {'values': '7.62015616059500e-01 '
+                                          '1.27020322453368e-01 '
+                                          '1.27020322453367e-01'},
+                'EFIELDEIGVAL': {'size': '9'},
+            }),
+            'EDENS': dict(blocks=1, keys={'EDENS': {
+                'size': '3',
+                'values': '1.933138809532820e+02 3.627096967971920e-01 '
+                          '3.627096967971920e-01',
+                'units': 'e/Bohr**3'}}),
+            'SPINSPIN': dict(blocks=1, keys={
+                'SPINSPIN': {'size': '1 9',
+                             'rowlabels': '2-3',
+                             'columnlabels': 'XX YX ZX XY YY ZY XZ YZ ZZ',
+                             'units': 'Hertz'},
+                'SSISOTROPY': {'values': '-2.05163418156684e+01',
+                               'units': 'Hertz'},
+            }),
+        },
+    ),
+    dict(
+        # `property; hyperfine` needs a genuinely open-shell wavefunction,
+        # so it cannot share the fixture above.
+        name='nwchem-oh-hyperfine',
+        desc='nwchem.desc',
+        fixture='nwchem/oh_hfine.eprint',
+        parse_args=('.', 'Property', 'SCF', 'UHF', '1'),
+        expect={
+            # Regression guard for a typo this suite found on 2026-09-21:
+            # nwchem.mlknshell did print "\nn" instead of "\n" before the
+            # units: header, so whenever the shell count was not a multiple
+            # of 10 (i.e. nearly always) the record read "nunits: e" and the
+            # units section was silently lost.
+            'MLKNSHELL': dict(keys={'MLKNSHELL': {'units': 'e'}}),
+            'FERMI': dict(blocks=1, keys={'FERMI': {
+                'values': '-5.098865998460240e+01 -1.135131040009480e+02',
+                'units': 'MHertz'}}),
+            # [SPINDIPOLE] is a section label; the real keys are
+            # DIPOLETENSOR / DIPOLEEIGVAL (see KNOWN_KEY_ALIASES).
+            'SPINDIPOLE': dict(blocks=1, keys={
+                'DIPOLETENSOR': {'size': '18',
+                                 'values_contain': '-9.06057990151224e+01',
+                                 'units': 'au'},
+                'DIPOLEEIGVAL': {'size': '6',
+                                 'rowlabels': 'O-1-1 O-1-2 O-1-3 H-2-1 '
+                                              'H-2-2 H-2-3'},
+            }),
+        },
+    ),
+    dict(
+        # `task mp2` then `task ccsd(t)` in one deck: the correlated-method
+        # energies, plus the two nwchem.scalar branches nothing had ever
+        # triggered.
+        name='nwchem-h2o-mp2-ccsd',
+        desc='nwchem.desc',
+        fixture='nwchem/h2o_mp2ccsd.eprint',
+        parse_args=('.', 'Energy', 'MP2', 'MP2', '0'),
+        expect={
+            # nwchem.emp2 picks its output key off the matched Begin line,
+            # so all three of these share one script and must not be
+            # confused for one another.  ECCSDTPERT2 in particular exists
+            # only because /ccsd\(t\)/ does NOT match "ccsd+t(ccsd)".
+            'EMP2': dict(blocks=1, keys={
+                'EMP2': {'values': '-7.61128253843450e+01',
+                         'units': 'Hartree'}}),
+            'ECCSDTPERT': dict(blocks=1, keys={
+                'ECCSDTPERT': {'values': '-7.61203498558917e+01'}}),
+            'ECCSDTPERT2': dict(blocks=1, keys={
+                'ECCSDTPERT2': {'values': '-7.61204485951318e+01'}}),
+            # -------------------------------------------------------
+            # REGRESSION GUARDS for two nwchem.desc fixes made while
+            # closing #45 (same family as #80: the ecce_print tag
+            # wording is not what the Begin was written against).
+            #
+            # [RESIDNORM] Begin was 'begin%rms error'.  NWChem 7.2.3
+            # emits that tag only as 'ccsd rms error' -- the short form
+            # appears nowhere in the binary -- so the entry could never
+            # fire and Residual Norm was silently never extracted for
+            # any job, ever.  Nine CCSD iterations, so nine blocks.
+            'RESIDNORM': dict(blocks=9, keys={
+                'RESIDNORM': {'values': '7.81549290660813e-08'}}),
+            # [CORRELTN] Begin was 'begin%correlation energy', which the
+            # mp2 and dft modules do emit but ccsd does not: it tags its
+            # own as 'ccsd correlation energy'.  A plain `task ccsd(t)`
+            # job therefore produced no Correlation Energy at all.  With
+            # both matched this deck fires twice; the scalar overwrites,
+            # so the value that survives is the later task's (CCSD).
+            'CORRELTN': dict(blocks=2, keys={
+                'CORRELTN': {'values': '-1.35379522206962e-01',
+                             'units': 'Hartree'}}),
+            # nwchem.te picks up an MP2 job's total energy as TE (see the
+            # header comment in nwchem.emp2); here the last task is
+            # CCSD(T), so TE holds the CCSD(T) energy.
+            'TEPROP': dict(keys={'TE': {
+                'values': '-7.61203498558917e+01'}}),
+        },
+    ),
+    dict(
+        # `task scf freq`.  The vibrational entries were hand-checked
+        # against real output while closing #45 but had no fixture; this
+        # turns that into a guard.
+        name='nwchem-h2o-freq',
+        desc='nwchem.desc',
+        fixture='nwchem/h2o_freq.eprint',
+        parse_args=('.', 'Vibration', 'SCF', 'RHF', '0'),
+        silent_ok={
+            'MOLAB1': 'C1 geometry, so no "group irrep names" block and '
+                      'nothing for nwchem.molab to map (see '
+                      'nwchem-h2o-property).',
+        },
+        expect={
+            # All 3N modes are kept, the six near-zero translational/
+            # rotational ones included, exactly as the trace prints them --
+            # so a parser that silently dropped or shifted a column would
+            # show here.  The three real modes are the last three.
+            'VIBFREQ': dict(blocks=1, keys={'VIBFREQ': {
+                'size': '9',
+                'values': '-1.09717334689780e-05 0.00000000000000e+00 '
+                          '0.00000000000000e+00 0.00000000000000e+00 '
+                          '8.33018468071379e-06 5.05042273434360e-05 '
+                          '2.04328901326101e+03 4.48845003855228e+03 '
+                          '4.76758517976390e+03',
+                'units': 'cm-1'}}),
+            # Begin must stay on the '(KM/mol)' variant: NWChem also prints
+            # a bare 'projected intensities' block and a
+            # 'projected intensities (debye/ang)2' one just before it.
+            'VIBIR': dict(blocks=1, keys={'VIBIR': {
+                'size': '9',
+                'values_contain': '2.00108732044751e+01',
+                'units': 'KM/Mole'}}),
+            # 9 modes x 3 atoms x 3 cartesian components.
+            'VIB': dict(blocks=1, keys={'VIB': {
+                'size': '9 3 3',
+                'columnlabels': 'X Y Z',
+                'units': 'Angstrom'}}),
+        },
+    ),
+
+    # -----------------------------------------------------------------
+    # ORCA round 2 (the 15 parse types no fixture exercised).  Two real
+    # bugs came out of writing these; both are fixed in orca.desc and
+    # both are guarded below -- see orca-h2o-optfreq's [VIB] note and
+    # orca-h2o-nmr's [ISOSHIELD][ANISOSHIELD] note.
+    # -----------------------------------------------------------------
+    dict(
+        # RHF/STO-3G Opt Freq: the whole optimisation + vibration +
+        # thermochemistry side of orca.desc in one job.
+        name='orca-h2o-optfreq',
+        desc='orca.desc',
+        fixture='orca/h2o_optfreq.out',
+        parse_args=('.', 'GeoVib', 'SCF', 'RHF', '0'),
+        expect={
+            'GEOMTRACE': dict(min_blocks=5, keys={'GEOMTRACE': {
+                'size': '1 3 3',
+                'rowlabels': '1-O 2-H 3-H',
+                'values': '0.000000 0.000000 0.123868 0.000000 0.758080 '
+                          '-0.511934 0.000000 -0.758080 -0.511934',
+                'units': 'Angstrom'}}),
+            # One entry, Frequency=all: TE keeps being overwritten and ends
+            # up holding the converged energy while TEVEC accumulates the
+            # trace (the combined-entry pattern orca.desc documents).
+            'TE][TEVEC': dict(blocks=5, keys={
+                'TE': {'values': '-74.965901192193', 'units': 'Hartree'},
+                'TEVEC': {'values': '-74.965901192193'},
+            }),
+            'NNREPUL][ONEELEC][TWOELEC': dict(blocks=5, keys={
+                'NNREPUL': {'values': '8.90649018320854', 'units': 'Hartree'},
+                'ONEELEC': {'values': '-121.83412579918161'},
+                'TWOELEC': {'values': '37.96173442378014'},
+            }),
+            # Lines=2 must take the Potential Energy line AND the Kinetic
+            # Energy line that follows it; a Lines=1 would leave KE empty.
+            'PE][KE': dict(blocks=5, keys={
+                'PE': {'values': '-149.48450353024197', 'units': 'Hartree'},
+                'KE': {'values': '74.51860233804906'},
+            }),
+            # Needs ai.orca's "%output Print[P_MOs] 1 end"; the fixture's
+            # deck carries it.  Closed shell, so the BETA keys are
+            # correctly absent -- see orca-oh-uhf for those.
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA': dict(
+                keys={
+                    'ORBENG': {'values': '-20.25158 -1.25755 -0.59386 '
+                                         '-0.45973 -0.39262 0.58179 0.69267',
+                               'units': 'Hartree'},
+                    'ORBOCC': {'values': '2.00000 2.00000 2.00000 2.00000 '
+                                         '2.00000 0.00000 0.00000',
+                               'units': 'electrons'},
+                    'MO': {'size': '7 7'},
+                }),
+            'EGRAD][EGRADVEC': dict(blocks=4, keys={
+                'EGRAD': {'values': '0.0000258219', 'units': 'Hartree/Bohr'},
+                'EGRADVEC': {'size': '3 3',
+                             'values': '-0.000000000 0.000000000 0.000016520 '
+                                       '0.000000000 0.000011345 -0.000008260 '
+                                       '-0.000000000 -0.000011345 '
+                                       '-0.000008260'},
+            }),
+            # ORCA prints a.u.; orca.dipole converts to Debye.
+            # -0.672453762 au * 2.541746 = -1.70924... -- pinned because a
+            # dropped conversion would still look like a plausible number.
+            'DIPOLE': dict(keys={'DIPOLE': {
+                'rowlabels': 'X Y Z',
+                'values': '0 0 -1.70924162734408',
+                'units': 'Debye'}}),
+            # Needs ai.orca's "%elprop Quadrupole true end".
+            'QUADPOLE': dict(keys={'QUADPOLE': {
+                'rowlabels': 'XX XY XZ YY YZ ZZ',
+                'values': '-4.554279009 -0.000000000 0.000000000 '
+                          '-3.334921215 -0.000000000 -3.822777869',
+                'units': 'au'}}),
+            'MULLIKEN': dict(keys={'MULLIKEN': {
+                'values': '-0.330530 0.165265 0.165265', 'units': 'e'}}),
+            # ---------------------------------------------------------
+            # REGRESSION GUARD, bug found by this suite on 2026-09-21
+            # and fixed in orca.desc the same day.
+            #
+            # [VIBFREQ]'s End used to be `NORMAL MODES`.  eccejobmonitor
+            # consumes the End-matching line as part of the block, so it
+            # ate the very line [VIB]'s Begin needs -- and [VIB] could
+            # therefore NEVER fire, on any ORCA job, ever.  Because
+            # PropertyPanelDescriptor.xml gates the "Vibrational
+            # Frequencies" panel on VIB and not on VIBFREQ, that meant
+            # ORCA frequency jobs extracted correct frequencies and
+            # still showed no vibration panel at all, with no error
+            # anywhere.  Same End-line starvation family as the .desc
+            # bugs in CLAUDE.md; mopac.desc's header warns about
+            # exactly this and ORCA had it.
+            #
+            # The fix stops [VIBFREQ] on the dashes line that precedes
+            # the header instead.  [VIB]'s own End had the identical
+            # problem one step further down the chain (End=`IR
+            # SPECTRUM` would have starved [VIBIR] the moment [VIB]
+            # started firing -- [VIBIR] only looked healthy because
+            # [VIB] never fired), so it stops on dashes too.
+            #
+            # All three are asserted together on purpose: they are
+            # row-indexed against each other by NModePanel, so the
+            # lengths must agree -- 9 = 3N for water, translations and
+            # rotations included as zeros.
+            # ---------------------------------------------------------
+            'VIBFREQ': dict(keys={'VIBFREQ': {
+                'size': '9',
+                'values': '0.00 0.00 0.00 0.00 0.00 0.00 2169.82 4139.63 '
+                          '4390.66',
+                'units': 'cm-1'}}),
+            'VIB': dict(blocks=1, keys={'VIB': {
+                'size': '9 3 3',
+                'rowlabels': '1 2 3',
+                'columnlabels': 'X Y Z'}}),
+            'VIBIR': dict(keys={'VIBIR': {
+                'size': '9',
+                'values': '0 0 0 0 0 0 7.24 44.27 29.93',
+                'units': 'KM/Mole'}}),
+            'PNTGRP': dict(keys={'PNTGRP': {'values': 'C2v'}}),
+            'EZEROPT': dict(keys={'EZEROPT': {'values': '0.02437665',
+                                              'units': 'Hartree'}}),
+            'ETHERM': dict(keys={'ETHERM': {'values': '-74.93869172',
+                                            'units': 'Hartree'}}),
+            'ENTHALPY': dict(keys={'ENTHALPY': {'values': '-74.93774751',
+                                                'units': 'Hartree'}}),
+            'ENTROPY': dict(keys={'ENTROPY': {'values': '0.02151523',
+                                              'units': 'Hartree'}}),
+            'EGIBBS': dict(keys={'EGIBBS': {'values': '-74.95926274',
+                                            'units': 'Hartree'}}),
+            # orca.deltae matches the SCF iteration line's own shape, so
+            # it fires once per iteration across all five SCF runs.  The
+            # last delivered block is the last iteration of the final SCF.
+            'DELTAE': dict(min_blocks=20, keys={'DELTAE': {
+                'units': 'Hartree'}}),
+            'ETIME': dict(keys={'ETIME': {}}),
+        },
+    ),
+    dict(
+        # UHF/STO-3G doublet: S2 and the beta-spin orbital path, neither
+        # of which any closed-shell fixture can reach.
+        name='orca-oh-uhf',
+        desc='orca.desc',
+        fixture='orca/oh_uhf.out',
+        parse_args=('.', 'Energy', 'SCF', 'UHF', '1'),
+        expect={
+            'S2': dict(keys={'S2': {'values': '0.753262'}}),
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA': dict(
+                blocks=1, keys={
+                    'ORBENG': {'values': '-20.28571 -1.29219 -0.55098 '
+                                         '-0.52456 -0.42967 0.62006'},
+                    'ORBENGBETA': {'values': '-20.25724 -1.12820 -0.50287 '
+                                             '-0.37779 0.36003 0.65576'},
+                    # A doublet: 5 alpha, 4 beta, occupations 1.0 not 2.0.
+                    'ORBOCC': {'values': '1.00000 1.00000 1.00000 1.00000 '
+                                         '1.00000 0.00000',
+                               'units': 'electrons'},
+                    'ORBOCCBETA': {'values': '1.00000 1.00000 1.00000 '
+                                             '1.00000 0.00000 0.00000'},
+                    'MO': {'size': '6 6'},
+                    'MOBETA': {'size': '6 6'},
+                }),
+            # For an open-shell job ORCA's MULLIKEN ATOMIC CHARGES table
+            # grows a second column (the spin population):
+            #     0 O :   -0.164453    1.069760
+            # The charge is column 1; the spin population must NOT be
+            # mistaken for a second atom's charge or for the charge
+            # itself.  That mistake, in the mirror-image direction, is
+            # the open-shell Gaussian bug this suite found the same day
+            # (see g16-oh-uhf), so pin it here for ORCA too.
+            'MULLIKEN': dict(keys={'MULLIKEN': {
+                'size': '2',
+                'values': '-0.164453 0.164453',
+                'units': 'e'}}),
+            'DIPOLE': dict(keys={'DIPOLE': {
+                'values': '0 0 1.2784905855448', 'units': 'Debye'}}),
+            'QUADPOLE': dict(keys={'QUADPOLE': {
+                'values': '-3.696669441 0.296906302 0.000000000 '
+                          '-3.717599094 0.000000000 -3.087273634'}}),
+            'TE][TEVEC': dict(blocks=1, keys={
+                'TE': {'values': '-74.362669195155'}}),
+        },
+    ),
+    dict(
+        # RHF/STO-3G NMR CHELPG: the NMR shielding and ESP-charge entries.
+        # ai.orca's Magnetic runtype emits "! NMR"; it has no CHELPG path
+        # at all, so ESPCHARGE is currently unreachable from the GUI (see
+        # the report/README) -- the deck adds CHELPG by hand so the parser
+        # is at least covered.
+        name='orca-h2o-nmr',
+        desc='orca.desc',
+        fixture='orca/h2o_nmr_chelpg.out',
+        parse_args=('.', 'Magnetic', 'SCF', 'RHF', '0'),
+        expect={
+            # ---------------------------------------------------------
+            # REGRESSION GUARD, second bug found by this suite on
+            # 2026-09-21 and fixed in orca.desc the same day, same
+            # End-line starvation family as [VIB] above.
+            #
+            # [ISOSHIELD][ANISOSHIELD]'s Begin used to be `CHEMICAL
+            # SHIELDING SUMMARY \(ppm\)`.  [SHIELDTENSOR]'s End is
+            # `CHEMICAL SHIELDING SUMMARY`, and the End-matching line is
+            # consumed by that block -- so this Begin could never match
+            # and ORCA NMR jobs silently never produced ISOSHIELD or
+            # ANISOSHIELD, while SHIELDTENSOR/SHIELDEIGVAL from the very
+            # same section worked fine.
+            #
+            # Fixed by anchoring the Begin on the summary table's own
+            # column header, which lies past [SHIELDTENSOR]'s End line.
+            # Cross-check that the two entries agree: SHIELDEIGVAL's
+            # three H eigenvalues average to ISOSHIELD's H value
+            # ((27.026+30.232+43.780)/3 = 33.679).
+            # ---------------------------------------------------------
+            'ISOSHIELD][ANISOSHIELD': dict(blocks=1, keys={
+                'ISOSHIELD': {'rowlabels': '0-O 1-H 2-H',
+                              'values': '365.694 33.679 33.679',
+                              'units': 'ppm'},
+                'ANISOSHIELD': {'values': '4.029 15.151 15.151',
+                                'units': 'ppm'},
+            }),
+            'SHIELDTENSOR][SHIELDEIGVAL': dict(blocks=1, keys={
+                'SHIELDTENSOR': {
+                    'size': '27',
+                    'rowlabels': '0-O-XX 0-O-XY 0-O-XZ 0-O-YX 0-O-YY 0-O-YZ '
+                                 '0-O-ZX 0-O-ZY 0-O-ZZ 1-H-XX 1-H-XY 1-H-XZ '
+                                 '1-H-YX 1-H-YY 1-H-YZ 1-H-ZX 1-H-ZY 1-H-ZZ '
+                                 '2-H-XX 2-H-XY 2-H-XZ 2-H-YX 2-H-YY 2-H-YZ '
+                                 '2-H-ZX 2-H-ZY 2-H-ZZ',
+                    'units': 'ppm'},
+                'SHIELDEIGVAL': {
+                    'size': '9',
+                    'values': '363.670 365.032 368.379 27.026 30.232 43.780 '
+                              '27.026 30.232 43.780',
+                    'units': 'ppm'},
+            }),
+            'ESPCHARGE': dict(blocks=1, keys={'ESPCHARGE': {
+                'size': '3 1',
+                'rowlabels': '0-O 1-H 2-H',
+                'values': '-0.618788 0.309403 0.309386',
+                'units': 'e'}}),
+        },
+    ),
+
+    # -----------------------------------------------------------------
+    # MOPAC (issue #86).  Integrated 2026-09-21 with no regression
+    # coverage at all; these are the first cases for it.  MOPAC is
+    # semiempirical, so the energies are heats of formation in kcal/mol
+    # and there is no basis set anywhere in the pipeline.
+    # -----------------------------------------------------------------
+    dict(
+        # PM7 EF PRECISE geometry optimisation of methane.
+        name='mopac-ch4-opt',
+        desc='mopac.desc',
+        fixture='mopac/ch4_opt.out',
+        parse_args=('.', 'Geometry', 'SE', 'RPM7', '0'),
+        expect={
+            # A geometry job prints the "FINAL HEAT OF FORMATION" wording,
+            # which is the only one mopac.energy emits TEVEC for (a FORCE
+            # job's repeated non-final wording would otherwise make TEVEC
+            # longer than GEOMTRACE -- see mopac-ch4-force below).
+            # kcal/mol is the Energy converter's own base unit, so the
+            # number must pass through unconverted.
+            'TE][TEVEC][HFENERGY': dict(blocks=1, keys={
+                'TE': {'values': '-14.40441', 'units': 'kcal/mol'},
+                'TEVEC': {'values': '-14.40441', 'units': 'kcal/mol'},
+                'HFENERGY': {'values': '-14.40441', 'units': 'kcal/mol'},
+            }),
+            # MOPAC prints no per-cycle geometry at ordinary verbosity, so
+            # this trace is the input echo (4 decimals) plus the final
+            # geometry (9 decimals) -- two frames, deliberately, and the
+            # last one is what CalcMgr's "reuse the optimized geometry"
+            # path reads.  Both table layouts must parse despite only one
+            # Skip value being available for both (mopac.desc's note).
+            'GEOMTRACE': dict(blocks=2, keys={'GEOMTRACE': {
+                'size': '1 5 3',
+                'rowlabels': '1-C 2-H 3-H 4-H 5-H',
+                'values_contain': '0.626527549',
+                'units': 'Angstrom'}}),
+            # One block, two properties: MOPAC prints the dipole table
+            # immediately after the charge table with no separator, which
+            # is why they are a single combined entry.
+            'MULLIKEN][DIPOLE': dict(blocks=1, keys={
+                'MULLIKEN': {'values': '-0.603058 0.150764 0.150764 '
+                                       '0.150764 0.150764',
+                             'units': 'e'},
+                'DIPOLE': {'rowlabels': 'X Y Z', 'units': 'Debye'},
+            }),
+            # Frequency=last: MOPAC prints the point group twice (before
+            # and after optimisation) and the post-optimisation one wins.
+            # PRECISE is what gets methane to real Td here; a loosely
+            # converged run reports D2d, so this also guards the fixture.
+            'PNTGRP': dict(keys={'PNTGRP': {'values': 'Td'}}),
+            'IP': dict(keys={'IP': {'values': '13.727659', 'units': 'eV'}}),
+            'ETIME': dict(keys={'ETIME': {}}),
+        },
+    ),
+    dict(
+        # ---------------------------------------------------------------
+        # PM7 FORCE THERMO on METHANE, not water, on purpose.
+        #
+        # MOPAC's friendly "DESCRIPTION OF VIBRATIONS" section COLLAPSES
+        # symmetry-degenerate modes: CH4 has 9 modes but only 4 distinct
+        # frequencies, so sourcing VIBFREQ from there against a 9-mode
+        # VIB silently misaligns the two, and NModePanel indexes VIBFREQ,
+        # VIBSYM and VIB against each other row by row.  mopac.desc
+        # therefore takes all three from the single NORMAL COORDINATE
+        # ANALYSIS block, which lists every mode.
+        #
+        # This case pins the mode COUNT (9) and the degeneracy pattern
+        # (2 x E, 3 x T2, 3 x T2, 1 x A1) so that cannot be reintroduced.
+        # A C2v molecule such as water has no degeneracies and cannot
+        # expose it at all -- which is exactly how it hid the first time.
+        # ---------------------------------------------------------------
+        name='mopac-ch4-force',
+        desc='mopac.desc',
+        fixture='mopac/ch4_force.out',
+        parse_args=('.', 'Vibration', 'SE', 'RPM7', '0'),
+        expect={
+            'VIBFREQ][VIBSYM][VIB': dict(blocks=1, keys={
+                'VIBFREQ': {
+                    'size': '9',
+                    'values': '1291.2 1291.2 1306.5 1306.5 1306.5 2689.9 '
+                              '2689.9 2689.9 2813.7',
+                    'units': 'cm-1'},
+                # Four distinct frequencies, nine modes: the degeneracy
+                # pattern itself.  If VIBFREQ ever came from DESCRIPTION
+                # OF VIBRATIONS again it would have four rows here.
+                'VIBSYM': {'size': '9',
+                           'values': '1E 1E 1T2 1T2 1T2 2T2 2T2 2T2 1A1'},
+                # 9 modes x 5 atoms x 3 Cartesian components: same mode
+                # count as VIBFREQ/VIBSYM, structurally.
+                'VIB': {'size': '9 5 3',
+                        'rowlabels': '1 2 3 4 5',
+                        'columnlabels': 'X Y Z',
+                        'units': 'Angstrom'},
+            }),
+            # A FORCE-only run prints the SHORTER "HEAT OF FORMATION ="
+            # wording (no "FINAL", KCALS/MOLE not KCAL/MOL), twice.  The
+            # one entry's optional "FINAL " covers both wordings -- a
+            # Vibration runtype would otherwise extract no energy at all.
+            # TEVEC is deliberately NOT emitted for this wording, so that
+            # len(TEVEC) can never exceed len(GEOMTRACE).
+            'TE][TEVEC][HFENERGY': dict(blocks=2, keys={
+                'TE': {'values': '-14.404414', 'units': 'kcal/mol'},
+                'HFENERGY': {'values': '-14.404414'},
+            }),
+            'EZEROPT': dict(keys={'EZEROPT': {'values': '24.854',
+                                              'units': 'kcal/mol'}}),
+            'GEOMTRACE': dict(blocks=1, keys={'GEOMTRACE': {}}),
+            'PNTGRP': dict(keys={'PNTGRP': {'values': 'Td'}}),
+        },
+    ),
+    dict(
+        # PM7 EF + a second OLDGEO FORCE data set in one file: what
+        # ai.mopac writes for the GeoVib runtype, and the only shape in
+        # which MOPAC can express "optimise then vibrate".
+        name='mopac-ch4-geovib',
+        desc='mopac.desc',
+        fixture='mopac/ch4_geovib.out',
+        parse_args=('.', 'GeoVib', 'SE', 'RPM7', '0'),
+        expect={
+            # Three energy matches (one FINAL from the optimisation, two
+            # non-FINAL from the FORCE data set) but only ONE TEVEC
+            # frame, against three GEOMTRACE frames: the invariant
+            # mopac.desc relies on to keep the Geometry Trace plot from
+            # having more points than the trace has frames (which would
+            # drive GTStepCmd into PropTSVecTable::value()'s
+            # out-of-bounds path).
+            'TE][TEVEC][HFENERGY': dict(blocks=3, keys={
+                'TE': {'values': '-14.404414'},
+                'HFENERGY': {'values': '-14.404414'},
+            }),
+            'GEOMTRACE': dict(blocks=3, keys={'GEOMTRACE': {
+                'size': '1 5 3',
+                'units': 'Angstrom'}}),
+            # Both data sets' vibrational output is in one file; the
+            # second data set is the one with the NORMAL COORDINATE
+            # ANALYSIS block, and Frequency=last picks it.
+            'VIBFREQ][VIBSYM][VIB': dict(blocks=1, keys={
+                'VIBFREQ': {'size': '9'},
+                'VIBSYM': {'size': '9'},
+                'VIB': {'size': '9 5 3'},
+            }),
+            'EZEROPT': dict(keys={'EZEROPT': {'units': 'kcal/mol'}}),
+            'MULLIKEN][DIPOLE': dict(blocks=1, keys={'MULLIKEN': {}}),
+            'PNTGRP': dict(keys={'PNTGRP': {'values': 'Td'}}),
+            'IP': dict(keys={'IP': {'values': '13.727659'}}),
+        },
+    ),
+    dict(
+        # PM7 1SCF GRADIENTS -- the only runtype that produces MOPAC's
+        # PARAMETER/ATOM/TYPE gradient table, and so the only one that
+        # can exercise [EGRADVEC].
+        name='mopac-h2o-grad',
+        desc='mopac.desc',
+        fixture='mopac/h2o_grad.out',
+        parse_args=('.', 'Gradient', 'SE', 'RPM7', '0'),
+        expect={
+            # MOPAC prints kcal/mol per Angstrom; ECCE wants Hartree/Bohr.
+            # Pinned at full precision because a dropped or doubled
+            # conversion still yields a plausible-looking gradient:
+            # -1.252503 kcal/(mol A) * 0.001593601451 * 0.52917725 =
+            # -0.0010562327 Hartree/Bohr.
+            'EGRADVEC': dict(blocks=1, keys={'EGRADVEC': {
+                'size': '3 3',
+                'columnlabels': 'X Y Z',
+                'values': '-0.0010562327 0.0000000000 -0.0026106831 '
+                          '0.0007823575 0.0000000000 0.0018591557 '
+                          '0.0002738752 0.0000000000 0.0007515265',
+                'units': 'Hartree/Bohr'}}),
+            'TE][TEVEC][HFENERGY': dict(keys={
+                'TE': {'values': '-57.78812', 'units': 'kcal/mol'},
+                'TEVEC': {'values': '-57.78812'},
+            }),
+            'MULLIKEN][DIPOLE': dict(blocks=1, keys={
+                'MULLIKEN': {'values': '-0.645579 0.323084 0.322495',
+                             'units': 'e'},
+                # A real, non-zero dipole (water, unlike methane), so the
+                # X/Y/Z row split is actually exercised.
+                'DIPOLE': {'values': '1.690 -0.000 1.315',
+                           'rowlabels': 'X Y Z',
+                           'units': 'Debye'},
+            }),
+            'PNTGRP': dict(keys={'PNTGRP': {'values': 'C2v'}}),
+            'IP': dict(keys={'IP': {'values': '12.092724', 'units': 'eV'}}),
+        },
+    ),
+    dict(
+        # PM7 UHF 1SCF DOUBLET methyl radical: the open-shell path.
+        # MOPAC's charge table has the same shape open- or closed-shell
+        # (no spin-density column, unlike Gaussian's and ORCA's), so the
+        # value list must be one entry per atom and nothing else -- the
+        # guard for the open-shell-charge-table bug family (#80,
+        # g16-oh-uhf, orca-oh-uhf).
+        name='mopac-ch3-uhf',
+        desc='mopac.desc',
+        fixture='mopac/ch3_uhf.out',
+        parse_args=('.', 'Energy', 'SE', 'UPM7', '1'),
+        expect={
+            'MULLIKEN][DIPOLE': dict(blocks=1, keys={'MULLIKEN': {
+                'size': '4',
+                'values': '-0.411272 0.137160 0.137056 0.137056',
+                'units': 'e'}}),
+            'TE][TEVEC][HFENERGY': dict(keys={
+                'TE': {'values': '28.40785', 'units': 'kcal/mol'},
+                'HFENERGY': {'values': '28.40785'},
+            }),
+            'PNTGRP': dict(keys={'PNTGRP': {'values': 'D3h'}}),
+            'IP': dict(keys={'IP': {'values': '9.910583', 'units': 'eV'}}),
+            'GEOMTRACE': dict(blocks=2, keys={'GEOMTRACE': {
+                'size': '1 4 3'}}),
+            'ETIME': dict(keys={'ETIME': {}}),
+        },
+    ),
 ]
 
 
@@ -273,6 +933,11 @@ KNOWN_KEY_ALIASES = {
     ('nwchem.desc', 'GEOMCAR'):
         "Script=nwchem.geomtrace emits GEOMTRACE; GEOMCAR is the section "
         "label for the plane-wave (nwpw) cartesian coordinate block.",
+    ('nwchem.desc', 'SPINDIPOLE'):
+        "Script=nwchem.spindipole emits DIPOLETENSOR and DIPOLEEIGVAL, "
+        "which are the property names data/client/config/properties "
+        "actually declares (SPINDIPOLE is not a property name at all); "
+        "SPINDIPOLE is this entry's section label only.",
     ('nwchem.desc', 'TEPROP'):
         "Script=nwchem.te emits TE; TEPROP is the section label for the "
         "energy printed by a property task.",

@@ -1,0 +1,190 @@
+ *******************************************************************************
+ **                                                                           **
+ **                              MOPAC v23.1.2                                **
+ **                                                                           **
+ *******************************************************************************
+ **          Digital Object Identifier (DOI): 10.5281/zenodo.6511958          **
+ **    Visit the DOI location for information on how to cite this program.    **
+ *******************************************************************************
+
+                              PM7 CALCULATION RESULTS
+
+ *******************************************************************************
+ *  CALCULATION DONE: (MAX THREADS = 8)              Mon Sep 21 14:49:54 2026  *
+ *  PM7        - The PM7 Hamiltonian to be used
+ *  DOUBLET    - SPIN STATE DEFINED AS A DOUBLET
+ *  UHF        - UNRESTRICTED HARTREE-FOCK CALCULATION
+ *
+ *
+ *
+ *                 CHARGE ON SYSTEM = 0
+ *
+ *
+ *
+ *  1SCF       - DO 1 SCF AND THEN STOP 
+ *  T=         - A TIME OF 172800.0 SECONDS REQUESTED
+ *  DUMP=N     - RESTART FILE WRITTEN EVERY 7200.0 SECONDS REQUESTED
+ *******************************************************************************
+PM7 UHF 1SCF CHARGE=0 DOUBLET
+ methyl radical UHF doublet
+ ECCE MOPAC regression fixture
+   ATOM   CHEMICAL          X               Y               Z
+  NUMBER   SYMBOL      (ANGSTROMS)     (ANGSTROMS)     (ANGSTROMS)
+
+     1       C          0.00000000  *   0.00000000  *   0.00000000  *
+     2       H          1.07800000  *   0.00000000  *   0.00000000  *
+     3       H         -0.53900000  *   0.93300000  *   0.00000000  *
+     4       H         -0.53900000  *  -0.93300000  *   0.00000000  *
+
+
+
+          CARTESIAN COORDINATES 
+
+    NO.       ATOM           X           Y           Z
+
+     1         C          0.0000      0.0000      0.0000
+     2         H          1.0780      0.0000      0.0000
+     3         H         -0.5390      0.9330      0.0000
+     4         H         -0.5390     -0.9330      0.0000
+
+ General Reference for PM7:
+ "Optimization of Parameters for Semiempirical Methods VI: More Modifications to the 
+ NDDO Approximations and Re-optimization of Parameters", J. J. P. Stewart, J. Mol. Mod., 1:32, 19 (2013)
+ https://link.springer.com/article/10.1007/s00894-012-1667-x
+
+           Empirical Formula: C H3  =     4 atoms
+
+
+
+      MOLECULAR POINT GROUP   :   D3h 
+
+
+ DOUBLET STATE CALCULATION
+
+
+          UHF CALCULATION, NO. OF ALPHA ELECTRONS =    4
+                           NO. OF BETA  ELECTRONS =    3
+
+ -------------------------------------------------------------------------------
+ PM7 UHF 1SCF CHARGE=0 DOUBLET
+ methyl radical UHF doublet
+ ECCE MOPAC regression fixture
+
+
+     1SCF WAS SPECIFIED, SO BFGS WAS NOT USED                 
+     SCF FIELD WAS ACHIEVED                                   
+
+
+                              PM7 CALCULATION
+                                                       MOPAC v23.1.2 Linux
+                                                       Mon Sep 21 14:49:54 2026
+
+
+
+
+          FINAL HEAT OF FORMATION =         28.40785 KCAL/MOL =     118.85846 KJ/MOL
+
+
+          COSMO AREA              =         53.54 SQUARE ANGSTROMS
+          COSMO VOLUME            =         36.07 CUBIC ANGSTROMS
+
+          IONIZATION POTENTIAL    =          9.910583 EV
+          ALPHA SOMO LUMO (EV)    =         -9.911  6.079
+          BETA  SOMO LUMO (EV)    =        -14.061  0.599
+          NO. OF ALPHA ELECTRONS  =          4
+          NO. OF BETA  ELECTRONS  =          3
+          MOLECULAR WEIGHT        =         15.0347         POINT GROUP:  D3h 
+
+          MOLECULAR DIMENSIONS (Angstroms)
+
+            Atom       Atom       Distance
+            H     3    H     2     1.86686
+            H     4    H     2     1.61625
+            C     1    H     2     0.00000
+
+
+          SCF CALCULATIONS        =          1
+
+          WALL-CLOCK TIME         =      0.008 SECONDS
+          COMPUTATION TIME        =      0.060 SECONDS
+
+
+
+
+   ATOM   CHEMICAL          X               Y               Z
+  NUMBER   SYMBOL      (ANGSTROMS)     (ANGSTROMS)     (ANGSTROMS)
+
+     1       C          0.00000000  *   0.00000000  *   0.00000000  *
+     2       H          1.07800000  *   0.00000000  *   0.00000000  *
+     3       H         -0.53900000  *   0.93300000  *   0.00000000  *
+     4       H         -0.53900000  *  -0.93300000  *   0.00000000  *
+
+                             CARTESIAN COORDINATES
+
+   1    C        0.000000000     0.000000000     0.000000000
+   2    H        1.078000000     0.000000000     0.000000000
+   3    H       -0.539000000     0.933000000     0.000000000
+   4    H       -0.539000000    -0.933000000     0.000000000
+
+
+           Empirical Formula: C H3  =     4 atoms
+
+
+
+      MOLECULAR POINT GROUP   :   D3h 
+
+
+          ALPHA EIGENVALUES  
+ -23.39207 -14.33883 -14.33807  -9.91058   6.07937   6.08038   6.32931
+
+
+           BETA EIGENVALUES 
+ -22.93456 -14.06197 -14.06113   0.59878   6.26820   6.26921   6.64578
+
+
+              NET ATOMIC CHARGES AND DIPOLE CONTRIBUTIONS
+
+  ATOM NO.   TYPE          CHARGE      No. of ELECS.   s-Pop       p-Pop       
+    1          C          -0.411272        4.4113     1.14615     3.26512
+    2          H           0.137160        0.8628     0.86284
+    3          H           0.137056        0.8629     0.86294
+    4          H           0.137056        0.8629     0.86294
+ DIPOLE           X         Y         Z       TOTAL
+ POINT-CHG.     0.001    -0.000     0.000     0.001
+ HYBRID        -0.000     0.000     0.000     0.000
+ SUM            0.000    -0.000     0.000     0.000
+
+
+          ATOMIC ORBITAL ELECTRON POPULATIONS
+
+     Atom    s        px        py        pz   
+    1  C   1.14615   1.13251   1.13261   1.00000
+    2  H   0.86284
+    3  H   0.86294
+    4  H   0.86294
+
+
+                    (SZ)    =    0.500000
+                    (S**2)  =    0.753017
+
+
+          ATOMIC ORBITAL SPIN POPULATIONS
+
+    Atom   Total    s     px     py     pz   
+         Atomic
+    1  C  1.0937  0.027  0.034  0.034  1.000
+    2  H -0.0313 -0.031
+    3  H -0.0312 -0.031
+    4  H -0.0312 -0.031
+
+ **********************
+ *                    *
+ * JOB ENDED NORMALLY *
+ *                    *
+ **********************
+
+
+
+ TOTAL JOB TIME:             0.01 SECONDS
+
+ == MOPAC DONE ==

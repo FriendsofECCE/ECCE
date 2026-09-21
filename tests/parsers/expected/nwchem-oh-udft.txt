@@ -123,7 +123,8 @@ args:    '.' 'Energy' 'DFT' 'UDFT' '1'
     key: MLKNSHELL
       size: 4
       rowlabels: 1 2 3 4
-      values: 1.10762488176803e-04 6.61539465167833e-03 1.02269616280064e+00 -2.94223199404981e-02 nunits: e
+      values: 1.10762488176803e-04 6.61539465167833e-03 1.02269616280064e+00 -2.94223199404981e-02
+      units: e
 
 [TEPROP]  Script=nwchem.te  Freq=last  Skip=-  Lines=-
   Begin=^task_energy%begin%total energy

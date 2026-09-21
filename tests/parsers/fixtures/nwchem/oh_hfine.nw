@@ -1,0 +1,19 @@
+start ohhfine
+title "OH radical UHF hyperfine: fermi contact and spin-dipole"
+echo
+geometry units angstroms
+  O   0.000000   0.000000   0.000000
+  H   0.000000   0.000000   0.970000
+end
+basis
+  * library STO-3G
+end
+ecce_print oh_hfine.eprint
+scf
+  uhf
+  nopen 1
+end
+property
+  hyperfine 2 1 2
+end
+task scf property

@@ -1,0 +1,12 @@
+! UHF STO-3G
+%output
+  Print[P_MOs] 1
+end
+%elprop
+  Quadrupole true
+end
+%pal nprocs 1 end
+* xyz 0 2
+O   0.000000   0.000000   0.000000
+H   0.000000   0.000000   0.970000
+*

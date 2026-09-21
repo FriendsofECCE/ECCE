@@ -1,0 +1,82 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    mopac-ch4-opt
+desc:    mopac.desc
+fixture: mopac/ch4_opt.out (194 lines)
+args:    '.' 'Geometry' 'SE' 'RPM7' '0'
+
+[TE][TEVEC][HFENERGY]  Script=mopac.energy  Freq=all  Skip=0  Lines=1
+  Begin=HEAT OF FORMATION\s*=
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=104 fed=1 rc=0 first-fed='          FINAL HEAT OF FORMATION =        -14.40441 KCAL/MOL =     -60.26807 KJ/MOL'
+    key: TE
+      size: 1
+      values: -14.40441
+      units: kcal/mol
+    key: TEVEC
+      size: 1
+      values: -14.40441
+      units: kcal/mol
+    key: HFENERGY
+      size: 1
+      values: -14.40441
+      units: kcal/mol
+
+[GEOMTRACE]  Script=mopac.geomtrace  Freq=all  Skip=1  Lines=-
+  Begin=^\s*CARTESIAN COORDINATES\s*$
+  End=Empirical Formula|General Reference for
+  begins=2 delivered=2 buffered_away=0
+  block 1: begin-line=42 fed=10 rc=0 first-fed=''
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.0000 0.0000 0.0000 0.6290 0.6290 0.6290 -0.6290 -0.6290 0.6290 -0.6290 0.6290 -0.6290 0.6290 -0.6290 -0.6290
+      units: Angstrom
+  block 2: begin-line=141 fed=9 rc=0 first-fed=''
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.000000000 -0.000000000 -0.000000183 0.626527549 0.626527282 0.626539585 -0.626527549 -0.626527282 0.626539585 -0.626527514 0.626527248 -0.626539269 0.626527514 -0.626527247 -0.626539269
+      units: Angstrom
+
+[MULLIKEN][DIPOLE]  Script=mopac.charges  Freq=last  Skip=3  Lines=-
+  Begin=NET ATOMIC CHARGES
+  End=^\s*SUM\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=161 fed=9 rc=0 first-fed='    1          C          -0.603058        4.6031     1.04478     3.55828'
+    key: MULLIKEN
+      size: 5
+      values: -0.603058 0.150764 0.150764 0.150764 0.150764
+      units: e
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: -0.000 0.000 0.000
+      units: Debye
+
+[PNTGRP]  Script=mopac.pntgrp  Freq=last  Skip=0  Lines=1
+  Begin=MOLECULAR POINT GROUP
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=154 fed=1 rc=0 first-fed='      MOLECULAR POINT GROUP   :   Td'
+    key: PNTGRP
+      size: 1
+      values: Td
+
+[IP]  Script=mopac.ip  Freq=last  Skip=0  Lines=1
+  Begin=IONIZATION POTENTIAL
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=111 fed=1 rc=0 first-fed='          IONIZATION POTENTIAL    =         13.727659 EV'
+    key: IP
+      size: 1
+      values: 13.727659
+      units: eV
+
+[ETIME]  Script=mopac.etime  Freq=last  Skip=0  Lines=1
+  Begin=TOTAL JOB TIME:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=192 fed=1 rc=0 first-fed=' TOTAL JOB TIME:             0.01 SECONDS'
+    key: ETIME
+      size: 1
+      values: 0.01
+

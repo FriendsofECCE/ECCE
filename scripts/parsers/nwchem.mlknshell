@@ -52,7 +52,11 @@ foreach $i (1 .. $nvalues){
   if (($i % 10) == 0) {print "\n";}
 }
 if (($nvalues % 10) !=0) {
-  print "\nn";
+  # Was print "\nn" -- the stray 'n' landed at the start of the next
+  # line, so the record read 'nunits:' and the units: section header was
+  # corrupted (and the 'e' unit lost) for every shell count that is not
+  # a multiple of 10, i.e. almost always.
+  print "\n";
 } else {
 }
 print "units:\ne\n";

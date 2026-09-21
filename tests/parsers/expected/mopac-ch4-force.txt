@@ -1,0 +1,86 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    mopac-ch4-force
+desc:    mopac.desc
+fixture: mopac/ch4_force.out (481 lines)
+args:    '.' 'Vibration' 'SE' 'RPM7' '0'
+
+[TE][TEVEC][HFENERGY]  Script=mopac.energy  Freq=all  Skip=0  Lines=1
+  Begin=HEAT OF FORMATION\s*=
+  begins=2 delivered=2 buffered_away=0
+  block 1: begin-line=71 fed=1 rc=0 first-fed='          HEAT OF FORMATION =     -14.404414 KCALS/MOLE'
+    key: TE
+      size: 1
+      values: -14.404414
+      units: kcal/mol
+    key: HFENERGY
+      size: 1
+      values: -14.404414
+      units: kcal/mol
+  block 2: begin-line=151 fed=1 rc=0 first-fed='          HEAT OF FORMATION =     -14.404414 KCALS/MOLE'
+    key: TE
+      size: 1
+      values: -14.404414
+      units: kcal/mol
+    key: HFENERGY
+      size: 1
+      values: -14.404414
+      units: kcal/mol
+
+[GEOMTRACE]  Script=mopac.geomtrace  Freq=all  Skip=1  Lines=-
+  Begin=^\s*CARTESIAN COORDINATES\s*$
+  End=Empirical Formula|General Reference for
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=42 fed=10 rc=0 first-fed=''
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.0000 0.0000 0.0000 0.6265 0.6265 0.6265 -0.6265 -0.6265 0.6265 -0.6265 0.6265 -0.6265 0.6265 -0.6265 -0.6265
+      units: Angstrom
+
+[PNTGRP]  Script=mopac.pntgrp  Freq=last  Skip=0  Lines=1
+  Begin=MOLECULAR POINT GROUP
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=61 fed=1 rc=0 first-fed='      MOLECULAR POINT GROUP   :   Td'
+    key: PNTGRP
+      size: 1
+      values: Td
+
+[VIBFREQ][VIBSYM][VIB]  Script=mopac.vib  Freq=last  Skip=1  Lines=-
+  Begin=NORMAL COORDINATE ANALYSIS
+  End=MASS-WEIGHTED COORDINATE ANALYSIS
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=156 fed=49 rc=0 first-fed=''
+    key: VIBFREQ
+      size: 9
+      rowlabels: 1 2 3 4 5 6 7 8 9
+      values: 1291.2 1291.2 1306.5 1306.5 1306.5 2689.9 2689.9 2689.9 2813.7
+      units: cm-1
+    key: VIBSYM
+      size: 9
+      values: 1E 1E 1T2 1T2 1T2 2T2 2T2 2T2 1A1
+    key: VIB
+      size: 9 5 3
+      vectorlabels: NA NA NA NA NA NA NA NA NA
+      rowlabels: 1 2 3 4 5
+      columnlabels: X Y Z
+      values: -0.000000000000000e+00 -0.000000000000000e+00 -0.000000000000000e+00 0.000000000000000e+00 2.495000000000000e-01 1.590000000000000e-02 2.352000000000000e-01 8.320000000000000e-02 -1.590000000000000e-02 -1.306000000000000e-01 -1.571000000000000e-01 1.440000000000000e-01 -1.046000000000000e-01 -1.755000000000000e-01 -1.440000000000000e-01 -0.000000000000000e+00 0.000000000000000e+00 0.00000000000000 ...[3034 chars]
+      units: Angstrom
+
+[EZEROPT]  Script=mopac.ezeropt  Freq=last  Skip=0  Lines=1
+  Begin=ZERO POINT ENERGY
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=153 fed=1 rc=0 first-fed='          ZERO POINT ENERGY      24.854 KCAL/MOL'
+    key: EZEROPT
+      size: 1
+      values: 24.854
+      units: kcal/mol
+
+[ETIME]  Script=mopac.etime  Freq=last  Skip=0  Lines=1
+  Begin=TOTAL JOB TIME:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=479 fed=1 rc=0 first-fed=' TOTAL JOB TIME:             0.02 SECONDS'
+    key: ETIME
+      size: 1
+      values: 0.02
+

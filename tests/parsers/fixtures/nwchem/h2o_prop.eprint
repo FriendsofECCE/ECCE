@@ -1,0 +1,728 @@
+%begin%input file%1%char
+start h2oprop
+title "H2O closed-shell UHF property module: shielding spinspin efield efg density"
+echo
+geometry units angstroms
+  O   0.000000   0.000000   0.117300
+  H   0.000000   0.757200  -0.469200
+  H   0.000000  -0.757200  -0.469200
+end
+basis
+  * library STO-3G
+end
+ecce_print h2o_prop.eprint
+scf
+  uhf
+  nopen 0
+end
+property
+  shielding
+  spinspin 1 2 3
+  efield
+  efieldgrad
+  electrondensity
+end
+task scf property
+%end%input file%1%char
+%begin%version%1%char
+Mon_May_12_21:20:53_2025 Version 7.2.3
+%end%version%1%char
+%begin%entry%1%char
+task_property
+%end%entry%1%char
+task_property%begin%entry%1%char
+task_energy
+task_property%end%entry%1%char
+task_property task_energy%begin%entry%1%char
+scf
+task_property task_energy%end%entry%1%char
+task_property task_energy scf%begin%entry%1%char
+load_basis
+task_property task_energy scf%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_property task_energy scf load_basis%begin%exit%2%char
+load_basis
+ok
+task_property task_energy scf load_basis%end%exit%1%char
+task_property task_energy scf%begin%entry%1%char
+bas_input
+task_property task_energy scf%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_property task_energy scf bas_input%begin%exit%2%char
+bas_input
+ok
+task_property task_energy scf bas_input%end%exit%1%char
+task_property task_energy scf%begin%total energy%1%double
+-7.49243957407759e+01 
+task_property task_energy scf%end%total energy%1%double
+task_property task_energy scf%begin%orbital gradient norm%1%double
+4.59100774168708e-01 
+task_property task_energy scf%end%orbital gradient norm%1%double
+task_property task_energy scf%begin%total energy%1%double
+-7.49625503755348e+01 
+task_property task_energy scf%end%total energy%1%double
+task_property task_energy scf%begin%orbital gradient norm%1%double
+5.70659686304374e-02 
+task_property task_energy scf%end%orbital gradient norm%1%double
+task_property task_energy scf%begin%total energy%1%double
+-7.49630231118069e+01 
+task_property task_energy scf%end%total energy%1%double
+task_property task_energy scf%begin%orbital gradient norm%1%double
+2.18584702873915e-04 
+task_property task_energy scf%end%orbital gradient norm%1%double
+task_property task_energy scf%begin%total energy%1%double
+-7.49630231290963e+01 
+task_property task_energy scf%end%total energy%1%double
+task_property task_energy scf%begin%orbital gradient norm%1%double
+2.01978818743925e-06 
+task_property task_energy scf%end%orbital gradient norm%1%double
+task_property task_energy scf%begin%total energy%1%double
+-7.49630231290963e+01 
+task_property task_energy scf%end%total energy%1%double
+task_property task_energy scf%begin%one-electron energy%1%double
+-1.22361417756640e+02 
+task_property task_energy scf%end%one-electron energy%1%double
+task_property task_energy scf%begin%two-electron energy%1%double
+3.82088602033284e+01 
+task_property task_energy scf%end%two-electron energy%1%double
+task_property task_energy scf%begin%nuclear repulsion energy%1%double
+9.18953442421559e+00 
+task_property task_energy scf%end%nuclear repulsion energy%1%double
+task_property task_energy scf%begin%Sz%1%double
+0.00000000000000e+00 
+task_property task_energy scf%end%Sz%1%double
+task_property task_energy scf%begin%S^2%1%double
+-8.88178419700125e-15 
+task_property task_energy scf%end%S^2%1%double
+task_property task_energy scf%begin%total mulliken atomic charges%3%double
+-3.65748452643857e-01 1.82874226321923e-01 1.82874226321923e-01 
+task_property task_energy scf%end%total mulliken atomic charges%3%double
+task_property task_energy scf%begin%total mulliken shell charges%5%double
+1.99761447683037e+00 1.82964104083327e+00 4.53849293498022e+00 8.17125773678077e-01 
+8.17125773678077e-01 
+task_property task_energy scf%end%total mulliken shell charges%5%double
+task_property task_energy scf%begin%alpha mulliken atomic charges%3%double
+3.81712577367807e+00 5.91437113160961e-01 5.91437113160961e-01 
+task_property task_energy scf%end%alpha mulliken atomic charges%3%double
+task_property task_energy scf%begin%alpha mulliken shell charges%5%double
+9.98807238415185e-01 9.14820520416634e-01 2.26924646749011e+00 4.08562886839039e-01 
+4.08562886839039e-01 
+task_property task_energy scf%end%alpha mulliken shell charges%5%double
+task_property task_energy scf%begin%beta mulliken atomic charges%3%double
+3.81712577367807e+00 5.91437113160961e-01 5.91437113160961e-01 
+task_property task_energy scf%end%beta mulliken atomic charges%3%double
+task_property task_energy scf%begin%beta mulliken shell charges%5%double
+9.98807238415185e-01 9.14820520416634e-01 2.26924646749011e+00 4.08562886839039e-01 
+4.08562886839039e-01 
+task_property task_energy scf%end%beta mulliken shell charges%5%double
+task_property task_energy scf%begin%spin mulliken atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_property task_energy scf%end%spin mulliken atomic charges%3%double
+task_property task_energy scf%begin%spin mulliken shell charges%5%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 
+task_property task_energy scf%end%spin mulliken shell charges%5%double
+task_property task_energy scf%begin%total dipole%3%double
+8.88178419700125e-16 5.70471466123701e-18 -6.78786148102485e-01 
+task_property task_energy scf%end%total dipole%3%double
+task_property task_energy scf%begin%alpha electronic dipole%3%double
+4.44089209850063e-16 2.85235733061850e-18 -3.39393074051243e-01 
+task_property task_energy scf%end%alpha electronic dipole%3%double
+task_property task_energy scf%begin%beta electronic dipole%3%double
+4.44089209850063e-16 2.85235733061850e-18 -3.39393074051243e-01 
+task_property task_energy scf%end%beta electronic dipole%3%double
+task_property task_energy scf%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_property task_energy scf%end%nuclear dipole%3%double
+task_property task_energy scf%begin%total quadrupole%6%double
+-3.24047658186283e+00 -2.74315573398426e-16 -4.44089209850063e-16 -4.53138687756632e+00 
+1.37315072153469e-16 -4.00974461282140e+00 
+task_property task_energy scf%end%total quadrupole%6%double
+task_property task_energy scf%begin%alpha electronic quadrupole%6%double
+-3.66771458492602e+00 -1.37157786699213e-16 -2.22044604925031e-16 -2.26569343878316e+00 
+6.86575360767346e-17 -2.98757849593639e+00 
+task_property task_energy scf%end%alpha electronic quadrupole%6%double
+task_property task_energy scf%begin%beta electronic quadrupole%6%double
+-3.66771458492602e+00 -1.37157786699213e-16 -2.22044604925031e-16 -2.26569343878316e+00 
+6.86575360767346e-17 -2.98757849593639e+00 
+task_property task_energy scf%end%beta electronic quadrupole%6%double
+task_property task_energy scf%begin%nuclear quadrupole%6%double
+4.09495258798921e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 1.96541237905137e+00 
+task_property task_energy scf%end%nuclear quadrupole%6%double
+task_property task_energy scf%begin%molecular orbital energies UHF alpha%7%double
+-2.02418632979780e+01 -1.26816207081618e+00 -6.17564536420239e-01 -4.53021834398509e-01 
+-3.91236935378888e-01 6.05171898031909e-01 7.41597614594983e-01 
+task_property task_energy scf%end%molecular orbital energies UHF alpha%7%double
+task_property task_energy scf%begin%molecular orbital occupations UHF alpha%7%double
+1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+1.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_property task_energy scf%end%molecular orbital occupations UHF alpha%7%double
+task_property task_energy scf%begin%molecular orbital symmetries UHF alpha%7%int
+1 1 1 1 1 1 1 
+task_property task_energy scf%end%molecular orbital symmetries UHF alpha%7%int
+task_property task_energy scf%begin%molecular orbital range UHF alpha%2%int
+1 7 
+task_property task_energy scf%end%molecular orbital range UHF alpha%2%int
+task_property task_energy scf%begin%molecular orbital vectors UHF alpha%7 7%double
+ 0.994 0.027 2*0.0 -0.004 -0.006 -0.006
+ -0.233 0.834 2*0.0 -0.129 0.159 0.159
+ 2*0.0 0.606 2*0.0 -0.445 0.445
+ -0.103 0.537 2*0.0 0.776 -0.278 -0.278
+ 3*0.0 1.000 3*0.0
+ -0.132 0.884 2*0.0 -0.742 -0.797 -0.797
+ 2*0.0 0.990 2*0.0 0.838 -0.838
+task_property task_energy scf%end%molecular orbital vectors UHF alpha%7 7%double
+task_property task_energy scf%begin%molecular orbital energies UHF beta%7%double
+-2.02418632979780e+01 -1.26816207081618e+00 -6.17564536420239e-01 -4.53021834398509e-01 
+-3.91236935378888e-01 6.05171898031909e-01 7.41597614594983e-01 
+task_property task_energy scf%end%molecular orbital energies UHF beta%7%double
+task_property task_energy scf%begin%molecular orbital occupations UHF beta%7%double
+1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+1.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_property task_energy scf%end%molecular orbital occupations UHF beta%7%double
+task_property task_energy scf%begin%molecular orbital symmetries UHF beta%7%int
+1 1 1 1 1 1 1 
+task_property task_energy scf%end%molecular orbital symmetries UHF beta%7%int
+task_property task_energy scf%begin%molecular orbital range UHF beta%2%int
+1 7 
+task_property task_energy scf%end%molecular orbital range UHF beta%2%int
+task_property task_energy scf%begin%molecular orbital vectors UHF beta%7 7%double
+ 0.994 0.027 2*0.0 -0.004 -0.006 -0.006
+ -0.233 0.834 2*0.0 -0.129 0.159 0.159
+ 2*0.0 0.606 2*0.0 -0.445 0.445
+ -0.103 0.537 2*0.0 0.776 -0.278 -0.278
+ 3*0.0 1.000 3*0.0
+ -0.132 0.884 2*0.0 -0.742 -0.797 -0.797
+ 2*0.0 0.990 2*0.0 0.838 -0.838
+task_property task_energy scf%end%molecular orbital vectors UHF beta%7 7%double
+task_property task_energy scf%begin%exit%2%char
+scf
+ok
+task_property task_energy scf%end%exit%1%char
+task_property task_energy%begin%cpu time%1%double
+2.17139999999999e-02 
+task_property task_energy%end%cpu time%1%double
+task_property task_energy%begin%wall time%1%double
+3.17633470000001e-02 
+task_property task_energy%end%wall time%1%double
+task_property task_energy%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 1.17300000000000e-01 
+-7.57200000000000e-01 0.00000000000000e+00 -4.69200000000000e-01 
+7.57200000000000e-01 0.00000000000000e+00 -4.69200000000000e-01 
+task_property task_energy%end%cartesian coordinates%3 3%double
+task_property task_energy%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_property task_energy%end%atomic charges%3%double
+task_property task_energy%begin%atomic tags%3%char
+O
+H
+H
+task_property task_energy%end%atomic tags%3%char
+task_property task_energy%begin%group name%1%char
+C1
+task_property task_energy%end%group name%1%char
+task_property task_energy%begin%total energy%1%double
+-7.49630231290963e+01 
+task_property task_energy%end%total energy%1%double
+task_property task_energy%begin%exit%2%char
+task_energy
+ok
+task_property task_energy%end%exit%1%char
+task_property%begin%entry%1%char
+load_basis
+task_property%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_property load_basis%begin%exit%2%char
+load_basis
+ok
+task_property load_basis%end%exit%1%char
+task_property%begin%entry%1%char
+bas_input
+task_property%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_property bas_input%begin%exit%2%char
+bas_input
+ok
+task_property bas_input%end%exit%1%char
+task_property%begin%entry%1%char
+load_basis
+task_property%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_property load_basis%begin%exit%2%char
+load_basis
+ok
+task_property load_basis%end%exit%1%char
+task_property%begin%entry%1%char
+bas_input
+task_property%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_property bas_input%begin%exit%2%char
+bas_input
+ok
+task_property bas_input%end%exit%1%char
+task_property%begin%entry%1%char
+load_basis
+task_property%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_property load_basis%begin%exit%2%char
+load_basis
+ok
+task_property load_basis%end%exit%1%char
+task_property%begin%entry%1%char
+bas_input
+task_property%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_property bas_input%begin%exit%2%char
+bas_input
+ok
+task_property bas_input%end%exit%1%char
+task_property%begin%entry%1%char
+spinspin
+task_property%end%entry%1%char
+task_property spinspin%begin%index atom one%1%int
+2 
+task_property spinspin%end%index atom one%1%int
+task_property spinspin%begin%symbol atom one%1%char
+H
+task_property spinspin%end%symbol atom one%1%char
+task_property spinspin%begin%isotope atom one%1%int
+1 
+task_property spinspin%end%isotope atom one%1%int
+task_property spinspin%begin%index atom two%1%int
+3 
+task_property spinspin%end%index atom two%1%int
+task_property spinspin%begin%symbol atom two%1%char
+H
+task_property spinspin%end%symbol atom two%1%char
+task_property spinspin%begin%isotope atom two%1%int
+1 
+task_property spinspin%end%isotope atom two%1%int
+task_property spinspin%begin%spinspin tensor%3 3%double
+9.56384573400306e+00 4.19545488369467e-15 1.00582719175219e+01 
+3.52113231799996e-15 -5.53676453005452e+01 1.29056777297135e-16 
+-1.00582719185181e+01 -9.40409072643713e-16 -1.57452258804631e+01 
+task_property spinspin%end%spinspin tensor%3 3%double
+task_property spinspin%begin%spinspin isotropic%1%double
+-2.05163418156684e+01 
+task_property spinspin%end%spinspin isotropic%1%double
+task_property spinspin%begin%exit%2%char
+spinspin
+ok
+task_property spinspin%end%exit%1%char
+task_property%begin%entry%1%char
+EField
+task_property%end%entry%1%char
+task_property EField%begin%atom name%1%char
+O
+task_property EField%end%atom name%1%char
+task_property EField%begin%EField components%3%double
+8.32667268468867e-16 -7.70653509307534e-17 3.91011725670074e-01 
+task_property EField%end%EField components%3%double
+task_property EField%begin%EField%1%double
+3.91011725670074e-01 
+task_property EField%end%EField%1%double
+task_property EField%begin%atom name%1%char
+H
+task_property EField%end%atom name%1%char
+task_property EField%begin%EField components%3%double
+-8.55399878612836e-02 -5.61340177995016e-17 -2.75657663907507e-02 
+task_property EField%end%EField components%3%double
+task_property EField%begin%EField%1%double
+8.98719144116670e-02 
+task_property EField%end%EField%1%double
+task_property EField%begin%atom name%1%char
+H
+task_property EField%end%atom name%1%char
+task_property EField%begin%EField components%3%double
+8.55399878612834e-02 1.04142369768857e-16 -2.75657663907509e-02 
+task_property EField%end%EField components%3%double
+task_property EField%begin%EField%1%double
+8.98719144116668e-02 
+task_property EField%end%EField%1%double
+task_property EField%begin%exit%2%char
+EField
+ok
+task_property EField%end%exit%1%char
+task_property%begin%entry%1%char
+efg
+task_property%end%entry%1%char
+task_property efg%begin%atom name%1%char
+O
+task_property efg%end%atom name%1%char
+task_property efg%begin%EFG tensor%3 3%double
+-2.34593896764136e+00 -2.34076744239537e-16 9.57567358739198e-16 
+-2.34076744239537e-16 2.66279021168691e+00 -4.64671724489750e-16 
+9.57567358739198e-16 -4.64671724489750e-16 -3.16851244045552e-01 
+task_property efg%end%EFG tensor%3 3%double
+task_property efg%begin%EFG eigenvalues%3%double
+2.66279021168691e+00 -2.34593896764136e+00 -3.16851244045552e-01 
+task_property efg%end%EFG eigenvalues%3%double
+task_property efg%begin%EFG eigenvectors%3 3%double
+-2.34076744239537e-16 1.00000000000000e+00 -4.64671724489750e-16 
+1.00000000000000e+00 -2.34076744239537e-16 9.57567358739198e-16 
+9.57567358739198e-16 -4.64671724489750e-16 1.00000000000000e+00 
+task_property efg%end%EFG eigenvectors%3 3%double
+task_property efg%begin%EFG asymmetry%1%double
+7.62015616059500e-01 
+task_property efg%end%EFG asymmetry%1%double
+task_property efg%begin%atom name%1%char
+H
+task_property efg%end%atom name%1%char
+task_property efg%begin%EFG tensor%3 3%double
+-2.63799868670720e-01 -3.93369707517231e-17 -3.43589592292490e-01 
+-3.93369707517231e-17 2.85773385453777e-01 -4.90747193784088e-17 
+-3.43589592292490e-01 -4.90747193784088e-17 -2.19735167830561e-02 
+task_property efg%end%EFG tensor%3 3%double
+task_property efg%begin%EFG eigenvalues%3%double
+-5.07130847173523e-01 2.85773385453777e-01 2.21357461719746e-01 
+task_property efg%end%EFG eigenvalues%3%double
+task_property efg%begin%EFG eigenvectors%3 3%double
+8.16074872092131e-01 0.00000000000000e+00 5.77946193983326e-01 
+0.00000000000000e+00 1.00000000000000e+00 0.00000000000000e+00 
+-5.77946193983326e-01 0.00000000000000e+00 8.16074872092131e-01 
+task_property efg%end%EFG eigenvectors%3 3%double
+task_property efg%begin%EFG asymmetry%1%double
+1.27020322453368e-01 
+task_property efg%end%EFG asymmetry%1%double
+task_property efg%begin%atom name%1%char
+H
+task_property efg%end%atom name%1%char
+task_property efg%begin%EFG tensor%3 3%double
+-2.63799868670720e-01 -8.80025261125775e-17 3.43589592292490e-01 
+-8.80025261125775e-17 2.85773385453776e-01 6.38711160979532e-17 
+3.43589592292490e-01 6.38711160979532e-17 -2.19735167830557e-02 
+task_property efg%end%EFG tensor%3 3%double
+task_property efg%begin%EFG eigenvalues%3%double
+-5.07130847173522e-01 2.85773385453776e-01 2.21357461719746e-01 
+task_property efg%end%EFG eigenvalues%3%double
+task_property efg%begin%EFG eigenvectors%3 3%double
+8.16074872092131e-01 0.00000000000000e+00 -5.77946193983326e-01 
+0.00000000000000e+00 1.00000000000000e+00 0.00000000000000e+00 
+5.77946193983326e-01 0.00000000000000e+00 8.16074872092131e-01 
+task_property efg%end%EFG eigenvectors%3 3%double
+task_property efg%begin%EFG asymmetry%1%double
+1.27020322453367e-01 
+task_property efg%end%EFG asymmetry%1%double
+task_property efg%begin%exit%2%char
+EFG
+ok
+task_property efg%end%exit%1%char
+%begin%entry%1%char
+Eldensities
+%end%entry%1%char
+Eldensities%begin%atom name%1%char
+O
+Eldensities%end%atom name%1%char
+Eldensities%begin%Total electron density%1%double
+1.93313880953282e+02 
+Eldensities%end%Total electron density%1%double
+Eldensities%begin%atom name%1%char
+H
+Eldensities%end%atom name%1%char
+Eldensities%begin%Total electron density%1%double
+3.62709696797192e-01 
+Eldensities%end%Total electron density%1%double
+Eldensities%begin%atom name%1%char
+H
+Eldensities%end%atom name%1%char
+Eldensities%begin%Total electron density%1%double
+3.62709696797192e-01 
+Eldensities%end%Total electron density%1%double
+Eldensities%begin%atom name%1%char
+O
+Eldensities%end%atom name%1%char
+Eldensities%begin%Total spin-density%1%double
+0.00000000000000e+00 
+Eldensities%end%Total spin-density%1%double
+Eldensities%begin%atom name%1%char
+H
+Eldensities%end%atom name%1%char
+Eldensities%begin%Total spin-density%1%double
+0.00000000000000e+00 
+Eldensities%end%Total spin-density%1%double
+Eldensities%begin%atom name%1%char
+H
+Eldensities%end%atom name%1%char
+Eldensities%begin%Total spin-density%1%double
+0.00000000000000e+00 
+Eldensities%end%Total spin-density%1%double
+Eldensities%begin%exit%2%char
+Eldensities
+ok
+Eldensities%end%exit%1%char
+%begin%entry%1%char
+load_basis
+%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+load_basis%begin%exit%2%char
+load_basis
+ok
+load_basis%end%exit%1%char
+%begin%entry%1%char
+bas_input
+%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+bas_input%begin%exit%2%char
+bas_input
+ok
+bas_input%end%exit%1%char
+%begin%entry%1%char
+nmr
+%end%entry%1%char
+nmr%begin%atom name%1%char
+O
+nmr%end%atom name%1%char
+nmr%begin%shielding tensor%3 3%double
+3.68373598466833e+02 2.03411935083359e-14 -2.99299363118455e-14 
+2.03411935083359e-14 3.65024037068004e+02 -6.97494310845070e-15 
+-2.99299363118455e-14 -6.97494310845070e-15 3.63677154189583e+02 
+nmr%end%shielding tensor%3 3%double
+nmr%begin%shielding isotropic%1%double
+3.65691596574806e+02 
+nmr%end%shielding isotropic%1%double
+nmr%begin%shielding anisotropy%1%double
+4.02300283803942e+00 
+nmr%end%shielding anisotropy%1%double
+nmr%begin%shielding eigenvalues%3%double
+3.68373598466833e+02 3.65024037068004e+02 3.63677154189583e+02 
+nmr%end%shielding eigenvalues%3%double
+nmr%begin%shielding eigenvectors%3 3%double
+1.00000000000000e+00 2.03411935083359e-14 -2.99299363118455e-14 
+2.03411935083359e-14 1.00000000000000e+00 -6.97494310845070e-15 
+-2.99299363118455e-14 -6.97494310845070e-15 1.00000000000000e+00 
+nmr%end%shielding eigenvectors%3 3%double
+nmr%begin%atom name%1%char
+H
+nmr%end%atom name%1%char
+nmr%begin%shielding tensor%3 3%double
+4.07276385673857e+01 -5.36753318208822e-16 5.66545134016625e+00 
+-5.36753318208822e-16 2.70092375295449e+01 1.31270281514145e-15 
+5.66545134016625e+00 1.31270281514145e-15 3.32842017186167e+01 
+nmr%end%shielding tensor%3 3%double
+nmr%begin%shielding isotropic%1%double
+3.36736926051824e+01 
+nmr%end%shielding isotropic%1%double
+nmr%begin%shielding anisotropy%1%double
+1.51661427193216e+01 
+nmr%end%shielding anisotropy%1%double
+nmr%begin%shielding eigenvalues%3%double
+4.37844544180635e+01 3.02273858679388e+01 2.70092375295449e+01 
+nmr%end%shielding eigenvalues%3%double
+nmr%begin%shielding eigenvectors%3 3%double
+8.80069518779445e-01 0.00000000000000e+00 4.74844861102357e-01 
+-4.74844861102357e-01 0.00000000000000e+00 8.80069518779445e-01 
+0.00000000000000e+00 1.00000000000000e+00 0.00000000000000e+00 
+nmr%end%shielding eigenvectors%3 3%double
+nmr%begin%atom name%1%char
+H
+nmr%end%atom name%1%char
+nmr%begin%shielding tensor%3 3%double
+4.07276385673857e+01 -1.48586687600790e-15 -5.66545134016624e+00 
+-1.48586687600790e-15 2.70092375295448e+01 1.45153751625957e-16 
+-5.66545134016624e+00 1.45153751625957e-16 3.32842017186167e+01 
+nmr%end%shielding tensor%3 3%double
+nmr%begin%shielding isotropic%1%double
+3.36736926051824e+01 
+nmr%end%shielding isotropic%1%double
+nmr%begin%shielding anisotropy%1%double
+1.51661427193216e+01 
+nmr%end%shielding anisotropy%1%double
+nmr%begin%shielding eigenvalues%3%double
+4.37844544180635e+01 3.02273858679388e+01 2.70092375295448e+01 
+nmr%end%shielding eigenvalues%3%double
+nmr%begin%shielding eigenvectors%3 3%double
+8.80069518779445e-01 0.00000000000000e+00 -4.74844861102357e-01 
+4.74844861102357e-01 0.00000000000000e+00 8.80069518779445e-01 
+0.00000000000000e+00 1.00000000000000e+00 0.00000000000000e+00 
+nmr%end%shielding eigenvectors%3 3%double
+nmr%begin%exit%2%char
+nmr
+ok
+nmr%end%exit%1%char
+%begin%exit%2%char
+task_property
+ok
+%end%exit%1%char
+%begin%single task cpu time%1%double
+1.83221000000000e-01 
+%end%single task cpu time%1%double
+%begin%single task wall time%1%double
+2.10528685000000e-01 
+%end%single task wall time%1%double
+%begin%all tasks cpu time%1%double
+2.87279000000000e-01 
+%end%all tasks cpu time%1%double
+%begin%all tasks wall time%1%double
+2.33548317000000e-01 
+%end%all tasks wall time%1%double

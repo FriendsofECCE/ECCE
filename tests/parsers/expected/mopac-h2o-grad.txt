@@ -1,0 +1,94 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    mopac-h2o-grad
+desc:    mopac.desc
+fixture: mopac/h2o_grad.out (189 lines)
+args:    '.' 'Gradient' 'SE' 'RPM7' '0'
+
+[TE][TEVEC][HFENERGY]  Script=mopac.energy  Freq=all  Skip=0  Lines=1
+  Begin=HEAT OF FORMATION\s*=
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=83 fed=1 rc=0 first-fed='          FINAL HEAT OF FORMATION =        -57.78812 KCAL/MOL =    -241.78549 KJ/MOL'
+    key: TE
+      size: 1
+      values: -57.78812
+      units: kcal/mol
+    key: TEVEC
+      size: 1
+      values: -57.78812
+      units: kcal/mol
+    key: HFENERGY
+      size: 1
+      values: -57.78812
+      units: kcal/mol
+
+[GEOMTRACE]  Script=mopac.geomtrace  Freq=all  Skip=1  Lines=-
+  Begin=^\s*CARTESIAN COORDINATES\s*$
+  End=Empirical Formula|General Reference for
+  begins=2 delivered=2 buffered_away=0
+  block 1: begin-line=40 fed=8 rc=0 first-fed=''
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.0000 0.0000 0.0000 0.0000 0.0000 0.9600 0.9260 0.0000 -0.2400
+      units: Angstrom
+  block 2: begin-line=142 fed=7 rc=0 first-fed=''
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.000000000 0.000000000 0.000000000 0.000000000 0.000000000 0.960000000 0.926000000 0.000000000 -0.240000000
+      units: Angstrom
+
+[MULLIKEN][DIPOLE]  Script=mopac.charges  Freq=last  Skip=3  Lines=-
+  Begin=NET ATOMIC CHARGES
+  End=^\s*SUM\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=160 fed=7 rc=0 first-fed='    1          O          -0.645579        6.6456     1.81735     4.82823'
+    key: MULLIKEN
+      size: 3
+      values: -0.645579 0.323084 0.322495
+      units: e
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: 1.690 -0.000 1.315
+      units: Debye
+
+[PNTGRP]  Script=mopac.pntgrp  Freq=last  Skip=0  Lines=1
+  Begin=MOLECULAR POINT GROUP
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=153 fed=1 rc=0 first-fed='      MOLECULAR POINT GROUP   :   C2v'
+    key: PNTGRP
+      size: 1
+      values: C2v
+
+[IP]  Script=mopac.ip  Freq=last  Skip=0  Lines=1
+  Begin=IONIZATION POTENTIAL
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=90 fed=1 rc=0 first-fed='          IONIZATION POTENTIAL    =         12.092724 EV'
+    key: IP
+      size: 1
+      values: 12.092724
+      units: eV
+
+[EGRADVEC]  Script=mopac.egradvec  Freq=last  Skip=1  Lines=-
+  Begin=PARAMETER\s+ATOM\s+TYPE
+  End=^\s*$
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=121 fed=10 rc=0 first-fed='      1          1  O    CARTESIAN X     0.000000     -1.252503  KCAL/ANGSTROM'
+    key: EGRADVEC
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: -0.0010562327 0.0000000000 -0.0026106831 0.0007823575 0.0000000000 0.0018591557 0.0002738752 0.0000000000 0.0007515265
+      units: Hartree/Bohr
+
+[ETIME]  Script=mopac.etime  Freq=last  Skip=0  Lines=1
+  Begin=TOTAL JOB TIME:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=187 fed=1 rc=0 first-fed=' TOTAL JOB TIME:             0.02 SECONDS'
+    key: ETIME
+      size: 1
+      values: 0.02
+

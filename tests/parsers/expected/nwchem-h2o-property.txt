@@ -1,0 +1,279 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    nwchem-h2o-property
+desc:    nwchem.desc
+fixture: nwchem/h2o_prop.eprint (728 lines)
+args:    '.' 'Property' 'SCF' 'UHF' '0'
+
+[MO]  Script=nwchem.mo  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital vectors UHF alpha
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=201 fed=9 rc=0 first-fed='task_property task_energy scf%begin%molecular orbital vectors UHF alpha%7 7%double'
+    key: MO
+      size: 7 7
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7
+      values: 0.994 0.027 0.0 0.0 -0.004 -0.006 -0.006 -0.233 0.834 0.0 0.0 -0.129 0.159 0.159 0.0 0.0 0.606 0.0 0.0 -0.445 0.445 -0.103 0.537 0.0 0.0 0.776 -0.278 -0.278 0.0 0.0 0.0 1.000 0.0 0.0 0.0 -0.132 0.884 0.0 0.0 -0.742 -0.797 -0.797 0.0 0.0 0.990 0.0 0.0 0.838 -0.838
+
+[MOBETA]  Script=nwchem.mo  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital vectors UHF beta
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=224 fed=9 rc=0 first-fed='task_property task_energy scf%begin%molecular orbital vectors UHF beta%7 7%double'
+    key: MOBETA
+      size: 7 7
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7
+      values: 0.994 0.027 0.0 0.0 -0.004 -0.006 -0.006 -0.233 0.834 0.0 0.0 -0.129 0.159 0.159 0.0 0.0 0.606 0.0 0.0 -0.445 0.445 -0.103 0.537 0.0 0.0 0.776 -0.278 -0.278 0.0 0.0 0.0 1.000 0.0 0.0 0.0 -0.132 0.884 0.0 0.0 -0.742 -0.797 -0.797 0.0 0.0 0.990 0.0 0.0 0.838 -0.838
+
+[ORBENG3]  Script=nwchem.orbeng  Freq=last  Skip=-  Lines=-
+  Begin=orbital energies UHF alpha
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=187 fed=4 rc=0 first-fed='task_property task_energy scf%begin%molecular orbital energies UHF alpha%7%double'
+    key: ORBENG
+      size: 7
+      rowlabels: 1 2 3 4 5 6 7
+      values: -2.02418632979780e+01 -1.26816207081618e+00 -6.17564536420239e-01 -4.53021834398509e-01 -3.91236935378888e-01 6.05171898031909e-01 7.41597614594983e-01
+      units: Hartree
+
+[ORBENGBETA2]  Script=nwchem.orbeng  Freq=last  Skip=-  Lines=-
+  Begin=orbital energies UHF beta
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=210 fed=4 rc=0 first-fed='task_property task_energy scf%begin%molecular orbital energies UHF beta%7%double'
+    key: ORBENGBETA
+      size: 7
+      rowlabels: 1 2 3 4 5 6 7
+      values: -2.02418632979780e+01 -1.26816207081618e+00 -6.17564536420239e-01 -4.53021834398509e-01 -3.91236935378888e-01 6.05171898031909e-01 7.41597614594983e-01
+      units: Hartree
+
+[ORBOCC3]  Script=nwchem.orbocc  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital occupations UHF alpha
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=191 fed=4 rc=0 first-fed='task_property task_energy scf%begin%molecular orbital occupations UHF alpha%7%double'
+    key: ORBOCC
+      size: 7
+      rowlabels: 1 2 3 4 5 6 7
+      values: 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00
+
+[ORBOCCBETA2]  Script=nwchem.orbocc  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital occupations UHF beta
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=214 fed=4 rc=0 first-fed='task_property task_energy scf%begin%molecular orbital occupations UHF beta%7%double'
+    key: ORBOCCBETA
+      size: 7
+      rowlabels: 1 2 3 4 5 6 7
+      values: 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00
+
+[SHIELDTENSOR]  Script=nwchem.nmr  Freq=last  Skip=-  Lines=-
+  Begin=^nmr
+  End=nmr%end%exit%1%char
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=641 fed=72 rc=0 first-fed='nmr'
+    key: SHIELDTENSOR
+      size: 27
+      rowlabels: O-1-XX O-1-YX O-1-ZX O-1-XY O-1-YY O-1-ZY O-1-XZ O-1-YZ O-1-ZZ H-2-XX H-2-YX H-2-ZX H-2-XY H-2-YY H-2-ZY H-2-XZ H-2-YZ H-2-ZZ H-3-XX H-3-YX H-3-ZX H-3-XY H-3-YY H-3-ZY H-3-XZ H-3-YZ H-3-ZZ
+      values: 3.68373598466833e+02 2.03411935083359e-14 -2.99299363118455e-14 2.03411935083359e-14 3.65024037068004e+02 -6.97494310845070e-15 -2.99299363118455e-14 -6.97494310845070e-15 3.63677154189583e+02 4.07276385673857e+01 -5.36753318208822e-16 5.66545134016625e+00 -5.36753318208822e-16 2.70092375295449e+01 1.31270281514145e-15 5.66545134016625e+00 1.31270281514145e-15 3.32842017186167e+01 4.07276385673857 ...[576 chars]
+      units: ppm
+    key: ISOSHIELD
+      size: 3
+      rowlabels: O H H
+      values: 3.65691596574806e+02 3.36736926051824e+01 3.36736926051824e+01
+      units: ppm
+    key: ANISOSHIELD
+      size: 3
+      rowlabels: O H H
+      values: 4.02300283803942e+00 1.51661427193216e+01 1.51661427193216e+01
+      units: ppm
+    key: SHIELDEIGVAL
+      size: 9
+      rowlabels: O-1-1 O-1-2 O-1-3 H-2-1 H-2-2 H-2-3 H-3-1 H-3-2 H-3-3
+      values: 3.68373598466833e+02 3.65024037068004e+02 3.63677154189583e+02 4.37844544180635e+01 3.02273858679388e+01 2.70092375295449e+01 4.37844544180635e+01 3.02273858679388e+01 2.70092375295448e+01
+      units: ppm
+
+[CPUSEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%all tasks cpu time
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=723 fed=2 rc=0 first-fed='%begin%all tasks cpu time%1%double'
+    key: CPUSEC
+      size: 1
+      values: 2.87279000000000e-01
+
+[ETIME]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%all tasks wall time
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=726 fed=2 rc=0 first-fed='%begin%all tasks wall time%1%double'
+    key: ETIME
+      size: 1
+      values: 2.33548317000000e-01
+
+[NNREPUL]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%nuclear repulsion
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=122 fed=2 rc=0 first-fed='task_property task_energy scf%begin%nuclear repulsion energy%1%double'
+    key: NNREPUL
+      size: 1
+      values: 9.18953442421559e+00
+      units: Hartree
+
+[MULLIKEN]  Script=nwchem.mulliken  Freq=last  Skip=-  Lines=-
+  Begin=begin%total mulliken atomic
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=131 fed=3 rc=0 first-fed='task_property task_energy scf%begin%total mulliken atomic charges%3%double'
+    key: MULLIKEN
+      size: 3
+      values: -3.65748452643857e-01 1.82874226321923e-01 1.82874226321923e-01
+      units: e
+
+[MLKNSHELL]  Script=nwchem.mlknshell  Freq=last  Skip=-  Lines=-
+  Begin=begin%total mulliken shell
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=134 fed=4 rc=0 first-fed='task_property task_energy scf%begin%total mulliken shell charges%5%double'
+    key: MLKNSHELL
+      size: 5
+      rowlabels: 1 2 3 4 5
+      values: 1.99761447683037e+00 1.82964104083327e+00 4.53849293498022e+00 8.17125773678077e-01 8.17125773678077e-01
+      units: e
+
+[DIPOLE][MP2DIPOLE]  Script=nwchem.dipole  Freq=all  Skip=-  Lines=2
+  Begin=begin%total dipole
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=159 fed=2 rc=0 first-fed='task_property task_energy scf%begin%total dipole%3%double'
+    key: DIPOLE
+      size: 3
+      rowlabels: x y z
+      values: 2.25754170912751e-15 1.45000497656338e-17 -1.72531555251786
+      units: Debye
+
+[QUADPOLE]  Script=nwchem.quadpole  Freq=all  Skip=1  Lines=2
+  Begin=begin%total quadrupole
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=171 fed=2 rc=0 first-fed='-3.24047658186283e+00 -2.74315573398426e-16 -4.44089209850063e-16 -4.53138687756632e+00'
+    key: QUADPOLE
+      size: 6
+      rowlabels: xx xy xz yy yz zz
+      values: -4.35815260018972 -3.6893003213485e-16 -5.97260463308658e-16 -6.0943120568946 1.84676551004994e-16 -5.39274963697424
+      units: au
+
+[ONEELEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%one\-electron
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=116 fed=2 rc=0 first-fed='task_property task_energy scf%begin%one-electron energy%1%double'
+    key: ONEELEC
+      size: 1
+      values: -1.22361417756640e+02
+      units: Hartree
+
+[TWOELEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%two\-electron
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=119 fed=2 rc=0 first-fed='task_property task_energy scf%begin%two-electron energy%1%double'
+    key: TWOELEC
+      size: 1
+      values: 3.82088602033284e+01
+      units: Hartree
+
+[S2]  Script=nwchem.scalar  Freq=last  Skip=-  Lines=2
+  Begin=begin%S\^2
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=128 fed=2 rc=0 first-fed='task_property task_energy scf%begin%S^2%1%double'
+    key: S2
+      size: 1
+      values: -8.88178419700125e-15
+
+[PNTGRP]  Script=nwchem.symmetry  Freq=all  Skip=1  Lines=1
+  Begin=begin%group name
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=256 fed=1 rc=0 first-fed='C1'
+    key: PNTGRP
+      size: 1
+      values: C1
+
+[MOLAB2]  Script=nwchem.molab  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital symmetries UHF alpha%
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=195 fed=3 rc=0 first-fed='task_property task_energy scf%begin%molecular orbital symmetries UHF alpha%7%int'
+    (script emitted no property)
+
+[MOLAB3]  Script=nwchem.molab  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital symmetries UHF beta%
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=218 fed=3 rc=0 first-fed='task_property task_energy scf%begin%molecular orbital symmetries UHF beta%7%int'
+    (script emitted no property)
+
+[VERSION]  Script=nwchem.version  Freq=last  Skip=-  Lines=-
+  Begin=begin%version%
+  End=end%
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=27 fed=3 rc=0 first-fed='%begin%version%1%char'
+    key: VERSION
+      size: 1
+      values: Mon_May_12_21:20:53_2025 Version 7.2.3
+
+[EFIELD]  Script=nwchem.efield  Freq=last  Skip=-  Lines=-
+  Begin=^EField
+  End=^EField
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=450 fed=31 rc=0 first-fed='EField'
+    key: EFIELD
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: 8.326672684688670e-16 -7.706535093075340e-17 3.910117256700740e-01 -8.553998786128360e-02 -5.613401779950160e-17 -2.756576639075070e-02 8.553998786128340e-02 1.041423697688570e-16 -2.756576639075090e-02
+      units: e/Bohr**2
+
+[EFIELDGRAD]  Script=nwchem.efg  Freq=last  Skip=-  Lines=-
+  Begin=^efg
+  End=^EFG
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=484 fed=61 rc=0 first-fed='efg'
+    key: EFIELDGRAD
+      size: 27
+      rowlabels: O-1-XX O-1-YX O-1-ZX O-1-XY O-1-YY O-1-ZY O-1-XZ O-1-YZ O-1-ZZ H-2-XX H-2-YX H-2-ZX H-2-XY H-2-YY H-2-ZY H-2-XZ H-2-YZ H-2-ZZ H-3-XX H-3-YX H-3-ZX H-3-XY H-3-YY H-3-ZY H-3-XZ H-3-YZ H-3-ZZ
+      values: -2.34593896764136e+00 -2.34076744239537e-16 9.57567358739198e-16 -2.34076744239537e-16 2.66279021168691e+00 -4.64671724489750e-16 9.57567358739198e-16 -4.64671724489750e-16 -3.16851244045552e-01 -2.63799868670720e-01 -3.93369707517231e-17 -3.43589592292490e-01 -3.93369707517231e-17 2.85773385453777e-01 -4.90747193784088e-17 -3.43589592292490e-01 -4.90747193784088e-17 -2.19735167830561e-02 -2.63799 ...[584 chars]
+      units: e/Bohr**3
+    key: EFIELDASYMM
+      size: 3
+      rowlabels: O H H
+      values: 7.62015616059500e-01 1.27020322453368e-01 1.27020322453367e-01
+      units: e/Bohr**3
+    key: EFIELDEIGVAL
+      size: 9
+      rowlabels: O-1-1 O-1-2 O-1-3 H-2-1 H-2-2 H-2-3 H-3-1 H-3-2 H-3-3
+      values: 2.66279021168691e+00 -2.34593896764136e+00 -3.16851244045552e-01 -5.07130847173523e-01 2.85773385453777e-01 2.21357461719746e-01 -5.07130847173522e-01 2.85773385453776e-01 2.21357461719746e-01
+      units: e/Bohr**3
+
+[EDENS]  Script=nwchem.edens  Freq=last  Skip=-  Lines=-
+  Begin=^Eldensities
+  End=Eldensities%end%exit
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=548 fed=42 rc=0 first-fed='Eldensities'
+    key: EDENS
+      size: 3
+      values: 1.933138809532820e+02 3.627096967971920e-01 3.627096967971920e-01
+      units: e/Bohr**3
+
+[SPINSPIN]  Script=nwchem.spinspin  Freq=last  Skip=-  Lines=-
+  Begin=^spinspin
+  End=spinspin%end%exit
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=417 fed=32 rc=0 first-fed='spinspin'
+    key: SPINSPIN
+      size: 1 9
+      rowlabels: 2-3
+      columnlabels: XX YX ZX XY YY ZY XZ YZ ZZ
+      values: 9.56384573400306e+00 4.19545488369467e-15 1.00582719175219e+01 3.52113231799996e-15 -5.53676453005452e+01 1.29056777297135e-16 -1.00582719185181e+01 -9.40409072643713e-16 -1.57452258804631e+01
+      units: Hertz
+    key: SSISOTROPY
+      size: 1
+      rowlabels: 2-3
+      values: -2.05163418156684e+01
+      units: Hertz
+

@@ -1,0 +1,14 @@
+start h2ompccsd
+title "H2O MP2 then CCSD(T) 6-31G ecce_print"
+echo
+geometry units angstroms
+  O   0.000000   0.000000   0.117300
+  H   0.000000   0.757200  -0.469200
+  H   0.000000  -0.757200  -0.469200
+end
+basis
+  * library 6-31G
+end
+ecce_print h2o_mp2ccsd.eprint
+task mp2
+task ccsd(t)

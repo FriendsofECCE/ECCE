@@ -1,0 +1,13 @@
+! RHF STO-3G NMR CHELPG
+%output
+  Print[P_MOs] 1
+end
+%elprop
+  Quadrupole true
+end
+%pal nprocs 1 end
+* xyz 0 1
+O   0.000000   0.000000   0.117300
+H   0.000000   0.757200  -0.469200
+H   0.000000  -0.757200  -0.469200
+*

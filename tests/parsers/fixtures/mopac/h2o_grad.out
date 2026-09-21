@@ -1,0 +1,189 @@
+ *******************************************************************************
+ **                                                                           **
+ **                              MOPAC v23.1.2                                **
+ **                                                                           **
+ *******************************************************************************
+ **          Digital Object Identifier (DOI): 10.5281/zenodo.6511958          **
+ **    Visit the DOI location for information on how to cite this program.    **
+ *******************************************************************************
+
+                              PM7 CALCULATION RESULTS
+
+ *******************************************************************************
+ *  CALCULATION DONE: (MAX THREADS = 8)              Mon Sep 21 14:49:54 2026  *
+ *  PM7        - The PM7 Hamiltonian to be used
+ *  SINGLET    - SPIN STATE DEFINED AS A SINGLET
+ *
+ *
+ *
+ *                 CHARGE ON SYSTEM = 0
+ *
+ *
+ *
+ *  1SCF       - DO 1 SCF AND THEN STOP 
+ *  T=         - A TIME OF 172800.0 SECONDS REQUESTED
+ *  DUMP=N     - RESTART FILE WRITTEN EVERY 7200.0 SECONDS REQUESTED
+ *  GRADIENTS  - ALL GRADIENTS TO BE PRINTED
+ *******************************************************************************
+PM7 1SCF GRADIENTS CHARGE=0 SINGLET
+ water single point gradient
+ ECCE MOPAC regression fixture
+   ATOM   CHEMICAL          X               Y               Z
+  NUMBER   SYMBOL      (ANGSTROMS)     (ANGSTROMS)     (ANGSTROMS)
+
+     1       O          0.00000000  *   0.00000000  *   0.00000000  *
+     2       H          0.00000000  *   0.00000000  *   0.96000000  *
+     3       H          0.92600000  *   0.00000000  *  -0.24000000  *
+
+
+
+          CARTESIAN COORDINATES 
+
+    NO.       ATOM           X           Y           Z
+
+     1         O          0.0000      0.0000      0.0000
+     2         H          0.0000      0.0000      0.9600
+     3         H          0.9260      0.0000     -0.2400
+
+ General Reference for PM7:
+ "Optimization of Parameters for Semiempirical Methods VI: More Modifications to the 
+ NDDO Approximations and Re-optimization of Parameters", J. J. P. Stewart, J. Mol. Mod., 1:32, 19 (2013)
+ https://link.springer.com/article/10.1007/s00894-012-1667-x
+
+           Empirical Formula: H2 O  =     3 atoms
+
+
+
+      MOLECULAR POINT GROUP   :   C2v 
+
+
+ SINGLET STATE CALCULATION
+
+
+      RHF CALCULATION, NO. OF DOUBLY OCCUPIED LEVELS = 4
+
+
+ -------------------------------------------------------------------------------
+ PM7 1SCF GRADIENTS CHARGE=0 SINGLET
+ water single point gradient
+ ECCE MOPAC regression fixture
+
+
+     1SCF WAS SPECIFIED, SO BFGS WAS NOT USED                 
+     SCF FIELD WAS ACHIEVED                                   
+
+
+                              PM7 CALCULATION
+                                                       MOPAC v23.1.2 Linux
+                                                       Mon Sep 21 14:49:54 2026
+
+
+
+
+          FINAL HEAT OF FORMATION =        -57.78812 KCAL/MOL =    -241.78549 KJ/MOL
+
+
+          COSMO AREA              =         42.46 SQUARE ANGSTROMS
+          COSMO VOLUME            =         25.18 CUBIC ANGSTROMS
+
+          GRADIENT NORM           =          4.21586          =       2.43403 PER ATOM
+          IONIZATION POTENTIAL    =         12.092724 EV
+          HOMO LUMO ENERGIES (EV) =        -12.093  4.039
+          NO. OF FILLED LEVELS    =          4
+          MOLECULAR WEIGHT        =         18.0152         POINT GROUP:  C2v 
+
+          MOLECULAR DIMENSIONS (Angstroms)
+
+            Atom       Atom       Distance
+            H     3    H     2     1.51574
+            H     2    O     1     0.58648
+            O     1    H     2     0.00000
+
+
+          SCF CALCULATIONS        =          1
+
+          WALL-CLOCK TIME         =      0.008 SECONDS
+          COMPUTATION TIME        =      0.058 SECONDS
+
+          LARGEST ATOMIC GRADIENTS
+
+          Atom     Label                     Cartesian Gradients           Cartesian Coordinates       |Gradient|
+                                           X          Y          Z        X          Y          Z
+
+             1       O                  -1.253      0.000     -3.096    0.00000    0.00000    0.00000      3.340
+             2       H                   0.928      0.000      2.205    0.00000    0.00000    0.96000      2.392
+             3       H                   0.325      0.000      0.891    0.92600    0.00000   -0.24000      0.949
+
+
+
+       FINAL  POINT  AND  DERIVATIVES
+
+   PARAMETER     ATOM    TYPE            VALUE        GRADIENT
+      1          1  O    CARTESIAN X     0.000000     -1.252503  KCAL/ANGSTROM
+      2          1  O    CARTESIAN Y     0.000000      0.000000  KCAL/ANGSTROM
+      3          1  O    CARTESIAN Z     0.000000     -3.095803  KCAL/ANGSTROM
+      4          2  H    CARTESIAN X     0.000000      0.927736  KCAL/ANGSTROM
+      5          2  H    CARTESIAN Y     0.000000      0.000000  KCAL/ANGSTROM
+      6          2  H    CARTESIAN Z     0.960000      2.204626  KCAL/ANGSTROM
+      7          3  H    CARTESIAN X     0.926000      0.324767  KCAL/ANGSTROM
+      8          3  H    CARTESIAN Y     0.000000      0.000000  KCAL/ANGSTROM
+      9          3  H    CARTESIAN Z    -0.240000      0.891176  KCAL/ANGSTROM
+
+
+
+
+   ATOM   CHEMICAL          X               Y               Z
+  NUMBER   SYMBOL      (ANGSTROMS)     (ANGSTROMS)     (ANGSTROMS)
+
+     1       O          0.00000000  *   0.00000000  *   0.00000000  *
+     2       H          0.00000000  *   0.00000000  *   0.96000000  *
+     3       H          0.92600000  *   0.00000000  *  -0.24000000  *
+
+                             CARTESIAN COORDINATES
+
+   1    O        0.000000000     0.000000000     0.000000000
+   2    H        0.000000000     0.000000000     0.960000000
+   3    H        0.926000000     0.000000000    -0.240000000
+
+
+           Empirical Formula: H2 O  =     3 atoms
+
+
+
+      MOLECULAR POINT GROUP   :   C2v 
+
+
+                  EIGENVALUES  
+ -29.58303 -17.75777 -14.24849 -12.09272   4.03891   6.30353
+
+
+              NET ATOMIC CHARGES AND DIPOLE CONTRIBUTIONS
+
+  ATOM NO.   TYPE          CHARGE      No. of ELECS.   s-Pop       p-Pop       
+    1          O          -0.645579        6.6456     1.81735     4.82823
+    2          H           0.323084        0.6769     0.67692
+    3          H           0.322495        0.6775     0.67750
+ DIPOLE           X         Y         Z       TOTAL
+ POINT-CHG.     1.434     0.000     1.118     1.819
+ HYBRID         0.256    -0.000     0.197     0.322
+ SUM            1.690    -0.000     1.315     2.141
+
+
+          ATOMIC ORBITAL ELECTRON POPULATIONS
+
+     Atom    s        px        py        pz   
+    1  O   1.81735   1.42995   2.00000   1.39828
+    2  H   0.67692
+    3  H   0.67750
+
+ **********************
+ *                    *
+ * JOB ENDED NORMALLY *
+ *                    *
+ **********************
+
+
+
+ TOTAL JOB TIME:             0.02 SECONDS
+
+ == MOPAC DONE ==

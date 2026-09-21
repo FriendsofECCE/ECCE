@@ -1,0 +1,208 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    orca-h2o-nmr
+desc:    orca.desc
+fixture: orca/h2o_nmr_chelpg.out (1154 lines)
+args:    '.' 'Magnetic' 'SCF' 'RHF' '0'
+
+[GEOMTRACE]  Script=orca.geomtrace  Freq=all  Skip=2  Lines=-
+  Begin=CARTESIAN COORDINATES \(ANGSTROEM\)
+  End=CARTESIAN COORDINATES \(A\.U\.\)
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=228 fed=6 rc=0 first-fed='  O      0.000000    0.000000    0.117300'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.000000 0.000000 0.117300 0.000000 0.757200 -0.469200 0.000000 -0.757200 -0.469200
+      units: Angstrom
+
+[TE][TEVEC]  Script=orca.energy  Freq=all  Skip=0  Lines=1
+  Begin=FINAL SINGLE POINT ENERGY
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=762 fed=1 rc=0 first-fed='FINAL SINGLE POINT ENERGY       -74.963023138558'
+    key: TE
+      size: 1
+      values: -74.963023138558
+      units: Hartree
+    key: TEVEC
+      size: 1
+      values: -74.963023138558
+      units: Hartree
+
+[NNREPUL][ONEELEC][TWOELEC]  Script=orca.energydecomp  Freq=all  Skip=0  Lines=4
+  Begin=Nuclear Repulsion\s*:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=514 fed=4 rc=0 first-fed='Nuclear Repulsion  :          9.18953371743676 Eh             250.05993 eV'
+    key: NNREPUL
+      size: 1
+      values: 9.18953371743676
+      units: Hartree
+    key: ONEELEC
+      size: 1
+      values: -122.36142353376781
+      units: Hartree
+    key: TWOELEC
+      size: 1
+      values: 38.20886667777285
+      units: Hartree
+
+[PE][KE]  Script=orca.energydecomp  Freq=all  Skip=0  Lines=2
+  Begin=Potential Energy\s*:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=520 fed=2 rc=0 first-fed='Potential Energy   :       -149.55060264567527 Eh           -4069.47879 eV'
+    key: PE
+      size: 1
+      values: -149.55060264567527
+      units: Hartree
+    key: KE
+      size: 1
+      values: 74.58757950711708
+      units: Hartree
+
+[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA]  Script=orca.mo  Freq=last  Skip=2  Lines=-
+  Begin=MOLECULAR ORBITALS
+  End=MULLIKEN POPULATION ANALYSIS
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=550 fed=27 rc=0 first-fed='                      0         1         2         3         4         5'
+    key: ORBENG
+      size: 7
+      values: -20.24186 -1.26816 -0.61756 -0.45302 -0.39124 0.60517 0.74160
+      units: Hartree
+    key: ORBOCC
+      size: 7
+      values: 2.00000 2.00000 2.00000 2.00000 2.00000 0.00000 0.00000
+      units: electrons
+    key: MO
+      size: 7 7
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7
+      values: -0.994131 -0.026549 0.004342 0.000000 -0.000000 0.005965 0.005965 -0.232806 0.833702 -0.129447 -0.000000 -0.000000 0.158669 0.158669 -0.000000 0.000000 0.000000 -0.000000 -0.606468 -0.445072 0.445072 0.103171 -0.536791 -0.776497 0.000000 0.000000 0.278097 0.278097 0.000000 -0.000000 -0.000000 -1.000000 -0.000000 0.000000 0.000000 -0.132291 0.883658 -0.742493 -0.000000 0.000000 -0.796701 -0.796701  ...[466 chars]
+
+[DIPOLE]  Script=orca.dipole  Freq=last  Skip=-  Lines=-
+  Begin=Total Dipole Moment
+  End=Rotational spectrum
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=893 fed=9 rc=0 first-fed='Total Dipole Moment    :     -0.000000000       0.000000000      -0.678777698'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: 0 0 -1.725315795221
+      units: Debye
+
+[QUADPOLE]  Script=orca.quadpole  Freq=last  Skip=-  Lines=-
+  Begin=QUADRUPOLE MOMENT
+  End=diagonalized tensor:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=916 fed=17 rc=0 first-fed='QUADRUPOLE MOMENT'
+    key: QUADPOLE
+      size: 6
+      rowlabels: XX XY XZ YY YZ ZZ
+      values: -4.531384305 -0.000000000 0.000000000 -3.240474029 -0.000000000 -3.877193781
+      units: au
+
+[MULLIKEN]  Script=orca.mulliken  Freq=last  Skip=2  Lines=-
+  Begin=MULLIKEN ATOMIC CHARGES
+  End=Sum of atomic charges
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=582 fed=4 rc=0 first-fed='   0 O :   -0.365753'
+    key: MULLIKEN
+      size: 3
+      values: -0.365753 0.182876 0.182876
+      units: e
+
+[DELTAE]  Script=orca.deltae  Freq=all  Skip=0  Lines=1
+  Begin=^\s*\d+\s+-?\d+\.\d+\s+-?\d+\.\d+[eE][+-]\d+
+  begins=8 delivered=8 buffered_away=0
+  block 1: begin-line=484 fed=1 rc=0 first-fed='    1    -74.9039698783647196     0.00e+00  2.64e-02  7.76e-02  1.70e-01  0.700   0.0'
+    key: DELTAE
+      size: 1
+      values: 0.00e+00
+      units: Hartree
+  block 2: begin-line=485 fed=1 rc=0 first-fed='    2    -74.9218482755155861    -1.79e-02  2.26e-02  6.50e-02  1.25e-01  0.700   0.0'
+    key: DELTAE
+      size: 1
+      values: -1.79e-02
+      units: Hartree
+  block 3: begin-line=487 fed=1 rc=0 first-fed='    3    -74.9344785341101129    -1.26e-02  1.58e-02  4.52e-02  8.76e-02  0.700   0.0'
+    key: DELTAE
+      size: 1
+      values: -1.26e-02
+      units: Hartree
+  block 4: begin-line=488 fed=1 rc=0 first-fed='    4    -74.9431592416942749    -8.68e-03  3.69e-02  1.05e-01  6.13e-02  0.000   0.0'
+    key: DELTAE
+      size: 1
+      values: -8.68e-03
+      units: Hartree
+  block 5: begin-line=493 fed=1 rc=0 first-fed='    5    -74.9630125621581840    -1.99e-02  1.14e-03  4.56e-03  1.98e-03     0.0'
+    key: DELTAE
+      size: 1
+      values: -1.99e-02
+      units: Hartree
+  block 6: begin-line=495 fed=1 rc=0 first-fed='    6    -74.9630212598029431    -8.70e-06  5.94e-04  2.19e-03  7.20e-04     0.0'
+    key: DELTAE
+      size: 1
+      values: -8.70e-06
+      units: Hartree
+  block 7: begin-line=496 fed=1 rc=0 first-fed='    7    -74.9630228865740236    -1.63e-06  3.37e-04  1.15e-03  2.41e-04     0.0'
+    key: DELTAE
+      size: 1
+      values: -1.63e-06
+      units: Hartree
+  block 8: begin-line=497 fed=1 rc=0 first-fed='    8    -74.9630231342542999    -2.48e-07  2.46e-05  6.91e-05  3.13e-05     0.0'
+    key: DELTAE
+      size: 1
+      values: -2.48e-07
+      units: Hartree
+
+[ETIME]  Script=orca.etime  Freq=last  Skip=0  Lines=1
+  Begin=TOTAL RUN TIME:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1154 fed=1 rc=0 first-fed='TOTAL RUN TIME: 0 days 0 hours 0 minutes 0 seconds 257 msec'
+    key: ETIME
+      size: 1
+      values: 0
+
+[ESPCHARGE]  Script=orca.espcharge  Freq=last  Skip=2  Lines=-
+  Begin=CHELPG Charges
+  End=Total charge:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=665 fed=5 rc=0 first-fed='  0   O   :      -0.618788'
+    key: ESPCHARGE
+      size: 3 1
+      rowlabels: 0-O 1-H 2-H
+      columnlabels: Charge
+      values: -0.618788 0.309403 0.309386
+      units: e
+
+[ISOSHIELD][ANISOSHIELD]  Script=orca.isoshield  Freq=last  Skip=1  Lines=-
+  Begin=^\s*Nucleus\s+Element\s+Isotropic
+  End=NMR shielding tensor
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1058 fed=7 rc=0 first-fed='  -------  -------  ------------   ------------'
+    key: ISOSHIELD
+      size: 3
+      rowlabels: 0-O 1-H 2-H
+      values: 365.694 33.679 33.679
+      units: ppm
+    key: ANISOSHIELD
+      size: 3
+      rowlabels: 0-O 1-H 2-H
+      values: 4.029 15.151 15.151
+      units: ppm
+
+[SHIELDTENSOR][SHIELDEIGVAL]  Script=orca.shieldtensor  Freq=first  Skip=-  Lines=-
+  Begin=CHEMICAL SHIELDINGS \(ppm\)
+  End=CHEMICAL SHIELDING SUMMARY
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=946 fed=109 rc=0 first-fed='CHEMICAL SHIELDINGS (ppm)'
+    key: SHIELDTENSOR
+      size: 27
+      rowlabels: 0-O-XX 0-O-XY 0-O-XZ 0-O-YX 0-O-YY 0-O-YZ 0-O-ZX 0-O-ZY 0-O-ZZ 1-H-XX 1-H-XY 1-H-XZ 1-H-YX 1-H-YY 1-H-YZ 1-H-ZX 1-H-ZY 1-H-ZZ 2-H-XX 2-H-XY 2-H-XZ 2-H-YX 2-H-YY 2-H-YZ 2-H-ZX 2-H-ZY 2-H-ZZ
+      values: 365.032 0.000 -0.000 -0.000 368.379 0.000 0.000 0.000 363.670 27.026 -0.000 0.000 0.000 40.728 -4.272 -0.000 -7.059 33.284 27.026 -0.000 0.000 -0.000 40.728 4.272 -0.000 7.059 33.284
+      units: ppm
+    key: SHIELDEIGVAL
+      size: 9
+      rowlabels: 0-O-1 0-O-2 0-O-3 1-H-1 1-H-2 1-H-3 2-H-1 2-H-2 2-H-3
+      values: 363.670 365.032 368.379 27.026 30.232 43.780 27.026 30.232 43.780
+      units: ppm
+

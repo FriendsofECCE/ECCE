@@ -1,0 +1,24 @@
+start h2oprop
+title "H2O closed-shell UHF property module: shielding spinspin efield efg density"
+echo
+geometry units angstroms
+  O   0.000000   0.000000   0.117300
+  H   0.000000   0.757200  -0.469200
+  H   0.000000  -0.757200  -0.469200
+end
+basis
+  * library STO-3G
+end
+ecce_print h2o_prop.eprint
+scf
+  uhf
+  nopen 0
+end
+property
+  shielding
+  spinspin 1 2 3
+  efield
+  efieldgrad
+  electrondensity
+end
+task scf property

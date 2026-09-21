@@ -16,6 +16,27 @@ diatomic frequency jobs produced no vibrational data at all), an ORCA
 first atom row, and an NWChem S² regex that matched any line containing
 the digit 2.
 
+Two more, both found while writing the ORCA cases on 2026-09-21 and both
+of the *End-line starvation* kind — `eccejobmonitor` consumes the
+`End`-matching line as part of the block, so an `End` that lands on the
+next entry's `Begin` line makes that entry unable to ever fire:
+
+* `[VIBFREQ]`'s `End=NORMAL MODES` ate `[VIB]`'s `Begin`, so **no ORCA
+  job ever extracted `VIB`** — and because
+  `PropertyPanelDescriptor.xml` gates the Vibrational Frequencies panel
+  on `VIB` rather than `VIBFREQ`, ORCA frequency jobs produced correct
+  frequencies and no vibration panel at all.  `[VIB]`'s own
+  `End=IR SPECTRUM` had the identical problem one link further down the
+  chain, latent only because `[VIB]` never fired.
+* `[SHIELDTENSOR]`'s `End=CHEMICAL SHIELDING SUMMARY` ate
+  `[ISOSHIELD][ANISOSHIELD]`'s `Begin`, so isotropic shielding and
+  anisotropy were silently never extracted from any ORCA NMR job, while
+  the tensor from the very same output section parsed fine.
+
+`mopac.desc`'s header warns about precisely this hazard; `orca.desc` had
+it twice.  Both are fixed and guarded by `orca-h2o-optfreq` /
+`orca-h2o-nmr`.
+
 None of those are visible by reading the `.desc` or the script alone.  All
 of them are obvious the moment you replay real output through the real
 pipeline and look at what comes out.  That is all this suite does.
@@ -185,5 +206,8 @@ is not worth it.
 * The C++ side of the pipeline: `DavPropCache::put` / `PropertyInterpreter`
   reading the scripts' stdout back, `PropFactory`'s property-name
   validation, and the DAV store.  This suite stops at the script's stdout.
-* Gaussian 03/09/98, GAMESS-UK, Amica, MOPAC, Polyrate, the MD and reaction
+* Gaussian 03/09/98, GAMESS-UK, Amica, Polyrate, the MD and reaction
   descriptors: no fixtures yet.  Adding one is step 1-5 above.
+  (`nwchem.desc`, `gaussian-16.desc`, `orca.desc` and `mopac.desc` all
+  have fixtures; every parse type in `orca.desc` and `mopac.desc` fires
+  on at least one of them.)
