@@ -348,7 +348,18 @@ Both per-user, both non-root, both started automatically by the
   reduced-scope guards cannot report anything and emit a deck missing
   its keyword line instead. Put validation in the **main flow** before
   generation starts, never inside a resolver — `ai.qe`'s
-  `&verifyPeriodic` is the pattern.
+  `&verifyPeriodic` is the pattern. **FIXED for all ten generators in
+  `a6d0512`**: each `eval` site now re-raises a real error while leaving
+  "Undefined subroutine" silent, so a resolver's `die` reaches the user.
+  Expect it to surface errors that were previously invisible.
+- **Never point an `ai.<code>` script's `-t` at the repo's own
+  template.** `cleanup()` ends with `mv -f tmpfile "$TplFILE"`, so the
+  generated deck **overwrites the template you passed in**. Harmless in
+  normal operation, where the `.tpl` is staged into the run directory
+  first, but running one by hand for testing silently destroys
+  `scripts/parsers/<code>.tpl`. Copy the template into a scratch
+  directory and point `-t` at the copy. (Learned by clobbering
+  `mopac.tpl` and restoring it from git.)
 - **Codereg dialogs are never told which elements the structure
   contains.** They are standalone processes whose entire input is
   `globals.py`'s fixed argv (calc name, category, theory, runtype,
