@@ -1,0 +1,26 @@
+/* XPM */
+/* Placeholder calculation icon for MOPAC, in the same 16x16 two-colour
+   style as calcorca.xpm (which it was derived from): a stylized "M" in
+   a distinct colour so MOPAC calculations are visually separable from
+   ORCA's "O" in the Organizer tree.  Replace with a real icon whenever
+   one is drawn. */
+static char * calcmopac_xpm[] = {
+"16 16 2 1",
+" 	c None",
+".	c #1E8B3A",
+"                ",
+"                ",
+" ..          .. ",
+" ...        ... ",
+" ....      .... ",
+" .....    ..... ",
+" ......  ...... ",
+" .. .......  .. ",
+" ..  .....   .. ",
+" ..   ...    .. ",
+" ..    .     .. ",
+" ..          .. ",
+" ..          .. ",
+" ..          .. ",
+" ..          .. ",
+"                "};

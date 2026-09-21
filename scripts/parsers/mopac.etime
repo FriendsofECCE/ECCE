@@ -1,0 +1,33 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts total wall time into ECCE's ETIME property from MOPAC's
+# final "TOTAL JOB TIME" line.  Deliberately not mapped to CPUSEC:
+# this is wall-clock time for the whole file (both data sets of a
+# GeoVib job), whereas MOPAC's "COMPUTATION TIME" line is per-data-set
+# summed thread time and would be misleading as a job CPU total.
+#
+# No units line, matching orca.etime / the other codes' ETIME scripts.
+#
+# Sample input line, verified against real MOPAC 23.1.2 output:
+#   TOTAL JOB TIME:             0.14 SECONDS
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $line = <STDIN>;
+my $etime = 0.0;
+if (defined($line) && $line =~ /TOTAL JOB TIME:\s*(-?\d+\.?\d*)/) {
+  $etime = $1;
+}
+
+print "key: ETIME\n";
+print "size:\n1\n";
+print "values:\n$etime\n";
+print "END\n";
+
+exit(0);

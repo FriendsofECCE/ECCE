@@ -1,0 +1,63 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts MOPAC's Cartesian gradient table into ECCE's EGRADVEC
+# property (PropTable<Atom,Coordinate>).  Only present when the input
+# carries the GRADIENTS keyword, which ai.mopac emits for the Gradient
+# runtype.
+#
+# Block shape, verified against a real MOPAC 23.1.2 "1SCF GRADIENTS"
+# run (the header line is consumed by Skip=1):
+#       1          1  O    CARTESIAN X     0.000000      0.000000  KCAL/ANGSTROM
+#       2          1  O    CARTESIAN Y     0.000000     -0.000000  KCAL/ANGSTROM
+#       3          1  O    CARTESIAN Z     0.200000     97.413669  KCAL/ANGSTROM
+#
+# MOPAC reports the gradient in kcal/(mol*Angstrom); every other code's
+# EGRADVEC script publishes Hartree/Bohr, so convert with the standard
+# 1 Hartree/Bohr = 1185.8210 kcal/(mol*Angstrom) factor
+# (627.509474 kcal/mol per Hartree divided by 0.52917721 Angstrom per
+# Bohr) so gradients are comparable across codes in the GUI.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $KCAL_ANG_PER_HARTREE_BOHR = 1185.82105;
+
+my %grad;   # $grad{atom}{coord} = value, both 0-based
+my $natoms = 0;
+my %coordIdx = ("X" => 0, "Y" => 1, "Z" => 2);
+
+while (<STDIN>) {
+  if (/^\s*\d+\s+(\d+)\s+\S+\s+CARTESIAN\s+([XYZ])\s+-?\d+\.\d+\s+(-?\d+\.\d+)/) {
+    my ($atom, $coord, $value) = ($1 - 1, $coordIdx{$2}, $3);
+    $grad{$atom}{$coord} = $value / $KCAL_ANG_PER_HARTREE_BOHR;
+    $natoms = $atom + 1 if (($atom + 1) > $natoms);
+  }
+}
+
+exit(0) if ($natoms < 1);
+
+print "key: EGRADVEC\n";
+print "size:\n$natoms 3\n";
+print "rowlabels:\n";
+for my $i (1 .. $natoms) {
+  print " $i ";
+  print "\n" if (($i % 10) == 0);
+}
+print "\ncolumnlabels:\nX Y Z\n";
+print "values:\n";
+for my $a (0 .. $natoms - 1) {
+  for my $c (0 .. 2) {
+    my $v = $grad{$a}{$c};
+    $v = 0.0 if (!defined($v));
+    printf(" %.10f", $v);
+  }
+  print "\n";
+}
+print "units:\nHartree/Bohr\n";
+print "END\n";
+exit(0);

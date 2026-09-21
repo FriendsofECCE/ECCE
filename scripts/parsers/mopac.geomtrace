@@ -1,0 +1,55 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts one "CARTESIAN COORDINATES" block from MOPAC output into
+# ECCE's standard GEOMTRACE table format.
+#
+# MOPAC prints this table in TWO different layouts and mopac.desc feeds
+# both to this script (Skip cannot land on the first data row of both):
+#
+#   the 4-decimal input echo, with an extra sub-header line --
+#        NO.       ATOM           X           Y           Z
+#         1         O          0.0000      0.0000      0.1173
+#
+#   and the 9-decimal final geometry, with none --
+#      1    O        0.000000000     0.000000000     0.117300000
+#
+# Both data rows have the same token shape (index, symbol, x, y, z), so
+# one regex covers them; non-matching lines (blanks, the sub-header) are
+# SKIPPED rather than treated as end-of-block.  Stopping at the first
+# non-matching line -- the natural pattern, and what orca.geomtrace does
+# -- would silently produce zero output for the echo layout.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my @coordlines;
+my $rowLabels = "";
+my $index = 0;
+while (<STDIN>) {
+  if (/^\s*\d+\s+([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
+    my ($symbol, $x, $y, $z) = ($1, $2, $3, $4);
+    push(@coordlines, "$x $y $z");
+    $rowLabels .= " " . ($index + 1) . "-$symbol";
+    $index++;
+  }
+}
+
+my $size = $#coordlines + 1;
+if ($size >= 1) {
+  print "key: GEOMTRACE\n";
+  print "size:\n1 $size 3\n";
+  print "rowlabels:\n$rowLabels\n";
+  print "columnlabels:\nX Y Z\n";
+  print "values:\n";
+  foreach my $line (@coordlines) {
+    print " $line\n";
+  }
+  print "units:\nAngstrom\n";
+  print "END\n";
+}
+exit(0);

@@ -1,0 +1,31 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts the zero point energy from MOPAC's FORCE output into ECCE's
+# EZEROPT property.  MOPAC prints it in kcal/mol, which is the Energy
+# converter's own base unit, so -- unlike nwchem.ezeropt -- no
+# conversion is needed.
+#
+# Sample input line, verified against real MOPAC 23.1.2 output:
+#           ZERO POINT ENERGY      10.115 KCAL/MOL
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $line = <STDIN>;
+exit(0) if (!defined($line));
+
+exit(0) unless ($line =~ /ZERO POINT ENERGY\s+(-?\d+\.?\d*)/);
+my $value = $1;
+
+print "key: EZEROPT\n";
+print "size:\n1\n";
+print "values:\n$value\n";
+print "units:\nkcal/mol\n";
+print "END\n";
+
+exit(0);

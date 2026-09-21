@@ -1228,6 +1228,66 @@ sub orca()
   nouse strict vars;
 }
 
+###########################################################################
+# MOPAC.
+#
+# Two things make this different from every other code's sub here:
+#
+#   1. MOPAC takes its data set as a plain argument and writes almost
+#      nothing to stdout (just a one-line "Job ... ended normally"), so
+#      the usual "$code $inFile >&! $outFile" shape produces an empty
+#      output file.  The real output goes to a file MOPAC names itself.
+#
+#   2. MOPAC names that file by stripping a known extension out of the
+#      INPUT file name -- by substring, which is why MOPAC.edml has to
+#      call the input "mopac.mop" and nothing more inventive (feeding it
+#      "mopac.mopin" makes it write "mopac    in.out"; verified against
+#      the real MOPAC 23.1.2 binary).  So the output is always
+#      "<basename>.out", a generic extension Apache has no MIME mapping
+#      for, which is exactly the failure mode the ORCA .in/.out episode
+#      documented.
+#
+# Both are handled by symlinking the distinctive name MOPAC.edml
+# declares (mopac.mopout) onto the file MOPAC will write (mopac.out),
+# BEFORE running -- not by moving the file afterwards, because
+# eccejobmonitor tails the declared output file live while the job runs
+# and would have nothing to read until the very end.
+#
+# THREADS=n is MOPAC's only parallelism control and it is shared-memory
+# threading, so there is no mpirun wrapper here; the thread count is
+# injected into the input file's keyword line by mopac.launchpp
+# (<LaunchPreprocessor>) before this script ever runs.
+###########################################################################
+sub mopac()
+{
+  use strict vars;
+  my ($retval,$mopac,$cmd,$base);
+  $retval = "";
+  $mopac = $::config{$::lccode};
+  if ($mopac eq "") { die "Path for MOPAC not found"; }
+  $cmd = $::config{"mopaccommand"};
+
+  $retval .= "set mopac = $mopac\n";
+  $retval .= "if (\$\?ECCE_MOPAC) then\n  set mopac = \$ECCE_MOPAC\nendif\n";
+  $retval .= "echo \"Using MOPAC path: \$mopac\" >> $::logfile\n";
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $base = $::inFile;
+    $base =~ s/\.[^.]*$//;
+    $retval .= "\n$::CC - MOPAC writes $base.out itself; expose it under the\n";
+    $retval .= "$::CC - declared output name so live monitoring can follow it.\n";
+    $retval .= "if ( \"$base.out\" != \"$::outFile\" ) then\n";
+    $retval .= "  rm -f $::outFile\n";
+    $retval .= "  ln -s $base.out $::outFile\n";
+    $retval .= "endif\n";
+    $retval .= "\$mopac $::inFile >>& $::logfile\n";
+  }
+  return $retval;
+  nouse strict vars;
+}
+
 sub gamessuk()
 {
   use strict vars;

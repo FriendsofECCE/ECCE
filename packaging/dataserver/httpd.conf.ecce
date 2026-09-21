@@ -191,6 +191,19 @@ AddType  chemical/x-gamessuk-output .gko
 AddType  chemical/x-orca-input  .orcain
 AddType  chemical/x-orca-output .orcaout
 
+# MOPAC. Same reasoning as ORCA above, with one MOPAC-specific twist:
+# the input file has to be named ".mop" and nothing else, because MOPAC
+# derives its output file name by stripping a known extension out of the
+# input name BY SUBSTRING. Feeding it "mopac.mopin" makes it write a
+# file literally called "mopac    in.out" (verified against the real
+# MOPAC 23.1.2 binary), so the usual trick of inventing a "<code>in"
+# extension is not available here. ".mop" is distinctive anyway.
+# MOPAC likewise always writes "<basename>.out", so scripts/gensub's
+# mopac() sub symlinks the ".mopout" name MOPAC.edml declares onto it,
+# rather than leaving the output to fall through to text/plain.
+AddType  chemical/x-mopac-input  .mop
+AddType  chemical/x-mopac-output .mopout
+
 # ECCE Server Side Compression: deferred, see header comment. The
 # SetOutputFilter/SetInputFilter SS_COMPRESSION directives and their
 # ssc* settings from the legacy template are intentionally omitted here.

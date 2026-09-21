@@ -1,0 +1,93 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Purpose:
+#   Post-process the generated MOPAC input file to add launch control
+#   information not known at edit time -- specifically the real thread
+#   count Launch actually requested, via MOPAC's "THREADS=n" keyword.
+#   Modeled on orca.launchpp / nwchem.launchpp; see those files for the
+#   general mechanism (Launch::postProcessInput() in src/comm/commxt/
+#   Launch.C writes a "postParams" dictionary -- inputFile/numProcs/
+#   numNodes/runDir/scratchDir/machineName -- and every code's
+#   <LaunchPreprocessor> script is REQUIRED to exist, even as a no-op,
+#   because JCode::launchPPScript() is shelled out with no empty-string
+#   check and an empty command name fails the launch outright).
+#
+#   THREADS=n is MOPAC's only parallelism control; MOPAC has no memory
+#   keyword at all, so unlike ORCA there is nothing else to inject here.
+#   It is shared-memory threading, not MPI, so numNodes is irrelevant
+#   and only numProcs is used.
+#
+#   Must be idempotent on relaunch: a THREADS= keyword already on the
+#   keyword line (either from a previous launch or from an explicit
+#   Processors setting in the Theory Details dialog) is replaced in
+#   place rather than duplicated.  MOPAC keywords live on the FIRST
+#   line of each data set, and a GeoVib job has two data sets, so both
+#   keyword lines get the same treatment: a keyword line is any line
+#   that is the first line of the file or the first non-blank line
+#   after a blank line that itself follows a geometry block.  Rather
+#   than re-deriving MOPAC's data-set structure here, we simply rewrite
+#   every line that already contains a recognized Hamiltonian keyword
+#   as its first token -- which is exactly the set of keyword lines
+#   ai.mopac emits.
+#
+###############################################################################
+
+use Getopt::Std;
+
+&getopts('p:v');
+
+if ($opt_v) {
+  $revision = '$Revision: 1.0';
+  $revision =~ (s/\$//g);
+  print "$revision\n";
+  exit 0;
+}
+
+open(PARAMDICT, "<$opt_p") || die "parameter file does not exist!\n";
+while (<PARAMDICT>) {
+  $_ =~ s/\s*!.*$//;
+  if (/:/) {
+    my ($key, $value) = split(/:/);
+    $key =~ s/^\s*//;
+    $key =~ s/\s*$//;
+    $value =~ s/^\s*//;
+    $value =~ s/\s*$//;
+    $ParamDict{$key} = $value if ($key ne "");
+  }
+}
+close(PARAMDICT);
+
+my $numProcs = $ParamDict{'numProcs'};
+exit(0) if (!defined($numProcs) || $numProcs <= 1);
+
+unless (open(INFILE, $ParamDict{'inputFile'})) {
+  die "Cannot open MOPAC input file $ParamDict{'inputFile'}";
+}
+my @contents = <INFILE>;
+close(INFILE);
+
+if (!-w $ParamDict{'inputFile'}) {
+  die "Cannot write to MOPAC input file $ParamDict{'inputFile'}!";
+}
+
+foreach my $line (@contents) {
+  # A MOPAC keyword line, as written by ai.mopac, always starts with the
+  # Hamiltonian keyword.
+  next unless ($line =~ /^\s*(PM7|PM6|PM3|AM1|RM1|MNDOD|MNDO)\b/i);
+
+  if ($line =~ /\bTHREADS\s*=\s*\d+/i) {
+    $line =~ s/\bTHREADS\s*=\s*\d+/THREADS=$numProcs/ig;
+  } else {
+    chomp($line);
+    $line .= " THREADS=$numProcs\n";
+  }
+}
+
+unless (open(PPFILE, ">$ParamDict{'inputFile'}")) {
+  die "Cannot overwrite MOPAC input file $ParamDict{'inputFile'}";
+}
+print PPFILE @contents;
+close(PPFILE);
+
+exit(0);

@@ -1,0 +1,31 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts MOPAC's Koopmans' theorem ionization potential into ECCE's
+# IP property.  MOPAC prints it in eV, which the Energy converter knows
+# (src/util/units/EnergyConverter.C, 0.0433646 relative to kcal/Mole),
+# so the value is passed through with its own units label.
+#
+# Sample input line, verified against real MOPAC 23.1.2 output:
+#           IONIZATION POTENTIAL    =         12.115488 EV
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $line = <STDIN>;
+exit(0) if (!defined($line));
+
+exit(0) unless ($line =~ /IONIZATION POTENTIAL\s*=\s*(-?\d+\.?\d*)/);
+my $value = $1;
+
+print "key: IP\n";
+print "size:\n1\n";
+print "values:\n$value\n";
+print "units:\neV\n";
+print "END\n";
+
+exit(0);

@@ -1,0 +1,57 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts MOPAC's "FINAL HEAT OF FORMATION" line into ECCE's TE (Total
+# Energy), TEVEC (per-geometry-step total energy) and HFENERGY (Heat of
+# Formation) properties.
+#
+# MOPAC is semiempirical: its heat of formation IS the energy it
+# reports, there is no absolute electronic total energy to publish
+# instead.  All three keys are emitted on every invocation, the same
+# pattern orca.energy uses -- eccejobmonitor collapses a combined
+# "[TE][TEVEC][HFENERGY]" bracket into one opaque type label, so the
+# script cannot tell from $ARGV[0] which key it is being asked for.
+# TE and HFENERGY are plain overwriting PropValues and end up holding
+# the last occurrence; TEVEC accumulates one entry per occurrence.
+#
+# Units are kcal/mol, the Energy converter's own base unit
+# (src/util/units/EnergyConverter.C), so the number is passed through
+# unconverted.
+#
+# TWO WORDINGS, both real (verified against MOPAC 23.1.2 output):
+#           FINAL HEAT OF FORMATION =        -57.79986 KCAL/MOL =    -241.83461 KJ/MOL
+#           HEAT OF FORMATION =     -57.791897 KCALS/MOLE
+# The second is what a FORCE (Vibration) job prints, twice, while
+# printing only one geometry.  TEVEC is indexed by Geometry Step and
+# must never end up longer than GEOMTRACE (clicking a Geometry Trace
+# plot point past the last frame drives GTStepCmd through
+# PropTSVecTable::value()'s out-of-bounds path), so TEVEC is emitted
+# ONLY for the "FINAL" wording -- one per real geometry-optimization
+# result.  TE and HFENERGY are emitted for both wordings, so a
+# Vibration-only job still reports an energy.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+$_ = <STDIN>;
+my $value;
+my $isFinal = 0;
+if (/(FINAL )?HEAT OF FORMATION\s*=\s*(-?\d+\.?\d*)/) {
+  $isFinal = defined($1) ? 1 : 0;
+  $value = $2;
+}
+exit(0) if (!defined($value));
+
+my @keys = $isFinal ? ("TE", "TEVEC", "HFENERGY") : ("TE", "HFENERGY");
+foreach my $k (@keys) {
+  print "key: $k\n";
+  print "size:\n1\n";
+  print "values:\n$value\n";
+  print "units:\nkcal/mol\n";
+  print "END\n";
+}
+exit(0);

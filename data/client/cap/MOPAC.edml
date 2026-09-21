@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   MOPAC code registration, reduced-scope first cut, modeled on
+   ORCA.edml (issue #38) as the most recent worked example.
+
+   MOPAC is SEMIEMPIRICAL, which makes this file structurally different
+   from every other <appdescriptor> in this directory:
+
+     * There is NO <GaussianBasisSetRules> block and NO
+       <BasisTranslationScript>.  The Hamiltonian (PM7/PM6/PM3/AM1/
+       RM1/MNDO) *is* the basis; there is nothing for the user to
+       choose and nothing to translate.  Every <Theory> below carries
+       needsBasis="false", which is the pre-existing ECCE mechanism
+       for this (Gaussian-16.edml's category="SE" theories use it
+       too): CalcEd::updateBasisWidgets() greys out the Basis Set Tool,
+       and ESInputController's write_gbsconfig()/write_setup() skip the
+       .basis file and the BasisSet.Coordinates key entirely, so
+       ai.mopac is never handed a -b argument.  CodeFactory::
+       getBasisCodes() likewise filters MOPAC out of the Basis Set
+       Tool's code list because <GaussianBasisSetRules> is absent.
+       No C++ change was needed for any of this.
+
+     * There is no <Importer> (a MOPAC.expt output importer for
+       externally-run jobs is not written yet), so MOPAC simply does
+       not appear in CodeFactory::getImportCodes() - which is the
+       correct behavior, not an error.  ORCA.edml declares an
+       <Importer>ORCA.expt</Importer> that does not exist on disk;
+       that is not copied here.
+
+   The input file is named mopac.mop and NOT something like
+   "mopac.mopin".  This is a hard MOPAC requirement, not a style
+   choice: MOPAC derives its output file name by stripping a known
+   extension from the input name, and it does that by substring, so
+   feeding it "mopac.mopin" makes it write a file literally named
+   "mopac    in.out" (verified against the real MOPAC 23.1.2 binary).
+   ".mop" is distinctive enough for the Apache MIME mapping the
+   new-code checklist calls for - see packaging/dataserver/
+   httpd.conf.ecce's chemical/x-mopac-input .mop line.  The declared
+   output file mopac.mopout is *not* what MOPAC writes (it writes
+   mopac.out, again derived from the input name); scripts/gensub's
+   mopac() sub symlinks mopac.mopout -> mopac.out before running, so
+   both live monitoring and the final upload see a distinctively-named
+   file with a real MIME type.
+
+   Verified end to end against the real MOPAC 23.1.2 at /usr/bin/mopac
+   (2026-09-21 session): every keyword ai.mopac can emit was confirmed
+   accepted and echoed with the intended meaning in MOPAC's own
+   keyword banner, and generated inputs were run to completion.
+-->
+
+<appdescriptor>
+
+<!--
+  Enables Geometry and Partial Charge sub dialogs if runtype is appropriate.
+  MOPAC does support geometry constraints (per-coordinate optimization
+  flags), but ai.mopac does not write them yet, so this is left false
+  rather than advertising a capability the input generator drops.
+-->
+<SupportsConstraints>false</SupportsConstraints>
+
+
+<!-- Semiempirical Hamiltonians, R (closed-shell RHF) and U (UHF)
+     variants of each, following the RAM1/UAM1 naming Gaussian-16.edml
+     already uses for its own category="SE" theories.  Every name here
+     is a real MOPAC keyword confirmed present in the installed
+     MOPAC 23.1.2 binary's own keyword table ("The <name> Hamiltonian
+     to be used").  PM8 is deliberately omitted (the binary itself
+     labels it "IN DEVELOPMENT") and so is INDO (a CI-oriented
+     spectroscopic method with different expectations).
+
+     Runtypes: Energy (1SCF), Gradient (1SCF GRADIENTS), Geometry (EF),
+     Vibration (FORCE), GeoVib (EF, then a second OLDGEO FORCE data set
+     in the same file).  All five were run for real.
+
+     No transition-state runtype: MOPAC's TS keyword exists and is
+     accepted, but its EF transition-state search cannot work on
+     Cartesian coordinates (it needs 3N-6 internal variables, not 3N
+     Cartesian ones) and ai.mopac writes Cartesians, so a generated TS
+     job aborts immediately with "Too many variables ... convert to
+     internal coordinates and re-run".  Confirmed by running one.  See
+     scripts/codereg/mopacruntype.py's header for the detail. -->
+<Editor theorydialog="mopactheory.py" runtypedialog="mopacruntype.py">
+  <Theory category="SE" name="RPM7" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="SE" name="UPM7" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="SE" name="RPM6" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="SE" name="UPM6" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="SE" name="RPM3" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="SE" name="UPM3" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="SE" name="RAM1" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="SE" name="UAM1" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="SE" name="RRM1" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="SE" name="URM1" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="SE" name="RMNDO" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="SE" name="UMNDO" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+
+  <TheorySummary>
+    <item key="ES.Theory.SCF.ConvergenceIterations" label="SCF Max. Iterations"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.SCF.Precise" label="Precise"></item>
+  </TheorySummary>
+
+  <RuntypeSummary topLabel="Geom. Convergence-">
+    <item key="ES.Runtype.GeomOpt.ConvergenceGradient.Value" label="Gradient Norm"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.MaximumStepsValue" label="Max. Steps"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.Vibration.Thermo" label="Thermochemistry"></item>
+  </RuntypeSummary>
+</Editor>
+
+
+<!-- Raw File Naming Conventions.  See the header comment above for why
+     the input must end in ".mop" and why the declared output file is a
+     symlink gensub creates rather than the file MOPAC itself writes.
+     The comment string is "*": MOPAC treats a line whose first
+     non-blank character is "*" as a comment inside the keyword/geometry
+     data set (verified against the real binary). -->
+<DataFiles>
+  <Input  type="primary" mimetype="chemical/x-mopac-input" comment="true" commentstring="*">mopac.mop</Input>
+  <Output type="primary" mimetype="chemical/x-mopac-output">mopac.mopout</Output>
+  <Output type="parse" verifypattern="MOPAC v" mimetype="chemical/x-mopac-output">mopac.mopout</Output>
+</DataFiles>
+
+<!-- Names of files required for code integration.  These files are
+     assumed to be in the ecce path as managed by the ecce_env script.
+     All of these exist under scripts/parsers.  <LaunchPreprocessor> is
+     required unconditionally even though MOPAC has nothing meaningful
+     to post-process: Launch::postProcessInput() shells out to
+     JCode::launchPPScript() with no empty-string check, so a code
+     without one fails launch with a bare "-p postParams" command. -->
+<IntegrationFiles>
+  <Template>mopac.tpl</Template>
+  <InputGenerator>ai.mopac</InputGenerator>
+  <ParseSpecification>mopac.desc</ParseSpecification>
+  <LaunchPreprocessor>mopac.launchpp</LaunchPreprocessor>
+</IntegrationFiles>
+
+</appdescriptor>

@@ -1,0 +1,66 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts MOPAC's combined "NET ATOMIC CHARGES AND DIPOLE
+# CONTRIBUTIONS" block into BOTH the MULLIKEN (per-atom partial charge)
+# and DIPOLE properties.
+#
+# One script for two properties because MOPAC prints the dipole table
+# immediately after the charge table with nothing in between: a separate
+# [DIPOLE] parse-descriptor entry anchored on the "DIPOLE X Y Z TOTAL"
+# header line could never fire, because eccejobmonitor consumes that
+# line as [MULLIKEN]'s End before ever testing it against another
+# entry's Begin.  See mopac.desc's header note.
+#
+# Block shape, verified against real MOPAC 23.1.2 output (the first
+# three lines are consumed by Skip=3):
+#      1          O          -0.645360        6.6454     1.81709     4.82827
+#      2          H           0.322680        0.6773     0.67732
+#      3          H           0.322680        0.6773     0.67732
+#   DIPOLE           X         Y         Z       TOTAL
+#   POINT-CHG.     0.000    -0.000    -1.818     1.818
+#   HYBRID        -0.000     0.000    -0.323     0.323
+#   SUM           -0.000    -0.000    -2.141     2.141
+#
+# MOPAC prints the dipole in Debye already (its TOTAL column matches the
+# vector magnitude directly), which is ECCE's own DIPOLE convention, so
+# no conversion -- unlike orca.dipole, which has to convert from a.u.
+# Only the SUM row (point-charge + hybrid contributions) is the physical
+# dipole.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my @charges;
+my @dipole;
+
+while (<STDIN>) {
+  if (/^\s*\d+\s+[A-Za-z]{1,2}\s+(-?\d+\.\d+)/) {
+    push(@charges, $1);
+  } elsif (/^\s*SUM\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
+    @dipole = ($1, $2, $3);
+  }
+}
+
+if (@charges) {
+  print "key: MULLIKEN\n";
+  print "size:\n", scalar(@charges), "\n";
+  print "values:\n";
+  print join(" ", @charges), "\n";
+  print "units:\ne\n";
+  print "END\n";
+}
+
+if (@dipole) {
+  print "key: DIPOLE\n";
+  print "size:\n3\n";
+  print "rowlabels:\nX Y Z\n";
+  print "values:\n$dipole[0] $dipole[1] $dipole[2]\n";
+  print "units:\nDebye\n";
+  print "END\n";
+}
+exit(0);

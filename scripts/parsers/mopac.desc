@@ -1,0 +1,222 @@
+# Parse descriptor for MOPAC output files (MOPAC 23.1.2).
+#
+# Every Begin/Skip/Lines/End below was checked by SIMULATING
+# scripts/eccejobmonitor's real Begin/Skip/Lines/End line-feeding
+# algorithm against captured output from real MOPAC 23.1.2 runs
+# (2026-09-21 session) -- not by hand-picking line ranges, which is
+# exactly what let ORCA's GEOMTRACE/VIBFREQ bugs hide (see CLAUDE.md).
+# Remember Skip=N skips N lines TOTAL STARTING FROM AND INCLUDING the
+# Begin-matching line, so Skip=1 means "start feeding at the line right
+# after Begin".
+#
+# Two eccejobmonitor behaviors shaped the entries below:
+#   * PDMatchBegin() returns the FIRST parse type whose Begin matches a
+#     line and never checks the rest, so no two Begins here may match
+#     the same physical line.
+#   * While a block is open, lines are consumed until End matches, and
+#     the End-matching line is consumed too -- so a Begin sitting on (or
+#     before) another entry's End line can never fire.  That is why
+#     MULLIKEN and DIPOLE are a single combined entry: MOPAC prints the
+#     dipole table immediately after the atomic charge table with no
+#     separator, so a separate [DIPOLE] entry anchored on the
+#     "DIPOLE  X  Y  Z  TOTAL" header would have been permanently
+#     starved by [MULLIKEN]'s End.
+
+# MOPAC's heat of formation is its total energy for all practical
+# purposes (a semiempirical Hamiltonian has no meaningful absolute
+# electronic energy), so it is published under three keys at once: TE
+# and TEVEC so everything in ECCE that keys on "the energy" works, and
+# HFENERGY ("Heat of Formation", already in data/client/config/
+# properties and previously unused by any code) under its real name.
+#
+# Units are kcal/mol, which is the Energy converter's OWN BASE UNIT
+# (see src/util/units/EnergyConverter.C -- base is "kcal/Mole", with
+# Hartree as a derived 0.001593601451 factor), so no conversion is done
+# here; the value is passed through exactly as MOPAC printed it.
+#
+# MOPAC PRINTS THIS LINE WITH TWO DIFFERENT WORDINGS, which simulating
+# the monitor against a FORCE-only run is what exposed:
+#           FINAL HEAT OF FORMATION =        -57.79986 KCAL/MOL =    -241.83461 KJ/MOL
+#           HEAT OF FORMATION =     -57.791897 KCALS/MOLE
+# The second (no "FINAL", "KCALS/MOLE" not "KCAL/MOL") is what a FORCE
+# job prints -- a Vibration runtype would otherwise have extracted NO
+# energy at all, silently, exactly the shape of the gaussian-16.desc
+# MULLIKEN bug in CLAUDE.md.  One entry with an optional "FINAL " covers
+# both; splitting them into two entries is NOT an option, since
+# "FINAL HEAT OF FORMATION" matches the shorter Begin too and
+# PDMatchBegin()'s first-match-wins would permanently starve one of them.
+#
+# Frequency=all so a GeoVib job (two MOPAC data sets in one file)
+# contributes every heat; TE and HFENERGY are plain overwriting
+# PropValues and end up holding the last one.  mopac.energy emits TEVEC
+# ONLY for the "FINAL" wording, deliberately: a FORCE job repeats the
+# non-final line twice while printing only one geometry, and TEVEC is
+# indexed by Geometry Step, so counting those would make the Geometry
+# Trace plot longer than GEOMTRACE has frames (see the GEOMTRACE note
+# below for why that matters).
+[TE][TEVEC][HFENERGY]
+Script=mopac.energy
+Begin=HEAT OF FORMATION\s*=
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+# MOPAC prints two DIFFERENT "CARTESIAN COORDINATES" table layouts --
+# the 4-decimal input echo (with a "NO.  ATOM  X  Y  Z" sub-header) and
+# the 9-decimal final geometry (no sub-header) -- so Skip cannot land
+# exactly on the first data row for both.  Skip=1 lands inside both
+# blocks and mopac.geomtrace skips non-matching lines rather than
+# stopping at the first one (the same fix orca.vibfreq needed).
+#
+# The Begin regex is ANCHORED (^\s*...\s*$) on purpose: a FORCE run also
+# prints "FORCE CONSTANT IN CARTESIAN COORDINATES (Millidynes/A)", which
+# an unanchored /CARTESIAN COORDINATES/ would match, producing a bogus
+# extra geometry frame.  Confirmed present in a real CH4 FORCE run.
+#
+# KNOWN LIMITATION: MOPAC does not print the geometry at each
+# optimization cycle at any ordinary verbosity (LARGE, PRTXYZ and
+# GRADIENTS were all tried against the real binary and none of them do;
+# only the EF debugging keyword PRNT=3 does, buried in per-cycle Hessian
+# dumps).  So GEOMTRACE is not a per-step animation for MOPAC -- it is
+# the input geometry plus the final geometry (plus the second data set's
+# echo, for GeoVib).  That is enough for what GEOMTRACE is mostly used
+# for (CalcMgr's "reuse the optimized geometry" path reads the LAST
+# frame).  It is also why MOPAC's per-cycle "CYCLE: n ... HEAT: x" lines
+# are deliberately NOT mapped to a PropTSVector<Geometry Step>: that
+# would give a Geometry Trace plot with more points than GEOMTRACE has
+# frames, and clicking a point past the end drives GTStepCmd into
+# PropTSVecTable::value()'s out-of-bounds path (warning + all-zero
+# coordinates).  Keeping len(TEVEC) <= len(GEOMTRACE) avoids that.
+#
+# SECOND KNOWN WART, worth knowing before trusting the last frame to
+# four decimal places: in a GeoVib run the LAST block in the file is the
+# second (FORCE) data set's own input echo, which MOPAC prints to 4
+# decimals, not the 9-decimal final geometry of the optimization that
+# precedes it.  Both are the same optimized structure; the last frame is
+# just rounded to 1e-4 Angstrom.  CalcMgr's "reuse the optimized
+# geometry" path reads that last frame, so a re-run starts from the
+# rounded coordinates.  Harmless at MOPAC's own accuracy, but it is why
+# the frames in one trace do not all carry the same precision.
+[GEOMTRACE]
+Script=mopac.geomtrace
+Begin=^\s*CARTESIAN COORDINATES\s*$
+Skip=1
+Frequency=all
+End=Empirical Formula|General Reference for
+[END]
+
+# One combined entry (see the header note on End-line starvation).  The
+# block MOPAC prints is:
+#               NET ATOMIC CHARGES AND DIPOLE CONTRIBUTIONS
+#   (blank)
+#     ATOM NO.   TYPE          CHARGE      No. of ELECS.   s-Pop       p-Pop
+#       1          O          -0.645360        6.6454     1.81709     4.82827
+#       ...
+#    DIPOLE           X         Y         Z       TOTAL
+#    POINT-CHG.     0.000    -0.000    -1.818     1.818
+#    HYBRID        -0.000     0.000    -0.323     0.323
+#    SUM           -0.000    -0.000    -2.141     2.141
+# Skip=3 (Begin + blank + column header) puts the first atom row first.
+#
+# These are MOPAC's default Coulson-style net atomic charges, published
+# as MULLIKEN because that is the only per-atom partial-charge property
+# key ECCE's charge panel understands and it is what every other code
+# feeds it.  MOPAC can also print a true Mulliken population analysis
+# (keyword MULLIK), but that needs an extra keyword and a second block,
+# so the always-present one is used.
+[MULLIKEN][DIPOLE]
+Script=mopac.charges
+Begin=NET ATOMIC CHARGES
+Skip=3
+Frequency=last
+End=^\s*SUM\s
+[END]
+
+# Single line, e.g. "      MOLECULAR POINT GROUP   :   C2v".  Printed
+# once per geometry MOPAC reports on; Frequency=last takes the final
+# (post-optimization) one.  Deliberately NOT anchored on the other
+# place MOPAC prints a point group ("MOLECULAR WEIGHT = ... POINT
+# GROUP:  C2v"), which would collide.
+[PNTGRP]
+Script=mopac.pntgrp
+Begin=MOLECULAR POINT GROUP
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+# Frequencies, mode symmetry labels AND the per-mode Cartesian
+# displacement vectors, all from the one NORMAL COORDINATE ANALYSIS
+# block.  VIB is what makes the "Vibrational Frequencies" entry appear
+# in the Properties menu at all (PropertyPanelDescriptor.xml gates that
+# panel on VIB, not VIBFREQ), and NModePanel indexes VIB, VIBFREQ and
+# VIBSYM against each other row by row.
+#
+# VIBFREQ IS DELIBERATELY *NOT* TAKEN FROM MOPAC's FRIENDLIER
+# "DESCRIPTION OF VIBRATIONS" SECTION, which prints a tidy
+# "FREQUENCY   1286.05" line per stanza: that section COLLAPSES
+# DEGENERATE MODES, printing one stanza per distinct frequency rather
+# than one per mode.  A real PM7 CH4 FORCE run has 9 modes here and only
+# 7 stanzas there, so the first version of this integration produced a
+# 7-row VIBFREQ against a 9-mode VIB -- silently misaligned, exactly the
+# trap CLAUDE.md records for ORCA's VIBFREQ/VIBIR pair.  Caught by
+# running a real CH4 job through a simulation of eccejobmonitor's own
+# line-feeding algorithm; a water test molecule has no degeneracies and
+# would never have shown it.  Taking all three keys from one block makes
+# the alignment structural.  See mopac.vib's header for the layout.
+#
+# MOPAC lists only the genuine 3N-6 (3N-5) modes in this block -- no
+# near-zero translation/rotation rows to filter out, unlike ORCA/NWChem.
+[VIBFREQ][VIBSYM][VIB]
+Script=mopac.vib
+Begin=NORMAL COORDINATE ANALYSIS
+Skip=1
+Frequency=last
+End=MASS-WEIGHTED COORDINATE ANALYSIS
+[END]
+
+# "          ZERO POINT ENERGY      10.115 KCAL/MOL" -- already in
+# kcal/mol, the Energy converter's base unit, so no conversion.
+[EZEROPT]
+Script=mopac.ezeropt
+Begin=ZERO POINT ENERGY
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+# "          IONIZATION POTENTIAL    =         12.115488 EV" -- MOPAC
+# prints this for every job (Koopmans' theorem from the HOMO energy).
+[IP]
+Script=mopac.ip
+Begin=IONIZATION POTENTIAL
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+# Only present when the input carries the GRADIENTS keyword, which
+# ai.mopac emits for the Gradient runtype:
+#    PARAMETER     ATOM    TYPE            VALUE        GRADIENT
+#       1          1  O    CARTESIAN X     0.000000      0.000000  KCAL/ANGSTROM
+# End is the blank line that closes the table.
+[EGRADVEC]
+Script=mopac.egradvec
+Begin=PARAMETER\s+ATOM\s+TYPE
+Skip=1
+Frequency=last
+End=^\s*$
+[END]
+
+# "\n TOTAL JOB TIME:             0.14 SECONDS" -- wall time for the
+# whole file (both data sets, for a GeoVib job).  Mapped to ETIME
+# (elapsed), not CPUSEC; MOPAC's separate "COMPUTATION TIME" line is
+# per-data-set summed thread time, not a whole-job CPU total.
+[ETIME]
+Script=mopac.etime
+Begin=TOTAL JOB TIME:
+Frequency=last
+Skip=0
+Lines=1
+[END]

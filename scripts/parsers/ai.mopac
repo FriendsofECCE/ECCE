@@ -1,0 +1,417 @@
+#!/usr/bin/env perl
+################################################################################
+# FILENAME:  ai.mopac
+#
+# SYNTAX: ai.mopac -p -f [-b] [-c] -n <basename> -t <template> [-h] [-v]
+#
+# PURPOSE:
+#       Take an AbiChem generated dictionary and produce a MOPAC input
+#       (.mop) file.  Modeled on ai.orca (which was itself modeled on
+#       ai.gauss16) -- the generic dictionary/geometry file readers and
+#       the ##tag## template substitution engine (modifyInputFile) are
+#       copied verbatim since they are code-agnostic.
+#
+# STATUS: REDUCED SCOPE first cut, matching the method/runtype set in
+# data/client/cap/MOPAC.edml -- the six semiempirical Hamiltonians
+# PM7/PM6/PM3/AM1/RM1/MNDO, each in an R (RHF) and U (UHF) flavor,
+# crossed with Energy/Gradient/Geometry/Vibration/GeoVib.  No geometry
+# constraints, no symmetry handling, no solvation (COSMO), no MOZYME,
+# no reaction paths (IRC/DRC/SADDLE/LOCATE-TS).
+#
+# MOPAC IS SEMIEMPIRICAL, so unlike every other ai.<code> in this
+# directory there is no basis-set handling at all: MOPAC.edml marks
+# every theory needsBasis="false", so CalcEd never writes a .basis file
+# and never passes -b.  The -b/-c options are still accepted (and their
+# files still read, harmlessly) purely so this script keeps the same
+# command-line shape as its siblings.
+#
+# EVERY KEYWORD EMITTED BELOW WAS VERIFIED AGAINST THE REAL MOPAC 23.1.2
+# BINARY at /usr/bin/mopac (2026-09-21 session) in two ways:
+#   (a) it appears in the binary's own built-in keyword table (the
+#       " *  <KEYWORD>   - <description>" banner strings), and
+#   (b) a generated input using it was actually run to completion and
+#       MOPAC's echoed keyword banner showed the intended meaning.
+# Documentation on openmopac.net was used only to find candidate
+# keywords; nothing here is trusted from the docs alone.
+#
+# ONE NON-OBVIOUS FORMAT CONSTRAINT: a MOPAC data set is
+#   line 1: keywords
+#   line 2: title / comment
+#   line 3: comment
+#   line 4+: geometry
+# Lines 2 and 3 are positional, and ECCE runs the generated file through
+# scripts/parsers/prettyInput, which COLLAPSES RUNS OF BLANK LINES INTO
+# ONE.  So neither line 2 nor line 3 may ever be emitted blank, or
+# prettyInput silently eats one of them and MOPAC then reads the first
+# atom row as a comment.  MOPACHeader below always emits non-blank text
+# for both.
+#
+################################################################################
+
+use Getopt::Std;
+use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t
+            $opt_e $opt_s $opt_q);
+
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+require "pertab.pl";
+&loadPT;
+
+$| = 1;
+
+&getopts(':n:t:pfbcqeshv');
+&handle_options;
+
+%AbiDict = ();
+
+if ($TplFILE eq "") {
+  &usage;
+}
+
+&verifyAbiFile;
+&verifyFragFile;
+&readDict;
+&readChemSys;
+&modifyInputFile;
+&cleanup;
+exit(0);
+
+################################################################################
+# Generic ##tag## substitution engine -- identical to ai.orca's/ai.gauss16's
+# modifyInputFile. Walks the template line by line, replaces ##key## with
+# either &key(value) if such a sub exists, else the raw dictionary value,
+# else (no match at any level of the dot-separated key) drops the line.
+#
+# CONTRACT (same as ai.gauss16's CheckpointFile / ai.orca's ORCABlocks): a
+# sub that wants to emit nothing must set $_ = "" itself, because the
+# engine only overwrites $_ when the sub's return value is non-empty.
+################################################################################
+sub modifyInputFile {
+  local($keysave, $key, $subname, $prefix, $postfix, $finished);
+  $inputFile = $TplFILE;
+  open(TEMPLATE, $inputFile);
+  open(NEWFILE, ">tmpfile");
+  while (<TEMPLATE>) {
+    if (/([^#]*)##([^#]*)##(.*)/) {
+      $prefix = $1;
+      $postfix = $3;
+      $keysave = $key = $2;
+      $finished = 0;
+      while ($finished == 0) {
+        $subname = $key;
+        $subname =~ s/\./_/g;
+        if (defined($AbiDict{$key})) {
+          $finished = 1;
+          $value = $AbiDict{$key};
+          $fct = "&$subname('$value')";
+          $result = eval $fct;
+          if (!(defined $result)) {
+            s/##$keysave##/$value/;
+          } elsif ($result ne "") {
+            $_ = $prefix . $result . $postfix . "\n";
+          }
+        } else {
+          $finished = 1;
+          $fct = "&$subname";
+          $result = eval $fct;
+          if (!(defined $result)) {
+            if (index($key, ".") >= $[) {
+              $key =~ s/\.[^\.]*$//;
+              $finished = 0;
+            } else {
+              $_ = "";
+            }
+          } elsif ($result ne "") {
+            $_ = $prefix . $result . $postfix . "\n";
+          }
+        }
+      }
+    }
+    print(NEWFILE);
+  }
+  close(TEMPLATE);
+  close(NEWFILE);
+}
+
+################################################################################
+# Code-specific tag resolvers
+################################################################################
+
+# The three positional header lines of a MOPAC data set: keywords,
+# title, comment.  Emitted as one block by one sub so the "never blank"
+# rule for lines 2 and 3 (see the header note about prettyInput) is
+# enforced in exactly one place.
+sub MOPACHeader {
+  my $result = &KeywordLine . "\n" . &TitleLine . "\n" . &CommentLine;
+  $_ = $result;
+  return $result;
+}
+
+# The second data set appended for a GeoVib run: a blank separator line,
+# then keywords/title/comment again with OLDGEO (use the geometry the
+# previous job ended with) and no geometry block of its own.  Verified
+# against real MOPAC 23.1.2: "PM7 EF" followed by a blank line and
+# "PM7 FORCE OLDGEO" in the same file runs both jobs and prints both a
+# FINAL HEAT OF FORMATION and a full DESCRIPTION OF VIBRATIONS section.
+#
+# MOPAC has no single keyword that does "optimize then compute the
+# Hessian" (unlike ORCA's "! Opt Freq" or Gaussian's "Opt Freq"), so the
+# two-data-set form is the only way to express GeoVib.
+sub MOPACSecondJob {
+  my $result = "";
+  if ($AbiDict{"RunType"} eq "GeoVib") {
+    my @kw = ();
+    push(@kw, &HamiltonianKeyword);
+    push(@kw, "UHF") if (&IsUnrestricted);
+    push(@kw, "FORCE");
+    push(@kw, "THERMO") if ($AbiDict{"ES.Runtype.Vibration.Thermo"} eq "1");
+    push(@kw, "OLDGEO");
+    push(@kw, "CHARGE=" . &Charge);
+    push(@kw, &SpinKeyword);
+    push(@kw, "PRECISE") if ($AbiDict{"ES.Theory.SCF.Precise"} eq "1");
+    $result = "\n" . join(" ", @kw) . "\n" . &TitleLine .
+              "\n" . "Vibrational analysis at the optimized geometry";
+  }
+  $_ = $result;
+  return $result;
+}
+
+# Line 1: the space-separated MOPAC keyword line.
+sub KeywordLine {
+  my @kw = ();
+  push(@kw, &HamiltonianKeyword);
+  push(@kw, "UHF") if (&IsUnrestricted);
+  push(@kw, &RunTypeKeywords);
+  push(@kw, "CHARGE=" . &Charge);
+  push(@kw, &SpinKeyword);
+
+  # PRECISE: "TIGHTER CRITERIA TO BE USED" (binary's own banner text).
+  push(@kw, "PRECISE") if ($AbiDict{"ES.Theory.SCF.Precise"} eq "1");
+
+  # ITRY=n is MOPAC's SCF iteration limit ("DO A MAXIMUM OF <n> ...").
+  my $maxiter = $AbiDict{"ES.Theory.SCF.ConvergenceIterations"};
+  push(@kw, "ITRY=$maxiter") if ($maxiter ne "" && $maxiter > 0);
+
+  # THREADS=n is MOPAC's only parallelism control.  MOPAC has NO memory
+  # keyword of any kind (confirmed against the full keyword table
+  # compiled into the 23.1.2 binary), which is why -- unlike every other
+  # code's theory dialog -- mopactheory.py has no "Memory (GB)" field.
+  # Nothing to convert, because there is nothing to set.
+  my $nprocs = $AbiDict{"ES.Theory.SCF.NumProcessors"};
+  push(@kw, "THREADS=$nprocs") if ($nprocs ne "" && $nprocs > 1);
+
+  return join(" ", @kw);
+}
+
+# Line 2: the calculation title.  Never blank (see header note).
+sub TitleLine {
+  my $title = $AbiDict{"title"};
+  $title =~ s/^\s+//;
+  $title =~ s/\s+$//;
+  $title = "ECCE MOPAC calculation" if ($title eq "");
+  return $title;
+}
+
+# Line 3: the second comment line.  Never blank (see header note).
+sub CommentLine {
+  my $anno = $AbiDict{"annotation"};
+  $anno =~ s/^\s+//;
+  $anno =~ s/\s+$//;
+  $anno = "Generated by ECCE" if ($anno eq "");
+  return $anno;
+}
+
+# Strip the leading R/U restricted/unrestricted marker off the ECCE
+# theory name to get MOPAC's own Hamiltonian keyword.  Every result is
+# a keyword the installed binary lists in its own keyword table.
+sub HamiltonianKeyword {
+  my $theory = $AbiDict{"Theory"};
+  my %map = (
+    "RPM7"  => "PM7",   "UPM7"  => "PM7",
+    "RPM6"  => "PM6",   "UPM6"  => "PM6",
+    "RPM3"  => "PM3",   "UPM3"  => "PM3",
+    "RAM1"  => "AM1",   "UAM1"  => "AM1",
+    "RRM1"  => "RM1",   "URM1"  => "RM1",
+    "RMNDO" => "MNDO",  "UMNDO" => "MNDO",
+  );
+  my $kw = $map{$theory};
+  die "ai.mopac error: unsupported theory '$theory' (reduced scope covers " .
+      "R/U x PM7/PM6/PM3/AM1/RM1/MNDO only)\n" if (!defined($kw));
+  return $kw;
+}
+
+sub IsUnrestricted {
+  return ($AbiDict{"Theory"} =~ /^U/) ? 1 : 0;
+}
+
+# Runtype -> MOPAC keyword(s).  All verified live:
+#   Energy    1SCF               "DO 1 SCF AND THEN STOP"
+#   Gradient  1SCF GRADIENTS     adds the PARAMETER/ATOM/TYPE gradient table
+#   Geometry  EF                 "USE EF ROUTINE FOR MINIMUM SEARCH"
+#   (TS)      TS                 "USE EF ROUTINE FOR TS SEARCH" -- the
+#             keyword is real and accepted, but MOPAC's TS search needs
+#             INTERNAL coordinates and this script writes Cartesians, so
+#             a generated TS job aborts with "Too many variables ...
+#             convert to internal coordinates and re-run" (confirmed by
+#             running one).  mopacruntype.py therefore offers no
+#             "Search for: Transition State" choice, so this branch is
+#             unreachable from the GUI; it is kept, documented, as the
+#             hook for whenever ai.mopac learns to emit a Z-matrix.
+#   Vibration FORCE              "FORCE CALCULATION SPECIFIED"
+#   GeoVib    EF                 (+ a second OLDGEO FORCE data set)
+sub RunTypeKeywords {
+  my $runtype = $AbiDict{"RunType"};
+  my @kw = ();
+
+  if ($runtype eq "Energy") {
+    push(@kw, "1SCF");
+  } elsif ($runtype eq "Gradient") {
+    push(@kw, "1SCF", "GRADIENTS");
+  } elsif ($runtype eq "Geometry" || $runtype eq "GeoVib") {
+    if ($runtype eq "Geometry" &&
+        $AbiDict{"ES.Runtype.GeomOpt.SearchFor"} =~ /Transition/i) {
+      push(@kw, "TS");
+    } else {
+      push(@kw, "EF");
+    }
+    push(@kw, &GNormToken);
+    push(@kw, &MaxCyclesToken);
+  } elsif ($runtype eq "Vibration") {
+    push(@kw, "FORCE");
+    push(@kw, "THERMO") if ($AbiDict{"ES.Runtype.Vibration.Thermo"} eq "1");
+  } else {
+    die "ai.mopac error: unsupported runtype '$runtype' (reduced scope " .
+        "covers Energy/Gradient/Geometry/Vibration/GeoVib only)\n";
+  }
+
+  return grep { $_ ne "" } @kw;
+}
+
+# "GNORM=x" -- "EXIT WHEN GRADIENT NORM DROPS BELOW x", in
+# kcal/mol/Angstrom (MOPAC's own gradient unit, as printed in its
+# GRADIENTS table).  Only emitted if the runtype dialog's checkbox is on.
+sub GNormToken {
+  return "" if ($AbiDict{"ES.Runtype.GeomOpt.ConvergenceGradient"} ne "1");
+  my $gnorm = $AbiDict{"ES.Runtype.GeomOpt.ConvergenceGradient.Value"};
+  return "" if ($gnorm eq "");
+  return "GNORM=$gnorm";
+}
+
+# "CYCLES=n" -- "DO A MAXIMUM OF n <geometry optimization cycles>".
+sub MaxCyclesToken {
+  return "" if ($AbiDict{"ES.Runtype.GeomOpt.MaximumSteps"} ne "1");
+  my $steps = $AbiDict{"ES.Runtype.GeomOpt.MaximumStepsValue"};
+  return "" if ($steps eq "");
+  return "CYCLES=$steps";
+}
+
+sub Charge {
+  my $charge = $AbiDict{"Charge"};
+  return ($charge eq "") ? 0 : $charge;
+}
+
+# MOPAC names the spin state rather than giving a multiplicity number.
+# All nine names are in the binary's own keyword table
+# ("SPIN STATE DEFINED AS A <name>").
+sub SpinKeyword {
+  my $multiplicity = 1;
+  if ($AbiDict{"ChemSys.Multiplicity"} =~ /(\d+)/) {
+    $multiplicity = $1;
+  }
+  my @names = ("", "SINGLET", "DOUBLET", "TRIPLET", "QUARTET", "QUINTET",
+               "SEXTET", "SEPTET", "OCTET", "NONET");
+  return (defined($names[$multiplicity]) && $names[$multiplicity] ne "") ?
+         $names[$multiplicity] : "SINGLET";
+}
+
+# " Symbol X Y Z" per atom, one per line.  MOPAC reads plain Cartesians
+# in this form and, with no per-coordinate optimization flags given,
+# treats every coordinate as optimizable (confirmed live: the echoed
+# geometry marks all three columns with "*").
+sub chemsys {
+  ($chemsys_atoms != 0) || die "ai.mopac error: Fragment has no atoms!\n";
+  for (my $index = 0; $index < $chemsys_atoms; $index++) {
+    my $symbol = $tags{$index};
+    printf(NEWFILE " %-2s  %14.9f  %14.9f  %14.9f\n", $symbol,
+           $coords{$index,0}, $coords{$index,1}, $coords{$index,2});
+  }
+  $_ = "";
+}
+
+################################################################################
+# Generic file I/O -- copied from ai.orca, code-agnostic
+################################################################################
+
+sub verifyAbiFile {
+  open(ABIDICT, $AbiFILE) || die "ai.mopac error: Couldn't open $AbiFILE\n";
+}
+
+sub verifyFragFile {
+  open(CHEMSYS, $FragFILE) || die "ai.mopac error: Couldn't open $FragFILE\n";
+}
+
+sub cleanup {
+  system("/bin/mv -f tmpfile '$inputFile'");
+  close(ABIDICT);
+}
+
+sub readDict {
+  while (<ABIDICT>) {
+    $_ =~ s/\s*!.*$//;
+    if (/:/) {
+      my ($key, $value) = split(/:/);
+      $key =~ s/^\s*//;
+      $key =~ s/\s*$//;
+      $value =~ s/^\s*//;
+      $value =~ s/\s*$//;
+      my $tagkey = $key;
+      while ($tagkey ne "") {
+        $AbiDict{$tagkey} = $value;
+        $tagkey =~ s/^[^\.]*//;
+        $tagkey =~ s/^\.//;
+      }
+    }
+  }
+}
+
+sub readChemSys {
+  my $symbols = 0;
+  $chemsys_atoms = 0;
+  $_ = <CHEMSYS>;
+  while (<CHEMSYS>) {
+    if (/^num_atoms:/) {
+      (undef, $chemsys_atoms) = split;
+    } elsif (/^title:/) {
+      (undef, $chemsys_name) = split;
+    } elsif (/^atom_info:/) {
+      $symbols = /symbol/;
+    } elsif (/^atom_list:/) {
+      for (my $index = 0; $index < $chemsys_atoms; $index++) {
+        $_ = <CHEMSYS>;
+        ($tags{$index}, $coords{$index,0}, $coords{$index,1}, $coords{$index,2}) = split;
+        if (!$symbols) {
+          $tags{$index} = $number_to_symbol{$tags{$index}};
+        }
+      }
+    }
+  }
+}
+
+sub usage {
+  print "Usage: ai.mopac -p -f -n <basename> -t <template>\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}
+
+sub handle_options {
+  &usage && exit if ($opt_h || $opt_help);
+  my $revision = '$Revision: 1 $';
+  $revision =~ s/\$//g;
+  print "$revision\n" if ($opt_v);
+  exit if ($opt_v);
+  $AbiFILE = "$opt_n.param" if ($opt_p);
+  $FragFILE = "$opt_n.frag" if ($opt_f);
+  $BasisFILE = "$opt_n.basis" if ($opt_b);
+  $CnstrntFILE = "$opt_n.con" if ($opt_c);
+  $TplFILE = $opt_t;
+}

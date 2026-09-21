@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts the point group from MOPAC's "MOLECULAR POINT GROUP : <PG>"
+# line into ECCE's PNTGRP property (a PropTSVecString).  Modeled on
+# orca.pntgrp / gaussian-16.symmetry for the output shape.
+#
+# Sample input line, verified against real MOPAC 23.1.2 output (note the
+# trailing whitespace MOPAC pads the label with):
+#       MOLECULAR POINT GROUP   :   C2v
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $line = <STDIN>;
+chomp($line) if (defined $line);
+
+my $pntgrp = "C1";
+if (defined($line) && $line =~ /MOLECULAR POINT GROUP\s*:\s*(\S+)/) {
+  $pntgrp = $1;
+}
+
+print "key: PNTGRP\n";
+print "size: \n1\n";
+print "values: \n$pntgrp\n";
+print "END\n";
+
+exit(0);

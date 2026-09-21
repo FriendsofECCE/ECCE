@@ -1,0 +1,185 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts MOPAC's "NORMAL COORDINATE ANALYSIS (Total motion = 1
+# Angstrom)" block into ECCE's VIB (per-mode Cartesian atom
+# displacements), VIBFREQ (frequencies) and VIBSYM (mode symmetry
+# labels) properties -- all three from ONE block, on purpose.
+#
+# WHY ALL THREE COME FROM THIS BLOCK, and not VIBFREQ from the
+# friendlier-looking "DESCRIPTION OF VIBRATIONS" section:
+# MOPAC's DESCRIPTION OF VIBRATIONS COLLAPSES DEGENERATE MODES -- it
+# prints one stanza per distinct frequency, not one per mode.  A real
+# PM7 CH4 FORCE run prints 9 modes here (including both members of each
+# doubly-degenerate E pair, 1306.5/1306.5 and 2689.5/2689.5) but only 7
+# stanzas there.  Sourcing VIBFREQ from DESCRIPTION therefore produced a
+# 7-row VIBFREQ against a 9-mode VIB, which NModePanel would have
+# indexed row-by-row against each other -- the same row-alignment trap
+# CLAUDE.md records for ORCA's VIBFREQ/VIBIR pair.  Found by running a
+# real CH4 job through a simulation of eccejobmonitor's actual
+# line-feeding algorithm and comparing the two counts; a water test
+# molecule (no degeneracies) would never have shown it.
+#
+# Taking all three from this one block makes the alignment structural
+# rather than something to re-check.  The cost is one decimal place of
+# frequency precision (this block prints 1286.1 where DESCRIPTION prints
+# 1286.05), which is well below the accuracy of a semiempirical
+# harmonic frequency.
+#
+# Layout, verified against a real MOPAC 23.1.2 CH4 FORCE run (9 modes,
+# so two column groups of 8 + 1):
+#
+#    Root No.       1         2         3         4  ...      8
+#
+#                  1 A1      1 B1      1 E       1 E  ...
+#
+#                 1286.1    1297.0    1306.5    1306.5 ...
+#
+#            1   -0.0000    0.0000    0.0074   -0.0513 ...
+#            2    0.0000   -0.0000   -0.0050    0.0357 ...
+#            ...
+#           15   -0.1442   -0.0012    0.0805    0.0109 ...
+#
+#    Root No.       9
+#    ...
+#
+# Displacement rows are flattened Cartesian degrees of freedom
+# (atom*3+coord), so natoms = nrows/3.  Within a group the two lines
+# after the "Root No." header are, in order, the symmetry labels
+# (printed as "<n> <irrep>" pairs, rejoined here into "1A1" form to
+# match the DESCRIPTION section's own spelling) and the frequencies.
+#
+# MOPAC lists only the genuine 3N-6 (3N-5) modes in this block -- no
+# near-zero translation/rotation rows to filter, unlike ORCA/NWChem.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my %matrix;   # $matrix{row}{mode} = displacement; row/mode both 0-based
+my %freq;     # $freq{mode} = frequency
+my %sym;      # $sym{mode}  = symmetry label
+my $nrows = 0;
+my $nmodes = 0;
+
+my @modeIdx = ();
+my $expect = 0;   # 1 = next non-blank line is symmetry labels,
+                  # 2 = next non-blank line is frequencies
+
+while (<STDIN>) {
+  chomp;
+  if (/^\s*Root No\.\s+(\d+(?:\s+\d+)*)\s*$/) {
+    @modeIdx = split(' ', $1);
+    $nmodes = $modeIdx[$#modeIdx] if ($modeIdx[$#modeIdx] > $nmodes);
+    $expect = 1;
+    next;
+  }
+  next unless (@modeIdx);
+  next if (/^\s*$/);
+
+  if ($expect == 1) {
+    # "  1 A1      1 B1      1 E   ..." -- number/irrep pairs
+    my @tok = split(' ', $_);
+    for my $j (0 .. $#modeIdx) {
+      last if ((2 * $j + 1) > $#tok);
+      $sym{$modeIdx[$j] - 1} = $tok[2 * $j] . $tok[2 * $j + 1];
+    }
+    $expect = 2;
+    next;
+  }
+  if ($expect == 2) {
+    my @vals = split(' ', $_);
+    for my $j (0 .. $#modeIdx) {
+      last if ($j > $#vals);
+      $freq{$modeIdx[$j] - 1} = $vals[$j];
+    }
+    $expect = 0;
+    next;
+  }
+
+  # displacement row: leading integer row index, then one value per mode
+  # in the current column group
+  if (/^\s*(\d+)\s+((?:-?\d+\.\d+\s*)+)$/) {
+    my $row = $1 - 1;
+    my @vals = split(' ', $2);
+    for my $j (0 .. $#modeIdx) {
+      last if ($j > $#vals);
+      $matrix{$row}{$modeIdx[$j] - 1} = $vals[$j];
+    }
+    $nrows = $row + 1 if (($row + 1) > $nrows);
+  }
+}
+
+my $natoms = int($nrows / 3);
+exit(0) if ($natoms < 1 || $nmodes < 1);
+
+# ---- VIBFREQ -----------------------------------------------------------
+print "key: VIBFREQ\n";
+print "size:\n$nmodes\n";
+print "rowlabels:\n";
+for my $i (1 .. $nmodes) {
+  print " $i ";
+  print "\n" if (($i % 10) == 0);
+}
+print "\n" if (($nmodes % 10) != 0);
+print "values:\n";
+for my $i (1 .. $nmodes) {
+  my $f = $freq{$i - 1};
+  $f = 0.0 if (!defined($f));
+  print " $f";
+  print "\n" if (($i % 10) == 0);
+}
+print "\n" if (($nmodes % 10) != 0);
+print "units:\ncm-1\n";
+print "END\n";
+
+# ---- VIBSYM ------------------------------------------------------------
+# Only published if MOPAC labeled every mode, so it can never come back
+# shorter than VIBFREQ.
+my $haveAllSyms = 1;
+for my $i (0 .. $nmodes - 1) {
+  $haveAllSyms = 0 if (!defined($sym{$i}));
+}
+if ($haveAllSyms) {
+  print "key: VIBSYM\n";
+  print "size:\n$nmodes\n";
+  print "values:\n";
+  for my $i (1 .. $nmodes) {
+    print " $sym{$i - 1}";
+    print "\n" if (($i % 10) == 0);
+  }
+  print "\n" if (($nmodes % 10) != 0);
+  print "END\n";
+}
+
+# ---- VIB ---------------------------------------------------------------
+print "key: VIB\n";
+print "size:\n$nmodes $natoms 3\n";
+print "vectorlabels:\n";
+for my $i (1 .. $nmodes) {
+  print " NA ";
+  print "\n" if (($i % 10) == 0);
+}
+print "\nrowlabels:\n";
+for my $i (1 .. $natoms) {
+  print " $i ";
+  print "\n" if (($i % 10) == 0);
+}
+print "\ncolumnlabels:\nX Y Z\n";
+print "values:\n";
+for my $m (0 .. $nmodes - 1) {
+  for my $a (0 .. $natoms - 1) {
+    for my $c (0 .. 2) {
+      my $v = $matrix{$a * 3 + $c}{$m};
+      $v = 0.0 if (!defined($v));
+      printf("%.15e ", $v);
+    }
+    print "\n";
+  }
+}
+print "units:\nAngstrom\n";
+print "END\n";
+exit(0);
