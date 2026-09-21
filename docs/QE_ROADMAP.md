@@ -865,6 +865,39 @@ Verification:
   Builder shows.
 - **Needs a real QE install** for anything past deck generation.
 
+### Phase 1 — DONE (2026-09-21), and three corrections to what follows
+
+Implemented and committed. Four generated decks ran to `JOB DONE` in
+real `pw.x` 6.7 (bulk Si, water/Γ, fcc Al with smearing, triplet O₂),
+`qe.desc` declares six parse types and all six fire, suite at 963
+checks. Corrections to the plan below, from doing it:
+
+1. **§5 Phase 1's "Verification: headless — nothing yet" is obsolete.**
+   QE is installed, so the fixtures test **generation and parsing as one
+   pipeline** — a deck built by `ai.qe`, run through the real binary,
+   then replayed through the monitor's algorithm. No other code's
+   fixtures in this suite do that.
+2. **Q3's per-element combo is not implementable in the dialog.** Codereg
+   dialogs are standalone processes whose entire input is `globals.py`'s
+   fixed argv; nothing tells them which elements the structure contains,
+   so a per-species row cannot be built there. The resolution lives in
+   `ai.qe`, which reads the `.frag` and scans the pseudopotential
+   directory itself. The dialog contributes `pseudo_dir`, a type
+   preference applied with fallback, and a status line. This gap blocks
+   **any** future per-element UI, not just this one.
+3. **No `TEVEC`/`GEOMTRACE` in phase 1, deliberately.** scf has no
+   geometry steps, so a Geometry-Step-indexed vector would have nothing
+   to index against — the `len(TEVEC) <= len(GEOMTRACE)` invariant in
+   §7. Per-iteration energies go to `EWVEC` (`PropTSVector<Wave Step>`),
+   which is the correct axis and was previously produced only by
+   NWChem's `ecce_print`.
+
+Worth knowing for phase 3+: a `!` comment is fine inside a QE namelist
+but **fatal inside `ATOMIC_SPECIES`**; and an odd valence-electron count
+with `occupations='fixed'`, `nspin=1` makes `pw.x` stop with "charge is
+wrong: smearing is needed" seconds after launch — `ai.qe` warns at
+generation time.
+
 ### Phase 2 — Parsing, against real output
 
 Scope: get properties out of a real `scf` run.
