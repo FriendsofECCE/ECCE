@@ -62,81 +62,16 @@ than papered over.
 ### Release history
 
 - **v8.10.0** — **ORCA becomes properly usable**: vibrational analysis
-  and NMR work for the first time, with full input control. **Adds
-  MOPAC** as a new code. Fixes a long list of properties that were
-  silently never extracted at all.
-
-  ORCA was first registered in v8.0.7, but property display was basic
-  and two major capabilities never worked. **Vibrational analysis** now
-  works — ORCA's mode displacement data was never extracted on *any*
-  job, so the Vibrational Frequencies panel never appeared for an ORCA
-  calculation even though the frequencies themselves parsed fine. **NMR**
-  now works — isotropic shielding and anisotropy were never extracted
-  from any ORCA NMR job. Property coverage went from 9 of 24 parse types
-  to all 24, each verified against real ORCA 6.1.1 output. The Theory and
-  Runtype dialogs gain RIJCOSX with auxiliary basis selection, a wider
-  DFT functional list (15 entries), SCF and geometry convergence
-  tightness, and analytic vs numerical frequencies — every keyword
-  verified against a real ORCA install. ORCA also gets its own
-  calculation icon.
-
-  MOPAC (PM7/PM6/PM3/AM1/RM1/MNDO) works end to end — job setup,
-  submission, live monitoring, all its properties, and output
-  retrieval — verified against a real MOPAC 23.1.2 install. It is the
-  project's first semiempirical code, so it carries no basis-set
-  section.
-
-  The rest of the release is a correctness pass over the property
-  pipeline for Gaussian and NWChem, driven by a new regression suite and
-  verified against real jobs run with the actual binaries rather than by
-  reading code. Each of these produced no error, ran to completion, and
-  simply had data missing:
-
-  - Gaussian diatomic frequency jobs produced no vibrational data
-    whatsoever, and any Z-matrix job with dummy atoms had a silently
-    **wrong** geometry trace, with a phantom atom and every subsequent
-    atom's coordinates shifted onto the wrong atom.
-  - Gaussian Mulliken charges were never extracted for any open-shell
-    job, and the values that did come through had their last digit
-    truncated.
-  - Gaussian mode symmetries were parsed and then discarded.
-  - NWChem's spin-contamination (S²) check matched any line containing
-    the digit 2; its residual-norm property could never fire; its
-    correlation energy missed every CCSD job; and its Mulliken shell
-    charges corrupted their own units header.
-  - Car-Parrinello gradients overwrote the ordinary gradient property.
-  - Importing a Gaussian log whose basis was a named library inside a
-    `GEN` block failed with "does not have a valid basis set"; a mixed
-    named/explicit block silently imported a **partial** basis.
-
-  Also: vibration-mode animation now plays for all codes (its
-  display-mode control never delivered its event under wx3.2/GTK3,
-  which had disabled the feature entirely); a stale memory setting
-  could silently request 1 TB per core; a crash on out-of-bounds
-  property access is fixed along with the same flaw in three sibling
-  classes; and `calced` no longer leaks a process per Theory/Runtype
-  dialog.
-
-  New in this release: `tests/parsers/`, a regression suite that
-  replays real captured job output through the live monitor's own
-  matching algorithm and checks every extracted value. It needs no
-  GUI, no services and no chemistry codes, runs in about a second
-  (`ctest -R parsers`), and found most of the bugs listed above.
-
-  Known issue: stepping through a geometry trace updates the atom
-  table but does not move the 3-D structure
-  ([#74](https://github.com/FriendsofECCE/ECCE/issues/74)).
+  and NMR now work at all, property coverage goes from 9 of 24 parse
+  types to all 24, and the dialogs gain RIJCOSX, 15 DFT functionals and
+  convergence controls. **Adds MOPAC** as a registered code. Fixes a
+  long list of Gaussian and NWChem properties that were silently never
+  extracted, and adds a parser regression suite.
 - **v8.0.8** — Fixes named-library basis-set import, silently broken for
-  every registered code except ORCA; extends ORCA's viewer support
-  (energy decomposition, gradients, dipole/quadrupole, Mulliken charges,
-  molecular orbitals, vibration mode data) and fixes the real bugs
-  behind its geometry trace never showing more than one step or the
-  optimized structure. Also fixes a systemic wx3.2-port regression that
-  silently disabled 3-D vector/tensor/color visualization (dipole,
-  quadrupole, gradient, Mulliken charges) for every code, a dropped-
-  redraw bug behind unreliable geometry/vibration step animation, and
-  converts memory settings to GB everywhere in the UX (GAMESS-UK,
-  NWChem plane-wave, ORCA).
+  every registered code except ORCA; extends ORCA's viewer support and
+  fixes its geometry trace never showing more than one step. Also fixes
+  a wx3.2-port regression that silently disabled 3-D visualization for
+  every code, and converts memory settings to GB throughout.
 - **v8.0.7** — Adds ORCA as a registered code (job setup, submission, and
   collection now work end-to-end; property display in the viewer is
   still basic); fixes a version-parsing bug that could silently break
