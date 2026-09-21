@@ -689,6 +689,13 @@ sub DFTXCFun {
     $result = "SOGGA11";
   } elsif ($xcFun eq "M11L (nonlocal)") {
     $result = "M11L";
+  } elsif ($xcFun eq "M11 (range)") {
+    # ged16theory.py has offered "M11 (range)" all along with no case
+    # here to match it, so selecting M11 fell through to the else branch
+    # and generated NO functional keyword at all. Verified a bare M11 is
+    # a valid Gaussian 16 keyword (real g16 run, STO-3G water,
+    # terminated normally).
+    $result = "M11";
   } elsif ($xcFun eq "N12 (nonlocal)") {
     $result = "N12";
   } elsif ($xcFun eq "MN12L (nonlocal)") {

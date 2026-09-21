@@ -271,8 +271,7 @@ class Ged16TheoryPanel(EccePanel):
                             "MPWPW91 (hybrid)",
                             "MPW1K (hybrid)",
                             "MPW1LYP (hybrid)",
-                            "MPW1PBE (hybrid",
-                            "MPW3PBE (hybrid)",
+                            "MPW1PBE (hybrid)",
                             "O3LYP (hybrid)",
                             "Becke98 (hybrid)",
                             "Becke97 (1) (hybrid)",
@@ -281,7 +280,6 @@ class Ged16TheoryPanel(EccePanel):
                             "Becke Half and Half (hybrid)",
                             "Becke Half and LYP Half (hybrid)",
                             "BMK (hybrid)",
-                            "MO6HF (hybrid)",
                             "M062X (hybrid)",
                             "APFD (hybrid)",
                             "APF (hybrid)",
@@ -298,8 +296,24 @@ class Ged16TheoryPanel(EccePanel):
                             "CAM-B3LYP (range)",
                             "HISSbPBE (range)",
                             "M11 (range)",
-                            "N12SX (range)"
-                            "MN12SX (range)"
+                            "N12SX (range)",
+                            "MN12SX (range)",
+                            # Appended, not inserted: xcFuncDefault below is
+                            # an INDEX into this list, so inserting anywhere
+                            # above would silently change the default
+                            # functional.
+                            "M06HF (hybrid)",
+                            "M05 (hybrid)",
+                            "M052X (hybrid)",
+                            "M08HX (hybrid)",
+                            "MN15 (hybrid)",
+                            "MN15M11 (range)",
+                            "MPw3PBE (hybrid)",
+                            "PW6B95 (hybrid)",
+                            "PW6B95D3 (hybrid)",
+                            "DSDPBEP86 (double-hybrid)",
+                            "PBE0DH (double-hybrid)",
+                            "PBEQIDH (double-hybrid)"
                             ]
             xcFuncDefault = 3 #Andy  -- changed default from None to PBE0
             if EcceGlobals.ReactionStudyFlag != 0:
