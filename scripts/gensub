@@ -1283,6 +1283,18 @@ sub mopac()
     $retval .= "  ln -s $base.out $::outFile\n";
     $retval .= "endif\n";
     $retval .= "\$mopac $::inFile >>& $::logfile\n";
+    $retval .= "\n$::CC - Now the run is finished, replace that symlink with a\n";
+    $retval .= "$::CC - real copy. The symlink is only needed DURING the run,\n";
+    $retval .= "$::CC - so live monitoring has the declared name to follow;\n";
+    $retval .= "$::CC - afterwards ECCE uploads the declared output file to the\n";
+    $retval .= "$::CC - data server, and a symlink does not survive that -- the\n";
+    $retval .= "$::CC - job's Outputs/ collection came back with only\n";
+    $retval .= "$::CC - eccejobstorelog in it while every regular file (the\n";
+    $retval .= "$::CC - input) and all 12 parsed properties uploaded fine.\n";
+    $retval .= "if ( -l $::outFile ) then\n";
+    $retval .= "  rm -f $::outFile\n";
+    $retval .= "  cp $base.out $::outFile\n";
+    $retval .= "endif\n";
   }
   return $retval;
   nouse strict vars;
