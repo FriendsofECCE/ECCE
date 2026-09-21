@@ -1561,7 +1561,27 @@ sub ConvergenceAlgorithm {
   local($value, $digit);
   if ($_[0] eq "Iterative SCF") {
     return "nodiis";
+  } elsif ($_[0] eq "LMBFGS") {
+    # NWPW: nedtheory.py offers ["CG", "LMBFGS"] for the plane-wave
+    # category, but neither was handled here, so both fell through to ""
+    # and the ##SCF.ConvergenceAlgorithm## line inside nwch.tpl's nwpw
+    # block was silently deleted -- the minimizer choice never reached
+    # the deck at all (issue #89).
+    #
+    # Verified against real NWChem 7.2.3 (task pspw energy, water in an
+    # 8 Bohr cell): a bare "lmbfgs" in the nwpw block is accepted and
+    # takes effect, switching the banner from
+    #   ====== Grassmann conjugate gradient iteration ======
+    # to
+    #   ====== Grassmann lmbfgs iteration ======
+    return "lmbfgs";
   } else {
+    # "CG" lands here deliberately: conjugate gradient is NWChem's own
+    # nwpw default, confirmed by the banner above for a deck with no
+    # minimizer keyword at all, so emitting nothing is correct and
+    # avoids depending on a keyword we don't need. (A bare "cg" is also
+    # accepted and gives the identical banner, if it ever needs to be
+    # explicit.)
     $_ = "";
     return "";
   }
