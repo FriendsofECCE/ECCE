@@ -276,7 +276,7 @@ class Ged03TheoryPanel(EccePanel):
                             "OPTX",
                             "TPSS",
 #                            "REvTPSS",
-                            "Becke 89", #BRx
+                            "Becke89", #BRx -- no space: ai.gauss*.pm matches "Becke89"
                             "PKZB",
                             "wPBEh", #aka HSE
                             "PBEh" #1998 rev of PBE
