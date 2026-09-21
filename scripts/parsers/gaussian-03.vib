@@ -116,6 +116,16 @@ $| = 1;
     print "$raman\n";
     print "\nunits:\nA^4/AMU\n";
     print "END\n";
+
+#   Same VIBSYM emission as the polyatomic path below -- here there is
+#   only the one mode, whose symmetry is $label.
+    print "key: VIBSYM\n";
+    print "size:\n$numVibModes\n";
+    print "rowlabels:\n";
+    print "1-$label\n";
+    print "values:\n";
+    print "$label\n";
+    print "END\n";
     exit;
   } elsif (! /^\s+1\s+2\s+3\s*$/ ) {
 #   For Gaussian-92 output, the vibrational output appears in two formats.
@@ -241,6 +251,36 @@ $| = 1;
   }
   if (($icnt % 10) != 0) { print "\n"; }
   print "units:\nA^4/AMU\n";
+  print "END\n";
+
+# The symmetry labels are already parsed above (read3ModeBlock collects
+# them into @symmetries, and every property above uses them to build its
+# "<mode number>-<symmetry>" row labels) -- emit them as their own
+# property too.  VIBSYM has been declared in the [VIB][VIBFREQ][VIBIR]
+# [VIBRAM][VIBSYM] group of every gaussian-*.desc all along, but no
+# script ever produced it, so the mode symmetries were parsed and then
+# silently dropped (issue #84).  Row labels are kept identical to
+# VIBFREQ's so the two stay row-aligned.
+  print "key: VIBSYM\n";
+  print "size:\n$numVibModes\n";
+  print "rowlabels:\n";
+  $prefix = 1;
+  $icnt = 0;
+  foreach $i ( @symmetries ) {
+    $icnt++;
+    print "$prefix-$i ";
+    if (($icnt % 10) == 0) { print "\n"};
+    $prefix++;
+  }
+  if (($icnt % 10) != 0) { print "\n"; }
+  print "values:\n";
+  $icnt = 0;
+  foreach $i ( @symmetries ) {
+    $icnt++;
+    print "$i ";
+    if (($icnt % 10) == 0) { print "\n"};
+  }
+  if (($icnt % 10) != 0) { print "\n"; }
   print "END\n";
 
   exit(0);
