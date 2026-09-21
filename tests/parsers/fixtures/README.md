@@ -481,3 +481,25 @@ by hand (O isotropic 365.6728, anisotropy 4.1792, eigenvalues 363.1113
 `File=`-rule parse type reading `grid.dat`, which this run does not
 produce, and `File=` rules are excluded from line matching anyway. ESP
 coverage would need a different setup.
+
+### gaussian-16/h2o_ccsdt.{gjf,log}
+
+Gaussian 16 RevC.01, `#P CCSD(T)/6-31G NoSymm`, water. Generated
+2026-09-21 on niobium with `/opt/gaussian/g16/g16`.
+
+Covers the correlated-method energy branches, which no fixture
+exercised. Six of them — `[EMP21]`, `[EMP3]`, `[EMP4DQ]`, `[EMP4SDQ]`,
+`[ECCSDTPERT]`, `[ECCD][ECCSD]` — match a block here and emit nothing,
+which looks exactly like #85 from the outside but is correct:
+`gaussian-16.energy` gates its whole body on `runtype =~ /Geo/i` (line
+114, documented in its own header), and for a non-optimisation job the
+energies come from the archive block via `gaussian-16.db`.
+
+That fallback is asserted rather than assumed: the case pins all seven
+archive energies (ESCF, EMP2, EMP3, EMP4DQ, EMP4SDQ, ECCSD,
+ECCSDTPERT), cross-checked against the per-line values in the log
+(`EUMP2 = -0.76111680142148D+02` and `CCSD(T)= -0.76119325411D+02`
+agree with EMP2 and ECCSDTPERT).
+
+Also confirms the documented `[EMP21]`/`[EMP22]` EUMP2 Begin collision
+is harmless in practice.

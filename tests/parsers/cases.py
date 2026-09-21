@@ -159,6 +159,52 @@ CASES = [
         },
     ),
 
+    dict(
+        name='g16-h2o-ccsdt',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2o_ccsdt.log',
+        # CCSD(T)/6-31G on water. Covers the correlated-method energy
+        # branches, which no fixture exercised: [EMP21]/[EMP22] (the
+        # documented EUMP2 Begin collision) and [ECCSDTPERT].
+        parse_args=('.', 'Energy', 'CC', 'CCSD(T)', '0'),
+        silent_ok={
+            'DELTAE': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'RMSDP': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            # gaussian-16.energy gates its whole body on runtype =~ /Geo/i
+            # (line 114), by design and documented in its own header: for a
+            # non-optimisation job the energies come from the archive block
+            # via gaussian-16.db instead, which the POLARIZ1 assertions
+            # below verify actually happens. So every one of these matching
+            # a block and emitting nothing is correct, not #85's shape --
+            # worth spelling out, because six entries firing silently is
+            # exactly what that bug looks like from the outside.
+            'ESCF1][ESCFVEC': 'runtype-gated to /Geo/i; archive supplies it.',
+            'EMP21][EMP2VEC': 'runtype-gated to /Geo/i; archive supplies it.',
+            'EMP3][EMP3VEC': 'runtype-gated to /Geo/i; archive supplies it.',
+            'EMP4DQ][EMP4DQVEC': 'runtype-gated to /Geo/i; archive supplies it.',
+            'EMP4SDQ][EMP4SDQVEC': 'runtype-gated to /Geo/i; archive supplies it.',
+            'ECCSDTPERT': 'runtype-gated to /Geo/i; archive supplies it.',
+            'ECCD][ECCDVEC][ECCSD][ECCSDVEC':
+                'runtype-gated to /Geo/i; archive supplies it.',
+        },
+        expect={
+            # The archive block is where a single-point job's correlated
+            # energies actually come from. Cross-checked against the
+            # per-line values in the log: EUMP2 = -0.76111680142148D+02
+            # and CCSD(T) = -0.76119325411D+02 agree with EMP2 and
+            # ECCSDTPERT here.
+            'POLARIZ1][HYPERPOL1': dict(keys={
+                'ESCF': {'values': '-75.9838311'},
+                'EMP2': {'values': '-76.1116801'},
+                'EMP3': {'values': '-76.1133812'},
+                'EMP4DQ': {'values': '-76.1169769'},
+                'EMP4SDQ': {'values': '-76.117589'},
+                'ECCSD': {'values': '-76.1183396'},
+                'ECCSDTPERT': {'values': '-76.1193254'},
+            }),
+        },
+    ),
+
     # -----------------------------------------------------------------
     # NWChem (ecce_print traces)
     # -----------------------------------------------------------------

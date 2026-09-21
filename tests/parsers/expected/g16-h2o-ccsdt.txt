@@ -1,0 +1,221 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    g16-h2o-ccsdt
+desc:    gaussian-16.desc
+fixture: gaussian-16/h2o_ccsdt.log (526 lines)
+args:    '.' 'Energy' 'CC' 'CCSD(T)' '0'
+
+[GEOMTRACE]  Script=gaussian-16.geomtrace  Freq=all  Skip=5  Lines=-
+  Begin=Input orientation\:
+  End=--------------------------------------
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=123 fed=4 rc=0 first-fed='      1          8           0        0.000000    0.000000    0.117790'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.000000 0.000000 0.117790 0.000000 0.755450 -0.471160 0.000000 -0.755450 -0.471160
+      units: Hartree
+
+[DELTAE]  Script=gaussian-16.deltae  Freq=all  Skip=0  Lines=1
+  Begin=Delta\-E
+  begins=9 delivered=9 buffered_away=0
+  block 1: begin-line=211 fed=1 rc=0 first-fed=' E= -75.9557509594026     Delta-E=       -0.056502202491 Rises=F Damp=F'
+    (script emitted no property)
+  block 2: begin-line=223 fed=1 rc=0 first-fed=' E= -75.9822480416647     Delta-E=       -0.026497082262 Rises=F Damp=F'
+    (script emitted no property)
+  block 3: begin-line=235 fed=1 rc=0 first-fed=' E= -75.9838085053544     Delta-E=       -0.001560463690 Rises=F Damp=F'
+    (script emitted no property)
+  block 4: begin-line=247 fed=1 rc=0 first-fed=' E= -75.9838307933660     Delta-E=       -0.000022288012 Rises=F Damp=F'
+    (script emitted no property)
+  block 5: begin-line=259 fed=1 rc=0 first-fed=' E= -75.9838310983527     Delta-E=       -0.000000304987 Rises=F Damp=F'
+    (script emitted no property)
+  block 6: begin-line=270 fed=1 rc=0 first-fed=' E= -75.9838311035958     Delta-E=       -0.000000005243 Rises=F Damp=F'
+    (script emitted no property)
+  block 7: begin-line=283 fed=1 rc=0 first-fed=' E= -75.9838311038739     Delta-E=       -0.000000000278 Rises=F Damp=F'
+    (script emitted no property)
+  block 8: begin-line=296 fed=1 rc=0 first-fed=' E= -75.9838311038783     Delta-E=       -0.000000000004 Rises=F Damp=F'
+    (script emitted no property)
+  block 9: begin-line=309 fed=1 rc=0 first-fed=' E= -75.9838311038783     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+
+[RMSDP]  Script=gaussian-16.rmsdp  Freq=all  Skip=0  Lines=1
+  Begin=RMSDP
+  begins=10 delivered=10 buffered_away=0
+  block 1: begin-line=208 fed=1 rc=0 first-fed=' RMSDP=2.33D-02 MaxDP=1.23D-01              OVMax= 1.18D-01'
+    (script emitted no property)
+  block 2: begin-line=220 fed=1 rc=0 first-fed=' RMSDP=1.14D-02 MaxDP=5.99D-02 DE=-5.65D-02 OVMax= 3.93D-02'
+    (script emitted no property)
+  block 3: begin-line=232 fed=1 rc=0 first-fed=' RMSDP=2.21D-03 MaxDP=1.21D-02 DE=-2.65D-02 OVMax= 1.14D-02'
+    (script emitted no property)
+  block 4: begin-line=244 fed=1 rc=0 first-fed=' RMSDP=3.30D-04 MaxDP=2.31D-03 DE=-1.56D-03 OVMax= 9.61D-04'
+    (script emitted no property)
+  block 5: begin-line=256 fed=1 rc=0 first-fed=' RMSDP=6.19D-05 MaxDP=3.06D-04 DE=-2.23D-05 OVMax= 3.39D-04'
+    (script emitted no property)
+  block 6: begin-line=267 fed=1 rc=0 first-fed=' RMSDP=7.64D-06 MaxDP=3.55D-05 DE=-3.05D-07 OVMax= 4.37D-05'
+    (script emitted no property)
+  block 7: begin-line=280 fed=1 rc=0 first-fed=' RMSDP=1.61D-06 MaxDP=7.88D-06 DE=-5.24D-09 OVMax= 1.04D-05'
+    (script emitted no property)
+  block 8: begin-line=293 fed=1 rc=0 first-fed=' RMSDP=2.16D-07 MaxDP=7.93D-07 DE=-2.78D-10 OVMax= 1.35D-06'
+    (script emitted no property)
+  block 9: begin-line=306 fed=1 rc=0 first-fed=' RMSDP=3.64D-08 MaxDP=1.22D-07 DE=-4.39D-12 OVMax= 2.31D-07'
+    (script emitted no property)
+  block 10: begin-line=319 fed=1 rc=0 first-fed=' RMSDP=3.10D-09 MaxDP=1.08D-08 DE=-8.53D-14 OVMax= 1.82D-08'
+    (script emitted no property)
+
+[KE][NNREPUL]  Script=gaussian-16.ke  Freq=all  Skip=0  Lines=1
+  Begin=N\-N\=
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=506 fed=1 rc=0 first-fed=' N-N= 9.189222125372D+00 E-N=-1.989620890383D+02  KE= 7.599450564668D+01'
+    key: NNREPUL
+      size: 1
+      values: 9.189222125372e+00
+      units: Hartree
+    key: KE
+      size: 1
+      values: 7.599450564668e+01
+      units: Hartree
+
+[DIPOLE2]  Script=gaussian-16.dipole  Freq=last  Skip=1  Lines=1
+  Begin=Dipole moment \(field\-independent basis\, Debye\)\:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=489 fed=1 rc=0 first-fed='    X=             -0.0000    Y=              0.0000    Z=             -2.6372  Tot=              2.6372'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: -0.0000 0.0000 -2.6372
+      units: Debye
+
+[QUADPOLE1]  Script=gaussian-16.quadpole  Freq=last  Skip=1  Lines=-
+  Begin=Quadrupole moment \(field\-independent basis\, Debye\-Ang\)\:
+  End=Traceless
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=491 fed=3 rc=0 first-fed='   XX=             -7.2069   YY=             -4.2273   ZZ=             -6.1340'
+    key: QUADPOLE
+      size: 6
+      rowlabels: XX XY XZ YY YZ ZZ
+      values: -7.2069 0.0000 0.0000 -4.2273 -0.0000 -6.1340
+
+[OCTAPOLE2]  Script=gaussian-16.octapole  Freq=last  Skip=1  Lines=3
+  Begin=Octapole moment \(field\-independent basis\, Debye\-Ang\*\*2\)\:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=497 fed=3 rc=0 first-fed='  XXX=              0.0000  YYY=              0.0000  ZZZ=             -1.6110  XYY=              0.0000'
+    key: OCTAPOLE
+      size: 10
+      rowlabels: XXX YYY ZZZ XYY XXY XXZ XZZ YZZ YYZ XYZ
+      values: 0.0000 0.0000 -1.6110 0.0000 0.0000 -0.4473 0.0000 0.0000 -1.3065 -0.0000
+
+[HEXPOLE]  Script=gaussian-16.hexpole  Freq=last  Skip=1  Lines=4
+  Begin=Hexadecapole moment \(field\-independent basis\, Debye\-Ang\*\*3\)\:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=501 fed=4 rc=0 first-fed=' XXXX=             -5.1796 YYYY=             -5.6449 ZZZZ=             -6.1969 XXXY=              0.0000'
+    key: HEXPOLE
+      size: 15
+      rowlabels: XXXX YYYY ZZZZ XXXY XXXZ YYYX YYYZ ZZZX ZZZY XXYY XXZZ YYZZ XXYZ YYXZ ZZXY
+      values: -5.1796 -5.6449 -6.1969 0.0000 -0.0000 0.0000 -0.0000 -0.0000 -0.0000 -2.0344 -1.9448 -1.6629 -0.0000 -0.0000 0.0000
+
+[POLARIZ1][HYPERPOL1]  Script=gaussian-16.db  Freq=last  Skip=-  Lines=-
+  Begin=l9999\.exe
+  End=Job cpu
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=508 fed=16 rc=0 first-fed=' (Enter /opt/gaussian/g16/l9999.exe)'
+    key: ESCF
+      size: 1
+      values: -75.9838311
+      units: Hartree
+    key: EMP2
+      size: 1
+      values: -76.1116801
+      units: Hartree
+    key: EMP3
+      size: 1
+      values: -76.1133812
+      units: Hartree
+    key: EMP4DQ
+      size: 1
+      values: -76.1169769
+      units: Hartree
+    key: EMP4SDQ
+      size: 1
+      values: -76.117589
+      units: Hartree
+    key: ECCSD
+      size: 1
+      values: -76.1183396
+      units: Hartree
+    key: ECCSDTPERT
+      size: 1
+      values: -76.1193254
+      units: Hartree
+    key: TE
+      size: 1
+      values: -76.1193254
+      units: Hartree
+    key: EMP4D
+      size: 1
+      values: -76.1162719
+      units: Hartree
+    key: CPUSEC
+      size: 1
+      values: 0.8
+
+[MULLIKEN]  Script=gaussian-16.mulliken  Freq=all  Skip=2  Lines=-
+  Begin= Mulliken (atomic )?charges( and spin densities)?\:
+  End= Sum of Mulliken
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=478 fed=4 rc=0 first-fed='     1  O   -0.790777'
+    key: MULLIKEN
+      size: 3
+      values: -0.790777 0.395389 0.395389
+      units: e
+
+[ESCF1][ESCFVEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
+  Begin=SCF Done\:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=321 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -75.9838311039     A.U. after   10 cycles'
+    (script emitted no property)
+
+[EMP21][EMP2VEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
+  Begin=EUMP2
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=358 fed=1 rc=0 first-fed=' E2 =    -0.1278490383D+00 EUMP2 =    -0.76111680142148D+02'
+    (script emitted no property)
+
+[EMP3][EMP3VEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
+  Begin=EUMP3
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=386 fed=1 rc=0 first-fed=' E3=       -0.17011040D-02        EUMP3=      -0.76113381246D+02'
+    (script emitted no property)
+
+[EMP4DQ][EMP4DQVEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
+  Begin=UMP4\(DQ\)
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=387 fed=1 rc=0 first-fed=' E4(DQ)=   -0.35956741D-02        UMP4(DQ)=   -0.76116976920D+02'
+    (script emitted no property)
+
+[EMP4SDQ][EMP4SDQVEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
+  Begin=UMP4\(SDQ\)
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=388 fed=1 rc=0 first-fed=' E4(SDQ)=  -0.42077760D-02        UMP4(SDQ)=  -0.76117589022D+02'
+    (script emitted no property)
+
+[ECCSDTPERT]  Script=gaussian-16.energy  Freq=first  Skip=0  Lines=1
+  Begin=CCSD\(T\)\=
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=458 fed=1 rc=0 first-fed=' CCSD(T)= -0.76119325411D+02'
+    (script emitted no property)
+
+[ECCD][ECCDVEC][ECCSD][ECCSDVEC]  Script=gaussian-16.energy  Freq=all  Skip=-  Lines=-
+  Begin=E\(CORR\)
+  End=Largest amplitude
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=398 fed=53 rc=0 first-fed=' DE(Corr)= -0.13314802     E(CORR)=     -76.116979126     Delta=-2.91D-03'
+    (script emitted no property)
+
+[PNTGRP]  Script=gaussian-16.symmetry  Freq=all  Skip=0  Lines=1
+  Begin= Full point group
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=141 fed=1 rc=0 first-fed=' Full point group                 C2V     NOp   4'
+    key: PNTGRP
+      size: 1
+      values: C2V
+
