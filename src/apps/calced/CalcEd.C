@@ -2885,12 +2885,37 @@ bool CalcEd::launchDetachedApp(const string& cmd)
   }
 
   // Parent (calced): reap the short-lived intermediate child.  It only
-  // forks the grandchild and exits, so this returns almost instantly.
-  int status = 0;
-  pid_t waited;
-  do {
-    waited = waitpid(pid, &status, 0);
-  } while ((waited == -1) && (errno == EINTR));
+  // forks the grandchild and exits, so this normally returns at once.
+  //
+  // This MUST NOT block indefinitely.  It runs on the GUI thread, so any
+  // failure of the intermediate child to exit would freeze the whole
+  // application with no way out -- and calced is a multithreaded JMS
+  // client, where fork() clones only the calling thread: if another
+  // thread happened to hold the malloc (or any other) lock at that
+  // instant, the child can deadlock before reaching _exit(), and a
+  // blocking wait here would then hang forever.  An earlier version of
+  // this function did use a blocking waitpid() and is a suspect for
+  // exactly that symptom.
+  //
+  // So poll with WNOHANG for a short bounded period instead.  If the
+  // child still hasn't been reaped by then, give up and return: the
+  // worst case is one short-lived zombie (which WxEditSessionMgr's
+  // SIGCHLD handler may still collect), which is the very thing this
+  // function exists to avoid -- but a leaked zombie is vastly
+  // preferable to a frozen GUI.
+  const int maxWaitMs = 250;
+  const int pollMs = 5;
+  for (int waitedMs = 0; waitedMs < maxWaitMs; waitedMs += pollMs) {
+    int status = 0;
+    pid_t waited = waitpid(pid, &status, WNOHANG);
+    if (waited == pid) {
+      break;              // reaped
+    }
+    if ((waited == -1) && (errno != EINTR)) {
+      break;              // ECHILD: already reaped by the SIGCHLD handler
+    }
+    usleep(pollMs * 1000);
+  }
 
   return true;
 }
