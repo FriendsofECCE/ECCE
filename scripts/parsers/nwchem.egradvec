@@ -21,6 +21,16 @@ $| = 1;
   $labelLine =~ /(\d+)\s+(\d+)%double/;
   $ncol = $1;  $natom = $2;
 
+# This script serves two .desc entries: [EGRADVEC] (ordinary gradient)
+# and [TGRADCPVEC] (Car-Parrinello total gradient).  It used to emit
+# "EGRADVEC" unconditionally, so CP gradients were stored under the
+# ordinary gradient property and the declared TGRADCPVEC property was
+# never produced at all (issue #84).  The property key isn't passed to
+# parse scripts reliably, but the ecce_print label line names the task
+# that produced the block, so dispatch on that -- same approach
+# nwchem.scalar uses to tell its own properties apart.
+  $propKey = ($labelLine =~ /car-parrinello/i) ? "TGRADCPVEC" : "EGRADVEC";
+
   while (<STDIN>) {
     last if (/task/);
     chomp;
@@ -33,7 +43,7 @@ $| = 1;
 #
 # Print out the data in standard format.
 #
-  print "key: EGRADVEC\n";
+  print "key: $propKey\n";
   print "size:\n";
   print $natom . " 3\n";
   print "rowlabels:\n";
