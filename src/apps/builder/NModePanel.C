@@ -169,6 +169,38 @@ bool NModePanel::Create(IPropCalculation *calculation,
    wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
    radbox->SetSelection(1);
 
+   // Issue #81: the Animation/Vector radio box's selection never reached
+   // OnRadioboxSelected() under wx3.2/GTK3 -- verified at syscall level by
+   // an earlier session (the native GTK bullet moves, the handler is never
+   // entered), which left the whole display-mode switch dead: no row swap,
+   // no vector/animate switch, and the Play button never appears, so the
+   // animation can never be started at all.
+   //
+   // Two things are wired up here rather than relying on the static event
+   // table, which is what was failing:
+   //
+   // 1. A dynamic Bind() directly on the radio box instance. The static
+   //    EVT_RADIOBOX entry relies on the command event propagating from
+   //    the control up to this panel, and ewxRadioBox::Create() pushes an
+   //    ewxHelpHandler onto the control's own handler chain
+   //    (PushEventHandler), so that propagation path is not the plain one
+   //    wx documents. Binding on the widget itself delivers the event to
+   //    this handler directly, without depending on it.
+   //
+   // 2. wxWS_EX_PROCESS_UI_UPDATES, which the existing
+   //    OnRadioboxUpdateUI() idle-poll fallback needs in order to receive
+   //    anything at all. wxGTK does not send wxUpdateUIEvent to ordinary
+   //    child controls during idle unless they ask for it, so that
+   //    fallback (added 2026-09-17 and reported as making "no visible
+   //    difference") was inert for a concrete reason, not a mysterious
+   //    one. With the style set it becomes a real second line of defence.
+   //
+   // Both are kept deliberately, the same layered approach used for the
+   // #78 construction-order fix: if the Bind() works the poll is a no-op,
+   // and if the Bind() somehow doesn't, the poll now actually runs.
+   radbox->Bind(wxEVT_RADIOBOX, &NModePanel::OnRadioboxSelected, this);
+   radbox->SetExtraStyle(radbox->GetExtraStyle() | wxWS_EX_PROCESS_UI_UPDATES);
+
    int delay;
    config->Read("NMode/Delay",&delay,20);
    ewxTextCtrl *text = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_NMODE_DELAY);

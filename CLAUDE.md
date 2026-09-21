@@ -481,6 +481,29 @@ Both per-user, both non-root, both started automatically by the
   actually animates once display-mode switching works at all — that
   is *still unverified end-to-end* despite the code-level trace in
   `NModeStepCmd.C`/`Builder::execute()` looking sound.
+  **UPDATE 2026-09-21 — two of the three open candidates above are now
+  answered, and a fix is in but NOT yet live-verified.** (a) The
+  `EVT_UPDATE_UI` fallback was inert for a concrete reason: wxGTK does
+  not send `wxUpdateUIEvent` to ordinary child controls during idle
+  unless they carry `wxWS_EX_PROCESS_UI_UPDATES`, and nothing set it —
+  so that workaround could never have fired, which fully explains "no
+  visible difference" without needing a second mystery. (b)
+  `showAnimationMode()`/`showVectorMode()` *are* the right code path,
+  and the animation behind them is sound: `OnTimer` → `nextStep()` →
+  `processStep()` → `NModeStepCmd` (which does hold the
+  `touchChemDisplay()` redraw fix), so the animation was unreachable
+  only because the Play button lives in the sizer
+  `showAnimationMode()` reveals. Likely why the static `EVT_RADIOBOX`
+  never arrives: `ewxRadioBox::Create()` does
+  `PushEventHandler(new ewxHelpHandler(this))`, so the control has a
+  pushed handler chain and the command event's route to this panel is
+  not the plain propagation wx documents. Fixed by not relying on it —
+  a dynamic `radbox->Bind(wxEVT_RADIOBOX, ...)` directly on the widget,
+  plus setting `wxWS_EX_PROCESS_UI_UPDATES` so the existing idle poll
+  becomes a real fallback instead of dead code. Both kept as layered
+  defence, as with #78. Builds clean; **live verification still
+  outstanding** — test by switching the radio to Animation and
+  confirming the Play button appears and the molecule moves.
 
 ## Where the history lives
 This file used to be a session-by-session diary and grew to ~2500 lines.
