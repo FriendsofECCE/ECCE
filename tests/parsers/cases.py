@@ -177,6 +177,22 @@ CASES = [
         expect={
             'TGRADCPVEC': dict(min_blocks=5,
                                keys={'TGRADCPVEC': {}}),
+            # Regression guard: Car-Parrinello's per-step lattice vectors
+            # were matched by no .desc entry at all, so LATTICEVEC never
+            # appeared for a CP run and nwchem.latvec's CP branch was dead
+            # code. One block per CP step; the fixture's cell is the 8 Bohr
+            # cube from its simulation_cell, unchanged across steps here
+            # (CP at fixed cell), so pin the values as well as the count.
+            'LATVECCPTRACE': dict(
+                min_blocks=5,
+                keys={'LATTICEVEC': {
+                    'size': '1 3 3',
+                    'values': '8.000000000000000e+00 0.000000000000000e+00 '
+                              '0.000000000000000e+00 '
+                              '0.000000000000000e+00 8.000000000000000e+00 '
+                              '0.000000000000000e+00 '
+                              '0.000000000000000e+00 0.000000000000000e+00 '
+                              '8.000000000000000e+00'}}),
         },
     ),
 
@@ -912,6 +928,12 @@ KNOWN_SILENT_SCRIPTS = {
 # actually lands in the property store.  That is how #84 hid, so every case
 # has to be written down here with its reason.  Keyed by (desc, parse type).
 KNOWN_KEY_ALIASES = {
+    ('nwchem.desc', 'LATVECCPTRACE'):
+        "Script=nwchem.latvec emits the property key LATTICEVEC; "
+        "LATVECCPTRACE is this entry's section label, distinguishing the "
+        "Car-Parrinello per-step cell from LATVECPROP/LATVECTRACE, which "
+        "use the same script and the same emitted key for the "
+        "task_energy and task_gradient tags.",
     ('gaussian-16.desc', 'POLARIZ1][HYPERPOL1'):
         "Script=gaussian-16.db parses Gaussian's archive block and emits "
         "whatever it finds there (TE, ESCF, CPUSEC, S2, S2A, POLARIZ, ...); "

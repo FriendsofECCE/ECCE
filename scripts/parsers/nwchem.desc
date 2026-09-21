@@ -77,6 +77,29 @@ Frequency=all
 End=task
 [END]
 
+# Car-Parrinello emits its own per-step lattice vectors, and until this
+# entry existed nothing matched them: a real CP run's ecce_print trace
+# carries one "lattice vectors" block per step (5 in the checked-in
+# fixture) and LATTICEVEC never appeared, making nwchem.latvec's CP
+# branch dead code and discarding the per-step cell for every CP run.
+# Found while analysing the plane-wave path for docs/QE_ROADMAP.md.
+#
+# Worth having rather than tidiness: GTStepCmd.C already assigns a
+# per-step 3x3 cell from LATTICEVEC and GeomTracePropertyPanel already
+# plots alongside a geometry trace, so ECCE can already animate a
+# variable-cell trajectory and simply had no producer for one.
+#
+# The Begin cannot collide with the three entries above: they are
+# prefixed task_hessian/task_energy/task_gradient, this one
+# task_car-parrinello. Same script and same emitted key (LATTICEVEC) as
+# LATVECTRACE -- only the task tag differs.
+[LATVECCPTRACE]
+Script=nwchem.latvec
+Begin=task_car-parrinello%begin%lattice vectors
+Frequency=all
+End=task
+[END]
+
 [MO]
 Script=nwchem.mo
 Begin=begin%molecular orbital vectors dft alpha

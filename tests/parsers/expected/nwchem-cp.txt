@@ -51,6 +51,46 @@ args:    '.' 'Car-Parrinello' 'Plane Wave' 'PSPW' '0'
       values: 7.606483796310190e-07 -2.916595805326790e-10 -1.273065001753080e-01 -3.041661871925800e-06 7.836343320471590e-01 5.092133949924520e-01 -3.041589314996190e-06 -7.836343297146250e-01 5.092133943670670e-01
       units: Angstrom
 
+[LATVECCPTRACE]  Script=nwchem.latvec  Freq=all  Skip=-  Lines=-
+  Begin=task_car-parrinello%begin%lattice vectors
+  End=task
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=230 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%lattice vectors%3 3%double'
+    key: LATTICEVEC
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: 8.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 8.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 8.000000000000000e+00
+      units: Angstrom
+  block 2: begin-line=287 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%lattice vectors%3 3%double'
+    key: LATTICEVEC
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: 8.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 8.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 8.000000000000000e+00
+      units: Angstrom
+  block 3: begin-line=344 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%lattice vectors%3 3%double'
+    key: LATTICEVEC
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: 8.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 8.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 8.000000000000000e+00
+      units: Angstrom
+  block 4: begin-line=401 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%lattice vectors%3 3%double'
+    key: LATTICEVEC
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: 8.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 8.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 8.000000000000000e+00
+      units: Angstrom
+  block 5: begin-line=458 fed=5 rc=0 first-fed='task_Car-Parrinello task_car-parrinello%begin%lattice vectors%3 3%double'
+    key: LATTICEVEC
+      size: 1 3 3
+      rowlabels: 0 1 2
+      columnlabels: X Y Z
+      values: 8.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 8.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 0.000000000000000e+00 8.000000000000000e+00
+      units: Angstrom
+
 [CPUSEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
   Begin=begin%all tasks cpu time
   begins=1 delivered=1 buffered_away=0
