@@ -193,7 +193,7 @@ class Ged03TheoryPanel(EccePanel):
                             "M06 (hybrid)",
                             "X3LYP (hybrid)",
                             "PBE0 (hybrid)",
-                            "BP86 (hybrid)",
+                            "BP86 (GGA)",
                             "SVWN 5 (local)",
                             "SVWN 1/RPA (local)",                            
                             "BLYP (nonlocal)",
@@ -203,7 +203,7 @@ class Ged03TheoryPanel(EccePanel):
                             "HCTH/147 (nonlocal)",
                             "HCTH/93 (nonlocal)",
                             "tHCTH (nonlocal)",
-                            "M06L (nonlocal)",
+                            "M06L (meta-GGA)",
                             "B97D (nonlocal)",
                             "B97D3 (nonlocal)",
                             "SOGGA11 (nonlocal)",
@@ -221,8 +221,7 @@ class Ged03TheoryPanel(EccePanel):
                             "MPWPW91 (hybrid)",
                             "MPW1K (hybrid)",
                             "MPW1LYP (hybrid)",
-                            "MPW1PBE (hybrid",
-                            "MPW3PBE (hybrid)",
+                            "MPW1PBE (hybrid)",
                             "O3LYP (hybrid)",
                             "Becke98 (hybrid)",
                             "Becke97 (1) (hybrid)",
@@ -231,7 +230,6 @@ class Ged03TheoryPanel(EccePanel):
                             "Becke Half and Half (hybrid)",
                             "Becke Half and LYP Half (hybrid)",
                             "BMK (hybrid)",
-                            "MO6HF (hybrid)",
                             "M062X (hybrid)",
                             "APFD (hybrid)",
                             "APF (hybrid)",
@@ -248,8 +246,12 @@ class Ged03TheoryPanel(EccePanel):
                             "CAM-B3LYP (range)",
                             "HISSbPBE (range)",
                             "M11 (range)",
-                            "N12SX (range)"
-                            "MN12SX (range)"
+                            "N12SX (range)",
+                            "MN12SX (range)",
+                            # Appended, not inserted: xcFuncDefault below
+                            # is an INDEX into this list.
+                            "M06HF (hybrid)",
+                            "MPw3PBE (hybrid)"
                             ]
             xcFuncDefault = 0
             if EcceGlobals.ReactionStudyFlag != 0:

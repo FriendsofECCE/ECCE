@@ -271,8 +271,7 @@ class Ged09TheoryPanel(EccePanel):
                             "MPWPW91 (hybrid)",
                             "MPW1K (hybrid)",
                             "MPW1LYP (hybrid)",
-                            "MPW1PBE (hybrid",
-                            "MPW3PBE (hybrid)",
+                            "MPW1PBE (hybrid)",
                             "O3LYP (hybrid)",
                             "Becke98 (hybrid)",
                             "Becke97 (1) (hybrid)",
@@ -281,7 +280,6 @@ class Ged09TheoryPanel(EccePanel):
                             "Becke Half and Half (hybrid)",
                             "Becke Half and LYP Half (hybrid)",
                             "BMK (hybrid)",
-                            "MO6HF (hybrid)",
                             "M062X (hybrid)",
                             "APFD (hybrid)",
                             "APF (hybrid)",
@@ -298,8 +296,12 @@ class Ged09TheoryPanel(EccePanel):
                             "CAM-B3LYP (range)",
                             "HISSbPBE (range)",
                             "M11 (range)",
-                            "N12SX (range)"
-                            "MN12SX (range)"
+                            "N12SX (range)",
+                            "MN12SX (range)",
+                            # Appended, not inserted: xcFuncDefault below
+                            # is an INDEX into this list.
+                            "M06HF (hybrid)",
+                            "MPw3PBE (hybrid)"
                             ]
             xcFuncDefault = 3 #Andy  -- changed default from None to PBE0
             if EcceGlobals.ReactionStudyFlag != 0:
