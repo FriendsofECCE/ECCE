@@ -90,6 +90,60 @@ neither of them needed**:
   needs only that `LATTICEVEC` be emitted, which `GTStepCmd` already
   consumes.
 
+### 1.x Update, 2026-09-21 — two findings that soften the worst parts
+
+Added after the analysis above was written. Both improve it; neither
+changes the overall shape.
+
+**1. Debian packages the pseudopotential library, which largely
+dissolves §3's hardest problem.** On trixie:
+
+| Package | Provides | Installed size |
+|---|---|---|
+| `quantum-espresso` 6.7-3+b1 | `/usr/bin/pw.x`, **`/usr/bin/ph.x`**, `/usr/bin/dynmat.x` and the rest | ~281 MB |
+| `quantum-espresso-data-sssp` 1.3.0-3 | **103 UPF files covering ~102 elements** in `/usr/share/espresso/pseudo/` | ~162 MB |
+| `quantum-espresso-data` | documentation | — |
+
+Verified present in the SSSP package: H, C, N, O, Si, Fe, Al, Cu — i.e.
+the ordinary cases, not just exotica.
+
+This means **phase 1 should NOT make the user type UPF filenames**, as
+§3 and §5 recommend. Instead default `pseudo_dir` to
+`/usr/share/espresso/pseudo/` and populate a per-element combo by
+scanning that directory. That is much closer to how the basis-set
+library already behaves, and a far better first experience. The
+"pseudopotentials are an unbounded new subsystem" framing in §3 was
+written before this was checked and is too pessimistic — treat the
+library as *provided* and the remaining work as *selection UI*. The
+harder sub-problems (multiple PPs per element, functional consistency
+between PP and `input_dft`, missing-element handling) all remain real.
+
+**2. QE 7.5 source is unpacked at `/opt/QE/qe-7.5/` — unbuilt, but it
+carries two assets worth more than the binaries.**
+
+- `test-suite/` holds **643 `benchmark.out.*` reference outputs** across
+  scf, relax, vc-relax, ph, cp and more. These are real QE outputs, so
+  the parsing phases (2–4) can be developed and regression-tested
+  against them **before any QE binary is installed**, exactly the way
+  `tests/parsers/` already works for the other codes. This removes the
+  "QE not installed, so output claims are unverified" caveat from most
+  of the parsing work.
+- `Doc/INPUT_PH.txt` and `PW/Doc/` give the input documentation offline.
+
+Already verified against a real reference output rather than
+documentation: the total-energy anchor this roadmap quotes appears as
+`!    total energy              =     -15.77714687 Ry`.
+
+**Version gap to keep in mind:** Debian ships **6.7**, the local
+reference outputs and docs are **7.5**. For basic `scf`/`relax`/
+`vc-relax` the input and output shapes are stable across that gap, but
+any `.desc` rule developed against a 7.5 benchmark output must be
+re-checked against 6.7's actual output before it is trusted — that is
+the same version-drift trap that produced the Gaussian-16 Mulliken bug
+(#80) and the NWChem `ccsd`-prefix bugs (#45). Generate the regression
+fixtures from the **installed** binary, and use the 7.5 benchmarks only
+for development and for cases the install cannot produce.
+
 ---
 
 ## 2. How nwpw works today — file by file
