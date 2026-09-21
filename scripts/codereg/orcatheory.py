@@ -91,8 +91,12 @@ class OrcaTheoryPanel(EccePanel):
         # ORCABlocks converts it to the MB/core ORCA's own %maxcore
         # directive actually needs.
         memSizer = EcceBoxSizer(self, label="Memory", cols=1)
+        # Upper bound of 512 GB/core: nothing real needs more, and it
+        # stops a legacy MB-era stored value (this field meant MB until
+        # 78bb8d0, with default=1000) from being accepted as gigabytes.
+        # ai.orca has a matching guard for values that slip past this.
         self.memSize = EcceSpinCtrl(self,
-                                    hardRange="[0..)",
+                                    hardRange="[0..512]",
                                     unit="Gigabytes / core",
                                     name="ES.Theory.SCF.MemorySize",
                                     default=1,

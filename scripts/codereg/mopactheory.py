@@ -52,12 +52,16 @@ class MopacTheoryPanel(EccePanel):
         # keyword is echoed and the job runs to a visibly tighter SCF
         # and geometry criterion.
         scfSizer = EcceBoxSizer(self, label="SCF Convergence", cols=2)
+        # 0 means "emit no ITRY= keyword at all", leaving MOPAC on its own
+        # built-in limit of 2000 -- ai.mopac only writes ITRY=n when n > 0.
+        # Spelling that out in the label: read as a bare "0" it looks like
+        # zero iterations, which is what it looked like to the first person
+        # who opened this dialog.
         self.maxIterationsSpin = EcceSpinCtrl(self,
                                               hardRange="[0..)",
                                               name="ES.Theory.SCF.ConvergenceIterations",
                                               default=0,
-                                              label="Max. SCF Iterations:",
-                                              unit="0 = MOPAC default",
+                                              label="Max. SCF Iterations (0 = MOPAC default, 2000):",
                                               export=1)
         scfSizer.AddWidget(self.maxIterationsSpin)
 
@@ -78,11 +82,17 @@ class MopacTheoryPanel(EccePanel):
         # time; setting it explicitly here wins over that, the same way
         # orcatheory.py's Processors field wins over gensub's %pal.
         procSizer = EcceBoxSizer(self, label="Parallel", cols=1)
+        # Label spells out what 1 means, because a "Threads: 1" here next
+        # to a "4" in the Launcher reads as a contradiction -- it isn't,
+        # 1 means "emit no THREADS= keyword and let mopac.launchpp inject
+        # whatever the launcher actually requested", which is the normal
+        # case. Only a value >1 pins it at edit time and overrides the
+        # launcher.
         self.numProcs = EcceSpinCtrl(self,
                                      hardRange="[1..)",
                                      name="ES.Theory.SCF.NumProcessors",
                                      default=1,
-                                     label="Threads:",
+                                     label="Threads (1 = use launcher's count):",
                                      export=1)
         procSizer.AddWidget(self.numProcs)
         self.panelSizer.Add(procSizer)

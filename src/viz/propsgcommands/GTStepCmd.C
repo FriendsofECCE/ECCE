@@ -113,6 +113,32 @@ bool GTStepCmd::execute()
     sg->touchChemDisplay(sgfrag);
     sgfrag->touch() ;
     sg->adjustMeasures();
+
+    // Diagnostic for issue #74 ("table updates, 3-D view stays static").
+    // Adding touchChemDisplay() above did not fix it in live testing, and
+    // rather than guess again this reports what actually happens on a
+    // step: set ECCE_DEBUG_GEOMTRACE=1 before launching builder.
+    //
+    // What the output tells you:
+    //  - no lines at all when stepping => this command is not running,
+    //    so the problem is upstream (the panel's step control isn't
+    //    reaching processStep()), not in the redraw at all.
+    //  - lines appear with a changing step and changing coords => the
+    //    data path and the display invalidation both ran, so the fault
+    //    is in the render/repaint layer (suspect SoWxRenderArea's
+    //    p_inPaint/p_redrawPending path).
+    //  - steps=1 => there is only one frame, so nothing can visibly
+    //    move and this is not a bug at all.
+    if (getenv("ECCE_DEBUG_GEOMTRACE") != 0) {
+      std::cerr << "[GEOMTRACE] step=" << step
+           << " steps=" << trace->tables()
+           << " natoms=" << natoms
+           << " traceRows=" << trace->rows()
+           << " atom0=(" << trace->value(step,0,0)
+           << "," << trace->value(step,0,1)
+           << "," << trace->value(step,0,2) << ")"
+           << std::endl;
+    }
     //TODO send the appropriate message - do we need a latticechange??
     //if not, may need to have a look at StepChange handling
     EventDispatcher::getDispatcher().publish(Event("StepChange"));

@@ -205,7 +205,31 @@ sub ORCABlocks {
   # GB (per-core) for UX consistency with the other codes, so convert.
   my $maxcoreGB = $AbiDict{"ES.Theory.SCF.MemorySize"};
   if ($maxcoreGB ne "") {
-    my $maxcore = int($maxcoreGB * 1000);
+    # Plausibility guard against legacy MB-era stored values.  This field
+    # meant MB/core until 78bb8d0 (orcatheory.py default=1000, 6619e05);
+    # it means GB/core now.  A calc saved before that change still has a
+    # three- or four-digit number in it, and 1000 restored into a GB
+    # field became "%maxcore 1000000" -- 1 TB per core, from a dialog
+    # reading "1000 Gigabytes / core", with nothing typed.  Seen live on
+    # a real ORCA job, 2026-09-21.
+    #
+    # templates.py now declines to restore a value whose stored unit no
+    # longer matches the widget's, which catches calcs still carrying the
+    # old label -- but not ones whose stale number has since been
+    # re-saved under the new label, which is how the live case arose.
+    # So also guard here, at the point closest to the generated input:
+    # nobody has 512 GB per core, whereas 512 MB per core was an
+    # ordinary old setting, so a value this large can only be legacy MB.
+    my $maxcore;
+    if ($maxcoreGB > 512) {
+      $maxcore = int($maxcoreGB);
+      print STDERR "ai.orca: MemorySize=$maxcoreGB is implausible as " .
+                   "GB/core; treating it as a legacy MB/core value and " .
+                   "writing %maxcore $maxcore. Re-save this calc's " .
+                   "Theory Details to clear it.\n";
+    } else {
+      $maxcore = int($maxcoreGB * 1000);
+    }
     $result .= "%maxcore $maxcore\n";
   }
   # %pal nprocs N: only written if the user explicitly set Processors>1
