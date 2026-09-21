@@ -74,6 +74,15 @@ accurate) for the full pipeline; short version:
   close to what you need rather than inventing a new shape).
 - **`scripts/gensub`** / **`scripts/eccejobmonitor`** — job-submission
   script generation and remote progress reporting.
+- **NWChem's `.desc` `Begin` patterns (`%begin%`/`%end%`/`task_*`) don't
+  match raw NWChem stdout at all, and look bizarre if you try** — they
+  match a *separate*, machine-tagged trace file that NWChem writes via
+  its own built-in `ecce_print <file>` directive (still supported as of
+  NWChem 7.2.3, confirmed live), wired up by `nwch.tpl`'s `ecce_print
+  ##parseFile##` line and `nwchem.launchpp` (rewrites that line to an
+  absolute path at launch time). This *is* the file `eccejobmonitor`
+  actually reads for NWChem — auditing `nwchem.desc` against plain
+  stdout instead will wrongly conclude the whole file is dead.
 - **The one gotcha that has bitten this project repeatedly**: every file
   under `scripts/*` needs its own `install()` rule in `CMakeLists.txt`,
   or it's simply absent from the packaged `.deb` — correct in the repo,

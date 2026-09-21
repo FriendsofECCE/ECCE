@@ -61,7 +61,7 @@ if ( /begin\%gradient norm/ ) {
   $unit = "units:\nHartree\n";
 # } elsif ( /S\s*2/ ) {
 #  $propKey = "S2";
-} elsif ( /S*2/ ) {
+} elsif ( /S\^2/ ) {
   $propKey = "S2";
 }
 $value = <STDIN>;
