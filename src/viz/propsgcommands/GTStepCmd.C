@@ -91,7 +91,26 @@ bool GTStepCmd::execute()
          sg->touchLattice() ;
     }
 
-    //todo why call these functions if nothing was done - restructure...
+    // ChemDisplay nodes hold a raw pointer to their ChemData, not an
+    // SoSFNode field, so sgfrag->touch() alone doesn't reach their render
+    // cache -- touchChemDisplay() re-assigns the display's own
+    // atomIndex/bondIndex fields, which is what actually invalidates it
+    // and forces a redraw.
+    //
+    // Without this, stepping through a geometry trace moved the atoms in
+    // the data model and published StepChange (so the atom table and any
+    // other pull-model reader followed along perfectly) while the 3-D
+    // view never changed at all. GeomTracePropertyPanel::processStep()
+    // does call sg.touchChemDisplay(), but only inside its `p_recompute`
+    // branch, so with bond recomputation off nothing ever invalidated
+    // the display. Confirmed live on an ORCA GeoVib job, 2026-09-21:
+    // "table changes but the 3D view stays static".
+    //
+    // This is the identical fix already applied to the vibration-mode
+    // sibling in NModeStepCmd.C, whose own comment even cites geometry-
+    // trace stepping as the precedent -- the geometry-trace stepper
+    // itself was simply never updated to match.
+    sg->touchChemDisplay(sgfrag);
     sgfrag->touch() ;
     sg->adjustMeasures();
     //TODO send the appropriate message - do we need a latticechange??

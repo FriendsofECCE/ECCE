@@ -517,6 +517,40 @@ class EccePanel(wx.Panel):
                 if j == 5:
                     for setting in self.Settings:
                         if (setting.GetName() == name):
+                            # A persisted value is only meaningful in the unit
+                            # it was saved under.  If the widget's unit has
+                            # since changed, the stored NUMBER is in the old
+                            # unit and applying it produces a silently wrong
+                            # setting -- so keep the widget's own default
+                            # instead.
+                            #
+                            # This is the other half of issue #77.  Removing
+                            # SetUnit(unit) below fixed the stale *label*, but
+                            # SetValue() still applied the stale *number*, so
+                            # the two disagreed: an ORCA calc saved when
+                            # Memory Per Core meant MB (orcatheory.py had
+                            # default=1000, commit 6619e05) restored 1000 into
+                            # the GB field it became in 78bb8d0, and ai.orca
+                            # turned that into "%maxcore 1000000" -- 1 TB per
+                            # core, from a dialog reading "1000 Gigabytes /
+                            # core".  Confirmed live 2026-09-21 on a real ORCA
+                            # job, with nothing typed into the field.
+                            #
+                            # That is the same 1000x silent error #77 was
+                            # filed about, so failing back to the default is
+                            # deliberate: losing a remembered value is a minor
+                            # annoyance, generating a job request off by 1000x
+                            # is not.  Fields with no unit (the majority) are
+                            # unaffected, and so is any field whose unit has
+                            # not changed.
+                            storedUnit = unit.strip()
+                            widgetUnit = getattr(setting, "unitString", "")
+                            if widgetUnit is None:
+                                widgetUnit = ""
+                            widgetUnit = widgetUnit.strip()
+                            if storedUnit and widgetUnit and \
+                               storedUnit != widgetUnit:
+                                continue
                             if valType == "integer_input":
                                 setting.SetValue(int(value))
                                 # Deliberately NOT setting.SetUnit(unit) here
