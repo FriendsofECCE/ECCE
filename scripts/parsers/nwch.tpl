@@ -42,7 +42,7 @@ nwpw
   ##NWPW.InitialGuess##
   ##SCF.ConvergenceAlgorithm##
   mult ##Multiplicity##
-  ##NWPW.SpinType##
+  ##NWPW.Spintype##
   vectors ##InitialGuess##
   xc ##NWPW.XCFunctionals##
   cutoff ##NWPW.Cutoff##
