@@ -144,6 +144,39 @@ the same version-drift trap that produced the Gaussian-16 Mulliken bug
 fixtures from the **installed** binary, and use the 7.5 benchmarks only
 for development and for cases the install cannot produce.
 
+**3. Now verified against the real installed binary.** The Debian
+packages were installed and a real `pw.x` scf run completed (silicon,
+`ibrav=2`, 4×4×4 Monkhorst–Pack, the packaged
+`Si.pbe-n-rrkjus_psl.1.0.0.UPF`; deck and output kept at
+`~/ecce-test-logs/qe/si_scf.{in,out}`). **Every parse anchor this
+roadmap quoted from documentation appears verbatim in real 6.7 output**,
+so the version gap does not affect the core ones:
+
+| Anchor | Real 6.7 output |
+|---|---|
+| Total energy | `!    total energy              =     -22.82211442 Ry` |
+| Forces | `Forces acting on atoms (cartesian axes, Ry/au):` |
+| Stress | `total   stress  (Ry/bohr**3)                   (kbar)     P=  ...` |
+| SCF iterations | `iteration #  1     ecut=    18.00 Ry     beta= 0.70` |
+| k-points | `number of k points=     8` |
+
+Two practical notes that follow:
+
+- **`<Output type="parse" verifypattern="...">` should be
+  `Program PWSCF`**, not a version string: the banner reads
+  `Program PWSCF v.6.7MaX starts on ...`, so anchoring on the version
+  would break on every upgrade. (Compare MOPAC, where `MOPAC v` was
+  safe because the name and `v` are adjacent.)
+- **The pseudopotential in `ATOMIC_SPECIES` must be the filename**, and
+  the packaged names are long and functional-specific
+  (`Si.pbe-n-rrkjus_psl.1.0.0.UPF`). This confirms a per-element combo
+  populated by scanning `pseudo_dir` is the right UI: nobody will type
+  those correctly, and picking the wrong functional family silently
+  gives a physically inconsistent calculation.
+
+`~/ecce-test-logs/qe/si_scf.out` is a ready first fixture for
+`tests/parsers/` when phase 2 starts.
+
 ---
 
 ## 2. How nwpw works today — file by file
