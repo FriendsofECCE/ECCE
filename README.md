@@ -61,8 +61,24 @@ than papered over.
 
 ### Release history
 
-- **v8.10.0** — **Adds MOPAC** as a fully registered code, and fixes a
-  long list of properties that were silently never extracted at all.
+- **v8.10.0** — **ORCA becomes properly usable**: vibrational analysis
+  and NMR work for the first time, with full input control. **Adds
+  MOPAC** as a new code. Fixes a long list of properties that were
+  silently never extracted at all.
+
+  ORCA was first registered in v8.0.7, but property display was basic
+  and two major capabilities never worked. **Vibrational analysis** now
+  works — ORCA's mode displacement data was never extracted on *any*
+  job, so the Vibrational Frequencies panel never appeared for an ORCA
+  calculation even though the frequencies themselves parsed fine. **NMR**
+  now works — isotropic shielding and anisotropy were never extracted
+  from any ORCA NMR job. Property coverage went from 9 of 24 parse types
+  to all 24, each verified against real ORCA 6.1.1 output. The Theory and
+  Runtype dialogs gain RIJCOSX with auxiliary basis selection, a wider
+  DFT functional list (15 entries), SCF and geometry convergence
+  tightness, and analytic vs numerical frequencies — every keyword
+  verified against a real ORCA install. ORCA also gets its own
+  calculation icon.
 
   MOPAC (PM7/PM6/PM3/AM1/RM1/MNDO) works end to end — job setup,
   submission, live monitoring, all its properties, and output
@@ -71,16 +87,11 @@ than papered over.
   section.
 
   The rest of the release is a correctness pass over the property
-  pipeline for Gaussian, NWChem and ORCA, driven by a new regression
-  suite and verified against real jobs run with the actual binaries
-  rather than by reading code. Each of these produced no error, ran to
-  completion, and simply had data missing:
+  pipeline for Gaussian and NWChem, driven by a new regression suite and
+  verified against real jobs run with the actual binaries rather than by
+  reading code. Each of these produced no error, ran to completion, and
+  simply had data missing:
 
-  - ORCA's vibrational mode data was never extracted on **any** job, so
-    the Vibrational Frequencies panel never appeared for ORCA at all;
-    isotropic shielding and anisotropy were likewise never extracted
-    from any ORCA NMR job. Both were caused by one `.desc` entry's
-    end-of-block marker consuming the line the next entry needed.
   - Gaussian diatomic frequency jobs produced no vibrational data
     whatsoever, and any Z-matrix job with dummy atoms had a silently
     **wrong** geometry trace, with a phantom atom and every subsequent
@@ -98,15 +109,13 @@ than papered over.
     `GEN` block failed with "does not have a valid basis set"; a mixed
     named/explicit block silently imported a **partial** basis.
 
-  Also: vibration-mode animation now plays (its display-mode control
-  never delivered its event under wx3.2/GTK3, which had disabled the
-  feature entirely); ORCA's Theory/Runtype dialogs gain SCF and
-  geometry convergence, RIJCOSX with auxiliary basis, analytic vs
-  numerical frequencies and a wider DFT functional list, every keyword
-  verified against a real ORCA install; a stale memory setting could
-  silently request 1 TB per core; a crash on out-of-bounds property
-  access is fixed along with the same flaw in three sibling classes;
-  and `calced` no longer leaks a process per Theory/Runtype dialog.
+  Also: vibration-mode animation now plays for all codes (its
+  display-mode control never delivered its event under wx3.2/GTK3,
+  which had disabled the feature entirely); a stale memory setting
+  could silently request 1 TB per core; a crash on out-of-bounds
+  property access is fixed along with the same flaw in three sibling
+  classes; and `calced` no longer leaks a process per Theory/Runtype
+  dialog.
 
   New in this release: `tests/parsers/`, a regression suite that
   replays real captured job output through the live monitor's own
