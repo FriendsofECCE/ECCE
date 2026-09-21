@@ -1,0 +1,140 @@
+# Parse descriptor for Quantum ESPRESSO pw.x output files.
+#
+# Verified against the REAL installed Quantum ESPRESSO 6.7 (Debian
+# quantum-espresso 6.7-3+b1, /usr/bin/pw.x): every Begin/Skip/Lines/End
+# below was checked by replaying captured output from decks that ai.qe
+# itself generated through tests/parsers/eccejobmonitor_sim.py, which
+# re-implements scripts/eccejobmonitor's real Begin/Skip/Lines/End
+# line-feeding algorithm.  NOT by hand-picking line ranges, which is what
+# let ORCA's GEOMTRACE/VIBFREQ bugs hide (see CLAUDE.md).
+#
+# Remember Skip=N skips N lines TOTAL STARTING FROM AND INCLUDING the
+# Begin-matching line, so Skip=1 means "start feeding at the line right
+# after Begin", and Skip=2 means "Begin plus one more".
+#
+# THREE eccejobmonitor behaviours shaped the entries below:
+#   * PDFileRead() keys its whole parse-type table by the literal Begin
+#     STRING and silently drops a later entry whose Begin collides, so no
+#     two Begins here may be textually equal.
+#   * PDMatchBegin() returns the FIRST parse type whose Begin matches a
+#     line and never checks the rest, so no two Begins here may match the
+#     same PHYSICAL line either.
+#   * While a block is open lines are consumed until End matches, and the
+#     End-matching line is consumed too -- so a Begin sitting on (or
+#     before) another entry's End line can never fire.
+#
+# The one place all three converge for QE is the total energy.  pw.x
+# prints the SAME phrase for the per-iteration energy and for the
+# converged one, distinguished ONLY by a leading '!':
+#
+#      total energy              =     -22.82070382 Ry      (iteration)
+#   !  total energy              =     -22.82211442 Ry      (converged)
+#
+# CLAUDE.md's rule for "one marker phrase, two logical purposes" is to use
+# a single combined entry -- but that rule exists because ORCA and MOPAC
+# have no way to tell the two apart.  QE does, so [TE] is anchored ^! and
+# [EWVEC] is anchored ^\s+, which cannot match the same line.  This is a
+# deliberate departure from the rule, justified by the '!' marker; do not
+# "simplify" it by dropping either anchor.
+#
+# SCOPE: phase 1 is calculation='scf' only (QuantumESPRESSO.edml has one
+# runtype, Energy), so there is deliberately NO GEOMTRACE, TEVEC, EGRAD or
+# LATTICEVEC entry here.  Those are all indexed by Geometry Step, and a
+# Geometry-Step-indexed vector with no GEOMTRACE to index against is the
+# out-of-bounds shape CLAUDE.md records for PropTSVecTable::value().  They
+# arrive with 'relax'/'vc-relax' (docs/QE_ROADMAP.md phases 3 and 4).
+
+# "     Program PWSCF v.6.7MaX starts on 21Sep2026 at 17:19:27"
+# Frequency=first: pw.x prints this banner once, at the top.
+[VERSION]
+Script=qe.version
+Begin=Program PWSCF
+Frequency=first
+Skip=0
+Lines=1
+[END]
+
+# The converged total energy, the '!'-marked line.  Frequency=all rather
+# than last so a future multi-scf deck (a relax run prints one per
+# geometry step) still lands the final value in TE, which is a plain
+# overwriting PropValue.
+#
+# Lines=1 matters and is not cosmetic: pw.x prints
+#      !    total energy              =  ...
+#           estimated scf accuracy    <  ...
+# back to back, so an End= that swallowed the second line would starve
+# [DELTAE] of its final data point (the ORCA VIBFREQ/VIB shape).
+[TE]
+Script=qe.energy
+Begin=^!\s*total energy
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+# The per-SCF-iteration energies -- the SAME phrase as [TE] above, told
+# apart only by the ^\s+ anchor (pw.x indents these and prefixes the
+# converged one with '!').  Published as EWVEC ("Wavefunction Step
+# Energy", PropTSVector<Wave Step>) and NOT as TEVEC, because QE prints
+# many of these per geometry and TEVEC is indexed by Geometry Step: see
+# qe.ewvec's header, and CLAUDE.md's len(TEVEC) <= len(GEOMTRACE) rule.
+[EWVEC]
+Script=qe.ewvec
+Begin=^\s+total energy\s*=
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+# "     estimated scf accuracy    <       0.06133256 Ry", once per SCF
+# iteration plus once more right after the converged energy, so the
+# DELTAE trace ends on the accuracy actually achieved.
+[DELTAE]
+Script=qe.deltae
+Begin=estimated scf accuracy
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+# Forces, present whenever tprnfor is on (ai.qe sets it from the runtype
+# dialog's "Compute forces" checkbox, default on):
+#
+#      Forces acting on atoms (cartesian axes, Ry/au):     <- Begin
+#                                                          <- blank
+#      atom    1 type  1   force =   ...  ...  ...
+#      atom    2 type  2   force =   ...  ...  ...
+#                                                          <- blank
+#      Total force =     0.070085     Total SCF correction =     0.000639
+#
+# Skip=2 is Begin + the blank line, so the first line fed to the script is
+# the first atom row.  qe.egradvec tolerates being fed non-matching lines
+# anyway, so an off-by-one here degrades to "still works" rather than
+# "silently emits nothing every time", which is the ORCA Skip bug in
+# CLAUDE.md.
+#
+# End is the "Total force =" line, which is INSIDE this section and not
+# any other entry's Begin -- so nothing is starved.  Without an End the
+# block would run to EOF and the real monitor would Die on a runaway
+# parse type.
+[EGRADVEC]
+Script=qe.egradvec
+Begin=Forces acting on atoms
+Skip=2
+Frequency=last
+End=Total force =
+[END]
+
+# "     PWSCF        :      3.23s CPU      1.19s WALL" -- the whole-program
+# row of pw.x's final timing table, which carries BOTH the CPU and the
+# wall time, so one combined entry emits both keys.  The Begin is anchored
+# on PWSCF because pw.x prints the identical "<name> : <cpu>s CPU <wall>s
+# WALL" shape for every internal routine (init_run, electrons, forces,
+# ...) and an unanchored /CPU.*WALL/ would match dozens of them.
+[CPUSEC][ETIME]
+Script=qe.time
+Begin=^\s*PWSCF\s*:
+Frequency=last
+Skip=0
+Lines=1
+[END]

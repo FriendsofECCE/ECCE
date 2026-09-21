@@ -1,0 +1,54 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts Quantum ESPRESSO's converged total energy into ECCE's TE
+# property.  pw.x marks the converged value with a LEADING EXCLAMATION
+# MARK, which is the whole reason this can be a separate parse entry from
+# the per-iteration energies:
+#
+#   iteration:   "     total energy              =     -22.82070382 Ry"
+#   converged:   "!    total energy              =     -22.82211442 Ry"
+#
+# So unlike ORCA and MOPAC -- where one marker phrase serves both purposes
+# and CLAUDE.md's rule is to use a single combined entry emitting both
+# keys -- QE really does have two textually distinct markers, and qe.desc
+# uses two entries: [TE] here (anchored ^!) and [EWVEC] (anchored ^\s+)
+# for the SCF trace.  The two Begin regexes cannot match the same physical
+# line, which is what PDMatchBegin()'s first-match-wins behaviour requires.
+#
+# NO TEVEC.  TEVEC is a PropTSVector<Geometry Step> and phase 1 is
+# calculation='scf' only, so there is exactly one geometry and no
+# GEOMTRACE for it to be indexed against.  Emitting a length-1 TEVEC with
+# a zero-length GEOMTRACE is the out-of-bounds shape CLAUDE.md warns about
+# (PropTSVecTable::value() via GTStepCmd).  TEVEC belongs with 'relax'
+# (roadmap phase 3), where GEOMTRACE exists.
+#
+# UNITS: pw.x prints Rydberg.  EnergyConverter (src/util/units/
+# EnergyConverter.C) knows kcal/Mole, kJoule/Mole, Hartree and eV -- there
+# is NO Rydberg entry -- so the value is converted here, once, to Hartree
+# (1 Ry = 0.5 Hartree exactly) which is what every other code's energy
+# scripts emit.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+$_ = <STDIN>;
+my $ry;
+if (/^!\s*total energy\s*=\s*(-?\d+\.?\d*([EeDd][-+]?\d+)?)/) {
+  $ry = $1;
+  $ry =~ s/[Dd]/E/;
+}
+exit(0) if (!defined($ry));
+
+my $hartree = $ry * 0.5;
+
+print "key: TE\n";
+print "size:\n1\n";
+print "values:\n$hartree\n";
+print "units:\nHartree\n";
+print "END\n";
+exit(0);

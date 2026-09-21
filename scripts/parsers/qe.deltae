@@ -1,0 +1,48 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts pw.x's per-iteration SCF convergence estimate into ECCE's
+# DELTAE property (PropTSVector<Wave Step>), one value per invocation with
+# Frequency=all, so the vector is the whole convergence trace.
+#
+#   "     estimated scf accuracy    <       0.06133256 Ry"
+#
+# Note the '<', not '=' -- this is pw.x's *bound* on the remaining error,
+# not a signed energy difference the way Gaussian's "Delta-E=" is.  It is
+# still the number that answers "how converged is this SCF", which is what
+# the Wave Step plot of DELTAE shows, and it is the only per-iteration
+# convergence number pw.x prints.
+#
+# pw.x also prints this line once more immediately after the converged
+# "!  total energy" line, so the last element of the trace is the final
+# achieved accuracy.  That is deliberate and harmless: qe.desc's [TE]
+# entry has Lines=1 and so releases the block before this line is reached
+# (an End= that swallowed it would starve this entry permanently -- the
+# ORCA VIBFREQ/VIB shape in CLAUDE.md).
+#
+# UNITS: Rydberg in, Hartree out (1 Ry = 0.5 Hartree); EnergyConverter has
+# no Rydberg entry.  See qe.energy's header.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+$_ = <STDIN>;
+my $ry;
+if (/estimated scf accuracy\s*[<=]\s*(-?\d+\.?\d*([EeDd][-+]?\d+)?)/) {
+  $ry = $1;
+  $ry =~ s/[Dd]/E/;
+}
+exit(0) if (!defined($ry));
+
+my $hartree = $ry * 0.5;
+
+print "key: DELTAE\n";
+print "size:\n1\n";
+print "values:\n$hartree\n";
+print "units:\nHartree\n";
+print "END\n";
+exit(0);

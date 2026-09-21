@@ -1,0 +1,745 @@
+#!/usr/bin/env perl
+################################################################################
+# FILENAME:  ai.qe
+#
+# SYNTAX: ai.qe -p -f [-b] [-c] -n <basename> -t <template> [-h] [-v]
+#
+# PURPOSE:
+#       Take an AbiChem generated dictionary and produce a Quantum ESPRESSO
+#       pw.x input file (a Fortran namelist deck).  Modeled on ai.mopac
+#       (which was modeled on ai.orca / ai.gauss16) -- the generic
+#       dictionary/geometry readers and the ##tag## template substitution
+#       engine (modifyInputFile) are copied verbatim since they are
+#       code-agnostic.
+#
+# STATUS: PHASE 1, REDUCED SCOPE.  calculation='scf' only, matching
+# data/client/cap/QuantumESPRESSO.edml's single <Theory category="PW"
+# name="PW"> with the single <runtype>Energy</runtype>.  No relax, no
+# vc-relax, no nscf, no bands, no md, and no phonons (ph.x is a second
+# executable and does not fit ECCE's one-calculation/one-input/one-output
+# model -- see docs/QE_ROADMAP.md section 3.2).
+#
+# QE IS A PLANE-WAVE CODE, so like NWChem's nwpw path there is no Gaussian
+# basis set anywhere: QuantumESPRESSO.edml marks the theory
+# needsBasis="false", so CalcEd never writes a .basis file and never
+# passes -b.  The -b/-c options are still accepted (and their files still
+# opened, harmlessly) purely so this script keeps the same command-line
+# shape as its siblings.
+#
+# TWO THINGS THAT ARE DIFFERENT FROM EVERY OTHER ai.<code> HERE:
+#
+#   1. PERIODICITY IS MANDATORY.  pw.x cannot run without a cell.  The
+#      cell is taken from the fragment's own lattice -- the .frag's
+#      "lattice_vectors:" section, which Fragment::dumpMVM writes
+#      whenever the fragment has a LatticeDef (see ESInputController.C's
+#      write_cs(), which is just frag->dumpMVM()).  ai.nwchem:1780-1784
+#      and :906-914 are the existing precedent for reading it.  If it is
+#      absent this script DIES with a message naming the Periodic
+#      Builder, rather than emitting a deck pw.x will reject with a
+#      cryptic namelist error.
+#
+#      Deliberately, the cell comes from EXACTLY ONE PLACE.  nwpw's
+#      theory dialog has its own nine lattice-vector fields that are
+#      unsynchronized with the Builder's LatticeDef and override it (see
+#      ai.nwchem's "NWPW.CellType eq None" gate); that wart is not
+#      repeated here.  We always emit ibrav = 0 plus a CELL_PARAMETERS
+#      angstrom card with the three Cartesian vectors, because
+#      LatticeDef's canonical storage IS those three vectors -- inferring
+#      an ibrav would need a Bravais classifier ECCE does not have.
+#
+#   2. PSEUDOPOTENTIALS ARE RESOLVED BY SCANNING pseudo_dir, not typed.
+#      QE's ATOMIC_SPECIES card names a UPF FILE per element.  Debian's
+#      quantum-espresso-data-sssp package installs 103 UPF files covering
+#      103 elements in /usr/share/espresso/pseudo, with names nobody will
+#      ever type correctly and which differ in shape from element to
+#      element:
+#           Si.pbe-n-rrkjus_psl.1.0.0.UPF     (Element.  prefix)
+#           be_pbe_v1.4.uspp.F.UPF            (lowercase element_ prefix)
+#           Ag_ONCV_PBE-1.0.oncvpsp.upf       (Element_ prefix, .upf)
+#           Hf-sp.oncvpsp.upf                 (Element- prefix)
+#      So the filename is DERIVED here, from the leading element token of
+#      each file actually present in pseudo_dir, and never entered by
+#      hand.  If an element in the fragment has no pseudopotential in
+#      pseudo_dir, this script DIES naming that element -- again rather
+#      than emitting a deck that fails later with "file not found" from
+#      inside pw.x.
+#
+#      The theory dialog contributes only the directory and an optional
+#      pseudopotential-TYPE preference (ultrasoft / PAW / norm-conserving),
+#      which is applied as a preference with fallback: the packaged SSSP
+#      set has exactly one file per element, mixing all three types, so a
+#      hard type filter would make some elements unavailable for no
+#      reason.
+#
+# NO MEMORY FIELD, on purpose.  CLAUDE.md's standing preference is that
+# memory settings are entered and labeled in GB for every code -- but
+# that is about how an existing setting is labeled, not a reason to
+# invent one.  pw.x HAS NO MEMORY KEYWORD: /opt/QE/qe-7.5/Doc/INPUT_PW.txt
+# has no memory-allocation input variable at all (only max_seconds, a
+# wall-clock limit, and disk_io, an I/O strategy).  Same situation as
+# MOPAC (issue #86); nothing to convert because there is nothing to set.
+#
+# EVERY KEYWORD EMITTED BELOW WAS VERIFIED against the real installed
+# Quantum ESPRESSO 6.7 (/usr/bin/pw.x, Debian quantum-espresso
+# 6.7-3+b1): generated decks were run to completion ("JOB DONE.") and
+# pw.x echoes any unrecognized namelist variable as a fatal error, so an
+# invented keyword cannot pass silently.
+#
+################################################################################
+
+use Getopt::Std;
+use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t
+            $opt_e $opt_s $opt_q);
+
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+require "pertab.pl";
+&loadPT;
+
+$| = 1;
+
+&getopts(':n:t:pfbcqeshv');
+&handle_options;
+
+%AbiDict = ();
+$useLatticeVectors = 0;
+
+if ($TplFILE eq "") {
+  &usage;
+}
+
+&verifyAbiFile;
+&verifyFragFile;
+&readDict;
+&readChemSys;
+&loadMasses;
+&collectSpecies;
+# NOTE ON WHERE VALIDATION LIVES.  Every check that can refuse to generate
+# a deck MUST run here, in the main flow, and never inside a ##tag##
+# resolver sub.  modifyInputFile calls each resolver through eval, so a
+# die() inside one is CAUGHT BY THAT eval and silently discarded: the tag
+# line simply disappears and the script exits 0 with a quietly incomplete
+# deck.  (Found the hard way: the "this structure has no unit cell" check
+# was originally inside QECellParameters and produced a cell-less deck
+# with exit status 0 and no message at all.  ai.mopac's die() inside
+# HamiltonianKeyword/RunTypeKeywords has the same latent shape.)
+&verifyPeriodic;
+&resolvePseudos;
+&warnOnOddElectronCount;
+&modifyInputFile;
+&cleanup;
+exit(0);
+
+################################################################################
+# Generic ##tag## substitution engine -- identical to ai.mopac's/ai.orca's
+# modifyInputFile. Walks the template line by line, replaces ##key## with
+# either &key(value) if such a sub exists, else the raw dictionary value,
+# else (no match at any level of the dot-separated key) drops the line.
+#
+# CONTRACT: a sub that wants to emit nothing must set $_ = "" itself,
+# because the engine only overwrites $_ when the sub's return value is
+# non-empty.
+################################################################################
+sub modifyInputFile {
+  local($keysave, $key, $subname, $prefix, $postfix, $finished);
+  $inputFile = $TplFILE;
+  open(TEMPLATE, $inputFile);
+  open(NEWFILE, ">tmpfile");
+  while (<TEMPLATE>) {
+    if (/([^#]*)##([^#]*)##(.*)/) {
+      $prefix = $1;
+      $postfix = $3;
+      $keysave = $key = $2;
+      $finished = 0;
+      while ($finished == 0) {
+        $subname = $key;
+        $subname =~ s/\./_/g;
+        if (defined($AbiDict{$key})) {
+          $finished = 1;
+          $value = $AbiDict{$key};
+          $fct = "&$subname('$value')";
+          $result = eval $fct;
+          if (!(defined $result)) {
+            s/##$keysave##/$value/;
+          } elsif ($result ne "") {
+            $_ = $prefix . $result . $postfix . "\n";
+          }
+        } else {
+          $finished = 1;
+          $fct = "&$subname";
+          $result = eval $fct;
+          if (!(defined $result)) {
+            if (index($key, ".") >= $[) {
+              $key =~ s/\.[^\.]*$//;
+              $finished = 0;
+            } else {
+              $_ = "";
+            }
+          } elsif ($result ne "") {
+            $_ = $prefix . $result . $postfix . "\n";
+          }
+        }
+      }
+    }
+    print(NEWFILE);
+  }
+  close(TEMPLATE);
+  close(NEWFILE);
+}
+
+################################################################################
+# Species bookkeeping
+################################################################################
+
+# The distinct element symbols in the fragment, in first-appearance order.
+# ntyp is their count, and ATOMIC_SPECIES / starting_magnetization(i) are
+# indexed by this order -- so it has to be computed once and reused, not
+# recomputed per card.
+sub collectSpecies {
+  @species = ();
+  %speciesIndex = ();
+  ($chemsys_atoms != 0) ||
+    die "ai.qe error: Fragment has no atoms!\n";
+  for (my $i = 0; $i < $chemsys_atoms; $i++) {
+    my $sym = &normalizeSymbol($tags{$i});
+    if (!defined($speciesIndex{$sym})) {
+      $speciesIndex{$sym} = scalar(@species);
+      push(@species, $sym);
+    }
+  }
+}
+
+# ECCE atom tags can carry a suffix (e.g. "C1", "Ow") or arrive as an
+# atomic number when the .frag's atom_info: line does not say "symbol".
+# readChemSys already maps numbers through %number_to_symbol; this strips
+# any trailing tag characters and normalizes capitalization, because a
+# QE species label has to match the pseudopotential we look up and a UPF
+# file is named for the real element.
+sub normalizeSymbol {
+  my ($raw) = @_;
+  my $sym = $raw;
+  $sym =~ s/^\s+//;
+  $sym =~ s/\s+$//;
+  if ($sym =~ /^([A-Za-z]{1,2})/) {
+    $sym = $1;
+  }
+  $sym = ucfirst(lc($sym));
+  return $sym;
+}
+
+################################################################################
+# Pseudopotential resolution (see the header note for why this is here and
+# not in the theory dialog)
+################################################################################
+
+sub pseudoDir {
+  my $dir = $AbiDict{"ES.Theory.PW.PseudoDir"};
+  $dir = "/usr/share/espresso/pseudo" if (!defined($dir) || $dir eq "");
+  $dir =~ s{/+$}{};
+  return $dir;
+}
+
+# Classify a UPF filename by pseudopotential type from tokens that appear
+# in the real packaged names.  "" means "could not tell" (one file in the
+# packaged SSSP set, N.pbe-n-radius_5.UPF, is like this) and is always
+# usable -- the type is a preference, never a filter that can eliminate
+# an element's only pseudopotential.
+sub pseudoType {
+  my ($file) = @_;
+  return "NC"  if ($file =~ /oncv/i);
+  return "PAW" if ($file =~ /paw/i);
+  return "US"  if ($file =~ /rrkjus|uspp|\.us\.|_us[._-]/i);
+  return "";
+}
+
+# Build element -> UPF filename from what is ACTUALLY in pseudo_dir.  The
+# element token is the leading run of letters before the first '.', '_' or
+# '-', which covers every naming shape in the packaged set (verified
+# against all 103 files: 103 distinct elements, no collisions).
+sub resolvePseudos {
+  my $dir = &pseudoDir;
+  my $wanted = &pseudoTypePreference;
+
+  %pseudoFile = ();
+  my %candidates = ();
+
+  if (opendir(my $dh, $dir)) {
+    while (my $f = readdir($dh)) {
+      next unless ($f =~ /\.upf$/i);
+      next unless (-f "$dir/$f");
+      my ($el) = ($f =~ /^([A-Za-z]+)[._-]/);
+      next if (!defined($el));
+      push(@{$candidates{ucfirst(lc($el))}}, $f);
+    }
+    closedir($dh);
+  } else {
+    die "ai.qe error: pseudopotential directory '$dir' cannot be read.\n" .
+        "  Set it in the Theory Details dialog (Pseudopotentials ->\n" .
+        "  Directory).  On Debian the packaged library is\n" .
+        "  /usr/share/espresso/pseudo from the quantum-espresso-data-sssp\n" .
+        "  package.\n";
+  }
+
+  my @missing = ();
+  foreach my $sym (@species) {
+    my $list = $candidates{$sym};
+    if (!defined($list) || scalar(@$list) == 0) {
+      push(@missing, $sym);
+      next;
+    }
+    my $pick = "";
+    if ($wanted ne "") {
+      foreach my $f (sort @$list) {
+        if (&pseudoType($f) eq $wanted) { $pick = $f; last; }
+      }
+    }
+    # Fall back to the first file for this element in a stable order, so
+    # the same fragment always produces the same deck.
+    $pick = (sort @$list)[0] if ($pick eq "");
+    $pseudoFile{$sym} = $pick;
+  }
+
+  if (scalar(@missing) > 0) {
+    die "ai.qe error: no pseudopotential file in '$dir' for element(s): " .
+        join(", ", @missing) . "\n" .
+        "  Quantum ESPRESSO cannot run without a UPF file for every\n" .
+        "  element in the structure.  Either point Theory Details ->\n" .
+        "  Pseudopotentials -> Directory at a library that covers " .
+        "them,\n  or remove those atoms from the structure.\n";
+  }
+}
+
+sub pseudoTypePreference {
+  my $choice = $AbiDict{"ES.Theory.PW.PseudoType"};
+  return "" if (!defined($choice));
+  return "US"  if ($choice =~ /ultrasoft/i);
+  return "PAW" if ($choice =~ /paw/i);
+  return "NC"  if ($choice =~ /norm/i);
+  return "";
+}
+
+################################################################################
+# Validation (main flow only -- see the note at the top of the main flow
+# about why this cannot live inside a ##tag## resolver)
+################################################################################
+
+sub verifyPeriodic {
+  if ($useLatticeVectors != 1) {
+    die "ai.qe error: this structure has no unit cell.\n" .
+        "  Quantum ESPRESSO is a plane-wave code and requires periodic\n" .
+        "  boundary conditions.  Open the structure in the Builder, show\n" .
+        "  the \"Periodic Builder\" tool panel, and create a lattice\n" .
+        "  (Create Lattice, then enter a/b/c/alpha/beta/gamma or the nine\n" .
+        "  lattice-vector components) before generating the input file.\n";
+  }
+}
+
+# Not fatal, and deliberately only a warning: pw.x refuses an odd number
+# of electrons with occupations='fixed' and nspin=1 --
+#   "Error in routine electrons (1): charge is wrong: smearing is needed"
+# (reproduced with a tot_charge = -1 silicon cell).  Whether the number is
+# actually odd depends on each pseudopotential's Zval, which only pw.x
+# knows, but the all-electron count ECCE has differs from it by closed
+# core shells only, so its parity is a reliable proxy.  Printing this on
+# stderr at generation time turns a run that dies seconds after launch
+# into something the user can fix in the Theory Details dialog first.
+sub warnOnOddElectronCount {
+  my $nel = $AbiDict{"NumElectrons"};
+  return if (!defined($nel) || $nel !~ /^\s*-?\d+\s*$/);
+  return if (($nel + 0) % 2 == 0);
+  my $occ = $AbiDict{"ES.Theory.PW.Occupations"};
+  return if (defined($occ) && $occ !~ /fixed/i && $occ ne "");
+  my $mult = 1;
+  $mult = $1 if ($AbiDict{"ChemSys.Multiplicity"} =~ /(\d+)/);
+  return if ($mult > 1 ||
+             $AbiDict{"ES.Theory.PW.SpinType"} =~ /unrestricted/i);
+  print STDERR "ai.qe warning: this system has an odd number of electrons " .
+    "($nel) but\n  Occupations is 'Fixed' and the calculation is spin-" .
+    "restricted.  pw.x will\n  stop with \"charge is wrong: smearing is " .
+    "needed\".  Set Occupations to\n  Smearing, or Spin Polarization to " .
+    "Unrestricted, in Theory Details.\n";
+}
+
+################################################################################
+# Namelists
+################################################################################
+
+# &CONTROL.  outdir and pseudo_dir are also rewritten at launch time by
+# qe.launchpp, which is where launch-time-only knowledge belongs; what is
+# written here has to be valid on its own so a hand-run deck works.
+sub QEControl {
+  my @l = ();
+  push(@l, "&CONTROL");
+  push(@l, "  calculation = 'scf'");
+  push(@l, "  prefix = '" . &Prefix . "'");
+  push(@l, "  outdir = './qe.scratch'");
+  push(@l, "  pseudo_dir = '" . &pseudoDir . "/'");
+  push(@l, "  tprnfor = " . &FortranLogical("ES.Runtype.PW.PrintForces", 1));
+  push(@l, "  tstress = " . &FortranLogical("ES.Runtype.PW.PrintStress", 0));
+  push(@l, "/");
+  my $r = join("\n", @l);
+  $_ = $r;
+  return $r;
+}
+
+# QE builds every scratch/save file name out of prefix, so it has to be a
+# plain identifier.  The calculation name can contain anything ECCE's
+# NameRule allows (dots, dashes), so it is squeezed down here rather than
+# trusted.
+sub Prefix {
+  my $name = $AbiDict{"title"};
+  $name = "" if (!defined($name));
+  $name =~ s/[^A-Za-z0-9_]/_/g;
+  $name =~ s/^_+//;
+  $name =~ s/_+$//;
+  $name = "ecce" if ($name eq "");
+  $name = substr($name, 0, 40);
+  return $name;
+}
+
+sub FortranLogical {
+  my ($key, $default) = @_;
+  my $v = $AbiDict{$key};
+  $v = $default if (!defined($v) || $v eq "");
+  return ($v eq "1" || $v =~ /^(true|yes|on)$/i) ? ".true." : ".false.";
+}
+
+# &SYSTEM.  ibrav = 0 always (see header); nat/ntyp come from the
+# fragment; everything else from the theory dialog.
+sub QESystem {
+  my @l = ();
+  push(@l, "&SYSTEM");
+  push(@l, "  ibrav = 0");
+  push(@l, "  nat = $chemsys_atoms");
+  push(@l, "  ntyp = " . scalar(@species));
+
+  my $ecutwfc = &numOr("ES.Theory.PW.EcutWfc", "30.0");
+  push(@l, "  ecutwfc = $ecutwfc");
+
+  if ($AbiDict{"ES.Theory.PW.UseEcutRho"} eq "1") {
+    my $ecutrho = &numOr("ES.Theory.PW.EcutRho", "");
+    push(@l, "  ecutrho = $ecutrho") if ($ecutrho ne "");
+  }
+
+  # tot_charge is QE's net charge in units of e, the same sign convention
+  # as ECCE's Charge (verified against INPUT_PW: "the net charge of the
+  # system").  Only emitted when non-zero: a charged periodic cell needs
+  # a compensating background, which QE applies silently, and printing
+  # "tot_charge = 0.0" on every deck would hide that.
+  my $charge = $AbiDict{"Charge"};
+  if (defined($charge) && $charge ne "" && $charge + 0 != 0) {
+    push(@l, "  tot_charge = " . ($charge + 0));
+  }
+
+  # occupations / smearing.  A metal needs smearing or the scf will not
+  # converge; an insulator is better off with fixed occupations.  QE's own
+  # default is 'fixed', so this dialog defaults to that too and the user
+  # opts into smearing.
+  my $occ = $AbiDict{"ES.Theory.PW.Occupations"};
+  $occ = "Fixed" if (!defined($occ) || $occ eq "");
+  if ($occ =~ /smearing/i) {
+    push(@l, "  occupations = 'smearing'");
+    push(@l, "  smearing = '" . &SmearingKeyword . "'");
+    push(@l, "  degauss = " . &numOr("ES.Theory.PW.Degauss", "0.01"));
+  } elsif ($occ =~ /tetrahedra/i) {
+    push(@l, "  occupations = 'tetrahedra'");
+  } else {
+    push(@l, "  occupations = 'fixed'");
+  }
+
+  # Spin.  nspin = 2 either when the theory dialog asks for it or when the
+  # structure's spin multiplicity is not a singlet -- the second case must
+  # force it, because a triplet computed with nspin = 1 is silently just a
+  # closed-shell calculation.
+  my $mult = 1;
+  $mult = $1 if ($AbiDict{"ChemSys.Multiplicity"} =~ /(\d+)/);
+  my $unrestricted = ($AbiDict{"ES.Theory.PW.SpinType"} =~ /unrestricted/i) ||
+                     ($mult > 1);
+  if ($unrestricted) {
+    push(@l, "  nspin = 2");
+    # tot_magnetization = nelup - neldw = multiplicity - 1.  Fixing it is
+    # the faithful reading of an ECCE spin multiplicity; without it QE
+    # relaxes the magnetization away from whatever the user asked for.
+    # Only meaningful with fixed or smeared occupations, which is all this
+    # phase offers.
+    if ($mult > 1 && $occ !~ /tetrahedra/i) {
+      push(@l, "  tot_magnetization = " . ($mult - 1));
+    }
+    my $sm = &numOr("ES.Theory.PW.StartingMagnetization", "0.1");
+    for (my $i = 1; $i <= scalar(@species); $i++) {
+      push(@l, "  starting_magnetization($i) = $sm");
+    }
+  }
+
+  # input_dft overrides the functional the pseudopotentials were generated
+  # with.  Left unset by default ON PURPOSE: the packaged SSSP library is
+  # entirely PBE, and overriding the functional a pseudopotential was
+  # built for is physically inconsistent.  QE itself only warns about
+  # this, it does not refuse.
+  my $dft = $AbiDict{"ES.Theory.PW.XCFunctionals"};
+  if (defined($dft) && $dft ne "" && $dft !~ /pseudopotential/i) {
+    push(@l, "  input_dft = '$dft'");
+  }
+
+  push(@l, "/");
+  my $r = join("\n", @l);
+  $_ = $r;
+  return $r;
+}
+
+sub SmearingKeyword {
+  my $s = $AbiDict{"ES.Theory.PW.Smearing"};
+  return "gaussian"     if (!defined($s) || $s eq "");
+  return "marzari-vanderbilt" if ($s =~ /marzari/i);
+  return "methfessel-paxton"  if ($s =~ /methfessel/i);
+  return "fermi-dirac"        if ($s =~ /fermi/i);
+  return "gaussian";
+}
+
+sub QEElectrons {
+  my @l = ();
+  push(@l, "&ELECTRONS");
+  push(@l, "  conv_thr = " . &numOr("ES.Theory.PW.ConvergenceEnergy", "1.0e-6"));
+  push(@l, "  mixing_beta = " . &numOr("ES.Theory.PW.MixingBeta", "0.7"));
+  my $maxstep = $AbiDict{"ES.Theory.PW.ConvergenceIterations"};
+  push(@l, "  electron_maxstep = " . ($maxstep + 0))
+    if (defined($maxstep) && $maxstep ne "" && $maxstep + 0 > 0);
+  push(@l, "/");
+  my $r = join("\n", @l);
+  $_ = $r;
+  return $r;
+}
+
+# A numeric dictionary value, or a default.  Kept as text rather than
+# reformatted, so an exponent the user typed (1.0e-8) reaches the deck as
+# typed -- pw.x reads both 1.0e-8 and 1.0d-8.
+sub numOr {
+  my ($key, $default) = @_;
+  my $v = $AbiDict{$key};
+  return $default if (!defined($v));
+  $v =~ s/^\s+//;
+  $v =~ s/\s+$//;
+  return $default if ($v eq "");
+  return $v;
+}
+
+################################################################################
+# Cards
+################################################################################
+
+sub QEAtomicSpecies {
+  my @l = ("ATOMIC_SPECIES");
+  foreach my $sym (@species) {
+    push(@l, sprintf("  %-3s %10.4f  %s", $sym, &atomicMass($sym),
+                     $pseudoFile{$sym}));
+  }
+  my $r = join("\n", @l);
+  $_ = $r;
+  return $r;
+}
+
+# CELL_PARAMETERS in angstrom, straight from the fragment's lattice.
+# MANDATORY: a QE calculation whose fragment has no LatticeDef cannot
+# produce a valid deck, so this dies rather than emitting one.
+sub QECellParameters {
+  my @l = ("CELL_PARAMETERS angstrom");
+  for (my $i = 0; $i < 3; $i++) {
+    push(@l, sprintf("  %16.10f %16.10f %16.10f",
+                     $latvec{$i,0}, $latvec{$i,1}, $latvec{$i,2}));
+  }
+  my $r = join("\n", @l);
+  $_ = $r;
+  return $r;
+}
+
+# ATOMIC_POSITIONS angstrom -- the Cartesians ECCE already has.  ECCE has
+# no fractional-coordinate model at all (LatticeDef stores Cartesian
+# vectors and reciprocal vectors, but nothing converts atom positions), so
+# QE's 'crystal' units are not available and are not needed.
+sub QEAtomicPositions {
+  my @l = ("ATOMIC_POSITIONS angstrom");
+  for (my $i = 0; $i < $chemsys_atoms; $i++) {
+    push(@l, sprintf("  %-3s %16.10f %16.10f %16.10f",
+                     &normalizeSymbol($tags{$i}),
+                     $coords{$i,0}, $coords{$i,1}, $coords{$i,2}));
+  }
+  my $r = join("\n", @l);
+  $_ = $r;
+  return $r;
+}
+
+# K_POINTS.  Minimal by design (docs/QE_ROADMAP.md section 8 Q4): an
+# automatic Monkhorst-Pack grid with offsets, or gamma.  ECCE has no
+# k-point machinery of any kind anywhere else -- NWChem's BAND theory has
+# been gamma-only forever -- so there is nothing to reuse and nothing
+# reuses this.
+sub QEKPoints {
+  my $scheme = $AbiDict{"ES.Theory.PW.KPointScheme"};
+  my @l = ();
+  if (defined($scheme) && $scheme =~ /gamma/i) {
+    @l = ("K_POINTS gamma");
+  } else {
+    my $n1 = &intOr("ES.Theory.PW.KPointsNk1", 1);
+    my $n2 = &intOr("ES.Theory.PW.KPointsNk2", 1);
+    my $n3 = &intOr("ES.Theory.PW.KPointsNk3", 1);
+    my $s1 = &intOr("ES.Theory.PW.KPointsSk1", 0) ? 1 : 0;
+    my $s2 = &intOr("ES.Theory.PW.KPointsSk2", 0) ? 1 : 0;
+    my $s3 = &intOr("ES.Theory.PW.KPointsSk3", 0) ? 1 : 0;
+    @l = ("K_POINTS automatic", "  $n1 $n2 $n3 $s1 $s2 $s3");
+  }
+  my $r = join("\n", @l);
+  $_ = $r;
+  return $r;
+}
+
+sub intOr {
+  my ($key, $default) = @_;
+  my $v = $AbiDict{$key};
+  return $default if (!defined($v) || $v !~ /^\s*-?\d+\s*$/);
+  return $v + 0;
+}
+
+################################################################################
+# Atomic masses.
+#
+# ATOMIC_SPECIES requires a mass per species.  pw.x does not use it for a
+# fixed-cell scf run (it matters for dynamics and phonons), but a wrong
+# number would silently become a wrong phonon later, so the real standard
+# atomic weights are used.  There is no mass table anywhere in
+# scripts/parsers -- pertab.pl carries only symbol/name/number maps -- so
+# one lives here.  Values are IUPAC standard atomic weights; elements with
+# no stable isotope use the longest-lived isotope's mass number.
+################################################################################
+# NOTE: this MUST be a sub called from the main flow, not a bare top-level
+# assignment.  Perl executes top-level statements in order and the main
+# flow above ends in exit(0), so a bare "%atomicMassTable = (...)" down
+# here never runs -- every mass came out as the 1.0 placeholder.  (Found
+# by reading the first generated deck, which is the only place it shows.)
+sub loadMasses {
+%atomicMassTable = (
+  "H" =>   1.00794, "He" =>   4.002602, "Li" =>   6.941,   "Be" =>   9.012182,
+  "B" =>  10.811,   "C" =>   12.0107,   "N" =>  14.0067,   "O" =>  15.9994,
+  "F" =>  18.9984032,"Ne" => 20.1797,   "Na" =>  22.98976928,"Mg" => 24.3050,
+  "Al" => 26.9815386,"Si" => 28.0855,   "P" =>  30.973762, "S" =>  32.065,
+  "Cl" => 35.453,   "Ar" =>  39.948,    "K" =>  39.0983,   "Ca" =>  40.078,
+  "Sc" => 44.955912,"Ti" =>  47.867,    "V" =>  50.9415,   "Cr" =>  51.9961,
+  "Mn" => 54.938045,"Fe" =>  55.845,    "Co" =>  58.933195,"Ni" =>  58.6934,
+  "Cu" => 63.546,   "Zn" =>  65.38,     "Ga" =>  69.723,   "Ge" =>  72.64,
+  "As" => 74.92160, "Se" =>  78.96,     "Br" =>  79.904,   "Kr" =>  83.798,
+  "Rb" => 85.4678,  "Sr" =>  87.62,     "Y" =>   88.90585, "Zr" =>  91.224,
+  "Nb" => 92.90638, "Mo" =>  95.96,     "Tc" =>  98.0,     "Ru" => 101.07,
+  "Rh" =>102.90550, "Pd" => 106.42,     "Ag" => 107.8682,  "Cd" => 112.411,
+  "In" =>114.818,   "Sn" => 118.710,    "Sb" => 121.760,   "Te" => 127.60,
+  "I" => 126.90447, "Xe" => 131.293,    "Cs" => 132.9054519,"Ba" =>137.327,
+  "La" =>138.90547, "Ce" => 140.116,    "Pr" => 140.90765, "Nd" => 144.242,
+  "Pm" =>145.0,     "Sm" => 150.36,     "Eu" => 151.964,   "Gd" => 157.25,
+  "Tb" =>158.92535, "Dy" => 162.500,    "Ho" => 164.93032, "Er" => 167.259,
+  "Tm" =>168.93421, "Yb" => 173.054,    "Lu" => 174.9668,  "Hf" => 178.49,
+  "Ta" =>180.94788, "W" =>  183.84,     "Re" => 186.207,   "Os" => 190.23,
+  "Ir" =>192.217,   "Pt" => 195.084,    "Au" => 196.966569,"Hg" => 200.59,
+  "Tl" =>204.3833,  "Pb" => 207.2,      "Bi" => 208.98040, "Po" => 209.0,
+  "At" =>210.0,     "Rn" => 222.0,      "Fr" => 223.0,     "Ra" => 226.0,
+  "Ac" =>227.0,     "Th" => 232.03806,  "Pa" => 231.03588, "U" =>  238.02891,
+  "Np" =>237.0,     "Pu" => 244.0,      "Am" => 243.0,     "Cm" => 247.0,
+  "Bk" =>247.0,     "Cf" => 251.0,      "Es" => 252.0,     "Fm" => 257.0,
+  "Md" =>258.0,     "No" => 259.0,      "Lr" => 262.0,
+);
+}
+
+sub atomicMass {
+  my ($sym) = @_;
+  my $m = $atomicMassTable{$sym};
+  # Not fatal: an element with no entry here still has a real
+  # pseudopotential (resolvePseudos already proved that) and the mass is
+  # unused by an scf run.  1.0 is an obviously-wrong placeholder rather
+  # than a plausible-looking guess.
+  return defined($m) ? $m : 1.0;
+}
+
+################################################################################
+# Generic file I/O -- copied from ai.mopac/ai.orca, code-agnostic except
+# for readChemSys's lattice_vectors: branch (taken from ai.nwchem:1780).
+################################################################################
+
+sub verifyAbiFile {
+  open(ABIDICT, $AbiFILE) || die "ai.qe error: Couldn't open $AbiFILE\n";
+}
+
+sub verifyFragFile {
+  open(CHEMSYS, $FragFILE) || die "ai.qe error: Couldn't open $FragFILE\n";
+}
+
+sub cleanup {
+  system("/bin/mv -f tmpfile '$inputFile'");
+  close(ABIDICT);
+}
+
+sub readDict {
+  while (<ABIDICT>) {
+    $_ =~ s/\s*!.*$//;
+    if (/:/) {
+      my ($key, $value) = split(/:/);
+      $key =~ s/^\s*//;
+      $key =~ s/\s*$//;
+      $value =~ s/^\s*//;
+      $value =~ s/\s*$//;
+      my $tagkey = $key;
+      while ($tagkey ne "") {
+        $AbiDict{$tagkey} = $value;
+        $tagkey =~ s/^[^\.]*//;
+        $tagkey =~ s/^\.//;
+      }
+    }
+  }
+}
+
+sub readChemSys {
+  my $symbols = 0;
+  $chemsys_atoms = 0;
+  $_ = <CHEMSYS>;
+  while (<CHEMSYS>) {
+    if (/^num_atoms:/) {
+      (undef, $chemsys_atoms) = split;
+    } elsif (/^title:/) {
+      (undef, $chemsys_name) = split;
+    } elsif (/^atom_info:/) {
+      $symbols = /symbol/;
+    } elsif (/^lattice_vectors:/) {
+      # Fragment::dumpMVM writes this block (3 rows, Angstrom) whenever
+      # the fragment has a LatticeDef, BEFORE num_atoms:.  ai.nwchem:1780
+      # is the existing reader.
+      $useLatticeVectors = 1;
+      for (my $index = 0; $index < 3; $index++) {
+        $_ = <CHEMSYS>;
+        ($latvec{$index,0},$latvec{$index,1},$latvec{$index,2}) = split;
+      }
+    } elsif (/^atom_list:/) {
+      for (my $index = 0; $index < $chemsys_atoms; $index++) {
+        $_ = <CHEMSYS>;
+        ($tags{$index}, $coords{$index,0}, $coords{$index,1}, $coords{$index,2}) = split;
+        if (!$symbols) {
+          $tags{$index} = $number_to_symbol{$tags{$index}};
+        }
+      }
+    }
+  }
+}
+
+sub usage {
+  print "Usage: ai.qe -p -f -n <basename> -t <template>\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}
+
+sub handle_options {
+  &usage && exit if ($opt_h || $opt_help);
+  my $revision = '$Revision: 1 $';
+  $revision =~ s/\$//g;
+  print "$revision\n" if ($opt_v);
+  exit if ($opt_v);
+  $AbiFILE = "$opt_n.param" if ($opt_p);
+  $FragFILE = "$opt_n.frag" if ($opt_f);
+  $BasisFILE = "$opt_n.basis" if ($opt_b);
+  $CnstrntFILE = "$opt_n.con" if ($opt_c);
+  $TplFILE = $opt_t;
+}

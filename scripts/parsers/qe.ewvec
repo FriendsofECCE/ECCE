@@ -1,0 +1,50 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts one per-SCF-iteration total energy into ECCE's EWVEC
+# ("Wavefunction Step Energy", a PropTSVector<Wave Step> already declared
+# in data/client/config/properties and previously produced only by
+# NWChem's ecce_print stream).  qe.desc invokes this once per iteration
+# (Frequency=all), so the vector accumulates the whole SCF convergence
+# trace.
+#
+# The Begin regex in qe.desc is anchored ^\s+ so it matches ONLY the
+# per-iteration lines and never the converged one, which pw.x prefixes
+# with '!' and qe.energy handles:
+#
+#   "     total energy              =     -22.82070382 Ry"   <- here
+#   "!    total energy              =     -22.82211442 Ry"   <- qe.energy
+#
+# Deliberately EWVEC and not TEVEC: TEVEC is indexed by Geometry Step and
+# QE prints many SCF energies per geometry, which is exactly the
+# len(TEVEC) > len(GEOMTRACE) trap CLAUDE.md records (a Geometry Trace
+# plot with more points than there are frames drives GTStepCmd through
+# PropTSVecTable::value()'s out-of-bounds path).  Wave Step is the correct
+# axis for an SCF iteration and has its own display.
+#
+# UNITS: Rydberg in, Hartree out (1 Ry = 0.5 Hartree); EnergyConverter has
+# no Rydberg.  See qe.energy's header.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+$_ = <STDIN>;
+my $ry;
+if (/^\s+total energy\s*=\s*(-?\d+\.?\d*([EeDd][-+]?\d+)?)/) {
+  $ry = $1;
+  $ry =~ s/[Dd]/E/;
+}
+exit(0) if (!defined($ry));
+
+my $hartree = $ry * 0.5;
+
+print "key: EWVEC\n";
+print "size:\n1\n";
+print "values:\n$hartree\n";
+print "units:\nHartree\n";
+print "END\n";
+exit(0);

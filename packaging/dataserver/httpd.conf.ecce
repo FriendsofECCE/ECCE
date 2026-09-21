@@ -204,6 +204,21 @@ AddType  chemical/x-orca-output .orcaout
 AddType  chemical/x-mopac-input  .mop
 AddType  chemical/x-mopac-output .mopout
 
+# Quantum ESPRESSO (pw.x). Unlike MOPAC, pw.x names NEITHER file itself
+# -- the deck is passed with "-in <file>" and the report goes to stdout
+# -- so the distinctive extensions the new-code checklist asks for are
+# simply available. They matter for the same reason they did for ORCA:
+# without an AddType, an uploaded file's Content-Type falls through to
+# DefaultType text/plain and ECCE's mimetype-filtered "find the primary
+# input file" lookup cannot match it against QuantumESPRESSO.edml's
+# declared mimetype even though the file exists on disk, which looks
+# exactly like a save failure. Testing a change here needs
+# ecce-dataserver-stop first, not just an app relaunch: this template is
+# resolved into $STATEDIR/httpd.conf only when the dataserver is not
+# already running.
+AddType  chemical/x-qe-input  .pwin
+AddType  chemical/x-qe-output .pwout
+
 # ECCE Server Side Compression: deferred, see header comment. The
 # SetOutputFilter/SetInputFilter SS_COMPRESSION directives and their
 # ssc* settings from the legacy template are intentionally omitted here.

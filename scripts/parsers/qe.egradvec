@@ -1,0 +1,80 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts pw.x's force table into ECCE's EGRADVEC property.  The block,
+# verified against real Quantum ESPRESSO 6.7 output:
+#
+#      Forces acting on atoms (cartesian axes, Ry/au):     <- Begin
+#                                                          <- blank
+#      atom    1 type  1   force =     0.00000000    0.00000000   -0.04591947
+#      atom    2 type  2   force =     0.02957214    0.00000000    0.02295974
+#                                                          <- blank
+#      Total force =     0.070085     Total SCF correction =     0.000639
+#
+# qe.desc uses Skip=2 (Skip counts the Begin-matching line ITSELF, so 2 =
+# Begin + the blank) and End=Total force =.  This script skips
+# non-matching lines rather than stopping at the first one, so an off-by-
+# one in Skip degrades to "still works" rather than "silently produces
+# nothing" -- the ORCA GEOMTRACE/VIBFREQ failure mode in CLAUDE.md.
+#
+# TWO CONVERSIONS, both easy to get wrong in a way that still looks
+# plausible:
+#
+#   1. SIGN.  pw.x prints FORCES; ECCE's EGRADVEC is a GRADIENT (the
+#      NWChem convention every property panel and the Vector overlay
+#      assume).  gradient = -force.  gaussian-16.egradvec does the same
+#      flip for the same reason ("consistent with the NWChem output");
+#      orca.egradvec does not, because ORCA prints a gradient already.
+#   2. UNITS.  pw.x prints Ry/au, i.e. Rydberg per bohr.  ECCE wants
+#      Hartree/Bohr (what nwchem/orca/gaussian all emit).  1 Ry = 0.5
+#      Hartree, so the factor is 0.5 -- and combined with the sign flip
+#      the whole conversion is a multiply by -0.5.
+#
+# NO EGRAD.  The "Total force" line is a force NORM and would be the
+# natural source for EGRAD, but EGRAD is a PropTSVector<Geometry Step> and
+# phase 1 is scf-only, so there is no GEOMTRACE for it to be indexed
+# against (same reasoning as qe.energy's "no TEVEC" note).  It belongs
+# with 'relax' in roadmap phase 3.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my @values;
+my @labels;
+my $natom = 0;
+
+while (<STDIN>) {
+  # "atom    1 type  1   force =   fx   fy   fz"
+  if (/^\s*atom\s+(\d+)\s+type\s+\d+\s+force\s*=\s*
+       (-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/x) {
+    push(@labels, $1);
+    # -0.5: sign flip (force -> gradient) and Ry/bohr -> Hartree/bohr.
+    # The ?: keeps "-0" from being printed for an exact zero, matching
+    # what gaussian-16.egradvec does.
+    foreach my $f ($2, $3, $4) {
+      my $g = ($f == 0) ? 0 : -0.5 * $f;
+      push(@values, sprintf("%.10f", $g));
+    }
+    $natom++;
+  }
+}
+
+exit(0) if ($natom == 0);
+
+print "key: EGRADVEC\n";
+print "size:\n$natom 3\n";
+print "rowlabels:\n";
+print join(" ", @labels), "\n";
+print "columnlabels:\nX Y Z\n";
+print "values:\n";
+for (my $i = 0; $i <= $#values; $i++) {
+  print "$values[$i] ";
+  print "\n" if (($i % 3) == 2);
+}
+print "units:\nHartree/Bohr\n";
+print "END\n";
+exit(0);

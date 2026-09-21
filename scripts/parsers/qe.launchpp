@@ -1,0 +1,128 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Purpose:
+#   Post-process the generated Quantum ESPRESSO pw.x input file to add
+#   launch control information not known at edit time -- specifically the
+#   real scratch directory Launch requested, via &CONTROL's "outdir".
+#   Modeled on nwchem.launchpp / mopac.launchpp; see those for the general
+#   mechanism (Launch::postProcessInput() in src/comm/commxt/Launch.C
+#   writes a "postParams" dictionary -- inputFile / numProcs / numNodes /
+#   runDir / scratchDir / machineName -- and every code's
+#   <LaunchPreprocessor> script is REQUIRED to exist, even as a no-op,
+#   because JCode::launchPPScript() is shelled out with no empty-string
+#   check and an empty command name fails the launch outright).
+#
+#   MUST BE IDEMPOTENT on relaunch: an existing outdir line is REPLACED in
+#   place, not duplicated.  pw.x reads a Fortran namelist and a repeated
+#   variable in one namelist is a fatal error, so a non-idempotent rewrite
+#   would break the second launch of every job.
+#
+# WHAT IS DELIBERATELY *NOT* DONE HERE:
+#
+#   * pseudo_dir is left exactly as ai.qe wrote it.  It is tempting to
+#     "fix up" at launch, but this script runs on the CLIENT, before the
+#     input file is staged to the compute host, and Launch's postParams
+#     dictionary carries no remote pseudopotential path (it has runDir,
+#     scratchDir and machineName only).  Rewriting it here could only ever
+#     guess.  A site whose pseudopotential library is not at the packaged
+#     /usr/share/espresso/pseudo sets it in the Theory Details dialog
+#     instead, which is the one place that value is actually known.
+#
+#   * No "-nk" / pool count is injected.  pw.x's -nk (k-point pools) is a
+#     COMMAND-LINE flag, not an input keyword, so it belongs in
+#     scripts/gensub's quantumespresso() sub and not here -- and it must
+#     divide the process count exactly or pw.x aborts, so phase 1 does not
+#     emit one at all.
+#
+#   * No memory keyword.  pw.x has none: /opt/QE/qe-7.5/Doc/INPUT_PW.txt
+#     has no memory-allocation input variable, only max_seconds (a
+#     wall-clock limit) and disk_io.  Same as MOPAC; see ai.qe's header.
+#
+###############################################################################
+
+use Getopt::Std;
+
+&getopts('p:v');
+
+if ($opt_v) {
+  $revision = '$Revision: 1.0';
+  $revision =~ (s/\$//g);
+  print "$revision\n";
+  exit 0;
+}
+
+open(PARAMDICT, "<$opt_p") || die "parameter file does not exist!\n";
+while (<PARAMDICT>) {
+  $_ =~ s/\s*!.*$//;
+  if (/:/) {
+    my ($key, $value) = split(/:/);
+    $key =~ s/^\s*//;
+    $key =~ s/\s*$//;
+    $value =~ s/^\s*//;
+    $value =~ s/\s*$//;
+    $ParamDict{$key} = $value if ($key ne "");
+  }
+}
+close(PARAMDICT);
+
+my $scratchDir = $ParamDict{'scratchDir'};
+exit(0) if (!defined($scratchDir) || $scratchDir eq "");
+
+unless (open(INFILE, $ParamDict{'inputFile'})) {
+  die "Cannot open Quantum ESPRESSO input file $ParamDict{'inputFile'}";
+}
+my @contents = <INFILE>;
+close(INFILE);
+
+if (!-w $ParamDict{'inputFile'}) {
+  die "Cannot write to Quantum ESPRESSO input file " .
+      "$ParamDict{'inputFile'}!";
+}
+
+# pw.x creates outdir itself if it does not exist, but it does NOT create
+# missing parents, so the value written has to be a directory whose parent
+# the submit script already made -- scratchDir itself, with the prefix
+# appended, is exactly that (gensub's own preamble mkdir -p's scratchDir).
+my $prefix = "ecce";
+foreach my $line (@contents) {
+  if ($line =~ /^\s*prefix\s*=\s*['"]([^'"]*)['"]/i) {
+    $prefix = $1;
+    last;
+  }
+}
+$scratchDir =~ s{/+$}{};
+my $outdir = "$scratchDir/$prefix.qe";
+
+my $replaced = 0;
+foreach my $line (@contents) {
+  if ($line =~ /^\s*outdir\s*=/i) {
+    $line = "  outdir = '$outdir'\n";
+    $replaced = 1;
+  }
+}
+
+# ai.qe always writes an outdir, so this branch is only reached for a
+# hand-edited deck that removed it.  Insert immediately after &CONTROL so
+# the variable lands inside the right namelist.
+if (!$replaced) {
+  my @out = ();
+  my $inserted = 0;
+  foreach my $line (@contents) {
+    push(@out, $line);
+    if (!$inserted && $line =~ /^\s*&CONTROL\b/i) {
+      push(@out, "  outdir = '$outdir'\n");
+      $inserted = 1;
+    }
+  }
+  @contents = @out if ($inserted);
+}
+
+unless (open(PPFILE, ">$ParamDict{'inputFile'}")) {
+  die "Cannot overwrite Quantum ESPRESSO input file " .
+      "$ParamDict{'inputFile'}";
+}
+print PPFILE @contents;
+close(PPFILE);
+
+exit(0);

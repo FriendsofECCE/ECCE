@@ -1,0 +1,29 @@
+/* XPM */
+/* Placeholder calculation icon for Quantum ESPRESSO, in the same 16x16
+   two-colour style as calcorca.xpm / calcmopac.xpm (which it was derived
+   from): a stylized "Q" -- calcorca.xpm's "O" with a tail -- in a
+   distinct colour so QE calculations are visually separable from ORCA's
+   "O" and MOPAC's "M" in the Organizer tree.  Without an entry here the
+   ResourceType would fall back to the generic calcany.xpm, which is the
+   wart issue #73 fixed for ORCA.  Replace with a real icon whenever one
+   is drawn. */
+static char * calcqe_xpm[] = {
+"16 16 2 1",
+" 	c None",
+".	c #C05000",
+"                ",
+"                ",
+"    ........    ",
+"   ..........   ",
+"  ..        ..  ",
+" ..          .. ",
+" ..          .. ",
+"..            ..",
+"..            ..",
+"..        ..  ..",
+"..         .. ..",
+" ..         ..  ",
+" ..          .. ",
+"  ..        ....",
+"   ..........  .",
+"    ........    "};

@@ -1,0 +1,32 @@
+&CONTROL
+  calculation = 'scf'
+  prefix = 'al_smear'
+  outdir = './qe.scratch'
+  pseudo_dir = '/usr/share/espresso/pseudo/'
+  tprnfor = .true.
+  tstress = .true.
+/
+&SYSTEM
+  ibrav = 0
+  nat = 1
+  ntyp = 1
+  ecutwfc = 25.0
+  occupations = 'smearing'
+  smearing = 'marzari-vanderbilt'
+  degauss = 0.02
+/
+&ELECTRONS
+  conv_thr = 1e-06
+  mixing_beta = 0.7
+  electron_maxstep = 100
+/
+ATOMIC_SPECIES
+  Al     26.9815  Al.pbe-n-kjpaw_psl.1.0.0.UPF
+CELL_PARAMETERS angstrom
+     -2.0250000000     0.0000000000     2.0250000000
+      0.0000000000     2.0250000000     2.0250000000
+     -2.0250000000     2.0250000000     0.0000000000
+ATOMIC_POSITIONS angstrom
+  Al      0.0000000000     0.0000000000     0.0000000000
+K_POINTS automatic
+  4 4 4 0 0 0

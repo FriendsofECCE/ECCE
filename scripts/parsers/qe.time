@@ -1,0 +1,67 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts both timings from pw.x's final summary line into ECCE's CPUSEC
+# (CPU Time) and ETIME (Elapsed Time) properties:
+#
+#      PWSCF        :      3.23s CPU      1.19s WALL
+#
+# One line carries both numbers, so qe.desc declares one combined
+# [CPUSEC][ETIME] entry and this script always emits both keys.  A
+# combined bracket is collapsed by eccejobmonitor into a single opaque
+# type label, so the script cannot tell from $ARGV[0] which key it is
+# being asked for -- emitting both unconditionally is the pattern
+# orca.energy and mopac.energy use for the same reason.
+#
+# pw.x prints the same "<routine> : <cpu>s CPU <wall>s WALL" shape for
+# every internal routine (init_run, electrons, forces, ...), which is why
+# qe.desc's Begin is anchored on PWSCF specifically -- that is the
+# whole-program row, the last one printed.
+#
+# TIME UNITS: pw.x reports seconds, and the values are emitted with no
+# units line, matching orca.etime / mopac.etime / every other code's time
+# scripts (TimeConverter's base is seconds).
+#
+# NOTE: pw.x prints these with an 's' suffix ("3.23s"), and for long runs
+# in a m/h form ("1m22.35s", "2h 1m"), so the parse below handles
+# h/m/s pieces rather than just a bare float.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $line = <STDIN>;
+exit(0) if (!defined($line));
+
+my ($cpu, $wall);
+if ($line =~ /^\s*PWSCF\s*:\s*(.+?)\s+CPU\s+(.+?)\s+WALL/) {
+  $cpu = &toSeconds($1);
+  $wall = &toSeconds($2);
+}
+exit(0) if (!defined($cpu));
+
+print "key: CPUSEC\n";
+print "size:\n1\n";
+print "values:\n$cpu\n";
+print "END\n";
+
+print "key: ETIME\n";
+print "size:\n1\n";
+print "values:\n$wall\n";
+print "END\n";
+exit(0);
+
+# "3.23s" / "1m22.35s" / "2h 1m" / "22.35s" -> seconds
+sub toSeconds {
+  my ($text) = @_;
+  my $total = 0;
+  my $matched = 0;
+  if ($text =~ /(\d+(?:\.\d+)?)\s*h/) { $total += $1 * 3600; $matched = 1; }
+  if ($text =~ /(\d+(?:\.\d+)?)\s*m/)  { $total += $1 * 60;   $matched = 1; }
+  if ($text =~ /(\d+(?:\.\d+)?)\s*s/) { $total += $1; $matched = 1; }
+  if (!$matched && $text =~ /(\d+(?:\.\d+)?)/) { $total = $1; }
+  return $total + 0;
+}

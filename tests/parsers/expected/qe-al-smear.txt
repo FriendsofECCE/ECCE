@@ -1,0 +1,79 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    qe-al-smear
+desc:    qe.desc
+fixture: qe/al_smear.pwout (265 lines)
+args:    '.' 'Energy' 'PW' 'PW' '0'
+
+[VERSION]  Script=qe.version  Freq=first  Skip=0  Lines=1
+  Begin=Program PWSCF
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=2 fed=1 rc=0 first-fed='     Program PWSCF v.6.7MaX starts on 21Sep2026 at 17:54:20'
+    key: VERSION
+      size: 1
+      values: PWSCF 6.7MaX
+
+[TE]  Script=qe.energy  Freq=all  Skip=0  Lines=1
+  Begin=^!\s*total energy
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=184 fed=1 rc=0 first-fed='!    total energy              =     -39.48095949 Ry'
+    key: TE
+      size: 1
+      values: -19.740479745
+      units: Hartree
+
+[EWVEC]  Script=qe.ewvec  Freq=all  Skip=0  Lines=1
+  Begin=^\s+total energy\s*=
+  begins=2 delivered=2 buffered_away=0
+  block 1: begin-line=130 fed=1 rc=0 first-fed='     total energy              =     -39.48100743 Ry'
+    key: EWVEC
+      size: 1
+      values: -19.740503715
+      units: Hartree
+  block 2: begin-line=139 fed=1 rc=0 first-fed='     total energy              =     -39.48095124 Ry'
+    key: EWVEC
+      size: 1
+      values: -19.74047562
+      units: Hartree
+
+[DELTAE]  Script=qe.deltae  Freq=all  Skip=0  Lines=1
+  Begin=estimated scf accuracy
+  begins=3 delivered=3 buffered_away=0
+  block 1: begin-line=131 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00602248 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.00301124
+      units: Hartree
+  block 2: begin-line=140 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00046487 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.000232435
+      units: Hartree
+  block 3: begin-line=187 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000044 Ry'
+    key: DELTAE
+      size: 1
+      values: 2.2e-07
+      units: Hartree
+
+[EGRADVEC]  Script=qe.egradvec  Freq=last  Skip=2  Lines=-
+  Begin=Forces acting on atoms
+  End=Total force =
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=200 fed=3 rc=0 first-fed='     atom    1 type  1   force =     0.00000000    0.00000000    0.00000000'
+    key: EGRADVEC
+      size: 1 3
+      rowlabels: 1
+      columnlabels: X Y Z
+      values: 0.0000000000 0.0000000000 0.0000000000
+      units: Hartree/Bohr
+
+[CPUSEC][ETIME]  Script=qe.time  Freq=last  Skip=0  Lines=1
+  Begin=^\s*PWSCF\s*:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=258 fed=1 rc=0 first-fed='     PWSCF        :      3.72s CPU      1.07s WALL'
+    key: CPUSEC
+      size: 1
+      values: 3.72
+    key: ETIME
+      size: 1
+      values: 1.07
+

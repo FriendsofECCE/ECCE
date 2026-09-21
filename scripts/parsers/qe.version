@@ -1,0 +1,42 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts the Quantum ESPRESSO version from pw.x's banner line into
+# ECCE's VERSION property (a PropString):
+#
+#      Program PWSCF v.6.7MaX starts on 21Sep2026 at 17:19:27
+#
+# Only the program name and version are kept; the start timestamp is
+# dropped, because VERSION is compared between calculations and a
+# timestamp would make every job's version string unique.
+#
+# Note the DIFFERENT anchoring from QuantumESPRESSO.edml's
+# <Output type="parse" verifypattern="Program PWSCF">: verifypattern must
+# not contain a version number or it breaks on every QE upgrade, whereas
+# this script's job is precisely to read the version out.  The regex here
+# tolerates a missing version ("Program PWSCF starts on ..."), which some
+# builds print.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+$_ = <STDIN>;
+exit(0) if (!defined($_));
+
+my $value;
+if (/Program\s+(PWSCF)\s+v\.(\S+)/) {
+  $value = "$1 $2";
+} elsif (/Program\s+(PWSCF)\b/) {
+  $value = $1;
+}
+exit(0) if (!defined($value));
+
+print "key: VERSION\n";
+print "size:\n1\n";
+print "values:\n$value\n";
+print "END\n";
+exit(0);

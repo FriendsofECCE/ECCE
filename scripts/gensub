@@ -1300,6 +1300,62 @@ sub mopac()
   nouse strict vars;
 }
 
+###########################################################################
+# Quantum ESPRESSO (pw.x), phase 1 -- see docs/QE_ROADMAP.md.
+#
+# The sub name is not a free choice: the dispatcher above does
+#   $fct = $lccode; $fct =~ s/-//g; eval "&$fct()"
+# with $lccode = lc($applicationType), so this sub's name has to be
+# exactly lc("QuantumESPRESSO") = "quantumespresso".  Both
+# data/client/config/ResourceDescriptor.xml and ...Rxn.xml declare
+# applicationType="QuantumESPRESSO" for qe_es, and $::config{$::lccode}
+# (the machine-registration path key) is "quantumespresso" as a
+# consequence, so the spelling is deliberately unhyphenated in all three
+# places.  A hyphenated "Quantum-ESPRESSO" would reach this same sub (the
+# dispatcher strips hyphens) but would look the binary path up under a
+# DIFFERENT config key, which is exactly the kind of mismatch that fails
+# only once a real machine is registered.
+#
+# Two notes on how pw.x is run:
+#
+#   * "-in <file>" (its own flag), not "< file" and not a bare argument.
+#     pw.x writes its whole report to stdout, so the output redirect is
+#     what produces the file QuantumESPRESSO.edml declares.  This is why
+#     no symlink dance like MOPAC's is needed here.
+#
+#   * MPI: pw.x is a plain MPI program (unlike ORCA, which launches
+#     mpirun itself from a %pal block in the input file), so wrapping it
+#     in "mpirun -np N" is the correct and only way to parallelize it.
+#     No "-nk" pool count is emitted: -nk must divide the process count
+#     exactly or pw.x aborts at startup, and choosing it well needs the
+#     k-point count, which is not known here.  Serial and plain-MPI both
+#     verified against the real Quantum ESPRESSO 6.7 at /usr/bin/pw.x.
+###########################################################################
+sub quantumespresso()
+{
+  use strict vars;
+  my ($retval,$pw,$cmd);
+  $retval = "";
+  $pw = $::config{$::lccode};
+  if ($pw eq "") { die "Path for Quantum ESPRESSO not found"; }
+  $cmd = $::config{"quantumespressocommand"};
+
+  $retval .= "set pw = $pw\n";
+  $retval .= "if (\$\?ECCE_PWSCF) then\n  set pw = \$ECCE_PWSCF\nendif\n";
+  $retval .= "echo \"Using Quantum ESPRESSO path: \$pw\" >> $::logfile\n";
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } elsif ($::totalprocs <= 1) {
+    $retval .= "\$pw -in $::inFile >&! $::outFile\n";
+  } else {
+    $retval .= "\n$::CC - pw.x is a plain MPI program; mpirun wraps it.\n";
+    $retval .= "mpirun -np $::totalprocs \$pw -in $::inFile >&! $::outFile < /dev/null\n";
+  }
+  return $retval;
+  nouse strict vars;
+}
+
 sub gamessuk()
 {
   use strict vars;
