@@ -29,10 +29,17 @@ intentionally *not* a running log of past sessions. For that, see
   natively) — convert at the point closest to the generated input
   (`ai.<code>`/the `.tpl`), not by changing what the wire format itself
   accepts. See `scripts/codereg/{ged*,nedtheory,orcatheory,guktheory,
-  metathry}.py` for the pattern. One label still doesn't match despite
-  a verified-correct source and a verified-correct running process —
-  see issue #77 before assuming a future "fix" here is wrong; the bug
-  is downstream in `calced`'s C++ side, not in these Python dialogs.
+  metathry}.py` for the pattern. Issue #77 (G16 Memory field showing
+  "Megawords" despite a verified-correct source and running process) is
+  fixed as of `884593f` — the bug was never `calced`'s C++ side; it was
+  `BoxSizerFrame.FinalizeSetting()` (`scripts/codereg/templates.py`)
+  calling `SetUnit(unit)` on GUIValues restore, overwriting the
+  widget's freshly-correct unit label with whatever was persisted in
+  the calc's *stored* data (stale for any calc saved before the
+  GB-everywhere UX change). Fix removes the `SetUnit()` call on
+  restore — value persists, unit label doesn't. Not yet live-verified;
+  if it still shows the wrong label after this fix, something new is
+  wrong, not a repeat.
 
 ## Code map — where the role of each part is
 
