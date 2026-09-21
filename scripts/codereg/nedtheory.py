@@ -416,10 +416,20 @@ class NedTheoryPanel(EccePanel):
             nwpwLeftSizer.AddWidget(self.xcFunc)
 
             cutoffSizer = EcceHBoxSizer()
+            # Ticked by default, unlike the other three gates below. The
+            # value beside it (30.0) has always been written into the deck
+            # unconditionally, and NWChem's own default is MORE converged
+            # (50 Ry vs 30 Ry, 0.0126 Ha / ~7.9 kcal/mol apart, roughly
+            # double the plane waves -- measured, see ai.nwchem's
+            # NWPW_Cutoff comment). Defaulting this off would therefore
+            # silently change the energy of every existing plane-wave job.
+            # Ticked preserves today's behaviour exactly and turns the box
+            # into a working opt-out. The Ewald and np_dimensions gates
+            # stay unticked because their values are exact no-ops.
             self.usecutoff = EcceCheckBox(self,
                                         label = "Cutoff Energy:",
                                         name = "ES.Theory.NWPW.UseCutoff",
-                                        default = False)
+                                        default = True)
             cutoffSizer.AddWidget(self.usecutoff)
             self.cutoff = EcceFloatInput(self,
                                          default = 30.0,

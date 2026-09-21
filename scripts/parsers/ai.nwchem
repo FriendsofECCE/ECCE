@@ -2089,8 +2089,69 @@ sub removeUnusedSections {
   close NEWFILE2;
 }
 
+##
+## The four "Use..." checkboxes in nedtheory.py's plane-wave panel had no
+## effect whatsoever: nothing anywhere read them, while the values beside
+## them were written into the deck unconditionally (issue #89). These
+## resolvers honour them, so ticking a box means "send this value" and
+## unticking means "leave it out and let NWChem choose".
+##
+## Measured against real NWChem 7.2.3 (task pspw energy, water in an
+## 8 Bohr cell) before wiring this up, because omitting a value is only
+## safe if you know what NWChem does instead:
+##
+##   cutoff 30.0  ->  ramps 10/20/30 Ry,    E = -17.07747182 Ha
+##   omitted      ->  ramps 12.5/25/37.5/50 Ry, E = -17.09002982 Ha
+##
+## i.e. NWChem's own default is MORE converged than the 30.0 the dialog
+## has always sent, and the difference is 0.0126 Ha (~7.9 kcal/mol) with
+## roughly double the plane waves. That is far too big to change silently
+## under existing users, which is why UseCutoff defaults to TICKED in
+## nedtheory.py -- today's behaviour is preserved exactly and the box
+## becomes a working opt-out rather than a behaviour change.
+##
+## ewald_rcut 0.0 and ewald_ncut 1, by contrast, are exact no-ops:
+## NWChem reports "cut radius= 2.55 and 1" whether they are present or
+## absent, and the total energy is identical to the bit. So those boxes
+## default to unticked -- omitting them is bit-identical, and it stops
+## the deck carrying a meaningless "ewald_rcut 0.0" line.
+##
+sub NWPW_Cutoff {
+  my ($value) = @_;
+  if ($AbiDict{"NWPW.UseCutoff"} ne "1") {
+    $_ = "";            # drop the whole "cutoff ##...##" line
+    return "";
+  }
+  return $value;
+}
+
+sub NWPW_EwaldRcut {
+  my ($value) = @_;
+  if ($AbiDict{"NWPW.UseRcut"} ne "1") {
+    $_ = "";
+    return "";
+  }
+  return $value;
+}
+
+sub NWPW_EwaldNcut {
+  my ($value) = @_;
+  if ($AbiDict{"NWPW.UseNcut"} ne "1") {
+    $_ = "";
+    return "";
+  }
+  return $value;
+}
+
 sub NWPWDimensions2 {
   local($value);
+
+  # Gated like the three above: unticked means let NWChem pick its own
+  # processor grid, which is what the -1 -1 placeholder meant anyway.
+  if ($AbiDict{"NWPW.UseNpDimensions"} ne "1") {
+    $_ = "";
+    return "";
+  }
 
   $dimrows = $AbiDict{"NWPW.NpDimensionsRows"};
   $dimcols = $AbiDict{"NWPW.NpDimensionsCols"};
