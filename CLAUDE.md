@@ -337,6 +337,26 @@ Both per-user, both non-root, both started automatically by the
   job/comm layer, general utilities. No wx dependency.
 
 ### Known pitfall classes (found more than once — check for siblings)
+- **`ai.<code>`'s template engine silently swallows `die()`** (#92).
+  `modifyInputFile` resolves every `##tag##` through `eval "&$subname"`,
+  so a `die` inside a resolver — or anything it calls — is caught, the
+  tag's line vanishes, and the script **exits 0 with a quietly
+  incomplete input deck**. All 10 `ai.*` scripts share this engine and
+  nine contain `die`s. Confirmed reachable in `ai.mopac`:
+  `mopac.tpl`'s `##MOPACSecondJob##` → `MOPACSecondJob` →
+  `HamiltonianKeyword`'s "unsupported theory" `die`, so MOPAC's
+  reduced-scope guards cannot report anything and emit a deck missing
+  its keyword line instead. Put validation in the **main flow** before
+  generation starts, never inside a resolver — `ai.qe`'s
+  `&verifyPeriodic` is the pattern.
+- **Codereg dialogs are never told which elements the structure
+  contains.** They are standalone processes whose entire input is
+  `globals.py`'s fixed argv (calc name, category, theory, runtype,
+  symmetry group, electron/orbital/normal-mode counts). So no
+  per-element UI is possible in a dialog — anything element-dependent
+  (QE's pseudopotential-per-species being the live case) has to be
+  resolved in `ai.<code>`, which does read the `.frag`. Worth knowing
+  before designing any such dialog.
 - **A dialog's choice string must match the generator's expected string
   EXACTLY, or selecting it silently emits nothing.** The
   `scripts/codereg/*theory.py` combo lists and the `ai.<code>` subs that
