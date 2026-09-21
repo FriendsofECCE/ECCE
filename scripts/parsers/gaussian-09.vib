@@ -37,8 +37,25 @@ $| = 1;
 # mode and none of the cuteness in read3ModeBlock is necessary
 # 
 #
-  $_ = <STDIN>;
-  $_ = <STDIN>;
+# Scan for the mode-number line that precedes the symmetry labels
+# rather than assuming it is exactly the second line of the fed block
+# (issue #85).  Which line the block starts on depends on the .desc
+# Begin pattern, and those differ per Gaussian version: gaussian-98.desc
+# matches the old one-line "...force constants (mDyne/A) and normal
+# coordinates:" wording, while gaussian-{03,09,16}.desc match only the
+# "force constants (mDyne/A)" fragment, which in modern output is a
+# wrapped middle line -- one line earlier.  Note gaussian-98.desc and
+# gaussian-03.desc route to the *same* script with different alignments,
+# so this cannot be fixed by adjusting Skip= in one .desc; scanning makes
+# the script independent of where the feed starts.
+#
+# Previously the polyatomic path survived the mismatch only by accident,
+# via the fallback scan in the old elsif below, while the diatomic path
+# had no fallback at all and died with "zero atoms" -- so diatomic
+# frequency jobs produced no vibrational data whatsoever.
+  while (<STDIN>) {
+    last if (/^\s*1\s*$/ || /^\s+1\s+2\s+3\s*$/ || /^\s+1\s+2\s*$/);
+  }
   if ( /^\s*1\s*$/ ) {  # diatomic
     $natoms = 2;
     $nfree = 1;
@@ -64,8 +81,16 @@ $| = 1;
     chop;
     ($junk1,$raman) = split("-+",$_);
 
-    $_ = <STDIN>;
-    $_ = <STDIN>;
+#   Scan to the atom-coordinate header rather than reading a fixed
+#   number of lines to get past the depolarization ratios (issue #85).
+#   The old fixed count was calibrated to a pre-G16 layout; modern
+#   Gaussian prints both "Depolar (P)" and "Depolar (U)", so the counted
+#   reads landed on the "Atom AN X Y Z" header itself and parsed it as
+#   an atom row (giving labels like "1-X 2-C" and the header text as
+#   coordinates).  read3ModeBlock already scans for this marker for the
+#   polyatomic case; do the same here.
+    while (<STDIN>) { last if (/Atom\s*AN/); }
+
     $_ = <STDIN>;
     chop;
     ($junk1,$junk2,$atnum,@tmpcoords) = split(" +",$_);
