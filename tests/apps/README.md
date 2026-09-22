@@ -97,6 +97,28 @@ gateway and the per-app preferences. That is usually what you want — the
 same calculations are visible from both — but it does mean the two cannot
 run at the same time on one display.
 
+## Keeping a run out of your real ECCE state
+
+All per-user state -- preferences, the data server's whole document root,
+the JMS port files -- lives in `$ECCE_REALUSERHOME/.ECCE`, and both the C++
+(`Ecce::realUserHome`) and the shell scripts honour that variable. So a run
+can be pointed somewhere else entirely:
+
+    ECCE_TEST_STATE=/tmp/ecce-testrun tests/apps/run_tests.py
+
+**But not while anything else is running.** The broker and data server ports
+are hardcoded (8088 and 8096, and `siteconfig/jndi.properties` depends on
+the former), so a second instance cannot coexist with the first -- and
+`ecce-dataserver-start` exits early when the port is live, so it would
+quietly reuse the *other* instance's server. Isolation is only real when
+nothing else is up. Making it unconditional needs configurable ports.
+
+Without it, the suite does touch real state: it creates an `eccetest`
+account in the data server, and it records the current version in
+`wxbuilder.ini` to suppress the one-time upgrade modal. The second of those
+is genuine user preference data, so it is saved and **restored afterwards**
+rather than left edited.
+
 ## It tests the INSTALLED build
 
 Unlike the other two suites, this one is not build-independent — it runs what

@@ -12,10 +12,16 @@ PIDFILE="$STATEDIR/jmsdispatcher_${DISPLAY}.pid"
 BROKER_PORT=8088
 
 port_open() {
+  # The connect runs in a subshell, so fd 3 is closed when that subshell
+  # exits and there is nothing to clean up here.
+  #
+  # There used to be an "exec 3<&- 3>&- 2>/dev/null" cleanup line below.
+  # `exec` with redirections and no command applies them to the CURRENT
+  # shell, permanently -- so from the first port check onward this script's
+  # stderr went to /dev/null, and every error message after that point was
+  # silently discarded. That included the ones that matter most, like
+  # "did not report ready within 20s -- see <log>".
   (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1
-  status=$?
-  exec 3<&- 3>&- 2>/dev/null
-  return $status
 }
 
 if port_open "$BROKER_PORT"; then

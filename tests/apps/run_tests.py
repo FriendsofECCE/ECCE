@@ -139,7 +139,14 @@ def checkCalculation(display, results, verbose=False):
         results.notes.append("no calculation fixture checked in; skipped")
         return
 
-    fixture.settleUpgradeNotices()
+    restorePrefs = fixture.settleUpgradeNotices()
+    try:
+        _openCalculation(display, results, verbose)
+    finally:
+        restorePrefs()
+
+
+def _openCalculation(display, results, verbose):
     url, error = fixture.install()
     if error:
         results.fail("calculation", "could not install the fixture: %s" % error)

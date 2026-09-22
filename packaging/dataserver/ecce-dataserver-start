@@ -21,6 +21,7 @@ export ECCE_REALUSER="${ECCE_REALUSER:-$(id -un)}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE/dataserver"
 DATAROOT="$STATEDIR/htdocs"
 PORT=8096
+PIDFILE="$STATEDIR/logs/httpd.pid"
 
 # Debian only puts /usr/sbin (where the apache2 binary lives) on PATH for
 # root -- a regular user's login/desktop session PATH does not include it
@@ -37,13 +38,34 @@ if [ ! -x "$APACHE2_BIN" ]; then
 fi
 
 port_open() {
+  # The connect runs in a subshell, so fd 3 is closed when that subshell
+  # exits and there is nothing to clean up here.
+  #
+  # There used to be an "exec 3<&- 3>&- 2>/dev/null" cleanup line below.
+  # `exec` with redirections and no command applies them to the CURRENT
+  # shell, permanently -- so from the first port check onward this script's
+  # stderr went to /dev/null, and every error message after that point was
+  # silently discarded. That included the ones that matter most, like
+  # "did not report ready within 20s -- see <log>".
   (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1
-  status=$?
-  exec 3<&- 3>&- 2>/dev/null
-  return $status
 }
 
 if port_open "$PORT"; then
+  # An httpd holding the port with no live pidfile is an ORPHAN -- typically
+  # left behind when a previous run was killed. It keeps serving whatever
+  # config it started with, and because this script exits early on a live
+  # port, nothing ever replaces it. That is genuinely confusing to debug:
+  # httpd.conf and the .htaccess files on disk are correct and simply have
+  # no effect, and ecce-dataserver-status reports the contradictory pair
+  # "data server running" / "httpd not running". Say so plainly.
+  if [ ! -f "$PIDFILE" ] || ! kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+    echo "ecce-dataserver-start: WARNING -- something is listening on $PORT but" >&2
+    echo "  it is not a data server this script started ($PIDFILE is missing or" >&2
+    echo "  stale). It is probably an orphan from a killed run, and it is still" >&2
+    echo "  serving its OLD configuration -- edits to httpd.conf or to any" >&2
+    echo "  .htaccess will appear to be ignored. Stop it and start again:" >&2
+    echo "    ecce-dataserver-stop   # or: pkill -f 'apache2 -f $STATEDIR'" >&2
+  fi
   echo "ecce-dataserver-start: data server already listening on $PORT"
   exit 0
 fi

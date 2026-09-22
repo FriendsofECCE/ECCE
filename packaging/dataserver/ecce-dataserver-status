@@ -10,10 +10,16 @@ PIDFILE="$STATEDIR/logs/httpd.pid"
 PORT=8096
 
 port_open() {
+  # The connect runs in a subshell, so fd 3 is closed when that subshell
+  # exits and there is nothing to clean up here.
+  #
+  # There used to be an "exec 3<&- 3>&- 2>/dev/null" cleanup line below.
+  # `exec` with redirections and no command applies them to the CURRENT
+  # shell, permanently -- so from the first port check onward this script's
+  # stderr went to /dev/null, and every error message after that point was
+  # silently discarded. That included the ones that matter most, like
+  # "did not report ready within 20s -- see <log>".
   (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1
-  status=$?
-  exec 3<&- 3>&- 2>/dev/null
-  return $status
 }
 
 if port_open "$PORT"; then
@@ -24,6 +30,14 @@ fi
 
 if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
   echo "httpd:        running (pid $(cat "$PIDFILE"))"
+elif port_open "$PORT"; then
+  # Port held, but not by us: an orphan from a killed run. It keeps serving
+  # its old configuration, and ecce-dataserver-start will not replace it
+  # because it exits early on a live port.
+  echo "httpd:        NOT ours -- something else holds port $PORT"
+  echo "              (orphan from a killed run? it will still be serving its"
+  echo "               old config, so edits to httpd.conf/.htaccess will look"
+  echo "               ignored. 'ecce-dataserver-stop' then start again.)"
 else
   echo "httpd:        not running"
 fi
