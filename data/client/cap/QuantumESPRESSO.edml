@@ -96,10 +96,24 @@
      Energy maps to calculation='scf'.  Forces and the stress tensor
      are available on an scf run (tprnfor / tstress) and are exposed as
      Runtype Details checkboxes, so a separate Gradient runtype would
-     add nothing in phase 1. -->
+     add nothing.
+
+     Geometry maps to calculation='relax', added once qe.desc could
+     extract GEOMTRACE; there is no point offering an optimisation
+     whose trajectory ECCE cannot display.  It forces tprnfor on
+     regardless of the checkbox, because pw.x needs forces to move the
+     ions, and it emits an &IONS namelist that an scf run must not have.
+
+     Still absent, and each needs work beyond a runtype entry:
+     vc-relax (needs the CELL namelist and LATTICEVEC extraction so the
+     changing box can be animated), nscf/bands (a second run reusing the
+     first one's charge density, which does not fit
+     one-input/one-output), md, and phonons (ph.x is a separate
+     executable). -->
 <Editor theorydialog="qetheory.py" runtypedialog="qeruntype.py">
   <Theory category="PW" name="PW" needsBasis="false">
     <runtype>Energy</runtype>
+    <runtype>Geometry</runtype>
   </Theory>
 
   <TheorySummary topLabel="Plane Waves-">

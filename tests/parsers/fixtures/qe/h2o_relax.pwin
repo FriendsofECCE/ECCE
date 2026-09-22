@@ -1,10 +1,12 @@
 &CONTROL
   calculation = 'relax'
-  prefix = 'h2o_relax'
+  prefix = 'ecce'
   outdir = './qe.scratch'
   pseudo_dir = '/usr/share/espresso/pseudo/'
   tprnfor = .true.
-  forc_conv_thr = 1.0d-3
+  tstress = .false.
+  forc_conv_thr = 1.0e-3
+  nstep = 50
 /
 &SYSTEM
   ibrav = 0
@@ -14,7 +16,7 @@
   occupations = 'fixed'
 /
 &ELECTRONS
-  conv_thr = 1e-06
+  conv_thr = 1.0e-6
   mixing_beta = 0.7
 /
 &IONS
@@ -29,6 +31,7 @@ CELL_PARAMETERS angstrom
       0.0000000000     0.0000000000    10.0000000000
 ATOMIC_POSITIONS angstrom
   O       5.0000000000     5.0000000000     5.0000000000
-  H       5.9000000000     5.0000000000     5.7000000000
+  H       5.7586020000     5.0000000000     5.5858820000
   H       4.2413980000     5.0000000000     5.5858820000
-K_POINTS gamma
+K_POINTS automatic
+  1 1 1 0 0 0

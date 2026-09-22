@@ -73,6 +73,43 @@ class QeRunTypePanel(EccePanel):
             propSizer.AddWidget(self.printStress)
             self.panelSizer.Add(propSizer)
 
+        elif EcceGlobals.RunType == "Geometry":
+
+            # calculation='relax'.  Forces are NOT offered as a choice
+            # here: pw.x needs them to move the ions, so ai.qe forces
+            # tprnfor on for a relax whatever a checkbox said.  Offering
+            # a control that is then overridden would be worse than
+            # offering none.
+            convSizer = EcceBoxSizer(self, label="Convergence", cols=1)
+
+            # forc_conv_thr, in Ry/bohr.  pw.x's own default is 1.0d-3,
+            # stated explicitly so the deck does not change meaning if
+            # that default ever does.  Exposed because it is the single
+            # knob that decides whether an optimisation finishes in six
+            # steps or sixty.
+            self.forceConv = EcceExpInput(self,
+                                          unit="Ry/bohr",
+                                          name="ES.Runtype.PW.ForcConvThr",
+                                          default=1e-3,
+                                          hardRange="(0..)",
+                                          label="Force Convergence:",
+                                          export=1)
+            convSizer.AddWidget(self.forceConv)
+
+            # nstep: pw.x defaults to 50 for relax.  A run that hits the
+            # cap stops WITHOUT converging and still writes a final
+            # geometry, which looks like success, so the value is worth
+            # having in front of the user.
+            self.maxSteps = EcceSpinCtrl(self,
+                                         hardRange="[1..)",
+                                         softRange="[1..500]",
+                                         name="ES.Runtype.PW.NStep",
+                                         default=50,
+                                         label="Maximum Steps:",
+                                         export=1)
+            convSizer.AddWidget(self.maxSteps)
+            self.panelSizer.Add(convSizer)
+
         self.AddButtons()
 
     def CheckDependency(self):

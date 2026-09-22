@@ -492,15 +492,73 @@ sub warnOnOddElectronCount {
 # &CONTROL.  outdir and pseudo_dir are also rewritten at launch time by
 # qe.launchpp, which is where launch-time-only knowledge belongs; what is
 # written here has to be valid on its own so a hand-run deck works.
+# Maps ECCE's runtype name onto pw.x's &CONTROL calculation value.
+#
+# Phase 1 was scf only. "Geometry" was added once GEOMTRACE extraction
+# existed to read the result back (verified against a real 6-step BFGS
+# water relax with pw.x 6.7) -- there is no point offering an
+# optimisation whose trajectory ECCE cannot display.
+#
+# Dies in the MAIN FLOW rather than inside a ##token## resolver: ai.*
+# template engines run resolvers through eval, and a die inside one used
+# to be swallowed silently, emitting a deck with the line missing. That
+# is fixed (a6d0512) but the rule stands -- validate before generation,
+# as &verifyPeriodic does.
+sub QECalculationType {
+  my $runtype = $AbiDict{"RunType"};
+  return "scf"   if ($runtype eq "Energy");
+  return "relax" if ($runtype eq "Geometry");
+  die "Runtype '$runtype' is not supported for Quantum ESPRESSO.\n" .
+      "  Supported: Energy (scf), Geometry (relax).\n";
+}
+
 sub QEControl {
   my @l = ();
+  my $calc = &QECalculationType;
   push(@l, "&CONTROL");
-  push(@l, "  calculation = 'scf'");
+  push(@l, "  calculation = '" . $calc . "'");
   push(@l, "  prefix = '" . &Prefix . "'");
   push(@l, "  outdir = './qe.scratch'");
   push(@l, "  pseudo_dir = '" . &pseudoDir . "/'");
-  push(@l, "  tprnfor = " . &FortranLogical("ES.Runtype.PW.PrintForces", 1));
+  # A relax cannot run without forces, whatever the checkbox says --
+  # pw.x needs them to move the ions. Forcing it here rather than
+  # hiding the control is deliberate: the generated deck stays valid
+  # even if someone unticks it.
+  my $forces = ($calc eq "relax")
+             ? ".true."
+             : &FortranLogical("ES.Runtype.PW.PrintForces", 1);
+  push(@l, "  tprnfor = " . $forces);
   push(@l, "  tstress = " . &FortranLogical("ES.Runtype.PW.PrintStress", 0));
+  if ($calc eq "relax") {
+    #  Both come from the Geometry branch of qeruntype.py. Defaults match
+    #  pw.x's own (1.0d-3 Ry/bohr, 50 steps) and are stated explicitly so
+    #  the deck does not change meaning if those defaults ever do.
+    push(@l, "  forc_conv_thr = " . &numOr("ES.Runtype.PW.ForcConvThr", "1.0d-3"));
+    push(@l, "  nstep = " . &numOr("ES.Runtype.PW.NStep", "50"));
+  }
+  push(@l, "/");
+  my $r = join("\n", @l);
+  $_ = $r;
+  return $r;
+}
+
+# &IONS. Only present for a relax: pw.x rejects the namelist outright on
+# an scf run ("calculation='scf': namelist &IONS not needed"), so this
+# resolver returns the empty string and modifyInputFile drops the line.
+#
+# NOTE for whoever adds vc-relax: it needs &CELL as well, and the cell
+# then changes per step, which means LATTICEVEC extraction (qe.desc has
+# none yet) before it is worth offering -- GTStepCmd already animates a
+# changing box, it just has no producer for QE.
+sub QEIons {
+  my $calc = &QECalculationType;
+  return "" if ($calc ne "relax");
+
+  my @l = ();
+  push(@l, "&IONS");
+  #  bfgs is pw.x's own default for relax; stated explicitly so the deck
+  #  does not change meaning if that default ever does.
+  push(@l, "  ion_dynamics = 'bfgs'");
   push(@l, "/");
   my $r = join("\n", @l);
   $_ = $r;
