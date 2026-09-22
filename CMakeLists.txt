@@ -645,7 +645,7 @@ foreach(_gw start stop status)
   set(_gw_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-gateway-${_gw})
   file(WRITE ${_gw_wrapper}
 "#!/bin/bash
-export ECCE_HOME=${ECCE_HOME_DIR}
+export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 exec \"$ECCE_HOME/bin/ecce-gateway-${_gw}\" \"$@\"
 ")
@@ -675,7 +675,7 @@ foreach(_ds start stop status adduser)
   set(_ds_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-dataserver-${_ds})
   file(WRITE ${_ds_wrapper}
 "#!/bin/bash
-export ECCE_HOME=${ECCE_HOME_DIR}
+export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export ECCE_REALUSER=\${ECCE_REALUSER:-\$(id -un)}
 exec \"$ECCE_HOME/bin/ecce-dataserver-${_ds}\" \"$@\"
@@ -863,7 +863,7 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
   endif()
   file(WRITE ${_wrapper}
 "#!/bin/bash
-export ECCE_HOME=${ECCE_HOME_DIR}
+export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
 export ECCE_REALUSER=\${ECCE_REALUSER:-$(id -un)}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
@@ -917,7 +917,7 @@ install(PROGRAMS ${_ecce_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
 set(_viewer_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-viewer)
 file(WRITE ${_viewer_wrapper}
 "#!/bin/bash
-export ECCE_HOME=${ECCE_HOME_DIR}
+export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
 export ECCE_REALUSER=\${ECCE_REALUSER:-$(id -un)}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
