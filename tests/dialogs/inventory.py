@@ -37,13 +37,16 @@ class Offer(object):
 def collect(display, code, verbose=False):
     """Run every dialog of ``code`` in every declared context.
 
-    Returns ``(offers, failures, allNames)``; ``failures`` are dialogs that crashed or
-    would not run, which are findings in their own right -- a dialog that
-    cannot even be constructed headlessly is one the user cannot open either.
+    Returns ``(offers, failures, allNames, blanks)``; ``failures`` are dialogs
+    that crashed or would not run, which are findings in their own right -- a
+    dialog that cannot even be constructed headlessly is one the user cannot
+    open either.  ``blanks`` are combos left with no selection at all, see
+    below.
     """
     offers = {}
     failures = []
     allNames = set()
+    blanks = []
     for category in code.categories():
         theory = code.firstTheoryOf(category)
         runtypes = code.runtypesOf(category) or ["Energy"]
@@ -90,13 +93,29 @@ def collect(display, code, verbose=False):
                 if name:
                     allNames.add(name)
             for widget in harness.choiceWidgets(inv):
+                #  A combo whose default index is out of range for the list it
+                #  actually ended up with.  wx.Choice.SetSelection() silently
+                #  ignores an out-of-range index, so the control opens blank
+                #  and GetValue() returns "" -- which the generators translate
+                #  to nothing at all, with no error anywhere.  These lists are
+                #  built conditionally on the category, so an index that is
+                #  fine for one category can be past the end for another, and
+                #  only running every context shows it.
+                if widget["choices"] and widget["selection"] in (-1, None):
+                    blanks.append(
+                        "%s %s [%s]: %r has no selection -- default %r is out "
+                        "of range for its %d choice(s): %s"
+                        % (code.name, kind, context,
+                           widget["label"] or widget["name"],
+                           widget["default"], len(widget["choices"]),
+                           ", ".join(widget["choices"][:6])))
                 key = widget["name"]
                 if not key:
                     continue
                 offer = offers.setdefault(key, Offer(key))
                 offer.add(widget["choices"], context, widget["label"],
                           "%s:%s" % (_base(path), widget["line"]))
-    return offers, failures, allNames
+    return offers, failures, allNames, blanks
 
 
 def _base(path):

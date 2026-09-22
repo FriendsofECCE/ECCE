@@ -86,7 +86,11 @@ def templateTags(code):
 
 
 def checkCode(display, code, results, verbose=False):
-    offers, failures, allNames = inventory.collect(display, code)
+    offers, failures, allNames, blanks = inventory.collect(display, code)
+
+    for blank in blanks:
+        results.check()
+        results.fail(code.name, "combo opens blank:\n    " + blank)
 
     for failure in failures:
         # A dialog that will not construct is a finding in its own right.
@@ -210,10 +214,17 @@ def _xfailKey(codeName, key, value):
     return (codeName, key, value)
 
 
-def checkStaleAllowlists(results):
+def checkStaleAllowlists(results, skipCodes=()):
     """Every allowlist entry must still apply.  A documented exception that
-    no longer holds is a failure, exactly as in tests/parsers."""
+    no longer holds is a failure, exactly as in tests/parsers.
+
+    ``skipCodes`` are codes whose dialogs were not run at all this pass --
+    retired ones, or a narrowed ``--code`` selection.  Their entries were
+    never given the chance to apply, so silence there is not staleness.
+    """
     for (codeName, key), values in CASEDEFS.KNOWN_UNMAPPED.items():
+        if codeName in skipCodes:
+            continue
         for value in values:
             if (codeName, key, value) not in results.usedUnmapped:
                 results.fail("cases.py",
@@ -221,6 +232,8 @@ def checkStaleAllowlists(results):
                              "longer applies; remove it"
                              % (codeName, key, value))
     for (codeName, key), values in CASEDEFS.KNOWN_UNOFFERED.items():
+        if codeName in skipCodes:
+            continue
         for value in values:
             if (codeName, key, value) not in results.usedUnoffered:
                 results.fail("cases.py",
@@ -228,6 +241,8 @@ def checkStaleAllowlists(results):
                              "longer applies; remove it"
                              % (codeName, key, value))
     for key in CASEDEFS.XFAIL:
+        if key[0] in skipCodes:
+            continue
         if key not in results.seenXfail:
             results.xpasses.append(
                 "%s / %s / %r no longer reproduces -- remove it from XFAIL"
@@ -370,6 +385,11 @@ def main():
     selected = [c for c in allCodes
                 if not args.code or c.name in args.code
                 or (args.dump and c.name == args.dump)]
+    #  Retired codes are left on disk so their old calculations still open,
+    #  but they are not maintained -- checking them only buries live findings
+    #  under ones nobody intends to fix.  Naming one explicitly still works.
+    if not args.code:
+        selected = [c for c in selected if c.name not in CASEDEFS.RETIRED]
     if args.dump:
         selected = [c for c in allCodes if c.name == args.dump]
         if not selected:
@@ -387,7 +407,7 @@ def main():
         print("display: %s" % display.kind)
         if args.dump:
             code = selected[0]
-            offers, failures, allNames = inventory.collect(display, code)
+            offers, failures, allNames, blanks = inventory.collect(display, code)
             for failure in failures:
                 print("FAILED TO RUN: %s" % failure)
             for key, offer in sorted(offers.items()):
@@ -405,7 +425,11 @@ def main():
             print("  %-20s %s" % (code.name, code.theoryDialog), flush=True)
             checkCode(display, code, results, verbose=args.verbose)
         if not args.code:
-            checkStaleAllowlists(results)
+            ran = set(c.name for c in selected)
+            checkStaleAllowlists(
+                results,
+                skipCodes=set(CASEDEFS.RETIRED) | (
+                    set(c.name for c in allCodes) - ran))
     finally:
         display.__exit__(None, None, None)
 

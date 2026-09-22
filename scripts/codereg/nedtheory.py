@@ -781,7 +781,10 @@ class NedTheoryPanel(EccePanel):
                 xcFuncDefault = xcFuncChoice.index("PBE0 (hybrid)")
             elif "ECCE_NWCHEM_DFT_USE_B3LYP" in os.environ:
                 if os.environ["ECCE_NWCHEM_DFT_USE_B3LYP"] == "true":
-                    xcFuncDefault = 36 #  CAO -- changed from 7 to 8 to reflect reordering
+                    #  By name, not by index: this list is alphabetised and has
+                    #  been reordered more than once, which is how this line came to
+                    #  point at Mod. Perdew-Wang 1K instead of B3LYP.
+                    xcFuncDefault = xcFuncChoice.index("B3LYP (hybrid)")
             self.xcFunc = EcceComboBox(self,
                                        choices = xcFuncChoice,
                                        name = "ES.Theory.DFT.XCFunctionals",

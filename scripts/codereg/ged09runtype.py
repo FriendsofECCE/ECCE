@@ -118,10 +118,18 @@ class Ged09RunTypePanel(EccePanel):
                                       "Calculate"]
             else:
                 self.hessianChoice = ["Valence Force Field"]
+            #  By name, and guarded: hessianChoice is "Calculate" only for
+            #  the theories above, so a bare index 1 is past the end of the
+            #  one-entry list for every other theory -- and wx.Choice ignores
+            #  an out-of-range SetSelection() silently, leaving the combo
+            #  blank and GetValue() returning "".  CheckDependency() below
+            #  already carries the len()==2 guard this line was missing.
             self.hessian = EcceComboBox(self,
                                         choices = self.hessianChoice,
                                         name = "ES.Runtype.GeomOpt.InitialHessian",
-                                        default = 1,
+                                        default = (self.hessianChoice.index("Calculate")
+                                                   if "Calculate" in self.hessianChoice
+                                                   else 0),
                                         label = "Initial Source:")
             hessianSizer.AddWidget(self.hessian)
             

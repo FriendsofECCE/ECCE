@@ -28,7 +28,10 @@ class GUKTheoryPanel(EccePanel):
     if EcceGlobals.Category in ["SCF", "DFT", "MP"]:
       SCFDirectChoice.append("Direct")
     SCFDirectChoice.append("Conventional")
-    SCFDirectDefault = 1 # "Conventional"
+    #  By name: this list is built conditionally, so index 1 is out of
+    #  range for any category outside SCF/DFT/MP, which leaves the combo
+    #  blank and exports an empty string.
+    SCFDirectDefault = SCFDirectChoice.index("Conventional")
     self.SCFDirect = EcceComboBox(self, label = "SCF Computed:",
                                   name = "ES.Theory.SCF.Direct",
                                   choices = SCFDirectChoice,

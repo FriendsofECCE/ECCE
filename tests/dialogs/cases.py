@@ -88,26 +88,6 @@ KNOWN_UNMAPPED = {
             "Gaussian's Freq default; only the 'Numerical ...' variants emit a "
             'keyword.',
     },
-    ("Gaussian-98", "ES.Runtype.GeomOpt.InitialHessian"): {
-        'Valence Force Field':
-            "Gaussian's default; only 'Calculate' emits CalcFC "
-            '(ComputeHessian).',
-    },
-    ("Gaussian-98", "ES.Runtype.GeomOpt.SearchFor"): {
-        'Minimum':
-            "Gaussian's Opt default; only 'Transition State' emits keywords "
-            '(StationaryPointType).',
-    },
-    ("Gaussian-98", "ES.Runtype.Polar.Method"): {
-        'Analytic Polariz. + Hyperpol.':
-            "The analytic path is the default; only the 'Numerical ...' "
-            'variants emit a keyword.',
-    },
-    ("Gaussian-98", "ES.Runtype.Vibration.Method"): {
-        'Analytic':
-            "Gaussian's Freq default; only the 'Numerical ...' variants emit a "
-            'keyword.',
-    },
     ("NWChem", "ES.Runtype.CPMD.Algorithm"): {
         'Constant Energy':
             'nedtheory.py builds a different list per category for this key and '
@@ -358,6 +338,32 @@ RESTORE_CASES = [
 # data/client/config/disabled-codes-archive.txt, so any of these can be put
 # back by copy-paste.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Codes ECCE no longer supports, and no longer maintains.
+#
+# Distinct from NOT_IN_MENU, which only records that a code is absent from the
+# New Calculation menu -- Polyrate is reachable by another route and GROMACS
+# is on its way in, and both are still maintained.  A code listed HERE is not
+# checked at all: its dialogs and generator stay on disk so existing
+# calculations still open, but nobody is going to fix a finding in them, so
+# reporting one is noise that hides the findings that matter.
+#
+# Gaussian-09 and Gaussian-16 are the maintained Gaussian versions.
+# ---------------------------------------------------------------------------
+RETIRED = {
+    "Gaussian-03": "No longer supported (2026-09-22).",
+    "Gaussian-98": "No longer supported (2026-09-22).",
+    "GAMESS-UK": "No longer supported (2026-09-22).",
+    #  Disconnected in the same issue #11 batch as Gaussian-03 and
+    #  Gaussian-98; listed here on that basis.
+    "Amica": "No longer supported (2026-09-22).",
+    #  NOT listed: MetaDyn, whose .edml declares codeName="NWChem" -- it is
+    #  NWChem's plane-wave metadynamics front end rather than a code of its
+    #  own, and NWChem is maintained.  It is also the only plane-wave-only
+    #  .edml, which is what QuantumESPRESSO.edml was modelled on.
+}
+
+
 NOT_IN_MENU = {
     "GROMACS": "Not yet registered, deliberately. The code-registration "
                "file set is complete and verified end to end against real "
