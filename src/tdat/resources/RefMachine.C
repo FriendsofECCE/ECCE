@@ -455,6 +455,26 @@ bool RefMachine::checkScratch(void) const
 }
 
 
+bool RefMachine::noRemoteAccess(void) const
+{
+  bool noAccess = false;
+
+  string configName = RefMachine::configFile(refname());
+
+  EcceMap *config = EcceMap::load(configName);
+
+  string value;
+  if (config->findValue("noRemoteAccess", value)) {
+    if (value=="true" || value=="TRUE" || value=="True" ||
+        value=="yes" || value=="YES" || value=="Yes")
+      noAccess = true;
+  }
+  delete config;
+
+  return noAccess;
+}
+
+
 bool RefMachine::userSubmit(void) const
 {
   bool user = false;

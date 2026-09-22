@@ -79,6 +79,23 @@ public:
     bool          checkScratch(void) const;
     bool          isSameDomain(void) const;
     bool          userSubmit(void) const;
+
+    // True when ECCE must not run anything on this machine at all -- no
+    // ssh, no file transfer, no job monitoring. Set by the "noRemoteAccess"
+    // key in the machine's config file.
+    //
+    // This is the two-factor-authentication case (issue #94): an
+    // interactive 2FA prompt cannot be satisfied by ECCE's automated
+    // remote-shell layer, so every remote operation fails and the user
+    // loses input generation and output analysis too, neither of which
+    // needs the remote machine. With this set, Launch stops after
+    // generating the input deck and the submit script locally and tells
+    // the user where they are; the user moves, submits and retrieves the
+    // job themselves.
+    //
+    // Distinct from userSubmit(), which still transfers files over ssh and
+    // only leaves the final submit command to the user.
+    bool          noRemoteAccess(void) const;
     static string exePath(const string& code, const string& refname,
                           const string& vendor="", const string& model="");
 

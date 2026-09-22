@@ -213,7 +213,7 @@ sub writeDictAndMVM {
         open(GBS, ">$rootFile.gbs");
         print(GBS "NameBasis\n");
         print(GBS "basis \"ao basis\" $type\n");
-        foreach $atsym (keys(%atomList)) {
+        foreach $atsym (sort keys(%atomList)) {
           print(GBS "  $atsym library \"$NameToBasis{$basisData}\"\n");
         }
         print(GBS "END\n");
@@ -1197,7 +1197,7 @@ sub getGeneralBasis {
       $elemBasis{$atsym} = $library;
     }
   }
-  foreach my $atsym (keys(%atomList)) {
+  foreach my $atsym (sort keys(%atomList)) {
     if (!defined($elemBasis{$atsym})) {
       print "Basis: The GEN basis specification does not assign a basis " .
             "set to element $atsym.  No basis set was imported.\n";

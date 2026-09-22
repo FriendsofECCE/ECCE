@@ -269,7 +269,7 @@ sub writeDictAndMVM {
     print(GBS "basis \"ao basis\" spherical print\n");  # ORCA's usual
                                                    # default; not checked
                                                    # against "! Cartesian" jobs
-    foreach my $atsym (keys %atomList) {
+    foreach my $atsym (sort keys(%atomList)) {
       print(GBS "$atsym library \"$ecceName\"\n");
     }
     print(GBS "END\n");

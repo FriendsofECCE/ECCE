@@ -133,6 +133,32 @@ service required.
   active-investigation log of fixes already made to this fork (wx3.2/GTK3
   layout issues, missing-icon typos, etc.) before assuming it's a new bug.
 
+### My HPC machine needs two-factor authentication
+
+ECCE submits jobs by running `ssh` to the machine, which cannot answer an
+interactive 2FA prompt. Without a way around that you lose the whole
+application, including input generation and output analysis, neither of which
+needs the remote machine at all.
+
+There is a mode for this (issue #94). Add to the machine's config file —
+`~/.ECCE/CONFIG.<machine>`, or `$ECCE_HOME/siteconfig/CONFIG.<machine>` for a
+site-wide setting:
+
+    noRemoteAccess: true
+
+ECCE then stops after generating the input deck and submit script locally, and
+tells you the directory they are in. Copy that directory to the machine,
+submit it yourself, and bring the output back. ECCE will not try to reach the
+machine at all — no login check, no file transfer, no job monitoring.
+
+Do not confuse this with the older `userSubmit: true`, which still transfers
+files over `ssh` and only leaves the final submit command to you. That one
+does not help with 2FA, because the transfer needs the same authentication.
+
+**Status**: the generate-and-stop half is implemented. Reading the output back
+in is issue #44, and is not wired up yet — for now the results have to be
+brought in by other means.
+
 ### The job ran, but with different settings than I chose
 
 This is the failure mode to know about: ECCE builds a code's input file by

@@ -102,6 +102,24 @@ const LaunchData Launch::p_opData[] = {
      (launchOperation)&Launch::doLaunch}
 };
 
+// Issue #94: machines flagged noRemoteAccess -- typically because they
+// require two-factor authentication, which ECCE's automated remote-shell
+// layer cannot satisfy. Everything that needs to reach the machine is
+// dropped; what remains is exactly the work that never needed it, which is
+// also the work users lose entirely today when ssh is not an option.
+// The user then moves the generated deck across, submits it, and brings
+// the output back for import.
+const LaunchData Launch::p_opDataLocal[] = {
+  {  "Validating local directory...",
+     (launchOperation)&Launch::validateLocalDir},
+  {  "Validating job...",
+     (launchOperation)&Launch::validateCalculation},
+  {  "Generating job submission script...",
+     (launchOperation)&Launch::generateJobSubmissionFile},
+  {  "Generating job monitoring configuration files...",
+     (launchOperation)&Launch::generateJobMonitoringFiles}
+};
+
 class CalcInfo {
 public:
   string calcURL;
@@ -250,9 +268,23 @@ Launch::Launch(TaskJob* task,
   // Copy the options
   p_options =new EcceMap(kvargs);
 
-  p_numOps = sizeof(p_opData)/sizeof(LaunchData);
-  if (!fullLaunchFlag)
-    p_numOps--;
+  // Pick the pipeline. cacheCalcInfo() above has already resolved the
+  // machine name, so the flag can be read here rather than threaded through
+  // every caller.
+  RefMachine* launchMachine = RefMachine::refLookup(p_cache->machineName);
+  p_localOnly = (launchMachine != (RefMachine*)0 &&
+                 launchMachine->noRemoteAccess());
+
+  if (p_localOnly) {
+    p_ops = p_opDataLocal;
+    p_numOps = sizeof(p_opDataLocal)/sizeof(LaunchData);
+    // fullLaunchFlag is meaningless here: there is no submit step to drop.
+  } else {
+    p_ops = p_opData;
+    p_numOps = sizeof(p_opData)/sizeof(LaunchData);
+    if (!fullLaunchFlag)
+      p_numOps--;
+  }
 
 }
 
@@ -301,7 +333,7 @@ Launch::~Launch(void)
 bool Launch::nextOperation(void)
 {
 #if (!defined(INSTALL) && defined(DEBUG))
-cout << "operation: " << p_opData[p_curOp].description << endl;
+cout << "operation: " << p_ops[p_curOp].description << endl;
 #endif
 
   if (p_connection!=NULL && !p_connection->isOpen()) {
@@ -315,7 +347,7 @@ cout << "operation: " << p_opData[p_curOp].description << endl;
   else if (p_valid && p_curOp<p_numOps) {
     p_lastMessage = "";
     p_infoMessage = "";
-    p_valid = (this->*p_opData[p_curOp].operation)();
+    p_valid = (this->*p_ops[p_curOp].operation)();
     if (p_valid)
       p_curOp++;
   }
@@ -355,7 +387,7 @@ string Launch::description(void) const
   string ret;
 
   if (p_curOp < p_numOps)
-    ret = p_opData[p_curOp].description;
+    ret = p_ops[p_curOp].description;
 
   return ret;
 }
@@ -498,6 +530,28 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName)
   }
   catch (...) {
   }
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  man
+//
+//  Description
+//    The local directory holding the generated input deck and submit
+//    script.  For a noRemoteAccess launch this is what the user needs
+//    (issue #94): ECCE has done everything it can, and the contents of this
+//    directory are what they copy to the machine themselves.
+//
+///////////////////////////////////////////////////////////////////////////////
+string Launch::stagingDirectory(void) const
+{
+  return (p_cache != (CalcInfo*)0) ? p_cache->directory : "";
+}
+
+
+bool Launch::isLocalOnly(void) const
+{
+  return p_localOnly;
 }
 
 

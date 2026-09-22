@@ -31,7 +31,7 @@ EndTime:	\|11:00:00
 === .gbs
 NameBasis
 basis "ao basis" cartesian
-  O library "STO-3G"
   H library "STO-3G"
+  O library "STO-3G"
 END
 EndNameBasis

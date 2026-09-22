@@ -26,7 +26,7 @@ ChemSys.Multiplicity:	1
 === .gbs
 NameBasis
 basis "ao basis" spherical print
-O library "sto-3g"
 H library "sto-3g"
+O library "sto-3g"
 END
 EndNameBasis

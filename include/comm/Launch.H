@@ -63,6 +63,13 @@ public:
         string description(void) const;
         string message(void) const;
         string info(void) const;
+
+        // Where the generated input deck and submit script were written.
+        // Meaningful for a noRemoteAccess launch (issue #94), where that
+        // directory is the deliverable: the user takes it from there.
+        string stagingDirectory(void) const;
+        // True when this launch only prepared files locally.
+        bool   isLocalOnly(void) const;
         bool done(void) const;
         int       percentDone(void) const;
 
@@ -76,7 +83,15 @@ public:
 
 private:
   // State
+        // The full pipeline: remote login, local preparation, remote
+        // checks, transfer, submit.
         static const LaunchData p_opData[];
+        // Local preparation only, for machines flagged noRemoteAccess
+        // (issue #94). Same operations, in the same order, minus every
+        // step that needs to reach the machine.
+        static const LaunchData p_opDataLocal[];
+        // Whichever of the two this launch is using.
+        const LaunchData       *p_ops;
         TaskJob                *p_taskjob;
         TaskJob                *p_restartProvider;
         TaskJob                *p_topologyProvider;
@@ -85,6 +100,8 @@ private:
         bool                    p_isMetadynamicsTask;
         EcceMap                *p_options;
         unsigned long           p_numOps;
+        // True when this launch only prepares files locally (issue #94).
+        bool                    p_localOnly;
         unsigned long           p_curOp;
         RCommand               *p_connection;
         RCommand               *p_localconn;

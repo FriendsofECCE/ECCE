@@ -2150,7 +2150,11 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
 
     // userSubmit configuration setting forces a staged launch
     RefMachine *rgstn = p_slctPrefs->getRegisteredMachine();
-    bool doLaunch =  fullLaunchFlag && !rgstn->userSubmit();
+    // noRemoteAccess (issue #94) goes further: ECCE must not reach the
+    // machine at all, so there is nothing to submit and nothing to stage
+    // remotely. Launch stops after generating the deck locally.
+    bool localOnly = (rgstn != (RefMachine*)0 && rgstn->noRemoteAccess());
+    bool doLaunch =  fullLaunchFlag && !rgstn->userSubmit() && !localOnly;
 
     p_launchData = new Launch(p_taskJob, kvargs, doLaunch);
     bool valid = true;
@@ -2203,7 +2207,20 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
         {
             p_jobStaged = p_launchData->done();
 
-            if (p_jobStaged)
+            if (p_jobStaged && localOnly)
+            {
+                // Deliberately no startShell(): there is no shell to open,
+                // which is the whole reason this machine is flagged. The
+                // directory IS the deliverable, so name it rather than
+                // reporting a vague success.
+                mesg = "Input files generated in " +
+                       p_launchData->stagingDirectory() +
+                       "\nECCE will not submit this job. Copy that directory "
+                       "to the machine, submit it yourself, then import the "
+                       "output file when it finishes.";
+                p_messagesFeedback->setMessage(mesg, WxFeedback::INFO);
+            }
+            else if (p_jobStaged)
             {
                 mesg = "Successfully staged calculation for launch.";
                 p_messagesFeedback->setMessage(mesg, WxFeedback::INFO);

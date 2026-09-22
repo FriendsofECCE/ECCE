@@ -137,7 +137,7 @@ sub writeDictAndMVM {
         if (!($elem =~ /\s*\*\s*/)) {
           print(GBS "    $elem library $aobasis{$elem}\n");
         } else {
-        foreach $sym (keys(%atomList)) {
+        foreach $sym (sort keys(%atomList)) {
             if (!defined($aobasis{$sym})) {
               print(GBS "    $sym library $aobasis{$elem}\n");
             }
