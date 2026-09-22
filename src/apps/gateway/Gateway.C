@@ -52,6 +52,7 @@ BEGIN_EVENT_TABLE( Gateway, wxFrame )
 
   EVT_CLOSE( Gateway::OnCloseWindow )
   EVT_ICONIZE( Gateway::OnIconize )
+  EVT_SIZE( Gateway::OnSize )
   EVT_TIMER( wxID_ANY, Gateway::OnTimer )
 
 END_EVENT_TABLE()
@@ -107,6 +108,7 @@ Gateway::Gateway( GatewayApp* app, wxWindow* parent,
   // has realized it. Constructing the timer first left it attached to an
   // unrealized wxFrame -- wx2.8's GTK timer path tolerated that silently,
   // but wx3.2 asserts on it (harmless spam, but noisy and worth not doing).
+  p_fixingSize = false;
   p_timer = new wxTimer(this);
 
   SetIcon(wxIcon(ewxBitmap::pixmapFile("gateway64.xpm"), wxBITMAP_TYPE_XPM));
@@ -131,6 +133,52 @@ Gateway::Gateway( GatewayApp* app, wxWindow* parent,
   GetSize(&curW, &curH);
   if (curW <= 0 || curH <= 0)
     SetSize(curW <= 0 ? 68 : curW, curH <= 0 ? 68 : curH);
+}
+
+
+/**
+ * Keep the window from being left with no usable height (GitHub #67).
+ *
+ * The constructor already clamps a non-positive size once, but that only
+ * catches it if the bad size is in place by then. Reproduced on beryllium
+ * 2026-09-22: the window comes up showing nothing but its title bar, with
+ * "gtk_window_resize: assertion 'height > 0' failed" on stderr -- and it is
+ * INTERMITTENT, which is the signature of the wx3.2/GTK3 layout reentrancy
+ * class documented in CLAUDE.md rather than of a deterministic path. A
+ * one-shot check at construction cannot catch a zero height that arrives
+ * later.
+ *
+ * Deliberately does not call SetSize() from inside the size handler: that
+ * is the very reentrancy that causes this. CallAfter() defers the
+ * correction to the next idle, by which time the in-flight layout pass has
+ * finished.
+ *
+ * This is still a safety net, not a root cause. It makes the window usable
+ * instead of leaving the user with a title bar and no way to resize it.
+ */
+void Gateway::OnSize(wxSizeEvent& event)
+{
+  event.Skip();
+
+  int width, height;
+  GetSize(&width, &height);
+  if (width > 0 && height > 0) return;
+
+  // One correction at a time -- without this, a window that keeps being
+  // resized to zero would queue an unbounded number of them.
+  if (p_fixingSize) return;
+  p_fixingSize = true;
+
+  CallAfter([this, width, height]() {
+    int w, h;
+    GetSize(&w, &h);
+    if (w <= 0 || h <= 0) {
+      std::cerr << "Gateway: window came up " << w << "x" << h
+           << " (GitHub #67); forcing a usable size." << std::endl;
+      SetSize(w <= 0 ? 68 : w, h <= 0 ? 68 : h);
+    }
+    p_fixingSize = false;
+  });
 }
 
 

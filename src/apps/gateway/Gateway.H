@@ -92,6 +92,8 @@ protected:
 
   void OnCloseWindow(wxCloseEvent& event);
   void OnIconize(wxIconizeEvent &event);
+  // GitHub #67: clamp a zero-height window, deferred to avoid reentrancy.
+  void OnSize(wxSizeEvent& event);
   void OnTimer(wxTimerEvent& event);
   void OnMenuClick(wxCommandEvent& event);
   
@@ -107,6 +109,7 @@ protected:
   short p_pixmapIndex;
   GatewayPrefs * p_prefsDlg;
   wxTimer* p_timer;
+  bool p_fixingSize;
 
   GatewayApp* p_app;
 
