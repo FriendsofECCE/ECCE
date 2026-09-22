@@ -12,7 +12,6 @@
 QueueManagers:		PBS \
 			LSF \
 			Moab \
-			SGE \
 			Shell \
 			Slurm
 
@@ -127,14 +126,6 @@ Moab|jobIdParseTrailingText:
 # This queue submit command should be done in the foreground to catch
 # error messages.  Note that this is different than the shell command below.
 #
-SGE|submitCommand:           qsub ##script##
-SGE|cancelCommand:           qdel ##id##
-SGE|queryJobCommand:         qstat
-SGE|queryMachineCommand:     qstat -F
-SGE|queryQueueCommand:       qstat -f
-SGE|queryDiskUsageCommand:   df -k
-SGE|jobIdParseExpression:    .*
-SGE|jobIdParseLeadingText:   job 
 
 ###############################################################################
 # Generic Shell

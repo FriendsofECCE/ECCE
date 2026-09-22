@@ -102,3 +102,30 @@ Maui {
 # @ queue
 }
 
+
+
+==================================================================
+Second batch, 2026-09-22: SGE
+==================================================================
+Sun Grid Engine. Oracle discontinued it after acquiring Sun; the
+surviving forks are either commercial (Altair Grid Engine) or
+unmaintained (Son of Grid Engine). Kept in the first pass of this
+retirement because it is still occasionally encountered, then retired
+on the maintainer's decision.
+
+From siteconfig/QueueManagers:
+SGE|submitCommand:           qsub ##script##
+SGE|cancelCommand:           qdel ##id##
+SGE|queryJobCommand:         qstat
+SGE|queryMachineCommand:     qstat -F
+SGE|queryQueueCommand:       qstat -f
+SGE|queryDiskUsageCommand:   df -k
+SGE|jobIdParseExpression:    .*
+SGE|jobIdParseLeadingText:   job 
+
+From siteconfig/submit.site:
+SGE {
+#$ -pe make $totalprocs
+#$ -v SHELL
+#$ -cwd
+}

@@ -194,8 +194,3 @@ Slurm {
 #SBATCH --error=slurm.err
 }
 
-SGE {
-#$ -pe make $totalprocs
-#$ -v SHELL
-#$ -cwd
-}

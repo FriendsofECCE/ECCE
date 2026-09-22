@@ -251,7 +251,12 @@ void CalcMgrGUI::CreateControls()
     itemMenu8->Append(wxID_FIND, _("&Find...\tCtrl+F"), _T(""), wxITEM_NORMAL);
     itemMenu8->AppendSeparator();
     itemMenu8->Append(wxID_CHANGE_ACCESS, _("Change Access Control..."), _T(""), wxITEM_NORMAL);
-    itemMenu8->Append(wxID_CONFIGURE_NWFS_ARCHIVE, _("Configure NWFS Archive Access..."), _T(""), wxITEM_NORMAL);
+    // "Configure NWFS Archive Access..." removed 2026-09-22. NWFS was
+    // PNNL's archival filesystem; it is not something a site outside PNNL
+    // has, and quite possibly no longer exists at all. Only the MENU ENTRY
+    // is gone -- WxConfigureNwfsArchive and the archive lookup in
+    // TrajectoryPanel.C are left intact, so restoring it is putting this
+    // line back.
     menuBar->Append(itemMenu8, _("&Edit"));
     wxMenu* itemMenu23 = new wxMenu;
     itemMenu23->Append(wxID_SHOW_TOOLBAR, _("Show Toolbar"), _T(""), wxITEM_CHECK);
