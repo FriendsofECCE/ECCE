@@ -1,3 +1,9 @@
+# The two machines below are PNNL/NERSC systems, long decommissioned. They
+# are kept only as format examples; see example-slurm.Q for a current one
+# that is commented and meant to be copied.
+#
+# Users add their own machines in ~/.ECCE/Queues, which is merged with this
+# file rather than replacing it.
 Queues: chinook franklin 
 ###############################################################################
 
