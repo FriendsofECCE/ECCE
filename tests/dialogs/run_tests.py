@@ -45,6 +45,7 @@ import codes as CODES                                          # noqa: E402
 import harness                                                 # noqa: E402
 import inventory                                               # noqa: E402
 import resources                                               # noqa: E402
+import siteconfig                                              # noqa: E402
 import restore                                                 # noqa: E402
 import lint                                                    # noqa: E402
 from perlmap import Fallback, Generator                        # noqa: E402
@@ -243,6 +244,12 @@ def checkResources(results, verbose=False):
         results.fail(where, message)
 
     loaded = resources.check(report)
+    results.check()
+
+    #  siteconfig/: the machine list, the queue registry and the import
+    #  verifypatterns.  Same shape of failure as the resource graph -- silent,
+    #  or fatal at startup -- and equally checkable without a display.
+    siteconfig.check(report)
     results.check()
 
     unreachable = resources.wiredButUnreachable(loaded)
