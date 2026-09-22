@@ -47,8 +47,10 @@ sudo dpkg -i ecce_<version>_amd64.deb
 ```
 
 The package installs to `/opt/ecce` and drops thin wrapper scripts named
-`ecce-<app>` (e.g. `ecce-gateway`, `ecce-organizer`, `ecce-builder`,
-`ecce-pertable`) onto `/usr/bin`, so they're just runnable by name — no
+`ecce-<app>` (e.g. `ecce-organizer`, `ecce-builder`,
+`ecce-pertable`) onto `/usr/bin`, plus `ecce` itself, which is the one
+you actually start (it launches the gateway, which then spawns the apps --
+running `ecce-builder` and friends directly skips that setup). No
 `ECCE_HOME` sourcing or environment setup required first.
 
 `apache2`/`apache2-utils` are real runtime dependencies (the data server
@@ -111,6 +113,7 @@ So a completely separate instance, sharing nothing with your normal one, is:
 export ECCE_REALUSERHOME=/tmp/ecce-scratch
 export ECCE_DATASERVER_PORT=8097 ECCE_BROKER_PORT=8089
 ecce-dataserver-start && ecce-gateway-start
+ecce
 ```
 
 The per-user copies of `activemq.xml` and `jndi.properties` are resolved
@@ -193,7 +196,7 @@ Use a `userid` matching your Unix username (`$USER`) — that's what
 Launch the client, e.g.:
 
 ```
-ecce-gateway
+ecce
 ```
 
 This is ECCE's main entry point/toolbar. It'll show an "ECCE Authentication"
@@ -271,7 +274,7 @@ differently.)
 Two verbose modes make that visible:
 
     # what the input generator did with every tag, on stderr
-    ECCE_AI_DEBUG=1 ecce-gateway
+    ECCE_AI_DEBUG=1 ecce
 
 Output is prefixed `[ecce-ai]` and includes the settings dictionary the
 generator was given, what each tag resolved to, and — the line to look for —
