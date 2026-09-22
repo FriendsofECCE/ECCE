@@ -2215,7 +2215,15 @@ bool Launch::startJobStore(const string& importDir)
     // live: this is exactly what was creating /home/andy/nohup.out) --
     // same reasoning as the RCommand::execbg() fix for the compute-job
     // side of this same nohup pattern.
-    clientCmd += " > /dev/null 2>&1 &";
+    //
+    // It used to go to /dev/null, which also threw away the only evidence
+    // there is when this step fails. eccejobmaster is started detached and
+    // nothing waits on it, so if it dies -- missing script, bad config,
+    // failed parse -- the launch or import reports success, no window ever
+    // opens, and there is nothing anywhere to look at. Log into the job
+    // directory instead, beside eccejobstore.conf and the .desc files this
+    // same directory already holds.
+    clientCmd += " > eccejobmaster.log 2>&1 &";
 
 
 #if (!defined(INSTALL) && defined(DEBUG))

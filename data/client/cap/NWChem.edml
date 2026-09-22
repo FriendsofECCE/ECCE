@@ -233,8 +233,17 @@
   <Input   type="primary" mimetype="chemistry/x-nwchem-input" comment="true" commentstring="#">nwch.in</Input>
   <Output type="primary" mimetype="chemical/x-nwchem-output">nwch.nwout</Output>
   <Output type="primary" mimetype="chemistry/x-nwchem-output">nwch.out</Output>
-  <Output type="parse" verifypattern="%begin%input" mimetype="chemical/x-ecce-parse">ecce.out</Output>
-  <Output type="parse" verifypattern="%begin%input" mimetype="chemistry/x-ecce-parse">ecce.out</Output>
+  <!-- verifypattern is what JobParser::importJob() greps the user's file
+       for to decide which code produced it. It used to accept ONLY the
+       ecce_print trace ("%begin%input"), so importing a plain NWChem log
+       was refused with "must specify ECCE formatted NWChem output file"
+       even though NWChem.expt reads plain stdout perfectly well. The
+       refusal came before NWChem.expt was ever run, so the importer's
+       own support for stdout was unreachable from the GUI. The
+       alternation is basic-regex "\|", since the pattern is interpolated
+       into a plain grep. -->
+  <Output type="parse" verifypattern="%begin%input\|Northwest Computational Chemistry Package" mimetype="chemical/x-ecce-parse">ecce.out</Output>
+  <Output type="parse" verifypattern="%begin%input\|Northwest Computational Chemistry Package" mimetype="chemistry/x-ecce-parse">ecce.out</Output>
   <Output type="auxiliary" mimetype="chemical/x-nwchem-mo">movec.nw_mo</Output>
   <Output type="auxiliary" mimetype="chemistry/x-nwchem-mo">movec</Output>
   <Output type="property" mimetype="chemical/x-gaussian-cube">CUBE</Output>

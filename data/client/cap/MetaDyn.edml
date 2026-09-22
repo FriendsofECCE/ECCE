@@ -119,8 +119,17 @@
   <Input   type="primary" mimetype="chemistry/x-nwchem-input" comment="true" commentstring="#">nwch.in</Input>
   <Output type="primary" mimetype="chemical/x-nwchem-output">nwch.nwout</Output>
   <Output type="primary" mimetype="chemistry/x-nwchem-output">nwch.out</Output>
-  <Output type="parse" verifypattern="%begin%input" mimetype="chemical/x-ecce-parse">ecce.out</Output>
-  <Output type="parse" verifypattern="%begin%input" mimetype="chemistry/x-ecce-parse">ecce.out</Output>
+  <!-- verifypattern deliberately emptied, which removes MetaDyn from
+       CodeFactory::getImportCodes(). It carried the identical
+       "%begin%input" pattern as NWChem.edml, and JobParser::importJob()
+       stops at the FIRST code whose pattern matches, iterating in
+       directory-scan order. So importing an NWChem ecce_print trace
+       could be attributed to MetaDyn instead of NWChem depending on
+       readdir order, with no error. MetaDyn's menu registration was
+       already retired (see data/client/config/disabled-codes-archive.txt),
+       so it has no business claiming another code's output files. -->
+  <Output type="parse" verifypattern="" mimetype="chemical/x-ecce-parse">ecce.out</Output>
+  <Output type="parse" verifypattern="" mimetype="chemistry/x-ecce-parse">ecce.out</Output>
   <Output type="auxiliary" mimetype="chemical/x-nwchem-mo">movec.nw_mo</Output>
   <Output type="auxiliary" mimetype="chemistry/x-nwchem-mo">movec</Output>
   <Output type="property" mimetype="chemical/x-gaussian-cube">CUBE</Output>

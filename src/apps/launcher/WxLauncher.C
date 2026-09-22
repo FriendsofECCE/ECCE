@@ -997,7 +997,19 @@ bool WxLauncher::checkLaunchAllowed(bool cnctAllwd)
  */
 bool WxLauncher::checkLaunchAllowed(RefMachine *machRgstn, bool cnctAllwd)
 {
-    bool result = (cnctAllwd && (p_taskJob != NULL)
+    //  Issue #94: for a noRemoteAccess machine there is no connection to
+    //  allow, so requiring one here disables the Launch button outright and
+    //  clicking it does nothing at all -- no message, no error. checkConnect
+    //  Allowed() returns false unless the machine supports the "UN" option
+    //  AND a username has been typed, and a machine ECCE never contacts has
+    //  no business asking for either. The connect requirement is therefore
+    //  waived for these; everything below it (job state, the machine having
+    //  the code, queue/account/directory fields) still applies, because the
+    //  input deck and submit script are generated exactly as they would be
+    //  for a real machine.
+    bool localOnly = (machRgstn != (RefMachine*)0 && machRgstn->noRemoteAccess());
+
+    bool result = ((cnctAllwd || localOnly) && (p_taskJob != NULL)
                              && (p_taskJob->getState() == ResourceDescriptor::STATE_READY));
 
     if (result)
