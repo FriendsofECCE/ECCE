@@ -1251,11 +1251,52 @@ wxString CalcEd::getTheoryCategory() const
 wxString CalcEd::getTheoryName() const
 {
   ewxChoice *choice = (ewxChoice*)FindWindow(ID_CHOICE_CALCED_THEORY);
-  if (choice->GetStringSelection().IsSameAs(getTheoryCategory())) {
-    return "None";
-  } else {
-    return choice->GetStringSelection();
+  wxString label = choice->GetStringSelection();
+
+  //  Reverse of populateTheories(), which shows name() for every theory
+  //  EXCEPT one whose name is literally "None" -- for that it shows
+  //  category() instead.
+  //
+  //  This used to detect that case by comparing the label against the
+  //  category, which is a guess, and it is wrong for any code whose
+  //  theory NAME EQUALS ITS CATEGORY. Quantum ESPRESSO's is
+  //  category="PW" name="PW", so selecting it yielded ("PW", "None") --
+  //  a theory that exists in no .edml. Both lookups keyed on it then
+  //  fell through to their defaults, which is why QE showed two
+  //  unrelated-looking faults at once (reported live 2026-09-22):
+  //
+  //    * JCode::theoryNeedsBasis() returns true when the theory is not
+  //      found, so the Basis Set Tool stayed enabled for a PLANE-WAVE
+  //      code, despite needsBasis="false" being set correctly.
+  //    * populateRuntypes() found no runtypes for it, so the list came
+  //      up empty and CalcEd reported "No runtypes are supported for
+  //      the given code/theory combination" -- leaving nothing to edit
+  //      and nothing to launch.
+  //
+  //  Ask the code whether a "None"-named theory in this category
+  //  actually exists, rather than inferring it from the label.
+  if (p_code) {
+    wxString category = getTheoryCategory();
+    if (label.IsSameAs(category)) {
+      bool hasNoneTheory = false;
+      vector<TTheory> *theories = p_code->theories();
+      if (theories) {
+        vector<TTheory>::iterator it;
+        for (it = theories->begin(); it != theories->end(); it++) {
+          if (it->name() == "None" && it->category() == category.ToStdString()) {
+            hasNoneTheory = true;
+            break;
+          }
+        }
+        delete theories;
+      }
+      if (hasNoneTheory) {
+        return "None";
+      }
+    }
   }
+
+  return label;
 }
 
 
