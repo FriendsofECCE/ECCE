@@ -4,6 +4,38 @@ desc:    nwchem.desc
 fixture: nwchem/h2o_freq.eprint (451 lines)
 args:    '.' 'Vibration' 'SCF' 'RHF' '0'
 
+[DEWVEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=scf%begin%orbital gradient norm
+  begins=7 delivered=7 buffered_away=0
+  block 1: begin-line=87 fed=2 rc=0 first-fed='task_frequencies task_hessian task_hessian task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 6.49266541325366e-01
+  block 2: begin-line=93 fed=2 rc=0 first-fed='task_frequencies task_hessian task_hessian task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 3.01477451535262e-01
+  block 3: begin-line=99 fed=2 rc=0 first-fed='task_frequencies task_hessian task_hessian task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 1.35970421255086e-01
+  block 4: begin-line=105 fed=2 rc=0 first-fed='task_frequencies task_hessian task_hessian task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 2.74887767051881e-02
+  block 5: begin-line=111 fed=2 rc=0 first-fed='task_frequencies task_hessian task_hessian task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 2.06365707017276e-02
+  block 6: begin-line=117 fed=2 rc=0 first-fed='task_frequencies task_hessian task_hessian task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 5.45449641326329e-05
+  block 7: begin-line=123 fed=2 rc=0 first-fed='task_frequencies task_hessian task_hessian task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 2.51983885952435e-10
+
 [GEOMNULL]  Script=nwchem.null  Freq=last  Skip=-  Lines=-
   Begin=task_hessian task_energy%begin%cartesian coordinates
   End=task

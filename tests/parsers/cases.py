@@ -1178,6 +1178,61 @@ KNOWN_DEAD = {
         "sits inside the region consumed by another parse type on every real "
         "job we have. The same data is captured by gaussian-16.db, so this is "
         "harmless -- but the entry is dead code.",
+
+    #  The four below are NWChem MO-symmetry entries that cannot match any
+    #  output NWChem produces, established by listing every variant the
+    #  fixtures actually contain:
+    #
+    #    %begin%molecular orbital symmetries RHF
+    #    %begin%molecular orbital symmetries UHF alpha
+    #    %begin%molecular orbital symmetries UHF beta
+    #    %begin%molecular orbital symmetries dft alpha
+    #    %begin%molecular orbital symmetries dft beta
+    #
+    #  All five are covered by sibling entries that do fire. NWChem always
+    #  qualifies the tag with the method, so the unqualified fallbacks can
+    #  never match -- they are harmless legacy, not a gap.
+    ('nwchem.desc', 'MOLAB6'):
+        "Begin 'begin%molecular orbital symmetries alpha%' has no method "
+        "qualifier. NWChem always writes one (UHF alpha / dft alpha), and "
+        "both of those have their own entries, which fire.",
+    ('nwchem.desc', 'MOLAB7'):
+        "Begin 'begin%molecular orbital symmetries beta%' has no method "
+        "qualifier. Same as MOLAB6: UHF beta and dft beta both have entries "
+        "that fire.",
+    ('nwchem.desc', 'MOLAB8'):
+        "Begin 'begin%molecular orbital symmetries%' requires a literal '%' "
+        "straight after 'symmetries'. Every real tag has a method qualifier "
+        "there instead (' RHF%', ' UHF alpha%', ...), so this catch-all "
+        "cannot match anything.",
+    ('nwchem.desc', 'ORBSYM'):
+        "Begin contains the literal text 'NOT SUPPORTED', which no output "
+        "will ever contain. Deliberately disabled in place rather than "
+        "deleted; leave it that way unless orbital symmetries are wired up.",
+}
+
+
+# ---------------------------------------------------------------------------
+# Entries that are fine but have no fixture exercising them. Unlike
+# KNOWN_DEAD these SHOULD fire once someone contributes the right output --
+# recorded so the coverage report distinguishes "we never tested this" from
+# "this can never work", which is the distinction that matters when a
+# property turns out to be missing in the field.
+UNCOVERED = {
+    ('nwchem.desc', 'LATVECNULL'):
+        "Lattice vectors from a hessian/energy task. Needs a PERIODIC "
+        "hessian or single-point fixture; the only periodic fixture we have "
+        "is Car-Parrinello, which LATVECCPTRACE handles.",
+    ('nwchem.desc', 'LATVECPROP'):
+        "Lattice vectors from a plain energy task. Same missing fixture as "
+        "LATVECNULL.",
+    ('nwchem.desc', 'LATVECTRACE'):
+        "Per-step lattice vectors from a gradient task, i.e. a periodic "
+        "geometry optimisation. Same missing fixture.",
+    ('nwchem.desc', 'EZEROPT'):
+        "Zero-point energy. No fixture contains 'zero point' at all -- "
+        "h2o_freq.eprint does not emit it, so a frequency run alone is not "
+        "enough to exercise this.",
 }
 
 

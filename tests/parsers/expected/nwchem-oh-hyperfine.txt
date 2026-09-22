@@ -4,6 +4,34 @@ desc:    nwchem.desc
 fixture: nwchem/oh_hfine.eprint (402 lines)
 args:    '.' 'Property' 'SCF' 'UHF' '1'
 
+[DEWVEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=scf%begin%orbital gradient norm
+  begins=6 delivered=6 buffered_away=0
+  block 1: begin-line=101 fed=2 rc=0 first-fed='task_property task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 2.60975211953854e-01
+  block 2: begin-line=107 fed=2 rc=0 first-fed='task_property task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 4.38032655194199e-02
+  block 3: begin-line=113 fed=2 rc=0 first-fed='task_property task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 2.70335595127652e-02
+  block 4: begin-line=119 fed=2 rc=0 first-fed='task_property task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 1.20014043806644e-02
+  block 5: begin-line=125 fed=2 rc=0 first-fed='task_property task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 1.23722869208109e-04
+  block 6: begin-line=131 fed=2 rc=0 first-fed='task_property task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 8.27106681781872e-06
+
 [MO]  Script=nwchem.mo  Freq=last  Skip=-  Lines=-
   Begin=begin%molecular orbital vectors UHF alpha
   End=task

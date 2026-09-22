@@ -4,6 +4,34 @@ desc:    nwchem.desc
 fixture: nwchem/h2o_mp2ccsd.eprint (643 lines)
 args:    '.' 'Energy' 'MP2' 'MP2' '0'
 
+[DEWVEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=scf%begin%orbital gradient norm
+  begins=6 delivered=6 buffered_away=0
+  block 1: begin-line=112 fed=2 rc=0 first-fed='task_energy mp2 scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 8.05811498160424e-01
+  block 2: begin-line=118 fed=2 rc=0 first-fed='task_energy mp2 scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 4.38759397219554e-01
+  block 3: begin-line=124 fed=2 rc=0 first-fed='task_energy mp2 scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 1.97929706622368e-01
+  block 4: begin-line=130 fed=2 rc=0 first-fed='task_energy mp2 scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 2.44798355840598e-02
+  block 5: begin-line=136 fed=2 rc=0 first-fed='task_energy mp2 scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 2.06878032855472e-04
+  block 6: begin-line=142 fed=2 rc=0 first-fed='task_energy mp2 scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 3.09704794404081e-08
+
 [GEOMPROP]  Script=nwchem.geomtrace  Freq=last  Skip=-  Lines=-
   Begin=^task_energy%begin%cartesian coordinates
   End=task

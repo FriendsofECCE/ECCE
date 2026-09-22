@@ -4,6 +4,26 @@ desc:    nwchem.desc
 fixture: nwchem/h2o_prop.eprint (728 lines)
 args:    '.' 'Property' 'SCF' 'UHF' '0'
 
+[DEWVEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=scf%begin%orbital gradient norm
+  begins=4 delivered=4 buffered_away=0
+  block 1: begin-line=92 fed=2 rc=0 first-fed='task_property task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 4.59100774168708e-01
+  block 2: begin-line=98 fed=2 rc=0 first-fed='task_property task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 5.70659686304374e-02
+  block 3: begin-line=104 fed=2 rc=0 first-fed='task_property task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 2.18584702873915e-04
+  block 4: begin-line=110 fed=2 rc=0 first-fed='task_property task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 2.01978818743925e-06
+
 [MO]  Script=nwchem.mo  Freq=last  Skip=-  Lines=-
   Begin=begin%molecular orbital vectors UHF alpha
   End=task

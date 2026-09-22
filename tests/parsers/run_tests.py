@@ -440,9 +440,14 @@ def coverage_report(res, ran_cases, verbose):
                                          len(live) - len(never), len(never)))
         for entry in never:
             reason = CASEDEFS.KNOWN_DEAD.get((desc_name, entry.type))
+            uncovered = getattr(CASEDEFS, 'UNCOVERED', {}).get(
+                (desc_name, entry.type))
             if reason:
                 lines.append('    [%s] line %d -- documented dead: %s'
                              % (entry.type, entry.line, reason))
+            elif uncovered:
+                lines.append('    [%s] line %d -- no fixture (should work): '
+                             '%s' % (entry.type, entry.line, uncovered))
             elif verbose:
                 lines.append('    [%s] line %d Begin=%r (uncovered: no '
                              'fixture exercises this property)'

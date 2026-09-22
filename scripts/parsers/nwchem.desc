@@ -21,9 +21,34 @@ Frequency=all
 Lines=2
 [END]
 
+# DEWVEC is "Orbital Gradient Norm", a PropTSVector<Wave Step> -- the SCF
+# convergence trace.
+#
+# The Begin used to be "task_gradient%begin%orbital gradient norm", which
+# matches nothing NWChem emits and so this property was never extracted,
+# for any job, ever.  The orbital gradient norm comes from the SCF module
+# rather than from the task, so the real tag always carries the module
+# between the task and %begin%:
+#
+#   task_gradient scf%begin%orbital gradient norm%1%double
+#   task_energy scf%begin%orbital gradient norm%1%double
+#   task_optimize driver task_energy scf%begin%orbital gradient norm%1%double
+#
+# whereas its siblings above (total gradient, gradient norm) are genuinely
+# task-level and really do read "task_gradient%begin%...".  Anchoring on
+# "scf%begin%" instead picks up every conventional-SCF task -- energy,
+# gradient, optimize, frequencies, mp2 -- and cannot collide with
+# [OGRADNORMCPVEC] below, whose Car-Parrinello tag
+# ("task_car-parrinello%begin%orbital gradient norm") has no module at all.
+# That matters for more than tidiness: PDMatchBegin() returns the first
+# parse type whose Begin matches a line and never checks the rest, so two
+# entries able to match one line would permanently starve one of them.
+#
+# DFT jobs emit no orbital gradient norm at all (confirmed against
+# oh_udft), so there is no dft-module variant to cover.
 [DEWVEC]
 Script=nwchem.scalar
-Begin=task_gradient%begin%orbital gradient norm
+Begin=scf%begin%orbital gradient norm
 Frequency=all
 Lines=2
 [END]

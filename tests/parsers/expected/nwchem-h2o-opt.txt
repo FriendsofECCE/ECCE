@@ -61,6 +61,82 @@ args:    '.' 'Geometry' 'SCF' 'RHF' '0'
       values: 6.40619519973794e-05
       units: Hartree/Bohr
 
+[DEWVEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=scf%begin%orbital gradient norm
+  begins=18 delivered=18 buffered_away=0
+  block 1: begin-line=92 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 6.49417680714451e-01
+  block 2: begin-line=98 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 3.01572497727686e-01
+  block 3: begin-line=104 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 1.35964997925523e-01
+  block 4: begin-line=110 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 2.75197918291212e-02
+  block 5: begin-line=116 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 2.06671243140739e-02
+  block 6: begin-line=122 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 5.49327912272233e-05
+  block 7: begin-line=351 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 1.14037637925963e-01
+  block 8: begin-line=357 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 6.27176164543651e-03
+  block 9: begin-line=363 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 7.03556819871906e-07
+  block 10: begin-line=501 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 4.20867240019825e-02
+  block 11: begin-line=507 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 1.56698326432204e-04
+  block 12: begin-line=513 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 7.29561435430317e-06
+  block 13: begin-line=719 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 9.10292818828704e-03
+  block 14: begin-line=725 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 4.69695671746431e-05
+  block 15: begin-line=863 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 4.18108656516248e-03
+  block 16: begin-line=869 fed=2 rc=0 first-fed='task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 2.58699535947715e-06
+  block 17: begin-line=1075 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 5.43708429880768e-04
+  block 18: begin-line=1081 fed=2 rc=0 first-fed='task_optimize driver task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 2.88383903202273e-06
+
 [GEOMTRACE]  Script=nwchem.geomtrace  Freq=all  Skip=-  Lines=-
   Begin=task_gradient%begin%cartesian coordinates
   End=task
