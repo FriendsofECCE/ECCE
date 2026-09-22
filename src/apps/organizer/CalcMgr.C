@@ -2370,13 +2370,34 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
     // (The import entry used to be added here, gated on the selected node
     // being a "project". It is now added unconditionally below -- see there.)
 
+    // Upload only makes sense inside a calculation -- putting a file into a
+    // job's own directory. It used to be offered for ANY expandable node,
+    // so it also appeared on projects and on the server root, where it
+    // reads like a general-purpose file manager action and nobody could say
+    // what it was for. Reported from a live session 2026-09-22.
+    //
+    // Download is unchanged: it is offered for anything that is not a
+    // collection, i.e. an actual file.
     bool isCollection = p_treeCtrl->setExpandable(itemData);
-    wxMenuItem * tmpMenuItem = new wxMenuItem(&menu,
-            isCollection ? wxID_UPLOAD : wxID_DOWNLOAD,
-            _(isCollection ? "&Upload File..." : "&Download File..."),
-            _T(""), wxITEM_NORMAL);
-    //  tmpMenuItem->SetBitmap(ewxBitmap(isCollection?"upload.xpm":"download.xpm"));
-    menu.Append(tmpMenuItem);
+    bool isCalculation = false;
+    Resource *menuRes = itemData->getResource();
+    if (menuRes != (Resource*)0) {
+      isCalculation = (menuRes->getContentType() ==
+                       ResourceDescriptor::CT_CALCULATION);
+    }
+
+    wxMenuItem * tmpMenuItem = (wxMenuItem*)0;
+    if (isCollection && isCalculation) {
+      tmpMenuItem = new wxMenuItem(&menu, wxID_UPLOAD, _("&Upload File..."),
+                                   _T(""), wxITEM_NORMAL);
+    } else if (!isCollection) {
+      tmpMenuItem = new wxMenuItem(&menu, wxID_DOWNLOAD,
+                                   _("&Download File..."),
+                                   _T(""), wxITEM_NORMAL);
+    }
+    if (tmpMenuItem != (wxMenuItem*)0) {
+      menu.Append(tmpMenuItem);
+    }
     
     menu.AppendSeparator();
   }
