@@ -176,34 +176,62 @@ Frequency=last
 End=MASS-WEIGHTED COORDINATE ANALYSIS
 [END]
 
-# IR intensities, from the DESCRIPTION OF VIBRATIONS block.  Without
-# VIBIR (or VIBRAM) NModePanel::fillGraph() returns false and
-# initialize() falls back to showTable(), which is why MOPAC alone showed
-# a table where every other code shows the spectrum plot.
+# IR INTENSITIES ARE DISABLED. The entry below is kept, commented out,
+# because the parser (mopac.vibir) is correct and verified -- what is
+# wrong is the framing, and the fix belongs with someone who can test it
+# live.
 #
-# Boundary check, per the End-line starvation hazard this file's header
-# warns about: Begin is DESCRIPTION OF VIBRATIONS, which lies after
-# [VIBFREQ]'s End (MASS-WEIGHTED COORDINATE ANALYSIS), so nothing is
-# eaten from under it.  End is SYMMETRY NUMBER FOR POINT-GROUP, which is
-# no other entry's Begin -- [PNTGRP] anchors on MOLECULAR POINT GROUP,
-# and every occurrence of that in a real FORCE or GEO+VIB run comes
-# BEFORE this block, so consuming this line starves nothing.
+# Shipped briefly on 2026-09-22 and withdrawn the same evening: it made
+# eccejobmonitor die on every MOPAC job.
 #
-# Skip=1 starts feeding at the line after Begin, which is blank;
-# mopac.vibir scans for its own markers and ignores everything else, so
-# the usual off-by-one that silently produces zero output does not apply.
+#   FATAL ERROR: JobOutputGet: end of file encountered while reading
+#   parse type VIBIR
+#   eccejobmonitor terminating abnormally, exit status 1
 #
-# The block collapses degenerate modes (4 stanzas for CH4's 9 modes);
-# mopac.vibir expands them back out.  See its header for why that is
-# structural rather than a frequency match, and for why the value is the
-# square of the transition dipole on a relative scale.
-[VIBIR]
-Script=mopac.vibir
-Begin=DESCRIPTION OF VIBRATIONS
-Skip=1
-Frequency=last
-End=SYMMETRY NUMBER FOR POINT-GROUP
-[END]
+# eccejobmonitor tails a file that is STILL BEING WRITTEN. If it matches
+# a Begin and then reaches EOF before finding the End, that is fatal --
+# not "try again next poll". So an End must be a string that is
+# guaranteed to appear, and "SYMMETRY NUMBER FOR POINT-GROUP" is not:
+# MOPAC does not print it for every molecule or every runtype.
+#
+# This is invisible to tests/parsers, which replays COMPLETE files and
+# therefore always finds the End. Any End-anchored entry needs thinking
+# about at EOF, not just on a finished output.
+#
+# A fix needs an End that always follows the block. A blank line will
+# not do -- MOPAC separates the individual VIBRATION stanzas with blank
+# lines, so it would close after the first one and report a single
+# mode's intensity as though it were all of them, which is worse than
+# nothing. See issue #103.
+#
+# # IR intensities, from the DESCRIPTION OF VIBRATIONS block.  Without
+# # VIBIR (or VIBRAM) NModePanel::fillGraph() returns false and
+# # initialize() falls back to showTable(), which is why MOPAC alone showed
+# # a table where every other code shows the spectrum plot.
+# #
+# # Boundary check, per the End-line starvation hazard this file's header
+# # warns about: Begin is DESCRIPTION OF VIBRATIONS, which lies after
+# # [VIBFREQ]'s End (MASS-WEIGHTED COORDINATE ANALYSIS), so nothing is
+# # eaten from under it.  End is SYMMETRY NUMBER FOR POINT-GROUP, which is
+# # no other entry's Begin -- [PNTGRP] anchors on MOLECULAR POINT GROUP,
+# # and every occurrence of that in a real FORCE or GEO+VIB run comes
+# # BEFORE this block, so consuming this line starves nothing.
+# #
+# # Skip=1 starts feeding at the line after Begin, which is blank;
+# # mopac.vibir scans for its own markers and ignores everything else, so
+# # the usual off-by-one that silently produces zero output does not apply.
+# #
+# # The block collapses degenerate modes (4 stanzas for CH4's 9 modes);
+# # mopac.vibir expands them back out.  See its header for why that is
+# # structural rather than a frequency match, and for why the value is the
+# # square of the transition dipole on a relative scale.
+# [VIBIR]
+# Script=mopac.vibir
+# Begin=DESCRIPTION OF VIBRATIONS
+# Skip=1
+# Frequency=last
+# End=SYMMETRY NUMBER FOR POINT-GROUP
+# [END]
 
 # "          ZERO POINT ENERGY      10.115 KCAL/MOL" -- already in
 # kcal/mol, the Energy converter's base unit, so no conversion.
