@@ -1354,10 +1354,23 @@ KNOWN_DEAD = {
 # "this can never work", which is the distinction that matters when a
 # property turns out to be missing in the field.
 UNCOVERED = {
+    #  Still UNCOVERED rather than dead, but with a caveat worth having.
+    #  An attempt to produce a fixture on 2026-09-22 -- a Gaussian-basis
+    #  periodic SCF ("system crystal", LiH, STO-3G) against NWChem 7.2.3
+    #  -- printed lattice parameters to stdout and emitted NO lattice
+    #  tags into the ecce_print trace at all. That run also failed (exit
+    #  3) before finishing, so it does not prove these are dead the way
+    #  the EZEROPT run did; it does mean a fixture is harder to come by
+    #  than "run something periodic", and that the only path OBSERVED to
+    #  emit lattice vectors into the trace is Car-Parrinello, which
+    #  LATVECCPTRACE already covers. Anyone picking this up should start
+    #  by establishing whether the task_energy/task_gradient/task_hessian
+    #  variants are reachable at all before building a fixture for them.
     ('nwchem.desc', 'LATVECNULL'):
         "Lattice vectors from a hessian/energy task. Needs a PERIODIC "
         "hessian or single-point fixture; the only periodic fixture we have "
-        "is Car-Parrinello, which LATVECCPTRACE handles.",
+        "is Car-Parrinello, which LATVECCPTRACE handles. See the note "
+        "above: a periodic Gaussian-basis run emitted no lattice tags.",
     ('nwchem.desc', 'LATVECPROP'):
         "Lattice vectors from a plain energy task. Same missing fixture as "
         "LATVECNULL.",
