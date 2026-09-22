@@ -753,7 +753,25 @@ class NedTheoryPanel(EccePanel):
                             "SSB-D (GGA)",
                             "Mod. Perdew-Wang 1K (hybrid)",
                             "BB1K (hybrid)",
-                            "Filatov-Thiel 1997 (Gradient Corr.)"]
+                            "Filatov-Thiel 1997 (Gradient Corr.)",
+                            #  Modern functionals NWChem 7.2 supports and
+                            #  ECCE did not offer. Each was run through
+                            #  the real binary on water/STO-3G and
+                            #  produced a "Total DFT energy" -- not just
+                            #  accepted by the input parser, which for
+                            #  ORCA turned out not to be the same thing.
+                            #
+                            #  APPENDED, not inserted: xcFuncDefault
+                            #  below is an INDEX into this list, so
+                            #  anything added earlier silently changes
+                            #  which functional is the default.
+                            "SCAN (Meta-GGA)",
+                            "r2SCAN (Meta-GGA)",
+                            "wB97X (range)",
+                            "M11 (range)",
+                            "MN15 (hybrid)",
+                            "xTPSS03 (Meta-GGA)",
+                            "HSE03 (range)"]
             xcFuncDefault = 36
 
             if EcceGlobals.ReactionStudyFlag != 0:

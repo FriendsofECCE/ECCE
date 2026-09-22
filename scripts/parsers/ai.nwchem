@@ -1524,6 +1524,26 @@ sub XCFunctionals {
     $result = "vwn_5 optx cpbe96 nonlocal";
    } elsif ($xcFun eq "SSB-D (GGA)") {
     $result = "SSB-D";
+#  Modern functionals, each verified against the real NWChem 7.2 binary
+#  (water/STO-3G, "Total DFT energy" produced) rather than taken from the
+#  manual. Keep in lockstep with nedtheory.py's list -- a mismatch here
+#  produces an empty keyword, the xc line is dropped, and the job runs
+#  with NWChem's default functional instead of the one the user picked,
+#  silently.
+  } elsif ($xcFun eq "SCAN (Meta-GGA)") {
+    $result = "scan";
+  } elsif ($xcFun eq "r2SCAN (Meta-GGA)") {
+    $result = "r2scan";
+  } elsif ($xcFun eq "wB97X (range)") {
+    $result = "wb97x";
+  } elsif ($xcFun eq "M11 (range)") {
+    $result = "m11";
+  } elsif ($xcFun eq "MN15 (hybrid)") {
+    $result = "mn15";
+  } elsif ($xcFun eq "xTPSS03 (Meta-GGA)") {
+    $result = "xtpss03";
+  } elsif ($xcFun eq "HSE03 (range)") {
+    $result = "hse03";
   } elsif ($xcFun eq "LC-wPBE (range)") {
     $result = "xwpbe 1.00 cpbe96 1.0 hfexch 1.00 cam 0.3 cam_alpha 0.00 cam_beta 1.00";
 #added by CAO  -- end
