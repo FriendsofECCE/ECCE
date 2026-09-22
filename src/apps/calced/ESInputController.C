@@ -429,9 +429,30 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
           parser_path += " -t " + orig_input_file;
 
           string warning;
-          if (!localconn.execout(parser_path, message))
-            message = "Input files could not be generated--input parsing "
-                      "command " + parser_path + " failed";
+          //  execout() captures the generator's own stdout+stderr into
+          //  `message`. That used to be OVERWRITTEN on failure with a
+          //  generic "input parsing command ... failed", throwing away
+          //  the only thing that actually says what was wrong.
+          //
+          //  Every ai.<code> script validates in its main flow and dies
+          //  with a specific, actionable message -- ai.qe's periodicity
+          //  check, for instance, names the Builder's "Periodic Builder"
+          //  panel and tells the user to create a lattice. None of it
+          //  ever reached the screen: the user saw "Input files could not
+          //  be generated" and, from the Launcher, nothing visible at
+          //  all. Reported live 2026-09-22 as "Launch doesn't do
+          //  anything" for a QE calculation on a non-periodic structure.
+          //
+          //  Keep the generator's output and lead with it, since it is
+          //  the part worth reading. The command line stays, after it,
+          //  because it is what someone reproducing the failure needs.
+          string generatorOutput;
+          if (!localconn.execout(parser_path, generatorOutput)) {
+            message = "Input files could not be generated.";
+            if (!generatorOutput.empty())
+              message += "\n\n" + generatorOutput;
+            message += "\n(command: " + parser_path + ")";
+          }
           else {
             string pretty_cmd = "prettyInput <" + orig_input_file +
                                 " >" + input_file;
