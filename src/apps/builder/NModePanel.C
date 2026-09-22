@@ -136,6 +136,8 @@ bool NModePanel::Create(IPropCalculation *calculation,
    p_currentStep = 0;
    p_isValid = false;
    p_mode = 0;
+   p_irColumn = -1;
+   p_ramanColumn = -1;
 
    p_timer = new wxTimer(this);
    p_plotCtrl = new ewxPlotCtrl(this, wxID_ANY);
@@ -451,11 +453,33 @@ void NModePanel::fillTable()
       p_grid->InsertCols(1,1);
       p_grid->SetColLabelValue(1,"Sym");
 
-      p_grid->InsertCols(2,1);
-      p_grid->SetColLabelValue(2,"Infrared\n"+(ivec ? ivec->units(): ""));
-
-      p_grid->InsertCols(3,1);
-      p_grid->SetColLabelValue(3,"Raman\n"+(rvec ? rvec->units(): ""));
+      //  Only show a column for a property the code actually produced.
+      //  MOPAC computes no Raman activities at all, so a permanently
+      //  empty "Raman" column there is just a question the user cannot
+      //  answer -- "is this blank because the job failed, or because
+      //  the code cannot do it?". Reported live 2026-09-22.
+      //
+      //  Kept general rather than special-casing MOPAC: the panel
+      //  already knows, because getProperty() returns null for a
+      //  property that was never extracted. Any code missing either one
+      //  now simply has no column for it.
+      //
+      //  The indices are tracked rather than hardcoded, because
+      //  skipping Infrared while keeping Raman would otherwise leave
+      //  the Raman values written to a column that does not exist.
+      p_irColumn = -1;
+      p_ramanColumn = -1;
+      int nextCol = 2;
+      if (ivec != (PropVector*)0) {
+         p_grid->InsertCols(nextCol,1);
+         p_grid->SetColLabelValue(nextCol,"Infrared\n"+ivec->units());
+         p_irColumn = nextCol++;
+      }
+      if (rvec != (PropVector*)0) {
+         p_grid->InsertCols(nextCol,1);
+         p_grid->SetColLabelValue(nextCol,"Raman\n"+rvec->units());
+         p_ramanColumn = nextCol++;
+      }
 
 
       int nRows = vec->rows();
@@ -484,18 +508,17 @@ void NModePanel::fillTable()
             p_grid->SetCellValue(idx,1,(*syms)[idx].c_str());
          }
 
-         if (ivec != (PropVector*)0) {
-            p_grid->SetCellValue(idx,2,
+         if (ivec != (PropVector*)0 && p_irColumn >= 0) {
+            p_grid->SetCellValue(idx,p_irColumn,
                   wxString::Format (PrefLabels::DOUBLEFORMAT, ivec->value(idx)));
          }
 
-         if (rvec != (PropVector*)0) {
-            //  Column 3, not 2. This wrote into column 2 -- the Infrared
-            //  column -- so for any code emitting both VIBIR and VIBRAM
-            //  the Raman value overwrote the infrared one and the Raman
-            //  column was NEVER populated, for every code. The headers
-            //  above have always said 2=Infrared, 3=Raman.
-            p_grid->SetCellValue(idx,3,
+         if (rvec != (PropVector*)0 && p_ramanColumn >= 0) {
+            //  Its OWN column. This used to write into column 2 -- the
+            //  Infrared column -- so for any code emitting both VIBIR
+            //  and VIBRAM the Raman value overwrote the infrared one and
+            //  the Raman column was NEVER populated, for every code.
+            p_grid->SetCellValue(idx,p_ramanColumn,
                   wxString::Format (PrefLabels::DOUBLEFORMAT, rvec->value(idx)));
          }
       }

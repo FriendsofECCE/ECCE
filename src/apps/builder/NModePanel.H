@@ -102,6 +102,11 @@ class NModePanel : public NModesGUI,
 
       int         p_loopSpeed;
       int         p_currentStep;
+      //  Grid columns for the optional Infrared/Raman properties, or -1
+      //  when the code did not produce them. Tracked because skipping one
+      //  shifts the other.
+      int p_irColumn;
+      int p_ramanColumn;
       int         p_mode;
       int         p_numAnimations;
       bool        p_isValid;

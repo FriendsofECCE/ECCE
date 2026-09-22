@@ -761,8 +761,18 @@ bool CalcMgr::confirmAndQuit()
     // than freeing `this`, so running more code here is safe -- and this
     // order lets our own JMS disconnect happen while the broker is still
     // up instead of racing it. Same sequencing as the Gateway's.
-    (void)system("ecce-gateway-stop");
+    //
+    // DATA SERVER FIRST, gateway second. ecce-gateway-stop now also
+    // stops the gateway application, which is the process the user's
+    // `ecce` command is still waiting on -- so the shell prompt returns
+    // the moment it dies. With the old order the data server's
+    // "stopped data server (pid ...)" line arrived AFTER the prompt had
+    // been printed, which reads as a terminal that never came back.
+    // Reported live 2026-09-22: "stops the data server, but does not
+    // release the terminal". It had in fact returned; the output simply
+    // raced it.
     (void)system("ecce-dataserver-stop");
+    (void)system("ecce-gateway-stop");
   }
 
   return true;
