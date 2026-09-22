@@ -448,10 +448,28 @@ def coverage_report(res, ran_cases, verbose):
             elif uncovered:
                 lines.append('    [%s] line %d -- no fixture (should work): '
                              '%s' % (entry.type, entry.line, uncovered))
-            elif verbose:
-                lines.append('    [%s] line %d Begin=%r (uncovered: no '
-                             'fixture exercises this property)'
-                             % (entry.type, entry.line, entry.begin))
+            else:
+                #  Every non-firing entry must be classified, as dead or as
+                #  merely uncovered. An unclassified one is how [DEWVEC]
+                #  hid: its Begin matched nothing NWChem emits, so the
+                #  property was never extracted for any job ever, and the
+                #  suite reported it in the same breath as two dozen
+                #  entries that are simply waiting for a fixture. Forcing
+                #  the distinction to be written down is what separates
+                #  "nobody has tested this" from "this cannot work".
+                res.check(False, desc_name,
+                          '[%s] line %d never fires and is not classified.\n'
+                          '      Begin=%r\n'
+                          '      Check whether that text appears in any '
+                          'fixture: if it does, the entry is BROKEN and the '
+                          'property is silently never extracted. If it does '
+                          'not, add it to cases.UNCOVERED with what job '
+                          'would exercise it, or to cases.KNOWN_DEAD with '
+                          'why it can never match.'
+                          % (entry.type, entry.line, entry.begin))
+                if verbose:
+                    lines.append('    [%s] line %d Begin=%r (UNCLASSIFIED)'
+                                 % (entry.type, entry.line, entry.begin))
         # stale KNOWN_KEY_ALIASES: listed for a type that fired somewhere but
         # never actually needed the exemption
         for (dname, typ), reason in CASEDEFS.KNOWN_KEY_ALIASES.items():

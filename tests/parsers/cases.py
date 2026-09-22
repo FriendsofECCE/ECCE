@@ -1209,6 +1209,12 @@ KNOWN_DEAD = {
         "Begin contains the literal text 'NOT SUPPORTED', which no output "
         "will ever contain. Deliberately disabled in place rather than "
         "deleted; leave it that way unless orbital symmetries are wired up.",
+
+    #  gaussian-16: an alternate SPELLING whose sibling already fires.
+    ('gaussian-16.desc', 'ESCF2][ESCFVEC'):
+        "Begin 'SCF DONE\\:' is an all-caps variant; Gaussian 16 writes "
+        "'SCF Done:', which [ESCF1][ESCFVEC] above matches with the same "
+        "script and the same keys. Harmless legacy alternate spelling.",
 }
 
 
@@ -1233,6 +1239,44 @@ UNCOVERED = {
         "Zero-point energy. No fixture contains 'zero point' at all -- "
         "h2o_freq.eprint does not emit it, so a frequency run alone is not "
         "enough to exercise this.",
+
+    #  gaussian-16: alternate output FORMS. Each has a sibling entry that
+    #  fires on the form our fixtures actually contain, so these are only
+    #  reachable with different Gaussian input options.
+    ('gaussian-16.desc', 'ORBOCC2][ORBOCCBETA'):
+        "Reads 'Molecular Orbital Coefficients', which Gaussian prints only "
+        "under pop=full. [ORBOCC1] covers the default output.",
+    ('gaussian-16.desc', 'NULL3'):
+        "Guard entry for 'Making orbital integer symmetry', which our "
+        "fixtures do not trigger.",
+    ('gaussian-16.desc', 'GEOMTRACE'):
+        "The 'Z-Matrix orientation:' variant, printed only for Z-matrix "
+        "input. The 'Input/Standard orientation:' siblings fire.",
+    ('gaussian-16.desc', 'DIPOLE1'):
+        "The 'Dipole moment=' archive-section form; [DIPOLE2] covers the "
+        "form our fixtures print.",
+    ('gaussian-16.desc', 'POLARIZ2][HYPERPOL1'):
+        "Polarizability and hyperpolarizability from the archive block; "
+        "needs a polar= job.",
+
+    #  gaussian-16: theories no fixture uses. These are not suspicious --
+    #  each needs a job run at that level of theory.
+    ('gaussian-16.desc', 'EMP4SDTQ][EMP4SDTQVEC'): "Needs an MP4(SDTQ) job.",
+    ('gaussian-16.desc', 'EMP5][EMP5VEC'): "Needs an MP5 job.",
+    ('gaussian-16.desc', 'ECISD][ECISDVEC'): "Needs a CISD job.",
+    ('gaussian-16.desc', 'ECIS][ECISVEC'): "Needs a CIS job.",
+    ('gaussian-16.desc', 'ECNDO1][ECNDOVEC'): "Needs an RHF CNDO job.",
+    ('gaussian-16.desc', 'ECNDO2][ECNDOVEC'): "Needs a UHF CNDO job.",
+    ('gaussian-16.desc', 'EINDO1][EINDOVEC'): "Needs an RHF INDO job.",
+    ('gaussian-16.desc', 'EINDO2][EINDOVEC'): "Needs a UHF INDO job.",
+    ('gaussian-16.desc', 'EMINDO31][EMINDO3VEC'): "Needs an RHF MINDO/3 job.",
+    ('gaussian-16.desc', 'EMINDO32][EMINDO3VEC'): "Needs a UHF MINDO/3 job.",
+    ('gaussian-16.desc', 'EMNDO1][EMNDOVEC'): "Needs an RHF MNDO job.",
+    ('gaussian-16.desc', 'EMNDO2][EMNDOVEC'): "Needs a UHF MNDO job.",
+    ('gaussian-16.desc', 'EAM11][EAM1VEC'): "Needs an RHF AM1 job.",
+    ('gaussian-16.desc', 'EAM12][EAM1VEC'): "Needs a UHF AM1 job.",
+    ('gaussian-16.desc', 'EPM31][EPM3VEC'): "Needs an RHF PM3 job.",
+    ('gaussian-16.desc', 'EPM32][EPM3VEC'): "Needs a UHF PM3 job.",
 }
 
 
