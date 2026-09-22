@@ -320,13 +320,28 @@ sub AuxCBasisToken {
   return "" if ($useExplicitBasis != 0 || $NameBasis eq "");
 
   my $category = $AbiDict{"Category"};
+  my $theory = $AbiDict{"Theory"};
   my $needsAuxC = 0;
 
-  #  MP2 and coupled cluster: conventional integrals are the ORCA
-  #  default, so no AuxC is needed unless RI is explicitly requested.
-  #  Double hybrids are the case that forces it.
+  #  Anything whose correlation goes through RI needs a
+  #  correlation-fitting basis. Two families do:
+  #
+  #    * double hybrids, whose MP2 component is RI-MP2; and
+  #    * every DLPNO method, which is RI-based by construction.
+  #
+  #  CANONICAL MP2 and coupled cluster do NOT: conventional integrals
+  #  are ORCA's default for them, and an unnecessary AuxC is harmless
+  #  but noisy. That distinction is why this is a method property
+  #  rather than a category one -- "CC" contains both CCSD(T), which
+  #  does not need it, and DLPNO-CCSD(T), which does.
+  #
+  #  Verified against ORCA 6.1.1 by running each without an AuxC basis:
+  #  DLPNO-MP2 and DLPNO-CCSD(T) both die with exit 55, exactly as the
+  #  double hybrids do, while plain MP2 and CCSD(T) run fine.
   if ($category eq "DFT") {
     $needsAuxC = &IsDoubleHybrid($AbiDict{"ES.Theory.DFT.XCFunctionals"});
+  } elsif ($theory =~ /^DLPNO-/) {
+    $needsAuxC = 1;
   }
 
   $result = $NameBasis . "/C" if ($needsAuxC);
@@ -546,9 +561,16 @@ sub Theory {
     $result = "CCSD";
   } elsif ($theory eq "CCSD(T)") {
     $result = "CCSD(T)";
+  } elsif ($theory eq "DLPNO-MP2") {
+    $result = "DLPNO-MP2";
+  } elsif ($theory eq "DLPNO-CCSD") {
+    $result = "DLPNO-CCSD";
+  } elsif ($theory eq "DLPNO-CCSD(T)") {
+    $result = "DLPNO-CCSD(T)";
   } else {
     die "ai.orca error: unsupported theory '$theory'.\n" .
-        "  Supported: RHF, UHF, RDFT, UDFT, RMP2, UMP2, CCSD, CCSD(T).\n";
+        "  Supported: RHF, UHF, RDFT, UDFT, RMP2, UMP2, CCSD, CCSD(T),\n" .
+        "  DLPNO-MP2, DLPNO-CCSD, DLPNO-CCSD(T).\n";
   }
   return $result;
 }

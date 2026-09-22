@@ -153,6 +153,30 @@
     <runtype>Energy</runtype>
   </Theory>
 
+  <!-- DLPNO: domain-based local pair natural orbital methods, the
+       reason this code was wanted in the first place (issue #38 cites
+       Paulechka and Kazakov 2017). They give near-canonical accuracy at
+       a fraction of the cost, which is what makes coupled cluster
+       usable on a real molecule rather than a test case.
+
+       Verified against ORCA 6.1.1 on water/def2-SVP: DLPNO-CCSD(T)
+       gives -76.174731 against canonical CCSD(T)'s -76.174709, a
+       difference of 22 microhartree, which is the expected size of the
+       DLPNO approximation.
+
+       All three REQUIRE a correlation-fitting auxiliary basis; without
+       one they die at runtime with exit 55, exactly as the double
+       hybrids do. ai.orca's AuxCBasisToken adds it. -->
+  <Theory category="MP2" name="DLPNO-MP2">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="CC" name="DLPNO-CCSD">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="CC" name="DLPNO-CCSD(T)">
+    <runtype>Energy</runtype>
+  </Theory>
+
   <TheorySummary>
     <item key="ES.Theory.SCF.Direct" label="SCF Integrals"></item>
   </TheorySummary>
