@@ -216,7 +216,7 @@ the per-display fix existed only in the tree:
     ECCE_GATEWAY_START=$PWD/packaging/gateway/ecce-gateway-start \
       tests/apps/run_tests.py
 
-It is **not** needed now -- 8.10.2 carries the fix and the suite runs against
+It is **not** needed now -- 8.11.0 carries the fix and the suite runs against
 the installed build with no overrides at all. Keep the escape hatch for the
 next time a service script needs changing.
 
