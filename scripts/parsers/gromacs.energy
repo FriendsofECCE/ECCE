@@ -1,0 +1,129 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts energies from a GROMACS mdrun .log block into ECCE's TE and
+# TEVEC properties.
+#
+# SPIKE / PROOF OF CONCEPT. This exists to establish that GROMACS output
+# can be monitored through ECCE's existing eccejobmonitor mechanism at
+# all, as groundwork for docs/GROMACS_ROADMAP.md. It is NOT reachable
+# from the GUI: there is no GROMACS.edml, so no calculation can be
+# created for it. See the roadmap for what a real integration needs.
+#
+# Input is one block of a real mdrun log (verified against GROMACS
+# 2025.2):
+#
+#            Step           Time
+#               2        2.00000
+#
+#    Energies (kJ/mol)
+#         LJ (SR)   Coulomb (SR)   Coul. recip.      Potential Pressure (bar)
+#     2.32600e+03   -9.67730e+03    1.85069e+02   -7.16623e+03    5.66364e+03
+#
+# THE COLUMNS ARE NOT FIXED. Which terms appear depends on the run: a
+# minimisation has no kinetic energy or temperature, an NVT run adds
+# "Kinetic En.", "Total Energy", "Temperature" and a thermostat term, PME
+# adds "Coul. recip.", and so on. So the header line has to be read and
+# the wanted column located by NAME rather than by position -- hardcoding
+# an index would silently read the wrong quantity the first time someone
+# changed the integrator, which is the same class of bug as this
+# project's .desc column assumptions.
+#
+# The header is fixed-width, not whitespace-delimited: "LJ (SR)" and
+# "Coul. recip." both contain spaces. GROMACS writes each field in 15
+# columns, so the header is split on that rather than on whitespace.
+#
+# Units are kJ/mol, which ECCE's EnergyConverter already knows as
+# "kJoule/Mole" -- so unlike Quantum ESPRESSO (whose Rydberg has no entry
+# at all and has to be converted to Hartree by every parser) these can be
+# published as they are.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+use constant FIELD_WIDTH => 15;
+
+my %term;
+my $sawHeader = 0;
+
+#  A block is a SEQUENCE of header/value row pairs, not one pair. GROMACS
+#  wraps at five terms, so a minimisation prints one pair and a dynamics
+#  run prints two:
+#
+#         LJ (SR)   Coulomb (SR)   Coul. recip.      Potential    Kinetic En.
+#     1.37191e+03   -1.02702e+04    1.01441e+02   -8.79686e+03    1.45954e+03
+#    Total Energy  Conserved En.    Temperature Pressure (bar)
+#    -7.33732e+03   -7.33636e+03    3.01028e+02   -8.59611e+02
+#
+#  The first version of this script stopped after the first value row.
+#  It still found "Potential" and so still produced a plausible number
+#  for a dynamics run -- while never seeing "Total Energy", the value it
+#  says it prefers. Silently returning the wrong quantity, which is this
+#  codebase's most repeated failure shape. Found by running an actual
+#  500-step NVT job rather than reasoning about the format.
+while (<STDIN>) {
+  chomp;
+  next if (/^\s*Energies\s*\(/);      # the block marker itself
+  last if (/^\s*$/ && $sawHeader);     # blank line closes the block
+  next if (/^\s*$/);
+
+  #  Header rows contain letters; value rows are numeric only.
+  if (/[A-Za-z]/) {
+    #  Fixed-width, not whitespace-delimited: "LJ (SR)" and
+    #  "Coul. recip." both contain spaces.
+    my $line = $_;
+    my @names = ();
+    while (length($line) > 0) {
+      my $field = substr($line, 0, FIELD_WIDTH);
+      $line = (length($line) > FIELD_WIDTH)
+            ? substr($line, FIELD_WIDTH) : "";
+      $field =~ s/^\s+//;
+      $field =~ s/\s+$//;
+      push(@names, $field) if ($field ne "");
+    }
+    next if (scalar(@names) == 0);
+
+    #  Its value row is the next line.
+    my $values = <STDIN>;
+    last if (!defined($values));
+    chomp($values);
+    my @values = split(' ', $values);
+    next if (scalar(@values) != scalar(@names));
+
+    for (my $i = 0; $i < scalar(@names); $i++) {
+      $term{$names[$i]} = $values[$i];
+    }
+    $sawHeader = 1;
+  }
+}
+
+exit(0) if (!$sawHeader);
+
+#  "Total Energy" is present for a dynamics run; a minimisation prints
+#  only "Potential". Prefer the total when it exists, because that is what
+#  the user means by the energy of an MD frame.
+my $energy;
+foreach my $wanted ("Total Energy", "Potential") {
+  if (defined($term{$wanted})) {
+    $energy = $term{$wanted};
+    last;
+  }
+}
+exit(0) if (!defined($energy));
+
+#  Both keys on every invocation, which is the pattern CLAUDE.md
+#  recommends: the plain overwriting TE ends up holding the last value,
+#  while the step-vector TEVEC accumulates the whole trace from the same
+#  calls. That avoids two .desc entries fighting over one Begin line.
+foreach my $k ("TE", "TEVEC") {
+  print "key: $k\n";
+  print "size:\n1\n";
+  print "values:\n $energy\n";
+  print "units:\nkJoule/Mole\n";
+  print "END\n";
+}
+exit(0);

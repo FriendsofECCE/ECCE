@@ -200,7 +200,91 @@ GROMACS-specific subclass behind a common base), and that is real
 refactoring of working code, not configuration. Budget for it, and do it
 under the dialog/parser suites rather than by inspection.
 
-## 6. Still unverified
+## 6. Spike: what was actually run, 2026-09-22
+
+GROMACS 2025.2 was installed, so the guesses above were checked against
+the real program rather than left as documentation claims. A complete
+chain ran successfully on this machine:
+
+```
+gmx solvate -cs spc216.gro -box 2 2 2 -o box.gro      # 221 SPC waters
+gmx grompp -f em.mdp -c box.gro -p topol.top -o em.tpr
+gmx mdrun -deffnm em            # Steepest Descents converged in 5 steps
+gmx grompp -f md.mdp -c em.gro -p topol.top -o md.tpr
+gmx mdrun -deffnm md            # 500-step NVT, v-rescale, PME, h-bond constraints
+```
+
+**Confirmed, previously inferred:**
+
+* `grompp` really does consume `.mdp` + `.top` + `.gro` and emit a binary
+  `.tpr` (11 KB here) which `mdrun` then executes. The two-step shape in
+  §3.2 is right, and `<LaunchPreprocessor>` is the place for `grompp`.
+* Force fields are enumerable by directory scan: 15 of them in
+  `/usr/share/gromacs/top/*.ff`. So the §3.1 option 2 (a force-field
+  picker) is mechanically straightforward; the hard part is the topology
+  model, not discovering the list.
+
+**Better than expected — monitoring:**
+
+`mdrun`'s `.log` is plain text and unusually well suited to
+`eccejobmonitor`'s Begin/End mechanism, more so than NWChem's
+`ecce_print` trace or MOPAC's blocks:
+
+```
+           Step           Time
+              2        2.00000
+
+   Energies (kJ/mol)
+        LJ (SR)   Coulomb (SR)   Coul. recip.      Potential Pressure (bar)
+    2.32600e+03   -9.67730e+03    1.85069e+02   -7.16623e+03    5.66364e+03
+```
+
+And the units are already known to ECCE: `EnergyConverter` has
+`kJoule/Mole`, so unlike Quantum ESPRESSO — whose Rydberg has no entry at
+all and must be converted by every parser — GROMACS energies can be
+published as they come.
+
+`scripts/parsers/gromacs.energy` is a working proof of that, extracting
+TE and TEVEC from a real block. It is deliberately **not reachable from
+the GUI**: there is no `GROMACS.edml`, so no calculation can be created
+for it. It exists to prove the monitoring path, and to carry the two
+format traps below in its comments.
+
+**Worse than expected — two format traps, both found by running it:**
+
+1. **The energy block WRAPS.** GROMACS prints five terms per row, so a
+   minimisation has one header/value pair and a dynamics run has two:
+
+   ```
+        LJ (SR)   Coulomb (SR)   Coul. recip.      Potential    Kinetic En.
+    1.37191e+03   -1.02702e+04    1.01441e+02   -8.79686e+03    1.45954e+03
+   Total Energy  Conserved En.    Temperature Pressure (bar)
+   -7.33732e+03   -8.13312e+03    3.01028e+02   -8.59611e+02
+   ```
+
+   The first version of the parser stopped after the first value row. It
+   still found `Potential`, so it still produced a plausible energy for a
+   dynamics run — while never seeing `Total Energy`, the value it says it
+   prefers. Silently returning the wrong quantity: this codebase's single
+   most repeated failure shape. Caught only by running an actual NVT job.
+
+2. **Which terms appear depends on the run.** A minimisation has no
+   kinetic energy or temperature; a thermostat adds `Conserved En.`; PME
+   adds `Coul. recip.`. Columns must be located by NAME, and the header
+   is fixed-width rather than whitespace-delimited (`LJ (SR)` and
+   `Coul. recip.` both contain spaces), so it is split on 15-character
+   fields.
+
+**Difficulty estimate, now grounded:** the *monitoring and input
+generation* halves are comparable to the ORCA and MOPAC integrations —
+a `.desc`, a handful of parse scripts, an `.mdp` generator and a
+`grompp` launch preprocessor. What makes GROMACS materially harder than
+those is not the plumbing but §3.1: the topology and force-field model,
+which has no counterpart in ECCE's data model at all, and §5's finding
+that `MDEdBase` is hard-bound to a concrete `NWChemMDModel`. Import-only
+scope avoids the first and still needs the second.
+
+## 7. Still unverified
 
 * Whether `mdprepare` can be bypassed entirely for an imported topology,
   or whether the resource graph requires a `*_md_prepare` node to exist
