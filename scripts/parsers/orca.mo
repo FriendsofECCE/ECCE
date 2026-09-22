@@ -57,6 +57,25 @@ foreach my $line (@lines) {
 }
 push(@segments, [@current]) if (@current);
 
+#  ORCA prints this block in FIXED-WIDTH columns, so a value wide enough to
+#  fill its field runs straight into the previous one with no space between
+#  them -- "0.452636-11.266403" is two coefficients, not one.  Splitting on
+#  whitespace then silently yields one token too few for that row, and the
+#  whole MO table ends up short: PropTable rejects it on load with "input
+#  vector length does not match rows*columns" and the panel gets nothing.
+#  Seen live with a coefficient of -11.266403 (issue #108).
+#
+#  A minus sign directly after a digit can only be the start of the next
+#  number, never part of this one -- this block prints plain decimals, and
+#  an exponent's sign follows an "e"/"E" rather than a digit, so that case
+#  is left alone.
+sub splitFixed {
+  my $text = shift;
+  $text =~ s/(?<=\d)-(?=\d)/ -/g;
+  return split(' ', $text);
+}
+
+
 sub parseSegment {
   my @seglines = @{$_[0]};
   my (@orbEnergy, @orbOcc, %coeff);
@@ -66,13 +85,13 @@ sub parseSegment {
     # header line: only integers and whitespace
     last if ($seglines[$i] !~ /^\s*\d+(\s+\d+)*\s*$/);
     my @idx = split(' ', $seglines[$i]); $i++;
-    my @en  = split(' ', $seglines[$i]); $i++;
-    my @occ = split(' ', $seglines[$i]); $i++;
+    my @en  = &splitFixed($seglines[$i]); $i++;
+    my @occ = &splitFixed($seglines[$i]); $i++;
     $i++; # dashed separator line, discard
     my $row = 0;
     while ($i < @seglines &&
            $seglines[$i] =~ /^\s*\d+[A-Za-z]+\s+\S+\s+(.+)$/) {
-      my @vals = split(' ', $1);
+      my @vals = &splitFixed($1);
       for my $j (0 .. $#idx) {
         $coeff{$idx[$j]}{$row} = $vals[$j];
       }

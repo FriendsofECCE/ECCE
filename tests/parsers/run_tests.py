@@ -357,6 +357,38 @@ def run_case(case, res, verbose=False):
                         rec.get('sections', {}).get('size', [])).split()
                     if dims:
                         sizes[rec['key']] = dims[0]
+    #  A two-dimensional property must carry exactly rows*columns values.
+    #  PropTable::setValues() rejects a mismatch with "input vector length
+    #  does not match rows*columns" (an EE_WARNING with an early return), so
+    #  the panel silently gets nothing -- no parse error, job completes
+    #  normally.  Found live in issue #108: ORCA prints the MO block in
+    #  FIXED-WIDTH columns, and a coefficient wide enough to fill its field
+    #  runs into the previous one ("0.452636-11.266403"), so splitting on
+    #  whitespace lost one value per occurrence.  Only declared 2-D sizes
+    #  are checked; VIB and friends record a leading dimension only, which
+    #  the block above covers instead.
+    for entryType, (entry, recs_per_block) in emitted.items():
+        for block, recs, rc, err in recs_per_block:
+            for rec in recs:
+                dims = ' '.join(
+                    rec.get('sections', {}).get('size', [])).split()
+                if len(dims) != 2:
+                    continue
+                try:
+                    rows, columns = int(dims[0]), int(dims[1])
+                except ValueError:
+                    continue
+                values = ' '.join(
+                    rec.get('sections', {}).get('values', [])).split()
+                values = [v for v in values if v != 'END']
+                if len(values) != rows * columns:
+                    res.check(False, case['name'],
+                              '%s declares %s x %s (%d values) but emitted '
+                              '%d. PropTable rejects the whole table on load '
+                              'and the panel shows nothing, with no error.'
+                              % (rec['key'], dims[0], dims[1],
+                                 rows * columns, len(values)))
+
     reference = sizes.get('VIBFREQ')
     if reference is not None:
         for key in ('VIBIR', 'VIBRAM', 'VIBSYM'):
