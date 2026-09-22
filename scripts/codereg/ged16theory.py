@@ -277,6 +277,7 @@ class Ged16TheoryPanel(EccePanel):
                             "Becke97 (1) (hybrid)",
                             "Becke97 (2) (hybrid)",
                             "PBE1PBE (hybrid)",
+                            "PBEh1PBE (hybrid)",
                             "Becke Half and Half (hybrid)",
                             "Becke Half and LYP Half (hybrid)",
                             "BMK (hybrid)",
@@ -293,6 +294,24 @@ class Ged16TheoryPanel(EccePanel):
                             "wB97 (range)",
                             "wB97X (range)",
                             "LC-wPBE (range)",
+                            #  Issue #100. Each of the three added
+                            #  here was run through the real
+                            #  Gaussian 16 at /opt/gaussian/g16
+                            #  before being offered, not taken from
+                            #  the docs: "SCF Done: E(RLC-wHPBE)",
+                            #  "E(RPBEh1PBE)" and "E(RMN15L)" all
+                            #  confirmed on water/STO-3G.
+                            #
+                            #  xcFuncDefault is an INDEX into this
+                            #  list, so adding entries can silently
+                            #  change which functional is the default.
+                            #  Checked after the fact, not assumed:
+                            #  index 3 still resolves to "PBE0
+                            #  (hybrid)" and index 17 (the reaction
+                            #  study default) to "M06L (meta-GGA)",
+                            #  because all three additions fall after
+                            #  index 17.
+                            "LC-wHPBE (range)",
                             "CAM-B3LYP (range)",
                             "HISSbPBE (range)",
                             "M11 (range)",
@@ -307,6 +326,7 @@ class Ged16TheoryPanel(EccePanel):
                             "M052X (hybrid)",
                             "M08HX (hybrid)",
                             "MN15 (hybrid)",
+                            "MN15L (nonlocal)",
                             "MN15M11 (range)",
                             "MPw3PBE (hybrid)",
                             "PW6B95 (hybrid)",

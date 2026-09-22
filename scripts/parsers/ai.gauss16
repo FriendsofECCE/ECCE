@@ -914,6 +914,12 @@ sub DFTXCFun {
     $result = "wB97X";       
    } elsif ($xcFun eq "LC-wPBE (range)") {
     $result = "LC-wPBE";       
+   } elsif ($xcFun eq "LC-wHPBE (range)") {
+    $result = "LC-wHPBE";
+   } elsif ($xcFun eq "PBEh1PBE (hybrid)") {
+    $result = "PBEh1PBE";
+   } elsif ($xcFun eq "MN15L (nonlocal)") {
+    $result = "MN15L";
    } elsif ($xcFun eq "CAM-B3LYP (range)") {
     $result = "CAM-B3LYP";       
    } elsif ($xcFun eq "HISSbPBE (range)") {
