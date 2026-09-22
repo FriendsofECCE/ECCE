@@ -249,7 +249,8 @@ sub ORCARoute {
   $route .= &RIJCOSXToken . " ";
   $route .= &SCFConvergenceToken . " ";
   $route .= &GeomConvergenceToken . " ";
-  $route .= &FreqMethodToken;
+  $route .= &FreqMethodToken . " ";
+  $route .= &SolvationToken;
   $route =~ s/\s+/ /g;
   $route =~ s/\s+$//;
   return $route;
@@ -273,6 +274,46 @@ sub RIJCOSXToken {
 # emits nothing. Verified against real ORCA 6.1.1: each keyword
 # visibly changes the printed SCF "Convergence Tolerance" TolE/TolErr
 # values.
+# Implicit solvation. ORCA had NONE -- no CPCM, no SMD, nothing -- so
+# every deck ECCE generated was gas phase with no way to say otherwise.
+#
+# CPCM goes on the route card as "! CPCM(<solvent>)". SMD is NOT a route
+# keyword: it is requested through CPCM's own block, which ORCABlocks
+# emits, so this returns nothing for SMD. Verified against the real ORCA
+# 6.1.1 binary -- the block-only form is accepted and genuinely engages
+# the model ("CPCM SOLVATION MODEL", Epsilon 78.3550, "SMD-CDS solvent
+# descriptors" all present in the output for water).
+#
+# Solvent names are kept in lockstep with orcatheory.py's list, every
+# entry of which was checked by submitting "! HF STO-3G CPCM(<name>)" and
+# looking for ORCA's "INPUT ERROR". A name the dialog offers that this
+# sub does not know would silently produce a gas-phase job.
+sub SolvationToken {
+  my $result = "";
+  if ($AbiDict{"ES.Theory.SCF.UseSolvation"} eq "1") {
+    my $model = $AbiDict{"ES.Theory.SCF.SolvationModel"};
+    my $solvent = $AbiDict{"ES.Theory.SCF.Solvent"};
+    $solvent = "water" if ($solvent eq "");
+    #  Compared against an explicit set rather than tested for "not SMD".
+    #  The negative form silently treated ANY unrecognised model as CPCM,
+    #  so a third entry added to the dialog later would quietly run as
+    #  CPCM instead of failing -- the offered-but-unmapped shape this
+    #  project has hit nine times in one afternoon across the Gaussian
+    #  dialogs. The dialog suite flagged it here before it could bite.
+    if ($model eq "CPCM") {
+      $result = "CPCM(" . $solvent . ")";
+    } elsif ($model eq "SMD") {
+      #  Emitted as a %cpcm block by ORCABlocks, not as a route keyword.
+      $result = "";
+    } else {
+      die "ai.orca error: solvation model '$model' is not supported.\n" .
+          "  Supported: CPCM, SMD.\n";
+    }
+  }
+  $_ = $result;
+  return $result;
+}
+
 sub SCFConvergenceToken {
   my %map = (
     "Loose"      => "LooseSCF",
@@ -327,6 +368,15 @@ sub ORCABlocks {
   # alone is enough to make ORCA print a "QUADRUPOLE MOMENT" section; no
   # equivalent flag exists for octupole/hexadecapole moments in ORCA.
   $result .= "%elprop\n  Quadrupole true\nend\n";
+  #  SMD solvation. Unlike CPCM there is no route-card form: ORCA takes
+  #  it inside the %cpcm block. Verified against ORCA 6.1.1 -- this alone
+  #  produces "CPCM SOLVATION MODEL" with the SMD-CDS descriptors.
+  if ($AbiDict{"ES.Theory.SCF.UseSolvation"} eq "1" &&
+      $AbiDict{"ES.Theory.SCF.SolvationModel"} eq "SMD") {
+    my $solvent = $AbiDict{"ES.Theory.SCF.Solvent"};
+    $solvent = "water" if ($solvent eq "");
+    $result .= "%cpcm\n  smd true\n  SMDsolvent \"" . $solvent . "\"\nend\n";
+  }
   # %maxcore is memory per core, in MB -- the Theory Details dialog takes
   # GB (per-core) for UX consistency with the other codes, so convert.
   my $maxcoreGB = $AbiDict{"ES.Theory.SCF.MemorySize"};

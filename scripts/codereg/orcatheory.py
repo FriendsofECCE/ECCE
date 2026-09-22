@@ -154,10 +154,78 @@ class OrcaTheoryPanel(EccePanel):
             dftSizer.AddWidget(self.xcFunc)
             self.panelSizer.Add(dftSizer)
 
+        # SOLVATION -- ORCA had none at all: zero references to CPCM, SMD
+        # or solvation in either this dialog or ai.orca, so every ORCA job
+        # ECCE generated was gas phase with no way to say otherwise.
+        # Offered for every category, because ORCA's CPCM works with HF,
+        # DFT and the correlated methods alike -- the same reasoning as
+        # issue #98 for Gaussian, where solvation was present for DFT and
+        # MP but missing for plain HF.
+        solvSizer = EcceBoxSizer(self, label="Solvation", cols=2)
+
+        self.useSolvation = EcceCheckBox(self,
+                                         label=" Use implicit solvation",
+                                         name="ES.Theory.SCF.UseSolvation",
+                                         default=False,
+                                         export=1)
+        solvSizer.AddWidget(self.useSolvation)
+
+        # CPCM is ORCA's conductor-like polarizable continuum model.
+        # SMD is Truhlar's model, requested through CPCM's own block
+        # (%cpcm smd true / SMDsolvent), not as a separate route keyword.
+        self.solvModel = EcceComboBox(self,
+                                      choices=["CPCM", "SMD"],
+                                      name="ES.Theory.SCF.SolvationModel",
+                                      default=0,
+                                      label="Model:",
+                                      export=1)
+        solvSizer.AddWidget(self.solvModel)
+
+        # EVERY NAME HERE WAS VERIFIED AGAINST THE REAL ORCA 6.1.1
+        # BINARY, not taken from documentation: each was submitted as
+        # "! HF STO-3G CPCM(<name>)" and checked for ORCA's "INPUT ERROR"
+        # response, which is how it rejects an unknown solvent. All 21
+        # were accepted. Keep in lockstep with ai.orca's SolvationToken --
+        # a name this dialog offers that the generator does not know
+        # produces an empty keyword and a silently gas-phase job, which
+        # is the single most repeated bug shape in this codebase.
+        self.solvent = EcceComboBox(self,
+                                    choices=["water",
+                                             "acetonitrile",
+                                             "acetone",
+                                             "ammonia",
+                                             "benzene",
+                                             "CCl4",
+                                             "CH2Cl2",
+                                             "chloroform",
+                                             "cyclohexane",
+                                             "DMF",
+                                             "DMSO",
+                                             "ethanol",
+                                             "heptane",
+                                             "hexane",
+                                             "methanol",
+                                             "nitromethane",
+                                             "octanol",
+                                             "pyridine",
+                                             "THF",
+                                             "toluene"],
+                                    name="ES.Theory.SCF.Solvent",
+                                    default=0,
+                                    label="Solvent:",
+                                    export=1)
+        solvSizer.AddWidget(self.solvent)
+        self.panelSizer.Add(solvSizer)
+
         self.AddButtons()
 
     def CheckDependency(self):
         self.auxBasis.Enable(self.useRIJCOSX.GetValue())
+        # Grey the solvation controls out until solvation is asked for,
+        # matching how auxBasis follows useRIJCOSX above.
+        useSolv = self.useSolvation.GetValue()
+        self.solvModel.Enable(useSolv)
+        self.solvent.Enable(useSolv)
 
 
 frame = OrcaTheoryFrame(None,
