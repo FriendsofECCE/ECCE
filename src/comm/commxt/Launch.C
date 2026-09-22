@@ -2223,7 +2223,24 @@ bool Launch::startJobStore(const string& importDir)
     // opens, and there is nothing anywhere to look at. Log into the job
     // directory instead, beside eccejobstore.conf and the .desc files this
     // same directory already holds.
-    clientCmd += " > eccejobmaster.log 2>&1 &";
+    //  ABSOLUTE PATH into the job directory, not a bare filename.
+    //
+    //  system() inherits this process's cwd, which is $ECCE_HOME/bin --
+    //  the gateway launches every app with `cd $ECCE_HOME/bin &&
+    //  ./<app>`, which is also why "./eccejobmaster" above resolves.
+    //  That directory is ROOT-OWNED in a packaged install, so a bare
+    //  "> eccejobmaster.log" cannot be created, the shell exits
+    //  non-zero, and the launch is reported as
+    //  "Unable to start eccejobmaster" -- for every code.
+    //
+    //  I introduced exactly that regression earlier today while fixing
+    //  the opposite problem (this used to be "> /dev/null 2>&1", which
+    //  threw away the only diagnostic there is when eccejobmaster
+    //  fails). /dev/null is writable from anywhere, which is what hid
+    //  the cwd assumption. The job directory is known writable -- the
+    //  config file named on this same command line was just written
+    //  into it.
+    clientCmd += " > " + p_cache->directory + "/eccejobmaster.log 2>&1 &";
 
 
 #if (!defined(INSTALL) && defined(DEBUG))
