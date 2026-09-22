@@ -55,6 +55,46 @@ The package installs to `/opt/ecce` and drops thin wrapper scripts named
 below runs as a real Apache instance), not just build-time — `dpkg -i` will
 fail to configure without them if `apt-get install` wasn't run first.
 
+### Describing the queues on your own cluster
+
+ECCE needs to know a machine's batch queues — their names, processor and
+time limits, and which queue manager (PBS, SLURM, Moab, LoadLeveler…) it
+runs. There is no GUI for this yet; it is two files.
+
+They used to be readable only from `$ECCE_HOME/siteconfig`, which on a
+packaged install is root-owned, so this needed `sudo`. Your own copies in
+`~/.ECCE/` now take precedence:
+
+1. `~/.ECCE/Queues` — the registry. Start from
+   `/opt/ecce/siteconfig/Queues`:
+
+   ```
+   Queues: mycluster
+
+   mycluster|queueMgrName:   SLURM
+   mycluster|prefFile:       mycluster.Q
+   ```
+
+   `queueMgrName` must be one listed in `/opt/ecce/siteconfig/QueueManagers`.
+
+2. `~/.ECCE/mycluster.Q` — the queues themselves. Start from
+   `/opt/ecce/siteconfig/chinook.Q`:
+
+   ```
+   Queues:    normal
+
+   normal|minProcessors:   1
+   normal|maxProcessors:   256
+   normal|runLimit:        1440
+   normal|memLimit:        0
+   ```
+
+   `runLimit` is in minutes; `memLimit` 0 means no limit.
+
+Note this is an **override, not a merge** — if you create `~/.ECCE/Queues` it
+replaces the site file entirely, so copy across any site machines you still
+want. Issue #95 tracks doing this properly.
+
 ### Running two instances at once
 
 Everything that makes an instance distinct is an environment variable:

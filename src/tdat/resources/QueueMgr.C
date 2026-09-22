@@ -22,6 +22,7 @@
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/Preferences.H"
+#include "util/SFile.H"
 #include "tdat/RefQueueMgr.H"
 #include "tdat/QueueMgr.H"
 #include "tdat/RefMachine.H"
@@ -201,13 +202,48 @@ void QueueManager::finalize(void)
 //    preference file.  Any missing files are a fatal error.
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//  man
+//
+//  Description
+//    Locate a queue configuration file, preferring the user's own copy.
+//
+//    Queue definitions used to be read only from $ECCE_HOME/siteconfig,
+//    which on a packaged install is root-owned -- so describing the queues
+//    on your own cluster meant editing files under /opt as root, and there
+//    was nothing in the GUI to do it with. That is the same problem
+//    RefMachine::configFile() already solves for CONFIG.<machine>, and this
+//    follows it exactly: if $ECCE_REALUSERHOME/.ECCE/<name> exists it wins,
+//    otherwise the site-wide file is used.
+//
+//    Note this is an override, not a merge: a user copy of the "Queues"
+//    registry replaces the site one wholesale rather than adding to it.
+//    That is the simple, predictable behaviour; a proper editor and an
+//    additive merge are a separate piece of work.
+//
+///////////////////////////////////////////////////////////////////////////////
+string QueueManager::queueConfigFile(const string& name)
+{
+  string userCopy = Ecce::realUserPrefPath();
+  userCopy += name;
+
+  SFile userFile(userCopy.c_str());
+  if (userFile.exists())
+    return userCopy;
+
+  string siteCopy = Ecce::ecceHome();
+  siteCopy += "/siteconfig/";
+  siteCopy += name;
+  return siteCopy;
+}
+
+
 void QueueManager::initialize(void)
 {
   if (p_extent == (vector<QueueManager*> *)0) {
     p_extent = new vector<QueueManager*>();
-    string qfile = Ecce::ecceHome();
-    qfile += "/siteconfig/";
-    qfile += QueueManager::queueMgrLoadFile;
+    string qfile =
+        QueueManager::queueConfigFile(QueueManager::queueMgrLoadFile);
 
     Preferences prefs(qfile, true, 0 /*create mode -must exist*/);
     EE_RT_ASSERT(prefs.isValid(), EE_FATAL, "Error!  Must Have a Queues File!");
@@ -230,9 +266,8 @@ void QueueManager::initialize(void)
         string prefFile;
         EE_RT_ASSERT(prefs.getString(name + "|prefFile", prefFile),
                      EE_FATAL, "No Queue Preferences File Specified!");
-        qfile = Ecce::ecceHome();
-        qfile += "/siteconfig/";
-        newObject->fillQueuesFrom(qfile + prefFile);
+        newObject->fillQueuesFrom(
+            QueueManager::queueConfigFile(prefFile));
       }
 #ifdef DEBUG
       cout << *newObject << endl;

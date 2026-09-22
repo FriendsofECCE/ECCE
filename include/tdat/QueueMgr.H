@@ -100,6 +100,12 @@ public:
     virtual string key(void) const;
     static const QueueManager* lookup(const string& name);
 
+    // Path of a queue configuration file, preferring the user's own copy in
+    // $ECCE_REALUSERHOME/.ECCE over the root-owned site one -- the same
+    // fallback RefMachine::configFile() uses for CONFIG.<machine>. Public so
+    // it can be exercised without standing up a whole QueueManager.
+    static string queueConfigFile(const string& name);
+
   // Queues Access
     const ESQHDict* queues(void) const;
     ESQHDict*       selectQueues(const QueueSpec& queueSpec) const;
@@ -128,6 +134,7 @@ private:
 
   // Statics
     static const char* queueMgrLoadFile;
+
     static vector<QueueManager*> *p_extent;
 
   // Friends
