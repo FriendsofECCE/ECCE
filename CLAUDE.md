@@ -19,6 +19,16 @@ intentionally *not* a running log of past sessions. For that, see
   branch from or compare against them.
 - Build directory is `build-cmake` (not `cmake-build`) — `ninja` or
   `cmake --build .` from inside it.
+- **The Gateway window no longer appears** (#93, 2026-09-22). `ecce`
+  starts the services and opens the **Organizer** directly, which is now
+  the front door: the launcher entries live on its File menu (New
+  Structure) and Tools menu (Register Machines, Machine Browser,
+  Periodic Table). The Gateway *process* is unchanged and still owns the
+  session — JMS, service startup, `ecce_get_app`, Quit-and-Stop-Server —
+  only its frame is hidden, which is one guarded `Show()` call. To get
+  the old window back for a session: `ECCE_GATEWAY_WINDOW=1 ecce`. If a
+  UI decision like this needs reversing, prefer that env var to a
+  revert.
 - `GETTING_STARTED.md` (repo root) has the full build/package/install/
   first-login walkthrough. Don't reproduce it here.
 - **Memory settings should be entered/labeled in GB everywhere, for
@@ -337,6 +347,73 @@ Both per-user, both non-root, both started automatically by the
   job/comm layer, general utilities. No wx dependency.
 
 ### Known pitfall classes (found more than once — check for siblings)
+- **A code's theory NAME must not equal its CATEGORY.** `CalcEd::
+  getTheoryName()` reverses `populateTheories()`'s display convention —
+  the combo shows `name()` for every theory except one literally named
+  `"None"`, where it shows `category()` — and it used to detect that
+  case by comparing the label against the category. For Quantum
+  ESPRESSO, whose theory is `category="PW" name="PW"`, that returned
+  `("PW","None")`: a theory in no `.edml`. **Two unrelated-looking
+  faults followed from it**, which is why it took a while to see:
+  `JCode::theoryNeedsBasis()` returns `true` for a theory it cannot
+  find, so the Basis Set Tool stayed enabled for a plane-wave code
+  *despite* `needsBasis="false"` being correct; and `populateRuntypes()`
+  found nothing, giving "No runtypes are supported for the given
+  code/theory combination" with nothing to edit or launch. Fixed by
+  asking the code whether a `"None"`-named theory exists rather than
+  inferring it from the label. Audited: QE was the only code where name
+  equals category, which is why it survived every other integration —
+  but check it when adding one.
+- **CalcEd used to discard the input generator's error message.**
+  `execout()` captures the generator's stdout+stderr into `message`, and
+  the failure branch overwrote it with a generic "input parsing command
+  ... failed". Every `ai.<code>` validates in its main flow and dies with
+  something specific and actionable — `ai.qe`'s periodicity check even
+  names the Builder panel to use — and none of it reached the screen.
+  Fixed (the generator's output now leads the message), but the lesson
+  generalises: when a script's diagnostics are the only explanation of a
+  failure, check that whatever shells out to it actually shows them.
+  Same shape as `eccejobmaster` logging to `/dev/null`.
+- **Open Inventor's redraw sensor is a ONE-SHOT that re-arms on render,
+  and with a render callback installed nothing re-arms it.** This was
+  #99: stepping a geometry trace moved the atoms once and then never
+  again. `GTStepCmd` ran every step with changing coordinates,
+  `SGFragment::getAtomCoordinates()` reads `TAtm` live so the scene
+  always had fresh data, `touchChemDisplay()` and `sgfrag->touch()` were
+  both called — and `SoWxRenderArea::renderCB` was entered for step 0
+  and then *not once* for the thirteen steps after it. The redraw was
+  never requested. Fixed by calling `SGViewer::refreshRenderArea()` at
+  the end of `processStep()`, which forces a wx paint and does not
+  depend on that sensor; applied to `GeomTracePropertyPanel` and
+  `NModePanel`. **Two plausible theories were disproved on the way and
+  should not be revisited**: the render cache (disabling caching
+  process-wide changed nothing) and a stranded `p_redrawPending` in
+  `OnPaint` (that retry path is fine — it never had a callback to
+  service). If a viewer stops updating while the data demonstrably
+  changes, instrument `renderCB` first: `ECCE_DEBUG_GEOMTRACE=1` prints
+  `[RENDERCB]` lines alongside the step trace, and their *absence* is
+  the finding.
+- **A parser with nothing able to request its input is dead code, and
+  the suite will not tell you.** `orca.desc` parsed `CHELPG Charges`
+  into ESPCHARGE from the day ORCA was integrated, but neither
+  `ai.orca` nor the runtype dialog could ever put `CHELPG` on the route
+  card, so the property never appeared for any job (#88). The parse
+  type simply never fired, which looks identical to "no fixture
+  exercises it". When adding extraction for a property, check that
+  something can *ask the code to produce it* — and when a parse type
+  never fires, establish which of the two it is (see
+  `tests/parsers/cases.py`'s `KNOWN_DEAD` vs `UNCOVERED`, and the gate
+  that now forces every non-firing entry to be classified).
+- **"The code accepted the keyword" is not "the keyword works."** All
+  eleven ORCA correlated/double-hybrid keywords passed ORCA's input
+  check; two of them then died at runtime — double hybrids route their
+  correlation through RI-MP2 and need a `<basis>/C` auxiliary basis
+  (`ERROR: RI-MP2 needs an AuxC basis but none was defined!`, exit 55).
+  Offering them without it would have shipped decks that always fail,
+  *after* reaching a queue. Run a real job, not a syntax check. The same
+  discipline found that GROMACS's double-row energy blocks and QE's
+  header-carried units both silently produce wrong values rather than
+  none.
 - **`ai.<code>`'s template engine silently swallows `die()`** (#92).
   `modifyInputFile` resolves every `##tag##` through `eval "&$subname"`,
   so a `die` inside a resolver — or anything it calls — is caught, the
@@ -543,6 +620,13 @@ Both per-user, both non-root, both started automatically by the
   that a symptom is this bug rather than a data problem. Fixed with a
   pending-redraw flag (`p_redrawPending`) that `OnPaint()` checks and
   acts on once the in-flight paint finishes.
+  **UPDATE 2026-09-22: that fix is correct but was not the cause of
+  #99.** The `p_redrawPending` retry path works; it simply never had a
+  callback to service, because the scene manager's redraw sensor is a
+  one-shot that re-arms on render and nothing re-armed it. See the
+  one-shot entry in the pitfall list above. Do not re-investigate
+  `p_inPaint`/`p_redrawPending` for a "viewer stops updating" symptom
+  without first checking whether `renderCB` is entered at all.
 - **OPEN, UNRESOLVED (2026-09-17): the Vibrational Frequencies panel's
   Animation/Vector radio box doesn't deliver its click event under
   wx3.2/GTK3** — confirmed live via strace (syscall-level, a synthetic
