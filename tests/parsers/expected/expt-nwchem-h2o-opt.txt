@@ -10,9 +10,9 @@ charge:	0
 num_atoms:	3
 atom_info:	symbol cart
 atom_list:
-O 0 0 0
-H 0 0 0.96
-H 0.926 0 -0.24
+ O -0.15019108 -0.00009839 0.00000000
+ H 0.48199253 -0.76124639 0.00000000
+ H 0.48925752 0.75490937 0.00000000
 
 === .param
 title:	\| "water opt freq test with ecce_print distinct ext"

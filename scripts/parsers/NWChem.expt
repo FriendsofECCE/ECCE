@@ -164,6 +164,62 @@ sub writeDictAndMVM {
 #    This could probably be broken up into subroutine rather nicely...
 #
 ############################################################################## 
+##############################################################################
+#
+#  Description:
+#      Read NWChem's own final-geometry table.
+#
+#      An optimisation prints "Output coordinates in angstroms" once per
+#      step; the LAST one is the converged structure, and a user importing a
+#      finished job expects that rather than the starting guess.
+#
+#      The pre-existing "geometry from the output" path keys on
+#      "begin%cartesian coordinates" / "begin%atomic tags" -- ECCE's own
+#      trace markers, which never appear in an externally run job, the same
+#      reason the echoed input deck could not be found before.
+#
+#      Done as its own pass over the file rather than inside
+#      parseInputFile's loop: that loop stops as soon as it has what it came
+#      for, which on a real optimisation is long before the last geometry
+#      (measured: it reached block 2 of 6). Seeking back and scanning the
+#      whole file is both simpler and immune to wherever it happens to stop.
+#
+##############################################################################
+sub getFinalGeometry {
+  @outSymbols = ();
+  @outX = (); @outY = (); @outZ = ();
+
+  seek(INPUT, 0, 0);
+  while (<INPUT>) {
+    next if (!/Output coordinates in angstroms/);
+
+    $_ = <INPUT>;   # blank
+    $_ = <INPUT>;   # No.  Tag  Charge  X  Y  Z
+    $_ = <INPUT>;   # ------------------------------
+    my (@symbols, @xs, @ys, @zs);
+    while (<INPUT>) {
+      last if (/^\s*$/);
+      if (/^\s*\d+\s+(\S+)\s+[-\d.]+\s+(\S+)\s+(\S+)\s+(\S+)/) {
+        # Capture all four BEFORE any other match runs: the s/// below
+        # resets $1..$4, which silently produced atoms with no coordinates.
+        my ($tag, $cx, $cy, $cz) = ($1, $2, $3, $4);
+        my $sym = $tag;
+        $sym =~ s/^([A-Za-z]{1,2}).*$/$1/;
+        push(@symbols, ucfirst(lc($sym)));
+        push(@xs, $cx); push(@ys, $cy); push(@zs, $cz);
+      } else {
+        last;
+      }
+    }
+    # Later blocks replace earlier ones, so the last table wins.
+    if (@symbols > 0) {
+      @outSymbols = @symbols;
+      @outX = @xs; @outY = @ys; @outZ = @zs;
+    }
+  }
+}
+
+
 sub parseInputFile {
 
   # This used to be within the MP section which presumably means
@@ -772,6 +828,24 @@ sub parseInputFile {
   # one.
   $charge = 0 if (!defined($charge) || $charge =~ /^\s*$/);
   $numberOfElectrons = $totalNuclearCharge - $charge;
+
+  &getFinalGeometry;
+
+  ########################################################################
+  # Prefer NWChem's own final geometry when the file has one: for an
+  # optimisation that is the converged structure, whereas the echoed input
+  # deck only ever holds the starting guess.
+  ########################################################################
+  if (@outSymbols > 0) {
+    $atomSection = "atom_info:\tsymbol cart\n";
+    $atomSection .= "atom_list:\n";
+    for (my $i = 0; $i < @outSymbols; $i++) {
+      $atomSection .= " $outSymbols[$i] $outX[$i] $outY[$i] $outZ[$i]\n";
+    }
+    $centerNum = scalar(@outSymbols);
+    # The suffix list came from the echoed deck and no longer lines up.
+    $suffixCheck = 0;
+  }
 
   $molecule = "title:\t$title\n";
   $molecule .= "type:\tmolecule\n";

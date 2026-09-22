@@ -56,7 +56,12 @@ CASES = [
     dict(name="expt-nwchem-h2o-opt", script="NWChem.expt",
          output="nwchem/h2o_opt_stdout.out",
          expect=dict(natoms=3, symbols=["O", "H", "H"], charge="0",
-                     Category="SCF", Theory="RHF", RunType="Geometry")),
+                     Category="SCF", Theory="RHF", RunType="Geometry"),
+         # The CONVERGED geometry: the last "Output coordinates in
+         # angstroms" table, not the echoed input deck's starting guess.
+         geometry=[("O", -0.15019108, -0.00009839, 0.0),
+                   ("H", 0.48199253, -0.76124639, 0.0),
+                   ("H", 0.48925752, 0.75490937, 0.0)]),
 
     dict(name="expt-orca-h2o-nmr", script="ORCA.expt",
          output="orca/h2o_nmr_chelpg.out",
@@ -93,18 +98,17 @@ NOTES = """
   atoms, exit status 0. It now also accepts NWChem's own "echo of input
   deck" banner, and defaults a missing charge to neutral.
 
-  Two gaps remain for NWChem, both tracked rather than fixed:
+  The geometry gap is now closed too: NWChem's native "Output coordinates
+  in angstroms" tables are read in their own pass over the file, and the
+  last one wins, so a finished optimisation imports the structure it
+  converged to. That pass is deliberately separate from parseInputFile's
+  loop, which stops as soon as it has what it came for -- on a real
+  optimisation that was block 2 of 6.
 
-  - It reconstructs the INPUT geometry, not the optimised one. Unlike the
-    Gaussian importers (fixed) this is not a one-line change: the path that
-    reads geometry from the output rather than the echo keys on
-    "begin%cartesian coordinates" / "begin%atomic tags", which are again
-    ECCE's own trace markers. Reading NWChem's native "Output coordinates in
-    angstroms" tables is new code, and the case's `geometry` assertion is
-    deliberately absent until it exists.
-  - No .gbs at all for a library basis ("* library STO-3G"). The basis
-    branch handles only an explicit primitive specification -- its own
-    comment says so -- so a named library reference produces nothing.
+  One gap remains, tracked rather than fixed: no .gbs at all for a library
+  basis ("* library STO-3G"). The basis branch handles only an explicit
+  primitive specification -- its own comment says so -- so a named library
+  reference produces nothing.
 
 * GAMESS-UK.expt, Gaussian-03/09/94/98.expt have no cases either, purely for
   want of fixture output.  Gaussian-03/09/98 share Gaussian-16's lineage
