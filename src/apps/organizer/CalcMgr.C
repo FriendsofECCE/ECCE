@@ -688,7 +688,21 @@ void CalcMgr::OnMenuSupportClick( wxCommandEvent& event )
  */
 void CalcMgr::OnCloseWindow( wxCloseEvent& event )
 {
-  Destroy();
+  //  Closing the window with the title-bar X must do what File > Quit
+  //  does. It used to just Destroy(), which was survivable while the
+  //  Gateway had a window of its own -- you still had something on
+  //  screen and an obvious way out. With the Gateway hidden (#93) that
+  //  left an invisible process still owning the session: the terminal
+  //  never came back and the services kept running, with nothing left
+  //  to stop them from. Reported live 2026-09-22.
+  //
+  //  Shares confirmAndQuit() with the menu path rather than duplicating
+  //  the dialog, so the two cannot drift apart -- and vetoes the close
+  //  if the user cancels, which a menu Quit has no need to do.
+  if (!confirmAndQuit()) {
+    event.Veto();
+    return;
+  }
   event.Skip();
 }
 
@@ -724,7 +738,13 @@ void CalcMgr::OnNewStructureClick( wxCommandEvent& event )
  * confirm dialog, matching Gateway::exitGateway() exactly so the behaviour
  * does not depend on which window you quit from.
  */
-void CalcMgr::OnExitClick( wxCommandEvent& event )
+/**
+ * Ask, then quit. Returns false if the user cancelled, so the caller
+ * handling a close EVENT can veto it -- a menu Quit has nothing to veto,
+ * but the title-bar X does, and without that a cancelled quit closed the
+ * window anyway.
+ */
+bool CalcMgr::confirmAndQuit()
 {
   ewxMessageDialog dlg(this, "Do you really want to quit?", "Quit ECCE",
                        wxOK|wxCANCEL|wxICON_QUESTION, wxDefaultPosition);
@@ -732,7 +752,7 @@ void CalcMgr::OnExitClick( wxCommandEvent& event )
   int result = dlg.ShowModal();
 
   if (result == wxID_CANCEL)
-    return;
+    return false;
 
   Destroy();
 
@@ -745,7 +765,15 @@ void CalcMgr::OnExitClick( wxCommandEvent& event )
     (void)system("ecce-dataserver-stop");
   }
 
-  event.Skip();
+  return true;
+}
+
+
+void CalcMgr::OnExitClick( wxCommandEvent& event )
+{
+  if (confirmAndQuit()) {
+    event.Skip();
+  }
 }
 
 

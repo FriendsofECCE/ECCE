@@ -94,6 +94,8 @@ public:
   void OnExportClick( wxCommandEvent& event );
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXIT
+  bool confirmAndQuit();
+
   void OnExitClick( wxCommandEvent& event );
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_DUPLICATE

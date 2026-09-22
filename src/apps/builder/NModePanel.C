@@ -14,6 +14,7 @@
 #include "util/PreferenceLabels.H"
 
 #include "tdat/PropVector.H"
+#include "tdat/PropVecString.H"
 
 #include "dsm/ICalculation.H"
 #include "dsm/IPropCalculation.H"
@@ -458,6 +459,17 @@ void NModePanel::fillTable()
 
 
       int nRows = vec->rows();
+
+      //  The "Sym" column used to show VIBFREQ's ROW LABELS, which most
+      //  parsers emit as plain mode numbers -- so it displayed 1, 2,
+      //  3... instead of Mulliken symbols. Reported for MOPAC, but ORCA
+      //  emits numeric row labels too, so it was never code-specific.
+      //
+      //  Meanwhile VIBSYM, which mopac.desc and orca.desc both extract,
+      //  was not read by this panel at all: a correctly parsed property
+      //  with no consumer. Read it here, and keep the row labels as the
+      //  fallback for a code that carries its symmetries there instead.
+      PropVecString *symvec = (PropVecString*) expt->getProperty("VIBSYM");
       const vector<string> *syms = vec->rowLabels();
       INTERNALEXCEPTION(syms,"No symmetry labels - gotta have 'em");
 
@@ -466,7 +478,9 @@ void NModePanel::fillTable()
       for (int idx=0; idx<nRows; idx++) {
          p_grid->SetCellValue(idx,0,
                wxString::Format (PrefLabels::DOUBLEFORMAT, vec->value(idx)));
-         if (syms && syms->size()>0) {
+         if (symvec != (PropVecString*)0 && idx < symvec->rows()) {
+            p_grid->SetCellValue(idx,1,symvec->value(idx).c_str());
+         } else if (syms && syms->size()>0) {
             p_grid->SetCellValue(idx,1,(*syms)[idx].c_str());
          }
 
@@ -476,7 +490,12 @@ void NModePanel::fillTable()
          }
 
          if (rvec != (PropVector*)0) {
-            p_grid->SetCellValue(idx,2,
+            //  Column 3, not 2. This wrote into column 2 -- the Infrared
+            //  column -- so for any code emitting both VIBIR and VIBRAM
+            //  the Raman value overwrote the infrared one and the Raman
+            //  column was NEVER populated, for every code. The headers
+            //  above have always said 2=Infrared, 3=Raman.
+            p_grid->SetCellValue(idx,3,
                   wxString::Format (PrefLabels::DOUBLEFORMAT, rvec->value(idx)));
          }
       }
