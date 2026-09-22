@@ -121,6 +121,7 @@ class Fallback(object):
     """
 
     SILENT = "silent"            # else { $result = ""; }  -> setting vanishes
+    DEFAULTS_EMPTY = "defaults-empty"   # opt-in switch; empty IS the default
     PASSTHROUGH = "passthrough"  # $map{$x} || $x          -> forwarded verbatim
     DIES = "dies"                # else { die ... }        -> reported (since #92)
     INLINE = "inline"            # compared in place, no single resolver
@@ -160,6 +161,8 @@ class Trace(object):
 
     @property
     def severity(self):
+        if Fallback.DEFAULTS_EMPTY in self.fallbacks:
+            return Fallback.DEFAULTS_EMPTY
         if Fallback.SILENT in self.fallbacks:
             return Fallback.SILENT
         if Fallback.PASSTHROUGH in self.fallbacks:
@@ -440,6 +443,16 @@ class Generator(object):
             return Fallback.PASSTHROUGH
         if re.search(r'else\s*\{[^{}]*\bdie\b', body):
             return Fallback.DIES
+        # An opt-in switch, not a lookup table: the result is initialised to
+        # "" and a keyword is emitted only for the values that need one, with
+        # no else clause anywhere. ai.gauss16's StationaryPointType is the
+        # pattern -- "Minimum" is Gaussian's default and correctly produces
+        # nothing, so reporting it as a dropped setting is wrong. A real
+        # lookup table always ends in an else.
+        if (not re.search(r'\belse\b', body)
+                and re.search(r'(?:local|my)\s*\(?\$\w+\)?\s*=\s*""\s*;',
+                              body)):
+            return Fallback.DEFAULTS_EMPTY
         if re.search(r'else\s*\{\s*\$\w+\s*\.?=\s*["\']["\']\s*;', body):
             return Fallback.SILENT
         if not re.search(r'\belse\b', body):

@@ -188,6 +188,9 @@ def _explain(severity, unreachable):
     return {
         Fallback.SILENT:
             "the setting is SILENTLY DROPPED and the job runs without it",
+        Fallback.DEFAULTS_EMPTY:
+            "nothing -- this resolver only emits a keyword for the "
+            "non-default values, so an unmatched one IS the default",
         Fallback.PASSTHROUGH:
             "the string is passed through verbatim for the code to judge",
         Fallback.DIES:
