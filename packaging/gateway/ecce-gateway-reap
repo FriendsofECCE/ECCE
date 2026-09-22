@@ -1,0 +1,170 @@
+#!/bin/bash
+# ecce-gateway-reap: shut down JMSDispatcher relays and the ActiveMQ
+# broker that no longer belong to a live ECCE session.
+#
+# Issue #102. The gateway used to start the broker and the dispatcher as
+# detached background processes and tear them down only from
+# ecce-gateway-stop -- i.e. only on a *clean* exit. When the gateway
+# aborted instead (SIGABRT from the JMSMessage.C:497 assertion, in the
+# reported case) the two Java processes were simply left behind, and
+# nothing on the next start noticed: ecce-gateway-start early-exits when
+# it sees the broker port already listening, so the next session silently
+# adopted the orphan rather than cleaning it up. On beryllium that
+# accumulated ~3.2 GB of resident memory over ten days in which nobody
+# had an ECCE session open.
+#
+# Two call sites, matching the two halves of the fix:
+#
+#   ecce-gateway-reap              full sweep. Called at the top of
+#                                  ecce-gateway-start, so a session that
+#                                  died badly is cleaned up before the
+#                                  next one decides what to adopt.
+#
+#   ecce-gateway-reap --if-idle    called from every messaging app
+#                                  wrapper's EXIT trap. Does nothing
+#                                  while any ECCE app is still running on
+#                                  this display; when the last one exits
+#                                  -- however it exits, including on an
+#                                  abort, because the trap is in the
+#                                  wrapper shell and not in the app --
+#                                  it takes the session's services down
+#                                  with it.
+#
+# Liveness is decided by looking for running ECCE binaries, not by
+# reference counting, deliberately: a pid-file scheme only knows about
+# processes started after it shipped, and would have to be correct on
+# every abnormal-exit path to avoid the very leak it is meant to prevent.
+# Asking the process table cannot go stale.
+
+set -u
+
+ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
+ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
+STATEDIR="$ECCE_REALUSERHOME/.ECCE"
+HOST="${ECCE_HOST:-${HOST:-$(hostname)}}"
+BROKER_PORT="${ECCE_BROKER_PORT:-8088}"
+ACTIVEMQ_BASE="$STATEDIR/activemq"
+UID_="$(id -u)"
+
+IF_IDLE=0
+if [ "${1:-}" = "--if-idle" ]; then IF_IDLE=1; fi
+
+[ -d "$STATEDIR" ] || exit 0
+
+say() { [ -n "${ECCE_REAP_QUIET:-}" ] || echo "ecce-gateway-reap: $*"; }
+
+BINDIR="$(readlink -f "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")"
+
+# Pids of ECCE app binaries running for a given DISPLAY, for this user.
+#
+# Identified by /proc/<pid>/exe, NOT by matching the command line. Apps
+# launched from the gateway are spawned as `cd $ECCE_HOME/bin && ./builder`
+# (WxJMSMessageDispatch.C), so their command line is the bare "./builder"
+# -- a path match would miss every gateway-launched app and conclude the
+# session was idle while the user had windows open. /proc/<pid>/exe is the
+# resolved binary either way.
+#
+# DISPLAY is not on the command line either, so it is read back out of the
+# process's own environment; both are readable without privilege for one's
+# own processes.
+apps_for_display() {
+  local want="$1" pid exe disp
+  for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
+    [ -O "/proc/$pid" ] || continue
+    exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
+    case "$exe" in
+      "$BINDIR"/*) ;;
+      *) continue ;;
+    esac
+    [ -r "/proc/$pid/environ" ] || continue
+    disp="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
+            sed -n 's/^DISPLAY=//p' | head -n1)"
+    if [ "$disp" = "$want" ]; then echo "$pid"; fi
+  done
+}
+
+# Wait for a pid to actually go away, escalating if it will not.
+reap_pid() {
+  local pid="$1" i=0
+  kill "$pid" 2>/dev/null
+  while [ $i -lt 40 ] && kill -0 "$pid" 2>/dev/null; do
+    i=$((i + 1)); sleep 0.25
+  done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -9 "$pid" 2>/dev/null
+  fi
+}
+
+# --- 1. JMSDispatcher relays, one per display --------------------------
+dispatchers_left=0
+for pidfile in "$STATEDIR"/jmsdispatcher_*.pid; do
+  [ -e "$pidfile" ] || continue
+
+  disp="${pidfile##*/jmsdispatcher_}"
+  disp="${disp%.pid}"
+  pid="$(cat "$pidfile" 2>/dev/null)"
+
+  if [ -z "${pid:-}" ] || ! kill -0 "$pid" 2>/dev/null; then
+    # Dispatcher already gone; only the bookkeeping is stale. Drop the
+    # port file too, or JMSMessage.C reads a dead port out of it.
+    rm -f "$pidfile" "$STATEDIR/${HOST}_${disp}"
+    continue
+  fi
+
+  if [ -n "$(apps_for_display "$disp")" ]; then
+    # Still in use. In --if-idle mode that includes the display we were
+    # called for, which is the whole point: the wrapper trap fires when
+    # each app exits, and only the last one finds nothing left.
+    dispatchers_left=$((dispatchers_left + 1))
+    continue
+  fi
+
+  say "no ECCE app left on $disp -- stopping JMSDispatcher (pid $pid)"
+  reap_pid "$pid"
+  rm -f "$pidfile" "$STATEDIR/${HOST}_${disp}"
+done
+
+# Pidfile written before the gateway was made per-display; it cannot be
+# attributed to a session, so it is only ever noise.
+rm -f "$STATEDIR/jmsdispatcher.pid"
+
+if [ "$dispatchers_left" -gt 0 ]; then
+  exit 0
+fi
+
+# --- 2. The broker, shared by every display ----------------------------
+# Only reached when no display has a live dispatcher, so nothing can be
+# talking to it.
+brokerpid=""
+if [ -f "$STATEDIR/activemq.pid" ]; then
+  brokerpid="$(cat "$STATEDIR/activemq.pid" 2>/dev/null)"
+  if [ -n "${brokerpid:-}" ] && ! kill -0 "$brokerpid" 2>/dev/null; then
+    brokerpid=""
+    rm -f "$STATEDIR/activemq.pid"
+  fi
+fi
+
+if [ -z "${brokerpid:-}" ]; then
+  # No usable pidfile: either an orphan predating this script, or one
+  # whose pidfile was removed. Match on -Dactivemq.base, which names this
+  # user's own state directory -- precise enough not to touch another
+  # user's broker, or a second instance of our own on another base.
+  brokerpid="$(pgrep -u "$UID_" -f "activemq.base=$ACTIVEMQ_BASE" 2>/dev/null | head -n1)"
+fi
+
+if [ -n "${brokerpid:-}" ]; then
+  say "no ECCE session left -- stopping ActiveMQ broker (pid $brokerpid)"
+  reap_pid "$brokerpid"
+  rm -f "$STATEDIR/activemq.pid"
+
+  # ecce-gateway-start decides whether to start a broker by probing the
+  # port, so do not return until it has actually been released, or a
+  # restart immediately after a reap adopts a socket that is going away.
+  i=0
+  while [ $i -lt 40 ]; do
+    (exec 3<>"/dev/tcp/localhost/$BROKER_PORT") >/dev/null 2>&1 || break
+    i=$((i + 1)); sleep 0.25
+  done
+fi
+
+exit 0

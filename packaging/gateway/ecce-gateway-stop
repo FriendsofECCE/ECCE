@@ -29,13 +29,19 @@ fi
 # clean one up so it cannot be mistaken for this session's.
 rm -f "$STATEDIR/jmsdispatcher.pid"
 
-# The ActiveMQ launcher (bin/activemq) doesn't leave its own pidfile in
-# this config, so find it by matching the same command line pattern the
-# old install_ecce stop_ecce_message_server.ecce used.
-mqpid="$(ps -eo pid,args | grep 'org.apache.activemq' | grep -v grep | awk '{print $1}' | head -n1)"
-if [ -n "${mqpid:-}" ]; then
-  kill "$mqpid"
-  echo "ecce-gateway-stop: stopped ActiveMQ broker (pid $mqpid)"
+# The broker is shared by every display, so stopping it here would cut
+# messaging out from under a session running on another one. Hand that
+# decision to ecce-gateway-reap, which stops it only once no display has
+# a live dispatcher left -- which, having just stopped ours, is the
+# common case for a single-display machine.
+#
+# ecce-gateway-start now records the broker's pid in $STATEDIR/activemq.pid;
+# before that it had to be found by matching "org.apache.activemq" in the
+# process table, which could not tell our broker apart from another
+# user's, or from a second instance of our own.
+ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
+if [ -x "$ECCE_HOME/bin/ecce-gateway-reap" ]; then
+  "$ECCE_HOME/bin/ecce-gateway-reap" || true
 else
-  echo "ecce-gateway-stop: ActiveMQ broker not running"
+  echo "ecce-gateway-stop: ecce-gateway-reap not installed -- leaving the broker running" >&2
 fi

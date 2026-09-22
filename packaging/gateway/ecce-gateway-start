@@ -52,6 +52,17 @@ port_open() {
   (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1
 }
 
+# --- 0. Clean up after a session that died badly -----------------------
+# Issue #102: an aborted gateway left the broker and its JMSDispatcher
+# running, and the port check below would then happily adopt the orphan --
+# so nothing ever cleaned it up, and a machine nobody was using
+# accumulated gigabytes of stranded Java. The sweep only touches services
+# whose display has no live ECCE app, so it cannot disturb a session that
+# is genuinely running, including one on another display.
+if [ -x "$ECCE_HOME/bin/ecce-gateway-reap" ]; then
+  "$ECCE_HOME/bin/ecce-gateway-reap" || true
+fi
+
 # --- 1. ActiveMQ broker -----------------------------------------------
 if port_open "$BROKER_PORT"; then
   echo "ecce-gateway-start: broker already listening on $BROKER_PORT"
@@ -124,6 +135,11 @@ else
         -Dactivemq.data="$ACTIVEMQ_BASE/data" \
         -jar "$ACTIVEMQ_HOME/bin/activemq.jar" start \
         >"$STATEDIR/activemq.log" 2>&1 &
+      # Recorded so ecce-gateway-reap and ecce-gateway-stop can identify
+      # this broker exactly, rather than pattern-matching the process
+      # table. $! is the java process itself: nohup execs, it does not
+      # fork.
+      echo $! >"$STATEDIR/activemq.pid"
     )
     i=0
     while [ $i -lt 60 ]; do

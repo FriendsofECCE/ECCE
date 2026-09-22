@@ -634,6 +634,7 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-start
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-stop
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-status
+          ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-reap
         DESTINATION bin)
 install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/activemq.xml.ecce
         DESTINATION server/activemq-conf
@@ -641,7 +642,7 @@ install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/activemq.xml.ecce
 
 # Also put the gateway control scripts on PATH directly (like the ecce-<app>
 # wrappers) so `ecce-gateway-status` etc. work without needing $ECCE_HOME.
-foreach(_gw start stop status)
+foreach(_gw start stop status reap)
   set(_gw_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-gateway-${_gw})
   file(WRITE ${_gw_wrapper}
 "#!/bin/bash
@@ -857,9 +858,18 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
     # data-server (EDSI/WebDAV) access, per EDSIServerCentral::
     # checkServerSetup() -- see ecce-dataserver-start.
     set(_dataserver_start "if [ -z \"$ECCE_NO_DATASERVER\" ]; then \"$ECCE_HOME/bin/ecce-dataserver-start\" || true; fi")
+    # Issue #102: the app is run, not exec'd, so this wrapper shell
+    # outlives it and its EXIT trap runs however the app terminated --
+    # including the SIGABRT that stranded the broker and a JMSDispatcher
+    # for ten days on beryllium. ecce-gateway-reap --if-idle does nothing
+    # while any other ECCE app is still up on this display, so only the
+    # last one out turns the lights off.
+    set(_app_exec "trap 'ECCE_REAP_QUIET=1 \"$ECCE_HOME/bin/ecce-gateway-reap\" --if-idle >/dev/null 2>&1 || true' EXIT
+\"$ECCE_HOME/bin/${_app}\" \"$@\"")
   else()
     set(_gateway_start "")
     set(_dataserver_start "")
+    set(_app_exec "exec \"$ECCE_HOME/bin/${_app}\" \"$@\"")
   endif()
   file(WRITE ${_wrapper}
 "#!/bin/bash
@@ -886,7 +896,7 @@ fi
 export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 ${_gateway_start}
 ${_dataserver_start}
-exec \"$ECCE_HOME/bin/${_app}\" \"$@\"
+${_app_exec}
 ")
   install(PROGRAMS ${_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
 endforeach()
@@ -928,7 +938,8 @@ export ECCE_INVOKE_VIEWER=1
 export ECCE_INVOKE_FROMECCE=1
 if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi
 if [ -z \"$ECCE_NO_DATASERVER\" ]; then \"$ECCE_HOME/bin/ecce-dataserver-start\" || true; fi
-exec \"$ECCE_HOME/bin/builder\" \"$@\"
+trap 'ECCE_REAP_QUIET=1 \"$ECCE_HOME/bin/ecce-gateway-reap\" --if-idle >/dev/null 2>&1 || true' EXIT
+\"$ECCE_HOME/bin/builder\" \"$@\"
 ")
 install(PROGRAMS ${_viewer_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
 
