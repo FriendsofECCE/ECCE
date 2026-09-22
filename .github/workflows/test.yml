@@ -1,0 +1,114 @@
+name: Test
+
+# Runs the three regression suites.  Separate from build.yml on purpose:
+# that workflow answers "does this compile and package on five platforms",
+# which is a different question and a different failure mode from "does it
+# still behave".
+#
+# The suites are deliberately tiered by what they need, and the first two
+# need remarkably little -- no display, no ECCE services, no install, no
+# build at all:
+#
+#   parsers  real chemistry-code output -> the real eccejobmonitor
+#            Begin/Skip/End algorithm -> the real scripts/parsers scripts.
+#            python3 + perl.  ~1 min.
+#   dialogs  the real scripts/codereg dialogs, run headless under
+#            broadwayd (GTK3's displayless backend -- no X server at all),
+#            diffed against what each ai.<code> generator recognises.
+#            + wxPython.  ~2 min.
+#   apps     every installed wx-linked C++ app started on Xvfb with
+#            software OpenGL, checked that it opens a window and stays up.
+#            Needs a build, an install, and a per-user data server; hence
+#            its own job.  ~6 min.
+#
+# build.yml's header used to say running the GUI apps needed "a lot more
+# complexity than a build-and-package health check warrants".  That was a
+# fair call when it was written; in practice it came down to `apt install
+# xvfb` plus letting the app wrapper start its own services, so the apps
+# job below exists now.  The other two never needed any of that.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  scripts:
+    name: Parsers and dialogs (no build, no display)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          # perl: the parser scripts are Perl and are run for real.
+          # python3-wxgtk4.0: the codereg dialogs are wxPython and are run
+          #   for real.
+          # libgtk-3-bin: provides broadwayd, which lets those dialogs run
+          #   with no X server at all.
+          sudo apt-get install -y perl python3 python3-wxgtk4.0 libgtk-3-bin
+
+      - name: Parser / property pipeline suite
+        run: tests/parsers/run_tests.py
+
+      - name: Code-registration dialog suite
+        run: tests/dialogs/run_tests.py
+
+  apps:
+    name: GUI apps (build, install, Xvfb)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential gfortran cmake ninja-build \
+            libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
+            libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
+            default-jdk ant git dpkg-dev
+
+      - name: Install runtime dependencies
+        run: |
+          # apache2: the data server is a real per-user Apache instance,
+          #   and dpkg -i cannot configure the package without it.
+          # xvfb: headless X.  These apps link GLX for the Open Inventor
+          #   viewer, so broadwayd (used by the dialogs suite) is not an
+          #   option -- it serves no GLX.
+          # libgl1-mesa-dri: llvmpipe, the software renderer that actually
+          #   answers those GLX calls.  Without it the apps get no GL and
+          #   the suite says so on startup.
+          # x11-utils: xdpyinfo/xwininfo/glxinfo, used to see whether a
+          #   window actually appeared.
+          # python3-wxgtk4.0: pulled in because the installed package's
+          #   codereg dialogs need it at runtime.
+          sudo apt-get install -y \
+            apache2 apache2-utils xvfb libgl1-mesa-dri x11-utils \
+            activemq python3-wxgtk4.0 || true
+
+      - name: Build
+        run: |
+          cmake -G Ninja -B build-cmake
+          cmake --build build-cmake
+
+      - name: Package and install
+        working-directory: build-cmake
+        run: |
+          cpack -G DEB
+          sudo dpkg -i ecce_*_amd64.deb
+
+      - name: GUI application smoke suite
+        run: tests/apps/run_tests.py -v
+
+      - name: Collect service logs on failure
+        if: failure()
+        run: |
+          # These live in the per-user state dir and are the first thing
+          # anyone debugging a red run here will want.
+          for f in "$HOME"/.ECCE/*.log; do
+            [ -f "$f" ] && { echo "=== $f"; tail -50 "$f"; }
+          done || true

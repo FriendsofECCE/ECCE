@@ -1,9 +1,15 @@
 name: Build
 
 # Build + package (cpack) on each platform, uploaded as workflow
-# artifacts. This does NOT install or run the GUI apps -- that needs a
-# display (Xvfb) and per-user service setup (see GETTING_STARTED.md), a
-# lot more complexity than a build-and-package health check warrants.
+# artifacts. This does NOT install or run anything -- see test.yml, which
+# runs the three regression suites.
+#
+# (This header used to say that installing and running the GUI apps needed
+# "a lot more complexity than a build-and-package health check warrants".
+# That turned out to be `apt install xvfb` plus letting the app wrapper
+# start its own services, so test.yml does it now. The parser and dialog
+# suites need neither a display nor services and run on every push in
+# about three minutes.)
 # Packaging itself needs neither: cpack just archives already-built
 # binaries, no display involved. The goal is early, continuous signal on
 # "does this even compile (and package) here", especially for platforms

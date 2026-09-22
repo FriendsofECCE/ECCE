@@ -979,4 +979,37 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
+  # tests/dialogs -- the GUI-side sibling of the above: runs the real
+  # scripts/codereg dialogs headlessly (broadwayd, GTK3's displayless
+  # backend; falls back to xvfb; SKIPs cleanly with neither) and diffs what
+  # each dialog offers against what the matching ai.<code> generator
+  # recognises, in both directions.  Needs python3 + wxPython, no build and
+  # no ECCE services.  See tests/dialogs/README.md.
+  #
+  #     cd build-cmake && ctest -R dialogs --output-on-failure
+  add_test(NAME dialogs
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/run_tests.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs)
+
+  # tests/apps -- the third tier: starts every INSTALLED wx-linked ECCE app
+  # on a headless X server with software OpenGL (Xvfb + llvmpipe; broadway
+  # cannot be used here because these apps link GLX for the Open Inventor
+  # viewer), waits for a window, and watches it for a few seconds.  That is
+  # the shape of the wx3.2/GTK3 bugs this port keeps hitting -- #78 crashed
+  # during construction, the layout-reentrancy class crashes after Show()
+  # returns -- and nothing else in the tree notices either.
+  #
+  # This one tests /opt/ecce, NOT the build tree, so package and install
+  # before trusting a green run.  It SKIPs cleanly with nothing installed or
+  # no Xvfb.  See tests/apps/README.md.
+  #
+  #     cd build-cmake && ctest -R apps --output-on-failure
+  add_test(NAME apps
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/run_tests.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  # Generous: 20 apps x (window wait + settle), plus broker startup.
+  set_tests_properties(apps PROPERTIES TIMEOUT 1800)
 endif()

@@ -1,0 +1,26 @@
+ES.Runtype.Vibration.FiniteStepSize|0.001|Angstrom|0|0|float_input
+ES.Runtype.Vibration.Method|Analytic||1|0|menu_input
+ES.Theory.CreateCheckpoint|1||1|1|toggle_input
+ES.Theory.DFT.CorrelationFunctionals|VWN 5 (local)||0|1|menu_input
+ES.Theory.DFT.ExchangeFunctionals|Slater (local)||0|1|menu_input
+ES.Theory.DFT.GridDensity|Ultra Fine||1|0|menu_input
+ES.Theory.DFT.UseGD3BJ|0||1|1|toggle_input
+ES.Theory.DFT.XCFunctionals|PBE0 (hybrid)||1|1|menu_input
+ES.Theory.SCF.ConvergenceAlgorithm|DIIS||1|0|menu_input
+ES.Theory.SCF.ConvergenceDensity.Value|0.0001||1|0|float_input
+ES.Theory.SCF.ConvergenceIterations|64||1|0|integer_input
+ES.Theory.SCF.Dielectric|78.4|Debye|0|0|float_input
+ES.Theory.SCF.Direct|Direct||1|0|menu_input
+ES.Theory.SCF.InitialGuess|Gaussian Guess||1|0|menu_input
+ES.Theory.SCF.LevelShift|0||1|0|toggle_input
+ES.Theory.SCF.LevelShiftSize|0.1|Hartree|0|1|float_input
+ES.Theory.SCF.Memory|1||1|0|toggle_input
+ES.Theory.SCF.MemorySize|6|Gigabytes|1|1|integer_input
+ES.Theory.SCF.SCRF|PCM||0|0|menu_input
+ES.Theory.SCF.Solvent|Water||0|0|menu_input
+ES.Theory.SCF.UseSCRF|0||1|0|toggle_input
+ES.Theory.UseAIM|0||1|1|toggle_input
+ES.Theory.UseCartesian|0||1|1|toggle_input
+ES.Theory.UseMayer|0||1|1|toggle_input
+ES.Theory.UseNBO|0||1|1|toggle_input
+ES.Theory.UseSymmetry|0||1|1|toggle_input
