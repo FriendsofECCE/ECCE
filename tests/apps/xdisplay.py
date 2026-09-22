@@ -124,9 +124,20 @@ class Display(object):
         return found
 
     def hasGL(self):
-        result = subprocess.run(["glxinfo", "-display", self.name, "-B"],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL)
+        """True when GLX is answering. Unknown counts as "probably fine".
+
+        glxinfo lives in mesa-utils, which is not installed everywhere, and
+        this is a diagnostic rather than a requirement -- the apps
+        themselves will fail loudly if they really cannot get a context. A
+        missing tool must not take the whole suite down, which is exactly
+        what it did on its first CI run.
+        """
+        try:
+            result = subprocess.run(["glxinfo", "-display", self.name, "-B"],
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.DEVNULL)
+        except (FileNotFoundError, OSError):
+            return None
         return b"direct rendering: Yes" in result.stdout
 
 

@@ -137,6 +137,35 @@ class Display(object):
             "BROADWAY_DISPLAY": ":%d" % number,
             "DISPLAY": "",
         }
+        self._waitUntilUsable()
+
+    def _waitUntilUsable(self):
+        """Wait until a GTK client can actually connect, not just until the
+        port is bound.
+
+        broadwayd binds its port before it is ready to serve, and on a slow
+        machine the gap is big enough to matter: the first CI run of this
+        suite failed the first two codes alphabetically with "Unable to
+        access the X Display" and then succeeded for all the rest. Probing
+        with a real wx client is the only check that means anything here.
+        """
+        environment = dict(os.environ)
+        environment.update(self.env)
+        probe = "import wx; wx.App(); raise SystemExit(0)"
+        deadline = time.time() + 30
+        lastError = ""
+        while time.time() < deadline:
+            result = subprocess.run([sys.executable, "-c", probe],
+                                    env=environment,
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.PIPE)
+            if result.returncode == 0:
+                return
+            lastError = result.stderr.decode("utf-8", "replace").strip()
+            time.sleep(0.5)
+        raise HarnessUnavailable(
+            "broadwayd is listening but no wx client can connect: %s"
+            % lastError[-300:])
 
     def __exit__(self, *exc):
         if self._proc is not None:

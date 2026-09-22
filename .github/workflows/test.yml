@@ -82,13 +82,14 @@ jobs:
           # libgl1-mesa-dri: llvmpipe, the software renderer that actually
           #   answers those GLX calls.  Without it the apps get no GL and
           #   the suite says so on startup.
-          # x11-utils: xdpyinfo/xwininfo/glxinfo, used to see whether a
-          #   window actually appeared.
+          # x11-utils: xdpyinfo/xwininfo, used to see whether a window
+          #   actually appeared. glxinfo is in mesa-utils, separately.
+          # mesa-utils: glxinfo, only to report whether GL is working.
           # python3-wxgtk4.0: pulled in because the installed package's
           #   codereg dialogs need it at runtime.
           sudo apt-get install -y \
             apache2 apache2-utils xvfb libgl1-mesa-dri x11-utils \
-            activemq python3-wxgtk4.0 || true
+            mesa-utils activemq python3-wxgtk4.0
 
       - name: Build
         run: |

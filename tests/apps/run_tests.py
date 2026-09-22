@@ -251,9 +251,13 @@ def main():
     before = apps.serviceState()
     results = Results()
     try:
+        gl = display.hasGL()
         print("display: %s (GL: %s)"
-              % (display.name, "yes" if display.hasGL() else "NO -- the "
-                 "viewer apps will not render"))
+              % (display.name,
+                 "yes" if gl else
+                 ("unknown -- glxinfo not installed (mesa-utils)"
+                  if gl is None else
+                  "NO -- the viewer apps will not render")))
         serviceLog = []
         apps.startServices(display, serviceLog)
         for line in serviceLog:
