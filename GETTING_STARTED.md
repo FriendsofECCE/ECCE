@@ -55,6 +55,37 @@ The package installs to `/opt/ecce` and drops thin wrapper scripts named
 below runs as a real Apache instance), not just build-time — `dpkg -i` will
 fail to configure without them if `apt-get install` wasn't run first.
 
+### Installing without root
+
+`sudo dpkg -i` is the right thing for a real install, but it is a poor fit
+for development: every time you want to check a C++ change in the running
+app, you need a password. The install location is a build option, so you can
+put a second copy somewhere writable and skip that entirely:
+
+```
+cmake -B build-user -GNinja \
+      -DCMAKE_INSTALL_PREFIX=$HOME/.local/ecce \
+      -DECCE_HOME_DIR=$HOME/.local/ecce \
+      -DECCE_WRAPPER_DESTINATION=$HOME/.local/bin
+cmake --build build-user --target install
+```
+
+With `$HOME/.local/bin` on your `PATH`, `ecce-builder` and friends then run
+that copy. Both options default to `/opt/ecce` and `/usr/bin`, so the `.deb`
+and an ordinary build are unaffected.
+
+`tests/apps` can point at it too, which means the GUI suite no longer needs
+root either:
+
+```
+ECCE_TEST_HOME=$HOME/.local/ecce ECCE_TEST_WRAPPERS=$HOME/.local/bin \
+  tests/apps/run_tests.py
+```
+
+Both installs share `~/.ECCE`, so they share the data server, the gateway and
+your saved calculations. That is usually what you want, but it does mean the
+two cannot run at the same time on one display.
+
 ## 4. Start the background services
 
 ECCE has always been a client/server app; this fork packages both server

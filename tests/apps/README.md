@@ -73,6 +73,30 @@ Also wired into CTest:
 
     cd build-cmake && ctest -R apps --output-on-failure
 
+## Testing an install that needed no root
+
+`/opt/ecce` is root-owned, so testing a C++ change used to mean asking
+somebody to run `sudo dpkg -i`. It does not have to: the install location is
+a build option.
+
+    cmake -B build-user -GNinja \
+          -DCMAKE_INSTALL_PREFIX=$HOME/.local/ecce \
+          -DECCE_HOME_DIR=$HOME/.local/ecce \
+          -DECCE_WRAPPER_DESTINATION=$HOME/.local/bin
+    cmake --build build-user --target install
+
+    ECCE_TEST_HOME=$HOME/.local/ecce \
+    ECCE_TEST_WRAPPERS=$HOME/.local/bin \
+      tests/apps/run_tests.py
+
+Both default to `/opt/ecce` and `/usr/bin`, so packaging and an ordinary run
+are unaffected.
+
+Note the two installs share `~/.ECCE`, so they share the data server, the
+gateway and the per-app preferences. That is usually what you want — the
+same calculations are visible from both — but it does mean the two cannot
+run at the same time on one display.
+
 ## It tests the INSTALLED build
 
 Unlike the other two suites, this one is not build-independent — it runs what

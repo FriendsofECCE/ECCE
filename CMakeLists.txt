@@ -128,6 +128,28 @@ ecce_library(ecceutil
 )
 target_compile_definitions(ecceutil PRIVATE ECCE_VERSION=\"${ECCE_VERSION_RAW}\")
 
+# ------------------------------------------------------------------------
+# Where an installed ECCE lives, and where its ecce-<app> wrappers go.
+#
+# Both default to what the .deb ships (/opt/ecce and /usr/bin), so packaging
+# is unaffected. They are cache variables so that a developer can install to
+# somewhere writable and skip sudo entirely:
+#
+#   cmake -B build-user -GNinja \
+#         -DCMAKE_INSTALL_PREFIX=$HOME/.local/ecce \
+#         -DECCE_HOME_DIR=$HOME/.local/ecce \
+#         -DECCE_WRAPPER_DESTINATION=$HOME/.local/bin
+#   cmake --build build-user --target install
+#
+# That matters for more than convenience: tests/apps can only exercise an
+# INSTALLED build, so without this every test of a C++ change needs root.
+# ------------------------------------------------------------------------
+set(ECCE_HOME_DIR "/opt/ecce" CACHE PATH
+    "Directory an installed ECCE runs from; wrappers export it as ECCE_HOME")
+set(ECCE_WRAPPER_DESTINATION "/usr/bin" CACHE PATH
+    "Where the ecce-<app> wrapper scripts are installed")
+
+
 # --- src/tdat -> libeccetdat.a ---
 ecce_library(eccetdat
   src/tdat/calcorg
@@ -623,11 +645,11 @@ foreach(_gw start stop status)
   set(_gw_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-gateway-${_gw})
   file(WRITE ${_gw_wrapper}
 "#!/bin/bash
-export ECCE_HOME=/opt/ecce
+export ECCE_HOME=${ECCE_HOME_DIR}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 exec \"$ECCE_HOME/bin/ecce-gateway-${_gw}\" \"$@\"
 ")
-  install(PROGRAMS ${_gw_wrapper} DESTINATION /usr/bin)
+  install(PROGRAMS ${_gw_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
 endforeach()
 
 # ------------------------------------------------------------------------
@@ -653,12 +675,12 @@ foreach(_ds start stop status adduser)
   set(_ds_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-dataserver-${_ds})
   file(WRITE ${_ds_wrapper}
 "#!/bin/bash
-export ECCE_HOME=/opt/ecce
+export ECCE_HOME=${ECCE_HOME_DIR}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export ECCE_REALUSER=\${ECCE_REALUSER:-\$(id -un)}
 exec \"$ECCE_HOME/bin/ecce-dataserver-${_ds}\" \"$@\"
 ")
-  install(PROGRAMS ${_ds_wrapper} DESTINATION /usr/bin)
+  install(PROGRAMS ${_ds_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
 endforeach()
 
 # ------------------------------------------------------------------------
@@ -841,7 +863,7 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
   endif()
   file(WRITE ${_wrapper}
 "#!/bin/bash
-export ECCE_HOME=/opt/ecce
+export ECCE_HOME=${ECCE_HOME_DIR}
 export ECCE_REALUSER=\${ECCE_REALUSER:-$(id -un)}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
@@ -866,7 +888,7 @@ ${_gateway_start}
 ${_dataserver_start}
 exec \"$ECCE_HOME/bin/${_app}\" \"$@\"
 ")
-  install(PROGRAMS ${_wrapper} DESTINATION /usr/bin)
+  install(PROGRAMS ${_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
 endforeach()
 
 # Plain "ecce" is what people actually expect to type -- gateway is the
@@ -881,7 +903,7 @@ file(WRITE ${_ecce_wrapper}
 "#!/bin/bash
 exec ecce-gateway \"$@\"
 ")
-install(PROGRAMS ${_ecce_wrapper} DESTINATION /usr/bin)
+install(PROGRAMS ${_ecce_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
 
 # "Viewer" isn't a separate build target -- the legacy scripts/viewer
 # csh wrapper (not packaged, along with the rest of scripts/ -- see the
@@ -895,7 +917,7 @@ install(PROGRAMS ${_ecce_wrapper} DESTINATION /usr/bin)
 set(_viewer_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-viewer)
 file(WRITE ${_viewer_wrapper}
 "#!/bin/bash
-export ECCE_HOME=/opt/ecce
+export ECCE_HOME=${ECCE_HOME_DIR}
 export ECCE_REALUSER=\${ECCE_REALUSER:-$(id -un)}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
@@ -908,7 +930,7 @@ if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || 
 if [ -z \"$ECCE_NO_DATASERVER\" ]; then \"$ECCE_HOME/bin/ecce-dataserver-start\" || true; fi
 exec \"$ECCE_HOME/bin/builder\" \"$@\"
 ")
-install(PROGRAMS ${_viewer_wrapper} DESTINATION /usr/bin)
+install(PROGRAMS ${_viewer_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
 
 # ------------------------------------------------------------------------
 # CPack: build a .deb instead of the old install_ecce self-extracting

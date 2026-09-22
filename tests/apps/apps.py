@@ -30,8 +30,13 @@ import signal
 import subprocess
 import time
 
-WRAPPERS = "/usr/bin"
-INSTALL = "/opt/ecce"
+# Where the installed ECCE being tested lives.  Overridable so a developer
+# can test a build installed somewhere writable instead of /opt/ecce -- see
+# ECCE_HOME_DIR / ECCE_WRAPPER_DESTINATION in CMakeLists.txt.  Without that,
+# testing any C++ change needs root, which is a poor property for the one
+# suite that exists to catch packaging and startup problems.
+INSTALL = os.environ.get("ECCE_TEST_HOME", "/opt/ecce")
+WRAPPERS = os.environ.get("ECCE_TEST_WRAPPERS", "/usr/bin")
 
 
 class Result(object):
