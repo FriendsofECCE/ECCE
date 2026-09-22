@@ -1,0 +1,32 @@
+# expt-orca-h2o-optfreq
+# ORCA.expt orca/h2o_optfreq.out
+# Golden record of what the importer DOES, not of what it
+# should do -- see expt_cases.NOTES before changing one.
+
+=== .frag
+title:	h2o_optfreq
+type:	molecule
+charge:	0
+num_atoms:	3
+atom_info:	symbol cart
+atom_list:
+ O 0.000000 0.000000 0.123868
+ H 0.000000 0.758080 -0.511934
+ H 0.000000 -0.758080 -0.511934
+
+=== .param
+title:	h2o_optfreq
+version:	6.1.1
+Category:	SCF
+Theory:	RHF
+RunType:	GeoVib
+Charge:	0
+ChemSys.Multiplicity:	1
+
+=== .gbs
+NameBasis
+basis "ao basis" spherical print
+H library "sto-3g"
+O library "sto-3g"
+END
+EndNameBasis

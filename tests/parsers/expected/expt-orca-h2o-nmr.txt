@@ -1,0 +1,32 @@
+# expt-orca-h2o-nmr
+# ORCA.expt orca/h2o_nmr_chelpg.out
+# Golden record of what the importer DOES, not of what it
+# should do -- see expt_cases.NOTES before changing one.
+
+=== .frag
+title:	h2o_nmr_chelpg
+type:	molecule
+charge:	0
+num_atoms:	3
+atom_info:	symbol cart
+atom_list:
+ O 0.000000 0.000000 0.117300
+ H 0.000000 0.757200 -0.469200
+ H 0.000000 -0.757200 -0.469200
+
+=== .param
+title:	h2o_nmr_chelpg
+version:	6.1.1
+Category:	SCF
+Theory:	RHF
+RunType:	Magnetic
+Charge:	0
+ChemSys.Multiplicity:	1
+
+=== .gbs
+NameBasis
+basis "ao basis" spherical print
+O library "sto-3g"
+H library "sto-3g"
+END
+EndNameBasis

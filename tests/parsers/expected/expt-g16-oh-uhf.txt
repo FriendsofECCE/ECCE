@@ -1,0 +1,36 @@
+# expt-g16-oh-uhf
+# Gaussian-16.expt gaussian-16/oh_uhf.log
+# Golden record of what the importer DOES, not of what it
+# should do -- see expt_cases.NOTES before changing one.
+
+=== .frag
+title:	OH radical UHF single point
+type:	molecule
+charge:	0
+num_atoms:	2
+atom_info:	symbol cart
+atom_list:
+ O 0.000000 0.000000 0.107778
+ H 0.000000 0.000000 -0.862222
+
+=== .param
+title:	\|OH radical UHF single point
+version:	16
+architecture:	ES64L
+Category:	SCF
+Theory:	UHF
+RunType:	Energy
+charge:	0
+ES.ChemSys.Multiplicity:	2
+StartDate:	\|Sep 21, 2026
+StartTime:	\|11:00:04
+EndDate:	\|Sep 21, 2026
+EndTime:	\|11:00:04
+
+=== .gbs
+NameBasis
+basis "ao basis" cartesian
+  H library "STO-3G"
+  O library "STO-3G"
+END
+EndNameBasis

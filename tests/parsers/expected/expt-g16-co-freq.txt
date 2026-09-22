@@ -1,0 +1,36 @@
+# expt-g16-co-freq
+# Gaussian-16.expt gaussian-16/co_freq.log
+# Golden record of what the importer DOES, not of what it
+# should do -- see expt_cases.NOTES before changing one.
+
+=== .frag
+title:	CO diatomic frequency test
+type:	molecule
+charge:	0
+num_atoms:	2
+atom_info:	symbol cart
+atom_list:
+ C 0.000000 0.000000 -0.644571
+ O 0.000000 0.000000 0.483429
+
+=== .param
+title:	\|CO diatomic frequency test
+version:	16
+architecture:	ES64L
+Category:	SCF
+Theory:	RHF
+RunType:	Vibration
+charge:	0
+ES.ChemSys.Multiplicity:	1
+StartDate:	\|Sep 21, 2026
+StartTime:	\|12:34:47
+EndDate:	\|Sep 21, 2026
+EndTime:	\|12:34:48
+
+=== .gbs
+NameBasis
+basis "ao basis" cartesian
+  C library "STO-3G"
+  O library "STO-3G"
+END
+EndNameBasis

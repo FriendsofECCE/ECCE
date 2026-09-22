@@ -1,0 +1,37 @@
+# expt-g16-h2o-ccsdt
+# Gaussian-16.expt gaussian-16/h2o_ccsdt.log
+# Golden record of what the importer DOES, not of what it
+# should do -- see expt_cases.NOTES before changing one.
+
+=== .frag
+title:	water CCSD(T) - exercises MP2/CCSD energy branches
+type:	molecule
+charge:	0
+num_atoms:	3
+atom_info:	symbol cart
+atom_list:
+ O 0.000000 0.000000 0.117790
+ H 0.000000 0.755450 -0.471160
+ H 0.000000 -0.755450 -0.471160
+
+=== .param
+title:	\|water CCSD(T) - exercises MP2/CCSD energy branches
+version:	16
+architecture:	ES64L
+Category:	CC
+Theory:	RCCSD(T)
+RunType:	Energy
+charge:	0
+ES.ChemSys.Multiplicity:	1
+StartDate:	\|Sep 21, 2026
+StartTime:	\|17:44:30
+EndDate:	\|Sep 21, 2026
+EndTime:	\|17:44:33
+
+=== .gbs
+NameBasis
+basis "ao basis" cartesian
+  H library "6-31G"
+  O library "6-31G"
+END
+EndNameBasis

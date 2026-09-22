@@ -124,7 +124,13 @@ sub parseKeywordLine {
       $sawOpt, $sawFreq, $sawEnGrad, $sawNMR, $sawUnsupportedRuntype);
   foreach my $tok (@tokens) {
     my $ucTok = uc($tok);
-    if ($ucTok eq "HF") { $sawHF = 1; }
+    # RHF as well as HF: ai.orca only ever emits bare "HF" for a
+    # closed-shell job, which is what the comment above means by "the
+    # vocabulary ai.orca itself generates" -- but ORCA accepts RHF too and
+    # people write it, and an imported job is by definition one ECCE did
+    # not generate. Without this, a perfectly ordinary "! RHF STO-3G Opt
+    # Freq" run imported with no Category and no Theory at all.
+    if ($ucTok eq "HF" || $ucTok eq "RHF") { $sawHF = 1; }
     elsif ($ucTok eq "UHF") { $sawUHF = 1; }
     elsif ($ucTok eq "RKS") { $sawRKS = 1; }
     elsif ($ucTok eq "UKS") { $sawUKS = 1; }

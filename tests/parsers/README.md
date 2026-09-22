@@ -191,13 +191,43 @@ Keep fixtures small.  The whole `fixtures/` tree is currently ~460 KB and
 should stay in that order of magnitude; a 1 MB output file for one assertion
 is not worth it.
 
-## What is deliberately NOT covered
+## The post-hoc importers (`*.expt`)
 
-* The `*.expt` full-output post-hoc parsers (`Gaussian-16.expt`,
-  `NWChem.expt`, ...) and the basis-set import path (`rdStandardGBS.pm` and
-  friends).  Those are a different pipeline with a different entry point;
-  they deserve their own cases here later, and issue #29 is live work in
-  exactly that area.
+A second, separate pipeline, covered since the live-monitor cases above.
+`eccejobmonitor` tails a *running* job; an `.expt` script is handed a
+*finished* output file and reconstructs the calculation from it:
+
+    <Code>.expt <outfile>   ->   <out>.frag    structure, mvm format
+                                 <out>.param   title, theory, runtype, charge
+                                 <out>.gbs     basis set
+
+That is the path taken when a job run outside ECCE is imported, and the one
+issue #94 (dummy submission, for 2FA-blocked HPC) would rely on almost
+entirely.  It had no coverage at all.
+
+Nine cases reuse the same fixture output files as the live cases, so this
+cost no new checked-in data.  They are light on assertions and heavy on
+golden files on purpose: these are the oldest, least-touched scripts here,
+and several of their behaviours are arguable rather than wrong.  The
+arguable ones are written down in `expt_cases.NOTES` so a golden diff can be
+read with context — most importantly that the Gaussian importers take the
+**first** "Standard orientation" in the file, so importing a completed
+optimisation reconstructs the *starting* structure.  Whether that is wrong
+depends on whether `.frag` is meant to describe the calculation's setup or
+its result; it matters for #94 and should be settled before building on it.
+
+Found while writing these: `ORCA.expt` recognised `HF`/`UHF`/`RKS`/`UKS` but
+not `RHF`, because it was written against the vocabulary `ai.orca` itself
+emits — so an ordinary externally-run `! RHF STO-3G Opt Freq` job imported
+with no Category and no Theory at all.  Fixed.
+
+Still uncovered: `NWChem.expt` (the nwchem fixtures here are `.eprint` trace
+files, which is what the *live* monitor consumes — this needs a captured
+stdout), `GAMESS-UK.expt` and `Gaussian-03/09/94/98.expt` (no fixture output
+yet), and the basis-set import path (`rdStandardGBS.pm` and friends; issue
+\#29 is live work there).
+
+## What is deliberately NOT covered
 * The `File=`-rule parse types (`fort.7`, `grid.dat`): `PDMatchListCreate`
   excludes them from line matching, and they are fed whole auxiliary files
   rather than matched blocks.

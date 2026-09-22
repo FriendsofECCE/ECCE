@@ -403,6 +403,94 @@ def coverage_report(res, ran_cases, verbose):
     return lines
 
 
+def run_expt_cases(res, args):
+    """The post-hoc importers: <Code>.expt on a finished output file.
+
+    A different pipeline from everything above -- eccejobmonitor tails a
+    running job, these reconstruct a calculation from a completed file --
+    and the one issue #94 (dummy submission) would rely on almost entirely.
+    It had no coverage at all before.
+    """
+    import expt
+    import expt_cases
+
+    if not expt_cases.CASES:
+        return
+    print()
+    for case in expt_cases.CASES:
+        t0 = time.time()
+        name = case['name']
+        try:
+            produced = expt.run(case['script'],
+                                os.path.join(FIXTURES, case['output']))
+        except expt.ExptError as exc:
+            res.check(False, name, str(exc))
+            continue
+
+        res.check(produced['returncode'] == 0, name,
+                  '%s exited %d\n%s' % (case['script'], produced['returncode'],
+                                        produced['stderr'].strip()))
+        for extension in expt.PRODUCTS:
+            res.check(extension in produced, name,
+                      '%s produced no %s file' % (case['script'], extension))
+
+        atoms = expt.atoms(produced.get('.frag'))
+        params = expt.params(produced.get('.param'))
+        expect = dict(case.get('expect') or {})
+
+        if 'natoms' in expect:
+            want = expect.pop('natoms')
+            res.check(len(atoms) == want, name,
+                      'expected %d atoms in the .frag, got %d'
+                      % (want, len(atoms)))
+        if 'symbols' in expect:
+            want = expect.pop('symbols')
+            got = [a[0] for a in atoms]
+            res.check(got == want, name,
+                      'expected atoms %s, got %s' % (want, got))
+        for key, want in expect.items():
+            res.check(params.get(key) == want, name,
+                      '.param %s is %r, expected %r'
+                      % (key, params.get(key), want))
+
+        golden_path = os.path.join(EXPECTED, name + '.txt')
+        golden = make_expt_golden(case, produced)
+        if args.update:
+            with open(golden_path, 'w') as fh:
+                fh.write(golden)
+            print('  updated %s' % os.path.relpath(golden_path, HERE))
+        elif not os.path.exists(golden_path):
+            res.check(False, name,
+                      'no golden file %s -- run with --update and review the '
+                      'result before committing it'
+                      % os.path.relpath(golden_path, HERE))
+        else:
+            with open(golden_path) as fh:
+                want = fh.read()
+            if want != golden:
+                diff = list(difflib.unified_diff(
+                    want.splitlines(True), golden.splitlines(True),
+                    fromfile='expected', tofile='actual', n=2))
+                res.check(False, name, 'output drifted from %s:\n%s'
+                          % (os.path.relpath(golden_path, HERE),
+                             ''.join(diff[:120])))
+        print('  %-24s %5.1fs  %d atoms, %d .param keys'
+              % (name, time.time() - t0, len(atoms), len(params)))
+
+
+def make_expt_golden(case, produced):
+    import expt
+    lines = ['# %s' % case['name'],
+             '# %s %s' % (case['script'], case['output']),
+             '# Golden record of what the importer DOES, not of what it',
+             '# should do -- see expt_cases.NOTES before changing one.',
+             '']
+    for extension in expt.PRODUCTS:
+        lines.append('=== %s' % extension)
+        lines.append(expt.normalise(produced.get(extension, '(not produced)')))
+    return '\n'.join(lines).rstrip('\n') + '\n'
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -485,6 +573,8 @@ def main():
         print('  %-20s %5.1fs  %d parse types fired'
               % (case['name'], time.time() - t0,
                  len(set(b.entry.type for b in result.blocks))))
+
+    run_expt_cases(res, args)
 
     print()
     for line in coverage_report(res, ran, args.verbose):
