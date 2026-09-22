@@ -1326,6 +1326,14 @@ KNOWN_DEAD = {
         "straight after 'symmetries'. Every real tag has a method qualifier "
         "there instead (' RHF%', ' UHF alpha%', ...), so this catch-all "
         "cannot match anything.",
+    ('nwchem.desc', 'EZEROPT'):
+        "Begin 'begin%zero point' is an ecce_print tag that NWChem 7.2.3 "
+        "never writes. Checked by running a real SCF frequency job with "
+        "ecce_print: the trace carries frequencies, normal modes and "
+        "intensities but NO thermochemistry keys at all, and neither the "
+        "trace nor the stdout contains the words 'zero point'. Was "
+        "classified as merely uncovered until that was actually run. "
+        "It may have worked against a PNNL-era NWChem; it cannot now.",
     ('nwchem.desc', 'ORBSYM'):
         "Begin contains the literal text 'NOT SUPPORTED', which no output "
         "will ever contain. Deliberately disabled in place rather than "
@@ -1356,10 +1364,7 @@ UNCOVERED = {
     ('nwchem.desc', 'LATVECTRACE'):
         "Per-step lattice vectors from a gradient task, i.e. a periodic "
         "geometry optimisation. Same missing fixture.",
-    ('nwchem.desc', 'EZEROPT'):
-        "Zero-point energy. No fixture contains 'zero point' at all -- "
-        "h2o_freq.eprint does not emit it, so a frequency run alone is not "
-        "enough to exercise this.",
+
 
     #  gaussian-16: alternate output FORMS. Each has a sibling entry that
     #  fires on the form our fixtures actually contain, so these are only
