@@ -145,6 +145,28 @@ class OrcaTheoryPanel(EccePanel):
                             "M062X",
                             "CAM-B3LYP",
                             "wB97X-D3",
+                            #  Modern functionals ORCA 6.1.1 supports and
+                            #  ECCE did not offer. Each verified on
+                            #  water/def2-SVP, and each verified to work
+                            #  WITHOUT an auxiliary correlation basis --
+                            #  so they are ordinary functionals, not
+                            #  members of the RI-correlation family that
+                            #  AuxCBasisToken has to serve. SCAN, M11 and
+                            #  MN15 were tested too and are NOT available
+                            #  in 6.1.1 under those names, so they are
+                            #  deliberately absent.
+                            #
+                            #  The "-3c" composites (r2SCAN-3c, B97-3c)
+                            #  also work but are left out on purpose:
+                            #  they carry their own prescribed basis set,
+                            #  so offering them in a functional dropdown
+                            #  where the user separately picks a basis
+                            #  would generate a contradictory deck.
+                            "r2SCAN",
+                            "revTPSS",
+                            "wB97X-V",
+                            "wB97M-V",
+                            "B97M-V",
                             # DOUBLE HYBRIDS (issue #91). These carry an
                             # MP2 correlation component, which in ORCA
                             # goes through RI-MP2 and therefore REQUIRES

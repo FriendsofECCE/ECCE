@@ -598,6 +598,13 @@ sub DFTXCFun {
     "M062X"     => "M062X",
     "CAM-B3LYP" => "CAM-B3LYP",
     "wB97X-D3"  => "wB97X-D3",
+    #  Verified against ORCA 6.1.1; see orcatheory.py for why SCAN, M11,
+    #  MN15 and the "-3c" composites are deliberately not here.
+    "r2SCAN"    => "r2SCAN",
+    "revTPSS"   => "revTPSS",
+    "wB97X-V"   => "wB97X-V",
+    "wB97M-V"   => "wB97M-V",
+    "B97M-V"    => "B97M-V",
     #  Double hybrids (issue #91). Keep in lockstep with
     #  orcatheory.py's list AND with IsDoubleHybrid above -- a
     #  functional missing from the latter generates a deck with no
