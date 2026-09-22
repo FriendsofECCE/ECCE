@@ -1316,6 +1316,51 @@ sub orca()
 # injected into the input file's keyword line by mopac.launchpp
 # (<LaunchPreprocessor>) before this script ever runs.
 ###########################################################################
+# GROMACS. Not reachable yet -- there is no GROMACS.edml registered in
+# either ResourceDescriptor file, so no calculation of this type can be
+# created. It is here because the new-code checklist records that a
+# missing "sub <lccode>()" means the job simply cannot be launched
+# ($fct = $lccode is a bare dispatch on the lowercased application
+# type), and because it is not in the per-code file set, so it is the
+# item most easily forgotten. See docs/GROMACS_ROADMAP.md.
+#
+# GROMACS is not one binary reading one deck: grompp turns
+# .mdp + .top + .gro into a binary .tpr, and mdrun runs the .tpr.
+# gromacs.launchpp does the grompp step at launch time, so by the time
+# this script runs the .tpr already exists and only mdrun is needed.
+#
+# -deffnm makes mdrun derive every output name from one base, which is
+# what lets the declared output file be predicted; -ntmpi/-ntomp carry
+# the processor count, which is launch-time knowledge and therefore
+# belongs here rather than in the .mdp.
+sub gromacs()
+{
+  use strict vars;
+  my ($retval,$gmx,$cmd,$base);
+  $retval = "";
+  $gmx = $::config{$::lccode};
+  if ($gmx eq "") { die "Path for GROMACS not found"; }
+  $cmd = $::config{"gromacscommand"};
+
+  $retval .= "set gmx = $gmx\n";
+  $retval .= "if (\$\?ECCE_GROMACS) then\n  set gmx = \$ECCE_GROMACS\nendif\n";
+  $retval .= "echo \"Using GROMACS path: \$gmx\" >> $::logfile\n";
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $base = $::outFile;
+    $base =~ s/\.[^.]*$//;
+    $retval .= "\n$::CC - mdrun runs the .tpr that gromacs.launchpp built\n";
+    $retval .= "$::CC - from the .mdp, .top and .gro. -deffnm gives every\n";
+    $retval .= "$::CC - output file the same base name so the declared\n";
+    $retval .= "$::CC - output can be predicted and followed live.\n";
+    $retval .= "\$gmx mdrun -deffnm $base -ntmpi 1 -ntomp $::totalprocs >>& $::logfile\n";
+  }
+  return $retval;
+  nouse strict vars;
+}
+
 sub mopac()
 {
   use strict vars;

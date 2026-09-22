@@ -142,6 +142,31 @@ AddType  chemical/x-nwchem-md-output     .mdout
 AddType  chemical/x-nwchem-md-trajectory .trj
 AddType  chemical/x-nwchem-md-pmf        .pmf
 
+# GROMACS (groundwork; no GROMACS.edml is registered yet, so nothing
+# creates these files through ECCE today -- see docs/GROMACS_ROADMAP.md).
+#
+# Present because the new-code checklist's Apache rule bites at UPLOAD
+# time, not at registration time: a file with no MIME mapping gets
+# "DefaultType text/plain", and ECCE's mimetype-filtered lookup for a
+# calculation's primary input then cannot match it even though the file
+# is on disk -- which looks exactly like a save failure and is not one.
+# The user brings .top and .gro in by hand (File > Upload File) under
+# the import-only scope, so these need to resolve before any of it can
+# work.
+#
+# NOTE: ".top" is deliberately NOT added here. It is already claimed
+# above by chemical/x-nwchem-topology, and GROMACS uses the same
+# extension for its own topology. Adding a second AddType for it would
+# silently change the type NWChem MD files resolve to. Whoever registers
+# GROMACS has to decide how to disambiguate -- most likely by declaring
+# a GROMACS-specific extension in <DataFiles> rather than by fighting
+# over ".top".
+AddType  chemical/x-gromacs-mdp          .mdp
+AddType  chemical/x-gromacs-coordinates  .gro
+AddType  chemical/x-gromacs-tpr          .tpr
+AddType  chemical/x-gromacs-energy       .edr
+AddType  chemical/x-gromacs-trajectory   .xtc .trr
+
 # DirDyVTST
 AddType  chemical/x-nwdirdy-file30       .file30
 
