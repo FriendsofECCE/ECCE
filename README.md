@@ -61,6 +61,25 @@ than papered over.
 
 ### Release history
 
+- **v8.13.0** — **Three NWChem functionals that could never run.**
+  CAM-B3LYP and LC-wPBE emitted NWChem's `cam` parameters on the `xc`
+  line, where it is a directive of its own, so every job chosen with
+  either died on `xc_input: invalid format`; plain `hcth147` is
+  deprecated and fatal in NWChem 7.x, which wants `hcth147@tz2p`. Found
+  by running all 55 functionals the dialog offers against the installed
+  NWChem rather than reading the documentation. The same sweep added
+  **dispersion corrections** (Grimme D1, D2, D3 and D3(BJ)) — D1 and D2
+  work with every functional, D3 and D3(BJ) only with some, and asking
+  for one that is unsupported aborts the job, so the pairing is now
+  rejected up front with an explanation instead. Also fixes the
+  **Initial Source combo opening blank** in the Gaussian geometry
+  dialogs for CI and semi-empirical theories, where its default index
+  pointed past the end of a shorter list, and NWChem's B3LYP shortcut
+  selecting the wrong functional for the same reason. The dialog test
+  suite now catches both shapes — a combo left with no selection at all,
+  and `cam` run onto the `xc` line — and no longer reports findings in
+  retired codes.
+
 - **v8.12.0** — **The Gateway window is gone**: `ecce` opens the
   Organizer directly, which becomes the front door (New Structure on
   File; Register Machines, Machine Browser and Periodic Table on Tools).
