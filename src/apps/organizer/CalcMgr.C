@@ -2367,13 +2367,9 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
       menu.AppendSeparator();
     }
     
-    // Hardwire the import entry, not sure if there is any better way to do it
-    if (resType->getName() == "project") {
-      menu.Append(wxID_IMPORT, _("&Import Calculation from Output File..."),
-                  _T(""), wxITEM_NORMAL);
-      // menu.Append(wxID_EXPORT, _("Export"), _T(""), wxITEM_NORMAL);
-    }
-    
+    // (The import entry used to be added here, gated on the selected node
+    // being a "project". It is now added unconditionally below -- see there.)
+
     bool isCollection = p_treeCtrl->setExpandable(itemData);
     wxMenuItem * tmpMenuItem = new wxMenuItem(&menu,
             isCollection ? wxID_UPLOAD : wxID_DOWNLOAD,
@@ -2384,6 +2380,22 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
     
     menu.AppendSeparator();
   }
+
+  // Importing a calculation from an output file does not depend on what is
+  // selected, so it is always offered.
+  //
+  // It used to be added only when the selected node was literally a
+  // "project" -- with a comment conceding the approach ("Hardwire the
+  // import entry, not sure if there is any better way to do it"). The
+  // effect was that File showed just "Upload File..." and "Quit" unless
+  // the user happened to have clicked a project first, which made the
+  // entry point for importing externally run output (issues #44 and #94)
+  // very hard to find. Reported from a live session 2026-09-22: "Only see
+  // it if I select users, or andy, and then click on File ... better to
+  // always have access to it".
+  menu.Append(wxID_IMPORT, _("&Import Calculation from Output File..."),
+              _T(""), wxITEM_NORMAL);
+  menu.AppendSeparator();
 
   menu.Append(wxID_EXIT, _("&Quit\tCtrl+Q"), _T(""), wxITEM_NORMAL);
 }
@@ -4770,6 +4782,19 @@ TaskJob *CalcMgr::getContainer(const string& name)
 
   // get tree item data
   WxResourceTreeItemData *itemData = p_treeCtrl->getSelection();
+
+  // getSelection() returns 0 when nothing is selected, and this used to
+  // dereference it immediately. It was unreachable while the Import menu
+  // entry was only offered for a selected "project"; now that the entry is
+  // always offered (see getFileMenu), it is not.
+  //
+  // Returning 0 is the documented contract here: WxCalcImport checks for it
+  // and reports "Can't access or write to the specified parent project for
+  // the import", which is the right message for "you have not told me
+  // where to put it".
+  if (itemData == (WxResourceTreeItemData*)0) {
+    return ret;
+  }
 
   // make resource
   Resource *itemDataRes = itemData->getResource();
