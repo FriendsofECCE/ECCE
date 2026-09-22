@@ -53,6 +53,11 @@ CASES = [
          output="orca/oh_uhf.out",
          expect=dict(natoms=2, Theory="UHF", RunType="Energy",
                      **{"ChemSys.Multiplicity": "2"})),
+    dict(name="expt-nwchem-h2o-opt", script="NWChem.expt",
+         output="nwchem/h2o_opt_stdout.out",
+         expect=dict(natoms=3, symbols=["O", "H", "H"], charge="0",
+                     Category="SCF", Theory="RHF", RunType="Geometry")),
+
     dict(name="expt-orca-h2o-nmr", script="ORCA.expt",
          output="orca/h2o_nmr_chelpg.out",
          expect=dict(natoms=3, RunType="Magnetic")),
@@ -79,11 +84,27 @@ NOTES = """
   not -- it already used the LAST "CARTESIAN COORDINATES (ANGSTROEM)"
   block, and its case now asserts that too.)
 
-* NWChem has no cases here: NWChem.expt parses real NWChem stdout, and the
-  nwchem fixtures in this tree are `.eprint` files -- the separate
-  machine-tagged trace NWChem writes via its own `ecce_print` directive,
-  which is what the LIVE monitor consumes.  Adding NWChem coverage needs a
-  captured stdout file, not a reuse of what is already here.
+* NWChem.expt could not read an externally run job AT ALL until now, which
+  is worth recording because the importer exists precisely for externally
+  run jobs (#44, #94). Its parse loop skipped every line until it saw
+  "%begin%input file" -- ECCE's OWN marker, written by the ecce_print
+  directive that ai.nwchem puts in the deck. Given a plain NWChem output
+  file it read to EOF and wrote an empty .frag: no title, no charge, no
+  atoms, exit status 0. It now also accepts NWChem's own "echo of input
+  deck" banner, and defaults a missing charge to neutral.
+
+  Two gaps remain for NWChem, both tracked rather than fixed:
+
+  - It reconstructs the INPUT geometry, not the optimised one. Unlike the
+    Gaussian importers (fixed) this is not a one-line change: the path that
+    reads geometry from the output rather than the echo keys on
+    "begin%cartesian coordinates" / "begin%atomic tags", which are again
+    ECCE's own trace markers. Reading NWChem's native "Output coordinates in
+    angstroms" tables is new code, and the case's `geometry` assertion is
+    deliberately absent until it exists.
+  - No .gbs at all for a library basis ("* library STO-3G"). The basis
+    branch handles only an explicit primitive specification -- its own
+    comment says so -- so a named library reference produces nothing.
 
 * GAMESS-UK.expt, Gaussian-03/09/94/98.expt have no cases either, purely for
   want of fixture output.  Gaussian-03/09/98 share Gaussian-16's lineage

@@ -180,8 +180,28 @@ sub parseInputFile {
   $read_is_okay = 0;
   while (<INPUT>) {
 
+    # "%begin%input file" is ECCE's OWN marker, written into the trace file
+    # by the ecce_print directive that ai.nwchem puts in the deck. Keying
+    # solely on it meant this importer could only ever read back output from
+    # jobs ECCE had already set up -- for any externally run NWChem job the
+    # loop skipped to EOF and produced an empty .frag with no title, no
+    # charge and no atoms, silently. Importing externally run output is the
+    # entire point of an importer (issues #44 and #94), so also accept
+    # NWChem's own echo banner.
     if (/%begin%input file/) {
       $read_is_okay = 1;
+    }
+    if (/echo of input deck/i) {
+      $read_is_okay = 1;
+      $plain_echo = 1;
+      next;
+    }
+    # ...and stop at the banner that closes it. ECCE-generated files end the
+    # echo on "bas_input%end" below; a plain file has only the rule of "="
+    # characters NWChem prints after the last echoed line.
+    if (defined($plain_echo) && $plain_echo == 1 && /^={10,}\s*$/) {
+      $read_echo = 0;
+      $plain_echo = 2;
     }
     if ($read_is_okay==0) {
       next;
@@ -745,6 +765,12 @@ sub parseInputFile {
   ########################################################################
   # process parsed information
   ########################################################################
+  # An NWChem deck with no "charge" line means a neutral system; leaving
+  # $charge undefined wrote an empty "charge:" into the .frag and made the
+  # electron count come out wrong. ECCE-generated decks always carry the
+  # line, which is why this never showed up before importing an external
+  # one.
+  $charge = 0 if (!defined($charge) || $charge =~ /^\s*$/);
   $numberOfElectrons = $totalNuclearCharge - $charge;
 
   $molecule = "title:\t$title\n";

@@ -1,0 +1,25 @@
+# expt-nwchem-h2o-opt
+# NWChem.expt nwchem/h2o_opt_stdout.out
+# Golden record of what the importer DOES, not of what it
+# should do -- see expt_cases.NOTES before changing one.
+
+=== .frag
+title:	 "water opt freq test with ecce_print distinct ext"
+type:	molecule
+charge:	0
+num_atoms:	3
+atom_info:	symbol cart
+atom_list:
+O 0 0 0
+H 0 0 0.96
+H 0.926 0 -0.24
+
+=== .param
+title:	\| "water opt freq test with ecce_print distinct ext"
+Category:	SCF
+Theory:	RHF
+RunType:	Geometry
+charge:	0
+
+
+=== .gbs

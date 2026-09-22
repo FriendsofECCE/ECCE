@@ -589,3 +589,21 @@ testing MOPAC frequencies only on water.
 
 Pinned values: total energy -19.740479745 Hartree, 2-point `EWVEC`,
 3-point `DELTAE`, 1x3 `EGRADVEC`.
+
+
+## nwchem/h2o_opt_stdout.out
+
+NWChem's **stdout**, as distinct from every other file in `nwchem/`, which
+are `.eprint` trace files written by NWChem's own `ecce_print` directive and
+consumed by the *live* monitor.
+
+Generated 2026-09-22 with the Debian-packaged NWChem (`/usr/bin/nwchem`) from
+the checked-in `nwchem/h2o_opt.nw` in this directory -- water, STO-3G,
+`task scf optimize` -- by running it and capturing stdout:
+
+    nwchem h2o_opt.nw > h2o_opt_stdout.out 2>&1
+
+It exists for `NWChem.expt`, the post-hoc importer, which reads stdout and
+not the trace file. That importer had no coverage at all before, and the
+first thing this fixture showed was that it could not read an externally
+run job whatsoever -- see `expt_cases.NOTES`.
