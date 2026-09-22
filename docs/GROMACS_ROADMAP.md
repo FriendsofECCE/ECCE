@@ -183,22 +183,40 @@ test suite exercises them and no fixture in `tests/` is an MD job**, so
 "builds and is packaged" is not "works". Someone should open one by hand
 before step 3.
 
-**`mdtools` is only half code-agnostic, and this is the main correction
-to §2's optimism.** The panels are clean — `ControlPanel.C` contains
-*zero* references to NWChem — but `MDEdBase.C` contains fifteen, and
-they are not comments. It includes `dsm/NWChemMDModel.H`, its member
-`p_model` is constructed as `new NWChemMDModel(panels)`, and it exposes
-`getNWChemMDModel()` returning a concrete `NWChemMDModel&` which
-thirteen call sites use directly.
+**`MDEdBase` is bound to a concrete `NWChemMDModel`** — it includes the
+header, constructs `p_model` as one, and exposes `getNWChemMDModel()`
+which thirteen call sites use.
 
-So the *mechanism* is generic — `MDEdBase.C:253` reads
-`TaskInputGenerator` from the code cap and shells out to whatever script
-it names, which is exactly the seam GROMACS needs — but the *model* is
-hard-bound to a concrete NWChem class. Step 3 therefore includes
-extracting an interface from `NWChemMDModel` (or accepting a
-GROMACS-specific subclass behind a common base), and that is real
-refactoring of working code, not configuration. Budget for it, and do it
-under the dialog/parser suites rather than by inspection.
+**CORRECTED 2026-09-22, after reading what those call sites actually do.
+The refactor this implies is much smaller than counting them suggests,
+and an earlier version of this section overestimated it badly.**
+
+* The panels are genuinely code-agnostic. Across `ControlPanel`,
+  `DynamicsPanel`, `OptimizePanel`, `ConstraintPanel`,
+  `InteractionPanel` and `FilesPanel` — 3557 lines — there is exactly
+  **one** NWChem reference. Each panel binds to a generic sub-model in
+  `tdat` (`ControlPanel` → `ControlModel`, and so on), not to anything
+  NWChem-shaped.
+* `NWChemMDModel` is a thin composite: it implements `ITaskModel` and
+  aggregates seven of those generic sub-models (Interaction,
+  Constraint, Optimize, Control, Dynamics, Thermodynamics, Files).
+* **`ITaskModel` already exists and is already exercised** — four
+  classes implement it (`NWChemMDModel`, `PolyrateModel`,
+  `PrepareModel`, `NWDirdyModel`). It provides `setTitle`/`getTitle`,
+  `setUrl`/`getUrl`, `generateInputFile()` and `run()`.
+* Of `MDEdBase`'s thirteen call sites, **most use `getUrl()`, which is
+  already on `ITaskModel`**. The remainder use two sub-model getters
+  (`getInteractionModel`, `getDynamicsModel`) and `reset()`.
+
+So the work is not "extract an interface from working code". The
+interface is there. What is missing is a shared **MD composite base**
+between `ITaskModel` and the concrete model, carrying the seven
+sub-model accessors and `reset()`. `NWChemMDModel` derives from it
+unchanged in behaviour, `MDEdBase` holds that base instead of the
+concrete type, and a `GromacsMDModel` becomes a sibling that reuses
+every existing panel.
+
+That is a mechanical change of bounded size, not a rewrite.
 
 ## 6. Spike: what was actually run, 2026-09-22
 
