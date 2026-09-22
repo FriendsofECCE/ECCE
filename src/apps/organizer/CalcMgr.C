@@ -2520,16 +2520,88 @@ void CalcMgr::getRunMgmtMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
  *                  allows the caller to customize their context menu
  * @param itemData  helps determing content of the menu
  */
+/**
+ * Append the tools that are useful regardless of what is selected.
+ *
+ * Issue #93: rather than porting the Gateway's row of launcher icons onto
+ * the Organizer toolbar -- which was tried, looked wrong, and was reverted
+ * -- the two that genuinely belong here are menu entries.
+ *
+ * Launching is a JMS publish on "ecce_get_app" and startApp() already sends
+ * exactly that, so this is UI only. The ids come from the resource files
+ * and are not known at compile time, hence the dynamic Connect.
+ */
+void CalcMgr::addGlobalTools(wxMenu & menu)
+{
+  static const char *globalTools[] = { "MachineBrowser", "PeriodicTable", 0 };
+
+  ResourceDescriptor& descriptor =
+      ResourceDescriptor::getResourceDescriptor();
+
+  bool added = false;
+  for (int index = 0; globalTools[index] != 0; index++) {
+    ResourceTool *tool = descriptor.getTool(globalTools[index]);
+    if (tool == (ResourceTool*)0) continue;
+
+    string label = tool->getMenuItem();
+    if (label.empty()) label = tool->getLabel();
+    if (label.empty()) continue;
+
+    wxMenuItem *item = new wxMenuItem(&menu, tool->getId(),
+                                      wxString::FromAscii(label.c_str()),
+                                      _T(""), wxITEM_NORMAL);
+    menu.Append(item);
+    // Connect ONCE per id. getToolsMenu() rebuilds this menu on every
+    // selection change, and wxWidgets happily stacks duplicate dynamic
+    // handlers for the same id -- which would launch the app once per
+    // rebuild, so a click after browsing the tree a few times would open
+    // several windows.
+    if (p_globalToolIds.find(tool->getId()) == p_globalToolIds.end()) {
+      Connect(tool->getId(), wxEVT_COMMAND_MENU_SELECTED,
+              wxCommandEventHandler(CalcMgr::OnGlobalTool));
+      p_globalToolIds.insert(tool->getId());
+    }
+    added = true;
+  }
+
+  if (added) menu.AppendSeparator();
+}
+
+
+/**
+ * A selection-independent tool was chosen; ask the gateway for it.
+ */
+void CalcMgr::OnGlobalTool(wxCommandEvent& event)
+{
+  ResourceTool *tool =
+      ResourceDescriptor::getResourceDescriptor().getTool(event.GetId());
+  if (tool == (ResourceTool*)0) {
+    event.Skip();
+    return;
+  }
+  startApp(tool->getName(), 0, "");
+}
+
+
 void CalcMgr::getToolsMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
 {
   // clear given menu of any menu items
   clearMenu(menu);
 
+  // Tools that do not depend on the selection, so they are always here
+  // (issue #93). These are the two of the Gateway's five launcher icons
+  // that are actually useful from the Organizer: the Machine Browser, and
+  // the Periodic Table as a reference. The other three were an Organizer
+  // button inside the Organizer, a Builder button whose meaning from a tree
+  // selection is unclear, and the Viewer, which the selection-dependent
+  // tools below already offer for a calculation.
+  addGlobalTools(menu);
+
   ResourceType * resType = 0;
   ResourceDescriptor::RUNSTATE state = ResourceDescriptor::STATE_ILLEGAL;
 
   if(!getTypeAndState(itemData, resType, state))
-    return; // menu should be disabled for multiple selection
+    return; // no per-selection tools, but the global ones above stay
 
   vector<ResourceTool *> toolVec;
   if (resType->getStateBased()) {

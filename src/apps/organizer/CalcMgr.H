@@ -300,6 +300,13 @@ protected:
   bool getSelection();
   bool isValidName(const string& name);
   bool checkMovable(WxResourceTreeItemData * node);
+  // Issue #93: selection-independent entries on the Tools menu.
+  void addGlobalTools(wxMenu & menu);
+  void OnGlobalTool(wxCommandEvent& event);
+  // Ids already wired to OnGlobalTool, so rebuilding the menu does not
+  // stack duplicate handlers.
+  std::set<int> p_globalToolIds;
+
   void startApp(const string& app, int force, const string& url,
                 const string& codename = "", int amulet = 0);
   void startPropertyEdit(const string& property);
