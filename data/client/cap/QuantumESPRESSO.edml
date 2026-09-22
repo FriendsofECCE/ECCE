@@ -111,6 +111,13 @@
      one-input/one-output), md, and phonons (ph.x is a separate
      executable). -->
 <Editor theorydialog="qetheory.py" runtypedialog="qeruntype.py">
+  <!-- Plane waves cannot run without a cell, so CalcEd holds the
+       calculation not-ready and says why, instead of letting the user
+       complete the whole setup and discover it when ai.qe refuses at
+       generation time. Read generically by JCode::getValue(), so no
+       parser change was needed. -->
+  <RequiresPeriodic>true</RequiresPeriodic>
+
   <Theory category="PW" name="PW" needsBasis="false">
     <runtype>Energy</runtype>
     <runtype>Geometry</runtype>

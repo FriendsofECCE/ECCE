@@ -2030,9 +2030,50 @@ bool CalcEd::theoryNeedsBasis() const
   return ret;
 }
 
+/**
+ * True when this code cannot run without a unit cell and the structure
+ * does not have one.
+ *
+ * Declared per code as <RequiresPeriodic>true</RequiresPeriodic> in its
+ * .edml. JCode::getValue() is a generic getElementsByTagName lookup, so
+ * this needed no parser change -- and being declarative keeps the
+ * knowledge next to the code it describes rather than hardcoded here.
+ *
+ * Quantum ESPRESSO is the case that motivated it: pw.x is a plane-wave
+ * code and cannot run on a non-periodic structure at all. ai.qe already
+ * refused loudly, naming the Builder's "Periodic Builder" panel -- but
+ * only at input-generation time, which is after the user has set up the
+ * whole calculation. Reported live as "drawing a molecule doesn't do
+ * anything when it comes to creating a periodic system" and "Launch
+ * doesn't do anything".
+ */
+bool CalcEd::requiresMissingCell() const
+{
+  if (p_code == 0 || p_frag == 0) {
+    return false;
+  }
+
+  string flag;
+  if (!p_code->get_string("RequiresPeriodic", flag)) {
+    return false;
+  }
+  if (flag != "true" && flag != "TRUE" && flag != "yes" && flag != "1") {
+    return false;
+  }
+
+  return (p_frag->getLattice() == (LatticeDef*)0);
+}
+
+
 bool CalcEd::isReady() const
 {
   bool ret = false;
+
+  //  A plane-wave code with no cell can never produce a valid deck, so
+  //  it is not ready however complete the rest of the setup is.
+  if (requiresMissingCell()) {
+    return false;
+  }
 
   if (p_iCalc->getState() < ResourceDescriptor::STATE_SUBMITTED
           && isDetailsReady()) {
@@ -2361,6 +2402,24 @@ void CalcEd::enableLaunch()
     if (ready) {
       p_feedback->setRunState(ResourceDescriptor::STATE_READY);
     } else {
+      //  Say WHY, for the one not-ready reason the user cannot deduce
+      //  from the setup panels. Everything else that blocks readiness
+      //  (no theory, an incomplete basis) is visible in the dialog that
+      //  owns it; a missing unit cell is not, because nothing in CalcEd
+      //  mentions cells at all -- it belongs to the structure, and is
+      //  created in a different application.
+      //
+      //  Without this the Launch and Final Edit buttons simply stay
+      //  greyed with no explanation, which is what "Launch doesn't do
+      //  anything" looked like from the outside.
+      if (requiresMissingCell()) {
+        p_feedback->setMessage(
+            "This code requires a periodic unit cell, and this structure "
+            "has none.\n"
+            "Open the structure in the Builder, show the \"Periodic "
+            "Builder\" tool panel, and create a lattice.",
+            WxFeedback::ERROR);
+      }
       if (p_iCalc->getState() == ResourceDescriptor::STATE_READY) {
         p_feedback->setRunState(ResourceDescriptor::STATE_CREATED);
       } else {

@@ -174,6 +174,7 @@ class CalcEd: public CalcEdGUI,
     bool isDetailsReady() const;
     bool theoryNeedsBasis() const;
     bool isReady() const;
+    bool requiresMissingCell() const;
     bool isGbsValid();
 
     // refresh & enable/disable & show/hide indicated field sets
