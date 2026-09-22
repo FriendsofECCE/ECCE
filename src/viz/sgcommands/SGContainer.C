@@ -114,7 +114,7 @@ void SGContainer::constructor()
 
    // Diagnostic for the geometry-trace stepping bug (#99): set
    // ECCE_DISABLE_RENDER_CACHE=1 to turn Open Inventor's render caching
-   // off for the whole molecule subtree.
+   // off completely.
    //
    // Symptom being chased: stepping a geometry trace moves the atoms once
    // and then never again, while GTStepCmd demonstrably runs every step
@@ -124,12 +124,29 @@ void SGContainer::constructor()
    // that clicking another panel makes the geometry "reset", since that
    // forces a full re-traversal.
    //
-   // If stepping works with this set, the fault is cache invalidation and
-   // not the step command, the data, or the paint handler. If it does not,
-   // caching is exonerated and the next suspect is the ChemDisplay render
-   // cache itself rather than the separator's.
+   // setNumRenderCaches(0) is process-wide and deliberately so. The first
+   // version of this set renderCaching=OFF on p_mainSep alone, which
+   // proves nothing: Inventor caches per separator, and the molecule
+   // actually hangs off child separators below this one, each with its
+   // own cache still enabled. That test came back negative and the
+   // negative was worthless.
+   //
+   // It also announces itself, because this process is spawned by the
+   // gateway: an env var set on the `ecce` command line only reaches
+   // builder if the gateway was started with it, so "I set the variable"
+   // and "builder saw the variable" are different claims. If the line
+   // below is not in the gateway's output, the test did not run.
+   //
+   // If stepping works with this set, the fault is cache invalidation.
+   // If it does not, caching is exonerated for good and the next suspect
+   // is whether the new coordinates reach the Inventor scene at all --
+   // GTStepCmd writes them onto TAtm via atomRef(j)->coordinates(), and
+   // whether ChemDisplay re-reads them on traversal or works from its own
+   // copy is the thing to establish next.
    if (getenv("ECCE_DISABLE_RENDER_CACHE") != 0) {
-      p_mainSep->renderCaching = SoSeparator::OFF;
+      SoSeparator::setNumRenderCaches(0);
+      cerr << "ECCE_DISABLE_RENDER_CACHE=1: Open Inventor render caching "
+           << "disabled process-wide (issue #99 diagnostic)." << endl;
    }
 
    addChild(p_mainSep);

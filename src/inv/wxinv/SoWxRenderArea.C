@@ -1045,6 +1045,22 @@ void SoWxRenderArea::renderCB(void *p, SoSceneManager *)
 
   SoWxRenderArea * renderArea = (SoWxRenderArea *)(p);
   if (renderArea) {
+    // Issue #99 diagnostic, on the same switch as GTStepCmd's own trace
+    // (ECCE_DEBUG_GEOMTRACE=1) so one run answers the remaining question.
+    // GTStepCmd is known to run with changing coordinates, and
+    // SGFragment::getAtomCoordinates() reads TAtm live rather than from a
+    // cached copy -- so if this callback does NOT appear on a step, the
+    // scene-graph change never reached the scene manager at all and the
+    // repaint path is innocent. If it DOES appear, a repaint really
+    // happened and the stale picture can only be a render cache.
+    static int trace = -1;
+    if (trace < 0) trace = (getenv("ECCE_DEBUG_GEOMTRACE") != 0) ? 1 : 0;
+    if (trace) {
+      std::cerr << "[RENDERCB] inPaint=" << (renderArea->p_inPaint ? 1 : 0)
+           << " -> " << (renderArea->p_inPaint ? "deferred" : "refresh")
+           << std::endl;
+    }
+
     if (!renderArea->p_inPaint) {
       renderArea->Refresh(false);
       renderArea->Update();
