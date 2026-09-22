@@ -2,6 +2,7 @@
 ##QESystem##
 ##QEElectrons##
 ##QEIons##
+##QECell##
 ##QEAtomicSpecies##
 ##QECellParameters##
 ##QEAtomicPositions##

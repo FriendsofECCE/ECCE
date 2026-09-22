@@ -110,6 +110,26 @@ class QeRunTypePanel(EccePanel):
             convSizer.AddWidget(self.maxSteps)
             self.panelSizer.Add(convSizer)
 
+            # VARIABLE CELL. ECCE has no "vc-relax" runtype name -- its
+            # runtype vocabulary is fixed (Energy, Geometry, Gradient,
+            # Vibration, ...) -- so this is a property of the Geometry
+            # runtype rather than a runtype of its own, which is also how
+            # a user thinks about it: "optimise the cell as well".
+            #
+            # Without it LATTICEVEC extraction (qe.desc) would be
+            # unreachable from the GUI, which is the dead-parser shape
+            # ORCA's CHELPG was in: a correct parser for output no
+            # generated deck could ever produce.
+            cellSizer = EcceBoxSizer(self, label="Unit Cell", cols=1)
+            self.optimizeCell = EcceCheckBox(self,
+                                             label=" Optimize cell "
+                                                   "(variable cell)",
+                                             name="ES.Runtype.PW.OptimizeCell",
+                                             default=False,
+                                             export=1)
+            cellSizer.AddWidget(self.optimizeCell)
+            self.panelSizer.Add(cellSizer)
+
         self.AddButtons()
 
     def CheckDependency(self):
