@@ -194,7 +194,32 @@ bool GatewayApp::OnInit()
   // Notify execer that I am ready to receive messages:
 
   notifyReady();
-  p_gateway->Show(true);
+
+  //  Issue #93: hidden by default; ECCE_GATEWAY_WINDOW=1 restores it.
+  //  See Gateway.H. Everything else about the frame is unchanged -- it is
+  //  still the top window, still owns JMS and the session lifecycle, and
+  //  is still what launches the other apps.
+  if (eccGatewayWindowEnabled()) {
+    p_gateway->Show(true);
+  } else {
+    //  With the window hidden the Gateway has no visible presence at all,
+    //  so something has to open or `ecce` looks like it did nothing. The
+    //  Organizer becomes the front door, which is the point of #93.
+    //
+    //  Same message the toolbar button publishes (see
+    //  Gateway::toolActivate), so the launch path, the dataserver check
+    //  and the app-ready handshake are all the existing ones -- nothing
+    //  here is a second way to start an app.
+    //
+    //  forcenew is 0: if an Organizer is somehow already up, raise it
+    //  rather than opening a second one.
+    Target myself("", getMyID());
+    JMSMessage *startMsg = newMessage(myself);
+    startMsg->addProperty("appname", "Organizer");
+    startMsg->addIntProperty("forcenew", 0);
+    publish("ecce_get_app", *startMsg);
+    delete startMsg;
+  }
 
   static const int BUFSIZE=512;
   char buf[BUFSIZE];

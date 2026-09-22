@@ -48,6 +48,18 @@
 
 IMPLEMENT_CLASS( Gateway, wxFrame )
 
+//  See Gateway.H for why this exists and how to restore the window.
+bool eccGatewayWindowEnabled()
+{
+  static int enabled = -1;
+  if (enabled < 0) {
+    const char *v = getenv("ECCE_GATEWAY_WINDOW");
+    enabled = (v != 0 && *v != '\0' && *v != '0') ? 1 : 0;
+  }
+  return enabled == 1;
+}
+
+
 BEGIN_EVENT_TABLE( Gateway, wxFrame )
 
   EVT_CLOSE( Gateway::OnCloseWindow )
@@ -626,8 +638,14 @@ void Gateway::exitGateway()
     boolBuf = true;
 
   if (boolBuf) {
-    Iconize(false);
-    Show(true);
+    //  Only un-hide to ask: with the window hidden by default (issue
+    //  #93) this would otherwise pop it back into existence at quit
+    //  time, which is exactly what the change is meant to stop. The
+    //  dialog is modal and shows fine over a hidden parent.
+    if (eccGatewayWindowEnabled()) {
+      Iconize(false);
+      Show(true);
+    }
     ewxMessageDialog dlg(this, "Do you really want to quit?", "Quit ECCE",
                          wxOK|wxCANCEL|wxICON_QUESTION,
                          wxDefaultPosition);

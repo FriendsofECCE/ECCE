@@ -35,6 +35,24 @@ using std::vector;
 #define wxID_WINLIST 10003
 #define ID_GATEWAY_QUIT_STOP_SERVER 10004
 
+//  Issue #93: the Gateway window is hidden by default -- the launcher it
+//  provided now lives in the Organizer (File > New Structure, and the
+//  Tools menu), so every session no longer opens two windows one of
+//  which is used about twice.
+//
+//  The window is HIDDEN, not removed. The frame is still constructed and
+//  still owns the session: JMS, the ecce_get_app subscription, service
+//  startup, and the Quit-and-Stop-Server path all live on it and are
+//  untouched. That keeps the change to a single Show() call, and makes
+//  it reversible without a rebuild:
+//
+//      ECCE_GATEWAY_WINDOW=1 ecce
+//
+//  brings the old window back exactly as it was, which is the point --
+//  this is a UI decision that may turn out to be controversial, and the
+//  cost of being wrong should be an env var rather than a revert.
+bool eccGatewayWindowEnabled();
+
 #define ID_GATEWAY_APPSBASE 11000
 
 #ifndef wxCLOSE_BOX
