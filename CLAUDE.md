@@ -472,6 +472,43 @@ Both per-user, both non-root, both started automatically by the
   double hybrids stayed hidden). Watch out that `xcFuncDefault` is an
   **index** into the list, so append rather than insert, and verify the
   defaults still resolve to the same entry afterwards.
+- **A combo whose default is a bare integer opens BLANK when the list is
+  built conditionally.** `wx.Choice.SetSelection()` ignores an
+  out-of-range index without complaint, so the control shows nothing
+  selected and `GetValue()` returns `""` — which every generator
+  translates to no keyword at all. Same silent-emission class as a
+  dialog string that doesn't match the generator's, same cause: one
+  list, several lengths, a default written against the longest. Found
+  in every Gaussian runtype dialog at once
+  (`ES.Runtype.GeomOpt.InitialHessian`, `default = 1` against a
+  one-entry list for all but a handful of theories) — and the same file's
+  `CheckDependency()` already carried the `len()==2` guard the
+  constructor was missing. Always write these as
+  `choices.index("Name")`, never an integer; `xcFuncDefault` is the
+  same hazard (a stale `36` was selecting Mod. Perdew-Wang 1K where
+  B3LYP was intended). `tests/dialogs` now fails on any combo left with
+  no selection, in every category/theory/runtype context.
+- **Verify a code's keyword list by running the code, not by reading its
+  manual.** Sweeping all 55 functionals `nedtheory.py` offers through
+  NWChem 7.2.3 found three that abort the job every time (CAM-B3LYP and
+  LC-wPBE put `cam` on the `xc` line, where it is a directive of its
+  own; plain `hcth147` is deprecated and fatal, it wants
+  `hcth147@tz2p`). The same sweep showed the documented spellings for
+  dispersion (`disp grimme3`, a trailing `bj`) are rejected outright —
+  only `disp vdw <1..4>` works — and that D3/D3BJ with a functional
+  lacking parameters is **fatal rather than ignored**, which is why
+  `ai.nwchem` validates the pairing in the main flow. Where a support
+  table like that is needed, keep it in the generator alone and let it
+  report; putting a copy in the dialog recreates the
+  two-hand-maintained-lists bug this file already warns about twice.
+- **Retired codes are not maintained, and the suite no longer checks
+  them.** `tests/dialogs/cases.py`'s `RETIRED` (Gaussian-03,
+  Gaussian-98, GAMESS-UK, Amica) is skipped unless named with `--code`.
+  It is *not* the same as `NOT_IN_MENU`, which only means "absent from
+  the New Calculation menu" — Polyrate and GROMACS are in that one and
+  are maintained. **MetaDyn is not retired**: its `.edml` declares
+  `codeName="NWChem"`, so it is NWChem's plane-wave metadynamics front
+  end, and it is what `QuantumESPRESSO.edml` was modelled on.
 - **A `.desc` entry's `Begin` wording can silently stop matching between
   versions of the same code**, not just between different codes.
   `gaussian-16.desc`'s `MULLIKEN` entry had `Begin= Mulliken atomic
