@@ -1133,7 +1133,10 @@ CASES = [
         fixture='gromacs/water_em.log',
         parse_args=('.', 'Energy', 'MD', 'OPLS', '0'),
         expect={
-            'TE][TEVEC': dict(blocks=5, keys={
+            #  A minimisation prints no pressure column at all, so
+            #  PRESSURE is absent here by design -- the parser guards on
+            #  the term being present rather than emitting an empty one.
+            'TE][TEVEC][PRESSURE': dict(blocks=5, keys={
                 'TE': {'values': '-8.19803e+03', 'units': 'kJoule/Mole'},
                 'TEVEC': {'units': 'kJoule/Mole'}}),
         },
@@ -1163,9 +1166,13 @@ CASES = [
             #  [NULL] suppressor ever stops swallowing it, TE lands on
             #  the run average and this fails loudly instead of quietly
             #  reporting a plausible wrong number.
-            'TE][TEVEC': dict(blocks=6, keys={
+            'TE][TEVEC][PRESSURE': dict(blocks=6, keys={
                 'TE': {'values': '-7.11568e+03', 'units': 'kJoule/Mole'},
-                'TEVEC': {'units': 'kJoule/Mole'}}),
+                'TEVEC': {'units': 'kJoule/Mole'},
+                #  Same argument as TE: the LAST STEP's pressure, not the
+                #  averages block's. Units must be one PressureConverter
+                #  knows -- it throws on anything else.
+                'PRESSURE': {'values': '-2.13868e+03', 'units': 'Bar'}}),
         },
     ),
     dict(

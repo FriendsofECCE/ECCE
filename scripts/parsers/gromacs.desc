@@ -55,7 +55,7 @@
 # apart. Parsed as a step it would put a final point on every
 # energy-vs-step plot whose value is an AVERAGE OVER THE RUN, and would
 # leave the scalar TE holding that average rather than the last step.
-[TE][TEVEC]
+[TE][TEVEC][PRESSURE]
 Script=gromacs.energy
 Begin=^\s*Energies \(kJ/mol\)
 Frequency=all

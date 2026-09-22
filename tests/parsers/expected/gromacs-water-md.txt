@@ -4,7 +4,7 @@ desc:    gromacs.desc
 fixture: gromacs/water_md.log (612 lines)
 args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
 
-[TE][TEVEC]  Script=gromacs.energy  Freq=all  Skip=0  Lines=-
+[TE][TEVEC][PRESSURE]  Script=gromacs.energy  Freq=all  Skip=0  Lines=-
   Begin=^\s*Energies \(kJ/mol\)
   End=^\s*$
   begins=6 delivered=6 buffered_away=0
@@ -17,6 +17,10 @@ args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
       size: 1
       values: -8.18669e+03
       units: kJoule/Mole
+    key: PRESSURE
+      size: 1
+      values: -1.63353e+03
+      units: Bar
   block 2: begin-line=468 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
     key: TE
       size: 1
@@ -26,6 +30,10 @@ args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
       size: 1
       values: -7.33732e+03
       units: kJoule/Mole
+    key: PRESSURE
+      size: 1
+      values: -2.89873e+03
+      units: Bar
   block 3: begin-line=477 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
     key: TE
       size: 1
@@ -35,6 +43,10 @@ args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
       size: 1
       values: -7.19592e+03
       units: kJoule/Mole
+    key: PRESSURE
+      size: 1
+      values: -1.50656e+03
+      units: Bar
   block 4: begin-line=486 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
     key: TE
       size: 1
@@ -44,6 +56,10 @@ args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
       size: 1
       values: -7.14458e+03
       units: kJoule/Mole
+    key: PRESSURE
+      size: 1
+      values: -2.07738e+03
+      units: Bar
   block 5: begin-line=495 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
     key: TE
       size: 1
@@ -53,6 +69,10 @@ args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
       size: 1
       values: -7.18100e+03
       units: kJoule/Mole
+    key: PRESSURE
+      size: 1
+      values: -2.89189e+03
+      units: Bar
   block 6: begin-line=507 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
     key: TE
       size: 1
@@ -62,6 +82,10 @@ args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
       size: 1
       values: -7.11568e+03
       units: kJoule/Mole
+    key: PRESSURE
+      size: 1
+      values: -2.13868e+03
+      units: Bar
 
 [NULL]  Script=gromacs.null  Freq=last  Skip=0  Lines=-
   Begin=A V E R A G E S

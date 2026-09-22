@@ -186,4 +186,29 @@ foreach my $k ("TE", "TEVEC") {
   print "units:\nkJoule/Mole\n";
   print "END\n";
 }
+
+#  Pressure comes out of the SAME block, already parsed into %term above,
+#  and is emitted from this one entry rather than a second .desc entry --
+#  the marker line is identical, and two entries sharing a Begin would
+#  leave one of them permanently starved (PDMatchBegin returns only the
+#  first match).
+#
+#  GROMACS labels the column "Pressure (bar)", and bar is a unit
+#  PressureConverter knows.  That matters: convertTo() THROWS on a unit
+#  it does not have, so an invented label would be an exception rather
+#  than a cosmetic wart.
+#
+#  Scalar only, deliberately.  A per-step pressure would have to be a
+#  PropTSVector<Geometry Step>, and GeomTracePropertyPanel plots any of
+#  those against GEOMTRACE -- which GROMACS has no producer for, so the
+#  trace would be unplottable at best and out of bounds at worst (the
+#  len(TEVEC) <= len(GEOMTRACE) rule in CLAUDE.md).  A minimisation run
+#  prints no pressure at all, hence the defined() guard.
+if (defined($term{"Pressure (bar)"})) {
+  print "key: PRESSURE\n";
+  print "size:\n1\n";
+  print "values:\n" . $term{"Pressure (bar)"} . "\n";
+  print "units:\nBar\n";
+  print "END\n";
+}
 exit(0);
