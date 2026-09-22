@@ -135,33 +135,37 @@ PolyratePrelimFilesToRemove { *.fu14 *.fu15 *.fu61 }
 
 
 PBS {
-#PBS -mb
-#PBS -me
-#PBS -s /bin/csh
-#PBS -nr
-#PBS -lM 28Mw
-#PBS -lm 28Mw
-#PBS -J m
-#PBS -lT 7200   # per request limit
-#PBS -lt 3600   # per process limit
+#PBS -N $submitFile
 #PBS -q $queue
-#PBS -eo -o pbs.out
-#PBS -l p_mpp_t=$wallTime
-#PBS -l mpp_t=$wallTime
-#PBS -l mpp_p=$nodes
-#PBS -r $submitFile
+#PBS -l select=$nodes:ncpus=$ppn
+#PBS -l walltime=$wallTime
+#PBS -l mem=$memorymb
 #PBS -A $account
-#PBS
+#PBS -j oe
+#PBS -o pbs.out
+#PBS -S /bin/csh
 }
 
 LSF {
-#BSUB -nr -nc
-#BSUB -s /bin/csh
-#BSUB -lM $memoryMw
+#BSUB -J $submitFile
 #BSUB -q $queue
+#BSUB -n $totalprocs
+#BSUB -W $wallHrMin
+#BSUB -M $memory
+#BSUB -P $account
 #BSUB -o $submitFile.out
-#BSUB -e stderr.out
-#BSUB -r $submitFile
+#BSUB -e $submitFile.err
+#BSUB -L /bin/csh
+}
+Moab {
+#MSUB -N $submitFile
+#MSUB -q $queue
+#MSUB -l nodes=$nodes:ppn=$ppn
+#MSUB -l walltime=$wallTime
+#MSUB -l mem=$memorymb
+#MSUB -A $account
+#MSUB -j oe
+#MSUB -o moab.out
 }
 
 #

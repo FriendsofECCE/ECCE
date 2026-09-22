@@ -176,6 +176,35 @@ Frequency=last
 End=MASS-WEIGHTED COORDINATE ANALYSIS
 [END]
 
+# IR intensities, from the DESCRIPTION OF VIBRATIONS block.  Without
+# VIBIR (or VIBRAM) NModePanel::fillGraph() returns false and
+# initialize() falls back to showTable(), which is why MOPAC alone showed
+# a table where every other code shows the spectrum plot.
+#
+# Boundary check, per the End-line starvation hazard this file's header
+# warns about: Begin is DESCRIPTION OF VIBRATIONS, which lies after
+# [VIBFREQ]'s End (MASS-WEIGHTED COORDINATE ANALYSIS), so nothing is
+# eaten from under it.  End is SYMMETRY NUMBER FOR POINT-GROUP, which is
+# no other entry's Begin -- [PNTGRP] anchors on MOLECULAR POINT GROUP,
+# and every occurrence of that in a real FORCE or GEO+VIB run comes
+# BEFORE this block, so consuming this line starves nothing.
+#
+# Skip=1 starts feeding at the line after Begin, which is blank;
+# mopac.vibir scans for its own markers and ignores everything else, so
+# the usual off-by-one that silently produces zero output does not apply.
+#
+# The block collapses degenerate modes (4 stanzas for CH4's 9 modes);
+# mopac.vibir expands them back out.  See its header for why that is
+# structural rather than a frequency match, and for why the value is the
+# square of the transition dipole on a relative scale.
+[VIBIR]
+Script=mopac.vibir
+Begin=DESCRIPTION OF VIBRATIONS
+Skip=1
+Frequency=last
+End=SYMMETRY NUMBER FOR POINT-GROUP
+[END]
+
 # "          ZERO POINT ENERGY      10.115 KCAL/MOL" -- already in
 # kcal/mol, the Energy converter's base unit, so no conversion.
 [EZEROPT]

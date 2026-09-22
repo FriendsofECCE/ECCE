@@ -331,6 +331,43 @@ def run_case(case, res, verbose=False):
                   '(PropTSVecTable::value bounds check).'
                   % (nEnergy, nTrace))
 
+    # --- cross-property invariant: the vibration vectors are row-aligned ---
+    #
+    # NModePanel's table and its spectrum plot index VIBFREQ, VIBIR, VIBRAM
+    # and VIBSYM by the same row number, not by any mode-number column the
+    # code printed. A vector of a different length is therefore not a
+    # missing value, it is every row after the divergence showing the wrong
+    # mode's number -- silently, with no error and a perfectly plausible
+    # looking spectrum.
+    #
+    # This is the single most repeated trap in this codebase's parsers:
+    # ORCA's IR SPECTRUM omits the translation/rotation modes entirely
+    # (orca.vibir pads them), and MOPAC's DESCRIPTION OF VIBRATIONS
+    # collapses degenerate modes, 4 stanzas for CH4's 9 (mopac.vibir
+    # expands them). Both were found by hand; neither was checkable until
+    # now. A C2v water fixture cannot show the MOPAC case at all.
+    sizes = {}
+    for entryType, (entry, recs_per_block) in emitted.items():
+        for block, recs, rc, err in recs_per_block:
+            for rec in recs:
+                if rec['key'] in ('VIBFREQ', 'VIBIR', 'VIBRAM', 'VIBSYM'):
+                    #  "size:" is the leading dimension; VIB itself is
+                    #  modes x atoms x 3 and is checked by its first field.
+                    dims = ' '.join(
+                        rec.get('sections', {}).get('size', [])).split()
+                    if dims:
+                        sizes[rec['key']] = dims[0]
+    reference = sizes.get('VIBFREQ')
+    if reference is not None:
+        for key in ('VIBIR', 'VIBRAM', 'VIBSYM'):
+            if key in sizes and sizes[key] != reference:
+                res.check(False, case['name'],
+                          '%s has %s row(s) but VIBFREQ has %s. NModePanel '
+                          'indexes them by the same row, so every row past '
+                          'the divergence shows a different mode\'s value '
+                          'with no error anywhere.'
+                          % (key, sizes[key], reference))
+
     return result, ''.join(report)
 
 

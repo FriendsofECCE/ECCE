@@ -1,0 +1,134 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts IR intensities from MOPAC's "DESCRIPTION OF VIBRATIONS" block
+# into ECCE's VIBIR property (a PropVector), so that the Vibrational
+# Frequencies panel shows the spectrum plot rather than falling back to
+# the mode table.
+#
+# NModePanel::fillGraph() ends with "return ivec != 0 || rvec != 0"
+# (VIBIR, VIBRAM) and NModePanel::initialize() calls showTable() when that
+# is false.  MOPAC extracted neither, which is the entire reason it alone
+# showed a table where NWChem, Gaussian and ORCA show a plot.
+#
+# ---------------------------------------------------------------------------
+# WHAT THE VALUE IS, AND WHY IT IS NOT km/mol
+# ---------------------------------------------------------------------------
+# MOPAC prints a TRANSITION DIPOLE per vibration, not an absorption
+# intensity.  IR intensity is proportional to the SQUARE of the dipole
+# derivative, so the square is what makes peak heights in the plot
+# comparable to a real IR spectrum -- emitting the dipole itself would
+# compress every relative height by a square root and quietly misrepresent
+# the spectrum.
+#
+# The square is therefore what is published, on a relative scale, and the
+# units string says so: "arb. units".  Converting to km/mol needs a
+# conversion factor for MOPAC's own dipole convention that has not been
+# established here, and labelling a number km/mol when it is not would put
+# a wrong figure in front of a chemist.  Nothing forces our hand: the
+# units string is per-parser (see the "units:" line at the end of every
+# *.expt/parse script), "IRIntensity" in data/client/config/properties is
+# an inert label that no C++ or config file resolves into a convertible
+# unit family, and the spectrum plot sets only SetXAxisLabel("Frequency")
+# -- it has no Y axis label at all.  The string shows up in the mode
+# table's "Infrared" column header, where "arb. units" is honest.
+#
+# ---------------------------------------------------------------------------
+# DEGENERATE MODES: THE REASON THIS IS NOT A ONE-LINER
+# ---------------------------------------------------------------------------
+# DESCRIPTION OF VIBRATIONS COLLAPSES DEGENERATE MODES -- the same trap
+# mopac.desc's header records for VIBFREQ, which is deliberately taken
+# from NORMAL COORDINATE ANALYSIS instead for exactly this reason.  A PM7
+# CH4 FORCE run has 9 modes but only 4 stanzas here.
+#
+# VIBIR must stay the same length and row-for-row aligned with VIBFREQ,
+# because NModePanel's table and graph index both PropVectors by the same
+# row, not by any mode-number column.  So the stanzas have to be expanded
+# back out to the full mode list.
+#
+# The expansion is structural, not a frequency match: a stanza's
+# "VIBRATION <n>" is the LAST mode of its degenerate block.  Verified
+# against tests/parsers/fixtures/mopac/ch4_force.out, whose NORMAL
+# COORDINATE ANALYSIS gives
+#
+#    Root No.   1      2      3      4      5      6      7      8      9
+#            1291.2 1291.2 1306.5 1306.5 1306.5 2689.9 2689.9 2689.9 2813.7
+#
+# against stanzas numbered 2, 5, 8 and 9.  So stanza k covers modes
+# (previous stanza index + 1) .. (its own index), and the highest stanza
+# index is the total mode count -- no tolerance-based frequency comparison
+# needed, and nothing to get wrong when two distinct modes happen to have
+# equal frequencies to the printed precision.
+#
+# Sample input (real PM7 output):
+#
+#  VIBRATION          5    1T2         ATOM PAIR     ENERGY CONTRIBUTION
+#  FREQUENCY          1306.52         C 1 -- H 5         +34.6% ( 58.6%)
+#  TRANSITION DIPOLE   1.0450         C 1 -- H 4         +34.5% ( 58.5%)
+#
+# Note the ATOM PAIR columns to the right: the regexes below anchor on the
+# start of the line and take only the first number after the label, so the
+# percentages never come into it.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my %dipole;          # stanza mode index -> transition dipole
+my $current = -1;
+my $maxmode = 0;
+
+while (<STDIN>) {
+  if (/^\s*VIBRATION\s+(\d+)/) {
+    $current = $1;
+    $maxmode = $current if ($current > $maxmode);
+  } elsif (/^\s*TRANSITION\s+DIPOLE\s+(-?\d+\.?\d*)/) {
+    $dipole{$current} = $1 if ($current > 0);
+  }
+}
+
+exit(0) if ($maxmode < 1);
+
+# Expand the collapsed stanzas across the full mode list.  Walking the
+# stanza indices in order and filling forward is what implements "the
+# stanza index is the last mode of its block".
+my @intensity;
+my $mode = 1;
+foreach my $stanza (sort { $a <=> $b } keys %dipole) {
+  my $d = $dipole{$stanza};
+  my $value = $d * $d;             # intensity goes as the square
+  while ($mode <= $stanza) {
+    $intensity[$mode] = $value;
+    $mode++;
+  }
+}
+# Any trailing modes MOPAC did not describe get zero, matching how
+# NWChem/Gaussian show the skipped translation/rotation rows.
+while ($mode <= $maxmode) {
+  $intensity[$mode] = 0.0;
+  $mode++;
+}
+
+my $nmodes = $maxmode;
+
+print "key: VIBIR\n";
+print "size:\n$nmodes\n";
+print "rowlabels:\n";
+for my $i (1 .. $nmodes) {
+  print " $i ";
+  print "\n" if (($i % 10) == 0);
+}
+print "\n" if (($nmodes % 10) != 0);
+print "values:\n";
+for my $i (1 .. $nmodes) {
+  my $v = defined($intensity[$i]) ? $intensity[$i] : 0.0;
+  printf " %.4f", $v;
+  print "\n" if (($i % 10) == 0);
+}
+print "\n" if (($nmodes % 10) != 0);
+print "units:\narb. units\n";
+print "END\n";
+exit(0);
