@@ -79,7 +79,12 @@ bool BuilderApp::OnInit()
       else if (strcmp(argv[i], "-help") == 0) {
         usage();
         exit(-1);
-      } else if (strcmp(argv[1], "-pipe") == 0) {
+      } else if (strcmp(argv[i], "-pipe") == 0) {
+        // Was argv[1]: a typo that made -pipe recognised only when it
+        // happened to be the FIRST argument. Anywhere else it fell through
+        // to the else branch and was swallowed as "a file name to open",
+        // silently discarding the credentials and taking the next argument
+        // with it.
         AuthCache::getCache().pipeIn(argv[++i].ToStdString());
       } else if (strcmp(argv[i], "-context") == 0) {
         // Might need index out of boundary check

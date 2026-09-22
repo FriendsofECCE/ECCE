@@ -6,7 +6,11 @@ set -u
 
 ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
-PIDFILE="$STATEDIR/jmsdispatcher.pid"
+DISPLAY="${DISPLAY:-:0}"
+# Per-display, matching ecce-gateway-start; see the note there.
+PIDFILE="$STATEDIR/jmsdispatcher_${DISPLAY}.pid"
+HOST="${ECCE_HOST:-$(hostname)}"
+PORTFILE="$STATEDIR/${HOST}_${DISPLAY}"
 
 if [ -f "$PIDFILE" ]; then
   pid="$(cat "$PIDFILE")"
@@ -16,10 +20,14 @@ if [ -f "$PIDFILE" ]; then
   else
     echo "ecce-gateway-stop: JMSDispatcher not running"
   fi
-  rm -f "$PIDFILE"
+  rm -f "$PIDFILE" "$PORTFILE"
 else
-  echo "ecce-gateway-stop: JMSDispatcher not running (no pidfile)"
+  echo "ecce-gateway-stop: JMSDispatcher not running for $DISPLAY (no pidfile)"
 fi
+
+# Pidfiles written before the per-display fix have no display in the name;
+# clean one up so it cannot be mistaken for this session's.
+rm -f "$STATEDIR/jmsdispatcher.pid"
 
 # The ActiveMQ launcher (bin/activemq) doesn't leave its own pidfile in
 # this config, so find it by matching the same command line pattern the

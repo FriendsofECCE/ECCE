@@ -118,16 +118,27 @@ else
 fi
 
 # --- 2. Per-session JMSDispatcher gateway relay ------------------------
-PIDFILE="$STATEDIR/jmsdispatcher.pid"
+# The JMSDispatcher is per SESSION, not per user: it is started with a
+# -DDISPLAY and writes its port to "$STATEDIR/${HOST}_${DISPLAY}", which
+# JMSMessage.C reads back and asserts on (EE_FATAL) when it is missing.
+# The pidfile therefore has to be per-display too.  It was not, so with a
+# dispatcher already running for one display, starting ECCE on a SECOND
+# display -- a VNC session, an X-forwarded session, a second seat --
+# reported "JMSDispatcher already running", never wrote that display's
+# port file, and every app then died on
+#   JMSMessage.C:497 Assertion (infile.good()) failed
+# Found by tests/apps, which runs the apps on an Xvfb display.
+PIDFILE="$STATEDIR/jmsdispatcher_${DISPLAY}.pid"
 PORTFILE="$STATEDIR/${HOST}_${DISPLAY}"
 
 running=0
-if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null \
+   && [ -f "$PORTFILE" ]; then
   running=1
 fi
 
 if [ "$running" = "1" ]; then
-  echo "ecce-gateway-start: JMSDispatcher already running (pid $(cat "$PIDFILE"))"
+  echo "ecce-gateway-start: JMSDispatcher already running for $DISPLAY (pid $(cat "$PIDFILE"))"
 else
   echo "ecce-gateway-start: starting JMSDispatcher..."
   CP=""

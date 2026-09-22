@@ -162,9 +162,26 @@ bool MetaEd::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   Centre();
 
   // set desktop icon
-  SetIcon(wxIcon(ewxBitmap::pixmapFile(
-          ResourceDescriptor::getResourceDescriptor().getTool(METADYNAMICS)
-          ->getIcon()), wxBITMAP_TYPE_XPM));
+  //
+  // getTool() returns NULL when the named <Tool> is not registered in
+  // ResourceDescriptor.xml, and METADYNAMICS stopped being registered when
+  // MetaDyn's menu entries were archived on 2026-08-30 (see
+  // data/client/config/disabled-codes-archive.txt, which notes that the
+  // matching <Tool name="MetadynamicsEditor"> entry went with them). The
+  // unchecked -> then dereferenced NULL and this app SIGSEGV'd on every
+  // launch, after its window was already up. Found by tests/apps.
+  //
+  // A missing icon is not worth crashing over: carry on without one. The
+  // same unchecked getTool(...)->getIcon() pattern exists in roughly a
+  // dozen other apps (Builder.C, CalcMgr.C, SolvateEd.C, WxLauncher.C,
+  // MachineBrowser.C, ...) and is a latent crash in each of them for
+  // exactly the same reason -- worth auditing together.
+  ResourceTool *metaTool =
+      ResourceDescriptor::getResourceDescriptor().getTool(METADYNAMICS);
+  if (metaTool != 0) {
+    SetIcon(wxIcon(ewxBitmap::pixmapFile(metaTool->getIcon()),
+                   wxBITMAP_TYPE_XPM));
+  }
   EDSIFactory::addAuthEventListener(this);
 
   return true;
