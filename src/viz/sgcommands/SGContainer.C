@@ -111,6 +111,27 @@ void SGContainer::constructor()
 
    // Show one thing at a time
    p_mainSep = new SoSeparator;
+
+   // Diagnostic for the geometry-trace stepping bug (#99): set
+   // ECCE_DISABLE_RENDER_CACHE=1 to turn Open Inventor's render caching
+   // off for the whole molecule subtree.
+   //
+   // Symptom being chased: stepping a geometry trace moves the atoms once
+   // and then never again, while GTStepCmd demonstrably runs every step
+   // with changing coordinates (confirmed with ECCE_DEBUG_GEOMTRACE) and
+   // calls touchChemDisplay() every time. A repaint that renders a stale
+   // cache would look exactly like that -- and so would the observation
+   // that clicking another panel makes the geometry "reset", since that
+   // forces a full re-traversal.
+   //
+   // If stepping works with this set, the fault is cache invalidation and
+   // not the step command, the data, or the paint handler. If it does not,
+   // caching is exonerated and the next suspect is the ChemDisplay render
+   // cache itself rather than the separator's.
+   if (getenv("ECCE_DISABLE_RENDER_CACHE") != 0) {
+      p_mainSep->renderCaching = SoSeparator::OFF;
+   }
+
    addChild(p_mainSep);
 
 

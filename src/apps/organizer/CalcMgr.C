@@ -2533,7 +2533,11 @@ void CalcMgr::getRunMgmtMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
  */
 void CalcMgr::addGlobalTools(wxMenu & menu)
 {
-  static const char *globalTools[] = { "MachineBrowser", "PeriodicTable", 0 };
+  // MachineRegister is how a machine gets *defined* in the first place;
+  // it had Gateway=-1 in ResourceDescriptor.xml, i.e. no launcher icon,
+  // so before this it was unreachable from anywhere in the GUI.
+  static const char *globalTools[] = { "MachineRegister", "MachineBrowser",
+                                       "PeriodicTable", 0 };
 
   ResourceDescriptor& descriptor =
       ResourceDescriptor::getResourceDescriptor();

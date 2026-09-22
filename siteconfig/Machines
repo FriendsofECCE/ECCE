@@ -5,5 +5,11 @@
 #
 #name						vendor	model		processor			nodes	remShell	codes
 #----						------	-----		---------			-----	--------	-----
+# A machine ECCE never contacts (issue #94). Select this when the cluster
+# you actually use requires two-factor authentication, or is otherwise
+# unreachable from ECCE: the input deck and submit script are generated
+# locally and ECCE stops there, telling you the directory to copy. See
+# CONFIG.dummy, which carries "noRemoteAccess: true".
+dummy	localhost	Generic	Manual submission (ECCE does not contact it)	Unspecified	1024:128	ssh	:NWChem:Gaussian-16:Gaussian-09:ORCA:MOPAC:QuantumESPRESSO	MN:RD:SD:Q:TL
 chinook	chinook.emsl.pnl.gov	HP	HPCS3 Phase 1 Cluster	AMD 2.6 GHz Opteron	4800:600	ssh	:NWChem	MN:RD:SD:UN:PW:AA:Q:TL
 franklin	franklin.nersc.gov	Cray	Cray Cluster	AMD 2.6 GHz Opteron	16000:4000	ssh	:NWChem	MN:RD:SD:UN:PW:AA:Q:TL

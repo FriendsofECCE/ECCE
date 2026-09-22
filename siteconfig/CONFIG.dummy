@@ -1,0 +1,28 @@
+# Configuration for the "dummy" machine -- one ECCE never contacts.
+#
+# Issue #94: HPC centres increasingly require two-factor authentication,
+# which ECCE's automated remote-shell layer cannot satisfy. Rather than
+# losing input generation and output analysis as well, select this machine:
+# Launch runs the local half of the pipeline (validate, generate the input
+# deck, generate the submit script) and then STOPS, reporting the directory
+# to copy across. You submit it yourself and bring the output back.
+noRemoteAccess: true
+
+# Bare command names on purpose. ECCE never runs these -- you do, on
+# whatever machine you copy the job to -- so the right value is whatever
+# your PATH resolves there. gensub needs *a* value for the code being run
+# or it dies with "Path for <code> not found", which is the only reason
+# these are here at all.
+#
+# To override a path, gensub also reads ~/.ECCE/CONFIG.dummy and merges it
+# on top of this file, so adding just the one line you want there is
+# enough for the generated submit script. Note this is NOT true of the
+# C++ side: RefMachine::configFile() takes the site file if it exists and
+# never looks at the user's, so "noRemoteAccess" itself has to stay here.
+NWChem: nwchem
+Gaussian-16: g16
+Gaussian-09: g09
+ORCA: orca
+MOPAC: mopac
+QuantumESPRESSO: pw.x
+perlPath: /usr/bin/perl
