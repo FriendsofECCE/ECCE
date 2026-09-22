@@ -586,6 +586,21 @@ void NModePanel::processStep(int step)
    cmd->getParameter("Index")->setInteger(step);
 
    fw.execute(cmd);
+
+   // Issue #99, same fault as the geometry trace: Open Inventor's redraw
+   // sensor is a one-shot that re-arms on render, and with a render
+   // callback installed nothing re-arms it -- so after the first step the
+   // scene manager's render callback is never entered again and the view
+   // freezes while the data keeps moving. Proved live on the geometry
+   // trace by instrumenting SoWxRenderArea::renderCB; see
+   // GeomTracePropertyPanel::processStep() for the captured log.
+   //
+   // This path has the identical shape (step command mutates atom
+   // coordinates, then relies on notification), and vibration animation
+   // was never verified end to end because the display-mode switch that
+   // reveals the Play button was itself broken until recently. Fixing it
+   // here too rather than waiting to reproduce the same thing twice.
+   fw.getViewer().refreshRenderArea();
 }
 
 void NModePanel::nextStep()

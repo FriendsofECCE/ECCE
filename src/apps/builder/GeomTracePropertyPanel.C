@@ -437,6 +437,37 @@ void GeomTracePropertyPanel::processStep(int step)
 
   p_plotCtrl->SetCursorDataIndex(0, step);
 
+  // Issue #99: drive the repaint directly instead of relying on Open
+  // Inventor's change notification, which stops firing after the first
+  // step.
+  //
+  // Proved by instrumenting SoWxRenderArea::renderCB (the scene manager's
+  // render callback) alongside GTStepCmd and stepping a five-frame trace
+  // live. GTStepCmd ran every time with correctly changing coordinates,
+  // and SGFragment::getAtomCoordinates() reads TAtm live rather than from
+  // a cached copy, so the scene always had fresh data to draw -- yet
+  // renderCB was entered for step 0 and then NOT ONCE for the thirteen
+  // steps that followed:
+  //
+  //   [GEOMTRACE] step=0 ...   [RENDERCB] inPaint=0 -> refresh
+  //   [GEOMTRACE] step=1 ...   (no RENDERCB)
+  //   [GEOMTRACE] step=2 ...   (no RENDERCB)
+  //   ... eleven more, none
+  //
+  // So the fault was never the render cache (disabling caching
+  // process-wide changed nothing), never the data path, and never
+  // OnPaint's p_redrawPending retry -- the redraw was simply never
+  // requested, because the scene manager's redraw sensor is a one-shot
+  // that re-arms on render, and with a render callback installed nothing
+  // re-armed it.
+  //
+  // refreshRenderArea() forces a wx paint, which reaches redraw() and
+  // renders the scene, so it does not depend on that sensor at all.
+  // Deliberately unconditional rather than inside the p_recompute branch
+  // where sg.touchChemDisplay() sits: the geometry moves on every step,
+  // whether or not bonds are being recomputed.
+  fw.getViewer().refreshRenderArea();
+
   ::wxYieldIfNeeded();
 }
 
