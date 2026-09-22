@@ -39,7 +39,13 @@ $occValues = "";
 $values = "";
 $loopValue = 0;
 while (<STDIN>) {
-  if ( /^\(/ || /^\s*\d\s*$/) {
+  #  The Fortran format line -- "(5D15.8)" -- is what separates Gaussian's
+  #  archive entry at the top of fort.7 from the MO data.  Matching a bare
+  #  leading "(" is not enough: the archive is wrapped at 80 columns, and a
+  #  route section like "Opt=()" can put "()" at the start of a
+  #  continuation line, which ended the skip early and fed the rest of the
+  #  archive in as MO coefficients (issue #108).
+  if ( /^\(\s*\d*\s*[A-Za-z]\d+\.\d+\s*\)\s*$/ || /^\s*\d\s*$/) {
     last;
   }
 }
