@@ -46,6 +46,7 @@ import harness                                                 # noqa: E402
 import inventory                                               # noqa: E402
 import resources                                               # noqa: E402
 import siteconfig                                              # noqa: E402
+import shellcmd                                                # noqa: E402
 import restore                                                 # noqa: E402
 import lint                                                    # noqa: E402
 from perlmap import Fallback, Generator                        # noqa: E402
@@ -250,6 +251,12 @@ def checkResources(results, verbose=False):
     #  verifypatterns.  Same shape of failure as the resource graph -- silent,
     #  or fatal at startup -- and equally checkable without a display.
     siteconfig.check(report)
+    results.check()
+
+    #  Shell commands built in C++ whose redirect depends on an inherited
+    #  working directory. Costs nothing to run and caught a real
+    #  all-codes launch failure the day it was written.
+    shellcmd.check(report)
     results.check()
 
     unreachable = resources.wiredButUnreachable(loaded)
