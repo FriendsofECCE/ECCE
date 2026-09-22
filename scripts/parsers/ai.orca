@@ -250,7 +250,8 @@ sub ORCARoute {
   $route .= &SCFConvergenceToken . " ";
   $route .= &GeomConvergenceToken . " ";
   $route .= &FreqMethodToken . " ";
-  $route .= &SolvationToken;
+  $route .= &SolvationToken . " ";
+  $route .= &ChelpgToken;
   $route =~ s/\s+/ /g;
   $route =~ s/\s+$//;
   return $route;
@@ -288,6 +289,22 @@ sub RIJCOSXToken {
 # entry of which was checked by submitting "! HF STO-3G CPCM(<name>)" and
 # looking for ORCA's "INPUT ERROR". A name the dialog offers that this
 # sub does not know would silently produce a gas-phase job.
+# "! CHELPG" -- ESP-fitted partial charges (issue #88).
+#
+# orca.desc has parsed the resulting "CHELPG Charges" block into
+# ESPCHARGE since ORCA was integrated, but nothing could ever request
+# one, so that parse type was dead code and the property never appeared
+# for any ORCA job. Verified against ORCA 6.1.1: the keyword is accepted
+# and the block it emits is exactly what orca.desc's Skip=2 expects.
+sub ChelpgToken {
+  my $result = "";
+  if ($AbiDict{"ES.Runtype.ORCA.UseCHELPG"} eq "1") {
+    $result = "CHELPG";
+  }
+  $_ = $result;
+  return $result;
+}
+
 sub SolvationToken {
   my $result = "";
   if ($AbiDict{"ES.Theory.SCF.UseSolvation"} eq "1") {

@@ -82,6 +82,27 @@ class OrcaRunTypePanel(EccePanel):
             vibSizer.AddWidget(self.vibMethod)
             self.panelSizer.Add(vibSizer)
 
+        # PARTIAL CHARGES (issue #88). orca.desc has parsed "CHELPG
+        # Charges" into ESPCHARGE since ORCA was integrated, but nothing
+        # in ai.orca or this dialog could ever ASK for them -- so that
+        # parse type was unreachable from the GUI and the property never
+        # appeared for any job. The parser was correct; only the request
+        # was missing.
+        #
+        # Offered for every runtype rather than gated on one, because
+        # ORCA computes CHELPG charges from the converged density of
+        # whatever job ran. Verified against ORCA 6.1.1: "! CHELPG" is
+        # accepted and emits the block orca.desc expects, with its
+        # Skip=2 landing exactly on the first charge row.
+        chargeSizer = EcceBoxSizer(self, label="Partial Charges", cols=1)
+        self.useChelpg = EcceCheckBox(self,
+                                      label=" CHELPG charges (ESP fit)",
+                                      name="ES.Runtype.ORCA.UseCHELPG",
+                                      default=False,
+                                      export=1)
+        chargeSizer.AddWidget(self.useChelpg)
+        self.panelSizer.Add(chargeSizer)
+
         self.AddButtons()
 
     def CheckDependency(self):
