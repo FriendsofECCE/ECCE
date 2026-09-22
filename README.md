@@ -61,6 +61,24 @@ than papered over.
 
 ### Release history
 
+- **v8.12.0** — **The Gateway window is gone**: `ecce` opens the
+  Organizer directly, which becomes the front door (New Structure on
+  File; Register Machines, Machine Browser and Periodic Table on Tools).
+  `ECCE_GATEWAY_WINDOW=1` restores the old window. **ORCA gains implicit
+  solvation** — CPCM and SMD, which it had none of, so every ORCA deck
+  had been gas phase — plus MP2, coupled cluster, double hybrids, the
+  DLPNO methods and CHELPG charges. **Quantum ESPRESSO gains geometry
+  and variable-cell optimisation**, so a relax can be stepped through
+  and a vc-relax animated with a changing cell. Fixes geometry-trace
+  stepping in the 3-D viewer, a theory lookup that silently resolved to
+  nothing when a theory's name matched its category, input-generator
+  errors being replaced by a generic message, and a vibrational table
+  whose Raman column was overwriting its Infrared one.
+- **v8.11.0** — Adds dummy submission for 2FA-blocked clusters, Slurm
+  submit directives (previously generating none at all), per-user queue
+  configuration, and Machine Browser and Periodic Table on the
+  Organizer's Tools menu. Fixes a segfault opening any job with
+  vibrational data, and adds dialog and application test suites.
 - **v8.10.0** — **ORCA becomes properly usable**: vibrational analysis
   and NMR now work at all, property coverage goes from 9 of 24 parse
   types to all 24, and the dialogs gain RIJCOSX, 15 DFT functionals and
