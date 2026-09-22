@@ -1,0 +1,90 @@
+# Parse descriptor for GROMACS mdrun output (the .log file).
+#
+# STATUS: groundwork. There is no GROMACS.edml yet, so no calculation can
+# be created for this code and nothing here is reachable from the GUI.
+# It exists because the monitoring half of a GROMACS integration can be
+# built and verified independently of the topology/force-field question
+# that dominates the rest of it -- see docs/GROMACS_ROADMAP.md.
+#
+# Verified against real GROMACS 2025.2 output: a steepest-descents
+# minimisation and a 500-step NVT run, both checked in under
+# tests/parsers/fixtures/gromacs/.
+#
+# THE ANCHOR IS THE STEP HEADER, NOT THE ENERGIES. GROMACS ends a run
+# with a summary block that carries the identical "Energies (kJ/mol)"
+# marker:
+#
+#     <====  A V E R A G E S  ====>
+#     Statistics over 501 steps using 6 frames
+#        Energies (kJ/mol)
+#        ...
+#
+# Anchoring on the energies would parse that as one more step, putting a
+# final point on every energy-vs-step plot whose value is an AVERAGE OVER
+# THE RUN. The 500-step fixture has 6 step markers and 7 energy blocks,
+# which is how this was caught. Only real steps carry the "Step Time"
+# header, so that is the Begin.
+#
+# FRAMING: anchored on the energies marker itself, which is
+# self-delimiting -- Skip=0 feeds the marker, and a blank End closes the
+# section correctly for BOTH shapes (one header/value pair for a
+# minimisation, two for dynamics) and is immune to the messages GROMACS
+# interleaves into a step block:
+#
+#     Step           Time
+#       500        1.00000
+#
+#     Writing checkpoint, step 500 at Tue Sep 22 18:15:48 2026
+#
+#
+#     Energies (kJ/mol)
+#
+# Anchoring on the "Step Time" header instead was tried and measured, and
+# does not work. A blank End closes immediately on the blank that sits
+# before the marker, so nothing is fed. A fixed Skip past that blank
+# fails on the interleaved-message blocks above. And a line count cannot
+# serve both shapes: Lines=9 frames a dynamics block exactly but
+# over-reads a minimisation's shorter one and swallows the NEXT step's
+# Begin -- eccejobmonitor will not open a block while one is being fed,
+# so alternate steps vanish. Measured on the fixtures: 6 of 6 dynamics
+# steps but only 3 of 5 minimisation steps.
+#
+# THE AVERAGES BLOCK IS SWALLOWED ON PURPOSE by the [NULL] entry below.
+# GROMACS ends a run with a summary whose "Energies (kJ/mol)" marker is
+# BYTE-IDENTICAL to a real step's, so no Begin pattern can tell them
+# apart. Parsed as a step it would put a final point on every
+# energy-vs-step plot whose value is an AVERAGE OVER THE RUN, and would
+# leave the scalar TE holding that average rather than the last step.
+[TE][TEVEC]
+Script=gromacs.energy
+Begin=^\s*Energies \(kJ/mol\)
+Frequency=all
+Skip=0
+End=^\s*$
+[END]
+
+# Deliberate use of End-line starvation, the hazard CLAUDE.md documents,
+# as the mechanism rather than the bug.
+#
+# eccejobmonitor consumes the End-matching line as part of the block it
+# closes, and will not open a new block while one is being fed. So a
+# no-op entry that starts at the AVERAGES banner and ends on the last
+# header row of the summary's energy section swallows that section's
+# "Energies (kJ/mol)" line before [TE][TEVEC] is ever offered it.
+#
+# End is the summary's final header row rather than a blank, because the
+# section contains no blank line until after its last value row -- and
+# ending there would leave the marker consumed but the values loose,
+# which is fine, whereas ending earlier would not consume the marker at
+# all and the averages would be parsed as a step.
+#
+# Safe against starving anything real: "A V E R A G E S" appears exactly
+# once in a run, at the end, and a minimisation does not print it at all
+# (the 5-step minimisation fixture has 5 energy blocks for 5 steps).
+[NULL]
+Script=gromacs.null
+Begin=A V E R A G E S
+Frequency=last
+Skip=0
+End=Pressure \(bar\)
+[END]

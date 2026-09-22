@@ -1100,6 +1100,68 @@ CASES = [
                 'units': 'Angstrom'}}),
         },
     ),
+    # -----------------------------------------------------------------
+    # GROMACS (mdrun .log).  GROUNDWORK ONLY -- there is no GROMACS.edml,
+    # so no calculation can be created for this code and none of this is
+    # reachable from the GUI.  It is here because the monitoring half of
+    # a GROMACS integration can be built and verified independently of
+    # the topology/force-field question that dominates the rest of it;
+    # see docs/GROMACS_ROADMAP.md.
+    #
+    # Both fixtures are real GROMACS 2025.2 runs performed on this
+    # machine (221 SPC waters, OPLS-AA, PME), with their .mdp and .top
+    # checked in beside them.
+    # -----------------------------------------------------------------
+    dict(
+        #  Steepest-descents minimisation, converged in 5 steps.
+        #  5 step headers, 5 energy blocks, so all 5 are real steps --
+        #  a minimisation prints no AVERAGES summary.
+        #
+        #  One header/value pair per block, so "Total Energy" does not
+        #  exist and gromacs.energy falls back to "Potential". Pinning
+        #  the value pins that fallback: an earlier version of the parser
+        #  returned Potential for DYNAMICS runs too, where Total Energy
+        #  does exist and is what was wanted.
+        name='gromacs-water-em',
+        desc='gromacs.desc',
+        fixture='gromacs/water_em.log',
+        parse_args=('.', 'Energy', 'MD', 'OPLS', '0'),
+        expect={
+            'TE][TEVEC': dict(blocks=5, keys={
+                'TE': {'values': '-8.19803e+03', 'units': 'kJoule/Mole'},
+                'TEVEC': {'units': 'kJoule/Mole'}}),
+        },
+    ),
+    dict(
+        #  500-step NVT run, v-rescale thermostat.
+        #
+        #  6 step headers but SEVEN energy blocks: the extra one is the
+        #  end-of-run AVERAGES summary, which carries the identical
+        #  "Energies (kJ/mol)" marker and would be parsed as one more
+        #  step if the .desc anchored there. blocks=6 is the assertion
+        #  that it does not -- an average over the whole run appearing as
+        #  a final point on an energy-vs-step plot is exactly the kind of
+        #  plausible-looking wrong answer this suite exists to catch.
+        #
+        #  Two header/value pairs per block here, so "Total Energy" is
+        #  present and must win over "Potential".
+        name='gromacs-water-md',
+        desc='gromacs.desc',
+        fixture='gromacs/water_md.log',
+        parse_args=('.', 'Dynamics', 'MD', 'OPLS', '0'),
+        expect={
+            #  TE is overwriting, so after the last block it holds the
+            #  LAST STEP's Total Energy, -7.11568e+03. The AVERAGES
+            #  summary's Total Energy is -7.36020e+03. Pinning this value
+            #  is the assertion that the summary was excluded -- if the
+            #  [NULL] suppressor ever stops swallowing it, TE lands on
+            #  the run average and this fails loudly instead of quietly
+            #  reporting a plausible wrong number.
+            'TE][TEVEC': dict(blocks=6, keys={
+                'TE': {'values': '-7.11568e+03', 'units': 'kJoule/Mole'},
+                'TEVEC': {'units': 'kJoule/Mole'}}),
+        },
+    ),
 ]
 
 
@@ -1147,6 +1209,13 @@ KNOWN_SILENT_SCRIPTS = {
     'gaussian-03.null': 'Deliberate no-op (see gaussian-16.null).',
     'nwchem.null': 'Deliberate no-op (see gaussian-16.null).',
     'orca.null': 'Deliberate no-op (see gaussian-16.null).',
+    'gromacs.null': 'Deliberate no-op, and the ONLY way to exclude the '
+                    'end-of-run AVERAGES summary: its "Energies (kJ/mol)" '
+                    'marker is byte-identical to a real step\'s, so no '
+                    'Begin pattern can tell them apart. This entry '
+                    'consumes that section first. Parsed as a step it '
+                    'would put a run-average on every energy-vs-step plot '
+                    'and leave the scalar TE holding it. See gromacs.desc.',
     'nwchem.symlab': 'Emits no property by design: it writes the symmetry '
                      'labels to a side file ("$key/parseSym", $key being '
                      'argv[1] = the job directory) for other scripts to read.',

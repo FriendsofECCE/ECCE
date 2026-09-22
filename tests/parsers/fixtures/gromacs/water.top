@@ -1,0 +1,8 @@
+#include "oplsaa.ff/forcefield.itp"
+#include "oplsaa.ff/spc.itp"
+
+[ system ]
+ECCE GROMACS spike
+
+[ molecules ]
+SOL   221

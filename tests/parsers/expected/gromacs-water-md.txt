@@ -1,0 +1,72 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    gromacs-water-md
+desc:    gromacs.desc
+fixture: gromacs/water_md.log (612 lines)
+args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
+
+[TE][TEVEC]  Script=gromacs.energy  Freq=all  Skip=0  Lines=-
+  Begin=^\s*Energies \(kJ/mol\)
+  End=^\s*$
+  begins=6 delivered=6 buffered_away=0
+  block 1: begin-line=459 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
+    key: TE
+      size: 1
+      values: -8.18669e+03
+      units: kJoule/Mole
+    key: TEVEC
+      size: 1
+      values: -8.18669e+03
+      units: kJoule/Mole
+  block 2: begin-line=468 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
+    key: TE
+      size: 1
+      values: -7.33732e+03
+      units: kJoule/Mole
+    key: TEVEC
+      size: 1
+      values: -7.33732e+03
+      units: kJoule/Mole
+  block 3: begin-line=477 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
+    key: TE
+      size: 1
+      values: -7.19592e+03
+      units: kJoule/Mole
+    key: TEVEC
+      size: 1
+      values: -7.19592e+03
+      units: kJoule/Mole
+  block 4: begin-line=486 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
+    key: TE
+      size: 1
+      values: -7.14458e+03
+      units: kJoule/Mole
+    key: TEVEC
+      size: 1
+      values: -7.14458e+03
+      units: kJoule/Mole
+  block 5: begin-line=495 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
+    key: TE
+      size: 1
+      values: -7.18100e+03
+      units: kJoule/Mole
+    key: TEVEC
+      size: 1
+      values: -7.18100e+03
+      units: kJoule/Mole
+  block 6: begin-line=507 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
+    key: TE
+      size: 1
+      values: -7.11568e+03
+      units: kJoule/Mole
+    key: TEVEC
+      size: 1
+      values: -7.11568e+03
+      units: kJoule/Mole
+
+[NULL]  Script=gromacs.null  Freq=last  Skip=0  Lines=-
+  Begin=A V E R A G E S
+  End=Pressure \(bar\)
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=519 fed=9 rc=0 first-fed='\t<====  A V E R A G E S  ====>'
+    (script emitted no property)
+

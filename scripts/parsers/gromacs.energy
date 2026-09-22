@@ -48,30 +48,61 @@ $| = 1;
 use constant FIELD_WIDTH => 15;
 
 my %term;
-my $sawHeader = 0;
+my $sawEnergies = 0;
+my $done = 0;
 
-#  A block is a SEQUENCE of header/value row pairs, not one pair. GROMACS
-#  wraps at five terms, so a minimisation prints one pair and a dynamics
-#  run prints two:
+#  Fed a block that starts at the "Step  Time" header, because that is
+#  what distinguishes a REAL STEP from the run-summary block GROMACS
+#  prints at the end:
 #
-#         LJ (SR)   Coulomb (SR)   Coul. recip.      Potential    Kinetic En.
-#     1.37191e+03   -1.02702e+04    1.01441e+02   -8.79686e+03    1.45954e+03
-#    Total Energy  Conserved En.    Temperature Pressure (bar)
-#    -7.33732e+03   -7.33636e+03    3.01028e+02   -8.59611e+02
+#     <====  A V E R A G E S  ====>
+#     Statistics over 501 steps using 6 frames
+#        Energies (kJ/mol)
+#        ...
 #
-#  The first version of this script stopped after the first value row.
-#  It still found "Potential" and so still produced a plausible number
-#  for a dynamics run -- while never seeing "Total Energy", the value it
-#  says it prefers. Silently returning the wrong quantity, which is this
-#  codebase's most repeated failure shape. Found by running an actual
-#  500-step NVT job rather than reasoning about the format.
+#  That trailing block has the identical "Energies (kJ/mol)" marker and
+#  no Step header. Anchoring on the energies alone would parse it as one
+#  more step, putting a final point on every energy-vs-step plot whose
+#  value is an AVERAGE OVER THE RUN -- plausible-looking and wrong. The
+#  500-step fixture has 6 step markers and 7 energy blocks, which is how
+#  this was noticed.
+#
+#  The block is fed with a generous fixed line count (see gromacs.desc),
+#  so this may over-read into whatever follows. Stopping as soon as one
+#  complete energies section has been closed by a blank line is what
+#  makes that safe: without it, an over-read would pick up the NEXT
+#  step's numbers and silently report them for this one.
 while (<STDIN>) {
   chomp;
-  next if (/^\s*Energies\s*\(/);      # the block marker itself
-  last if (/^\s*$/ && $sawHeader);     # blank line closes the block
-  next if (/^\s*$/);
+  last if ($done);
 
-  #  Header rows contain letters; value rows are numeric only.
+  next if (/^\s*Step\s+Time\s*$/);   # not normally fed; see gromacs.desc
+  if (/^\s*Energies\s*\(/) { $sawEnergies = 1; next; }
+
+  if (!$sawEnergies) {
+    next;                                   # step number, blanks
+  }
+
+  if (/^\s*$/) {
+    $done = 1;                              # blank closes the section
+    last;
+  }
+
+  #  A block is a SEQUENCE of header/value row pairs, not one pair.
+  #  GROMACS wraps at five terms, so a minimisation prints one pair and
+  #  a dynamics run prints two:
+  #
+  #        LJ (SR)   Coulomb (SR)   Coul. recip.      Potential    Kinetic En.
+  #    1.37191e+03   -1.02702e+04    1.01441e+02   -8.79686e+03    1.45954e+03
+  #   Total Energy  Conserved En.    Temperature Pressure (bar)
+  #   -7.33732e+03   -8.13312e+03    3.01028e+02   -8.59611e+02
+  #
+  #  An earlier version stopped after the first value row. It still found
+  #  "Potential", so it still produced a plausible energy for a dynamics
+  #  run, while never seeing "Total Energy" -- the value it says it
+  #  prefers. Silently returning the wrong quantity, which is this
+  #  codebase's most repeated failure shape. Found by running an actual
+  #  NVT job rather than reasoning about the format.
   if (/[A-Za-z]/) {
     #  Fixed-width, not whitespace-delimited: "LJ (SR)" and
     #  "Coul. recip." both contain spaces.
@@ -87,7 +118,6 @@ while (<STDIN>) {
     }
     next if (scalar(@names) == 0);
 
-    #  Its value row is the next line.
     my $values = <STDIN>;
     last if (!defined($values));
     chomp($values);
@@ -97,11 +127,41 @@ while (<STDIN>) {
     for (my $i = 0; $i < scalar(@names); $i++) {
       $term{$names[$i]} = $values[$i];
     }
-    $sawHeader = 1;
   }
 }
 
-exit(0) if (!$sawHeader);
+#  Only the energies section is required. gromacs.desc anchors on the
+#  "Step Time" header and then skips past it, so this script is handed
+#  the energies and nothing else -- it cannot distinguish a real step
+#  from the end-of-run AVERAGES block by their text, and excluding the
+#  latter is the Begin anchor's job. Said explicitly because it is the
+#  kind of division of responsibility that is easy to break later by
+#  "simplifying" the anchor onto the energies marker.
+#  REQUIRE the energies section to have been CLOSED by a blank line
+#  within the text we were given. A truncated block is the dangerous
+#  case, not the empty one: GROMACS wraps its terms at five per row, so
+#  a dynamics block cut short after the first header/value pair still
+#  contains "Potential" and would happily report it -- while "Total
+#  Energy", on the second pair, never arrives. That is a silently WRONG
+#  quantity rather than a missing one.
+#
+#  It is reachable in practice. gromacs.desc frames blocks with a line
+#  count (see there for why an End pattern cannot work), and GROMACS
+#  interleaves messages into the block:
+#
+#      Step           Time
+#        500        1.00000
+#
+#      Writing checkpoint, step 500 at Tue Sep 22 18:15:48 2026
+#
+#
+#      Energies (kJ/mol)
+#
+#  which pushes the second pair past the end of the fed range. Refusing
+#  the block loses that step; reporting it would have published the
+#  potential energy as if it were the total. Losing a data point is
+#  recoverable, publishing a wrong one is not.
+exit(0) if (!$sawEnergies || !$done);
 
 #  "Total Energy" is present for a dynamics run; a minimisation prints
 #  only "Potential". Prefer the total when it exists, because that is what

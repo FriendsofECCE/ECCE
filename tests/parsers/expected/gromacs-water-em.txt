@@ -1,0 +1,56 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    gromacs-water-em
+desc:    gromacs.desc
+fixture: gromacs/water_em.log (472 lines)
+args:    '.' 'Energy' 'MD' 'OPLS' '0'
+
+[TE][TEVEC]  Script=gromacs.energy  Freq=all  Skip=0  Lines=-
+  Begin=^\s*Energies \(kJ/mol\)
+  End=^\s*$
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=428 fed=4 rc=0 first-fed='   Energies (kJ/mol)'
+    key: TE
+      size: 1
+      values: -1.99051e+03
+      units: kJoule/Mole
+    key: TEVEC
+      size: 1
+      values: -1.99051e+03
+      units: kJoule/Mole
+  block 2: begin-line=435 fed=4 rc=0 first-fed='   Energies (kJ/mol)'
+    key: TE
+      size: 1
+      values: -5.73156e+03
+      units: kJoule/Mole
+    key: TEVEC
+      size: 1
+      values: -5.73156e+03
+      units: kJoule/Mole
+  block 3: begin-line=442 fed=4 rc=0 first-fed='   Energies (kJ/mol)'
+    key: TE
+      size: 1
+      values: -7.16623e+03
+      units: kJoule/Mole
+    key: TEVEC
+      size: 1
+      values: -7.16623e+03
+      units: kJoule/Mole
+  block 4: begin-line=449 fed=4 rc=0 first-fed='   Energies (kJ/mol)'
+    key: TE
+      size: 1
+      values: -7.67943e+03
+      units: kJoule/Mole
+    key: TEVEC
+      size: 1
+      values: -7.67943e+03
+      units: kJoule/Mole
+  block 5: begin-line=456 fed=4 rc=0 first-fed='   Energies (kJ/mol)'
+    key: TE
+      size: 1
+      values: -8.19803e+03
+      units: kJoule/Mole
+    key: TEVEC
+      size: 1
+      values: -8.19803e+03
+      units: kJoule/Mole
+
