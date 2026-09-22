@@ -1,11 +1,32 @@
 # Adding Quantum ESPRESSO as a registered code — implementation roadmap
 
-Status: **design document, no implementation started.** Written 2026-09-21
-against `main` at `cc82254`. Nothing in this document has been built or
-run. QE is **not installed on this machine**, so every statement about
-Quantum ESPRESSO's behaviour here comes from its published input
-documentation (`INPUT_PW`, `INPUT_PH`) and from output snippets in
-third-party teaching material — *not* from a binary. Statements about
+Status: **IMPLEMENTED — this document is now historical.** Written
+2026-09-21 against `main` at `cc82254` as a design document, before any
+code existed. Since then QE has been registered end to end: see
+`data/client/cap/QuantumESPRESSO.edml`, `scripts/parsers/ai.qe`,
+`qe.tpl`, `qe.desc`, `qe.launchpp`, the `qe.*` parse scripts, and
+`scripts/codereg/qe{theory,runtype}.py`.
+
+Quantum ESPRESSO 6.7 **is now installed on this machine**
+(`/usr/bin/pw.x`), and four real fixtures live in
+`tests/parsers/fixtures/qe/` — three single points and, as of
+2026-09-22, a genuine 6-step BFGS optimisation used to build and verify
+`GEOMTRACE`. So where the sections below say a statement is inferred
+from documentation rather than from a binary, prefer the fixtures and
+the test suite, which are checked against the real program.
+
+Properties extracted today: VERSION, TE, EWVEC, DELTAE, EGRADVEC,
+CPUSEC/ETIME, GEOMTRACE. Known gaps, in rough order of value: TEVEC (see
+the alignment warning in `qe.desc` — energies and geometries are offset
+by one), LATTICEVEC for `vc-relax` (the machinery to animate a changing
+cell already exists, per §1 below, and has no producer for QE), and
+anything requiring `ph.x`, which is a separate executable and a separate
+integration.
+
+Original preamble, kept for context: every statement about Quantum
+ESPRESSO's behaviour below came from its published input documentation
+(`INPUT_PW`, `INPUT_PH`) and from output snippets in third-party
+teaching material — *not* from a binary. Statements about
 ECCE come from reading this tree and from one real NWChem 7.2.3
 plane-wave fixture (`tests/parsers/fixtures/nwchem/cp_h2o.eprint`) and
 are marked where they are inferences rather than verified facts.
