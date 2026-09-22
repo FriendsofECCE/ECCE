@@ -359,6 +359,16 @@ RESTORE_CASES = [
 # back by copy-paste.
 # ---------------------------------------------------------------------------
 NOT_IN_MENU = {
+    "GROMACS": "Not yet registered, deliberately. The code-registration "
+               "file set is complete and verified end to end against real "
+               "GROMACS 2025.2 (ai.gromacs generated the .mdp, grompp built "
+               "the .tpr, mdrun ran, gromacs.desc parsed the log back), but "
+               "no ResourceDescriptor entry exists because registering it "
+               "forces the scope decision in issue #106: ECCE has no "
+               "concept of a force field or topology, and whether GROMACS "
+               "arrives import-only or with a pdb2gmx-driven force-field "
+               "picker changes how it should be wired. Remove this entry "
+               "when that is decided. See docs/GROMACS_ROADMAP.md.",
     "Amica": "Disconnected 2026-08-30 (issue #11) along with Gaussian-03, "
              "Gaussian-98 and MetaDyn.",
     "Gaussian-03": "Disconnected 2026-08-30 (issue #11).",
