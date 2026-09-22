@@ -16,7 +16,13 @@ CASES = [
     dict(name="expt-g16-h2o-optfreq", script="Gaussian-16.expt",
          output="gaussian-16/h2o_optfreq.log",
          expect=dict(natoms=3, symbols=["O", "H", "H"], charge="0",
-                     Theory="RHF", RunType="GeoVib")),
+                     Theory="RHF", RunType="GeoVib"),
+         # The OPTIMISED geometry, i.e. the last "Standard orientation" in
+         # the file -- not the input structure that the first one holds.
+         # Opening a finished job should show what it converged to.
+         geometry=[("O", 0.0, 0.127142, 0.0),
+                   ("H", 0.757982, -0.508615, 0.0),
+                   ("H", -0.757982, -0.508525, 0.0)]),
     dict(name="expt-g16-co-freq", script="Gaussian-16.expt",
          output="gaussian-16/co_freq.log",
          expect=dict(natoms=2, symbols=["C", "O"], charge="0")),
@@ -33,7 +39,12 @@ CASES = [
     dict(name="expt-orca-h2o-opt", script="ORCA.expt",
          output="orca/h2o_opt.out",
          expect=dict(natoms=3, symbols=["O", "H", "H"], Charge="0",
-                     RunType="Geometry")),
+                     RunType="Geometry"),
+         # Likewise the optimised geometry: ORCA.expt already took the last
+         # "CARTESIAN COORDINATES (ANGSTROEM)" block.
+         geometry=[("O", 0.0, 0.0, 0.123868),
+                   ("H", 0.0, 0.75808, -0.511934),
+                   ("H", 0.0, -0.75808, -0.511934)]),
     dict(name="expt-orca-h2o-optfreq", script="ORCA.expt",
          output="orca/h2o_optfreq.out",
          expect=dict(natoms=3, Charge="0", RunType="GeoVib",
@@ -52,18 +63,21 @@ CASES = [
 # Recorded here so a golden-file diff can be read with context.
 # ---------------------------------------------------------------------------
 NOTES = """
-* The Gaussian importers take the FIRST "Standard orientation" block in the
-  file, not the last: getMolecule() does `last` on the first match and is
-  called near the top of the file.  So importing a completed geometry
-  optimisation reconstructs the STARTING structure, not the optimised one.
-  Whether that is wrong depends on what the .frag is meant to be -- these
-  scripts reconstruct the calculation's SETUP (.frag/.basis/.param), and the
-  optimised geometry arguably belongs to the results side (GEOMTRACE), not
-  the setup.  It matters a great deal for issue #94 (dummy submission),
-  where the imported file is the only record of the job that exists, so
-  settle it before building on this path.
-  ORCA.expt reads its geometry from the input echo, so it has the same
-  property for the same reason.
+* FIXED: the Gaussian importers used to take the FIRST "Standard
+  orientation" block in the file, so importing a completed geometry
+  optimisation reconstructed the STARTING structure.  A user opening a
+  finished job expects the geometry it converged to, so getMolecule() now
+  keeps scanning and the last block wins.  It restores the file position to
+  just after the first block before returning, because getGeneralBasis() and
+  friends read on from wherever it left the handle and would otherwise be
+  silently starved.  Same change in all five Gaussian importers, and in all
+  three orientation loops (Standard, Input, Z-Matrix) since a NoSymm job
+  prints only "Input orientation".
+  The `geometry` assertions on the optimisation cases pin this down.
+
+  (An earlier note here claimed ORCA.expt had the same problem.  It does
+  not -- it already used the LAST "CARTESIAN COORDINATES (ANGSTROEM)"
+  block, and its case now asserts that too.)
 
 * NWChem has no cases here: NWChem.expt parses real NWChem stdout, and the
   nwchem fixtures in this tree are `.eprint` files -- the separate

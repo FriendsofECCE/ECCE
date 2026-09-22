@@ -443,6 +443,18 @@ def run_expt_cases(res, args):
             res.check(len(atoms) == want, name,
                       'expected %d atoms in the .frag, got %d'
                       % (want, len(atoms)))
+        if 'geometry' in case:
+            want = case['geometry']
+            ok = (len(atoms) == len(want) and
+                  all(a[0] == w[0] and
+                      all(abs(a[i] - w[i]) < 1e-5 for i in (1, 2, 3))
+                      for a, w in zip(atoms, want)))
+            res.check(ok, name,
+                      'geometry is not the expected one -- for an optimisation '
+                      'this usually means the importer took the first block in '
+                      'the file rather than the last.\n      expected %s\n'
+                      '      got      %s' % (want, atoms))
+
         if 'symbols' in expect:
             want = expect.pop('symbols')
             got = [a[0] for a in atoms]

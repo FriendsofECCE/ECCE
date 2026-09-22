@@ -810,6 +810,7 @@ sub scanForCharge {
 sub getMolecule {
   local($charge) = @_;
   local($atomSection,$find_geom,$centerNum,$atomNum,$x,$y,$z,$atsym);
+  my $resumePos;
   $find_geom = 0;
   # Center number => element symbol.  A GEN basis specification refers to
   # atoms by center number ("Centers:  1  5  8 ..."), so getGeneralBasis
@@ -842,10 +843,20 @@ sub getMolecule {
           }
         }
       }
-      $find_geom = 1;
-      last;
-    }
+    $find_geom = 1;
+    # Remember where the FIRST block ended and carry on
+    # scanning: a geometry optimisation prints one of these
+    # per step and the user opening a finished job expects
+    # the final structure, not the starting guess. Each
+    # block overwrites the previous, so the last one wins.
+    $resumePos = tell(INPUT) if (!defined($resumePos));
   }
+  }
+  # Downstream parsing (getGeneralBasis and friends) reads on
+  # from wherever this sub left the handle, and used to get the
+  # position just after the first geometry. Scanning to EOF
+  # would silently starve it, so put the handle back.
+  seek(INPUT, $resumePos, 0) if (defined($resumePos));
 #########################################################################
 #  Could not find geometry. Look for a geometry in "Input orientation"
 #########################################################################
@@ -875,10 +886,20 @@ sub getMolecule {
             }
           }
         }
-        $find_geom = 1;
-        last;
-      }
+      $find_geom = 1;
+      # Remember where the FIRST block ended and carry on
+      # scanning: a geometry optimisation prints one of these
+      # per step and the user opening a finished job expects
+      # the final structure, not the starting guess. Each
+      # block overwrites the previous, so the last one wins.
+      $resumePos = tell(INPUT) if (!defined($resumePos));
     }
+    }
+    # Downstream parsing (getGeneralBasis and friends) reads on
+    # from wherever this sub left the handle, and used to get the
+    # position just after the first geometry. Scanning to EOF
+    # would silently starve it, so put the handle back.
+    seek(INPUT, $resumePos, 0) if (defined($resumePos));
   }
 #########################################################################
 #  Still no geometry. Look for a geometry in "Z-Matrix orientation"
@@ -909,10 +930,20 @@ sub getMolecule {
             }
           }
         }
-        $find_geom = 1;
-        last;
-      }
+      $find_geom = 1;
+      # Remember where the FIRST block ended and carry on
+      # scanning: a geometry optimisation prints one of these
+      # per step and the user opening a finished job expects
+      # the final structure, not the starting guess. Each
+      # block overwrites the previous, so the last one wins.
+      $resumePos = tell(INPUT) if (!defined($resumePos));
     }
+    }
+    # Downstream parsing (getGeneralBasis and friends) reads on
+    # from wherever this sub left the handle, and used to get the
+    # position just after the first geometry. Scanning to EOF
+    # would silently starve it, so put the handle back.
+    seek(INPUT, $resumePos, 0) if (defined($resumePos));
   }
   $molecule .= "num_atoms:\t$centerNum\n$atomSection";
 }
