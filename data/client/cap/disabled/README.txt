@@ -40,11 +40,21 @@ none was reachable from any "New ... Calculation" menu. Gaussian-94 does
 carry a <Template>, but with no generator to fill it that changes
 nothing.
 
-NWChemMD was considered and deliberately KEPT in data/client/cap: unlike
-these, it IS referenced by both ResourceDescriptor files (the
-nwchem_md_study path used by the MD tools), so moving it would break a
-live feature. Worth re-checking that before moving anything else out of
-here on the assumption that "no generator" means "unused".
+NWChemMD was considered and deliberately KEPT in data/client/cap, and
+must stay. Two independent reasons:
+
+  - it IS referenced by both ResourceDescriptor files (the
+    nwchem_md_study path used by the MD tools), so moving it would break
+    a live feature today; and
+  - it is the intended basis for adding GROMACS support. The MD side of
+    ECCE (src/apps/md*, src/wxgui/mdtools) is the scaffolding that
+    integration would reuse. Stated by the maintainer 2026-09-22:
+    "Nwchem md should absolutely remain - it will be the basis for
+    gromacs implementation."
+
+So "has no <InputGenerator>" is NOT sufficient grounds for retiring a
+code. Check the descriptor references, and check whether anyone is
+planning to build on it, before moving anything else in here.
 
 Related: #101 collects the remaining retirement candidates, and #56/#57
 (ACESII, HONDO) and #63 (HONDOPLUS) cover specific codes here.
