@@ -379,7 +379,7 @@ class Ged03TheoryPanel(EccePanel):
                              "Krypton",
                              "Xenon",
                              "n-Octanol",
-                             "1-Butanol"
+                             "1-Butanol",
                              "Cyclohexane",
                              "Isoquinoline",
                              "Quinoline",
@@ -550,7 +550,13 @@ class Ged03TheoryPanel(EccePanel):
     def CheckDependency(self):
         try:
             self.memorySpin.Enable(self.memoryBox.GetValue())
-        except wx.PyDeadObjectError:
+        # wxPython Phoenix has no PyDeadObjectError (it was Classic-only);
+        # using a dead C++ object raises a plain RuntimeError instead. The
+        # old name made this except clause itself raise AttributeError the
+        # moment the try body failed, which took the whole dialog down
+        # during CheckDependency() -- ged03's Theory Details dialog could
+        # not be opened at all. Found by tests/dialogs.
+        except RuntimeError:
             print("Strange Error")
 
         if EcceGlobals.Category == "SCF":
@@ -561,7 +567,15 @@ class Ged03TheoryPanel(EccePanel):
             self.corrFunc.Enable(not self.xcFunc.GetSelection())
 
         # SCRF solvation -- CAO
-        if EcceGlobals.Category == "DFT" or EcceGlobals.Category == "SCF":   
+        # The whole Solvation block above is built inside the
+        # `Category == "DFT"` branch, so naming SCF here referred to widgets
+        # that do not exist and raised AttributeError, taking the dialog down
+        # for every SCF calculation. (Latent until the PyDeadObjectError fix
+        # above let execution reach this line -- fixing one exposed the next.)
+        # Aligning the guard with what is actually constructed is the
+        # conservative fix; offering SCRF for SCF too would be a feature
+        # change and needs the widgets built for that category first.
+        if EcceGlobals.Category == "DFT":
             self.solvent.Enable(self.useSCRF.GetValue())
             self.scrf.Enable(self.useSCRF.GetValue())
             self.scrfDielec.Enable(self.useSCRF.GetValue() and

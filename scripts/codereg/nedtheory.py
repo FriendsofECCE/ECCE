@@ -954,7 +954,6 @@ class NedTheoryPanel(EccePanel):
                                             "VWN 5 (local)",
                                             "VWN 1/RPA (local)",
                                             "Perdew 1981 (local)",
-                                            "Perdew-Wang 1991 (local)"
                                             "Perdew-Wang 1991 (local)"]:
                 corrlocal = 1
             if (exlocal != corrlocal):

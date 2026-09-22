@@ -383,7 +383,13 @@ class Ged98TheoryPanel(EccePanel):
     def CheckDependency(self):
         try:
             self.memorySpin.Enable(self.memoryBox.GetValue())
-        except wx.PyDeadObjectError:
+        # wxPython Phoenix has no PyDeadObjectError (it was Classic-only);
+        # using a dead C++ object raises a plain RuntimeError instead. The
+        # old name made this except clause itself raise AttributeError the
+        # moment the try body failed, which took the whole dialog down
+        # during CheckDependency() -- ged03's Theory Details dialog could
+        # not be opened at all. Found by tests/dialogs.
+        except RuntimeError:
             print("Strange Error")
         if EcceGlobals.Category == "SCF":
             self.diskSpin.Enable(self.diskBox.GetValue())

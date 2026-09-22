@@ -346,7 +346,12 @@ class AmicaTheoryPanel(EccePanel):
                                             size = (150, -1))
             ciPanel.AddWidget(self.ciR12Shell)
             
-            ciSizer = wx.FlexGridSizer(0, 2)
+            # Phoenix has no (rows, cols) overload -- it needs the gaps too
+            # -- so the bare 2-argument form raised TypeError and the Amica
+            # Theory Details dialog could not be constructed. templates.py
+            # already uses the keyword form everywhere else.
+            ciSizer = wx.FlexGridSizer(rows = 0, cols = 2, vgap = 0,
+                                       hgap = 0)
 
             self.ciNIter = EcceSpinCtrl(ciPanel,
                                         name = "ES.Theory.CI.Iterations",

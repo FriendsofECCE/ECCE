@@ -62,6 +62,7 @@
   &verifyCnstrntFile;
   &verifyGBSFile;
   &readDict;
+  &aiDebugDict;
   &readChemSys;
   &readESPFile;
   &readCnstrntFile;
@@ -76,6 +77,102 @@
 ##   throught the template, replacing all /##(.*)##/ tags with
 ##   translated dictionary values.  If no key is found in the
 ##   dictionary, we remove the line entirely
+################################################################################
+# Verbose troubleshooting output for the ##tag## substitution engine.
+#
+# Every silent-failure bug this project has chased through the input
+# generators has one shape: a tag resolves to the empty string, its line is
+# dropped, and the setting the user picked is simply not in the deck.  Nothing
+# says so -- the script exits 0 and the job runs with different settings than
+# the dialog showed.  (The NWChem BP86 case: the dialog offered "BP86 (GGA)",
+# the resolver only matched "BP86 (hybrid)", and every such job silently ran
+# on the default LDA instead.)
+#
+# Set ECCE_AI_DEBUG=1 for one line per tag on STDERR saying what it resolved
+# to and, crucially, when it resolved to nothing.  An environment variable
+# rather than a switch because these scripts are invoked with a fixed argument
+# list from C++, so this needs no C++ change to turn on.
+################################################################################
+sub aiDebug {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  my ($message) = @_;
+  print STDERR "[ecce-ai] $message\n";
+}
+
+# A resolver that returns "" is not automatically a bug.  The convention in
+# these scripts is that a resolver which produces several lines either sets $_
+# itself or prints straight to NEWFILE, and returns "" either way.  Four
+# outcomes have to be told apart, and only the first two are trouble:
+#
+#   $_ still holds ##tag##   nothing replaced it; the literal tag text is
+#                            about to be written into the input deck
+#   nothing written at all   the line is dropped.  Intentional for an optional
+#                            setting, and the silent-drop bug when it is not --
+#                            the message names the tag, so a user report names
+#                            the setting that vanished
+#   bytes went to NEWFILE    the resolver wrote its own output (chemsys and
+#                            friends do this); fine
+#   $_ became something else likewise fine
+#
+# The NEWFILE byte count is what separates "dropped" from "written another
+# way"; without it every multi-line resolver looks like a silent drop.
+# Called from the `else { &aiUnmatched(@_); $result = ""; }` fallback that ends almost every
+# translator in these scripts.  That fallback IS the silent-failure mechanism:
+# the dialog offered a string, this sub has no case for it, the empty result
+# propagates, and the job runs without the setting -- or, as with the Gaussian
+# "None" case, the whole method string collapses to a bare "r".  @_ is the
+# sub's own argument list, so the unmatched value reports itself without each
+# call site having to name its parameter.
+sub aiUnmatched {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  my $sub = (caller(1))[3] || "main";
+  $sub =~ s/^main:://;
+  my $value = defined($_[0]) ? $_[0] : "(no argument)";
+  &aiDebug("  !! &$sub has no case for '$value' -- returning empty. If that "
+           . "value came from a dialog, the dialog and this script disagree "
+           . "and the setting will be missing from the input.");
+}
+
+# The full dictionary the dialogs and calced handed this script.  Logged once
+# at startup because every "the job ran with the wrong settings" report needs
+# both halves: what was asked for, and what reached the deck.
+sub aiDebugDict {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  # readDict() stores every dotted SUFFIX of each key, so a single setting
+  # appears four or five times.  Print only the longest form of each -- a key
+  # that no other key ends with -- or the dump is mostly noise.
+  my @keys = sort keys %AbiDict;
+  my %isSuffix;
+  foreach my $key (@keys) {
+    foreach my $other (@keys) {
+      $isSuffix{$key} = 1 if ($other ne $key && $other =~ /\.\Q$key\E$/);
+    }
+  }
+  &aiDebug("dictionary as read from the .param file:");
+  foreach my $key (@keys) {
+    next if $isSuffix{$key};
+    &aiDebug(sprintf("    %-46s = '%s'", $key, $AbiDict{$key}));
+  }
+}
+
+sub aiDebugEmpty {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  my ($tag, $sub, $tellBefore) = @_;
+  my $wrote = tell(NEWFILE) - $tellBefore;
+  if ($_ =~ /\#\#\Q$tag\E\#\#/) {
+    &aiDebug("  ##$tag##: &$sub returned EMPTY and nothing replaced the tag "
+             . "-- the literal ##$tag## text will appear in the input file");
+  } elsif ($wrote > 0) {
+    &aiDebug("  ##$tag##: &$sub wrote $wrote bytes to the input directly");
+  } elsif ($_ eq "") {
+    &aiDebug("  ##$tag##: &$sub returned EMPTY and wrote nothing -- the line "
+             . "was dropped; if that setting was chosen in the GUI, it is NOT "
+             . "in the generated input");
+  } else {
+    &aiDebug("  ##$tag##: &$sub replaced the line itself");
+  }
+}
+
 sub modifyInputFile {
   local($keysave, $key, $subname, $prefix, $postfix, $finished);
   $inputFile = $TplFILE;
@@ -88,6 +185,7 @@ sub modifyInputFile {
       $prefix = $1;
       $postfix = $3;
       $keysave = $key = $2;
+      &aiDebug("tag ##$key## (template line $.)");
       $finished = 0;
       while ($finished == 0) {
 	$subname = $key;
@@ -96,6 +194,8 @@ sub modifyInputFile {
 	  $finished = 1;                       ## Match Means We'll Be Done
 	  $value = $AbiDict{$key};
 	  $fct = "&$subname('$value')";
+	  $eccePrevLine = $_;
+	  $eccePrevTell = tell(NEWFILE);
 	  $result = eval $fct;
           # #92: eval catches a die() inside the resolver, and the engine
           # reads undef as "no such sub / no substitution" -- so a
@@ -107,12 +207,17 @@ sub modifyInputFile {
           if ($@ && $@ !~ /Undefined subroutine/) { die $@; }
 	  if (!(defined $result)) {            ## Simple Replacement if No Sub
 	    s/##$keysave##/$value/;
-	  } elsif ($result ne "") {            ## Replace With Subs Value
+	  } elsif ($result eq "") {
+            &aiDebugEmpty($keysave, $subname, $eccePrevTell);
+          } elsif ($result ne "") {            ## Replace With Subs Value
+	    &aiDebug("  ##$keysave## -> \'$result\'");
 	    $_ = $prefix . $result . $postfix . "\n";
 	  } ## Else The Subroutine Did What it Needed
 	} else {                      ## Value Wasn't in Dictionary
 	  $finished = 1;
 	  $fct = "&$subname";
+	  $eccePrevLine = $_;
+	  $eccePrevTell = tell(NEWFILE);
 	  $result = eval $fct;
           # #92: eval catches a die() inside the resolver, and the engine
           # reads undef as "no such sub / no substitution" -- so a
@@ -126,12 +231,17 @@ sub modifyInputFile {
 	    # Instead of Failing Outright, Try Reducing Keyword
 	    if (index($key, ".") >= $[) {
 	      $key =~ s/\.[^\.]*$//;
+              &aiDebug("  no &$subname; retrying as ##$key##");
 	      $finished = 0;
 	    } else {
 	      ## print "Removing token $key\n";
+	      &aiDebug("  ##$keysave##: no dictionary value and no resolver -- LINE REMOVED");
 	      $_ = "";
 	    }
-	  } elsif ($result ne "") {            ## Replace With Subs Value
+	  } elsif ($result eq "") {
+            &aiDebugEmpty($keysave, $subname, $eccePrevTell);
+          } elsif ($result ne "") {            ## Replace With Subs Value
+	    &aiDebug("  ##$keysave## -> \'$result\'");
 	    $_ = $prefix . $result . $postfix . "\n";
 	  } ## Else The Subroutine Did What it Needed
 	}
@@ -343,6 +453,7 @@ sub SCFTheory {
   } elsif ( $AbiDict{"Theory"} =~ /^U/ ) {
     $result = "uhf";
   } else {
+    &aiUnmatched(@_);
     $result = "";
   }
   $_ = $result;
@@ -378,6 +489,7 @@ sub RunType {
     $result = "car-parrinello"
     # End Eric Bylaska's planewave module integration
   } else {
+    &aiUnmatched(@_);
     $result = "";
   }
   return $result;
@@ -400,6 +512,7 @@ sub SCFLevel {
     if($crossover && (! $shift2 )) {$shift2 = 0.0 }
     $result = "level pcg $shift1 $crossover $shift2";
   } else {
+    &aiUnmatched(@_);
     $result = "";
   }
   $_ = $result;
@@ -823,6 +936,7 @@ sub MP_UseTightConvergence {
     if ($AbiDict{"ES.Theory.MP.UseTightConvergence"}) {
       $result = "tight";
     } else {
+      &aiUnmatched(@_);
       $result = "";
     }
   }
@@ -867,6 +981,7 @@ sub DFTCoulombScreenExp {
     $result = "tolerances accCoul $exponent";  
     $_ = $result;
   } else {
+    &aiUnmatched(@_);
     $result = "";
     $_ = "";
   }
@@ -1074,6 +1189,7 @@ sub UseFrozenCoreValue {
       $AbiDict{"ES.Theory.UseFrozenCores"} == 1) {
     $result .= $AbiDict{"ES.Theory.CorrelOrb.FrozenCoreValue"};
   } else {
+    &aiUnmatched(@_);
     $result = "";
   }
   $_ = "";
@@ -1113,6 +1229,7 @@ sub SCF {
     } elsif ($_[0] eq "UHF") {
       return "odft";
     } else {
+      &aiUnmatched(@_);
       $_ = "";
       return "";
     }
@@ -1124,6 +1241,7 @@ sub SCF {
     } elsif ($_[0] eq "UHF") {
       return "uhf";
     } else {
+      &aiUnmatched(@_);
       $_ = "";
       return "";
     }
@@ -1330,7 +1448,15 @@ sub XCFunctionals {
 # added by CAO -- start    
   } elsif ($xcFun eq "Gaussian B3 (hybrid)") {
     $result = "slater 0.8 becke88 nonlocal 0.72 HFexch 0.2";
-  } elsif ($xcFun eq "BP86 (hybrid)") {
+  } elsif ($xcFun eq "BP86 (GGA)" || $xcFun eq "BP86 (hybrid)") {
+    # nedtheory.py:721 offers "BP86 (GGA)"; this case only ever matched
+    # "BP86 (hybrid)", which no dialog has ever offered -- so selecting BP86
+    # for an NWChem DFT job matched nothing, &XCFunctionals returned "", the
+    # xc line was dropped, and the job silently ran on NWChem's default
+    # (slater vwn_5, i.e. LDA) rather than BP86. BP86 is a GGA, so the
+    # dialog's label is the correct one; the old string is kept as an
+    # alternative so any calculation saved under it still resolves, the same
+    # way the Gaussian-16 Mulliken Begin pattern was fixed (#80).
     $result = "becke88 perdew86";
   } elsif ($xcFun eq "X3LYP (hybrid)") {
     $result = "vwn_1_rpa 0.129 lyp 0.871 hfexch 0.218 slater 0.782 becke88 nonlocal 0.542  xperdew91 nonlocal 0.167";
@@ -1395,6 +1521,7 @@ sub XCFunctionals {
   } elsif ($_[0] ne "") {
     $result = $_[0];
   } else {
+    &aiUnmatched(@_);
     $result = "";
     $_ = "";
   }
@@ -1413,10 +1540,12 @@ sub GridDensity {
      } elsif ($value eq "Extra Fine") {
        $result = "xfine";
      } else {
+       &aiUnmatched(@_);
        $result = "";
        $_ = "";
      }
    } else {
+     &aiUnmatched(@_);
      $result = "";
      $_ = "";
    }
@@ -1432,10 +1561,12 @@ sub GridPartition {
      } elsif ($value eq "SSF") {
        $result = "ssf";
      } else {
+       &aiUnmatched(@_);
        $result = "";
        $_ = "";
      }
    } else {
+     &aiUnmatched(@_);
      $result = "";
      $_ = "";
    }
@@ -1451,10 +1582,12 @@ sub GridRadial {
      } elsif ($value eq "Treutler") {
        $result = "treutler";
      } else {
+       &aiUnmatched(@_);
        $result = "";
        $_ = "";
      }
    } else {
+     &aiUnmatched(@_);
      $result = "";
      $_ = "";
    }
@@ -1472,6 +1605,7 @@ sub SCF_ConvergenceEnergy {
       $digit = chop($value);
       return ((10 * chop($value)) + $digit);
     } else {
+      &aiUnmatched(@_);
       $_ = "";
       return "";
     }
@@ -1494,6 +1628,7 @@ sub GeomOpt_ConvergenceEnergy {
       $digit = chop($value);
       return ((10 * chop($value)) + $digit);
     } else {
+      &aiUnmatched(@_);
       $_ = "";
       return "";
     }
@@ -1516,6 +1651,7 @@ sub SCF_ConvergenceDensity {
       $digit = chop($value);
       return ((10 * chop($value)) + $digit);
     } else {
+      &aiUnmatched(@_);
       $_ = "";
       return "";
     }
@@ -1538,6 +1674,7 @@ sub SCF_ConvergenceGradient {
       $digit = chop($value);
       return ((10 * chop($value)) + $digit);
     } else {
+      &aiUnmatched(@_);
       $_ = "";
       return "";
     }
@@ -1560,6 +1697,7 @@ sub GeomOpt_ConvergenceGradient {
       $digit = chop($value);
       return ((10 * chop($value)) + $digit);
     } else {
+      &aiUnmatched(@_);
       $_ = "";
       return "";
     }
@@ -1614,6 +1752,7 @@ sub Tolerance_Energy {
       $value = sprintf("%e", $value);
       return $value;
     } else {
+      &aiUnmatched(@_);
       $_ = "";
       return "";
     }
@@ -1634,6 +1773,7 @@ sub Tolerance_Gradient {
       $value = sprintf("%e", $value);
       return $value;
     } else {
+      &aiUnmatched(@_);
       $_ = "";
       return "";
     }
@@ -1652,6 +1792,7 @@ sub SearchFor {
   } elsif ($_[0] ne "") {
     return "ts";
   } else {
+    &aiUnmatched(@_);
     $_ = "";
     return "";
   }
@@ -1964,6 +2105,7 @@ sub readCnstrntFile {
       if (/Type\s*\=\s*\"\s*(\S*)\s*\"\s*>/i) {
         $type = lc $1;
       } else {
+        &aiUnmatched(@_);
         $type = "";
       }
       $newline = "";
@@ -2001,6 +2143,7 @@ sub readCnstrntFile {
       if (/Type\s*\=\s*\"\s*(\S*)\s*\"\s*>/i) {
         $type = lc $1;
       } else {
+        &aiUnmatched(@_);
         $type = "";
       }
       $newline = "";
