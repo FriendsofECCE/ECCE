@@ -269,6 +269,7 @@ class Builder: public BuilderGUI,
       virtual void OnPaneTakeFocus(wxAuiManagerEvent& event);
       virtual void OnPaneAddFocus(wxAuiManagerEvent& event);
       virtual void OnPaneOptions(wxAuiManagerEvent& event);
+      virtual void OnPanelContextMenu(wxContextMenuEvent& event);
       virtual void OnPaneOpen(wxAuiManagerEvent& event);
       virtual void OnAuiUpdate(wxAuiManagerEvent& event);
 

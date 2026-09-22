@@ -222,6 +222,13 @@ BEGIN_EVENT_TABLE( Builder, BuilderGUI )
     EVT_EWXAUI_PANE_TAKE_FOCUS(Builder::OnPaneTakeFocus)
     EVT_EWXAUI_PANE_ADD_FOCUS(Builder::OnPaneAddFocus)
     EVT_EWXAUI_PANE_OPTIONS(Builder::OnPaneOptions)
+    // ...and the trigger that actually reaches OnPaneOptions' work now
+    // that the ewxAUI options caption button is gone: a right-click on
+    // any property panel. wxContextMenuEvent propagates up to this
+    // frame, and OnPanelContextMenu walks back down the parent chain
+    // to find the owning TearableContentProvider, for the same reason
+    // OnChildFocus does -- the click lands on a nested control.
+    EVT_CONTEXT_MENU(Builder::OnPanelContextMenu)
     EVT_EWXAUI_PANE_OPEN(Builder::OnPaneOpen)
     EVT_EWXAUI_UPDATE(Builder::OnAuiUpdate)
     EVT_MENU( ID_SHOW_CMD, Builder::OnShowCmdClick )
@@ -3311,6 +3318,38 @@ void Builder::OnPaneOptions(wxAuiManagerEvent& event)
     tc->Position(wxGetMousePosition(), wxSize(1,1));
     tc->Popup();
   }
+}
+
+
+void Builder::OnPanelContextMenu(wxContextMenuEvent& event)
+{
+  // Every TearableContentProvider's options menu became unreachable when
+  // the wx3.2 AUI port dropped the custom ewxAUI pane-caption buttons (see
+  // EwxAuiCompat.H): NModePanel's Show Table / Show Graph switch, and the
+  // equivalents on MoPanel, PartialCharges, GeomTracePropertyPanel,
+  // VecAtomSpectrum, VecAtomTensor and Cube. The menus themselves were
+  // never removed -- nothing could open them. Restoring one trigger here
+  // revives all of them at once rather than adding a control to each.
+  wxWindow *win = wxDynamicCast(event.GetEventObject(), wxWindow);
+  TearableContentProvider *tcp = NULL;
+  while (win && !(tcp = dynamic_cast<TearableContentProvider*>(win))) {
+    win = win->GetParent();
+  }
+  if (!tcp) {
+    // Right-clicks anywhere else -- the 3-D viewer above all -- must keep
+    // reaching whatever already handles them.
+    event.Skip();
+    return;
+  }
+
+  wxWindow *content = tcp->GetTearableContent();
+  if (!content) {
+    event.Skip();
+    return;
+  }
+  TearableContent *tc = new TearableContent(content);
+  tc->Position(wxGetMousePosition(), wxSize(1,1));
+  tc->Popup();
 }
 
 
