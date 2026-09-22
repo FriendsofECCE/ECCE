@@ -1,0 +1,86 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Purpose:
+#   Launch-time preprocessing for a GROMACS calculation: rewrite the
+#   generated .mdp with values only known at launch, and run grompp to
+#   produce the .tpr that mdrun actually executes.
+#
+#   STATUS: groundwork. No GROMACS.edml exists yet, so this is not
+#   invoked by anything -- see docs/GROMACS_ROADMAP.md.
+#
+# Why this step exists at all:
+#   GROMACS is not one binary reading one text deck. grompp consumes
+#   .mdp + .top + .gro and emits a BINARY .tpr, which mdrun then runs.
+#   ECCE's model is "generate a text input, submit it, tail the output",
+#   so the .mdp is the file ECCE generates and the user edits, and the
+#   .tpr is a build artefact that must be produced before submission.
+#   <LaunchPreprocessor> is exactly the hook for that -- and it is
+#   required unconditionally anyway, because Launch::postProcessInput()
+#   shells out to it with no empty-string check.
+#
+#   grompp failure is the COMMON CASE for a new user: a topology that
+#   does not match the coordinates, a missing molecule type, wrong atom
+#   counts. Its diagnostics are good and must reach the user rather than
+#   being discarded -- the same lesson as the eccejobmaster.log fix and
+#   as CalcEd throwing away input-generator errors. This script prints
+#   grompp's output and exits non-zero on failure so the launch stops
+#   here, with the reason, instead of submitting a job that cannot run.
+#
+#   Idempotent by design, like nwchem.launchpp: re-running it on an
+#   already-processed directory simply regenerates the .tpr.
+#
+##############################################################################
+use Getopt::Std;
+
+&getopts('p:v');
+
+if ($opt_v) {
+  print "gromacs.launchpp 1.0\n";
+  exit 0;
+}
+
+open(PARAMDICT, "<$opt_p") || die "gromacs.launchpp: parameter file does not exist!\n";
+my %params = ();
+while (<PARAMDICT>) {
+  chomp;
+  s/\s*!.*$//;
+  next if (/^\s*$/);
+  if (/^\s*(\S+)\s+(.*)$/) {
+    my ($k, $v) = ($1, $2);
+    $v =~ s/\s+$//;
+    $params{$k} = $v;
+  }
+}
+close(PARAMDICT);
+
+my $mdp   = $params{"inputFile"};
+my $top   = $params{"topologyFile"} || "topol.top";
+my $coord = $params{"coordinateFile"} || "conf.gro";
+my $tpr   = $params{"tprFile"} || "topol.tpr";
+
+die "gromacs.launchpp: no input .mdp named in $opt_p\n" if (!defined($mdp));
+
+#  Thread and rank counts are launch-time knowledge the input generator
+#  cannot have, which is the other reason this hook exists. They go on
+#  mdrun's command line rather than into the .mdp, so they are recorded
+#  here for gensub rather than written into the file.
+my $procs = $params{"totalprocs"} || 1;
+
+#  "gmx" is the wrapper binary; a cluster build is often "gmx_mpi". Take
+#  whichever the site configured, defaulting to the plain one.
+my $gmx = $params{"gmxCommand"} || "gmx";
+
+my $cmd = "$gmx grompp -f \"$mdp\" -c \"$coord\" -p \"$top\" -o \"$tpr\" -maxwarn 0";
+my $output = `$cmd 2>&1`;
+my $status = $? >> 8;
+
+if ($status != 0) {
+  print STDERR "gromacs.launchpp: grompp failed, so there is nothing to submit.\n";
+  print STDERR "  command: $cmd\n\n";
+  print STDERR $output;
+  exit($status);
+}
+
+print $output;
+exit(0);

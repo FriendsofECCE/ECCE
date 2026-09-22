@@ -284,7 +284,67 @@ which has no counterpart in ECCE's data model at all, and §5's finding
 that `MDEdBase` is hard-bound to a concrete `NWChemMDModel`. Import-only
 scope avoids the first and still needs the second.
 
-## 7. Still unverified
+## 7. What is now built (2026-09-22)
+
+Three of the four non-GUI pieces exist and are verified against real
+GROMACS 2025.2. None is reachable from the GUI: there is still no
+`GROMACS.edml`, which is the deliberate next step and the one that forces
+the §3.1 scope decision.
+
+| file | does | verified by |
+|---|---|---|
+| `scripts/parsers/gromacs.desc` | frames mdrun `.log` energy blocks | replayed through the eccejobmonitor simulation over two real runs |
+| `scripts/parsers/gromacs.energy` | TE / TEVEC from a block | pinned values in `tests/parsers` |
+| `scripts/parsers/gromacs.null` | swallows the AVERAGES summary | asserted by block count AND by TE's value |
+| `scripts/parsers/ai.gromacs` + `gromacs.tpl` | generates the `.mdp` | grompp accepted and mdrun ran all three runtypes |
+| `scripts/parsers/gromacs.launchpp` | runs grompp, surfaces its errors | tested on success and on a deliberately broken topology |
+
+**Round trip proven end to end:** `ai.gromacs` generated a `.mdp` →
+`grompp` built the `.tpr` → `mdrun` ran → `gromacs.desc` parsed the
+resulting log back into TE/TEVEC. Nothing in that chain is mocked.
+
+### Three findings that change the estimate
+
+**1. The AVERAGES block is a trap, and needed an unusual fix.** GROMACS
+ends a run with a summary whose `Energies (kJ/mol)` marker is
+byte-identical to a real step's. Parsed as a step it puts a run-average
+on every energy-vs-step plot and leaves scalar TE holding that average.
+No `Begin` pattern separates them. The fix is a no-op `[NULL]` entry that
+uses **End-line starvation deliberately** — the hazard CLAUDE.md
+documents — to consume the summary's marker before the real entry is
+offered it. This turned out to be an established idiom:
+`gaussian-16.null` exists for exactly this purpose.
+
+**2. Block framing is harder than it looks, and three approaches were
+measured before one worked.** Anchoring on the `Step Time` header with a
+blank `End` feeds nothing (there is a blank before the marker); skipping
+past it fails because GROMACS interleaves messages (`Writing
+checkpoint...`) so the preamble is not fixed; and a fixed line count
+cannot serve both shapes — GROMACS wraps energy terms at five per row, so
+a dynamics block is longer than a minimisation's, and a count generous
+enough for one swallows the next step's `Begin` in the other (6 of 6
+dynamics steps but 3 of 5 minimisation steps). Anchoring on the energies
+marker itself is self-delimiting and immune to all of it.
+
+**3. grompp failure is the common case and must stop the launch.** A
+mismatched topology is what a new user hits first, and grompp's
+diagnostics are good. `gromacs.launchpp` prints them and exits non-zero
+rather than letting a job reach a queue that cannot run.
+
+### What this does NOT change
+
+The §3.1 problem is untouched and remains the real work: ECCE has no
+concept of a force field or a topology, and `ai.gromacs` deliberately
+generates only the `.mdp`. Everything above is import-only scope — the
+user brings `.top` and `.gro`. Likewise §5's finding stands: `MDEdBase`
+is hard-bound to a concrete `NWChemMDModel`, so wiring any of this to the
+MD applications means extracting an interface from working code first.
+
+**Revised estimate:** the monitoring and input-generation halves are
+done, and were ordinary work. What remains is a GUI decision (§3.1) and a
+refactor (§5), neither of which is parser work.
+
+## 8. Still unverified
 
 * Whether `mdprepare` can be bypassed entirely for an imported topology,
   or whether the resource graph requires a `*_md_prepare` node to exist
