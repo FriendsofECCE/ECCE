@@ -23,11 +23,21 @@ computational codes.
 Nothing in the C++ depends on these names; the only occurrences were two
 comments (RefQueueMgr.C, RunMgmt.C).
 
-Still supported, for the record: Slurm (the common case on new clusters,
-and the one to improve), PBS (OpenPBS/PBS Pro), LSF, Moab, SGE and Shell.
-SGE is itself legacy -- Oracle discontinued Grid Engine and the surviving
-forks are commercial or unmaintained -- but it is still encountered often
-enough to keep.
+Still supported, for the record: Slurm (the common case on new clusters),
+PBS (OpenPBS/PBS Pro), LSF, Moab and Shell. SGE joined the retired list
+later the same day -- see the second batch below.
+
+Update 2026-09-22, after actually generating a script for each of them:
+being listed in QueueManagers was never evidence that a manager WORKED.
+The PBS and LSF directive blocks in submit.site were Cray NQE/NQS syntax
+that no current scheduler accepts ("-lM 28Mw", "-lT 7200", the
+mpp_t/p_mpp_t/mpp_p resource names, "-J m", a lowercase "-s" for the
+shell, and "-r $submitFile" where PBS's -r is the restartable flag and
+LSF's is rerunnable, neither being the job name). The Moab block was
+empty outright, so Moab jobs carried no directives at all. All three have
+been rewritten; only Slurm has been checked against a real scheduler's
+documentation on this machine. If you are adding a manager, generate a
+script and read it before believing the list.
 
 ==================================================================
 From siteconfig/QueueManagers: LoadLeveler
