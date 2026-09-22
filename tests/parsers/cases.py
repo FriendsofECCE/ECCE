@@ -1072,6 +1072,29 @@ CASES = [
                 'CPUSEC': {}, 'ETIME': {}}),
         },
     ),
+    dict(
+        #  The only QE fixture that is an OPTIMISATION rather than a single
+        #  point, and therefore the only one that exercises [GEOMTRACE].
+        #  Produced by a real pw.x 6.7 run on this machine (input checked in
+        #  alongside it), deliberately started from a distorted water
+        #  geometry so BFGS has something to do: 6 steps to convergence.
+        #
+        #  7 ATOMIC_POSITIONS blocks, not 6: the last is the duplicate
+        #  printed inside "Begin final coordinates". Harmless for animation
+        #  (the last frame simply repeats) and asserted here so that if a
+        #  future QE version stops echoing it, the count change is noticed
+        #  rather than silently absorbed.
+        name='qe-h2o-relax',
+        desc='qe.desc',
+        fixture='qe/h2o_relax.pwout',
+        parse_args=('.', 'GeomOpt', 'PW', 'PW', '0'),
+        expect={
+            'VERSION': dict(keys={'VERSION': {'values': 'PWSCF 6.7MaX'}}),
+            'GEOMTRACE': dict(blocks=7, keys={'GEOMTRACE': {
+                'size': '1 3 3',
+                'units': 'Angstrom'}}),
+        },
+    ),
 ]
 
 

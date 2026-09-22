@@ -1,0 +1,463 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    qe-h2o-relax
+desc:    qe.desc
+fixture: qe/h2o_relax.pwout (985 lines)
+args:    '.' 'GeomOpt' 'PW' 'PW' '0'
+
+[VERSION]  Script=qe.version  Freq=first  Skip=0  Lines=1
+  Begin=Program PWSCF
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=2 fed=1 rc=0 first-fed='     Program PWSCF v.6.7MaX starts on 22Sep2026 at 17:38:23'
+    key: VERSION
+      size: 1
+      values: PWSCF 6.7MaX
+
+[TE]  Script=qe.energy  Freq=all  Skip=0  Lines=1
+  Begin=^!\s*total energy
+  begins=7 delivered=7 buffered_away=0
+  block 1: begin-line=237 fed=1 rc=0 first-fed='!    total energy              =     -43.93786659 Ry'
+    key: TE
+      size: 1
+      values: -21.968933295
+      units: Hartree
+  block 2: begin-line=350 fed=1 rc=0 first-fed='!    total energy              =     -43.96397043 Ry'
+    key: TE
+      size: 1
+      values: -21.981985215
+      units: Hartree
+  block 3: begin-line=464 fed=1 rc=0 first-fed='!    total energy              =     -43.97092321 Ry'
+    key: TE
+      size: 1
+      values: -21.985461605
+      units: Hartree
+  block 4: begin-line=567 fed=1 rc=0 first-fed='!    total energy              =     -43.97156271 Ry'
+    key: TE
+      size: 1
+      values: -21.985781355
+      units: Hartree
+  block 5: begin-line=681 fed=1 rc=0 first-fed='!    total energy              =     -43.97173036 Ry'
+    key: TE
+      size: 1
+      values: -21.98586518
+      units: Hartree
+  block 6: begin-line=784 fed=1 rc=0 first-fed='!    total energy              =     -43.97181158 Ry'
+    key: TE
+      size: 1
+      values: -21.98590579
+      units: Hartree
+  block 7: begin-line=893 fed=1 rc=0 first-fed='!    total energy              =     -43.97181710 Ry'
+    key: TE
+      size: 1
+      values: -21.98590855
+      units: Hartree
+
+[EWVEC]  Script=qe.ewvec  Freq=all  Skip=0  Lines=1
+  Begin=^\s+total energy\s*=
+  begins=29 delivered=29 buffered_away=0
+  block 1: begin-line=141 fed=1 rc=0 first-fed='     total energy              =     -43.75341411 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.876707055
+      units: Hartree
+  block 2: begin-line=152 fed=1 rc=0 first-fed='     total energy              =     -43.84760056 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.92380028
+      units: Hartree
+  block 3: begin-line=163 fed=1 rc=0 first-fed='     total energy              =     -43.93161912 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.96580956
+      units: Hartree
+  block 4: begin-line=174 fed=1 rc=0 first-fed='     total energy              =     -43.93761510 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.96880755
+      units: Hartree
+  block 5: begin-line=185 fed=1 rc=0 first-fed='     total energy              =     -43.93770541 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.968852705
+      units: Hartree
+  block 6: begin-line=196 fed=1 rc=0 first-fed='     total energy              =     -43.93773593 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.968867965
+      units: Hartree
+  block 7: begin-line=207 fed=1 rc=0 first-fed='     total energy              =     -43.93786685 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.968933425
+      units: Hartree
+  block 8: begin-line=218 fed=1 rc=0 first-fed='     total energy              =     -43.93786420 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.9689321
+      units: Hartree
+  block 9: begin-line=298 fed=1 rc=0 first-fed='     total energy              =     -43.95540266 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.97770133
+      units: Hartree
+  block 10: begin-line=309 fed=1 rc=0 first-fed='     total energy              =     -43.96157519 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.980787595
+      units: Hartree
+  block 11: begin-line=320 fed=1 rc=0 first-fed='     total energy              =     -43.96392438 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.98196219
+      units: Hartree
+  block 12: begin-line=331 fed=1 rc=0 first-fed='     total energy              =     -43.96396882 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.98198441
+      units: Hartree
+  block 13: begin-line=412 fed=1 rc=0 first-fed='     total energy              =     -43.97037556 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.98518778
+      units: Hartree
+  block 14: begin-line=423 fed=1 rc=0 first-fed='     total energy              =     -43.97085943 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.985429715
+      units: Hartree
+  block 15: begin-line=434 fed=1 rc=0 first-fed='     total energy              =     -43.97091116 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.98545558
+      units: Hartree
+  block 16: begin-line=445 fed=1 rc=0 first-fed='     total energy              =     -43.97092311 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.985461555
+      units: Hartree
+  block 17: begin-line=526 fed=1 rc=0 first-fed='     total energy              =     -43.97151868 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.98575934
+      units: Hartree
+  block 18: begin-line=537 fed=1 rc=0 first-fed='     total energy              =     -43.97154928 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.98577464
+      units: Hartree
+  block 19: begin-line=548 fed=1 rc=0 first-fed='     total energy              =     -43.97156258 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.98578129
+      units: Hartree
+  block 20: begin-line=629 fed=1 rc=0 first-fed='     total energy              =     -43.97172046 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.98586023
+      units: Hartree
+  block 21: begin-line=640 fed=1 rc=0 first-fed='     total energy              =     -43.97172651 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.985863255
+      units: Hartree
+  block 22: begin-line=651 fed=1 rc=0 first-fed='     total energy              =     -43.97173033 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.985865165
+      units: Hartree
+  block 23: begin-line=662 fed=1 rc=0 first-fed='     total energy              =     -43.97173034 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.98586517
+      units: Hartree
+  block 24: begin-line=743 fed=1 rc=0 first-fed='     total energy              =     -43.97181035 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.985905175
+      units: Hartree
+  block 25: begin-line=754 fed=1 rc=0 first-fed='     total energy              =     -43.97181143 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.985905715
+      units: Hartree
+  block 26: begin-line=765 fed=1 rc=0 first-fed='     total energy              =     -43.97181155 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.985905775
+      units: Hartree
+  block 27: begin-line=852 fed=1 rc=0 first-fed='     total energy              =     -43.97181630 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.98590815
+      units: Hartree
+  block 28: begin-line=863 fed=1 rc=0 first-fed='     total energy              =     -43.97181681 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.985908405
+      units: Hartree
+  block 29: begin-line=874 fed=1 rc=0 first-fed='     total energy              =     -43.97181710 Ry'
+    key: EWVEC
+      size: 1
+      values: -21.98590855
+      units: Hartree
+
+[DELTAE]  Script=qe.deltae  Freq=all  Skip=0  Lines=1
+  Begin=estimated scf accuracy
+  begins=36 delivered=36 buffered_away=0
+  block 1: begin-line=142 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.41017347 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.205086735
+      units: Hartree
+  block 2: begin-line=153 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.50254469 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.251272345
+      units: Hartree
+  block 3: begin-line=164 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00774366 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.00387183
+      units: Hartree
+  block 4: begin-line=175 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.01307121 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.006535605
+      units: Hartree
+  block 5: begin-line=186 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00265417 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.001327085
+      units: Hartree
+  block 6: begin-line=197 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00045784 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.00022892
+      units: Hartree
+  block 7: begin-line=208 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000390 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.95e-06
+      units: Hartree
+  block 8: begin-line=219 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00001943 Ry'
+    key: DELTAE
+      size: 1
+      values: 9.715e-06
+      units: Hartree
+  block 9: begin-line=238 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000043 Ry'
+    key: DELTAE
+      size: 1
+      values: 2.15e-07
+      units: Hartree
+  block 10: begin-line=299 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.02072453 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.010362265
+      units: Hartree
+  block 11: begin-line=310 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.01376753 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.006883765
+      units: Hartree
+  block 12: begin-line=321 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00016481 Ry'
+    key: DELTAE
+      size: 1
+      values: 8.2405e-05
+      units: Hartree
+  block 13: begin-line=332 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000838 Ry'
+    key: DELTAE
+      size: 1
+      values: 4.19e-06
+      units: Hartree
+  block 14: begin-line=351 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000074 Ry'
+    key: DELTAE
+      size: 1
+      values: 3.7e-07
+      units: Hartree
+  block 15: begin-line=413 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00217573 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.001087865
+      units: Hartree
+  block 16: begin-line=424 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00024955 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.000124775
+      units: Hartree
+  block 17: begin-line=435 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00005116 Ry'
+    key: DELTAE
+      size: 1
+      values: 2.558e-05
+      units: Hartree
+  block 18: begin-line=446 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000260 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.3e-06
+      units: Hartree
+  block 19: begin-line=465 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000020 Ry'
+    key: DELTAE
+      size: 1
+      values: 1e-07
+      units: Hartree
+  block 20: begin-line=527 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00013878 Ry'
+    key: DELTAE
+      size: 1
+      values: 6.939e-05
+      units: Hartree
+  block 21: begin-line=538 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00005920 Ry'
+    key: DELTAE
+      size: 1
+      values: 2.96e-05
+      units: Hartree
+  block 22: begin-line=549 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000169 Ry'
+    key: DELTAE
+      size: 1
+      values: 8.45e-07
+      units: Hartree
+  block 23: begin-line=568 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000011 Ry'
+    key: DELTAE
+      size: 1
+      values: 5.5e-08
+      units: Hartree
+  block 24: begin-line=630 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00003203 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.6015e-05
+      units: Hartree
+  block 25: begin-line=641 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00001862 Ry'
+    key: DELTAE
+      size: 1
+      values: 9.31e-06
+      units: Hartree
+  block 26: begin-line=652 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000043 Ry'
+    key: DELTAE
+      size: 1
+      values: 2.15e-07
+      units: Hartree
+  block 27: begin-line=663 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000012 Ry'
+    key: DELTAE
+      size: 1
+      values: 6e-08
+      units: Hartree
+  block 28: begin-line=682 fed=1 rc=0 first-fed='     estimated scf accuracy    <          2.9E-09 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.45e-09
+      units: Hartree
+  block 29: begin-line=744 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00001387 Ry'
+    key: DELTAE
+      size: 1
+      values: 6.935e-06
+      units: Hartree
+  block 30: begin-line=755 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000125 Ry'
+    key: DELTAE
+      size: 1
+      values: 6.25e-07
+      units: Hartree
+  block 31: begin-line=766 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000016 Ry'
+    key: DELTAE
+      size: 1
+      values: 8e-08
+      units: Hartree
+  block 32: begin-line=785 fed=1 rc=0 first-fed='     estimated scf accuracy    <          9.5E-09 Ry'
+    key: DELTAE
+      size: 1
+      values: 4.75e-09
+      units: Hartree
+  block 33: begin-line=853 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000233 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.165e-06
+      units: Hartree
+  block 34: begin-line=864 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000132 Ry'
+    key: DELTAE
+      size: 1
+      values: 6.6e-07
+      units: Hartree
+  block 35: begin-line=875 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000001 Ry'
+    key: DELTAE
+      size: 1
+      values: 5e-09
+      units: Hartree
+  block 36: begin-line=894 fed=1 rc=0 first-fed='     estimated scf accuracy    <          3.6E-09 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.8e-09
+      units: Hartree
+
+[EGRADVEC]  Script=qe.egradvec  Freq=last  Skip=2  Lines=-
+  Begin=Forces acting on atoms
+  End=Total force =
+  begins=7 delivered=1 buffered_away=6
+  block 1: begin-line=907 fed=5 rc=0 first-fed='     atom    1 type  1   force =    -0.00038981    0.00000000    0.00042419'
+    key: EGRADVEC
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: 0.0001949050 0.0000000000 -0.0002120950 -0.0000207000 0.0000000000 0.0000893850 -0.0001742100 0.0000000000 0.0001227050
+      units: Hartree/Bohr
+
+[CPUSEC][ETIME]  Script=qe.time  Freq=last  Skip=0  Lines=1
+  Begin=^\s*PWSCF\s*:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=978 fed=1 rc=0 first-fed='     PWSCF        :     58.85s CPU     22.07s WALL'
+    key: CPUSEC
+      size: 1
+      values: 58.85
+    key: ETIME
+      size: 1
+      values: 22.07
+
+[GEOMTRACE]  Script=qe.geomtrace  Freq=all  Skip=0  Lines=-
+  Begin=^ATOMIC_POSITIONS
+  End=^\s*$
+  begins=7 delivered=7 buffered_away=0
+  block 1: begin-line=272 fed=5 rc=0 first-fed='ATOMIC_POSITIONS (angstrom)'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 5.0944159773 5.0000000000 5.0378948341 5.8199679357 5.0000000000 5.6437708954 4.2270140870 5.0000000000 5.6042162705
+      units: Angstrom
+  block 2: begin-line=386 fed=5 rc=0 first-fed='ATOMIC_POSITIONS (angstrom)'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 5.0555087142 5.0000000000 5.0364741116 5.8310226300 5.0000000000 5.6586742364 4.2548666558 5.0000000000 5.5907336520
+      units: Angstrom
+  block 3: begin-line=500 fed=5 rc=0 first-fed='ATOMIC_POSITIONS (angstrom)'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 5.0621180722 5.0000000000 5.0367585494 5.8200345041 5.0000000000 5.6556983894 4.2592454237 5.0000000000 5.5934250612
+      units: Angstrom
+  block 4: begin-line=603 fed=5 rc=0 first-fed='ATOMIC_POSITIONS (angstrom)'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 5.0641292873 5.0000000000 5.0308118664 5.8144586364 5.0000000000 5.6577055164 4.2628100764 5.0000000000 5.5973646172
+      units: Angstrom
+  block 5: begin-line=717 fed=5 rc=0 first-fed='ATOMIC_POSITIONS (angstrom)'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 5.0635738893 5.0000000000 5.0265354260 5.8076443484 5.0000000000 5.6597495932 4.2701797624 5.0000000000 5.5995969807
+      units: Angstrom
+  block 6: begin-line=820 fed=5 rc=0 first-fed='ATOMIC_POSITIONS (angstrom)'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 5.0630254090 5.0000000000 5.0255383678 5.8080215791 5.0000000000 5.6604418582 4.2703510119 5.0000000000 5.5999017739
+      units: Angstrom
+  block 7: begin-line=927 fed=6 rc=0 first-fed='ATOMIC_POSITIONS (angstrom)'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 5.0630254090 5.0000000000 5.0255383678 5.8080215791 5.0000000000 5.6604418582 4.2703510119 5.0000000000 5.5999017739
+      units: Angstrom
+

@@ -138,3 +138,34 @@ Frequency=last
 Skip=0
 Lines=1
 [END]
+
+# Geometry-optimisation trace, from pw.x 'relax' / 'vc-relax'.  Without
+# this a QE optimisation could not be stepped through or animated in the
+# viewer at all -- the property simply did not exist for this code.
+#
+# Skip=0 deliberately: the unit ("angstrom" / "bohr" / "crystal" / "alat")
+# is in the ATOMIC_POSITIONS header line, not in the coordinate rows, so
+# qe.geomtrace has to see the Begin line itself to know what it is reading.
+# Skip=1 would feed it the first atom row and lose the unit.
+#
+# End is the blank line that closes the block.  Checked against the other
+# entries in this file for the End-line starvation hazard CLAUDE.md
+# records: no other qe.desc Begin matches a blank line, so closing here
+# starves nothing.
+#
+# NOTE ON ALIGNMENT, for whoever adds TEVEC: pw.x prints one
+# "! total energy" per SCF cycle INCLUDING the starting geometry, but the
+# first ATOMIC_POSITIONS block is the result of the first BFGS step -- the
+# starting geometry appears only in the "site n. atom positions (alat
+# units)" table, in alat units.  So energies and ATOMIC_POSITIONS blocks
+# are offset by one, and pairing them naively gives every frame the
+# neighbouring step's energy.  Verified on a real 6-step H2O relax with
+# pw.x 6.7: 7 energies, 7 ATOMIC_POSITIONS blocks, of which the last is
+# the duplicate inside "Begin final coordinates".
+[GEOMTRACE]
+Script=qe.geomtrace
+Begin=^ATOMIC_POSITIONS
+Frequency=all
+Skip=0
+End=^\s*$
+[END]

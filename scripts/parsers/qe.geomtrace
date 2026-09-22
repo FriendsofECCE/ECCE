@@ -1,0 +1,84 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts one geometry-optimisation frame from Quantum ESPRESSO's
+# ATOMIC_POSITIONS block into ECCE's GEOMTRACE property, so a pw.x
+# 'relax' or 'vc-relax' run can be stepped through and animated in the
+# Builder viewer.
+#
+# Called once per block by eccejobmonitor (Frequency=all in qe.desc), each
+# invocation contributing one step to the PropTSVecTable.
+#
+# Input looks like (real pw.x 6.7 output):
+#
+#   ATOMIC_POSITIONS (angstrom)
+#   O             5.0944159773        5.0000000000        5.0378948341
+#   H             5.8199679357        5.0000000000        5.6437708954
+#   H             4.2270140870        5.0000000000        5.6042162705
+#
+# The unit is in the HEADER, not the rows, which is why qe.desc feeds this
+# script the Begin line itself (Skip=0) rather than starting after it. QE
+# echoes back whatever the input used, so all four of its forms can turn
+# up. angstrom and bohr are converted here; crystal and alat are NOT, and
+# are refused rather than silently emitted as if they were Cartesian
+# Angstroms -- which would put every atom within a few units of the origin
+# and look like a plausible, tiny, wrong molecule. ai.qe writes angstrom,
+# so the common path is exact.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+use constant BOHR_TO_ANGSTROM => 0.529177210903;
+
+my @coordlines;
+my $rowLabels = "";
+my $index = 0;
+my $scale;                 # unset until the header is seen
+
+while (<STDIN>) {
+  if (/^\s*ATOMIC_POSITIONS\s*[\(\{]?\s*(\w+)/i) {
+    my $unit = lc($1);
+    if ($unit eq "angstrom") {
+      $scale = 1.0;
+    } elsif ($unit eq "bohr") {
+      $scale = BOHR_TO_ANGSTROM;
+    } else {
+      # crystal (fractional) and alat both need the cell to convert, and
+      # the cell is not in this block. Emitting nothing is correct: the
+      # property is simply absent, rather than wrong.
+      exit(0);
+    }
+    next;
+  }
+
+  next if (!defined($scale));
+
+  #  "O             5.0944159773        5.0000000000        5.0378948341"
+  #  Optional trailing 0/1 flags per axis (if_pos) are tolerated.
+  if (/^\s*([A-Za-z][A-Za-z]?)\d*\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
+    my ($symbol, $x, $y, $z) = ($1, $2, $3, $4);
+    push(@coordlines, sprintf("%.10f %.10f %.10f",
+                              $x * $scale, $y * $scale, $z * $scale));
+    $rowLabels .= " " . ($index + 1) . "-$symbol";
+    $index++;
+  }
+}
+
+my $size = $#coordlines + 1;
+exit(0) if ($size < 1);
+
+print "key: GEOMTRACE\n";
+print "size:\n1 $size 3\n";
+print "rowlabels:\n$rowLabels\n";
+print "columnlabels:\nX Y Z\n";
+print "values:\n";
+foreach my $line (@coordlines) {
+  print " $line\n";
+}
+print "units:\nAngstrom\n";
+print "END\n";
+exit(0);
