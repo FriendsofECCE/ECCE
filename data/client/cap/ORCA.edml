@@ -121,6 +121,38 @@
     <runtype>GeoVib</runtype>
   </Theory>
 
+  <!-- MP2 and coupled cluster (issue #91). Runtypes are deliberately
+       NOT copied from the SCF/DFT blocks above:
+
+       MP2 has analytic gradients in ORCA, so Gradient and Geometry are
+       genuine. Vibration and GeoVib are omitted because the frequencies
+       would be numerical, which is a different cost class the user
+       should opt into knowingly rather than discover.
+
+       Coupled cluster offers Energy only. CCSD and CCSD(T) gradients
+       are not available for the general case here, and a numerical
+       geometry optimisation at CCSD(T) is not something to offer from
+       a menu.
+
+       Magnetic is absent from both: NMR shielding in ORCA is an SCF/DFT
+       property. -->
+  <Theory category="MP2" name="RMP2">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+  </Theory>
+  <Theory category="MP2" name="UMP2">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+  </Theory>
+  <Theory category="CC" name="CCSD">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="CC" name="CCSD(T)">
+    <runtype>Energy</runtype>
+  </Theory>
+
   <TheorySummary>
     <item key="ES.Theory.SCF.Direct" label="SCF Integrals"></item>
   </TheorySummary>

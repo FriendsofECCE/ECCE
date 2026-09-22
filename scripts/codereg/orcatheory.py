@@ -144,7 +144,24 @@ class OrcaTheoryPanel(EccePanel):
                             "M06",
                             "M062X",
                             "CAM-B3LYP",
-                            "wB97X-D3"]
+                            "wB97X-D3",
+                            # DOUBLE HYBRIDS (issue #91). These carry an
+                            # MP2 correlation component, which in ORCA
+                            # goes through RI-MP2 and therefore REQUIRES
+                            # a "<basis>/C" auxiliary basis. ai.orca's
+                            # AuxCBasisToken adds it automatically; see
+                            # its comment for why that is mandatory
+                            # rather than an optimisation. Each verified
+                            # to produce a real energy on water, not
+                            # merely to pass input parsing -- which they
+                            # all did while still failing at runtime.
+                            "B2PLYP",
+                            "B2GP-PLYP",
+                            "mPW2PLYP",
+                            "wB2PLYP",
+                            "DSD-BLYP",
+                            "DSD-PBEP86",
+                            "PWPB95"]
             self.xcFunc = EcceComboBox(self,
                                        choices=xcFuncChoice,
                                        name="ES.Theory.DFT.XCFunctionals",

@@ -251,7 +251,8 @@ sub ORCARoute {
   $route .= &GeomConvergenceToken . " ";
   $route .= &FreqMethodToken . " ";
   $route .= &SolvationToken . " ";
-  $route .= &ChelpgToken;
+  $route .= &ChelpgToken . " ";
+  $route .= &AuxCBasisToken;
   $route =~ s/\s+/ /g;
   $route =~ s/\s+$//;
   return $route;
@@ -296,6 +297,61 @@ sub RIJCOSXToken {
 # one, so that parse type was dead code and the property never appeared
 # for any ORCA job. Verified against ORCA 6.1.1: the keyword is accepted
 # and the block it emits is exactly what orca.desc's Skip=2 expects.
+# Correlation-fitting auxiliary basis ("<basis>/C").
+#
+# REQUIRED, not an optimisation, for anything whose correlation part goes
+# through RI-MP2 -- which in ORCA means every DOUBLE HYBRID functional.
+# Found by running them rather than by reading about them: "! B2PLYP
+# def2-SVP" passes input parsing cleanly and then dies at runtime with
+#
+#   ERROR: RI-MP2 needs an AuxC basis but none was defined!
+#
+# (ORCA exit 55). Adding "def2-SVP/C" makes it run. So a dialog that
+# offered double hybrids without this would produce decks that always
+# fail, and fail late -- after the job reached a queue.
+#
+# The "<orbital basis>/C" spelling is the convention for both families
+# ECCE offers here, def2-* and cc-pV*Z. Emitted only when needed, because
+# an unnecessary AuxC is harmless but noisy, and only when the orbital
+# basis is a name rather than an explicit set (an explicit basis has no
+# name to append "/C" to).
+sub AuxCBasisToken {
+  my $result = "";
+  return "" if ($useExplicitBasis != 0 || $NameBasis eq "");
+
+  my $category = $AbiDict{"Category"};
+  my $needsAuxC = 0;
+
+  #  MP2 and coupled cluster: conventional integrals are the ORCA
+  #  default, so no AuxC is needed unless RI is explicitly requested.
+  #  Double hybrids are the case that forces it.
+  if ($category eq "DFT") {
+    $needsAuxC = &IsDoubleHybrid($AbiDict{"ES.Theory.DFT.XCFunctionals"});
+  }
+
+  $result = $NameBasis . "/C" if ($needsAuxC);
+  $_ = $result;
+  return $result;
+}
+
+# Which functionals in orcatheory.py's list are double hybrids, i.e. have
+# an MP2 correlation component. Kept as an explicit set rather than a
+# name-pattern guess: "B2PLYP" and "B3LYP" differ by one character and
+# only one of them needs an AuxC basis.
+sub IsDoubleHybrid {
+  my ($label) = @_;
+  my %doubleHybrids = (
+    "B2PLYP"     => 1,
+    "B2GP-PLYP"  => 1,
+    "mPW2PLYP"   => 1,
+    "wB2PLYP"    => 1,
+    "DSD-BLYP"   => 1,
+    "DSD-PBEP86" => 1,
+    "PWPB95"     => 1,
+  );
+  return (defined($doubleHybrids{$label}) ? 1 : 0);
+}
+
 sub ChelpgToken {
   my $result = "";
   if ($AbiDict{"ES.Runtype.ORCA.UseCHELPG"} eq "1") {
@@ -481,8 +537,18 @@ sub Theory {
     $result = "HF";
   } elsif ($theory eq "UHF") {
     $result = "UHF";
+  } elsif ($theory eq "RMP2") {
+    $result = "MP2";
+  } elsif ($theory eq "UMP2") {
+    #  ORCA needs the reference stated explicitly for an open-shell MP2.
+    $result = "UHF MP2";
+  } elsif ($theory eq "CCSD") {
+    $result = "CCSD";
+  } elsif ($theory eq "CCSD(T)") {
+    $result = "CCSD(T)";
   } else {
-    die "ai.orca error: unsupported theory '$theory' (reduced scope covers RHF/UHF/RDFT/UDFT only)\n";
+    die "ai.orca error: unsupported theory '$theory'.\n" .
+        "  Supported: RHF, UHF, RDFT, UDFT, RMP2, UMP2, CCSD, CCSD(T).\n";
   }
   return $result;
 }
@@ -510,6 +576,17 @@ sub DFTXCFun {
     "M062X"     => "M062X",
     "CAM-B3LYP" => "CAM-B3LYP",
     "wB97X-D3"  => "wB97X-D3",
+    #  Double hybrids (issue #91). Keep in lockstep with
+    #  orcatheory.py's list AND with IsDoubleHybrid above -- a
+    #  functional missing from the latter generates a deck with no
+    #  AuxC basis, which ORCA accepts and then kills at runtime.
+    "B2PLYP"     => "B2PLYP",
+    "B2GP-PLYP"  => "B2GP-PLYP",
+    "mPW2PLYP"   => "mPW2PLYP",
+    "wB2PLYP"    => "wB2PLYP",
+    "DSD-BLYP"   => "DSD-BLYP",
+    "DSD-PBEP86" => "DSD-PBEP86",
+    "PWPB95"     => "PWPB95",
   );
   return $map{$xcFun} || $xcFun;
 }
