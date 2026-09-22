@@ -285,10 +285,21 @@ bool RCommand::isRemote(const string& machine, const string& remShell,
 #endif
     string whereami = RCommand::whereami();
 
-    if (whereami != "")
-      localFlag = (machine=="" || machine=="-f" ||
+    // "localhost" and the loopback address name this machine as surely as
+    // its own hostname does, but were not recognised -- so a machine
+    // registered as "localhost" was treated as remote and ssh'd to, which
+    // needs working key-based authentication to yourself for something
+    // that should never leave the process. siteconfig/Machines ships such
+    // an entry, since a shipped file cannot know the hostname it lands on.
+    bool loopback = (machine=="localhost" ||
+                     machine=="localhost.localdomain" ||
+                     machine=="127.0.0.1" || machine=="::1");
+
+    if (whereami != "" || loopback)
+      localFlag = (loopback || machine=="" || machine=="-f" ||
                    machine=="system" || machine==whereami ||
-                   (machine.length()>whereami.length() &&
+                   (whereami != "" &&
+                    machine.length()>whereami.length() &&
                     machine.substr(0,whereami.length())==whereami &&
                     machine[whereami.length()]=='.'));
 

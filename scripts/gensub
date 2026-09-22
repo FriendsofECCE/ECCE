@@ -100,7 +100,14 @@
   local (%config);    # stuff from config files
   local (@msgs);      # error messages
 
-  getopts(':p:f:H:Q:q:c:a:n:N:t:T:w:r:s:i:o:S:C:mxhgv');
+  # -m (memory) and -x (scratch space) USE a value -- handleOptions does
+  # "$memory = $opt_m" and multiplies it by 1024 -- but were declared here
+  # without the trailing colon, i.e. as booleans. On the command line that
+  # made $opt_m the flag value 1, so "gensub -m 4000" produced a submit
+  # script requesting 1 unit of memory and left "4000" as a stray argument.
+  # Production launches go through the -p param file, which parses these
+  # correctly, which is why it never showed up there.
+  getopts(':p:f:H:Q:q:c:a:n:N:t:T:w:r:s:i:o:S:C:m:x:hgv');
 
   # get this from config files
   $CC = "# ";
@@ -406,6 +413,57 @@ sub provideVariables()
   $fixedString =~ s/\$mdCalcName/$::mdCalcName/gi;
 
   $fixedString .= "\n";
+
+  # Drop batch directives whose value did not resolve.  The queue-manager
+  # blocks in submit.site are hand-written per site, and a variable that
+  # is simply not set for this job (no memory requested, no allocation
+  # account) used to be substituted with the empty string and emitted
+  # anyway -- producing a directive like "#SBATCH --mem=" or a bare
+  # "#PBS -A", which sbatch/qsub reject outright, so the whole job fails
+  # to submit over a field the user deliberately left blank.  The right
+  # thing is to omit the directive and let the scheduler apply its own
+  # default.
+  #
+  # The test is made against the ORIGINAL line, by looking up each
+  # variable it names: a substituted line cannot be judged afterwards,
+  # because "#PBS -A" (an emptied $account) and "#PBS -nr" (a legitimate
+  # flag that never had a value) are indistinguishable by then.
+  #
+  # Only comment-style directive lines are filtered.  The same function
+  # also processes real shell code from CONFIG.<machine>'s setup/wrapup
+  # blocks, where "$var" is a csh variable the running script resolves
+  # for itself and an "X=" assignment is perfectly legal.
+  my %vals = (
+    'account'     => $::account,     'host'         => $::host,
+    'qmgr'        => $::qMgr,        'queue'        => $::queue,
+    'code'        => $::code,        'nodes'        => $::nodes,
+    'totalprocs'  => $::totalprocs,  'cputime'      => $::cpuTime,
+    'walltime'    => $::wallTime,    'wallhrmin'    => $::wallHrMin,
+    'rundir'      => $::runDir,      'scratchdir'   => $::scratchDir,
+    'infile'      => $::inFile,      'outfile'      => $::outFile,
+    'memory'      => $::memory,      'mem_x_1024'   => $::mem_x_1024,
+    'scratchspace'=> $::scratchSpace,'submitfile'   => $::jobName,
+    'mdsystemname'=> $::mdSystemName,'mdcalcname'   => $::mdCalcName,
+  );
+
+  my @orig = split(/\n/, $_[0], -1);
+  my @fixd = split(/\n/, $fixedString, -1);
+  my @kept;
+  for (my $i = 0; $i < scalar(@fixd); $i++) {
+    my $src = ($i < scalar(@orig)) ? $orig[$i] : "";
+    if ($src =~ /^\s*\#(?:SBATCH|PBS|BSUB|MSUB)\b/) {
+      my $drop = 0;
+      # Longest names first, so $mem_x_1024 is not matched as $memory.
+      foreach my $name (sort { length($b) <=> length($a) } keys %vals) {
+        next unless $src =~ /\$$name/i;
+        my $v = $vals{$name};
+        if (!defined($v) || $v eq "" || $v eq "0") { $drop = 1; last; }
+      }
+      next if $drop;
+    }
+    push @kept, $fixd[$i];
+  }
+  $fixedString = join("\n", @kept);
 
   return $fixedString;
   nouse strict vars;

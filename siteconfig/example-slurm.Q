@@ -37,6 +37,7 @@ normal|maxProcessors:         256
 normal|runLimit:              1440
 # Memory limit in MB; 0 means "no limit".
 normal|memLimit:              0
+normal|memUnits:              MB
 
 debug|minProcessors:          1
 debug|maxProcessors:          16

@@ -10,6 +10,14 @@
 # unreachable from ECCE: the input deck and submit script are generated
 # locally and ECCE stops there, telling you the directory to copy. See
 # CONFIG.dummy, which carries "noRemoteAccess: true".
-dummy	localhost	Generic	Manual submission (ECCE does not contact it)	Unspecified	1024:128	ssh	:NWChem:Gaussian-16:Gaussian-09:ORCA:MOPAC:QuantumESPRESSO	MN:RD:SD:Q:TL
-chinook	chinook.emsl.pnl.gov	HP	HPCS3 Phase 1 Cluster	AMD 2.6 GHz Opteron	4800:600	ssh	:NWChem	MN:RD:SD:UN:PW:AA:Q:TL
-franklin	franklin.nersc.gov	Cray	Cray Cluster	AMD 2.6 GHz Opteron	16000:4000	ssh	:NWChem	MN:RD:SD:UN:PW:AA:Q:TL
+dummy	dummy.invalid	Generic	Manual submission (ECCE does not contact it)	Unspecified	1024:128	ssh	:NWChem:Gaussian-16:Gaussian-09:ORCA:MOPAC:QuantumESPRESSO	MN:RD:SD:Q:TL:MM:SS:AA
+
+# The machine ECCE is running on. Jobs run directly here under the "Shell"
+# queue manager (no batch system), which is the normal arrangement for a
+# workstation with the codes installed locally. RCommand::isRemote() knows
+# the name "localhost" means this machine, so nothing is ssh'd anywhere.
+#
+# Processor count is deliberately generous rather than detected: this file
+# is shipped, not generated, and the number only bounds the launcher's own
+# controls. Lower it in ~/.ECCE/MyMachines if you want it honest.
+localhost	localhost	Generic	Local workstation	Unspecified	64:1	ssh	:NWChem:Gaussian-16:Gaussian-09:ORCA:MOPAC:QuantumESPRESSO	WS

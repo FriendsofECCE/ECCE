@@ -4,11 +4,29 @@
 #
 # Users add their own machines in ~/.ECCE/Queues, which is merged with this
 # file rather than replacing it.
-Queues: chinook franklin 
 ###############################################################################
 
-chinook|queueMgrName:   Moab
-chinook|prefFile:       chinook.Q
+# chinook (Moab, PNNL) and franklin (PBS, NERSC) were removed in 2026-09:
+# both were decommissioned years ago, and their queue files described
+# 4800-processor machines nobody can reach. See example-slurm.Q for the
+# format, and disabled-queuemanagers-archive.txt for the retired managers.
+Queues: localhost dummy
 
-franklin|queueMgrName:	PBS
-franklin|prefFile:      franklin.Q
+# The local workstation: no batch system, so no prefFile -- QueueMgr.C
+# skips loading one for "Shell".
+localhost|queueMgrName:   Shell
+
+# The no-remote-access placeholder (issue #94). Slurm by default because
+# that is what a current cluster most likely runs, and because the queue
+# manager decides the submit script ECCE hands you to copy across. If the
+# cluster you actually submit to uses something else, override it per user
+# without touching this file, in ~/.ECCE/Queues:
+#
+#   Queues: dummy
+#   dummy|queueMgrName:   PBS
+#   dummy|prefFile:       dummy.Q
+#
+# User entries are merged over the site ones per key, so that one line is
+# enough.
+dummy|queueMgrName:   Slurm
+dummy|prefFile:       dummy.Q

@@ -190,6 +190,13 @@ Slurm {
 #SBATCH --nodes=$nodes
 #SBATCH --ntasks=$totalprocs
 #SBATCH --time=$wallTime
+# $memory carries whatever unit the machine's .Q file declares in
+# memUnits (MB for the ones shipped here), so the suffix is spelled out
+# rather than left to sbatch's default. Change it if your .Q uses GB.
+# Both of these lines are dropped entirely when the field is unset, so a
+# blank memory or account box does not emit "--mem=" and fail the submit.
+#SBATCH --mem=$memoryM
+#SBATCH --account=$account
 #SBATCH --output=slurm.out
 #SBATCH --error=slurm.err
 }
