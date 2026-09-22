@@ -130,64 +130,59 @@ class OrcaTheoryPanel(EccePanel):
             # keyword (small water-molecule RKS single points, no
             # "ERROR"/"not recognized" and a normal SCF run for each) --
             # keep in lockstep with ai.orca's DFTXCFun map.
-            xcFuncChoice = ["B3LYP",
-                            "PBE0",
-                            "PBE",
-                            "revPBE",
-                            "RPBE",
-                            "BP86",
-                            "BLYP",
-                            "B97-D3",
-                            "TPSS",
-                            "TPSSh",
-                            "M06L",
-                            "M06",
-                            "M062X",
-                            "CAM-B3LYP",
-                            "wB97X-D3",
-                            #  Modern functionals ORCA 6.1.1 supports and
-                            #  ECCE did not offer. Each verified on
-                            #  water/def2-SVP, and each verified to work
-                            #  WITHOUT an auxiliary correlation basis --
-                            #  so they are ordinary functionals, not
-                            #  members of the RI-correlation family that
-                            #  AuxCBasisToken has to serve. SCAN, M11 and
-                            #  MN15 were tested too and are NOT available
-                            #  in 6.1.1 under those names, so they are
-                            #  deliberately absent.
-                            #
-                            #  The "-3c" composites (r2SCAN-3c, B97-3c)
-                            #  also work but are left out on purpose:
-                            #  they carry their own prescribed basis set,
-                            #  so offering them in a functional dropdown
-                            #  where the user separately picks a basis
-                            #  would generate a contradictory deck.
-                            "r2SCAN",
-                            "revTPSS",
-                            "wB97X-V",
-                            "wB97M-V",
-                            "B97M-V",
-                            # DOUBLE HYBRIDS (issue #91). These carry an
-                            # MP2 correlation component, which in ORCA
-                            # goes through RI-MP2 and therefore REQUIRES
-                            # a "<basis>/C" auxiliary basis. ai.orca's
-                            # AuxCBasisToken adds it automatically; see
-                            # its comment for why that is mandatory
-                            # rather than an optimisation. Each verified
-                            # to produce a real energy on water, not
-                            # merely to pass input parsing -- which they
-                            # all did while still failing at runtime.
-                            "B2PLYP",
+            #  ALPHABETICAL. The list is long enough now that scanning
+            #  it matters more than any grouping, and a user looking for
+            #  a named functional should not have to know whether it is
+            #  a hybrid, a range-separated hybrid or a double hybrid.
+            #
+            #  THE DEFAULT IS SELECTED BY NAME BELOW, not by a literal
+            #  index. That is the whole reason this reordering is safe:
+            #  EcceComboBox takes an integer, and every previous addition
+            #  to a functional list in this tree had to be appended
+            #  rather than inserted precisely because a bare index
+            #  silently follows whatever ends up in that slot.
+            #
+            #  Verified against the real ORCA 6.1.1 binary: every entry
+            #  here runs on water/def2-SVP. SCAN, M11 and MN15 are
+            #  absent because 6.1.1 does not have them under those names,
+            #  and the "-3c" composites because they carry their own
+            #  prescribed basis set.
+            xcFuncChoice = [
                             "B2GP-PLYP",
-                            "mPW2PLYP",
-                            "wB2PLYP",
+                            "B2PLYP",
+                            "B3LYP",
+                            "B97-D3",
+                            "B97M-V",
+                            "BLYP",
+                            "BP86",
+                            "CAM-B3LYP",
                             "DSD-BLYP",
                             "DSD-PBEP86",
-                            "PWPB95"]
+                            "M06",
+                            "M062X",
+                            "M06L",
+                            "mPW2PLYP",
+                            "PBE",
+                            "PBE0",
+                            "PWPB95",
+                            "r2SCAN",
+                            "revPBE",
+                            "revTPSS",
+                            "RPBE",
+                            "TPSS",
+                            "TPSSh",
+                            "wB2PLYP",
+                            "wB97M-V",
+                            "wB97X-D3",
+                            "wB97X-V"]
+            #  By NAME, so the sorted order above cannot change which
+            #  functional is selected by default.
+            xcFuncDefault = xcFuncChoice.index("B3LYP")
+
             self.xcFunc = EcceComboBox(self,
                                        choices=xcFuncChoice,
                                        name="ES.Theory.DFT.XCFunctionals",
-                                       default=0,
+                                       default=xcFuncDefault,
                                        label="Functional:",
                                        export=1)
             dftSizer.AddWidget(self.xcFunc)

@@ -706,76 +706,79 @@ class NedTheoryPanel(EccePanel):
             exchangeSizer = EcceLineLabelVBoxSizer(self,
                                          label = "Exchange-Correlation Functionals")
             
-            xcFuncChoice = ["None",
-                            "HCTH (Gradient Corr.)",
-                            "HCTH 120 (Gradient Corr.)",
-                            "HCTH 147 (Gradient Corr.)",
-                            "HCTH 407 (Gradient Corr.)",
-                            "HCTHP 14 (Gradient Corr.)",
-                            "BLYP (hybrid)", # added by CAO
-                            "B1LYP (hybrid)", # added by CAO
-                            "B3LYP (hybrid)",
-                            "CAM-B3LYP (range)", # added by CAO
+            #  ALPHABETICAL, except that "None" stays first: it is
+            #  not a functional but the absence of one, and sorting it
+            #  into the N's would bury it.
+            #
+            #  The list is long enough that scanning it matters more
+            #  than grouping by family, and a user looking for a named
+            #  functional should not need to know whether NWChem counts
+            #  it as a GGA, a hybrid or a meta-GGA.
+            #
+            #  THE DEFAULT IS SELECTED BY NAME BELOW, not by a literal
+            #  index, which is what makes reordering safe at all.
+            xcFuncChoice = [
+                            "None",
                             "Adiabatic Conn. (hybrid)",
-                            "B3PW91 (hybrid)",   # added by CAO
-                            "BP86 (GGA)", # added by CAO
-                            "B3P86 (hybrid)", # added by CAO
-                            "X3LYP (hybrid)", # added by CAO
-                            "mPW1PW91 (hybrid)", # added by CAO
-                            "mPW1PBE (hybrid)", # added by CAO
-                            "mPW3PBE (hybrid)", # added by CAO
-                            "mPW1LYP (hybrid)", # added by CAO             
-                            "TPSSh (hybrid)", # added by CAO
-                            "VSXC (hybrid)", # added by CAO
-                            "Gaussian B3 (hybrid)", # added by CAO
-                            "BOP (Gradient Corr.)",# added by CAO
-                            "PBEOP (Gradient Corr.)",# added by CAO
-                            "M05 (hybrid)",# added by CAO
-                            "M05-2X (hybrid)",# added by CAO
-                            "M06 (hybrid)",# added by CAO
-                            "M06-HF (hybrid)",# added by CAO
-                            "M06-2X (hybrid)",# added by CAO
-                            "M06-L (hybrid)",# added by CAO
-                            "Becke Half and Half (hybrid)",
+                            "B1LYP (hybrid)",
+                            "B3LYP (hybrid)",
+                            "B3P86 (hybrid)",
+                            "B3PW91 (hybrid)",
+                            "BB1K (hybrid)",
                             "Becke 1997 (hybrid)",
                             "Becke 1997-1 (hybrid)",
                             "Becke 1997-2 (hybrid)",
                             "Becke 1997-GGA1 (Gradient Corr.)",
                             "Becke 1998 (hybrid)",
-                            "PBE0 (hybrid)",
-                            "LC-wPBE (range)",
-                            "PBE (GGA)",
-                            "OPBE (GGA)",
-                            "s12g (GGA)",
+                            "Becke Half and Half (hybrid)",
+                            "BLYP (hybrid)",
+                            "BOP (Gradient Corr.)",
+                            "BP86 (GGA)",
+                            "CAM-B3LYP (range)",
                             "CAM-s12g (range)",
-                            "s12h (hybrid)",
                             "CAM-s12h (range)",
-                            "SSB-D (GGA)",
-                            "Mod. Perdew-Wang 1K (hybrid)",
-                            "BB1K (hybrid)",
                             "Filatov-Thiel 1997 (Gradient Corr.)",
-                            #  Modern functionals NWChem 7.2 supports and
-                            #  ECCE did not offer. Each was run through
-                            #  the real binary on water/STO-3G and
-                            #  produced a "Total DFT energy" -- not just
-                            #  accepted by the input parser, which for
-                            #  ORCA turned out not to be the same thing.
-                            #
-                            #  APPENDED, not inserted: xcFuncDefault
-                            #  below is an INDEX into this list, so
-                            #  anything added earlier silently changes
-                            #  which functional is the default.
-                            "SCAN (Meta-GGA)",
-                            "r2SCAN (Meta-GGA)",
-                            "wB97X (range)",
+                            "Gaussian B3 (hybrid)",
+                            "HCTH (Gradient Corr.)",
+                            "HCTH 120 (Gradient Corr.)",
+                            "HCTH 147 (Gradient Corr.)",
+                            "HCTH 407 (Gradient Corr.)",
+                            "HCTHP 14 (Gradient Corr.)",
+                            "HSE03 (range)",
+                            "LC-wPBE (range)",
+                            "M05 (hybrid)",
+                            "M05-2X (hybrid)",
+                            "M06 (hybrid)",
+                            "M06-2X (hybrid)",
+                            "M06-HF (hybrid)",
+                            "M06-L (hybrid)",
                             "M11 (range)",
                             "MN15 (hybrid)",
-                            "xTPSS03 (Meta-GGA)",
-                            "HSE03 (range)"]
-            xcFuncDefault = 36
+                            "Mod. Perdew-Wang 1K (hybrid)",
+                            "mPW1LYP (hybrid)",
+                            "mPW1PBE (hybrid)",
+                            "mPW1PW91 (hybrid)",
+                            "mPW3PBE (hybrid)",
+                            "OPBE (GGA)",
+                            "PBE (GGA)",
+                            "PBE0 (hybrid)",
+                            "PBEOP (Gradient Corr.)",
+                            "r2SCAN (Meta-GGA)",
+                            "s12g (GGA)",
+                            "s12h (hybrid)",
+                            "SCAN (Meta-GGA)",
+                            "SSB-D (GGA)",
+                            "TPSSh (hybrid)",
+                            "VSXC (hybrid)",
+                            "wB97X (range)",
+                            "X3LYP (hybrid)",
+                            "xTPSS03 (Meta-GGA)"]
+            xcFuncDefault = xcFuncChoice.index("PBE0 (hybrid)")
 
             if EcceGlobals.ReactionStudyFlag != 0:
-                xcFuncDefault =36 # CAO --changed from 15 to 37 to reflect added XCs
+                #  Same functional as the plain default; by name for the
+                #  same reason.
+                xcFuncDefault = xcFuncChoice.index("PBE0 (hybrid)")
             elif "ECCE_NWCHEM_DFT_USE_B3LYP" in os.environ:
                 if os.environ["ECCE_NWCHEM_DFT_USE_B3LYP"] == "true":
                     xcFuncDefault = 36 #  CAO -- changed from 7 to 8 to reflect reordering

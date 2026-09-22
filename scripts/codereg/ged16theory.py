@@ -236,108 +236,103 @@ class Ged16TheoryPanel(EccePanel):
             exchangeSizer = EcceLineLabelVBoxSizer(self,
                                          label = "Exchange-Correlation Functionals")
 
-            xcFuncChoice = ["None",
-                            "M06 (hybrid)",
-                            "X3LYP (hybrid)",
-                            "PBE0 (hybrid)",
-                            "PBE (GGA)",
-                            "PW91PW91 (GGA)",
-                            "OPBE (GGA)",
-                            "BP86 (GGA)",
-                            "SVWN 5 (local)",
-                            "SVWN 1/RPA (local)",                            
-                            "BLYP (nonlocal)",
-                            "VSXC (nonlocal)",
-                            "HCTH (nonlocal)",
-                            "HCTH/407 (nonlocal)",
-                            "HCTH/147 (nonlocal)",
-                            "HCTH/93 (nonlocal)",
-                            "tHCTH (nonlocal)",
-                            "M06L (meta-GGA)",
-                            "B97D (nonlocal)",
-                            "B97D3 (nonlocal)",
-                            "SOGGA11 (nonlocal)",
-                            "M11L (nonlocal)",
-                            "N12 (nonlocal)",
-                            "MN12L (nonlocal)",
+            #  ALPHABETICAL, except that "None" stays first: it is
+            #  not a functional but the absence of one, and sorting it
+            #  into the N's would bury it.
+            #
+            #  77 entries is well past the point where family grouping
+            #  helps: a user looking for a named functional should not
+            #  have to know whether Gaussian classes it as a hybrid, a
+            #  range-separated hybrid or a double hybrid.
+            #
+            #  BOTH DEFAULTS ARE SELECTED BY NAME BELOW, not by literal
+            #  indices. That is what makes reordering safe, and it also
+            #  removes the standing hazard that every previous addition
+            #  to this list had to be APPENDED rather than inserted --
+            #  an index silently follows whatever lands in that slot.
+            xcFuncChoice = [
+                            "None",
+                            "APF (hybrid)",
+                            "APFD (hybrid)",
+                            "B1B95 (hybrid)",
+                            "B1LYP (hybrid)",
                             "B3LYP (hybrid)",
                             "B3P86 (hybrid)",
                             "B3PW91 (hybrid)",
-                            "B1B95 (hybrid)",
-                            "B1LYP (hybrid)",
-                            "BB95 (hybrid)",
+                            "B97D (nonlocal)",
+                            "B97D3 (nonlocal)",
                             "BB1K (hybrid)",
-                            "MPW1PW91 (hybrid)",
-                            "MPWPW91 (hybrid)",
-                            "MPW1K (hybrid)",
-                            "MPW1LYP (hybrid)",
-                            "MPW1PBE (hybrid)",
-                            "O3LYP (hybrid)",
-                            "Becke98 (hybrid)",
-                            "Becke97 (1) (hybrid)",
-                            "Becke97 (2) (hybrid)",
-                            "PBE1PBE (hybrid)",
-                            "PBEh1PBE (hybrid)",
+                            "BB95 (hybrid)",
                             "Becke Half and Half (hybrid)",
                             "Becke Half and LYP Half (hybrid)",
+                            "Becke97 (1) (hybrid)",
+                            "Becke97 (2) (hybrid)",
+                            "Becke98 (hybrid)",
+                            "BLYP (nonlocal)",
                             "BMK (hybrid)",
-                            "M062X (hybrid)",
-                            "APFD (hybrid)",
-                            "APF (hybrid)",
-                            "SOGGA11X (hybrid)",
-                            "TPSSh (hybrid)",
-                            "tHCTHhyb (hybrid)",
-                            "HSEH1PBE (range)",
-                            "OHSE2PBE (range)",
-                            "OHSE1PBE (range)",
-                            "wB97XD (range)",
-                            "wB97 (range)",
-                            "wB97X (range)",
-                            "LC-wPBE (range)",
-                            #  Issue #100. Each of the three added
-                            #  here was run through the real
-                            #  Gaussian 16 at /opt/gaussian/g16
-                            #  before being offered, not taken from
-                            #  the docs: "SCF Done: E(RLC-wHPBE)",
-                            #  "E(RPBEh1PBE)" and "E(RMN15L)" all
-                            #  confirmed on water/STO-3G.
-                            #
-                            #  xcFuncDefault is an INDEX into this
-                            #  list, so adding entries can silently
-                            #  change which functional is the default.
-                            #  Checked after the fact, not assumed:
-                            #  index 3 still resolves to "PBE0
-                            #  (hybrid)" and index 17 (the reaction
-                            #  study default) to "M06L (meta-GGA)",
-                            #  because all three additions fall after
-                            #  index 17.
-                            "LC-wHPBE (range)",
+                            "BP86 (GGA)",
                             "CAM-B3LYP (range)",
+                            "DSDPBEP86 (double-hybrid)",
+                            "HCTH (nonlocal)",
+                            "HCTH/147 (nonlocal)",
+                            "HCTH/407 (nonlocal)",
+                            "HCTH/93 (nonlocal)",
                             "HISSbPBE (range)",
-                            "M11 (range)",
-                            "N12SX (range)",
-                            "MN12SX (range)",
-                            # Appended, not inserted: xcFuncDefault below is
-                            # an INDEX into this list, so inserting anywhere
-                            # above would silently change the default
-                            # functional.
-                            "M06HF (hybrid)",
+                            "HSEH1PBE (range)",
+                            "LC-wHPBE (range)",
+                            "LC-wPBE (range)",
                             "M05 (hybrid)",
                             "M052X (hybrid)",
+                            "M06 (hybrid)",
+                            "M062X (hybrid)",
+                            "M06HF (hybrid)",
+                            "M06L (meta-GGA)",
                             "M08HX (hybrid)",
+                            "M11 (range)",
+                            "M11L (nonlocal)",
+                            "MN12L (nonlocal)",
+                            "MN12SX (range)",
                             "MN15 (hybrid)",
                             "MN15L (nonlocal)",
                             "MN15M11 (range)",
+                            "MPW1K (hybrid)",
+                            "MPW1LYP (hybrid)",
+                            "MPW1PBE (hybrid)",
+                            "MPW1PW91 (hybrid)",
                             "MPw3PBE (hybrid)",
+                            "MPWPW91 (hybrid)",
+                            "N12 (nonlocal)",
+                            "N12SX (range)",
+                            "O3LYP (hybrid)",
+                            "OHSE1PBE (range)",
+                            "OHSE2PBE (range)",
+                            "OPBE (GGA)",
+                            "PBE (GGA)",
+                            "PBE0 (hybrid)",
+                            "PBE0DH (double-hybrid)",
+                            "PBE1PBE (hybrid)",
+                            "PBEh1PBE (hybrid)",
+                            "PBEQIDH (double-hybrid)",
                             "PW6B95 (hybrid)",
                             "PW6B95D3 (hybrid)",
-                            "DSDPBEP86 (double-hybrid)",
-                            "PBE0DH (double-hybrid)",
-                            "PBEQIDH (double-hybrid)"
-                            ]
-            xcFuncDefault = 3 #Andy  -- changed default from None to PBE0
+                            "PW91PW91 (GGA)",
+                            "SOGGA11 (nonlocal)",
+                            "SOGGA11X (hybrid)",
+                            "SVWN 1/RPA (local)",
+                            "SVWN 5 (local)",
+                            "tHCTH (nonlocal)",
+                            "tHCTHhyb (hybrid)",
+                            "TPSSh (hybrid)",
+                            "VSXC (nonlocal)",
+                            "wB97 (range)",
+                            "wB97X (range)",
+                            "wB97XD (range)",
+                            "X3LYP (hybrid)"]
+            #  PBE0 by name (was index 3, set by Andy in place of None).
+            xcFuncDefault = xcFuncChoice.index("PBE0 (hybrid)")
             if EcceGlobals.ReactionStudyFlag != 0:
-                xcFuncDefault = 17
+                #  Reaction studies default to M06L (was index 17).
+                xcFuncDefault = xcFuncChoice.index("M06L (meta-GGA)")
 
             self.xcFunc = EcceComboBox(self,
                                        choices = xcFuncChoice,
