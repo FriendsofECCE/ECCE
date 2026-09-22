@@ -1,0 +1,46 @@
+[0;1;31m×[0m run-p1165752-i1166052.service - [systemd-run] /usr/bin/ecce-gateway
+     Loaded: loaded (]8;;file://niobium/run/user/1000/systemd/transient/run-p1165752-i1166052.service\/run/user/1000/systemd/transient/run-p1165752-i1166052.service]8;;\; transient[0;1;32m[0m)
+  Transient: yes
+     Active: [0;1;31mfailed[0m (Result: core-dump) since Sat 2026-09-12 08:59:51 CEST; 1 week 3 days ago
+   Duration: 25.471s
+ Invocation: c618ec94602843ceb5c034e85854bbcd
+   Main PID: 1165753 (code=dumped, signal=ABRT)
+   Mem peak: 39.8M
+        CPU: 435ms
+
+Sep 12 08:59:25 niobium systemd[2714]: Started run-p1165752-i1166052.service - [systemd-run] /usr/bin/ecce-gateway.
+Sep 12 08:59:25 niobium ecce-gateway[1165756]: ecce-gateway-start: broker already listening on 8088
+Sep 12 08:59:25 niobium ecce-gateway[1165756]: ecce-gateway-start: starting JMSDispatcher...
+Sep 12 08:59:50 niobium ecce-gateway[1165753]: ASSERTION /home/andy/tmp/ecce/ECCE/src/util/jms/JMSMessage.C:497
+Sep 12 08:59:50 niobium ecce-gateway[1165753]: Assertion (infile.good()) failed Could not open /home/andy/.ECCE/niobium_:1
+Sep 12 08:59:51 niobium systemd-coredump[1166312]: ]8;;man:core(5)\[🡕]]8;;\ [0;1;31m[0;1;39m[0;1;31mProcess 1165753 (gateway) of user 1000 dumped core.[0m
+                                                   [0;1;31m[0m
+                                                   [0;1;31mModule libsystemd.so.0 from deb systemd-257.13-1~deb13u1.amd64[0m
+                                                   [0;1;31mModule libblkid.so.1 from deb util-linux-2.41.5-0+deb13u1.amd64[0m
+                                                   [0;1;31mModule libzstd.so.1 from deb libzstd-1.5.7+dfsg-1.amd64[0m
+                                                   [0;1;31mModule libuuid.so.1 from deb util-linux-2.41.5-0+deb13u1.amd64[0m
+                                                   [0;1;31mModule libmount.so.1 from deb util-linux-2.41.5-0+deb13u1.amd64[0m
+                                                   [0;1;31mModule libatomic.so.1 from deb gcc-14-14.2.0-19.amd64[0m
+                                                   [0;1;31mModule libgcc_s.so.1 from deb gcc-14-14.2.0-19.amd64[0m
+                                                   [0;1;31mModule libstdc++.so.6 from deb gcc-14-14.2.0-19.amd64[0m
+                                                   [0;1;31mStack trace of thread 1165753:[0m
+                                                   [0;1;31m#0  0x00007faebe0a095c __pthread_kill_implementation (libc.so.6 + 0x9495c)[0m
+                                                   [0;1;31m#1  0x00007faebe04bcc2 __GI_raise (libc.so.6 + 0x3fcc2)[0m
+                                                   [0;1;31m#2  0x00007faebe0344ac __GI_abort (libc.so.6 + 0x284ac)[0m
+                                                   [0;1;31m#3  0x000056135a661b26 n/a (/opt/ecce/bin/gateway + 0xa4b26)[0m
+                                                   [0;1;31m#4  0x000056135a8cf15d n/a (/opt/ecce/bin/gateway + 0x31215d)[0m
+                                                   [0;1;31m#5  0x000056135a8cf1a6 n/a (/opt/ecce/bin/gateway + 0x3121a6)[0m
+                                                   [0;1;31m#6  0x000056135a6a8663 n/a (/opt/ecce/bin/gateway + 0xeb663)[0m
+                                                   [0;1;31m#7  0x000056135a6a552d n/a (/opt/ecce/bin/gateway + 0xe852d)[0m
+                                                   [0;1;31m#8  0x000056135a6a5783 n/a (/opt/ecce/bin/gateway + 0xe8783)[0m
+                                                   [0;1;31m#9  0x000056135a682c19 n/a (/opt/ecce/bin/gateway + 0xc5c19)[0m
+                                                   [0;1;31m#10 0x000056135a682c8f n/a (/opt/ecce/bin/gateway + 0xc5c8f)[0m
+                                                   [0;1;31m#11 0x00007faebeb39f09 _Z12wxEntryStartRiPPw (libwx_baseu-3.2.so.0 + 0x139f09)[0m
+                                                   [0;1;31m#12 0x00007faebeb39fff _Z7wxEntryRiPPw (libwx_baseu-3.2.so.0 + 0x139fff)[0m
+                                                   [0;1;31m#13 0x000056135a663668 n/a (/opt/ecce/bin/gateway + 0xa6668)[0m
+                                                   [0;1;31m#14 0x00007faebe035ca8 __libc_start_call_main (libc.so.6 + 0x29ca8)[0m
+                                                   [0;1;31m#15 0x00007faebe035d65 __libc_start_main_impl (libc.so.6 + 0x29d65)[0m
+                                                   [0;1;31m#16 0x000056135a67c721 n/a (/opt/ecce/bin/gateway + 0xbf721)[0m
+                                                   [0;1;31mELF object binary architecture: AMD x86-64[0m
+Sep 12 08:59:51 niobium systemd[2714]: [0;1;38:5:185m[0;1;39m[0;1;38:5:185mrun-p1165752-i1166052.service: Main process exited, code=dumped, status=6/ABRT[0m
+Sep 12 08:59:51 niobium systemd[2714]: [0;1;38:5:185m[0;1;39m[0;1;38:5:185mrun-p1165752-i1166052.service: Failed with result 'core-dump'.[0m

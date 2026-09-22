@@ -387,6 +387,15 @@ class Ged09TheoryPanel(EccePanel):
 
             self.addSolvationBox()
 
+        # Coupled-cluster and CI: Gaussian supports SCRF for these, but for
+        # CCSD/QCISD/CISD only as an external-iteration ENERGY -- no
+        # analytic gradients, so no optimisations and no frequencies
+        # (gaussian.com/scrf). Offered only for a single-point energy, so a
+        # user cannot set up a job Gaussian will not run.
+        if ((EcceGlobals.Category == "CC" or EcceGlobals.Category == "CI")
+                and EcceGlobals.RunType == "Energy"):
+            self.addSolvationBox()
+
         # Solvation for plain HF as well (issue #98) -- see addSolvationBox.
         if EcceGlobals.Category == "SCF":
             self.addSolvationBox()
@@ -647,7 +656,9 @@ class Ged09TheoryPanel(EccePanel):
         # Must match exactly the categories that call addSolvationBox():
         # naming one that does not build the widgets takes the dialog down.
         if (EcceGlobals.Category == "DFT" or EcceGlobals.Category == "MP" or
-            EcceGlobals.Category == "SCF"):   
+            EcceGlobals.Category == "SCF" or
+            ((EcceGlobals.Category == "CC" or EcceGlobals.Category == "CI")
+             and EcceGlobals.RunType == "Energy")):   
             self.solvent.Enable(self.useSCRF.GetValue())
             self.scrf.Enable(self.useSCRF.GetValue())
             self.scrfDielec.Enable(self.useSCRF.GetValue() and

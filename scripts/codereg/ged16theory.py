@@ -399,6 +399,16 @@ class Ged16TheoryPanel(EccePanel):
 
             self.addSolvationBox()
 
+        # Coupled-cluster and CI: Gaussian supports SCRF for these, but for
+        # CCSD/QCISD/CISD only as an external-iteration ENERGY -- there are
+        # no analytic gradients, so no optimisations and no frequencies
+        # (gaussian.com/scrf). Offering it for those runtypes would let a
+        # user set up a job Gaussian cannot run, so it is offered only for
+        # a single-point energy.
+        if ((EcceGlobals.Category == "CC" or EcceGlobals.Category == "CI")
+                and EcceGlobals.RunType == "Energy"):
+            self.addSolvationBox()
+
         # Solvation for plain HF as well (issue #98). Gaussian's SCRF works
         # with HF -- "#p HF/6-31G* SCRF(PCM)" is an ordinary calculation --
         # and ai.gauss16's SCRFOptions is driven by UseSCRF/SCRF/Solvent,
@@ -666,7 +676,9 @@ class Ged16TheoryPanel(EccePanel):
         # attributes that do not exist and takes the whole dialog down --
         # which is precisely what ged03theory.py did (fixed separately).
         if (EcceGlobals.Category == "DFT" or EcceGlobals.Category == "MP" or
-            EcceGlobals.Category == "SCF"):
+            EcceGlobals.Category == "SCF" or
+            ((EcceGlobals.Category == "CC" or EcceGlobals.Category == "CI")
+             and EcceGlobals.RunType == "Energy")):
             self.solvent.Enable(self.useSCRF.GetValue())
             self.scrf.Enable(self.useSCRF.GetValue())
             self.scrfDielec.Enable(self.useSCRF.GetValue() and
