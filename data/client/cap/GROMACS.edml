@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+   GROMACS code registration.
+
+   STATUS: PRESENT BUT NOT REGISTERED. Neither ResourceDescriptor.xml nor
+   ResourceDescriptorRxn.xml references this code, so no "New GROMACS
+   Calculation..." menu entry exists and no calculation of this type can
+   be created. That is deliberate: registering it forces the scope
+   decision in issue #106, which is the maintainer's to make. See
+   docs/GROMACS_ROADMAP.md.
+
+   CodeFactory::getCodes() scans this directory, so the file being here
+   does make GROMACS appear in code lists that are built by directory
+   scan (notably CalcEd's code-switch buttons, via
+   getFullySupportedCodes(), since both InputGenerator and Template are
+   present). That is the intended state for groundwork: reachable to
+   inspect, not reachable to create.
+
+   SCOPE: IMPORT-ONLY. GROMACS takes three inputs - .mdp (run control),
+   .top (topology and force field) and .gro (coordinates) - and grompp
+   combines them into a binary .tpr that mdrun executes. Only the .mdp is
+   generated here. The topology is the user's, brought in from pdb2gmx or
+   elsewhere and attached with File > Upload File.
+
+   ECCE has no concept of a force field, and inventing one is a much
+   larger piece of work than this: see section 3.1 of the roadmap.
+
+   THE .tpr IS A BUILD ARTEFACT, not the input file. <DataFiles> declares
+   the .mdp as the primary input because that is what ECCE generates and
+   the user edits. gromacs.launchpp runs grompp at launch time to produce
+   the .tpr, and surfaces grompp's diagnostics rather than discarding
+   them - a mismatched topology is the first thing a new user hits, and
+   grompp says exactly what is wrong.
+
+   NO <Importer>: a GROMACS.expt for externally-run jobs is not written,
+   so GROMACS correctly does not appear in CodeFactory::getImportCodes().
+
+   NOTE ON ".top": NWChem already claims that extension as
+   chemical/x-nwchem-topology in packaging/dataserver/httpd.conf.ecce,
+   and GROMACS uses it for its own topology. Whoever registers this code
+   has to decide how to disambiguate; a second AddType would silently
+   change what NWChem MD topologies resolve to.
+
+   Verified end to end against real GROMACS 2025.2: ai.gromacs generated
+   the .mdp, grompp built the .tpr, mdrun ran, and gromacs.desc parsed
+   the resulting log back into TE/TEVEC.
+-->
+<appdescriptor>
+
+<!-- GROMACS constrains bonds and angles through the .mdp "constraints"
+     setting, which the Runtype Details dialog exposes for dynamics.
+     That is not the same thing as ECCE's geometry-constraint editor,
+     which is about freezing internal coordinates during an optimisation
+     and which ai.gromacs does not write. Declared false rather than
+     advertising a capability the generator drops. -->
+<SupportsConstraints>false</SupportsConstraints>
+
+<!-- No basis sets: GROMACS is a classical molecular dynamics code and
+     has none. needsBasis="false" is the pre-existing mechanism for this
+     (NWChem's NWPW theories and MOPAC's semiempirical ones both use
+     it): CalcEd greys out the Basis Set Tool, and ESInputController
+     skips the .basis file and the BasisSet.Coordinates key entirely.
+     CodeFactory::getBasisCodes() also filters GROMACS out because
+     <GaussianBasisSetRules> is absent. No C++ change was needed. -->
+<Editor theorydialog="gromacstheory.py" runtypedialog="gromacsruntype.py">
+  <Theory category="MD" name="MD" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Dynamics</runtype>
+  </Theory>
+
+  <TheorySummary topLabel="Molecular Dynamics-">
+    <item key="ES.Theory.MD.Coulombtype" label="Electrostatics"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.MD.CoulombCutoff" label="Coulomb Cutoff (nm)"></item>
+  </TheorySummary>
+</Editor>
+
+<!-- The .mdp extension is distinctive and has an AddType in
+     packaging/dataserver/httpd.conf.ecce. That matters at UPLOAD time
+     rather than registration time: a file with no MIME mapping becomes
+     "DefaultType text/plain", and ECCE's mimetype-filtered lookup for a
+     calculation's primary input then cannot match it even though the
+     file is on disk - which looks exactly like a save failure. -->
+<DataFiles>
+  <Input  type="primary" mimetype="chemical/x-gromacs-mdp" comment="true" commentstring=";">gromacs.mdp</Input>
+  <Output type="primary" mimetype="chemical/x-gromacs-log">gromacs.log</Output>
+  <Output type="parse" verifypattern="GROMACS:" mimetype="chemical/x-gromacs-log">gromacs.log</Output>
+</DataFiles>
+
+<!-- <LaunchPreprocessor> is required unconditionally:
+     Launch::postProcessInput() shells out to JCode::launchPPScript()
+     with no empty-string check, so a code without one fails launch with
+     a bare "-p postParams" command-not-found. Here it has real work to
+     do - running grompp. -->
+<IntegrationFiles>
+  <Template>gromacs.tpl</Template>
+  <InputGenerator>ai.gromacs</InputGenerator>
+  <ParseSpecification>gromacs.desc</ParseSpecification>
+  <LaunchPreprocessor>gromacs.launchpp</LaunchPreprocessor>
+</IntegrationFiles>
+
+</appdescriptor>
