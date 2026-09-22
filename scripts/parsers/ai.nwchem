@@ -953,8 +953,20 @@ sub CCThresh {
   local($thresh,$result);
 
   $thresh = $AbiDict{"CC.ConvergenceEnergy.Value"};
-  die "ai.nwchem:  AbiDict{\"CC.ConvergenceEnergy.Value\"} is zero\n"
-      if ($thresh == 0.0);
+  # There used to be a die() here when the threshold was zero or absent.
+  # It contradicted the three lines below, which already handle that case
+  # by emitting nothing -- and nwch.tpl carries ##CCThresh## whatever the
+  # theory is, so ANY job without coupled-cluster settings (an ordinary
+  # SCF energy, say) reached it.
+  #
+  # It did no visible harm while the template engine swallowed die()s
+  # (#92): the tag's line silently vanished and generation continued.
+  # Since a6d0512 made those errors real, this aborted NWChem input
+  # generation outright -- "Input files could not be generated ...
+  # ai.nwchem ... failed" -- for the most common kind of NWChem job there
+  # is. Reported from a live session 2026-09-22; confirmed identical
+  # before and after that day's changes, so it is the die that is wrong,
+  # not anything recent.
   $result = "";
 
   if ($thresh) { 
