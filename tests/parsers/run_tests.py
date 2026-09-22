@@ -301,6 +301,36 @@ def run_case(case, res, verbose=False):
                           % (typ, key))
 
     res.xfail_reason = None
+    # --- cross-property invariant: len(TEVEC) <= len(GEOMTRACE) ------------
+    #
+    # GeomTracePropertyPanel plots any PropTSVector<Geometry Step> alongside
+    # GEOMTRACE, and OnPointClick passes the curve index straight to
+    # GTStepCmd. An index past the last GEOMTRACE frame trips
+    # PropTSVecTable::value()'s bounds check and the atoms collapse to the
+    # origin. So a code that prints a per-cycle energy but not per-cycle
+    # geometries must not map that energy to TEVEC.
+    #
+    # Each firing of a Frequency=all entry contributes one step, so the step
+    # count is the number of blocks whose script emitted that key. CLAUDE.md
+    # records this rule and two cases note it in comments, but nothing
+    # actually checked it until now -- and it is a crash, not a cosmetic.
+    steps = {}
+    for entryType, (entry, recs_per_block) in emitted.items():
+        for block, recs, rc, err in recs_per_block:
+            for rec in recs:
+                steps[rec['key']] = steps.get(rec['key'], 0) + 1
+    nTrace = steps.get('GEOMTRACE', 0)
+    nEnergy = steps.get('TEVEC', 0)
+    if nTrace and nEnergy and nEnergy > nTrace:
+        allowed = CASEDEFS.KNOWN_LONG_TEVEC.get(case['name'])
+        res.check(allowed is not None, case['name'],
+                  'TEVEC has %d step(s) but GEOMTRACE only %d. '
+                  'GeomTracePropertyPanel indexes the trace with the energy '
+                  'curve\'s own index, so the extra point(s) run past the '
+                  'last frame and the atoms collapse to the origin '
+                  '(PropTSVecTable::value bounds check).'
+                  % (nEnergy, nTrace))
+
     return result, ''.join(report)
 
 

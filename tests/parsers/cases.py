@@ -1179,3 +1179,13 @@ KNOWN_DEAD = {
         "job we have. The same data is captured by gaussian-16.db, so this is "
         "harmless -- but the entry is dead code.",
 }
+
+
+# ---------------------------------------------------------------------------
+# Cases where TEVEC legitimately has more steps than GEOMTRACE.
+# Should stay empty: see the invariant check in run_tests.py. An entry here
+# means a real code prints more per-cycle energies than geometries, and the
+# GUI consequence (atoms collapsing to the origin) has to be handled some
+# other way.
+# ---------------------------------------------------------------------------
+KNOWN_LONG_TEVEC = {}
