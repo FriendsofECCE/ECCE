@@ -694,11 +694,57 @@ void CalcMgr::OnCloseWindow( wxCloseEvent& event )
 
 
 /*!
+ * Open a Builder with nothing loaded, i.e. start a new molecular
+ * structure (issue #93).
+ *
+ * This is the one Gateway launcher icon with no other way in. The rest
+ * are covered: Organizer is self-referential, Machine Browser, Machine
+ * Registration and the Periodic Table are on the Tools menu, and Viewer
+ * with nothing loaded is not useful because viewing happens from a
+ * selected calculation, which already works.
+ *
+ * forceNew is 1 deliberately: without it an already-open Builder is
+ * raised instead, so a second "New Structure" would silently do nothing
+ * to the structure you are working on.
+ */
+void CalcMgr::OnNewStructureClick( wxCommandEvent& event )
+{
+  startApp("Builder", 1, "");
+}
+
+
+/*!
  * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXIT
+ *
+ * Issue #97: plain Quit only ever closed the GUI client. The background
+ * services (JMS broker, data server) are deliberately left running -- they
+ * persist across app launches so you do not pay startup cost every time --
+ * but there was no way to also stop them from the Organizer, only from the
+ * Gateway window, which #93 is removing. Offer it as a third button on the
+ * confirm dialog, matching Gateway::exitGateway() exactly so the behaviour
+ * does not depend on which window you quit from.
  */
 void CalcMgr::OnExitClick( wxCommandEvent& event )
 {
+  ewxMessageDialog dlg(this, "Do you really want to quit?", "Quit ECCE",
+                       wxOK|wxCANCEL|wxICON_QUESTION, wxDefaultPosition);
+  dlg.AddButton(ID_ORGANIZER_QUIT_STOP_SERVER, "Quit and Stop Server");
+  int result = dlg.ShowModal();
+
+  if (result == wxID_CANCEL)
+    return;
+
   Destroy();
+
+  if (result == ID_ORGANIZER_QUIT_STOP_SERVER) {
+    // After Destroy(), which schedules teardown asynchronously rather
+    // than freeing `this`, so running more code here is safe -- and this
+    // order lets our own JMS disconnect happen while the broker is still
+    // up instead of racing it. Same sequencing as the Gateway's.
+    (void)system("ecce-gateway-stop");
+    (void)system("ecce-dataserver-stop");
+  }
+
   event.Skip();
 }
 

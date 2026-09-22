@@ -64,6 +64,7 @@ const wxWindowID CalcMgrGUI::wxID_ASKFORNAME = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_SORT_NAME_REV = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_SORT_DATE = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_IMPORT = wxNewId();
+const wxWindowID CalcMgrGUI::wxID_NEWSTRUCTURE = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_RENAME = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_SHOW_TOOLBAR = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_CHANGE_ACCESS = wxNewId();
@@ -88,6 +89,7 @@ BEGIN_EVENT_TABLE( CalcMgrGUI, ewxFrame )
     EVT_CLOSE( CalcMgrGUI::OnCloseWindow )
     EVT_CONTEXT_MENU( CalcMgrGUI::OnContextMenu )
 
+    EVT_MENU( wxID_NEWSTRUCTURE, CalcMgrGUI::OnNewStructureClick )
     EVT_MENU( wxID_IMPORT, CalcMgrGUI::OnImportClick )
 
     EVT_MENU( wxID_EXPORT, CalcMgrGUI::OnExportClick )
@@ -232,6 +234,15 @@ void CalcMgrGUI::CreateControls()
 
     ewxMenuBar* menuBar = new ewxMenuBar;
     wxMenu* itemMenu3 = new wxMenu;
+    //  Issue #93: the Gateway window is a row of launcher icons, and the
+    //  only one of them with no other way in is Builder with nothing
+    //  loaded -- which is simply "start a new molecular structure", a
+    //  File/New action rather than an icon. Organizer is self-referential
+    //  here, Machine Browser and the Periodic Table are on Tools, and
+    //  Viewer with nothing loaded is not useful (viewing happens from a
+    //  selected calculation, which already works).
+    itemMenu3->Append(wxID_NEWSTRUCTURE, _("&New Structure...\tCtrl+N"), _T(""), wxITEM_NORMAL);
+    itemMenu3->AppendSeparator();
     itemMenu3->Append(wxID_IMPORT, _("&Import Calculation from Output File..."), _T(""), wxITEM_NORMAL);
     itemMenu3->Append(wxID_EXPORT, _("&Export"), _T(""), wxITEM_NORMAL);
     itemMenu3->AppendSeparator();
@@ -393,6 +404,12 @@ void CalcMgrGUI::OnContextMenu( wxContextMenuEvent& event )
 /*!
  * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_IMPORT
  */
+
+void CalcMgrGUI::OnNewStructureClick( wxCommandEvent& event )
+{
+    event.Skip();
+}
+
 
 void CalcMgrGUI::OnImportClick( wxCommandEvent& event )
 {

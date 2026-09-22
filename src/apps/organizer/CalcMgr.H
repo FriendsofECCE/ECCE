@@ -37,6 +37,13 @@ class WxFind;
 
 class WxConfigureNwfsArchive;
 
+//  Return code for the "Quit and Stop Server" button added to the Quit
+//  confirm dialog (issue #97). Mirrors ID_GATEWAY_QUIT_STOP_SERVER in
+//  Gateway.H; kept a separate constant rather than shared because the two
+//  apps have no common header and the value only has to be unique within
+//  the dialog it is used in.
+#define ID_ORGANIZER_QUIT_STOP_SERVER 10104
+
 class CalcMgr: public CalcMgrGUI
              , public EditListener
              , public WxDavAuth
@@ -79,6 +86,8 @@ public:
   void OnContextMenu( wxContextMenuEvent& event );
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_IMPORT
+  void OnNewStructureClick( wxCommandEvent& event );
+
   void OnImportClick( wxCommandEvent& event );
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXPORT
