@@ -21,6 +21,7 @@ in ``cases.KNOWN_CONCATENATION``.
 
 import io
 import os
+import re
 import token
 import tokenize
 
@@ -75,3 +76,25 @@ def _joined(first, second):
         return repr(eval(first) + eval(second))       # literals only
     except Exception:
         return "<the two concatenated>"
+
+#  NWChem's range-separated functionals: "cam" is a dft directive of its own,
+#  not part of the xc line.  ai.nwchem used to emit
+#      XC xcamb88 1.00 lyp 0.81 vwn_5 0.19 hfexch 1.00 cam 0.33 cam_alpha ...
+#  on one line, which nwchem rejects with "xc_input: invalid format" -- so
+#  CAM-B3LYP and LC-wPBE aborted every job they were chosen for.  Verified
+#  against nwchem 7.2.3; the fix puts cam on its own line, and this keeps it
+#  there.
+def camOnXcLine(path):
+    """Yield (line, text) for an xc value that runs "cam" onto the xc line."""
+    with open(path) as handle:
+        for number, text in enumerate(handle, 1):
+            match = re.search(r'\$result\s*=\s*"([^"]*)"', text)
+            if not match:
+                continue
+            value = match.group(1)
+            #  cam_alpha/cam_beta, not a bare "cam" -- "cam-s12g" and
+            #  "cam-s12h" are functional NAMES that legitimately start with
+            #  it, and both run fine on one line.
+            if re.search(r'\bcam_(alpha|beta)\b', value) \
+                    and "\\n" not in value:
+                yield number, value

@@ -866,6 +866,25 @@ class NedTheoryPanel(EccePanel):
                                         label = "Coulomb Screening Tolerance:")
             exchangeSizer.AddWidget(self.coulomb)
             
+            #  Dispersion correction.  The list is flat on purpose: which
+            #  functionals actually have D3/D3BJ parameters is known only to
+            #  the generator, which rejects an unsupported pairing up front
+            #  with an explanatory message.  Duplicating that table here
+            #  would make it two hand-maintained copies of one list, which is
+            #  the failure mode this dialog has been bitten by repeatedly.
+            dispersionChoice = ["None",
+                                "Grimme D1",
+                                "Grimme D2",
+                                "Grimme D3",
+                                "Grimme D3(BJ)"]
+            self.dispersion = EcceComboBox(self,
+                                           choices = dispersionChoice,
+                                           name = "ES.Theory.DFT.Dispersion",
+                                           default = dispersionChoice.index("None"),
+                                           label = "Dispersion:",
+                                           export = 1)
+            exchangeSizer.AddWidget(self.dispersion)
+
             gridSizer = EcceLineLabelVBoxSizer(self, label = "Grid Options")
 
             qualityChoice = ["Extra Coarse",

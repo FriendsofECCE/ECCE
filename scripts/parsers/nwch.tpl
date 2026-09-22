@@ -25,6 +25,7 @@ dft
   grid ##GridPartition##
   grid ##GridRadial##
   ##DFTNoDIIS##
+  ##DispersionCorrection##
   convergence energy ##SCF.ConvergenceEnergy.Value##
   convergence density ##SCF.ConvergenceDensity.Value##
   convergence gradient ##SCF.ConvergenceGradient.Value##

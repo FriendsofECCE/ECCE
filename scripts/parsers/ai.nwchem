@@ -63,6 +63,7 @@
   &verifyGBSFile;
   &readDict;
   &aiDebugDict;
+  &verifyDispersion;
   &readChemSys;
   &readESPFile;
   &readCnstrntFile;
@@ -1434,7 +1435,10 @@ sub XCFunctionals {
   } elsif ($xcFun eq "HCTH 120 (Gradient Corr.)") {
     $result = "hcth120";
   } elsif ($xcFun eq "HCTH 147 (Gradient Corr.)") {
-    $result = "hcth147";
+    #  Plain "hcth147" is deprecated and ABORTS the job in NWChem 7.x --
+    #  it insists on the @tz2p-parameterised form unless dft:use_hcth147
+    #  is set.  Verified against nwchem 7.2.3.
+    $result = "hcth147\@tz2p";
   } elsif ($xcFun eq "HCTH 407 (Gradient Corr.)") {
     $result = "hcth407";
   } elsif ($xcFun eq "HCTHP 14 (Gradient Corr.)") {
@@ -1477,7 +1481,10 @@ sub XCFunctionals {
   } elsif ($xcFun eq "B1LYP (hybrid)") {
     $result = "becke88 0.75 HFexch 0.25 lyp ";
   } elsif ($xcFun eq "CAM-B3LYP (range)") {
-    $result = "xcamb88 1.00 lyp 0.81 vwn_5 0.19 hfexch 1.00 cam 0.33 cam_alpha 0.19 cam_beta 0.46 ";   
+    #  "cam" is a dft directive in its own right, NOT part of the xc line;
+    #  run together on one line NWChem fails with "xc_input: invalid
+    #  format" and the job dies.  The newline puts it on its own line.
+    $result = "xcamb88 1.00 lyp 0.81 vwn_5 0.19 hfexch 1.00\n  cam 0.33 cam_alpha 0.19 cam_beta 0.46";
   } elsif ($xcFun eq "B3P86 (hybrid)") {
     $result = "vwn_1_rpa 1.00 perdew86 0.81 HFexch 0.20 slater 0.80 becke88 nonlocal 0.72 ";
   } elsif ($xcFun eq "mPW1PW91 (hybrid)") {
@@ -1545,7 +1552,9 @@ sub XCFunctionals {
   } elsif ($xcFun eq "HSE03 (range)") {
     $result = "hse03";
   } elsif ($xcFun eq "LC-wPBE (range)") {
-    $result = "xwpbe 1.00 cpbe96 1.0 hfexch 1.00 cam 0.3 cam_alpha 0.00 cam_beta 1.00";
+    #  Same "cam" split as CAM-B3LYP above; one line is a fatal
+    #  "xc_input: invalid format".
+    $result = "xwpbe 1.00 cpbe96 1.0 hfexch 1.00\n  cam 0.3 cam_alpha 0.00 cam_beta 1.00";
 #added by CAO  -- end
   } elsif ($xcFun eq "None") {
     $result = "";
@@ -1834,6 +1843,95 @@ sub SearchFor {
 ## EVERYTHING BEYOND THIS POINT IS UTILITY SUBROUTINES
 ###############################################################################
 ## Check to make sure the specified input file is a valid dictionary file.
+#  Dispersion correction ------------------------------------------------
+#
+#  NWChem spells these as a numeric vdw model on the dft block's "disp"
+#  directive.  The numbers, and which functionals each model actually has
+#  parameters for, were established by running nwchem 7.2.3 over every
+#  functional this code offers -- NOT from the documentation:
+#
+#    disp vdw 1   Grimme D1     every functional
+#    disp vdw 2   Grimme D2     every functional  (also plain "disp")
+#    disp vdw 3   Grimme D3     22 of 52
+#    disp vdw 4   Grimme D3(BJ) 18 of 52
+#
+#  Asking for D3 or D3BJ with a functional that has no parameters for it is
+#  FATAL -- nwchem aborts rather than falling back -- so the combination is
+#  rejected up front by &verifyDispersion rather than being discovered an
+#  hour into a run.  Note also that the named forms ("disp grimme3") and a
+#  trailing "bj" are NOT accepted by this nwchem; only the vdw integers are.
+%dispersionModel = (
+  "None"          => "",
+  "Grimme D1"     => "vdw 1",
+  "Grimme D2"     => "vdw 2",
+  "Grimme D3"     => "vdw 3",
+  "Grimme D3(BJ)" => "vdw 4",
+);
+
+#  Functionals with D3 parameters in nwchem 7.2.3, by this dialog's name.
+%dispersionD3 = map { $_ => 1 } (
+  "B3LYP (hybrid)", "PBE0 (hybrid)", "BP86 (GGA)", "BP86 (hybrid)",
+  "TPSSh (hybrid)", "BLYP (hybrid)", "BOP (Gradient Corr.)", "PBE (GGA)",
+  "M05 (hybrid)", "M05-2X (hybrid)", "M06 (hybrid)", "M06-HF (hybrid)",
+  "M06-2X (hybrid)", "M06-L (hybrid)", "s12g (GGA)", "CAM-s12g (range)",
+  "s12h (hybrid)", "CAM-s12h (range)", "SSB-D (GGA)", "wB97X (range)",
+  "M11 (range)", "HSE03 (range)",
+);
+
+#  ... and with D3BJ parameters.  Not a subset of the above: HCTH 120, SCAN
+#  and r2SCAN have BJ parameters but no plain D3 ones, while the whole M05
+#  and M06 family is the other way round.
+%dispersionD3BJ = map { $_ => 1 } (
+  "B3LYP (hybrid)", "HCTH 120 (Gradient Corr.)", "PBE0 (hybrid)",
+  "BP86 (GGA)", "BP86 (hybrid)", "TPSSh (hybrid)", "BLYP (hybrid)",
+  "BOP (Gradient Corr.)", "PBE (GGA)", "M06-HF (hybrid)",
+  "CAM-s12g (range)", "CAM-s12h (range)", "SSB-D (GGA)",
+  "SCAN (Meta-GGA)", "r2SCAN (Meta-GGA)", "wB97X (range)", "M11 (range)",
+  "HSE03 (range)",
+);
+
+
+#  Checked in the MAIN FLOW, before any generation starts.  A die() inside a
+#  ##token## resolver is swallowed by modifyInputFile's eval and would leave
+#  a quietly incomplete deck instead of reporting anything -- see the
+#  "template engine silently swallows die()" note in CLAUDE.md.
+sub verifyDispersion {
+  my $choice = $AbiDict{"ES.Theory.DFT.Dispersion"};
+  return unless ($choice && $choice ne "None");
+
+  unless (exists $dispersionModel{$choice}) {
+    die "Unknown dispersion correction \"$choice\".\n";
+  }
+
+  my $xcFun = $AbiDict{"ES.Theory.DFT.XCFunctionals"};
+  return unless ($xcFun && $xcFun ne "None");
+
+  if ($choice eq "Grimme D3" && !$dispersionD3{$xcFun}) {
+    die "NWChem has no Grimme D3 parameters for the $xcFun functional, "
+      . "and aborts rather than ignoring the request.\n"
+      . "Choose Grimme D1 or D2 (available for every functional), or a "
+      . "functional with D3 parameters.\n";
+  }
+  if ($choice eq "Grimme D3(BJ)" && !$dispersionD3BJ{$xcFun}) {
+    die "NWChem has no Grimme D3(BJ) parameters for the $xcFun functional, "
+      . "and aborts rather than ignoring the request.\n"
+      . "Choose Grimme D1 or D2 (available for every functional), or a "
+      . "functional with D3(BJ) parameters.\n";
+  }
+}
+
+
+sub DispersionCorrection {
+  my $choice = $AbiDict{"ES.Theory.DFT.Dispersion"};
+  $result = "";
+  if ($choice && exists $dispersionModel{$choice}
+      && $dispersionModel{$choice} ne "") {
+    $result = "disp " . $dispersionModel{$choice};
+  }
+  return $result;
+}
+
+
 sub verifyAbiFile {
   if ($AbiFILE ne "") {
     # print "Opening $AbiFILE as abichem dictionary file\n";

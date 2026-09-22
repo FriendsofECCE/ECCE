@@ -352,6 +352,18 @@ def checkLint(results):
             results.seenXfail.add(("lint", key))
         else:
             results.fail(where, message)
+    generatorPath = os.path.join(os.path.dirname(CODES.CODEREG),
+                                 "parsers", "ai.nwchem")
+    if os.path.exists(generatorPath):
+        for number, value in lint.camOnXcLine(generatorPath):
+            results.check()
+            results.fail("ai.nwchem:%s" % number,
+                         "\"cam\" run onto the xc line -- nwchem rejects this "
+                         "with \"xc_input: invalid format\" and the job dies.\n"
+                         "      %s\n"
+                         "      cam is a dft directive of its own; put it on "
+                         "its own line." % value)
+
     for key in CASEDEFS.CONCATENATION_XFAIL:
         if key not in seen:
             results.xpasses.append(
