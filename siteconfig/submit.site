@@ -132,33 +132,7 @@ PolyratePrelimFilesToRemove { *.fu14 *.fu15 *.fu61 }
 # Typically overridden for queued machines - in CONFIG.<machine> file.
 ################
 
-Maui {
-# @ job_type         = parallel
-# @ requirements     = (Adapter == "hps_user")
-# @ notification     = complete
-# @ class            = $queue
-# @ account_no       = $account
-# @ wall_clock_limit = $wallTime
-# @ input            = /dev/null
-# @ output           = llout.out
-# @ error            = llerr.out
-# @ environment      = COPY_ALL; MP_EUILIB=us; MP_CSS_INTERRUPT=yes; MP_INFOLEVEL=2; MP_EUIDEVICE=css0; MP_PULSE=0; MP_SINGLE_THREAD=yes;
-# @ min_processors   = $nodes
-# @ max_processors   = $nodes
-# @ queue
-}
 
-LoadLeveler {
-# @ class            = $queue
-# @ wall_clock_limit = $wallTime
-# @ input            = /dev/null
-# @ output           = llout.out
-# @ error            = llerr.out
-# @ environment      = COPY_ALL; MP_EUILIB=us; MP_CSS_INTERRUPT=yes; MP_INFOLEVEL=2; MP_EUIDEVICE=css0; MP_PULSE=0; MP_SINGLE_THREAD=yes;
-# @ min_processors   = $nodes
-# @ max_processors   = $nodes
-# @ queue
-}
 
 PBS {
 #PBS -mb
@@ -188,6 +162,36 @@ LSF {
 #BSUB -o $submitFile.out
 #BSUB -e stderr.out
 #BSUB -r $submitFile
+}
+
+#
+# Slurm
+#
+# QueueManagers has defined Slurm's submit/cancel/query commands (sbatch,
+# scancel, squeue) for a long time, but there was no directive block here --
+# and gensub builds the script header from $::config{lc($qMgr)}, so a Slurm
+# site got a submit script containing NO #SBATCH lines at all: no partition,
+# no node count, no wall time. Slurm is the common scheduler on new clusters,
+# so this was worth having.
+#
+# Deliberately minimal. Anything site-specific -- --account, --qos,
+# --constraint, --gres=gpu:N, module loads -- goes in YOUR OWN
+# ~/.ECCE/CONFIG.<host>, which gensub reads last and which therefore wins
+# over this file (see gensub's file cascade, and GETTING_STARTED.md).
+#
+# --account is left out on purpose: many sites do not require one, and an
+# empty "--account=" is a syntax error rather than a no-op.
+#
+# Note $wallTime is formatted "H:M:00" by the launcher and is not zero
+# padded; Slurm accepts that, but if your site is fussy, override --time in
+# your own CONFIG file using $wallHrMin instead.
+Slurm {
+#SBATCH --partition=$queue
+#SBATCH --nodes=$nodes
+#SBATCH --ntasks=$totalprocs
+#SBATCH --time=$wallTime
+#SBATCH --output=slurm.out
+#SBATCH --error=slurm.err
 }
 
 SGE {

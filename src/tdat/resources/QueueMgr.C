@@ -19,6 +19,7 @@
 // general includes
 // library includes
 
+#include <algorithm>
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/Preferences.H"
@@ -242,21 +243,61 @@ void QueueManager::initialize(void)
 {
   if (p_extent == (vector<QueueManager*> *)0) {
     p_extent = new vector<QueueManager*>();
-    string qfile =
-        QueueManager::queueConfigFile(QueueManager::queueMgrLoadFile);
+    // Site registry first, then the user's own, with the user's entries
+    // ADDED to the site ones rather than replacing them.
+    //
+    // queueConfigFile() originally returned whichever file existed, user
+    // first -- which meant that describing one machine of your own hid
+    // every machine the site had configured, and the only way to keep them
+    // was to copy the whole site file. Merging is what people actually
+    // want: add my cluster, keep the rest.
+    //
+    // A machine named in both wins from the user's file, since the later
+    // Preferences is consulted first below.
+    string siteFile = Ecce::ecceHome();
+    siteFile += "/siteconfig/";
+    siteFile += QueueManager::queueMgrLoadFile;
 
-    Preferences prefs(qfile, true, 0 /*create mode -must exist*/);
-    EE_RT_ASSERT(prefs.isValid(), EE_FATAL, "Error!  Must Have a Queues File!");
+    string userFile = Ecce::realUserPrefPath();
+    userFile += QueueManager::queueMgrLoadFile;
+
+    Preferences sitePrefs(siteFile, true, 0 /*must exist*/);
+    SFile userQueues(userFile.c_str());
+    bool haveUser = userQueues.exists();
+    Preferences userPrefs(haveUser ? userFile : siteFile, true, 0);
+
+    EE_RT_ASSERT(sitePrefs.isValid() || (haveUser && userPrefs.isValid()),
+                 EE_FATAL, "Error!  Must Have a Queues File!");
 
     vector<string> machines;
-    prefs.getStringList(QueueManager::queueMgrLoadFile, machines);
+    if (sitePrefs.isValid()) {
+      sitePrefs.getStringList(QueueManager::queueMgrLoadFile, machines);
+    }
+    if (haveUser && userPrefs.isValid()) {
+      vector<string> userMachines;
+      userPrefs.getStringList(QueueManager::queueMgrLoadFile, userMachines);
+      for (unsigned int u = 0; u < userMachines.size(); u++) {
+        if (find(machines.begin(), machines.end(), userMachines[u]) ==
+            machines.end()) {
+          machines.push_back(userMachines[u]);
+        }
+      }
+    }
 
     QueueManager *newObject = (QueueManager*)0;
     string queueMgrName;
     for (unsigned int index = 0; index < machines.size(); index++) {
       string& name = machines[index];
-      EE_RT_ASSERT(prefs.getString(name + "|queueMgrName", queueMgrName),
-                   EE_FATAL, name + "|queueMgrName: not found!");
+      // User file wins per key, so a site machine can be adjusted without
+      // copying it across.
+      bool found = false;
+      if (haveUser && userPrefs.isValid()) {
+        found = userPrefs.getString(name + "|queueMgrName", queueMgrName);
+      }
+      if (!found) {
+        found = sitePrefs.getString(name + "|queueMgrName", queueMgrName);
+      }
+      EE_RT_ASSERT(found, EE_FATAL, name + "|queueMgrName: not found!");
 #ifdef DEBUG
       cout << name << ", " << queueMgrName << endl;
 #endif
@@ -264,8 +305,15 @@ void QueueManager::initialize(void)
       if (queueMgrName != "Shell") {
         // Fetch and Fill Attributes
         string prefFile;
-        EE_RT_ASSERT(prefs.getString(name + "|prefFile", prefFile),
-                     EE_FATAL, "No Queue Preferences File Specified!");
+        bool gotPref = false;
+        if (haveUser && userPrefs.isValid()) {
+          gotPref = userPrefs.getString(name + "|prefFile", prefFile);
+        }
+        if (!gotPref) {
+          gotPref = sitePrefs.getString(name + "|prefFile", prefFile);
+        }
+        EE_RT_ASSERT(gotPref, EE_FATAL,
+                     "No Queue Preferences File Specified!");
         newObject->fillQueuesFrom(
             QueueManager::queueConfigFile(prefFile));
       }

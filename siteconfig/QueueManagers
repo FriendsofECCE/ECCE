@@ -9,14 +9,11 @@
 #         sure that the full name is used to fully describe that queue manager
 #         elsewhere in this file.  Reference the full name in Queues file.
 #
-QueueManagers:		LoadLeveler \
-			Maui \
-			EASY \
-			PBS \
+QueueManagers:		PBS \
 			LSF \
 			Moab \
 			SGE \
-			Shell\
+			Shell \
 			Slurm
 
 #
@@ -57,17 +54,8 @@ QueueManagers:		LoadLeveler \
 # for machines outside EMSL.  This only impacts the Machine Browser
 # application and no critical components of job launching or monitoring.
 #
-Maui|submitCommand:           llsubmit ##script##
-Maui|cancelCommand:           llcancel ##id##
-Maui|queryJobCommand:         llq ##id##
-Maui|queryMachineCommand:     sysinfo
 #Maui|queryMachineCommand:    llstatus
-Maui|queryQueueCommand:       showq
 #Maui|queryQueueCommand:      llq
-Maui|queryDiskUsageCommand:   df -k
-Maui|jobIdParseExpression:    .*
-Maui|jobIdParseLeadingText:   The job "
-Maui|jobIdParseTrailingText:  "
 
 ###############################################################################
 # LoadLeveler 
@@ -75,15 +63,6 @@ Maui|jobIdParseTrailingText:  "
 # This queue submit command should be done in the foreground to catch
 # error messages.  Note that this is different than the shell command below.
 #
-LoadLeveler|submitCommand:          llsubmit ##script##
-LoadLeveler|cancelCommand:          llcancel ##id##
-LoadLeveler|queryJobCommand:        llq ##id##
-LoadLeveler|queryMachineCommand:    llstatus
-LoadLeveler|queryQueueCommand:      llq
-LoadLeveler|queryDiskUsageCommand:  df -k
-LoadLeveler|jobIdParseExpression:   .*
-LoadLeveler|jobIdParseLeadingText:  The job "
-LoadLeveler|jobIdParseTrailingText: "
 
 ###############################################################################
 # EASY 
@@ -93,15 +72,6 @@ LoadLeveler|jobIdParseTrailingText: "
 # This queue submit command should be done in the foreground to catch
 # error messages.  Note that this is different than the shell command below.
 #
-EASY|submitCommand:           llsubmit ##script##
-EASY|cancelCommand:           llcancel ##id##
-EASY|queryJobCommand:         llq ##id##
-EASY|queryMachineCommand:     sysinfo
-EASY|queryQueueCommand:       showq
-EASY|queryDiskUsageCommand:   df -k
-EASY|jobIdParseExpression:    .*
-EASY|jobIdParseLeadingText:   The job "
-EASY|jobIdParseTrailingText:  "
 
 ###############################################################################
 # PBS 

@@ -93,9 +93,45 @@ packaged install is root-owned, so this needed `sudo`. Your own copies in
 
    `runLimit` is in minutes; `memLimit` 0 means no limit.
 
-Note this is an **override, not a merge** — if you create `~/.ECCE/Queues` it
-replaces the site file entirely, so copy across any site machines you still
-want. Issue #95 tracks doing this properly.
+Your entries are **added to** the site ones, not a replacement — the
+machines configured site-wide stay available, and a machine named in both
+takes its settings from your file.
+
+**Register the machine first.** A queue entry naming a machine that is not
+in your machine registry is a fatal error, not a warning.
+
+### Customising the submit script
+
+The four queue fields above are the only things ECCE reasons about
+numerically. Everything else — `--account`, `--qos`, `--constraint`,
+`--gres=gpu:N`, `module load …` — goes in the **submit directive block**,
+which is a per-queue-manager template:
+
+```
+Slurm {
+#SBATCH --partition=$queue
+#SBATCH --nodes=$nodes
+#SBATCH --ntasks=$totalprocs
+#SBATCH --time=$wallTime
+}
+```
+
+The site defaults live in `/opt/ecce/siteconfig/submit.site`. To change them
+for one machine, put your own block in `~/.ECCE/CONFIG.<host>` — `gensub`
+reads that file **last**, so it wins.
+
+Variables you can use:
+
+`$account` `$code` `$ecceDir` `$host` `$infile` `$inFile` `$memory`
+`$memoryMw` `$nodes` `$outfile` `$outFile` `$ppn` `$queue` `$runDir`
+`$scratchDir` `$submitFile` `$totalprocs` `$USER` `$wallTime` `$wallHrMin`
+
+`$wallTime` is `H:M:00` and is not zero-padded; `$wallHrMin` is `H:M`.
+
+Supported queue managers: **Slurm**, PBS (OpenPBS/PBS Pro), LSF, Moab, SGE,
+and Shell (run directly, no scheduler). LoadLeveler, Maui and EASY were
+retired in 8.11.0 — see `siteconfig/disabled-queuemanagers-archive.txt`,
+which keeps their definitions verbatim if you ever need one back.
 
 ### Running two instances at once
 

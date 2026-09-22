@@ -1,0 +1,104 @@
+ECCE - archived, retired queue manager definitions
+==================================================
+
+These queue managers were removed from siteconfig/QueueManagers (and, where
+they had one, from siteconfig/submit.site) on 2026-09-22 because the
+schedulers themselves are obsolete:
+
+  EASY         The EASY backfilling scheduler, from the early-1990s IBM SP
+               era. Long dead; had no submit.site directive block here
+               either, so it could never have produced a working script.
+  LoadLeveler  IBM's scheduler, discontinued; IBM's own path forward was
+               Spectrum LSF, which is still supported here.
+  Maui         The open-source scheduler superseded by Moab (also still
+               supported here) and effectively unmaintained for over a
+               decade. Its definitions below even invoke LoadLeveler's
+               commands (llsubmit/llcancel/llq), which is a fair summary of
+               how current they were.
+
+Kept verbatim, not deleted, so re-enabling one is a copy-paste -- exactly
+the convention data/client/config/disabled-codes-archive.txt uses for
+computational codes.
+
+Nothing in the C++ depends on these names; the only occurrences were two
+comments (RefQueueMgr.C, RunMgmt.C).
+
+Still supported, for the record: Slurm (the common case on new clusters,
+and the one to improve), PBS (OpenPBS/PBS Pro), LSF, Moab, SGE and Shell.
+SGE is itself legacy -- Oracle discontinued Grid Engine and the surviving
+forks are commercial or unmaintained -- but it is still encountered often
+enough to keep.
+
+==================================================================
+From siteconfig/QueueManagers: LoadLeveler
+==================================================================
+LoadLeveler|submitCommand:          llsubmit ##script##
+LoadLeveler|cancelCommand:          llcancel ##id##
+LoadLeveler|queryJobCommand:        llq ##id##
+LoadLeveler|queryMachineCommand:    llstatus
+LoadLeveler|queryQueueCommand:      llq
+LoadLeveler|queryDiskUsageCommand:  df -k
+LoadLeveler|jobIdParseExpression:   .*
+LoadLeveler|jobIdParseLeadingText:  The job "
+LoadLeveler|jobIdParseTrailingText: "
+
+==================================================================
+From siteconfig/QueueManagers: Maui
+==================================================================
+Maui|submitCommand:           llsubmit ##script##
+Maui|cancelCommand:           llcancel ##id##
+Maui|queryJobCommand:         llq ##id##
+Maui|queryMachineCommand:     sysinfo
+Maui|queryQueueCommand:       showq
+Maui|queryDiskUsageCommand:   df -k
+Maui|jobIdParseExpression:    .*
+Maui|jobIdParseLeadingText:   The job "
+Maui|jobIdParseTrailingText:  "
+
+==================================================================
+From siteconfig/QueueManagers: EASY
+==================================================================
+EASY|submitCommand:           llsubmit ##script##
+EASY|cancelCommand:           llcancel ##id##
+EASY|queryJobCommand:         llq ##id##
+EASY|queryMachineCommand:     sysinfo
+EASY|queryQueueCommand:       showq
+EASY|queryDiskUsageCommand:   df -k
+EASY|jobIdParseExpression:    .*
+EASY|jobIdParseLeadingText:   The job "
+EASY|jobIdParseTrailingText:  "
+
+==================================================================
+From siteconfig/submit.site: LoadLeveler
+==================================================================
+LoadLeveler {
+# @ class            = $queue
+# @ wall_clock_limit = $wallTime
+# @ input            = /dev/null
+# @ output           = llout.out
+# @ error            = llerr.out
+# @ environment      = COPY_ALL; MP_EUILIB=us; MP_CSS_INTERRUPT=yes; MP_INFOLEVEL=2; MP_EUIDEVICE=css0; MP_PULSE=0; MP_SINGLE_THREAD=yes;
+# @ min_processors   = $nodes
+# @ max_processors   = $nodes
+# @ queue
+}
+
+==================================================================
+From siteconfig/submit.site: Maui
+==================================================================
+Maui {
+# @ job_type         = parallel
+# @ requirements     = (Adapter == "hps_user")
+# @ notification     = complete
+# @ class            = $queue
+# @ account_no       = $account
+# @ wall_clock_limit = $wallTime
+# @ input            = /dev/null
+# @ output           = llout.out
+# @ error            = llerr.out
+# @ environment      = COPY_ALL; MP_EUILIB=us; MP_CSS_INTERRUPT=yes; MP_INFOLEVEL=2; MP_EUIDEVICE=css0; MP_PULSE=0; MP_SINGLE_THREAD=yes;
+# @ min_processors   = $nodes
+# @ max_processors   = $nodes
+# @ queue
+}
+
