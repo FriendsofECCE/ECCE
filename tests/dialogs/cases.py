@@ -13,9 +13,212 @@ away -- add it because the mismatch is genuinely harmless, and say why.
 #   (code, GUIValues key) -> {offered string: why it is fine}
 # ---------------------------------------------------------------------------
 KNOWN_UNMAPPED = {
-    ("Amica", "ES.Theory.CC.Direct"): {
-        "None": "Sentinel for 'no CC direct mode'; ai.amica tests the other "
-                "two values and treats anything else as off.",
+    # Triaged 2026-09-22. Every entry below was checked by reading the
+    # generator: in each case the value is the code's own default and the
+    # resolver is an opt-in switch, so emitting nothing is correct.
+    ("Amica", "ES.Theory.CC.R12_CC"): {
+        'Traditional':
+            "Means 'no R12'; ai.amica:491 emits only for the r12 variants.",
+    },
+    ("Amica", "ES.Theory.CI.Properties"): {
+        'No Density/Property':
+            "Means 'compute nothing extra', so emitting nothing is right.",
+    },
+    ("Amica", "ES.Theory.MISC.UNIT"): {
+        'Bohr':
+            "Amica's default; ai.amica:560 adds ANGSTROM only for 'Angstrom'.",
+    },
+    ("Gaussian-03", "ES.Runtype.GeomOpt.InitialHessian"): {
+        'Valence Force Field':
+            "Gaussian's default; only 'Calculate' emits CalcFC "
+            '(ComputeHessian).',
+    },
+    ("Gaussian-03", "ES.Runtype.GeomOpt.SearchFor"): {
+        'Minimum':
+            "Gaussian's Opt default; only 'Transition State' emits keywords "
+            '(StationaryPointType).',
+    },
+    ("Gaussian-03", "ES.Runtype.Polar.Method"): {
+        'Analytic Polariz. + Hyperpol.':
+            "The analytic path is the default; only the 'Numerical ...' "
+            'variants emit a keyword.',
+    },
+    ("Gaussian-03", "ES.Runtype.Vibration.Method"): {
+        'Analytic':
+            "Gaussian's Freq default; only the 'Numerical ...' variants emit a "
+            'keyword.',
+    },
+    ("Gaussian-09", "ES.Runtype.GeomOpt.InitialHessian"): {
+        'Valence Force Field':
+            "Gaussian's default; only 'Calculate' emits CalcFC "
+            '(ComputeHessian).',
+    },
+    ("Gaussian-09", "ES.Runtype.GeomOpt.SearchFor"): {
+        'Minimum':
+            "Gaussian's Opt default; only 'Transition State' emits keywords "
+            '(StationaryPointType).',
+    },
+    ("Gaussian-09", "ES.Runtype.Polar.Method"): {
+        'Analytic Polariz. + Hyperpol.':
+            "The analytic path is the default; only the 'Numerical ...' "
+            'variants emit a keyword.',
+    },
+    ("Gaussian-09", "ES.Runtype.Vibration.Method"): {
+        'Analytic':
+            "Gaussian's Freq default; only the 'Numerical ...' variants emit a "
+            'keyword.',
+    },
+    ("Gaussian-16", "ES.Runtype.GeomOpt.InitialHessian"): {
+        'Valence Force Field':
+            "Gaussian's default; only 'Calculate' emits CalcFC "
+            '(ComputeHessian).',
+    },
+    ("Gaussian-16", "ES.Runtype.GeomOpt.SearchFor"): {
+        'Minimum':
+            "Gaussian's Opt default; only 'Transition State' emits keywords "
+            '(StationaryPointType).',
+    },
+    ("Gaussian-16", "ES.Runtype.Polar.Method"): {
+        'Analytic Polariz. + Hyperpol.':
+            "The analytic path is the default; only the 'Numerical ...' "
+            'variants emit a keyword.',
+    },
+    ("Gaussian-16", "ES.Runtype.Vibration.Method"): {
+        'Analytic':
+            "Gaussian's Freq default; only the 'Numerical ...' variants emit a "
+            'keyword.',
+    },
+    ("Gaussian-98", "ES.Runtype.GeomOpt.InitialHessian"): {
+        'Valence Force Field':
+            "Gaussian's default; only 'Calculate' emits CalcFC "
+            '(ComputeHessian).',
+    },
+    ("Gaussian-98", "ES.Runtype.GeomOpt.SearchFor"): {
+        'Minimum':
+            "Gaussian's Opt default; only 'Transition State' emits keywords "
+            '(StationaryPointType).',
+    },
+    ("Gaussian-98", "ES.Runtype.Polar.Method"): {
+        'Analytic Polariz. + Hyperpol.':
+            "The analytic path is the default; only the 'Numerical ...' "
+            'variants emit a keyword.',
+    },
+    ("Gaussian-98", "ES.Runtype.Vibration.Method"): {
+        'Analytic':
+            "Gaussian's Freq default; only the 'Numerical ...' variants emit a "
+            'keyword.',
+    },
+    ("NWChem", "ES.Runtype.CPMD.Algorithm"): {
+        'Constant Energy':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            'it is the default looks unmapped. Checked by hand. The default '
+            'Car-Parrinello mode.',
+    },
+    ("NWChem", "ES.Runtype.GeomOpt.Convergence"): {
+        'Default':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            "it is the default looks unmapped. Checked by hand. Means 'use "
+            "NWChem's thresholds'.",
+        'Loose':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            'it is the default looks unmapped. Checked by hand. Emitted via the '
+            'threshold path, not a literal match.',
+        'Tight':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            'it is the default looks unmapped. Checked by hand. Emitted via the '
+            'threshold path, not a literal match.',
+    },
+    ("NWChem", "ES.Runtype.GeomOpt.SearchFor"): {
+        'Minimum':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            "it is the default looks unmapped. Checked by hand. NWChem's "
+            'default.',
+    },
+    ("NWChem", "ES.Theory.DFT.CorrelationFunctionals"): {
+        'VWN 5 (local)':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            "it is the default looks unmapped. Checked by hand. NWChem's "
+            'default correlation functional.',
+    },
+    ("NWChem", "ES.Theory.DFT.GridAngular"): {
+        'Lebedev':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            "it is the default looks unmapped. Checked by hand. NWChem's "
+            'default.',
+    },
+    ("NWChem", "ES.Theory.DFT.GridDensity"): {
+        'Medium':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            "it is the default looks unmapped. Checked by hand. NWChem's "
+            'default grid.',
+    },
+    ("NWChem", "ES.Theory.DFT.GridPartition"): {
+        'Erf1':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            "it is the default looks unmapped. Checked by hand. NWChem's "
+            'default.',
+    },
+    ("NWChem", "ES.Theory.DFT.GridRadial"): {
+        'Mura':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            "it is the default looks unmapped. Checked by hand. NWChem's "
+            'default.',
+    },
+    ("NWChem", "ES.Theory.NWPW.CellBoundary"): {
+        'periodic':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            "it is the default looks unmapped. Checked by hand. NWChem's "
+            'default.',
+    },
+    ("NWChem", "ES.Theory.SCF.ConvergenceAlgorithm"): {
+        'CG':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            'it is the default looks unmapped. Checked by hand. NWPW list; '
+            "NWChem's own default, ai.nwchem:1733 lets it fall through "
+            'deliberately.',
+        'DIIS':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            'it is the default looks unmapped. Checked by hand. DFT list; '
+            "NWChem's default.",
+        'LMBFGS':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            'it is the default looks unmapped. Checked by hand. NWPW list; '
+            'handled at ai.nwchem:1718.',
+        'Quadratic':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            'it is the default looks unmapped. Checked by hand. SCF/MP/CC list; '
+            "NWChem's default.",
+    },
+    ("NWChem", "ES.Theory.SCF.Direct"): {
+        'In Core':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            "it is the default looks unmapped. Checked by hand. NWChem's "
+            'default integral handling.',
+        'Semi-Direct':
+            'nedtheory.py builds a different list per category for this key and '
+            'the suite diffs the union, so a value that is only offered where '
+            'it is the default looks unmapped. Checked by hand. Emitted via the '
+            'semidirect disk-limit path, not a literal match.',
+    },
+    ("ORCA", "ES.Runtype.Vibration.Method"): {
+        'Analytic':
+            "ORCA's Freq default; NumFreq is what needs a keyword.",
     },
 }
 
