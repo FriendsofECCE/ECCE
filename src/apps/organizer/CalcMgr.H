@@ -300,6 +300,10 @@ protected:
   bool getSelection();
   bool isValidName(const string& name);
   bool checkMovable(WxResourceTreeItemData * node);
+  // Issue #93 phase 1: the Gateway's launcher icons, on this toolbar.
+  void addLauncherTools();
+  void OnLauncherTool(wxCommandEvent& event);
+
   void startApp(const string& app, int force, const string& url,
                 const string& codename = "", int amulet = 0);
   void startPropertyEdit(const string& property);
