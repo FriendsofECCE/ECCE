@@ -113,9 +113,7 @@ NWDirdy::NWDirdy(wxWindow* parent, wxWindowID id, const wxString& caption,
     CalcDropHandler(),
     FeedbackSaveHandler()
 {
-   SetIcon(wxIcon(ewxBitmap::pixmapFile(
-           ResourceDescriptor::getResourceDescriptor().getTool(NWDIRDY)
-           ->getIcon()), wxBITMAP_TYPE_XPM));
+   ewxWindowUtils::setToolIcon(this, NWDIRDY);
 
    EDSIFactory::addAuthEventListener(this);
 

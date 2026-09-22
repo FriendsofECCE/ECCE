@@ -643,8 +643,18 @@ void WxJMSMessageDispatch::appExec()
         // from an arbitrary cwd fails every "./<app>" launch with
         // "/bin/sh: 1: ./organizer: not found". cd into bin explicitly so
         // this doesn't depend on gateway's own launch-time cwd.
+        // A launch request naming a tool that is not registered would
+        // otherwise dereference NULL here and take the gateway down with
+        // it -- and the request comes over JMS, so it is not necessarily
+        // under this process's control.
+        ResourceTool *launchTool = rd.getTool(app);
+        if (launchTool == (ResourceTool*)0) {
+          cerr << "WxJMSMessageDispatch: no <Tool> registered for \"" << app
+               << "\"; cannot launch it." << endl;
+          return;
+        }
         string apppath = "cd \"" + string(Ecce::ecceHome()) + "/bin\" && " +
-                         rd.getTool(app)->getInvokeArg() +
+                         launchTool->getInvokeArg() +
                          " -pipe " + authPipeName;
         argv[2] = (char*)apppath.c_str();
         char path[] = "/bin/sh";

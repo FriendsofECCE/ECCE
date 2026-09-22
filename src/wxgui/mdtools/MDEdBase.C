@@ -102,8 +102,7 @@ void MDEdBase::constructor()
 
    // Get Registry and set destop icon
    ResourceDescriptor rs = ResourceDescriptor::getResourceDescriptor();
-   SetIcon(wxIcon(ewxBitmap::pixmapFile(rs.getTool(getAppName())->getIcon()),
-                                        wxBITMAP_TYPE_XPM));
+   ewxWindowUtils::setToolIcon(this, getAppName());
 }
 
 

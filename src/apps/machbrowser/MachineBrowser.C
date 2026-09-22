@@ -43,6 +43,7 @@
 #include "comm/RCommand.H"
 
 #include "wxgui/ewxBitmap.H"
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxPanel.H"
@@ -142,8 +143,7 @@ MachineBrowser::MachineBrowser(      wxWindow* parent,
     ResourceDescriptor rs = ResourceDescriptor::getResourceDescriptor();
 
     // Set desktop icon
-    SetIcon(wxIcon(ewxBitmap::pixmapFile(rs.getTool("MachineBrowser")->
-                                         getIcon()), wxBITMAP_TYPE_XPM));
+    ewxWindowUtils::setToolIcon(this, "MachineBrowser");
 
     p_inCtrlUpdate= false;
 }

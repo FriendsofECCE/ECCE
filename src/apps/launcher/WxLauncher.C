@@ -45,6 +45,7 @@
 #include "comm/RCommand.H"
 
 #include "wxgui/ewxBitmap.H"
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxCheckBox.H"
 #include "wxgui/ewxChoice.H"
@@ -115,8 +116,7 @@ WxLauncher::WxLauncher(      wxWindow* parent,
     ResourceDescriptor rs = ResourceDescriptor::getResourceDescriptor();
 
     // Set desktop icon
-    SetIcon(wxIcon(ewxBitmap::pixmapFile(rs.getTool(LAUNCHER)-> getIcon()),
-                                         wxBITMAP_TYPE_XPM));
+    ewxWindowUtils::setToolIcon(this, LAUNCHER);
 }
 
 

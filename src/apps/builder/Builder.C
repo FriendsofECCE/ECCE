@@ -66,6 +66,7 @@ using std::vector;
 #include "comm/RunMgmt.H"
 
 #include "wxgui/ContextHistory.H"
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxBitmapButton.H"
 #include "wxgui/ewxButton.H"
@@ -489,8 +490,7 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   // Get Registry
   ResourceDescriptor rs = ResourceDescriptor::getResourceDescriptor();
   // Set desktop icon
-  SetIcon(wxIcon(ewxBitmap::pixmapFile(rs.getTool(BUILDER)->getIcon()),
-                                       wxBITMAP_TYPE_XPM));
+  ewxWindowUtils::setToolIcon(this, BUILDER);
 
   // create first (Default) IPropCalculation and setContext
   wxCommandEvent emptyEvent;

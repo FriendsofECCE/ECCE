@@ -102,9 +102,7 @@ Polyrate::Polyrate(wxWindow* parent, wxWindowID id, const wxString& caption,
     FeedbackSaveHandler()
 {
 
-   SetIcon(wxIcon(ewxBitmap::pixmapFile(
-           ResourceDescriptor::getResourceDescriptor().getTool(POLYRATE)
-           ->getIcon()), wxBITMAP_TYPE_XPM));
+   ewxWindowUtils::setToolIcon(this, POLYRATE);
 
    EDSIFactory::addAuthEventListener(this);
 

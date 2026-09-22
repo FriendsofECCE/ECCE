@@ -70,6 +70,7 @@ using std::endl;
 #include "comm/RunMgmt.H"
 
 #include "wxgui/EcceTool.H"
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxFileDialog.H"
 #include "wxgui/ewxMessageDialog.H"
@@ -161,8 +162,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 
 
   // Set desktop icon
-  SetIcon(wxIcon(ewxBitmap::pixmapFile(rs.getTool(ORGANIZER)->getIcon()), 
-                                       wxBITMAP_TYPE_XPM));
+  ewxWindowUtils::setToolIcon(this, ORGANIZER);
 
 
   p_panelNode = 0;

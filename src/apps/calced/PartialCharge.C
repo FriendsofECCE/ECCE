@@ -21,6 +21,7 @@
 #include "util/StringTokenizer.H"
 
 #include "wxgui/ewxBitmap.H"
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxListBox.H"
@@ -89,9 +90,7 @@ bool PartialCharge::Create(wxWindow* parent, wxWindowID id,
   initializeGUI();
 
   // set desktop icon
-  SetIcon(wxIcon(ewxBitmap::pixmapFile(
-          ResourceDescriptor::getResourceDescriptor().getTool(CALCED)
-          ->getIcon()), wxBITMAP_TYPE_XPM));
+  ewxWindowUtils::setToolIcon(this, CALCED);
 
   ewxTextCtrl *text;
   //ewxNumericValidator validator;

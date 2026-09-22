@@ -18,12 +18,14 @@
 #include <X11/Xlib.h>
 #endif
 
+#include "wxgui/ewxBitmap.H"
 #include "util/Preferences.H"
 #include "util/PreferenceLabels.H"
 #include "util/UnitFactory.H"
 #include "util/UnitConverter.H"
 
 #include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceTool.H"
 
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxTextCtrl.H"
@@ -41,6 +43,24 @@
  * window in the config file.
  * No checking is done to ensure that the window is a shell.
  */
+bool ewxWindowUtils::setToolIcon(wxTopLevelWindow *win,
+                                 const std::string& toolName)
+{
+  if (win == (wxTopLevelWindow*)0) return false;
+
+  ResourceDescriptor& descriptor =
+      ResourceDescriptor::getResourceDescriptor();
+  ResourceTool *tool = descriptor.getTool(toolName);
+  if (tool == (ResourceTool*)0) return false;
+
+  std::string icon = tool->getIcon();
+  if (icon.empty()) return false;
+
+  win->SetIcon(wxIcon(ewxBitmap::pixmapFile(icon), wxBITMAP_TYPE_XPM));
+  return true;
+}
+
+
 void ewxWindowUtils::saveWindowSettings(wxWindow *win,
                                         ewxConfig * config,
                                         bool saveSize)

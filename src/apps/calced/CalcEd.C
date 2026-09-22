@@ -35,6 +35,7 @@
 #include "dsm/CodeFactory.H"
 
 #include "wxgui/ThingToggle.H"
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/EcceTool.H"
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxBoolClientData.H"
@@ -187,9 +188,7 @@ bool CalcEd::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   Centre();
 
   // set desktop icon
-  SetIcon(wxIcon(ewxBitmap::pixmapFile(
-          ResourceDescriptor::getResourceDescriptor().getTool(CALCED)
-          ->getIcon()), wxBITMAP_TYPE_XPM));
+  ewxWindowUtils::setToolIcon(this, CALCED);
   EDSIFactory::addAuthEventListener(this);
 
   return true;
@@ -2169,7 +2168,8 @@ void CalcEd::refreshChemSysThumb()
   if (restoreStandardBitmap) {
     ResourceTool *tool = ResourceDescriptor::getResourceDescriptor()
             .getTool(p_builderTool->GetId());
-    p_builderTool->setBitMap(ewxBitmap(tool->getIcon(), wxBITMAP_TYPE_XPM));
+    if (tool != (ResourceTool*)0)
+      p_builderTool->setBitMap(ewxBitmap(tool->getIcon(), wxBITMAP_TYPE_XPM));
   }
 }
 
@@ -2700,8 +2700,16 @@ void CalcEd::restoreSettings()
 
 void CalcEd::startApp(int id, int force, const string& url) const
 {
-  startApp(ResourceDescriptor::getResourceDescriptor().getTool(id)->getName(),
-           force, url);
+  // getTool() is NULL when that <Tool> is not registered -- which happens
+  // as soon as a code or tool is disconnected from the resource files, and
+  // used to be an outright crash (see ewxWindowUtils::setToolIcon for the
+  // case that bit metadyn). Nothing useful can be launched without a name,
+  // so do nothing rather than die.
+  ResourceTool *tool =
+      ResourceDescriptor::getResourceDescriptor().getTool(id);
+  if (tool == (ResourceTool*)0) return;
+
+  startApp(tool->getName(), force, url);
 }
 
 

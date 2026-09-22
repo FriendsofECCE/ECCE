@@ -160,8 +160,7 @@ void MDPrep::initializeGUI()
    ResourceDescriptor rs = ResourceDescriptor::getResourceDescriptor();
 
    // Set desktop icon
-   SetIcon(wxIcon(ewxBitmap::pixmapFile(rs.getTool(WHOAMI)->getIcon()),
-                                        wxBITMAP_TYPE_XPM));
+   ewxWindowUtils::setToolIcon(this, WHOAMI);
 
    PrepareModel &model = getPrepareModel();
    ewxChoice *choice = 0;

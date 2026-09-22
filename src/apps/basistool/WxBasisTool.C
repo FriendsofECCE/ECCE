@@ -43,6 +43,7 @@
 #include "dsm/ResourceTool.H"
 
 #include "wxgui/ewxBitmap.H"
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxCheckBox.H"
 #include "wxgui/ewxGrid.H"
@@ -282,9 +283,7 @@ WxBasisTool::WxBasisTool(      wxWindow* parent,
     p_theoryDscpn = "";
 
     // set desktop icon
-    SetIcon(wxIcon(ewxBitmap::pixmapFile(
-            ResourceDescriptor::getResourceDescriptor().getTool(BASISTOOL)
-            ->getIcon()), wxBITMAP_TYPE_XPM));
+    ewxWindowUtils::setToolIcon(this, BASISTOOL);
 }
 
 

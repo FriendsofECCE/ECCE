@@ -28,6 +28,7 @@
 #include "dsm/CodeFactory.H"
 
 #include "wxgui/ThingToggle.H"
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/EcceTool.H"
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxBoolClientData.H"
@@ -161,27 +162,11 @@ bool MetaEd::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   //GetSizer()->SetMinSize(SYMBOL_METAEDGUI_SIZE);
   Centre();
 
-  // set desktop icon
-  //
-  // getTool() returns NULL when the named <Tool> is not registered in
-  // ResourceDescriptor.xml, and METADYNAMICS stopped being registered when
-  // MetaDyn's menu entries were archived on 2026-08-30 (see
-  // data/client/config/disabled-codes-archive.txt, which notes that the
-  // matching <Tool name="MetadynamicsEditor"> entry went with them). The
-  // unchecked -> then dereferenced NULL and this app SIGSEGV'd on every
-  // launch, after its window was already up. Found by tests/apps.
-  //
-  // A missing icon is not worth crashing over: carry on without one. The
-  // same unchecked getTool(...)->getIcon() pattern exists in roughly a
-  // dozen other apps (Builder.C, CalcMgr.C, SolvateEd.C, WxLauncher.C,
-  // MachineBrowser.C, ...) and is a latent crash in each of them for
-  // exactly the same reason -- worth auditing together.
-  ResourceTool *metaTool =
-      ResourceDescriptor::getResourceDescriptor().getTool(METADYNAMICS);
-  if (metaTool != 0) {
-    SetIcon(wxIcon(ewxBitmap::pixmapFile(metaTool->getIcon()),
-                   wxBITMAP_TYPE_XPM));
-  }
+  // set desktop icon; tolerates a missing <Tool> registration, which is
+  // what made this app SIGSEGV on every launch after MetaDyn's menu
+  // entries were archived (see ewxWindowUtils::setToolIcon).
+  ewxWindowUtils::setToolIcon(this, METADYNAMICS);
+
   EDSIFactory::addAuthEventListener(this);
 
   return true;
@@ -1206,7 +1191,8 @@ void MetaEd::refreshChemSysThumb()
   if (restoreStandardBitmap) {
     ResourceTool *tool = ResourceDescriptor::getResourceDescriptor()
             .getTool(p_builderTool->GetId());
-    p_builderTool->setBitMap(ewxBitmap(tool->getIcon(), wxBITMAP_TYPE_XPM));
+    if (tool != (ResourceTool*)0)
+      p_builderTool->setBitMap(ewxBitmap(tool->getIcon(), wxBITMAP_TYPE_XPM));
   }
 }
 
@@ -1569,8 +1555,16 @@ void MetaEd::restoreSettings()
 
 void MetaEd::startApp(int id, int force, const string& url) const
 {
-  startApp(ResourceDescriptor::getResourceDescriptor().getTool(id)->getName(),
-           force, url);
+  // getTool() is NULL when that <Tool> is not registered -- which happens
+  // as soon as a code or tool is disconnected from the resource files, and
+  // used to be an outright crash (see ewxWindowUtils::setToolIcon for the
+  // case that bit metadyn). Nothing useful can be launched without a name,
+  // so do nothing rather than die.
+  ResourceTool *tool =
+      ResourceDescriptor::getResourceDescriptor().getTool(id);
+  if (tool == (ResourceTool*)0) return;
+
+  startApp(tool->getName(), force, url);
 }
 
 

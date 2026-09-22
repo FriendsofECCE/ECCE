@@ -93,8 +93,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent,
     ResourceDescriptor rs = ResourceDescriptor::getResourceDescriptor();
 
     // Set desktop icon
-    SetIcon(wxIcon(ewxBitmap::pixmapFile(rs.getTool("MachineRegister")->
-                                         getIcon()), wxBITMAP_TYPE_XPM));
+    ewxWindowUtils::setToolIcon(this, "MachineRegister");
 }
 
 

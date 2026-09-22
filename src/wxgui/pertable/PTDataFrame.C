@@ -34,6 +34,7 @@
 #include "dsm/ResourceTool.H"
 
 #include "wxgui/ewxBitmap.H"
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxColor.H"
 #include "wxgui/ewxColorDialog.H"
 #include "wxgui/ewxGrid.H"
@@ -64,8 +65,7 @@ PTDataFrame::PTDataFrame(int atomicNum, PerTabPanel * parent, wxWindowID id,
 
 
   // Set desktop icon
-  SetIcon(wxIcon(ewxBitmap::pixmapFile(rs.getTool(PERTAB)->getIcon()),
-                                       wxBITMAP_TYPE_XPM));
+  ewxWindowUtils::setToolIcon(this, PERTAB);
 
   p_atomicSymbolLabel->SetFont(ewxStyledWindow::getBigAtomicSymbolFont());
   p_electronConfigLabel->SetFont(ewxStyledWindow::getSmallLabelFont());

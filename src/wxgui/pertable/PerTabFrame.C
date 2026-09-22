@@ -16,6 +16,7 @@ using std::cerr;
 #include "util/Preferences.H"
 
 #include "wxgui/ewxBitmap.H"
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxMenu.H"
 #include "wxgui/ewxMenuBar.H"
 
@@ -90,8 +91,7 @@ PerTabFrame::PerTabFrame(wxWindow* parent, wxWindowID id, const wxString& captio
 
 
   // Set desktop icon
-  SetIcon(wxIcon(ewxBitmap::pixmapFile(rs.getTool(PERTAB)->getIcon()),
-                                       wxBITMAP_TYPE_XPM));
+  ewxWindowUtils::setToolIcon(this, PERTAB);
 
   SetMinSize(GetBestSize());
 }
