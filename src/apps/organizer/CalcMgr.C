@@ -2460,6 +2460,19 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
   // very hard to find. Reported from a live session 2026-09-22: "Only see
   // it if I select users, or andy, and then click on File ... better to
   // always have access to it".
+  // Issue #93: New Structure has to be added HERE, not in
+  // CalcMgrGUI::CreateControls(), because getFileMenu() runs clearMenu()
+  // and rebuilds this menu from scratch on every selection change -- so
+  // anything appended statically at construction is wiped the first time
+  // the user clicks a tree node, which is to say immediately. Adding it
+  // in the GUI base looked right and did nothing; reported from a live
+  // session 2026-09-22 ("Don't find any File > New Structure").
+  //
+  // Same trap as the Tools menu, which is why addGlobalTools() exists.
+  menu.Append(wxID_NEWSTRUCTURE, _("&New Structure...\tCtrl+N"),
+              _T(""), wxITEM_NORMAL);
+  menu.AppendSeparator();
+
   menu.Append(wxID_IMPORT, _("&Import Calculation from Output File..."),
               _T(""), wxITEM_NORMAL);
   menu.AppendSeparator();

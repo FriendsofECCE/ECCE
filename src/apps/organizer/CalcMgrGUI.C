@@ -241,8 +241,11 @@ void CalcMgrGUI::CreateControls()
     //  here, Machine Browser and the Periodic Table are on Tools, and
     //  Viewer with nothing loaded is not useful (viewing happens from a
     //  selected calculation, which already works).
-    itemMenu3->Append(wxID_NEWSTRUCTURE, _("&New Structure...\tCtrl+N"), _T(""), wxITEM_NORMAL);
-    itemMenu3->AppendSeparator();
+    //  NOTE: the real New Structure entry is added by
+    //  CalcMgr::getFileMenu(), which rebuilds this menu on every selection
+    //  change. Appending it here as well would be pointless (it is wiped
+    //  on the first tree click) and, worse, would look like it worked
+    //  while the menu happened to be untouched.
     itemMenu3->Append(wxID_IMPORT, _("&Import Calculation from Output File..."), _T(""), wxITEM_NORMAL);
     itemMenu3->Append(wxID_EXPORT, _("&Export"), _T(""), wxITEM_NORMAL);
     itemMenu3->AppendSeparator();

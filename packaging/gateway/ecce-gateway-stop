@@ -12,6 +12,32 @@ PIDFILE="$STATEDIR/jmsdispatcher_${DISPLAY}.pid"
 HOST="${ECCE_HOST:-$(hostname)}"
 PORTFILE="$STATEDIR/${HOST}_${DISPLAY}"
 
+# Stop the gateway APPLICATION first, not just the services it owns.
+#
+# Reported from a live session 2026-09-22: the Organizer's new "Quit and
+# Stop Server" ran this and ecce-dataserver-stop, and left the Gateway
+# window sitting there -- now with no JMS dispatcher and no data server,
+# i.e. a visible window that cannot do anything, which is worse than not
+# having stopped the services at all.
+#
+# Identified by /proc/<pid>/exe rather than by command line, for the same
+# reason ecce-gateway-reap does it: the gateway is spawned as a relative
+# "./gateway" from $ECCE_HOME/bin, so a path match on the command line
+# finds nothing. Only this display's gateway is touched.
+ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
+_bindir="$(readlink -f "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")"
+for _pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
+  [ -O "/proc/$_pid" ] || continue
+  _exe="$(readlink "/proc/$_pid/exe" 2>/dev/null)" || continue
+  [ "$_exe" = "$_bindir/gateway" ] || continue
+  [ -r "/proc/$_pid/environ" ] || continue
+  _disp="$(tr '\0' '\n' <"/proc/$_pid/environ" 2>/dev/null |
+           sed -n 's/^DISPLAY=//p' | head -n1)"
+  [ "$_disp" = "$DISPLAY" ] || continue
+  echo "ecce-gateway-stop: stopping gateway (pid $_pid)"
+  kill "$_pid" 2>/dev/null
+done
+
 if [ -f "$PIDFILE" ]; then
   pid="$(cat "$PIDFILE")"
   if kill -0 "$pid" 2>/dev/null; then
