@@ -77,3 +77,17 @@ args:    '.' 'Energy' 'PW' 'PW' '0'
       size: 1
       values: 1.07
 
+[STRESS][PRESSURE]  Script=qe.stress  Freq=all  Skip=0  Lines=4
+  Begin=total\s+stress
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=209 fed=4 rc=0 first-fed='          total   stress  (Ry/bohr**3)                   (kbar)     P=        1.76'
+    key: STRESS
+      size: 9
+      rowlabels: XX XY XZ YX YY YZ ZX ZY ZZ
+      values: 1.76 0.00 -0.00 -0.00 1.76 0.00 -0.00 0.00 1.76
+      units: kbar
+    key: PRESSURE
+      size: 1
+      values: 1.76
+      units: kbar
+

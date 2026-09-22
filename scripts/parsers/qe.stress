@@ -1,0 +1,85 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts the stress tensor and the scalar pressure from Quantum
+# ESPRESSO's "total stress" block into ECCE's STRESS and PRESSURE
+# properties.
+#
+# Until this existed the Runtype Details "Stress" checkbox was a DEAD
+# CONTROL of exactly the shape CLAUDE.md records for ORCA's CHELPG (#88):
+# ticking it made ai.qe emit tstress = .true., pw.x duly computed and
+# printed the tensor, and nothing in ECCE ever read it back.  The user
+# paid for the extra work and saw nothing.
+#
+# Input (real pw.x 6.7 output, the same block for scf and vc-relax):
+#
+#           total   stress  (Ry/bohr**3)                   (kbar)     P=      197.94
+#    0.00134559  -0.00000000  -0.00000000          197.94       -0.00       -0.00
+#   -0.00000000   0.00134559   0.00000000           -0.00      197.94        0.00
+#   -0.00000000   0.00000000   0.00134559           -0.00        0.00      197.94
+#
+# Each row carries the SAME tensor twice: columns 1-3 in Ry/bohr**3,
+# columns 4-6 in kbar.  The kbar set is taken, to agree with the P= value
+# in the header and with the Pressure units class ECCE already has.
+#
+# THE PRESSURE IS IN THE HEADER LINE, which is why qe.desc feeds this
+# script the Begin line itself (Skip=0) -- the same reason [GEOMTRACE]
+# and [LATTICEVEC] do.
+#
+# Both keys are emitted from ONE parse entry on every invocation, rather
+# than being split into two entries sharing a Begin.  CLAUDE.md records
+# why: eccejobmonitor keys its parse-type table by the literal Begin
+# string and PDMatchBegin() returns only the first match, so two entries
+# on one marker phrase permanently starve one of them.  Both are plain
+# overwriting properties, so with Frequency=all they naturally end up
+# holding the last (converged) block once matching stops.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $pressure;
+my @rows;
+
+while (<STDIN>) {
+  if (/total\s+stress.*P\s*=\s*(-?\d+\.?\d*)/) {
+    $pressure = $1;
+    next;
+  }
+
+  #  Six numbers: the tensor in Ry/bohr**3 then the same tensor in kbar.
+  #  Anchored on six so a row that somehow lost a column is rejected
+  #  rather than silently mixing the two unit systems.
+  if (/^\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
+    push(@rows, [$4, $5, $6]);
+    last if (scalar(@rows) == 3);
+  }
+}
+
+#  Nine values or nothing.  STRESS is declared 3x3, and PropTable rejects
+#  a short vector outright -- see issue #108, where exactly that left the
+#  MO panel blank with no error anywhere.
+exit(0) if (scalar(@rows) != 3);
+
+print "key: STRESS\n";
+print "size:\n9\n";
+print "rowlabels:\nXX XY XZ YX YY YZ ZX ZY ZZ\n";
+print "values:\n";
+foreach my $row (@rows) {
+  print join(" ", @$row), "\n";
+}
+print "units:\nkbar\n";
+print "END\n";
+
+if (defined($pressure)) {
+  print "key: PRESSURE\n";
+  print "size:\n1\n";
+  print "values:\n$pressure\n";
+  print "units:\nkbar\n";
+  print "END\n";
+}
+
+exit(0);

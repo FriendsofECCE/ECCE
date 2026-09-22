@@ -199,3 +199,30 @@ Frequency=all
 Skip=0
 End=^\s*$
 [END]
+
+# The "Stress" checkbox in Runtype Details made ai.qe emit tstress and
+# pw.x duly compute the tensor -- and nothing read it back, so ticking it
+# bought extra work and no output.  Same dead-control shape as ORCA's
+# CHELPG (#88).
+#
+# Skip=0 because THE PRESSURE IS IN THE HEADER LINE, as with [GEOMTRACE]
+# and [LATTICEVEC].
+#
+# Lines=4 (header plus the three tensor rows) rather than an End=, which
+# sidesteps the End-line starvation hazard entirely: in vc-relax output
+# the block is followed by a blank line and then "BFGS Geometry
+# Optimization", and a greedier frame would be one edit away from eating
+# a neighbour's Begin.
+#
+# Frequency=all with both keys emitted on every invocation, NOT two
+# entries sharing one Begin -- eccejobmonitor would permanently starve
+# one of them (PDMatchBegin returns only the first match).  Both are
+# overwriting properties, so the last block read wins, which for
+# vc-relax is the converged cell.
+[STRESS][PRESSURE]
+Script=qe.stress
+Begin=total\s+stress
+Frequency=all
+Skip=0
+Lines=4
+[END]

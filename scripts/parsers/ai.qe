@@ -12,12 +12,13 @@
 #       engine (modifyInputFile) are copied verbatim since they are
 #       code-agnostic.
 #
-# STATUS: PHASE 1, REDUCED SCOPE.  calculation='scf' only, matching
-# data/client/cap/QuantumESPRESSO.edml's single <Theory category="PW"
-# name="PW"> with the single <runtype>Energy</runtype>.  No relax, no
-# vc-relax, no nscf, no bands, no md, and no phonons (ph.x is a second
-# executable and does not fit ECCE's one-calculation/one-input/one-output
-# model -- see docs/QE_ROADMAP.md section 3.2).
+# STATUS: REDUCED SCOPE, but no longer scf only.  Supported today:
+# calculation='scf' (runtype Energy), 'relax' (runtype Geometry) and
+# 'vc-relax' (runtype Geometry with the OptimizeCell checkbox), each with
+# forces and the stress tensor available as Runtype Details checkboxes.
+# Still absent: nscf, bands, md, and phonons (ph.x is a second executable
+# and does not fit ECCE's one-calculation/one-input/one-output model --
+# see docs/QE_ROADMAP.md section 3.2).
 #
 # QE IS A PLANE-WAVE CODE, so like NWChem's nwpw path there is no Gaussian
 # basis set anywhere: QuantumESPRESSO.edml marks the theory
@@ -553,10 +554,9 @@ sub QEControl {
 # an scf run ("calculation='scf': namelist &IONS not needed"), so this
 # resolver returns the empty string and modifyInputFile drops the line.
 #
-# NOTE for whoever adds vc-relax: it needs &CELL as well, and the cell
-# then changes per step, which means LATTICEVEC extraction (qe.desc has
-# none yet) before it is worth offering -- GTStepCmd already animates a
-# changing box, it just has no producer for QE.
+# vc-relax is implemented: &CELL below, and qe.desc's [LATTICEVEC] reads
+# the changing cell back so GTStepCmd can animate the box, which it could
+# always do but had no producer for under QE.
 # &CELL. Only for vc-relax: pw.x rejects the namelist on anything else,
 # exactly as it does &IONS on an scf run. Returning the empty string
 # makes modifyInputFile drop the line.

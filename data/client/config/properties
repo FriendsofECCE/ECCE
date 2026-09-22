@@ -196,6 +196,8 @@ Derived		Quadrupole Moment			QUADPOLE	Quadrupole	PropVector<Unknown>
 Derived		Octapole Moment				OCTAPOLE	Octapole	PropVector<Unknown>
 Derived		Hexadecapole Moment			HEXPOLE		Hexadecapole	PropVector<Unknown>
 Derived		Polarizability				POLARIZ		Polariz		PropVector<Unknown>
+Derived		Stress Tensor				STRESS		Pressure	PropVector<Unknown>
+Derived		Pressure				PRESSURE	Pressure	PropValue
 Derived		Hyperpolarizability			HYPERPOL1	Hyperpolariz	PropVector<Unknown>
 #
 #

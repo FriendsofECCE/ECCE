@@ -104,12 +104,15 @@
      regardless of the checkbox, because pw.x needs forces to move the
      ions, and it emits an &IONS namelist that an scf run must not have.
 
+     vc-relax is implemented, as an "Optimize cell" checkbox on the
+     Geometry runtype rather than a runtype of its own: ECCE's runtype
+     vocabulary is fixed and has no name for it.  qe.desc's LATTICEVEC
+     entry reads the changing cell back, so the box animates.
+
      Still absent, and each needs work beyond a runtype entry:
-     vc-relax (needs the CELL namelist and LATTICEVEC extraction so the
-     changing box can be animated), nscf/bands (a second run reusing the
-     first one's charge density, which does not fit
-     one-input/one-output), md, and phonons (ph.x is a separate
-     executable). -->
+     nscf/bands (a second run reusing the first one's charge density,
+     which does not fit one-input/one-output), md, and phonons (ph.x is a
+     separate executable). -->
 <Editor theorydialog="qetheory.py" runtypedialog="qeruntype.py">
   <!-- Plane waves cannot run without a cell, so CalcEd holds the
        calculation not-ready and says why, instead of letting the user

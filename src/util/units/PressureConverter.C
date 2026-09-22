@@ -20,6 +20,10 @@ PressureConverter::PressureConverter()
    addConversion( "N/m**2", 100000.0);
    addConversion( "Atm", 0.986923);
    addConversion( "Torr", 750.062);
+   //  Plane-wave codes report stress and pressure in kbar (pw.x prints
+   //  both the tensor and its trace that way), and it is the unit that
+   //  community expects to read.  1 kbar = 1000 Bar, and Bar is base.
+   addConversion( "kbar", 0.001);
 
    setBaseUnits("Bar");
 }

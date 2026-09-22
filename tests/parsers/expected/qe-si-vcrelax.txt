@@ -497,3 +497,67 @@ args:    '.' 'GeomOpt' 'PW' 'PW' '0'
       values: -2.744924536000000e+00 0.000000000000000e+00 2.744924536000000e+00 -0.000000000000000e+00 2.744924536000000e+00 2.744924536000000e+00 -2.744924536000000e+00 2.744924536000000e+00 0.000000000000000e+00
       units: Angstrom
 
+[STRESS][PRESSURE]  Script=qe.stress  Freq=all  Skip=0  Lines=4
+  Begin=total\s+stress
+  begins=6 delivered=6 buffered_away=0
+  block 1: begin-line=228 fed=4 rc=0 first-fed='          total   stress  (Ry/bohr**3)                   (kbar)     P=      197.94'
+    key: STRESS
+      size: 9
+      rowlabels: XX XY XZ YX YY YZ ZX ZY ZZ
+      values: 197.94 -0.00 -0.00 -0.00 197.94 0.00 -0.00 0.00 197.94
+      units: kbar
+    key: PRESSURE
+      size: 1
+      values: 197.94
+      units: kbar
+  block 2: begin-line=380 fed=4 rc=0 first-fed='          total   stress  (Ry/bohr**3)                   (kbar)     P=       62.84'
+    key: STRESS
+      size: 9
+      rowlabels: XX XY XZ YX YY YZ ZX ZY ZZ
+      values: 62.84 -0.00 0.00 -0.00 62.84 0.00 -0.00 0.00 62.84
+      units: kbar
+    key: PRESSURE
+      size: 1
+      values: 62.84
+      units: kbar
+  block 3: begin-line=560 fed=4 rc=0 first-fed='          total   stress  (Ry/bohr**3)                   (kbar)     P=       12.40'
+    key: STRESS
+      size: 9
+      rowlabels: XX XY XZ YX YY YZ ZX ZY ZZ
+      values: 12.40 -0.00 0.00 0.00 12.40 0.00 -0.00 -0.00 12.40
+      units: kbar
+    key: PRESSURE
+      size: 1
+      values: 12.40
+      units: kbar
+  block 4: begin-line=722 fed=4 rc=0 first-fed='          total   stress  (Ry/bohr**3)                   (kbar)     P=        1.04'
+    key: STRESS
+      size: 9
+      rowlabels: XX XY XZ YX YY YZ ZX ZY ZZ
+      values: 1.04 -0.00 -0.00 -0.00 1.04 0.00 -0.00 -0.00 1.04
+      units: kbar
+    key: PRESSURE
+      size: 1
+      values: 1.04
+      units: kbar
+  block 5: begin-line=863 fed=4 rc=0 first-fed='          total   stress  (Ry/bohr**3)                   (kbar)     P=       -0.02'
+    key: STRESS
+      size: 9
+      rowlabels: XX XY XZ YX YY YZ ZX ZY ZZ
+      values: -0.02 -0.00 0.00 -0.00 -0.02 0.00 0.00 0.00 -0.02
+      units: kbar
+    key: PRESSURE
+      size: 1
+      values: -0.02
+      units: kbar
+  block 6: begin-line=1102 fed=4 rc=0 first-fed='          total   stress  (Ry/bohr**3)                   (kbar)     P=       -0.35'
+    key: STRESS
+      size: 9
+      rowlabels: XX XY XZ YX YY YZ ZX ZY ZZ
+      values: -0.35 -0.00 0.00 -0.00 -0.35 0.00 0.00 -0.00 -0.35
+      units: kbar
+    key: PRESSURE
+      size: 1
+      values: -0.35
+      units: kbar
+

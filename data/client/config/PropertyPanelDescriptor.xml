@@ -209,6 +209,24 @@
     <property name="QUADPOLE"/>
   </PropertyPanel>
 
+  <!-- QuadPolePanel lays a PropVector out three values to a row, which is
+       exactly a 3x3 tensor.  Plane-wave stress from Quantum ESPRESSO is
+       its first user; before this the Runtype Details "Stress" checkbox
+       made pw.x compute the tensor and nothing read it back. -->
+  <PropertyPanel>
+    <name>Stress Tensor</name>
+    <class>QuadPolePanel</class>
+    <consumer>true</consumer>
+    <property name="STRESS"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Pressure</name>
+    <class>KeyValuePropertyPanel</class>
+    <consumer>true</consumer>
+    <property name="PRESSURE"/>
+  </PropertyPanel>
+
   <PropertyPanel>
     <name>Polarizability</name>
     <class>QuadPolePanel</class>

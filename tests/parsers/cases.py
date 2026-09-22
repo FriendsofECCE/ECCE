@@ -978,6 +978,12 @@ CASES = [
             # [EWVEC] is anchored ^\s+ -- see qe.desc.
             'TE': dict(blocks=1, keys={
                 'TE': {'values': '-11.411697375', 'units': 'Hartree'}}),
+            #  tstress was on, so pw.x printed the tensor -- and until
+            #  qe.stress existed nothing read it back, making the Runtype
+            #  Details "Stress" checkbox a dead control (ORCA CHELPG, #88).
+            'STRESS][PRESSURE': dict(blocks=1, keys={
+                'STRESS': {'size': '9', 'units': 'kbar'},
+                'PRESSURE': {'size': '1', 'units': 'kbar'}}),
             # Four SCF iterations printed an energy before convergence
             # (the fifth, converged one carries the '!' and belongs to
             # [TE]).  EWVEC, not TEVEC: TEVEC is indexed by Geometry Step
@@ -1184,6 +1190,12 @@ CASES = [
                 'size': '1 2 3', 'units': 'Angstrom'}}),
             'LATTICEVEC': dict(blocks=5, keys={'LATTICEVEC': {
                 'size': '1 3 3', 'units': 'Angstrom'}}),
+            #  Six stress blocks, one per vc-relax step. Both keys come
+            #  from every one of them; STRESS and PRESSURE overwrite, so
+            #  what survives is the converged cell's.
+            'STRESS][PRESSURE': dict(blocks=6, keys={
+                'STRESS': {'size': '9', 'units': 'kbar'},
+                'PRESSURE': {'size': '1', 'units': 'kbar'}}),
         },
     ),
     dict(
