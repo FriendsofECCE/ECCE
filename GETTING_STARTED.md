@@ -132,3 +132,32 @@ service required.
 - A GUI app crashes on some specific action → see `CLAUDE.md` for the
   active-investigation log of fixes already made to this fork (wx3.2/GTK3
   layout issues, missing-icon typos, etc.) before assuming it's a new bug.
+
+### The job ran, but with different settings than I chose
+
+This is the failure mode to know about: ECCE builds a code's input file by
+substituting `##tag##` slots in a template, and historically a tag that
+resolved to nothing just vanished along with its line. The job then ran
+normally, with the setting you picked silently absent — no error anywhere.
+(Real example: selecting BP86 for an NWChem DFT job ran the default LDA
+instead, because the dialog and the input generator spelled the functional
+differently.)
+
+Two verbose modes make that visible:
+
+    # what the input generator did with every tag, on stderr
+    ECCE_AI_DEBUG=1 ecce-gateway
+
+Output is prefixed `[ecce-ai]` and includes the settings dictionary the
+generator was given, what each tag resolved to, and — the line to look for —
+`!! &DFTXCFun has no case for '...'`, meaning the dialog and the generator
+disagree about that value and it will be missing from the input file.
+
+The Theory/Runtype Details dialogs have their own verbose mode, which
+`calced` turns on per dialog; its output is prefixed `[ecce-dialog]` and
+explains restore decisions, including a stored value skipped because the
+field's unit changed since the calculation was saved.
+
+Both write to stderr, so start the app from a terminal (or check the
+gateway's log) to see them. If you are reporting a problem, `ECCE_AI_DEBUG=1`
+output for the affected job is the single most useful thing to attach.

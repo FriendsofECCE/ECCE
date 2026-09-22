@@ -515,6 +515,16 @@ class EccePanel(wx.Panel):
 
                 # line has been parsed, assign values (if line is intelligable)
                 if j == 5:
+                    if not [x for x in self.Settings
+                            if x.GetName() == name]:
+                        # Normal and expected: the stored GUIValues carry
+                        # every key the calculation has ever had, including
+                        # ones belonging to other categories' widgets that
+                        # this dialog did not build. Logged rather than
+                        # ignored because a key that is silently dropped here
+                        # looks exactly like a dialog that failed to restore.
+                        debug("restore %s: no widget of that name in this "
+                              "dialog, ignored" % name)
                     for setting in self.Settings:
                         if (setting.GetName() == name):
                             # A persisted value is only meaningful in the unit
@@ -550,7 +560,14 @@ class EccePanel(wx.Panel):
                             widgetUnit = widgetUnit.strip()
                             if storedUnit and widgetUnit and \
                                storedUnit != widgetUnit:
+                                debug("restore %s: SKIPPED stored value %r -- "
+                                      "it was saved in %r but this widget now "
+                                      "uses %r; keeping the widget default %r"
+                                      % (name, value, storedUnit, widgetUnit,
+                                         getattr(setting, "default", "?")))
                                 continue
+                            debug("restore %s = %r (%s)"
+                                  % (name, value, valType))
                             if valType == "integer_input":
                                 setting.SetValue(int(value))
                                 # Deliberately NOT setting.SetUnit(unit) here

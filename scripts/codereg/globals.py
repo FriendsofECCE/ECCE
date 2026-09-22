@@ -111,6 +111,12 @@ class Globals:
             self.NumOccupiedOrbs = int(values[15])
             self.NumVirtualOrbs = int(values[16])
             self.NumNormalModes = int(values[17])
+            # EnableDebug is the flag the rest of templates.py actually tests,
+            # but nothing ever set it from the command line -- so every
+            # `if EcceGlobals.EnableDebug` site in this codebase was dead code
+            # while calced dutifully passed DebugOn/DebugOff in argv[5].
+            # Derive it from the flag that is actually delivered.
+            Globals.EnableDebug = (self.DebugFlag == "DebugOn")
             if len(values) > 18:
               # This field is only meaningful to metartyp.py; every other
               # codereg script (theory dialogs especially) can end up with
@@ -143,4 +149,19 @@ class Globals:
           # this socket is used, in templates.py.
           self.Socket.send(line.encode())
 
+def debug(message):
+    """Verbose troubleshooting output, off unless calced passed DebugOn.
+
+    Goes to stderr on purpose: stdout of a codereg dialog is not a channel
+    anything reads, but stderr lands in the gateway's log where a user can be
+    asked for it.  Every line is prefixed so it can be grepped out of a mixed
+    log.
+    """
+    if Globals.EnableDebug:
+        sys.stderr.write("[ecce-dialog] %s\n" % message)
+        sys.stderr.flush()
+
+
 EcceGlobals = Globals(sys.argv)
+
+debug("started: %s" % " ".join(sys.argv[1:]))
