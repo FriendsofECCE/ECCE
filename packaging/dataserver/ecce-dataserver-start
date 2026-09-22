@@ -20,7 +20,7 @@ export ECCE_REALUSER="${ECCE_REALUSER:-$(id -un)}"
 
 STATEDIR="$ECCE_REALUSERHOME/.ECCE/dataserver"
 DATAROOT="$STATEDIR/htdocs"
-PORT=8096
+PORT="${ECCE_DATASERVER_PORT:-8096}"
 PIDFILE="$STATEDIR/logs/httpd.pid"
 
 # Debian only puts /usr/sbin (where the apache2 binary lives) on PATH for

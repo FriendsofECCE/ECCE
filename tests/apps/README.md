@@ -106,12 +106,17 @@ can be pointed somewhere else entirely:
 
     ECCE_TEST_STATE=/tmp/ecce-testrun tests/apps/run_tests.py
 
-**But not while anything else is running.** The broker and data server ports
-are hardcoded (8088 and 8096, and `siteconfig/jndi.properties` depends on
-the former), so a second instance cannot coexist with the first -- and
-`ecce-dataserver-start` exits early when the port is live, so it would
-quietly reuse the *other* instance's server. Isolation is only real when
-nothing else is up. Making it unconditional needs configurable ports.
+For a run that shares nothing at all, move the ports too — they are
+environment variables now:
+
+    ECCE_TEST_STATE=/tmp/ecce-testrun \
+    ECCE_DATASERVER_PORT=8097 ECCE_BROKER_PORT=8089 \
+      tests/apps/run_tests.py
+
+Verified: two complete instances serving simultaneously on 8096/8088 and
+8097/8089. (Before those ports were configurable, an isolated run would
+silently reuse whatever was already on 8096, because
+`ecce-dataserver-start` exits early on a live port.)
 
 Without it, the suite does touch real state: it creates an `eccetest`
 account in the data server, and it records the current version in

@@ -7,7 +7,7 @@ set -u
 ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE/dataserver"
 PIDFILE="$STATEDIR/logs/httpd.pid"
-PORT=8096
+PORT="${ECCE_DATASERVER_PORT:-8096}"
 
 port_open() {
   # The connect runs in a subshell, so fd 3 is closed when that subshell

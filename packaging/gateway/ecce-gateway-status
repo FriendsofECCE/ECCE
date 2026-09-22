@@ -9,7 +9,7 @@ STATEDIR="$ECCE_REALUSERHOME/.ECCE"
 DISPLAY="${DISPLAY:-:0}"
 # Per-display, matching ecce-gateway-start; see the note there.
 PIDFILE="$STATEDIR/jmsdispatcher_${DISPLAY}.pid"
-BROKER_PORT=8088
+BROKER_PORT="${ECCE_BROKER_PORT:-8088}"
 
 port_open() {
   # The connect runs in a subshell, so fd 3 is closed when that subshell

@@ -55,6 +55,34 @@ The package installs to `/opt/ecce` and drops thin wrapper scripts named
 below runs as a real Apache instance), not just build-time — `dpkg -i` will
 fail to configure without them if `apt-get install` wasn't run first.
 
+### Running two instances at once
+
+Everything that makes an instance distinct is an environment variable:
+
+| variable | default | what it moves |
+| --- | --- | --- |
+| `ECCE_REALUSERHOME` | `$HOME` | the whole `.ECCE` state directory: preferences, the data server's document root, JMS port files |
+| `ECCE_DATASERVER_PORT` | `8096` | the data server |
+| `ECCE_BROKER_PORT` | `8088` | the ActiveMQ broker |
+
+So a completely separate instance, sharing nothing with your normal one, is:
+
+```
+export ECCE_REALUSERHOME=/tmp/ecce-scratch
+export ECCE_DATASERVER_PORT=8097 ECCE_BROKER_PORT=8089
+ecce-dataserver-start && ecce-gateway-start
+```
+
+The per-user copies of `activemq.xml` and `jndi.properties` are resolved
+against `ECCE_BROKER_PORT` at start, so the broker and the dispatcher agree
+without editing anything installed. The C++ side needs no configuration at
+all — it finds the dispatcher through `$ECCE_REALUSERHOME/.ECCE/<host>_<display>`
+rather than reading either file.
+
+One thing this does **not** move: a data server you have already registered
+in the GUI keeps whatever URL it was added with. A second instance on a
+different port needs its server added at that port.
+
 ### Installing without root
 
 `sudo dpkg -i` is the right thing for a real install, but it is a poor fit

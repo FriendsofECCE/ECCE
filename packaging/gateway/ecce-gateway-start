@@ -26,11 +26,18 @@ mkdir -p "$STATEDIR"
 
 ACTIVEMQ_HOME="/usr/share/activemq"
 
-# The broker's listening port must match packaging/gateway/activemq.xml.ecce's
-# <transportConnector name="openwire" uri="tcp://localhost:PORT"/>, and
-# siteconfig/jndi.properties' java.naming.provider.url. Our shipped config
-# uses 8088 -- if you repoint it, update those too.
-BROKER_PORT=8088
+# The broker's listening port. Three things have to agree on it: this
+# script's check, activemq.xml's <transportConnector>, and
+# jndi.properties' java.naming.provider.url. They used to agree by all
+# three hardcoding 8088, which meant the port could not be changed without
+# editing installed files -- and so two ECCE instances could never run at
+# once, on one machine or in a test.
+#
+# Now only this variable is authoritative: the per-user copies of
+# activemq.xml and jndi.properties are resolved from it below. The C++ side
+# needs nothing, because it never reads either file -- it finds the
+# dispatcher through $STATEDIR/${HOST}_${DISPLAY} (see JMSMessage.C).
+BROKER_PORT="${ECCE_BROKER_PORT:-8088}"
 
 port_open() {
   # The connect runs in a subshell, so fd 3 is closed when that subshell
@@ -82,7 +89,14 @@ else
     echo "ecce-gateway-start: starting ActiveMQ broker..."
     ACTIVEMQ_BASE="$STATEDIR/activemq"
     mkdir -p "$ACTIVEMQ_BASE/data" "$ACTIVEMQ_BASE/conf"
-    [ -e "$ACTIVEMQ_BASE/conf/activemq.xml" ] || cp "$ECCE_HOME/server/activemq-conf/activemq.xml" "$ACTIVEMQ_BASE/conf/activemq.xml"
+    # Resolve the shipped config against BROKER_PORT rather than copying it
+    # verbatim. Rewritten whenever it does not already name this port, so
+    # changing ECCE_BROKER_PORT takes effect without hand-deleting the copy.
+    _amq_conf="$ACTIVEMQ_BASE/conf/activemq.xml"
+    if [ ! -e "$_amq_conf" ] || ! grep -q "tcp://localhost:$BROKER_PORT" "$_amq_conf"; then
+      sed -e "s|tcp://localhost:[0-9][0-9]*|tcp://localhost:$BROKER_PORT|g" \
+          "$ECCE_HOME/server/activemq-conf/activemq.xml" >"$_amq_conf"
+    fi
     export ACTIVEMQ_BASE
     CP=""
     for f in "$ACTIVEMQ_HOME"/lib/*.jar; do CP="$f:$CP"; done
@@ -149,11 +163,22 @@ else
   echo "ecce-gateway-start: starting JMSDispatcher..."
   CP=""
   for f in "$ECCE_HOME"/java/lib/*.jar; do CP="$f:$CP"; done
+
+  # Same story as activemq.xml: give the dispatcher a jndi.properties that
+  # names this instance's broker port, and put it ahead of the installed
+  # one on the classpath. $ECCE_HOME/siteconfig is root-owned and shared,
+  # so it cannot be rewritten per user or per instance anyway.
+  mkdir -p "$STATEDIR/siteconfig"
+  if [ -f "$ECCE_HOME/siteconfig/jndi.properties" ]; then
+    sed -e "s|\(java\.naming\.provider\.url[ \t]*=[ \t]*\).*|\1tcp://localhost:$BROKER_PORT|" \
+        "$ECCE_HOME/siteconfig/jndi.properties" \
+        >"$STATEDIR/siteconfig/jndi.properties"
+  fi
   rm -f "$PORTFILE"
   (
     nohup java -DECCE_HOST="$HOST" -DDISPLAY="$DISPLAY" \
       -DECCE_HOME="$ECCE_HOME" -DECCE_USERHOME="$ECCE_REALUSERHOME" \
-      -cp "$CP:$ECCE_HOME/siteconfig" \
+      -cp "$STATEDIR/siteconfig:$CP:$ECCE_HOME/siteconfig" \
       gov.pnnl.emsl.ecce.jms.JMSDispatcher \
       >"$STATEDIR/jmsdispatcher.log" 2>&1 &
     echo $! >"$PIDFILE"
