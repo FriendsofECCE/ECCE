@@ -160,7 +160,6 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   // Get Registry
   ResourceDescriptor rs = ResourceDescriptor::getResourceDescriptor();
 
-  addLauncherTools();
 
 
   // Set desktop icon
@@ -2590,76 +2589,6 @@ bool CalcMgr::checkMovable(WxResourceTreeItemData * node)
 /**
  * Invoke tool application by sending message.
  */
-/**
- * Put the Gateway's app-launch buttons on the Organizer toolbar.
- *
- * Phase 1 of issue #93: the Gateway is a separate top-level window whose
- * main job is a row of launcher icons, which made sense when screens were
- * small. The mechanism behind those icons is not Gateway-private -- a
- * launch is a JMS publish on "ecce_get_app", and CalcMgr::startApp()
- * already sends exactly that message. So this is UI only: same tool list,
- * same message, different window.
- *
- * The list is read from the resource descriptor rather than hardcoded,
- * exactly as Gateway::CreateControls() does, so a newly registered tool
- * appears here for free and the two cannot drift apart while both exist.
- *
- * The Gateway window is deliberately left working for now; two launchers
- * coexisting is harmless and keeps this change reviewable on its own.
- */
-void CalcMgr::addLauncherTools()
-{
-  if (p_toolBar == (wxToolBar*)0) return;
-
-  ResourceDescriptor& descriptor =
-      ResourceDescriptor::getResourceDescriptor();
-
-  bool addedAny = false;
-  for (int index = 0; true; index++) {
-    ResourceTool *tool = descriptor.getGatewayTool(index);
-    if (tool == (ResourceTool*)0) break;
-
-    string icon = tool->getIcon();
-    if (icon.empty()) continue;
-
-    if (!addedAny) {
-      p_toolBar->AddSeparator();
-      addedAny = true;
-    }
-
-    wxBitmap bitmap(ewxBitmap::pixmapFile(icon), wxBITMAP_TYPE_XPM);
-    if (!bitmap.IsOk()) continue;
-
-    p_toolBar->AddTool(tool->getId(), _T(""), bitmap,
-                       wxString::FromAscii(tool->getLabel().c_str()),
-                       wxITEM_NORMAL);
-    // Dynamic Connect rather than an event-table entry: these ids come from
-    // the resource files and are not known at compile time.
-    Connect(tool->getId(), wxEVT_COMMAND_TOOL_CLICKED,
-            wxCommandEventHandler(CalcMgr::OnLauncherTool));
-  }
-
-  if (addedAny) p_toolBar->Realize();
-}
-
-
-/**
- * A launcher toolbar button was pressed; ask the gateway for that app.
- */
-void CalcMgr::OnLauncherTool(wxCommandEvent& event)
-{
-  ResourceTool *tool =
-      ResourceDescriptor::getResourceDescriptor().getTool(event.GetId());
-  if (tool == (ResourceTool*)0) return;
-
-  // forcenew 0: reuse an existing window of that app if there is one, which
-  // is what the Gateway does by default (its LEFTCLICKNEWAPP preference
-  // inverts it; that preference belongs with the button, so it moves here
-  // if and when the Gateway window goes away).
-  startApp(tool->getName(), 0, "");
-}
-
-
 void CalcMgr::startApp(const string& app, int force, const string& url,
                        const string& codename, int debug)
 {
