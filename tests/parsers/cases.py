@@ -1186,6 +1186,37 @@ CASES = [
                 'size': '1 3 3', 'units': 'Angstrom'}}),
         },
     ),
+    dict(
+        #  THE REGRESSION FIXTURE FOR THE VIBRATION END-ANCHOR BUG.
+        #
+        #  A real CH4 PM7 FORCE job from 2026-09-22 that killed
+        #  eccejobmonitor on every poll:
+        #
+        #    FATAL ERROR: JobOutputGet: end of file encountered while
+        #    reading parse type VIBIR
+        #
+        #  Same molecule and symmetry as ch4_force.out, and that is the
+        #  point -- what differs is that this run produced no
+        #  thermochemistry section, so "SYMMETRY NUMBER FOR POINT-GROUP"
+        #  never appears. The withdrawn [VIBIR] entry used that string as
+        #  its End, so its Begin matched, the End never came, and the
+        #  monitor Died at EOF. See #103.
+        #
+        #  Kept as a case even though [VIBIR] is currently commented out,
+        #  because the suite ALREADY fails a "runaway parse type" -- the
+        #  machinery was there and only the fixture was missing. Anyone
+        #  re-enabling that entry with a similarly optional End will be
+        #  told immediately rather than after shipping it.
+        name='mopac-ch4-force-nothermo',
+        desc='mopac.desc',
+        fixture='mopac/ch4_force_nothermo.out',
+        parse_args=('.', 'Vibration', 'SE', 'PM7', '0'),
+        expect={
+            'TE][TEVEC][HFENERGY': dict(keys={'TE': {}}),
+            'VIBFREQ][VIBSYM][VIB': dict(keys={
+                'VIBFREQ': {'units': 'cm-1'}}),
+        },
+    ),
 ]
 
 

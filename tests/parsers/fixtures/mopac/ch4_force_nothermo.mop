@@ -1,0 +1,12 @@
+PM7 EF CHARGE=0 SINGLET
+Calculation-15-2
+Calculation-15-2
+ C      0.000000000     0.000000000     0.000000000
+ H     -0.675500000    -0.675500000     0.675500000
+ H      0.675500000     0.675500000     0.675500000
+ H      0.675500000    -0.675500000    -0.675500000
+ H     -0.675500000     0.675500000    -0.675500000
+
+PM7 FORCE OLDGEO CHARGE=0 SINGLET
+Calculation-15-2
+Vibrational analysis at the optimized geometry
