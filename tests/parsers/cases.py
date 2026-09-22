@@ -1162,6 +1162,30 @@ CASES = [
                 'TEVEC': {'units': 'kJoule/Mole'}}),
         },
     ),
+    dict(
+        #  Variable-cell relaxation of silicon, started from a cell
+        #  compressed to 2.60 A so the optimiser has work to do. The only
+        #  fixture exercising [LATTICEVEC], and the only one where the
+        #  BOX CHANGES between steps.
+        #
+        #  GEOMTRACE and LATTICEVEC must have the SAME number of blocks:
+        #  GTStepCmd assigns both by the same step index, so a cell
+        #  vector shorter than the geometry trace means later frames draw
+        #  the wrong box, and a longer one runs off the end. In vc-relax
+        #  output the two blocks are adjacent, which also makes this the
+        #  fixture that would catch [LATTICEVEC]'s End swallowing
+        #  [GEOMTRACE]'s Begin.
+        name='qe-si-vcrelax',
+        desc='qe.desc',
+        fixture='qe/si_vcrelax.pwout',
+        parse_args=('.', 'GeomOpt', 'PW', 'PW', '0'),
+        expect={
+            'GEOMTRACE': dict(blocks=5, keys={'GEOMTRACE': {
+                'size': '1 2 3', 'units': 'Angstrom'}}),
+            'LATTICEVEC': dict(blocks=5, keys={'LATTICEVEC': {
+                'size': '1 3 3', 'units': 'Angstrom'}}),
+        },
+    ),
 ]
 
 

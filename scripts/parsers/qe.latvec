@@ -1,0 +1,82 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts one cell from Quantum ESPRESSO's CELL_PARAMETERS block into
+# ECCE's LATTICEVEC property, so a pw.x 'vc-relax' (variable-cell
+# optimisation) can be animated with a CHANGING BOX rather than a fixed
+# one.
+#
+# The machinery for that already existed and simply had no producer for
+# QE: GTStepCmd assigns a per-step 3x3 cell from LATTICEVEC, and
+# SGLattice draws it. NWChem's Car-Parrinello path was the only source.
+#
+# Called once per block by eccejobmonitor (Frequency=all in qe.desc),
+# each invocation contributing one step.
+#
+# Input (real pw.x 6.7 vc-relax output):
+#
+#   CELL_PARAMETERS (angstrom)
+#     -2.687463282   0.000000000   2.687463282
+#     -0.000000000   2.687463282   2.687463282
+#     -2.687463282   2.687463282   0.000000000
+#
+# As with ATOMIC_POSITIONS, THE UNIT IS IN THE HEADER, which is why
+# qe.desc feeds this script the Begin line itself (Skip=0). QE writes
+# angstrom, bohr, or "alat" with the scaling factor in parentheses.
+# angstrom and bohr are converted; alat is REFUSED rather than emitted
+# as if it were absolute, because a cell silently scaled by a factor of
+# roughly 5-10 would still draw as a perfectly plausible box.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+use constant BOHR_TO_ANGSTROM => 0.529177210903;
+
+my @values;
+my $scale;
+
+while (<STDIN>) {
+  if (/^\s*CELL_PARAMETERS\s*[\(\{]?\s*([A-Za-z]+)/) {
+    my $unit = lc($1);
+    if ($unit eq "angstrom") {
+      $scale = 1.0;
+    } elsif ($unit eq "bohr") {
+      $scale = BOHR_TO_ANGSTROM;
+    } else {
+      #  "alat" carries its factor in the header text and is relative to
+      #  the reference cell; emitting it unconverted would draw a box of
+      #  entirely the wrong size that still looks reasonable.
+      exit(0);
+    }
+    next;
+  }
+
+  next if (!defined($scale));
+  last if (/^\s*$/);
+
+  if (/^\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
+    push(@values, $1 * $scale, $2 * $scale, $3 * $scale);
+  }
+}
+
+#  Exactly nine numbers, or nothing. A partial cell is worse than no
+#  cell: LATTICEVEC is declared 3x3 and a short vector would be read
+#  past its end.
+exit(0) if (scalar(@values) != 9);
+
+print "key: LATTICEVEC\n";
+print "size:\n1 3 3\n";
+print "rowlabels:\n0 1 2\n";
+print "columnlabels:\nX Y Z\n";
+print "values:\n";
+for (my $i = 0; $i < 9; $i++) {
+  printf("%.15e ", $values[$i]);
+  print "\n" if ($i % 3 == 2);
+}
+print "units:\nAngstrom\n";
+print "END\n";
+exit(0);

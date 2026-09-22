@@ -1,0 +1,38 @@
+&CONTROL
+  calculation = 'vc-relax'
+  prefix = 'si_vcrelax'
+  outdir = './qe.scratch'
+  pseudo_dir = '/usr/share/espresso/pseudo/'
+  tprnfor = .true.
+  tstress = .true.
+  forc_conv_thr = 1.0d-3
+/
+&SYSTEM
+  ibrav = 0
+  nat = 2
+  ntyp = 1
+  ecutwfc = 18.0
+  occupations = 'fixed'
+/
+&ELECTRONS
+  conv_thr = 1e-06
+  mixing_beta = 0.7
+/
+&IONS
+  ion_dynamics = 'bfgs'
+/
+&CELL
+  cell_dynamics = 'bfgs'
+  press_conv_thr = 0.5
+/
+ATOMIC_SPECIES
+  Si     28.0855  Si.pbe-n-rrkjus_psl.1.0.0.UPF
+CELL_PARAMETERS angstrom
+     -2.6000000000     0.0000000000     2.6000000000
+      0.0000000000     2.6000000000     2.6000000000
+     -2.6000000000     2.6000000000     0.0000000000
+ATOMIC_POSITIONS angstrom
+  Si      0.0000000000     0.0000000000     0.0000000000
+  Si     -1.3000000000     1.3000000000     1.3000000000
+K_POINTS automatic
+  4 4 4 0 0 0

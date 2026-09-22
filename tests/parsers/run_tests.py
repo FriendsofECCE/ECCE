@@ -368,6 +368,26 @@ def run_case(case, res, verbose=False):
                           'with no error anywhere.'
                           % (key, sizes[key], reference))
 
+    # --- cross-property invariant: one cell per geometry frame ---------
+    #
+    # GTStepCmd assigns BOTH the atom coordinates and the 3x3 cell for a
+    # step from the same index. So a LATTICEVEC shorter than GEOMTRACE
+    # means later frames are drawn in the wrong box, and a longer one
+    # indexes past the end of the trace -- the same class of fault as the
+    # TEVEC/GEOMTRACE bounds check above, except it draws a plausible
+    # wrong cell instead of crashing, which is worse.
+    #
+    # Only checked when a code emits both. A fixed-cell optimisation
+    # legitimately has a geometry trace and no lattice trace at all.
+    nCell = steps.get('LATTICEVEC', 0)
+    if nTrace and nCell and nCell != nTrace:
+        res.check(False, case['name'],
+                  'LATTICEVEC has %d step(s) but GEOMTRACE has %d. '
+                  'GTStepCmd assigns the cell and the coordinates for a '
+                  'step from the same index, so a mismatch draws later '
+                  'frames in the wrong box.'
+                  % (nCell, nTrace))
+
     return result, ''.join(report)
 
 

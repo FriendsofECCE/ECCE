@@ -169,3 +169,33 @@ Frequency=all
 Skip=0
 End=^\s*$
 [END]
+
+# Per-step unit cell, from pw.x 'vc-relax' (variable-cell optimisation).
+#
+# The machinery to animate a CHANGING BOX already existed and simply had
+# no producer for QE: GTStepCmd assigns a per-step 3x3 cell from
+# LATTICEVEC and SGLattice draws it, with NWChem's Car-Parrinello path
+# the only previous source.
+#
+# Skip=0 for the same reason as [GEOMTRACE]: the unit lives in the
+# CELL_PARAMETERS header, not in the rows.
+#
+# BOUNDARY CHECK, per the End-line starvation hazard CLAUDE.md records.
+# In vc-relax output the two blocks are adjacent:
+#
+#     CELL_PARAMETERS (angstrom)
+#       -2.687463282   0.000000000   2.687463282
+#       ...
+#                                     <- blank: this entry's End
+#     ATOMIC_POSITIONS (angstrom)     <- [GEOMTRACE]'s Begin, NOT consumed
+#
+# The End is the blank line BETWEEN them, so ATOMIC_POSITIONS survives to
+# match its own entry. Verified by replaying a real vc-relax through the
+# eccejobmonitor simulation and confirming both entries still fire.
+[LATTICEVEC]
+Script=qe.latvec
+Begin=^CELL_PARAMETERS
+Frequency=all
+Skip=0
+End=^\s*$
+[END]
