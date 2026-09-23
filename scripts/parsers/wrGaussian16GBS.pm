@@ -303,7 +303,17 @@ sub writeGaussian16{
       $oldbasis = $lib_gbs;
     }
     if ($useRouteCard == 1) {
-      print("useRouteCard $oldbasis $name_coordinants\n");
+      #  Print the TRANSLATED name, not ECCE's own.  This used to print
+      #  $oldbasis, which is the ECCE key -- so %NameToBasis was only ever
+      #  consulted to decide whether a name was usable, and its value was
+      #  thrown away.  That worked by luck wherever the two spellings
+      #  coincide (Gaussian is case-insensitive, so "cc-pvdz" and "6-31g*"
+      #  happen to be accepted verbatim) and produced a dead deck wherever
+      #  they do not: "midi!" is rejected by Gaussian and has to be
+      #  "midix", and "dz (dunning)" and "sv (dunning-hay)" are not even
+      #  syntactically valid on a route line -- they have to be "d95" and
+      #  "d95v".  Verified against the installed Gaussian 16.
+      print("useRouteCard $NameToBasis{$oldbasis} $name_coordinants\n");
     }
   }
   if ($useRouteCard == 0) {

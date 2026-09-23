@@ -303,7 +303,11 @@ sub writeGaussian09{
       $oldbasis = $lib_gbs;
     }
     if ($useRouteCard == 1) {
-      print("useRouteCard $oldbasis $name_coordinants\n");
+      #  Print the TRANSLATED name; see the matching comment in
+      #  wrGaussian16GBS.pm. Printing the ECCE key meant "midi!",
+      #  "dz (dunning)" and "sv (dunning-hay)" produced decks
+      #  Gaussian rejects.
+      print("useRouteCard $NameToBasis{$oldbasis} $name_coordinants\n");
     }
   }
   if ($useRouteCard == 0) {
@@ -518,10 +522,10 @@ sub setupBasisTranslation {
   $NameToBasis{"6-31g"} = "6-31g";
   $NameToBasis{"6-31++g"} = "6-31++g";
   $NameToBasis{"6-31++g**"} = "6-31++g**";
-  $NameToBasis{"6-31g(3df,3pd)"} = "6-31g(3df,3dp)";
+  $NameToBasis{"6-31g(3df,3pd)"} = "6-31G(3df,3pd)";
   $NameToBasis{"6-311g"} = "6-311G";
   $NameToBasis{"6-311++g"} = "6-311++G";
-  $NameToBasis{"6-311++g(3df,3pd)"} = "6-311++g(3df,3dp)";
+  $NameToBasis{"6-311++g(3df,3pd)"} = "6-311++G(3df,3pd)";
 
   $NameToBasis{"midi!"} = "midix";
   $NameToBasis{"dz (dunning)"} = "d95";
