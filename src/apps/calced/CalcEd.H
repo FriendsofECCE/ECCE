@@ -85,6 +85,7 @@ class CalcEd: public CalcEdGUI,
     virtual void OnCloseWindow( wxCloseEvent& event );
     virtual void OnSaveClick( wxCommandEvent& event );
     virtual void OnMenuCalcedSavePrefClick( wxCommandEvent& event );
+    virtual void OnMenuCalcedRegenInputClick( wxCommandEvent& event );
     virtual void OnExitClick( wxCommandEvent& event );
     virtual void OnHelpClick( wxCommandEvent& event );
     virtual void OnMenuFeedbackClick( wxCommandEvent& event );

@@ -687,6 +687,57 @@ void CalcEd::OnSaveClick( wxCommandEvent& event )
 }
 
 
+/**
+ * Rebuild the input file from the calculation's current settings.
+ *
+ * Save already does this, but File > Save is greyed out unless something
+ * has been edited (enableSave()), so there was no way to rebuild a deck
+ * whose settings had not changed.  That matters more than it sounds:
+ * the input file is generated once and then kept, so a calculation
+ * copied from an older one, or simply created before an ai.<code>
+ * generator was improved, goes on using the deck it was born with
+ * forever.  A fix to a generator never reaches any existing
+ * calculation.
+ *
+ * Hit live: MOPAC gained a "print molecular orbitals" option, and
+ * duplicating an older calculation kept producing decks without it, on
+ * four separate attempts, with nothing in the UI to say why or what to
+ * do about it.
+ *
+ * Deliberately destructive of hand edits, and says so first -- the
+ * generated file is exactly what Save would have written, so anything
+ * typed into the input by hand is lost.  That is the whole point of the
+ * action, but it should not be a surprise.
+ */
+void CalcEd::OnMenuCalcedRegenInputClick( wxCommandEvent& event )
+{
+  if (!p_iCalc) {
+    event.Skip();
+    return;
+  }
+
+  ewxMessageDialog confirm(this,
+        "Rebuild the input file from this calculation's current settings?\n\n"
+        "Any edits made to the input file by hand will be lost.",
+        "Regenerate Input File", wxYES_NO | wxICON_QUESTION);
+  if (confirm.ShowModal() != wxID_YES) {
+    event.Skip();
+    return;
+  }
+
+  if (generateInput(false)) {
+    p_feedback->setMessage("Input file regenerated.", WxFeedback::INFO);
+  } else {
+    //  generateInput() puts the generator's own diagnostic on screen
+    //  when it fails, so do not paper over it with a generic message.
+    p_feedback->setMessage("Input file could not be regenerated.",
+                           WxFeedback::ERROR);
+  }
+
+  event.Skip();
+}
+
+
 void CalcEd::OnMenuCalcedSavePrefClick( wxCommandEvent& event )
 {
   ewxConfig *config = ewxConfig::getConfig("wxcalced.ini");

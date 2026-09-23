@@ -83,6 +83,9 @@ public:
     /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENU_CALCED_SAVE_PREF
     virtual    void OnMenuCalcedSavePrefClick( wxCommandEvent& event );
 
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENU_CALCED_REGEN_INPUT
+    virtual    void OnMenuCalcedRegenInputClick( wxCommandEvent& event );
+
     /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXIT
     virtual    void OnExitClick( wxCommandEvent& event );
 
@@ -169,6 +172,7 @@ public:
     static const wxWindowID ID_COMBOBOX_CALCED_SPIN_MULT;
     static const wxWindowID ID_CHOICE_CALCED_THEORY;
     static const wxWindowID ID_MENU_CALCED_SAVE_PREF;
+    static const wxWindowID ID_MENU_CALCED_REGEN_INPUT;
     static const wxWindowID ID_BUTTON_CALCED_BUILDER;
     static const wxWindowID ID_LABEL_CALCED_XC;
     static const wxWindowID ID_COMBOBOX_CALCED_CHARGE;

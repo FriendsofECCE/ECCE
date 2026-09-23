@@ -50,6 +50,7 @@ const wxWindowID CalcEdGUI::ID_TEXTCTRL_CALCED_NAME = wxNewId();
 const wxWindowID CalcEdGUI::ID_COMBOBOX_CALCED_SPIN_MULT = wxNewId();
 const wxWindowID CalcEdGUI::ID_CHOICE_CALCED_THEORY = wxNewId();
 const wxWindowID CalcEdGUI::ID_MENU_CALCED_SAVE_PREF = wxNewId();
+const wxWindowID CalcEdGUI::ID_MENU_CALCED_REGEN_INPUT = wxNewId();
 const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_BUILDER = wxNewId();
 const wxWindowID CalcEdGUI::ID_LABEL_CALCED_XC = wxNewId();
 const wxWindowID CalcEdGUI::ID_COMBOBOX_CALCED_CHARGE = wxNewId();
@@ -98,6 +99,7 @@ BEGIN_EVENT_TABLE( CalcEdGUI, ewxFrame )
     EVT_MENU( wxID_SAVE, CalcEdGUI::OnSaveClick )
 
     EVT_MENU( ID_MENU_CALCED_SAVE_PREF, CalcEdGUI::OnMenuCalcedSavePrefClick )
+    EVT_MENU( ID_MENU_CALCED_REGEN_INPUT, CalcEdGUI::OnMenuCalcedRegenInputClick )
 
     EVT_MENU( wxID_EXIT, CalcEdGUI::OnExitClick )
 
@@ -192,6 +194,12 @@ void CalcEdGUI::CreateControls()
     wxMenu* itemMenu3 = new wxMenu;
     itemMenu3->Append(wxID_SAVE, _("Save\tCtrl+s"), _T(""), wxITEM_NORMAL);
     itemMenu3->Append(ID_MENU_CALCED_SAVE_PREF, _("Save Theory/Runtype Preference"), _T(""), wxITEM_NORMAL);
+    //  Deliberately NOT gated on the calculation being modified, unlike
+    //  Save.  Its whole purpose is to rebuild the input file when
+    //  nothing about the calculation has changed but the generator
+    //  behind it has -- which Save, being greyed out until something is
+    //  edited, cannot do.
+    itemMenu3->Append(ID_MENU_CALCED_REGEN_INPUT, _("Regenerate Input File"), _T(""), wxITEM_NORMAL);
     itemMenu3->AppendSeparator();
     itemMenu3->Append(wxID_EXIT, _("Quit\tCtrl+q"), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu3, _("File"));
@@ -514,6 +522,15 @@ void CalcEdGUI::OnMenuCalcedSavePrefClick( wxCommandEvent& event )
     // Before editing this code, remove the block markers.
     event.Skip();
 ////@end wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENU_CALCED_SAVE_PREF in CalcEdGUI. 
+}
+
+/*!
+ * wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENU_CALCED_REGEN_INPUT
+ */
+
+void CalcEdGUI::OnMenuCalcedRegenInputClick( wxCommandEvent& event )
+{
+    event.Skip();
 }
 
 /*!
