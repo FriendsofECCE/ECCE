@@ -198,6 +198,15 @@ sub setupBasisTranslation {
   #  ORCA REJECTS, and which therefore must keep falling back to explicit
   #  primitives: 3-21G*, 6-31++G, 6-31++G*, 6-31G(3df,3pd) -- note it
   #  accepts 6-31++G** while rejecting the other two 6-31++ variants.
+  $NameToBasis{"cc-pv6z"} = "cc-pV6Z";                       # nbf 331
+  $NameToBasis{"aug-cc-pv6z"} = "aug-cc-pV6Z";               # nbf 452
+  $NameToBasis{"6-311++g(2d,2p)"} = "6-311++G(2d,2p)";       # nbf 47
+  $NameToBasis{"6-311g(2df,2pd)"} = "6-311G(2df,2pd)";       # nbf 58
+  $NameToBasis{"pc-1"} = "pc-1";                             # nbf 24
+  $NameToBasis{"aug-pc-1"} = "aug-pc-1";                     # nbf 41
+  $NameToBasis{"cc-pvdz-dk"} = "cc-pVDZ-DK";                 # nbf 30
+  #  Also rejected by ORCA and therefore deliberately absent: 4-31G,
+  #  3-21++G, cc-pV(T+d)Z, 6-31G(2df,p).
   $NameToBasis{"6-31+g*"} = "6-31+G*";                       # nbf 22
   $NameToBasis{"6-31++g**"} = "6-31++G**";                   # nbf 30
   $NameToBasis{"6-311g*"} = "6-311G*";                       # nbf 24

@@ -557,6 +557,20 @@ sub setupBasisTranslation {
   #  which is def2-SV(P), while def2SVP gives 24.  Mapping ECCE's
   #  "def2-svp" onto it because the letters look right would silently
   #  substitute a smaller basis.
+  $NameToBasis{"cc-pv6z"} = "cc-pV6Z";                       # nbf 322
+  $NameToBasis{"6-311++g(2d,2p)"} = "6-311++G(2d,2p)";       # nbf 47
+  $NameToBasis{"6-311g(2df,2pd)"} = "6-311G(2df,2pd)";       # nbf 58
+  #  Rejected by Gaussian 16 and therefore deliberately absent:
+  #  3-21++G, cc-pV(T+d)Z, aug-cc-pV(T+d)Z.
+  #
+  #  Gaussian also accepts SDD, LANL2DZ and 6-31G(2df,p), which are NOT
+  #  added.  ECCE has no basis named SDD or 6-31G(2df,p) at all, so those
+  #  mappings could never fire.  LANL2DZ it does have, but under the name
+  #  "LANL2DZ ECP" -- and mapping that across would assert that ECCE's
+  #  composite is Gaussian's built-in LANL2DZ, which has not been checked.
+  #  Matching basis-function counts on one small molecule is weak evidence
+  #  for that; it needs an energy comparison against ECCE's own explicit
+  #  primitives first.  See issue #118.
   $NameToBasis{"6-31g*"} = "6-31G*";                         # nbf 19
   $NameToBasis{"6-31g**"} = "6-31G**";                       # nbf 25
   $NameToBasis{"6-31+g*"} = "6-31+G*";                       # nbf 23

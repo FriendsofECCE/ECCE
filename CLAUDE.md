@@ -472,6 +472,43 @@ Both per-user, both non-root, both started automatically by the
   double hybrids stayed hidden). Watch out that `xcFuncDefault` is an
   **index** into the list, so append rather than insert, and verify the
   defaults still resolve to the same entry afterwards.
+- **The basis-set writers decide *how* a basis reaches the deck, and every
+  bug in them is silent.** `TGBSConfig::dump()` always writes a
+  `NumericalBasis` section (explicit exponents and coefficients) and
+  *additionally* a `NameBasis` section when the basis can be named; each
+  code's `wr<Code>GBS.pm` then chooses. Things learned the hard way
+  (2026-09-23):
+  - **Gaussian's writer printed ECCE's own name, not the translated
+    one**, so `%NameToBasis` was consulted only as a yes/no test and its
+    value discarded. That works wherever the spellings coincide and
+    produces a deck Gaussian *rejects* where they do not — `midi!` has
+    to be `midix`, `dz (dunning)` → `d95`, `sv (dunning-hay)` → `d95v`.
+    Fixed; ORCA's writer always printed the value.
+  - **Name tables must be verified by RUNNING the code.** ORCA accepts
+    `6-31++G**` but rejects `6-31++G` and `6-31++G*`. Gaussian's
+    `def2SVPP` is *not* def2-SVPP — it is def2-SV(P) (18 functions for
+    water against def2SVP's 24), so a plausible-looking mapping silently
+    substitutes a smaller basis. Record the basis-function count beside
+    each entry so a future substitution shows up as a changed number.
+  - **A Gen section / `%basis` block does not need primitives** — each
+    element group may name a basis the code ships. Naming is decided
+    **per element**: an element carrying an ECP keeps explicit output so
+    it cannot disagree with the separately written ECP, everything else
+    is named. Before this, one unmappable element forced every element
+    to be written out in full.
+  - **NWChem needs no table**: ECCE's names *are* its library names
+    (both EMSL's). It has a blocklist instead, three quarters of which
+    is now stale (`aug-cc-pvdz`, `d-aug-cc-pvdz` and `iglo-ii` all work
+    in 7.2.3); only `-pcv` still holds. Do not just delete them — those
+    rules are about whether ECCE's *composite* matches the code's set of
+    the same name, not only availability.
+  - **ORCA is spherical-only.** It has no cartesian basis keyword at
+    all, so `wrORCAGBS.pm` ignoring `$coordinants` is correct, not a bug.
+    Gaussian's writer passes it and `ai.gauss16` emits `5D 7F`/`6D 10F`.
+  - Perl randomises hash iteration per process, so these writers emitted
+    **elements in a different order every run** until the keys were
+    sorted — the same calculation producing a byte-different deck each
+    time. `tests/basis` covers all of this now.
 - **A combo whose default is a bare integer opens BLANK when the list is
   built conditionally.** `wx.Choice.SetSelection()` ignores an
   out-of-range index without complaint, so the control shows nothing
