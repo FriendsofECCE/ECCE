@@ -120,6 +120,59 @@ def expect_mopac_ch4_thermo(props, report):
     report.check(zpe > 0.0, 'EZEROPT is positive (got %g)' % zpe)
 
 
+def expect_nwchem_h2o(props, report):
+    """Water, B3LYP/6-31G* -- and the regression guard for #126.
+
+    NWChem does NOT write its properties to stdout.  nwchem.desc matches
+    a separate machine-tagged trace file that NWChem writes itself, via
+    its built-in `ecce_print <file>` directive -- so the deck carries
+    that line and the monitor is pointed at the trace, not the .out.
+    Auditing nwchem.desc against plain NWChem stdout instead wrongly
+    concludes the whole file is dead.
+    """
+    for key in ('TE', 'ORBENG', 'ORBOCC', 'MO', 'GEOMTRACE', 'DIPOLE'):
+        report.check(bool(props.get(key)), '%s extracted' % key)
+
+    #  THE #126 GUARD.  nwchem.symlab writes $key/parseSym and
+    #  nwchem.molab reads it, exiting 0 without a word when it is
+    #  missing.  The monitor used to flush buffered blocks in Perl hash
+    #  order, randomized per process, so which ran first was a coin flip
+    #  -- roughly three runs in eight produced no symmetries at all,
+    #  from the same output file, with no error.  It now flushes in
+    #  descriptor-file order and nwchem.desc puts [SYMLAB] ahead of
+    #  [MOLAB1..5].
+    #
+    #  This assertion is why the case exists.  If it starts failing
+    #  intermittently, the ordering guarantee has been lost again.
+    report.check(bool(props.get('ORBSYM')),
+                 'ORBSYM extracted (#126: needs SYMLAB flushed before '
+                 'MOLAB, which is descriptor-file order)')
+    if not (props.get('ORBENG') and props.get('ORBSYM')):
+        return
+
+    n_eng = len(sect(props['ORBENG'][-1], 'values').split())
+    n_sym = len(sect(props['ORBSYM'][-1], 'values').split())
+    report.check(n_sym == n_eng,
+                 'ORBSYM length matches ORBENG (%d vs %d)' % (n_sym, n_eng))
+
+    #  The deck says noautosym, so every orbital is in the trivial
+    #  irrep.  A run that produced anything else would mean the label
+    #  table and the integer indices had come apart.
+    syms = set(sect(props['ORBSYM'][-1], 'values').split())
+    report.check(syms == {'a'},
+                 'C1 geometry gives all-"a" symmetries (got %s)'
+                 % sorted(syms))
+
+    #  Water/6-31G* is 19 basis functions; B3LYP total energy is around
+    #  -76.4 Hartree.  Loose on purpose -- the point is that a real
+    #  number in the right region arrived, not that it matches to ten
+    #  digits across NWChem releases.
+    te = float(sect(props['TE'][-1], 'values'))
+    report.check(-77.0 < te < -76.0,
+                 'total energy is a plausible B3LYP/6-31G* value for water '
+                 '(got %g)' % te)
+
+
 CASES = [
     dict(
         name='mopac-ch4-mos',
@@ -141,6 +194,18 @@ CASES = [
         output='ch4_thermo.out',
         expect=expect_mopac_ch4_thermo,
     ),
+    dict(
+        #  NWChem reads its properties from a SEPARATE trace file, not
+        #  stdout -- see expect_nwchem_h2o.  `output` is therefore the
+        #  ecce_print target named in the deck.
+        name='nwchem-h2o-dft',
+        code='nwchem',
+        desc='nwchem.desc',
+        deck='nwchem/h2o_dft.nw',
+        parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
+        output='ecce.out',
+        expect=expect_nwchem_h2o,
+    ),
 ]
 
 
@@ -148,6 +213,12 @@ CASES = [
 #  with its name reported, never silently passed -- an e2e suite that
 #  quietly tests nothing is worse than no e2e suite.
 CODES = {
+    'nwchem': dict(
+        binary='nwchem',
+        search=(),
+        argv=lambda exe, deck: [exe, deck],
+        packaged='nwchem-openmpi',
+    ),
     'mopac': dict(
         binary='mopac',
         search=(),

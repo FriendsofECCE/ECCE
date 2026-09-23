@@ -163,7 +163,7 @@ def unpack(results_file):
     return blocks
 
 
-def run_parsers(blocks, desc, parse_args):
+def run_parsers(blocks, desc, parse_args, workdir=None):
     """Stage 3: the parser scripts, the way JobParser::storeProperty does.
 
     Returns {property key: [record, ...]} in the order the monitor
@@ -179,8 +179,15 @@ def run_parsers(blocks, desc, parse_args):
         script = os.path.join(PARSERS, entry.script)
         if not os.path.exists(script):
             raise MonitorError('missing parser script %s' % script)
+        #  cwd MATTERS.  parse_args[0] is the calculation directory the
+        #  scripts resolve auxiliary files against, and it is "." -- so
+        #  nwchem.symlab writes ./parseSym and nwchem.molab reads it.
+        #  Without a cwd those land wherever the suite happened to be
+        #  launched from, which during development meant the repository
+        #  root.  Keep every side effect inside the work directory.
         proc = subprocess.run([script] + list(parse_args), input=text,
-                              capture_output=True, text=True, timeout=120)
+                              cwd=workdir, capture_output=True, text=True,
+                              timeout=120)
         for rec in parse_parser_output(proc.stdout):
             out.setdefault(rec['key'], []).append(rec)
     return out

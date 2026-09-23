@@ -87,7 +87,8 @@ def run_case(case, verbose, keep):
 
         # --- stage 3: the real parser scripts -------------------------
         desc = read_desc(desc_path)
-        props = pipeline.run_parsers(blocks, desc, case['parse_args'])
+        props = pipeline.run_parsers(blocks, desc, case["parse_args"],
+                                     workdir=workdir)
         report.check(bool(props),
                      'parsers produced properties (got %d keys)' % len(props))
 
