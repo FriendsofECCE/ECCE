@@ -88,6 +88,17 @@ args:    '.' 'Vibration' 'SE' 'RPM7' '0'
       values: -0.000000000000000e+00 -0.000000000000000e+00 -0.000000000000000e+00 0.000000000000000e+00 2.495000000000000e-01 1.590000000000000e-02 2.352000000000000e-01 8.320000000000000e-02 -1.590000000000000e-02 -1.306000000000000e-01 -1.571000000000000e-01 1.440000000000000e-01 -1.046000000000000e-01 -1.755000000000000e-01 -1.440000000000000e-01 -0.000000000000000e+00 0.000000000000000e+00 0.00000000000000 ...[3034 chars]
       units: Angstrom
 
+[VIBIR]  Script=mopac.vibir  Freq=last  Skip=1  Lines=-
+  Begin=DESCRIPTION OF VIBRATIONS
+  End=SYSTEM IS A GROUND STATE|SYMBOL\s+FORCE CONSTANT
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=254 fed=38 rc=0 first-fed=''
+    key: VIBIR
+      size: 9
+      rowlabels: 1 2 3 4 5 6 7 8 9
+      values: 0.0000 0.0000 1.0920 1.0920 1.0920 0.4558 0.4558 0.4558 0.0000
+      units: arb. units
+
 [EZEROPT]  Script=mopac.ezeropt  Freq=last  Skip=0  Lines=1
   Begin=ZERO POINT ENERGY
   begins=1 delivered=1 buffered_away=0

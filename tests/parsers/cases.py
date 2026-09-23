@@ -1007,6 +1007,19 @@ CASES = [
             #  H.O.F. - RT.  The two values below differ by exactly
             #  RT = 1.987204259 * 298.00 / 1000 kcal/mol, which is ORCA's
             #  own "H = U + kB*T" seen from the other side.
+            #  VIBIR must be exactly as long as VIBFREQ.  MOPAC's
+            #  DESCRIPTION OF VIBRATIONS collapses degenerate modes --
+            #  four stanzas for CH4's nine modes -- and mopac.vibir
+            #  expands them back out; a short vector would silently
+            #  misalign the spectrum against the frequencies.
+            #
+            #  Its presence here is also the regression guard for the
+            #  End that had to be an alternation: ending only on the
+            #  force-constant table header swallowed the thermochemistry
+            #  entry's Begin on this very fixture, so if VIBIR appears
+            #  and the thermochemistry below does not, the End has drifted
+            #  too far again.
+            'VIBIR': dict(blocks=1, keys={'VIBIR': {'size': '9'}}),
             'ENTHALPY][ETHERM][ENTROPY][HEATCAP][THERMOTEMP': dict(
                 blocks=1, keys={
                     'ENTHALPY': {'values': '-0.022954235107774',

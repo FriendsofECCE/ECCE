@@ -273,62 +273,70 @@ Frequency=last
 End=MASS-WEIGHTED COORDINATE ANALYSIS
 [END]
 
-# IR INTENSITIES ARE DISABLED. The entry below is kept, commented out,
-# because the parser (mopac.vibir) is correct and verified -- what is
-# wrong is the framing, and the fix belongs with someone who can test it
-# live.
+# IR intensities, from the DESCRIPTION OF VIBRATIONS block.  Without
+# VIBIR (or VIBRAM) NModePanel::fillGraph() returns false and
+# initialize() falls back to showTable(), which is why MOPAC alone showed
+# a table where every other code shows the spectrum plot.
 #
-# Shipped briefly on 2026-09-22 and withdrawn the same evening: it made
-# eccejobmonitor die on every MOPAC job.
+# THE End IS THE WHOLE STORY HERE.  This shipped on 2026-09-22 anchored
+# on "SYMMETRY NUMBER FOR POINT-GROUP" and was withdrawn the same
+# evening, because it made eccejobmonitor die on every MOPAC job:
 #
 #   FATAL ERROR: JobOutputGet: end of file encountered while reading
 #   parse type VIBIR
-#   eccejobmonitor terminating abnormally, exit status 1
 #
-# eccejobmonitor tails a file that is STILL BEING WRITTEN. If it matches
-# a Begin and then reaches EOF before finding the End, that is fatal --
-# not "try again next poll". So an End must be a string that is
-# guaranteed to appear, and "SYMMETRY NUMBER FOR POINT-GROUP" is not:
-# MOPAC does not print it for every molecule or every runtype.
+# The monitor tails a file that is still being written.  Matching a
+# Begin and then reaching EOF without the End is fatal, not "try again
+# next poll", so an End has to be a string that reliably appears --
+# and MOPAC does not print that one for every molecule or runtype.
 #
-# This is invisible to tests/parsers, which replays COMPLETE files and
-# therefore always finds the End. Any End-anchored entry needs thinking
-# about at EOF, not just on a finished output.
+# The obvious replacement is a trap: "FORCE CONSTANT" appears INSIDE
+# every VIBRATION stanza, so ending on it would close the block after
+# the first mode and report one mode's intensity as though it were all
+# of them -- worse than nothing, and exactly what the withdrawal note
+# warned a blank line would do.
 #
-# A fix needs an End that always follows the block. A blank line will
-# not do -- MOPAC separates the individual VIBRATION stanzas with blank
-# lines, so it would close after the first one and report a single
-# mode's intensity as though it were all of them, which is worse than
-# nothing. See issue #103.
+# "SYMBOL  FORCE CONSTANT" is the header of the force-constant table
+# that follows the block, and cannot match a stanza line (those read
+# " FORCE CONSTANT      0.2475", with no SYMBOL).  Checked across every
+# MOPAC fixture: present exactly once in each output that has a
+# DESCRIPTION OF VIBRATIONS block, always after it, and absent from
+# every output that has no such block.
 #
-# # IR intensities, from the DESCRIPTION OF VIBRATIONS block.  Without
-# # VIBIR (or VIBRAM) NModePanel::fillGraph() returns false and
-# # initialize() falls back to showTable(), which is why MOPAC alone showed
-# # a table where every other code shows the spectrum plot.
-# #
-# # Boundary check, per the End-line starvation hazard this file's header
-# # warns about: Begin is DESCRIPTION OF VIBRATIONS, which lies after
-# # [VIBFREQ]'s End (MASS-WEIGHTED COORDINATE ANALYSIS), so nothing is
-# # eaten from under it.  End is SYMMETRY NUMBER FOR POINT-GROUP, which is
-# # no other entry's Begin -- [PNTGRP] anchors on MOLECULAR POINT GROUP,
-# # and every occurrence of that in a real FORCE or GEO+VIB run comes
-# # BEFORE this block, so consuming this line starves nothing.
-# #
-# # Skip=1 starts feeding at the line after Begin, which is blank;
-# # mopac.vibir scans for its own markers and ignores everything else, so
-# # the usual off-by-one that silently produces zero output does not apply.
-# #
-# # The block collapses degenerate modes (4 stanzas for CH4's 9 modes);
-# # mopac.vibir expands them back out.  See its header for why that is
-# # structural rather than a frequency match, and for why the value is the
-# # square of the transition dipole on a relative scale.
-# [VIBIR]
-# Script=mopac.vibir
-# Begin=DESCRIPTION OF VIBRATIONS
-# Skip=1
-# Frequency=last
-# End=SYMMETRY NUMBER FOR POINT-GROUP
-# [END]
+# It is NOT sufficient on its own, and the alternation is not
+# decoration.  With THERMO the force-constant table comes a long way
+# after the stanzas -- 438 to 647 in the ch4_geovib fixture -- and the
+# thermochemistry table sits between them at 492.  Ending only on the
+# table header therefore swallowed [ENTHALPY]...'s Begin and starved it
+# completely: MOPAC thermochemistry stopped being extracted the moment
+# this entry was re-enabled.  "SYSTEM IS A GROUND STATE" is printed
+# immediately after the stanzas whenever THERMO is on, so the
+# alternation closes the block before the thermochemistry in that case
+# and on the table header otherwise.
+#
+# Boundary check per this file's header: Begin lies after [VIBFREQ]'s
+# End (MASS-WEIGHTED COORDINATE ANALYSIS), so nothing is eaten from
+# under it, and the End line is no other entry's Begin.
+#
+# Skip=1 starts feeding at the line after Begin, which is blank;
+# mopac.vibir scans for its own markers and ignores everything else, so
+# the usual off-by-one that silently produces zero output does not
+# apply.
+#
+# The block collapses degenerate modes (4 stanzas for CH4's 9 modes);
+# mopac.vibir expands them back out, so VIBIR comes out the same length
+# as VIBFREQ.  The value is the square of the transition dipole on a
+# relative scale: MOPAC prints a transition dipole in Debye and gives no
+# conversion to km/mol, so the units say "arb. units" rather than
+# claiming an absolute intensity.  Peak positions and relative heights
+# are right; the y-axis is not comparable with another code's.
+[VIBIR]
+Script=mopac.vibir
+Begin=DESCRIPTION OF VIBRATIONS
+Skip=1
+Frequency=last
+End=SYSTEM IS A GROUND STATE|SYMBOL\s+FORCE CONSTANT
+[END]
 
 # "          ZERO POINT ENERGY      10.115 KCAL/MOL" -- already in
 # kcal/mol, the Energy converter's base unit, so no conversion.
