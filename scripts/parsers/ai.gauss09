@@ -354,8 +354,28 @@ sub G09Route {
     $route .= " AIM=(CP)";
   } 
  
-  if ($AbiDict{"ES.Theory.DFT.UseGD3BJ"}) {
-    $route .= " empiricaldispersion=GD3-BJ";
+  #  Gaussian REJECTS "GD3-BJ" -- the keyword is GD3BJ, no hyphen.  Every
+  #  deck that ticked the old "Use GD3-BJ" box was refused outright by
+  #  Gaussian 16 ("A syntax error was detected in the input line"), so
+  #  that option has never worked.  Verified against the installed g16,
+  #  along with the other three ECCE now offers:
+  #
+  #      GD2    Grimme D2            -76.408793 for water/B3LYP/6-31G*
+  #      GD3    Grimme D3            -76.408762
+  #      GD3BJ  Grimme D3(BJ)        -76.409328
+  #      PFD    Petersson-Frisch     -76.408754
+  #
+  #  The old boolean key is still honoured so a calculation saved before
+  #  this keeps working -- and now actually runs.
+  my %g16Dispersion = ("Grimme D2"        => "GD2",
+                       "Grimme D3"        => "GD3",
+                       "Grimme D3(BJ)"    => "GD3BJ",
+                       "Petersson-Frisch" => "PFD");
+  my $disp = $AbiDict{"ES.Theory.DFT.Dispersion"};
+  if (defined($disp) && exists($g16Dispersion{$disp})) {
+    $route .= " empiricaldispersion=" . $g16Dispersion{$disp};
+  } elsif ($AbiDict{"ES.Theory.DFT.UseGD3BJ"}) {
+    $route .= " empiricaldispersion=GD3BJ";
   }
 # End Andy
   

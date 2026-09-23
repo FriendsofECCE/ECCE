@@ -402,12 +402,26 @@ class Ged16TheoryPanel(EccePanel):
                                         label = "Grid Quality:")
             dftSizer.AddWidget(self.gridOpt)
 
-            self.useGD3BJBox = EcceCheckBox(self,
-                                           label = " Use GD3-BJ",
-                                           name = "ES.Theory.DFT.UseGD3BJ",
-                                           default = False,
+            #  Was a single "Use GD3-BJ" checkbox, which emitted
+            #  "empiricaldispersion=GD3-BJ" -- a spelling Gaussian rejects
+            #  outright, so it never worked.  Gaussian takes three Grimme
+            #  corrections and the Petersson-Frisch one; all four were run
+            #  against the installed g16 before being offered here.
+            #
+            #  Named to match NWChem's dispersion control so the two codes
+            #  read the same way.
+            dispersionChoice = ["None",
+                                "Grimme D2",
+                                "Grimme D3",
+                                "Grimme D3(BJ)",
+                                "Petersson-Frisch"]
+            self.dispersion = EcceComboBox(self,
+                                           choices = dispersionChoice,
+                                           name = "ES.Theory.DFT.Dispersion",
+                                           default = dispersionChoice.index("None"),
+                                           label = "Dispersion:",
                                            export = 1)
-            dftSizer.AddWidget(self.useGD3BJBox)
+            dftSizer.AddWidget(self.dispersion)
 
 
             self.panelSizer.Add(dftSizer)
