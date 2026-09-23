@@ -1,0 +1,27 @@
+NameBasis
+basis "ao basis" cartesian print
+H library "6-31G*"
+Pt library "LANL2DZ"
+END
+EndNameBasis
+
+
+NumericalBasis
+basis "ao basis" cartesian print
+H S
+     18.7311370              0.0334946
+      2.8253937              0.2347270
+      0.6401217              0.8137573
+Pt S
+      2.6300000             -2.6087810
+      1.7200000              3.1670530
+END
+
+ECP
+Pt nelec 60
+Pt ul
+2     52.8680174           -298.3178135
+Pt S
+0    409.4437358              2.7334218
+END
+EndNumericalBasis

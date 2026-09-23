@@ -293,7 +293,12 @@ sub wrNWChem{
       %gbs = %{$bs{"name_gbs"}};
     }
     my $atom;
-    foreach $atom (keys %gbs)
+    #  sort: Perl randomises hash iteration order per process, so without
+    #  this the elements come out in a different order every run and the
+    #  same calculation generates a byte-different input file each time.
+    #  Harmless to the codes, but it makes two generated decks impossible
+    #  to diff and any golden-file test of this writer nondeterministic.
+    foreach $atom (sort keys %gbs)
     {
       if (!($atom =~ /coordinants/)) {
         if ($gbs{$atom} =~ /^\s*\"\s*aug/i ||
@@ -338,7 +343,7 @@ sub wrNWChem{
       }
 
       my $atom;
-      foreach $atom (keys %gbs)
+      foreach $atom (sort keys %gbs)
       {
         my @orbitalList = @{$gbs{$atom}};
   
@@ -367,7 +372,7 @@ sub wrNWChem{
     }
     #####ECP#######################
     print "ECP\n" if (exists $bs{"ecp"});
-    foreach $atom (keys %ecp)
+    foreach $atom (sort keys %ecp)
     {
       #
       # Each atom has a set of data associated with it
@@ -432,7 +437,7 @@ sub wrNWChem{
       }
 
       my $atom;
-      foreach $atom (keys %gbs)
+      foreach $atom (sort keys %gbs)
       {
          print("  $atom library $gbs{$atom}\n");
       }

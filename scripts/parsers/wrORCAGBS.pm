@@ -44,7 +44,12 @@ sub writeORCA{
     delete $name_gbs{"coordinants"};
     my $oldbasis = "";
     $useRouteCard = 1;
-    foreach my $atom (keys %name_gbs) {
+    #  sort: Perl randomises hash iteration order per process, so without
+    #  this the elements come out in a different order every run and the
+    #  same calculation generates a byte-different input file each time.
+    #  Harmless to the codes, but it makes two generated decks impossible
+    #  to diff and any golden-file test of this writer nondeterministic.
+    foreach my $atom (sort keys %name_gbs) {
       my $lib_gbs = lc $name_gbs{$atom};
       $lib_gbs =~ s/^\"//;
       $lib_gbs =~ s/\"$//;
@@ -66,7 +71,7 @@ sub writeORCA{
   print "%basis\n";
 
   my $atom;
-  foreach $atom (keys %gbs) {
+  foreach $atom (sort keys %gbs) {
     my @orbitalList = @{$gbs{$atom}};
     my $en = $atom;
     $en = ucfirst(lc($en));
@@ -115,7 +120,7 @@ sub writeORCA{
   # Write out ECP information (unverified -- see header note)
   ########################################
   @shells = ("s", "p", "d", "f", "g", "h", "i");
-  foreach $atom (keys %ecp) {
+  foreach $atom (sort keys %ecp) {
     my @ecpData = @{$ecp{$atom}};
     my $numElectrons = $ecpData[0];
     my @ecpComponents = @{$ecpData[1]};

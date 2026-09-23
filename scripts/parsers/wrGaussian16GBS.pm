@@ -293,7 +293,12 @@ sub writeGaussian16{
     $name_coordinants = delete $name_gbs{"coordinants"};
     $oldbasis = "";
     $useRouteCard = 1;
-    foreach $atom (keys %name_gbs) {
+    #  sort: Perl randomises hash iteration order per process, so without
+    #  this the elements come out in a different order every run and the
+    #  same calculation generates a byte-different input file each time.
+    #  Harmless to the codes, but it makes two generated decks impossible
+    #  to diff and any golden-file test of this writer nondeterministic.
+    foreach $atom (sort keys %name_gbs) {
       $lib_gbs = lc $name_gbs{$atom};
       # strip off quotes
       $lib_gbs =~ s/^\"//;
@@ -343,7 +348,7 @@ sub writeGaussian16{
     #
     # Write out information for each atom in the gbs
     #
-    foreach $atom (keys %gbs)
+    foreach $atom (sort keys %gbs)
     {
       #
       # Each atom has a list of orbitals  associated with it.
@@ -485,7 +490,7 @@ sub writeGaussian16{
     # Write out information for each atom in the ecp
     #
     print "\n"; 
-    foreach $atom (keys %ecp)
+    foreach $atom (sort keys %ecp)
     {
       #
       # Each atom has a set of data associated with it
