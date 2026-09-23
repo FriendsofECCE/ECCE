@@ -504,6 +504,29 @@ sub setupBasisTranslation {
   # translations between NWChem and Gaussian-09 basis names
   # (when available)
 
+  #  Added 2026-09-23, each one RUN against the installed Gaussian 16 on
+  #  water, with the basis-function count recorded.  6-31G* and 6-31G**
+  #  were simply absent, which is why the two most widely used basis sets
+  #  in chemistry were being written out as explicit primitives.
+  #
+  #  NOTE the def2 spellings.  Gaussian drops the hyphen, and
+  #  "def2SVPP" is NOT def2-SVPP -- it gives 18 functions for water,
+  #  which is def2-SV(P), while def2SVP gives 24.  Mapping ECCE's
+  #  "def2-svp" onto it because the letters look right would silently
+  #  substitute a smaller basis.
+  $NameToBasis{"6-31g*"} = "6-31G*";                         # nbf 19
+  $NameToBasis{"6-31g**"} = "6-31G**";                       # nbf 25
+  $NameToBasis{"6-31+g*"} = "6-31+G*";                       # nbf 23
+  $NameToBasis{"6-311g*"} = "6-311G*";                       # nbf 24
+  $NameToBasis{"6-311g**"} = "6-311G**";                     # nbf 30
+  $NameToBasis{"6-311+g*"} = "6-311+G*";                     # nbf 28
+  $NameToBasis{"6-311++g**"} = "6-311++G**";                 # nbf 36
+  $NameToBasis{"def2-svp"} = "def2SVP";                      # nbf 24
+  $NameToBasis{"def2-svp(p)"} = "def2SVPP";                  # nbf 18
+  $NameToBasis{"def2-tzvp"} = "def2TZVP";                    # nbf 43
+  $NameToBasis{"def2-tzvpp"} = "def2TZVPP";                  # nbf 59
+  $NameToBasis{"def2-qzvp"} = "def2QZVP";                    # nbf 117
+
   $NameToBasis{"sto-2g"} = "sto-2g";
   $NameToBasis{"sto-3g"} = "sto-3g";
   $NameToBasis{"sto-3g*"} = "sto-3g*";
@@ -518,10 +541,10 @@ sub setupBasisTranslation {
   $NameToBasis{"6-31g"} = "6-31g";
   $NameToBasis{"6-31++g"} = "6-31++g";
   $NameToBasis{"6-31++g**"} = "6-31++g**";
-  $NameToBasis{"6-31g(3df,3pd)"} = "6-31g(3df,3dp)";
+  $NameToBasis{"6-31g(3df,3pd)"} = "6-31G(3df,3pd)";
   $NameToBasis{"6-311g"} = "6-311G";
   $NameToBasis{"6-311++g"} = "6-311++G";
-  $NameToBasis{"6-311++g(3df,3pd)"} = "6-311++g(3df,3dp)";
+  $NameToBasis{"6-311++g(3df,3pd)"} = "6-311++G(3df,3pd)";
 
   $NameToBasis{"midi!"} = "midix";
   $NameToBasis{"dz (dunning)"} = "d95";

@@ -164,6 +164,23 @@ sub setupBasisTranslation {
   # NewGTO listing. Trimmed to names common between the ECCE standard
   # library and ORCA's library -- extend as needed.
 
+  #  Added 2026-09-23, each one RUN against ORCA 6.1.1 on water rather
+  #  than taken from the manual, with the basis-function count recorded so
+  #  a future silent substitution shows up as a changed number.  Names
+  #  ORCA REJECTS, and which therefore must keep falling back to explicit
+  #  primitives: 3-21G*, 6-31++G, 6-31++G*, 6-31G(3df,3pd) -- note it
+  #  accepts 6-31++G** while rejecting the other two 6-31++ variants.
+  $NameToBasis{"6-31+g*"} = "6-31+G*";                       # nbf 22
+  $NameToBasis{"6-31++g**"} = "6-31++G**";                   # nbf 30
+  $NameToBasis{"6-311g*"} = "6-311G*";                       # nbf 24
+  $NameToBasis{"6-311+g*"} = "6-311+G*";                     # nbf 28
+  $NameToBasis{"6-311++g**"} = "6-311++G**";                 # nbf 36
+  $NameToBasis{"6-311++g(3df,3pd)"} = "6-311++G(3df,3pd)";   # nbf 75
+  $NameToBasis{"aug-cc-pv5z"} = "aug-cc-pV5Z";               # nbf 295
+  $NameToBasis{"def2-svp(p)"} = "def2-SV(P)";                # nbf 18
+  $NameToBasis{"def2-tzvpp"} = "def2-TZVPP";                 # nbf 59
+  $NameToBasis{"def2-qzvpp"} = "def2-QZVPP";                 # nbf 117
+
   $NameToBasis{"sto-3g"} = "STO-3G";
   $NameToBasis{"3-21g"} = "3-21G";
   $NameToBasis{"6-31g"} = "6-31G";
