@@ -320,8 +320,13 @@ sub KeywordLine {
   #  Not unconditional.  MOPAC is routinely pointed at systems far larger
   #  than the other codes here, where the full coefficient matrix is a
   #  large amount of output for something nobody asked to see.
-  push(@kw, "VECTORS", "ALLVEC")
-    if ($AbiDict{"ES.Theory.SCF.PrintMOs"} eq "1");
+  #  MISSING MEANS ON, matching the dialog's own default.  A calculation
+  #  created before this checkbox existed has no PrintMOs value stored at
+  #  all, and treating absent as "0" silently gave those calculations no
+  #  orbitals -- which is every calculation anyone already had.  Only an
+  #  explicit "0" turns it off.
+  my $printMOs = $AbiDict{"ES.Theory.SCF.PrintMOs"};
+  push(@kw, "VECTORS", "ALLVEC") if (!defined($printMOs) || $printMOs ne "0");
 
   # PRECISE: "TIGHTER CRITERIA TO BE USED" (binary's own banner text).
   push(@kw, "PRECISE") if ($AbiDict{"ES.Theory.SCF.Precise"} eq "1");
