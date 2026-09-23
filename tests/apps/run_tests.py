@@ -61,6 +61,7 @@ def checkApp(display, name, results, verbose=False):
     results.checks += 1
     isHelper = name in CASEDEFS.HELPERS
     timeout = CASEDEFS.TIMEOUTS.get(name, 40)
+
     result = apps.run(display, name, windowTimeout=timeout)
 
     if isHelper:
@@ -262,8 +263,19 @@ def main():
         apps.startServices(display, serviceLog)
         for line in serviceLog:
             print("  %s" % line)
+        #  The app's name goes out BEFORE it runs, so a wedged suite
+        #  names its culprit.  The partial-line form is nicer to read
+        #  ("name ... done" on one line) but GitHub Actions only shows
+        #  COMPLETE lines, so a hang loses it entirely and the last
+        #  SUCCESSFUL app looks like the last thing attempted -- which
+        #  sent this CI hang down the wrong path twice.  ECCE_APPS_TRACE
+        #  switches to whole lines for that reason.
+        trace = bool(os.environ.get("ECCE_APPS_TRACE"))
         for name in selected:
-            print("  %-16s" % name, end="", flush=True)
+            if trace:
+                print("  %-16s starting" % name, flush=True)
+            else:
+                print("  %-16s" % name, end="", flush=True)
             checkApp(display, name, results, verbose=args.verbose)
             print("done", flush=True)
         if not args.app:

@@ -97,9 +97,13 @@ class Display(object):
         return environment
 
     def _ready(self):
-        return subprocess.run(["xdpyinfo", "-display", self.name],
-                              stdout=subprocess.DEVNULL,
-                              stderr=subprocess.DEVNULL).returncode == 0
+        try:
+            return subprocess.run(["xdpyinfo", "-display", self.name],
+                                  stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL,
+                                  timeout=15).returncode == 0
+        except subprocess.TimeoutExpired:
+            return False
 
     def windows(self):
         """Top-level windows as [(id, title), ...].
@@ -108,9 +112,25 @@ class Display(object):
         its "python3 and nothing else" property; x11-utils is already a
         dependency of any desktop that can run ECCE at all.
         """
-        result = subprocess.run(
-            ["xwininfo", "-display", self.name, "-root", "-tree"],
-            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        #  TIMEOUT IS LOAD-BEARING.  This is polled twice a second while
+        #  waiting for an app's window, and it talks to the X server.  An
+        #  app that takes an X grab -- a modal, a menu, a drag -- and then
+        #  wedges leaves xwininfo blocking on that connection forever, so
+        #  an unbounded call here hangs the whole suite rather than the
+        #  one app.  That is what held a CI runner for 40 minutes per run:
+        #  every bound inside run() was respected, because the suite never
+        #  got back into run().
+        #
+        #  Returning nothing on a timeout is the right answer for the
+        #  caller: "no windows visible", which lets that app's own
+        #  window-timeout expire and be reported as a failure.
+        try:
+            result = subprocess.run(
+                ["xwininfo", "-display", self.name, "-root", "-tree"],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                timeout=20)
+        except subprocess.TimeoutExpired:
+            return []
         found = []
         for line in result.stdout.decode("utf-8", "replace").splitlines():
             line = line.strip()
@@ -135,8 +155,9 @@ class Display(object):
         try:
             result = subprocess.run(["glxinfo", "-display", self.name, "-B"],
                                     stdout=subprocess.PIPE,
-                                    stderr=subprocess.DEVNULL)
-        except (FileNotFoundError, OSError):
+                                    stderr=subprocess.DEVNULL,
+                                    timeout=30)
+        except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
             return None
         return b"direct rendering: Yes" in result.stdout
 

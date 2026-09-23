@@ -156,7 +156,12 @@ jobs:
           cpack -G DEB
           sudo dpkg -i ecce_*_amd64.deb
 
+      # ECCE_APPS_TRACE names each app before it starts.  Without it a
+      # wedged suite leaves the last SUCCESSFUL app as the final log
+      # line and the culprit has to be inferred from the ordering.
       - name: GUI application smoke suite
+        env:
+          ECCE_APPS_TRACE: '1'
         run: tests/apps/run_tests.py -v
 
       - name: Collect service logs on failure
