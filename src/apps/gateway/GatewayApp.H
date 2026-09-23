@@ -24,6 +24,10 @@ static string cmdLineVersion;
 
 class GatewayApp: public ewxApp, public WxDavAuth, public WxJMSMessageDispatch
 {
+  public:
+    /** Parent for dialogs: the Gateway frame only when it is shown. */
+    wxWindow* dialogParent();
+
 public:
 
   GatewayApp();

@@ -68,6 +68,19 @@ string GatewayApp::getName() const
 }
 
 
+//  The Gateway frame is constructed and then left unmapped since #93
+//  removed the Gateway window.  A dialog that is transient-for an UNMAPPED
+//  parent is never granted keyboard focus by the compositor -- pointer
+//  events still arrive, so its buttons work while not one field accepts a
+//  keystroke.  Use this instead of p_gateway directly when parenting a
+//  dialog, so a hidden frame becomes "no parent" rather than "a parent
+//  that cannot take focus".
+wxWindow* GatewayApp::dialogParent()
+{
+  return eccGatewayWindowEnabled() ? (wxWindow*) p_gateway : (wxWindow*) NULL;
+}
+
+
 bool GatewayApp::OnInit()
 {
   ewxApp::OnInit();
@@ -121,7 +134,15 @@ bool GatewayApp::OnInit()
 
   startSubscriber();
 
-  setAuthDialogParent(p_gateway);
+  //  Only parent the authentication dialog to the Gateway frame when that
+  //  frame is actually on screen.  Since #93 removed the Gateway window,
+  //  p_gateway is constructed and then left unmapped -- and a modal dialog
+  //  that is transient-for an UNMAPPED parent is never granted keyboard
+  //  focus by the compositor.  Pointer events still arrive, so the buttons
+  //  work and not one field accepts a keystroke, which is exactly how this
+  //  presented on a Wayland session.  With no parent the dialog is a
+  //  top-level in its own right and takes focus normally.
+  setAuthDialogParent(dialogParent());
   EDSIFactory::addAuthEventListener(this);
 
   // create the preferences directory if it doesn't already exist so we
@@ -144,7 +165,7 @@ bool GatewayApp::OnInit()
     }
   } catch (RetryException& rex) {
     ewxMessageDialog * dlg =
-      new ewxMessageDialog(p_gateway, rex.what(), "Retries exceeded!",
+      new ewxMessageDialog(dialogParent(), rex.what(), "Retries exceeded!",
                            wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
     dlg->ShowModal();
     dlg->Destroy();
@@ -153,7 +174,7 @@ bool GatewayApp::OnInit()
     string msg = ex.what();
     msg += "Please contact your ECCE Administrator.";
     ewxMessageDialog * dlg =
-      new ewxMessageDialog(p_gateway,  msg.c_str(), "ECCE Server Failure",
+      new ewxMessageDialog(dialogParent(),  msg.c_str(), "ECCE Server Failure",
                            wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
     dlg->ShowModal();
     dlg->Destroy();
@@ -166,7 +187,7 @@ bool GatewayApp::OnInit()
     }
   } catch (RetryException& rex) {
     ewxMessageDialog * dlg =
-      new ewxMessageDialog(p_gateway, rex.what(), "Retries exceeded!",
+      new ewxMessageDialog(dialogParent(), rex.what(), "Retries exceeded!",
                            wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
     dlg->ShowModal();
     dlg->Destroy();
@@ -177,7 +198,7 @@ bool GatewayApp::OnInit()
       "if the problem persists.\n";
     msg += ex.what();
     ewxMessageDialog * dlg =
-      new ewxMessageDialog(p_gateway,  msg.c_str(), "ECCE Server Failure",
+      new ewxMessageDialog(dialogParent(),  msg.c_str(), "ECCE Server Failure",
                            wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
     dlg->ShowModal();
     dlg->Destroy();
@@ -237,7 +258,7 @@ bool GatewayApp::OnInit()
       }
 
       if (userMsg != "") {
-        ewxMessageDialog* userDlg = new ewxMessageDialog(p_gateway,
+        ewxMessageDialog* userDlg = new ewxMessageDialog(dialogParent(),
                     userMsg.c_str(), "New ECCE User Message",
                     wxOK|wxICON_INFORMATION|wxSTAY_ON_TOP, wxDefaultPosition);
         userDlg->ShowModal();
@@ -258,7 +279,7 @@ bool GatewayApp::OnInit()
     }
 
     if (startMsg != "") {
-      ewxMessageDialog* startDlg = new ewxMessageDialog(p_gateway,
+      ewxMessageDialog* startDlg = new ewxMessageDialog(dialogParent(),
                   startMsg.c_str(), "ECCE Startup Message",
                   wxOK|wxICON_INFORMATION|wxSTAY_ON_TOP, wxDefaultPosition);
       startDlg->ShowModal();
@@ -362,7 +383,7 @@ void GatewayApp::toolStartStatusMCB(JMSMessage& msg)
   p_gateway->endActivity();
   
   if (status == "failed") {
-    ewxMessageDialog * dlg = new ewxMessageDialog(p_gateway,
+    ewxMessageDialog * dlg = new ewxMessageDialog(dialogParent(),
                     "Unable to start the application.\n"
                     "Please use the ECCE Support tool to report this problem.",
                     "System Error", wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
@@ -470,7 +491,7 @@ bool GatewayApp::checkUser()
       msg = err;
       title = "ECCE Server Failure";
     }
-    ewxMessageDialog* dlg = new ewxMessageDialog(p_gateway, msg.c_str(),
+    ewxMessageDialog* dlg = new ewxMessageDialog(dialogParent(), msg.c_str(),
                                    title.c_str(), wxOK|wxICON_EXCLAMATION,
                                    wxDefaultPosition);
     dlg->ShowModal();
@@ -484,7 +505,7 @@ bool GatewayApp::checkUser()
       "your ECCE site administrator:\n";
     msg += connection->m_msgStack.getMessage();
     
-    ewxMessageDialog* dlg = new ewxMessageDialog(p_gateway, msg.c_str(),
+    ewxMessageDialog* dlg = new ewxMessageDialog(dialogParent(), msg.c_str(),
                                 "ECCE Server Failure",
                                 wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
     dlg->ShowModal();
@@ -506,7 +527,7 @@ bool GatewayApp::checkUser()
     if (!err.empty()) {
       string msg;
       msg += connection->m_msgStack.getMessage();
-      ewxMessageDialog* dlg = new ewxMessageDialog(p_gateway, msg.c_str(),
+      ewxMessageDialog* dlg = new ewxMessageDialog(dialogParent(), msg.c_str(),
                                   "ECCE Server Configuration Error",
                                   wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
       dlg->ShowModal();
@@ -519,7 +540,7 @@ bool GatewayApp::checkUser()
         "must run the add_ecce_user script and create an account for ";
       msg += Ecce::serverUser();
       msg += " in order to run ECCE as this user.";
-      ewxMessageDialog* dlg = new ewxMessageDialog(p_gateway, msg.c_str(),
+      ewxMessageDialog* dlg = new ewxMessageDialog(dialogParent(), msg.c_str(),
                                   "ECCE Server User Not Recognized",
                                   wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
       dlg->ShowModal();
