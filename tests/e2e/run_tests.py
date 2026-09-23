@@ -10,6 +10,16 @@ Absent codes are SKIPPED with their name printed, never silently passed.
 Exit status is 0 only if every case that ran passed; a suite where every
 code was missing exits 2, so "nothing was installed" cannot be mistaken
 for "everything is fine".
+
+A skip is the right answer on a developer box that has three of the six
+codes.  It is the WRONG answer somewhere that is supposed to have
+installed them: CI installed nwchem, the binary was not where this
+suite looked, every case for it skipped, and the job went green with
+that coverage quietly gone.  Nobody reads the log of a green job.
+
+So set ECCE_E2E_REQUIRE to a comma-separated list of codes that MUST be
+present, and a skip of any of them fails the run instead.  CI sets it
+to exactly what its apt line installs.
 """
 
 import argparse
@@ -50,11 +60,24 @@ class Report(object):
             print('    ok    %s' % what)
 
 
-def run_case(case, verbose, keep):
+def required_codes():
+    raw = os.environ.get('ECCE_E2E_REQUIRE', '')
+    return set(c.strip() for c in raw.split(',') if c.strip())
+
+
+def run_case(case, verbose, keep, required=()):
     name = case['name']
     codedef = CASEDEFS.CODES[case['code']]
     exe = pipeline.which(codedef['binary'], codedef.get('search', ()))
     if exe is None:
+        if case['code'] in required:
+            rep = Report(name, verbose)
+            rep.check(False,
+                      '%s is REQUIRED here (ECCE_E2E_REQUIRE) but its binary '
+                      'was not found. Debian package: %s. Tried %r and %r.'
+                      % (case['code'], codedef.get('packaged', '?'),
+                         codedef['binary'], list(codedef.get('search', ()))))
+            return rep
         print('  %-22s SKIP (%s not installed; Debian package: %s)'
               % (name, codedef['binary'], codedef.get('packaged', '?')))
         return None
@@ -118,10 +141,22 @@ def main():
         print('no such case: %s' % args.case)
         return 2
 
+    required = required_codes()
+    #  A required code with no cases at all is the same failure wearing a
+    #  different hat: the requirement is satisfied vacuously and the
+    #  coverage still is not there.
+    #  Against every case, not the --case selection: narrowing to one
+    #  case must not make the other required codes look uncovered.
+    have_cases = set(c['code'] for c in CASEDEFS.CASES)
+    missing_cases = sorted(required - have_cases)
+
     ran, failed, skipped = 0, 0, 0
-    print('End-to-end: real code -> real eccejobmonitor -> real parsers\n')
+    print('End-to-end: real code -> real eccejobmonitor -> real parsers')
+    if required:
+        print('required codes: %s' % ', '.join(sorted(required)))
+    print('')
     for case in selected:
-        rep = run_case(case, args.verbose, args.keep)
+        rep = run_case(case, args.verbose, args.keep, required)
         if rep is None:
             skipped += 1
             continue
@@ -132,6 +167,11 @@ def main():
                   % (case['name'], len(rep.failures), rep.checks))
         else:
             print('  %-22s pass  (%d checks)' % (case['name'], rep.checks))
+
+    for code in missing_cases:
+        failed += 1
+        print('  %-22s FAIL  (required by ECCE_E2E_REQUIRE but this suite '
+              'has no cases for it)' % code)
 
     print('\n%d case(s) run, %d failed, %d skipped' % (ran, failed, skipped))
     if ran == 0:

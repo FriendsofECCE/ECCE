@@ -97,9 +97,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y perl python3 mopac nwchem-openmpi
+          sudo apt-get install -y perl python3 mopac nwchem nwchem-openmpi
 
+      # Declare what this job installed.  Without this a code whose
+      # binary is not where the suite looks simply skips, and the job
+      # goes green with that coverage quietly gone -- which is exactly
+      # what happened to nwchem on its first run here.
       - name: End-to-end suite
+        env:
+          ECCE_E2E_REQUIRE: mopac,nwchem
         run: tests/e2e/run_tests.py -v
 
   apps:

@@ -215,9 +215,14 @@ CASES = [
 CODES = {
     'nwchem': dict(
         binary='nwchem',
-        search=(),
+        #  Debian's nwchem-openmpi ships /usr/bin/nwchem AND
+        #  /usr/bin/nwchem.openmpi; other images ship only the
+        #  variant-suffixed name, which is how this silently skipped in
+        #  CI while the apt step reported success.
+        search=('/usr/bin/nwchem', '/usr/bin/nwchem.openmpi',
+                '/usr/bin/nwchem.mpich'),
         argv=lambda exe, deck: [exe, deck],
-        packaged='nwchem-openmpi',
+        packaged='nwchem-openmpi (or nwchem)',
     ),
     'mopac': dict(
         binary='mopac',
