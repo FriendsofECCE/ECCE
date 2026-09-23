@@ -25,7 +25,9 @@ ECCE_REALUSER and the GDK_BACKEND workaround, and what starts the background
 services.  Running the binary directly is explicitly not supported.
 """
 
+import fcntl
 import os
+import select
 import signal
 import subprocess
 import time
@@ -205,10 +207,53 @@ def _terminate(proc):
             pass
 
 
-def _drain(proc):
-    try:
-        if proc.stdout is None:
-            return ""
-        return proc.stdout.read().decode("utf-8", "replace")
-    except Exception:
+def _drain(proc, timeout=15):
+    """Read whatever the app wrote, WITHOUT waiting forever for EOF.
+
+    This used to be a bare proc.stdout.read(), which blocks until every
+    writer closes the pipe.  _terminate() kills the app's process group,
+    but the per-user services the wrapper starts -- apache2 for the data
+    server, Xvfb, the JMS dispatcher -- can outlive it and still hold the
+    inherited write end, so there is no EOF to wait for.
+
+    That hung the whole suite for 26 minutes on one app in CI, until the
+    job's wall-clock limit killed it (orphaned apache2 processes were
+    listed in the runner's cleanup).  It never reproduced on a developer
+    box, where the data server is usually already running and the wrapper
+    therefore starts nothing that could inherit the pipe.
+
+    A bounded read means a stuck app costs its own timeout and is
+    reported, instead of taking the run with it.
+    """
+    if proc.stdout is None:
         return ""
+    fd = proc.stdout.fileno()
+    try:
+        flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+        fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+    except OSError:
+        return ""
+
+    chunks = []
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            ready, _, _ = select.select([fd], [], [], 0.5)
+        except (OSError, ValueError):
+            break
+        if not ready:
+            # Nothing pending.  If the app itself is gone, anything still
+            # holding the pipe is a service we do not want to wait on.
+            if proc.poll() is not None:
+                break
+            continue
+        try:
+            data = proc.stdout.read()
+        except (OSError, ValueError):
+            break
+        if data is None:          # non-blocking read with nothing ready
+            continue
+        if data == b"":           # real EOF
+            break
+        chunks.append(data)
+    return b"".join(chunks).decode("utf-8", "replace")
