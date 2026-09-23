@@ -78,6 +78,28 @@ jobs:
       - name: Basis set exporter suite
         run: tests/basis/run_tests.py
 
+  e2e:
+    name: End-to-end (real code, real monitor, real parsers)
+    runs-on: ubuntu-latest
+    # Bounded so a hung job cannot hold a runner slot for GitHub's
+    # 6-hour default; see the concurrency note above.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # MOPAC is Debian-packaged and runs a small molecule in seconds,
+      # which is what makes this tier possible at all.  ORCA and
+      # Gaussian cannot be installed here -- one is registration-walled,
+      # the other licensed -- so they stay a developer-box tier and the
+      # suite skips them by name rather than passing silently.
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y perl python3 mopac
+
+      - name: End-to-end suite
+        run: tests/e2e/run_tests.py -v
+
   apps:
     name: GUI apps (build, install, Xvfb)
     runs-on: ubuntu-latest
