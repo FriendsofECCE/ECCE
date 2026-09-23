@@ -79,9 +79,11 @@ sub writeORCA{
     #  against ORCA 6.1.1, including a %basis block mixing a named NewGTO
     #  and an explicit one.
     #
-    #  Only when there is no ECP, matching the route-card condition
-    #  above; an element carrying an ECP keeps its explicit treatment.
-    if (!(exists $bs{"ecp"}) && exists $bs{"name_gbs"}) {
+    #  Per ELEMENT, not per molecule -- see the matching comment in
+    #  wrGaussian16GBS.pm.  An element carrying an ECP keeps its explicit
+    #  basis so that it cannot disagree with the separately written
+    #  NewECP; the light atoms beside it are still named.
+    if (!(exists $ecp{$atom}) && exists $bs{"name_gbs"}) {
       my $lib = lc $name_gbs{$atom};
       $lib =~ s/^\"//;
       $lib =~ s/\"$//;

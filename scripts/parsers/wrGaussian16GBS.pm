@@ -366,9 +366,15 @@ sub writeGaussian16{
       #  full.  Verified against Gaussian 16: a Gen section mixing a named
       #  group and an explicit group is accepted.
       #
-      #  Only when there is no ECP, matching the route-card condition
-      #  above; an element carrying an ECP keeps its explicit treatment.
-      if (!(exists $bs{"ecp"}) && exists $bs{"name_gbs"}) {
+      #  Per ELEMENT, not per molecule: an element that carries an ECP
+      #  keeps its explicit basis, because a named basis there would be
+      #  paired with a separately written explicit ECP and the two could
+      #  disagree about the core.  An element with no ECP is safe to name
+      #  even when some OTHER element in the molecule has one -- which is
+      #  the usual mixed-basis case, a heavy atom with an ECP alongside
+      #  ordinary light atoms.  Verified against Gaussian 16: a Gen
+      #  section mixing named groups with an explicit ECP block runs.
+      if (!(exists $ecp{$atom}) && exists $bs{"name_gbs"}) {
         my $lib = lc $name_gbs{$atom};
         $lib =~ s/^\"//;
         $lib =~ s/\"$//;
