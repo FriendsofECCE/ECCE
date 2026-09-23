@@ -24,6 +24,7 @@
 
 ////@begin includes
 #include "wxgui/ewxRadioButton.H"
+#include <wx/settings.h>
 #include "wxgui/ewxGrid.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxListBox.H"
@@ -520,12 +521,21 @@ void WxBasisToolGUI::CreateControls()
     wxBoxSizer* itemBoxSizer81 = new wxBoxSizer(wxHORIZONTAL);
     itemPanel80->SetSizer(itemBoxSizer81);
 
-    ewxGrid* itemGrid82 = new ewxGrid( itemPanel80, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_0, wxDefaultPosition, wxSize(200, 150), wxHSCROLL|wxVSCROLL );
+    ewxGrid* itemGrid82 = new ewxGrid( itemPanel80, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_0, wxDefaultPosition, wxSize(430, 170), wxHSCROLL|wxVSCROLL );
     itemGrid82->SetDefaultColSize(50);
     itemGrid82->SetDefaultRowSize(25);
     itemGrid82->SetColLabelSize(25);
     itemGrid82->SetRowLabelSize(50);
     itemGrid82->CreateGrid(1, 7, wxGrid::wxGridSelectCells);
+    //  Reserve room for the scrollbars and make the grid wide enough for
+    //  its own columns.  Seven columns at the 50px default plus a 50px row
+    //  label is 400px of content, which never fitted the 200px the grid
+    //  was created at -- so a horizontal scrollbar was always up, and
+    //  wxGrid draws its scrollbars INSIDE the client area, over the last
+    //  row and column.  SetMargins keeps that last cell clear of them.
+    itemGrid82->SetMargins(wxSystemSettings::GetMetric(wxSYS_VSCROLL_X),
+                          wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y));
+    itemGrid82->SetMinSize(wxSize(430, 170));
     itemBoxSizer81->Add(itemGrid82, 1, wxGROW|wxALL, 3);
 
     itemNotebook79->AddPage(itemPanel80, _("Simple"));
@@ -534,12 +544,15 @@ void WxBasisToolGUI::CreateControls()
     wxBoxSizer* itemBoxSizer84 = new wxBoxSizer(wxHORIZONTAL);
     itemPanel83->SetSizer(itemBoxSizer84);
 
-    ewxGrid* itemGrid85 = new ewxGrid( itemPanel83, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_1, wxDefaultPosition, wxSize(200, 150), wxHSCROLL|wxVSCROLL );
+    ewxGrid* itemGrid85 = new ewxGrid( itemPanel83, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_1, wxDefaultPosition, wxSize(430, 170), wxHSCROLL|wxVSCROLL );
     itemGrid85->SetDefaultColSize(50);
     itemGrid85->SetDefaultRowSize(25);
     itemGrid85->SetColLabelSize(25);
     itemGrid85->SetRowLabelSize(50);
     itemGrid85->CreateGrid(1, 7, wxGrid::wxGridSelectCells);
+    itemGrid85->SetMargins(wxSystemSettings::GetMetric(wxSYS_VSCROLL_X),
+                          wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y));
+    itemGrid85->SetMinSize(wxSize(430, 170));
     itemBoxSizer84->Add(itemGrid85, 1, wxGROW|wxALL, 3);
 
     itemNotebook79->AddPage(itemPanel83, _("Element"));
@@ -549,12 +562,15 @@ void WxBasisToolGUI::CreateControls()
     wxBoxSizer* itemBoxSizer87 = new wxBoxSizer(wxHORIZONTAL);
     itemPanel86->SetSizer(itemBoxSizer87);
 
-    ewxGrid* itemGrid88 = new ewxGrid( itemPanel86, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_2, wxDefaultPosition, wxSize(200, 150), wxHSCROLL|wxVSCROLL );
+    ewxGrid* itemGrid88 = new ewxGrid( itemPanel86, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_2, wxDefaultPosition, wxSize(430, 170), wxHSCROLL|wxVSCROLL );
     itemGrid88->SetDefaultColSize(50);
     itemGrid88->SetDefaultRowSize(25);
     itemGrid88->SetColLabelSize(25);
     itemGrid88->SetRowLabelSize(50);
     itemGrid88->CreateGrid(1, 7, wxGrid::wxGridSelectCells);
+    itemGrid88->SetMargins(wxSystemSettings::GetMetric(wxSYS_VSCROLL_X),
+                          wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y));
+    itemGrid88->SetMinSize(wxSize(430, 170));
     itemBoxSizer87->Add(itemGrid88, 1, wxGROW|wxALL, 3);
 
     itemNotebook79->AddPage(itemPanel86, _("Atom"));
