@@ -178,33 +178,11 @@
   </Theory>
 
   <TheorySummary>
-    <item key="ES.Theory.SCF.Direct" label="SCF Integrals"></item>
-  </TheorySummary>
-  <TheorySummary>
-    <item key="ES.Theory.SCF.ConvergenceAlgorithm" label="SCF Conv. Algorithm"></item>
-  </TheorySummary>
-  <TheorySummary topLabel="SCF Convergence-">
-    <item key="ES.Theory.SCF.ConvergenceDensity.Value" label="Density"></item>
-  </TheorySummary>
-  <TheorySummary>
     <item key="ES.Theory.SCF.ConvergenceIterations" label="SCF Max. Iterations"></item>
   </TheorySummary>
   <TheorySummary>
     <item key="ES.Theory.DFT.XCFunctionals" label="DFT Combined Func."></item>
   </TheorySummary>
-  <TheorySummary>
-    <item key="ES.Theory.DFT.ExchangeFunctionals" label="DFT Exchange Func."></item>
-  </TheorySummary>
-  <TheorySummary>
-    <item key="ES.Theory.DFT.CorrelationFunctionals" label="DFT Corr Func."></item>
-  </TheorySummary>
-
-  <RuntypeSummary topLabel="Geom. Convergence-">
-    <item key="ES.Runtype.GeomOpt.ConvergenceGradient.Value" label="Gradient"></item>
-  </RuntypeSummary>
-  <RuntypeSummary>
-    <item key="ES.Runtype.GeomOpt.SearchFor" label="Search for"></item>
-  </RuntypeSummary>
   <RuntypeSummary>
     <item key="ES.Runtype.GeomOpt.MaximumStepsValue" label="Max. Steps"></item>
   </RuntypeSummary>

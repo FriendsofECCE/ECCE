@@ -441,9 +441,6 @@
     <item key="ES.Theory.CorrelOrb.FrozenCoreValue" label="Frozen Core Orbitals"></item>
   </TheorySummary>
 
-  <RuntypeSummary topLabel="Geom. Convergence-">
-    <item key="ES.Runtype.GeomOpt.ConvergenceGradient.Value" label="Gradient"></item>
-  </RuntypeSummary>
   <RuntypeSummary>
     <item key="ES.Runtype.GeomOpt.SearchFor" label="Search for"></item>
   </RuntypeSummary>

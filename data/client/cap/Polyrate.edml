@@ -165,15 +165,6 @@
   <RuntypeSummary>
     <item key="ES.Runtype.GeomOpt.MaximumStepsValue" label="Max. Steps"></item>
   </RuntypeSummary>
-  <RuntypeSummary>
-    <item key="ES.Runtype.ESP.RestraintAlgorithm" label="Restraint Algorithm"></item>
-  </RuntypeSummary>
-  <RuntypeSummary>
-    <item key="ES.Runtype.ESP.HarmForceConstant" label="Force Constant"></item>
-  </RuntypeSummary>
-  <RuntypeSummary>
-    <item key="ES.Runtype.ESP.HypForceConstant" label="Force Constant"></item>
-  </RuntypeSummary>
 </Editor>
 
 

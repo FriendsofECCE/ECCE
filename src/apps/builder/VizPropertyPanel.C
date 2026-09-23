@@ -200,9 +200,15 @@ bool VizPropertyPanel::isRelevent(IPropCalculation *expt,
    ICalculation *escalc = dynamic_cast<ICalculation*>(expt);
    if (escalc) {
       const JCode* app = escalc->application();
-      string runtype = escalc->runtype().name();
+      //  NOT named `runtype`.  It used to be, which shadowed the
+      //  parameter of that name, so the test below read
+      //  `runtype.find(runtype) == 0` -- a string always contains itself
+      //  at position 0, so that half of the condition was always true
+      //  and the runtype filter did nothing at all.  Every caller's
+      //  runtype argument was silently ignored.
+      const string calcRuntype = escalc->runtype().name();
       if (app->name().find(code) != string::npos &&
-          runtype.find(runtype) == 0) {
+          calcRuntype.find(runtype) == 0) {
          // Now check the properties
          set<string> keys = getPropertyNames();
          set<string>::const_iterator pnamesIt;
