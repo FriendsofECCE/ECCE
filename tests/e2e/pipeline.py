@@ -69,6 +69,14 @@ def run_monitor(job_output, desc_file, workdir, parse_types='ALL',
 
     Returns the path of the results file it wrote.
     """
+    #  This runs with cwd set to the work directory, so a relative path
+    #  from the caller would resolve against the wrong place and the
+    #  monitor would exit 1 with nothing on stderr -- which reads as a
+    #  harness failure rather than "you passed a relative path".
+    job_output = os.path.abspath(job_output)
+    desc_file = os.path.abspath(desc_file)
+    workdir = os.path.abspath(workdir)
+
     results = os.path.join(workdir, 'results.out')
     log = os.path.join(workdir, 'monitor.log')
     cmd = [
@@ -92,8 +100,14 @@ def run_monitor(job_output, desc_file, workdir, parse_types='ALL',
     proc = subprocess.run(cmd, stdin=subprocess.DEVNULL, cwd=workdir,
                           capture_output=True, text=True, timeout=timeout)
     if proc.returncode != 0:
-        raise MonitorError('eccejobmonitor exited %d\n%s'
-                           % (proc.returncode, proc.stderr[-2000:]))
+        #  The monitor is quiet on stderr even when it fails, so the log
+        #  is the only diagnostic; include its tail or the error says
+        #  nothing at all.
+        tail = ''
+        if os.path.exists(log):
+            tail = ''.join(open(log, errors='replace').readlines()[-15:])
+        raise MonitorError('eccejobmonitor exited %d\nstderr: %s\nlog tail:\n%s'
+                           % (proc.returncode, proc.stderr[-500:], tail))
     if not os.path.exists(results):
         raise MonitorError('eccejobmonitor wrote no results file')
     return results

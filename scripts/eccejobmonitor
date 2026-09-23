@@ -46,6 +46,7 @@ my $DEBUG_PD		= 0x01;
 my $PD_KEY_BEGIN        = 'begin';	# canonical form of rule key Begin
 my $PD_KEY_END          = 'end';	# canonical form of rule key End
 my $PD_KEY_FILE         = 'file';	# canonical form of rule key File
+my $PD_KEY_ORDER        = 'order';	# position in the descriptor file
 my $PD_KEY_FREQ         = 'frequency';	# canonical form of rule key Frequency
 my $PD_KEY_LINES        = 'lines';	# canonical form of rule key Lines
 my $PD_KEY_PREFIX       = 'prefix';	# canonical form of rule key Prefix
@@ -138,6 +139,14 @@ my @gPdMatchList;
 my %gPdTable;
 my %gPdTableFiles;
 my %gPdTableFreq;
+
+# Order in which parse types were read from the descriptor file.
+# Perl randomizes hash key order per process, so anything that
+# iterated `keys %gPdTable` was doing so in a different order every
+# run -- see PDMatchListCreate and MsgSendBlockFlush.
+my $gPdOrderNext = 0;
+my %gPdTypeOrder;
+
 my $gPort;
 my $gProgramName = 'eccejobmonitor';
 my $gProgramVersion;
@@ -3510,7 +3519,19 @@ sub MsgSendBlockFlush
 {
     my $k;
 
-    foreach $k (keys %gMsgBlockBuf)
+    # Flush IN DESCRIPTOR FILE ORDER.  The client runs each parse type's
+    # script in the order the blocks arrive, and some scripts depend on
+    # a file an earlier script wrote: nwchem.symlab writes the symmetry
+    # label table that nwchem.molab reads, and nwchem.molab exits 0
+    # silently when it is not there.  Iterating raw hash keys sent those
+    # two in a random order, so NWChem orbital symmetries were extracted
+    # or silently dropped depending on Perl's per-process hash seed --
+    # measured at roughly three runs in eight losing them, from the same
+    # output file.  Descriptor file order makes it deterministic and lets
+    # a .desc express such a dependency by ordering its entries, which
+    # nwchem.desc already does ([SYMLAB] precedes [MOLAB1..5]).
+    foreach $k (sort { ($gPdTypeOrder{$a} // 0) <=> ($gPdTypeOrder{$b} // 0) }
+                keys %gMsgBlockBuf)
     {
         &MsgSend(join $MSG_SEP, $MSG_TYPE_PROP, "EOF", $k, $gMsgBlockBuf{$k});
     }
@@ -3974,6 +3995,14 @@ sub PDFileRead
                     {
                         $gPdTable{$parseHandle}{$_} = $pdBuf{$_};
                     }
+
+                    # remember where this one appeared in the file, so
+                    # everything downstream can iterate in a defined
+                    # order instead of Perl's per-process hash order
+                    $gPdTable{$parseHandle}{$PD_KEY_ORDER} = $gPdOrderNext;
+                    $gPdTypeOrder{$parseType} = $gPdOrderNext
+                        unless (exists $gPdTypeOrder{$parseType});
+                    $gPdOrderNext++;
                 }
                 # silently ignore duplicate parse handles
 
@@ -4075,8 +4104,16 @@ sub PDMatchListCreate
 
     @gPdMatchList = ();
 
-    # construct list of parse descriptors for matching
-    foreach $pd (keys %gPdTable)
+    # construct list of parse descriptors for matching, IN DESCRIPTOR
+    # FILE ORDER.  PDMatchBegin returns the first entry whose Begin
+    # matches a line and never checks the rest for that line, so this
+    # list's order is a match PRIORITY -- and iterating raw hash keys
+    # made that priority random per process.  Where two entries' Begin
+    # patterns can match the same line, which one won therefore varied
+    # from run to run.
+    foreach $pd (sort { $gPdTable{$a}{$PD_KEY_ORDER}
+                            <=> $gPdTable{$b}{$PD_KEY_ORDER} }
+                 keys %gPdTable)
     {
         # ignore parse descriptors having $PD_KEY_FILE rules
         next if (exists $gPdTable{$pd}{$PD_KEY_FILE});
