@@ -57,6 +57,18 @@ bool CSLoadColorsCmd::execute()
          colors->atomColor.set1Value(index, red, green, blue);
       }
 
+   //  ECCE_DEBUG_ATOM_COLOR=1 prints every colour ECCE hands the scene
+   //  graph.  For the uniform-green-atoms report (#83) this separates the
+   //  two possibilities that look identical on screen: if the numbers here
+   //  are correct per element (oxygen 1,0,0 and hydrogen 1,1,1) then the
+   //  data and the lookup are fine and the fault is below us, in the GL
+   //  or driver path; if they all come out green, it is ours.
+   if (getenv("ECCE_DEBUG_ATOM_COLOR")) {
+      printf("[ATOMCOLOR] index=%d  r=%.3f g=%.3f b=%.3f%s\n",
+             index, red, green, blue, colors ? "" : "   (NO COLOR NODE)");
+      fflush(stdout);
+   }
+
    return true;
 }
 
