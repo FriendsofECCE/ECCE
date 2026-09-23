@@ -1,12 +1,16 @@
 Re-sourcing the basis set library from the Basis Set Exchange
 =============================================================
 
-**Status: validated prototype, not yet a production re-sourcing tool.**
-`bse2bas.py` converts one BSE basis into ECCE's `.BAS` format and has been
-checked against the shipped library. It does **not** yet handle ECPs,
-aggregate basis sets, `.meta` descriptors, or the per-type alias files
-(`pople`, `correlation_consistent`, ...) that give the GUI its names.
-See issue #116.
+**Status: steps 0-2 of the plan on issue #116 are done.** The structure
+decision is made -- ECCE's aggregate-plus-components layout is kept.
+
+    snapshot.py    step 0   fingerprint the library as it stands
+    reconcile.py   step 1   match ECCE's names against BSE
+    bse2bas.py     step 2   convert a BSE basis into .BAS, and an ECP into .POT
+
+Still to do: aggregate assembly, `.meta` descriptors, regeneration of the
+per-type alias files, and the step 5 diff of everything. Nothing in the
+live library has been touched.
 
 Why the JSON API and not `gbsNWChemConverter`
 ---------------------------------------------
@@ -51,13 +55,27 @@ ECCE**, BSE including d functions ECCE's copy lacks.
 So the shipped data is sound, and re-sourcing would mainly buy precision,
 those missing d functions, and provenance under a stated licence.
 
+Validation of the ECP conversion (step 2)
+------------------------------------------
+Regenerated `def2-ECP` from BSE and compared against the shipped
+`DEF2_ECP.POT`, value by value:
+
+    elements shared                36  (all 36 shipped; BSE has 50)
+    values compared              1668
+    worst relative difference   0.00e+00
+    structural mismatches           0
+
+Exact. The two formats line up directly: BSE gives `ecp_electrons` and a
+list of potentials with the local (highest angular momentum) term first,
+ECCE writes `ncore`/`lmax` on the atom line and labels the same components
+`d`, `s-d`, `p-d`. Both order them the same way and both store the same
+triple per row -- r exponent, gaussian exponent, coefficient.
+
 What a full re-sourcing still needs
 ------------------------------------
-1. ECP handling (`ecp_potentials` in the JSON; the `lmax` reordering logic
-   in `gbsNWChemConverter` is worth preserving from it).
-2. Aggregate basis sets -- the shipped library composes base + polarization
+1. Aggregate assembly -- the shipped library composes base + polarization
    + diffuse into one named set via `.descriptor` files.
-3. Regenerating the per-type alias files the GUI reads for its names.
-4. A diff of every regenerated basis against the current one, of the kind
-   above, reviewed before anything is replaced. A silent numerical change
-   here would not surface until someone's published results were wrong.
+2. Regenerating the per-type alias files the GUI reads for its names.
+3. The step 5 diff of every regenerated basis against the current one,
+   reviewed before anything is replaced. A silent numerical change here
+   would not surface until someone's published results were wrong.
