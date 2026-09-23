@@ -22,6 +22,7 @@ when the file is edited:
 
 import os
 import re
+import subprocess
 
 import codes as CODES
 
@@ -53,44 +54,75 @@ def machines():
 
 
 def dataServerPaths(report):
-    """Filesystem paths in siteconfig/DataServers must resolve.
+    """siteconfig/DataServers must name no dead or distro-specific paths.
 
-    The <ForceField> block names NWChem's AMBER parameter files and segment
-    directories, and it still pointed at
-    $ECCE_HOME/nwchem/usr.local.lib.nwchem/ -- a path that existed only
-    when ECCE SHIPPED ITS OWN NWCHEM.  Nothing reports a missing force
-    field; MD setup simply reads from a directory that is not there.
+    The <ForceField> block names NWChem's AMBER parameter files and
+    segment directories.  It used to point at
+    $ECCE_HOME/nwchem/usr.local.lib.nwchem/, which existed only when ECCE
+    SHIPPED ITS OWN NWCHEM -- so every one of those paths was dangling.
 
-    CMakeLists.txt rewrites this file at configure time (the PNNL hostname
-    and now these paths too), so the GENERATED copy is what ships and what
-    is checked.  Skipped when there is no build directory, and skipped for
-    paths under /usr/share/nwchem when nwchem is not installed -- it is
-    only Recommends, and its absence is a packaging choice rather than a
-    stale path.
+    It now says $ECCE_NWCHEM_DATA, resolved at RUNTIME by
+    packaging/nwchem/ecce-nwchem-datadir, because where a distribution
+    puts this data is up to the distribution.  Two things are checked:
+    no path may be a dead $ECCE_HOME/nwchem one, and none may hardcode an
+    absolute system path -- writing /usr/share/nwchem into the repo is
+    correct on Debian and wrong everywhere else.
+
+    Where the helper does resolve (that is, NWChem is installed here),
+    the paths it produces are checked to exist, which is what makes the
+    variable's value meaningful rather than merely well-formed.
     """
-    generated = os.path.join(CODES.REPO, "build-cmake", "siteconfig-local",
-                             "DataServers")
-    if not os.path.exists(generated):
+    path = os.path.join(SITECONFIG, "DataServers")
+    if not os.path.exists(path):
         return
-    with open(generated) as handle:
+    with open(path) as handle:
         text = handle.read()
 
-    nwchemInstalled = os.path.isdir("/usr/share/nwchem")
-    for match in re.finditer(r"<(?:ParamFile|SegmentDir)>([^<]+)<", text):
-        path = match.group(1).strip()
-        if path.startswith("$ECCE_HOME"):
+    referenced = [m.group(1).strip() for m in
+                  re.finditer(r"<(?:ParamFile|SegmentDir)>([^<]+)<", text)]
+
+    for value in referenced:
+        if "$ECCE_HOME/nwchem" in value:
             report("siteconfig/DataServers",
-                   "%r is still an $ECCE_HOME path.\n"
-                   "      Anything under $ECCE_HOME/nwchem/ is residue from "
-                   "when ECCE bundled its own NWChem and does not exist in "
-                   "this package -- the force field silently reads from a "
-                   "missing directory." % path)
-            continue
-        if path.startswith("/usr/share/nwchem") and not nwchemInstalled:
-            continue
-        if not os.path.exists(path):
+                   "%r is residue from when ECCE bundled its own NWChem.\n"
+                   "      Nothing installs $ECCE_HOME/nwchem, so the force "
+                   "field reads from a directory that does not exist."
+                   % value)
+        elif value.startswith("/"):
             report("siteconfig/DataServers",
-                   "%r does not exist." % path)
+                   "%r hardcodes an absolute system path.\n"
+                   "      Where NWChem's data lives differs per "
+                   "distribution -- use $ECCE_NWCHEM_DATA, which "
+                   "ecce-nwchem-datadir resolves at runtime." % value)
+
+    #  If NWChem is installed here, the resolved paths must exist. When it
+    #  is not, there is nothing to check: nwchem is Recommends, not
+    #  Depends, and its absence is a packaging choice.
+    helper = os.path.join(CODES.REPO, "packaging", "nwchem",
+                          "ecce-nwchem-datadir")
+    if not os.path.exists(helper):
+        report("packaging/nwchem/ecce-nwchem-datadir",
+               "missing -- DataServers refers to $ECCE_NWCHEM_DATA and "
+               "nothing resolves it.")
+        return
+    try:
+        resolved = subprocess.run([helper], capture_output=True, text=True,
+                                  timeout=30).stdout.strip()
+    except Exception as exc:                       # noqa: BLE001
+        report("packaging/nwchem/ecce-nwchem-datadir",
+               "could not be run: %s" % exc)
+        return
+    if not resolved:
+        return                                     # NWChem not installed
+
+    for value in referenced:
+        expanded = value.replace("$ECCE_NWCHEM_DATA", resolved)
+        if expanded.startswith("$"):
+            continue                               # some other variable
+        if not os.path.exists(expanded):
+            report("siteconfig/DataServers",
+                   "%r resolves to %r, which does not exist."
+                   % (value, expanded))
 
 
 def check(report):

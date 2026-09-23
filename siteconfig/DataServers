@@ -49,12 +49,12 @@
 
   <ForceField name="NWChem">
     <ParamFiles>
-      <ParamFile>$ECCE_HOME/nwchem/usr.local.lib.nwchem/amber_s/amber.par</ParamFile>
-      <ParamFile>$ECCE_HOME/nwchem/usr.local.lib.nwchem/amber_x/amber.par</ParamFile>
+      <ParamFile>$ECCE_NWCHEM_DATA/amber_s/amber.par</ParamFile>
+      <ParamFile>$ECCE_NWCHEM_DATA/amber_x/amber.par</ParamFile>
     </ParamFiles>
     <SegmentDirs>
-      <SegmentDir>$ECCE_HOME/nwchem/usr.local.lib.nwchem/amber_s</SegmentDir>
-      <SegmentDir>$ECCE_HOME/nwchem/usr.local.lib.nwchem/amber_x</SegmentDir>
+      <SegmentDir>$ECCE_NWCHEM_DATA/amber_s</SegmentDir>
+      <SegmentDir>$ECCE_NWCHEM_DATA/amber_x</SegmentDir>
     </SegmentDirs>
   </ForceField>
 </EcceData>

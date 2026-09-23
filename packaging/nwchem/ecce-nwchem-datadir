@@ -1,0 +1,102 @@
+#!/bin/bash
+#
+# Print the directory holding NWChem's shipped data -- the AMBER and
+# CHARMM force-field parameter files and segment directories that
+# siteconfig/DataServers' <ForceField> block refers to as
+# $ECCE_NWCHEM_DATA.
+#
+# WHY THIS IS DISCOVERED AND NOT CONFIGURED.  ECCE used to ship its own
+# NWChem, so the path could be written down: DataServers said
+# $ECCE_HOME/nwchem/usr.local.lib.nwchem/.  It no longer does, and where
+# a distribution puts this data is entirely up to the distribution --
+# Debian uses /usr/share/nwchem, others use /usr/share/nwchem-data,
+# /usr/lib/nwchem, /opt/nwchem/data, a module-loaded prefix on a cluster,
+# or a hand-built tree anywhere at all.  Hardcoding any one of those is
+# wrong everywhere else, so this looks.
+#
+# Exits 1 and prints nothing if no candidate holds the data, which the
+# caller should treat as "NWChem data not installed" rather than an
+# error: nwchem is Recommends, not Depends.
+#
+# Usage:
+#   ecce-nwchem-datadir            print the directory, or exit 1
+#   ecce-nwchem-datadir --verbose  also report on stderr where it looked
+
+verbose=0
+[ "$1" = "--verbose" ] && verbose=1
+
+note() { [ "$verbose" = 1 ] && echo "ecce-nwchem-datadir: $*" >&2; }
+
+#  A directory qualifies only if it actually holds the data ECCE asks
+#  for.  Testing for the directory alone would accept an empty leftover.
+qualifies() {
+  [ -n "$1" ] && [ -d "$1/amber_s" ] && [ -f "$1/amber_s/amber.par" ]
+}
+
+#  1. An explicit setting always wins, for a hand-built NWChem or a
+#     site that keeps this data somewhere of its own.
+if [ -n "$ECCE_NWCHEM_DATA" ]; then
+  if qualifies "$ECCE_NWCHEM_DATA"; then
+    echo "$ECCE_NWCHEM_DATA"; exit 0
+  fi
+  note "ECCE_NWCHEM_DATA=$ECCE_NWCHEM_DATA does not hold amber_s/amber.par"
+fi
+
+#  2. NWChem's OWN mechanism, which is the portable answer: nwchemrc maps
+#     logical names to directories, and every packaged or hand-built
+#     NWChem that ships force-field data writes one.  Entries look like
+#         amber_1 /usr/share/nwchem/amber_s/
+#     so take the parent of whatever amber_* points at.
+for rc in "$HOME/.nwchemrc" /etc/nwchemrc "$NWCHEM_NWCHEM_RC"; do
+  [ -n "$rc" ] && [ -r "$rc" ] || continue
+  while read -r key value _rest; do
+    case "$key" in
+      amber_*|AMBER_*) ;;
+      *) continue ;;
+    esac
+    [ -n "$value" ] || continue
+    candidate=$(dirname "${value%/}")
+    if qualifies "$candidate"; then
+      note "found via $rc"
+      echo "$candidate"; exit 0
+    fi
+  done < "$rc"
+done
+
+#  3. Failing that, the places distributions actually use.  Kept in one
+#     list so adding a distribution is a one-line change here rather
+#     than a configure-time decision baked into the package.
+for candidate in \
+    /usr/share/nwchem \
+    /usr/share/nwchem-data \
+    /usr/share/nwchem/data \
+    /usr/lib/nwchem \
+    /usr/lib64/nwchem \
+    /usr/local/share/nwchem \
+    /opt/nwchem/data \
+    /opt/nwchem/share/nwchem \
+    "$NWCHEM_TOP/src/data" \
+    "$NWCHEM_TOP/data"; do
+  if qualifies "$candidate"; then
+    note "found by search"
+    echo "$candidate"; exit 0
+  fi
+done
+
+#  4. Last resort: ask the nwchem on PATH where it lives and look beside
+#     it.  Handles a relocated or hand-built tree that none of the fixed
+#     candidates match.
+nw=$(command -v nwchem 2>/dev/null)
+if [ -n "$nw" ]; then
+  nw=$(readlink -f "$nw" 2>/dev/null || echo "$nw")
+  prefix=$(dirname "$(dirname "$nw")")
+  for candidate in "$prefix/share/nwchem" "$prefix/data" "$prefix/share/nwchem/data"; do
+    if qualifies "$candidate"; then
+      note "found relative to $nw"
+      echo "$candidate"; exit 0
+    fi
+  done
+fi
+
+note "no NWChem data directory found"
+exit 1

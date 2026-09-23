@@ -594,16 +594,6 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/siteconfig/DataServers)
   # substring replace covers both.
   string(REPLACE "eccetera.emsl.pnl.gov" "localhost"
     _dataservers_contents "${_dataservers_contents}")
-  # Residue from the era when ECCE SHIPPED ITS OWN NWCHEM: the <ForceField>
-  # block's AMBER parameter files and segment directories still pointed at
-  # $ECCE_HOME/nwchem/usr.local.lib.nwchem/, which was inside that bundle
-  # and does not exist in this package -- so NWChem MD force-field setup
-  # was reading from a directory that is simply absent.  The Debian nwchem
-  # package ships exactly these directories, under the same names, at
-  # /usr/share/nwchem (confirmed: amber_s/amber.par and amber_x/amber.par
-  # are both present), so one substring replace repoints all four.
-  string(REPLACE "$ECCE_HOME/nwchem/usr.local.lib.nwchem" "/usr/share/nwchem"
-    _dataservers_contents "${_dataservers_contents}")
   file(WRITE ${CMAKE_BINARY_DIR}/siteconfig-local/DataServers "${_dataservers_contents}")
 endif()
 
@@ -645,6 +635,7 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-stop
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-status
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-reap
+          ${CMAKE_SOURCE_DIR}/packaging/nwchem/ecce-nwchem-datadir
         DESTINATION bin)
 install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/activemq.xml.ecce
         DESTINATION server/activemq-conf
@@ -889,6 +880,14 @@ export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
 export DISPLAY=\${DISPLAY:-:0}
 export ECCE_HELP=\${ECCE_HELP:-http://localhost:8096/}
+# Where NWChem's force-field data lives is a per-distribution decision,
+# so it is resolved when the app starts rather than written into the
+# package at configure time -- siteconfig/DataServers refers to it as
+# $ECCE_NWCHEM_DATA and SFile expands any $VAR. Unset (no NWChem, or an
+# unrecognised layout) leaves DataServers' paths visibly broken rather
+# than pointing somewhere wrong, and `ecce-nwchem-datadir --verbose`
+# says where it looked.
+export ECCE_NWCHEM_DATA=\${ECCE_NWCHEM_DATA:-$(\"$ECCE_HOME/bin/ecce-nwchem-datadir\" 2>/dev/null)}
 # wxWidgets 3.2's GTK3 backend was ported/tested against X11 window-
 # sizing semantics (synchronous configure, geometry hints honored on
 # first show); under a native GNOME Wayland session, GTK3's Wayland
@@ -943,6 +942,9 @@ export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
 export DISPLAY=\${DISPLAY:-:0}
 export ECCE_HELP=\${ECCE_HELP:-http://localhost:8096/}
+# See the ecce-<app> wrappers above: resolved at runtime because the
+# location is a per-distribution decision.
+export ECCE_NWCHEM_DATA=\${ECCE_NWCHEM_DATA:-$(\"$ECCE_HOME/bin/ecce-nwchem-datadir\" 2>/dev/null)}
 export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 export ECCE_INVOKE_VIEWER=1
 export ECCE_INVOKE_FROMECCE=1
