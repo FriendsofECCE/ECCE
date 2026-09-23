@@ -32,7 +32,14 @@ int main(int argc, char** argv)
               const string& configFileName, const bool& restartFlag);
 
   string jobId, configFileName;
-  bool restartFlag;
+  //  MUST be initialized.  Without -restart this was whatever happened to
+  //  be on the stack, and a true reading makes jobstore_main() treat an
+  //  ordinary launch as a monitoring restart: it then reads the bookmark
+  //  file, finds "EOF" from the run that just finished, and dies with
+  //  "Cannot re-parse frequency 'last' type properties".  The job itself
+  //  has completed fine at that point; only the storing of its results
+  //  fails, which presents as a job that ran and produced nothing.
+  bool restartFlag = false;
 
   for (int it = 1; it < argc; it++) {
     if (strcmp(argv[it], "-pipe") == 0)
