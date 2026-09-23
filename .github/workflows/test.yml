@@ -34,10 +34,23 @@ on:
     branches: [main]
   workflow_dispatch: {}
 
+# One run per branch.  Without this every push starts a full run and none
+# of them cancel the older ones, so a run of quick pushes leaves a dozen
+# stale runs competing for the same runners -- which is exactly what
+# happened on 2026-09-23: nine pushes in a day, eleven jobs each, and CI
+# stopped completing anything for six hours.  A superseded run tells you
+# nothing a newer one will not.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   scripts:
     name: Parsers and dialogs (no build, no display)
     runs-on: ubuntu-latest
+    # Bounded so a hung job cannot hold a runner slot for GitHub's
+    # 6-hour default; see the concurrency note above.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -57,9 +70,20 @@ jobs:
       - name: Code-registration dialog suite
         run: tests/dialogs/run_tests.py
 
+      # Added 2026-09-23: this suite existed but was never wired in, so
+      # the basis exporters were the one layer CI did not cover -- the
+      # layer a silent bug had just been found in twice (Gaussian being
+      # sent ECCE's own basis names, and Fortran D exponents read without
+      # their exponent).  Needs nothing the other two do not.
+      - name: Basis set exporter suite
+        run: tests/basis/run_tests.py
+
   apps:
     name: GUI apps (build, install, Xvfb)
     runs-on: ubuntu-latest
+    # Bounded so a hung job cannot hold a runner slot for GitHub's
+    # 6-hour default; see the concurrency note above.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 

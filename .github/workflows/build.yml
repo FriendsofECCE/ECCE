@@ -49,10 +49,23 @@ on:
     branches: [main]
   workflow_dispatch: {}
 
+# One run per branch.  Without this every push starts a full run and none
+# of them cancel the older ones, so a run of quick pushes leaves a dozen
+# stale runs competing for the same runners -- which is exactly what
+# happened on 2026-09-23: nine pushes in a day, eleven jobs each, and CI
+# stopped completing anything for six hours.  A superseded run tells you
+# nothing a newer one will not.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   debian:
     name: Debian (apt, containerized)
     runs-on: ubuntu-latest
+    # Bounded so a hung job cannot hold a runner slot for GitHub's
+    # 6-hour default; see the concurrency note above.
+    timeout-minutes: 90
     container: debian:trixie
     steps:
       - name: Install build dependencies
@@ -84,6 +97,9 @@ jobs:
   ubuntu:
     name: Ubuntu (apt)
     runs-on: ubuntu-latest
+    # Bounded so a hung job cannot hold a runner slot for GitHub's
+    # 6-hour default; see the concurrency note above.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -114,6 +130,9 @@ jobs:
   rocky:
     name: Rocky Linux (dnf, RHEL family, containerized)
     runs-on: ubuntu-latest
+    # Bounded so a hung job cannot hold a runner slot for GitHub's
+    # 6-hour default; see the concurrency note above.
+    timeout-minutes: 90
     container: rockylinux:9
     steps:
       - name: Install build dependencies
@@ -163,6 +182,9 @@ jobs:
   fedora:
     name: Fedora (dnf, containerized)
     runs-on: ubuntu-latest
+    # Bounded so a hung job cannot hold a runner slot for GitHub's
+    # 6-hour default; see the concurrency note above.
+    timeout-minutes: 90
     container: fedora:latest
     steps:
       - name: Install build dependencies
@@ -201,6 +223,9 @@ jobs:
   macos:
     name: macOS (Homebrew)
     runs-on: macos-latest
+    # Bounded so a hung job cannot hold a runner slot for GitHub's
+    # 6-hour default; see the concurrency note above.
+    timeout-minutes: 90
     # Known-unsupported today (GitHub #3) -- ECCE's offscreen-rendering
     # path (src/inv/dbso/SoOffscreenRenderer.inc) calls raw Xlib/GLX
     # (XOpenDisplay/glXCreateContext), which has no macOS-native
