@@ -117,6 +117,9 @@ public:
     static const wxWindowID ID_BITMAPBUTTON_START;
     static const wxWindowID ID_BITMAPBUTTON_STOP;
     static const wxWindowID ID_RADIOBOX_NMODE_VIZTYPE;
+    /** Graph-or-table for the frequency list; orthogonal to the
+        Animation/Vector choice above, which is about the 3-D view. */
+    static const wxWindowID ID_RADIOBOX_NMODE_DATAVIEW;
     static const wxWindowID ID_GRID_NMODE;
     static const wxWindowID ID_PANEL_NMODE;
     static const wxWindowID ID_CHECKBOX_NMODE_VECSIGN;

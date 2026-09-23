@@ -79,6 +79,8 @@ class NModePanel : public NModesGUI,
       void OnEndSliderMotion(wxScrollEvent& event);
       void OnSliderTextEnter(wxCommandEvent& event);
       void OnRadioboxSelected( wxCommandEvent& event );
+      /** Graph-or-table for the frequency list (ID_RADIOBOX_NMODE_DATAVIEW). */
+      void OnDataViewSelected( wxCommandEvent& event );
       void OnRadioboxUpdateUI( wxUpdateUIEvent& event );
       void OnModeSelection( wxGridEvent& event );
       void OnCheckboxNmodeVecsignClick( wxCommandEvent& event );

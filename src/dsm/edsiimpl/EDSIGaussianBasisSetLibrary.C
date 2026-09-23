@@ -144,7 +144,10 @@ bool EDSIGaussianBasisSetLibrary::isSupported(const string& bsName,
 
   const gbs_alias* alias=getGbsAlias(bsName.c_str(), type);
 
-  if (alias != 0) {    
+  //  Same guard as gbsNameList(): a record whose atoms= line is missing
+  //  leaves this empty, and atoms[0] would be out of bounds.  "No atom
+  //  list" means "supports nothing", not "crash".
+  if (alias != 0 && !alias->atoms.empty()) {
     ret = includes( alias->atoms[0].begin(),
                     alias->atoms[0].end(),
                     strTags.begin(),

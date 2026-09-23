@@ -204,6 +204,17 @@ bool NModePanel::Create(IPropCalculation *calculation,
    radbox->Bind(wxEVT_RADIOBOX, &NModePanel::OnRadioboxSelected, this);
    radbox->SetExtraStyle(radbox->GetExtraStyle() | wxWS_EX_PROCESS_UI_UPDATES);
 
+   //  Graph/Table, bound the same way and for the same reason -- see the
+   //  note above about EVT_RADIOBOX not arriving on this panel through the
+   //  static table.  Its initial selection mirrors whatever initialize()
+   //  already chose from the NMode/View preference, so the control always
+   //  reflects the view actually on screen.
+   wxRadioBox *viewbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_DATAVIEW);
+   if (viewbox != 0) {
+     viewbox->Bind(wxEVT_RADIOBOX, &NModePanel::OnDataViewSelected, this);
+     viewbox->SetSelection(isGraphShown() ? 0 : 1);
+   }
+
    int delay;
    config->Read("NMode/Delay",&delay,20);
    ewxTextCtrl *text = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_NMODE_DELAY);
@@ -258,6 +269,31 @@ void NModePanel::initialize()
    getFW().getViewer().getSel()->deselectAll();
    getFW().getViewer().viewAll();
 }
+
+/**
+ * Graph or table for the frequency list.
+ *
+ * Independent of the Animation/Vector choice, which is about the 3-D
+ * viewer. Before this control existed the only way to switch was the
+ * panel's tear-off options menu, unreachable since the wx3.2 AUI port
+ * dropped the caption buttons -- and, once that was restored, sitting
+ * behind a right-click that the plot's own context menu swallows.
+ */
+void NModePanel::OnDataViewSelected( wxCommandEvent& event )
+{
+   if (!p_isValid) {
+      return;
+   }
+   if (event.GetSelection() == 0) {
+      showGraph();
+   } else {
+      showTable();
+   }
+   //  Remembered the same way the tear-off menu remembered it.
+   ewxConfig *config = ewxConfig::getConfig(INIFILE);
+   config->Write("NMode/View", (int)(event.GetSelection() == 0 ? GRAPH : TABLE));
+}
+
 
 void NModePanel::showTable()
 {

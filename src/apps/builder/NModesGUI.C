@@ -41,6 +41,7 @@
 const wxWindowID NModesGUI::ID_BITMAPBUTTON_START = wxNewId();
 const wxWindowID NModesGUI::ID_BITMAPBUTTON_STOP = wxNewId();
 const wxWindowID NModesGUI::ID_RADIOBOX_NMODE_VIZTYPE = wxNewId();
+const wxWindowID NModesGUI::ID_RADIOBOX_NMODE_DATAVIEW = wxNewId();
 const wxWindowID NModesGUI::ID_GRID_NMODE = wxNewId();
 const wxWindowID NModesGUI::ID_PANEL_NMODE = wxNewId();
 const wxWindowID NModesGUI::ID_CHECKBOX_NMODE_VECSIGN = wxNewId();
@@ -172,6 +173,24 @@ void NModesGUI::CreateControls()
     };
     ewxRadioBox* itemRadioBox7 = new ewxRadioBox( itemVizPropertyPanel1, ID_RADIOBOX_NMODE_VIZTYPE, _T(""), wxDefaultPosition, wxDefaultSize, 2, itemRadioBox7Strings, 1, wxRA_SPECIFY_ROWS );
     p_->Add(itemRadioBox7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+
+    //  Graph or table for the frequency list.  A SEPARATE control from the
+    //  Animation/Vector box above, deliberately: that one chooses how the
+    //  mode is drawn in the 3-D viewer, this one chooses how the
+    //  frequencies are listed, and the two are independent.  Folding them
+    //  into one three-way choice would leave "Table" saying nothing about
+    //  what the viewer should do.
+    //
+    //  It exists at all because the only way to reach this was the panel's
+    //  tear-off options menu, which the wx3.2 AUI port left unreachable --
+    //  and which, once restored, is on a right-click that the plot's own
+    //  context menu intercepts.
+    wxString itemRadioBox7bStrings[] = {
+        _("&Graph"),
+        _("&Table")
+    };
+    ewxRadioBox* itemRadioBox7b = new ewxRadioBox( itemVizPropertyPanel1, ID_RADIOBOX_NMODE_DATAVIEW, _T(""), wxDefaultPosition, wxDefaultSize, 2, itemRadioBox7bStrings, 1, wxRA_SPECIFY_ROWS );
+    p_->Add(itemRadioBox7b, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     p_sliderSizer = new wxBoxSizer(wxHORIZONTAL);
     p_->Add(p_sliderSizer, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
