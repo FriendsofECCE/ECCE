@@ -209,6 +209,16 @@ vector<const char*>* EDSIGaussianBasisSetLibrary::gbsNameList(
       alias = (gbs_alias*)(*it);
       hasTag = true;
       if(tags) {
+        //  A record whose atoms= line is missing leaves this vector empty,
+        //  and atoms[0] on an empty vector is out of bounds -- it crashed
+        //  the Basis Set Tool outright as soon as the section containing
+        //  it was listed with any element selected.  One such record was
+        //  shipped (LANL2TZ+-ecp, whose atoms= line was simply absent),
+        //  so treat "no atom list" as "covers nothing" rather than
+        //  trusting the data.
+        if (alias->atoms.empty() || alias->atoms[0].empty()) {
+          continue;
+        }
         sort(alias->atoms[0].begin(), alias->atoms[0].end(),ltstr());
         hasTag = includes( alias->atoms[0].begin(), 
                            alias->atoms[0].end(),

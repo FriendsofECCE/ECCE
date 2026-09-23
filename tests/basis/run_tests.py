@@ -142,6 +142,45 @@ def fortran_d_notation():
     return findings
 
 
+def alias_records_complete():
+    """Every basis alias record needs name=, files= AND atoms=.
+
+    gbsNameList() sorts alias->atoms[0] whenever any element is selected,
+    and atoms[0] on an empty vector is out of bounds -- a record with no
+    atoms= line crashes the Basis Set Tool as soon as its section is
+    listed.  One was shipped: LANL2TZ+-ecp, whose atoms= line was simply
+    absent, which took the tool down on clicking the ECP section.
+    """
+    #  Only the real alias files -- the same list EDSIGaussianBasisSetLibrary
+    #  reads.  The directory also holds editor backups (ecp~) and
+    #  maintenance files, which are stripped when the library is served.
+    ALIAS = ("pople", "other_segmented", "correlation_consistent",
+             "other_generally_contracted", "ECPOrbital", "DFTOrbital",
+             "Charge", "Exchange", "diffuse", "polarization", "rydberg",
+             "ecp")
+    findings = []
+    for name in ALIAS:
+        path = os.path.join(DATA, name)
+        if not os.path.isfile(path):
+            continue
+        record = None
+        seen = {}
+        for line in open(path, errors="replace"):
+            line = line.rstrip("\n")
+            if line.startswith("name="):
+                if record and not seen.get("atoms"):
+                    findings.append("%s: %r has no atoms= line" % (name, record))
+                record = line.split("=", 1)[1].strip()
+                seen = {}
+            elif line.startswith("files="):
+                seen["files"] = True
+            elif line.startswith("atoms="):
+                seen["atoms"] = True
+        if record and not seen.get("atoms"):
+            findings.append("%s: %r has no atoms= line" % (name, record))
+    return findings
+
+
 def run(case):
     path = os.path.join(PARSERS, case["exporter"])
     with open(os.path.join(FIXTURES, case["fixture"])) as handle:
@@ -163,6 +202,10 @@ def main():
     checks += 1
     for finding in fortran_d_notation():
         failures.append("basis data: " + finding)
+
+    checks += 1
+    for finding in alias_records_complete():
+        failures.append("basis alias: " + finding)
 
     for case in CASES:
         text, rc, err = run(case)

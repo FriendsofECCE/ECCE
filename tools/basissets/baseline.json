@@ -18768,7 +18768,20 @@
    "type": "ecp"
   },
   "LANL2TZ+-ecp": {
-   "atoms": [],
+   "atoms": [
+    [
+     "Sc",
+     "Ti",
+     "V",
+     "Cr",
+     "Mn",
+     "Fe",
+     "Co",
+     "Ni",
+     "Cu",
+     "Zn"
+    ]
+   ],
    "content": {
     "LANL2TZ+.POT": {
      "atoms": [
