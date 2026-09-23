@@ -283,9 +283,37 @@ void MoPanel::updateUIOptions()
    ((ewxButton*)FindWindow(ID_BUTTON_MO_VIEWCOEF))->Enable(p_isValid);
 
    if (!p_isValid) {
-       getFW().showMessage("This calculation does not have a valid "
-                             "basis set.  Orbitals cannot be computed.",
+       //  Distinguish "the basis set is missing" from "this code does
+       //  not use basis sets at all".  For a semiempirical code like
+       //  MOPAC, or a plane-wave one like Quantum ESPRESSO, there is
+       //  nothing missing and nothing the user can do -- orbitals are
+       //  simply not renderable, because rendering one means evaluating
+       //  its basis functions on a grid and ECCE has no representation
+       //  of that code's basis.  Saying "does not have a valid basis
+       //  set" there reads as a fault to be fixed and sends people
+       //  looking for the Basis Set Tool, which is correctly greyed out
+       //  for exactly the same reason.
+       //
+       //  The MO TABLE is unaffected either way: energies, occupancies
+       //  and symmetries are filled in below regardless, and it is only
+       //  the 3-D Compute that cannot work.
+       const JCode* app = escalc->application();
+       //  ICalculation::theory() hands back an owned pointer, as
+       //  CalcEd::doSave() also has to remember.
+       TTheory* theory = escalc->theory();
+       bool needsBasis = (app && theory) ? app->theoryNeedsBasis(*theory)
+                                         : true;
+       if (theory) delete theory;
+       if (!needsBasis) {
+          getFW().showMessage("This code does not use basis sets, so "
+                              "orbitals cannot be computed and displayed "
+                              "in 3-D.  The orbital table below is still "
+                              "filled in.", false);
+       } else {
+          getFW().showMessage("This calculation does not have a valid "
+                              "basis set.  Orbitals cannot be computed.",
                               false);
+       }
    } else {
       const JCode* cap = escalc->application();
       TGBSAngFunc *angfunc = cap->getAngFunc(config->coordsys());
