@@ -79,8 +79,50 @@ def norm(text):
 # .desc structural checks -- run once per .desc file, independent of fixtures
 # ---------------------------------------------------------------------------
 
+#  Parser scripts that read a file a SIBLING script writes.  The monitor
+#  flushes buffered blocks in descriptor-file order and the client runs
+#  each script as its block arrives, so the writer's entry must appear
+#  before the reader's or the reader runs against a file that does not
+#  exist yet.
+#
+#  This was a live bug (#126): the monitor used to iterate a Perl hash
+#  instead, randomizing the order per process, so NWChem orbital
+#  symmetries were extracted or silently dropped roughly three runs in
+#  eight.  Making the order deterministic fixes that -- and makes a
+#  wrongly-ordered .desc permanently broken instead of intermittently
+#  working, which is why this check exists.
+AUX_FILE_DEPENDENCIES = {
+    #  aux file       writer script        reader script
+    'parseSym':  ('nwchem.symlab',    'nwchem.molab'),
+    'parseMD':   ('nwchem.mdheader',  'nwchem.mdprop'),
+    'rxMasses':  ('nwchemrx.masses',  'nwchemrx.rxstep'),
+}
+
+
+def check_aux_file_order(desc_name, desc, res):
+    """A script's auxiliary-file writer must precede its readers."""
+    entries = list(desc.live_entries())
+    for aux, (writer, reader) in AUX_FILE_DEPENDENCIES.items():
+        wlines = [e.line for e in entries if e.script == writer]
+        rlines = [e.line for e in entries if e.script == reader]
+        if not wlines or not rlines:
+            continue
+        first_writer = min(wlines)
+        for rline in rlines:
+            res.check(
+                first_writer < rline,
+                desc_name,
+                '%s writes %s and %s reads it, but the reader\'s entry is at '
+                'line %d, before the writer at line %d. The monitor flushes '
+                'in this file\'s order, so the reader will run against a '
+                'file that does not exist yet -- silently (see #126).'
+                % (writer, aux, reader, rline, first_writer))
+
+
 def check_desc_structure(desc_name, desc, res):
     where = desc_name
+
+    check_aux_file_order(desc_name, desc, res)
 
     for entry, which, err in desc.bad_regex:
         res.check(False, where,

@@ -14,6 +14,27 @@ Frequency=last
 End=  Frequencies
 [END]
 
+#  MUST COME BEFORE [TSSTEP] AND [RXSTEP].  nwchemrx.masses writes
+#  $key/rxMasses, and nwchemrx.rxstep divides by sqrt of those masses to
+#  un-mass-weight its coordinates -- with the file absent the array is
+#  empty and the script dies on a division by zero, so the property is
+#  simply never stored.
+#
+#  eccejobmonitor flushes buffered blocks in the order parse types
+#  appear in THIS FILE, and the client runs each script in arrival
+#  order, so the ordering here is the dependency.  It used to iterate a
+#  Perl hash instead, which randomized the order per process and made
+#  this pair work or fail by coin flip (see the NWChem SYMLAB/MOLAB
+#  case, which had the identical shape).  Reordered when that was fixed:
+#  a deterministic wrong order would have been permanently broken rather
+#  than intermittently.
+[MASSES]
+Script=nwchemrx.masses
+Begin = Mass of atom
+Frequency=first
+End = Forward reduced mass
+[END]
+
 [TSSTEP]
 Script=nwchemrx.rxstep
 Begin= All quantities in atomic units, x is vector of mass-weighted coordinates
@@ -28,9 +49,3 @@ Frequency=all
 End = (\s*\S*\s*dx=)
 [END]
 
-[MASSES]
-Script=nwchemrx.masses
-Begin = Mass of atom
-Frequency=first
-End = Forward reduced mass
-[END]
