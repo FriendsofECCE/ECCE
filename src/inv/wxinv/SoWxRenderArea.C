@@ -60,7 +60,14 @@ int *resolveGLAttributes(int *supplied)
   static bool usable = false;
   if (!checked) {
     checked = true;
-    usable = wxGLCanvas::IsDisplaySupported(attribs);
+    //  ECCE_GL_DEFAULT_VISUAL=1 restores the previous behaviour of taking
+    //  whatever visual the platform offers.  This changes the GL context
+    //  for every viewer on every platform to fix a fault seen on one, so
+    //  it needs a way back that does not require a rebuild -- the same
+    //  reasoning as ECCE_GATEWAY_WINDOW.
+    const char *v = getenv("ECCE_GL_DEFAULT_VISUAL");
+    bool forced = (v != 0 && *v != '\0' && *v != '0');
+    usable = !forced && wxGLCanvas::IsDisplaySupported(attribs);
   }
   return usable ? attribs : (int*)0;
 }
