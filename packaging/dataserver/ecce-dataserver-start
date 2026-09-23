@@ -25,30 +25,46 @@ DATAROOT="$STATEDIR/htdocs"
 # exits 0. Putting it after meant it never ran on a machine whose data
 # server was already up -- which is every machine that has used ECCE
 # before. Seeding does not need the server stopped, so it belongs here.
-# Seed the Gaussian basis set library, same idempotency rule as above.
+# Keep the Gaussian basis set library in step with the installed package.
 #
-# WITHOUT THIS A FRESH INSTALL HAS NO BASIS SETS AT ALL.  Clients do not
-# read $ECCE_HOME/data/admin/basissets directly -- siteconfig/DataServers
-# points <BasisSet> at http://localhost:8096/Ecce/system/
-# GaussianBasisSetLibrary, so the library has to be present under the
-# document root to be reachable.  The package installs the data but
-# nothing copied it here, and existing installs only worked because their
-# htdocs tree was inherited from an original PNNL distribution (the one
-# on this machine is dated 2005).  On a genuinely clean machine the Basis
-# Set Tool would have come up empty.
+# Clients do not read $ECCE_HOME/data/admin/basissets directly:
+# siteconfig/DataServers points <BasisSet> at
+# http://localhost:8096/Ecce/system/GaussianBasisSetLibrary, so the library
+# has to live under the document root to be reachable at all.  Nothing used
+# to put it there -- installs only worked because their htdocs tree was
+# inherited from an original PNNL distribution.
 #
-# Seeded only when absent, so a library a site has customised or extended
-# is never overwritten.  To refresh a stale copy, remove the directory and
-# restart the data server.
+# SYNCED, not merely seeded.  Installing a release must deliver that
+# release's basis sets even when a library is already present, or a
+# correction to the shipped data never reaches anybody -- which is exactly
+# what happened to the Fortran D-notation fix.  A content stamp decides:
+# when the packaged library differs from what was last copied, it is copied
+# again.
+#
+# Files are copied OVER the existing ones rather than the directory being
+# replaced, so anything a site has added of its own survives; only files
+# the package also ships are overwritten.
+#
+# This runs BEFORE the "already listening" check below, which exits 0.
+# After it, the sync would never run on a machine whose data server was
+# already up -- which is every machine that has used ECCE before.
 GBS_SRC="$ECCE_HOME/data/admin/basissets"
 GBS_DEST="$DATAROOT/Ecce/system/GaussianBasisSetLibrary"
-if [ ! -d "$GBS_DEST" ] && [ -d "$GBS_SRC" ]; then
-  mkdir -p "$(dirname "$GBS_DEST")"
-  cp -r "$GBS_SRC" "$GBS_DEST"
-  # Editor backups and the maintenance odds and ends that live alongside
-  # the data in the repository have no business being web-served.
-  find "$GBS_DEST" -maxdepth 1 \( -name '*~' -o -name '*.sh' -o -name '*.py' \
-       -o -name 'history' -o -name '*.rev' \) -delete 2>/dev/null || true
+GBS_STAMP="$GBS_DEST/.ecce-library-stamp"
+if [ -d "$GBS_SRC" ]; then
+  gbs_want=$(cd "$GBS_SRC" && find . -type f -print0 2>/dev/null | LC_ALL=C sort -z \
+             | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1)
+  gbs_have=$(cat "$GBS_STAMP" 2>/dev/null || true)
+  if [ -n "$gbs_want" ] && [ "$gbs_want" != "$gbs_have" ]; then
+    echo "ecce-dataserver-start: updating the basis set library"
+    mkdir -p "$GBS_DEST"
+    cp -r "$GBS_SRC"/. "$GBS_DEST"/
+    # Editor backups and the maintenance odds and ends that live alongside
+    # the data in the repository have no business being web-served.
+    find "$GBS_DEST" -maxdepth 1 \( -name '*~' -o -name '*.sh' -o -name '*.py' \
+         -o -name 'history' -o -name '*.rev' \) -delete 2>/dev/null || true
+    printf '%s\n' "$gbs_want" > "$GBS_STAMP"
+  fi
 fi
 
 PORT="${ECCE_DATASERVER_PORT:-8096}"
