@@ -4624,7 +4624,23 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
   // Don't add this panel if it is already being managed
   wxAuiPaneInfo &pinfo = p_mgr.GetPane(panel);
   if (pinfo.IsOk()) {
-    pinfo.Show();
+    //  Deliberately does NOT Show() it.  This used to, which undid the
+    //  defaultShownPanels choice below every time the function ran
+    //  again -- and it runs again on every property the calculation
+    //  gains.  Leave a calculation open while its job finishes and each
+    //  arriving property re-showed every panel already created, so the
+    //  viewer ended up covered in overlays; reopening the same
+    //  calculation afterwards showed only the default three, because
+    //  then the panels were being created rather than re-visited.  That
+    //  is exactly the reported difference (#111).
+    //
+    //  Nothing needs a forced show here.  This function's job is to make
+    //  sure the panel exists and has a Property-menu entry; the user
+    //  showing or hiding one goes through OnPropertyMenuClick(), which
+    //  sets the pane's visibility itself, and the layout-cache path at
+    //  the other caller restores saved visibility with LoadPaneInfo()
+    //  immediately afterwards.  Leaving it alone is what lets a panel
+    //  the user closed stay closed.
   } else {
     wxAuiPaneInfo info = wxAuiPaneInfo();
     info.DefaultPane();
