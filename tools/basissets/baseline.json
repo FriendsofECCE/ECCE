@@ -9873,13 +9873,42 @@
      "atoms": [
       "Al",
       "Ar",
+      "As",
+      "B",
+      "Be",
+      "Br",
+      "C",
+      "Ca",
       "Cl",
+      "Co",
+      "Cr",
+      "Cu",
+      "F",
+      "Fe",
+      "Ga",
+      "Ge",
+      "H",
+      "He",
+      "Kr",
+      "Li",
+      "Mg",
+      "Mn",
+      "N",
+      "Na",
+      "Ne",
+      "Ni",
+      "O",
       "P",
       "S",
-      "Si"
+      "Sc",
+      "Se",
+      "Si",
+      "Ti",
+      "V",
+      "Zn"
      ],
-     "nshells": 18,
-     "sha256": "11e9f0cb4e4701f9da058896cd6951728964af14770d5c153723a01168d876d9"
+     "nshells": 113,
+     "sha256": "471d99226bd39d75baed9e4947fb38ea6b1753aa8d03c4135fd0fbc8e29732ba"
     }
    },
    "files": [
@@ -11012,22 +11041,30 @@
       "Li",
       "Mg",
       "Mn",
+      "Mo",
       "N",
       "Na",
+      "Nb",
       "Ne",
       "Ni",
       "O",
       "P",
+      "Pd",
+      "Rh",
+      "Ru",
       "S",
       "Sc",
       "Se",
       "Si",
+      "Tc",
       "Ti",
       "V",
-      "Zn"
+      "Y",
+      "Zn",
+      "Zr"
      ],
-     "nshells": 144,
-     "sha256": "9c6bccffde02bbc8c98d48e9662ef4b5464d3949085dc722f2c9645865ceb165"
+     "nshells": 184,
+     "sha256": "bb19ca8fa438fce34c89c8873ff0de531e92606ad86c15f774b8cd9d64ace62e"
     }
    },
    "files": [
@@ -12005,14 +12042,22 @@
       "Cu",
       "Fe",
       "Mn",
+      "Mo",
+      "Nb",
       "Ni",
+      "Pd",
+      "Rh",
+      "Ru",
       "Sc",
+      "Tc",
       "Ti",
       "V",
-      "Zn"
+      "Y",
+      "Zn",
+      "Zr"
      ],
-     "nshells": 50,
-     "sha256": "ec8420f05c3d968831d39e4fbf71ac096bdfd2b846680728fa3dcab06bd4a94a"
+     "nshells": 90,
+     "sha256": "48030ec49bc6393242407d99ffb864f9a803121a0cb20586479fd5164219c118"
     }
    },
    "files": [
@@ -12981,12 +13026,41 @@
   "cc-pV(D+d)Z": {
    "atoms": [
     [
+     "H",
+     "He",
+     "Li",
+     "Be",
+     "B",
+     "C",
+     "N",
+     "O",
+     "F",
+     "Ne",
+     "Na",
+     "Mg",
      "Al",
      "Si",
      "P",
      "S",
      "Cl",
-     "Ar"
+     "Ar",
+     "Ca",
+     "Sc",
+     "Ti",
+     "V",
+     "Cr",
+     "Mn",
+     "Fe",
+     "Co",
+     "Ni",
+     "Cu",
+     "Zn",
+     "Ga",
+     "Ge",
+     "As",
+     "Se",
+     "Br",
+     "Kr"
     ]
    ],
    "content": {
@@ -12994,13 +13068,42 @@
      "atoms": [
       "Al",
       "Ar",
+      "As",
+      "B",
+      "Be",
+      "Br",
+      "C",
+      "Ca",
       "Cl",
+      "Co",
+      "Cr",
+      "Cu",
+      "F",
+      "Fe",
+      "Ga",
+      "Ge",
+      "H",
+      "He",
+      "Kr",
+      "Li",
+      "Mg",
+      "Mn",
+      "N",
+      "Na",
+      "Ne",
+      "Ni",
+      "O",
       "P",
       "S",
-      "Si"
+      "Sc",
+      "Se",
+      "Si",
+      "Ti",
+      "V",
+      "Zn"
      ],
-     "nshells": 18,
-     "sha256": "11e9f0cb4e4701f9da058896cd6951728964af14770d5c153723a01168d876d9"
+     "nshells": 113,
+     "sha256": "471d99226bd39d75baed9e4947fb38ea6b1753aa8d03c4135fd0fbc8e29732ba"
     }
    },
    "files": [
@@ -14173,6 +14276,16 @@
      "S",
      "Cl",
      "Ar",
+     "Sc",
+     "Ti",
+     "V",
+     "Cr",
+     "Mn",
+     "Fe",
+     "Co",
+     "Ni",
+     "Cu",
+     "Zn",
      "Ga",
      "Ge",
      "As",
@@ -14192,7 +14305,11 @@
       "Br",
       "C",
       "Cl",
+      "Co",
+      "Cr",
+      "Cu",
       "F",
+      "Fe",
       "Ga",
       "Ge",
       "H",
@@ -14200,17 +14317,23 @@
       "Kr",
       "Li",
       "Mg",
+      "Mn",
       "N",
       "Na",
       "Ne",
+      "Ni",
       "O",
       "P",
       "S",
+      "Sc",
       "Se",
-      "Si"
+      "Si",
+      "Ti",
+      "V",
+      "Zn"
      ],
-     "nshells": 70,
-     "sha256": "79eac54d736e0286750d16f61ce9c54746decb151386189f253adcc63067492e"
+     "nshells": 110,
+     "sha256": "65ece37c39cf1617da0f4b19b6dc8fd7462f441b765ecc2933803ce7ee184083"
     }
    },
    "files": [
@@ -15250,7 +15373,15 @@
      "As",
      "Se",
      "Br",
-     "Kr"
+     "Kr",
+     "Y",
+     "Zr",
+     "Nb",
+     "Mo",
+     "Tc",
+     "Ru",
+     "Rh",
+     "Pd"
     ]
    ],
    "content": {
@@ -15277,22 +15408,30 @@
       "Li",
       "Mg",
       "Mn",
+      "Mo",
       "N",
       "Na",
+      "Nb",
       "Ne",
       "Ni",
       "O",
       "P",
+      "Pd",
+      "Rh",
+      "Ru",
       "S",
       "Sc",
       "Se",
       "Si",
+      "Tc",
       "Ti",
       "V",
-      "Zn"
+      "Y",
+      "Zn",
+      "Zr"
      ],
-     "nshells": 144,
-     "sha256": "9c6bccffde02bbc8c98d48e9662ef4b5464d3949085dc722f2c9645865ceb165"
+     "nshells": 184,
+     "sha256": "bb19ca8fa438fce34c89c8873ff0de531e92606ad86c15f774b8cd9d64ace62e"
     }
    },
    "files": [
@@ -15912,7 +16051,15 @@
      "Co",
      "Ni",
      "Cu",
-     "Zn"
+     "Zn",
+     "Y",
+     "Zr",
+     "Nb",
+     "Mo",
+     "Tc",
+     "Ru",
+     "Rh",
+     "Pd"
     ]
    ],
    "content": {
@@ -15923,14 +16070,22 @@
       "Cu",
       "Fe",
       "Mn",
+      "Mo",
+      "Nb",
       "Ni",
+      "Pd",
+      "Rh",
+      "Ru",
       "Sc",
+      "Tc",
       "Ti",
       "V",
-      "Zn"
+      "Y",
+      "Zn",
+      "Zr"
      ],
-     "nshells": 50,
-     "sha256": "ec8420f05c3d968831d39e4fbf71ac096bdfd2b846680728fa3dcab06bd4a94a"
+     "nshells": 90,
+     "sha256": "48030ec49bc6393242407d99ffb864f9a803121a0cb20586479fd5164219c118"
     }
    },
    "files": [
@@ -22213,6 +22368,7 @@
      "Xe",
      "Cs",
      "Ba",
+     "La",
      "Ce",
      "Pr",
      "Nd",
@@ -22303,6 +22459,7 @@
       "Ir",
       "K",
       "Kr",
+      "La",
       "Li",
       "Lr",
       "Lu",
@@ -22357,8 +22514,8 @@
       "Zn",
       "Zr"
      ],
-     "nshells": 6748,
-     "sha256": "9820cd48b4f2bbf87d72f02b543d750fa6c107b3b1b84ff71ebb6b1e2a9166f9"
+     "nshells": 6823,
+     "sha256": "4af93d472130e23c8d41ebf493fc4ed670c9e086427ddb3bd8b3b8600244fbb1"
     }
    },
    "files": [
@@ -26852,6 +27009,7 @@
    "atoms": [
     [
      "H",
+     "Li",
      "C",
      "N",
      "O",
@@ -26873,14 +27031,15 @@
       "F",
       "H",
       "I",
+      "Li",
       "N",
       "O",
       "P",
       "S",
       "Si"
      ],
-     "nshells": 82,
-     "sha256": "dbb1963caf58feb36e2a1f5690fe9b833dc8b219714748025914f71067735ca6"
+     "nshells": 86,
+     "sha256": "9d58a175d94001a4a528549e73cf25b5dadccc5f00442733d52cd4cd6d5cdcdc"
     }
    },
    "files": [

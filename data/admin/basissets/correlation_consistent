@@ -147,7 +147,7 @@ atoms= H He B C N O F Ne Al Si P S Cl Ar
 
 name= cc-pV(D+d)Z
 files= CC-PVDZ_PLUS_D.BAS
-atoms= Al Si P S Cl Ar
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
 
 name= cc-pV(T+d)Z
 files= CC-PVTZ_PLUS_D.BAS
@@ -319,7 +319,7 @@ atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
 
 name= cc-pwCVTZ-DK
 files= CC-PWCVTZ-DK.BAS
-atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn
+atoms= Sc Ti V Cr Mn Fe Co Ni Cu Zn Y Zr Nb Mo Tc Ru Rh Pd
 
 name= cc-pwCVQZ-DK
 files= CC-PWCVQZ-DK.BAS
@@ -370,11 +370,11 @@ atoms= Ti
 
 name= cc-pVDZ-DK
 files= CC-PVDZ-DK.BAS
-atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Ga Ge As Se Br Kr
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
 
 name= cc-pVTZ-DK
 files= CC-PVTZ-DK.BAS
-atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Y Zr Nb Mo Tc Ru Rh Pd
 
 name= cc-pVQZ-DK
 files= CC-PVQZ-DK.BAS

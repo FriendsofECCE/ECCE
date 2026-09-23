@@ -4,6 +4,18 @@ contraction shell=S num_primitives=2 num_coefficients=1
 0.681444 0.407826
 contraction shell=S num_primitives=1 num_coefficients=1
 0.151398 1.000000
+atom=Li
+contraction shell=S num_primitives=3 num_coefficients=1
+35.0461500 0.737600000E-01
+5.20169000 0.397471000
+1.05624000 0.665092000
+contraction shell=S num_primitives=2 num_coefficients=1
+0.715170000 -0.939700000E-01
+0.705300000E-01  0.570100000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.273500000E-01 1.000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.5 1.000000
 atom=C
 contraction shell=S num_primitives=3 num_coefficients=1
 153.17226 0.070740

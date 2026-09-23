@@ -12,7 +12,7 @@ atoms= H He Li Be B C N O F Ne Na Al Si P S Cl Ar K Cs
 
 name= MIDI!
 files= MIDI_BANG.BAS
-atoms= H C N O F Si P S Cl Br I
+atoms= H Li C N O F Si P S Cl Br I
 
 name= SV (Dunning-Hay)
 files= DUNHAYSV.BAS
