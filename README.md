@@ -65,9 +65,14 @@ than papered over.
   used Fortran `D` exponents, which `strtod` reads without the exponent,
   silently corrupting STO-6G, WTBS and several cc-pV\*Z sets. A fresh
   install also got no basis sets at all; the library is now kept in step
-  with the package. Fixes three NWChem functionals that aborted every job,
-  adds NWChem dispersion corrections, and restores the property panels'
-  options menus (right-click) unreachable since the wx3.2 port.
+  with the package, and Gaussian was sent ECCE's own basis names rather
+  than the ones Gaussian accepts. **Molecular orbitals**: MOPAC had no MO
+  extraction at all despite being the Molecular Orbital PACkage, ORCA
+  never reported orbital symmetries, and two parsers were dropping
+  coefficients. MOPAC also gains thermochemistry. Adds dispersion
+  corrections for NWChem and Gaussian, fixes three NWChem functionals
+  that aborted every job, and restores the property panels' options
+  menus (right-click) unreachable since the wx3.2 port.
 
 - **v8.12.0** — **The Gateway window is gone**: `ecce` opens the Organizer
   directly, which becomes the front door (`ECCE_GATEWAY_WINDOW=1` restores
