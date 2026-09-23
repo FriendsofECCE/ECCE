@@ -61,64 +61,22 @@ than papered over.
 
 ### Release history
 
-- **v8.13.0** — **Three NWChem functionals that could never run.**
-  CAM-B3LYP and LC-wPBE emitted NWChem's `cam` parameters on the `xc`
-  line, where it is a directive of its own, so every job chosen with
-  either died on `xc_input: invalid format`; plain `hcth147` is
-  deprecated and fatal in NWChem 7.x, which wants `hcth147@tz2p`. Found
-  by running all 55 functionals the dialog offers against the installed
-  NWChem rather than reading the documentation. The same sweep added
-  **dispersion corrections** (Grimme D1, D2, D3 and D3(BJ)) — D1 and D2
-  work with every functional, D3 and D3(BJ) only with some, and asking
-  for one that is unsupported aborts the job, so the pairing is now
-  rejected up front with an explanation instead. Also fixes the
-  **Initial Source combo opening blank** in the Gaussian geometry
-  dialogs for CI and semi-empirical theories, where its default index
-  pointed past the end of a shorter list, and NWChem's B3LYP shortcut
-  selecting the wrong functional for the same reason. The dialog test
-  suite now catches both shapes — a combo left with no selection at all,
-  and `cam` run onto the `xc` line — and no longer reports findings in
-  retired codes.
+- **v8.13.0** — **Some basis sets were being read wrongly**: 24045 values
+  used Fortran `D` exponents, which `strtod` reads without the exponent,
+  silently corrupting STO-6G, WTBS and several cc-pV\*Z sets. A fresh
+  install also got no basis sets at all; the library is now kept in step
+  with the package. Fixes three NWChem functionals that aborted every job,
+  adds NWChem dispersion corrections, and restores the property panels'
+  options menus (right-click) unreachable since the wx3.2 port.
 
-  **Molecular orbitals were being silently discarded by two codes.**
-  ORCA prints its MO block in fixed-width columns, so a coefficient wide
-  enough to fill its field runs into the previous one
-  (`0.452636-11.266403` is two numbers); Gaussian's `fort.7` opens with
-  an archive entry wrapped at 80 columns, and a route section ending in
-  `Opt=()` put `()` at the start of a line, which the skip mistook for
-  the Fortran format line and read four lines of geometry and energies
-  in as coefficients. Either way the table came out the wrong length,
-  `PropTable` rejected it on load, and the MO panel showed nothing with
-  no error anywhere (#108). Found by scanning stored calculations rather
-  than fixtures — no fixture contains either shape.
+- **v8.12.0** — **The Gateway window is gone**: `ecce` opens the Organizer
+  directly, which becomes the front door (`ECCE_GATEWAY_WINDOW=1` restores
+  it). **ORCA gains implicit solvation** — CPCM and SMD, so every ORCA deck
+  before this was gas phase — plus MP2, coupled cluster, double hybrids and
+  CHELPG charges. Quantum ESPRESSO gains geometry optimisation. Fixes the
+  geometry trace and vibration animation not redrawing, and orphaned
+  background services.
 
-  **Property panels got their options menus back.** The wx3.2 AUI port
-  dropped the pane-caption buttons, and with them the only trigger for
-  seven panels' menus — including the vibrational panel's Show Table /
-  Show Graph switch. A right-click on any property panel now opens them
-  (#109).
-
-  **Quantum ESPRESSO reads the stress tensor back**, so the Runtype
-  Details "Stress" checkbox means something: it used to make `pw.x`
-  compute the tensor while nothing consumed it. GROMACS likewise now
-  emits the pressure it was already parsing and discarding. ORCA's
-  CHELPG charges gain a summary row and a regression fixture for the
-  multi-block optimisation case, where the charges move between cycles
-  and only the converged ones should survive (#88).
-
-- **v8.12.0** — **The Gateway window is gone**: `ecce` opens the
-  Organizer directly, which becomes the front door (New Structure on
-  File; Register Machines, Machine Browser and Periodic Table on Tools).
-  `ECCE_GATEWAY_WINDOW=1` restores the old window. **ORCA gains implicit
-  solvation** — CPCM and SMD, which it had none of, so every ORCA deck
-  had been gas phase — plus MP2, coupled cluster, double hybrids, the
-  DLPNO methods and CHELPG charges. **Quantum ESPRESSO gains geometry
-  and variable-cell optimisation**, so a relax can be stepped through
-  and a vc-relax animated with a changing cell. Fixes geometry-trace
-  stepping in the 3-D viewer, a theory lookup that silently resolved to
-  nothing when a theory's name matched its category, input-generator
-  errors being replaced by a generic message, and a vibrational table
-  whose Raman column was overwriting its Infrared one.
 - **v8.11.0** — Adds dummy submission for 2FA-blocked clusters, Slurm
   submit directives (previously generating none at all), per-user queue
   configuration, and Machine Browser and Periodic Table on the
