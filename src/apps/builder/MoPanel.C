@@ -353,6 +353,13 @@ void MoPanel::fillUI()
 
    INTERNALEXCEPTION(orbEnergy,"Orbital energy vector is null.");
    if (!orbEnergy) {
+      //  INTERNALEXCEPTION compiles to nothing in an INSTALL build, so
+      //  this is the live path there.  The other two ways of ending up
+      //  invalid (no basis set, no MO coefficients) each say so; this
+      //  one returned silently, and the user then got no explanation at
+      //  all until they pressed Compute and hit its guard.
+      getFW().showMessage("This calculation has no orbital energies, so "
+            "orbitals cannot be computed.", false/*warning*/);
       p_isValid = False;
       return;
    }
@@ -443,7 +450,18 @@ int  MoPanel::fillTable(const string& type,
    }
    if (propOrbSym) {
       sym = propOrbSym->values();
-      reverse(sym.begin(), sym.end());
+      //  These vectors are reversed INDEPENDENTLY and then indexed by the
+      //  same row below, so a symmetry vector of a different length does
+      //  not merely run out at the end -- it shifts, and puts the wrong
+      //  label on every row.  A code that truncates its orbital listing
+      //  (ORCA prints only the first ten virtuals unless asked for more)
+      //  produces exactly that.  Silently wrong labels are worse than no
+      //  column, so drop it unless it lines up exactly.
+      if (sym.size() != energy.size()) {
+         sym.clear();
+      } else {
+         reverse(sym.begin(), sym.end());
+      }
    }
 
    for (int row=startRow, rows=energy.size()+startRow; row<rows; ++row) {

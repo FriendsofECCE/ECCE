@@ -55,6 +55,19 @@ class OrcaTheoryPanel(EccePanel):
                                     label="Convergence:",
                                     export=1)
         scfSizer.AddWidget(self.scfConv)
+
+        #  "! UseSym".  Without it ORCA's ORBITAL ENERGIES block carries
+        #  no Irrep column, so the MO table has no symmetry column to
+        #  fill -- ai.orca's SymmetryToken reads this, and orca.orbsym
+        #  parses the result.  Off by default because UseSym changes what
+        #  ORCA computes: it constrains the SCF to the detected point
+        #  group, which is not always what the user wants.
+        self.useSymmetry = EcceCheckBox(self,
+                                        label=" Use symmetry",
+                                        name="ES.Theory.SCF.UseSymmetry",
+                                        default=False,
+                                        export=1)
+        scfSizer.AddWidget(self.useSymmetry)
         self.panelSizer.Add(scfSizer)
 
         # RIJCOSX -- RI-J + "chain of spheres" approximate exchange, the

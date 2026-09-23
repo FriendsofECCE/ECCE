@@ -1,0 +1,99 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Parses the "Irrep" column of ORCA's "ORBITAL ENERGIES" block into
+# ORBSYM (and ORBSYMBETA for UHF/UDFT), so the MO table gets its
+# symmetry column.
+#
+# TWO things have to be true upstream or this script correctly emits
+# nothing, and both are arranged by ai.orca:
+#
+#  1. "! UseSym" on the route card.  ORCA prints NO Irrep column at all
+#     without it -- the default block is just NO/OCC/E(Eh)/E(eV).  This
+#     is driven by the "Use symmetry" checkbox in orcatheory.py.
+#
+#  2. "Print[P_OrbEn] 2" in the %output block.  ORCA truncates this
+#     block to the first ten virtuals by default (verified against ORCA
+#     6.1.1: def2-SVP water listed 16 of its 24 orbitals).  A truncated
+#     ORBSYM would be WORSE than none: MoPanel::fillTable() reverses the
+#     energy and symmetry vectors independently and then indexes both by
+#     the same row, so a short symmetry vector does not merely run out
+#     -- it puts the wrong label on every single row.  Hence the length
+#     check below, which drops the vector rather than emit a short one.
+#
+# Real ORCA 6.1.1 shape (UHF; RHF is the same without the SPIN headers):
+#
+#   ORBITAL ENERGIES
+#   ----------------
+#                    SPIN UP ORBITALS
+#     NO   OCC          E(Eh)            E(eV)    Irrep
+#      0   1.0000     -20.621942      -561.1516    1-A1
+#      ...
+#                    SPIN DOWN ORBITALS
+#     NO   OCC          E(Eh)            E(eV)    Irrep
+#      0   1.0000     -20.610000      -560.8300    1-A1
+#      ...
+#
+# The leading ordinal in "1-A1" is the orbital's index WITHIN that
+# irrep, not part of the label.  It is stripped: MoPanel::fillGraph()
+# groups the orbital plot by the symmetry string, so keeping it would
+# put every orbital in a group of its own and defeat the grouping.
+#
+# Deliberately tolerant about lines it does not recognise (headers,
+# dashes, blanks) rather than stopping at the first non-matching line --
+# see the Skip= note in CLAUDE.md for why the "else { last }" shape is a
+# trap here.
+#
+################################################################################
+
+$| = 1;
+
+my @alpha;
+my @beta;
+my $current = \@alpha;
+my $sawSpinDown = 0;
+
+while (<STDIN>) {
+  chomp;
+  if (/SPIN\s+DOWN\s+ORBITALS/i) {
+    $current = \@beta;
+    $sawSpinDown = 1;
+    next;
+  }
+  next if (/SPIN\s+UP\s+ORBITALS/i);
+
+  #  A data row starts with the orbital index and carries the irrep as
+  #  the last token.  Matched as two separate anchored patterns rather
+  #  than one field-by-field regex, because this block is fixed-width:
+  #  a wide enough E(eV) runs into the column before it with no space,
+  #  the same way it does in the MO coefficient block (issue #108).
+  next unless (/^\s*(\d+)\s+[-.\d]/);
+  my $idx = $1;
+  next unless (/(?:\d+)-([A-Za-z][A-Za-z0-9']*)\s*$/);
+  $current->[$idx] = $1;
+}
+
+sub emit {
+  my ($key, $valuesRef) = @_;
+  my @values = @$valuesRef;
+  my $n = scalar(@values);
+  return if ($n == 0);
+  #  A gap means a row was missed, so the vector no longer lines up with
+  #  ORBENG index for index.  Emitting it anyway would mislabel rows
+  #  (see the header note); emitting nothing just leaves the column out.
+  foreach my $v (@values) {
+    return if (!defined($v) || $v eq "");
+  }
+  print "key: $key\n";
+  print "size:\n$n\n";
+  print "rowlabels:\n";
+  foreach my $i (1 .. $n) { print " $i "; }
+  print "\nvalues:\n";
+  print "@values\n";
+  print "END\n";
+}
+
+&emit("ORBSYM", \@alpha);
+&emit("ORBSYMBETA", \@beta) if ($sawSpinDown);
+exit(0);

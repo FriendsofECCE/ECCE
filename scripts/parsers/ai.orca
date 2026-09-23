@@ -252,10 +252,27 @@ sub ORCARoute {
   $route .= &FreqMethodToken . " ";
   $route .= &SolvationToken . " ";
   $route .= &ChelpgToken . " ";
+  $route .= &SymmetryToken . " ";
   $route .= &AuxCBasisToken;
   $route =~ s/\s+/ /g;
   $route =~ s/\s+$//;
   return $route;
+}
+
+#  "! UseSym" -- turn on ORCA's symmetry detection.  Verified against
+#  real ORCA 6.1.1: without it the "ORBITAL ENERGIES" block has no Irrep
+#  column at all, with it every orbital carries one, which is what the
+#  MO table's symmetry column is built from.
+#
+#  Deliberately NOT unconditional, unlike the print flags above: UseSym
+#  changes what ORCA computes, not just what it reports, so it is the
+#  user's call via the "Use symmetry" checkbox in orcatheory.py.
+sub SymmetryToken {
+  my $result = "";
+  if ($AbiDict{"ES.Theory.SCF.UseSymmetry"} eq "1") {
+    $result = "UseSym";
+  }
+  return $result;
 }
 
 # "! RIJCOSX <auxbasis>" -- RI-J + chain-of-spheres approximate
@@ -450,7 +467,15 @@ sub ORCABlocks {
   # .gbw file, which orca.mo (the MO parser) cannot read. Verified this
   # flag makes ORCA print a "MOLECULAR ORBITALS" text block identical in
   # intent to Gaussian's fort.7 dump / NWChem's inline MO printing.
-  $result .= "%output\n  Print[P_MOs] 1\nend\n";
+  #  Print[P_OrbEn] 2 lifts ORCA's default truncation of the "ORBITAL
+  #  ENERGIES" block to the first ten virtuals (verified against ORCA
+  #  6.1.1: def2-SVP water listed 16 of its 24 orbitals by default, all
+  #  24 with this).  orca.orbsym reads the Irrep column out of that
+  #  block, and a truncated symmetry vector would mislabel every row of
+  #  the MO table rather than just stop early -- see that script's
+  #  header.  Unconditional, like Print[P_MOs]: it only lengthens the
+  #  listing of numbers ORCA already computed.
+  $result .= "%output\n  Print[P_MOs] 1\n  Print[P_OrbEn] 2\nend\n";
   # Unconditionally request the quadrupole moment (not computed by
   # default) so orca.quadpole has something to parse -- verified this
   # alone is enough to make ORCA print a "QUADRUPOLE MOMENT" section; no

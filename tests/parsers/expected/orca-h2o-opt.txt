@@ -211,6 +211,13 @@ args:    '.' 'Geometry' 'SCF' 'RHF' '0'
       values: 74.51860233804906
       units: Hartree
 
+[ORBSYM][ORBSYMBETA]  Script=orca.orbsym  Freq=last  Skip=2  Lines=-
+  Begin=ORBITAL ENERGIES
+  End=^-{4,}\s*$
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=2059 fed=16 rc=0 first-fed=''
+    (script emitted no property)
+
 [EGRAD][EGRADVEC]  Script=orca.egradvec  Freq=all  Skip=3  Lines=-
   Begin=CARTESIAN GRADIENT
   End=TIMINGS

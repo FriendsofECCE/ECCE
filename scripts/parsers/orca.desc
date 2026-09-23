@@ -93,6 +93,33 @@ Frequency=last
 End=MULLIKEN POPULATION ANALYSIS
 [END]
 
+#  Orbital symmetry labels, which live in the Irrep column of "ORBITAL
+#  ENERGIES" -- the MO coefficient block above carries no symmetry, so
+#  this is a separate read of a separate section.  ORCA only prints that
+#  column with "! UseSym", which the "Use symmetry" checkbox in
+#  orcatheory.py drives; without it the script emits nothing and the MO
+#  table simply has no Sym column, which is the correct outcome.
+#
+#  Skip=2 counts the Begin line itself (see CLAUDE.md), so it consumes
+#  "ORBITAL ENERGIES" and the "----" underline directly below it.  That
+#  underline matters: End is an unindented dashes run, and without the
+#  skip the block would close on its own header underline and feed the
+#  script nothing.
+#
+#  End deliberately stops on those dashes rather than on "MOLECULAR
+#  ORBITALS".  ORCA prints the dashes ABOVE that heading, so ending here
+#  leaves the heading itself unconsumed and the [MO] entry above can
+#  still match it -- ending on the heading would eat it and starve [MO]
+#  of ever firing, the failure this file has already been bitten by
+#  twice (VIBFREQ/VIB and SHIELDTENSOR/ISOSHIELD).
+[ORBSYM][ORBSYMBETA]
+Script=orca.orbsym
+Begin=ORBITAL ENERGIES
+Skip=2
+Frequency=last
+End=^-{4,}\s*$
+[END]
+
 [EGRAD][EGRADVEC]
 Script=orca.egradvec
 Begin=CARTESIAN GRADIENT

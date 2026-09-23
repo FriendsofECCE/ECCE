@@ -91,6 +91,13 @@ args:    '.' 'Energy' 'SCF' 'UHF' '1'
       columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6
       values: 0.994838 0.022366 0.003509 0.000000 -0.000000 -0.006157 -0.235180 0.865415 0.115964 0.000000 0.000000 0.248485 0.106385 -0.539207 0.660663 -0.000000 -0.000000 0.526310 -0.000000 0.000000 0.000000 0.694541 -0.719453 0.000000 0.000000 -0.000000 0.000000 0.719453 0.694541 0.000000 -0.095132 0.622760 0.889464 0.000000 0.000000 -1.120122
 
+[ORBSYM][ORBSYMBETA]  Script=orca.orbsym  Freq=last  Skip=2  Lines=-
+  Begin=ORBITAL ENERGIES
+  End=^-{4,}\s*$
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=537 fed=19 rc=0 first-fed='                 SPIN UP ORBITALS'
+    (script emitted no property)
+
 [DIPOLE]  Script=orca.dipole  Freq=last  Skip=-  Lines=-
   Begin=Total Dipole Moment
   End=Rotational spectrum

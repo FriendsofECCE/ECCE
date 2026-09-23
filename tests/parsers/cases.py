@@ -279,6 +279,12 @@ CASES = [
         name='orca-h2o-opt',
         desc='orca.desc',
         fixture='orca/h2o_opt.out',
+        #  Captured before ai.orca could emit "! UseSym", so ORCA's
+        #  ORBITAL ENERGIES block here has no Irrep column and
+        #  orca.orbsym correctly emits nothing.  Emitting anything from
+        #  this output would be the bug -- see orca-h2o-sym.
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck, so ORCA '
+                                         'prints no Irrep column'},
         parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
         expect={
             'GEOMTRACE': dict(min_blocks=2, keys={'GEOMTRACE': {}}),
@@ -506,6 +512,12 @@ CASES = [
         name='orca-h2o-optfreq',
         desc='orca.desc',
         fixture='orca/h2o_optfreq.out',
+        #  Captured before ai.orca could emit "! UseSym", so ORCA's
+        #  ORBITAL ENERGIES block here has no Irrep column and
+        #  orca.orbsym correctly emits nothing.  Emitting anything from
+        #  this output would be the bug -- see orca-h2o-sym.
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck, so ORCA '
+                                         'prints no Irrep column'},
         parse_args=('.', 'GeoVib', 'SCF', 'RHF', '0'),
         expect={
             'GEOMTRACE': dict(min_blocks=5, keys={'GEOMTRACE': {
@@ -634,6 +646,12 @@ CASES = [
         name='orca-oh-uhf',
         desc='orca.desc',
         fixture='orca/oh_uhf.out',
+        #  Captured before ai.orca could emit "! UseSym", so ORCA's
+        #  ORBITAL ENERGIES block here has no Irrep column and
+        #  orca.orbsym correctly emits nothing.  Emitting anything from
+        #  this output would be the bug -- see orca-h2o-sym.
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck, so ORCA '
+                                         'prints no Irrep column'},
         parse_args=('.', 'Energy', 'SCF', 'UHF', '1'),
         expect={
             'S2': dict(keys={'S2': {'values': '0.753262'}}),
@@ -696,6 +714,12 @@ CASES = [
         name='orca-h2o-opt-chelpg',
         desc='orca.desc',
         fixture='orca/h2o_opt_chelpg.out',
+        #  Captured before ai.orca could emit "! UseSym", so ORCA's
+        #  ORBITAL ENERGIES block here has no Irrep column and
+        #  orca.orbsym correctly emits nothing.  Emitting anything from
+        #  this output would be the bug -- see orca-h2o-sym.
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck, so ORCA '
+                                         'prints no Irrep column'},
         parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
         expect={
             #  blocks= counts DELIVERED blocks, and Frequency=last
@@ -710,6 +734,37 @@ CASES = [
         },
     ),
     dict(
+        #  RHF/def2-SVP water with "! UseSym" -- the ONLY way ORCA emits
+        #  orbital symmetry labels at all, and therefore the only way
+        #  [ORBSYM][ORBSYMBETA] can ever fire.  Without the keyword the
+        #  "ORBITAL ENERGIES" block has no Irrep column and the entry
+        #  correctly produces nothing, which is why every other ORCA
+        #  fixture here leaves it silent.
+        #
+        #  THE POINT OF THIS FIXTURE IS THE LENGTH.  ORCA truncates that
+        #  block to the first ten virtuals unless asked for more, so this
+        #  deck carries "Print[P_OrbEn] 2" exactly as ai.orca now emits
+        #  it.  def2-SVP water has 24 basis functions; without the flag
+        #  ORCA lists 16 of them, verified.  A 16-long ORBSYM against a
+        #  24-long ORBENG is worse than no symmetry column, because
+        #  MoPanel::fillTable() reverses the two vectors independently
+        #  before indexing them by the same row -- it does not run out at
+        #  the end, it shifts, and mislabels every row.  Pinning size=24
+        #  here is the assertion that the print flag is still in the
+        #  generated deck.
+        name='orca-h2o-sym',
+        desc='orca.desc',
+        fixture='orca/h2o_sym.out',
+        parse_args=('.', 'Energy', 'SCF', 'RHF', '0'),
+        expect={
+            'ORBSYM][ORBSYMBETA': dict(blocks=1, keys={
+                'ORBSYM': {'size': '24',
+                           'values': 'A1 A1 B2 A1 B1 A1 B2 B2 A1 A1 B1 '
+                                     'B2 A1 A2 A1 B1 B2 B2 A1 B1 A2 A1 '
+                                     'A1 B2'}}),
+        },
+    ),
+    dict(
         # RHF/STO-3G NMR CHELPG: the NMR shielding and ESP-charge entries.
         # This deck's CHELPG was added BY HAND, because when it was
         # captured ai.orca had no CHELPG path and ESPCHARGE could not be
@@ -721,6 +776,12 @@ CASES = [
         name='orca-h2o-nmr',
         desc='orca.desc',
         fixture='orca/h2o_nmr_chelpg.out',
+        #  Captured before ai.orca could emit "! UseSym", so ORCA's
+        #  ORBITAL ENERGIES block here has no Irrep column and
+        #  orca.orbsym correctly emits nothing.  Emitting anything from
+        #  this output would be the bug -- see orca-h2o-sym.
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck, so ORCA '
+                                         'prints no Irrep column'},
         parse_args=('.', 'Magnetic', 'SCF', 'RHF', '0'),
         expect={
             # ---------------------------------------------------------
