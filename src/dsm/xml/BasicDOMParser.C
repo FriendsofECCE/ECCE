@@ -89,6 +89,14 @@ DOMDocument* BasicDOMParser::parse(const SFile& file,
 
   initialize();
 
+  // Xerces reports a missing file as a fatal parse error with no line or
+  // column, which reads as "this XML is malformed" and sends you auditing a
+  // file that isn't there.  Say which file is missing instead.
+  if (!file.exists()) {
+    throw ParseException(ParseException::FATAL,
+                         "No such file: " + file.path(), WHERE);
+  }
+
   XMLCh* xStr = XMLString::transcode(file.path().c_str());
   InputSource* is = new LocalFileInputSource(xStr);
   delete [] xStr;
