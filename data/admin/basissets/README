@@ -1,0 +1,53 @@
+Gaussian basis set library
+==========================
+
+377 basis sets (*.BAS, with *.BAS.meta descriptors), served by the ECCE
+data server as Ecce/system/GaussianBasisSetLibrary and loaded through
+EDSIGaussianBasisSetLibrary.
+
+Why this data ships
+-------------------
+It is not a convenience.  ECCE writes basis sets INTO the generated input
+deck as explicit exponents and coefficients rather than naming the
+computational code's built-in library: TGBSConfig::dump() always emits a
+NumericalBasis section, and the NameBasis section is an optional addition
+suppressed for any "Custom" or "Imported" configuration, for any basis
+listed in data/client/config/BasisSetUseExp, and for any basis the user
+has uncontracted, appended functions to, or deleted contractions from.
+Those operations cannot be expressed as a library name at all.
+
+So without this data ECCE cannot produce a basis set -- not even by name,
+since the selection UI is driven by what the library contains.
+
+Provenance
+----------
+Exported from the EMSL Basis Set Exchange (the retired bse.pnl.gov), 2013
+to 2015.  Each descriptor records its own export stamp on line 17, e.g.
+
+    pc-1  EMSL  Basis Set Exchange Library  6/19/15 6:31 AM
+
+That site has been retired and redirects to basissetexchange.org, so the
+terms under which these particular exports were made are not recoverable
+from it.  The successor project (MolSSI) publishes its repository under
+the BSD 3-Clause license; note that the licence statement covers "the
+project" and does not separately address the basis set data, so it should
+not be read here as a settled statement about redistribution.  Anyone
+needing certainty should ask MolSSI (bse@molssi.org).
+
+See issue #116.
+
+Citation
+--------
+Cite the literature reference for the basis set itself -- each .BAS and
+.BAS.meta file carries its own references section -- and the Basis Set
+Exchange:
+
+  D. Feller, J. Comp. Chem. 17(13), 1571-1586 (1996).
+  K.L. Schuchardt, B.T. Didier, T. Elsethagen, L. Sun, V. Gurumoorthi,
+    J. Chase, J. Li, T.L. Windus, J. Chem. Inf. Model. 47(3), 1045-1052
+    (2007).
+
+For anything obtained from the present Basis Set Exchange, cite instead:
+
+  B.P. Pritchard, D. Altarawy, B.T. Didier, T.D. Gibson, T.L. Windus,
+    J. Chem. Inf. Model. 59(11), 4814-4820 (2019).
