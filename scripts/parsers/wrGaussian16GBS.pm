@@ -357,6 +357,28 @@ sub writeGaussian16{
       $en =~ tr/a-z/A-Z/;
       print " $en  0\n";
       #
+      #  A Gen section does NOT require explicit primitives: each element
+      #  group may instead name a basis Gaussian ships internally.  So an
+      #  element whose basis is in %NameToBasis is written by name even
+      #  when the molecule as a whole could not use the route card --
+      #  which is the usual case for a mixed basis, where previously ONE
+      #  unmappable element forced every element to be written out in
+      #  full.  Verified against Gaussian 16: a Gen section mixing a named
+      #  group and an explicit group is accepted.
+      #
+      #  Only when there is no ECP, matching the route-card condition
+      #  above; an element carrying an ECP keeps its explicit treatment.
+      if (!(exists $bs{"ecp"}) && exists $bs{"name_gbs"}) {
+        my $lib = lc $name_gbs{$atom};
+        $lib =~ s/^\"//;
+        $lib =~ s/\"$//;
+        if (defined($NameToBasis{$lib})) {
+          print "$NameToBasis{$lib}\n";
+          print " ****\n";
+          next;
+        }
+      }
+      #
       # %coefficient_ctr counts the number of $coefficients 
       # associated with a certain $orbitalType
       #

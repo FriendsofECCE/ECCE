@@ -70,6 +70,27 @@ sub writeORCA{
     my @orbitalList = @{$gbs{$atom}};
     my $en = $atom;
     $en = ucfirst(lc($en));
+
+    #  A %basis block does NOT require explicit primitives: NewGTO may
+    #  name a basis ORCA ships internally instead.  So an element whose
+    #  basis is in %NameToBasis is written by name even when the molecule
+    #  as a whole could not use the "!" line -- previously ONE unmappable
+    #  element forced every element to be listed in full.  Verified
+    #  against ORCA 6.1.1, including a %basis block mixing a named NewGTO
+    #  and an explicit one.
+    #
+    #  Only when there is no ECP, matching the route-card condition
+    #  above; an element carrying an ECP keeps its explicit treatment.
+    if (!(exists $bs{"ecp"}) && exists $bs{"name_gbs"}) {
+      my $lib = lc $name_gbs{$atom};
+      $lib =~ s/^\"//;
+      $lib =~ s/\"$//;
+      if (defined($NameToBasis{$lib})) {
+        print "NewGTO $en \"$NameToBasis{$lib}\" end\n";
+        next;
+      }
+    }
+
     print "NewGTO $en\n";
 
     my $orbPtr;
