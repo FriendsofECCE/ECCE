@@ -57,10 +57,17 @@ def orca_newgto(element, shells):
     """
     out = ["NewGTO %s" % element]
     for shell, nprim, ncoef, rows in shells:
-        letter = shell[0]
-        if letter not in LETTER:
-            return None                       # SP and friends: not handled
+        #  Each coefficient column is its own contracted function, and the
+        #  shell label says which angular momentum each column carries:
+        #  "SS" is two s functions sharing primitives, "SP" is one s and
+        #  one p.  Taking shell[0] for every column turns an SP shell into
+        #  two s functions -- which silently produced an oxygen atom at
+        #  -331 Hartree instead of -74.8 before this was fixed.
+        letters = list(shell) if len(shell) == ncoef else [shell[0]] * ncoef
         for column in range(ncoef):
+            letter = letters[column] if column < len(letters) else shell[0]
+            if letter not in LETTER:
+                return None
             kept = [(r[0], r[column + 1]) for r in rows
                     if len(r) > column + 1 and float(r[column + 1]) != 0.0]
             if not kept:
