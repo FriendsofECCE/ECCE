@@ -125,10 +125,66 @@ End=Empirical Formula|General Reference for
 # feeds it.  MOPAC can also print a true Mulliken population analysis
 # (keyword MULLIK), but that needs an extra keyword and a second block,
 # so the always-present one is used.
+#  Molecular orbitals.  Needs "VECTORS ALLVEC" on the keyword line,
+#  which ai.mopac emits when the theory dialog's "Print molecular
+#  orbitals" box is ticked -- without VECTORS the block is absent, and
+#  without ALLVEC only the occupied orbitals appear.
+#
+#  Begin is ANCHORED to a line that is nothing but the word: MOPAC echoes
+#  its keywords near the top of every output as
+#  "*  VECTORS    - FINAL EIGENVECTORS TO BE PRINTED", and an unanchored
+#  Begin matches THAT, opening the block hundreds of lines early and
+#  swallowing [GEOMTRACE], [PNTGRP] and [IP] on the way down.
+#
+#  Skip=0 so the Begin-matching line is itself fed to the script: for UHF
+#  it reads "ALPHA EIGENVECTORS" / "BETA EIGENVECTORS", and that header
+#  is the only thing distinguishing the two spins.  Both spins arrive in
+#  ONE block, because End lies past both.
+#
+#  End is the next section's heading rather than a blank line: column
+#  groups within the block are separated by blank lines that are
+#  indistinguishable from the ones that close it.  That is why
+#  [MULLIKEN][DIPOLE] above had to be re-anchored past this heading.
+[MO][MOBETA][ORBENG][ORBENGBETA][ORBSYM][ORBSYMBETA]
+Script=mopac.mo
+Begin=^\s*(ALPHA|BETA)?\s*EIGENVECTORS\s*$
+Skip=0
+Frequency=last
+End=NET ATOMIC CHARGES
+[END]
+
+#  Orbital occupancies, derived from the electron populations -- see
+#  mopac.orbocc's header for why they come from there and not from
+#  MOPAC's own "NO. OF FILLED LEVELS" line (which cannot be reached
+#  without starving [PNTGRP] and [IP]).
+#
+#  Skip=2 counts the Begin line itself, so it consumes the heading and
+#  the blank line under it, landing on the "Atom  s  px  py  pz" header.
+#  End covers both shapes seen live: a blank line (unrestricted runs,
+#  where the spin populations follow) and the MOPAC banner (restricted
+#  runs, where the output ends).
+#
+#  Printed by default, so this fires even for a job that did not ask for
+#  VECTORS -- but a pure FORCE run prints neither, and then both entries
+#  correctly produce nothing.
+[ORBOCC][ORBOCCBETA]
+Script=mopac.orbocc
+Begin=ATOMIC ORBITAL ELECTRON POPULATIONS
+Skip=2
+Frequency=last
+End=^\s*$|\*\*\*\*
+[END]
+
 [MULLIKEN][DIPOLE]
 Script=mopac.charges
-Begin=NET ATOMIC CHARGES
-Skip=3
+#  Anchored on the table's own column header, NOT on the "NET ATOMIC
+#  CHARGES AND DIPOLE CONTRIBUTIONS" heading above it.  That heading is
+#  where [MO]... ends, and eccejobmonitor consumes the End-matching line
+#  as part of the block it closes -- so a Begin on it could never fire
+#  once the eigenvector entry existed.  Skip=1 lands on the same first
+#  data row the old Skip=3 did.
+Begin=^\s*ATOM NO\.\s+TYPE\s+CHARGE
+Skip=1
 Frequency=last
 End=^\s*SUM\s
 [END]

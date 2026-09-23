@@ -446,7 +446,15 @@ int  MoPanel::fillTable(const string& type,
    }
    if (propOrbOcc) {
       occ = propOrbOcc->values();
-      reverse(occ.begin(), occ.end());
+      //  Same hazard as the symmetry vector below, but worse: occ[idx] is
+      //  indexed over the ENERGY vector's range, so a shorter occupancy
+      //  vector reads past its end rather than merely mislabelling.  Drop
+      //  it unless the lengths agree.
+      if (occ.size() != energy.size()) {
+         occ.clear();
+      } else {
+         reverse(occ.begin(), occ.end());
+      }
    }
    if (propOrbSym) {
       sym = propOrbSym->values();

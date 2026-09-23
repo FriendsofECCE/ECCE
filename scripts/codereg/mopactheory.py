@@ -71,6 +71,21 @@ class MopacTheoryPanel(EccePanel):
                                     default=False,
                                     export=1)
         scfSizer.AddWidget(self.precise)
+
+        #  "VECTORS ALLVEC" -- MOPAC prints no eigenvector block at all
+        #  without it, which is why MOPAC jobs had no Orbitals panel.
+        #  ALLVEC extends the listing to the virtual orbitals, which ECCE
+        #  needs: its MO table is sized over every orbital.
+        #
+        #  Default ON.  MOPAC is the Molecular Orbital PACkage and
+        #  orbitals are a primary reason to run it; the cost is output
+        #  length, which only matters for unusually large systems.
+        self.printMOs = EcceCheckBox(self,
+                                     label=" Print molecular orbitals (VECTORS)",
+                                     name="ES.Theory.SCF.PrintMOs",
+                                     default=True,
+                                     export=1)
+        scfSizer.AddWidget(self.printMOs)
         self.panelSizer.Add(scfSizer)
 
         # PARALLEL

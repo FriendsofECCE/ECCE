@@ -310,6 +310,19 @@ sub KeywordLine {
   push(@kw, "CHARGE=" . &Charge);
   push(@kw, &SpinKeyword);
 
+  #  VECTORS prints the eigenvectors; ALLVEC extends that to the virtual
+  #  orbitals as well, which ECCE needs because its MO table and the
+  #  ORBENG/ORBSYM vectors are sized over ALL orbitals -- a
+  #  occupied-only listing would be shorter than the occupancy vector and
+  #  MoPanel would drop it.  Verified against MOPAC 23.1.2: the
+  #  "EIGENVECTORS" block is absent entirely without VECTORS.
+  #
+  #  Not unconditional.  MOPAC is routinely pointed at systems far larger
+  #  than the other codes here, where the full coefficient matrix is a
+  #  large amount of output for something nobody asked to see.
+  push(@kw, "VECTORS", "ALLVEC")
+    if ($AbiDict{"ES.Theory.SCF.PrintMOs"} eq "1");
+
   # PRECISE: "TIGHTER CRITERIA TO BE USED" (binary's own banner text).
   push(@kw, "PRECISE") if ($AbiDict{"ES.Theory.SCF.Precise"} eq "1");
 

@@ -40,11 +40,21 @@ args:    '.' 'Gradient' 'SE' 'RPM7' '0'
       values: 0.000000000 0.000000000 0.000000000 0.000000000 0.000000000 0.960000000 0.926000000 0.000000000 -0.240000000
       units: Angstrom
 
-[MULLIKEN][DIPOLE]  Script=mopac.charges  Freq=last  Skip=3  Lines=-
-  Begin=NET ATOMIC CHARGES
+[ORBOCC][ORBOCCBETA]  Script=mopac.orbocc  Freq=last  Skip=2  Lines=-
+  Begin=ATOMIC ORBITAL ELECTRON POPULATIONS
+  End=^\s*$|\*\*\*\*
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=172 fed=5 rc=0 first-fed='     Atom    s        px        py        pz'
+    key: ORBOCC
+      size: 6
+      values: 2.0000 2.0000 2.0000 2.0000 0.0000 0.0000
+      units: electrons
+
+[MULLIKEN][DIPOLE]  Script=mopac.charges  Freq=last  Skip=1  Lines=-
+  Begin=^\s*ATOM NO\.\s+TYPE\s+CHARGE
   End=^\s*SUM\s
   begins=1 delivered=1 buffered_away=0
-  block 1: begin-line=160 fed=7 rc=0 first-fed='    1          O          -0.645579        6.6456     1.81735     4.82823'
+  block 1: begin-line=162 fed=7 rc=0 first-fed='    1          O          -0.645579        6.6456     1.81735     4.82823'
     key: MULLIKEN
       size: 3
       values: -0.645579 0.323084 0.322495

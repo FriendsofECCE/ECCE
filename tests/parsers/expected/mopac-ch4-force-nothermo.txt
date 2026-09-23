@@ -65,11 +65,21 @@ args:    '.' 'Vibration' 'SE' 'PM7' '0'
       values: 0.0000 0.0000 -0.0002 -0.6260 -0.6263 0.6266 0.6261 0.6263 0.6267 0.6261 -0.6264 -0.6263 -0.6262 0.6263 -0.6263
       units: Angstrom
 
-[MULLIKEN][DIPOLE]  Script=mopac.charges  Freq=last  Skip=3  Lines=-
-  Begin=NET ATOMIC CHARGES
+[ORBOCC][ORBOCCBETA]  Script=mopac.orbocc  Freq=last  Skip=2  Lines=-
+  Begin=ATOMIC ORBITAL ELECTRON POPULATIONS
+  End=^\s*$|\*\*\*\*
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=174 fed=7 rc=0 first-fed='     Atom    s        px        py        pz'
+    key: ORBOCC
+      size: 8
+      values: 2.0000 2.0000 2.0000 2.0000 0.0000 0.0000 0.0000 0.0000
+      units: electrons
+
+[MULLIKEN][DIPOLE]  Script=mopac.charges  Freq=last  Skip=1  Lines=-
+  Begin=^\s*ATOM NO\.\s+TYPE\s+CHARGE
   End=^\s*SUM\s
   begins=1 delivered=1 buffered_away=0
-  block 1: begin-line=160 fed=9 rc=0 first-fed='    1          C          -0.603104        4.6031     1.04455     3.55856'
+  block 1: begin-line=162 fed=9 rc=0 first-fed='    1          C          -0.603104        4.6031     1.04455     3.55856'
     key: MULLIKEN
       size: 5
       values: -0.603104 0.150773 0.150788 0.150772 0.150770

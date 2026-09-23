@@ -1,0 +1,99 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Emits ORBOCC (and ORBOCCBETA for unrestricted runs) for MOPAC, from the
+# "ATOMIC ORBITAL ELECTRON POPULATIONS" block.
+#
+# WHY FROM THIS BLOCK, which is about populations rather than occupancy.
+# MOPAC states the occupancy directly -- "NO. OF FILLED LEVELS" for RHF,
+# "NO. OF ALPHA/BETA ELECTRONS" for UHF -- but those lines sit in the
+# summary near the top of the output, and the orbital COUNT needed to
+# size the vector is not printed anywhere near them.  A .desc entry
+# spanning from there to the eigenvectors would swallow [PNTGRP]'s and
+# [IP]'s Begin lines on the way and starve both (see the End-line
+# starvation note in CLAUDE.md).
+#
+# This block is self-contained instead: the number of populations IS the
+# number of orbitals, and their sum IS the electron count.  Everything
+# needed, in one block that nothing else reads.
+#
+# Real MOPAC 23.1.2 shape -- one row per atom, one value per atomic
+# orbital on it, so a heavy atom contributes four and a hydrogen one:
+#
+#           ATOMIC ORBITAL ELECTRON POPULATIONS
+#
+#      Atom    s        px        py        pz
+#     1  C   1.04478   1.18610   1.18610   1.18609
+#     2  H   0.84924
+#
+# The alpha/beta split comes from the parse-script arguments rather than
+# the output: ECCE passes "<runtype> <category> <theory> <open shells>"
+# (DavCalculation::getParseScriptArgs), and open shells is exactly
+# Nalpha - Nbeta.  With the total from this block that determines both.
+#
+# Printed by DEFAULT -- no keyword needed, unlike the eigenvectors --
+# but NOT printed at all by a pure FORCE run, so a Vibration-only job
+# legitimately yields nothing here.
+#
+################################################################################
+
+$| = 1;
+
+my ($key, $runtype, $ucCategory, $theory, $openShells) = @ARGV;
+$openShells = 0 if (!defined($openShells) || $openShells eq "");
+
+my $nmo = 0;
+my $electrons = 0.0;
+
+while (<STDIN>) {
+  chomp;
+  #  "<n>  <element>  <pop> [<pop> ...]".  Anchored on the leading atom
+  #  number and element symbol so the "Atom s px py pz" column header and
+  #  any stray separator are simply skipped rather than ending the read.
+  next unless (/^\s*\d+\s+[A-Za-z][A-Za-z]?\s+(.+)$/);
+  my @vals = split(' ', $1);
+  foreach my $v (@vals) {
+    next unless ($v =~ /^-?\d+\.\d+$/);
+    $nmo++;
+    $electrons += $v;
+  }
+}
+
+exit(0) if ($nmo == 0);
+
+#  The populations must sum to a whole number of electrons.  If they do
+#  not, this was not the block we think it was -- emit nothing rather
+#  than an occupancy vector built on a misread.
+my $n = int($electrons + 0.5);
+exit(0) if (abs($electrons - $n) > 0.05);
+
+my $unrestricted = ($theory =~ /^U/i) ? 1 : 0;
+
+sub emit {
+  my ($name, $nfilled, $fill) = @_;
+  return if ($nfilled < 0 || $nfilled > $nmo);
+  my @occ;
+  for my $i (0 .. $nmo - 1) {
+    push(@occ, ($i < $nfilled) ? $fill : "0.0000");
+  }
+  print "key: $name\n";
+  print "size:\n$nmo\n";
+  print "values:\n";
+  print "@occ\n";
+  print "units:\nelectrons\n";
+  print "END\n";
+}
+
+if ($unrestricted) {
+  #  Nalpha + Nbeta = n, Nalpha - Nbeta = openShells.
+  my $nAlpha = ($n + $openShells) / 2;
+  my $nBeta  = ($n - $openShells) / 2;
+  exit(0) if ($nAlpha != int($nAlpha) || $nBeta != int($nBeta));
+  &emit("ORBOCC", $nAlpha, "1.0000");
+  &emit("ORBOCCBETA", $nBeta, "1.0000");
+} else {
+  exit(0) if ($n % 2 != 0);
+  &emit("ORBOCC", $n / 2, "2.0000");
+}
+exit(0);

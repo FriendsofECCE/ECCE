@@ -1306,6 +1306,79 @@ CASES = [
         },
     ),
     dict(
+        #  MOPAC with "VECTORS ALLVEC", the deck ai.mopac now generates
+        #  when the theory dialog's "Print molecular orbitals" box is
+        #  ticked.  MOPAC is the Molecular Orbital PACkage and had no MO
+        #  extraction of any kind before this.
+        #
+        #  The Begin is ANCHORED to a line containing nothing but the
+        #  word.  MOPAC echoes its keywords at the top of every output as
+        #  "*  VECTORS    - FINAL EIGENVECTORS TO BE PRINTED"; an
+        #  unanchored Begin matches THAT line instead, opening the block
+        #  a hundred lines early and swallowing [GEOMTRACE], [PNTGRP] and
+        #  [IP] whole.  Observed, not theorised.
+        #
+        #  ORBENG is pinned in Hartree: MOPAC prints eV, and MoPanel
+        #  hard-codes its column label to "Energy Hartree", so a missing
+        #  conversion would display numbers 27x too large with no error.
+        name='mopac-ch4-mos',
+        desc='mopac.desc',
+        fixture='mopac/ch4_mos.out',
+        parse_args=('.', 'Energy', 'SE', 'PM7', '0'),
+        expect={
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBSYM][ORBSYMBETA': dict(
+                blocks=1, keys={
+                    'ORBENG': {'size': '8', 'units': 'Hartree'},
+                    'ORBSYM': {'size': '8'},
+                    'MO': {'size': '8 8'}}),
+            #  Sized over ALL orbitals, not just the filled ones --
+            #  MoPanel indexes the occupancy vector over the energy
+            #  vector's range, so a shorter one reads past its end.
+            'ORBOCC][ORBOCCBETA': dict(blocks=1, keys={
+                'ORBOCC': {'size': '8',
+                           'values': '2.0000 2.0000 2.0000 2.0000 0.0000 '
+                                     '0.0000 0.0000 0.0000',
+                           'units': 'electrons'}}),
+        },
+    ),
+    dict(
+        #  The UHF counterpart, and the one that matters most here.
+        #
+        #  MOPAC prints "ALPHA EIGENVECTORS" and "BETA EIGENVECTORS" as
+        #  two headings, but they arrive as ONE block: the entry's End is
+        #  "NET ATOMIC CHARGES", which lies past both.  An earlier version
+        #  of mopac.mo switched its output keys on seeing the BETA
+        #  heading and silently dropped the entire alpha set -- pinning
+        #  both ORBENG and ORBENGBETA here is what catches that.
+        #
+        #  The occupancies are the real assertion.  MOPAC states them
+        #  ("NO. OF ALPHA ELECTRONS = 4", "BETA = 3") in a summary block
+        #  that cannot be reached without starving [PNTGRP] and [IP], so
+        #  mopac.orbocc reconstructs them from the electron populations
+        #  plus the open-shell count ECCE passes as argv[4].  These values
+        #  are the check that the reconstruction agrees with what MOPAC
+        #  itself said.
+        name='mopac-ch3-uhf-mos',
+        desc='mopac.desc',
+        fixture='mopac/ch3_uhf_mos.out',
+        parse_args=('.', 'Energy', 'SE', 'UPM7', '1'),
+        expect={
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBSYM][ORBSYMBETA': dict(
+                blocks=1, keys={
+                    'ORBENG': {'size': '7', 'units': 'Hartree'},
+                    'ORBENGBETA': {'size': '7', 'units': 'Hartree'},
+                    'MO': {'size': '7 7'},
+                    'MOBETA': {'size': '7 7'}}),
+            'ORBOCC][ORBOCCBETA': dict(blocks=1, keys={
+                'ORBOCC': {'size': '7',
+                           'values': '1.0000 1.0000 1.0000 1.0000 0.0000 '
+                                     '0.0000 0.0000'},
+                'ORBOCCBETA': {'size': '7',
+                               'values': '1.0000 1.0000 1.0000 0.0000 '
+                                         '0.0000 0.0000 0.0000'}}),
+        },
+    ),
+    dict(
         #  THE REGRESSION FIXTURE FOR THE VIBRATION END-ANCHOR BUG.
         #
         #  A real CH4 PM7 FORCE job from 2026-09-22 that killed
