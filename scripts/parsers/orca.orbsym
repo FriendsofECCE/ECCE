@@ -70,7 +70,15 @@ while (<STDIN>) {
   #  the same way it does in the MO coefficient block (issue #108).
   next unless (/^\s*(\d+)\s+[-.\d]/);
   my $idx = $1;
-  next unless (/(?:\d+)-([A-Za-z][A-Za-z0-9']*)\s*$/);
+  #  Irrep labels carry PRIME AND DOUBLE-PRIME characters: a Cs molecule
+  #  gives A' and A", and the double quote is not optional decoration --
+  #  it is half the point group.  An earlier version allowed ' but not ",
+  #  so every A" row failed to match, left a hole, and the completeness
+  #  check below then dropped the whole vector: correct symmetries for
+  #  C2v water, nothing at all for anything Cs.  Degenerate labels can
+  #  also carry subscripts and g/u suffixes, so the class is deliberately
+  #  broad.
+  next unless (/(?:\d+)-([A-Za-z][A-Za-z0-9'"_]*)\s*$/);
   $current->[$idx] = $1;
 }
 

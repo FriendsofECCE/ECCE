@@ -1,0 +1,10 @@
+! RHF def2-SVP UseSym
+%output
+  Print[P_MOs] 1
+  Print[P_OrbEn] 2
+end
+* xyz 0 1
+O   0.000000  0.000000  0.000000
+H   0.000000  0.000000  0.960000
+F   0.900000  0.000000 -0.700000
+*

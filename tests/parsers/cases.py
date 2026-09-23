@@ -765,6 +765,30 @@ CASES = [
         },
     ),
     dict(
+        #  REGRESSION GUARD, found live on a real job after the symmetry
+        #  work shipped.  Cs, so the irreps are A' and A" -- and the
+        #  double-prime character is the whole point.
+        #
+        #  orca.orbsym's label pattern allowed the apostrophe but not the
+        #  double quote, so every A" row failed to match, left a hole in
+        #  the vector, and the script's own completeness check then
+        #  dropped the WHOLE property rather than emit a gappy one.  The
+        #  result was correct symmetries for C2v water and nothing
+        #  whatsoever for any Cs molecule, with no error anywhere.
+        #
+        #  orca-h2o-sym could never have caught it: C2v's labels are
+        #  A1/A2/B1/B2, none of which carry a prime.  Any future symmetry
+        #  work needs a fixture whose point group has primed labels.
+        name='orca-hof-sym',
+        desc='orca.desc',
+        fixture='orca/hof_sym.out',
+        parse_args=('.', 'Energy', 'SCF', 'RHF', '0'),
+        expect={
+            'ORBSYM][ORBSYMBETA': dict(blocks=1, keys={
+                'ORBSYM': {'size': '33'}}),
+        },
+    ),
+    dict(
         # RHF/STO-3G NMR CHELPG: the NMR shielding and ESP-charge entries.
         # This deck's CHELPG was added BY HAND, because when it was
         # captured ai.orca had no CHELPG path and ESPCHARGE could not be

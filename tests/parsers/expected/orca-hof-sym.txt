@@ -1,0 +1,168 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    orca-hof-sym
+desc:    orca.desc
+fixture: orca/hof_sym.out (1132 lines)
+args:    '.' 'Energy' 'SCF' 'RHF' '0'
+
+[GEOMTRACE]  Script=orca.geomtrace  Freq=all  Skip=2  Lines=-
+  Begin=CARTESIAN COORDINATES \(ANGSTROEM\)
+  End=CARTESIAN COORDINATES \(A\.U\.\)
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=240 fed=6 rc=0 first-fed='  O      0.342478   -0.474884    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-F
+      columnlabels: X Y Z
+      values: 0.342478 -0.474884 0.000000 1.302478 -0.474884 0.000000 -0.357522 0.425116 0.000000
+      units: Angstrom
+
+[TE][TEVEC]  Script=orca.energy  Freq=all  Skip=0  Lines=1
+  Begin=FINAL SINGLE POINT ENERGY
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=956 fed=1 rc=0 first-fed='FINAL SINGLE POINT ENERGY      -174.509803334565'
+    key: TE
+      size: 1
+      values: -174.509803334565
+      units: Hartree
+    key: TEVEC
+      size: 1
+      values: -174.509803334565
+      units: Hartree
+
+[NNREPUL][ONEELEC][TWOELEC]  Script=orca.energydecomp  Freq=all  Skip=0  Lines=4
+  Begin=Nuclear Repulsion\s*:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=540 fed=4 rc=0 first-fed='Nuclear Repulsion  :         40.34857356166419 Eh            1097.94050 eV'
+    key: NNREPUL
+      size: 1
+      values: 40.34857356166419
+      units: Hartree
+    key: ONEELEC
+      size: 1
+      values: -322.82372706763931
+      units: Hartree
+    key: TWOELEC
+      size: 1
+      values: 107.96535017140994
+      units: Hartree
+
+[PE][KE]  Script=orca.energydecomp  Freq=all  Skip=0  Lines=2
+  Begin=Potential Energy\s*:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=546 fed=2 rc=0 first-fed='Potential Energy   :       -349.72992849434672 Eh           -9516.63517 eV'
+    key: PE
+      size: 1
+      values: -349.72992849434672
+      units: Hartree
+    key: KE
+      size: 1
+      values: 175.22012515978150
+      units: Hartree
+
+[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA]  Script=orca.mo  Freq=last  Skip=2  Lines=-
+  Begin=MOLECULAR ORBITALS
+  End=MULLIKEN POPULATION ANALYSIS
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=601 fed=227 rc=0 first-fed='                      0         1         2         3         4         5'
+    key: ORBENG
+      size: 33
+      values: -26.33639 -20.61990 -1.81946 -1.22318 -0.87551 -0.81593 -0.79120 -0.50565 -0.45929 0.17338 0.49347 0.82430 1.07758 1.15845 1.18005 1.31053 1.39849 1.45610 1.54325 1.71190 1.78684 2.05996 2.45641 2.67648 2.87167 3.09641 3.37909 3.50886 3.51511 3.72805 4.14412 4.38791 4.68805
+      units: Hartree
+    key: ORBOCC
+      size: 33
+      values: 2.00000 2.00000 2.00000 2.00000 2.00000 2.00000 2.00000 2.00000 2.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000
+      units: electrons
+    key: MO
+      size: 33 33
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7 MO-8 MO-9 MO-10 MO-11 MO-12 MO-13 MO-14 MO-15 MO-16 MO-17 MO-18 MO-19 MO-20 MO-21 MO-22 MO-23 MO-24 MO-25 MO-26 MO-27 MO-28 MO-29 MO-30 MO-31 MO-32 MO-33
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8 BasFun-9 BasFun-10 BasFun-11 BasFun-12 BasFun-13 BasFun-14 BasFun-15 BasFun-16 BasFun-17 BasFun-18 BasFun-19 BasFun-20 BasFun-21 BasFun-22 BasFun-23 BasFun-24 BasFun-25 BasFun-26 BasFun-27 BasFun-28 BasFun-29 BasFun-30 BasFun-31 BasFun-32 BasFun-33
+      values: 0.000215 0.000759 -0.008069 0.000000 -0.000241 0.000218 0.000000 0.003219 -0.004512 -0.000311 0.000000 0.000000 -0.000159 -0.000828 0.000330 -0.000541 0.000000 -0.000012 0.000824 0.990006 -0.034010 0.018573 0.000000 0.001502 -0.001735 0.000000 0.003702 -0.004517 -0.000189 0.000000 0.000000 -0.000009 -0.000304 -0.990199 0.033395 -0.009786 0.000000 0.000709 0.002609 0.000000 -0.000335 -0.000422 -0.0 ...[10125 chars]
+
+[ORBSYM][ORBSYMBETA]  Script=orca.orbsym  Freq=last  Skip=2  Lines=-
+  Begin=ORBITAL ENERGIES
+  End=^-{4,}\s*$
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=563 fed=36 rc=0 first-fed=''
+    key: ORBSYM
+      size: 33
+      rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33
+      values: A' A' A' A' A' A" A' A' A" A' A' A' A' A" A' A' A' A" A' A" A' A' A' A" A' A" A' A" A' A' A" A' A'
+
+[DIPOLE]  Script=orca.dipole  Freq=last  Skip=-  Lines=-
+  Begin=Total Dipole Moment
+  End=Rotational spectrum
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1029 fed=9 rc=0 first-fed='Total Dipole Moment    :      0.805154726       0.064164212       0.000000000'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: 2.04654067223735 0.163092465733176 0
+      units: Debye
+
+[MULLIKEN]  Script=orca.mulliken  Freq=last  Skip=2  Lines=-
+  Begin=MULLIKEN ATOMIC CHARGES
+  End=Sum of atomic charges
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=833 fed=4 rc=0 first-fed='   0 O :   -0.087838'
+    key: MULLIKEN
+      size: 3
+      values: -0.087838 0.220581 -0.132743
+      units: e
+
+[DELTAE]  Script=orca.deltae  Freq=all  Skip=0  Lines=1
+  Begin=^\s*\d+\s+-?\d+\.\d+\s+-?\d+\.\d+[eE][+-]\d+
+  begins=9 delivered=9 buffered_away=0
+  block 1: begin-line=509 fed=1 rc=0 first-fed='    1    -174.4692122378433226     0.00e+00  4.11e-03  3.59e-02  1.73e-01  0.700   0.0'
+    key: DELTAE
+      size: 1
+      values: 0.00e+00
+      units: Hartree
+  block 2: begin-line=510 fed=1 rc=0 first-fed='    2    -174.4829065102885011    -1.37e-02  2.98e-03  2.61e-02  1.15e-01  0.700   0.0'
+    key: DELTAE
+      size: 1
+      values: -1.37e-02
+      units: Hartree
+  block 3: begin-line=512 fed=1 rc=0 first-fed='    3    -174.4913963283385385    -8.49e-03  1.58e-03  1.33e-02  7.26e-02  0.700   0.0'
+    key: DELTAE
+      size: 1
+      values: -8.49e-03
+      units: Hartree
+  block 4: begin-line=513 fed=1 rc=0 first-fed='    4    -174.4969367267448774    -5.54e-03  3.83e-03  3.22e-02  5.32e-02  0.000   0.0'
+    key: DELTAE
+      size: 1
+      values: -5.54e-03
+      units: Hartree
+  block 5: begin-line=514 fed=1 rc=0 first-fed='    5    -174.5097529894959223    -1.28e-02  3.89e-04  3.45e-03  6.73e-03  0.000   0.0'
+    key: DELTAE
+      size: 1
+      values: -1.28e-02
+      units: Hartree
+  block 6: begin-line=519 fed=1 rc=0 first-fed='    6    -174.5097954892068515    -4.25e-05  1.64e-04  1.41e-03  1.18e-03     0.0'
+    key: DELTAE
+      size: 1
+      values: -4.25e-05
+      units: Hartree
+  block 7: begin-line=521 fed=1 rc=0 first-fed='    7    -174.5098011532555233    -5.66e-06  1.11e-04  9.17e-04  4.83e-04     0.0'
+    key: DELTAE
+      size: 1
+      values: -5.66e-06
+      units: Hartree
+  block 8: begin-line=522 fed=1 rc=0 first-fed='    8    -174.5098028070030125    -1.65e-06  1.08e-04  6.60e-04  2.25e-04     0.0'
+    key: DELTAE
+      size: 1
+      values: -1.65e-06
+      units: Hartree
+  block 9: begin-line=523 fed=1 rc=0 first-fed='    9    -174.5098033095701737    -5.03e-07  1.10e-05  9.21e-05  5.43e-05     0.0'
+    key: DELTAE
+      size: 1
+      values: -5.03e-07
+      units: Hartree
+
+[ETIME]  Script=orca.etime  Freq=last  Skip=0  Lines=1
+  Begin=TOTAL RUN TIME:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1132 fed=1 rc=0 first-fed='TOTAL RUN TIME: 0 days 0 hours 0 minutes 0 seconds 372 msec'
+    key: ETIME
+      size: 1
+      values: 0
+
