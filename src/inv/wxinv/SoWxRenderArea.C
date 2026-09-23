@@ -26,6 +26,48 @@ BEGIN_EVENT_TABLE(SoWxRenderArea, wxGLCanvas)
 END_EVENT_TABLE()
   ;
 
+namespace {
+
+//  What visual to ask wx for when the caller names none -- which is every
+//  caller.
+//
+//  This class already states what it wants a few lines below:
+//      p_glModes = SO_GLX_RGB | SO_GLX_DOUBLE | SO_GLX_ZBUFFER | ...
+//  but that is Inventor's own bookkeeping and was never passed to wx, so
+//  the canvas was created with a NULL attribute list and took whatever
+//  default visual the platform handed it.  Under X11 that default has
+//  been fine for years.  It need not be under Wayland, and the symptom
+//  reported for issue #83 -- every atom a flat green, correct in the
+//  OFFSCREEN thumbnail rendered from the same scene graph -- is what a
+//  wrong on-screen format looks like.  The same "all green under Wayland,
+//  correct under X11" is reported by others on entirely different
+//  hardware (Broadcom vc4 on a Raspberry Pi), which argues for a format
+//  negotiation problem rather than one vendor's driver.
+//
+//  So ask for what the code already says it wants.  If the display cannot
+//  provide it we fall back to the previous behaviour rather than failing
+//  to create a canvas at all.
+int *resolveGLAttributes(int *supplied)
+{
+  if (supplied != 0) {
+    return supplied;
+  }
+  static int attribs[] = { WX_GL_RGBA,
+                           WX_GL_DOUBLEBUFFER,
+                           WX_GL_DEPTH_SIZE, 24,
+                           0 };
+  static bool checked = false;
+  static bool usable = false;
+  if (!checked) {
+    checked = true;
+    usable = wxGLCanvas::IsDisplaySupported(attribs);
+  }
+  return usable ? attribs : (int*)0;
+}
+
+}  // namespace
+
+
 SoWxRenderArea::SoWxRenderArea(wxWindow * parent,
                                wxWindowID id,
                                const wxPoint& pos,
@@ -43,7 +85,7 @@ SoWxRenderArea::SoWxRenderArea(wxWindow * parent,
   // pos/size/style/name/palette rather than after them), and "name" is now
   // wxString rather than a raw "const char *" (implicit conversion still
   // applies).
-  : wxGLCanvas(parent, id, attribList, pos, size, style, name, palette),
+  : wxGLCanvas(parent, id, resolveGLAttributes(attribList), pos, size, style, name, palette),
     p_glContext(NULL)
 {
   // GLWidget stuff
@@ -722,6 +764,51 @@ void SoWxRenderArea::redraw()
 #endif
 
   SetCurrent(*p_glContext);
+
+  //  ECCE_DEBUG_GL_VISUAL=1 reports, once, what visual this canvas
+  //  actually got.  No GL attributes are requested anywhere -- the whole
+  //  GLX_RGBA / depth / accum / stencil block further down is commented
+  //  out behind "@todo Work on visual stuff later" -- so the canvas takes
+  //  whatever the platform hands it, and that need not be the same under
+  //  X11 and XWayland.
+  //
+  //  For issue #83, the uniform green hue seen only on a Wayland session:
+  //  RGBA_MODE is the one to read.  ECCE still has live colour-index code
+  //  (isRGBMode() is tested a few lines below, and calls glClearIndex when
+  //  it is false), and a canvas that ends up indexed without a colormap
+  //  looks exactly like one flat colour.  The offscreen thumbnail renders
+  //  correctly from the same scene graph, so the difference is here.
+  static bool reportedVisual = false;
+  if (!reportedVisual && getenv("ECCE_DEBUG_GL_VISUAL")) {
+    reportedVisual = true;
+    GLboolean rgbaMode = GL_FALSE, doubleBuf = GL_FALSE, stereo = GL_FALSE;
+    GLint r = 0, g = 0, b = 0, a = 0, depth = 0, stencil = 0, idx = 0;
+    glGetBooleanv(GL_RGBA_MODE, &rgbaMode);
+    glGetBooleanv(GL_DOUBLEBUFFER, &doubleBuf);
+    glGetBooleanv(GL_STEREO, &stereo);
+    glGetIntegerv(GL_RED_BITS, &r);
+    glGetIntegerv(GL_GREEN_BITS, &g);
+    glGetIntegerv(GL_BLUE_BITS, &b);
+    glGetIntegerv(GL_ALPHA_BITS, &a);
+    glGetIntegerv(GL_DEPTH_BITS, &depth);
+    glGetIntegerv(GL_STENCIL_BITS, &stencil);
+    glGetIntegerv(GL_INDEX_BITS, &idx);
+    const GLubyte *vendor   = glGetString(GL_VENDOR);
+    const GLubyte *renderer = glGetString(GL_RENDERER);
+    const GLubyte *version  = glGetString(GL_VERSION);
+    printf("[GLVISUAL] vendor   : %s\n", vendor   ? (const char*)vendor   : "?");
+    printf("[GLVISUAL] renderer : %s\n", renderer ? (const char*)renderer : "?");
+    printf("[GLVISUAL] version  : %s\n", version  ? (const char*)version  : "?");
+    printf("[GLVISUAL] RGBA_MODE=%d  INDEX_BITS=%d   <- indexed would be 0/nonzero\n",
+           (int)rgbaMode, (int)idx);
+    printf("[GLVISUAL] rgba bits=%d/%d/%d/%d  depth=%d  stencil=%d\n",
+           (int)r, (int)g, (int)b, (int)a, (int)depth, (int)stencil);
+    printf("[GLVISUAL] doublebuffer=%d  stereo=%d\n",
+           (int)doubleBuf, (int)stereo);
+    printf("[GLVISUAL] ECCE isRGBMode()=%d  isDoubleBuffer()=%d\n",
+           isRGBMode() ? 1 : 0, isDoubleBuffer() ? 1 : 0);
+    fflush(stdout);
+  }
 
   // @todo Not here in Xt version. Wonder if should be done in GLWidget.
   glEnable(GL_DEPTH_TEST);
