@@ -161,15 +161,15 @@ endif
 
 echo "Starting ECCE ... please wait"
 
-# Check ~/.nwchemrc -------------------------------------------------------
-
-if (! -e ~/.nwchemrc) then
-  if (-e $ECCE_HOME/${ECCE_SYSDIR}3rdparty/nwchem/etc/default.nwchemrc) then
-    echo ""
-    echo "Copying default ~/.nwchemrc file to run NWChem locally"
-    /bin/cp -f $ECCE_HOME/${ECCE_SYSDIR}3rdparty/nwchem/etc/default.nwchemrc ~/.nwchemrc
-  endif
-endif
+# ~/.nwchemrc ------------------------------------------------------------
+#
+# ECCE used to ship its own NWChem and seeded ~/.nwchemrc from
+# $ECCE_HOME/<sysdir>3rdparty/nwchem/etc/default.nwchemrc so that the
+# bundled copy could find its basis and force-field libraries.  It no
+# longer bundles NWChem, that path does not exist, and a distribution's
+# NWChem locates its own data without help -- confirmed with the Debian
+# package, which runs with no nwchemrc present at all.  Where a site does
+# need one, ecce-nwchem-datadir reads it rather than writing it.
 
 # Create temporary directory if necessary ---------------------------------
 
