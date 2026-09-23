@@ -133,6 +133,10 @@ def main():
     ap.add_argument("--orca-name", help="the basis name ORCA knows it by")
     ap.add_argument("--g16-name", help="the basis name Gaussian knows it by")
     ap.add_argument("--multiplicity", type=int)
+    ap.add_argument("--library", default=LIB,
+                    help="read ECCE's data from here instead of the live "
+                         "library -- used to verify a STAGED regeneration "
+                         "before anything is applied")
     args = ap.parse_args()
 
     element = args.element
@@ -155,14 +159,15 @@ def main():
         print("unknown basis: %s" % args.basis, file=sys.stderr)
         return 2
 
-    shipped = parse_bas(os.path.join(LIB, filename))
+    shipped = parse_bas(os.path.join(args.library, filename))
     url = ("https://www.basissetexchange.org/api/basis/%s/format/json/"
            % urllib.parse.quote(bse_name))
     with urllib.request.urlopen(url, timeout=90) as response:
         regen = parse_text(convert(json.load(response), SYM))
 
     print("%s / %s  (multiplicity %d)" % (args.basis, element, multiplicity))
-    print("  ECCE file : %s" % filename)
+    print("  ECCE file : %s%s" % (filename,
+          "" if args.library == LIB else "   [from %s]" % args.library))
     print("  BSE name  : %s\n" % bse_name)
 
     results = {}

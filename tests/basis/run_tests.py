@@ -33,6 +33,7 @@ Exit status is 0 only if every check passed.
 
 import argparse
 import difflib
+import re
 import os
 import subprocess
 import sys
@@ -40,6 +41,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 PARSERS = os.path.join(REPO, "scripts", "parsers")
+DATA = os.path.join(REPO, "data", "admin", "basissets")
 FIXTURES = os.path.join(HERE, "fixtures")
 EXPECTED = os.path.join(HERE, "expected")
 
@@ -113,6 +115,33 @@ CASES = [
 ]
 
 
+def fortran_d_notation():
+    """No basis data file may use Fortran D exponent notation.
+
+    EDSIGaussianBasisSetLibrary.C reads these values with strtod(), which
+    stops at the "D" and returns the mantissa alone: 0.30612488044D-01 is
+    read as 0.30612488044, ten times too large. Perl's numeric conversion,
+    used by rdStandardGBS.pm and the wr*GBS.pm writers, does the same.
+
+    11 files and 24045 values were affected when this was found -- among
+    them STO-6G, WTBS and the cc-pV*Z files behind cc-pCVDZ and the
+    aug-cc-pV*Z diffuse sets. Nothing reported an error; the basis was
+    simply wrong.
+    """
+    import glob
+    pattern = re.compile(r"[0-9]D[-+][0-9]")
+    findings = []
+    for path in sorted(glob.glob(os.path.join(DATA, "*.BAS"))
+                       + glob.glob(os.path.join(DATA, "*.POT"))):
+        hits = sum(1 for line in open(path, errors="replace")
+                   if pattern.search(line))
+        if hits:
+            findings.append("%s: %d value(s) in Fortran D notation, which "
+                            "strtod() reads without the exponent"
+                            % (os.path.basename(path), hits))
+    return findings
+
+
 def run(case):
     path = os.path.join(PARSERS, case["exporter"])
     with open(os.path.join(FIXTURES, case["fixture"])) as handle:
@@ -130,6 +159,10 @@ def main():
 
     os.makedirs(EXPECTED, exist_ok=True)
     failures, checks = [], 0
+
+    checks += 1
+    for finding in fortran_d_notation():
+        failures.append("basis data: " + finding)
 
     for case in CASES:
         text, rc, err = run(case)

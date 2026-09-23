@@ -738,8 +738,8 @@ contraction shell=P num_primitives=3 num_coefficients=1
 contraction shell=P num_primitives=1 num_coefficients=1
 0.52555094893 1.0000000000
 contraction shell=D num_primitives=4 num_coefficients=1
-56.563189119 .11543245294532D-01
-16.278734711 .70299845987196D-01
+56.563189119 .11543245294532E-01
+16.278734711 .70299845987196E-01
 5.6964273914 .22450770821295
 2.1411147942 .39703065434226
 contraction shell=D num_primitives=1 num_coefficients=1
