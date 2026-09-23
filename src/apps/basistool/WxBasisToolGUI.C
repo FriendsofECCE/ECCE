@@ -521,7 +521,7 @@ void WxBasisToolGUI::CreateControls()
     wxBoxSizer* itemBoxSizer81 = new wxBoxSizer(wxHORIZONTAL);
     itemPanel80->SetSizer(itemBoxSizer81);
 
-    ewxGrid* itemGrid82 = new ewxGrid( itemPanel80, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_0, wxDefaultPosition, wxSize(430, 170), wxHSCROLL|wxVSCROLL );
+    ewxGrid* itemGrid82 = new ewxGrid( itemPanel80, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_0, wxDefaultPosition, wxSize(430, 240), wxHSCROLL|wxVSCROLL );
     itemGrid82->SetDefaultColSize(50);
     itemGrid82->SetDefaultRowSize(25);
     itemGrid82->SetColLabelSize(25);
@@ -535,7 +535,7 @@ void WxBasisToolGUI::CreateControls()
     //  row and column.  SetMargins keeps that last cell clear of them.
     itemGrid82->SetMargins(wxSystemSettings::GetMetric(wxSYS_VSCROLL_X),
                           wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y));
-    itemGrid82->SetMinSize(wxSize(430, 170));
+    itemGrid82->SetMinSize(wxSize(430, 240));
     itemBoxSizer81->Add(itemGrid82, 1, wxGROW|wxALL, 3);
 
     itemNotebook79->AddPage(itemPanel80, _("Simple"));
@@ -544,7 +544,7 @@ void WxBasisToolGUI::CreateControls()
     wxBoxSizer* itemBoxSizer84 = new wxBoxSizer(wxHORIZONTAL);
     itemPanel83->SetSizer(itemBoxSizer84);
 
-    ewxGrid* itemGrid85 = new ewxGrid( itemPanel83, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_1, wxDefaultPosition, wxSize(430, 170), wxHSCROLL|wxVSCROLL );
+    ewxGrid* itemGrid85 = new ewxGrid( itemPanel83, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_1, wxDefaultPosition, wxSize(430, 240), wxHSCROLL|wxVSCROLL );
     itemGrid85->SetDefaultColSize(50);
     itemGrid85->SetDefaultRowSize(25);
     itemGrid85->SetColLabelSize(25);
@@ -552,7 +552,7 @@ void WxBasisToolGUI::CreateControls()
     itemGrid85->CreateGrid(1, 7, wxGrid::wxGridSelectCells);
     itemGrid85->SetMargins(wxSystemSettings::GetMetric(wxSYS_VSCROLL_X),
                           wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y));
-    itemGrid85->SetMinSize(wxSize(430, 170));
+    itemGrid85->SetMinSize(wxSize(430, 240));
     itemBoxSizer84->Add(itemGrid85, 1, wxGROW|wxALL, 3);
 
     itemNotebook79->AddPage(itemPanel83, _("Element"));
@@ -562,7 +562,7 @@ void WxBasisToolGUI::CreateControls()
     wxBoxSizer* itemBoxSizer87 = new wxBoxSizer(wxHORIZONTAL);
     itemPanel86->SetSizer(itemBoxSizer87);
 
-    ewxGrid* itemGrid88 = new ewxGrid( itemPanel86, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_2, wxDefaultPosition, wxSize(430, 170), wxHSCROLL|wxVSCROLL );
+    ewxGrid* itemGrid88 = new ewxGrid( itemPanel86, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_2, wxDefaultPosition, wxSize(430, 240), wxHSCROLL|wxVSCROLL );
     itemGrid88->SetDefaultColSize(50);
     itemGrid88->SetDefaultRowSize(25);
     itemGrid88->SetColLabelSize(25);
@@ -570,7 +570,7 @@ void WxBasisToolGUI::CreateControls()
     itemGrid88->CreateGrid(1, 7, wxGrid::wxGridSelectCells);
     itemGrid88->SetMargins(wxSystemSettings::GetMetric(wxSYS_VSCROLL_X),
                           wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y));
-    itemGrid88->SetMinSize(wxSize(430, 170));
+    itemGrid88->SetMinSize(wxSize(430, 240));
     itemBoxSizer87->Add(itemGrid88, 1, wxGROW|wxALL, 3);
 
     itemNotebook79->AddPage(itemPanel86, _("Atom"));

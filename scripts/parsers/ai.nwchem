@@ -1860,6 +1860,14 @@ sub SearchFor {
 #  rejected up front by &verifyDispersion rather than being discovered an
 #  hour into a run.  Note also that the named forms ("disp grimme3") and a
 #  trailing "bj" are NOT accepted by this nwchem; only the vdw integers are.
+#  BEGIN, because this file's main routine runs at the TOP and these
+#  tables are defined near the bottom.  Perl executes file-scope
+#  statements in order, so a plain assignment here is not done yet
+#  when &verifyDispersion is called -- every choice looked unknown
+#  and NWChem dispersion could not be used at all.  BEGIN populates
+#  them at compile time, before any of the main flow runs.
+BEGIN {
+
 %dispersionModel = (
   "None"          => "",
   "Grimme D1"     => "vdw 1",
@@ -1890,6 +1898,7 @@ sub SearchFor {
   "HSE03 (range)",
 );
 
+}
 
 #  Checked in the MAIN FLOW, before any generation starts.  A die() inside a
 #  ##token## resolver is swallowed by modifyInputFile's eval and would leave

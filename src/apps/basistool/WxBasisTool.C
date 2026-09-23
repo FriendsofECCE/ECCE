@@ -2873,8 +2873,16 @@ void WxBasisTool::setGbsToTable(ewxGrid* grid, int row, TGBSGroup* group)
   //                          XmNxrtTblContext, XrtTblSetContext(row,XRTTBL_ALL),
     //                        XmNxrtTblPixelHeightContext, XRTTBL_VARIABLE,
       //                      NULL);
-        grid->AutoSize();
+        //  AutoSizeColumns/Rows, NOT AutoSize.  AutoSize() also resizes the
+        //  GRID WINDOW to fit its content, which overrides the minimum size
+        //  set when it was created and shrinks the table to roughly 400px
+        //  -- leaving most of the panel empty and clipping the last column
+        //  ("Def2-ECP" came out as "Def2-ECF").  Sizing the columns alone
+        //  keeps the widget at whatever width the sizer gave it.
+        grid->AutoSizeColumns();
+        grid->AutoSizeRows();
         widenColumnsToFitLabels(grid);
+        grid->Layout();
     }
 }
 
@@ -2956,7 +2964,10 @@ void WxBasisTool::setGridColumnVisible(int col, bool vsbl)
         // header label is wider than its (possibly empty) cell content --
         // widenColumnsToFitLabels() re-widens anything AutoSize() left too
         // narrow for its own label text. See that method for why.
-        p_contextBasisSetsGrid[i]->AutoSize();
+        //  Columns only -- see the note at the other call site: AutoSize()
+        //  would also shrink the grid window back to its content width.
+        p_contextBasisSetsGrid[i]->AutoSizeColumns();
+        p_contextBasisSetsGrid[i]->AutoSizeRows();
         widenColumnsToFitLabels(p_contextBasisSetsGrid[i]);
     }
 }

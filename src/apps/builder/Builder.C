@@ -4654,6 +4654,9 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     static const int PANEL_HEIGHT_MIN      = 80;   // still leaves a grip
     static const int PANEL_HEIGHT_MAX      = 600;  // no pane eats the dock
     static const int PANEL_HEIGHT_PADDING  = 12;
+    //  Above this, a panel is holding a table or a plot and is allowed to
+    //  grow; below it, it is a short readout and is capped at its content.
+    static const int PANEL_HEIGHT_ROOMY    = 200;
 
     int paneHeight = PANEL_HEIGHT_FALLBACK;
     if (!uniformPanelHeight()) {
@@ -4673,8 +4676,21 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
       // not-yet-populated panel, NOT a panel that genuinely wants to be
       // tiny. Keep the constant.
     }
+    //  BestSize alone is only a hint: AUI hands a dock's spare space to
+    //  whatever is in it, so a four-line Energies panel was still being
+    //  stretched to the same height as a mode table. A ceiling is what
+    //  actually stops that, which is why this sets all three.
+    //
+    //  The ceiling is the content height for a panel that genuinely wants
+    //  little, and PANEL_HEIGHT_MAX for one with a big table -- so a
+    //  scalar readout cannot balloon, while MOs can still be dragged
+    //  larger up to the cap rather than being pinned at its content size.
+    int paneCeiling = (paneHeight < PANEL_HEIGHT_ROOMY)
+                        ? paneHeight
+                        : PANEL_HEIGHT_MAX;
     info.MinSize(wxSize(200, PANEL_HEIGHT_MIN));
     info.BestSize(wxSize(400, paneHeight));
+    info.MaxSize(wxSize(-1, paneCeiling));
 
     // ECCE_DEBUG_PANEL_SIZE=1 prints what each panel asked for and what
     // it got, so a pane that comes out wrong can be attributed to the
