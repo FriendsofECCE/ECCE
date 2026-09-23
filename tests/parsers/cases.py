@@ -674,11 +674,50 @@ CASES = [
         },
     ),
     dict(
+        #  RHF/STO-3G geometry optimisation with CHELPG charges -- a deck
+        #  ECCE can now GENERATE, unlike orca-h2o-nmr whose CHELPG was
+        #  added by hand before &ChelpgToken existed (#88).
+        #
+        #  THE POINT OF THIS FIXTURE IS THE MULTI-BLOCK CASE. ORCA emits
+        #  a CHELPG block on every optimisation cycle -- five here -- and
+        #  the charges genuinely move as the geometry relaxes: O goes
+        #  from -0.618127 in the first block to -0.566360 in the last.
+        #  [ESPCHARGE] is Frequency=last, so what must survive is the
+        #  CONVERGED geometry's charges. Pinning the last block's values
+        #  is the assertion that it does: were the frequency ever changed
+        #  to first, or the buffering to deliver the wrong block, the
+        #  panel would show charges for an intermediate geometry -- a
+        #  perfectly plausible set of numbers for the wrong structure,
+        #  which is the failure mode this suite exists to catch.
+        #
+        #  Verified against ORCA 6.1.1, which also accepts CHELPG
+        #  alongside Opt, Freq, NMR and DFT -- checked because the
+        #  checkbox is offered for every runtype.
+        name='orca-h2o-opt-chelpg',
+        desc='orca.desc',
+        fixture='orca/h2o_opt_chelpg.out',
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        expect={
+            #  blocks= counts DELIVERED blocks, and Frequency=last
+            #  buffers the other four away -- the golden file records
+            #  begins=5 delivered=1 buffered_away=4, which is the real
+            #  assertion that all five were seen and the last one won.
+            'ESPCHARGE': dict(blocks=1, keys={
+                'ESPCHARGE': {'size': '3 1',
+                              'rowlabels': '0-O 1-H 2-H',
+                              'values': '-0.566360 0.283186 0.283175',
+                              'units': 'e'}}),
+        },
+    ),
+    dict(
         # RHF/STO-3G NMR CHELPG: the NMR shielding and ESP-charge entries.
-        # ai.orca's Magnetic runtype emits "! NMR"; it has no CHELPG path
-        # at all, so ESPCHARGE is currently unreachable from the GUI (see
-        # the report/README) -- the deck adds CHELPG by hand so the parser
-        # is at least covered.
+        # This deck's CHELPG was added BY HAND, because when it was
+        # captured ai.orca had no CHELPG path and ESPCHARGE could not be
+        # reached from the GUI at all (#88). It can now: the Runtype
+        # Details "CHELPG charges" checkbox drives &ChelpgToken, and
+        # orca-h2o-opt-chelpg below is a fixture from a deck ECCE can
+        # actually generate. Kept as-is -- it covers CHELPG alongside NMR,
+        # which that one does not.
         name='orca-h2o-nmr',
         desc='orca.desc',
         fixture='orca/h2o_nmr_chelpg.out',

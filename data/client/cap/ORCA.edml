@@ -208,6 +208,11 @@
   <RuntypeSummary>
     <item key="ES.Runtype.GeomOpt.MaximumStepsValue" label="Max. Steps"></item>
   </RuntypeSummary>
+  <!-- Offered for every runtype, not just Geometry: ORCA computes CHELPG
+       charges from the converged density of whatever job ran. -->
+  <RuntypeSummary topLabel="Partial Charges-">
+    <item key="ES.Runtype.ORCA.UseCHELPG" label="CHELPG"></item>
+  </RuntypeSummary>
 </Editor>
 
 
