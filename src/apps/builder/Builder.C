@@ -4602,6 +4602,23 @@ void Builder::addToolBar(wxToolBar * toolbar, const string& name)
 }
 
 
+//  Escape hatch for the content-based property-pane heights below.  Set
+//  ECCE_UNIFORM_PANEL_HEIGHT=1 to put every pane back on one fixed
+//  height, as it was before #112 -- the same pattern as
+//  ECCE_GATEWAY_WINDOW, and for the same reason: a display-server-
+//  dependent UI change is worth being able to rule out without a
+//  rebuild.
+static bool uniformPanelHeight()
+{
+  static int uniform = -1;
+  if (uniform < 0) {
+    const char *v = getenv("ECCE_UNIFORM_PANEL_HEIGHT");
+    uniform = (v != 0 && *v != '\0' && *v != '0') ? 1 : 0;
+  }
+  return uniform == 1;
+}
+
+
 void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
 {
   // Don't add this panel if it is already being managed
@@ -4613,11 +4630,64 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     info.DefaultPane();
     info.Name(name).Caption(name).CaptionVisible(true).
             Left().Layer(2).Resizable(true);
-    // See the identical MinSize() call/comment in addToolPanel() -- a
-    // resizable pane is only recoverable if there's a resize grip left
-    // to grab once collapsed, and several panels' content reports a
-    // near-zero best size before it's ever been painted/populated.
-    info.MinSize(wxSize(200, 150));
+    // Height from the panel's own content, not one number for all of
+    // them.  A scalar readout (point group, total energy) wants a couple
+    // of lines, a mode table wants height, a spectrum wants width, and
+    // giving every pane the same 150px made the small ones mostly empty
+    // and the large ones cramped (#112).
+    //
+    // WHY THE FLOOR AND THE FALLBACK ARE NOT OPTIONAL. The flat 150 was
+    // not arbitrary: on GTK3 -- and on Wayland especially -- a panel that
+    // has never been painted reports a best size of zero or near-zero,
+    // and several of these build their grid or plot after construction,
+    // so they do exactly that here. Trusting GetBestSize() unguarded
+    // brings back panes with no height at all. So a degenerate answer is
+    // rejected outright and falls back to the old constant, and even a
+    // plausible one is clamped: a resizable pane is only recoverable if
+    // a resize grip survives being collapsed (the same reason
+    // addToolPanel() sets a floor).
+    //
+    // ECCE_UNIFORM_PANEL_HEIGHT=1 restores the old behaviour for a
+    // session, so this needs no rebuild to rule in or out if a display
+    // server disagrees.
+    static const int PANEL_HEIGHT_FALLBACK = 150;  // the old flat value
+    static const int PANEL_HEIGHT_MIN      = 80;   // still leaves a grip
+    static const int PANEL_HEIGHT_MAX      = 600;  // no pane eats the dock
+    static const int PANEL_HEIGHT_PADDING  = 12;
+
+    int paneHeight = PANEL_HEIGHT_FALLBACK;
+    if (!uniformPanelHeight()) {
+      // Lay out first. GetBestSize() on a panel with a sizer is the
+      // sizer's CalcMin(), which needs no paint -- but it does need the
+      // sizer to have seen its children, and these panels are measured
+      // here before they have ever been shown.
+      panel->Layout();
+      const wxSize best = panel->GetBestSize();
+      if (best.y > PANEL_HEIGHT_MIN) {
+        paneHeight = best.y + PANEL_HEIGHT_PADDING;
+        if (paneHeight > PANEL_HEIGHT_MAX) {
+          paneHeight = PANEL_HEIGHT_MAX;
+        }
+      }
+      // else: zero, negative or implausibly small -- an unpainted or
+      // not-yet-populated panel, NOT a panel that genuinely wants to be
+      // tiny. Keep the constant.
+    }
+    info.MinSize(wxSize(200, PANEL_HEIGHT_MIN));
+    info.BestSize(wxSize(400, paneHeight));
+
+    // ECCE_DEBUG_PANEL_SIZE=1 prints what each panel asked for and what
+    // it got, so a pane that comes out wrong can be attributed to the
+    // panel's own best size rather than guessed at -- the same reason
+    // ECCE_DEBUG_GEOMTRACE exists.
+    if (getenv("ECCE_DEBUG_PANEL_SIZE")) {
+      const wxSize best = panel->GetBestSize();
+      printf("[PANELSIZE] %-28s best=%dx%d -> pane height %d%s\n",
+             name.c_str(), best.x, best.y, paneHeight,
+             (paneHeight == PANEL_HEIGHT_FALLBACK && !uniformPanelHeight())
+               ? "  (fallback: best size not usable)" : "");
+      fflush(stdout);
+    }
     // Only this small default subset is shown for a freshly opened
     // calculation -- previously every single relevant panel was
     // force-opened at once (updatePropertyMenus() creates a panel for
