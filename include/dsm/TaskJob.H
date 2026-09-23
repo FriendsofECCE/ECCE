@@ -133,6 +133,10 @@ class TaskJob : public Job,
 
       virtual bool removeInputFiles();
       virtual bool removeOutputFiles();
+
+      /** Remove the extracted properties, leaving the calculation's
+          settings alone. */
+      virtual bool removeProperties();
       virtual bool putInputFile(const string& name, istream *istr);
       virtual bool putOutputFile(const string& name, istream *istr);
       virtual bool putAnyFile(const  string& name, istream* istr);

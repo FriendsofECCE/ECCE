@@ -699,6 +699,34 @@ bool TaskJob::removeInputFiles()
  *
  * @return Returns true if all output files were removed, otherwise false.
  */
+/**
+ * Remove the properties extracted from a previous run.
+ *
+ * removeOutputFiles() takes away the raw output but NOT the properties
+ * parsed out of it, which live in their own collection.  For a
+ * calculation about to be rerun -- and especially for a duplicate,
+ * which starts life as an exact copy -- leaving them behind means the
+ * Properties menu offers the PREVIOUS run's energies, geometries and
+ * orbitals on a job that has not been run yet, with nothing to say they
+ * are inherited.
+ */
+bool TaskJob::removeProperties()
+{
+  bool ret = true;
+
+  try {
+    getVDoc()->removeProperties();
+  }
+  catch (DavException& davException) {
+    p_msgStack->add("UNABLE_TO_COMPLETE_REQUEST",
+                    davException.what());
+    ret = false;
+  }
+
+  return ret;
+}
+
+
 bool TaskJob::removeOutputFiles()
 {
   bool ret = true;
@@ -1818,7 +1846,17 @@ bool TaskJob::resetForRerun(const ResourceDescriptor::RUNSTATE& toState)
     }
   }
 
-  bool ret = setState(tostate) && removeOutputFiles();
+  //  Properties as well as outputs.  Without this a duplicated
+  //  calculation carries the parent's extracted results -- energies,
+  //  geometry trace, orbitals -- and presents them as its own before it
+  //  has ever been run.  "Duplicate should inherit nothing from the
+  //  parent job beyond the settings."
+  //
+  //  Evaluation order matters: && short-circuits, so removeProperties()
+  //  is called first to guarantee it runs even if removing the outputs
+  //  fails.
+  bool propsGone = removeProperties();
+  bool ret = setState(tostate) && removeOutputFiles() && propsGone;
 
   // set rerun flag so calculation run directory files are removed
   // if/when the job is launched
