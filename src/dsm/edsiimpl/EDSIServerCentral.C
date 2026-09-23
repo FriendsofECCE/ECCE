@@ -270,6 +270,20 @@ bool EDSIServerCentral::checkServerSetup()
         "or more collections or files is missing:\n";
       msg += failure;
       msg += "\n";
+      //  "Contact your ECCE Administrator" is no use on a single-user
+      //  install, where the administrator is the person reading it. The
+      //  data server recreates these itself, so say so: it is one command
+      //  and it is the fix in almost every case. The basis set library in
+      //  particular is synced from the installed package on data server
+      //  start, so a missing one means that start did not happen or
+      //  predates the sync.
+      //
+      //  This matters more than it looks: BuilderApp quits outright when
+      //  this check fails, so a missing basis set library presents as the
+      //  Builder and Viewer refusing to open at all, with nothing
+      //  connecting the two.
+      msg += "\nThe data server recreates these when it starts. Try:\n";
+      msg += "    ecce-dataserver-stop && ecce-dataserver-start\n";
       throw EcceException(msg, WHERE);
     }
 
