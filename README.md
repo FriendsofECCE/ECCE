@@ -80,6 +80,32 @@ than papered over.
   and `cam` run onto the `xc` line — and no longer reports findings in
   retired codes.
 
+  **Molecular orbitals were being silently discarded by two codes.**
+  ORCA prints its MO block in fixed-width columns, so a coefficient wide
+  enough to fill its field runs into the previous one
+  (`0.452636-11.266403` is two numbers); Gaussian's `fort.7` opens with
+  an archive entry wrapped at 80 columns, and a route section ending in
+  `Opt=()` put `()` at the start of a line, which the skip mistook for
+  the Fortran format line and read four lines of geometry and energies
+  in as coefficients. Either way the table came out the wrong length,
+  `PropTable` rejected it on load, and the MO panel showed nothing with
+  no error anywhere (#108). Found by scanning stored calculations rather
+  than fixtures — no fixture contains either shape.
+
+  **Property panels got their options menus back.** The wx3.2 AUI port
+  dropped the pane-caption buttons, and with them the only trigger for
+  seven panels' menus — including the vibrational panel's Show Table /
+  Show Graph switch. A right-click on any property panel now opens them
+  (#109).
+
+  **Quantum ESPRESSO reads the stress tensor back**, so the Runtype
+  Details "Stress" checkbox means something: it used to make `pw.x`
+  compute the tensor while nothing consumed it. GROMACS likewise now
+  emits the pressure it was already parsing and discarding. ORCA's
+  CHELPG charges gain a summary row and a regression fixture for the
+  multi-block optimisation case, where the charges move between cycles
+  and only the converged ones should survive (#88).
+
 - **v8.12.0** — **The Gateway window is gone**: `ecce` opens the
   Organizer directly, which becomes the front door (New Structure on
   File; Register Machines, Machine Browser and Periodic Table on Tools).
