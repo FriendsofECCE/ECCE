@@ -116,7 +116,15 @@ def compare(regen, shipped, tolerance):
                                           []).append(va / vb)
 
     if structural:
-        return "structural", "; ".join(structural[:3])
+        #  Count the ELEMENTS affected, not the individual complaints. A
+        #  whole basis set being called "structural" because one element
+        #  out of thirty differs is not a useful thing to hand a reviewer:
+        #  STO-3G differs from BSE's only on Ga, and 3-21G only on Sc.
+        affected = sorted({c.split(":")[0] for c in structural})
+        return "structural", ("%d/%d elements differ (%s)%s"
+                              % (len(affected), len(shared),
+                                 ", ".join(affected[:6]),
+                                 "" if len(affected) <= 6 else ", ..."))
     detail = "%d values, worst %.1e" % (nvalues, worst)
     if reordered:
         detail += ", %d atom(s) reordered" % len(reordered)

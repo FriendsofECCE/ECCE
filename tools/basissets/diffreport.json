@@ -2,7 +2,7 @@
  "3-21G": {
   "bse": "3-21g",
   "bucket": "direct",
-  "detail": "Sc: shell SP(2) vs D(2); Sc: shell SP(1) vs D(1); Sc: shell D(2) vs SP(2)",
+  "detail": "34/55 elements differ (Ag, As, Br, Cd, Co, Cr), ...",
   "verdict": "structural"
  },
  "4-31G": {
@@ -20,7 +20,7 @@
  "6-31G": {
   "bse": "6-31g",
   "bucket": "direct",
-  "detail": "K: 7 shells vs 5; Ca: 7 shells vs 5",
+  "detail": "2/30 elements differ (Ca, K)",
   "verdict": "structural"
  },
  "6-31G-Blaudeau": {
@@ -32,25 +32,25 @@
  "ADZP": {
   "bse": "jorge-adzp",
   "bucket": "curated",
-  "detail": "H: 5 shells vs 6; He: 5 shells vs 4; Li: 10 shells vs 12",
+  "detail": "70/70 elements differ (Ag, Al, Ar, As, At, Au), ...",
   "verdict": "structural"
  },
  "ANO-RCC": {
   "bse": "ano-rcc",
   "bucket": "direct",
-  "detail": "Yb: shell SSSSSSSSSSS(25) vs SSSSSSSSSSSS(25); Yb: shell PPPPPPPPPP(22) vs PPPPPPPPPPP(22); Pb: shell FFFFFF(12) vs FFFFFFFF(12)",
+  "detail": "6/96 elements differ (Cm, Fr, Pb, Pu, Ra, Yb)",
   "verdict": "structural"
  },
  "AQZP": {
   "bse": "jorge-aqzp",
   "bucket": "curated",
-  "detail": "H: 14 shells vs 4; Li: 21 shells vs 5; Be: 21 shells vs 5",
+  "detail": "51/51 elements differ (Ag, Al, Ar, As, B, Be), ...",
   "verdict": "structural"
  },
  "ATZP": {
   "bse": "jorge-atzp",
   "bucket": "curated",
-  "detail": "Mg: shell S(1) vs S(2); Mg: shell S(2) vs S(1); Rb: shell S(1) vs S(2)",
+  "detail": "13/51 elements differ (Ag, Cd, In, Mg, Nb, Pd), ...",
   "verdict": "structural"
  },
  "Ahlrichs TZV": {
@@ -98,7 +98,7 @@
  "J-DZP": {
   "bse": "jorge-dzp",
   "bucket": "curated",
-  "detail": "Ge: shell S(1) vs S(2); Ge: shell S(2) vs S(1); Ge: shell P(1) vs P(3)",
+  "detail": "1/72 elements differ (Ge)",
   "verdict": "structural"
  },
  "J-DZP-DKH": {
@@ -110,25 +110,25 @@
  "J-QZP": {
   "bse": "jorge-qzp",
   "bucket": "curated",
-  "detail": "Mo: shell S(1) vs S(2); Mo: shell S(2) vs S(1); Mo: shell P(1) vs P(2)",
+  "detail": "3/54 elements differ (I, Mo, Xe)",
   "verdict": "structural"
  },
  "J-QZP-DKH": {
   "bse": "jorge-qzp-dkh",
   "bucket": "curated",
-  "detail": "Mo: shell S(1) vs S(2); Mo: shell S(2) vs S(1); Mo: shell P(1) vs P(2)",
+  "detail": "3/54 elements differ (I, Mo, Xe)",
   "verdict": "structural"
  },
  "J-TZP": {
   "bse": "jorge-tzp",
   "bucket": "curated",
-  "detail": "Ca: 18 shells vs 20; Rb: shell S(1) vs S(2); Rb: shell S(2) vs S(3)",
+  "detail": "11/54 elements differ (Ag, Ca, Cd, In, Pd, Rb), ...",
   "verdict": "structural"
  },
  "J-TZP-DKH": {
   "bse": "jorge-tzp-dkh",
   "bucket": "curated",
-  "detail": "Ca: 18 shells vs 20; Rb: shell S(1) vs S(2); Rb: shell S(2) vs S(3)",
+  "detail": "11/54 elements differ (Ag, Ca, Cd, In, Pd, Rb), ...",
   "verdict": "structural"
  },
  "LANL2DZ ECP": {
@@ -194,25 +194,25 @@
  "Partridge Uncontr. 1": {
   "bse": "partridge uncontracted 1",
   "bucket": "curated",
-  "detail": "Cl: 29 shells vs 2; Ar: 29 shells vs 2; K: 32 shells vs 2",
+  "detail": "22/36 elements differ (Ar, As, Br, Ca, Cl, Co), ...",
   "verdict": "structural"
  },
  "Partridge Uncontr. 2": {
   "bse": "partridge uncontracted 2",
   "bucket": "curated",
-  "detail": "Be: 16 shells vs 1; B: 27 shells vs 2; C: 27 shells vs 2",
+  "detail": "33/34 elements differ (Al, Ar, As, B, Be, Br), ...",
   "verdict": "structural"
  },
  "Partridge Uncontr. 3": {
   "bse": "partridge uncontracted 3",
   "bucket": "curated",
-  "detail": "Li: 18 shells vs 1; Be: 18 shells vs 1; B: 31 shells vs 2",
+  "detail": "28/28 elements differ (Al, Ar, B, Be, C, Ca), ...",
   "verdict": "structural"
  },
  "Partridge Uncontr. 4": {
   "bse": "partridge uncontracted 4",
   "bucket": "curated",
-  "detail": "Sc: 49 shells vs 3; Ti: 49 shells vs 3; V: 49 shells vs 3",
+  "detail": "10/10 elements differ (Co, Cr, Cu, Fe, Mn, Ni), ...",
   "verdict": "structural"
  },
  "Roos Augmented Double Zeta ANO": {
@@ -224,25 +224,25 @@
  "Roos Augmented Triple Zeta ANO": {
   "bse": "roos augmented triple zeta ano",
   "bucket": "direct",
-  "detail": "H: 6 shells vs 3; He: 6 shells vs 3; Li: 8 shells vs 4",
+  "detail": "27/28 elements differ (Al, Ar, B, Be, C, Cl), ...",
   "verdict": "structural"
  },
  "STO-2G": {
   "bse": "sto-2g",
   "bucket": "direct",
-  "detail": "Sr: 5 shells vs 6",
+  "detail": "1/21 elements differ (Sr)",
   "verdict": "structural"
  },
  "STO-3G": {
   "bse": "sto-3g",
   "bucket": "direct",
-  "detail": "Co: shell SP(3) vs D(3); Co: shell D(3) vs SP(3); Ga: 4 shells vs 5",
+  "detail": "24/53 elements differ (Ag, As, Br, Cd, Co, Ga), ...",
   "verdict": "structural"
  },
  "STO-6G": {
   "bse": "sto-6g",
   "bucket": "direct",
-  "detail": "Sc: shell SP(6) vs D(6); Sc: shell D(6) vs SP(6); Ti: shell SP(6) vs D(6)",
+  "detail": "16/36 elements differ (As, Br, Co, Cr, Cu, Fe), ...",
   "verdict": "structural"
  },
  "SV (Dunning-Hay)": {
@@ -254,7 +254,7 @@
  "Sadlej pVTZ": {
   "bse": "sadlej pvtz",
   "bucket": "direct",
-  "detail": "H: 2 shells vs 5; Li: 3 shells vs 10; Be: 3 shells vs 10",
+  "detail": "19/19 elements differ (Be, Br, C, Ca, Cl, F), ...",
   "verdict": "structural"
  },
  "Stuttgart RLC ECP": {
@@ -332,25 +332,25 @@
  "aug-pc-1": {
   "bse": "aug-pc-1",
   "bucket": "direct",
-  "detail": "Kr: shell DDD(8) vs D(8)",
+  "detail": "1/36 elements differ (Kr)",
   "verdict": "structural"
  },
  "aug-pc-2": {
   "bse": "aug-pc-2",
   "bucket": "direct",
-  "detail": "Kr: shell FF(2) vs F(2)",
+  "detail": "1/36 elements differ (Kr)",
   "verdict": "structural"
  },
  "aug-pc-3": {
   "bse": "aug-pc-3",
   "bucket": "direct",
-  "detail": "Kr: shell GG(2) vs G(2)",
+  "detail": "1/36 elements differ (Kr)",
   "verdict": "structural"
  },
  "aug-pc-4": {
   "bse": "aug-pc-4",
   "bucket": "direct",
-  "detail": "Kr: shell HH(2) vs H(2)",
+  "detail": "1/36 elements differ (Kr)",
   "verdict": "structural"
  },
  "aug-pcSseg-0": {
@@ -416,7 +416,7 @@
  "cc-pV(5+d)Z": {
   "bse": "cc-pv(5+d)z",
   "bucket": "direct",
-  "detail": "Al: shell FFF(3) vs DDDDD(5); Al: shell GG(2) vs FFF(3); Al: shell H(1) vs GG(2)",
+  "detail": "6/6 elements differ (Al, Ar, Cl, P, S, Si)",
   "verdict": "structural"
  },
  "cc-pV(D+d)Z": {
@@ -428,19 +428,19 @@
  "cc-pV(Q+d)Z": {
   "bse": "cc-pv(q+d)z",
   "bucket": "direct",
-  "detail": "Al: shell FF(2) vs DDDD(4); Al: shell G(1) vs FF(2); Al: shell DDDD(4) vs G(1)",
+  "detail": "6/6 elements differ (Al, Ar, Cl, P, S, Si)",
   "verdict": "structural"
  },
  "cc-pV(T+d)Z": {
   "bse": "cc-pv(t+d)z",
   "bucket": "direct",
-  "detail": "Al: shell F(1) vs DDD(3); Al: shell DDD(3) vs F(1); Si: shell F(1) vs DDD(3)",
+  "detail": "6/6 elements differ (Al, Ar, Cl, P, S, Si)",
   "verdict": "structural"
  },
  "cc-pV5Z": {
   "bse": "cc-pv5z",
   "bucket": "direct",
-  "detail": "H: 5 shells vs 15; He: 5 shells vs 15; Li: 6 shells vs 20",
+  "detail": "35/35 elements differ (Al, Ar, As, B, Be, Br), ...",
   "verdict": "structural"
  },
  "cc-pV5Z(fi/sf/fw)": {
@@ -494,7 +494,7 @@
  "cc-pV8Z": {
   "bse": "cc-pv8z",
   "bucket": "direct",
-  "detail": "H: shell II(2) vs IH(2)",
+  "detail": "1/2 elements differ (H)",
   "verdict": "structural"
  },
  "cc-pV9Z": {
@@ -506,7 +506,7 @@
  "cc-pVDZ": {
   "bse": "cc-pvdz",
   "bucket": "direct",
-  "detail": "H: 2 shells vs 3; He: 2 shells vs 3; Li: 3 shells vs 5",
+  "detail": "35/35 elements differ (Al, Ar, As, B, Be, Br), ...",
   "verdict": "structural"
  },
  "cc-pVDZ(fi/sf/fw)": {
@@ -560,7 +560,7 @@
  "cc-pVQZ": {
   "bse": "cc-pvqz",
   "bucket": "direct",
-  "detail": "Na: shell FF(2) vs DDD(3); Na: shell G(1) vs FF(2); Na: shell DDD(3) vs G(1)",
+  "detail": "2/35 elements differ (Mg, Na)",
   "verdict": "structural"
  },
  "cc-pVQZ(fi/sf/fw)": {
@@ -614,7 +614,7 @@
  "cc-pVTZ": {
   "bse": "cc-pvtz",
   "bucket": "direct",
-  "detail": "Na: shell F(1) vs DD(2); Na: shell DD(2) vs F(1); Mg: shell F(1) vs DD(2)",
+  "detail": "2/35 elements differ (Mg, Na)",
   "verdict": "structural"
  },
  "cc-pVTZ(fi/sf/fw)": {
@@ -668,7 +668,7 @@
  "cc-pwCV5Z-DK": {
   "bse": "cc-pwcv5z-dk",
   "bucket": "direct",
-  "detail": "Fe: shell I(1) vs II(2)",
+  "detail": "1/10 elements differ (Fe)",
   "verdict": "structural"
  },
  "cc-pwCVQZ-DK": {
@@ -698,7 +698,7 @@
  "pc-1": {
   "bse": "pc-1",
   "bucket": "direct",
-  "detail": "Kr: shell DD(7) vs D(7)",
+  "detail": "1/36 elements differ (Kr)",
   "verdict": "structural"
  },
  "pc-2": {
@@ -752,7 +752,7 @@
  "pcseg-0": {
   "bse": "pcseg-0",
   "bucket": "direct",
-  "detail": "Li: 4 shells vs 5; Be: 4 shells vs 5; B: shell P(2) vs P(3)",
+  "detail": "34/36 elements differ (Al, Ar, As, B, Be, Br), ...",
   "verdict": "structural"
  },
  "pcseg-1": {
