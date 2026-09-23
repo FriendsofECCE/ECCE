@@ -4654,9 +4654,6 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     static const int PANEL_HEIGHT_MIN      = 80;   // still leaves a grip
     static const int PANEL_HEIGHT_MAX      = 600;  // no pane eats the dock
     static const int PANEL_HEIGHT_PADDING  = 12;
-    //  Above this, a panel is holding a table or a plot and is allowed to
-    //  grow; below it, it is a short readout and is capped at its content.
-    static const int PANEL_HEIGHT_ROOMY    = 200;
 
     int paneHeight = PANEL_HEIGHT_FALLBACK;
     if (!uniformPanelHeight()) {
@@ -4676,21 +4673,25 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
       // not-yet-populated panel, NOT a panel that genuinely wants to be
       // tiny. Keep the constant.
     }
-    //  BestSize alone is only a hint: AUI hands a dock's spare space to
-    //  whatever is in it, so a four-line Energies panel was still being
-    //  stretched to the same height as a mode table. A ceiling is what
-    //  actually stops that, which is why this sets all three.
+    //  HOW AUI ACTUALLY SIZES A DOCKED PANE.  Measured, because two
+    //  attempts at this were wrong: BestSize and MaxSize are BOTH IGNORED
+    //  for panes docked together.  A test harness asking for 90, 200 and
+    //  600 with matching MaxSize got back 244, 244, 245 -- an equal split,
+    //  which is exactly the reported symptom of a four-line Energies panel
+    //  as tall as a mode table.
     //
-    //  The ceiling is the content height for a panel that genuinely wants
-    //  little, and PANEL_HEIGHT_MAX for one with a big table -- so a
-    //  scalar readout cannot balloon, while MOs can still be dragged
-    //  larger up to the cap rather than being pinned at its content size.
-    int paneCeiling = (paneHeight < PANEL_HEIGHT_ROOMY)
-                        ? paneHeight
-                        : PANEL_HEIGHT_MAX;
+    //  What AUI does use is dock_proportion: the same three panes with
+    //  dock_proportion set to 90, 200 and 600 came back 80, 153 and 500.
+    //  MinSize is honoured as a floor -- the smallest landed exactly on
+    //  its 80 -- so the pair together give a panel its share of the dock
+    //  in proportion to what its content needs, never below the floor.
+    //
+    //  Proportional rather than absolute, so a taller dock scales all of
+    //  them up; a short readout still gets a small share of it instead of
+    //  an equal one, which is the point.
     info.MinSize(wxSize(200, PANEL_HEIGHT_MIN));
     info.BestSize(wxSize(400, paneHeight));
-    info.MaxSize(wxSize(-1, paneCeiling));
+    info.dock_proportion = paneHeight;
 
     // ECCE_DEBUG_PANEL_SIZE=1 prints what each panel asked for and what
     // it got, so a pane that comes out wrong can be attributed to the
