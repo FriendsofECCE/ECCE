@@ -20,6 +20,37 @@ export ECCE_REALUSER="${ECCE_REALUSER:-$(id -un)}"
 
 STATEDIR="$ECCE_REALUSERHOME/.ECCE/dataserver"
 DATAROOT="$STATEDIR/htdocs"
+
+# NOTE: this runs BEFORE the "already listening" check below, which
+# exits 0. Putting it after meant it never ran on a machine whose data
+# server was already up -- which is every machine that has used ECCE
+# before. Seeding does not need the server stopped, so it belongs here.
+# Seed the Gaussian basis set library, same idempotency rule as above.
+#
+# WITHOUT THIS A FRESH INSTALL HAS NO BASIS SETS AT ALL.  Clients do not
+# read $ECCE_HOME/data/admin/basissets directly -- siteconfig/DataServers
+# points <BasisSet> at http://localhost:8096/Ecce/system/
+# GaussianBasisSetLibrary, so the library has to be present under the
+# document root to be reachable.  The package installs the data but
+# nothing copied it here, and existing installs only worked because their
+# htdocs tree was inherited from an original PNNL distribution (the one
+# on this machine is dated 2005).  On a genuinely clean machine the Basis
+# Set Tool would have come up empty.
+#
+# Seeded only when absent, so a library a site has customised or extended
+# is never overwritten.  To refresh a stale copy, remove the directory and
+# restart the data server.
+GBS_SRC="$ECCE_HOME/data/admin/basissets"
+GBS_DEST="$DATAROOT/Ecce/system/GaussianBasisSetLibrary"
+if [ ! -d "$GBS_DEST" ] && [ -d "$GBS_SRC" ]; then
+  mkdir -p "$(dirname "$GBS_DEST")"
+  cp -r "$GBS_SRC" "$GBS_DEST"
+  # Editor backups and the maintenance odds and ends that live alongside
+  # the data in the repository have no business being web-served.
+  find "$GBS_DEST" -maxdepth 1 \( -name '*~' -o -name '*.sh' -o -name '*.py' \
+       -o -name 'history' -o -name '*.rev' \) -delete 2>/dev/null || true
+fi
+
 PORT="${ECCE_DATASERVER_PORT:-8096}"
 PIDFILE="$STATEDIR/logs/httpd.pid"
 
@@ -99,32 +130,6 @@ HELP_CGI_SRC="$ECCE_HOME/data/client/WebHelp/EcceHelp/cgi-bin"
 if [ ! -e "$STATEDIR/cgi-bin/EcceHelp" ] && [ -d "$HELP_CGI_SRC" ]; then
   cp -r "$HELP_CGI_SRC" "$STATEDIR/cgi-bin/EcceHelp"
   chmod +x "$STATEDIR/cgi-bin/EcceHelp/toolhelp" "$STATEDIR/cgi-bin/EcceHelp/cshelp"
-fi
-
-# Seed the Gaussian basis set library, same idempotency rule as above.
-#
-# WITHOUT THIS A FRESH INSTALL HAS NO BASIS SETS AT ALL.  Clients do not
-# read $ECCE_HOME/data/admin/basissets directly -- siteconfig/DataServers
-# points <BasisSet> at http://localhost:8096/Ecce/system/
-# GaussianBasisSetLibrary, so the library has to be present under the
-# document root to be reachable.  The package installs the data but
-# nothing copied it here, and existing installs only worked because their
-# htdocs tree was inherited from an original PNNL distribution (the one
-# on this machine is dated 2005).  On a genuinely clean machine the Basis
-# Set Tool would have come up empty.
-#
-# Seeded only when absent, so a library a site has customised or extended
-# is never overwritten.  To refresh a stale copy, remove the directory and
-# restart the data server.
-GBS_SRC="$ECCE_HOME/data/admin/basissets"
-GBS_DEST="$DATAROOT/Ecce/system/GaussianBasisSetLibrary"
-if [ ! -d "$GBS_DEST" ] && [ -d "$GBS_SRC" ]; then
-  mkdir -p "$(dirname "$GBS_DEST")"
-  cp -r "$GBS_SRC" "$GBS_DEST"
-  # Editor backups and the maintenance odds and ends that live alongside
-  # the data in the repository have no business being web-served.
-  find "$GBS_DEST" -maxdepth 1 \( -name '*~' -o -name '*.sh' -o -name '*.py' \
-       -o -name 'history' -o -name '*.rev' \) -delete 2>/dev/null || true
 fi
 
 # Resolve the packaged config template's per-user placeholders. See the
