@@ -93,6 +93,10 @@ class Display(object):
         self.wrapper = []
         self.kind = None
         self._proc = None
+        #  Snapshot before anything starts, so __exit__ can tell this
+        #  run's shared-memory surfaces from a developer's own broadway
+        #  session that happens to be open.
+        self._shmBefore = self._broadwaySegments()
 
     def __enter__(self):
         if shutil.which("broadwayd"):
@@ -167,6 +171,25 @@ class Display(object):
             "broadwayd is listening but no wx client can connect: %s"
             % lastError[-300:])
 
+    @staticmethod
+    def _broadwaySegments():
+        """The /dev/shm surfaces broadwayd and its clients create.
+
+        Each GTK client maps its window surface as a POSIX shared memory
+        object named bdw-<random>.  broadwayd does not unlink them when
+        it is terminated, and neither do the clients, so every run of
+        this suite leaves one behind per dialog it opened -- about
+        seventy.  They are 3 MB each and /dev/shm is RAM, so this is a
+        real leak, not a tidiness question: repeated runs on one machine
+        accumulated 1963 of them, 5.8 GB, until the desktop started
+        killing processes for want of memory.
+        """
+        try:
+            return set(name for name in os.listdir("/dev/shm")
+                       if name.startswith("bdw-"))
+        except OSError:
+            return set()
+
     def __exit__(self, *exc):
         if self._proc is not None:
             self._proc.terminate()
@@ -174,6 +197,16 @@ class Display(object):
                 self._proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 self._proc.kill()
+
+        #  Remove only the segments THIS run created.  Deleting every
+        #  bdw-* would be wrong: a developer may have a real broadway
+        #  session of their own open, and pulling its surfaces out from
+        #  under it is not this suite's business.
+        for name in self._broadwaySegments() - self._shmBefore:
+            try:
+                os.unlink(os.path.join("/dev/shm", name))
+            except OSError:
+                pass
         return False
 
 
