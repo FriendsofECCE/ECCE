@@ -1,4 +1,4 @@
-Extensible Computational Chemistry Environment (ECCE) 8.0
+Extensible Computational Chemistry Environment (ECCE)
 
 Environmental Molecular Sciences Laboratory (EMSL)
 Pacific Northwest National Laboratory
@@ -14,10 +14,19 @@ Memorial Institute.
 
 Copyright (c) 2017-2026 CA Ohlin.
 
-This software and its documentation were developed at the EMSL at Pacific
-Northwest National Laboratory, a multiprogram national laboratory, operated
-for the U.S. Department of Energy by Battelle under Contract Number
-DE-AC05-76RL01830. Support for this work was provided by the Department of
+This distribution is a maintained fork, hosted at
+https://github.com/FriendsofECCE/ECCE. The software has been substantially
+modified since 2012 -- ported from wxWidgets 2.8 to 3.2, from C++14 to C++17,
+from a recursive-make build to CMake, and from Python 2 to Python 3, with
+extensive bug fixes and support for additional computational chemistry codes.
+Neither Pacific Northwest National Laboratory, Battelle Memorial Institute nor
+the U.S. Department of Energy is responsible for, or endorses, these
+modifications.
+
+This software and its documentation were originally developed at the EMSL at
+Pacific Northwest National Laboratory, a multiprogram national laboratory,
+operated for the U.S. Department of Energy by Battelle under Contract Number
+DE-AC05-76RL01830. Support for that work was provided by the Department of
 Energy Office of Biological and Environmental Research, Office of Basic
 Energy Sciences.
 
