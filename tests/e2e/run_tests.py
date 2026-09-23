@@ -89,9 +89,30 @@ def run_case(case, verbose, keep, required=()):
         deck = os.path.join(workdir, os.path.basename(deck_src))
         shutil.copy(deck_src, deck)
 
+        #  Some codes need a preprocessing step before the run proper.
+        #  GROMACS is the case in point: grompp turns the .mdp, .gro and
+        #  .top into a .tpr, and mdrun takes it from there.  The extra
+        #  inputs live beside the deck and are copied with it.
+        for extra in codedef.get('extraInputs', ()):
+            src = os.path.join(os.path.dirname(deck_src), extra)
+            if os.path.exists(src):
+                shutil.copy(src, os.path.join(workdir, extra))
+        for step in codedef.get('setup', ()):
+            src, sout, serr = pipeline.run_code(step(exe, deck), workdir)
+            if src != 0:
+                report.check(False, 'setup step failed (exit %d)\n%s'
+                             % (src, (serr or sout).strip()[-400:]))
+                return report
+
         # --- stage 1: the real code -----------------------------------
-        rc, _out, err = pipeline.run_code(codedef['argv'](exe, deck), workdir)
+        rc, out, err = pipeline.run_code(codedef['argv'](exe, deck), workdir)
         job_out = os.path.join(workdir, case['output'])
+        #  Some codes write their output to stdout and ECCE redirects it
+        #  into the named file (pw.x is invoked as "pw.x -in x > x.pwout").
+        #  Reproduce that rather than make the case shell out, so the
+        #  harness keeps running the binary directly.
+        if codedef.get('stdoutTo') and not os.path.exists(job_out):
+            open(job_out, 'w').write(out)
         if not os.path.exists(job_out):
             report.check(False, 'code produced %s (exit %d) %s'
                          % (case['output'], rc, err.strip()[:300]))

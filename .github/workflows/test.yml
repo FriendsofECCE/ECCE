@@ -97,7 +97,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y perl python3 mopac nwchem nwchem-openmpi
+          sudo apt-get install -y perl python3 mopac nwchem nwchem-openmpi \
+            quantum-espresso quantum-espresso-data-sssp gromacs
 
       # Declare what this job installed.  Without this a code whose
       # binary is not where the suite looks simply skips, and the job
@@ -105,7 +106,7 @@ jobs:
       # what happened to nwchem on its first run here.
       - name: End-to-end suite
         env:
-          ECCE_E2E_REQUIRE: mopac,nwchem
+          ECCE_E2E_REQUIRE: mopac,nwchem,qe,gromacs
         run: tests/e2e/run_tests.py -v
 
   apps:

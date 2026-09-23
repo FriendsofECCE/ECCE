@@ -127,9 +127,9 @@ conversion were dropped, and `ENTHALPY − ETHERM` must equal RT exactly.
 | Code | Tier | Notes |
 |---|---|---|
 | MOPAC | CI | Debian `mopac`; seconds per job |
-| NWChem | CI (todo) | Debian `nwchem-openmpi` |
-| Quantum ESPRESSO | CI (todo) | Debian |
-| GROMACS | CI (todo) | Debian |
+| NWChem | CI | Debian `nwchem-openmpi` |
+| Quantum ESPRESSO | CI | Debian `quantum-espresso` + `-data-sssp` for pseudopotentials |
+| GROMACS | CI | Debian `gromacs`; needs a grompp setup step |
 | ORCA | local only | registration-walled |
 | Gaussian | local only | licensed |
 

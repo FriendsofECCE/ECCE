@@ -1,0 +1,15 @@
+integrator    = md
+dt            = 0.001
+nsteps        = 50
+nstlog        = 10
+cutoff-scheme = Verlet
+coulombtype   = cut-off
+rvdw          = 0.8
+rcoulomb      = 0.8
+rlist         = 0.8
+tcoupl        = v-rescale
+tc-grps       = System
+tau-t         = 0.1
+ref-t         = 300
+gen-vel       = yes
+gen-temp      = 300

@@ -189,6 +189,96 @@ def expect_nwchem_h2o(props, report):
                  '(got %g)' % te)
 
 
+def expect_qe_si(props, report):
+    """Bulk silicon, PBE, 2 atoms -- QE's scalar and tensor results.
+
+    Quantum ESPRESSO is a plane-wave code: no basis set, no orbitals in
+    ECCE's sense.  What it does have that no other code here does is a
+    STRESS tensor, and that is worth guarding because the value carries
+    its units in the section HEADER rather than beside the numbers --
+    the shape that silently produced wrong values rather than none when
+    QE was first integrated.
+    """
+    for key in ('TE', 'STRESS', 'PRESSURE', 'VERSION'):
+        report.check(bool(props.get(key)), '%s extracted' % key)
+    if not (props.get('TE') and props.get('STRESS')):
+        return
+
+    te = float(sect(props['TE'][-1], 'values'))
+    #  Two silicon atoms with this pseudopotential land near -11.3
+    #  Hartree.  QE prints Ry, so a value near -22.6 would mean the
+    #  conversion was dropped -- the range is chosen to tell those apart
+    #  rather than to pin the number.
+    report.check(-15.0 < te < -8.0,
+                 'total energy is a plausible Hartree value for Si2 '
+                 '(got %g; ~-22.6 would mean Ry went unconverted)' % te)
+
+    stress = sect(props['STRESS'][-1], 'values').split()
+    report.check(len(stress) == 9,
+                 'STRESS is a full 3x3 tensor (got %d values)' % len(stress))
+    if len(stress) == 9:
+        #  A stress tensor is symmetric.  This is a real check on the
+        #  parse: a row/column transposition or a dropped element shows
+        #  up here and nowhere else.
+        s = [float(x) for x in stress]
+        sym = (abs(s[1] - s[3]) < 1e-6 and abs(s[2] - s[6]) < 1e-6
+               and abs(s[5] - s[7]) < 1e-6)
+        report.check(sym, 'STRESS tensor is symmetric (got %s)' % stress)
+
+
+def expect_gromacs_water(props, report):
+    """216 SPC waters, 50 steps of MD.
+
+    The point of this case is the WRAPPED ENERGY BLOCK.  With enough
+    terms GROMACS splits its "Energies (kJ/mol)" table over two rows:
+
+        LJ (SR)   Coulomb (SR)    Potential   Kinetic En.  Total Energy
+        2.13e+03  -1.21e+04      -9.97e+03    2.31e+03     -7.66e+03
+      Conserved En.  Temperature  Pressure (bar)
+       -7.32e+03     4.31e+02     2.36e+03
+
+    so TE comes from the first row and PRESSURE from the second.  A
+    parser that reads only the first row silently reports a plausible
+    number for the wrong quantity -- CLAUDE.md records this shape as
+    producing wrong values rather than none.  A short minimisation does
+    not wrap, so the .mdp here deliberately runs MD with temperature
+    coupling to make it.
+
+    It also guards the averages suppression: GROMACS prints one last
+    "Energies (kJ/mol)" block under "A V E R A G E S", and [NULL] exists
+    to stop that being taken as the final step's result.
+    """
+    for key in ('TE', 'PRESSURE'):
+        report.check(bool(props.get(key)), '%s extracted' % key)
+    if not (props.get('TE') and props.get('PRESSURE')):
+        return
+
+    te = float(sect(props['TE'][-1], 'values'))
+    pressure = float(sect(props['PRESSURE'][-1], 'values'))
+
+    #  TE is the Total Energy of 216 waters, a few thousand kJ/mol
+    #  negative.  Loose, because it depends on the random starting
+    #  velocities; what must not happen is picking up the Potential
+    #  (~-1e4) or the Conserved En. from the wrong column.
+    report.check(-9.5e3 < te < -5.0e3,
+                 'TE is the Total Energy, not the Potential '
+                 '(got %g; ~-1.0e4 would be the Potential)' % te)
+
+    #  Pressure lives in the SECOND row.  Reading it from the first
+    #  would pick up a kJ/mol energy of order 1e3-1e4 with the wrong
+    #  sign pattern; a real pressure here is a few thousand bar.
+    report.check(abs(pressure) < 2.0e4,
+                 'PRESSURE came from the wrapped second row (got %g)'
+                 % pressure)
+
+    #  The averages block is the LAST "Energies (kJ/mol)" in the file.
+    #  If [NULL] stopped suppressing it, TE would be the average rather
+    #  than the final step, and the two differ by enough to see.
+    report.check(len(props.get('TEVEC', [])) >= 2,
+                 'TEVEC accumulated per-step energies (got %d)'
+                 % len(props.get('TEVEC', [])))
+
+
 CASES = [
     dict(
         name='mopac-ch4-mos',
@@ -222,6 +312,31 @@ CASES = [
         output='ecce.out',
         expect=expect_nwchem_h2o,
     ),
+    dict(
+        #  Bulk Si, 2 atoms, low cutoff -- under a second.  QE needs
+        #  pseudopotentials to run at all; Debian's
+        #  quantum-espresso-data-sssp installs 103 of them in
+        #  /usr/share/espresso/pseudo, which is where ai.qe looks and
+        #  what this deck names.
+        name='qe-si-scf',
+        code='qe',
+        desc='qe.desc',
+        deck='qe/qe.pwin',
+        parse_args=('.', 'Energy', 'PW', 'PW', '0'),
+        output='qe.pwout',
+        expect=expect_qe_si,
+    ),
+    dict(
+        #  The .mdp is the deck ECCE names; conf.gro and topol.top are
+        #  copied alongside it and consumed by the grompp setup step.
+        name='gromacs-water-md',
+        code='gromacs',
+        desc='gromacs.desc',
+        deck='gromacs/gromacs.mdp',
+        parse_args=('.', 'Energy', 'MD', 'MD', '0'),
+        output='gromacs.log',
+        expect=expect_gromacs_water,
+    ),
 ]
 
 
@@ -229,6 +344,29 @@ CASES = [
 #  with its name reported, never silently passed -- an e2e suite that
 #  quietly tests nothing is worse than no e2e suite.
 CODES = {
+    'gromacs': dict(
+        binary='gmx',
+        search=(),
+        extraInputs=('conf.gro', 'topol.top'),
+        #  grompp first: GROMACS compiles the .mdp, coordinates and
+        #  topology into a .tpr, and only then runs.
+        setup=(lambda exe, deck: [exe, 'grompp', '-f', deck,
+                                  '-c', 'conf.gro', '-p', 'topol.top',
+                                  '-o', 'topol.tpr', '-maxwarn', '5'],),
+        argv=lambda exe, deck: [exe, 'mdrun', '-s', 'topol.tpr',
+                                '-g', 'gromacs.log', '-o', 'traj.trr',
+                                '-c', 'out.gro', '-e', 'ener.edr'],
+        packaged='gromacs',
+    ),
+    'qe': dict(
+        binary='pw.x',
+        search=(),
+        #  pw.x writes its output to stdout; ECCE redirects it into
+        #  qe.pwout, which is what the .edml declares as the parse file.
+        argv=lambda exe, deck: [exe, '-in', deck],
+        stdoutTo=True,
+        packaged='quantum-espresso + quantum-espresso-data-sssp',
+    ),
     'nwchem': dict(
         binary='nwchem',
         #  Debian's nwchem-openmpi ships /usr/bin/nwchem AND
