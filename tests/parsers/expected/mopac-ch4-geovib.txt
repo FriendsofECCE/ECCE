@@ -74,7 +74,7 @@ args:    '.' 'GeoVib' 'SE' 'RPM7' '0'
       values: -0.022954235107774
       units: Hartree
     key: ETHERM
-      values: 0.00383069100843294
+      values: -0.0238979449538543
       units: Hartree
     key: ENTROPY
       values: 0.0211277147963297

@@ -962,7 +962,6 @@ CASES = [
             #  The values are hand-checked against this fixture's own
             #  TOT. line, "-14.404  2403.7949  8.6898  44.4894":
             #    ENTHALPY = -14.404 kcal/mol / 627.5094740631
-            #    ETHERM   = 2403.7949 cal/mol / 1000 / 627.5094740631
             #    ENTROPY  = 44.4894 * 298.00 / 1000 / 627.5094740631
             #  ENTROPY is T*S, not S, because that is what ECCE's key
             #  holds -- its label is literally "Entropy Term (T*S)".
@@ -970,8 +969,26 @@ CASES = [
             #  EGIBBS is absent by design, not by omission: MOPAC has no
             #  absolute energy, so H - T*S here would not mean what that
             #  key means for ORCA and Gaussian.
+            #
+            #  ETHERM IS NOT THE TABLE'S "ENTHALPY" COLUMN, and pinning
+            #  it here is what stops it being "corrected" back to one.
+            #  That column is the H(T)-H(0) correction, and its own
+            #  footnote says "Hvib: Zero-point energy is not included" --
+            #  using it would discard the ZPE and put a ~2 kcal/mol
+            #  correction in the row where ORCA shows a total.
+            #
+            #  MOPAC's heat of formation already contains the zero-point
+            #  and thermal terms (its manual: E_SCF = E_eq + E_zpe +
+            #  E_vib + E_rot + E_tra + PV), so the internal energy is
+            #  H.O.F. - RT.  The two values below differ by exactly
+            #  RT = 1.987204259 * 298.00 / 1000 kcal/mol, which is ORCA's
+            #  own "H = U + kB*T" seen from the other side.
             'ENTHALPY][ETHERM][ENTROPY][HEATCAP][THERMOTEMP': dict(
                 blocks=1, keys={
+                    'ENTHALPY': {'values': '-0.022954235107774',
+                                 'units': 'Hartree'},
+                    'ETHERM': {'values': '-0.0238979449538543',
+                               'units': 'Hartree'},
                     'THERMOTEMP': {'values': '298.00', 'units': 'Kelvin'},
                     'HEATCAP': {'values': '8.6898',
                                 'units': 'cal/(K*mol)'},

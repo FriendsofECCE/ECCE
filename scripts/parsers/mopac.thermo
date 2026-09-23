@@ -33,15 +33,46 @@
 #               the Standard Enthalpy of Formation ("HEATS OF FORMATION
 #               ARE RELATIVE TO THE ELEMENTS IN THEIR STANDARD STATE AT
 #               298K (= Standard Enthalpy of Formation)").
-#   ETHERM   <- the ENTHALPY column, which is the thermal correction
-#               H(T)-H(0), NOT an absolute enthalpy.  Its own footnote
-#               notes the vibrational part excludes zero-point energy,
-#               which EZEROPT carries separately.
+#   ETHERM   <- H.O.F. minus RT.  See the long note below; this is NOT
+#               the table's ENTHALPY column, and using that column here
+#               would throw away the zero-point energy.
 #   ENTROPY  <- S multiplied by the stanza's own temperature, because
 #               ECCE stores this key as the energy T*S, not as S.
 #   HEATCAP  <- Cp, stored in its printed units.  It is not an energy,
 #               so its property declares units class NA and nothing
 #               converts it.
+#
+# WHY ETHERM IS NOT THE "ENTHALPY" COLUMN, which is the obvious-looking
+# choice and is wrong twice over.
+#
+# MOPAC's heat of formation is not a 0 K electronic energy.  Its manual
+# (Manual/thermochemistry.html, which the output itself links to) gives
+#
+#     E_SCF = E_eq + E_zpe + E_vib + E_rot + E_tra + PV + ...
+#
+# and states the parameters "are optimized so as to reproduce the
+# experimental heat of formation ... related to the values at 25 C, not
+# to 0 K".  So the heat of formation ALREADY CONTAINS the zero-point
+# energy and the thermal terms.
+#
+# The table's ENTHALPY column is only the correction H(T)-H(0), and its
+# own footnote says "Hvib: Zero-point energy is not included".  Putting
+# that in ETHERM would (a) discard the zero-point energy and (b) show a
+# ~2 kcal/mol correction in the panel row where ORCA shows a total: for
+# ORCA, "Total thermal energy" is E_el + ZPE + thermal, which that code
+# prints having explicitly summed its "Total thermal correction" and its
+# "Non-thermal (ZPE) correction".
+#
+# Rearranging MOPAC's own equation gives the matching total directly.
+# E_SCF is an enthalpy (it carries the PV term), so the internal energy
+# is E_SCF - PV = E_SCF - RT for an ideal gas -- zero-point energy
+# included, because E_SCF includes it.  That is exactly ORCA's own
+# relation seen from the other side: ORCA prints U and then "The
+# enthalpy is H = U + kB*T".
+#
+# EZEROPT continues to carry the zero-point energy on its own, from
+# MOPAC's "ZERO POINT ENERGY" line, so it is both inside ETHERM/ENTHALPY
+# and visible separately -- same as for any other code.
 #
 # EGIBBS is deliberately NOT emitted.  MOPAC has no absolute energy --
 # its H.O.F. is relative to the elements -- so H - T*S here is neither
@@ -57,6 +88,8 @@ $| = 1;
 #  CODATA-consistent, matching the conversions used elsewhere in these
 #  parsers.
 use constant KCAL_PER_HARTREE => 627.5094740631;
+#  Gas constant in cal/(K*mol), matching the units of this table.
+use constant R_CAL_PER_K_MOL => 1.987204259;
 
 my %stanza;           # temperature -> [hof, thermalH, cp, entropy]
 my @order;
@@ -100,10 +133,12 @@ sub emit {
   print "END\n";
 }
 
-#  H.O.F. is kcal/mol; the thermal enthalpy and entropy columns are in
-#  CAL, a thousandth of that.
+#  H.O.F. is kcal/mol; the entropy column is in CAL, a thousandth of
+#  that.  $thermalH -- the table's ENTHALPY column -- is deliberately
+#  NOT used for ETHERM; see the header.
+my $rt = (R_CAL_PER_K_MOL * $pick) / 1000.0;   # kcal/mol
 &emit("ENTHALPY", $hof / KCAL_PER_HARTREE, "Hartree");
-&emit("ETHERM", ($thermalH / 1000.0) / KCAL_PER_HARTREE, "Hartree");
+&emit("ETHERM", ($hof - $rt) / KCAL_PER_HARTREE, "Hartree");
 &emit("ENTROPY", ($entropy * $pick / 1000.0) / KCAL_PER_HARTREE, "Hartree");
 &emit("HEATCAP", $cp, "cal/(K*mol)");
 &emit("THERMOTEMP", $pick, "Kelvin");
