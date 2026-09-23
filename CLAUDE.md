@@ -47,9 +47,9 @@ intentionally *not* a running log of past sessions. For that, see
   widget's freshly-correct unit label with whatever was persisted in
   the calc's *stored* data (stale for any calc saved before the
   GB-everywhere UX change). Fix removes the `SetUnit()` call on
-  restore — value persists, unit label doesn't. Not yet live-verified;
-  if it still shows the wrong label after this fix, something new is
-  wrong, not a repeat.
+  restore — value persists, unit label doesn't. **Live-verified and
+  closed 2026-09-22** (confirmed more than once on screen). If a wrong
+  unit label ever shows again, something new is wrong, not a repeat.
 
 ## Code map — where the role of each part is
 
@@ -701,67 +701,33 @@ Both per-user, both non-root, both started automatically by the
   one-shot entry in the pitfall list above. Do not re-investigate
   `p_inPaint`/`p_redrawPending` for a "viewer stops updating" symptom
   without first checking whether `renderCB` is entered at all.
-- **OPEN, UNRESOLVED (2026-09-17): the Vibrational Frequencies panel's
-  Animation/Vector radio box doesn't deliver its click event under
-  wx3.2/GTK3** — confirmed live via strace (syscall-level, a synthetic
-  click synced exactly with the trace window): the native GTK widget's
-  own selected bullet toggles correctly, but `NModePanel::
-  OnRadioboxSelected()` is never entered — zero evidence of it running,
-  for a real click or a synced synthetic one. This is *not* the same
-  bug as the `p_isValid`/`CreateGrid()` construction-ordering issue
-  above (which is fixed) — this is later, after the panel is fully
-  built and idle, on an ordinary click. Symptom: switching the radio
-  does nothing (no row swap, no vector-arrows/animate-mode switch,
-  Play button never appears) since the whole display-mode switch is
-  gated on that event firing. An `EVT_UPDATE_UI`-based idle-poll
-  workaround was added (`NModePanel::OnRadioboxUpdateUI`, compares
-  `radbox->GetSelection()` each idle tick against a cached
-  `p_lastRadioSel`) on the theory that this sidesteps whatever GTK
-  signal wiring is failing for the click event specifically. Built,
-  packaged, and live-tested same day — **no visible difference**, so
-  this fix does not actually work, or doesn't work for the reason
-  assumed. Don't trust the code comment above `OnRadioboxUpdateUI()`
-  to mean this is fixed — re-verify live before believing it. Next
-  session should treat the "native event never fires" diagnosis as
-  solid (already re-derived twice, syscall-level) but budget fresh
-  investigation for *why* the workaround didn't help — candidates not
-  yet ruled out: whether `EVT_UPDATE_UI` is actually reaching this
-  window at all (same category of failure as the click event, would
-  need its own strace/instrumented-build check), whether
-  `showAnimationMode()`/`showVectorMode()` are even the code path
-  actually driving what's visible in the panel (unverified assumption
-  going in), or a packaging/install mismatch (binary in the `.deb`
-  not matching what was last built — check md5sum/mtime of
-  `/opt/ecce/bin/builder` against `build-cmake/builder` before
-  re-testing anything, this bit a previous round in the same session).
-  This also blocks separately verifying whether `NModeStepCmd`'s
-  redraw fix (`07e7bf9` plus this session's `ret=true` correction)
-  actually animates once display-mode switching works at all — that
-  is *still unverified end-to-end* despite the code-level trace in
-  `NModeStepCmd.C`/`Builder::execute()` looking sound.
-  **UPDATE 2026-09-21 — two of the three open candidates above are now
-  answered, and a fix is in but NOT yet live-verified.** (a) The
-  `EVT_UPDATE_UI` fallback was inert for a concrete reason: wxGTK does
-  not send `wxUpdateUIEvent` to ordinary child controls during idle
-  unless they carry `wxWS_EX_PROCESS_UI_UPDATES`, and nothing set it —
-  so that workaround could never have fired, which fully explains "no
-  visible difference" without needing a second mystery. (b)
-  `showAnimationMode()`/`showVectorMode()` *are* the right code path,
-  and the animation behind them is sound: `OnTimer` → `nextStep()` →
-  `processStep()` → `NModeStepCmd` (which does hold the
-  `touchChemDisplay()` redraw fix), so the animation was unreachable
-  only because the Play button lives in the sizer
-  `showAnimationMode()` reveals. Likely why the static `EVT_RADIOBOX`
-  never arrives: `ewxRadioBox::Create()` does
-  `PushEventHandler(new ewxHelpHandler(this))`, so the control has a
-  pushed handler chain and the command event's route to this panel is
-  not the plain propagation wx documents. Fixed by not relying on it —
-  a dynamic `radbox->Bind(wxEVT_RADIOBOX, ...)` directly on the widget,
-  plus setting `wxWS_EX_PROCESS_UI_UPDATES` so the existing idle poll
-  becomes a real fallback instead of dead code. Both kept as layered
-  defence, as with #78. Builds clean; **live verification still
-  outstanding** — test by switching the radio to Animation and
-  confirming the Play button appears and the molecule moves.
+- **RESOLVED (#81, fixed `9a3004e`, confirmed live 2026-09-21): the
+  Vibrational Frequencies panel's Animation/Vector radio box did not
+  deliver its click event under wx3.2/GTK3.** Kept because the *cause*
+  generalises to any `ewxRadioBox` (and any other ewx control with a
+  pushed handler chain): `ewxRadioBox::Create()` does
+  `PushEventHandler(new ewxHelpHandler(this))`, so a command event's
+  route from the control to its panel is not the plain propagation wx
+  documents, and a **static `EVT_RADIOBOX` table entry never arrives**.
+  Symptom was total: no row swap, no vector/animate switch, and the Play
+  button never appeared, since the whole display-mode switch is gated on
+  that event.
+  Fix: bind dynamically on the widget itself
+  (`radbox->Bind(wxEVT_RADIOBOX, ...)`). **Use that pattern for any new
+  ewx radio box rather than the static table** — the Graph/Table box
+  added later for #109 is wired the same way and works.
+  Two dead ends worth not repeating: an `EVT_UPDATE_UI` idle-poll
+  fallback was added first and reported as making "no visible
+  difference" — it was inert because wxGTK does not send
+  `wxUpdateUIEvent` to ordinary child controls during idle unless they
+  carry `wxWS_EX_PROCESS_UI_UPDATES`, which nothing set. Setting that
+  style turns it into a real fallback, and it is kept alongside the Bind
+  as layered defence (same approach as #78). And a reported *flicker*
+  during the newly-working animation was **not reproducible on retest**;
+  the `touchChemDisplay()` blank-then-rebuild mechanism proposed for it
+  is an untested hypothesis for a symptom that may not exist — do not
+  change that shared function on its strength without reproducing
+  flicker first.
 
 ## Where the history lives
 This file used to be a session-by-session diary and grew to ~2500 lines.
