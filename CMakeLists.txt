@@ -594,6 +594,16 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/siteconfig/DataServers)
   # substring replace covers both.
   string(REPLACE "eccetera.emsl.pnl.gov" "localhost"
     _dataservers_contents "${_dataservers_contents}")
+  # Residue from the era when ECCE SHIPPED ITS OWN NWCHEM: the <ForceField>
+  # block's AMBER parameter files and segment directories still pointed at
+  # $ECCE_HOME/nwchem/usr.local.lib.nwchem/, which was inside that bundle
+  # and does not exist in this package -- so NWChem MD force-field setup
+  # was reading from a directory that is simply absent.  The Debian nwchem
+  # package ships exactly these directories, under the same names, at
+  # /usr/share/nwchem (confirmed: amber_s/amber.par and amber_x/amber.par
+  # are both present), so one substring replace repoints all four.
+  string(REPLACE "$ECCE_HOME/nwchem/usr.local.lib.nwchem" "/usr/share/nwchem"
+    _dataservers_contents "${_dataservers_contents}")
   file(WRITE ${CMAKE_BINARY_DIR}/siteconfig-local/DataServers "${_dataservers_contents}")
 endif()
 

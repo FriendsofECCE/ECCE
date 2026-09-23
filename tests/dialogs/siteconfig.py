@@ -52,8 +52,50 @@ def machines():
     return found
 
 
+def dataServerPaths(report):
+    """Filesystem paths in siteconfig/DataServers must resolve.
+
+    The <ForceField> block names NWChem's AMBER parameter files and segment
+    directories, and it still pointed at
+    $ECCE_HOME/nwchem/usr.local.lib.nwchem/ -- a path that existed only
+    when ECCE SHIPPED ITS OWN NWCHEM.  Nothing reports a missing force
+    field; MD setup simply reads from a directory that is not there.
+
+    CMakeLists.txt rewrites this file at configure time (the PNNL hostname
+    and now these paths too), so the GENERATED copy is what ships and what
+    is checked.  Skipped when there is no build directory, and skipped for
+    paths under /usr/share/nwchem when nwchem is not installed -- it is
+    only Recommends, and its absence is a packaging choice rather than a
+    stale path.
+    """
+    generated = os.path.join(CODES.REPO, "build-cmake", "siteconfig-local",
+                             "DataServers")
+    if not os.path.exists(generated):
+        return
+    with open(generated) as handle:
+        text = handle.read()
+
+    nwchemInstalled = os.path.isdir("/usr/share/nwchem")
+    for match in re.finditer(r"<(?:ParamFile|SegmentDir)>([^<]+)<", text):
+        path = match.group(1).strip()
+        if path.startswith("$ECCE_HOME"):
+            report("siteconfig/DataServers",
+                   "%r is still an $ECCE_HOME path.\n"
+                   "      Anything under $ECCE_HOME/nwchem/ is residue from "
+                   "when ECCE bundled its own NWChem and does not exist in "
+                   "this package -- the force field silently reads from a "
+                   "missing directory." % path)
+            continue
+        if path.startswith("/usr/share/nwchem") and not nwchemInstalled:
+            continue
+        if not os.path.exists(path):
+            report("siteconfig/DataServers",
+                   "%r does not exist." % path)
+
+
 def check(report):
     machs = machines()
+    dataServerPaths(report)
 
     # (a) every machine line must have all nine tab-separated fields
     for name, (num, fields) in sorted(machs.items()):
