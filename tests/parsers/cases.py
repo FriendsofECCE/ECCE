@@ -951,6 +951,31 @@ CASES = [
         fixture='mopac/ch4_geovib.out',
         parse_args=('.', 'GeoVib', 'SE', 'RPM7', '0'),
         expect={
+            #  Thermochemistry.  THERMOTEMP is the load-bearing one:
+            #  MOPAC prints 298 K first and then scans upward from
+            #  200 K, so any "take the last stanza" reading would report
+            #  the top of the scan as room temperature -- a set of
+            #  perfectly plausible numbers for the wrong temperature,
+            #  which is the failure this suite exists to catch.  Pinning
+            #  298.00 is the assertion that the right stanza was chosen.
+            #
+            #  The values are hand-checked against this fixture's own
+            #  TOT. line, "-14.404  2403.7949  8.6898  44.4894":
+            #    ENTHALPY = -14.404 kcal/mol / 627.5094740631
+            #    ETHERM   = 2403.7949 cal/mol / 1000 / 627.5094740631
+            #    ENTROPY  = 44.4894 * 298.00 / 1000 / 627.5094740631
+            #  ENTROPY is T*S, not S, because that is what ECCE's key
+            #  holds -- its label is literally "Entropy Term (T*S)".
+            #
+            #  EGIBBS is absent by design, not by omission: MOPAC has no
+            #  absolute energy, so H - T*S here would not mean what that
+            #  key means for ORCA and Gaussian.
+            'ENTHALPY][ETHERM][ENTROPY][HEATCAP][THERMOTEMP': dict(
+                blocks=1, keys={
+                    'THERMOTEMP': {'values': '298.00', 'units': 'Kelvin'},
+                    'HEATCAP': {'values': '8.6898',
+                                'units': 'cal/(K*mol)'},
+                }),
             # Three energy matches (one FINAL from the optimisation, two
             # non-FINAL from the FORCE data set) but only ONE TEVEC
             # frame, against three GEOMTRACE frames: the invariant

@@ -1,0 +1,110 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Parses MOPAC's "CALCULATED THERMODYNAMIC PROPERTIES" table into
+# ENTHALPY, ETHERM, ENTROPY, HEATCAP and THERMOTEMP.
+#
+# Real MOPAC 23.1.2 shape -- one stanza per temperature, the components
+# (VIB/ROT/INT/TRA) then a TOT. line carrying the totals:
+#
+#    TEMP. (K)   PARTITION FUNCTION   H.O.F.    ENTHALPY  HEAT CAPACITY ENTROPY
+#                                    KCAL/MOL   CAL/MOLE    CAL/K/MOL  CAL/K/MOL
+#
+#  298.00  VIB.     0.1001D+01                     4.5175     0.1036     0.0174
+#          ROT.     0.4286D+02                   888.2803     2.9808    10.4485
+#          INT.     0.4291D+02                   892.7978     3.0844    10.4658
+#          TRA.     0.7392D+26                  1480.4672     4.9680    34.6068
+#          TOT.                      -57.790    2373.2650     8.0524    45.0726
+#
+# WHICH TEMPERATURE.  MOPAC prints 298 K first and then scans upward from
+# 200 K, so Frequency=last on the .desc entry would still leave this
+# script holding every stanza -- and taking the last one would silently
+# report the top of the scan (400 K, say) as if it were room
+# temperature.  The 298.15 K stanza is selected explicitly, falling back
+# to the first one when a THERMO(nnn) range excludes it.  THERMOTEMP is
+# emitted alongside so the panel always says which temperature the other
+# four values belong to, rather than leaving the user to assume.
+#
+# MAPPING ONTO ECCE'S KEYS -- the part that is easy to get plausibly
+# wrong, since every candidate is a small positive number:
+#
+#   ENTHALPY <- the H.O.F. column.  MOPAC's own footnote says this is
+#               the Standard Enthalpy of Formation ("HEATS OF FORMATION
+#               ARE RELATIVE TO THE ELEMENTS IN THEIR STANDARD STATE AT
+#               298K (= Standard Enthalpy of Formation)").
+#   ETHERM   <- the ENTHALPY column, which is the thermal correction
+#               H(T)-H(0), NOT an absolute enthalpy.  Its own footnote
+#               notes the vibrational part excludes zero-point energy,
+#               which EZEROPT carries separately.
+#   ENTROPY  <- S multiplied by the stanza's own temperature, because
+#               ECCE stores this key as the energy T*S, not as S.
+#   HEATCAP  <- Cp, stored in its printed units.  It is not an energy,
+#               so its property declares units class NA and nothing
+#               converts it.
+#
+# EGIBBS is deliberately NOT emitted.  MOPAC has no absolute energy --
+# its H.O.F. is relative to the elements -- so H - T*S here is neither
+# the absolute Gibbs energy that key holds for ORCA and Gaussian, nor a
+# true Gibbs energy of formation, which would need the elements'
+# entropies too.  Filling it would put a differently-defined number in
+# the same panel row as other codes'.
+#
+################################################################################
+
+$| = 1;
+
+#  CODATA-consistent, matching the conversions used elsewhere in these
+#  parsers.
+use constant KCAL_PER_HARTREE => 627.5094740631;
+
+my %stanza;           # temperature -> [hof, thermalH, cp, entropy]
+my @order;
+my $temp;
+
+while (<STDIN>) {
+  chomp;
+  #  A stanza opens with its temperature on the same line as the VIB.
+  #  component; the remaining components carry no temperature.
+  if (/^\s*(\d+\.\d+)\s+VIB\./) {
+    $temp = $1;
+    push(@order, $temp) if (!exists($stanza{$temp}));
+    next;
+  }
+  next if (!defined($temp));
+
+  #  The TOT. line is the only one carrying the heat of formation, so it
+  #  has four numbers where the component lines have three.
+  if (/^\s*TOT\.\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
+    $stanza{$temp} = [$1, $2, $3, $4];
+  }
+}
+
+exit(0) if (!@order);
+
+#  Prefer room temperature; fall back to whatever was printed first.
+my $pick;
+foreach my $t (@order) {
+  if (abs($t - 298.15) < 1.0) { $pick = $t; last; }
+}
+$pick = $order[0] if (!defined($pick));
+exit(0) if (!exists($stanza{$pick}));
+
+my ($hof, $thermalH, $cp, $entropy) = @{$stanza{$pick}};
+
+sub emit {
+  my ($key, $value, $units) = @_;
+  print "key: $key\n";
+  print "values:\n$value\n";
+  print "units:\n$units\n";
+  print "END\n";
+}
+
+#  H.O.F. is kcal/mol; the thermal enthalpy and entropy columns are in
+#  CAL, a thousandth of that.
+&emit("ENTHALPY", $hof / KCAL_PER_HARTREE, "Hartree");
+&emit("ETHERM", ($thermalH / 1000.0) / KCAL_PER_HARTREE, "Hartree");
+&emit("ENTROPY", ($entropy * $pick / 1000.0) / KCAL_PER_HARTREE, "Hartree");
+&emit("HEATCAP", $cp, "cal/(K*mol)");
+&emit("THERMOTEMP", $pick, "Kelvin");
+exit(0);

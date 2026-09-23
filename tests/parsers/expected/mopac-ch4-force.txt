@@ -38,6 +38,27 @@ args:    '.' 'Vibration' 'SE' 'RPM7' '0'
       values: 0.0000 0.0000 0.0000 0.6265 0.6265 0.6265 -0.6265 -0.6265 0.6265 -0.6265 0.6265 -0.6265 0.6265 -0.6265 -0.6265
       units: Angstrom
 
+[ENTHALPY][ETHERM][ENTROPY][HEATCAP][THERMOTEMP]  Script=mopac.thermo  Freq=last  Skip=0  Lines=-
+  Begin=CALCULATED THERMODYNAMIC PROPERTIES
+  End=HEATS OF FORMATION ARE RELATIVE
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=308 fed=139 rc=0 first-fed='                    CALCULATED THERMODYNAMIC PROPERTIES'
+    key: ENTHALPY
+      values: -0.022954235107774
+      units: Hartree
+    key: ETHERM
+      values: 0.00383065180583757
+      units: Hartree
+    key: ENTROPY
+      values: 0.0211276673070068
+      units: Hartree
+    key: HEATCAP
+      values: 8.6894
+      units: cal/(K*mol)
+    key: THERMOTEMP
+      values: 298.00
+      units: Kelvin
+
 [PNTGRP]  Script=mopac.pntgrp  Freq=last  Skip=0  Lines=1
   Begin=MOLECULAR POINT GROUP
   begins=1 delivered=1 buffered_away=0

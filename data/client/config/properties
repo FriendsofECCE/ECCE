@@ -145,6 +145,20 @@ Energy		Total Enthalpy				ENTHALPY	Energy		PropValue
 Energy		Entropy Term (T*S)			ENTROPY		Energy		PropValue
 Energy		Gibbs Free Energy			EGIBBS		Energy		PropValue
 #
+# MOPAC's THERMO table reports heat capacity and the temperature the row
+# applies to alongside the values above, and there was nowhere to put
+# either.  Both are class Energy so the generic "Energies" panel
+# (PropertyPanelDescriptor.xml matches class="Energy" type="value")
+# picks them up with no C++ change.
+#
+# Cp's units class is NA deliberately: it is cal/(K*mol), which no
+# conversion table here covers, and KeyValuePropertyPanel displays the
+# units string the parser stored whenever the class is NA.  Declaring it
+# as Energy would hand it to the Hartree/kcal converter and silently
+# scale a quantity that is not an energy.
+Energy		Heat Capacity (Cp)			HEATCAP		NA		PropValue
+Energy		Thermochemistry Temperature		THERMOTEMP	Temperature	PropValue
+#
 #
 Energy		Total Energy Vector			TEVEC		Energy		PropTSVector<Geometry Step>
 Energy		Kinetic Energy Vector			KEVEC		Energy		PropTSVector<Geometry Step>

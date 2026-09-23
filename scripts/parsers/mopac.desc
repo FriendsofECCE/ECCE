@@ -167,6 +167,26 @@ End=NET ATOMIC CHARGES
 #  Printed by default, so this fires even for a job that did not ask for
 #  VECTORS -- but a pure FORCE run prints neither, and then both entries
 #  correctly produce nothing.
+#  Thermochemistry, from a FORCE/THERMO run.  Begin/End bracket the
+#  whole table -- every temperature stanza reaches the script, which
+#  selects the 298 K one itself, because MOPAC prints 298 K FIRST and
+#  then scans upward from 200 K.  Neither Frequency=first nor
+#  Frequency=last can express "the room-temperature stanza" when the
+#  table is one block.
+#
+#  End is the table's own footnote.  Note it reads "HEATS OF FORMATION"
+#  (plural, no "="), while [TE][TEVEC][HFENERGY] begins on
+#  "HEAT OF FORMATION\s*=" -- no collision, and every line matching that
+#  entry's Begin lies above this table anyway (verified in both the
+#  ch4_force and ch4_geovib fixtures).
+[ENTHALPY][ETHERM][ENTROPY][HEATCAP][THERMOTEMP]
+Script=mopac.thermo
+Begin=CALCULATED THERMODYNAMIC PROPERTIES
+Skip=0
+Frequency=last
+End=HEATS OF FORMATION ARE RELATIVE
+[END]
+
 [ORBOCC][ORBOCCBETA]
 Script=mopac.orbocc
 Begin=ATOMIC ORBITAL ELECTRON POPULATIONS

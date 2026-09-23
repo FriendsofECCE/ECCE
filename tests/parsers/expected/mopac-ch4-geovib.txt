@@ -65,6 +65,27 @@ args:    '.' 'GeoVib' 'SE' 'RPM7' '0'
       values: 0.0000 -0.0000 -0.0000 0.6265 0.6265 0.6265 -0.6265 -0.6265 0.6265 -0.6265 0.6265 -0.6265 0.6265 -0.6265 -0.6265
       units: Angstrom
 
+[ENTHALPY][ETHERM][ENTROPY][HEATCAP][THERMOTEMP]  Script=mopac.thermo  Freq=last  Skip=0  Lines=-
+  Begin=CALCULATED THERMODYNAMIC PROPERTIES
+  End=HEATS OF FORMATION ARE RELATIVE
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=492 fed=139 rc=0 first-fed='                    CALCULATED THERMODYNAMIC PROPERTIES'
+    key: ENTHALPY
+      values: -0.022954235107774
+      units: Hartree
+    key: ETHERM
+      values: 0.00383069100843294
+      units: Hartree
+    key: ENTROPY
+      values: 0.0211277147963297
+      units: Hartree
+    key: HEATCAP
+      values: 8.6898
+      units: cal/(K*mol)
+    key: THERMOTEMP
+      values: 298.00
+      units: Kelvin
+
 [ORBOCC][ORBOCCBETA]  Script=mopac.orbocc  Freq=last  Skip=2  Lines=-
   Begin=ATOMIC ORBITAL ELECTRON POPULATIONS
   End=^\s*$|\*\*\*\*
