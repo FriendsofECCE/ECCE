@@ -64,6 +64,22 @@ def expect_mopac_ch4(props, report):
     report.check(occ[:4] == [2.0] * 4 and occ[4:] == [0.0] * 4,
                  'four filled levels then virtuals')
 
+    #  THE GRAPHF FILE MUST BE THE SOURCE, not the printed eigenvector
+    #  block.  Both parse types emit these keys and the File= one is
+    #  delivered last, so it wins -- but only if MOPAC actually wrote it
+    #  and mopac.desc's File= name matched, neither of which is visible
+    #  from the values alone.
+    #
+    #  The tell is precision: mopac.mo prints six decimals because that
+    #  is all the printed block has, mopac.mgf prints eight because the
+    #  GRAPHF file carries Fortran doubles.  A value that stops at six
+    #  means the fallback ran and the better source was missed.
+    decimals = max(len(t.split('.')[1]) for t in
+                   sect(orbeng[-1], 'values').split() if '.' in t)
+    report.check(decimals >= 8,
+                 'ORBENG came from the GRAPHF file, not the printed block '
+                 '(%d decimals; 6 means the fallback ran)' % decimals)
+
     #  Energies must be in Hartree, not the eV MOPAC prints.  MoPanel
     #  hard-codes its column label to "Energy Hartree", so a missing
     #  conversion shows numbers 27x too large with no error at all.
@@ -178,20 +194,20 @@ CASES = [
         name='mopac-ch4-mos',
         code='mopac',
         desc='mopac.desc',
-        deck='mopac/ch4_mos.mop',
+        deck='mopac/mos/mopac.mop',
         #  ". <runtype> <theory category> <theory name> <open shells>",
         #  as DavCalculation::getParseScriptArgs builds it.
         parse_args=('.', 'Energy', 'SE', 'PM7', '0'),
-        output='ch4_mos.out',
+        output='mopac.out',
         expect=expect_mopac_ch4,
     ),
     dict(
         name='mopac-ch4-thermo',
         code='mopac',
         desc='mopac.desc',
-        deck='mopac/ch4_thermo.mop',
+        deck='mopac/thermo/mopac.mop',
         parse_args=('.', 'Vibration', 'SE', 'PM7', '0'),
-        output='ch4_thermo.out',
+        output='mopac.out',
         expect=expect_mopac_ch4_thermo,
     ),
     dict(

@@ -96,6 +96,12 @@ def run_monitor(job_output, desc_file, workdir, parse_types='ALL',
         #  monitor then tries to send as a file and logs as missing.
         #  Harmless, but it puts an ERROR line in every run's output.
         '-filesToTransfer', '',
+        #  In anything but live mode MsgSendFile resolves a File= parse
+        #  type's name against importDir, NOT the working directory --
+        #  "$idir$file", with no separator inserted, hence the trailing
+        #  slash.  Left unset it defaults to "-", so every File= parse
+        #  type silently looks for "-fort.7" and is skipped.
+        '-importDir', workdir + os.sep,
     ]
     proc = subprocess.run(cmd, stdin=subprocess.DEVNULL, cwd=workdir,
                           capture_output=True, text=True, timeout=timeout)
@@ -163,7 +169,46 @@ def unpack(results_file):
     return blocks
 
 
-def run_parsers(blocks, desc, parse_args, workdir=None):
+def unpack_files(results_file):
+    """The files the monitor ANNOUNCED, as (parse_type, filename).
+
+    A File= parse type is not matched against the job output at all.
+    eccejobmonitor sends a jmFILE message naming the file and the parse
+    type, and the CLIENT then fetches that file and runs the script on
+    it -- the message carries no content.  Gaussian gets its MO
+    coefficients this way from fort.7, GAMESS-UK from ftn058, and MOPAC
+    from the GRAPHF file.
+
+    Modelling this matters: without it the suite silently skips every
+    File= parse type, which is where some codes keep their most
+    important data.
+    """
+    raw = open(results_file, 'rb').read().decode('utf-8', 'replace')
+    out, i = [], 0
+    while True:
+        i = raw.find(MSG_PREFIX, i)
+        if i < 0:
+            break
+        try:
+            length = int(raw[i + 2:i + 6])
+        except ValueError:
+            break
+        payload = raw[i + 6:i + 6 + length]
+        i += 6 + length
+        fields = payload.split(MSG_SEP)
+        #  jmFILE <msgType> <parseType> <count> <name>
+        if len(fields) >= 5 and fields[0] == 'jmFILE':
+            out.append((fields[2], fields[4]))
+    return out
+
+
+def file_entries(desc):
+    """Parse types with a File= rule, which live_entries() excludes."""
+    return dict((e.type, e) for e in desc.table.values()
+                if 'file' in e.rules)
+
+
+def run_parsers(blocks, desc, parse_args, workdir=None, files=()):
     """Stage 3: the parser scripts, the way JobParser::storeProperty does.
 
     Returns {property key: [record, ...]} in the order the monitor
@@ -185,6 +230,31 @@ def run_parsers(blocks, desc, parse_args, workdir=None):
         #  Without a cwd those land wherever the suite happened to be
         #  launched from, which during development meant the repository
         #  root.  Keep every side effect inside the work directory.
+        proc = subprocess.run([script] + list(parse_args), input=text,
+                              cwd=workdir, capture_output=True, text=True,
+                              timeout=120)
+        for rec in parse_parser_output(proc.stdout):
+            out.setdefault(rec['key'], []).append(rec)
+
+    #  Announced files, AFTER the matched blocks.  That order is the
+    #  monitor's own: JobFilesGet() runs after JobOutputGet(), so a File=
+    #  parse type's output is delivered last and wins where it emits the
+    #  same keys as a block-matched one.  MOPAC relies on exactly that --
+    #  its GRAPHF file is the better source for orbitals, but only newer
+    #  decks request it, so the printed-eigenvector entry stays as a
+    #  fallback for calculations generated before.
+    byFile = file_entries(desc)
+    for parse_type, name in files:
+        entry = byFile.get(parse_type)
+        if entry is None or not entry.script:
+            continue
+        path = os.path.join(workdir or '.', name)
+        if not os.path.exists(path):
+            continue
+        script = os.path.join(PARSERS, entry.script)
+        if not os.path.exists(script):
+            raise MonitorError('missing parser script %s' % script)
+        text = open(path, errors='replace').read()
         proc = subprocess.run([script] + list(parse_args), input=text,
                               cwd=workdir, capture_output=True, text=True,
                               timeout=120)

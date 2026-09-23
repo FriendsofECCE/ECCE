@@ -187,6 +187,27 @@ Frequency=last
 End=HEATS OF FORMATION ARE RELATIVE
 [END]
 
+#  MO data from MOPAC's GRAPHF file rather than its printed output.
+#
+#  A File= parse type, the same mechanism Gaussian uses for fort.7 and
+#  GAMESS-UK for ftn058: eccejobmonitor ships the named file whole and
+#  the script parses it, instead of matching Begin/End in the job's
+#  stdout.
+#
+#  This entry and the printed-eigenvector one above emit the SAME keys,
+#  deliberately.  The .mgf is the better source -- full-precision
+#  coefficients, occupancies and symmetry labels all in one place -- but
+#  it only exists when the deck asked for GRAPHF, which decks generated
+#  before that did not.  Both are kept so an older calculation still
+#  gets its orbitals from the printed block, and a new one gets the
+#  better data.  Whichever is delivered later wins, which is what the
+#  test fixture pins.
+[MOFILE]
+Script=mopac.mgf
+File=mopac.mgf
+Begin=mopac.mgf
+[END]
+
 [ORBOCC][ORBOCCBETA]
 Script=mopac.orbocc
 Begin=ATOMIC ORBITAL ELECTRON POPULATIONS

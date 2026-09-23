@@ -325,8 +325,16 @@ sub KeywordLine {
   #  all, and treating absent as "0" silently gave those calculations no
   #  orbitals -- which is every calculation anyone already had.  Only an
   #  explicit "0" turns it off.
+  #  GRAPHF as well as VECTORS.  They serve different readers: VECTORS
+  #  puts the eigenvectors in the output file where a person can read
+  #  them, GRAPHF writes <job>.mgf, which ECCE parses instead because it
+  #  carries full-precision coefficients, the occupancies and the
+  #  symmetry labels in one machine-readable place -- see mopac.mgf.
+  #  GRAPHF also records the Slater exponents, which is what a 3-D
+  #  orbital renderer for a semiempirical code would need.
   my $printMOs = $AbiDict{"ES.Theory.SCF.PrintMOs"};
-  push(@kw, "VECTORS", "ALLVEC") if (!defined($printMOs) || $printMOs ne "0");
+  push(@kw, "VECTORS", "ALLVEC", "GRAPHF")
+    if (!defined($printMOs) || $printMOs ne "0");
 
   # PRECISE: "TIGHTER CRITERIA TO BE USED" (binary's own banner text).
   push(@kw, "PRECISE") if ($AbiDict{"ES.Theory.SCF.Precise"} eq "1");

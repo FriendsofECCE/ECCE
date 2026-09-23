@@ -1,0 +1,178 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Parses MOPAC's GRAPHF file (<job>.mgf) into MO/ORBENG/ORBOCC/ORBSYM and
+# the UHF beta counterparts.
+#
+# WHY THIS RATHER THAN THE PRINTED EIGENVECTORS.  mopac.mo reads the
+# human-readable "EIGENVECTORS" block out of the main output, which works
+# but is the weaker source in three ways:
+#
+#   precision   the printed block carries four decimals; this file carries
+#               Fortran D-notation doubles.
+#   occupancy   the printed block has none, so mopac.orbocc has to
+#               reconstruct it from the atomic orbital populations plus
+#               the open-shell count ECCE passes in argv.  Here it is
+#               simply the second field of each ORBITAL line.
+#   shape       the printed block is fixed-width and column-grouped, the
+#               exact shape that merged two coefficients into one for
+#               ORCA (issue #108).  This file is free-form.
+#
+# Real MOPAC 23.1.2 shape:
+#
+#       3 MOPAC-Graphical data Version 23.1.2
+#      8    0.0000000  -0.0000030   0.1149079  -0.6491      <- Z x y z charge
+#      1    0.0000000   0.7594689  -0.4644394   0.3246
+#      1   -0.0000000  -0.7594570  -0.4644300   0.3246
+#     5.9723090  2.3490170  0.0000000                       <- zeta s p d
+#     1.2602370  0.0000000  0.0000000
+#     1.2602370  0.0000000  0.0000000
+#    ORBITAL 2 1a1    -29.6190                              <- occ sym E(eV)
+#    0.85155170D+00-0.28614321D-16 ...                      <- coefficients
+#
+# The atom count on line 1 gives the size of BOTH leading blocks: one
+# coordinate line and one exponent line per atom.  The exponent lines are
+# the Slater exponents of the valence basis, which is what a future
+# 3-D orbital renderer would need; nothing reads them yet, so they are
+# deliberately not emitted as a property rather than shipped unused.
+#
+# Energies are eV here and Hartree in ECCE (MoPanel hard-codes the column
+# label), so they are converted.
+#
+# The symmetry label is a single token such as "1a1", "2b2" or "1a''" --
+# an index within the irrep followed by the irrep itself.  Only the irrep
+# is kept: MoPanel::fillGraph() groups the orbital plot by this string,
+# so keeping the index would put every orbital in a group of its own.
+#
+################################################################################
+
+$| = 1;
+
+use constant EV_PER_HARTREE => 27.211386245988;
+
+my @lines;
+while (<STDIN>) { chomp; push(@lines, $_); }
+
+exit(0) if (!@lines);
+
+#  Line 1 begins with the atom count.
+my $natoms = 0;
+$natoms = $1 if ($lines[0] =~ /^\s*(\d+)\s/);
+exit(0) if ($natoms <= 0);
+
+#  Coordinates then exponents, one line each per atom.  The number of
+#  basis functions is not stated anywhere, so it is taken from the
+#  coefficient count of the first orbital instead.
+my $idx = 1 + 2 * $natoms;
+
+my (@occ, @eng, @sym, @coeff);
+while ($idx <= $#lines) {
+  my $line = $lines[$idx];
+  if ($line =~ /^\s*ORBITAL\s+(\S+)\s+(\S+)\s+(-?[\d.]+)\s*$/) {
+    my ($o, $s, $e) = ($1, $2, $3);
+    #  "1a1" -> "a1"; "2a''" -> "a''".  A label that is nothing but the
+    #  irrep is left alone.
+    $s =~ s/^\d+//;
+    push(@occ, $o);
+    push(@eng, $e / EV_PER_HARTREE);
+    push(@sym, $s);
+    push(@coeff, []);
+    $idx++;
+    #  Coefficients run until the next line that is not purely numbers.
+    #
+    #  Terminating on a whitelist of what a coefficient line looks like,
+    #  rather than a blacklist of what follows, because more follows than
+    #  is obvious: after the last orbital MOPAC writes an
+    #  "INVERSE_MATRIX[6x6]=" block of the same D-notation numbers, and a
+    #  loop that stopped only at "ORBITAL" or "Keywords:" swallowed all
+    #  of it into the final orbital -- 27 coefficients where the other
+    #  five had 6.  That then failed the rectangular check below and the
+    #  script emitted nothing at all, silently.
+    while ($idx <= $#lines &&
+           $lines[$idx] =~ /^[-+\s\d.DdEe]+$/ &&
+           $lines[$idx] =~ /\d[DdEe][-+]?\d/) {
+      my $text = $lines[$idx];
+      #  Fortran D exponents, and values packed without separators:
+      #  "-0.63614535D-01-0.45803202D-14" is two numbers, not one.
+      while ($text =~ /(-?\d*\.\d+[DdEe][-+]?\d+)/g) {
+        my $v = $1;
+        $v =~ s/[Dd]/e/;
+        push(@{$coeff[-1]}, $v + 0);
+      }
+      $idx++;
+    }
+    next;
+  }
+  $idx++;
+}
+
+my $nmo = scalar(@eng);
+exit(0) if ($nmo == 0);
+
+my $nbas = scalar(@{$coeff[0]});
+exit(0) if ($nbas == 0);
+#  Every orbital must have the same number of coefficients, or the table
+#  is not rectangular and PropTable rejects it on load with "input vector
+#  length does not match rows*columns" -- which presents as the Orbitals
+#  panel refusing to compute, not as a parse error.
+foreach my $c (@coeff) {
+  exit(0) if (scalar(@$c) != $nbas);
+}
+
+#  UHF writes the alpha set then the beta set into the same file, so twice
+#  the basis size means both are present.
+my $half = ($nmo == 2 * $nbas) ? $nbas : $nmo;
+
+sub emitSet {
+  my ($from, $count, $moKey, $engKey, $occKey, $symKey) = @_;
+  return if ($count <= 0);
+
+  print "key: $engKey\n";
+  print "size:\n$count\n";
+  print "values:\n";
+  printf("%.8f ", $eng[$from + $_]) foreach (0 .. $count - 1);
+  print "\nunits:\nHartree\n";
+  print "END\n";
+
+  print "key: $occKey\n";
+  print "size:\n$count\n";
+  print "values:\n";
+  printf("%.4f ", $occ[$from + $_]) foreach (0 .. $count - 1);
+  print "\nunits:\nelectrons\n";
+  print "END\n";
+
+  print "key: $symKey\n";
+  print "size:\n$count\n";
+  print "rowlabels:\n";
+  print " " . ($_ + 1) . " " foreach (0 .. $count - 1);
+  print "\nvalues:\n";
+  print join(" ", @sym[$from .. $from + $count - 1]), "\n";
+  print "END\n";
+
+  print "key: $moKey\n";
+  print "size:\n$count $nbas\n";
+  print "rowlabels:\n";
+  for my $m (1 .. $count) {
+    print "MO-$m ";
+    print "\n" if (($m % 8) == 0);
+  }
+  print "\ncolumnlabels:\n";
+  for my $b (1 .. $nbas) {
+    print "BasFun-$b ";
+    print "\n" if (($b % 6) == 0);
+  }
+  print "\nvalues:\n";
+  for my $m (0 .. $count - 1) {
+    my $row = $coeff[$from + $m];
+    printf("%.8f ", $_) foreach (@$row);
+    print "\n";
+  }
+  print "END\n";
+}
+
+&emitSet(0, $half, "MO", "ORBENG", "ORBOCC", "ORBSYM");
+&emitSet($half, $nmo - $half,
+         "MOBETA", "ORBENGBETA", "ORBOCCBETA", "ORBSYMBETA")
+  if ($nmo > $half);
+exit(0);

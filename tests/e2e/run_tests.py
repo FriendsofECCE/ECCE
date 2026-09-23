@@ -103,6 +103,7 @@ def run_case(case, verbose, keep, required=()):
         results = pipeline.run_monitor(job_out, desc_path, workdir,
                                        calc_name=name)
         blocks = pipeline.unpack(results)
+        announced = pipeline.unpack_files(results)
         report.check(bool(blocks),
                      'monitor emitted property blocks (got %d)' % len(blocks))
         if not blocks:
@@ -111,7 +112,7 @@ def run_case(case, verbose, keep, required=()):
         # --- stage 3: the real parser scripts -------------------------
         desc = read_desc(desc_path)
         props = pipeline.run_parsers(blocks, desc, case["parse_args"],
-                                     workdir=workdir)
+                                     workdir=workdir, files=announced)
         report.check(bool(props),
                      'parsers produced properties (got %d keys)' % len(props))
 

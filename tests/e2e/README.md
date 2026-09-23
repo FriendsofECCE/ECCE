@@ -75,6 +75,39 @@ properties first — a coefficient matrix exceeds `msgLength` and arrives
 split, so treating each packet as a message truncates exactly the
 properties most worth testing.
 
+## File= parse types
+
+Some codes do not put their best data in the job output at all. Gaussian
+writes MO coefficients to `fort.7`, GAMESS-UK to `ftn058`, MOPAC to the
+GRAPHF file. Those are `File=` parse types, and they work differently:
+eccejobmonitor never matches them against the output. It sends a
+**jmFILE** message naming the file and the parse type, and the client
+fetches that file and runs the script on it. The message carries no
+content.
+
+`pipeline.unpack_files()` decodes those announcements and `run_parsers()`
+acts on them, after the matched blocks -- which is the monitor's own
+order, `JobFilesGet()` running after `JobOutputGet()`. That ordering is
+load-bearing where both kinds of entry emit the same keys: MOPAC's
+GRAPHF file is the better source for orbitals, but only newer decks
+request it, so the printed-eigenvector entry remains as a fallback and
+the file wins when present.
+
+Two traps found wiring this up:
+
+- **`importDir`**. In anything but live mode `MsgSendFile` resolves the
+  name against `$idir$file` -- concatenated, no separator -- and `idir`
+  defaults to `"-"`. Left unset, every `File=` parse type silently looks
+  for `-fort.7`, finds nothing, and is skipped with no error. The
+  harness passes the work directory with a trailing separator.
+- **The deck's name**. MOPAC derives every output name from the input
+  name, so a fixture called `ch4_mos.mop` writes `ch4_mos.mgf` while
+  `mopac.desc` names `mopac.mgf` -- correct, because ECCE always writes
+  `mopac.mop`. The fixtures are therefore named the way ECCE names them,
+  and `mopac-ch4-mos` asserts the GRAPHF file really was the source by
+  checking the precision of the energies: eight decimals from the file,
+  six from the printed block.
+
 ## Assertion style
 
 Loose about exact numbers, strict about structure. Pinning an energy to
