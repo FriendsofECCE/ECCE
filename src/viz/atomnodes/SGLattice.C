@@ -105,6 +105,15 @@ void SGLattice::GLRender(SoGLRenderAction *action)
    // signed anonymous:)
 
    //glEnable(GL_LIGHTING);
+   //  Save the CURRENT colour, not just the list state.  The
+   //  glPushAttrib(GL_LIST_BIT) calls below guard glListBase, but the
+   //  glColor3f calls sit outside them, so without this the function
+   //  returns having left GL's current colour set to whatever it drew
+   //  last -- leaking into anything rendered afterwards that does not set
+   //  its own colour.  Found while looking into the uniform-hue atom
+   //  rendering in issue #83; it leaks blue rather than green, so it is
+   //  probably not that bug, but it is wrong either way.
+   glPushAttrib(GL_CURRENT_BIT);
    char text[80];
    strcpy(text,"b");
    glColor3f(1.0,0.0, 0.0);
@@ -130,6 +139,8 @@ void SGLattice::GLRender(SoGLRenderAction *action)
    glPushAttrib (GL_LIST_BIT);
    glListBase(fontOffset);  // fontOffset is static global 
    glCallLists(strlen(text), GL_UNSIGNED_BYTE, (GLubyte *)text);
+
+   glPopAttrib();                       // the GL_CURRENT_BIT push above
 
    // Restore the GL matrix
    glPopMatrix();
