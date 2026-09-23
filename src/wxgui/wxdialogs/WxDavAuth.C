@@ -41,6 +41,7 @@
 WxDavAuth::WxDavAuth(wxWindow *window) 
 {
    p_window = window;
+   p_prompting = false;
    p_promptCount = 0;
 }
 
@@ -49,6 +50,7 @@ WxDavAuth::WxDavAuth(wxWindow *window)
 WxDavAuth::WxDavAuth(const WxDavAuth& rhs) 
 {
    p_window = rhs.p_window;
+   p_prompting = false;
    p_promptCount = 0;
    throw NotImplementedException("DavAuth copy constructor!", WHERE);
 }
@@ -63,6 +65,7 @@ WxDavAuth::~WxDavAuth()
 void WxDavAuth::setAuthDialogParent(wxWindow *window)
 {
    p_window = window;
+   p_prompting = false;
 }
 
 
@@ -221,6 +224,16 @@ bool WxDavAuth::prompt(const string& strurl,
    // Only prompt for data server passwords because the underlying RCommand
    // code will prompt for any machine passwords it needs
    if (url.getProtocol() == "http") {
+     //  Refuse to stack a second dialog. ShowModal() below runs a nested
+     //  event loop, so a DAV authentication event arriving while the first
+     //  dialog is up is dispatched straight back into here. The caller
+     //  treats this as "no credentials", and the dialog already on screen
+     //  will populate the cache for it.
+     if (p_prompting) {
+       return false;
+     }
+     p_prompting = true;
+
      WxAuth authDlg(p_window);
 
      if (newUser) {
@@ -285,6 +298,7 @@ bool WxDavAuth::prompt(const string& strurl,
      }
    }
 
+   p_prompting = false;
    return ret;
 }
 

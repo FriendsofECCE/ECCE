@@ -65,5 +65,18 @@ class WxDavAuth : public AuthEventListener
       wxWindow *p_window;
 
       int p_promptCount;
+
+      /**
+       * True while an authentication dialog is on screen.
+       *
+       * ShowModal() runs a NESTED EVENT LOOP, so while the dialog is up a
+       * pending DAV authentication event is still dispatched -- straight
+       * back into prompt(), opening a second dialog on top of the first.
+       * One of the two holds the input grab and the other does not, which
+       * presents as a dialog whose buttons work but which accepts no
+       * keystrokes in any field.  It only happens on a first run, because
+       * once credentials are cached neither path prompts again.
+       */
+      bool p_prompting;
 };
 #endif
