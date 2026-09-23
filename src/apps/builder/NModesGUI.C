@@ -171,7 +171,9 @@ void NModesGUI::CreateControls()
         _("&Animation"),
         _("&Vector")
     };
-    ewxRadioBox* itemRadioBox7 = new ewxRadioBox( itemVizPropertyPanel1, ID_RADIOBOX_NMODE_VIZTYPE, _T(""), wxDefaultPosition, wxDefaultSize, 2, itemRadioBox7Strings, 1, wxRA_SPECIFY_ROWS );
+    //  Labelled, where this used to pass _T("") -- see the note on the
+    //  Graph/Table box below for why.
+    ewxRadioBox* itemRadioBox7 = new ewxRadioBox( itemVizPropertyPanel1, ID_RADIOBOX_NMODE_VIZTYPE, _("Viewer"), wxDefaultPosition, wxDefaultSize, 2, itemRadioBox7Strings, 1, wxRA_SPECIFY_ROWS );
     p_->Add(itemRadioBox7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     //  Graph or table for the frequency list.  A SEPARATE control from the
@@ -181,6 +183,13 @@ void NModesGUI::CreateControls()
     //  into one three-way choice would leave "Table" saying nothing about
     //  what the viewer should do.
     //
+    //  BOTH boxes are labelled, which they were not when this one was
+    //  added: two unlabelled two-item radio boxes sat side by side with
+    //  nothing saying which axis either controlled, and the report on
+    //  this control was "found it -- hard to discover".  A caption on
+    //  each is what distinguishes them; the suggestion it prompted, one
+    //  "Animation / Vector / Table" box, is the folding ruled out above.
+    //
     //  It exists at all because the only way to reach this was the panel's
     //  tear-off options menu, which the wx3.2 AUI port left unreachable --
     //  and which, once restored, is on a right-click that the plot's own
@@ -189,7 +198,7 @@ void NModesGUI::CreateControls()
         _("&Graph"),
         _("&Table")
     };
-    ewxRadioBox* itemRadioBox7b = new ewxRadioBox( itemVizPropertyPanel1, ID_RADIOBOX_NMODE_DATAVIEW, _T(""), wxDefaultPosition, wxDefaultSize, 2, itemRadioBox7bStrings, 1, wxRA_SPECIFY_ROWS );
+    ewxRadioBox* itemRadioBox7b = new ewxRadioBox( itemVizPropertyPanel1, ID_RADIOBOX_NMODE_DATAVIEW, _("Frequencies"), wxDefaultPosition, wxDefaultSize, 2, itemRadioBox7bStrings, 1, wxRA_SPECIFY_ROWS );
     p_->Add(itemRadioBox7b, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     p_sliderSizer = new wxBoxSizer(wxHORIZONTAL);
