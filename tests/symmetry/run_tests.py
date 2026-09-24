@@ -969,6 +969,21 @@ def main():
         print("FAILED  the diagram layout")
         return 1
 
+    #  The engine that supplies a middle column when no calculation
+    #  does.  Checked against what the method is obliged to give --
+    #  degeneracies the geometry forces, and a non-bonding orbital
+    #  left exactly where its atom put it -- rather than against
+    #  somebody else's table of numbers, which would check the
+    #  parameters and not the code.
+    if standalone("testHuckel",
+                  ["src/tdat/chemistry/Huckel.C",
+                   "src/tdat/chemistry/MoFragments.C",
+                   "src/tdat/chemistry/SymmetryAnalysis.C",
+                   "src/tdat/chemistry/CharacterTable.C",
+                   "src/tdat/chemistry/MoDiagram.C"]) != 0:
+        print("FAILED  extended Huckel")
+        return 1
+
     print("PASSED")
     return 0
 
