@@ -442,11 +442,22 @@ class MoDiagramCanvas : public wxPanel
                        const wxRect& plot)
     {
       const int count = level.degeneracy > 0 ? level.degeneracy : 1;
-      const int perOrbital = (int)(level.occupancy/count + 0.5);
-      if (perOrbital <= 0) return;
+      const int total = (int)(level.occupancy + 0.5);
+      if (total <= 0) return;
+
+      //  HUND, NOT A DIVISION.  Dividing the occupancy by the
+      //  degeneracy and rounding drew carbon's two 2p electrons as
+      //  three arrows: 2/3 rounds to one, and one went onto each of
+      //  the three lines.  One electron into every orbital of the set
+      //  before any of them takes a second, which is what a person
+      //  draws and what fillColumn() already computes.
+      const int singles = (total < count) ? total : count;
+      const int pairs   = total - singles;
 
       dc.SetPen(wxPen(*wxBLUE, 2));
       for (int d = 0; d < count; d++) {
+        const int perOrbital = (d < singles ? 1 : 0) + (d < pairs ? 1 : 0);
+        if (perOrbital <= 0) continue;
         //  On its own orbital's line where they were drawn apart.
         if (split != 0 && d < (int)split->energies.size()) {
           y = yFor(split->energies[d], plot);
