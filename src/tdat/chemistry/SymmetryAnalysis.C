@@ -1,0 +1,352 @@
+#include <cmath>
+#include <cstddef>
+#include <cstdlib>
+#include <cctype>
+
+#include "tdat/SymmetryAnalysis.H"
+#include "tdat/CharacterTable.H"
+
+namespace {
+
+  /** Apply an operation to a point. */
+  void apply(const SymOp& op, const double* in, double* out)
+  {
+    for (int i = 0; i < 3; i++) {
+      out[i] = op.m[i][0]*in[0] + op.m[i][1]*in[1] + op.m[i][2]*in[2];
+    }
+  }
+
+  SymOp multiply(const SymOp& a, const SymOp& b)
+  {
+    SymOp out;
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        out.m[i][j] = 0.0;
+        for (int k = 0; k < 3; k++) out.m[i][j] += a.m[i][k]*b.m[k][j];
+      }
+    }
+    return out;
+  }
+
+  SymOp transpose(const SymOp& a)
+  {
+    SymOp out;
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++) out.m[i][j] = a.m[j][i];
+    return out;
+  }
+
+  bool same(const SymOp& a, const SymOp& b, double tol = 1.0e-6)
+  {
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++)
+        if (fabs(a.m[i][j] - b.m[i][j]) > tol) return false;
+    return true;
+  }
+
+  /**
+   * Which Cartesian axis an operation acts on, or -1 for none.
+   *
+   * For a mirror, the axis it reflects; for a two-fold rotation, the
+   * axis it turns about.  This is what separates C2v's two mirrors and
+   * D4h's two sets of C2 axes, which (determinant, trace, size) cannot.
+   * Returns -1 for anything not aligned with x, y or z -- a diagonal
+   * C2, say -- which is itself the distinction in D4h.
+   */
+  int actingAxis(const SymOp& op)
+  {
+    //  An operation aligned with the axes is diagonal.
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        if (i != j && fabs(op.m[i][j]) > 1.0e-6) return -1;
+      }
+    }
+
+    const double d = op.determinant();
+    if (d < 0.0) {
+      //  A mirror: two axes preserved, one reversed.  The reversed one
+      //  is the plane's normal; name the operation by it.
+      for (int i = 0; i < 3; i++) if (op.m[i][i] < 0.0) return i;
+    } else {
+      //  A two-fold rotation: one axis preserved, two reversed.
+      for (int i = 0; i < 3; i++) if (op.m[i][i] > 0.0) return i;
+    }
+    return -1;
+  }
+
+  /** The axis named in a class label like "sv_xz", "C2_z", or none. */
+  int labelledAxis(const string& label)
+  {
+    const size_t underscore = label.find('_');
+    if (underscore == string::npos) return -1;
+
+    const string tag = label.substr(underscore+1);
+
+    //  A mirror is named for its PLANE ("sv_xz"), a rotation for its
+    //  AXIS ("C2_z").  Both end up as the one direction that names the
+    //  operation: the plane's normal, or the rotation axis.
+    if (tag.size() == 2) {
+      bool has[3] = {false, false, false};
+      for (size_t i = 0; i < tag.size(); i++) {
+        if (tag[i] == 'x') has[0] = true;
+        else if (tag[i] == 'y') has[1] = true;
+        else if (tag[i] == 'z') has[2] = true;
+      }
+      for (int i = 0; i < 3; i++) if (!has[i]) return i;   // the normal
+      return -1;
+    }
+    if (tag == "x") return 0;
+    if (tag == "y") return 1;
+    if (tag == "z") return 2;
+    return -1;
+  }
+}
+
+
+double SymOp::determinant(void) const
+{
+  return m[0][0]*(m[1][1]*m[2][2] - m[1][2]*m[2][1])
+       - m[0][1]*(m[1][0]*m[2][2] - m[1][2]*m[2][0])
+       + m[0][2]*(m[1][0]*m[2][1] - m[1][1]*m[2][0]);
+}
+
+
+bool SymmetryAnalysis::atomImages(const vector<double>& coords,
+                                  const vector<string>& elements,
+                                  const vector<SymOp>& ops,
+                                  double tolerance,
+                                  vector< vector<int> >& images)
+{
+  images.clear();
+
+  const size_t numAtoms = elements.size();
+  if (numAtoms == 0 || coords.size() != numAtoms*3) return false;
+
+  for (size_t o = 0; o < ops.size(); o++) {
+    vector<int> image(numAtoms, -1);
+
+    for (size_t a = 0; a < numAtoms; a++) {
+      double moved[3];
+      apply(ops[o], &coords[a*3], moved);
+
+      for (size_t b = 0; b < numAtoms; b++) {
+        if (elements[b] != elements[a]) continue;
+
+        const double dx = moved[0] - coords[b*3];
+        const double dy = moved[1] - coords[b*3+1];
+        const double dz = moved[2] - coords[b*3+2];
+        if (sqrt(dx*dx + dy*dy + dz*dz) <= tolerance) {
+          image[a] = (int)b;
+          break;
+        }
+      }
+      //  An atom with nowhere to go means the operations and the
+      //  coordinates are not in the same frame.  That is the failure
+      //  this analysis is most exposed to, so it is reported rather
+      //  than worked around.
+      if (image[a] < 0) return false;
+    }
+    images.push_back(image);
+  }
+  return true;
+}
+
+
+void SymmetryAnalysis::orbits(const vector< vector<int> >& images,
+                              int numAtoms,
+                              vector< vector<int> >& out)
+{
+  out.clear();
+  vector<bool> placed(numAtoms, false);
+
+  for (int a = 0; a < numAtoms; a++) {
+    if (placed[a]) continue;
+
+    vector<int> orbit;
+    for (size_t o = 0; o < images.size(); o++) {
+      const int b = images[o][a];
+      if (b >= 0 && !placed[b]) {
+        placed[b] = true;
+        orbit.push_back(b);
+      }
+    }
+    if (!placed[a]) { placed[a] = true; orbit.push_back(a); }
+    if (!orbit.empty()) out.push_back(orbit);
+  }
+}
+
+
+void SymmetryAnalysis::conjugacyClasses(const vector<SymOp>& ops,
+                                        vector< vector<int> >& classes)
+{
+  classes.clear();
+  const size_t n = ops.size();
+  vector<bool> assigned(n, false);
+
+  for (size_t r = 0; r < n; r++) {
+    if (assigned[r]) continue;
+
+    vector<int> members;
+    for (size_t s = 0; s < n; s++) {
+      //  Every point group operation is orthogonal, so the inverse is
+      //  the transpose.
+      const SymOp conj = multiply(multiply(ops[s], ops[r]), transpose(ops[s]));
+
+      for (size_t t = 0; t < n; t++) {
+        if (!assigned[t] && same(conj, ops[t])) {
+          assigned[t] = true;
+          members.push_back((int)t);
+          break;
+        }
+      }
+    }
+    if (!members.empty()) classes.push_back(members);
+  }
+}
+
+
+bool SymmetryAnalysis::matchClasses(const vector<SymOp>& ops,
+                                    const vector< vector<int> >& classes,
+                                    const CharacterTable& table,
+                                    vector<int>& classOfOp)
+{
+  classOfOp.assign(ops.size(), -1);
+
+  const vector<string>& names = table.classes();
+  const vector<int>& counts = table.counts();
+  if (names.size() != classes.size()) return false;
+
+  vector<bool> used(names.size(), false);
+
+  //  Two passes.  The first takes only classes that (determinant,
+  //  trace, size) identifies uniquely; the second settles the rest by
+  //  the axis the operations act on.  Done in that order because the
+  //  axis convention is the part that can be wrong, and leaving it to
+  //  the cases that need it keeps it out of the ones that do not.
+  for (int pass = 0; pass < 2; pass++) {
+    for (size_t c = 0; c < classes.size(); c++) {
+      if (classes[c].empty()) continue;
+      if (classOfOp[classes[c][0]] >= 0) continue;
+
+      const SymOp& rep = ops[classes[c][0]];
+      const double det = rep.determinant();
+      const double tr = rep.trace();
+      const int size = (int)classes[c].size();
+
+      vector<int> candidates;
+      for (size_t t = 0; t < names.size(); t++) {
+        if (used[t] || counts[t] != size) continue;
+
+        //  The class name gives the operation type, and the type fixes
+        //  the determinant and trace: 1+2cos(theta) for a rotation,
+        //  -1+2cos(theta) for an improper one, +1 for a mirror.
+        const string& label = names[t];
+        const string stem = label.substr(0, label.find('_'));
+
+        bool ok = false;
+        if (stem == "E" || stem == "e") {
+          ok = (det > 0 && fabs(tr - 3.0) < 1e-6);
+        } else if (stem == "i" || stem == "I") {
+          ok = (det < 0 && fabs(tr + 3.0) < 1e-6);
+        } else if (!stem.empty() && stem[0] == 's') {
+          ok = (det < 0 && fabs(tr - 1.0) < 1e-6);
+        } else if (!stem.empty() && (stem[0] == 'C' || stem[0] == 'S')) {
+          string digits;
+          for (size_t k = 0; k < stem.size(); k++)
+            if (isdigit(stem[k])) digits += stem[k];
+          const int order = digits.empty() ? 2 : atoi(digits.c_str());
+          const double angle = 2.0*M_PI/order;
+          const double want = (stem[0] == 'C') ? 1.0 + 2.0*cos(angle)
+                                               : -1.0 + 2.0*cos(angle);
+          const double wantDet = (stem[0] == 'C') ? 1.0 : -1.0;
+          ok = (det*wantDet > 0 && fabs(tr - want) < 1e-6);
+        }
+        if (ok) candidates.push_back((int)t);
+      }
+
+      if (candidates.empty()) return false;
+
+      int chosen = -1;
+      if (candidates.size() == 1) {
+        //  Taken in either pass.  It must be taken in pass 1 too: a
+        //  class that was ambiguous at the start can be left with one
+        //  candidate once the other has been claimed, and skipping it
+        //  there left it unassigned forever -- which is what C2v's two
+        //  mirrors did, the only case in the suite that reaches pass 1
+        //  at all.
+        chosen = candidates[0];
+      } else {
+        if (pass == 0) continue;            // ambiguous ones wait
+        //  Settle by the axis the operations act on.
+        const int axis = actingAxis(rep);
+        for (size_t k = 0; k < candidates.size() && chosen < 0; k++) {
+          if (labelledAxis(names[candidates[k]]) == axis) {
+            chosen = candidates[k];
+          }
+        }
+        //  No axis in the label to match against: fall back to the
+        //  convention that an axis-aligned class comes before a
+        //  diagonal one, which is what the primes mean.
+        if (chosen < 0) {
+          for (size_t k = 0; k < candidates.size() && chosen < 0; k++) {
+            const string& label = names[candidates[k]];
+            const bool primed = label.find('\'') != string::npos;
+            if ((axis >= 0) == !primed) chosen = candidates[k];
+          }
+        }
+        if (chosen < 0) chosen = candidates[0];
+      }
+
+      used[chosen] = true;
+      for (size_t k = 0; k < classes[c].size(); k++) {
+        classOfOp[classes[c][k]] = chosen;
+      }
+    }
+  }
+
+  for (size_t o = 0; o < classOfOp.size(); o++) {
+    if (classOfOp[o] < 0) return false;
+  }
+  return true;
+}
+
+
+bool SymmetryAnalysis::orbitalCharacter(const vector<int>& orbit,
+                                        const vector< vector<int> >& images,
+                                        const vector<int>& classOfOp,
+                                        int numClasses,
+                                        vector<double>& chi)
+{
+  chi.assign(numClasses, 0.0);
+  vector<int> seen(numClasses, 0);
+
+  vector<bool> inOrbit;
+  for (size_t i = 0; i < orbit.size(); i++) {
+    if ((int)inOrbit.size() <= orbit[i]) inOrbit.resize(orbit[i]+1, false);
+    inOrbit[orbit[i]] = true;
+  }
+
+  for (size_t o = 0; o < images.size(); o++) {
+    const int c = classOfOp[o];
+    if (c < 0 || c >= numClasses) return false;
+
+    //  An s orbital carries no sign, so the character is simply how
+    //  many of the orbit's atoms the operation leaves in place.
+    int fixed = 0;
+    for (size_t i = 0; i < orbit.size(); i++) {
+      if (images[o][orbit[i]] == orbit[i]) fixed++;
+    }
+
+    //  Every operation in a class must agree; taking the first and
+    //  checking the rest is a cheap guard on the class matching.
+    if (seen[c] == 0) {
+      chi[c] = fixed;
+    } else if (fabs(chi[c] - fixed) > 1.0e-9) {
+      return false;
+    }
+    seen[c]++;
+  }
+
+  for (int c = 0; c < numClasses; c++) if (seen[c] == 0) return false;
+  return true;
+}

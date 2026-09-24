@@ -39,8 +39,10 @@ Exit 0 if every table is sound, 1 otherwise.
 import argparse
 import math
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -407,6 +409,52 @@ def checkSymops(groups, report, verbose):
                      % (name, sizes, sorted(counts)))
 
 
+def checkAnalysis(tablePath, verbose):
+    """Orbits and reductions, against the textbook answers.
+
+    Needs the symops binary, because the operations come from the real
+    generator tables rather than a second copy written into the test.
+    """
+    binary = os.environ.get("ECCE_TEST_SYMOPS",
+                            os.path.join(ROOT, "build-cmake", "symops"))
+    if not (os.path.isfile(binary) and os.access(binary, os.X_OK)):
+        print("  symops not built -- skipping the orbit/reduction checks")
+        return 0
+
+    opsDir = tempfile.mkdtemp(prefix="ecce-symops-")
+    try:
+        for group in ("TD", "C2V", "OH"):
+            run = subprocess.run([binary], input=group + "\n",
+                                 capture_output=True, text=True, timeout=60)
+            if run.returncode != 0:
+                print("  symops failed for %s" % group)
+                return 1
+            open(os.path.join(opsDir, group + ".ops"), "w").write(run.stdout)
+
+        out = os.path.join(HERE, "testSymmetryAnalysis")
+        cmd = ["g++", "-O2", "-w", "-I", os.path.join(ROOT, "include"),
+               "-o", out,
+               os.path.join(HERE, "testSymmetryAnalysis.C"),
+               os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
+               os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C")]
+        build = subprocess.run(cmd, capture_output=True, text=True)
+        if build.returncode != 0:
+            print("  could not build the analysis test:")
+            print(build.stderr)
+            return 1
+
+        proc = subprocess.run([out, tablePath, opsDir],
+                              capture_output=True, text=True)
+        if verbose or proc.returncode != 0:
+            print(proc.stdout, end="")
+        else:
+            print("  orbits and reductions: PASS")
+        os.unlink(out)
+        return proc.returncode
+    finally:
+        shutil.rmtree(opsDir, ignore_errors=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -462,6 +510,10 @@ def main():
     print("")
     if checkLoader(tablePath, args.verbose) != 0:
         print("FAILED  the C++ loader")
+        return 1
+
+    if checkAnalysis(tablePath, args.verbose) != 0:
+        print("FAILED  the orbit/reduction analysis")
         return 1
 
     print("PASSED")
