@@ -307,7 +307,12 @@ bool MoDiagramPanel::prefersFloating() const
 
 wxSize MoDiagramPanel::preferredFloatingSize() const
 {
-  return wxSize(860, 720);
+  //  Three columns, each with a label, an annotation and a phase
+  //  sketch beside its levels, and correlation lines between them.
+  //  At 860 CCl4's chlorine set had its labels on top of one another
+  //  and its sketches on top of those.  A window can always be made
+  //  smaller; one that opens too small looks broken.
+  return wxSize(1400, 950);
 }
 
 
@@ -480,14 +485,18 @@ void MoDiagramPanel::build()
   //  level diagram on its own is useful, and refusing to draw anything
   //  would be worse than saying why the rest is missing.
   bool haveFragments = false;
+
+  //  The charge, so the fragment levels carry the right electron
+  //  count -- NO2- has one more than its atoms bring -- and so the
+  //  heading can show it, which is what a reader checks the formula
+  //  for.
+  int charge = 0;
+  {
+    Fragment *frag = fw.getSceneGraph().getFragment();
+    if (frag != 0) charge = (int)frag->charge();
+  }
+
   if (!elements.empty()) {
-    //  The charge, so the fragment levels carry the right electron
-    //  count -- NO2- has one more than its atoms bring.
-    int charge = 0;
-    {
-      Fragment *frag = fw.getSceneGraph().getFragment();
-      if (frag != 0) charge = (int)frag->charge();
-    }
     haveFragments = MoFragments::build(coords, elements, group, charge,
                                        left, right, why);
   }
@@ -587,5 +596,6 @@ void MoDiagramPanel::build()
   if (!why.empty()) note << "  " << why;
 
   p_canvas->setGroup(group);
+  p_canvas->setFormula(MoDiagram::formula(elements, charge));
   p_canvas->setDiagram(left, centre, right, links, haveFragments, note.str());
 }

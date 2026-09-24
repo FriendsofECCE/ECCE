@@ -239,6 +239,20 @@ class MoDiagram
      */
     static int dimensionFromName(const string& canonical);
 
+    /**
+     * The molecule's formula, in Hill order, with its charge.
+     *
+     * Written as the canvas wants it: digits are subscripts where they
+     * stand, and anything after a '^' is a superscript.  "CCl4",
+     * "H2O", "NO2^-", "SO4^2-".
+     *
+     * The charge is the point of it.  A diagram of nitrite and a
+     * diagram of nitrogen dioxide differ by one electron and look
+     * nearly the same, and the formula is where a reader checks which
+     * one they are holding.
+     */
+    static string formula(const vector<string>& elements, int charge);
+
     static bool groupByIrrep(const vector<double>& energies,
                              const vector<double>& occupancies,
                              const vector<string>& labels,

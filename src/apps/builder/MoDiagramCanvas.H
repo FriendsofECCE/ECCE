@@ -83,6 +83,9 @@ class MoDiagramCanvas : public wxPanel
 
     void setGroup(const string& group) { p_group = group; }
 
+    /** The molecule's formula, from MoDiagram::formula(). */
+    void setFormula(const string& formula) { p_formula = formula; }
+
     void setDiagram(const MoColumn& left, const MoColumn& centre,
                     const MoColumn& right,
                     const vector<MoConnection>& links,
@@ -220,6 +223,37 @@ class MoDiagramCanvas : public wxPanel
         Piece p;
         p.text = wxString(label.substr(i).c_str(), wxConvUTF8);
         p.kind = 0;
+        out.push_back(p);
+      }
+    }
+
+    /** A formula: digit runs subscript, anything after '^' superscript. */
+    static void splitFormula(const string& text, vector<Piece>& out)
+    {
+      out.clear();
+      size_t i = 0;
+      while (i < text.size() && text[i] != '^') {
+        const bool digits = isdigit((unsigned char)text[i]) != 0;
+        string run;
+        while (i < text.size() && text[i] != '^' &&
+               (isdigit((unsigned char)text[i]) != 0) == digits) {
+          run += text[i++];
+        }
+        Piece p;
+        p.text = wxString(run.c_str(), wxConvUTF8);
+        p.kind = digits ? 1 : 0;
+        out.push_back(p);
+      }
+      if (i < text.size() && text[i] == '^') {
+        //  A real minus sign, not a hyphen: it is a charge.
+        string rest;
+        for (size_t k = i + 1; k < text.size(); k++) {
+          if (text[k] == '-') rest += "\xe2\x88\x92";
+          else                rest += text[k];
+        }
+        Piece p;
+        p.text = wxString::FromUTF8(rest.c_str());
+        p.kind = 2;
         out.push_back(p);
       }
     }
@@ -771,7 +805,28 @@ class MoDiagramCanvas : public wxPanel
         const wxSize subSize = dc.GetTextExtent(sub);
         dc.SetFont(heading);
 
-        const int titleX = (size.x - (stemSize.x + subSize.x))/2;
+        //  THE FORMULA FIRST, BECAUSE OF THE CHARGE.  Nitrite and
+        //  nitrogen dioxide differ by one electron and their diagrams
+        //  look nearly the same; the formula is where a reader checks
+        //  which one is on the screen.
+        vector<Piece> formula;
+        splitFormula(p_formula, formula);
+        const wxSize formulaSize =
+            formula.empty() ? wxSize(0, 0)
+                            : measurePieces(dc, formula, heading, small);
+        const int gap = formula.empty() ? 0 : 18;
+
+        const int wide = formulaSize.x + gap + stemSize.x + subSize.x;
+        int titleX = (size.x - wide)/2;
+
+        if (!formula.empty()) {
+          dc.SetTextForeground(wxColour(30, 30, 30));
+          drawPieces(dc, formula, titleX, 6, heading, small,
+                     formulaSize.y);
+          titleX += formulaSize.x + gap;
+        }
+
+        dc.SetFont(heading);
         dc.DrawText(stem, titleX, 6);
         dc.SetFont(small);
         dc.DrawText(sub, titleX + stemSize.x,
@@ -983,6 +1038,7 @@ class MoDiagramCanvas : public wxPanel
     vector<MoConnection> p_links;
     bool p_haveFragments;
     string p_group;
+    string p_formula;
 
     vector<Hit> p_hits;
     string p_note;

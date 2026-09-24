@@ -40,6 +40,36 @@ string MoDiagram::canonicalIrrep(const string& label)
  * to this is better than assuming one, which silently turns every
  * degeneracy into a pile of coincident levels.
  */
+string MoDiagram::formula(const vector<string>& elements, int charge)
+{
+  map<string,int> count;
+  for (size_t i = 0; i < elements.size(); i++) count[elements[i]]++;
+
+  //  Hill order: carbon, then hydrogen, then the rest alphabetically.
+  vector<string> order;
+  if (count.count("C")) order.push_back("C");
+  if (count.count("H")) order.push_back("H");
+  for (map<string,int>::const_iterator it = count.begin();
+       it != count.end(); ++it) {
+    if (it->first != "C" && it->first != "H") order.push_back(it->first);
+  }
+
+  ostringstream out;
+  for (size_t i = 0; i < order.size(); i++) {
+    out << order[i];
+    if (count[order[i]] > 1) out << count[order[i]];
+  }
+
+  if (charge != 0) {
+    const int size = (charge < 0) ? -charge : charge;
+    out << '^';
+    if (size > 1) out << size;
+    out << ((charge < 0) ? '-' : '+');
+  }
+  return out.str();
+}
+
+
 int MoDiagram::dimensionFromName(const string& canonical)
 {
   if (canonical.empty()) return 1;

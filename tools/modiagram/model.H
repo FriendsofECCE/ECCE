@@ -35,6 +35,9 @@ struct MoModel {
   vector<string> elements;
   vector<string> labels;
   vector<int> perAtom, shellOf;
+  int charge;
+
+  MoModel() : charge(0) {}
 };
 
 /** The share of one orbital carried by a named set of functions. */
@@ -255,6 +258,7 @@ static bool buildModel(const char* tables, const char* molecule,
   if (MoFragments::linearGroupName(coords, elements, linear)) {
     model.group = linear;
   }
+  model.charge   = charge;
   model.coords   = coords;
   model.elements = elements;
   model.labels   = labels;

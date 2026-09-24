@@ -39,8 +39,8 @@ int main(int argc, char** argv)
             "[width height]\n");
     return 2;
   }
-  const int width  = (argc > 4) ? atoi(argv[4]) : 1100;
-  const int height = (argc > 5) ? atoi(argv[5]) : 800;
+  const int width  = (argc > 4) ? atoi(argv[4]) : 1400;
+  const int height = (argc > 5) ? atoi(argv[5]) : 950;
 
   wxEntryStart(argc, argv);
   wxApp::GetInstance()->CallOnInit();
@@ -53,6 +53,8 @@ int main(int argc, char** argv)
                                wxDefaultPosition, wxSize(width, height));
   MoDiagramCanvas *canvas = new MoDiagramCanvas(frame);
   canvas->setGroup(model.group);
+  canvas->setFormula(MoDiagram::formula(model.elements,
+                                        model.charge));
   canvas->setDiagram(model.left, model.centre, model.right, model.links,
                      haveFragments, model.note);
 
