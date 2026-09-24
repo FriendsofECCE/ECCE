@@ -5,6 +5,10 @@
 
 #include "MoGUI.H"
 
+class ewxCheckBox;
+class ewxTextCtrl;
+class Command;
+
 class ewxPlotCtrl;
 class GridDlg;
 class MoCoeffs;
@@ -57,6 +61,7 @@ class MoPanel : public MoGUI,
                            double& negR, double& negG, double& negB);
      void showCoeffs(bool popup);
      double getTransparency();
+     bool espFieldSelected();
      void updateIsoValue();
      void updateIsoValue(double val);
      void updateSurface();
@@ -88,6 +93,24 @@ class MoPanel : public MoGUI,
      void OnGridOkButton( wxCommandEvent& event );
 
    private:
+
+      //  Colour range for a potential-mapped surface.  Auto measures it
+      //  from the shell being drawn; unchecking it uses the two fields,
+      //  which is what makes two molecules comparable -- they are only
+      //  comparable on the same scale.
+      void buildEspRangeControls();
+      void applyEspRange(Command *cmd);
+      void onEspRangeChanged(wxCommandEvent& event);
+      void onEspRangeFocusLost(wxFocusEvent& event);
+      void showEspRangeControls(bool show);
+      void onFieldTypeChanged(wxCommandEvent& event);
+      void rebuildEspSurface();
+
+      wxBoxSizer  *p_espSizer;
+      ewxCheckBox *p_espAuto;
+      ewxTextCtrl *p_espMin;
+      ewxTextCtrl *p_espMax;
+
 
       /* The report oriented table showing MO energies */
       wxGrid *p_mogrid;  

@@ -30,6 +30,8 @@
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxPlotCtrl.H"
 #include "wxgui/ewxProgressDialog.H"
+#include "wxgui/ewxCheckBox.H"
+#include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/SliderCombo.H"
@@ -89,6 +91,10 @@ MoPanel::MoPanel()
     p_griddlg(NULL),
     p_coeffsDlg(NULL),
     p_slider(NULL),
+    p_espSizer(NULL),
+    p_espAuto(NULL),
+    p_espMin(NULL),
+    p_espMax(NULL),
     p_selectedRow(0),
     p_plotReg(NULL),
     p_plotSym(NULL),
@@ -109,6 +115,10 @@ MoPanel::MoPanel(IPropCalculation *calculation,
     p_griddlg(NULL),
     p_coeffsDlg(NULL),
     p_slider(NULL),
+    p_espSizer(NULL),
+    p_espAuto(NULL),
+    p_espMin(NULL),
+    p_espMax(NULL),
     p_selectedRow(0),
     p_plotReg(NULL),
     p_plotSym(NULL),
@@ -184,6 +194,12 @@ bool MoPanel::Create(IPropCalculation *calculation,
    //p_slider->setRange(-5, 5);
    p_slider->SetValue(1.23);
    p_slider->SetToolTip("Log Iso value:");
+
+   buildEspRangeControls();
+
+   //  Dynamically, for the reason given in buildEspRangeControls().
+   ((ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE))->Bind(
+      wxEVT_CHOICE, &MoPanel::onFieldTypeChanged, this);
 
    initialize();
 
@@ -285,6 +301,10 @@ void MoPanel::updateUIOptions()
    if (densityOk) typewin->Insert("Density",0);
    typewin->Insert("MO",0);
    typewin->SetStringSelection(_("MO"));
+
+   //  The range controls belong to the ESP types alone.  Shown when one
+   //  is chosen, which OnTypeSelected below keeps in step.
+   showEspRangeControls(false);
 
    // Make sure we have a GBSConfig.  If not we'll crash when
    // we try to compute.
@@ -972,7 +992,8 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       getSurfaceColors(posR, posG, posB, negR, negG, negB);
 
       cmd = new IsoSurfaceCmd("Iso Surface", &sg, expt);
-      cmd->getParameter("transparency")->setDouble(0.5);
+      applyEspRange(cmd);
+      cmd->getParameter("transparency")->setDouble(getTransparency());
       cmd->getParameter("positiveRed")->setDouble(posR);
       cmd->getParameter("positiveGreen")->setDouble(posG);
       cmd->getParameter("positiveBlue")->setDouble(posB);
@@ -1314,8 +1335,35 @@ void MoPanel::getSurfaceColors(double& posR, double& posG, double& posB,
 
 }
 
+/** Is one of the two potential-mapped field types selected? */
+bool MoPanel::espFieldSelected()
+{
+   ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   if (typewin == 0 || typewin->GetSelection() == wxNOT_FOUND) return false;
+
+   const string chosen = (const char*)typewin->GetString(
+                                          typewin->GetSelection()).mb_str();
+   return (chosen == ESP_FIELD_TYPE || chosen == ESP_CHARGES_FIELD_TYPE);
+}
+
 double MoPanel::getTransparency()
 {
+   //  AN ESP MAP IS DRAWN OPAQUE.
+   //
+   //  receiveFocus() puts the viewer in SCREEN_DOOR transparency, which
+   //  renders a half-transparent surface as a GL stipple -- every other
+   //  pixel dropped.  For an MO lobe that is the right trade: it is
+   //  cheap, needs no depth sorting, and you want to see the atoms
+   //  through it.  For a potential map it destroys the thing you are
+   //  trying to read: the colour is carried by the surface itself, and
+   //  half of it is missing, so the map reads as a dark checkerboard
+   //  over the background and screenshots of it come out inconsistent.
+   //
+   //  Every other viewer draws an ESP map opaque for the same reason --
+   //  the surface IS the object, not a shell around one -- so the
+   //  configured MO transparency does not apply to it.
+   if (espFieldSelected()) return 0.0;
+
    double ret = 0.0;
    int id;
    ewxConfig *config = ewxConfig::getConfig(INIFILE);
@@ -1345,8 +1393,12 @@ void MoPanel::receiveFocus()
    }
    selectFragStep(step);
 
-   getFW().getViewer().setTransparencyType(SoGLRenderAction::SCREEN_DOOR);
-   //getFW().getViewer().setTransparencyType(SoGLRenderAction::DELAYED_ADD);
+   //  SCREEN_DOOR is the MO lobe's mode; see getTransparency().  A
+   //  potential map is opaque, and sorted blending costs nothing when
+   //  there is nothing transparent to sort.
+   getFW().getViewer().setTransparencyType(
+      espFieldSelected() ? SoGLRenderAction::SORTED_OBJECT_BLEND
+                         : SoGLRenderAction::SCREEN_DOOR);
    getFW().getSceneGraph().getMORoot()->whichChild.setValue(SO_SWITCH_ALL);
 
    p_mogrid->MakeCellVisible(p_selectedRow,0);
@@ -1357,4 +1409,188 @@ void MoPanel::loseFocus()
    selectFragStep(-1);
    getFW().getViewer().setTransparencyType(SoGLRenderAction::DELAYED_ADD);
    getFW().getSceneGraph().getMORoot()->whichChild.setValue(SO_SWITCH_NONE);
+}
+
+/**
+ * The colour range controls for a potential-mapped surface.
+ *
+ * Built here rather than in MoGUI because they belong only to the two
+ * ESP field types, and MoGUI is shared.  Hidden until one of those is
+ * chosen.
+ */
+//  Ids for the three controls, allocated here because they are built
+//  here rather than in MoGUI.
+static const wxWindowID ID_ESP_AUTO = wxNewId();
+static const wxWindowID ID_ESP_MIN  = wxNewId();
+static const wxWindowID ID_ESP_MAX  = wxNewId();
+
+
+void MoPanel::buildEspRangeControls()
+{
+   //  ON THEIR OWN ROW, not appended to the slider's.
+   //
+   //  p_sliderSizer lives inside the horizontal row that already holds
+   //  the field-type combo, the Compute button and the isovalue slider,
+   //  and that row fills the panel's width -- three more controls on it
+   //  simply fall off the right-hand edge, which is what the first
+   //  version of this did: shown, laid out, and invisible.
+   p_espSizer = new wxBoxSizer(wxHORIZONTAL);
+   GetSizer()->Add(p_espSizer, 0, wxALIGN_LEFT|wxLEFT|wxBOTTOM, 5);
+
+   p_espSizer->Add(new ewxStaticText(this, wxID_STATIC, _("ESP range:")),
+                   0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
+
+   p_espAuto = new ewxCheckBox(this, ID_ESP_AUTO, _("Auto"));
+   p_espAuto->SetValue(true);
+   p_espAuto->SetToolTip("Scale the colours to the potential on the "
+                         "surface being drawn");
+   p_espSizer->Add(p_espAuto, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 8);
+
+   p_espMin = new ewxTextCtrl(this, ID_ESP_MIN, _("-0.05"),
+                              wxDefaultPosition, wxSize(70, -1),
+                              wxTE_PROCESS_ENTER);
+   p_espMin->SetToolTip("Most negative potential, Hartree/e (red)");
+   p_espSizer->Add(p_espMin, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 4);
+
+   p_espMax = new ewxTextCtrl(this, ID_ESP_MAX, _("0.05"),
+                              wxDefaultPosition, wxSize(70, -1),
+                              wxTE_PROCESS_ENTER);
+   p_espMax->SetToolTip("Most positive potential, Hartree/e (blue)");
+   p_espSizer->Add(p_espMax, 0, wxALIGN_CENTER_VERTICAL, 0);
+
+   //  Only meaningful for a coloured surface.  Hiding the whole row
+   //  rather than each control, so the row collapses instead of
+   //  leaving a gap.
+   GetSizer()->Show(p_espSizer, false, true);
+
+   //  Bound dynamically on each control.  The static table does not
+   //  reach this panel for controls with a pushed handler chain, which
+   //  is what the ewx classes install -- the same reason #81's radio
+   //  box never received its event.
+   p_espAuto->Bind(wxEVT_CHECKBOX, &MoPanel::onEspRangeChanged, this);
+   p_espMin->Bind(wxEVT_TEXT_ENTER, &MoPanel::onEspRangeChanged, this);
+   p_espMax->Bind(wxEVT_TEXT_ENTER, &MoPanel::onEspRangeChanged, this);
+   p_espMin->Bind(wxEVT_KILL_FOCUS, &MoPanel::onEspRangeFocusLost, this);
+   p_espMax->Bind(wxEVT_KILL_FOCUS, &MoPanel::onEspRangeFocusLost, this);
+}
+
+
+/** Leaving a field applies it, as pressing Enter does. */
+void MoPanel::onEspRangeFocusLost(wxFocusEvent& event)
+{
+   event.Skip();                       // the control still needs it
+   if (!p_isValid) return;
+   if (p_espAuto != 0 && p_espAuto->GetValue()) return;
+   rebuildEspSurface();
+}
+
+
+/** Put the panel's range choice onto an IsoSurfaceCmd. */
+void MoPanel::applyEspRange(Command *cmd)
+{
+   if (cmd == 0 || p_espAuto == 0) return;
+
+   const bool automatic = p_espAuto->GetValue();
+   cmd->getParameter("colorAuto")->setBoolean(automatic);
+   if (automatic) return;
+
+   double lo = -0.05, hi = 0.05;
+   double parsed;
+   if (((wxString)p_espMin->GetValue()).ToDouble(&parsed)) lo = parsed;
+   if (((wxString)p_espMax->GetValue()).ToDouble(&parsed)) hi = parsed;
+
+   //  A reversed or empty range would divide by zero in the colour
+   //  lookup; fall back to automatic rather than to a broken surface.
+   if (!(hi > lo)) {
+      cmd->getParameter("colorAuto")->setBoolean(true);
+      return;
+   }
+   cmd->getParameter("colorMin")->setDouble(lo);
+   cmd->getParameter("colorMax")->setDouble(hi);
+}
+
+
+/** Redraw with the new range when either field or the box changes. */
+void MoPanel::onEspRangeChanged(wxCommandEvent& WXUNUSED(event))
+{
+   //  The two text fields are only live when the box is clear, so the
+   //  box's own click has to enable and disable them.
+   const bool automatic = (p_espAuto != 0 && p_espAuto->GetValue());
+   if (p_espMin != 0) p_espMin->Enable(!automatic);
+   if (p_espMax != 0) p_espMax->Enable(!automatic);
+
+   rebuildEspSurface();
+}
+
+
+/** Show the range controls only where they mean something. */
+void MoPanel::showEspRangeControls(bool show)
+{
+   if (p_espSizer == 0) return;
+
+   GetSizer()->Show(p_espSizer, show, true);
+
+   const bool automatic = p_espAuto->GetValue();
+   p_espMin->Enable(show && !automatic);
+   p_espMax->Enable(show && !automatic);
+
+   GetSizer()->Layout();
+}
+
+
+/** The field-type combo decides whether a range is meaningful. */
+void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
+{
+   event.Skip();
+
+   const bool esp = espFieldSelected();
+   showEspRangeControls(esp);
+
+   //  The mode has to follow the choice, not only the panel's focus --
+   //  switching type with the panel already focused would otherwise
+   //  leave an opaque map being drawn under SCREEN_DOOR, or the
+   //  reverse.
+   getFW().getViewer().setTransparencyType(
+      esp ? SoGLRenderAction::SORTED_OBJECT_BLEND
+          : SoGLRenderAction::SCREEN_DOOR);
+}
+
+
+/**
+ * Redraw the current surface with the panel's colour range.
+ *
+ * NOT updateIsoValue(): ChemIso only regenerates when one of the
+ * handful of fields it remembers has changed, and the colour ramp's
+ * minValue/maxValue are not among them -- so a range change alone would
+ * set the ramp and then never rebuild the per-vertex colours from it.
+ * Re-running IsoSurfaceCmd rebuilds the scene outright, which costs a
+ * marching-cubes pass over a grid that is already computed (fast; the
+ * expensive part was the potential) and cannot go stale.
+ */
+void MoPanel::rebuildEspSurface()
+{
+   if (!p_isValid) return;
+
+   WxVizToolFW& fw = getFW();
+   SGContainer& sg = fw.getSceneGraph();
+   if (sg.getCurrentGrid() == 0) return;
+
+   IPropCalculation *expt = getCalculation();
+
+   double posR, posG, posB, negR, negG, negB;
+   getSurfaceColors(posR, posG, posB, negR, negG, negB);
+
+   Command *cmd = new IsoSurfaceCmd("Iso Surface", &sg, expt);
+   applyEspRange(cmd);
+   cmd->getParameter("transparency")->setDouble(getTransparency());
+   cmd->getParameter("positiveRed")->setDouble(posR);
+   cmd->getParameter("positiveGreen")->setDouble(posG);
+   cmd->getParameter("positiveBlue")->setDouble(posB);
+   cmd->getParameter("negativeRed")->setDouble(negR);
+   cmd->getParameter("negativeGreen")->setDouble(negG);
+   cmd->getParameter("negativeBlue")->setDouble(negB);
+   fw.execute(cmd);
+
+   updateSurface();
+   updateIsoValue();
 }
