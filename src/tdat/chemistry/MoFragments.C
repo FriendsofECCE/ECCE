@@ -1024,17 +1024,22 @@ bool MoFragments::build(const vector<double>& coords,
 
    //  --- electrons -------------------------------------------------
    //
-   //  The molecular charge belongs to the fragment that is not the
-   //  neutral reference; there is no way to say which from symmetry, so
-   //  it goes on the terminal set, where it usually sits chemically
-   //  (NO2- is a nitrogen between two oxygens carrying the charge).
-   //  The TOTAL is right either way, which is what the electron count
-   //  on the diagram has to be.
-   //  Each side brings what its atoms bring.  The molecular charge
-   //  goes on the right, where it usually sits chemically (NO2- is a
-   //  nitrogen between two oxygens carrying the charge); the TOTAL is
-   //  right either way, which is what the electron count on the
-   //  diagram has to be.
+   //  Each side brings what its atoms bring.  The molecular charge has
+   //  to go on one of them, and symmetry cannot say which: the TOTAL
+   //  is right either way, which is what the electron count on the
+   //  diagram has to be, but WHICH COLUMN it comes off decides what
+   //  the picture says about the molecule.
+   //
+   //  On the terminal set by default, where it usually sits
+   //  chemically: nitrite is a nitrogen between two oxygens carrying
+   //  the charge.
+   //
+   //  ON THE METAL WHEN THERE IS ONE.  A transition metal's charge is
+   //  its oxidation state, and the d count that follows from it is the
+   //  first thing anyone reads off a complex's diagram -- "d6, low
+   //  spin" is the whole answer to most questions asked of one.
+   //  Taking the charge off the ligands instead left cobalt(II) drawn
+   //  with nine d electrons, which is cobalt(-I).
    int leftElectrons = 0, rightElectrons = 0;
    for (size_t i = 0; i < leftSet.size(); i++) {
       leftElectrons += valenceElectrons(elements[leftSet[i]]);
@@ -1042,8 +1047,15 @@ bool MoFragments::build(const vector<double>& coords,
    for (size_t i = 0; i < rightSet.size(); i++) {
       rightElectrons += valenceElectrons(elements[rightSet[i]]);
    }
-   fillColumn(left.levels, leftElectrons);
-   fillColumn(right.levels, rightElectrons - charge);
+
+   bool chargeOnLeft = false;
+   for (size_t i = 0; i < leftSet.size(); i++) {
+      double unused;
+      if (valenceEnergy(elements[leftSet[i]], 2, unused)) chargeOnLeft = true;
+   }
+
+   fillColumn(left.levels,  leftElectrons  - (chargeOnLeft ? charge : 0));
+   fillColumn(right.levels, rightElectrons - (chargeOnLeft ? 0 : charge));
 
    if (left.levels.empty() && right.levels.empty()) {
       note = "No valence orbital energies for " + elements[leftSet[0]] +
