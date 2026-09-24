@@ -352,7 +352,26 @@ class Ged16TheoryPanel(EccePanel):
                             "PBE 96",
                             "OPTX",
                             "TPSS",
-#                            "REvTPSS",
+                            #  Was commented out with an "REvTPSS" spelling
+                            #  the generator never had a live case for.  The
+                            #  keyword is revTPSS, and Gaussian 16 echoes it
+                            #  back on the SCF Done line, which is how these
+                            #  were checked rather than by reading the manual:
+                            #
+                            #    E(RrevTPSS-revTPSS) = -75.2990044687
+                            #    E(RrevTPSS-LYP)     = -75.2831736550
+                            #    E(RrevTPSS-P86)     = -75.3163932200
+                            #    E(RrevTPSS-PBE)     = -75.2873811492
+                            #    E(RrevTPSS-VWN5)    = -75.6159196963
+                            #    E(RB-revTPSS)       = -75.2933581789
+                            #    E(RPBE-revTPSS)     = -75.2371756525
+                            #    E(RTPSS-revTPSS)    = -75.3377718381
+                            #
+                            #  (water/STO-3G).  The correlation half was
+                            #  already live in ai.gauss16 and offered by no
+                            #  dialog -- a capability the UI could not reach,
+                            #  which tests/dialogs has been reporting.
+                            "RevTPSS",
                             "Becke89", #BRx -- no space: ai.gauss*.pm matches "Becke89"
                             "PKZB",
                             "wPBEh", #aka HSE
@@ -375,7 +394,7 @@ class Ged16TheoryPanel(EccePanel):
                               "Becke95 (nonlocal)",
                               "PBE 96 (nonlocal)",
                               "TPSS",
-#                              "RevTPSS",
+                              "RevTPSS",
                               "KCIS",
                               "BRC",
                               "PKZB"
@@ -582,7 +601,53 @@ class Ged16TheoryPanel(EccePanel):
                                        export = 1)
             fzSizer.AddWidget(self.exSpin)
             self.panelSizer.Add(fzSizer)
-            
+
+        #  -------------------------------------------------------------
+        #  Additional route options (issue #113).
+        #
+        #  Gaussian lets a user build a non-standard functional by giving
+        #  the exchange and correlation mixing parameters directly --
+        #  IOp(3/74=), IOp(3/76=), IOp(3/77=), IOp(3/78=) -- which is how
+        #  published reparameterisations are reproduced and how a
+        #  functional Gaussian has no keyword for is run at all.  ECCE
+        #  had no way to express that: every route-card token is
+        #  generated from a controlled vocabulary.
+        #
+        #  This is deliberately ONE free-text field rather than a set of
+        #  numeric mixing-parameter boxes.  A box per IOp would cover
+        #  only the functional-definition case and would be a second
+        #  hand-maintained copy of Gaussian's IOp table -- the two-lists
+        #  bug this codebase has been bitten by repeatedly.  A verbatim
+        #  passthrough has no list to drift from, and covers IOp plus
+        #  everything else a user currently cannot ask for.
+        #
+        #  The cost is that it is outside the dialog/generator crosscheck
+        #  tests/dialogs performs, by construction: a typo here becomes a
+        #  Gaussian error rather than a caught mismatch.  That is the
+        #  accepted trade for an explicitly expert control, and it is why
+        #  the label says so.
+        #
+        #  ai.gauss16 appends the text LAST, after every generated token
+        #  and after the MPW1K/BB1K IOp lines, so where it contradicts
+        #  what the dialog generated it is Gaussian's last-wins ordering
+        #  that decides -- and the user's text is the last word.
+        #  -------------------------------------------------------------
+        routeSizer = EcceBoxSizer(self,
+                                  label = "Additional Route Options (expert)",
+                                  cols = 1)
+        self.routeOptions = EcceTextInput(self,
+                                          size = (420, -1),
+                                          name = "ES.Theory.AdditionalRouteOptions",
+                                          default = "",
+                                          label = "Append to route card:",
+                                          export = 1,
+                                          tip = "Text appended verbatim to the "
+                                                "end of the Gaussian route card, "
+                                                "e.g. IOp(3/76=1000002000). Not "
+                                                "checked by ECCE.")
+        routeSizer.AddWidget(self.routeOptions)
+        self.panelSizer.Add(routeSizer)
+
         self.AddButtons()
         
 

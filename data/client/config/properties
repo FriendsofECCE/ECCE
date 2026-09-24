@@ -201,6 +201,12 @@ Vibration	IR Intensities				VIBIR		IRIntensity	PropVector<Normal Mode>
 Vibration	Raman Activities			VIBRAM		RamanIntensity	PropVector<Normal Mode>
 Vibration	Vib Mode Symmetries			VIBSYM		NA		PropVecString<Normal Mode>
 #
+#  Freq=Anharmonic (Gaussian 16).  Second-order perturbative fundamental
+#  bands: the anharmonic transition energy and integrated IR intensity,
+#  one per normal mode.  Displayed by DefaultVecPanel.
+Vibration	Anharmonic Frequencies			ANHARMFREQ	Frequency	PropVector<Normal Mode>
+Vibration	Anharmonic IR Intensities		ANHARMIR	IRIntensity	PropVector<Normal Mode>
+#
 #
 Derived		S**2					S2		NA		PropValue
 Derived		S**2 After Annihilation			S2A		NA		PropValue

@@ -114,6 +114,20 @@ Frequency=first
 End=-------------------
 [END]
 
+# Freq=Anharmonic, requestable from the Runtype Details dialog since #110.
+# The harmonic block above is still printed by an anharmonic job and still
+# feeds VIB/VIBFREQ/...; this is the second-order perturbative analysis
+# printed after it.  End= lands on the units banner of the NEXT table in
+# the same section (dipole strengths rather than integrated intensities),
+# which is a line no other entry Begins on -- an End that lands on another
+# entry's Begin silently starves that entry forever.
+[ANHARMFREQ][ANHARMIR]
+Script=gaussian-16.anharm
+Begin=Anharmonic Infrared Spectroscopy
+Frequency=first
+End=Dipole strengths \(DS\)
+[END]
+
 [NULL1]
 Script=gaussian-16.null
 Begin=Proceeding to internal job step

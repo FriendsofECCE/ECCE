@@ -244,6 +244,105 @@ class Ged16RunTypePanel(EccePanel):
                                          label = "FD Step Size:")
             vibSizer.AddWidget(self.fdStep)
 
+            #  ---------------------------------------------------------
+            #  Freq= options (issue #110).  Every one of these was run
+            #  through the installed Gaussian 16 before being offered
+            #  here, water/B3LYP/STO-3G, and two combinations turn out to
+            #  be FATAL rather than merely ignored -- see CheckDependency
+            #  below, which is what stops the user asking for them:
+            #
+            #    Freq=(Raman,Numerical)     "Unrecognized FrqTyp= 9",
+            #                               Error termination in l1.exe
+            #    Freq=(Anharmonic,Projected) "Mismatch between the number
+            #                               of normal modes of the current
+            #                               calculation and the input
+            #                               source: 3 vs 2", l717.exe
+            #
+            #  Everything else here ran to Normal termination, including
+            #  Raman with EnOnly, Raman with HPModes, Anharmonic with
+            #  Numerical, and Anharmonic with each of VibRot,
+            #  SaveNormalModes and HPModes.
+            #  ---------------------------------------------------------
+
+            #  Gaussian computes Raman activities by default for HF but
+            #  NOT for DFT, so for the methods most people use the
+            #  VIBRAM property gaussian-16.desc has always parsed was
+            #  simply never produced.  Default off: it costs extra work.
+            self.raman = EcceCheckBox(self,
+                                      label = " Raman Activities",
+                                      name = "ES.Runtype.Vibration.ComputeRaman",
+                                      default = 0)
+            vibSizer.AddWidget(self.raman)
+
+            #  Second-order perturbative anharmonic analysis.  The
+            #  harmonic block is still printed and still feeds
+            #  VIB/VIBFREQ/...; the fundamentals are extracted separately
+            #  into ANHARMFREQ/ANHARMIR by gaussian-16.anharm.
+            self.anharmonic = EcceCheckBox(self,
+                                           label = " Anharmonic Frequencies",
+                                           name = "ES.Runtype.Vibration.Anharmonic",
+                                           default = 0)
+            vibSizer.AddWidget(self.anharmonic)
+
+            #  High-precision normal modes.  Gaussian then prints the
+            #  modes TWICE under an identical header; gaussian-16.vib
+            #  drops the high-precision copy, which it could not read and
+            #  which used to make VIBFREQ come out with twice as many
+            #  values as row labels.
+            self.hpModes = EcceCheckBox(self,
+                                        label = " High-Precision Modes",
+                                        name = "ES.Runtype.Vibration.HighPrecisionModes",
+                                        default = 0)
+            vibSizer.AddWidget(self.hpModes)
+
+            self.projected = EcceCheckBox(self,
+                                          label = " Project Out Translation/Rotation",
+                                          name = "ES.Runtype.Vibration.Projected",
+                                          default = 0)
+            vibSizer.AddWidget(self.projected)
+
+            self.vibRot = EcceCheckBox(self,
+                                       label = " Vibration-Rotation Coupling",
+                                       name = "ES.Runtype.Vibration.VibRot",
+                                       default = 0)
+            vibSizer.AddWidget(self.vibRot)
+
+            self.saveNormalModes = EcceCheckBox(self,
+                                                label = " Save Normal Modes To Checkpoint",
+                                                name = "ES.Runtype.Vibration.SaveNormalModes",
+                                                default = 0)
+            vibSizer.AddWidget(self.saveNormalModes)
+
+            #  Thermochemistry conditions.  Same checkbox-enables-a-value
+            #  shape as Max Steps above, so that a deck that does not ask
+            #  for them carries no Temperature=/Pressure= at all and
+            #  Gaussian keeps its own 298.15 K / 1 atm defaults.
+            self.thermoCheckBox = EcceCheckBox(self,
+                                               label = " Thermochemistry At:",
+                                               name = "ES.Runtype.Vibration.UseThermochemistry",
+                                               default = 0)
+            vibSizer.AddWidget(self.thermoCheckBox)
+
+            self.temperature = EcceFloatInput(self,
+                                              unit = "Kelvin",
+                                              name = "ES.Runtype.Vibration.Temperature",
+                                              default = 298.15,
+                                              hardRange = "(0..)",
+                                              softRange = "(0..5000]",
+                                              label = "Temperature:",
+                                              export = 1)
+            vibSizer.AddWidget(self.temperature)
+
+            self.pressure = EcceFloatInput(self,
+                                           unit = "Atmosphere",
+                                           name = "ES.Runtype.Vibration.Pressure",
+                                           default = 1.0,
+                                           hardRange = "(0..)",
+                                           softRange = "(0..1000]",
+                                           label = "Pressure:",
+                                           export = 1)
+            vibSizer.AddWidget(self.pressure)
+
             self.panelSizer.Add(vibSizer)
         if EcceGlobals.RunType == "Magnetic":
             magneticSizer = EcceBoxSizer(self,
@@ -278,6 +377,24 @@ class Ged16RunTypePanel(EccePanel):
         if (EcceGlobals.RunType == "Vibration" or
             EcceGlobals.RunType == "GeoVib"):
             self.fdStep.Enable(self.vibMethod.GetValue() != "Analytic")
+
+            #  Both of these combinations are fatal in Gaussian 16, not
+            #  merely ignored -- see the comment where the controls are
+            #  built.  Disabling rather than warning keeps them
+            #  unaskable; ai.gauss16 refuses them again in its main flow,
+            #  because a calculation saved before this dialog existed can
+            #  still carry the offending pair.
+            ramanOK = (self.vibMethod.GetValue() != "Numerical 2nd Derivative")
+            self.raman.Enable(ramanOK)
+            if not ramanOK:
+                self.raman.SetValue(0)
+
+            self.projected.Enable(not self.anharmonic.GetValue())
+            if self.anharmonic.GetValue():
+                self.projected.SetValue(0)
+
+            self.temperature.Enable(self.thermoCheckBox.GetValue())
+            self.pressure.Enable(self.thermoCheckBox.GetValue())
 
 
 frame = Ged16RunTypeFrame(None,

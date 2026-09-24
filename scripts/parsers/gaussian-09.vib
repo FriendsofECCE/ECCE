@@ -23,6 +23,57 @@ $| = 1;
 &loadPT;
 
 #
+# Freq=HPModes makes Gaussian print the normal modes TWICE: a
+# high-precision block first (five-figure coefficients, one "Coord Atom
+# Element:" row per atom per cartesian direction) and then the ordinary
+# block this script was written for.  Both are introduced by the very same
+# "Harmonic frequencies (cm**-1) ... reduced masses (AMU), force constants
+# (mDyne/A) ... and normal coordinates:" header, so the .desc Begin matches
+# the first one and Frequency=first hands this script the high-precision
+# block.
+#
+# Nothing below can read that layout, and it does not fail loudly: the
+# block scan looks for "Atom AN", which the HP block has no line matching,
+# so read3ModeBlock runs straight on into the SECOND block and matches its
+# "Frequencies --" line a second time.  The result is a VIBFREQ carrying
+# twice as many values as it has row labels -- silently wrong rather than
+# absent, the worst of the two.
+#
+# The .desc End= pattern sits past both blocks, so the whole thing is on
+# stdin and the HP block can simply be dropped before parsing starts.  A
+# block is recognised as high-precision by scanning it for "Coord Atom
+# Element" rather than by counting headers: an anharmonic job prints the
+# harmonic modes more than once, so "the first of two" is not a safe rule.
+#
+# NOTE the first block has NO header line here.  The .desc Begin matches
+# the *third* line of the header ("incident light, reduced masses (AMU),
+# force constants (mDyne/A),"), so the feed starts in the middle of the
+# first header and only the SECOND block's header is present in full.
+# The top of the fed text therefore counts as a block start.
+#
+{
+  my @in = <STDIN>;
+  my @keep;
+  my $start = 0;
+  while ($start <= $#in) {
+    my $end = $start + 1;
+    while ($end <= $#in &&
+           $in[$end] !~ /^\s*Harmonic frequencies \(cm\*\*-1\)/) {
+      $end++;
+    }
+    my $isHP = 0;
+    for (my $k = $start; $k < $end; $k++) {
+      $isHP = 1 if ($in[$k] =~ /Coord\s+Atom\s+Element/);
+    }
+    push(@keep, @in[$start .. $end - 1]) unless ($isHP);
+    $start = $end;
+  }
+  my $buf = join('', @keep);
+  close(STDIN);
+  open(STDIN, '<', \$buf) or die "cannot re-read vibrational block\n";
+}
+
+#
 # initialize counters and lists
 #
   $natoms = 0;

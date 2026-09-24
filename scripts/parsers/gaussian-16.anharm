@@ -1,0 +1,86 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Purpose:
+#   Extract the anharmonic fundamental bands from a Gaussian 16
+#   Freq=Anharmonic job -- the "Anharmonic Infrared Spectroscopy" table:
+#
+#      Fundamental Bands
+#      -----------------
+#        Mode(n)                  E(harm)   E(anharm)        I(harm)       I(anharm)
+#           1(1)                  4350.934   4236.821     60.22482556     56.53615267
+#
+#   E(anharm) is emitted as ANHARMFREQ and I(anharm) as ANHARMIR.
+#
+#   Only the FUNDAMENTALS are taken.  Overtones and combination bands are
+#   printed in the same section and deliberately left alone: they are not
+#   one-per-normal-mode, so they do not fit a PropVector<Normal Mode>, and
+#   there is no panel that would show them.  A parser for output nothing
+#   can display is dead code (see ORCA's CHELPG, issue #88) -- if a panel
+#   for them is ever written, extend this script then, not before.
+#
+#   Gaussian numbers the anharmonic modes in DECREASING harmonic frequency,
+#   which is the opposite of the order the harmonic "Frequencies --" block
+#   (and therefore VIBFREQ) uses.  Rows are therefore labelled with their
+#   own harmonic frequency rather than with a bare mode index, so that a
+#   reader can line the two up and cannot silently mistake row 1 here for
+#   row 1 of VIBFREQ.
+#
+# Command line parameters:
+#   . <runtype> <category> <theory> <open shells>   (unused)
+#
+###############################################################################
+
+# Force output to be flushed
+$| = 1;
+
+my @rowlabels = ();
+my @freqs     = ();
+my @intens    = ();
+
+#  Scan to the fundamental-band column header rather than counting lines
+#  from the .desc Begin: how many lines of preamble precede it is a
+#  property of Gaussian's banner, not of this table.
+while (<STDIN>) {
+  last if (/E\(anharm\)/);
+}
+
+while (<STDIN>) {
+  #  "   1(1)   4350.934   4236.821   60.22482556   56.53615267"
+  if (/^\s*(\d+)\((\d+)\)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$/) {
+    push(@rowlabels, "$1-h$3");
+    push(@freqs,  $4);
+    push(@intens, $6);
+  } elsif (/^\s*$/) {
+    #  a blank line separates the fundamentals from the overtones; keep
+    #  reading rather than stopping, because the header scan above may
+    #  have landed on a blank line first
+    last if (@freqs);
+  } elsif (@freqs) {
+    last;
+  }
+}
+
+exit(0) if (! @freqs);
+
+my $n = scalar(@freqs);
+
+print "key: ANHARMFREQ\n";
+print "size:\n$n\n";
+print "rowlabels:\n";
+print join(" ", @rowlabels), "\n";
+print "values:\n";
+print join(" ", @freqs), "\n";
+print "units:\ncm-1\n";
+print "END\n";
+
+print "key: ANHARMIR\n";
+print "size:\n$n\n";
+print "rowlabels:\n";
+print join(" ", @rowlabels), "\n";
+print "values:\n";
+print join(" ", @intens), "\n";
+print "units:\nKM/Mole\n";
+print "END\n";
+
+exit(0);

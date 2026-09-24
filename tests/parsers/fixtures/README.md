@@ -68,6 +68,42 @@ Before the fix it produced no vibrational data at all.
 Pinned values: VIBFREQ 2600.5673, VIBIR 38.4596, VIBRAM 5.7433, VIBSYM SG,
 VIB row labels `1-C 2-O`.
 
+### `h2o_anharm.log` + `h2o_anharm.gjf`
+Water, B3LYP/STO-3G, `Freq=(Raman,Anharmonic,HPModes)`.  ECCE runtype
+**Vibration**, theory category DFT.  Gaussian 16 Rev. C.01 at
+`/opt/gaussian/g16`, run 2026-09-24.  One job for the three Freq= options
+issue #110 added to the Runtype Details dialog:
+
+    %chk=h2o_anharm.chk
+    #p B3LYP/STO-3G Freq=(Raman,Anharmonic,HPModes)
+
+    water anharmonic raman high-precision modes test
+
+    0 1
+    O   0.000000   0.000000   0.117300
+    H   0.000000   0.757200  -0.469200
+    H   0.000000  -0.757200  -0.469200
+
+Exercises:
+
+* **VIBRAM from a DFT job**, which only exists because `Freq=Raman` was
+  asked for -- Gaussian computes Raman activities by default for HF but
+  not for DFT, so before #110 that long-parsed property was never
+  produced for the methods most people use.
+* **the HPModes regression**: `Freq=HPModes` prints the modes twice under
+  an identical header, and `Frequency=first` fed `gaussian-16.vib` the
+  high-precision copy, whose atom rows say "Coord Atom Element" rather
+  than "Atom AN".  The block scan ran on into the second copy and matched
+  its `Frequencies --` line as well, so VIBFREQ came out with SIX values
+  against three row labels.  Silently wrong, not missing.
+* **the new `[ANHARMFREQ][ANHARMIR]` entry** (`gaussian-16.anharm`), read
+  from the "Anharmonic Infrared Spectroscopy / Fundamental Bands" table.
+
+It is the largest fixture in the tree (~225 KB) because an anharmonic job
+prints its whole potential-energy-surface derivation.  Water is already
+the smallest molecule that has one, and `#P` is kept because that is what
+ECCE generates.
+
 ### `oh_uhf.log` + `oh_uhf.gjf`
 OH radical, UHF/STO-3G single point with `Pop=Full`, doublet.  ECCE runtype
 **Energy**, open shells 1.  Exercises the alpha/beta orbital path

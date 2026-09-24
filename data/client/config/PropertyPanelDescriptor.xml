@@ -279,6 +279,25 @@
     <property name="HEXPOLE"/>
   </PropertyPanel>
 
+  <!-- Gaussian Freq=Anharmonic, offered by the Runtype Details dialog since
+       issue #110.  The harmonic modes keep their own NModePanel; these are
+       the second-order perturbative fundamentals, one value per mode, and a
+       two-column table is all they need.  Without these two entries the
+       keys would be extracted and never displayed anywhere. -->
+  <PropertyPanel>
+    <name>Anharmonic Frequencies</name>
+    <class>DefaultVecPanel</class>
+    <consumer>true</consumer>
+    <property name="ANHARMFREQ"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Anharmonic IR Intensities</name>
+    <class>DefaultVecPanel</class>
+    <consumer>true</consumer>
+    <property name="ANHARMIR"/>
+  </PropertyPanel>
+
 
   <PropertyPanel>
     <name>Partial Charges</name>
