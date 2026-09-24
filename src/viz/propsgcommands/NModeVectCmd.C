@@ -93,8 +93,21 @@ bool NModeVectCmd::execute()
       // last request to decide what to do.
       // Instead, use the incoming Amplitude value to decide.
       // If its -1.0, compute the factor.  Otherwise, use what is provided.
+
+      //  A NORMAL MODE CAN LEGITIMATELY BE ALL ZEROS.
+      //
+      //  ORCA writes the six translational and rotational modes as exact
+      //  zero vectors, and they are modes 1-6 -- the ones a panel selects
+      //  first.  maxnorm is then 0, the scale becomes an infinity, and
+      //  every displaced coordinate is 0*inf = NaN.  The molecule then
+      //  vanishes from the viewer and the atom table reads "-nan" for
+      //  every atom, with no error anywhere and before the user has
+      //  touched anything (GitHub: the 13-1-2 report).
+      //
+      //  A zero mode has no motion to show, so the right amplitude is one
+      //  that leaves the geometry exactly where it is.
       if ( factor == -1.0) {
-         scale = 1.0/maxnorm ;
+         scale = (maxnorm > 0.0) ? 1.0/maxnorm : 0.0;
       } else {
          scale = factor;
       }

@@ -59,7 +59,12 @@ bool AtomCoordVecCmd::getDisplacements(vector<double*>& displacements,
                maxnorm = norm ;
             }
          }
-         p_preferredScaleFactor = log10(1.0/maxnorm);
+         //  An all-zero vector table -- see the note in NModeTraceCmd,
+         //  which is the same division and was reached first.  log10 of
+         //  an infinity is an infinity, and it is then multiplied into
+         //  every displacement.
+         p_preferredScaleFactor =
+            (maxnorm > 0.0) ? log10(1.0/maxnorm) : 0.0;
       }
 
       // Get the displacements from the PropTable, with preferred sign multiplier
