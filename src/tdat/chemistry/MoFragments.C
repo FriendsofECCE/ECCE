@@ -761,6 +761,43 @@ static void buildSigmaColumn(const vector<int>& attachments,
    //  is below the metal's valence orbitals, which is the one thing
    //  about its height that matters.
    addLevels(table, multiplicity, -13.0, "sigma", 0, column.levels);
+
+   //  THE PI SET, BY SUBTRACTION.
+   //
+   //  Each ligand has two orbitals perpendicular to the metal-ligand
+   //  axis as well as the one along it, and together the three
+   //  transform as the Cartesian vectors do -- so the p-shell
+   //  reduction on the same atoms is sigma AND pi, and subtracting
+   //  the sigma piece leaves pi.  That is the trick the course uses
+   //  for nitrite's pi system, applied to a coordination sphere.
+   //
+   //  It is the whole of ligand field theory's advantage over the
+   //  electrostatic picture: six sigma donors span a1g + eg + t1u
+   //  and leave t2g with no partner, but the pi set contains a t2g,
+   //  so t2g stops being non-bonding the moment the ligands have pi
+   //  orbitals -- and which way it moves, down for a pi donor or up
+   //  for a pi acceptor, is what orders the spectrochemical series.
+   //
+   //  Drawn empty.  Whether a ligand's pi orbitals are filled
+   //  (halide, a pi donor) or empty (CO and cyanide, pi acceptors,
+   //  where it is pi* that matters) is a property of the ligand and
+   //  cannot be read off the geometry.  Saying so is better than
+   //  guessing, and the symmetry -- which is what the diagram is
+   //  for -- is the same either way.
+   vector<int> withPi;
+   if (shellIrreps(attachments, 1, numAtoms, images, classOfOp, ops,
+                   table, withPi) &&
+       withPi.size() == multiplicity.size()) {
+
+      vector<int> pi(withPi.size(), 0);
+      bool any = false;
+      for (size_t i = 0; i < withPi.size(); i++) {
+         pi[i] = withPi[i] - multiplicity[i];
+         if (pi[i] < 0) pi[i] = 0;          // should not happen; do not lie
+         if (pi[i] > 0) any = true;
+      }
+      if (any) addLevels(table, pi, -11.0, "pi", 1, column.levels);
+   }
 }
 
 
@@ -909,6 +946,44 @@ static void buildColumn(const vector<int>& atoms,
       }
    }
 }
+
+bool MoFragments::coordinationSkeleton(const vector<double>& coords,
+                                       const vector<string>& elements,
+                                       vector<int>& keep)
+{
+   keep.clear();
+   if (elements.size() < 3 || coords.size() != 3*elements.size()) {
+      return false;
+   }
+
+   int hub = -1, most = 1;
+   for (size_t i = 0; i < elements.size(); i++) {
+      vector<int> others;
+      for (size_t j = 0; j < elements.size(); j++) {
+         if (j != i) others.push_back((int)j);
+      }
+      vector<int> near;
+      bondedTo((int)i, others, coords, near);
+      if ((int)near.size() > most) { most = (int)near.size(); hub = (int)i; }
+   }
+   if (hub < 0) return false;
+
+   double unused;
+   if (!valenceEnergy(elements[hub], 2, unused)) return false;   // no metal
+
+   vector<int> others;
+   for (size_t j = 0; j < elements.size(); j++) {
+      if ((int)j != hub) others.push_back((int)j);
+   }
+   vector<int> near;
+   bondedTo(hub, others, coords, near);
+   if (near.size() < 2 || near.size() >= others.size()) return false;
+
+   keep.push_back(hub);
+   for (size_t k = 0; k < near.size(); k++) keep.push_back(near[k]);
+   return true;
+}
+
 
 bool MoFragments::linearGroupName(const vector<double>& coords,
                                   const vector<string>& elements,
@@ -1199,6 +1274,61 @@ bool MoFragments::build(const vector<double>& coords,
             }
          }
 
+         //  TWO ORBITS ARE ALREADY TWO FRAGMENTS.
+         //
+         //  Ethene has two: the carbons and the hydrogens.  Neither
+         //  is a central atom, so partition() refuses -- and yet the
+         //  split is right there, and both halves are unions of whole
+         //  orbits, so the group maps each onto itself and both have
+         //  symmetry orbitals.  The C2 unit against the four
+         //  hydrogens is how the sigma framework is built up.
+         //
+         //  Not a substitute for combining two CH2 fragments, which
+         //  is a different and better diagram for this molecule and
+         //  needs a subgroup; it is what can be done without one.
+         if (orbits.size() == 2 && best < 0) {
+            leftSet  = orbits[0];
+            rightSet = orbits[1];
+
+            //  The heavier set on the left, where a central atom
+            //  would be: a diagram reads outward from the middle.
+            double leftMass = 0.0, rightMass = 0.0;
+            for (size_t i = 0; i < leftSet.size(); i++) {
+               leftMass += valenceElectrons(elementsUsed[leftSet[i]]);
+            }
+            for (size_t i = 0; i < rightSet.size(); i++) {
+               rightMass += valenceElectrons(elementsUsed[rightSet[i]]);
+            }
+            if (rightMass > leftMass) leftSet.swap(rightSet);
+
+            ostringstream said;
+            said << "Drawn as its two sets of equivalent atoms. This "
+                    "molecule has no central atom, so there is no "
+                    "central-atom diagram; combining fragments of it "
+                    "instead needs a subgroup and a choice.";
+            note = said.str();
+
+            if (leftAtoms  != 0) *leftAtoms  = leftSet;
+            if (rightAtoms != 0) *rightAtoms = rightSet;
+
+            buildColumn(leftSet, elementsUsed, coordsUsed, numAtoms, images,
+                        classOfOp, ops, *table, false, left);
+            buildColumn(rightSet, elementsUsed, coordsUsed, numAtoms, images,
+                        classOfOp, ops, *table, false, right);
+
+            int le = 0, re = 0;
+            for (size_t i = 0; i < leftSet.size(); i++) {
+               le += valenceElectrons(elementsUsed[leftSet[i]]);
+            }
+            for (size_t i = 0; i < rightSet.size(); i++) {
+               re += valenceElectrons(elementsUsed[rightSet[i]]);
+            }
+            fillColumn(left.levels,  le);
+            fillColumn(right.levels, re - charge);
+
+            return !(left.levels.empty() && right.levels.empty());
+         }
+
          if (best >= 0 && bestNeighbours > 1 && orbits.size() > 2) {
             central = best;
             terminal.clear();
@@ -1230,8 +1360,12 @@ bool MoFragments::build(const vector<double>& coords,
             //  branch returns before reaching.
             vector<int> bonded;
             bondedTo(central, rightSet, coordsUsed, bonded);
+            //  In a skeleton the ligands ARE their attachment atoms,
+            //  so the count test cannot see them -- the skeleton was
+            //  built precisely because they were molecules.
             const bool donors = bonded.size() > 1 &&
-                                bonded.size() < rightSet.size();
+                                (ligandField ||
+                                 bonded.size() < rightSet.size());
 
             if (donors) {
                buildSigmaColumn(bonded, elementsUsed, numAtoms, images,
@@ -1250,14 +1384,21 @@ bool MoFragments::build(const vector<double>& coords,
             for (size_t i = 0; i < rightSet.size(); i++) {
                rightElectrons += valenceElectrons(elementsUsed[rightSet[i]]);
             }
-            if (donors) rightElectrons = 2*(int)bonded.size();
+            //  A DONOR SET'S COUNT IS FIXED, CHARGE AND ALL.  Two
+            //  electrons per ligand is what "dative" means, and the
+            //  ligands' own charges are already inside that: six
+            //  cyanides donate twelve electrons, not fifteen.
+            //  Adding the complex's charge on top spilled three into
+            //  the pi set, which is meant to be drawn empty.
+            if (donors) { rightElectrons = 2*(int)bonded.size(); }
             bool metal = false;
             double unused;
             if (charge > 0 && valenceEnergy(elementsUsed[central], 2, unused)) {
                metal = true;
             }
             fillColumn(left.levels,  leftElectrons  - (metal ? charge : 0));
-            fillColumn(right.levels, rightElectrons - (metal ? 0 : charge));
+            fillColumn(right.levels, rightElectrons
+                                     - ((metal || donors) ? 0 : charge));
 
             return !(left.levels.empty() && right.levels.empty());
          }
@@ -1379,7 +1520,9 @@ bool MoFragments::build(const vector<double>& coords,
    if (polyatomicLigands) rightElectrons = 2*(int)attachments.size();
 
    fillColumn(left.levels,  leftElectrons  - (chargeOnLeft ? charge : 0));
-   fillColumn(right.levels, rightElectrons - (chargeOnLeft ? 0 : charge));
+   fillColumn(right.levels, rightElectrons
+                            - ((chargeOnLeft || polyatomicLigands)
+                                   ? 0 : charge));
 
    if (left.levels.empty() && right.levels.empty()) {
       note = "No valence orbital energies for " + elementsUsed[leftSet[0]] +

@@ -423,6 +423,48 @@ void MoDiagramPanel::build()
       why = "The symmetry search could not be run.";
     }
 
+    //  A COMPLEX IS CLASSIFIED BY ITS SKELETON.
+    //
+    //  Hexammine cobalt's donor set is a perfect octahedron and the
+    //  complex is not, because six ammonia rotors cannot all be: a
+    //  whole-molecule search returns C1 and the diagram comes out
+    //  with no symmetry at all.  What a ligand field diagram
+    //  classifies is the metal and the atoms bonded to it, which is
+    //  why the course draws the thing in Oh.  So where there is a
+    //  skeleton, the symmetry search runs on that.
+    {
+      vector<double> allCoords;
+      vector<string> allElements;
+      double *probeXyz = probe.coordinates();
+      if (probeXyz != 0) {
+        for (unsigned long a = 0; a < probe.numAtoms(); a++) {
+          TAtm *atom = probe.atomRef((int)a);
+          if (atom == 0) { allElements.clear(); break; }
+          allElements.push_back(atom->atomicSymbol());
+          for (int k = 0; k < 3; k++) allCoords.push_back(probeXyz[3*a + k]);
+        }
+      }
+
+      vector<int> skeleton;
+      if (!allElements.empty() &&
+          MoFragments::coordinationSkeleton(allCoords, allElements,
+                                            skeleton)) {
+        Fragment bare;
+        for (size_t k = 0; k < skeleton.size(); k++) {
+          const int a = skeleton[k];
+          const double xyz[3] = { allCoords[3*a], allCoords[3*a + 1],
+                                  allCoords[3*a + 2] };
+          bare.addAtom(allElements[a], xyz);
+        }
+        try {
+          const string skeletonGroup = SymmetryOps::find(bare, 0.01);
+          if (!skeletonGroup.empty()) group = skeletonGroup;
+        } catch (...) {
+          //  Keep the whole-molecule answer; it is no worse than it was.
+        }
+      }
+    }
+
     double *xyz = probe.coordinates();
     if (xyz != 0) {
       for (unsigned long a = 0; a < probe.numAtoms(); a++) {

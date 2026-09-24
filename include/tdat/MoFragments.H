@@ -233,6 +233,24 @@ class MoFragments
      * Returns "DINFH" or "CINFV" in name, for display only: pass the
      * generator's own name to everything that computes.
      */
+    /**
+     * The coordination skeleton: a metal and the atoms bonded to it.
+     *
+     * Empty unless this really is a complex with polyatomic ligands.
+     *
+     * A CALLER MUST SEARCH SYMMETRY ON THIS, NOT ON THE MOLECULE.
+     * Hexammine cobalt's donor set is a perfect octahedron and the
+     * complex is not -- six ammonia rotors cannot all be -- so a
+     * whole-molecule search returns C1 and the diagram is drawn in
+     * no symmetry at all.  What a ligand field diagram classifies is
+     * the skeleton, which is why every course draws the thing in Oh.
+     *
+     * @param keep  indices into elements, central atom first
+     */
+    static bool coordinationSkeleton(const vector<double>& coords,
+                                     const vector<string>& elements,
+                                     vector<int>& keep);
+
     static bool linearGroupName(const vector<double>& coords,
                                 const vector<string>& elements,
                                 string& name);

@@ -1149,31 +1149,53 @@ int main(int argc, char** argv) {
       //  ligand is.  Not the nitrogens' 2s and 2p: a diagram built
       //  from every atomic orbital on twenty-four atoms is correct
       //  and unreadable.
-      int donors = 0;
+      int donors = 0, piOrbitals = 0;
       double electrons = 0.0;
-      bool sigma = true, hasT2g = false;
-      map<string,int> span;
+      bool named = true, sigmaHasT2g = false;
+      map<string,int> sigmaSpan, piSpan;
       for (size_t i = 0; i < right.levels.size(); i++) {
-        donors += right.levels[i].degeneracy;
-        electrons += right.levels[i].occupancy;
-        span[right.levels[i].irrep] += right.levels[i].degeneracy;
-        if (right.levels[i].label.find("sigma") == string::npos) sigma = false;
-        if (right.levels[i].irrep == "T2G") hasT2g = true;
+        const MoLevel& level = right.levels[i];
+        electrons += level.occupancy;
+
+        if (level.label.find("sigma") != string::npos) {
+          donors += level.degeneracy;
+          sigmaSpan[level.irrep] += level.degeneracy;
+          if (level.irrep == "T2G") sigmaHasT2g = true;
+        } else if (level.label.find("pi") != string::npos) {
+          piOrbitals += level.degeneracy;
+          piSpan[level.irrep] += level.degeneracy;
+        } else {
+          named = false;
+        }
       }
 
-      printf("  %-46s %s\n", "the ligands are sigma donors, not their basis",
-             (sigma && donors == 6) ? "ok" : "FAIL");
-      if (!(sigma && donors == 6)) bad++;
+      printf("  %-46s %s\n", "the ligands are donors, not their basis",
+             (named && donors == 6) ? "ok" : "FAIL");
+      if (!(named && donors == 6)) bad++;
 
-      const bool gamma = (span["A1G"] == 1 && span["EG"] == 2 &&
-                          span["T1U"] == 3 && span.size() == 3);
-      printf("  %-46s %s\n", "and they span a1g + eg + t1u",
+      const bool gamma = (sigmaSpan["A1G"] == 1 && sigmaSpan["EG"] == 2 &&
+                          sigmaSpan["T1U"] == 3 && sigmaSpan.size() == 3);
+      printf("  %-46s %s\n", "sigma spans a1g + eg + t1u",
              gamma ? "ok" : "FAIL");
       if (!gamma) bad++;
 
-      printf("  %-46s %s\n", "t2g has no partner in the donor set",
-             !hasT2g ? "ok" : "FAIL");
-      if (hasT2g) bad++;
+      printf("  %-46s %s\n", "t2g has no partner among the sigma donors",
+             !sigmaHasT2g ? "ok" : "FAIL");
+      if (sigmaHasT2g) bad++;
+
+      //  AND THE PI SET IS WHERE t2g FINDS ONE.  Twelve orbitals
+      //  perpendicular to the six bonds span t1g + t2g + t1u + t2u,
+      //  obtained by subtracting sigma from the p-shell reduction --
+      //  the same trick the course uses on nitrite.  The t2g in it
+      //  is why t2g stops being non-bonding once the ligands have pi
+      //  orbitals at all, and which way it moves is what orders the
+      //  spectrochemical series.
+      const bool gammaPi = (piSpan["T1G"] == 3 && piSpan["T2G"] == 3 &&
+                            piSpan["T1U"] == 3 && piSpan["T2U"] == 3 &&
+                            piOrbitals == 12);
+      printf("  %-46s %s\n", "pi spans t1g + t2g + t1u + t2u",
+             gammaPi ? "ok" : "FAIL");
+      if (!gammaPi) bad++;
 
       //  A donor brings a pair: twelve electrons fill the bonding set
       //  before any of the metal's own.
