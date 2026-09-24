@@ -332,7 +332,17 @@ void MoDiagramPanel::build()
   MoDiagram::group(e, o, s, 1.0e-4, centre.levels);
   centre.title = "Molecular orbitals";
 
+  //  Both ends of the spectrum are folded away, not just the core.
+  //  "We don't need all virtual orbitals, just the bonding and
+  //  anti-bonding ones" -- and a def2-SVP calculation on a small
+  //  molecule carries four or five times as many virtuals as occupied
+  //  orbitals, nearly all of them basis-set artefacts rather than
+  //  chemistry.  Both cutoffs are suggested from the spectrum itself
+  //  and both report what they hid, so the reader can see that
+  //  something was left out.
   MoDiagram::hideBelow(centre, MoDiagram::suggestCoreCutoff(centre.levels));
+  MoDiagram::hideAbove(centre,
+                       MoDiagram::suggestVirtualCutoff(centre.levels));
 
   ostringstream note;
   if (s.empty()) {
