@@ -705,7 +705,7 @@ set(ECCE_GUI_APPS
   passdialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
   load_tgbs ecmd eccejobmaster eccejobstore
-  autosym getfrag genmol genmollat cleansym)
+  autosym getfrag genmol genmollat cleansym symops)
 
 install(TARGETS ${ECCE_GUI_APPS} ${ECCE_CLI_APPS} RUNTIME DESTINATION bin)
 if(EXISTS ${CMAKE_SOURCE_DIR}/data)
