@@ -18,7 +18,9 @@
 #ifndef ECCE_HH
 #define ECCE_HH
 
+#include <cstdlib>
 #include <string>
+#include <unistd.h>
 using std::string;
 
 
@@ -50,7 +52,21 @@ class Ecce
       static const char*  ecceDataControllersPath();
 
       // Full path to a helper program in $ECCE_HOME/bin.
-      static string       ecceBinCommand(const string& name);
+      //
+      // INLINE ON PURPOSE.  MoFragments.C uses it and is compiled
+      // standalone by tests/symmetry, which has no util library to
+      // link against -- an out-of-line definition here put the whole
+      // of Ecce.C, and everything it drags in, on that test's link
+      // line.  It is getenv and access; there is nothing to hide.
+      static string ecceBinCommand(const string& name)
+      {
+        const char* home = getenv("ECCE_HOME");
+        if (home == (const char*)0 || *home == '\0') return name;
+
+        string path = string(home) + "/bin/" + name;
+        if (access(path.c_str(), X_OK) == 0) return path;
+        return name;
+      }
 
       // site_runtime settings that can't be overriden
       static bool   ecceAutoAccounts();

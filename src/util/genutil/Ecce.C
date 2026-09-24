@@ -224,16 +224,6 @@ const char* Ecce::ecceDataControllersPath(void)
 //  Falls back to the bare name rather than asserting, so a developer
 //  with the helpers on PATH still works and an unset ECCE_HOME degrades
 //  to the old behavior instead of taking the application down.
-string Ecce::ecceBinCommand(const string& name)
-{
-  const char* home = getenv(Ecce::ecceHomeVar);
-  if (home == (const char*)0 || *home == '\0') return name;
-
-  string path = string(home) + "/bin/" + name;
-  if (access(path.c_str(), X_OK) == 0) return path;
-  return name;
-}
-
 bool Ecce::ecceAutoAccounts(void)
 {
   string path;
