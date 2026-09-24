@@ -1211,6 +1211,92 @@ int main(int argc, char** argv) {
     }
   }
 
+  //  --- two halves, combined ------------------------------------------
+  //
+  //  Ethene as two CH2 groups: the fragmentation the molecule is
+  //  taught with, and the one that cannot be expressed by grouping
+  //  orbits, because in D2h the orbits are "both carbons" and "all
+  //  four hydrogens" and a CH2 crosses them both.
+  {
+    printf("\n  Two halves\n");
+
+    const double c[] = {
+       0.000,  0.000,  0.665,     0.000,  0.000, -0.665,
+       0.000,  0.923,  1.239,     0.000, -0.923,  1.239,
+       0.000,  0.923, -1.239,     0.000, -0.923, -1.239 };
+    vector<double> coords(c, c + 18);
+    const char* e[] = { "C", "C", "H", "H", "H", "H" };
+    vector<string> elements(e, e + 6);
+
+    MoColumn left, right;
+    string note;
+    const bool built = MoFragments::build(coords, elements, "D2H", 0,
+                                          left, right, note);
+    printf("  %-46s %s\n", "C2H4: built from two halves",
+           built ? "ok" : ("FAIL: " + note).c_str());
+    if (!built) bad++;
+    else {
+      //  Each half is analysed in its own group, which is the one a
+      //  person uses for a CH2 without thinking about where it came
+      //  from.
+      const bool local = (left.title.find("C2V") != string::npos ||
+                          left.title.find("C2v") != string::npos);
+      printf("  %-46s %s  (%s)\n", "each half is analysed in C2v",
+             local ? "ok" : "FAIL", left.title.c_str());
+      if (!local) bad++;
+
+      //  The two columns are the two combinations, so they hold the
+      //  same number of levels and the same local labels.
+      printf("  %-46s %s\n", "in phase and out of phase, one each",
+             left.levels.size() == right.levels.size() ? "ok" : "FAIL");
+      if (left.levels.size() != right.levels.size()) bad++;
+
+      //  Every level carries a D2h irrep, not a C2v one: the local
+      //  label says what the fragment orbital is, the irrep says what
+      //  the combination became, and the correlation lines need the
+      //  latter.
+      bool full = !left.levels.empty();
+      for (size_t i = 0; i < left.levels.size(); i++) {
+        const string& r = left.levels[i].irrep;
+        if (r != "AG" && r != "B1G" && r != "B2G" && r != "B3G" &&
+            r != "AU" && r != "B1U" && r != "B2U" && r != "B3U") {
+          full = false;
+        }
+      }
+      printf("  %-46s %s\n", "and every combination carries a D2h irrep",
+             full ? "ok" : "FAIL");
+      if (!full) bad++;
+
+      //  THE CHECK THAT IS NOT CIRCULAR.  Ethene's pi orbital is
+      //  b3u -- which a calculation says independently, and which
+      //  MOPAC gives as the HOMO of this molecule.  It has to be one
+      //  of the combinations of the carbon p orbital perpendicular to
+      //  the CH2 plane, and the induced representation is what has to
+      //  produce it.
+      bool piFound = false;
+      for (size_t i = 0; i < right.levels.size(); i++) {
+        if (right.levels[i].irrep == "B3U" &&
+            right.levels[i].label.find("2p") != string::npos) {
+          piFound = true;
+        }
+      }
+      printf("  %-46s %s\n", "a carbon 2p combination gives b3u, the pi",
+             piFound ? "ok" : "FAIL");
+      if (!piFound) bad++;
+
+      //  Twelve valence electrons, divided between the two
+      //  combinations.
+      double total = 0.0;
+      for (size_t i = 0; i < left.levels.size(); i++) {
+        total += left.levels[i].occupancy;
+      }
+      for (size_t i = 0; i < right.levels.size(); i++) {
+        total += right.levels[i].occupancy;
+      }
+      checkd("and all twelve valence electrons", total, 12.0, 1e-9);
+    }
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }

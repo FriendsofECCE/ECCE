@@ -1133,7 +1133,12 @@ static bool buildHalves(const vector<double>& coords,
                   MoLevel level;
                   level.energy     = eV;
                   level.shell      = l;
-                  level.irrep      = produced[k];
+                  //  CANONICAL, like every other irrep in the model.
+                  //  The character table spells it "Ag"; everything
+                  //  that matches on an irrep compares the uppercased
+                  //  form, so storing the table's spelling here made
+                  //  the correlation silently find nothing.
+                  level.irrep      = MoDiagram::canonicalIrrep(produced[k]);
                   level.degeneracy = full.dimension(produced[k]);
 
                   ostringstream name;

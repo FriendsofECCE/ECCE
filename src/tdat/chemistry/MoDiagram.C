@@ -1258,6 +1258,35 @@ void MoDiagram::connect(const vector<MoLevel>& left,
     //  every orbital by symmetry, so ethene drew a hundred and two
     //  lines and nothing could be read.  Two is enough for mixing to
     //  show and few enough to follow.
+    //  COMPARED ON EACH COLUMN'S OWN SCALE.
+    //
+    //  connect() runs BEFORE placeFragments(), so a fragment level
+    //  still carries its tabulated energy in eV while the molecular
+    //  orbitals are in Hartree.  Ranking by the raw difference then
+    //  ranks by magnitude alone: ethene's carbon 2s at -19.4 was
+    //  never "nearest" to anything and drew no lines at all, while
+    //  its 2p at -10.7 drew eight.  Both columns are mapped onto
+    //  nought-to-one first, which is scale-free and is what "nearest"
+    //  was meant to mean.
+    double lowLeft = 1.0e30, highLeft = -1.0e30;
+    for (size_t i = 0; i < left.size(); i++) {
+      if (left[i].energy < lowLeft)  lowLeft = left[i].energy;
+      if (left[i].energy > highLeft) highLeft = left[i].energy;
+    }
+    double lowRight = 1.0e30, highRight = -1.0e30;
+    for (size_t i = 0; i < right.size(); i++) {
+      if (right[i].energy < lowRight)  lowRight = right[i].energy;
+      if (right[i].energy > highRight) highRight = right[i].energy;
+    }
+    double lowMo = 1.0e30, highMo = -1.0e30;
+    for (size_t i = 0; i < centre.size(); i++) {
+      if (centre[i].energy < lowMo)  lowMo = centre[i].energy;
+      if (centre[i].energy > highMo) highMo = centre[i].energy;
+    }
+
+    const double mo = (highMo > lowMo)
+        ? (centre[c].energy - lowMo)/(highMo - lowMo) : 0.0;
+
     vector< std::pair<double,size_t> > leftNear, rightNear;
 
     for (size_t l = 0; l < left.size(); l++) {
@@ -1271,8 +1300,9 @@ void MoDiagram::connect(const vector<MoLevel>& left,
         continue;
       }
       if (bySymmetry && !onLeft) continue;
-      leftNear.push_back(std::make_pair(
-          fabs(left[l].energy - centre[c].energy), l));
+      const double where = (highLeft > lowLeft)
+          ? (left[l].energy - lowLeft)/(highLeft - lowLeft) : 0.0;
+      leftNear.push_back(std::make_pair(fabs(where - mo), l));
     }
 
     std::sort(leftNear.begin(), leftNear.end());
@@ -1293,8 +1323,9 @@ void MoDiagram::connect(const vector<MoLevel>& left,
         continue;
       }
       if (bySymmetry && !onRight) continue;
-      rightNear.push_back(std::make_pair(
-          fabs(right[r].energy - centre[c].energy), r));
+      const double where = (highRight > lowRight)
+          ? (right[r].energy - lowRight)/(highRight - lowRight) : 0.0;
+      rightNear.push_back(std::make_pair(fabs(where - mo), r));
     }
 
     std::sort(rightNear.begin(), rightNear.end());
