@@ -26,6 +26,46 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 OUT = os.path.join(HERE, "testSlaterExpansion")
 
 
+#  The round-trip test needs the built libraries, because its whole point
+#  is that ECCE's own importConfig accepts the text -- a reimplementation
+#  of that parser here would agree with itself and prove nothing.
+BUILD = os.environ.get("ECCE_TEST_BUILD", os.path.join(ROOT, "build-cmake"))
+LIBS = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
+        "ecceutil", "eccecomm", "eccecipc", "ecceexp", "eccercmd"]
+
+
+def roundTrip():
+    """Does ICalcUtils::importConfig() accept the generated basis?"""
+    if not os.path.isdir(BUILD):
+        print("  skipped: no build tree at %s" % BUILD)
+        print("  (the round-trip needs ECCE's own basis parser)")
+        return 0
+
+    out = os.path.join(HERE, "testSlaterBasisSet")
+    cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
+            "-o", out,
+            os.path.join(HERE, "testSlaterBasisSet.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/SlaterBasisSet.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/SlaterExpansion.C"),
+            "-L" + BUILD]
+           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c"])
+    build = subprocess.run(cmd, capture_output=True, text=True)
+    if build.returncode != 0:
+        print("  skipped: could not link against the build tree")
+        print("  " + build.stderr.strip().splitlines()[-1])
+        return 0
+
+    env = dict(os.environ)
+    env.setdefault("ECCE_HOME", "/opt/ecce")
+    env.setdefault("ECCE_REALUSERHOME", os.path.expanduser("~"))
+    run = subprocess.run([out], capture_output=True, text=True, env=env)
+    print(run.stdout, end="")
+    if run.stderr:
+        print(run.stderr, end="")
+    os.unlink(out)
+    return run.returncode
+
+
 def main():
     src = [os.path.join(HERE, "testSlaterExpansion.C"),
            os.path.join(ROOT, "src/tdat/chemistry/SlaterExpansion.C")]
@@ -42,7 +82,11 @@ def main():
     if run.stderr:
         print(run.stderr, end="")
     os.unlink(OUT)
-    return run.returncode
+    if run.returncode != 0:
+        return run.returncode
+
+    print("")
+    return roundTrip()
 
 
 if __name__ == "__main__":

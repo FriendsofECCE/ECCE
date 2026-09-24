@@ -33,9 +33,21 @@
 #
 # The atom count on line 1 gives the size of BOTH leading blocks: one
 # coordinate line and one exponent line per atom.  The exponent lines are
-# the Slater exponents of the valence basis, which is what a future
-# 3-D orbital renderer would need; nothing reads them yet, so they are
-# deliberately not emitted as a property rather than shipped unused.
+# the Slater exponents of the valence basis; they are emitted as
+# SLATERBASIS so the 3-D orbital renderer can rebuild the basis (#128).
+#
+# THE COEFFICIENTS ARE NOT IN THE ATOMIC ORBITAL BASIS.  MOPAC writes them
+# in its own orthonormalised (Lowdin) basis -- every column has sum(c^2)
+# exactly 1, which is the tell -- so feeding them straight to a renderer
+# that evaluates Slater or Gaussian AOs draws the wrong shape while still
+# looking like a plausible orbital.  The file carries its own S^(-1/2) as
+# the INVERSE_MATRIX block, and the back-transformation is
+#
+#       C_AO = S^(-1/2) C_Lowdin
+#
+# Verified rather than assumed: after transforming, C' S C is the identity
+# to 9.4e-09, while the opposite direction is wrong by 0.8.  See
+# tools/mopac/verify_expansion_vs_mopac.py.
 #
 # Energies are eV here and Hartree in ECCE (MoPanel hard-codes the column
 # label), so they are converted.
@@ -65,6 +77,16 @@ exit(0) if ($natoms <= 0);
 #  basis functions is not stated anywhere, so it is taken from the
 #  coefficient count of the first orbital instead.
 my $idx = 1 + 2 * $natoms;
+
+#  Atomic number from the coordinate lines, Slater exponents from the
+#  exponent lines that follow them.
+my (@atomicNumber, @zeta);
+for my $a (0 .. $natoms - 1) {
+  my @c = split(' ', $lines[1 + $a]);
+  push(@atomicNumber, $c[0]);
+  my @z = split(' ', $lines[1 + $natoms + $a]);
+  push(@zeta, [ @z[0 .. 2] ]);
+}
 
 my (@occ, @eng, @sym, @coeff);
 while ($idx <= $#lines) {
@@ -124,6 +146,47 @@ foreach my $c (@coeff) {
 #  the basis size means both are present.
 my $half = ($nmo == 2 * $nbas) ? $nbas : $nmo;
 
+#  Back-transform out of MOPAC's orthonormalised basis.  The block is a
+#  lower triangle, row by row.  Left alone if it is absent or the wrong
+#  size: a wrong transform is worse than none, and the untransformed
+#  coefficients still carry the energies and occupancies.
+my @sinvhalf;
+my $inInverse = 0;
+my @tri;
+foreach my $line (@lines) {
+  if ($line =~ /INVERSE_MATRIX\[(\d+)x(\d+)\]/) {
+    $inInverse = ($1 == $nbas && $2 == $nbas);
+    next;
+  }
+  next if (!$inInverse);
+  last if ($line =~ /^\s*Keywords:/);
+  while ($line =~ /(-?\d*\.\d+[DdEe][-+]?\d+)/g) {
+    my $v = $1;
+    $v =~ s/[Dd]/e/;
+    push(@tri, $v + 0);
+  }
+}
+
+if (scalar(@tri) == $nbas * ($nbas + 1) / 2) {
+  my $k = 0;
+  for my $i (0 .. $nbas - 1) {
+    for my $j (0 .. $i) {
+      $sinvhalf[$i][$j] = $tri[$k];
+      $sinvhalf[$j][$i] = $tri[$k];
+      $k++;
+    }
+  }
+  foreach my $row (@coeff) {
+    my @out;
+    for my $i (0 .. $nbas - 1) {
+      my $sum = 0;
+      for my $j (0 .. $nbas - 1) { $sum += $sinvhalf[$i][$j] * $row->[$j]; }
+      push(@out, $sum);
+    }
+    @$row = @out;
+  }
+}
+
 sub emitSet {
   my ($from, $count, $moKey, $engKey, $occKey, $symKey) = @_;
   return if ($count <= 0);
@@ -170,6 +233,20 @@ sub emitSet {
   }
   print "END\n";
 }
+
+#  The Slater basis, for the renderer.  One row per atom: atomic number
+#  then the s, p and d exponents, zero where the shell is absent.
+print "key: SLATERBASIS\n";
+print "size:\n$natoms 4\n";
+print "rowlabels:\n";
+print " " . ($_ + 1) . " " foreach (0 .. $natoms - 1);
+print "\ncolumnlabels:\n Z Zeta-s Zeta-p Zeta-d \n";
+print "values:\n";
+for my $a (0 .. $natoms - 1) {
+  printf("%d %.7f %.7f %.7f\n",
+         $atomicNumber[$a], $zeta[$a][0], $zeta[$a][1], $zeta[$a][2]);
+}
+print "END\n";
 
 &emitSet(0, $half, "MO", "ORBENG", "ORBOCC", "ORBSYM");
 &emitSet($half, $nmo - $half,

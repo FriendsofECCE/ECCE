@@ -241,6 +241,11 @@ EStruct		MO Occupations (beta)			ORBOCCBETA	Charge		PropVector<Basis Function>
 EStruct		MO Symmetries 				ORBSYM		NA		PropVecString<Basis Function>
 EStruct		MO Symmetries (beta)			ORBSYMBETA	NA		PropVecString<Basis Function>
 EStruct		One Density Matrix			DMAT1		Electrons	PropTable<Basis Function,Basis Function>
+#  The Slater exponents of a semiempirical code's valence basis, one row
+#  per atom: atomic number then the s, p and d exponents.  Not a result a
+#  user reads -- it is what lets the orbital renderer rebuild the basis a
+#  semiempirical calculation never writes one for (#128).
+EStruct		Slater Basis				SLATERBASIS	NA		PropTable<Atom,Coordinate>
 EStruct		Electronic State			ESTATE		NA		PropString
 EStruct		Gaussian CUBE				CUBE		Electrons	PropVecGrid
 EStruct		Trajectory				TRJ		NA	NA
