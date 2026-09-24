@@ -46,10 +46,17 @@ PropTSVecVector::PropTSVecVector(const PropTSVecVector& tsVecVector)
    p_rowLabel    = tsVecVector.p_rowLabel;
    p_vectorLabel = tsVecVector.p_vectorLabel;
 
+   // Each of these needs its else branch: without one the member is left
+   // holding whatever was on the heap when the source had no labels, and
+   // the destructor then deletes that.  (GitHub issue #87.)
    if (tsVecVector.p_rowLabels != 0)
       p_rowLabels = new vector<string>((*tsVecVector.p_rowLabels));
+   else
+      p_rowLabels = 0;
    if (tsVecVector.p_vecLabels != 0)
       p_vecLabels = new vector<string>((*tsVecVector.p_vecLabels));
+   else
+      p_vecLabels = 0;
 
    p_values = new vector< vector<double> >((*tsVecVector.p_values));
 }
