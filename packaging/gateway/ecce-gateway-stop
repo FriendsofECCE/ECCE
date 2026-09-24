@@ -9,8 +9,18 @@ STATEDIR="$ECCE_REALUSERHOME/.ECCE"
 DISPLAY="${DISPLAY:-:0}"
 # Per-display, matching ecce-gateway-start; see the note there.
 PIDFILE="$STATEDIR/jmsdispatcher_${DISPLAY}.pid"
-HOST="${ECCE_HOST:-$(hostname)}"
+# Prefer an inherited HOST over hostname(1): that is what the wrappers
+# export and what the C++ side reads back (DatagramUtil::loadServerPort,
+# AuthCache::sessionFile), so deriving it differently here can name a
+# file that does not exist. Same resolution order as ecce-gateway-reap.
+HOST="${ECCE_HOST:-${HOST:-$(hostname)}}"
 PORTFILE="$STATEDIR/${HOST}_${DISPLAY}"
+# The data server credential this session's processes share through
+# AuthCache::sessionFile(). It holds a password, so its lifetime is the
+# session's: same per-display key as the port file, sanitised the same
+# way the C++ side sanitises it.
+AUTHFILE="$STATEDIR/authcache_$(printf '%s_%s' "$HOST" "$DISPLAY" |
+                                tr -c 'A-Za-z0-9._-' '_')"
 
 # Stop the gateway APPLICATION first, not just the services it owns.
 #
@@ -54,6 +64,10 @@ fi
 # Pidfiles written before the per-display fix have no display in the name;
 # clean one up so it cannot be mistaken for this session's.
 rm -f "$STATEDIR/jmsdispatcher.pid"
+
+# Unconditionally, not only when there was a pidfile to stop: the session
+# is over either way and this file holds a password.
+rm -f "$AUTHFILE" "$AUTHFILE".tmp.*
 
 # The broker is shared by every display, so stopping it here would cut
 # messaging out from under a session running on another one. Hand that

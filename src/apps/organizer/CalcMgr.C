@@ -46,6 +46,7 @@ using std::endl;
 #include "util/EditEvent.H"
 #include "util/NullPointerException.H"
 
+#include "tdat/AuthCache.H"
 #include "tdat/PropTSVecTable.H"
 #include "tdat/RefMachine.H"
 
@@ -771,6 +772,12 @@ bool CalcMgr::confirmAndQuit()
     // Reported live 2026-09-22: "stops the data server, but does not
     // release the terminal". It had in fact returned; the output simply
     // raced it.
+    //
+    // The session is over, so the shared data server credential goes
+    // with it. ecce-gateway-stop removes the file too; doing it here as
+    // well means it is gone even if that script is not on PATH or
+    // resolves the session key differently than this process did.
+    AuthCache::sessionClear();
     (void)system("ecce-dataserver-stop");
     (void)system("ecce-gateway-stop");
   }
