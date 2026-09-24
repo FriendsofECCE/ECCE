@@ -12,6 +12,7 @@
 #include "util/PreferenceLabels.H"
 #include "util/NullPointerException.H"
 
+#include "dsm/ICalcUtils.H"
 #include "tdat/PropTable.H"
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
@@ -277,6 +278,19 @@ void MoPanel::updateUIOptions()
    // Make sure we have a GBSConfig.  If not we'll crash when
    // we try to compute.
    TGBSConfig *config = escalc->gbsConfig();
+
+   //  A semiempirical code never writes a basis set -- the valence basis
+   //  is implied by the Hamiltonian -- so rebuild one from the Slater
+   //  exponents it did report.  ComputeMoCmd does the same, because the
+   //  two fetch the config independently.
+   if (config == 0 || config->empty()) {
+      TGBSConfig *slater = ICalcUtils::slaterBasisConfig(expt);
+      if (slater != 0) {
+         delete config;
+         config = slater;
+      }
+   }
+
    p_isValid = (config && !config->empty());
 
    ((ewxButton*)FindWindow(ID_BUTTON_MO_COMPUTE))->Enable(p_isValid);
@@ -305,6 +319,10 @@ void MoPanel::updateUIOptions()
                                          : true;
        if (theory) delete theory;
        if (!needsBasis) {
+          //  Reaching here means the Slater rebuild above found
+          //  nothing to work from either, so this really is a code
+          //  whose orbitals cannot be drawn -- a plane-wave code, or a
+          //  semiempirical job run before its exponents were captured.
           getFW().showMessage("This code does not use basis sets, so "
                               "orbitals cannot be computed and displayed "
                               "in 3-D.  The orbital table below is still "

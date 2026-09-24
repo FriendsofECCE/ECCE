@@ -29,6 +29,13 @@ using std::endl;
 
 #include "dsm/TGBSConfig.H"
 #include "dsm/GBSRules.H"
+#include "dsm/IPropCalculation.H"
+
+#include "tdat/PropTable.H"
+#include "tdat/SlaterBasisSet.H"
+#include "tdat/TAtm.H"
+
+#include <sstream>
 
 // Static initialization;
    EDSIServerCentral central;
@@ -668,3 +675,71 @@ void ICalcUtils::importECPContractions(istream& infile,
 }
 
 
+/**
+ * The basis set implied by a semiempirical calculation.
+ *
+ * SLATERBASIS is one row per atom -- atomic number, then the s, p and d
+ * Slater exponents, zero where the shell is absent.  The basis is built
+ * per ELEMENT rather than per atom, which is what the exponents are:
+ * parameters of the Hamiltonian, identical for every atom of an element.
+ * That is asserted rather than assumed -- an element appearing twice
+ * with different exponents means this has been misread, and the right
+ * answer then is to render nothing.
+ */
+TGBSConfig* ICalcUtils::slaterBasisConfig(IPropCalculation* calc)
+{
+  if (calc == 0) return (TGBSConfig*)0;
+
+  PropTable* slater = (PropTable*)calc->getProperty("SLATERBASIS");
+  if (slater == 0) return (TGBSConfig*)0;
+
+  const int numAtoms = slater->rows();
+  if (numAtoms <= 0 || slater->columns() != 4) return (TGBSConfig*)0;
+
+  vector<SlaterBasisSet::Element> elements;
+
+  for (int a = 0; a < numAtoms; a++) {
+    SlaterBasisSet::Element el;
+    el.atomicNumber = (int)(slater->value(a, 0) + 0.5);
+    el.zetaS = slater->value(a, 1);
+    el.zetaP = slater->value(a, 2);
+    el.zetaD = slater->value(a, 3);
+
+    if (el.atomicNumber < 1) return (TGBSConfig*)0;
+
+    //  TAtm owns the element table; building one is how the symbol is
+    //  obtained without a second copy of it living here.
+    TAtm atom((short)el.atomicNumber);
+    el.symbol = atom.atomicSymbol();
+    if (el.symbol.empty()) return (TGBSConfig*)0;
+
+    bool seen = false;
+    for (size_t e = 0; e < elements.size() && !seen; e++) {
+      if (elements[e].atomicNumber != el.atomicNumber) continue;
+      seen = true;
+      if (elements[e].zetaS != el.zetaS ||
+          elements[e].zetaP != el.zetaP ||
+          elements[e].zetaD != el.zetaD) {
+        return (TGBSConfig*)0;        // same element, different exponents
+      }
+    }
+    if (!seen) elements.push_back(el);
+  }
+
+  //  Six primitives per shell: better than 1e-4 against the exact
+  //  Slater function for everything MOPAC can produce, and verified
+  //  against MOPAC's own overlap matrix.  See tests/slater.
+  string text;
+  if (!SlaterBasisSet::numericalBasis(elements, 6, text)) {
+    return (TGBSConfig*)0;
+  }
+
+  std::istringstream in(text);
+  TGBSConfig* config = importConfig(in);
+
+  if (config != 0 && config->empty()) {
+    delete config;
+    config = (TGBSConfig*)0;
+  }
+  return config;
+}

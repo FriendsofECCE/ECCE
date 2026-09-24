@@ -102,6 +102,35 @@ def expect_mopac_ch4(props, report):
     report.check(n_vals == 64,
                  'MO table has rows*columns values (got %d, want 64)' % n_vals)
 
+    #  The coefficients must have been brought out of MOPAC's own
+    #  orthonormalised (Lowdin) basis into the AO basis, or the renderer
+    #  draws the wrong shape while still looking like an orbital.  The
+    #  tell is exact: in the Lowdin basis every orbital has sum(c^2)
+    #  identically 1, and in the AO basis it does not.
+    rows = [r.split() for r in sect(mo[-1], 'values').strip().splitlines()]
+    sums = [sum(float(c)**2 for c in r) for r in rows if r]
+    untransformed = [s for s in sums if abs(s - 1.0) < 1e-6]
+    report.check(not untransformed,
+                 'MO coefficients are in the AO basis, not MOPAC\'s Lowdin '
+                 'basis (%d of %d orbitals still have sum(c^2)=1)'
+                 % (len(untransformed), len(sums)))
+
+    #  The Slater exponents, without which there is no basis to evaluate
+    #  those coefficients against and nothing can be rendered at all.
+    slater = props.get('SLATERBASIS')
+    report.check(bool(slater), 'SLATERBASIS extracted')
+    if slater:
+        size = (sect(slater[-1], 'size') or '').split()
+        report.check(size == ['5', '4'],
+                     'SLATERBASIS is one row per atom, 4 columns (got %r)'
+                     % ' '.join(size))
+        vals = sect(slater[-1], 'values').split()
+        #  Carbon first, then four hydrogens; a hydrogen has no p shell.
+        report.check(vals[:1] == ['6'],
+                     'SLATERBASIS names carbon first (got %r)' % vals[:1])
+        report.check(float(vals[3]) == 0.0,
+                     'carbon has no d exponent in PM7 (got %s)' % vals[3])
+
 
 def expect_mopac_ch4_thermo(props, report):
     """CH4, PM7 FORCE THERMO -- thermochemistry into the Energies panel."""

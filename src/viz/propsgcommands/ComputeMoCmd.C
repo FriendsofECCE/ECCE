@@ -60,6 +60,7 @@
 #include "dsm/TGBSConfig.H"
 #include "dsm/JCode.H"
 #include "dsm/CodeFactory.H"
+#include "dsm/ICalcUtils.H"
 #include "dsm/ICalculation.H"
 #include "dsm/IPropCalculation.H"
 
@@ -465,7 +466,23 @@ bool ComputeMoCmd::execute()
       // Get basis set config info for this calculation:
       //=========================================================
       TGBSConfig *gbsConfig = escalc->gbsConfig();
-      //     bool usingCartesian = gbsConfig->cartesian();
+
+      //  A semiempirical code never writes a basis set, so there is
+      //  nothing for gbsConfig() to return; rebuild one from the Slater
+      //  exponents the code did report.  Null stays null, and the guard
+      //  below then declines to render rather than rendering wrongly.
+      if (gbsConfig == (TGBSConfig *)0 || gbsConfig->empty()) {
+        TGBSConfig *slater = ICalcUtils::slaterBasisConfig(calc);
+        if (slater != (TGBSConfig *)0) {
+          delete gbsConfig;
+          gbsConfig = slater;
+        }
+      }
+
+      //  Checked here rather than at the guard further down: coordsys()
+      //  is read before it, so a missing basis used to be a null
+      //  dereference and not the clean refusal it was written to be.
+      if (gbsConfig == (TGBSConfig *)0) return false;
 
       // Assign order based on the "code dependence"
       // This is currently done by getting the angle function orders

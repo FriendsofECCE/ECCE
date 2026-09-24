@@ -31,6 +31,8 @@ class TGBSGroup;
 
 
 
+class IPropCalculation;
+
 class ICalcUtils
 {
                 
@@ -42,6 +44,22 @@ class ICalcUtils
 				TTheory* theory);
 
      static TGBSConfig* importConfig(istream& infile);
+
+     /**
+      * The basis set implied by a semiempirical calculation.
+      *
+      * A semiempirical code never writes a basis set -- the valence
+      * basis is implied by the Hamiltonian -- so gbsConfig() has
+      * nothing to return and orbitals cannot be rendered.  Where the
+      * code reported its Slater exponents (MOPAC's SLATERBASIS, from
+      * the GRAPHF file), this rebuilds an equivalent contracted
+      * Gaussian basis so the ordinary rendering path can evaluate them.
+      *
+      * @return a new config the caller owns, or null when the
+      *         calculation has no such property or it cannot be used.
+      *         Null means "do not render", never "render approximately".
+      */
+     static TGBSConfig* slaterBasisConfig(IPropCalculation* calc);
 
 
   private:

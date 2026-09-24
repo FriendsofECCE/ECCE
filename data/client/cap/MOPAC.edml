@@ -60,6 +60,38 @@
 <SupportsConstraints>false</SupportsConstraints>
 
 
+<!-- Angular momentum ordering of the molecular orbital coefficients.
+
+     MOPAC's GRAPHF file writes one s function, then px, py, pz, then
+     the five d functions in the order
+
+         x2-y2,  xz,  2z2-x2-y2,  yz,  xy
+
+     which is MOPAC's own and matches no other code in this directory.
+     The forms below are the same normalisation convention NWChem.edml
+     uses for its spherical set, reordered; only the order differs.
+
+     Verified rather than copied.  MOPAC writes its own S^(-1/2) into
+     the GRAPHF file, computed from the exact Slater functions, so
+     building the overlap matrix from these functions and inverting it
+     is an independent check of both the forms and their order.  For
+     PM7 sulfur hexafluoride, which uses all five d functions, it
+     agrees to 4.1e-03; exchanging just two of the five entries is
+     fifteen times worse, so the test does discriminate.  See
+     tools/mopac/verify_expansion_vs_mopac.py.
+
+     No cartesian block: a semiempirical code has no cartesian option.
+-->
+<SphericalCoordinates>	True </SphericalCoordinates>
+
+<MOOrdering type="spherical" >
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="xx/2-yy/2" a2="-xz" a3="-xx/2-yy/2+zz"
+    a4="yz" a5="xy"></lshell>
+</MOOrdering>
+
+
 <!-- Semiempirical Hamiltonians, R (closed-shell RHF) and U (UHF)
      variants of each, following the RAM1/UAM1 naming Gaussian-16.edml
      already uses for its own category="SE" theories.  Every name here
