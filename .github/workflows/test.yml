@@ -96,24 +96,47 @@ jobs:
   e2e:
     name: End-to-end (real code, real monitor, real parsers)
     runs-on: ubuntu-latest
+    # Debian, not the runner's Ubuntu, and deliberately.
+    #
+    # This suite exists to notice when a CODE's behaviour changes, so
+    # running it against a different distribution's build of that code
+    # reports differences that have nothing to do with ECCE.  It did:
+    # Ubuntu's quantum-espresso 6.7 aborts on this deck with a glibc
+    # FORTIFY buffer-overflow check inside pw.x, while Debian's build of
+    # the same upstream 6.7 runs it fine.  The overflow is latent in QE
+    # either way -- Ubuntu's hardening is simply stricter and catches it
+    # -- and neither the bug nor the difference is ECCE's.
+    #
+    # ECCE targets Debian, so this is also the platform whose answers
+    # matter.  Only this job moves: the others test our own Python,
+    # Perl and C++, where the distribution is not the variable.
+    container: debian:trixie
     # Bounded so a hung job cannot hold a runner slot for GitHub's
     # 6-hour default; see the concurrency note above.  Roomier than the
     # script suites because nwchem-openmpi is a large apt install; the
     # jobs themselves are seconds on these molecules.
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-
+      # BEFORE the checkout, which is not the usual order: a bare Debian
+      # image has neither git nor ca-certificates, and actions/checkout
+      # needs both.  Nothing here needs the repository.
+      #
       # MOPAC is Debian-packaged and runs a small molecule in seconds,
       # which is what makes this tier possible at all.  ORCA and
       # Gaussian cannot be installed here -- one is registration-walled,
       # the other licensed -- so they stay a developer-box tier and the
       # suite skips them by name rather than passing silently.
+      #
+      # No sudo: a container runs as root, and Debian's image has none.
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y perl python3 mopac nwchem nwchem-openmpi \
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates git perl python3 \
+            mopac nwchem nwchem-openmpi \
             quantum-espresso quantum-espresso-data-sssp gromacs
+
+      - uses: actions/checkout@v4
 
       # Declare what this job installed.  Without this a code whose
       # binary is not where the suite looks simply skips, and the job

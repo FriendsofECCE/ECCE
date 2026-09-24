@@ -124,6 +124,26 @@ conversion were dropped, and `ENTHALPY − ETHERM` must equal RT exactly.
 
 ## Codes
 
+## CI runs this on Debian, not the runner's Ubuntu
+
+The suite exists to notice when a **code's** behaviour changes, so
+running it against a different distribution's build of that code reports
+differences that have nothing to do with ECCE.
+
+It did. Ubuntu's `quantum-espresso` 6.7 aborts on the Si deck with a
+glibc FORTIFY buffer-overflow check inside `pw.x`; Debian's build of the
+same upstream 6.7 runs it. The overflow is latent in QE either way —
+Ubuntu's hardening is simply stricter and catches it — and neither the
+bug nor the difference belongs to ECCE.
+
+ECCE targets Debian, which is also the platform whose answers matter.
+Only this job moves; the others test our own Python, Perl and C++, where
+the distribution is not the variable.
+
+The apt step runs **before** the checkout, which is not the usual order:
+a bare Debian image has neither git nor ca-certificates, and
+`actions/checkout` needs both. Nothing in that step needs the repository.
+
 | Code | Tier | Notes |
 |---|---|---|
 | MOPAC | CI | Debian `mopac`; seconds per job |

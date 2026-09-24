@@ -24,6 +24,7 @@ to exactly what its apt line installs.
 
 import argparse
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -63,6 +64,38 @@ class Report(object):
 def required_codes():
     raw = os.environ.get('ECCE_E2E_REQUIRE', '')
     return set(c.strip() for c in raw.split(',') if c.strip())
+
+
+#  Lines that are the code SAYING something went wrong, as opposed to
+#  the frames it printed afterwards.
+_ERROR_LINE = re.compile(
+    r'error|fatal|abort|overflow|stack smashing|not found|no such|'
+    r'cannot|unable|%%%%|\*\*\*', re.IGNORECASE)
+
+
+def _diagnosis(text):
+    """The lines worth showing from a failed run's output.
+
+    The tail alone is the wrong choice for a crash: a Fortran code that
+    aborts prints its message FIRST and then a backtrace, so the last
+    dozen lines are all "#14 0x... in ???" and the one line naming the
+    cause has scrolled off.  That is what the first version of this did,
+    and it reported a buffer overflow as a list of hex addresses.
+
+    So: the lines that look like a diagnosis, then the tail for context.
+    """
+    lines = [l.rstrip() for l in text.splitlines() if l.strip()]
+    if not lines:
+        return ['(the code produced no output)']
+
+    said = [l for l in lines if _ERROR_LINE.search(l)][:8]
+    tail = lines[-6:]
+
+    out = list(said)
+    for l in tail:
+        if l not in out:
+            out.append(l)
+    return out
 
 
 def run_case(case, verbose, keep, required=()):
@@ -135,12 +168,11 @@ def run_case(case, verbose, keep, required=()):
                     detail = open(job_out, errors='replace').read()
                 except IOError:
                     detail = ''
-            tail = [l for l in detail.splitlines() if l.strip()][-12:]
             report.check(False,
                          'the code itself failed (exit %d) -- every property '
                          'below is missing because of that, not because of '
                          'the parsers:\n        %s'
-                         % (rc, '\n        '.join(tail)))
+                         % (rc, '\n        '.join(_diagnosis(detail))))
             return report
 
         report.check(True, 'code ran and produced output')
