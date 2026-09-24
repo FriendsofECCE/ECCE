@@ -191,6 +191,47 @@ class SymmetryAnalysis
                                    const string& irrep,
                                    vector< vector<double> >& vectors);
 
+    /**
+     * Which irrep a molecular orbital spans, from its coefficients.
+     *
+     * DERIVED IN THIS FRAME, rather than taken from the code's own
+     * labels.  Two sources do not share an axis convention -- in C2v
+     * which mirror is sigma-v decides b1 from b2, and in D2h the
+     * disagreement needs two pairs relabelled at once, which no
+     * single swap can undo.  Doing the classification here removes
+     * the question instead of trying to reverse it afterwards, and it
+     * also labels the very common calculation that reports no
+     * symmetry at all.
+     *
+     * An operation carries a basis function on one atom to functions
+     * on that atom's image: an s function unchanged, and the three p
+     * functions mixed by the operation's own matrix, since they
+     * transform as the Cartesian coordinates do.  The character is
+     * then the overlap of the orbital with its own image, summed over
+     * a degenerate set.
+     *
+     * @param orbitals  one coefficient vector per orbital; a
+     *                  degenerate set is passed together, because
+     *                  only the set has a character
+     * @param perAtom   basis functions on each atom
+     * @param shellOf   the angular momentum of each function, in the
+     *                  same order the coefficients are in
+     *
+     * @return false if the basis contains anything beyond s and p --
+     *         a d shell needs its own five-by-five transformation and
+     *         has none here -- or if the character does not reduce to
+     *         exactly one irrep of the right dimension, which means an
+     *         assumption failed and the honest answer is no answer.
+     */
+    static bool orbitalIrrep(const vector< vector<double> >& orbitals,
+                             const vector<int>& perAtom,
+                             const vector<int>& shellOf,
+                             const vector< vector<int> >& images,
+                             const vector<int>& classOfOp,
+                             const vector<SymOp>& ops,
+                             const CharacterTable& table,
+                             string& irrep);
+
     static bool projectOrbit(const vector<int>& orbit,
                              const vector< vector<int> >& images,
                              const vector<int>& classOfOp,

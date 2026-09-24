@@ -574,3 +574,170 @@ bool SymmetryAnalysis::basisCharacter(const vector< vector<int> >& shells,
   for (int c = 0; c < numClasses; c++) if (seen[c] == 0) return false;
   return true;
 }
+
+
+bool SymmetryAnalysis::orbitalIrrep(const vector< vector<double> >& orbitals,
+                                    const vector<int>& perAtom,
+                                    const vector<int>& shellOf,
+                                    const vector< vector<int> >& images,
+                                    const vector<int>& classOfOp,
+                                    const vector<SymOp>& ops,
+                                    const CharacterTable& table,
+                                    string& irrep)
+{
+   irrep.clear();
+   if (orbitals.empty() || perAtom.empty() || ops.empty()) return false;
+   if (classOfOp.size() != ops.size()) return false;
+   if (images.size() != ops.size()) return false;
+
+   //  Where each atom's functions start, and a check that the layout
+   //  and the coefficients describe the same basis.
+   vector<int> base(perAtom.size(), 0);
+   int total = 0;
+   for (size_t a = 0; a < perAtom.size(); a++) {
+      base[a] = total;
+      total += perAtom[a];
+   }
+   if ((int)shellOf.size() != total) return false;
+   for (size_t k = 0; k < orbitals.size(); k++) {
+      if ((int)orbitals[k].size() != total) return false;
+   }
+
+   //  A WARNING THAT COST A NIGHT ELSEWHERE.  The coefficients and
+   //  the coordinates must be in the SAME FRAME.  A code is free to
+   //  reorient a molecule for its own SCF and report its vectors in
+   //  that orientation, and the symmetrised coordinates this analysis
+   //  runs on come from autosym -- so the two can differ by a
+   //  rotation.  Water's a1 orbitals then classify cleanly, because a
+   //  rotation about z leaves s and p_z alone, while its b1 and b2
+   //  come out as fractional mixtures of each other, because that
+   //  rotation mixes p_x and p_y.  Fractions are what the check below
+   //  refuses, so this fails safe rather than labelling wrongly; but
+   //  a caller wanting labels for such a calculation has to rotate
+   //  the coefficients into this frame first.
+   //
+   //  s AND p ONLY.  A d shell transforms by its own five-by-five
+   //  matrix, which is not derived here, and guessing it would be
+   //  worse than declining.
+   for (int i = 0; i < total; i++) {
+      if (shellOf[i] != 0 && shellOf[i] != 1) return false;
+   }
+
+   //  The atoms have to carry the same layout for an operation to map
+   //  a function onto a function: offset o on an atom must be the same
+   //  kind of function as offset o on its image.  True when equivalent
+   //  atoms are the same element, which atomImages() already enforces,
+   //  but checked rather than assumed.
+   for (size_t op = 0; op < ops.size(); op++) {
+      for (size_t a = 0; a < perAtom.size(); a++) {
+         const int to = images[op][a];
+         if (to < 0 || (size_t)to >= perAtom.size()) return false;
+         if (perAtom[to] != perAtom[a]) return false;
+      }
+   }
+
+   const size_t numClasses = table.classes().size();
+   vector<double> chi(numClasses, 0.0);
+   vector<bool> filled(numClasses, false);
+
+   for (size_t op = 0; op < ops.size(); op++) {
+      const int klass = classOfOp[op];
+      if (klass < 0 || (size_t)klass >= numClasses) return false;
+      if (filled[klass]) continue;
+
+      double character = 0.0;
+
+      for (size_t k = 0; k < orbitals.size(); k++) {
+         const vector<double>& c = orbitals[k];
+
+         //  R applied to this orbital, expanded in the same basis.
+         vector<double> moved(total, 0.0);
+
+         for (size_t a = 0; a < perAtom.size(); a++) {
+            const int to = images[op][a];
+            int offset = 0;
+            while (offset < perAtom[a]) {
+               const int from = base[a] + offset;
+               const int l = shellOf[from];
+
+               if (l == 0) {
+                  moved[base[to] + offset] += c[from];
+                  offset += 1;
+               } else {
+                  //  p transforms as x, y, z: R p_a = sum_b M[b][a] p_b,
+                  //  so the image picks up M[b][a] times this one.
+                  if (offset + 2 >= perAtom[a]) return false;
+                  for (int b = 0; b < 3; b++) {
+                     double sum = 0.0;
+                     for (int aa = 0; aa < 3; aa++) {
+                        sum += ops[op].m[b][aa]*c[base[a] + offset + aa];
+                     }
+                     moved[base[to] + offset + b] += sum;
+                  }
+                  offset += 3;
+               }
+            }
+         }
+
+         for (int i = 0; i < total; i++) character += c[i]*moved[i];
+      }
+
+      chi[klass] = character;
+      filled[klass] = true;
+   }
+
+   for (size_t k = 0; k < numClasses; k++) if (!filled[k]) return false;
+
+   //  REDUCED WITH A TOLERANCE, BECAUSE THESE ARE COMPUTED ORBITALS.
+   //
+   //  CharacterTable::reduce() refuses anything non-integral, which
+   //  is right for a representation built from counting atoms: a
+   //  fraction there means the input was not a representation.  An
+   //  SCF orbital is symmetry-adapted only to the convergence it was
+   //  run to, so its character carries numerical noise and the strict
+   //  test rejected five of water's six orbitals -- the one it
+   //  accepted being the non-bonding lone pair, which is exactly
+   //  symmetric by having nothing to mix with.
+   //
+   //  So the multiplicities are computed here and rounded, and the
+   //  distance from a whole number is the check: past a tenth, the
+   //  orbital is not cleanly of one symmetry and no label is given.
+   const vector<string>& names = table.irreps();
+   const vector<int>& counts = table.counts();
+   if (counts.size() != numClasses) return false;
+
+   int found = -1;
+   double total2 = 0.0;
+   for (size_t i = 0; i < names.size(); i++) {
+      const vector<double> *chiI = table.characters(names[i]);
+      if (chiI == 0 || chiI->size() != numClasses) return false;
+
+      double sum = 0.0;
+      for (size_t k = 0; k < numClasses; k++) {
+         sum += counts[k]*(*chiI)[k]*chi[k];
+      }
+      const double n = sum/(double)table.order();
+      const double rounded = (n < 0.0) ? -floor(-n + 0.5) : floor(n + 0.5);
+
+      if (getenv("ECCE_DEBUG_IRREP") != 0) {
+         fprintf(stderr, "    %-5s n=%8.4f\n", names[i].c_str(), n);
+      }
+      if (fabs(n - rounded) > 0.1) return false;
+      if (rounded < -0.5) return false;
+      if (rounded > 0.5) {
+         if (found >= 0) return false;          // more than one irrep
+         if (rounded > 1.5) return false;       // more than once
+         found = (int)i;
+      }
+      total2 += rounded;
+   }
+
+   //  EXACTLY ONE IRREP, OF THE SIZE OF THE SET.  Anything else means
+   //  the orbitals passed were not a degenerate set, or the basis and
+   //  the frame do not agree, and a label would be a guess.
+   if (found < 0 || total2 < 0.5 || total2 > 1.5) return false;
+   if (table.dimension(names[found]) != (int)orbitals.size()) return false;
+
+   irrep = names[found];
+   return true;
+}
