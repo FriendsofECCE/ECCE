@@ -424,3 +424,82 @@ bool SymmetryAnalysis::projectOrbit(const vector<int>& orbit,
 
   return true;
 }
+
+
+namespace {
+
+  /** Rotation angle and parity of an operation, from its matrix. */
+  void angleAndParity(const SymOp& op, double& theta, bool& proper)
+  {
+    proper = (op.determinant() > 0.0);
+    double c = proper ? (op.trace() - 1.0)/2.0 : (op.trace() + 1.0)/2.0;
+    if (c >  1.0) c =  1.0;
+    if (c < -1.0) c = -1.0;
+    theta = acos(c);
+  }
+
+  /** Character of the angular momentum l representation. */
+  double angularCharacter(int l, double theta, bool proper)
+  {
+    const double t = proper ? theta : theta - M_PI;
+    double sum = 1.0;
+    for (int m = 1; m <= l; m++) sum += 2.0*cos(m*t);
+    if (!proper && (l % 2)) sum = -sum;
+    return sum;
+  }
+}
+
+
+bool SymmetryAnalysis::basisCharacter(const vector< vector<int> >& shells,
+                                      const vector< vector<int> >& images,
+                                      const vector<int>& classOfOp,
+                                      const vector<SymOp>& ops,
+                                      int numClasses,
+                                      bool cartesian,
+                                      vector<double>& chi)
+{
+  chi.assign(numClasses, 0.0);
+  vector<int> seen(numClasses, 0);
+
+  if (classOfOp.size() != images.size() || ops.size() != images.size())
+    return false;
+
+  for (size_t o = 0; o < ops.size(); o++) {
+    const int cls = classOfOp[o];
+    if (cls < 0 || cls >= numClasses) return false;
+
+    double theta;
+    bool proper;
+    angleAndParity(ops[o], theta, proper);
+
+    double total = 0.0;
+    for (size_t a = 0; a < shells.size() && a < images[o].size(); a++) {
+      //  Only an atom left in place contributes: an orbital moved onto
+      //  a different atom has no diagonal element.
+      if (images[o][a] != (int)a) continue;
+
+      for (size_t s = 0; s < shells[a].size(); s++) {
+        const int l = shells[a][s];
+        if (cartesian) {
+          //  A Cartesian shell of degree l spans D_l + D_{l-2} + ...
+          for (int k = l; k >= 0; k -= 2) {
+            total += angularCharacter(k, theta, proper);
+          }
+        } else {
+          total += angularCharacter(l, theta, proper);
+        }
+      }
+    }
+
+    //  Every operation in a class must agree.
+    if (seen[cls] == 0) {
+      chi[cls] = total;
+    } else if (fabs(chi[cls] - total) > 1.0e-9) {
+      return false;
+    }
+    seen[cls]++;
+  }
+
+  for (int c = 0; c < numClasses; c++) if (seen[c] == 0) return false;
+  return true;
+}

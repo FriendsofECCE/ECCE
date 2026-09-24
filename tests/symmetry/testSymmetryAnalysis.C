@@ -180,6 +180,76 @@ static void run(const Molecule& mol, const string& opsDir)
   }
 }
 
+/** The reduction of a whole AO basis, against the textbook answers. */
+static void basisChecks(const string& opsDir)
+{
+  printf("\n  the AO basis as a whole\n");
+
+  struct Case {
+    const char* name; const char* group;
+    int natoms; const char* want;
+  };
+
+  //  CH4 in a minimal basis: carbon carries 1s, 2s and 2p, each
+  //  hydrogen a 1s.  Nine functions spanning 3a1 + 2t2.
+  {
+    vector<SymOp> ops;
+    if (!readOps(opsDir + "/TD.ops", ops)) { check(false, "TD ops"); return; }
+    const CharacterTable* t = CharacterTable::lookup("TD");
+    const char* e[] = {"C","H","H","H","H"};
+    const double c[] = {0,0,0, 1,1,1, 1,-1,-1, -1,1,-1, -1,-1,1};
+    vector<string> el(e, e+5); vector<double> co(c, c+15);
+    vector< vector<int> > img, cls; vector<int> cof;
+    SymmetryAnalysis::atomImages(co, el, ops, 1e-6, img);
+    SymmetryAnalysis::conjugacyClasses(ops, cls);
+    SymmetryAnalysis::matchClasses(ops, cls, *t, cof);
+
+    vector< vector<int> > sh(5);
+    const int cs[] = {0,0,1};
+    sh[0].assign(cs, cs+3);
+    for (int i = 1; i < 5; i++) sh[i].assign(1, 0);
+
+    vector<double> chi;
+    bool ok = SymmetryAnalysis::basisCharacter(sh, img, cof, ops,
+                                               (int)t->classes().size(),
+                                               false, chi);
+    const string got = t->reduceToString(chi);
+    check(ok && got == "3A1 + 2T2",
+          "CH4 minimal basis spans " + got + " (want 3A1 + 2T2)");
+  }
+
+  //  A d shell at the centre of an octahedral field: the crystal field
+  //  splitting, and the check that the Cartesian correction matters.
+  {
+    vector<SymOp> ops;
+    if (!readOps(opsDir + "/OH.ops", ops)) { check(false, "OH ops"); return; }
+    const CharacterTable* t = CharacterTable::lookup("OH");
+    const char* e[] = {"S"};
+    const double c[] = {0,0,0};
+    vector<string> el(e, e+1); vector<double> co(c, c+3);
+    vector< vector<int> > img, cls; vector<int> cof;
+    SymmetryAnalysis::atomImages(co, el, ops, 1e-6, img);
+    SymmetryAnalysis::conjugacyClasses(ops, cls);
+    SymmetryAnalysis::matchClasses(ops, cls, *t, cof);
+
+    vector< vector<int> > sh(1); sh[0].assign(1, 2);
+    vector<double> a, b;
+    SymmetryAnalysis::basisCharacter(sh, img, cof, ops,
+                                     (int)t->classes().size(), false, a);
+    SymmetryAnalysis::basisCharacter(sh, img, cof, ops,
+                                     (int)t->classes().size(), true, b);
+    check(t->reduceToString(a) == "Eg + T2g",
+          "five spherical d functions split into " + t->reduceToString(a)
+          + " (want Eg + T2g)");
+    //  Six Cartesian d functions are D2 + D0, so an extra A1g appears.
+    //  Counting them as five would be wrong by exactly that.
+    check(t->reduceToString(b) == "A1g + Eg + T2g",
+          "six Cartesian d functions span " + t->reduceToString(b)
+          + " (want A1g + Eg + T2g)");
+  }
+}
+
+
 int main(int argc, char** argv)
 {
   const string tables = (argc > 1) ? argv[1]
@@ -245,6 +315,7 @@ int main(int argc, char** argv)
   }
 
   for (size_t i = 0; i < mols.size(); i++) run(mols[i], opsDir);
+  basisChecks(opsDir);
 
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;

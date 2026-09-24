@@ -436,7 +436,7 @@ def checkAnalysis(tablePath, verbose):
 
     opsDir = tempfile.mkdtemp(prefix="ecce-symops-")
     try:
-        for group in ("TD", "C2V", "OH"):
+        for group in ("TD", "C2V", "OH", "D2H"):
             run = subprocess.run([binary], input=group + "\n",
                                  capture_output=True, text=True, timeout=60)
             if run.returncode != 0:

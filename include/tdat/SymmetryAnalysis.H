@@ -103,6 +103,41 @@ class SymmetryAnalysis
                                  vector<double>& chi);
 
     /**
+     * The character of the whole atomic orbital basis.
+     *
+     * An operation contributes only through the atoms it leaves in
+     * place, and each shell on such an atom contributes the character
+     * of its angular momentum:
+     *
+     *     proper rotation by t    chi_l = 1 + 2 sum_{m=1..l} cos(m t)
+     *     improper rotation by t  chi_l = (-1)^l [that, with t -> t-pi]
+     *
+     * Written as those sums rather than the usual closed form
+     * sin((l+1/2)t)/sin(t/2), which is 0/0 for the identity and for
+     * inversion and would need both special-cased.
+     *
+     * Reducing the result gives the irreps the basis spans, which must
+     * match the multiset of labels the code itself reports in ORBSYM --
+     * a check on the detection, the frame, the class matching and the
+     * shell bookkeeping together, using no machinery beyond the atom
+     * permutations already computed.
+     *
+     * @param shells     per atom, the angular momentum of each shell
+     * @param cartesian  true if d and higher shells are the Cartesian
+     *                   sets rather than the spherical ones: six
+     *                   Cartesian d functions span D2 + D0, not D2, and
+     *                   counting them as five would be wrong by an s
+     * @param chi        filled with one character per class
+     */
+    static bool basisCharacter(const vector< vector<int> >& shells,
+                               const vector< vector<int> >& images,
+                               const vector<int>& classOfOp,
+                               const vector<SymOp>& ops,
+                               int numClasses,
+                               bool cartesian,
+                               vector<double>& chi);
+
+    /**
      * The symmetry orbitals of one irrep, over an orbit's s orbitals.
      *
      * The projection operator, P = (l/h) sum_R chi(R)* R, applied to
