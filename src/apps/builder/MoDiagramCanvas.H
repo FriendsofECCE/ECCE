@@ -282,7 +282,8 @@ class MoDiagramCanvas : public wxPanel
      */
     void drawColumn(wxDC& dc, const MoColumn& column, int x, int width,
                     const wxRect& plot, bool withOccupancy,
-                    vector<Hit>* hits, int outward = -1)
+                    vector<Hit>* hits, int outward = -1,
+                    bool spread = false)
     {
       //  Which side this column's labels and sketches go.  Outward, so
       //  nothing is written over the correlation lines in the middle --
@@ -296,21 +297,60 @@ class MoDiagramCanvas : public wxPanel
 
       const int lineGap = 4;
 
-      for (size_t first = 0; first < column.levels.size(); ) {
+      //  ROOM FOR THE LABELS IN A FRAGMENT COLUMN.
+      //
+      //  Nitrite's oxygen set has six symmetry orbitals inside a tenth
+      //  of a Hartree, so drawn strictly to scale their rows overlap
+      //  and their labels print on top of one another -- "2x A1 (2p)"
+      //  over "A2 (2p)" over "2x B2 (2p)", with the phase sketches in
+      //  the same place.  A fragment level is not AT its drawn energy
+      //  anyway: it is placed at the mean of the orbitals it became.
+      //  So these columns may be opened out to leave a row's height
+      //  between them, which is what a person draws.  The molecular
+      //  column is never touched: its energies are the measurement.
+      vector< std::pair<size_t,size_t> > groups;
+      for (size_t a = 0; a < column.levels.size(); ) {
+        size_t b = a;
+        while (b + 1 < column.levels.size() &&
+               fabs(column.levels[b+1].energy - column.levels[a].energy)
+                   < 1.0e-9) {
+          b++;
+        }
+        groups.push_back(std::make_pair(a, b));
+        a = b + 1;
+      }
 
-        //  How many levels share this energy?
-        size_t last = first;
-        int lines = column.levels[first].degeneracy > 0
-                    ? column.levels[first].degeneracy : 1;
-        while (last + 1 < column.levels.size() &&
-               fabs(column.levels[last+1].energy
-                    - column.levels[first].energy) < 1.0e-9) {
-          last++;
-          lines += column.levels[last].degeneracy > 0
-                   ? column.levels[last].degeneracy : 1;
+      vector<int> groupY;
+      for (size_t g = 0; g < groups.size(); g++) {
+        groupY.push_back(yFor(column.levels[groups[g].first].energy, plot));
+      }
+      if (spread && groupY.size() > 1) {
+        dc.SetFont(*wxSMALL_FONT);
+        const int minGap = dc.GetTextExtent(wxT("Xg")).y + 8;
+        //  Ascending energy, so descending y.
+        for (size_t g = 1; g < groupY.size(); g++) {
+          if (groupY[g - 1] - groupY[g] < minGap) {
+            groupY[g] = groupY[g - 1] - minGap;
+          }
+        }
+        //  Slid back down if the stack ran off the top.
+        const int over = plot.y + 6 - groupY[groupY.size() - 1];
+        if (over > 0) {
+          for (size_t g = 0; g < groupY.size(); g++) groupY[g] += over;
+        }
+      }
+
+      for (size_t gi = 0; gi < groups.size(); gi++) {
+
+        const size_t first = groups[gi].first;
+        const size_t last  = groups[gi].second;
+        int lines = 0;
+        for (size_t i = first; i <= last; i++) {
+          lines += column.levels[i].degeneracy > 0
+                   ? column.levels[i].degeneracy : 1;
         }
 
-        const int y = yFor(column.levels[first].energy, plot);
+        const int y = groupY[gi];
         const int slot = (lines > 0) ? (width + lineGap)/lines : width;
         const int lineWidth = max(8, slot - lineGap);
 
@@ -361,7 +401,6 @@ class MoDiagramCanvas : public wxPanel
           }
           drawn += count;
         }
-        first = last + 1;
       }
     }
 
@@ -841,10 +880,10 @@ class MoDiagramCanvas : public wxPanel
         //  occupancy now, and a diagram that does not draw it does not
         //  say which combinations are filled -- which is half of what
         //  it is for.  The offline renderer draws them; this did not.
-        drawColumn(dc, p_left, xLeft, levelWidth, plot, true, 0);
+        drawColumn(dc, p_left, xLeft, levelWidth, plot, true, 0, -1, true);
         p_placed.clear();
       p_notes.clear();
-        drawColumn(dc, p_right, xRight, levelWidth, plot, true, 0, +1);
+        drawColumn(dc, p_right, xRight, levelWidth, plot, true, 0, +1, true);
         p_placed.clear();
       p_notes.clear();
       }
