@@ -682,6 +682,88 @@ double MoFragments::share(const vector<double>& coefficients,
 //     diatomic's columns are therefore plain atomic orbitals, which is
 //     exactly how the textbook draws them.
 /////////////////////////////////////////////////////////////////////////////
+/**
+ * One sigma-donor orbital per ligand, which is how a complex is drawn.
+ *
+ * A polyatomic ligand has a basis of its own -- ammonia brings a
+ * nitrogen 2s and 2p and three hydrogen 1s -- and building symmetry
+ * orbitals out of all of it gives a correct and entirely unreadable
+ * wall of levels.  What a ligand field diagram uses is the ligand's
+ * DONOR orbital: one function per ligand, pointing at the metal.  Six
+ * of them in Oh span a1g + eg + t1u whatever the ligand is, which is
+ * the whole reason the construction works for ammonia and water and
+ * carbon monoxide alike.
+ *
+ * The reduction is the same one an s shell gets -- one spherically
+ * symmetric function per site -- so this is that, on the attachment
+ * atoms, with the labels and the electron count saying what it is.
+ */
+/**
+ * The atoms actually bonded to the central one.
+ *
+ * RELATIVE TO THE NEAREST, not an absolute cutoff.  Hexammine
+ * cobalt's nitrogens sit 2.0 Angstrom from the metal and their own
+ * hydrogens 2.58, so any fixed distance generous enough for a long
+ * metal-ligand bond also swallows the hydrogens behind it -- which
+ * made a six-donor ligand set come out with twenty-two donors in it.
+ * A quarter again past the closest neighbour separates a bonded shell
+ * from what lies behind it without needing a table of radii.
+ */
+static void bondedTo(int centre, const vector<int>& candidates,
+                     const vector<double>& coords, vector<int>& bonded)
+{
+   bonded.clear();
+   if (candidates.empty()) return;
+
+   double closest = 1.0e30;
+   vector<double> distance(candidates.size(), 0.0);
+   for (size_t i = 0; i < candidates.size(); i++) {
+      double d = 0.0;
+      for (int k = 0; k < 3; k++) {
+         const double t = coords[3*centre+k] - coords[3*candidates[i]+k];
+         d += t*t;
+      }
+      distance[i] = sqrt(d);
+      if (distance[i] < closest) closest = distance[i];
+   }
+
+   for (size_t i = 0; i < candidates.size(); i++) {
+      if (distance[i] <= 1.25*closest) bonded.push_back(candidates[i]);
+   }
+}
+
+
+static void buildSigmaColumn(const vector<int>& attachments,
+                             const vector<string>& elements,
+                             int numAtoms,
+                             const vector< vector<int> >& images,
+                             const vector<int>& classOfOp,
+                             const vector<SymOp>& ops,
+                             const CharacterTable& table,
+                             MoColumn& column)
+{
+   if (attachments.empty()) return;
+
+   ostringstream title;
+   title << attachments.size() << " ligand "
+         << (attachments.size() == 1 ? "donor" : "donors");
+   column.title = title.str();
+
+   vector<int> multiplicity;
+   if (!shellIrreps(attachments, 0, numAtoms, images, classOfOp, ops,
+                    table, multiplicity)) {
+      return;
+   }
+
+   //  Placed together; placeFragments() moves the set onto the
+   //  molecular axis, and a donor set is one shell so it stays one
+   //  row.  The energy here is only an ordering: a donor lone pair
+   //  is below the metal's valence orbitals, which is the one thing
+   //  about its height that matters.
+   addLevels(table, multiplicity, -13.0, "sigma", 0, column.levels);
+}
+
+
 static void buildColumn(const vector<int>& atoms,
                         const vector<string>& elements,
                         const vector<double>& coords,
@@ -1063,8 +1145,24 @@ bool MoFragments::build(const vector<double>& coords,
 
             buildColumn(leftSet, elements, coords, numAtoms, images,
                         classOfOp, ops, *table, false, left);
-            buildColumn(rightSet, elements, coords, numAtoms, images,
-                        classOfOp, ops, *table, false, right);
+
+            //  Ligands that are molecules give their donor orbital
+            //  only -- see the same decision below, which this
+            //  branch returns before reaching.
+            vector<int> bonded;
+            bondedTo(central, rightSet, coords, bonded);
+            const bool donors = bonded.size() > 1 &&
+                                bonded.size() < rightSet.size();
+
+            if (donors) {
+               buildSigmaColumn(bonded, elements, numAtoms, images,
+                                classOfOp, ops, *table, right);
+               note += " Each ligand contributes one sigma donor orbital, "
+                       "as a ligand field diagram does.";
+            } else {
+               buildColumn(rightSet, elements, coords, numAtoms, images,
+                           classOfOp, ops, *table, false, right);
+            }
 
             int leftElectrons = 0, rightElectrons = 0;
             for (size_t i = 0; i < leftSet.size(); i++) {
@@ -1073,6 +1171,7 @@ bool MoFragments::build(const vector<double>& coords,
             for (size_t i = 0; i < rightSet.size(); i++) {
                rightElectrons += valenceElectrons(elements[rightSet[i]]);
             }
+            if (donors) rightElectrons = 2*(int)bonded.size();
             bool metal = false;
             double unused;
             if (valenceEnergy(elements[central], 2, unused)) metal = true;
@@ -1103,10 +1202,46 @@ bool MoFragments::build(const vector<double>& coords,
    if (leftAtoms  != 0) *leftAtoms  = leftSet;
    if (rightAtoms != 0) *rightAtoms = rightSet;
 
+   //  A POLYATOMIC LIGAND CONTRIBUTES ITS DONOR ORBITAL, NOT ITS
+   //  WHOLE BASIS.
+   //
+   //  Where the terminal fragment contains atoms that are not bonded
+   //  to the central one, its ligands are molecules: hexammine
+   //  cobalt's terminal set is six nitrogens and eighteen hydrogens,
+   //  and symmetry orbitals built from every one of their atomic
+   //  orbitals are correct and unreadable.  A ligand field diagram
+   //  uses one sigma donor per ligand instead -- which in Oh spans
+   //  a1g + eg + t1u whatever the ligand is, and is why the
+   //  construction works for ammonia and water and CO alike.
+   bool polyatomicLigands = false;
+   vector<int> attachments;
+   if (leftSet.size() == 1) {
+      bondedTo(leftSet[0], rightSet, coords, attachments);
+      //  AT LEAST TWO OF THEM.  One attachment is not a ligand
+      //  field, it is a bond: methanol split as oxygen against the
+      //  methyl group has a single attachment, and reducing CH4 to
+      //  "one sigma donor" throws away the whole fragment.
+      polyatomicLigands = attachments.size() > 1 &&
+                          attachments.size() < rightSet.size();
+   }
+
    buildColumn(leftSet, elements, coords, numAtoms, images, classOfOp, ops,
                *table, diatomic, left);
-   buildColumn(rightSet, elements, coords, numAtoms, images, classOfOp, ops,
-               *table, diatomic, right);
+
+   if (polyatomicLigands) {
+      buildSigmaColumn(attachments, elements, numAtoms, images, classOfOp,
+                       ops, *table, right);
+      if (note.empty()) {
+         ostringstream said;
+         said << "Each ligand contributes one sigma donor orbital, as a "
+                 "ligand field diagram does; the ligands' own internal "
+                 "orbitals are not drawn.";
+         note = said.str();
+      }
+   } else {
+      buildColumn(rightSet, elements, coords, numAtoms, images, classOfOp,
+                  ops, *table, diatomic, right);
+   }
 
    //  --- electrons -------------------------------------------------
    //
@@ -1139,6 +1274,11 @@ bool MoFragments::build(const vector<double>& coords,
       double unused;
       if (valenceEnergy(elements[leftSet[i]], 2, unused)) chargeOnLeft = true;
    }
+
+   //  A DONOR BRINGS A PAIR.  That is what dative means, and it is
+   //  the count a ligand field diagram fills its bonding set with:
+   //  six ligands, twelve electrons, before any of the metal's own.
+   if (polyatomicLigands) rightElectrons = 2*(int)attachments.size();
 
    fillColumn(left.levels,  leftElectrons  - (chargeOnLeft ? charge : 0));
    fillColumn(right.levels, rightElectrons - (chargeOnLeft ? 0 : charge));
