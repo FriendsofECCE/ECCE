@@ -54,6 +54,20 @@ class CoulombIntegrals
     static double potential(const double* A, const int* la, double alpha,
                             const double* B, const int* lb, double beta,
                             const double* C);
+
+    /**
+     * The overlap of two primitive Cartesian Gaussians.
+     *
+     * Here rather than in a class of its own because it is the SAME
+     * Hermite expansion the potential above is built on, with only the
+     * t = u = v = 0 term surviving and no Boys function -- so it reuses
+     * that machinery directly instead of carrying a second copy of it.
+     *
+     * Needed to project a molecular orbital onto fragment orbitals,
+     * which is how an MO correlation diagram gets its weights (#132).
+     */
+    static double overlap(const double* A, const int* la, double alpha,
+                          const double* B, const int* lb, double beta);
 };
 
 #endif

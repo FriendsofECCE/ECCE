@@ -145,3 +145,22 @@ double CoulombIntegrals::potential(const double* A, const int* la,
 
   return total*2.0*PI/p;
 }
+
+
+double CoulombIntegrals::overlap(const double* A, const int* la,
+                                 double alpha,
+                                 const double* B, const int* lb,
+                                 double beta)
+{
+  const double p = alpha + beta;
+
+  //  Only the t = u = v = 0 Hermite coefficient survives an overlap:
+  //  the higher ones integrate to zero over all space.  That is the
+  //  whole difference from the potential above, which contracts every
+  //  coefficient against the Hermite Coulomb integrals.
+  double out = pow(PI/p, 1.5);
+  for (int k = 0; k < 3; k++) {
+    out *= hermite(la[k], lb[k], 0, A[k]-B[k], alpha, beta);
+  }
+  return out;
+}

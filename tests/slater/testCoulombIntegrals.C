@@ -128,6 +128,51 @@ int main() {
     check("p*d is symmetric under exchange", ab, ba, 1e-12);
   }
 
+  printf("\n  Overlap integrals against the closed form\n");
+  {
+    double A0[3] = {0,0,0}, B0[3] = {0,0,0};
+    int s0[3] = {0,0,0}, px[3] = {1,0,0}, py[3] = {0,1,0};
+    const double aa = 0.8, bb = 1.3, pp = aa+bb;
+
+    //  Two s Gaussians on one centre: (pi/p)^(3/2).
+    check("s*s, one centre", CoulombIntegrals::overlap(A0, s0, aa, B0, s0, bb),
+          pow(PI/pp, 1.5), 1e-12);
+
+    //  Normalised s with itself is exactly one -- the check that would
+    //  catch a wrong prefactor, which nothing else here would notice.
+    const double n = pow(2*aa/PI, 0.75);
+    check("normalised s with itself is 1",
+          n*n*CoulombIntegrals::overlap(A0, s0, aa, B0, s0, aa), 1.0, 1e-12);
+
+    //  p*p on one centre: (pi/p)^(3/2) / (2p).
+    check("px*px, one centre", CoulombIntegrals::overlap(A0, px, aa, B0, px, bb),
+          pow(PI/pp, 1.5)/(2*pp), 1e-12);
+
+    //  Different Cartesian directions are orthogonal, and so is s with p.
+    check("px*py is zero", CoulombIntegrals::overlap(A0, px, aa, B0, py, bb),
+          0.0, 1e-14);
+    check("px*s is zero on one centre",
+          CoulombIntegrals::overlap(A0, px, aa, B0, s0, bb), 0.0, 1e-14);
+
+    //  Two centres: the Gaussian product theorem's weight.
+    double B1[3] = {1.4, 0, 0};
+    const double mu = aa*bb/pp;
+    check("s*s, two centres", CoulombIntegrals::overlap(A0, s0, aa, B1, s0, bb),
+          pow(PI/pp, 1.5)*exp(-mu*1.4*1.4), 1e-12);
+
+    //  Symmetric under exchange, like the potential.
+    int dxz[3] = {1,0,1};
+    double B2[3] = {0.7,-0.4,0.9};
+    check("p*d overlap is symmetric under exchange",
+          CoulombIntegrals::overlap(A0, px, aa, B2, dxz, bb),
+          CoulombIntegrals::overlap(B2, dxz, bb, A0, px, aa), 1e-14);
+
+    //  Far apart, the overlap must vanish.
+    double far[3] = {40.0, 0, 0};
+    check("s*s vanishes at long range",
+          CoulombIntegrals::overlap(A0, s0, aa, far, s0, bb), 0.0, 1e-14);
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }
