@@ -24,6 +24,8 @@ using namespace std;
 #include "tdat/MoFragments.H"
 #include "tdat/MoDiagram.H"
 #include "tdat/CharacterTable.H"
+#include "tdat/Huckel.H"
+#include "tdat/SymmetryAnalysis.H"
 
 /** Everything the engine produced for one molecule. */
 struct MoModel {
@@ -101,6 +103,60 @@ static bool buildModel(const char* tables, const char* molecule,
       energies.push_back(e);
       occupancies.push_back(o);
       labels.push_back(label);
+    }
+  }
+
+  //  NO SPECTRUM?  WORK ONE OUT.
+  //
+  //  The fragment columns need no calculation, but the molecular
+  //  column does, and a structure on its own is the commonest thing
+  //  anyone has.  Extended Huckel supplies it from the geometry --
+  //  orderings right, energies roughly, which is what a qualitative
+  //  diagram is made of.
+  //
+  //  ONLY WHERE THERE IS NOTHING BETTER.  A calculation's own
+  //  orbitals are used whenever they exist; this never overrides
+  //  them.
+  bool huckel = false;
+  if (energies.empty() && !elements.empty()) {
+    string complaint;
+    if (Huckel::solve(coords, elements, charge, energies, occupancies,
+                      coefficients, perAtom, shellOf, complaint)) {
+      huckel = true;
+      labels.assign(energies.size(), string());
+
+      //  AND LABEL THEM, since the coefficients are right here.
+      //
+      //  Extended Huckel reports no symmetries -- nothing about the
+      //  method knows what a point group is -- but the orbitals it
+      //  produces are symmetry-adapted exactly, because the overlaps
+      //  they come from are.  Classifying them in this frame closes
+      //  the loop: geometry in, a labelled diagram out, with no
+      //  calculation anywhere.
+      const CharacterTable *table = CharacterTable::lookup(group);
+      vector<SymOp> ops;
+      if (table != 0 && MoFragments::symmetryOperations(group, ops)) {
+        vector< vector<int> > images;
+        vector< vector<int> > classes;
+        vector<int> classOfOp;
+        if (SymmetryAnalysis::atomImages(coords, elements, ops, 1.0e-3,
+                                         images)) {
+          SymmetryAnalysis::conjugacyClasses(ops, classes);
+          if (SymmetryAnalysis::matchClasses(ops, classes, *table,
+                                             classOfOp)) {
+            vector<string> derived;
+            SymmetryAnalysis::labelSpectrum(coefficients, energies,
+                                            vector<string>(), perAtom,
+                                            shellOf, images, classOfOp,
+                                            ops, *table, derived);
+            for (size_t k = 0; k < derived.size() && k < labels.size(); k++) {
+              labels[k] = derived[k];
+            }
+          }
+        }
+      }
+    } else {
+      model.note = complaint;
     }
   }
 
@@ -356,6 +412,18 @@ static bool buildModel(const char* tables, const char* molecule,
 
   //  The name on the page, which is not always the name the generator
   //  gave: it has no infinite groups and calls N2 D4h.
+  //  SAID ON THE PAGE.  A reader has to know whether the middle
+  //  column is a calculation or an estimate, and the diagram looks
+  //  identical either way.
+  if (huckel) {
+    const string said =
+        "The molecular orbitals are from extended Huckel, worked out "
+        "from the geometry: their ORDER and symmetries are meaningful, "
+        "their energies approximate. A calculation's own orbitals are "
+        "used instead whenever there are any.";
+    model.note = model.note.empty() ? said : (model.note + " " + said);
+  }
+
   model.group = group;
   string linear;
   if (MoFragments::linearGroupName(coords, elements, linear)) {

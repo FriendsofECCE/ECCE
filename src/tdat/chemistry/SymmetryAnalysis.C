@@ -767,8 +767,14 @@ int SymmetryAnalysis::labelSpectrum(const vector< vector<double> >& orbitals,
    vector< vector<size_t> > sets;
    for (size_t i = 0; i < orbitals.size(); ) {
       size_t j = i;
+      //  A COMPUTED DEGENERACY IS NOT AN EXACT ONE.  Orbitals that
+      //  symmetry makes degenerate come out of a diagonalisation
+      //  agreeing to however many digits it converged to, not to all
+      //  of them: ammonia's e pair differs in the fourth, and at a
+      //  tolerance of a millionth they were classified separately,
+      //  each giving a fractional reduction and no label.
       while (j + 1 < orbitals.size() && j + 1 < energies.size() &&
-             fabs(energies[j+1] - energies[i]) < 1.0e-6) {
+             fabs(energies[j+1] - energies[i]) < 1.0e-3) {
          j++;
       }
       vector<size_t> one;
