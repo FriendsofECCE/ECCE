@@ -304,3 +304,14 @@ void PropertyPanel::setDescription(PropertyPanelDescription *description)
   p_description = description;
 }
 
+
+bool PropertyPanel::prefersFloating() const
+{
+  return false;
+}
+
+
+wxSize PropertyPanel::preferredFloatingSize() const
+{
+  return wxSize(900, 700);
+}

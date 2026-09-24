@@ -27,6 +27,7 @@
 
 wxFORCE_LINK_MODULE(KeyValuePropertyPanel)
 wxFORCE_LINK_MODULE(MoPanel)
+wxFORCE_LINK_MODULE(MoDiagramPanel)
 wxFORCE_LINK_MODULE(MullikenPanel)
 wxFORCE_LINK_MODULE(PlotAnyPropertyPanel)
 wxFORCE_LINK_MODULE(TrajectoryPanel)

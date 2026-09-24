@@ -4646,6 +4646,18 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     info.DefaultPane();
     info.Name(name).Caption(name).CaptionVisible(true).
             Left().Layer(2).Resizable(true);
+
+    //  A panel too wide for the dock opens floating instead.  It is
+    //  still an ordinary AUI pane and can be docked by hand; only where
+    //  it starts differs, so it rejoins the common path below rather
+    //  than returning -- an early return here would skip the Properties
+    //  menu entry and leave the panel unreachable once closed.
+    const bool floating = panel->prefersFloating();
+    if (floating) {
+      info.Float().FloatingSize(panel->preferredFloatingSize())
+          .MinSize(wxSize(400, 300));
+    }
+    if (!floating) {
     // Height from the panel's own content, not one number for all of
     // them.  A scalar readout (point group, total energy) wants a couple
     // of lines, a mode table wants height, a spectrum wants width, and
@@ -4760,6 +4772,8 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     // NOTE: the TakeFocusButton()/AddFocusButton()/OptionsButton() caption
     // buttons (ewxAUI additions) have no stock wx3.2 wxAuiPaneInfo
     // equivalent and are dropped here - see EwxAuiCompat.H.
+    }
+
     info.Position(p_propertyMenu->GetMenuItemCount());
     p_mgr.AddPane(panel, info);
   }

@@ -181,6 +181,18 @@
     <property name="MO"/>
   </PropertyPanel>
 
+  <!-- The correlation diagram.  Claims ORBENG rather than MO because it
+       needs energies and not coefficients, so it is available even for a
+       calculation whose orbitals cannot be rendered in 3D.
+       Opens floating, since three columns do not fit a side dock. -->
+  <PropertyPanel>
+    <name>MO Diagram</name>
+    <class>MoDiagramPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="ORBENG"/>
+  </PropertyPanel>
+
   <PropertyPanel>
     <name>Vibrational Frequencies</name>
     <class>NModePanel</class>

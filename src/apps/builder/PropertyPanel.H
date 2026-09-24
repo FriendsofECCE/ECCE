@@ -60,6 +60,24 @@ class PropertyPanel : public ewxPanel
 
     virtual bool isRelevant(IPropCalculation *propCalc) const;
 
+    /**
+     * Should this panel open as a floating window rather than docked?
+     *
+     * The side docks are built for a narrow column -- addPropertyPanel()
+     * floors their width at 200 and the panels themselves ask for 400 --
+     * which suits a scalar readout or a table and does not suit anything
+     * wide.  A correlation diagram is three columns side by side and is
+     * unreadable in a dock.
+     *
+     * Opt-in, so no existing panel changes.  The pane is still an AUI
+     * pane and can be docked by hand afterwards; only where it starts
+     * differs.
+     */
+    virtual bool prefersFloating() const;
+
+    /** Size for a panel that opens floating. */
+    virtual wxSize preferredFloatingSize() const;
+
     // getters
     PropertyPanelDescription* getDescription() const;
     IPropCalculation* getCalculation() const;
