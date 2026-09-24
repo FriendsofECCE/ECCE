@@ -996,6 +996,92 @@ bool MoFragments::build(const vector<double>& coords,
       int central = -1;
       vector<int> terminal;
       if (!partition(orbits, elements, central, terminal)) {
+
+         //  THE MOST CONNECTED ATOM AGAINST EVERYTHING ELSE.
+         //
+         //  partition() handles the shapes a textbook names -- a
+         //  central atom with ONE set of equivalent neighbours, or a
+         //  diatomic -- and refuses the moment there are two
+         //  different kinds of neighbour.  That refuses formaldehyde,
+         //  which has a carbon, an oxygen and two hydrogens in three
+         //  orbits and is about as standard a diagram as exists.
+         //
+         //  Where one orbit is a single atom, and that atom has more
+         //  neighbours than any other single atom, it is the central
+         //  one by the same reasoning a person uses looking at the
+         //  structure.  Everything else is the terminal fragment: a
+         //  union of whole orbits, so the group maps it onto itself
+         //  and it has symmetry orbitals, which is the only thing
+         //  that has to be true.
+         //
+         //  Said in the note, because a fragmentation the program
+         //  chose is a claim the reader should be able to overrule --
+         //  and the panel's chooser is how.
+         int best = -1, bestNeighbours = -1;
+         for (size_t i = 0; i < orbits.size(); i++) {
+            if (orbits[i].size() != 1) continue;
+            const int atom = orbits[i][0];
+
+            int neighbours = 0;
+            for (int other = 0; other < numAtoms; other++) {
+               if (other == atom) continue;
+               double d = 0.0;
+               for (int k = 0; k < 3; k++) {
+                  const double t = coords[3*atom+k] - coords[3*other+k];
+                  d += t*t;
+               }
+               if (sqrt(d) < 2.2) neighbours++;      // Angstrom
+            }
+            if (neighbours > bestNeighbours) {
+               bestNeighbours = neighbours;
+               best = atom;
+            }
+         }
+
+         if (best >= 0 && bestNeighbours > 1 && orbits.size() > 2) {
+            central = best;
+            terminal.clear();
+            for (int a = 0; a < numAtoms; a++) {
+               if (a != best) terminal.push_back(a);
+            }
+
+            ostringstream chosen;
+            chosen << "Drawn as " << elements[best]
+                   << " against the other atoms, which is this program's "
+                      "guess at the fragments: it has "
+                   << orbits.size() << " symmetry-distinct sets of atoms "
+                      "and more than one way to split them. Choose the "
+                      "fragments yourself if another split is the one you "
+                      "want.";
+            note = chosen.str();
+
+            leftSet.assign(1, central);
+            rightSet = terminal;
+
+            if (leftAtoms  != 0) *leftAtoms  = leftSet;
+            if (rightAtoms != 0) *rightAtoms = rightSet;
+
+            buildColumn(leftSet, elements, coords, numAtoms, images,
+                        classOfOp, ops, *table, false, left);
+            buildColumn(rightSet, elements, coords, numAtoms, images,
+                        classOfOp, ops, *table, false, right);
+
+            int leftElectrons = 0, rightElectrons = 0;
+            for (size_t i = 0; i < leftSet.size(); i++) {
+               leftElectrons += valenceElectrons(elements[leftSet[i]]);
+            }
+            for (size_t i = 0; i < rightSet.size(); i++) {
+               rightElectrons += valenceElectrons(elements[rightSet[i]]);
+            }
+            bool metal = false;
+            double unused;
+            if (valenceEnergy(elements[central], 2, unused)) metal = true;
+            fillColumn(left.levels,  leftElectrons  - (metal ? charge : 0));
+            fillColumn(right.levels, rightElectrons - (metal ? 0 : charge));
+
+            return !(left.levels.empty() && right.levels.empty());
+         }
+
          //  Say what it found, because "not this shape of molecule" and
          //  "the symmetry came out wrong" look identical otherwise.
          ostringstream why;

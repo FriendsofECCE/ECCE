@@ -261,13 +261,22 @@ int main(int argc, char** argv) {
 
     MoColumn left, right;
     string note;
+    //  NOT AN AXn MOLECULE, AND IT SAYS SO.
+    //
+    //  It used to be refused outright.  It is now drawn as the carbon
+    //  against everything else -- which is one of the two splits a
+    //  person actually uses for methanol, "H4O against C" -- but the
+    //  program CHOSE that, so it has to say so: three orbits admit
+    //  more than one fragmentation and the reader may want a
+    //  different one.
     bool ok = MoFragments::build(coords, elements, "CS", 0, left, right, note);
-    bool refused = !ok && note.find("equivalent neighbours") != string::npos;
+    const bool saysSo = note.find("guess at the fragments") != string::npos;
     printf("  %-46s %s\n",
-           "CH3OH: not an AXn molecule, and it says so",
-           refused ? "ok" : ("FAIL: " + (ok ? string("built anyway")
-                                            : note)).c_str());
-    if (!refused) bad++;
+           "CH3OH: built on a stated guess, not silently",
+           (ok && saysSo) ? "ok"
+                          : ("FAIL: " + (ok ? note
+                                            : string("refused"))).c_str());
+    if (!(ok && saysSo)) bad++;
   }
 
   //  --- the spellings the codes actually use ------------------------
@@ -593,11 +602,14 @@ int main(int argc, char** argv) {
 
     MoColumn left, right;
     string note;
-    bool refused = !MoFragments::build(coords, elements, "CS", 0,
-                                       left, right, note);
-    printf("  %-46s %s\n", "CH3OH: refused without a choice",
-           refused ? "ok" : "FAIL");
-    if (!refused) bad++;
+    //  Without a choice it falls back to its own guess and says so;
+    //  the point of the chooser below is to override that.
+    const bool guessed =
+        MoFragments::build(coords, elements, "CS", 0, left, right, note) &&
+        note.find("guess at the fragments") != string::npos;
+    printf("  %-46s %s\n", "CH3OH: guessed, and the guess is stated",
+           guessed ? "ok" : "FAIL");
+    if (!guessed) bad++;
 
     vector< vector<int> > orbits;
     string why;
