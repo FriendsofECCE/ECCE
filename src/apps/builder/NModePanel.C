@@ -259,11 +259,17 @@ void NModePanel::initialize()
    if (!haveGraphable) {
       // Tricky situation.  Table looks better but don't want to override
       // preferences.  Therefore call showTable.
-      // Easy to swap the two options below if others disagree.
       showTable();
-      //wxCommandEvent event(wxEVT_COMMAND_MENU_SELECTED, TABLE);
-      //AddPendingEvent(event);
 
+      //  And say so on the control.  Falling back without moving the
+      //  radio left it reading "Graph" over a table, which looks like
+      //  the radio has stopped working -- the exact complaint #81 was
+      //  about, arriving by a different route.
+      wxRadioBox *viewbox =
+            (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_DATAVIEW);
+      if (viewbox != 0 && viewbox->GetCount() > 1) {
+         viewbox->SetSelection(1);   // 0 = Graph, 1 = Table
+      }
    }
 
    getFW().getViewer().getSel()->deselectAll();
@@ -407,10 +413,19 @@ bool NModePanel::fillGraph()
 
 void NModePanel::plotCurve(PropVector *xprop, PropVector *yprop)
 {
-  // Not sure if we should draw line at 1 like old calcviewer or draw
-  // nothing.  Graph looks funny with points on it
-  // Comment or uncomment to control this...
-  //if (yprop == 0) return;
+  //  No property, no curve.
+  //
+  //  This used to fall through and plot a spike of height 1.0 at every
+  //  frequency -- the old "draw line at 1 like old calcviewer" the
+  //  commented-out guard below was weighing up.  For any code that
+  //  produces one activity and not the other that is a whole phantom
+  //  spectrum drawn over the real one: MOPAC computes no Raman, so its
+  //  infrared plot came with a second, green, flat set of unit spikes
+  //  on top, and the spectrum read as "all intensities are 1.0".
+  //
+  //  Same reasoning as the Raman COLUMN in fillTable(): a property the
+  //  code cannot produce should be absent, not drawn as a constant.
+  if (yprop == 0) return;
 
   // The times 3 is because each curve is continuous line with each spectrum
   // represented as three points in 
@@ -443,11 +458,7 @@ void NModePanel::plotCurve(PropVector *xprop, PropVector *yprop)
 
      if (y) {
         y[sidx] = 0.;
-        // Can be null pointer in which case, just plot 1s
-        if (yprop) 
-           y[vidx] = yprop->value(idx);
-        else
-           y[vidx] = 1.0;
+        y[vidx] = yprop->value(idx);
         y[eidx] = 0.;
      }
   }

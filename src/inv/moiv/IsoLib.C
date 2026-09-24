@@ -741,11 +741,16 @@ printf("destination 0x%x\n",*c0); */
         // Set reasonable values for the zero'th orderedRGBA and zero'th
         // normal if necessary.  Otherwise, GL gets all screwed up.
         // Also finish editing the arrays.
-        if (gVP->materialBinding.getValue() ==
-            SoMaterialBinding::PER_VERTEX_INDEXED) {
+        //  Keyed on the pointer, like the growth in addEdge(), and for
+        //  the same reason: the binding is PER_VERTEX now, and with the
+        //  old test this was skipped entirely -- leaving orderedRGBA
+        //  permanently in startEditing() and sized to the allocation
+        //  rather than to the vertex count.
+        if (gColorPtr != NULL) {
             gColorPtr[0] = gColorPtr[1];
             gVP->orderedRGBA.finishEditing();
             gVP->orderedRGBA.setNum(gNpoints);
+            gColorPtr = NULL;
         }
         if (gVP->normalBinding.getValue() ==
             SoNormalBinding::PER_VERTEX_INDEXED) {
@@ -1017,8 +1022,18 @@ addEdge(float t, float v0, float v1, int i0, int j0, int k0,
         gVP->vertex.finishEditing();
         gVP->vertex.setNum(newSize);
         gVertPtr = gVP->vertex.startEditing();
-        if (gVP->materialBinding.getValue() ==
-            SoMaterialBinding::PER_VERTEX_INDEXED) {
+        //  Grown whenever there ARE colours, which is what gColorPtr
+        //  being non-null means -- not when the binding happens to be
+        //  PER_VERTEX_INDEXED.
+        //
+        //  The two are not the same thing, and this is the second bug
+        //  in this never-executed branch.  The binding above had to
+        //  become PER_VERTEX, because the colours are written one per
+        //  vertex in vertex order; with the old test this growth then
+        //  stopped happening and gColorPtr[gNpoints] ran off the end of
+        //  the array instead.  Keying on the pointer makes the growth
+        //  independent of a binding decision made elsewhere.
+        if (gColorPtr != NULL) {
             gVP->orderedRGBA.finishEditing();
             gVP->orderedRGBA.setNum(newSize);
             gColorPtr = gVP->orderedRGBA.startEditing();
