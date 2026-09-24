@@ -41,6 +41,7 @@
 
 #include <math.h>
 
+#include <exception>
 #include <iostream>
   using std::cout;
   using std::endl;
@@ -1867,43 +1868,93 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
     }
   }
 
-  //  Nuclei.
+  //  Nuclei.  Sanity-checked rather than trusted: an implausible count
+  //  here would be allocated before anything noticed, and a failed
+  //  allocation leaves the application with an exception it does not
+  //  handle rather than a surface it cannot colour.
   const unsigned long numAtoms = atoms->size();
-  vector<EspNucleus> nuclei(numAtoms);
-  for (unsigned long a = 0; a < numAtoms; a++) {
-    const double *c = (*atoms)[a]->coordinates();
-    for (int k = 0; k < 3; k++) nuclei[a].center[k] = c[k]*atob;
-    nuclei[a].charge = (*atoms)[a]->atomicNumber();
+  if (numAtoms == 0 || numAtoms > 1000000UL) {
+    cerr << "ESP: implausible atom count " << numAtoms
+         << "; declining." << endl;
+    return true;
   }
 
+  vector<EspNucleus> nuclei(numAtoms);
+  for (unsigned long a = 0; a < numAtoms; a++) {
+    const TAtm *atom = (*atoms)[a];
+    if (atom == 0) {
+      cerr << "ESP: atom " << a << " is null; declining." << endl;
+      return true;
+    }
+    const double *c = atom->coordinates();
+    if (c == 0) {
+      cerr << "ESP: atom " << a << " has no coordinates; declining."
+           << endl;
+      return true;
+    }
+    for (int k = 0; k < 3; k++) nuclei[a].center[k] = c[k]*atob;
+    nuclei[a].charge = atom->atomicNumber();
+  }
+
+  cerr << "ESP: " << nuclei.size() << " nuclei, allocating "
+       << gridRes << " points" << endl;
+
   float *esp = new float[gridRes];
-  char msg[120];
+  char msg[160];
 
+  //  Wrapped, because the first attempt at this reported only
+  //  "Unhandled unknown exception" and died -- which says nothing about
+  //  what threw or where.  Anything escaping here is reported with its
+  //  type and the plane it happened on, and the surface is left
+  //  uncoloured rather than the application being taken down.
   unsigned long idx = 0;
-  for (int k = 0; k < resZ; k++) {
+  int plane = 0;
+  try {
+    for (plane = 0; plane < resZ; plane++) {
 
-    if (p_monitor != 0) {
-      sprintf(msg,
-              "Electrostatic potential: plane %d of %d, %d orbital pairs",
-              k+1, resZ, (int)pairs.size());
-      if (p_monitor->isInterrupted(msg, (int)((k+1)*100.0/resZ))) {
-        delete [] esp;
-        return false;
+      if (p_monitor != 0) {
+        sprintf(msg,
+                "Electrostatic potential: plane %d of %d, %d orbital pairs",
+                plane+1, resZ, (int)pairs.size());
+        if (p_monitor->isInterrupted(msg, (int)((plane+1)*100.0/resZ))) {
+          delete [] esp;
+          cerr << "ESP: interrupted on plane " << plane+1 << endl;
+          return false;
+        }
+      }
+      if (plane == 0) {
+        cerr << "ESP: first plane starting" << endl;
+      }
+
+      const double z = (zStart + plane*zDelta)*atob;
+      for (int j = 0; j < resY; j++) {
+        const double y = (yStart + j*yDelta)*atob;
+        for (int i = 0; i < resX; i++) {
+          double point[3];
+          point[0] = (xStart + i*xDelta)*atob;
+          point[1] = y;
+          point[2] = z;
+
+          esp[idx++] = (float)EspField::potential(basis, pairs, nuclei,
+                                                  point);
+        }
+      }
+      if (plane == 0) {
+        cerr << "ESP: first plane done" << endl;
       }
     }
-
-    const double z = (zStart + k*zDelta)*atob;
-    for (int j = 0; j < resY; j++) {
-      const double y = (yStart + j*yDelta)*atob;
-      for (int i = 0; i < resX; i++) {
-        double point[3];
-        point[0] = (xStart + i*xDelta)*atob;
-        point[1] = y;
-        point[2] = z;
-
-        esp[idx++] = (float)EspField::potential(basis, pairs, nuclei, point);
-      }
-    }
+  }
+  catch (const std::exception& e) {
+    cerr << "ESP: threw on plane " << plane+1 << " of " << resZ
+         << ": " << e.what() << endl;
+    delete [] esp;
+    return true;
+  }
+  catch (...) {
+    cerr << "ESP: threw a non-standard exception on plane " << plane+1
+         << " of " << resZ << endl;
+    delete [] esp;
+    return true;
   }
 
   grid->setColorFieldData(esp);
