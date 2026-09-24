@@ -131,14 +131,33 @@ def run_case(case, verbose, keep, required=()):
             if os.path.exists(src):
                 shutil.copy(src, os.path.join(workdir, extra))
         for step in codedef.get('setup', ()):
-            src, sout, serr = pipeline.run_code(step(exe, deck), workdir)
+            src, sout, serr = pipeline.run_code(
+                step(exe, deck), workdir,
+                env={'OMPI_MCA_btl_sm_backing_directory': workdir})
             if src != 0:
                 report.check(False, 'setup step failed (exit %d)\n%s'
                              % (src, (serr or sout).strip()[-400:]))
                 return report
 
         # --- stage 1: the real code -----------------------------------
-        rc, out, err = pipeline.run_code(codedef['argv'](exe, deck), workdir)
+        #  Keep Open MPI's shared-memory backing files out of /dev/shm.
+        #
+        #  NWChem here is the openmpi build, and Open MPI puts one
+        #  backing file per run in /dev/shm by default.  It removes them
+        #  on a clean shutdown and NOT otherwise, so every interrupted
+        #  or timed-out run leaves one behind -- 404 of them had
+        #  accumulated on the development machine, and /dev/shm is RAM,
+        #  so they push real memory into swap.
+        #
+        #  Pointing the backing directory at this case's own work
+        #  directory makes the cleanup automatic: it is removed with
+        #  everything else below, whether the run succeeded or not.
+        #  Harmless for codes that are not MPI, so it is set for all.
+        codeEnv = dict(codedef.get('env', {}))
+        codeEnv['OMPI_MCA_btl_sm_backing_directory'] = workdir
+
+        rc, out, err = pipeline.run_code(codedef['argv'](exe, deck), workdir,
+                                         env=codeEnv)
         job_out = os.path.join(workdir, case['output'])
         #  Some codes write their output to stdout and ECCE redirects it
         #  into the named file (pw.x is invoked as "pw.x -in x > x.pwout").

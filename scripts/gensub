@@ -1128,6 +1128,14 @@ sub nwchem()
     $retval .= "if (-d \$mpibindir) then\n";
     $retval .= "  set path = (\$mpibindir \$path)\n";
     $retval .= "endif\n";
+    $retval .= "\n$::CC - Keep Open MPI's shared memory backing files out of\n";
+    $retval .= "$::CC - /dev/shm, which is RAM. Open MPI writes one per run there\n";
+    $retval .= "$::CC - and removes it only on a CLEAN shutdown, so every job that\n";
+    $retval .= "$::CC - is cancelled, crashes or is killed by the queue leaves a\n";
+    $retval .= "$::CC - 16MB file behind for good. They accumulate silently and\n";
+    $retval .= "$::CC - push real memory into swap. In the run directory they go\n";
+    $retval .= "$::CC - when the job's files go.\n";
+    $retval .= "setenv OMPI_MCA_btl_sm_backing_directory $::runDir\n";
     $retval .= "mpirun -np $::totalprocs \$nwchem $::runDir/$::inFile >&! $::runDir/$::outFile < /dev/null\n";
   }
   return $retval;
@@ -1453,6 +1461,14 @@ sub quantumespresso()
     $retval .= "\$pw -in $::inFile >&! $::outFile\n";
   } else {
     $retval .= "\n$::CC - pw.x is a plain MPI program; mpirun wraps it.\n";
+    $retval .= "\n$::CC - Keep Open MPI's shared memory backing files out of\n";
+    $retval .= "$::CC - /dev/shm, which is RAM. Open MPI writes one per run there\n";
+    $retval .= "$::CC - and removes it only on a CLEAN shutdown, so every job that\n";
+    $retval .= "$::CC - is cancelled, crashes or is killed by the queue leaves a\n";
+    $retval .= "$::CC - 16MB file behind for good. They accumulate silently and\n";
+    $retval .= "$::CC - push real memory into swap. In the run directory they go\n";
+    $retval .= "$::CC - when the job's files go.\n";
+    $retval .= "setenv OMPI_MCA_btl_sm_backing_directory $::runDir\n";
     $retval .= "mpirun -np $::totalprocs \$pw -in $::inFile >&! $::outFile < /dev/null\n";
   }
   return $retval;
