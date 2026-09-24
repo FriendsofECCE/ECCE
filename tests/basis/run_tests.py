@@ -181,6 +181,91 @@ def alias_records_complete():
     return findings
 
 
+#  The AO ordering each code prints its MO coefficients in.  Verified by
+#  RUNNING the code and reading its own output, never from a manual and
+#  never by copying a sibling's block, because getting it wrong is
+#  completely silent: the MO isosurface stays smooth and plausible, the
+#  electron density stays molecule shaped, and only an integral over the
+#  density (trace(P S), which must equal the electron count) shows it.
+#
+#  ORCA shipped with p declared as x,y,z, copied from Gaussian.  ORCA
+#  actually prints "1pz 1px 1py".  Every ORCA p coefficient therefore
+#  landed on the wrong Cartesian axis, and every electrostatic potential
+#  map came out positive everywhere because the molecule was being drawn
+#  with several units of net positive charge (trace(P S) = 14.69 against
+#  18 electrons for methanol).
+#
+#  The tell was internal: ORCA's d and f rows already used its
+#  m = 0, +1, -1, +2, -2 convention while p alone did not.  If a new
+#  code's p ordering does not follow the same convention as its own d
+#  ordering, that is the thing to check first.
+MO_ORDERING = {
+    #  code .edml stem: (l=1 components, how it was verified)
+    "ORCA": (("z", "x", "y"),
+             "ORCA 6.1.1 def2-SVP methanol, MOLECULAR ORBITALS block: "
+             "0C 1s 2s 3s 1pz 1px 1py 2pz 2px 2py 1dz2 ..."),
+    "Gaussian-16": (("x", "y", "z"),
+                    "g16 HF/6-31G(d) 5D water, pop=full: "
+                    "1S 2S 2PX 2PY 2PZ 3S 3PX 3PY 3PZ 4D 0 4D+1 ..."),
+    "Gaussian-09": (("x", "y", "z"), "same printout format as Gaussian-16"),
+    "Gaussian-03": (("x", "y", "z"), "same printout format as Gaussian-16"),
+    "NWChem": (("x", "y", "z"),
+               "NWChem DFT Final Molecular Orbital Analysis, cc-pVDZ water: "
+               "Bfn 4 = '1 O px', Bfn 6 = '1 O pz', so a p shell runs x y z"),
+    "MOPAC": (("x", "y", "z"),
+              "MOPAC GRAPHF basis order, verified by numerical integration "
+              "in tools/mopac/verify_slater_basis.py"),
+}
+
+
+def mo_ordering_matches_the_code():
+    """Each code's spherical l=1 ordering, against what the code prints.
+
+    Only the codes whose ordering has actually been checked against a
+    real printout are listed; a code absent from MO_ORDERING is not
+    silently passed, it is reported as unverified, so adding one forces
+    the question to be answered rather than copied.
+    """
+    CAP = os.path.join(REPO, "data", "client", "cap")
+    RETIRED = ("Gaussian-98", "GAMESS-UK", "Amica", "DirDyVTST", "MetaDyn",
+               "Polyrate", "NWChemMD", "GROMACS", "MOLCAS",
+               "QuantumESPRESSO")
+
+    findings = []
+    for entry in sorted(os.listdir(CAP)):
+        if not entry.endswith(".edml"):
+            continue
+        stem = entry[:-5]
+        text = open(os.path.join(CAP, entry), errors="replace").read()
+
+        block = re.search(r'<MOOrdering\s+type="spherical".*?</MOOrdering>',
+                          text, re.S)
+        if block is None:
+            continue
+        row = re.search(r'<lshell\s+lval="1"([^>]*)>', block.group(0))
+        if row is None:
+            findings.append("%s: spherical MOOrdering has no l=1 row" % stem)
+            continue
+        got = tuple(re.findall(r'a\d+="([^"]*)"', row.group(1)))
+
+        if stem in RETIRED:
+            continue
+        if stem not in MO_ORDERING:
+            findings.append(
+                "%s declares a spherical MOOrdering but its l=1 order has "
+                "never been checked against the code's own MO printout. "
+                "Run the code, read the labels, and add it to MO_ORDERING "
+                "with the evidence." % stem)
+            continue
+
+        want, evidence = MO_ORDERING[stem]
+        if got != want:
+            findings.append(
+                "%s: spherical l=1 order is %s, the code prints %s (%s)"
+                % (stem, " ".join(got), " ".join(want), evidence))
+    return findings
+
+
 def run(case):
     path = os.path.join(PARSERS, case["exporter"])
     with open(os.path.join(FIXTURES, case["fixture"])) as handle:
@@ -206,6 +291,10 @@ def main():
     checks += 1
     for finding in alias_records_complete():
         failures.append("basis alias: " + finding)
+
+    checks += 1
+    for finding in mo_ordering_matches_the_code():
+        failures.append("MO ordering: " + finding)
 
     for case in CASES:
         text, rc, err = run(case)

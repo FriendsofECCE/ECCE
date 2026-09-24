@@ -59,6 +59,11 @@
 </GeometryConstraintRules>
 
 
+<!-- UNREACHABLE: ORCA is spherical only and has no cartesian basis
+     keyword at all (wrORCAGBS.pm ignores $coordinants for the same
+     reason).  Left as found rather than guessed at.  If ORCA ever
+     gains one, verify it against a real printout the way the spherical
+     block below was, rather than copying another code's. -->
 <MOOrdering type="cartesian" >
    <lshell lval="0" a1="1"></lshell>
    <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
@@ -72,9 +77,28 @@
     a15="xxxx"></lshell>
 </MOOrdering>
 
+<!-- ORCA orders the components of a shell by m = 0, +1, -1, +2, -2,
+     and that includes p: its own MO printout labels them
+     "1pz  1px  1py", not x y z.  Verified against a real def2-SVP
+     methanol job's MOLECULAR ORBITALS block, 2026-09-24.
+
+     The d and f rows below already follow that convention (dz2, dxz,
+     dyz, dx2y2, dxy is exactly what ORCA prints); only p had been
+     written out as the "obvious" x y z, which is the convention
+     Gaussian uses.  That single transposition put every ORCA p
+     coefficient on the wrong Cartesian axis, and it is silent: an MO
+     isosurface built that way is still a smooth, plausible looking
+     orbital, and the electron density built from it is still smooth
+     and molecule shaped.
+
+     What showed it was trace(P S), which must equal the electron
+     count.  It came out 14.69 against 18 for methanol and 13.44
+     against 18 for ethane, so the molecule was being drawn as though
+     it carried +3 to +5 charge, and every electrostatic potential map
+     came out positive everywhere. -->
 <MOOrdering type="spherical" >
    <lshell lval="0" a1="1"></lshell>
-   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="1" a1="z" a2="x" a3="y"></lshell>
    <lshell lval="2" a1="-xx/2-yy/2+zz" a2="xz" a3="yz" a4="xx/2-yy/2"
     a5="xy"></lshell>
    <lshell lval="3" a1="-3xxz/2-3yyz/2+zzz" a2="-xxx/2-xyy/2+2xzz"
