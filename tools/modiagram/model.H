@@ -197,6 +197,7 @@ static bool buildModel(const char* tables, const char* molecule,
   //  without them the matching falls back to composition, which needs
   //  no labels at all.  Kept in step with MoDiagramPanel::build().
   bool byIrrep = haveFragments;
+
   if (byIrrep) {
     string mismatch;
     if (!MoDiagram::reconcile(left.levels, right.levels, centre.levels,
@@ -205,7 +206,25 @@ static bool buildModel(const char* tables, const char* molecule,
       if (note.empty()) note = mismatch;
     }
   }
-  if (byIrrep) {
+  //  COLUMNS THAT CARRY NO IRREP ARE NOT COLUMNS THAT DISAGREE.
+  //
+  //  A diatomic's fragment is one atom, which spans no representation
+  //  of the molecule's group, so nothing on either side can match the
+  //  molecular labels -- and clearing the molecular labels for want of
+  //  a match threw away the only symmetry the diagram had.  N2 then
+  //  paired its orbitals by energy order alone and coloured 1-sigma-g
+  //  with 2-sigma-u, which are not partners.
+  //
+  //  Clear them only where the sides were compared and disagreed.
+  bool columnsCarryIrreps = false;
+  for (size_t j = 0; j < left.levels.size(); j++) {
+    if (!left.levels[j].irrep.empty()) columnsCarryIrreps = true;
+  }
+  for (size_t j = 0; j < right.levels.size(); j++) {
+    if (!right.levels[j].irrep.empty()) columnsCarryIrreps = true;
+  }
+
+  if (byIrrep && columnsCarryIrreps) {
     int matched = 0;
     for (size_t i = 0; i < centre.levels.size(); i++) {
       for (size_t j = 0; j < left.levels.size(); j++) {
@@ -216,7 +235,7 @@ static bool buildModel(const char* tables, const char* molecule,
     if (matched == 0 && !centre.levels.empty()) byIrrep = false;
   }
   if (haveFragments) {
-    if (!byIrrep) {
+    if (!byIrrep && columnsCarryIrreps) {
       for (size_t i = 0; i < centre.levels.size(); i++) {
         centre.levels[i].irrep.clear();
       }
@@ -229,7 +248,13 @@ static bool buildModel(const char* tables, const char* molecule,
   }
 
 
-  model.group    = group;
+  //  The name on the page, which is not always the name the generator
+  //  gave: it has no infinite groups and calls N2 D4h.
+  model.group = group;
+  string linear;
+  if (MoFragments::linearGroupName(coords, elements, linear)) {
+    model.group = linear;
+  }
   model.coords   = coords;
   model.elements = elements;
   model.labels   = labels;

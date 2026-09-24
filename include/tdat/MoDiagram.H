@@ -231,6 +231,14 @@ class MoDiagram
      * @param dimensions  irrep name (canonical) to dimension; a label
      *                    that is not in it falls back to the tolerance
      */
+    /**
+     * How many orbitals an irrep holds, read from its Mulliken letter.
+     *
+     * Used where the character table cannot supply it -- a linear
+     * molecule has no finite table.
+     */
+    static int dimensionFromName(const string& canonical);
+
     static bool groupByIrrep(const vector<double>& energies,
                              const vector<double>& occupancies,
                              const vector<string>& labels,

@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -68,7 +69,7 @@ class MoDiagramCanvas : public wxPanel
 
     MoDiagramCanvas(wxWindow *parent)
       : wxPanel(parent, wxID_ANY), p_owner(0), p_haveFragments(false),
-        p_placed(), p_sketchColumn(0), p_outward(-1)
+        p_placed(), p_notes(), p_sketchColumn(0), p_outward(-1)
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);   // needed for buffered paint
       SetBackgroundColour(*wxWHITE);
@@ -122,6 +123,140 @@ class MoDiagramCanvas : public wxPanel
       if (level.pairing < 0) return wxColour(0, 0, 0);
       const int k = level.pairing % 8;
       return wxColour(rgb[k][0], rgb[k][1], rgb[k][2]);
+    }
+
+    /**
+     * A term symbol broken into upright, subscript and superscript.
+     *
+     * A diagram that writes "1b2" and "2t2*" flat, where a chemist
+     * writes 1b<sub>2</sub> and 2t<sub>2</sub><sup>*</sup>, looks like
+     * it was drawn by something that does not know what it is drawing.
+     * The same applies to a linear molecule, whose labels arrive from
+     * the code as "sig", "siu", "piu" and mean sigma-g, sigma-u,
+     * pi-u.
+     *
+     * The shape is always: an optional orbital number, a symmetry
+     * symbol, its subscript (the order, and the g/u parity, and any
+     * primes), an optional asterisk, and then whatever else was
+     * appended -- " nb", or a shell in brackets.
+     */
+    struct Piece { wxString text; int kind; };   // 0 upright 1 sub 2 super
+
+    static bool startsWith(const string& s, size_t at, const char* what)
+    {
+      const size_t n = strlen(what);
+      if (at + n > s.size()) return false;
+      for (size_t i = 0; i < n; i++) {
+        if (tolower((unsigned char)s[at + i]) != what[i]) return false;
+      }
+      return true;
+    }
+
+    static void splitLabel(const string& label, vector<Piece>& out)
+    {
+      out.clear();
+      size_t i = 0;
+
+      //  The orbital number, if there is one.
+      string lead;
+      while (i < label.size() && isdigit((unsigned char)label[i])) {
+        lead += label[i++];
+      }
+      if (!lead.empty()) {
+        Piece p; p.text = wxString(lead.c_str(), wxConvUTF8); p.kind = 0;
+        out.push_back(p);
+      }
+
+      //  The symmetry symbol.  A spelled-out Greek letter first, since
+      //  its first character would otherwise be taken for a Mulliken
+      //  symbol and the rest of its name for a subscript.
+      static const char* const names[]  =
+          {"sigma", "delta", "phi", "pi", "si", "de", 0};
+      static const char* const glyphs[] =
+          {"\xcf\x83", "\xce\xb4", "\xcf\x86",
+           "\xcf\x80", "\xcf\x83", "\xce\xb4"};
+      bool greek = false;
+      for (int k = 0; names[k] != 0 && !greek; k++) {
+        if (!startsWith(label, i, names[k])) continue;
+        Piece p; p.text = wxString::FromUTF8(glyphs[k]); p.kind = 0;
+        out.push_back(p);
+        i += strlen(names[k]);
+        greek = true;
+      }
+      if (!greek && i < label.size() && isalpha((unsigned char)label[i])) {
+        Piece p;
+        p.text = wxString(label.substr(i, 1).c_str(), wxConvUTF8);
+        p.kind = 0;
+        out.push_back(p);
+        i++;
+      }
+
+      //  Its subscript: the order, the parity, the primes.
+      string sub;
+      while (i < label.size()) {
+        const char c = label[i];
+        if (isdigit((unsigned char)c) || c == '\'' || c == '"' ||
+            tolower((unsigned char)c) == 'g' ||
+            tolower((unsigned char)c) == 'u') {
+          sub += c; i++;
+        } else if (c == '-' && sub.empty()) {
+          i++;                       // "sigma-g" as some codes write it
+        } else {
+          break;
+        }
+      }
+      if (!sub.empty()) {
+        Piece p; p.text = wxString(sub.c_str(), wxConvUTF8); p.kind = 1;
+        out.push_back(p);
+      }
+
+      if (i < label.size() && label[i] == '*') {
+        Piece p; p.text = wxT("*"); p.kind = 2;
+        out.push_back(p);
+        i++;
+      }
+
+      if (i < label.size()) {
+        Piece p;
+        p.text = wxString(label.substr(i).c_str(), wxConvUTF8);
+        p.kind = 0;
+        out.push_back(p);
+      }
+    }
+
+    /** The width and height a split label will occupy. */
+    static wxSize measurePieces(wxDC& dc, const vector<Piece>& pieces,
+                                const wxFont& base, const wxFont& small)
+    {
+      wxSize total(0, 0);
+      for (size_t i = 0; i < pieces.size(); i++) {
+        dc.SetFont(pieces[i].kind == 0 ? base : small);
+        const wxSize one = dc.GetTextExtent(pieces[i].text);
+        total.x += one.x;
+        if (one.y > total.y) total.y = one.y;
+      }
+      dc.SetFont(base);
+      if (total.y == 0) total.y = dc.GetTextExtent(wxT("Xg")).y;
+      return total;
+    }
+
+    static void drawPieces(wxDC& dc, const vector<Piece>& pieces,
+                           int x, int y, const wxFont& base,
+                           const wxFont& small, int lineHeight)
+    {
+      for (size_t i = 0; i < pieces.size(); i++) {
+        if (pieces[i].kind == 0) {
+          dc.SetFont(base);
+          dc.DrawText(pieces[i].text, x, y);
+        } else {
+          dc.SetFont(small);
+          const int drop = (pieces[i].kind == 1) ? lineHeight/3
+                                                 : -lineHeight/4;
+          dc.DrawText(pieces[i].text, x, y + drop);
+        }
+        x += dc.GetTextExtent(pieces[i].text).x;
+      }
+      dc.SetFont(base);
     }
 
     /** Energy to pixels, with the occupied region given the room. */
@@ -249,8 +384,14 @@ class MoDiagramCanvas : public wxPanel
       dc.SetFont(*wxSMALL_FONT);
       dc.SetTextForeground(colour);
 
-      const wxString text(level.label.c_str(), wxConvUTF8);
-      const wxSize extent = dc.GetTextExtent(text);
+      wxFont base = *wxSMALL_FONT;
+      wxFont small = base;
+      small.SetPointSize(base.GetPointSize() - 2 > 4
+                             ? base.GetPointSize() - 2 : 5);
+
+      vector<Piece> pieces;
+      splitLabel(level.label, pieces);
+      const wxSize extent = measurePieces(dc, pieces, base, small);
 
       if (leftHand) {
         //  Nudged aside when the level above it took the same row, so
@@ -271,8 +412,14 @@ class MoDiagramCanvas : public wxPanel
         while (clash && step < 2) {
           clash = false;
           for (size_t k = 0; k < p_placed.size(); k++) {
+            //  Two rows tall where an annotation goes under the
+            //  label, or the annotation of one level prints over the
+            //  label of the next -- which is what "free atom" did all
+            //  along oxygen's 2p set.
+            const int tall = level.annotation.empty()
+                ? extent.y + 2 : 2*extent.y + 2;
             if (p_placed[k].second == step &&
-                abs(y - p_placed[k].first) < extent.y + 2) {
+                abs(y - p_placed[k].first) < tall) {
               clash = true;
               break;
             }
@@ -287,12 +434,22 @@ class MoDiagramCanvas : public wxPanel
         const int lx = (p_outward < 0)
             ? x - extent.x - 14 - step*(extent.x + 12)
             : x + width + 14 + step*(extent.x + 12);
-        dc.DrawText(text, lx, y - extent.y/2);
+        drawPieces(dc, pieces, lx, y - extent.y/2, base, small, extent.y);
 
         drawSketch(dc, level, *p_sketchColumn,
                    (p_outward < 0) ? lx - 30 : lx + extent.x + 30, y);
 
-        if (!level.annotation.empty()) {
+        //  ONCE PER SHELL.  Oxygen's b2, a1 and b1 2p levels all
+        //  carry the same free-atom energy, and printing it beside
+        //  each of the three said nothing three times and collided
+        //  with the axis doing it.  It belongs to the shell, so it is
+        //  drawn for the first level of the shell only.
+        bool saidAlready = false;
+        for (size_t k = 0; k < p_notes.size(); k++) {
+          if (p_notes[k] == level.annotation) saidAlready = true;
+        }
+        if (!level.annotation.empty() && !saidAlready) {
+          p_notes.push_back(level.annotation);
           dc.SetTextForeground(wxColour(130, 130, 130));
           const wxString extra(level.annotation.c_str(), wxConvUTF8);
           dc.DrawText(extra,
@@ -301,7 +458,8 @@ class MoDiagramCanvas : public wxPanel
                       y + extent.y/2);
         }
       } else {
-        dc.DrawText(text, x + (width - extent.x)/2, y - extent.y - 6);
+        drawPieces(dc, pieces, x + (width - extent.x)/2, y - extent.y - 6,
+                   base, small, extent.y);
       }
 
     }
@@ -551,9 +709,35 @@ class MoDiagramCanvas : public wxPanel
         for (string::size_type i = 0; i < pretty.size(); i++) {
           pretty[i] = (i == 0) ? toupper(pretty[i]) : tolower(pretty[i]);
         }
+        //  The two infinite ones, which have no finite spelling.
+        if (pretty == "Dinfh") pretty = "D\xe2\x88\x9eh";
+        if (pretty == "Cinfv") pretty = "C\xe2\x88\x9ev";
 
-        const wxString title = wxString(pretty.c_str(), wxConvUTF8);
-        dc.DrawText(title, (size.x - dc.GetTextExtent(title).x)/2, 6);
+        //  WITH A REAL SUBSCRIPT.  A point group is written with the
+        //  order and the element as a subscript -- T_d, C_2v, D_4h --
+        //  and printing "Td" flat is the sort of thing that makes a
+        //  diagram look like it was drawn by something that does not
+        //  know what it is drawing.  The Schoenflies letter is the
+        //  first character; everything after it is the subscript.
+        const wxString stem = wxString(pretty.substr(0, 1).c_str(),
+                                       wxConvUTF8);
+        const wxString sub  = wxString(pretty.substr(1).c_str(),
+                                       wxConvUTF8);
+
+        wxFont small = heading;
+        small.SetPointSize(heading.GetPointSize() - 3);
+
+        const wxSize stemSize = dc.GetTextExtent(stem);
+        dc.SetFont(small);
+        const wxSize subSize = dc.GetTextExtent(sub);
+        dc.SetFont(heading);
+
+        const int titleX = (size.x - (stemSize.x + subSize.x))/2;
+        dc.DrawText(stem, titleX, 6);
+        dc.SetFont(small);
+        dc.DrawText(sub, titleX + stemSize.x,
+                    6 + stemSize.y - subSize.y + 1);
+        dc.SetFont(heading);
         top += 22;
       }
       const wxRect plot(0, top, size.x,
@@ -651,6 +835,7 @@ class MoDiagramCanvas : public wxPanel
       }
 
       p_placed.clear();
+      p_notes.clear();
       if (p_haveFragments) {
         //  WITH their electrons.  A fragment level carries an
         //  occupancy now, and a diagram that does not draw it does not
@@ -658,8 +843,10 @@ class MoDiagramCanvas : public wxPanel
         //  it is for.  The offline renderer draws them; this did not.
         drawColumn(dc, p_left, xLeft, levelWidth, plot, true, 0);
         p_placed.clear();
+      p_notes.clear();
         drawColumn(dc, p_right, xRight, levelWidth, plot, true, 0, +1);
         p_placed.clear();
+      p_notes.clear();
       }
 
       p_hits.clear();
@@ -764,6 +951,7 @@ class MoDiagramCanvas : public wxPanel
     //  Every label placed in the column being drawn, as (y, notch), so
     //  a new one can be pushed clear of all of them.
     vector< std::pair<int,int> > p_placed;
+    vector<string> p_notes;       // annotations already drawn
     const MoColumn *p_sketchColumn;
     int p_outward;
 };

@@ -220,6 +220,23 @@ class MoFragments
      * @return false if no symmetry argument could be made, with `note`
      *         explaining which step gave out.
      */
+    /**
+     * The Schoenflies name of a linear molecule's group, if it is one.
+     *
+     * The symmetry generator has no infinite groups, so it returns a
+     * finite stand-in -- N2 comes back as D4h.  Its operations are a
+     * genuine subgroup of the real one and the fragment machinery is
+     * right to use them, but the NAME is wrong on the page, and a
+     * chemist reading "D4h" over a diatomic stops trusting the rest of
+     * the diagram.
+     *
+     * Returns "DINFH" or "CINFV" in name, for display only: pass the
+     * generator's own name to everything that computes.
+     */
+    static bool linearGroupName(const vector<double>& coords,
+                                const vector<string>& elements,
+                                string& name);
+
     static bool build(const vector<double>& coords,
                       const vector<string>& elements,
                       const string& group,

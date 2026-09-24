@@ -806,6 +806,77 @@ static void buildColumn(const vector<int>& atoms,
    }
 }
 
+bool MoFragments::linearGroupName(const vector<double>& coords,
+                                  const vector<string>& elements,
+                                  string& name)
+{
+   const size_t n = elements.size();
+   if (n < 2 || coords.size() != 3*n) return false;
+
+   //  Collinear?  Take the axis from the two atoms furthest apart and
+   //  require every atom to sit on it.
+   size_t a = 0, b = 1;
+   double furthest = -1.0;
+   for (size_t i = 0; i < n; i++) {
+      for (size_t j = i + 1; j < n; j++) {
+         double d = 0.0;
+         for (int k = 0; k < 3; k++) {
+            const double t = coords[3*i+k] - coords[3*j+k];
+            d += t*t;
+         }
+         if (d > furthest) { furthest = d; a = i; b = j; }
+      }
+   }
+   if (furthest <= 0.0) return false;
+
+   double axis[3];
+   const double length = sqrt(furthest);
+   for (int k = 0; k < 3; k++) {
+      axis[k] = (coords[3*b+k] - coords[3*a+k])/length;
+   }
+
+   for (size_t i = 0; i < n; i++) {
+      double v[3], along = 0.0;
+      for (int k = 0; k < 3; k++) {
+         v[k] = coords[3*i+k] - coords[3*a+k];
+         along += v[k]*axis[k];
+      }
+      double off = 0.0;
+      for (int k = 0; k < 3; k++) {
+         const double t = v[k] - along*axis[k];
+         off += t*t;
+      }
+      if (sqrt(off) > 1.0e-3) return false;      // not on the axis
+   }
+
+   //  A centre of inversion decides between the two: every atom must
+   //  have a partner of its own element opposite the midpoint.
+   double centre[3] = {0.0, 0.0, 0.0};
+   for (size_t i = 0; i < n; i++) {
+      for (int k = 0; k < 3; k++) centre[k] += coords[3*i+k]/(double)n;
+   }
+
+   bool centrosymmetric = true;
+   for (size_t i = 0; i < n && centrosymmetric; i++) {
+      bool matched = false;
+      for (size_t j = 0; j < n && !matched; j++) {
+         if (elements[j] != elements[i]) continue;
+         double d = 0.0;
+         for (int k = 0; k < 3; k++) {
+            const double want = 2.0*centre[k] - coords[3*i+k];
+            const double t = coords[3*j+k] - want;
+            d += t*t;
+         }
+         if (sqrt(d) < 1.0e-3) matched = true;
+      }
+      if (!matched) centrosymmetric = false;
+   }
+
+   name = centrosymmetric ? "DINFH" : "CINFV";
+   return true;
+}
+
+
 bool MoFragments::build(const vector<double>& coords,
                         const vector<string>& elements,
                         const string& group,

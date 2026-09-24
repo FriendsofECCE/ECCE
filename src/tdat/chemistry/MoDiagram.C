@@ -26,6 +26,39 @@ string MoDiagram::canonicalIrrep(const string& label)
 }
 
 
+/**
+ * How many orbitals an irrep holds, read from its name.
+ *
+ * The dimensions normally come from the character table, but a linear
+ * molecule has no finite table to read -- and N2 came out with its pi
+ * level split into "1pi" and "2pi" at one energy, which is not how a
+ * doubly degenerate level is drawn or thought about.
+ *
+ * Mulliken's letters say the dimension outright, which is what they
+ * are for: A and B are one, E is two, T is three, and for a linear
+ * molecule Sigma is one while Pi, Delta and Phi are two.  Falling back
+ * to this is better than assuming one, which silently turns every
+ * degeneracy into a pile of coincident levels.
+ */
+int MoDiagram::dimensionFromName(const string& canonical)
+{
+  if (canonical.empty()) return 1;
+
+  //  Linear molecules, as the codes spell them: SIG/SIU, PIU/PIG, ...
+  if (canonical.compare(0, 2, "SI") == 0) return 1;
+  if (canonical.compare(0, 2, "PI") == 0) return 2;
+  if (canonical.compare(0, 2, "DE") == 0) return 2;
+  if (canonical.compare(0, 2, "PH") == 0) return 2;
+
+  switch (canonical[0]) {
+    case 'A': case 'B': return 1;
+    case 'E':           return 2;
+    case 'T':           return 3;
+    default:            return 1;
+  }
+}
+
+
 bool MoDiagram::group(const vector<double>& energies,
                       const vector<double>& occupancies,
                       const vector<string>& labels,
@@ -101,7 +134,8 @@ bool MoDiagram::groupByIrrep(const vector<double>& energies,
     const string canonical = canonicalIrrep(labels[i]);
 
     map<string,int>::const_iterator found = dimensions.find(canonical);
-    int wanted = (found == dimensions.end()) ? 1 : found->second;
+    int wanted = (found == dimensions.end())
+                     ? dimensionFromName(canonical) : found->second;
     if (wanted < 1) wanted = 1;
 
     //  Take up to `wanted` consecutive orbitals with the same label.
@@ -380,7 +414,27 @@ static bool matchesShell(const MoLevel& centre, const MoLevel& fragment,
   const vector<double>& shares = onLeft ? centre.shellLeft
                                         : centre.shellRight;
   if ((int)shares.size() <= fragment.shell) return false;
-  return shares[fragment.shell] >= cutoff;
+  if (shares[fragment.shell] < cutoff) return false;
+
+  //  AND A REAL SHARE OF THIS ORBITAL, NOT A TRACE OF IT.
+  //
+  //  An absolute cutoff alone connects a level to every shell it has
+  //  any amplitude on, and a molecular orbital has a little amplitude
+  //  on nearly everything.  N2's 1-sigma-u is built from the 2s pair
+  //  and carries a few per cent of 2p; drawn as a 2p interaction too,
+  //  it then sat between its two "parents" and was classified
+  //  non-bonding -- a diatomic's 2s antibonding orbital labelled nb,
+  //  with the line clutter to match.
+  //
+  //  So a shell must also hold its own against the one that dominates
+  //  this orbital.  A genuinely mixed orbital -- water's a1 from 2s
+  //  and 2pz -- keeps both, which is the case the multiple lines
+  //  exist for.
+  double dominant = 0.0;
+  for (size_t i = 0; i < shares.size(); i++) {
+    if (shares[i] > dominant) dominant = shares[i];
+  }
+  return shares[fragment.shell] >= 0.35*dominant;
 }
 
 
@@ -574,6 +628,56 @@ void MoDiagram::classify(const vector<MoLevel>& left,
 
 
 
+/** Are the two fragments the same set of orbitals?  A homonuclear
+ *  diatomic's are; H2O's oxygen and its two hydrogens are not. */
+static bool equivalentColumns(const vector<MoLevel>& a,
+                              const vector<MoLevel>& b)
+{
+  if (a.size() != b.size() || a.empty()) return false;
+  for (size_t i = 0; i < a.size(); i++) {
+    if (a[i].shell != b[i].shell) return false;
+    if (fabs(a[i].energy - b[i].energy) > 1.0e-6) return false;
+  }
+  return true;
+}
+
+
+/** An irrep without its g/u parity: SIG and SIU are both SI. */
+static string withoutParity(const string& irrep)
+{
+  if (irrep.size() < 2) return irrep;
+  const char last = irrep[irrep.size() - 1];
+  if (last == 'G' || last == 'U' || last == 'g' || last == 'u') {
+    return irrep.substr(0, irrep.size() - 1);
+  }
+  return irrep;
+}
+
+
+/** Which shell of the fragments this level is mostly built from. */
+static int dominantShell(const MoLevel& level)
+{
+  int best = -1;
+  double most = 0.0;
+  for (size_t i = 0; i < level.shellLeft.size(); i++) {
+    if (level.shellLeft[i] > most) { most = level.shellLeft[i]; best = (int)i; }
+  }
+  return best;
+}
+
+
+/** The bucket a level pairs within: its irrep, or -- where the two
+ *  fragments are equivalent -- its irrep without parity plus the
+ *  shell it came from. */
+static string pairingKey(const MoLevel& level, bool mirrored)
+{
+  if (!mirrored) return level.irrep;
+  ostringstream out;
+  out << withoutParity(level.irrep) << '#' << dominantShell(level);
+  return out.str();
+}
+
+
 void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
                                  vector<MoLevel>& centre,
                                  const vector<MoLevel>& right,
@@ -639,21 +743,37 @@ void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
   }
   nextPair = highestPair + 1;
 
+  //  WHERE THE TWO FRAGMENTS ARE THE SAME, PARITY IS NOT A DIVIDER.
+  //
+  //  A homonuclear diatomic's bonding and antibonding partners have
+  //  OPPOSITE parity by construction -- the 2s pair gives sigma-g and
+  //  sigma-u -- so bucketing by irrep puts the two ends of one
+  //  interaction in different buckets and they never pair.  What they
+  //  do share is the shell they came from, so that is the bucket:
+  //  parity dropped, parent shell added.  N2 then gives (1sig, 1siu),
+  //  (2sig, 2siu) and (1piu, 1pig), which is what is drawn on a board.
+  //
+  //  Only where the fragments really are equivalent.  Water's a1 set
+  //  comes from two different oxygen shells and is right to pair
+  //  within its irrep.
+  const bool mirrored = equivalentColumns(left, right);
+
   vector<string> irreps;
   for (size_t c = 0; c < centre.size(); c++) {
     if (centre[c].pairing >= 0) continue;
+    const string key = pairingKey(centre[c], mirrored);
     bool seen = false;
     for (size_t k = 0; k < irreps.size(); k++) {
-      if (irreps[k] == centre[c].irrep) seen = true;
+      if (irreps[k] == key) seen = true;
     }
-    if (!seen) irreps.push_back(centre[c].irrep);
+    if (!seen) irreps.push_back(key);
   }
 
   for (size_t j = 0; j < irreps.size(); j++) {
     vector<size_t> bonding, antibonding;
     for (size_t c = 0; c < centre.size(); c++) {
       if (centre[c].pairing >= 0) continue;
-      if (centre[c].irrep != irreps[j]) continue;
+      if (pairingKey(centre[c], mirrored) != irreps[j]) continue;
       if (centre[c].character == MoLevel::BONDING) bonding.push_back(c);
       if (centre[c].character == MoLevel::ANTIBONDING) antibonding.push_back(c);
     }

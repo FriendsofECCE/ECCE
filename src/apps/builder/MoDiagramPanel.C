@@ -509,6 +509,22 @@ void MoDiagramPanel::build()
   //  symmetry labels at all.
   bool byIrrep = haveFragments;
 
+  //  COLUMNS THAT CARRY NO IRREP ARE NOT COLUMNS THAT DISAGREE.
+  //
+  //  A diatomic's fragment is one atom, which spans no representation
+  //  of the molecule's group, so nothing on either side can match the
+  //  molecular labels -- and clearing the molecular labels for want of
+  //  a match threw away the only symmetry the diagram had.  N2 then
+  //  paired its orbitals by energy order alone and coloured 1-sigma-g
+  //  with 2-sigma-u, which are not partners.
+  bool columnsCarryIrreps = false;
+  for (size_t j = 0; j < left.levels.size(); j++) {
+    if (!left.levels[j].irrep.empty()) columnsCarryIrreps = true;
+  }
+  for (size_t j = 0; j < right.levels.size(); j++) {
+    if (!right.levels[j].irrep.empty()) columnsCarryIrreps = true;
+  }
+
   if (byIrrep) {
     //  Reconcile the axis conventions BEFORE anything is matched on
     //  the names: in C2v the character table and the code need not
@@ -522,7 +538,7 @@ void MoDiagramPanel::build()
     }
   }
 
-  if (byIrrep) {
+  if (byIrrep && columnsCarryIrreps) {
     int matched = 0;
     for (size_t i = 0; i < centre.levels.size(); i++) {
       for (size_t j = 0; j < left.levels.size(); j++) {
@@ -550,7 +566,7 @@ void MoDiagramPanel::build()
     //  connect() matches on the shell a fragment level is and the
     //  share an orbital holds of it.  Left in place they would match
     //  on a spelling that means something different.
-    if (!byIrrep) {
+    if (!byIrrep && columnsCarryIrreps) {
       for (size_t i = 0; i < centre.levels.size(); i++) {
         centre.levels[i].irrep.clear();
       }
