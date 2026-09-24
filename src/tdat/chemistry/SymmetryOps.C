@@ -22,17 +22,42 @@
 #include "string.h"
 
 #include "util/Ecce.H"
+#include <unistd.h>
+#include <cstdlib>
+
 #include "util/TempStorage.H"
 #include "util/SFile.H"
 
 #include "tdat/SymmetryOps.H"
 #include "tdat/LatticeDef.H"
 
-static string cleanCmd = "./cleansym";
-static string autosymCmd = "./autosym";
-static string getIFrag = "./getfrag";
-static string genFrag = "./genmol";
-static string genLatticeFrag = "./genmollat";
+//  THESE HELPERS ARE NOT ON THE PATH AND THE APPS NO LONGER RUN FROM
+//  $ECCE_HOME/bin.
+//
+//  They were invoked as "./cleansym" and so on, which worked only
+//  while every application was started with its working directory set
+//  to the bin directory.  It no longer is, so every one of these
+//  shelled out to a command that does not exist, and the failure
+//  reaches the user as "Failed to execute autosym" with nothing about
+//  where it looked (GitHub #134).
+//
+//  Resolved against $ECCE_HOME/bin instead, falling back to the bare
+//  name so a developer with them on PATH still works.
+static string helperCommand(const char *name)
+{
+   const char *home = getenv("ECCE_HOME");
+   if (home == 0 || *home == '\0') return string(name);
+
+   string path = string(home) + "/bin/" + name;
+   if (access(path.c_str(), X_OK) == 0) return path;
+   return string(name);
+}
+
+static string cleanCmd        = helperCommand("cleansym");
+static string autosymCmd      = helperCommand("autosym");
+static string getIFrag        = helperCommand("getfrag");
+static string genFrag         = helperCommand("genmol");
+static string genLatticeFrag  = helperCommand("genmollat");
 
 
 void SymmetryOps::addGhosts(Fragment& frag)

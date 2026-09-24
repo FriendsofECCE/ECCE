@@ -1,0 +1,78 @@
+# Valence orbital ionisation energies, for the energy axis of a
+# qualitative MO correlation diagram.
+#
+# WHAT THIS IS FOR.  A correlation diagram puts the central atom's
+# orbitals on one side and the terminal atoms' symmetry orbitals on the
+# other, and the whole point of the picture is that they sit at
+# DIFFERENT heights: the more electronegative fragment lower, so the
+# bonding combination comes out closer to it and the reader can see
+# which end of the bond the electrons are on.  Drawing both sides at an
+# arbitrary height would make the diagram symmetric and teach the wrong
+# thing.
+#
+# These are valence orbital potential energies, in eV, negative -- the
+# "orbital potential energy" table a textbook correlation diagram is
+# drawn from (Miessler & Tarr and the inorganic texts that follow it).
+#
+# NOT the extended-Huckel H_ii parameters, which are a different set
+# fitted for a different purpose and are NOT monotonic across a period:
+# mixing the two is how this file's first draft ended up with sulphur's
+# 3p above phosphorus's.  One source, or the trends stop meaning
+# anything.  They are also NOT the calculation's own
+# orbital energies: the centre column of the diagram carries those, and
+# the two axes are deliberately not the same thing.  A fragment orbital
+# has no computed energy unless the fragment calculation is actually
+# run, which is the option this was chosen over.
+#
+# PROVENANCE AND ACCURACY.  Sources differ by a few tenths of an eV.
+# What a teaching diagram needs from them is the ORDERING and the rough
+# gaps, not the third significant figure.  Check them against your own
+# course table before teaching from the numbers themselves.
+#
+# Elements are listed only where a standard published value was
+# available.  An element that is absent simply gets no energy and no
+# fragment level, which is the honest outcome; filling the gaps by
+# interpolating the trend would produce numbers that look like data.
+#
+# The trends are enforced mechanically in tests/symmetry, which is what
+# catches a transcription slip: within a period both levels become more
+# negative left to right, and ns always lies below np on the same atom.
+# A sign error or a transposed pair of digits breaks one of those.
+#
+# FORMAT.  One line per element:
+#
+#     <symbol>  <n>  <s energy>  <p energy>
+#
+# where <n> is the valence principal quantum number and the energies are
+# eV.  An element with no p value in its valence shell writes "-".
+
+H    1   -13.6    -
+
+# Second period.
+Li   2    -5.4    -3.5
+Be   2    -9.3    -6.0
+B    2   -14.0    -8.3
+C    2   -19.4   -10.7
+N    2   -25.6   -13.2
+O    2   -32.4   -15.9
+F    2   -40.2   -18.7
+
+# Third period.
+Na   3    -5.1    -3.0
+Mg   3    -7.6    -4.5
+Al   3   -11.3    -6.0
+Si   3   -15.0    -7.8
+P    3   -18.7   -10.1
+S    3   -22.7   -11.6
+Cl   3   -25.3   -13.7
+
+# The heavier halogens, which are the ones that actually turn up as
+# terminal atoms in a diagram of this kind.  The transition metals are
+# deliberately absent: a d-block central atom needs d energies, and
+# those are a different table rather than an extension of this one.
+K    4    -4.3    -2.7
+Ca   4    -6.1    -4.0
+Br   4   -24.1   -12.5
+Rb   5    -4.2    -2.6
+Sr   5    -5.7    -3.7
+I    5   -20.6   -11.7

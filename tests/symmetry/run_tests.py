@@ -487,6 +487,97 @@ def checkAnalysis(tablePath, verbose):
         shutil.rmtree(opsDir, ignore_errors=True)
 
 
+def checkValenceEnergies(report):
+    """The valence orbital ionisation energies, by their trends.
+
+    These are hand-entered numbers whose third significant figure is
+    not what matters, so checking them against a second copy of the
+    same table would prove nothing.  What a correlation diagram
+    actually needs from them is the ORDERING, and the ordering follows
+    two rules that no transcription slip respects:
+
+      * ns lies below np on the same atom, always;
+      * across a period both become more negative left to right, as the
+        nuclear charge rises.
+
+    A dropped minus sign, a transposed pair of digits or a row entered
+    against the wrong element breaks one of those.
+    """
+    path = os.path.join(CONFIG, "ValenceOrbitalEnergies")
+    if not os.path.exists(path):
+        report.check(False, "no ValenceOrbitalEnergies at %s" % path)
+        return
+
+    order = {}
+    for line in open(path):
+        line = line.split("#")[0].split()
+        if len(line) < 3:
+            continue
+        symbol, n = line[0], int(line[1])
+        sEnergy = float(line[2])
+        pEnergy = None
+        if len(line) > 3 and line[3] != "-":
+            pEnergy = float(line[3])
+
+        report.check(sEnergy < 0.0, "%s: s energy is negative" % symbol)
+        if pEnergy is not None:
+            report.check(pEnergy < 0.0, "%s: p energy is negative" % symbol)
+            report.check(sEnergy < pEnergy,
+                         "%s: %ds (%.1f) lies below %dp (%.1f)"
+                         % (symbol, n, sEnergy, n, pEnergy))
+        order.setdefault(n, []).append((symbol, sEnergy, pEnergy))
+
+    #  Within a period, in file order, both levels fall.  Compared
+    #  pairwise between neighbours rather than end to end, so the check
+    #  names the pair that breaks it.
+    for n in sorted(order):
+        row = order[n]
+        for i in range(1, len(row)):
+            prev, cur = row[i-1], row[i]
+            report.check(cur[1] < prev[1],
+                         "period %d: %s s (%.1f) below %s s (%.1f)"
+                         % (n, cur[0], cur[1], prev[0], prev[1]))
+            if prev[2] is not None and cur[2] is not None:
+                report.check(cur[2] < prev[2],
+                             "period %d: %s p (%.1f) below %s p (%.1f)"
+                             % (n, cur[0], cur[2], prev[0], prev[2]))
+
+
+def checkFragments(tablePath, verbose):
+    """The two outer columns, against the textbook answers for CH4 and H2O."""
+    binary = os.environ.get("ECCE_TEST_SYMOPS",
+                            os.path.join(ROOT, "build-cmake", "symops"))
+    if not (os.path.isfile(binary) and os.access(binary, os.X_OK)):
+        print("  symops not built -- skipping the fragment-column checks")
+        return 0
+
+    out = os.path.join(HERE, "testMoFragments")
+    cmd = ["g++", "-O2", "-w", "-I", os.path.join(ROOT, "include"),
+           "-o", out,
+           os.path.join(HERE, "testMoFragments.C"),
+           os.path.join(ROOT, "src/tdat/chemistry/MoFragments.C"),
+           os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
+           os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C")]
+    build = subprocess.run(cmd, capture_output=True, text=True)
+    if build.returncode != 0:
+        print("  could not build the fragment test:")
+        print(build.stderr)
+        return 1
+
+    env = dict(os.environ)
+    env["ECCE_HOME"] = ROOT
+    env["PATH"] = os.path.dirname(binary) + os.pathsep + env.get("PATH", "")
+    proc = subprocess.run([out, tablePath], capture_output=True, text=True,
+                          env=env)
+    if verbose or proc.returncode != 0:
+        print(proc.stdout, end="")
+    else:
+        print("  fragment columns: PASS")
+    os.unlink(out)
+    return proc.returncode
+
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -526,6 +617,11 @@ def main():
                          % (name, sorted(mine - theirs) or "-",
                             sorted(theirs - mine) or "-"))
 
+    beforeVoie = report.checks
+    checkValenceEnergies(report)
+    print("  valence orbital energies: %d checks"
+          % (report.checks - beforeVoie))
+
     print("\n%d checks run on the tables" % report.checks)
     if report.failures:
         print("FAILED  %d" % report.failures)
@@ -537,6 +633,11 @@ def main():
     print("  symmetry operations: %d checks" % (report.checks - beforeSymops))
     if report.failures:
         print("\nFAILED  %d" % report.failures)
+        return 1
+
+    print("")
+    if checkFragments(tablePath, args.verbose) != 0:
+        print("FAILED  the fragment columns")
         return 1
 
     print("")

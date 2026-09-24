@@ -8,8 +8,15 @@
 
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
+#include "tdat/MoFragments.H"
+#include "tdat/SymmetryOps.H"
+#include "tdat/TAtm.H"
 
 #include "dsm/IPropCalculation.H"
+
+#include "viz/SGContainer.H"
+#include "viz/SGFragment.H"
+#include "wxviz/WxVizToolFW.H"
 
 #include "MoDiagramPanel.H"
 
@@ -38,6 +45,8 @@ class MoDiagramCanvas : public wxPanel
       SetBackgroundColour(*wxWHITE);
       Bind(wxEVT_PAINT, &MoDiagramCanvas::onPaint, this);
     }
+
+    void setGroup(const string& group) { p_group = group; }
 
     void setDiagram(const MoColumn& left, const MoColumn& centre,
                     const MoColumn& right,
@@ -134,7 +143,30 @@ class MoDiagramCanvas : public wxPanel
       p_lo -= pad;
       p_hi += pad;
 
-      const int top = 46;
+      //  THE POINT GROUP IS THE DIAGRAM'S PREMISE, so it is a heading
+      //  and not a footnote: every label below it -- a1, t2, eg -- is a
+      //  name in that group and means nothing without it, and the same
+      //  molecule in a lower group gives a different diagram entirely.
+      int top = 46;
+      if (!p_group.empty()) {
+        wxFont heading = *wxNORMAL_FONT;
+        heading.SetWeight(wxFONTWEIGHT_BOLD);
+        heading.SetPointSize(heading.GetPointSize() + 2);
+        dc.SetFont(heading);
+        dc.SetTextForeground(wxColour(30, 30, 30));
+
+        //  Spelled the way a chemist writes it -- Td, C2v, D4h -- not
+        //  the uppercase the generator's tables use.  First letter
+        //  capital and the rest lower is right for all 46 of them.
+        string pretty = p_group;
+        for (string::size_type i = 0; i < pretty.size(); i++) {
+          pretty[i] = (i == 0) ? toupper(pretty[i]) : tolower(pretty[i]);
+        }
+
+        const wxString title = wxString(pretty.c_str(), wxConvUTF8);
+        dc.DrawText(title, (size.x - dc.GetTextExtent(title).x)/2, 6);
+        top += 22;
+      }
       const int bottom = p_centre.hiddenCount > 0 ? 58 : 26;
       const wxRect plot(0, top, size.x, max(40, size.y - top - bottom));
 
@@ -147,10 +179,13 @@ class MoDiagramCanvas : public wxPanel
       dc.SetFont(*wxNORMAL_FONT);
       dc.SetTextForeground(wxColour(60, 60, 60));
       if (p_haveFragments) {
-        dc.DrawText(wxString(p_left.title.c_str(), wxConvUTF8), xLeft, 8);
-        dc.DrawText(wxString(p_right.title.c_str(), wxConvUTF8), xRight, 8);
+        dc.DrawText(wxString(p_left.title.c_str(), wxConvUTF8),
+                    xLeft, top - 38);
+        dc.DrawText(wxString(p_right.title.c_str(), wxConvUTF8),
+                    xRight, top - 38);
       }
-      dc.DrawText(wxString(p_centre.title.c_str(), wxConvUTF8), xCentre, 8);
+      dc.DrawText(wxString(p_centre.title.c_str(), wxConvUTF8),
+                  xCentre, top - 38);
 
       //  Correlation lines first, so the levels sit on top of them.
       if (p_haveFragments) {
@@ -212,6 +247,7 @@ class MoDiagramCanvas : public wxPanel
     MoColumn p_left, p_centre, p_right;
     vector<MoConnection> p_links;
     bool p_haveFragments;
+    string p_group;
     string p_note;
     mutable double p_lo, p_hi;
 };
@@ -352,6 +388,64 @@ void MoDiagramPanel::build()
     note << "Energies in Hartree.";
   }
 
-  //  Fragment columns are not built yet; the level diagram is.
-  p_canvas->setDiagram(left, centre, right, links, false, note.str());
+  //  --- the two fragment columns -----------------------------------
+  //
+  //  A correlation diagram is a symmetry argument, so these depend on
+  //  the geometry and the point group and not on the calculation.  The
+  //  molecular orbitals are still drawn when this cannot be made: a
+  //  level diagram on its own is useful, and refusing to draw anything
+  //  because the molecule has no unique central atom would be worse
+  //  than saying so.
+  bool haveFragments = false;
+  string why;
+  string group;
+
+  WxVizToolFW& fw = getFW();
+  SGFragment *sgfrag = fw.getSceneGraph().getFragment();
+
+  if (sgfrag == 0 || sgfrag->numAtoms() == 0) {
+    why = "No structure is loaded.";
+  } else {
+    vector<double> coords;
+    vector<string> elements;
+    vector<TAtm*> *atoms = sgfrag->atoms();
+    double *xyz = sgfrag->coordinates();
+
+    if (atoms != 0 && xyz != 0) {
+      for (unsigned long a = 0; a < sgfrag->numAtoms(); a++) {
+        elements.push_back((*atoms)[a]->atomicSymbol());
+        for (int k = 0; k < 3; k++) coords.push_back(xyz[a*3 + k]);
+      }
+    }
+    delete atoms;
+
+    //  Detected on a COPY.  SymmetryOps::find() writes the group onto
+    //  the fragment it is given, and the fragment here is the one the
+    //  viewer is displaying.
+    group = sgfrag->pointGroup();
+    if (group.empty()) {
+      try {
+        Fragment probe(*sgfrag);
+        group = SymmetryOps::find(probe, 0.05);
+      } catch (...) {
+        group.clear();
+      }
+    }
+
+    haveFragments = MoFragments::build(coords, elements, group,
+                                       left, right, why);
+    if (haveFragments) {
+      MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+      note << "  Fragment orbitals on valence ionisation energies (eV), "
+              "molecular orbitals on the calculation's own energies "
+              "(Hartree): the two scales are different and only the "
+              "ordering is comparable.";
+    }
+  }
+
+  if (!haveFragments && !why.empty()) note << "  " << why;
+
+  p_canvas->setGroup(group);
+  p_canvas->setDiagram(left, centre, right, links, haveFragments, note.str());
 }
+
