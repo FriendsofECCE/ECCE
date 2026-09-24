@@ -346,14 +346,44 @@ double MoDiagram::suggestVirtualCutoff(const vector<MoLevel>& levels)
   }
   if (occupied == 0 || firstVirtual >= levels.size()) return 1.0e30;
 
+  //  A CHASM AMONG THE VIRTUALS IS A FOLD WHEREVER IT FALLS.
+  //
+  //  Counting levels alone let CCl4 through: it has as many virtual
+  //  levels as occupied ones, so nothing was folded, and its far
+  //  virtual block -- two and a half Hartree above the antibonding
+  //  orbitals, which is not a chemical distance -- set the scale.
+  //  Every bonding level in the molecule was then squeezed into the
+  //  bottom sixth of the picture.
+  //
+  //  Judged against the molecule's own spread rather than an absolute:
+  //  a gap several times anything inside the occupied manifold is not
+  //  part of the same story.
+  double widestOccupied = 0.0;
+  for (size_t i = 1; i < firstVirtual; i++) {
+    const double gap = levels[i].energy - levels[i-1].energy;
+    if (gap > widestOccupied) widestOccupied = gap;
+  }
+  const double chasm = (widestOccupied > 0.0) ? 3.0*widestOccupied : 0.5;
+
+  double byGap = 1.0e30;
+  for (size_t i = firstVirtual + 1; i < levels.size(); i++) {
+    if (levels[i].energy - levels[i-1].energy > chasm) {
+      byGap = 0.5*(levels[i].energy + levels[i-1].energy);
+      break;
+    }
+  }
+
   //  One antibonding partner per occupied level, plus two, so a small
   //  molecule keeps a little room above the LUMO.
   const size_t keep = occupied + 2;
   const size_t last = firstVirtual + keep;
-  if (last >= levels.size()) return 1.0e30;    // nothing worth folding
 
-  //  Cut between the last kept level and the first dropped one.
-  return 0.5*(levels[last].energy + levels[last-1].energy);
+  double byCount = 1.0e30;
+  if (last < levels.size()) {
+    byCount = 0.5*(levels[last].energy + levels[last-1].energy);
+  }
+
+  return (byGap < byCount) ? byGap : byCount;
 }
 
 
