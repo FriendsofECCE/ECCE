@@ -6,6 +6,7 @@
 
 #include "VizPropertyPanel.H"
 #include "tdat/MoDiagram.H"
+#include "MoDiagramCanvas.H"
 
 using std::string;
 using std::vector;
@@ -31,7 +32,8 @@ class MoDiagramCanvas;
  * correlate.  Deciding which is what isRelevant() and the layout below
  * are for.
  */
-class MoDiagramPanel : public VizPropertyPanel
+class MoDiagramPanel : public VizPropertyPanel,
+                       public MoDiagramClickTarget
 {
    DECLARE_DYNAMIC_CLASS(MoDiagramPanel)
    DECLARE_EVENT_TABLE()
@@ -62,7 +64,7 @@ class MoDiagramPanel : public VizPropertyPanel
        *                     group's own operations, so any one of them
        *                     stands for the set.
        */
-      void orbitalClicked(int orbengIndex);
+      virtual void orbitalClicked(int orbengIndex);
 
       /** Needs orbital energies; without them there is no diagram. */
       virtual bool isRelevant(IPropCalculation *propCalc) const;

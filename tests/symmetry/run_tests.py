@@ -766,6 +766,64 @@ def checkOracle(tablePath, verbose):
 
 
 
+def checkCanvas(verbose):
+    """Paint the real canvas, without a person looking at it.
+
+    The model has been checked all along; the LAYOUT had not, because
+    reaching it meant building a package, installing it, starting the
+    services and opening a calculation.  A second implementation of the
+    layout grew up in tools/modiagram for iterating on, and two
+    implementations of one picture drift: when this was first run the
+    canvas still printed a tick as -5.55112e-17, drew no electrons on
+    the fragment columns, and wrote its two footer lines on top of each
+    other -- all three fixed in the renderer and never here.
+
+    It cannot say whether the picture is good.  It can say whether it
+    painted at all, and whether it survives the cases that quietly
+    produce nothing: an empty column, a spectrum with no energy range,
+    a window too small to lay out in.
+
+    Needs wx and a display; Xvfb is enough.
+    """
+    if shutil.which("wx-config") is None:
+        print("  wx-config not found -- skipping the canvas check")
+        return 0
+    if shutil.which("xvfb-run") is None and not os.environ.get("DISPLAY"):
+        print("  no display and no xvfb-run -- skipping the canvas check")
+        return 0
+
+    flags = subprocess.run(["wx-config", "--cxxflags"],
+                           capture_output=True, text=True).stdout.split()
+    libs = subprocess.run(["wx-config", "--libs", "core,base"],
+                          capture_output=True, text=True).stdout.split()
+
+    out = os.path.join(HERE, "testCanvas")
+    build = subprocess.run(
+        ["g++", "-O2", "-w", "-I", os.path.join(ROOT, "include"),
+         "-I", os.path.join(ROOT, "src", "apps", "builder")] + flags +
+        ["-o", out, os.path.join(HERE, "testCanvas.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C")] + libs,
+        capture_output=True, text=True)
+    if build.returncode != 0:
+        print("  could not build the canvas test:")
+        print(build.stderr[-1500:])
+        return 1
+
+    command = [out]
+    if not os.environ.get("DISPLAY"):
+        command = ["xvfb-run", "-a"] + command
+    proc = subprocess.run(command, capture_output=True, text=True)
+    if verbose or proc.returncode != 0:
+        print(proc.stdout, end="")
+        if proc.returncode != 0:
+            print(proc.stderr[-800:], end="")
+    else:
+        print("  the canvas paints: PASS")
+    os.unlink(out)
+    return proc.returncode
+
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -822,6 +880,11 @@ def main():
     print("  symmetry operations: %d checks" % (report.checks - beforeSymops))
     if report.failures:
         print("\nFAILED  %d" % report.failures)
+        return 1
+
+    print("")
+    if checkCanvas(args.verbose) != 0:
+        print("FAILED  the canvas")
         return 1
 
     print("")
