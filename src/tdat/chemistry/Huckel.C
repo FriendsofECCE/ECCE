@@ -301,8 +301,10 @@ bool Huckel::solve(const vector<double>& coords,
                    vector< vector<double> >& coefficients,
                    vector<int>& perAtom,
                    vector<int>& shellOf,
-                   string& why)
+                   string& why,
+                   vector<double>* overlap)
 {
+   if (overlap != 0) overlap->clear();
    why.clear();
    energies.clear();
    occupancies.clear();
@@ -460,13 +462,28 @@ bool Huckel::solve(const vector<double>& coords,
       const size_t which = order[k];
       energies.push_back(eValues[which]);
 
+      //  IN THE ORTHOGONALISED BASIS, WHICH IS WHAT CALLERS ASSUME.
+      //
+      //  The eigenvectors of H' are coefficients on Lowdin-orthogonalised
+      //  functions; multiplying by X would give coefficients on the raw
+      //  atomic orbitals, which overlap each other.  Everything that
+      //  reads these treats a coefficient squared as a population and
+      //  a dot product as an overlap, and both of those are only true
+      //  in an orthonormal basis -- MOPAC reports its vectors this way
+      //  for the same reason.
+      //
+      //  Taking the non-orthogonal ones put ammonia's nodeless a1
+      //  combination of three hydrogens ABOVE its e pair, which is
+      //  backwards: an in-phase combination of neighbours cannot lie
+      //  above one with a node in it.
+      //  On the atomic orbitals themselves.  They are not orthogonal
+      //  to each other, so a caller forming an overlap with some
+      //  combination of them needs S as well -- which is why it is
+      //  handed back.
       vector<double> row(n, 0.0);
       for (size_t i = 0; i < n; i++) {
          double sum = 0.0;
          for (size_t j = 0; j < n; j++) sum += X[i][j]*eVectors[j][which];
-         //  Back through the normalisation the overlap was scaled by,
-         //  so the coefficients are on the functions the caller is
-         //  told about.
          row[i] = sum*scale[i];
       }
 
@@ -478,6 +495,17 @@ bool Huckel::solve(const vector<double>& coords,
          for (size_t i = 0; i < n; i++) row[i] /= norm;
       }
       coefficients.push_back(row);
+   }
+
+   if (overlap != 0) {
+      //  In terms of the functions the caller is told about, which
+      //  the working matrix was rescaled away from.
+      overlap->assign(n*n, 0.0);
+      for (size_t i = 0; i < n; i++) {
+         for (size_t j = 0; j < n; j++) {
+            (*overlap)[i*n + j] = S[i][j]/(scale[i]*scale[j]);
+         }
+      }
    }
 
    //  --- electrons -----------------------------------------------------

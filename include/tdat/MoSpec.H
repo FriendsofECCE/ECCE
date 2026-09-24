@@ -118,10 +118,12 @@ static bool buildModel(const char* tables, const char* molecule,
   //  orbitals are used whenever they exist; this never overrides
   //  them.
   bool huckel = false;
+  vector<double> overlap;              // only when Huckel supplied them
   if (energies.empty() && !elements.empty()) {
     string complaint;
     if (Huckel::solve(coords, elements, charge, energies, occupancies,
-                      coefficients, perAtom, shellOf, complaint)) {
+                      coefficients, perAtom, shellOf, complaint,
+                      &overlap)) {
       huckel = true;
       labels.assign(energies.size(), string());
 
@@ -339,14 +341,28 @@ static bool buildModel(const char* tables, const char* molecule,
             const int mo = centre.levels[ci].orbitals[m];
             if (mo < 0 || mo >= (int)coefficients.size()) continue;
 
-            double overlap = 0.0;
+            //  <phi|psi>.  Where the basis is not orthogonal the
+            //  overlap matrix has to be in it: a dot product of
+            //  coefficients is only an overlap when the functions are
+            //  orthonormal.  A code that reports orthogonalised
+            //  vectors, as MOPAC does, gives none and needs none.
+            double value = 0.0;
+            const size_t nf = coefficients[mo].size();
             for (size_t k = 0; k < level.phaseAtoms.size(); k++) {
               for (int comp = 0; comp < comps; comp++) {
-                overlap += (level.phases[k*comps + comp]/norm)
-                         * coefficients[mo][where[k] + comp];
+                const double weight = level.phases[k*comps + comp]/norm;
+                const size_t f = where[k] + comp;
+
+                if (overlap.size() == nf*nf) {
+                  for (size_t g = 0; g < nf; g++) {
+                    value += weight*overlap[f*nf + g]*coefficients[mo][g];
+                  }
+                } else {
+                  value += weight*coefficients[mo][f];
+                }
               }
             }
-            level.moWeight[ci] += overlap*overlap;
+            level.moWeight[ci] += value*value;
           }
         }
       }

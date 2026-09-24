@@ -56,6 +56,15 @@ class Huckel
      * @param shellOf    filled with each function's angular momentum,
      *                   in order -- so the caller can hand all of this
      *                   straight to the diagram machinery
+     * @param overlap    optional: the basis overlap matrix, row-major,
+     *                   n by n.  A caller forming <phi|psi> for some
+     *                   combination phi of basis functions needs it,
+     *                   because these are atomic orbitals and they are
+     *                   not orthogonal to each other -- the dot
+     *                   product of coefficients is not an overlap.
+     *                   Getting that wrong put ammonia's nodeless a1
+     *                   combination of three hydrogens above its e
+     *                   pair, which cannot be.
      * @param why        set when it declines
      *
      * @return false if any element has no parameters, or if the
@@ -70,7 +79,8 @@ class Huckel
                       vector< vector<double> >& coefficients,
                       vector<int>& perAtom,
                       vector<int>& shellOf,
-                      string& why);
+                      string& why,
+                      vector<double>* overlap = 0);
 
     /** Are there parameters for every element here? */
     static bool canSolve(const vector<string>& elements, string& missing);
