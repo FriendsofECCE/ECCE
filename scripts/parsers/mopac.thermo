@@ -125,9 +125,27 @@ exit(0) if (!exists($stanza{$pick}));
 
 my ($hof, $thermalH, $cp, $entropy) = @{$stanza{$pick}};
 
+#  size: IS NOT OPTIONAL, and omitting it does not degrade gracefully.
+#
+#  PropertyInterpreter::processSize() reads the size section by pulling
+#  tokens until it has what it expects.  With no size: line it consumes
+#  the rest of the stream -- END included -- and keeps pushing into a
+#  vector until the allocation throws.  Nothing catches it, so
+#  eccejobstore dies on an uncaught exception: SIGABRT, exit 134.
+#  eccejobmaster restarts it, the restart finds the "EOF" bookmark the
+#  first run left, and the user is shown "Cannot re-parse frequency
+#  'last' type properties", which names neither the property nor the
+#  cause.
+#
+#  This is why MOPAC jobs WITH thermochemistry died while the same job
+#  without it was fine: the thermochemistry block was the only one whose
+#  parser left the size out.  Every other scalar parser here emits
+#  "size:\n1\n" -- orca.s2, mopac.ezeropt and the rest -- and this now
+#  does too.
 sub emit {
   my ($key, $value, $units) = @_;
   print "key: $key\n";
+  print "size:\n1\n";
   print "values:\n$value\n";
   print "units:\n$units\n";
   print "END\n";

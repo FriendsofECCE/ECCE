@@ -119,6 +119,34 @@ def check_aux_file_order(desc_name, desc, res):
                 % (writer, aux, reader, rline, first_writer))
 
 
+#  EVERY property record must carry a size section.
+#
+#  PropertyInterpreter::processSize() reads the size by pulling tokens
+#  until it has what it expects.  With no size: line it consumes the
+#  rest of the stream -- END included -- and keeps pushing into a vector
+#  until the allocation throws.  Nothing catches it, so eccejobstore
+#  dies on an uncaught exception: SIGABRT, exit 134.  eccejobmaster
+#  restarts it, the restart finds the "EOF" bookmark, and the user is
+#  told "Cannot re-parse frequency 'last' type properties" -- a message
+#  that names neither the property nor the cause, and sends you looking
+#  at the restart logic instead of the parser.
+#
+#  That cost a full round of live testing.  It is trivially checkable
+#  here: the parser's own output either has the section or it does not.
+def check_emitted_size(case_name, props, res):
+    for key, recs in props.items():
+        for rec in recs:
+            if 'size' in rec.get('sections', {}):
+                continue
+            res.check(False, case_name,
+                      '[%s] emits no "size:" section.  '
+                      'PropertyInterpreter::processSize() then runs off the '
+                      'end of the stream and eccejobstore aborts (exit 134), '
+                      'reported to the user as "Cannot re-parse frequency '
+                      "'last' type properties\".  Every scalar parser emits "
+                      '"size:\\n1\\n".' % key)
+
+
 def check_desc_structure(desc_name, desc, res):
     where = desc_name
 
@@ -216,6 +244,15 @@ def run_case(case, res, verbose=False):
             recs_per_block.append((block, recs, rc, err))
         emitted[entry.type] = (entry, recs_per_block)
         res.types_fired.setdefault(desc_name, set()).add(entry.type)
+
+        #  Every record this entry produced, checked for the size
+        #  section PropertyInterpreter requires -- see
+        #  check_emitted_size().
+        byKey = {}
+        for _blk, recs, _rc, _err in recs_per_block:
+            for rec in recs:
+                byKey.setdefault(rec['key'], []).append(rec)
+        check_emitted_size(where, byKey, res)
 
         report.append(format_entry(entry, result, recs_per_block))
 

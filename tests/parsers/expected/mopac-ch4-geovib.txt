@@ -71,18 +71,23 @@ args:    '.' 'GeoVib' 'SE' 'RPM7' '0'
   begins=1 delivered=1 buffered_away=0
   block 1: begin-line=492 fed=139 rc=0 first-fed='                    CALCULATED THERMODYNAMIC PROPERTIES'
     key: ENTHALPY
+      size: 1
       values: -0.022954235107774
       units: Hartree
     key: ETHERM
+      size: 1
       values: -0.0238979449538543
       units: Hartree
     key: ENTROPY
+      size: 1
       values: 0.0211277147963297
       units: Hartree
     key: HEATCAP
+      size: 1
       values: 8.6898
       units: cal/(K*mol)
     key: THERMOTEMP
+      size: 1
       values: 298.00
       units: Kelvin
 
