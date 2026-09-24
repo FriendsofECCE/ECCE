@@ -1083,6 +1083,112 @@ int main(int argc, char** argv) {
     if (!refused) bad++;
   }
 
+  //  --- a coordination complex ---------------------------------------
+  //
+  //  THE SKELETON IS WHAT IS CLASSIFIED, AND THE LIGANDS ARE DONORS.
+  //
+  //  Hexammine cobalt's donor set is a perfect octahedron and the
+  //  complex is not: six ammonia rotors cannot all be, so a
+  //  whole-molecule symmetry search calls it Th at best and C1 in
+  //  practice.  Every course draws it in Oh regardless, because the
+  //  thing being classified is the coordination skeleton.  The
+  //  rotors here are deliberately NOT aligned with anything, which
+  //  is what makes this a test rather than a demonstration.
+  {
+    printf("\n  A coordination complex\n");
+
+    vector<double> coords;
+    vector<string> elements;
+    elements.push_back("Co");
+    coords.push_back(0.0); coords.push_back(0.0); coords.push_back(0.0);
+
+    for (int axis = 0; axis < 3; axis++) {
+      for (int sign = 1; sign >= -1; sign -= 2) {
+        double n[3] = { 0.0, 0.0, 0.0 };
+        n[axis] = sign*2.0;
+        elements.push_back("N");
+        for (int k = 0; k < 3; k++) coords.push_back(n[k]);
+
+        static const double OFFSET[3][2] =
+            { { 0.94, 0.0 }, { -0.47, 0.82 }, { -0.47, -0.82 } };
+        for (int h = 0; h < 3; h++) {
+          double p[3] = { 0.0, 0.0, 0.0 };
+          p[axis] = sign*2.4;
+          p[(axis + 1) % 3] = OFFSET[h][0];
+          p[(axis + 2) % 3] = OFFSET[h][1];
+          elements.push_back("H");
+          for (int k = 0; k < 3; k++) coords.push_back(p[k]);
+        }
+      }
+    }
+
+    MoColumn left, right;
+    string note;
+    const bool built = MoFragments::build(coords, elements, "OH", 3,
+                                          left, right, note);
+    printf("  %-46s %s\n",
+           "Co(NH3)6 3+: built in Oh despite the rotors",
+           built ? "ok" : ("FAIL: " + note).c_str());
+    if (!built) { bad++; }
+    else {
+      //  The metal offers a1g (4s), t1u (4p), eg + t2g (3d) -- read
+      //  off the character table, with no electrostatic argument.
+      bool eg = false, t2g = false, a1g = false, t1u = false;
+      for (size_t i = 0; i < left.levels.size(); i++) {
+        const string& r = left.levels[i].irrep;
+        if (r == "EG")  eg  = true;
+        if (r == "T2G") t2g = true;
+        if (r == "A1G") a1g = true;
+        if (r == "T1U") t1u = true;
+      }
+      printf("  %-46s %s\n", "the metal gives eg + t2g, a1g and t1u",
+             (eg && t2g && a1g && t1u) ? "ok" : "FAIL");
+      if (!(eg && t2g && a1g && t1u)) bad++;
+
+      //  And six sigma donors span a1g + eg + t1u, whatever the
+      //  ligand is.  Not the nitrogens' 2s and 2p: a diagram built
+      //  from every atomic orbital on twenty-four atoms is correct
+      //  and unreadable.
+      int donors = 0;
+      double electrons = 0.0;
+      bool sigma = true, hasT2g = false;
+      map<string,int> span;
+      for (size_t i = 0; i < right.levels.size(); i++) {
+        donors += right.levels[i].degeneracy;
+        electrons += right.levels[i].occupancy;
+        span[right.levels[i].irrep] += right.levels[i].degeneracy;
+        if (right.levels[i].label.find("sigma") == string::npos) sigma = false;
+        if (right.levels[i].irrep == "T2G") hasT2g = true;
+      }
+
+      printf("  %-46s %s\n", "the ligands are sigma donors, not their basis",
+             (sigma && donors == 6) ? "ok" : "FAIL");
+      if (!(sigma && donors == 6)) bad++;
+
+      const bool gamma = (span["A1G"] == 1 && span["EG"] == 2 &&
+                          span["T1U"] == 3 && span.size() == 3);
+      printf("  %-46s %s\n", "and they span a1g + eg + t1u",
+             gamma ? "ok" : "FAIL");
+      if (!gamma) bad++;
+
+      printf("  %-46s %s\n", "t2g has no partner in the donor set",
+             !hasT2g ? "ok" : "FAIL");
+      if (hasT2g) bad++;
+
+      //  A donor brings a pair: twelve electrons fill the bonding set
+      //  before any of the metal's own.
+      checkd("six donors bring twelve electrons", electrons, 12.0, 1e-9);
+
+      //  Cobalt(III) is d6.  The charge oxidises the metal; it does
+      //  not reduce it.
+      double metal = 0.0;
+      for (size_t i = 0; i < left.levels.size(); i++) {
+        metal += left.levels[i].occupancy;
+      }
+      checkd("and cobalt(III) is d6", metal, 6.0, 1e-9);
+    }
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }
