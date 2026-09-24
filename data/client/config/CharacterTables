@@ -1,0 +1,165 @@
+# Character tables, for symmetry analysis of molecular orbitals.
+#
+# data/client/config/PointGroups already lists the IRREP NAMES of 46
+# groups, which is all that was needed to label an orbital.  Deciding
+# which irreps a set of orbitals spans needs the characters themselves,
+# which is what this file adds.
+#
+# FORMAT.  One block per group, blank-line separated:
+#
+#   [GROUP] h=<order>
+#   classes: <name> <name> ...        the conjugacy classes, in order
+#   counts:  <n>    <n>    ...        how many operations in each
+#   <irrep>: <chi>  <chi>  ...        one row per irreducible rep
+#
+# The irrep names must match PointGroups' spelling for the same group,
+# since that is what the codes' own ORBSYM labels are compared against.
+#
+# The "translations" line records what the Cartesian coordinates x, y, z
+# span in that group.  It is there because orthogonality alone CANNOT
+# catch two rows being swapped -- a relabelling leaves every orthogonality
+# relation intact, so the table stays self-consistent while two irreps
+# have each other's names.  The character of the 3-D Cartesian
+# representation is computable from the class names alone (1+2cos(theta)
+# for a proper rotation, -1+2cos(theta) for an improper one, 1 for a
+# mirror, -3 for inversion), so reducing it and comparing against this
+# line ties each label to something physical and pins the labelling too.
+#
+# THESE ARE VERIFIED MECHANICALLY, not by eye.  The great orthogonality
+# theorem makes the data self-checking -- rows orthogonal, columns
+# orthogonal, sum of counts equal to h, sum of squared dimensions equal
+# to h, and every row's own norm equal to h.  tests/symmetry enforces all
+# five, so a transcription slip in a hand-entered table cannot survive.
+# That is the only reason entering them by hand is acceptable.
+#
+# Only real characters appear here.  The cyclic groups Cn with n > 2 have
+# complex characters for their E irreps; none of the groups below is one,
+# and a group that needs them must not be added without extending the
+# format rather than rounding them.
+
+[C1] h=1
+classes: E
+counts:  1
+A:       1
+translations: 3A
+
+[CS] h=2
+classes: E  sh
+counts:  1  1
+A':      1  1
+A'':     1 -1
+translations: 2A' + A''
+
+[CI] h=2
+classes: E  i
+counts:  1  1
+Ag:      1  1
+Au:      1 -1
+translations: 3Au
+
+[C2] h=2
+classes: E  C2
+counts:  1  1
+A:       1  1
+B:       1 -1
+translations: A + 2B
+
+[C2V] h=4
+classes: E  C2  sv_xz  sv_yz
+counts:  1  1   1      1
+A1:      1  1   1      1
+A2:      1  1  -1     -1
+B1:      1 -1   1     -1
+B2:      1 -1  -1      1
+translations: A1 + B1 + B2
+
+[C3V] h=6
+classes: E  C3  sv
+counts:  1  2   3
+A1:      1  1   1
+A2:      1  1  -1
+E:       2 -1   0
+translations: A1 + E
+
+[C4V] h=8
+classes: E  C4  C2  sv  sd
+counts:  1  2   1   2   2
+A1:      1  1   1   1   1
+A2:      1  1   1  -1  -1
+B1:      1 -1   1   1  -1
+B2:      1 -1   1  -1   1
+E:       2  0  -2   0   0
+translations: A1 + E
+
+[C2H] h=4
+classes: E  C2  i  sh
+counts:  1  1   1  1
+Ag:      1  1   1  1
+Bg:      1 -1   1 -1
+Au:      1  1  -1 -1
+Bu:      1 -1  -1  1
+translations: Au + 2Bu
+
+[D2H] h=8
+classes: E  C2_z  C2_y  C2_x  i  s_xy  s_xz  s_yz
+counts:  1  1     1     1     1  1     1     1
+Ag:      1  1     1     1     1  1     1     1
+B1g:     1  1    -1    -1     1  1    -1    -1
+B2g:     1 -1     1    -1     1 -1     1    -1
+B3g:     1 -1    -1     1     1 -1    -1     1
+Au:      1  1     1     1    -1 -1    -1    -1
+B1u:     1  1    -1    -1    -1 -1     1     1
+B2u:     1 -1     1    -1    -1  1    -1     1
+B3u:     1 -1    -1     1    -1  1     1    -1
+translations: B1u + B2u + B3u
+
+[D3H] h=12
+classes: E  C3  C2  sh  S3  sv
+counts:  1  2   3   1   2   3
+A1':     1  1   1   1   1   1
+A2':     1  1  -1   1   1  -1
+E':      2 -1   0   2  -1   0
+A1'':    1  1   1  -1  -1  -1
+A2'':    1  1  -1  -1  -1   1
+E'':     2 -1   0  -2   1   0
+translations: E' + A2''
+
+[D4H] h=16
+classes: E  C4  C2  C2'  C2''  i  S4  sh  sv  sd
+counts:  1  2   1   2    2     1  2   1   2   2
+A1g:     1  1   1   1    1     1  1   1   1   1
+A2g:     1  1   1  -1   -1     1  1   1  -1  -1
+B1g:     1 -1   1   1   -1     1 -1   1   1  -1
+B2g:     1 -1   1  -1    1     1 -1   1  -1   1
+Eg:      2  0  -2   0    0     2  0  -2   0   0
+A1u:     1  1   1   1    1    -1 -1  -1  -1  -1
+A2u:     1  1   1  -1   -1    -1 -1  -1   1   1
+B1u:     1 -1   1   1   -1    -1  1  -1  -1   1
+B2u:     1 -1   1  -1    1    -1  1  -1   1  -1
+Eu:      2  0  -2   0    0    -2  0   2   0   0
+translations: A2u + Eu
+
+[TD] h=24
+classes: E  C3  C2  S4  sd
+counts:  1  8   3   6   6
+A1:      1  1   1   1   1
+A2:      1  1   1  -1  -1
+E:       2 -1   2   0   0
+T1:      3  0  -1   1  -1
+T2:      3  0  -1  -1   1
+translations: T2
+
+[OH] h=48
+classes: E  C3  C2  C4  C2'  i  S4  S6  sh  sd
+counts:  1  8   6   6   3    1  6   8   3   6
+A1g:     1  1   1   1   1    1  1   1   1   1
+A2g:     1  1  -1  -1   1    1 -1   1   1  -1
+Eg:      2 -1   0   0   2    2  0  -1   2   0
+T1g:     3  0  -1   1  -1    3  1   0  -1  -1
+T2g:     3  0   1  -1  -1    3 -1   0  -1   1
+A1u:     1  1   1   1   1   -1 -1  -1  -1  -1
+A2u:     1  1  -1  -1   1   -1  1  -1  -1   1
+Eu:      2 -1   0   0   2   -2  0   1  -2   0
+T1u:     3  0  -1   1  -1   -3 -1   0   1   1
+T2u:     3  0   1  -1  -1   -3  1   0   1  -1
+translations: T1u
