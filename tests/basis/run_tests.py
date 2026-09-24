@@ -275,6 +275,43 @@ def run(case):
     return proc.stdout, proc.returncode, proc.stderr
 
 
+def basis_name_rules(verbose):
+    """The Basis Set Tool's two name rules, checked against the real library.
+
+    #117 (the filter that makes a 377-entry list usable) and #122 (which
+    ECP is offered alongside which orbital basis set) are both decided by
+    GBSNameRules, and both fail silently: a filter that is too strict
+    makes a set the library really has unreachable, and a missed pairing
+    is indistinguishable from the old no-offer behaviour.
+
+    GBSNameRules has no ECCE dependency, so the checks compile with plain
+    g++ and run against data/admin/basissets directly -- ONE
+    implementation of the rules, exercised by the app and by this test,
+    rather than a Python reimplementation that would drift.
+    """
+    out = os.path.join(HERE, "testBasisNameRules")
+    cmd = ["g++", "-O2", "-w", "-I", os.path.join(REPO, "include"),
+           "-o", out,
+           os.path.join(HERE, "testBasisNameRules.C"),
+           os.path.join(REPO, "src/dsm/edsiimpl/GBSNameRules.C")]
+
+    build = subprocess.run(cmd, capture_output=True, text=True)
+    if build.returncode != 0:
+        return ["could not build testBasisNameRules:\n" + build.stderr]
+
+    run = subprocess.run([out, DATA], capture_output=True, text=True)
+    if verbose or run.returncode != 0:
+        print(run.stdout, end="")
+        if run.stderr:
+            print(run.stderr, end="")
+    os.unlink(out)
+
+    if run.returncode != 0:
+        return [line for line in run.stdout.splitlines()
+                if line.strip().startswith("FAIL:")] or ["exited %d" % run.returncode]
+    return []
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -295,6 +332,10 @@ def main():
     checks += 1
     for finding in mo_ordering_matches_the_code():
         failures.append("MO ordering: " + finding)
+
+    checks += 1
+    for finding in basis_name_rules(args.verbose):
+        failures.append("basis name rules: " + finding)
 
     for case in CASES:
         text, rc, err = run(case)

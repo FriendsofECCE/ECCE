@@ -28,6 +28,7 @@
 #include "dsm/EDSIFactory.H"
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/EDSIGaussianBasisSetLibrary.H"
+#include "dsm/GBSNameRules.H"
 #include "dsm/TGBSConfig.H"
 
 
@@ -159,6 +160,58 @@ bool EDSIGaussianBasisSetLibrary::isSupported(const string& bsName,
     EE_RT_ASSERT(false, EE_WARNING, errMsg);
   }
 
+  return ret;
+}
+
+/*******************************************************************
+ Method : matchingECP
+ Summary: Returns the name of the ecp-index entry that belongs with the
+          named orbital basis set, or "" if there is none.
+
+          #122: the orbital basis and its ECP are a matched pair --
+          picking def2-svp for a molecule with heavy atoms essentially
+          always means also wanting def2-svp-ecp -- but they were two
+          unconnected selections in two separate sections of the Basis
+          Set Tool, so the natural action silently produced a deck with
+          no ECP on the elements that need one.
+
+          The pairing is derived from the shipped index files rather
+          than hardcoded per family; GBSNameRules::pairedECP holds the
+          rules and the reasoning.
+*******************************************************************/
+string EDSIGaussianBasisSetLibrary::matchingECP(const string& bsName)
+{
+  string ret;
+
+  TGaussianBasisSet::GBSType type = TGaussianBasisSet::ECPOrbital;
+  const gbs_alias* alias = getGbsAlias(bsName.c_str(), type);
+  if (alias == 0) {
+    return ret;
+  }
+
+  const vector<gbs_alias*>* ecpList = getAliasList(TGaussianBasisSet::ecp);
+  if (ecpList == 0) {
+    return ret;
+  }
+
+  vector<string> basisFiles;
+  vector<char*>::const_iterator fit;
+  for (fit = alias->files.begin(); fit != alias->files.end(); fit++) {
+    if (*fit != 0) basisFiles.push_back(string(*fit));
+  }
+
+  vector<string> ecpNames;
+  vector<string> ecpFiles;
+  vector<gbs_alias*>::const_iterator ait;
+  for (ait = ecpList->begin(); ait != ecpList->end(); ait++) {
+    if (*ait == 0 || (*ait)->nicename == 0) continue;
+    ecpNames.push_back(string((*ait)->nicename));
+    ecpFiles.push_back((*ait)->files.empty() || (*ait)->files[0] == 0
+                       ? string("") : string((*ait)->files[0]));
+  }
+
+  ret = GBSNameRules::pairedECP(alias->nicename ? alias->nicename : bsName,
+                                basisFiles, ecpNames, ecpFiles);
   return ret;
 }
 

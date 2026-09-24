@@ -41,6 +41,7 @@
 #include "dsm/ICalcUtils.H"
 #include "dsm/JCode.H"
 #include "dsm/ResourceTool.H"
+#include "dsm/GBSNameRules.H"
 
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxWindowUtils.H"
@@ -52,6 +53,8 @@
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxNotebook.H"
 #include "wxgui/ewxRadioButton.H"
+#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxTextCtrl.H"
 #include "wxgui/PerTabPanel.H"
 
 #include "GridSelectionBlock.H"
@@ -355,6 +358,8 @@ void WxBasisTool::initControls()
         itemID = WXBASISTOOL_BASISSET_TYPE_LISTBOX_ITEMS[i];
         p_basisSetTypeListBox[i] = (ewxListBox *)(FindWindowById(itemID));
     }
+
+    buildFilterControls();
 
 //    itemID = ID_STATIC_WXBASISTOOL_CONTEXT_CODE;
 //    p_contextCodeStatic = (ewxStaticText *)(FindWindowById(itemID));
@@ -1158,6 +1163,10 @@ void WxBasisTool::addBasisSet(string name)
 
         int mode = p_contextBasisSetsNotebook->GetSelection();
 
+        //  #122: the tags the basis set actually landed on, so the
+        //  matching ECP can be offered for exactly those and no others.
+        vector<string> addedTags;
+
         // UPDATE SIMPLE CONFIGURATION (only one group in the config):
         if (mode == 0)
         {
@@ -1166,6 +1175,8 @@ void WxBasisTool::addBasisSet(string name)
 
             if (group == 0)
                 changeMade = false;
+            else
+                addedTags.push_back(tag);
 
         }
         else
@@ -1189,8 +1200,20 @@ void WxBasisTool::addBasisSet(string name)
                 tag = p_contextBasisSetsGrid[mode]->GetRowLabelValue(row);
                 group = updateGroup(config, tag, name);
                 changeMade = (changeMade && (group != 0));
+
+                if (group != 0)
+                    addedTags.push_back(tag);
             }
         }
+
+        //  #122: an orbital basis set that ships with a matching effective
+        //  core potential -- OFFER it.  Done here, before the config is
+        //  validated and the tables are refreshed below, so that accepting
+        //  goes through exactly the same checkCodeRules / coverage /
+        //  redisplay path as the basis set itself, and declining leaves
+        //  everything as it was.
+        if (changeMade)
+            offerMatchingECP(config, name, addedTags);
 
         // Now that the config has been updated, check to see if config is in
         // a consistent state
@@ -1595,10 +1618,22 @@ void WxBasisTool::displayEC()
  */
 TGBSGroup* WxBasisTool::updateGroup(TGBSConfig* config, string& tag, string& bsName)
 {
+    return updateGroup(config, tag, bsName, p_basisSetTypes[p_typeSlctn]);
+}
+
+
+/**
+ *  As above, but for a basis set whose type is NOT the one the selected
+ *  list box shows -- which is how the matching ECP offered by #122 gets
+ *  inserted while the ECP Orbital list is the one in front of the user.
+ */
+TGBSGroup* WxBasisTool::updateGroup(TGBSConfig* config, string& tag,
+                                    string& bsName,
+                                    TGaussianBasisSet::GBSType bstype)
+{
 //    cout << "updateGroup(TGBSConfig*, string&, string&)" << endl;
 
     TGBSGroup* group = 0; // return value
-    TGaussianBasisSet::GBSType bstype = p_basisSetTypes[p_typeSlctn];
 
     // Check if the basis set supports the tag:
     string errMsg =  "Basis set ";
@@ -1684,6 +1719,104 @@ TGBSGroup* WxBasisTool::updateGroup(TGBSConfig* config, string& tag, string& bsN
 
     return group;
 }
+
+
+/**
+ *  #122: a basis set with a matching ECP should offer the ECP too.
+ *
+ *  Many of the library's ECP orbital sets ship with a potential that is
+ *  half of the same matched pair -- def2-svp with def2-svp-ecp, cc-pVTZ-PP
+ *  with the Stuttgart-Koeln MCDHF RSC ECP -- but they sit in two separate
+ *  sections of this tool with nothing connecting them.  Choosing the
+ *  basis alone silently produces a deck with no ECP on the elements that
+ *  need one, which for a heavy element is not a small error.
+ *
+ *  Deliberately an OFFER, not an automatic selection.  Which potential a
+ *  calculation uses is a real choice and hiding it would be worse than
+ *  the extra click; and it is only offered when the potential actually
+ *  covers one of the elements in play, since def2's ECPs start at Rb and
+ *  putting one on a first-row element would be wrong rather than merely
+ *  redundant.
+ */
+void WxBasisTool::offerMatchingECP(TGBSConfig* config, const string& bsName,
+                                   const vector<string>& tags)
+{
+    if ((p_gbsFactory == NULL) || (config == NULL) || tags.empty())
+        return;
+
+    //  Only an orbital basis set built around a pseudopotential has one.
+    if (p_basisSetTypes[p_typeSlctn] != TGaussianBasisSet::ECPOrbital)
+        return;
+
+    string ecpName = p_gbsFactory->matchingECP(bsName);
+
+    if (ecpName.empty())
+        return;
+
+    //  Which elements are actually in play?
+    vector<string> wanted;
+    size_t i, j;
+
+    for (i = 0; i < tags.size(); i++)
+    {
+        TGBSConfigTags parsed(tags[i].c_str());
+
+        for (j = 0; j < parsed.size(); j++)
+            wanted.push_back(parsed[j]);
+    }
+
+    vector<const char*>* covered =
+        p_gbsFactory->atoms(ecpName.c_str(), TGaussianBasisSet::ecp);
+
+    bool relevant = false;
+
+    if (covered != NULL)
+    {
+        for (i = 0; (i < covered->size()) && !relevant; i++)
+        {
+            if ((*covered)[i] == NULL)
+                continue;
+
+            for (j = 0; j < wanted.size(); j++)
+            {
+                if (wanted[j] == (*covered)[i])
+                {
+                    relevant = true;
+                    break;
+                }
+            }
+        }
+
+        delete covered;
+    }
+
+    if (!relevant)
+        return;
+
+    string prompt = "The basis set \"" + bsName + "\" has a matching "
+                    "effective core potential in the library, \"" + ecpName +
+                    "\".\n\nThe two are meant to be used together: without "
+                    "the potential the calculation treats every electron "
+                    "explicitly with a basis set that was not built for it."
+                    "\n\nAdd \"" + ecpName + "\" as well?";
+
+    long style = wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION;
+    ewxMessageDialog *dlgMesg = new ewxMessageDialog(this, prompt,
+                                                     "Add the matching ECP?",
+                                                     style);
+    int answer = dlgMesg->ShowModal();
+    dlgMesg->Destroy();
+
+    if (answer != wxID_YES)
+        return;
+
+    for (i = 0; i < tags.size(); i++)
+    {
+        string tag = tags[i];
+        updateGroup(config, tag, ecpName, TGaussianBasisSet::ecp);
+    }
+}
+
 
 
 EcceURL * WxBasisTool::getContext()
@@ -3348,6 +3481,7 @@ void WxBasisTool::updateBasisSets(int index, bool slctFirst)
     // convert string vector to proper format
 
     p_basisSetTypeListBox[index]->Clear();
+    p_basisSetAllNames[index].clear();
     vector<string> *symbols = p_elementsTable->getSelectionSymbols();
     vector<const char*> *atoms = new vector<const char*>();
 
@@ -3367,8 +3501,14 @@ void WxBasisTool::updateBasisSets(int index, bool slctFirst)
 
         for (it = names->begin(); it != names->end(); it++)
         {
-            p_basisSetTypeListBox[index]->Append((char *)(*it));
+            if (*it != NULL)
+                p_basisSetAllNames[index].push_back(string(*it));
         }
+
+        //  #117: the list box gets whatever survives the filter box above
+        //  it, never the raw list.  The full list stays here so typing in
+        //  (or clearing) the filter never goes back to the server.
+        applyBasisSetFilter(index);
 
 //        displayBasisList(p_orbitalBSetsListBox[index], *names);
 
@@ -3392,9 +3532,181 @@ void WxBasisTool::updateBasisSets(int index, bool slctFirst)
     }
     else
     {
+        applyBasisSetFilter(index);
         string mesg = "Unable to access basis set library";
         p_messagesFeedback->setMessage(mesg, WxFeedback::ERROR);
     }
+}
+
+
+/**
+ *  #117: build the per-list filter row.
+ *
+ *  The Basis Set Tool already narrows each of its twelve list boxes twice
+ *  -- by basis set type, and by the elements selected in the periodic
+ *  table -- and it is still not enough: of the 377 sets in the shipped
+ *  library, 176 are listed for an ordinary H/C/N/O molecule, in one flat
+ *  alphabetical list box.  Element filtering only bites for heavy
+ *  elements (five sets for uranium), which is the case that was never the
+ *  problem.
+ *
+ *  People know the name of the basis they want, so a substring filter is
+ *  what is missing; typing "def2", "cc-pV" or "6-31" collapses 176 to a
+ *  handful.  An empty filter box lists everything, exactly as before.
+ *
+ *  Built here rather than in WxBasisToolGUI::CreateControls() because the
+ *  generated file lays out the twelve panels one at a time and this is the
+ *  same row twelve times.  Two of them ("Charge Fitting" and "Exchange
+ *  Fitting") carry a heading above their list, so the row is inserted at
+ *  the list box's own position in the panel sizer rather than at the top.
+ */
+void WxBasisTool::buildFilterControls()
+{
+    for (int i = 0; i < WXBASISTOOL_TOTAL_BASISSET_TYPES; i++)
+    {
+        p_basisSetFilterText[i] = NULL;
+        p_basisSetFilterCount[i] = NULL;
+
+        ewxPanel *panel = p_basisSetTypePanel[i];
+        ewxListBox *list = p_basisSetTypeListBox[i];
+
+        if ((panel == NULL) || (list == NULL))
+            continue;
+
+        wxSizer *sizer = panel->GetSizer();
+
+        if (sizer == NULL)
+            continue;
+
+        size_t pos = 0;
+        bool found = false;
+        const wxSizerItemList &items = sizer->GetChildren();
+        wxSizerItemList::const_iterator it;
+
+        for (it = items.begin(); it != items.end(); it++, pos++)
+        {
+            if ((*it)->GetWindow() == (wxWindow *)list)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+            pos = 0;
+
+        wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+
+        ewxStaticText *label = new ewxStaticText(panel, wxID_STATIC,
+                                                 _("Filter:"));
+        row->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 3);
+
+        ewxTextCtrl *text = new ewxTextCtrl(panel, wxID_ANY, "");
+        text->SetToolTip(_("Show only the basis sets whose name contains "
+                           "this text.  Several words all have to match "
+                           "(\"cc pp\" finds cc-pVTZ-PP).  Empty the box "
+                           "to list every set again."));
+        //  Note the deliberate absence of wxALIGN_* alongside wxGROW here:
+        //  combining the two on one sizer item can suppress the expand
+        //  outright under wx3.2/GTK3 (see CLAUDE.md).
+        row->Add(text, 1, wxGROW|wxRIGHT, 3);
+
+        ewxStaticText *count = new ewxStaticText(panel, wxID_STATIC, _T(""));
+        row->Add(count, 0, wxALIGN_CENTER_VERTICAL, 0);
+
+        sizer->Insert(pos, row, 0, wxGROW|wxLEFT|wxRIGHT|wxTOP, 3);
+
+        //  ewx controls push their own event handler onto the widget
+        //  (ewxHelpHandler), so a command event's route to this frame is
+        //  not the plain propagation wx documents and a STATIC event table
+        //  entry is not guaranteed to arrive -- the lesson of #81.  Bind
+        //  on the widget itself.
+        text->Bind(wxEVT_TEXT, &WxBasisTool::basisSetFilterChangedCB, this);
+
+        p_basisSetFilterText[i] = text;
+        p_basisSetFilterCount[i] = count;
+    }
+}
+
+
+void WxBasisTool::basisSetFilterChangedCB(wxCommandEvent& event)
+{
+    for (int i = 0; i < WXBASISTOOL_TOTAL_BASISSET_TYPES; i++)
+    {
+        if ((p_basisSetFilterText[i] != NULL) &&
+            (event.GetEventObject() == (wxObject *)p_basisSetFilterText[i]))
+        {
+            applyBasisSetFilter(i);
+            break;
+        }
+    }
+}
+
+
+/**
+ *  Repopulate one list box from its cached full name list, keeping only
+ *  the names the filter box accepts, and report the counts beside it.
+ */
+void WxBasisTool::applyBasisSetFilter(int index)
+{
+    if ((index < 0) || (index >= WXBASISTOOL_TOTAL_BASISSET_TYPES))
+        return;
+
+    ewxListBox *list = p_basisSetTypeListBox[index];
+
+    if (list == NULL)
+        return;
+
+    string filter;
+
+    if (p_basisSetFilterText[index] != NULL)
+        filter = (const char *)(p_basisSetFilterText[index]->GetValue().mb_str());
+
+    list->Freeze();
+    list->Clear();
+
+    int shown = 0;
+    size_t i;
+
+    for (i = 0; i < p_basisSetAllNames[index].size(); i++)
+    {
+        if (GBSNameRules::matchesFilter(p_basisSetAllNames[index][i], filter))
+        {
+            list->Append(wxString(p_basisSetAllNames[index][i].c_str()));
+            shown++;
+        }
+    }
+
+    list->Thaw();
+
+    if (p_basisSetFilterCount[index] != NULL)
+    {
+        int total = (int)(p_basisSetAllNames[index].size());
+        wxString text;
+
+        if (shown == total)
+            text = wxString::Format(wxT("%d"), total);
+        else
+            text = wxString::Format(wxT("%d of %d"), shown, total);
+
+        p_basisSetFilterCount[index]->SetLabel(text);
+
+        //  The label's width changes with the counts, and without this the
+        //  new text is clipped to the old best size.
+        wxSizer *sizer = p_basisSetFilterCount[index]->GetContainingSizer();
+
+        if (sizer != NULL)
+            sizer->Layout();
+    }
+
+    //  Nothing is selected in a list that was just rebuilt.
+    p_lastSlctn = "";
+
+    if (p_detailsButton != NULL)
+        p_detailsButton->Enable(false);
+
+    if (p_contextAddButton != NULL)
+        p_contextAddButton->Enable(false);
 }
 
 
