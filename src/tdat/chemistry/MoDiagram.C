@@ -190,8 +190,14 @@ void MoDiagram::placeFragments(const MoColumn& centre,
     for (size_t i = 0; i < cols[c]->levels.size(); i++) {
       MoLevel& level = cols[c]->levels[i];
 
+      //  IN THE AXIS'S UNITS, AND SAID TO BE THE FREE ATOM'S.  An eV
+      //  number beside a level on a Hartree axis reads as that level's
+      //  energy and disagrees with where it is drawn.  It is the free
+      //  atom's tabulated value, which is a different quantity: the
+      //  level is placed at the mean of the orbitals it became.
       char text[64];
-      snprintf(text, sizeof(text), "%.1f eV", level.energy);
+      snprintf(text, sizeof(text), "free atom %.2f Ha",
+               level.energy/27.211386);
       level.annotation = text;
 
       double sum = 0.0, weight = 0.0;
@@ -618,18 +624,44 @@ void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
   }
 
   //  Pair each bonding level with an antibonding one, lowest with
-  //  highest, so the two ends of an interaction share a colour.  With
-  //  no irreps to separate them this is the order they come in, which
-  //  is the best that can be said.
-  vector<size_t> bonding, antibonding;
+  //  highest, so the two ends of an interaction share a colour.
+  //
+  //  WITHIN ONE IRREP, AND ONLY WHERE classify() LEFT IT OPEN.  This
+  //  used to sweep every bonding and antibonding level in the column
+  //  and renumber from zero, so it overwrote the pairing classify()
+  //  had already worked out by symmetry -- water came out with 1b2
+  //  sharing a colour with 3a1*, which is not a bonding/antibonding
+  //  pair and cannot be one: they are different irreps and do not
+  //  interact.  An orbital's partner is of its own symmetry.
+  int highestPair = -1;
   for (size_t c = 0; c < centre.size(); c++) {
-    if (centre[c].character == MoLevel::BONDING) bonding.push_back(c);
-    if (centre[c].character == MoLevel::ANTIBONDING) antibonding.push_back(c);
+    if (centre[c].pairing > highestPair) highestPair = centre[c].pairing;
   }
-  for (size_t i = 0; i < bonding.size() && i < antibonding.size(); i++) {
-    centre[bonding[i]].pairing = nextPair;
-    centre[antibonding[antibonding.size() - 1 - i]].pairing = nextPair;
-    nextPair++;
+  nextPair = highestPair + 1;
+
+  vector<string> irreps;
+  for (size_t c = 0; c < centre.size(); c++) {
+    if (centre[c].pairing >= 0) continue;
+    bool seen = false;
+    for (size_t k = 0; k < irreps.size(); k++) {
+      if (irreps[k] == centre[c].irrep) seen = true;
+    }
+    if (!seen) irreps.push_back(centre[c].irrep);
+  }
+
+  for (size_t j = 0; j < irreps.size(); j++) {
+    vector<size_t> bonding, antibonding;
+    for (size_t c = 0; c < centre.size(); c++) {
+      if (centre[c].pairing >= 0) continue;
+      if (centre[c].irrep != irreps[j]) continue;
+      if (centre[c].character == MoLevel::BONDING) bonding.push_back(c);
+      if (centre[c].character == MoLevel::ANTIBONDING) antibonding.push_back(c);
+    }
+    for (size_t i = 0; i < bonding.size() && i < antibonding.size(); i++) {
+      centre[bonding[i]].pairing = nextPair;
+      centre[antibonding[antibonding.size() - 1 - i]].pairing = nextPair;
+      nextPair++;
+    }
   }
 }
 
