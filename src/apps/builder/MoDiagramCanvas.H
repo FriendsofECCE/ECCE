@@ -650,40 +650,52 @@ class MoDiagramCanvas : public wxPanel
         //  "5a1 nb" ended up printed over the carbon's "T2 (2p)".
         //  Beyond two they overlap, which is honest about the levels
         //  being that close and does not damage another column.
-        int step = 0;
-        bool clash = true;
-        while (clash && step < 2) {
-          clash = false;
+        //  A FREE ROW, TESTED AGAINST WHERE LABELS ACTUALLY WENT.
+        //
+        //  Counting notches does not work: the levels are a few
+        //  pixels apart to begin with, so "one row up from mine" and
+        //  "two rows down from yours" can land on the same pixel.
+        //  CCl4 has 1t1, 3t2 and 1e within two hundredths of a
+        //  Hartree and two of the three printed on top of each other
+        //  whatever the step arithmetic said.
+        //
+        //  So try this level's own row first, then a row above, a row
+        //  below, two above, two below, and take the first that
+        //  clears every label already placed.  Vertical, because
+        //  pushing them sideways walks them into the next column.
+        const int tall = level.annotation.empty()
+            ? extent.y + 2 : 2*extent.y + 2;
+        const int home = y - extent.y/2;
+
+        int ly = home;
+        for (int attempt = 0; attempt < 7; attempt++) {
+          const int rows = (attempt + 1)/2;
+          const int sign = (attempt % 2 == 1) ? -1 : +1;
+          const int candidate = home + sign*rows*tall;
+
+          bool clash = false;
           for (size_t k = 0; k < p_placed.size(); k++) {
-            //  Two rows tall where an annotation goes under the
-            //  label, or the annotation of one level prints over the
-            //  label of the next -- which is what "free atom" did all
-            //  along oxygen's 2p set.
-            const int tall = level.annotation.empty()
-                ? extent.y + 2 : 2*extent.y + 2;
-            if (p_placed[k].second == step &&
-                abs(y - p_placed[k].first) < tall) {
-              clash = true;
-              break;
-            }
+            if (abs(candidate - p_placed[k].first) < tall) clash = true;
           }
-          if (clash) step++;
+          if (!clash) { ly = candidate; break; }
+          if (attempt == 6) ly = candidate;    // out of rows; overlap
         }
-        p_placed.push_back(std::make_pair(y, step));
+        p_placed.push_back(std::make_pair(ly, 0));
 
         //  Clear of the line by more than a couple of pixels: at
         //  eight it was printing over the left-hand end of the level
         //  it names.
-        const int lx = (p_outward < 0)
-            ? x - extent.x - 14 - step*(extent.x + 12)
-            : x + width + 14 + step*(extent.x + 12);
-        drawPieces(dc, pieces, lx, y - extent.y/2, base, small, extent.y);
+        const int lx = (p_outward < 0) ? x - extent.x - 14
+                                       : x + width + 14;
+
+        drawPieces(dc, pieces, lx, ly, base, small, extent.y);
 
         //  Clear of the annotation, which is written under the label
         //  and is about as wide again: at thirty the chlorine 3p
         //  sketch was drawn over its own "free atom" line.
         drawSketch(dc, level, *p_sketchColumn,
-                   (p_outward < 0) ? lx - 34 : lx + extent.x + 54, y);
+                   (p_outward < 0) ? lx - 34 : lx + extent.x + 54,
+                   ly + extent.y/2);
 
         //  ONCE PER SHELL.  Oxygen's b2, a1 and b1 2p levels all
         //  carry the same free-atom energy, and printing it beside
@@ -701,7 +713,7 @@ class MoDiagramCanvas : public wxPanel
           dc.DrawText(extra,
                       (p_outward < 0)
                           ? lx + extent.x - dc.GetTextExtent(extra).x : lx,
-                      y + extent.y/2);
+                      ly + extent.y);
         }
       } else {
         drawPieces(dc, pieces, x + (width - extent.x)/2, y - extent.y - 6,
