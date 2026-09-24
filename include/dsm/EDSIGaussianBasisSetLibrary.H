@@ -87,7 +87,12 @@ class EDSIGaussianBasisSetLibrary {
      vector<const char*>*  gbsNameList( TGaussianBasisSet::GBSType gbs_type,
                                         vector<const char*>* tags=0);
 
-     vector<TGaussianBasisSet*> lookup( const char* gbs_name, 
+     // #122: the ecp-index entry that belongs with an ECPOrbital basis
+     // set, or "" if the library has none for it.  Discovered from the
+     // index data (see GBSNameRules::pairedECP), not hardcoded.
+     string matchingECP(const string& bsName);
+
+     vector<TGaussianBasisSet*> lookup( const char* gbs_name,
      TGaussianBasisSet::GBSType gbs_type=TGaussianBasisSet::UnknownGBSType,
 					const char* tag=0 );
 

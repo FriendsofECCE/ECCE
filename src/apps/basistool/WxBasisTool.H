@@ -1,6 +1,11 @@
 #ifndef WXBASISTOOL_HH
 #define WXBASISTOOL_HH
 
+#include <string>
+  using std::string;
+#include <vector>
+  using std::vector;
+
 #include "util/JMSPublisher.H"
 
 #include "dsm/TGaussianBasisSet.H"
@@ -21,6 +26,7 @@ class ewxListBox;
 class ewxMenuItem;
 class ewxRadioButton;
 class ewxStaticText;
+class ewxTextCtrl;
 class Fragment;
 class GridSelectionBlock;
 class ewxNotebook;
@@ -209,6 +215,22 @@ class WxBasisTool: public WxBasisToolGUI,
      //   bool addAllowed() const;
         void addBasisSet(string name);
         TGBSGroup* updateGroup(TGBSConfig* config, string& tag, string& bsName);
+        TGBSGroup* updateGroup(TGBSConfig* config, string& tag, string& bsName,
+                               TGaussianBasisSet::GBSType bstype);
+
+        //  #117: the library ships 377 basis sets and element coverage
+        //  alone still leaves 176 of them listed for an ordinary organic
+        //  molecule.  Each list box therefore gets a filter box above it;
+        //  the unfiltered names are kept here so filtering never has to go
+        //  back to the server, and an empty filter restores the full list.
+        void buildFilterControls();
+        void applyBasisSetFilter(int index);
+        void basisSetFilterChangedCB(wxCommandEvent& event);
+
+        //  #122: offer -- never silently apply -- the ECP that goes with
+        //  the orbital basis set just added.
+        void offerMatchingECP(TGBSConfig* config, const string& bsName,
+                              const vector<string>& tags);
 //        void displayContractionEditor();
         bool confirmCollapse(TGBSConfig::ConfigType destType);
 
@@ -223,6 +245,9 @@ class WxBasisTool: public WxBasisToolGUI,
 
         ewxPanel                        *p_basisSetTypePanel[12];
         ewxListBox                      *p_basisSetTypeListBox[12];
+        ewxTextCtrl                     *p_basisSetFilterText[12];
+        ewxStaticText                   *p_basisSetFilterCount[12];
+        vector<string>                   p_basisSetAllNames[12];
         TGaussianBasisSet::GBSType       p_basisSetTypes[12];       //  Map that relates the index of the basisSet List
                                                                     //  to the GBSType that it represents.
         int                              p_basisSetCtgys[12];       //  Map that relates the index of the basisSet List
