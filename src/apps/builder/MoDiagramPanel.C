@@ -86,13 +86,20 @@ class MoDiagramCanvas : public wxPanel
       dc.SetPen(wxPen(*wxBLACK, 2));
       dc.DrawLine(x, y, x + width, y);
 
-      //  The label sits left of the line, the energy right of it, so a
-      //  crowded diagram stays readable in one direction at least.
+      //  The label sits left of the line.  The energy is NOT written
+      //  beside each level: the axis carries it now, and a number on
+      //  every level in a spectrum this dense is clutter rather than
+      //  information.
       dc.SetFont(*wxSMALL_FONT);
       dc.SetTextForeground(*wxBLACK);
       if (!level.label.empty() && level.label != "?") {
         wxString text(level.label.c_str(), wxConvUTF8);
-        if (level.degeneracy > 1) {
+
+        //  Only for the molecular orbitals, whose label is a bare
+        //  irrep.  A fragment label already carries its own count
+        //  ("2x T2  (2p)"), and appending a second one gives
+        //  "2x T2  (2p) (6)".
+        if (withOccupancy && level.degeneracy > 1) {
           text += wxString::Format(" (%d)", level.degeneracy);
         }
         const wxSize extent = dc.GetTextExtent(text);
@@ -609,7 +616,27 @@ void MoDiagramPanel::build()
     haveFragments = MoFragments::build(coords, elements, group,
                                        left, right, why);
     if (haveFragments) {
-      MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+      //  DO THE TWO SIDES EVEN SPEAK THE SAME LANGUAGE?
+      //
+      //  The centre labels come from the code, which may have run the
+      //  job in a lower group than the structure actually has -- ORCA
+      //  with no symmetry reports every orbital as "A", and in C2v
+      //  there is no such irrep.  connect() would then find no partner
+      //  for anything and the diagram would come out with three
+      //  columns and not one line between them, looking like a result.
+      int matched = 0;
+      for (size_t i = 0; i < centre.levels.size(); i++) {
+        for (size_t j = 0; j < left.levels.size(); j++) {
+          if (centre.levels[i].irrep == left.levels[j].irrep) { matched++; break; }
+        }
+      }
+      if (matched == 0 && !centre.levels.empty()) {
+        note << "  The calculation's orbital labels are not irreps of "
+             << group << " -- it was probably run without symmetry, or "
+                "in a lower group -- so nothing can be correlated.";
+      } else {
+        MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+      }
       note << "  Fragment levels are valence orbital ionisation "
               "energies; molecular levels are the calculation's own "
               "orbital energies. Both in eV.";
