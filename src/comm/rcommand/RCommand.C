@@ -1206,7 +1206,11 @@ hopToIt:
       case 9:
         if (thePass=="" &&
             !RCommand::getPassCache(p_shell, theMachine, theUser, thePass)) {
-          passCmd = "./passdialog password " + theMachine + " " + theUser;
+          //  Resolved against $ECCE_HOME/bin: the apps no longer run with
+          //  their working directory set to bin, so the bare "./passdialog"
+          //  this used to be found nothing (#134).
+          passCmd = Ecce::ecceBinCommand("passdialog") + " password " +
+                    theMachine + " " + theUser;
           if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
             if (fgets(passBuf, sizeof(passBuf), passPtr) != NULL) {
               // strip off the trailing newline
@@ -1237,7 +1241,8 @@ hopToIt:
         break;
 
       case 10:
-        passCmd = "./passdialog passcode " + theMachine + " " + theUser;
+        passCmd = Ecce::ecceBinCommand("passdialog") + " passcode " +
+                  theMachine + " " + theUser;
         if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
           if (fgets(codeBuf, sizeof(codeBuf), passPtr) != NULL) {
             // strip off the trailing newline
@@ -1661,7 +1666,8 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
       case 9:
         if (thePass=="" &&
             !RCommand::getPassCache(p_shell, hopMachine, theUser, thePass)) {
-          passCmd = "./passdialog password " + hopMachine + " " + theUser;
+          passCmd = Ecce::ecceBinCommand("passdialog") + " password " +
+                    hopMachine + " " + theUser;
           if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
             if (fgets(passBuf, sizeof(passBuf), passPtr) != NULL) {
               // strip off the trailing newline
@@ -1692,7 +1698,8 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
         break;
 
       case 10:
-        passCmd = "./passdialog passcode " + hopMachine + " " + theUser;
+        passCmd = Ecce::ecceBinCommand("passdialog") + " passcode " +
+                  hopMachine + " " + theUser;
         if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
           if (fgets(codeBuf, sizeof(codeBuf), passPtr) != NULL) {
             // strip off the trailing newline
@@ -2081,7 +2088,10 @@ bool RCommand::bgcommand(const string& command, string& errMessage,
   // setup and do the execvp which is a simple app that reinvokes
   // RCommand::command
   string app = "ecmd";
-  string path = "./ecmd";
+  //  Resolved against $ECCE_HOME/bin: the apps no longer run from there,
+  //  and execvp does not search PATH for a name containing a slash, so
+  //  "./ecmd" could only ever have worked from the bin directory (#134).
+  string path = Ecce::ecceBinCommand(app);
 
   static const char* minbg = "-bg";
   static const char* minpipe = "-pipe";
@@ -3335,7 +3345,8 @@ bool RCommand::copy(string& errMessage,
       case 14:
         if (thePass=="" &&
             !RCommand::getPassCache(copyCmd, theMachine, theUser, thePass)) {
-          passCmd = "./passdialog password " + theMachine + " " + theUser;
+          passCmd = Ecce::ecceBinCommand("passdialog") + " password " +
+                    theMachine + " " + theUser;
           if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
             if (fgets(passBuf, sizeof(passBuf), passPtr) != NULL) {
               // strip off the trailing newline
@@ -3366,7 +3377,8 @@ bool RCommand::copy(string& errMessage,
         break;
 
       case 15:
-        passCmd = "./passdialog passcode " + theMachine + " " + theUser;
+        passCmd = Ecce::ecceBinCommand("passdialog") + " passcode " +
+                  theMachine + " " + theUser;
         if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
           if (fgets(codeBuf, sizeof(codeBuf), passPtr) != NULL) {
             // strip off the trailing newline
@@ -3608,7 +3620,8 @@ bool RCommand::ftp(string& errMessage, const string& machine,
       case 5:
         if (thePass=="" &&
             !RCommand::getPassCache(copyCmd, theMachine, theUser, thePass)) {
-          passCmd = "./passdialog password " + theMachine + " " + theUser;
+          passCmd = Ecce::ecceBinCommand("passdialog") + " password " +
+                    theMachine + " " + theUser;
           if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
             if (fgets(passBuf, sizeof(passBuf), passPtr) != NULL) {
               // strip off the trailing newline
@@ -3725,7 +3738,8 @@ bool RCommand::ftp(string& errMessage, const string& machine,
         break;
 
       case 15:
-        passCmd = "./passdialog passcode " + theMachine + " " + theUser;
+        passCmd = Ecce::ecceBinCommand("passdialog") + " passcode " +
+                  theMachine + " " + theUser;
         if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
           if (fgets(codeBuf, sizeof(codeBuf), passPtr) != NULL) {
             // strip off the trailing newline
