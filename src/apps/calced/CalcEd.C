@@ -24,6 +24,7 @@
 #include "dsm/GBSRules.H"
 #include "dsm/TGBSConfig.H"
 #include "dsm/EDSIFactory.H"
+#include "dsm/TaskJob.H"
 #include "dsm/EDSIGaussianBasisSetLibrary.H"
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/ICalculation.H"
@@ -716,13 +717,46 @@ void CalcEd::OnMenuCalcedRegenInputClick( wxCommandEvent& event )
     return;
   }
 
-  ewxMessageDialog confirm(this,
-        "Rebuild the input file from this calculation's current settings?\n\n"
-        "Any edits made to the input file by hand will be lost.",
-        "Regenerate Input File", wxYES_NO | wxICON_QUESTION);
-  if (confirm.ShowModal() != wxID_YES) {
-    event.Skip();
-    return;
+  //  A calculation that has already run needs resetting first.
+  //  generateInput() goes through isReady(), which requires the state to
+  //  be below SUBMITTED -- rightly, since rewriting the deck of a job
+  //  that has run would leave its stored results describing a different
+  //  input.  Without this the menu item simply did nothing on a
+  //  completed calculation, which is exactly when someone wants it.
+  bool hasRun = (p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED);
+  if (hasRun) {
+    ewxMessageDialog ask(this,
+          "This calculation has already run, so its results were produced "
+          "by the current input file.\n\n"
+          "Reset it for rerun and rebuild the input file?  The previous "
+          "results and output are discarded, and any edits made to the "
+          "input file by hand are lost.",
+          "Regenerate Input File", wxYES_NO | wxICON_QUESTION);
+    if (ask.ShowModal() != wxID_YES) {
+      event.Skip();
+      return;
+    }
+
+    TaskJob *task = dynamic_cast<TaskJob*>(
+            EDSIFactory::getResource(p_iCalc->getURL()));
+    if (task == 0 || !task->resetForRerun()) {
+      p_feedback->setMessage("Could not reset the calculation for rerun, "
+                             "so the input file was left alone.",
+                             WxFeedback::ERROR);
+      event.Skip();
+      return;
+    }
+    //  Pick the new state up, so isReady() below sees it.
+    p_feedback->setRunState(p_iCalc->getState());
+  } else {
+    ewxMessageDialog confirm(this,
+          "Rebuild the input file from this calculation's current settings?"
+          "\n\nAny edits made to the input file by hand will be lost.",
+          "Regenerate Input File", wxYES_NO | wxICON_QUESTION);
+    if (confirm.ShowModal() != wxID_YES) {
+      event.Skip();
+      return;
+    }
   }
 
   if (generateInput(false)) {

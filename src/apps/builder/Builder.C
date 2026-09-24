@@ -4670,6 +4670,7 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     static const int PANEL_HEIGHT_MIN      = 80;   // still leaves a grip
     static const int PANEL_HEIGHT_MAX      = 600;  // no pane eats the dock
     static const int PANEL_HEIGHT_PADDING  = 12;
+    static const int PANEL_WIDTH_MIN       = 200;  // last resort only
 
     int paneHeight = PANEL_HEIGHT_FALLBACK;
     if (!uniformPanelHeight()) {
@@ -4705,8 +4706,22 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     //  Proportional rather than absolute, so a taller dock scales all of
     //  them up; a short readout still gets a small share of it instead of
     //  an equal one, which is the point.
-    info.MinSize(wxSize(200, PANEL_HEIGHT_MIN));
-    info.BestSize(wxSize(400, paneHeight));
+    //  The floor's WIDTH comes from the panel, not a constant.  A
+    //  hardcoded 200 lets the dock shrink a pane below what its own
+    //  content needs, and the controls at the end of a horizontal row
+    //  are simply clipped -- reported as the vibration panel's
+    //  stop-animation button "not showing, or too narrow", with the
+    //  play button beside it visible.  createPropertyPanel() already
+    //  gives every property panel SetMinSize(400, -1); honour it.
+    int paneMinWidth = panel->GetMinSize().x;
+    if (paneMinWidth <= 0) {
+      paneMinWidth = panel->GetBestSize().x;
+    }
+    if (paneMinWidth < PANEL_WIDTH_MIN) {
+      paneMinWidth = PANEL_WIDTH_MIN;
+    }
+    info.MinSize(wxSize(paneMinWidth, PANEL_HEIGHT_MIN));
+    info.BestSize(wxSize(paneMinWidth, paneHeight));
     info.dock_proportion = paneHeight;
 
     // ECCE_DEBUG_PANEL_SIZE=1 prints what each panel asked for and what
