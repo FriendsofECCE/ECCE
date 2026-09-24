@@ -344,6 +344,29 @@ project, not part of ECCE** (Andy's call, 2026-09-24). A C++ one was
 built and removed; `tools/modiagram/fromxyz.py` (XYZ → autosym →
 MOPAC → spec) is the bridge it would reuse.
 
+- **A fragment must be a union of orbits** — otherwise the group maps
+  it outside itself and it has no symmetry orbitals at all. This is
+  why the panel's chooser groups *orbits* rather than atoms, and why
+  ethene-as-two-CH2 needed a different mechanism entirely: a CH2
+  crosses D2h's orbits ("both carbons", "all four hydrogens"). The way
+  through is to analyse each half in the **subgroup** that preserves
+  it, then combine in and out of phase — `buildHalves()` /
+  `inducedIrreps()` in `MoFragments.C`. Which irreps a combination
+  spans is the induced representation (computed, and it declines
+  rather than rounding); which combination is in phase comes from the
+  sign of the character on a class that swaps the halves.
+- **A complex is classified by its coordination skeleton, not the
+  molecule.** Six ammonia rotors cannot all be octahedral, so a
+  whole-molecule search returns Th at best and C1 in practice. The
+  panel runs its symmetry search on `MoFragments::coordinationSkeleton()`.
+  Polyatomic ligands contribute **one sigma donor each**, not their
+  whole basis; the pi set comes from subtracting sigma from the p-shell
+  reduction.
+- **connect() runs BEFORE placeFragments()**, so fragment levels still
+  carry tabulated energies in eV while the molecular column is in
+  Hartree. Anything comparing the two magnitudes directly is wrong —
+  normalise each column to its own range first.
+
 - **Look at `tools/modiagram/render`'s output before believing any
   layout claim.** It runs the real engine and paints the real
   `MoDiagramCanvas` to a PNG in seconds. `draw.py` is a *second*
