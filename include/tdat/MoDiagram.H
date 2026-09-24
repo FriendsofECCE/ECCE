@@ -127,6 +127,18 @@ struct MoColumn
    /** Where to draw this column's atoms, for the phase sketches. */
    vector<double>   sketchX;
    vector<double>   sketchY;
+
+   /**
+    * Which Cartesian axis was flattened away making those positions.
+    *
+    * A p orbital points somewhere, so a sketch of a p symmetry orbital
+    * has to say where.  The two axes the atoms spread out in are the
+    * page; the third is perpendicular to it, and a p component along
+    * that one is the pi case -- drawn as a circle, filled or open,
+    * exactly as an s combination is.  The other two are in the page
+    * and want an arrow.
+    */
+   int              sketchNormal;
    vector<MoLevel>  levels;
 
    /**
@@ -144,7 +156,8 @@ struct MoColumn
    /** Virtuals folded away at the top, counted the same way. */
    int    hiddenAboveCount;
 
-   MoColumn() : hiddenCount(0), hiddenMaxEnergy(0.0), hiddenAboveCount(0) {}
+   MoColumn() : hiddenCount(0), hiddenMaxEnergy(0.0),
+               hiddenAboveCount(0), sketchNormal(2) {}
 };
 
 

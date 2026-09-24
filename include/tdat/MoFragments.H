@@ -46,7 +46,8 @@ class MoFragments
      */
     static void sketchPositions(const vector<double>& coords,
                                 const vector<int>& atoms,
-                                vector<double>& x, vector<double>& y);
+                                vector<double>& x, vector<double>& y,
+                                int* normal = 0);
 
     /**
      * The operations of a named point group.

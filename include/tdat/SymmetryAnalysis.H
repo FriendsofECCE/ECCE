@@ -159,6 +159,38 @@ class SymmetryAnalysis
      *         times its dimension, and a caller that knows the expected
      *         reduction should check it.
      */
+    /**
+     * The symmetry orbitals of one irrep, over an orbit's p orbitals.
+     *
+     * projectOrbit() handles one orbital per atom, which is what an s
+     * shell is.  A p shell puts three on each, and they are not
+     * carried along unchanged: an operation takes p_x on one atom to a
+     * COMBINATION of p_x, p_y and p_z on its image, by the same 3x3
+     * matrix that moves the atom.  So the projection runs over 3N
+     * basis functions and mixes the components as it goes.
+     *
+     * This is what nitrite's pi system needs.  Its oxygen 2p set spans
+     * 2a1 + a2 + 2b1 + b2, and the a2 in particular is a combination
+     * of p orbitals perpendicular to the molecular plane that no s
+     * projection can express.
+     *
+     * @param vectors  one per independent symmetry orbital, each of
+     *                 length 3*orbit.size(), ordered atom-major:
+     *                 (atom 0 x, atom 0 y, atom 0 z, atom 1 x, ...)
+     *
+     * @return false if the arguments do not describe this group.  The
+     *         number of vectors is the irrep's multiplicity times its
+     *         dimension, which a caller that has reduced the character
+     *         already knows and should check.
+     */
+    static bool projectVectorOrbit(const vector<int>& orbit,
+                                   const vector< vector<int> >& images,
+                                   const vector<int>& classOfOp,
+                                   const vector<SymOp>& ops,
+                                   const CharacterTable& table,
+                                   const string& irrep,
+                                   vector< vector<double> >& vectors);
+
     static bool projectOrbit(const vector<int>& orbit,
                              const vector< vector<int> >& images,
                              const vector<int>& classOfOp,

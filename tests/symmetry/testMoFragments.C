@@ -20,6 +20,7 @@ using namespace std;
 #include "tdat/MoFragments.H"
 #include "tdat/CharacterTable.H"
 #include "tdat/MoDiagram.H"
+#include "tdat/SymmetryAnalysis.H"
 
 static int bad = 0;
 
@@ -640,6 +641,150 @@ int main(int argc, char** argv) {
     printf("  %-46s %s\n", "a p shell claims no pattern",
            pQuiet ? "ok" : "FAIL");
     if (!pQuiet) bad++;
+  }
+
+  //  --- p-orbital symmetry orbitals ---------------------------------
+  //
+  //  The check that says whether the projection is right without
+  //  anyone knowing the answer: the number of independent vectors it
+  //  returns for an irrep must equal that irrep's multiplicity in the
+  //  character reduction, times its dimension.  Two routes to the same
+  //  number -- one projecting orbitals and orthogonalising, the other
+  //  reducing a character -- and neither is told the other's result.
+  {
+    printf("\n  p-orbital symmetry orbitals\n");
+
+    //  Nitrite: the compendium works this exact set out by hand and
+    //  gets 2a1 + a2 + 2b1 + b2 for the two oxygens' 2p orbitals.
+    double c[] = { 0,0,0,  1.0544,0,-0.6717,  -1.0544,0,-0.6717 };
+    vector<double> coords(c, c + 9);
+    const char* e[] = { "N", "O", "O" };
+    vector<string> elements(e, e + 3);
+
+    const CharacterTable *table = CharacterTable::lookup("C2V");
+    vector<SymOp> ops;
+    MoFragments::symmetryOperations("C2V", ops);
+
+    vector< vector<int> > images;
+    vector< vector<int> > classes;
+    vector<int> classOfOp;
+    bool ready = table != 0 &&
+        SymmetryAnalysis::atomImages(coords, elements, ops, 1e-3, images);
+    if (ready) {
+      SymmetryAnalysis::conjugacyClasses(ops, classes);
+      ready = SymmetryAnalysis::matchClasses(ops, classes, *table, classOfOp);
+    }
+    printf("  %-46s %s\n", "NO2-: the C2v frame is usable",
+           ready ? "ok" : "FAIL");
+    if (!ready) bad++;
+    else {
+      vector<int> terminal;
+      terminal.push_back(1);
+      terminal.push_back(2);
+
+      //  What the character says the p set spans.
+      vector< vector<int> > shells(3);
+      shells[1].push_back(1);
+      shells[2].push_back(1);
+      vector<double> chi;
+      vector<int> multiplicity;
+      SymmetryAnalysis::basisCharacter(shells, images, classOfOp, ops,
+                                       (int)table->classes().size(),
+                                       false, chi);
+      table->reduce(chi, multiplicity);
+
+      const vector<string>& irreps = table->irreps();
+      int totalVectors = 0, totalPredicted = 0;
+      bool matched = true;
+      for (size_t i = 0; i < irreps.size(); i++) {
+        vector< vector<double> > vectors;
+        SymmetryAnalysis::projectVectorOrbit(terminal, images, classOfOp,
+                                             ops, *table, irreps[i],
+                                             vectors);
+        const int predicted = multiplicity[i]*table->dimension(irreps[i]);
+        totalVectors += (int)vectors.size();
+        totalPredicted += predicted;
+        if ((int)vectors.size() != predicted) {
+          matched = false;
+          printf("    %-8s projected %zu, the character says %d\n",
+                 irreps[i].c_str(), vectors.size(), predicted);
+        }
+      }
+      printf("  %-46s %d and %d %s\n",
+             "NO2-: projected vectors match the character",
+             totalVectors, totalPredicted, matched ? "ok" : "FAIL");
+      if (!matched) bad++;
+
+      //  Six p orbitals on two oxygens, so six vectors in all.
+      printf("  %-46s %d %s\n", "NO2-: and there are six of them",
+             totalVectors, (totalVectors == 6) ? "ok" : "FAIL");
+      if (totalVectors != 6) bad++;
+
+      //  Each is normalised and they are mutually orthogonal, which is
+      //  what Gram-Schmidt was for and what makes them drawable.
+      vector< vector<double> > all;
+      for (size_t i = 0; i < irreps.size(); i++) {
+        vector< vector<double> > vectors;
+        SymmetryAnalysis::projectVectorOrbit(terminal, images, classOfOp,
+                                             ops, *table, irreps[i],
+                                             vectors);
+        for (size_t k = 0; k < vectors.size(); k++) all.push_back(vectors[k]);
+      }
+      double worstNorm = 0.0, worstDot = 0.0;
+      for (size_t i = 0; i < all.size(); i++) {
+        double norm = 0.0;
+        for (size_t k = 0; k < all[i].size(); k++) norm += all[i][k]*all[i][k];
+        if (fabs(norm - 1.0) > worstNorm) worstNorm = fabs(norm - 1.0);
+        for (size_t j = i+1; j < all.size(); j++) {
+          double dot = 0.0;
+          for (size_t k = 0; k < all[i].size(); k++) dot += all[i][k]*all[j][k];
+          if (fabs(dot) > worstDot) worstDot = fabs(dot);
+        }
+      }
+      checkd("NO2-: every vector is normalised", worstNorm, 0.0, 1e-9);
+      checkd("NO2-: and they are mutually orthogonal", worstDot, 0.0, 1e-9);
+
+      //  THE DEFINITION, CHECKED DIRECTLY.  A one-dimensional irrep's
+      //  symmetry orbital must come back as chi(R) times itself under
+      //  every operation.  Nothing else about the projection needs to
+      //  be believed if this holds, and no expected answer is
+      //  involved.
+      //
+      //  It also settles arguments.  Reading the output by eye, the
+      //  a2 combination looked like it was built from the wrong
+      //  component and the whole projection looked wrong; this said
+      //  otherwise, exactly, and the fault was in the reading.
+      double worstMove = 0.0;
+      for (size_t i = 0; i < irreps.size(); i++) {
+        if (table->dimension(irreps[i]) != 1) continue;
+        vector< vector<double> > vectors;
+        SymmetryAnalysis::projectVectorOrbit(terminal, images, classOfOp,
+                                             ops, *table, irreps[i],
+                                             vectors);
+        const vector<double>* chi = table->characters(irreps[i]);
+        for (size_t v = 0; v < vectors.size(); v++) {
+          for (size_t o = 0; o < ops.size(); o++) {
+            vector<double> moved(vectors[v].size(), 0.0);
+            for (size_t a = 0; a < terminal.size(); a++) {
+              const size_t to =
+                  (images[o][terminal[a]] == terminal[0]) ? 0 : 1;
+              for (int k = 0; k < 3; k++) {
+                for (int kp = 0; kp < 3; kp++) {
+                  moved[3*to + kp] += ops[o].m[kp][k]*vectors[v][3*a + k];
+                }
+              }
+            }
+            const double want = (*chi)[classOfOp[o]];
+            for (size_t k = 0; k < moved.size(); k++) {
+              const double d = fabs(moved[k] - want*vectors[v][k]);
+              if (d > worstMove) worstMove = d;
+            }
+          }
+        }
+      }
+      checkd("NO2-: and each transforms with its own character",
+             worstMove, 0.0, 1e-9);
+    }
   }
 
   //  --- how much of an orbital sits on each fragment ----------------

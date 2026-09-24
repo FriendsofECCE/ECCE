@@ -55,6 +55,7 @@ static void printColumn(const char* side, const MoColumn& col)
 {
   printf("column\t%s\t%s\t%d\t%g\t%d", side, col.title.c_str(),
          col.hiddenCount, col.hiddenMaxEnergy, col.hiddenAboveCount);
+  printf("\t%d", col.sketchNormal);
   for (size_t k = 0; k < col.sketchX.size(); k++) {
     printf("\t%.4f,%.4f", col.sketchX[k], col.sketchY[k]);
   }

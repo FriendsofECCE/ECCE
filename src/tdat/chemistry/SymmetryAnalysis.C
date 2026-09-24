@@ -364,6 +364,77 @@ bool SymmetryAnalysis::orbitalCharacter(const vector<int>& orbit,
 }
 
 
+bool SymmetryAnalysis::projectVectorOrbit(const vector<int>& orbit,
+                                          const vector< vector<int> >& images,
+                                          const vector<int>& classOfOp,
+                                          const vector<SymOp>& ops,
+                                          const CharacterTable& table,
+                                          const string& irrep,
+                                          vector< vector<double> >& vectors)
+{
+  vectors.clear();
+
+  const vector<double>* chi = table.characters(irrep);
+  if (chi == 0) return false;
+  if (classOfOp.size() != images.size()) return false;
+  if (ops.size() != images.size()) return false;
+
+  const size_t n = orbit.size();
+  if (n == 0) return false;
+  const size_t width = 3*n;
+
+  map<int, size_t> position;
+  for (size_t i = 0; i < n; i++) position[orbit[i]] = i;
+
+  const double dimension = table.dimension(irrep);
+  const double h = table.order();
+  if (h <= 0.0) return false;
+
+  //  Project every basis function of the set in turn: three per atom,
+  //  not one.  Most results repeat or vanish; Gram-Schmidt below keeps
+  //  the independent ones.
+  for (size_t a = 0; a < n; a++) {
+    for (int k = 0; k < 3; k++) {
+
+      vector<double> v(width, 0.0);
+      for (size_t o = 0; o < ops.size(); o++) {
+        const int cls = classOfOp[o];
+        if (cls < 0 || (size_t)cls >= chi->size()) return false;
+
+        map<int, size_t>::const_iterator it =
+            position.find(images[o][orbit[a]]);
+        if (it == position.end()) continue;
+
+        //  AN OPERATION MIXES THE COMPONENTS.  p_k on this atom goes to
+        //  sum_k' R[k'][k] p_k' on the image atom -- the same matrix
+        //  that moves the atom, because p orbitals transform like the
+        //  coordinates they are named for.  An s projection can leave
+        //  this out; a p projection is nothing but this.
+        for (int kp = 0; kp < 3; kp++) {
+          v[3*it->second + kp] += (*chi)[cls]*ops[o].m[kp][k];
+        }
+      }
+      for (size_t i = 0; i < width; i++) v[i] *= dimension/h;
+
+      for (size_t j = 0; j < vectors.size(); j++) {
+        double dot = 0.0;
+        for (size_t i = 0; i < width; i++) dot += v[i]*vectors[j][i];
+        for (size_t i = 0; i < width; i++) v[i] -= dot*vectors[j][i];
+      }
+
+      double norm = 0.0;
+      for (size_t i = 0; i < width; i++) norm += v[i]*v[i];
+      if (norm < 1.0e-10) continue;
+
+      norm = sqrt(norm);
+      for (size_t i = 0; i < width; i++) v[i] /= norm;
+      vectors.push_back(v);
+    }
+  }
+  return true;
+}
+
+
 bool SymmetryAnalysis::projectOrbit(const vector<int>& orbit,
                                     const vector< vector<int> >& images,
                                     const vector<int>& classOfOp,

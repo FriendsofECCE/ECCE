@@ -213,7 +213,8 @@ bool MoFragments::symmetryOperations(const string& group, vector<SymOp>& ops)
 
 void MoFragments::sketchPositions(const vector<double>& coords,
                                   const vector<int>& atoms,
-                                  vector<double>& x, vector<double>& y)
+                                  vector<double>& x, vector<double>& y,
+                                  int* normal)
 {
    x.clear();
    y.clear();
@@ -241,6 +242,7 @@ void MoFragments::sketchPositions(const vector<double>& coords,
    }
    int flattest = 0;
    for (k = 1; k < 3; k++) if (spread[k] < spread[flattest]) flattest = k;
+   if (normal != 0) *normal = flattest;
 
    const int ax = (flattest == 0) ? 1 : 0;
    const int ay = (flattest == 2) ? 1 : 2;
@@ -709,7 +711,8 @@ bool MoFragments::build(const vector<double>& coords,
    //  so both columns are simply the atom.
    const bool diatomic = (elements.size() == 2 && terminal.size() == 1);
 
-   sketchPositions(coords, terminal, right.sketchX, right.sketchY);
+   sketchPositions(coords, terminal, right.sketchX, right.sketchY,
+                   &right.sketchNormal);
 
    if (leftAtoms  != 0) leftAtoms->assign(1, central);
    if (rightAtoms != 0) *rightAtoms = terminal;
@@ -795,13 +798,13 @@ bool MoFragments::build(const vector<double>& coords,
       //  rather than a label: "a1" and "t2" both say how many, and
       //  neither says which combination.
       //
-      //  Only for the s shell.  projectOrbit() projects ONE orbital
-      //  per atom, which is what an s shell is; a p shell puts three
-      //  on each atom and its symmetry orbitals are combinations of
-      //  those, which the same call cannot express.  Drawing an s
-      //  pattern beside a p level would be a confident lie, so those
-      //  levels carry none.
-      if (l != 0) continue;
+      //  s and p both, by different calls: projectOrbit() carries one
+      //  orbital per atom, which is what an s shell is, while a p
+      //  shell puts three on each and an operation MIXES them.  A d
+      //  shell would need the five-by-five transformation and has
+      //  none here, so those levels still carry no pattern rather than
+      //  a made-up one.
+      if (l > 1) continue;
 
       for (size_t j = before; j < right.levels.size(); j++) {
          //  projectOrbit wants the TABLE's spelling, and the level
@@ -819,10 +822,13 @@ bool MoFragments::build(const vector<double>& coords,
          if (tableName.empty()) continue;
 
          vector< vector<double> > vectors;
-         if (!SymmetryAnalysis::projectOrbit(terminal, images, classOfOp,
-                                             *table, tableName, vectors)) {
-            continue;
-         }
+         const bool got = (l == 0)
+             ? SymmetryAnalysis::projectOrbit(terminal, images, classOfOp,
+                                              *table, tableName, vectors)
+             : SymmetryAnalysis::projectVectorOrbit(terminal, images,
+                                                    classOfOp, ops, *table,
+                                                    tableName, vectors);
+         if (!got) continue;
          //  One pattern for a degenerate set: its partners are related
          //  by the group's own operations, so any one of them stands
          //  for the set.

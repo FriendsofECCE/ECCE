@@ -48,8 +48,9 @@ def read(stream):
             model["columns"][f[1]] = {
                 "title": f[2], "hidden": int(f[3]),
                 "hiddenMax": float(f[4]), "hiddenAbove": int(f[5]),
+                "normal": int(f[6]),
                 "sketch": [tuple(float(v) for v in p.split(","))
-                           for p in f[6:] if p]}
+                           for p in f[7:] if p]}
             model["levels"].setdefault(f[1], [])
         elif f[0] == "level":
             model["levels"].setdefault(f[1], []).append({
@@ -155,7 +156,7 @@ def mathify(text):
                     for t in text.split(" "))
 
 
-def sketch(ax, level, positions, cx, cy, size, span):
+def sketch(ax, level, positions, cx0, cy0, size, span, normal=2):
     """The phase pattern beside a symmetry orbital.
 
     Circles at the terminal atoms, filled for one sign and open for the
@@ -164,14 +165,54 @@ def sketch(ax, level, positions, cx, cy, size, span):
     says which combination.
     """
     phases = level.get("phases") or []
-    if not phases or len(phases) != len(positions):
+    if not phases:
         return
+    if len(phases) not in (len(positions), 3*len(positions)):
+        return
+    cx, cy = cx0, cy0
 
     #  Markers, not Circles.  A Circle's radius is in data units, and
     #  the x axis runs 0..1 while the y axis runs over a Hartree or
     #  two -- the circles came out as sub-pixel ellipses and nothing
     #  appeared at all.  A marker's size is in points, so it is round
     #  whatever the axes are doing.
+    #  A P SYMMETRY ORBITAL POINTS SOMEWHERE, so three numbers an atom
+    #  rather than one, and the sketch has to say where.  The component
+    #  along the axis flattened away making these positions is
+    #  perpendicular to the page -- the pi case -- and is drawn as a
+    #  circle, filled or open, exactly as an s combination is.  The
+    #  other two lie in the page and are drawn as an arrow.
+    if len(phases) == 3 * len(positions):
+        axes = [a for a in (0, 1, 2) if a != normal]
+        biggest = max(abs(p) for p in phases) or 1.0
+        for i, (px, py) in enumerate(positions):
+            vec = phases[3*i:3*i + 3]
+            out = vec[normal]
+            inplane = (vec[axes[0]], vec[axes[1]])
+
+            cx = cx0 + px * size
+            cy = cy0 + py * size * span * 0.9
+
+            if abs(out) > 0.08 * biggest:
+                points = 6.0 * (abs(out) / biggest) ** 0.5
+                ax.plot([cx], [cy], marker="o", markersize=points,
+                        markerfacecolor="0.25" if out > 0 else "white",
+                        markeredgecolor="0.25", markeredgewidth=0.9,
+                        zorder=3, clip_on=False)
+
+            length = (inplane[0]**2 + inplane[1]**2) ** 0.5
+            if length > 0.08 * biggest:
+                scale = 0.9 * size * (length / biggest)
+                ax.annotate("",
+                            xy=(cx + inplane[0]/length * scale,
+                                cy + inplane[1]/length * scale * span * 0.9),
+                            xytext=(cx - inplane[0]/length * scale,
+                                    cy - inplane[1]/length * scale * span * 0.9),
+                            arrowprops=dict(arrowstyle="-|>", color="0.25",
+                                            lw=1.1, shrinkA=0, shrinkB=0),
+                            annotation_clip=False, zorder=3)
+        return
+
     biggest = max(abs(p) for p in phases) or 1.0
     for (px, py), weight in zip(positions, phases):
         if abs(weight) < 1e-6:
@@ -317,11 +358,20 @@ def draw(model, path):
                             va="bottom" if above else "top", fontsize=8)
             #  The sketch sits outside the label, where there is room
             #  and where it reads as belonging to the level.
+            #  ONLY WHERE THERE IS ROOM FOR IT.  Nitrite has four
+            #  p-derived symmetry orbitals within a whisker of one
+            #  energy, and four sketches on one row is a smudge that
+            #  says less than the labels alone.  A sketch that cannot
+            #  be read is worse than no sketch: it looks like
+            #  information.
             positions = column.get("sketch") or []
-            if level.get("phases") and positions:
+            crowded = any(abs(other["energy"] - y) < 0.05 * span
+                          for k, other in enumerate(levels) if k != i)
+            if level.get("phases") and positions and not crowded:
                 notch = 0.075 * (placed[-1][1] if placed else 0)
                 sx = X[side] + out * (half + 0.155 + notch)
-                sketch(ax, level, positions, sx, labelY, 0.024, span)
+                sketch(ax, level, positions, sx, labelY, 0.024, span,
+                       column.get("normal", 2))
 
             if level["annot"]:
                 #  Under the label, at the label's own offset, so it
