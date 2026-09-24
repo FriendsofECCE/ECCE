@@ -699,6 +699,12 @@ endforeach()
 # split FHS layout (bin in /usr/bin, data in /usr/share/...) doesn't give
 # them without a lot of path-handling surgery this session hasn't done.
 # ------------------------------------------------------------------------
+# tests/shell's probe: linked against the real RCommand, deliberately NOT
+# added to ECCE_CLI_APPS below, so it is built but never packaged.
+ecce_app(shellprobe tests/shell
+  LINK eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+       ecceutil)
+
 set(ECCE_GUI_APPS
   basistool calced dirdyed gateway launcher machbrowser machregister
   mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
@@ -1064,4 +1070,20 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   # Generous: 20 apps x (window wait + settle), plus broker startup.
   set_tests_properties(apps PROPERTIES TIMEOUT 1800)
+
+  # tests/shell -- the local shell connection itself: opens a real RCommand
+  # pty connection to this machine under each supported shell dialect and
+  # checks the handshakes job submission and job monitoring depend on (the
+  # command echo, globbing, exit status, and a backgrounded job surviving
+  # the connection's teardown).  Needs the build tree only -- no install, no
+  # ECCE services, no X -- and runs a real MOPAC job through the submission
+  # path when mopac is installed.  See tests/shell/README.md.
+  #
+  #     cd build-cmake && ctest -R shell --output-on-failure
+  add_test(NAME shell
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/shell/run_tests.py
+                   --probe $<TARGET_FILE:shellprobe>
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/shell)
+  set_tests_properties(shell PROPERTIES TIMEOUT 600)
 endif()

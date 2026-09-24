@@ -1715,9 +1715,21 @@ void initMon(void)
       // still a tty, which would break the port-handshake read below
       // (and the stdio-comms path's entire comms stream) that depends
       // on eccejobmonitor's stdout staying attached to this pty.
-      if (cpLocalShell == "bash")
+      //
+      // The trap alone is not enough, for the reason #69 bug 1 finally
+      // turned out to rest on: the SIGHUP is not the kernel's tty
+      // hangup but bash's own hangup_all_jobs(), an explicit kill() to
+      // each job in its table when the shell itself is hung up. The
+      // subshell ignores it, but eccejobmonitor installs a real SIGHUP
+      // handler of its own ($SIG{'HUP'} = \&SigHandleMisc, which Dies),
+      // so the signal still reaches something that dies of it. Disown
+      // the job as well and the shell never sends it at all -- same fix
+      // as RCommand::execbg(); see the long note there.
+      if (RCommand::shellIsBash(cpLocalShell))
         cmd = "(trap '' HUP; " + cmd + ")";
       cmd += "&";
+      if (RCommand::shellIsBash(cpLocalShell))
+        cmd += " disown -h $! 2>/dev/null";
       if (!remoteconn->expwrite(cmd))
         restart("System", remoteconn->commError());
 

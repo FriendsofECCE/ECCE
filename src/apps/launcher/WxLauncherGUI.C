@@ -721,9 +721,8 @@ void WxLauncherGUI::CreateControls()
 
     ewxCheckBox* itemCheckBoxForceCsh = new ewxCheckBox( itemPanel3, ID_CHECKBOX_WXLAUNCHER_FORCECSH, _("Use csh/tcsh"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     if (ShowToolTips())
-        itemCheckBoxForceCsh->SetToolTip(_("Force csh/tcsh for this connection instead of the machine's configured shell (bash).\nLOCKED ON as of 2026-09-03 (github.com/FriendsofECCE/ECCE#69): bash hits two\nconfirmed, real bugs here -- an intermittent SIGHUP mid-computation, and job\nmonitoring that never completes (readline's horizontal-scroll rendering breaks\nan exact-echo match eccejobstore waits on forever). csh hits neither. Remove\nthe Enable(false) below once #69 is root-caused and actually fixed, not before."));
-    itemCheckBoxForceCsh->SetValue(true);
-    itemCheckBoxForceCsh->Enable(false);
+        itemCheckBoxForceCsh->SetToolTip(_("Force csh/tcsh for this connection instead of the machine's configured shell.\nUnchecked by default: the two bash-only bugs that locked this on from\n2026-09-03 to 2026-09-24 (github.com/FriendsofECCE/ECCE#69 -- a SIGHUP that\nkilled the job mid-computation, and job monitoring that never completed) are\nfixed and covered by tests/shell. Check it to fall back to csh/tcsh for a\nmachine or account that needs it."));
+    itemCheckBoxForceCsh->SetValue(false);
     itemBoxSizer124->Add(itemCheckBoxForceCsh, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxButton* itemButton128 = new ewxButton( itemPanel3, ID_BUTTON_WXLAUNCHER_LAUNCH, _("Launch"), wxDefaultPosition, wxDefaultSize, 0 );

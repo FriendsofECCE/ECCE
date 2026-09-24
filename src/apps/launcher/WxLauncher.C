@@ -2016,14 +2016,10 @@ void WxLauncher::updateControls(Launchdata ldat)
     // Restore the "Use csh/tcsh" checkbox from whatever was actually used
     // the last time this job's launch settings were saved. An empty
     // ldat.forceCsh means this job predates the field (or has never been
-    // launched) -- leave the checkbox at its constructed default (checked)
-    // rather than guessing.
-    // IsEnabled() guard: the checkbox is locked on (see WxLauncherGUI.C,
-    // github.com/FriendsofECCE/ECCE#69) while bash's two confirmed local-
-    // connection bugs are unfixed -- reopening an old job that was
-    // actually run with bash unchecked must not silently uncheck it again.
-    if (p_forceCshCheckBox != 0 && p_forceCshCheckBox->IsEnabled() &&
-        !ldat.forceCsh.empty())
+    // launched) -- leave the checkbox at its constructed default
+    // (unchecked: the machine's own configured shell) rather than
+    // guessing.
+    if (p_forceCshCheckBox != 0 && !ldat.forceCsh.empty())
     {
         p_forceCshCheckBox->SetValue(ldat.forceCsh == "true");
         p_prefsEdited = true;
@@ -2359,14 +2355,11 @@ void WxLauncher::buildArgs(EcceMap& kvargs)
         }
     }
 
-    // Checked (default) forces csh/tcsh for this launch's connections
-    // regardless of the machine's configured shell -- see
-    // Launch::validateRemoteLogin(). Added as a stopgap after a real,
-    // confirmed bug: bash spawned over a real ssh session (not the
-    // same-domain "local shell" shortcut) intermittently duplicates its
-    // own command echo, which job monitoring misreads as the job having
-    // died instantly. csh over the same ssh path doesn't hit this.
-    // Uncheck only to test/troubleshoot bash specifically.
+    // Checked forces csh/tcsh for this launch's connections regardless of
+    // the machine's configured shell -- see Launch::validateRemoteLogin().
+    // Unchecked is the default again as of 2026-09-24: it was forced on
+    // as a stopgap for #69's two bash-only bugs, both of which are now
+    // root-caused, fixed and covered by tests/shell.
     if (p_forceCshCheckBox != 0)
         kvargs["##forcecsh##"] = p_forceCshCheckBox->GetValue() ? "true" : "false";
 

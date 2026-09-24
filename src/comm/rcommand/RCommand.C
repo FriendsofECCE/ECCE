@@ -378,6 +378,66 @@ string RCommand::globusRSL(const string& command, const string& queueRSL)
   return rsl;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//
+//  Description
+//    Is this shell name bash?
+//
+//  Implementation
+//    Worth a named function rather than the string compare it replaces
+//    because the two shell families do not merely differ in syntax, they
+//    give the SAME FLAG DIFFERENT MEANINGS:
+//
+//      csh -f     fast start: skip ~/.cshrc
+//      bash -f    disable pathname expansion (globbing)
+//
+//    so the flag that makes a csh connection cheap silently breaks every
+//    command containing a wildcard when the machine is configured for bash
+//    (github.com/FriendsofECCE/ECCE#59).  Accepts a path as well as a bare
+//    name, since a machine's CONFIG file may spell it either way.
+//
+///////////////////////////////////////////////////////////////////////////////
+bool RCommand::shellIsBash(const string& shell)
+{
+  string::size_type slash = shell.find_last_of('/');
+  string base = (slash == string::npos) ? shell : shell.substr(slash+1);
+
+  return base == "bash";
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+//
+//  Description
+//    The shell dialect to use when a caller names none.
+//
+//  Implementation
+//    Everything in this file used to default to "csh" -- not as a
+//    preference but as an assumption, baked into flag construction as well
+//    as syntax, which is what #59 is about.  A machine's own registration
+//    (RefMachine::shell(), "bash" unless its CONFIG file says otherwise) is
+//    the configured answer and is passed in explicitly by Launch and
+//    friends; this is only for the local-connection callers that name no
+//    shell at all -- RCommand("system"), which exists to replace a plain
+//    system() call.
+//
+//    ECCE_LOCAL_SHELL is the escape hatch: for those callers the shell is an
+//    implementation detail of running one command, so the login shell is
+//    not consulted (a user whose shell is fish or zsh would otherwise get
+//    a dialect this file has no syntax for).  bash is the one every
+//    supported platform has.
+//
+///////////////////////////////////////////////////////////////////////////////
+string RCommand::localShell(void)
+{
+  const char* env = getenv("ECCE_LOCAL_SHELL");
+  if (env != (const char*)0 && *env != '\0')
+    return string(env);
+
+  return "bash";
+}
+
+
 string RCommand::shellCommand(const string& remShell, const string& machine,
                               const string& locShell, const string& userName,
                               const bool& hopFlag, string& proxyAuth,
@@ -404,7 +464,36 @@ string RCommand::shellCommand(const string& remShell, const string& machine,
   // paste-mode issue this was investigating is independent and still
   // handled further down (the "unalias -a...bind...enable-bracketed-
   // paste off" block).
-  string echoshell = "echo +hi+ && " + locShell + " -f";
+  // The interactive shell that ends up on the far end of a LOCAL
+  // connection, whose prompt and command echo every expect pattern in this
+  // file is matched against.
+  //
+  //   csh -f              fast start: skip ~/.cshrc.
+  //   bash --noediting -i readline OFF, still interactive.
+  //
+  // --noediting is not a tidiness measure.  With readline on, bash does
+  // not echo a command line, it RENDERS one -- and when the terminal has
+  // no automatic-margin capability (TERM unset or "dumb", which is exactly
+  // what a GUI-launched ECCE app hands to its pty) or is a single row
+  // tall, readline renders a line longer than the screen by horizontal
+  // scrolling: it emits "\r", then a literal '<' standing in for the text
+  // that scrolled off, then the tail.  JobStore::initMon() waits for a
+  // byte-for-byte echo of the command it sent before it will read any
+  // monitoring output at all, so that '<' hung job monitoring at
+  // "submitted" forever, for every job, on any machine configured for bash
+  // (github.com/FriendsofECCE/ECCE#69 bug 2 -- whose captured live buffer
+  // reads "\r<79044", the same two bytes).  Reproduced and fixed under
+  // tests/shell.  The ssh path below already passed --noediting against a
+  // different piece of readline damage; the local path did not.
+  //
+  // "-i" is kept so the shell still reads ~/.bashrc: a user's dotfiles may
+  // be what sets up their compute codes' environment, which is why the
+  // earlier "--norc --noprofile" attempt at the same class of problem was
+  // reverted (see git history).  bash requires long options before short
+  // ones, so the order matters.
+  string echoshell = "echo +hi+ && " + locShell +
+                     (RCommand::shellIsBash(locShell) ? " --noediting -i"
+                                                      : " -f");
 
   static const char* minl  =  "-l";
   // bash spawned this way (as the remote command of a real ssh session,
@@ -428,7 +517,7 @@ string RCommand::shellCommand(const string& remShell, const string& machine,
   // directly.
   static const char* cmdBash[] = {"echo", "+hi+", "&&", "", "--noediting", "-i", 0};
   static const char* cmdOther[] = {"echo", "+hi+", "&&", "", "-i", 0};
-  const char** cmd = (locShell == "bash") ? cmdBash : cmdOther;
+  const char** cmd = RCommand::shellIsBash(locShell) ? cmdBash : cmdOther;
   cmd[3] = strdup(locShell.c_str());
 
   // ssh verbose flag for recognizing authentication success/failure
@@ -529,7 +618,15 @@ string RCommand::shellCommand(const string& remShell, const string& machine,
     // that is a fast shell (doesn't read .cshrc) and thus picks up the
     // environment of the calling process.  This is suitable for using an
     // RCommand instance to replace the usual system() calls.
-    if (machine=="-f" || machine=="system")
+    //
+    // "-fc" is csh's spelling of that.  bash has no equivalent to fold in,
+    // and its own "-f" is an unrelated flag that turns globbing OFF (see
+    // shellIsBash()) -- so "bash -fc 'rm *.tmp'" silently stops matching
+    // anything, for every command with a wildcard in it, which is #59.  A
+    // non-interactive "bash -c" already reads no startup file, so plain
+    // "-c" IS bash's fast form; nothing is lost by dropping the "f".
+    if ((machine=="-f" || machine=="system") &&
+        !RCommand::shellIsBash(locShell))
       argv[argc++] = (char*)minfc;
     else
       argv[argc++] = (char*)minc;
@@ -750,7 +847,15 @@ string RCommand::userCommand(const string& command,
     // that is a fast shell (doesn't read .cshrc) and thus picks up the
     // environment of the calling process.  This is suitable for using an
     // RCommand instance to replace the usual system() calls.
-    if (machine=="-f" || machine=="system")
+    //
+    // "-fc" is csh's spelling of that.  bash has no equivalent to fold in,
+    // and its own "-f" is an unrelated flag that turns globbing OFF (see
+    // shellIsBash()) -- so "bash -fc 'rm *.tmp'" silently stops matching
+    // anything, for every command with a wildcard in it, which is #59.  A
+    // non-interactive "bash -c" already reads no startup file, so plain
+    // "-c" IS bash's fast form; nothing is lost by dropping the "f".
+    if ((machine=="-f" || machine=="system") &&
+        !RCommand::shellIsBash(locShell))
       argv[argc++] = (char*)minfc;
     else
       argv[argc++] = (char*)minc;
@@ -990,11 +1095,17 @@ string RCommand::copyToShell(const string& copyCmd)
 //
 ///////////////////////////////////////////////////////////////////////////////
 RCommand::RCommand(const string& machine, const string& remShell,
-                   const string& locShell, const string& userName,
+                   const string& locShellIn, const string& userName,
                    const string& password, const string& frontendMachine,
                    const string& frontendBypass, const string& shellPath,
                    const string& libPath, const string& sourceFile)
 {
+  // An empty shell means "nobody said" -- the local-connection callers
+  // that exist to replace a plain system() call.  It used to mean csh, by
+  // way of a default argument in the header; see localShell().
+  const string locShell = locShellIn.empty() ? RCommand::localShell()
+                                             : locShellIn;
+
   p_connected = false;
   p_background = false;
   p_hopCount = 0;
@@ -1352,7 +1463,7 @@ hopToIt:
   // (zsh nominally isn't csh-compatible either, but nobody's configuring
   // zsh as locShell today, and this errs toward the safer, unchanged
   // default rather than guessing).
-  bool useBash = (locShell == "bash");
+  bool useBash = RCommand::shellIsBash(locShell);
   p_remoteBash = useBash;
 
   // Login failure is caught by trying to set the prompt.
@@ -1524,11 +1635,15 @@ hopToIt:
 }
 
 
-bool RCommand::hop(const string& hopMachine, const string& locShell,
+bool RCommand::hop(const string& hopMachine, const string& locShellIn,
                    const string& userName, const string& password,
                    const string& shellPath, const string& libPath,
                    const string& sourceFile)
 {
+  // See the constructor: empty means "nobody said", not "csh".
+  const string locShell = locShellIn.empty() ? RCommand::localShell()
+                                             : locShellIn;
+
   p_hopCount++;
 
   bool done;
@@ -1784,7 +1899,7 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
   // the hop machine, since shellCommand()/the cmd above already used
   // that exact value and we're about to match its output. No separate
   // detection needed, just check locShell's own value directly.
-  bool useBash = (locShell == "bash");
+  bool useBash = RCommand::shellIsBash(locShell);
   p_remoteBash = useBash;
 
   // Login failure is caught by trying to set the prompt.
@@ -1969,8 +2084,23 @@ hopToExit:
     // leave defunct processes hanging around but I didn't see a good solution.
     if (p_shell == "rsh")
       (void)wait3(NULL, WNOHANG, NULL);
-    else if (p_background)
-      (void)waitpid(p_pid, NULL, WNOHANG);
+    else if (p_background) {
+      // Give the shell a moment to finish exiting on its own before the
+      // close() below hangs its terminal up underneath it.  bash answers
+      // a hangup by kill()ing every job still in its job table -- which
+      // is a running compute job, and which nohup does not protect
+      // against, since a code that installs its own SIGHUP handler
+      // discards the inherited SIG_IGN (#69 bug 1; see execbg(), where
+      // the job is also disowned).  Bounded, and polled rather than
+      // blocking: "exit" has already been sent and acknowledged, so this
+      // normally returns on the first or second pass, and a shell that
+      // declines to exit must not wedge the application.
+      int waited = 0;
+      while (waitpid(p_pid, NULL, WNOHANG) == 0 && waited < 500) {
+        usleep(10000);
+        waited += 10;
+      }
+    }
     else if (kill(p_pid, SIGTERM) == 0)
       // go ahead and kill the process because otherwise waitpid sometimes
       // does not return for 30+ seconds and there really is no reason to
@@ -3084,7 +3214,35 @@ bool RCommand::execbg(const string& command, string& output,
   // run directory when stdout isn't already redirected -- this command
   // already handles its own output via generated shell-script
   // redirects, nothing here needs to see it.
-  if (!expwrite("nohup " + command + " > /dev/null 2>&1 & echo RC_EXECBG_PID=$!"))
+  //
+  // nohup is necessary and not sufficient, which took a second round to
+  // establish (#69 bug 1, the intermittent "Error: hangup" that killed
+  // Gaussian mid-computation).  The SIGHUP that reaches the job is not the
+  // kernel's tty hangup at all: instrumenting the victim with SA_SIGINFO
+  // under tests/shell caught it as si_code=SI_USER, si_pid = the shell's
+  // own pid.  BASH SENDS IT.  Closing the pty master in ~RCommand() hangs
+  // the terminal up on a bash that has not quite finished exiting, and
+  // bash's response to SIGHUP is hangup_all_jobs(): it kills every job in
+  // its table with an explicit kill().  That defeats nohup for any job
+  // that installs a SIGHUP handler of its own -- which discards the
+  // SIG_IGN nohup set and which Gaussian, NWChem and eccejobmonitor all
+  // do.  It is intermittent because it is a race with the shell's exit,
+  // and it never happens under csh/tcsh, which has no equivalent of
+  // hangup_all_jobs.
+  //
+  // "disown -h" is the direct answer: it marks the job as not to be sent
+  // SIGHUP by the shell, while leaving it in the job table (so $!, wait
+  // and kill %n still behave).  csh has no such notion and needs none.
+  // ~RCommand() additionally waits for the shell to finish exiting before
+  // closing the pty, which closes the race itself; both are kept, since
+  // either alone leaves a window open for a connection that goes away
+  // some other way.
+  string bgcmd = "nohup " + command + " > /dev/null 2>&1 &";
+  if (p_remoteBash)
+    bgcmd += " disown -h $! 2>/dev/null;";
+  bgcmd += " echo RC_EXECBG_PID=$!";
+
+  if (!expwrite(bgcmd))
     return false;
 
   int matchResult = expect1("RC_EXECBG_PID=*\r\n+go+");

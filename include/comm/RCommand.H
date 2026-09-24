@@ -35,7 +35,7 @@ class RCommand
 public:
   // Constructor
     RCommand(const string& machine="", const string& remShell="",
-             const string& locShell="csh", const string& userName="",
+             const string& locShell="", const string& userName="",
              const string& password="", const string& frontendMachine="",
              const string& frontendBypass="", const string& shellPath="",
              const string& libPath="", const string& sourceFile="");
@@ -70,7 +70,7 @@ public:
     bool shellget(const char** fromFiles, const string& toFile);
     bool shellget(const vector<string>& fromFiles, const string& toFile);
 
-    bool hop(const string& hopMachine, const string& locShell="csh",
+    bool hop(const string& hopMachine, const string& locShell="",
              const string& userName="", const string& password="",
              const string& shellPath="", const string& libPath="",
              const string& sourceFile="");
@@ -126,14 +126,14 @@ public:
 
     static bool command(const string& command, string& output,
                 string& errMessage, const string& machine="",
-                const string& remShell="", const string& locShell="csh",
+                const string& remShell="", const string& locShell="",
                 const string& userName="", const string& password="",
                 const string& frontendMachine="",
                 const string& frontendBypass="");
 
     static bool command(const string& command, const string& args,
                 string& output, string& errMessage, const string& machine="",
-                const string& remShell="", const string& locShell="csh",
+                const string& remShell="", const string& locShell="",
                 const string& userName="", const string& password="",
                 const string& frontendMachine="",
                 const string& frontendBypass="");
@@ -155,6 +155,12 @@ public:
                          const string& userName="");
     static bool isSameDomain(const string& machine);
     static string whereami(void);
+    // Which shell dialect to talk to a machine in when nothing says.
+    // See RCommand.C -- this is the one place "csh" used to be assumed.
+    static string localShell(void);
+    // Is this shell name bash?  Worth a function because the *flags*
+    // differ in meaning between the two families, not just the syntax.
+    static bool shellIsBash(const string& shell);
     static string commandShell(const string& machine="",
                          const string& remShell="", const string& userName="");
 
