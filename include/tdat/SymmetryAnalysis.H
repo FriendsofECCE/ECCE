@@ -223,6 +223,39 @@ class SymmetryAnalysis
      *         exactly one irrep of the right dimension, which means an
      *         assumption failed and the honest answer is no answer.
      */
+    /**
+     * Label a whole spectrum, choosing the axis convention that fits.
+     *
+     * WHERE DIFFERENT AXES CAN BE CHOSEN, TRY THEM AND KEEP THE ONE
+     * THAT MATCHES -- and stop, because the set is finite.  The three
+     * p components can be written in any of six orders and a code
+     * need not use the one this analysis assumes; getting it wrong
+     * does not fail loudly, it returns orbitals that are fractional
+     * mixtures of two irreps, which is what water's b1 and b2 did.
+     *
+     * Each candidate is scored against the labels the calculation
+     * reported, and the best is kept only if it labels more orbitals
+     * than any other and agrees with what was reported.  With no
+     * reported labels there is nothing to choose by, so the assumed
+     * order is used and the caller is told the labels are derived.
+     *
+     * @param reported  the code's own labels, or empty
+     * @param derived   filled with one irrep per orbital, empty where
+     *                  no label could be established
+     *
+     * @return the number of orbitals labelled
+     */
+    static int labelSpectrum(const vector< vector<double> >& orbitals,
+                             const vector<double>& energies,
+                             const vector<string>& reported,
+                             const vector<int>& perAtom,
+                             const vector<int>& shellOf,
+                             const vector< vector<int> >& images,
+                             const vector<int>& classOfOp,
+                             const vector<SymOp>& ops,
+                             const CharacterTable& table,
+                             vector<string>& derived);
+
     static bool orbitalIrrep(const vector< vector<double> >& orbitals,
                              const vector<int>& perAtom,
                              const vector<int>& shellOf,
@@ -230,7 +263,8 @@ class SymmetryAnalysis
                              const vector<int>& classOfOp,
                              const vector<SymOp>& ops,
                              const CharacterTable& table,
-                             string& irrep);
+                             string& irrep,
+                             const int* componentOrder = 0);
 
     static bool projectOrbit(const vector<int>& orbit,
                              const vector< vector<int> >& images,

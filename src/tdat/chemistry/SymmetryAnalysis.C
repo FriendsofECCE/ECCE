@@ -583,8 +583,14 @@ bool SymmetryAnalysis::orbitalIrrep(const vector< vector<double> >& orbitals,
                                     const vector<int>& classOfOp,
                                     const vector<SymOp>& ops,
                                     const CharacterTable& table,
-                                    string& irrep)
+                                    string& irrep,
+                                    const int* componentOrder)
 {
+   //  Which basis function is x, which is y, which is z, within a p
+   //  shell.  The identity unless a caller has established otherwise.
+   static const int STRAIGHT[3] = { 0, 1, 2 };
+   const int *order = (componentOrder != 0) ? componentOrder : STRAIGHT;
+
    irrep.clear();
    if (orbitals.empty() || perAtom.empty() || ops.empty()) return false;
    if (classOfOp.size() != ops.size()) return false;
@@ -670,9 +676,10 @@ bool SymmetryAnalysis::orbitalIrrep(const vector< vector<double> >& orbitals,
                   for (int b = 0; b < 3; b++) {
                      double sum = 0.0;
                      for (int aa = 0; aa < 3; aa++) {
-                        sum += ops[op].m[b][aa]*c[base[a] + offset + aa];
+                        sum += ops[op].m[b][aa]
+                             * c[base[a] + offset + order[aa]];
                      }
-                     moved[base[to] + offset + b] += sum;
+                     moved[base[to] + offset + order[b]] += sum;
                   }
                   offset += 3;
                }
@@ -740,4 +747,115 @@ bool SymmetryAnalysis::orbitalIrrep(const vector< vector<double> >& orbitals,
 
    irrep = names[found];
    return true;
+}
+
+
+int SymmetryAnalysis::labelSpectrum(const vector< vector<double> >& orbitals,
+                                    const vector<double>& energies,
+                                    const vector<string>& reported,
+                                    const vector<int>& perAtom,
+                                    const vector<int>& shellOf,
+                                    const vector< vector<int> >& images,
+                                    const vector<int>& classOfOp,
+                                    const vector<SymOp>& ops,
+                                    const CharacterTable& table,
+                                    vector<string>& derived)
+{
+   derived.assign(orbitals.size(), string());
+   if (orbitals.empty()) return 0;
+
+   //  Degenerate sets have to be classified together: only the set
+   //  has a character.  Grouped by energy, which is what degeneracy
+   //  means in a spectrum.
+   vector< vector<size_t> > sets;
+   for (size_t i = 0; i < orbitals.size(); ) {
+      size_t j = i;
+      while (j + 1 < orbitals.size() && j + 1 < energies.size() &&
+             fabs(energies[j+1] - energies[i]) < 1.0e-6) {
+         j++;
+      }
+      vector<size_t> one;
+      for (size_t k = i; k <= j; k++) one.push_back(k);
+      sets.push_back(one);
+      i = j + 1;
+   }
+
+   //  THE SIX ORDERS THE THREE p FUNCTIONS CAN BE WRITTEN IN.
+   //
+   //  Finite, so this terminates: every candidate is tried once, the
+   //  best is kept, and if none fits the answer is that none fits.
+   //  Getting the order wrong does not fail loudly -- it returns
+   //  orbitals that are fractional mixtures of two irreps, which is
+   //  exactly what water's b1 and b2 did against the assumed order.
+   static const int CANDIDATES[6][3] = {
+      { 0, 1, 2 }, { 0, 2, 1 }, { 1, 0, 2 },
+      { 1, 2, 0 }, { 2, 0, 1 }, { 2, 1, 0 }
+   };
+
+   int bestCandidate = -1, bestLabelled = -1, bestAgreed = -1;
+
+   for (int k = 0; k < 6; k++) {
+      int labelled = 0, agreed = 0, clashed = 0;
+
+      for (size_t s = 0; s < sets.size(); s++) {
+         vector< vector<double> > set;
+         for (size_t m = 0; m < sets[s].size(); m++) {
+            set.push_back(orbitals[sets[s][m]]);
+         }
+
+         string irrep;
+         if (!orbitalIrrep(set, perAtom, shellOf, images, classOfOp, ops,
+                           table, irrep, CANDIDATES[k])) {
+            continue;
+         }
+         labelled += (int)sets[s].size();
+
+         if (!reported.empty() && sets[s][0] < reported.size()) {
+            const string& said = reported[sets[s][0]];
+            if (!said.empty()) {
+               //  Compared without case, since no two sources agree
+               //  on it.
+               string a, b;
+               for (size_t c = 0; c < said.size(); c++) {
+                  a += (char)toupper((unsigned char)said[c]);
+               }
+               for (size_t c = 0; c < irrep.size(); c++) {
+                  b += (char)toupper((unsigned char)irrep[c]);
+               }
+               if (a == b) agreed++; else clashed++;
+            }
+         }
+      }
+
+      //  With reported labels to check against, a candidate that
+      //  contradicts them is wrong however much it labels.
+      if (!reported.empty() && clashed > agreed) continue;
+
+      if (agreed > bestAgreed ||
+          (agreed == bestAgreed && labelled > bestLabelled)) {
+         bestAgreed = agreed;
+         bestLabelled = labelled;
+         bestCandidate = k;
+      }
+   }
+
+   if (bestCandidate < 0) return 0;
+
+   int labelled = 0;
+   for (size_t s = 0; s < sets.size(); s++) {
+      vector< vector<double> > set;
+      for (size_t m = 0; m < sets[s].size(); m++) {
+         set.push_back(orbitals[sets[s][m]]);
+      }
+      string irrep;
+      if (!orbitalIrrep(set, perAtom, shellOf, images, classOfOp, ops,
+                        table, irrep, CANDIDATES[bestCandidate])) {
+         continue;
+      }
+      for (size_t m = 0; m < sets[s].size(); m++) {
+         derived[sets[s][m]] = irrep;
+         labelled++;
+      }
+   }
+   return labelled;
 }
