@@ -470,6 +470,14 @@ void VecAtomSpectrum::restoreColorTable()
 
 void VecAtomSpectrum::setColorTable()
 {
+   //  Never paint the atoms without first recording what they looked
+   //  like.  restoreColorTable() is a no-op while nothing has been
+   //  saved, so any path that reached here without a preceding
+   //  saveColorTable() -- the spectrum-column choice, the colour toggle
+   //  -- left the molecule permanently wearing this panel's colours,
+   //  with losing focus unable to undo it.  saveColorTable() only ever
+   //  saves once, so calling it here costs nothing (#83).
+   saveColorTable();
    WxVizToolFW& fw = getFW();
    Command *cmd = new CSLoadColorsCmd("Set Color", &fw.getSceneGraph());
 
@@ -503,11 +511,14 @@ void VecAtomSpectrum::receiveFocus()
 
 void VecAtomSpectrum::loseFocus()
 {
-  bool showColor;
-  ewxConfig *config = ewxConfig::getConfig(INIFILE);
-  config->Read((getConfigKey()+"/ShowColors").c_str(),&showColor,true);
-
-  if (showColor) restoreColorTable();
+  //  Unconditional, where it used to be gated on the ShowColors
+  //  preference read back from the config.  That preference can change
+  //  (the panel's own colour toggle writes it) between taking focus and
+  //  losing it, and then the colours applied while it was on were never
+  //  taken off -- the molecule kept this panel's spectrum for the rest
+  //  of the session, which is what "the atoms are all the wrong colour"
+  //  looks like.  Restoring is a no-op when nothing was saved (#83).
+  restoreColorTable();
 }
 
 

@@ -228,7 +228,7 @@ void Cube::receiveFocus()
 }
 
 
-void Cube::lostFocus()
+void Cube::loseFocus()
 {
   WxVizToolFW& fw = getFW();
   //fw.getViewer().setTransparencyType(SoGLRenderAction::SCREEN_DOOR);

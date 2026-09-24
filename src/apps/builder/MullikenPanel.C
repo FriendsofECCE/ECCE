@@ -493,6 +493,14 @@ void MullikenPanel::restoreColorTable()
 
 void MullikenPanel::setColorTable()
 {
+   //  Never paint the atoms without first recording what they looked
+   //  like.  restoreColorTable() is a no-op while nothing has been
+   //  saved, so any path that reached here without a preceding
+   //  saveColorTable() -- the spectrum-column choice, the colour toggle
+   //  -- left the molecule permanently wearing this panel's colours,
+   //  with losing focus unable to undo it.  saveColorTable() only ever
+   //  saves once, so calling it here costs nothing (#83).
+   saveColorTable();
    WxVizToolFW& fw = getFW();
    Command *cmd = new CSLoadColorsCmd("Set Color", &fw.getSceneGraph());
 

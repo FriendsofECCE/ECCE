@@ -58,7 +58,14 @@ class Cube : public VizPropertyPanel
 
   protected:
     virtual void receiveFocus();
-    virtual void lostFocus();
+    //  loseFocus, not lostFocus.  It was spelled lostFocus, which is not
+    //  the name VizPropertyPanel declares, so it overrode nothing and was
+    //  never called by anything: a Cube panel that took focus turned its
+    //  isosurface on (getMORoot() -> SO_SWITCH_ALL) and left the viewer in
+    //  SCREEN_DOOR transparency, and giving focus to any other panel could
+    //  not turn either back off.  One more overlay the viewer accumulated
+    //  and would not give back (#111).
+    virtual void loseFocus();
 
     virtual void initialize();
 
