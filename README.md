@@ -61,38 +61,27 @@ than papered over.
 
 ### Release history
 
-- **v8.13.0** — **Every ORCA orbital and density ECCE has ever drawn was
-  wrong.** `ORCA.edml` declared p functions as x, y, z; ORCA prints them
-  pz, px, py, so every p coefficient landed on the wrong Cartesian axis.
-  Silently — an isosurface built that way is still smooth and plausible,
-  and the density still molecule-shaped. It was found by checking that the
-  density integrates to the molecule's electron count, which it did not:
-  14.7 against 18 for methanol, the molecule being drawn as though it
-  carried +3 charge. Anyone on v8.10.0 or v8.12.0 should re-render ORCA
-  orbitals. **Electrostatic potential maps** arrive, in two methods — the
-  canonical integral over the electron density, and the point-charge
-  approximation — drawn on the molecular surface with an adjustable colour
-  range. **MOPAC orbitals reach the 3-D viewer**: the coefficients are in
-  MOPAC's orthonormalised basis, and a semiempirical code writes no basis
-  set at all, so one is rebuilt from the Slater exponents it does report.
-  **Some basis sets were being read wrongly**: 24045 values used Fortran
-  `D` exponents, which `strtod` reads without the exponent, silently
-  corrupting STO-6G, WTBS and several cc-pV\*Z sets. A fresh install also
-  got no basis sets at all; the library is now kept in step with the
-  package, reconciled element by element against the Basis Set Exchange,
-  and Gaussian is sent the basis names Gaussian accepts rather than ECCE's
-  own. MOPAC gains MO extraction and thermochemistry, ORCA gains orbital
-  symmetries, and two parsers were dropping coefficients. **Queues** can
-  be configured from inside ECCE instead of by editing root-owned files.
-  Adds dispersion corrections for NWChem and Gaussian, twelve modern
-  functionals across NWChem and ORCA — each verified by running the code
-  rather than reading its manual — and fixes three NWChem functionals that
-  aborted every job. Restores the property panels' options menus
-  (right-click), unreachable since the wx3.2 port; stops every panel
-  re-showing as a job delivers results; and keeps Open MPI's shared-memory
-  files out of `/dev/shm`, where they had been accumulating into real
-  memory pressure. The test tier gains end-to-end runs of five real codes
-  through the real monitor and parsers, an installed-tree check, and a
+- **v8.13.0** — Fixes ORCA p-function ordering. `ORCA.edml` declared
+  spherical p functions as x, y, z; ORCA writes them z, x, y, so p
+  coefficients were placed on the wrong axes. Orbitals and densities with
+  p character — most valence orbitals — have been drawn wrong since ORCA
+  was added in v8.0.7, without any error; re-render them. Found by
+  integrating the density, which gave 14.7 electrons for methanol against
+  18. Adds electrostatic potential maps, by integral over the density and
+  by point charges, with an adjustable colour range. Adds 3-D orbitals
+  for MOPAC, rebuilding a basis from the Slater exponents it reports.
+  Fixes basis-set data: 24045 values used Fortran `D` exponents, read by
+  `strtod` without the exponent, corrupting STO-6G, WTBS and several
+  cc-pV\*Z sets; a fresh install got no basis sets at all; and Gaussian
+  is now sent the names Gaussian accepts. Adds MOPAC MO and
+  thermochemistry extraction, ORCA orbital symmetries, dispersion
+  corrections for NWChem and Gaussian, and twelve functionals across
+  NWChem and ORCA, each checked by running the code. Fixes three NWChem
+  functionals that aborted every job. Queues can be configured from
+  inside ECCE. Restores the property panels' right-click options menus,
+  unreachable since the wx3.2 port, and stops panels re-showing as
+  results arrive. Keeps Open MPI's shared-memory files out of `/dev/shm`.
+  Adds end-to-end tests of five codes, an installed-tree check and a
   symmetry suite.
 
 - **v8.12.0** — **The Gateway window is gone**: `ecce` opens the Organizer
