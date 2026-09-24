@@ -61,28 +61,26 @@ than papered over.
 
 ### Release history
 
-- **v8.13.0** — Fixes ORCA p-function ordering. `ORCA.edml` declared
-  spherical p functions as x, y, z; ORCA writes them z, x, y, so p
-  coefficients were placed on the wrong axes. Orbitals and densities with
-  p character — most valence orbitals — have been drawn wrong since ORCA
-  was added in v8.0.7, without any error; re-render them. Found by
-  integrating the density, which gave 14.7 electrons for methanol against
-  18. Adds electrostatic potential maps, by integral over the density and
-  by point charges, with an adjustable colour range. Adds 3-D orbitals
-  for MOPAC, rebuilding a basis from the Slater exponents it reports.
-  Fixes basis-set data: 24045 values used Fortran `D` exponents, read by
-  `strtod` without the exponent, corrupting STO-6G, WTBS and several
-  cc-pV\*Z sets; a fresh install got no basis sets at all; and Gaussian
-  is now sent the names Gaussian accepts. Adds MOPAC MO and
-  thermochemistry extraction, ORCA orbital symmetries, dispersion
-  corrections for NWChem and Gaussian, and twelve functionals across
-  NWChem and ORCA, each checked by running the code. Fixes three NWChem
-  functionals that aborted every job. Queues can be configured from
-  inside ECCE. Restores the property panels' right-click options menus,
-  unreachable since the wx3.2 port, and stops panels re-showing as
-  results arrive. Keeps Open MPI's shared-memory files out of `/dev/shm`.
-  Adds end-to-end tests of five codes, an installed-tree check and a
-  symmetry suite.
+- **v8.13.0** — *New:* electrostatic potential maps, computed either as
+  the integral over the electron density or from point charges, drawn on
+  the molecular surface with an adjustable colour range. 3-D orbitals for
+  MOPAC. Queues configurable from inside ECCE rather than by editing
+  root-owned files. Dispersion corrections for NWChem and Gaussian, and
+  twelve further functionals across NWChem and ORCA. MOPAC MO and
+  thermochemistry extraction, and ORCA orbital symmetries. End-to-end
+  tests of five codes, an installed-tree check and a symmetry suite.
+  *Fixed:* ORCA p functions were declared x, y, z where ORCA writes them
+  z, x, y, so orbitals and densities with p character — most valence
+  orbitals — have been drawn wrong since ORCA was added in v8.0.7;
+  re-render any you rely on. 24045 basis-set values used Fortran `D`
+  exponents and were read without the exponent, corrupting STO-6G, WTBS
+  and several cc-pV\*Z sets; a fresh install got no basis sets at all;
+  and Gaussian was sent ECCE's basis names rather than the ones Gaussian
+  accepts. Three NWChem functionals aborted every job. Two parsers
+  dropped orbital coefficients. The property panels' right-click options
+  menus had been unreachable since the wx3.2 port, and every panel
+  re-showed itself as results arrived. Open MPI's shared-memory files
+  accumulated in `/dev/shm`.
 
 - **v8.12.0** — **The Gateway window is gone**: `ecce` opens the Organizer
   directly, which becomes the front door (`ECCE_GATEWAY_WINDOW=1` restores
