@@ -50,6 +50,7 @@ class Result(object):
         self.crashed = False
         self.sawWindow = False
         self.secondsToWindow = None
+        self.exitedAfterWindow = False
         self.note = None
 
     @property
@@ -116,25 +117,61 @@ def startServices(display, log=None):
                 "utf-8", "replace").strip().replace("\n", " | ")))
 
 
-def serviceState():
+def serviceState(display=None):
+    """Are the two services up?  ASK ABOUT THE RIGHT DISPLAY.
+
+    The JMSDispatcher is per session, not per user: it is started with a
+    -DDISPLAY and its pidfile and port file are named after that display
+    (see ecce-gateway-start, and CLAUDE.md's note on the same trap).  So
+    `ecce-gateway-status` answers about whatever $DISPLAY it inherits --
+    and with no display passed that is the developer's own desktop, not
+    the Xvfb this run just started a dispatcher on.
+
+    The consequences ran both ways and both were bad: the suite reported
+    "gateway did not start, so nothing below can work" on a run whose
+    gateway was up and fine, and -- because stopServices() had the same
+    omission -- it left this run's dispatcher and broker running
+    afterwards, every time, which is exactly the orphan the next run then
+    collides with.
+    """
     states = {}
+    env = display.env() if display is not None else None
     for script, key in (("ecce-gateway-status", "gateway"),
                         ("ecce-dataserver-status", "dataserver")):
         path = os.path.join(INSTALL, "bin", script)
         if not os.access(path, os.X_OK):
             continue
-        result = subprocess.run([path], stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
+        result = subprocess.run([path], env=env, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, timeout=120)
         text = result.stdout.decode("utf-8", "replace")
         states[key] = "not running" not in text
     return states
 
 
-def stopServices():
+def stopServices(display=None):
+    """Stop what this run started -- on the display it started it on.
+
+    See serviceState(): without the display, ecce-gateway-stop looks for
+    a pidfile named after the ambient $DISPLAY and finds nothing, so it
+    stops neither the dispatcher nor (because a dispatcher it cannot see
+    still counts as live) the broker.
+    """
+    env = dict(display.env() if display is not None else os.environ)
+    #  Let the reaper run for the shutdown, whatever the sweep set.
+    #
+    #  ecce-gateway-stop stops the dispatcher itself but hands the BROKER
+    #  to ecce-gateway-reap, which is the only thing that knows whether
+    #  another display still needs it.  The suite sets ECCE_NO_REAP=1 for
+    #  the duration of the sweep (see run_tests.py) and that variable was
+    #  inherited here -- so the reaper exited immediately, the broker was
+    #  never stopped, and every single run leaked a 512MB JVM.  Which is
+    #  #102 again, caused this time by the fix for it being switched off
+    #  and left off.
+    env.pop("ECCE_NO_REAP", None)
     for script in ("ecce-gateway-stop", "ecce-dataserver-stop"):
         path = os.path.join(INSTALL, "bin", script)
         if os.access(path, os.X_OK):
-            subprocess.run([path], stdout=subprocess.DEVNULL,
+            subprocess.run([path], env=env, stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL, timeout=120)
 
 
@@ -174,7 +211,14 @@ def run(display, name, args=(), windowTimeout=40, settle=8):
         if proc.poll() is not None:
             result.returncode = proc.returncode
             result.log = _drain(proc)
-            result.crashed = True
+            #  A CRASH is dying on a signal.  Exiting of its own accord
+            #  after showing a window is a different thing and belongs in
+            #  a different sentence -- for a helper (msgdialog, run with
+            #  no message to show) it is the expected behaviour, and
+            #  calling it "CRASHED (status None)" was a false failure
+            #  with a confusing report to go with it.
+            result.exitedAfterWindow = True
+            result.crashed = proc.returncode < 0
             result.note = ("exited %s after its window appeared"
                            % (result.signalName or
                               "with status %d" % proc.returncode))

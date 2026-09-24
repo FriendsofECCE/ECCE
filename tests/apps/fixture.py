@@ -48,14 +48,35 @@ import os
 import shutil
 import subprocess
 
+import apps
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIXTURES = os.path.join(HERE, "fixtures")
-INSTALL = "/opt/ecce"
 
 USER = "eccetest"
 PASSWORD = "eccetest"
-PORT = 8096
-BASE = "http://localhost:%d/Ecce/users/%s" % (PORT, USER)
+
+
+def install_dir():
+    """The installed tree under test.
+
+    Not a hardcoded /opt/ecce: apps.INSTALL honours ECCE_TEST_HOME, which
+    is how a build installed somewhere writable gets tested without root.
+    This module used to disagree with the rest of the suite about that, so
+    a run against a private install still created its fixture account
+    with /opt/ecce's adduser -- and, with the port hardcoded below too,
+    served it from the real data server.
+    """
+    return apps.INSTALL
+
+
+def dataserverPort():
+    """The data server port THIS RUN is using (see isolate.py)."""
+    return int(os.environ.get("ECCE_DATASERVER_PORT", "8096"))
+
+
+def base():
+    return "http://localhost:%d/Ecce/users/%s" % (dataserverPort(), USER)
 
 
 def stateHome():
@@ -65,16 +86,16 @@ def stateHome():
     the JMS dispatcher's port files, and the data server's whole document
     root. Both the C++ (Ecce::realUserHome) and the shell scripts honour the
     variable, so pointing it elsewhere gives a completely independent
-    instance; tests/apps exposes that as ECCE_TEST_STATE.
+    instance, which isolate.py now arranges for every run by default --
+    it exports both ECCE_TEST_STATE and ECCE_REALUSERHOME, along with the
+    two ports and an $ECCE_HOME whose siteconfig names them.
 
-    Caveat, and the reason this is not the default: the broker and data
-    server ports are hardcoded (8088 and 8096, with siteconfig/jndi.properties
-    depending on the former), so an isolated instance cannot run alongside
-    one already using them. Isolation is therefore only useful when nothing
-    else is running.
+    Reading it here rather than being told keeps this module honest about
+    which instance it is seeding: when the two disagree, the fixture goes
+    into one server and the apps read from another.
     """
-    return os.environ.get("ECCE_TEST_STATE",
-                          os.environ.get("ECCE_REALUSERHOME",
+    return os.environ.get("ECCE_REALUSERHOME",
+                          os.environ.get("ECCE_TEST_STATE",
                                          os.path.expanduser("~")))
 
 
@@ -128,7 +149,8 @@ def ensureAccount():
     from one a person would create -- including the per-account realm, which
     the auth key depends on.
     """
-    adduser = os.path.join(INSTALL, "bin", "ecce-dataserver-adduser")
+    adduser = os.path.join(install_dir(), "bin",
+                           "ecce-dataserver-adduser")
     if not os.access(adduser, os.X_OK):
         return "", "ecce-dataserver-adduser is not installed"
     result = subprocess.run([adduser, "-b", USER, PASSWORD, FIRST, LAST],
@@ -142,6 +164,35 @@ def ensureAccount():
     with open(os.path.join(userRoot, ".htaccess"), "w") as handle:
         handle.write(ANONYMOUS_READ)
     return userRoot, ""
+
+
+def ensureRealUserAccount():
+    """Create the account the apps themselves will log in as.
+
+    Every app calls EDSIServerCentral::checkServerSetup(), which reads the
+    server's `users` collection and throws "A failure was detected in the
+    ECCE server setup" when it cannot -- and a data server that has never
+    had an account added is in exactly that state.  On a developer's box
+    the account was created by hand once, years of runs ago; a run with a
+    state directory of its own starts from nothing every time, so it has
+    to do the same thing GETTING_STARTED tells a person to do.
+
+    Idempotent, and confined to whatever state directory is in force.
+    """
+    user = os.environ.get("ECCE_REALUSER") or os.environ.get("USER") or ""
+    if not user:
+        return ""
+    userRoot = os.path.join(stateDir(), "htdocs", "Ecce", "users", user)
+    if os.path.isdir(userRoot):
+        return ""
+    adduser = os.path.join(install_dir(), "bin", "ecce-dataserver-adduser")
+    if not os.access(adduser, os.X_OK):
+        return ""
+    subprocess.run([adduser, "-b", user, "ecce", "Ecce", "User"],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT,
+                   timeout=60)
+    return ("data server: created the %s account (a server with no account "
+            "reports itself as broken to every app)" % user)
 
 
 def realm(userRoot):
@@ -175,13 +226,13 @@ def install(name="calc-water-vib"):
     if os.path.exists(target):
         shutil.rmtree(target)
     shutil.copytree(source, target, symlinks=True)
-    return "%s/%s" % (BASE, name), ""
+    return "%s/%s" % (base(), name), ""
 
 
-def authFile(path, port=PORT):
+def authFile(path, port=None):
     """Write an -pipe auth file.  AuthCache unlinks it after reading."""
     userRoot = os.path.join(stateDir(), "htdocs", "Ecce", "users", USER)
-    base = "http://localhost:%d/" % port
+    base = "http://localhost:%d/" % (port or dataserverPort())
     name = realm(userRoot)
     keys = [base + name] if name else []
     # The bare server prefix as a fallback: AuthCache's BEST_URL policy
@@ -202,7 +253,8 @@ def remove(name="calc-water-vib"):
 
 
 def installedVersion():
-    path = os.path.join(INSTALL, "data", "client", "config", "Version")
+    path = os.path.join(install_dir(), "data", "client", "config",
+                        "Version")
     try:
         with open(path) as handle:
             return handle.read().strip()

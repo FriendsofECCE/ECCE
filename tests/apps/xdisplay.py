@@ -143,6 +143,51 @@ class Display(object):
             found.append((parts[0], title))
         return found
 
+    def responsive(self, timeout=10):
+        """Is the X server still answering at all?
+
+        Asked after every app, because a display that has stopped
+        answering makes every app after it fail identically and for a
+        reason that has nothing to do with that app.  That is how eleven
+        failures got reported for one fault in #127, and the list read
+        like eleven bugs while naming none of them.
+        """
+        try:
+            return subprocess.run(["xdpyinfo", "-display", self.name],
+                                  stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL,
+                                  timeout=timeout).returncode == 0
+        except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
+            return False
+
+    def serverState(self):
+        """Whether the X server process itself is still alive.
+
+        The first question to ask when the display stops answering, and
+        the one with the shortest answer: an Xvfb that died and an Xvfb
+        that is wedged look identical from the client side and want
+        completely different investigations.
+        """
+        if self.proc is None:
+            return "no Xvfb of ours"
+        code = self.proc.poll()
+        return "Xvfb running" if code is None else "Xvfb exited (%s)" % code
+
+    def clients(self):
+        """Whatever can still be said about who is holding the server.
+
+        Diagnostic only, and best-effort: xlsclients is in x11-utils with
+        the rest, but a missing tool must never be what decides whether a
+        fault gets reported.
+        """
+        try:
+            result = subprocess.run(["xlsclients", "-display", self.name],
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.DEVNULL, timeout=10)
+        except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
+            return ""
+        return result.stdout.decode("utf-8", "replace").strip()
+
     def hasGL(self):
         """True when GLX is answering. Unknown counts as "probably fine".
 
