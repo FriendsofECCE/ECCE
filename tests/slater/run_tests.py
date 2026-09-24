@@ -93,6 +93,13 @@ def main():
         return rc
     print("")
 
+    rc = standalone("testEspField",
+                    ["src/tdat/chemistry/EspField.C",
+                     "src/tdat/chemistry/CoulombIntegrals.C"])
+    if rc != 0:
+        return rc
+    print("")
+
     src = [os.path.join(HERE, "testSlaterExpansion.C"),
            os.path.join(ROOT, "src/tdat/chemistry/SlaterExpansion.C")]
     cmd = ["g++", "-O2", "-I", os.path.join(ROOT, "include"), "-o", OUT] + src

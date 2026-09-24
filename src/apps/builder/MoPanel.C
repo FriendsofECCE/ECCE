@@ -268,16 +268,19 @@ void MoPanel::updateUIOptions()
       spinOk=true;
    }
 
-   //  The electrostatic potential is mapped onto a density surface, so
-   //  it needs the density AND per-atom charges.  Offered only when both
-   //  are there rather than being offered and then quietly producing a
-   //  plain surface.
-   bool espOk = densityOk && (expt->getProperty("ESPCHARGE") ||
-                              expt->getProperty("MULLIKEN"));
+   //  Both potentials are mapped onto a density surface, so both need
+   //  the density.  The canonical one integrates over that density and
+   //  so needs nothing further; the point-charge one needs charges, and
+   //  is offered only when they exist rather than being offered and
+   //  then quietly producing a plain surface.
+   bool espOk = densityOk;
+   bool espChargesOk = densityOk && (expt->getProperty("ESPCHARGE") ||
+                                     expt->getProperty("MULLIKEN"));
 
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
    typewin->Clear();
-   if (espOk) typewin->Insert(ESP_CHARGES_FIELD_TYPE,0);
+   if (espChargesOk) typewin->Insert(ESP_CHARGES_FIELD_TYPE,0);
+   if (espOk) typewin->Insert(ESP_FIELD_TYPE,0);
    if (spinOk) typewin->Insert("Spin Density",0);
    if (densityOk) typewin->Insert("Density",0);
    typewin->Insert("MO",0);

@@ -10,6 +10,7 @@
 #include "viz/PropCmd.H"
 
 #include "viz/SGContainer.H"
+#include "tdat/EspField.H"
 
 /**
  * Field types naming an electron density surface coloured by the
@@ -39,6 +40,12 @@
 #define ESP_CHARGES_FIELD_TYPE "Density (ESP from atomic charges)"
 
 class TAtm;
+class TGBSAngFunc;
+class PropTable;
+class SGFragment;
+class TGBSConfig;
+class JCode;
+
 
 class TGBSAngFunc;
 class TGBSConfig;
@@ -82,13 +89,48 @@ class  ComputeMoCmd :  public  PropCmd
       float *makeField(int length);
 
       /**
-       * The electrostatic potential on the grid, for colouring the
-       * density surface just computed.  Returns false if the user
-       * interrupted it.
+       * The electrostatic potential from atomic point charges, for
+       * colouring the density surface just computed.  The cheap
+       * approximation.  Returns false if the user interrupted it.
        */
       bool computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
                       unsigned long gridRes,
                       float xDelta, float yDelta, float zDelta);
+
+      /**
+       * The basis set flattened into one entry per atomic orbital, in
+       * the same order as the MO coefficient columns.
+       *
+       * Returns false if the basis contains something this cannot
+       * represent, in which case no exact potential should be computed
+       * rather than one from a partial basis.
+       */
+      bool buildEspBasis(const SGFragment *sgfrag, TGBSConfig *gbsConfig,
+                         const JCode *code, TGBSAngFunc *angfunc,
+                         int maxShell, const int *length_shell,
+                         vector<EspBasisFunction>& basis);
+
+      /**
+       * The canonical electrostatic potential: nuclei, minus the
+       * integral over the electron density.  Returns false if the user
+       * interrupted it.
+       */
+      bool computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
+                           const vector<EspBasisFunction>& basis,
+                           PropTable *moCoefs, const vector<double>& occ,
+                           PropTable *moCoefsBeta,
+                           const vector<double>& occBeta,
+                           const float *densityField,
+                           unsigned long gridRes,
+                           float xDelta, float yDelta, float zDelta);
+
+      /**
+       * How badly the flattened basis disagreed with the field
+       * evaluation, if it did.  Zero when the exact potential was
+       * computed; non-zero means it declined and the caller should say
+       * so rather than showing nothing.
+       */
+      double p_espBasisMismatch;
       void zeroField(float *field,int length);
       bool squareCheckInterrupt(const char *type, int mo, int max);
       bool moCheckInterrupt(const char *type, const char *atom,

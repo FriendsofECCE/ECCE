@@ -52,6 +52,7 @@
 #include "util/ProgressMonitor.H"
 
 #include "tdat/TGBSAngFunc.H"
+#include "tdat/EspField.H"
 #include "tdat/PropTable.H"
 #include "tdat/PropVector.H"
 #include "tdat/SingleGrid.H"
@@ -442,7 +443,11 @@ bool ComputeMoCmd::execute()
 
       // Figure out which molecular orbitals to compute
       unsigned long startMO = 0, endMO = 0;
-      if (fieldType=="Density" || fieldType=="Spin Density") {
+      //  Tested through the flags, not the field type string: an ESP
+      //  surface IS a density surface, and comparing the literal names
+      //  here left it with no MO range, no density array, and a null
+      //  dereference on the first grid point.
+      if (doingDensity || doingSpinDensity) {
         startMO = 0;
         // Find the HOMO
         bool foundHOMO = false;
@@ -879,10 +884,37 @@ bool ComputeMoCmd::execute()
 
           //  Colour the density surface by the electrostatic potential.
           //  Computed here, on the same grid, because the surface the
-          //  colour belongs to is the one just built.
+          //  colour belongs to is the one just built, and -- for the
+          //  exact potential -- because that density is what the
+          //  flattened basis is checked against.
           if (wantEsp) {
-            interrupted = !computeEsp(grid, atoms, gridRes,
-                                      xDelta, yDelta, zDelta);
+            bool haveEsp = false;
+
+            if (!wantEspCharges) {
+              vector<EspBasisFunction> espBasis;
+              if (buildEspBasis(sgfrag, gbsConfig, code, angfunc,
+                                maxShell, length_shell, espBasis)) {
+                interrupted = !computeEspExact(grid, atoms, espBasis,
+                                               moCoefs, occ,
+                                               uhfCalc ? moCoefsBeta : 0,
+                                               occBeta, field, gridRes,
+                                               xDelta, yDelta, zDelta);
+                haveEsp = !interrupted &&
+                          (grid->colorFieldData() != (float*)0);
+              }
+              if (!haveEsp && !interrupted) {
+                //  The exact potential declined -- a basis it cannot
+                //  represent, or the two basis walks disagreeing.  The
+                //  point-charge map is still worth showing, and the
+                //  field type recorded on the grid says which it is.
+                grid->type(ESP_CHARGES_FIELD_TYPE);
+              }
+            }
+
+            if (!haveEsp && !interrupted) {
+              interrupted = !computeEsp(grid, atoms, gridRes,
+                                        xDelta, yDelta, zDelta);
+            }
           }
 
         } else {
@@ -1516,6 +1548,288 @@ bool ComputeMoCmd::computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
           v += charges[a]/r;
         }
         esp[idx++] = (float)v;
+      }
+    }
+  }
+
+  grid->setColorFieldData(esp);
+  grid->findColorMinMax();
+  return true;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Description
+//   Flatten the basis set into one entry per atomic orbital.
+//
+//   This walks the same nesting as the field evaluation above -- atoms,
+//   basis sets, contracted sets, shell columns, degeneracies -- and it
+//   MUST stay in step with it, because the index it counts is the
+//   column index into the MO coefficient matrix.  Two walks of one
+//   structure is the shape this codebase has been bitten by before, so
+//   the ESP that uses this cross-checks itself against the field
+//   evaluation before trusting it.
+//
+//   Shells the angular function table cannot describe are skipped here
+//   exactly as they are skipped there, leaving an empty entry, so that
+//   everything after them still lines up.
+/////////////////////////////////////////////////////////////////////////////
+bool ComputeMoCmd::buildEspBasis(const SGFragment *sgfrag,
+                                 TGBSConfig *gbsConfig,
+                                 const JCode *code,
+                                 TGBSAngFunc *angfunc,
+                                 int maxShell, const int *length_shell,
+                                 vector<EspBasisFunction>& basis)
+{
+  basis.clear();
+  if (sgfrag == 0 || gbsConfig == 0 || angfunc == 0) return false;
+
+  const double atob = 1/0.52917724924;
+
+  vector<TAtm*> *atoms = sgfrag->atoms();
+  double *atomCoords = sgfrag->coordinates();
+  const unsigned long numAtoms = sgfrag->numAtoms();
+
+  for (unsigned long idxAtom = 0; idxAtom < numAtoms; idxAtom++) {
+
+    const string atomID = (*atoms)[idxAtom]->atomicSymbol();
+    const unsigned long idxAtomCoord = idxAtom*3;
+
+    double center[3];
+    for (int k = 0; k < 3; k++) center[k] = atomCoords[idxAtomCoord+k]*atob;
+
+    vector<const TGaussianBasisSet*> gbslist = gbsConfig->getGBSList(atomID);
+    vector<TGaussianBasisSet*> normalized =
+      normalize(atomID, gbslist, *gbsConfig, code);
+
+    const int gbsSize = normalized.size();
+
+    for (int gbs_index = 0; gbs_index < gbsSize; gbs_index++) {
+      const TGaussianBasisSet *gbs = normalized[gbs_index];
+      if (gbs == 0) continue;
+
+      const int numContractedSets = gbs->num_contracted_sets(atomID.c_str());
+
+      for (int ics = 0; ics < numContractedSets; ics++) {
+
+        vector<double> alpha = gbs->exponents(atomID.c_str(), ics);
+        vector<TGaussianBasisSet::AngularMomentum> funcTypes =
+          gbs->func_types(atomID.c_str(), ics);
+        Contraction_ *cont = gbs->getContraction(atomID.c_str(), ics);
+        if (cont == 0) return false;
+
+        const int numAlpha = alpha.size();
+        const int numFuncTypes = funcTypes.size();
+
+        for (int icol = 0; icol < numFuncTypes; icol++) {
+
+          const int shell_type = funcTypes[icol];
+
+          //  Beyond what the angular table describes.  The field
+          //  evaluation leaves these orbitals at zero and steps over
+          //  their columns; do the same, so the indices still match.
+          if (shell_type > maxShell-1) {
+            for (int deg = 0; deg < length_shell[shell_type]; deg++) {
+              basis.push_back(EspBasisFunction());
+            }
+            continue;
+          }
+
+          for (int deg = 0; deg < length_shell[shell_type]; deg++) {
+
+            EspBasisFunction fn;
+            for (int k = 0; k < 3; k++) fn.center[k] = center[k];
+
+            const double oddNormalize =
+              getoddNormalize(shell_type, deg, angfunc);
+
+            AngMomFunc terms = angfunc->getFunc(shell_type, deg);
+            for (size_t t = 0; t < terms.size(); t++) {
+              //  An r^k factor is not a Cartesian Gaussian and cannot go
+              //  through the Coulomb integrals as one.  No shipped
+              //  MOOrdering uses one; refuse rather than silently drop
+              //  the term if that ever changes.
+              if (terms[t].m_k != 0) return false;
+
+              fn.powerX.push_back(terms[t].m_l);
+              fn.powerY.push_back(terms[t].m_m);
+              fn.powerZ.push_back(terms[t].m_n);
+              fn.angularCoef.push_back(terms[t].m_coefficient*oddNormalize);
+            }
+
+            for (int ia = 0; ia < numAlpha; ia++) {
+              fn.exponent.push_back(alpha[ia]);
+              fn.contraction.push_back(cont->coefficient(ia, icol));
+            }
+
+            basis.push_back(fn);
+          }
+        }
+      }
+    }
+  }
+
+  return !basis.empty();
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Description
+//   The canonical electrostatic potential: what a unit positive test
+//   charge feels.
+//
+//       V(r) = sum_A Z_A/|r - R_A|  -  integral rho(r')/|r - r'| dr'
+//
+//   The second term is an integral over the electron density, not a sum
+//   over point charges.  The physics lives in EspField, where it is
+//   tested against cases whose answer is known; what is here is the
+//   density matrix, the grid loop, and the check that the basis this
+//   was handed actually describes the calculation.
+//
+//   This is the expensive one -- order (grid points x basis functions
+//   squared) rather than (grid points x atoms) -- which is why it
+//   reports progress per plane and is interruptible.
+/////////////////////////////////////////////////////////////////////////////
+bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
+                                   const vector<EspBasisFunction>& basis,
+                                   PropTable *moCoefs,
+                                   const vector<double>& occ,
+                                   PropTable *moCoefsBeta,
+                                   const vector<double>& occBeta,
+                                   const float *densityField,
+                                   unsigned long gridRes,
+                                   float xDelta, float yDelta, float zDelta)
+{
+  p_espBasisMismatch = 0.0;
+  if (grid == 0 || atoms == 0 || moCoefs == 0 || basis.empty()) return true;
+
+  const size_t nbas = basis.size();
+
+  //  The MO matrix must describe the basis this was built from.  If it
+  //  does not, the two basis walks have diverged and nothing here can
+  //  be trusted.
+  if ((size_t)moCoefs->columns() != nbas) return true;
+
+  //  Density matrix, P = sum_i n_i C_i C_i over both spins.
+  vector<double> P(nbas*nbas, 0.0);
+
+  for (int pass = 0; pass < 2; pass++) {
+    PropTable *C = (pass == 0) ? moCoefs : moCoefsBeta;
+    const vector<double>& n = (pass == 0) ? occ : occBeta;
+    if (C == 0 || n.empty()) continue;
+    if ((size_t)C->columns() != nbas) continue;
+
+    const int numMO = C->rows();
+    for (int m = 0; m < numMO && m < (int)n.size(); m++) {
+      if (n[m] == 0.0) continue;
+
+      for (size_t mu = 0; mu < nbas; mu++) {
+        const double cmu = C->value(m, (int)mu);
+        if (cmu == 0.0) continue;
+        for (size_t nu = 0; nu < nbas; nu++) {
+          P[mu*nbas + nu] += n[m]*cmu*C->value(m, (int)nu);
+        }
+      }
+    }
+  }
+
+  EspField::Pairs pairs;
+  EspField::selectPairs(basis, P, 1.0e-8, pairs);
+  if (pairs.size() == 0) return true;
+
+  const double atob = 1/0.52917724924;
+
+  const int resX = grid->dimensions()[0];
+  const int resY = grid->dimensions()[1];
+  const int resZ = grid->dimensions()[2];
+  const double xStart = grid->origin()[0];
+  const double yStart = grid->origin()[1];
+  const double zStart = grid->origin()[2];
+
+  //=========================================================
+  //  Do the two basis walks agree?
+  //
+  //  buildEspBasis() walks the basis separately from the field
+  //  evaluation above, and two walks of one structure is exactly the
+  //  shape this codebase has been bitten by before.  Here a divergence
+  //  would not fail -- it would produce a smooth, wrong potential that
+  //  still looks like an ESP map.
+  //
+  //  So it is checked rather than trusted: the density rebuilt from the
+  //  flattened basis must reproduce the density the loop above already
+  //  computed, at points spread across the grid.  If it does not,
+  //  decline, and the caller falls back to the point-charge map.
+  //=========================================================
+  if (densityField != 0) {
+    int agreed = 0, tested = 0;
+    double worst = 0.0;
+
+    for (int sample = 0; sample < 40; sample++) {
+      const unsigned long at =
+        (unsigned long)((double)sample/40.0*(gridRes-1));
+
+      const double reference = densityField[at];
+      //  Only where there is something to compare; the far corners of
+      //  the box are zero and would agree trivially.
+      if (fabs(reference) < 1.0e-6) continue;
+
+      const int i = at % resX;
+      const int j = (at/resX) % resY;
+      const int k = (at/((unsigned long)resX*resY)) % resZ;
+
+      const double rho = EspField::density(basis, pairs,
+                                           (xStart + i*xDelta)*atob,
+                                           (yStart + j*yDelta)*atob,
+                                           (zStart + k*zDelta)*atob);
+      tested++;
+      const double error = fabs(rho - reference)/fabs(reference);
+      if (error > worst) worst = error;
+      if (error < 1.0e-3) agreed++;
+    }
+
+    if (tested > 0 && agreed < tested) {
+      //  Not an assertion: a basis this cannot represent is a reason to
+      //  fall back, not to take the application down.
+      p_espBasisMismatch = worst;
+      return true;
+    }
+  }
+
+  //  Nuclei.
+  const unsigned long numAtoms = atoms->size();
+  vector<EspNucleus> nuclei(numAtoms);
+  for (unsigned long a = 0; a < numAtoms; a++) {
+    const double *c = (*atoms)[a]->coordinates();
+    for (int k = 0; k < 3; k++) nuclei[a].center[k] = c[k]*atob;
+    nuclei[a].charge = (*atoms)[a]->atomicNumber();
+  }
+
+  float *esp = new float[gridRes];
+  char msg[120];
+
+  unsigned long idx = 0;
+  for (int k = 0; k < resZ; k++) {
+
+    if (p_monitor != 0) {
+      sprintf(msg,
+              "Electrostatic potential: plane %d of %d, %d orbital pairs",
+              k+1, resZ, (int)pairs.size());
+      if (p_monitor->isInterrupted(msg, (int)((k+1)*100.0/resZ))) {
+        delete [] esp;
+        return false;
+      }
+    }
+
+    const double z = (zStart + k*zDelta)*atob;
+    for (int j = 0; j < resY; j++) {
+      const double y = (yStart + j*yDelta)*atob;
+      for (int i = 0; i < resX; i++) {
+        double point[3];
+        point[0] = (xStart + i*xDelta)*atob;
+        point[1] = y;
+        point[2] = z;
+
+        esp[idx++] = (float)EspField::potential(basis, pairs, nuclei, point);
       }
     }
   }

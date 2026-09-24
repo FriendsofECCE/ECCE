@@ -52,6 +52,16 @@ bool IsoSurfaceCmd::execute()
    if (gridStruct != 0) {
 
       string fieldType = gridStruct->type();
+
+      //  An electron density is non-negative, so it has no second lobe.
+      //  An ESP-mapped surface IS a density surface -- the potential only
+      //  decides its colour -- so it behaves the same way.  Asked once
+      //  here because the question is asked in three places below, and
+      //  three copies of a string comparison is how one of them gets
+      //  missed.
+      bool densityLike = (fieldType == "Density" ||
+                          fieldType == ESP_FIELD_TYPE ||
+                          fieldType == ESP_CHARGES_FIELD_TYPE);
       unsigned int resX = gridStruct->dimensions()[0];
       unsigned int resY = gridStruct->dimensions()[1];
       unsigned int resZ = gridStruct->dimensions()[2];
@@ -249,11 +259,8 @@ bool IsoSurfaceCmd::execute()
 
 
       // For other than Density field, we want to display both positive and
-      // negative lobes (isosurfaces).  An ESP-mapped surface is a density
-      // surface -- the potential only decides its colour -- so it has no
-      // negative lobe either.
-      if ( fieldType != "Density" && fieldType != ESP_FIELD_TYPE &&
-           fieldType != ESP_CHARGES_FIELD_TYPE) {
+      // negative lobes (isosurfaces).
+      if (!densityLike) {
          ChemIso *isosurf2 = new ChemIso;
          isosurf2->regenerate(true);
 
@@ -302,7 +309,7 @@ bool IsoSurfaceCmd::execute()
 
       // For other than Density field, we want to display both positive and
       // negative lobes (isosurfaces)
-      if (fieldType != "Density") {
+      if (!densityLike) {
          chemMesh->levels.set1Value(1, -isovalue);
          chemMesh->orderedRGBA.set1Value(1, negativeLobeColor);
       }
@@ -331,7 +338,7 @@ bool IsoSurfaceCmd::execute()
 
       // For other than Density field, we want to display both positive and
       // negative lobes (isosurfaces)
-      if (fieldType != "Density") {
+      if (!densityLike) {
          chemContour->levels.set1Value(1, -isovalue);
          chemContour->orderedRGBA.set1Value(1, negativeLobeColor);
       }
