@@ -1028,10 +1028,89 @@ bool MoFragments::build(const vector<double>& coords,
       return false;
    }
 
-   const int numAtoms = (int)elements.size();
+   //  THE SKELETON, WHERE THE LIGANDS ARE MOLECULES.
+   //
+   //  A ligand field diagram is drawn for the coordination skeleton:
+   //  the metal and the atoms bonded to it, one sigma donor each.
+   //  The ligands' own internal structure takes no part -- and it is
+   //  what stops the molecule having the symmetry the diagram is
+   //  drawn in.  Hexammine cobalt's donor set is a perfect
+   //  octahedron; the complex is not, because six ammonia rotors
+   //  cannot all be, so a whole-molecule symmetry search calls it Th
+   //  at best and C1 in practice.  Every course draws it in Oh
+   //  regardless, and is right to: the thing being classified is the
+   //  skeleton.
+   //
+   //  So where the terminal atoms are not all bonded to the central
+   //  one, the analysis runs on the skeleton and the caller's group
+   //  is the skeleton's.  Decided here, before anything symmetric is
+   //  computed, because the frame check below is exactly what the
+   //  rotors fail.
+   vector<double> workCoords = coords;
+   vector<string> workElements = elements;
+   vector<int> skeletonOf;              // index in the original, or empty
+   bool ligandField = false;
+   {
+      int hub = -1, most = 1;
+      for (size_t i = 0; i < elements.size(); i++) {
+         vector<int> others;
+         for (size_t j = 0; j < elements.size(); j++) {
+            if (j != i) others.push_back((int)j);
+         }
+         vector<int> near;
+         bondedTo((int)i, others, coords, near);
+         if ((int)near.size() > most) { most = (int)near.size(); hub = (int)i; }
+      }
+
+      if (hub >= 0) {
+         vector<int> others;
+         for (size_t j = 0; j < elements.size(); j++) {
+            if ((int)j != hub) others.push_back((int)j);
+         }
+         vector<int> near;
+         bondedTo(hub, others, coords, near);
+
+         //  ONLY FOR A COORDINATION COMPLEX, AND ONLY UNASKED.
+         //
+         //  "Some atoms are not bonded to the hub" is true of almost
+         //  every molecule -- methanol's carbon has an O and three H
+         //  bonded to it and the hydroxyl hydrogen beyond -- and
+         //  reducing those to a skeleton throws away the molecule.
+         //  What makes a ligand field a ligand field is a metal at
+         //  the centre.  And a caller who has chosen the fragments
+         //  has said what it wants; do not renumber the atoms under
+         //  it.
+         double unusedD;
+         const bool metalHub = valenceEnergy(elements[hub], 2, unusedD);
+
+         if (metalHub && sideOfOrbit == 0 &&
+             near.size() > 1 && near.size() < others.size()) {
+            ligandField = true;
+            skeletonOf.push_back(hub);
+            for (size_t k = 0; k < near.size(); k++) {
+               skeletonOf.push_back(near[k]);
+            }
+
+            workCoords.clear();
+            workElements.clear();
+            for (size_t k = 0; k < skeletonOf.size(); k++) {
+               const int a = skeletonOf[k];
+               workElements.push_back(elements[a]);
+               for (int c = 0; c < 3; c++) {
+                  workCoords.push_back(coords[3*a + c]);
+               }
+            }
+         }
+      }
+   }
+
+   const vector<double>& coordsUsed  = ligandField ? workCoords   : coords;
+   const vector<string>& elementsUsed = ligandField ? workElements : elements;
+   const int numAtoms = (int)elementsUsed.size();
 
    vector< vector<int> > images;
-   if (!SymmetryAnalysis::atomImages(coords, elements, ops, 1.0e-3, images)) {
+   if (!SymmetryAnalysis::atomImages(coordsUsed, elementsUsed, ops, 1.0e-3,
+                                     images)) {
       note = "The structure is not in the symmetry frame of " + group +
              ", so the orbitals cannot be classified. Use Find Symmetry "
              "to clean it up first.";
@@ -1077,7 +1156,7 @@ bool MoFragments::build(const vector<double>& coords,
    } else {
       int central = -1;
       vector<int> terminal;
-      if (!partition(orbits, elements, central, terminal)) {
+      if (!partition(orbits, elementsUsed, central, terminal)) {
 
          //  THE MOST CONNECTED ATOM AGAINST EVERYTHING ELSE.
          //
@@ -1109,7 +1188,7 @@ bool MoFragments::build(const vector<double>& coords,
                if (other == atom) continue;
                double d = 0.0;
                for (int k = 0; k < 3; k++) {
-                  const double t = coords[3*atom+k] - coords[3*other+k];
+                  const double t = coordsUsed[3*atom+k] - coordsUsed[3*other+k];
                   d += t*t;
                }
                if (sqrt(d) < 2.2) neighbours++;      // Angstrom
@@ -1128,7 +1207,7 @@ bool MoFragments::build(const vector<double>& coords,
             }
 
             ostringstream chosen;
-            chosen << "Drawn as " << elements[best]
+            chosen << "Drawn as " << elementsUsed[best]
                    << " against the other atoms, which is this program's "
                       "guess at the fragments: it has "
                    << orbits.size() << " symmetry-distinct sets of atoms "
@@ -1143,38 +1222,40 @@ bool MoFragments::build(const vector<double>& coords,
             if (leftAtoms  != 0) *leftAtoms  = leftSet;
             if (rightAtoms != 0) *rightAtoms = rightSet;
 
-            buildColumn(leftSet, elements, coords, numAtoms, images,
+            buildColumn(leftSet, elementsUsed, coordsUsed, numAtoms, images,
                         classOfOp, ops, *table, false, left);
 
             //  Ligands that are molecules give their donor orbital
             //  only -- see the same decision below, which this
             //  branch returns before reaching.
             vector<int> bonded;
-            bondedTo(central, rightSet, coords, bonded);
+            bondedTo(central, rightSet, coordsUsed, bonded);
             const bool donors = bonded.size() > 1 &&
                                 bonded.size() < rightSet.size();
 
             if (donors) {
-               buildSigmaColumn(bonded, elements, numAtoms, images,
+               buildSigmaColumn(bonded, elementsUsed, numAtoms, images,
                                 classOfOp, ops, *table, right);
                note += " Each ligand contributes one sigma donor orbital, "
                        "as a ligand field diagram does.";
             } else {
-               buildColumn(rightSet, elements, coords, numAtoms, images,
+               buildColumn(rightSet, elementsUsed, coordsUsed, numAtoms, images,
                            classOfOp, ops, *table, false, right);
             }
 
             int leftElectrons = 0, rightElectrons = 0;
             for (size_t i = 0; i < leftSet.size(); i++) {
-               leftElectrons += valenceElectrons(elements[leftSet[i]]);
+               leftElectrons += valenceElectrons(elementsUsed[leftSet[i]]);
             }
             for (size_t i = 0; i < rightSet.size(); i++) {
-               rightElectrons += valenceElectrons(elements[rightSet[i]]);
+               rightElectrons += valenceElectrons(elementsUsed[rightSet[i]]);
             }
             if (donors) rightElectrons = 2*(int)bonded.size();
             bool metal = false;
             double unused;
-            if (valenceEnergy(elements[central], 2, unused)) metal = true;
+            if (charge > 0 && valenceEnergy(elementsUsed[central], 2, unused)) {
+               metal = true;
+            }
             fillColumn(left.levels,  leftElectrons  - (metal ? charge : 0));
             fillColumn(right.levels, rightElectrons - (metal ? 0 : charge));
 
@@ -1216,20 +1297,25 @@ bool MoFragments::build(const vector<double>& coords,
    bool polyatomicLigands = false;
    vector<int> attachments;
    if (leftSet.size() == 1) {
-      bondedTo(leftSet[0], rightSet, coords, attachments);
+      bondedTo(leftSet[0], rightSet, coordsUsed, attachments);
       //  AT LEAST TWO OF THEM.  One attachment is not a ligand
       //  field, it is a bond: methanol split as oxygen against the
       //  methyl group has a single attachment, and reducing CH4 to
       //  "one sigma donor" throws away the whole fragment.
+      //
+      //  In a skeleton the ligands ARE their attachment atoms by
+      //  construction, so the count test cannot see them; the
+      //  skeleton was built because they were molecules.
       polyatomicLigands = attachments.size() > 1 &&
-                          attachments.size() < rightSet.size();
+                          (ligandField ||
+                           attachments.size() < rightSet.size());
    }
 
-   buildColumn(leftSet, elements, coords, numAtoms, images, classOfOp, ops,
+   buildColumn(leftSet, elementsUsed, coordsUsed, numAtoms, images, classOfOp, ops,
                *table, diatomic, left);
 
    if (polyatomicLigands) {
-      buildSigmaColumn(attachments, elements, numAtoms, images, classOfOp,
+      buildSigmaColumn(attachments, elementsUsed, numAtoms, images, classOfOp,
                        ops, *table, right);
       if (note.empty()) {
          ostringstream said;
@@ -1239,7 +1325,7 @@ bool MoFragments::build(const vector<double>& coords,
          note = said.str();
       }
    } else {
-      buildColumn(rightSet, elements, coords, numAtoms, images, classOfOp,
+      buildColumn(rightSet, elementsUsed, coordsUsed, numAtoms, images, classOfOp,
                   ops, *table, diatomic, right);
    }
 
@@ -1263,16 +1349,28 @@ bool MoFragments::build(const vector<double>& coords,
    //  with nine d electrons, which is cobalt(-I).
    int leftElectrons = 0, rightElectrons = 0;
    for (size_t i = 0; i < leftSet.size(); i++) {
-      leftElectrons += valenceElectrons(elements[leftSet[i]]);
+      leftElectrons += valenceElectrons(elementsUsed[leftSet[i]]);
    }
    for (size_t i = 0; i < rightSet.size(); i++) {
-      rightElectrons += valenceElectrons(elements[rightSet[i]]);
+      rightElectrons += valenceElectrons(elementsUsed[rightSet[i]]);
    }
 
+   //  A METAL IS OXIDISED, NOT REDUCED, BY ITS COMPLEX'S CHARGE.
+   //
+   //  The charge goes on the metal because it is the oxidation state
+   //  -- but only when it takes electrons AWAY.  A complex that is
+   //  negative overall is negative because its LIGANDS are:
+   //  [Co(CN)6]3- is cobalt(III) with six cyanides, not cobalt(-III),
+   //  and putting the -3 on the metal drew cobalt with twelve valence
+   //  electrons and an occupied 4s.
    bool chargeOnLeft = false;
-   for (size_t i = 0; i < leftSet.size(); i++) {
-      double unused;
-      if (valenceEnergy(elements[leftSet[i]], 2, unused)) chargeOnLeft = true;
+   if (charge > 0) {
+      for (size_t i = 0; i < leftSet.size(); i++) {
+         double unused;
+         if (valenceEnergy(elementsUsed[leftSet[i]], 2, unused)) {
+            chargeOnLeft = true;
+         }
+      }
    }
 
    //  A DONOR BRINGS A PAIR.  That is what dative means, and it is
@@ -1284,8 +1382,8 @@ bool MoFragments::build(const vector<double>& coords,
    fillColumn(right.levels, rightElectrons - (chargeOnLeft ? 0 : charge));
 
    if (left.levels.empty() && right.levels.empty()) {
-      note = "No valence orbital energies for " + elements[leftSet[0]] +
-             " or " + elements[rightSet[0]] +
+      note = "No valence orbital energies for " + elementsUsed[leftSet[0]] +
+             " or " + elementsUsed[rightSet[0]] +
              " (the table is main group only).";
       return false;
    }
