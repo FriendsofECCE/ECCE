@@ -256,6 +256,25 @@ def checkGroup(name, h, classes, counts, irreps, report):
                          % (name, classes[a], classes[b], total, want))
 
 
+def standalone(name, sources, args=()):
+    """Compile and run one C++ test that needs no build tree."""
+    out = os.path.join(HERE, name)
+    cmd = (["g++", "-O2", "-w", "-I", os.path.join(ROOT, "include"),
+            "-o", out, os.path.join(HERE, name + ".C")]
+           + [os.path.join(ROOT, s) for s in sources])
+    build = subprocess.run(cmd, capture_output=True, text=True)
+    if build.returncode != 0:
+        print("  could not build %s:" % name)
+        print(build.stderr)
+        return 1
+    run = subprocess.run([out] + list(args), capture_output=True, text=True)
+    print(run.stdout, end="")
+    if run.stderr:
+        print(run.stderr, end="")
+    os.unlink(out)
+    return run.returncode
+
+
 def checkLoader(tablePath, verbose):
     """Does the C++ loader read the same file faithfully?
 
