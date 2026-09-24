@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -9,6 +10,7 @@
 using std::ifstream;
 using std::istringstream;
 using std::map;
+using std::sort;
 using std::ostringstream;
 
 #include "util/Ecce.H"
@@ -390,6 +392,140 @@ static void addLevels(const CharacterTable& table,
 
       levels.push_back(level);
    }
+}
+
+
+bool MoFragments::basisSpansReported(const vector<double>& coords,
+                                     const vector<string>& elements,
+                                     const string& group,
+                                     const vector< vector<int> >& shellsPerAtom,
+                                     const vector<string>& reported,
+                                     bool cartesian,
+                                     string& detail)
+{
+   detail.clear();
+
+   const CharacterTable *table = CharacterTable::lookup(group);
+   if (table == 0) { detail = "no character table for " + group; return false; }
+
+   vector<SymOp> ops;
+   if (!symmetryOperations(group, ops)) {
+      detail = "could not generate the operations of " + group;
+      return false;
+   }
+
+   vector< vector<int> > images;
+   if (!SymmetryAnalysis::atomImages(coords, elements, ops, 1.0e-3, images)) {
+      detail = "the structure is not in the symmetry frame of " + group;
+      return false;
+   }
+
+   vector< vector<int> > classes;
+   SymmetryAnalysis::conjugacyClasses(ops, classes);
+
+   vector<int> classOfOp;
+   if (!SymmetryAnalysis::matchClasses(ops, classes, *table, classOfOp)) {
+      detail = "the operations do not match " + group + "'s classes";
+      return false;
+   }
+
+   vector<double> chi;
+   if (!SymmetryAnalysis::basisCharacter(shellsPerAtom, images, classOfOp,
+                                         ops, (int)table->classes().size(),
+                                         cartesian, chi)) {
+      detail = "the basis character could not be formed";
+      return false;
+   }
+
+   vector<int> multiplicity;
+   if (!table->reduce(chi, multiplicity)) {
+      detail = "the basis representation does not reduce in " + group +
+               " -- the frame or the class matching is wrong";
+      return false;
+   }
+
+   //  What the basis spans, and what the code says its orbitals span.
+   map<string,int> spans, says;
+   const vector<string>& irreps = table->irreps();
+   size_t i;
+   for (i = 0; i < irreps.size() && i < multiplicity.size(); i++) {
+      if (multiplicity[i] > 0) {
+         spans[MoDiagram::canonicalIrrep(irreps[i])] =
+             multiplicity[i]*table->dimension(irreps[i]);
+      }
+   }
+   for (i = 0; i < reported.size(); i++) {
+      if (reported[i].empty()) continue;
+      says[MoDiagram::canonicalIrrep(reported[i])]++;
+   }
+   if (says.empty()) {
+      detail = "the calculation reports no orbital labels, so there is "
+               "nothing to check against";
+      return false;
+   }
+
+   ostringstream text;
+   map<string,int>::const_iterator it;
+   text << "basis spans ";
+   for (it = spans.begin(); it != spans.end(); ++it) {
+      if (it != spans.begin()) text << " + ";
+      text << it->second << it->first;
+   }
+   text << "; the code reports ";
+   for (it = says.begin(); it != says.end(); ++it) {
+      if (it != says.begin()) text << " + ";
+      text << it->second << it->first;
+   }
+
+   if (spans == says) {
+      detail = text.str() + " -- agree";
+      return true;
+   }
+
+   //  An exchange of two irreps is the axis convention, not an error.
+   vector<string> names;
+   for (it = spans.begin(); it != spans.end(); ++it) names.push_back(it->first);
+   for (i = 0; i < names.size(); i++) {
+      for (size_t j = i+1; j < names.size(); j++) {
+         map<string,int> tried = spans;
+         const int a = tried[names[i]], b = tried[names[j]];
+         tried[names[i]] = b;
+         tried[names[j]] = a;
+         if (tried == says) {
+            detail = text.str() + " -- agree once " + names[i] + " and " +
+                     names[j] + " are exchanged, which is the axis "
+                     "convention";
+            return true;
+         }
+      }
+   }
+
+   //  THE SAME REDUCTION UNDER DIFFERENT NAMES IS NOT A DISAGREEMENT.
+   //
+   //  A diatomic is the case: autosym reports D4h, the largest finite
+   //  group it knows that contains the molecule, while the code labels
+   //  the orbitals in D-infinity-h.  So the basis spans
+   //  2A1g + 2A2u + 2Eg + 2Eu and the code reports
+   //  2sigma-g + 2sigma-u + 2pi-g + 2pi-u -- the same four sets of the
+   //  same sizes, named by two different groups.  Calling that a
+   //  disagreement would report a naming difference as an error, and
+   //  it would do it on every diatomic.
+   vector<int> ourCounts, theirCounts;
+   for (it = spans.begin(); it != spans.end(); ++it) ourCounts.push_back(it->second);
+   for (it = says.begin(); it != says.end(); ++it) theirCounts.push_back(it->second);
+   sort(ourCounts.begin(), ourCounts.end());
+   sort(theirCounts.begin(), theirCounts.end());
+
+   if (ourCounts == theirCounts) {
+      detail = text.str() + " -- the same reduction under different "
+               "names, which is what a diatomic gets: the structure is "
+               "handled in " + group + " and the code labels its "
+               "orbitals in the infinite group";
+      return true;
+   }
+
+   detail = text.str() + " -- DISAGREE";
+   return false;
 }
 
 

@@ -635,6 +635,102 @@ def checkFragments(tablePath, verbose):
 
 
 
+def checkOracle(tablePath, verbose):
+    """The one check that does not need to know the answer.
+
+    Every molecular orbital is a combination of the basis functions, so
+    the irreps the whole basis spans and the irreps the code reports
+    for its orbitals are the same multiset.  One side is computed from
+    the geometry and the group; the other is read from the
+    calculation's own output.  Two programs, different data, different
+    routes -- and it works on a molecule nobody wrote an expected
+    answer for.
+
+    Runs MOPAC on a handful of molecules and compares.  Skipped where
+    MOPAC is absent, which is a skip and not a pass.
+    """
+    binary = os.environ.get("ECCE_TEST_SYMOPS",
+                            os.path.join(ROOT, "build-cmake", "symops"))
+    if not (os.path.isfile(binary) and os.access(binary, os.X_OK)):
+        print("  symops not built -- skipping the basis/labels oracle")
+        return 0
+    if shutil.which("mopac") is None:
+        print("  mopac not installed -- skipping the basis/labels oracle")
+        return 0
+
+    sys.path.insert(0, os.path.join(ROOT, "tools", "modiagram"))
+    try:
+        from frommopac import (run as runMopac, parse, symmetrise,
+                               basisFromOutput)
+    except ImportError as why:
+        print("  could not load the MOPAC helper: %s" % why)
+        return 1
+
+    d, dd = 1.0219, 0.6276
+    CASES = {
+        "CH4":  [("C", 0, 0, 0)] + [("H",) + c for c in
+                 ((dd, dd, dd), (dd, -dd, -dd), (-dd, dd, -dd), (-dd, -dd, dd))],
+        "H2O":  [("O", 0, 0, 0.1173), ("H", 0, 0.7572, -0.4692),
+                 ("H", 0, -0.7572, -0.4692)],
+        "NH3":  [("N", 0, 0, 0.1173), ("H", 0, 0.9377, -0.2737),
+                 ("H", 0.8121, -0.4689, -0.2737),
+                 ("H", -0.8121, -0.4689, -0.2737)],
+        "CCl4": [("C", 0, 0, 0)] + [("Cl",) + c for c in
+                 ((d, d, d), (d, -d, -d), (-d, d, -d), (-d, -d, d))],
+        "N2":   [("N", 0, 0, 0.5488), ("N", 0, 0, -0.5488)],
+    }
+
+    #  A tiny driver, because the check itself lives in C++.
+    src = os.path.join(HERE, "testOracle.C")
+    out = os.path.join(HERE, "testOracle")
+    build = subprocess.run(
+        ["g++", "-O2", "-w", "-I", os.path.join(ROOT, "include"), "-o", out,
+         src,
+         os.path.join(ROOT, "src/tdat/chemistry/MoFragments.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C")],
+        capture_output=True, text=True)
+    if build.returncode != 0:
+        print("  could not build the oracle driver:")
+        print(build.stderr)
+        return 1
+
+    env = dict(os.environ)
+    env["ECCE_HOME"] = ROOT
+    env["PATH"] = os.path.dirname(binary) + os.pathsep + env.get("PATH", "")
+
+    bad = 0
+    for name, atoms in CASES.items():
+        group, clean = symmetrise(atoms)
+        text = runMopac(name, atoms)
+        _, energies, labels = parse(text)
+        perAtom, shellOf = basisFromOutput(text, len(atoms))
+
+        lines = [group, str(len(atoms))]
+        for (symbol, _, _, _), (_, x, y, z) in zip(atoms, clean):
+            lines.append("%s %.6f %.6f %.6f" % (symbol, x, y, z))
+        lines.append(" ".join(str(n) for n in perAtom))
+        lines.append(" ".join(str(n) for n in shellOf))
+        lines.append(" ".join(labels))
+
+        proc = subprocess.run([out], input="\n".join(lines) + "\n",
+                              capture_output=True, text=True, env=env)
+        said = proc.stdout.strip()
+        ok = proc.returncode == 0
+        if verbose or not ok:
+            print("  %-6s %s" % (name, said))
+        if not ok:
+            bad += 1
+    os.unlink(out)
+
+    if not bad and not verbose:
+        print("  basis spans what the code reports: PASS (%d molecules)"
+              % len(CASES))
+    return 1 if bad else 0
+
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -691,6 +787,11 @@ def main():
     print("  symmetry operations: %d checks" % (report.checks - beforeSymops))
     if report.failures:
         print("\nFAILED  %d" % report.failures)
+        return 1
+
+    print("")
+    if checkOracle(tablePath, args.verbose) != 0:
+        print("FAILED  the basis/labels oracle")
         return 1
 
     print("")

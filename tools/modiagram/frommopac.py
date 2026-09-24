@@ -23,70 +23,177 @@ def run(name, atoms, charge=0, keywords="PM7 1SCF VECTORS ALLVEC"):
     return out
 
 
-VALENCE_AOS = {"H": 1, "He": 1}     # s only; everything else s + p
+#  MOPAC's own names for the valence functions, and the angular
+#  momentum each one is.  The d labels carry NO leading D -- they are
+#  written "x2  Cl  2", "xz", "z2", "yz", "xy" -- so a rule that looked
+#  for an S, P or D at the front of the label dropped all five of them
+#  on every chlorine, and CCl4 came out with 20 basis functions against
+#  its 40 orbitals.  The basis-versus-labels check is what caught it.
+ORBITAL_L = {
+    "s": 0,
+    "px": 1, "py": 1, "pz": 1,
+    "x2": 2, "xz": 2, "z2": 2, "yz": 2, "xy": 2,
+    "x2-y2": 2,
+}
 
 
-def basisCount(symbol):
-    """How many valence AOs MOPAC gives an atom: 1 for H, otherwise 4."""
-    return VALENCE_AOS.get(symbol, 4)
+def basisFromOutput(out, natoms):
+    """(functions per atom, angular momentum per function), read from
+    MOPAC's own coefficient row labels.
+
+    NOT assumed.  "one function for hydrogen and four for everything
+    else" is wrong for anything PM7 gives d orbitals to: chlorine has
+    nine, so CCl4 has forty functions and not twenty.  That assumption
+    would have produced a confidently wrong diagram, and the
+    basis-versus-labels check is what caught it -- the basis spanned 20
+    functions while the code reported 40 orbitals.
+
+    Only the FIRST column block is counted.  MOPAC prints the whole
+    row set again for every eight orbitals, so counting all of them
+    multiplied every atom's basis by the number of blocks.
+
+    The rows are labelled "S  Cl  2", "Px  Cl  2", "Dxy  Cl  2", so the
+    output says exactly which functions each atom has and in what
+    order.
+    """
+    perAtom = [0]*natoms
+    shells = [[] for _ in range(natoms)]
+
+    lines = finalBlock(out).splitlines()
+    started = False
+
+    for line in lines:
+        t = line.split()
+
+        #  The second "Root No." ends the first block.
+        if len(t) > 2 and t[0] == "Root" and t[1] == "No.":
+            if started:
+                break
+            continue
+
+        if not (len(t) > 3
+                and t[0].lower() in ORBITAL_L
+                and re.fullmatch(r"[A-Z][a-z]?", t[1])
+                and re.fullmatch(r"\d+", t[2])):
+            continue
+
+        atom = int(t[2]) - 1
+        if not 0 <= atom < natoms:
+            continue
+        started = True
+        shells[atom].append(ORBITAL_L[t[0].lower()])
+        perAtom[atom] += 1
+
+    flat = []
+    for a in range(natoms):
+        flat += shells[a]
+    return perAtom, flat
+
+
+def finalBlock(out):
+    """The LAST printing of the eigenvectors, and only that one.
+
+    MOPAC prints them more than once -- CCl4's output has three
+    EIGENVECTORS sections and five "Root No." blocks -- and reading
+    across printings gives twice as many orbitals as the molecule has.
+    That is what the basis-versus-labels check caught: the basis spanned
+    20 functions and the labels claimed 40.
+
+    The final printing starts at the last "Root No." line whose first
+    root is 1.
+    """
+    lines = out.splitlines()
+    start = 0
+    for i, line in enumerate(lines):
+        t = line.split()
+        if len(t) > 2 and t[0] == "Root" and t[1] == "No." and t[2] == "1":
+            start = i
+    return "\n".join(lines[start:])
 
 
 def coefficients(out, natoms):
-    """The MO coefficients, one row per orbital, from the VECTORS block.
+    """The MO coefficients, one row per orbital.
 
-    MOPAC prints them in blocks of eight columns: a row of eigenvalues,
-    a row of symmetry labels, then one row per basis function.  The
-    rows arrive transposed from what a coefficient table wants, so they
-    are collected per block and stitched together.
+    Collected per "Root No." block, like parse(), rather than by
+    watching for runs of matching lines: a block's rows are broken up
+    by blank lines and page headers, and treating each run as a block
+    split one block into several and stitched them back in the wrong
+    order.
+
+    MOPAC prints them transposed from what a coefficient table wants --
+    a row per basis function, a column per orbital -- so each block is
+    turned on its side and the blocks are laid end to end.
     """
-    body = out.split("EIGENVECTORS")[-1]
-    blocks, current = [], []
-    for line in body.splitlines():
+    lines = finalBlock(out).splitlines()
+    rows = []
+    block = []
+
+    def flush(block):
+        if not block:
+            return []
+        width = max(len(r) for r in block)
+        return [[r[col] if col < len(r) else 0.0 for r in block]
+                for col in range(width)]
+
+    for line in lines:
         t = line.split()
-        #  A coefficient row starts with the orbital type and the atom
-        #  symbol: "S    C    1" or "PX   O    2".
-        #  "S   O    1    0.8516  ..." -- orbital type, element, atom
-        #  number, then the coefficients.  MOPAC writes the type in
-        #  mixed case ("Px", not "PX").
+        if len(t) > 2 and t[0] == "Root" and t[1] == "No.":
+            rows += flush(block)
+            block = []
+            continue
         if (len(t) > 3
-                and re.fullmatch(r"[SPDFspdf][a-zA-Z0-9]*", t[0])
+                and t[0].lower() in ORBITAL_L
                 and re.fullmatch(r"[A-Z][a-z]?", t[1])
                 and re.fullmatch(r"\d+", t[2])
                 and all(re.fullmatch(r"-?\d+\.\d+", x) for x in t[3:])):
-            current.append([float(x) for x in t[3:]])
-        elif current:
-            blocks.append(current)
-            current = []
-    if current:
-        blocks.append(current)
+            block.append([float(x) for x in t[3:]])
 
-    rows = []
-    for block in blocks:
-        width = max(len(r) for r in block)
-        for col in range(width):
-            rows.append([r[col] if col < len(r) else 0.0 for r in block])
+    rows += flush(block)
     return rows
 
 
 def parse(out):
-    """(group, [(energy_eV, label)]) from a MOPAC output."""
+    """(group, energies in eV, labels) from a MOPAC output.
+
+    Parsed STRUCTURALLY, from the "Root No." headers, rather than by
+    recognising rows that look like numbers.  MOPAC prints several
+    numeric tables after the eigenvectors, and a "row of floats" rule
+    swept them up: CCl4 came out with 40 orbitals where it has 20.
+    That was caught by the basis-versus-labels check, not by reading
+    the output.
+
+    Each block is:  Root No. ...  /  labels  /  eigenvalues  /  rows.
+    """
     group = ""
     m = re.search(r"FOR POINT-GROUP\s+(\S+)", out)
     if m:
         group = m.group(1)
 
-    #  The eigenvector block: rows of bare numbers are eigenvalues, and
-    #  the row of "<n> <symbol>" just above them carries the labels.
-    body = out.split("EIGENVECTORS")[-1]
+    lines = finalBlock(out).splitlines()
     energies, labels = [], []
-    for line in body.splitlines():
-        stripped = line.strip()
-        if not stripped:
+
+    i = 0
+    while i < len(lines):
+        t = lines[i].split()
+        if not (len(t) > 2 and t[0] == "Root" and t[1] == "No."):
+            i += 1
             continue
-        if re.fullmatch(r"(-?\d+\.\d+\s*)+", stripped):
-            energies += [float(x) for x in stripped.split()]
-        elif re.fullmatch(r"(\d+\s+[a-zA-Z][a-zA-Z0-9'\"]*\s*)+", stripped):
-            labels += re.findall(r"\d+\s+([a-zA-Z][a-zA-Z0-9'\"]*)", stripped)
+
+        #  The two rows that follow, skipping blanks: symmetry labels,
+        #  then the eigenvalues themselves.
+        rows = []
+        j = i + 1
+        while j < len(lines) and len(rows) < 2:
+            if lines[j].strip():
+                rows.append(lines[j])
+            j += 1
+        if len(rows) < 2:
+            break
+
+        labels += re.findall(r"\d+\s+([a-zA-Z][a-zA-Z0-9'\"]*)", rows[0])
+        energies += [float(x) for x in re.findall(r"-?\d+\.\d+", rows[1])]
+        i = j
+
     return group, energies, labels
 
 
@@ -106,9 +213,9 @@ def symmetrise(atoms, threshold=0.01, autosym="/opt/ecce/bin/autosym"):
     for symbol, x, y, z in atoms:
         lines.append("%-16s" % symbol)
         lines.append("%d %G %G %G" % (Z[symbol], x, y, z))
-    run = subprocess.run([autosym], input="\n".join(lines) + "\n",
-                         capture_output=True, text=True)
-    out = run.stdout.split("\n")
+    run_ = subprocess.run([autosym], input="\n".join(lines) + "\n",
+                          capture_output=True, text=True)
+    out = run_.stdout.split("\n")
     if not out or not out[0].strip():
         return "C1", atoms
     group = out[0].strip()
@@ -121,20 +228,17 @@ def symmetrise(atoms, threshold=0.01, autosym="/opt/ecce/bin/autosym"):
 
 
 def spec(path, group, atoms, energies, labels, electrons, charge=0,
-         coefs=None):
+         coefs=None, basis=None):
     HARTREE = 27.211386245988
     lines = ["group %s" % group]
     if charge:
         lines.append("charge %d" % charge)
     for symbol, x, y, z in atoms:
         lines.append("atom %s %.6f %.6f %.6f" % (symbol, x, y, z))
-    lines.append("basis " + " ".join(str(basisCount(s)) for s, _, _, _ in atoms))
-    #  MOPAC's valence order per atom: s, then px, py, pz for anything
-    #  heavier than helium.
-    shells = []
-    for s_, _, _, _ in atoms:
-        shells += [0] if basisCount(s_) == 1 else [0, 1, 1, 1]
-    lines.append("shells " + " ".join(str(x) for x in shells))
+    if basis is not None:
+        perAtom, shells = basis
+        lines.append("basis " + " ".join(str(n) for n in perAtom))
+        lines.append("shells " + " ".join(str(x) for x in shells))
     for row in (coefs or []):
         lines.append("coef " + " ".join("%.6f" % c for c in row))
     left = electrons

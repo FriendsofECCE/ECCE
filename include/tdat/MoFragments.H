@@ -95,6 +95,48 @@ class MoFragments
                           vector<int>& terminal);
 
     /**
+     * Does the basis span what the code says the orbitals span?
+     *
+     * THE ONE CHECK THAT DOES NOT NEED TO KNOW THE ANSWER.
+     *
+     * Every molecular orbital is a combination of the basis functions,
+     * so the irreps the whole basis spans and the irreps the code
+     * reports for its orbitals are the same multiset.  One is computed
+     * here from the geometry and the group; the other is read from the
+     * calculation's own output.  Two programs, different data,
+     * different routes.
+     *
+     * When they agree, the symmetry detection, the frame, the class
+     * matching, the angular characters and the shell bookkeeping are
+     * all right together -- on a molecule nobody wrote an expected
+     * answer for.  When they disagree, something is wrong and this
+     * says which molecule and how.
+     *
+     * An exchange of two irreps is allowed and reported, because that
+     * is the axis convention and not an error: see
+     * MoDiagram::reconcile().
+     *
+     * @param shellsPerAtom  the angular momentum of each SHELL on each
+     *                       atom, in coefficient order
+     * @param reported       the code's own orbital labels, one per
+     *                       orbital, in any spelling
+     * @param detail         filled with both reductions, agreeing or
+     *                       not, for a person to read
+     *
+     * @return false if they disagree, or if the check could not be
+     *         made -- which `detail` distinguishes, because "no
+     *         disagreement found" and "nothing was compared" must not
+     *         look alike
+     */
+    static bool basisSpansReported(const vector<double>& coords,
+                                   const vector<string>& elements,
+                                   const string& group,
+                                   const vector< vector<int> >& shellsPerAtom,
+                                   const vector<string>& reported,
+                                   bool cartesian,
+                                   string& detail);
+
+    /**
      * How much of one molecular orbital sits on a set of atoms.
      *
      * A Mulliken population restricted to those atoms:

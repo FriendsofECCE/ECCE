@@ -244,6 +244,33 @@ int main(int argc, char** argv)
     centre.levels[i].annotation = text;
   }
 
+  //  THE CHECK THAT DOES NOT KNOW THE ANSWER: what the basis spans
+  //  against what the code says its orbitals span.  Two programs,
+  //  different data, and it works on a molecule nobody has written an
+  //  expected answer for.
+  if (!perAtom.empty() && !shellOf.empty() && !labels.empty()) {
+    vector< vector<int> > shellsPerAtom;
+    int at = 0;
+    for (size_t a = 0; a < perAtom.size(); a++) {
+      vector<int> mine;
+      //  One entry per SHELL, not per function: consecutive functions
+      //  of the same l on one atom are one shell.
+      for (int f = 0; f < perAtom[a]; ) {
+        const int l = shellOf[at + f];
+        mine.push_back(l);
+        const int width = 2*l + 1;
+        f += width;
+      }
+      shellsPerAtom.push_back(mine);
+      at += perAtom[a];
+    }
+
+    string detail;
+    const bool agree = MoFragments::basisSpansReported(
+        coords, elements, group, shellsPerAtom, labels, false, detail);
+    printf("oracle\t%s\t%s\n", agree ? "agree" : "DISAGREE", detail.c_str());
+  }
+
   printf("group\t%s\n", group.c_str());
   printf("note\t%s\n", note.empty() ? "-" : note.c_str());
   printColumn("left", left);
