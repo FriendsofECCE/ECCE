@@ -603,8 +603,21 @@ double MoDiagram::suggestCoreCutoff(const vector<MoLevel>& levels,
     //  large it is.
     if (levels[i].occupancy <= 0.0 || levels[i-1].occupancy <= 0.0) continue;
 
+    //  THE HIGHEST BIG GAP, NOT THE BIGGEST.
+    //
+    //  A many-electron atom has a gap at every shell, and the deepest
+    //  is always the largest: cobalt's 1s sits 243 Hartree below its
+    //  2s, while the 3p/valence separation that actually divides core
+    //  from valence is under two.  Taking the biggest folded the 1s
+    //  alone and left 2s, 2p, 3s and 3p in the picture -- which then
+    //  made the reconciliation compare an all-electron spectrum
+    //  against a valence-only fragment set, find 15 t1u against 6,
+    //  and give up, so CoH6(2+) drew no correlation lines at all.
+    //
+    //  Every gap over the threshold is a shell boundary.  The one
+    //  that separates core from valence is the last of them.
     const double gap = levels[i].energy - levels[i-1].energy;
-    if (gap > bestGap) { bestGap = gap; bestAt = i; }
+    if (gap >= minimumGap) { bestGap = gap; bestAt = i; }
   }
 
   if (bestGap < minimumGap) return -1.0e30;   // hides nothing
@@ -702,6 +715,33 @@ static void relabel(vector<MoLevel>& levels, const string& from,
 }
 
 
+/**
+ * Does the calculation cover everything the fragments span?
+ *
+ * NOT EQUALITY.  The fragment model is minimal-valence: one s and one
+ * p shell an atom, five d for a metal.  A real calculation is not --
+ * even 3-21G gives cobalt more virtual orbitals than that, so the two
+ * multisets cannot agree and never will.  Demanding they agree meant
+ * no calculation with a real basis set was ever correlated by
+ * symmetry: CoH6(2+) reported 9 t1u against the model's 6 and drew
+ * nothing at all.
+ *
+ * What has to be true is that every irrep the fragments span is there
+ * to be matched.  A surplus of virtuals is not a disagreement; a
+ * DEFICIT is, and that is what the axis-convention swap below shows
+ * up as.
+ */
+static bool covers(const map<string,int>& have, const map<string,int>& want)
+{
+  for (map<string,int>::const_iterator it = have.begin();
+       it != have.end(); ++it) {
+    map<string,int>::const_iterator found = want.find(it->first);
+    if (found == want.end() || found->second < it->second) return false;
+  }
+  return true;
+}
+
+
 bool MoDiagram::reconcile(vector<MoLevel>& left, vector<MoLevel>& right,
                           const vector<MoLevel>& centre, string& why)
 {
@@ -711,7 +751,7 @@ bool MoDiagram::reconcile(vector<MoLevel>& left, vector<MoLevel>& right,
   map<string,int> want = tally(centre, none);
   map<string,int> have = tally(left, right);
   if (want.empty() || have.empty()) return true;
-  if (want == have) return true;
+  if (covers(have, want)) return true;
 
   //  Every pair of fragment irreps, since only a pair of equal
   //  dimension can be a relabelling.  The dimension is not known here,
@@ -729,7 +769,7 @@ bool MoDiagram::reconcile(vector<MoLevel>& left, vector<MoLevel>& right,
       const int a = tried[names[i]], b = tried[names[j]];
       tried[names[i]] = b;
       tried[names[j]] = a;
-      if (tried != want) continue;
+      if (!covers(tried, want)) continue;
 
       relabel(left,  names[i], "\x01");
       relabel(right, names[i], "\x01");

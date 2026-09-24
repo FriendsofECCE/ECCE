@@ -561,19 +561,46 @@ int main(int argc, char** argv) {
       if (!fixed) bad++;
     }
 
-    //  And a genuine disagreement is reported, not papered over: no
-    //  exchange of two irreps can turn 2A1 into 3A1.
-    MoColumn l2, c2, r2;
+    //  A GENUINE DISAGREEMENT IS A DEFICIT, NOT A SURPLUS.
+    //
+    //  The fragment model is minimal-valence and a real calculation
+    //  is not, so the calculation reporting MORE of an irrep than the
+    //  fragments span is the normal case, not an error -- even 3-21G
+    //  gives cobalt more virtuals than the model has, and treating
+    //  that as a disagreement left CoH6(2+) with no correlation lines
+    //  at all.  What cannot be right is the calculation reporting
+    //  FEWER than the fragments span: those orbitals have to exist
+    //  somewhere, and no exchange of two irreps can conjure them.
+    MoColumn surplusL, surplusC, empty;
     for (int i = 0; i < 2; i++) {
-      MoLevel l; l.irrep = "A1"; l.degeneracy = 1; l2.levels.push_back(l);
+      MoLevel l; l.irrep = "A1"; l.degeneracy = 1;
+      surplusL.levels.push_back(l);
     }
     for (int i = 0; i < 3; i++) {
-      MoLevel l; l.irrep = "A1"; l.degeneracy = 1; c2.levels.push_back(l);
+      MoLevel l; l.irrep = "A1"; l.degeneracy = 1;
+      surplusC.levels.push_back(l);
     }
     string why2;
-    bool refused = !MoDiagram::reconcile(l2.levels, r2.levels,
-                                         c2.levels, why2);
-    printf("  %-46s %s\n", "a real disagreement is reported",
+    const bool accepted = MoDiagram::reconcile(surplusL.levels, empty.levels,
+                                               surplusC.levels, why2);
+    printf("  %-46s %s\n", "a surplus of virtuals is not a disagreement",
+           accepted ? "ok" : ("FAIL: " + why2).c_str());
+    if (!accepted) bad++;
+
+    MoColumn shortL, shortC;
+    for (int i = 0; i < 3; i++) {
+      MoLevel l; l.irrep = "A1"; l.degeneracy = 1;
+      shortL.levels.push_back(l);
+    }
+    for (int i = 0; i < 2; i++) {
+      MoLevel l; l.irrep = "A1"; l.degeneracy = 1;
+      shortC.levels.push_back(l);
+    }
+    MoColumn empty2;
+    string why3;
+    const bool refused = !MoDiagram::reconcile(shortL.levels, empty2.levels,
+                                               shortC.levels, why3);
+    printf("  %-46s %s\n", "a deficit is reported",
            refused ? "ok" : "FAIL");
     if (!refused) bad++;
   }
