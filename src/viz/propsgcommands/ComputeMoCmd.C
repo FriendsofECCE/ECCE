@@ -1926,6 +1926,55 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
     return true;
   }
 
+  //  The invariant that says whether any of this is worth drawing.
+  {
+    const double electrons = EspField::electronCount(basis, pairs);
+    double nuclearCharge = 0.0;
+    for (unsigned long a = 0; a < atoms->size(); a++) {
+      if ((*atoms)[a] != 0) nuclearCharge += (*atoms)[a]->atomicNumber();
+    }
+    cerr << "ESP: trace(P S) = " << electrons << " electrons against "
+         << nuclearCharge << " nuclear charge (net "
+         << (nuclearCharge - electrons) << ")" << endl;
+
+    //  Where the deficit is.  A basis function that is not normalised
+    //  has <mu|mu> != 1, and the shell it belongs to says which
+    //  convention is out of step -- the angular table's, the
+    //  contraction's, or the odd-normalisation factor's.  Reported per
+    //  total angular momentum, because that is what the three differ
+    //  by; a per-function list of 58 numbers is unreadable.
+    {
+      double normMin[8], normMax[8], normSum[8], popSum[8];
+      int count[8];
+      for (int l = 0; l < 8; l++) {
+        normMin[l] = 1.0e30; normMax[l] = -1.0e30;
+        normSum[l] = 0.0; popSum[l] = 0.0; count[l] = 0;
+      }
+      for (size_t mu = 0; mu < nbas; mu++) {
+        if (basis[mu].empty()) continue;
+        int l = 0;
+        if (!basis[mu].powerX.empty()) {
+          l = basis[mu].powerX[0] + basis[mu].powerY[0] + basis[mu].powerZ[0];
+        }
+        if (l < 0 || l > 7) continue;
+        const double sii = EspField::overlapOf(basis[mu], basis[mu]);
+        if (sii < normMin[l]) normMin[l] = sii;
+        if (sii > normMax[l]) normMax[l] = sii;
+        normSum[l] += sii;
+        popSum[l]  += P[mu*nbas + mu]*sii;
+        count[l]++;
+      }
+      static const char *shellName = "spdfghik";
+      for (int l = 0; l < 8; l++) {
+        if (count[l] == 0) continue;
+        cerr << "ESP:   " << count[l] << " " << shellName[l]
+             << " functions, <mu|mu> " << normMin[l] << " .. " << normMax[l]
+             << " (mean " << normSum[l]/count[l]
+             << "), diagonal population " << popSum[l] << endl;
+      }
+    }
+  }
+
   const double atob = 1/0.52917724924;
 
   const int resX = grid->dimensions()[0];

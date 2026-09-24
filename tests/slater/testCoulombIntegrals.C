@@ -160,6 +160,25 @@ int main() {
     check("s*s, two centres", CoulombIntegrals::overlap(A0, s0, aa, B1, s0, bb),
           pow(PI/pp, 1.5)*exp(-mu*1.4*1.4), 1e-12);
 
+    //  d against the closed form, both flavours.  The two Cartesian d
+    //  shapes have DIFFERENT self-overlaps -- 3/(4p^2) for x^2 against
+    //  1/(4p^2) for xy -- which is the whole reason a shell cannot
+    //  carry one normalisation constant for all its components.  A
+    //  basis builder that gives them the same one is off by sqrt(3) on
+    //  five of the six, and nothing downstream of an isosurface would
+    //  show it.
+    int dxx[3] = {2,0,0};
+    int dxy[3] = {1,1,0};
+    check("dxx*dxx, one centre",
+          CoulombIntegrals::overlap(A0, dxx, aa, B0, dxx, bb),
+          3.0*pow(PI/pp, 1.5)/(4*pp*pp), 1e-12);
+    check("dxy*dxy, one centre",
+          CoulombIntegrals::overlap(A0, dxy, aa, B0, dxy, bb),
+          pow(PI/pp, 1.5)/(4*pp*pp), 1e-12);
+    check("dxx*dyy, one centre",
+          CoulombIntegrals::overlap(A0, dxx, aa, B0, (int[]){0,2,0}, bb),
+          pow(PI/pp, 1.5)/(4*pp*pp), 1e-12);
+
     //  Symmetric under exchange, like the potential.
     int dxz[3] = {1,0,1};
     double B2[3] = {0.7,-0.4,0.9};

@@ -103,6 +103,42 @@ void EspField::selectPairs(const vector<EspBasisFunction>& basis,
 }
 
 
+double EspField::overlapOf(const EspBasisFunction& a,
+                           const EspBasisFunction& b)
+{
+  double s = 0.0;
+  for (size_t ta = 0; ta < a.angularCoef.size(); ta++) {
+    const int la[3] = { a.powerX[ta], a.powerY[ta], a.powerZ[ta] };
+    for (size_t tb = 0; tb < b.angularCoef.size(); tb++) {
+      const int lb[3] = { b.powerX[tb], b.powerY[tb], b.powerZ[tb] };
+      const double angular = a.angularCoef[ta]*b.angularCoef[tb];
+      if (angular == 0.0) continue;
+      for (size_t ia = 0; ia < a.exponent.size(); ia++) {
+        for (size_t ib = 0; ib < b.exponent.size(); ib++) {
+          s += angular*a.contraction[ia]*b.contraction[ib]
+               * CoulombIntegrals::overlap(a.center, la, a.exponent[ia],
+                                           b.center, lb, b.exponent[ib]);
+        }
+      }
+    }
+  }
+  return s;
+}
+
+
+double EspField::electronCount(const vector<EspBasisFunction>& basis,
+                               const Pairs& pairs)
+{
+  double total = 0.0;
+
+  for (size_t i = 0; i < pairs.size(); i++) {
+    total += pairs.weight[i]*overlapOf(basis[pairs.mu[i]],
+                                       basis[pairs.nu[i]]);
+  }
+  return total;
+}
+
+
 double EspField::density(const vector<EspBasisFunction>& basis,
                          const Pairs& pairs, double x, double y, double z)
 {

@@ -103,6 +103,25 @@ class EspField
                             const double* point);
 
     /**
+     * The number of electrons the density matrix describes, trace(P S).
+     *
+     * A hard invariant, and the cheapest way to tell a sound density
+     * matrix from a wrongly normalised one: it must come out at the
+     * molecule's electron count.  If it does not, every potential
+     * computed from it is wrong by the same factor and there is no
+     * point looking at the colours.
+     */
+    //  <a|b>.  Exposed because the diagonal of it is the check that
+    //  says whether the basis this was handed is normalised at all --
+    //  a question no other part of the viewer ever asks, since an MO
+    //  isosurface looks the same at any scale.
+    static double overlapOf(const EspBasisFunction& a,
+                            const EspBasisFunction& b);
+
+    static double electronCount(const vector<EspBasisFunction>& basis,
+                                const Pairs& pairs);
+
+    /**
      * The electronic term alone, which is negative everywhere.
      */
     static double electronicPotential(const vector<EspBasisFunction>& basis,
