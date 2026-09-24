@@ -23,6 +23,51 @@ def run(name, atoms, charge=0, keywords="PM7 1SCF VECTORS ALLVEC"):
     return out
 
 
+VALENCE_AOS = {"H": 1, "He": 1}     # s only; everything else s + p
+
+
+def basisCount(symbol):
+    """How many valence AOs MOPAC gives an atom: 1 for H, otherwise 4."""
+    return VALENCE_AOS.get(symbol, 4)
+
+
+def coefficients(out, natoms):
+    """The MO coefficients, one row per orbital, from the VECTORS block.
+
+    MOPAC prints them in blocks of eight columns: a row of eigenvalues,
+    a row of symmetry labels, then one row per basis function.  The
+    rows arrive transposed from what a coefficient table wants, so they
+    are collected per block and stitched together.
+    """
+    body = out.split("EIGENVECTORS")[-1]
+    blocks, current = [], []
+    for line in body.splitlines():
+        t = line.split()
+        #  A coefficient row starts with the orbital type and the atom
+        #  symbol: "S    C    1" or "PX   O    2".
+        #  "S   O    1    0.8516  ..." -- orbital type, element, atom
+        #  number, then the coefficients.  MOPAC writes the type in
+        #  mixed case ("Px", not "PX").
+        if (len(t) > 3
+                and re.fullmatch(r"[SPDFspdf][a-zA-Z0-9]*", t[0])
+                and re.fullmatch(r"[A-Z][a-z]?", t[1])
+                and re.fullmatch(r"\d+", t[2])
+                and all(re.fullmatch(r"-?\d+\.\d+", x) for x in t[3:])):
+            current.append([float(x) for x in t[3:]])
+        elif current:
+            blocks.append(current)
+            current = []
+    if current:
+        blocks.append(current)
+
+    rows = []
+    for block in blocks:
+        width = max(len(r) for r in block)
+        for col in range(width):
+            rows.append([r[col] if col < len(r) else 0.0 for r in block])
+    return rows
+
+
 def parse(out):
     """(group, [(energy_eV, label)]) from a MOPAC output."""
     group = ""
@@ -75,13 +120,17 @@ def symmetrise(atoms, threshold=0.01, autosym="/opt/ecce/bin/autosym"):
     return group, cleaned
 
 
-def spec(path, group, atoms, energies, labels, electrons, charge=0):
+def spec(path, group, atoms, energies, labels, electrons, charge=0,
+         coefs=None):
     HARTREE = 27.211386245988
     lines = ["group %s" % group]
     if charge:
         lines.append("charge %d" % charge)
     for symbol, x, y, z in atoms:
         lines.append("atom %s %.6f %.6f %.6f" % (symbol, x, y, z))
+    lines.append("basis " + " ".join(str(basisCount(s)) for s, _, _, _ in atoms))
+    for row in (coefs or []):
+        lines.append("coef " + " ".join("%.6f" % c for c in row))
     left = electrons
     for i, e in enumerate(energies):
         occ = 2.0 if left >= 2 else (1.0 if left == 1 else 0.0)

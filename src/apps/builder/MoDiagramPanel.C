@@ -10,6 +10,12 @@
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
 #include "tdat/MoFragments.H"
+#include "tdat/PropTable.H"
+#include "tdat/TGBSAngFunc.H"
+#include "dsm/TGBSConfig.H"
+#include "dsm/ICalculation.H"
+#include "dsm/ICalcUtils.H"
+#include "dsm/JCode.H"
 #include "tdat/CharacterTable.H"
 #include "tdat/SymmetryOps.H"
 #include "tdat/TAtm.H"
@@ -548,6 +554,79 @@ MoDiagramPanel::~MoDiagramPanel()
 //   all, which is why it claims ORBENG and not MO -- so it says so
 //   instead of failing silently.
 /////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+// Description
+//   How many basis functions each atom carries.
+//
+//   The molecular orbital coefficients are stored atom by atom in this
+//   order, so this is what says which coefficients belong to which
+//   fragment -- and therefore how much of an orbital sits on each side
+//   of the diagram.
+//
+//   The count is checked against the coefficient table's own width by
+//   the caller.  It has to be: a mapping that is off by one atom
+//   produces a perfectly plausible population rather than an error,
+//   and would quietly connect the wrong levels.
+/////////////////////////////////////////////////////////////////////////////
+static bool functionsPerAtom(IPropCalculation *expt, SGFragment *sgfrag,
+                             vector<int>& counts)
+{
+  counts.clear();
+
+  ICalculation *escalc = dynamic_cast<ICalculation*>(expt);
+  if (escalc == 0 || sgfrag == 0) return false;
+
+  TGBSConfig *config = escalc->gbsConfig();
+
+  //  A semiempirical code writes no basis set; rebuild one from the
+  //  Slater exponents it did report, as MoPanel and ComputeMoCmd both
+  //  do.  Each fetches the config independently.
+  if (config == 0 || config->empty()) {
+    TGBSConfig *slater = ICalcUtils::slaterBasisConfig(expt);
+    if (slater != 0) { delete config; config = slater; }
+  }
+  if (config == 0 || config->empty()) { delete config; return false; }
+
+  const JCode *cap = escalc->application();
+  TGBSAngFunc *angfunc = (cap == 0) ? 0 : cap->getAngFunc(config->coordsys());
+  const bool cartesian =
+      (angfunc != 0 && angfunc->basisType() == TGBSAngFunc::Cartesian);
+  delete angfunc;
+
+  vector<TAtm*> *atoms = sgfrag->atoms();
+  if (atoms == 0) { delete config; return false; }
+
+  bool ok = true;
+  for (size_t a = 0; a < atoms->size(); a++) {
+    const string symbol = (*atoms)[a]->atomicSymbol();
+    int here = 0;
+
+    vector<const TGaussianBasisSet*> list = config->getGBSList(symbol);
+    for (size_t g = 0; g < list.size(); g++) {
+      const TGaussianBasisSet *gbs = list[g];
+      if (gbs == 0) continue;
+      const int sets = gbs->num_contracted_sets(symbol.c_str());
+      for (int ics = 0; ics < sets; ics++) {
+        vector<TGaussianBasisSet::AngularMomentum> types =
+            gbs->func_types(symbol.c_str(), ics);
+        for (size_t t = 0; t < types.size(); t++) {
+          const int l = (int)types[t];
+          //  (l+1)(l+2)/2 Cartesian functions in a shell, 2l+1
+          //  spherical ones -- six Cartesian d against five spherical.
+          here += cartesian ? ((l+1)*(l+2))/2 : (2*l + 1);
+        }
+      }
+    }
+    if (here == 0) ok = false;
+    counts.push_back(here);
+  }
+
+  delete atoms;
+  delete config;
+  return ok && !counts.empty();
+}
+
 
 void MoDiagramPanel::orbitalClicked(int orbengIndex)
 {

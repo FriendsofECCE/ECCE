@@ -490,7 +490,8 @@ void MoDiagram::classify(const vector<MoLevel>& left,
 void MoDiagram::connect(const vector<MoLevel>& left,
                         const vector<MoLevel>& centre,
                         const vector<MoLevel>& right,
-                        vector<MoConnection>& connections)
+                        vector<MoConnection>& connections,
+                        double cutoff)
 {
   connections.clear();
 
@@ -520,9 +521,44 @@ void MoDiagram::connect(const vector<MoLevel>& left,
     const bool excessLeft =
         countOf(left, centre[c].irrep) > countOf(right, centre[c].irrep);
 
+    //  A share of -1 means none was computed, which is not zero: fall
+    //  back to symmetry rather than deciding the level is connected to
+    //  nothing.
+    const bool knowShare = (centre[c].shareLeft >= 0.0 ||
+                            centre[c].shareRight >= 0.0);
+    bool onLeft  = !knowShare || centre[c].shareLeft  >= cutoff;
+    bool onRight = !knowShare || centre[c].shareRight >= cutoff;
+
+    //  A NON-BONDING LEVEL GETS ONE LINE, TO THE FRAGMENT IT IS ON.
+    //
+    //  The cutoff alone does not thin a small molecule's diagram,
+    //  because a small molecule's orbitals really are spread over both
+    //  fragments: every level of nitrite clears five per cent on both
+    //  sides, and rightly.  What is not true is that a non-bonding
+    //  level is interacting with both -- it exists because one
+    //  fragment had an orbital the other could not match -- so it is
+    //  drawn to whichever side carries it, which is the honest line
+    //  and half the lines.
+    //
+    //  Which side that is comes from the composition where there is
+    //  one, and from the counting where there is not.  The two agree
+    //  where both are available: nitrite's a2 is the one the counting
+    //  calls non-bonding for want of a partner, and the coefficients
+    //  put it at 100% on the oxygens.
+    if (nonBonding) {
+      if (knowShare) {
+        const bool leftWins = centre[c].shareLeft > centre[c].shareRight;
+        onLeft  = onLeft  && leftWins;
+        onRight = onRight && !leftWins;
+      } else {
+        onLeft  = onLeft  && excessLeft;
+        onRight = onRight && !excessLeft;
+      }
+    }
+
     for (size_t l = 0; l < left.size(); l++) {
       if (left[l].irrep != centre[c].irrep) continue;
-      if (nonBonding && !excessLeft) continue;
+      if (!onLeft) continue;
       MoConnection link;
       link.leftLevel = (int)l;
       link.centreLevel = (int)c;
@@ -533,7 +569,7 @@ void MoDiagram::connect(const vector<MoLevel>& left,
 
     for (size_t r = 0; r < right.size(); r++) {
       if (right[r].irrep != centre[c].irrep) continue;
-      if (nonBonding && excessLeft) continue;
+      if (!onRight) continue;
       MoConnection link;
       link.leftLevel = -1;
       link.centreLevel = (int)c;

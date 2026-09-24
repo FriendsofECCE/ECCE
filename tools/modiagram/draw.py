@@ -55,7 +55,8 @@ def read(stream):
                 "deg": int(f[5]), "label": f[6], "irrep": f[7],
                 "annot": "" if f[8] == "-" else f[8],
                 "character": int(f[9]), "pair": int(f[10]),
-                "each": [float(x) for x in f[11:]]})
+                "shareLeft": float(f[11]), "shareRight": float(f[12]),
+                "each": [float(x) for x in f[13:]]})
         elif f[0] == "link":
             model["links"].append(tuple(int(x) for x in f[1:4]))
     return model

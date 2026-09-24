@@ -82,6 +82,36 @@ class MoFragments
                           vector<int>& terminal);
 
     /**
+     * How much of one molecular orbital sits on a set of atoms.
+     *
+     * A Mulliken population restricted to those atoms:
+     *
+     *     q_A = sum_{mu in A} sum_nu c_mu c_nu S_{mu,nu}
+     *
+     * divided by the orbital's total, so it comes out between 0 and 1.
+     * With no overlap matrix the basis is taken as orthonormal and it
+     * reduces to the sum of c^2, which is a Lowdin population and is
+     * the right answer for a semiempirical calculation, whose
+     * coefficients are in an orthonormalised basis to begin with.
+     *
+     * @param coefficients     one per basis function
+     * @param functionsPerAtom one per atom, in the same order the
+     *                         coefficients are; the caller must have
+     *                         checked they sum to the basis size,
+     *                         because a mapping that is off by one
+     *                         atom produces a plausible number rather
+     *                         than an error
+     * @param atoms            which atoms the share is wanted for
+     * @param overlap          nbas*nbas, row major, or empty
+     *
+     * @return the share, or -1 if the arguments do not line up
+     */
+    static double share(const vector<double>& coefficients,
+                        const vector<int>& functionsPerAtom,
+                        const vector<int>& atoms,
+                        const vector<double>& overlap);
+
+    /**
      * Build both outer columns.
      *
      * @param coords     3N, atom-major, Angstrom
@@ -95,6 +125,11 @@ class MoFragments
      *                   orbitals
      * @param note       filled with why the columns are empty, when
      *                   they are
+     * @param leftAtoms  optional: the atoms the left column is built
+     *                   from, so a caller can ask how much of each
+     *                   molecular orbital sits there without repeating
+     *                   the orbit analysis
+     * @param rightAtoms optional: the same for the right column
      *
      * @return false if no symmetry argument could be made, with `note`
      *         explaining which step gave out.
@@ -105,7 +140,9 @@ class MoFragments
                       int charge,
                       MoColumn& left,
                       MoColumn& right,
-                      string& note);
+                      string& note,
+                      vector<int>* leftAtoms = 0,
+                      vector<int>* rightAtoms = 0);
 };
 
 #endif

@@ -484,6 +484,66 @@ int main(int argc, char** argv) {
     if (!refused) bad++;
   }
 
+  //  --- how much of an orbital sits on each fragment ----------------
+  {
+    printf("\n  composition\n");
+
+    //  Three atoms, one function on the first and two on each of the
+    //  others: five functions in all.
+    int fpa[] = {1, 2, 2};
+    vector<int> perAtom(fpa, fpa + 3);
+    int one[] = {0};
+    int two[] = {1, 2};
+    vector<int> first(one, one + 1), rest(two, two + 2);
+    const vector<double> noOverlap;
+
+    //  All on the first atom.
+    double a[] = {1.0, 0.0, 0.0, 0.0, 0.0};
+    vector<double> ca(a, a + 5);
+    checkd("entirely on the first atom",
+           MoFragments::share(ca, perAtom, first, noOverlap), 1.0, 1e-12);
+    checkd("and nothing on the others",
+           MoFragments::share(ca, perAtom, rest, noOverlap), 0.0, 1e-12);
+
+    //  Half and half, in an orthonormal basis.
+    const double h = 0.5;
+    double b[] = {h, h, h, h, h};
+    vector<double> cb(b, b + 5);
+    checkd("one of five functions is a fifth of it",
+           MoFragments::share(cb, perAtom, first, noOverlap), 0.2, 1e-12);
+    checkd("the other four are the rest",
+           MoFragments::share(cb, perAtom, rest, noOverlap), 0.8, 1e-12);
+
+    //  The shares of a partition must add to one, whatever the
+    //  coefficients: that is what makes a cutoff mean anything.
+    double c3[] = {0.3, -0.7, 0.1, 0.55, -0.2};
+    vector<double> cc(c3, c3 + 5);
+    checkd("the two shares add to one",
+           MoFragments::share(cc, perAtom, first, noOverlap) +
+           MoFragments::share(cc, perAtom, rest, noOverlap), 1.0, 1e-12);
+
+    //  WITH an overlap matrix the populations are Mulliken ones and
+    //  still add to one, which is the property the cutoff relies on.
+    vector<double> S(25, 0.0);
+    for (int i = 0; i < 5; i++) S[i*5 + i] = 1.0;
+    S[0*5 + 1] = S[1*5 + 0] = 0.3;      // the two fragments overlap
+    S[2*5 + 3] = S[3*5 + 2] = -0.15;
+    checkd("with overlap, the shares still add to one",
+           MoFragments::share(cc, perAtom, first, S) +
+           MoFragments::share(cc, perAtom, rest, S), 1.0, 1e-12);
+
+    //  A mapping that does not account for every function is refused,
+    //  because an off-by-one there gives a plausible number instead of
+    //  an error.
+    int wrong[] = {1, 2};
+    vector<int> shortMap(wrong, wrong + 2);
+    const bool refused =
+        MoFragments::share(cc, shortMap, first, noOverlap) < 0.0;
+    printf("  %-46s %s\n", "a mapping that misses functions is refused",
+           refused ? "ok" : "FAIL");
+    if (!refused) bad++;
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }

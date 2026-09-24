@@ -18,6 +18,8 @@
 //      group  <NAME>                 the point group, uppercase
 //      atom   <symbol> <x> <y> <z>   Angstrom
 //      orbital <energy> <occupancy> [label]    Hartree; repeatable
+//      basis  <n> <n> ...            basis functions per atom
+//      coef   <c> <c> ...            one line per orbital, in order
 //
 //  Output: plain text, one record per line, read by draw.py.
 #include <cstdio>
@@ -44,6 +46,7 @@ static void printColumn(const char* side, const MoColumn& col)
            l.label.c_str(), l.irrep.c_str(),
            l.annotation.empty() ? "-" : l.annotation.c_str(),
            (int)l.character, l.pairing);
+    printf("\t%.4f\t%.4f", l.shareLeft, l.shareRight);
     for (size_t k = 0; k < l.energies.size(); k++) {
       printf("\t%.10g", l.energies[k]);
     }
@@ -65,6 +68,8 @@ int main(int argc, char** argv)
   vector<string> elements;
   vector<double> energies, occupancies;
   vector<string> labels;
+  vector<int> perAtom;
+  vector< vector<double> > coefficients;
 
   ifstream in(argv[2]);
   string line;
@@ -79,6 +84,14 @@ int main(int argc, char** argv)
       parse >> symbol >> x >> y >> z;
       elements.push_back(symbol);
       coords.push_back(x); coords.push_back(y); coords.push_back(z);
+    } else if (what == "basis") {
+      int n;
+      while (parse >> n) perAtom.push_back(n);
+    } else if (what == "coef") {
+      vector<double> row;
+      double c;
+      while (parse >> c) row.push_back(c);
+      coefficients.push_back(row);
     } else if (what == "orbital") {
       double e, o; string label;
       parse >> e >> o;
@@ -115,8 +128,35 @@ int main(int argc, char** argv)
   MoDiagram::hideAbove(centre, MoDiagram::suggestVirtualCutoff(centre.levels));
 
   string note;
+  vector<int> leftAtoms, rightAtoms;
   bool haveFragments = MoFragments::build(coords, elements, group, charge,
-                                          left, right, note);
+                                          left, right, note,
+                                          &leftAtoms, &rightAtoms);
+
+  //  The same composition the panel computes, so what is drawn here is
+  //  what ECCE draws.
+  if (haveFragments && !perAtom.empty() && !coefficients.empty()) {
+    const vector<double> noOverlap;
+    for (size_t i = 0; i < centre.levels.size(); i++) {
+      MoLevel& level = centre.levels[i];
+      double onLeft = 0.0, onRight = 0.0;
+      int counted = 0;
+      for (size_t k = 0; k < level.orbitals.size(); k++) {
+        const int mo = level.orbitals[k];
+        if (mo < 0 || mo >= (int)coefficients.size()) continue;
+        const double l = MoFragments::share(coefficients[mo], perAtom,
+                                            leftAtoms, noOverlap);
+        const double r = MoFragments::share(coefficients[mo], perAtom,
+                                            rightAtoms, noOverlap);
+        if (l < 0.0 || r < 0.0) continue;
+        onLeft += l; onRight += r; counted++;
+      }
+      if (counted > 0) {
+        level.shareLeft  = onLeft/counted;
+        level.shareRight = onRight/counted;
+      }
+    }
+  }
   if (haveFragments) {
     //  Reconcile the axis conventions BEFORE anything is matched on
     //  the names: in C2v the character table and the code need not

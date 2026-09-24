@@ -28,6 +28,24 @@ struct MoLevel
    string         irrep;           // canonical irrep name, for matching
    string         annotation;      // extra text, e.g. a fragment's VOIE
 
+   /**
+    * How much of this level sits on each fragment, 0 to 1.
+    *
+    * Symmetry says which orbitals MAY mix; only the calculation says
+    * which ones DO.  In C2v every a1 orbital is allowed to mix with
+    * every other a1 orbital, so matching on the label alone draws a
+    * line from each to all of them and a diagram of anything bigger
+    * than water comes out as a web.  These are the shares a population
+    * analysis gives, and a level that carries almost nothing of a
+    * fragment gets no line to it.
+    *
+    * Negative when no composition was available, which is not the same
+    * as zero and must not be treated as it: the diagram then falls back
+    * to symmetry alone rather than deciding everything is unconnected.
+    */
+   double         shareLeft;
+   double         shareRight;
+
    /** What the level is: see MoDiagram::classify(). */
    enum Character { UNKNOWN, BONDING, NONBONDING, ANTIBONDING };
    Character      character;
@@ -58,6 +76,7 @@ struct MoLevel
    vector<double> energies;
 
    MoLevel() : energy(0.0), occupancy(0.0), degeneracy(0),
+               shareLeft(-1.0), shareRight(-1.0),
                character(UNKNOWN), pairing(-1) {}
 };
 
@@ -296,10 +315,34 @@ class MoDiagram
                          vector<MoLevel>& centre,
                          const vector<MoLevel>& right);
 
+    /**
+     * Connect fragment levels to molecular orbitals.
+     *
+     * Symmetry decides what MAY connect: orbitals of different irreps
+     * cannot mix, and orbitals of the same one must be allowed to --
+     * water's oxygen 2s and 2pz are both a1 and both mix into every a1
+     * orbital, which is the point of the diagram and cannot be drawn
+     * by matching each orbital to one partner.
+     *
+     * COMPOSITION DECIDES WHAT ACTUALLY DOES.  In any molecule past
+     * the smallest, symmetry alone permits far more than happens: in a
+     * large molecule an orbital has a formal contribution from atoms
+     * halfway across it, and drawing all of them buries the two or
+     * three interactions the diagram is about.  Where a level carries
+     * a composition (MoLevel::shareLeft/shareRight), a fragment it
+     * holds less than @p cutoff of gets no line.
+     *
+     * Where it carries none -- a calculation whose coefficients or
+     * basis were not available -- symmetry is used on its own, which
+     * is a busier diagram and not a wrong one.
+     *
+     * @param cutoff  the least share worth drawing, 0 to 1
+     */
     static void connect(const vector<MoLevel>& left,
                         const vector<MoLevel>& centre,
                         const vector<MoLevel>& right,
-                        vector<MoConnection>& connections);
+                        vector<MoConnection>& connections,
+                        double cutoff = 0.05);
 };
 
 #endif

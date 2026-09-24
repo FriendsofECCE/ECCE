@@ -328,14 +328,75 @@ static void addLevels(const CharacterTable& table,
 }
 
 
+double MoFragments::share(const vector<double>& coefficients,
+                          const vector<int>& functionsPerAtom,
+                          const vector<int>& atoms,
+                          const vector<double>& overlap)
+{
+   const size_t nbas = coefficients.size();
+   if (nbas == 0 || functionsPerAtom.empty()) return -1.0;
+
+   //  The mapping has to account for every function.  An off-by-one
+   //  here gives a number that looks like a population instead of an
+   //  error, so it is checked rather than trusted.
+   int total = 0;
+   for (size_t i = 0; i < functionsPerAtom.size(); i++) {
+      total += functionsPerAtom[i];
+   }
+   if (total != (int)nbas) return -1.0;
+
+   const bool haveOverlap = (overlap.size() == nbas*nbas);
+
+   //  Where each atom's functions start.
+   vector<int> first(functionsPerAtom.size(), 0);
+   int at = 0;
+   for (size_t i = 0; i < functionsPerAtom.size(); i++) {
+      first[i] = at;
+      at += functionsPerAtom[i];
+   }
+
+   //  Which functions belong to the set asked about.
+   vector<bool> mine(nbas, false);
+   for (size_t k = 0; k < atoms.size(); k++) {
+      const int a = atoms[k];
+      if (a < 0 || a >= (int)functionsPerAtom.size()) return -1.0;
+      for (int f = 0; f < functionsPerAtom[a]; f++) mine[first[a] + f] = true;
+   }
+
+   double wanted = 0.0, whole = 0.0;
+   for (size_t mu = 0; mu < nbas; mu++) {
+      if (coefficients[mu] == 0.0 && !haveOverlap) continue;
+
+      double row = 0.0;
+      if (haveOverlap) {
+         for (size_t nu = 0; nu < nbas; nu++) {
+            row += coefficients[mu]*coefficients[nu]*overlap[mu*nbas + nu];
+         }
+      } else {
+         row = coefficients[mu]*coefficients[mu];
+      }
+      whole += row;
+      if (mine[mu]) wanted += row;
+   }
+
+   if (whole <= 0.0) return -1.0;
+   return wanted/whole;
+}
+
+
 bool MoFragments::build(const vector<double>& coords,
                         const vector<string>& elements,
                         const string& group,
                         int charge,
                         MoColumn& left,
                         MoColumn& right,
-                        string& note)
+                        string& note,
+                        vector<int>* leftAtoms,
+                        vector<int>* rightAtoms)
 {
+   if (leftAtoms  != 0) leftAtoms->clear();
+   if (rightAtoms != 0) rightAtoms->clear();
+
    left  = MoColumn();
    right = MoColumn();
    note.clear();
@@ -412,6 +473,13 @@ bool MoFragments::build(const vector<double>& coords,
    //  THE COLUMNS ARE NAMED BY THE ATOMS THEY BELONG TO: "O" on one
    //  side, "2H TASOs" on the other, which is how the diagram is read
    //  and how the course names them.
+   //  Which atoms ended up on each side, for a caller that wants to
+   //  ask how much of a molecular orbital sits there.  Reported rather
+   //  than left to be re-derived: repeating the orbit analysis outside
+   //  is a second chance to disagree with this one.
+   if (leftAtoms  != 0) leftAtoms->assign(1, central);
+   if (rightAtoms != 0) *rightAtoms = terminal;
+
    vector<int> centralOnly(1, central);
    left.title = elements[central];
 
