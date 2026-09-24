@@ -48,6 +48,27 @@ out T₂, in Oh T₁ᵤ, in D3h E′+A₂″.
 Every check here was self-tested by introducing the error and watching
 it fail: a flipped sign, a row swap, a renamed irrep, a g/u mislabel.
 
+## The C++ loader
+
+`CharacterTable` reads the same file and provides the reduction formula,
+`n_i = (1/h) Σ_c n_c χ_i(c) χ(c)`. It is checked separately, because the
+data being sound says nothing about the parser: one that drops a row, or
+goes off by one between `classes` and `counts`, leaves a table that is
+still internally consistent and simply describes a different group.
+
+It is checked against the same oracle — what (x, y, z) spans, computed
+from the class names — so the check does not come from the numbers being
+read.
+
+The parsing deliberately has no ECCE runtime dependency (`loadFile()`
+takes a path; only the convenience `lookup()` consults `$ECCE_HOME`), so
+the test compiles with plain g++ and needs no build tree.
+
+A reduction that comes out negative or non-integral is **refused, not
+rounded**. That case means the characters handed in are not a
+representation of the group, and the likeliest cause is a wrong frame —
+rounding would turn that into a plausible answer.
+
 ## Scope
 
 Thirteen groups: C1, Cs, Ci, C2, C2v, C3v, C4v, C2h, D2h, D3h, D4h, Td,

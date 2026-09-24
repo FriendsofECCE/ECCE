@@ -39,6 +39,7 @@ Exit 0 if every table is sound, 1 otherwise.
 import argparse
 import math
 import os
+import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -240,6 +241,42 @@ def checkGroup(name, h, classes, counts, irreps, report):
                          % (name, classes[a], classes[b], total, want))
 
 
+def checkLoader(tablePath, verbose):
+    """Does the C++ loader read the same file faithfully?
+
+    run_tests.py proves the DATA is sound.  A parser that drops a row or
+    goes off by one between classes and counts would leave a table that
+    is still internally consistent and simply describes a different
+    group, so the loader is checked separately -- against the same
+    oracle, what (x,y,z) spans, which is computed from the class names
+    and so does not come from the numbers being read.
+
+    Compiled with plain g++: CharacterTable deliberately has no ECCE
+    runtime dependency in its parsing, so this needs no build tree.
+    """
+    out = os.path.join(HERE, "testCharacterTable")
+    cmd = ["g++", "-O2", "-w", "-I", os.path.join(ROOT, "include"),
+           "-o", out,
+           os.path.join(HERE, "testCharacterTable.C"),
+           os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C")]
+
+    build = subprocess.run(cmd, capture_output=True, text=True)
+    if build.returncode != 0:
+        print("  could not build the C++ loader test:")
+        print(build.stderr)
+        return 1
+
+    run = subprocess.run([out, tablePath], capture_output=True, text=True)
+    if verbose or run.returncode != 0:
+        print(run.stdout, end="")
+        if run.stderr:
+            print(run.stderr, end="")
+    elif run.returncode == 0:
+        print("  C++ loader: PASS")
+    os.unlink(out)
+    return run.returncode
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -283,6 +320,12 @@ def main():
     if report.failures:
         print("FAILED  %d" % report.failures)
         return 1
+
+    print("")
+    if checkLoader(tablePath, args.verbose) != 0:
+        print("FAILED  the C++ loader")
+        return 1
+
     print("PASSED")
     return 0
 
