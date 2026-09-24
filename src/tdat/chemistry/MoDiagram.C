@@ -309,6 +309,9 @@ bool MoDiagram::groupByIrrep(const vector<double>& energies,
 }
 
 
+static bool equivalentColumns(const vector<MoLevel>& a,
+                              const vector<MoLevel>& b);
+
 void MoDiagram::placeFragments(const MoColumn& centre,
                                MoColumn& left, MoColumn& right,
                                const vector<MoConnection>& connections)
@@ -338,6 +341,60 @@ void MoDiagram::placeFragments(const MoColumn& centre,
   //  it is worth reading, and it is not this axis.
   MoColumn* cols[2] = { &left, &right };
   int c;
+
+  //  TWO EQUIVALENT HALVES CARRY NO PLACEMENT INFORMATION.
+  //
+  //  A fragment level normally sits at the share-weighted mean of
+  //  the orbitals it became, and that works because the shares say
+  //  something.  Where the two fragments are equivalent they say
+  //  nothing: each half holds exactly half of every orbital, by
+  //  symmetry and not by accident, so every level of every shell
+  //  gets the same weights and the column comes out scrambled --
+  //  ethene drew its carbon 2s above its 2p and its 2p three
+  //  Hartree below the lowest molecular orbital.
+  //
+  //  There the tabulated energies are the only ordering there is,
+  //  and they are the ordering a person draws: carbon 2s below
+  //  carbon 2p, hydrogen 1s between them.  Mapped onto the range the
+  //  molecular orbitals occupy, so the two columns sit beside the
+  //  spectrum rather than in eV somewhere off the page.
+  if (equivalentColumns(left.levels, right.levels)) {
+    double lowTab = 1.0e30, highTab = -1.0e30;
+    for (size_t i = 0; i < left.levels.size(); i++) {
+      const double e = left.levels[i].energy;
+      if (e < lowTab)  lowTab = e;
+      if (e > highTab) highTab = e;
+    }
+
+    double lowMo = 1.0e30, highMo = -1.0e30;
+    for (size_t i = 0; i < centre.levels.size(); i++) {
+      const double e = centre.levels[i].energy;
+      if (e < lowMo)  lowMo = e;
+      if (e > highMo) highMo = e;
+    }
+
+    if (highTab > lowTab && highMo > lowMo) {
+      //  Inside the spectrum, not spanning it: fragment levels lie
+      //  between the bonding orbitals they make and the antibonding
+      //  ones, never outside both.
+      const double margin = 0.2*(highMo - lowMo);
+      const double bottom = lowMo + margin;
+      const double top    = highMo - margin;
+      const double scale  = (top - bottom)/(highTab - lowTab);
+
+      for (c = 0; c < 2; c++) {
+        for (size_t i = 0; i < cols[c]->levels.size(); i++) {
+          MoLevel& level = cols[c]->levels[i];
+          char text[64];
+          snprintf(text, sizeof(text), "free atom %.2f Ha",
+                   level.energy/27.211386);
+          level.annotation = text;
+          level.energy = bottom + scale*(level.energy - lowTab);
+        }
+      }
+      return;
+    }
+  }
 
   //  WHICH LEVELS WERE ACTUALLY PLACED, RECORDED RATHER THAN GUESSED.
   //
@@ -1192,6 +1249,17 @@ void MoDiagram::connect(const vector<MoLevel>& left,
       }
     }
 
+    //  AT MOST TWO LINES A SIDE, THE NEAREST IN ENERGY.
+    //
+    //  Drawing every matching fragment level is right and is the
+    //  point -- symmetry mixing is why a correlation diagram is more
+    //  than a list.  But where composition cannot discriminate it
+    //  matches everything: two equivalent halves each carry half of
+    //  every orbital by symmetry, so ethene drew a hundred and two
+    //  lines and nothing could be read.  Two is enough for mixing to
+    //  show and few enough to follow.
+    vector< std::pair<double,size_t> > leftNear, rightNear;
+
     for (size_t l = 0; l < left.size(); l++) {
       //  Matched on the irrep where there is one, and on the shell
       //  where there is not -- a diatomic's columns carry no irrep,
@@ -1203,8 +1271,14 @@ void MoDiagram::connect(const vector<MoLevel>& left,
         continue;
       }
       if (bySymmetry && !onLeft) continue;
+      leftNear.push_back(std::make_pair(
+          fabs(left[l].energy - centre[c].energy), l));
+    }
+
+    std::sort(leftNear.begin(), leftNear.end());
+    for (size_t k = 0; k < leftNear.size() && k < 2; k++) {
       MoConnection link;
-      link.leftLevel = (int)l;
+      link.leftLevel = (int)leftNear[k].second;
       link.centreLevel = (int)c;
       link.rightLevel = -1;
       connections.push_back(link);
@@ -1219,10 +1293,16 @@ void MoDiagram::connect(const vector<MoLevel>& left,
         continue;
       }
       if (bySymmetry && !onRight) continue;
+      rightNear.push_back(std::make_pair(
+          fabs(right[r].energy - centre[c].energy), r));
+    }
+
+    std::sort(rightNear.begin(), rightNear.end());
+    for (size_t k = 0; k < rightNear.size() && k < 2; k++) {
       MoConnection link;
       link.leftLevel = -1;
       link.centreLevel = (int)c;
-      link.rightLevel = (int)r;
+      link.rightLevel = (int)rightNear[k].second;
       connections.push_back(link);
       any = true;
     }

@@ -733,6 +733,240 @@ static void bondedTo(int centre, const vector<int>& candidates,
 }
 
 
+/**
+ * Split a molecule into two halves across a single bond.
+ *
+ * The bond has to be a BRIDGE: cutting it must leave two pieces, not
+ * one ring.  Ethene's C=C is one; a benzene C-C is not, which is why
+ * benzene is not two halves and has to be done another way.
+ *
+ * @return false unless the two pieces are the same size and carry the
+ *         same elements, since only equivalent halves combine in and
+ *         out of phase.
+ */
+static bool splitAcrossBond(const vector<double>& coords,
+                            const vector<string>& elements,
+                            vector<int>& halfA, vector<int>& halfB)
+{
+   const int n = (int)elements.size();
+   if (n < 4) return false;
+
+   //  Adjacency, each atom against its own nearest neighbour.
+   vector< vector<int> > near(n);
+   for (int i = 0; i < n; i++) {
+      vector<int> others;
+      for (int j = 0; j < n; j++) if (j != i) others.push_back(j);
+      bondedTo(i, others, coords, near[i]);
+   }
+
+   for (int a = 0; a < n; a++) {
+      for (size_t k = 0; k < near[a].size(); k++) {
+         const int b = near[a][k];
+         if (b < a) continue;
+
+         //  Flood from a, refusing to cross a-b.
+         vector<bool> seen(n, false);
+         vector<int> stack(1, a);
+         seen[a] = true;
+         while (!stack.empty()) {
+            const int here = stack.back();
+            stack.pop_back();
+            for (size_t m = 0; m < near[here].size(); m++) {
+               const int next = near[here][m];
+               if ((here == a && next == b) || (here == b && next == a)) {
+                  continue;
+               }
+               if (!seen[next]) { seen[next] = true; stack.push_back(next); }
+            }
+         }
+         if (seen[b]) continue;              // a ring, not a bridge
+
+         vector<int> A, B;
+         for (int i = 0; i < n; i++) (seen[i] ? A : B).push_back(i);
+         if (A.size() != B.size() || A.empty()) continue;
+
+         map<string,int> countA, countB;
+         for (size_t i = 0; i < A.size(); i++) countA[elements[A[i]]]++;
+         for (size_t i = 0; i < B.size(); i++) countB[elements[B[i]]]++;
+         if (countA != countB) continue;
+
+         halfA = A;
+         halfB = B;
+         return true;
+      }
+   }
+   return false;
+}
+
+
+/**
+ * The operations that map a set of atoms onto itself.
+ *
+ * These form a subgroup, and it is the group the fragment's own
+ * orbitals belong to -- C2v for a CH2 of ethene, which is the group
+ * a person uses for it without thinking about where it came from.
+ */
+static void subgroupOf(const vector<int>& atoms,
+                       const vector< vector<int> >& images,
+                       vector<int>& keepOps)
+{
+   keepOps.clear();
+   for (size_t op = 0; op < images.size(); op++) {
+      bool closed = true;
+      for (size_t i = 0; i < atoms.size() && closed; i++) {
+         const int image = images[op][atoms[i]];
+         bool inside = false;
+         for (size_t j = 0; j < atoms.size(); j++) {
+            if (atoms[j] == image) inside = true;
+         }
+         if (!inside) closed = false;
+      }
+      if (closed) keepOps.push_back((int)op);
+   }
+}
+
+
+/**
+ * Which named group a set of operations is.
+ *
+ * Tried against every table of the right order, and accepted only
+ * when the conjugacy classes match -- two groups of the same order
+ * are common (C2v and C2h are both four) and telling them apart is
+ * the whole point.
+ */
+static const CharacterTable* nameSubgroup(const vector<SymOp>& ops,
+                                          vector<int>& classOfOp)
+{
+   const vector<string> candidates = CharacterTable::names();
+
+   vector< vector<int> > classes;
+   SymmetryAnalysis::conjugacyClasses(ops, classes);
+
+   for (size_t i = 0; i < candidates.size(); i++) {
+      const CharacterTable *table = CharacterTable::lookup(candidates[i]);
+      if (table == 0 || table->order() != (int)ops.size()) continue;
+      if (table->classes().size() != classes.size()) continue;
+
+      vector<int> mapping;
+      if (SymmetryAnalysis::matchClasses(ops, classes, *table, mapping)) {
+         classOfOp = mapping;
+         return table;
+      }
+   }
+   return 0;
+}
+
+
+/**
+ * Two halves of a molecule, and what their combinations become.
+ *
+ * THE FRAGMENTS A PERSON USES ARE NOT UNIONS OF ORBITS.  Ethene's
+ * two CH2 groups are the obvious way to build its diagram, and in
+ * D2h the orbits are "both carbons" and "all four hydrogens" -- so a
+ * CH2 crosses them, the full group maps it outside itself, and it
+ * has no symmetry orbitals at all.  That is why choosing fragments
+ * by grouping orbits cannot express the one fragmentation the
+ * molecule is actually taught with.
+ *
+ * The way through is the one a person uses without naming it: work
+ * in the SUBGROUP that maps each half onto itself -- C2v for a CH2
+ * of ethene -- where the half is a union of orbits and the ordinary
+ * machinery applies.  Each half-orbital then appears twice in the
+ * molecule, in phase and out of phase, and those two combinations
+ * span the full group's irreps.
+ *
+ * Which irreps is the induced representation of the subgroup's
+ * irrep, and it is computed rather than looked up: the character is
+ * twice the subgroup's on operations that stay inside the subgroup
+ * and zero on those that do not, and reducing that in the full group
+ * gives the pair.  Checked, not assumed -- a reduction that does not
+ * come out as whole numbers of the right total dimension means the
+ * assumption behind it failed, and the honest answer is then to say
+ * so rather than to round.
+ */
+static bool inducedIrreps(const CharacterTable& full,
+                          const CharacterTable& sub,
+                          const vector<int>& keepOps,
+                          const vector<int>& classOfOp,
+                          const vector<int>& subClassOfOp,
+                          const string& subIrrep,
+                          vector<string>& produced,
+                          vector<bool>& inPhase)
+{
+   produced.clear();
+   inPhase.clear();
+
+   const vector<double> *subChi = sub.characters(subIrrep);
+   if (subChi == 0) return false;
+
+   //  One representative operation per class of the FULL group, and
+   //  whether it survives into the subgroup.
+   const size_t fullClasses = full.classes().size();
+   vector<double> chi(fullClasses, 0.0);
+   vector<bool> filled(fullClasses, false);
+
+   for (size_t op = 0; op < classOfOp.size(); op++) {
+      const int fullClass = classOfOp[op];
+      if (fullClass < 0 || (size_t)fullClass >= fullClasses) continue;
+      if (filled[fullClass]) continue;
+
+      int where = -1;
+      for (size_t k = 0; k < keepOps.size(); k++) {
+         if (keepOps[k] == (int)op) where = (int)k;
+      }
+
+      if (where < 0) {
+         chi[fullClass] = 0.0;            // leaves the subgroup
+      } else {
+         const int subClass = subClassOfOp[where];
+         if (subClass < 0 || (size_t)subClass >= subChi->size()) return false;
+         chi[fullClass] = 2.0*(*subChi)[subClass];
+      }
+      filled[fullClass] = true;
+   }
+
+   for (size_t c = 0; c < fullClasses; c++) if (!filled[c]) return false;
+
+   vector<int> multiplicity;
+   if (!full.reduce(chi, multiplicity)) return false;
+
+   //  WHICH COMBINATION IS WHICH, DERIVED RATHER THAN ASSUMED.
+   //
+   //  The in-phase combination is the one that survives the operation
+   //  that SWAPS the halves: psi+ = phi + R(phi) is symmetric under R
+   //  by construction, psi- = phi - R(phi) is antisymmetric.  So the
+   //  sign of an irrep's character on a swapping class says which
+   //  combination it is.  Taking the reduction's order instead would
+   //  have been a guess dressed as an answer.
+   int swapClass = -1;
+   for (size_t op = 0; op < classOfOp.size() && swapClass < 0; op++) {
+      bool inside = false;
+      for (size_t k = 0; k < keepOps.size(); k++) {
+         if (keepOps[k] == (int)op) inside = true;
+      }
+      if (!inside) swapClass = classOfOp[op];
+   }
+   if (swapClass < 0) return false;
+
+   int dimension = 0;
+   const vector<string>& names = full.irreps();
+   for (size_t i = 0; i < names.size() && i < multiplicity.size(); i++) {
+      const vector<double> *chiFull = full.characters(names[i]);
+      if (chiFull == 0 || (size_t)swapClass >= chiFull->size()) return false;
+
+      for (int k = 0; k < multiplicity[i]; k++) {
+         produced.push_back(names[i]);
+         inPhase.push_back((*chiFull)[swapClass] > 0.0);
+         dimension += full.dimension(names[i]);
+      }
+   }
+
+   //  Two copies of the subgroup orbital go in; the same number of
+   //  orbitals must come out.
+   return dimension == 2*sub.dimension(subIrrep) && !produced.empty();
+}
+
+
 static void buildSigmaColumn(const vector<int>& attachments,
                              const vector<string>& elements,
                              int numAtoms,
@@ -798,6 +1032,141 @@ static void buildSigmaColumn(const vector<int>& attachments,
       }
       if (any) addLevels(table, pi, -11.0, "pi", 1, column.levels);
    }
+}
+
+
+/**
+ * The two columns of a fragment diagram built from two halves.
+ *
+ * Left is the in-phase combination of each half-orbital, right the
+ * out-of-phase one -- which is what the two columns of a hand-drawn
+ * fragment diagram are, and why the same local label appears on
+ * both.  The irrep each carries is the full group's, so the
+ * correlation lines find the molecular orbitals by symmetry exactly
+ * as they do for a central-atom diagram.
+ */
+static bool buildHalves(const vector<double>& coords,
+                        const vector<string>& elements,
+                        const CharacterTable& full,
+                        const vector<SymOp>& ops,
+                        const vector< vector<int> >& images,
+                        const vector<int>& classOfOp,
+                        int numAtoms,
+                        MoColumn& left, MoColumn& right, string& note)
+{
+   vector<int> halfA, halfB;
+   if (!splitAcrossBond(coords, elements, halfA, halfB)) return false;
+
+   vector<int> keepOps;
+   subgroupOf(halfA, images, keepOps);
+   if (keepOps.size() < 2 || keepOps.size() >= ops.size()) return false;
+
+   vector<SymOp> subOps;
+   vector< vector<int> > subImages;
+   for (size_t k = 0; k < keepOps.size(); k++) {
+      subOps.push_back(ops[keepOps[k]]);
+      subImages.push_back(images[keepOps[k]]);
+   }
+
+   vector<int> subClassOfOp;
+   const CharacterTable *sub = nameSubgroup(subOps, subClassOfOp);
+   if (sub == 0) return false;
+
+   //  Named for what they are: a person says "the two CH2 fragments",
+   //  and the local group is worth saying because it is the one the
+   //  fragment's own labels belong to.
+   map<string,int> count;
+   for (size_t i = 0; i < halfA.size(); i++) count[elements[halfA[i]]]++;
+   ostringstream formula;
+   for (map<string,int>::const_iterator it = count.begin();
+        it != count.end(); ++it) {
+      formula << it->first;
+      if (it->second > 1) formula << it->second;
+   }
+
+   left.title  = formula.str() + " (" + sub->name() + ")";
+   right.title = left.title;
+
+   //  Each element's shells, in the subgroup, exactly as a
+   //  central-atom fragment is built -- the half IS a union of orbits
+   //  there, which is the whole reason for dropping into it.
+   map< string, vector<int> > byElement;
+   for (size_t i = 0; i < halfA.size(); i++) {
+      byElement[elements[halfA[i]]].push_back(halfA[i]);
+   }
+
+   bool built = false;
+   for (map< string, vector<int> >::const_iterator it = byElement.begin();
+        it != byElement.end(); ++it) {
+      const string& symbol = it->first;
+
+      for (int l = 0; l <= 2; l++) {
+         double eV;
+         if (!MoFragments::valenceEnergy(symbol, l, eV)) continue;
+
+         vector<int> multiplicity;
+         if (!shellIrreps(it->second, l, numAtoms, subImages, subClassOfOp,
+                          subOps, *sub, multiplicity)) {
+            continue;
+         }
+
+         loadVoie();
+         ostringstream shell;
+         shell << (l == 2 ? s_voie[symbol].dn : s_voie[symbol].n)
+               << (l == 0 ? 's' : (l == 1 ? 'p' : 'd'));
+         if (byElement.size() > 1) shell << ' ' << symbol;
+
+         const vector<string>& subIrreps = sub->irreps();
+         for (size_t i = 0; i < subIrreps.size() &&
+                            i < multiplicity.size(); i++) {
+            if (multiplicity[i] <= 0) continue;
+
+            vector<string> produced;
+            vector<bool> inPhase;
+            if (!inducedIrreps(full, *sub, keepOps, classOfOp, subClassOfOp,
+                               subIrreps[i], produced, inPhase)) {
+               continue;
+            }
+
+            for (int copy = 0; copy < multiplicity[i]; copy++) {
+               for (size_t k = 0; k < produced.size(); k++) {
+                  MoLevel level;
+                  level.energy     = eV;
+                  level.shell      = l;
+                  level.irrep      = produced[k];
+                  level.degeneracy = full.dimension(produced[k]);
+
+                  ostringstream name;
+                  name << subIrreps[i] << "  (" << shell.str() << ')';
+                  level.label = name.str();
+
+                  //  The combination this one is, said plainly: it is
+                  //  the thing the diagram is being drawn to show.
+                  const bool symmetric = (k < inPhase.size())
+                                         ? inPhase[k] : (k == 0);
+
+                  ostringstream how;
+                  how << (symmetric ? "in phase" : "out of phase");
+                  level.annotation = how.str();
+
+                  (symmetric ? left : right).levels.push_back(level);
+                  built = true;
+               }
+            }
+         }
+      }
+   }
+
+   if (!built) return false;
+
+   ostringstream said;
+   said << "Built from two " << formula.str() << " halves, analysed in "
+        << sub->name() << " and combined in phase and out of phase. The "
+           "halves are not unions of equivalent atoms in " << full.name()
+        << ", so this is the one fragmentation that cannot be chosen by "
+           "grouping them.";
+   note = said.str();
+   return true;
 }
 
 
@@ -1272,6 +1641,46 @@ bool MoFragments::build(const vector<double>& coords,
                bestNeighbours = neighbours;
                best = atom;
             }
+         }
+
+         //  TWO HALVES FIRST, BECAUSE IT IS THE BETTER DIAGRAM.
+         //
+         //  Where the molecule falls into two equivalent halves
+         //  across a single bond, combining them is how the thing is
+         //  actually taught -- and it is the one fragmentation that
+         //  cannot be chosen by grouping orbits, because the halves
+         //  cross them.
+         vector<int> halfA, halfB;
+         splitAcrossBond(coordsUsed, elementsUsed, halfA, halfB);
+
+         if (buildHalves(coordsUsed, elementsUsed, *table, ops, images,
+                         classOfOp, numAtoms, left, right, note)) {
+            int total = 0;
+            for (size_t i = 0; i < elementsUsed.size(); i++) {
+               total += valenceElectrons(elementsUsed[i]);
+            }
+            total -= charge;
+
+            //  The two columns are the two combinations of one set of
+            //  fragment orbitals, at the same energies, so the
+            //  molecule's electrons divide between them evenly.
+            fillColumn(left.levels,  total/2);
+            fillColumn(right.levels, total - total/2);
+
+            //  THE HALVES, NOT NOTHING.
+            //
+            //  Clearing these zeroed every composition share, and a
+            //  fragment level whose share is zero is never placed on
+            //  the molecular axis -- the whole column stayed at the
+            //  free-atom energies in eV while the molecular orbitals
+            //  were in Hartree, twenty units below the picture.
+            //
+            //  Each half genuinely carries half of every orbital, by
+            //  symmetry, which is the right answer to the question
+            //  the shares ask.
+            if (leftAtoms  != 0) *leftAtoms  = halfA;
+            if (rightAtoms != 0) *rightAtoms = halfB;
+            return true;
          }
 
          //  TWO ORBITS ARE ALREADY TWO FRAGMENTS.

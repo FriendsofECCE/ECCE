@@ -53,6 +53,17 @@ class CharacterTable
      */
     static int loadFile(const string& path);
 
+    /**
+     * Every group that has been loaded, by name.
+     *
+     * For finding a SUBGROUP: the operations that preserve a fragment
+     * form a group, and identifying which one means trying the
+     * candidates of the right order against its class structure.
+     * There is no way to do that without being able to ask what the
+     * candidates are.
+     */
+    static vector<string> names(void);
+
     const string& name(void) const            { return p_name; }
     int order(void) const                     { return p_order; }
     const vector<string>& classes(void) const { return p_classes; }

@@ -37,6 +37,18 @@ CharacterTable::CharacterTable()
 }
 
 
+vector<string> CharacterTable::names(void)
+{
+  initialize();
+  vector<string> out;
+  for (map<string, CharacterTable>::const_iterator it = p_tables.begin();
+       it != p_tables.end(); ++it) {
+    out.push_back(it->first);
+  }
+  return out;
+}
+
+
 int CharacterTable::loadFile(const string& path)
 {
   p_tables.clear();
