@@ -45,6 +45,14 @@ void IsoSurfaceCmd::init()
    addParameter(new CommandParameter("negativeBlue", 0.5));
    addParameter(new CommandParameter("negativeGreen", 0.5));
 
+   //  The colour range for a potential-mapped surface.  Auto by
+   //  default, which measures it from the shell being drawn; a caller
+   //  that sets colorAuto false supplies its own, which is what the
+   //  panel's manual range does.
+   addParameter(new CommandParameter("colorAuto", true));
+   addParameter(new CommandParameter("colorMin", -0.05));
+   addParameter(new CommandParameter("colorMax", 0.05));
+
 }
 
 bool IsoSurfaceCmd::execute()
@@ -221,7 +229,21 @@ bool IsoSurfaceCmd::execute()
       //  should set the scale: computing it from a density band guessed
       //  in advance gave +/- 2.4 Hartree/e where the surface itself
       //  carries hundredths, and the whole surface came out one colour.
-      if (colorField != 0) {
+      const bool colorAuto = getParameter("colorAuto")->getBoolean();
+
+      if (colorField != 0 && !colorAuto) {
+        //  An explicit range from the panel wins over any measurement.
+        const double lo = getParameter("colorMin")->getDouble();
+        const double hi = getParameter("colorMax")->getDouble();
+        if (hi > lo) {
+          gridStruct->colorFieldMin((float)lo);
+          gridStruct->colorFieldMax((float)hi);
+          std::cerr << "ISO: colour range set manually to " << lo
+                    << " .. " << hi << std::endl;
+        }
+      }
+
+      if (colorField != 0 && colorAuto) {
         vector<float> shell;
         const float lo = 0.5f*isovalue;
         const float hi = 2.0f*isovalue;
@@ -318,7 +340,11 @@ bool IsoSurfaceCmd::execute()
       SoIndexedTriangleStripSet *triStrip = (SoIndexedTriangleStripSet *)(*childList)[0];
       SoVertexProperty *vp =
          (SoVertexProperty *)triStrip->vertexProperty.getValue();
-      vp->orderedRGBA.setValue(positiveLobeColor);
+      //  Not for a colour-mapped surface: IsoLib fills this array with
+      //  one colour per vertex when it generates, and a single packed
+      //  value here is what it would have to overwrite.  See the note
+      //  in IsoValueCmd, which had the same line.
+      if (colorField == 0) vp->orderedRGBA.setValue(positiveLobeColor);
 
       /* The same sort of thing would apply to ChemContour and ChemContour2 but
          instead of SoIndexedTriangleStripSet, it would be an instance of an

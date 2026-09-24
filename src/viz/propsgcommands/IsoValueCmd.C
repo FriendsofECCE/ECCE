@@ -89,13 +89,28 @@ bool IsoValueCmd::execute()
          unsigned long numChildren = ((SoSeparator*)node)->getNumChildren();
          ChemIso *isosurf1 = (ChemIso*)((SoSeparator*)node)->getChild(1);
          isosurf1->threshold.setValue(isoval);
+
+         //  A POTENTIAL-MAPPED SURFACE CARRIES ONE COLOUR PER VERTEX,
+         //  and the lines below replace the whole array with a single
+         //  packed colour.  With PER_VERTEX binding that paints the
+         //  entire surface the positive-lobe colour -- red -- which is
+         //  exactly the symptom an ESP map showed.
+         //
+         //  It is harmless for an MO or a plain density, where the
+         //  surface really is one colour, so the test is on whether a
+         //  colour lattice is attached rather than on the field name:
+         //  that is the thing that actually decides it, and it cannot
+         //  drift out of step with the list of ESP field types the way
+         //  a string comparison here would.
+         bool colorMapped = (isosurf1->color.getValue() != NULL);
+
 #ifndef MI10
          SoChildList *childList = isosurf1->getChildren();
          SoIndexedTriangleStripSet *triStrip = (SoIndexedTriangleStripSet *)(*childList)[0];
          SoVertexProperty *xx=(SoVertexProperty *)triStrip->vertexProperty.getValue();
-         xx->orderedRGBA.setValue(positiveLobeColor);
+         if (!colorMapped) xx->orderedRGBA.setValue(positiveLobeColor);
 #else
-         isosurf1->orderedRGBA.setValue(positiveLobeColor);
+         if (!colorMapped) isosurf1->orderedRGBA.setValue(positiveLobeColor);
 #endif
 
          if (numChildren==3) {

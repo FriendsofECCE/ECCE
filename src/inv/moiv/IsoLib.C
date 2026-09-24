@@ -109,6 +109,16 @@ static short gSurfaceVariable;
 static SbVec3f *gVertPtr;
 static SbVec3f *gNormPtr;
 static uint32_t *gColorPtr;
+
+//  What the colour lookup actually saw.  A potential-mapped surface
+//  that comes out one flat colour has three possible causes -- no
+//  colours written, colours written but all equal, or a range so wide
+//  that every vertex lands in one bin -- and they look identical on
+//  screen.  These separate them, printed once per generation.
+static float    gColorSeenMin;
+static float    gColorSeenMax;
+static int32_t  gColorSeenCount;
+static int32_t  gColorClamped;
 static int32_t *gCoordIndexPtr;
 
 static ChemLattice3 *gDataLat;
@@ -167,6 +177,10 @@ isoLibInitVolume(
 
     gVertPtr = gNormPtr = NULL;
     gColorPtr = NULL;
+    gColorSeenMin =  1.0e30f;
+    gColorSeenMax = -1.0e30f;
+    gColorSeenCount = 0;
+    gColorClamped = 0;
     gCoordIndexPtr = NULL;
 
     gDataLat = dataLat;
@@ -267,24 +281,42 @@ isoLibInitVolume(
             break;
         }
 
-        //  PER_VERTEX, not PER_VERTEX_INDEXED.
+        //  PER_VERTEX_INDEXED, not PER_VERTEX.
         //
         //  The colours below are written with gColorPtr[gNpoints], the
-        //  same index as gVertPtr[gNpoints] -- one colour per vertex,
-        //  in vertex order.  That is what PER_VERTEX means.
+        //  same index as gVertPtr[gNpoints] -- one colour per VERTEX.
+        //  This is an INDEXED shape, so the triangle strips reach those
+        //  vertices through coordIndex and reuse them between adjacent
+        //  triangles.
         //
-        //  PER_VERTEX_INDEXED instead makes the shape look up a
-        //  materialIndex, and nothing ever sets one on this triangle
-        //  strip set, so Inventor falls back to using coordIndex --
-        //  which carries SO_END_STRIP_INDEX (-1) separators between
-        //  strips.  Indexing the colour array at -1 is what took the
-        //  viewer down the first time an ESP-coloured surface was
-        //  drawn.
+        //  Plain PER_VERTEX does not index: SoIndexedTriangleStripSet
+        //  renders it as "curMaterial++" once per vertex TRAVERSED.
+        //  Every reused vertex therefore advances the colour counter
+        //  without advancing the coordinate, so the two drift apart
+        //  progressively across the surface.  The result is a potential
+        //  map that is exactly right over the first strips and decays
+        //  into a patchwork of unrelated colours further in -- which is
+        //  precisely what an ESP surface looked like, a correct smooth
+        //  red/white/blue band at one end and noise over the rest.
+        //
+        //  PER_VERTEX_INDEXED looks the colour up by coordIndex, so a
+        //  reused vertex reuses its colour.  materialIndex is left at
+        //  its default single SO_END_STRIP_INDEX, which is the
+        //  documented "use coordIndex for materials too" case that
+        //  SoIndexedTriangleStripSet::GLRender handles explicitly; the
+        //  per-strip loop never reads the -1 separators, because it
+        //  iterates within a strip and skips past them between strips.
+        //
+        //  (An earlier pass here chose PER_VERTEX on the theory that
+        //  indexing the colour array at -1 was what took the viewer
+        //  down the first time an ESP surface was drawn.  That crash
+        //  was the unfinished startEditing()/wrong array size fixed
+        //  below, not the binding.)
         //
         //  This whole branch is reached only when a colour lattice is
         //  attached, which nothing did until ESP surfaces (#129), so
         //  changing it cannot affect any surface drawn before.
-        vp->materialBinding = SoMaterialBinding::PER_VERTEX;
+        vp->materialBinding = SoMaterialBinding::PER_VERTEX_INDEXED;
         vp->orderedRGBA.setNum(gEdgeCount*EDGE_INCR);
         gColorPtr = vp->orderedRGBA.startEditing();
         lookupFromColorData(colorLat);
@@ -748,6 +780,20 @@ printf("destination 0x%x\n",*c0); */
         //  rather than to the vertex count.
         if (gColorPtr != NULL) {
             gColorPtr[0] = gColorPtr[1];
+            //  Before finishEditing(), while the array is still readable
+            //  through the pointer we were handed.
+            uint32_t first = gColorPtr[0];
+            int32_t distinct = 0;
+            for (int32_t ci = 0; ci < gNpoints; ci++) {
+                if (gColorPtr[ci] != first) { distinct++; }
+            }
+            fprintf(stderr,
+                "ESP/IsoLib: %d vertices, colour values %g .. %g over a "
+                "ramp of %d spanning %g .. %g; %d clamped to an end, "
+                "%d vertices differ from the first colour (0x%08x)\n",
+                (int)gNpoints, gColorSeenMin, gColorSeenMax,
+                (int)gNumColors, gColorMapMin, gColorMapMax,
+                (int)gColorClamped, (int)distinct, first);
             gVP->orderedRGBA.finishEditing();
             gVP->orderedRGBA.setNum(gNpoints);
             gColorPtr = NULL;
@@ -1136,8 +1182,11 @@ addEdge(float t, float v0, float v1, int i0, int j0, int k0,
         }
         /* convert to a color */
         uint32_t pc;
+        if (xx < gColorSeenMin) gColorSeenMin = xx;
+        if (xx > gColorSeenMax) gColorSeenMax = xx;
+        gColorSeenCount++;
         if (gColorMapValues) {
-            interpColorMap( xx, pc);
+            if (interpColorMap( xx, pc)) gColorClamped++;
         }
         else {
             float tmp = 255*xx;
