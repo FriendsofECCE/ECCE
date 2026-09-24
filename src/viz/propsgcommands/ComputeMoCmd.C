@@ -361,7 +361,11 @@ bool ComputeMoCmd::execute()
     setGrid(grid,gridRes,xDelta,yDelta,zDelta);
     grid->type(fieldType);
 
-    bool doingDensity = (fieldType=="Density");
+    //  "Density (ESP)" is an ordinary density surface that is then
+    //  coloured by the electrostatic potential, so it takes the whole
+    //  density path and adds one step at the end.
+    bool wantEsp = (fieldType==ESP_FIELD_TYPE);
+    bool doingDensity = (fieldType=="Density" || wantEsp);
     bool doingSpinDensity = (fieldType=="Spin Density");
 
     // Alloc the field.  Use the local field variable as short-hand 
@@ -871,6 +875,14 @@ bool ComputeMoCmd::execute()
           grid->findMinMax();
           grid->absFieldMax(grid->fieldMax());
           computeFieldValue(field,gridRes,xDelta,yDelta,zDelta);
+
+          //  Colour the density surface by the electrostatic potential.
+          //  Computed here, on the same grid, because the surface the
+          //  colour belongs to is the one just built.
+          if (wantEsp) {
+            interrupted = !computeEsp(grid, atoms, gridRes,
+                                      xDelta, yDelta, zDelta);
+          }
 
         } else {
           cvsg->removeMOGrid(grid->name());
@@ -1394,4 +1406,120 @@ double ComputeMoCmd::getoddNormalize(
       // should never get here--makes the compiler happy to return a value
       return 1.0;
    }
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Description
+//   The electrostatic potential on the grid, from the atomic partial
+//   charges, for colouring a density surface.
+//
+//   This is the cheap approximation -- a sum of point charges rather
+//   than an integral over the electron density -- which is what
+//   Avogadro and the other viewers use for the same picture, and it is
+//   fast: a few multiply-adds per grid point per atom, against the
+//   density evaluation that has already run and costs far more.  It is
+//   still reported through the progress monitor and is still
+//   interruptible, so it cannot turn into a silent hang on a large grid.
+//
+//   The charge source is ESPCHARGE where the calculation has it, since
+//   those charges are fitted to reproduce this very potential, and
+//   Mulliken charges otherwise.  Mulliken charges are a much cruder
+//   basis for a potential map, so which was used is named in the
+//   progress message rather than left for the user to guess.
+/////////////////////////////////////////////////////////////////////////////
+bool ComputeMoCmd::computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
+                              unsigned long gridRes,
+                              float xDelta, float yDelta, float zDelta)
+{
+  if (grid == 0 || atoms == 0 || atoms->empty()) return true;
+
+  IPropCalculation *calc = getCalculation();
+  if (calc == 0) return true;
+
+  //  Per-atom charges, preferring the fitted ones.
+  const unsigned long numAtoms = atoms->size();
+  vector<double> charges(numAtoms, 0.0);
+  const char *source = 0;
+
+  PropTable *espTable = (PropTable*)calc->getProperty("ESPCHARGE");
+  if (espTable != 0 && (unsigned long)espTable->rows() == numAtoms &&
+      espTable->columns() >= 1) {
+    for (unsigned long a = 0; a < numAtoms; a++) {
+      charges[a] = espTable->value((int)a, 0);
+    }
+    source = "ESP charges";
+  } else {
+    PropVector *mulliken = (PropVector*)calc->getProperty("MULLIKEN");
+    if (mulliken == 0 || (unsigned long)mulliken->rows() != numAtoms) {
+      return true;             // nothing to colour with; leave it plain
+    }
+    for (unsigned long a = 0; a < numAtoms; a++) {
+      charges[a] = mulliken->value((int)a);
+    }
+    source = "Mulliken charges";
+  }
+
+  const int resX = grid->dimensions()[0];
+  const int resY = grid->dimensions()[1];
+  const int resZ = grid->dimensions()[2];
+  const double xStart = grid->origin()[0];
+  const double yStart = grid->origin()[1];
+  const double zStart = grid->origin()[2];
+
+  //  Coordinates are Angstrom here and the potential is wanted in
+  //  atomic units, as elsewhere in this file.
+  const double atob = 1/0.52917724924;
+
+  vector<double> ax(numAtoms), ay(numAtoms), az(numAtoms);
+  for (unsigned long a = 0; a < numAtoms; a++) {
+    const double *c = (*atoms)[a]->coordinates();
+    ax[a] = c[0]*atob;
+    ay[a] = c[1]*atob;
+    az[a] = c[2]*atob;
+  }
+
+  float *esp = new float[gridRes];
+  char msg[120];
+
+  unsigned long idx = 0;
+  for (int k = 0; k < resZ; k++) {
+
+    if (p_monitor != 0) {
+      sprintf(msg, "Electrostatic potential from %s: plane %d of %d",
+              source, k+1, resZ);
+      if (p_monitor->isInterrupted(msg, (int)((k+1)*100.0/resZ))) {
+        delete [] esp;
+        return false;
+      }
+    }
+
+    const double z = (zStart + k*zDelta)*atob;
+    for (int j = 0; j < resY; j++) {
+      const double y = (yStart + j*yDelta)*atob;
+      for (int i = 0; i < resX; i++) {
+        const double x = (xStart + i*xDelta)*atob;
+
+        double v = 0.0;
+        for (unsigned long a = 0; a < numAtoms; a++) {
+          const double dx = x - ax[a];
+          const double dy = y - ay[a];
+          const double dz = z - az[a];
+          double r = sqrt(dx*dx + dy*dy + dz*dz);
+          //  A grid point can land on a nucleus, where the point-charge
+          //  potential is infinite.  Clamping keeps one such point from
+          //  taking the whole colour range with it -- the ramp is scaled
+          //  to the extreme value, so a single infinity would flatten
+          //  every real feature to the midpoint.
+          if (r < 1.0e-3) r = 1.0e-3;
+          v += charges[a]/r;
+        }
+        esp[idx++] = (float)v;
+      }
+    }
+  }
+
+  grid->setColorFieldData(esp);
+  grid->findColorMinMax();
+  return true;
 }

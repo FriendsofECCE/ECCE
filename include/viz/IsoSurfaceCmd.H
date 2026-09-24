@@ -10,6 +10,8 @@
  *  rectilinear.  There are 3 display types for isosurfaces: solid, mesh,
  *  and contour.
  */
+class ChemIso;
+
 class IsoSurfaceCmd : public PropCmd
 {
   public:
@@ -21,6 +23,12 @@ class IsoSurfaceCmd : public PropCmd
 
   protected:
 
+
+   private:
+
+      /** Red-white-blue ramp for a potential-mapped surface. */
+      static void setPotentialRamp(ChemIso *isosurf, float minValue,
+                                   float maxValue, double transparency);
 };
 
 #endif

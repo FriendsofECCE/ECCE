@@ -54,6 +54,27 @@ class SingleGrid
     void        absFieldMin(float absMin);
     void        setFieldData(float *field);
 
+    /**
+     * An optional second field used to COLOUR an isosurface of the
+     * first, rather than to shape one.
+     *
+     * The electrostatic potential mapped onto an electron density
+     * surface is the standard case: the density decides where the
+     * surface is, the potential decides what colour it is there.  The
+     * Open Inventor layer has always supported this -- ChemIso has
+     * `color` and `colorVar` fields and IsoLib fills per-vertex colours
+     * from them -- and a comment in IsoSurfaceCmd has said "if a color
+     * field is used, make this =2" since the original code.  Nothing in
+     * ECCE ever provided one.
+     *
+     * Null when the surface is a single colour, which stays the default.
+     */
+    float*      colorFieldData();
+    void        setColorFieldData(float *field);
+    float       colorFieldMin();
+    float       colorFieldMax();
+    void        findColorMinMax();
+
 // General methods
     void        findMinMax();
     SingleGrid *clone();
@@ -69,6 +90,9 @@ class SingleGrid
     double        p_origin[3]; //origin of data
     double        p_corner[3]; //corner of data farthest from origin
     float        *p_field;     //actual field data
+    float        *p_colorField;//optional field colouring the surface
+    float         p_colorFieldMin;
+    float         p_colorFieldMax;
     float         p_fieldMin;
     float         p_fieldMax;
     float         p_fieldAbsMax;

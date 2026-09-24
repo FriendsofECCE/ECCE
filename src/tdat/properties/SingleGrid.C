@@ -21,11 +21,17 @@
 SingleGrid::SingleGrid()
 {
   p_field = (float*)0;
+  p_colorField = (float*)0;
+  p_colorFieldMin = 0.0;
+  p_colorFieldMax = 0.0;
 }
 
 SingleGrid::SingleGrid(int size)
 {
   p_field = new float[size];
+  p_colorField = (float*)0;
+  p_colorFieldMin = 0.0;
+  p_colorFieldMax = 0.0;
 }
 ////////////////////////////////////////////////////////////////////////////////
 //  Description:
@@ -34,6 +40,7 @@ SingleGrid::SingleGrid(int size)
 SingleGrid::~SingleGrid()
 {
   delete[] p_field;
+  delete[] p_colorField;
 }
 //
 //-----------Accessors------------
@@ -241,4 +248,53 @@ bool SingleGrid::addFields(float alpha, SingleGrid *grid_a,
   }
   findMinMax();
   return true;
+}
+
+
+float* SingleGrid::colorFieldData()
+{
+  return p_colorField;
+}
+
+
+void SingleGrid::setColorFieldData(float *field)
+{
+  if (p_colorField != field) delete[] p_colorField;
+  p_colorField = field;
+}
+
+
+float SingleGrid::colorFieldMin()
+{
+  return p_colorFieldMin;
+}
+
+
+float SingleGrid::colorFieldMax()
+{
+  return p_colorFieldMax;
+}
+
+
+/**
+ * The range the colour ramp is stretched over.
+ *
+ * Taken symmetric about zero, so that the midpoint of the ramp is the
+ * neutral potential rather than whatever the middle of this particular
+ * molecule's range happens to be.  Without that, a molecule with no
+ * negative region at all would still be drawn half red.
+ */
+void SingleGrid::findColorMinMax()
+{
+  if (p_colorField == (float*)0) return;
+
+  const int size = gridSize();
+  float extreme = 0.0;
+  for (int idx = 0; idx < size; idx++) {
+    const float value = p_colorField[idx];
+    const float magnitude = (value < 0.0) ? -value : value;
+    if (magnitude > extreme) extreme = magnitude;
+  }
+  p_colorFieldMin = -extreme;
+  p_colorFieldMax =  extreme;
 }

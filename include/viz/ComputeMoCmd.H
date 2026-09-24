@@ -11,6 +11,19 @@
 
 #include "viz/SGContainer.H"
 
+/**
+ * Field type naming an electron density surface coloured by the
+ * electrostatic potential.
+ *
+ * Shared because MoPanel offers it and ComputeMoCmd acts on it, and a
+ * field type that does not match between the two produces a plain
+ * surface with no error anywhere -- the same two-hand-maintained-string
+ * hazard as a dialog choice that does not match its generator.
+ */
+#define ESP_FIELD_TYPE "Density (ESP)"
+
+class TAtm;
+
 class TGBSAngFunc;
 class TGBSConfig;
 class TGaussianBasisSet;
@@ -51,6 +64,15 @@ class  ComputeMoCmd :  public  PropCmd
       static double hNormFactor;
       static double iNormFactor;
       float *makeField(int length);
+
+      /**
+       * The electrostatic potential on the grid, for colouring the
+       * density surface just computed.  Returns false if the user
+       * interrupted it.
+       */
+      bool computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
+                      unsigned long gridRes,
+                      float xDelta, float yDelta, float zDelta);
       void zeroField(float *field,int length);
       bool squareCheckInterrupt(const char *type, int mo, int max);
       bool moCheckInterrupt(const char *type, const char *atom,

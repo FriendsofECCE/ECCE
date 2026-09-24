@@ -17,6 +17,7 @@
 
 #include "viz/SGContainer.H"
 #include "viz/IsoSurfaceCmd.H"
+#include "viz/ComputeMoCmd.H"
 
 IsoSurfaceCmd::IsoSurfaceCmd(const string& name, Receiver *receiver,
                              IPropCalculation *calc)
@@ -145,16 +146,32 @@ bool IsoSurfaceCmd::execute()
       // Set the lattice dimensions
       lattice->dimension.setValue(dims);
 
-      lattice->nDataVar = 1;    // NB! if a color field is used, make this =2
+      //  A second data variable holds the field the surface is COLOURED
+      //  by, where one was computed -- the electrostatic potential on an
+      //  electron density surface.  The lattice interleaves its
+      //  variables, stride nDataVar, as ContourLib and IsoLib both read
+      //  it; this is what the original "if a color field is used, make
+      //  this =2" comment was waiting for.
+      float *colorField = gridStruct->colorFieldData();
+      const int nDataVar = (colorField != 0) ? 2 : 1;
+
+      lattice->nDataVar = nDataVar;
 
       // Copy the appropriate field into the (Molecular Inventor) lattice data
 
-      ((SoMFFloat *)(lattice->data))->setNum(gridRes);
+      ((SoMFFloat *)(lattice->data))->setNum(gridRes*nDataVar);
       float *latticeData = ((SoMFFloat *)(lattice->data))->startEditing();
       EE_RT_ASSERT(latticeData,EE_FATAL,"Unexpected Null pointer.");
 
-      for (int idx=0; idx<gridRes; idx++) {
-         latticeData[idx] = field[idx];
+      if (colorField != 0) {
+         for (int idx=0; idx<gridRes; idx++) {
+            latticeData[idx*2]     = field[idx];
+            latticeData[idx*2 + 1] = colorField[idx];
+         }
+      } else {
+         for (int idx=0; idx<gridRes; idx++) {
+            latticeData[idx] = field[idx];
+         }
       }
       ((SoMFFloat *)(lattice->data))->finishEditing();
 
@@ -194,6 +211,15 @@ bool IsoSurfaceCmd::execute()
       isosurf1->dataVar = 0;
       isosurf1->colorVar = 0;
 
+      if (colorField != 0) {
+         //  IsoLib fills per-vertex colours by looking the colour
+         //  variable up in this ramp, stretched over minValue..maxValue.
+         isosurf1->color = lattice;
+         isosurf1->colorVar = 1;
+         setPotentialRamp(isosurf1, gridStruct->colorFieldMin(),
+                          gridStruct->colorFieldMax(), transparency);
+      }
+
       isosurf1->threshold.setValue(isovalue);
 
 #ifndef MI10
@@ -223,8 +249,10 @@ bool IsoSurfaceCmd::execute()
 
 
       // For other than Density field, we want to display both positive and
-      // negative lobes (isosurfaces)
-      if ( fieldType != "Density") {
+      // negative lobes (isosurfaces).  An ESP-mapped surface is a density
+      // surface -- the potential only decides its colour -- so it has no
+      // negative lobe either.
+      if ( fieldType != "Density" && fieldType != ESP_FIELD_TYPE) {
          ChemIso *isosurf2 = new ChemIso;
          isosurf2->regenerate(true);
 
@@ -325,4 +353,47 @@ bool IsoSurfaceCmd::execute()
    }
    return true;
 
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Description
+//   The colour ramp for a potential-mapped surface.
+//
+//   Red where the potential is negative and blue where it is positive,
+//   which is the convention every text and every other viewer uses; the
+//   range is symmetric about zero so that white is the neutral potential
+//   rather than the middle of whatever range this molecule happens to
+//   span.
+/////////////////////////////////////////////////////////////////////////////
+void IsoSurfaceCmd::setPotentialRamp(ChemIso *isosurf, float minValue,
+                                     float maxValue, double transparency)
+{
+   const int steps = 64;
+
+   isosurf->orderedRGBA.setNum(steps);
+   uint32_t *ramp = isosurf->orderedRGBA.startEditing();
+
+   for (int i = 0; i < steps; i++) {
+      //  -1 at the negative extreme, +1 at the positive.
+      const double t = 2.0*i/(steps-1) - 1.0;
+
+      double r, g, b;
+      if (t < 0.0) {                 // red -> white
+         r = 1.0;  g = 1.0 + t;  b = 1.0 + t;
+      } else {                       // white -> blue
+         r = 1.0 - t;  g = 1.0 - t;  b = 1.0;
+      }
+      ramp[i] = SbColor(r, g, b).getPackedValue(transparency);
+   }
+   isosurf->orderedRGBA.finishEditing();
+
+   //  A molecule with no charges at all would give a zero-width range,
+   //  which would put every vertex at one end of the ramp.
+   if (maxValue <= minValue) {
+      minValue = -1.0;
+      maxValue =  1.0;
+   }
+   isosurf->minValue.setValue(minValue);
+   isosurf->maxValue.setValue(maxValue);
 }

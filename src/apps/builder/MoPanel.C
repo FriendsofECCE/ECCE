@@ -268,8 +268,16 @@ void MoPanel::updateUIOptions()
       spinOk=true;
    }
 
+   //  The electrostatic potential is mapped onto a density surface, so
+   //  it needs the density AND per-atom charges.  Offered only when both
+   //  are there rather than being offered and then quietly producing a
+   //  plain surface.
+   bool espOk = densityOk && (expt->getProperty("ESPCHARGE") ||
+                              expt->getProperty("MULLIKEN"));
+
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
    typewin->Clear();
+   if (espOk) typewin->Insert(ESP_FIELD_TYPE,0);
    if (spinOk) typewin->Insert("Spin Density",0);
    if (densityOk) typewin->Insert("Density",0);
    typewin->Insert("MO",0);
@@ -979,8 +987,10 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       // Edo suggests we use a log scale instead.
       // Now we decided to hardwire the density max to 1.0.
       float absIsovalMax = 0.2; // default for spin density
-      if (fieldtype == "Density") {
-         absIsovalMax = 0.2; // default for density
+      if (fieldtype == "Density" || fieldtype == ESP_FIELD_TYPE) {
+         absIsovalMax = 0.2; // default for density -- an ESP-mapped
+                             // surface IS a density surface, only
+                             // coloured differently
       } else if (fieldtype == "MO") {
          absIsovalMax = fabs(fieldMin) > fabs(fieldMax) ?
             fabs(fieldMin) : fabs(fieldMax);
