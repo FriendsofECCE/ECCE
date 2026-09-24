@@ -1117,6 +1117,23 @@ static bool buildHalves(const vector<double>& coords,
                << (l == 0 ? 's' : (l == 1 ? 'p' : 'd'));
          if (byElement.size() > 1) shell << ' ' << symbol;
 
+         //  The same shell keys a central-atom column registers, so
+         //  the caller bins this column's composition the same way.
+         //  Without them the shares come back empty, matchesShell
+         //  finds nothing, and ethene drew no correlation lines at
+         //  all.
+         ostringstream key;
+         key << symbol << ':' << l;
+         int slot = -1;
+         for (size_t k = 0; k < left.shellKeys.size(); k++) {
+            if (left.shellKeys[k] == key.str()) slot = (int)k;
+         }
+         if (slot < 0) {
+            slot = (int)left.shellKeys.size();
+            left.shellKeys.push_back(key.str());
+            right.shellKeys.push_back(key.str());
+         }
+
          const vector<string>& subIrreps = sub->irreps();
          for (size_t i = 0; i < subIrreps.size() &&
                             i < multiplicity.size(); i++) {
