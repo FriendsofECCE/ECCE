@@ -1485,7 +1485,21 @@ bool ComputeMoCmd::computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
   } else {
     PropVector *mulliken = (PropVector*)calc->getProperty("MULLIKEN");
     if (mulliken == 0 || (unsigned long)mulliken->rows() != numAtoms) {
-      return true;             // nothing to colour with; leave it plain
+      //  Said out loud.  Returning quietly here leaves a surface that
+      //  renders perfectly and is all one colour, which looks like a
+      //  rendering bug and is not one.
+      cerr << "ESP: no usable atomic charges, so the surface is left "
+              "uncoloured." << endl;
+      cerr << "ESP:   ESPCHARGE "
+           << (espTable ? "present" : "absent");
+      if (espTable) {
+        cerr << " with " << espTable->rows() << " rows and "
+             << espTable->columns() << " columns";
+      }
+      cerr << ", MULLIKEN " << (mulliken ? "present" : "absent");
+      if (mulliken) cerr << " with " << mulliken->rows() << " rows";
+      cerr << "; the fragment has " << numAtoms << " atoms." << endl;
+      return true;
     }
     for (unsigned long a = 0; a < numAtoms; a++) {
       charges[a] = mulliken->value((int)a);
@@ -1554,6 +1568,9 @@ bool ComputeMoCmd::computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
 
   grid->setColorFieldData(esp);
   grid->findColorMinMax();
+  cerr << "ESP: coloured from " << source << "; range "
+       << grid->colorFieldMin() << " to " << grid->colorFieldMax()
+       << " Hartree/e" << endl;
   return true;
 }
 
@@ -1735,7 +1752,13 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
 
   EspField::Pairs pairs;
   EspField::selectPairs(basis, P, 1.0e-8, pairs);
-  if (pairs.size() == 0) return true;
+  cerr << "ESP: " << nbas << " basis functions, " << pairs.size()
+       << " significant pairs" << endl;
+  if (pairs.size() == 0) {
+    cerr << "ESP: no significant density matrix pairs; leaving it "
+            "uncoloured." << endl;
+    return true;
+  }
 
   const double atob = 1/0.52917724924;
 
@@ -1787,10 +1810,14 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
       if (error < 1.0e-3) agreed++;
     }
 
+    cerr << "ESP: rebuilt density agrees with the computed one at "
+         << agreed << " of " << tested << " sampled points" << endl;
     if (tested > 0 && agreed < tested) {
       //  Not an assertion: a basis this cannot represent is a reason to
       //  fall back, not to take the application down.
       p_espBasisMismatch = worst;
+      cerr << "ESP: the two basis walks disagree (worst " << worst
+           << "); falling back to atomic charges." << endl;
       return true;
     }
   }
@@ -1836,5 +1863,7 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
 
   grid->setColorFieldData(esp);
   grid->findColorMinMax();
+  cerr << "ESP: potential computed, range " << grid->colorFieldMin()
+       << " to " << grid->colorFieldMax() << " Hartree/e" << endl;
   return true;
 }

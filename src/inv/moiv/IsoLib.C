@@ -267,7 +267,24 @@ isoLibInitVolume(
             break;
         }
 
-        vp->materialBinding = SoMaterialBinding::PER_VERTEX_INDEXED;
+        //  PER_VERTEX, not PER_VERTEX_INDEXED.
+        //
+        //  The colours below are written with gColorPtr[gNpoints], the
+        //  same index as gVertPtr[gNpoints] -- one colour per vertex,
+        //  in vertex order.  That is what PER_VERTEX means.
+        //
+        //  PER_VERTEX_INDEXED instead makes the shape look up a
+        //  materialIndex, and nothing ever sets one on this triangle
+        //  strip set, so Inventor falls back to using coordIndex --
+        //  which carries SO_END_STRIP_INDEX (-1) separators between
+        //  strips.  Indexing the colour array at -1 is what took the
+        //  viewer down the first time an ESP-coloured surface was
+        //  drawn.
+        //
+        //  This whole branch is reached only when a colour lattice is
+        //  attached, which nothing did until ESP surfaces (#129), so
+        //  changing it cannot affect any surface drawn before.
+        vp->materialBinding = SoMaterialBinding::PER_VERTEX;
         vp->orderedRGBA.setNum(gEdgeCount*EDGE_INCR);
         gColorPtr = vp->orderedRGBA.startEditing();
         lookupFromColorData(colorLat);

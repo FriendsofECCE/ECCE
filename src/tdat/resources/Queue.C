@@ -79,6 +79,18 @@ Queue::operator!=(const Queue& queue) const
 //
 //  Implementation
 //    Use a short circuit combination of ifs to fail ASAP.
+//
+//    A ZERO ON EITHER SIDE MEANS "UNSPECIFIED", and that has to be
+//    symmetric.  It was not: zero in the REQUEST meant "do not care",
+//    while zero in the QUEUE was compared as a real capacity of nothing
+//    -- so a queue with any limit left unset rejected every job that
+//    named that resource, and reported it as no queue being available.
+//
+//    That is not a corner case.  Machine Registration writes zero for
+//    every limit the user does not fill in, so a queue created through
+//    the GUI with only a processor range matched nothing at all.  A
+//    site that did not state a memory limit meant it had none, not that
+//    it had none to give.
 //    Since most queues will be rejected solely based on the number of
 //    processors, we evaluate that condition first.
 //    This function is used in the QueueManager::selectQueue() function.
@@ -91,31 +103,31 @@ Queue::operator<(const QueueSpec& queueSpec) const
     if ((queueSpec.processors < minProcessors()) ||
 	(queueSpec.processors > maxProcessors())) return false;
   }
-  if (queueSpec.runLimit != 0) {
+  if (queueSpec.runLimit != 0 && runLimit() != 0) {
     if (queueSpec.runLimit > runLimit()) return false;
   }
-  if (queueSpec.maxJobCPU != 0) {
+  if (queueSpec.maxJobCPU != 0 && maxJobCPU() != 0) {
     if (queueSpec.maxJobCPU > maxJobCPU()) return false;
   }
-  if (queueSpec.maxProcessCPU != 0) {
+  if (queueSpec.maxProcessCPU != 0 && maxProcessCPU() != 0) {
     if (queueSpec.maxProcessCPU > maxProcessCPU()) return false;
   }
-  if (queueSpec.fileLimit != 0) {
+  if (queueSpec.fileLimit != 0 && fileLimit() != 0) {
     if (queueSpec.fileLimit > fileLimit()) return false;
   }
-  if (queueSpec.coreLimit != 0) {
+  if (queueSpec.coreLimit != 0 && coreLimit() != 0) {
     if (queueSpec.coreLimit > coreLimit()) return false;
   }
-  if (queueSpec.memLimit != 0) {
+  if (queueSpec.memLimit != 0 && memLimit() != 0) {
     if (queueSpec.memLimit > memLimit()) return false;
   }
-  if (queueSpec.scratchLimit != 0) {
+  if (queueSpec.scratchLimit != 0 && scratchLimit() != 0) {
     if (queueSpec.scratchLimit > scratchLimit()) return false;
   }
-  if (queueSpec.dataLimit != 0) {
+  if (queueSpec.dataLimit != 0 && dataLimit() != 0) {
     if (queueSpec.dataLimit > dataLimit()) return false;
   }
-  if (queueSpec.stackLimit != 0) {
+  if (queueSpec.stackLimit != 0 && stackLimit() != 0) {
     if (queueSpec.stackLimit > stackLimit()) return false;
   }
   return true;

@@ -165,6 +165,15 @@ bool IsoSurfaceCmd::execute()
       float *colorField = gridStruct->colorFieldData();
       const int nDataVar = (colorField != 0) ? 2 : 1;
 
+      //  This path has never run before, so it says so: if the viewer
+      //  dies, the last line printed says whether it got this far.
+      if (colorField != 0) {
+        std::cerr << "ESP: building a colour-mapped surface, "
+                  << resX << "x" << resY << "x" << resZ
+                  << ", range " << gridStruct->colorFieldMin()
+                  << " to " << gridStruct->colorFieldMax() << std::endl;
+      }
+
       lattice->nDataVar = nDataVar;
 
       // Copy the appropriate field into the (Molecular Inventor) lattice data
@@ -226,6 +235,7 @@ bool IsoSurfaceCmd::execute()
          //  variable up in this ramp, stretched over minValue..maxValue.
          isosurf1->color = lattice;
          isosurf1->colorVar = 1;
+         std::cerr << "ESP: colour lattice attached" << std::endl;
          setPotentialRamp(isosurf1, gridStruct->colorFieldMin(),
                           gridStruct->colorFieldMax(), transparency);
       }

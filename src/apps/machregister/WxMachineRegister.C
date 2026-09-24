@@ -727,16 +727,24 @@ void WxMachineRegister::refreshControls()
     p_miscPathsText[0]->SetValue(_(tmp.c_str()));
 
 
+    //  The queue manager PATH is genuinely admin-only -- that text
+    //  field only exists in an admin invocation, which is why the
+    //  size() guard in getSettings() is there too.
     if (p_adminFlag)
     {
         tmp = "";
         p_config->findValue("qmgrpath",tmp);
         p_miscPathsText[1]->SetValue((wxString)(tmp));
-
-        loadQueues(p_slctRgstn->refname());
-        fillQueues();
-        showQueue();  // default to first if any exist
     }
+
+    //  The QUEUES themselves load for everyone.  They used to be inside
+    //  the admin branch above, which was harmless while the whole tab
+    //  was hidden and became data loss the moment it was shown (#131):
+    //  the tab came up empty however many queues the machine had, and
+    //  saving then wrote that empty list back over them.
+    loadQueues(p_slctRgstn->refname());
+    fillQueues();
+    showQueue();  // default to first if any exist
 
 
     p_formClearButton->Enable(true);
@@ -903,10 +911,11 @@ void WxMachineRegister::reset()
 {
     RefMachine::finalize();
 
-    if (p_adminFlag)
-    {
-        QueueManager::finalize();
-    }
+    //  Unconditional, for the same reason.  QueueManager caches its
+    //  whole extent on first use, so without dropping it here a queue
+    //  just written to disk is not visible again until the application
+    //  is restarted.  That only ever mattered in admin mode before.
+    QueueManager::finalize();
 
     p_machinesList->Clear();
 }
