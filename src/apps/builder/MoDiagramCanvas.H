@@ -372,14 +372,35 @@ class MoDiagramCanvas : public wxPanel
       int minGap = dc.GetTextExtent(wxT("Xg")).y + 8;
       if (sketches && minGap < 44) minGap = 44;
 
-      for (size_t g = 1; g < groupY.size(); g++) {
-        if (groupY[g - 1] - groupY[g] < minGap) {
-          groupY[g] = groupY[g - 1] - minGap;
+      //  IN THE ORDER THEY ARE DRAWN, NOT THE ORDER THEY ARE STORED.
+      //
+      //  A fragment column is not sorted by energy: placeFragments()
+      //  moves each level to the mean of the orbitals it became, and
+      //  nothing re-sorts afterwards.  Opening the column out in array
+      //  order therefore stacked the levels in the wrong order
+      //  entirely -- water's B1 2p, the LOWEST of the oxygen's three,
+      //  was drawn above the other two, so its non-bonding molecular
+      //  orbital appeared stabilised by a tenth of a Hartree against
+      //  an atomic level that was simply in the wrong place.  The two
+      //  are at identical energies and the diagram has to show that.
+      vector< std::pair<int,size_t> > byHeight;
+      for (size_t g = 0; g < groupY.size(); g++) {
+        byHeight.push_back(std::make_pair(groupY[g], g));
+      }
+      std::sort(byHeight.begin(), byHeight.end());
+
+      for (size_t k = 1; k < byHeight.size(); k++) {
+        const int above = groupY[byHeight[k-1].second];
+        if (groupY[byHeight[k].second] - above < minGap) {
+          groupY[byHeight[k].second] = above + minGap;
         }
       }
-      const int over = plot.y + 6 - groupY[groupY.size() - 1];
+
+      //  Slid back up if the stack ran off the bottom.
+      const int lowest = groupY[byHeight[byHeight.size() - 1].second];
+      const int over = lowest - (plot.y + plot.height - 6);
       if (over > 0) {
-        for (size_t g = 0; g < groupY.size(); g++) groupY[g] += over;
+        for (size_t g = 0; g < groupY.size(); g++) groupY[g] -= over;
       }
     }
 
@@ -1005,7 +1026,10 @@ class MoDiagramCanvas : public wxPanel
         dc.DrawText(noteLines[i-1], 8, line);
       }
 
-      if (!p_hits.empty()) {
+      //  Only where a click can actually do something.  The
+      //  standalone program has no 3-D viewer to show an orbital in,
+      //  and an instruction that does nothing is worse than none.
+      if (!p_hits.empty() && p_owner != 0) {
         line -= lineHeight;
         dc.DrawText(wxT("Click a level to show that orbital"), 8, line);
       }

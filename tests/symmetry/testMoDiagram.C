@@ -2,6 +2,7 @@
 //  worth pinning: what shares a level, what counts as core, what
 //  connects to what.
 #include <cstdio>
+#include <sstream>
 #include <cmath>
 #include <string>
 #include <vector>
@@ -182,6 +183,44 @@ int main()
     check(centre[0].character == MoLevel::BONDING &&
           centre[4].character == MoLevel::ANTIBONDING,
           "the lowest a1 is bonding and the highest b1 antibonding");
+  }
+
+  //  ------------------------------------------------------------------
+  //  The formula, which is where a reader checks the charge.
+  //
+  //  Hill order is an index convention and writes ammonia H3N.  What
+  //  belongs on a diagram is IUPAC's element sequence, in which
+  //  hydrogen sits between nitrogen and tellurium -- so NH3 and CH4,
+  //  but H2O and HCl.  These are the cases that tell the two apart.
+  {
+    printf("\n  Formulae\n");
+
+    struct Case { const char* atoms; int charge; const char* want; };
+    static const Case CASES[] = {
+      { "N H H H",        0, "NH3"     },
+      { "O H H",          0, "H2O"     },
+      { "C H H H H",      0, "CH4"     },
+      { "C Cl Cl Cl Cl",  0, "CCl4"    },
+      { "N O O",         -1, "NO2^-"   },
+      { "H Cl",           0, "HCl"     },
+      { "S H H",          0, "H2S"     },
+      { "N H H H H",     +1, "NH4^+"   },
+      { "S O O O O",     -2, "SO4^2-"  },
+      { "P H H H",        0, "PH3"     },
+      { 0, 0, 0 }
+    };
+
+    for (int i = 0; CASES[i].atoms != 0; i++) {
+      vector<string> elements;
+      istringstream parse(CASES[i].atoms);
+      string symbol;
+      while (parse >> symbol) elements.push_back(symbol);
+
+      const string got = MoDiagram::formula(elements, CASES[i].charge);
+      string what = string(CASES[i].want);
+      if (got != CASES[i].want) what += " (got " + got + ")";
+      check(got == CASES[i].want, what);
+    }
   }
 
   printf("\n  %s\n", bad ? "FAIL" : "PASS");

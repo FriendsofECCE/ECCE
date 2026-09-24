@@ -19,7 +19,7 @@
 #include <wx/wx.h>
 #include <wx/image.h>
 
-#include "model.H"
+#include "tdat/MoSpec.H"
 #include "MoDiagramCanvas.H"
 
 class RenderApp : public wxApp

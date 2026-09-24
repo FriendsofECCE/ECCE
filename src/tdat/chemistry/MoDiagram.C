@@ -42,16 +42,49 @@ string MoDiagram::canonicalIrrep(const string& label)
  */
 string MoDiagram::formula(const vector<string>& elements, int charge)
 {
+  //  IUPAC'S ELEMENT SEQUENCE, NOT HILL ORDER.
+  //
+  //  Hill order -- carbon, hydrogen, then alphabetical -- is an index
+  //  convention, and it writes ammonia H3N.  Nobody writes ammonia
+  //  H3N.  The convention for a formula meant to be read is the
+  //  sequence in IUPAC's Table VI, in which hydrogen falls between
+  //  nitrogen and tellurium: so NH3 and CH4 and PH3, but H2O and H2S
+  //  and HCl, which is what a chemist writes without thinking about
+  //  it.  Anything not in the table follows, alphabetically, which is
+  //  better than pretending to know.
+  static const char* const SEQUENCE[] = {
+    "Rn","Xe","Kr","Ar","Ne","He",
+    "Fr","Cs","Rb","K","Na","Li",
+    "Ra","Ba","Sr","Ca","Mg","Be",
+    "Ac","La","Y","Sc",
+    "Hf","Zr","Ti", "Ta","Nb","V", "W","Mo","Cr",
+    "Re","Tc","Mn", "Os","Ru","Fe", "Ir","Rh","Co",
+    "Pt","Pd","Ni", "Au","Ag","Cu", "Hg","Cd","Zn",
+    "Tl","In","Ga","Al","B",
+    "Pb","Sn","Ge","Si","C",
+    "Bi","Sb","As","P","N",
+    "H",
+    "Po","Te","Se","S",
+    "At","I","Br","Cl",
+    "O",
+    "F",
+    0
+  };
+
   map<string,int> count;
   for (size_t i = 0; i < elements.size(); i++) count[elements[i]]++;
 
-  //  Hill order: carbon, then hydrogen, then the rest alphabetically.
   vector<string> order;
-  if (count.count("C")) order.push_back("C");
-  if (count.count("H")) order.push_back("H");
+  for (int k = 0; SEQUENCE[k] != 0; k++) {
+    if (count.count(SEQUENCE[k])) order.push_back(SEQUENCE[k]);
+  }
   for (map<string,int>::const_iterator it = count.begin();
        it != count.end(); ++it) {
-    if (it->first != "C" && it->first != "H") order.push_back(it->first);
+    bool known = false;
+    for (int k = 0; SEQUENCE[k] != 0; k++) {
+      if (it->first == SEQUENCE[k]) known = true;
+    }
+    if (!known) order.push_back(it->first);
   }
 
   ostringstream out;

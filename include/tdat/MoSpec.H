@@ -8,8 +8,8 @@
 //  Kept in step with MoDiagramPanel::build(), which is the third
 //  caller and the one that matters.  Input file format is documented
 //  in dump.C.
-#ifndef MODIAGRAM_MODEL__H
-#define MODIAGRAM_MODEL__H
+#ifndef TDAT_MOSPEC__H
+#define TDAT_MOSPEC__H
 
 #include <cstdio>
 #include <cstdlib>

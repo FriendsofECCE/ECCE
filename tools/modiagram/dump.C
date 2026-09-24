@@ -24,7 +24,7 @@
 //      coef   <c> <c> ...            one line per orbital, in order
 //
 //  Output: plain text, one record per line, read by draw.py.
-#include "model.H"
+#include "tdat/MoSpec.H"
 
 static void printColumn(const char* side, const MoColumn& col)
 {
