@@ -331,6 +331,32 @@ Both per-user, both non-root, both started automatically by the
   basis-set library, saved calculation data, and (as of this fork) help
   content and the help CGI backend all served from here, port 8096.
 
+### The MO correlation diagram (#132)
+Runs `SymmetryOps::find()` (autosym — **reorients and symmetrises**) →
+`MoFragments` (shells out to `symops`) → `CharacterTable::reduce()` →
+`MoDiagram::{classify, connect, placeFragments}` → `MoDiagramCanvas`.
+Three callers build the model and must stay in step:
+`MoDiagramPanel::build()` (from a calculation), `include/tdat/MoSpec.H`
+(from a spec file, shared by the tools), and `src/apps/modiagram` — a
+**standalone program**, `modiagram foo.xyz`, which starts no services
+and is in `ECCE_CLI_APPS` for exactly that reason.
+
+- **Look at `tools/modiagram/render`'s output before believing any
+  layout claim.** It runs the real engine and paints the real
+  `MoDiagramCanvas` to a PNG in seconds. `draw.py` is a *second*
+  implementation of the picture and drifted far enough that the
+  diagram looked right in the tool and wrong in builder for hours.
+- It needs `$ECCE_HOME/bin/symops`; without it every fragment column
+  comes back **empty and no line is drawn**, which looks exactly like
+  a logic bug and is not one.
+- A fragment column is **not sorted by energy** — `placeFragments()`
+  moves each level to the mean of the orbitals it became. Anything
+  that walks it in array order and assumes monotonic energy is wrong.
+- Fragment columns may be opened out for legibility; the molecular
+  column never is, because its energies are the measurement. Whatever
+  computes a correlation line's endpoint must use the same `columnGeometry()`
+  answer the levels are drawn with, or the lines point at nothing.
+
 ### GUI application layer
 - `src/apps/*` — one directory per top-level app (`builder`, `organizer`,
   `calced`, `gateway`, `machregister`, `machbrowser`, `basistool`, ...).
