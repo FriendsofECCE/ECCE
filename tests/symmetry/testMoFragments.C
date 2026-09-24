@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <string>
+#include <map>
 #include <vector>
 using namespace std;
 
@@ -68,7 +69,7 @@ int main(int argc, char** argv) {
 
     MoColumn left, right;
     string note;
-    bool ok = MoFragments::build(coords, elements, "TD", left, right, note);
+    bool ok = MoFragments::build(coords, elements, "TD", 0, left, right, note);
     printf("  %-46s %s\n", "methane builds", ok ? "yes" : note.c_str());
     if (!ok) { bad++; }
     else {
@@ -109,7 +110,7 @@ int main(int argc, char** argv) {
 
     MoColumn left, right;
     string note;
-    bool ok = MoFragments::build(coords, elements, "C2V", left, right, note);
+    bool ok = MoFragments::build(coords, elements, "C2V", 0, left, right, note);
     printf("  %-46s %s\n", "water builds", ok ? "yes" : note.c_str());
     if (!ok) bad++;
     else {
@@ -125,6 +126,10 @@ int main(int argc, char** argv) {
       if (!shape) bad++;
 
       checkd("H2O: oxygen 2s at -32.4 eV", left.levels[0].energy, -32.4, 0.01);
+
+      //  The columns are named by the atoms they belong to.
+      check("H2O: left column is the oxygen",  left.title,  "O");
+      check("H2O: right column is the TASOs",  right.title, "2H TASOs");
     }
   }
 
@@ -141,7 +146,7 @@ int main(int argc, char** argv) {
 
     MoColumn left, right;
     string note;
-    bool ok = MoFragments::build(coords, elements, "D2H", left, right, note);
+    bool ok = MoFragments::build(coords, elements, "D2H", 0, left, right, note);
     bool refused = !ok && note.find("central atom") != string::npos;
     printf("  %-46s %s\n",
            "C2: no central atom, and it says so",
@@ -171,7 +176,7 @@ int main(int argc, char** argv) {
 
     MoColumn left, right;
     string note;
-    bool ok = MoFragments::build(coords, elements, "CS", left, right, note);
+    bool ok = MoFragments::build(coords, elements, "CS", 0, left, right, note);
     bool refused = !ok && note.find("equivalent neighbours") != string::npos;
     printf("  %-46s %s\n",
            "CH3OH: not an AXn molecule, and it says so",
@@ -226,7 +231,7 @@ int main(int argc, char** argv) {
 
     MoColumn left, right, centre;
     string note;
-    MoFragments::build(coords, elements, "TD", left, right, note);
+    MoFragments::build(coords, elements, "TD", 0, left, right, note);
 
     double energies[] = { -20.0, -12.0, 2.0, 6.0 };
     const char* syms[] = { "a1", "t2", "a1", "t2" };
@@ -237,14 +242,246 @@ int main(int argc, char** argv) {
     vector<MoConnection> links;
     MoDiagram::connect(left.levels, centre.levels, right.levels, links);
 
-    int both = 0;
-    for (size_t i = 0; i < links.size(); i++) {
-      if (links[i].leftLevel >= 0 && links[i].rightLevel >= 0) both++;
+    //  One record per fragment level reached, not one per molecular
+    //  orbital: an MO mixes with EVERY fragment level of its irrep,
+    //  which is what symmetry mixing means and what a single record
+    //  per MO could not express.
+    MoDiagram::classify(left.levels, centre.levels, right.levels);
+    links.clear();
+    MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+
+    int reachedLeft = 0, reachedRight = 0;
+    for (size_t c = 0; c < centre.levels.size(); c++) {
+      bool l = false, r = false;
+      for (size_t i = 0; i < links.size(); i++) {
+        if (links[i].centreLevel != (int)c) continue;
+        if (links[i].leftLevel  >= 0) l = true;
+        if (links[i].rightLevel >= 0) r = true;
+      }
+      if (l) reachedLeft++;
+      if (r) reachedRight++;
     }
-    printf("  %-46s %d of %zu %s\n",
-           "CH4: every MO connects to both sides", both, links.size(),
-           (both == (int)links.size() && both == 4) ? "ok" : "FAIL");
-    if (!(both == (int)links.size() && both == 4)) bad++;
+    const bool allConnect = (reachedLeft == (int)centre.levels.size() &&
+                             reachedRight == (int)centre.levels.size());
+    printf("  %-46s %d and %d of %zu %s\n",
+           "CH4: every MO reaches both sides",
+           reachedLeft, reachedRight, centre.levels.size(),
+           allConnect ? "ok" : "FAIL");
+    if (!allConnect) bad++;
+  }
+
+  //  --- everything drawn must be valid UTF-8 -----------------------
+  //
+  //  wxString(..., wxConvUTF8) returns an EMPTY string for invalid
+  //  input rather than something mangled, so a stray byte does not
+  //  corrupt a label, it deletes it.  The multiplication sign was
+  //  written as the single byte 0xd7, which is not valid UTF-8, and
+  //  every label and title carrying it rendered blank.
+  {
+    const double d = 0.6276;
+    double c[] = { 0,0,0,  d,d,d,  d,-d,-d,  -d,d,-d,  -d,-d,d };
+    vector<double> coords(c, c + 15);
+    const char* e[] = { "C", "H", "H", "H", "H" };
+    vector<string> elements(e, e + 5);
+
+    MoColumn left, right;
+    string note;
+    MoFragments::build(coords, elements, "TD", 0, left, right, note);
+
+    vector<string> texts;
+    texts.push_back(left.title);
+    texts.push_back(right.title);
+    for (size_t i = 0; i < left.levels.size(); i++)
+      texts.push_back(left.levels[i].label);
+    for (size_t i = 0; i < right.levels.size(); i++)
+      texts.push_back(right.levels[i].label);
+
+    bool valid = true;
+    for (size_t t = 0; t < texts.size(); t++) {
+      const string& u = texts[t];
+      for (size_t i = 0; i < u.size(); ) {
+        const unsigned char b = (unsigned char)u[i];
+        int extra = 0;
+        if      (b < 0x80)            extra = 0;
+        else if ((b & 0xE0) == 0xC0)  extra = 1;
+        else if ((b & 0xF0) == 0xE0)  extra = 2;
+        else if ((b & 0xF8) == 0xF0)  extra = 3;
+        else { valid = false; break; }
+        if (i + extra >= u.size()) { valid = false; break; }
+        for (int k = 1; k <= extra; k++) {
+          if (((unsigned char)u[i+k] & 0xC0) != 0x80) { valid = false; break; }
+        }
+        if (!valid) break;
+        i += extra + 1;
+      }
+      if (!valid) {
+        printf("  not valid UTF-8: %s\n", u.c_str());
+        break;
+      }
+    }
+    printf("  %-46s %s\n", "every drawn string is valid UTF-8",
+           valid ? "ok" : "FAIL");
+    if (!valid) bad++;
+  }
+
+  //  --- against the course's own worked answers ---------------------
+  //
+  //  Not against what I expect the code to do.  5KE195's workshop 3
+  //  works NO2- and CCl4 through by hand and states the results, so
+  //  they are an independent standard: if the code disagrees with the
+  //  course it is meant to support, the code is wrong.
+  {
+    printf("\n  against 5KE195 workshop 3\n");
+
+    //  NO2-, bent C2v.  The compendium: "Two terminal atoms, three p
+    //  orbitals each: Gamma(sigma+pi) ... reduces to 2a1 + a2 + 2b1 +
+    //  b2", and the sigma-only piece is a1 + b1.
+    double c[] = { 0,0,0,  1.0544,0,-0.6717,  -1.0544,0,-0.6717 };
+    vector<double> coords(c, c + 9);
+    const char* e[] = { "N", "O", "O" };
+    vector<string> elements(e, e + 3);
+
+    MoColumn left, right;
+    string note;
+    bool ok = MoFragments::build(coords, elements, "C2V", -1,
+                                 left, right, note);
+    if (!ok) { printf("  NO2- did not build: %s\n", note.c_str()); bad++; }
+    else {
+      //  Count orbitals per irrep in the oxygen 2s and 2p sets.
+      map<string,int> s2, p2;
+      for (size_t i = 0; i < right.levels.size(); i++) {
+        const MoLevel& l = right.levels[i];
+        const bool isS = l.label.find("(2s)") != string::npos;
+        (isS ? s2 : p2)[l.irrep] += l.degeneracy;
+      }
+      bool sigma = (s2.size() == 2 && s2["A1"] == 1 && s2["B1"] == 1);
+      bool all   = (p2.size() == 4 && p2["A1"] == 2 && p2["A2"] == 1 &&
+                    p2["B1"] == 2 && p2["B2"] == 1);
+      printf("  %-46s %s\n",
+             "NO2-: O 2s TASOs are a1 + b1", sigma ? "ok" : "FAIL");
+      printf("  %-46s %s\n",
+             "NO2-: O 2p TASOs are 2a1 + a2 + 2b1 + b2", all ? "ok" : "FAIL");
+      if (!sigma) bad++;
+      if (!all) bad++;
+
+      //  18 valence electrons: 5 from N, 6 from each O, 1 for the
+      //  charge.  The compendium counts them the same way.
+      double total = 0.0;
+      for (size_t i = 0; i < left.levels.size(); i++)  total += left.levels[i].occupancy;
+      for (size_t i = 0; i < right.levels.size(); i++) total += right.levels[i].occupancy;
+      printf("  %-46s %g %s\n", "NO2-: 18 valence electrons", total,
+             (total == 18.0) ? "ok" : "FAIL");
+      if (total != 18.0) bad++;
+    }
+  }
+
+  //  --- classification, and the a2 the compendium singles out --------
+  {
+    printf("\n  bonding, non-bonding, antibonding\n");
+
+    //  Water: for a1 the oxygen brings 2s and 2pz and the hydrogens
+    //  one TASO, so one bonding, one antibonding and one left over;
+    //  for b1 the oxygen brings 2px and the hydrogens nothing, so the
+    //  single b1 can only be non-bonding.  That is the lone pair.
+    MoColumn left, centre, right;
+    const char* li[] = {"A1","A1","B1","B2"};
+    for (int i = 0; i < 4; i++) {
+      MoLevel l; l.irrep = li[i]; l.degeneracy = 1; left.levels.push_back(l);
+    }
+    const char* ri[] = {"A1","B2"};
+    for (int i = 0; i < 2; i++) {
+      MoLevel l; l.irrep = ri[i]; l.degeneracy = 1; right.levels.push_back(l);
+    }
+    const char* ci[] = {"A1","B2","A1","B1","A1","B2"};
+    const char* cl[] = {"1a1","1b2","2a1","1b1","3a1","2b2"};
+    for (int i = 0; i < 6; i++) {
+      MoLevel l; l.irrep = ci[i]; l.label = cl[i]; l.degeneracy = 1;
+      l.energy = -1.0 + 0.2*i;
+      centre.levels.push_back(l);
+    }
+
+    MoDiagram::classify(left.levels, centre.levels, right.levels);
+
+    struct { const char* label; int want; } expect[] = {
+      {"1a1",  MoLevel::BONDING},     {"1b2",  MoLevel::BONDING},
+      {"2a1 nb", MoLevel::NONBONDING}, {"1b1 nb", MoLevel::NONBONDING},
+      {"3a1*", MoLevel::ANTIBONDING}, {"2b2*", MoLevel::ANTIBONDING}};
+    for (int i = 0; i < 6; i++) {
+      const bool got = (centre.levels[i].character == expect[i].want) &&
+                       (centre.levels[i].label == expect[i].label);
+      printf("  %-46s %-10s %s\n",
+             i == 3 ? "H2O: 1b1 is the non-bonding lone pair"
+                    : "H2O: level classified and labelled",
+             centre.levels[i].label.c_str(), got ? "ok" : "FAIL");
+      if (!got) bad++;
+    }
+
+    //  A bonding level and its antibonding partner share a number, so
+    //  a diagram can colour them together.
+    bool paired = (centre.levels[0].pairing == centre.levels[4].pairing &&
+                   centre.levels[1].pairing == centre.levels[5].pairing &&
+                   centre.levels[0].pairing != centre.levels[1].pairing);
+    printf("  %-46s %s\n", "H2O: each bonding level pairs with its own",
+           paired ? "ok" : "FAIL");
+    if (!paired) bad++;
+  }
+
+  //  --- the axis convention ------------------------------------------
+  {
+    printf("\n  reconciling axis conventions\n");
+
+    //  The compendium says it outright: "Whether you end up writing
+    //  a1+b1 or a1+b2 just depends on which in-plane axis you decide
+    //  to call x and which y -- either is fine, as long as you're
+    //  consistent."  The two sources here are NOT consistent, and
+    //  compared as they stand water comes out inside out.
+    MoColumn left, centre, right;
+    const char* li[] = {"A1","A1","B1","B2"};
+    for (int i = 0; i < 4; i++) {
+      MoLevel l; l.irrep = li[i]; l.label = string(li[i]) + "  (2p)";
+      l.degeneracy = 1; left.levels.push_back(l);
+    }
+    const char* ri[] = {"A1","B1"};        // the table's frame
+    for (int i = 0; i < 2; i++) {
+      MoLevel l; l.irrep = ri[i]; l.label = string(ri[i]) + "  (1s)";
+      l.degeneracy = 1; right.levels.push_back(l);
+    }
+    const char* ci[] = {"A1","B2","A1","B1","A1","B2"};   // the code's
+    for (int i = 0; i < 6; i++) {
+      MoLevel l; l.irrep = ci[i]; l.degeneracy = 1; centre.levels.push_back(l);
+    }
+
+    string why;
+    bool ok = MoDiagram::reconcile(left.levels, right.levels,
+                                   centre.levels, why);
+    printf("  %-46s %s\n", "H2O: b1/b2 exchange found",
+           ok ? "ok" : ("FAIL: " + why).c_str());
+    if (!ok) bad++;
+    else {
+      //  After the exchange the hydrogens' antisymmetric combination
+      //  is b2, matching the code, and the label follows the irrep.
+      bool fixed = (right.levels[1].irrep == "B2" &&
+                    right.levels[1].label.find("B2") != string::npos);
+      printf("  %-46s %s  (%s)\n", "H2O: the label follows the irrep",
+             fixed ? "ok" : "FAIL", right.levels[1].label.c_str());
+      if (!fixed) bad++;
+    }
+
+    //  And a genuine disagreement is reported, not papered over: no
+    //  exchange of two irreps can turn 2A1 into 3A1.
+    MoColumn l2, c2, r2;
+    for (int i = 0; i < 2; i++) {
+      MoLevel l; l.irrep = "A1"; l.degeneracy = 1; l2.levels.push_back(l);
+    }
+    for (int i = 0; i < 3; i++) {
+      MoLevel l; l.irrep = "A1"; l.degeneracy = 1; c2.levels.push_back(l);
+    }
+    string why2;
+    bool refused = !MoDiagram::reconcile(l2.levels, r2.levels,
+                                         c2.levels, why2);
+    printf("  %-46s %s\n", "a real disagreement is reported",
+           refused ? "ok" : "FAIL");
+    if (!refused) bad++;
   }
 
   printf("\n  %s\n", bad ? "FAIL" : "PASS");

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <ios>
 #include <sstream>
 
 #include <wx/dcbuffer.h>
@@ -9,6 +10,7 @@
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
 #include "tdat/MoFragments.H"
+#include "tdat/CharacterTable.H"
 #include "tdat/SymmetryOps.H"
 #include "tdat/TAtm.H"
 
@@ -40,7 +42,8 @@ class MoDiagramCanvas : public wxPanel
   public:
 
     MoDiagramCanvas(wxWindow *parent)
-      : wxPanel(parent, wxID_ANY), p_owner(0), p_haveFragments(false)
+      : wxPanel(parent, wxID_ANY), p_owner(0), p_haveFragments(false),
+        p_placed()
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);   // needed for buffered paint
       SetBackgroundColour(*wxWHITE);
@@ -70,6 +73,32 @@ class MoDiagramCanvas : public wxPanel
 
   private:
 
+    //  Where each centre level was last drawn, so a click can be
+    //  turned back into an orbital.  Recorded during the paint rather
+    //  than recomputed on the click: the layout depends on the window
+    //  size, the folded bands and the heading, and a second copy of
+    //  that arithmetic would drift from the one that draws.
+    struct Hit { wxRect box; int orbital; };
+
+    /**
+     * The colour of a level: one per bonding/antibonding pair.
+     *
+     * Seeing which antibonding orbital belongs to which bonding one is
+     * most of what the diagram is for, and it cannot be read off the
+     * order.  Non-bonding levels, and anything unclassified, stay
+     * black.  The palette avoids the red/green pair that colour-blind
+     * readers cannot separate.
+     */
+    static wxColour levelColour(const MoLevel& level)
+    {
+      static const unsigned char rgb[8][3] = {
+        { 31,119,180}, {255,127, 14}, {148,103,189}, {140, 86, 75},
+        { 23,190,207}, {227,119,194}, {127,127,127}, {188,189, 34}};
+      if (level.pairing < 0) return wxColour(0, 0, 0);
+      const int k = level.pairing % 8;
+      return wxColour(rgb[k][0], rgb[k][1], rgb[k][2]);
+    }
+
     /** Energy to pixels, with the occupied region given the room. */
     int yFor(double energy, const wxRect& plot) const
     {
@@ -78,47 +107,146 @@ class MoDiagramCanvas : public wxPanel
       return plot.y + plot.height - (int)(f*plot.height);
     }
 
-    void drawLevel(wxDC& dc, const MoLevel& level, int x, int width,
-                   const wxRect& plot, bool withOccupancy)
+    /**
+     * One column's levels.
+     *
+     * A DEGENERATE LEVEL IS DRAWN AS SEPARATE LINES, one per orbital,
+     * side by side.  It is three orbitals, and one long line labelled
+     * "(3)" both looks like one orbital and puts the count somewhere
+     * the eye does not connect to it.
+     *
+     * Levels that share an energy are laid out side by side too, for
+     * the same reason and a sharper one: oxygen's 2p spans a1, b1 and
+     * b2 at one energy, and drawn on top of each other their three
+     * labels overprint into an unreadable smudge.
+     */
+    void drawColumn(wxDC& dc, const MoColumn& column, int x, int width,
+                    const wxRect& plot, bool withOccupancy,
+                    vector<Hit>* hits)
     {
-      const int y = yFor(level.energy, plot);
+      const int lineGap = 4;
 
-      dc.SetPen(wxPen(*wxBLACK, 2));
-      dc.DrawLine(x, y, x + width, y);
+      for (size_t first = 0; first < column.levels.size(); ) {
 
-      //  The label sits left of the line.  The energy is NOT written
-      //  beside each level: the axis carries it now, and a number on
-      //  every level in a spectrum this dense is clutter rather than
-      //  information.
-      dc.SetFont(*wxSMALL_FONT);
-      dc.SetTextForeground(*wxBLACK);
-      if (!level.label.empty() && level.label != "?") {
-        wxString text(level.label.c_str(), wxConvUTF8);
-
-        //  Only for the molecular orbitals, whose label is a bare
-        //  irrep.  A fragment label already carries its own count
-        //  ("2x T2  (2p)"), and appending a second one gives
-        //  "2x T2  (2p) (6)".
-        if (withOccupancy && level.degeneracy > 1) {
-          text += wxString::Format(" (%d)", level.degeneracy);
+        //  How many levels share this energy?
+        size_t last = first;
+        int lines = column.levels[first].degeneracy > 0
+                    ? column.levels[first].degeneracy : 1;
+        while (last + 1 < column.levels.size() &&
+               fabs(column.levels[last+1].energy
+                    - column.levels[first].energy) < 1.0e-9) {
+          last++;
+          lines += column.levels[last].degeneracy > 0
+                   ? column.levels[last].degeneracy : 1;
         }
-        const wxSize extent = dc.GetTextExtent(text);
-        dc.DrawText(text, x - extent.x - 4, y - extent.y/2);
+
+        const int y = yFor(column.levels[first].energy, plot);
+        const int slot = (lines > 0) ? (width + lineGap)/lines : width;
+        const int lineWidth = max(8, slot - lineGap);
+
+        int drawn = 0;
+        for (size_t i = first; i <= last; i++) {
+          const MoLevel& level = column.levels[i];
+          const int count = level.degeneracy > 0 ? level.degeneracy : 1;
+          const int groupLeft = x + drawn*slot;
+
+          const wxColour colour = levelColour(level);
+          dc.SetPen(wxPen(colour, 2));
+          for (int d = 0; d < count; d++) {
+            const int lx = x + (drawn + d)*slot;
+            dc.DrawLine(lx, y, lx + lineWidth, y);
+          }
+
+          if (withOccupancy) {
+            drawElectrons(dc, level, x + drawn*slot, slot, lineWidth, y);
+          }
+
+          drawLabel(dc, level, groupLeft, count*slot - lineGap, y,
+                    first == last, plot, colour);
+
+          if (hits != 0) {
+            Hit hit;
+            hit.box = wxRect(groupLeft - 6, y - 7, count*slot + 12, 15);
+            hit.orbital = level.orbitals.empty() ? -1 : level.orbitals[0];
+            hits->push_back(hit);
+          }
+          drawn += count;
+        }
+        first = last + 1;
+      }
+    }
+
+  private:
+
+    /**
+     * A level's label, left of its lines, and its annotation right.
+     *
+     * The first level at a given energy takes the left-hand position;
+     * any others sharing that energy are labelled above their own
+     * lines, since there is only one left-hand position and they would
+     * otherwise all claim it.
+     */
+    void drawLabel(wxDC& dc, const MoLevel& level, int x, int width,
+                   int y, bool leftHand, const wxRect& plot,
+                   const wxColour& colour)
+    {
+      if (level.label.empty() || level.label == "?") return;
+
+      dc.SetFont(*wxSMALL_FONT);
+      dc.SetTextForeground(colour);
+
+      const wxString text(level.label.c_str(), wxConvUTF8);
+      const wxSize extent = dc.GetTextExtent(text);
+
+      if (leftHand) {
+        //  Nudged aside when the level above it took the same row, so
+        //  two close-but-distinct levels do not overprint their labels
+        //  -- which is what A' and A'' did all the way down methanol.
+        //  Pushed out one notch at a time until it clears every label
+        //  already placed at a similar height, rather than once past
+        //  the previous one: a crowded spectrum has several levels
+        //  within a few pixels and one nudge leaves them piled up.
+        int step = 0;
+        bool clash = true;
+        while (clash && step < 4) {
+          clash = false;
+          for (size_t k = 0; k < p_placed.size(); k++) {
+            if (p_placed[k].second == step &&
+                abs(y - p_placed[k].first) < extent.y + 2) {
+              clash = true;
+              break;
+            }
+          }
+          if (clash) step++;
+        }
+        p_placed.push_back(std::make_pair(y, step));
+
+        const int lx = x - extent.x - 6 - step*(extent.x + 10);
+        dc.DrawText(text, lx, y - extent.y/2);
+
+        if (!level.annotation.empty()) {
+          dc.SetTextForeground(wxColour(130, 130, 130));
+          const wxString extra(level.annotation.c_str(), wxConvUTF8);
+          dc.DrawText(extra, lx + extent.x - dc.GetTextExtent(extra).x,
+                      y + extent.y/2);
+        }
+      } else {
+        dc.DrawText(text, x + (width - extent.x)/2, y - extent.y - 6);
       }
 
-      if (!withOccupancy) return;
+    }
 
-      //  Electrons as arrows, paired where the level holds two.  Drawn
-      //  per orbital rather than per level, so a degenerate set shows
-      //  its own filling.
-      const int perOrbital = (level.degeneracy > 0)
-                             ? (int)(level.occupancy/level.degeneracy + 0.5) : 0;
-      const int slotWidth = (level.degeneracy > 0)
-                            ? width/level.degeneracy : width;
+    /** Electrons as arrows, one pair of slots per orbital. */
+    void drawElectrons(wxDC& dc, const MoLevel& level, int x, int slot,
+                       int lineWidth, int y)
+    {
+      const int count = level.degeneracy > 0 ? level.degeneracy : 1;
+      const int perOrbital = (int)(level.occupancy/count + 0.5);
+      if (perOrbital <= 0) return;
+
       dc.SetPen(wxPen(*wxBLUE, 2));
-
-      for (int d = 0; d < level.degeneracy; d++) {
-        const int cx = x + d*slotWidth + slotWidth/2;
+      for (int d = 0; d < count; d++) {
+        const int cx = x + d*slot + lineWidth/2;
         for (int e = 0; e < perOrbital && e < 2; e++) {
           const int ax = cx + (e == 0 ? -4 : 4);
           const int dir = (e == 0) ? -1 : 1;      // up then down
@@ -128,6 +256,8 @@ class MoDiagramCanvas : public wxPanel
         }
       }
     }
+
+  public:
 
     void onPaint(wxPaintEvent&)
     {
@@ -205,9 +335,10 @@ class MoDiagramCanvas : public wxPanel
         //  Ticks on round numbers, at whatever spacing keeps them from
         //  colliding, so the spacing follows the spectrum rather than
         //  assuming a range.
-        static const double steps[] = { 1, 2, 5, 10, 20, 50, 100, 200, 500 };
-        double step = steps[8];
-        for (int i = 0; i < 9; i++) {
+        static const double steps[] = { 0.02, 0.05, 0.1, 0.2, 0.5,
+                                        1, 2, 5, 10, 20, 50 };
+        double step = steps[10];
+        for (int i = 0; i < 11; i++) {
           if ((p_hi - p_lo)/steps[i] <= 12) { step = steps[i]; break; }
         }
 
@@ -218,7 +349,7 @@ class MoDiagramCanvas : public wxPanel
           wxString text = wxString::Format(wxT("%g"), v);
           dc.DrawText(text, ax + 6, y - dc.GetTextExtent(text).y/2);
         }
-        dc.DrawText(wxT("E / eV"), 4, plot.y - 16);
+        dc.DrawText(wxT("E / Hartree"), 4, plot.y - 16);
       }
 
       //  Column headings.
@@ -235,12 +366,23 @@ class MoDiagramCanvas : public wxPanel
 
       //  Correlation lines first, so the levels sit on top of them.
       if (p_haveFragments) {
-        dc.SetPen(wxPen(wxColour(160, 160, 160), 1, wxPENSTYLE_SHORT_DASH));
         for (size_t i = 0; i < p_links.size(); i++) {
           const MoConnection& link = p_links[i];
           if (link.centreLevel < 0 ||
               link.centreLevel >= (int)p_centre.levels.size()) continue;
-          const int cy = yFor(p_centre.levels[link.centreLevel].energy, plot);
+
+          //  The line takes its molecular level's colour, so a
+          //  bonding orbital and its antibonding partner can be
+          //  followed back to the same pair of fragment orbitals.
+          const MoLevel& reached = p_centre.levels[link.centreLevel];
+          wxColour tint = levelColour(reached);
+          if (reached.pairing < 0) tint = wxColour(165, 165, 165);
+          else tint = wxColour((tint.Red()   + 2*255)/3,
+                               (tint.Green() + 2*255)/3,
+                               (tint.Blue()  + 2*255)/3);
+          dc.SetPen(wxPen(tint, 1, wxPENSTYLE_SHORT_DASH));
+
+          const int cy = yFor(reached.energy, plot);
 
           if (link.leftLevel >= 0 && link.leftLevel < (int)p_left.levels.size()) {
             dc.DrawLine(xLeft + levelWidth,
@@ -256,30 +398,16 @@ class MoDiagramCanvas : public wxPanel
         }
       }
 
+      p_placed.clear();
       if (p_haveFragments) {
-        for (size_t i = 0; i < p_left.levels.size(); i++) {
-          drawLevel(dc, p_left.levels[i], xLeft, levelWidth, plot, false);
-        }
-        for (size_t i = 0; i < p_right.levels.size(); i++) {
-          drawLevel(dc, p_right.levels[i], xRight, levelWidth, plot, false);
-        }
+        drawColumn(dc, p_left, xLeft, levelWidth, plot, false, 0);
+        p_placed.clear();
+        drawColumn(dc, p_right, xRight, levelWidth, plot, false, 0);
+        p_placed.clear();
       }
-      p_hits.clear();
-      for (size_t i = 0; i < p_centre.levels.size(); i++) {
-        drawLevel(dc, p_centre.levels[i], xCentre, levelWidth, plot, true);
 
-        //  ONE ORBITAL PER LEVEL, even where the level is degenerate.
-        //  They are degenerate: their shapes are related by the
-        //  group's own operations, so any one of them represents the
-        //  set, and offering three near-identical choices would be
-        //  clutter rather than information.
-        Hit hit;
-        hit.box = wxRect(xCentre - 40, yFor(p_centre.levels[i].energy, plot) - 7,
-                         levelWidth + 80, 15);
-        hit.orbital = p_centre.levels[i].orbitals.empty()
-                      ? -1 : p_centre.levels[i].orbitals[0];
-        p_hits.push_back(hit);
-      }
+      p_hits.clear();
+      drawColumn(dc, p_centre, xCentre, levelWidth, plot, true, &p_hits);
 
       //  The folded core, said out loud rather than silently dropped.
       if (p_centre.hiddenCount > 0) {
@@ -291,7 +419,7 @@ class MoDiagramCanvas : public wxPanel
         ostringstream note;
         note << p_centre.hiddenCount << " core orbital"
              << (p_centre.hiddenCount == 1 ? "" : "s") << " below "
-             << (int)(p_centre.hiddenMaxEnergy + 0.5) << " eV, not shown";
+             << p_centre.hiddenMaxEnergy << " Hartree, not shown";
         dc.DrawText(wxString(note.str().c_str(), wxConvUTF8),
                     xCentre - 30, y + 4);
       }
@@ -304,9 +432,40 @@ class MoDiagramCanvas : public wxPanel
       }
 
       if (!p_note.empty()) {
+        //  WRAPPED, because it is a paragraph and the window is not as
+        //  wide as it is.  Drawn as one line, most of it was simply off
+        //  the right-hand edge -- including the part that says why the
+        //  fragment columns are missing, which is the only place that
+        //  is explained.
         dc.SetFont(*wxSMALL_FONT);
         dc.SetTextForeground(wxColour(110, 110, 110));
-        dc.DrawText(wxString(p_note.c_str(), wxConvUTF8), 8, size.y - 16);
+
+        vector<wxString> lines;
+        wxString line, word;
+        const wxString all(p_note.c_str(), wxConvUTF8);
+        for (size_t i = 0; i <= all.length(); i++) {
+          const wxUniChar c = (i < all.length()) ? all[i]
+                                                 : wxUniChar(wxT(' '));
+          if (c != wxT(' ')) { word += c; continue; }
+          if (word.IsEmpty()) continue;
+
+          const wxString candidate = line.IsEmpty() ? word
+                                                    : line + wxT(" ") + word;
+          if (dc.GetTextExtent(candidate).x > size.x - 16 && !line.IsEmpty()) {
+            lines.push_back(line);
+            line = word;
+          } else {
+            line = candidate;
+          }
+          word.Clear();
+        }
+        if (!line.IsEmpty()) lines.push_back(line);
+
+        const int lineHeight = dc.GetTextExtent(wxT("Xg")).y + 1;
+        for (size_t i = 0; i < lines.size(); i++) {
+          dc.DrawText(lines[i], 8,
+                      size.y - 4 - (int)(lines.size() - i)*lineHeight);
+        }
       }
     }
 
@@ -340,15 +499,12 @@ class MoDiagramCanvas : public wxPanel
     bool p_haveFragments;
     string p_group;
 
-    //  Where each centre level was last drawn, so a click can be
-    //  turned back into an orbital.  Recorded during the paint rather
-    //  than recomputed on the click: the layout depends on the window
-    //  size, the folded bands and the heading, and a second copy of
-    //  that arithmetic would drift from the one that draws.
-    struct Hit { wxRect box; int orbital; };
     vector<Hit> p_hits;
     string p_note;
     mutable double p_lo, p_hi;
+    //  Every label placed in the column being drawn, as (y, notch), so
+    //  a new one can be pushed clear of all of them.
+    vector< std::pair<int,int> > p_placed;
 };
 
 
@@ -392,6 +548,7 @@ MoDiagramPanel::~MoDiagramPanel()
 //   all, which is why it claims ORBENG and not MO -- so it says so
 //   instead of failing silently.
 /////////////////////////////////////////////////////////////////////////////
+
 void MoDiagramPanel::orbitalClicked(int orbengIndex)
 {
   IPropCalculation *calc = getCalculation();
@@ -503,39 +660,100 @@ void MoDiagramPanel::build()
     for (int i = 0; i < syms->rows(); i++) s.push_back(syms->value(i));
   }
 
-  //  EVERY COLUMN IS DRAWN ON ONE ENERGY AXIS, so every column has to
-  //  be in one unit.  The calculation reports orbital energies in
-  //  Hartree and the fragment table is in eV, and the first version of
-  //  this put both on the same axis unconverted -- which silently
-  //  stretched the fragment levels over a range 27 times too large and
-  //  made the correlation lines meaningless.
+  //  --- the molecule's symmetry --------------------------------------
   //
-  //  eV is the unit to convert TO, not from: a valence orbital
-  //  ionisation energy and a Koopmans orbital energy are the same kind
-  //  of quantity, so on one eV axis the two columns can honestly be
-  //  compared.  (They will not agree closely for a DFT calculation,
-  //  whose occupied levels come out too shallow.  That is a real
-  //  property of the method and not a fault in the drawing.)
-  const double hartreeToEv = 27.211386245988;
-  for (size_t i = 0; i < e.size(); i++) e[i] *= hartreeToEv;
+  //  Needed BEFORE the orbitals are grouped, because the grouping uses
+  //  the irreps' dimensions.
+  //
+  //  THE ANALYSIS RUNS ON THE SYMMETRISED GEOMETRY, not the one on
+  //  screen.  gensym's operation matrices are written in each group's
+  //  standard frame, so atoms only map onto atoms if the molecule is in
+  //  that frame.  An optimised structure is neither aligned to it nor
+  //  exactly symmetric, and SymmetryOps::find() fixes both: autosym
+  //  writes the cleaned, reoriented coordinates back onto the fragment
+  //  it was given, which is why it takes a non-const reference.
+  //
+  //  On a COPY, because that fragment is the one the viewer is
+  //  displaying, and nudging every atom of it is not something opening
+  //  a diagram should do.  Reading the coordinates back off the copy is
+  //  then not an extra step, it is the point.
+  //
+  //  0.01 Angstrom, which is what the Symmetry panel's own field
+  //  defaults to.  The threshold does NOT behave the way it reads: a
+  //  LOOSER one finds LOWER symmetry.  Measured against autosym
+  //  directly, on exact water and exact methane:
+  //
+  //      threshold   H2O      CH4
+  //      0           C1       C1
+  //      0.001       C2v      Td
+  //      0.01        C2v      Td
+  //      0.05        Cs       Td
+  //
+  //  0.05 was the first value tried here and it quietly cost water its
+  //  C2 axis -- a correlation diagram in Cs instead of C2v, with no
+  //  error and no way to tell from the picture.
+  string group, why;
+  vector<double> coords;
+  vector<string> elements;
 
-  //  A tolerance in eV now, converted from the Hartree one it was
-  //  chosen as.  Degenerate partners agree to far better
-  //  than this; distinct levels in a valence spectrum are further apart.
-  MoDiagram::group(e, o, s, 1.0e-4*hartreeToEv, centre.levels);
+  WxVizToolFW& fw = getFW();
+  SGFragment *sgfrag = fw.getSceneGraph().getFragment();
+
+  if (sgfrag == 0 || sgfrag->numAtoms() == 0) {
+    why = "No structure is loaded, so there is no symmetry to use.";
+  } else {
+    Fragment probe(*sgfrag);
+    try {
+      group = SymmetryOps::find(probe, 0.01);
+    } catch (...) {
+      group.clear();
+      why = "The symmetry search could not be run.";
+    }
+
+    double *xyz = probe.coordinates();
+    if (xyz != 0) {
+      for (unsigned long a = 0; a < probe.numAtoms(); a++) {
+        TAtm *atom = probe.atomRef((int)a);
+        if (atom == 0) { elements.clear(); coords.clear(); break; }
+        elements.push_back(atom->atomicSymbol());
+        for (int k = 0; k < 3; k++) coords.push_back(xyz[a*3 + k]);
+      }
+    }
+  }
+
+  //  --- the molecular orbitals ---------------------------------------
+  //
+  //  Grouped by irrep DIMENSION where the group is known.  A degenerate
+  //  set is degenerate because its irrep is, not because two energies
+  //  came out close: methane from a semiempirical run spreads its 1t2
+  //  over 2e-4 Hartree, which any tolerance tight enough to separate
+  //  real levels splits into a doublet and a singlet.
+  map<string,int> dimensions;
+  const CharacterTable *table = CharacterTable::lookup(group);
+  if (table != 0) {
+    const vector<string>& irreps = table->irreps();
+    for (size_t i = 0; i < irreps.size(); i++) {
+      dimensions[MoDiagram::canonicalIrrep(irreps[i])] =
+          table->dimension(irreps[i]);
+    }
+  }
+  MoDiagram::groupByIrrep(e, o, s, dimensions, 1.0e-4, centre.levels);
   centre.title = "Molecular orbitals";
 
-  //  Both ends of the spectrum are folded away, not just the core.
-  //  "We don't need all virtual orbitals, just the bonding and
-  //  anti-bonding ones" -- and a def2-SVP calculation on a small
-  //  molecule carries four or five times as many virtuals as occupied
-  //  orbitals, nearly all of them basis-set artefacts rather than
-  //  chemistry.  Both cutoffs are suggested from the spectrum itself
-  //  and both report what they hid, so the reader can see that
-  //  something was left out.
+  //  Both ends of the spectrum are folded away, not just the core, and
+  //  both cutoffs report what they hid so an absence the reader cannot
+  //  see does not pass for a complete diagram.
   MoDiagram::hideBelow(centre, MoDiagram::suggestCoreCutoff(centre.levels));
   MoDiagram::hideAbove(centre,
                        MoDiagram::suggestVirtualCutoff(centre.levels));
+
+  for (size_t i = 0; i < centre.levels.size(); i++) {
+    ostringstream text;
+    text.setf(std::ios::fixed);
+    text.precision(4);
+    text << centre.levels[i].energy;
+    centre.levels[i].annotation = text.str();
+  }
 
   ostringstream note;
   if (s.empty()) {
@@ -543,109 +761,72 @@ void MoDiagramPanel::build()
             "(ORBSYM), so the levels are unlabelled and cannot be "
             "correlated with the fragment orbitals.";
   } else {
-    note << "Energies in eV.";
+    note << "Energies in Hartree.";
   }
 
-  //  --- the two fragment columns -----------------------------------
+  //  --- the fragment columns -----------------------------------------
   //
   //  A correlation diagram is a symmetry argument, so these depend on
   //  the geometry and the point group and not on the calculation.  The
   //  molecular orbitals are still drawn when this cannot be made: a
   //  level diagram on its own is useful, and refusing to draw anything
-  //  because the molecule has no unique central atom would be worse
-  //  than saying so.
+  //  would be worse than saying why the rest is missing.
   bool haveFragments = false;
-  string why;
-  string group;
-
-  WxVizToolFW& fw = getFW();
-  SGFragment *sgfrag = fw.getSceneGraph().getFragment();
-
-  if (sgfrag == 0 || sgfrag->numAtoms() == 0) {
-    why = "No structure is loaded.";
-  } else {
-    //  THE ANALYSIS RUNS ON THE SYMMETRISED GEOMETRY, not the one on
-    //  screen.
-    //
-    //  gensym's operation matrices are written in each group's
-    //  standard frame, so atoms only map onto atoms if the molecule is
-    //  in that frame.  An optimised structure is neither aligned to it
-    //  nor exactly symmetric, and SymmetryOps::find() fixes both --
-    //  autosym writes the cleaned, reoriented coordinates back onto the
-    //  fragment it was given, which is the whole reason it takes a
-    //  non-const reference.
-    //
-    //  On a COPY, because that fragment is the one the viewer is
-    //  displaying and nudging every atom of it is not something opening
-    //  a diagram should do.  Reading the coordinates back off the copy
-    //  is then not an extra step, it is the point.
-    vector<double> coords;
-    vector<string> elements;
-
-    //  0.01 Angstrom, which is what the Symmetry panel's own field
-    //  defaults to.  The threshold does NOT behave the way it reads:
-    //  a LOOSER one finds LOWER symmetry, not higher.  Measured
-    //  against autosym directly, on exact water and exact methane:
-    //
-    //      threshold   H2O      CH4
-    //      0           C1       C1
-    //      0.001       C2v      Td
-    //      0.01        C2v      Td
-    //      0.05        Cs       Td
-    //
-    //  0.05 was the first value tried here and it quietly cost water
-    //  its C2 axis -- a correlation diagram in Cs instead of C2v, with
-    //  no error and no way to tell from the picture.
-    Fragment probe(*sgfrag);
-    try {
-      group = SymmetryOps::find(probe, 0.01);
-    } catch (...) {
-      group.clear();
+  if (!elements.empty()) {
+    //  The charge, so the fragment levels carry the right electron
+    //  count -- NO2- has one more than its atoms bring.
+    int charge = 0;
+    {
+      Fragment *frag = fw.getSceneGraph().getFragment();
+      if (frag != 0) charge = (int)frag->charge();
     }
-
-    double *xyz = probe.coordinates();
-    if (xyz != 0) {
-      for (unsigned long a = 0; a < probe.numAtoms(); a++) {
-        TAtm *atom = probe.atomRef((int)a);
-        if (atom == 0) { elements.clear(); break; }
-        elements.push_back(atom->atomicSymbol());
-        for (int k = 0; k < 3; k++) coords.push_back(xyz[a*3 + k]);
-      }
-    }
-
-    haveFragments = MoFragments::build(coords, elements, group,
+    haveFragments = MoFragments::build(coords, elements, group, charge,
                                        left, right, why);
-    if (haveFragments) {
-      //  DO THE TWO SIDES EVEN SPEAK THE SAME LANGUAGE?
-      //
-      //  The centre labels come from the code, which may have run the
-      //  job in a lower group than the structure actually has -- ORCA
-      //  with no symmetry reports every orbital as "A", and in C2v
-      //  there is no such irrep.  connect() would then find no partner
-      //  for anything and the diagram would come out with three
-      //  columns and not one line between them, looking like a result.
-      int matched = 0;
-      for (size_t i = 0; i < centre.levels.size(); i++) {
-        for (size_t j = 0; j < left.levels.size(); j++) {
-          if (centre.levels[i].irrep == left.levels[j].irrep) { matched++; break; }
-        }
-      }
-      if (matched == 0 && !centre.levels.empty()) {
-        note << "  The calculation's orbital labels are not irreps of "
-             << group << " -- it was probably run without symmetry, or "
-                "in a lower group -- so nothing can be correlated.";
-      } else {
-        MoDiagram::connect(left.levels, centre.levels, right.levels, links);
-      }
-      note << "  Fragment levels are valence orbital ionisation "
-              "energies; molecular levels are the calculation's own "
-              "orbital energies. Both in eV.";
-    }
   }
 
-  if (!haveFragments && !why.empty()) note << "  " << why;
+  if (haveFragments) {
+    //  Reconcile the axis conventions BEFORE anything is matched on
+    //  the names: in C2v the character table and the code need not
+    //  agree on which mirror is sigma-v, and water comes out inside
+    //  out if they are compared as they stand.
+    string mismatch;
+    if (!MoDiagram::reconcile(left.levels, right.levels, centre.levels,
+                              mismatch)) {
+      haveFragments = false;
+      why = mismatch;
+    }
+    MoDiagram::placeFragments(centre, left, right);
+    MoDiagram::classify(left.levels, centre.levels, right.levels);
+
+    //  DO THE TWO SIDES EVEN SPEAK THE SAME LANGUAGE?
+    //
+    //  The centre labels come from the code, which may have run the job
+    //  in a lower group than the structure actually has -- ORCA with no
+    //  symmetry reports every orbital as "A", and in C2v there is no
+    //  such irrep.  connect() would then find no partner for anything
+    //  and the diagram would come out with three columns and not one
+    //  line between them, looking like a result.
+    int matched = 0;
+    for (size_t i = 0; i < centre.levels.size(); i++) {
+      for (size_t j = 0; j < left.levels.size(); j++) {
+        if (centre.levels[i].irrep == left.levels[j].irrep) { matched++; break; }
+      }
+    }
+    if (matched == 0 && !centre.levels.empty()) {
+      note << "  The calculation's orbital labels are not irreps of "
+           << group << " -- it was probably run without symmetry, or in "
+              "a lower group -- so nothing can be correlated.";
+    } else {
+      MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+      note << "  Molecular levels are the calculation's own orbital "
+              "energies in Hartree. Fragment levels are placed by their "
+              "valence ionisation energies (shown in eV), in order and "
+              "spacing but not on this axis.";
+    }
+  } else if (!why.empty()) {
+    note << "  " << why;
+  }
 
   p_canvas->setGroup(group);
   p_canvas->setDiagram(left, centre, right, links, haveFragments, note.str());
 }
-

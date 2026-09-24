@@ -31,8 +31,9 @@ struct VoieEntry
    double s;
    double p;
    bool   haveP;
+   int    valence;       // electrons this element brings
 
-   VoieEntry() : n(0), s(0.0), p(0.0), haveP(false) {}
+   VoieEntry() : n(0), s(0.0), p(0.0), haveP(false), valence(0) {}
 };
 
 static map<string, VoieEntry> s_voie;
@@ -68,7 +69,71 @@ static void loadVoie(void)
          entry.p = atof(pText.c_str());
          entry.haveP = true;
       }
+      parse >> entry.valence;
       s_voie[symbol] = entry;
+   }
+}
+
+
+int MoFragments::valenceElectrons(const string& element)
+{
+   loadVoie();
+   map<string, VoieEntry>::const_iterator it = s_voie.find(element);
+   return (it == s_voie.end()) ? 0 : it->second.valence;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//  Description
+//     Put a fragment's electrons on its levels.
+//
+//     Aufbau by energy, and Hund within a set that shares one: four
+//     hydrogen 1s orbitals in Td are one a1 and one t2 at the same
+//     energy, and their four electrons go one to each orbital, not two
+//     into the a1.  Drawing it the other way would say the a1
+//     combination is doubly occupied before bonding, which is not what
+//     four hydrogen atoms are.
+/////////////////////////////////////////////////////////////////////////////
+static void fillColumn(vector<MoLevel>& levels, int electrons)
+{
+   for (size_t i = 0; i < levels.size(); i++) levels[i].occupancy = 0.0;
+   if (electrons <= 0) return;
+
+   for (size_t first = 0; first < levels.size() && electrons > 0; ) {
+      //  Every level at this energy fills together.
+      size_t last = first;
+      int orbitals = levels[first].degeneracy > 0 ? levels[first].degeneracy : 1;
+      while (last + 1 < levels.size() &&
+             fabs(levels[last+1].energy - levels[first].energy) < 1.0e-9) {
+         last++;
+         orbitals += levels[last].degeneracy > 0 ? levels[last].degeneracy : 1;
+      }
+
+      const int take = (electrons < 2*orbitals) ? electrons : 2*orbitals;
+
+      //  Hund properly: one electron into every orbital of the set
+      //  before any of them takes a second.  Oxygen's four 2p electrons
+      //  are 2, 1, 1 over a1, b1, b2 -- not 1, 1, 2, which is what
+      //  sharing them out in proportion gave and which reads as the
+      //  wrong orbital being the doubly occupied one.
+      int singles = (take < orbitals) ? take : orbitals;
+      int pairs   = take - singles;
+
+      size_t i;
+      for (i = first; i <= last; i++) {
+         const int mine = levels[i].degeneracy > 0 ? levels[i].degeneracy : 1;
+         const int one = (singles < mine) ? singles : mine;
+         levels[i].occupancy = one;
+         singles -= one;
+      }
+      for (i = first; i <= last && pairs > 0; i++) {
+         const int mine = levels[i].degeneracy > 0 ? levels[i].degeneracy : 1;
+         const int two = (pairs < mine) ? pairs : mine;
+         levels[i].occupancy += two;
+         pairs -= two;
+      }
+      electrons -= take;
+      first = last + 1;
    }
 }
 
@@ -224,6 +289,15 @@ static bool shellIrreps(const vector<int>& atoms, int l, int numAtoms,
 }
 
 
+//  U+00D7 MULTIPLICATION SIGN, as the two bytes UTF-8 spells it with.
+//
+//  It was written as char(0xd7), a single byte, which is not valid
+//  UTF-8 at all -- and wxString(..., wxConvUTF8) returns an EMPTY
+//  string for invalid input rather than something mangled, so every
+//  label and title carrying it came out blank.
+static const char *TIMES = "\xc3\x97";
+
+
 /** Append one level per irrep occurrence, at the given energy. */
 static void addLevels(const CharacterTable& table,
                       const vector<int>& multiplicity,
@@ -245,7 +319,7 @@ static void addLevels(const CharacterTable& table,
       //  reader who sees one level labelled T2 will count three
       //  orbitals where there are six.
       ostringstream name;
-      if (multiplicity[i] > 1) name << multiplicity[i] << char(0xd7) << ' ';
+      if (multiplicity[i] > 1) name << multiplicity[i] << TIMES << ' ';
       name << irreps[i] << "  (" << shellName << ')';
       level.label = name.str();
 
@@ -257,6 +331,7 @@ static void addLevels(const CharacterTable& table,
 bool MoFragments::build(const vector<double>& coords,
                         const vector<string>& elements,
                         const string& group,
+                        int charge,
                         MoColumn& left,
                         MoColumn& right,
                         string& note)
@@ -334,8 +409,11 @@ bool MoFragments::build(const vector<double>& coords,
    }
 
    //  --- the central atom's valence orbitals -----------------------
+   //  THE COLUMNS ARE NAMED BY THE ATOMS THEY BELONG TO: "O" on one
+   //  side, "2H TASOs" on the other, which is how the diagram is read
+   //  and how the course names them.
    vector<int> centralOnly(1, central);
-   left.title = elements[central] + " orbitals";
+   left.title = elements[central];
 
    for (int l = 0; l <= 1; l++) {
       double eV;
@@ -355,8 +433,7 @@ bool MoFragments::build(const vector<double>& coords,
 
    //  --- the terminal atoms' symmetry orbitals ---------------------
    ostringstream rightTitle;
-   rightTitle << terminal.size() << char(0xd7) << ' ' << elements[terminal[0]]
-              << " symmetry orbitals";
+   rightTitle << terminal.size() << elements[terminal[0]] << " TASOs";
    right.title = rightTitle.str();
 
    for (int l = 0; l <= 1; l++) {
@@ -374,6 +451,19 @@ bool MoFragments::build(const vector<double>& coords,
       shell << s_voie[elements[terminal[0]]].n << (l == 0 ? 's' : 'p');
       addLevels(*table, multiplicity, eV, shell.str(), right.levels);
    }
+
+   //  --- electrons -------------------------------------------------
+   //
+   //  The molecular charge belongs to the fragment that is not the
+   //  neutral reference; there is no way to say which from symmetry, so
+   //  it goes on the terminal set, where it usually sits chemically
+   //  (NO2- is a nitrogen between two oxygens carrying the charge).
+   //  The TOTAL is right either way, which is what the electron count
+   //  on the diagram has to be.
+   fillColumn(left.levels, valenceElectrons(elements[central]));
+   fillColumn(right.levels,
+              (int)terminal.size()*valenceElectrons(elements[terminal[0]])
+              - charge);
 
    if (left.levels.empty() && right.levels.empty()) {
       note = "No valence orbital energies for " + elements[central] +

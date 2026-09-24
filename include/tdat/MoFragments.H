@@ -60,6 +60,9 @@ class MoFragments
      */
     static bool valenceEnergy(const string& element, int l, double& eV);
 
+    /** How many valence electrons an element brings; 0 if unknown. */
+    static int valenceElectrons(const string& element);
+
     /**
      * Split the atoms into a central atom and its terminal orbit.
      *
@@ -85,6 +88,8 @@ class MoFragments
      * @param elements   N atomic symbols
      * @param group      the point group name, as SymmetryOps::find()
      *                   returns it
+     * @param charge     the molecule's charge, so the fragment levels
+     *                   carry the right number of electrons
      * @param left       filled with the central atom's valence orbitals
      * @param right      filled with the terminal atoms' symmetry
      *                   orbitals
@@ -97,6 +102,7 @@ class MoFragments
     static bool build(const vector<double>& coords,
                       const vector<string>& elements,
                       const string& group,
+                      int charge,
                       MoColumn& left,
                       MoColumn& right,
                       string& note);
