@@ -66,6 +66,15 @@ fi
 
 say() { [ -n "${ECCE_REAP_QUIET:-}" ] || echo "ecce-gateway-reap: $*"; }
 
+# The data server credential AuthCache shares between this session's
+# processes (AuthCache::sessionFile). It holds a password, so it must go
+# when the session's services do -- same lifetime as the port file, same
+# per-display key, and sanitised the same way the C++ side sanitises it.
+authfile() {
+  printf '%s/authcache_%s' "$STATEDIR" \
+    "$(printf '%s_%s' "$HOST" "$1" | tr -c 'A-Za-z0-9._-' '_')"
+}
+
 BINDIR="$(readlink -f "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")"
 
 # Pids of ECCE app binaries running for a given DISPLAY, for this user.
@@ -120,7 +129,7 @@ for pidfile in "$STATEDIR"/jmsdispatcher_*.pid; do
   if [ -z "${pid:-}" ] || ! kill -0 "$pid" 2>/dev/null; then
     # Dispatcher already gone; only the bookkeeping is stale. Drop the
     # port file too, or JMSMessage.C reads a dead port out of it.
-    rm -f "$pidfile" "$STATEDIR/${HOST}_${disp}"
+    rm -f "$pidfile" "$STATEDIR/${HOST}_${disp}" "$(authfile "$disp")" "$(authfile "$disp")".tmp.*
     continue
   fi
 
@@ -134,7 +143,7 @@ for pidfile in "$STATEDIR"/jmsdispatcher_*.pid; do
 
   say "no ECCE app left on $disp -- stopping JMSDispatcher (pid $pid)"
   reap_pid "$pid"
-  rm -f "$pidfile" "$STATEDIR/${HOST}_${disp}"
+  rm -f "$pidfile" "$STATEDIR/${HOST}_${disp}" "$(authfile "$disp")" "$(authfile "$disp")".tmp.*
 done
 
 # Pidfile written before the gateway was made per-display; it cannot be

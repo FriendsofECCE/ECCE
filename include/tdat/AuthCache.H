@@ -54,6 +54,16 @@ class AuthCache
                     const string& newpass);
 
     static string pipeName();
+
+    /**
+     * Session credential store.  See AuthCache.C for the rationale and
+     * the security properties of the file.
+     */
+    static string sessionFile();
+    static void sessionClear();
+    void sessionLoad();
+    void sessionSave() const;
+
     void pipeOut(const string& pipeName);
     void pipeIn(const string& pipeName);
     void msgIn(const JMSMessage& msg, const string& callerID);
@@ -93,6 +103,8 @@ class AuthCache
     string makeKey(const string& url, const string& realm) const;
 
     void addIt(const string& url,const string& user, const string& pass);
+
+    static bool sessionWorthy(const string& url);
 
     static AuthCache  *p_singleton;
     UserPolicy         p_userPolicy;

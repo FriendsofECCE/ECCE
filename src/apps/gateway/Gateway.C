@@ -36,6 +36,7 @@
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceTool.H"
+#include "tdat/AuthCache.H"
 
 #include "wxgui/EcceTool.H"
 #include "wxgui/ewxMenu.H"
@@ -668,6 +669,12 @@ void Gateway::exitGateway()
       // it. quit(true) calls Destroy(), which schedules window teardown
       // asynchronously rather than freeing `this` synchronously, so
       // running more code in this function afterwards is safe.
+      //
+      // The session is over, so the shared data server credential goes
+      // with it. ecce-gateway-stop removes the file too; doing it here
+      // as well means it is gone even if that script is not on PATH or
+      // resolves the session key differently than this process did.
+      AuthCache::sessionClear();
       (void)system("ecce-gateway-stop");
       (void)system("ecce-dataserver-stop");
     }
