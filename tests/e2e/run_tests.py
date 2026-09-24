@@ -117,6 +117,32 @@ def run_case(case, verbose, keep, required=()):
             report.check(False, 'code produced %s (exit %d) %s'
                          % (case['output'], rc, err.strip()[:300]))
             return report
+
+        #  A code that exits non-zero has failed, and every property
+        #  after this point will be missing for that reason and not
+        #  because anything is wrong with the parsers.  Reported here,
+        #  with the code's own last words, because the alternative --
+        #  which this suite did for a while -- is a list of absent
+        #  properties that reads exactly like a parsing bug.
+        #
+        #  The message matters more than the check: for a code whose
+        #  output IS its stdout, the file exists no matter how badly the
+        #  run went, so the diagnostic is in the file rather than stderr.
+        if rc != 0:
+            detail = err.strip()
+            if not detail:
+                try:
+                    detail = open(job_out, errors='replace').read()
+                except IOError:
+                    detail = ''
+            tail = [l for l in detail.splitlines() if l.strip()][-12:]
+            report.check(False,
+                         'the code itself failed (exit %d) -- every property '
+                         'below is missing because of that, not because of '
+                         'the parsers:\n        %s'
+                         % (rc, '\n        '.join(tail)))
+            return report
+
         report.check(True, 'code ran and produced output')
 
         # --- stage 2: the real monitor --------------------------------
