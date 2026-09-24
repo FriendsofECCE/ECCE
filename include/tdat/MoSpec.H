@@ -11,6 +11,7 @@
 #ifndef TDAT_MOSPEC__H
 #define TDAT_MOSPEC__H
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -216,6 +217,86 @@ static bool buildModel(const char* tables, const char* molecule,
       }
     }
   }
+  //  --- how much of each molecular orbital each TASO actually is ---
+  //
+  //  A fragment level is a SYMMETRY ORBITAL, not a shell, and the
+  //  share of a molecular orbital on a shell is the same for every
+  //  symmetry orbital built from it -- so water's in-phase and
+  //  out-of-phase hydrogen combinations were weighted identically and
+  //  placed at one energy, when the in-phase one is stabilised more.
+  //
+  //  The overlap of the TASO with the orbital is the right weight,
+  //  and the projection that gives it is already stored: the same
+  //  coefficients the phase sketches are drawn from.
+  //
+  //  Only where each atom carries exactly one function of that shell
+  //  (or three, for p).  A larger basis contracts several radial
+  //  functions into a shell and adding their coefficients is not an
+  //  overlap; there the shell weighting stands.
+  if (!perAtom.empty() && !coefficients.empty() &&
+      shellOf.size() == (size_t)0 + (coefficients.empty() ? 0
+                                     : coefficients[0].size())) {
+    vector<int> base(perAtom.size(), 0);
+    int at = 0;
+    for (size_t a = 0; a < perAtom.size(); a++) { base[a] = at; at += perAtom[a]; }
+
+    MoColumn* sides[2] = { &left, &right };
+    for (int side = 0; side < 2; side++) {
+      for (size_t i = 0; i < sides[side]->levels.size(); i++) {
+        MoLevel& level = sides[side]->levels[i];
+        if (level.phases.empty() || level.phaseAtoms.empty()) continue;
+        if (level.shell < 0 || level.shell > 1) continue;
+
+        const int comps = (level.shell == 0) ? 1 : 3;
+        if (level.phases.size() != comps*level.phaseAtoms.size()) continue;
+
+        //  Where this shell starts on each atom, and that it is the
+        //  only one of its kind there.
+        vector<int> where(level.phaseAtoms.size(), -1);
+        bool usable = true;
+        for (size_t k = 0; k < level.phaseAtoms.size() && usable; k++) {
+          const int a = level.phaseAtoms[k];
+          if (a < 0 || (size_t)a >= perAtom.size()) { usable = false; break; }
+          int found = 0;
+          for (int f = 0; f < perAtom[a]; f++) {
+            if (shellOf[base[a] + f] != level.shell) continue;
+            if (found == 0) where[k] = base[a] + f;
+            found++;
+          }
+          if (found != comps) usable = false;
+        }
+        if (!usable) continue;
+
+        //  Normalised, since a projection operator does not return a
+        //  unit vector and a weight has to be comparable across
+        //  levels.
+        double norm = 0.0;
+        for (size_t k = 0; k < level.phases.size(); k++) {
+          norm += level.phases[k]*level.phases[k];
+        }
+        if (norm <= 0.0) continue;
+        norm = sqrt(norm);
+
+        level.moWeight.assign(centre.levels.size(), 0.0);
+        for (size_t ci = 0; ci < centre.levels.size(); ci++) {
+          for (size_t m = 0; m < centre.levels[ci].orbitals.size(); m++) {
+            const int mo = centre.levels[ci].orbitals[m];
+            if (mo < 0 || mo >= (int)coefficients.size()) continue;
+
+            double overlap = 0.0;
+            for (size_t k = 0; k < level.phaseAtoms.size(); k++) {
+              for (int comp = 0; comp < comps; comp++) {
+                overlap += (level.phases[k*comps + comp]/norm)
+                         * coefficients[mo][where[k] + comp];
+              }
+            }
+            level.moWeight[ci] += overlap*overlap;
+          }
+        }
+      }
+    }
+  }
+
   //  THE FRAGMENT COLUMNS DO NOT NEED THE CODE'S SYMMETRY LABELS.
   //  They come from the geometry and the point group.  What the labels
   //  are for is matching an orbital to a fragment level BY IRREP;

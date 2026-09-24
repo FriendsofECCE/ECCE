@@ -726,9 +726,6 @@ bool SymmetryAnalysis::orbitalIrrep(const vector< vector<double> >& orbitals,
       const double n = sum/(double)table.order();
       const double rounded = (n < 0.0) ? -floor(-n + 0.5) : floor(n + 0.5);
 
-      if (getenv("ECCE_DEBUG_IRREP") != 0) {
-         fprintf(stderr, "    %-5s n=%8.4f\n", names[i].c_str(), n);
-      }
       if (fabs(n - rounded) > 0.1) return false;
       if (rounded < -0.5) return false;
       if (rounded > 0.5) {

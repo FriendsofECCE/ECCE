@@ -1,5 +1,6 @@
 #include <cctype>
 #include <cstdio>
+#include <cstdlib>
 #include <map>
 #include <sstream>
 using std::ostringstream;
@@ -433,13 +434,27 @@ void MoDiagram::placeFragments(const MoColumn& centre,
 
         //  Weighted by the share of that orbital this fragment holds,
         //  where a share was computed, and evenly where none was.
+        //  THE OVERLAP WITH THIS ORBITAL, WHERE IT IS KNOWN.
+        //
+        //  This is what a fragment level actually is -- a symmetry
+        //  orbital, not a shell -- and the share on a shell is the
+        //  same for every symmetry orbital built from it.  Water's
+        //  two hydrogen combinations took identical weights and were
+        //  placed at one energy; the in-phase one is stabilised more
+        //  and the diagram exists to show that.
         double w = 1.0;
+        bool weighted = false;
+        if (link.centreLevel < (int)level.moWeight.size()) {
+          w = level.moWeight[link.centreLevel];
+          weighted = true;
+        }
+
         const int which = (level.slot >= 0) ? level.slot : level.shell;
-        if (which >= 0) {
+        if (!weighted && which >= 0) {
           const vector<double>& shares = (c == 0) ? mo.shellLeft
                                                   : mo.shellRight;
           if ((int)shares.size() > which) w = shares[which];
-        } else {
+        } else if (!weighted) {
           const double share = (c == 0) ? mo.shareLeft : mo.shareRight;
           if (share >= 0.0) w = share;
         }
@@ -501,8 +516,24 @@ void MoDiagram::placeFragments(const MoColumn& centre,
 
       double sum = 0.0;
       int count = 0;
+      //  AN ATOM'S SHELL IS DEGENERATE.  A SET OF SYMMETRY ORBITALS
+      //  IS NOT.
+      //
+      //  Snapping a shell to one height is right for a central atom:
+      //  its 2p really is threefold degenerate and drawing the three
+      //  components apart invents a splitting.  It is wrong for
+      //  terminal-atom symmetry orbitals, which are combinations of
+      //  several atoms and differ from each other by construction --
+      //  water's in-phase hydrogen combination is stabilised and its
+      //  out-of-phase one is not, and averaging them put both at
+      //  exactly the midpoint and threw the distinction away.
+      //
+      //  A level carrying a phase pattern is such a combination.
+      if (!levels[i].phases.empty()) { done[i] = true; continue; }
+
       for (size_t j = i; j < levels.size(); j++) {
         if (done[j]) continue;
+        if (!levels[j].phases.empty()) continue;
         if (fabs(tabulated[j] - tabulated[i]) > 1.0e-9) continue;
         if (levels[j].shell != levels[i].shell) continue;
         sum += levels[j].energy;
@@ -513,6 +544,7 @@ void MoDiagram::placeFragments(const MoColumn& centre,
       const double common = sum/count;
       for (size_t j = i; j < levels.size(); j++) {
         if (done[j]) continue;
+        if (!levels[j].phases.empty()) continue;
         if (fabs(tabulated[j] - tabulated[i]) > 1.0e-9) continue;
         if (levels[j].shell != levels[i].shell) continue;
         levels[j].energy = common;

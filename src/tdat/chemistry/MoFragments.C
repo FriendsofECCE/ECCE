@@ -1316,7 +1316,10 @@ static void buildColumn(const vector<int>& atoms,
                 : SymmetryAnalysis::projectVectorOrbit(mine, images,
                                                        classOfOp, ops, table,
                                                        tableName, vectors);
-            if (got && !vectors.empty()) column.levels[j].phases = vectors[0];
+            if (got && !vectors.empty()) {
+               column.levels[j].phases = vectors[0];
+               column.levels[j].phaseAtoms = mine;
+            }
          }
       }
    }

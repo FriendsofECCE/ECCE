@@ -76,6 +76,27 @@ struct MoLevel
    vector<double> phases;
 
    /**
+    * The atoms `phases` refers to, in the same order.
+    *
+    * Without them the coefficients cannot be matched to basis
+    * functions, which is what turns a phase pattern into a weight.
+    */
+   vector<int>    phaseAtoms;
+
+   /**
+    * How much of each molecular LEVEL this fragment orbital makes up,
+    * or empty.
+    *
+    * The overlap of this symmetry orbital with each molecular one,
+    * squared.  It is the right weight for placing a fragment level at
+    * the mean of the orbitals it became: the share of an orbital on a
+    * SHELL is the same for every symmetry orbital built from that
+    * shell, so water's two hydrogen combinations were placed at one
+    * energy when the in-phase one is stabilised more.
+    */
+   vector<double> moWeight;
+
+   /**
     * Which shell a FRAGMENT level is, as an angular momentum, or -1.
     *
     * A central atom's 2s and 2p, and a diatomic's, are single shells
