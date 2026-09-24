@@ -49,6 +49,19 @@ UID_="$(id -u)"
 IF_IDLE=0
 if [ "${1:-}" = "--if-idle" ]; then IF_IDLE=1; fi
 
+# An escape hatch for anything that manages the services itself.
+#
+# The reaper's rule -- only the last app out turns the lights off -- is
+# right for a user's session and wrong for a harness that runs apps one
+# at a time, where EVERY app is the last one out and the broker is torn
+# down between them.  That is what the GUI smoke suite does, and what
+# made it report a dozen apps as unable to open a window.
+#
+# Anything setting this takes on stopping the services itself.
+if [ -n "${ECCE_NO_REAP:-}" ]; then
+  exit 0
+fi
+
 [ -d "$STATEDIR" ] || exit 0
 
 say() { [ -n "${ECCE_REAP_QUIET:-}" ] || echo "ecce-gateway-reap: $*"; }

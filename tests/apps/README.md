@@ -18,6 +18,30 @@ window, and stay up?* That is all this suite asks. It is a narrow question,
 but it is the one these bugs answer "no" to, and nothing else in the tree
 notices.
 
+## The reaper, and why this suite turns it off
+
+Every ECCE app's wrapper runs `ecce-gateway-reap --if-idle` on exit, so
+the broker and dispatcher are stopped once the last app on a display
+closes (#102 — a SIGABRT once stranded them for ten days).
+
+That rule is right for a user's session and wrong here, where apps are
+run **one at a time** and every app is therefore the last one out. The
+gateway was being torn down after the first app exited, and every app
+after it met a dead gateway:
+
+```
+ecce-gateway-reap: no ECCE app left on :70 -- stopping JMSDispatcher
+ecce-gateway-reap: no ECCE session left -- stopping ActiveMQ broker
+```
+
+which surfaced as ten apps "opening no window" and gateway showing
+`ECCE Server Failure`.
+
+So the suite sets `ECCE_NO_REAP=1`. It already stops the services itself
+afterwards, so taking that job over costs nothing. The variable is a
+general escape hatch for anything that manages the services itself — a
+debugging session, for instance.
+
 ## A window is not proof an app started
 
 ECCE reports a dead service by putting up a dialog — `ECCE Server

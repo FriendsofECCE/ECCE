@@ -281,6 +281,18 @@ def main():
                  ("unknown -- glxinfo not installed (mesa-utils)"
                   if gl is None else
                   "NO -- the viewer apps will not render")))
+        #  Stop the per-app reaper tearing the gateway down between
+        #  apps.  Its rule -- only the last app out turns the lights
+        #  off (#102) -- is right for a user's session and wrong here,
+        #  where every app IS the last one out: the broker and the
+        #  dispatcher were being stopped after the first app exited,
+        #  and every app after it met a dead gateway and was reported
+        #  as opening no window.
+        #
+        #  This suite already stops the services itself in the finally
+        #  block below, so taking that job over is not a loss.
+        os.environ["ECCE_NO_REAP"] = "1"
+
         serviceLog = []
         apps.startServices(display, serviceLog)
         for line in serviceLog:
