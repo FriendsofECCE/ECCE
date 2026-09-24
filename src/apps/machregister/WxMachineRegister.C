@@ -198,9 +198,12 @@ void WxMachineRegister::initialize()
         panel->SetSizer(boxsizer);
         boxsizer->SetSizeHints(panel);
 
-        //  Show or hide the queues panel, depending on whether admin flag is set
+        //  The queues panel is shown to everyone.  It used to be gated on
+        //  the admin flag, from the era when a site administrator configured
+        //  queues once for a department; ECCE is per-user now, and that left
+        //  no in-application way to describe a queue at all (#131).
         panel = (ewxPanel*)(this->FindWindowById(ID_PANEL_QUEUES));
-        panel->Show(p_adminFlag);
+        panel->Show(true);
 
         //  Find all other components on the form
         p_machinesList = (ewxListBox*)(this->FindWindowById(ID_LISTBOX_MACHINES));
@@ -633,7 +636,7 @@ void WxMachineRegister::loadQueueManagerList()
                 tok = strtok((char*)0, " \t");
             }
 
-            delete tokestr;
+            free(tokestr);
         }
     }
 
@@ -1182,8 +1185,19 @@ void WxMachineRegister::loadConfig(string refName)
                     StringTokenizer tokens(line);
                     key = tokens.next("{ ");
 
-                    while (is.getline(buf,MAXLINE,'\n') && !line.find("}") != string::npos)
+                    //  Two faults here, both silent.  The condition parsed
+                    //  as (!line.find("}")) != npos, which is always true, so
+                    //  this ran to end of file and swallowed the rest of the
+                    //  CONFIG; and line was never refreshed from buf, so what
+                    //  accumulated was the opening line repeated once per
+                    //  remaining line rather than the block's contents.
+                    while (is.getline(buf,MAXLINE,'\n'))
                     {
+                        line = buf;
+                        if (line.find("}") != string::npos)
+                        {
+                            break;
+                        }
                         value += line + "\n";
                     }
                 }

@@ -83,6 +83,14 @@ if (($contents{"perlPath"} eq "" || $contents{"perlPath"} eq "EMSL")) {
   $configflag = "true";
 }
 
+
+#  Queue definitions used to be written only for a site administrator
+#  ($siteflag), but admin mode also targets the root-owned site config, so
+#  the one mode that would write them could not (#131).  Queues are written
+#  for every registration now; in user mode $path is already ~/.ECCE, which
+#  is where the readers look.
+$queueflag = "true";
+
 $machine = $contents{"name"};
 
 if ($siteflag eq "true") {
@@ -139,7 +147,7 @@ sub doAccept {
   $sMachines = 0;
   $sMachines = &checkOut($mFile,$useRC);
 
-  if ($siteflag eq "true") {
+  if ($queueflag eq "true") {
     my ($wasThere,$qline,@otherLines);
     $sQueues = 0;
     ($wasThere,$qline,@otherLines) = &readQueues($machine);
@@ -273,7 +281,7 @@ sub doAccept {
   &checkIn($mFile,$useRC,
            "\"Register Compute Servers application add/modify $machine\"");
 
-  if ($siteflag eq "true") {
+  if ($queueflag eq "true") {
     # Now modify the Queues file.  This could mean removing stuff
     # as well as adding so just do a remove followed by add.
     my ($wasThere,$qline,@otherLines);
@@ -406,7 +414,7 @@ sub doDelete {
   $status1 = &checkOut($mFile,$useRC);
  
   my ($existed,$qMachines,@lines);
-  if ($siteflag eq "true") {
+  if ($queueflag eq "true") {
     ($existed,$qMachines,@lines) = &readQueues($machine);
     $status2 = 0;
     if ($existed eq true) {
@@ -416,7 +424,7 @@ sub doDelete {
 
   removeFile("$path/$cFile",$useRC);
 
-  if ($siteflag eq "true") {
+  if ($queueflag eq "true") {
     removeFile("$path/$QFile",$useRC);
 
     #
@@ -464,7 +472,10 @@ sub readQueues {
   open(QUEUES,"$path/$qsFile") || die("Unable to open $path/$qsFile"); 
   $qMachines = "";
   while (<QUEUES>) {
-    if (/Queues/) {
+    #  Anchored: an unanchored /Queues/ also matches any comment mentioning
+    #  the word, and this file's own header explains ~/.ECCE/Queues -- which
+    #  was being read as the machine list and written back out as one.
+    if (/^Queues:/) {
       $qMachines = $_;
       $qMachines =~ s/Queues://;
       $_ = $qMachines;
