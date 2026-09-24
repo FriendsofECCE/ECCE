@@ -340,21 +340,24 @@ class MoDiagramCanvas : public wxPanel
       groups.clear();
       groupY.clear();
 
-      //  LEVELS THAT WOULD BE DRAWN ON THE SAME LINE SHARE A ROW.
+      //  A ROW IS ONE LEVEL.  SIDE BY SIDE MEANS DEGENERATE.
       //
-      //  Grouped by where they land on the page, not by exact
-      //  equality of energy.  CCl4's 1t1, 3t2 and 1e are three
-      //  different levels a thousandth of a Hartree apart -- three
-      //  separate rows by the arithmetic, one line's thickness apart
-      //  on the screen, and their labels fought over the same space.
-      //  Drawn side by side on one row, each with its own label, they
-      //  read the way they are drawn by hand; and the distortion is
-      //  two pixels, which is less than the line is thick.
+      //  Levels that merely land on the same pixel were being merged
+      //  into one row and drawn beside each other -- which is how a
+      //  degenerate set is drawn, and so says they are one.  In D2h
+      //  nothing can be: it has eight irreps and every one of them is
+      //  one-dimensional.  Ethene's three highest orbitals are three
+      //  thousandths of a Hartree apart, and drawn as a row of three
+      //  they claimed a degeneracy the group forbids.
+      //
+      //  So a row is a level, and a level draws as many lines as its
+      //  irrep has dimensions.  Labels that collide are moved instead
+      //  -- the picture must not assert what the arithmetic does not.
       for (size_t a = 0; a < column.levels.size(); ) {
         size_t b = a;
         while (b + 1 < column.levels.size() &&
-               abs(yFor(column.levels[b+1].energy, plot) -
-                   yFor(column.levels[a].energy, plot)) <= 3) {
+               fabs(column.levels[b+1].energy - column.levels[a].energy)
+                   < 1.0e-9) {
           b++;
         }
         groups.push_back(std::make_pair(a, b));
@@ -679,26 +682,37 @@ class MoDiagramCanvas : public wxPanel
             ? extent.y + 2 : 2*extent.y + 2;
         const int home = y - extent.y/2;
 
-        int ly = home;
-        for (int attempt = 0; attempt < 7; attempt++) {
-          const int rows = (attempt + 1)/2;
+        //  SIDEWAYS FIRST, THEN A FREE ROW.
+        //
+        //  Two levels a pixel apart need their labels apart, and
+        //  beside each other is what a person writes -- stacking them
+        //  vertically puts a label where no level is.  Capped at two
+        //  steps, because three marched "3t2 nb" into the chlorine
+        //  column; past that, a row above or below.
+        int step = 0, ly = home;
+        for (int attempt = 0; attempt < 8; attempt++) {
+          const int sideways = (attempt < 3) ? attempt : 2;
+          const int rows = (attempt < 3) ? 0 : (attempt - 1)/2;
           const int sign = (attempt % 2 == 1) ? -1 : +1;
           const int candidate = home + sign*rows*tall;
 
           bool clash = false;
           for (size_t k = 0; k < p_placed.size(); k++) {
-            if (abs(candidate - p_placed[k].first) < tall) clash = true;
+            if (p_placed[k].second == sideways &&
+                abs(candidate - p_placed[k].first) < tall) {
+              clash = true;
+            }
           }
-          if (!clash) { ly = candidate; break; }
-          if (attempt == 6) ly = candidate;    // out of rows; overlap
+          if (!clash || attempt == 7) { step = sideways; ly = candidate; break; }
         }
-        p_placed.push_back(std::make_pair(ly, 0));
+        p_placed.push_back(std::make_pair(ly, step));
 
         //  Clear of the line by more than a couple of pixels: at
         //  eight it was printing over the left-hand end of the level
         //  it names.
-        const int lx = (p_outward < 0) ? x - extent.x - 14
-                                       : x + width + 14;
+        const int lx = (p_outward < 0)
+            ? x - extent.x - 14 - step*(extent.x + 10)
+            : x + width + 14 + step*(extent.x + 10);
 
         drawPieces(dc, pieces, lx, ly, base, small, extent.y);
 
