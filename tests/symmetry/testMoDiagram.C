@@ -223,6 +223,125 @@ int main()
     }
   }
 
+  //  ------------------------------------------------------------------
+  //  AN OCTAHEDRAL COMPLEX, AGAINST THE COURSE'S OWN CONSTRUCTION.
+  //
+  //  The sigma-only ligand field diagram for ML6 is the one every
+  //  inorganic course is built around, and its content is a single
+  //  sentence: the six ligand sigma donors span a1g + eg + t1u, the
+  //  metal offers a1g (4s), t1u (4p) and eg + t2g (3d), so a1g, eg and
+  //  t1u each give a bonding and an antibonding combination while t2g
+  //  has no partner at all and stays non-bonding at essentially the
+  //  metal 3d energy.  The gap from it to eg* is Delta-o.
+  //
+  //  The spectrum below is a real NWChem B3LYP/3-21G calculation on
+  //  [CoH6]3+ in Oh -- cobalt(III), d6, closed shell -- with NWChem's
+  //  own symmetry labels.  What is checked is that the engine reaches
+  //  that construction from it, because every individual rule here
+  //  (core folding, degenerate grouping, reconciliation against a
+  //  minimal fragment model) was got wrong at least once on this
+  //  molecule and each time the result still LOOKED like a diagram.
+  {
+    printf("\n  An octahedral complex\n");
+
+    struct Orbital { double energy; double occupancy; const char* label; };
+    static const Orbital SPECTRUM[] = {
+      { -276.5499000, 2.0, "a1g" },
+      {  -33.4469600, 2.0, "a1g" },
+      {  -29.0217200, 2.0, "t1u" }, {  -29.0217200, 2.0, "t1u" },
+      {  -29.0217200, 2.0, "t1u" },
+      {   -4.4698950, 2.0, "a1g" },
+      {   -3.1356730, 2.0, "t1u" }, {   -3.1356730, 2.0, "t1u" },
+      {   -3.1356730, 2.0, "t1u" },
+      {   -1.2108750, 2.0, "a1g" },
+      {   -1.0991500, 2.0, "eg"  }, {   -1.0991500, 2.0, "eg"  },
+      {   -0.9836387, 2.0, "t2g" }, {   -0.9836387, 2.0, "t2g" },
+      {   -0.9836387, 2.0, "t2g" },
+      {   -1.0227410, 0.0, "t1u" }, {   -1.0227410, 0.0, "t1u" },
+      {   -1.0227410, 0.0, "t1u" },
+      {   -0.7208210, 0.0, "eg"  }, {   -0.7208210, 0.0, "eg"  },
+      {   -0.5077951, 0.0, "a1g" },
+      {   -0.4694974, 0.0, "t1u" }, {   -0.4694974, 0.0, "t1u" },
+      {   -0.4694974, 0.0, "t1u" },
+      {    0.0,       0.0, 0 }
+    };
+
+    vector<double> energies, occupancies;
+    vector<string> labels;
+    for (int i = 0; SPECTRUM[i].label != 0; i++) {
+      energies.push_back(SPECTRUM[i].energy);
+      occupancies.push_back(SPECTRUM[i].occupancy);
+      labels.push_back(SPECTRUM[i].label);
+    }
+
+    map<string,int> dimensions;
+    dimensions["A1G"] = 1;
+    dimensions["EG"]  = 2;
+    dimensions["T1U"] = 3;
+    dimensions["T2G"] = 3;
+
+    vector<MoLevel> centre;
+    MoDiagram::groupByIrrep(energies, occupancies, labels, dimensions,
+                            1.0e-4, centre);
+
+    //  Sorted, whatever order the code printed them in: NWChem put an
+    //  empty t1u before an occupied t2g.
+    bool ordered = true;
+    for (size_t i = 1; i < centre.size(); i++) {
+      if (centre[i].energy < centre[i-1].energy) ordered = false;
+    }
+    check(ordered, "the levels come out in energy order");
+
+    //  A degenerate set is three orbitals at ONE energy, never two
+    //  levels that happen to be adjacent in the list.
+    bool clean = true;
+    for (size_t i = 0; i < centre.size(); i++) {
+      for (size_t k = 1; k < centre[i].energies.size(); k++) {
+        if (fabs(centre[i].energies[k] - centre[i].energies[0]) > 1.0e-4) {
+          clean = false;
+        }
+      }
+      if (centre[i].occupancy > 0.0 &&
+          centre[i].occupancy < 2.0*centre[i].degeneracy - 1.0e-9 &&
+          centre[i].occupancy != 0.0) {
+        //  partial occupancy is legal; a bonding level with NONE is
+        //  what the grouping bug produced, and is caught below
+      }
+    }
+    check(clean, "no level mixes orbitals of different energies");
+
+    MoColumn column;
+    column.levels = centre;
+    MoDiagram::hideBelow(column, MoDiagram::suggestCoreCutoff(column.levels));
+
+    //  Cobalt's core is 1s 2s 2p 3s 3p: nine orbitals.  Taking the
+    //  BIGGEST gap instead of the highest big one folded the 1s alone.
+    check(column.hiddenCount == 9,
+          "the nine core orbitals fold, not just the 1s");
+
+    //  Every level left is valence, and the occupied ones are the
+    //  bonding a1g and eg and the non-bonding t2g.
+    int t2g = -1, egBonding = -1, egStar = -1, a1gBonding = -1;
+    for (size_t i = 0; i < column.levels.size(); i++) {
+      const string& irrep = column.levels[i].irrep;
+      const bool full = column.levels[i].occupancy > 0.0;
+      if (irrep == "T2G" && full)            t2g = (int)i;
+      if (irrep == "EG"  && full)            egBonding = (int)i;
+      if (irrep == "EG"  && !full && egStar < 0)  egStar = (int)i;
+      if (irrep == "A1G" && full)            a1gBonding = (int)i;
+    }
+
+    check(t2g >= 0 && egBonding >= 0 && egStar >= 0 && a1gBonding >= 0,
+          "a1g and eg bonding, t2g occupied, eg* empty");
+
+    if (t2g >= 0 && egStar >= 0) {
+      check(column.levels[t2g].occupancy == 6.0,
+            "t2g holds all six d electrons: low spin");
+      check(column.levels[egStar].energy > column.levels[t2g].energy,
+            "eg* lies above t2g, and the gap is Delta-o");
+    }
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }
