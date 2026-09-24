@@ -175,9 +175,7 @@ bool MoFragments::symmetryOperations(const string& group, vector<SymOp>& ops)
    //  Resolved against $ECCE_HOME/bin, like the other Fortran helpers:
    //  the applications no longer run with their working directory set
    //  to the bin directory, so a bare "./symops" finds nothing.
-   const char *home = getenv("ECCE_HOME");
-   string command = string(home ? home : ".") + "/bin/symops";
-   if (access(command.c_str(), X_OK) != 0) command = "symops";
+   string command = Ecce::ecceBinCommand("symops");
 
    command = "echo " + upper + " | " + command + " 2>/dev/null";
 

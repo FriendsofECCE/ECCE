@@ -49,6 +49,9 @@ class Ecce
       static const char*  ecceDataGBSPath();  // ECCE_DATA/basissets
       static const char*  ecceDataControllersPath();
 
+      // Full path to a helper program in $ECCE_HOME/bin.
+      static string       ecceBinCommand(const string& name);
+
       // site_runtime settings that can't be overriden
       static bool   ecceAutoAccounts();
       static bool   ecceStoreTrajectories();

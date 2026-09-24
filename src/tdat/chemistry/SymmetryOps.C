@@ -41,23 +41,13 @@
 //  reaches the user as "Failed to execute autosym" with nothing about
 //  where it looked (GitHub #134).
 //
-//  Resolved against $ECCE_HOME/bin instead, falling back to the bare
-//  name so a developer with them on PATH still works.
-static string helperCommand(const char *name)
-{
-   const char *home = getenv("ECCE_HOME");
-   if (home == 0 || *home == '\0') return string(name);
-
-   string path = string(home) + "/bin/" + name;
-   if (access(path.c_str(), X_OK) == 0) return path;
-   return string(name);
-}
-
-static string cleanCmd        = helperCommand("cleansym");
-static string autosymCmd      = helperCommand("autosym");
-static string getIFrag        = helperCommand("getfrag");
-static string genFrag         = helperCommand("genmol");
-static string genLatticeFrag  = helperCommand("genmollat");
+//  Resolved against $ECCE_HOME/bin instead, by the same shared
+//  Ecce::ecceBinCommand() every other caller of these helpers uses.
+static string cleanCmd        = Ecce::ecceBinCommand("cleansym");
+static string autosymCmd      = Ecce::ecceBinCommand("autosym");
+static string getIFrag        = Ecce::ecceBinCommand("getfrag");
+static string genFrag         = Ecce::ecceBinCommand("genmol");
+static string genLatticeFrag  = Ecce::ecceBinCommand("genmollat");
 
 
 void SymmetryOps::addGhosts(Fragment& frag)
@@ -425,6 +415,15 @@ string SymmetryOps::find(Fragment& frag, double threshold)
       throw InvalidException("Failed to execute autosym.", WHERE);
    } else if ( istatus == 2 ) {
       throw InvalidException("Maximum number of atoms exceeded.", WHERE);
+   } else {
+      //  Any other status -- 127 for a helper the shell could not find
+      //  at all, a signal, a crash -- used to fall out of this chain and
+      //  return the "C1" the result was initialised with.  That is
+      //  indistinguishable from a molecule which genuinely has no
+      //  symmetry, so the failure reached the user as a wrong answer
+      //  rather than as an error (#134).
+      throw InvalidException("autosym failed with exit status " +
+                             std::to_string(istatus) + ".", WHERE);
    }
 
    return group;

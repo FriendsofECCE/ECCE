@@ -5910,9 +5910,10 @@ void Fragment::generateFullMolecule(void)
 
       SFile* outFile = TempStorage::getTempFile();
 
-      // create command line
-      string cmd = "./genmol <" + inFile->path() + " >" +
-                   outFile->path();
+      // create command line -- resolved against $ECCE_HOME/bin because
+      // the applications no longer run from there (#134)
+      string cmd = Ecce::ecceBinCommand("genmol") + " <" + inFile->path() +
+                   " >" + outFile->path();
       int istatus = system((char*)cmd.c_str()) ;  // execute command
       istatus = istatus >> 8;
       inFile->remove();
@@ -5979,9 +5980,10 @@ void Fragment::generateIrreducibleFragment(void)
 
     SFile* outFile = TempStorage::getTempFile();
 
-    // create command line
-    string cmd = "./getfrag <" + inFile->path() + " >" +
-                 outFile->path();
+    // create command line -- resolved against $ECCE_HOME/bin because
+    // the applications no longer run from there (#134)
+    string cmd = Ecce::ecceBinCommand("getfrag") + " <" + inFile->path() +
+                 " >" + outFile->path();
     int istatus = system((char*)cmd.c_str()) ;  // execute command
     istatus = istatus >> 8;
     inFile->remove();

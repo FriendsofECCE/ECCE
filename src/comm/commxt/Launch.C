@@ -1818,7 +1818,12 @@ bool Launch::doLaunch(void)
       RefMachine* refMachine = RefMachine::refLookup(p_cache->machineName);
       if (refMachine != (RefMachine*)0 && refMachine->userSubmit()) {
         // Prompt the user for the job id
-        string jobCmd = "./msgdialog prompt 'Enter Job ID' 'After submitting the job, enter the job ID that was returned:'";
+        //  Resolved against $ECCE_HOME/bin: the apps no longer run with
+        //  their working directory set to bin, so the bare "./msgdialog"
+        //  this used to be found nothing and the prompt never appeared
+        //  (#134).
+        string jobCmd = Ecce::ecceBinCommand("msgdialog") +
+                        " prompt 'Enter Job ID' 'After submitting the job, enter the job ID that was returned:'";
         FILE* jobPtr;
         char jobBuf[MAXLINE];
 
@@ -2167,7 +2172,7 @@ bool Launch::startJobStore(const string& importDir)
     }
   } else {
     // nohup added to fix to sh/bash shell issue with exitting ECCE
-    string clientCmd = "nohup ./eccejobmaster ";
+    string clientCmd = "nohup " + Ecce::ecceBinCommand("eccejobmaster") + " ";
 
     string pipeName = AuthCache::pipeName();
     clientCmd += "-pipe " + pipeName + " ";
@@ -2225,13 +2230,16 @@ bool Launch::startJobStore(const string& importDir)
     // same directory already holds.
     //  ABSOLUTE PATH into the job directory, not a bare filename.
     //
-    //  system() inherits this process's cwd, which is $ECCE_HOME/bin --
-    //  the gateway launches every app with `cd $ECCE_HOME/bin &&
-    //  ./<app>`, which is also why "./eccejobmaster" above resolves.
-    //  That directory is ROOT-OWNED in a packaged install, so a bare
-    //  "> eccejobmaster.log" cannot be created, the shell exits
-    //  non-zero, and the launch is reported as
-    //  "Unable to start eccejobmaster" -- for every code.
+    //  system() inherits this process's cwd, which is whatever directory
+    //  the user happened to be in: the gateway does launch its children
+    //  with `cd $ECCE_HOME/bin && ./<app>` (WxJMSMessageDispatch.C), but
+    //  nothing guarantees an app reaches this code that way, which is
+    //  why eccejobmaster is now named by full path above (#134).  A bare
+    //  "> eccejobmaster.log" would land in that unknown directory -- and
+    //  in $ECCE_HOME/bin, which is ROOT-OWNED in a packaged install, it
+    //  cannot be created at all, the shell exits non-zero, and the
+    //  launch is reported as "Unable to start eccejobmaster" -- for
+    //  every code.
     //
     //  I introduced exactly that regression earlier today while fixing
     //  the opposite problem (this used to be "> /dev/null 2>&1", which
