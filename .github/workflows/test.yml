@@ -78,6 +78,21 @@ jobs:
       - name: Basis set exporter suite
         run: tests/basis/run_tests.py
 
+      # The orbital and ESP maths.  Deliberately compiles with plain g++
+      # against include/ alone -- SlaterExpansion, CoulombIntegrals and
+      # EspField have no wx, DAV or XML dependency by design -- so it
+      # belongs in this job rather than the one that builds.  The one
+      # part that does need the build tree, the importConfig round
+      # trip, skips itself with a reason when there is none.
+      - name: Orbital and ESP maths suite
+        run: tests/slater/run_tests.py
+
+      # Character tables.  Pure data checking, no build: a wrong sign in
+      # a hand-entered table would silently misassign an irrep, and the
+      # orthogonality theorem catches it for free.
+      - name: Character table suite
+        run: tests/symmetry/run_tests.py
+
   e2e:
     name: End-to-end (real code, real monitor, real parsers)
     runs-on: ubuntu-latest
