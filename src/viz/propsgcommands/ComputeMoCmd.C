@@ -867,7 +867,18 @@ bool ComputeMoCmd::execute()
             }
           }  // if (doingDensity)
         }  // end for (idxMO...
-        delete atoms;
+        //  atoms is NOT deleted here either, for the same reason as
+        //  angfunc below: Fragment::atoms() hands back a NEWLY
+        //  ALLOCATED vector that the caller owns, and the ESP block
+        //  further down still reads it.  Deleting it here left both ESP
+        //  paths holding a dangling pointer -- which showed up as an
+        //  atom count of 18446744071472107968, a negative number read
+        //  as unsigned.
+        //
+        //  This is the second thing in this one cleanup block that the
+        //  ESP work outlived.  Finding the first should have prompted
+        //  checking the rest of it.
+        //
         //  NOT deleted here.  The exact ESP walks the basis again after
         //  the field is built and needs the angular functions to do it,
         //  so deleting at this point handed buildEspBasis() a dangling
@@ -938,6 +949,9 @@ bool ComputeMoCmd::execute()
         // Do some cleanup
         delete angfunc;
         angfunc = 0;
+
+        delete atoms;
+        atoms = 0;
 
         if (doingDensity) {
           delete [] density;
@@ -1631,15 +1645,21 @@ bool ComputeMoCmd::buildEspBasis(const SGFragment *sgfrag,
   basis.clear();
   if (sgfrag == 0 || gbsConfig == 0 || angfunc == 0) return false;
 
-  //  Checked because the atom list is dereferenced below and the MO
-  //  loop this mirrors never had to consider a fragment without one.
-  if (sgfrag->atoms() == 0 || sgfrag->numAtoms() == 0) return false;
-
   const double atob = 1/0.52917724924;
 
+  //  ONE call, and this function owns the result: Fragment::atoms()
+  //  allocates a fresh vector every time.  Calling it again just to
+  //  test for null, as an earlier version of this guard did, leaked one
+  //  per invocation.
   vector<TAtm*> *atoms = sgfrag->atoms();
   double *atomCoords = sgfrag->coordinates();
   const unsigned long numAtoms = sgfrag->numAtoms();
+
+  if (atoms == 0 || atomCoords == 0 || numAtoms == 0 ||
+      atoms->size() != numAtoms) {
+    delete atoms;
+    return false;
+  }
 
   for (unsigned long idxAtom = 0; idxAtom < numAtoms; idxAtom++) {
 
@@ -1667,7 +1687,7 @@ bool ComputeMoCmd::buildEspBasis(const SGFragment *sgfrag,
         vector<TGaussianBasisSet::AngularMomentum> funcTypes =
           gbs->func_types(atomID.c_str(), ics);
         Contraction_ *cont = gbs->getContraction(atomID.c_str(), ics);
-        if (cont == 0) return false;
+        if (cont == 0) { delete atoms; return false; }
 
         const int numAlpha = alpha.size();
         const int numFuncTypes = funcTypes.size();
@@ -1700,7 +1720,7 @@ bool ComputeMoCmd::buildEspBasis(const SGFragment *sgfrag,
               //  through the Coulomb integrals as one.  No shipped
               //  MOOrdering uses one; refuse rather than silently drop
               //  the term if that ever changes.
-              if (terms[t].m_k != 0) return false;
+              if (terms[t].m_k != 0) { delete atoms; return false; }
 
               fn.powerX.push_back(terms[t].m_l);
               fn.powerY.push_back(terms[t].m_m);
@@ -1720,6 +1740,7 @@ bool ComputeMoCmd::buildEspBasis(const SGFragment *sgfrag,
     }
   }
 
+  delete atoms;
   return !basis.empty();
 }
 
