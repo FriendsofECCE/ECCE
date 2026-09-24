@@ -375,15 +375,6 @@ ecce_app(organizer src/apps/organizer WX
   LINK eccewxguicomm eccecommxt eccecomm eccercmd ecceexp eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(passdialog src/apps/passdialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-# The correlation diagram, on its own.  It talks to no data server and
-# publishes no messages, so it is in ECCE_CLI_APPS despite having a
-# window: the wrapper for a GUI app starts the gateway and the data
-# server, and this needs neither.  It reaches MoDiagramCanvas.H, which
-# lives with builder and is header-only.
-ecce_app(modiagram src/apps/modiagram WX
-  LINK eccetdat ecceutil)
-target_include_directories(modiagram PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
-
 ecce_app(pertable src/apps/pertable WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(polyed src/apps/polyrate WX
@@ -714,8 +705,7 @@ set(ECCE_GUI_APPS
   passdialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
   load_tgbs ecmd eccejobmaster eccejobstore
-  autosym getfrag genmol genmollat cleansym symops
-  modiagram)
+  autosym getfrag genmol genmollat cleansym symops)
 
 install(TARGETS ${ECCE_GUI_APPS} ${ECCE_CLI_APPS} RUNTIME DESTINATION bin)
 if(EXISTS ${CMAKE_SOURCE_DIR}/data)
@@ -774,17 +764,6 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/gensub)
           DESTINATION scripts)
 endif()
 
-# scripts/modiagram-mopac: turns an XYZ file into a diagram spec by
-# running MOPAC, which is how the standalone modiagram app gets a
-# spectrum for a molecule that has no calculation.  Its reader is
-# shared with tests/symmetry, so tools/modiagram goes with it rather
-# than being copied.
-if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/modiagram-mopac)
-  install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/modiagram-mopac
-          DESTINATION scripts)
-  install(FILES ${CMAKE_SOURCE_DIR}/tools/modiagram/frommopac.py
-          DESTINATION scripts/modiagram)
-endif()
 
 # scripts/eccejobmonitor: found via an audit of every "$ECCE_HOME/scripts/"
 # reference in src/ after the gensub fix, prompted by hitting three of

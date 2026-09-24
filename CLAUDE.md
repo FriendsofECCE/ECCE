@@ -335,11 +335,14 @@ Both per-user, both non-root, both started automatically by the
 Runs `SymmetryOps::find()` (autosym — **reorients and symmetrises**) →
 `MoFragments` (shells out to `symops`) → `CharacterTable::reduce()` →
 `MoDiagram::{classify, connect, placeFragments}` → `MoDiagramCanvas`.
-Three callers build the model and must stay in step:
-`MoDiagramPanel::build()` (from a calculation), `include/tdat/MoSpec.H`
-(from a spec file, shared by the tools), and `src/apps/modiagram` — a
-**standalone program**, `modiagram foo.xyz`, which starts no services
-and is in `ECCE_CLI_APPS` for exactly that reason.
+Two callers build the model and must stay in step:
+`MoDiagramPanel::build()` (from a calculation) and
+`include/tdat/MoSpec.H` (from a spec file, used by the offline tools).
+
+A **standalone diagram program is planned as a separate Python
+project, not part of ECCE** (Andy's call, 2026-09-24). A C++ one was
+built and removed; `tools/modiagram/fromxyz.py` (XYZ → autosym →
+MOPAC → spec) is the bridge it would reuse.
 
 - **Look at `tools/modiagram/render`'s output before believing any
   layout claim.** It runs the real engine and paints the real

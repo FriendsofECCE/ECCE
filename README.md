@@ -254,29 +254,6 @@ See [`GETTING_STARTED.md`](GETTING_STARTED.md) for more detail on each of
 these steps, known rough edges, and troubleshooting tips if something
 doesn't come up cleanly.
 
-## The MO diagram program
-
-`modiagram` draws a qualitative molecular orbital correlation diagram —
-the fragment orbitals, the terminal-atom symmetry orbitals, and the
-molecular orbitals between them, correlated by symmetry and placed by a
-calculation's own energies. It is a normal ECCE application but it is
-also a program on its own: it starts no services, opens no calculation
-and needs no account.
-
-```
-modiagram water.xyz            # runs MOPAC for a spectrum, then draws
-modiagram spec.mol             # or reads a spec file directly
-```
-
-Give it an ordinary XYZ file and it finds the point group, builds the
-symmetry orbitals with projection operators, asks MOPAC for orbital
-energies and symmetry labels, and draws the result. **File > Save Image**
-writes a PNG of exactly what is on the screen. The XYZ route needs
-`mopac` on the PATH; the spec-file route needs nothing but ECCE's
-character tables.
-
-The spec format is documented at the top of `tools/modiagram/dump.C`.
-
 ## Registering a compute machine
 
 Start `ecce-gateway`, then open Machine Browser. Go to Machine → Register
