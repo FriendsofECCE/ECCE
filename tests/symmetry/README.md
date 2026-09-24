@@ -69,6 +69,39 @@ rounded**. That case means the characters handed in are not a
 representation of the group, and the likeliest cause is a wrong frame —
 rounding would turn that into a plausible answer.
 
+## The symmetry operations
+
+`symops` (`src/apps/symmetry/symops.f`) prints the operation matrices for
+a named point group. It is a wrapper, not a new algorithm: `gensym` has
+always turned a group name into exactly these matrices — `spgen` holds
+the generators, `gensym` multiplies them out — and `cleansym`, `genmol`,
+`genmollat` and `getfrag` all use them to build and clean structures.
+Nothing ever made them available to the rest of ECCE, which needs them to
+decide how a set of atomic orbitals transforms (#132).
+
+**`gensym` does not return the identity.** It hands back the other h−1
+operations, which is what the structure tools need and is not a complete
+group. Checked rather than assumed: for all thirteen groups it returns
+exactly one fewer than the group order. `symops` writes the identity
+first, so its count *is* the group order.
+
+That makes the count a cross-check between **two unrelated sources** —
+PNNL's Fortran generator tables and a hand-entered character table,
+neither derived from the other. They agree for every group, and so do
+two deeper facts:
+
+- the number of **conjugacy classes** equals the number of irreps
+- the **class sizes** match the `counts:` line
+
+And the matrices are checked to be a group at all: every determinant
+±1, the identity present, and **closure** under multiplication — the
+check that would catch a generator table producing a plausible but
+incomplete set. Self-tested by corrupting one operation and watching
+closure fail.
+
+Skipped with a message when `symops` is not built, so the suite still
+runs in the no-build CI job. `ECCE_TEST_SYMOPS` points at it elsewhere.
+
 ## Scope
 
 Thirteen groups: C1, Cs, Ci, C2, C2v, C3v, C4v, C2h, D2h, D3h, D4h, Td,

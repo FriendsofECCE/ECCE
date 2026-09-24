@@ -420,6 +420,12 @@ ecce_fortran_app(genmol
 ecce_fortran_app(genmollat
   SOURCES ${_sym_dir}/genmollat.f ${_sym_dir}/dosymops.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+# Added for the symmetry analysis behind the MO diagrams (#132): gensym
+# already turns a group name into its operation matrices, and nothing
+# outside these Fortran tools could reach them.
+ecce_fortran_app(symops
+  SOURCES ${_sym_dir}/symops.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
+          ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
 ecce_fortran_app(cleansym
   SOURCES ${_sym_dir}/cleansym.f ${_sym_dir}/sym_avg.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)

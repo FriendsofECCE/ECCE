@@ -277,6 +277,136 @@ def checkLoader(tablePath, verbose):
     return run.returncode
 
 
+def readSymops(binary, group):
+    """The operation matrices for a group, from the symops program."""
+    run = subprocess.run([binary], input=group + "\n",
+                         capture_output=True, text=True, timeout=60)
+    if run.returncode != 0:
+        return None
+    lines = [l for l in run.stdout.splitlines() if l.strip()]
+    if not lines:
+        return None
+    count = int(lines[0])
+    ops = []
+    for i in range(count):
+        rows = []
+        for j in range(3):
+            fields = [float(f) for f in lines[1 + i*3 + j].split()]
+            rows.append(fields[:3])          # the translation is always zero
+        ops.append(rows)
+    return ops
+
+
+def matmul(a, b):
+    return [[sum(a[i][k]*b[k][j] for k in range(3)) for j in range(3)]
+            for i in range(3)]
+
+
+def det3(m):
+    return (m[0][0]*(m[1][1]*m[2][2] - m[1][2]*m[2][1])
+            - m[0][1]*(m[1][0]*m[2][2] - m[1][2]*m[2][0])
+            + m[0][2]*(m[1][0]*m[2][1] - m[1][1]*m[2][0]))
+
+
+def key(m, places=6):
+    return tuple(round(v, places) + 0.0 for row in m for v in row)
+
+
+def conjugacyClasses(ops):
+    """Partition the operations into conjugacy classes.
+
+    Two operations are conjugate when S R S^-1 is the other for some S
+    in the group.  For these matrices S^-1 is the transpose, since every
+    point group operation is orthogonal.
+    """
+    keys = [key(m) for m in ops]
+    index = dict((k, i) for i, k in enumerate(keys))
+    seen = set()
+    classes = []
+    for i, r in enumerate(ops):
+        if i in seen:
+            continue
+        members = set()
+        for s in ops:
+            sinv = [[s[j][i2] for j in range(3)] for i2 in range(3)]
+            c = matmul(matmul(s, r), sinv)
+            j = index.get(key(c))
+            if j is not None:
+                members.add(j)
+        seen |= members
+        classes.append(members)
+    return classes
+
+
+def checkSymops(groups, report, verbose):
+    """The symops program's matrices, against the character tables.
+
+    Two completely independent sources: PNNL's Fortran generator tables
+    on one side, a hand-entered character table on the other.  They have
+    to agree on the group order and on the number of conjugacy classes,
+    and neither was derived from the other.
+    """
+    binary = os.environ.get("ECCE_TEST_SYMOPS",
+                            os.path.join(ROOT, "build-cmake", "symops"))
+    if not (os.path.isfile(binary) and os.access(binary, os.X_OK)):
+        print("  symops not built -- skipping the operation checks")
+        print("  (build it, or set ECCE_TEST_SYMOPS)")
+        return
+
+    for name in sorted(groups):
+        h, classes, counts, irreps, _ = groups[name]
+
+        ops = readSymops(binary, name)
+        if ops is None:
+            report.check(False, "%s: symops would not run" % name)
+            continue
+
+        report.check(len(ops) == h,
+                     "%s: symops returns h operations (%d vs %d)"
+                     % (name, len(ops), h))
+        if len(ops) != h:
+            continue
+
+        #  Every point group operation is orthogonal with determinant
+        #  +1 (proper) or -1 (improper).
+        dets = [det3(m) for m in ops]
+        report.check(all(abs(abs(d) - 1.0) < 1e-9 for d in dets),
+                     "%s: every operation has determinant +/-1" % name)
+
+        #  CLOSURE.  This is what makes it a group rather than a list,
+        #  and it is the check that would catch a generator table that
+        #  produced a plausible but incomplete set.
+        present = set(key(m) for m in ops)
+        closed = True
+        for a in ops:
+            for b in ops:
+                if key(matmul(a, b)) not in present:
+                    closed = False
+                    break
+            if not closed:
+                break
+        report.check(closed, "%s: the operations are closed under multiplication"
+                     % name)
+
+        report.check(key([[1, 0, 0], [0, 1, 0], [0, 0, 1]]) in present,
+                     "%s: the identity is present" % name)
+
+        #  The number of conjugacy classes must equal the number of
+        #  irreps -- one of the deepest facts about a character table,
+        #  and here it ties the Fortran matrices to the hand-entered
+        #  numbers without either having been derived from the other.
+        cc = conjugacyClasses(ops)
+        report.check(len(cc) == len(irreps),
+                     "%s: %d conjugacy classes for %d irreps (must be equal)"
+                     % (name, len(cc), len(irreps)))
+
+        #  And the class SIZES must match the counts line.
+        sizes = sorted(len(c) for c in cc)
+        report.check(sizes == sorted(counts),
+                     "%s: class sizes %s match the counts line %s"
+                     % (name, sizes, sorted(counts)))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -316,9 +446,17 @@ def main():
                          % (name, sorted(mine - theirs) or "-",
                             sorted(theirs - mine) or "-"))
 
-    print("\n%d checks run" % report.checks)
+    print("\n%d checks run on the tables" % report.checks)
     if report.failures:
         print("FAILED  %d" % report.failures)
+        return 1
+
+    print("")
+    beforeSymops = report.checks
+    checkSymops(groups, report, args.verbose)
+    print("  symmetry operations: %d checks" % (report.checks - beforeSymops))
+    if report.failures:
+        print("\nFAILED  %d" % report.failures)
         return 1
 
     print("")
