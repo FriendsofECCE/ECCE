@@ -56,7 +56,8 @@ def read(stream):
                 "annot": "" if f[8] == "-" else f[8],
                 "character": int(f[9]), "pair": int(f[10]),
                 "shareLeft": float(f[11]), "shareRight": float(f[12]),
-                "each": [float(x) for x in f[13:]]})
+                "shell": int(f[13]),
+                "each": [float(x) for x in f[14:]]})
         elif f[0] == "link":
             model["links"].append(tuple(int(x) for x in f[1:4]))
     return model

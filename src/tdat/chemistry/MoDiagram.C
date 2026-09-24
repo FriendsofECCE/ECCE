@@ -157,52 +157,94 @@ bool MoDiagram::groupByIrrep(const vector<double>& energies,
 
 
 void MoDiagram::placeFragments(const MoColumn& centre,
-                               MoColumn& left, MoColumn& right)
+                               MoColumn& left, MoColumn& right,
+                               const vector<MoConnection>& connections)
 {
   if (centre.levels.empty()) return;
 
-  double homo = -1.0e30, lumo = 1.0e30, lowest = 1.0e30, highest = -1.0e30;
-  for (size_t i = 0; i < centre.levels.size(); i++) {
-    const double e = centre.levels[i].energy;
-    if (e < lowest)  lowest = e;
-    if (e > highest) highest = e;
-    if (centre.levels[i].occupancy > 0.0) { if (e > homo) homo = e; }
-    else                                  { if (e < lumo) lumo = e; }
-  }
-
-  //  With no virtuals there is no gap to sit in, so leave room above
-  //  the occupied range instead.
-  if (homo <= -1.0e29) homo = lowest;
-  if (lumo >=  1.0e29) lumo = highest + 0.25*(highest - lowest + 1.0e-6);
-
-  const double mid  = 0.5*(homo + lumo);
-  const double span = highest - lowest;
-
-  //  One mapping for both columns, so the two stay comparable to each
-  //  other -- which is the comparison the diagram actually depends on.
-  double vLo = 1.0e30, vHi = -1.0e30;
+  //  A FRAGMENT LEVEL SITS AT THE MEAN OF THE ORBITALS IT BECAME.
+  //
+  //  Not at its tabulated ionisation energy mapped onto this axis.
+  //  That number is a free atom's, measured by somebody else, and
+  //  where it lands has no relation to the orbitals the calculation
+  //  actually produced: nitrogen's 2s came out ABOVE the 1-sigma-u
+  //  built from it, which is impossible -- an antibonding combination
+  //  is above both its parents by definition, as a bonding one is
+  //  below them.
+  //
+  //  The calculation already says where the level belongs.  A fragment
+  //  orbital is spread over the molecular orbitals it combined into,
+  //  so its energy is their mean weighted by how much of each it makes
+  //  up -- which is the fragment-orbital energy of a fragment
+  //  analysis, and lies inside their range by construction.  The
+  //  bonding partners are then below it and the antibonding ones
+  //  above, not by arrangement but because that is what the words
+  //  mean.
+  //
+  //  The tabulated energy is kept as the annotation, where it belongs:
+  //  it is worth reading, and it is not this axis.
   MoColumn* cols[2] = { &left, &right };
   int c;
-  for (c = 0; c < 2; c++) {
-    for (size_t i = 0; i < cols[c]->levels.size(); i++) {
-      const double v = cols[c]->levels[i].energy;
-      if (v < vLo) vLo = v;
-      if (v > vHi) vHi = v;
-    }
-  }
-  if (vHi < vLo) return;
-
-  const double wanted = 0.34*span;
-  const double scale  = (vHi - vLo > 1.0e-9) ? wanted/(vHi - vLo) : 0.0;
-  const double vMid   = 0.5*(vLo + vHi);
 
   for (c = 0; c < 2; c++) {
     for (size_t i = 0; i < cols[c]->levels.size(); i++) {
       MoLevel& level = cols[c]->levels[i];
+
       char text[64];
       snprintf(text, sizeof(text), "%.1f eV", level.energy);
       level.annotation = text;
-      level.energy = mid + (level.energy - vMid)*scale;
+
+      double sum = 0.0, weight = 0.0;
+      for (size_t k = 0; k < connections.size(); k++) {
+        const MoConnection& link = connections[k];
+        const int mine = (c == 0) ? link.leftLevel : link.rightLevel;
+        if (mine != (int)i) continue;
+        if (link.centreLevel < 0 ||
+            link.centreLevel >= (int)centre.levels.size()) continue;
+
+        const MoLevel& mo = centre.levels[link.centreLevel];
+
+        //  Weighted by the share of that orbital this fragment holds,
+        //  where a share was computed, and evenly where none was.
+        double w = 1.0;
+        if (level.shell >= 0) {
+          const vector<double>& shares = (c == 0) ? mo.shellLeft
+                                                  : mo.shellRight;
+          if ((int)shares.size() > level.shell) w = shares[level.shell];
+        } else {
+          const double share = (c == 0) ? mo.shareLeft : mo.shareRight;
+          if (share >= 0.0) w = share;
+        }
+        if (w <= 0.0) continue;
+
+        //  Each orbital of a degenerate level counts once.
+        const double n = (mo.degeneracy > 0) ? mo.degeneracy : 1;
+        sum += w*n*mo.energy;
+        weight += w*n;
+      }
+
+      if (weight > 0.0) level.energy = sum/weight;
+    }
+  }
+
+  //  A level that connected to nothing keeps its tabulated energy, and
+  //  would then be an eV value on a Hartree axis -- off the bottom of
+  //  the picture.  Put it at the mean of the levels that were placed,
+  //  keeping its order among them, so it is visible and obviously not
+  //  bonded to anything.
+  for (c = 0; c < 2; c++) {
+    vector<MoLevel>& levels = cols[c]->levels;
+
+    double placedSum = 0.0;
+    int placedCount = 0;
+    for (size_t i = 0; i < levels.size(); i++) {
+      if (levels[i].energy > -100.0) { placedSum += levels[i].energy; placedCount++; }
+    }
+    if (placedCount == 0) continue;
+
+    const double fallback = placedSum/placedCount;
+    for (size_t i = 0; i < levels.size(); i++) {
+      if (levels[i].energy <= -100.0) levels[i].energy = fallback;
     }
   }
 }
@@ -312,6 +354,27 @@ double MoDiagram::suggestCoreCutoff(const vector<MoLevel>& levels,
   if (bestGap < minimumGap) return -1.0e30;   // hides nothing
 
   return 0.5*(levels[bestAt].energy + levels[bestAt-1].energy);
+}
+
+
+/**
+ * Does a molecular level draw enough from a fragment level's shell?
+ *
+ * This is what connects a diatomic.  Its columns carry no irrep, so
+ * there is nothing to match on but the shell a fragment level is --
+ * and a molecular orbital's share in that shell is exactly the
+ * question a diatomic's correlation lines answer: how much of this
+ * sigma-g is 2s, and how much is 2pz.
+ */
+static bool matchesShell(const MoLevel& centre, const MoLevel& fragment,
+                         bool onLeft, double cutoff)
+{
+  if (fragment.shell < 0) return false;
+
+  const vector<double>& shares = onLeft ? centre.shellLeft
+                                        : centre.shellRight;
+  if ((int)shares.size() <= fragment.shell) return false;
+  return shares[fragment.shell] >= cutoff;
 }
 
 
@@ -575,8 +638,16 @@ void MoDiagram::connect(const vector<MoLevel>& left,
     }
 
     for (size_t l = 0; l < left.size(); l++) {
-      if (left[l].irrep != centre[c].irrep) continue;
-      if (!onLeft) continue;
+      //  Matched on the irrep where there is one, and on the shell
+      //  where there is not -- a diatomic's columns carry no irrep,
+      //  because a single atom of one spans none.
+      const bool bySymmetry = !left[l].irrep.empty() &&
+                              !centre[c].irrep.empty();
+      if (bySymmetry && left[l].irrep != centre[c].irrep) continue;
+      if (!bySymmetry && !matchesShell(centre[c], left[l], true, cutoff)) {
+        continue;
+      }
+      if (bySymmetry && !onLeft) continue;
       MoConnection link;
       link.leftLevel = (int)l;
       link.centreLevel = (int)c;
@@ -586,8 +657,13 @@ void MoDiagram::connect(const vector<MoLevel>& left,
     }
 
     for (size_t r = 0; r < right.size(); r++) {
-      if (right[r].irrep != centre[c].irrep) continue;
-      if (!onRight) continue;
+      const bool bySymmetry = !right[r].irrep.empty() &&
+                              !centre[c].irrep.empty();
+      if (bySymmetry && right[r].irrep != centre[c].irrep) continue;
+      if (!bySymmetry && !matchesShell(centre[c], right[r], false, cutoff)) {
+        continue;
+      }
+      if (bySymmetry && !onRight) continue;
       MoConnection link;
       link.leftLevel = -1;
       link.centreLevel = (int)c;

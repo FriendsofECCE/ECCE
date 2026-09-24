@@ -19,6 +19,8 @@
 //      atom   <symbol> <x> <y> <z>   Angstrom
 //      orbital <energy> <occupancy> [label]    Hartree; repeatable
 //      basis  <n> <n> ...            basis functions per atom
+//      shells <l> <l> ...            the angular momentum of each basis
+//                                    function, in order
 //      coef   <c> <c> ...            one line per orbital, in order
 //
 //  Output: plain text, one record per line, read by draw.py.
@@ -35,6 +37,20 @@ using namespace std;
 #include "tdat/MoDiagram.H"
 #include "tdat/CharacterTable.H"
 
+/** The share of one orbital carried by a named set of functions. */
+static double shareOfFunctions(const vector<double>& c,
+                               const vector<int>& which)
+{
+  double whole = 0.0, wanted = 0.0;
+  for (size_t i = 0; i < c.size(); i++) whole += c[i]*c[i];
+  for (size_t k = 0; k < which.size(); k++) {
+    const double v = c[which[k]];
+    wanted += v*v;
+  }
+  return (whole > 0.0) ? wanted/whole : 0.0;
+}
+
+
 static void printColumn(const char* side, const MoColumn& col)
 {
   printf("column\t%s\t%s\t%d\t%g\t%d\n", side, col.title.c_str(),
@@ -46,7 +62,7 @@ static void printColumn(const char* side, const MoColumn& col)
            l.label.c_str(), l.irrep.c_str(),
            l.annotation.empty() ? "-" : l.annotation.c_str(),
            (int)l.character, l.pairing);
-    printf("\t%.4f\t%.4f", l.shareLeft, l.shareRight);
+    printf("\t%.4f\t%.4f\t%d", l.shareLeft, l.shareRight, l.shell);
     for (size_t k = 0; k < l.energies.size(); k++) {
       printf("\t%.10g", l.energies[k]);
     }
@@ -69,6 +85,7 @@ int main(int argc, char** argv)
   vector<double> energies, occupancies;
   vector<string> labels;
   vector<int> perAtom;
+  vector<int> shellOf;
   vector< vector<double> > coefficients;
 
   ifstream in(argv[2]);
@@ -87,6 +104,9 @@ int main(int argc, char** argv)
     } else if (what == "basis") {
       int n;
       while (parse >> n) perAtom.push_back(n);
+    } else if (what == "shells") {
+      int l;
+      while (parse >> l) shellOf.push_back(l);
     } else if (what == "coef") {
       vector<double> row;
       double c;
@@ -150,10 +170,44 @@ int main(int argc, char** argv)
                                             rightAtoms, noOverlap);
         if (l < 0.0 || r < 0.0) continue;
         onLeft += l; onRight += r; counted++;
+
+        //  And per shell, which is the only thing that can connect a
+        //  diatomic: both its atoms carry exactly half of every
+        //  orbital, so which ATOM a sigma-g came from has no answer,
+        //  while which SHELL it came from has one.
+        if (shellOf.size() == coefficients[mo].size()) {
+          if (level.shellLeft.empty())  level.shellLeft.assign(3, 0.0);
+          if (level.shellRight.empty()) level.shellRight.assign(3, 0.0);
+          for (int want = 0; want < 3; want++) {
+            vector<int> pickLeft, pickRight;
+            int at = 0;
+            for (size_t a = 0; a < perAtom.size(); a++) {
+              bool isLeft = false, isRight = false;
+              for (size_t k = 0; k < leftAtoms.size(); k++)
+                if (leftAtoms[k] == (int)a) isLeft = true;
+              for (size_t k = 0; k < rightAtoms.size(); k++)
+                if (rightAtoms[k] == (int)a) isRight = true;
+              for (int f = 0; f < perAtom[a]; f++) {
+                if (shellOf[at + f] != want) continue;
+                if (isLeft)  pickLeft.push_back(at + f);
+                if (isRight) pickRight.push_back(at + f);
+              }
+              at += perAtom[a];
+            }
+            level.shellLeft[want]  += shareOfFunctions(coefficients[mo],
+                                                       pickLeft);
+            level.shellRight[want] += shareOfFunctions(coefficients[mo],
+                                                       pickRight);
+          }
+        }
       }
       if (counted > 0) {
         level.shareLeft  = onLeft/counted;
         level.shareRight = onRight/counted;
+        for (size_t k = 0; k < level.shellLeft.size(); k++) {
+          level.shellLeft[k]  /= counted;
+          level.shellRight[k] /= counted;
+        }
       }
     }
   }
@@ -168,9 +222,12 @@ int main(int argc, char** argv)
       haveFragments = false;
       note = mismatch;
     }
-    MoDiagram::placeFragments(centre, left, right);
+    //  classify, then connect, then place: a fragment level's energy
+    //  is the mean of the orbitals it connects to, so the connections
+    //  have to exist first.
     MoDiagram::classify(left.levels, centre.levels, right.levels);
     MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+    MoDiagram::placeFragments(centre, left, right, links);
   }
 
   //  The energy beside each molecular level, which is what the MOs

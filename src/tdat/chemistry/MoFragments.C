@@ -317,7 +317,7 @@ static const char *TIMES = "\xc3\x97";
 /** Append one level per irrep occurrence, at the given energy. */
 static void addLevels(const CharacterTable& table,
                       const vector<int>& multiplicity,
-                      double energy, const string& shellName,
+                      double energy, const string& shellName, int shell,
                       vector<MoLevel>& levels)
 {
    const vector<string>& irreps = table.irreps();
@@ -329,6 +329,7 @@ static void addLevels(const CharacterTable& table,
       level.energy     = energy;
       level.degeneracy = multiplicity[i]*table.dimension(irreps[i]);
       level.irrep      = MoDiagram::canonicalIrrep(irreps[i]);
+      level.shell      = shell;
 
       //  The multiplicity is worth saying: two T2 sets are two
       //  different things at the same height in this model, and a
@@ -529,6 +530,7 @@ bool MoFragments::build(const vector<double>& coords,
          level.energy     = eV;
          level.degeneracy = (l == 0) ? 1 : 3;
          level.label      = shell.str();
+         level.shell      = l;
          left.levels.push_back(level);
          continue;
       }
@@ -538,7 +540,7 @@ bool MoFragments::build(const vector<double>& coords,
                        *table, multiplicity)) {
          continue;
       }
-      addLevels(*table, multiplicity, eV, shell.str(), left.levels);
+      addLevels(*table, multiplicity, eV, shell.str(), l, left.levels);
    }
 
    //  --- the terminal atoms' symmetry orbitals ---------------------
@@ -563,6 +565,7 @@ bool MoFragments::build(const vector<double>& coords,
          level.energy     = eV;
          level.degeneracy = (l == 0) ? 1 : 3;
          level.label      = shell.str();
+         level.shell      = l;
          right.levels.push_back(level);
          continue;
       }
@@ -572,7 +575,7 @@ bool MoFragments::build(const vector<double>& coords,
                        *table, multiplicity)) {
          continue;
       }
-      addLevels(*table, multiplicity, eV, shell.str(), right.levels);
+      addLevels(*table, multiplicity, eV, shell.str(), l, right.levels);
    }
 
    //  --- electrons -------------------------------------------------

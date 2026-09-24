@@ -192,6 +192,49 @@ int main(int argc, char** argv) {
              "C2: nothing is called nb for want of a count",
              quiet ? "ok" : "FAIL");
       if (!quiet) bad++;
+
+      //  The fragment levels say which shell they are, because that is
+      //  the only thing a diatomic can be connected on.
+      bool shellsKnown = (left.levels[0].shell == 0 &&
+                          left.levels[1].shell == 1 &&
+                          right.levels[0].shell == 0);
+      printf("  %-46s %s\n", "C2: each level knows its shell",
+             shellsKnown ? "ok" : "FAIL");
+      if (!shellsKnown) bad++;
+
+      //  And connect() uses it.  Give the sigma orbital a composition
+      //  that is mostly s and the pi orbital one that is all p, and
+      //  each should reach only the level it came from.
+      for (size_t i = 0; i < centre.levels.size(); i++) {
+        centre.levels[i].shellLeft.assign(3, 0.0);
+        centre.levels[i].shellRight.assign(3, 0.0);
+      }
+      centre.levels[0].shellLeft[0] = centre.levels[0].shellRight[0] = 0.45;
+      centre.levels[0].shellLeft[1] = centre.levels[0].shellRight[1] = 0.02;
+      centre.levels[2].shellLeft[1] = centre.levels[2].shellRight[1] = 0.50;
+
+      vector<MoConnection> links;
+      MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+
+      bool sigmaToS = false, sigmaToP = false, piToS = false, piToP = false;
+      for (size_t i = 0; i < links.size(); i++) {
+        const int f = links[i].leftLevel;
+        if (f < 0) continue;
+        const int shell = left.levels[f].shell;
+        if (links[i].centreLevel == 0) {
+          if (shell == 0) sigmaToS = true;
+          if (shell == 1) sigmaToP = true;
+        }
+        if (links[i].centreLevel == 2) {
+          if (shell == 0) piToS = true;
+          if (shell == 1) piToP = true;
+        }
+      }
+      const bool byShell = sigmaToS && !sigmaToP && piToP && !piToS;
+      printf("  %-46s %s\n",
+             "C2: sigma reaches 2s, pi reaches only 2p",
+             byShell ? "ok" : "FAIL");
+      if (!byShell) bad++;
     }
   }
 

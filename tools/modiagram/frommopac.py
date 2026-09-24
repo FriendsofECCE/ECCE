@@ -129,6 +129,12 @@ def spec(path, group, atoms, energies, labels, electrons, charge=0,
     for symbol, x, y, z in atoms:
         lines.append("atom %s %.6f %.6f %.6f" % (symbol, x, y, z))
     lines.append("basis " + " ".join(str(basisCount(s)) for s, _, _, _ in atoms))
+    #  MOPAC's valence order per atom: s, then px, py, pz for anything
+    #  heavier than helium.
+    shells = []
+    for s_, _, _, _ in atoms:
+        shells += [0] if basisCount(s_) == 1 else [0, 1, 1, 1]
+    lines.append("shells " + " ".join(str(x) for x in shells))
     for row in (coefs or []):
         lines.append("coef " + " ".join("%.6f" % c for c in row))
     left = electrons

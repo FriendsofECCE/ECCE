@@ -570,9 +570,10 @@ MoDiagramPanel::~MoDiagramPanel()
 //   and would quietly connect the wrong levels.
 /////////////////////////////////////////////////////////////////////////////
 static bool functionsPerAtom(IPropCalculation *expt, SGFragment *sgfrag,
-                             vector<int>& counts)
+                             vector<int>& counts, vector<int>& shellOf)
 {
   counts.clear();
+  shellOf.clear();
 
   ICalculation *escalc = dynamic_cast<ICalculation*>(expt);
   if (escalc == 0 || sgfrag == 0) return false;
@@ -614,7 +615,14 @@ static bool functionsPerAtom(IPropCalculation *expt, SGFragment *sgfrag,
           const int l = (int)types[t];
           //  (l+1)(l+2)/2 Cartesian functions in a shell, 2l+1
           //  spherical ones -- six Cartesian d against five spherical.
-          here += cartesian ? ((l+1)*(l+2))/2 : (2*l + 1);
+          const int inShell = cartesian ? ((l+1)*(l+2))/2 : (2*l + 1);
+          here += inShell;
+          //  The angular momentum of each function, in the order the
+          //  coefficients are stored.  A diatomic can be connected by
+          //  nothing else: both its atoms carry exactly half of every
+          //  orbital, so which SHELL a sigma-g came from is the only
+          //  question with an answer.
+          for (int f = 0; f < inShell; f++) shellOf.push_back(l);
         }
       }
     }
@@ -874,7 +882,9 @@ void MoDiagramPanel::build()
       haveFragments = false;
       why = mismatch;
     }
-    MoDiagram::placeFragments(centre, left, right);
+    //  classify, then connect, then place: a fragment level's energy
+    //  is the mean of the orbitals it connects to, so the connections
+    //  have to exist first.
     MoDiagram::classify(left.levels, centre.levels, right.levels);
 
     //  DO THE TWO SIDES EVEN SPEAK THE SAME LANGUAGE?
@@ -897,6 +907,7 @@ void MoDiagramPanel::build()
               "a lower group -- so nothing can be correlated.";
     } else {
       MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+      MoDiagram::placeFragments(centre, left, right, links);
       note << "  Molecular levels are the calculation's own orbital "
               "energies in Hartree. Fragment levels are placed by their "
               "valence ionisation energies (shown in eV), in order and "

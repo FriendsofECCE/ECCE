@@ -46,6 +46,29 @@ struct MoLevel
    double         shareLeft;
    double         shareRight;
 
+   /**
+    * The same, split by the angular momentum it sits in: [0] is s,
+    * [1] p, [2] d.  Empty when not computed.
+    *
+    * Per-atom shares cannot connect a diatomic.  Every orbital of a
+    * homonuclear diatomic is exactly half on each atom -- by symmetry,
+    * not by accident -- so asking which atom a sigma-g came from has
+    * no answer.  Asking which SHELL it came from does: that is the
+    * whole content of a diatomic's correlation lines, 2s to the lower
+    * sigma pair and 2p to the upper one and the pi orbitals.
+    */
+   vector<double> shellLeft;
+   vector<double> shellRight;
+
+   /**
+    * Which shell a FRAGMENT level is, as an angular momentum, or -1.
+    *
+    * A central atom's 2s and 2p, and a diatomic's, are single shells
+    * and carry 0 and 1.  A set of symmetry orbitals built from one
+    * shell carries that shell's value too.
+    */
+   int            shell;
+
    /** What the level is: see MoDiagram::classify(). */
    enum Character { UNKNOWN, BONDING, NONBONDING, ANTIBONDING };
    Character      character;
@@ -76,7 +99,7 @@ struct MoLevel
    vector<double> energies;
 
    MoLevel() : energy(0.0), occupancy(0.0), degeneracy(0),
-               shareLeft(-1.0), shareRight(-1.0),
+               shareLeft(-1.0), shareRight(-1.0), shell(-1),
                character(UNKNOWN), pairing(-1) {}
 };
 
@@ -184,24 +207,32 @@ class MoDiagram
                              vector<MoLevel>& levels);
 
     /**
-     * Place fragment levels where a correlation diagram puts them.
+     * Place fragment levels at the mean of the orbitals they became.
      *
-     * Not at their tabulated energies on the molecular axis: those are
-     * free-atom eV values and the molecular levels are whatever the
-     * calculation computed, sharing no zero, method or scale.  Drawn on
-     * one axis they produced a bonding orbital ABOVE the atomic orbital
-     * it is built from, which cannot happen.
+     * NOT at their tabulated ionisation energies mapped onto the
+     * molecular axis.  Those are a free atom's, measured by somebody
+     * else, and where they land has no relation to the orbitals the
+     * calculation produced: nitrogen's 2s came out above the sigma-u
+     * built from it, which cannot happen -- an antibonding combination
+     * is above both its parents by definition, as a bonding one is
+     * below them.
      *
-     * The levels are placed in the gap between the highest occupied and
-     * lowest empty molecular orbital, keeping the order and relative
-     * spacing the tabulated energies give -- the more electronegative
-     * fragment lower, which is the pedagogical content -- so every
-     * bonding level lies below its parents and every antibonding one
-     * above, by construction.  Each level keeps its own value as an
-     * annotation, so the numbers stay on the diagram.
+     * A fragment orbital is spread over the molecular orbitals it
+     * combined into, so its energy is their mean weighted by how much
+     * of each it makes up.  That is the fragment-orbital energy of a
+     * fragment analysis, it comes from the calculation rather than from
+     * a table, and it lies inside their range by construction: the
+     * bonding partners below and the antibonding ones above, not by
+     * arrangement but because that is what the words mean.
+     *
+     * The tabulated energy is kept as the annotation, where it belongs.
+     *
+     * @param connections  from connect(), which must therefore be
+     *                     called first
      */
     static void placeFragments(const MoColumn& centre,
-                               MoColumn& left, MoColumn& right);
+                               MoColumn& left, MoColumn& right,
+                               const vector<MoConnection>& connections);
 
     /**
      * Fold levels below a cutoff into the column's hidden band.
