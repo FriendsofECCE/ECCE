@@ -348,8 +348,22 @@ class MoDiagramCanvas : public wxPanel
     void drawSketch(wxDC& dc, const MoLevel& level, const MoColumn& column,
                     int cx, int cy)
     {
-      if (level.phases.empty() ||
-          level.phases.size() != column.sketchX.size()) return;
+      if (level.phases.empty()) return;
+
+      const size_t atoms = column.sketchX.size();
+
+      //  A P SYMMETRY ORBITAL POINTS SOMEWHERE, so three numbers an
+      //  atom rather than one, and the sketch has to say where.  The
+      //  component along the axis flattened away making these
+      //  positions is perpendicular to the page -- the pi case -- and
+      //  is drawn as a circle, filled or open, exactly as an s
+      //  combination is.  The other two lie in the page and are drawn
+      //  as a line through the atom, which is the orbital's axis.
+      if (level.phases.size() == 3*atoms) {
+        drawVectorSketch(dc, level, column, cx, cy);
+        return;
+      }
+      if (level.phases.size() != atoms) return;
 
       double biggest = 0.0;
       for (size_t i = 0; i < level.phases.size(); i++) {
@@ -371,6 +385,53 @@ class MoDiagramCanvas : public wxPanel
         dc.SetBrush(w > 0.0 ? wxBrush(wxColour(60, 60, 60))
                             : *wxWHITE_BRUSH);
         dc.DrawCircle(x, y, r);
+      }
+      dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    }
+
+    /** The same, for a symmetry orbital built from p shells. */
+    void drawVectorSketch(wxDC& dc, const MoLevel& level,
+                          const MoColumn& column, int cx, int cy)
+    {
+      const size_t atoms = column.sketchX.size();
+      const int normal = (column.sketchNormal >= 0 &&
+                          column.sketchNormal < 3) ? column.sketchNormal : 2;
+      int axes[2], n = 0;
+      for (int a = 0; a < 3; a++) if (a != normal) axes[n++] = a;
+
+      double biggest = 0.0;
+      for (size_t i = 0; i < level.phases.size(); i++) {
+        if (fabs(level.phases[i]) > biggest) biggest = fabs(level.phases[i]);
+      }
+      if (biggest <= 0.0) return;
+
+      const int reach = 11;
+      for (size_t i = 0; i < atoms; i++) {
+        const double out = level.phases[3*i + normal];
+        const double inA = level.phases[3*i + axes[0]];
+        const double inB = level.phases[3*i + axes[1]];
+
+        const int x = cx + (int)(column.sketchX[i]*reach);
+        const int y = cy - (int)(column.sketchY[i]*reach);
+
+        if (fabs(out) > 0.08*biggest) {
+          const int r = 2 + (int)(3.0*sqrt(fabs(out)/biggest));
+          dc.SetPen(wxPen(wxColour(60, 60, 60), 1));
+          dc.SetBrush(out > 0.0 ? wxBrush(wxColour(60, 60, 60))
+                                : *wxWHITE_BRUSH);
+          dc.DrawCircle(x, y, r);
+        }
+
+        const double length = sqrt(inA*inA + inB*inB);
+        if (length > 0.08*biggest) {
+          const double scale = 9.0*(length/biggest)/length;
+          const int dx = (int)(inA*scale);
+          const int dy = (int)(inB*scale);
+          dc.SetPen(wxPen(wxColour(60, 60, 60), 2));
+          dc.DrawLine(x - dx, y + dy, x + dx, y - dy);
+          //  A head on the positive end, so the sign is readable.
+          dc.DrawCircle(x + dx, y - dy, 2);
+        }
       }
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
     }

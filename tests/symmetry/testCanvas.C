@@ -243,6 +243,45 @@ class Harness : public wxApp
               wxString::Format(wxT("(%d pixels)"), ink).mb_str());
       }
 
+      //  --- a p-shell symmetry orbital ------------------------------
+      //
+      //  Three numbers an atom rather than one.  The component out of
+      //  the page is drawn as a circle and the two in it as a line
+      //  through the atom, which is the orbital's axis.  Nitrite's pi
+      //  system is the case: two oxygens, their p orbitals out of
+      //  phase perpendicular to the molecular plane.
+      {
+        MoColumn left, centre, right;
+        left.title = "N";
+        left.levels.push_back(level("A1  (2p)", "A1", -0.30, 1, 1));
+
+        right.title = "2O TASOs";
+        MoLevel pi = level("A2  (2p)", "A2", -0.20, 2, 1);
+        //  Out of the page on one atom, into it on the other.
+        const double vec[] = {0, 0, 0.7071,  0, 0, -0.7071};
+        pi.phases.assign(vec, vec + 6);
+        pi.shell = 1;
+        const double sx[] = {-1, 1};
+        const double sy[] = {0, 0};
+        right.sketchX.assign(sx, sx + 2);
+        right.sketchY.assign(sy, sy + 2);
+        right.sketchNormal = 2;
+        right.levels.push_back(pi);
+
+        centre.title = "Molecular orbitals";
+        centre.levels.push_back(level("1a2 nb", "A2", -0.25, 2, 1));
+        centre.levels[0].character = MoLevel::NONBONDING;
+
+        vector<MoConnection> links;
+        MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+
+        canvas->setGroup("C2V");
+        canvas->setDiagram(left, centre, right, links, true, "");
+        const int ink = paint(canvas, size, "/tmp/ecce-canvas-pi.png");
+        check("a p symmetry orbital paints", ink > 500,
+              wxString::Format(wxT("(%d pixels)"), ink).mb_str());
+      }
+
       //  --- a window too small to lay out in ------------------------
       //
       //  Panels get dragged narrow.  The columns are placed as

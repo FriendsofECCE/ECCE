@@ -712,58 +712,96 @@ static void buildColumn(const vector<int>& atoms,
                                    column.sketchY, &column.sketchNormal);
    }
 
-   for (int l = 0; l <= 1; l++) {
-      double eV;
-      if (!MoFragments::valenceEnergy(elements[atoms[0]], l, eV)) continue;
+   //  A SHELL AT A TIME, PER ELEMENT.  A fragment need not be one
+   //  element -- methanol split as CH4 against O is a carbon and four
+   //  hydrogens -- and each brings its own shells and its own
+   //  energies.  Taking the first atom's element for the whole set
+   //  gave the hydrogens a 2p they do not have, and counted fifteen p
+   //  functions where a valence picture has three.
+   map< string, vector<int> > byElement;
+   for (size_t i = 0; i < atoms.size(); i++) {
+      byElement[elements[atoms[i]]].push_back(atoms[i]);
+   }
 
-      loadVoie();
-      ostringstream shell;
-      shell << s_voie[elements[atoms[0]]].n << (l == 0 ? 's' : 'p');
+   for (map< string, vector<int> >::const_iterator it = byElement.begin();
+        it != byElement.end(); ++it) {
+      const string& symbol = it->first;
+      const vector<int>& mine = it->second;
 
-      if (ownOrbitals) {
-         MoLevel level;
-         level.energy     = eV;
-         level.degeneracy = (l == 0) ? 1 : 3;
-         level.label      = shell.str();
-         level.shell      = l;
-         column.levels.push_back(level);
-         continue;
-      }
+      for (int l = 0; l <= 1; l++) {
+         double eV;
+         if (!MoFragments::valenceEnergy(symbol, l, eV)) continue;
 
-      vector<int> multiplicity;
-      if (!shellIrreps(atoms, l, numAtoms, images, classOfOp, ops,
-                       table, multiplicity)) {
-         continue;
-      }
-      const size_t before = column.levels.size();
-      addLevels(table, multiplicity, eV, shell.str(), l, column.levels);
+         loadVoie();
+         ostringstream shell;
+         shell << s_voie[symbol].n << (l == 0 ? 's' : 'p');
+         if (byElement.size() > 1) shell << " " << symbol;
 
-      //  The phase patterns.  s and p by different calls: an operation
-      //  carries one s orbital per atom along unchanged, while it takes
-      //  p_x on an atom to a COMBINATION on its image.  A d shell would
-      //  need the five-by-five transformation and has none here, so
-      //  those levels carry no pattern rather than a made-up one.
-      if (l > 1 || atoms.size() < 2) continue;
-
-      for (size_t j = before; j < column.levels.size(); j++) {
-         string tableName;
-         const vector<string>& names = table.irreps();
-         for (size_t n = 0; n < names.size(); n++) {
-            if (MoDiagram::canonicalIrrep(names[n]) == column.levels[j].irrep) {
-               tableName = names[n];
-               break;
-            }
+         if (ownOrbitals) {
+            MoLevel level;
+            level.energy     = eV;
+            level.degeneracy = (l == 0) ? 1 : 3;
+            level.label      = shell.str();
+            level.shell      = l;
+            column.levels.push_back(level);
+            continue;
          }
-         if (tableName.empty()) continue;
 
-         vector< vector<double> > vectors;
-         const bool got = (l == 0)
-             ? SymmetryAnalysis::projectOrbit(atoms, images, classOfOp,
-                                              table, tableName, vectors)
-             : SymmetryAnalysis::projectVectorOrbit(atoms, images, classOfOp,
-                                                    ops, table, tableName,
-                                                    vectors);
-         if (got && !vectors.empty()) column.levels[j].phases = vectors[0];
+         vector<int> multiplicity;
+         if (!shellIrreps(mine, l, numAtoms, images, classOfOp, ops,
+                          table, multiplicity)) {
+            continue;
+         }
+         const size_t before = column.levels.size();
+         addLevels(table, multiplicity, eV, shell.str(), l, column.levels);
+
+         //  The phase patterns.  s and p by different calls: an
+         //  operation carries one s orbital per atom along unchanged,
+         //  while it takes p_x on an atom to a COMBINATION on its
+         //  image.  A d shell would need the five-by-five
+         //  transformation and has none here, so those levels carry no
+         //  pattern rather than a made-up one.
+         //
+         //  Only where the sketch positions describe this element's
+         //  atoms, which is when the fragment is all one element.
+         if (l > 1 || mine.size() < 2 || byElement.size() > 1) continue;
+
+         for (size_t j = before; j < column.levels.size(); j++) {
+            string tableName;
+            const vector<string>& names = table.irreps();
+            for (size_t n = 0; n < names.size(); n++) {
+               if (MoDiagram::canonicalIrrep(names[n]) ==
+                   column.levels[j].irrep) {
+                  tableName = names[n];
+                  break;
+               }
+            }
+            if (tableName.empty()) continue;
+
+            vector< vector<double> > vectors;
+            const bool got = (l == 0)
+                ? SymmetryAnalysis::projectOrbit(mine, images, classOfOp,
+                                                 table, tableName, vectors)
+                : SymmetryAnalysis::projectVectorOrbit(mine, images,
+                                                       classOfOp, ops, table,
+                                                       tableName, vectors);
+            if (got && !vectors.empty()) column.levels[j].phases = vectors[0];
+         }
+      }
+   }
+
+   //  IN ENERGY ORDER.  The levels were built one element at a time,
+   //  so they come out grouped by element -- and everything downstream
+   //  assumes energy order: the aufbau filling walks the list from the
+   //  start, and the drawing groups levels that share a row by looking
+   //  at their neighbours.  Methanol split as CH4 against O filled
+   //  carbon's 2p before the hydrogens' 1s, which lies below it.
+   for (size_t i = 1; i < column.levels.size(); i++) {
+      for (size_t j = i; j > 0 &&
+           column.levels[j].energy < column.levels[j-1].energy; j--) {
+         const MoLevel swap = column.levels[j];
+         column.levels[j] = column.levels[j-1];
+         column.levels[j-1] = swap;
       }
    }
 }

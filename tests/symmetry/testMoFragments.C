@@ -637,6 +637,36 @@ int main(int argc, char** argv) {
         for (size_t i = 0; i < l2.levels.size(); i++)  total += l2.levels[i].occupancy;
         for (size_t i = 0; i < r2.levels.size(); i++) total += r2.levels[i].occupancy;
         checkd("CH3OH: and all fourteen valence electrons", total, 14.0, 1e-9);
+
+        //  A MIXED FRAGMENT BRINGS EACH ELEMENT'S OWN SHELLS.  Taking
+        //  the first atom's element for the whole set gave the four
+        //  hydrogens a 2p they do not have, and counted fifteen p
+        //  functions where a valence picture has three.
+        int functions = 0;
+        bool hydrogenP = false;
+        for (size_t i = 0; i < r2.levels.size(); i++) {
+          functions += r2.levels[i].degeneracy;
+          if (r2.levels[i].label.find("p H") != string::npos) hydrogenP = true;
+        }
+        printf("  %-46s %d %s\n",
+               "CH3OH: CH4 is eight valence functions", functions,
+               (functions == 8) ? "ok" : "FAIL");
+        if (functions != 8) bad++;
+        printf("  %-46s %s\n", "CH3OH: and no hydrogen 2p among them",
+               hydrogenP ? "FAIL" : "ok");
+        if (hydrogenP) bad++;
+
+        //  IN ENERGY ORDER, because the aufbau filling walks the list
+        //  from the start and the drawing groups neighbours.  Built
+        //  one element at a time they came out grouped by element, and
+        //  carbon's 2p filled before the hydrogens' 1s below it.
+        bool ordered = true;
+        for (size_t i = 1; i < r2.levels.size(); i++) {
+          if (r2.levels[i].energy < r2.levels[i-1].energy) ordered = false;
+        }
+        printf("  %-46s %s\n", "CH3OH: the levels are in energy order",
+               ordered ? "ok" : "FAIL");
+        if (!ordered) bad++;
       }
 
       //  Everything on one side is not a diagram, and says so.
