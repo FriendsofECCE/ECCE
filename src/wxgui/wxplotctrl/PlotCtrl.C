@@ -2233,7 +2233,11 @@ void wxPlotCtrl::DoSize(const wxRect &boundingRect, bool set_window_sizes)
 
     int sb_width = m_yAxisScrollbar->GetSize().GetWidth();
 
-    m_clientRect = wxRect(0, 0, size.x-sb_width, size.y-sb_width);
+    // Same hazard as area_width/area_height below: sb_width is a real
+    // scrollbar's width (~15px), so a small control gives a negative client
+    // rect, and the scrollbars are sized from it directly.
+    m_clientRect = wxRect(0, 0, wxMax(1, size.x-sb_width),
+                                wxMax(1, size.y-sb_width));
 
     // title and label positions, add padding here
     wxRect titleRect  = m_show_title  ? wxRect(m_titleRect).Inflate(m_border)  : wxRect(0,0,1,1);
@@ -2251,6 +2255,21 @@ void wxPlotCtrl::DoSize(const wxRect &boundingRect, bool set_window_sizes)
 
     int area_width  = m_clientRect.width  - yLabelRect.GetRight() - yaxis_width - 2*area_border;
     int area_height = m_clientRect.height - titleRect.GetBottom() - xaxis_height - xLabelRect.height - area_border;
+
+    //  The only guard above is "size.x/size.y >= 2", which is nowhere near
+    //  enough: the axis text, labels and borders subtracted here add up to
+    //  several dozen pixels, so anything short of that leaves area_width /
+    //  area_height solidly negative -- a plot ctrl sitting at its own
+    //  SetSizeHints(20,20) minimum, which is what a property panel's plot is
+    //  while it is being laid out before it has ever been shown, computes an
+    //  area height around -15.  That went straight into m_area->SetSize()
+    //  and out of wxGTK as
+    //    Gtk-CRITICAL: gtk_widget_set_size_request: assertion 'height >= -1'
+    //  (GitHub issue #108), after which the child's geometry is whatever GTK
+    //  left it.  Clamp instead: a plot area smaller than a pixel has nothing
+    //  to draw, and the rects below are all derived from these two.
+    if (area_width  < 1) area_width  = 1;
+    if (area_height < 1) area_height = 1;
 
     m_yAxisRect = wxRect(yLabelRect.GetRight(),
                          titleRect.GetBottom(),
