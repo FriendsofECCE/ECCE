@@ -99,8 +99,8 @@ int CharacterTable::loadFile(const string& path)
       continue;
 
     } else {
-      vector<int> row;
-      int value;
+      vector<double> row;
+      double value;
       while (fields >> value) row.push_back(value);
       if (!row.empty()) {
         current.p_irreps.push_back(key);
@@ -143,20 +143,20 @@ const CharacterTable* CharacterTable::lookup(const string& group)
 }
 
 
-const vector<int>* CharacterTable::characters(const string& irrep) const
+const vector<double>* CharacterTable::characters(const string& irrep) const
 {
-  map<string, vector<int> >::const_iterator it = p_characters.find(irrep);
-  if (it == p_characters.end()) return (const vector<int>*)0;
+  map<string, vector<double> >::const_iterator it = p_characters.find(irrep);
+  if (it == p_characters.end()) return (const vector<double>*)0;
   return &(it->second);
 }
 
 
 int CharacterTable::dimension(const string& irrep) const
 {
-  const vector<int>* chi = characters(irrep);
+  const vector<double>* chi = characters(irrep);
   if (chi == 0 || chi->empty()) return 0;
   //  The identity is the first class, which tests/symmetry enforces.
-  return (*chi)[0];
+  return (int)((*chi)[0] + 0.5);
 }
 
 
@@ -170,7 +170,7 @@ bool CharacterTable::reduce(const vector<double>& chi,
   if (chi.size() != nclass || p_counts.size() != nclass) return false;
 
   for (size_t i = 0; i < p_irreps.size(); i++) {
-    const vector<int>* row = characters(p_irreps[i]);
+    const vector<double>* row = characters(p_irreps[i]);
     if (row == 0 || row->size() != nclass) return false;
 
     double total = 0.0;

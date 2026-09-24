@@ -59,8 +59,16 @@ class CharacterTable
     const vector<int>& counts(void) const     { return p_counts; }
     const vector<string>& irreps(void) const  { return p_irreps; }
 
-    /** Characters of one irrep across the classes, or null. */
-    const vector<int>* characters(const string& irrep) const;
+    /**
+     * Characters of one irrep across the classes, or null.
+     *
+     * Doubles, not integers.  Most tables are integral, but the
+     * five-fold and eight-fold groups are not: D5's E1 characters are
+     * 2cos72 and 2cos144, D4d's involve sqrt(2), and the icosahedral
+     * ones are built from the golden ratio.  Rounding those would break
+     * orthogonality outright.
+     */
+    const vector<double>* characters(const string& irrep) const;
 
     /** An irrep's dimension: its character under the identity. */
     int dimension(const string& irrep) const;
@@ -92,7 +100,7 @@ class CharacterTable
     vector<int>    p_counts;
     vector<string> p_irreps;
 
-    map<string, vector<int> > p_characters;
+    map<string, vector<double> > p_characters;
 
     static map<string, CharacterTable> p_tables;
     static bool p_loaded;

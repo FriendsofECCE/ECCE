@@ -39,6 +39,7 @@ Exit 0 if every table is sound, 1 otherwise.
 import argparse
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -85,7 +86,7 @@ def readTables(path):
         elif key == "translations":
             translations = rest.strip()
         else:
-            irreps.append((key, [int(f) for f in fields]))
+            irreps.append((key, [float(f) for f in fields]))
 
     if name:
         groups[name] = (h, classes, counts, irreps, translations)
@@ -136,8 +137,17 @@ def cartesianCharacter(className):
     #  by not having a digit after the letter.
     if n[0].lower() == "s" and not n[1:2].isdigit():
         return 1.0
-    order = int("".join(c for c in n if c.isdigit()) or 2)
-    angle = 2.0*math.pi/order
+    #  "C5p2" is C5 SQUARED, not a 52-fold rotation.  Joining every
+    #  digit in the name gave order 52 and a character of 1.72, which
+    #  is what made C5v look like it was not a character table at all.
+    m = re.match(r'^[CS](\d+)(?:p(\d+))?$', n)
+    if m:
+        order = int(m.group(1))
+        power = int(m.group(2) or 1)
+    else:
+        order = int("".join(c for c in n if c.isdigit()) or 2)
+        power = 1
+    angle = 2.0*math.pi*power/order
     if n[0].upper() == "C":
         return 1.0 + 2.0*math.cos(angle)
     if n[0].upper() == "S":
@@ -218,8 +228,8 @@ def checkGroup(name, h, classes, counts, irreps, report):
     report.check(classes[0].upper() == "E" and counts[0] == 1,
                  "%s: first class is the identity" % name)
     dims = [chi[0] for _, chi in irreps]
-    report.check(sum(d * d for d in dims) == h,
-                 "%s: squared dimensions sum to h (%d vs %d)"
+    report.check(abs(sum(d * d for d in dims) - h) < 1e-6,
+                 "%s: squared dimensions sum to h (%g vs %d)"
                  % (name, sum(d * d for d in dims), h))
 
     #  Row orthogonality, including each row's own norm.
@@ -227,8 +237,11 @@ def checkGroup(name, h, classes, counts, irreps, report):
         for j, (lj, cj) in enumerate(irreps):
             total = sum(counts[c] * ci[c] * cj[c] for c in range(nclass))
             want = h if i == j else 0
-            report.check(total == want,
-                         "%s: <%s|%s> = %d, want %d"
+            #  Tolerance, not equality: the five-fold and eight-fold
+            #  groups have irrational characters (2cos72, sqrt2, the
+            #  golden ratio), so these sums are exact only in principle.
+            report.check(abs(total - want) < 1e-6,
+                         "%s: <%s|%s> = %g, want %d"
                          % (name, li, lj, total, want))
 
     #  Column orthogonality: sum over IRREPS this time, which is an
@@ -237,9 +250,9 @@ def checkGroup(name, h, classes, counts, irreps, report):
     for a in range(nclass):
         for b in range(nclass):
             total = sum(chi[a] * chi[b] for _, chi in irreps)
-            want = (h // counts[a]) if a == b else 0
-            report.check(total == want,
-                         "%s: columns %s.%s = %d, want %d"
+            want = (float(h) / counts[a]) if a == b else 0
+            report.check(abs(total - want) < 1e-6,
+                         "%s: columns %s.%s = %g, want %g"
                          % (name, classes[a], classes[b], total, want))
 
 

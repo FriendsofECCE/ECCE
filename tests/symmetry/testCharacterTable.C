@@ -42,12 +42,22 @@ static double cartesian(const string& cls)
   if ((n[0] == 's' || n[0] == 'S') && !isdigit(n.size() > 1 ? n[1] : 'x')
       && n[0] == 's') return 1.0;
 
-  int order = 2;
-  string digits;
-  for (size_t i = 0; i < n.size(); i++) if (isdigit(n[i])) digits += n[i];
-  if (!digits.empty()) order = atoi(digits.c_str());
-
-  const double angle = 2.0*M_PI/order;
+  //  "C5p2" is C5 SQUARED, and "C2(=C4p2)" carries a parenthetical.
+  //  Joining every digit in the name turned those into 52-fold and
+  //  242-fold rotations, which is how Oh's reduction came out at a
+  //  quarter and D5's at nothing at all.
+  int order = 2, power = 1;
+  {
+    size_t paren = n.find('(');
+    if (paren != string::npos) n = n.substr(0, paren);
+    size_t p = n.find('p');
+    string head = (p == string::npos) ? n.substr(1) : n.substr(1, p-1);
+    string tail = (p == string::npos) ? ""          : n.substr(p+1);
+    if (!head.empty()) order = atoi(head.c_str());
+    if (!tail.empty()) power = atoi(tail.c_str());
+    if (order < 1) order = 2;
+  }
+  const double angle = 2.0*M_PI*power/order;
   if (n[0] == 'C') return 1.0 + 2.0*cos(angle);
   if (n[0] == 'S') return -1.0 + 2.0*cos(angle);
   return 1.0;                       // a mirror: sh, sv, sd
@@ -58,8 +68,11 @@ int main(int argc, char** argv)
   const char* path = (argc > 1) ? argv[1]
                                 : "data/client/config/CharacterTables";
 
+  //  Not a fixed count: the tables are generated from the 5KE195
+  //  compendium and the set grows.  What matters is that a useful
+  //  number loaded and that the ones checked below are among them.
   const int groups = CharacterTable::loadFile(path);
-  check(groups == 13, "loaded 13 groups (got %d)", groups);
+  check(groups >= 25, "loaded the character tables (got %d groups)", groups);
   if (groups == 0) { printf("\n  FAIL\n"); return 1; }
 
   //  Case insensitivity: the group name reaches this from the detector,
@@ -91,6 +104,9 @@ int main(int argc, char** argv)
     {"C2V", "A1 + B1 + B2"}, {"C3V", "A1 + E"}, {"C4V", "A1 + E"},
     {"C2H", "Au + 2Bu"}, {"D2H", "B1u + B2u + B3u"}, {"D3H", "E' + A2''"},
     {"D4H", "A2u + Eu"}, {"TD", "T2"}, {"OH", "T1u"},
+    //  From the wider set the compendium supplies.
+    {"D6H", "A2u + E1u"}, {"D3D", "A2u + Eu"}, {"D2D", "B2 + E"},
+    {"D5", "A2 + E1"}, {"D4D", "B2 + E1"},
   };
   printf("\n  (x,y,z) reduced through the loaded tables:\n");
   for (size_t i = 0; i < sizeof(cases)/sizeof(cases[0]); i++) {

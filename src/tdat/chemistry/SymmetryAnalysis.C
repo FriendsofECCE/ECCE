@@ -251,11 +251,20 @@ bool SymmetryAnalysis::matchClasses(const vector<SymOp>& ops,
         } else if (!stem.empty() && stem[0] == 's') {
           ok = (det < 0 && fabs(tr - 1.0) < 1e-6);
         } else if (!stem.empty() && (stem[0] == 'C' || stem[0] == 'S')) {
-          string digits;
-          for (size_t k = 0; k < stem.size(); k++)
-            if (isdigit(stem[k])) digits += stem[k];
-          const int order = digits.empty() ? 2 : atoi(digits.c_str());
-          const double angle = 2.0*M_PI/order;
+          //  "C5p2" is C5 SQUARED.  Joining every digit in the name
+          //  made that a 52-fold rotation; the same shape broke the
+          //  five-fold groups in the tests until it was fixed there
+          //  too, so keep the two readings the same.
+          int order = 2, power = 1;
+          const size_t pIdx = stem.find('p');
+          const string head = (pIdx == string::npos) ? stem.substr(1)
+                                                     : stem.substr(1, pIdx-1);
+          const string tail = (pIdx == string::npos) ? string()
+                                                     : stem.substr(pIdx+1);
+          if (!head.empty()) order = atoi(head.c_str());
+          if (!tail.empty()) power = atoi(tail.c_str());
+          if (order < 1) order = 2;
+          const double angle = 2.0*M_PI*power/order;
           const double want = (stem[0] == 'C') ? 1.0 + 2.0*cos(angle)
                                                : -1.0 + 2.0*cos(angle);
           const double wantDet = (stem[0] == 'C') ? 1.0 : -1.0;
