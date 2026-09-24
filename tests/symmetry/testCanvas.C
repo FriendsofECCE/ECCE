@@ -172,6 +172,77 @@ class Harness : public wxApp
               wxString::Format(wxT("(%d pixels)"), ink).mb_str());
       }
 
+      //  --- phase sketches, degeneracy and crowding -----------------
+      //
+      //  Everything the canvas draws that has only ever been looked at
+      //  in the offline renderer: the circles beside a symmetry
+      //  orbital, a degenerate level drawn as separate lines, a set
+      //  whose members are NOT at one energy and so wants a brace, and
+      //  a clutch of levels close enough together to print over one
+      //  another.
+      {
+        MoColumn left, centre, right;
+        left.title = "C";
+        left.levels.push_back(level("A1  (2s)", "A1", -0.35, 2, 1));
+        left.levels.push_back(level("T2  (2p)", "T2", -0.20, 2, 3));
+
+        right.title = "4H TASOs";
+        MoLevel a1 = level("A1  (1s)", "A1", -0.28, 1, 1);
+        MoLevel t2 = level("T2  (1s)", "T2", -0.08, 3, 3);
+        //  The patterns the projection operator gives for four
+        //  hydrogens in Td.
+        const double allIn[] = {0.5, 0.5, 0.5, 0.5};
+        const double oneOut[] = {0.866, -0.289, -0.289, -0.289};
+        a1.phases.assign(allIn, allIn + 4);
+        t2.phases.assign(oneOut, oneOut + 4);
+        right.sketchX.clear();
+        right.sketchY.clear();
+        const double sx[] = {-1, 1, -1, 1};
+        const double sy[] = {1, 1, -1, -1};
+        right.sketchX.assign(sx, sx + 4);
+        right.sketchY.assign(sy, sy + 4);
+        right.levels.push_back(a1);
+        right.levels.push_back(t2);
+
+        centre.title = "Molecular orbitals";
+        centre.levels.push_back(level("1a1", "A1", -0.92, 2, 1));
+
+        //  A degenerate level whose orbitals are NOT at one energy:
+        //  drawn at their own heights with a brace, since averaging
+        //  them into a line claims a number none of them has.
+        MoLevel split = level("1t2", "T2", -0.50, 6, 3);
+        split.energies.clear();
+        split.energies.push_back(-0.56);
+        split.energies.push_back(-0.50);
+        split.energies.push_back(-0.44);
+        centre.levels.push_back(split);
+
+        //  Four levels within a hundredth of a Hartree.
+        for (int i = 0; i < 4; i++) {
+          centre.levels.push_back(
+              level(wxString::Format(wxT("%da1 nb"), i + 2).mb_str(),
+                    "A1", -0.20 + 0.004*i, 2, 1));
+        }
+        centre.levels.push_back(level("2t2*", "T2", 0.22, 0, 3));
+        centre.levels[0].character = MoLevel::BONDING;
+        centre.levels[0].pairing = 0;
+        centre.levels[1].character = MoLevel::BONDING;
+        centre.levels[1].pairing = 1;
+        centre.levels.back().character = MoLevel::ANTIBONDING;
+        centre.levels.back().pairing = 1;
+
+        vector<MoConnection> links;
+        MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+
+        canvas->setGroup("TD");
+        canvas->setDiagram(left, centre, right, links, true,
+                           "Energies in Hartree. Fragment levels are placed "
+                           "by their valence ionisation energies.");
+        const int ink = paint(canvas, size, "/tmp/ecce-canvas-rich.png");
+        check("sketches, braces and crowding paint", ink > 5000,
+              wxString::Format(wxT("(%d pixels)"), ink).mb_str());
+      }
+
       //  --- a window too small to lay out in ------------------------
       //
       //  Panels get dragged narrow.  The columns are placed as

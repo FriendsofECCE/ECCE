@@ -68,7 +68,7 @@ class MoDiagramCanvas : public wxPanel
 
     MoDiagramCanvas(wxWindow *parent)
       : wxPanel(parent, wxID_ANY), p_owner(0), p_haveFragments(false),
-        p_placed(), p_sketchColumn(0)
+        p_placed(), p_sketchColumn(0), p_outward(-1)
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);   // needed for buffered paint
       SetBackgroundColour(*wxWHITE);
@@ -147,8 +147,14 @@ class MoDiagramCanvas : public wxPanel
      */
     void drawColumn(wxDC& dc, const MoColumn& column, int x, int width,
                     const wxRect& plot, bool withOccupancy,
-                    vector<Hit>* hits)
+                    vector<Hit>* hits, int outward = -1)
     {
+      //  Which side this column's labels and sketches go.  Outward, so
+      //  nothing is written over the correlation lines in the middle --
+      //  the right-hand column was labelling leftward like every other,
+      //  which put its phase sketches in the centre of the diagram.
+      p_outward = outward;
+
       //  The column being drawn, so drawLabel can reach its sketch
       //  positions without them being threaded through every call.
       p_sketchColumn = &column;
@@ -181,16 +187,35 @@ class MoDiagramCanvas : public wxPanel
 
           const wxColour colour = levelColour(level);
           dc.SetPen(wxPen(colour, 2));
+
+          //  A DEGENERATE SET WHOSE ORBITALS ARE NOT AT ONE ENERGY is
+          //  drawn at their own heights and bracketed with a brace.
+          //  They are one level because their irrep is one irrep, and
+          //  averaging them into a single line claims a number that
+          //  none of them has.  Only where the difference can be seen:
+          //  finite precision spreads every degenerate set a little,
+          //  and bracketing all of them would be noise.
+          const bool split = spreadIsVisible(level, plot);
+          int lowest = y, highest = y;
+
           for (int d = 0; d < count; d++) {
             const int lx = x + (drawn + d)*slot;
-            dc.DrawLine(lx, y, lx + lineWidth, y);
+            const int ly = split ? yFor(level.energies[d], plot) : y;
+            dc.DrawLine(lx, ly, lx + lineWidth, ly);
+            if (ly < lowest)  lowest = ly;
+            if (ly > highest) highest = ly;
           }
+          if (split) drawBrace(dc, x + drawn*slot + count*slot - lineGap + 4,
+                               lowest, highest);
+
+          const int centreY = split ? (lowest + highest)/2 : y;
 
           if (withOccupancy) {
-            drawElectrons(dc, level, x + drawn*slot, slot, lineWidth, y);
+            drawElectrons(dc, level, x + drawn*slot, slot, lineWidth,
+                          centreY, split ? &level : 0, plot);
           }
 
-          drawLabel(dc, level, groupLeft, count*slot - lineGap, y,
+          drawLabel(dc, level, groupLeft, count*slot - lineGap, centreY,
                     first == last, plot, colour);
 
           if (hits != 0) {
@@ -235,9 +260,15 @@ class MoDiagramCanvas : public wxPanel
         //  already placed at a similar height, rather than once past
         //  the previous one: a crowded spectrum has several levels
         //  within a few pixels and one nudge leaves them piled up.
+        //  At most two notches out.  A spectrum can put four levels
+        //  within a pixel of each other, and pushing a label further
+        //  for every one of them marched them into the next column --
+        //  "5a1 nb" ended up printed over the carbon's "T2 (2p)".
+        //  Beyond two they overlap, which is honest about the levels
+        //  being that close and does not damage another column.
         int step = 0;
         bool clash = true;
-        while (clash && step < 4) {
+        while (clash && step < 2) {
           clash = false;
           for (size_t k = 0; k < p_placed.size(); k++) {
             if (p_placed[k].second == step &&
@@ -253,21 +284,57 @@ class MoDiagramCanvas : public wxPanel
         //  Clear of the line by more than a couple of pixels: at
         //  eight it was printing over the left-hand end of the level
         //  it names.
-        const int lx = x - extent.x - 14 - step*(extent.x + 12);
+        const int lx = (p_outward < 0)
+            ? x - extent.x - 14 - step*(extent.x + 12)
+            : x + width + 14 + step*(extent.x + 12);
         dc.DrawText(text, lx, y - extent.y/2);
 
-        drawSketch(dc, level, *p_sketchColumn, lx - extent.x/2 - 28, y);
+        drawSketch(dc, level, *p_sketchColumn,
+                   (p_outward < 0) ? lx - 30 : lx + extent.x + 30, y);
 
         if (!level.annotation.empty()) {
           dc.SetTextForeground(wxColour(130, 130, 130));
           const wxString extra(level.annotation.c_str(), wxConvUTF8);
-          dc.DrawText(extra, lx + extent.x - dc.GetTextExtent(extra).x,
+          dc.DrawText(extra,
+                      (p_outward < 0)
+                          ? lx + extent.x - dc.GetTextExtent(extra).x : lx,
                       y + extent.y/2);
         }
       } else {
         dc.DrawText(text, x + (width - extent.x)/2, y - extent.y - 6);
       }
 
+    }
+
+    /** Are this level's orbitals far enough apart to draw separately? */
+    bool spreadIsVisible(const MoLevel& level, const wxRect& plot) const
+    {
+      if ((int)level.energies.size() != level.degeneracy ||
+          level.degeneracy < 2) {
+        return false;
+      }
+      int lowest = plot.height, highest = -plot.height;
+      for (size_t i = 0; i < level.energies.size(); i++) {
+        const int y = yFor(level.energies[i], plot);
+        if (y < lowest)  lowest = y;
+        if (y > highest) highest = y;
+      }
+      return (highest - lowest) >= 6;         // pixels
+    }
+
+    /** A curly brace bracketing one level's orbitals. */
+    void drawBrace(wxDC& dc, int x, int top, int bottom)
+    {
+      const int w = 5;
+      const int mid = (top + bottom)/2;
+      dc.SetPen(wxPen(wxColour(90, 90, 90), 1));
+
+      dc.DrawLine(x, top, x + w, top + 1);
+      dc.DrawLine(x + w, top + 1, x + w, mid - 2);
+      dc.DrawLine(x + w, mid - 2, x + 2*w, mid);
+      dc.DrawLine(x + 2*w, mid, x + w, mid + 2);
+      dc.DrawLine(x + w, mid + 2, x + w, bottom - 1);
+      dc.DrawLine(x + w, bottom - 1, x, bottom);
     }
 
     /**
@@ -310,7 +377,8 @@ class MoDiagramCanvas : public wxPanel
 
     /** Electrons as arrows, one pair of slots per orbital. */
     void drawElectrons(wxDC& dc, const MoLevel& level, int x, int slot,
-                       int lineWidth, int y)
+                       int lineWidth, int y, const MoLevel* split,
+                       const wxRect& plot)
     {
       const int count = level.degeneracy > 0 ? level.degeneracy : 1;
       const int perOrbital = (int)(level.occupancy/count + 0.5);
@@ -318,6 +386,10 @@ class MoDiagramCanvas : public wxPanel
 
       dc.SetPen(wxPen(*wxBLUE, 2));
       for (int d = 0; d < count; d++) {
+        //  On its own orbital's line where they were drawn apart.
+        if (split != 0 && d < (int)split->energies.size()) {
+          y = yFor(split->energies[d], plot);
+        }
         const int cx = x + d*slot + lineWidth/2;
         for (int e = 0; e < perOrbital && e < 2; e++) {
           const int ax = cx + (e == 0 ? -4 : 4);
@@ -495,7 +567,7 @@ class MoDiagramCanvas : public wxPanel
         //  it is for.  The offline renderer draws them; this did not.
         drawColumn(dc, p_left, xLeft, levelWidth, plot, true, 0);
         p_placed.clear();
-        drawColumn(dc, p_right, xRight, levelWidth, plot, true, 0);
+        drawColumn(dc, p_right, xRight, levelWidth, plot, true, 0, +1);
         p_placed.clear();
       }
 
@@ -604,6 +676,7 @@ class MoDiagramCanvas : public wxPanel
     //  a new one can be pushed clear of all of them.
     vector< std::pair<int,int> > p_placed;
     const MoColumn *p_sketchColumn;
+    int p_outward;
 };
 
 #endif // MODIAGRAMCANVAS_H_
