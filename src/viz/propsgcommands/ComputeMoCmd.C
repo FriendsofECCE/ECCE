@@ -361,10 +361,11 @@ bool ComputeMoCmd::execute()
     setGrid(grid,gridRes,xDelta,yDelta,zDelta);
     grid->type(fieldType);
 
-    //  "Density (ESP)" is an ordinary density surface that is then
-    //  coloured by the electrostatic potential, so it takes the whole
-    //  density path and adds one step at the end.
-    bool wantEsp = (fieldType==ESP_FIELD_TYPE);
+    //  Either ESP type is an ordinary density surface that is then
+    //  coloured, so both take the whole density path and add a step at
+    //  the end; they differ only in how the potential is obtained.
+    bool wantEspCharges = (fieldType==ESP_CHARGES_FIELD_TYPE);
+    bool wantEsp = (fieldType==ESP_FIELD_TYPE) || wantEspCharges;
     bool doingDensity = (fieldType=="Density" || wantEsp);
     bool doingSpinDensity = (fieldType=="Spin Density");
 

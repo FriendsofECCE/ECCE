@@ -12,15 +12,31 @@
 #include "viz/SGContainer.H"
 
 /**
- * Field type naming an electron density surface coloured by the
+ * Field types naming an electron density surface coloured by the
  * electrostatic potential.
  *
- * Shared because MoPanel offers it and ComputeMoCmd acts on it, and a
- * field type that does not match between the two produces a plain
+ * There are two, and the distinction is real rather than a quality
+ * setting.  The canonical potential is the one a unit positive test
+ * charge feels,
+ *
+ *     V(r) = sum_A Z_A/|r-R_A| - integral rho(r')/|r-r'| dr'
+ *
+ * whose second term is an integral over the electron density.  The
+ * other replaces that integral with a sum over fitted atomic point
+ * charges: far cheaper, wrong close to the surface where the density is
+ * not point-like, and what most viewers show by default.
+ *
+ * So they are named for their METHOD, not "accurate" and "fast".  A
+ * user who does not know the difference should still be able to read
+ * which one produced the picture in their paper.
+ *
+ * Shared because MoPanel offers these and ComputeMoCmd acts on them,
+ * and a field type that does not match between the two produces a plain
  * surface with no error anywhere -- the same two-hand-maintained-string
  * hazard as a dialog choice that does not match its generator.
  */
-#define ESP_FIELD_TYPE "Density (ESP)"
+#define ESP_FIELD_TYPE         "Density (ESP)"
+#define ESP_CHARGES_FIELD_TYPE "Density (ESP from atomic charges)"
 
 class TAtm;
 

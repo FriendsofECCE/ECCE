@@ -252,7 +252,8 @@ bool IsoSurfaceCmd::execute()
       // negative lobes (isosurfaces).  An ESP-mapped surface is a density
       // surface -- the potential only decides its colour -- so it has no
       // negative lobe either.
-      if ( fieldType != "Density" && fieldType != ESP_FIELD_TYPE) {
+      if ( fieldType != "Density" && fieldType != ESP_FIELD_TYPE &&
+           fieldType != ESP_CHARGES_FIELD_TYPE) {
          ChemIso *isosurf2 = new ChemIso;
          isosurf2->regenerate(true);
 

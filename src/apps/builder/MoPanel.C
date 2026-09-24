@@ -277,7 +277,7 @@ void MoPanel::updateUIOptions()
 
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
    typewin->Clear();
-   if (espOk) typewin->Insert(ESP_FIELD_TYPE,0);
+   if (espOk) typewin->Insert(ESP_CHARGES_FIELD_TYPE,0);
    if (spinOk) typewin->Insert("Spin Density",0);
    if (densityOk) typewin->Insert("Density",0);
    typewin->Insert("MO",0);
@@ -987,7 +987,8 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       // Edo suggests we use a log scale instead.
       // Now we decided to hardwire the density max to 1.0.
       float absIsovalMax = 0.2; // default for spin density
-      if (fieldtype == "Density" || fieldtype == ESP_FIELD_TYPE) {
+      if (fieldtype == "Density" || fieldtype == ESP_FIELD_TYPE ||
+          fieldtype == ESP_CHARGES_FIELD_TYPE) {
          absIsovalMax = 0.2; // default for density -- an ESP-mapped
                              // surface IS a density surface, only
                              // coloured differently
