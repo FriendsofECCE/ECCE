@@ -42,6 +42,14 @@ afterwards, so taking that job over costs nothing. The variable is a
 general escape hatch for anything that manages the services itself — a
 debugging session, for instance.
 
+It is unset again for the shutdown, and that matters more than it looks:
+`ecce-gateway-stop` stops the dispatcher itself but hands the **broker**
+to `ecce-gateway-reap`, which is the only thing that knows whether another
+display still needs it. With `ECCE_NO_REAP` still set, the reaper exited
+immediately and the broker was never stopped — so every run leaked a
+512MB JVM, which is #102 again, caused this time by the fix for it being
+switched off and left off.
+
 ## A window is not proof an app started
 
 ECCE reports a dead service by putting up a dialog — `ECCE Server
@@ -108,6 +116,8 @@ by accident is not acceptable behaviour for a test.
     tests/apps/run_tests.py -v               window titles and startup times
     tests/apps/run_tests.py --list
     tests/apps/run_tests.py --keep-services
+    tests/apps/run_tests.py --budget 600
+    tests/apps/run_tests.py --use-real-state   # shares your live session
 
 Also wired into CTest:
 
@@ -130,39 +140,91 @@ a build option.
       tests/apps/run_tests.py
 
 Both default to `/opt/ecce` and `/usr/bin`, so packaging and an ordinary run
-are unaffected.
+are unaffected, and the whole suite — including the fixture's data-server
+account — follows `ECCE_TEST_HOME`. It did not: `fixture.py` had a
+hardcoded `/opt/ecce` and a hardcoded port 8096 of its own, so a run
+against a private install created its account with the *installed*
+package's script and served it from the *real* data server.
 
-Note the two installs share `~/.ECCE`, so they share the data server, the
-gateway and the per-app preferences. That is usually what you want — the
-same calculations are visible from both — but it does mean the two cannot
-run at the same time on one display.
+The two installs no longer share `~/.ECCE` either, because no run uses
+`~/.ECCE` at all — see the isolation section below.
 
-## Keeping a run out of your real ECCE state
+## Every run is isolated from your real ECCE session
 
-All per-user state -- preferences, the data server's whole document root,
-the JMS port files -- lives in `$ECCE_REALUSERHOME/.ECCE`, and both the C++
-(`Ecce::realUserHome`) and the shell scripts honour that variable. So a run
-can be pointed somewhere else entirely:
+All per-user state — preferences, the data server's whole document root,
+the ActiveMQ data directory, the JMS port files — lives in
+`$ECCE_REALUSERHOME/.ECCE`, and both the C++ (`Ecce::realUserHome`) and the
+shell scripts honour that variable. The services are also per-user and
+listen on fixed ports. So a run that shares them with a live ECCE session
+does not collide tidily: two brokers contend for one `~/.ECCE/activemq`
+data directory, `ecce-dataserver-start` early-exits because "something is
+already listening" and the apps then read somebody else's document root,
+and the result is a page of failures that read exactly like application
+bugs. A suite that can do that to you is not one you will trust.
 
-    ECCE_TEST_STATE=/tmp/ecce-testrun tests/apps/run_tests.py
+So **isolation is the default, not an option** (`isolate.py`). Every run
+gets:
 
-For a run that shares nothing at all, move the ports too — they are
-environment variables now:
+* its own state directory — `$XDG_CACHE_HOME/ecce-apps-suite`, or
+  wherever `ECCE_TEST_STATE` says — exported as `ECCE_REALUSERHOME`,
+  which is the variable everything else actually reads. It is kept
+  between runs rather than thrown away, so the seeded document root and
+  the synced basis-set library are paid for once;
+* its own ports, 8296 and 8288 by default rather than the real 8096/8088,
+  or the next free ones; `ECCE_DATASERVER_PORT` / `ECCE_BROKER_PORT`
+  still pin them explicitly, and a pinned port that is busy is an error
+  rather than a silent move;
+* its own `$ECCE_HOME`: a directory of symlinks to the installed tree
+  with one real `siteconfig/` of its own, with `DataServers` and
+  `jndi.properties` repointed at those ports. This is the piece that was
+  missing before, and its absence made moving the ports actively harmful
+  — `siteconfig/DataServers` is where the *apps* learn the data server's
+  URL, it is written at package time with `http://localhost:8096/Ecce`,
+  and it lives in a root-owned install a test cannot edit. Moving the
+  service but not the apps pointed the apps straight back at the real
+  session. `ECCE_HELP` moves with it for the same reason.
 
-    ECCE_TEST_STATE=/tmp/ecce-testrun \
-    ECCE_DATASERVER_PORT=8097 ECCE_BROKER_PORT=8089 \
-      tests/apps/run_tests.py
+The rewrite of those two files is **checked**, not assumed: a regex that
+quietly matched nothing would leave a run looking isolated while talking
+to port 8096.
 
-Verified: two complete instances serving simultaneously on 8096/8088 and
-8097/8089. (Before those ports were configurable, an isolated run would
-silently reuse whatever was already on 8096, because
-`ecce-dataserver-start` exits early on a live port.)
+`--use-real-state` opts out, for the rare case where you want the run to
+see your own calculations. It is not recommended and says so.
 
-Without it, the suite does touch real state: it creates an `eccetest`
-account in the data server, and it records the current version in
-`wxbuilder.ini` to suppress the one-time upgrade modal. The second of those
-is genuine user preference data, so it is saved and **restored afterwards**
-rather than left edited.
+### The account the server needs
+
+`EDSIServerCentral::checkServerSetup()` reads the server's `users`
+collection and throws "A failure was detected in the ECCE server setup"
+when it cannot — and a data server nobody has ever added an account to is
+in exactly that state, which is every fresh state directory and every CI
+run. A person does this once by hand from `GETTING_STARTED.md`; the suite
+now does the same thing for its own state directory before the sweep.
+Without it the gateway reported `ECCE Server Failure` and `BuilderApp`
+quits outright on the same check.
+
+## The run is bounded
+
+The suite held a CI job for two days once (#127), and the thing that
+eventually stopped it was GitHub's own six-hour ceiling. Every individual
+step is bounded now — the window wait, the settle, the output drain, the
+`xwininfo`/`xdpyinfo` calls, `proc.wait()` — but "every step I thought of
+is bounded" is a weaker claim than "the run terminates", and only the
+second one is worth relying on. So the whole run has a wall-clock budget
+(`--budget`, `ECCE_APPS_BUDGET`, 20 minutes by default against a healthy
+run of about six), enforced with `SIGALRM` so that it fires *into*
+whatever is stuck rather than waiting to be polled between apps. The
+services are still stopped on the way out, under a second, shorter alarm
+in case the shutdown is what hung.
+
+## One wedged display is one failure, not thirteen
+
+The other half of #127. Once the X server stops answering, every
+remaining app "opens no window within 40s" and is killed — identical
+failures that have nothing to do with the apps they name, with the one
+interesting fact (that it started right after a particular app) left for
+the reader to infer from the ordering. The display is now checked after
+every app, and a run that finds it gone says so once, names the app it
+happened after, lists what is still connected to the server, and stops.
 
 ## It tests the INSTALLED build
 

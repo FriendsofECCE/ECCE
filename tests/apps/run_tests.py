@@ -27,6 +27,7 @@ build-independent: it tests what was packaged, which is also what catches the
 import argparse
 import os
 import re
+import signal
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -35,7 +36,52 @@ sys.path.insert(0, HERE)
 import apps                                                   # noqa: E402
 import cases as CASEDEFS                                      # noqa: E402
 import fixture                                                # noqa: E402
+import isolate                                                # noqa: E402
 import xdisplay                                               # noqa: E402
+
+#  How long the whole run may take before it is abandoned.  A suite that
+#  can hang has no upper bound on what one bad app costs: this one held a
+#  CI job for two days, and the only thing that finally stopped it was
+#  GitHub's own six-hour ceiling -- by which point the run had told nobody
+#  anything (#127).  Every individual step is bounded now, but "every step
+#  I thought of is bounded" is not the same claim as "the run terminates",
+#  and only the second one is worth relying on.
+#
+#  A healthy full run is about six minutes.
+DEFAULT_BUDGET = int(os.environ.get("ECCE_APPS_BUDGET", "1200"))
+
+
+class BudgetExpired(Exception):
+    pass
+
+
+def startBudget(seconds):
+    """Abandon the run if it outlives its budget, wherever it is stuck.
+
+    SIGALRM rather than a polling check between apps, deliberately: a
+    between-apps check only fires if the suite gets back between apps,
+    which is precisely what a hang does not do.  The alarm raises into
+    whatever is running, main()'s `finally` still stops the services, and
+    a second, shorter alarm is armed on the way out so that a cleanup
+    which hangs in its turn cannot inherit the hang.
+    """
+    def expired(signum, frame):
+        signal.signal(signal.SIGALRM, _lastResort)
+        signal.alarm(180)
+        raise BudgetExpired(
+            "the run exceeded its %ds budget and was abandoned.  Something "
+            "is hung: the app named last in the log above is where to look."
+            % seconds)
+
+    def _lastResort(signum, frame):
+        sys.stdout.flush()
+        print("\nFAIL  the run did not even shut down within its budget; "
+              "aborting hard.", flush=True)
+        os._exit(2)
+
+    signal.signal(signal.SIGALRM, expired)
+    signal.alarm(seconds)
+
 
 CRASH_MARKERS = (
     "Segmentation fault", "segfault", "Aborted", "terminate called",
@@ -95,6 +141,13 @@ def checkApp(display, name, results, verbose=False):
                 "\n      An app that cannot show a window is one a user "
                 "cannot use.\n%s"
                 % (timeout, result.returncode, _tail(result.log)))
+        return
+
+    if result.exitedAfterWindow:
+        _record(results, name,
+                "did not stay up: it %s.\n"
+                "      Opening a window and then quitting is not starting."
+                "\n%s" % (result.note, _tail(result.log)))
         return
 
     #  A window is not proof the app started.  ECCE reports a dead
@@ -246,6 +299,15 @@ def main():
     parser.add_argument("--keep-services", action="store_true",
                         help="leave the gateway and data server running "
                              "afterwards even if this suite started them")
+    parser.add_argument("--use-real-state", action="store_true",
+                        help="run against $HOME/.ECCE and the real ports "
+                             "instead of a private instance -- this shares "
+                             "the data server, the broker and the "
+                             "preferences with any ECCE session you have "
+                             "running, so do not")
+    parser.add_argument("--budget", type=int, default=DEFAULT_BUDGET,
+                        help="seconds the whole run may take before it is "
+                             "abandoned (default %(default)s)")
     args = parser.parse_args()
 
     binaries = apps.guiBinaries()
@@ -265,13 +327,32 @@ def main():
         print("no such app; --list shows what is installed", file=sys.stderr)
         return 2
 
+    #  Before anything is started: point this run at an ECCE instance of
+    #  its own.  See isolate.py -- the state directory, both ports,
+    #  siteconfig/DataServers and ECCE_HELP all have to move together, and
+    #  until they did, a run overlapped with the developer's own session
+    #  and produced failures that looked like application bugs.
+    if not args.use_real_state:
+        try:
+            settings = isolate.apply(apps.INSTALL)
+        except isolate.IsolationError as exc:
+            print("FAIL  could not isolate this run: %s" % exc,
+                  file=sys.stderr)
+            return 2
+        print(isolate.describe(settings))
+    else:
+        print("NOT isolated: running against %s and the real ports"
+              % os.path.expanduser("~"))
+
+    startBudget(args.budget)
+
     try:
         display = xdisplay.Display(number=args.display).__enter__()
     except xdisplay.DisplayUnavailable as exc:
         print("SKIP: %s" % exc)
         return 0
 
-    before = apps.serviceState()
+    before = apps.serviceState(display)
     results = Results()
     try:
         gl = display.hasGL()
@@ -302,7 +383,7 @@ def main():
         #  against them.  Without this, a dataserver that failed to start
         #  is reported as ten apps that "opened no window within 40s" --
         #  a list that reads like ten bugs and names none of them.
-        after = apps.serviceState()
+        after = apps.serviceState(display)
         down = sorted(k for k, up in after.items() if not up)
         if down:
             results.fail("services",
@@ -311,6 +392,21 @@ def main():
                          "reported as opening no window. That is this one "
                          "fault, not a dozen separate ones.\n      %s"
                          % (" and ".join(down), " | ".join(serviceLog)))
+
+        #  Give the data server the one account that makes it a SET-UP
+        #  server rather than a virgin one.  EDSIServerCentral::
+        #  checkServerSetup() checks for the users collection and throws
+        #  "A failure was detected in the ECCE server setup" when it
+        #  cannot read it -- which on a data server nobody has ever added
+        #  an account to is every app, every time, and BuilderApp quits
+        #  outright on it.  A person does this once, by hand, from
+        #  GETTING_STARTED; a run that seeds its own state directory has
+        #  to do it too or it is testing an install that was never
+        #  finished.
+        note = fixture.ensureRealUserAccount()
+        if note:
+            print("  %s" % note)
+
         #  The app's name goes out BEFORE it runs, so a wedged suite
         #  names its culprit.  The partial-line form is nicer to read
         #  ("name ... done" on one line) but GitHub Actions only shows
@@ -319,23 +415,62 @@ def main():
         #  sent this CI hang down the wrong path twice.  ECCE_APPS_TRACE
         #  switches to whole lines for that reason.
         trace = bool(os.environ.get("ECCE_APPS_TRACE"))
+        swept = []
+        stalled = False
         for name in selected:
             if trace:
                 print("  %-16s starting" % name, flush=True)
             else:
                 print("  %-16s" % name, end="", flush=True)
             checkApp(display, name, results, verbose=args.verbose)
+            swept.append(name)
             print("done", flush=True)
-        if not args.app:
+
+            #  Stop the moment the DISPLAY itself stops answering.
+            #
+            #  This is the other half of #127.  Once the X server goes
+            #  quiet, every remaining app "opens no window within 40s"
+            #  and is killed -- thirteen identical failures, none of them
+            #  about the app it names, and the one interesting fact (that
+            #  it started right after a particular app) buried.  A run
+            #  that reports "the display stopped answering after <app>"
+            #  and stops has said the only true thing there is to say,
+            #  and said it in one line.
+            if not display.responsive():
+                stalled = True
+                results.fail(
+                    "display",
+                    "the X server stopped answering after %s, so the %d "
+                    "app(s) after it were not tested.\n"
+                    "      Everything from here would have failed "
+                    "identically ('opened no window within 40s') no matter "
+                    "what it is, which is one fault and not %d.\n"
+                    "      %s.  Still connected: %s"
+                    % (name, len(selected) - len(swept),
+                       len(selected) - len(swept) + 1,
+                       display.serverState(),
+                       display.clients() or "(xlsclients says nothing)"))
+                break
+
+        if not args.app and not stalled:
             checkCalculation(display, results, verbose=args.verbose)
-            checkStale(results, set(selected))
+            checkStale(results, set(swept))
+    except BudgetExpired as exc:
+        results.fail("run", str(exc))
     finally:
-        display.__exit__(None, None, None)
+        signal.alarm(0)
         if not args.keep_services:
             # Leave the machine as we found it: these are somebody's per-user
             # services and this suite is not entitled to leave them running.
+            #
+            # Stopped BEFORE the display goes away, not after: the
+            # dispatcher is per display and ecce-gateway-stop finds its
+            # pidfile by $DISPLAY, so it has to be told which one -- and
+            # the reaper decides whether any app is still alive on that
+            # display by reading the processes' own environment.
             if not all(before.get(k) for k in ("gateway", "dataserver")):
-                apps.stopServices()
+                apps.stopServices(display)
+        display.__exit__(None, None, None)
 
     return report(results, args.verbose)
 

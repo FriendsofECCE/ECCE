@@ -209,16 +209,23 @@ jobs:
       - name: Symmetry operation suite
         run: tests/symmetry/run_tests.py
 
+      # ECCE_TEST_STATE names the private state directory this run
+      # isolates itself into -- see tests/apps/isolate.py: a run no longer
+      # touches ~/.ECCE, its ports or its services at all, so it cannot
+      # collide with a live session (#136).  Named here rather than left
+      # to its default so the log collection below knows where to look.
       - name: GUI application smoke suite
         env:
           ECCE_APPS_TRACE: '1'
+          ECCE_TEST_STATE: ${{ runner.temp }}/ecce-state
         run: tests/apps/run_tests.py -v
 
       - name: Collect service logs on failure
         if: failure()
         run: |
-          # These live in the per-user state dir and are the first thing
+          # These live in the run's own state dir and are the first thing
           # anyone debugging a red run here will want.
-          for f in "$HOME"/.ECCE/*.log; do
+          STATE="${{ runner.temp }}/ecce-state/.ECCE"
+          for f in "$STATE"/*.log "$STATE"/dataserver/logs/error_log; do
             [ -f "$f" ] && { echo "=== $f"; tail -50 "$f"; }
           done || true
