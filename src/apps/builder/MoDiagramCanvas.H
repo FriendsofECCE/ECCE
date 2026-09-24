@@ -314,6 +314,91 @@ class MoDiagramCanvas : public wxPanel
      * b2 at one energy, and drawn on top of each other their three
      * labels overprint into an unreadable smudge.
      */
+    /**
+     * Where each level of a column is drawn, and which share a row.
+     *
+     * Separated out because the CORRELATION LINES need the same
+     * answer.  They are drawn before the columns and used to compute
+     * their endpoints from the energy directly; once fragment columns
+     * could be opened out for legibility, the lines went on ending
+     * where the levels used to be and stopped short of them -- a
+     * diagram whose lines point at nothing.
+     *
+     * ROOM FOR THE LABELS.  Nitrite's oxygen set has six symmetry
+     * orbitals inside a tenth of a Hartree, so drawn strictly to
+     * scale their rows overlap and their labels and phase sketches
+     * print on top of one another.  A fragment level is not AT its
+     * drawn energy anyway: it is placed at the mean of the orbitals
+     * it became.  The molecular column is never opened out -- its
+     * energies are the measurement.
+     */
+    void columnGeometry(wxDC& dc, const MoColumn& column,
+                        const wxRect& plot, bool spread,
+                        vector< std::pair<size_t,size_t> >& groups,
+                        vector<int>& groupY)
+    {
+      groups.clear();
+      groupY.clear();
+
+      for (size_t a = 0; a < column.levels.size(); ) {
+        size_t b = a;
+        while (b + 1 < column.levels.size() &&
+               fabs(column.levels[b+1].energy - column.levels[a].energy)
+                   < 1.0e-9) {
+          b++;
+        }
+        groups.push_back(std::make_pair(a, b));
+        a = b + 1;
+      }
+
+      for (size_t g = 0; g < groups.size(); g++) {
+        groupY.push_back(yFor(column.levels[groups[g].first].energy, plot));
+      }
+      if (!spread || groupY.size() < 2) return;
+
+      //  A phase sketch is taller than a line of text, so a column
+      //  that has them needs more room than one that does not --
+      //  chlorine's 3p symmetry orbitals were overlapping each other.
+      bool sketches = false;
+      for (size_t i = 0; i < column.levels.size(); i++) {
+        if (!column.levels[i].phases.empty()) sketches = true;
+      }
+
+      //  A sketch is two rows of circles with p lobes through them,
+      //  about forty pixels tall against a text row's fifteen, so a
+      //  gap sized for text left chlorine's four 3p symmetry orbitals
+      //  drawn through one another.
+      dc.SetFont(*wxSMALL_FONT);
+      int minGap = dc.GetTextExtent(wxT("Xg")).y + 8;
+      if (sketches && minGap < 44) minGap = 44;
+
+      for (size_t g = 1; g < groupY.size(); g++) {
+        if (groupY[g - 1] - groupY[g] < minGap) {
+          groupY[g] = groupY[g - 1] - minGap;
+        }
+      }
+      const int over = plot.y + 6 - groupY[groupY.size() - 1];
+      if (over > 0) {
+        for (size_t g = 0; g < groupY.size(); g++) groupY[g] += over;
+      }
+    }
+
+    /** The row a single level sits on, for a line to end at. */
+    int levelYIn(wxDC& dc, const MoColumn& column, const wxRect& plot,
+                 bool spread, int which)
+    {
+      vector< std::pair<size_t,size_t> > groups;
+      vector<int> groupY;
+      columnGeometry(dc, column, plot, spread, groups, groupY);
+      for (size_t g = 0; g < groups.size(); g++) {
+        if ((size_t)which >= groups[g].first &&
+            (size_t)which <= groups[g].second) {
+          return groupY[g];
+        }
+      }
+      return yFor(column.levels[which].energy, plot);
+    }
+
     void drawColumn(wxDC& dc, const MoColumn& column, int x, int width,
                     const wxRect& plot, bool withOccupancy,
                     vector<Hit>* hits, int outward = -1,
@@ -331,48 +416,9 @@ class MoDiagramCanvas : public wxPanel
 
       const int lineGap = 4;
 
-      //  ROOM FOR THE LABELS IN A FRAGMENT COLUMN.
-      //
-      //  Nitrite's oxygen set has six symmetry orbitals inside a tenth
-      //  of a Hartree, so drawn strictly to scale their rows overlap
-      //  and their labels print on top of one another -- "2x A1 (2p)"
-      //  over "A2 (2p)" over "2x B2 (2p)", with the phase sketches in
-      //  the same place.  A fragment level is not AT its drawn energy
-      //  anyway: it is placed at the mean of the orbitals it became.
-      //  So these columns may be opened out to leave a row's height
-      //  between them, which is what a person draws.  The molecular
-      //  column is never touched: its energies are the measurement.
-      vector< std::pair<size_t,size_t> > groups;
-      for (size_t a = 0; a < column.levels.size(); ) {
-        size_t b = a;
-        while (b + 1 < column.levels.size() &&
-               fabs(column.levels[b+1].energy - column.levels[a].energy)
-                   < 1.0e-9) {
-          b++;
-        }
-        groups.push_back(std::make_pair(a, b));
-        a = b + 1;
-      }
-
       vector<int> groupY;
-      for (size_t g = 0; g < groups.size(); g++) {
-        groupY.push_back(yFor(column.levels[groups[g].first].energy, plot));
-      }
-      if (spread && groupY.size() > 1) {
-        dc.SetFont(*wxSMALL_FONT);
-        const int minGap = dc.GetTextExtent(wxT("Xg")).y + 8;
-        //  Ascending energy, so descending y.
-        for (size_t g = 1; g < groupY.size(); g++) {
-          if (groupY[g - 1] - groupY[g] < minGap) {
-            groupY[g] = groupY[g - 1] - minGap;
-          }
-        }
-        //  Slid back down if the stack ran off the top.
-        const int over = plot.y + 6 - groupY[groupY.size() - 1];
-        if (over > 0) {
-          for (size_t g = 0; g < groupY.size(); g++) groupY[g] += over;
-        }
-      }
+      vector< std::pair<size_t,size_t> > groups;
+      columnGeometry(dc, column, plot, spread, groups, groupY);
 
       for (size_t gi = 0; gi < groups.size(); gi++) {
 
@@ -509,8 +555,11 @@ class MoDiagramCanvas : public wxPanel
             : x + width + 14 + step*(extent.x + 12);
         drawPieces(dc, pieces, lx, y - extent.y/2, base, small, extent.y);
 
+        //  Clear of the annotation, which is written under the label
+        //  and is about as wide again: at thirty the chlorine 3p
+        //  sketch was drawn over its own "free atom" line.
         drawSketch(dc, level, *p_sketchColumn,
-                   (p_outward < 0) ? lx - 30 : lx + extent.x + 30, y);
+                   (p_outward < 0) ? lx - 34 : lx + extent.x + 54, y);
 
         //  ONCE PER SHELL.  Oxygen's b2, a1 and b1 2p levels all
         //  carry the same free-atom energy, and printing it beside
@@ -916,14 +965,14 @@ class MoDiagramCanvas : public wxPanel
 
           if (link.leftLevel >= 0 && link.leftLevel < (int)p_left.levels.size()) {
             dc.DrawLine(xLeft + levelWidth,
-                        yFor(p_left.levels[link.leftLevel].energy, plot),
+                        levelYIn(dc, p_left, plot, true, link.leftLevel),
                         xCentre, cy);
           }
           if (link.rightLevel >= 0 &&
               link.rightLevel < (int)p_right.levels.size()) {
             dc.DrawLine(xCentre + levelWidth, cy,
-                        xRight, yFor(p_right.levels[link.rightLevel].energy,
-                                     plot));
+                        xRight,
+                        levelYIn(dc, p_right, plot, true, link.rightLevel));
           }
         }
       }
@@ -959,6 +1008,27 @@ class MoDiagramCanvas : public wxPanel
       if (!p_hits.empty()) {
         line -= lineHeight;
         dc.DrawText(wxT("Click a level to show that orbital"), 8, line);
+      }
+
+      //  WHAT THE CIRCLES MEAN.  The phase sketches are the thing that
+      //  makes a symmetry orbital a picture instead of a label -- a1
+      //  and t2 both say "three orbitals" and neither says which
+      //  combination -- and they are no use at all to a reader who
+      //  cannot tell what the marks are.  Said only when some are
+      //  drawn.
+      bool anySketch = false;
+      const MoColumn* sides[2] = { &p_left, &p_right };
+      for (int k = 0; k < 2; k++) {
+        for (size_t i = 0; i < sides[k]->levels.size(); i++) {
+          if (!sides[k]->levels[i].phases.empty()) anySketch = true;
+        }
+      }
+      if (anySketch) {
+        line -= lineHeight;
+        dc.DrawText(wxT("Beside each symmetry orbital: the atoms as seen "
+                        "from one side, filled and open for opposite sign, "
+                        "sized by weight; a bar is a p lobe in the page."),
+                    8, line);
       }
 
       //  The folded core, said out loud rather than silently dropped:
