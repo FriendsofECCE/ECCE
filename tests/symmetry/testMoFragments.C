@@ -133,25 +133,66 @@ int main(int argc, char** argv) {
     }
   }
 
-  //  --- a molecule this kind of diagram does not describe ------------
-  //  Ethane has no atom the whole group leaves in place.  The right
-  //  answer is to say so, not to nominate one of the carbons.
+  //  --- a diatomic: no central atom, and none needed -----------------
+  //
+  //  C2 is one orbit of two equivalent atoms, so there is no central
+  //  atom at all -- and the diagram everyone draws for it exists
+  //  anyway, one atom's orbitals on each side.  It splits down the
+  //  middle.
+  //
+  //  The columns are the atom's OWN 2s and 2p, not symmetry orbitals:
+  //  half the group's operations move that atom onto its partner, so
+  //  asking which irreps its orbitals span has no answer.  The symmetry
+  //  appears when they combine, which is the middle column.
   {
     double c[] = {
-       0.0, 0.0,  0.7680,
-       0.0, 0.0, -0.7680 };
+       0.0, 0.0,  0.6210,
+       0.0, 0.0, -0.6210 };
     vector<double> coords(c, c + 6);
     const char* e[] = { "C", "C" };
     vector<string> elements(e, e + 2);
 
     MoColumn left, right;
     string note;
-    bool ok = MoFragments::build(coords, elements, "D2H", 0, left, right, note);
-    bool refused = !ok && note.find("central atom") != string::npos;
-    printf("  %-46s %s\n",
-           "C2: no central atom, and it says so",
-           refused ? "ok" : ("FAIL: " + note).c_str());
-    if (!refused) bad++;
+    bool ok = MoFragments::build(coords, elements, "D4H", 0, left, right, note);
+    printf("  %-46s %s\n", "C2: builds as one atom a side",
+           ok ? "ok" : ("FAIL: " + note).c_str());
+    if (!ok) bad++;
+    else {
+      check("C2: left column is one carbon",  left.title,  "C");
+      check("C2: right column is the other",  right.title, "C");
+      bool shells = (left.levels.size() == 2 &&
+                     left.levels[0].label == "2s" &&
+                     left.levels[1].label == "2p" &&
+                     left.levels[1].degeneracy == 3 &&
+                     left.levels[0].irrep.empty());
+      printf("  %-46s %s\n",
+             "C2: 2s and 2p, atomic and unlabelled by irrep",
+             shells ? "ok" : "FAIL");
+      if (!shells) bad++;
+
+      //  And nothing is called non-bonding just because there is
+      //  nothing to count against: nitrogen came out with "nb" against
+      //  all eight of its levels, including the two holding its triple
+      //  bond.
+      MoColumn centre;
+      const char* cl[] = {"1sig","1siu","1piu","2sig"};
+      for (int i = 0; i < 4; i++) {
+        MoLevel l; l.label = cl[i]; l.irrep = MoDiagram::canonicalIrrep(cl[i]);
+        l.degeneracy = 1; l.energy = -1.0 + 0.3*i;
+        centre.levels.push_back(l);
+      }
+      MoDiagram::classify(left.levels, centre.levels, right.levels);
+      bool quiet = true;
+      for (size_t i = 0; i < centre.levels.size(); i++) {
+        if (centre.levels[i].character != MoLevel::UNKNOWN ||
+            centre.levels[i].label.find("nb") != string::npos) quiet = false;
+      }
+      printf("  %-46s %s\n",
+             "C2: nothing is called nb for want of a count",
+             quiet ? "ok" : "FAIL");
+      if (!quiet) bad++;
+    }
   }
 
   //  --- a molecule that LOOKS like it has a centre and does not -----

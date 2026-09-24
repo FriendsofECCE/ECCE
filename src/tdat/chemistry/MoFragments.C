@@ -217,6 +217,22 @@ bool MoFragments::partition(const vector< vector<int> >& orbits,
    central = -1;
    terminal.clear();
 
+   //  A DIATOMIC IS ONE ORBIT OF TWO, AND IT SPLITS DOWN THE MIDDLE.
+   //
+   //  N2 and C2 have no central atom at all: both atoms are equivalent,
+   //  so they are one orbit and the AXn test below rejects them.  But
+   //  the diagram everyone draws for them exists -- one atom's orbitals
+   //  on each side, the molecular orbitals between -- so the split is
+   //  simply one atom to each column.
+   //
+   //  A heteronuclear diatomic arrives as two orbits of one and is
+   //  handled by the ordinary path, with the heavier atom on the left.
+   if (orbits.size() == 1 && orbits[0].size() == 2) {
+      central = orbits[0][0];
+      terminal.assign(1, orbits[0][1]);
+      return true;
+   }
+
    //  THIS DIAGRAM DESCRIBES ONE SHAPE OF MOLECULE: a central atom
    //  surrounded by one set of equivalent terminal atoms.  CH4, H2O,
    //  NH3, BF3, SF6 -- what a textbook writes AXn.
@@ -477,6 +493,10 @@ bool MoFragments::build(const vector<double>& coords,
    //  ask how much of a molecular orbital sits there.  Reported rather
    //  than left to be re-derived: repeating the orbit analysis outside
    //  is a second chance to disagree with this one.
+   //  A diatomic has one atom a side and no symmetry orbitals at all,
+   //  so both columns are simply the atom.
+   const bool diatomic = (elements.size() == 2 && terminal.size() == 1);
+
    if (leftAtoms  != 0) leftAtoms->assign(1, central);
    if (rightAtoms != 0) *rightAtoms = terminal;
 
@@ -487,36 +507,71 @@ bool MoFragments::build(const vector<double>& coords,
       double eV;
       if (!valenceEnergy(elements[central], l, eV)) continue;
 
+      loadVoie();
+      ostringstream shell;
+      shell << s_voie[elements[central]].n << (l == 0 ? 's' : 'p');
+
+      //  A SINGLE ATOM OF A DIATOMIC SPANS NO IRREPS OF THE MOLECULAR
+      //  GROUP.
+      //
+      //  Half the group's operations move it onto its partner, so
+      //  asking which irreps its orbitals span is not a question with
+      //  an answer -- the characters do not reduce, and the column
+      //  came out empty with a message blaming the energy table.
+      //
+      //  That is not a gap in the method, it is what a diatomic is:
+      //  the textbook diagram puts one atom's 2s and 2p on each side
+      //  precisely because they are atomic orbitals and not symmetry
+      //  orbitals.  The symmetry appears when they combine, which is
+      //  the middle column.
+      if (diatomic) {
+         MoLevel level;
+         level.energy     = eV;
+         level.degeneracy = (l == 0) ? 1 : 3;
+         level.label      = shell.str();
+         left.levels.push_back(level);
+         continue;
+      }
+
       vector<int> multiplicity;
       if (!shellIrreps(centralOnly, l, numAtoms, images, classOfOp, ops,
                        *table, multiplicity)) {
          continue;
       }
-
-      loadVoie();
-      ostringstream shell;
-      shell << s_voie[elements[central]].n << (l == 0 ? 's' : 'p');
       addLevels(*table, multiplicity, eV, shell.str(), left.levels);
    }
 
    //  --- the terminal atoms' symmetry orbitals ---------------------
    ostringstream rightTitle;
-   rightTitle << terminal.size() << elements[terminal[0]] << " TASOs";
+   if (diatomic) {
+      rightTitle << elements[terminal[0]];
+   } else {
+      rightTitle << terminal.size() << elements[terminal[0]] << " TASOs";
+   }
    right.title = rightTitle.str();
 
    for (int l = 0; l <= 1; l++) {
       double eV;
       if (!valenceEnergy(elements[terminal[0]], l, eV)) continue;
 
+      loadVoie();
+      ostringstream shell;
+      shell << s_voie[elements[terminal[0]]].n << (l == 0 ? 's' : 'p');
+
+      if (diatomic) {
+         MoLevel level;
+         level.energy     = eV;
+         level.degeneracy = (l == 0) ? 1 : 3;
+         level.label      = shell.str();
+         right.levels.push_back(level);
+         continue;
+      }
+
       vector<int> multiplicity;
       if (!shellIrreps(terminal, l, numAtoms, images, classOfOp, ops,
                        *table, multiplicity)) {
          continue;
       }
-
-      loadVoie();
-      ostringstream shell;
-      shell << s_voie[elements[terminal[0]]].n << (l == 0 ? 's' : 'p');
       addLevels(*table, multiplicity, eV, shell.str(), right.levels);
    }
 

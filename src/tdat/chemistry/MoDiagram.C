@@ -429,6 +429,24 @@ void MoDiagram::classify(const vector<MoLevel>& left,
                          vector<MoLevel>& centre,
                          const vector<MoLevel>& right)
 {
+  //  WITHOUT IRREPS ON THE FRAGMENT SIDE THERE IS NOTHING TO COUNT,
+  //  and counting nothing is not the same as counting zero.
+  //
+  //  A diatomic's columns are one atom's own orbitals, which span no
+  //  irrep of the molecular group -- half its operations move that
+  //  atom onto its partner.  With p = q = 0 for every irrep the rule
+  //  below marks every molecular orbital non-bonding, so nitrogen came
+  //  out with "nb" against all eight of its levels including the two
+  //  that hold its triple bond.  Say nothing instead.
+  bool anyIrrep = false;
+  for (size_t i = 0; i < left.size() && !anyIrrep; i++) {
+    if (!left[i].irrep.empty()) anyIrrep = true;
+  }
+  for (size_t i = 0; i < right.size() && !anyIrrep; i++) {
+    if (!right[i].irrep.empty()) anyIrrep = true;
+  }
+  if (!anyIrrep) return;
+
   int nextPair = 0;
 
   //  One irrep at a time; orbitals of different irreps cannot combine,
