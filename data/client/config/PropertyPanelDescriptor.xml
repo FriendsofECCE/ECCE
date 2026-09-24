@@ -181,14 +181,6 @@
     <property name="MO"/>
   </PropertyPanel>
 
-  <!-- The correlation diagram is NOT registered for v8.13.0.
-       It is built and its machinery is tested, but what it draws is
-       not good enough to put in front of anyone yet: see GitHub #132.
-       Re-register this block when it is.
-
-       The panel class is still compiled and still reachable from the
-       tests, so nothing about removing it here is a revert.
-
   <PropertyPanel>
     <name>MO Diagram</name>
     <class>MoDiagramPanel</class>
@@ -196,7 +188,6 @@
     <allowPin>false</allowPin>
     <property name="ORBENG"/>
   </PropertyPanel>
-  -->
 
   <PropertyPanel>
     <name>Vibrational Frequencies</name>
