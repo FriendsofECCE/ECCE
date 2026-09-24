@@ -26,6 +26,7 @@ build-independent: it tests what was packaged, which is also what catches the
 
 import argparse
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -55,6 +56,11 @@ class Results(object):
 
     def fail(self, where, message):
         self.failures.append("%s: %s" % (where, message))
+
+
+#  Titles an app puts up when it is telling you it did not start.
+FAILED_TITLE = re.compile(r"\b(failure|failed|error|fatal|cannot|unable)\b",
+                          re.IGNORECASE)
 
 
 def checkApp(display, name, results, verbose=False):
@@ -89,6 +95,22 @@ def checkApp(display, name, results, verbose=False):
                 "\n      An app that cannot show a window is one a user "
                 "cannot use.\n%s"
                 % (timeout, result.returncode, _tail(result.log)))
+        return
+
+    #  A window is not proof the app started.  ECCE reports a dead
+    #  service by putting up a dialog -- "ECCE Server Failure" -- and
+    #  that counted as success here, which is how ONE stopped dataserver
+    #  presented as eleven unrelated app failures with the actual cause
+    #  sitting in the passing column.
+    #  Matched on word boundaries: a substring test would be one
+    #  unlucky app title away from a false failure.
+    bad = [t for _, t in result.windows if FAILED_TITLE.search(t)]
+    if bad:
+        _record(results, name,
+                "opened a window, but it announces a failure: %s.\n"
+                "      A window is not proof an app started; this is the "
+                "app telling you it did not.\n%s"
+                % (", ".join('"%s"' % t for t in bad[:3]), _tail(result.log)))
         return
 
     markers = [m for m in CRASH_MARKERS if m.lower() in result.log.lower()]
@@ -263,6 +285,20 @@ def main():
         apps.startServices(display, serviceLog)
         for line in serviceLog:
             print("  %s" % line)
+
+        #  Check the services actually came up before sweeping every app
+        #  against them.  Without this, a dataserver that failed to start
+        #  is reported as ten apps that "opened no window within 40s" --
+        #  a list that reads like ten bugs and names none of them.
+        after = apps.serviceState()
+        down = sorted(k for k, up in after.items() if not up)
+        if down:
+            results.fail("services",
+                         "%s did not start, so nothing below can work.\n"
+                         "      Every app that needs the server will be "
+                         "reported as opening no window. That is this one "
+                         "fault, not a dozen separate ones.\n      %s"
+                         % (" and ".join(down), " | ".join(serviceLog)))
         #  The app's name goes out BEFORE it runs, so a wedged suite
         #  names its culprit.  The partial-line form is nicer to read
         #  ("name ... done" on one line) but GitHub Actions only shows

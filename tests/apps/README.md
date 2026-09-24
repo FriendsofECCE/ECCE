@@ -18,6 +18,22 @@ window, and stay up?* That is all this suite asks. It is a narrow question,
 but it is the one these bugs answer "no" to, and nothing else in the tree
 notices.
 
+## A window is not proof an app started
+
+ECCE reports a dead service by putting up a dialog — `ECCE Server
+Failure` — and this suite counted any window as success. So one stopped
+dataserver presented as **eleven failures**: the ten apps that need the
+server timed out with "opened no window within 40s", and the app that
+actually named the cause sat in the passing column.
+
+Two changes, both about making one fault report as one fault:
+
+- a window whose title announces a failure (`failure`, `error`, `fatal`,
+  `cannot`, `unable`, matched on word boundaries) fails the app
+- the services are checked after starting and before the sweep, so a
+  dataserver that did not come up is reported once, by name, instead of
+  as a dozen apps that cannot open windows
+
 ## What it does
 
 For each installed wx-linked app:
