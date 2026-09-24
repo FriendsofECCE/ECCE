@@ -694,6 +694,50 @@ void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
   //  is read against where they actually sit.
   int nextPair = 0;
 
+  //  A SYMMETRIC DIATOMIC IS DECIDED BY ITS PARTNER, NOT BY ITS
+  //  PARENTS.
+  //
+  //  Reading "is it below everything it is built from" fails here.  A
+  //  diatomic's two combinations of one shell straddle that shell, and
+  //  mixing moves them: C2's sigma-u sits above the 2s it came from
+  //  but below the 2p it borrows from, so it was called non-bonding --
+  //  an antibonding orbital, labelled nb, and then excluded from
+  //  pairing so its partner lost its colour too.
+  //
+  //  What is certain is the pair: of the two combinations a shell
+  //  gives, the lower IS the bonding one and the higher IS the
+  //  antibonding one.  That needs no reference to where the atomic
+  //  level sits, and it is what a person draws.
+  const bool symmetric = equivalentColumns(left, right);
+  if (symmetric) {
+    vector<string> keys;
+    for (size_t c = 0; c < centre.size(); c++) {
+      if (centre[c].character != MoLevel::UNKNOWN) continue;
+      const string key = pairingKey(centre[c], true);
+      bool seen = false;
+      for (size_t k = 0; k < keys.size(); k++) if (keys[k] == key) seen = true;
+      if (!seen) keys.push_back(key);
+    }
+
+    for (size_t j = 0; j < keys.size(); j++) {
+      vector<size_t> mine;
+      for (size_t c = 0; c < centre.size(); c++) {
+        if (centre[c].character != MoLevel::UNKNOWN) continue;
+        if (pairingKey(centre[c], true) == keys[j]) mine.push_back(c);
+      }
+      //  The spectrum arrives sorted, so mine is in energy order.
+      const size_t pairs = mine.size()/2;
+      for (size_t k = 0; k < pairs; k++) {
+        MoLevel& low  = centre[mine[k]];
+        MoLevel& high = centre[mine[mine.size() - 1 - k]];
+        low.character  = MoLevel::BONDING;
+        high.character = MoLevel::ANTIBONDING;
+        high.label += "*";
+        low.pairing = high.pairing = nextPair++;
+      }
+    }
+  }
+
   for (size_t c = 0; c < centre.size(); c++) {
     if (centre[c].character != MoLevel::UNKNOWN) continue;
 
@@ -737,7 +781,7 @@ void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
   //  sharing a colour with 3a1*, which is not a bonding/antibonding
   //  pair and cannot be one: they are different irreps and do not
   //  interact.  An orbital's partner is of its own symmetry.
-  int highestPair = -1;
+  int highestPair = nextPair - 1;
   for (size_t c = 0; c < centre.size(); c++) {
     if (centre[c].pairing > highestPair) highestPair = centre[c].pairing;
   }
