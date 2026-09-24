@@ -8,6 +8,10 @@
 #include "tdat/MoDiagram.H"
 #include "MoDiagramCanvas.H"
 
+class wxCheckListBox;
+class wxCheckBox;
+class wxSizer;
+
 using std::string;
 using std::vector;
 
@@ -76,6 +80,26 @@ class MoDiagramPanel : public VizPropertyPanel,
 
    protected:
 
+      /**
+       * Which side of the diagram each set of equivalent atoms is on.
+       *
+       * A FRAGMENT HAS TO BE A UNION OF ORBITS: the group must map it
+       * onto itself or it has no symmetry orbitals at all.  So the
+       * choice is offered as a grouping of the orbits rather than a
+       * selection of atoms, and an impossible fragmentation cannot be
+       * expressed.
+       *
+       * Empty means decide automatically, which handles a central atom
+       * with equivalent neighbours, and a diatomic, and refuses
+       * everything else.
+       */
+      vector<int> p_sideOfOrbit;
+
+      void buildFragmentChooser(wxSizer *sizer);
+      void fillFragmentChooser(const vector< vector<int> >& orbits,
+                               const vector<string>& elements);
+      void onFragmentChanged(wxCommandEvent& event);
+
       virtual void initialize();
 
    private:
@@ -83,6 +107,8 @@ class MoDiagramPanel : public VizPropertyPanel,
       void build();
 
       MoDiagramCanvas *p_canvas;
+      wxCheckListBox  *p_fragments;
+      wxCheckBox      *p_autoFragments;
 };
 
 #endif

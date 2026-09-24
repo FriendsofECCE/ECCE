@@ -569,6 +569,89 @@ int main(int argc, char** argv) {
     if (!refused) bad++;
   }
 
+  //  --- choosing the fragments yourself ------------------------------
+  //
+  //  Methanol in Cs is refused by the automatic split: five
+  //  symmetry-distinct sets of atoms and no central-atom-plus-
+  //  neighbours structure among them.  Saying which sets go where
+  //  builds it anyway, which is the whole point -- and the choice is
+  //  made by grouping ORBITS, so an impossible fragmentation cannot
+  //  be expressed.
+  {
+    printf("\n  choosing the fragments\n");
+
+    double c[] = {
+      -0.0503,  0.6685,  0.0000,    // C
+       0.0503, -0.7585,  0.0000,    // O
+      -1.0807,  1.0104,  0.0000,    // H, in plane
+       0.4400,  1.0967,  0.8900,    // H
+       0.4400,  1.0967, -0.8900,    // H
+       0.8750, -1.0211,  0.0000 };  // H on O
+    vector<double> coords(c, c + 18);
+    const char* e[] = { "C", "O", "H", "H", "H", "H" };
+    vector<string> elements(e, e + 6);
+
+    MoColumn left, right;
+    string note;
+    bool refused = !MoFragments::build(coords, elements, "CS", 0,
+                                       left, right, note);
+    printf("  %-46s %s\n", "CH3OH: refused without a choice",
+           refused ? "ok" : "FAIL");
+    if (!refused) bad++;
+
+    vector< vector<int> > orbits;
+    string why;
+    const bool got = MoFragments::orbitsOf(coords, elements, "CS",
+                                           orbits, why);
+    printf("  %-46s %zu %s\n", "CH3OH: its orbits can be listed",
+           orbits.size(), got ? "ok" : ("FAIL: " + why).c_str());
+    if (!got) bad++;
+    else {
+      //  Put the oxygen on one side and everything else on the other.
+      //  Any grouping of the orbits is valid by construction; this one
+      //  is just a grouping a person might choose.
+      vector<int> side(orbits.size(), 1);
+      for (size_t i = 0; i < orbits.size(); i++) {
+        if (orbits[i].size() == 1 && elements[orbits[i][0]] == "O") side[i] = 0;
+      }
+
+      MoColumn l2, r2;
+      string note2;
+      vector<int> leftAtoms, rightAtoms;
+      const bool built = MoFragments::build(coords, elements, "CS", 0,
+                                            l2, r2, note2,
+                                            &leftAtoms, &rightAtoms, &side);
+      printf("  %-46s %s\n", "CH3OH: and built once they are grouped",
+             built ? "ok" : ("FAIL: " + note2).c_str());
+      if (!built) bad++;
+      else {
+        check("CH3OH: the oxygen is its own column", l2.title, "O");
+        printf("  %-46s %-14s %s\n",
+               "CH3OH: the rest are symmetry orbitals", r2.title.c_str(),
+               (r2.title.find("TASOs") != string::npos) ? "ok" : "FAIL");
+        if (r2.title.find("TASOs") == string::npos) bad++;
+
+        //  Fourteen valence electrons: C 4, O 6, four H.  The columns
+        //  carry them between them however the atoms are grouped.
+        double total = 0.0;
+        for (size_t i = 0; i < l2.levels.size(); i++)  total += l2.levels[i].occupancy;
+        for (size_t i = 0; i < r2.levels.size(); i++) total += r2.levels[i].occupancy;
+        checkd("CH3OH: and all fourteen valence electrons", total, 14.0, 1e-9);
+      }
+
+      //  Everything on one side is not a diagram, and says so.
+      vector<int> lopsided(orbits.size(), 1);
+      MoColumn l3, r3;
+      string note3;
+      const bool rejected = !MoFragments::build(coords, elements, "CS", 0,
+                                                l3, r3, note3, 0, 0,
+                                                &lopsided);
+      printf("  %-46s %s\n", "CH3OH: an empty side is refused",
+             rejected ? "ok" : "FAIL");
+      if (!rejected) bad++;
+    }
+  }
+
   //  --- the phase patterns a diagram sketches ------------------------
   {
     printf("\n  phase patterns\n");

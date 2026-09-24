@@ -261,6 +261,36 @@ void MoFragments::sketchPositions(const vector<double>& coords,
 }
 
 
+
+bool MoFragments::orbitsOf(const vector<double>& coords,
+                           const vector<string>& elements,
+                           const string& group,
+                           vector< vector<int> >& orbits,
+                           string& why)
+{
+   orbits.clear();
+   why.clear();
+
+   const CharacterTable *table = CharacterTable::lookup(group);
+   if (table == 0) { why = "no character table for " + group; return false; }
+
+   vector<SymOp> ops;
+   if (!symmetryOperations(group, ops)) {
+      why = "could not generate the operations of " + group;
+      return false;
+   }
+
+   vector< vector<int> > images;
+   if (!SymmetryAnalysis::atomImages(coords, elements, ops, 1.0e-3, images)) {
+      why = "the structure is not in the symmetry frame of " + group;
+      return false;
+   }
+
+   SymmetryAnalysis::orbits(images, (int)elements.size(), orbits);
+   return !orbits.empty();
+}
+
+
 bool MoFragments::partition(const vector< vector<int> >& orbits,
                             const vector<string>& elements,
                             int& central,
@@ -614,6 +644,130 @@ double MoFragments::share(const vector<double>& coefficients,
 }
 
 
+/////////////////////////////////////////////////////////////////////////////
+//  Description
+//     Build one column from a set of atoms.
+//
+//     The set must be a union of orbits, or there is nothing to build:
+//     if an operation takes one of its atoms outside it, the set is
+//     not mapped onto itself and it has no symmetry orbitals at all.
+//     That is what makes "which atoms are the fragment?" a question
+//     about grouping ORBITS rather than picking atoms.
+//
+//     One atom alone is the exception in both directions.  It is
+//     always its own orbit when the group fixes it, and then its
+//     orbitals are simply its orbitals -- s and p, labelled by the
+//     irreps they span.  When the group does NOT fix it, as with
+//     either atom of a diatomic, it is not an orbit at all and spans
+//     no irreps: half the operations move it onto its partner.  A
+//     diatomic's columns are therefore plain atomic orbitals, which is
+//     exactly how the textbook draws them.
+/////////////////////////////////////////////////////////////////////////////
+static void buildColumn(const vector<int>& atoms,
+                        const vector<string>& elements,
+                        const vector<double>& coords,
+                        int numAtoms,
+                        const vector< vector<int> >& images,
+                        const vector<int>& classOfOp,
+                        const vector<SymOp>& ops,
+                        const CharacterTable& table,
+                        bool ownOrbitals,
+                        MoColumn& column)
+{
+   if (atoms.empty()) return;
+
+   //  Named for what it holds: "O", "2H TASOs", "C10H10 TASOs".
+   ostringstream title;
+   if (atoms.size() == 1 || ownOrbitals) {
+      title << elements[atoms[0]];
+      if (atoms.size() > 1) {
+         //  Several atoms whose orbitals are being drawn as their own
+         //  can only be a diatomic's partner, which is one atom.  Say
+         //  the count anyway rather than imply one.
+         title << atoms.size();
+      }
+   } else {
+      map<string,int> counts;
+      for (size_t i = 0; i < atoms.size(); i++) counts[elements[atoms[i]]]++;
+
+      if (counts.size() == 1) {
+         //  "4H TASOs", which reads as four hydrogens' symmetry
+         //  orbitals.  "H4 TASOs" reads as a molecule's.
+         title << atoms.size() << counts.begin()->first;
+      } else {
+         //  Several elements is a formula, where the count belongs
+         //  after the symbol: "C10H10 TASOs" for ferrocene's rings.
+         for (map<string,int>::const_iterator it = counts.begin();
+              it != counts.end(); ++it) {
+            title << it->first;
+            if (it->second > 1) title << it->second;
+         }
+      }
+      title << " TASOs";
+   }
+   column.title = title.str();
+
+   if (atoms.size() > 1) {
+      MoFragments::sketchPositions(coords, atoms, column.sketchX,
+                                   column.sketchY, &column.sketchNormal);
+   }
+
+   for (int l = 0; l <= 1; l++) {
+      double eV;
+      if (!MoFragments::valenceEnergy(elements[atoms[0]], l, eV)) continue;
+
+      loadVoie();
+      ostringstream shell;
+      shell << s_voie[elements[atoms[0]]].n << (l == 0 ? 's' : 'p');
+
+      if (ownOrbitals) {
+         MoLevel level;
+         level.energy     = eV;
+         level.degeneracy = (l == 0) ? 1 : 3;
+         level.label      = shell.str();
+         level.shell      = l;
+         column.levels.push_back(level);
+         continue;
+      }
+
+      vector<int> multiplicity;
+      if (!shellIrreps(atoms, l, numAtoms, images, classOfOp, ops,
+                       table, multiplicity)) {
+         continue;
+      }
+      const size_t before = column.levels.size();
+      addLevels(table, multiplicity, eV, shell.str(), l, column.levels);
+
+      //  The phase patterns.  s and p by different calls: an operation
+      //  carries one s orbital per atom along unchanged, while it takes
+      //  p_x on an atom to a COMBINATION on its image.  A d shell would
+      //  need the five-by-five transformation and has none here, so
+      //  those levels carry no pattern rather than a made-up one.
+      if (l > 1 || atoms.size() < 2) continue;
+
+      for (size_t j = before; j < column.levels.size(); j++) {
+         string tableName;
+         const vector<string>& names = table.irreps();
+         for (size_t n = 0; n < names.size(); n++) {
+            if (MoDiagram::canonicalIrrep(names[n]) == column.levels[j].irrep) {
+               tableName = names[n];
+               break;
+            }
+         }
+         if (tableName.empty()) continue;
+
+         vector< vector<double> > vectors;
+         const bool got = (l == 0)
+             ? SymmetryAnalysis::projectOrbit(atoms, images, classOfOp,
+                                              table, tableName, vectors)
+             : SymmetryAnalysis::projectVectorOrbit(atoms, images, classOfOp,
+                                                    ops, table, tableName,
+                                                    vectors);
+         if (got && !vectors.empty()) column.levels[j].phases = vectors[0];
+      }
+   }
+}
+
 bool MoFragments::build(const vector<double>& coords,
                         const vector<string>& elements,
                         const string& group,
@@ -622,7 +776,8 @@ bool MoFragments::build(const vector<double>& coords,
                         MoColumn& right,
                         string& note,
                         vector<int>* leftAtoms,
-                        vector<int>* rightAtoms)
+                        vector<int>* rightAtoms,
+                        const vector<int>* sideOfOrbit)
 {
    if (leftAtoms  != 0) leftAtoms->clear();
    if (rightAtoms != 0) rightAtoms->clear();
@@ -683,158 +838,58 @@ bool MoFragments::build(const vector<double>& coords,
    vector< vector<int> > orbits;
    SymmetryAnalysis::orbits(images, numAtoms, orbits);
 
-   int central = -1;
-   vector<int> terminal;
-   if (!partition(orbits, elements, central, terminal)) {
-      //  Say what it found, because "not this shape of molecule" and
-      //  "the symmetry came out wrong" look identical otherwise.
-      ostringstream why;
-      why << "This kind of diagram describes a central atom with one set "
-             "of equivalent neighbours (CH4, H2O, NH3, BF3). In "
-          << group << " this molecule has " << orbits.size()
-          << " symmetry-distinct set" << (orbits.size() == 1 ? "" : "s")
-          << " of atoms, so there is no such split. The molecular "
-             "orbitals are still shown.";
-      note = why.str();
-      return false;
-   }
+   //  --- which atoms are on which side ------------------------------
+   //
+   //  A CALLER'S CHOICE WHERE THERE IS ONE, and otherwise the
+   //  automatic split.  The choice is expressed by grouping orbits
+   //  rather than picking atoms, because a fragment the group maps
+   //  outside itself has no symmetry orbitals at all -- so this cannot
+   //  be handed an impossible fragmentation.
+   vector<int> leftSet, rightSet;
+   bool diatomic = false;
 
-   //  --- the central atom's valence orbitals -----------------------
-   //  THE COLUMNS ARE NAMED BY THE ATOMS THEY BELONG TO: "O" on one
-   //  side, "2H TASOs" on the other, which is how the diagram is read
-   //  and how the course names them.
-   //  Which atoms ended up on each side, for a caller that wants to
-   //  ask how much of a molecular orbital sits there.  Reported rather
-   //  than left to be re-derived: repeating the orbit analysis outside
-   //  is a second chance to disagree with this one.
-   //  A diatomic has one atom a side and no symmetry orbitals at all,
-   //  so both columns are simply the atom.
-   const bool diatomic = (elements.size() == 2 && terminal.size() == 1);
-
-   sketchPositions(coords, terminal, right.sketchX, right.sketchY,
-                   &right.sketchNormal);
-
-   if (leftAtoms  != 0) leftAtoms->assign(1, central);
-   if (rightAtoms != 0) *rightAtoms = terminal;
-
-   vector<int> centralOnly(1, central);
-   left.title = elements[central];
-
-   for (int l = 0; l <= 1; l++) {
-      double eV;
-      if (!valenceEnergy(elements[central], l, eV)) continue;
-
-      loadVoie();
-      ostringstream shell;
-      shell << s_voie[elements[central]].n << (l == 0 ? 's' : 'p');
-
-      //  A SINGLE ATOM OF A DIATOMIC SPANS NO IRREPS OF THE MOLECULAR
-      //  GROUP.
-      //
-      //  Half the group's operations move it onto its partner, so
-      //  asking which irreps its orbitals span is not a question with
-      //  an answer -- the characters do not reduce, and the column
-      //  came out empty with a message blaming the energy table.
-      //
-      //  That is not a gap in the method, it is what a diatomic is:
-      //  the textbook diagram puts one atom's 2s and 2p on each side
-      //  precisely because they are atomic orbitals and not symmetry
-      //  orbitals.  The symmetry appears when they combine, which is
-      //  the middle column.
-      if (diatomic) {
-         MoLevel level;
-         level.energy     = eV;
-         level.degeneracy = (l == 0) ? 1 : 3;
-         level.label      = shell.str();
-         level.shell      = l;
-         left.levels.push_back(level);
-         continue;
-      }
-
-      vector<int> multiplicity;
-      if (!shellIrreps(centralOnly, l, numAtoms, images, classOfOp, ops,
-                       *table, multiplicity)) {
-         continue;
-      }
-      addLevels(*table, multiplicity, eV, shell.str(), l, left.levels);
-   }
-
-   //  --- the terminal atoms' symmetry orbitals ---------------------
-   ostringstream rightTitle;
-   if (diatomic) {
-      rightTitle << elements[terminal[0]];
-   } else {
-      rightTitle << terminal.size() << elements[terminal[0]] << " TASOs";
-   }
-   right.title = rightTitle.str();
-
-   for (int l = 0; l <= 1; l++) {
-      double eV;
-      if (!valenceEnergy(elements[terminal[0]], l, eV)) continue;
-
-      loadVoie();
-      ostringstream shell;
-      shell << s_voie[elements[terminal[0]]].n << (l == 0 ? 's' : 'p');
-
-      if (diatomic) {
-         MoLevel level;
-         level.energy     = eV;
-         level.degeneracy = (l == 0) ? 1 : 3;
-         level.label      = shell.str();
-         level.shell      = l;
-         right.levels.push_back(level);
-         continue;
-      }
-
-      vector<int> multiplicity;
-      if (!shellIrreps(terminal, l, numAtoms, images, classOfOp, ops,
-                       *table, multiplicity)) {
-         continue;
-      }
-      const size_t before = right.levels.size();
-      addLevels(*table, multiplicity, eV, shell.str(), l, right.levels);
-
-      //  THE PHASE PATTERN, which is what makes a TASO a picture
-      //  rather than a label: "a1" and "t2" both say how many, and
-      //  neither says which combination.
-      //
-      //  s and p both, by different calls: projectOrbit() carries one
-      //  orbital per atom, which is what an s shell is, while a p
-      //  shell puts three on each and an operation MIXES them.  A d
-      //  shell would need the five-by-five transformation and has
-      //  none here, so those levels still carry no pattern rather than
-      //  a made-up one.
-      if (l > 1) continue;
-
-      for (size_t j = before; j < right.levels.size(); j++) {
-         //  projectOrbit wants the TABLE's spelling, and the level
-         //  carries the canonical one -- which is uppercased, so
-         //  "E1g" became "E1G" and looked up nothing.  Silent: the
-         //  pattern would simply never appear.
-         string tableName;
-         const vector<string>& names = table->irreps();
-         for (size_t n = 0; n < names.size(); n++) {
-            if (MoDiagram::canonicalIrrep(names[n]) == right.levels[j].irrep) {
-               tableName = names[n];
-               break;
-            }
+   if (sideOfOrbit != 0 && sideOfOrbit->size() == orbits.size()) {
+      for (size_t i = 0; i < orbits.size(); i++) {
+         const int side = (*sideOfOrbit)[i];
+         if (side == 0) {
+            leftSet.insert(leftSet.end(), orbits[i].begin(), orbits[i].end());
+         } else if (side == 1) {
+            rightSet.insert(rightSet.end(), orbits[i].begin(), orbits[i].end());
          }
-         if (tableName.empty()) continue;
-
-         vector< vector<double> > vectors;
-         const bool got = (l == 0)
-             ? SymmetryAnalysis::projectOrbit(terminal, images, classOfOp,
-                                              *table, tableName, vectors)
-             : SymmetryAnalysis::projectVectorOrbit(terminal, images,
-                                                    classOfOp, ops, *table,
-                                                    tableName, vectors);
-         if (!got) continue;
-         //  One pattern for a degenerate set: its partners are related
-         //  by the group's own operations, so any one of them stands
-         //  for the set.
-         if (!vectors.empty()) right.levels[j].phases = vectors[0];
       }
+      if (leftSet.empty() || rightSet.empty()) {
+         note = "Both sides of the diagram need at least one set of atoms.";
+         return false;
+      }
+   } else {
+      int central = -1;
+      vector<int> terminal;
+      if (!partition(orbits, elements, central, terminal)) {
+         //  Say what it found, because "not this shape of molecule" and
+         //  "the symmetry came out wrong" look identical otherwise.
+         ostringstream why;
+         why << "This kind of diagram describes a central atom with one set "
+                "of equivalent neighbours (CH4, H2O, NH3, BF3), or two atoms "
+                "of a diatomic. In "
+             << group << " this molecule has " << orbits.size()
+             << " symmetry-distinct set" << (orbits.size() == 1 ? "" : "s")
+             << " of atoms, so there is no such split. Choose the fragments "
+                "yourself, or read the molecular orbitals on their own.";
+         note = why.str();
+         return false;
+      }
+      leftSet.assign(1, central);
+      rightSet = terminal;
+      diatomic = (elements.size() == 2 && terminal.size() == 1);
    }
+
+   if (leftAtoms  != 0) *leftAtoms  = leftSet;
+   if (rightAtoms != 0) *rightAtoms = rightSet;
+
+   buildColumn(leftSet, elements, coords, numAtoms, images, classOfOp, ops,
+               *table, diatomic, left);
+   buildColumn(rightSet, elements, coords, numAtoms, images, classOfOp, ops,
+               *table, diatomic, right);
 
    //  --- electrons -------------------------------------------------
    //
@@ -844,14 +899,24 @@ bool MoFragments::build(const vector<double>& coords,
    //  (NO2- is a nitrogen between two oxygens carrying the charge).
    //  The TOTAL is right either way, which is what the electron count
    //  on the diagram has to be.
-   fillColumn(left.levels, valenceElectrons(elements[central]));
-   fillColumn(right.levels,
-              (int)terminal.size()*valenceElectrons(elements[terminal[0]])
-              - charge);
+   //  Each side brings what its atoms bring.  The molecular charge
+   //  goes on the right, where it usually sits chemically (NO2- is a
+   //  nitrogen between two oxygens carrying the charge); the TOTAL is
+   //  right either way, which is what the electron count on the
+   //  diagram has to be.
+   int leftElectrons = 0, rightElectrons = 0;
+   for (size_t i = 0; i < leftSet.size(); i++) {
+      leftElectrons += valenceElectrons(elements[leftSet[i]]);
+   }
+   for (size_t i = 0; i < rightSet.size(); i++) {
+      rightElectrons += valenceElectrons(elements[rightSet[i]]);
+   }
+   fillColumn(left.levels, leftElectrons);
+   fillColumn(right.levels, rightElectrons - charge);
 
    if (left.levels.empty() && right.levels.empty()) {
-      note = "No valence orbital energies for " + elements[central] +
-             " or " + elements[terminal[0]] +
+      note = "No valence orbital energies for " + elements[leftSet[0]] +
+             " or " + elements[rightSet[0]] +
              " (the table is main group only).";
       return false;
    }

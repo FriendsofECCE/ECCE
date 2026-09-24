@@ -168,6 +168,30 @@ class MoFragments
                         const vector<double>& overlap);
 
     /**
+     * The sets of symmetry-equivalent atoms, for choosing a split.
+     *
+     * A FRAGMENT HAS TO BE A UNION OF THESE.  For a fragment's
+     * symmetry orbitals to exist at all the group must map it onto
+     * itself; if an operation takes one of its atoms outside it, there
+     * is nothing to project and no symmetry orbitals to draw.  So
+     * "which atoms are the fragment?" is not a question about picking
+     * atoms, it is a question about grouping orbits -- and a caller
+     * offering the choice can only offer it that way without being
+     * able to construct an invalid answer.
+     *
+     * Ferrocene in D5d comes out {Fe} {10 C} {10 H}, so metal against
+     * both rings is one tick.  Ethene as two CH2 units does NOT: each
+     * holds one carbon and two hydrogens and the group maps one onto
+     * the other, so it is no orbit of D2h and that diagram needs a
+     * subgroup rather than a different grouping.
+     */
+    static bool orbitsOf(const vector<double>& coords,
+                         const vector<string>& elements,
+                         const string& group,
+                         vector< vector<int> >& orbits,
+                         string& why);
+
+    /**
      * Build both outer columns.
      *
      * @param coords     3N, atom-major, Angstrom
@@ -186,6 +210,12 @@ class MoFragments
      *                   molecular orbital sits there without repeating
      *                   the orbit analysis
      * @param rightAtoms optional: the same for the right column
+     * @param sideOfOrbit optional: one entry per orbit as orbitsOf()
+     *                   returns them -- 0 for the left column, 1 for
+     *                   the right, anything else to leave that orbit
+     *                   out.  Without it the split is chosen
+     *                   automatically, which handles AXn molecules and
+     *                   diatomics and refuses everything else.
      *
      * @return false if no symmetry argument could be made, with `note`
      *         explaining which step gave out.
@@ -198,7 +228,8 @@ class MoFragments
                       MoColumn& right,
                       string& note,
                       vector<int>* leftAtoms = 0,
-                      vector<int>* rightAtoms = 0);
+                      vector<int>* rightAtoms = 0,
+                      const vector<int>* sideOfOrbit = 0);
 };
 
 #endif

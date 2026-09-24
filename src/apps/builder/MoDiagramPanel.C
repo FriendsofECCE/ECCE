@@ -9,6 +9,10 @@
 
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
+#include <wx/checklst.h>
+
+#include "wxgui/ewxCheckBox.H"
+
 #include "tdat/MoFragments.H"
 #include "tdat/PropTable.H"
 #include "tdat/TGBSAngFunc.H"
@@ -47,7 +51,7 @@ IMPLEMENT_DYNAMIC_CLASS(MoDiagramPanel, VizPropertyPanel)
 
 
 MoDiagramPanel::MoDiagramPanel()
-  : p_canvas(0)
+  : p_canvas(0), p_fragments(0), p_autoFragments(0)
 {
 }
 
@@ -55,7 +59,7 @@ MoDiagramPanel::MoDiagramPanel()
 MoDiagramPanel::MoDiagramPanel(IPropCalculation *calculation,
       wxWindow *parent, wxWindowID id, const wxPoint& pos,
       const wxSize& size, long style, const wxString& name)
-  : p_canvas(0)
+  : p_canvas(0), p_fragments(0), p_autoFragments(0)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -198,9 +202,100 @@ bool MoDiagramPanel::Create(IPropCalculation *calculation,
   p_canvas = new MoDiagramCanvas(this);
   p_canvas->setClickHandler(this);
   sizer->Add(p_canvas, 1, wxEXPAND|wxALL, 2);
+
+  buildFragmentChooser(sizer);
   SetSizer(sizer);
 
   return true;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Description
+//   The control that says which atoms are which fragment.
+//
+//   A LIST OF ORBITS, NOT OF ATOMS.  A fragment has to be a union of
+//   symmetry-equivalent sets, because the group must map it onto
+//   itself or it has no symmetry orbitals at all.  Offering the choice
+//   this way means an impossible fragmentation cannot be expressed --
+//   there is no way to tick half of an orbit.
+//
+//   Ferrocene comes out as three rows, {Fe} {10 C} {10 H}, so metal
+//   against both rings is one tick.  Ethene as two CH2 units does not
+//   appear at all, and cannot: each CH2 holds one carbon and two
+//   hydrogens and the group maps one onto the other, so it is no orbit
+//   of D2h.  That diagram needs a subgroup, which is a different
+//   feature and not a different grouping.
+/////////////////////////////////////////////////////////////////////////////
+void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
+{
+  wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+
+  p_autoFragments = new ewxCheckBox(this, wxID_ANY, _("Choose fragments"));
+  p_autoFragments->SetValue(false);
+  p_autoFragments->SetToolTip("Group the sets of equivalent atoms yourself "
+                              "instead of letting the diagram decide");
+  row->Add(p_autoFragments, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+
+  p_fragments = new wxCheckListBox(this, wxID_ANY, wxDefaultPosition,
+                                   wxSize(220, 70));
+  p_fragments->SetToolTip("Ticked sets form the left column; the rest form "
+                          "the right");
+  row->Add(p_fragments, 1, wxEXPAND|wxALL, 4);
+
+  sizer->Add(row, 0, wxEXPAND);
+
+  //  Bound on the controls themselves.  A static table does not reach
+  //  this panel for a control with a pushed handler chain, which is
+  //  what the ewx classes install -- the same reason #81's radio box
+  //  never received its event.
+  p_autoFragments->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onFragmentChanged,
+                        this);
+  p_fragments->Bind(wxEVT_CHECKLISTBOX, &MoDiagramPanel::onFragmentChanged,
+                    this);
+
+  p_fragments->Enable(false);
+}
+
+
+/** List the orbits, one row each, and show which side they are on. */
+void MoDiagramPanel::fillFragmentChooser(const vector< vector<int> >& orbits,
+                                         const vector<string>& elements)
+{
+  if (p_fragments == 0) return;
+
+  const bool choosing = (p_autoFragments != 0 && p_autoFragments->GetValue());
+  p_fragments->Enable(choosing);
+
+  //  Only rebuild the rows when the molecule changed, or a rebuild
+  //  triggered by a tick would throw the ticks away.
+  if ((int)p_fragments->GetCount() != (int)orbits.size()) {
+    p_fragments->Clear();
+    for (size_t i = 0; i < orbits.size(); i++) {
+      //  "10 C", "1 Fe" -- what the set is, and how many of it.
+      ostringstream label;
+      label << orbits[i].size() << " " << elements[orbits[i][0]];
+      if (orbits[i].size() > 1) label << " (equivalent)";
+      p_fragments->Append(wxString(label.str().c_str(), wxConvUTF8));
+    }
+    p_sideOfOrbit.clear();
+  }
+
+  if (!choosing) { p_sideOfOrbit.clear(); return; }
+
+  p_sideOfOrbit.assign(orbits.size(), 1);
+  for (size_t i = 0; i < orbits.size(); i++) {
+    if (p_fragments->IsChecked((unsigned int)i)) p_sideOfOrbit[i] = 0;
+  }
+}
+
+
+void MoDiagramPanel::onFragmentChanged(wxCommandEvent& event)
+{
+  event.Skip();
+  if (p_canvas == 0) return;
+  build();
+  p_canvas->Refresh();
 }
 
 
