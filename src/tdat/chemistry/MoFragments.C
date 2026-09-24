@@ -1182,6 +1182,24 @@ static bool buildHalves(const vector<double>& coords,
 
    if (!built) return false;
 
+   //  IN ENERGY ORDER, like every other column.  The levels are built
+   //  one element at a time, so they come out grouped by element --
+   //  and the aufbau filling walks the list from the start.  Ethene
+   //  filled its carbon 2p before its hydrogen 1s, which lies a
+   //  quarter of a Hartree below it.
+   MoColumn* both[2] = { &left, &right };
+   for (int side = 0; side < 2; side++) {
+      vector<MoLevel>& levels = both[side]->levels;
+      for (size_t i = 1; i < levels.size(); i++) {
+         for (size_t j = i; j > 0 &&
+              levels[j].energy < levels[j-1].energy; j--) {
+            const MoLevel swap = levels[j];
+            levels[j] = levels[j-1];
+            levels[j-1] = swap;
+         }
+      }
+   }
+
    ostringstream said;
    said << "Built from two " << formula.str() << " halves, analysed in "
         << sub->name() << " and combined in phase and out of phase. The "

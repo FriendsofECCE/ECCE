@@ -1,0 +1,51 @@
+# Slater exponents for the extended Huckel engine, by element.
+#
+# WHAT THIS IS FOR.  A correlation diagram's two fragment columns come
+# from geometry and group theory alone, but its middle column -- the
+# molecular orbitals, to scale -- needs energies from somewhere.  For
+# teaching, where the ORDERING is the whole content and the third
+# significant figure is not, extended Huckel supplies them from
+# nothing but the structure: no calculation to run, no code to
+# install, no output to parse.
+#
+# It is NOT a substitute for a calculation and must not be used when
+# one exists.  It gets orderings right and energies roughly, which is
+# exactly the right limitation for a qualitative diagram and exactly
+# the wrong one for anything quantitative.
+#
+# The diagonal elements H_ii come from ValenceOrbitalEnergies, which
+# already holds them: they are the same valence orbital potential
+# energies a textbook correlation diagram is drawn from.  This file
+# adds the other half, the radial extent of each orbital, as Slater
+# exponents in inverse bohr.
+#
+# PROVENANCE.  Single-zeta Slater exponents of the usual kind -- the
+# values Hoffmann's extended Huckel work and the textbooks that follow
+# it use, from Slater's rules with the standard adjustments for
+# hydrogen and the first row.  Sources differ in the third figure and
+# it does not matter here; what matters is that one element's orbitals
+# are larger or smaller than another's in the right order.
+#
+# symbol  n   zeta(s)  zeta(p)
+H         1   1.300    -
+He        1   1.700    -
+Li        2   0.650    0.650
+Be        2   0.975    0.975
+B         2   1.300    1.300
+C         2   1.625    1.625
+N         2   1.950    1.950
+O         2   2.275    2.275
+F         2   2.425    2.425
+Ne        2   2.879    2.879
+Na        3   0.733    0.733
+Mg        3   0.950    0.950
+Al        3   1.167    1.167
+Si        3   1.383    1.383
+P         3   1.600    1.600
+S         3   1.817    1.817
+Cl        3   2.033    2.033
+Ar        3   2.250    2.250
+K         4   0.874    0.874
+Ca        4   1.100    1.100
+Br        4   2.588    2.588
+I         5   2.521    2.521
