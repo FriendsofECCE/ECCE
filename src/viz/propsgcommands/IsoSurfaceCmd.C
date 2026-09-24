@@ -52,6 +52,13 @@ bool IsoSurfaceCmd::execute()
    if (gridStruct != 0) {
 
       string fieldType = gridStruct->type();
+      std::cerr << "ISO: field '" << fieldType << "', grid "
+                << gridStruct->dimensions()[0] << "x"
+                << gridStruct->dimensions()[1] << "x"
+                << gridStruct->dimensions()[2]
+                << ", colour field "
+                << (gridStruct->colorFieldData() ? "present" : "absent")
+                << std::endl;
 
       //  An electron density is non-negative, so it has no second lobe.
       //  An ESP-mapped surface IS a density surface -- the potential only
@@ -265,6 +272,7 @@ bool IsoSurfaceCmd::execute()
 #endif
 
 
+      std::cerr << "ISO: isosurface built" << std::endl;
       chemIso->addChild(isosurf1);
 
 
@@ -326,6 +334,7 @@ bool IsoSurfaceCmd::execute()
 
       // Putting the 'regenerate' here (at the end) seems to be very crucial
       // for this node to get re-displayed.
+      std::cerr << "ISO: mesh built" << std::endl;
       chemMesh->regenerate(true);
 
       //-------------------------------------------------------------
@@ -355,6 +364,7 @@ bool IsoSurfaceCmd::execute()
 
       // Putting the 'regenerate' here (at the end) seems to be very crucial
       // for this node to get re-displayed.
+      std::cerr << "ISO: contour built" << std::endl;
       chemContour->regenerate(true);
 
 

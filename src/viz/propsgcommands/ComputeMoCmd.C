@@ -867,7 +867,13 @@ bool ComputeMoCmd::execute()
           }  // if (doingDensity)
         }  // end for (idxMO...
         delete atoms;
-        delete angfunc;
+        //  NOT deleted here.  The exact ESP walks the basis again after
+        //  the field is built and needs the angular functions to do it,
+        //  so deleting at this point handed buildEspBasis() a dangling
+        //  pointer and took the viewer down inside it -- before it could
+        //  print anything, which is what made the crash look like it
+        //  was in the colour rendering.  Deleted at the end of the
+        //  block instead, once nothing else can want it.
 
         // move the density over to the expected field
         if (doingDensity || doingSpinDensity) {
@@ -889,11 +895,18 @@ bool ComputeMoCmd::execute()
           //  flattened basis is checked against.
           if (wantEsp) {
             bool haveEsp = false;
+            cerr << "ESP: field type '" << fieldType << "', "
+                 << (wantEspCharges ? "point-charge" : "canonical")
+                 << " path, grid " << gridRes << " points" << endl;
 
             if (!wantEspCharges) {
               vector<EspBasisFunction> espBasis;
-              if (buildEspBasis(sgfrag, gbsConfig, code, angfunc,
-                                maxShell, length_shell, espBasis)) {
+              const bool built = buildEspBasis(sgfrag, gbsConfig, code,
+                                               angfunc, maxShell,
+                                               length_shell, espBasis);
+              cerr << "ESP: basis walk " << (built ? "ok" : "FAILED")
+                   << ", " << espBasis.size() << " functions" << endl;
+              if (built) {
                 interrupted = !computeEspExact(grid, atoms, espBasis,
                                                moCoefs, occ,
                                                uhfCalc ? moCoefsBeta : 0,
@@ -922,6 +935,9 @@ bool ComputeMoCmd::execute()
         }
 
         // Do some cleanup
+        delete angfunc;
+        angfunc = 0;
+
         if (doingDensity) {
           delete [] density;
         }
@@ -1465,10 +1481,16 @@ bool ComputeMoCmd::computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
                               unsigned long gridRes,
                               float xDelta, float yDelta, float zDelta)
 {
-  if (grid == 0 || atoms == 0 || atoms->empty()) return true;
+  if (grid == 0 || atoms == 0 || atoms->empty()) {
+    cerr << "ESP: no grid or no atoms; nothing to colour." << endl;
+    return true;
+  }
 
   IPropCalculation *calc = getCalculation();
-  if (calc == 0) return true;
+  if (calc == 0) {
+    cerr << "ESP: no calculation; nothing to colour." << endl;
+    return true;
+  }
 
   //  Per-atom charges, preferring the fitted ones.
   const unsigned long numAtoms = atoms->size();
@@ -1608,6 +1630,10 @@ bool ComputeMoCmd::buildEspBasis(const SGFragment *sgfrag,
   basis.clear();
   if (sgfrag == 0 || gbsConfig == 0 || angfunc == 0) return false;
 
+  //  Checked because the atom list is dereferenced below and the MO
+  //  loop this mirrors never had to consider a fragment without one.
+  if (sgfrag->atoms() == 0 || sgfrag->numAtoms() == 0) return false;
+
   const double atob = 1/0.52917724924;
 
   vector<TAtm*> *atoms = sgfrag->atoms();
@@ -1725,14 +1751,26 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
                                    float xDelta, float yDelta, float zDelta)
 {
   p_espBasisMismatch = 0.0;
-  if (grid == 0 || atoms == 0 || moCoefs == 0 || basis.empty()) return true;
+  if (grid == 0 || atoms == 0 || moCoefs == 0 || basis.empty()) {
+    cerr << "ESP: cannot compute the exact potential (grid "
+         << (grid ? "ok" : "null") << ", atoms "
+         << (atoms ? "ok" : "null") << ", MO coefficients "
+         << (moCoefs ? "ok" : "null") << ", basis "
+         << basis.size() << " functions)" << endl;
+    return true;
+  }
 
   const size_t nbas = basis.size();
 
   //  The MO matrix must describe the basis this was built from.  If it
   //  does not, the two basis walks have diverged and nothing here can
   //  be trusted.
-  if ((size_t)moCoefs->columns() != nbas) return true;
+  if ((size_t)moCoefs->columns() != nbas) {
+    cerr << "ESP: the MO matrix has " << moCoefs->columns()
+         << " columns but the basis was flattened to " << nbas
+         << " functions; declining rather than guessing." << endl;
+    return true;
+  }
 
   //  Density matrix, P = sum_i n_i C_i C_i over both spins.
   vector<double> P(nbas*nbas, 0.0);
