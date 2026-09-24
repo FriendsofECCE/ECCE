@@ -465,9 +465,9 @@ void MoDiagramPanel::build()
 
   ostringstream note;
   if (s.empty()) {
-    note << "This calculation reports no orbital symmetry labels "
-            "(ORBSYM), so the levels are unlabelled and cannot be "
-            "correlated with the fragment orbitals.";
+    note << "This calculation reports no orbital symmetry labels, so the "
+            "molecular levels are unlabelled and are correlated by what "
+            "they are built from rather than by symmetry.";
   } else {
     note << "Energies in Hartree.";
   }
@@ -492,7 +492,24 @@ void MoDiagramPanel::build()
                                        left, right, why);
   }
 
-  if (haveFragments) {
+  //  THE FRAGMENT COLUMNS DO NOT NEED THE CODE'S SYMMETRY LABELS.
+  //
+  //  They come from the geometry and the point group, and nothing
+  //  else.  Gating them on ORBSYM -- which is what this did -- made a
+  //  water whose code reported no labels come out as a bare column of
+  //  levels with no atomic orbitals, no symmetry orbitals and no
+  //  correlation lines: none of what the diagram is for.
+  //
+  //  What the labels are needed for is matching an orbital to a
+  //  fragment level BY IRREP.  Where they are missing, or cannot be
+  //  reconciled with the character table's spelling, or belong to a
+  //  different group than the structure has, the matching falls back
+  //  to composition -- which fragment and which shell an orbital
+  //  actually draws from, from its own coefficients.  That needs no
+  //  symmetry labels at all.
+  bool byIrrep = haveFragments;
+
+  if (byIrrep) {
     //  Reconcile the axis conventions BEFORE anything is matched on
     //  the names: in C2v the character table and the code need not
     //  agree on which mirror is sigma-v, and water comes out inside
@@ -500,43 +517,58 @@ void MoDiagramPanel::build()
     string mismatch;
     if (!MoDiagram::reconcile(left.levels, right.levels, centre.levels,
                               mismatch)) {
-      haveFragments = false;
+      byIrrep = false;
       why = mismatch;
     }
-    //  classify, then connect, then place: a fragment level's energy
-    //  is the mean of the orbitals it connects to, so the connections
-    //  have to exist first.
-    MoDiagram::classify(left.levels, centre.levels, right.levels);
+  }
 
-    //  DO THE TWO SIDES EVEN SPEAK THE SAME LANGUAGE?
-    //
-    //  The centre labels come from the code, which may have run the job
-    //  in a lower group than the structure actually has -- ORCA with no
-    //  symmetry reports every orbital as "A", and in C2v there is no
-    //  such irrep.  connect() would then find no partner for anything
-    //  and the diagram would come out with three columns and not one
-    //  line between them, looking like a result.
+  if (byIrrep) {
     int matched = 0;
     for (size_t i = 0; i < centre.levels.size(); i++) {
       for (size_t j = 0; j < left.levels.size(); j++) {
-        if (centre.levels[i].irrep == left.levels[j].irrep) { matched++; break; }
+        if (!centre.levels[i].irrep.empty() &&
+            centre.levels[i].irrep == left.levels[j].irrep) {
+          matched++;
+          break;
+        }
       }
     }
     if (matched == 0 && !centre.levels.empty()) {
-      note << "  The calculation's orbital labels are not irreps of "
-           << group << " -- it was probably run without symmetry, or in "
-              "a lower group -- so nothing can be correlated.";
-    } else {
-      MoDiagram::connect(left.levels, centre.levels, right.levels, links);
-      MoDiagram::placeFragments(centre, left, right, links);
-      note << "  Molecular levels are the calculation's own orbital "
-              "energies in Hartree. Fragment levels are placed by their "
-              "valence ionisation energies (shown in eV), in order and "
-              "spacing but not on this axis.";
+      byIrrep = false;
+      if (why.empty()) {
+        ostringstream text;
+        text << "The calculation's orbital labels are not irreps of "
+             << group << ", so the levels are correlated by what they are "
+                "built from rather than by symmetry.";
+        why = text.str();
+      }
     }
-  } else if (!why.empty()) {
-    note << "  " << why;
   }
+
+  if (haveFragments) {
+    //  Without a usable irrep the centre levels carry none, so
+    //  connect() matches on the shell a fragment level is and the
+    //  share an orbital holds of it.  Left in place they would match
+    //  on a spelling that means something different.
+    if (!byIrrep) {
+      for (size_t i = 0; i < centre.levels.size(); i++) {
+        centre.levels[i].irrep.clear();
+      }
+    }
+
+    MoDiagram::classify(left.levels, centre.levels, right.levels);
+    MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+    MoDiagram::placeFragments(centre, left, right, links);
+    MoDiagram::classifyByEnergy(left.levels, centre.levels,
+                                right.levels, links);
+
+    note << "  Molecular levels are the calculation's own orbital "
+            "energies in Hartree. Fragment levels are placed by their "
+            "valence ionisation energies (shown in eV), in order and "
+            "spacing but not on this axis.";
+  }
+
+  if (!why.empty()) note << "  " << why;
 
   p_canvas->setGroup(group);
   p_canvas->setDiagram(left, centre, right, links, haveFragments, note.str());

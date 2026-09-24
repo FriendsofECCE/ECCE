@@ -568,6 +568,72 @@ void MoDiagram::classify(const vector<MoLevel>& left,
 
 
 
+void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
+                                 vector<MoLevel>& centre,
+                                 const vector<MoLevel>& right,
+                                 const vector<MoConnection>& connections)
+{
+  //  WITHOUT IRREPS THERE IS NOTHING TO COUNT, but there is still
+  //  something to read: an orbital below every fragment level it is
+  //  built from is bonding, one above them all is antibonding, and one
+  //  among them is neither.  That is what the words mean, and it needs
+  //  no symmetry labels -- only the connections, which composition
+  //  supplies.
+  //
+  //  Run after the fragment levels are placed, so "below its parents"
+  //  is read against where they actually sit.
+  int nextPair = 0;
+
+  for (size_t c = 0; c < centre.size(); c++) {
+    if (centre[c].character != MoLevel::UNKNOWN) continue;
+
+    double lowest = 1.0e30, highest = -1.0e30;
+    bool any = false;
+    for (size_t k = 0; k < connections.size(); k++) {
+      if (connections[k].centreLevel != (int)c) continue;
+      const int l = connections[k].leftLevel;
+      const int r = connections[k].rightLevel;
+      if (l >= 0 && l < (int)left.size()) {
+        if (left[l].energy < lowest)  lowest = left[l].energy;
+        if (left[l].energy > highest) highest = left[l].energy;
+        any = true;
+      }
+      if (r >= 0 && r < (int)right.size()) {
+        if (right[r].energy < lowest)  lowest = right[r].energy;
+        if (right[r].energy > highest) highest = right[r].energy;
+        any = true;
+      }
+    }
+    if (!any) continue;
+
+    if (centre[c].energy < lowest) {
+      centre[c].character = MoLevel::BONDING;
+    } else if (centre[c].energy > highest) {
+      centre[c].character = MoLevel::ANTIBONDING;
+      centre[c].label += "*";
+    } else {
+      centre[c].character = MoLevel::NONBONDING;
+      centre[c].label += " nb";
+    }
+  }
+
+  //  Pair each bonding level with an antibonding one, lowest with
+  //  highest, so the two ends of an interaction share a colour.  With
+  //  no irreps to separate them this is the order they come in, which
+  //  is the best that can be said.
+  vector<size_t> bonding, antibonding;
+  for (size_t c = 0; c < centre.size(); c++) {
+    if (centre[c].character == MoLevel::BONDING) bonding.push_back(c);
+    if (centre[c].character == MoLevel::ANTIBONDING) antibonding.push_back(c);
+  }
+  for (size_t i = 0; i < bonding.size() && i < antibonding.size(); i++) {
+    centre[bonding[i]].pairing = nextPair;
+    centre[antibonding[antibonding.size() - 1 - i]].pairing = nextPair;
+    nextPair++;
+  }
+}
+
+
 void MoDiagram::connect(const vector<MoLevel>& left,
                         const vector<MoLevel>& centre,
                         const vector<MoLevel>& right,
@@ -577,7 +643,14 @@ void MoDiagram::connect(const vector<MoLevel>& left,
   connections.clear();
 
   for (size_t c = 0; c < centre.size(); c++) {
-    if (centre[c].irrep.empty()) continue;
+    //  An unlabelled level is not an unconnectable one.  A calculation
+    //  that reports no symmetry labels still has coefficients, and
+    //  those say which fragment and which shell each orbital draws
+    //  from -- which is the whole question a correlation line answers.
+    //  Skipping them left a diagram with no lines at all.
+    const bool haveShare = (centre[c].shareLeft >= 0.0 ||
+                            !centre[c].shellLeft.empty());
+    if (centre[c].irrep.empty() && !haveShare) continue;
 
     //  EVERY MATCHING FRAGMENT LEVEL, NOT THE FIRST.
     //

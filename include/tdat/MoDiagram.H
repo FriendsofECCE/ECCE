@@ -401,6 +401,24 @@ class MoDiagram
      *
      * @param cutoff  the least share worth drawing, 0 to 1
      */
+    /**
+     * Mark levels bonding or antibonding from their energies alone.
+     *
+     * For a calculation that reports no symmetry labels, where the
+     * counting rule in classify() has nothing to count.  An orbital
+     * below every fragment level it is built from is bonding, one
+     * above them all is antibonding, one among them is neither -- which
+     * is what the words mean, and needs only the connections.
+     *
+     * Runs after placeFragments(), so "below its parents" is read
+     * against where they actually sit, and leaves alone anything
+     * classify() has already decided.
+     */
+    static void classifyByEnergy(const vector<MoLevel>& left,
+                                 vector<MoLevel>& centre,
+                                 const vector<MoLevel>& right,
+                                 const vector<MoConnection>& connections);
+
     static void connect(const vector<MoLevel>& left,
                         const vector<MoLevel>& centre,
                         const vector<MoLevel>& right,

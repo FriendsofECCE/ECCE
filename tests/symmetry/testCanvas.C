@@ -282,6 +282,46 @@ class Harness : public wxApp
               wxString::Format(wxT("(%d pixels)"), ink).mb_str());
       }
 
+      //  --- WATER WITH NO SYMMETRY LABELS ---------------------------
+      //
+      //  Reported from a live run and reproduced here: the axis ran to
+      //  -30 Hartree with every level crushed into the top of it, the
+      //  labels read "? nb", two contradictory notes were printed, and
+      //  the footer text overlapped.  An ab-initio water whose code
+      //  reported no ORBSYM, one core orbital folded away.
+      {
+        MoColumn left, centre, right;
+        centre.title = "Molecular orbitals";
+        const double energies[] = {-19.193, -1.0072, -0.5820, -0.5262,
+                                   -0.5757, 0.1846, 0.2620, 0.9016};
+        const double occ[] = {2, 2, 2, 2, 2, 0, 0, 0};
+        for (int i = 0; i < 8; i++) {
+          centre.levels.push_back(level("?", "", energies[i], occ[i], 1));
+        }
+        //  Sorted, as a real spectrum arrives.
+        for (size_t i = 1; i < centre.levels.size(); i++) {
+          for (size_t j = i; j > 0 &&
+               centre.levels[j].energy < centre.levels[j-1].energy; j--) {
+            const MoLevel t = centre.levels[j];
+            centre.levels[j] = centre.levels[j-1];
+            centre.levels[j-1] = t;
+          }
+        }
+        MoDiagram::hideBelow(centre,
+                             MoDiagram::suggestCoreCutoff(centre.levels));
+
+        vector<MoConnection> links;
+        canvas->setGroup("C2V");
+        canvas->setDiagram(left, centre, right, links, false,
+                           "This calculation reports no orbital symmetry "
+                           "labels (ORBSYM), so the levels are unlabelled "
+                           "and cannot be correlated with the fragment "
+                           "orbitals.");
+        const int ink = paint(canvas, size, "/tmp/ecce-canvas-nosym.png");
+        check("water with no labels paints", ink > 2000,
+              wxString::Format(wxT("(%d pixels)"), ink).mb_str());
+      }
+
       //  --- a window too small to lay out in ------------------------
       //
       //  Panels get dragged narrow.  The columns are placed as

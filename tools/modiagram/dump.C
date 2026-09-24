@@ -218,31 +218,41 @@ int main(int argc, char** argv)
       }
     }
   }
-  if (haveFragments) {
-    //  Reconcile the axis conventions BEFORE anything is matched on
-    //  the names: in C2v the character table and the code need not
-    //  agree on which mirror is sigma-v, and water comes out inside
-    //  out if they are compared as they stand.
+  //  THE FRAGMENT COLUMNS DO NOT NEED THE CODE'S SYMMETRY LABELS.
+  //  They come from the geometry and the point group.  What the labels
+  //  are for is matching an orbital to a fragment level BY IRREP;
+  //  without them the matching falls back to composition, which needs
+  //  no labels at all.  Kept in step with MoDiagramPanel::build().
+  bool byIrrep = haveFragments;
+  if (byIrrep) {
     string mismatch;
     if (!MoDiagram::reconcile(left.levels, right.levels, centre.levels,
                               mismatch)) {
-      haveFragments = false;
-      note = mismatch;
+      byIrrep = false;
+      if (note.empty()) note = mismatch;
     }
-    //  classify, then connect, then place: a fragment level's energy
-    //  is the mean of the orbitals it connects to, so the connections
-    //  have to exist first.
+  }
+  if (byIrrep) {
+    int matched = 0;
+    for (size_t i = 0; i < centre.levels.size(); i++) {
+      for (size_t j = 0; j < left.levels.size(); j++) {
+        if (!centre.levels[i].irrep.empty() &&
+            centre.levels[i].irrep == left.levels[j].irrep) { matched++; break; }
+      }
+    }
+    if (matched == 0 && !centre.levels.empty()) byIrrep = false;
+  }
+  if (haveFragments) {
+    if (!byIrrep) {
+      for (size_t i = 0; i < centre.levels.size(); i++) {
+        centre.levels[i].irrep.clear();
+      }
+    }
     MoDiagram::classify(left.levels, centre.levels, right.levels);
     MoDiagram::connect(left.levels, centre.levels, right.levels, links);
     MoDiagram::placeFragments(centre, left, right, links);
-  }
-
-  //  The energy beside each molecular level, which is what the MOs
-  //  table shows and what the diagram is being read against.
-  for (size_t i = 0; i < centre.levels.size(); i++) {
-    char text[64];
-    snprintf(text, sizeof(text), "%.4f", centre.levels[i].energy);
-    centre.levels[i].annotation = text;
+    MoDiagram::classifyByEnergy(left.levels, centre.levels,
+                                right.levels, links);
   }
 
   //  THE CHECK THAT DOES NOT KNOW THE ANSWER: what the basis spans

@@ -506,6 +506,25 @@ class MoDiagramCanvas : public wxPanel
       //  and not a footnote: every label below it -- a1, t2, eg -- is a
       //  name in that group and means nothing without it, and the same
       //  molecule in a lower group gives a different diagram entirely.
+      //  THE FOOTER IS MEASURED FIRST AND STACKED, bottom upward.
+      //
+      //  Three separate things are written down there -- the wrapped
+      //  note, the hint, and the count of folded core orbitals -- and
+      //  each was placed at its own fixed offset from the bottom of
+      //  the window.  They overlapped.  Moving one clear of another
+      //  fixed one pair and left the third, which is what happens when
+      //  three things share a space and none of them knows about the
+      //  others.
+      dc.SetFont(*wxSMALL_FONT);
+      const int lineHeight = dc.GetTextExtent(wxT("Xg")).y + 1;
+      const vector<wxString> noteLines = wrapNote(dc, size.x - 16);
+
+      int footerLines = (int)noteLines.size();
+      if (!p_centre.levels.empty()) footerLines++;          // the hint
+      if (p_centre.hiddenCount > 0)  footerLines += 2;      // band and text
+
+      const int footerHeight = footerLines*lineHeight + 6;
+
       int top = 46;
       if (!p_group.empty()) {
         wxFont heading = *wxNORMAL_FONT;
@@ -526,8 +545,8 @@ class MoDiagramCanvas : public wxPanel
         dc.DrawText(title, (size.x - dc.GetTextExtent(title).x)/2, 6);
         top += 22;
       }
-      const int bottom = p_centre.hiddenCount > 0 ? 58 : 26;
-      const wxRect plot(0, top, size.x, max(40, size.y - top - bottom));
+      const wxRect plot(0, top, size.x,
+                        max(40, size.y - top - footerHeight - 6));
 
       const int levelWidth = p_haveFragments ? 70 : 120;
       const int xLeft   = size.x/6;
@@ -635,70 +654,68 @@ class MoDiagramCanvas : public wxPanel
       p_hits.clear();
       drawColumn(dc, p_centre, xCentre, levelWidth, plot, true, &p_hits);
 
-      //  The folded core, said out loud rather than silently dropped.
-      if (p_centre.hiddenCount > 0) {
-        const int y = size.y - 34;
-        dc.SetPen(wxPen(wxColour(150, 150, 150), 1, wxPENSTYLE_DOT));
-        dc.DrawLine(xCentre - 30, y, xCentre + levelWidth + 30, y);
-        dc.SetFont(*wxSMALL_FONT);
-        dc.SetTextForeground(wxColour(110, 110, 110));
-        ostringstream note;
-        note << p_centre.hiddenCount << " core orbital"
-             << (p_centre.hiddenCount == 1 ? "" : "s") << " below "
-             << p_centre.hiddenMaxEnergy << " Hartree, not shown";
-        dc.DrawText(wxString(note.str().c_str(), wxConvUTF8),
-                    xCentre - 30, y + 4);
-      }
+      //  The stack, from the bottom of the window upward.
+      int line = size.y - 4;
+      dc.SetFont(*wxSMALL_FONT);
+      dc.SetTextForeground(wxColour(110, 110, 110));
 
-      //  Above the note, which is wrapped and grows upward from the
-      //  bottom; at a fixed offset the two overprinted each other.
-      int footer = size.y - 4;
-
-      if (!p_note.empty()) {
-        //  WRAPPED, because it is a paragraph and the window is not as
-        //  wide as it is.  Drawn as one line, most of it was simply off
-        //  the right-hand edge -- including the part that says why the
-        //  fragment columns are missing, which is the only place that
-        //  is explained.
-        dc.SetFont(*wxSMALL_FONT);
-        dc.SetTextForeground(wxColour(110, 110, 110));
-
-        vector<wxString> lines;
-        wxString line, word;
-        const wxString all(p_note.c_str(), wxConvUTF8);
-        for (size_t i = 0; i <= all.length(); i++) {
-          const wxUniChar c = (i < all.length()) ? all[i]
-                                                 : wxUniChar(wxT(' '));
-          if (c != wxT(' ')) { word += c; continue; }
-          if (word.IsEmpty()) continue;
-
-          const wxString candidate = line.IsEmpty() ? word
-                                                    : line + wxT(" ") + word;
-          if (dc.GetTextExtent(candidate).x > size.x - 16 && !line.IsEmpty()) {
-            lines.push_back(line);
-            line = word;
-          } else {
-            line = candidate;
-          }
-          word.Clear();
-        }
-        if (!line.IsEmpty()) lines.push_back(line);
-
-        const int lineHeight = dc.GetTextExtent(wxT("Xg")).y + 1;
-        for (size_t i = 0; i < lines.size(); i++) {
-          dc.DrawText(lines[i], 8,
-                      footer - (int)(lines.size() - i)*lineHeight);
-        }
-        footer -= (int)lines.size()*lineHeight;
+      for (size_t i = noteLines.size(); i > 0; i--) {
+        line -= lineHeight;
+        dc.DrawText(noteLines[i-1], 8, line);
       }
 
       if (!p_hits.empty()) {
-        dc.SetFont(*wxSMALL_FONT);
-        dc.SetTextForeground(wxColour(110, 110, 110));
-        dc.DrawText(wxT("Click a level to show that orbital"),
-                    8, footer - dc.GetTextExtent(wxT("Xg")).y - 2);
+        line -= lineHeight;
+        dc.DrawText(wxT("Click a level to show that orbital"), 8, line);
+      }
+
+      //  The folded core, said out loud rather than silently dropped:
+      //  an absence the reader cannot see is worse than a cluttered
+      //  diagram.
+      if (p_centre.hiddenCount > 0) {
+        line -= lineHeight;
+        ostringstream text;
+        text << p_centre.hiddenCount << " core orbital"
+             << (p_centre.hiddenCount == 1 ? "" : "s") << " below "
+             << p_centre.hiddenMaxEnergy << " Hartree, not shown";
+        dc.DrawText(wxString(text.str().c_str(), wxConvUTF8),
+                    xCentre - 30, line);
+
+        line -= lineHeight;
+        dc.SetPen(wxPen(wxColour(150, 150, 150), 1, wxPENSTYLE_DOT));
+        dc.DrawLine(xCentre - 30, line + lineHeight/2,
+                    xCentre + levelWidth + 30, line + lineHeight/2);
       }
     }
+
+    /** The note, broken into lines that fit. */
+    vector<wxString> wrapNote(wxDC& dc, int width)
+    {
+      vector<wxString> lines;
+      if (p_note.empty()) return lines;
+
+      wxString line, word;
+      const wxString all(p_note.c_str(), wxConvUTF8);
+      for (size_t i = 0; i <= all.length(); i++) {
+        const wxUniChar c = (i < all.length()) ? all[i]
+                                               : wxUniChar(wxT(' '));
+        if (c != wxT(' ')) { word += c; continue; }
+        if (word.IsEmpty()) continue;
+
+        const wxString candidate = line.IsEmpty() ? word
+                                                  : line + wxT(" ") + word;
+        if (dc.GetTextExtent(candidate).x > width && !line.IsEmpty()) {
+          lines.push_back(line);
+          line = word;
+        } else {
+          line = candidate;
+        }
+        word.Clear();
+      }
+      if (!line.IsEmpty()) lines.push_back(line);
+      return lines;
+    }
+
 
     /** Which level, if any, is under a point. */
     int orbitalAt(const wxPoint& at) const
