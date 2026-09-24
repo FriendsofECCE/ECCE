@@ -198,6 +198,17 @@ jobs:
       # ECCE_APPS_TRACE names each app before it starts.  Without it a
       # wedged suite leaves the last SUCCESSFUL app as the final log
       # line and the culprit has to be inferred from the ordering.
+      # The symmetry operation checks, here rather than in the no-build
+      # job, because they need the symops binary this job has just
+      # built.  Without this they skip everywhere and the 78 checks that
+      # tie PNNL's Fortran generator tables to the hand-entered
+      # character tables never actually run.
+      #
+      # Before the GUI suite, not after: it needs no display or
+      # services, and a failure of the apps suite should not hide it.
+      - name: Symmetry operation suite
+        run: tests/symmetry/run_tests.py
+
       - name: GUI application smoke suite
         env:
           ECCE_APPS_TRACE: '1'
