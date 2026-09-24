@@ -1,4 +1,8 @@
+#include <algorithm>
+#include <cstdlib>
+#include <vector>
 #include <iostream>
+using std::vector;
   using std::cout;
   using std::endl;
 #include "inv/nodes/SoSwitch.H"
@@ -202,6 +206,54 @@ bool IsoSurfaceCmd::execute()
       ((SoMFFloat *)(lattice->data))->finishEditing();
 
       float isovalue = 0.05;
+
+      //  Scale the colour ramp to the potential ON THIS SURFACE.
+      //
+      //  Done here rather than where the potential was computed,
+      //  because this is where the isovalue is known.  A map is read on
+      //  one particular shell, and only the values that shell carries
+      //  should set the scale: computing it from a density band guessed
+      //  in advance gave +/- 2.4 Hartree/e where the surface itself
+      //  carries hundredths, and the whole surface came out one colour.
+      if (colorField != 0) {
+        vector<float> shell;
+        const float lo = 0.5f*isovalue;
+        const float hi = 2.0f*isovalue;
+        for (unsigned int idx = 0; idx < gridRes; idx++) {
+          const float d = field[idx];
+          if (d < lo || d > hi) continue;
+          const float v = colorField[idx];
+          if (v != v || v > 1.0e30f || v < -1.0e30f) continue;
+          shell.push_back(v < 0.0f ? -v : v);
+        }
+        if (shell.size() >= 32) {
+          const size_t at = (size_t)(0.95*(shell.size() - 1));
+          std::nth_element(shell.begin(), shell.begin() + at, shell.end());
+          const float extreme = shell[at];
+          if (extreme > 0.0f) {
+            gridStruct->colorFieldMin(-extreme);
+            gridStruct->colorFieldMax(extreme);
+            std::cerr << "ISO: colour scaled to the isovalue " << isovalue
+                      << " shell (" << shell.size() << " points), range +/- "
+                      << extreme << std::endl;
+          }
+        } else {
+          std::cerr << "ISO: only " << shell.size()
+                    << " points near the isovalue; keeping the range"
+                    << std::endl;
+        }
+        //  An explicit request still wins over anything measured.
+        const char *override = getenv("ECCE_ESP_RANGE");
+        if (override != 0 && *override != '\0') {
+          const double range = atof(override);
+          if (range > 0.0) {
+            gridStruct->colorFieldMin(-range);
+            gridStruct->colorFieldMax(range);
+            std::cerr << "ISO: colour range set to +/- " << range
+                      << " by ECCE_ESP_RANGE" << std::endl;
+          }
+        }
+      }
 
       // Since we only deal with absolute values of isovalues:
       if (isovalue > 0.0) {

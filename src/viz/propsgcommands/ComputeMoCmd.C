@@ -538,10 +538,18 @@ bool ComputeMoCmd::execute()
         // fashion.
         // This should be redone on a finer scale in the future.
         // Hugh, is this your comment?  If so what did you have in mind?
-        p_percentFraction = 100.0/numAtoms;
+        //  When a potential follows, the field is only HALF the work,
+        //  so it reports over half the bar.  The dialog is created with
+        //  wxPD_AUTO_HIDE: letting this phase reach 100 makes it vanish
+        //  and the potential then computes for half a minute with
+        //  nothing on screen, which is what "the progress bar finishes
+        //  way before anything displays" was.
+        const double span = wantEsp ? 50.0 : 100.0;
+
+        p_percentFraction = span/numAtoms;
 
         bool moupdates = doingDensity || doingSpinDensity;
-        if (moupdates) p_percentFraction = 100.0/(endMO+1);
+        if (moupdates) p_percentFraction = span/(endMO+1);
 
         string atomID;
 
@@ -1661,7 +1669,7 @@ bool ComputeMoCmd::computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
     if (p_monitor != 0) {
       sprintf(msg, "Electrostatic potential from %s: plane %d of %d",
               source, k+1, resZ);
-      if (p_monitor->isInterrupted(msg, (int)((k+1)*100.0/resZ))) {
+      if (p_monitor->isInterrupted(msg, 50 + (int)((k+1)*50.0/resZ))) {
         delete [] esp;
         return false;
       }
@@ -2028,7 +2036,8 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
         sprintf(msg,
                 "Electrostatic potential: plane %d of %d, %d orbital pairs",
                 plane+1, resZ, (int)pairs.size());
-        if (p_monitor->isInterrupted(msg, (int)((plane+1)*100.0/resZ))) {
+        if (p_monitor->isInterrupted(msg,
+                                     50 + (int)((plane+1)*50.0/resZ))) {
           delete [] esp;
           cerr << "ESP: interrupted on plane " << plane+1 << endl;
           return false;
