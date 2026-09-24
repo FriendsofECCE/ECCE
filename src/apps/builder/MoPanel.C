@@ -990,11 +990,10 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       // Edo suggests we use a log scale instead.
       // Now we decided to hardwire the density max to 1.0.
       float absIsovalMax = 0.2; // default for spin density
-      if (fieldtype == "Density" || fieldtype == ESP_FIELD_TYPE ||
-          fieldtype == ESP_CHARGES_FIELD_TYPE) {
-         absIsovalMax = 0.2; // default for density -- an ESP-mapped
-                             // surface IS a density surface, only
-                             // coloured differently
+      bool espSurface = (fieldtype == ESP_FIELD_TYPE ||
+                         fieldtype == ESP_CHARGES_FIELD_TYPE);
+      if (fieldtype == "Density" || espSurface) {
+         absIsovalMax = 0.2; // default for density
       } else if (fieldtype == "MO") {
          absIsovalMax = fabs(fieldMin) > fabs(fieldMax) ?
             fabs(fieldMin) : fabs(fieldMax);
@@ -1007,6 +1006,24 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
 
       // set the initial slider value and the corresponding Cmd parameter:
       double isovalue = log10(s_isovalPct * absIsovalMax);
+
+      //  AN ESP MAP IS READ ON A DIFFERENT SURFACE FROM A DENSITY BLOB.
+      //
+      //  The density default above works out at 0.05 e/bohr^3, which is
+      //  deep inside the molecule: in the bonding region the potential
+      //  is dominated by the electron cloud and is negative almost
+      //  everywhere, so the map comes out uniformly red however well the
+      //  colour scale is chosen.  That was mistaken for a colour bug
+      //  three times over.
+      //
+      //  The convention for an electrostatic potential map is the 0.002
+      //  isosurface -- the molecular surface, roughly where van der
+      //  Waals contact happens -- and that is where the familiar
+      //  red-negative/blue-positive pattern lives.  The slider still
+      //  moves it, and the colour scale now follows the slider.
+      if (espSurface) {
+         isovalue = log10(0.002);
+      }
       p_slider->SetValue(isovalue);
       updateIsoValue(isovalue);
 

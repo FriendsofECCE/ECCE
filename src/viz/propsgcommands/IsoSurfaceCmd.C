@@ -205,7 +205,13 @@ bool IsoSurfaceCmd::execute()
       }
       ((SoMFFloat *)(lattice->data))->finishEditing();
 
-      float isovalue = 0.05;
+      //  0.002 for a potential map, the molecular surface, rather than
+      //  the 0.05 a density blob is drawn at.  See MoPanel's note: at
+      //  0.05 the potential is negative almost everywhere and the map
+      //  is uniformly red whatever the colour scale.
+      float isovalue = (fieldType == ESP_FIELD_TYPE ||
+                        fieldType == ESP_CHARGES_FIELD_TYPE) ? 0.002f
+                                                             : 0.05f;
 
       //  Scale the colour ramp to the potential ON THIS SURFACE.
       //
