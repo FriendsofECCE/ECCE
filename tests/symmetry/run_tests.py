@@ -543,6 +543,62 @@ def checkValenceEnergies(report):
                              % (n, cur[0], cur[2], prev[0], prev[2]))
 
 
+def checkAutosymThreshold(report):
+    """The symmetry-search threshold, against the real autosym.
+
+    It does not behave the way it reads: a LOOSER threshold finds LOWER
+    symmetry, not higher.  0.05 A -- a perfectly reasonable-looking
+    choice, and the one the MO diagram was first written with -- costs
+    water its C2 axis and builds the whole correlation diagram in Cs
+    with no error anywhere.
+
+    Pinned here because the value lives in two places now (the Symmetry
+    panel's default field and MoDiagramPanel) and because a future
+    autosym change that shifted this would be invisible otherwise.
+    """
+    binary = os.path.join(ROOT, "build-cmake", "autosym")
+    if not (os.path.isfile(binary) and os.access(binary, os.X_OK)):
+        binary = "/opt/ecce/bin/autosym"
+    if not (os.path.isfile(binary) and os.access(binary, os.X_OK)):
+        print("  autosym not available -- skipping the threshold check")
+        return
+
+    WATER = [("O", 8, 0.0, 0.0, 0.1173),
+             ("H", 1, 0.0, 0.7572, -0.4692),
+             ("H", 1, 0.0, -0.7572, -0.4692)]
+    d = 0.6276
+    METHANE = [("C", 6, 0.0, 0.0, 0.0),
+               ("H", 1, d, d, d), ("H", 1, d, -d, -d),
+               ("H", 1, -d, d, -d), ("H", 1, -d, -d, d)]
+
+    def detect(atoms, threshold):
+        lines = ["%d" % len(atoms), "%g" % threshold]
+        for symbol, z, x, y, zz in atoms:
+            lines.append("%-16s" % symbol)
+            lines.append("%d %G %G %G" % (z, x, y, zz))
+        run = subprocess.run([binary], input="\n".join(lines) + "\n",
+                             capture_output=True, text=True, timeout=60)
+        if run.returncode != 0 or not run.stdout.strip():
+            return None
+        return run.stdout.split("\n")[0].strip()
+
+    #  The value both callers use.
+    report.check(detect(WATER, 0.01) == "C2V",
+                 "autosym finds C2V for water at 0.01 A (got %s)"
+                 % detect(WATER, 0.01))
+    report.check(detect(METHANE, 0.01) == "TD",
+                 "autosym finds TD for methane at 0.01 A (got %s)"
+                 % detect(METHANE, 0.01))
+
+    #  And the trap itself, asserted so that anyone who loosens the
+    #  threshold sees why they should not.
+    report.check(detect(WATER, 0.05) == "CS",
+                 "a looser 0.05 A threshold gives water only CS -- the "
+                 "threshold works backwards, do not raise it (got %s)"
+                 % detect(WATER, 0.05))
+
+
+
 def checkFragments(tablePath, verbose):
     """The two outer columns, against the textbook answers for CH4 and H2O."""
     binary = os.environ.get("ECCE_TEST_SYMOPS",
@@ -557,7 +613,8 @@ def checkFragments(tablePath, verbose):
            os.path.join(HERE, "testMoFragments.C"),
            os.path.join(ROOT, "src/tdat/chemistry/MoFragments.C"),
            os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
-           os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C")]
+           os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
+           os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C")]
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("  could not build the fragment test:")
@@ -619,6 +676,7 @@ def main():
 
     beforeVoie = report.checks
     checkValenceEnergies(report)
+    checkAutosymThreshold(report)
     print("  valence orbital energies: %d checks"
           % (report.checks - beforeVoie))
 

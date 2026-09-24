@@ -1,3 +1,4 @@
+#include <cctype>
 #include <cmath>
 #include <cstddef>
 
@@ -5,6 +6,19 @@
 
 MoDiagram::MoDiagram()
 {
+}
+
+
+string MoDiagram::canonicalIrrep(const string& label)
+{
+  string out;
+  for (string::size_type i = 0; i < label.size(); i++) {
+    const char c = label[i];
+    if (isspace((unsigned char)c)) continue;
+    if (c == '"') { out += "''"; continue; }
+    out += (char)toupper((unsigned char)c);
+  }
+  return out;
 }
 
 
@@ -50,6 +64,7 @@ bool MoDiagram::group(const vector<double>& energies,
       MoLevel level;
       level.energy = energies[i];
       level.label = label;
+      level.irrep = canonicalIrrep(label);
       level.occupancy = occupancies.empty() ? 0.0 : occupancies[i];
       level.degeneracy = 1;
       level.orbitals.push_back((int)i);
@@ -190,10 +205,15 @@ void MoDiagram::connect(const vector<MoLevel>& left,
     //  non-bonding from that side, which is a result worth drawing --
     //  water's b2 lone pair is exactly this.
     for (size_t l = 0; l < left.size(); l++) {
-      if (left[l].label == centre[c].label) { link.leftLevel = (int)l; break; }
+      //  On the canonical irrep, not the drawn label: the fragment
+      //  labels carry their shell ("A1  (2s)") and the codes' own
+      //  labels carry their own spelling.
+      if (!centre[c].irrep.empty() &&
+          left[l].irrep == centre[c].irrep) { link.leftLevel = (int)l; break; }
     }
     for (size_t r = 0; r < right.size(); r++) {
-      if (right[r].label == centre[c].label) { link.rightLevel = (int)r; break; }
+      if (!centre[c].irrep.empty() &&
+          right[r].irrep == centre[c].irrep) { link.rightLevel = (int)r; break; }
     }
     connections.push_back(link);
   }

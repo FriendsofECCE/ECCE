@@ -53,6 +53,17 @@ class MoDiagramPanel : public VizPropertyPanel
             const wxString& name="MO Diagram");
       virtual ~MoDiagramPanel();
 
+      /**
+       * A level was clicked: show that orbital in the 3-D viewer.
+       *
+       * @param orbengIndex  0-based index into ORBENG.  One orbital per
+       *                     level even where the level is degenerate --
+       *                     the partners' shapes are related by the
+       *                     group's own operations, so any one of them
+       *                     stands for the set.
+       */
+      void orbitalClicked(int orbengIndex);
+
       /** Needs orbital energies; without them there is no diagram. */
       virtual bool isRelevant(IPropCalculation *propCalc) const;
 

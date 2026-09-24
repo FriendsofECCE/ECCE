@@ -18,6 +18,7 @@
 #include "viz/SGFragment.H"
 #include "wxviz/WxVizToolFW.H"
 
+#include "MoPanel.H"
 #include "MoDiagramPanel.H"
 
 using std::max;
@@ -39,12 +40,17 @@ class MoDiagramCanvas : public wxPanel
   public:
 
     MoDiagramCanvas(wxWindow *parent)
-      : wxPanel(parent, wxID_ANY), p_haveFragments(false)
+      : wxPanel(parent, wxID_ANY), p_owner(0), p_haveFragments(false)
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);   // needed for buffered paint
       SetBackgroundColour(*wxWHITE);
       Bind(wxEVT_PAINT, &MoDiagramCanvas::onPaint, this);
+      Bind(wxEVT_LEFT_DOWN, &MoDiagramCanvas::onClick, this);
+      Bind(wxEVT_MOTION, &MoDiagramCanvas::onMotion, this);
     }
+
+    /** Called with an ORBENG index when a level is clicked. */
+    void setClickHandler(MoDiagramPanel *owner) { p_owner = owner; }
 
     void setGroup(const string& group) { p_group = group; }
 
@@ -175,6 +181,39 @@ class MoDiagramCanvas : public wxPanel
       const int xCentre = size.x/2 - levelWidth/2;
       const int xRight  = (5*size.x)/6 - levelWidth;
 
+      //  The energy axis.  A correlation diagram without one is a set
+      //  of floating dashes: the reader has to be told which way is up
+      //  and roughly how far apart the levels are, and the scale is no
+      //  longer arbitrary now that every column is in eV.
+      {
+        const int ax = 22;
+        dc.SetPen(wxPen(wxColour(120, 120, 120), 1));
+        dc.DrawLine(ax, plot.y, ax, plot.y + plot.height);
+        dc.DrawLine(ax, plot.y, ax - 4, plot.y + 7);
+        dc.DrawLine(ax, plot.y, ax + 4, plot.y + 7);
+
+        dc.SetFont(*wxSMALL_FONT);
+        dc.SetTextForeground(wxColour(110, 110, 110));
+
+        //  Ticks on round numbers, at whatever spacing keeps them from
+        //  colliding, so the spacing follows the spectrum rather than
+        //  assuming a range.
+        static const double steps[] = { 1, 2, 5, 10, 20, 50, 100, 200, 500 };
+        double step = steps[8];
+        for (int i = 0; i < 9; i++) {
+          if ((p_hi - p_lo)/steps[i] <= 12) { step = steps[i]; break; }
+        }
+
+        const double first = ceil(p_lo/step)*step;
+        for (double v = first; v <= p_hi; v += step) {
+          const int y = yFor(v, plot);
+          dc.DrawLine(ax - 3, y, ax + 3, y);
+          wxString text = wxString::Format(wxT("%g"), v);
+          dc.DrawText(text, ax + 6, y - dc.GetTextExtent(text).y/2);
+        }
+        dc.DrawText(wxT("E / eV"), 4, plot.y - 16);
+      }
+
       //  Column headings.
       dc.SetFont(*wxNORMAL_FONT);
       dc.SetTextForeground(wxColour(60, 60, 60));
@@ -218,8 +257,21 @@ class MoDiagramCanvas : public wxPanel
           drawLevel(dc, p_right.levels[i], xRight, levelWidth, plot, false);
         }
       }
+      p_hits.clear();
       for (size_t i = 0; i < p_centre.levels.size(); i++) {
         drawLevel(dc, p_centre.levels[i], xCentre, levelWidth, plot, true);
+
+        //  ONE ORBITAL PER LEVEL, even where the level is degenerate.
+        //  They are degenerate: their shapes are related by the
+        //  group's own operations, so any one of them represents the
+        //  set, and offering three near-identical choices would be
+        //  clutter rather than information.
+        Hit hit;
+        hit.box = wxRect(xCentre - 40, yFor(p_centre.levels[i].energy, plot) - 7,
+                         levelWidth + 80, 15);
+        hit.orbital = p_centre.levels[i].orbitals.empty()
+                      ? -1 : p_centre.levels[i].orbitals[0];
+        p_hits.push_back(hit);
       }
 
       //  The folded core, said out loud rather than silently dropped.
@@ -232,9 +284,16 @@ class MoDiagramCanvas : public wxPanel
         ostringstream note;
         note << p_centre.hiddenCount << " core orbital"
              << (p_centre.hiddenCount == 1 ? "" : "s") << " below "
-             << p_centre.hiddenMaxEnergy << " Hartree, not shown";
+             << (int)(p_centre.hiddenMaxEnergy + 0.5) << " eV, not shown";
         dc.DrawText(wxString(note.str().c_str(), wxConvUTF8),
                     xCentre - 30, y + 4);
+      }
+
+      if (!p_hits.empty()) {
+        dc.SetFont(*wxSMALL_FONT);
+        dc.SetTextForeground(wxColour(110, 110, 110));
+        dc.DrawText(wxT("Click a level to show that orbital"),
+                    8, size.y - 30);
       }
 
       if (!p_note.empty()) {
@@ -244,10 +303,43 @@ class MoDiagramCanvas : public wxPanel
       }
     }
 
+    /** Which level, if any, is under a point. */
+    int orbitalAt(const wxPoint& at) const
+    {
+      for (size_t i = 0; i < p_hits.size(); i++) {
+        if (p_hits[i].box.Contains(at)) return p_hits[i].orbital;
+      }
+      return -1;
+    }
+
+    void onClick(wxMouseEvent& event)
+    {
+      event.Skip();
+      const int orbital = orbitalAt(event.GetPosition());
+      if (orbital >= 0 && p_owner != 0) p_owner->orbitalClicked(orbital);
+    }
+
+    /** A hand cursor over a level, so the levels look clickable. */
+    void onMotion(wxMouseEvent& event)
+    {
+      event.Skip();
+      SetCursor(orbitalAt(event.GetPosition()) >= 0
+                ? wxCursor(wxCURSOR_HAND) : wxNullCursor);
+    }
+
+    MoDiagramPanel *p_owner;
     MoColumn p_left, p_centre, p_right;
     vector<MoConnection> p_links;
     bool p_haveFragments;
     string p_group;
+
+    //  Where each centre level was last drawn, so a click can be
+    //  turned back into an orbital.  Recorded during the paint rather
+    //  than recomputed on the click: the layout depends on the window
+    //  size, the folded bands and the heading, and a second copy of
+    //  that arithmetic would drift from the one that draws.
+    struct Hit { wxRect box; int orbital; };
+    vector<Hit> p_hits;
     string p_note;
     mutable double p_lo, p_hi;
 };
@@ -279,6 +371,46 @@ MoDiagramPanel::~MoDiagramPanel()
 }
 
 
+/////////////////////////////////////////////////////////////////////////////
+// Description
+//   Show a clicked level's orbital in the viewer.
+//
+//   Handed to the MOs panel rather than reimplemented here: that panel
+//   owns the grid, the basis set, the isovalue and the whole compute
+//   path, and a second way of putting an orbital on screen would be a
+//   second thing to keep working.
+//
+//   The MOs panel may not be open.  That is not an error -- the diagram
+//   is available for a calculation whose orbitals cannot be rendered at
+//   all, which is why it claims ORBENG and not MO -- so it says so
+//   instead of failing silently.
+/////////////////////////////////////////////////////////////////////////////
+void MoDiagramPanel::orbitalClicked(int orbengIndex)
+{
+  IPropCalculation *calc = getCalculation();
+  if (calc == 0) return;
+
+  set<PropertyPanel*> panels =
+      PropertyPanel::getPanels(calc->getURL().toString(), "MOs");
+
+  for (set<PropertyPanel*>::iterator it = panels.begin();
+       it != panels.end(); ++it) {
+    MoPanel *mo = dynamic_cast<MoPanel*>(*it);
+    if (mo == 0) continue;
+
+    if (mo->showOrbital(orbengIndex)) return;
+
+    getFW().showMessage("That orbital cannot be computed: the MOs panel "
+                        "has no basis set or no coefficients for it.",
+                        false/*warning*/);
+    return;
+  }
+
+  getFW().showMessage("Open the MOs panel (Properties menu) to show an "
+                      "orbital from the diagram.", false/*warning*/);
+}
+
+
 bool MoDiagramPanel::Create(IPropCalculation *calculation,
       wxWindow *parent, wxWindowID id, const wxPoint& pos,
       const wxSize& size, long style, const wxString& name)
@@ -287,6 +419,7 @@ bool MoDiagramPanel::Create(IPropCalculation *calculation,
 
   wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
   p_canvas = new MoDiagramCanvas(this);
+  p_canvas->setClickHandler(this);
   sizer->Add(p_canvas, 1, wxEXPAND|wxALL, 2);
   SetSizer(sizer);
 
@@ -363,9 +496,26 @@ void MoDiagramPanel::build()
     for (int i = 0; i < syms->rows(); i++) s.push_back(syms->value(i));
   }
 
-  //  A tolerance in Hartree.  Degenerate partners agree to far better
+  //  EVERY COLUMN IS DRAWN ON ONE ENERGY AXIS, so every column has to
+  //  be in one unit.  The calculation reports orbital energies in
+  //  Hartree and the fragment table is in eV, and the first version of
+  //  this put both on the same axis unconverted -- which silently
+  //  stretched the fragment levels over a range 27 times too large and
+  //  made the correlation lines meaningless.
+  //
+  //  eV is the unit to convert TO, not from: a valence orbital
+  //  ionisation energy and a Koopmans orbital energy are the same kind
+  //  of quantity, so on one eV axis the two columns can honestly be
+  //  compared.  (They will not agree closely for a DFT calculation,
+  //  whose occupied levels come out too shallow.  That is a real
+  //  property of the method and not a fault in the drawing.)
+  const double hartreeToEv = 27.211386245988;
+  for (size_t i = 0; i < e.size(); i++) e[i] *= hartreeToEv;
+
+  //  A tolerance in eV now, converted from the Hartree one it was
+  //  chosen as.  Degenerate partners agree to far better
   //  than this; distinct levels in a valence spectrum are further apart.
-  MoDiagram::group(e, o, s, 1.0e-4, centre.levels);
+  MoDiagram::group(e, o, s, 1.0e-4*hartreeToEv, centre.levels);
   centre.title = "Molecular orbitals";
 
   //  Both ends of the spectrum are folded away, not just the core.
@@ -382,10 +532,11 @@ void MoDiagramPanel::build()
 
   ostringstream note;
   if (s.empty()) {
-    note << "No symmetry labels for this calculation, so the levels are "
-            "unlabelled and nothing is correlated.";
+    note << "This calculation reports no orbital symmetry labels "
+            "(ORBSYM), so the levels are unlabelled and cannot be "
+            "correlated with the fragment orbitals.";
   } else {
-    note << "Energies in Hartree.";
+    note << "Energies in eV.";
   }
 
   //  --- the two fragment columns -----------------------------------
@@ -406,29 +557,52 @@ void MoDiagramPanel::build()
   if (sgfrag == 0 || sgfrag->numAtoms() == 0) {
     why = "No structure is loaded.";
   } else {
+    //  THE ANALYSIS RUNS ON THE SYMMETRISED GEOMETRY, not the one on
+    //  screen.
+    //
+    //  gensym's operation matrices are written in each group's
+    //  standard frame, so atoms only map onto atoms if the molecule is
+    //  in that frame.  An optimised structure is neither aligned to it
+    //  nor exactly symmetric, and SymmetryOps::find() fixes both --
+    //  autosym writes the cleaned, reoriented coordinates back onto the
+    //  fragment it was given, which is the whole reason it takes a
+    //  non-const reference.
+    //
+    //  On a COPY, because that fragment is the one the viewer is
+    //  displaying and nudging every atom of it is not something opening
+    //  a diagram should do.  Reading the coordinates back off the copy
+    //  is then not an extra step, it is the point.
     vector<double> coords;
     vector<string> elements;
-    vector<TAtm*> *atoms = sgfrag->atoms();
-    double *xyz = sgfrag->coordinates();
 
-    if (atoms != 0 && xyz != 0) {
-      for (unsigned long a = 0; a < sgfrag->numAtoms(); a++) {
-        elements.push_back((*atoms)[a]->atomicSymbol());
-        for (int k = 0; k < 3; k++) coords.push_back(xyz[a*3 + k]);
-      }
+    //  0.01 Angstrom, which is what the Symmetry panel's own field
+    //  defaults to.  The threshold does NOT behave the way it reads:
+    //  a LOOSER one finds LOWER symmetry, not higher.  Measured
+    //  against autosym directly, on exact water and exact methane:
+    //
+    //      threshold   H2O      CH4
+    //      0           C1       C1
+    //      0.001       C2v      Td
+    //      0.01        C2v      Td
+    //      0.05        Cs       Td
+    //
+    //  0.05 was the first value tried here and it quietly cost water
+    //  its C2 axis -- a correlation diagram in Cs instead of C2v, with
+    //  no error and no way to tell from the picture.
+    Fragment probe(*sgfrag);
+    try {
+      group = SymmetryOps::find(probe, 0.01);
+    } catch (...) {
+      group.clear();
     }
-    delete atoms;
 
-    //  Detected on a COPY.  SymmetryOps::find() writes the group onto
-    //  the fragment it is given, and the fragment here is the one the
-    //  viewer is displaying.
-    group = sgfrag->pointGroup();
-    if (group.empty()) {
-      try {
-        Fragment probe(*sgfrag);
-        group = SymmetryOps::find(probe, 0.05);
-      } catch (...) {
-        group.clear();
+    double *xyz = probe.coordinates();
+    if (xyz != 0) {
+      for (unsigned long a = 0; a < probe.numAtoms(); a++) {
+        TAtm *atom = probe.atomRef((int)a);
+        if (atom == 0) { elements.clear(); break; }
+        elements.push_back(atom->atomicSymbol());
+        for (int k = 0; k < 3; k++) coords.push_back(xyz[a*3 + k]);
       }
     }
 
@@ -436,10 +610,9 @@ void MoDiagramPanel::build()
                                        left, right, why);
     if (haveFragments) {
       MoDiagram::connect(left.levels, centre.levels, right.levels, links);
-      note << "  Fragment orbitals on valence ionisation energies (eV), "
-              "molecular orbitals on the calculation's own energies "
-              "(Hartree): the two scales are different and only the "
-              "ordering is comparable.";
+      note << "  Fragment levels are valence orbital ionisation "
+              "energies; molecular levels are the calculation's own "
+              "orbital energies. Both in eV.";
     }
   }
 

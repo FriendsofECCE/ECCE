@@ -18,6 +18,7 @@ using namespace std;
 
 #include "tdat/MoFragments.H"
 #include "tdat/CharacterTable.H"
+#include "tdat/MoDiagram.H"
 
 static int bad = 0;
 
@@ -146,6 +147,104 @@ int main(int argc, char** argv) {
            "C2: no central atom, and it says so",
            refused ? "ok" : ("FAIL: " + note).c_str());
     if (!refused) bad++;
+  }
+
+  //  --- a molecule that LOOKS like it has a centre and does not -----
+  //
+  //  Methanol in Cs.  Three of its atoms lie on the mirror plane, so
+  //  "an atom the whole group leaves in place" exists and an earlier
+  //  version nominated the oxygen, with the two out-of-plane methyl
+  //  hydrogens as its terminal set.  That is a diagram of nothing that
+  //  looks exactly like a diagram of methanol, which is worse than no
+  //  diagram at all.
+  {
+    double c[] = {
+      -0.0503,  0.6685,  0.0000,    // C
+       0.0503, -0.7585,  0.0000,    // O
+      -1.0807,  1.0104,  0.0000,    // H, in plane
+       0.4400,  1.0967,  0.8900,    // H
+       0.4400,  1.0967, -0.8900,    // H
+       0.8750, -1.0211,  0.0000 };  // H on O, in plane
+    vector<double> coords(c, c + 18);
+    const char* e[] = { "C", "O", "H", "H", "H", "H" };
+    vector<string> elements(e, e + 6);
+
+    MoColumn left, right;
+    string note;
+    bool ok = MoFragments::build(coords, elements, "CS", left, right, note);
+    bool refused = !ok && note.find("equivalent neighbours") != string::npos;
+    printf("  %-46s %s\n",
+           "CH3OH: not an AXn molecule, and it says so",
+           refused ? "ok" : ("FAIL: " + (ok ? string("built anyway")
+                                            : note)).c_str());
+    if (!refused) bad++;
+  }
+
+  //  --- the spellings the codes actually use ------------------------
+  //
+  //  An exact string comparison between a code's label and a character
+  //  table's is the silent-failure case this whole file exists to
+  //  avoid: ORCA writes A" where the table writes A'', and every code
+  //  prints a1 where a table prints A1.  Without canonicalisation half
+  //  the levels find no partner and the diagram simply comes out with
+  //  fewer correlation lines than it should, looking perfectly
+  //  reasonable.
+  {
+    printf("\n  irrep spellings\n");
+    check("ORCA's A\" is the table's A''",
+          MoDiagram::canonicalIrrep("A\""), MoDiagram::canonicalIrrep("A''"));
+    check("a1 matches A1", MoDiagram::canonicalIrrep("a1"),
+          MoDiagram::canonicalIrrep("A1"));
+    check("t2g matches T2g", MoDiagram::canonicalIrrep("t2g"),
+          MoDiagram::canonicalIrrep("T2G"));
+    check("surrounding space is ignored",
+          MoDiagram::canonicalIrrep("  e' "), MoDiagram::canonicalIrrep("E'"));
+
+    //  And distinct irreps must stay distinct: a normaliser that
+    //  collapsed too much would connect levels that cannot mix, which
+    //  is worse than connecting none.
+    bool distinct =
+        MoDiagram::canonicalIrrep("A1") != MoDiagram::canonicalIrrep("A2") &&
+        MoDiagram::canonicalIrrep("A'") != MoDiagram::canonicalIrrep("A''") &&
+        MoDiagram::canonicalIrrep("Eg") != MoDiagram::canonicalIrrep("Eu");
+    printf("  %-46s %s\n", "distinct irreps stay distinct",
+           distinct ? "ok" : "FAIL");
+    if (!distinct) bad++;
+  }
+
+  //  --- connecting a real case --------------------------------------
+  //  Methane again, with the centre column labelled the way a code
+  //  reports it: lowercase.  Every molecular level must find both a
+  //  carbon partner and a hydrogen one, because in Td there is nothing
+  //  else for a1 or t2 to be.
+  {
+    const double d = 0.6276;
+    double c[] = { 0,0,0,  d,d,d,  d,-d,-d,  -d,d,-d,  -d,-d,d };
+    vector<double> coords(c, c + 15);
+    const char* e[] = { "C", "H", "H", "H", "H" };
+    vector<string> elements(e, e + 5);
+
+    MoColumn left, right, centre;
+    string note;
+    MoFragments::build(coords, elements, "TD", left, right, note);
+
+    double energies[] = { -20.0, -12.0, 2.0, 6.0 };
+    const char* syms[] = { "a1", "t2", "a1", "t2" };
+    vector<double> en(energies, energies + 4), occ(4, 2.0);
+    vector<string> sy(syms, syms + 4);
+    MoDiagram::group(en, occ, sy, 1e-6, centre.levels);
+
+    vector<MoConnection> links;
+    MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+
+    int both = 0;
+    for (size_t i = 0; i < links.size(); i++) {
+      if (links[i].leftLevel >= 0 && links[i].rightLevel >= 0) both++;
+    }
+    printf("  %-46s %d of %zu %s\n",
+           "CH4: every MO connects to both sides", both, links.size(),
+           (both == (int)links.size() && both == 4) ? "ok" : "FAIL");
+    if (!(both == (int)links.size() && both == 4)) bad++;
   }
 
   printf("\n  %s\n", bad ? "FAIL" : "PASS");

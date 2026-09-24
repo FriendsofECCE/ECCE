@@ -103,10 +103,20 @@ int main()
   {
     //  Water: the hydrogen TASOs are a1 + b1; oxygen brings a1 and b1
     //  and b2.  The b2 has no partner and must come out non-bonding.
+    //  On .irrep, not .label: the drawn label carries the shell for a
+    //  fragment level ("A1  (2s)") and whatever spelling the code uses
+    //  for a molecular one, so matching on it would never work.  The
+    //  mixed case here is deliberate -- a code reports a1, a character
+    //  table says A1, and canonicalIrrep is what reconciles them.
     vector<MoLevel> left(3), centre(3), right(2);
-    left[0].label = "a1"; left[1].label = "b1"; left[2].label = "b2";
-    centre[0].label = "a1"; centre[1].label = "b1"; centre[2].label = "b2";
-    right[0].label = "a1"; right[1].label = "b1";
+    left[0].irrep   = MoDiagram::canonicalIrrep("A1");
+    left[1].irrep   = MoDiagram::canonicalIrrep("B1");
+    left[2].irrep   = MoDiagram::canonicalIrrep("B2");
+    centre[0].irrep = MoDiagram::canonicalIrrep("a1");
+    centre[1].irrep = MoDiagram::canonicalIrrep("b1");
+    centre[2].irrep = MoDiagram::canonicalIrrep("b2");
+    right[0].irrep  = MoDiagram::canonicalIrrep("A1");
+    right[1].irrep  = MoDiagram::canonicalIrrep("B1");
 
     vector<MoConnection> links;
     MoDiagram::connect(left, centre, right, links);

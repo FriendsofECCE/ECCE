@@ -1346,6 +1346,48 @@ bool MoPanel::espFieldSelected()
    return (chosen == ESP_FIELD_TYPE || chosen == ESP_CHARGES_FIELD_TYPE);
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// Description
+//   Select an orbital by its ORBENG index and compute it.
+//
+//   The grid's first column after any Type column holds the orbital's
+//   1-based number, which is what getSelectedMo() reads back and what
+//   ComputeMoCmd wants.  Found by searching for it rather than by
+//   arithmetic on the row: the table is filled in reverse, and with
+//   beta orbitals it is filled twice.
+/////////////////////////////////////////////////////////////////////////////
+bool MoPanel::showOrbital(int orbengIndex)
+{
+   if (!p_isValid || p_mogrid == 0) return false;
+   if (orbengIndex < 0) return false;
+
+   const wxString col1 = p_mogrid->GetColLabelValue(0);
+   const int offset = (col1 == "Type") ? 1 : 0;
+   const long wanted = orbengIndex + 1;
+
+   for (int row = 0; row < p_mogrid->GetNumberRows(); row++) {
+      //  Alpha orbitals only: the diagram is built from ORBENG, which
+      //  is the alpha set.  Without this an unrestricted calculation
+      //  would match the beta orbital of the same number first,
+      //  wherever it happened to fall in the table.
+      if (offset == 1 && p_mogrid->GetCellValue(row, 0) != "alpha") continue;
+
+      long number = 0;
+      if (!p_mogrid->GetCellValue(row, offset).ToLong(&number)) continue;
+      if (number != wanted) continue;
+
+      selectMo(row);
+
+      //  Compute it, through the same path the Compute button uses, so
+      //  there is one place that knows how to build a surface.
+      wxCommandEvent unused;
+      OnButtonMoComputeClick(unused);
+      return true;
+   }
+   return false;
+}
+
+
 double MoPanel::getTransparency()
 {
    //  AN ESP MAP IS DRAWN OPAQUE.

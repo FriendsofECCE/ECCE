@@ -21,8 +21,9 @@ using std::vector;
 /** One drawn level: a set of orbitals sharing an energy and a label. */
 struct MoLevel
 {
-   double         energy;          // Hartree
-   string         label;           // the irrep, as the code reports it
+   double         energy;          // eV
+   string         label;           // what to draw
+   string         irrep;           // canonical irrep name, for matching
    double         occupancy;       // electrons in the whole level
    int            degeneracy;      // orbitals drawn as this one level
    vector<int>    orbitals;        // their indices, for clicking through
@@ -87,6 +88,21 @@ class MoDiagram
      *                     is labelled unknown
      * @param tolerance    Hartree
      */
+    /**
+     * An irrep name in one spelling, so two sources can be compared.
+     *
+     * The codes and the character tables do not agree on how to write
+     * these.  ORCA reports A" where the table has A''; codes generally
+     * print a1 where a table prints A1.  An exact comparison therefore
+     * finds no partner for half the levels and draws no correlation
+     * line, with nothing anywhere saying why -- the diagram simply
+     * comes out disconnected and plausible.
+     *
+     * Upper-cased, whitespace removed, and a double quote written as
+     * the two single quotes it stands for.
+     */
+    static string canonicalIrrep(const string& label);
+
     static bool group(const vector<double>& energies,
                       const vector<double>& occupancies,
                       const vector<string>& labels,

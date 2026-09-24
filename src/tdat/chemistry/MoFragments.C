@@ -152,6 +152,19 @@ bool MoFragments::partition(const vector< vector<int> >& orbits,
    central = -1;
    terminal.clear();
 
+   //  THIS DIAGRAM DESCRIBES ONE SHAPE OF MOLECULE: a central atom
+   //  surrounded by one set of equivalent terminal atoms.  CH4, H2O,
+   //  NH3, BF3, SF6 -- what a textbook writes AXn.
+   //
+   //  Requiring exactly two orbits is what enforces that, and it has
+   //  to be enforced.  Methanol in Cs has orbits {C} {O} {H} {H} {H,H}:
+   //  three atoms sit on the mirror plane, so an "atom the group
+   //  leaves in place" exists and the oxygen would be nominated as the
+   //  centre, with the two out-of-plane methyl hydrogens as its
+   //  "terminal atoms".  That is a diagram of nothing, and it would
+   //  look like a diagram of methanol.
+   if (orbits.size() != 2) return false;
+
    //  An orbit of one is an atom the whole group leaves in place.  A
    //  molecule can have several -- the C and the O of methanal are both
    //  on the C2 axis -- so the heaviest wins, which is the atom a
@@ -225,7 +238,7 @@ static void addLevels(const CharacterTable& table,
       MoLevel level;
       level.energy     = energy;
       level.degeneracy = multiplicity[i]*table.dimension(irreps[i]);
-      level.label      = irreps[i];
+      level.irrep      = MoDiagram::canonicalIrrep(irreps[i]);
 
       //  The multiplicity is worth saying: two T2 sets are two
       //  different things at the same height in this model, and a
@@ -307,9 +320,16 @@ bool MoFragments::build(const vector<double>& coords,
    int central = -1;
    vector<int> terminal;
    if (!partition(orbits, elements, central, terminal)) {
-      note = "This molecule has no single central atom, so a "
-             "central-atom / terminal-atom diagram does not describe it. "
-             "The molecular orbitals are still shown.";
+      //  Say what it found, because "not this shape of molecule" and
+      //  "the symmetry came out wrong" look identical otherwise.
+      ostringstream why;
+      why << "This kind of diagram describes a central atom with one set "
+             "of equivalent neighbours (CH4, H2O, NH3, BF3). In "
+          << group << " this molecule has " << orbits.size()
+          << " symmetry-distinct set" << (orbits.size() == 1 ? "" : "s")
+          << " of atoms, so there is no such split. The molecular "
+             "orbitals are still shown.";
+      note = why.str();
       return false;
    }
 

@@ -2,6 +2,13 @@
 #define MOPANEL__H
 
 #include "wxgui/TearableContentProvider.H"
+//  Self-contained, so this header can be included from anywhere.  It
+//  used to rely on whatever MoPanel.C happened to include ahead of it
+//  -- wxPoint2DDoubleCmp, SliderCombo and wxPlotCtrlEvent all come
+//  from these two -- which meant no other translation unit could
+//  include it at all.
+#include "wxgui/ewxPlotCtrl.H"
+#include "wxgui/SliderCombo.H"
 
 #include "MoGUI.H"
 
@@ -60,6 +67,24 @@ class MoPanel : public MoGUI,
      void getSurfaceColors(double& posR, double& posG, double& posB,
                            double& negR, double& negG, double& negB);
      void showCoeffs(bool popup);
+   public:
+
+     /**
+      * Select an orbital by its index in ORBENG and compute its surface.
+      *
+      * For the MO diagram, whose levels are clickable.  Takes the
+      * ORBENG index (0-based) rather than the grid row, because the
+      * grid is filled in reverse and may carry a Type column and beta
+      * orbitals below the alphas -- a caller outside this panel has no
+      * business knowing any of that.
+      *
+      * @return false if there is no such orbital, or the panel has no
+      *         valid basis to compute one with.
+      */
+     bool showOrbital(int orbengIndex);
+
+   protected:
+
      double getTransparency();
      bool espFieldSelected();
      void updateIsoValue();
