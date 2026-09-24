@@ -101,6 +101,35 @@ class SymmetryAnalysis
                                  const vector<int>& classOfOp,
                                  int numClasses,
                                  vector<double>& chi);
+
+    /**
+     * The symmetry orbitals of one irrep, over an orbit's s orbitals.
+     *
+     * The projection operator, P = (l/h) sum_R chi(R)* R, applied to
+     * each orbital of the orbit in turn.  That gives as many vectors as
+     * there are orbitals, most of them repeats or zero, so the
+     * independent ones are picked out by Gram-Schmidt and normalised.
+     *
+     * These are the terminal-atom symmetry orbitals -- the in-phase and
+     * out-of-phase combinations a diagram draws on one side.
+     *
+     * @param table   the group's character table
+     * @param irrep   which irrep to project onto
+     * @param vectors filled with one coefficient vector per independent
+     *                symmetry orbital, each over the orbit's atoms in
+     *                orbit order
+     *
+     * @return false if the arguments do not describe this group.  The
+     *         number of vectors returned is the irrep's multiplicity
+     *         times its dimension, and a caller that knows the expected
+     *         reduction should check it.
+     */
+    static bool projectOrbit(const vector<int>& orbit,
+                             const vector< vector<int> >& images,
+                             const vector<int>& classOfOp,
+                             const CharacterTable& table,
+                             const string& irrep,
+                             vector< vector<double> >& vectors);
 };
 
 #endif

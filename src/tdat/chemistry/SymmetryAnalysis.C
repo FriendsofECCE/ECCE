@@ -6,6 +6,9 @@
 #include "tdat/SymmetryAnalysis.H"
 #include "tdat/CharacterTable.H"
 
+#include <map>
+using std::map;
+
 namespace {
 
   /** Apply an operation to a point. */
@@ -357,5 +360,67 @@ bool SymmetryAnalysis::orbitalCharacter(const vector<int>& orbit,
   }
 
   for (int c = 0; c < numClasses; c++) if (seen[c] == 0) return false;
+  return true;
+}
+
+
+bool SymmetryAnalysis::projectOrbit(const vector<int>& orbit,
+                                    const vector< vector<int> >& images,
+                                    const vector<int>& classOfOp,
+                                    const CharacterTable& table,
+                                    const string& irrep,
+                                    vector< vector<double> >& vectors)
+{
+  vectors.clear();
+
+  const vector<double>* chi = table.characters(irrep);
+  if (chi == 0) return false;
+  if (classOfOp.size() != images.size()) return false;
+
+  const size_t n = orbit.size();
+  if (n == 0) return false;
+
+  //  Where each atom sits in the orbit, so an image can be turned back
+  //  into a position in the coefficient vector.
+  map<int, size_t> position;
+  for (size_t i = 0; i < n; i++) position[orbit[i]] = i;
+
+  const double dimension = table.dimension(irrep);
+  const double h = table.order();
+  if (h <= 0.0) return false;
+
+  //  Project each orbital of the orbit in turn.  Most of the results
+  //  are repeats of one another or zero; Gram-Schmidt below keeps the
+  //  independent ones.
+  for (size_t a = 0; a < n; a++) {
+
+    vector<double> v(n, 0.0);
+    for (size_t o = 0; o < images.size(); o++) {
+      const int cls = classOfOp[o];
+      if (cls < 0 || (size_t)cls >= chi->size()) return false;
+
+      map<int, size_t>::const_iterator it = position.find(images[o][orbit[a]]);
+      if (it == position.end()) continue;      // left the orbit: cannot happen
+      v[it->second] += (*chi)[cls];
+    }
+    for (size_t i = 0; i < n; i++) v[i] *= dimension/h;
+
+    //  Remove whatever is already spanned, then keep what is left if
+    //  there is anything of it.
+    for (size_t k = 0; k < vectors.size(); k++) {
+      double dot = 0.0;
+      for (size_t i = 0; i < n; i++) dot += v[i]*vectors[k][i];
+      for (size_t i = 0; i < n; i++) v[i] -= dot*vectors[k][i];
+    }
+
+    double norm = 0.0;
+    for (size_t i = 0; i < n; i++) norm += v[i]*v[i];
+    if (norm < 1.0e-10) continue;              // nothing new
+
+    norm = sqrt(norm);
+    for (size_t i = 0; i < n; i++) v[i] /= norm;
+    vectors.push_back(v);
+  }
+
   return true;
 }

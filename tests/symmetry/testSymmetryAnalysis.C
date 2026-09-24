@@ -103,6 +103,66 @@ static void run(const Molecule& mol, const string& opsDir)
   check(ok, "conjugacy classes matched to the table's named classes");
   if (!ok) return;
 
+  //  The symmetry orbitals themselves, not just which irreps appear.
+  for (size_t i = 0; i < orbits.size(); i++) {
+    if (orbits[i].size() != mol.terminalCount) continue;
+
+    vector<double> chi;
+    if (!SymmetryAnalysis::orbitalCharacter(orbits[i], images, classOfOp,
+                                            (int)table->classes().size(), chi))
+      continue;
+    vector<int> mult;
+    if (!table->reduce(chi, mult)) continue;
+
+    size_t total = 0;
+    for (size_t k = 0; k < table->irreps().size(); k++) {
+      if (mult[k] == 0) continue;
+      const string& ir = table->irreps()[k];
+
+      vector< vector<double> > vecs;
+      bool got = SymmetryAnalysis::projectOrbit(orbits[i], images, classOfOp,
+                                                *table, ir, vecs);
+      snprintf(msg, sizeof(msg),
+               "%s: %zu symmetry orbitals (%d x dim %d = %d expected)",
+               ir.c_str(), vecs.size(), mult[k], table->dimension(ir),
+               mult[k]*table->dimension(ir));
+      check(got && (int)vecs.size() == mult[k]*table->dimension(ir), msg);
+      total += vecs.size();
+
+      //  Each must be normalised and orthogonal to the others.
+      for (size_t u = 0; u < vecs.size(); u++) {
+        double nrm = 0.0;
+        for (size_t c = 0; c < vecs[u].size(); c++) nrm += vecs[u][c]*vecs[u][c];
+        if (fabs(nrm - 1.0) > 1e-9) {
+          check(false, string(ir) + ": a symmetry orbital is not normalised");
+          break;
+        }
+      }
+    }
+    //  Together they must span the whole orbit -- no orbital left over.
+    snprintf(msg, sizeof(msg),
+             "the symmetry orbitals span the orbit (%zu of %zu)",
+             total, orbits[i].size());
+    check(total == orbits[i].size(), msg);
+
+    //  The totally symmetric one is the in-phase combination: every
+    //  coefficient equal and positive.  That is the check a student
+    //  would do by eye.
+    const string& first = table->irreps()[0];
+    vector< vector<double> > sym;
+    if (SymmetryAnalysis::projectOrbit(orbits[i], images, classOfOp,
+                                       *table, first, sym) && sym.size() == 1) {
+      const double want = 1.0/sqrt((double)orbits[i].size());
+      bool inPhase = true;
+      for (size_t c = 0; c < sym[0].size(); c++)
+        if (fabs(fabs(sym[0][c]) - want) > 1e-9) inPhase = false;
+      snprintf(msg, sizeof(msg),
+               "%s is the in-phase combination, all coefficients %.4f",
+               first.c_str(), want);
+      check(inPhase, msg);
+    }
+  }
+
   //  The terminal orbit's s orbitals: the reduction a textbook gives.
   for (size_t i = 0; i < orbits.size(); i++) {
     if (orbits[i].size() != mol.terminalCount) continue;
