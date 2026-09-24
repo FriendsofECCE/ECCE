@@ -66,7 +66,33 @@ def roundTrip():
     return run.returncode
 
 
+def standalone(name, sources):
+    """Compile and run one test that needs no build tree."""
+    out = os.path.join(HERE, name)
+    cmd = (["g++", "-O2", "-w", "-I", os.path.join(ROOT, "include"),
+            "-o", out]
+           + [os.path.join(HERE, name + ".C")]
+           + [os.path.join(ROOT, s) for s in sources])
+    build = subprocess.run(cmd, capture_output=True, text=True)
+    if build.returncode != 0:
+        print("could not build %s:" % name)
+        print(build.stderr)
+        return 2
+    run = subprocess.run([out], capture_output=True, text=True)
+    print(run.stdout, end="")
+    if run.stderr:
+        print(run.stderr, end="")
+    os.unlink(out)
+    return run.returncode
+
+
 def main():
+    rc = standalone("testCoulombIntegrals",
+                    ["src/tdat/chemistry/CoulombIntegrals.C"])
+    if rc != 0:
+        return rc
+    print("")
+
     src = [os.path.join(HERE, "testSlaterExpansion.C"),
            os.path.join(ROOT, "src/tdat/chemistry/SlaterExpansion.C")]
     cmd = ["g++", "-O2", "-I", os.path.join(ROOT, "include"), "-o", OUT] + src
