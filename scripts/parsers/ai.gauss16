@@ -56,6 +56,7 @@ my $useSpherical;
   &verifyCnstrntFile;
   &readDict;
   &aiDebugDict;
+  &verifyVibOptions;
   $hasECPs = 0;
   if ( $AbiDict{"Category"} ne "SE") {
     &verifyGBSFile;
@@ -419,6 +420,36 @@ sub G09Route {
     $result =~ s/BB1K/BB95/;
     $result .= "\nIOp(3/76=0580004200)";
   }
+
+  #  Issue #113: whatever the user typed into the Theory Details
+  #  "Additional Route Options" field, appended verbatim and LAST -- past
+  #  every generated token and past the MPW1K/BB1K IOp lines above, so
+  #  that where it contradicts them Gaussian sees the user's word last.
+  #
+  #  On its own continuation line rather than inside the wrapped route
+  #  text, for the same reason the MPW1K IOp is: multiLineString breaks
+  #  the route at column 78 and a long IOp list is exactly the sort of
+  #  thing that would land on a break.  Gaussian reads the route section
+  #  across as many lines as it takes.
+  #
+  #  Only leading/trailing whitespace and embedded newlines are touched.
+  #  Nothing else is validated: the field is documented as expert and
+  #  unchecked, and any attempt to check it would recreate the
+  #  hand-maintained copy of Gaussian's keyword table that keeping this
+  #  a passthrough exists to avoid.  A newline would silently end the
+  #  route section and turn the rest of the text into the title line,
+  #  which is why that one thing is collapsed.
+  my $extraRoute = $AbiDict{"ES.Theory.AdditionalRouteOptions"};
+  if (defined($extraRoute)) {
+    $extraRoute =~ s/[\r\n]+/ /g;
+    $extraRoute =~ s/^\s+//;
+    $extraRoute =~ s/\s+$//;
+    if ($extraRoute ne "") {
+      &aiDebug("appending user route options: $extraRoute");
+      $result .= "\n" . $extraRoute;
+    }
+  }
+
   return $result;
 }
 
@@ -1048,8 +1079,14 @@ sub DFTExchFun {
     $result = "O";
   } elsif ($exchFun eq "TPSS") {
     $result = "TPSS";
-#  } elsif ($exchFun eq "RevTPSS") {
-#    $result = "O";
+  } elsif ($exchFun eq "RevTPSS") {
+    #  Was commented out, and its commented-out body returned "O" (the
+    #  OPTX keyword), which would have produced an OPTX job silently
+    #  labelled revTPSS had anyone ever uncommented it.  The keyword is
+    #  revTPSS; verified by running Gaussian 16, which echoes the
+    #  functional back: "SCF Done: E(RrevTPSS-revTPSS) = -75.2990044687"
+    #  for water/STO-3G.
+    $result = "revTPSS";
   } elsif ($exchFun eq "Becke89") {
     $result = "BRx";
   } elsif ($exchFun eq "PKZB") {
@@ -1347,7 +1384,7 @@ sub GeomOptions {
 sub VibOptions {
   local($result);
   local($nstep);
-  
+
   $result = "=(";
   if($AbiDict{"ES.Runtype.Vibration.Method"}){
     if($AbiDict{"ES.Runtype.Vibration.Method"}
@@ -1363,10 +1400,100 @@ sub VibOptions {
     $nstep = int(10000*$AbiDict{"ES.Runtype.Vibration.FiniteStepSize"});
     $result .= "Step=$nstep ";
   }
+
+  #  Issue #110.  Each of these keywords was run through the installed
+  #  Gaussian 16 before being offered by ged16runtype.py; the two fatal
+  #  combinations are refused up front by &verifyVibOptions, in the main
+  #  flow, because a die() in here is a resolver die() and the template
+  #  engine used to swallow those (#92).
+  #
+  #  Raman matters most: Gaussian computes Raman activities by default
+  #  for HF but NOT for DFT, so without this keyword the VIBRAM property
+  #  gaussian-16.desc has parsed all along was never produced by a DFT
+  #  frequency job -- a correct parser for output nothing could ask for.
+  if ($AbiDict{"ES.Runtype.Vibration.ComputeRaman"}) {
+    $result .= "Raman ";
+  }
+  if ($AbiDict{"ES.Runtype.Vibration.Anharmonic"}) {
+    $result .= "Anharmonic ";
+  }
+  if ($AbiDict{"ES.Runtype.Vibration.HighPrecisionModes"}) {
+    $result .= "HPModes ";
+  }
+  if ($AbiDict{"ES.Runtype.Vibration.Projected"}) {
+    $result .= "Projected ";
+  }
+  if ($AbiDict{"ES.Runtype.Vibration.VibRot"}) {
+    $result .= "VibRot ";
+  }
+  if ($AbiDict{"ES.Runtype.Vibration.SaveNormalModes"}) {
+    $result .= "SaveNormalModes ";
+  }
 #  $result .= &StationaryPointType($AbiDict{""});
   $result .= ") ";
 
+  #  Temperature and Pressure are route-card keywords of their own, NOT
+  #  Freq= options -- "Freq=(Temperature=310)" is not accepted.  They are
+  #  emitted only when the dialog's Thermochemistry box is ticked, so an
+  #  ordinary deck carries neither and Gaussian keeps its own 298.15 K /
+  #  1 atm.
+  if ($AbiDict{"ES.Runtype.Vibration.UseThermochemistry"}) {
+    if ($AbiDict{"ES.Runtype.Vibration.Temperature"}) {
+      $result .= "Temperature=" .
+                 $AbiDict{"ES.Runtype.Vibration.Temperature"} . " ";
+    }
+    if ($AbiDict{"ES.Runtype.Vibration.Pressure"}) {
+      $result .= "Pressure=" .
+                 $AbiDict{"ES.Runtype.Vibration.Pressure"} . " ";
+    }
+  }
+
   return $result;
+}
+
+##############################################################################
+#
+#  Description:
+#      Refuse the Freq= combinations Gaussian 16 rejects outright.
+#
+#  Implementation:
+#      In the MAIN FLOW, before any generation starts, which is the only
+#      place a die() in these scripts is guaranteed to reach the user --
+#      &modifyInputFile resolves every ##tag## through eval, so a die
+#      inside a resolver was silently swallowed and produced a quietly
+#      incomplete deck (#92).
+#
+#      ged16runtype.py disables each of these controls when the other is
+#      set, so a user driving the dialog cannot reach either state.  This
+#      exists for the calculation saved BEFORE those controls existed,
+#      whose stored GUIValues can carry any combination at all.
+#
+#      Both were found by running the real Gaussian 16, water/B3LYP/
+#      STO-3G -- not by reading the Freq documentation, which describes
+#      neither restriction.
+#
+##############################################################################
+sub verifyVibOptions {
+  my $runtype = $AbiDict{"RunType"};
+  return unless ($runtype eq "Vibration" || $runtype eq "GeoVib");
+
+  if ($AbiDict{"ES.Runtype.Vibration.ComputeRaman"} &&
+      $AbiDict{"ES.Runtype.Vibration.Method"} eq "Numerical 2nd Derivative") {
+    die "ai.gauss16 error:  Gaussian cannot compute Raman activities with\n" .
+        "numerical second derivatives -- Freq=(Raman,Numerical) fails with\n" .
+        "\"Unrecognized FrqTyp\" before the job starts.  In Runtype Details,\n" .
+        "either clear \"Raman Activities\" or choose the Analytic or\n" .
+        "Numerical 1st and 2nd Derivative method.\n";
+  }
+
+  if ($AbiDict{"ES.Runtype.Vibration.Anharmonic"} &&
+      $AbiDict{"ES.Runtype.Vibration.Projected"}) {
+    die "ai.gauss16 error:  Gaussian cannot run an anharmonic analysis on\n" .
+        "projected frequencies -- Freq=(Anharmonic,Projected) fails with a\n" .
+        "mismatch between the number of normal modes of the calculation and\n" .
+        "of the input source.  In Runtype Details, clear either\n" .
+        "\"Anharmonic Frequencies\" or \"Project Out Translation/Rotation\".\n";
+  }
 }
 
 ##############################################################################

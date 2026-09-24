@@ -1,0 +1,10 @@
+%chk=h2o_anharm.chk
+#p B3LYP/STO-3G Freq=(Raman,Anharmonic,HPModes)
+
+water anharmonic raman high-precision modes test
+
+0 1
+O   0.000000   0.000000   0.117300
+H   0.000000   0.757200  -0.469200
+H   0.000000  -0.757200  -0.469200
+

@@ -130,6 +130,64 @@ CASES = [
     ),
 
     dict(
+        name='g16-h2o-anharm',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2o_anharm.log',
+        # B3LYP/STO-3G Freq=(Raman,Anharmonic,HPModes) on water: the three
+        # things issue #110 added to the Runtype Details dialog, in one job.
+        #
+        # Raman: a DFT job computes Raman activities ONLY when Freq=Raman
+        # is asked for.  gaussian-16.desc has parsed VIBRAM all along, but
+        # until #110 nothing ECCE generates could request it, so for every
+        # DFT frequency job the column was empty -- the dead-parser shape
+        # of ORCA's CHELPG (#88).  The VIBRAM assertion below is what says
+        # the request and the parser meet.
+        #
+        # HPModes: the regression guard for the fix in gaussian-16.vib.
+        # Freq=HPModes prints the modes twice under the identical header,
+        # so Frequency=first fed the parser the high-precision block; its
+        # atom rows are "Coord Atom Element", not "Atom AN", so the block
+        # scan ran on into the SECOND block and matched that block's
+        # "Frequencies --" line a second time.  VIBFREQ then carried SIX
+        # values for three row labels -- silently wrong, not missing.
+        # Asserting the exact three-value string is what catches a
+        # regression: with the fix reverted this reads
+        # "1795.7977 4350.9332 4675.3839 1795.7977 4350.9332 4675.3839".
+        #
+        # Anharmonic: the new [ANHARMFREQ][ANHARMIR] entry.  Values read
+        # off the "Anharmonic Infrared Spectroscopy / Fundamental Bands"
+        # table.  Note Gaussian numbers anharmonic modes in DECREASING
+        # harmonic frequency, the opposite of the harmonic block, which is
+        # why the row labels carry the harmonic frequency.
+        parse_args=('.', 'Vibration', 'DFT', 'B3LYP', '0'),
+        silent_ok={
+            'DELTAE': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'RMSDP': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'ESCF1][ESCFVEC': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'EGRAD': 'gaussian-16.egrad gates its whole body on '
+                     'runtype =~ /Geo/i, like DELTAE and RMSDP: the maximum '
+                     'force is a geometry-optimisation convergence number.',
+        },
+        expect={
+            'VIB][VIBFREQ][VIBIR][VIBRAM][VIBSYM': dict(keys={
+                'VIBFREQ': {'values': '1795.8002 4350.9344 4675.3841'},
+                'VIBRAM': {'values': '8.0436 35.8257 14.7538'},
+                'VIBIR': {'values': '6.9508 60.2248 34.0062'},
+                'VIBSYM': {'values': 'A1 A1 B2'},
+                'VIB': {'rowlabels': '1-O 2-H 3-H'},
+            }),
+            'ANHARMFREQ][ANHARMIR': dict(keys={
+                'ANHARMFREQ': {'values': '4236.821 1728.487 4543.776',
+                               'rowlabels': '1-h4350.934 2-h1795.800 '
+                                            '3-h4675.384',
+                               'units': 'cm-1'},
+                'ANHARMIR': {'values': '56.53615267 7.61103307 32.24629709',
+                             'units': 'KM/Mole'},
+            }),
+        },
+    ),
+
+    dict(
         name='g16-h2o-nmr',
         desc='gaussian-16.desc',
         fixture='gaussian-16/h2o_nmr.log',
