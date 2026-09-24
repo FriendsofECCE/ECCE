@@ -1473,6 +1473,34 @@ double ComputeMoCmd::getoddNormalize(
 }
 
 
+
+/**
+ * Override the colour range from the environment.
+ *
+ * ECCE_ESP_RANGE=0.05 scales the ramp to +/- 0.05 Hartree/e whatever
+ * the field contains.  A proper control belongs on the panel, but the
+ * range is the one thing about an ESP map a user always wants to set --
+ * the same molecule is read differently at +/- 0.02 and +/- 0.2 -- and
+ * this makes it adjustable without a rebuild in the meantime.
+ */
+static void applyEspRangeOverride(SingleGrid *grid)
+{
+  const char *text = getenv("ECCE_ESP_RANGE");
+  if (text == 0 || *text == '\0') return;
+
+  const double range = atof(text);
+  if (!(range > 0.0)) {
+    cerr << "ESP: ignoring ECCE_ESP_RANGE='" << text
+         << "'; it must be a positive number." << endl;
+    return;
+  }
+  grid->colorFieldMin(-range);
+  grid->colorFieldMax(range);
+  cerr << "ESP: colour range overridden to +/- " << range
+       << " Hartree/e by ECCE_ESP_RANGE" << endl;
+}
+
+
 /////////////////////////////////////////////////////////////////////////////
 // Description
 //   The electrostatic potential on the grid, from the atomic partial
@@ -1605,6 +1633,7 @@ bool ComputeMoCmd::computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
 
   grid->setColorFieldData(esp);
   grid->findColorMinMax();
+  applyEspRangeOverride(grid);
   if (grid->colorFieldData() == (float*)0) {
     cerr << "ESP: every potential value was NaN or infinite, so the "
             "surface is left uncoloured.  That normally means the "
@@ -1980,6 +2009,7 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
 
   grid->setColorFieldData(esp);
   grid->findColorMinMax();
+  applyEspRangeOverride(grid);
   cerr << "ESP: potential computed, range " << grid->colorFieldMin()
        << " to " << grid->colorFieldMax() << " Hartree/e" << endl;
   return true;

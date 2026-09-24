@@ -73,6 +73,8 @@ class SingleGrid
     void        setColorFieldData(float *field);
     float       colorFieldMin();
     float       colorFieldMax();
+    void        colorFieldMin(float value);
+    void        colorFieldMax(float value);
     void        findColorMinMax();
 
 // General methods

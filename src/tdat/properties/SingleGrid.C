@@ -10,6 +10,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //system includes
+#include <algorithm>
+#include <vector>
+using std::vector;
 #include <math.h>
 
 #include "tdat/SingleGrid.H"
@@ -276,6 +279,18 @@ float SingleGrid::colorFieldMax()
 }
 
 
+void SingleGrid::colorFieldMin(float value)
+{
+  p_colorFieldMin = value;
+}
+
+
+void SingleGrid::colorFieldMax(float value)
+{
+  p_colorFieldMax = value;
+}
+
+
 /**
  * The range the colour ramp is stretched over.
  *
@@ -289,25 +304,23 @@ void SingleGrid::findColorMinMax()
   if (p_colorField == (float*)0) return;
 
   const int size = gridSize();
-  float extreme = 0.0;
-  int finite = 0;
 
+  //  Collect the finite magnitudes.
+  //
+  //  NaN and infinity are skipped rather than compared: a NaN never
+  //  satisfies >, so it would leave the extreme untouched and look
+  //  harmless while still poisoning the colour lookup, which divides by
+  //  (max - min).
+  vector<float> magnitude;
+  magnitude.reserve(size);
   for (int idx = 0; idx < size; idx++) {
     const float value = p_colorField[idx];
-    //  NaN and infinity are skipped rather than compared.  A NaN never
-    //  satisfies >, so it would leave the extreme untouched and look
-    //  harmless -- but a single one anywhere in the field propagates
-    //  through the colour lookup, which divides by (max - min), and
-    //  takes the renderer down.  Counting the finite ones lets the
-    //  caller tell an all-NaN field from a flat one.
     if (value != value) continue;                       // NaN
     if (value > 1.0e30 || value < -1.0e30) continue;    // infinity
-    finite++;
-    const float magnitude = (value < 0.0) ? -value : value;
-    if (magnitude > extreme) extreme = magnitude;
+    magnitude.push_back((value < 0.0) ? -value : value);
   }
 
-  if (finite == 0) {
+  if (magnitude.empty()) {
     //  Nothing usable.  Drop the field rather than hand the renderer a
     //  range it cannot work with.
     delete [] p_colorField;
@@ -316,6 +329,26 @@ void SingleGrid::findColorMinMax()
     p_colorFieldMax = 0.0;
     return;
   }
+
+  //  A PERCENTILE, NOT THE MAXIMUM.
+  //
+  //  For an electrostatic potential the extreme value is always at a
+  //  nucleus, where the point-charge term diverges and is only kept
+  //  finite by a clamp -- thousands of Hartree per electron against the
+  //  hundredths the surface actually carries.  Scaling the colour ramp
+  //  to that puts every real feature within a fraction of one step of
+  //  the middle, and the surface comes out a single flat colour.
+  //
+  //  The 98th percentile keeps the ramp on the range that is actually
+  //  being looked at.  Values beyond it clamp to the ends, which is the
+  //  right behaviour for a handful of points buried inside atoms.
+  const size_t at = (size_t)(0.98*(magnitude.size() - 1));
+  std::nth_element(magnitude.begin(), magnitude.begin() + at,
+                   magnitude.end());
+  float extreme = magnitude[at];
+
+  //  A degenerate range would divide by zero downstream.
+  if (!(extreme > 0.0)) extreme = 1.0;
 
   p_colorFieldMin = -extreme;
   p_colorFieldMax =  extreme;
