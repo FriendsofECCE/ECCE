@@ -245,6 +245,30 @@ END_EVENT_TABLE()
 static bool internalSelect = false;
 
 
+namespace {
+
+//  Scoped "we are building the property panels, not the user clicking
+//  around in them" flag, for OnChildFocus() to test.  Same idea, and for
+//  the same class of bug, as AtomTable's p_internalSelect and
+//  PartialCharges' -- a control that fires a genuine event while it is
+//  being populated, and a handler with no way to tell that from real user
+//  input.  Here the event is wxChildFocusEvent and the "real user input"
+//  it is mistaken for is "the user wants this property's overlay in the
+//  3-D viewer" (#111).
+class PanelBuildGuard
+{
+  public:
+    explicit PanelBuildGuard(int& depth) : p_depth(depth) { ++p_depth; }
+    ~PanelBuildGuard() { --p_depth; }
+  private:
+    PanelBuildGuard(const PanelBuildGuard&);
+    PanelBuildGuard& operator=(const PanelBuildGuard&);
+    int& p_depth;
+};
+
+}  // namespace
+
+
 const string Builder::NAME_TOOL_CONTEXT(_("Context"));
 const string Builder::NAME_TOOL_BUILD(_("Build"));
 const string Builder::NAME_TOOL_COORDINATES(_("Coordinates"));
@@ -360,7 +384,8 @@ Builder::Builder()
     p_perspBitmap("perspective16.png", wxBITMAP_TYPE_PNG),
     p_centerLockButton(NULL),
     p_cameraButton(NULL),
-    p_propertyPanelInfo()
+    p_propertyPanelInfo(),
+    p_panelBuildDepth(0)
 {
 }
 
@@ -434,7 +459,8 @@ Builder::Builder( wxWindow* parent, bool standalone, wxWindowID id,
     p_perspBitmap("perspective16.png", wxBITMAP_TYPE_PNG),
     p_centerLockButton(NULL),
     p_cameraButton(NULL),
-    p_propertyPanelInfo()
+    p_propertyPanelInfo(),
+    p_panelBuildDepth(0)
 {
   Create(parent, standalone, id, caption, pos, size, style);
 }
@@ -1253,6 +1279,9 @@ bool Builder::isStandalone()
 void Builder::setContext(const string& url, const bool& force) 
 {
   wxBusyCursor busy;
+  //  Creating/re-docking this calculation's property panels must not
+  //  hand any of them the 3-D viewer -- see OnChildFocus() (#111).
+  PanelBuildGuard buildGuard(p_panelBuildDepth);
   bool newContext = false;
 
   // Make sure it is raised/uniconified for popup dialogs
@@ -3245,13 +3274,42 @@ void Builder::OnChildFocus(wxChildFocusEvent& event)
   // that exactly like the old ewxAUI "take focus" caption-button click.
   // setFocus(true) -> doFocus() already clears focus off any other viz
   // panel for the same calc, so no explicit loop is needed here.
+  //
+  //  TWO THINGS THIS MUST NOT MISTAKE FOR A USER CLICK (#111).  A panel
+  //  taking viz focus is not cosmetic: receiveFocus() puts that property's
+  //  overlay into the viewer -- vectors, charge colouring, an animated
+  //  geometry trace -- so anything that reaches here without the user
+  //  having asked for it ends up as a viewer full of overlapping overlays
+  //  that have to be switched off one at a time.
+  //
+  //  1. Focus changes caused by BUILDING the panels.  updatePropertyMenus()
+  //     creates a panel per property the calculation has data for, every
+  //     time it gains one, and loadPaneLayout() detaches and re-docks the
+  //     lot; both end in wxAuiManager::Update(), which shows, hides and
+  //     reparents windows.  Whether GTK moves keyboard focus while that
+  //     happens is not ours to decide and differs by version and display
+  //     server -- measured as not happening under X11/GTK3 here, which is
+  //     exactly why it must not be relied on.  p_panelBuildDepth says
+  //     "this focus change is ours, not the user's".
+  //  2. Focus landing in a pane that is not even on screen.  A hidden
+  //     window should not be focusable at all, but AUI hides panes by
+  //     hiding their window mid-Update(), so refuse it explicitly rather
+  //     than trusting the ordering.
+  //
+  if (p_panelBuildDepth > 0) {
+    event.Skip();
+    return;
+  }
   wxWindow *win = event.GetWindow();
   VizPropertyPanel *panel = NULL;
   while (win && !(panel = dynamic_cast<VizPropertyPanel*>(win))) {
     win = win->GetParent();
   }
   if (panel && !panel->hasFocus()) {
-    panel->setFocus(true);
+    wxAuiPaneInfo &pinfo = p_mgr.GetPane(panel);
+    if (pinfo.IsOk() && pinfo.IsShown()) {
+      panel->setFocus(true);
+    }
   }
   event.Skip();
 }
@@ -3994,6 +4052,10 @@ void Builder::savePaneLayout(const wxString& layoutName_)
 
 void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
 {
+  //  Detaching and re-docking every property panel is not the user
+  //  picking one -- see OnChildFocus() (#111).
+  PanelBuildGuard buildGuard(p_panelBuildDepth);
+
   // make a copy since it's a const param
   wxString layoutName(layoutName_);
 
@@ -4061,6 +4123,15 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
         continue;
       }
       p.SafeSet(pane);
+      //  addPropertyPanel() ticked this panel's Property-menu item from
+      //  the pane's visibility as it added it, which was BEFORE the line
+      //  above put the saved visibility back.  So a panel restored hidden
+      //  kept a ticked menu item -- which is exactly what "the Properties
+      //  menu items are all pre-selected" looks like from the menu (#111).
+      int menuId = p_propertyMenu->FindItem(p.name);
+      if (menuId != wxNOT_FOUND) {
+        p_propertyMenu->Check(menuId, p.IsShown());
+      }
     }
   }
 
@@ -4276,6 +4347,7 @@ void Builder::updateResource()
 
 void Builder::updatePropertyMenus()
 {
+  PanelBuildGuard buildGuard(p_panelBuildDepth);  // see OnChildFocus (#111)
   set<PropertyPanel*> panels;
   set<PropertyPanel*>::iterator panelIt;
   set<string> names;
@@ -4621,6 +4693,7 @@ static bool uniformPanelHeight()
 
 void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
 {
+  PanelBuildGuard buildGuard(p_panelBuildDepth);  // see OnChildFocus (#111)
   // Don't add this panel if it is already being managed
   wxAuiPaneInfo &pinfo = p_mgr.GetPane(panel);
   if (pinfo.IsOk()) {
@@ -4803,6 +4876,7 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
 
 void Builder::createPropertyPanel(const string& name)
 {
+  PanelBuildGuard buildGuard(p_panelBuildDepth);  // see OnChildFocus (#111)
   PropertyPanelFactory &ppf = PropertyPanelFactory::getPropertyPanelFactory();
   PropertyPanel *panel = ppf.createPropertyPanel(name);
   if (!panel) {
@@ -5027,6 +5101,9 @@ void Builder::urlStateMCB(JMSMessage& msg)
  */
 void Builder::propertyChangeMCB(JMSMessage& msg)
 {
+  //  A running job delivers properties one at a time and each one can
+  //  create a panel; none of them may steal the viewer (#111).
+  PanelBuildGuard buildGuard(p_panelBuildDepth);
   string urlstr = msg.getProperty("url");
   //cout << "Builder::propertyChangeMCB" << endl;
   //cout << "url   = " << urlstr << endl;

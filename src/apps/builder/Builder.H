@@ -468,6 +468,13 @@ class Builder: public BuilderGUI,
       ewxBitmapButton * p_cameraButton;
 
       map<wxWindow*, wxString> p_propertyPanelInfo;
+
+      //  >0 while property panels are being created, re-docked or
+      //  re-laid-out.  OnChildFocus() refuses to hand a panel the 3-D
+      //  viewer while this is set, so building the UI cannot activate an
+      //  overlay -- only a real user click or tab into a panel can.
+      //  See the comment on OnChildFocus() in Builder.C (#111).
+      int p_panelBuildDepth;
 };
 
 #endif
