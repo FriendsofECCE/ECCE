@@ -3,6 +3,7 @@
 #include <map>
 #include <sstream>
 using std::ostringstream;
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 
@@ -193,6 +194,12 @@ bool MoDiagram::group(const vector<double>& energies,
 }
 
 
+static bool lowerEnergy(const MoLevel& a, const MoLevel& b)
+{
+  return a.energy < b.energy;
+}
+
+
 bool MoDiagram::groupByIrrep(const vector<double>& energies,
                              const vector<double>& occupancies,
                              const vector<string>& labels,
@@ -220,9 +227,17 @@ bool MoDiagram::groupByIrrep(const vector<double>& energies,
     //  Take up to `wanted` consecutive orbitals with the same label.
     //  Fewer is possible and is not an error: an open shell, or a
     //  calculation whose last printed orbital falls mid-set.
+    //  AND AT THE SAME ENERGY.  Partners of a degenerate set are
+    //  printed consecutively and agree to the last digit; two
+    //  same-irrep orbitals half a Hartree apart are two different
+    //  levels that happen to be adjacent in the list.  Without this,
+    //  cobalt's occupied bonding t1u and an empty virtual t1u were
+    //  swept into one level, which then reported zero electrons in a
+    //  bonding orbital and sat out of energy order.
     size_t take = 0;
     while (take < (size_t)wanted && i + take < n &&
-           canonicalIrrep(labels[i + take]) == canonical) {
+           canonicalIrrep(labels[i + take]) == canonical &&
+           fabs(energies[i + take] - energies[i]) <= tolerance) {
       take++;
     }
     if (take == 0) take = 1;
@@ -247,6 +262,12 @@ bool MoDiagram::groupByIrrep(const vector<double>& energies,
     levels.push_back(level);
     i += take;
   }
+
+  //  IN ENERGY ORDER, WHATEVER ORDER THEY ARRIVED IN.  Everything
+  //  downstream -- the numbering, the bonding/antibonding counting,
+  //  the row grouping -- reads this as a spectrum, and a code is free
+  //  to print its orbitals grouped by symmetry block instead.
+  std::sort(levels.begin(), levels.end(), lowerEnergy);
 
   //  NUMBER THE LEVELS WITHIN EACH IRREP: 1a1, 2a1, 1t2, 2t2.
   //
