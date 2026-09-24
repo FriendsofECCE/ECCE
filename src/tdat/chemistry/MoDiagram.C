@@ -330,6 +330,67 @@ void MoDiagram::placeFragments(const MoColumn& centre,
     }
   }
 
+  //  ONE SHELL, ONE LEVEL.
+  //
+  //  A free atom's 2p set is degenerate -- that is what a shell is.
+  //  Placing each of its symmetry components at the mean of the
+  //  orbitals IT became splits the set apart by wherever those
+  //  orbitals happened to land, which is a construct of the molecule
+  //  and not a property of the atom: water's oxygen came out with its
+  //  b1, b2 and a1 2p components at three different heights, spread
+  //  over a tenth of a Hartree, and the b1 -- whose molecular orbital
+  //  is the untouched out-of-plane lone pair, identical in energy --
+  //  no longer lined up with it.
+  //
+  //  Every level built from one shell is placed at their common mean,
+  //  weighted the same way.  Drawn, they are one row of lines side by
+  //  side, which is what a person draws: "O 2p" with three short
+  //  lines labelled a1, b1, b2.
+  //
+  //  The shell is identified by the energy the level arrived with,
+  //  which is the shell's own tabulated value and identical across
+  //  its components -- so this needs nothing the levels do not
+  //  already carry.
+  for (c = 0; c < 2; c++) {
+    vector<MoLevel>& levels = cols[c]->levels;
+    if (levels.size() < 2) continue;
+
+    //  Recover what each level arrived with, from the annotation that
+    //  was written from it before it was moved.
+    vector<double> tabulated(levels.size(), 0.0);
+    for (size_t i = 0; i < levels.size(); i++) {
+      double value = 0.0;
+      if (sscanf(levels[i].annotation.c_str(), "free atom %lf", &value) == 1) {
+        tabulated[i] = value;
+      }
+    }
+
+    vector<bool> done(levels.size(), false);
+    for (size_t i = 0; i < levels.size(); i++) {
+      if (done[i]) continue;
+
+      double sum = 0.0;
+      int count = 0;
+      for (size_t j = i; j < levels.size(); j++) {
+        if (done[j]) continue;
+        if (fabs(tabulated[j] - tabulated[i]) > 1.0e-9) continue;
+        if (levels[j].shell != levels[i].shell) continue;
+        sum += levels[j].energy;
+        count++;
+      }
+      if (count == 0) continue;
+
+      const double common = sum/count;
+      for (size_t j = i; j < levels.size(); j++) {
+        if (done[j]) continue;
+        if (fabs(tabulated[j] - tabulated[i]) > 1.0e-9) continue;
+        if (levels[j].shell != levels[i].shell) continue;
+        levels[j].energy = common;
+        done[j] = true;
+      }
+    }
+  }
+
   //  A level that connected to nothing keeps its tabulated energy, and
   //  would then be an eV value on a Hartree axis -- off the bottom of
   //  the picture.  Put it at the mean of the levels that were placed,

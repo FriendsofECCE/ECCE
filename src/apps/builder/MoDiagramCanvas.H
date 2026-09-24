@@ -359,18 +359,30 @@ class MoDiagramCanvas : public wxPanel
       //  A phase sketch is taller than a line of text, so a column
       //  that has them needs more room than one that does not --
       //  chlorine's 3p symmetry orbitals were overlapping each other.
-      bool sketches = false;
-      for (size_t i = 0; i < column.levels.size(); i++) {
-        if (!column.levels[i].phases.empty()) sketches = true;
+      //  WHAT EACH LEVEL ACTUALLY NEEDS, NOT WHAT THE WORST ONE
+      //  NEEDS.
+      //
+      //  An annotation is written under its level's label and is
+      //  drawn once per shell, so in water exactly one of the
+      //  oxygen's three 2p levels carries one.  Demanding two rows
+      //  between every pair on that account opened the set out by
+      //  three times what it needed and pushed B1 2p away from the
+      //  non-bonding orbital it is identical to.  A gap has to clear
+      //  the level ABOVE it, and nothing more.
+      dc.SetFont(*wxSMALL_FONT);
+      const int row = dc.GetTextExtent(wxT("Xg")).y;
+
+      vector<int> needs(groups.size(), row + 8);
+      for (size_t g = 0; g < groups.size(); g++) {
+        bool sketch = false, note = false;
+        for (size_t i = groups[g].first; i <= groups[g].second; i++) {
+          if (!column.levels[i].phases.empty())     sketch = true;
+          if (!column.levels[i].annotation.empty()) note   = true;
+        }
+        if (note)   needs[g] = 2*row + 10;
+        if (sketch && needs[g] < 46) needs[g] = 46;
       }
 
-      //  A sketch is two rows of circles with p lobes through them,
-      //  about forty pixels tall against a text row's fifteen, so a
-      //  gap sized for text left chlorine's four 3p symmetry orbitals
-      //  drawn through one another.
-      dc.SetFont(*wxSMALL_FONT);
-      int minGap = dc.GetTextExtent(wxT("Xg")).y + 8;
-      if (sketches && minGap < 44) minGap = 44;
 
       //  IN THE ORDER THEY ARE DRAWN, NOT THE ORDER THEY ARE STORED.
       //
@@ -389,18 +401,41 @@ class MoDiagramCanvas : public wxPanel
       }
       std::sort(byHeight.begin(), byHeight.end());
 
+      double before = 0.0;
+      for (size_t g = 0; g < groupY.size(); g++) before += groupY[g];
+
       for (size_t k = 1; k < byHeight.size(); k++) {
         const int above = groupY[byHeight[k-1].second];
+        const int minGap = needs[byHeight[k-1].second];
         if (groupY[byHeight[k].second] - above < minGap) {
           groupY[byHeight[k].second] = above + minGap;
         }
       }
 
-      //  Slid back up if the stack ran off the bottom.
-      const int lowest = groupY[byHeight[byHeight.size() - 1].second];
-      const int over = lowest - (plot.y + plot.height - 6);
+      //  CENTRED ON WHERE THEY REALLY ARE.  Pushing each level down
+      //  from the one above accumulates downward, so a set that had
+      //  to be opened out ended up wholly below its true energy --
+      //  water's B1 2p was pushed a tenth of a Hartree under the
+      //  non-bonding orbital it is identical to, which is the one
+      //  thing that diagram has to show.  Moving the opened-out stack
+      //  back onto its own centre keeps every level as near its
+      //  energy as the spacing allows.
+      double after = 0.0;
+      for (size_t g = 0; g < groupY.size(); g++) after += groupY[g];
+      const int recentre = (int)((before - after)/(double)groupY.size());
+      if (recentre != 0) {
+        for (size_t g = 0; g < groupY.size(); g++) groupY[g] += recentre;
+      }
+
+      //  Slid back inside the plot if the stack ran off either end.
+      const int lowest  = groupY[byHeight[byHeight.size() - 1].second];
+      const int highest = groupY[byHeight[0].second];
+      const int over  = lowest - (plot.y + plot.height - 6);
+      const int under = (plot.y + 6) - highest;
       if (over > 0) {
         for (size_t g = 0; g < groupY.size(); g++) groupY[g] -= over;
+      } else if (under > 0) {
+        for (size_t g = 0; g < groupY.size(); g++) groupY[g] += under;
       }
     }
 
@@ -418,6 +453,43 @@ class MoDiagramCanvas : public wxPanel
         }
       }
       return yFor(column.levels[which].energy, plot);
+    }
+
+    /** "A1  (2p)" as its symmetry part and its shell part. */
+    static void splitShellLabel(const string& label, string& irrep,
+                                string& shell)
+    {
+      irrep = label;
+      shell.clear();
+      const string::size_type open = label.find('(');
+      if (open == string::npos) return;
+      const string::size_type close = label.find(')', open);
+      if (close == string::npos) return;
+
+      shell = label.substr(open + 1, close - open - 1);
+      irrep = label.substr(0, open);
+      while (!irrep.empty() && isspace((unsigned char)irrep[irrep.size()-1])) {
+        irrep.erase(irrep.size() - 1);
+      }
+    }
+
+    /** The most lines any one row of either fragment column holds. */
+    static int widestRow(const MoColumn& column)
+    {
+      int widest = 1;
+      const vector<MoLevel>& levels = column.levels;
+      for (size_t a = 0; a < levels.size(); ) {
+        size_t b = a;
+        int lines = levels[a].degeneracy > 0 ? levels[a].degeneracy : 1;
+        while (b + 1 < levels.size() &&
+               fabs(levels[b+1].energy - levels[a].energy) < 1.0e-9) {
+          b++;
+          lines += levels[b].degeneracy > 0 ? levels[b].degeneracy : 1;
+        }
+        if (lines > widest) widest = lines;
+        a = b + 1;
+      }
+      return widest;
     }
 
     void drawColumn(wxDC& dc, const MoColumn& column, int x, int width,
@@ -491,8 +563,26 @@ class MoDiagramCanvas : public wxPanel
                           centreY, split ? &level : 0, plot);
           }
 
-          drawLabel(dc, level, groupLeft, count*slot - lineGap, centreY,
-                    first == last, plot, colour);
+          //  A ROW OF SEVERAL SYMMETRY COMPONENTS IS LABELLED ONCE.
+          //
+          //  A shell's components are drawn side by side on one row,
+          //  so each of them carrying the full "A1  (2p)" printed
+          //  three labels over one another in a slot a third as wide.
+          //  The shell is named once, at the left of the row; each
+          //  line is marked with its own symmetry, which is how the
+          //  set is drawn by hand.
+          if (first != last) {
+            MoLevel marked = level;
+            string irrep, shell;
+            splitShellLabel(level.label, irrep, shell);
+            marked.label = irrep;
+            marked.annotation.clear();
+            drawLabel(dc, marked, groupLeft, count*slot - lineGap, centreY,
+                      false, plot, colour);
+          } else {
+            drawLabel(dc, level, groupLeft, count*slot - lineGap, centreY,
+                      true, plot, colour);
+          }
 
           if (hits != 0) {
             Hit hit;
@@ -501,6 +591,19 @@ class MoDiagramCanvas : public wxPanel
             hits->push_back(hit);
           }
           drawn += count;
+        }
+
+        if (first != last) {
+          string irrep, shell;
+          splitShellLabel(column.levels[first].label, irrep, shell);
+          if (!shell.empty()) {
+            MoLevel row;
+            row.label      = shell;
+            row.annotation = column.levels[first].annotation;
+            row.degeneracy = 1;
+            drawLabel(dc, row, x, width, y, true, plot,
+                      wxColour(0, 0, 0));
+          }
         }
       }
     }
@@ -603,6 +706,13 @@ class MoDiagramCanvas : public wxPanel
       } else {
         drawPieces(dc, pieces, x + (width - extent.x)/2, y - extent.y - 6,
                    base, small, extent.y);
+
+        //  Above its own lines.  The left-hand branch puts a sketch
+        //  beside the label, but a component of a multi-component row
+        //  has no left-hand position -- and chlorine's 3p symmetry
+        //  orbitals are exactly the case the sketches exist for.
+        drawSketch(dc, level, *p_sketchColumn, x + width/2,
+                   y - extent.y - 26);
       }
 
     }
@@ -908,9 +1018,28 @@ class MoDiagramCanvas : public wxPanel
                         max(40, size.y - top - footerHeight - 6));
 
       const int levelWidth = p_haveFragments ? 70 : 120;
-      const int xLeft   = size.x/6;
+
+      //  A FRAGMENT COLUMN IS AS WIDE AS ITS WIDEST ROW NEEDS.
+      //
+      //  A shell's symmetry components are drawn side by side on one
+      //  row -- which is how the set is drawn by hand -- and chlorine
+      //  brings four of them from its 3p, each wanting a symmetry
+      //  label and a phase sketch of its own.  At one level width
+      //  they were packed into seventeen pixels apiece and nothing
+      //  could be read.  Bounded, so a column cannot eat the diagram.
+      //  Each column on its own account: carbon brings one 2p row of
+      //  three, chlorine brings a 3p row of twelve, and widening both
+      //  to suit the wider one leaves the narrow column's lines
+      //  stretched across empty space.
+      const int leftWidth  = max(levelWidth,
+                                 min(3*levelWidth, 34*widestRow(p_left)));
+      const int rightWidth = max(levelWidth,
+                                 min(3*levelWidth, 34*widestRow(p_right)));
+
+      const int xLeft   = size.x/6 - (leftWidth - levelWidth)/2;
       const int xCentre = size.x/2 - levelWidth/2;
-      const int xRight  = (5*size.x)/6 - levelWidth;
+      const int xRight  = (5*size.x)/6 - levelWidth
+                          - (rightWidth - levelWidth)/2;
 
       //  The energy axis.  A correlation diagram without one is a set
       //  of floating dashes: the reader has to be told which way is up
@@ -985,7 +1114,7 @@ class MoDiagramCanvas : public wxPanel
           const int cy = yFor(reached.energy, plot);
 
           if (link.leftLevel >= 0 && link.leftLevel < (int)p_left.levels.size()) {
-            dc.DrawLine(xLeft + levelWidth,
+            dc.DrawLine(xLeft + leftWidth,
                         levelYIn(dc, p_left, plot, true, link.leftLevel),
                         xCentre, cy);
           }
@@ -1005,10 +1134,10 @@ class MoDiagramCanvas : public wxPanel
         //  occupancy now, and a diagram that does not draw it does not
         //  say which combinations are filled -- which is half of what
         //  it is for.  The offline renderer draws them; this did not.
-        drawColumn(dc, p_left, xLeft, levelWidth, plot, true, 0, -1, true);
+        drawColumn(dc, p_left, xLeft, leftWidth, plot, true, 0, -1, true);
         p_placed.clear();
       p_notes.clear();
-        drawColumn(dc, p_right, xRight, levelWidth, plot, true, 0, +1, true);
+        drawColumn(dc, p_right, xRight, rightWidth, plot, true, 0, +1, true);
         p_placed.clear();
       p_notes.clear();
       }
