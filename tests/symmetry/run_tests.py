@@ -529,6 +529,11 @@ def main():
         print("FAILED  the orbit/reduction analysis")
         return 1
 
+    if standalone("testMoDiagram",
+                  ["src/tdat/chemistry/MoDiagram.C"]) != 0:
+        print("FAILED  the diagram layout")
+        return 1
+
     print("PASSED")
     return 0
 
