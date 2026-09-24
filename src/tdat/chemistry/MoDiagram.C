@@ -173,6 +173,22 @@ bool MoDiagram::group(const vector<double>& energies,
       levels.push_back(level);
     }
   }
+
+  //  A SPECTRUM WITH NO SYMMETRY LABELS STILL HAS ORDINALS.
+  //
+  //  Most calculations report no orbital symmetries at all, and those
+  //  levels were labelled "?", which the canvas then declined to
+  //  draw: a diagram of unnamed lines.  A plain numbering is honest
+  //  and is what a spectrum without symmetry actually gives you.
+  //  Numbered from the lowest, so the numbers match the page.
+  if (labels.empty()) {
+    for (size_t k = 0; k < levels.size(); k++) {
+      char text[32];
+      snprintf(text, sizeof(text), "%d", (int)k + 1);
+      levels[k].label = text;
+      levels[k].irrep.clear();
+    }
+  }
   return true;
 }
 
@@ -241,12 +257,31 @@ bool MoDiagram::groupByIrrep(const vector<double>& energies,
   //  parser keeps only the symbol, so the count is redone here from the
   //  order the levels come in, which is the same rule: counting up from
   //  the lowest.
+  //  A SPECTRUM WITH NO SYMMETRY LABELS STILL HAS ORDINALS.
+  //
+  //  Most calculations report no orbital symmetries at all, and those
+  //  levels were labelled "?", which the canvas then declined to
+  //  draw: a diagram of unnamed lines, where a plain numbering is
+  //  both honest and what a spectrum without symmetry actually gives
+  //  you.  Numbered from the lowest drawn level, so the numbers match
+  //  what is on the page.
+  //  "?" is the placeholder group() uses when the caller supplied no
+  //  labels at all, so it is an absence of symmetry and not a name.
+  bool anyIrrep = false;
+  for (size_t k = 0; k < levels.size(); k++) {
+    if (!levels[k].irrep.empty() && levels[k].irrep != "?") anyIrrep = true;
+  }
+
   map<string,int> seen;
   for (size_t k = 0; k < levels.size(); k++) {
-    const int n = ++seen[levels[k].irrep];
     char text[64];
-    snprintf(text, sizeof(text), "%d%s", n, levels[k].label.empty()
-             ? levels[k].irrep.c_str() : levels[k].label.c_str());
+    if (!anyIrrep) {
+      snprintf(text, sizeof(text), "%d", (int)k + 1);
+    } else {
+      const int n = ++seen[levels[k].irrep];
+      snprintf(text, sizeof(text), "%d%s", n, levels[k].label.empty()
+               ? levels[k].irrep.c_str() : levels[k].label.c_str());
+    }
     levels[k].label = text;
   }
   return !levels.empty();
@@ -722,7 +757,16 @@ bool MoDiagram::reconcile(vector<MoLevel>& left, vector<MoLevel>& right,
     text << it->second << it->first;
     first = false;
   }
-  text << " from symmetry), so nothing is correlated.";
+  //  SAY WHAT ACTUALLY HAPPENS NEXT, WHICH IS NOT NOTHING.
+  //
+  //  Failing to reconcile the labels does not stop the diagram: the
+  //  correlation falls back to composition -- which fragment and
+  //  which shell each orbital is built from, out of its own
+  //  coefficients -- and that needs no labels at all.  CCl4 drew
+  //  twenty correlation lines under a note saying it had drawn none,
+  //  which is worse than saying nothing.
+  text << " from symmetry), so the levels are correlated by what they "
+          "are built from rather than by their labels.";
   why = text.str();
   return false;
 }
