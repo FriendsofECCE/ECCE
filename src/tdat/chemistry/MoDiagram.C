@@ -434,10 +434,11 @@ void MoDiagram::placeFragments(const MoColumn& centre,
         //  Weighted by the share of that orbital this fragment holds,
         //  where a share was computed, and evenly where none was.
         double w = 1.0;
-        if (level.shell >= 0) {
+        const int which = (level.slot >= 0) ? level.slot : level.shell;
+        if (which >= 0) {
           const vector<double>& shares = (c == 0) ? mo.shellLeft
                                                   : mo.shellRight;
-          if ((int)shares.size() > level.shell) w = shares[level.shell];
+          if ((int)shares.size() > which) w = shares[which];
         } else {
           const double share = (c == 0) ? mo.shareLeft : mo.shareRight;
           if (share >= 0.0) w = share;

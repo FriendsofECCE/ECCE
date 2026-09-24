@@ -419,7 +419,7 @@ static const char *TIMES = "\xc3\x97";
 static void addLevels(const CharacterTable& table,
                       const vector<int>& multiplicity,
                       double energy, const string& shellName, int shell,
-                      vector<MoLevel>& levels)
+                      vector<MoLevel>& levels, int slot = -1)
 {
    const vector<string>& irreps = table.irreps();
 
@@ -431,6 +431,7 @@ static void addLevels(const CharacterTable& table,
       level.degeneracy = multiplicity[i]*table.dimension(irreps[i]);
       level.irrep      = MoDiagram::canonicalIrrep(irreps[i]);
       level.shell      = shell;
+      level.slot       = slot;
 
       //  The multiplicity is worth saying: two T2 sets are two
       //  different things at the same height in this model, and a
@@ -1252,12 +1253,26 @@ static void buildColumn(const vector<int>& atoms,
                << (l == 0 ? 's' : (l == 1 ? 'p' : 'd'));
          if (byElement.size() > 1) shell << " " << symbol;
 
+         //  One slot per element AND shell, named so the caller can
+         //  bin an orbital's composition the same way.
+         ostringstream key;
+         key << symbol << ':' << l;
+         int slot = -1;
+         for (size_t k = 0; k < column.shellKeys.size(); k++) {
+            if (column.shellKeys[k] == key.str()) slot = (int)k;
+         }
+         if (slot < 0) {
+            slot = (int)column.shellKeys.size();
+            column.shellKeys.push_back(key.str());
+         }
+
          if (ownOrbitals) {
             MoLevel level;
             level.energy     = eV;
             level.degeneracy = (l == 0) ? 1 : (l == 1 ? 3 : 5);
             level.label      = shell.str();
             level.shell      = l;
+            level.slot       = slot;
             column.levels.push_back(level);
             continue;
          }
@@ -1268,7 +1283,8 @@ static void buildColumn(const vector<int>& atoms,
             continue;
          }
          const size_t before = column.levels.size();
-         addLevels(table, multiplicity, eV, shell.str(), l, column.levels);
+         addLevels(table, multiplicity, eV, shell.str(), l, column.levels,
+                   slot);
 
          //  The phase patterns.  s and p by different calls: an
          //  operation carries one s orbital per atom along unchanged,

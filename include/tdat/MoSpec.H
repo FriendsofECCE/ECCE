@@ -154,33 +154,55 @@ static bool buildModel(const char* tables, const char* molecule,
         if (l < 0.0 || r < 0.0) continue;
         onLeft += l; onRight += r; counted++;
 
-        //  And per shell, which is the only thing that can connect a
-        //  diatomic: both its atoms carry exactly half of every
+        //  And per shell -- which is the only thing that can connect
+        //  a diatomic: both its atoms carry exactly half of every
         //  orbital, so which ATOM a sigma-g came from has no answer,
         //  while which SHELL it came from has one.
+        //
+        //  BINNED BY ELEMENT AS WELL AS ANGULAR MOMENTUM, using the
+        //  column's own shell keys.  Binning by angular momentum
+        //  alone lumps every s function in a fragment together, so
+        //  formaldehyde's oxygen 2s and its hydrogens' 1s shared a
+        //  bin, took identical weights, and were dragged towards each
+        //  other -- oxygen's 2s/2p separation came out a third of the
+        //  free atom's while carbon's stayed full size.
         if (shellOf.size() == coefficients[mo].size()) {
-          if (level.shellLeft.empty())  level.shellLeft.assign(3, 0.0);
-          if (level.shellRight.empty()) level.shellRight.assign(3, 0.0);
-          for (int want = 0; want < 3; want++) {
-            vector<int> pickLeft, pickRight;
-            int at = 0;
-            for (size_t a = 0; a < perAtom.size(); a++) {
-              bool isLeft = false, isRight = false;
-              for (size_t k = 0; k < leftAtoms.size(); k++)
-                if (leftAtoms[k] == (int)a) isLeft = true;
-              for (size_t k = 0; k < rightAtoms.size(); k++)
-                if (rightAtoms[k] == (int)a) isRight = true;
-              for (int f = 0; f < perAtom[a]; f++) {
-                if (shellOf[at + f] != want) continue;
-                if (isLeft)  pickLeft.push_back(at + f);
-                if (isRight) pickRight.push_back(at + f);
+          if (level.shellLeft.size() != left.shellKeys.size()) {
+            level.shellLeft.assign(left.shellKeys.size(), 0.0);
+          }
+          if (level.shellRight.size() != right.shellKeys.size()) {
+            level.shellRight.assign(right.shellKeys.size(), 0.0);
+          }
+
+          for (int side = 0; side < 2; side++) {
+            const MoColumn& column = (side == 0) ? left : right;
+            const vector<int>& mine = (side == 0) ? leftAtoms : rightAtoms;
+            vector<double>& into =
+                (side == 0) ? level.shellLeft : level.shellRight;
+
+            for (size_t s = 0; s < column.shellKeys.size(); s++) {
+              const string& key = column.shellKeys[s];
+              const string::size_type colon = key.find(':');
+              if (colon == string::npos) continue;
+              const string element = key.substr(0, colon);
+              const int want = atoi(key.substr(colon + 1).c_str());
+
+              vector<int> pick;
+              int at = 0;
+              for (size_t a = 0; a < perAtom.size(); a++) {
+                bool ours = false;
+                for (size_t k = 0; k < mine.size(); k++) {
+                  if (mine[k] == (int)a) ours = true;
+                }
+                if (ours && a < elements.size() && elements[a] == element) {
+                  for (int f = 0; f < perAtom[a]; f++) {
+                    if (shellOf[at + f] == want) pick.push_back(at + f);
+                  }
+                }
+                at += perAtom[a];
               }
-              at += perAtom[a];
+              into[s] += shareOfFunctions(coefficients[mo], pick);
             }
-            level.shellLeft[want]  += shareOfFunctions(coefficients[mo],
-                                                       pickLeft);
-            level.shellRight[want] += shareOfFunctions(coefficients[mo],
-                                                       pickRight);
           }
         }
       }

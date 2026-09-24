@@ -84,6 +84,24 @@ struct MoLevel
     */
    int            shell;
 
+   /**
+    * Which shell of THIS COLUMN the level belongs to, or -1.
+    *
+    * An index into MoColumn::shellKeys, which names each shell by its
+    * element as well as its angular momentum.
+    *
+    * `shell` alone is the angular momentum, and binning the
+    * composition by it lumps every s function in a fragment
+    * together.  In formaldehyde the terminal fragment is an oxygen
+    * and two hydrogens, so oxygen's 2s and the hydrogens' 1s shared
+    * one bin, got identical weights, and were dragged towards each
+    * other: oxygen's 2s/2p separation came out a third of the free
+    * atom's while carbon's stayed full size.  That is not the price
+    * of placing a level at the mean of what it became -- it is two
+    * different shells being asked one question.
+    */
+   int            slot;
+
    /** What the level is: see MoDiagram::classify(). */
    enum Character { UNKNOWN, BONDING, NONBONDING, ANTIBONDING };
    Character      character;
@@ -114,7 +132,7 @@ struct MoLevel
    vector<double> energies;
 
    MoLevel() : energy(0.0), occupancy(0.0), degeneracy(0),
-               shareLeft(-1.0), shareRight(-1.0), shell(-1),
+               shareLeft(-1.0), shareRight(-1.0), shell(-1), slot(-1),
                character(UNKNOWN), pairing(-1) {}
 };
 
@@ -123,6 +141,16 @@ struct MoLevel
 struct MoColumn
 {
    string           title;
+
+   /**
+    * This column's shells, named by element and angular momentum.
+    *
+    * "O:0" is oxygen's s shell.  MoLevel::slot indexes this, and the
+    * composition shares are binned the same way, so a fragment level
+    * is weighted by how much of an orbital sits in ITS shell rather
+    * than in any shell of the same angular momentum.
+    */
+   vector<string>   shellKeys;
 
    /** Where to draw this column's atoms, for the phase sketches. */
    vector<double>   sketchX;
