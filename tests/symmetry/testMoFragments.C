@@ -787,6 +787,90 @@ int main(int argc, char** argv) {
     }
   }
 
+  //  --- degenerate sets span an invariant subspace -------------------
+  //
+  //  The one-dimensional check above does not reach an e or a t: their
+  //  members do not come back as multiples of themselves, they mix
+  //  into each other.  What is true of ANY irrep is that its set spans
+  //  a subspace the group cannot leave -- apply an operation to a
+  //  member and the result is still a combination of the set.
+  //
+  //  This matters because a degenerate irrep is where projection and
+  //  Gram-Schmidt are most likely to be subtly wrong, and the counting
+  //  check cannot see it: a wrong basis of the right-sized subspace
+  //  has exactly the right number of vectors.
+  {
+    printf("\n  degenerate symmetry orbitals\n");
+
+    const double dd = 0.6276;
+    double c[] = { 0,0,0,  dd,dd,dd,  dd,-dd,-dd,  -dd,dd,-dd,  -dd,-dd,dd };
+    vector<double> coords(c, c + 15);
+    const char* e[] = { "C", "H", "H", "H", "H" };
+    vector<string> elements(e, e + 5);
+
+    const CharacterTable *table = CharacterTable::lookup("TD");
+    vector<SymOp> ops;
+    MoFragments::symmetryOperations("TD", ops);
+    vector< vector<int> > images, classes;
+    vector<int> classOfOp;
+    bool ready = table != 0 &&
+        SymmetryAnalysis::atomImages(coords, elements, ops, 1e-3, images);
+    if (ready) {
+      SymmetryAnalysis::conjugacyClasses(ops, classes);
+      ready = SymmetryAnalysis::matchClasses(ops, classes, *table, classOfOp);
+    }
+    printf("  %-46s %s\n", "CH4: the Td frame is usable", ready ? "ok" : "FAIL");
+    if (!ready) bad++;
+    else {
+      vector<int> orbit;
+      for (int a = 1; a <= 4; a++) orbit.push_back(a);
+
+      double worst = 0.0;
+      int checked = 0;
+      const vector<string>& irreps = table->irreps();
+      for (size_t i = 0; i < irreps.size(); i++) {
+        vector< vector<double> > vs;
+        if (!SymmetryAnalysis::projectOrbit(orbit, images, classOfOp,
+                                            *table, irreps[i], vs)) continue;
+        if (vs.size() < 2) continue;         // the 1-D check covers these
+
+        for (size_t v = 0; v < vs.size(); v++) {
+          for (size_t o = 0; o < ops.size(); o++) {
+            //  Move the vector: atom a's coefficient goes to its image.
+            vector<double> moved(vs[v].size(), 0.0);
+            for (size_t a = 0; a < orbit.size(); a++) {
+              int to = -1;
+              for (size_t k = 0; k < orbit.size(); k++) {
+                if (orbit[k] == images[o][orbit[a]]) to = (int)k;
+              }
+              if (to < 0) continue;
+              moved[to] += vs[v][a];
+            }
+            //  Take away everything the set spans.  Nothing may be left.
+            for (size_t j = 0; j < vs.size(); j++) {
+              double dot = 0.0;
+              for (size_t k = 0; k < moved.size(); k++) dot += moved[k]*vs[j][k];
+              for (size_t k = 0; k < moved.size(); k++) moved[k] -= dot*vs[j][k];
+            }
+            for (size_t k = 0; k < moved.size(); k++) {
+              if (fabs(moved[k]) > worst) worst = fabs(moved[k]);
+            }
+          }
+          checked++;
+        }
+      }
+      printf("  %-46s %d vectors\n",
+             "CH4: the t2 set was checked", checked);
+      checkd("CH4: no operation takes it out of its own span",
+             worst, 0.0, 1e-9);
+      if (checked == 0) {
+        printf("  %-46s FAIL (nothing degenerate was found)\n",
+               "CH4: and there was something to check");
+        bad++;
+      }
+    }
+  }
+
   //  --- how much of an orbital sits on each fragment ----------------
   {
     printf("\n  composition\n");
