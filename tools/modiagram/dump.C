@@ -53,8 +53,12 @@ static double shareOfFunctions(const vector<double>& c,
 
 static void printColumn(const char* side, const MoColumn& col)
 {
-  printf("column\t%s\t%s\t%d\t%g\t%d\n", side, col.title.c_str(),
+  printf("column\t%s\t%s\t%d\t%g\t%d", side, col.title.c_str(),
          col.hiddenCount, col.hiddenMaxEnergy, col.hiddenAboveCount);
+  for (size_t k = 0; k < col.sketchX.size(); k++) {
+    printf("\t%.4f,%.4f", col.sketchX[k], col.sketchY[k]);
+  }
+  printf("\n");
   for (size_t i = 0; i < col.levels.size(); i++) {
     const MoLevel& l = col.levels[i];
     printf("level\t%s\t%zu\t%.10g\t%g\t%d\t%s\t%s\t%s\t%d\t%d",
@@ -63,6 +67,8 @@ static void printColumn(const char* side, const MoColumn& col)
            l.annotation.empty() ? "-" : l.annotation.c_str(),
            (int)l.character, l.pairing);
     printf("\t%.4f\t%.4f\t%d", l.shareLeft, l.shareRight, l.shell);
+    printf("\tphase");
+    for (size_t k = 0; k < l.phases.size(); k++) printf(",%.4f", l.phases[k]);
     for (size_t k = 0; k < l.energies.size(); k++) {
       printf("\t%.10g", l.energies[k]);
     }

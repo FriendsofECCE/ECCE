@@ -568,6 +568,80 @@ int main(int argc, char** argv) {
     if (!refused) bad++;
   }
 
+  //  --- the phase patterns a diagram sketches ------------------------
+  {
+    printf("\n  phase patterns\n");
+
+    const double d = 0.6276;
+    double c[] = { 0,0,0,  d,d,d,  d,-d,-d,  -d,d,-d,  -d,-d,d };
+    vector<double> coords(c, c + 15);
+    const char* e[] = { "C", "H", "H", "H", "H" };
+    vector<string> elements(e, e + 5);
+
+    MoColumn left, right;
+    string note;
+    MoFragments::build(coords, elements, "TD", 0, left, right, note);
+
+    //  The totally symmetric combination is every hydrogen in phase.
+    //  Any other answer means the projection operator, the class
+    //  matching or the orbit is wrong.
+    bool a1 = false, t2 = false;
+    for (size_t i = 0; i < right.levels.size(); i++) {
+      const vector<double>& p = right.levels[i].phases;
+      if (p.size() != 4) continue;
+
+      bool allSame = true;
+      for (size_t k = 1; k < p.size(); k++) {
+        if ((p[k] > 0) != (p[0] > 0)) allSame = false;
+      }
+      if (right.levels[i].irrep == "A1") a1 = allSame;
+      if (right.levels[i].irrep == "T2") t2 = !allSame;
+    }
+    printf("  %-46s %s\n", "CH4: the a1 TASO is all four in phase",
+           a1 ? "ok" : "FAIL");
+    printf("  %-46s %s\n", "CH4: a t2 TASO is not",
+           t2 ? "ok" : "FAIL");
+    if (!a1) bad++;
+    if (!t2) bad++;
+
+    //  A symmetry orbital is normalised, so its coefficients square to
+    //  one -- which is also what makes the circle sizes mean anything.
+    double norm = 0.0;
+    for (size_t i = 0; i < right.levels.size(); i++) {
+      if (right.levels[i].irrep != "A1") continue;
+      const vector<double>& p = right.levels[i].phases;
+      for (size_t k = 0; k < p.size(); k++) norm += p[k]*p[k];
+    }
+    checkd("CH4: and it is normalised", norm, 1.0, 1e-9);
+
+    //  Four hydrogens flattened for the sketch: they must not collapse
+    //  onto one another, or the picture shows fewer atoms than there
+    //  are.
+    bool spread = (right.sketchX.size() == 4);
+    for (size_t i = 0; spread && i < 4; i++) {
+      for (size_t j = i+1; spread && j < 4; j++) {
+        if (fabs(right.sketchX[i] - right.sketchX[j]) < 1e-6 &&
+            fabs(right.sketchY[i] - right.sketchY[j]) < 1e-6) spread = false;
+      }
+    }
+    printf("  %-46s %s\n", "CH4: the four sketch positions are distinct",
+           spread ? "ok" : "FAIL");
+    if (!spread) bad++;
+
+    //  A p shell carries no pattern: projectOrbit puts ONE orbital on
+    //  each atom, which is what an s shell is, and drawing an s
+    //  pattern beside a p level would be a confident lie.
+    bool pQuiet = true;
+    for (size_t i = 0; i < right.levels.size(); i++) {
+      if (right.levels[i].shell == 1 && !right.levels[i].phases.empty()) {
+        pQuiet = false;
+      }
+    }
+    printf("  %-46s %s\n", "a p shell claims no pattern",
+           pQuiet ? "ok" : "FAIL");
+    if (!pQuiet) bad++;
+  }
+
   //  --- how much of an orbital sits on each fragment ----------------
   {
     printf("\n  composition\n");

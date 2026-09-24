@@ -209,6 +209,54 @@ bool MoFragments::symmetryOperations(const string& group, vector<SymOp>& ops)
 }
 
 
+void MoFragments::sketchPositions(const vector<double>& coords,
+                                  const vector<int>& atoms,
+                                  vector<double>& x, vector<double>& y)
+{
+   x.clear();
+   y.clear();
+   if (atoms.size() < 2) return;
+
+   //  The centre of the set, so the spread is measured about it.
+   double mean[3] = { 0.0, 0.0, 0.0 };
+   size_t i;
+   int k;
+   for (i = 0; i < atoms.size(); i++) {
+      for (k = 0; k < 3; k++) mean[k] += coords[atoms[i]*3 + k];
+   }
+   for (k = 0; k < 3; k++) mean[k] /= atoms.size();
+
+   //  Flatten onto the two axes the atoms spread out in most, dropping
+   //  the one they spread out in least.  A perspective view of four
+   //  tetrahedral hydrogens hides which are in phase with which, which
+   //  is the only thing the sketch is for.
+   double spread[3] = { 0.0, 0.0, 0.0 };
+   for (i = 0; i < atoms.size(); i++) {
+      for (k = 0; k < 3; k++) {
+         const double d = coords[atoms[i]*3 + k] - mean[k];
+         spread[k] += d*d;
+      }
+   }
+   int flattest = 0;
+   for (k = 1; k < 3; k++) if (spread[k] < spread[flattest]) flattest = k;
+
+   const int ax = (flattest == 0) ? 1 : 0;
+   const int ay = (flattest == 2) ? 1 : 2;
+
+   double biggest = 0.0;
+   for (i = 0; i < atoms.size(); i++) {
+      const double dx = coords[atoms[i]*3 + ax] - mean[ax];
+      const double dy = coords[atoms[i]*3 + ay] - mean[ay];
+      x.push_back(dx);
+      y.push_back(dy);
+      if (fabs(dx) > biggest) biggest = fabs(dx);
+      if (fabs(dy) > biggest) biggest = fabs(dy);
+   }
+   if (biggest <= 0.0) { x.clear(); y.clear(); return; }
+   for (i = 0; i < x.size(); i++) { x[i] /= biggest; y[i] /= biggest; }
+}
+
+
 bool MoFragments::partition(const vector< vector<int> >& orbits,
                             const vector<string>& elements,
                             int& central,
@@ -498,6 +546,8 @@ bool MoFragments::build(const vector<double>& coords,
    //  so both columns are simply the atom.
    const bool diatomic = (elements.size() == 2 && terminal.size() == 1);
 
+   sketchPositions(coords, terminal, right.sketchX, right.sketchY);
+
    if (leftAtoms  != 0) leftAtoms->assign(1, central);
    if (rightAtoms != 0) *rightAtoms = terminal;
 
@@ -575,7 +625,46 @@ bool MoFragments::build(const vector<double>& coords,
                        *table, multiplicity)) {
          continue;
       }
+      const size_t before = right.levels.size();
       addLevels(*table, multiplicity, eV, shell.str(), l, right.levels);
+
+      //  THE PHASE PATTERN, which is what makes a TASO a picture
+      //  rather than a label: "a1" and "t2" both say how many, and
+      //  neither says which combination.
+      //
+      //  Only for the s shell.  projectOrbit() projects ONE orbital
+      //  per atom, which is what an s shell is; a p shell puts three
+      //  on each atom and its symmetry orbitals are combinations of
+      //  those, which the same call cannot express.  Drawing an s
+      //  pattern beside a p level would be a confident lie, so those
+      //  levels carry none.
+      if (l != 0) continue;
+
+      for (size_t j = before; j < right.levels.size(); j++) {
+         //  projectOrbit wants the TABLE's spelling, and the level
+         //  carries the canonical one -- which is uppercased, so
+         //  "E1g" became "E1G" and looked up nothing.  Silent: the
+         //  pattern would simply never appear.
+         string tableName;
+         const vector<string>& names = table->irreps();
+         for (size_t n = 0; n < names.size(); n++) {
+            if (MoDiagram::canonicalIrrep(names[n]) == right.levels[j].irrep) {
+               tableName = names[n];
+               break;
+            }
+         }
+         if (tableName.empty()) continue;
+
+         vector< vector<double> > vectors;
+         if (!SymmetryAnalysis::projectOrbit(terminal, images, classOfOp,
+                                             *table, tableName, vectors)) {
+            continue;
+         }
+         //  One pattern for a degenerate set: its partners are related
+         //  by the group's own operations, so any one of them stands
+         //  for the set.
+         if (!vectors.empty()) right.levels[j].phases = vectors[0];
+      }
    }
 
    //  --- electrons -------------------------------------------------

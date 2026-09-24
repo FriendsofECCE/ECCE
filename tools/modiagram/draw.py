@@ -47,7 +47,9 @@ def read(stream):
         elif f[0] == "column":
             model["columns"][f[1]] = {
                 "title": f[2], "hidden": int(f[3]),
-                "hiddenMax": float(f[4]), "hiddenAbove": int(f[5])}
+                "hiddenMax": float(f[4]), "hiddenAbove": int(f[5]),
+                "sketch": [tuple(float(v) for v in p.split(","))
+                           for p in f[6:] if p]}
             model["levels"].setdefault(f[1], [])
         elif f[0] == "level":
             model["levels"].setdefault(f[1], []).append({
@@ -57,14 +59,15 @@ def read(stream):
                 "character": int(f[9]), "pair": int(f[10]),
                 "shareLeft": float(f[11]), "shareRight": float(f[12]),
                 "shell": int(f[13]),
-                "each": [float(x) for x in f[14:]]})
+                "phases": [float(x) for x in f[14].split(",")[1:]],
+                "each": [float(x) for x in f[15:]]})
         elif f[0] == "link":
             model["links"].append(tuple(int(x) for x in f[1:4]))
     return model
 
 
 #  Column centres in axes coordinates.
-X = {"left": 0.24, "centre": 0.54, "right": 0.85}
+X = {"left": 0.28, "centre": 0.56, "right": 0.85}
 #  Which side of a column its labels go: outward, so nothing is written
 #  over the correlation lines in the middle.
 OUT = {"left": -1, "centre": -1, "right": +1}
@@ -152,6 +155,35 @@ def mathify(text):
                     for t in text.split(" "))
 
 
+def sketch(ax, level, positions, cx, cy, size, span):
+    """The phase pattern beside a symmetry orbital.
+
+    Circles at the terminal atoms, filled for one sign and open for the
+    other, sized by weight.  This is what makes a TASO a picture rather
+    than a label: "a1" and "t2" both say how many orbitals, and neither
+    says which combination.
+    """
+    phases = level.get("phases") or []
+    if not phases or len(phases) != len(positions):
+        return
+
+    #  Markers, not Circles.  A Circle's radius is in data units, and
+    #  the x axis runs 0..1 while the y axis runs over a Hartree or
+    #  two -- the circles came out as sub-pixel ellipses and nothing
+    #  appeared at all.  A marker's size is in points, so it is round
+    #  whatever the axes are doing.
+    biggest = max(abs(p) for p in phases) or 1.0
+    for (px, py), weight in zip(positions, phases):
+        if abs(weight) < 1e-6:
+            continue
+        points = 6.0 * (abs(weight) / biggest) ** 0.5
+        ax.plot([cx + px * size], [cy + py * size * span * 0.9],
+                marker="o", markersize=points,
+                markerfacecolor="0.25" if weight > 0 else "white",
+                markeredgecolor="0.25", markeredgewidth=0.9,
+                zorder=3, clip_on=False)
+
+
 def pretty(group):
     """T_d, C_2v, D_4h -- the way a chemist writes it."""
     if not group:
@@ -164,7 +196,7 @@ def pretty(group):
 
 def draw(model, path):
     fig, ax = plt.subplots(figsize=(13, 8.5))
-    ax.set_xlim(0, 1)
+    ax.set_xlim(-0.06, 1.20)
     ax.axis("off")
 
     every = [l["energy"] for side in model["levels"]
@@ -283,6 +315,14 @@ def draw(model, path):
                             else (min(ys) - 0.018 * span),
                             mathify(text), ha="center",
                             va="bottom" if above else "top", fontsize=8)
+            #  The sketch sits outside the label, where there is room
+            #  and where it reads as belonging to the level.
+            positions = column.get("sketch") or []
+            if level.get("phases") and positions:
+                notch = 0.075 * (placed[-1][1] if placed else 0)
+                sx = X[side] + out * (half + 0.155 + notch)
+                sketch(ax, level, positions, sx, labelY, 0.024, span)
+
             if level["annot"]:
                 #  Under the label, at the label's own offset, so it
                 #  moves with it rather than staying put and colliding

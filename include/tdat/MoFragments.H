@@ -36,6 +36,19 @@ class MoFragments
   public:
 
     /**
+     * Where to draw the terminal atoms when sketching a phase pattern.
+     *
+     * The atoms' own positions flattened onto the two directions they
+     * spread out in most, scaled into -1..1.  Flattened rather than
+     * drawn in perspective because the sketch answers "which of these
+     * are in phase with which", and a perspective view of four
+     * tetrahedral hydrogens hides exactly that.
+     */
+    static void sketchPositions(const vector<double>& coords,
+                                const vector<int>& atoms,
+                                vector<double>& x, vector<double>& y);
+
+    /**
      * The operations of a named point group.
      *
      * Shells out to the `symops` helper, which wraps gensym -- the same

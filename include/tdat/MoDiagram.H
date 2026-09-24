@@ -61,6 +61,21 @@ struct MoLevel
    vector<double> shellRight;
 
    /**
+    * The phase pattern of a symmetry orbital, one per terminal atom.
+    *
+    * What a hand-drawn diagram sketches beside the level: circles at
+    * the terminal atoms, filled or open by sign, sized by weight.  It
+    * is what makes a TASO a picture instead of a label -- a1 and t2
+    * both say "three orbitals" and neither says which combination.
+    *
+    * From SymmetryAnalysis::projectOrbit(), so it is the projection
+    * operator's own answer.  Empty where there is nothing to sketch:
+    * a single atom's own orbital, or a shell the projection does not
+    * cover.
+    */
+   vector<double> phases;
+
+   /**
     * Which shell a FRAGMENT level is, as an angular momentum, or -1.
     *
     * A central atom's 2s and 2p, and a diatomic's, are single shells
@@ -108,6 +123,10 @@ struct MoLevel
 struct MoColumn
 {
    string           title;
+
+   /** Where to draw this column's atoms, for the phase sketches. */
+   vector<double>   sketchX;
+   vector<double>   sketchY;
    vector<MoLevel>  levels;
 
    /**

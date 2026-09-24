@@ -49,7 +49,7 @@ class MoDiagramCanvas : public wxPanel
 
     MoDiagramCanvas(wxWindow *parent)
       : wxPanel(parent, wxID_ANY), p_owner(0), p_haveFragments(false),
-        p_placed()
+        p_placed(), p_sketchColumn(0)
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);   // needed for buffered paint
       SetBackgroundColour(*wxWHITE);
@@ -130,6 +130,10 @@ class MoDiagramCanvas : public wxPanel
                     const wxRect& plot, bool withOccupancy,
                     vector<Hit>* hits)
     {
+      //  The column being drawn, so drawLabel can reach its sketch
+      //  positions without them being threaded through every call.
+      p_sketchColumn = &column;
+
       const int lineGap = 4;
 
       for (size_t first = 0; first < column.levels.size(); ) {
@@ -230,6 +234,8 @@ class MoDiagramCanvas : public wxPanel
         const int lx = x - extent.x - 6 - step*(extent.x + 10);
         dc.DrawText(text, lx, y - extent.y/2);
 
+        drawSketch(dc, level, *p_sketchColumn, lx - extent.x/2 - 28, y);
+
         if (!level.annotation.empty()) {
           dc.SetTextForeground(wxColour(130, 130, 130));
           const wxString extra(level.annotation.c_str(), wxConvUTF8);
@@ -240,6 +246,44 @@ class MoDiagramCanvas : public wxPanel
         dc.DrawText(text, x + (width - extent.x)/2, y - extent.y - 6);
       }
 
+    }
+
+    /**
+     * The phase pattern beside a symmetry orbital.
+     *
+     * Circles at the terminal atoms, filled for one sign and open for
+     * the other, sized by weight.  It is what makes a TASO a picture
+     * rather than a label: "a1" and "t2" both say how many orbitals,
+     * and neither says which combination.
+     */
+    void drawSketch(wxDC& dc, const MoLevel& level, const MoColumn& column,
+                    int cx, int cy)
+    {
+      if (level.phases.empty() ||
+          level.phases.size() != column.sketchX.size()) return;
+
+      double biggest = 0.0;
+      for (size_t i = 0; i < level.phases.size(); i++) {
+        if (fabs(level.phases[i]) > biggest) biggest = fabs(level.phases[i]);
+      }
+      if (biggest <= 0.0) return;
+
+      const int reach = 11;          // pixels from the sketch's centre
+      dc.SetPen(wxPen(wxColour(60, 60, 60), 1));
+
+      for (size_t i = 0; i < level.phases.size(); i++) {
+        const double w = level.phases[i];
+        if (fabs(w) < 1.0e-6) continue;
+
+        const int r = 2 + (int)(3.0*sqrt(fabs(w)/biggest));
+        const int x = cx + (int)(column.sketchX[i]*reach);
+        const int y = cy - (int)(column.sketchY[i]*reach);
+
+        dc.SetBrush(w > 0.0 ? wxBrush(wxColour(60, 60, 60))
+                            : *wxWHITE_BRUSH);
+        dc.DrawCircle(x, y, r);
+      }
+      dc.SetBrush(*wxTRANSPARENT_BRUSH);
     }
 
     /** Electrons as arrows, one pair of slots per orbital. */
@@ -511,6 +555,7 @@ class MoDiagramCanvas : public wxPanel
     //  Every label placed in the column being drawn, as (y, notch), so
     //  a new one can be pushed clear of all of them.
     vector< std::pair<int,int> > p_placed;
+    const MoColumn *p_sketchColumn;
 };
 
 
