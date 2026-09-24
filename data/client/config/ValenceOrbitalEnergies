@@ -82,3 +82,36 @@ Br   4    -24.1    -12.5   7
 Rb   5     -4.2     -2.6   1
 Sr   5     -5.7     -3.7   2
 I    5    -20.6    -11.7   7
+
+# ---------------------------------------------------------------------
+# The first transition series.
+#
+# Three shells, not two: the d shell is one principal quantum number
+# BELOW the s and p of the same atom, so it carries its own -- cobalt
+# is 3d, 4s, 4p.  The two extra columns at the end of a line are that
+# number and the d energy; a line without them is an element with no
+# valence d shell, which is every line above.
+#
+# CAVEAT, AND IT IS A BIG ONE.  A transition metal's orbital energies
+# move with its oxidation state far more than a main-group atom's do:
+# the 3d of Co(0) and of Co(III) are several eV apart, and published
+# tables differ on which they quote.  These are neutral-atom values.
+# For a complex, what the diagram is actually built from is the
+# ORDERING and the symmetry -- d below s and p, the ligand set
+# spanning a1g + eg + t1u so that t2g has no partner and comes out
+# non-bonding, which is the whole content of the picture and does not
+# depend on these numbers at all.  They position nothing: a fragment
+# level is drawn at the mean of the orbitals it became.  Do not teach
+# the numbers themselves from this file.
+#
+# symbol  n   s      p      valence   dn  d
+Sc        4   -5.7   -3.2   3         3   -4.7
+Ti        4   -6.1   -3.3   4         3   -5.6
+V         4   -6.3   -3.5   5         3   -6.3
+Cr        4   -6.6   -3.5   6         3   -7.2
+Mn        4   -6.8   -3.6   7         3   -8.0
+Fe        4   -7.1   -3.7   8         3   -8.7
+Co        4   -7.3   -3.8   9         3   -9.4
+Ni        4   -7.6   -3.8   10        3   -10.0
+Cu        4   -7.7   -3.8   11        3   -10.4
+Zn        4   -9.4   -4.0   12        3   -17.3

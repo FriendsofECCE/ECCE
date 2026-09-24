@@ -283,6 +283,17 @@ void MoDiagram::placeFragments(const MoColumn& centre,
   MoColumn* cols[2] = { &left, &right };
   int c;
 
+  //  WHICH LEVELS WERE ACTUALLY PLACED, RECORDED RATHER THAN GUESSED.
+  //
+  //  A level that connected to nothing keeps the tabulated value it
+  //  arrived with, which is in eV -- and the test for "still in eV"
+  //  was whether the number was above -100.  Every eV value in the
+  //  table is above -100, and so is every Hartree one, so the test
+  //  never discriminated: cobalt's 4p, which has no ligand partner,
+  //  was drawn at -3.8 on a Hartree axis and dragged the whole scale
+  //  with it.
+  vector<bool> placed[2];
+
   for (c = 0; c < 2; c++) {
     for (size_t i = 0; i < cols[c]->levels.size(); i++) {
       MoLevel& level = cols[c]->levels[i];
@@ -326,7 +337,12 @@ void MoDiagram::placeFragments(const MoColumn& centre,
         weight += w*n;
       }
 
-      if (weight > 0.0) level.energy = sum/weight;
+      if (weight > 0.0) {
+        level.energy = sum/weight;
+        placed[c].push_back(true);
+      } else {
+        placed[c].push_back(false);
+      }
     }
   }
 
@@ -401,14 +417,25 @@ void MoDiagram::placeFragments(const MoColumn& centre,
 
     double placedSum = 0.0;
     int placedCount = 0;
-    for (size_t i = 0; i < levels.size(); i++) {
-      if (levels[i].energy > -100.0) { placedSum += levels[i].energy; placedCount++; }
+    for (size_t i = 0; i < levels.size() && i < placed[c].size(); i++) {
+      if (placed[c][i]) { placedSum += levels[i].energy; placedCount++; }
     }
     if (placedCount == 0) continue;
 
-    const double fallback = placedSum/placedCount;
+    //  Above everything that was placed, not among them: a fragment
+    //  orbital with no partner in the molecule did not go down in
+    //  energy, and putting it at the mean says it did.
+    double highest = -1.0e30;
+    for (size_t i = 0; i < levels.size() && i < placed[c].size(); i++) {
+      if (placed[c][i] && levels[i].energy > highest) {
+        highest = levels[i].energy;
+      }
+    }
+    const double spread = highest - placedSum/placedCount;
+    const double fallback = highest + (spread > 0.0 ? 0.25*spread : 0.05);
+
     for (size_t i = 0; i < levels.size(); i++) {
-      if (levels[i].energy <= -100.0) levels[i].energy = fallback;
+      if (i >= placed[c].size() || !placed[c][i]) levels[i].energy = fallback;
     }
   }
 }

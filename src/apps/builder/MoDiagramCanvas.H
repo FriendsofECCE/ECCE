@@ -340,11 +340,21 @@ class MoDiagramCanvas : public wxPanel
       groups.clear();
       groupY.clear();
 
+      //  LEVELS THAT WOULD BE DRAWN ON THE SAME LINE SHARE A ROW.
+      //
+      //  Grouped by where they land on the page, not by exact
+      //  equality of energy.  CCl4's 1t1, 3t2 and 1e are three
+      //  different levels a thousandth of a Hartree apart -- three
+      //  separate rows by the arithmetic, one line's thickness apart
+      //  on the screen, and their labels fought over the same space.
+      //  Drawn side by side on one row, each with its own label, they
+      //  read the way they are drawn by hand; and the distortion is
+      //  two pixels, which is less than the line is thick.
       for (size_t a = 0; a < column.levels.size(); ) {
         size_t b = a;
         while (b + 1 < column.levels.size() &&
-               fabs(column.levels[b+1].energy - column.levels[a].energy)
-                   < 1.0e-9) {
+               abs(yFor(column.levels[b+1].energy, plot) -
+                   yFor(column.levels[a].energy, plot)) <= 3) {
           b++;
         }
         groups.push_back(std::make_pair(a, b));
@@ -596,6 +606,8 @@ class MoDiagramCanvas : public wxPanel
         if (first != last) {
           string irrep, shell;
           splitShellLabel(column.levels[first].label, irrep, shell);
+          //  Only a fragment column names a shell; a molecular level
+          //  is its own label and has nothing to factor out.
           if (!shell.empty()) {
             MoLevel row;
             row.label      = shell;
@@ -1048,8 +1060,14 @@ class MoDiagramCanvas : public wxPanel
       const int rightWidth = max(levelWidth,
                                  min(3*levelWidth, 34*widestRow(p_right)));
 
+      //  The molecular column too: a row of near-degenerate levels
+      //  drawn side by side needs room for all of their lines, and
+      //  CCl4 puts 3t2 and 1t1 -- six lines -- on one row.
+      const int centreWidth = max(levelWidth,
+                                  min(3*levelWidth, 26*widestRow(p_centre)));
+
       const int xLeft   = size.x/6 - (leftWidth - levelWidth)/2;
-      const int xCentre = size.x/2 - levelWidth/2;
+      const int xCentre = size.x/2 - centreWidth/2;
       const int xRight  = (5*size.x)/6 - levelWidth
                           - (rightWidth - levelWidth)/2;
 
@@ -1132,7 +1150,7 @@ class MoDiagramCanvas : public wxPanel
           }
           if (link.rightLevel >= 0 &&
               link.rightLevel < (int)p_right.levels.size()) {
-            dc.DrawLine(xCentre + levelWidth, cy,
+            dc.DrawLine(xCentre + centreWidth, cy,
                         xRight,
                         levelYIn(dc, p_right, plot, true, link.rightLevel));
           }
@@ -1155,7 +1173,7 @@ class MoDiagramCanvas : public wxPanel
       }
 
       p_hits.clear();
-      drawColumn(dc, p_centre, xCentre, levelWidth, plot, true, &p_hits);
+      drawColumn(dc, p_centre, xCentre, centreWidth, plot, true, &p_hits);
 
       //  The stack, from the bottom of the window upward.
       int line = size.y - 4;
@@ -1211,7 +1229,7 @@ class MoDiagramCanvas : public wxPanel
         line -= lineHeight;
         dc.SetPen(wxPen(wxColour(150, 150, 150), 1, wxPENSTYLE_DOT));
         dc.DrawLine(xCentre - 30, line + lineHeight/2,
-                    xCentre + levelWidth + 30, line + lineHeight/2);
+                    xCentre + centreWidth + 30, line + lineHeight/2);
       }
     }
 

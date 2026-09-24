@@ -508,7 +508,10 @@ def checkValenceEnergies(report):
         report.check(False, "no ValenceOrbitalEnergies at %s" % path)
         return
 
+    TRANSITION = ("Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn")
+
     order = {}
+    dMetals = []
     for line in open(path):
         line = line.split("#")[0].split()
         if len(line) < 3:
@@ -525,13 +528,31 @@ def checkValenceEnergies(report):
             report.check(sEnergy < pEnergy,
                          "%s: %ds (%.1f) lies below %dp (%.1f)"
                          % (symbol, n, sEnergy, n, pEnergy))
+        #  The two optional columns at the end are a transition
+        #  metal's d shell: its own principal number and its energy.
+        if len(line) > 6 and line[5] != "-":
+            dEnergy = float(line[6])
+            report.check(dEnergy < 0.0, "%s: d energy is negative" % symbol)
+            report.check(int(line[5]) == n - 1,
+                         "%s: the d shell is one below the s and p" % symbol)
+            if pEnergy is not None:
+                dMetals.append((symbol, sEnergy, pEnergy, dEnergy))
+
         order.setdefault(n, []).append((symbol, sEnergy, pEnergy))
 
     #  Within a period, in file order, both levels fall.  Compared
     #  pairwise between neighbours rather than end to end, so the check
     #  names the pair that breaks it.
+    #
+    #  MAIN GROUP ONLY.  The rule is a main-group rule: it is the
+    #  increasing nuclear charge felt by an electron in the shell
+    #  being filled.  Across the transition series the electrons go
+    #  into the shell BELOW, so the 4s falls only gently and the 4p
+    #  barely moves at all -- cobalt and nickel are both -3.8 to the
+    #  precision anyone quotes.  Applying the main-group rule to them
+    #  does not find a transcription slip, it finds chemistry.
     for n in sorted(order):
-        row = order[n]
+        row = [entry for entry in order[n] if entry[0] not in TRANSITION]
         for i in range(1, len(row)):
             prev, cur = row[i-1], row[i]
             report.check(cur[1] < prev[1],
@@ -541,6 +562,43 @@ def checkValenceEnergies(report):
                 report.check(cur[2] < prev[2],
                              "period %d: %s p (%.1f) below %s p (%.1f)"
                              % (n, cur[0], cur[2], prev[0], prev[2]))
+
+    #  The transition series has trends of its own, and they are the
+    #  ones a complex's diagram depends on.
+    metals = [entry for entry in dMetals if entry[0] in TRANSITION]
+    for symbol, s4, p4, d3 in metals:
+        report.check(s4 < p4,
+                     "%s: 4s (%.1f) lies below 4p (%.1f)" % (symbol, s4, p4))
+
+    #  THE 3d/4s CROSSOVER, WHICH IS THE POINT OF THE SERIES.
+    #
+    #  A first draft of this check asserted 3d below 4s for every
+    #  metal and failed on scandium, titanium and vanadium -- which is
+    #  not a transcription slip but the crossover itself: the 3d
+    #  starts ABOVE the 4s at the left of the series, falls much
+    #  faster as the nuclear charge climbs, and ends far below it.
+    #  That is why scandium behaves like a main-group metal and why
+    #  the late metals do not.  So the trend is the check, not a fixed
+    #  ordering.
+    if metals:
+        report.check(metals[0][3] > metals[0][1],
+                     "%s: 3d (%.1f) starts above 4s (%.1f)"
+                     % (metals[0][0], metals[0][3], metals[0][1]))
+        report.check(metals[-1][3] < metals[-1][1],
+                     "%s: 3d (%.1f) ends below 4s (%.1f)"
+                     % (metals[-1][0], metals[-1][3], metals[-1][1]))
+    for i in range(1, len(metals)):
+        prev, cur = metals[i-1], metals[i]
+        report.check((cur[3] - cur[1]) < (prev[3] - prev[1]),
+                     "3d falls faster than 4s: %s to %s" % (prev[0], cur[0]))
+    for i in range(1, len(metals)):
+        prev, cur = metals[i-1], metals[i]
+        report.check(cur[3] < prev[3],
+                     "3d falls: %s (%.1f) below %s (%.1f)"
+                     % (cur[0], cur[3], prev[0], prev[3]))
+        report.check(cur[1] <= prev[1],
+                     "4s does not rise: %s (%.1f) at or below %s (%.1f)"
+                     % (cur[0], cur[1], prev[0], prev[1]))
 
 
 def checkAutosymThreshold(report):

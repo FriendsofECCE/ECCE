@@ -35,7 +35,16 @@ struct VoieEntry
    bool   haveP;
    int    valence;       // electrons this element brings
 
-   VoieEntry() : n(0), s(0.0), p(0.0), haveP(false), valence(0) {}
+   //  A transition metal's d shell is one principal quantum number
+   //  BELOW its s and p -- cobalt is 3d, 4s, 4p -- so it carries its
+   //  own, and a diagram that wrote "4d" for it would be wrong on the
+   //  face of it.
+   int    dn;
+   double d;
+   bool   haveD;
+
+   VoieEntry() : n(0), s(0.0), p(0.0), haveP(false), valence(0),
+                 dn(0), d(0.0), haveD(false) {}
 };
 
 static map<string, VoieEntry> s_voie;
@@ -72,6 +81,17 @@ static void loadVoie(void)
          entry.haveP = true;
       }
       parse >> entry.valence;
+
+      //  The d shell is optional and comes last, so every line
+      //  written before transition metals existed still reads.
+      string dnText, dText;
+      if ((parse >> dnText) && dnText != "-" &&
+          (parse >> dText)  && dText  != "-") {
+         entry.dn    = atoi(dnText.c_str());
+         entry.d     = atof(dText.c_str());
+         entry.haveD = true;
+      }
+
       s_voie[symbol] = entry;
    }
 }
@@ -149,6 +169,7 @@ bool MoFragments::valenceEnergy(const string& element, int l, double& eV)
 
    if (l == 0) { eV = it->second.s; return true; }
    if (l == 1 && it->second.haveP) { eV = it->second.p; return true; }
+   if (l == 2 && it->second.haveD) { eV = it->second.d; return true; }
    return false;
 }
 
@@ -726,19 +747,22 @@ static void buildColumn(const vector<int>& atoms,
       const string& symbol = it->first;
       const vector<int>& mine = it->second;
 
-      for (int l = 0; l <= 1; l++) {
+      for (int l = 0; l <= 2; l++) {
          double eV;
          if (!MoFragments::valenceEnergy(symbol, l, eV)) continue;
 
          loadVoie();
          ostringstream shell;
-         shell << s_voie[symbol].n << (l == 0 ? 's' : 'p');
+         //  The d shell's own principal number, which is one below
+         //  the s and p of the same atom.
+         shell << (l == 2 ? s_voie[symbol].dn : s_voie[symbol].n)
+               << (l == 0 ? 's' : (l == 1 ? 'p' : 'd'));
          if (byElement.size() > 1) shell << " " << symbol;
 
          if (ownOrbitals) {
             MoLevel level;
             level.energy     = eV;
-            level.degeneracy = (l == 0) ? 1 : 3;
+            level.degeneracy = (l == 0) ? 1 : (l == 1 ? 3 : 5);
             level.label      = shell.str();
             level.shell      = l;
             column.levels.push_back(level);
