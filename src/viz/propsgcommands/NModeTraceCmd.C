@@ -15,7 +15,6 @@
 
 #include "tdat/SingleGrid.H"
 #include "tdat/PropVecTable.H"
-#include "tdat/PropTSVecTable.H"
 #include "tdat/TAtm.H"
 #include "tdat/TBond.H"
 #include "dsm/PropFactory.H"
@@ -85,15 +84,22 @@ bool NModeTraceCmd::execute()
 
    sg->getNMRoot()->removeAllChildren();
 
-  // Get a new table; it will store all the animation steps
-  PropTSVecTable* animationTable = 
-    (PropTSVecTable*)PropFactory::getProperty("VIB") ;
+  // Get a new table; it will store all the animation steps.
+  // PropVecTable, because that is what VIB is declared as in
+  // data/client/config/properties and therefore what PropFactory builds.
+  // Both of these used to be cast to PropTSVecTable*, which called that
+  // sibling class' non-virtual accessors against a PropVecTable object --
+  // it worked only because the two copy-pasted classes happen to have an
+  // identical member layout, and it misreported any out-of-bounds warning
+  // from this path as coming from PropTSVecTable (GitHub issue #87).
+  PropVecTable* animationTable =
+    dynamic_cast<PropVecTable*>(PropFactory::getProperty("VIB")) ;
 
 
   // Get the property 
-  PropTSVecTable* nmodes = (PropTSVecTable*)calc->getProperty("VIB");
+  PropVecTable* nmodes = dynamic_cast<PropVecTable*>(calc->getProperty("VIB"));
   
-  if (nmodes) {
+  if (nmodes && animationTable) {
     ret = true ;
 
     // create a propsgfrag to add to the scene graph
@@ -239,6 +245,9 @@ bool NModeTraceCmd::execute()
 
   }
 
+  // setTraceTable() keeps its own copy, so this one is ours to free -- it
+  // was leaked on every animation request.
+  delete animationTable;
 
    return ret;
 }

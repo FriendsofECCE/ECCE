@@ -4,7 +4,7 @@
 
 #include "util/ErrMsg.H"
 
-#include "tdat/PropTSVecTable.H"   
+#include "tdat/PropVecTable.H"   
 #include "tdat/TAtm.H"   
 #include "tdat/TBond.H"
 #include "tdat/IBondList.H"
@@ -73,9 +73,9 @@ PropSGFragment::PropSGFragment(const PropSGFragment& frag)
 {
   SO_NODE_CONSTRUCTOR(PropSGFragment);
   
-  PropTSVecTable* tmpTable = frag.getTraceTable();
+  PropVecTable* tmpTable = frag.getTraceTable();
   if (tmpTable)
-     p_traceTable = new PropTSVecTable(*(tmpTable));
+     p_traceTable = new PropVecTable(*(tmpTable));
   else
      p_traceTable = 0;
 
@@ -106,24 +106,24 @@ PropSGFragment::PropSGFragment(const SGFragment& frag)
 
 
 
-void PropSGFragment::setTraceTable(PropTSVecTable *traceTable)
+void PropSGFragment::setTraceTable(PropVecTable *traceTable)
 {
    if (p_traceTable) delete p_traceTable;
 
    if (traceTable)
    {
-      p_traceTable = new PropTSVecTable(*traceTable);
+      p_traceTable = new PropVecTable(*traceTable);
    }
    else 
       p_traceTable = NULL;
 }
 
-PropTSVecTable* PropSGFragment::getTraceTable()
+PropVecTable* PropSGFragment::getTraceTable()
 {
    return p_traceTable ;
 }
 
-PropTSVecTable* PropSGFragment::getTraceTable() const
+PropVecTable* PropSGFragment::getTraceTable() const
 {
    return p_traceTable ;
 }

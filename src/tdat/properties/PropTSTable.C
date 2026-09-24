@@ -56,12 +56,21 @@ PropTSTable::PropTSTable(const PropTSTable& tsVecTable) : TProperty(tsVecTable)
    p_numRows     = tsVecTable.p_numRows;
    p_numColumns  = tsVecTable.p_numColumns;
 
+   // Each of these needs its else branch: without one the member is left
+   // holding whatever was on the heap when the source had no labels, and
+   // the destructor then deletes that.  (GitHub issue #87.)
    if (tsVecTable.p_rowLabels != 0)
       p_rowLabels = new vector<string>((*tsVecTable.p_rowLabels));
+   else
+      p_rowLabels = 0;
    if (tsVecTable.p_colLabels != 0)
       p_colLabels = new vector<string>((*tsVecTable.p_colLabels));
+   else
+      p_colLabels = 0;
    if (tsVecTable.p_tableLabels != 0)
       p_tableLabels = new vector<string>((*tsVecTable.p_tableLabels));
+   else
+      p_tableLabels = 0;
 
    p_values = new vector< vector<double> >((*tsVecTable.p_values));
 }

@@ -6,7 +6,7 @@
 
 #include "viz/SGFragment.H"
 
-class PropTSVecTable;
+class PropVecTable;
 
 
 class  PropSGFragment : public SGFragment {
@@ -24,9 +24,16 @@ public:
     virtual  ~PropSGFragment(void);
 
     // access
-    void setTraceTable(PropTSVecTable *geomtrace);
-    PropTSVecTable* getTraceTable();
-    PropTSVecTable* getTraceTable() const ;
+    // PropVecTable, not PropTSVecTable: the only thing ever stored here is
+    // the normal-mode animation table NModeTraceCmd builds from the VIB
+    // property, and VIB is declared PropVecTable in
+    // data/client/config/properties -- so PropFactory really does hand back
+    // a PropVecTable.  It used to be declared PropTSVecTable and worked only
+    // because the two copy-pasted classes happen to share a member layout
+    // (GitHub issue #87).
+    void setTraceTable(PropVecTable *geomtrace);
+    PropVecTable* getTraceTable();
+    PropVecTable* getTraceTable() const ;
 
 SoINTERNAL public:
     static void		initClass();
@@ -36,7 +43,7 @@ SoINTERNAL public:
 protected :
 
    IBondList        *p_propBondIndices ;
-   PropTSVecTable   *p_traceTable ;
+   PropVecTable   *p_traceTable ;
 
 };
 

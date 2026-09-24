@@ -53,11 +53,17 @@ PropTable::PropTable(const PropTable& propTable) : TProperty(propTable)
    p_columnLabel = propTable.p_columnLabel;
    p_numRows     = propTable.p_numRows;
    p_numColumns  = propTable.p_numColumns;
-   if (p_rowLabels != 0)
+   // propTable's labels, not our own: these tested p_rowLabels/p_colLabels,
+   // which at this point are the uninitialised members of the object being
+   // constructed.  Whichever way the garbage read went it was wrong -- a
+   // nonzero value dereferenced the source's possibly-null vector, a zero
+   // one silently dropped labels the source did have.  Same shape found in
+   // three siblings of this copy-pasted family (GitHub issue #87).
+   if (propTable.p_rowLabels != 0)
       p_rowLabels = new vector<string>((*propTable.p_rowLabels));
    else 
       p_rowLabels = 0;
-   if (p_colLabels != 0)
+   if (propTable.p_colLabels != 0)
       p_colLabels = new vector<string>((*propTable.p_colLabels));
    else
       p_colLabels = 0;

@@ -8,8 +8,7 @@
 
 
 //#include "tdat/SingleGrid.H"
-//#include "tdat/PropVecTable.H"
-#include "tdat/PropTSVecTable.H"
+#include "tdat/PropVecTable.H"
 #include "tdat/TAtm.H"
 #include "tdat/TBond.H"
 //#include "dsm/PropFactory.H"
@@ -66,7 +65,7 @@ bool NModeStepCmd::execute()
    int natoms = propSGFrag->numAtoms() ;
 
    // get the table that contains all the step coordinates
-   PropTSVecTable* nmtrace = propSGFrag->getTraceTable() ;
+   PropVecTable* nmtrace = propSGFrag->getTraceTable() ;
    INTERNALEXCEPTION(nmtrace,"trace table pointer is null");
 
    if (nmtrace) {
