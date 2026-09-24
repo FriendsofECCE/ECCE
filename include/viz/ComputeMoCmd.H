@@ -94,6 +94,7 @@ class  ComputeMoCmd :  public  PropCmd
        * approximation.  Returns false if the user interrupted it.
        */
       bool computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
+                      const float *densityField,
                       unsigned long gridRes,
                       float xDelta, float yDelta, float zDelta);
 

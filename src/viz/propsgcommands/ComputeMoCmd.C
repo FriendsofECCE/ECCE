@@ -41,6 +41,7 @@
 
 #include <math.h>
 
+#include <algorithm>
 #include <exception>
 #include <iostream>
   using std::cout;
@@ -937,7 +938,7 @@ bool ComputeMoCmd::execute()
             }
 
             if (!haveEsp && !interrupted) {
-              interrupted = !computeEsp(grid, atoms, gridRes,
+              interrupted = !computeEsp(grid, atoms, field, gridRes,
                                         xDelta, yDelta, zDelta);
             }
           }
@@ -1475,6 +1476,65 @@ double ComputeMoCmd::getoddNormalize(
 
 
 /**
+ * Scale the colour ramp to the potential ON THE SURFACE.
+ *
+ * An electrostatic potential map is read on a density isosurface, and
+ * that is a thin shell: the values it carries are hundredths of a
+ * Hartree per electron.  The volume around it is not thin at all -- it
+ * runs from the nuclei, where the potential is thousands, out to empty
+ * space, where it is nothing -- so ANY statistic over the whole grid
+ * describes a region the viewer never looks at.  A percentile helps and
+ * is not enough: with six nuclei in 27000 points, the top two per cent
+ * IS the nuclear region, and the range came out at +/- 19.9 when the
+ * surface carries about +/- 0.05.
+ *
+ * So the range is taken over the grid points whose DENSITY is near the
+ * isovalue a surface is actually drawn at, which is the shell that will
+ * be coloured.  Everything else is ignored however extreme it is.
+ */
+static void scaleEspToSurface(SingleGrid *grid, const float *density,
+                              unsigned long count)
+{
+  const float *esp = grid->colorFieldData();
+  if (esp == 0 || density == 0 || count == 0) return;
+
+  //  The band a density isosurface is drawn in.  MoPanel starts the
+  //  isovalue at a quarter of 0.2, so 0.05, and the slider moves it
+  //  within roughly an order of magnitude either way.
+  const float lo = 0.005f;
+  const float hi = 0.30f;
+
+  vector<float> shell;
+  for (unsigned long i = 0; i < count; i++) {
+    const float d = density[i];
+    if (d < lo || d > hi) continue;
+    const float v = esp[i];
+    if (v != v) continue;
+    if (v > 1.0e30f || v < -1.0e30f) continue;
+    shell.push_back(v < 0.0f ? -v : v);
+  }
+
+  if (shell.size() < 32) {
+    cerr << "ESP: only " << shell.size() << " grid points lie near a "
+            "density surface; keeping the whole-grid range" << endl;
+    return;
+  }
+
+  //  Still a percentile within the shell, so one stray point does not
+  //  set the scale for the rest.
+  const size_t at = (size_t)(0.95*(shell.size() - 1));
+  std::nth_element(shell.begin(), shell.begin() + at, shell.end());
+  float extreme = shell[at];
+  if (!(extreme > 0.0f)) return;
+
+  grid->colorFieldMin(-extreme);
+  grid->colorFieldMax(extreme);
+  cerr << "ESP: scaled to the surface shell (" << shell.size()
+       << " points), range +/- " << extreme << " Hartree/e" << endl;
+}
+
+
+/**
  * Override the colour range from the environment.
  *
  * ECCE_ESP_RANGE=0.05 scales the ramp to +/- 0.05 Hartree/e whatever
@@ -1521,6 +1581,7 @@ static void applyEspRangeOverride(SingleGrid *grid)
 //   progress message rather than left for the user to guess.
 /////////////////////////////////////////////////////////////////////////////
 bool ComputeMoCmd::computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
+                              const float *densityField,
                               unsigned long gridRes,
                               float xDelta, float yDelta, float zDelta)
 {
@@ -1633,6 +1694,7 @@ bool ComputeMoCmd::computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
 
   grid->setColorFieldData(esp);
   grid->findColorMinMax();
+  scaleEspToSurface(grid, densityField, gridRes);
   applyEspRangeOverride(grid);
   if (grid->colorFieldData() == (float*)0) {
     cerr << "ESP: every potential value was NaN or infinite, so the "
@@ -2009,6 +2071,7 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
 
   grid->setColorFieldData(esp);
   grid->findColorMinMax();
+  scaleEspToSurface(grid, densityField, gridRes);
   applyEspRangeOverride(grid);
   cerr << "ESP: potential computed, range " << grid->colorFieldMin()
        << " to " << grid->colorFieldMax() << " Hartree/e" << endl;
