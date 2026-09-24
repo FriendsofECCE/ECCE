@@ -4759,10 +4759,6 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     // away), just not shown by default. Decided here rather than by the
     // caller showing/hiding afterward, so the menu checkbox's initial
     // Check(pinfo.IsShown()) state below is correct from the start.
-    static const set<string> defaultShownPanels = {
-      "Calculation Summary", "Energies", "MOs"
-    };
-    info.Show(defaultShownPanels.find(name) != defaultShownPanels.end());
     // Was .Fixed() with no way to override -- every property panel
     // (Energies, Geometry Trace, MOs, ...) was permanently locked at
     // whatever size it happened to get on first show, both docked (no
@@ -4773,6 +4769,16 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     // buttons (ewxAUI additions) have no stock wx3.2 wxAuiPaneInfo
     // equivalent and are dropped here - see EwxAuiCompat.H.
     }
+
+    //  Outside the docked branch, because it applies to both.  It was
+    //  inside, so a floating panel never had its visibility set and
+    //  inherited wxAuiPaneInfo's default of SHOWN -- which is why the
+    //  MO Diagram opened by itself on every calculation that had
+    //  orbital energies.
+    static const set<string> defaultShown = {
+      "Calculation Summary", "Energies", "MOs"
+    };
+    info.Show(defaultShown.find(name) != defaultShown.end());
 
     info.Position(p_propertyMenu->GetMenuItemCount());
     p_mgr.AddPane(panel, info);

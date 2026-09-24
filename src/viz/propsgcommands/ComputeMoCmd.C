@@ -1568,6 +1568,13 @@ bool ComputeMoCmd::computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
 
   grid->setColorFieldData(esp);
   grid->findColorMinMax();
+  if (grid->colorFieldData() == (float*)0) {
+    cerr << "ESP: every potential value was NaN or infinite, so the "
+            "surface is left uncoloured.  That normally means the "
+            "geometry or the grid is bad rather than the charges."
+         << endl;
+    return true;
+  }
   cerr << "ESP: coloured from " << source << "; range "
        << grid->colorFieldMin() << " to " << grid->colorFieldMax()
        << " Hartree/e" << endl;

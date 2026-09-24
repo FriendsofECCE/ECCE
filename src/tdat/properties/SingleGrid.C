@@ -290,11 +290,33 @@ void SingleGrid::findColorMinMax()
 
   const int size = gridSize();
   float extreme = 0.0;
+  int finite = 0;
+
   for (int idx = 0; idx < size; idx++) {
     const float value = p_colorField[idx];
+    //  NaN and infinity are skipped rather than compared.  A NaN never
+    //  satisfies >, so it would leave the extreme untouched and look
+    //  harmless -- but a single one anywhere in the field propagates
+    //  through the colour lookup, which divides by (max - min), and
+    //  takes the renderer down.  Counting the finite ones lets the
+    //  caller tell an all-NaN field from a flat one.
+    if (value != value) continue;                       // NaN
+    if (value > 1.0e30 || value < -1.0e30) continue;    // infinity
+    finite++;
     const float magnitude = (value < 0.0) ? -value : value;
     if (magnitude > extreme) extreme = magnitude;
   }
+
+  if (finite == 0) {
+    //  Nothing usable.  Drop the field rather than hand the renderer a
+    //  range it cannot work with.
+    delete [] p_colorField;
+    p_colorField = (float*)0;
+    p_colorFieldMin = 0.0;
+    p_colorFieldMax = 0.0;
+    return;
+  }
+
   p_colorFieldMin = -extreme;
   p_colorFieldMax =  extreme;
 }

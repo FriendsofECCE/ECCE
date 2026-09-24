@@ -49,7 +49,10 @@ struct MoColumn
    int    hiddenCount;
    double hiddenMaxEnergy;
 
-   MoColumn() : hiddenCount(0), hiddenMaxEnergy(0.0) {}
+   /** Virtuals folded away at the top, counted the same way. */
+   int    hiddenAboveCount;
+
+   MoColumn() : hiddenCount(0), hiddenMaxEnergy(0.0), hiddenAboveCount(0) {}
 };
 
 
@@ -96,6 +99,27 @@ class MoDiagram
      * @param cutoff  Hartree; levels below this are hidden
      */
     static void hideBelow(MoColumn& column, double cutoff);
+
+    /**
+     * Fold levels ABOVE a cutoff into the column's hidden band.
+     *
+     * The high virtuals are the diagram's other clutter problem.  They
+     * are basis-set artefacts more than chemistry: what a correlation
+     * diagram is about is the bonding levels and their antibonding
+     * partners, with the odd non-bonding one between.
+     */
+    static void hideAbove(MoColumn& column, double cutoff);
+
+    /**
+     * A cutoff that keeps the antibonding partners and drops the rest.
+     *
+     * One virtual level is kept for each occupied one, since that is
+     * what an occupied level can pair with, plus a couple of spare so a
+     * small molecule does not lose its LUMO region to an off-by-one.
+     * Returns a value above everything when there is nothing worth
+     * folding.
+     */
+    static double suggestVirtualCutoff(const vector<MoLevel>& levels);
 
     /**
      * A cutoff taken from the biggest gap in the lower half of the

@@ -82,6 +82,50 @@ void MoDiagram::hideBelow(MoColumn& column, double cutoff)
 }
 
 
+void MoDiagram::hideAbove(MoColumn& column, double cutoff)
+{
+  vector<MoLevel> kept;
+  int hidden = 0;
+
+  for (size_t i = 0; i < column.levels.size(); i++) {
+    if (column.levels[i].energy > cutoff) {
+      hidden += column.levels[i].degeneracy;
+    } else {
+      kept.push_back(column.levels[i]);
+    }
+  }
+  column.levels = kept;
+  column.hiddenAboveCount = hidden;
+}
+
+
+double MoDiagram::suggestVirtualCutoff(const vector<MoLevel>& levels)
+{
+  if (levels.empty()) return 1.0e30;
+
+  //  Count what is occupied, and where the virtuals start.
+  size_t occupied = 0;
+  size_t firstVirtual = levels.size();
+  for (size_t i = 0; i < levels.size(); i++) {
+    if (levels[i].occupancy > 0.0) {
+      occupied++;
+    } else if (firstVirtual == levels.size()) {
+      firstVirtual = i;
+    }
+  }
+  if (occupied == 0 || firstVirtual >= levels.size()) return 1.0e30;
+
+  //  One antibonding partner per occupied level, plus two, so a small
+  //  molecule keeps a little room above the LUMO.
+  const size_t keep = occupied + 2;
+  const size_t last = firstVirtual + keep;
+  if (last >= levels.size()) return 1.0e30;    // nothing worth folding
+
+  //  Cut between the last kept level and the first dropped one.
+  return 0.5*(levels[last].energy + levels[last-1].energy);
+}
+
+
 double MoDiagram::suggestCoreCutoff(const vector<MoLevel>& levels)
 {
   if (levels.size() < 3) return levels.empty() ? -1.0e30
