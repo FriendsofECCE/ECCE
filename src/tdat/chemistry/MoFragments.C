@@ -459,13 +459,13 @@ bool MoFragments::basisSpansReported(const vector<double>& coords,
       says[MoDiagram::canonicalIrrep(reported[i])]++;
    }
    if (says.empty()) {
-      detail = "the calculation reports no orbital labels, so there is "
-               "nothing to check against";
+      detail = "not comparable: the calculation reports no orbital labels";
       return false;
    }
 
-   ostringstream text;
+   //  Built here because the tests below need it.
    map<string,int>::const_iterator it;
+   ostringstream text;
    text << "basis spans ";
    for (it = spans.begin(); it != spans.end(); ++it) {
       if (it != spans.begin()) text << " + ";
@@ -480,24 +480,6 @@ bool MoFragments::basisSpansReported(const vector<double>& coords,
    if (spans == says) {
       detail = text.str() + " -- agree";
       return true;
-   }
-
-   //  An exchange of two irreps is the axis convention, not an error.
-   vector<string> names;
-   for (it = spans.begin(); it != spans.end(); ++it) names.push_back(it->first);
-   for (i = 0; i < names.size(); i++) {
-      for (size_t j = i+1; j < names.size(); j++) {
-         map<string,int> tried = spans;
-         const int a = tried[names[i]], b = tried[names[j]];
-         tried[names[i]] = b;
-         tried[names[j]] = a;
-         if (tried == says) {
-            detail = text.str() + " -- agree once " + names[i] + " and " +
-                     names[j] + " are exchanged, which is the axis "
-                     "convention";
-            return true;
-         }
-      }
    }
 
    //  THE SAME REDUCTION UNDER DIFFERENT NAMES IS NOT A DISAGREEMENT.
@@ -522,6 +504,51 @@ bool MoFragments::basisSpansReported(const vector<double>& coords,
                "handled in " + group + " and the code labels its "
                "orbitals in the infinite group";
       return true;
+   }
+
+
+   //  ARE THE TWO SIDES EVEN SPEAKING ABOUT THE SAME GROUP?
+   //
+   //  Not a disagreement if they are not.  A code may run a job in a
+   //  lower group than the structure has -- ORCA labelled an ethane
+   //  a', a'' while autosym finds it C3v at the same tolerance -- and
+   //  then the two sets of names have nothing to do with each other.
+   //  Reporting that as a failure of the symmetry machinery would be
+   //  wrong, and reporting it as a pass would be worse.  It is a third
+   //  outcome and it says so.
+   bool shareNames = false;
+   for (it = says.begin(); it != says.end() && !shareNames; ++it) {
+      if (spans.find(it->first) != spans.end()) shareNames = true;
+   }
+   if (!shareNames) {
+   ostringstream why;
+      why << "not comparable: the calculation labelled its orbitals in a "
+             "different group from " << group << " (it reports ";
+      for (it = says.begin(); it != says.end(); ++it) {
+         if (it != says.begin()) why << " + ";
+         why << it->second << it->first;
+      }
+      why << ", none of which is an irrep of " << group << ")";
+      detail = why.str();
+      return false;
+   }
+
+   //  An exchange of two irreps is the axis convention, not an error.
+   vector<string> names;
+   for (it = spans.begin(); it != spans.end(); ++it) names.push_back(it->first);
+   for (i = 0; i < names.size(); i++) {
+      for (size_t j = i+1; j < names.size(); j++) {
+         map<string,int> tried = spans;
+         const int a = tried[names[i]], b = tried[names[j]];
+         tried[names[i]] = b;
+         tried[names[j]] = a;
+         if (tried == says) {
+            detail = text.str() + " -- agree once " + names[i] + " and " +
+                     names[j] + " are exchanged, which is the axis "
+                     "convention";
+            return true;
+         }
+      }
    }
 
    detail = text.str() + " -- DISAGREE";

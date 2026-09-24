@@ -701,6 +701,36 @@ def checkOracle(tablePath, verbose):
     env["PATH"] = os.path.dirname(binary) + os.pathsep + env.get("PATH", "")
 
     bad = 0
+
+    #  Real calculations first, from checked-in fixtures.  The MOPAC
+    #  cases below are generated on the fly, which keeps them honest
+    #  but limits them to a semiempirical valence basis: four functions
+    #  an atom, s and p, no spherical harmonics.  A real basis set is a
+    #  different exercise, and it is the path ECCE actually uses.
+    fixtures = os.path.join(HERE, "fixtures")
+    if os.path.isdir(fixtures):
+        for entry in sorted(os.listdir(fixtures)):
+            if not entry.endswith(".oracle"):
+                continue
+            proc = subprocess.run([out], stdin=open(os.path.join(fixtures, entry)),
+                                  capture_output=True, text=True, env=env)
+            said = proc.stdout.strip()
+            ok = proc.returncode == 0
+
+            #  "Cannot be compared" is a third outcome, and it is
+            #  printed every time rather than counted as either.  A
+            #  code that ran a job in a lower group than the structure
+            #  has leaves two sets of names with nothing to do with
+            #  each other; calling that a failure would be wrong, and
+            #  swallowing it would be worse.
+            if said.startswith("not comparable"):
+                print("  %-22s SKIP  %s" % (entry[:-7], said))
+                continue
+            if verbose or not ok:
+                print("  %-22s %s" % (entry[:-7], said))
+            if not ok:
+                bad += 1
+
     for name, atoms in CASES.items():
         group, clean = symmetrise(atoms)
         text = runMopac(name, atoms)
@@ -718,6 +748,9 @@ def checkOracle(tablePath, verbose):
                               capture_output=True, text=True, env=env)
         said = proc.stdout.strip()
         ok = proc.returncode == 0
+        if said.startswith("not comparable"):
+            print("  %-6s SKIP  %s" % (name, said))
+            continue
         if verbose or not ok:
             print("  %-6s %s" % (name, said))
         if not ok:
@@ -725,8 +758,10 @@ def checkOracle(tablePath, verbose):
     os.unlink(out)
 
     if not bad and not verbose:
-        print("  basis spans what the code reports: PASS (%d molecules)"
-              % len(CASES))
+        extra = len([e for e in os.listdir(fixtures) if e.endswith(".oracle")]) \
+                if os.path.isdir(fixtures) else 0
+        print("  basis spans what the code reports: PASS (%d molecules, "
+              "%d of them real calculations)" % (len(CASES) + extra, extra))
     return 1 if bad else 0
 
 

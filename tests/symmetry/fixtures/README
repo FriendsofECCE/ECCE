@@ -1,0 +1,26 @@
+Oracle fixtures: real calculations, reduced to what the basis/labels
+check needs.
+
+Each file is a molecule that a real quantum chemistry code has actually
+run, in the format tests/symmetry/testOracle.C reads:
+
+    <point group>
+    <number of atoms>
+    <symbol> <x> <y> <z>        one line per atom, Angstrom, in the
+                                symmetry frame autosym puts them in
+    <functions per atom>        one integer per atom
+    <angular momentum per function>
+    <orbital labels>            one per orbital, the code's own
+
+WHY THESE ARE CHECKED IN.  The MOPAC cases in run_tests.py are
+generated on the fly, which keeps them honest but limits them to a
+semiempirical valence basis: four functions an atom, s and p only, and
+no spherical harmonics.  A real basis set is a different exercise --
+def2-SVP puts fourteen functions on carbon including five spherical d
+-- and that is the path ECCE actually uses.
+
+orca-methanol: ORCA 6, B3LYP/def2-SVP, methanol in Cs.  48 basis
+functions spanning 33A' + 15A'', which is what ORCA itself reports for
+its 48 orbitals.  Taken from a calculation in the development
+dataserver; the geometry and the labels are exactly what ECCE reads
+back from its own stored properties.
