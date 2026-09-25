@@ -267,6 +267,44 @@ See [`GETTING_STARTED.md`](GETTING_STARTED.md) for more detail on each of
 these steps, known rough edges, and troubleshooting tips if something
 doesn't come up cleanly.
 
+## Running against a central server
+
+ECCE can be used two ways. By default each user gets their own data
+server and message broker, started automatically — nothing to
+configure, and right for a workstation.
+
+The other way is the one ECCE was originally deployed with: **one
+server for a whole group**, holding everyone's calculations and the
+shared structure and basis-set libraries, with many clients connecting
+to it. That suits a teaching machine with a class on it, or several
+workstations that should all see the same data.
+
+On each client installation, once, as the owner of the install:
+
+```
+ecce-remote-setup chem-server.example.edu
+```
+
+That writes `siteconfig/RemoteServer/` and points the message broker at
+the same host. Users then run:
+
+```
+ecce -remote
+```
+
+which uses the central data server and broker and starts neither
+locally. Plain `ecce` still runs the per-user servers, so both modes
+work from one installation.
+
+Each user needs an account on the central server, created there with
+`ecce-dataserver-adduser`.
+
+**Before putting a server on a network**, note that it currently
+listens on every interface and authenticates with HTTP Basic over
+plain HTTP, so credentials cross the network base64-encoded rather
+than encrypted. That is fine inside a trusted network and not fine
+across an untrusted one; see issue #138.
+
 ## Registering a compute machine
 
 Start `ecce-gateway`, then open Machine Browser. Go to Machine → Register
