@@ -23,6 +23,7 @@
 #include "comm/RCommand.H"
 
 #include "CalcEdGUI.H"
+#include "InputVerifier.H"
 
 #define wxID_THEORY_CHANGE 10998
 #define wxID_RUNTYPE_CHANGE 10999
@@ -111,6 +112,7 @@ class CalcEd: public CalcEdGUI,
     virtual void OnButtonCalcedPartialClick( wxCommandEvent& event );
     virtual void OnButtonCalcedConstraintClick( wxCommandEvent& event );
     virtual void OnButtonCalcedFinalEditClick( wxCommandEvent& event );
+    virtual void OnButtonCalcedVerifyClick( wxCommandEvent& event );
     virtual void OnButtonCalcedLaunchClick( wxCommandEvent& event );
 
     // Calc/Project change message/event callbacks (MCB)
@@ -261,6 +263,23 @@ class CalcEd: public CalcEdGUI,
                         const string& output_file);
     bool input_controller(const bool& saveParamFlag, const bool& useExpCoeff,
                           string& message);
+
+    /**
+     * Read the stored input file, run the checker over it, and set the
+     * lamp (GitHub #148).
+     *
+     * @param findings  filled in, when the caller wants to show them
+     * @return false if the checker could not be run, which leaves the
+     *         lamp BLANK rather than green: a light that cannot tell
+     *         the difference between "checked and fine" and "not
+     *         checked" is worse than no light, because it is the first
+     *         one the user will believe.
+     */
+    bool verifyInput(vector<VerifyFinding>* findings = 0);
+
+    /** Set the lamp, or clear it when `checked` is false. */
+    void setVerifyLight(bool checked, VerifyFinding::Level level,
+                        const string& tip);
 
   private:
     WxFeedback *p_feedback;

@@ -78,6 +78,13 @@ jobs:
       - name: Basis set exporter suite
         run: tests/basis/run_tests.py
 
+      # The input-deck checker: real decks through the real script.  The
+      # cases that matter most are the WORKING decks, which must come
+      # back clean -- a checker that cries wolf gets ignored, including
+      # the time it is right.
+      - name: Input checker suite
+        run: tests/verify/run_tests.py
+
       # The orbital and ESP maths.  Deliberately compiles with plain g++
       # against include/ alone -- SlaterExpansion, CoulombIntegrals and
       # EspField have no wx, DAV or XML dependency by design -- so it

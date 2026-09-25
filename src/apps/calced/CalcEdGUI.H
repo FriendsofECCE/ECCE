@@ -146,6 +146,9 @@ public:
     /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_FINAL_EDIT
     virtual    void OnButtonCalcedFinalEditClick( wxCommandEvent& event );
 
+    /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_VERIFY
+    virtual    void OnButtonCalcedVerifyClick( wxCommandEvent& event );
+
     /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_LAUNCH
     virtual    void OnButtonCalcedLaunchClick( wxCommandEvent& event );
 
@@ -187,6 +190,8 @@ public:
     static const wxWindowID ID_STATICTEXT_CALCED_ELECTRONS;
     static const wxWindowID ID_STATIC_CALCED_SPIN_MULT;
     static const wxWindowID ID_BUTTON_CALCED_FINAL_EDIT;
+    static const wxWindowID ID_BUTTON_CALCED_VERIFY;
+    static const wxWindowID ID_STATICTEXT_CALCED_VERIFY_LIGHT;
     static const wxWindowID ID_STATICTEXT_CALCED_OPEN_SHELLS;
     static const wxWindowID ID_STATICTEXT_CALCED_FUNCTIONS;
     static const wxWindowID ID_STATICTEXT_CALCED_FORMULA;

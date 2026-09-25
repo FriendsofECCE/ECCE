@@ -1124,6 +1124,19 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs)
 
+  # tests/verify -- the input-deck checker (#148).  Runs the real
+  # scripts/parsers/verifyinput over decks captured from real runs and
+  # checks what it says about each.  Weighted against FALSE ALARMS
+  # rather than against misses: a user told their working deck is
+  # broken stops believing the light, including the time it is right.
+  # Needs only python3 and perl.
+  #
+  #     cd build-cmake && ctest -R verify --output-on-failure
+  add_test(NAME verify
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify/run_tests.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify)
+
   # tests/apps -- the third tier: starts every INSTALLED wx-linked ECCE app
   # on a headless X server with software OpenGL (Xvfb + llvmpipe; broadway
   # cannot be used here because these apps link GLX for the Open Inventor

@@ -1,0 +1,30 @@
+scratch_dir /home/andy/scratch
+Title "Calculation-2"
+
+Start  Calculation-2
+
+echo
+
+charge 0
+
+geometry autosym units angstrom
+ N     0.00000     0.00000     0.00000
+ H     1.08423     0.00000     -0.383333
+ H     -0.542115     0.938971     -0.383333
+ H     -0.542115     -0.938971     -0.383333
+end
+
+ecce_print /home/andy/jobs/Calculation-2/ecce.out
+
+basis "ao basis" spherical print
+  H library "6-31G"
+  N library "6-31G"
+END
+
+dft
+  mult 1
+  XC pbe0
+  mulliken
+end
+
+task dft energy

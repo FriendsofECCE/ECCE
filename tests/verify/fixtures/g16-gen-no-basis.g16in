@@ -1,0 +1,11 @@
+%Mem=6GB
+%Chk=Water-1-1.chk
+#P rPBE1PBE/GEN 5D Freq=() NoSymm  Punch=(MO) Pop=(full) 
+
+Water-1-1
+
+0 1 ! charge and multiplicity
+ O     0.00000     0.0355860     0.00000
+ H     0.753717     0.634613     0.00000
+ H     -0.753717     0.634613     0.00000
+

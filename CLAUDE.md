@@ -332,6 +332,35 @@ it was hit while testing one. Already fixed — if a save fails with
 "input file copy to DAV failed" / 409 Conflict on a build after this
 fix, it's a genuinely new problem, not a repeat of that one.
 
+#### The input checker (`scripts/parsers/verifyinput`, #148)
+Run automatically whenever `CalcEd::generateInput()` writes a deck and
+when a calculation is opened, and on demand from CalcEd's **Verify**
+button; the result is a lamp beside that button and, on a click, a
+dialog showing the deck with the offending lines marked.
+`tests/verify` covers both the script and the dialog's construction.
+- **It checks the SHAPE of a deck and must never check a keyword.**
+  Sections present, bytes readable, atom count matching, a `/GEN` or
+  `%basis` promise actually kept. This tree has been wrong about
+  keyword validity from reading manuals repeatedly (NWChem rejects its
+  own documented `disp grimme3`; ORCA takes `6-31++G**` and refuses
+  `6-31++G`; Gaussian wants `GD3BJ`, ECCE wrote `GD3-BJ`), and a
+  checker that calls a correct deck wrong is *worse than no checker* —
+  the user stops reading it, including when it is right. Anything not
+  decidable from the file is `UNSURE`, which is a real verdict, not a
+  weak `BAD`.
+- Findings are `LEVEL|LINE|CHECK|MESSAGE` on stdout; exit 1 means at
+  least one `BAD`. **`execout()` returns false on that exit status**,
+  so `InputVerifier` deliberately ignores its return value and decides
+  from the parsed output instead — a deck with faults in it is the
+  script working, not the script failing.
+- An empty finding list means *nothing was checked*, and the lamp goes
+  **blank, not green**. A light that cannot distinguish "looked and
+  found nothing" from "did not look" is the first one a user believes.
+  The dialog smoke test asserts this; it caught the bug once already.
+- Do not move the automatic run into `enableLaunch()`/`enableAllFields()`
+  — those fire on every edit, and a check costs a WebDAV fetch of the
+  input file plus a process.
+
 ### The two background services ("the server")
 Almost entirely new in this fork — not in the original app's docs.
 Both per-user, both non-root, both started automatically by the

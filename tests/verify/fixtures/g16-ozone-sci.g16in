@@ -1,0 +1,12 @@
+%nprocshared=4
+%Mem=6GB
+%Chk=Ozone.chk
+#P rPBE1PBE/def2SVP 5D 7F Opt=()  Punch=(MO) Pop=(full) 
+
+Ozone
+
+0 1 ! charge and multiplicity
+ O     -2.26132e-16     4.26074e-17     0.529304
+ O     1.02559     -2.13037e-17     -0.264652
+ O     -1.02559     -2.13037e-17     -0.264652
+

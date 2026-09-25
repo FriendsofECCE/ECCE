@@ -62,6 +62,8 @@ const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_CODE = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_ELECTRONS = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATIC_CALCED_SPIN_MULT = wxNewId();
 const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_FINAL_EDIT = wxNewId();
+const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_VERIFY = wxNewId();
+const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_VERIFY_LIGHT = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_OPEN_SHELLS = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_FUNCTIONS = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_FORMULA = wxNewId();
@@ -138,6 +140,7 @@ BEGIN_EVENT_TABLE( CalcEdGUI, ewxFrame )
     EVT_BUTTON( ID_BUTTON_CALCED_CONSTRAINT, CalcEdGUI::OnButtonCalcedConstraintClick )
 
     EVT_BUTTON( ID_BUTTON_CALCED_FINAL_EDIT, CalcEdGUI::OnButtonCalcedFinalEditClick )
+    EVT_BUTTON( ID_BUTTON_CALCED_VERIFY, CalcEdGUI::OnButtonCalcedVerifyClick )
 
     EVT_BUTTON( ID_BUTTON_CALCED_LAUNCH, CalcEdGUI::OnButtonCalcedLaunchClick )
 
@@ -491,6 +494,25 @@ void CalcEdGUI::CreateControls()
     itemButton85->Show(false);
     itemBoxSizer83->Add(itemButton85, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
+    //  The light and the Verify button sit together, immediately left
+    //  of Final Edit: the light is the standing answer and the button
+    //  is how you ask what it means (GitHub #148).  Deliberately NOT
+    //  beside Launch, where a red light next to the button a user is
+    //  reaching for reads as a warning against launching rather than
+    //  as a statement about the file.
+    ewxStaticText* itemVerifyLight = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_VERIFY_LIGHT, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+    {
+      //  Large enough to read as a lamp rather than as punctuation.
+      wxFont lampFont = itemVerifyLight->GetFont();
+      lampFont.SetPointSize(lampFont.GetPointSize() + 6);
+      itemVerifyLight->SetFont(lampFont);
+    }
+    itemBoxSizer83->Add(itemVerifyLight, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 5);
+
+    ewxButton* itemVerifyButton = new ewxButton( itemFrame1, ID_BUTTON_CALCED_VERIFY, _("Verify"), wxDefaultPosition, wxDefaultSize, 0 );
+    itemVerifyButton->SetToolTip(_("Check this input file for anything obviously wrong before it is submitted."));
+    itemBoxSizer83->Add(itemVerifyButton, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+
     ewxButton* itemButton86 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_FINAL_EDIT, _("Final Edit..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer83->Add(itemButton86, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
@@ -774,6 +796,17 @@ void CalcEdGUI::OnButtonCalcedConstraintClick( wxCommandEvent& event )
     // Before editing this code, remove the block markers.
     event.Skip();
 ////@end wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_CONSTRAINT in CalcEdGUI. 
+}
+
+/*!
+ * wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_VERIFY
+ */
+
+void CalcEdGUI::OnButtonCalcedVerifyClick( wxCommandEvent& event )
+{
+    //  CalcEd overrides this; the base class only has to exist so the
+    //  event table has something to point at.
+    event.Skip();
 }
 
 /*!

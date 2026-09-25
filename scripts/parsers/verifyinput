@@ -1,0 +1,220 @@
+#!/usr/bin/env perl
+#
+#  Look at a generated input deck and say whether anything is badly
+#  wrong with it, before it is submitted (GitHub #148).
+#
+#      verifyinput -f <input file> -c <code name> [-a <atom count>]
+#
+#  Writes one finding per line:
+#
+#      LEVEL|LINE|CHECK|MESSAGE
+#
+#  LEVEL is BAD, UNSURE or GOOD.  LINE is the 1-based line a finding
+#  points at, or 0 where it points at the file as a whole.  GOOD lines
+#  are emitted for checks that ran and passed, deliberately: a checker
+#  that prints nothing when it is happy teaches nobody what it covers,
+#  and "green" then gets read as "this calculation is correct" rather
+#  than "these particular things are in order".
+#
+#  WHAT THIS MAY AND MAY NOT DECIDE.
+#
+#  Rules about the SHAPE of a deck -- which sections exist, which are
+#  required, how one ends -- come from the codes' documentation and are
+#  safe.  Rules about whether a KEYWORD is valid do not: this tree has
+#  been wrong about that repeatedly from reading manuals (NWChem's
+#  documented dispersion spellings are rejected; ORCA takes 6-31++G**
+#  but not 6-31++G; Gaussian wants GD3BJ and ECCE wrote GD3-BJ).  A
+#  checker that calls a correct deck wrong is worse than no checker,
+#  because the user learns to ignore it.  So nothing here rejects a
+#  keyword; anything it cannot judge is UNSURE.
+
+use strict;
+use warnings;
+use Getopt::Std;
+
+our ($opt_f, $opt_c, $opt_a, $opt_h);
+getopts('f:c:a:h');
+
+if ($opt_h || !defined($opt_f)) {
+  print STDERR "usage: verifyinput -f <input file> -c <code> [-a <atoms>]\n";
+  exit($opt_h ? 0 : 2);
+}
+
+my $code = defined($opt_c) ? $opt_c : "";
+my @findings;
+
+sub finding {
+  my ($level, $line, $check, $message) = @_;
+  push(@findings, join("|", $level, $line, $check, $message));
+}
+
+#  ---------------------------------------------------------------- read
+unless (-e $opt_f) {
+  finding("BAD", 0, "file", "There is no input file at $opt_f.");
+  print "$_\n" foreach (@findings);
+  exit 1;
+}
+
+open(my $in, '<', $opt_f) or do {
+  finding("BAD", 0, "file", "The input file could not be read: $!");
+  print "$_\n" foreach (@findings);
+  exit 1;
+};
+binmode($in);
+my @lines = <$in>;
+close($in);
+
+if (!@lines) {
+  finding("BAD", 0, "file", "The input file is empty.");
+  print "$_\n" foreach (@findings);
+  exit 1;
+}
+finding("GOOD", 0, "file", scalar(@lines) . " lines.");
+
+#  --------------------------------------------- bytes that cannot be read
+#
+#  This is the check that matters most and needs no knowledge of any
+#  code.  Two decks in one afternoon were generated with six bytes of
+#  binary where the basis set belongs -- invisible in a text view, and
+#  refused by the code after the job had reached a queue.
+my $binary = 0;
+for my $i (0 .. $#lines) {
+  my $line = $lines[$i];
+  if ($line =~ /([^\x09\x0a\x0d\x20-\x7e])/) {
+    my $byte = ord($1);
+    finding("BAD", $i + 1, "readable",
+            sprintf("This line contains a byte that is not text (0x%02x). " .
+                    "That is not something a person typed, and the code " .
+                    "will refuse the file.", $byte));
+    $binary++;
+    last if ($binary >= 5);
+  }
+}
+finding("GOOD", 0, "readable", "Every byte is printable text.")
+  if (!$binary);
+
+#  --------------------------------------------------------- the geometry
+#
+#  An element symbol and three numbers, which is what every one of these
+#  codes writes.  Counted rather than parsed: the point is to notice
+#  that the geometry is missing or the wrong size, not to re-read it.
+#  A number as any of these codes may write one, including the
+#  exponent forms -- Gaussian decks from this tree carry coordinates
+#  like -2.26132e-16, and a pattern demanding plain decimals reports
+#  a perfectly good ozone deck as having no geometry at all.
+my $NUM = qr/[-+]?(?:\d+\.?\d*|\.\d+)(?:[eEdD][-+]?\d+)?/;
+
+my $whole_early = join("", @lines);
+my $atoms = 0;
+my $firstAtom = 0;
+for my $i (0 .. $#lines) {
+  #  Trailing tokens are allowed: MOPAC writes an optimisation flag
+  #  after each coordinate, and NWChem permits a tag.
+  if ($lines[$i] =~ /^\s*([A-Z][a-z]?)\d*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
+    $atoms++;
+    $firstAtom = $i + 1 if (!$firstAtom);
+  }
+}
+
+if (!$atoms && $whole_early =~ /geom\s*=\s*\(?[^)\n]*check/i) {
+  #  A deck that says it takes its geometry from the checkpoint file
+  #  is right to have none here.
+  finding("UNSURE", 0, "geometry",
+          "There is no geometry in this file, but the route card reads " .
+          "it from the checkpoint file. Whether that checkpoint holds " .
+          "what you expect cannot be judged from here.");
+} elsif (!$atoms) {
+  finding("BAD", 0, "geometry",
+          "No geometry was found: no line holds an element symbol and " .
+          "three coordinates. The calculation has nothing to run on.");
+} elsif (defined($opt_a) && $opt_a =~ /^\d+$/ && $opt_a > 0 && $atoms != $opt_a) {
+  finding("BAD", $firstAtom, "geometry",
+          "The geometry has $atoms atoms; the calculation says it has " .
+          "$opt_a. One of them is wrong.");
+} else {
+  finding("GOOD", $firstAtom, "geometry", "$atoms atoms.");
+}
+
+#  ------------------------------------------------- what each code needs
+#
+#  Shape only, from the codes' own documentation and from the templates
+#  in this directory.  Each entry: a name, a pattern that must appear,
+#  and what to say when it does not.
+my %required = (
+  "Gaussian-16" => [
+    ["route",    qr/^\s*#/m,             "There is no route card: no line begins with '#'. Gaussian will not know what to run."],
+    ["charge",   qr/^\s*-?\d+\s+\d+\s*(!.*)?$/m, "There is no charge and multiplicity line."],
+  ],
+  "ORCA" => [
+    ["route",    qr/^\s*!/m,             "There is no '!' keyword line. ORCA will not know what to run."],
+    ["geomblock",qr/^\s*\*\s*(xyz|xyzfile|int)/mi, "There is no '* xyz' block opening the geometry."],
+  ],
+  "NWChem" => [
+    ["geometry", qr/^\s*geometry\b/mi,   "There is no geometry block."],
+    ["task",     qr/^\s*task\b/mi,       "There is no task directive, so NWChem will read the file and do nothing."],
+  ],
+  "MOPAC" => [
+    ["keywords", qr/\S/,                 "The keyword line is empty."],
+  ],
+  "QuantumESPRESSO" => [
+    ["control",  qr/^\s*&control/mi,     "There is no &CONTROL namelist."],
+    ["system",   qr/^\s*&system/mi,      "There is no &SYSTEM namelist."],
+    ["positions",qr/^\s*ATOMIC_POSITIONS/mi, "There is no ATOMIC_POSITIONS block."],
+  ],
+);
+$required{"Gaussian-09"} = $required{"Gaussian-16"};
+$required{"Gaussian-03"} = $required{"Gaussian-16"};
+
+my $whole = join("", @lines);
+
+if (exists($required{$code})) {
+  foreach my $rule (@{$required{$code}}) {
+    my ($name, $pattern, $complaint) = @$rule;
+    if ($whole =~ $pattern) {
+      finding("GOOD", 0, $name, "Present.");
+    } else {
+      finding("BAD", 0, $name, $complaint);
+    }
+  }
+} elsif ($code ne "") {
+  finding("UNSURE", 0, "code",
+          "There are no structural checks for $code yet, so only the " .
+          "code-independent ones above were applied.");
+} else {
+  finding("UNSURE", 0, "code",
+          "No code was named, so only the code-independent checks above " .
+          "were applied.");
+}
+
+#  ------------------------------------------- a basis that is not there
+#
+#  Gaussian's /GEN and ORCA's %basis both mean "the basis follows in
+#  this file".  When the basis translator fails, the section is empty
+#  and the deck says it is about to provide something it does not --
+#  which is exactly the ORCA deck seen in #146.
+if ($code =~ /^Gaussian/ && $whole =~ m{/gen\b}i) {
+  #  A Gen basis has element lines followed by shells; the cheapest
+  #  reliable tell is a '****' separator, which every Gen block has.
+  if ($whole =~ /^\s*\*\*\*\*\s*$/m) {
+    finding("GOOD", 0, "basis", "A Gen basis block is present.");
+  } else {
+    finding("BAD", 0, "basis",
+            "The route card says /GEN, which means the basis set is " .
+            "given in this file, but no basis block was found.");
+  }
+}
+if ($code eq "ORCA" && $whole =~ /^\s*%basis/mi) {
+  if ($whole =~ /^\s*newgto\b/mi) {
+    finding("GOOD", 0, "basis", "A %basis block is present.");
+  } else {
+    finding("UNSURE", 0, "basis",
+            "There is a %basis block but no NewGTO in it. That may be " .
+            "deliberate; it is also what an empty translation looks like.");
+  }
+}
+
+print "$_\n" foreach (@findings);
+
+#  Exit status: 1 if anything is BAD, 0 otherwise.  The caller shows the
+#  light; this only reports.
+exit((grep { /^BAD\|/ } @findings) ? 1 : 0);
