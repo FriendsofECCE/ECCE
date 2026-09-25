@@ -1188,6 +1188,78 @@ void MoDiagram::classify(const vector<MoLevel>& left,
 
   int nextPair = 0;
 
+  //  --- two halves: the pairing is known, not inferred --------------
+  //
+  //  Every fragment orbital produces EXACTLY TWO molecular orbitals,
+  //  its in-phase and out-of-phase combinations, and the two columns
+  //  are index-aligned because both were filled in the same loop. So
+  //  there is no counting problem here: left[i] and right[i] name the
+  //  pair, and their irreps say which molecular levels those are.
+  //
+  //  What the pair SAYS is the splitting between them. Two fragments
+  //  that interact strongly through an orbital push its combinations
+  //  far apart -- that is the bonding/antibonding pair. One that they
+  //  barely interact through leaves them nearly degenerate, and the
+  //  orbital has passed through the molecule unchanged: non-bonding,
+  //  measured rather than assumed.
+  //
+  //  NOTE WHAT "BONDING" MEANS HERE, because it is not the usual
+  //  thing. It is bonding WITH RESPECT TO THE INTERACTION DRAWN --
+  //  between the two halves -- not in absolute terms. Ethene's b1u
+  //  from the CH2 a1 orbitals is antibonding across the C-C and still
+  //  a perfectly good C-H bonding orbital overall. That is the
+  //  convention every fragment-interaction diagram uses, and it is
+  //  only honest while the diagram says which interaction it is
+  //  about, which the column titles do.
+  if (fromHalves) {
+    //  How big a splitting counts as an interaction, against the
+    //  spread of the spectrum itself rather than an absolute number
+    //  in somebody's units.
+    double lowest = 0.0, highest = 0.0;
+    for (size_t i = 0; i < centre.size(); i++) {
+      if (i == 0 || centre[i].energy < lowest)  lowest  = centre[i].energy;
+      if (i == 0 || centre[i].energy > highest) highest = centre[i].energy;
+    }
+    const double negligible = 0.02*(highest - lowest);
+
+    vector<bool> taken(centre.size(), false);
+    const size_t pairs = (left.size() < right.size()) ? left.size()
+                                                      : right.size();
+    for (size_t i = 0; i < pairs; i++) {
+      //  The lowest unclaimed molecular level of each combination's
+      //  irrep: lowest first, because a fragment orbital's pair is
+      //  the lowest pair of that symmetry still unaccounted for.
+      int in = -1, out = -1;
+      for (size_t k = 0; k < centre.size(); k++) {
+        if (taken[k]) continue;
+        if (in < 0 && centre[k].irrep == left[i].irrep)  { in = (int)k; continue; }
+        if (out < 0 && centre[k].irrep == right[i].irrep) { out = (int)k; }
+      }
+      if (in < 0 || out < 0 || in == out) continue;
+      taken[in] = taken[out] = true;
+
+      if (fabs(centre[out].energy - centre[in].energy) < negligible) {
+        centre[in].character = centre[out].character = MoLevel::NONBONDING;
+        centre[in].pairing = centre[out].pairing = -1;
+        continue;
+      }
+
+      //  Whichever ended up lower is the bonding one. The in-phase
+      //  combination usually is, and is not guaranteed to be: an
+      //  orbital whose lobes point away from the partner fragment
+      //  inverts the order, which is a real effect and not an error
+      //  to be corrected by assumption.
+      const bool inIsLower = (centre[in].energy <= centre[out].energy);
+      MoLevel& lower  = inIsLower ? centre[in]  : centre[out];
+      MoLevel& higher = inIsLower ? centre[out] : centre[in];
+
+      lower.character  = MoLevel::BONDING;
+      higher.character = MoLevel::ANTIBONDING;
+      lower.pairing = higher.pairing = nextPair++;
+    }
+    return;
+  }
+
   //  One irrep at a time; orbitals of different irreps cannot combine,
   //  so each is a separate counting problem.
   vector<string> done;
