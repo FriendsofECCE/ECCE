@@ -31,6 +31,20 @@ intentionally *not* a running log of past sessions. For that, see
   revert.
 - `GETTING_STARTED.md` (repo root) has the full build/package/install/
   first-login walkthrough. Don't reproduce it here.
+- **The central-server deployment is unconditional** (stated 2026-09-25).
+  ECCE must keep supporting a data server + broker on one machine with
+  students connected to it as clients — this is the teaching use case
+  and it is how the original PNNL deployment worked. Much of this fork's
+  new work localises services *per user* (per-user Apache, per-user
+  ActiveMQ, loopback-only `Listen`, per-`$DISPLAY` state files), and
+  that direction is fine only for as long as the two-machine path keeps
+  working. Treat `ECCE_REMOTE_SERVER`/`-remote` and
+  `siteconfig/RemoteServer/` as first-class rather than a fallback, and
+  before changing the data server, the broker, `Listen` or service
+  startup, ask explicitly what it does to a central install. #138 is
+  the live instance; `packaging/dataserver/ecce-remote-setup` has so far
+  only been tested against a fake install tree, never a live two-machine
+  deployment.
 - **Memory settings should be entered/labeled in GB everywhere, for
   every code** — Andy's explicit UX preference (2026-09-07), not each
   code's native convention. The wire format still has to match what
