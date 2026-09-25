@@ -84,6 +84,19 @@ than papered over.
 
 ### Release history
 
+- **v8.14.0** — **Qualitative MO correlation diagrams**, shipped as
+  experimental: a molecule's orbitals correlated against its fragments,
+  with terminal-atom symmetry orbitals and Mulliken labels, and an
+  extended Hückel fallback so a diagram can be drawn from a structure
+  alone. **"Use symmetry" moves onto the Calculation Editor** beside the
+  point group and defaults on — every Gaussian deck ECCE had ever
+  written carried `NoSymm`, so Gaussian never reported orbital labels.
+  **Fixes basis sets being silently corrupted**: a bare pointer into a
+  frozen stream buffer put six bytes of binary where the basis block
+  belongs, in both ORCA and Gaussian decks, and the codes refused them.
+  Also Gaussian 16 Raman and anharmonic frequencies, a filter for the
+  Basis Set Tool's 377 sets, one password per session, and RPM packages.
+
 - **v8.13.2** — **Jobs that staged and never ran now run.** ECCE
   backgrounded the submit script with Bourne-shell redirection, which csh
   rejects outright — so nothing started, while ECCE reported the
