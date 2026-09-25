@@ -38,6 +38,7 @@ The broken fixtures are real failures, not invented ones:
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 
@@ -358,6 +359,194 @@ def testrt_agreement(verbose):
     return (True, failures, checked)
 
 
+
+#  ---------------------------------------------------------------------
+#  The checker's verdicts, against the codes themselves.
+#
+#  testrt covers Gaussian's route card and nothing else. This runs the
+#  WHOLE deck through the real program and asks whether it survives
+#  that program's own input parsing -- which is the only authority on
+#  the question the checker is trying to answer.
+#
+#  It does not wait for a calculation. A deck that gets past parsing
+#  has told us what we asked; the run is killed at that point, which
+#  is why the timeouts are short. Broken decks are the fast case
+#  anyway: NWChem rejects one in 0.2s.
+#
+#  EXIT STATUS IS NOT THE SIGNAL, and assuming it would have made this
+#  test lie. MOPAC exits 0 on a deck it has refused, writing the
+#  complaint into its output file instead; Gaussian returns non-zero
+#  for a failure to converge as readily as for a syntax error. Each
+#  code is asked in its own terms.
+CODE_RUNNERS = {
+    "NWChem": {
+        "binaries": ["nwchem"],
+        "suffix":   ".nw",
+        #  Exits 2 and says so on stdout.
+        "rejected": re.compile(r"input error|There is an error in the input",
+                               re.I),
+        "timeout":  60,
+    },
+    "MOPAC": {
+        "binaries": ["mopac"],
+        "suffix":   ".mop",
+        "rejected": re.compile(r"error|unrecognized|not recognized", re.I),
+        "timeout":  60,
+        #  Writes its answer beside the input, not to stdout.
+        "output":   ".out",
+    },
+    "ORCA": {
+        "binaries": ["/opt/orca/orca_6_1_1_linux_x86-64_shared_openmpi418_"
+                     "nodmrg/orca", "orca"],
+        "suffix":   ".inp",
+        "rejected": re.compile(r"aborting the run|error.*reading|"
+                               r"input.*error", re.I),
+        "timeout":  90,
+    },
+    "Gaussian-16": {
+        "binaries": ["/opt/gaussian/g16/g16"],
+        "suffix":   ".gjf",
+        "rejected": re.compile(r"Error termination via Lnk1e", re.I),
+        "timeout":  90,
+        "stdin":    True,
+        "env":      {"g16root": "/opt/gaussian"},
+    },
+}
+
+
+def code_binary(spec):
+    for candidate in spec["binaries"]:
+        if os.path.isabs(candidate):
+            if os.access(candidate, os.X_OK):
+                return candidate
+        elif which(candidate):
+            return which(candidate)
+    return None
+
+
+def code_rejects(code, path, work):
+    """Did the real program refuse this deck? None if it could not run."""
+    spec = CODE_RUNNERS.get(code)
+    if not spec:
+        return None
+    binary = code_binary(spec)
+    if not binary:
+        return None
+
+    import shutil
+    deck = os.path.join(work, "case" + spec["suffix"])
+    shutil.copyfile(path, deck)
+
+    env = dict(os.environ)
+    env.update(spec.get("env", {}))
+    env["GAUSS_SCRDIR"] = work
+
+    #  errors="replace" is not tidiness. The deck that matters most
+    #  here is the one whose basis block came out as raw binary, and
+    #  Gaussian ECHOES those bytes back in its output -- so decoding
+    #  strictly made the harness die on precisely the case it exists
+    #  to check.
+    try:
+        if spec.get("stdin"):
+            with open(deck, "rb") as handle:
+                p = subprocess.run([binary], stdin=handle, cwd=work, env=env,
+                                   capture_output=True, text=True,
+                                   errors="replace",
+                                   timeout=spec["timeout"])
+        else:
+            p = subprocess.run([binary, os.path.basename(deck)], cwd=work,
+                               env=env, capture_output=True, text=True,
+                               errors="replace",
+                               timeout=spec["timeout"])
+        said = (p.stdout or "") + (p.stderr or "")
+    except subprocess.TimeoutExpired:
+        #  Still running when time ran out means it got past parsing,
+        #  which is the whole question.
+        return False
+
+    if spec.get("output"):
+        beside = os.path.splitext(deck)[0] + spec["output"]
+        if os.path.exists(beside):
+            said += open(beside, errors="replace").read()
+
+    return bool(spec["rejected"].search(said))
+
+
+#  Decks the checker calls wrong that the code nonetheless ACCEPTS.
+#
+#  Not false alarms -- the opposite. Each of these runs and produces
+#  something useless, which is worse than being refused, because
+#  nothing tells the user. The code's parser is the authority on
+#  whether a deck is syntactically legal; it is not the authority on
+#  whether the calculation means anything, and this is the gap the
+#  checker exists to cover.
+#
+#  Listed one by one, with what the code actually does, so the
+#  distinction is recorded rather than waved at -- and so a NEW
+#  disagreement still fails the suite.
+ACCEPTS_ANYWAY = {
+    "g16-element-no-basis.g16in":
+        "runs with two hydrogens that have no basis functions at all "
+        "(Gaussian warns, exits 0)",
+    "nwchem-ammonia-no-task.nw":
+        "reads the whole file and then does nothing, exiting 0",
+    "orca-no-route.orcain":
+        "runs on its own defaults rather than what was asked for",
+}
+
+
+def codes_agreement(verbose):
+    """Returns (ran, failures, checked)."""
+    import tempfile
+    failures, checked = 0, 0
+
+    for fixture, code, _atoms, expected in CASES:
+        if code not in CODE_RUNNERS:
+            continue
+        path = os.path.join(FIXTURES, fixture)
+        if not os.path.exists(path):
+            continue
+
+        work = tempfile.mkdtemp(prefix="ecce-oracle")
+        refused = code_rejects(code, path, work)
+        if refused is None:
+            continue
+        checked += 1
+
+        _rc, findings = run(fixture, code, 0)
+        weSayBad = any(level == "BAD" for level, _c, _m in findings)
+
+        #  ONLY ONE DIRECTION IS A FAILURE HERE.
+        #
+        #  If the checker calls a deck wrong, the code must refuse it
+        #  -- that is the false alarm this whole suite exists to
+        #  prevent, and the code is the authority.
+        #
+        #  The other way round is not a failure: the checker is
+        #  deliberately narrow and lets through everything it cannot
+        #  judge from the file's structure. A deck the code refuses
+        #  for a reason the checker does not look for is a MISS, which
+        #  is the cheap failure, and reporting it as an error would
+        #  push towards guessing.
+        if weSayBad and not refused and fixture in ACCEPTS_ANYWAY:
+            if verbose:
+                print("      %-32s we:bad  %s accepts it -- %s"
+                      % (fixture, code, ACCEPTS_ANYWAY[fixture]))
+        elif weSayBad and not refused:
+            print("FAIL  %s: we call it wrong, %s accepts it"
+                  % (fixture, code))
+            print("        Either the check is a false alarm, or the deck "
+                  "runs and produces nonsense -- if the second, add it to "
+                  "ACCEPTS_ANYWAY with what the code does.")
+            failures += 1
+        elif verbose:
+            print("      %-32s we:%-5s %s:%s" %
+                  (fixture, "bad" if weSayBad else "ok", code,
+                   "refuses" if refused else "accepts"))
+
+    return (checked > 0, failures, checked)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -442,6 +631,16 @@ def main():
         failures += amber
     else:
         print("ok    every word in the ECCE-generated fixtures is known")
+
+    ran, codeFailures, codesChecked = codes_agreement(args.verbose)
+    if not ran:
+        print("SKIP  decks against the codes themselves "
+              "(none installed here)")
+    elif codeFailures:
+        failures += codeFailures
+    else:
+        print("ok    %d decks agree with the codes themselves"
+              % codesChecked)
 
     ran, oracleFailures, checked = testrt_agreement(args.verbose)
     if not ran:
