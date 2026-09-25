@@ -78,6 +78,18 @@ class MoFragments
     static int valenceElectrons(const string& element);
 
     /**
+     * How many orbitals a minimal valence basis puts on this element.
+     *
+     * One for hydrogen and helium, four for a main-group element
+     * (s and three p), nine for a transition metal (five d as well).
+     * This is the size of the picture a qualitative MO diagram draws:
+     * a split-valence or larger basis produces further empty levels
+     * that are artefacts of the basis and belong to no orbital anyone
+     * would put on such a diagram.
+     */
+    static int valenceOrbitals(const string& element);
+
+    /**
      * Split the atoms into a central atom and its terminal orbit.
      *
      * The central atom is one the whole group leaves in place -- an

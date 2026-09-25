@@ -502,6 +502,8 @@ void MoDiagramPanel::build()
   MoDiagram::hideAbove(centre,
                        MoDiagram::suggestVirtualCutoff(centre.levels));
 
+  MoDiagram::hideBeyondValence(centre, elements);
+
   for (size_t i = 0; i < centre.levels.size(); i++) {
     ostringstream text;
     text.setf(std::ios::fixed);

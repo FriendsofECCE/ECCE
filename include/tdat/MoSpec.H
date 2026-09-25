@@ -188,6 +188,7 @@ static bool buildModel(const char* tables, const char* molecule,
   centre.title = "Molecular orbitals";
   MoDiagram::hideBelow(centre, MoDiagram::suggestCoreCutoff(centre.levels));
   MoDiagram::hideAbove(centre, MoDiagram::suggestVirtualCutoff(centre.levels));
+  MoDiagram::hideBeyondValence(centre, model.elements);
 
   string& note = model.note;
   vector<int> leftAtoms, rightAtoms;

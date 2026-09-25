@@ -9,6 +9,7 @@ using std::ostringstream;
 #include <cstddef>
 
 #include "tdat/MoDiagram.H"
+#include "tdat/MoFragments.H"
 
 MoDiagram::MoDiagram()
 {
@@ -724,6 +725,51 @@ void MoDiagram::hideAbove(MoColumn& column, double cutoff)
   }
   column.levels = kept;
   column.hiddenAboveCount = hidden;
+}
+
+
+void MoDiagram::hideBeyondValence(MoColumn& centre,
+                                  const vector<string>& elements)
+{
+  //  A QUALITATIVE DIAGRAM IS THE SIZE OF A MINIMAL VALENCE BASIS.
+  //
+  //  NO2- and O3 have twelve valence orbitals between them -- four on
+  //  the central atom and four on each oxygen -- and that is how many
+  //  a person draws.  A split-valence or larger basis produces more:
+  //  one calculation reported twenty levels, and the eight extra empty
+  //  ones are artefacts of the extra basis functions.  They correspond
+  //  to nothing on either fragment column and have no place here.
+  //
+  //  suggestVirtualCutoff() folds on gaps in the spectrum, which is the
+  //  right instinct but cannot know how many levels the picture should
+  //  have.  The elements do know, so the count comes from them.
+  int room = 0;
+  for (size_t i = 0; i < elements.size(); i++) {
+    room += MoFragments::valenceOrbitals(elements[i]);
+  }
+  if (room <= 0) return;
+
+  //  The core has already been folded away, so what is left is the
+  //  valence and whatever sits above it.
+  int shown = 0;
+  size_t keep = centre.levels.size();
+  for (size_t i = 0; i < centre.levels.size(); i++) {
+    const int here = (centre.levels[i].degeneracy > 0)
+                         ? centre.levels[i].degeneracy : 1;
+    if (shown + here > room) { keep = i; break; }
+    shown += here;
+  }
+
+  //  NEVER FOLD AN OCCUPIED LEVEL AWAY.  An orbital with electrons in
+  //  it is part of the molecule whatever the basis did, and hiding one
+  //  would misstate the electron count the diagram shows.
+  for (size_t i = keep; i < centre.levels.size(); i++) {
+    if (centre.levels[i].occupancy > 0.0) keep = i + 1;
+  }
+
+  if (keep < centre.levels.size()) {
+    hideAbove(centre, centre.levels[keep].energy - 1.0e-9);
+  }
 }
 
 

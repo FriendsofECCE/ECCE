@@ -105,6 +105,17 @@ int MoFragments::valenceElectrons(const string& element)
 }
 
 
+int MoFragments::valenceOrbitals(const string& element)
+{
+   loadVoie();
+   map<string, VoieEntry>::const_iterator it = s_voie.find(element);
+   if (it == s_voie.end()) return 0;
+   if (it->second.haveD) return 9;   //  five d, one s, three p
+   if (it->second.haveP) return 4;   //  one s, three p
+   return 1;                         //  hydrogen, helium
+}
+
+
 /////////////////////////////////////////////////////////////////////////////
 //  Description
 //     Put a fragment's electrons on its levels.

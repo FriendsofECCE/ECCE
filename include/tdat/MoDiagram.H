@@ -365,6 +365,17 @@ class MoDiagram
      */
     static double suggestVirtualCutoff(const vector<MoLevel>& levels);
 
+   /**
+    * Fold away levels beyond what a minimal valence basis would give.
+    *
+    * A split-valence or larger basis adds empty levels that correspond
+    * to nothing on either fragment column; they are artefacts of the
+    * basis, not orbitals a qualitative diagram is about.  Occupied
+    * levels are never folded.
+    */
+   static void hideBeyondValence(MoColumn& centre,
+                                 const vector<string>& elements);
+
     /**
      * A cutoff that folds away genuine core orbitals and nothing else.
      *
