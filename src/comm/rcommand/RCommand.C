@@ -3084,7 +3084,31 @@ bool RCommand::execbg(const string& command, string& output,
   // run directory when stdout isn't already redirected -- this command
   // already handles its own output via generated shell-script
   // redirects, nothing here needs to see it.
-  if (!expwrite("nohup " + command + " > /dev/null 2>&1 & echo RC_EXECBG_PID=$!"))
+  //  The redirection has to be written in the dialect of the shell that
+  //  will parse it, and that shell is csh unless the machine is
+  //  registered as using bash -- the same distinction p_remoteBash
+  //  already makes for $status vs $? everywhere else in this file.
+  //
+  //  "> /dev/null 2>&1" is the sh form.  csh reads it as TWO output
+  //  redirections -- "2" is an ordinary word, and ">&1" is csh's
+  //  redirect-both operator -- and refuses the whole command with
+  //  "Ambiguous output redirect."  Nothing is started, no PID comes
+  //  back, and because execbg()'s caller treats a backgrounded launch
+  //  as successful, ECCE reports the calculation as started.  That is
+  //  the entire failure: files staged, job never runs, no error (#141).
+  //
+  //  It went unnoticed because the two csh implementations disagree.
+  //  Debian's default csh is bsd-csh, which accepts the sh form; Ubuntu
+  //  and RHEL ship tcsh as /usr/bin/csh, which rejects it.  So the same
+  //  build launches jobs on one machine and silently fails on another,
+  //  with "csh" installed and working on both.  Test against tcsh
+  //  specifically, not whatever "csh" resolves to locally.
+  //
+  //  ">& /dev/null" is csh's own form and is what ECCE's generated
+  //  submit scripts have always used.
+  const string redirect = p_remoteBash ? " > /dev/null 2>&1" : " >& /dev/null";
+
+  if (!expwrite("nohup " + command + redirect + " & echo RC_EXECBG_PID=$!"))
     return false;
 
   int matchResult = expect1("RC_EXECBG_PID=*\r\n+go+");
