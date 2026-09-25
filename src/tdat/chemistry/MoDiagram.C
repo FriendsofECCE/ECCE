@@ -1188,10 +1188,28 @@ bool MoDiagram::isPiIrrep(const CharacterTable& table, const string& irrep)
   const int which = molecularPlaneClass(table);
   if (which < 0) return false;
 
-  const vector<double> *chi = table.characters(irrep);
+  //  MATCHED CANONICALLY, because the two spellings differ.
+  //
+  //  A level carries the canonical irrep -- uppercased, with the
+  //  primes normalised -- while the character table spells it the way
+  //  a chemist writes it. "A2U" and "A2u" are the same irrep and not
+  //  the same string, so looking the level's name up directly found
+  //  nothing and every orbital came back not-pi. That made this work
+  //  in Cs alone, where the names happen to have no lowercase in
+  //  them, and silently do nothing in every Dnh and Cnh group -- the
+  //  aromatic rings it was written for.
+  string name;
+  const vector<string>& names = table.irreps();
+  const string wanted = canonicalIrrep(irrep);
+  for (size_t i = 0; i < names.size() && name.empty(); i++) {
+    if (canonicalIrrep(names[i]) == wanted) name = names[i];
+  }
+  if (name.empty()) return false;
+
+  const vector<double> *chi = table.characters(name);
   if (chi == 0 || (size_t)which >= chi->size()) return false;
 
-  const int dimension = table.dimension(irrep);
+  const int dimension = table.dimension(name);
   if (dimension <= 0) return false;
 
   //  Antisymmetric in the plane, in every component.

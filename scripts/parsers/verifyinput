@@ -516,26 +516,25 @@ sub gaussian
   #  job should ask for is the user's business and the queue's.
   my @got;
   push(@got, "memory")            if ($whole =~ /^\s*%mem\s*=/mi);
-  push(@got, "processors")        if ($whole =~ /^\s*%(nprocshared|cpu)\s*=/mi);
+  push(@got, "processors")        if ($whole =~ /^\s*%(nprocshared|cpu|nproc)\s*=/mi);
   push(@got, "a checkpoint file") if ($whole =~ /^\s*%chk\s*=/mi);
   if (@got) {
     finding("GOOD", 0, "link0", "Link 0 asks for " . join(", ", @got) . ".");
-  } else {
-    #  SAY WHAT IT MEANS, NOT WHAT IT MIGHT COST.
-    #
-    #  ECCE writes "%Mem=##MemorySize##GB" from its template, and the
-    #  generator DELETES a line whose tag does not resolve -- so a
-    #  deck with no %Mem is one where the memory setting never
-    #  reached it, silently. That is the useful thing to say. The
-    #  first version of this lectured about shared machines instead,
-    #  which reads as an opinion about how to run jobs rather than as
-    #  a fact about this file.
-    finding("UNSURE", 0, "link0",
-            "This deck has no Link 0 directives -- no %mem, no " .
-            "%nprocshared, no %chk. ECCE normally writes at least " .
-            "%mem, so a setting may not have reached this " .
-            "calculation; Gaussian will use its own defaults.");
   }
+  #  NOTHING IS SAID WHEN LINK 0 IS ABSENT, and that is deliberate.
+  #
+  #  This complained that a deck had no %mem, no %nprocshared and no
+  #  %chk. The processor count is NOT a property of a saved deck:
+  #  gaussian-16.launchpp strips any %nproc and inserts the real one
+  #  at launch, from the queue's own numbers, because that is the
+  #  only place it is known. Faulting a deck for not carrying it
+  #  yet is faulting it for being a deck rather than a running job.
+  #
+  #  Memory has a working default, and a checkpoint file is optional
+  #  unless something reads one -- which is checked separately just
+  #  below. So there was nothing left that this could truthfully call
+  #  a problem, and an amber that fires on ordinary decks is exactly
+  #  the noise that teaches people to ignore the light.
   if ($fromCheck && $whole !~ /^\s*%chk\s*=/mi) {
     finding("BAD", 0, "link0",
             "The route card reads from a checkpoint file, but no %chk " .
@@ -578,6 +577,35 @@ sub gaussian
             "read the charge line as part of it.");
     return;
   }
+  #  A TITLE THAT HAS SWALLOWED THE DECK IS NOT A TITLE.
+  #
+  #  Gaussian reads the title until a blank line, so a stray line
+  #  where the blank should be makes the title run on through the
+  #  charge line and the whole geometry -- and this then reported the
+  #  title as checked-and-right over all of it, painting the stray
+  #  line and every atom green, before complaining about a missing
+  #  charge line somewhere past the end. Reported live 2026-09-25: an
+  #  "s" on line 4 was marked good and line 13 was marked wrong.
+  #
+  #  If the title contains something that belongs to a later section,
+  #  the fault is the missing blank line, and it is AT that line.
+  my $swallowed = -1;
+  for my $i ($titleAt .. $titleEnd - 1) {
+    if ($L[$i] =~ /^\s*-?\d+\s+-?\d+\s*(!.*)?$/ ||
+        $L[$i] =~ /^\s*[A-Za-z][A-Za-z]?\S*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
+      $swallowed = $i;
+      last;
+    }
+  }
+  if ($swallowed >= 0) {
+    finding("BAD", $swallowed + 1, "sections",
+            "There is no blank line between the title and this line, so " .
+            "Gaussian will read it as part of the title. The title runs " .
+            "from line " . ($titleAt + 1) . " to line $titleEnd, which " .
+            "cannot be what was meant.");
+    return;
+  }
+
   finding("GOOD", ($titleAt + 1) . "-" . $titleEnd, "title",
           "A title is present and closed.");
 
@@ -796,6 +824,49 @@ sub orca
     finding("BAD", 0, "route",
             "There is no '!' keyword line. ORCA will not know what to " .
             "run.");
+  }
+
+  #  The % blocks, which are most of an ORCA deck and were covered by
+  #  no check at all -- so they came out unmarked beside a report
+  #  saying every check passed, which reads as an oversight.
+  #
+  #  A "%keyword value" line is complete on its own (%maxcore 1000);
+  #  a "%keyword" with nothing after it opens a block that "end" has
+  #  to close.
+  {
+    my $openedAt = -1;
+    my $blocks = 0;
+    my $firstBlock = -1;
+    my $lastBlock = -1;
+    for my $i (0 .. $#L) {
+      if ($openedAt < 0 && $L[$i] =~ /^\s*%(\w+)\s*$/) {
+        $openedAt = $i;
+        $firstBlock = $i if ($firstBlock < 0);
+        next;
+      }
+      if ($openedAt >= 0 && $L[$i] =~ /^\s*end\s*$/i) {
+        $blocks++;
+        $lastBlock = $i;
+        $openedAt = -1;
+        next;
+      }
+      #  A one-line directive with its value on the same line.
+      if ($openedAt < 0 && $L[$i] =~ /^\s*%\w+\s+\S/) {
+        $firstBlock = $i if ($firstBlock < 0);
+        $lastBlock = $i;
+        $blocks++;
+      }
+    }
+
+    if ($openedAt >= 0) {
+      finding("BAD", $openedAt + 1, "blocks",
+              "This % block is never closed by an 'end'. ORCA reads to " .
+              "the end of the file looking for one.");
+    } elsif ($blocks) {
+      finding("GOOD", ($firstBlock + 1) . "-" . ($lastBlock + 1), "blocks",
+              "$blocks % block" . ($blocks == 1 ? " is" : "s are") .
+              " present and closed.");
+    }
   }
 
   #  The geometry block.

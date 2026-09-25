@@ -1998,7 +1998,15 @@ void MoFragments::availableFragmentations(const vector<double>& coords,
          if (partition(orbits, elements, central, terminal)) {
             kinds.push_back(CENTRAL);
          }
-         if (orbits.size() >= 2) kinds.push_back(EQUIVALENT_SETS);
+         //  EXACTLY two, not at least two.
+         //
+         //  The construction puts one set against the other, so a
+         //  molecule with five distinct sets has no such split and
+         //  the branch refuses. Offering it anyway produced a menu
+         //  entry that drew nothing but a bare spectrum and a note
+         //  explaining why it could not -- reported live on both
+         //  methanol and benzene.
+         if (orbits.size() == 2) kinds.push_back(EQUIVALENT_SETS);
       }
    }
 
