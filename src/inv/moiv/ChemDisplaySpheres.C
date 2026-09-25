@@ -335,6 +335,18 @@ printf ("In ChemDisplay::renderAtomsAsSpheres\n");
 				glGetMaterialfv(GL_FRONT, GL_EMISSION, emi);
 				glGetMaterialfv(GL_FRONT, GL_DIFFUSE,  dif);
 				glGetFloatv(GL_CURRENT_COLOR, col);
+			GLfloat lm[4];
+			glGetFloatv(GL_LIGHT_MODEL_AMBIENT, lm);
+			fprintf(log, "ENTRY-LIGHTMODEL %.3f %.3f %.3f\n",
+				lm[0], lm[1], lm[2]);
+			for (int li = 0; li < 8; li++) {
+				if (!glIsEnabled(GL_LIGHT0 + li)) continue;
+				GLfloat la[4], ld[4];
+				glGetLightfv(GL_LIGHT0+li, GL_AMBIENT, la);
+				glGetLightfv(GL_LIGHT0+li, GL_DIFFUSE, ld);
+				fprintf(log, "ENTRY-LIGHT%d amb %.3f %.3f %.3f dif %.3f %.3f %.3f\n",
+					li, la[0],la[1],la[2], ld[0],ld[1],ld[2]);
+			}
 			fprintf(log, "ATOMS-ENTRY colour %.3f %.3f %.3f | "
 					"amb %.3f %.3f %.3f | emi %.3f %.3f %.3f | "
 					"dif %.3f %.3f %.3f\n",
