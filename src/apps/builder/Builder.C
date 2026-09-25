@@ -4183,10 +4183,31 @@ void Builder::loadDefaultPaneLayout(const wxString& layoutName,
     names.insert(NAME_TOOL_SELECTION);
     names.insert(NAME_TOOL_LOG);
   } else if (layoutName == NAME_LAYOUT_DEFAULT) {
-    // All tools are hidden except Build, Coordinate, and Log
+    // All tools are hidden except Build, Coordinate, Symmetry and Log
     names.insert(NAME_TOOL_CONTEXT);
     names.insert(NAME_TOOL_BUILD);
     names.insert(NAME_TOOL_COORDINATES);
+
+    //  SYMMETRY IS OPEN WHILE A MOLECULE IS BEING DRAWN.
+    //
+    //  A structure that has not been symmetrised is the single most
+    //  expensive thing a user can carry forward. The calculation runs
+    //  in whatever group the code detects from coordinates that are
+    //  almost but not quite symmetric -- Cs for an ethene, C1 for a
+    //  benzene -- and the cost only becomes visible afterwards, when
+    //  the orbitals have no useful labels and no correlation diagram
+    //  can be drawn from them.
+    //
+    //  The panel told nobody it existed: it was one entry in the
+    //  Tools menu, and the advice to use it appeared in the MO
+    //  diagram, which is opened AFTER the calculation has run. Advice
+    //  that arrives too late to act on is not advice.
+    //
+    //  This is the default layout only, so anyone who has arranged
+    //  their own panes keeps them -- it reaches the people who have
+    //  not yet found it, which is the point.
+    names.insert(NAME_TOOL_SYMMETRY);
+
     names.insert(NAME_TOOL_LOG);
   } else if (layoutName == NAME_LAYOUT_STRUCTLIB) {
     // All tools are hidden except Structure Library
@@ -4205,7 +4226,7 @@ void Builder::loadDefaultPaneLayout(const wxString& layoutName,
     p_mgr.GetPane(NAME_TOOL_ATOM_TABLE).Right();
     p_mgr.GetPane(NAME_TOOL_LOG).Position(p_toolCount+1);
   } else if (layoutName == NAME_LAYOUT_DEFAULT) {
-    // noop
+    p_mgr.GetPane(NAME_TOOL_SYMMETRY).Right();
   } else if (layoutName == NAME_LAYOUT_STRUCTLIB) {
     p_mgr.GetPane(NAME_TOOL_STRUCTLIB).Show(true).Show(true).Right();
   }
