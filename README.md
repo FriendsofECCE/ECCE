@@ -14,6 +14,27 @@ version 8: reaching it took a real modernization of the build system and
 every major dependency, not just a recompile, on top of bringing the
 application itself back to life.
 
+## General features
+
+* **Build molecular models**, or import a structure and work from that.
+* **Set up calculations for a range of codes** through one interface —
+  NWChem, Gaussian 16 and 09, ORCA, MOPAC and Quantum ESPRESSO are
+  supported, and further codes can be registered without changing ECCE
+  itself.
+* **Choose basis sets graphically**, with the code's own built-in sets
+  used where they match.
+* **Submit to workstations, clusters and supercomputers**, through PBS,
+  LSF, Slurm, Moab, SGE, LoadLeveler and Maui, or directly via a shell.
+* **Watch results arrive while the job is still running** — energies,
+  geometry traces and convergence are parsed live, not only at the end.
+* **Visualise molecular data in 3-D**: molecular orbitals, electron
+  density, electrostatic potential maps, vibrational modes with
+  animation, and geometry optimisation traces.
+* **Import output from jobs run outside ECCE**, for centres where
+  ECCE cannot submit directly.
+* **Run one server for a group**, with students or colleagues connecting
+  to it as clients.
+
 ## Screenshots
 
 | Gateway | Organizer |
@@ -61,52 +82,30 @@ than papered over.
 
 ### Release history
 
-- **v8.13.2** — Patch release. Fixes jobs that stage, report as
-  started, and never run. ECCE backgrounded the submit script with
-  Bourne-shell redirection (`> /dev/null 2>&1`); csh reads that as two
-  output redirections and refuses the command with `Ambiguous output
-  redirect.`, so nothing started and no process id came back — and
-  because a backgrounded launch is treated as successful, the
-  calculation was reported as running. Affects any machine whose
-  `/usr/bin/csh` is tcsh, the default on Ubuntu and RHEL; Debian's
-  `bsd-csh` accepts the Bourne form, which is why the same build worked
-  there. Present since v8.0.3. The redirection now follows the shell's
-  own dialect. `ecce-diagnose` is also now a general-purpose collector
-  for any problem, and masks credentials out of what it gathers.
-- **v8.13.1** — Patch release. Fixes helper programs being invoked by
-  relative path, which could only ever work from `$ECCE_HOME/bin`: with
-  `ecmd` in particular, `execvp` does not search `PATH` for a name
-  containing a slash, so background remote commands, password and
-  message dialogs and job-monitor startup could fail silently depending
-  on where the application was started from. Also fixes
-  `SymmetryOps::find()` reporting `C1` for an unrecognised exit status
-  — a failed symmetry search answering "no symmetry" — and a negative
-  plot height handed to GTK. Restores support for running against a
-  **central server**: `ecce -remote` works again and starts no local
-  services, and `ecce-remote-setup <host>` configures a client in one
-  command. Adds `ecce-diagnose`, which collects everything needed to
-  diagnose a job-launch problem in one pass.
+- **v8.13.2** — **Jobs that staged and never ran now run.** ECCE
+  backgrounded the submit script with Bourne-shell redirection, which csh
+  rejects outright — so nothing started, while ECCE reported the
+  calculation as running. Affects any machine whose `/usr/bin/csh` is
+  tcsh (Ubuntu, RHEL); Debian's `bsd-csh` accepts it, which is why the
+  same build worked there. Present since v8.0.3. `ecce-diagnose` becomes
+  a general-purpose collector for any problem.
 
-- **v8.13.0** — *New:* electrostatic potential maps, computed either as
-  the integral over the electron density or from point charges, drawn on
-  the molecular surface with an adjustable colour range. 3-D orbitals for
-  MOPAC. Queues configurable from inside ECCE rather than by editing
-  root-owned files. Dispersion corrections for NWChem and Gaussian, and
-  twelve further functionals across NWChem and ORCA. MOPAC MO and
-  thermochemistry extraction, and ORCA orbital symmetries. End-to-end
-  tests of five codes, an installed-tree check and a symmetry suite.
-  *Fixed:* ORCA p functions were declared x, y, z where ORCA writes them
-  z, x, y, so orbitals and densities with p character — most valence
-  orbitals — have been drawn wrong since ORCA was added in v8.0.7;
-  re-render any you rely on. 24045 basis-set values used Fortran `D`
-  exponents and were read without the exponent, corrupting STO-6G, WTBS
-  and several cc-pV\*Z sets; a fresh install got no basis sets at all;
-  and Gaussian was sent ECCE's basis names rather than the ones Gaussian
-  accepts. Three NWChem functionals aborted every job. Two parsers
-  dropped orbital coefficients. The property panels' right-click options
-  menus had been unreachable since the wx3.2 port, and every panel
-  re-showed itself as results arrived. Open MPI's shared-memory files
-  accumulated in `/dev/shm`.
+- **v8.13.1** — **Running against a central server works again**:
+  `ecce -remote` starts no local services, and `ecce-remote-setup <host>`
+  configures a client in one command. Fixes helper programs invoked by
+  relative path, which could only work from `$ECCE_HOME/bin` — background
+  remote commands, password dialogs and job-monitor startup failed
+  silently depending on where ECCE was started from. Also fixes a failed
+  symmetry search reporting "no symmetry".
+
+- **v8.13.0** — **Electrostatic potential maps**, from the density or
+  from point charges, drawn on the molecular surface. 3-D orbitals for
+  MOPAC. Queues configurable inside ECCE instead of by editing root-owned
+  files. Dispersion corrections and twelve further functionals.
+  **Fixes ORCA p functions being declared in the wrong order**, so
+  orbitals with p character have been drawn wrong since v8.0.7 —
+  re-render any you rely on — and 24045 basis-set values read without
+  their exponent, corrupting several standard sets.
 
 - **v8.12.0** — **The Gateway window is gone**: `ecce` opens the Organizer
   directly, which becomes the front door (`ECCE_GATEWAY_WINDOW=1` restores
@@ -162,6 +161,42 @@ The full, detailed history of what was fixed and why — including dead
 ends, not just the fixes that worked — lives in `docs/HISTORY.md`.
 `CLAUDE.md` has the current, condensed map of the codebase and the bug
 patterns worth knowing about.
+
+## Roadmap
+
+No dates — this is a small effort, and the order below reflects what is
+being worked on rather than a schedule. Current work is tracked in the
+[issue tracker](https://github.com/FriendsofECCE/ECCE/issues).
+
+**Now**
+
+* **Qualitative MO correlation diagrams** — central-atom orbitals,
+  terminal-atom symmetry orbitals and Mulliken labels, derived from point
+  group symmetry rather than drawn by hand. Aimed at teaching as much as
+  at analysis.
+* **Deeper coverage of the codes already supported** — ORCA, Gaussian 16
+  and MOPAC each still have options reachable in the code but not from
+  the interface.
+* **A queue editor worth the name.** Queues can now be configured inside
+  ECCE, but the editor is rudimentary.
+
+**Next**
+
+* **GROMACS and Quantum ESPRESSO** are partially integrated and need
+  finishing.
+* **HTCondor**, which needs a different submission model rather than
+  another set of submit directives.
+* **A tested central-server deployment.** The client/server path is
+  supported and documented, but has not been exercised on two machines
+  end to end.
+
+**Under consideration**
+
+* **A standalone MO diagram tool**, usable without the rest of ECCE and
+  without requiring computational output — for teaching use.
+* **macOS and Windows.** What it would take is written up in
+  [#133](https://github.com/FriendsofECCE/ECCE/issues/133); nobody is
+  working on it.
 
 ## Installation and getting started
 
@@ -359,24 +394,6 @@ branches (`develop`, `stable`, `master`, `make`) have been consolidated
 into `main` and preserved as `archive/*` for history; there's no reason to
 branch from or compare against them going forward. Releases are marked
 with tags, not separate release branches.
-
-## General features
-
-* Building molecular models.
-* A graphical user interface to a broad range of electronic structure
-  theory types. Supported codes include NWChem, GAMESS-UK, Gaussian 03,
-  Gaussian 09, Gaussian 16, and Amica; other codes can be registered based
-  on user requirements.
-* A graphical user interface for basis set selection.
-* Remote submission of calculations to Unix/Linux workstations, Linux
-  clusters, and supercomputers, via PBS, LSF, Slurm, Moab, SGE,
-  LoadLeveler, and Maui Scheduler queue management.
-* Three-dimensional visualization and graphical display of molecular data
-  and properties, both while jobs are running and after completion.
-  Molecular orbitals and vibrational frequencies are among the properties
-  displayed.
-* Importing results from NWChem and Gaussian calculations run outside of
-  the ECCE environment.
 
 ## Contributing
 
