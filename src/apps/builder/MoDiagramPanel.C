@@ -510,6 +510,11 @@ void MoDiagramPanel::build()
     centre.levels[i].annotation = text.str();
   }
 
+  //  Whether the calculation gave us orbital symmetry labels at all.
+  //  Used far below to say which of the two reasons a correlation
+  //  could not be drawn.
+  const bool haveSymmetryLabels = !s.empty();
+
   ostringstream note;
   if (s.empty()) {
     note << "This calculation reports no orbital symmetry labels, so the "
@@ -640,16 +645,60 @@ void MoDiagramPanel::build()
     //  described the opposite of what had been done.
     note << "  Molecular levels are the calculation's own orbital "
             "energies in Hartree.";
+
+    //  NOTHING CORRELATED MEANS THERE IS NO CORRELATION DIAGRAM.
+    //
+    //  Drawing the fragment columns anyway puts two sets of levels
+    //  side by side with no relationship between them and invites the
+    //  reader to infer one.  The fragment energies in that state come
+    //  from a table of free-atom ionisation energies, mapped onto the
+    //  axis by order alone -- they are not this molecule's, and
+    //  nothing about their heights relative to the orbitals means
+    //  anything.  Reported as "a complete mess", which it is.
+    //
+    //  So the columns are dropped and the spectrum is drawn on its
+    //  own, which is honest and still useful, with the reason and the
+    //  remedy said plainly.
+    //
+    //  The panel is NOT removed from the Properties menu for this.
+    //  A panel whose isRelevant() returns false is dropped silently,
+    //  menu entry and all, and an MO diagram that simply is not there
+    //  reads as a broken build rather than as a calculation that
+    //  cannot support one -- which is exactly how the v8.13.0 hold was
+    //  first reported.  Say why instead of disappearing.
     if (links.empty()) {
-      note << " Nothing could be correlated, so the fragment levels are "
-              "placed by their valence ionisation energies (shown in eV) "
-              "-- in order and spacing only, mapped onto this axis rather "
-              "than measured on it.";
-    } else {
-      note << " Each fragment level is placed at the mean of the "
-              "molecular orbitals it became, weighted by its share of "
-              "them; its free-atom energy is given beside it.";
+      left  = MoColumn();
+      right = MoColumn();
+      haveFragments = false;
+
+      note.str("");
+      note << "No correlation diagram can be drawn for this calculation.";
+      if (!haveSymmetryLabels) {
+        note << "  It reports no orbital symmetry labels, and without them "
+                "there is nothing to match the fragment orbitals against. "
+                "Gaussian jobs are generated with symmetry switched off "
+                "unless \"Use Available Symmetry\" is ticked in the theory "
+                "dialog; re-running with it on gives labelled orbitals and "
+                "a full diagram.";
+      } else {
+        note << "  Its orbital labels could not be reconciled with the "
+                "symmetry of the structure, so the fragment orbitals and "
+                "the orbitals cannot be matched up. Running Find Symmetry "
+                "on the structure, so that it agrees with the symmetry the "
+                "calculation used, is usually what is needed.";
+      }
+      note << "  The orbital energies are shown on their own below.";
+      if (!why.empty()) note << "  " << why;
+
+      p_canvas->setGroup(group);
+      p_canvas->setFormula(MoDiagram::formula(elements, charge));
+      p_canvas->setDiagram(left, centre, right, links, false, note.str());
+      return;
     }
+
+    note << " Each fragment level is placed at the mean of the "
+            "molecular orbitals it became, weighted by its share of "
+            "them; its free-atom energy is given beside it.";
   }
 
   if (!why.empty()) note << "  " << why;

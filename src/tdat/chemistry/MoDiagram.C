@@ -594,17 +594,40 @@ void MoDiagram::placeFragments(const MoColumn& centre,
         }
       }
 
+      //  ONTO THE OCCUPIED ORBITALS, NOT THE WHOLE SPECTRUM.
+      //
+      //  The virtuals run far above the valence -- water's reach +0.94
+      //  Hartree against a HOMO at -0.31 -- so mapping onto the full
+      //  range lifts every fragment level into the empty orbitals.
+      //  Oxygen's 2p came out at +0.4, above every occupied orbital
+      //  in the molecule, which is not a statement anyone would make.
+      //
+      //  The occupied set is the window a fragment orbital belongs in:
+      //  it is what the fragments' electrons went into.  Mapped there,
+      //  oxygen's 2s lands at the bottom of the valence, its 2p among
+      //  the lone pairs and the hydrogen combinations just above it --
+      //  which is the diagram a person draws.
       double lowMo = 1.0e30, highMo = -1.0e30;
       for (size_t i = 0; i < centre.levels.size(); i++) {
+        if (centre.levels[i].occupancy <= 0.0) continue;
         const double e = centre.levels[i].energy;
         if (e < lowMo)  lowMo = e;
         if (e > highMo) highMo = e;
       }
+      //  Nothing occupied at all (an empty-shell oddity): fall back to
+      //  the whole spectrum rather than to eV.
+      if (highMo <= lowMo) {
+        lowMo = 1.0e30; highMo = -1.0e30;
+        for (size_t i = 0; i < centre.levels.size(); i++) {
+          const double e = centre.levels[i].energy;
+          if (e < lowMo)  lowMo = e;
+          if (e > highMo) highMo = e;
+        }
+      }
 
       if (highMo > lowMo) {
-        const double margin = 0.2*(highMo - lowMo);
-        const double bottom = lowMo + margin;
-        const double top    = highMo - margin;
+        const double bottom = lowMo;
+        const double top    = highMo;
 
         if (highTab > lowTab) {
           const double scale = (top - bottom)/(highTab - lowTab);
