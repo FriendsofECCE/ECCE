@@ -56,6 +56,8 @@
 
 #ident "$Revision: 22147 $"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
@@ -318,6 +320,31 @@ printf ("In ChemDisplay::renderAtomsAsSpheres\n");
     ChemColor *chemColor;
 	ChemRadii *chemRadii;
 	ChemDisplayParam *cdp;
+
+	//  TEMPORARY INSTRUMENTATION for #83.  renderAtomsAsSpheres() is
+	//  the one entry point ChemDisplay::GLRender uses for the atoms,
+	//  so a probe here runs whichever of the many copy-pasted draw
+	//  loops below is taken.
+	{
+		const char *where = getenv("ECCE_DEBUG_MATERIAL");
+		if (where != 0) {
+			FILE *log = fopen(where, "a");
+			if (log != 0) {
+				GLfloat amb[4], emi[4], dif[4], col[4];
+				glGetMaterialfv(GL_FRONT, GL_AMBIENT,  amb);
+				glGetMaterialfv(GL_FRONT, GL_EMISSION, emi);
+				glGetMaterialfv(GL_FRONT, GL_DIFFUSE,  dif);
+				glGetFloatv(GL_CURRENT_COLOR, col);
+			fprintf(log, "ATOMS-ENTRY colour %.3f %.3f %.3f | "
+					"amb %.3f %.3f %.3f | emi %.3f %.3f %.3f | "
+					"dif %.3f %.3f %.3f\n",
+					col[0],col[1],col[2], amb[0],amb[1],amb[2],
+					emi[0],emi[1],emi[2], dif[0],dif[1],dif[2]);
+				fclose(log);
+			}
+		}
+	}
+
 	ChemBaseData *chemData;
 
 	// Check that display list is OK and get values from the state.
@@ -342,6 +369,21 @@ printf ("In ChemDisplay::renderAtomsAsSpheres\n");
 		radScale *= cdp->ballStickSphereScaleFactor.getValue();
 	}
 	const SbColor *atomColors = chemColor->atomColor.getValues(0);
+	{   //  TEMPORARY, #83: the colours actually handed to GL.
+		const char *w2 = getenv("ECCE_DEBUG_MATERIAL");
+		if (w2 != 0) {
+			FILE *lg = fopen(w2, "a");
+			if (lg != 0) {
+				const int n = chemColor->atomColor.getNum();
+				for (int ci = 0; ci < 4 && ci < n; ci++) {
+					fprintf(lg, "ATOMCOLOR %d = %.3f %.3f %.3f\n", ci,
+						atomColors[ci][0], atomColors[ci][1],
+						atomColors[ci][2]);
+				}
+				fclose(lg);
+			}
+		}
+	}
 	const float *atomRadii = chemRadii->atomRadii.getValues(0);
 
 	// Make sure things are set up correctly for a solid object
@@ -702,6 +744,31 @@ normalSphereROCA
 			theScale.setValue(rad, rad, rad);
 			theMatrix.setTransform(sphereCoords, theRotation, theScale);
 			glColor3fv(atomColors[theAtom].getValue());
+
+			//  TEMPORARY INSTRUMENTATION for #83.  The state the sphere is
+			//  ACTUALLY drawn with, after the per-atom colour.  The setup read
+			//  in ChemDisplay::GLRender happens before this and cannot show
+			//  what GL_COLOR_MATERIAL has since made of it.
+			{
+				const char *where = getenv("ECCE_DEBUG_MATERIAL");
+				if (where != 0 && theAtom < 4) {
+					FILE *log = fopen(where, "a");
+					if (log != 0) {
+						GLfloat amb[4], emi[4], dif[4], col[4];
+						glGetMaterialfv(GL_FRONT, GL_AMBIENT,  amb);
+						glGetMaterialfv(GL_FRONT, GL_EMISSION, emi);
+						glGetMaterialfv(GL_FRONT, GL_DIFFUSE,  dif);
+						glGetFloatv(GL_CURRENT_COLOR, col);
+						fprintf(log, "SPHERE atom %d colour %.3f %.3f %.3f | "
+							"amb %.3f %.3f %.3f | emi %.3f %.3f %.3f | "
+							"dif %.3f %.3f %.3f\n", (int)theAtom,
+							col[0],col[1],col[2], amb[0],amb[1],amb[2],
+							emi[0],emi[1],emi[2], dif[0],dif[1],dif[2]);
+						fclose(log);
+					}
+				}
+			}
+
 			glPushMatrix();
 			glMultMatrixf((float *)theMatrix.getValue());
 #ifdef DISPLAYLIST
