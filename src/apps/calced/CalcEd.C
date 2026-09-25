@@ -1675,6 +1675,59 @@ void CalcEd::setUseExpCoeff(const bool& value)
 }
 
 
+bool CalcEd::getUseSymmetry() const
+{
+  if (p_GUIValues != (GUIValues*)0) {
+    GUIValue *value = p_GUIValues->get("ES.Theory.UseSymmetry");
+    if (value != (GUIValue*)0) {
+      return value->getValueAsInt() != 0;
+    }
+  }
+  //  No stored choice: on.
+  return true;
+}
+
+
+void CalcEd::setUseSymmetry(const bool& value)
+{
+  wxWindow *box = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
+  if (box != 0) ((ewxCheckBox*)box)->SetValue(value);
+  storeUseSymmetry(value);
+}
+
+
+void CalcEd::storeUseSymmetry(const bool& value)
+{
+  if (p_GUIValues == (GUIValues*)0) return;
+
+  //  WRITTEN WHETHER OR NOT IT WAS TOUCHED.
+  //
+  //  ai.gauss16 tests "$useSymmetry == 0", and an absent key is undef,
+  //  which is 0 -- so a calculation that never stored the choice got
+  //  NoSymm no matter what any dialog's default said.  That is why
+  //  flipping the dialog default alone was not enough: the theory
+  //  dialog has to be opened before it writes anything.
+  GUIValue *entry = p_GUIValues->get("ES.Theory.UseSymmetry");
+  if (entry == (GUIValue*)0) {
+    entry = new GUIValue();
+    entry->m_key = "ES.Theory.UseSymmetry";
+    entry->m_type = "toggle_input";
+    entry->m_sensitive = true;
+    entry->m_write = true;
+    p_GUIValues->set("ES.Theory.UseSymmetry", entry);
+  }
+  entry->setValue(value ? 1 : 0);
+}
+
+
+void CalcEd::OnCheckboxCalcedUseSymmetryClick( wxCommandEvent& event )
+{
+  wxWindow *box = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
+  if (box != 0) storeUseSymmetry(((ewxCheckBox*)box)->IsChecked());
+  event.Skip();
+}
+
+
 void CalcEd::setUseIrreducible(const bool& value)
 {
   ((ewxCheckBox*)FindWindow(ID_CHECKBOX_CALCED_IRREDUCIBLE))
@@ -2272,6 +2325,21 @@ void CalcEd::refreshChemSysFields()
 
   if (p_frag && p_fullFrag) {
     setUseIrreducible(p_frag->useSymmetry());
+
+    //  THE CHOICE IS THE USER'S, AND THE DEFAULT IS ON.
+    //
+    //  This is a different thing from "Use As Irreducible Fragment"
+    //  just above, which asks whether the geometry is written out as
+    //  its symmetry-unique atoms.  This one asks whether the CODE is
+    //  told to exploit the point group -- Gaussian's NoSymm, NWChem's
+    //  noautosym.  They were conflated once; they are not the same
+    //  question and must not share a flag.
+    //
+    //  Read from the calculation where it has one, and defaulted on
+    //  where it does not: a job run without symmetry reports no
+    //  orbital symmetry labels at all, which is why no Gaussian
+    //  calculation had ever produced any (#145).
+    setUseSymmetry(getUseSymmetry());
     ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_CALCED_NAME))
             ->SetValue(p_fullFrag->name());
     ((ewxComboBox*)FindWindow(ID_COMBOBOX_CALCED_CHARGE))

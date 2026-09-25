@@ -113,6 +113,9 @@ public:
     /// wxEVT_COMMAND_CHECKBOX_CLICKED event handler for ID_CHECKBOX_CALCED_IRREDUCIBLE
     virtual    void OnCheckboxCalcedIrreducibleClick( wxCommandEvent& event );
 
+    /// wxEVT_COMMAND_CHECKBOX_CLICKED event handler for ID_CHECKBOX_CALCED_USE_SYMMETRY
+    virtual    void OnCheckboxCalcedUseSymmetryClick( wxCommandEvent& event );
+
     /// wxEVT_COMMAND_TEXT_ENTER event handler for ID_TEXTCTRL_CALCED_NAME
     virtual    void OnTextctrlCalcedNameEnter( wxCommandEvent& event );
 
@@ -191,6 +194,7 @@ public:
     static const wxWindowID ID_STATICTEXT_CALCED_POLARIZATION;
     static const wxWindowID ID_BUTTON_CALCED_BASIS_SET;
     static const wxWindowID ID_CHECKBOX_CALCED_IRREDUCIBLE;
+    static const wxWindowID ID_CHECKBOX_CALCED_USE_SYMMETRY;
     static const wxWindowID ID_BUTTON_CALCED_THEORY;
     static const wxWindowID ID_STATICTEXT_CALCED_CD;
     static const wxWindowID ID_CHECKBOX_CALCED_USE_EXPONENTS;

@@ -69,6 +69,7 @@ const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_SYMMETRY = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_POLARIZATION = wxNewId();
 const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_BASIS_SET = wxNewId();
 const wxWindowID CalcEdGUI::ID_CHECKBOX_CALCED_IRREDUCIBLE = wxNewId();
+const wxWindowID CalcEdGUI::ID_CHECKBOX_CALCED_USE_SYMMETRY = wxNewId();
 const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_THEORY = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_CD = wxNewId();
 const wxWindowID CalcEdGUI::ID_CHECKBOX_CALCED_USE_EXPONENTS = wxNewId();
@@ -116,6 +117,7 @@ BEGIN_EVENT_TABLE( CalcEdGUI, ewxFrame )
     EVT_TEXT_ENTER( ID_COMBOBOX_CALCED_SPIN_MULT, CalcEdGUI::OnComboboxCalcedSpinMultEnter )
 
     EVT_CHECKBOX( ID_CHECKBOX_CALCED_IRREDUCIBLE, CalcEdGUI::OnCheckboxCalcedIrreducibleClick )
+    EVT_CHECKBOX( ID_CHECKBOX_CALCED_USE_SYMMETRY, CalcEdGUI::OnCheckboxCalcedUseSymmetryClick )
 
     EVT_TEXT_ENTER( ID_TEXTCTRL_CALCED_NAME, CalcEdGUI::OnTextctrlCalcedNameEnter )
 
@@ -318,8 +320,21 @@ void CalcEdGUI::CreateControls()
     ewxNonBoldLabel* itemStaticText39 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Symmetry:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer38->Add(itemStaticText39, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
+    //  The point group the search found, and immediately beside it the
+    //  choice of whether to make the calculation use it.  Reading one
+    //  without the other tells you nothing useful: C1 means there is
+    //  nothing to exploit, and a job run with symmetry off reports no
+    //  orbital symmetry labels at all whatever the structure is.
+    wxBoxSizer* symmetryRow = new wxBoxSizer(wxHORIZONTAL);
     ewxStaticText* itemStaticText40 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_SYMMETRY, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemFlexGridSizer38->Add(itemStaticText40, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
+    symmetryRow->Add(itemStaticText40, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 8);
+
+    ewxCheckBox* itemCheckBoxUseSymmetry = new ewxCheckBox( itemFrame1, ID_CHECKBOX_CALCED_USE_SYMMETRY, _("Use symmetry"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
+    itemCheckBoxUseSymmetry->SetValue(true);
+    itemCheckBoxUseSymmetry->SetToolTip(_("Let the code use the point group above. With this off the calculation reports no orbital symmetry labels."));
+    symmetryRow->Add(itemCheckBoxUseSymmetry, 0, wxALIGN_CENTER_VERTICAL, 0);
+
+    itemFlexGridSizer38->Add(symmetryRow, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
     ewxNonBoldLabel* itemStaticText41 = new ewxNonBoldLabel( itemFrame1, wxID_STATIC, _("Open Shells:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer38->Add(itemStaticText41, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
@@ -639,6 +654,18 @@ void CalcEdGUI::OnCheckboxCalcedIrreducibleClick( wxCommandEvent& event )
     // Before editing this code, remove the block markers.
     event.Skip();
 ////@end wxEVT_COMMAND_CHECKBOX_CLICKED event handler for ID_CHECKBOX_CALCED_IRREDUCIBLE in CalcEdGUI. 
+}
+
+/*!
+ * wxEVT_COMMAND_CHECKBOX_CLICKED event handler for
+ * ID_CHECKBOX_CALCED_USE_SYMMETRY
+ */
+
+void CalcEdGUI::OnCheckboxCalcedUseSymmetryClick( wxCommandEvent& event )
+{
+    //  CalcEd overrides this; the base class only has to exist so the
+    //  event table has something to point at.
+    event.Skip();
 }
 
 /*!

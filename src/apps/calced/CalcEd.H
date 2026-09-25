@@ -95,6 +95,12 @@ class CalcEd: public CalcEdGUI,
     virtual void OnComboboxCalcedSpinMultSelected( wxCommandEvent& event );
     virtual void OnComboboxCalcedSpinMultEnter( wxCommandEvent& event );
     virtual void OnCheckboxCalcedIrreducibleClick( wxCommandEvent& event );
+    virtual void OnCheckboxCalcedUseSymmetryClick( wxCommandEvent& event );
+
+    /** Read/write the "use symmetry" choice on the calculation. */
+    bool getUseSymmetry() const;
+    void setUseSymmetry(const bool& value);
+    void storeUseSymmetry(const bool& value);
     virtual void OnButtonCalcedBasisQuickClick( wxCommandEvent& event );
     virtual void OnChoiceCalcedTheorySelected( wxCommandEvent& event );
     virtual void OnChoiceCalcedRuntypeSelected( wxCommandEvent& event );

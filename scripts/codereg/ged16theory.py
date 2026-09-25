@@ -47,12 +47,12 @@ class Ged16TheoryPanel(EccePanel):
                                           export = 1)
         genopsSizer.AddWidget(self.checkPointBox)
 
-        self.useSymmetryBox = EcceCheckBox(self,
-                                           label = " Use Available Symmetry",
-                                           name = "ES.Theory.UseSymmetry",
-                                           default = False,
-                                           export = 1)
-        genopsSizer.AddWidget(self.useSymmetryBox)
+        #  "Use Available Symmetry" now lives on the Calculation Editor's
+        #  own page, beside the point group the symmetry search found, so
+        #  the two are read together: whether there is any symmetry to
+        #  exploit and whether the job is being asked to exploit it.
+        #  Leaving a copy here as well would give the key two owners, and
+        #  whichever was touched last would win.
         
         self.useCartesianBox = EcceCheckBox(self,
                                            label = " Use Cartesian Coordinates",
