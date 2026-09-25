@@ -1045,6 +1045,48 @@ set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem")
 # strip debug symbols out of the packaged copies only, not the build tree.
 set(CPACK_STRIP_FILES ON)
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+
+# ---------------------------------------------------------------------------
+#  RPM, for Fedora/RHEL/Rocky.  Built only when rpmbuild is present, so a
+#  Debian box without it still packages exactly as before rather than
+#  failing at the end of a long build.  Install it with `apt install rpm`.
+#
+#  The dependency list is NOT the Debian one with different spellings.
+#  Three real differences:
+#
+#    * apache2/apache2-utils are httpd/httpd-tools.
+#    * python3-wxgtk4.0 is python3-wxpython4.
+#    * ActiveMQ is not packaged for RHEL, Rocky or Fedora at all.  It
+#      cannot be a hard Requires without making the package
+#      uninstallable everywhere, so it is a Recommends (rpm >= 4.12) and
+#      GETTING_STARTED covers installing it by hand.  A missing broker is
+#      not silent -- ecce-gateway-start reports it.
+#
+#  nwchem is in Fedora but not in RHEL/Rocky without EPEL, so it stays a
+#  weak dependency there too, matching the Debian Recommends.
+find_program(RPMBUILD_EXECUTABLE rpmbuild)
+if(RPMBUILD_EXECUTABLE)
+  list(APPEND CPACK_GENERATOR "RPM")
+  set(CPACK_RPM_PACKAGE_LICENSE "ECL-2.0")
+  set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
+  set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
+  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4")
+  set(CPACK_RPM_PACKAGE_SUGGESTS "activemq, nwchem")
+  set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
+  #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
+  #  this the package claims /opt and conflicts with it.
+  set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/opt")
+  #  Built on Debian, so let rpmbuild work out library requirements from
+  #  the binaries rather than trusting a hand-written list that would be
+  #  wrong on both distributions.
+  set(CPACK_RPM_PACKAGE_AUTOREQ ON)
+  set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
+  message(STATUS "rpmbuild found: cpack will also produce an .rpm")
+else()
+  message(STATUS "rpmbuild not found: cpack will produce a .deb only "
+                 "(apt install rpm to enable RPM packaging)")
+endif()
+
 include(CPack)
 
 # ---------------------------------------------------------------------------

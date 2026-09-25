@@ -267,6 +267,15 @@ cpack -G DEB
 
 This produces `ecce_<version>_amd64.deb` in `build-cmake/`.
 
+To build an RPM as well, install `rpm` first (`sudo apt-get install rpm`
+on Debian) and re-run `cmake .` in `build-cmake` so it is detected; then
+`cpack` alone produces both, or `cpack -G RPM` just the RPM.
+
+Two things differ on the RPM side. ActiveMQ is not packaged for RHEL,
+Rocky or Fedora, so it is a weak dependency rather than a hard one and
+has to be installed separately — `ecce-gateway-start` says so if it is
+missing. NWChem is likewise weak, since it needs EPEL outside Fedora.
+
 ### 4. Install
 
 Either install the package you just built, or skip steps 1-3 entirely and
