@@ -332,6 +332,13 @@ void MoDiagramPanel::onFragmentChanged(wxCommandEvent& event)
   event.Skip();
   if (p_canvas == 0) return;
 
+  //  Enable the list here, not only in fillFragmentChooser(): that
+  //  runs inside build() and only once the orbit analysis has
+  //  succeeded, so on a molecule where build() returned earlier the
+  //  list stayed greyed out however the box was set.
+  if (p_fragments != 0 && p_autoFragments != 0)
+    p_fragments->Enable(p_autoFragments->GetValue());
+
   //  A DIAGRAM NEEDS TWO SIDES, SO DO NOT OFFER ONE.
   //
   //  Ticking every set, or none, leaves one column empty and the
@@ -347,17 +354,32 @@ void MoDiagramPanel::onFragmentChanged(wxCommandEvent& event)
     for (unsigned int i = 0; i < count; i++) {
       if (p_fragments->IsChecked(i)) ticked++;
     }
+    //  A side cannot be empty -- but REFUSING the click is not the way
+    //  to prevent it, and refusing it froze the control completely.
+    //
+    //  With two sets, which is the common case ("2 C" and "4 H"),
+    //  every single click from a working state passes through all-
+    //  ticked or none-ticked. The old guard undid each one, so once
+    //  the user had a valid split they could never change which set
+    //  was on the left; the only way through was to untick "Choose
+    //  fragments" and tick it again. Reported live 2026-09-25: "if 4H
+    //  is picked I can't select 2C ... it also means that you can't
+    //  CHANGE".
+    //
+    //  So move the set instead of rejecting the click. Ticking the
+    //  last unticked row means "I want this one on the LEFT", and
+    //  unticking the last ticked row means "I want this one on the
+    //  RIGHT" -- both are what the user was reaching for, both keep
+    //  each side occupied, and neither needs a warning.
     if (count > 1 && (ticked == 0 || ticked == count)) {
       const int changed = event.GetInt();
-      if (changed >= 0 && changed < (int)count) {
-        p_fragments->Check((unsigned int)changed,
-                           !p_fragments->IsChecked((unsigned int)changed));
+      if (changed < 0 || changed >= (int)count) return;
+
+      const bool alone = (ticked == count);   // it was just ticked
+      for (unsigned int i = 0; i < count; i++) {
+        p_fragments->Check(i, alone ? (i == (unsigned int)changed)
+                                    : (i != (unsigned int)changed));
       }
-      getFW().showMessage("A correlation diagram has two sides, so at "
-                          "least one set of atoms has to be on each. "
-                          "Leave some ticked and some not.",
-                          false/*warning*/);
-      return;
     }
   }
 

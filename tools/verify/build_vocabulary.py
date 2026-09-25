@@ -134,6 +134,22 @@ def vocabulary(code):
             for token in tokenise(line, splitSlash):
                 words.add(token)
 
+    #  Point group names, which a Gaussian route card carries as
+    #  Symmetry=(PG=D2H,Loose) once the user has chosen one. They come
+    #  from ECCE's own PointGroups file rather than a list written
+    #  here, so a group added there cannot start showing up amber.
+    groups = os.path.join(ROOT, "data", "client", "config", "PointGroups")
+    if os.path.exists(groups):
+        for line in open(groups, errors="replace"):
+            line = line.strip()
+            if not line or line.startswith("#") or ":" not in line:
+                continue
+            name = line.split(":", 1)[0].strip()
+            if name:
+                words.add(name.lower())
+                #  Gaussian spells the axial groups with a star.
+                words.add(name.lower().replace("inf", "*"))
+
     return words
 
 

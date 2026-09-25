@@ -337,7 +337,7 @@ sub G09Route {
   $route .= &SCFOptions;
   $route .= &SCRFOptions;
 #  $route .= &AIMOptions;
-  $route .= &Symmetry($AbiDict{"UseSymmetry"});
+  $route .= &Symmetry($AbiDict{"UseSymmetry"}, $AbiDict{"Symmetry"});
   # This is so we can detect the basis set on import.
   # - GFInput flag is unneeded to dump basissets - jmc
   #$route .= " GFInput";
@@ -1628,13 +1628,38 @@ sub levelShift {
   return $result;
 }
 
+#  The point group the user chose has to reach the deck, or Gaussian
+#  detects its own and the calculation is not the one that was asked
+#  for.  ECCE writes it into the .param file as "Symmetry:" and this
+#  sub simply never read it: ticking "use symmetry" and choosing D2h
+#  emitted NOTHING, so ethene -- whose coordinates differ in the sixth
+#  decimal -- came back as Cs, and every orbital label with it.
+#
+#  PG= ALONE IS NOT ENOUGH, and makes things worse.  Verified on that
+#  same ethene deck: Symmetry=(PG=D2H) could not fit the geometry to
+#  D2h within the default tolerance and fell back to C1, which is
+#  worse than the Cs it started with.  Loose absorbs the numerical
+#  noise a built structure carries and gives D2h.  Both were run
+#  through Gaussian 16 rather than reasoned about.
+#
+#  Only when the user has actually chosen a group: C1 is Gaussian's
+#  own answer for "no symmetry" and asserting it forces the molecule
+#  to be treated as having none.
 sub Symmetry {
-  local($useSymmetry) = @_;
+  local($useSymmetry, $group) = @_;
   local($result);
 
   if ($useSymmetry == 0) {
     $result = "NoSymm ";
   } else {
+    $group =~ s/^\s+|\s+$//g;
+    $group = uc($group);
+    #  Gaussian spells the axial groups with a star.
+    $group = "C*V" if ($group eq "CINFV");
+    $group = "D*H" if ($group eq "DINFH");
+    if ($group ne "" && $group ne "C1" && $group !~ /UNKNOWN/) {
+      return "Symmetry=(PG=$group,Loose) ";
+    }
     if (@geo_zcoords > 0) {
       $message = "Constraints may interact with automatic symmetry recognition";
       $message .= " to give unexpected results. You may want to turn off automatic";

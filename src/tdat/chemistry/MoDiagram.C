@@ -996,6 +996,33 @@ static bool covers(const map<string,int>& have, const map<string,int>& want)
 }
 
 
+
+/**
+ * One irrep's name under an exchange of two axes.
+ *
+ * In D2h the subscript on a B irrep names which twofold axis the
+ * orbital is antisymmetric about, so calling a different perpendicular
+ * direction "y" turns every b2 into a b3 AND every b2u into a b3u --
+ * the exchange acts on both parities at once.  The A irreps are
+ * unaffected: they are symmetric about every axis, which is why the
+ * digit is only touched on a B.  (That also keeps C2v honest, where
+ * swapping the mirror planes exchanges B1 and B2 but must leave A1 and
+ * A2 alone.)
+ */
+static string axisExchange(const string& name, char first, char second)
+{
+  if (name.empty()) return name;
+  const char letter = toupper(name[0]);
+  if (letter != 'B') return name;
+
+  string swapped = name;
+  for (size_t i = 1; i < swapped.size(); i++) {
+    if (swapped[i] == first)       swapped[i] = second;
+    else if (swapped[i] == second) swapped[i] = first;
+  }
+  return swapped;
+}
+
 bool MoDiagram::reconcile(vector<MoLevel>& left, vector<MoLevel>& right,
                           const vector<MoLevel>& centre, string& why)
 {
@@ -1006,6 +1033,49 @@ bool MoDiagram::reconcile(vector<MoLevel>& left, vector<MoLevel>& right,
   map<string,int> have = tally(left, right);
   if (want.empty() || have.empty()) return true;
   if (covers(have, want)) return true;
+
+  //  AN EXCHANGE OF AXES FIRST, because that is the one relabelling
+  //  with a reason behind it rather than a coincidence of counts.
+  //
+  //  Which perpendicular direction a code calls y and which it calls z
+  //  is a convention, and changing it renames b2 to b3 in EVERY irrep
+  //  family at once. Ethene in D2h is the case that forced this: the
+  //  calculation reported 1B2G + 2B2U + 3B3U where the symmetry
+  //  analysis gave 1B3G + 3B2U + 2B3U, which is the same set under one
+  //  exchange of b2 and b3 -- and the single-pair search below could
+  //  never find it, because no ONE swap fixes both parities.
+  static const char* const axisPairs[] = { "12", "13", "23" };
+  for (int pair = 0; pair < 3; pair++) {
+    const char first = axisPairs[pair][0], second = axisPairs[pair][1];
+
+    map<string,int> tried;
+    bool changed = false;
+    for (map<string,int>::const_iterator it = have.begin();
+         it != have.end(); ++it) {
+      const string renamed = axisExchange(it->first, first, second);
+      if (renamed != it->first) changed = true;
+      tried[renamed] += it->second;
+    }
+    if (!changed || !covers(tried, want)) continue;
+
+    //  Apply it through a marker, so the two names cannot overwrite
+    //  one another halfway through the exchange.
+    for (map<string,int>::const_iterator it = have.begin();
+         it != have.end(); ++it) {
+      const string renamed = axisExchange(it->first, first, second);
+      if (renamed == it->first) continue;
+      relabel(left,  it->first, "\x01" + renamed);
+      relabel(right, it->first, "\x01" + renamed);
+    }
+    for (map<string,int>::const_iterator it = have.begin();
+         it != have.end(); ++it) {
+      const string renamed = axisExchange(it->first, first, second);
+      if (renamed == it->first) continue;
+      relabel(left,  "\x01" + renamed, renamed);
+      relabel(right, "\x01" + renamed, renamed);
+    }
+    return true;
+  }
 
   //  Every pair of fragment irreps, since only a pair of equal
   //  dimension can be a relabelling.  The dimension is not known here,
