@@ -629,10 +629,27 @@ void MoDiagramPanel::build()
     MoDiagram::classifyByEnergy(left.levels, centre.levels,
                                 right.levels, links);
 
+    //  SAY WHICH OF THE TWO PLACEMENTS ACTUALLY HAPPENED.
+    //
+    //  placeFragments() puts a fragment level at the share-weighted
+    //  mean of the orbitals it became -- deliberately NOT at its
+    //  tabulated ionisation energy, which is a free atom's and says
+    //  nothing about this molecule.  It falls back to the tabulated
+    //  order only when nothing connected at all.  This note claimed
+    //  the fallback unconditionally, so in the normal case it
+    //  described the opposite of what had been done.
     note << "  Molecular levels are the calculation's own orbital "
-            "energies in Hartree. Fragment levels are placed by their "
-            "valence ionisation energies (shown in eV), in order and "
-            "spacing but not on this axis.";
+            "energies in Hartree.";
+    if (links.empty()) {
+      note << " Nothing could be correlated, so the fragment levels are "
+              "placed by their valence ionisation energies (shown in eV) "
+              "-- in order and spacing only, mapped onto this axis rather "
+              "than measured on it.";
+    } else {
+      note << " Each fragment level is placed at the mean of the "
+              "molecular orbitals it became, weighted by its share of "
+              "them; its free-atom energy is given beside it.";
+    }
   }
 
   if (!why.empty()) note << "  " << why;

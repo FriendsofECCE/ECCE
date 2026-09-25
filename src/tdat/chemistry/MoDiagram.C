@@ -553,6 +553,82 @@ void MoDiagram::placeFragments(const MoColumn& centre,
     }
   }
 
+  //  A COLUMN THAT CONNECTED TO NOTHING AT ALL.
+  //
+  //  The rescue below places a lone unconnected level relative to the
+  //  ones that were placed, which needs at least one placed level to
+  //  measure from.  When NOTHING in either column connected there is
+  //  no such anchor, and every level kept the tabulated value it
+  //  arrived with -- an eV number on a Hartree axis.  Water drew its
+  //  oxygen 2s at -32 and its 2p at -15.9 while the molecular orbitals
+  //  sat between -1 and 0, putting the fragments off the bottom of the
+  //  picture and squashing the spectrum into a line at the top.
+  //  Methane did the same.  That is what a calculation with no usable
+  //  symmetry labels and no usable composition produces.
+  //
+  //  Such a diagram is still worth drawing: the tabulated energies are
+  //  the ordering a person uses before doing any calculation at all.
+  //  They are mapped onto the range the molecular orbitals occupy --
+  //  with ONE scale across both columns, not one each.  Scaling each
+  //  column to its own range is what makes oxygen's 2p, the highest
+  //  level in its column, come out ABOVE hydrogen's 1s: the columns
+  //  are at different heights precisely because the elements differ,
+  //  and that is the whole content of the picture.
+  {
+    int placedTotal = 0;
+    for (c = 0; c < 2; c++) {
+      for (size_t i = 0; i < placed[c].size(); i++) {
+        if (placed[c][i]) placedTotal++;
+      }
+    }
+
+    bool anyLevels = !left.levels.empty() || !right.levels.empty();
+
+    if (placedTotal == 0 && anyLevels) {
+      double lowTab = 1.0e30, highTab = -1.0e30;
+      for (c = 0; c < 2; c++) {
+        for (size_t i = 0; i < cols[c]->levels.size(); i++) {
+          const double e = cols[c]->levels[i].energy;
+          if (e < lowTab)  lowTab = e;
+          if (e > highTab) highTab = e;
+        }
+      }
+
+      double lowMo = 1.0e30, highMo = -1.0e30;
+      for (size_t i = 0; i < centre.levels.size(); i++) {
+        const double e = centre.levels[i].energy;
+        if (e < lowMo)  lowMo = e;
+        if (e > highMo) highMo = e;
+      }
+
+      if (highMo > lowMo) {
+        const double margin = 0.2*(highMo - lowMo);
+        const double bottom = lowMo + margin;
+        const double top    = highMo - margin;
+
+        if (highTab > lowTab) {
+          const double scale = (top - bottom)/(highTab - lowTab);
+          for (c = 0; c < 2; c++) {
+            for (size_t i = 0; i < cols[c]->levels.size(); i++) {
+              MoLevel& level = cols[c]->levels[i];
+              level.energy = bottom + scale*(level.energy - lowTab);
+            }
+          }
+        } else {
+          //  Every fragment level at the same tabulated energy: put
+          //  them all in the middle rather than leaving them in eV.
+          const double middle = 0.5*(bottom + top);
+          for (c = 0; c < 2; c++) {
+            for (size_t i = 0; i < cols[c]->levels.size(); i++) {
+              cols[c]->levels[i].energy = middle;
+            }
+          }
+        }
+      }
+      return;
+    }
+  }
+
   //  A level that connected to nothing keeps its tabulated energy, and
   //  would then be an eV value on a Hartree axis -- off the bottom of
   //  the picture.  Put it at the mean of the levels that were placed,
@@ -566,6 +642,7 @@ void MoDiagram::placeFragments(const MoColumn& centre,
     for (size_t i = 0; i < levels.size() && i < placed[c].size(); i++) {
       if (placed[c][i]) { placedSum += levels[i].energy; placedCount++; }
     }
+
     if (placedCount == 0) continue;
 
     //  Above everything that was placed, not among them: a fragment
