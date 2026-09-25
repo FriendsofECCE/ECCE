@@ -207,11 +207,11 @@ class MoDiagramCanvas : public wxPanel
         i++;
       }
 
-      //  Its subscript: the order, the parity, the primes.
+      //  Its subscript: the order and the parity.  NOT the primes.
       string sub;
       while (i < label.size()) {
         const char c = label[i];
-        if (isdigit((unsigned char)c) || c == '\'' || c == '"' ||
+        if (isdigit((unsigned char)c) ||
             tolower((unsigned char)c) == 'g' ||
             tolower((unsigned char)c) == 'u') {
           sub += c; i++;
@@ -223,6 +223,28 @@ class MoDiagramCanvas : public wxPanel
       }
       if (!sub.empty()) {
         Piece p; p.text = wxString(sub.c_str(), wxConvUTF8); p.kind = 1;
+        out.push_back(p);
+      }
+
+      //  THE PRIMES ARE SUPERSCRIPT, and they decide the whole label.
+      //
+      //  A' and A'' are the only two irreps Cs has, so the prime is
+      //  the entire distinction between them.  Set as a subscript in a
+      //  small font, both collapsed into something that reads as a
+      //  dot: every level in a Cs diagram came out as "A.", which made
+      //  the diagram unreadable rather than merely ugly. Drawn with
+      //  the proper prime and double-prime glyphs, at the height the
+      //  notation actually uses.
+      string primes;
+      while (i < label.size() && (label[i] == '\'' || label[i] == '"')) {
+        primes += (label[i] == '"') ? "\xe2\x80\xb3"   // double prime
+                                    : "\xe2\x80\xb2";  // prime
+        i++;
+      }
+      //  Two apostrophes are how most codes write a double prime.
+      if (primes == "\xe2\x80\xb2\xe2\x80\xb2") primes = "\xe2\x80\xb3";
+      if (!primes.empty()) {
+        Piece p; p.text = wxString::FromUTF8(primes.c_str()); p.kind = 2;
         out.push_back(p);
       }
 
