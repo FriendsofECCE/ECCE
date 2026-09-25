@@ -61,6 +61,18 @@ than papered over.
 
 ### Release history
 
+- **v8.13.2** — Patch release. Fixes jobs that stage, report as
+  started, and never run. ECCE backgrounded the submit script with
+  Bourne-shell redirection (`> /dev/null 2>&1`); csh reads that as two
+  output redirections and refuses the command with `Ambiguous output
+  redirect.`, so nothing started and no process id came back — and
+  because a backgrounded launch is treated as successful, the
+  calculation was reported as running. Affects any machine whose
+  `/usr/bin/csh` is tcsh, the default on Ubuntu and RHEL; Debian's
+  `bsd-csh` accepts the Bourne form, which is why the same build worked
+  there. Present since v8.0.3. The redirection now follows the shell's
+  own dialect. `ecce-diagnose` is also now a general-purpose collector
+  for any problem, and masks credentials out of what it gathers.
 - **v8.13.1** — Patch release. Fixes helper programs being invoked by
   relative path, which could only ever work from `$ECCE_HOME/bin`: with
   `ecmd` in particular, `execvp` does not search `PATH` for a name
