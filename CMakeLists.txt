@@ -676,6 +676,7 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-status
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-adduser
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-remote-setup
+          ${CMAKE_SOURCE_DIR}/packaging/ecce-diagnose
         DESTINATION bin)
 install(FILES ${CMAKE_SOURCE_DIR}/packaging/dataserver/httpd.conf.ecce
         DESTINATION server/httpd-conf)
@@ -695,6 +696,17 @@ endforeach()
 # The same wrapper for the central-server setup helper, so an
 # administrator can type "ecce-remote-setup <host>" without knowing
 # where the installation lives.
+# Same for the diagnostic collector, which is only ever run by
+# somebody who has already hit a problem and should not also have to
+# find out where ECCE was installed.
+set(_diag_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-diagnose)
+file(WRITE ${_diag_wrapper}
+"#!/bin/bash
+export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+exec \"$ECCE_HOME/bin/ecce-diagnose\" \"$@\"
+")
+install(PROGRAMS ${_diag_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
+
 set(_remote_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-remote-setup)
 file(WRITE ${_remote_wrapper}
 "#!/bin/bash
