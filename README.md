@@ -54,10 +54,17 @@ benzene](docs/images/viewer.png)
 *The viewer: a calculation's orbitals and energies beside the structure
 they were computed for.*
 
-| | |
-|---|---|
-| ![Benzene's highest occupied molecular orbital](docs/images/orbital-benzene.png) | ![The electrostatic potential on benzene's surface](docs/images/esp-benzene.png) |
-| Benzene's π HOMO | Electrostatic potential on the surface |
+| | | |
+|---|---|---|
+| ![Benzene's highest occupied molecular orbital](docs/images/orbital-benzene.png) | ![The electrostatic potential on benzene's surface](docs/images/esp-benzene.png) | ![A vibrational mode of water, drawn as displacement vectors](docs/images/vectors-water.png) |
+| Benzene's π HOMO | Electrostatic potential on the surface | A vibrational mode, as displacement vectors |
+
+![A qualitative MO correlation diagram for
+water](docs/images/mo-diagram-water.png)
+
+*A qualitative MO correlation diagram — water's orbitals against the
+oxygen on one side and the hydrogens' symmetry orbitals on the other,
+with the non-bonding lone pair picked out. Experimental.*
 
 ## What's new in version 8
 
