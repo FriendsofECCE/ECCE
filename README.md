@@ -43,23 +43,23 @@ ESPRESSO and GROMACS are in progress — see the roadmap.
 
 Click any image for the full-size version.
 
-<a href="docs/images/organizer.png"><img src="docs/images/organizer.png" width="440" alt="The Organizer, with a calculation being set up and launched"></a>
+<a href="docs/images/organizer.png"><img src="docs/images/organizer.png" width="300" alt="The Organizer, with a calculation being set up and launched"></a>
 
 *The Organizer is the front door: calculations on the left, a summary of
 the selected one in the middle, and the code's own editor and the
 launcher opened from it — here an ORCA job on its way to a machine.*
 
-<a href="docs/images/viewer.png"><img src="docs/images/viewer.png" width="440" alt="The viewer, showing a molecular orbital of benzene"></a>
+<a href="docs/images/viewer.png"><img src="docs/images/viewer.png" width="300" alt="The viewer, showing a molecular orbital of benzene"></a>
 
 *The viewer: a calculation's orbitals and energies beside the structure
 they were computed for.*
 
 | | | |
 |---|---|---|
-| <a href="docs/images/orbital-benzene.png"><img src="docs/images/orbital-benzene.png" width="230" alt="Benzene's highest occupied molecular orbital"></a> | <a href="docs/images/esp-benzene.png"><img src="docs/images/esp-benzene.png" width="230" alt="The electrostatic potential on benzene's surface"></a> | <a href="docs/images/vectors-water.png"><img src="docs/images/vectors-water.png" width="230" alt="A vibrational mode of water, drawn as displacement vectors"></a> |
+| <a href="docs/images/orbital-benzene.png"><img src="docs/images/orbital-benzene.png" width="170" alt="Benzene's highest occupied molecular orbital"></a> | <a href="docs/images/esp-benzene.png"><img src="docs/images/esp-benzene.png" width="170" alt="The electrostatic potential on benzene's surface"></a> | <a href="docs/images/vectors-water.png"><img src="docs/images/vectors-water.png" width="170" alt="A vibrational mode of water, drawn as displacement vectors"></a> |
 | Benzene's π HOMO | Electrostatic potential on the surface | A vibrational mode, as displacement vectors |
 
-<a href="docs/images/mo-diagram-water.png"><img src="docs/images/mo-diagram-water.png" width="560" alt="A qualitative MO correlation diagram for water"></a>
+<a href="docs/images/mo-diagram-water.png"><img src="docs/images/mo-diagram-water.png" width="380" alt="A qualitative MO correlation diagram for water"></a>
 
 *A qualitative MO correlation diagram — water's orbitals against the
 oxygen on one side and the hydrogens' symmetry orbitals on the other,
