@@ -243,6 +243,18 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
                           "the right");
   row->Add(p_fragments, 1, wxEXPAND|wxALL, 4);
 
+  //  TWELVE LABELS AND TWELVE NUMBERS IS A LOT OF TEXT.
+  //
+  //  The numbers are the part a reader of a qualitative diagram needs
+  //  least -- what it is for is which orbital lies above which, not by
+  //  how much -- so they can be put away.  On by default, because the
+  //  levels are nudged apart a few pixels for legibility and the
+  //  printed value is what keeps the energy exact.
+  p_showEnergies = new ewxCheckBox(this, wxID_ANY, _("Show energies"));
+  p_showEnergies->SetValue(true);
+  p_showEnergies->SetToolTip("Write each level's energy beside its label");
+  row->Add(p_showEnergies, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+
   sizer->Add(row, 0, wxEXPAND);
 
   //  Bound on the controls themselves.  A static table does not reach
@@ -253,6 +265,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
                         this);
   p_fragments->Bind(wxEVT_CHECKLISTBOX, &MoDiagramPanel::onFragmentChanged,
                     this);
+  p_showEnergies->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onShowEnergies, this);
 
   p_fragments->Enable(false);
 }
@@ -287,6 +300,16 @@ void MoDiagramPanel::fillFragmentChooser(const vector< vector<int> >& orbits,
   for (size_t i = 0; i < orbits.size(); i++) {
     if (p_fragments->IsChecked((unsigned int)i)) p_sideOfOrbit[i] = 0;
   }
+}
+
+
+void MoDiagramPanel::onShowEnergies(wxCommandEvent& WXUNUSED(event))
+{
+  if (p_canvas == 0) return;
+  p_canvas->setShowEnergies(p_showEnergies->IsChecked());
+  //  The energies change how much room each row needs, so the whole
+  //  layout is recomputed, not just repainted.
+  p_canvas->Refresh();
 }
 
 

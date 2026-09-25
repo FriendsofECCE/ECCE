@@ -100,6 +100,9 @@ class MoDiagramPanel : public VizPropertyPanel,
                                const vector<string>& elements);
       void onFragmentChanged(wxCommandEvent& event);
 
+      /** Show or hide each level's energy. */
+      void onShowEnergies(wxCommandEvent& event);
+
       virtual void initialize();
 
    private:
@@ -109,6 +112,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       MoDiagramCanvas *p_canvas;
       wxCheckListBox  *p_fragments;
       wxCheckBox      *p_autoFragments;
+      wxCheckBox      *p_showEnergies;
 };
 
 #endif

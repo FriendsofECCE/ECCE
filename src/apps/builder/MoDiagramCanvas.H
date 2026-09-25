@@ -69,6 +69,7 @@ class MoDiagramCanvas : public wxPanel
 
     MoDiagramCanvas(wxWindow *parent)
       : wxPanel(parent, wxID_ANY), p_owner(0), p_haveFragments(false),
+        p_showEnergies(true),
         p_placed(), p_notes(), p_sketchColumn(0), p_outward(-1)
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);   // needed for buffered paint
@@ -85,6 +86,18 @@ class MoDiagramCanvas : public wxPanel
 
     /** The molecule's formula, from MoDiagram::formula(). */
     void setFormula(const string& formula) { p_formula = formula; }
+
+    /**
+     * Whether each level's energy is written beside its label.
+     *
+     * Twelve levels with a label and a number each is a lot of text on
+     * one picture, and the numbers are the part a reader of a
+     * QUALITATIVE diagram needs least -- the point of it is which
+     * orbital is above which, not by how much.  Off, the labels alone
+     * are much easier to read; on, the exact value is there.
+     */
+    void setShowEnergies(bool show) { p_showEnergies = show; }
+    bool showEnergies() const { return p_showEnergies; }
 
     void setDiagram(const MoColumn& left, const MoColumn& centre,
                     const MoColumn& right,
@@ -390,7 +403,12 @@ class MoDiagramCanvas : public wxPanel
         bool sketch = false, note = false;
         for (size_t i = groups[g].first; i <= groups[g].second; i++) {
           if (!column.levels[i].phases.empty())     sketch = true;
-          if (!column.levels[i].annotation.empty()) note   = true;
+          //  Only when it will actually be drawn, so turning the
+          //  energies off reclaims the row they needed rather than
+          //  leaving the levels spread as if they were still there.
+          if (p_showEnergies && !column.levels[i].annotation.empty()) {
+            note = true;
+          }
         }
         if (note)   needs[g] = 2*row + 10;
         if (sketch && needs[g] < 46) needs[g] = 46;
@@ -678,7 +696,8 @@ class MoDiagramCanvas : public wxPanel
         //  below, two above, two below, and take the first that
         //  clears every label already placed.  Vertical, because
         //  pushing them sideways walks them into the next column.
-        const int tall = level.annotation.empty()
+        const string annotation = p_showEnergies ? level.annotation : string();
+        const int tall = annotation.empty()
             ? extent.y + 2 : 2*extent.y + 2;
         const int home = y - extent.y/2;
 
@@ -730,12 +749,12 @@ class MoDiagramCanvas : public wxPanel
         //  drawn for the first level of the shell only.
         bool saidAlready = false;
         for (size_t k = 0; k < p_notes.size(); k++) {
-          if (p_notes[k] == level.annotation) saidAlready = true;
+          if (p_notes[k] == annotation) saidAlready = true;
         }
-        if (!level.annotation.empty() && !saidAlready) {
-          p_notes.push_back(level.annotation);
+        if (!annotation.empty() && !saidAlready) {
+          p_notes.push_back(annotation);
           dc.SetTextForeground(wxColour(130, 130, 130));
-          const wxString extra(level.annotation.c_str(), wxConvUTF8);
+          const wxString extra(annotation.c_str(), wxConvUTF8);
           dc.DrawText(extra,
                       (p_outward < 0)
                           ? lx + extent.x - dc.GetTextExtent(extra).x : lx,
@@ -1320,6 +1339,7 @@ class MoDiagramCanvas : public wxPanel
     MoColumn p_left, p_centre, p_right;
     vector<MoConnection> p_links;
     bool p_haveFragments;
+    bool p_showEnergies;
     string p_group;
     string p_formula;
 

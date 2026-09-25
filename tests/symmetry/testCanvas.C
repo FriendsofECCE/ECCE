@@ -117,6 +117,49 @@ class Harness : public wxApp
               wxString::Format(wxT("(%d pixels)"), ink).mb_str());
       }
 
+      //  --- the energies can be put away ----------------------------
+      //
+      //  Twelve labels and twelve numbers is a lot of text on one
+      //  picture, and the numbers are the part a qualitative diagram
+      //  needs least.  Turning them off has to remove ink AND reclaim
+      //  the row each one needed, or the levels stay spread apart as
+      //  if the text were still there.
+      {
+        MoColumn left, centre, right;
+        centre.title = "Molecular orbitals";
+        for (int i = 0; i < 6; i++) {
+          char name[16];
+          snprintf(name, sizeof(name), "%da1", i + 1);
+          centre.levels.push_back(level(name, "A1",
+                                        -1.0 + 0.2*i, (i < 3) ? 2 : 0, 1));
+          char text[32];
+          snprintf(text, sizeof(text), "%.4f", -1.0 + 0.2*i);
+          centre.levels[i].annotation = text;
+        }
+
+        vector<MoConnection> links;
+
+        canvas->setShowEnergies(true);
+        canvas->setDiagram(left, centre, right, links, false, "");
+        const int withEnergies =
+            paint(canvas, size, "/tmp/ecce-canvas-energies-on.png");
+
+        canvas->setShowEnergies(false);
+        canvas->setDiagram(left, centre, right, links, false, "");
+        const int withoutEnergies =
+            paint(canvas, size, "/tmp/ecce-canvas-energies-off.png");
+
+        check("the energies paint when asked for", withEnergies > 200,
+              wxString::Format(wxT("(%d pixels)"), withEnergies).mb_str());
+        check("turning the energies off removes ink",
+              withoutEnergies < withEnergies,
+              wxString::Format(wxT("(%d against %d pixels)"),
+                               withoutEnergies, withEnergies).mb_str());
+
+        //  Put it back, so a later case is not surprised by it.
+        canvas->setShowEnergies(true);
+      }
+
       //  --- a level diagram with no fragment columns ----------------
       //
       //  What a calculation with no usable symmetry gets.  The columns
