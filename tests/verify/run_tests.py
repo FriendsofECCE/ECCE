@@ -98,6 +98,15 @@ CASES = [
     #  An element in the molecule with no basis anywhere.
     ("g16-element-no-basis.g16in",  "Gaussian-16",  3, [("BAD", "basis")]),
 
+    #  --- a word ECCE would not have written --------------------------
+    #  AMBER, never red. An unrecognised word may be a typo or a
+    #  perfectly good keyword ECCE simply never emits, and nothing in
+    #  the file distinguishes them. (This one is a typo, and Gaussian's
+    #  own parser rejects it -- but the checker cannot know that, and
+    #  must not pretend to.)
+    ("g16-hand-typed-keyword.g16in", "Gaussian-16", 3, [("UNSURE",
+                                                         "keywords")]),
+
     #  --- a stray character typed INSIDE a section --------------------
     #  Reported live 2026-09-25: an "s" added by hand to an NWChem
     #  deck, which stops it running. Every check before these asked
@@ -314,9 +323,23 @@ def testrt_agreement(verbose):
         #  and a syntax error to Gaussian, and those are the same
         #  finding about the same lines.
         _rc, findings = run(fixture, code, 0)
-        weExpectBad = any(level == "BAD" and check in ("keywords", "link0",
-                                                       "route")
-                          for level, check, _message in findings)
+        routeFindings = [(level, check) for level, check, _m in findings
+                         if check in ("keywords", "link0", "route")]
+        weExpectBad = any(level == "BAD" for level, _check in routeFindings)
+
+        #  An explicit "could not judge" is not a claim, so the oracle
+        #  cannot contradict it. The checker reports an unrecognised
+        #  word as UNSURE on purpose: it may be a typo or a valid
+        #  keyword ECCE never emits, and the file does not say which.
+        #  Gaussian rejecting it confirms this one was a typo -- and
+        #  the checker was still right not to assert that.
+        declined = any(level == "UNSURE" and check == "keywords"
+                       for level, check in routeFindings)
+        if declined and not weExpectBad:
+            if verbose:
+                print("      testrt %s %s (checker declined to judge)"
+                      % ("accepts" if accepted else "rejects", fixture))
+            continue
         checked += 1
 
         if weExpectBad and accepted:
@@ -378,6 +401,47 @@ def main():
             if args.verbose:
                 for level, check, message in findings:
                     print("      %-7s %-10s %s" % (level, check, message))
+
+    #  The vocabulary must match the generators it was harvested from,
+    #  or it silently rots: a functional added to a dialog would start
+    #  showing up amber on every deck that used it.
+    build = os.path.join(ROOT, os.pardir, "tools", "verify",
+                         "build_vocabulary.py")
+    if os.path.exists(build):
+        p = subprocess.run([sys.executable, build, "--check"],
+                           capture_output=True, text=True)
+        if p.returncode == 0:
+            print("ok    the keyword vocabulary matches the generators")
+        else:
+            print("FAIL  the keyword vocabulary is out of date")
+            print(p.stdout.strip())
+            print("      run tools/verify/build_vocabulary.py")
+            failures += 1
+
+    #  Every deck ECCE has generated should be recognised in full.
+    #  This is the completeness test, and it is free: the vocabulary
+    #  is harvested from the generators, so anything ECCE wrote must
+    #  be in it. A gap shows up here as amber on a deck nobody edited.
+    amber = 0
+    for fixture, code, _atoms, expected in CASES:
+        if ("UNSURE", "keywords") in expected:
+            continue
+        if not any(fixture.startswith(prefix)
+                   for prefix in ("g16-water", "g16-gen-basis",
+                                  "g16-ozone", "orca-ethane",
+                                  "mopac-methane")):
+            continue
+        _rc, findings = run(fixture, code, 0)
+        for level, check, message in findings:
+            if level == "UNSURE" and check == "keywords":
+                print("FAIL  %s: ECCE generated this deck, and the "
+                      "vocabulary does not recognise it all" % fixture)
+                print("        %s" % message)
+                amber += 1
+    if amber:
+        failures += amber
+    else:
+        print("ok    every word in the ECCE-generated fixtures is known")
 
     ran, oracleFailures, checked = testrt_agreement(args.verbose)
     if not ran:

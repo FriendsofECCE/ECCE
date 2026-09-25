@@ -332,6 +332,105 @@ sub electronCount
           "multiplicity of $multiplicity.");
 }
 
+
+#  ====================================================================
+#  Words ECCE itself can emit
+#
+#  Loaded from data/client/config/verify/<Code>.words, harvested from
+#  the generators, templates and basis tables by
+#  tools/verify/build_vocabulary.py.
+#
+#  THIS IS NOT A LIST OF WHAT THE CODE ACCEPTS, and must never be
+#  treated as one.  ORCA 6 has well over a thousand keywords and
+#  Gaussian's route options run to hundreds; no list of those could be
+#  kept current, and an incomplete one would condemn valid keywords --
+#  the false-alarm failure that makes a checker worthless.
+#
+#  What this knows is the much smaller, closed set of words ECCE can
+#  write.  A token outside it is text a human typed, which is exactly
+#  what Final Edit produces and exactly what is worth pointing at.
+#  So an unknown word is UNSURE, NEVER BAD: "I do not recognise this"
+#  is true of a hand-typed keyword whether or not the code accepts it,
+#  and a harvest with gaps then produces more amber rather than false
+#  red.
+sub knownWords
+{
+  my ($codeName) = @_;
+  my %words;
+
+  my $home = $ENV{"ECCE_HOME"};
+  my @places;
+  push(@places, "$home/data/client/config/verify") if ($home);
+  #  Beside this script, for a repository checkout.
+  my $here = $0;
+  $here =~ s{/[^/]+$}{};
+  push(@places, "$here/../../data/client/config/verify");
+
+  foreach my $place (@places) {
+    my $path = "$place/$codeName.words";
+    next unless (-r $path);
+    open(my $in, '<', $path) or next;
+    while (my $word = <$in>) {
+      chomp($word);
+      $words{lc($word)} = 1 if ($word =~ /\S/);
+    }
+    close($in);
+    last;
+  }
+  return \%words;
+}
+
+
+#  Tokens on a keyword line that ECCE would not have written.
+sub unknownWords
+{
+  my ($codeName, $text, $line, $what) = @_;
+
+  my $words = knownWords($codeName);
+  #  No vocabulary file: say nothing at all rather than call every
+  #  word unknown.
+  return unless (%$words);
+
+  #  Gaussian separates method from basis with '/'; ORCA does not --
+  #  "def2/J" is one keyword there, and splitting it reports two words
+  #  that were never written.
+  my $split = ($codeName =~ /^Gaussian/) ? qr{[\s=(),/]+} : qr{[\s=(),]+};
+
+  my @unknown;
+  my %reported;
+  foreach my $token (split($split, $text)) {
+    $token =~ s/^#\S?//;
+    next unless ($token =~ /[A-Za-z]/);
+    next if ($token =~ /^\d/);
+
+    my $key = lc($token);
+    next if (exists($words->{$key}));
+
+    #  Gaussian writes the reference on the front of the method:
+    #  rB3LYP, uPBE1PBE, roHF.  Strip it and try again before
+    #  concluding anything.
+    my $bare = $key;
+    if ($bare =~ s/^(ro|r|u)//) {
+      next if (exists($words->{$bare}));
+    }
+
+    next if (exists($reported{$key}));
+    $reported{$key} = 1;
+    push(@unknown, $token);
+  }
+
+  return unless (@unknown);
+
+  my $list = join(", ", map { "\"$_\"" } @unknown);
+  finding("UNSURE", $line, "keywords",
+          "ECCE would not have written " .
+          (scalar(@unknown) == 1 ? "this word" : "these words") .
+          " on the $what: $list. That is not a fault -- it is what a " .
+          "hand edit looks like -- but nothing here can tell you " .
+          "whether the code accepts " .
+          (scalar(@unknown) == 1 ? "it" : "them") . ".");
+}
+
 #  ====================================================================
 #  Gaussian
 #
@@ -379,6 +478,8 @@ sub gaussian
   my $route = join(" ", @L[$routeAt .. $last]);
   finding("GOOD", ($routeAt + 1) . "-" . ($last + 1), "route",
           "The route card is present.");
+
+  unknownWords($code, $route, ($routeAt + 1), "route card");
 
   if (!balanced($route)) {
     finding("BAD", $routeAt + 1, "keywords",
@@ -667,6 +768,9 @@ sub orca
   for my $i (0 .. $#L) { $bang = $i + 1 if (!$bang && $L[$i] =~ /^\s*!/); }
   if ($bang) {
     finding("GOOD", $bang, "route", "The '!' keyword line is present.");
+    my $keywords = $L[$bang - 1];
+    $keywords =~ s/^\s*!//;
+    unknownWords($code, $keywords, $bang, "'!' line");
   } else {
     finding("BAD", 0, "route",
             "There is no '!' keyword line. ORCA will not know what to " .
@@ -838,6 +942,7 @@ sub mopac
     return;
   }
   finding("GOOD", 1, "keywords", "A keyword line is present.");
+  unknownWords($code, $L[0], 1, "keyword line");
 
   if ($L[0] =~ /[+&]\s*$/) {
     finding("UNSURE", 1, "sections",
