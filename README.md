@@ -84,20 +84,22 @@ than papered over.
 
 ### Release history
 
-- **v8.15.0** — **Verify: a check on the generated input file before it
-  is submitted.** A lamp beside a new button in the Calculation Editor,
+- **v8.15.0** — **Verify: a check on the input file before it is
+  submitted.** A lamp beside a new button in the Calculation Editor,
   set whenever a deck is written; clicking it shows the deck with the
-  offending lines marked, green where a check covered it and amber where
-  none did. It reads the shape of a deck -- sections, spacing, block
-  closing, the basis block, charge against the electron count -- and
-  judges no keyword, because a checker that calls a correct deck wrong
-  gets ignored. **The point group you choose now reaches Gaussian**: it
-  was dropped silently, so a calculation set to D2h ran in whatever
-  Gaussian guessed. **Final Edit no longer strips the terminating blank
-  line**, which broke every deck it touched. MO diagrams reconcile an
-  axis-convention disagreement (ethene), correlation lines land on their
-  levels, A' and A'' are legible, and the fragment chooser can be
-  changed once set.
+  offending lines marked, green where a check covered it and amber
+  where none did. It reads the shape of a deck — sections, spacing,
+  block closing, the basis block, charge against the electron count —
+  and judges no keyword, because a checker that calls a correct deck
+  wrong gets ignored. **The point group you choose now reaches
+  Gaussian**: it was dropped silently, so a calculation set to D2h ran
+  in whatever Gaussian guessed. **Final Edit no longer strips the
+  terminating blank line**, which broke every deck it touched.
+  **Register Machines works on a fresh install** again (#149). MO
+  diagrams gain fragment orbitals with real energies, chemical groups
+  for molecules with no central atom, a π-only view for planar
+  molecules, and a menu offering only the constructions a given
+  molecule can be drawn by; still experimental.
 
 - **v8.14.0** — **Qualitative MO correlation diagrams**, shipped as
   experimental: a molecule's orbitals correlated against its fragments,
