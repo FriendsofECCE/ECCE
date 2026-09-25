@@ -1187,7 +1187,23 @@ class MoDiagramCanvas : public wxPanel
       }
 
       p_hits.clear();
-      drawColumn(dc, p_centre, xCentre, centreWidth, plot, true, &p_hits);
+      //  SPREAD THE MOLECULAR ORBITALS TOO.
+      //
+      //  The fragment columns have always been drawn with a minimum
+      //  gap between rows; the centre column was not, so two levels a
+      //  few thousandths of a Hartree apart drew their lines, their
+      //  labels, their energies and their electron arrows on top of
+      //  each other.  NO2- has 1b1 at -0.2020 and 3b2 at -0.2065 and
+      //  they came out as one unreadable smear.
+      //
+      //  This does move a line off its exact height on the axis, by a
+      //  few pixels, which the fragment columns can afford more easily
+      //  than this one can.  It is the lesser fault: the energy is
+      //  printed beside every level, so the number is still exact,
+      //  whereas two overprinted labels are not readable at all.  A
+      //  qualitative diagram is what this is for.
+      drawColumn(dc, p_centre, xCentre, centreWidth, plot, true, &p_hits,
+                 -1, true);
 
       //  The stack, from the bottom of the window upward.
       int line = size.y - 4;
