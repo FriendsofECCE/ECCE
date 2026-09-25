@@ -102,7 +102,8 @@ class MoDiagramCanvas : public wxPanel
     void setDiagram(const MoColumn& left, const MoColumn& centre,
                     const MoColumn& right,
                     const vector<MoConnection>& links,
-                    bool haveFragments, const string& note)
+                    bool haveFragments, const string& note,
+                    const string& headline = "")
     {
       p_left = left;
       p_centre = centre;
@@ -110,6 +111,7 @@ class MoDiagramCanvas : public wxPanel
       p_links = links;
       p_haveFragments = haveFragments;
       p_note = note;
+      p_headline = headline;
       Refresh();
     }
 
@@ -1016,8 +1018,19 @@ class MoDiagramCanvas : public wxPanel
     void paintOnto(wxDC& dc, const wxSize& size)
     {
       if (p_centre.levels.empty()) {
+        int y = 20;
+        if (!p_headline.empty()) {
+          wxFont banner = dc.GetFont();
+          banner.SetPointSize(banner.GetPointSize() + 3);
+          banner.SetWeight(wxFONTWEIGHT_BOLD);
+          dc.SetFont(banner);
+          dc.SetTextForeground(wxColour(140, 90, 0));
+          dc.DrawText(wxString(p_headline.c_str(), wxConvUTF8), 20, y);
+          y += dc.GetTextExtent(wxT("Xg")).y + 12;
+          dc.SetTextForeground(wxColour(30, 30, 30));
+        }
         dc.SetFont(*wxNORMAL_FONT);
-        dc.DrawText(wxString(p_note.c_str(), wxConvUTF8), 20, 20);
+        dc.DrawText(wxString(p_note.c_str(), wxConvUTF8), 20, y);
         return;
       }
 
@@ -1125,6 +1138,37 @@ class MoDiagramCanvas : public wxPanel
         dc.SetFont(heading);
         top += 22;
       }
+      //  THE REASON THE DIAGRAM IS MISSING, WHERE IT WILL BE READ.
+      //
+      //  Drawn across the width, above the levels, in the colour of a
+      //  warning -- not appended to the footnote under the picture,
+      //  which is where it used to be and where nobody looked.
+      if (!p_headline.empty()) {
+        wxFont banner = dc.GetFont();
+        banner.SetPointSize(banner.GetPointSize() + 3);
+        banner.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(banner);
+
+        const wxString text(p_headline.c_str(), wxConvUTF8);
+        const wxSize extent = dc.GetTextExtent(text);
+
+        //  A panel behind it, so it reads as a notice rather than as
+        //  a stray caption over an empty diagram.
+        const int pad = 8;
+        const wxRect box((size.x - extent.x)/2 - 2*pad, top,
+                         extent.x + 4*pad, extent.y + 2*pad);
+        dc.SetBrush(wxBrush(wxColour(255, 244, 214)));
+        dc.SetPen(wxPen(wxColour(214, 170, 60), 1));
+        dc.DrawRectangle(box);
+
+        dc.SetTextForeground(wxColour(140, 90, 0));
+        dc.DrawText(text, (size.x - extent.x)/2, top + pad);
+        dc.SetTextForeground(wxColour(30, 30, 30));
+
+        top += box.height + 10;
+        dc.SetFont(*wxNORMAL_FONT);
+      }
+
       const wxRect plot(0, top, size.x,
                         max(40, size.y - top - footerHeight - 6));
 
@@ -1401,6 +1445,19 @@ class MoDiagramCanvas : public wxPanel
     MoDiagramClickTarget *p_owner;
     MoColumn p_left, p_centre, p_right;
     vector<MoConnection> p_links;
+
+    /**
+     * A reason the diagram is missing, said where it will be read.
+     *
+     * The explanation used to be a sentence in the footnote under the
+     * picture, in small grey text, below a spectrum that looks like a
+     * diagram with its sides missing. Nobody reads a footnote to find
+     * out why the thing they asked for is not there -- reported as
+     * "the MO diagram for water is broken" when the calculation had
+     * simply been run with symmetry switched off, which the footnote
+     * said in its second sentence.
+     */
+    string p_headline;
     bool p_haveFragments;
     bool p_showEnergies;
     string p_group;

@@ -1069,9 +1069,21 @@ void MoDiagramPanel::build()
       note << "  The orbital energies are shown on their own below.";
       if (!why.empty()) note << "  " << why;
 
+      //  SAID ONCE, LOUDLY, AT THE TOP.
+      //
+      //  The explanation was the second sentence of a grey footnote
+      //  under a spectrum that looks like a diagram with its sides
+      //  missing, and it was read as "the MO diagram is broken" --
+      //  which it was not; the calculation had been run with symmetry
+      //  switched off, and nothing can be drawn from one that was.
+      const string headline = haveSymmetryLabels
+          ? "The orbital labels do not match the structure's symmetry"
+          : "This job was run WITHOUT SYMMETRY - no diagram can be drawn";
+
       p_canvas->setGroup(group);
       p_canvas->setFormula(MoDiagram::formula(elements, charge));
-      p_canvas->setDiagram(left, centre, right, links, false, note.str());
+      p_canvas->setDiagram(left, centre, right, links, false, note.str(),
+                           headline);
       return;
     }
 

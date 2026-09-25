@@ -14,6 +14,13 @@ version 8: reaching it took a real modernization of the build system and
 every major dependency, not just a recompile, on top of bringing the
 application itself back to life.
 
+![The Organizer, with a calculation being set up and
+launched](docs/images/organizer.png)
+
+*The Organizer is the front door: calculations on the left, a summary of
+the selected one in the middle, and the code's own editor and the
+launcher opened from it.*
+
 ## General features
 
 * **Build molecular models**, or import a structure and work from that.
@@ -82,62 +89,48 @@ theory setup), and a long list of crashes and silent failures surfaced by
 actually using the application have been root-caused and fixed rather
 than papered over.
 
+### Screenshots
+
+![The viewer, showing a molecular orbital of
+benzene](docs/images/viewer.png)
+
+*The viewer: a calculation's orbitals, energies and geometry, with the
+orbital list on the left and the structure rendered from the results.*
+
+| | |
+|---|---|
+| ![Benzene's highest occupied molecular orbital](docs/images/orbital-benzene.png) | ![The electrostatic potential on benzene's surface](docs/images/esp-benzene.png) |
+| Benzene's π HOMO | Electrostatic potential mapped on the surface |
+
 ### Release history
 
-- **v8.15.0** — **Verify: a check on the input file before it is
-  submitted.** A lamp beside a new button in the Calculation Editor,
-  set whenever a deck is written; clicking it shows the deck with the
-  offending lines marked, green where a check covered it and amber
-  where none did. It reads the shape of a deck — sections, spacing,
-  block closing, the basis block, charge against the electron count —
-  and judges no keyword, because a checker that calls a correct deck
-  wrong gets ignored. **The point group you choose now reaches
-  Gaussian**: it was dropped silently, so a calculation set to D2h ran
-  in whatever Gaussian guessed. **Final Edit no longer strips the
-  terminating blank line**, which broke every deck it touched.
-  **Register Machines works on a fresh install** again (#149). MO
-  diagrams gain fragment orbitals with real energies, chemical groups
-  for molecules with no central atom, a π-only view for planar
-  molecules, and a menu offering only the constructions a given
-  molecule can be drawn by; still experimental.
+One line each. Full notes, and the packages, are on the
+[releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
-- **v8.14.0** — **Qualitative MO correlation diagrams**, shipped as
-  experimental: a molecule's orbitals correlated against its fragments,
-  with terminal-atom symmetry orbitals and Mulliken labels, and an
-  extended Hückel fallback so a diagram can be drawn from a structure
-  alone. **"Use symmetry" moves onto the Calculation Editor** beside the
-  point group and defaults on — every Gaussian deck ECCE had ever
-  written carried `NoSymm`, so Gaussian never reported orbital labels.
-  **Fixes basis sets being silently corrupted**: a bare pointer into a
-  frozen stream buffer put six bytes of binary where the basis block
-  belongs, in both ORCA and Gaussian decks, and the codes refused them.
-  Also Gaussian 16 Raman and anharmonic frequencies, a filter for the
-  Basis Set Tool's 377 sets, one password per session, and RPM packages.
+- **v8.15.0** — **Verify**: a check on the generated input file before
+  it is submitted. The point group you choose now reaches Gaussian.
+  Final Edit no longer strips a deck's terminating blank line. Register
+  Machines works on a fresh install. MO diagrams gain fragment
+  orbitals, chemical groups and a π-only view; still experimental.
 
-- **v8.13.2** — **Jobs that staged and never ran now run.** ECCE
-  backgrounded the submit script with Bourne-shell redirection, which csh
-  rejects outright — so nothing started, while ECCE reported the
-  calculation as running. Affects any machine whose `/usr/bin/csh` is
-  tcsh (Ubuntu, RHEL); Debian's `bsd-csh` accepts it, which is why the
-  same build worked there. Present since v8.0.3. `ecce-diagnose` becomes
-  a general-purpose collector for any problem.
+- **v8.14.0** — **Qualitative MO correlation diagrams**, experimental.
+  "Use symmetry" moves onto the Calculation Editor and defaults on.
+  Fixes basis sets being silently corrupted in ORCA and Gaussian decks.
+  Gaussian 16 Raman and anharmonic frequencies; RPM packages.
+
+- **v8.13.2** — **Jobs that staged and never ran now run**: the submit
+  script was backgrounded with a redirection csh rejects. Affects any
+  machine whose `/usr/bin/csh` is tcsh. Present since v8.0.3.
 
 - **v8.13.1** — **Running against a central server works again**:
-  `ecce -remote` starts no local services, and `ecce-remote-setup <host>`
-  configures a client in one command. Fixes helper programs invoked by
-  relative path, which could only work from `$ECCE_HOME/bin` — background
-  remote commands, password dialogs and job-monitor startup failed
-  silently depending on where ECCE was started from. Also fixes a failed
-  symmetry search reporting "no symmetry".
+  `ecce -remote`, and `ecce-remote-setup <host>` to configure a client.
+  Fixes helper programs invoked by relative path.
 
-- **v8.13.0** — **Electrostatic potential maps**, from the density or
-  from point charges, drawn on the molecular surface. 3-D orbitals for
-  MOPAC. Queues configurable inside ECCE instead of by editing root-owned
-  files. Dispersion corrections and twelve further functionals.
-  **Fixes ORCA p functions being declared in the wrong order**, so
-  orbitals with p character have been drawn wrong since v8.0.7 —
-  re-render any you rely on — and 24045 basis-set values read without
-  their exponent, corrupting several standard sets.
+- **v8.13.0** — **Electrostatic potential maps** on the molecular
+  surface. 3-D orbitals for MOPAC. Queues configurable inside ECCE.
+  **Fixes ORCA p functions declared in the wrong order** — orbitals with
+  p character were drawn wrong since v8.0.7, so re-render any you rely
+  on — and basis-set values read without their exponent.
 
 - **v8.12.0** — **The Gateway window is gone**: `ecce` opens the Organizer
   directly, which becomes the front door (`ECCE_GATEWAY_WINDOW=1` restores

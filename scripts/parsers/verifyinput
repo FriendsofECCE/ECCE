@@ -541,6 +541,24 @@ sub gaussian
             "says which one.");
   }
 
+  #  SYMMETRY OFF IS A CHOICE WITH A CONSEQUENCE, so say it before
+  #  the job runs rather than after.
+  #
+  #  A deck carrying NoSymm produces no orbital symmetry labels, and
+  #  without those there is no MO correlation diagram to be had from
+  #  it -- which is only discovered once the calculation has finished,
+  #  and then looks like the diagram being broken rather than like the
+  #  deck having asked for this. Amber, because switching symmetry off
+  #  is a legitimate thing to want.
+  if ($whole =~ /\bNoSymm\b/i) {
+    finding("UNSURE", $routeAt + 1, "symmetry",
+            "This deck says NoSymm, so the calculation will report no " .
+            "orbital symmetry labels -- no MO correlation diagram can " .
+            "be drawn from it, and orbitals will be numbered rather " .
+            "than named. Tick \"Use symmetry\" in the Calculation " .
+            "Editor if that was not intended.");
+  }
+
   #  ------------------------------------------------- section spacing
   if ($routeEnd > $#L) {
     finding("BAD", $routeAt + 1, "sections",
