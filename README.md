@@ -14,13 +14,6 @@ version 8: reaching it took a real modernization of the build system and
 every major dependency, not just a recompile, on top of bringing the
 application itself back to life.
 
-![The Organizer, with a calculation being set up and
-launched](docs/images/organizer.png)
-
-*The Organizer is the front door: calculations on the left, a summary of
-the selected one in the middle, and the code's own editor and the
-launcher opened from it.*
-
 ## General features
 
 * **Build molecular models**, or import a structure and work from that.
@@ -48,9 +41,23 @@ ESPRESSO and GROMACS are in progress — see the roadmap.
 
 ## Screenshots
 
-![Organizer](docs/screenshots/organizer.png)
+![The Organizer, with a calculation being set up and
+launched](docs/images/organizer.png)
 
-![Viewer](docs/screenshots/viewer.png)
+*The Organizer is the front door: calculations on the left, a summary of
+the selected one in the middle, and the code's own editor and the
+launcher opened from it — here an ORCA job on its way to a machine.*
+
+![The viewer, showing a molecular orbital of
+benzene](docs/images/viewer.png)
+
+*The viewer: a calculation's orbitals and energies beside the structure
+they were computed for.*
+
+| | |
+|---|---|
+| ![Benzene's highest occupied molecular orbital](docs/images/orbital-benzene.png) | ![The electrostatic potential on benzene's surface](docs/images/esp-benzene.png) |
+| Benzene's π HOMO | Electrostatic potential on the surface |
 
 ## What's new in version 8
 
@@ -88,19 +95,6 @@ run end to end now (job launch, remote monitoring, basis-set selection,
 theory setup), and a long list of crashes and silent failures surfaced by
 actually using the application have been root-caused and fixed rather
 than papered over.
-
-### Screenshots
-
-![The viewer, showing a molecular orbital of
-benzene](docs/images/viewer.png)
-
-*The viewer: a calculation's orbitals, energies and geometry, with the
-orbital list on the left and the structure rendered from the results.*
-
-| | |
-|---|---|
-| ![Benzene's highest occupied molecular orbital](docs/images/orbital-benzene.png) | ![The electrostatic potential on benzene's surface](docs/images/esp-benzene.png) |
-| Benzene's π HOMO | Electrostatic potential mapped on the surface |
 
 ### Release history
 
