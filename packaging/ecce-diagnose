@@ -1,43 +1,80 @@
 #!/bin/bash
 #
-# Collect everything needed to diagnose an ECCE job-launch problem, in
-# one pass, into one file.
+# Collect everything needed to diagnose an ECCE problem, in one pass,
+# into one file.  Run it for ANY issue -- a crash, a window that will
+# not open, a job that does not start, a property that never appears.
+# The run directory is only needed for a job problem.
 #
 #   ecce-diagnose [run-directory]
 #
 # Written because the alternative is asking someone to run a dozen
 # commands, one round trip each.  It reads; it changes nothing, starts
-# nothing and stops nothing, with one clearly-marked exception (see
-# "REPRODUCTION" below) which runs the submit script the same way ECCE
-# does, in a copy of the run directory.
+# nothing and stops nothing, with two clearly-marked exceptions: a
+# write test and an exec test in a scratch directory, and "REPRODUCTION"
+# below, which runs the submit script the same way ECCE does, in a copy
+# of the run directory.
 #
-# It deliberately does NOT collect any password or credential file.
-# The output is still yours to read before sending: it contains host
-# names, user names and full paths.
+# The sections deliberately go well beyond the current suspects.  A job
+# that stages correctly and then silently never runs has a large space
+# of possible causes -- a noexec mount, a shell startup file that prints
+# something, an SELinux denial, a full disk, a hostname that no longer
+# resolves -- and every one of them looks identical from inside ECCE.
+# Collect broadly once rather than narrowly several times.
+#
+# It deliberately does NOT collect any password or credential file, and
+# it masks anything password-shaped out of the environment dump.  The
+# output is still yours to read before sending: it contains host names,
+# user names and full paths.
 
 set -u
+
+# Never read from the terminal.  A shell probed with an unsupported
+# --version can drop into an interactive read and hang the whole script;
+# so can ssh deciding to ask something.  Nothing here wants stdin.
+exec < /dev/null
+
+# Nothing here may hang either.  Every probe goes through this, so a
+# wedged command costs a few seconds instead of the collection.
+if command -v timeout >/dev/null 2>&1; then
+  T() { timeout "$@"; }
+else
+  T() { shift; "$@"; }
+fi
 
 OUT="ecce-diagnostics-$(hostname -s 2>/dev/null || echo host)-$(date +%Y%m%d-%H%M%S).txt"
 RUNDIR="${1:-}"
 
 say()  { printf '\n===== %s =====\n' "$1" >> "$OUT"; }
-run()  { printf '\n$ %s\n' "$*" >> "$OUT"; "$@" >> "$OUT" 2>&1 || true; }
+run()  { printf '\n$ %s\n' "$*" >> "$OUT"; T 20 "$@" >> "$OUT" 2>&1 || true; }
+# eval, not "sh -c": these snippets use the mask() helper above, and a
+# child shell would not have it -- which would quietly stop masking.
 shell_run() { printf '\n$ %s\n' "$1" >> "$OUT"; eval "$1" >> "$OUT" 2>&1 || true; }
 note() { printf '%s\n' "$*" >> "$OUT"; }
+have() { command -v "$1" >/dev/null 2>&1; }
+# Shell startup files and the environment are where people keep API
+# tokens.  Everything from either is passed through this before it is
+# written, so a diagnostic file can be sent to someone else.
+mask() { sed -E 's/((PASS|PASSWD|PASSWORD|SECRET|TOKEN|APIKEY|API_KEY|AUTH)[A-Z_]*[ ]*[=:][ ]*).*/\1<masked>/I; s/(sk-|hf_|ghp_|gho_|github_pat_|xox[baprs]-|AKIA)[A-Za-z0-9_\/+-]{8,}/<masked>/g' ; }
 
 : > "$OUT"
 note "ECCE diagnostics"
 note "Collected $(date -Is 2>/dev/null || date)"
-note "Nothing here was changed by this script except a scratch copy of"
-note "the run directory, noted where it happens."
+note "Nothing here was changed by this script except scratch directories"
+note "and a copy of the run directory, noted where they happen."
 
 # ---------------------------------------------------------------- system
 say "System"
 run uname -a
-for f in /etc/os-release /etc/redhat-release; do
+for f in /etc/os-release /etc/redhat-release /etc/debian_version; do
   [ -r "$f" ] && { note ""; note "--- $f"; cat "$f" >> "$OUT" 2>&1; }
 done
 run id
+run uptime
+note ""
+note "date:      $(date -Is 2>/dev/null || date)"
+note "timezone:  ${TZ:-<unset>} / $(date +%Z 2>/dev/null)"
+have hostname && note "hostname:  $(hostname 2>/dev/null)  (short: $(hostname -s 2>/dev/null), fqdn: $(hostname -f 2>/dev/null))"
+note "umask:     $(umask)"
 
 # ---------------------------------------------------------------- ecce
 say "ECCE installation"
@@ -47,14 +84,19 @@ note "using $HOME_DIR"
 [ -r "$HOME_DIR/data/client/config/Version" ] && \
   { note ""; note "--- Version"; cat "$HOME_DIR/data/client/config/Version" >> "$OUT"; }
 run ls -la "$HOME_DIR/bin"
-shell_run "command -v ecce ecce-gateway ecmd eccejobmaster eccejobstore 2>&1"
-if command -v dpkg >/dev/null 2>&1; then run dpkg -l ecce; fi
-if command -v rpm  >/dev/null 2>&1; then run rpm -qi ecce; fi
+shell_run "command -v ecce ecce-gateway ecmd eccejobmaster eccejobstore eccejobmonitor gensub 2>&1"
+if have dpkg; then run dpkg -l ecce; fi
+if have rpm;  then run rpm -qi ecce; fi
+note ""
+note "--- the wrapper actually on PATH"
+W=$(command -v ecce 2>/dev/null) && { note "$W"; head -60 "$W" >> "$OUT" 2>&1; } || note "no 'ecce' on PATH"
 
 # ---------------------------------------------------------------- shells
 say "Shells"
 # THE LOCAL SHELL MATTERS: the launcher forces csh/tcsh for job
 # connections by default, and the submit command is run through it.
+note "login shell for this user: ${SHELL:-<unset>}"
+have getent && note "passwd entry: $(getent passwd "$(id -un)" 2>/dev/null)"
 for s in csh tcsh bash sh ksh zsh; do
   p=$(command -v "$s" 2>/dev/null) && note "$s -> $p" || note "$s -> NOT FOUND"
 done
@@ -63,9 +105,67 @@ for s in csh tcsh; do
   note ""
   note "--- $p"
   ls -la "$p" >> "$OUT" 2>&1
-  "$p" --version >> "$OUT" 2>&1 || "$p" -c 'echo version-flag-unsupported' >> "$OUT" 2>&1
+  T 10 "$p" --version >> "$OUT" 2>&1 || note "(no --version; this shell does not support the flag)"
 done
 run bash --version
+
+# ------------------------------------------------- shell startup files
+say "Shell startup files"
+# ECCE drives its shell connections through an expect-style dialogue: it
+# writes a command and waits for an exact string back.  Anything a
+# startup file prints -- a fortune, a "you have mail", a module-load
+# banner, an scp-breaking echo -- lands in that stream and can make the
+# match fail, after which ECCE continues believing the command was sent.
+# This is a classic cause of "it worked for years and then stopped", and
+# nothing about it is visible from inside the application.
+for f in .cshrc .tcshrc .login .bashrc .bash_profile .profile .kshrc; do
+  [ -r "$HOME/$f" ] || { note "~/$f: absent"; continue; }
+  note ""
+  note "--- ~/$f ($(wc -l < "$HOME/$f" 2>/dev/null) lines)"
+  grep -vE '^\s*#|^\s*$' "$HOME/$f" | mask >> "$OUT" 2>&1
+done
+note ""
+note "(secret-shaped assignments above are masked, but read them anyway"
+note " before sending this file on)"
+note ""
+note "--- does a non-login shell print anything before the marker?"
+note "    (anything other than the marker alone can derail ECCE's"
+note "     expect dialogue; stderr is shown separately)"
+for s in csh tcsh bash sh; do
+  p=$(command -v "$s" 2>/dev/null) || continue
+  note ""
+  note "$s stdout: [$(T 10 "$p" -c 'echo ECCE_MARKER' 2>/dev/null | tr '\n' '|')]"
+  note "$s stderr: [$(T 10 "$p" -c 'echo ECCE_MARKER' 2>&1 >/dev/null | tr '\n' '|')]"
+done
+for s in csh tcsh bash; do
+  p=$(command -v "$s" 2>/dev/null) || continue
+  note ""
+  note "$s as a LOGIN shell, stdout: [$(T 10 "$p" -l -c 'echo ECCE_MARKER' 2>/dev/null | tr '\n' '|')]"
+done
+note ""
+note "--- interactive shell, through a pty (closest to what ECCE does)"
+if have script; then
+  for s in csh tcsh bash; do
+    p=$(command -v "$s" 2>/dev/null) || continue
+    note ""
+    note "$s: "
+    T 10 script -qec "$p -i -c 'echo ECCE_MARKER'" /dev/null 2>&1 | head -20 | cat -v >> "$OUT"
+  done
+else
+  note "'script' not available; skipped"
+fi
+
+# --------------------------------------------------- terminal and locale
+say "Terminal and locale"
+# ECCE's shell connections run on a pty.  A locale that changes number
+# or date formatting has broken ECCE's DAV calls before (the application
+# forces LC_ALL for exactly that reason), and terminal width decides
+# where a long command line wraps -- which has previously broken
+# pattern matching on echoed input.
+note "TERM=${TERM:-<unset>}  COLUMNS=${COLUMNS:-<unset>}  LINES=${LINES:-<unset>}"
+have locale && run locale
+have stty && shell_run "stty -a 2>/dev/null | head -3 || echo 'not a tty'"
+have tty && note "tty: $(tty 2>/dev/null)"
 
 # ------------------------------------------------------- shell behaviour
 say "Shell behaviour ECCE depends on"
@@ -76,27 +176,42 @@ TMPD=$(mktemp -d 2>/dev/null) || TMPD=/tmp/ecce-diag-$$
 mkdir -p "$TMPD"
 printf '#!/bin/sh\ntouch "%s/PROOF_IT_RAN"\n' "$TMPD" > "$TMPD/fakesubmit"
 chmod +x "$TMPD/fakesubmit"
-for s in csh tcsh bash; do
+# Both redirect dialects are tested.  "> /dev/null 2>&1" is the sh form
+# and is what ECCE sent before the #141 fix; ">& /dev/null" is the csh
+# form and is what it sends now to a csh/tcsh machine.  A csh that
+# rejects the first and accepts the second is the confirmed cause of
+# "the job stages and never runs", so recording both tells us straight
+# away whether a new report is that bug again or something else.
+for s in csh tcsh bash sh; do
   p=$(command -v "$s" 2>/dev/null) || continue
-  rm -f "$TMPD/PROOF_IT_RAN"
   note ""
-  note "--- $s: nohup ./fakesubmit > /dev/null 2>&1 & echo RC_EXECBG_PID=\$!"
-  ( cd "$TMPD" && "$p" -c 'nohup ./fakesubmit > /dev/null 2>&1 & echo RC_EXECBG_PID=$!' ) >> "$OUT" 2>&1
-  sleep 1
-  if [ -e "$TMPD/PROOF_IT_RAN" ]; then note "    -> the backgrounded job RAN"
-  else                                 note "    -> the backgrounded job DID NOT RUN"; fi
+  note "--- $s  (resolves to: $(readlink -f "$p" 2>/dev/null || echo "$p"))"
+  for form in '> /dev/null 2>&1' '>& /dev/null'; do
+    rm -f "$TMPD/PROOF_IT_RAN"
+    note "    nohup ./fakesubmit $form & echo RC_EXECBG_PID=\$!"
+    ( cd "$TMPD" && T 15 "$p" -c "nohup ./fakesubmit $form & echo RC_EXECBG_PID=\$!" ) >> "$OUT" 2>&1
+    sleep 1
+    if [ -e "$TMPD/PROOF_IT_RAN" ]; then note "      -> RAN"
+    else                                 note "      -> DID NOT RUN"; fi
+  done
+done
+note ""
+note "--- is nohup present, and does the shell use its own builtin?"
+for s in csh tcsh bash sh; do
+  p=$(command -v "$s" 2>/dev/null) || continue
+  note "$s: $("$p" -c 'command -v nohup || which nohup' 2>&1 | head -1)"
 done
 rm -rf "$TMPD"
 
 # ------------------------------------------------------------- toolchain
 say "Tools ECCE shells out to"
-for t in perl python3 java httpd apache2 ssh scp; do
-  p=$(command -v "$t" 2>/dev/null) && { note ""; note "$t -> $p"; "$t" --version >> "$OUT" 2>&1 || "$t" -V >> "$OUT" 2>&1 || true; } \
+for t in perl python3 java httpd apache2 ssh scp expect nohup env sed awk; do
+  p=$(command -v "$t" 2>/dev/null) && { note ""; note "$t -> $p"; T 10 "$t" --version >> "$OUT" 2>&1 || T 10 "$t" -V >> "$OUT" 2>&1 || true; } \
                                    || note "$t -> NOT FOUND"
 done
 note ""
 note "Computational codes on PATH:"
-for c in nwchem g16 g09 orca mopac; do
+for c in nwchem g16 g09 orca mopac pw.x gmx; do
   p=$(command -v "$c" 2>/dev/null) && note "  $c -> $p" || note "  $c -> not on PATH"
 done
 
@@ -104,22 +219,43 @@ done
 say "PATH as a non-interactive shell sees it"
 # A submit script runs the code by name.  A code present in a login
 # shell but absent here is a job that dies the instant it starts.
-for s in csh tcsh bash; do
+note "PATH in this shell: $PATH"
+for s in csh tcsh bash sh; do
   p=$(command -v "$s" 2>/dev/null) || continue
   note ""
   note "--- $s"
-  "$p" -c 'echo $PATH' >> "$OUT" 2>&1
+  T 10 "$p" -c 'echo $PATH' >> "$OUT" 2>&1
   for c in nwchem g16 g09 orca mopac; do
-    "$p" -c "which $c" >> "$OUT" 2>&1
+    T 10 "$p" -c "which $c" >> "$OUT" 2>&1
   done
 done
 
+# -------------------------------------------------------------- environment
+say "Environment"
+# Dumped whole, deliberately.  A stray LD_LIBRARY_PATH, a module system's
+# leftovers, an ECCE_* override someone set years ago and forgot -- none
+# of these would be asked for by name, and any of them can be the cause.
+# Anything password-shaped is masked.
+shell_run "env | sort | sed -E 's/^([^=]*(PASS|PASSWD|PASSWORD|SECRET|TOKEN|KEY|AUTH)[^=]*)=.*/\\1=<masked>/I' | mask"
+
 # ---------------------------------------------------------------- security
 say "Security frameworks"
-command -v getenforce >/dev/null 2>&1 && run getenforce
-command -v sestatus   >/dev/null 2>&1 && run sestatus
-command -v aa-status  >/dev/null 2>&1 && run aa-status --enabled && note "apparmor enabled"
+have getenforce && run getenforce
+have sestatus   && run sestatus
+have aa-status  && shell_run "aa-status --enabled && echo 'apparmor: enabled' || echo 'apparmor: not enabled'"
 run ulimit -a
+note ""
+note "--- recent denials (an SELinux or AppArmor denial is silent to ECCE)"
+if have ausearch; then
+  shell_run "ausearch -m avc,user_avc -ts recent 2>/dev/null | tail -60 || echo 'no recent AVC records (or no permission to read them)'"
+fi
+if have journalctl; then
+  shell_run "journalctl --since '2 hours ago' --no-pager 2>/dev/null | grep -iE 'avc|apparmor|denied|audit' | tail -40 || echo 'nothing in the journal'"
+fi
+shell_run "dmesg 2>/dev/null | grep -iE 'avc|apparmor|denied|segfault|killed process' | tail -40 || echo 'dmesg unreadable or nothing matching'"
+note ""
+note "--- was anything killed for memory?"
+shell_run "dmesg 2>/dev/null | grep -i 'out of memory' | tail -10 || true"
 
 # ---------------------------------------------------------------- config
 say "ECCE configuration"
@@ -129,6 +265,11 @@ for f in Machines Queues QueueManagers DataServers jndi.properties site_runtime;
   note "--- siteconfig/$f (comments stripped)"
   grep -vE '^\s*#|^\s*$' "$HOME_DIR/siteconfig/$f" >> "$OUT" 2>&1
 done
+if [ -d "$HOME_DIR/siteconfig/RemoteServer" ]; then
+  note ""
+  note "--- siteconfig/RemoteServer exists (central-server mode is configured)"
+  ls -la "$HOME_DIR/siteconfig/RemoteServer" >> "$OUT" 2>&1
+fi
 note ""
 note "--- ~/.ECCE (listing only; no file contents, some hold credentials)"
 ls -la "$HOME/.ECCE" >> "$OUT" 2>&1
@@ -144,13 +285,151 @@ for f in "$HOME"/.ECCE/CONFIG.*; do
   note "--- $f"
   grep -vE '^\s*#|^\s*$' "$f" >> "$OUT" 2>&1
 done
+note ""
+note "--- any ECCE log files"
+shell_run "ls -la \"\$HOME\"/.ECCE/*.log 2>/dev/null || echo 'none in ~/.ECCE'"
+for f in "$HOME"/.ECCE/*.log; do
+  [ -r "$f" ] || continue
+  note ""; note "--- $f (last 80 lines)"; tail -80 "$f" >> "$OUT" 2>&1
+done
+shell_run "ls -la /tmp/*ecce* /tmp/*ECCE* 2>/dev/null | head -20 || echo 'nothing ECCE-shaped in /tmp'"
+
+# ------------------------------------------------- machines and resolution
+say "Registered machines and name resolution"
+# ECCE decides local-vs-remote by comparing the registered machine name
+# against this host.  A machine registered under a name that no longer
+# resolves, or that resolves somewhere unexpected, gets treated as
+# remote and ssh'd to -- which fails in ways that look like a launch bug.
+MACHFILES="$HOME_DIR/siteconfig/Machines $HOME/.ECCE/MyMachines"
+NAMES=$(for m in $MACHFILES; do
+          [ -r "$m" ] && grep -vE '^\s*#|^\s*$' "$m" | awk '{print $1; print $2}'
+        done | sort -u)
+note "names found in the machine files:"
+note "$NAMES"
+for n in $NAMES localhost "$(hostname -s 2>/dev/null)" "$(hostname -f 2>/dev/null)"; do
+  [ -n "$n" ] || continue
+  if have getent; then
+    r=$(getent hosts "$n" 2>/dev/null | head -1)
+    note "  $n -> ${r:-DOES NOT RESOLVE}"
+  fi
+done
+note ""
+note "--- can this host ssh to itself without a password?"
+note "    (ECCE ssh's to any machine it does not recognise as this one)"
+if have ssh; then
+  for n in localhost "$(hostname -s 2>/dev/null)"; do
+    [ -n "$n" ] || continue
+    r=$(ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=8 \
+            "$n" 'echo SSH_OK' 2>&1 | tr '\n' '|')
+    note "  ssh $n: [$r]"
+  done
+  note ""
+  note "ssh keys present: $(ls "$HOME"/.ssh/id_* 2>/dev/null | grep -v '\.pub$' | tr '\n' ' ')"
+  note "authorized_keys:  $([ -r "$HOME/.ssh/authorized_keys" ] && wc -l < "$HOME/.ssh/authorized_keys" || echo absent) lines"
+else
+  note "ssh not installed"
+fi
 
 # -------------------------------------------------------------- services
 say "Services"
-if command -v ss >/dev/null 2>&1; then
-  shell_run "ss -ltnp 2>/dev/null | grep -E ':(8096|8095|8088)' || echo 'nothing listening on 8096/8095/8088'"
+if have ss; then
+  shell_run "ss -ltnp 2>/dev/null | grep -E ':(8096|8095|8088|61616)' || echo 'nothing listening on the ECCE ports'"
+elif have netstat; then
+  shell_run "netstat -ltnp 2>/dev/null | grep -E ':(8096|8095|8088|61616)' || echo 'nothing listening on the ECCE ports'"
 fi
-shell_run "pgrep -a -u \"\$(id -un)\" -f 'httpd|activemq|JMSDispatcher|eccejobstore|eccejobmaster' || echo 'no ECCE service processes for this user'"
+shell_run "pgrep -a -u \"\$(id -un)\" -f 'httpd|activemq|JMSDispatcher|eccejobstore|eccejobmaster|eccejobmonitor' || echo 'no ECCE service processes for this user'"
+note ""
+note "--- full ECCE process tree"
+shell_run "ps -u \"\$(id -un)\" -o pid,ppid,stat,etime,rss,args --forest 2>/dev/null | grep -iE 'ecce|activemq|JMSDispatcher|httpd|nwchem|orca|mopac|g16|g09|PID' | cut -c1-220 | head -60 || ps -u \"\$(id -un)\" -f | head -40"
+
+# --------------------------------------------------------- desktop
+say "Desktop and graphics"
+# For a crash, a window that never appears, or a viewer that draws
+# nothing.  ECCE is a wxWidgets/GTK3 application with an Open Inventor
+# 3-D viewer, so the toolkit and GL stack are part of the picture.
+note "DISPLAY=${DISPLAY:-<unset>}"
+note "WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-<unset>}"
+note "XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-<unset>}"
+note "GDK_BACKEND=${GDK_BACKEND:-<unset>}"
+note "DESKTOP_SESSION=${DESKTOP_SESSION:-<unset>}"
+have wx-config && shell_run "wx-config --version --selected-config 2>/dev/null"
+if have pkg-config; then
+  for lib in gtk+-3.0 gl glu; do
+    note "$lib: $(pkg-config --modversion $lib 2>/dev/null || echo 'not known to pkg-config')"
+  done
+fi
+have glxinfo && shell_run "glxinfo -B 2>/dev/null | head -12 || echo 'glxinfo failed (no GL?)'"
+have xdpyinfo && shell_run "xdpyinfo 2>/dev/null | head -8 || echo 'cannot reach the X display'"
+note ""
+note "--- libraries the ECCE binaries actually link against"
+for b in builder organizer calced gateway; do
+  [ -x "$HOME_DIR/bin/$b" ] || continue
+  note ""
+  note "$b:"
+  ldd "$HOME_DIR/bin/$b" 2>&1 | grep -iE 'not found|wx|GL|Inventor' | head -12 >> "$OUT"
+done
+
+# ---------------------------------------------------------- crashes
+say "Recent crashes"
+# If an application disappeared or never drew a window, this is usually
+# where the reason is.  ECCE cannot log its own segfault.
+if have coredumpctl; then
+  shell_run "coredumpctl list --no-pager 2>/dev/null | tail -20 || echo 'no core dumps recorded'"
+  shell_run "coredumpctl info --no-pager 2>/dev/null | head -40 || true"
+else
+  note "coredumpctl not available"
+fi
+note "core pattern: $(cat /proc/sys/kernel/core_pattern 2>/dev/null)"
+note "core limit:   $(ulimit -c)"
+shell_run "ls -la core core.* 2>/dev/null | head || echo 'no core files in the current directory'"
+if have journalctl; then
+  shell_run "journalctl --user --since '1 day ago' --no-pager 2>/dev/null | grep -iE 'ecce|builder|organizer|calced|segfault|core dump' | tail -30 || echo 'nothing in the user journal'"
+fi
+
+# ---------------------------------------------------------- resources
+say "Memory and load"
+have free && run free -h
+have vmstat && shell_run "vmstat 1 2 2>/dev/null | tail -2"
+shell_run "cat /proc/loadavg"
+
+# ---------------------------------------------------------- filesystem
+say "Filesystem holding the run directory"
+# A noexec mount produces EXACTLY the reported symptom: the script is
+# staged, the execute bit is set, and it silently never runs.  So does a
+# full disk, and so does a quota.  None of these are visible to ECCE,
+# which asks the shell to run the script and is told nothing went wrong.
+FSDIR="${RUNDIR:-$HOME}"
+note "checking: $FSDIR"
+run df -h "$FSDIR"
+have df && run df -i "$FSDIR"
+have findmnt && run findmnt -T "$FSDIR" -o TARGET,SOURCE,FSTYPE,OPTIONS
+have stat && run stat -f "$FSDIR"
+note ""
+note "--- mount options (look for noexec, nosuid, ro)"
+MP=$(df --output=target "$FSDIR" 2>/dev/null | tail -1)
+[ -n "$MP" ] && shell_run "mount | grep -E \" on ${MP} \" || echo 'mount point not found in mount output'"
+note ""
+note "--- every mount carrying noexec (for comparison)"
+shell_run "mount | grep noexec || echo 'no noexec mounts'"
+have quota && shell_run "quota -s 2>/dev/null || echo 'no quota information'"
+note ""
+note "--- write and EXEC test in the run directory's filesystem"
+EXD="$FSDIR/.ecce-diag-exec-test.$$"
+if mkdir -p "$EXD" 2>/dev/null; then
+  printf '#!/bin/sh\necho EXEC_TEST_OK\n' > "$EXD/t.sh" 2>/dev/null
+  chmod +x "$EXD/t.sh" 2>/dev/null
+  note "write: OK"
+  note "mode after chmod +x: $(stat -c %A "$EXD/t.sh" 2>/dev/null)"
+  r=$( cd "$EXD" && ./t.sh 2>&1 )
+  note "direct ./t.sh -> [$r]"
+  if [ "$r" != "EXEC_TEST_OK" ]; then
+    note "*** THE FILESYSTEM WILL NOT EXECUTE A SCRIPT HERE."
+    note "*** This alone explains a job that stages and never runs."
+  fi
+  rm -rf "$EXD"
+else
+  note "write: FAILED -- cannot create a directory in $FSDIR"
+fi
 
 # ------------------------------------------------------------- run dir
 say "The failing run directory"
@@ -161,8 +440,13 @@ if [ -z "$RUNDIR" ]; then
 else
   note "$RUNDIR"
   run ls -la "$RUNDIR"
+  have getfacl && run getfacl -p "$RUNDIR"
+  note ""
+  note "--- file times, to show what was written and when"
+  shell_run "ls -la --time-style=full-iso \"$RUNDIR\" 2>/dev/null | head -40"
   for f in "$RUNDIR"/ecce.submit.log "$RUNDIR"/eccejobmaster.log \
-           "$RUNDIR"/eccejobstore.log "$RUNDIR"/eccejobmonitor.log; do
+           "$RUNDIR"/eccejobstore.log "$RUNDIR"/eccejobmonitor.log \
+           "$RUNDIR"/nohup.out; do
     if [ -r "$f" ]; then
       note ""; note "--- $(basename "$f")"; cat "$f" >> "$OUT" 2>&1
     else
@@ -171,13 +455,21 @@ else
   done
   for f in "$RUNDIR"/submit__*; do
     [ -r "$f" ] || continue
-    note ""; note "--- $(basename "$f")  (mode: $(stat -c %A "$f" 2>/dev/null))"
+    note ""; note "--- $(basename "$f")  (mode: $(stat -c %A "$f" 2>/dev/null), owner: $(stat -c '%U:%G' "$f" 2>/dev/null))"
+    note "    first line: $(head -1 "$f")"
+    I=$(head -1 "$f" | sed -n 's|^#!\s*\([^ ]*\).*|\1|p')
+    if [ -n "$I" ]; then
+      [ -x "$I" ] && note "    interpreter $I: present and executable" \
+                  || note "    *** interpreter $I: MISSING OR NOT EXECUTABLE"
+    fi
+    have file && note "    file(1): $(file "$f" 2>/dev/null)"
+    note "    CRLF line endings: $(grep -c $'\r' "$f" 2>/dev/null) lines (any is a problem)"
     cat "$f" >> "$OUT" 2>&1
   done
 
   # ------------------------------------------------------ REPRODUCTION
-  # The one part of this script that RUNS something.  It copies the run
-  # directory aside and launches the submit script there exactly as
+  # The one part of this script that RUNS the real job.  It copies the
+  # run directory aside and launches the submit script there exactly as
   # RCommand::execbg() does, so the real job directory is untouched and
   # no results are overwritten.
   say "REPRODUCTION (in a copy; the real run directory is not touched)"
@@ -187,11 +479,13 @@ else
     cp -a "$RUNDIR/." "$COPY/" 2>/dev/null
     BASE=$(basename "$SUB")
     note "copy: $COPY"
-    for s in csh bash; do
+    note "(note: this copy may be on a different filesystem to the real run"
+    note " directory -- compare against the filesystem section above)"
+    for s in csh tcsh bash sh; do
       p=$(command -v "$s" 2>/dev/null) || continue
       note ""
       note "--- as ECCE would, under $s"
-      ( cd "$COPY" && "$p" -c "nohup ./$BASE > /dev/null 2>&1 & echo RC_EXECBG_PID=\$!" ) >> "$OUT" 2>&1
+      ( cd "$COPY" && T 15 "$p" -c "nohup ./$BASE > /dev/null 2>&1 & echo RC_EXECBG_PID=\$!" ) >> "$OUT" 2>&1
       sleep 5
       if [ -s "$COPY/ecce.submit.log" ]; then
         note "    -> ecce.submit.log was written:"
@@ -204,8 +498,14 @@ else
     done
     note ""
     note "--- and directly, with its output captured rather than discarded"
-    ( cd "$COPY" && ./"$BASE" ) >> "$OUT" 2>&1
+    ( cd "$COPY" && T 120 ./"$BASE" ) >> "$OUT" 2>&1
     note "    (exit status $?)"
+    if have strace; then
+      note ""
+      note "--- once more under strace, to catch a failure before main()"
+      note "    (permission denied here is fine; it just means no trace)"
+      ( cd "$COPY" && strace -f -e trace=execve,openat,access ./"$BASE" 2>&1 | head -60 ) >> "$OUT" 2>&1
+    fi
     note ""
     note "Leaving the copy at $COPY for inspection; delete it when done."
   else
@@ -216,4 +516,9 @@ fi
 say "End"
 printf '\nWrote %s\n' "$OUT"
 printf 'Please review it (it contains host names, user names and paths)\n'
-printf 'and send it back.\n'
+printf 'and attach it to your report.\n'
+printf '\n'
+printf 'If your problem is a crash or a window that does not appear, it\n'
+printf 'also helps to capture a run:\n'
+printf '    ECCE_RCOM_LOGMODE=1 ecce > ecce-trace.txt 2>&1\n'
+printf 'reproduce the problem, quit, and attach ecce-trace.txt too.\n'
