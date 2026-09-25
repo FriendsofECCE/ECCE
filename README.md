@@ -52,18 +52,19 @@ launcher opened from it — here an ORCA job on its way to a machine.*
 <a href="docs/images/viewer.png"><img src="docs/images/viewer.png" width="300" alt="The viewer, showing a molecular orbital of benzene"></a>
 
 *The viewer: a calculation's orbitals and energies beside the structure
-they were computed for.*
+they were computed for — benzene, from ORCA.*
 
 | | | |
 |---|---|---|
 | <a href="docs/images/orbital-benzene.png"><img src="docs/images/orbital-benzene.png" width="170" alt="Benzene's highest occupied molecular orbital"></a> | <a href="docs/images/esp-benzene.png"><img src="docs/images/esp-benzene.png" width="170" alt="The electrostatic potential on benzene's surface"></a> | <a href="docs/images/vectors-water.png"><img src="docs/images/vectors-water.png" width="170" alt="A vibrational mode of water, drawn as displacement vectors"></a> |
-| Benzene's π HOMO | Electrostatic potential on the surface | A vibrational mode, as displacement vectors |
+| Benzene's π HOMO (ORCA) | Electrostatic potential on the surface (ORCA) | A vibrational mode of water, as displacement vectors (Gaussian 16) |
 
 <a href="docs/images/mo-diagram-water.png"><img src="docs/images/mo-diagram-water.png" width="380" alt="A qualitative MO correlation diagram for water"></a>
 
-*A qualitative MO correlation diagram — water's orbitals against the
-oxygen on one side and the hydrogens' symmetry orbitals on the other,
-with the non-bonding lone pair picked out. Experimental.*
+*A qualitative MO correlation diagram — water's orbitals, from Gaussian
+16, against the oxygen on one side and the hydrogens' symmetry orbitals
+on the other, with the non-bonding lone pair picked out. The same
+diagram is drawn from any of the supported codes. Experimental.*
 
 ## What's new in version 8
 
