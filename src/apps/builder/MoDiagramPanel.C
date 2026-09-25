@@ -502,7 +502,13 @@ void MoDiagramPanel::build()
   MoDiagram::hideAbove(centre,
                        MoDiagram::suggestVirtualCutoff(centre.levels));
 
-  MoDiagram::hideBeyondValence(centre, elements);
+  {
+    int valenceRoom = 0;
+    for (size_t i = 0; i < elements.size(); i++) {
+      valenceRoom += MoFragments::valenceOrbitals(elements[i]);
+    }
+    MoDiagram::hideBeyondValence(centre, valenceRoom);
+  }
 
   for (size_t i = 0; i < centre.levels.size(); i++) {
     ostringstream text;

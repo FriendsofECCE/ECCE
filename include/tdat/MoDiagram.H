@@ -373,8 +373,7 @@ class MoDiagram
     * basis, not orbitals a qualitative diagram is about.  Occupied
     * levels are never folded.
     */
-   static void hideBeyondValence(MoColumn& centre,
-                                 const vector<string>& elements);
+   static void hideBeyondValence(MoColumn& centre, int room);
 
     /**
      * A cutoff that folds away genuine core orbitals and nothing else.

@@ -9,7 +9,6 @@ using std::ostringstream;
 #include <cstddef>
 
 #include "tdat/MoDiagram.H"
-#include "tdat/MoFragments.H"
 
 MoDiagram::MoDiagram()
 {
@@ -728,8 +727,7 @@ void MoDiagram::hideAbove(MoColumn& column, double cutoff)
 }
 
 
-void MoDiagram::hideBeyondValence(MoColumn& centre,
-                                  const vector<string>& elements)
+void MoDiagram::hideBeyondValence(MoColumn& centre, int room)
 {
   //  A QUALITATIVE DIAGRAM IS THE SIZE OF A MINIMAL VALENCE BASIS.
   //
@@ -743,10 +741,9 @@ void MoDiagram::hideBeyondValence(MoColumn& centre,
   //  suggestVirtualCutoff() folds on gaps in the spectrum, which is the
   //  right instinct but cannot know how many levels the picture should
   //  have.  The elements do know, so the count comes from them.
-  int room = 0;
-  for (size_t i = 0; i < elements.size(); i++) {
-    room += MoFragments::valenceOrbitals(elements[i]);
-  }
+  //  The count is passed in rather than worked out here: asking
+  //  MoFragments would make this file depend on the whole symmetry
+  //  stack for one integer.
   if (room <= 0) return;
 
   //  The core has already been folded away, so what is left is the

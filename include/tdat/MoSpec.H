@@ -188,7 +188,13 @@ static bool buildModel(const char* tables, const char* molecule,
   centre.title = "Molecular orbitals";
   MoDiagram::hideBelow(centre, MoDiagram::suggestCoreCutoff(centre.levels));
   MoDiagram::hideAbove(centre, MoDiagram::suggestVirtualCutoff(centre.levels));
-  MoDiagram::hideBeyondValence(centre, model.elements);
+  {
+    int valenceRoom = 0;
+    for (size_t i = 0; i < model.elements.size(); i++) {
+      valenceRoom += MoFragments::valenceOrbitals(model.elements[i]);
+    }
+    MoDiagram::hideBeyondValence(centre, valenceRoom);
+  }
 
   string& note = model.note;
   vector<int> leftAtoms, rightAtoms;
