@@ -336,6 +336,22 @@ sub KeywordLine {
   push(@kw, "VECTORS", "ALLVEC", "GRAPHF")
     if (!defined($printMOs) || $printMOs ne "0");
 
+  #  NOTHING IS EMITTED FOR "Use symmetry", DELIBERATELY.
+  #
+  #  The Calculation Editor's tick writes ES.Theory.UseSymmetry for every
+  #  code, and Gaussian, NWChem and ORCA each turn it into a keyword.
+  #  MOPAC has no equivalent and needs none: it reports orbital symmetry
+  #  labels whatever is asked of it -- a deck of nothing but
+  #  "PM7 1SCF CHARGE=0 SINGLET VECTORS ALLVEC GRAPHF" produced a full
+  #  set of Td labels for methane, which is where ECCE's ORBSYM comes
+  #  from (see mopac.desc's [MO][MOBETA][ORBENG]...[ORBSYM] entry).
+  #
+  #  MOPAC's own SYMMETRY keyword is a different thing entirely: it
+  #  declares relationships between INTERNAL COORDINATES so a geometry
+  #  optimisation can hold them equal.  Emitting it here because a box
+  #  labelled "use symmetry" was ticked would constrain the geometry,
+  #  which is not what the box says and not what the user asked for.
+
   # PRECISE: "TIGHTER CRITERIA TO BE USED" (binary's own banner text).
   push(@kw, "PRECISE") if ($AbiDict{"ES.Theory.SCF.Precise"} eq "1");
 

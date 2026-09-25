@@ -631,6 +631,19 @@ sub QESystem {
     push(@l, "  ecutrho = $ecutrho") if ($ecutrho ne "");
   }
 
+  # nosym.  QE uses the crystal symmetry it finds unless told not to,
+  # which is the behaviour the Calculation Editor's "Use symmetry" tick
+  # describes when it is on -- so nothing is written for that case and
+  # QE's own default stands.  Unticked has to be said explicitly.
+  #
+  # nosym = .true. also stops QE symmetrising the k-point mesh, so a
+  # deck written this way is doing more work on purpose; that is what
+  # the user asked for.
+  my $useSymmetry = $AbiDict{"ES.Theory.UseSymmetry"};
+  if (defined($useSymmetry) && $useSymmetry eq "0") {
+    push(@l, "  nosym = .true.");
+  }
+
   # tot_charge is QE's net charge in units of e, the same sign convention
   # as ECCE's Charge (verified against INPUT_PW: "the net charge of the
   # system").  Only emitted when non-zero: a charged periodic cell needs
