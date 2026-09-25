@@ -96,6 +96,10 @@ class MoDiagramPanel : public VizPropertyPanel,
       vector<int> p_sideOfOrbit;
 
       void buildFragmentChooser(wxSizer *sizer);
+      /** Show or hide the two-halves choice for this molecule. */
+      void offerHalves(const vector<double>& coords,
+                       const vector<string>& elements);
+
       void fillFragmentChooser(const vector< vector<int> >& orbits,
                                const vector<string>& elements);
       void onFragmentChanged(wxCommandEvent& event);
@@ -113,6 +117,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       wxCheckListBox  *p_fragments;
       wxStaticText    *p_fragmentHint;
       wxCheckBox      *p_autoFragments;
+      wxCheckBox      *p_halves;
       wxCheckBox      *p_showEnergies;
 };
 

@@ -721,6 +721,65 @@ double MoFragments::share(const vector<double>& coefficients,
  * A quarter again past the closest neighbour separates a bonded shell
  * from what lies behind it without needing a table of radii.
  */
+
+//  Covalent radii in Angstrom, for deciding what is bonded to what.
+//
+//  Kept here rather than taken from TPerTab, which reads ECCE's data
+//  files and pulls the whole utility layer in with them.  This file is
+//  deliberately free of that -- tests/symmetry compiles it against
+//  three siblings and nothing else, which is what makes the symmetry
+//  work checkable without a build tree -- and a bond test needs one
+//  number per element, not a periodic table.
+static double covalentRadiusOf(const string& element)
+{
+   static map<string,double> radius;
+   if (radius.empty()) {
+      static const char* const symbol[] = {
+         "H","He","Li","Be","B","C","N","O","F","Ne",
+         "Na","Mg","Al","Si","P","S","Cl","Ar",
+         "K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn",
+         "Ga","Ge","As","Se","Br","Kr",
+         "Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd",
+         "In","Sn","Sb","Te","I","Xe",
+         "Cs","Ba","La","Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg",
+         "Tl","Pb","Bi", 0 };
+      static const double value[] = {
+         0.31,0.28,1.28,0.96,0.84,0.76,0.71,0.66,0.57,0.58,
+         1.66,1.41,1.21,1.11,1.07,1.05,1.02,1.06,
+         2.03,1.76,1.70,1.60,1.53,1.39,1.39,1.32,1.26,1.24,1.32,1.22,
+         1.22,1.20,1.19,1.20,1.20,1.16,
+         2.20,1.95,1.90,1.75,1.64,1.54,1.47,1.46,1.42,1.39,1.45,1.44,
+         1.42,1.39,1.39,1.38,1.39,1.40,
+         2.44,2.15,2.07,1.75,1.70,1.62,1.51,1.44,1.41,1.36,1.36,1.32,
+         1.45,1.46,1.48 };
+      for (int i = 0; symbol[i] != 0; i++) radius[symbol[i]] = value[i];
+   }
+
+   string key = element;
+   if (!key.empty()) {
+      key[0] = toupper(key[0]);
+      for (size_t i = 1; i < key.size(); i++) key[i] = tolower(key[i]);
+   }
+   map<string,double>::const_iterator it = radius.find(key);
+   //  An unknown element gets a middling radius rather than none: a
+   //  bond test that silently says "not bonded" would quietly change
+   //  the fragmentation.
+   return (it == radius.end()) ? 1.50 : it->second;
+}
+
+
+//  Which of these atoms the centre is bonded to, by distance relative
+//  to the nearest one.
+//
+//  A ratio rather than a radius, which is NOT a statement about
+//  bonding: on ethane the nearest atom to a carbon is a hydrogen at
+//  1.09 A while the C-C bond is 1.54, a ratio of 1.41, so the central
+//  bond does not register. That is fixed for the fragmentation split
+//  by bondedByRadii() below; it is deliberately NOT fixed here,
+//  because the partition and ligand-field decisions were built around
+//  this behaviour and changing it under them moves answers that are
+//  currently right (methanol stops being a central-atom diagram).
+//  Worth revisiting on its own, with those decisions re-checked.
 static void bondedTo(int centre, const vector<int>& candidates,
                      const vector<double>& coords, vector<int>& bonded)
 {
@@ -746,6 +805,37 @@ static void bondedTo(int centre, const vector<int>& candidates,
 
 
 /**
+ * The same question answered by covalent radii, for the split.
+ *
+ * Deciding where a molecule divides into two halves needs to know
+ * which bonds exist, not which atoms are nearest -- and the two
+ * differ exactly where it matters. Ethane's C-C is 1.54 A against a
+ * C-H of 1.09, so the ratio test above cannot see the one bond the
+ * molecule has to be cut at, and ethane could not be drawn as two
+ * CH3 fragments at all. Ethene passed only because 1.34/1.09 is
+ * 1.23, under the threshold by less than two hundredths.
+ */
+static bool bondedByRadii(int a, int b, const vector<double>& coords,
+                          const vector<string>& elements)
+{
+   double d = 0.0;
+   for (int k = 0; k < 3; k++) {
+      const double t = coords[3*a+k] - coords[3*b+k];
+      d += t*t;
+   }
+   d = sqrt(d);
+
+   const double ra = covalentRadiusOf(elements[a]);
+   const double rb = covalentRadiusOf(elements[b]);
+
+   //  The usual slack for a covalent-radius bond test: wide enough for
+   //  a long single bond, short of the next shell of atoms.
+   return (d <= 1.30*(ra + rb));
+}
+
+
+
+/**
  * Split a molecule into two halves across a single bond.
  *
  * The bond has to be a BRIDGE: cutting it must leave two pieces, not
@@ -763,12 +853,16 @@ static bool splitAcrossBond(const vector<double>& coords,
    const int n = (int)elements.size();
    if (n < 4) return false;
 
-   //  Adjacency, each atom against its own nearest neighbour.
+   //  Adjacency by covalent radii, which is what a bond is -- see
+   //  bondedByRadii() for why the nearest-neighbour ratio used
+   //  elsewhere cannot answer this question.
    vector< vector<int> > near(n);
    for (int i = 0; i < n; i++) {
-      vector<int> others;
-      for (int j = 0; j < n; j++) if (j != i) others.push_back(j);
-      bondedTo(i, others, coords, near[i]);
+      for (int j = 0; j < n; j++) {
+         if (j != i && bondedByRadii(i, j, coords, elements)) {
+            near[i].push_back(j);
+         }
+      }
    }
 
    for (int a = 0; a < n; a++) {
@@ -808,6 +902,51 @@ static bool splitAcrossBond(const vector<double>& coords,
       }
    }
    return false;
+}
+
+
+/**
+ * Can this molecule be drawn as two equivalent halves?
+ *
+ * The question a caller has to be able to ask BEFORE offering the
+ * choice, because this is the one fragmentation that cannot be
+ * expressed by grouping orbits -- the group swaps the two halves, so
+ * neither is an orbit of it -- and a chooser built out of orbits can
+ * therefore never produce it.
+ *
+ * The condition is a single bond whose two sides hold the same atoms.
+ * A centre of inversion guarantees such a pairing exists where there
+ * is a bond on the axis, which is why ethene, ethane, biphenyl and
+ * N2O4 all qualify; a RING does not, because no single bond
+ * disconnects it. Benzene is the case that makes the distinction
+ * worth stating: it has a centre of inversion and no central atom, so
+ * a rule written on those two facts alone would nominate two C3H3
+ * halves -- and then be unable to make the cut, since separating them
+ * breaks two bonds rather than one.
+ *
+ * @param formula  filled with the halves' formula, e.g. "CH2", for a
+ *                 caller that wants to name the choice on screen
+ */
+bool MoFragments::halvesAvailable(const vector<double>& coords,
+                                  const vector<string>& elements,
+                                  string& formula)
+{
+   formula.clear();
+
+   vector<int> halfA, halfB;
+   if (!splitAcrossBond(coords, elements, halfA, halfB)) return false;
+
+   map<string,int> count;
+   for (size_t i = 0; i < halfA.size(); i++) count[elements[halfA[i]]]++;
+
+   ostringstream text;
+   for (map<string,int>::const_iterator it = count.begin();
+        it != count.end(); ++it) {
+      text << it->first;
+      if (it->second > 1) text << it->second;
+   }
+   formula = text.str();
+   return true;
 }
 
 
@@ -1066,11 +1205,20 @@ static bool buildHalves(const vector<double>& coords,
                         int numAtoms,
                         MoColumn& left, MoColumn& right, string& note)
 {
+   const bool trace = (getenv("ECCE_DEBUG_HALVES") != 0);
+
    vector<int> halfA, halfB;
-   if (!splitAcrossBond(coords, elements, halfA, halfB)) return false;
+   if (!splitAcrossBond(coords, elements, halfA, halfB)) {
+      if (trace) fprintf(stderr, "[HALVES] no split across a bond\n");
+      return false;
+   }
 
    vector<int> keepOps;
    subgroupOf(halfA, images, keepOps);
+   if (trace) {
+      fprintf(stderr, "[HALVES] half of %d atoms, subgroup order %d of %d\n",
+              (int)halfA.size(), (int)keepOps.size(), (int)ops.size());
+   }
    if (keepOps.size() < 2 || keepOps.size() >= ops.size()) return false;
 
    vector<SymOp> subOps;
@@ -1082,6 +1230,10 @@ static bool buildHalves(const vector<double>& coords,
 
    vector<int> subClassOfOp;
    const CharacterTable *sub = nameSubgroup(subOps, subClassOfOp);
+   if (trace) {
+      fprintf(stderr, "[HALVES] subgroup named %s\n",
+              sub ? sub->name().c_str() : "(none)");
+   }
    if (sub == 0) return false;
 
    //  Named for what they are: a person says "the two CH2 fragments",
@@ -1108,6 +1260,7 @@ static bool buildHalves(const vector<double>& coords,
    }
 
    bool built = false;
+   int shellTried = 0, shellFailed = 0, inducedFailed = 0;
    for (map< string, vector<int> >::const_iterator it = byElement.begin();
         it != byElement.end(); ++it) {
       const string& symbol = it->first;
@@ -1117,8 +1270,10 @@ static bool buildHalves(const vector<double>& coords,
          if (!MoFragments::valenceEnergy(symbol, l, eV)) continue;
 
          vector<int> multiplicity;
+         shellTried++;
          if (!shellIrreps(it->second, l, numAtoms, subImages, subClassOfOp,
                           subOps, *sub, multiplicity)) {
+            shellFailed++;
             continue;
          }
 
@@ -1154,6 +1309,7 @@ static bool buildHalves(const vector<double>& coords,
             vector<bool> inPhase;
             if (!inducedIrreps(full, *sub, keepOps, classOfOp, subClassOfOp,
                                subIrreps[i], produced, inPhase)) {
+               inducedFailed++;
                continue;
             }
 
@@ -1191,6 +1347,11 @@ static bool buildHalves(const vector<double>& coords,
       }
    }
 
+   if (trace) {
+      fprintf(stderr, "[HALVES] built=%d shells tried %d failed %d, "
+              "induced failed %d\n", (int)built, shellTried, shellFailed,
+              inducedFailed);
+   }
    if (!built) return false;
 
    //  IN ENERGY ORDER, like every other column.  The levels are built
@@ -1620,6 +1781,7 @@ bool MoFragments::build(const vector<double>& coords,
 
    const vector<double>& coordsUsed  = ligandField ? workCoords   : coords;
    const vector<string>& elementsUsed = ligandField ? workElements : elements;
+
    const int numAtoms = (int)elementsUsed.size();
 
    vector< vector<int> > images;

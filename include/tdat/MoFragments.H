@@ -267,6 +267,22 @@ class MoFragments
                                 const vector<string>& elements,
                                 string& name);
 
+    /**
+     * Whether this molecule can be drawn as two equivalent halves.
+     *
+     * Ask before offering the choice: the two halves are swapped by
+     * the group, so neither is an orbit of it, and a chooser built
+     * out of orbits cannot express this fragmentation at all. It is
+     * also the one the chemistry usually wants -- ethene as two CH2
+     * is how the C=C is made visible, and splitting it as C2 against
+     * H4 buries the double bond inside one column.
+     *
+     * @param formula  filled with the halves' formula, e.g. "CH2"
+     */
+    static bool halvesAvailable(const vector<double>& coords,
+                                const vector<string>& elements,
+                                string& formula);
+
     static bool build(const vector<double>& coords,
                       const vector<string>& elements,
                       const string& group,
