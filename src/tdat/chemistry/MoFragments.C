@@ -1852,6 +1852,19 @@ bool MoFragments::linearGroupName(const vector<double>& coords,
 }
 
 
+const char* MoFragments::fragmentationName(Fragmentation how)
+{
+   switch (how) {
+      case CHOSEN:          return "atom sets you chose";
+      case SKELETON:        return "a metal and its donor atoms";
+      case CENTRAL:         return "a central atom and its neighbours";
+      case HALVES:          return "two equivalent halves";
+      case EQUIVALENT_SETS: return "its two sets of equivalent atoms";
+      default:              return "";
+   }
+}
+
+
 bool MoFragments::build(const vector<double>& coords,
                         const vector<string>& elements,
                         const string& group,
@@ -1861,10 +1874,13 @@ bool MoFragments::build(const vector<double>& coords,
                         string& note,
                         vector<int>* leftAtoms,
                         vector<int>* rightAtoms,
-                        const vector<int>* sideOfOrbit)
+                        const vector<int>* sideOfOrbit,
+                        Fragmentation* how,
+                        Fragmentation want)
 {
    if (leftAtoms  != 0) leftAtoms->clear();
    if (rightAtoms != 0) rightAtoms->clear();
+   if (how != 0) *how = NOT_BUILT;
 
    left  = MoColumn();
    right = MoColumn();
@@ -2028,7 +2044,9 @@ bool MoFragments::build(const vector<double>& coords,
    } else {
       int central = -1;
       vector<int> terminal;
-      if (!partition(orbits, elementsUsed, central, terminal)) {
+      if (how != 0) *how = CENTRAL;
+      if (want == HALVES || want == EQUIVALENT_SETS ||
+          !partition(orbits, elementsUsed, central, terminal)) {
 
          //  THE MOST CONNECTED ATOM AGAINST EVERYTHING ELSE.
          //
@@ -2081,8 +2099,10 @@ bool MoFragments::build(const vector<double>& coords,
          vector<int> halfA, halfB;
          splitAcrossBond(coordsUsed, elementsUsed, halfA, halfB);
 
-         if (buildHalves(coordsUsed, elementsUsed, *table, ops, images,
+         if ((want == NOT_BUILT || want == HALVES) &&
+             buildHalves(coordsUsed, elementsUsed, *table, ops, images,
                          classOfOp, numAtoms, left, right, note)) {
+            if (how != 0) *how = HALVES;
             int total = 0;
             for (size_t i = 0; i < elementsUsed.size(); i++) {
                total += valenceElectrons(elementsUsed[i]);
@@ -2139,6 +2159,7 @@ bool MoFragments::build(const vector<double>& coords,
             if (rightMass > leftMass) leftSet.swap(rightSet);
 
             ostringstream said;
+            if (how != 0) *how = EQUIVALENT_SETS;
             said << "Drawn as its two sets of equivalent atoms. This "
                     "molecule has no central atom, so there is no "
                     "central-atom diagram; combining fragments of it "
@@ -2182,6 +2203,7 @@ bool MoFragments::build(const vector<double>& coords,
                       "fragments yourself if another split is the one you "
                       "want.";
             note = chosen.str();
+      if (how != 0) *how = CHOSEN;
 
             leftSet.assign(1, central);
             rightSet = terminal;
@@ -2207,6 +2229,7 @@ bool MoFragments::build(const vector<double>& coords,
             if (donors) {
                buildSigmaColumn(bonded, elementsUsed, numAtoms, images,
                                 classOfOp, ops, *table, right);
+               if (how != 0) *how = SKELETON;
                note += " Each ligand contributes one sigma donor orbital, "
                        "as a ligand field diagram does.";
             } else {

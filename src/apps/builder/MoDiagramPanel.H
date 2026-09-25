@@ -6,10 +6,12 @@
 
 #include "VizPropertyPanel.H"
 #include "tdat/MoDiagram.H"
+#include "tdat/MoFragments.H"
 #include "MoDiagramCanvas.H"
 
 class wxCheckListBox;
 class wxCheckBox;
+class wxChoice;
 class wxSizer;
 
 using std::string;
@@ -95,11 +97,10 @@ class MoDiagramPanel : public VizPropertyPanel,
        */
       vector<int> p_sideOfOrbit;
 
-      void buildFragmentChooser(wxSizer *sizer);
-      /** Show or hide the two-halves choice for this molecule. */
-      void offerHalves(const vector<double>& coords,
-                       const vector<string>& elements);
+      /** Which construction the last diagram was built by. */
+      MoFragments::Fragmentation p_fragmentation;
 
+      void buildFragmentChooser(wxSizer *sizer);
       void fillFragmentChooser(const vector< vector<int> >& orbits,
                                const vector<string>& elements);
       void onFragmentChanged(wxCommandEvent& event);
@@ -117,7 +118,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       wxCheckListBox  *p_fragments;
       wxStaticText    *p_fragmentHint;
       wxCheckBox      *p_autoFragments;
-      wxCheckBox      *p_halves;
+      wxChoice        *p_construction;
       wxCheckBox      *p_showEnergies;
 };
 

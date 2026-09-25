@@ -36,6 +36,31 @@ class MoFragments
   public:
 
     /**
+     * Which construction a diagram was built by.
+     *
+     * THERE IS NO UNIVERSAL WAY TO SPLIT A MOLECULE, so there is no
+     * single answer to report. A diagram of a complex is drawn one
+     * way, an AXn molecule another, ethene a third -- each is a
+     * CONVENTION that suits a class of molecule, and which one was
+     * used changes what the picture means. Saying so is part of the
+     * answer, not decoration: a reader who takes the last of these
+     * for the standard treatment of benzene has been misled by a
+     * diagram that was not wrong.
+     */
+    enum Fragmentation
+    {
+      NOT_BUILT = 0,   ///< no diagram could be made
+      CHOSEN,          ///< the user grouped the atom sets themselves
+      SKELETON,        ///< a metal and its donor atoms
+      CENTRAL,         ///< a central atom against its terminal atoms
+      HALVES,          ///< two equivalent groups, in and out of phase
+      EQUIVALENT_SETS  ///< the fallback: its two sets of like atoms
+    };
+
+    /** What to call a construction on screen. */
+    static const char* fragmentationName(Fragmentation how);
+
+    /**
      * Where to draw the terminal atoms when sketching a phase pattern.
      *
      * The atoms' own positions flattened onto the two directions they
@@ -283,6 +308,17 @@ class MoFragments
                                 const vector<string>& elements,
                                 string& formula);
 
+    /**
+     * @param how   filled with the construction used, so a caller can
+     *              say which convention the diagram follows
+     * @param want  ask for a particular construction instead of the
+     *              one this would choose. NOT_BUILT means choose.
+     *              A construction that does not suit the molecule is
+     *              REFUSED with a reason rather than quietly replaced
+     *              -- someone who asked for a ligand field diagram of
+     *              ethene needs to be told ethene has no metal, not
+     *              handed a different diagram.
+     */
     static bool build(const vector<double>& coords,
                       const vector<string>& elements,
                       const string& group,
@@ -292,7 +328,9 @@ class MoFragments
                       string& note,
                       vector<int>* leftAtoms = 0,
                       vector<int>* rightAtoms = 0,
-                      const vector<int>* sideOfOrbit = 0);
+                      const vector<int>* sideOfOrbit = 0,
+                      Fragmentation* how = 0,
+                      Fragmentation want = NOT_BUILT);
 };
 
 #endif

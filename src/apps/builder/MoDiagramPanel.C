@@ -13,6 +13,7 @@
 #include <wx/checklst.h>
 
 #include "wxgui/ewxCheckBox.H"
+#include "wxgui/ewxChoice.H"
 #include "wxgui/ewxStaticText.H"
 
 #include "tdat/MoFragments.H"
@@ -53,7 +54,8 @@ IMPLEMENT_DYNAMIC_CLASS(MoDiagramPanel, VizPropertyPanel)
 
 
 MoDiagramPanel::MoDiagramPanel()
-  : p_canvas(0), p_fragments(0), p_autoFragments(0)
+  : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0),
+    p_fragmentation(MoFragments::NOT_BUILT)
 {
 }
 
@@ -61,7 +63,8 @@ MoDiagramPanel::MoDiagramPanel()
 MoDiagramPanel::MoDiagramPanel(IPropCalculation *calculation,
       wxWindow *parent, wxWindowID id, const wxPoint& pos,
       const wxSize& size, long style, const wxString& name)
-  : p_canvas(0), p_fragments(0), p_autoFragments(0)
+  : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0),
+    p_fragmentation(MoFragments::NOT_BUILT)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -233,30 +236,51 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
 {
   wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
 
-  //  THE ONE FRAGMENTATION THE LIST BESIDE THIS CANNOT EXPRESS.
+  //  THE CLASS IS WHAT A CHEMIST WOULD WANT TO OVERRIDE.
   //
-  //  Ethene as two CH2 is how the C=C is made visible, and it is what
-  //  the diagram already draws when left to itself -- but the group
-  //  SWAPS the two halves, so neither is an orbit of it, and the
-  //  orbit list can therefore never offer it. Touching that list
-  //  silently replaced the halves with C2 against H4, which buries
-  //  the double bond inside one column, and nothing on the panel said
-  //  that had happened or how to get back. Reported live 2026-09-25:
-  //  "I shouldn't be chosing between C2 and H4, but between two CH2
-  //  groups."
+  //  There is no universal way to split a molecule: a complex is
+  //  drawn one way, an AXn molecule another, ethene a third, and each
+  //  is a CONVENTION that suits a class. The diagram detects the
+  //  class and takes the construction that suits it -- which is
+  //  right nearly always and is a judgement, not a fact, so it has to
+  //  be possible to say otherwise. Overriding the CLASS is the useful
+  //  form of that; regrouping individual atom sets, below, is the
+  //  last resort beneath it.
   //
-  //  Shown only for a molecule that actually has two equivalent
-  //  halves across one bond, so it never offers a choice that cannot
-  //  be made.
-  p_halves = new ewxCheckBox(this, wxID_ANY, _("Two halves"));
-  p_halves->SetValue(true);
-  p_halves->Show(false);
-  row->Add(p_halves, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+  //  An entry the molecule cannot support is refused with a reason
+  //  rather than quietly replaced: someone asking for a ligand field
+  //  diagram of ethene needs to be told ethene has no metal.
+  wxArrayString kinds;
+  kinds.Add(_("Automatic"));
+  kinds.Add(_("Central atom and neighbours"));
+  kinds.Add(_("Metal and donor atoms"));
+  kinds.Add(_("Two equivalent halves"));
+  kinds.Add(_("Sets of equivalent atoms"));
+  p_construction = new ewxChoice(this, wxID_ANY, wxDefaultPosition,
+                                 wxDefaultSize, kinds);
+  p_construction->SetSelection(0);
+  p_construction->SetToolTip("Which construction the diagram is built "
+                             "by. Left automatic it takes the one that "
+                             "suits this molecule.");
+  row->Add(new ewxStaticText(this, wxID_ANY, _("Built as:")),
+           0, wxALIGN_CENTER_VERTICAL|wxLEFT, 4);
+  row->Add(p_construction, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
   p_autoFragments = new ewxCheckBox(this, wxID_ANY, _("Choose fragments"));
   p_autoFragments->SetValue(false);
-  p_autoFragments->SetToolTip("Group the sets of equivalent atoms yourself "
-                              "instead of letting the diagram decide");
+  //  AN OVERRIDE, NOT A MODE.
+  //
+  //  Left alone, the diagram works through the constructions in
+  //  order -- a metal and its donors, a central atom and its
+  //  neighbours, two equivalent halves -- and takes the first that
+  //  suits the molecule, which is what a chemist would have drawn.
+  //  This is for saying otherwise. It can only express groupings of
+  //  equivalent atoms, so it cannot produce the two-halves diagram
+  //  (the group swaps the halves, so neither is a set of equivalent
+  //  atoms); untick it to get that one back.
+  p_autoFragments->SetToolTip("Group the sets of equivalent atoms "
+                              "yourself, instead of the construction "
+                              "the diagram chose");
   row->Add(p_autoFragments, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
   //  SAY WHAT A FRAGMENT IS, ON THE PANEL.
@@ -297,49 +321,13 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   //  never received its event.
   p_autoFragments->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onFragmentChanged,
                         this);
-  p_halves->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onFragmentChanged, this);
+  p_construction->Bind(wxEVT_CHOICE, &MoDiagramPanel::onFragmentChanged,
+                       this);
   p_fragments->Bind(wxEVT_CHECKLISTBOX, &MoDiagramPanel::onFragmentChanged,
                     this);
   p_showEnergies->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onShowEnergies, this);
 
   p_fragments->Enable(false);
-}
-
-
-/**
- * Show the two-halves choice, if this molecule has two halves.
- *
- * Named for what the halves ARE -- "Two halves (CH2)" -- because
- * "two halves" alone does not say which two, and the whole point of
- * the control is that the user recognises the fragment.
- */
-void MoDiagramPanel::offerHalves(const vector<double>& coords,
-                                 const vector<string>& elements)
-{
-  if (p_halves == 0) return;
-
-  string formula;
-  const bool available =
-      MoFragments::halvesAvailable(coords, elements, formula);
-
-  if (available) {
-    p_halves->SetLabel(wxString(("Two halves (" + formula + ")").c_str(),
-                                wxConvUTF8));
-    p_halves->SetToolTip(wxString(
-        ("Draw this as two " + formula + " fragments combined in phase "
-         "and out of phase, each analysed in its own point group. The "
-         "group swaps the two halves, so this cannot be expressed by "
-         "grouping equivalent atoms.").c_str(), wxConvUTF8));
-  } else {
-    //  Unticked as well as hidden: a hidden control that still holds
-    //  a value decides the diagram invisibly.
-    p_halves->SetValue(false);
-  }
-
-  if (p_halves->IsShown() != available) {
-    p_halves->Show(available);
-    Layout();
-  }
 }
 
 
@@ -389,19 +377,6 @@ void MoDiagramPanel::onFragmentChanged(wxCommandEvent& event)
 {
   event.Skip();
   if (p_canvas == 0) return;
-
-  //  The two are alternatives, so ticking one clears the other.
-  //  Halves and chosen orbit sets are not two settings that combine:
-  //  they are two different answers to the same question.
-  if (p_halves != 0 && p_autoFragments != 0) {
-    if (event.GetEventObject() == p_halves && p_halves->GetValue()) {
-      p_autoFragments->SetValue(false);
-      p_sideOfOrbit.clear();
-    } else if (event.GetEventObject() == p_autoFragments &&
-               p_autoFragments->GetValue()) {
-      p_halves->SetValue(false);
-    }
-  }
 
   //  Enable the list here, not only in fillFragmentChooser(): that
   //  runs inside build() and only once the orbit analysis has
@@ -799,8 +774,6 @@ void MoDiagramPanel::build()
     //  choice is over -- a fragment has to be a whole orbit or there
     //  is nothing to project -- and MoFragments can work them out from
     //  the geometry and the group alone.
-    offerHalves(coords, elements);
-
     vector< vector<int> > orbits;
     string orbitWhy;
     if (MoFragments::orbitsOf(coords, elements, group, orbits, orbitWhy)) {
@@ -813,11 +786,24 @@ void MoDiagramPanel::build()
     //  chosen split at all.
     const vector<int> *chosen =
         p_sideOfOrbit.empty() ? 0 : &p_sideOfOrbit;
-    if (p_halves != 0 && p_halves->IsShown() && p_halves->GetValue())
-      chosen = 0;
+
+    //  The dropdown's order is the enum's, with Automatic first.
+    static const MoFragments::Fragmentation WANTED[] = {
+      MoFragments::NOT_BUILT,
+      MoFragments::CENTRAL,
+      MoFragments::SKELETON,
+      MoFragments::HALVES,
+      MoFragments::EQUIVALENT_SETS
+    };
+    const int picked = (p_construction != 0)
+                       ? p_construction->GetSelection() : 0;
+    const MoFragments::Fragmentation want =
+        (picked > 0 && picked < (int)(sizeof(WANTED)/sizeof(WANTED[0])))
+        ? WANTED[picked] : MoFragments::NOT_BUILT;
 
     haveFragments = MoFragments::build(coords, elements, group, charge,
-                                       left, right, why, 0, 0, chosen);
+                                       left, right, why, 0, 0, chosen,
+                                       &p_fragmentation, want);
   }
 
   //  THE FRAGMENT COLUMNS DO NOT NEED THE CODE'S SYMMETRY LABELS.
