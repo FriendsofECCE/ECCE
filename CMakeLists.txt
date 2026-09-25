@@ -861,11 +861,11 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
   set(_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-${_app})
   list(FIND ECCE_MESSAGING_APPS ${_app} _msg_idx)
   if(_msg_idx GREATER -1)
-    set(_gateway_start "if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi")
+    set(_gateway_start "if [ -z \"$ECCE_NO_MESSAGING\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi")
     # Same app set as messaging: apps that need the JMS gateway also need
     # data-server (EDSI/WebDAV) access, per EDSIServerCentral::
     # checkServerSetup() -- see ecce-dataserver-start.
-    set(_dataserver_start "if [ -z \"$ECCE_NO_DATASERVER\" ]; then \"$ECCE_HOME/bin/ecce-dataserver-start\" || true; fi")
+    set(_dataserver_start "if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ]; then \"$ECCE_HOME/bin/ecce-dataserver-start\" || true; fi")
     # Issue #102: the app is run, not exec'd, so this wrapper shell
     # outlives it and its EXIT trap runs however the app terminated --
     # including the SIGABRT that stranded the broker and a JMSDispatcher
@@ -910,6 +910,19 @@ if [ \"\$XDG_SESSION_TYPE\" = \"wayland\" ]; then
   export GDK_BACKEND=\${GDK_BACKEND:-x11}
 fi
 export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
+# THE CENTRAL-SERVER MODEL.  ECCE was originally deployed with one
+# server for a whole group -- a shared data server and broker that many
+# clients and many users connect to -- and the old csh launcher selected
+# it with \"-remote\", which set ECCE_REMOTE_SERVER and made the client
+# read siteconfig/RemoteServer/{DataServers,site_runtime} instead of the
+# local ones. The C++ side still honours that variable in full
+# (Ecce::ecceAutoAccounts, ecceStoreTrajectories, EDSIServerCentral); it
+# was only these wrappers that did not know about it, and they would
+# start a per-user broker and Apache underneath a client that wanted
+# neither. Recognised here so \"ecce -remote\" means what it always did.
+for _arg in \"$@\"; do
+  if [ \"$_arg\" = \"-remote\" ]; then export ECCE_REMOTE_SERVER=1; fi
+done
 ${_gateway_start}
 ${_dataserver_start}
 ${_app_exec}
