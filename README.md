@@ -175,7 +175,9 @@ being worked on rather than a schedule. Current work is tracked in the
 * **Qualitative MO correlation diagrams** — central-atom orbitals,
   terminal-atom symmetry orbitals and Mulliken labels, derived from point
   group symmetry rather than drawn by hand. Aimed at teaching as much as
-  at analysis.
+  at analysis. **This will be released as experimental**: what it can
+  draw depends on what the calculation reports, and a job run without
+  symmetry gives it nothing to work with.
 * **Deeper coverage of the codes already supported** — ORCA, Gaussian 16
   and MOPAC each still have options reachable in the code but not from
   the interface.
