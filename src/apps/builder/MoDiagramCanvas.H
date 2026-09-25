@@ -580,6 +580,7 @@ class MoDiagramCanvas : public wxPanel
         const int slot = (lines > 0) ? (width + lineGap)/lines : width;
         const int lineWidth = max(8, slot - lineGap);
 
+        vector<string> rowNames;
         int drawn = 0;
         for (size_t i = first; i <= last; i++) {
           const MoLevel& level = column.levels[i];
@@ -630,8 +631,26 @@ class MoDiagramCanvas : public wxPanel
             splitShellLabel(level.label, irrep, shell);
             marked.label = irrep;
             marked.annotation.clear();
-            drawLabel(dc, marked, groupLeft, count*slot - lineGap, centreY,
-                      false, plot, colour);
+
+            //  ONLY IF IT FITS IN ITS OWN SLOT.
+            //
+            //  A row of several levels gives each one a slot and puts
+            //  its label at the left of it, which works while the
+            //  labels are short. Benzene's degenerate pairs are not:
+            //  "2A''" and "3A''" are each wider than the slot, so
+            //  they ran into one another and printed as one unreadable
+            //  run -- 2A''nb3A''nb. Where they do not fit, the row is
+            //  named once below, and each line is left to the brace
+            //  and the row's own label.
+            dc.SetFont(*wxSMALL_FONT);
+            const int room = count*slot - lineGap;
+            if (dc.GetTextExtent(wxString(marked.label.c_str(),
+                                          wxConvUTF8)).x <= room) {
+              drawLabel(dc, marked, groupLeft, room, centreY,
+                        false, plot, colour);
+            } else {
+              rowNames.push_back(marked.label);
+            }
           } else {
             drawLabel(dc, level, groupLeft, count*slot - lineGap, centreY,
                       true, plot, colour);
@@ -655,6 +674,19 @@ class MoDiagramCanvas : public wxPanel
             MoLevel row;
             row.label      = shell;
             row.annotation = column.levels[first].annotation;
+            row.degeneracy = 1;
+            drawLabel(dc, row, x, width, y, true, plot,
+                      wxColour(0, 0, 0));
+          } else if (!rowNames.empty()) {
+            //  The names that would not fit over their own lines,
+            //  written once for the row instead.
+            string joined;
+            for (size_t k = 0; k < rowNames.size(); k++) {
+              if (k) joined += " ";
+              joined += rowNames[k];
+            }
+            MoLevel row;
+            row.label      = joined;
             row.degeneracy = 1;
             drawLabel(dc, row, x, width, y, true, plot,
                       wxColour(0, 0, 0));
