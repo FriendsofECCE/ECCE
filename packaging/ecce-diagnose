@@ -1,0 +1,219 @@
+#!/bin/bash
+#
+# Collect everything needed to diagnose an ECCE job-launch problem, in
+# one pass, into one file.
+#
+#   ecce-diagnose [run-directory]
+#
+# Written because the alternative is asking someone to run a dozen
+# commands, one round trip each.  It reads; it changes nothing, starts
+# nothing and stops nothing, with one clearly-marked exception (see
+# "REPRODUCTION" below) which runs the submit script the same way ECCE
+# does, in a copy of the run directory.
+#
+# It deliberately does NOT collect any password or credential file.
+# The output is still yours to read before sending: it contains host
+# names, user names and full paths.
+
+set -u
+
+OUT="ecce-diagnostics-$(hostname -s 2>/dev/null || echo host)-$(date +%Y%m%d-%H%M%S).txt"
+RUNDIR="${1:-}"
+
+say()  { printf '\n===== %s =====\n' "$1" >> "$OUT"; }
+run()  { printf '\n$ %s\n' "$*" >> "$OUT"; "$@" >> "$OUT" 2>&1 || true; }
+shell_run() { printf '\n$ %s\n' "$1" >> "$OUT"; eval "$1" >> "$OUT" 2>&1 || true; }
+note() { printf '%s\n' "$*" >> "$OUT"; }
+
+: > "$OUT"
+note "ECCE diagnostics"
+note "Collected $(date -Is 2>/dev/null || date)"
+note "Nothing here was changed by this script except a scratch copy of"
+note "the run directory, noted where it happens."
+
+# ---------------------------------------------------------------- system
+say "System"
+run uname -a
+for f in /etc/os-release /etc/redhat-release; do
+  [ -r "$f" ] && { note ""; note "--- $f"; cat "$f" >> "$OUT" 2>&1; }
+done
+run id
+
+# ---------------------------------------------------------------- ecce
+say "ECCE installation"
+note "ECCE_HOME=${ECCE_HOME:-<unset>}"
+HOME_DIR="${ECCE_HOME:-/opt/ecce}"
+note "using $HOME_DIR"
+[ -r "$HOME_DIR/data/client/config/Version" ] && \
+  { note ""; note "--- Version"; cat "$HOME_DIR/data/client/config/Version" >> "$OUT"; }
+run ls -la "$HOME_DIR/bin"
+shell_run "command -v ecce ecce-gateway ecmd eccejobmaster eccejobstore 2>&1"
+if command -v dpkg >/dev/null 2>&1; then run dpkg -l ecce; fi
+if command -v rpm  >/dev/null 2>&1; then run rpm -qi ecce; fi
+
+# ---------------------------------------------------------------- shells
+say "Shells"
+# THE LOCAL SHELL MATTERS: the launcher forces csh/tcsh for job
+# connections by default, and the submit command is run through it.
+for s in csh tcsh bash sh ksh zsh; do
+  p=$(command -v "$s" 2>/dev/null) && note "$s -> $p" || note "$s -> NOT FOUND"
+done
+for s in csh tcsh; do
+  p=$(command -v "$s" 2>/dev/null) || continue
+  note ""
+  note "--- $p"
+  ls -la "$p" >> "$OUT" 2>&1
+  "$p" --version >> "$OUT" 2>&1 || "$p" -c 'echo version-flag-unsupported' >> "$OUT" 2>&1
+done
+run bash --version
+
+# ------------------------------------------------------- shell behaviour
+say "Shell behaviour ECCE depends on"
+# This is the exact line RCommand::execbg() sends.  If the shell cannot
+# parse it, or does not set $!, the job never starts and ECCE still
+# reports success -- so this is the single most useful test here.
+TMPD=$(mktemp -d 2>/dev/null) || TMPD=/tmp/ecce-diag-$$
+mkdir -p "$TMPD"
+printf '#!/bin/sh\ntouch "%s/PROOF_IT_RAN"\n' "$TMPD" > "$TMPD/fakesubmit"
+chmod +x "$TMPD/fakesubmit"
+for s in csh tcsh bash; do
+  p=$(command -v "$s" 2>/dev/null) || continue
+  rm -f "$TMPD/PROOF_IT_RAN"
+  note ""
+  note "--- $s: nohup ./fakesubmit > /dev/null 2>&1 & echo RC_EXECBG_PID=\$!"
+  ( cd "$TMPD" && "$p" -c 'nohup ./fakesubmit > /dev/null 2>&1 & echo RC_EXECBG_PID=$!' ) >> "$OUT" 2>&1
+  sleep 1
+  if [ -e "$TMPD/PROOF_IT_RAN" ]; then note "    -> the backgrounded job RAN"
+  else                                 note "    -> the backgrounded job DID NOT RUN"; fi
+done
+rm -rf "$TMPD"
+
+# ------------------------------------------------------------- toolchain
+say "Tools ECCE shells out to"
+for t in perl python3 java httpd apache2 ssh scp; do
+  p=$(command -v "$t" 2>/dev/null) && { note ""; note "$t -> $p"; "$t" --version >> "$OUT" 2>&1 || "$t" -V >> "$OUT" 2>&1 || true; } \
+                                   || note "$t -> NOT FOUND"
+done
+note ""
+note "Computational codes on PATH:"
+for c in nwchem g16 g09 orca mopac; do
+  p=$(command -v "$c" 2>/dev/null) && note "  $c -> $p" || note "  $c -> not on PATH"
+done
+
+# --------------------------------------------------- non-interactive PATH
+say "PATH as a non-interactive shell sees it"
+# A submit script runs the code by name.  A code present in a login
+# shell but absent here is a job that dies the instant it starts.
+for s in csh tcsh bash; do
+  p=$(command -v "$s" 2>/dev/null) || continue
+  note ""
+  note "--- $s"
+  "$p" -c 'echo $PATH' >> "$OUT" 2>&1
+  for c in nwchem g16 g09 orca mopac; do
+    "$p" -c "which $c" >> "$OUT" 2>&1
+  done
+done
+
+# ---------------------------------------------------------------- security
+say "Security frameworks"
+command -v getenforce >/dev/null 2>&1 && run getenforce
+command -v sestatus   >/dev/null 2>&1 && run sestatus
+command -v aa-status  >/dev/null 2>&1 && run aa-status --enabled && note "apparmor enabled"
+run ulimit -a
+
+# ---------------------------------------------------------------- config
+say "ECCE configuration"
+for f in Machines Queues QueueManagers DataServers jndi.properties site_runtime; do
+  [ -r "$HOME_DIR/siteconfig/$f" ] || continue
+  note ""
+  note "--- siteconfig/$f (comments stripped)"
+  grep -vE '^\s*#|^\s*$' "$HOME_DIR/siteconfig/$f" >> "$OUT" 2>&1
+done
+note ""
+note "--- ~/.ECCE (listing only; no file contents, some hold credentials)"
+ls -la "$HOME/.ECCE" >> "$OUT" 2>&1
+for f in MyMachines Queues; do
+  [ -r "$HOME/.ECCE/$f" ] || continue
+  note ""
+  note "--- ~/.ECCE/$f"
+  grep -vE '^\s*#|^\s*$' "$HOME/.ECCE/$f" >> "$OUT" 2>&1
+done
+for f in "$HOME"/.ECCE/CONFIG.*; do
+  [ -r "$f" ] || continue
+  note ""
+  note "--- $f"
+  grep -vE '^\s*#|^\s*$' "$f" >> "$OUT" 2>&1
+done
+
+# -------------------------------------------------------------- services
+say "Services"
+if command -v ss >/dev/null 2>&1; then
+  shell_run "ss -ltnp 2>/dev/null | grep -E ':(8096|8095|8088)' || echo 'nothing listening on 8096/8095/8088'"
+fi
+shell_run "pgrep -a -u \"\$(id -un)\" -f 'httpd|activemq|JMSDispatcher|eccejobstore|eccejobmaster' || echo 'no ECCE service processes for this user'"
+
+# ------------------------------------------------------------- run dir
+say "The failing run directory"
+if [ -z "$RUNDIR" ]; then
+  note "No run directory given."
+  note "Re-run as:  ecce-diagnose /path/to/the/job/directory"
+  note "It is the directory ECCE said it copied the files to."
+else
+  note "$RUNDIR"
+  run ls -la "$RUNDIR"
+  for f in "$RUNDIR"/ecce.submit.log "$RUNDIR"/eccejobmaster.log \
+           "$RUNDIR"/eccejobstore.log "$RUNDIR"/eccejobmonitor.log; do
+    if [ -r "$f" ]; then
+      note ""; note "--- $(basename "$f")"; cat "$f" >> "$OUT" 2>&1
+    else
+      note ""; note "--- $(basename "$f"): ABSENT"
+    fi
+  done
+  for f in "$RUNDIR"/submit__*; do
+    [ -r "$f" ] || continue
+    note ""; note "--- $(basename "$f")  (mode: $(stat -c %A "$f" 2>/dev/null))"
+    cat "$f" >> "$OUT" 2>&1
+  done
+
+  # ------------------------------------------------------ REPRODUCTION
+  # The one part of this script that RUNS something.  It copies the run
+  # directory aside and launches the submit script there exactly as
+  # RCommand::execbg() does, so the real job directory is untouched and
+  # no results are overwritten.
+  say "REPRODUCTION (in a copy; the real run directory is not touched)"
+  SUB=$(ls "$RUNDIR"/submit__* 2>/dev/null | head -1)
+  if [ -n "$SUB" ]; then
+    COPY=$(mktemp -d 2>/dev/null) || COPY=/tmp/ecce-diag-copy-$$
+    cp -a "$RUNDIR/." "$COPY/" 2>/dev/null
+    BASE=$(basename "$SUB")
+    note "copy: $COPY"
+    for s in csh bash; do
+      p=$(command -v "$s" 2>/dev/null) || continue
+      note ""
+      note "--- as ECCE would, under $s"
+      ( cd "$COPY" && "$p" -c "nohup ./$BASE > /dev/null 2>&1 & echo RC_EXECBG_PID=\$!" ) >> "$OUT" 2>&1
+      sleep 5
+      if [ -s "$COPY/ecce.submit.log" ]; then
+        note "    -> ecce.submit.log was written:"
+        sed 's/^/       /' "$COPY/ecce.submit.log" >> "$OUT" 2>&1
+      else
+        note "    -> NO ecce.submit.log: the submit script did not run, or died"
+        note "       before writing anything."
+      fi
+      rm -f "$COPY/ecce.submit.log"
+    done
+    note ""
+    note "--- and directly, with its output captured rather than discarded"
+    ( cd "$COPY" && ./"$BASE" ) >> "$OUT" 2>&1
+    note "    (exit status $?)"
+    note ""
+    note "Leaving the copy at $COPY for inspection; delete it when done."
+  else
+    note "No submit__* script in $RUNDIR -- ECCE never generated one."
+  fi
+fi
+
+say "End"
+printf '\nWrote %s\n' "$OUT"
+printf 'Please review it (it contains host names, user names and paths)\n'
+printf 'and send it back.\n'
