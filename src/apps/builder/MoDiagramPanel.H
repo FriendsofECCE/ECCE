@@ -111,6 +111,7 @@ class MoDiagramPanel : public VizPropertyPanel,
 
       MoDiagramCanvas *p_canvas;
       wxCheckListBox  *p_fragments;
+      wxStaticText    *p_fragmentHint;
       wxCheckBox      *p_autoFragments;
       wxCheckBox      *p_showEnergies;
 };

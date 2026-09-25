@@ -12,6 +12,7 @@
 #include <wx/checklst.h>
 
 #include "wxgui/ewxCheckBox.H"
+#include "wxgui/ewxStaticText.H"
 
 #include "tdat/MoFragments.H"
 #include "tdat/PropTable.H"
@@ -237,10 +238,22 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
                               "instead of letting the diagram decide");
   row->Add(p_autoFragments, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
+  //  SAY WHAT A FRAGMENT IS, ON THE PANEL.
+  //
+  //  "Choose fragments" with a list of atom counts beside it does not
+  //  explain itself, and the explanation was in a tooltip, which is
+  //  invisible until you already suspect there is something to learn.
+  //  A diagram correlates a molecule against TWO groups of atoms, and
+  //  the only thing being chosen here is which group each set goes in.
+  p_fragmentHint = new ewxStaticText(this, wxID_ANY,
+      _("Ticked sets become the left column, the rest the right"));
+  row->Add(p_fragmentHint, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+
   p_fragments = new wxCheckListBox(this, wxID_ANY, wxDefaultPosition,
                                    wxSize(220, 70));
-  p_fragments->SetToolTip("Ticked sets form the left column; the rest form "
-                          "the right");
+  p_fragments->SetToolTip("Each row is a set of atoms the symmetry makes "
+                          "equivalent. Ticked sets form the left column of "
+                          "the diagram; the rest form the right.");
   row->Add(p_fragments, 1, wxEXPAND|wxALL, 4);
 
   //  TWELVE LABELS AND TWELVE NUMBERS IS A LOT OF TEXT.
@@ -317,6 +330,36 @@ void MoDiagramPanel::onFragmentChanged(wxCommandEvent& event)
 {
   event.Skip();
   if (p_canvas == 0) return;
+
+  //  A DIAGRAM NEEDS TWO SIDES, SO DO NOT OFFER ONE.
+  //
+  //  Ticking every set, or none, leaves one column empty and the
+  //  diagram cannot be built -- it came back as a bare spectrum with
+  //  "Both sides of the diagram need at least one set of atoms", which
+  //  reads as a failure rather than as a choice that was never
+  //  available.  The tick is undone instead, so the control cannot be
+  //  put into a state that has no answer.
+  if (p_fragments != 0 && p_autoFragments != 0 &&
+      p_autoFragments->GetValue()) {
+    const unsigned int count = p_fragments->GetCount();
+    unsigned int ticked = 0;
+    for (unsigned int i = 0; i < count; i++) {
+      if (p_fragments->IsChecked(i)) ticked++;
+    }
+    if (count > 1 && (ticked == 0 || ticked == count)) {
+      const int changed = event.GetInt();
+      if (changed >= 0 && changed < (int)count) {
+        p_fragments->Check((unsigned int)changed,
+                           !p_fragments->IsChecked((unsigned int)changed));
+      }
+      getFW().showMessage("A correlation diagram has two sides, so at "
+                          "least one set of atoms has to be on each. "
+                          "Leave some ticked and some not.",
+                          false/*warning*/);
+      return;
+    }
+  }
+
   build();
   p_canvas->Refresh();
 }
