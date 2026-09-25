@@ -1267,20 +1267,33 @@ int main(int argc, char** argv) {
              full ? "ok" : "FAIL");
       if (!full) bad++;
 
-      //  THE CHECK THAT IS NOT CIRCULAR.  Ethene's pi orbital is
-      //  b3u -- which a calculation says independently, and which
-      //  MOPAC gives as the HOMO of this molecule.  It has to be one
-      //  of the combinations of the carbon p orbital perpendicular to
-      //  the CH2 plane, and the induced representation is what has to
-      //  produce it.
+      //  THE CHECK THAT IS NOT CIRCULAR: the pi bond has to appear,
+      //  and it has to come from a p orbital.
+      //
+      //  Ethene's pi is ungerade -- the two perpendicular p orbitals
+      //  are exchanged by the inversion with a sign -- and it is a B
+      //  irrep, since it is antisymmetric about two of the three
+      //  axes. WHICH B is not checked, and deliberately so: the
+      //  fragment is analysed in its own frame, where the local C2
+      //  runs along a different axis than the molecule's convention,
+      //  so b3u here and b3u in the calculation need not be the same
+      //  label. Reconciling those two frames is MoDiagram::reconcile()
+      //  and is tested there; pinning the spelling here would only
+      //  test the frame.
+      //
+      //  The level must also be p-dominated, which is what says the
+      //  pi came from a p orbital rather than from anything else that
+      //  happens to carry the same irrep.
       bool piFound = false;
       for (size_t i = 0; i < right.levels.size(); i++) {
-        if (right.levels[i].irrep == "B3U" &&
-            right.levels[i].label.find("2p") != string::npos) {
+        const string& r = right.levels[i].irrep;
+        if (r.size() >= 2 && r[0] == 'B' && r[r.size()-1] == 'U' &&
+            right.levels[i].shell == 1) {
           piFound = true;
         }
       }
-      printf("  %-46s %s\n", "a carbon 2p combination gives b3u, the pi",
+      printf("  %-46s %s\n",
+             "an out-of-phase p combination is ungerade, the pi",
              piFound ? "ok" : "FAIL");
       if (!piFound) bad++;
 

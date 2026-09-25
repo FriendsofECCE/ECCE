@@ -17,6 +17,7 @@ using std::ostringstream;
 
 #include "tdat/CharacterTable.H"
 #include "tdat/SymmetryAnalysis.H"
+#include "tdat/Huckel.H"
 #include "tdat/MoFragments.H"
 
 
@@ -1089,25 +1090,52 @@ static bool inducedIrreps(const CharacterTable& full,
    //  sign of an irrep's character on a swapping class says which
    //  combination it is.  Taking the reduction's order instead would
    //  have been a guess dressed as an answer.
-   int swapClass = -1;
-   for (size_t op = 0; op < classOfOp.size() && swapClass < 0; op++) {
+   //  EVERY swapping class, not the first one found.
+   //
+   //  A character of ZERO decides nothing, and one swapping class can
+   //  be zero for an irrep while another is not. Ethane is the case:
+   //  the halves of D3d are swapped by the inversion, by 2S6 and by
+   //  3C2, and on the C2 class both Eg and Eu have character zero --
+   //  so whichever of them happened to be found first called BOTH
+   //  combinations out of phase, and every degenerate fragment
+   //  orbital went into the same column. Ethene never showed it
+   //  because D2h has no degenerate irreps to have a zero character.
+   vector<int> swapClasses;
+   for (size_t op = 0; op < classOfOp.size(); op++) {
       bool inside = false;
       for (size_t k = 0; k < keepOps.size(); k++) {
          if (keepOps[k] == (int)op) inside = true;
       }
-      if (!inside) swapClass = classOfOp[op];
+      if (inside) continue;
+      bool already = false;
+      for (size_t c = 0; c < swapClasses.size(); c++) {
+         if (swapClasses[c] == classOfOp[op]) already = true;
+      }
+      if (!already) swapClasses.push_back(classOfOp[op]);
    }
-   if (swapClass < 0) return false;
+   if (swapClasses.empty()) return false;
 
    int dimension = 0;
    const vector<string>& names = full.irreps();
    for (size_t i = 0; i < names.size() && i < multiplicity.size(); i++) {
       const vector<double> *chiFull = full.characters(names[i]);
-      if (chiFull == 0 || (size_t)swapClass >= chiFull->size()) return false;
+      if (chiFull == 0) return false;
+
+      //  The first swapping class that actually distinguishes them.
+      bool symmetric = false;
+      bool decided = false;
+      for (size_t c = 0; c < swapClasses.size() && !decided; c++) {
+         const int which = swapClasses[c];
+         if ((size_t)which >= chiFull->size()) continue;
+         if (fabs((*chiFull)[which]) < 1.0e-9) continue;
+         symmetric = ((*chiFull)[which] > 0.0);
+         decided = true;
+      }
+      if (!decided) return false;
 
       for (int k = 0; k < multiplicity[i]; k++) {
          produced.push_back(names[i]);
-         inPhase.push_back((*chiFull)[swapClass] > 0.0);
+         inPhase.push_back(symmetric);
          dimension += full.dimension(names[i]);
       }
    }
@@ -1186,6 +1214,156 @@ static void buildSigmaColumn(const vector<int>& attachments,
 }
 
 
+
+/**
+ * The fragment's OWN orbitals, rather than its atoms' shells.
+ *
+ * WHY THIS IS THE DIFFERENCE BETWEEN A DIAGRAM AND A LIST.
+ *
+ * Building the column from atomic shells puts carbon's whole 2p set
+ * at one energy -- its free-atom value -- and labels the three
+ * components by irrep. That is a correct statement about symmetry and
+ * a useless one about bonding: what a chemist reads off a CH2 column
+ * is FOUR orbitals at four different energies, the low a1 and b2 that
+ * hold the C-H bonds, the a1 lone pair, and the empty b1 p. It is
+ * that b1, out of phase with its partner, that becomes the pi bond of
+ * ethene -- and with every 2p component drawn at one energy there is
+ * nothing on the page to see it happen.
+ *
+ * So solve the fragment. Extended Huckel on the half's own atoms
+ * gives real fragment orbitals with real separations, each is
+ * classified in the fragment's own group by the same routine that
+ * labels the molecule's orbitals, and the combinations follow as
+ * before. Nothing new is assumed: the energies come from a solver
+ * this tree already has, and the labels from the same oracle.
+ *
+ * Falls back to the shell construction, which is why it may return
+ * false without explanation -- an element with no Huckel parameters
+ * is a reason to draw the simpler picture, not to draw nothing.
+ */
+static bool halfOrbitals(const vector<double>& coords,
+                         const vector<string>& elements,
+                         const vector<int>& halfA,
+                         const CharacterTable& full,
+                         const vector<int>& keepOps,
+                         const vector<int>& classOfOp,
+                         const vector<SymOp>& subOps,
+                         const vector<int>& subClassOfOp,
+                         const CharacterTable& sub,
+                         const string& formula,
+                         MoColumn& left, MoColumn& right)
+{
+   const double HARTREE = 27.211386245988;         // eV
+
+   vector<double> halfCoords;
+   vector<string> halfElements;
+   for (size_t i = 0; i < halfA.size(); i++) {
+      halfElements.push_back(elements[halfA[i]]);
+      for (int k = 0; k < 3; k++) halfCoords.push_back(coords[3*halfA[i]+k]);
+   }
+
+   vector<double> energies, occupancies;
+   vector< vector<double> > orbitals;
+   vector<int> perAtom, shellOf;
+   string why;
+   if (!Huckel::solve(halfCoords, halfElements, 0, energies, occupancies,
+                      orbitals, perAtom, shellOf, why)) {
+      return false;
+   }
+   if (orbitals.empty()) return false;
+
+   //  The fragment's own group acting on the fragment's own atoms.
+   vector< vector<int> > halfImages;
+   if (!SymmetryAnalysis::atomImages(halfCoords, halfElements, subOps,
+                                     1.0e-3, halfImages)) {
+      return false;
+   }
+
+   //  Labelled by the routine that labels a calculation's orbitals,
+   //  with nothing reported to check against -- the fragment is not a
+   //  calculation anyone ran.
+   vector<string> derived;
+   const vector<string> reported;
+   SymmetryAnalysis::labelSpectrum(orbitals, energies, reported,
+                                   perAtom, shellOf, halfImages,
+                                   subClassOfOp, subOps, sub, derived);
+
+   map<string,int> seen;              // 1a1, 2a1, 1b1, ...
+   bool built = false;
+
+   for (size_t i = 0; i < orbitals.size(); ) {
+      if (i >= derived.size() || derived[i].empty()) { i++; continue; }
+
+      //  A degenerate set is ONE level, not one per component.
+      size_t j = i + 1;
+      while (j < orbitals.size() && j < derived.size() &&
+             derived[j] == derived[i] &&
+             fabs(energies[j] - energies[i]) < 1.0e-4) {
+         j++;
+      }
+
+      vector<string> produced;
+      vector<bool> inPhase;
+      const bool induced = inducedIrreps(full, sub, keepOps, classOfOp,
+                                         subClassOfOp, derived[i],
+                                         produced, inPhase);
+      if (getenv("ECCE_DEBUG_HALVES") != 0) {
+         fprintf(stderr, "[HALVES]   %s E=%8.4f x%d -> ",
+                 derived[i].c_str(), energies[i], (int)(j - i));
+         if (!induced) fprintf(stderr, "(not induced)");
+         for (size_t k = 0; k < produced.size(); k++) {
+            fprintf(stderr, "%s%s ", produced[k].c_str(),
+                    (k < inPhase.size() && inPhase[k]) ? "+" : "-");
+         }
+         fprintf(stderr, "\n");
+      }
+      if (induced) {
+
+         //  Which shell the orbital mostly is, so the composition is
+         //  binned the way a shell-built column would be.
+         int dominant = 0;
+         {
+            double best = -1.0;
+            map<int,double> weight;
+            for (size_t f = 0; f < orbitals[i].size() &&
+                               f < shellOf.size(); f++) {
+               weight[shellOf[f]] += orbitals[i][f]*orbitals[i][f];
+            }
+            for (map<int,double>::const_iterator it = weight.begin();
+                 it != weight.end(); ++it) {
+               if (it->second > best) { best = it->second; dominant = it->first; }
+            }
+         }
+
+         const int which = ++seen[derived[i]];
+
+         for (size_t k = 0; k < produced.size(); k++) {
+            MoLevel level;
+            level.energy     = energies[i]*HARTREE;
+            level.shell      = dominant;
+            level.irrep      = MoDiagram::canonicalIrrep(produced[k]);
+            level.degeneracy = full.dimension(produced[k]);
+
+            ostringstream name;
+            name << which << derived[i] << "  (" << formula << ')';
+            level.label = name.str();
+
+            const bool symmetric = (k < inPhase.size())
+                                   ? inPhase[k] : (k == 0);
+            level.annotation = symmetric ? "in phase" : "out of phase";
+
+            (symmetric ? left : right).levels.push_back(level);
+            built = true;
+         }
+      }
+
+      i = j;
+   }
+
+   return built;
+}
+
+
 /**
  * The two columns of a fragment diagram built from two halves.
  *
@@ -1250,6 +1428,7 @@ static bool buildHalves(const vector<double>& coords,
 
    left.title  = formula.str() + " (" + sub->name() + ")";
    right.title = left.title;
+   left.fromHalves = right.fromHalves = true;
 
    //  Each element's shells, in the subgroup, exactly as a
    //  central-atom fragment is built -- the half IS a union of orbits
@@ -1257,6 +1436,23 @@ static bool buildHalves(const vector<double>& coords,
    map< string, vector<int> > byElement;
    for (size_t i = 0; i < halfA.size(); i++) {
       byElement[elements[halfA[i]]].push_back(halfA[i]);
+   }
+
+   //  THE FRAGMENT'S OWN ORBITALS FIRST, because they are what the
+   //  diagram is for; the shell construction below is the fallback
+   //  for a fragment the solver cannot handle.
+   if (halfOrbitals(coords, elements, halfA, full, keepOps, classOfOp,
+                    subOps, subClassOfOp, *sub, formula.str(),
+                    left, right)) {
+      if (trace) {
+         fprintf(stderr, "[HALVES] %d + %d levels from the fragment's own "
+                 "orbitals\n", (int)left.levels.size(),
+                 (int)right.levels.size());
+      }
+      return true;
+   }
+   if (trace) {
+      fprintf(stderr, "[HALVES] no fragment orbitals; using atomic shells\n");
    }
 
    bool built = false;

@@ -672,7 +672,8 @@ def checkFragments(tablePath, verbose):
            os.path.join(ROOT, "src/tdat/chemistry/MoFragments.C"),
            os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
            os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
-           os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C")]
+           os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/Huckel.C")]
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("  could not build the fragment test:")
@@ -747,7 +748,8 @@ def checkOracle(tablePath, verbose):
          os.path.join(ROOT, "src/tdat/chemistry/MoFragments.C"),
          os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
          os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
-         os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C")],
+         os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/Huckel.C")],
         capture_output=True, text=True)
     if build.returncode != 0:
         print("  could not build the oracle driver:")

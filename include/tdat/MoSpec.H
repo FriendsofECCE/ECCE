@@ -425,7 +425,8 @@ static bool buildModel(const char* tables, const char* molecule,
         centre.levels[i].irrep.clear();
       }
     }
-    MoDiagram::classify(left.levels, centre.levels, right.levels);
+    MoDiagram::classify(left.levels, centre.levels, right.levels,
+                        left.fromHalves);
     MoDiagram::connect(left.levels, centre.levels, right.levels, links);
     MoDiagram::placeFragments(centre, left, right, links);
     MoDiagram::classifyByEnergy(left.levels, centre.levels,

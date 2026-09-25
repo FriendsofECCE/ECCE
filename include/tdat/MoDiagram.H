@@ -123,6 +123,19 @@ struct MoLevel
     */
    int            slot;
 
+   /**
+    * The energy this level ARRIVED with, before it was moved.
+    *
+    * A fragment level is drawn at the mean of the molecular orbitals
+    * it became, so its own energy -- a free atom's tabulated value,
+    * or a fragment orbital's -- is no longer where it sits. It used
+    * to be recovered by sscanf-ing the annotation back out of the
+    * text written for display, which meant the wording of a caption
+    * could not be changed without silently breaking the arithmetic
+    * that depends on it.
+    */
+   double         tabulated;
+
    /** What the level is: see MoDiagram::classify(). */
    enum Character { UNKNOWN, BONDING, NONBONDING, ANTIBONDING };
    Character      character;
@@ -154,7 +167,7 @@ struct MoLevel
 
    MoLevel() : energy(0.0), occupancy(0.0), degeneracy(0),
                shareLeft(-1.0), shareRight(-1.0), shell(-1), slot(-1),
-               character(UNKNOWN), pairing(-1) {}
+               tabulated(0.0), character(UNKNOWN), pairing(-1) {}
 };
 
 
@@ -172,6 +185,20 @@ struct MoColumn
     * than in any shell of the same angular momentum.
     */
    vector<string>   shellKeys;
+
+   /**
+    * True when the two columns are the SAME fragment, combined in
+    * phase and out of phase.
+    *
+    * It changes what can be concluded from the irreps. In a
+    * central-atom diagram an irrep present on one side with no
+    * partner on the other is non-bonding: there is nothing for it to
+    * combine with. In a two-halves diagram every irrep is like that
+    * BY CONSTRUCTION -- the in-phase and out-of-phase combinations of
+    * one fragment orbital carry different irreps -- so the same
+    * observation means nothing at all.
+    */
+   bool             fromHalves;
 
    /** Where to draw this column's atoms, for the phase sketches. */
    vector<double>   sketchX;
@@ -205,7 +232,7 @@ struct MoColumn
    /** Virtuals folded away at the top, counted the same way. */
    int    hiddenAboveCount;
 
-   MoColumn() : hiddenCount(0), hiddenMaxEnergy(0.0),
+   MoColumn() : fromHalves(false), hiddenCount(0), hiddenMaxEnergy(0.0),
                hiddenAboveCount(0), sketchNormal(2) {}
 };
 
@@ -455,9 +482,16 @@ class MoDiagram
     static bool reconcile(vector<MoLevel>& left, vector<MoLevel>& right,
                           const vector<MoLevel>& centre, string& why);
 
+    /**
+     * @param fromHalves  true when both columns are the same fragment
+     *                    combined two ways, which makes the count
+     *                    across the columns meaningless -- see
+     *                    MoColumn::fromHalves.
+     */
     static void classify(const vector<MoLevel>& left,
                          vector<MoLevel>& centre,
-                         const vector<MoLevel>& right);
+                         const vector<MoLevel>& right,
+                         bool fromHalves = false);
 
     /**
      * Connect fragment levels to molecular orbitals.

@@ -386,10 +386,23 @@ void MoDiagram::placeFragments(const MoColumn& centre,
       for (c = 0; c < 2; c++) {
         for (size_t i = 0; i < cols[c]->levels.size(); i++) {
           MoLevel& level = cols[c]->levels[i];
+
+          //  KEEP WHAT THE LEVEL ALREADY SAID ABOUT ITSELF.
+          //
+          //  This wrote "free atom" over the annotation unconditionally
+          //  -- including over "in phase" and "out of phase", which is
+          //  the one thing a two-halves diagram is drawn to show. And
+          //  it is not true of every column: a fragment level built
+          //  from the fragment's OWN orbitals carries that orbital's
+          //  energy, not an atom's.
+          level.tabulated = level.energy;
           char text[64];
-          snprintf(text, sizeof(text), "free atom %.2f Ha",
-                   level.energy/27.211386);
-          level.annotation = text;
+          snprintf(text, sizeof(text), "%.2f Ha", level.energy/27.211386);
+          if (level.annotation.empty()) {
+            level.annotation = string("free atom ") + text;
+          } else {
+            level.annotation += string(", ") + text;
+          }
           level.energy = bottom + scale*(level.energy - lowTab);
         }
       }
@@ -417,10 +430,14 @@ void MoDiagram::placeFragments(const MoColumn& centre,
       //  energy and disagrees with where it is drawn.  It is the free
       //  atom's tabulated value, which is a different quantity: the
       //  level is placed at the mean of the orbitals it became.
+      level.tabulated = level.energy;
       char text[64];
-      snprintf(text, sizeof(text), "free atom %.2f Ha",
-               level.energy/27.211386);
-      level.annotation = text;
+      snprintf(text, sizeof(text), "%.2f Ha", level.energy/27.211386);
+      if (level.annotation.empty()) {
+        level.annotation = string("free atom ") + text;
+      } else {
+        level.annotation += string(", ") + text;
+      }
 
       double sum = 0.0, weight = 0.0;
       for (size_t k = 0; k < connections.size(); k++) {
@@ -500,14 +517,11 @@ void MoDiagram::placeFragments(const MoColumn& centre,
     vector<MoLevel>& levels = cols[c]->levels;
     if (levels.size() < 2) continue;
 
-    //  Recover what each level arrived with, from the annotation that
-    //  was written from it before it was moved.
+    //  What each level arrived with, from the level itself rather
+    //  than from the caption written for a reader.
     vector<double> tabulated(levels.size(), 0.0);
     for (size_t i = 0; i < levels.size(); i++) {
-      double value = 0.0;
-      if (sscanf(levels[i].annotation.c_str(), "free atom %lf", &value) == 1) {
-        tabulated[i] = value;
-      }
+      tabulated[i] = levels[i].tabulated/27.211386;
     }
 
     vector<bool> done(levels.size(), false);
@@ -1009,18 +1023,19 @@ static bool covers(const map<string,int>& have, const map<string,int>& want)
  * swapping the mirror planes exchanges B1 and B2 but must leave A1 and
  * A2 alone.)
  */
-static string axisExchange(const string& name, char first, char second)
+static string axisExchange(const string& name, const char* mapping)
 {
   if (name.empty()) return name;
   const char letter = toupper(name[0]);
   if (letter != 'B') return name;
 
-  string swapped = name;
-  for (size_t i = 1; i < swapped.size(); i++) {
-    if (swapped[i] == first)       swapped[i] = second;
-    else if (swapped[i] == second) swapped[i] = first;
+  string renamed = name;
+  for (size_t i = 1; i < renamed.size(); i++) {
+    if (renamed[i] >= '1' && renamed[i] <= '3') {
+      renamed[i] = mapping[renamed[i] - '1'];
+    }
   }
-  return swapped;
+  return renamed;
 }
 
 bool MoDiagram::reconcile(vector<MoLevel>& left, vector<MoLevel>& right,
@@ -1044,32 +1059,43 @@ bool MoDiagram::reconcile(vector<MoLevel>& left, vector<MoLevel>& right,
   //  analysis gave 1B3G + 3B2U + 2B3U, which is the same set under one
   //  exchange of b2 and b3 -- and the single-pair search below could
   //  never find it, because no ONE swap fixes both parities.
-  static const char* const axisPairs[] = { "12", "13", "23" };
-  for (int pair = 0; pair < 3; pair++) {
-    const char first = axisPairs[pair][0], second = axisPairs[pair][1];
+  //  EVERY permutation of the three axes, not only the swaps.
+  //
+  //  Naming the axes differently need not be a transposition: a
+  //  fragment analysis and a calculation can differ by a CYCLE, x to
+  //  z to y. Ethene built from two CH2 orbitals does exactly that --
+  //  the fragments span B1g2 B3g1 B1u1 B2u3 B3u2 where the
+  //  calculation reports B3g2 B2g1 B3u1 B1u3 B2u2, the same multiset
+  //  under 1->3->2->1 -- and no exchange of a single pair can reach
+  //  it. All six permutations are tried; the identity is skipped
+  //  because it is the case already handled above.
+  static const char* const axisOrder[] =
+      { "132", "213", "321", "231", "312" };
+  for (int which = 0; which < 5; which++) {
+    const char* const mapping = axisOrder[which];
 
     map<string,int> tried;
     bool changed = false;
     for (map<string,int>::const_iterator it = have.begin();
          it != have.end(); ++it) {
-      const string renamed = axisExchange(it->first, first, second);
+      const string renamed = axisExchange(it->first, mapping);
       if (renamed != it->first) changed = true;
       tried[renamed] += it->second;
     }
     if (!changed || !covers(tried, want)) continue;
 
-    //  Apply it through a marker, so the two names cannot overwrite
-    //  one another halfway through the exchange.
+    //  Apply it through a marker, so two names cannot overwrite one
+    //  another halfway through the permutation.
     for (map<string,int>::const_iterator it = have.begin();
          it != have.end(); ++it) {
-      const string renamed = axisExchange(it->first, first, second);
+      const string renamed = axisExchange(it->first, mapping);
       if (renamed == it->first) continue;
       relabel(left,  it->first, "\x01" + renamed);
       relabel(right, it->first, "\x01" + renamed);
     }
     for (map<string,int>::const_iterator it = have.begin();
          it != have.end(); ++it) {
-      const string renamed = axisExchange(it->first, first, second);
+      const string renamed = axisExchange(it->first, mapping);
       if (renamed == it->first) continue;
       relabel(left,  "\x01" + renamed, renamed);
       relabel(right, "\x01" + renamed, renamed);
@@ -1139,7 +1165,8 @@ bool MoDiagram::reconcile(vector<MoLevel>& left, vector<MoLevel>& right,
 
 void MoDiagram::classify(const vector<MoLevel>& left,
                          vector<MoLevel>& centre,
-                         const vector<MoLevel>& right)
+                         const vector<MoLevel>& right,
+                         bool fromHalves)
 {
   //  WITHOUT IRREPS ON THE FRAGMENT SIDE THERE IS NOTHING TO COUNT,
   //  and counting nothing is not the same as counting zero.
@@ -1182,6 +1209,29 @@ void MoDiagram::classify(const vector<MoLevel>& left,
 
     const int p = countOf(left, irrep);
     const int q = countOf(right, irrep);
+
+    //  IN A TWO-HALVES DIAGRAM THIS COUNT MEANS NOTHING.
+    //
+    //  The in-phase and out-of-phase combinations of one fragment
+    //  orbital carry DIFFERENT irreps -- ethene's CH2 a1 gives ag on
+    //  one side and b2u on the other -- so every irrep sits in one
+    //  column only, min(p,q) is zero for all of them, and all twelve
+    //  molecular levels came out marked "nb", including the two that
+    //  hold the C=C. The same trap the empty-irrep guard above was
+    //  written for, one level down.
+    //
+    //  In a CENTRAL-ATOM diagram the identical observation is a real
+    //  finding: water's b1 is on the oxygen and nowhere on the
+    //  hydrogens, and it genuinely is the non-bonding lone pair. So
+    //  the two cases cannot share an answer, and the caller says
+    //  which one this is.
+    //
+    //  Bonding character in a halves diagram follows the phase of the
+    //  combination rather than a count across the columns, which is a
+    //  rule this does not yet have; saying nothing is the honest form
+    //  of not having it.
+    if (fromHalves) continue;
+
     int pairs = (p < q) ? p : q;
     if (pairs*2 > (int)mine.size()) pairs = (int)mine.size()/2;
 

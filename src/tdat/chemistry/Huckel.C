@@ -13,7 +13,10 @@
 #include <vector>
 using namespace std;
 
-#include "util/Ecce.H"
+//  Deliberately no util/Ecce.H: nothing here calls Ecce::, the data
+//  file is found with plain getenv() below, and keeping this file
+//  free of the utility layer is what lets tests/symmetry compile it
+//  alongside MoFragments with no build tree.
 #include "tdat/Huckel.H"
 #include "tdat/MoFragments.H"
 
