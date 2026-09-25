@@ -6,20 +6,54 @@ has started, and the submit script is never executed (issue #141).
 This is designed to be done **once**. Everything below is collected in
 one pass; there should be no need for a second round of questions.
 
-## What we already know
+## The cause, confirmed
 
-Not a distribution problem — it has been seen on both Ubuntu and RHEL.
-Two plausible causes have already been tested and ruled out, so please
-don't spend time on them:
+**This was found on 2026-09-25 and is fixed in 8.13.2.** If you are
+reading this because your jobs stage and never run, check this first;
+you probably do not need the rest of the document.
 
-- **`./ecmd` being invoked by a relative path.** That is a real bug
-  (#134, fixed after v8.13.0), but it is on a different code path and
-  is not what runs the submit script.
-- **csh being unable to parse the redirection ECCE uses.** The exact
-  command line was tested against real csh and the job runs correctly.
+ECCE backgrounds the submit script with this line:
 
-What we do not yet know is whether the submit script is never started,
-or is started and dies immediately. That is what step 2 settles.
+    nohup ./submit__<name> > /dev/null 2>&1 & echo RC_EXECBG_PID=$!
+
+`> /dev/null 2>&1` is Bourne-shell syntax. csh reads it as **two**
+output redirections -- `2` is an ordinary word and `>&1` is csh's own
+redirect-both operator -- and rejects the command with:
+
+    Ambiguous output redirect.
+
+Nothing is started and no process id comes back. ECCE reports the
+calculation as started anyway, because the code that backgrounds a job
+treats "command sent" as success. Hence: files staged, job reported
+running, no output, no error.
+
+**Why it took so long to see.** The two csh implementations disagree.
+Debian's default `/usr/bin/csh` is `bsd-csh`, which accepts the Bourne
+form; Ubuntu and RHEL ship `tcsh` as `/usr/bin/csh`, which rejects it.
+The same ECCE build therefore launches jobs on one machine and silently
+fails on another, with a working `csh` installed on both. An early test
+of "can csh parse this?" was run against bsd-csh and passed, and that
+wrong answer was recorded here as fact -- which is why this section now
+leads with evidence rather than with a conclusion.
+
+**The lesson for future testing:** test against `tcsh` by name, never
+against whatever `csh` happens to resolve to locally.
+
+The fix sends the redirection in the dialect of the shell that will
+parse it -- `>& /dev/null` for csh and tcsh, the Bourne form only where
+the machine is registered as using bash. That is the same csh syntax
+ECCE's own generated submit scripts have always used.
+
+**Workaround without upgrading:** in Machine Registration, set the
+machine's shell to `bash`. Only ECCE's connection to the machine
+changes; the submit script is still generated as csh and still runs
+under csh.
+
+## If it still happens on 8.13.2
+
+Then it is something else, and the rest of this document applies. The
+collector now tests both redirect forms, so its output tells you
+immediately whether you are looking at this bug again or a new one.
 
 ## Step 1 — reproduce it once, normally
 
