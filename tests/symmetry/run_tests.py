@@ -862,7 +862,10 @@ def checkCanvas(verbose):
         ["g++", "-O2", "-w", "-I", os.path.join(ROOT, "include"),
          "-I", os.path.join(ROOT, "src", "apps", "builder")] + flags +
         ["-o", out, os.path.join(HERE, "testCanvas.C"),
-         os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C")] + libs,
+         os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C"),
+         #  MoDiagram asks the character table which irreps change
+         #  sign in the molecular plane, for the pi-only view.
+         os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C")] + libs,
         capture_output=True, text=True)
     if build.returncode != 0:
         print("  could not build the canvas test:")
@@ -967,7 +970,8 @@ def main():
         return 1
 
     if standalone("testMoDiagram",
-                  ["src/tdat/chemistry/MoDiagram.C"]) != 0:
+                  ["src/tdat/chemistry/MoDiagram.C",
+                   "src/tdat/chemistry/CharacterTable.C"]) != 0:
         print("FAILED  the diagram layout")
         return 1
 

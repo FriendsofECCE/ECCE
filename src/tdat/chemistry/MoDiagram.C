@@ -8,6 +8,7 @@ using std::ostringstream;
 #include <cmath>
 #include <cstddef>
 
+#include "tdat/CharacterTable.H"
 #include "tdat/MoDiagram.H"
 
 MoDiagram::MoDiagram()
@@ -1161,6 +1162,41 @@ bool MoDiagram::reconcile(vector<MoLevel>& left, vector<MoLevel>& right,
   return false;
 }
 
+
+
+
+//  The class that is the molecular plane, or -1.
+static int molecularPlaneClass(const CharacterTable& table)
+{
+  const vector<string>& classes = table.classes();
+  for (size_t i = 0; i < classes.size(); i++) {
+    //  The tables spell it "sh"; nothing else is a horizontal mirror.
+    if (classes[i] == "sh") return (int)i;
+  }
+  return -1;
+}
+
+
+bool MoDiagram::hasMolecularPlane(const CharacterTable& table)
+{
+  return molecularPlaneClass(table) >= 0;
+}
+
+
+bool MoDiagram::isPiIrrep(const CharacterTable& table, const string& irrep)
+{
+  const int which = molecularPlaneClass(table);
+  if (which < 0) return false;
+
+  const vector<double> *chi = table.characters(irrep);
+  if (chi == 0 || (size_t)which >= chi->size()) return false;
+
+  const int dimension = table.dimension(irrep);
+  if (dimension <= 0) return false;
+
+  //  Antisymmetric in the plane, in every component.
+  return fabs((*chi)[which] + (double)dimension) < 1.0e-6;
+}
 
 
 void MoDiagram::classify(const vector<MoLevel>& left,

@@ -54,7 +54,7 @@ IMPLEMENT_DYNAMIC_CLASS(MoDiagramPanel, VizPropertyPanel)
 
 
 MoDiagramPanel::MoDiagramPanel()
-  : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0),
+  : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0),
     p_fragmentation(MoFragments::NOT_BUILT)
 {
 }
@@ -63,7 +63,7 @@ MoDiagramPanel::MoDiagramPanel()
 MoDiagramPanel::MoDiagramPanel(IPropCalculation *calculation,
       wxWindow *parent, wxWindowID id, const wxPoint& pos,
       const wxSize& size, long style, const wxString& name)
-  : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0),
+  : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0),
     p_fragmentation(MoFragments::NOT_BUILT)
 {
   Create(calculation, parent, id, pos, size, style, name);
@@ -250,6 +250,27 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   //  An entry the molecule cannot support is refused with a reason
   //  rather than quietly replaced: someone asking for a ligand field
   //  diagram of ethene needs to be told ethene has no metal.
+  //  THE ONE SEPARATION THAT IS NOT A CONVENTION.
+  //
+  //  For a planar molecule, pi orbitals are exactly those that change
+  //  sign in the molecular plane -- a fact about the group, not a
+  //  choice about how to draw it. Benzene's diagram IS the pi set:
+  //  nobody draws its thirty levels, they draw the four-rung ladder,
+  //  and this is what produces it.
+  //
+  //  Shown only where the point group names a distinguished plane,
+  //  which is the Cnh and Dnh groups -- the aromatic rings. D2h calls
+  //  all three of its mirrors "s" and C2v has two equivalent ones, so
+  //  for ethene or water it would take the geometry to say which
+  //  plane holds the atoms. Better to offer nothing there than to
+  //  guess which plane was meant.
+  p_piOnly = new ewxCheckBox(this, wxID_ANY, _("pi system only"));
+  p_piOnly->SetValue(false);
+  p_piOnly->Show(false);
+  p_piOnly->SetToolTip("Show only the orbitals that change sign in the "
+                       "molecular plane");
+  row->Add(p_piOnly, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+
   wxArrayString kinds;
   kinds.Add(_("Automatic"));
   kinds.Add(_("Central atom and neighbours"));
@@ -323,6 +344,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
                         this);
   p_construction->Bind(wxEVT_CHOICE, &MoDiagramPanel::onFragmentChanged,
                        this);
+  p_piOnly->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onFragmentChanged, this);
   p_fragments->Bind(wxEVT_CHECKLISTBOX, &MoDiagramPanel::onFragmentChanged,
                     this);
   p_showEnergies->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onShowEnergies, this);
@@ -636,6 +658,35 @@ void MoDiagramPanel::build()
   MoDiagram::hideBelow(centre, MoDiagram::suggestCoreCutoff(centre.levels));
   MoDiagram::hideAbove(centre,
                        MoDiagram::suggestVirtualCutoff(centre.levels));
+
+  //  Before anything indexes the levels: correlation links and the
+  //  hit map are positions in this vector, so a level removed after
+  //  they are built would shift every one of them.
+  {
+    const CharacterTable *table = CharacterTable::lookup(group);
+    const bool canSeparate =
+        (table != 0) && MoDiagram::hasMolecularPlane(*table);
+
+    if (p_piOnly != 0 && p_piOnly->IsShown() != canSeparate) {
+      p_piOnly->Show(canSeparate);
+      if (!canSeparate) p_piOnly->SetValue(false);
+      Layout();
+    }
+
+    if (canSeparate && p_piOnly != 0 && p_piOnly->GetValue()) {
+      vector<MoLevel> kept;
+      for (size_t i = 0; i < centre.levels.size(); i++) {
+        if (MoDiagram::isPiIrrep(*table, centre.levels[i].irrep)) {
+          kept.push_back(centre.levels[i]);
+        }
+      }
+      //  Never leave the diagram empty: a molecule whose orbitals
+      //  carry no labels has nothing to filter on, and showing
+      //  nothing would read as a failure rather than as a filter
+      //  that found nothing.
+      if (!kept.empty()) centre.levels = kept;
+    }
+  }
 
   {
     int valenceRoom = 0;

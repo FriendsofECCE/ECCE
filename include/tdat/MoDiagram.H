@@ -245,6 +245,8 @@ struct MoConnection
    int rightLevel;    // index into the right column, or -1
 };
 
+class CharacterTable;
+
 
 class MoDiagram
 {
@@ -488,6 +490,30 @@ class MoDiagram
      *                    across the columns meaningless -- see
      *                    MoColumn::fromHalves.
      */
+    /**
+     * Is this irrep one of the molecule's pi orbitals?
+     *
+     * For a PLANAR molecule the question has an exact answer and no
+     * chemistry in it. A p orbital perpendicular to the plane changes
+     * sign under reflection in that plane; every in-plane orbital
+     * does not. So an irrep belongs to the pi system precisely when
+     * its character under sigma-h is minus its dimension -- which for
+     * D6h picks out a2u, e1g, e2u and b2g, and those four ARE
+     * benzene's pi orbitals.
+     *
+     * That is what makes a pi-only view worth offering rather than
+     * guessing at: the separation is a property of the group, not a
+     * convention about how to draw the molecule.
+     *
+     * @return false for any group without a horizontal mirror plane,
+     *         where the question does not arise: a non-planar
+     *         molecule has no pi system to separate.
+     */
+    static bool isPiIrrep(const CharacterTable& table, const string& irrep);
+
+    /** Does this group have a molecular plane to reflect in? */
+    static bool hasMolecularPlane(const CharacterTable& table);
+
     static void classify(const vector<MoLevel>& left,
                          vector<MoLevel>& centre,
                          const vector<MoLevel>& right,
