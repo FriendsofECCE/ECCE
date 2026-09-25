@@ -100,6 +100,9 @@ class MoDiagramPanel : public VizPropertyPanel,
       /** Which construction the last diagram was built by. */
       MoFragments::Fragmentation p_fragmentation;
 
+      /** The constructions this molecule offers, in menu order. */
+      vector<MoFragments::Fragmentation> p_offered;
+
       void buildFragmentChooser(wxSizer *sizer);
       void fillFragmentChooser(const vector< vector<int> >& orbits,
                                const vector<string>& elements);

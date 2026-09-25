@@ -271,13 +271,17 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
                        "molecular plane");
   row->Add(p_piOnly, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
+  //  FILLED PER MOLECULE, in build(), with the constructions that
+  //  molecule can actually be drawn by.
+  //
+  //  Offering all of them and refusing most is not a choice, it is a
+  //  list of disappointments: ethene has no metal, benzene has no two
+  //  halves, water has no second chemical group. build() still
+  //  refuses a construction that does not suit -- it must never hand
+  //  back a different diagram than the one asked for -- but the user
+  //  should not be able to ask.
   wxArrayString kinds;
   kinds.Add(_("Automatic"));
-  kinds.Add(_("Central atom and neighbours"));
-  kinds.Add(_("Metal and donor atoms"));
-  kinds.Add(_("Two equivalent halves"));
-  kinds.Add(_("Two chemical groups"));
-  kinds.Add(_("Sets of equivalent atoms"));
   p_construction = new ewxChoice(this, wxID_ANY, wxDefaultPosition,
                                  wxDefaultSize, kinds);
   p_construction->SetSelection(0);
@@ -839,20 +843,53 @@ void MoDiagramPanel::build()
     const vector<int> *chosen =
         p_sideOfOrbit.empty() ? 0 : &p_sideOfOrbit;
 
-    //  The dropdown's order is the enum's, with Automatic first.
-    static const MoFragments::Fragmentation WANTED[] = {
-      MoFragments::NOT_BUILT,
-      MoFragments::CENTRAL,
-      MoFragments::SKELETON,
-      MoFragments::HALVES,
-      MoFragments::GROUPS,
-      MoFragments::EQUIVALENT_SETS
-    };
-    const int picked = (p_construction != 0)
-                       ? p_construction->GetSelection() : 0;
-    const MoFragments::Fragmentation want =
-        (picked > 0 && picked < (int)(sizeof(WANTED)/sizeof(WANTED[0])))
-        ? WANTED[picked] : MoFragments::NOT_BUILT;
+    //  WHAT IS SELECTED, NOT WHERE IT SITS.
+    //
+    //  The list is rebuilt per molecule and so has a different length
+    //  each time; reading the choice as an index into a fixed table
+    //  is the mistake this tree has made before, where a default
+    //  written against the longest list left a combo showing nothing
+    //  at all. Keep the enum beside each row and read that.
+    MoFragments::Fragmentation want = MoFragments::NOT_BUILT;
+    {
+      const int picked = (p_construction != 0)
+                         ? p_construction->GetSelection() : 0;
+      if (picked > 0 && picked <= (int)p_offered.size()) {
+        want = p_offered[picked - 1];
+      }
+    }
+
+    //  Refill for this molecule, keeping the selection if it still
+    //  applies -- changing calculation should not silently change
+    //  which construction is being drawn.
+    if (p_construction != 0) {
+      vector<MoFragments::Fragmentation> offers;
+      MoFragments::availableFragmentations(coords, elements, group, offers);
+
+      if (offers != p_offered) {
+        const MoFragments::Fragmentation was = want;
+        p_offered = offers;
+
+        p_construction->Clear();
+        p_construction->Append(_("Automatic"));
+        for (size_t i = 0; i < p_offered.size(); i++) {
+          p_construction->Append(
+              wxString(MoFragments::fragmentationName(p_offered[i]),
+                       wxConvUTF8));
+        }
+
+        int restore = 0;
+        for (size_t i = 0; i < p_offered.size(); i++) {
+          if (p_offered[i] == was) restore = (int)i + 1;
+        }
+        p_construction->SetSelection(restore);
+        if (restore == 0) want = MoFragments::NOT_BUILT;
+
+        //  A molecule with nothing to choose between has no choice to
+        //  offer, so do not pretend otherwise.
+        p_construction->Enable(!p_offered.empty());
+      }
+    }
 
     haveFragments = MoFragments::build(coords, elements, group, charge,
                                        left, right, why, 0, 0, chosen,

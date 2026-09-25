@@ -1971,6 +1971,59 @@ const char* MoFragments::fragmentationName(Fragmentation how)
 }
 
 
+
+void MoFragments::availableFragmentations(const vector<double>& coords,
+                                          const vector<string>& elements,
+                                          const string& group,
+                                          vector<Fragmentation>& kinds)
+{
+   kinds.clear();
+   if (elements.empty() || coords.size() != 3*elements.size()) return;
+
+   //  A metal with polyatomic ligands.
+   {
+      vector<int> keep;
+      if (coordinationSkeleton(coords, elements, keep)) {
+         kinds.push_back(SKELETON);
+      }
+   }
+
+   //  A central atom with one set of equivalent neighbours.
+   {
+      vector< vector<int> > orbits;
+      string why;
+      if (orbitsOf(coords, elements, group, orbits, why)) {
+         int central = -1;
+         vector<int> terminal;
+         if (partition(orbits, elements, central, terminal)) {
+            kinds.push_back(CENTRAL);
+         }
+         if (orbits.size() >= 2) kinds.push_back(EQUIVALENT_SETS);
+      }
+   }
+
+   //  Two equivalent halves across one bond.
+   {
+      string formula;
+      if (halvesAvailable(coords, elements, formula)) kinds.push_back(HALVES);
+   }
+
+   //  Two chemical groups of different composition.
+   {
+      vector< vector<int> > chemical;
+      if (chemicalGroups(coords, elements, chemical) &&
+          chemical.size() == 2) {
+         map<string,int> countA, countB;
+         for (size_t i = 0; i < chemical[0].size(); i++)
+            countA[elements[chemical[0][i]]]++;
+         for (size_t i = 0; i < chemical[1].size(); i++)
+            countB[elements[chemical[1][i]]]++;
+         if (countA != countB) kinds.push_back(GROUPS);
+      }
+   }
+}
+
+
 bool MoFragments::build(const vector<double>& coords,
                         const vector<string>& elements,
                         const string& group,

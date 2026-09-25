@@ -62,6 +62,24 @@ class MoFragments
     static const char* fragmentationName(Fragmentation how);
 
     /**
+     * Which constructions this molecule can actually be drawn by.
+     *
+     * So a caller offering the choice offers only real ones. Asking
+     * for a ligand field diagram of ethene is refused, correctly --
+     * ethene has no metal -- but a menu whose entries mostly refuse
+     * is not a choice, it is a list of disappointments. The refusal
+     * belongs in build(), which must never hand back a different
+     * diagram than the one asked for; the menu belongs here.
+     *
+     * Cheap: each is the same test the construction itself makes,
+     * without building any columns.
+     */
+    static void availableFragmentations(const vector<double>& coords,
+                                        const vector<string>& elements,
+                                        const string& group,
+                                        vector<Fragmentation>& kinds);
+
+    /**
      * Where to draw the terminal atoms when sketching a phase pattern.
      *
      * The atoms' own positions flattened onto the two directions they
