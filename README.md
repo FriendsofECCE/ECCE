@@ -61,6 +61,20 @@ than papered over.
 
 ### Release history
 
+- **v8.13.1** — Patch release. Fixes helper programs being invoked by
+  relative path, which could only ever work from `$ECCE_HOME/bin`: with
+  `ecmd` in particular, `execvp` does not search `PATH` for a name
+  containing a slash, so background remote commands, password and
+  message dialogs and job-monitor startup could fail silently depending
+  on where the application was started from. Also fixes
+  `SymmetryOps::find()` reporting `C1` for an unrecognised exit status
+  — a failed symmetry search answering "no symmetry" — and a negative
+  plot height handed to GTK. Restores support for running against a
+  **central server**: `ecce -remote` works again and starts no local
+  services, and `ecce-remote-setup <host>` configures a client in one
+  command. Adds `ecce-diagnose`, which collects everything needed to
+  diagnose a job-launch problem in one pass.
+
 - **v8.13.0** — *New:* electrostatic potential maps, computed either as
   the integral over the electron density or from point charges, drawn on
   the molecular surface with an adjustable colour range. 3-D orbitals for
