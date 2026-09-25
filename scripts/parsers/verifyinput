@@ -521,11 +521,20 @@ sub gaussian
   if (@got) {
     finding("GOOD", 0, "link0", "Link 0 asks for " . join(", ", @got) . ".");
   } else {
+    #  SAY WHAT IT MEANS, NOT WHAT IT MIGHT COST.
+    #
+    #  ECCE writes "%Mem=##MemorySize##GB" from its template, and the
+    #  generator DELETES a line whose tag does not resolve -- so a
+    #  deck with no %Mem is one where the memory setting never
+    #  reached it, silently. That is the useful thing to say. The
+    #  first version of this lectured about shared machines instead,
+    #  which reads as an opinion about how to run jobs rather than as
+    #  a fact about this file.
     finding("UNSURE", 0, "link0",
-            "There are no Link 0 directives at all -- no %mem, no " .
-            "%nprocshared, no %chk. Gaussian will use its own " .
-            "defaults, which on a shared machine is usually not what " .
-            "you want.");
+            "This deck has no Link 0 directives -- no %mem, no " .
+            "%nprocshared, no %chk. ECCE normally writes at least " .
+            "%mem, so a setting may not have reached this " .
+            "calculation; Gaussian will use its own defaults.");
   }
   if ($fromCheck && $whole !~ /^\s*%chk\s*=/mi) {
     finding("BAD", 0, "link0",
