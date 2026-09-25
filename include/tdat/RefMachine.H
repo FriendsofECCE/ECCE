@@ -143,6 +143,17 @@ private:
   // Lazy Update Flag For User Registered Machine Preferences
     static bool  p_markUpdateFlag;
 
+    /**
+     * The context the tables were last loaded for.
+     *
+     * They are loaded ONCE, so whichever caller asks first decides
+     * what the whole process can see -- and asking for the user's
+     * own machines loads only those. On a fresh install there are
+     * none, which left the tables empty and every later lookup
+     * failing, including the one for "localhost" (issue #149).
+     */
+    static machineContextEnum p_loadedContext;
+
 
   // Modifiers
     void refname(const char* refname);

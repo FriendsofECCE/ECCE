@@ -966,9 +966,28 @@ bool RefMachine::validate_and_assign(const string& refname)
 ///////////////////////////////////////////////////////////////////////////////
 void RefMachine::enforce_initialization(const machineContextEnum& context)
 {
+  //  RELOAD WHEN THE CONTEXT CHANGES, not only the first time.
+  //
+  //  The tables were loaded once and never again, so whichever caller
+  //  asked first decided what the entire process could see. The
+  //  Register Machines tool asks for the USER's machines, which loads
+  //  MyMachines and nothing else -- and on a fresh install there is
+  //  no MyMachines, so the tables came up empty and stayed empty.
+  //
+  //  Every later lookup then failed against tables that had never
+  //  been given the site file, including the "localhost" that
+  //  QueueMgr builds a QueueManager for out of siteconfig/Queues:
+  //
+  //      Assertion (result) failed localhost   (QueueMgr.C:361)
+  //
+  //  which is issue #149, and is why copying the Queues file into
+  //  the user's directory changed nothing: the queues were never the
+  //  problem, the machine table was.
   if (s_refname_list==(vector<string>*)0 ||
-      p_markUpdateFlag) {
+      p_markUpdateFlag ||
+      p_loadedContext != context) {
     RefMachine::initialize(context);
+    p_loadedContext = context;
     p_markUpdateFlag = false;
   }
 }
@@ -1021,3 +1040,5 @@ ostream& operator<<(ostream& os, const RefMachine& refMachine)
 }
 
 bool RefMachine::p_markUpdateFlag=false;
+RefMachine::machineContextEnum
+    RefMachine::p_loadedContext = RefMachine::allMachines;
