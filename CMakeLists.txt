@@ -675,6 +675,7 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-stop
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-status
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-adduser
+          ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-remote-setup
         DESTINATION bin)
 install(FILES ${CMAKE_SOURCE_DIR}/packaging/dataserver/httpd.conf.ecce
         DESTINATION server/httpd-conf)
@@ -690,6 +691,17 @@ exec \"$ECCE_HOME/bin/ecce-dataserver-${_ds}\" \"$@\"
 ")
   install(PROGRAMS ${_ds_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
 endforeach()
+
+# The same wrapper for the central-server setup helper, so an
+# administrator can type "ecce-remote-setup <host>" without knowing
+# where the installation lives.
+set(_remote_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-remote-setup)
+file(WRITE ${_remote_wrapper}
+"#!/bin/bash
+export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+exec \"$ECCE_HOME/bin/ecce-remote-setup\" \"$@\"
+")
+install(PROGRAMS ${_remote_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
 
 # ------------------------------------------------------------------------
 # Install rules. Everything installs under /opt/ecce (see

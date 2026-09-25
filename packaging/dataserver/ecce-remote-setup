@@ -1,0 +1,141 @@
+#!/bin/bash
+#
+# Point this ECCE installation at a central server.
+#
+# ECCE was originally deployed with one server for a whole group: a
+# shared data server holding everyone's calculations and structure
+# library, and a shared message broker.  The old launcher selected that
+# with "ecce -remote", which set ECCE_REMOTE_SERVER and made the client
+# read siteconfig/RemoteServer/ instead of the local configuration.
+#
+# The client still supports it in full -- EDSIServerCentral and
+# Ecce::ecceAutoAccounts/ecceStoreTrajectories all branch on that
+# variable -- but nothing wrote the RemoteServer configuration, so it
+# had to be assembled by hand.  This writes it.
+#
+# Run once per CLIENT installation, as whoever owns $ECCE_HOME
+# (normally root).  It does not touch anything on the server.
+#
+#   ecce-remote-setup <server-host> [data-port] [broker-port]
+#
+# Afterwards, users run:
+#
+#   ecce -remote
+#
+# which skips starting a per-user data server and broker and talks to
+# the central ones instead.
+
+set -u
+
+usage() {
+  cat <<'USAGE'
+Usage: ecce-remote-setup <server-host> [data-port] [broker-port]
+
+  server-host   host name of the central ECCE server
+  data-port     data server port      (default 8096)
+  broker-port   message broker port   (default 8095)
+
+Writes $ECCE_HOME/siteconfig/RemoteServer/ and repoints the broker URL.
+Run "ecce -remote" afterwards.
+USAGE
+}
+
+if [ $# -lt 1 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+  usage
+  exit 2
+fi
+
+HOST="$1"
+DATA_PORT="${2:-8096}"
+BROKER_PORT="${3:-8095}"
+
+: "${ECCE_HOME:=/opt/ecce}"
+SITE="$ECCE_HOME/siteconfig"
+REMOTE="$SITE/RemoteServer"
+
+if [ ! -d "$SITE" ]; then
+  echo "ecce-remote-setup: no siteconfig at $SITE" >&2
+  echo "  Set ECCE_HOME to the installation you want to configure." >&2
+  exit 1
+fi
+
+if [ ! -w "$SITE" ]; then
+  echo "ecce-remote-setup: cannot write $SITE" >&2
+  echo "  Run this as the owner of the installation (usually root)." >&2
+  exit 1
+fi
+
+#  A quick look before writing anything.  Getting the host wrong is the
+#  likeliest mistake and the symptom is a login box that never accepts
+#  anything, which does not point at the cause.
+URL="http://$HOST:$DATA_PORT/Ecce"
+echo "Central server: $URL"
+if command -v curl >/dev/null 2>&1; then
+  if curl -s -o /dev/null --connect-timeout 5 "http://$HOST:$DATA_PORT/" ; then
+    echo "  reachable"
+  else
+    echo "  WARNING: nothing answered on $HOST:$DATA_PORT."
+    echo "  Writing the configuration anyway -- the server may not be up yet."
+  fi
+fi
+
+mkdir -p "$REMOTE" || exit 1
+
+#  DataServers: the same file the local mode uses, with the URLs moved
+#  to the central host.  The structure library and basis set library
+#  live on that server too, which is the point of running one.
+if [ -f "$SITE/DataServers" ]; then
+  sed -e "s|http://[^:/]*:[0-9]*/Ecce|$URL|g" \
+      -e "s|http://[^:/]*:[0-9]*/Ecce/system|$URL/system|g" \
+      "$SITE/DataServers" > "$REMOTE/DataServers"
+else
+  echo "ecce-remote-setup: no $SITE/DataServers to base this on" >&2
+  exit 1
+fi
+
+#  site_runtime: same again for the help URL, which is served by the
+#  same Apache.
+if [ -f "$SITE/site_runtime" ]; then
+  sed -e "s|http://[^:/]*:[0-9]*|http://$HOST:$DATA_PORT|g" \
+      "$SITE/site_runtime" > "$REMOTE/site_runtime"
+fi
+
+#  THE BROKER IS NOT PART OF THE RemoteServer SPLIT.
+#
+#  ECCE_REMOTE_SERVER selects RemoteServer/ for the data server and the
+#  runtime settings, and the C++ has always done exactly that -- but
+#  jndi.properties is read from $ECCE_HOME/siteconfig unconditionally,
+#  by the Java dispatcher, with no equivalent branch.  So a client told
+#  to use a central server would still look for a broker on localhost,
+#  and since -remote also stops one being started, it would find
+#  nothing.
+#
+#  An installation configured for a central server is configured for
+#  it, so the broker URL is repointed in place -- with the original
+#  kept, because an installation can be moved back.
+if [ -f "$SITE/jndi.properties" ]; then
+  if [ ! -f "$SITE/jndi.properties.local" ]; then
+    cp -p "$SITE/jndi.properties" "$SITE/jndi.properties.local"
+  fi
+  sed -e "s|^\( *java.naming.provider.url *= *\).*|\1tcp://$HOST:$BROKER_PORT|" \
+      "$SITE/jndi.properties.local" > "$SITE/jndi.properties"
+fi
+
+echo
+echo "Wrote:"
+echo "  $REMOTE/DataServers"
+[ -f "$REMOTE/site_runtime" ] && echo "  $REMOTE/site_runtime"
+[ -f "$SITE/jndi.properties.local" ] && \
+  echo "  $SITE/jndi.properties  (broker -> tcp://$HOST:$BROKER_PORT;"
+[ -f "$SITE/jndi.properties.local" ] && \
+  echo "                          original kept as jndi.properties.local)"
+echo
+echo "Users on this machine now run:"
+echo
+echo "    ecce -remote"
+echo
+echo "which uses the central data server and broker and starts neither"
+echo "locally.  Plain \"ecce\" still runs the per-user local servers."
+echo
+echo "Each user needs an account on the central server; create them"
+echo "there with ecce-dataserver-adduser."
