@@ -10,7 +10,10 @@
 #      LEVEL|LINE|CHECK|MESSAGE
 #
 #  LEVEL is BAD, UNSURE or GOOD.  LINE is the 1-based line a finding
-#  points at, or 0 where it points at the file as a whole.  GOOD lines
+#  points at, "FIRST-LAST" for a finding about a run of lines, or 0
+#  where it points at the file as a whole.  A range on a GOOD finding
+#  is what lets a reader see WHICH lines were actually examined and
+#  passed, rather than having to take "checked" on trust.  GOOD lines
 #  are emitted for checks that ran and passed, deliberately: a checker
 #  that prints nothing when it is happy teaches nobody what it covers,
 #  and "green" then gets read as "this calculation is correct" rather
@@ -160,9 +163,11 @@ my @stripped = map { my $line = $_; chomp($line); $line } @lines;
 #  ask whether every one of them has been given a basis set.
 my %seen;
 my @elements;
+my @atomSymbols;
 for my $i (0 .. $#stripped) {
   if ($stripped[$i] =~ /^\s*([A-Z][a-z]?)\d*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
     my $element = ucfirst(lc($1));
+    push(@atomSymbols, $element);
     next if (exists($seen{$element}));
     $seen{$element} = 1;
     push(@elements, $element);
@@ -191,6 +196,141 @@ sub balanced
   return ($depth == 0);
 }
 
+
+
+#  Lines inside a geometry that are not part of one.
+#
+#  THE CHECK A HAND EDIT NEEDS.  Everything else here asks whether a
+#  section exists and where it ends; none of that notices a stray
+#  character typed INSIDE one.  Reported live on 2026-09-25: an "s"
+#  added to an NWChem deck, which stops it running and which the
+#  checker passed without comment.
+#
+#  The rule is only applied to a geometry that is already known to be
+#  Cartesian -- its first atom line carries three coordinates -- and
+#  then every line in it must carry three too, or be a directive the
+#  code takes there.  That is deliberately narrow: a Z-matrix has
+#  lines of several shapes and a bare element symbol is a legal one,
+#  so nothing is concluded about those at all.
+sub geometryLines
+{
+  my ($from, $to, $directives, $what) = @_;
+  my @L = @stripped;
+  return if ($from > $to || $from < 0 || $to > $#L);
+
+  #  Cartesian only: the first real line must be symbol + 3 numbers.
+  my $first = -1;
+  for my $i ($from .. $to) {
+    next if ($L[$i] =~ /^\s*$/);
+    $first = $i;
+    last;
+  }
+  return if ($first < 0);
+  return unless ($L[$first] =~ /^\s*[A-Za-z][A-Za-z]?\S*\s+$NUM\s+$NUM\s+$NUM(\s|$)/);
+
+  my @odd;
+  for my $i ($from .. $to) {
+    next if ($L[$i] =~ /^\s*$/);
+    next if ($L[$i] =~ /^\s*[A-Za-z][A-Za-z]?\S*\s+$NUM\s+$NUM\s+$NUM(\s|$)/);
+    next if (defined($directives) && $L[$i] =~ /$directives/i);
+    push(@odd, $i);
+  }
+
+  if (@odd) {
+    my $line = $L[$odd[0]];
+    $line =~ s/^\s+//;
+    $line =~ s/\s+$//;
+    $line = substr($line, 0, 40) . "..." if (length($line) > 43);
+    finding("BAD", $odd[0] + 1, "geometry",
+            "This line is inside the $what but is not an atom: every " .
+            "other line there gives an element and three coordinates, " .
+            "and this one reads \"$line\"." .
+            (scalar(@odd) > 1
+               ? " " . (scalar(@odd) - 1) . " more like it follow." : ""));
+  } else {
+    my $count = 0;
+    for my $i ($from .. $to) { $count++ if ($L[$i] =~ /\S/); }
+    finding("GOOD", ($from + 1) . "-" . ($to + 1), "geometry",
+            "Every one of the $count lines in the $what is an atom.");
+  }
+}
+
+
+#  ====================================================================
+#  Charge, multiplicity and the electron count
+#
+#  A FORBIDDEN COMBINATION THAT NEEDS NO KNOWLEDGE OF ANY CODE.
+#
+#  The electron count follows from the elements and the charge, and
+#  the multiplicity fixes how many of those electrons are unpaired.
+#  The two have to agree in parity: an even number of electrons cannot
+#  produce a doublet, and eleven electrons cannot produce a singlet.
+#  Every one of these codes refuses such a job, in its own words and
+#  usually well into the run.
+#
+#  This is arithmetic on the deck, not an opinion about chemistry, and
+#  it is the same arithmetic for Gaussian, ORCA, NWChem and MOPAC --
+#  which is why it lives here rather than in any one of them.
+my %Z = (
+  H=>1, He=>2, Li=>3, Be=>4, B=>5, C=>6, N=>7, O=>8, F=>9, Ne=>10,
+  Na=>11, Mg=>12, Al=>13, Si=>14, P=>15, S=>16, Cl=>17, Ar=>18,
+  K=>19, Ca=>20, Sc=>21, Ti=>22, V=>23, Cr=>24, Mn=>25, Fe=>26,
+  Co=>27, Ni=>28, Cu=>29, Zn=>30, Ga=>31, Ge=>32, As=>33, Se=>34,
+  Br=>35, Kr=>36, Rb=>37, Sr=>38, Y=>39, Zr=>40, Nb=>41, Mo=>42,
+  Tc=>43, Ru=>44, Rh=>45, Pd=>46, Ag=>47, Cd=>48, In=>49, Sn=>50,
+  Sb=>51, Te=>52, I=>53, Xe=>54, Cs=>55, Ba=>56, La=>57, Ce=>58,
+  Pr=>59, Nd=>60, Pm=>61, Sm=>62, Eu=>63, Gd=>64, Tb=>65, Dy=>66,
+  Ho=>67, Er=>68, Tm=>69, Yb=>70, Lu=>71, Hf=>72, Ta=>73, W=>74,
+  Re=>75, Os=>76, Ir=>77, Pt=>78, Au=>79, Hg=>80, Tl=>81, Pb=>82,
+  Bi=>83, Po=>84, At=>85, Rn=>86,
+);
+
+sub electronCount
+{
+  my ($charge, $multiplicity, $atomLines) = @_;
+
+  my $protons = 0;
+  foreach my $symbol (@$atomLines) {
+    my $element = ucfirst(lc($symbol));
+    #  One unknown element and the sum is wrong, so say nothing at all
+    #  rather than accuse a perfectly good deck.
+    return unless (exists($Z{$element}));
+    $protons += $Z{$element};
+  }
+  return unless ($protons > 0);
+
+  my $electrons = $protons - $charge;
+  if ($electrons < 0) {
+    finding("BAD", 0, "electrons",
+            "The charge of $charge removes more electrons than this " .
+            "molecule has.");
+    return;
+  }
+
+  my $unpaired = $multiplicity - 1;
+  if ($unpaired > $electrons) {
+    finding("BAD", 0, "electrons",
+            "A multiplicity of $multiplicity needs $unpaired unpaired " .
+            "electrons, and this molecule has only $electrons " .
+            "altogether.");
+    return;
+  }
+
+  if ((($electrons - $unpaired) % 2) != 0) {
+    my $ok = (($electrons % 2) == 0) ? "an odd multiplicity (1, 3, 5)"
+                                     : "an even multiplicity (2, 4, 6)";
+    finding("BAD", 0, "electrons",
+            "Charge $charge gives this molecule $electrons electrons, " .
+            "which cannot have a multiplicity of $multiplicity: " .
+            "$electrons electrons require $ok. Either the charge or " .
+            "the multiplicity is wrong.");
+    return;
+  }
+
+  finding("GOOD", 0, "electrons",
+          "$electrons electrons at charge $charge, consistent with a " .
+          "multiplicity of $multiplicity.");
+}
 
 #  ====================================================================
 #  Gaussian
@@ -237,7 +377,8 @@ sub gaussian
   }
   my $last = ($routeEnd <= $#L) ? $routeEnd - 1 : $#L;
   my $route = join(" ", @L[$routeAt .. $last]);
-  finding("GOOD", $routeAt + 1, "route", "The route card is present.");
+  finding("GOOD", ($routeAt + 1) . "-" . ($last + 1), "route",
+          "The route card is present.");
 
   if (!balanced($route)) {
     finding("BAD", $routeAt + 1, "keywords",
@@ -315,7 +456,8 @@ sub gaussian
             "read the charge line as part of it.");
     return;
   }
-  finding("GOOD", $titleAt + 1, "title", "A title is present and closed.");
+  finding("GOOD", ($titleAt + 1) . "-" . $titleEnd, "title",
+          "A title is present and closed.");
 
   my $chargeAt = $titleEnd + 1;
   if ($chargeAt > $#L || $L[$chargeAt] !~ /^\s*-?\d+\s+-?\d+\s*(!.*)?$/) {
@@ -327,6 +469,7 @@ sub gaussian
   my ($charge, $mult) = ($L[$chargeAt] =~ /^\s*(-?\d+)\s+(-?\d+)/);
   finding("GOOD", $chargeAt + 1, "charge",
           "Charge $charge, multiplicity $mult.");
+  electronCount($charge, $mult, \@atomSymbols);
 
   my $geomEnd = $#L + 1;
   for my $i ($chargeAt + 1 .. $#L) {
@@ -340,6 +483,10 @@ sub gaussian
     finding("GOOD", 0, "sections",
             "The molecule specification is closed by a blank line.");
   }
+
+  geometryLines($chargeAt + 1,
+                (($geomEnd <= $#L) ? $geomEnd - 1 : $#L),
+                undef, "molecule specification");
 
   if ($L[$#L] !~ /^\s*$/) {
     finding("BAD", $#L + 1, "sections",
@@ -484,7 +631,11 @@ sub gaussianBasis
   my $what = "$groups element group" . ($groups == 1 ? "" : "s");
   $what .= ", $shells shell" . ($shells == 1 ? "" : "s") if ($shells);
   $what .= ", $named named" if ($named);
-  finding("GOOD", $start + 1, "basis",
+  #  The whole block, so a reader can see that all of it was walked
+  #  rather than just found.
+  my $stop = ($i > $#L) ? $#L : $i - 1;
+  $stop = $start if ($stop < $start);
+  finding("GOOD", ($start + 1) . "-" . ($stop + 1), "basis",
           "The Gen basis block is complete and readable: $what.");
   if ($byNumber) {
     finding("UNSURE", $start + 1, "basis",
@@ -543,6 +694,7 @@ sub orca
   if ($L[$openAt] =~ /^\s*\*\s*\w+\s+(-?\d+)\s+(\d+)/) {
     finding("GOOD", $openAt + 1, "charge",
             "Charge $1, multiplicity $2.");
+    electronCount($1, $2, \@atomSymbols);
   } else {
     finding("BAD", $openAt + 1, "charge",
             "The '* xyz' line does not carry a charge and a " .
@@ -563,6 +715,7 @@ sub orca
   if ($closed) {
     finding("GOOD", $closed, "geomblock",
             "The geometry block is closed by a '*'.");
+    geometryLines($openAt + 1, $closed - 2, undef, "geometry block");
   } else {
     finding("BAD", $openAt + 1, "geomblock",
             "The geometry block opened here is never closed by a line " .
@@ -609,6 +762,23 @@ sub nwchem
 
   if (exists($blocks{"geometry"})) {
     finding("GOOD", 0, "geometry", "A geometry block is present.");
+
+    #  Directives NWChem accepts inside a geometry block, so they are
+    #  not mistaken for stray text.
+    my $ok = qr/^\s*(end|units?|angstroms?|au|bohr|nm|pm|nocenter|center|
+                      noautoz|autoz|noautosym|autosym|symmetry|zcoord|
+                      zmatrix|variables|constants|load|print|adjust|
+                      system|bqbq)\b/x;
+    for my $i (0 .. $#L) {
+      if ($L[$i] =~ /^\s*geometry\b/i) {
+        my $close = $#L;
+        for my $j ($i + 1 .. $#L) {
+          if ($L[$j] =~ /^\s*end\s*$/i) { $close = $j - 1; last; }
+        }
+        geometryLines($i + 1, $close, $ok, "geometry block");
+        last;
+      }
+    }
   } else {
     finding("BAD", 0, "geometry", "There is no geometry block.");
   }
@@ -620,6 +790,17 @@ sub nwchem
   } else {
     finding("GOOD", 0, "sections", "Every block is closed by an 'end'.");
   }
+
+  #  NWChem spells these as a top-level `charge` directive and a
+  #  `mult` (or `nopen`) inside the method block, so they have to be
+  #  gathered before the arithmetic can be done.  Both have defaults,
+  #  and the defaults are what a deck means when it omits them.
+  my $charge = ($whole =~ /^\s*charge\s+(-?\d+)/mi) ? $1 : 0;
+  my $mult   = 1;
+  if    ($whole =~ /^\s*mult(?:iplicity)?\s+(\d+)/mi) { $mult = $1; }
+  elsif ($whole =~ /^\s*nopen\s+(\d+)/mi)             { $mult = $1 + 1; }
+  finding("GOOD", 0, "charge", "Charge $charge, multiplicity $mult.");
+  electronCount($charge, $mult, \@atomSymbols);
 
   if ($whole =~ /^\s*task\b/mi) {
     finding("GOOD", 0, "task", "A task directive is present.");
@@ -663,6 +844,19 @@ sub mopac
             "The keyword line is continued onto the next line, which " .
             "moves the geometry down; the layout was not checked.");
     return;
+  }
+
+  #  MOPAC puts both on the keyword line, the multiplicity as a word.
+  {
+    my $charge = ($L[0] =~ /\bCHARGE\s*=\s*(-?\d+)/i) ? $1 : 0;
+    my %words = (SINGLET => 1, DOUBLET => 2, TRIPLET => 3, QUARTET => 4,
+                 QUINTET => 5, SEXTET => 6, SEPTET => 7, OCTET => 8);
+    my $mult = 1;
+    foreach my $word (keys %words) {
+      if ($L[0] =~ /\b$word\b/i) { $mult = $words{$word}; last; }
+    }
+    finding("GOOD", 1, "charge", "Charge $charge, multiplicity $mult.");
+    electronCount($charge, $mult, \@atomSymbols);
   }
 
   if (scalar(@L) < 4) {

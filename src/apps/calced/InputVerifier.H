@@ -49,10 +49,11 @@ struct VerifyFinding
 
     Level  level;
     int    line;      ///< 1-based, or 0 when it is about the whole file
+    int    lineEnd;   ///< last line of the run, == line for a single one
     string check;     ///< short name of the check, e.g. "geometry"
     string message;
 
-    VerifyFinding() : level(GOOD), line(0) { }
+    VerifyFinding() : level(GOOD), line(0), lineEnd(0) { }
 };
 
 

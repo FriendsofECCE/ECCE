@@ -91,7 +91,16 @@ bool InputVerifier::run(const string& text,
     else if (level == "GOOD")   finding.level = VerifyFinding::GOOD;
     else continue;
 
-    finding.line    = atoi(line.substr(a + 1, b - a - 1).c_str());
+    //  "12" or "12-41": a range says which lines a check actually
+    //  covered, which is what lets the report show the extent of what
+    //  was examined rather than only where it went wrong.
+    const string where = line.substr(a + 1, b - a - 1);
+    const string::size_type dash = where.find('-');
+    finding.line = atoi(where.c_str());
+    finding.lineEnd = (dash == string::npos)
+                      ? finding.line
+                      : atoi(where.substr(dash + 1).c_str());
+    if (finding.lineEnd < finding.line) finding.lineEnd = finding.line;
     finding.check   = line.substr(b + 1, c - b - 1);
     finding.message = line.substr(c + 1);
     findings.push_back(finding);

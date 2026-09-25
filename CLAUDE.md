@@ -362,6 +362,23 @@ dialog showing the deck with the offending lines marked.
   every deck, so a paren rule written from intuition would have
   condemned the whole corpus. Compare only route-card findings with
   it; a broken basis block has a perfectly good route card.
+- **Check what is INSIDE a section, not only that it exists.** Every
+  rule was about section presence and closure until a hand-typed `s`
+  in an NWChem deck passed all of them (reported live 2026-09-25). A
+  geometry known to be Cartesian must have three coordinates on every
+  line; that one rule catches the whole stray-character class in
+  Gaussian, ORCA and NWChem at once.
+- **Charge/multiplicity/electron parity is the one "forbidden
+  combination" that needs no knowledge of any code** — it is
+  arithmetic on the deck, identical for all four, and every code
+  rejects a violation well into the run. Unknown element → say
+  nothing rather than accuse a good deck.
+- **A hand edit is the case the checker most needs to see and the one
+  it missed.** `processEditCompletion()` wrote Final Edit's result
+  back to DAV and nothing re-checked it. Also: the Verify button must
+  **not** `doSave()` first — that regenerates the input file and
+  silently destroys the user's hand edit, then reports the clean
+  regenerated deck as fine.
 - **A "row of primitives" check must be anchored.** Counting numbers
   found anywhere in the line accepts the *next shell's header*
   (`S   1  1.00` holds two numbers), so a shell declaring five

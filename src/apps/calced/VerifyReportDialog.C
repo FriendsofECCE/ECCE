@@ -16,6 +16,7 @@ using std::ostringstream;
 //  greyscale, which is the cheapest check for a colour-blind reader.
 static const wxColour BAD_BG    (255, 221, 221);
 static const wxColour UNSURE_BG (255, 241, 204);
+static const wxColour GOOD_BG   (223, 245, 223);
 static const wxColour BAD_FG    (160,   0,   0);
 static const wxColour UNSURE_FG (150,  90,   0);
 static const wxColour GOOD_FG   (  0, 110,   0);
@@ -144,16 +145,36 @@ void VerifyReportDialog::build(const string& codeName,
                    wxTE_DONTWRAP);
   text->SetFont(wxFont(wxFontInfo(10).Family(wxFONTFAMILY_TELETYPE)));
 
-  //  Which lines a finding points at, and at what level.  A line can be
-  //  named by more than one finding; the worst wins.
-  vector<VerifyFinding::Level> lineLevel;
+  //  Which lines each finding covers, and at what level.
+  //
+  //  Four states, not three, and the fourth is the important one: a
+  //  line NO check covered is shown as not-known, the same amber as
+  //  an explicit "unsure".  So the colours say how much of this file
+  //  the checker actually understands, instead of leaving everything
+  //  it never looked at indistinguishable from everything it
+  //  approved.  Green here means "this line was examined and is
+  //  right", never "nothing was found wrong with it".
+  //
+  //  A line may be covered by more than one finding; the worst wins.
+  const int UNKNOWN = -1;
+  const int OK      = 0;
+  const int UNSURE  = 1;
+  const int WRONG   = 2;
+
+  vector<int> lineLevel;
   for (size_t i = 0; i < findings.size(); i++) {
     if (findings[i].line <= 0) continue;
-    const size_t index = findings[i].line - 1;
-    if (lineLevel.size() <= index)
-      lineLevel.resize(index + 1, VerifyFinding::GOOD);
-    if (findings[i].level > lineLevel[index])
-      lineLevel[index] = findings[i].level;
+    const int last = (findings[i].lineEnd > 0) ? findings[i].lineEnd
+                                               : findings[i].line;
+    for (int line = findings[i].line; line <= last; line++) {
+      const size_t index = line - 1;
+      if (lineLevel.size() <= index)
+        lineLevel.resize(index + 1, UNKNOWN);
+      const int level = (findings[i].level == VerifyFinding::BAD)    ? WRONG :
+                        (findings[i].level == VerifyFinding::UNSURE) ? UNSURE
+                                                                     : OK;
+      if (level > lineLevel[index]) lineLevel[index] = level;
+    }
   }
 
   size_t start = 0;
@@ -178,25 +199,30 @@ void VerifyReportDialog::build(const string& codeName,
       }
     }
 
-    const VerifyFinding::Level level =
-      ((size_t)number < lineLevel.size()) ? lineLevel[number]
-                                          : VerifyFinding::GOOD;
+    int level = ((size_t)number < lineLevel.size()) ? lineLevel[number]
+                                                    : UNKNOWN;
+    //  A blank line belongs to whatever surrounds it and is never
+    //  interesting on its own; marking them amber would fill the
+    //  margin with noise about separators.
+    if (line.find_first_not_of(" \t\r") == string::npos && level == UNKNOWN)
+      level = OK;
 
     //  The margin mark, so the classification survives being printed,
     //  screenshotted in greyscale, or read by someone who does not see
     //  the wash behind it.
     char margin[16];
     snprintf(margin, sizeof(margin), "%s%4d  ",
-             (level == VerifyFinding::BAD)    ? ">>" :
-             (level == VerifyFinding::UNSURE) ? " ?" : "  ",
+             (level == WRONG)   ? ">>" :
+             (level == UNSURE)  ? " ?" :
+             (level == OK)      ? " +" : "  ",
              number + 1);
 
     const long from = text->GetLastPosition();
     text->AppendText(wxString((margin + shown + "\n").c_str(), wxConvUTF8));
-    if (level != VerifyFinding::GOOD) {
+    if (level != UNKNOWN) {
       wxTextAttr attr;
-      attr.SetBackgroundColour(level == VerifyFinding::BAD ? BAD_BG
-                                                           : UNSURE_BG);
+      attr.SetBackgroundColour(level == WRONG  ? BAD_BG :
+                               level == UNSURE ? UNSURE_BG : GOOD_BG);
       text->SetStyle(from, text->GetLastPosition(), attr);
     }
 
@@ -207,6 +233,13 @@ void VerifyReportDialog::build(const string& codeName,
   text->SetInsertionPoint(0);
 
   top->Add(text, 1, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, 8);
+
+  wxStaticText* key =
+    new wxStaticText(this, wxID_ANY,
+      "  +  checked and right        ?  could not be judged        "
+      ">>  wrong        (unmarked lines were not checked)");
+  key->SetFont(wxFont(wxFontInfo(9).Family(wxFONTFAMILY_TELETYPE)));
+  top->Add(key, 0, wxLEFT|wxRIGHT|wxBOTTOM, 8);
 
   wxSizer* buttons = CreateButtonSizer(wxOK);
   if (buttons)

@@ -98,6 +98,15 @@ CASES = [
     #  An element in the molecule with no basis anywhere.
     ("g16-element-no-basis.g16in",  "Gaussian-16",  3, [("BAD", "basis")]),
 
+    #  --- a stray character typed INSIDE a section --------------------
+    #  Reported live 2026-09-25: an "s" added by hand to an NWChem
+    #  deck, which stops it running. Every check before these asked
+    #  whether a section existed and where it ended; none of them
+    #  looked at what was in one, so all three passed without comment.
+    ("nwchem-stray-character.nw",   "NWChem",       0, [("BAD", "geometry")]),
+    ("g16-stray-character.g16in",   "Gaussian-16",  0, [("BAD", "geometry")]),
+    ("orca-stray-character.orcain", "ORCA",         0, [("BAD", "geometry")]),
+
     #  --- the other things that make a deck unrunnable ----------------
     ("g16-no-geometry.g16in",   "Gaussian-16",    0, [("BAD", "geometry")]),
     ("g16-no-route.g16in",      "Gaussian-16",    3, [("BAD", "route")]),
