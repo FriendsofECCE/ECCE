@@ -1185,7 +1185,14 @@ bool MoDiagram::hasMolecularPlane(const CharacterTable& table)
 
 bool MoDiagram::isPiIrrep(const CharacterTable& table, const string& irrep)
 {
-  const int which = molecularPlaneClass(table);
+  return isPiIrrep(table, irrep, molecularPlaneClass(table));
+}
+
+
+bool MoDiagram::isPiIrrep(const CharacterTable& table, const string& irrep,
+                          int planeClass)
+{
+  const int which = planeClass;
   if (which < 0) return false;
 
   //  MATCHED CANONICALLY, because the two spellings differ.

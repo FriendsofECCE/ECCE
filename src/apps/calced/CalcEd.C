@@ -1880,6 +1880,17 @@ void CalcEd::OnCheckboxCalcedUseSymmetryClick( wxCommandEvent& event )
 {
   wxWindow *box = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
   if (box != 0) storeUseSymmetry(((ewxCheckBox*)box)->IsChecked());
+
+  //  IT IS A CHANGE TO THE CALCULATION, so say so.
+  //
+  //  Without this the calculation was never marked modified, so no
+  //  Save appeared and there was no way to write the new input:
+  //  ticking the box changed the stored value and nothing else, and
+  //  "Regenerate input file" does not help because the editor does
+  //  not believe anything has changed. Every other control on this
+  //  panel does the same thing -- see the exponents checkbox.
+  enableSave();
+
   event.Skip();
 }
 

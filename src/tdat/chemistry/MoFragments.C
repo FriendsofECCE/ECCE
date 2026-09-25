@@ -977,6 +977,58 @@ static string formulaOf(const vector<int>& atoms,
 }
 
 
+
+int MoFragments::molecularPlaneClass(const vector<double>& coords,
+                                     const vector<string>& elements,
+                                     const string& group)
+{
+   if (elements.empty() || coords.size() != 3*elements.size()) return -1;
+
+   const CharacterTable *table = CharacterTable::lookup(group);
+   if (table == 0) return -1;
+
+   vector<SymOp> ops;
+   if (!symmetryOperations(group, ops)) return -1;
+   if ((int)ops.size() != table->order()) return -1;
+
+   vector< vector<int> > images;
+   if (!SymmetryAnalysis::atomImages(coords, elements, ops, 1.0e-3,
+                                     images)) {
+      return -1;
+   }
+
+   vector< vector<int> > classes;
+   vector<int> classOfOp;
+   SymmetryAnalysis::conjugacyClasses(ops, classes);
+   if (!SymmetryAnalysis::matchClasses(ops, classes, *table, classOfOp)) {
+      return -1;
+   }
+
+   //  A REFLECTION, told from its matrix rather than its name.
+   //
+   //  Every reflection has determinant -1 and trace +1; the identity,
+   //  which also fixes every atom, has determinant +1 and trace +3.
+   //  So the molecular plane is the operation that is a reflection
+   //  AND leaves every atom where it is -- which is only true of a
+   //  plane every atom lies in.
+   const int numAtoms = (int)elements.size();
+   for (size_t op = 0; op < images.size() && op < ops.size(); op++) {
+      if (ops[op].determinant() > 0.0) continue;            // not a mirror
+      if (fabs(ops[op].trace() - 1.0) > 1.0e-6) continue;   // an Sn, not a mirror
+
+      bool everyAtomFixed = true;
+      for (int a = 0; a < numAtoms && everyAtomFixed; a++) {
+         if (images[op][a] != a) everyAtomFixed = false;
+      }
+      if (!everyAtomFixed) continue;
+
+      if (op < classOfOp.size()) return classOfOp[op];
+   }
+
+   return -1;
+}
+
+
 /**
  * The molecule's chemical groups: a heavy atom and its hydrogens.
  *

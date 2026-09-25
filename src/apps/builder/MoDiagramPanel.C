@@ -669,8 +669,26 @@ void MoDiagramPanel::build()
   //  they are built would shift every one of them.
   {
     const CharacterTable *table = CharacterTable::lookup(group);
-    const bool canSeparate =
-        (table != 0) && MoDiagram::hasMolecularPlane(*table);
+
+    //  THE GEOMETRY FIRST, the table's naming only as a fallback.
+    //
+    //  Seven of the forty-six groups name a distinguished plane, so
+    //  asking the table alone left ethene and water -- both planar,
+    //  both with orbitals perpendicular to that plane -- unable to be
+    //  asked the question at all. A plane containing every atom is
+    //  the one reflection that leaves every atom where it is, which
+    //  needs no naming convention.
+    int planeClass = -1;
+    if (table != 0) {
+      planeClass = MoFragments::molecularPlaneClass(coords, elements, group);
+      if (planeClass < 0 && MoDiagram::hasMolecularPlane(*table)) {
+        //  Not planar, but the group names a plane: methanol's mirror
+        //  swaps two hydrogens rather than fixing them, and the
+        //  separation it defines is still a real one.
+        planeClass = -2;
+      }
+    }
+    const bool canSeparate = (table != 0) && (planeClass != -1);
 
     if (p_piOnly != 0 && p_piOnly->IsShown() != canSeparate) {
       p_piOnly->Show(canSeparate);
@@ -681,7 +699,10 @@ void MoDiagramPanel::build()
     if (canSeparate && p_piOnly != 0 && p_piOnly->GetValue()) {
       vector<MoLevel> kept;
       for (size_t i = 0; i < centre.levels.size(); i++) {
-        if (MoDiagram::isPiIrrep(*table, centre.levels[i].irrep)) {
+        const bool isPi = (planeClass >= 0)
+            ? MoDiagram::isPiIrrep(*table, centre.levels[i].irrep, planeClass)
+            : MoDiagram::isPiIrrep(*table, centre.levels[i].irrep);
+        if (isPi) {
           kept.push_back(centre.levels[i]);
         }
       }

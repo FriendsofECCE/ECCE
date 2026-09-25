@@ -511,6 +511,18 @@ class MoDiagram
      */
     static bool isPiIrrep(const CharacterTable& table, const string& irrep);
 
+    /**
+     * The same question against a plane the CALLER has identified.
+     *
+     * Most groups do not name a distinguished plane, so for ethene or
+     * water the molecular plane has to come from the geometry --
+     * MoFragments::molecularPlaneClass() finds it. Given that class,
+     * the test is unchanged: an irrep is pi when its character there
+     * is minus its dimension.
+     */
+    static bool isPiIrrep(const CharacterTable& table, const string& irrep,
+                          int planeClass);
+
     /** Does this group have a molecular plane to reflect in? */
     static bool hasMolecularPlane(const CharacterTable& table);
 

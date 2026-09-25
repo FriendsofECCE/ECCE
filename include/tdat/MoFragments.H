@@ -312,6 +312,27 @@ class MoFragments
                                 string& name);
 
     /**
+     * Which class of the group is reflection in the MOLECULAR plane.
+     *
+     * Found from the geometry, because most groups do not name it. A
+     * plane containing every atom is the one reflection that leaves
+     * every atom where it is -- so the test is simply which operation
+     * has every atom as its own image, and that needs no convention
+     * about axes at all.
+     *
+     * The character tables name a distinguished plane in seven groups
+     * out of forty-six, all of them Cnh or Dnh. D2h calls all three
+     * of its mirrors "s" and C2v has "sv" and "sv'", so ethene and
+     * water -- both planar, both with orbitals perpendicular to that
+     * plane -- could not be asked the question at all until this.
+     *
+     * @return the class index, or -1 if the molecule is not planar
+     */
+    static int molecularPlaneClass(const vector<double>& coords,
+                                   const vector<string>& elements,
+                                   const string& group);
+
+    /**
      * The molecule's chemical groups: a heavy atom and its hydrogens.
      *
      * The unit a chemist sees in a molecule with no central atom --
