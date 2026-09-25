@@ -339,15 +339,34 @@ button; the result is a lamp beside that button and, on a click, a
 dialog showing the deck with the offending lines marked.
 `tests/verify` covers both the script and the dialog's construction.
 - **It checks the SHAPE of a deck and must never check a keyword.**
-  Sections present, bytes readable, atom count matching, a `/GEN` or
-  `%basis` promise actually kept. This tree has been wrong about
-  keyword validity from reading manuals repeatedly (NWChem rejects its
-  own documented `disp grimme3`; ORCA takes `6-31++G**` and refuses
-  `6-31++G`; Gaussian wants `GD3BJ`, ECCE wrote `GD3-BJ`), and a
-  checker that calls a correct deck wrong is *worse than no checker* —
-  the user stops reading it, including when it is right. Anything not
-  decidable from the file is `UNSURE`, which is a real verdict, not a
-  weak `BAD`.
+  Per code: section order and the blank lines between them, Link 0
+  directives preceding the route, the title/charge/geometry positions,
+  block open/close (`* xyz`…`*`, `… end`, `&namelist`…`/`), and the
+  basis block — declared primitive counts matching what is listed, and
+  every element in the geometry actually covered. This tree has been
+  wrong about keyword *validity* from reading manuals repeatedly
+  (NWChem rejects its own documented `disp grimme3`; ORCA takes
+  `6-31++G**` and refuses `6-31++G`; Gaussian wants `GD3BJ`, ECCE
+  wrote `GD3-BJ`), and a checker that calls a correct deck wrong is
+  *worse than no checker* — the user stops reading it, including when
+  it is right. Anything not decidable from the file is `UNSURE`, which
+  is a real verdict, not a weak `BAD`.
+- **Gaussian ships `testrt`, its own route-card parser — use it in
+  `tests/verify`, never in the shipped script.** ECCE submits to
+  remote machines, so the checking client is the machine least likely
+  to have Gaussian installed; a check that degrades to UNSURE on most
+  installs is not a check (Andy, 2026-09-25). In the suite it is the
+  oracle the reverse-engineered route rules are validated against, and
+  it skips when absent. It rejects unbalanced parentheses and stray
+  characters, and **accepts `Freq=()`** — which ECCE emits on nearly
+  every deck, so a paren rule written from intuition would have
+  condemned the whole corpus. Compare only route-card findings with
+  it; a broken basis block has a perfectly good route card.
+- **A "row of primitives" check must be anchored.** Counting numbers
+  found anywhere in the line accepts the *next shell's header*
+  (`S   1  1.00` holds two numbers), so a shell declaring five
+  primitives and listing three read as complete. Found by the suite,
+  not by inspection.
 - Findings are `LEVEL|LINE|CHECK|MESSAGE` on stdout; exit 1 means at
   least one `BAD`. **`execout()` returns false on that exit status**,
   so `InputVerifier` deliberately ignores its return value and decides

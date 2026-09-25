@@ -73,9 +73,30 @@ CASES = [
                                                       ("GOOD", "positions")]),
 
     #  --- the two real failures ---------------------------------------
+    #  Three faults, not one: the binary bytes, the basis block they
+    #  destroyed, and the terminating blank line the file therefore
+    #  does not have.
     ("g16-garbled-basis.g16in", "Gaussian-16",    3, [("BAD", "readable"),
-                                                      ("BAD", "basis")]),
+                                                      ("BAD", "basis"),
+                                                      ("BAD", "sections")]),
     ("g16-gen-no-basis.g16in",  "Gaussian-16",    3, [("BAD", "basis")]),
+
+    #  --- deck structure: the sections and the spacing between them ---
+    ("g16-link0-after-route.g16in", "Gaussian-16",  3, [("BAD", "link0")]),
+    ("g16-no-final-blank.g16in",    "Gaussian-16",  3, [("BAD", "sections")]),
+    #  A route card Gaussian rejects outright. Validated against
+    #  Gaussian's own parser below, not against anyone's reading of
+    #  the manual.
+    ("g16-unbalanced-parens.g16in", "Gaussian-16",  3, [("BAD", "keywords")]),
+
+    #  --- the basis set being defined, and readable -------------------
+    #  A shell that declares five primitives and lists three. The
+    #  first version of this check passed it, because the NEXT shell's
+    #  header (" S   1  1.00") holds two numbers and was accepted as a
+    #  row of primitives.
+    ("g16-short-shell.g16in",       "Gaussian-16",  3, [("BAD", "basis")]),
+    #  An element in the molecule with no basis anywhere.
+    ("g16-element-no-basis.g16in",  "Gaussian-16",  3, [("BAD", "basis")]),
 
     #  --- the other things that make a deck unrunnable ----------------
     ("g16-no-geometry.g16in",   "Gaussian-16",    0, [("BAD", "geometry")]),
@@ -202,6 +223,109 @@ def dialog_smoke(verbose):
         xvfb.terminate()
 
 
+#  ---------------------------------------------------------------------
+#  The route-card rules, checked against Gaussian's own parser.
+#
+#  Gaussian ships `testrt`, which parses a route card exactly as the
+#  real program does and exits non-zero on anything it would reject.
+#  verifyinput deliberately does NOT call it -- ECCE submits to remote
+#  machines, so the client doing the checking is the machine least
+#  likely to have Gaussian on it, and a check that degrades to "unsure"
+#  on most installations is not a check.
+#
+#  It is used HERE instead, which is the right place for it: the rules
+#  in verifyinput are reverse-engineered, and this is what stops them
+#  drifting from what Gaussian actually does. Every route card the
+#  checker passes must be one Gaussian accepts, and the route card it
+#  rejects must be one Gaussian rejects.
+#
+#  This is also how the empty-parentheses trap was found. "Freq=()"
+#  looks like a mistake and ECCE emits it on nearly every deck --
+#  Gaussian accepts it. A rule written from intuition would have
+#  condemned the entire corpus.
+TESTRT_CANDIDATES = [
+    os.path.join(os.environ.get("GAUSS_EXEDIR", ""), "testrt"),
+    "/opt/gaussian/g16/testrt",
+    "/opt/gaussian/g09/testrt",
+    "/usr/local/g16/testrt",
+]
+
+
+def find_testrt():
+    for candidate in TESTRT_CANDIDATES:
+        if candidate and os.access(candidate, os.X_OK):
+            return candidate
+    return None
+
+
+def route_of(path):
+    """The route card: from the first '#' line to the next blank one."""
+    route, started = [], False
+    for line in open(path, errors="replace"):
+        line = line.rstrip("\n")
+        if not started and line.lstrip().startswith("#"):
+            started = True
+        if started:
+            if not line.strip():
+                break
+            route.append(line)
+    return route
+
+
+def testrt_agreement(verbose):
+    """Returns (ran, failures, checked)."""
+    testrt = find_testrt()
+    if not testrt:
+        return (False, 0, 0)
+
+    import tempfile
+    failures, checked = 0, 0
+    work = tempfile.mkdtemp(prefix="ecce-testrt")
+
+    for fixture, code, _atoms, expected in CASES:
+        if not code.startswith("Gaussian"):
+            continue
+        path = os.path.join(FIXTURES, fixture)
+        route = route_of(path)
+        if not route:
+            continue
+
+        p = subprocess.run([testrt], input="\n".join(route) + "\n\n",
+                           capture_output=True, text=True, cwd=work,
+                           timeout=60)
+        accepted = (p.returncode == 0 and "QPErr" not in p.stdout)
+
+        #  testrt can only speak about the ROUTE CARD, so only the
+        #  checker's route-card findings may be compared with it. A
+        #  deck with a broken basis block has a perfectly good route
+        #  card, and testrt accepting it says nothing about the deck.
+        #
+        #  Which rule reached the verdict does not have to match: a
+        #  %-directive inside the route card is a Link 0 fault here
+        #  and a syntax error to Gaussian, and those are the same
+        #  finding about the same lines.
+        _rc, findings = run(fixture, code, 0)
+        weExpectBad = any(level == "BAD" and check in ("keywords", "link0",
+                                                       "route")
+                          for level, check, _message in findings)
+        checked += 1
+
+        if weExpectBad and accepted:
+            print("FAIL  testrt accepts a route card we call wrong: %s"
+                  % fixture)
+            failures += 1
+        elif not weExpectBad and not accepted:
+            print("FAIL  testrt rejects a route card we pass: %s" % fixture)
+            if verbose:
+                print(p.stdout[-600:])
+            failures += 1
+        elif verbose:
+            print("      testrt %s %s"
+                  % ("accepts" if accepted else "rejects", fixture))
+
+    return (True, failures, checked)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -245,6 +369,16 @@ def main():
             if args.verbose:
                 for level, check, message in findings:
                     print("      %-7s %-10s %s" % (level, check, message))
+
+    ran, oracleFailures, checked = testrt_agreement(args.verbose)
+    if not ran:
+        print("SKIP  route cards against Gaussian's own parser "
+              "(no testrt on this machine)")
+    elif oracleFailures:
+        failures += oracleFailures
+    else:
+        print("ok    %d route cards agree with Gaussian's own parser"
+              % checked)
 
     ran, ok, reason = dialog_smoke(args.verbose)
     if not ran:

@@ -135,48 +135,620 @@ if (!$atoms && $whole_early =~ /geom\s*=\s*\(?[^)\n]*check/i) {
   finding("GOOD", $firstAtom, "geometry", "$atoms atoms.");
 }
 
-#  ------------------------------------------------- what each code needs
+#  ------------------------------------------- what each code needs
 #
-#  Shape only, from the codes' own documentation and from the templates
-#  in this directory.  Each entry: a name, a pattern that must appear,
-#  and what to say when it does not.
-my %required = (
-  "Gaussian-16" => [
-    ["route",    qr/^\s*#/m,             "There is no route card: no line begins with '#'. Gaussian will not know what to run."],
-    ["charge",   qr/^\s*-?\d+\s+\d+\s*(!.*)?$/m, "There is no charge and multiplicity line."],
-  ],
-  "ORCA" => [
-    ["route",    qr/^\s*!/m,             "There is no '!' keyword line. ORCA will not know what to run."],
-    ["geomblock",qr/^\s*\*\s*(xyz|xyzfile|int)/mi, "There is no '* xyz' block opening the geometry."],
-  ],
-  "NWChem" => [
-    ["geometry", qr/^\s*geometry\b/mi,   "There is no geometry block."],
-    ["task",     qr/^\s*task\b/mi,       "There is no task directive, so NWChem will read the file and do nothing."],
-  ],
-  "MOPAC" => [
-    ["keywords", qr/\S/,                 "The keyword line is empty."],
-  ],
-  "QuantumESPRESSO" => [
-    ["control",  qr/^\s*&control/mi,     "There is no &CONTROL namelist."],
-    ["system",   qr/^\s*&system/mi,      "There is no &SYSTEM namelist."],
-    ["positions",qr/^\s*ATOMIC_POSITIONS/mi, "There is no ATOMIC_POSITIONS block."],
-  ],
-);
-$required{"Gaussian-09"} = $required{"Gaussian-16"};
-$required{"Gaussian-03"} = $required{"Gaussian-16"};
+#  Everything below is about the SHAPE of a deck -- which sections
+#  exist, where each one ends, and whether what one section promises
+#  another section delivers.  None of it judges a keyword.
+#
+#  A NOTE ON WHY NOT, because the temptation recurs.  Gaussian ships
+#  `testrt`, its own route-card parser, which rejects exactly what the
+#  real program rejects -- including the GD3BJ/GD3-BJ spelling that
+#  cost a job in September 2026.  It is deliberately NOT called from
+#  here: ECCE submits to remote machines, so the client doing the
+#  checking is precisely where Gaussian is least likely to be
+#  installed, and a check that degrades to "unsure" on most
+#  installations is not a check.  It is used in tests/verify instead,
+#  as the oracle the rules below are validated against -- so a rule
+#  here is never merely somebody's reading of a manual.  Add rules
+#  that way too.
 
 my $whole = join("", @lines);
+my @stripped = map { my $line = $_; chomp($line); $line } @lines;
 
-if (exists($required{$code})) {
-  foreach my $rule (@{$required{$code}}) {
-    my ($name, $pattern, $complaint) = @$rule;
-    if ($whole =~ $pattern) {
-      finding("GOOD", 0, $name, "Present.");
-    } else {
-      finding("BAD", 0, $name, $complaint);
+#  Which elements the molecule actually contains, for the checks that
+#  ask whether every one of them has been given a basis set.
+my %seen;
+my @elements;
+for my $i (0 .. $#stripped) {
+  if ($stripped[$i] =~ /^\s*([A-Z][a-z]?)\d*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
+    my $element = ucfirst(lc($1));
+    next if (exists($seen{$element}));
+    $seen{$element} = 1;
+    push(@elements, $element);
+  }
+}
+
+
+#  Parentheses that do not balance.
+#
+#  Confirmed against Gaussian's own parser rather than assumed: an
+#  unclosed '(' and an unopened ')' are both rejected outright, while
+#  EMPTY parentheses are accepted -- which matters, because ECCE emits
+#  "Freq=()" on nearly every deck and a rule written from intuition
+#  would have condemned every one of them.  This is also the shape of
+#  a real ECCE bug: a theory dialog once offered "MPW1PBE (hybrid"
+#  with the closing parenthesis missing.
+sub balanced
+{
+  my ($text) = @_;
+  my $depth = 0;
+  foreach my $character (split(//, $text)) {
+    $depth++ if ($character eq "(");
+    $depth-- if ($character eq ")");
+    return 0 if ($depth < 0);
+  }
+  return ($depth == 0);
+}
+
+
+#  ====================================================================
+#  Gaussian
+#
+#  A Gaussian deck is positional and blank-line delimited:
+#
+#      %-directives (Link 0)     optional, must precede the route
+#      # route card              one or more lines
+#      <blank>
+#      title                     one or more lines
+#      <blank>
+#      charge multiplicity
+#      molecule specification
+#      <blank>
+#      further sections          Gen basis, ECP, ModRedundant, ...
+#      <blank>                   the file must end with one
+#
+#  Get a blank line wrong and Gaussian reads the title as part of the
+#  route, or the charge line as part of the title, and then complains
+#  about something that names neither.
+#  ====================================================================
+sub gaussian
+{
+  my @L = @stripped;
+
+  my $fromCheck = ($whole =~ /geom\s*=\s*\(?[^)\n]*check/i);
+  my $allCheck  = ($whole =~ /geom\s*=\s*\(?[^)\n]*allcheck/i);
+
+  #  --------------------------------------------------- the route card
+  my $routeAt = -1;
+  for my $i (0 .. $#L) {
+    if ($L[$i] =~ /^\s*#/) { $routeAt = $i; last; }
+  }
+  if ($routeAt < 0) {
+    finding("BAD", 0, "route",
+            "There is no route card: no line begins with '#'. Gaussian " .
+            "will not know what to run.");
+    return;
+  }
+
+  my $routeEnd = $#L + 1;
+  for my $i ($routeAt .. $#L) {
+    if ($L[$i] =~ /^\s*$/) { $routeEnd = $i; last; }
+  }
+  my $last = ($routeEnd <= $#L) ? $routeEnd - 1 : $#L;
+  my $route = join(" ", @L[$routeAt .. $last]);
+  finding("GOOD", $routeAt + 1, "route", "The route card is present.");
+
+  if (!balanced($route)) {
+    finding("BAD", $routeAt + 1, "keywords",
+            "The parentheses on the route card do not balance. " .
+            "Gaussian rejects the entire route card when they do not, " .
+            "so nothing on it takes effect.");
+  }
+
+  #  ---------------------------------------------------------- Link 0
+  my @late;
+  for my $i ($routeAt + 1 .. $#L) {
+    push(@late, $i + 1) if ($L[$i] =~ /^\s*%[A-Za-z]/);
+  }
+  if (@late) {
+    finding("BAD", $late[0], "link0",
+            "A %-directive appears after the route card. Link 0 " .
+            "directives (%mem, %chk, %nprocshared) must come before " .
+            "the '#' line, or Gaussian will not act on them.");
+  }
+
+  #  Reported, not judged: how much memory or how many processors a
+  #  job should ask for is the user's business and the queue's.
+  my @got;
+  push(@got, "memory")            if ($whole =~ /^\s*%mem\s*=/mi);
+  push(@got, "processors")        if ($whole =~ /^\s*%(nprocshared|cpu)\s*=/mi);
+  push(@got, "a checkpoint file") if ($whole =~ /^\s*%chk\s*=/mi);
+  if (@got) {
+    finding("GOOD", 0, "link0", "Link 0 asks for " . join(", ", @got) . ".");
+  } else {
+    finding("UNSURE", 0, "link0",
+            "There are no Link 0 directives at all -- no %mem, no " .
+            "%nprocshared, no %chk. Gaussian will use its own " .
+            "defaults, which on a shared machine is usually not what " .
+            "you want.");
+  }
+  if ($fromCheck && $whole !~ /^\s*%chk\s*=/mi) {
+    finding("BAD", 0, "link0",
+            "The route card reads from a checkpoint file, but no %chk " .
+            "says which one.");
+  }
+
+  #  ------------------------------------------------- section spacing
+  if ($routeEnd > $#L) {
+    finding("BAD", $routeAt + 1, "sections",
+            "There is no blank line after the route card. Gaussian " .
+            "reads the route until a blank line, so it will run the " .
+            "title into it.");
+    return;
+  }
+  finding("GOOD", 0, "sections",
+          "The route card is closed by a blank line.");
+
+  if ($allCheck) {
+    finding("UNSURE", 0, "sections",
+            "The route says Geom=AllCheck, so the title, charge and " .
+            "geometry come from the checkpoint file rather than from " .
+            "here. What that file holds cannot be judged from this deck.");
+    return;
+  }
+
+  my $titleAt = $routeEnd + 1;
+  if ($titleAt > $#L || $L[$titleAt] =~ /^\s*$/) {
+    finding("BAD", $titleAt + 1, "title",
+            "The title section is empty. Gaussian requires a title " .
+            "between the route card and the charge line.");
+    return;
+  }
+  my $titleEnd = $#L + 1;
+  for my $i ($titleAt .. $#L) {
+    if ($L[$i] =~ /^\s*$/) { $titleEnd = $i; last; }
+  }
+  if ($titleEnd > $#L) {
+    finding("BAD", $titleAt + 1, "sections",
+            "There is no blank line after the title, so Gaussian will " .
+            "read the charge line as part of it.");
+    return;
+  }
+  finding("GOOD", $titleAt + 1, "title", "A title is present and closed.");
+
+  my $chargeAt = $titleEnd + 1;
+  if ($chargeAt > $#L || $L[$chargeAt] !~ /^\s*-?\d+\s+-?\d+\s*(!.*)?$/) {
+    finding("BAD", ($chargeAt <= $#L ? $chargeAt + 1 : 0), "charge",
+            "The line after the title is not a charge and multiplicity " .
+            "pair. Gaussian expects two integers there.");
+    return;
+  }
+  my ($charge, $mult) = ($L[$chargeAt] =~ /^\s*(-?\d+)\s+(-?\d+)/);
+  finding("GOOD", $chargeAt + 1, "charge",
+          "Charge $charge, multiplicity $mult.");
+
+  my $geomEnd = $#L + 1;
+  for my $i ($chargeAt + 1 .. $#L) {
+    if ($L[$i] =~ /^\s*$/) { $geomEnd = $i; last; }
+  }
+  if ($geomEnd > $#L) {
+    finding("BAD", $chargeAt + 2, "sections",
+            "The molecule specification is not followed by a blank " .
+            "line. Gaussian needs one to know it has ended.");
+  } else {
+    finding("GOOD", 0, "sections",
+            "The molecule specification is closed by a blank line.");
+  }
+
+  if ($L[$#L] !~ /^\s*$/) {
+    finding("BAD", $#L + 1, "sections",
+            "The file does not end with a blank line, which Gaussian " .
+            "requires.");
+  }
+
+  gaussianBasis();
+}
+
+
+#  ------------------------------------------------- the Gen basis set
+#
+#  "/GEN" on the route card means the basis follows in this file, so
+#  everything about it can be checked from the file alone: that the
+#  block exists, that it is built the way Gaussian's basis reader
+#  expects, that each shell lists as many primitives as it declares,
+#  and that every element in the molecule is covered by one.
+#
+#  This is the check #146 needed.  A basis block that came out as six
+#  bytes of binary was read by Gaussian as an atomic symbol, and the
+#  job died with a segmentation violation -- after reaching a queue.
+sub gaussianBasis
+{
+  my @L = @stripped;
+  return unless ($whole =~ m{/gen\b}i);
+
+  #  The first element group header: names, then a terminating zero.
+  my $start = -1;
+  for my $i (0 .. $#L) {
+    if ($L[$i] =~ /^\s*([A-Za-z]{1,2}\d*|-?\d+)(\s+([A-Za-z]{1,2}\d*|-?\d+))*\s+0\s*$/) {
+      $start = $i;
+      last;
     }
   }
-} elsif ($code ne "") {
+  if ($start < 0) {
+    finding("BAD", 0, "basis",
+            "The route card says /GEN, which means the basis set is " .
+            "given in this file, but no basis block was found.");
+    return;
+  }
+
+  my %covered;
+  my ($groups, $shells, $named, $byNumber) = (0, 0, 0, 0);
+  my $i = $start;
+
+  while ($i <= $#L) {
+    if ($L[$i] =~ /^\s*$/) { last if ($groups); $i++; next; }
+
+    #  An element group header.
+    if ($L[$i] =~ /^\s*(.+?)\s+0\s*$/) {
+      my $names = $1;
+      foreach my $token (split(/\s+/, $names)) {
+        #  A bare number is a centre index rather than an element.
+        #  Legal, and it simply cannot be cross-checked against the
+        #  geometry -- so note that and claim no coverage from it.
+        if ($token =~ /^-?\d+$/) { $byNumber++; next; }
+        $token =~ s/^-//;
+        $covered{ucfirst(lc($token))} = 1;
+      }
+      $groups++;
+      $i++;
+
+      my $closed = 0;
+      while ($i <= $#L) {
+        if ($L[$i] =~ /^\s*\*{4,}\s*$/) { $closed = 1; $i++; last; }
+
+        #  A shell: angular momentum, a primitive count, a scale
+        #  factor -- then exactly that many lines of primitives.
+        if ($L[$i] =~ /^\s*(SP|S|P|D|F|G|H|I)\s+(\d+)\s+$NUM\s*$/i) {
+          my ($type, $count) = (uc($1), $2);
+          $shells++;
+          my $wanted = ($type eq "SP") ? 3 : 2;
+          for my $k (1 .. $count) {
+            $i++;
+            if ($i > $#L) {
+              finding("BAD", $i, "basis",
+                      "The basis block stops in the middle of a shell: " .
+                      "the $type shell declares $count primitives and " .
+                      "the file runs out before they are all given.");
+              return;
+            }
+            #  ANCHORED, and nothing but numbers.  Merely counting
+            #  numbers found anywhere in the line accepts the NEXT
+            #  SHELL's header as a primitive -- " S   1  1.00" holds
+            #  two numbers -- so a shell that declares five primitives
+            #  and lists three was read as complete, which is exactly
+            #  the truncation this check exists to catch.
+            my @numbers = ($L[$i] =~ /^\s*($NUM)(?:\s+($NUM))*\s*$/);
+            @numbers = grep { defined($_) } @numbers;
+            my @all = ($L[$i] =~ /($NUM)/g);
+            if (!@numbers || scalar(@all) < $wanted) {
+              finding("BAD", $i + 1, "basis",
+                      "This should be primitive $k of $count for the " .
+                      "$type shell above it, and it is not a row of " .
+                      "$wanted numbers. The shell declares more " .
+                      "primitives than it lists.");
+              return;
+            }
+          }
+          $i++;
+          next;
+        }
+
+        #  Naming a basis the code ships is legal here and needs no
+        #  primitives at all.
+        if ($L[$i] =~ /^\s*\S+\s*$/) { $named++; $i++; next; }
+
+        finding("BAD", $i + 1, "basis",
+                "This line is inside the basis block but is neither a " .
+                "shell (like 'S 3 1.00'), nor a basis name, nor the " .
+                "'****' separator that ends an element group.");
+        return;
+      }
+
+      if (!$closed) {
+        finding("BAD", ($i <= $#L ? $i : $#L + 1), "basis",
+                "A basis group is never closed by a '****' separator.");
+        return;
+      }
+      next;
+    }
+
+    last;
+  }
+
+  #  Every element in the molecule needs a basis, or Gaussian stops
+  #  with a message that names no element.
+  my @missing;
+  foreach my $element (@elements) {
+    push(@missing, $element) unless (exists($covered{$element}));
+  }
+
+  if (@missing && !$byNumber) {
+    finding("BAD", $start + 1, "basis",
+            "The basis block covers " . join(", ", sort keys %covered) .
+            ", but the molecule also contains " . join(", ", @missing) .
+            ". Every element needs a basis set.");
+    return;
+  }
+
+  my $what = "$groups element group" . ($groups == 1 ? "" : "s");
+  $what .= ", $shells shell" . ($shells == 1 ? "" : "s") if ($shells);
+  $what .= ", $named named" if ($named);
+  finding("GOOD", $start + 1, "basis",
+          "The Gen basis block is complete and readable: $what.");
+  if ($byNumber) {
+    finding("UNSURE", $start + 1, "basis",
+            "Some basis groups name centres by number rather than by " .
+            "element, so whether every atom is covered could not be " .
+            "checked.");
+  }
+}
+
+
+#  ====================================================================
+#  ORCA
+#
+#      ! keyword line
+#      %block ... end            or a one-line %keyword value
+#      * xyz <charge> <mult>
+#        geometry
+#      *
+#
+#  The geometry block's closing '*' is the thing worth checking: ORCA
+#  reads to the end of the file looking for it and reports the failure
+#  in terms of whatever it last managed to parse.
+#  ====================================================================
+sub orca
+{
+  my @L = @stripped;
+
+  my $bang = 0;
+  for my $i (0 .. $#L) { $bang = $i + 1 if (!$bang && $L[$i] =~ /^\s*!/); }
+  if ($bang) {
+    finding("GOOD", $bang, "route", "The '!' keyword line is present.");
+  } else {
+    finding("BAD", 0, "route",
+            "There is no '!' keyword line. ORCA will not know what to " .
+            "run.");
+  }
+
+  #  The geometry block.
+  my $openAt = -1;
+  my $isFile = 0;
+  for my $i (0 .. $#L) {
+    if ($L[$i] =~ /^\s*\*\s*(xyzfile|xyz|int|gzmt)\b/i) {
+      $openAt = $i;
+      $isFile = ($1 =~ /^xyzfile$/i);
+      last;
+    }
+  }
+
+  if ($openAt < 0) {
+    finding("BAD", 0, "geomblock",
+            "There is no '* xyz' line opening the geometry.");
+    return;
+  }
+
+  #  Charge and multiplicity live on that same line.
+  if ($L[$openAt] =~ /^\s*\*\s*\w+\s+(-?\d+)\s+(\d+)/) {
+    finding("GOOD", $openAt + 1, "charge",
+            "Charge $1, multiplicity $2.");
+  } else {
+    finding("BAD", $openAt + 1, "charge",
+            "The '* xyz' line does not carry a charge and a " .
+            "multiplicity, which ORCA expects on it.");
+  }
+
+  if ($isFile) {
+    finding("UNSURE", $openAt + 1, "geomblock",
+            "The geometry is read from a separate .xyz file, so it " .
+            "could not be checked from here.");
+    return;
+  }
+
+  my $closed = 0;
+  for my $i ($openAt + 1 .. $#L) {
+    if ($L[$i] =~ /^\s*\*\s*$/) { $closed = $i + 1; last; }
+  }
+  if ($closed) {
+    finding("GOOD", $closed, "geomblock",
+            "The geometry block is closed by a '*'.");
+  } else {
+    finding("BAD", $openAt + 1, "geomblock",
+            "The geometry block opened here is never closed by a line " .
+            "holding a single '*'.");
+  }
+}
+
+
+#  ====================================================================
+#  NWChem
+#
+#  Block structured: `geometry ... end`, `basis ... end`, `dft ... end`,
+#  and a `task` directive that actually asks for something to be done.
+#  A deck with no task is read in full and then does nothing at all,
+#  which looks like a silent failure and is not one.
+#  ====================================================================
+sub nwchem
+{
+  my @L = @stripped;
+
+  my %blocks;
+  my @unclosed;
+  my $depth = 0;
+  my $openedAt = 0;
+  my $openName = "";
+
+  for my $i (0 .. $#L) {
+    my $line = $L[$i];
+    next if ($line =~ /^\s*#/);
+
+    if (!$depth &&
+        $line =~ /^\s*(geometry|basis|dft|scf|mp2|ccsd|tce|property|cosmo|driver|md|set|constraints|ecp|relativistic)\b/i) {
+      #  A one-line `set` directive opens nothing.
+      next if ($line =~ /^\s*set\b/i);
+      $depth = 1;
+      $openedAt = $i + 1;
+      $openName = lc($1);
+      $blocks{$openName} = 1;
+      next;
+    }
+    if ($depth && $line =~ /^\s*end\s*$/i) { $depth = 0; next; }
+  }
+  push(@unclosed, "$openName (line $openedAt)") if ($depth);
+
+  if (exists($blocks{"geometry"})) {
+    finding("GOOD", 0, "geometry", "A geometry block is present.");
+  } else {
+    finding("BAD", 0, "geometry", "There is no geometry block.");
+  }
+
+  if (@unclosed) {
+    finding("BAD", $openedAt, "sections",
+            "The $openName block is never closed by an 'end'. NWChem " .
+            "reads to the end of the file looking for it.");
+  } else {
+    finding("GOOD", 0, "sections", "Every block is closed by an 'end'.");
+  }
+
+  if ($whole =~ /^\s*task\b/mi) {
+    finding("GOOD", 0, "task", "A task directive is present.");
+  } else {
+    finding("BAD", 0, "task",
+            "There is no task directive, so NWChem will read this file " .
+            "and then do nothing.");
+  }
+}
+
+
+#  ====================================================================
+#  MOPAC
+#
+#  Strictly positional, and the positions are the whole format:
+#
+#      line 1    keywords
+#      line 2    a description
+#      line 3    a second comment line
+#      line 4+   the geometry
+#
+#  There are no blank-line delimiters to get wrong, which makes the
+#  one thing that can go wrong -- the geometry starting on the wrong
+#  line -- worth stating plainly.  A keyword line continued with '+'
+#  or '&' shifts everything down, so that case is not judged.
+#  ====================================================================
+sub mopac
+{
+  my @L = @stripped;
+
+  if (!@L || $L[0] !~ /\S/) {
+    finding("BAD", 1, "keywords",
+            "The first line is empty. MOPAC reads its keywords from " .
+            "it, so the job has no instructions.");
+    return;
+  }
+  finding("GOOD", 1, "keywords", "A keyword line is present.");
+
+  if ($L[0] =~ /[+&]\s*$/) {
+    finding("UNSURE", 1, "sections",
+            "The keyword line is continued onto the next line, which " .
+            "moves the geometry down; the layout was not checked.");
+    return;
+  }
+
+  if (scalar(@L) < 4) {
+    finding("BAD", scalar(@L), "sections",
+            "A MOPAC deck needs a keyword line, two comment lines and " .
+            "then the geometry; this file has only " . scalar(@L) .
+            " lines.");
+    return;
+  }
+
+  #  The geometry must begin on line 4, not before it: a comment line
+  #  that looks like an atom is read as one.
+  if ($L[3] =~ /^\s*([A-Z][a-z]?)\d*\s+$NUM/) {
+    finding("GOOD", 4, "sections",
+            "The keyword line, two comment lines and then the geometry.");
+  } else {
+    finding("BAD", 4, "sections",
+            "Line 4 should be the first atom of the geometry -- MOPAC " .
+            "expects keywords, two comment lines, then atoms -- and it " .
+            "does not look like one.");
+  }
+}
+
+
+#  ====================================================================
+#  Quantum ESPRESSO
+#
+#  Fortran namelists, each opened with & and closed with a '/' on a
+#  line of its own, then card blocks.  Checked more lightly than the
+#  rest: QE support here is experimental, and these rules come from
+#  documentation rather than from decks that have been run, which is
+#  the weakest evidence this checker uses anywhere.
+#  ====================================================================
+sub espresso
+{
+  my @L = @stripped;
+
+  foreach my $required (["control", "&CONTROL"],
+                        ["system",  "&SYSTEM"],
+                        ["electrons", "&ELECTRONS"]) {
+    my ($name, $shown) = @$required;
+    if ($whole =~ /^\s*&$name\b/mi) {
+      finding("GOOD", 0, $name, "The $shown namelist is present.");
+    } else {
+      finding("BAD", 0, $name, "There is no $shown namelist.");
+    }
+  }
+
+  #  Every namelist opened must be closed by a bare '/'.
+  my $open = 0;
+  my $openAt = 0;
+  for my $i (0 .. $#L) {
+    if ($L[$i] =~ /^\s*&\w+/)      { $open++; $openAt = $i + 1; next; }
+    if ($L[$i] =~ /^\s*\/\s*$/)    { $open--; next; }
+  }
+  if ($open > 0) {
+    finding("BAD", $openAt, "sections",
+            "A namelist opened here is never closed by a '/' on a line " .
+            "of its own.");
+  } elsif ($open == 0) {
+    finding("GOOD", 0, "sections", "Every namelist is closed by a '/'.");
+  }
+
+  if ($whole =~ /^\s*ATOMIC_POSITIONS/mi) {
+    finding("GOOD", 0, "positions", "An ATOMIC_POSITIONS block is present.");
+  } else {
+    finding("BAD", 0, "positions", "There is no ATOMIC_POSITIONS block.");
+  }
+
+  if ($whole =~ /^\s*ATOMIC_SPECIES/mi) {
+    finding("GOOD", 0, "species", "An ATOMIC_SPECIES block is present.");
+  } else {
+    finding("BAD", 0, "species",
+            "There is no ATOMIC_SPECIES block, so no pseudopotential is " .
+            "named for any element.");
+  }
+}
+
+
+#  ------------------------------------------------------- which code
+if    ($code =~ /^Gaussian/)          { gaussian();  }
+elsif ($code eq "ORCA")               { orca();      }
+elsif ($code eq "NWChem")             { nwchem();    }
+elsif ($code eq "MOPAC")              { mopac();     }
+elsif ($code eq "QuantumESPRESSO")    { espresso();  }
+elsif ($code ne "") {
   finding("UNSURE", 0, "code",
           "There are no structural checks for $code yet, so only the " .
           "code-independent ones above were applied.");
@@ -184,33 +756,6 @@ if (exists($required{$code})) {
   finding("UNSURE", 0, "code",
           "No code was named, so only the code-independent checks above " .
           "were applied.");
-}
-
-#  ------------------------------------------- a basis that is not there
-#
-#  Gaussian's /GEN and ORCA's %basis both mean "the basis follows in
-#  this file".  When the basis translator fails, the section is empty
-#  and the deck says it is about to provide something it does not --
-#  which is exactly the ORCA deck seen in #146.
-if ($code =~ /^Gaussian/ && $whole =~ m{/gen\b}i) {
-  #  A Gen basis has element lines followed by shells; the cheapest
-  #  reliable tell is a '****' separator, which every Gen block has.
-  if ($whole =~ /^\s*\*\*\*\*\s*$/m) {
-    finding("GOOD", 0, "basis", "A Gen basis block is present.");
-  } else {
-    finding("BAD", 0, "basis",
-            "The route card says /GEN, which means the basis set is " .
-            "given in this file, but no basis block was found.");
-  }
-}
-if ($code eq "ORCA" && $whole =~ /^\s*%basis/mi) {
-  if ($whole =~ /^\s*newgto\b/mi) {
-    finding("GOOD", 0, "basis", "A %basis block is present.");
-  } else {
-    finding("UNSURE", 0, "basis",
-            "There is a %basis block but no NewGTO in it. That may be " .
-            "deliberate; it is also what an empty translation looks like.");
-  }
 }
 
 print "$_\n" foreach (@findings);
