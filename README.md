@@ -17,10 +17,14 @@ application itself back to life.
 ## General features
 
 * **Build molecular models**, or import a structure and work from that.
-* **Set up calculations for a range of codes** through one interface —
-  NWChem, Gaussian 16 and 09, ORCA, MOPAC and Quantum ESPRESSO are
-  supported, and further codes can be registered without changing ECCE
+* **Set up calculations through one interface.** **NWChem, Gaussian 16
+  and 09, ORCA and MOPAC are supported** — set up, submitted, monitored
+  and parsed back. Further codes can be registered without changing ECCE
   itself.
+* **Quantum ESPRESSO is partial, experimental and entirely untested.**
+  It is present and it is not finished: treat anything it produces as
+  unverified, and check the input deck before running it. The same
+  applies to GROMACS.
 * **Choose basis sets graphically**, with the code's own built-in sets
   used where they match.
 * **Submit to workstations, clusters and supercomputers**, through PBS,
@@ -182,8 +186,10 @@ being worked on rather than a schedule. Current work is tracked in the
 
 **Next**
 
-* **GROMACS and Quantum ESPRESSO** are partially integrated and need
-  finishing.
+* **Finishing Quantum ESPRESSO and GROMACS.** Both are partially
+  integrated and neither has been tested against real jobs. Quantum
+  ESPRESSO in particular should be treated as experimental until it
+  has been run end to end and its output verified.
 * **HTCondor**, which needs a different submission model rather than
   another set of submit directives.
 * **A tested central-server deployment.** The client/server path is
