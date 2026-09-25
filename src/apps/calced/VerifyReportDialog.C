@@ -177,9 +177,17 @@ void VerifyReportDialog::build(const string& codeName,
     }
   }
 
+  //  A file ending in a newline has no further line after it. Walking
+  //  to deck.size() inclusive invented one, so a deck that genuinely
+  //  lacked its terminating blank line was SHOWN one -- directly
+  //  contradicting the finding printed above it, which is the fastest
+  //  way to make a reader stop believing the report.
+  size_t limit = deck.size();
+  if (limit > 0 && deck[limit - 1] == '\n') limit--;
+
   size_t start = 0;
   int number = 0;
-  while (start <= deck.size()) {
+  while (start <= limit) {
     const size_t end = deck.find('\n', start);
     string line = deck.substr(start, (end == string::npos)
                                      ? string::npos : end - start);

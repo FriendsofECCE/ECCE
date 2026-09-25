@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <sstream>
+using std::ostringstream;
+
 #include "util/StringConverter.H"
 #include "util/STLUtil.H"
 
@@ -514,24 +517,35 @@ bool StringConverter::validateRange(const bool& float_flag,
   return ret;
 }
 
+/**
+ * The stream's text, exactly as it is.
+ *
+ * THIS USED TO DROP THE FILE'S LAST NEWLINE.  It appended one after
+ * each line only when the stream was not yet at EOF, so a file ending
+ * in a blank line came back without it -- and a 255-character line
+ * came back split in two.
+ *
+ * That is not cosmetic for the callers of this function, which read a
+ * file in so a person can edit it and then write the result back.
+ * CalcEd's Final Edit does exactly that with a Gaussian input deck,
+ * and a Gaussian deck MUST end with a blank line: without it the job
+ * dies with "End of file in ZSymb" (confirmed against Gaussian 16,
+ * exit 1). So editing a perfectly good deck and saving it broke the
+ * calculation, and the input checker -- reading the same way -- then
+ * reported a fault in a file that did not have one.
+ *
+ * Copy the stream verbatim instead. Nothing here should be deciding
+ * what a file's last character ought to be.
+ */
 bool StringConverter::streamToText(istream& is, string& text)
 {
-  bool ret = false;
+  if (!is) return false;
 
-  if (is) {
-    char buf[256];
-    if (is.getline(buf,255)) {
-      ret = true;
-      text = buf;
-      if (is.peek() != EOF) text.append("\n");
-    }
-    while (is.getline(buf,255)) {
-      text += buf;
-      if (is.peek() != EOF) text.append("\n");
-    }
-  }
+  ostringstream all;
+  all << is.rdbuf();
+  text = all.str();
 
-  return ret;
+  return !text.empty();
 }
 
 

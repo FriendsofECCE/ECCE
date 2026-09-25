@@ -1174,7 +1174,16 @@ class MoDiagramCanvas : public wxPanel
                                (tint.Blue()  + 2*255)/3);
           dc.SetPen(wxPen(tint, 1, wxPENSTYLE_SHORT_DASH));
 
-          const int cy = yFor(reached.energy, plot);
+          //  WHERE THE LEVEL IS DRAWN, not where its energy puts it.
+          //
+          //  The centre column is drawn with spreading on, so a
+          //  degenerate or near-degenerate set is nudged apart to stay
+          //  legible -- and this aimed every correlation line at the
+          //  un-nudged position instead, so the lines stopped short of
+          //  the levels they belong to. The fragment ends below were
+          //  always spread-aware; only the molecular end was not.
+          const int cy = levelYIn(dc, p_centre, plot, true,
+                                  link.centreLevel);
 
           if (link.leftLevel >= 0 && link.leftLevel < (int)p_left.levels.size()) {
             dc.DrawLine(xLeft + leftWidth,
