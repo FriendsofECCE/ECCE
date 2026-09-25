@@ -17,14 +17,21 @@ application itself back to life.
 ## General features
 
 * **Build molecular models**, or import a structure and work from that.
-* **Set up calculations through one interface.** **NWChem, Gaussian 16
-  and 09, ORCA and MOPAC are supported** — set up, submitted, monitored
-  and parsed back. Further codes can be registered without changing ECCE
-  itself.
-* **Quantum ESPRESSO is partial, experimental and entirely untested.**
-  It is present and it is not finished: treat anything it produces as
-  unverified, and check the input deck before running it. The same
-  applies to GROMACS.
+* **Set up calculations through one interface.** **NWChem, Gaussian 16,
+  ORCA and MOPAC are supported** — set up, submitted, monitored and
+  parsed back, and each is actively tested against the real code.
+  Further codes can be registered without changing ECCE itself.
+* **Gaussian 09 still works, but is legacy** and is no longer part of
+  testing. Gaussian 03, Gaussian 98, GAMESS-UK and Amica are retired.
+* **Quantum ESPRESSO is partial and experimental.** Input generation and
+  output parsing are exercised automatically against real `pw.x` runs,
+  but the interface does not cover the code and nothing beyond those
+  tests has been verified — check the deck before you run it, and treat
+  results as unconfirmed.
+* **GROMACS is not reachable from the interface.** Its file set is
+  complete and has been run end to end against real GROMACS, but it is
+  deliberately unregistered pending a scope decision
+  ([#106](https://github.com/FriendsofECCE/ECCE/issues/106)).
 * **Choose basis sets graphically**, with the code's own built-in sets
   used where they match.
 * **Submit to workstations, clusters and supercomputers**, through PBS,
@@ -186,10 +193,11 @@ being worked on rather than a schedule. Current work is tracked in the
 
 **Next**
 
-* **Finishing Quantum ESPRESSO and GROMACS.** Both are partially
-  integrated and neither has been tested against real jobs. Quantum
-  ESPRESSO in particular should be treated as experimental until it
-  has been run end to end and its output verified.
+* **Finishing Quantum ESPRESSO**, whose generator and parsers are
+  tested against real `pw.x` runs but whose interface coverage is
+  incomplete, and **registering GROMACS**, which works but is kept out
+  of the menu until the scope question in
+  [#106](https://github.com/FriendsofECCE/ECCE/issues/106) is settled.
 * **HTCondor**, which needs a different submission model rather than
   another set of submit directives.
 * **A tested central-server deployment.** The client/server path is
