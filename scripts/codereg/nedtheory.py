@@ -59,12 +59,10 @@ class NedTheoryPanel(EccePanel):
         if EcceGlobals.RunType != "DirDyVTST":
             geometrySizer = EcceBoxSizer(self, "Geometry", 2)
 
-            self.symmetryTog = EcceCheckBox(self,
-                                            label = " Use Available Symmetry",
-                                            name = "ES.Theory.UseSymmetry",
-                                            default = True,
-                                            export = 1)
-            geometrySizer.AddWidget(self.symmetryTog)
+            #  "Use Available Symmetry" now lives on the Calculation
+            #  Editor's own page, beside the point group, so the key has
+            #  one owner.  The tolerance below stays here: it is
+            #  NWChem's own and means nothing to the other codes.
 
             self.symmetryTol = EcceFloatInput(self,
                                               name = "ES.Theory.SymmetryTol",
@@ -959,7 +957,13 @@ class NedTheoryPanel(EccePanel):
         # Special logic for DirDyVTST task, as determined by overloading
         # the meaning of the RunType value
         if (EcceGlobals.RunType != "DirDyVTST"):
-            self.symmetryTol.Enable(self.symmetryTog.GetValue())
+            #  The "use symmetry" tick now lives on the Calculation
+            #  Editor's page and this dialog cannot see it.  What it can
+            #  see is the point group, and the tolerance means nothing
+            #  without symmetry to detect: enable it wherever there is
+            #  any, and leave it alone in C1.
+            self.symmetryTol.Enable(
+                str(EcceGlobals.SymmetryGroup).upper() not in ("C1", ""))
             self.memSize.Enable(self.memTog.GetValue())
             if EcceGlobals.Category == "SCF":
                 if self.SCFDirect.GetValue() == "Semi-Direct":

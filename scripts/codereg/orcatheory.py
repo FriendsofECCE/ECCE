@@ -62,12 +62,11 @@ class OrcaTheoryPanel(EccePanel):
         #  parses the result.  Off by default because UseSym changes what
         #  ORCA computes: it constrains the SCF to the detected point
         #  group, which is not always what the user wants.
-        self.useSymmetry = EcceCheckBox(self,
-                                        label=" Use symmetry",
-                                        name="ES.Theory.SCF.UseSymmetry",
-                                        default=False,
-                                        export=1)
-        scfSizer.AddWidget(self.useSymmetry)
+        #  "Use symmetry" now lives on the Calculation Editor's own page,
+        #  beside the point group the symmetry search found, so the key
+        #  has one owner.  ai.orca reads the shared ES.Theory.UseSymmetry
+        #  and still honours the old ORCA-only key for calculations that
+        #  stored one.
         self.panelSizer.Add(scfSizer)
 
         # RIJCOSX -- RI-J + "chain of spheres" approximate exchange, the

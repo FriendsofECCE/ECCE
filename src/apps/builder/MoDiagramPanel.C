@@ -575,8 +575,27 @@ void MoDiagramPanel::build()
   }
 
   if (!elements.empty()) {
+    //  OFFER THE CHOICE, AND HONOUR IT.
+    //
+    //  fillFragmentChooser() existed and was called from nowhere, so
+    //  the list beside "Choose fragments" was never filled and the box
+    //  did nothing whatever it was set to.  The orbits are what the
+    //  choice is over -- a fragment has to be a whole orbit or there
+    //  is nothing to project -- and MoFragments can work them out from
+    //  the geometry and the group alone.
+    vector< vector<int> > orbits;
+    string orbitWhy;
+    if (MoFragments::orbitsOf(coords, elements, group, orbits, orbitWhy)) {
+      fillFragmentChooser(orbits, elements);
+    }
+
+    //  p_sideOfOrbit is empty unless the user is choosing, and
+    //  MoFragments::build() then decides for itself as before.
+    const vector<int> *chosen =
+        p_sideOfOrbit.empty() ? 0 : &p_sideOfOrbit;
+
     haveFragments = MoFragments::build(coords, elements, group, charge,
-                                       left, right, why);
+                                       left, right, why, 0, 0, chosen);
   }
 
   //  THE FRAGMENT COLUMNS DO NOT NEED THE CODE'S SYMMETRY LABELS.
@@ -636,7 +655,13 @@ void MoDiagramPanel::build()
         }
       }
     }
-    if (matched == 0 && !centre.levels.empty()) {
+    //  ONLY WHERE THERE ARE LABELS TO DISAGREE.
+    //
+    //  With no labels at all every comparison misses, so this fired
+    //  too and the diagram said both "it reports no orbital symmetry
+    //  labels" and "the calculation's orbital labels are not irreps of
+    //  Td" -- which cannot both be true, and was shown together.
+    if (matched == 0 && !centre.levels.empty() && haveSymmetryLabels) {
       byIrrep = false;
       if (why.empty()) {
         ostringstream text;
@@ -705,12 +730,15 @@ void MoDiagramPanel::build()
       note.str("");
       note << "No correlation diagram can be drawn for this calculation.";
       if (!haveSymmetryLabels) {
+        //  NOT NAMED BY CODE.  This said "Gaussian jobs are generated
+        //  with symmetry switched off", which was shown verbatim on an
+        //  ORCA calculation.  The remedy is the same wherever the
+        //  calculation came from, and it is now in one place.
         note << "  It reports no orbital symmetry labels, and without them "
                 "there is nothing to match the fragment orbitals against. "
-                "Gaussian jobs are generated with symmetry switched off "
-                "unless \"Use Available Symmetry\" is ticked in the theory "
-                "dialog; re-running with it on gives labelled orbitals and "
-                "a full diagram.";
+                "A job run with symmetry switched off reports none: tick "
+                "\"Use symmetry\" in the Calculation Editor, beside the "
+                "point group, and run it again.";
       } else {
         note << "  Its orbital labels could not be reconciled with the "
                 "symmetry of the structure, so the fragment orbitals and "

@@ -269,7 +269,14 @@ sub ORCARoute {
 #  user's call via the "Use symmetry" checkbox in orcatheory.py.
 sub SymmetryToken {
   my $result = "";
-  if ($AbiDict{"ES.Theory.SCF.UseSymmetry"} eq "1") {
+  #  The choice now lives on the Calculation Editor's own page, beside
+  #  the point group, and is stored under the code-neutral key that
+  #  Gaussian and NWChem already read.  The old ORCA-only key is still
+  #  honoured so calculations that stored one keep working.
+  my $shared = $AbiDict{"ES.Theory.UseSymmetry"};
+  my $mine   = $AbiDict{"ES.Theory.SCF.UseSymmetry"};
+  my $wanted = defined($shared) ? $shared : $mine;
+  if (defined($wanted) && $wanted eq "1") {
     $result = "UseSym";
   }
   return $result;
