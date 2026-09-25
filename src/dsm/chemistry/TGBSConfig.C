@@ -2295,20 +2295,52 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
     return 0;
   }
 
-  // Read results from temp file:
+  //  READ IT AS A STRING, AND HAND BACK MEMORY WE OWN.
+  //
+  //  This used to read the file into a local ostrstream and return
+  //  resultsStr.str().  ostrstream::str() FREEZES the buffer and hands
+  //  out a bare pointer into it, and the caller -- ESInputController --
+  //  inserts that pointer into a stream, which reads until it finds a
+  //  NUL.  Every guarantee there depends on the frozen buffer being
+  //  intact and terminated, and the whole of this function is built on
+  //  the same deprecated pattern, with str() called on stream after
+  //  stream and freeze(false) called on none of them.
+  //
+  //  What came out the other end was a basis block that was
+  //  occasionally six bytes of binary: "\274\256?vOV" in one Gaussian
+  //  deck, "_\262\002\260SU" in an ORCA one.  Six bytes is what
+  //  reading past the end of a short buffer until the next stray NUL
+  //  looks like.  Both decks were rejected by the code they were
+  //  written for; regenerating produced a correct one, which is why it
+  //  looked random (#146).
+  //
+  //  Also: an EMPTY results file is a failed translation, not an empty
+  //  basis.  It was silently pasted into the deck as nothing, leaving a
+  //  calculation whose route card says /GEN with no basis after the
+  //  geometry.  Say so instead.
   ifstream resultsFS(resultsFile->path().c_str());
-  ostrstream resultsStr;
-
-  // Read whole file into the buffer of the ostrstream
-  resultsFS.get(*(resultsStr.rdbuf()), '\0');
-  resultsStr << ends; // end buffer with null character
+  string results((std::istreambuf_iterator<char>(resultsFS)),
+                 std::istreambuf_iterator<char>());
   resultsFS.close();
 
   // Clean up temp files:
   sourceFile->remove();
   resultsFile->remove();
 
-  return resultsStr.str();
+  if (results.empty()) {
+    EE_ASSERT(0, EE_WARNING,
+              "The basis set translator " + codeName + " produced nothing. "
+              "The calculation's basis set could not be written.");
+    return 0;
+  }
+
+  //  The caller treats this as a C string it does not own, exactly as
+  //  before -- the previous frozen ostrstream buffer was never released
+  //  either -- but this one is null-terminated by construction and
+  //  cannot be read past.
+  char *owned = new char[results.size() + 1];
+  memcpy(owned, results.c_str(), results.size() + 1);
+  return owned;
 }
 
 

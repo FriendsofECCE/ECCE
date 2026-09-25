@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <ios>
+#include <set>
 #include <sstream>
 
 #include <wx/dcbuffer.h>
@@ -615,6 +616,85 @@ void MoDiagramPanel::build()
   {
     Fragment *frag = fw.getSceneGraph().getFragment();
     if (frag != 0) charge = (int)frag->charge();
+  }
+
+  //  BUILD IN THE GROUP THE CALCULATION ACTUALLY USED.
+  //
+  //  ORCA symmetry-adapts orbitals only in ABELIAN point groups.  It
+  //  detects the full group correctly and then works in the largest
+  //  abelian subgroup, and says so:
+  //
+  //      Point group                           .... Td
+  //      Symmetry-adapted orbitals             .... D2
+  //
+  //  So its ORBSYM carries D2 labels -- A, B1, B2, B3 -- while the
+  //  structure is Td, the fragment columns are built in Td, and the two
+  //  label sets can never match.  Every ORCA calculation of a molecule
+  //  whose group is not already abelian correlated nothing at all
+  //  (#147); water was fine only because C2v is abelian.
+  //
+  //  A diagram in the smaller group is less informative -- methane's t2
+  //  set splits into b1 + b2 + b3 -- but it is correct, and it is what
+  //  the calculation computed.  Drawing it in Td instead would be
+  //  claiming a degeneracy the numbers do not have.
+  if (!s.empty() && !group.empty()) {
+    const CharacterTable *structure = CharacterTable::lookup(group);
+
+    //  What the calculation actually reported, canonicalised.
+    set<string> reported;
+    for (size_t i = 0; i < s.size(); i++) {
+      const string canon = MoDiagram::canonicalIrrep(s[i]);
+      if (!canon.empty()) reported.insert(canon);
+    }
+
+    bool fits = (structure != 0);
+    if (fits) {
+      const vector<string>& theirs = structure->irreps();
+      for (set<string>::const_iterator it = reported.begin();
+           fits && it != reported.end(); ++it) {
+        bool found = false;
+        for (size_t j = 0; j < theirs.size(); j++) {
+          if (MoDiagram::canonicalIrrep(theirs[j]) == *it) found = true;
+        }
+        if (!found) fits = false;
+      }
+    }
+
+    //  They are not this group's.  Find the smallest group whose irreps
+    //  cover them: smallest, because a label set is contained in many
+    //  larger tables and the one the code used is the tightest fit.
+    if (!fits && !reported.empty()) {
+      vector<string> all = CharacterTable::names();
+      string best;
+      int bestOrder = 0;
+      for (size_t g = 0; g < all.size(); g++) {
+        const CharacterTable *cand = CharacterTable::lookup(all[g]);
+        if (cand == 0) continue;
+        const vector<string>& theirs = cand->irreps();
+        bool covers = true;
+        for (set<string>::const_iterator it = reported.begin();
+             covers && it != reported.end(); ++it) {
+          bool found = false;
+          for (size_t j = 0; j < theirs.size(); j++) {
+            if (MoDiagram::canonicalIrrep(theirs[j]) == *it) found = true;
+          }
+          if (!found) covers = false;
+        }
+        if (!covers) continue;
+        const int order = cand->order();
+        if (best.empty() || order < bestOrder) { best = all[g]; bestOrder = order; }
+      }
+
+      if (!best.empty() && best != group) {
+        ostringstream text;
+        text << "The calculation worked in " << best << ", a subgroup of "
+             << group << " -- ORCA and some other codes adapt orbitals "
+                "only in abelian groups -- so the diagram is drawn in "
+             << best << " to match it.";
+        if (why.empty()) why = text.str();
+        group = best;
+      }
+    }
   }
 
   if (!elements.empty()) {
