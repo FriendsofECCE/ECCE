@@ -276,6 +276,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   kinds.Add(_("Central atom and neighbours"));
   kinds.Add(_("Metal and donor atoms"));
   kinds.Add(_("Two equivalent halves"));
+  kinds.Add(_("Two chemical groups"));
   kinds.Add(_("Sets of equivalent atoms"));
   p_construction = new ewxChoice(this, wxID_ANY, wxDefaultPosition,
                                  wxDefaultSize, kinds);
@@ -844,6 +845,7 @@ void MoDiagramPanel::build()
       MoFragments::CENTRAL,
       MoFragments::SKELETON,
       MoFragments::HALVES,
+      MoFragments::GROUPS,
       MoFragments::EQUIVALENT_SETS
     };
     const int picked = (p_construction != 0)

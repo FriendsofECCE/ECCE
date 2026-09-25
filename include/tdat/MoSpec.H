@@ -275,8 +275,17 @@ static bool buildModel(const char* tables, const char* molecule,
       if (counted > 0) {
         level.shareLeft  = onLeft/counted;
         level.shareRight = onRight/counted;
+        //  EACH BOUNDED BY ITS OWN SIZE.
+        //
+        //  Both were indexed by the LEFT column's shell count, which
+        //  is only safe while the two columns happen to have the same
+        //  number of shells. Benzene overran by one and got away with
+        //  it; methanol as CH3 against OH -- two shells on one side,
+        //  three on the other -- ran off the end and segfaulted.
         for (size_t k = 0; k < level.shellLeft.size(); k++) {
-          level.shellLeft[k]  /= counted;
+          level.shellLeft[k] /= counted;
+        }
+        for (size_t k = 0; k < level.shellRight.size(); k++) {
           level.shellRight[k] /= counted;
         }
       }

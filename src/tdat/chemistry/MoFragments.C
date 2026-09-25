@@ -951,6 +951,111 @@ bool MoFragments::halvesAvailable(const vector<double>& coords,
 }
 
 
+
+
+/** "CH3", "HO" -- a set of atoms named the way a chemist would. */
+static string formulaOf(const vector<int>& atoms,
+                        const vector<string>& elements)
+{
+   map<string,int> count;
+   for (size_t i = 0; i < atoms.size(); i++) count[elements[atoms[i]]]++;
+
+   ostringstream text;
+   //  Carbon first, then the rest alphabetically, which is how a
+   //  formula is written and not how a map iterates.
+   if (count.count("C")) {
+      text << "C";
+      if (count["C"] > 1) text << count["C"];
+      count.erase("C");
+   }
+   for (map<string,int>::const_iterator it = count.begin();
+        it != count.end(); ++it) {
+      text << it->first;
+      if (it->second > 1) text << it->second;
+   }
+   return text.str();
+}
+
+
+/**
+ * The molecule's chemical groups: a heavy atom and its hydrogens.
+ *
+ * WHY THIS IS THE RIGHT UNIT FOR A MOLECULE WITH NO CENTRAL ATOM.
+ *
+ * Everything else here splits a molecule by SYMMETRY -- orbits of
+ * equivalent atoms, or two halves the group exchanges. That covers
+ * the molecules a textbook names and very little else. A chemist
+ * looking at methanol does not see an orbit structure, they see a
+ * methyl and a hydroxyl, and the diagram they would draw puts one
+ * against the other.
+ *
+ * The definition is deliberately mechanical -- a heavy atom with
+ * whatever hydrogens are bonded to it -- because it has to be, to
+ * mean the same thing on a molecule nobody has looked at. It gives
+ * CH3 and OH for methanol, two CH2 for ethene, six CH for benzene,
+ * and a lone atom for a fragment that has no hydrogens, which is
+ * what P4 needs.
+ *
+ * Bonds come from covalent radii, not from nearest neighbours: on
+ * ethane a carbon's nearest atom is a hydrogen and the C-C bond is
+ * half again as far, so the ratio test used elsewhere in this file
+ * cannot see the bond that divides the molecule.
+ */
+bool MoFragments::chemicalGroups(const vector<double>& coords,
+                                 const vector<string>& elements,
+                                 vector< vector<int> >& groups)
+{
+   groups.clear();
+   const int n = (int)elements.size();
+   if (n < 2 || (int)coords.size() != 3*n) return false;
+
+   //  A hydrogen belongs to the heavy atom it is bonded to; where it
+   //  is bonded to more than one -- a bridging hydride, diborane --
+   //  it belongs to neither, because the group would not be a group.
+   vector<int> ownerOf(n, -1);
+   vector<bool> heavy(n, false);
+   for (int i = 0; i < n; i++) {
+      heavy[i] = (elements[i] != "H" && elements[i] != "D" &&
+                  elements[i] != "T");
+   }
+
+   for (int h = 0; h < n; h++) {
+      if (heavy[h]) continue;
+      int owner = -1, owners = 0;
+      for (int a = 0; a < n; a++) {
+         if (!heavy[a]) continue;
+         if (bondedByRadii(h, a, coords, elements)) { owner = a; owners++; }
+      }
+      if (owners == 1) ownerOf[h] = owner;
+   }
+
+   //  One group per heavy atom, in order, each with its hydrogens.
+   map<int,int> groupOf;
+   for (int a = 0; a < n; a++) {
+      if (!heavy[a]) continue;
+      groupOf[a] = (int)groups.size();
+      groups.push_back(vector<int>(1, a));
+   }
+   for (int h = 0; h < n; h++) {
+      if (heavy[h] || ownerOf[h] < 0) continue;
+      groups[groupOf[ownerOf[h]]].push_back(h);
+   }
+
+   //  A hydrogen owned by nobody is its own group: H2 has no heavy
+   //  atom at all, and a bridging hydrogen belongs to the skeleton
+   //  rather than to either neighbour.
+   for (int h = 0; h < n; h++) {
+      if (!heavy[h] || ownerOf[h] >= 0) continue;
+   }
+   for (int h = 0; h < n; h++) {
+      if (heavy[h] || ownerOf[h] >= 0) continue;
+      groups.push_back(vector<int>(1, h));
+   }
+
+   return groups.size() >= 2;
+}
+
+
 /**
  * The operations that map a set of atoms onto itself.
  *
@@ -1859,6 +1964,7 @@ const char* MoFragments::fragmentationName(Fragmentation how)
       case SKELETON:        return "a metal and its donor atoms";
       case CENTRAL:         return "a central atom and its neighbours";
       case HALVES:          return "two equivalent halves";
+      case GROUPS:          return "its two chemical groups";
       case EQUIVALENT_SETS: return "its two sets of equivalent atoms";
       default:              return "";
    }
@@ -1972,7 +2078,10 @@ bool MoFragments::build(const vector<double>& coords,
 
          if (metalHub && sideOfOrbit == 0 &&
              near.size() > 1 && near.size() < others.size()) {
-            ligandField = true;
+            //  Only when this construction is the one wanted: asking
+            //  for the chemical groups of a molecule must not be
+            //  answered with a ligand field diagram of it.
+            ligandField = (want == NOT_BUILT || want == SKELETON);
             skeletonOf.push_back(hub);
             for (size_t k = 0; k < near.size(); k++) {
                skeletonOf.push_back(near[k]);
@@ -2044,8 +2153,68 @@ bool MoFragments::build(const vector<double>& coords,
    } else {
       int central = -1;
       vector<int> terminal;
+      //  TWO CHEMICAL GROUPS, WHERE THERE ARE TWO.
+      //
+      //  A chemist looking at methanol sees a methyl and a
+      //  hydroxyl, not an orbit structure, and the diagram they
+      //  would draw puts one against the other. Reached only
+      //  when the molecule really does fall into exactly two
+      //  groups of DIFFERENT composition -- which also makes
+      //  the split legitimate without any further check, since
+      //  no operation can exchange two groups that are not the
+      //  same, so each is left invariant and has symmetry
+      //  orbitals of its own.
+      //
+      //  Two groups that ARE the same composition are ethene
+      //  and ethane, and they belong to the halves branch
+      //  above, which draws them far better.
+      {
+         vector< vector<int> > chemical;
+         if ((want == NOT_BUILT || want == GROUPS) &&
+             MoFragments::chemicalGroups(coordsUsed, elementsUsed,
+                                         chemical) &&
+             chemical.size() == 2) {
+
+            map<string,int> countA, countB;
+            for (size_t i = 0; i < chemical[0].size(); i++)
+               countA[elementsUsed[chemical[0][i]]]++;
+            for (size_t i = 0; i < chemical[1].size(); i++)
+               countB[elementsUsed[chemical[1][i]]]++;
+
+            if (countA != countB) {
+               leftSet  = chemical[0];
+               rightSet = chemical[1];
+
+               if (how != 0) *how = GROUPS;
+               note = "Drawn as its two chemical groups, " +
+                      formulaOf(chemical[0], elementsUsed) + " and " +
+                      formulaOf(chemical[1], elementsUsed) + ".";
+
+               if (leftAtoms  != 0) *leftAtoms  = leftSet;
+               if (rightAtoms != 0) *rightAtoms = rightSet;
+
+               buildColumn(leftSet, elementsUsed, coordsUsed, numAtoms,
+                           images, classOfOp, ops, *table, false, left);
+               buildColumn(rightSet, elementsUsed, coordsUsed, numAtoms,
+                           images, classOfOp, ops, *table, false, right);
+
+               int le = 0, re = 0;
+               for (size_t i = 0; i < leftSet.size(); i++)
+                  le += valenceElectrons(elementsUsed[leftSet[i]]);
+               for (size_t i = 0; i < rightSet.size(); i++)
+                  re += valenceElectrons(elementsUsed[rightSet[i]]);
+               fillColumn(left.levels,  le);
+               fillColumn(right.levels, re - charge);
+
+               left.title  = formulaOf(chemical[0], elementsUsed);
+               right.title = formulaOf(chemical[1], elementsUsed);
+               return !(left.levels.empty() && right.levels.empty());
+            }
+         }
+      }
+
       if (how != 0) *how = CENTRAL;
-      if (want == HALVES || want == EQUIVALENT_SETS ||
+      if ((want != NOT_BUILT && want != CENTRAL) ||
           !partition(orbits, elementsUsed, central, terminal)) {
 
          //  THE MOST CONNECTED ATOM AGAINST EVERYTHING ELSE.
@@ -2187,7 +2356,10 @@ bool MoFragments::build(const vector<double>& coords,
             return !(left.levels.empty() && right.levels.empty());
          }
 
-         if (best >= 0 && bestNeighbours > 1 && orbits.size() > 2) {
+         //  A guessed central atom is still a central-atom diagram,
+         //  so it must not answer a request for a different one.
+         if ((want == NOT_BUILT || want == CENTRAL) &&
+             best >= 0 && bestNeighbours > 1 && orbits.size() > 2) {
             central = best;
             terminal.clear();
             for (int a = 0; a < numAtoms; a++) {

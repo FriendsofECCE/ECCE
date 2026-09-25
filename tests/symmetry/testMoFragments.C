@@ -261,22 +261,35 @@ int main(int argc, char** argv) {
 
     MoColumn left, right;
     string note;
-    //  NOT AN AXn MOLECULE, AND IT SAYS SO.
+    //  NOT AN AXn MOLECULE, AND NOT A GUESS EITHER ANY MORE.
     //
-    //  It used to be refused outright.  It is now drawn as the carbon
-    //  against everything else -- which is one of the two splits a
-    //  person actually uses for methanol, "H4O against C" -- but the
-    //  program CHOSE that, so it has to say so: three orbits admit
-    //  more than one fragmentation and the reader may want a
-    //  different one.
-    bool ok = MoFragments::build(coords, elements, "CS", 0, left, right, note);
-    const bool saysSo = note.find("guess at the fragments") != string::npos;
+    //  It was refused outright once, then drawn as the carbon against
+    //  everything else -- a guess the program had to admit to, since
+    //  five orbits admit more than one fragmentation.
+    //
+    //  It is now drawn as its CHEMICAL GROUPS, a methyl against a
+    //  hydroxyl, which is what a chemist sees when they look at
+    //  methanol and needs no guessing: the molecule falls into
+    //  exactly two groups of different composition, and no symmetry
+    //  operation can exchange two groups that are not the same, so
+    //  each is invariant and has symmetry orbitals of its own.
+    MoFragments::Fragmentation how = MoFragments::NOT_BUILT;
+    bool ok = MoFragments::build(coords, elements, "CS", 0, left, right,
+                                 note, 0, 0, 0, &how);
+    const bool asGroups = (how == MoFragments::GROUPS);
     printf("  %-46s %s\n",
-           "CH3OH: built on a stated guess, not silently",
-           (ok && saysSo) ? "ok"
-                          : ("FAIL: " + (ok ? note
-                                            : string("refused"))).c_str());
-    if (!(ok && saysSo)) bad++;
+           "CH3OH: drawn as a methyl and a hydroxyl",
+           (ok && asGroups) ? "ok"
+                            : ("FAIL: " + (ok ? note
+                                              : string("refused"))).c_str());
+    if (!(ok && asGroups)) bad++;
+
+    //  And the groups are the right two, named the way a formula is.
+    const bool named = (left.title == "CH3" && right.title == "HO");
+    printf("  %-46s %s\n", "CH3OH: the groups are CH3 and HO",
+           named ? "ok" : ("FAIL: " + left.title + " / " +
+                           right.title).c_str());
+    if (!named) bad++;
   }
 
   //  --- the spellings the codes actually use ------------------------
@@ -629,14 +642,18 @@ int main(int argc, char** argv) {
 
     MoColumn left, right;
     string note;
-    //  Without a choice it falls back to its own guess and says so;
-    //  the point of the chooser below is to override that.
-    const bool guessed =
-        MoFragments::build(coords, elements, "CS", 0, left, right, note) &&
-        note.find("guess at the fragments") != string::npos;
-    printf("  %-46s %s\n", "CH3OH: guessed, and the guess is stated",
-           guessed ? "ok" : "FAIL");
-    if (!guessed) bad++;
+    //  Left to itself it takes the chemical groups, and SAYS which
+    //  construction it used -- the point of the chooser below is to
+    //  override that with a grouping of the user's own.
+    MoFragments::Fragmentation chose = MoFragments::NOT_BUILT;
+    const bool stated =
+        MoFragments::build(coords, elements, "CS", 0, left, right, note,
+                           0, 0, 0, &chose) &&
+        note.find("Drawn as") != string::npos &&
+        chose != MoFragments::NOT_BUILT;
+    printf("  %-46s %s\n", "CH3OH: built, and the construction named",
+           stated ? "ok" : ("FAIL: " + note).c_str());
+    if (!stated) bad++;
 
     vector< vector<int> > orbits;
     string why;

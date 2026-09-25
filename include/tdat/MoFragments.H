@@ -54,6 +54,7 @@ class MoFragments
       SKELETON,        ///< a metal and its donor atoms
       CENTRAL,         ///< a central atom against its terminal atoms
       HALVES,          ///< two equivalent groups, in and out of phase
+      GROUPS,          ///< one chemical group against the other
       EQUIVALENT_SETS  ///< the fallback: its two sets of like atoms
     };
 
@@ -291,6 +292,21 @@ class MoFragments
     static bool linearGroupName(const vector<double>& coords,
                                 const vector<string>& elements,
                                 string& name);
+
+    /**
+     * The molecule's chemical groups: a heavy atom and its hydrogens.
+     *
+     * The unit a chemist sees in a molecule with no central atom --
+     * a methyl, a hydroxyl, a CH of a ring -- as opposed to the
+     * orbits of equivalent atoms everything else here splits by. An
+     * atom with no hydrogens is a group of one, which is what P4
+     * needs.
+     *
+     * @return false if the molecule does not divide into at least two
+     */
+    static bool chemicalGroups(const vector<double>& coords,
+                               const vector<string>& elements,
+                               vector< vector<int> >& groups);
 
     /**
      * Whether this molecule can be drawn as two equivalent halves.
