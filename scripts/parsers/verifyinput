@@ -285,9 +285,18 @@ my %Z = (
   Bi=>83, Po=>84, At=>85, Rn=>86,
 );
 
+#  $assumed is true when the deck did not actually say what the
+#  multiplicity is and a default was taken for it.  A PARITY FAULT IS
+#  THEN NOT A RED, because the fault may be in the assumption rather
+#  than in the deck: NWChem without a `mult` line and MOPAC without a
+#  spin keyword are both read here as singlets, and on an odd-electron
+#  molecule that guess would condemn a perfectly good input.  Red is
+#  reserved for the case where the deck states both numbers itself and
+#  they cannot both be true.
 sub electronCount
 {
-  my ($charge, $multiplicity, $atomLines) = @_;
+  my ($charge, $multiplicity, $atomLines, $assumed) = @_;
+  my $level = $assumed ? "UNSURE" : "BAD";
 
   my $protons = 0;
   foreach my $symbol (@$atomLines) {
@@ -301,7 +310,7 @@ sub electronCount
 
   my $electrons = $protons - $charge;
   if ($electrons < 0) {
-    finding("BAD", 0, "electrons",
+    finding($level, 0, "electrons",
             "The charge of $charge removes more electrons than this " .
             "molecule has.");
     return;
@@ -309,7 +318,7 @@ sub electronCount
 
   my $unpaired = $multiplicity - 1;
   if ($unpaired > $electrons) {
-    finding("BAD", 0, "electrons",
+    finding($level, 0, "electrons",
             "A multiplicity of $multiplicity needs $unpaired unpaired " .
             "electrons, and this molecule has only $electrons " .
             "altogether.");
@@ -319,11 +328,14 @@ sub electronCount
   if ((($electrons - $unpaired) % 2) != 0) {
     my $ok = (($electrons % 2) == 0) ? "an odd multiplicity (1, 3, 5)"
                                      : "an even multiplicity (2, 4, 6)";
-    finding("BAD", 0, "electrons",
+    finding($level, 0, "electrons",
             "Charge $charge gives this molecule $electrons electrons, " .
             "which cannot have a multiplicity of $multiplicity: " .
-            "$electrons electrons require $ok. Either the charge or " .
-            "the multiplicity is wrong.");
+            "$electrons electrons require $ok. " .
+            ($assumed
+               ? "This deck does not state a multiplicity, so one was " .
+                 "assumed -- the assumption may be what is wrong here."
+               : "Either the charge or the multiplicity is wrong."));
     return;
   }
 
@@ -901,10 +913,12 @@ sub nwchem
   #  and the defaults are what a deck means when it omits them.
   my $charge = ($whole =~ /^\s*charge\s+(-?\d+)/mi) ? $1 : 0;
   my $mult   = 1;
-  if    ($whole =~ /^\s*mult(?:iplicity)?\s+(\d+)/mi) { $mult = $1; }
-  elsif ($whole =~ /^\s*nopen\s+(\d+)/mi)             { $mult = $1 + 1; }
-  finding("GOOD", 0, "charge", "Charge $charge, multiplicity $mult.");
-  electronCount($charge, $mult, \@atomSymbols);
+  my $assumed = 1;
+  if    ($whole =~ /^\s*mult(?:iplicity)?\s+(\d+)/mi) { $mult = $1; $assumed = 0; }
+  elsif ($whole =~ /^\s*nopen\s+(\d+)/mi)          { $mult = $1 + 1; $assumed = 0; }
+  finding("GOOD", 0, "charge", "Charge $charge, multiplicity $mult" .
+          ($assumed ? " (assumed: the deck does not say)" : "") . ".");
+  electronCount($charge, $mult, \@atomSymbols, $assumed);
 
   if ($whole =~ /^\s*task\b/mi) {
     finding("GOOD", 0, "task", "A task directive is present.");
@@ -957,11 +971,13 @@ sub mopac
     my %words = (SINGLET => 1, DOUBLET => 2, TRIPLET => 3, QUARTET => 4,
                  QUINTET => 5, SEXTET => 6, SEPTET => 7, OCTET => 8);
     my $mult = 1;
+    my $assumed = 1;
     foreach my $word (keys %words) {
-      if ($L[0] =~ /\b$word\b/i) { $mult = $words{$word}; last; }
+      if ($L[0] =~ /\b$word\b/i) { $mult = $words{$word}; $assumed = 0; last; }
     }
-    finding("GOOD", 1, "charge", "Charge $charge, multiplicity $mult.");
-    electronCount($charge, $mult, \@atomSymbols);
+    finding("GOOD", 1, "charge", "Charge $charge, multiplicity $mult" .
+            ($assumed ? " (assumed: no spin keyword)" : "") . ".");
+    electronCount($charge, $mult, \@atomSymbols, $assumed);
   }
 
   if (scalar(@L) < 4) {
