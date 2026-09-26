@@ -9,6 +9,8 @@ lean map of where things live and what to watch out for — it is
 intentionally *not* a running log of past sessions. For that, see
 "Where the history lives" at the bottom.
 
+Once a design decision is settled, delegate the implementation to the sonnet-implementer subagent rather than writing the files yourself. Keep doing the design work, review, and any decision the subagent flags, directly.
+
 ## Standing preferences
 - Andy runs Debian ("trixie") on his machines — **beryllium** and
   **niobium**. Default to Debian conventions, not Ubuntu, for anything
