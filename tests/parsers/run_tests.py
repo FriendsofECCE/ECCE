@@ -19,6 +19,8 @@ codes.
 Exit status is 0 only if every check passed.
 """
 
+import shutil
+import atexit
 import argparse
 import re
 import difflib
@@ -224,7 +226,11 @@ def run_case(case, res, verbose=False):
                  % (case['name'], ' and '.join('[%s]' % p for p in pair)))
 
     # run the real parser scripts, in a scratch dir (some write side files)
+    #  Removed at exit: on a machine where /tmp is a tmpfs every
+    #  directory left behind is RAM that never comes back, and a
+    #  suite that runs often leaves thousands.
     workdir = tempfile.mkdtemp(prefix='ecce-parsertest-%s-' % case['name'])
+    atexit.register(shutil.rmtree, workdir, True)
     report = []
     emitted = {}          # parse type -> list of (block, records)
     for entry in desc.live_entries():

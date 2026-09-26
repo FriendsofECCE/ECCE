@@ -40,6 +40,8 @@ Known, deliberate divergences (documented, not accidental):
   finished output file in one pass.
 """
 
+import shutil
+import atexit
 import os
 import re
 import subprocess
@@ -497,7 +499,11 @@ def run_parser(script_dir, entry, block, parse_args=DEFAULT_PARSE_ARGS,
     # Run in a scratch directory, never in scripts/parsers: the real client
     # runs these in the job's own temp dir, and some scripts write side files
     # there (nwchem.symlab writes "$key/parseSym", with $key = argv[1] = '.').
-    cwd = workdir or tempfile.mkdtemp(prefix='ecce-parsertest-')
+    cwd = workdir
+    if not cwd:
+        #  Ours to clean up; a caller's own workdir is not.
+        cwd = tempfile.mkdtemp(prefix='ecce-parsertest-')
+        atexit.register(shutil.rmtree, cwd, True)
     proc = subprocess.run(argv, input=block.text, capture_output=True,
                           text=True, timeout=timeout, cwd=cwd, env=env)
     return proc.stdout, proc.stderr, proc.returncode

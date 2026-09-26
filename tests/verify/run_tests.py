@@ -37,6 +37,7 @@ The broken fixtures are real failures, not invented ones:
 """
 
 import argparse
+import atexit
 import os
 import re
 import subprocess
@@ -183,8 +184,15 @@ def dialog_smoke(verbose):
         if not which(tool):
             return (False, True, "no %s" % tool)
 
+    #  CLEANED UP, ALWAYS. On the reporting machine /tmp is a tmpfs, so
+    #  every directory left here is RAM that never comes back: 252 of
+    #  them across a day of runs held 2 GB and pushed the machine into
+    #  swap. A test that leaks its workspace is a test that gets
+    #  turned off.
+    import shutil
     import tempfile
     work = tempfile.mkdtemp(prefix="ecce-verify-smoke")
+    atexit.register(shutil.rmtree, work, True)
     binary = os.path.join(work, "dialog_smoke")
     calced = os.path.join(ROOT, os.pardir, "src", "apps", "calced")
 
@@ -297,9 +305,11 @@ def testrt_agreement(verbose):
     if not testrt:
         return (False, 0, 0)
 
+    import shutil
     import tempfile
     failures, checked = 0, 0
     work = tempfile.mkdtemp(prefix="ecce-testrt")
+    atexit.register(shutil.rmtree, work, True)
 
     for fixture, code, _atoms, expected in CASES:
         if not code.startswith("Gaussian"):
@@ -497,6 +507,7 @@ ACCEPTS_ANYWAY = {
 
 def codes_agreement(verbose):
     """Returns (ran, failures, checked)."""
+    import shutil
     import tempfile
     failures, checked = 0, 0
 
@@ -508,7 +519,12 @@ def codes_agreement(verbose):
             continue
 
         work = tempfile.mkdtemp(prefix="ecce-oracle")
-        refused = code_rejects(code, path, work)
+        try:
+            refused = code_rejects(code, path, work)
+        finally:
+            #  A Gaussian run leaves its scratch here, so this is the
+            #  worst of the leaks: one directory per fixture per run.
+            shutil.rmtree(work, True)
         if refused is None:
             continue
         checked += 1

@@ -7,10 +7,11 @@ orbitals' own Mulliken symbols, already numbered ("1 a1  1 t2 ...").
 This is the fastest way to get a real spectrum for a molecule that has
 no ECCE calculation on disk.
 """
-import os, re, subprocess, sys, tempfile
+import atexit, os, re, shutil, subprocess, sys, tempfile
 
 def run(name, atoms, charge=0, keywords="PM7 1SCF VECTORS ALLVEC"):
     work = tempfile.mkdtemp(prefix="modiag-")
+    atexit.register(shutil.rmtree, work, True)
     mop = os.path.join(work, name + ".mop")
     head = keywords + (" CHARGE=%d" % charge if charge else "")
     lines = [head, name, ""]
