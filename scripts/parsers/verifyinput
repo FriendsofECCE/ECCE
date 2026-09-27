@@ -856,7 +856,13 @@ sub orca
     my $blocks = 0;
     my $firstBlock = -1;
     my $lastBlock = -1;
+    my $inSub = 0;
     for my $i (0 .. $#L) {
+      #  %basis holds its own NewGTO/NewECP/NewAuxGTO ... end
+      #  sub-blocks; their 'end' is not the one that closes %basis.
+      if ($openedAt >= 0 && !$inSub &&
+          $L[$i] =~ /^\s*New\w+\s+\w+\s*$/i) { $inSub = 1; next; }
+      if ($inSub) { $inSub = 0 if ($L[$i] =~ /^\s*end\s*$/i); next; }
       if ($openedAt < 0 && $L[$i] =~ /^\s*%(\w+)\s*$/) {
         $openedAt = $i;
         $firstBlock = $i if ($firstBlock < 0);
@@ -886,6 +892,8 @@ sub orca
               " present and closed.");
     }
   }
+
+  orcaBasis(\@L);
 
   #  The geometry block.
   my $openAt = -1;
@@ -934,6 +942,132 @@ sub orca
     finding("BAD", $openAt + 1, "geomblock",
             "The geometry block opened here is never closed by a line " .
             "holding a single '*'.");
+  }
+}
+
+
+
+#  ORCA's %basis block: NewGTO and NewECP sub-blocks.  SHAPE only --
+#  which rows a shell has and how many columns each carries, all of it
+#  established by running ORCA 6.1.1 (2026-09-27), not from the manual:
+#
+#    NewGTO El / <L> <n> / n rows "idx exponent coeff" / end
+#    NewECP El / N_core <k> / lmax <l> / <l'> <n> /
+#               n rows "idx exponent coeff power" / end
+#
+#  A NewECP row without its leading index stops ORCA with "exponent
+#  expected in NewECP"; a count one too high, "index number expected";
+#  one too low, "l=7 exceeds lmax".  An ECP with no shell for lmax
+#  itself is the dangerous one: ORCA ACCEPTS it and runs a different
+#  potential (CH3I: -331.30 against -336.23 Eh).  Nothing here says
+#  whether a basis or an ECP is the right one.
+sub orcaBasis
+{
+  my @L = @{$_[0]};
+  my $num  = qr/[-+]?(?:\d+\.?\d*|\.\d+)(?:[eEdD][-+]?\d+)?/;
+  my $bad = 0;
+  my ($gtoRows, $ecpRows, $first, $last) = (0, 0, -1, -1);
+  my %lval = (s=>0, p=>1, d=>2, f=>3, g=>4, h=>5, i=>6, k=>7);
+
+  my $i = 0;
+  while ($i <= $#L) {
+    my $line = $L[$i];
+    my ($kind, $el);
+    if ($line =~ /^\s*New(GTO|ECP)\s+(\w+)\s*$/i) {
+      ($kind, $el) = (uc($1), $2);
+    } else { $i++; next; }
+    my $at = $i + 1;
+    $first = $at if ($first < 0);
+    my ($lmax, $ncore, %seen, $closed);
+    $i++;
+    while ($i <= $#L) {
+      my $l = $L[$i];
+      if ($l =~ /^\s*end\s*$/i) { $closed = $i + 1; $i++; last; }
+      if ($kind eq "ECP" && $l =~ /^\s*N_core\s+(\d+)\s*$/i) { $ncore = $1; $i++; next; }
+      if ($kind eq "ECP" && $l =~ /^\s*lmax\s+([spdfghik])\s*$/i) { $lmax = lc($1); $i++; next; }
+      my $hdr = ($kind eq "GTO") ? qr/^\s*([SPDFGHIKL])\s+(\d+)\s*$/i
+                                 : qr/^\s*([spdfghik])\s+(\d+)\s*$/i;
+      if ($l =~ $hdr) {
+        my ($sh, $n) = (lc($1), $2);
+        my $hline = $i + 1;
+        $seen{$sh} = $hline;
+        if ($kind eq "ECP" && defined($lmax) && $lval{$sh} > $lval{$lmax}) {
+          finding("BAD", $hline, "basis",
+                  "ECP shell '$sh' on $el is above its declared lmax " .
+                  "'$lmax'. ORCA stops on this.");
+          $bad++;
+        }
+        #  Anchored: the whole row, exactly this many columns. An
+        #  unanchored count would take the next shell's header as a row.
+        my $row = ($kind eq "ECP") ? qr/^\s*\d+\s+$num\s+$num\s+\d+\s*$/
+                : ($sh eq "l")     ? qr/^\s*\d+\s+$num\s+$num\s+$num\s*$/
+                :                    qr/^\s*\d+\s+$num\s+$num\s*$/;
+        my $got = 0;
+        $i++;
+        while ($got < $n && $i <= $#L && $L[$i] =~ $row) { $got++; $i++; }
+        if ($got < $n) {
+          my $why = "";
+          if ($kind eq "ECP" && $i <= $#L &&
+              $L[$i] =~ /^\s*$num\s+$num\s+$num\s*$/) {
+            $why = " Its rows have three columns; ORCA needs four -- " .
+                   "index, exponent, coefficient, power -- and without " .
+                   "the index stops with \"exponent expected in NewECP\".";
+          }
+          finding("BAD", $hline, "basis",
+                  "This $kind shell on $el declares $n row" .
+                  ($n == 1 ? "" : "s") . " but " .
+                  ($got ? "only $got follow" : "none follow") .
+                  " in the form ORCA reads.$why");
+          $bad++;
+          #  Resynchronise on the next header or end.
+          $i++ while ($i <= $#L && $L[$i] !~ $hdr && $L[$i] !~ /^\s*end\s*$/i);
+        } else {
+          if ($kind eq "ECP") { $ecpRows += $got } else { $gtoRows += $got }
+          #  One row too many is the next header's problem, but say so.
+          if ($i <= $#L && $L[$i] =~ $row) {
+            finding("BAD", $i + 1, "basis",
+                    "This row follows a $kind shell on $el that declared " .
+                    "only $n.");
+            $bad++;
+            $i++ while ($i <= $#L && $L[$i] =~ $row);
+          }
+        }
+        next;
+      }
+      finding("BAD", $i + 1, "basis",
+              "This line inside the New$kind block for $el is neither a " .
+              "shell header nor one of its rows.");
+      $bad++;
+      $i++;
+    }
+    if (!$closed) {
+      finding("BAD", $at, "basis",
+              "The New$kind block for $el is never closed by an 'end'.");
+      $bad++;
+      next;
+    }
+    $last = $closed;
+    if ($kind eq "ECP") {
+      if (!defined($ncore)) {
+        finding("BAD", $at, "basis", "The NewECP block for $el has no N_core line.");
+        $bad++;
+      }
+      if (!defined($lmax)) {
+        finding("BAD", $at, "basis", "The NewECP block for $el has no lmax line.");
+        $bad++;
+      } elsif (!exists $seen{$lmax}) {
+        finding("BAD", $at, "basis",
+                "The NewECP block for $el declares lmax $lmax but lists " .
+                "no '$lmax' shell. ORCA accepts this and silently runs " .
+                "with a different potential from the one intended.");
+        $bad++;
+      }
+    }
+  }
+  if ($first > 0 && !$bad) {
+    finding("GOOD", "$first-$last", "basis",
+            "Every NewGTO/NewECP shell lists the rows it declares " .
+            "($gtoRows basis, $ecpRows ECP), in the column layout ORCA reads.");
   }
 }
 

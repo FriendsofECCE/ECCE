@@ -67,6 +67,19 @@ CASES = [
     ("orca-ethane.orcain",    "ORCA",             8, [("GOOD", "route"),
                                                       ("GOOD", "geomblock"),
                                                       ("GOOD", "geometry")]),
+    #  #148 "the miss found live": the ECP ORCA deck from
+    #  /home/andy/jobs/iodimethane/orca.orcain, whose NewECP rows had no
+    #  leading index column -- ORCA 6.1.1 stops on every one of these
+    #  with "exponent expected in NewECP" (#122). The %basis block was
+    #  covered by no shape check at all until now.
+    ("orca-ecp-no-index.orcain", "ORCA",          5, [("BAD", "basis")]),
+    #  The same deck, fixed (the index column wrORCAGBS.pm now writes).
+    ("orca-ecp-ch3i.orcain",  "ORCA",             5, [("GOOD", "basis")]),
+    #  An ECP that declares lmax f but lists no 'f' shell. ORCA does NOT
+    #  reject this -- it runs on a different potential from the one
+    #  intended (-331.301727215604 Eh here, against -336.231481671562 Eh
+    #  for the correct deck above). Listed in ACCEPTS_ANYWAY below.
+    ("orca-ecp-no-lmax-shell.orcain", "ORCA",     5, [("BAD", "basis")]),
     ("nwchem-ammonia.nw",     "NWChem",           4, [("GOOD", "geometry"),
                                                       ("GOOD", "task")]),
     ("mopac-methane.mopin",   "MOPAC",            5, [("GOOD", "geometry")]),
@@ -409,8 +422,19 @@ CODE_RUNNERS = {
         "binaries": ["/opt/orca/orca_6_1_1_linux_x86-64_shared_openmpi418_"
                      "nodmrg/orca", "orca"],
         "suffix":   ".inp",
+        #  "input.*error" used to match this ORCA ECP failure by
+        #  ACCIDENT: its one real diagnostic line is "[file orca_main/
+        #  main_input_geom_basis.cpp, line 1046]: Error: exponent
+        #  expected in NewECP", and "input" is a substring of the
+        #  SOURCE FILENAME, not a meaningful signal -- the pattern
+        #  happened to match without ever looking at the actual error.
+        #  Match ORCA's own "Error:" prefix and the NewECP diagnostics
+        #  it pairs with (#148) explicitly instead.
         "rejected": re.compile(r"aborting the run|error.*reading|"
-                               r"input.*error", re.I),
+                               r"input.*error|"
+                               r"Error:.*(NewECP|exponent expected|"
+                               r"index number expected|exceeds lmax)",
+                               re.I),
         "timeout":  90,
     },
     "Gaussian-16": {
@@ -502,6 +526,10 @@ ACCEPTS_ANYWAY = {
         "reads the whole file and then does nothing, exiting 0",
     "orca-no-route.orcain":
         "runs on its own defaults rather than what was asked for",
+    "orca-ecp-no-lmax-shell.orcain":
+        "runs to completion on a different potential from the one "
+        "intended (-331.301727215604 Eh here, against "
+        "-336.231481671562 Eh for the deck with the lmax shell present)",
 }
 
 
