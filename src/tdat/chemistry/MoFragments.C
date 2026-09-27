@@ -6,7 +6,10 @@
 #include <fstream>
 #include <sstream>
 #include <map>
+#include <utility>
 #include <unistd.h>
+
+using std::pair;
 using std::ifstream;
 using std::istringstream;
 using std::map;
@@ -955,6 +958,22 @@ static bool bondedByRadii(int a, int b, const vector<double>& coords,
    return (d <= 1.30*(ra + rb));
 }
 
+
+void MoFragments::covalentBonds(const vector<double>& coords,
+                                const vector<string>& elements,
+                                vector< pair<int,int> >& bonds)
+{
+   bonds.clear();
+   const size_t n = elements.size();
+   if (coords.size() != n*3) return;
+   for (size_t a = 0; a < n; a++) {
+      for (size_t b = a+1; b < n; b++) {
+         if (bondedByRadii((int)a, (int)b, coords, elements)) {
+            bonds.push_back(pair<int,int>((int)a, (int)b));
+         }
+      }
+   }
+}
 
 
 /**

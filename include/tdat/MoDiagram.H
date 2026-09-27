@@ -526,10 +526,45 @@ class MoDiagram
     /** Does this group have a molecular plane to reflect in? */
     static bool hasMolecularPlane(const CharacterTable& table);
 
+    /**
+     * @param fromHalves  true when both columns are the same fragment
+     *                    combined two ways -- see the parameter comment
+     *                    already above this one.
+     * @param localisedShare  one per centre level, or empty: the
+     *                    fraction of that level's norm on its single
+     *                    most-localised atom (MoComposition::compute(),
+     *                    summed over that atom's shells and averaged
+     *                    over the level's degenerate components).  A
+     *                    level at or above
+     *                    MoComposition::LOCALISED_SHARE_THRESHOLD is
+     *                    marked non-bonding immediately, before any
+     *                    construction-specific rule runs, whichever
+     *                    construction this is -- a lone pair is a lone
+     *                    pair independent of what it is being
+     *                    correlated against.
+     * @param overlapPopulation  one per centre level, or empty: the
+     *                    Mulliken overlap population across the
+     *                    molecule's own bonds (see
+     *                    MoComposition::overlapPopulation()), for a
+     *                    level the localisation check above left open.
+     *                    Only meaningful, and only supplied by the
+     *                    caller, for a NO-CENTRAL-ATOM construction --
+     *                    two sets of equivalent atoms or two halves --
+     *                    where bonding happens between the two columns
+     *                    rather than through a shared irrep on both, so
+     *                    counting which irrep appears on which fragment
+     *                    column (the rule below, for a central atom and
+     *                    its terminal atoms) asks the wrong question.
+     *                    Positive is bonding, negative antibonding, a
+     *                    small value non-bonding, against a threshold
+     *                    relative to the largest magnitude present.
+     */
     static void classify(const vector<MoLevel>& left,
                          vector<MoLevel>& centre,
                          const vector<MoLevel>& right,
-                         bool fromHalves = false);
+                         bool fromHalves = false,
+                         const vector<double>& localisedShare = vector<double>(),
+                         const vector<double>& overlapPopulation = vector<double>());
 
     /**
      * Connect fragment levels to molecular orbitals.

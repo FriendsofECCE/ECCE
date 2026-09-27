@@ -22,6 +22,7 @@
 #define MOFRAGMENTS_HH
 
 #include <string>
+#include <utility>
 #include <vector>
 using std::string;
 using std::vector;
@@ -283,6 +284,27 @@ class MoFragments
                               const vector<int>& rightAtoms,
                               const MoColumn& left,
                               const MoColumn& right);
+
+    /**
+     * Which atom pairs are bonded, by the same covalent-radii test the
+     * fragmentation code itself uses to find bonds (see
+     * bondedByRadii()'s header in MoFragments.C for why this and not
+     * the nearest-neighbour ratio) -- exposed so a caller outside this
+     * file can ask the identical question rather than re-deriving its
+     * own bond list with its own tolerance.
+     *
+     * Used by MoDiagramPanel::build() to classify a molecular level of
+     * a no-central-atom construction (two sets of equivalent atoms, or
+     * two halves) by its Mulliken overlap population across the
+     * molecule's own bonds -- see MoComposition::overlapPopulation().
+     *
+     * @param coords   flattened x,y,z per atom
+     * @param elements one per atom
+     * @param bonds    filled with each bonded (a,b) pair, a < b
+     */
+    static void covalentBonds(const vector<double>& coords,
+                              const vector<string>& elements,
+                              vector< std::pair<int,int> >& bonds);
 
     /**
      * The sets of symmetry-equivalent atoms, for choosing a split.

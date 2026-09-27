@@ -73,3 +73,54 @@ MoComposition::compute(const vector<double>& coefficients,
 
    return out;
 }
+
+
+double
+MoComposition::overlapPopulation(const vector<double>& coefficients,
+                                 const vector<int>& functionsPerAtom,
+                                 const vector<double>& overlap,
+                                 const vector< pair<int,int> >& bonds)
+{
+   const size_t nbas = coefficients.size();
+   if (nbas == 0 || overlap.size() != nbas*nbas) return 0.0;
+
+   int total = 0;
+   for (size_t i = 0; i < functionsPerAtom.size(); i++) total += functionsPerAtom[i];
+   if (total != (int)nbas) return 0.0;
+
+   //  Same atom-boundary walk compute() uses.
+   vector<int> atomOf(nbas, -1);
+   {
+      int at = 0;
+      for (size_t a = 0; a < functionsPerAtom.size(); a++) {
+         for (int f = 0; f < functionsPerAtom[a]; f++) atomOf[at + f] = (int)a;
+         at += functionsPerAtom[a];
+      }
+   }
+
+   //  Which basis functions belong to which atom, so each bonded pair
+   //  is a small nested loop over its own two atoms' functions rather
+   //  than a full nbas*nbas scan repeated per bond.
+   vector< vector<int> > functionsOf(functionsPerAtom.size());
+   for (size_t mu = 0; mu < nbas; mu++) {
+      if (atomOf[mu] >= 0) functionsOf[atomOf[mu]].push_back((int)mu);
+   }
+
+   double op = 0.0;
+   for (size_t b = 0; b < bonds.size(); b++) {
+      const int A = bonds[b].first, B = bonds[b].second;
+      if (A < 0 || B < 0 || A >= (int)functionsOf.size() ||
+          B >= (int)functionsOf.size()) continue;
+      const vector<int>& onA = functionsOf[A];
+      const vector<int>& onB = functionsOf[B];
+      for (size_t i = 0; i < onA.size(); i++) {
+         const int mu = onA[i];
+         for (size_t j = 0; j < onB.size(); j++) {
+            const int nu = onB[j];
+            op += 2.0*coefficients[mu]*coefficients[nu]*overlap[mu*nbas + nu];
+         }
+      }
+   }
+
+   return op;
+}

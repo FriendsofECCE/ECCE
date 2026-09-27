@@ -1246,9 +1246,15 @@ class MoDiagramCanvas : public wxPanel
       //  Column headings.
       dc.SetFont(*wxNORMAL_FONT);
       dc.SetTextForeground(wxColour(60, 60, 60));
-      if (p_haveFragments) {
+      //  A COLUMN LEFT EMPTY (pi-only, with nothing of that fragment's
+      //  in the visible pi system -- benzene's H column) IS DROPPED
+      //  ENTIRELY, title included, rather than shown as a heading over
+      //  blank space with nothing under it.
+      if (p_haveFragments && !p_left.levels.empty()) {
         dc.DrawText(wxString(p_left.title.c_str(), wxConvUTF8),
                     xLeft, top - 38);
+      }
+      if (p_haveFragments && !p_right.levels.empty()) {
         dc.DrawText(wxString(p_right.title.c_str(), wxConvUTF8),
                     xRight, top - 38);
       }

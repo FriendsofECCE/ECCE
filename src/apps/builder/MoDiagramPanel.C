@@ -3,6 +3,7 @@
 #include <ios>
 #include <set>
 #include <sstream>
+#include <utility>
 
 #include <wx/dcbuffer.h>
 #include <wx/link.h>
@@ -16,6 +17,7 @@
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxStaticText.H"
 
+#include "tdat/MoComposition.H"
 #include "tdat/MoFragments.H"
 #include "tdat/PropTable.H"
 #include "tdat/TGBSAngFunc.H"
@@ -209,6 +211,149 @@ static bool functionsPerAtom(IPropCalculation *expt, SGFragment *sgfrag,
   delete atoms;
   delete config;
   return ok;
+}
+
+
+/**
+ * The real overlap matrix and per-atom function counts, for the
+ * localisation and overlap-population checks classify() runs before
+ * any construction-specific bonding rule (#132, 2026-09-27).
+ *
+ * functionsPerAtom() above gives perAtom/shellOf cheaply, but with no
+ * overlap matrix at all -- fine for composeLevels()'s Lowdin
+ * (sum-of-squares) composition, useless for an overlap population,
+ * which is entirely a cross-atom S element. So this rebuilds the
+ * basis the heavier way computeFullGroupLabels() does (BasisFlatten +
+ * EspField::overlapOf), in the STORED frame the coefficients are
+ * actually in -- same reasoning as that function's header comment --
+ * but stops once S exists, since nothing here needs a character table.
+ */
+static bool buildBasisOverlap(IPropCalculation *expt, SGFragment *sgfrag,
+                              int coefficientWidth,
+                              vector<int>& perAtom, vector<double>& Sflat)
+{
+  perAtom.clear();
+  Sflat.clear();
+
+  ICalculation *escalc = dynamic_cast<ICalculation*>(expt);
+  if (escalc == 0 || sgfrag == 0) return false;
+
+  TGBSConfig *config = escalc->gbsConfig();
+  if (config == 0 || config->empty()) {
+    TGBSConfig *slater = ICalcUtils::slaterBasisConfig(expt);
+    if (slater != 0) { delete config; config = slater; }
+  }
+  if (config == 0 || config->empty()) { delete config; return false; }
+
+  const JCode *code = escalc->application();
+  if (code == 0) { delete config; return false; }
+
+  vector<TAtm*> *atoms = sgfrag->atoms();
+  double *xyz = sgfrag->coordinates();
+  const unsigned long natoms = sgfrag->numAtoms();
+  if (atoms == 0 || xyz == 0 || natoms == 0 || atoms->size() != natoms) {
+    delete atoms;
+    delete config;
+    return false;
+  }
+  vector<string> storedElements(natoms);
+  vector<double> storedCoords(natoms*3);
+  for (unsigned long a = 0; a < natoms; a++) {
+    storedElements[a] = (*atoms)[a]->atomicSymbol();
+    for (int k = 0; k < 3; k++) storedCoords[a*3+k] = xyz[a*3+k];
+  }
+  delete atoms;
+
+  //  THE RECORDED SYSTEM FIRST -- same two-try rule as
+  //  computeFullGroupLabels() and functionsPerAtom(), for the same
+  //  reason: the coefficient table's width alone decides Cartesian vs
+  //  spherical, and the recorded convention is right far more often.
+  vector<EspBasisFunction> basis;
+  {
+    int lengthShellCart[7] = { 1, 3, 6, 10, 15, 21, 28 };
+    int lengthShellSph[7]  = { 1, 3, 5, 7, 9, 11, 13 };
+    const TGaussianBasisSet::CoordinateSystem recorded = config->coordsys();
+    const TGaussianBasisSet::CoordinateSystem other =
+        (recorded == TGaussianBasisSet::Spherical)
+          ? TGaussianBasisSet::Cartesian : TGaussianBasisSet::Spherical;
+    const TGaussianBasisSet::CoordinateSystem tries[2] = { recorded, other };
+    for (int t = 0; t < 2 && basis.empty(); t++) {
+      TGBSAngFunc *candidate = code->getAngFunc(tries[t]);
+      if (candidate == 0) continue;
+      const bool sph = (tries[t] == TGaussianBasisSet::Spherical);
+      vector<EspBasisFunction> trial;
+      if (BasisFlatten::flatten(storedElements, storedCoords, config, code,
+                                candidate, candidate->maxShells(),
+                                sph ? lengthShellSph : lengthShellCart,
+                                trial) &&
+          (int)trial.size() == coefficientWidth) {
+        basis.swap(trial);
+      }
+      delete candidate;
+    }
+  }
+  delete config;
+  if (basis.empty()) return false;
+  for (size_t i = 0; i < basis.size(); i++) if (basis[i].empty()) return false;
+
+  perAtom.clear();
+  {
+    size_t i = 0;
+    while (i < basis.size()) {
+      size_t j = i;
+      while (j < basis.size() &&
+             fabs(basis[j].center[0]-basis[i].center[0]) < 1.0e-9 &&
+             fabs(basis[j].center[1]-basis[i].center[1]) < 1.0e-9 &&
+             fabs(basis[j].center[2]-basis[i].center[2]) < 1.0e-9) j++;
+      perAtom.push_back((int)(j - i));
+      i = j;
+    }
+  }
+  if (perAtom.size() != natoms) { perAtom.clear(); return false; }
+
+  const size_t nbasis = basis.size();
+  Sflat.assign(nbasis*nbasis, 0.0);
+  for (size_t i = 0; i < nbasis; i++)
+    for (size_t j = 0; j < nbasis; j++)
+      Sflat[i*nbasis + j] = EspField::overlapOf(basis[i], basis[j]);
+
+  return true;
+}
+
+
+/**
+ * Drop a fragment column's levels that carry no correlation line into
+ * the (already pi-filtered) molecular column, remapping the surviving
+ * links' indices to match -- pi-only mode otherwise kept every sigma
+ * TASO in the fragment columns and the whole H column even though
+ * nothing in the molecular column pointed at any of them any more,
+ * which is what dragged the energy axis out to the sigma system's
+ * range and left two columns of unconnected rows on screen.
+ */
+static void trimUnconnectedFragment(MoColumn& column,
+                                    vector<MoConnection>& links, bool isLeft)
+{
+  const size_t n = column.levels.size();
+  vector<bool> used(n, false);
+  for (size_t i = 0; i < links.size(); i++) {
+    const int idx = isLeft ? links[i].leftLevel : links[i].rightLevel;
+    if (idx >= 0 && (size_t)idx < n) used[idx] = true;
+  }
+
+  vector<int> remap(n, -1);
+  vector<MoLevel> kept;
+  for (size_t i = 0; i < n; i++) {
+    if (used[i]) {
+      remap[i] = (int)kept.size();
+      kept.push_back(column.levels[i]);
+    }
+  }
+  column.levels = kept;
+
+  for (size_t i = 0; i < links.size(); i++) {
+    int& idx = isLeft ? links[i].leftLevel : links[i].rightLevel;
+    idx = (idx >= 0 && (size_t)idx < n) ? remap[idx] : -1;
+  }
 }
 
 
@@ -1176,6 +1321,12 @@ void MoDiagramPanel::build()
   MoDiagram::hideAbove(centre,
                        MoDiagram::suggestVirtualCutoff(centre.levels));
 
+  //  Set below when the pi-only filter actually removed something --
+  //  used much further down to trim the FRAGMENT columns to match,
+  //  which this block cannot do itself: the fragment columns are not
+  //  even built yet at this point in the function.
+  bool piOnlyApplied = false;
+
   //  Before anything indexes the levels: correlation links and the
   //  hit map are positions in this vector, so a level removed after
   //  they are built would shift every one of them.
@@ -1222,7 +1373,10 @@ void MoDiagramPanel::build()
       //  carry no labels has nothing to filter on, and showing
       //  nothing would read as a failure rather than as a filter
       //  that found nothing.
-      if (!kept.empty()) centre.levels = kept;
+      if (!kept.empty()) {
+        centre.levels = kept;
+        piOnlyApplied = true;
+      }
     }
   }
 
@@ -1442,6 +1596,15 @@ void MoDiagramPanel::build()
   //  the ONLY thing that can connect a homonuclear diatomic -- a
   //  single atom spans no irrep of the molecule's group at all, so
   //  the irrep-based match has nothing to match (#132).
+  //
+  //  localisedShare/centreOP feed MoDiagram::classify() below: one
+  //  atom's share of a level (any construction) and that level's
+  //  Mulliken overlap population across the molecule's own bonds
+  //  (only meaningful for a no-central-atom construction) -- both need
+  //  the REAL overlap matrix, which composeLevels()'s own Lowdin
+  //  composition does not, so they are computed separately here rather
+  //  than threaded into it.
+  vector<double> localisedShare, centreOP;
   if (haveFragments && !leftAtoms.empty() && !rightAtoms.empty()) {
     PropTable *moCoefs = (PropTable*)calc->getProperty("MO");
     if (moCoefs != 0 && moCoefs->rows() > 0 && moCoefs->columns() > 0) {
@@ -1461,9 +1624,73 @@ void MoDiagramPanel::build()
         MoFragments::composeLevels(centre.levels, coefficients, perAtom,
                                    shellOf, elements, leftAtoms, rightAtoms,
                                    left, right);
+
+        vector<int> perAtomS;
+        vector<double> Sflat;
+        if (buildBasisOverlap(calc, sgfrag, nbasis, perAtomS, Sflat)) {
+          vector< std::pair<int,int> > bonds;
+          MoFragments::covalentBonds(coords, elements, bonds);
+
+          const bool debug = (getenv("ECCE_DEBUG_MOSYM") != 0);
+          localisedShare.assign(centre.levels.size(), 0.0);
+          centreOP.assign(centre.levels.size(), 0.0);
+          const vector<int> noShellSplit;
+          for (size_t i = 0; i < centre.levels.size(); i++) {
+            MoLevel& level = centre.levels[i];
+            vector<double> atomShareSum(elements.size(), 0.0);
+            double opSum = 0.0;
+            int ncomp = 0;
+            for (size_t k = 0; k < level.orbitals.size(); k++) {
+              const int mo = level.orbitals[k];
+              if (mo < 0 || mo >= (int)coefficients.size()) continue;
+              ncomp++;
+
+              //  shellOf left empty: one entry per ATOM, already
+              //  summed over its shells -- exactly what a "which one
+              //  atom does this level sit on" check wants.
+              const vector<MoComposition::Share> full =
+                  MoComposition::compute(coefficients[mo], perAtomS,
+                                         noShellSplit, elements, Sflat);
+              for (size_t f = 0; f < full.size(); f++) {
+                if (full[f].atom >= 0 &&
+                    full[f].atom < (int)atomShareSum.size()) {
+                  atomShareSum[full[f].atom] += full[f].share;
+                }
+              }
+
+              opSum += MoComposition::overlapPopulation(coefficients[mo],
+                                                         perAtomS, Sflat,
+                                                         bonds);
+            }
+            if (ncomp > 0) {
+              double maxShare = 0.0;
+              for (size_t a = 0; a < atomShareSum.size(); a++) {
+                const double v = atomShareSum[a]/ncomp;
+                if (v > maxShare) maxShare = v;
+              }
+              localisedShare[i] = maxShare;
+              centreOP[i] = opSum/ncomp;
+              if (debug) {
+                fprintf(stderr, "[MOLOC] %s E=%.4f maxAtomShare=%.3f "
+                        "OP=%.4f\n", level.irrep.c_str(), level.energy,
+                        maxShare, centreOP[i]);
+              }
+            }
+          }
+        }
       }
     }
   }
+
+  //  ONLY A NO-CENTRAL-ATOM CONSTRUCTION HANDS THE OVERLAP POPULATION
+  //  TO classify() -- for a central atom and its terminal atoms the
+  //  existing count-across-columns rule is the right one and must not
+  //  change (CH4, H2O, NH3, CO, N2 all behave today from it); the
+  //  localisation check above runs either way, since a lone pair is a
+  //  lone pair whichever construction this is.
+  const bool useOverlapPopulation =
+      (p_fragmentation == MoFragments::GROUPS ||
+       p_fragmentation == MoFragments::EQUIVALENT_SETS);
 
   //  THE FRAGMENT COLUMNS DO NOT NEED THE CODE'S SYMMETRY LABELS.
   //
@@ -1560,8 +1787,18 @@ void MoDiagramPanel::build()
     }
 
     MoDiagram::classify(left.levels, centre.levels, right.levels,
-                        left.fromHalves);
+                        left.fromHalves, localisedShare,
+                        useOverlapPopulation ? centreOP : vector<double>());
     MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+
+    //  PI-ONLY: THE FRAGMENT COLUMNS MUST DROP TOO, not just the
+    //  molecular one -- see the trimming block right after connect()
+    //  below (piOnlyApplied).
+    if (piOnlyApplied) {
+      trimUnconnectedFragment(left, links, true);
+      trimUnconnectedFragment(right, links, false);
+    }
+
     MoDiagram::placeFragments(centre, left, right, links);
     MoDiagram::classifyByEnergy(left.levels, centre.levels,
                                 right.levels, links);

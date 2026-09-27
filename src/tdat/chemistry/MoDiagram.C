@@ -9,6 +9,7 @@ using std::ostringstream;
 #include <cstddef>
 
 #include "tdat/CharacterTable.H"
+#include "tdat/MoComposition.H"
 #include "tdat/MoDiagram.H"
 
 MoDiagram::MoDiagram()
@@ -1229,7 +1230,9 @@ bool MoDiagram::isPiIrrep(const CharacterTable& table, const string& irrep,
 void MoDiagram::classify(const vector<MoLevel>& left,
                          vector<MoLevel>& centre,
                          const vector<MoLevel>& right,
-                         bool fromHalves)
+                         bool fromHalves,
+                         const vector<double>& localisedShare,
+                         const vector<double>& overlapPopulation)
 {
   //  WITHOUT IRREPS ON THE FRAGMENT SIDE THERE IS NOTHING TO COUNT,
   //  and counting nothing is not the same as counting zero.
@@ -1248,6 +1251,39 @@ void MoDiagram::classify(const vector<MoLevel>& left,
     if (!right[i].irrep.empty()) anyIrrep = true;
   }
   if (!anyIrrep) return;
+
+  //  LOCALISATION COMES FIRST, WHICHEVER CONSTRUCTION THIS IS.
+  //
+  //  A level sitting almost entirely on one atom is that atom's lone
+  //  pair -- true independent of what it is being correlated against,
+  //  so it is decided before either rule below runs and pre-empts
+  //  both.  Water's 1b1 is the textbook case: a pure oxygen lone pair
+  //  that the counting rule below gets right anyway (it is on no
+  //  hydrogen orbit at all, so p=q=0), but ammonia's 3a1 and CO's
+  //  5-sigma are NOT automatically zero under that rule -- they carry
+  //  an irrep the terminal atoms also have some of, just mostly on one
+  //  atom, and the localisation check is what actually catches those.
+  vector<bool> settled(centre.size(), false);
+  if (localisedShare.size() == centre.size()) {
+    for (size_t c = 0; c < centre.size(); c++) {
+      if (localisedShare[c] >= MoComposition::LOCALISED_SHARE_THRESHOLD) {
+        centre[c].character = MoLevel::NONBONDING;
+        centre[c].pairing = -1;
+        settled[c] = true;
+      }
+    }
+  }
+
+  //  THE OP THRESHOLD IS AGAINST THE WHOLE VALENCE WINDOW, not against
+  //  whatever happens to share one level's irrep -- an irrep that
+  //  appears only once (benzene's a2u, on its own) would otherwise be
+  //  compared only to itself, and 5% of its own magnitude is always
+  //  smaller than itself, so nothing could ever come out non-bonding.
+  double largestOP = 0.0;
+  for (size_t c = 0; c < overlapPopulation.size(); c++) {
+    const double a = fabs(overlapPopulation[c]);
+    if (a > largestOP) largestOP = a;
+  }
 
   int nextPair = 0;
 
@@ -1285,7 +1321,8 @@ void MoDiagram::classify(const vector<MoLevel>& left,
     }
     const double negligible = 0.02*(highest - lowest);
 
-    vector<bool> taken(centre.size(), false);
+    //  Already decided by localisation -- not up for grabs below.
+    vector<bool> taken = settled;
     const size_t pairs = (left.size() < right.size()) ? left.size()
                                                       : right.size();
     for (size_t i = 0; i < pairs; i++) {
@@ -1337,8 +1374,13 @@ void MoDiagram::classify(const vector<MoLevel>& left,
 
     //  The molecular levels of this irrep, in energy order -- which is
     //  the order they are in, since the spectrum arrives sorted.
+    //  ALREADY-SETTLED LEVELS (a localised lone pair) ARE LEFT OUT --
+    //  they keep the character the pre-pass gave them, and are not
+    //  available to be re-counted as a bonding or antibonding partner
+    //  of anything else here.
     vector<size_t> mine;
     for (size_t i = 0; i < centre.size(); i++) {
+      if (settled[i]) continue;
       if (centre[i].irrep == irrep) mine.push_back(i);
     }
 
@@ -1366,6 +1408,58 @@ void MoDiagram::classify(const vector<MoLevel>& left,
     //  rule this does not yet have; saying nothing is the honest form
     //  of not having it.
     if (fromHalves) continue;
+
+    //  NO CENTRAL ATOM: THE COUNT ACROSS THE TWO COLUMNS ASKS THE
+    //  WRONG QUESTION, the same trap as the two-halves case just
+    //  above but without a known 1:1 pairing to fall back on -- a
+    //  fragment orbital combining a WHOLE SET of equivalent atoms
+    //  (benzene's six carbons) rather than two ends of one bond can
+    //  perfectly well carry an irrep the other set has none of at
+    //  all: benzene's a2u, e1g, e2u and b2g pi orbitals are carbon-
+    //  only and min(p,q) is zero for every one of them, which is what
+    //  marked essentially the whole pi manifold "nb" including the
+    //  bonding and antibonding pairs that plainly are not.
+    //
+    //  What decides bonding here instead is measured, not counted:
+    //  the level's own Mulliken overlap population across the
+    //  molecule's own bonds (MoComposition::overlapPopulation(),
+    //  computed by the caller, since only it has the MO coefficients
+    //  and the overlap matrix).  Positive reinforces those bonds
+    //  (bonding), negative works against them (antibonding), and a
+    //  magnitude too small to trust either way is left non-bonding --
+    //  against a threshold relative to the largest magnitude actually
+    //  present, because the OP itself is not on any fixed scale.
+    if (overlapPopulation.size() == centre.size()) {
+      const double threshold = 0.05*largestOP;
+
+      vector<size_t> bonding, antibonding;
+      for (size_t k = 0; k < mine.size(); k++) {
+        MoLevel& level = centre[mine[k]];
+        const double op = overlapPopulation[mine[k]];
+        if (op > threshold) {
+          level.character = MoLevel::BONDING;
+          bonding.push_back(mine[k]);
+        } else if (op < -threshold) {
+          level.character = MoLevel::ANTIBONDING;
+          antibonding.push_back(mine[k]);
+        } else {
+          level.character = MoLevel::NONBONDING;
+          level.pairing   = -1;
+        }
+      }
+
+      //  Lowest bonding with highest antibonding: the two ends of the
+      //  same interaction, same convention as every other pairing in
+      //  this function.  mine[] is in energy order already.
+      const size_t n = (bonding.size() < antibonding.size())
+                       ? bonding.size() : antibonding.size();
+      for (size_t k = 0; k < n; k++) {
+        centre[bonding[k]].pairing = nextPair;
+        centre[antibonding[antibonding.size() - 1 - k]].pairing = nextPair;
+        nextPair++;
+      }
+      continue;
+    }
 
     int pairs = (p < q) ? p : q;
     if (pairs*2 > (int)mine.size()) pairs = (int)mine.size()/2;

@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include "tdat/MoDiagram.H"
+#include "tdat/MoComposition.H"
 using namespace std;
 
 static int bad = 0;
@@ -183,6 +184,126 @@ int main()
     check(centre[0].character == MoLevel::BONDING &&
           centre[4].character == MoLevel::ANTIBONDING,
           "the lowest a1 is bonding and the highest b1 antibonding");
+  }
+
+  //  ------------------------------------------------------------------
+  //  NO CENTRAL ATOM: the overlap-population rule (#132, settled
+  //  2026-09-27).  Modelled on benzene's pi manifold -- four levels
+  //  of four distinct irreps, none of which the (single) fragment
+  //  column shares with anything on the other side, so the OLD
+  //  counting rule marks every one of them "nb" (min(p,q)==0 for all
+  //  four).  The OP-based rule instead reads the measured overlap
+  //  population directly: a2u and e1g bonding, e2u and b2g
+  //  antibonding, exactly the textbook picture.
+  {
+    printf("\n  no-central-atom construction: classify by overlap "
+           "population\n");
+
+    //  A fifth, distinct irrep with an OP indistinguishable from zero
+    //  AGAINST THE OTHER FOUR -- there is no meaning to "near zero" in
+    //  a window of one, so this is tested alongside real bonding and
+    //  antibonding magnitudes, which is the only window the threshold
+    //  is ever actually compared against in the real diagram too.
+    vector<MoLevel> left(5), right;  // one-sided TASO column, no partner
+    vector<MoLevel> centre(5);
+    const char* irr[] = { "a2u", "e1g", "e2u", "b2g", "a1g" };
+    for (int i = 0; i < 5; i++) {
+      left[i].irrep = MoDiagram::canonicalIrrep(irr[i]);
+      left[i].degeneracy = 1;
+      centre[i].irrep = MoDiagram::canonicalIrrep(irr[i]);
+      centre[i].degeneracy = 1;
+      centre[i].energy = -0.4 + 0.2*i;   // sorted, as the real spectrum is
+    }
+    //  Bonding (a2u, e1g) positive, antibonding (e2u, b2g) negative,
+    //  scaled so the 5%-of-largest threshold cannot mistake either for
+    //  non-bonding; a1g's is three orders of magnitude smaller.
+    vector<double> op(5);
+    op[0] =  0.62;    // a2u  -- bonding
+    op[1] =  0.58;    // e1g  -- bonding
+    op[2] = -0.55;    // e2u  -- antibonding
+    op[3] = -0.60;    // b2g  -- antibonding
+    op[4] =  0.0003;  // a1g  -- negligible next to the other four
+
+    MoDiagram::classify(left, centre, right, false, vector<double>(), op);
+
+    check(centre[0].character == MoLevel::BONDING,
+          "a2u (positive OP) comes out bonding, not nb from an empty count");
+    check(centre[1].character == MoLevel::BONDING,
+          "e1g (positive OP) comes out bonding");
+    check(centre[2].character == MoLevel::ANTIBONDING,
+          "e2u (negative OP) comes out antibonding");
+    check(centre[3].character == MoLevel::ANTIBONDING,
+          "b2g (negative OP) comes out antibonding");
+    check(centre[4].character == MoLevel::NONBONDING,
+          "a1g's OP is negligible next to the other four, and is left "
+          "non-bonding rather than guessed either way");
+    //  Each of the five appears exactly once in this fragment column --
+    //  the full reduction of benzene's carbon 2pz set is a2u+e1g+e2u+b2g,
+    //  one SALC of each -- so there is no SAME-irrep partner for any of
+    //  them to pair with for colouring; they stay ungrouped (pairing<0),
+    //  which is correct and not a sign the OP rule missed anything.
+    check(centre[0].pairing < 0 && centre[1].pairing < 0 &&
+          centre[2].pairing < 0 && centre[3].pairing < 0,
+          "no same-irrep partner exists among these five, so none pair up");
+  }
+
+  //  ------------------------------------------------------------------
+  //  LOCALISATION PRE-EMPTS EVERYTHING, whichever construction this is
+  //  (Andy, 2026-09-27): a level sitting almost entirely on one atom is
+  //  that atom's lone pair no matter what it is being correlated
+  //  against, so it must come out non-bonding even where the
+  //  construction's own rule -- irrep counting here -- would otherwise
+  //  call it bonding.
+  {
+    printf("\n  localisation pre-empts the construction's own rule\n");
+
+    //  TWO centre levels of one irrep, one fragment orbital of that
+    //  irrep on each side: the textbook in-phase/out-of-phase split,
+    //  which the old counting rule gets right on its own (pairs=1,
+    //  lower energy bonding, higher antibonding) -- exactly the case
+    //  the localisation check must still be able to override.
+    vector<MoLevel> left(1), right(1), centre(2);
+    left[0].irrep = right[0].irrep = MoDiagram::canonicalIrrep("a1");
+    left[0].degeneracy = right[0].degeneracy = 1;
+    for (int i = 0; i < 2; i++) {
+      centre[i].irrep = MoDiagram::canonicalIrrep("a1");
+      centre[i].degeneracy = 1;
+      centre[i].energy = -1.0 + 0.5*i;
+    }
+
+    //  Without localisedShare: the plain counting rule calls the lower
+    //  (centre[0]) bonding.
+    {
+      vector<MoLevel> c = centre;
+      MoDiagram::classify(left, c, right);
+      check(c[0].character == MoLevel::BONDING,
+            "sanity: with no localisation data, the old counting rule "
+            "still calls this bonding");
+    }
+
+    //  With localisedShare at/above threshold: pre-empted to nb.
+    //  (Only centre[0] is marked; centre[1]'s fate once its would-be
+    //  partner is pre-empted is not this test's question.)
+    {
+      vector<MoLevel> c = centre;
+      vector<double> share(2, 0.0);
+      share[0] = MoComposition::LOCALISED_SHARE_THRESHOLD;
+      MoDiagram::classify(left, c, right, false, share);
+      check(c[0].character == MoLevel::NONBONDING,
+            "a level at the localisation threshold is non-bonding "
+            "regardless of what the counting rule would have said");
+      check(c[0].pairing < 0, "and carries no pairing to draw a line by");
+    }
+
+    //  Just under threshold: the construction's own rule still decides.
+    {
+      vector<MoLevel> c = centre;
+      vector<double> share(2, 0.0);
+      share[0] = MoComposition::LOCALISED_SHARE_THRESHOLD - 0.05;
+      MoDiagram::classify(left, c, right, false, share);
+      check(c[0].character == MoLevel::BONDING,
+            "just under the threshold, the counting rule still applies");
+    }
   }
 
   //  ------------------------------------------------------------------
