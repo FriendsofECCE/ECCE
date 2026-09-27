@@ -515,7 +515,15 @@ void WxBasisToolGUI::CreateControls()
 
     wxBoxSizer* itemBoxSizer78 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer72->Add(itemBoxSizer78, 1, wxGROW, 3);
-    ewxNotebook* itemNotebook79 = new ewxNotebook( itemPanel71, ID_NOTEBOOK_WXBASISTOOL_CONTEXT_BASISSETS, wxDefaultPosition, wxDefaultSize, wxNB_TOP|wxNO_BORDER );
+    //  wxNO_BORDER used to be paired with ewxStyledWindow's
+    //  wxNotebook-background override, which flattens the tab bar to the
+    //  same colour as the surrounding panel (its own comment: "eliminating
+    //  faded unselected tabs").  Between the two, "Simple"/"Element"/"Atom"
+    //  read as plain text rather than as clickable tabs (#157).  Keeping
+    //  the native border here (this notebook only -- the flattening itself
+    //  is shared by every ewxNotebook and not touched) is enough to show
+    //  GTK's own tab chrome again, with no change to page-switch behaviour.
+    ewxNotebook* itemNotebook79 = new ewxNotebook( itemPanel71, ID_NOTEBOOK_WXBASISTOOL_CONTEXT_BASISSETS, wxDefaultPosition, wxDefaultSize, wxNB_TOP );
 
     ewxPanel* itemPanel80 = new ewxPanel( itemNotebook79, ID_PANEL_WXBASISTOOL_CONTEXT_BASISSETS_0, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     wxBoxSizer* itemBoxSizer81 = new wxBoxSizer(wxHORIZONTAL);
