@@ -5199,6 +5199,12 @@ void CalcMgr::onSelectionChange(bool selectInTree)
       // key whenever a calc goes unsuccessful/failed, and clears it on
       // any other terminal state, so an empty value here means either
       // the state predates this feature or the calc is fine.
+      //  Selection handling runs again on every state update, so the same
+      //  reason was printed twice.  Show it once per calc and reason, and
+      //  forget it as soon as the selection moves to anything else, so
+      //  coming back to the calc shows it again.
+      static string lastShown;
+      bool shownNow = false;
       if (isCalculation) {
         ResourceDescriptor::RUNSTATE state = ResourceUtils::stringToState(
                     itemData->getResource()->getProp(
@@ -5208,17 +5214,18 @@ void CalcMgr::onSelectionChange(bool selectInTree)
             state == ResourceDescriptor::STATE_SYSTEM_FAILURE) {
           string reason = itemData->getResource()->getProp(
                               VDoc::getEcceNamespace() + ":runStatusReason");
-          //  Selection handling runs again on every state update, so the
-          //  same reason was printed twice.  Once per calc and reason.
-          static string lastShown;
           const string key = itemData->getResource()->getURL().toString()
                              + "\n" + reason;
-          if (!reason.empty() && key != lastShown) {
-            lastShown = key;
-            setMessage(reason, WxFeedback::WARNING);
+          if (!reason.empty()) {
+            shownNow = true;
+            if (key != lastShown) {
+              lastShown = key;
+              setMessage(reason, WxFeedback::WARNING);
+            }
           }
         }
       }
+      if (!shownNow) lastShown.clear();
 
       // Only work on project, not even virtual documents
       // @todo shouldn't use hardwired string
