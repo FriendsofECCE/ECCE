@@ -5208,8 +5208,15 @@ void CalcMgr::onSelectionChange(bool selectInTree)
             state == ResourceDescriptor::STATE_SYSTEM_FAILURE) {
           string reason = itemData->getResource()->getProp(
                               VDoc::getEcceNamespace() + ":runStatusReason");
-          if (!reason.empty())
+          //  Selection handling runs again on every state update, so the
+          //  same reason was printed twice.  Once per calc and reason.
+          static string lastShown;
+          const string key = itemData->getResource()->getURL().toString()
+                             + "\n" + reason;
+          if (!reason.empty() && key != lastShown) {
+            lastShown = key;
             setMessage(reason, WxFeedback::WARNING);
+          }
         }
       }
 
