@@ -4195,7 +4195,23 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
      GetMenuBar()->Check(GetMenuBar()->FindMenuItem("Tools", "Residue Table"), false);
   }
 
-  if (update) {
+  bool symmetryShown = false;
+  //  SYMMETRY IS OPEN WHILE A MOLECULE IS BEING DRAWN -- in a saved
+  //  layout too, not only the default one (see loadDefaultPaneLayout).
+  //  A user who had arranged their own panes before the Symmetry pane
+  //  joined the default never saw it open, which is exactly the user
+  //  the reminder is for.  Only the editing layout: a finished
+  //  calculation opens read-only and has nothing left to symmetrise.
+  if (layoutName == NAME_LAYOUT_DEFAULT && !isReadOnly() &&
+      p_mgr.GetPane(NAME_TOOL_SYMMETRY).IsOk() &&
+      !p_mgr.GetPane(NAME_TOOL_SYMMETRY).IsShown()) {
+     p_mgr.GetPane(NAME_TOOL_SYMMETRY).Show(true);
+     GetMenuBar()->Check(
+         GetMenuBar()->FindMenuItem("Tools", NAME_TOOL_SYMMETRY), true);
+     symmetryShown = true;
+  }
+
+  if (update || symmetryShown) {
     p_mgr.Update();
     debugPrintPaneSizes(p_mgr);
   }
