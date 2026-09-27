@@ -12,9 +12,11 @@
  */
 
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fstream>
+#include <regex>
   using std::ifstream;
 
 #include "wx/wxprec.h"
@@ -69,6 +71,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent,
 {
     p_config = new EcceMap();
     p_adminFlag = admin;
+    p_queuesDirty = false;
 
     p_slctRgstn = NULL;
 
@@ -270,6 +273,18 @@ void WxMachineRegister::mainWindowCloseCB(wxCloseEvent& event)
     //  Confirm exit only if admin flag is set.  Among other things,
     //  it indicates that the app was started standalone.
 
+    //  Queue edits live only in p_qnames until Add/Change runs
+    //  processmachine; closing used to drop them without a word (#131).
+    if (event.CanVeto() && p_queuesDirty)
+    {
+        int answer = this->confirmUnsavedQueues();
+        if (answer == wxID_CANCEL || (answer == wxID_YES && !saveRegistration()))
+        {
+            event.Veto();
+            return;
+        }
+    }
+
     if (event.CanVeto() && p_adminFlag && !this->confirmExit())
     {
         // Veto allowed, and exit not confirmed by user.
@@ -299,6 +314,22 @@ void WxMachineRegister::machinesListBoxSelectedCB(wxCommandEvent& event)
     if (event.IsSelection())
     {
         string refname = (string)(event.GetString());
+
+        if (refname != "" && p_queuesDirty && p_slctRgstn != NULL &&
+            refname != p_slctRgstn->refname())
+        {
+            //  selectMachine() reloads p_qnames from disk, which would
+            //  silently discard the previous machine's unsaved queues.
+            string prev = p_slctRgstn->refname();
+            int answer = this->confirmUnsavedQueues();
+            if (answer == wxID_CANCEL ||
+                (answer == wxID_YES && !saveRegistration()))
+            {
+                p_machinesList->SetStringSelection((wxString)prev);
+                return;
+            }
+            p_queuesDirty = false;
+        }
 
         if (refname != "")
         {
@@ -429,6 +460,14 @@ void WxMachineRegister::queueChangeButtonClickedCB(wxCommandEvent& event)
     {
         displayMessage("You must supply a queue name.");
     }
+    else if (!std::regex_match(name, std::regex("^[A-Za-z0-9_.-]+$")))
+    {
+        //  Queue names are later written into a CGI-style settings
+        //  string and read on the other end of a shell pipe by
+        //  processmachine -- keep them to a safe character set (#131).
+        displayMessage("Queue name '" + name + "' is not valid.\n"
+            "Queue names may contain only letters, digits, '_', '.' and '-'.");
+    }
     else
     {
         int it;
@@ -456,6 +495,7 @@ void WxMachineRegister::queueChangeButtonClickedCB(wxCommandEvent& event)
 
             p_queuesChoicebox->Append(_(name.c_str()));
         }
+        p_queuesDirty = true;
     }
 }
 
@@ -463,40 +503,59 @@ void WxMachineRegister::queueChangeButtonClickedCB(wxCommandEvent& event)
 void WxMachineRegister::queueRemoveButtonClickedCB(wxCommandEvent& event)
 {
     this->removeQueue();
+    p_queuesDirty = true;
 }
 
 
 void WxMachineRegister::queueClearButtonClickedCB(wxCommandEvent& event)
 {
     this->clearQueues();
+    p_queuesDirty = true;
 }
 
 
 void WxMachineRegister::machineChangeButtonClickedCB(wxCommandEvent& event)
 {
+    saveRegistration();
+}
 
+
+bool WxMachineRegister::saveRegistration()
+{
+    bool saved = false;
 
     if (verifyInput())
     {
         string settings = "type=accept";
         settings += collectSettings();
 
-        string cmd = "echo \"";
-        cmd += settings + "\" | ";
-        cmd += Ecce::ecceHome();
+        string cmd = Ecce::ecceHome();
         cmd += "/scripts/processmachine";
 
         string s = "CONTENT_LENGTH=" + StringConverter::toString((int)(settings.length()));
         char* s1 = strdup(s.c_str());
         putenv(s1);
 
-        int status = system(cmd.c_str());
-        status = status >> 8;
+        //  Feed settings on stdin rather than building a shell command
+        //  line out of them -- settings can contain arbitrary path/
+        //  machine-name text and the old "echo \"...\" | processmachine"
+        //  form ran that text through the shell unescaped (#131).
+        int status = -1;
+        FILE* pipe = popen(cmd.c_str(), "w");
+
+        if (pipe != NULL)
+        {
+            fwrite(settings.data(), 1, settings.length(), pipe);
+            status = pclose(pipe);
+            status = status >> 8;
+        }
 
         if (status != 0)
             displayMessage("Unable to save changes to machine registration!");
         else
         {
+            saved = true;
+            p_queuesDirty = false;
             string refName = (string)(p_machineRefNameText->GetValue());
             redo(refName);
             selectMachine(refName);
@@ -504,6 +563,22 @@ void WxMachineRegister::machineChangeButtonClickedCB(wxCommandEvent& event)
             this->notifyUpdate();
         }
     }
+
+    return saved;
+}
+
+
+//  Yes = save now, No = discard, Cancel = stay.
+int WxMachineRegister::confirmUnsavedQueues()
+{
+    string name = (string)(p_machineRefNameText->GetValue());
+    ewxMessageDialog dlg(this,
+        "The queues for '" + name + "' have been changed but not saved.\n"
+        "\"Add/Change Queue\" only edits the list; \"Add/Change\" writes it.\n\n"
+        "Save them now?",
+        "Unsaved Queue Changes",
+        wxYES_NO|wxCANCEL|wxICON_QUESTION, wxDefaultPosition);
+    return dlg.ShowModal();
 }
 
 
@@ -539,6 +614,7 @@ void WxMachineRegister::formClearButtonClickedCB(wxCommandEvent& event)
     p_slctRgstn = NULL;
 
     this->clearForm();
+    p_queuesDirty = false;   // an explicit Clear Form is a deliberate discard
 
 
 //    p_machineChangeButton->Enable(false);

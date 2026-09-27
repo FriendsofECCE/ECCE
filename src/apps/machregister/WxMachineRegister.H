@@ -144,9 +144,12 @@ class WxMachineRegister: public WxMachineRegisterGUI
 
         void notifyUpdate();
         bool confirmExit();
+        bool saveRegistration();
+        int  confirmUnsavedQueues();
 
         //  Private Variables
         bool                    p_adminFlag;
+        bool                    p_queuesDirty;  // queue list edited, not yet written by processmachine
         EcceMap                *p_config;
         vector<string>          p_qnames;
         vector<int>             p_minProcs;
