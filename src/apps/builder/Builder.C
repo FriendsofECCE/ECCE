@@ -3335,7 +3335,7 @@ void Builder::OnChildFocus(wxChildFocusEvent& event)
   while (win && !(panel = dynamic_cast<VizPropertyPanel*>(win))) {
     win = win->GetParent();
   }
-  if (panel && !panel->hasFocus()) {
+  if (panel && panel->drawsInViewer() && !panel->hasFocus()) {
     wxAuiPaneInfo &pinfo = p_mgr.GetPane(panel);
     if (pinfo.IsOk() && pinfo.IsShown()) {
       panel->setFocus(true);

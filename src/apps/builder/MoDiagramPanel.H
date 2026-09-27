@@ -61,6 +61,12 @@ class MoDiagramPanel : public VizPropertyPanel,
             const wxString& name="MO Diagram");
       virtual ~MoDiagramPanel();
 
+      //  The diagram lives in its own pane; clicking a level hands the
+      //  orbital to the MOs panel, which owns the viewer.  GTK delivers
+      //  the click's focus event AFTER that handoff, so taking viz focus
+      //  here hid the surface the click had just built.
+      virtual bool drawsInViewer() const { return false; }
+
       /**
        * A level was clicked: show that orbital in the 3-D viewer.
        *

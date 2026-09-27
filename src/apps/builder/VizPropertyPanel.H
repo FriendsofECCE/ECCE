@@ -41,6 +41,12 @@ class VizPropertyPanel : public PropertyPanel,
     bool hasFocus() const;
     bool isPinned() const;
 
+    //  Whether taking viz focus puts anything in the 3-D viewer.  A panel
+    //  that draws nothing there (the MO diagram) must not take it: taking
+    //  it calls loseFocus() on whichever panel DOES own the viewer, and
+    //  for the MOs panel that switches the orbital just shown off again.
+    virtual bool drawsInViewer() const { return true; }
+
     static set<VizPropertyPanel*> getPanels(const string& url="",
                                             const string& name="");
 
