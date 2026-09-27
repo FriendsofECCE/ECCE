@@ -372,6 +372,23 @@ shared structure and basis-set libraries, with many clients connecting
 to it. That suits a teaching machine with a class on it, or several
 workstations that should all see the same data.
 
+**On the server**, the data server has to be told it is a central one.
+A data server listens on loopback only unless configured otherwise —
+right for the per-user default, where nothing off the machine ever
+talks to it, and wrong for a server a class connects to. As the account
+that runs the server, once:
+
+```
+echo all > ~/.ECCE/dataserver/listen      # or a specific address
+ecce-dataserver-stop && ecce-dataserver-start
+```
+
+`ECCE_DATASERVER_LISTEN` does the same from the environment and wins
+over the file. `all` binds every interface; one or more addresses
+instead bind loopback plus those. `ecce-dataserver-status` shows what a
+running server is bound to. A server set up before this setting existed
+will come back loopback-only after its next restart until it is set.
+
 On each client installation, once, as the owner of the install:
 
 ```
@@ -392,11 +409,10 @@ work from one installation.
 Each user needs an account on the central server, created there with
 `ecce-dataserver-adduser`.
 
-**Before putting a server on a network**, note that it currently
-listens on every interface and authenticates with HTTP Basic over
-plain HTTP, so credentials cross the network base64-encoded rather
-than encrypted. That is fine inside a trusted network and not fine
-across an untrusted one; see issue #138.
+**Before putting a server on a network**, note that it authenticates
+with HTTP Basic over plain HTTP, so credentials cross the network
+base64-encoded rather than encrypted. That is fine inside a trusted
+network and not fine across an untrusted one; see issue #138.
 
 ## Registering a compute machine
 

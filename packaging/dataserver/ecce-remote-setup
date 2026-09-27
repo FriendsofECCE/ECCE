@@ -76,6 +76,13 @@ if command -v curl >/dev/null 2>&1; then
   else
     echo "  WARNING: nothing answered on $HOST:$DATA_PORT."
     echo "  Writing the configuration anyway -- the server may not be up yet."
+    # Since #138 a data server listens on loopback unless told otherwise,
+    # so a server that is up but was never marked central looks exactly
+    # like one that is down from here.
+    echo "  If it is up, it may be listening on loopback only: on the server,"
+    echo "  as the account that runs it, put 'all' in ~/.ECCE/dataserver/listen"
+    echo "  (or export ECCE_DATASERVER_LISTEN=all), then"
+    echo "  ecce-dataserver-stop && ecce-dataserver-start."
   fi
 fi
 

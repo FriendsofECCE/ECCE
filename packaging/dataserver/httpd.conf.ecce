@@ -34,7 +34,11 @@
 # at build time.
 
 ServerRoot "##HTTPDROOT##"
-Listen ##PORT##
+# ##LISTEN## is replaced by one or more "Listen <addr>:<port>" lines:
+# loopback only for a per-user server, outward for a central one. What
+# decides it, and why, is in ecce-dataserver-start (issue #138). It must
+# stay alone on its line -- that script matches it as a whole line.
+##LISTEN##
 ServerAdmin ##EMAIL##
 ServerName ##SERVER##
 PidFile "##HTTPDROOT##/logs/httpd.pid"

@@ -24,6 +24,14 @@ port_open() {
 
 if port_open "$PORT"; then
   echo "Data server:  running (port $PORT)"
+  # What it is bound to decides who can reach it: loopback for a per-user
+  # server, outward for a central one (#138; see ecce-dataserver-start).
+  # Read from the config it was started with, which is what is in force.
+  if [ -f "$STATEDIR/httpd.conf" ]; then
+    echo "Listening:    $(sed -n -e 's/^Listen \([0-9][0-9]*\)$/*:\1 (every interface)/p' \
+                               -e 's/^Listen \(.*:.*\)$/\1/p' "$STATEDIR/httpd.conf" |
+                          tr '\n' ' ')"
+  fi
 else
   echo "Data server:  not running"
 fi

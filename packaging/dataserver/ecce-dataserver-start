@@ -88,6 +88,114 @@ fi
 PORT="${ECCE_DATASERVER_PORT:-8096}"
 PIDFILE="$STATEDIR/logs/httpd.pid"
 
+# WHICH ADDRESSES TO LISTEN ON (issue #138).
+#
+# ECCE has two deployments and they want opposite answers:
+#
+#   * PER-USER (the default): every user runs their own Apache, started by
+#     their own ecce-* wrapper, serving only their own data, and every
+#     client of it -- the gateway and the apps it launches -- is on this
+#     machine by construction. Nothing off this machine ever needs to
+#     reach it, and it is protected only by HTTP Basic over plain HTTP.
+#     So it listens on loopback and nowhere else.
+#
+#   * CENTRAL SERVER (the original PNNL deployment, and the teaching one:
+#     one server, a class of clients on other machines running
+#     "ecce -remote"). This is the same script run by the account hosting
+#     the server; there is nothing else that distinguishes the server
+#     machine. It MUST listen outward, or it serves nobody.
+#
+# A script cannot tell those apart by looking, so the outward bind is an
+# explicit setting on the server, never a guess:
+#
+#   ECCE_DATASERVER_LISTEN     environment, wins if set, else
+#   $STATEDIR/listen           one line in the hosting account's own
+#                              state directory, for a server that is
+#                              started by more than one path
+#
+# Values:
+#   loopback        (default) 127.0.0.1, plus ::1 when this host has IPv6
+#                   loopback configured
+#   all             every interface -- the behaviour before #138, and
+#                   what a central server normally wants
+#   <addr> ...      loopback plus these addresses (e.g. the server's
+#                   campus-facing address only)
+#
+# Why ::1 as well as 127.0.0.1: "localhost" resolves to both on Debian and
+# ::1 comes first. The C++ client resolves IPv4 only (CIPCcsock.C,
+# gethostbyname/AF_INET), but the help pages ECCE_HELP opens in a browser,
+# Python's urllib (tests) and anything else that uses getaddrinfo try ::1
+# first. They would fall back to 127.0.0.1, but binding both keeps what the
+# old all-interfaces bind gave them. It is only added when the host
+# actually has ::1: "Listen [::1]:port" on a host without IPv6 loopback is
+# a fatal Apache error, and the data server would not start at all.
+#
+# Loopback is ALWAYS included, even with an explicit address list, because
+# this script, ecce-dataserver-status and ecce-gateway-* probe the port at
+# localhost, and a user running ECCE on the server machine itself reaches
+# it at the http://localhost:<port>/Ecce siteconfig/DataServers ships.
+LISTEN_FILE="$STATEDIR/listen"
+LISTEN_SETTING="${ECCE_DATASERVER_LISTEN:-}"
+LISTEN_FROM="ECCE_DATASERVER_LISTEN"
+if [ -z "$LISTEN_SETTING" ] && [ -f "$LISTEN_FILE" ]; then
+  LISTEN_SETTING="$(sed -e 's/#.*//' "$LISTEN_FILE" | tr -s ' \t\n' '   ')"
+  LISTEN_SETTING="${LISTEN_SETTING# }"; LISTEN_SETTING="${LISTEN_SETTING% }"
+  LISTEN_FROM="$LISTEN_FILE"
+fi
+[ -n "$LISTEN_SETTING" ] || { LISTEN_SETTING="loopback"; LISTEN_FROM="default"; }
+
+has_ipv6_loopback() {
+  [ -r /proc/net/if_inet6 ] &&
+    grep -q '^00000000000000000000000000000001 ' /proc/net/if_inet6
+}
+
+# Apache "Listen" lines, one per element, into LISTEN_LINES (array).
+LISTEN_LINES=()
+add_listen() {
+  local line="Listen $1" l
+  for l in "${LISTEN_LINES[@]+"${LISTEN_LINES[@]}"}"; do
+    [ "$l" = "$line" ] && return 0
+  done
+  LISTEN_LINES+=("$line")
+}
+listen_loopback() {
+  add_listen "127.0.0.1:$PORT"
+  if has_ipv6_loopback; then add_listen "[::1]:$PORT"; fi
+}
+
+case "$LISTEN_SETTING" in
+  loopback|localhost)
+    listen_loopback
+    ;;
+  all|'*'|0.0.0.0|::|'[::]')
+    # A wildcard bind already covers loopback, and adding a specific
+    # address on the same port as well would fail with "Address already
+    # in use" -- so this is the one case with a single line.
+    add_listen "$PORT"
+    ;;
+  *)
+    listen_loopback
+    for addr in $LISTEN_SETTING; do
+      # This text is written into httpd.conf. Accept address material only,
+      # so a stray setting cannot inject configuration.
+      case "$addr" in
+        *[!0-9A-Za-z.:\[\]-]*|'')
+          echo "ecce-dataserver-start: invalid listen address '$addr' (from $LISTEN_FROM)" >&2
+          exit 1 ;;
+      esac
+      case "$addr" in
+        all|'*'|0.0.0.0|::|'[::]')
+          echo "ecce-dataserver-start: '$addr' cannot be combined with other addresses (from $LISTEN_FROM); use 'all' on its own" >&2
+          exit 1 ;;
+        loopback|localhost) continue ;;
+        \[*\]) add_listen "$addr:$PORT" ;;
+        *:*)   add_listen "[$addr]:$PORT" ;;    # bare IPv6 literal
+        *)     add_listen "$addr:$PORT" ;;
+      esac
+    done
+    ;;
+esac
+
 # Debian only puts /usr/sbin (where the apache2 binary lives) on PATH for
 # root -- a regular user's login/desktop session PATH does not include it
 # (confirmed via `systemctl --user show-environment` and gnome-session's
@@ -131,6 +239,19 @@ if port_open "$PORT"; then
     echo "  .htaccess will appear to be ignored. Stop it and start again:" >&2
     echo "    ecce-dataserver-stop   # or: pkill -f 'apache2 -f $STATEDIR'" >&2
   fi
+  # The listen setting only takes effect when Apache starts, and this early
+  # exit means changing it has no effect on a running server. Say so rather
+  # than leave a central server silently loopback-only (or the reverse).
+  if [ -f "$STATEDIR/httpd.conf" ]; then
+    running_listen="$(grep '^Listen ' "$STATEDIR/httpd.conf" 2>/dev/null)"
+    wanted_listen="$(printf '%s\n' "${LISTEN_LINES[@]}")"
+    if [ "$running_listen" != "$wanted_listen" ]; then
+      echo "ecce-dataserver-start: WARNING -- the running data server was started with" >&2
+      echo "  a different listen setting than the current one ($LISTEN_FROM:" >&2
+      echo "  '$LISTEN_SETTING'). It keeps its old addresses until restarted:" >&2
+      echo "    ecce-dataserver-stop && ecce-dataserver-start" >&2
+    fi
+  fi
   echo "ecce-dataserver-start: data server already listening on $PORT"
   exit 0
 fi
@@ -161,14 +282,34 @@ if [ ! -f "$CONF_TEMPLATE" ]; then
   echo "ecce-dataserver-start: no config template at $CONF_TEMPLATE" >&2
   exit 1
 fi
-sed -e "s|##HTTPDROOT##|$STATEDIR|g" \
+if ! grep -q '^##LISTEN##$' "$CONF_TEMPLATE"; then
+  # An older template (a bare "Listen ##PORT##") would bind every
+  # interface regardless of the setting above. Refuse rather than do that.
+  echo "ecce-dataserver-start: $CONF_TEMPLATE has no ##LISTEN## line -- it is" >&2
+  echo "  older than this script, and would listen on every interface" >&2
+  exit 1
+fi
+# GNU sed turns "\n" in a replacement into a newline: one Listen per line.
+listen_repl="$(printf '%s\\n' "${LISTEN_LINES[@]}")"
+listen_repl="${listen_repl%\\n}"
+sed -e "s|^##LISTEN##\$|$listen_repl|" \
+    -e "s|##HTTPDROOT##|$STATEDIR|g" \
     -e "s|##DATAROOT##|$DATAROOT|g" \
     -e "s|##PORT##|$PORT|g" \
     -e "s|##EMAIL##|$ECCE_REALUSER@localhost|g" \
     -e "s|##SERVER##|localhost|g" \
     "$CONF_TEMPLATE" > "$STATEDIR/httpd.conf"
 
-echo "ecce-dataserver-start: starting data server on port $PORT..."
+case "$LISTEN_SETTING" in
+  loopback|localhost)
+    echo "ecce-dataserver-start: starting data server on port $PORT (loopback only)..." ;;
+  all|'*'|0.0.0.0|::|'[::]')
+    echo "ecce-dataserver-start: starting data server on port $PORT," \
+         "listening on EVERY interface ($LISTEN_FROM)..." ;;
+  *)
+    echo "ecce-dataserver-start: starting data server on port $PORT," \
+         "listening on: ${LISTEN_LINES[*]#Listen } ($LISTEN_FROM)..." ;;
+esac
 "$APACHE2_BIN" -f "$STATEDIR/httpd.conf" -k start
 i=0
 while [ $i -lt 40 ]; do

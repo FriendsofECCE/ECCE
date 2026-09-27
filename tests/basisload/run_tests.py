@@ -31,7 +31,7 @@ unreadable to a modern mod_dav_fs), so the second pass is the one that
 reproduces a data server that has been in use.
 
 Only this suite's own server is ever started or stopped; it listens on
-127.0.0.1 alone, and its config -- the shipped template with PROPPATCH
+loopback alone, and its config -- the shipped template with PROPPATCH
 permitted on the library, which the real one denies -- never leaves the
 throwaway state directory.
 
@@ -157,10 +157,15 @@ def makeHome(state, port):
         handle.write(servers)
     with open(os.path.join(DATASERVER, "httpd.conf.ecce")) as handle:
         conf = handle.read()
-    conf, n = re.subn(r"(?m)^Listen ##PORT##$", "Listen 127.0.0.1:##PORT##",
-                      conf)
-    if n != 1:
-        sys.exit("httpd.conf.ecce: could not restrict Listen to loopback")
+    #  Loopback-only is the template's own default now (#138):
+    #  ecce-dataserver-start expands ##LISTEN## and env() below makes sure
+    #  no inherited ECCE_DATASERVER_LISTEN widens it.  Check the line is
+    #  still there rather than trusting it -- a bare "Listen ##PORT##" would
+    #  put this suite's PROPPATCH-enabled server on every interface.
+    if not re.search(r"(?m)^##LISTEN##$", conf) or \
+            re.search(r"(?m)^Listen ", conf):
+        sys.exit("httpd.conf.ecce: expected a ##LISTEN## line and no "
+                 "literal Listen")
     #  Permit PROPPATCH on the library, to plant the dead properties.
     conf, n = re.subn(
         r"(<Directory \"##DATAROOT##/Ecce\">.*?)"
@@ -182,6 +187,7 @@ def env(state, home, port):
     e = dict(os.environ)
     e.update(ECCE_HOME=home, ECCE_REALUSERHOME=state,
              ECCE_DATASERVER_PORT=str(port))
+    e.pop("ECCE_DATASERVER_LISTEN", None)
     return e
 
 
