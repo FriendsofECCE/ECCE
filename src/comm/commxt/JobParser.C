@@ -180,6 +180,31 @@ bool JobParser::importCalculation(const char* parseFile,
   const JCode* jcode = CodeFactory::lookup(code.c_str());
   task->application(jcode);
 
+  //  STORE THE OUTPUT UNDER THE CODE'S OWN NAME.  The imported file keeps
+  //  whatever the user called it -- g16.testout, job.log -- and the data
+  //  server types a file by its extension, so it was stored as text/plain
+  //  and nothing that looks for the output by its mimetype (Alt+O in
+  //  Builder) could find it, although it was there.  Renaming the link in
+  //  the temporary directory is enough: the parse script, the job monitor
+  //  and the stored copy all take the name from it.  NWChem is left
+  //  alone: its declared parse file is the ecce_print trace, which its
+  //  importer tells apart from plain stdout by content, not by name.
+  {
+    const string declared = jcode->getCodeFile(JCode::PARSE_OUTPUT).name();
+    const size_t dot = declared.find_last_of('.');
+    const size_t mine = parseFileName.find_last_of('.');
+    const string declaredExt = (dot == string::npos) ? "" : declared.substr(dot);
+    const string myExt = (mine == string::npos) ? "" : parseFileName.substr(mine);
+    if (!declared.empty() && declared.find('#') == string::npos &&
+        declared != "ecce.out" && declaredExt != myExt &&
+        declared != parseFileName) {
+      cmd = "mv -f " + parseFileName + " " + declared;
+      if (localconn.exec(cmd)) {
+        parseFileName = declared;
+      }
+    }
+  }
+
   string parseSetupScript = jcode->getScript("CalcImport");
 
   string oput;
