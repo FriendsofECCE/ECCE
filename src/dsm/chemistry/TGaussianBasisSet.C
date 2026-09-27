@@ -298,6 +298,8 @@ TGaussianBasisSet::ContractionType
   // unrecognized string.
   TGaussianBasisSet::ContractionType contType =
                    TGaussianBasisSet::UnknownContType;
+  if (ct.empty())
+    return contType;          // blank in the metadata: unknown, not an error
   if (ct == "AnyConType")
     contType = TGaussianBasisSet::AnyConType;
   else if (ct == "Uncontracted")
@@ -327,6 +329,8 @@ TGaussianBasisSet::CoordinateSystem
   TGaussianBasisSet::CoordinateSystem coordSys =
                    TGaussianBasisSet::UnknownCoordSys;
 
+  if (cs.empty())
+    return coordSys;          // blank in the metadata: unknown, not an error
   if (cs == "Y")
     coordSys = TGaussianBasisSet::Spherical;
   else if (cs == "N")
