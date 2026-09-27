@@ -493,6 +493,30 @@ class MoDiagramCanvas : public wxPanel
       } else if (under > 0) {
         for (size_t g = 0; g < groupY.size(); g++) groupY[g] += under;
       }
+
+      //  A STACK CAN SIMPLY BE TOO TALL FOR THE PLOT.  Cr(CO)6's
+      //  molecular column opens out dozens of close levels, and
+      //  sliding the whole stack (above) only relocates an overflow --
+      //  it does not remove one, so a stack taller than the plot ran
+      //  off the OTHER end instead and printed its top labels over the
+      //  title.  Where sliding cannot make it fit, compress the
+      //  spacing so the stack's own span -- lowest to highest --
+      //  lands inside the plot.  This only rescales the gaps a
+      //  uniform slide already agreed on, so it cannot invert order;
+      //  it draws the rows closer than the minimum-gap rule asked
+      //  for, which is the lesser fault next to drawing over the
+      //  title.
+      const int available = plot.height - 12;
+      const int span = groupY[byHeight[byHeight.size() - 1].second] -
+                       groupY[byHeight[0].second];
+      if (span > available && available > 0) {
+        const double scale = (double)available/(double)span;
+        const int top = plot.y + 6;
+        const int anchor = groupY[byHeight[0].second];
+        for (size_t g = 0; g < groupY.size(); g++) {
+          groupY[g] = top + (int)((groupY[g] - anchor)*scale);
+        }
+      }
     }
 
     /** The row a single level sits on, for a line to end at. */
