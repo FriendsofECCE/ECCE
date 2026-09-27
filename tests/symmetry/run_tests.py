@@ -784,10 +784,15 @@ def checkFullOrbitalIrrep(verbose):
     env.setdefault("ECCE_REALUSERHOME", os.path.expanduser("~"))
     env["ECCE_TEST_SYMOPS"] = symops
 
+    #  (fixture, natoms, nbasis) -- CH4/Td (s+p+d, cartesian) and
+    #  benzene/D6h (#151's live case: the degenerate e1g/e2u sets ORCA's
+    #  D2h-subgroup labelling cannot reach at all).
     rc = 0
-    for fixture in ("ch4-td.txt",):
+    for fixture, natoms, nbasis in (("ch4-td.txt", 5, 23),
+                                    ("c6h6-d6h.txt", 12, 102)):
         path = os.path.join(HERE, "fixtures", "g16mo", fixture)
-        run = subprocess.run([out, path], capture_output=True, text=True, env=env)
+        run = subprocess.run([out, path, str(natoms), str(nbasis)],
+                             capture_output=True, text=True, env=env)
         print(run.stdout, end="")
         if run.stderr:
             print(run.stderr, end="")

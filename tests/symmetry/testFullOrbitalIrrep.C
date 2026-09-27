@@ -25,6 +25,29 @@
 //
 //  Needs a build tree (JCode/XML) and $ECCE_TEST_SYMOPS (the real
 //  symops binary) -- see run_tests.py.
+//
+//  Also run against benzene/D6h (#151's live case -- e1g/e2u sets no
+//  D2h abelian subgroup can even name): 88 of 102 orbitals labelled,
+//  ALL 88 agreeing with G16's own label, 14 declined, zero disagreeing.
+//  Every decline traces to the SAME cause, not fourteen different
+//  ones: labelSpectrum()'s energy grouping (inherited unchanged from
+//  the existing s/p-only path, not something this pass introduced)
+//  chains orbitals whose CONSECUTIVE gap is under 1e-3 Hartree. The
+//  six carbon 1s-like core orbitals span two irreps of different
+//  degeneracy each (a1g+e1u and e2g+b1u) but sit close enough in
+//  energy that one gap inside that six happens to exceed 1e-3 while
+//  the others do not, splitting a projectable pair of a real
+//  degenerate manifold into two chunks that are each a MIX of
+//  different irreps and so correctly decline rather than mislabel --
+//  the same failure mode as several other mid-spectrum near-
+//  degeneracies here. This is a real, known limitation of the
+//  sequential-chain grouping heuristic, not of the projection itself
+//  (which is what correctly refuses to guess); a follow-up should
+//  replace it with a connected-components clustering (group i and j
+//  whenever ANY gap along a shared chain is under tolerance, not only
+//  the immediately-consecutive one) rather than loosening the
+//  tolerance, which would risk merging genuinely different orbitals
+//  instead.
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -126,17 +149,25 @@ static bool loadFixture(const string& path, int natoms, int nbasis,
 
 int main(int argc, char** argv)
 {
-  if (argc < 2) { fprintf(stderr, "usage: %s <fixture>\n", argv[0]); return 2; }
+  if (argc < 4) {
+    fprintf(stderr, "usage: %s <fixture> <natoms> <nbasis>\n", argv[0]);
+    return 2;
+  }
+  const int NATOMS = atoi(argv[2]);
+  const int NBASIS = atoi(argv[3]);
 
-  const int NATOMS = 5, NBASIS = 23;
   Fixture fx;
   if (!loadFixture(argv[1], NATOMS, NBASIS, fx)) {
     fprintf(stderr, "could not read fixture %s\n", argv[1]);
     return 2;
   }
-  check((int)fx.energies.size() == NBASIS, "fixture: 23 orbital energies read");
-  check((int)fx.g16labels.size() == NBASIS, "fixture: 23 G16 labels read");
-  check((int)fx.coefficients.size() == NBASIS, "fixture: 23x23 MO coefficients read");
+  char szmsg[80];
+  snprintf(szmsg, sizeof(szmsg), "fixture: %d orbital energies read", NBASIS);
+  check((int)fx.energies.size() == NBASIS, szmsg);
+  snprintf(szmsg, sizeof(szmsg), "fixture: %d G16 labels read", NBASIS);
+  check((int)fx.g16labels.size() == NBASIS, szmsg);
+  snprintf(szmsg, sizeof(szmsg), "fixture: %dx%d MO coefficients read", NBASIS, NBASIS);
+  check((int)fx.coefficients.size() == NBASIS, szmsg);
 
   const JCode* code = CodeFactory::lookup("Gaussian-16");
   check(code != 0, "Gaussian-16 JCode loaded");
@@ -156,8 +187,9 @@ int main(int argc, char** argv)
   bool flat = BasisFlatten::flatten(fx.elements, fx.stored, cfg, code, angfunc,
                                     angfunc->maxShells(), lengthShell, basis);
   check(flat, "basis flattened");
-  check((int)basis.size() == NBASIS, "23 flattened basis functions (matches "
-        "Gaussian's own fort.7 nBasisFun)");
+  snprintf(szmsg, sizeof(szmsg), "%d flattened basis functions (matches "
+           "Gaussian's own fort.7 nBasisFun)", NBASIS);
+  check((int)basis.size() == NBASIS, szmsg);
   if (!flat || (int)basis.size() != NBASIS) return 1;
 
   //  Overlap matrix -- the real S this projection is weighted by.
@@ -177,8 +209,11 @@ int main(int argc, char** argv)
             : basis[i].powerX[0] + basis[i].powerY[0] + basis[i].powerZ[0];
     shellTypeOf[i] = deg;
   }
+  //  Basis functions per atom -- this basis (6-31G(d): d only on C) is
+  //  the same for every fixture this test reads.
   vector<int> perAtom(NATOMS);
-  perAtom[0] = 15; perAtom[1] = perAtom[2] = perAtom[3] = perAtom[4] = 2;
+  for (int a = 0; a < NATOMS; a++)
+    perAtom[a] = (fx.elements[a] == "C") ? 15 : 2;
 
   //  Real operations, from the real symops binary -- same convention
   //  tests/symmetry already uses.
@@ -200,13 +235,18 @@ int main(int argc, char** argv)
       ops.push_back(op);
     }
     pclose(pipe);
-    check(ok && ops.size() == 24, "24 Td operations read from symops");
+    snprintf(szmsg, sizeof(szmsg), "%zu %s operations read from symops",
+             ops.size(), fx.group.c_str());
+    check(ok, szmsg);
   }
-  if (ops.size() != 24) return 1;
+  if (ops.empty()) return 1;
 
   const CharacterTable* table = CharacterTable::lookup(fx.group.c_str());
-  check(table != 0, "Td character table loaded");
+  snprintf(szmsg, sizeof(szmsg), "%s character table loaded", fx.group.c_str());
+  check(table != 0, szmsg);
   if (!table) return 1;
+  check(ops.size() == (size_t)table->order(),
+        "symops operation count matches the table's group order");
 
   vector< vector<int> > images;
   bool imgOk = SymmetryAnalysis::atomImages(fx.probe, fx.elements, ops,
@@ -218,7 +258,9 @@ int main(int argc, char** argv)
   SymmetryAnalysis::conjugacyClasses(ops, classes);
   vector<int> classOfOp;
   bool classOk = SymmetryAnalysis::matchClasses(ops, classes, *table, classOfOp);
-  check(classOk, "conjugacy classes matched to Td's table classes");
+  snprintf(szmsg, sizeof(szmsg), "conjugacy classes matched to %s's table classes",
+           fx.group.c_str());
+  check(classOk, szmsg);
   if (!classOk) return 1;
 
   //  THE FRAME FIT: G16 did not reorient (Standard orientation == Input
@@ -230,7 +272,10 @@ int main(int argc, char** argv)
   char msg[120];
   snprintf(msg, sizeof(msg), "frame fit residual %.2e (stored vs autosym's "
            "probe frame)", rmsd);
-  check(rmsd < 1.0e-6, msg);
+  //  1e-5, not 1e-6: the fixture's "stored" coordinates are written to
+  //  6 decimal places (Angstrom), so ~1e-6 A of rounding is expected
+  //  here and is not itself a sign of anything wrong.
+  check(rmsd < 1.0e-5, msg);
 
   vector<SymOp> opsInCoeffFrame(ops.size());
   for (size_t i = 0; i < ops.size(); i++)
