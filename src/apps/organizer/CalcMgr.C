@@ -5191,6 +5191,28 @@ void CalcMgr::onSelectionChange(bool selectInTree)
                          ResourceDescriptor::RT_DOCUMENT);
       bool isSystemFolder = itemData->getUrl().isSystemFolder();
 
+      // Surface why an incomplete/failed calc ended up that way, right
+      // where the user is already looking -- Andy (#--, 2026-09-27):
+      // "the reason should be discoverable. The Launcher should tell
+      // me." eccejobstore (JobStore.C's recordStatusReason()) writes the
+      // most specific reason it has into this same namespaced metadata
+      // key whenever a calc goes unsuccessful/failed, and clears it on
+      // any other terminal state, so an empty value here means either
+      // the state predates this feature or the calc is fine.
+      if (isCalculation) {
+        ResourceDescriptor::RUNSTATE state = ResourceUtils::stringToState(
+                    itemData->getResource()->getProp(
+                        VDoc::getEcceNamespace() + ":state"));
+        if (state == ResourceDescriptor::STATE_UNSUCCESSFUL ||
+            state == ResourceDescriptor::STATE_FAILED ||
+            state == ResourceDescriptor::STATE_SYSTEM_FAILURE) {
+          string reason = itemData->getResource()->getProp(
+                              VDoc::getEcceNamespace() + ":runStatusReason");
+          if (!reason.empty())
+            setMessage(reason, WxFeedback::WARNING);
+        }
+      }
+
       // Only work on project, not even virtual documents
       // @todo shouldn't use hardwired string
       menuBar->Enable(wxID_CHANGE_ACCESS, isProject);

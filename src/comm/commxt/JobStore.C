@@ -67,6 +67,8 @@
 #include "dsm/DavDebug.H"
 #include "dsm/VDoc.H"
 #include "dsm/ResourceDescriptor.H"
+#include "dsm/EDSI.H" // MetaDataResult -- forward-declared elsewhere, need
+                       // the full definition here to fill one in below.
 
 #include "comm/RCommand.H"
 #include "comm/JobParser.H"
@@ -110,6 +112,9 @@ void calcStoreData(string parseType, int callCount,
                    const char* data, bool fromFile);
 void calcUpdateState(ResourceDescriptor::RUNSTATE state);
 void cleanup(int exitStatus);
+string unsuccessfulReason(int status);
+string gensubLogReason(const string& outputFilePath);
+void recordStatusReason(const string& reason);
 void configRead(const string& fileName);
 void envRead(void);
 void fail(const char* name, const string& msg);
@@ -215,6 +220,21 @@ static XtAppContext appContext;
 static XtSignalId signalId;
 static int currentSignal = 0;
 static ResourceDescriptor::RUNSTATE endState=ResourceDescriptor::STATE_ILLEGAL;
+
+// The numeric gensub exit code (211/221/231/other) behind the most recent
+// STATE_UNSUCCESSFUL, 0 if the job hasn't gone unsuccessful.  Recorded by
+// interactStatus() the instant the code is seen -- before the calc's own
+// output file has been fetched back from the compute server, which
+// happens later in run() -- so cleanup() can look for something more
+// specific once that file is actually on disk (see gensubLogReason()).
+static int gUnsuccessfulStatus = 0;
+
+// Same idea as gUnsuccessfulStatus, for the STATE_FAILED/STATE_SYSTEM_FAILURE
+// paths (fail()/restart()/restartSystem()): they already have a specific,
+// human-written reason in hand (their own msg argument) at the point they
+// call calcUpdateState() -- no output file or code to consult, unlike the
+// gensub-detected STATE_UNSUCCESSFUL case above.
+static string gFailReason;
 static string lastRestartFileName = "";
 static int lastRestartCallCount = 0;
 
@@ -603,6 +623,54 @@ void calcUpdateState(ResourceDescriptor::RUNSTATE state)
 
 
 // ------------------------------------------------------------------------- //
+// Look for gensub's own "...setting status to..." line inside the calc's
+// primary output file, in the "-----ECCE Log Information-----" block that
+// gensub's submit script appends to it after the job exits (see
+// scripts/gensub's determineStatus()/getSubmitScript()). This names the
+// actual file/marker that tripped (e.g. "Output file orca.orcaout does
+// not exist - setting status to failed"), which is strictly more useful
+// than the generic numeric-code decode in unsuccessfulReason() above, so
+// callers should prefer it when it's present. Returns "" if the file
+// can't be read or has no such line (e.g. a code's own plain nonzero
+// exit, which gensub doesn't annotate beyond logging the exit status).
+// ------------------------------------------------------------------------- //
+string gensubLogReason(const string& outputFilePath)
+{
+  ifstream ifs(outputFilePath.c_str());
+  if (!ifs)
+    return "";
+
+  string line, lastReason;
+  bool inLogBlock = false;
+  while (getline(ifs, line)) {
+    if (line.find("-----ECCE Log Information-----") != string::npos)
+      inLogBlock = true;
+    else if (inLogBlock && line.find("setting status") != string::npos)
+      lastReason = line;
+  }
+  return lastReason;
+}
+
+
+// ------------------------------------------------------------------------- //
+// Record (or, given "", clear) why the calc ended up unsuccessful as
+// metadata on the calc itself -- same namespaced-key convention
+// TaskJob::setState() already uses for "state" -- and tell other running
+// client apps (Organizer, Launcher) about it the same way state changes
+// themselves are announced, so a lamp-only "incomplete"/"failed" icon
+// isn't the only place the reason can be seen.
+// ------------------------------------------------------------------------- //
+void recordStatusReason(const string& reason)
+{
+  vector<MetaDataResult> results(1);
+  results[0].name = VDoc::getEcceNamespace() + ":runStatusReason";
+  results[0].value = reason;
+  calculation->addProps(results);
+  calculation->notifyProperty("runStatusReason", reason);
+}
+
+
+// ------------------------------------------------------------------------- //
 // Clean up everything in preparation for termination.
 // ------------------------------------------------------------------------- //
 void cleanup(int exitStatus)
@@ -623,6 +691,34 @@ void cleanup(int exitStatus)
     if (endState>=ResourceDescriptor::STATE_COMPLETED &&
         parent->getApplicationType()==ResourceDescriptor::AT_REACTION_STUDY) {
       calculation->resetReactionTasks();
+    }
+
+    if (endState == ResourceDescriptor::STATE_UNSUCCESSFUL) {
+      // By now interactGetFiles() (called from run(), before cleanup())
+      // has already fetched the calc's output files into tmpStorage, so
+      // the log-block line -- unlike at the point interactStatus() first
+      // saw the status code -- is actually readable here.
+      string reason = unsuccessfulReason(gUnsuccessfulStatus);
+
+      TypedFile outFile;
+      calculation->getDataFile(JCode::PRIMARY_OUTPUT, outFile);
+      if (!outFile.name().empty()) {
+        string logReason = gensubLogReason(tmpStorage + "/" + outFile.name());
+        if (!logReason.empty()) {
+          reason = logReason;
+          // Only worth a second run-log line when it adds real detail
+          // beyond the coarse decode interactStatus() already logged.
+          logMessage("Calculation Incomplete", reason);
+        }
+      }
+
+      recordStatusReason(reason);
+    } else if ((endState == ResourceDescriptor::STATE_FAILED ||
+                endState == ResourceDescriptor::STATE_SYSTEM_FAILURE) &&
+               !gFailReason.empty()) {
+      recordStatusReason(gFailReason);
+    } else {
+      recordStatusReason("");
     }
   }
 
@@ -806,6 +902,7 @@ void fail(const char* name, const string& msg)
   // initialize messaging if needed
   initMessaging();
 
+  gFailReason = msg;
   calcUpdateState(ResourceDescriptor::STATE_FAILED);
   cleanup(3);
   exit(3);
@@ -821,6 +918,7 @@ void restart(const char* name, const string& msg)
   // initialize messaging if needed
   initMessaging();
 
+  gFailReason = msg;
   calcUpdateState(ResourceDescriptor::STATE_FAILED);
   cleanup(2);
   exit(2);
@@ -836,6 +934,7 @@ void restartSystem(const char* name, const string& msg)
   // initialize messaging if needed
   initMessaging();
 
+  gFailReason = msg;
   calcUpdateState(ResourceDescriptor::STATE_SYSTEM_FAILURE);
   cleanup(4);
   exit(4);
@@ -2252,7 +2351,7 @@ void interactUp(char* upData)
 // each "setting status to failed" echo).  This is the same set of codes
 // gensub defines -- keep it in sync with scripts/gensub's
 // defineStatusSymbols() if a new one is ever added there.
-static string unsuccessfulReason(int status)
+string unsuccessfulReason(int status)
 {
   switch (status) {
     case 211:
@@ -2291,9 +2390,11 @@ void interactStatus(char* statusData)
   if (lastStatus != status) {
     lastStatus = status;
     // update state in database
-    if (status == 0)
+    if (status == 0) {
+      gUnsuccessfulStatus = 0;
       calcUpdateState(ResourceDescriptor::STATE_COMPLETED);
-    else if (status == 301) {
+    } else if (status == 301) {
+      gUnsuccessfulStatus = 0;
       calcUpdateState(ResourceDescriptor::STATE_RUNNING);
 
       // special STTR reaction rate study logic to reset the state of all
@@ -2304,18 +2405,24 @@ void interactStatus(char* statusData)
       if (parent->getApplicationType()==ResourceDescriptor::AT_REACTION_STUDY) {
         calculation->resetReactionTasks();
       }
-    } else if (status == 302)
+    } else if (status == 302) {
+      gUnsuccessfulStatus = 0;
       calcUpdateState(ResourceDescriptor::STATE_KILLED);
-    else if (status == 303)
+    } else if (status == 303) {
+      gUnsuccessfulStatus = 0;
       calcUpdateState(ResourceDescriptor::STATE_LOADED);
-    else {
+    } else {
+      gUnsuccessfulStatus = status;
       calcUpdateState(ResourceDescriptor::STATE_UNSUCCESSFUL);
 
       // Say why, in the calc's run log (already viewable from Organizer
       // via "View Run Log"/CalcMgr::viewRunLog) -- otherwise the only
       // trace of the reason is gensub's own log text buried inside the
       // output file's "-----ECCE Log Information-----" block, which
-      // nothing else reads.
+      // nothing else reads. This is only the coarse, code-decoded reason;
+      // cleanup() below refines it once the output file itself is back,
+      // and that's also what ends up in the calc's runStatusReason
+      // metadata / JMS notification that Organizer and Launcher read.
       logMessage("Calculation Incomplete", unsuccessfulReason(status));
     }
   }

@@ -40,6 +40,7 @@
 #include "dsm/MdTask.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceTool.H"
+#include "dsm/VDoc.H"
 
 #include "comm/EcceShell.H"
 #include "comm/RCommand.H"
@@ -2113,6 +2114,24 @@ void WxLauncher::updateContext(const ResourceDescriptor::RUNSTATE& state)
 //    this->setEditAllowed(state < ResourceDescriptor::STATE_SUBMITTED);
     this->setEditAllowed(state == ResourceDescriptor::STATE_READY);
     p_messagesFeedback->setRunState(state);
+
+    // Andy (2026-09-27): "the reason should be discoverable. The
+    // Launcher should tell me" -- his case was a job that failed within
+    // seconds, with the Launcher window for it still open. eccejobstore
+    // (JobStore.C's recordStatusReason()) writes the most specific
+    // reason it has into this same namespaced metadata key whenever a
+    // calc goes unsuccessful/failed, so show it here the same way any
+    // other launch feedback is shown, rather than making the user go
+    // find Organizer's View Run Log.
+    if (state == ResourceDescriptor::STATE_UNSUCCESSFUL ||
+        state == ResourceDescriptor::STATE_FAILED ||
+        state == ResourceDescriptor::STATE_SYSTEM_FAILURE)
+    {
+        string reason = p_taskJob->getProp(VDoc::getEcceNamespace() +
+                                            ":runStatusReason");
+        if (!reason.empty())
+            p_messagesFeedback->setMessage(reason, WxFeedback::ERROR, false, true);
+    }
 
     this->refreshLaunchControls();
 }
