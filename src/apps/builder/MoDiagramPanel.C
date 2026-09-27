@@ -843,6 +843,28 @@ namespace {
     }
   }
 
+  /**
+   * The energy window the diagram will actually draw for this
+   * spectrum, computed the SAME WAY MoDiagramPanel::build() itself
+   * does further down (MoDiagram::suggestCoreCutoff()/
+   * suggestVirtualCutoff()) -- but on a plain energy grouping, with no
+   * labels at all, so this can run BEFORE any labelling is attempted.
+   * Both cutoff functions only look at each level's energy and
+   * occupancy, never its label, so grouping by energy alone gives the
+   * same cutoffs the real, labelled grouping will.
+   */
+  void drawnWindow(const vector<double>& energies, const vector<double>& occs,
+                   double& low, double& high)
+  {
+    low = -1.0e30; high = 1.0e30;
+    if (energies.empty()) return;
+    vector<MoLevel> tmp;
+    if (!MoDiagram::group(energies, occs, vector<string>(), 1.0e-4, tmp) ||
+        tmp.empty()) return;
+    low  = MoDiagram::suggestCoreCutoff(tmp);
+    high = MoDiagram::suggestVirtualCutoff(tmp);
+  }
+
   bool computeFullGroupLabels(IPropCalculation *calc,
                               const string& group,
                               const CharacterTable *table,
@@ -853,7 +875,9 @@ namespace {
                               const vector<string>& reported,
                               vector<string>& computed,
                               string& note,
-                              const char *moPropertyName = "MO")
+                              const char *moPropertyName = "MO",
+                              double windowLow = -1.0e30,
+                              double windowHigh = 1.0e30)
   {
     if (getenv("ECCE_DEBUG_MOSYM"))
       fprintf(stderr, "[MOSYM] group %s, %d orbitals, %d reported labels\n",
@@ -1019,14 +1043,29 @@ namespace {
     //  this function otherwise insists on, and it needs the code's own
     //  labels to exist at all.  Where they do not, accept the computed
     //  full-group labels on a weaker but still real condition instead:
-    //  every orbital in the calculation must have been labelled, not
-    //  just the ones later shown.  A partial labelling here would mean
-    //  some shell the angular table or the projection could not handle,
-    //  which is exactly the situation the cross-check exists to catch,
-    //  and there is no second source to catch it instead.
+    //  every orbital the diagram will actually DRAW must have been
+    //  labelled -- not every orbital the calculation reports.
+    //
+    //  It used to insist on ALL of them (fullLabelled == norb), which
+    //  refused O2's diagram outright: the high virtuals well above the
+    //  drawn window decline (correctly -- they are basis-set artefacts
+    //  the projection has no reason to resolve cleanly), and that one
+    //  partial failure, far outside anything shown, sank the whole
+    //  labelling. What actually has to hold is the same guarantee this
+    //  comment always meant: nothing the reader can SEE is left
+    //  unexplained. windowLow/windowHigh are the caller's own
+    //  suggestCoreCutoff()/suggestVirtualCutoff() cutoffs -- the drawn
+    //  valence window -- and default to "everything" for a caller that
+    //  has not computed them, which keeps this exactly as strict as it
+    //  used to be for anyone that does not pass them.
     if (reported.empty()) {
-      if (fullLabelled != norb)
-        return mosymFail(132, "reported.empty() && fullLabelled != norb");
+      bool windowLabelled = true;
+      for (int i = 0; i < norb && windowLabelled; i++) {
+        if (e[i] < windowLow || e[i] > windowHigh) continue;   // not drawn
+        if (fullDerived[i].empty()) windowLabelled = false;
+      }
+      if (!windowLabelled)
+        return mosymFail(132, "reported.empty() && a DRAWN orbital was not labelled");
 
       computed.assign(e.size(), string());
       for (int i = 0; i < norb && i < (int)computed.size(); i++) {
@@ -1377,10 +1416,13 @@ void MoDiagramPanel::build()
   //  path further down runs exactly as it already did.
   bool labelsInFullGroup = false;
   {
+    double windowLow, windowHigh;
+    drawnWindow(e, o, windowLow, windowHigh);
     vector<string> computedLabels;
     string computedNote;
     if (computeFullGroupLabels(calc, group, table, sgfrag, coords, elements,
-                               e, s, computedLabels, computedNote)) {
+                               e, s, computedLabels, computedNote, "MO",
+                               windowLow, windowHigh)) {
       s = computedLabels;
       labelsInFullGroup = true;
       if (why.empty()) why = computedNote;
@@ -1391,11 +1433,13 @@ void MoDiagramPanel::build()
   //  ORBSYMBETA itself, since that is what the alpha-beta irrep match
   //  above needs to prefer irrep over energy order (#132).
   if (haveBeta && sB.empty()) {
+    double windowLowB, windowHighB;
+    drawnWindow(eB, oB, windowLowB, windowHighB);
     vector<string> computedBetaLabels;
     string computedBetaNote;
     if (computeFullGroupLabels(calc, group, table, sgfrag, coords, elements,
                                eB, sB, computedBetaLabels, computedBetaNote,
-                               "MOBETA")) {
+                               "MOBETA", windowLowB, windowHighB)) {
       sB = computedBetaLabels;
     }
   }
