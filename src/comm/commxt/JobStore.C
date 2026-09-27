@@ -19,6 +19,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <stdlib.h> // exit
+#include <stdio.h> // snprintf
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
@@ -2244,6 +2245,33 @@ void interactUp(char* upData)
 }
 
 
+// scripts/gensub's determineStatus()/defineStatusSymbols() write one of
+// these numeric exit codes into the job's status file when the code did
+// not finish cleanly; the codes themselves never reach any UI (#--- job
+// shows only "incomplete" in Organizer, see gensub's own comments beside
+// each "setting status to failed" echo).  This is the same set of codes
+// gensub defines -- keep it in sync with scripts/gensub's
+// defineStatusSymbols() if a new one is ever added there.
+static string unsuccessfulReason(int status)
+{
+  switch (status) {
+    case 211:
+      return "the job's input/output file did not exist when it "
+             "finished (exit code 211)";
+    case 221:
+      return "an unexpected core file was found after the job exited "
+             "(exit code 221)";
+    case 231:
+      return "the code exited 0 but printed no normal-termination line "
+             "(exit code 231)";
+    default: {
+      char buf[64];
+      snprintf(buf, sizeof(buf), "job exited with status %d", status);
+      return string(buf);
+    }
+  }
+}
+
 void interactStatus(char* statusData)
 {
   // cleanup temp properties before updating state
@@ -2280,8 +2308,16 @@ void interactStatus(char* statusData)
       calcUpdateState(ResourceDescriptor::STATE_KILLED);
     else if (status == 303)
       calcUpdateState(ResourceDescriptor::STATE_LOADED);
-    else 
+    else {
       calcUpdateState(ResourceDescriptor::STATE_UNSUCCESSFUL);
+
+      // Say why, in the calc's run log (already viewable from Organizer
+      // via "View Run Log"/CalcMgr::viewRunLog) -- otherwise the only
+      // trace of the reason is gensub's own log text buried inside the
+      // output file's "-----ECCE Log Information-----" block, which
+      // nothing else reads.
+      logMessage("Calculation Incomplete", unsuccessfulReason(status));
+    }
   }
 
 }
