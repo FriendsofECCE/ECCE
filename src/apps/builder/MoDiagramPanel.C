@@ -850,31 +850,31 @@ namespace {
         }
       }
 
+      //  The subgroup's operations are the ones its labels were
+      //  computed with (SymmetryAnalysis::subgroupOperations()), each
+      //  classified by the same matchClasses() call, so an op is tied
+      //  to its table column by class rather than by position.  This
+      //  used to be a hand-built copy that knew only D2 and D2h: for a
+      //  C2v subgroup (ORCA's for every C-infinity-v molecule, CO) it
+      //  built D2's three C2 axes, none of which C4v contains, and
+      //  failed every time.
       const int subOrder = subgroupTable->order();
-      SymOp c2phys[3] = {
-        { {{-1,0,0},{0,-1,0},{0,0,1}} },
-        { {{-1,0,0},{0,1,0},{0,0,-1}} },
-        { {{1,0,0},{0,-1,0},{0,0,-1}} }
-      };
-      const SymOp inv = { {{-1,0,0},{0,-1,0},{0,0,-1}} };
       vector<SymOp> subPhys;
-      subPhys.push_back({ {{1,0,0},{0,1,0},{0,0,1}} });
-      for (int k = 0; k < 3; k++) subPhys.push_back(c2phys[perm[k]]);
-      if (subOrder == 8) {
-        subPhys.push_back(inv);
-        for (int k = 0; k < 3; k++) {
-          const SymOp& c = c2phys[perm[k]];
-          SymOp s;
-          for (int a=0;a<3;a++) for (int b=0;b<3;b++) s.m[a][b] =
-              (a==b) ? inv.m[a][a]*c.m[a][a] : 0.0;
-          subPhys.push_back(s);
-        }
+      vector<int> subClassOfOp;
+      bool subductionOk = permFound &&
+          SymmetryAnalysis::subgroupOperations(subgroupName, perm, subPhys) &&
+          (int)subPhys.size() == subOrder;
+      if (subductionOk) {
+        vector< vector<int> > subClasses;
+        SymmetryAnalysis::conjugacyClasses(subPhys, subClasses);
+        subductionOk = SymmetryAnalysis::matchClasses(subPhys, subClasses,
+                                                      *subgroupTable,
+                                                      subClassOfOp) &&
+                       subgroupTable->counts().size() == (size_t)subOrder;
       }
-
-      bool subductionOk = permFound && (int)subPhys.size() == subOrder;
       vector<int> subClassToFullClass(subOrder, -1);
       if (subductionOk) {
-        for (int k = 1; k < subOrder; k++) {
+        for (int k = 0; k < subOrder; k++) {
           const SymOp& want = subPhys[k];
           int foundClass = -1;
           for (size_t o = 0; o < opsInCoeffFrame.size() && foundClass < 0; o++) {
@@ -884,8 +884,9 @@ namespace {
                 if (fabs(opsInCoeffFrame[o].m[a][b]-want.m[a][b]) > 1.0e-3) same = false;
             if (same) foundClass = classOfOp[o];
           }
-          subClassToFullClass[k] = foundClass;
-          if (foundClass < 0) subductionOk = false;
+          const int sc = subClassOfOp[k];
+          if (foundClass < 0 || sc < 0 || sc >= subOrder) { subductionOk = false; break; }
+          subClassToFullClass[sc] = foundClass;
         }
       }
 
@@ -900,8 +901,8 @@ namespace {
           for (size_t x = 0; x < subNames.size(); x++) {
             const vector<double> *chiSub = subgroupTable->characters(subNames[x]);
             if (chiSub == 0 || (int)chiSub->size() != subOrder) continue;
-            double sum = (*chiFull)[0]*(*chiSub)[0];
-            for (int k = 1; k < subOrder; k++)
+            double sum = 0.0;
+            for (int k = 0; k < subOrder; k++)
               sum += (*chiFull)[subClassToFullClass[k]] * (*chiSub)[k];
             string a = subNames[x], b = subDerived[i];
             for (size_t c=0;c<a.size();c++) a[c]=toupper((unsigned char)a[c]);

@@ -1021,24 +1021,48 @@ bool SymmetryAnalysis::alignFrames(const vector<double>& from,
       if (sigma[oi] > 1.0e-9) {
          for (int a = 0; a < 3; a++) U[a][oi] = col[a]/sigma[oi];
       } else {
-         //  A degenerate direction (planar/linear input, or fewer than
-         //  3 independent directions): fill in something orthogonal to
-         //  what is already there rather than leaving garbage, fixed up
-         //  by the Gram-Schmidt pass below.
-         for (int a = 0; a < 3; a++) U[a][oi] = (a == oi) ? 1.0 : 0.0;
+         for (int a = 0; a < 3; a++) U[a][oi] = 0.0;   // filled in below
       }
    }
-   //  Gram-Schmidt, in case a degenerate column above needs it.
-   for (int oi = 0; oi < 3; oi++) {
-      for (int oj = 0; oj < oi; oj++) {
-         double dot = 0.0;
-         for (int a = 0; a < 3; a++) dot += U[a][oi]*U[a][oj];
-         for (int a = 0; a < 3; a++) U[a][oi] -= dot*U[a][oj];
-      }
-      double norm = 0.0;
-      for (int a = 0; a < 3; a++) norm += U[a][oi]*U[a][oi];
+   //  Degenerate directions (planar or linear input): complete U to an
+   //  orthonormal basis.  The fill-in has to be chosen AGAINST the
+   //  columns already there, not by column index -- the old code put
+   //  e_x/e_y/e_z into columns 0/1/2, so a diatomic stored along z (how
+   //  ECCE stores CO and N2) had e_z Gram-Schmidted to the zero vector,
+   //  giving a SINGULAR R that still fitted both atoms exactly.  Every
+   //  operation conjugated through it was then garbage and ORCA's linear
+   //  molecules labelled nothing.  So: the second column, if missing, is
+   //  the coordinate axis least parallel to the first, orthogonalised;
+   //  the third, if missing, is the cross product of the first two.
+   //  (sigma is sorted descending, so a missing column is never
+   //  followed by a present one, and column 0 is present for any input
+   //  that is not all atoms on one point.)
+   if (sigma[0] <= 1.0e-9) return false;
+   if (sigma[1] > 1.0e-9) {
+      //  Present but possibly small (near-linear input): keep it
+      //  orthonormal to column 0 regardless.
+      double dot = 0.0, norm = 0.0;
+      for (int a = 0; a < 3; a++) dot += U[a][1]*U[a][0];
+      for (int a = 0; a < 3; a++) { U[a][1] -= dot*U[a][0]; norm += U[a][1]*U[a][1]; }
       norm = sqrt(norm);
-      if (norm > 1.0e-9) for (int a = 0; a < 3; a++) U[a][oi] /= norm;
+      if (norm < 1.0e-6) sigma[1] = 0.0;
+      else for (int a = 0; a < 3; a++) U[a][1] /= norm;
+   }
+   if (sigma[1] <= 1.0e-9) {
+      int best = 0;
+      for (int a = 1; a < 3; a++) if (fabs(U[a][0]) < fabs(U[best][0])) best = a;
+      double e[3] = { 0.0, 0.0, 0.0 };
+      e[best] = 1.0;
+      const double dot = e[0]*U[0][0] + e[1]*U[1][0] + e[2]*U[2][0];
+      double norm = 0.0;
+      for (int a = 0; a < 3; a++) { U[a][1] = e[a] - dot*U[a][0]; norm += U[a][1]*U[a][1]; }
+      norm = sqrt(norm);
+      for (int a = 0; a < 3; a++) U[a][1] /= norm;
+   }
+   if (sigma[2] <= 1.0e-9 || sigma[1] <= 1.0e-9) {
+      U[0][2] = U[1][0]*U[2][1] - U[2][0]*U[1][1];
+      U[1][2] = U[2][0]*U[0][1] - U[0][0]*U[2][1];
+      U[2][2] = U[0][0]*U[1][1] - U[1][0]*U[0][1];
    }
 
    double Vsorted[3][3];
@@ -1063,6 +1087,52 @@ bool SymmetryAnalysis::alignFrames(const vector<double>& from,
             s += Vsorted[a][k]*sign*U[b][k];
          }
          R.m[a][b] = s;
+      }
+   }
+
+   //  COLLINEAR: the fit fixes only the axis (u0 -> v0), and the spin
+   //  about it that the Kabsch completion above lands on is whatever
+   //  the degenerate eigenvectors happened to be.  Take the SMALLEST
+   //  rotation instead -- the identity when the two axes already agree,
+   //  which is the common case (ORCA and autosym both put a linear
+   //  molecule on z).  Any spin fits the atoms equally well, but only
+   //  this one leaves the coefficient frame's own x and y where the
+   //  code put them, which the subgroup cross-check (ORCA's C2v/D2h
+   //  labels, built from diagonal operations in the stored frame)
+   //  needs: a spin of, say, 30 degrees gives a C4v whose mirrors are
+   //  not ORCA's, and the cross-check fails for no chemical reason.
+   if (sigma[1] <= 1.0e-9) {
+      const double a[3] = { U[0][0], U[1][0], U[2][0] };
+      const double b[3] = { Vsorted[0][0], Vsorted[1][0], Vsorted[2][0] };
+      const double c = a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+      if (c > -1.0 + 1.0e-9) {
+         //  Rodrigues: R = I + [v]x + [v]x^2 / (1 + c), v = a x b.
+         const double v[3] = { a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2],
+                               a[0]*b[1]-a[1]*b[0] };
+         const double K[3][3] = { {  0.0, -v[2],  v[1] },
+                                  {  v[2],  0.0, -v[0] },
+                                  { -v[1],  v[0],  0.0 } };
+         for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++) {
+               double k2 = 0.0;
+               for (int k = 0; k < 3; k++) k2 += K[i][k]*K[k][j];
+               R.m[i][j] = (i == j ? 1.0 : 0.0) + K[i][j] + k2/(1.0 + c);
+            }
+      } else {
+         //  Antiparallel: a half-turn about the coordinate axis least
+         //  parallel to a, made perpendicular to it.
+         int best = 0;
+         for (int i = 1; i < 3; i++) if (fabs(a[i]) < fabs(a[best])) best = i;
+         double k[3] = { 0.0, 0.0, 0.0 };
+         k[best] = 1.0;
+         const double dot = k[0]*a[0] + k[1]*a[1] + k[2]*a[2];
+         double norm = 0.0;
+         for (int i = 0; i < 3; i++) { k[i] -= dot*a[i]; norm += k[i]*k[i]; }
+         norm = sqrt(norm);
+         for (int i = 0; i < 3; i++) k[i] /= norm;
+         for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+               R.m[i][j] = 2.0*k[i]*k[j] - (i == j ? 1.0 : 0.0);
       }
    }
 
@@ -1275,13 +1345,36 @@ int SymmetryAnalysis::fullLabelSpectrum(const vector< vector<double> >& orbitals
       for (size_t m = 0; m < sets[s].size(); m++) set.push_back(orbitals[sets[s][m]]);
 
       string irrepName;
-      if (!fullOrbitalIrrep(set, perAtom, shellTypeOf, overlap, images, classOfOp,
-                            opsInCoeffFrame, angfunc, table, shellResidualTol,
-                            irrepName))
+      if (fullOrbitalIrrep(set, perAtom, shellTypeOf, overlap, images, classOfOp,
+                           opsInCoeffFrame, angfunc, table, shellResidualTol,
+                           irrepName)) {
+         for (size_t m = 0; m < sets[s].size(); m++) {
+            derived[sets[s][m]] = irrepName;
+            labelled++;
+         }
          continue;
+      }
 
+      //  The set is not one irrep.  An energy window groups orbitals
+      //  that are only NEARLY degenerate -- N2's 1sigma_g/1sigma_u core
+      //  pair is 0.9 mEh apart -- and a stand-in group splits what the
+      //  real group keeps together: C4v has delta as B1 + B2.  In both
+      //  cases each orbital on its own spans a one-dimensional irrep,
+      //  so label them one at a time.  This cannot mislabel a genuinely
+      //  degenerate set: a component of an irrep of dimension >= 2
+      //  never reduces to a one-dimensional irrep (fullOrbitalIrrep()
+      //  samples one operation from every class, those generate the
+      //  whole group, and a vector each of them sends to +/- itself
+      //  would span an invariant line), so such a set stays declined.
+      if (sets[s].size() < 2) continue;
       for (size_t m = 0; m < sets[s].size(); m++) {
-         derived[sets[s][m]] = irrepName;
+         vector< vector<double> > one(1, orbitals[sets[s][m]]);
+         string single;
+         if (!fullOrbitalIrrep(one, perAtom, shellTypeOf, overlap, images,
+                               classOfOp, opsInCoeffFrame, angfunc, table,
+                               shellResidualTol, single))
+            continue;
+         derived[sets[s][m]] = single;
          labelled++;
       }
    }
@@ -1396,6 +1489,14 @@ namespace {
      }
      return r;
   }
+}
+
+
+bool SymmetryAnalysis::subgroupOperations(const string& groupName,
+                                          const int perm[3],
+                                          vector<SymOp>& ops)
+{
+   return d2hFamilyOps(groupName, perm, ops);
 }
 
 

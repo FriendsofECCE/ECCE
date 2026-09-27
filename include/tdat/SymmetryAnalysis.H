@@ -466,6 +466,19 @@ class SymmetryAnalysis
                                      double shellResidualTol,
                                      vector<string>& derived,
                                      string& axisNote);
+
+    /**
+     * The operations subgroupLabelSpectrum() builds for one axis
+     * assignment -- D2h or any subgroup of it (D2, C2v, C2h, C2, Cs,
+     * Ci), in the STORED frame.  perm is the permutation of (z,y,x)
+     * its axisNote reports.  Exposed so a caller checking subduction
+     * uses the very operations the labels were computed with, rather
+     * than a copy that only knew D2 and D2h (which had C2v -- ORCA's
+     * subgroup for every C-infinity-v molecule -- built as D2).
+     * Returns false for any other group.
+     */
+    static bool subgroupOperations(const string& groupName, const int perm[3],
+                                   vector<SymOp>& ops);
 };
 
 #endif

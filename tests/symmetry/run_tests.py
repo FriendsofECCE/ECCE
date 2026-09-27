@@ -846,10 +846,16 @@ def checkSubgroupCrossCheck(verbose):
     env["ECCE_TEST_SYMOPS"] = symops
 
     rc = 0
-    for fixture, natoms, nbasis in (("ch4-orca-td.txt", 5, 22),
-                                    ("c6h6-orca-d6h.txt", 12, 96)):
+    #  (fixture, natoms, nbasis, orbitals that must get a full label).
+    #  The diatomics (#132): C4v/D4h stand in for the linear groups, the
+    #  axis is on z, spherical d -- all 28 must label, including the
+    #  delta set C4v splits into B1 + B2 and N2's 0.9 mEh core pair.
+    for fixture, natoms, nbasis, minFull in (("ch4-orca-td.txt", 5, 22, 1),
+                                             ("c6h6-orca-d6h.txt", 12, 96, 1),
+                                             ("co-orca-cinfv.txt", 2, 28, 28),
+                                             ("n2-orca-dinfh.txt", 2, 28, 28)):
         path = os.path.join(HERE, "fixtures", "g16mo", fixture)
-        run = subprocess.run([out, path, str(natoms), str(nbasis)],
+        run = subprocess.run([out, path, str(natoms), str(nbasis), str(minFull)],
                              capture_output=True, text=True, env=env)
         print(run.stdout, end="")
         if run.stderr:

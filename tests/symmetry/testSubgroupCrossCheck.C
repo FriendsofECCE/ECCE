@@ -295,6 +295,16 @@ int main(int argc, char** argv)
           classOfOp, opsInCoeffFrame, angfunc, *fullTable, 1.0e-4, fullDerived);
     }
     check(fullLabelled > 0, "full-group labels computed for the subduction check");
+    //  Optional 4th argument: how many orbitals MUST get a full-group
+    //  label.  The linear fixtures pass all of them -- a diatomic that
+    //  labels nothing (#132, CO/N2 from ORCA: a singular frame fit) or
+    //  loses its core pair or delta set would otherwise still pass.
+    if (argc > 4) {
+      char msg[120];
+      snprintf(msg, sizeof(msg), "at least %s full-group labels (got %d)",
+               argv[4], fullLabelled);
+      check(fullLabelled >= atoi(argv[4]), msg);
+    }
 
     //  Match each physical D2 operation (from subgroupLabelSpectrum's
     //  calibrated axis assignment, read back out the same way it built
@@ -319,36 +329,27 @@ int main(int argc, char** argv)
       }
       perm[0] = PERMS[best][0]; perm[1] = PERMS[best][1]; perm[2] = PERMS[best][2];
     }
-    SymOp c2phys[3] = {
-      { {{-1,0,0},{0,-1,0},{0,0,1}} },
-      { {{-1,0,0},{0,1,0},{0,0,-1}} },
-      { {{1,0,0},{0,-1,0},{0,0,-1}} }
-    };
-    const SymOp inv = { {{-1,0,0},{0,-1,0},{0,0,-1}} };
-
-    //  The subgroup's own physical operations, same order as its table
-    //  columns: E, the 3 (permuted) C2's, and -- for D2H, order 8 --
-    //  i and the 3 sigma_k = i*C2_perm[k] (elementwise, diagonal), the
-    //  SAME pairing SymmetryAnalysis.C's d2hFamilyOps() uses.
+    //  The subgroup's own operations -- the very set its labels were
+    //  computed with, classified by matchClasses() so each is tied to
+    //  its table column by class, not position.  (A hand-built copy
+    //  here and in MoDiagramPanel.C knew only D2/D2H, and built C2v --
+    //  ORCA's subgroup for CO -- as D2.)
     const int subOrder = subgroupTable->order();
     vector<SymOp> subPhys;
-    subPhys.push_back({ {{1,0,0},{0,1,0},{0,0,1}} });
-    for (int k = 0; k < 3; k++) subPhys.push_back(c2phys[perm[k]]);
-    if (subOrder == 8) {
-      subPhys.push_back(inv);
-      for (int k = 0; k < 3; k++) {
-        const SymOp& c = c2phys[perm[k]];
-        SymOp s;
-        for (int a=0;a<3;a++) for (int b=0;b<3;b++) s.m[a][b] =
-            (a==b) ? inv.m[a][a]*c.m[a][a] : 0.0;
-        subPhys.push_back(s);
-      }
+    vector<int> subClassOfOp;
+    bool built = SymmetryAnalysis::subgroupOperations(fx.subgroup, perm, subPhys) &&
+                 (int)subPhys.size() == subOrder;
+    if (built) {
+      vector< vector<int> > subClasses;
+      SymmetryAnalysis::conjugacyClasses(subPhys, subClasses);
+      built = SymmetryAnalysis::matchClasses(subPhys, subClasses, *subgroupTable,
+                                             subClassOfOp);
     }
-    check((int)subPhys.size() == subOrder,
-          "built the subgroup's own physical operation set (order matches)");
+    check(built, "built the subgroup's own physical operation set (order matches)");
 
     vector<int> subgroupClassToFullClass(subOrder, -1);
-    for (int k = 1; k < subOrder; k++) {
+    bool matchedAll = built;
+    for (int k = 0; built && k < subOrder; k++) {
       const SymOp& want = subPhys[k];
       int foundClass = -1;
       for (size_t o = 0; o < opsInCoeffFrame.size() && foundClass < 0; o++) {
@@ -358,13 +359,19 @@ int main(int argc, char** argv)
             if (fabs(opsInCoeffFrame[o].m[a][b] - want.m[a][b]) > 1.0e-3) same = false;
         if (same) foundClass = classOfOp[o];
       }
-      subgroupClassToFullClass[k] = foundClass;
+      if (foundClass < 0) matchedAll = false;
+      else subgroupClassToFullClass[subClassOfOp[k]] = foundClass;
     }
-    bool matchedAll = true;
-    for (int k = 1; k < subOrder; k++)
-      if (subgroupClassToFullClass[k] < 0) matchedAll = false;
     check(matchedAll, "every subgroup operation matched to one of the full "
           "group's own operations, in the stored frame (no extra alignment)");
+
+    //  Every full-group label, so a reader sees WHAT was computed.
+    if (classOk) {
+      printf("\n  full-group (%s) labels:", fx.group.c_str());
+      for (int i = 0; i < NBASIS; i++)
+        printf(" %s", fullDerived[i].empty() ? "-" : fullDerived[i].c_str());
+      printf("\n");
+    }
 
     if (matchedAll && classOk) {
       const vector<string>& subNames = subgroupTable->irreps();
@@ -381,8 +388,8 @@ int main(int argc, char** argv)
         for (size_t x = 0; x < subNames.size(); x++) {
           const vector<double>* chiSub = subgroupTable->characters(subNames[x]);
           if (chiSub == 0 || (int)chiSub->size() != subOrder) continue;
-          double sum = (*chiFull)[0]*(*chiSub)[0];   // E, full class 0 always E
-          for (int k = 1; k < subOrder; k++)
+          double sum = 0.0;
+          for (int k = 0; k < subOrder; k++)
             sum += (*chiFull)[subgroupClassToFullClass[k]] * (*chiSub)[k];
           const double mult = sum / subOrder;
           if (upper(subNames[x]) == upper(derived[i])) bestMult = mult;

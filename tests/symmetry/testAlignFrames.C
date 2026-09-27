@@ -202,6 +202,41 @@ int main()
     }
   }
 
+  //  The same, with the stored axis along a COORDINATE axis -- which is
+  //  how ECCE actually stores CO and N2 (0,0,z).  The degenerate-
+  //  direction fill-in used to pick e_x, e_y, e_z by column index, and
+  //  Gram-Schmidt reduced the one parallel to the fitted axis to the
+  //  zero vector: a singular "rotation" that still fitted the two atoms
+  //  exactly (RMSD 0), so every operation conjugated through it was
+  //  garbage and ORCA's CO and N2 labelled nothing (step 131).
+  //  Check the fit is ORTHOGONAL, not just that it fits.
+  {
+    const double axes[3][6] = {
+      { 0,0,-0.785665,  0,0,0.589436 },
+      { 0,-0.6875505,0, 0,0.6875505,0 },
+      { -0.6875505,0,0, 0.6875505,0,0 } };
+    const double targets[2][6] = {
+      { 0,0,-0.687550, 0,0,0.687550 },
+      { -0.687550,0,0, 0.687550,0,0 } };
+    for (int s = 0; s < 3; s++) for (int t = 0; t < 2; t++) {
+      vector<double> stored(axes[s], axes[s]+6), target(targets[t], targets[t]+6);
+      SymOp fit; double rmsd;
+      bool ok = SymmetryAnalysis::alignFrames(stored, target, fit, rmsd);
+      double worst = 0.0;
+      for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) {
+        double d = 0.0;
+        for (int k = 0; k < 3; k++) d += fit.m[k][a]*fit.m[k][b];
+        worst = std::max(worst, fabs(d - (a == b ? 1.0 : 0.0)));
+      }
+      char msg[160];
+      snprintf(msg, sizeof(msg), "diatomic on axis %d -> axis %d: fit is an "
+               "orthogonal proper rotation (|Q^TQ-I| %.1e, det %.3f, rmsd %.1e)",
+               s, t, worst, ok ? fit.determinant() : 0.0, rmsd);
+      check(ok && worst < 1.0e-9 && fabs(fit.determinant() - 1.0) < 1.0e-9
+               && rmsd < 1.0e-3, msg);
+    }
+  }
+
   printf("%s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }
