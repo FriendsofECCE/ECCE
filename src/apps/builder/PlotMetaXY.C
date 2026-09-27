@@ -245,8 +245,9 @@ void PlotMetaXY::initialize()
   tmprtrSizer->Add(new wxStaticText(this,wxID_STATIC,
               "Average Simulation Temperature: "),
               0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
-  char buf[12];
-  sprintf(buf,"%12.3f",p_Temperature);
+  // buffer enlarged: "%12.3f" can need 13 bytes with the terminating NUL
+  char buf[32];
+  snprintf(buf,sizeof(buf),"%12.3f",p_Temperature);
   p_tmprtrText = new ewxStaticText(this,ID_SIMTMP,buf);
   tmprtrSizer->Add(p_tmprtrText, 0,
                    wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
@@ -264,7 +265,7 @@ void PlotMetaXY::initialize()
   rateSizer->Add(new wxStaticText(this,wxID_STATIC,
               "Calculated Rate Constant: "),
               0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
-  sprintf(buf,"%12.4e",1.0);
+  snprintf(buf,sizeof(buf),"%12.4e",1.0);
   p_rateText = new ewxStaticText(this,ID_RATE,buf);
   rateSizer->Add(p_rateText, 0,
                    wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
@@ -305,8 +306,8 @@ void PlotMetaXY::doPlot()
         }
         p_Temperature /= ((double)ksize);
         p_Temperature *= 2.0/(k_B*((double)p_DOF));
-        char buf[12];
-        sprintf(buf,"%12.3f",p_Temperature);
+        char buf[32];
+        snprintf(buf,sizeof(buf),"%12.3f",p_Temperature);
         p_tmprtrText->SetLabel(buf);
         p_tmprtrCtrl->setValueAsDouble(p_Temperature);
       }
@@ -364,17 +365,17 @@ void PlotMetaXY::doPlot()
     }
   }
   if (p_rateText) {
-    char rbuf[14];
+    char rbuf[32];
     double rate = (k_B_ov_h*p_Temperature)
       * exp(-(p_ymax-p_ymin)/(R_gas*p_Temperature));
-    sprintf(rbuf,"%14.4e",rate);
+    snprintf(rbuf,sizeof(rbuf),"%14.4e",rate);
     p_rateText->SetLabel(rbuf);
   }
   if (p_yminText && p_ymaxText) {
-    char ybuf[12];
-    sprintf(ybuf,"%12.4f",p_ymin);
+    char ybuf[32];
+    snprintf(ybuf,sizeof(ybuf),"%12.4f",p_ymin);
     p_yminText->SetLabel(ybuf);
-    sprintf(ybuf,"%12.4f",p_ymax);
+    snprintf(ybuf,sizeof(ybuf),"%12.4f",p_ymax);
     p_ymaxText->SetLabel(ybuf);
   }
   p_size = xsize;
@@ -447,10 +448,10 @@ void PlotMetaXY::refreshPlot(wxCommandEvent &event)
     } else {
       p_ymax = p_yvalues[imax_m];
     }
-    char buf[12];
-    sprintf(buf,"%12.4f",p_ymin);
+    char buf[32];
+    snprintf(buf,sizeof(buf),"%12.4f",p_ymin);
     p_yminText->SetLabel(buf);
-    sprintf(buf,"%12.4f",p_ymax);
+    snprintf(buf,sizeof(buf),"%12.4f",p_ymax);
     p_ymaxText->SetLabel(buf);
 
 //  TODO: this code keeps crashing, but it would be nice if it didn't
@@ -476,8 +477,8 @@ void PlotMetaXY::refreshTemp(wxCommandEvent &event)
       }
       double rate = (k_B_ov_h*p_Temperature)
                   * exp(-(p_ymax-p_ymin)/(R_gas*p_Temperature));
-      char buf[14];
-      sprintf(buf,"%14.4e",rate);
+      char buf[32];
+      snprintf(buf,sizeof(buf),"%14.4e",rate);
       p_rateText->SetLabel(buf);
     }
   }

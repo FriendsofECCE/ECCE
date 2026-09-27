@@ -2018,9 +2018,9 @@ bool Launch::launchGlobus(void)
     tmpVal = (*p_options)["##wall_clock_seconds##"];
     if (tmpVal != "0" && tmpVal != "") {
       unsigned long seconds;
-      char buf[12];
+      char buf[32];
       sscanf(tmpVal.c_str(),"%lu",&seconds);
-      sprintf(buf,"%lu",seconds/60);
+      snprintf(buf,sizeof(buf),"%lu",seconds/60);
       queueRSL += "(maxWallTime=";
       queueRSL += buf;
       queueRSL += ")";

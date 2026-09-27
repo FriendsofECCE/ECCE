@@ -173,14 +173,18 @@ void PTDataFrame::setContent(int atomicNum)
   SetTitle("ECCE Periodic Table: Atomic Data of " +
            p_parent->getTPerTab()->name(atomicNum));
 
-  char strBuffer[10];
+  // "%10.6f" is at least 10 characters plus the NUL, so this was one
+  // byte short for every element -- harmless-looking on Debian, and an
+  // immediate "buffer overflow detected" abort wherever _FORTIFY_SOURCE
+  // is on by default (Ubuntu, hence CI; #155).
+  char strBuffer[32];
 
   // Refresh Reference Data Panel
   //	Refresh Symbol Section on the left
-  sprintf(strBuffer, "%3d", atomicNum);
+  snprintf(strBuffer, sizeof(strBuffer), "%3d", atomicNum);
   p_atomicNumLabel->SetLabel(strBuffer);
 
-  sprintf(strBuffer, "%10.6f", p_parent->getTPerTab()->atomicWeight(atomicNum));
+  snprintf(strBuffer, sizeof(strBuffer), "%10.6f", p_parent->getTPerTab()->atomicWeight(atomicNum));
   p_atomicWeightLabel->SetLabel(strBuffer);
 
   p_atomicSymbolLabel->SetLabel(p_parent->getTPerTab()->atomicSymbol(atomicNum));

@@ -1020,7 +1020,7 @@ gbs_details* EDSIGaussianBasisSetLibrary::details(
 
 
     // get image name
-    char file[128], full_path[128];
+    char file[128];
     int loc=0;
     int len = strlen(gbs_name);
     for (int j=0; j<len; j++) {
@@ -1036,8 +1036,8 @@ gbs_details* EDSIGaussianBasisSetLibrary::details(
         file[loc++] = gbs_name[j];
     }
     file[loc] = '\0';
-    sprintf(full_path, "%s/data/client/bstimages/%s.gif", 
-        Ecce::ecceHome(), file);
+    // build with std::string rather than a fixed buffer: ecceHome() length isn't bounded
+    string full_path = string(Ecce::ecceHome()) + "/data/client/bstimages/" + file + ".gif";
     result->image_path = full_path;
 
   }

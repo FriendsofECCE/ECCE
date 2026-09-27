@@ -179,8 +179,8 @@ string EcceURL::getRef() const
   } else {
     ret = p_protocol + "://" + p_host;
     if (p_port > 0 ) {
-      char buf[12]; // plenty big for port #
-      sprintf(buf,":%d/",p_port);
+      char buf[32]; // plenty big for port #
+      snprintf(buf,sizeof(buf),":%d/",p_port);
       ret.append(buf);
     } else {
       ret += "/";

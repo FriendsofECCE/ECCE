@@ -812,8 +812,8 @@ SoOutput::write(const SbName &s)
     else if (! isToBuffer())						      \
 	fprintf(fp, formatString, num);					      \
     else {								      \
-	char	str[20];						      \
-	sprintf(str, formatString, num);				      \
+	char	str[32];  /* "%.16lg" can need 23 bytes plus NUL */	      \
+	snprintf(str, sizeof(str), formatString, num);			      \
 	write(str);							      \
     }
 
