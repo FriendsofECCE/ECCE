@@ -108,6 +108,11 @@ than papered over.
 One line each. Full notes, and the packages, are on the
 [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
+- **v8.16.0** — **Launcher and Organizer say why a job failed**, in one
+  line. A basis-library fault that silently dropped 6-31G\*'s d shell is
+  fixed. MO diagrams label orbitals in the full point group (Oh, D6h,
+  σ/π for linear molecules); coordination complexes are not right yet.
+
 - **v8.15.0** — **Verify**: a check on the generated input file before
   it is submitted. The point group you choose now reaches Gaussian.
   Final Edit no longer strips a deck's terminating blank line. Register
