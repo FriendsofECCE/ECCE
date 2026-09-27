@@ -34,6 +34,7 @@ class WxLauncherApp : public ewxApp, public WxJMSMessageDispatch
         void calcDeleteMCB(JMSMessage& msg);
         void calcCodeMCB(JMSMessage& msg);
         void statusChangeMCB(JMSMessage& msg);
+        void propertyChangeMCB(JMSMessage& msg);
 
         void updatePrefsMCB(JMSMessage& msg);
 

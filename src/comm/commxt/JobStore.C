@@ -72,6 +72,7 @@
 
 #include "comm/RCommand.H"
 #include "comm/JobParser.H"
+#include "comm/JobFailureReason.H"
 
 #include "comm/expect.h"
 
@@ -703,9 +704,27 @@ void cleanup(int exitStatus)
       TypedFile outFile;
       calculation->getDataFile(JCode::PRIMARY_OUTPUT, outFile);
       if (!outFile.name().empty()) {
-        string logReason = gensubLogReason(tmpStorage + "/" + outFile.name());
-        if (!logReason.empty()) {
+        string outPath = tmpStorage + "/" + outFile.name();
+
+        string logReason = gensubLogReason(outPath);
+        if (!logReason.empty())
           reason = logReason;
+
+        // gensub's line names the symptom it detected (missing marker,
+        // missing file, unexpected core) not the underlying cause --
+        // look for something more specific in the code's own output
+        // (and slurm.err alongside it, if that happened to be fetched
+        // too) and prefer it when found.  Andy, 2026-09-27: the
+        // "no ORCA TERMINATED NORMALLY" message "doesn't tell us WHY".
+        vector<string> scanFiles;
+        scanFiles.push_back(outPath);
+        scanFiles.push_back(tmpStorage + "/slurm.err");
+        scanFiles.push_back(tmpStorage + "/slurm.out");
+        string specificReason = JobFailureReason::extractReason(scanFiles);
+        if (!specificReason.empty())
+          reason = specificReason;
+
+        if (reason != unsuccessfulReason(gUnsuccessfulStatus)) {
           // Only worth a second run-log line when it adds real detail
           // beyond the coarse decode interactStatus() already logged.
           logMessage("Calculation Incomplete", reason);

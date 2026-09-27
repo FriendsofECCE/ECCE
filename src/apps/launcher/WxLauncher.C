@@ -1808,6 +1808,16 @@ EcceURL WxLauncher::getContext()
 }
 
 
+/**
+ *  Returns the run state of the launcher frame's current context.  You
+ *  must be sure that the frame has a context when this is called.
+ */
+ResourceDescriptor::RUNSTATE WxLauncher::getContextState()
+{
+    return p_taskJob->getState();
+}
+
+
 void WxLauncher::setContext(string cntxt)
 {
     // Bail if it is the same context as the current one and just

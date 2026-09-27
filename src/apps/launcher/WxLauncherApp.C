@@ -99,6 +99,14 @@ void WxLauncherApp::subscribeMessages()
 
     subscribe("ecce_url_state", (wxJmsCBFunc)&WxLauncherApp::statusChangeMCB, false);
 
+    // eccejobstore (JobStore.C's cleanup()) sets the calc's final state
+    // -- which is what drives statusChangeMCB above -- and only THEN
+    // computes and records runStatusReason as a separate metadata
+    // property, published on this topic.  A Launcher window already
+    // open for the calc would otherwise see the state change with no
+    // reason yet to show (Andy, 2026-09-27).
+    subscribe("ecce_url_property", (wxJmsCBFunc)&WxLauncherApp::propertyChangeMCB, false);
+
     // Machine Config/Registration Changed
     subscribe("ecce_machconf_changed", (wxJmsCBFunc)&WxLauncherApp::machConfChangedMCB);
     subscribe("ecce_machreg_changed", (wxJmsCBFunc)&WxLauncherApp::machregChangedMCB);
@@ -273,6 +281,22 @@ void WxLauncherApp::statusChangeMCB(JMSMessage& msg)
         ResourceDescriptor::RUNSTATE state =
                                      ResourceUtils::stringToState(statestr);
         p_launchFrame->updateContext(state);
+    }
+}
+
+
+void WxLauncherApp::propertyChangeMCB(JMSMessage& msg)
+{
+    string path = msg.getProperty("url");
+    EcceURL url(path);
+
+    if (msg.getProperty("name") != "runStatusReason")
+        return;
+
+    if (p_launchFrame->hasContext() && (p_launchFrame->getContext() == url))
+    {
+        EDSIFactory::changePoolResource(path);
+        p_launchFrame->updateContext(p_launchFrame->getContextState());
     }
 }
 

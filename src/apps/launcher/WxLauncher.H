@@ -120,6 +120,7 @@ class WxLauncher : public WxLauncherGUI,
         EcceURL getContext();
         bool hasContext();
         void updateContext(const ResourceDescriptor::RUNSTATE& state);
+        ResourceDescriptor::RUNSTATE getContextState();
 
         void validateCode();
 

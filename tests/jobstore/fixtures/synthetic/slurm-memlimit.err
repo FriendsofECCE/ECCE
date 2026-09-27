@@ -1,0 +1,2 @@
+slurmstepd: error: Detected 1 oom-kill event(s) in step 123456.batch cgroup.
+slurmstepd: error: Exceeded job memory limit at some point.

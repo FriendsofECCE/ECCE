@@ -1,0 +1,121 @@
+ Entering Gaussian System, Link 0=/opt/gaussian/g16/g16
+ Initial command:
+ /opt/gaussian/g16/l1.exe "/home/andy/scratch/Gau-1160986.inp" -scrdir="/home/andy/scratch/"
+ Entering Link 1 = /opt/gaussian/g16/l1.exe PID=   1160988.
+  
+ Copyright (c) 1988-2019, Gaussian, Inc.  All Rights Reserved.
+  
+ This is part of the Gaussian(R) 16 program.  It is based on
+ the Gaussian(R) 09 system (copyright 2009, Gaussian, Inc.),
+ the Gaussian(R) 03 system (copyright 2003, Gaussian, Inc.),
+ the Gaussian(R) 98 system (copyright 1998, Gaussian, Inc.),
+ the Gaussian(R) 94 system (copyright 1995, Gaussian, Inc.),
+ the Gaussian 92(TM) system (copyright 1992, Gaussian, Inc.),
+ the Gaussian 90(TM) system (copyright 1990, Gaussian, Inc.),
+ the Gaussian 88(TM) system (copyright 1988, Gaussian, Inc.),
+ the Gaussian 86(TM) system (copyright 1986, Carnegie Mellon
+ University), and the Gaussian 82(TM) system (copyright 1983,
+ Carnegie Mellon University). Gaussian is a federally registered
+ trademark of Gaussian, Inc.
+  
+ This software contains proprietary and confidential information,
+ including trade secrets, belonging to Gaussian, Inc.
+  
+ This software is provided under written license and may be
+ used, copied, transmitted, or stored only in accord with that
+ written license.
+  
+ The following legend is applicable only to US Government
+ contracts under FAR:
+  
+                    RESTRICTED RIGHTS LEGEND
+  
+ Use, reproduction and disclosure by the US Government is
+ subject to restrictions as set forth in subparagraphs (a)
+ and (c) of the Commercial Computer Software - Restricted
+ Rights clause in FAR 52.227-19.
+  
+ Gaussian, Inc.
+ 340 Quinnipiac St., Bldg. 40, Wallingford CT 06492
+  
+  
+ ---------------------------------------------------------------
+ Warning -- This program may not be used in any manner that
+ competes with the business of Gaussian, Inc. or will provide
+ assistance to any competitor of Gaussian, Inc.  The licensee
+ of this program is prohibited from giving any competitor of
+ Gaussian, Inc. access to this program.  By using this program,
+ the user acknowledges that Gaussian, Inc. is engaged in the
+ business of creating and licensing software in the field of
+ computational chemistry and represents and warrants to the
+ licensee that it is not a competitor of Gaussian, Inc. and that
+ it will not use this program in any manner prohibited above.
+ ---------------------------------------------------------------
+  
+
+ Cite this work as:
+ Gaussian 16, Revision C.01,
+ M. J. Frisch, G. W. Trucks, H. B. Schlegel, G. E. Scuseria, 
+ M. A. Robb, J. R. Cheeseman, G. Scalmani, V. Barone, 
+ G. A. Petersson, H. Nakatsuji, X. Li, M. Caricato, A. V. Marenich, 
+ J. Bloino, B. G. Janesko, R. Gomperts, B. Mennucci, H. P. Hratchian, 
+ J. V. Ortiz, A. F. Izmaylov, J. L. Sonnenberg, D. Williams-Young, 
+ F. Ding, F. Lipparini, F. Egidi, J. Goings, B. Peng, A. Petrone, 
+ T. Henderson, D. Ranasinghe, V. G. Zakrzewski, J. Gao, N. Rega, 
+ G. Zheng, W. Liang, M. Hada, M. Ehara, K. Toyota, R. Fukuda, 
+ J. Hasegawa, M. Ishida, T. Nakajima, Y. Honda, O. Kitao, H. Nakai, 
+ T. Vreven, K. Throssell, J. A. Montgomery, Jr., J. E. Peralta, 
+ F. Ogliaro, M. J. Bearpark, J. J. Heyd, E. N. Brothers, K. N. Kudin, 
+ V. N. Staroverov, T. A. Keith, R. Kobayashi, J. Normand, 
+ K. Raghavachari, A. P. Rendell, J. C. Burant, S. S. Iyengar, 
+ J. Tomasi, M. Cossi, J. M. Millam, M. Klene, C. Adamo, R. Cammi, 
+ J. W. Ochterski, R. L. Martin, K. Morokuma, O. Farkas, 
+ J. B. Foresman, and D. J. Fox, Gaussian, Inc., Wallingford CT, 2019.
+ 
+ ******************************************
+ Gaussian 16:  ES64L-G16RevC.01  3-Jul-2019
+                27-Sep-2026 
+ ******************************************
+ %nprocshared=4
+ Will use up to    4 processors via shared memory.
+ ------------------------------------------------------------------
+ #P rhf/6-31G* 6D 10F Symmetry=(PG=D*H,Loose) Punch=(MO) Pop=(full)
+ ------------------------------------------------------------------
+ QPErr --- A syntax error was detected in the input line.
+ -31G* 6D 10F Symmetry=(PG=D*H,Loose) Pun
+                            '
+ Last state= "SYM2"
+ TCursr=    137266 LCursr=        35
+ Error termination via Lnk1e in /opt/gaussian/g16/l1.exe at Sun Sep 27 16:44:49 2026.
+ Job cpu time:       0 days  0 hours  0 minutes  0.1 seconds.
+ Elapsed time:       0 days  0 hours  0 minutes  0.0 seconds.
+ File lengths (MBytes):  RWF=      6 Int=      0 D2E=      0 Chk=      1 Scr=      1
+Error: segmentation violation
+   rax 0000000000000000, rbx ffffffffffffffff, rcx 000015135f95bf87
+   rdx 0000000000000065, rsp 00007ffd79fc1498, rbp 00007ffd79fc1a10
+   rsi 000000000000000b, rdi 000000000011b71c, r8  0000000000000020
+   r9  0000000000000401, r10 0000000000000009, r11 0000000000000202
+   r12 00007ffd79fc1a58, r13 0000000000000000, r14 0000000000000000
+   r15 00000000000003e6
+  /lib/x86_64-linux-gnu/libc.so.6(+0x3fd70) [0x15135f95bd70]
+  /lib/x86_64-linux-gnu/libc.so.6(kill+0x7) [0x15135f95bf87]
+  /opt/gaussian/g16/l1.exe() [0x4b8975]
+  /opt/gaussian/g16/l1.exe() [0x4f867a]
+  /opt/gaussian/g16/l1.exe() [0x4d56ab]
+  /opt/gaussian/g16/l1.exe() [0x41d5c6]
+  /opt/gaussian/g16/l1.exe() [0x410c4c]
+  /opt/gaussian/g16/l1.exe() [0x40d185]
+  /opt/gaussian/g16/l1.exe() [0x40cbd7]
+  /opt/gaussian/g16/l1.exe() [0x40cb24]
+  /lib/x86_64-linux-gnu/libc.so.6(+0x29ca8) [0x15135f945ca8]
+  /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x85) [0x15135f945d65]
+  /opt/gaussian/g16/l1.exe() [0x407269]
+Aborted (core dumped)
+
+-----ECCE Log Information-----
+Starting Job: Sun Sep 27 04:44:49 PM CEST 2026
+Using g16 path: /opt/gaussian/g16/g16
+Using /home/andy/scratch as GAUSS_SCRDIR
+gaussian-16 exit status = 1
+Final exit status = 1
+Completed Job: Sun Sep 27 04:44:49 PM CEST 2026
