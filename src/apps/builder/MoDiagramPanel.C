@@ -1070,6 +1070,14 @@ void MoDiagramPanel::build()
   MoDiagram::groupByIrrep(e, o, s, dimensions, 1.0e-4, centre.levels);
   centre.title = "Molecular orbitals";
 
+  //  The WHOLE spectrum, kept for reconcile() below.  Whether the
+  //  fragments' irreps can be found among the molecule's is a question
+  //  about every orbital the calculation has, not the window that is
+  //  drawn: benzene's fragments make an a2g and a third b1u that sit in
+  //  the virtuals above the cutoff, and comparing against the visible
+  //  levels alone refused a correct D6h calculation.
+  const vector<MoLevel> wholeSpectrum = centre.levels;
+
   //  Both ends of the spectrum are folded away, not just the core, and
   //  both cutoffs report what they hid so an absence the reader cannot
   //  see does not pass for a complete diagram.
@@ -1369,7 +1377,7 @@ void MoDiagramPanel::build()
     //  agree on which mirror is sigma-v, and water comes out inside
     //  out if they are compared as they stand.
     string mismatch;
-    if (!MoDiagram::reconcile(left.levels, right.levels, centre.levels,
+    if (!MoDiagram::reconcile(left.levels, right.levels, wholeSpectrum,
                               mismatch)) {
       byIrrep = false;
       why = mismatch;
