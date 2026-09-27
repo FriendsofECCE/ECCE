@@ -48,6 +48,24 @@ DATAROOT="$STATEDIR/htdocs"
 # This runs BEFORE the "already listening" check below, which exits 0.
 # After it, the sync would never run on a machine whose data server was
 # already up -- which is every machine that has used ECCE before.
+# Seed the DocumentRoot from the vendored tree the first time only --
+# never re-extract over live user data on a subsequent start.
+#
+# BEFORE the basis-library sync below.  The sync creates $DATAROOT/Ecce
+# (it writes Ecce/system/GaussianBasisSetLibrary), and this test is for
+# that directory -- so with the sync first, a brand-new install never got
+# its seed: a library and no users/ or share/ tree.
+if [ ! -d "$DATAROOT/Ecce" ]; then
+  SEED_TAR="$ECCE_HOME/data/admin/dataserver/server_config/data_server_files.tar"
+  if [ ! -f "$SEED_TAR" ]; then
+    echo "ecce-dataserver-start: no seed data at $SEED_TAR -- cannot initialize data server" >&2
+    exit 1
+  fi
+  echo "ecce-dataserver-start: seeding data server document root..."
+  mkdir -p "$DATAROOT"
+  tar -xf "$SEED_TAR" -C "$DATAROOT"
+fi
+
 GBS_SRC="$ECCE_HOME/data/admin/basissets"
 GBS_DEST="$DATAROOT/Ecce/system/GaussianBasisSetLibrary"
 GBS_STAMP="$GBS_DEST/.ecce-library-stamp"
@@ -118,19 +136,6 @@ if port_open "$PORT"; then
 fi
 
 mkdir -p "$STATEDIR/logs" "$STATEDIR/cgi-bin"
-
-# Seed the DocumentRoot from the vendored tree the first time only --
-# never re-extract over live user data on a subsequent start.
-if [ ! -d "$DATAROOT/Ecce" ]; then
-  SEED_TAR="$ECCE_HOME/data/admin/dataserver/server_config/data_server_files.tar"
-  if [ ! -f "$SEED_TAR" ]; then
-    echo "ecce-dataserver-start: no seed data at $SEED_TAR -- cannot initialize data server" >&2
-    exit 1
-  fi
-  echo "ecce-dataserver-start: seeding data server document root..."
-  mkdir -p "$DATAROOT"
-  tar -xf "$SEED_TAR" -C "$DATAROOT"
-fi
 
 # An empty htpasswd file so AuthUserFile always points at something that
 # exists (Apache errors on a missing AuthUserFile even before a login is
