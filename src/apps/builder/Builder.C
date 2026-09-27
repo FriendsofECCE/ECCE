@@ -2500,8 +2500,20 @@ void Builder::OnSize( wxSizeEvent& event )
 
 void Builder::mainWindowCloseCB( wxCloseEvent& event )
 {
+   //  quit() yields to the event loop (wxYieldIfNeeded) while it winds
+   //  the property panels down, so a second click on the close box
+   //  arrived as a second close event INSIDE the first quit() and ran the
+   //  whole shutdown again -- reported as needing two or three clicks and
+   //  then "free(): invalid pointer".  One shutdown at a time.
+   static bool closing = false;
+   if (closing) {
+      if (event.CanVeto()) event.Veto();
+      return;
+   }
+   closing = true;
    saveSettings();
    quit();
+   closing = false;   // reached only when the user cancelled the quit
 }
 
 
