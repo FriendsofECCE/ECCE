@@ -468,6 +468,9 @@ def checkAnalysis(tablePath, verbose):
                "-o", out,
                os.path.join(HERE, "testSymmetryAnalysis.C"),
                os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
+               os.path.join(ROOT, "src/tdat/chemistry/ShellRotation.C"),
+               os.path.join(ROOT, "src/tdat/chemistry/TGBSAngFunc.C"),
+               os.path.join(ROOT, "src/tdat/chemistry/BasisAngularNorm.C"),
                os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C")]
         build = subprocess.run(cmd, capture_output=True, text=True)
         if build.returncode != 0:
@@ -671,6 +674,9 @@ def checkFragments(tablePath, verbose):
            os.path.join(HERE, "testMoFragments.C"),
            os.path.join(ROOT, "src/tdat/chemistry/MoFragments.C"),
            os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
+           os.path.join(ROOT, "src/tdat/chemistry/ShellRotation.C"),
+           os.path.join(ROOT, "src/tdat/chemistry/TGBSAngFunc.C"),
+           os.path.join(ROOT, "src/tdat/chemistry/BasisAngularNorm.C"),
            os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
            os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C"),
          os.path.join(ROOT, "src/tdat/chemistry/Huckel.C")]
@@ -736,6 +742,61 @@ def checkShellRotation(verbose):
     return run.returncode
 
 
+def checkFullOrbitalIrrep(verbose):
+    """The full-point-group ORBSYM oracle (#147/#132) against a REAL
+    Gaussian-16 calculation, orbital by orbital.
+
+    Needs a build tree (JCode/XML) and the real symops binary -- see
+    testFullOrbitalIrrep.C's header comment for exactly what is real
+    here (a real fort.7 MO punch file, run through ECCE's own
+    gaussian-16.mo/gaussian-16.orbocc parsers) and what fixtures/g16mo/
+    generate.py documents about how the checked-in fixture was made.
+    """
+    build = os.environ.get("ECCE_TEST_BUILD", os.path.join(ROOT, "build-cmake"))
+    if not os.path.isdir(build):
+        print("  skipped: no build tree at %s (set ECCE_TEST_BUILD)" % build)
+        return 0
+    symops = os.environ.get("ECCE_TEST_SYMOPS", os.path.join(ROOT, "build-cmake", "symops"))
+    if not (os.path.isfile(symops) and os.access(symops, os.X_OK)):
+        print("  symops not built -- skipping the full-orbital-irrep oracle")
+        return 0
+
+    libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
+            "ecceutil", "eccecomm", "eccecipc", "ecceexp", "eccercmd"]
+    out = os.path.join(HERE, "testFullOrbitalIrrep")
+    cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
+            "-o", out,
+            os.path.join(HERE, "testFullOrbitalIrrep.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/ShellRotation.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/BasisFlatten.C"),
+            "-L" + build]
+           + ["-l" + l for l in libs]*3 + ["-lxerces-c"])
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        print("  could not build testFullOrbitalIrrep:")
+        print(proc.stderr)
+        return 1
+
+    env = dict(os.environ)
+    env["ECCE_HOME"] = ROOT
+    env.setdefault("ECCE_REALUSERHOME", os.path.expanduser("~"))
+    env["ECCE_TEST_SYMOPS"] = symops
+
+    rc = 0
+    for fixture in ("ch4-td.txt",):
+        path = os.path.join(HERE, "fixtures", "g16mo", fixture)
+        run = subprocess.run([out, path], capture_output=True, text=True, env=env)
+        print(run.stdout, end="")
+        if run.stderr:
+            print(run.stderr, end="")
+        if run.returncode != 0:
+            rc = run.returncode
+    os.unlink(out)
+    return rc
+
+
 def checkOracle(tablePath, verbose):
     """The one check that does not need to know the answer.
 
@@ -789,6 +850,9 @@ def checkOracle(tablePath, verbose):
          src,
          os.path.join(ROOT, "src/tdat/chemistry/MoFragments.C"),
          os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/ShellRotation.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/TGBSAngFunc.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/BasisAngularNorm.C"),
          os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
          os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C"),
          os.path.join(ROOT, "src/tdat/chemistry/Huckel.C")],
@@ -1025,6 +1089,9 @@ def main():
     #  parameters and not the code.
     if standalone("testAlignFrames",
                   ["src/tdat/chemistry/SymmetryAnalysis.C",
+                   "src/tdat/chemistry/ShellRotation.C",
+                   "src/tdat/chemistry/TGBSAngFunc.C",
+                   "src/tdat/chemistry/BasisAngularNorm.C",
                    "src/tdat/chemistry/CharacterTable.C"]) != 0:
         print("FAILED  frame alignment")
         return 1
@@ -1034,10 +1101,18 @@ def main():
         print("FAILED  shell rotation matrices")
         return 1
 
+    print("")
+    if checkFullOrbitalIrrep(args.verbose) != 0:
+        print("FAILED  the full-point-group ORBSYM oracle")
+        return 1
+
     if standalone("testHuckel",
                   ["src/tdat/chemistry/Huckel.C",
                    "src/tdat/chemistry/MoFragments.C",
                    "src/tdat/chemistry/SymmetryAnalysis.C",
+                   "src/tdat/chemistry/ShellRotation.C",
+                   "src/tdat/chemistry/TGBSAngFunc.C",
+                   "src/tdat/chemistry/BasisAngularNorm.C",
                    "src/tdat/chemistry/CharacterTable.C",
                    "src/tdat/chemistry/MoDiagram.C"]) != 0:
         print("FAILED  extended Huckel")

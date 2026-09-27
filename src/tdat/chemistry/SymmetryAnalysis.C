@@ -6,8 +6,11 @@
 
 #include "tdat/SymmetryAnalysis.H"
 #include "tdat/CharacterTable.H"
+#include "tdat/ShellRotation.H"
+#include "tdat/TGBSAngFunc.H"
 
 #include <map>
+#include <utility>
 using std::map;
 
 namespace {
@@ -67,6 +70,56 @@ namespace {
     }
 
     for (int i = 0; i < 3; i++) eigval[i] = a[i][i];
+  }
+
+  /**
+   * Reduce a character vector (one entry per TABLE class, already
+   * counts-weighted the way CharacterTable::reduce() expects) and
+   * accept it only as EXACTLY ONE irrep of a given dimension --
+   * shared by SymmetryAnalysis::orbitalIrrep() and ::fullOrbitalIrrep(),
+   * which differ in how chi is computed (s/p-only, orthonormal, vs. any
+   * shell, S-weighted) but agree completely on what "cleanly one irrep"
+   * means afterwards. See orbitalIrrep()'s header comment for why the
+   * tolerance (0.1) exists at all: an SCF orbital is symmetry-adapted
+   * only to the convergence it was run to, and CharacterTable::reduce()'s
+   * strict integrality would reject nearly all of them.
+   */
+  bool reduceToOneIrrep(const vector<double>& chi, size_t numClasses,
+                        const CharacterTable& table, int expectedDimension,
+                        string& irrep)
+  {
+     const vector<string>& names = table.irreps();
+     const vector<int>& counts = table.counts();
+     if (counts.size() != numClasses) return false;
+
+     int found = -1;
+     double total2 = 0.0;
+     for (size_t i = 0; i < names.size(); i++) {
+        const vector<double> *chiI = table.characters(names[i]);
+        if (chiI == 0 || chiI->size() != numClasses) return false;
+
+        double sum = 0.0;
+        for (size_t k = 0; k < numClasses; k++) {
+           sum += counts[k]*(*chiI)[k]*chi[k];
+        }
+        const double n = sum/(double)table.order();
+        const double rounded = (n < 0.0) ? -floor(-n + 0.5) : floor(n + 0.5);
+
+        if (fabs(n - rounded) > 0.1) return false;
+        if (rounded < -0.5) return false;
+        if (rounded > 0.5) {
+           if (found >= 0) return false;          // more than one irrep
+           if (rounded > 1.5) return false;       // more than once
+           found = (int)i;
+        }
+        total2 += rounded;
+     }
+
+     if (found < 0 || total2 < 0.5 || total2 > 1.5) return false;
+     if (table.dimension(names[found]) != expectedDimension) return false;
+
+     irrep = names[found];
+     return true;
   }
 
   SymOp identityOp()
@@ -762,54 +815,14 @@ bool SymmetryAnalysis::orbitalIrrep(const vector< vector<double> >& orbitals,
    for (size_t k = 0; k < numClasses; k++) if (!filled[k]) return false;
 
    //  REDUCED WITH A TOLERANCE, BECAUSE THESE ARE COMPUTED ORBITALS.
-   //
-   //  CharacterTable::reduce() refuses anything non-integral, which
-   //  is right for a representation built from counting atoms: a
-   //  fraction there means the input was not a representation.  An
-   //  SCF orbital is symmetry-adapted only to the convergence it was
-   //  run to, so its character carries numerical noise and the strict
-   //  test rejected five of water's six orbitals -- the one it
-   //  accepted being the non-bonding lone pair, which is exactly
-   //  symmetric by having nothing to mix with.
-   //
-   //  So the multiplicities are computed here and rounded, and the
-   //  distance from a whole number is the check: past a tenth, the
-   //  orbital is not cleanly of one symmetry and no label is given.
-   const vector<string>& names = table.irreps();
-   const vector<int>& counts = table.counts();
-   if (counts.size() != numClasses) return false;
-
-   int found = -1;
-   double total2 = 0.0;
-   for (size_t i = 0; i < names.size(); i++) {
-      const vector<double> *chiI = table.characters(names[i]);
-      if (chiI == 0 || chiI->size() != numClasses) return false;
-
-      double sum = 0.0;
-      for (size_t k = 0; k < numClasses; k++) {
-         sum += counts[k]*(*chiI)[k]*chi[k];
-      }
-      const double n = sum/(double)table.order();
-      const double rounded = (n < 0.0) ? -floor(-n + 0.5) : floor(n + 0.5);
-
-      if (fabs(n - rounded) > 0.1) return false;
-      if (rounded < -0.5) return false;
-      if (rounded > 0.5) {
-         if (found >= 0) return false;          // more than one irrep
-         if (rounded > 1.5) return false;       // more than once
-         found = (int)i;
-      }
-      total2 += rounded;
-   }
-
-   //  EXACTLY ONE IRREP, OF THE SIZE OF THE SET.  Anything else means
-   //  the orbitals passed were not a degenerate set, or the basis and
-   //  the frame do not agree, and a label would be a guess.
-   if (found < 0 || total2 < 0.5 || total2 > 1.5) return false;
-   if (table.dimension(names[found]) != (int)orbitals.size()) return false;
-
-   irrep = names[found];
-   return true;
+   //  See reduceToOneIrrep() (shared with fullOrbitalIrrep() below) for
+   //  why: an SCF orbital is symmetry-adapted only to the convergence
+   //  it was run to, so CharacterTable::reduce()'s strict integrality
+   //  would reject nearly all of them -- the strict test rejected five
+   //  of water's six orbitals, the one it accepted being the
+   //  non-bonding lone pair, exactly symmetric by having nothing to
+   //  mix with.
+   return reduceToOneIrrep(chi, numClasses, table, (int)orbitals.size(), irrep);
 }
 
 
@@ -1066,4 +1079,205 @@ bool SymmetryAnalysis::alignFrames(const vector<double>& from,
 SymOp SymmetryAnalysis::conjugate(const SymOp& R, const SymOp& Q)
 {
    return multiply(transpose(Q), multiply(R, Q));
+}
+
+
+namespace {
+
+  /** One atom's shells: consecutive runs of shellTypeOf sharing one
+   *  value, angfunc->numFuncs(value) functions wide -- exactly how
+   *  BasisFlatten::flatten() emits them. */
+  struct AtomShell { int offset; int shellType; int width; };
+
+  bool segmentAtomShells(const vector<int>& shellTypeOf, int base, int width,
+                        TGBSAngFunc *angfunc, vector<AtomShell>& shells)
+  {
+     shells.clear();
+     int offset = 0;
+     while (offset < width) {
+        const int st = shellTypeOf[base + offset];
+        const int m = angfunc->numFuncs(st);
+        if (m <= 0 || offset + m > width) return false;
+        for (int t = 1; t < m; t++)
+           if (shellTypeOf[base + offset + t] != st) return false;
+        AtomShell s; s.offset = offset; s.shellType = st; s.width = m;
+        shells.push_back(s);
+        offset += m;
+     }
+     return true;
+  }
+}
+
+
+bool SymmetryAnalysis::fullOrbitalIrrep(const vector< vector<double> >& orbitals,
+                                        const vector<int>& perAtom,
+                                        const vector<int>& shellTypeOf,
+                                        const vector< vector<double> >& overlap,
+                                        const vector< vector<int> >& images,
+                                        const vector<int>& classOfOp,
+                                        const vector<SymOp>& opsInCoeffFrame,
+                                        TGBSAngFunc *angfunc,
+                                        const CharacterTable& table,
+                                        double shellResidualTol,
+                                        string& irrep)
+{
+   irrep.clear();
+   if (angfunc == 0) return false;
+   if (orbitals.empty() || perAtom.empty() || opsInCoeffFrame.empty()) return false;
+   if (classOfOp.size() != opsInCoeffFrame.size()) return false;
+   if (images.size() != opsInCoeffFrame.size()) return false;
+
+   vector<int> base(perAtom.size(), 0);
+   int total = 0;
+   for (size_t a = 0; a < perAtom.size(); a++) { base[a] = total; total += perAtom[a]; }
+
+   if ((int)shellTypeOf.size() != total) return false;
+   if (overlap.size() != (size_t)total) return false;
+   for (int i = 0; i < total; i++) if ((int)overlap[i].size() != total) return false;
+   for (size_t k = 0; k < orbitals.size(); k++)
+      if ((int)orbitals[k].size() != total) return false;
+
+   //  Segment every atom's functions into shells, and check the
+   //  operations map one atom's shell sequence onto its image's --
+   //  the general-shell analogue of orbitalIrrep()'s perAtom[to] check.
+   vector< vector<AtomShell> > shells(perAtom.size());
+   for (size_t a = 0; a < perAtom.size(); a++) {
+      if (!segmentAtomShells(shellTypeOf, base[a], perAtom[a], angfunc, shells[a]))
+         return false;
+   }
+   for (size_t op = 0; op < opsInCoeffFrame.size(); op++) {
+      for (size_t a = 0; a < perAtom.size(); a++) {
+         const int to = images[op][a];
+         if (to < 0 || (size_t)to >= perAtom.size()) return false;
+         if (shells[to].size() != shells[a].size()) return false;
+         for (size_t s = 0; s < shells[a].size(); s++) {
+            if (shells[to][s].offset != shells[a][s].offset ||
+                shells[to][s].shellType != shells[a][s].shellType ||
+                shells[to][s].width != shells[a][s].width) return false;
+         }
+      }
+   }
+
+   //  D(R) for each (operation, shell type) actually used -- computed
+   //  ONCE per pair, since a shell's angular transformation is atom-
+   //  and contraction-independent (see ShellRotation.H).
+   map< std::pair<int,int>, vector< vector<double> > > dcache;
+   for (size_t op = 0; op < opsInCoeffFrame.size(); op++) {
+      for (size_t a = 0; a < shells.size(); a++) {
+         for (size_t s = 0; s < shells[a].size(); s++) {
+            const int st = shells[a][s].shellType;
+            std::pair<int,int> key((int)op, st);
+            if (dcache.find(key) != dcache.end()) continue;
+            vector< vector<double> > D;
+            if (!ShellRotation::buildD(st, angfunc, opsInCoeffFrame[op],
+                                       shellResidualTol, D))
+               return false;
+            dcache[key] = D;
+         }
+      }
+   }
+
+   const size_t numClasses = table.classes().size();
+   vector<double> chi(numClasses, 0.0);
+   vector<bool> filled(numClasses, false);
+
+   for (size_t op = 0; op < opsInCoeffFrame.size(); op++) {
+      const int klass = classOfOp[op];
+      if (klass < 0 || (size_t)klass >= numClasses) return false;
+      if (filled[klass]) continue;
+
+      double numerator = 0.0, denominator = 0.0;
+
+      for (size_t k = 0; k < orbitals.size(); k++) {
+         const vector<double>& c = orbitals[k];
+         vector<double> moved(total, 0.0);
+
+         for (size_t a = 0; a < shells.size(); a++) {
+            const int to = images[op][a];
+            for (size_t s = 0; s < shells[a].size(); s++) {
+               const AtomShell& sh = shells[a][s];
+               const vector< vector<double> >& D =
+                  dcache[std::pair<int,int>((int)op, sh.shellType)];
+               for (int row = 0; row < sh.width; row++) {
+                  double sum = 0.0;
+                  for (int col = 0; col < sh.width; col++)
+                     sum += D[row][col]*c[base[a]+sh.offset+col];
+                  moved[base[to]+sh.offset+row] += sum;
+               }
+            }
+         }
+
+         //  c^T S moved, and c^T S c for the normalisation -- see
+         //  fullOrbitalIrrep()'s header comment for why the latter is
+         //  a no-op for properly normalised orbitals and a safety net
+         //  otherwise.
+         for (int i = 0; i < total; i++) {
+            if (c[i] == 0.0) continue;
+            for (int j = 0; j < total; j++) {
+               numerator   += c[i]*overlap[i][j]*moved[j];
+               denominator += c[i]*overlap[i][j]*c[j];
+            }
+         }
+      }
+
+      if (fabs(denominator) < 1.0e-10) return false;
+      chi[klass] = numerator/denominator * (double)orbitals.size();
+      filled[klass] = true;
+   }
+
+   for (size_t k = 0; k < numClasses; k++) if (!filled[k]) return false;
+
+   return reduceToOneIrrep(chi, numClasses, table, (int)orbitals.size(), irrep);
+}
+
+
+int SymmetryAnalysis::fullLabelSpectrum(const vector< vector<double> >& orbitals,
+                                        const vector<double>& energies,
+                                        const vector<int>& perAtom,
+                                        const vector<int>& shellTypeOf,
+                                        const vector< vector<double> >& overlap,
+                                        const vector< vector<int> >& images,
+                                        const vector<int>& classOfOp,
+                                        const vector<SymOp>& opsInCoeffFrame,
+                                        TGBSAngFunc *angfunc,
+                                        const CharacterTable& table,
+                                        double shellResidualTol,
+                                        vector<string>& derived)
+{
+   derived.assign(orbitals.size(), string());
+   if (orbitals.empty()) return 0;
+
+   //  Degenerate sets, grouped by energy exactly as labelSpectrum()
+   //  does -- see that function's comment for why the tolerance is
+   //  1e-3 and not tighter.
+   vector< vector<size_t> > sets;
+   for (size_t i = 0; i < orbitals.size(); ) {
+      size_t j = i;
+      while (j + 1 < orbitals.size() && j + 1 < energies.size() &&
+             fabs(energies[j+1] - energies[i]) < 1.0e-3) {
+         j++;
+      }
+      vector<size_t> one;
+      for (size_t k = i; k <= j; k++) one.push_back(k);
+      sets.push_back(one);
+      i = j + 1;
+   }
+
+   int labelled = 0;
+   for (size_t s = 0; s < sets.size(); s++) {
+      vector< vector<double> > set;
+      for (size_t m = 0; m < sets[s].size(); m++) set.push_back(orbitals[sets[s][m]]);
+
+      string irrepName;
+      if (!fullOrbitalIrrep(set, perAtom, shellTypeOf, overlap, images, classOfOp,
+                            opsInCoeffFrame, angfunc, table, shellResidualTol,
+                            irrepName))
+         continue;
+
+      for (size_t m = 0; m < sets[s].size(); m++) {
+         derived[sets[s][m]] = irrepName;
+         labelled++;
+      }
+   }
+   return labelled;
 }

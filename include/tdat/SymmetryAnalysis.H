@@ -22,6 +22,7 @@ using std::string;
 using std::vector;
 
 class CharacterTable;
+class TGBSAngFunc;
 
 /** One symmetry operation: a 3x3 orthogonal matrix. */
 struct SymOp
@@ -265,6 +266,90 @@ class SymmetryAnalysis
                              const CharacterTable& table,
                              string& irrep,
                              const int* componentOrder = 0);
+
+    /**
+     * Which irrep a molecular orbital spans in the FULL point group,
+     * from its coefficients, the real overlap matrix and ECCE's real
+     * angular table -- the #147/#132 whole-AO-basis ORBSYM oracle.
+     *
+     * orbitalIrrep() above handles s and p only, assumes an
+     * orthonormal basis, and searches six guessed p-orderings because
+     * it has no way to derive the true one.  This instead:
+     *
+     *   - uses ShellRotation::buildD() to get each shell's REAL matrix
+     *     under each operation, for any shell type the angular table
+     *     describes (s, p, d, ...; Cartesian or spherical) -- no
+     *     guessed component order, because it is read off the table
+     *     itself, and no s/p ceiling;
+     *   - weights the character by the real overlap S rather than
+     *     assuming orthonormality, since a contracted Gaussian basis
+     *     never is one: chi(R) = sum_k c_k^T S D(R) c_k / sum_k c_k^T S c_k;
+     *   - takes operations ALREADY CONJUGATED into the coefficients'
+     *     own frame (SymmetryAnalysis::conjugate(), with the rotation
+     *     from alignFrames()) -- a code's SCF runs in whatever
+     *     orientation it likes, not necessarily autosym's standard one
+     *     the operations/images/classOfOp were built in.
+     *
+     * Declines (false) rather than labelling wrongly: if any shell a
+     * used atom carries cannot be rotated to within shellResidualTol
+     * (ShellRotation::buildD() failing, e.g. a shell type the angular
+     * table does not describe), if the reduction is not cleanly one
+     * irrep of the right dimension, or if any of the bookkeeping
+     * (basis size, atom layout under the operations) does not match.
+     *
+     * @param perAtom     basis functions on each atom, in flattened
+     *                    (BasisFlatten::flatten()) order
+     * @param shellTypeOf the TGaussianBasisSet::AngularMomentum shell
+     *                    type (0=s, 1=p, 2=d, ...) of each function,
+     *                    same order -- ALL of one shell's functions
+     *                    carry the same value, angfunc->numFuncs()
+     *                    wide, consecutively, exactly as flatten()
+     *                    emits them
+     * @param overlap     the nbasis x nbasis overlap matrix S, same
+     *                    flattened order (EspField::overlapOf() over
+     *                    all pairs)
+     * @param opsInCoeffFrame  the group's operations, conjugated into
+     *                    the SAME frame the coefficients (and images/
+     *                    classOfOp, built from atomImages() in that
+     *                    same frame) are in
+     * @param angfunc     the real angular function table
+     *                    (JCode::getAngFunc()) the calculation's code
+     *                    actually uses
+     * @param shellResidualTol  passed through to ShellRotation::buildD()
+     */
+    static bool fullOrbitalIrrep(const vector< vector<double> >& orbitals,
+                                 const vector<int>& perAtom,
+                                 const vector<int>& shellTypeOf,
+                                 const vector< vector<double> >& overlap,
+                                 const vector< vector<int> >& images,
+                                 const vector<int>& classOfOp,
+                                 const vector<SymOp>& opsInCoeffFrame,
+                                 TGBSAngFunc *angfunc,
+                                 const CharacterTable& table,
+                                 double shellResidualTol,
+                                 string& irrep);
+
+    /**
+     * fullOrbitalIrrep(), over a whole spectrum grouped into degenerate
+     * sets by energy (the same 1e-3 Hartree grouping labelSpectrum()
+     * uses) -- no candidate search needed, unlike labelSpectrum(),
+     * because the component order comes from the real table rather
+     * than being guessed.
+     *
+     * @return the number of orbitals labelled
+     */
+    static int fullLabelSpectrum(const vector< vector<double> >& orbitals,
+                                 const vector<double>& energies,
+                                 const vector<int>& perAtom,
+                                 const vector<int>& shellTypeOf,
+                                 const vector< vector<double> >& overlap,
+                                 const vector< vector<int> >& images,
+                                 const vector<int>& classOfOp,
+                                 const vector<SymOp>& opsInCoeffFrame,
+                                 TGBSAngFunc *angfunc,
+                                 const CharacterTable& table,
+                                 double shellResidualTol,
+                                 vector<string>& derived);
 
     static bool projectOrbit(const vector<int>& orbit,
                              const vector< vector<int> >& images,
