@@ -4997,16 +4997,47 @@ TaskJob *CalcMgr::getContainer(const string& name)
     return ret;
   }
 
+  // Since f85eaae (#97) the import entry is offered regardless of what is
+  // selected, but this used to createChild() straight under the current
+  // selection -- so with a calculation selected, the import completed but
+  // landed the new calc nested inside that calc. That is invisible: calc
+  // nodes aren't expandable, so the imported calc simply never appeared
+  // (#44). Walk up from the selection to the nearest enclosing "project"
+  // node instead.
+  WxResourceTreeItemData *projData = itemData;
+  Resource *projRes = projData->getResource();
+
+  while (projRes != (Resource*)0 &&
+         projRes->getDescriptor() != (ResourceType*)0 &&
+         projRes->getDescriptor()->getName() != "project") {
+    WxResourceTreeItemData *parentData = p_treeCtrl->getParent(projData);
+
+    // getParent() returns the node itself once it reaches the server
+    // root -- nowhere higher to go, so give up rather than loop forever.
+    if (parentData == projData || parentData == (WxResourceTreeItemData*)0) {
+      projData = (WxResourceTreeItemData*)0;
+      break;
+    }
+
+    projData = parentData;
+    projRes = (projData != (WxResourceTreeItemData*)0) ?
+              projData->getResource() : (Resource*)0;
+  }
+
+  if (projData == (WxResourceTreeItemData*)0 || projRes == (Resource*)0) {
+    return ret;
+  }
+
   // make resource
-  Resource *itemDataRes = itemData->getResource();
+  Resource *itemDataRes = projRes;
   Resource *childRes = 0;
 
   if (itemDataRes != 0) {
 
     try {
-      childRes = itemDataRes->createChild(name, 
+      childRes = itemDataRes->createChild(name,
               ResourceDescriptor::RT_VIRTUAL_DOCUMENT,
-              ResourceDescriptor::CT_CALCULATION, 
+              ResourceDescriptor::CT_CALCULATION,
               ResourceDescriptor::AT_UNDEFINED);
     }
     catch (InvalidException& ex) {
@@ -5015,7 +5046,7 @@ TaskJob *CalcMgr::getContainer(const string& name)
     }
 
     if (childRes != 0) {
-      p_treeCtrl->refresh(itemData);
+      p_treeCtrl->refresh(projData);
       setContextPanel();
 
       ret = dynamic_cast<TaskJob*>(childRes);
@@ -5050,13 +5081,31 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
     if (message != "")
       setMessage(message, WxFeedback::WARNING);
 
-    message = "Calculation output currently being imported into " +
-      ipc->getName() + ".";
+    // The new calc's parent is wherever getContainer() actually put it
+    // (the enclosing project, not necessarily what was selected -- #44),
+    // so find and refresh that node from the calc's own URL rather than
+    // assuming the tree selection didn't move in the meantime.
+    WxResourceTreeItemData *parentData =
+      p_treeCtrl->findNode(ipc->getURL().getParent(), false, false);
+
+    string parentName = (parentData != (WxResourceTreeItemData*)0 &&
+                         parentData->getResource() != (Resource*)0) ?
+                         parentData->getResource()->getName() : "";
+
+    message = "Calculation output currently being imported into ";
+    if (parentName != "") {
+      message += parentName + "/";
+    }
+    message += ipc->getName() + ".";
     setMessage(message, WxFeedback::INFO);
 
     // get the parent of the calculation
-    WxResourceTreeItemData *itemData = p_treeCtrl->getSelection();
-    p_treeCtrl->refresh(itemData);
+    if (parentData != (WxResourceTreeItemData*)0) {
+      p_treeCtrl->refresh(parentData);
+    }
+    else {
+      p_treeCtrl->refresh(p_treeCtrl->getSelection());
+    }
     setContextPanel();
 
     // let the world know this calculation was created/imported
