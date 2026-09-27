@@ -402,6 +402,70 @@ class SymmetryAnalysis
      * the frame R_s will be applied in, so Q^T undoes that afterwards.)
      */
     static SymOp conjugate(const SymOp& R, const SymOp& Q);
+
+    /**
+     * Label EVERY orbital in a code's own reported ABELIAN subgroup
+     * (D2, D2H, C2V, C2H, C2, CS, CI, C1 -- the D2h family), without
+     * any gensym/autosym frame at all (#147/#132's subgroup cross-
+     * check and consistency check).
+     *
+     * A code that symmetry-adapts orbitals only in an abelian subgroup
+     * (ORCA's UseSym) reorients into ITS OWN symmetry frame and prints
+     * geometry and MOs there -- that geometry is what ECCE stores.  So
+     * the subgroup's operations are just diagonal +/-1 matrices on the
+     * STORED axes (E, C2(x/y/z), i, sigma(xy/xz/yz)): no autosym call,
+     * no alignFrames() needed, which is the point -- this is meant to
+     * be an INDEPENDENT check on the full-group computation
+     * (fullOrbitalIrrep()/fullLabelSpectrum()), not built from the same
+     * frame-fitting machinery.
+     *
+     * WHICH PHYSICAL AXIS IS "B1" VS "B2" VS "B3" IS NOT IN THE TABLE.
+     * D2/D2H's classes are unlabelled ("classes: E C2 C2 C2", no axis
+     * suffix -- unlike C2V's "sv"/"sv'"), so CharacterTable::matchClasses()
+     * can only break the tie by which order the operations are handed
+     * to it. This tries all 6 axis permutations (mirroring
+     * labelSpectrum()'s own six-candidate-p-order search) and keeps
+     * the one that agrees with the code's OWN reported labels on the
+     * most orbitals -- i.e. the axis convention is VERIFIED against
+     * real output, never assumed from a textbook.
+     *
+     * Each orbital is projected on its own (dimension 1: every abelian
+     * irrep is), unlike fullLabelSpectrum()'s energy-grouped degenerate
+     * sets -- a code's own subgroup-adapted orbitals are, individually,
+     * already pure by construction, and grouping by energy is exactly
+     * the mechanism whose limitation is documented in
+     * tests/symmetry/testFullOrbitalIrrep.C.
+     *
+     * @param orbitals     one coefficient vector per MO, ALL of them
+     * @param reported     the code's own subgroup label per orbital,
+     *                     or empty -- what the axis convention is
+     *                     scored against
+     * @param storedCoords atom-major coordinates in the SAME frame as
+     *                     orbitals (the code's own, as stored)
+     * @param subgroupTable the abelian subgroup's CharacterTable (its
+     *                     name decides which of E/C2x/C2y/C2z/i/sxy/
+     *                     sxz/syz are built)
+     * @param derived      filled with one label per orbital, empty
+     *                     where none could be established
+     * @param axisNote     filled with which physical axis ended up
+     *                     meaning which table axis, for diagnostics
+     *
+     * @return the number of orbitals labelled, or -1 if the subgroup
+     *         name is not one this builds operations for
+     */
+    static int subgroupLabelSpectrum(const vector< vector<double> >& orbitals,
+                                     const vector<string>& reported,
+                                     const vector<int>& perAtom,
+                                     const vector<int>& shellTypeOf,
+                                     const vector< vector<double> >& overlap,
+                                     const vector<string>& elements,
+                                     const vector<double>& storedCoords,
+                                     TGBSAngFunc *angfunc,
+                                     const CharacterTable& subgroupTable,
+                                     double atomTolerance,
+                                     double shellResidualTol,
+                                     vector<string>& derived,
+                                     string& axisNote);
 };
 
 #endif

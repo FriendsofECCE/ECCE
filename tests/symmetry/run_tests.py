@@ -804,6 +804,62 @@ def checkFullOrbitalIrrep(verbose):
     return rc
 
 
+def checkSubgroupCrossCheck(verbose):
+    """The independent, no-gensym-frame cross-check (#147/#132) against
+    REAL ORCA calculations: SymmetryAnalysis::subgroupLabelSpectrum()
+    reproduces ORCA's own abelian-subgroup labels (D2 for CH4/Td, D2H
+    for benzene/D6h -- #151), built directly from diagonal +/-1
+    operations in ORCA's own (stored) frame, with NO autosym/gensym
+    involved on that side at all -- and every fullLabelSpectrum() full-
+    group label subduces to it. See testSubgroupCrossCheck.C.
+    """
+    build = os.environ.get("ECCE_TEST_BUILD", os.path.join(ROOT, "build-cmake"))
+    if not os.path.isdir(build):
+        print("  skipped: no build tree at %s (set ECCE_TEST_BUILD)" % build)
+        return 0
+    symops = os.environ.get("ECCE_TEST_SYMOPS", os.path.join(ROOT, "build-cmake", "symops"))
+    if not (os.path.isfile(symops) and os.access(symops, os.X_OK)):
+        print("  symops not built -- skipping the subgroup cross-check")
+        return 0
+
+    libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
+            "ecceutil", "eccecomm", "eccecipc", "ecceexp", "eccercmd"]
+    out = os.path.join(HERE, "testSubgroupCrossCheck")
+    cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
+            "-o", out,
+            os.path.join(HERE, "testSubgroupCrossCheck.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/ShellRotation.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/BasisFlatten.C"),
+            "-L" + build]
+           + ["-l" + l for l in libs]*3 + ["-lxerces-c"])
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        print("  could not build testSubgroupCrossCheck:")
+        print(proc.stderr)
+        return 1
+
+    env = dict(os.environ)
+    env["ECCE_HOME"] = ROOT
+    env.setdefault("ECCE_REALUSERHOME", os.path.expanduser("~"))
+    env["ECCE_TEST_SYMOPS"] = symops
+
+    rc = 0
+    for fixture, natoms, nbasis in (("ch4-orca-td.txt", 5, 22),
+                                    ("c6h6-orca-d6h.txt", 12, 96)):
+        path = os.path.join(HERE, "fixtures", "g16mo", fixture)
+        run = subprocess.run([out, path, str(natoms), str(nbasis)],
+                             capture_output=True, text=True, env=env)
+        print(run.stdout, end="")
+        if run.stderr:
+            print(run.stderr, end="")
+        if run.returncode != 0:
+            rc = run.returncode
+    os.unlink(out)
+    return rc
+
+
 def checkOracle(tablePath, verbose):
     """The one check that does not need to know the answer.
 
@@ -1111,6 +1167,11 @@ def main():
     print("")
     if checkFullOrbitalIrrep(args.verbose) != 0:
         print("FAILED  the full-point-group ORBSYM oracle")
+        return 1
+
+    print("")
+    if checkSubgroupCrossCheck(args.verbose) != 0:
+        print("FAILED  the ORCA subgroup cross-check")
         return 1
 
     if standalone("testHuckel",

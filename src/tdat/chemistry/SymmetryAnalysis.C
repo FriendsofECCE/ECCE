@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
+#include <cstdio>
 #include <cctype>
 #include <algorithm>
 
@@ -1279,5 +1280,156 @@ int SymmetryAnalysis::fullLabelSpectrum(const vector< vector<double> >& orbitals
          labelled++;
       }
    }
+   return labelled;
+}
+
+
+namespace {
+
+  SymOp diagOp(double x, double y, double z)
+  {
+     SymOp op;
+     for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++) op.m[i][j] = 0.0;
+     op.m[0][0] = x; op.m[1][1] = y; op.m[2][2] = z;
+     return op;
+  }
+
+  /**
+   * The D2h-family operations, in the STORED frame, for one of the six
+   * ways to assign the three physical C2 axes (z,y,x in some order) to
+   * the character table's three ambiguous C2 (and, for D2H, sigma)
+   * columns.  perm is a permutation of {0,1,2} indexing (C2z,C2y,C2x).
+   *
+   * Returns false for anything this does not build (only D2/D2H are
+   * needed for #147/#132/#151's ORCA cross-check so far).
+   */
+  bool d2hFamilyOps(const string& groupName, const int perm[3],
+                    vector<SymOp>& ops)
+  {
+     ops.clear();
+     SymOp C2[3];
+     C2[0] = diagOp(-1, -1,  1);   // C2(z)
+     C2[1] = diagOp(-1,  1, -1);   // C2(y)
+     C2[2] = diagOp( 1, -1, -1);   // C2(x)
+
+     string g = groupName;
+     for (size_t i = 0; i < g.size(); i++) g[i] = toupper((unsigned char)g[i]);
+
+     if (g == "D2") {
+        ops.push_back(diagOp(1,1,1));
+        for (int k = 0; k < 3; k++) ops.push_back(C2[perm[k]]);
+        return true;
+     }
+     if (g == "D2H") {
+        SymOp inv = diagOp(-1,-1,-1);
+        ops.push_back(diagOp(1,1,1));
+        for (int k = 0; k < 3; k++) ops.push_back(C2[perm[k]]);
+        ops.push_back(inv);
+        //  sigma_k = i * C2_k (elementwise, since these are diagonal):
+        //  the mirror PAIRED with that C2 axis, which is what makes
+        //  the class order agree with the table's own B1g/B2g/B3g
+        //  pairing of one C2 class with one sigma class.
+        for (int k = 0; k < 3; k++) {
+           const SymOp& c = C2[perm[k]];
+           ops.push_back(diagOp(inv.m[0][0]*c.m[0][0],
+                                inv.m[1][1]*c.m[1][1],
+                                inv.m[2][2]*c.m[2][2]));
+        }
+        return true;
+     }
+     return false;
+  }
+
+  string upper(const string& s)
+  {
+     string r = s;
+     for (size_t i = 0; i < r.size(); i++) r[i] = toupper((unsigned char)r[i]);
+     return r;
+  }
+}
+
+
+int SymmetryAnalysis::subgroupLabelSpectrum(
+    const vector< vector<double> >& orbitals,
+    const vector<string>& reported,
+    const vector<int>& perAtom,
+    const vector<int>& shellTypeOf,
+    const vector< vector<double> >& overlap,
+    const vector<string>& elements,
+    const vector<double>& storedCoords,
+    TGBSAngFunc *angfunc,
+    const CharacterTable& subgroupTable,
+    double atomTolerance,
+    double shellResidualTol,
+    vector<string>& derived,
+    string& axisNote)
+{
+   derived.assign(orbitals.size(), string());
+   axisNote.clear();
+
+   static const int PERMS[6][3] = {
+      {0,1,2}, {0,2,1}, {1,0,2}, {1,2,0}, {2,0,1}, {2,1,0}
+   };
+   static const char* AXISNAME[3] = { "z", "y", "x" };
+
+   int bestPerm = -1, bestAgreed = -1, bestLabelled = -1;
+   vector<string> bestDerived;
+
+   for (int p = 0; p < 6; p++) {
+      vector<SymOp> ops;
+      if (!d2hFamilyOps(subgroupTable.name(), PERMS[p], ops)) return -1;
+      if ((int)ops.size() != subgroupTable.order()) continue;
+
+      vector< vector<int> > images;
+      if (!SymmetryAnalysis::atomImages(storedCoords, elements, ops,
+                                        atomTolerance, images))
+         continue;
+
+      vector< vector<int> > classes;
+      SymmetryAnalysis::conjugacyClasses(ops, classes);
+      vector<int> classOfOp;
+      if (!SymmetryAnalysis::matchClasses(ops, classes, subgroupTable, classOfOp))
+         continue;
+
+      vector<string> candidate(orbitals.size());
+      int labelled = 0, agreed = 0, clashed = 0;
+      for (size_t k = 0; k < orbitals.size(); k++) {
+         vector< vector<double> > one(1, orbitals[k]);
+         string irrep;
+         if (!fullOrbitalIrrep(one, perAtom, shellTypeOf, overlap, images,
+                              classOfOp, ops, angfunc, subgroupTable,
+                              shellResidualTol, irrep))
+            continue;
+         candidate[k] = irrep;
+         labelled++;
+
+         if (k < reported.size() && !reported[k].empty()) {
+            if (upper(reported[k]) == upper(irrep)) agreed++; else clashed++;
+         }
+      }
+
+      if (!reported.empty() && clashed > agreed) continue;
+      if (agreed > bestAgreed || (agreed == bestAgreed && labelled > bestLabelled)) {
+         bestAgreed = agreed;
+         bestLabelled = labelled;
+         bestPerm = p;
+         bestDerived = candidate;
+      }
+   }
+
+   if (bestPerm < 0) return 0;
+
+   derived = bestDerived;
+   char msg[160];
+   snprintf(msg, sizeof(msg),
+            "%s's C2 axes assigned as (1st table C2)=%s, (2nd)=%s, (3rd)=%s "
+            "-- chosen by agreement with the code's own labels",
+            subgroupTable.name().c_str(), AXISNAME[PERMS[bestPerm][0]],
+            AXISNAME[PERMS[bestPerm][1]], AXISNAME[PERMS[bestPerm][2]]);
+   axisNote = msg;
+
+   int labelled = 0;
+   for (size_t k = 0; k < derived.size(); k++) if (!derived[k].empty()) labelled++;
    return labelled;
 }
