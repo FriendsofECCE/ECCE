@@ -4156,7 +4156,16 @@ void wxTreeListCtrl::DoHeaderLayout()
         m_header_win->Refresh();
     }
     if (m_main_win) {
-        m_main_win->SetSize (0, m_headerHeight + 1, w, h - m_headerHeight - 1);
+        //  #108: when the control is squeezed below the header's own height
+        //  (including at construction time, before any real size has been
+        //  laid out), h - m_headerHeight - 1 goes negative and GTK asserts
+        //  ("assertion 'height >= -1'") on the resulting SetSize().  Clamp
+        //  to 0 rather than -1, since -1 means "use the default size" to wx,
+        //  not "no size".
+        int mainWidth = w < 0 ? 0 : w;
+        int mainHeight = h - m_headerHeight - 1;
+        if (mainHeight < 0) mainHeight = 0;
+        m_main_win->SetSize (0, m_headerHeight + 1, mainWidth, mainHeight);
     }
 }
 
