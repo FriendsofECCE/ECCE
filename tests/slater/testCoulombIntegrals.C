@@ -169,6 +169,7 @@ int main() {
     //  show it.
     int dxx[3] = {2,0,0};
     int dxy[3] = {1,1,0};
+    int dyy[3] = {0,2,0};
     check("dxx*dxx, one centre",
           CoulombIntegrals::overlap(A0, dxx, aa, B0, dxx, bb),
           3.0*pow(PI/pp, 1.5)/(4*pp*pp), 1e-12);
@@ -176,7 +177,7 @@ int main() {
           CoulombIntegrals::overlap(A0, dxy, aa, B0, dxy, bb),
           pow(PI/pp, 1.5)/(4*pp*pp), 1e-12);
     check("dxx*dyy, one centre",
-          CoulombIntegrals::overlap(A0, dxx, aa, B0, (int[]){0,2,0}, bb),
+          CoulombIntegrals::overlap(A0, dxx, aa, B0, dyy, bb),
           pow(PI/pp, 1.5)/(4*pp*pp), 1e-12);
 
     //  Symmetric under exchange, like the potential.
