@@ -610,9 +610,6 @@ namespace {
     const JCode *code = escalc->application();
     if (code == 0) return mosymFail(22, "code == 0");
 
-    TGBSAngFunc *angfunc = code->getAngFunc(config->coordsys());
-    if (angfunc == 0) return mosymFail(25, "angfunc == 0");
-    const bool spherical = (config->coordsys() == TGaussianBasisSet::Spherical);
 
     PropTable *moCoefs = (PropTable*)calc->getProperty("MO");
     if (moCoefs == 0) return mosymFail(29, "moCoefs == 0");
@@ -637,14 +634,46 @@ namespace {
     }
     delete atoms;
 
+    //  THE COEFFICIENT TABLE'S WIDTH DECIDES CARTESIAN VS SPHERICAL.
+    //  The calculation records the basis's own convention (Pople sets
+    //  are Cartesian in ECCE's library), but a spherical-only code such
+    //  as ORCA ran 6-31G* with five d functions: 22 columns for CH4
+    //  against 23 from the recorded Cartesian.  Try the recorded system
+    //  first and the other only when it does not reproduce the width.
     vector<EspBasisFunction> basis;
-    int lengthShellCart[7] = { 1, 3, 6, 10, 15, 21, 28 };
-    int lengthShellSph[7]  = { 1, 3, 5, 7, 9, 11, 13 };
-    int *lengthShell = spherical ? lengthShellSph : lengthShellCart;
-    if (!BasisFlatten::flatten(storedElements, storedCoords, config, code,
-                              angfunc, angfunc->maxShells(), lengthShell, basis))
-      return mosymFail(57, "if (!BasisFlatten::flatten(storedElements, storedCoords, config, code,");
-    if ((int)basis.size() != moCoefs->columns()) return mosymFail(58, "(int)basis.size() != moCoefs->columns()");
+    TGBSAngFunc *angfunc = 0;
+    {
+      int lengthShellCart[7] = { 1, 3, 6, 10, 15, 21, 28 };
+      int lengthShellSph[7]  = { 1, 3, 5, 7, 9, 11, 13 };
+      const TGaussianBasisSet::CoordinateSystem recorded = config->coordsys();
+      const TGaussianBasisSet::CoordinateSystem other =
+          (recorded == TGaussianBasisSet::Spherical)
+            ? TGaussianBasisSet::Cartesian : TGaussianBasisSet::Spherical;
+      const TGaussianBasisSet::CoordinateSystem tries[2] = { recorded, other };
+      for (int t = 0; t < 2 && angfunc == 0; t++) {
+        TGBSAngFunc *candidate = code->getAngFunc(tries[t]);
+        if (candidate == 0) continue;
+        const bool sph = (tries[t] == TGaussianBasisSet::Spherical);
+        vector<EspBasisFunction> trial;
+        if (BasisFlatten::flatten(storedElements, storedCoords, config, code,
+                                  candidate, candidate->maxShells(),
+                                  sph ? lengthShellSph : lengthShellCart,
+                                  trial) &&
+            (int)trial.size() == moCoefs->columns()) {
+          basis.swap(trial);
+          angfunc = candidate;
+          if (t == 1 && getenv("ECCE_DEBUG_MOSYM"))
+            fprintf(stderr, "[MOSYM] coefficient width matches the %s "
+                    "basis, not the recorded one\n",
+                    sph ? "spherical" : "Cartesian");
+        } else {
+          delete candidate;
+        }
+      }
+    }
+    if (angfunc == 0)
+      return mosymFail(58, "neither Cartesian nor spherical flattening "
+                           "matches the MO coefficient width");
 
     //  A shell the angular table cannot describe leaves an EMPTY
     //  placeholder with no centre -- decline outright rather than risk

@@ -1301,8 +1301,9 @@ namespace {
    * the character table's three ambiguous C2 (and, for D2H, sigma)
    * columns.  perm is a permutation of {0,1,2} indexing (C2z,C2y,C2x).
    *
-   * Returns false for anything this does not build (only D2/D2H are
-   * needed for #147/#132/#151's ORCA cross-check so far).
+   * Builds D2h and every subgroup of it (D2, C2v, C2h, C2, Cs, Ci) --
+   * the groups an abelian-only code can report.  Returns false for
+   * anything else.
    */
   bool d2hFamilyOps(const string& groupName, const int perm[3],
                     vector<SymOp>& ops)
@@ -1336,6 +1337,43 @@ namespace {
                                 inv.m[1][1]*c.m[1][1],
                                 inv.m[2][2]*c.m[2][2]));
         }
+        return true;
+     }
+
+     //  The rest of D2h's subgroups, which is where ORCA lands whenever
+     //  the structure it was given was not quite symmetric (benzene
+     //  built by hand came out Cs, #151).  perm[0] picks the principal
+     //  C2 axis -- or, for Cs, the axis the mirror is perpendicular to --
+     //  and perm[1], perm[2] order the two vertical mirrors of C2v; the
+     //  caller tries every assignment, as for D2.
+     SymOp E = diagOp(1,1,1);
+     SymOp inv = diagOp(-1,-1,-1);
+     SymOp sigma[3];                // sigma_k: the mirror perpendicular to C2_k
+     for (int k = 0; k < 3; k++)
+        sigma[k] = diagOp(-C2[k].m[0][0], -C2[k].m[1][1], -C2[k].m[2][2]);
+
+     if (g == "C2") {
+        ops.push_back(E); ops.push_back(C2[perm[0]]);
+        return true;
+     }
+     if (g == "CI") {
+        ops.push_back(E); ops.push_back(inv);
+        return true;
+     }
+     if (g == "CS") {
+        ops.push_back(E); ops.push_back(sigma[perm[0]]);
+        return true;
+     }
+     if (g == "C2H") {
+        ops.push_back(E); ops.push_back(C2[perm[0]]);
+        ops.push_back(inv); ops.push_back(sigma[perm[0]]);
+        return true;
+     }
+     if (g == "C2V") {
+        //  The two mirrors CONTAIN the C2 axis, i.e. each is
+        //  perpendicular to one of the other two axes.
+        ops.push_back(E); ops.push_back(C2[perm[0]]);
+        ops.push_back(sigma[perm[1]]); ops.push_back(sigma[perm[2]]);
         return true;
      }
      return false;
