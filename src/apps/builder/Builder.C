@@ -3085,19 +3085,29 @@ void Builder::OnModeClick( wxCommandEvent& event )
 
 void Builder::OnModeElementClick( wxCommandEvent& event )
 {
-  if (getToolState(ID_MODE_ATOM) && !event.IsChecked()) {
-    PerTabPanel *pertab = new PerTabPanel(this, false,
-            ID_ITEM_DEFAULT, false, true, true);
-    pertab->SetName("Elements");
-    TearableContent *tc = new TearableContent(pertab);
-    tc->Position(wxGetMousePosition(), wxSize(1, 1));
-    tc->Popup();
-    toggleModeButton(event.GetId());
-  }
-  else {
-    Event evt("ElementChanged", p_currentElement);
-    EventDispatcher::getDispatcher().publish(evt);
-  }
+  // Used to gate the popup on getToolState(ID_MODE_ATOM) && !event.
+  // IsChecked() -- but getToolState() reads the mode MENU's radio item,
+  // which is only synced by setMode()/toggleModeButton(), themselves
+  // only reached via the ElementChanged->ShapeChanged chain published
+  // below. So on the click that actually enters Atom mode for the first
+  // time, getToolState() still reported the PREVIOUS mode and the
+  // condition was false: the click silently entered Atom mode with no
+  // chooser shown, and only a second, redundant click (once the toolbar
+  // had caught up) passed the guard and popped it up (#158). Do both
+  // unconditionally instead: publish ElementChanged (unchanged --
+  // still what enters Atom mode, via Builder::eventMCB's ShapeChanged
+  // handler) and always show the chooser, so the first click both
+  // enters the mode and lets the user pick an element.
+  Event evt("ElementChanged", p_currentElement);
+  EventDispatcher::getDispatcher().publish(evt);
+
+  PerTabPanel *pertab = new PerTabPanel(this, false,
+          ID_ITEM_DEFAULT, false, true, true);
+  pertab->SetName("Elements");
+  TearableContent *tc = new TearableContent(pertab);
+  tc->Position(wxGetMousePosition(), wxSize(1, 1));
+  tc->Popup();
+  toggleModeButton(event.GetId());
 }
 
 
@@ -3114,18 +3124,19 @@ void Builder::OnModeShapeClick( wxCommandEvent& event )
 
 void Builder::OnModeBondClick( wxCommandEvent& event )
 {
-  if (getToolState(ID_MODE_BOND) && !event.IsChecked()) {
-    BondDropDown *l = new BondDropDown(p_currentBond, this);
-    TearableContent *tc = new TearableContent(l);
-    l->connectToolKitFW(this);
-    tc->Position(wxGetMousePosition(), wxSize(1, 1));
-    tc->Popup();
-    toggleModeButton(event.GetId());
-  }
-  else {
-    Event evt("BondChanged", TBond::orderToString(p_currentBond));
-    EventDispatcher::getDispatcher().publish(evt);
-  }
+  // Same shape as OnModeElementClick's #158 fix above, found by
+  // inspection (getToolState(ID_MODE_BOND) has the identical
+  // stale-read-before-sync problem) -- fixed alongside it rather than
+  // left to reproduce separately.
+  Event evt("BondChanged", TBond::orderToString(p_currentBond));
+  EventDispatcher::getDispatcher().publish(evt);
+
+  BondDropDown *l = new BondDropDown(p_currentBond, this);
+  TearableContent *tc = new TearableContent(l);
+  l->connectToolKitFW(this);
+  tc->Position(wxGetMousePosition(), wxSize(1, 1));
+  tc->Popup();
+  toggleModeButton(event.GetId());
 }
 
 
