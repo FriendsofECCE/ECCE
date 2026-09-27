@@ -694,6 +694,48 @@ def checkFragments(tablePath, verbose):
 
 
 
+def checkShellRotation(verbose):
+    """ShellRotation::buildD() against ECCE's real angular tables (#151).
+
+    Needs a configured CMake build tree (JCode/CodeFactory/XML), unlike
+    most of this file's checks -- see testShellRotation.C for why:
+    the whole point is the table ECCE actually SHIPS (Gaussian-16's
+    MOOrdering), not one invented for the test.
+    """
+    build = os.environ.get("ECCE_TEST_BUILD", os.path.join(ROOT, "build-cmake"))
+    if not os.path.isdir(build):
+        print("  skipped: no build tree at %s (set ECCE_TEST_BUILD)" % build)
+        return 0
+
+    libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
+            "ecceutil", "eccecomm", "eccecipc", "ecceexp", "eccercmd"]
+    out = os.path.join(HERE, "testShellRotation")
+    cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
+            "-o", out,
+            os.path.join(HERE, "testShellRotation.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/ShellRotation.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/BasisFlatten.C"),
+            "-L" + build]
+           + ["-l" + l for l in libs]*3 + ["-lxerces-c"])
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        print("  could not build testShellRotation:")
+        print(proc.stderr)
+        return 1
+
+    env = dict(os.environ)
+    env["ECCE_HOME"] = ROOT
+    env.setdefault("ECCE_REALUSERHOME", os.path.expanduser("~"))
+    run = subprocess.run([out], capture_output=True, text=True, env=env)
+    print(run.stdout, end="")
+    if run.stderr:
+        print(run.stderr, end="")
+    os.unlink(out)
+    return run.returncode
+
+
 def checkOracle(tablePath, verbose):
     """The one check that does not need to know the answer.
 
@@ -981,6 +1023,17 @@ def main():
     #  left exactly where its atom put it -- rather than against
     #  somebody else's table of numbers, which would check the
     #  parameters and not the code.
+    if standalone("testAlignFrames",
+                  ["src/tdat/chemistry/SymmetryAnalysis.C",
+                   "src/tdat/chemistry/CharacterTable.C"]) != 0:
+        print("FAILED  frame alignment")
+        return 1
+
+    print("")
+    if checkShellRotation(args.verbose) != 0:
+        print("FAILED  shell rotation matrices")
+        return 1
+
     if standalone("testHuckel",
                   ["src/tdat/chemistry/Huckel.C",
                    "src/tdat/chemistry/MoFragments.C",
