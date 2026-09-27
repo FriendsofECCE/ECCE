@@ -1550,6 +1550,50 @@ CASES = [
 
 
 # ---------------------------------------------------------------------------
+# File=-based parse types (the auxiliary-file scripts, e.g. gaussian-16.mo
+# reading fort.7) are NOT modelled by eccejobmonitor_sim.py -- MsgSendFile
+# ships the whole named file to the parser script in one piece, rather than
+# a Begin/Skip/End-selected block from the job's stdout stream, so
+# ``Desc.live_entries()`` deliberately excludes them (see its docstring) and
+# none of the CASES above ever exercise one.
+#
+# These cases replay a real auxiliary file straight through the real script,
+# bypassing the .desc/Begin/Skip/End machinery entirely, the same way
+# run_expt_cases replays a real full output file through <Code>.expt.
+#
+# Regression for #160: G16 writes fort.7 as nothing but its archive entry
+# ("1\1\GINC-...\\@") when the job has no MO coefficient block to punch
+# (e.g. no pop=full) -- gaussian-16.mo's first loop then never finds the
+# "(nDx.y)" Fortran-format marker line it waits for before reading orbital
+# data, consumes the whole file, and used to print "size:\n0\n" for ORBENG,
+# which PropertyInterpreter rejects as invalid XML ('rows' attribute = 0)
+# and silently drops -- reported live from a real NH3 optimisation import.
+# The fixture is that real fort.7, copied in verbatim.
+MOFILE_CASES = [
+    dict(
+        name='g16-nh3-opt-nopopfull-mofile',
+        script='gaussian-16.mo',
+        fixture='gaussian-16/nh3_opt_nopopfull.fort7',
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        # The fix: no MO data in the file -> emit nothing, not rows=0.
+        expect_no_keys={'ORBENG', 'ORBENGBETA', 'MO', 'MOBETA'},
+    ),
+    dict(
+        name='g16-h2o-mo-popfull-mofile',
+        script='gaussian-16.mo',
+        fixture='gaussian-16/h2o_mo_popfull.fort7',
+        parse_args=('.', 'Energy', 'SCF', 'RHF', '0'),
+        # Positive control: a fort.7 that DOES carry a punched MO block
+        # must still emit ORBENG/MO normally after the #160 fix.
+        expect={
+            'ORBENG': {'size': '5', 'units': 'Hartree'},
+            'MO': {'size': '5 5'},
+        },
+    ),
+]
+
+
+# ---------------------------------------------------------------------------
 # Documented, accepted deviations.  Anything NOT listed here fails the suite.
 # Each entry must carry a reason; a stale entry (one that no longer applies)
 # is itself reported as a failure, so this list cannot rot silently.

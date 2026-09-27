@@ -108,6 +108,21 @@ sub printThem {
 
   ($ekey, $mokey) = @_;
 
+  # $norb is 0 whenever fort.7 held no MO coefficient block at all --
+  # e.g. a job run without pop=full, whose punch file is nothing but the
+  # archive entry ("1\1\GINC-...\\@").  The Fortran-format marker line
+  # this script's first loop waits for ("(5D15.8)") never appears, so the
+  # whole file is consumed as the pre-MO skip and nothing is left to
+  # parse.  Printing size:0 here writes a property whose 'rows' attribute
+  # is 0, which PropertyInterpreter rejects as invalid XML and the whole
+  # record is dropped (issue #160).  Emit nothing instead: no MO data
+  # was actually captured, so this is a silently-absent property, the
+  # same shape as every other runtype-gated no-op script here, not a
+  # corrupt one.
+  if ($norb == 0) {
+    return;
+  }
+
   ## ORBITAL ENERGIES
   print "key: $ekey\n";
   print "size:\n$norb\n";

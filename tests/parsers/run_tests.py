@@ -25,6 +25,7 @@ import argparse
 import re
 import difflib
 import os
+import subprocess
 import sys
 import tempfile
 import time
@@ -731,6 +732,68 @@ def run_expt_cases(res, args):
               % (name, time.time() - t0, len(atoms), len(params)))
 
 
+def run_mofile_cases(res, args):
+    """File=-based auxiliary scripts, replayed directly (see cases.py's
+    MOFILE_CASES docstring for why these bypass the Begin/Skip/End
+    machinery entirely)."""
+    cases = [c for c in CASEDEFS.MOFILE_CASES
+             if not args.case or c['name'] in args.case]
+    if not cases:
+        return
+    print()
+    for case in cases:
+        t0 = time.time()
+        name = case['name']
+        path = os.path.join(SCRIPTS, case['script'])
+        fixture = os.path.join(FIXTURES, case['fixture'])
+        with open(fixture, encoding='utf-8', errors='replace') as fh:
+            text = fh.read()
+
+        argv = [path] + list(case['parse_args'])
+        if not os.access(path, os.X_OK):
+            argv = ['perl'] + argv
+        env = dict(os.environ)
+        env['ECCE_HOME'] = REPO
+        env['PATH'] = SCRIPTS + os.pathsep + env.get('PATH', '')
+        env.pop('PERL5LIB', None)
+        workdir = tempfile.mkdtemp(prefix='ecce-mofiletest-%s-' % name)
+        atexit.register(shutil.rmtree, workdir, True)
+        proc = subprocess.run(argv, input=text, capture_output=True,
+                              text=True, timeout=60, cwd=workdir, env=env)
+        res.check(proc.returncode == 0, name,
+                  '%s exited %d\n%s'
+                  % (case['script'], proc.returncode, proc.stderr.strip()))
+
+        recs = parse_parser_output(proc.stdout)
+        byKey = {}
+        for rec in recs:
+            byKey.setdefault(rec['key'], []).append(rec)
+
+        for key in case.get('expect_no_keys', ()):
+            res.check(key not in byKey, name,
+                      '%s emitted %s, which this case asserts it must NOT '
+                      '(see #160: a property with no real data must be '
+                      'silently absent, not stored with rows=0)'
+                      % (case['script'], key))
+
+        for key, want in case.get('expect', {}).items():
+            got = byKey.get(key)
+            res.check(got is not None, name,
+                      '%s did not emit expected key %s' % (case['script'], key))
+            if got is None:
+                continue
+            flat = got[-1].get('flat', {})
+            for section, wantval in want.items():
+                gotval = flat.get(section, '')
+                res.check(gotval == wantval, name,
+                          '%s %s: got %r, expected %r'
+                          % (key, section, gotval, wantval))
+
+        print('  %-30s %5.1fs  %d propert%s emitted'
+              % (name, time.time() - t0, len(byKey),
+                 'y' if len(byKey) == 1 else 'ies'))
+
+
 def run_gaussian_name_table_checks(res):
     """Gaussian-{16,09,03}.expt's %NameToBasis: "6-31++g*" must map to
     "6-31++G*", not get silently overwritten by a duplicate-key typo meant
@@ -854,6 +917,7 @@ def main():
                  len(set(b.entry.type for b in result.blocks))))
 
     run_expt_cases(res, args)
+    run_mofile_cases(res, args)
     run_gaussian_name_table_checks(res)
 
     print()
