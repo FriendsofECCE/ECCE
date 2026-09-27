@@ -185,6 +185,25 @@ bool CalcEd::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   }
 
   CreateControls();
+
+  //  A charge outside the list (+3 for [Co(NH3)6]3+) is typed, and was
+  //  only ever applied by the Enter event -- which the box never sent,
+  //  lacking wxTE_PROCESS_ENTER, so the spin choices stayed those of the
+  //  neutral molecule.  Enter now works; leaving the box applies it too.
+  wxWindow *chargeBox = FindWindow(ID_COMBOBOX_CALCED_CHARGE);
+  if (chargeBox) {
+    chargeBox->Bind(wxEVT_KILL_FOCUS, [this, chargeBox](wxFocusEvent& ev) {
+      int typed;
+      const string text = ((wxComboBox*)chargeBox)->GetValue().ToStdString();
+      if (p_frag && StringConverter::toInt(text, typed) &&
+          typed != p_frag->charge()) {       // only a real change marks it dirty
+        wxCommandEvent apply(wxEVT_TEXT_ENTER, ID_COMBOBOX_CALCED_CHARGE);
+        apply.SetString(text);
+        OnComboboxCalcedChargeSelected(apply);
+      }
+      ev.Skip();
+    });
+  }
   //GetSizer()->SetSizeHints(this);
   //GetSizer()->SetMinSize(SYMBOL_CALCEDGUI_SIZE);
   Centre();

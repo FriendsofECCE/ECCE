@@ -254,7 +254,7 @@ void CalcEdGUI::CreateControls()
         _("1"),
         _("2")
     };
-    ewxComboBox* itemComboBox21 = new ewxComboBox( itemFrame1, ID_COMBOBOX_CALCED_CHARGE, _("0"), wxDefaultPosition, wxSize(65, -1), 5, itemComboBox21Strings, wxCB_DROPDOWN );
+    ewxComboBox* itemComboBox21 = new ewxComboBox( itemFrame1, ID_COMBOBOX_CALCED_CHARGE, _("0"), wxDefaultPosition, wxSize(65, -1), 5, itemComboBox21Strings, wxCB_DROPDOWN|wxTE_PROCESS_ENTER );
     itemComboBox21->SetStringSelection(_("0"));
     itemBoxSizer19->Add(itemComboBox21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
