@@ -119,6 +119,13 @@ def main():
         return run.returncode
 
     print("")
+    rc = standalone("testSlaterNormalization",
+                    ["src/tdat/chemistry/SlaterBasisSet.C",
+                     "src/tdat/chemistry/SlaterExpansion.C"])
+    if rc != 0:
+        return rc
+    print("")
+
     return roundTrip()
 
 
