@@ -680,57 +680,31 @@ vector<TGaussianBasisSet*> EDSIGaussianBasisSetLibrary::lookup
 
     EDSI *edsi = EDSIFactory::getEDSI(url.c_str());
 
-    // No usable sidecar metadata file -- fall back to the legacy DAV
-    // custom-property lookup (a real production EMSL library may have
-    // these set via an out-of-band admin path this local dataserver
-    // has no equivalent of).
-    if (!name || !type) {
-      vector<MetaDataResult> mDataResults;
-      string ns = p_ns;  // p_ns can't be string due to static init problems
-
-      if (edsi->getMetaData(requests,mDataResults) && mDataResults.size() > 0)
-      {
-        // set the gbs characteristics
-        for (size_t i = 0; i < mDataResults.size(); i++)
-        {
-          if (mDataResults[i].name == ns + "name")
-            name=     strdup(mDataResults[i].value.c_str());
-          else if (mDataResults[i].name == ns + "type")
-            type=     strdup(mDataResults[i].value.c_str());
-          else if (mDataResults[i].name == ns + "spherical")
-            spherical= strdup(mDataResults[i].value.c_str());
-          else if (mDataResults[i].name == ns + "contraction_type")
-            contraction_type= strdup(mDataResults[i].value.c_str());
-        }
-      }
-      // Same empty-string-counts-as-missing normalization as the *.meta
-      // tier above, for consistency (PROPFIND has only ever been observed
-      // to return real, complete data or fail outright in this codebase's
-      // testing, but don't rely on that holding for every server).
-      if (name && name[0] == '\0') { free(name); name = 0; }
-      if (type && type[0] == '\0') { free(type); type = 0; }
-    }
-
-    // Neither the *.meta sidecar nor a DAV PROPFIND yielded a usable
-    // name/type for this file (this per-user dataserver's DBM-based DAV
-    // property store only survives intact for a small fraction of the
-    // library, and per-file *.meta sidecars only carry name/type for
-    // roughly a fifth of it -- both confirmed empirically, not just this
-    // one lookup). Fall back to the alias this file was already resolved
-    // through above via getGbsAlias() rather than silently dropping real
-    // basis-set data: every file in this group is already filed under
-    // this exact name/category in the (real, working) per-type index
-    // file, just not duplicated onto the individual file's own metadata.
+    // Next, the file's identity as the library's own index files give it.
+    // These ship with every release and are what the user actually picked
+    // from, so they outrank a per-file DAV property -- which, on a modern
+    // mod_dav_fs, can only be something written after install: the legacy
+    // sdbm .pag stores in the seed tar are unreadable to it.
     //
-    // BUT NOT FOR A COMPONENT OF A MULTI-FILE AGGREGATE.  Giving every
-    // component the aggregate's own name and type made them all the same
-    // basis set to TGBSGroup::insertGBS(), which keeps the first and drops
-    // the rest: 6-31G* lost its polarization functions (6-31G.BAS kept,
-    // 6-31GS.BAS dropped), and .POT components were typed as orbital sets.
-    // 113 of the 129 multi-file aggregates lost a component this way.  A
-    // component is normally filed on its own too -- 6-31GS.BAS is the
-    // single-file "6-31G* Polarization" -- so take its identity from that.
+    // That ordering is the fix for 6-31G* saving with no carbon d shell.
+    // b3273d2's populate-gbs-metadata.py PROPPATCHed name "6-31G*" and type
+    // other_generally_contracted onto BOTH 6-31G.BAS and 6-31GS.BAS (and
+    // aggregate names onto a dozen other files) on any data server it ran
+    // against.  With the PROPFIND tier first, the two components came back
+    // as the same basis set, TGBSGroup::insertGBS() kept the first, and the
+    // polarization functions were silently dropped.  The script is gone;
+    // its property stores are not, and nothing on the server removes them.
+    //
+    // A single-file set is exactly the alias it was looked up through.  A
+    // component of a multi-file aggregate must NOT take the aggregate's own
+    // name and type (every component would then be the same basis set to
+    // insertGBS()); it is normally filed on its own too -- 6-31GS.BAS is
+    // the single-file "6-31G* Polarization" -- so take its identity there.
     const size_t components = file_list->size() - numDummyFile;
+    if ((!name || !type) && components == 1) {
+      if (!name) name = strdup(alias->nicename);
+      if (!type) type = strdup(TGaussianBasisSet::gbs_type_formatter[(int)gbs_type]);
+    }
     if ((!name || !type) && components > 1) {
       for (int t = 0; t < 12 && (!name || !type); t++) {
         const vector<gbs_alias*> *own =
@@ -747,6 +721,36 @@ vector<TGaussianBasisSet*> EDSIGaussianBasisSetLibrary::lookup
         }
       }
     }
+
+    // Then the legacy DAV custom properties, for whatever is still missing
+    // (a real production EMSL library may have these set via an
+    // out-of-band admin path this local dataserver has no equivalent of).
+    // Only unset fields are filled: a property never overrides the tiers
+    // above.
+    if (!name || !type || !spherical || !contraction_type) {
+      vector<MetaDataResult> mDataResults;
+
+      if (edsi->getMetaData(requests,mDataResults) && mDataResults.size() > 0)
+      {
+        for (size_t i = 0; i < mDataResults.size(); i++)
+        {
+          const string &val = mDataResults[i].value;
+          if (val.empty()) continue;  // empty counts as missing, as above
+          if (mDataResults[i].name == ns + "name" && !name)
+            name=     strdup(val.c_str());
+          else if (mDataResults[i].name == ns + "type" && !type)
+            type=     strdup(val.c_str());
+          else if (mDataResults[i].name == ns + "spherical" && !spherical)
+            spherical= strdup(val.c_str());
+          else if (mDataResults[i].name == ns + "contraction_type" &&
+                   !contraction_type)
+            contraction_type= strdup(val.c_str());
+        }
+      }
+    }
+
+    // Last resort: the aggregate's own name (and, for a .POT component,
+    // ecp), rather than silently dropping real basis-set data.
     if (!name)
       name = strdup(alias->nicename);
     if (!type) {
