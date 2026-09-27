@@ -94,6 +94,13 @@ class Display(object):
     def env(self, base=None):
         environment = dict(base if base is not None else os.environ)
         environment["DISPLAY"] = self.name
+        #  No accessibility bus on a CI runner: every GTK app there logs
+        #  "AT-SPI: Error retrieving accessibility bus address" and can
+        #  stall on it at exit -- msgdialog, which returns from OnInit at
+        #  once, sat for ~70 s until the suite killed it, and the display
+        #  was unresponsive afterwards (#127).  Nothing here needs AT-SPI.
+        environment.setdefault("NO_AT_BRIDGE", "1")
+        environment.setdefault("GTK_A11Y", "none")
         return environment
 
     def _ready(self):
