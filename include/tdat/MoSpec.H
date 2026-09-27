@@ -43,20 +43,6 @@ struct MoModel {
   MoModel() : charge(0) {}
 };
 
-/** The share of one orbital carried by a named set of functions. */
-static double shareOfFunctions(const vector<double>& c,
-                               const vector<int>& which)
-{
-  double whole = 0.0, wanted = 0.0;
-  for (size_t i = 0; i < c.size(); i++) whole += c[i]*c[i];
-  for (size_t k = 0; k < which.size(); k++) {
-    const double v = c[which[k]];
-    wanted += v*v;
-  }
-  return (whole > 0.0) ? wanted/whole : 0.0;
-}
-
-
 static bool buildModel(const char* tables, const char* molecule,
                        MoModel& model)
 {
@@ -202,94 +188,12 @@ static bool buildModel(const char* tables, const char* molecule,
                                           left, right, note,
                                           &leftAtoms, &rightAtoms);
 
-  //  The same composition the panel computes, so what is drawn here is
-  //  what ECCE draws.
-  if (haveFragments && !perAtom.empty() && !coefficients.empty()) {
-    const vector<double> noOverlap;
-    for (size_t i = 0; i < centre.levels.size(); i++) {
-      MoLevel& level = centre.levels[i];
-      double onLeft = 0.0, onRight = 0.0;
-      int counted = 0;
-      for (size_t k = 0; k < level.orbitals.size(); k++) {
-        const int mo = level.orbitals[k];
-        if (mo < 0 || mo >= (int)coefficients.size()) continue;
-        const double l = MoFragments::share(coefficients[mo], perAtom,
-                                            leftAtoms, noOverlap);
-        const double r = MoFragments::share(coefficients[mo], perAtom,
-                                            rightAtoms, noOverlap);
-        if (l < 0.0 || r < 0.0) continue;
-        onLeft += l; onRight += r; counted++;
-
-        //  And per shell -- which is the only thing that can connect
-        //  a diatomic: both its atoms carry exactly half of every
-        //  orbital, so which ATOM a sigma-g came from has no answer,
-        //  while which SHELL it came from has one.
-        //
-        //  BINNED BY ELEMENT AS WELL AS ANGULAR MOMENTUM, using the
-        //  column's own shell keys.  Binning by angular momentum
-        //  alone lumps every s function in a fragment together, so
-        //  formaldehyde's oxygen 2s and its hydrogens' 1s shared a
-        //  bin, took identical weights, and were dragged towards each
-        //  other -- oxygen's 2s/2p separation came out a third of the
-        //  free atom's while carbon's stayed full size.
-        if (shellOf.size() == coefficients[mo].size()) {
-          if (level.shellLeft.size() != left.shellKeys.size()) {
-            level.shellLeft.assign(left.shellKeys.size(), 0.0);
-          }
-          if (level.shellRight.size() != right.shellKeys.size()) {
-            level.shellRight.assign(right.shellKeys.size(), 0.0);
-          }
-
-          for (int side = 0; side < 2; side++) {
-            const MoColumn& column = (side == 0) ? left : right;
-            const vector<int>& mine = (side == 0) ? leftAtoms : rightAtoms;
-            vector<double>& into =
-                (side == 0) ? level.shellLeft : level.shellRight;
-
-            for (size_t s = 0; s < column.shellKeys.size(); s++) {
-              const string& key = column.shellKeys[s];
-              const string::size_type colon = key.find(':');
-              if (colon == string::npos) continue;
-              const string element = key.substr(0, colon);
-              const int want = atoi(key.substr(colon + 1).c_str());
-
-              vector<int> pick;
-              int at = 0;
-              for (size_t a = 0; a < perAtom.size(); a++) {
-                bool ours = false;
-                for (size_t k = 0; k < mine.size(); k++) {
-                  if (mine[k] == (int)a) ours = true;
-                }
-                if (ours && a < elements.size() && elements[a] == element) {
-                  for (int f = 0; f < perAtom[a]; f++) {
-                    if (shellOf[at + f] == want) pick.push_back(at + f);
-                  }
-                }
-                at += perAtom[a];
-              }
-              into[s] += shareOfFunctions(coefficients[mo], pick);
-            }
-          }
-        }
-      }
-      if (counted > 0) {
-        level.shareLeft  = onLeft/counted;
-        level.shareRight = onRight/counted;
-        //  EACH BOUNDED BY ITS OWN SIZE.
-        //
-        //  Both were indexed by the LEFT column's shell count, which
-        //  is only safe while the two columns happen to have the same
-        //  number of shells. Benzene overran by one and got away with
-        //  it; methanol as CH3 against OH -- two shells on one side,
-        //  three on the other -- ran off the end and segfaulted.
-        for (size_t k = 0; k < level.shellLeft.size(); k++) {
-          level.shellLeft[k] /= counted;
-        }
-        for (size_t k = 0; k < level.shellRight.size(); k++) {
-          level.shellRight[k] /= counted;
-        }
-      }
-    }
+  //  The same composition the panel computes -- ONE implementation,
+  //  MoFragments::composeLevels(), so what is drawn here is what ECCE
+  //  draws (see the two-implementations lesson for this diagram, #132).
+  if (haveFragments) {
+    MoFragments::composeLevels(centre.levels, coefficients, perAtom, shellOf,
+                               elements, leftAtoms, rightAtoms, left, right);
   }
   //  --- how much of each molecular orbital each TASO actually is ---
   //

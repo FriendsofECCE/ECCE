@@ -224,6 +224,67 @@ class MoFragments
                         const vector<double>& overlap);
 
     /**
+     * The primitive share() and MoComposition::compute() both use: how
+     * much of one orbital's norm sits on an explicit list of basis
+     * function indices, rather than a list of atoms.
+     *
+     * A Mulliken population restricted to those functions when
+     * `overlap` is given, a Lowdin one (plain sum of squares) when it
+     * is not -- the same two cases share() documents, at the level of
+     * individual functions instead of whole atoms, which is what lets
+     * a caller ask about one atom's one shell rather than an atom's
+     * every function.
+     *
+     * @param coefficients one per basis function
+     * @param indices      which basis functions to sum
+     * @param overlap      nbas*nbas, row major, or empty
+     */
+    static double shareOfIndices(const vector<double>& coefficients,
+                                 const vector<int>& indices,
+                                 const vector<double>& overlap);
+
+    /**
+     * Fill in each MOLECULAR level's fragment composition, from the MO
+     * coefficients themselves -- shareLeft/shareRight and the per-shell
+     * shellLeft/shellRight that MoDiagram::connect() falls back to when
+     * there is no irrep to match on (a homonuclear diatomic's fragment
+     * is a single atom, which spans no irrep of the molecule's group at
+     * all).
+     *
+     * THE ONE IMPLEMENTATION.  Both MoSpec.H (the offline render tool)
+     * and MoDiagramPanel::build() (the real panel) call this, so the
+     * two cannot drift the way an independently re-derived composition
+     * did before -- see the two-implementations lesson recorded for
+     * this diagram (#132).
+     *
+     * @param centreLevels the molecular levels, energy-grouped already;
+     *                     shareLeft/shareRight/shellLeft/shellRight are
+     *                     set in place, in Hartree-independent shares
+     * @param coefficients one row per molecular orbital, one column per
+     *                     basis function, in `centreLevels`' own MO
+     *                     numbering (level.orbitals indexes this)
+     * @param perAtom      basis functions per atom, same order as
+     *                     `elements`
+     * @param shellOf      the angular momentum of each basis function,
+     *                     same length as one row of `coefficients`, or
+     *                     empty to skip the per-shell composition
+     * @param elements     one per atom
+     * @param leftAtoms    which atoms are the left fragment
+     * @param rightAtoms   which atoms are the right fragment
+     * @param left         the left column, for its shellKeys
+     * @param right        the right column, for its shellKeys
+     */
+    static void composeLevels(vector<MoLevel>& centreLevels,
+                              const vector< vector<double> >& coefficients,
+                              const vector<int>& perAtom,
+                              const vector<int>& shellOf,
+                              const vector<string>& elements,
+                              const vector<int>& leftAtoms,
+                              const vector<int>& rightAtoms,
+                              const MoColumn& left,
+                              const MoColumn& right);
+
+    /**
      * The sets of symmetry-equivalent atoms, for choosing a split.
      *
      * A FRAGMENT HAS TO BE A UNION OF THESE.  For a fragment's

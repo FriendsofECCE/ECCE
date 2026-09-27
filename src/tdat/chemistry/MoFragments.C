@@ -18,6 +18,7 @@ using std::ostringstream;
 #include "tdat/CharacterTable.H"
 #include "tdat/SymmetryAnalysis.H"
 #include "tdat/Huckel.H"
+#include "tdat/MoComposition.H"
 #include "tdat/MoFragments.H"
 
 
@@ -620,39 +621,19 @@ bool MoFragments::basisSpansReported(const vector<double>& coords,
 }
 
 
-double MoFragments::share(const vector<double>& coefficients,
-                          const vector<int>& functionsPerAtom,
-                          const vector<int>& atoms,
-                          const vector<double>& overlap)
+double MoFragments::shareOfIndices(const vector<double>& coefficients,
+                                   const vector<int>& indices,
+                                   const vector<double>& overlap)
 {
    const size_t nbas = coefficients.size();
-   if (nbas == 0 || functionsPerAtom.empty()) return -1.0;
-
-   //  The mapping has to account for every function.  An off-by-one
-   //  here gives a number that looks like a population instead of an
-   //  error, so it is checked rather than trusted.
-   int total = 0;
-   for (size_t i = 0; i < functionsPerAtom.size(); i++) {
-      total += functionsPerAtom[i];
-   }
-   if (total != (int)nbas) return -1.0;
-
+   if (nbas == 0) return -1.0;
    const bool haveOverlap = (overlap.size() == nbas*nbas);
 
-   //  Where each atom's functions start.
-   vector<int> first(functionsPerAtom.size(), 0);
-   int at = 0;
-   for (size_t i = 0; i < functionsPerAtom.size(); i++) {
-      first[i] = at;
-      at += functionsPerAtom[i];
-   }
-
-   //  Which functions belong to the set asked about.
    vector<bool> mine(nbas, false);
-   for (size_t k = 0; k < atoms.size(); k++) {
-      const int a = atoms[k];
-      if (a < 0 || a >= (int)functionsPerAtom.size()) return -1.0;
-      for (int f = 0; f < functionsPerAtom[a]; f++) mine[first[a] + f] = true;
+   for (size_t k = 0; k < indices.size(); k++) {
+      const int mu = indices[k];
+      if (mu < 0 || mu >= (int)nbas) return -1.0;
+      mine[mu] = true;
    }
 
    double wanted = 0.0, whole = 0.0;
@@ -673,6 +654,146 @@ double MoFragments::share(const vector<double>& coefficients,
 
    if (whole <= 0.0) return -1.0;
    return wanted/whole;
+}
+
+
+double MoFragments::share(const vector<double>& coefficients,
+                          const vector<int>& functionsPerAtom,
+                          const vector<int>& atoms,
+                          const vector<double>& overlap)
+{
+   const size_t nbas = coefficients.size();
+   if (nbas == 0 || functionsPerAtom.empty()) return -1.0;
+
+   //  The mapping has to account for every function.  An off-by-one
+   //  here gives a number that looks like a population instead of an
+   //  error, so it is checked rather than trusted.
+   int total = 0;
+   for (size_t i = 0; i < functionsPerAtom.size(); i++) {
+      total += functionsPerAtom[i];
+   }
+   if (total != (int)nbas) return -1.0;
+
+   //  Where each atom's functions start.
+   vector<int> first(functionsPerAtom.size(), 0);
+   int at = 0;
+   for (size_t i = 0; i < functionsPerAtom.size(); i++) {
+      first[i] = at;
+      at += functionsPerAtom[i];
+   }
+
+   vector<int> indices;
+   for (size_t k = 0; k < atoms.size(); k++) {
+      const int a = atoms[k];
+      if (a < 0 || a >= (int)functionsPerAtom.size()) return -1.0;
+      for (int f = 0; f < functionsPerAtom[a]; f++) indices.push_back(first[a] + f);
+   }
+
+   return shareOfIndices(coefficients, indices, overlap);
+}
+
+
+void MoFragments::composeLevels(vector<MoLevel>& centreLevels,
+                                const vector< vector<double> >& coefficients,
+                                const vector<int>& perAtom,
+                                const vector<int>& shellOf,
+                                const vector<string>& elements,
+                                const vector<int>& leftAtoms,
+                                const vector<int>& rightAtoms,
+                                const MoColumn& left,
+                                const MoColumn& right)
+{
+   if (perAtom.empty() || coefficients.empty()) return;
+
+   const vector<double> noOverlap;
+   for (size_t i = 0; i < centreLevels.size(); i++) {
+      MoLevel& level = centreLevels[i];
+      double onLeft = 0.0, onRight = 0.0;
+      int counted = 0;
+      for (size_t k = 0; k < level.orbitals.size(); k++) {
+         const int mo = level.orbitals[k];
+         if (mo < 0 || mo >= (int)coefficients.size()) continue;
+         const double l = MoFragments::share(coefficients[mo], perAtom,
+                                             leftAtoms, noOverlap);
+         const double r = MoFragments::share(coefficients[mo], perAtom,
+                                             rightAtoms, noOverlap);
+         if (l < 0.0 || r < 0.0) continue;
+         onLeft += l; onRight += r; counted++;
+
+         //  And per shell -- which is the only thing that can connect
+         //  a diatomic: both its atoms carry exactly half of every
+         //  orbital, so which ATOM a sigma-g came from has no answer,
+         //  while which SHELL it came from has one.
+         //
+         //  DERIVED FROM MoComposition::compute() -- the same full,
+         //  atom-by-shell breakdown a "show this MO's AO composition"
+         //  feature would call, summed over each fragment's atoms
+         //  rather than re-picked from scratch. One computation of what
+         //  an orbital is built from, read two ways.
+         if (shellOf.size() == coefficients[mo].size()) {
+            if (level.shellLeft.size() != left.shellKeys.size()) {
+               level.shellLeft.assign(left.shellKeys.size(), 0.0);
+            }
+            if (level.shellRight.size() != right.shellKeys.size()) {
+               level.shellRight.assign(right.shellKeys.size(), 0.0);
+            }
+
+            const vector<MoComposition::Share> full =
+                MoComposition::compute(coefficients[mo], perAtom, shellOf,
+                                       elements, noOverlap);
+
+            for (int side = 0; side < 2; side++) {
+               const MoColumn& column = (side == 0) ? left : right;
+               const vector<int>& mine = (side == 0) ? leftAtoms : rightAtoms;
+               vector<double>& into =
+                   (side == 0) ? level.shellLeft : level.shellRight;
+
+               //  BINNED BY ELEMENT AS WELL AS ANGULAR MOMENTUM, using
+               //  the column's own shell keys.  Binning by angular
+               //  momentum alone lumps every s function in a fragment
+               //  together, so formaldehyde's oxygen 2s and its
+               //  hydrogens' 1s shared a bin, took identical weights,
+               //  and were dragged towards each other -- oxygen's
+               //  2s/2p separation came out a third of the free atom's
+               //  while carbon's stayed full size.
+               for (size_t s = 0; s < column.shellKeys.size(); s++) {
+                  const string& key = column.shellKeys[s];
+                  const string::size_type colon = key.find(':');
+                  if (colon == string::npos) continue;
+                  const string element = key.substr(0, colon);
+                  const int want = atoi(key.substr(colon + 1).c_str());
+
+                  for (size_t f = 0; f < full.size(); f++) {
+                     if (full[f].shell != want || full[f].element != element)
+                        continue;
+                     bool ours = false;
+                     for (size_t k2 = 0; k2 < mine.size(); k2++) {
+                        if (mine[k2] == full[f].atom) ours = true;
+                     }
+                     if (ours) into[s] += full[f].share;
+                  }
+               }
+            }
+         }
+      }
+      if (counted > 0) {
+         level.shareLeft  = onLeft/counted;
+         level.shareRight = onRight/counted;
+         //  EACH BOUNDED BY ITS OWN SIZE.
+         //
+         //  Both were indexed by the LEFT column's shell count, which
+         //  is only safe while the two columns happen to have the same
+         //  number of shells.  Benzene overran by one and got away with
+         //  it; methanol as CH3 against OH -- two shells on one side,
+         //  three on the other -- ran off the end and segfaulted.
+         for (size_t k = 0; k < level.shellLeft.size(); k++) {
+            level.shellLeft[k] /= counted;
+         }
+         for (size_t k = 0; k < level.shellRight.size(); k++) {
+            level.shellRight[k] /= counted;
+         }
+      }
+   }
 }
 
 

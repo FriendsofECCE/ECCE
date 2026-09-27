@@ -673,6 +673,7 @@ def checkFragments(tablePath, verbose):
            "-o", out,
            os.path.join(HERE, "testMoFragments.C"),
            os.path.join(ROOT, "src/tdat/chemistry/MoFragments.C"),
+           os.path.join(ROOT, "src/tdat/chemistry/MoComposition.C"),
            os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
            os.path.join(ROOT, "src/tdat/chemistry/ShellRotation.C"),
            os.path.join(ROOT, "src/tdat/chemistry/TGBSAngFunc.C"),
@@ -866,6 +867,69 @@ def checkSubgroupCrossCheck(verbose):
     return rc
 
 
+def checkDiatomicComposition(verbose):
+    """The composition fallback (#132) against REAL N2 MOs.
+
+    A homonuclear diatomic's fragment is a single atom, which spans no
+    irrep of the molecule's group at all -- there is nothing for
+    irrep-matching to connect. Composition (which SHELL an orbital is
+    built from, from its own MO coefficients) is the only thing left,
+    and this drives the real pipeline (MoFragments::build(),
+    composeLevels(), classify()/connect()/placeFragments()) on N2's
+    real ORCA orbitals with no symmetry labels handed to the centre
+    column -- exactly what MoDiagramPanel::build() does for any
+    homonuclear diatomic -- and checks the textbook answer against it:
+    2sigma_g/2sigma_u to N 2s, 3sigma_g/1pi_u/1pi_g*/3sigma_u* to N 2p.
+    See testDiatomicComposition.C.
+    """
+    build = os.environ.get("ECCE_TEST_BUILD", os.path.join(ROOT, "build-cmake"))
+    if not os.path.isdir(build):
+        print("  skipped: no build tree at %s (set ECCE_TEST_BUILD)" % build)
+        return 0
+    symops = os.environ.get("ECCE_TEST_SYMOPS", os.path.join(ROOT, "build-cmake", "symops"))
+    if not (os.path.isfile(symops) and os.access(symops, os.X_OK)):
+        print("  symops not built -- skipping the diatomic composition check")
+        return 0
+
+    libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
+            "ecceutil", "eccecomm", "eccecipc", "ecceexp", "eccercmd"]
+    out = os.path.join(HERE, "testDiatomicComposition")
+    cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
+            "-o", out,
+            os.path.join(HERE, "testDiatomicComposition.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/MoFragments.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/MoComposition.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/ShellRotation.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
+            os.path.join(ROOT, "src/tdat/chemistry/BasisFlatten.C"),
+            "-L" + build]
+           + ["-l" + l for l in libs]*3 + ["-lxerces-c"])
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        print("  could not build testDiatomicComposition:")
+        print(proc.stderr)
+        return 1
+
+    env = dict(os.environ)
+    env["ECCE_HOME"] = ROOT
+    env.setdefault("ECCE_REALUSERHOME", os.path.expanduser("~"))
+    #  MoFragments::symmetryOperations() resolves $ECCE_HOME/bin/symops
+    #  and falls back to a bare "symops" on PATH when that does not
+    #  exist -- it does not, in a repo checkout -- so the real binary
+    #  is reached the same way checkFragments() reaches it.
+    env["PATH"] = os.path.dirname(symops) + os.pathsep + env.get("PATH", "")
+
+    run = subprocess.run([out, os.path.join(HERE, "fixtures", "g16mo")],
+                         capture_output=True, text=True, env=env)
+    print(run.stdout, end="")
+    if run.stderr:
+        print(run.stderr, end="")
+    os.unlink(out)
+    return run.returncode
+
+
 def checkOracle(tablePath, verbose):
     """The one check that does not need to know the answer.
 
@@ -918,6 +982,7 @@ def checkOracle(tablePath, verbose):
         ["g++", "-O2", "-w", "-I", os.path.join(ROOT, "include"), "-o", out,
          src,
          os.path.join(ROOT, "src/tdat/chemistry/MoFragments.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/MoComposition.C"),
          os.path.join(ROOT, "src/tdat/chemistry/SymmetryAnalysis.C"),
          os.path.join(ROOT, "src/tdat/chemistry/ShellRotation.C"),
          os.path.join(ROOT, "src/tdat/chemistry/TGBSAngFunc.C"),
@@ -1180,9 +1245,15 @@ def main():
         print("FAILED  the ORCA subgroup cross-check")
         return 1
 
+    print("")
+    if checkDiatomicComposition(args.verbose) != 0:
+        print("FAILED  the diatomic composition fallback")
+        return 1
+
     if standalone("testHuckel",
                   ["src/tdat/chemistry/Huckel.C",
                    "src/tdat/chemistry/MoFragments.C",
+                   "src/tdat/chemistry/MoComposition.C",
                    "src/tdat/chemistry/SymmetryAnalysis.C",
                    "src/tdat/chemistry/ShellRotation.C",
                    "src/tdat/chemistry/TGBSAngFunc.C",

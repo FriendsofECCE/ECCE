@@ -104,43 +104,27 @@ MoDiagramPanel::~MoDiagramPanel()
 //   fragment -- and therefore how much of an orbital sits on each side
 //   of the diagram.
 //
-//   The count is checked against the coefficient table's own width by
-//   the caller.  It has to be: a mapping that is off by one atom
-//   produces a perfectly plausible population rather than an error,
-//   and would quietly connect the wrong levels.
+//   The count is checked against the coefficient table's own width,
+//   which is what says whether the recorded coordinate system
+//   (Cartesian/spherical) is the one the coefficients were actually
+//   printed in -- a spherical-only code such as ORCA ran a nominally
+//   Cartesian Pople basis with five d functions, not six, which is
+//   the same width mismatch computeFullGroupLabels() guards against.
+//   A mapping that is off by one atom produces a perfectly plausible
+//   population rather than an error, and would quietly connect the
+//   wrong levels, so both are tried and the caller is told when
+//   neither matches.
 /////////////////////////////////////////////////////////////////////////////
-static bool functionsPerAtom(IPropCalculation *expt, SGFragment *sgfrag,
-                             vector<int>& counts, vector<int>& shellOf)
+static bool countFunctions(TGBSConfig *config, const vector<TAtm*>& atoms,
+                           bool cartesian, vector<int>& counts,
+                           vector<int>& shellOf)
 {
   counts.clear();
   shellOf.clear();
 
-  ICalculation *escalc = dynamic_cast<ICalculation*>(expt);
-  if (escalc == 0 || sgfrag == 0) return false;
-
-  TGBSConfig *config = escalc->gbsConfig();
-
-  //  A semiempirical code writes no basis set; rebuild one from the
-  //  Slater exponents it did report, as MoPanel and ComputeMoCmd both
-  //  do.  Each fetches the config independently.
-  if (config == 0 || config->empty()) {
-    TGBSConfig *slater = ICalcUtils::slaterBasisConfig(expt);
-    if (slater != 0) { delete config; config = slater; }
-  }
-  if (config == 0 || config->empty()) { delete config; return false; }
-
-  const JCode *cap = escalc->application();
-  TGBSAngFunc *angfunc = (cap == 0) ? 0 : cap->getAngFunc(config->coordsys());
-  const bool cartesian =
-      (angfunc != 0 && angfunc->basisType() == TGBSAngFunc::Cartesian);
-  delete angfunc;
-
-  vector<TAtm*> *atoms = sgfrag->atoms();
-  if (atoms == 0) { delete config; return false; }
-
   bool ok = true;
-  for (size_t a = 0; a < atoms->size(); a++) {
-    const string symbol = (*atoms)[a]->atomicSymbol();
+  for (size_t a = 0; a < atoms.size(); a++) {
+    const string symbol = atoms[a]->atomicSymbol();
     int here = 0;
 
     vector<const TGaussianBasisSet*> list = config->getGBSList(symbol);
@@ -170,9 +154,61 @@ static bool functionsPerAtom(IPropCalculation *expt, SGFragment *sgfrag,
     counts.push_back(here);
   }
 
+  return ok && !counts.empty();
+}
+
+static bool functionsPerAtom(IPropCalculation *expt, SGFragment *sgfrag,
+                             int coefficientWidth,
+                             vector<int>& counts, vector<int>& shellOf)
+{
+  counts.clear();
+  shellOf.clear();
+
+  ICalculation *escalc = dynamic_cast<ICalculation*>(expt);
+  if (escalc == 0 || sgfrag == 0) return false;
+
+  TGBSConfig *config = escalc->gbsConfig();
+
+  //  A semiempirical code writes no basis set; rebuild one from the
+  //  Slater exponents it did report, as MoPanel and ComputeMoCmd both
+  //  do.  Each fetches the config independently.
+  if (config == 0 || config->empty()) {
+    TGBSConfig *slater = ICalcUtils::slaterBasisConfig(expt);
+    if (slater != 0) { delete config; config = slater; }
+  }
+  if (config == 0 || config->empty()) { delete config; return false; }
+
+  const JCode *cap = escalc->application();
+  TGBSAngFunc *angfunc = (cap == 0) ? 0 : cap->getAngFunc(config->coordsys());
+  const bool recordedCartesian =
+      (angfunc != 0 && angfunc->basisType() == TGBSAngFunc::Cartesian);
+  delete angfunc;
+
+  vector<TAtm*> *atoms = sgfrag->atoms();
+  if (atoms == 0) { delete config; return false; }
+
+  //  THE RECORDED SYSTEM FIRST, the other only if it does not
+  //  reproduce the coefficient table's width -- same rule
+  //  computeFullGroupLabels() uses, and for the same reason: the
+  //  recorded convention is right far more often, so it is not worth
+  //  silently preferring whichever happens to match when both do.
+  bool ok = false;
+  const bool tries[2] = { recordedCartesian, !recordedCartesian };
+  for (int t = 0; t < 2 && !ok; t++) {
+    vector<int> trialCounts, trialShellOf;
+    if (!countFunctions(config, *atoms, tries[t], trialCounts, trialShellOf))
+      continue;
+    int total = 0;
+    for (size_t i = 0; i < trialCounts.size(); i++) total += trialCounts[i];
+    if (coefficientWidth > 0 && total != coefficientWidth) continue;
+    counts.swap(trialCounts);
+    shellOf.swap(trialShellOf);
+    ok = true;
+  }
+
   delete atoms;
   delete config;
-  return ok && !counts.empty();
+  return ok;
 }
 
 
@@ -1318,6 +1354,10 @@ void MoDiagramPanel::build()
     }
   }
 
+  //  Which atoms actually ended up in each column -- needed below to
+  //  compute each molecular level's composition, not just its irrep.
+  vector<int> leftAtoms, rightAtoms;
+
   if (!elements.empty()) {
     //  OFFER THE CHOICE, AND HONOUR IT.
     //
@@ -1389,8 +1429,40 @@ void MoDiagramPanel::build()
     }
 
     haveFragments = MoFragments::build(coords, elements, group, charge,
-                                       left, right, why, 0, 0, chosen,
+                                       left, right, why, &leftAtoms,
+                                       &rightAtoms, chosen,
                                        &p_fragmentation, want);
+  }
+
+  //  COMPOSITION, SUPPLIED WHENEVER IT IS AVAILABLE -- not only as a
+  //  fallback for the cases below with no irrep to match on.
+  //  MoDiagram::connect() decides for itself which evidence to use;
+  //  what matters here is that shareLeft/shareRight/shellLeft/
+  //  shellRight are populated whenever they can be, since that is
+  //  the ONLY thing that can connect a homonuclear diatomic -- a
+  //  single atom spans no irrep of the molecule's group at all, so
+  //  the irrep-based match has nothing to match (#132).
+  if (haveFragments && !leftAtoms.empty() && !rightAtoms.empty()) {
+    PropTable *moCoefs = (PropTable*)calc->getProperty("MO");
+    if (moCoefs != 0 && moCoefs->rows() > 0 && moCoefs->columns() > 0) {
+      vector<int> perAtom, shellOf;
+      //  functionsPerAtom() reads the STORED frame's atoms (sgfrag's
+      //  own), which is the order the coefficients are in -- the same
+      //  frame computeFullGroupLabels() insists on for the same reason.
+      if (functionsPerAtom(calc, sgfrag, moCoefs->columns(), perAtom,
+                           shellOf)) {
+        const int norb = moCoefs->rows();
+        const int nbasis = moCoefs->columns();
+        vector< vector<double> > coefficients(norb, vector<double>(nbasis));
+        for (int m = 0; m < norb; m++)
+          for (int mu = 0; mu < nbasis; mu++)
+            coefficients[m][mu] = moCoefs->value(m, mu);
+
+        MoFragments::composeLevels(centre.levels, coefficients, perAtom,
+                                   shellOf, elements, leftAtoms, rightAtoms,
+                                   left, right);
+      }
+    }
   }
 
   //  THE FRAGMENT COLUMNS DO NOT NEED THE CODE'S SYMMETRY LABELS.
