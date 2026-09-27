@@ -1496,9 +1496,14 @@ sub Symmetry {
   } else {
     $group =~ s/^\s+|\s+$//g;
     $group = uc($group);
-    #  Gaussian spells the axial groups with a star.
-    $group = "C*V" if ($group eq "CINFV");
-    $group = "D*H" if ($group eq "DINFH");
+    #  NOT the star spelling Gaussian prints ("Full point group D*H"):
+    #  PG=D*H is a route-card syntax error that kills l1 with a
+    #  segfault (testrt agrees).  PG= is an upper bound ("use no more
+    #  than"), and the largest finite subgroup is enough -- PG=D4H on
+    #  N2 and PG=C4V on CO still report D*H / C*V and SGG/PIU labels.
+    #  Verified by running Gaussian 16 C.01, 2026-09-27.
+    $group = "C4V" if ($group eq "CINFV");
+    $group = "D4H" if ($group eq "DINFH");
     if ($group ne "" && $group ne "C1" && $group !~ /UNKNOWN/) {
       return "Symmetry=(PG=$group,Loose) ";
     }
