@@ -654,12 +654,26 @@ def run_expt_cases(res, args):
             res.check(False, name, str(exc))
             continue
 
-        res.check(produced['returncode'] == 0, name,
-                  '%s exited %d\n%s' % (case['script'], produced['returncode'],
-                                        produced['stderr'].strip()))
-        for extension in expt.PRODUCTS:
-            res.check(extension in produced, name,
-                      '%s produced no %s file' % (case['script'], extension))
+        # A case may expect the importer to refuse the file outright (e.g. an
+        # error-terminated log with no geometry to import) rather than
+        # succeed -- 'expect_returncode' overrides the default "must exit 0".
+        wantReturncode = case.get('expect_returncode', 0)
+        res.check(produced['returncode'] == wantReturncode, name,
+                  '%s exited %d (expected %d)\n%s'
+                  % (case['script'], produced['returncode'], wantReturncode,
+                     produced['stderr'].strip()))
+        if wantReturncode == 0:
+            for extension in expt.PRODUCTS:
+                res.check(extension in produced, name,
+                          '%s produced no %s file' % (case['script'], extension))
+        for substr in case.get('expect_stdout_contains', ()):
+            res.check(substr in produced['stdout'], name,
+                      '%s stdout did not contain %r\n      got: %s'
+                      % (case['script'], substr, produced['stdout'].strip()))
+        for substr in case.get('expect_gbs_contains', ()):
+            res.check(substr in produced.get('.gbs', ''), name,
+                      '%s .gbs did not contain %r\n      got: %s'
+                      % (case['script'], substr, produced.get('.gbs', '(not produced)')))
 
         atoms = expt.atoms(produced.get('.frag'))
         params = expt.params(produced.get('.param'))
@@ -715,6 +729,32 @@ def run_expt_cases(res, args):
                              ''.join(diff[:120])))
         print('  %-24s %5.1fs  %d atoms, %d .param keys'
               % (name, time.time() - t0, len(atoms), len(params)))
+
+
+def run_gaussian_name_table_checks(res):
+    """Gaussian-{16,09,03}.expt's %NameToBasis: "6-31++g*" must map to
+    "6-31++G*", not get silently overwritten by a duplicate-key typo meant
+    for the double-star entry.  A static check of the source is far cheaper
+    than another .expt fixture for this one line.
+    """
+    for script in ('Gaussian-16.expt', 'Gaussian-09.expt', 'Gaussian-03.expt'):
+        path = os.path.join(SCRIPTS, script)
+        with open(path) as fh:
+            text = fh.read()
+        res.check(
+            '$NameToBasis{"6-31++g*"} = "6-31++G*";' in text, script,
+            '%s: "6-31++g*" no longer maps to "6-31++G*" -- check for the '
+            'duplicate-key typo that used to overwrite it with the double-'
+            'star entry' % script)
+        res.check(
+            '$NameToBasis{"6-31++g**"} = "6-31++G**";' in text, script,
+            '%s: "6-31++g**" does not map to "6-31++G**"' % script)
+        res.check(
+            text.count('$NameToBasis{"6-31++g*"} = "6-31++G**";') == 0,
+            script,
+            '%s: the "6-31++g*" key is assigned "6-31++G**" somewhere -- '
+            'that silently overwrites the correct single-star mapping '
+            '(the key should be "6-31++g**")' % script)
 
 
 def make_expt_golden(case, produced):
@@ -814,6 +854,7 @@ def main():
                  len(set(b.entry.type for b in result.blocks))))
 
     run_expt_cases(res, args)
+    run_gaussian_name_table_checks(res)
 
     print()
     for line in coverage_report(res, ran, args.verbose):

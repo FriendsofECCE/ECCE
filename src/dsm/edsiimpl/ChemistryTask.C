@@ -978,7 +978,8 @@ void ChemistryTask::importFragment(const string& fragFileName,
       frag->name(frag->formula());
    } else {
       throw EcceException(
-         "Unable to import chemical system for calculation.", WHERE);
+         "Output file contains no molecular geometry "
+         "(did the job end in an error?).", WHERE);
    }
 
    fragStream.close();

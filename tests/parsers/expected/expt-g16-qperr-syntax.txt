@@ -1,0 +1,11 @@
+# expt-g16-qperr-syntax
+# Gaussian-16.expt gaussian-16/qperr_syntax.log
+# Golden record of what the importer DOES, not of what it
+# should do -- see expt_cases.NOTES before changing one.
+
+=== .frag
+(not produced)
+=== .param
+(not produced)
+=== .gbs
+(not produced)

@@ -35,6 +35,29 @@ CASES = [
     dict(name="expt-g16-h2o-ccsdt", script="Gaussian-16.expt",
          output="gaussian-16/h2o_ccsdt.log",
          expect=dict(natoms=3, charge="0")),
+    # #44/#27: a dummy atom ("X") in a Z-matrix used to inflate num_atoms to
+    # the last CENTER number (which counts the dummy), while the atom_list
+    # itself correctly omitted it -- a mismatch that made the C++ side
+    # throw "Unable to import chemical system". num_atoms must count only
+    # the atoms actually written. This fixture also has a "(d)"-suffixed
+    # basis (6-31G(d)), which used to be dropped from the .gbs entirely
+    # (getNameBasis() copied $basis before convertBasis() rewrote "(d)" to
+    # "*", so the raw string never matched %NameToBasis).
+    dict(name="expt-g16-nh3-dummy-zmat", script="Gaussian-16.expt",
+         output="gaussian-16/nh3_dummy_zmat_opt.log",
+         expect=dict(natoms=4, symbols=["N", "H", "H", "H"], charge="0"),
+         expect_gbs_contains=["6-31G*"]),
+    # #44/#27: the reported failure was an error-terminated log, not a
+    # dummy-atom import -- getMolecule() found no geometry at all and used
+    # to silently write an empty .frag with num_atoms:0 and exit 0, leaving
+    # the C++ side's opaque "Unable to import chemical system" as the only
+    # symptom. Now it scans the file for why Gaussian stopped and reports
+    # that instead of writing anything.
+    dict(name="expt-g16-qperr-syntax", script="Gaussian-16.expt",
+         output="gaussian-16/qperr_syntax.log",
+         expect_returncode=1,
+         expect_stdout_contains=["No molecular geometry found",
+                                 "syntax error"]),
 
     dict(name="expt-orca-h2o-opt", script="ORCA.expt",
          output="orca/h2o_opt.out",

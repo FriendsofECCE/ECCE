@@ -1297,7 +1297,7 @@ sub setupBasisTranslation {
   $NameToBasis{"6-31++gs"} = "6-31++G*";
   $NameToBasis{"6-31++g*"} = "6-31++G*";
   $NameToBasis{"6-31++gss"} = "6-31++G**";
-  $NameToBasis{"6-31++g*"} = "6-31++G**";
+  $NameToBasis{"6-31++g**"} = "6-31++G**";
   $NameToBasis{"6-311g"} = "6-311G";
   $NameToBasis{"6-311gs"} = "6-311G*";
   $NameToBasis{"6-311g*"} = "6-311G*";

@@ -64,6 +64,17 @@ if (!defined($charge)) {
   $charge = 0; $multiplicity = 1;
 }
 &getMolecule($charge);
+if ($natoms == 0) {
+  seek(INPUT, 0, 0);
+  $why = "";
+  while (<INPUT>) {
+    if (/QPErr --- (.*)/) { $why = $1; last; }
+    if (/Error termination.*/) { $why = $_; chomp($why); last; }
+  }
+  if ($why eq "") { $why = "no reason found in the output file"; }
+  print "No molecular geometry found in $ARGV[0] -- Gaussian reported: $why\n";
+  exit(1);
+}
 if ($basis =~ /gen/i) {
   &getGeneralBasis;
 } elsif (!($basis  =~ /^\s*$/)) {
@@ -204,6 +215,14 @@ sub writeDictAndMVM {
       $basisData =~ s/^\s*//;
       $basisData =~ s/\s*$//;
       $basisData = lc($basisData);
+      # Gaussian's own (d)/(d,p) polarization shorthand never appears
+      # in %NameToBasis's keys -- convertBasis() rewrites $basis to the
+      # '*'/'**' EMSL-style suffix, but $basisData was copied from the
+      # raw $basis by getNameBasis() *before* convertBasis() ran, so a
+      # basis like "6-31g(d)" missed the table and silently wrote no
+      # .gbs at all.  Normalise here too (order matters: (d,p) first).
+      $basisData =~ s/\(d,p\)/\*\*/;
+      $basisData =~ s/\(d\)/\*/;
       if (defined($NameToBasis{$basisData})) {
         if ($sphericalBasis eq "true") {
           $type = "spherical";
@@ -914,6 +933,8 @@ sub scanForCharge {
 sub getMolecule {
   local($charge) = @_;
   local($atomSection,$find_geom,$centerNum,$atomNum,$x,$y,$z,$atsym);
+  # $natoms is deliberately NOT in the local() list above -- it must survive
+  # past this sub returning so main can check whether any atoms were found.
   my $resumePos;
   $find_geom = 0;
   # Center number => element symbol.  A GEN basis specification refers to
@@ -934,6 +955,7 @@ sub getMolecule {
       $molecule .= "charge:\t$charge\n";
       $atomSection = "atom_info:\tsymbol cart\n";
       $atomSection .= "atom_list:\n";
+      $natoms = 0;
       while (<INPUT>) {
         last if /^ --/;
 	s/^\s*//; 
@@ -941,6 +963,7 @@ sub getMolecule {
         if ($atomNum > 0) {
           $atsym = $atomicSymbol[$atomNum];
           $centerSymbols[$centerNum] = $atsym;
+          $natoms++;
           $atomSection .= " $atomicSymbol[$atomNum] $x $y $z\n";
           if (!defined($atomList{$atsym})) {
             $atomList{$atsym} = $atsym;
@@ -977,6 +1000,7 @@ sub getMolecule {
         $molecule .= "charge:\t$charge\n";
         $atomSection = "atom_info:\tsymbol cart\n";
         $atomSection .= "atom_list:\n";
+        $natoms = 0;
         while (<INPUT>) {
           last if /^ --/;
           s/^\s*//;
@@ -984,6 +1008,7 @@ sub getMolecule {
           if ($atomNum > 0) {
             $atsym = $atomicSymbol[$atomNum];
             $centerSymbols[$centerNum] = $atsym;
+            $natoms++;
             $atomSection .= " $atomicSymbol[$atomNum] $x $y $z\n";
             if (!defined($atomList{$atsym})) {
               $atomList{$atsym} = $atsym;
@@ -1021,6 +1046,7 @@ sub getMolecule {
         $molecule .= "charge:\t$charge\n";
         $atomSection = "atom_info:\tsymbol cart\n";
         $atomSection .= "atom_list:\n";
+        $natoms = 0;
         while (<INPUT>) {
           last if /^ --/;
           s/^\s*//;
@@ -1028,6 +1054,7 @@ sub getMolecule {
           if ($atomNum > 0) {
             $atsym = $atomicSymbol[$atomNum];
             $centerSymbols[$centerNum] = $atsym;
+            $natoms++;
             $atomSection .= " $atomicSymbol[$atomNum] $x $y $z\n";
             if (!defined($atomList{$atsym})) {
               $atomList{$atsym} = $atsym;
@@ -1049,7 +1076,7 @@ sub getMolecule {
     # would silently starve it, so put the handle back.
     seek(INPUT, $resumePos, 0) if (defined($resumePos));
   }
-  $molecule .= "num_atoms:\t$centerNum\n$atomSection";
+  $molecule .= "num_atoms:\t$natoms\n$atomSection";
 }
 
 ##
@@ -1297,7 +1324,7 @@ sub setupBasisTranslation {
   $NameToBasis{"6-31++gs"} = "6-31++G*";
   $NameToBasis{"6-31++g*"} = "6-31++G*";
   $NameToBasis{"6-31++gss"} = "6-31++G**";
-  $NameToBasis{"6-31++g*"} = "6-31++G**";
+  $NameToBasis{"6-31++g**"} = "6-31++G**";
   $NameToBasis{"6-311g"} = "6-311G";
   $NameToBasis{"6-311gs"} = "6-311G*";
   $NameToBasis{"6-311g*"} = "6-311G*";

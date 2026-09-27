@@ -1,0 +1,34 @@
+# expt-g16-nh3-dummy-zmat
+# Gaussian-16.expt gaussian-16/nh3_dummy_zmat_opt.log
+# Golden record of what the importer DOES, not of what it
+# should do -- see expt_cases.NOTES before changing one.
+
+=== .frag
+title:	NH3 with dummy
+type:	molecule
+charge:	0
+num_atoms:	4
+atom_info:	symbol cart
+atom_list:
+ N 0.000000 0.000000 0.110858
+ H 0.000000 0.931665 -0.258669
+ H 0.806846 -0.465833 -0.258669
+ H -0.806846 -0.465833 -0.258669
+
+=== .param
+title:	\|NH3 with dummy
+version:	16
+architecture:	ES64L
+Category:	SCF
+Theory:	RHF
+RunType:	Geometry
+charge:	0
+ES.ChemSys.Multiplicity:	1
+
+=== .gbs
+NameBasis
+basis "ao basis" cartesian
+  H library "6-31G*"
+  N library "6-31G*"
+END
+EndNameBasis
