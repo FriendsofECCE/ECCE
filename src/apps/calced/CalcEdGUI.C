@@ -506,6 +506,25 @@ void CalcEdGUI::CreateControls()
       wxFont lampFont = itemVerifyLight->GetFont();
       lampFont.SetPointSize(lampFont.GetPointSize() + 6);
       itemVerifyLight->SetFont(lampFont);
+
+      //  Reserve room for the widest glyph up front.  The control is
+      //  built with an empty label -- CalcEd::setVerifyLight() only sets
+      //  the real glyph later, at runtime -- and a wxStaticText's sizer
+      //  allocation is fixed at whatever its best size was when Layout()
+      //  last ran, which for an empty label is nearly zero.  SetLabel()
+      //  alone does not provoke a re-layout, so the glyph set later was
+      //  rendered into that leftover near-zero rect and read as clipped/
+      //  invisible against the Verify button immediately to its right
+      //  (reported half hidden behind the button's left edge, and blank
+      //  until Verify was clicked even though setVerifyLight() had
+      //  already run on open -- see CalcEd::setContext()).  Fix by
+      //  sizing the control for the widest of the three glyphs
+      //  (setVerifyLight()'s warning triangle) at construction time, so
+      //  the sizer reserves enough space regardless of the label it
+      //  happens to hold when Layout() runs.
+      wxSize glyphSize =
+              itemVerifyLight->GetTextExtent(wxString::FromUTF8("\xe2\x9a\xa0"));
+      itemVerifyLight->SetMinSize(glyphSize);
     }
     itemBoxSizer83->Add(itemVerifyLight, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 5);
 
