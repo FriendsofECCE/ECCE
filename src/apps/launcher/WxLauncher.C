@@ -2133,21 +2133,25 @@ void WxLauncher::updateContext(const ResourceDescriptor::RUNSTATE& state)
     // calc goes unsuccessful/failed, so show it here the same way any
     // other launch feedback is shown, rather than making the user go
     // find Organizer's View Run Log.
+    //  updateContext() runs on every state notification, and a job that
+    //  ends badly sends more than one -- with, after a job-store restart,
+    //  more than one wording -- so the reason was printed twice.  Show one
+    //  reason per failure: remembered by calc, and forgotten as soon as
+    //  the calc is anything but failed (e.g. relaunched and running).
+    static string lastShown;
     if (state == ResourceDescriptor::STATE_UNSUCCESSFUL ||
         state == ResourceDescriptor::STATE_FAILED ||
         state == ResourceDescriptor::STATE_SYSTEM_FAILURE)
     {
         string reason = p_taskJob->getProp(VDoc::getEcceNamespace() +
                                             ":runStatusReason");
-        //  updateContext() runs on every state notification, and a job
-        //  that ends badly sends more than one, so the same reason was
-        //  printed twice.  Show each calc's reason once.
-        static string lastShown;
-        const string key = p_taskJob->getURL().toString() + "\n" + reason;
+        const string key = p_taskJob->getURL().toString();
         if (!reason.empty() && key != lastShown) {
             lastShown = key;
             p_messagesFeedback->setMessage(reason, WxFeedback::ERROR, false, true);
         }
+    } else {
+        lastShown.clear();
     }
 
     this->refreshLaunchControls();

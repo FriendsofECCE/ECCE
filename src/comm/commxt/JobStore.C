@@ -663,6 +663,24 @@ string gensubLogReason(const string& outputFilePath)
 // ------------------------------------------------------------------------- //
 void recordStatusReason(const string& reason)
 {
+  //  NEVER DOWNGRADE.  A job store can run more than once for one job (a
+  //  restart), and a later pass that could not see the cause recorded
+  //  gensub's generic "... setting status to failed" line over the
+  //  specific one -- so the Launcher showed both.  A generic reason
+  //  (gensub's echo, or a bare exit-code decode) does not replace a
+  //  specific one already recorded; an empty reason (success) still
+  //  clears it.
+  if (!reason.empty() &&
+      (reason.find("setting status") != string::npos ||
+       reason.find("(exit code") != string::npos)) {
+    const string existing =
+        calculation->getProp(VDoc::getEcceNamespace() + ":runStatusReason");
+    if (!existing.empty() &&
+        existing.find("setting status") == string::npos &&
+        existing.find("(exit code") == string::npos) {
+      return;
+    }
+  }
   vector<MetaDataResult> results(1);
   results[0].name = VDoc::getEcceNamespace() + ":runStatusReason";
   results[0].value = reason;
