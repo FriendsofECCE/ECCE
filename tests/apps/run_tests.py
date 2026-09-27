@@ -25,6 +25,7 @@ build-independent: it tests what was packaged, which is also what catches the
 """
 
 import argparse
+import atexit
 import os
 import re
 import signal
@@ -53,6 +54,62 @@ DEFAULT_BUDGET = int(os.environ.get("ECCE_APPS_BUDGET", "1200"))
 
 class BudgetExpired(Exception):
     pass
+
+
+class Teardown(object):
+    """Stop this run's services exactly once, however the run ends.
+
+    Reused from three places: the normal `finally:` block, and the
+    SIGTERM/SIGINT/SIGHUP handlers and atexit hook installed in main() --
+    those exist because a killed run (a ctest timeout, ^C, a CI job
+    cancellation) used to skip `finally:` entirely and leave the gateway,
+    broker and data server running for days (see isolate.killLeftovers's
+    docstring for what that costs the NEXT run). `display`/`before` are
+    filled in as they become known, so a signal that arrives before the
+    display even exists still runs a (no-op) teardown rather than crashing
+    inside the handler.
+    """
+
+    def __init__(self):
+        self.display = None
+        self.before = {}
+        self.keepServices = False
+        self.state = None
+        self.done = False
+
+    def run(self):
+        if self.done:
+            return
+        self.done = True
+        signal.alarm(0)                       # cancel the run budget alarm
+        if self.display is None:
+            return
+        try:
+            if (not self.keepServices
+                    and not all(self.before.get(k)
+                               for k in ("gateway", "dataserver"))):
+                apps.stopServices(self.display)
+        except Exception:
+            pass                              # teardown must never itself
+        try:                                   # be what crashes the run
+            self.display.__exit__(None, None, None)
+        except Exception:
+            pass
+        #  Last, the same state-directory sweep a run does on startup.
+        #  The services scripts stop only the services: the app under test
+        #  when a signal lands (seen: organizer) is a child of this process
+        #  and outlived both the display and the run.  Isolated runs only --
+        #  state stays None under --use-real-state, so this can never reach
+        #  the developer's own ~/.ECCE session.
+        if self.state is not None and not self.keepServices:
+            try:
+                isolate.killLeftovers(self.state)
+            except Exception:
+                pass
+
+    def onSignal(self, signum, frame):
+        self.run()
+        sys.exit(128 + signum)
 
 
 def startBudget(seconds):
@@ -332,6 +389,8 @@ def main():
     #  siteconfig/DataServers and ECCE_HELP all have to move together, and
     #  until they did, a run overlapped with the developer's own session
     #  and produced failures that looked like application bugs.
+    xvfbPidfile = None
+    state = None
     if not args.use_real_state:
         try:
             settings = isolate.apply(apps.INSTALL)
@@ -340,19 +399,52 @@ def main():
                   file=sys.stderr)
             return 2
         print(isolate.describe(settings))
+
+        #  A PREVIOUS run of this suite that got killed (ctest timeout,
+        #  ^C, a cancelled CI job) never reaches its own teardown, so its
+        #  brokers/dataserver/Xvfb are still alive under this exact state
+        #  directory and collide with the ones this run is about to
+        #  start.  Sweep them first, and ONLY them -- see killLeftovers's
+        #  docstring for why matching is by state-directory path and
+        #  never by process name.
+        state = settings["ECCE_REALUSERHOME"]
+        note = isolate.killLeftovers(state)
+        if note:
+            print("  %s" % note)
+        xvfbPidfile = os.path.join(state, "xvfb.pid")
+        stale = xdisplay.killStaleXvfb(xvfbPidfile)
+        if stale:
+            print("  stopped a stale Xvfb (pid %d) left by a previous run"
+                  % stale)
     else:
         print("NOT isolated: running against %s and the real ports"
               % os.path.expanduser("~"))
 
     startBudget(args.budget)
 
+    #  From here on, however this run ends -- normal completion, a bad app
+    #  hanging past the budget, or this process being killed outright --
+    #  teardown.run() must be what stops the services and the display.
+    #  Installed before the display even exists so a signal that arrives
+    #  during Xvfb startup itself still gets a (harmless, no-op) handler
+    #  instead of the default kill-with-no-cleanup behaviour.
+    teardown = Teardown()
+    teardown.keepServices = args.keep_services
+    teardown.state = state
+    atexit.register(teardown.run)
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        signal.signal(sig, teardown.onSignal)
+
     try:
-        display = xdisplay.Display(number=args.display).__enter__()
+        display = xdisplay.Display(number=args.display,
+                                   pidfile=xvfbPidfile).__enter__()
     except xdisplay.DisplayUnavailable as exc:
         print("SKIP: %s" % exc)
         return 0
+    teardown.display = display
 
     before = apps.serviceState(display)
+    teardown.before = before
     results = Results()
     try:
         gl = display.hasGL()
@@ -458,19 +550,18 @@ def main():
     except BudgetExpired as exc:
         results.fail("run", str(exc))
     finally:
-        signal.alarm(0)
-        if not args.keep_services:
-            # Leave the machine as we found it: these are somebody's per-user
-            # services and this suite is not entitled to leave them running.
-            #
-            # Stopped BEFORE the display goes away, not after: the
-            # dispatcher is per display and ecce-gateway-stop finds its
-            # pidfile by $DISPLAY, so it has to be told which one -- and
-            # the reaper decides whether any app is still alive on that
-            # display by reading the processes' own environment.
-            if not all(before.get(k) for k in ("gateway", "dataserver")):
-                apps.stopServices(display)
-        display.__exit__(None, None, None)
+        # Leave the machine as we found it: these are somebody's per-user
+        # services and this suite is not entitled to leave them running.
+        #
+        # Stopped BEFORE the display goes away, not after: the dispatcher
+        # is per display and ecce-gateway-stop finds its pidfile by
+        # $DISPLAY, so it has to be told which one -- and the reaper
+        # decides whether any app is still alive on that display by
+        # reading the processes' own environment.  (See Teardown -- this
+        # is the same logic the SIGTERM/SIGINT/SIGHUP handlers and the
+        # atexit hook run, so a killed run does this too, not just a
+        # normal exit.)
+        teardown.run()
 
     return report(results, args.verbose)
 

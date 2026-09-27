@@ -42,7 +42,9 @@ them needing to know about the suite.
 import os
 import re
 import shutil
+import signal
 import socket
+import time
 
 #  Deliberately not 8096/8088.  A suite whose default ports are the real
 #  ones is one forgotten flag away from the collision this module exists to
@@ -157,14 +159,85 @@ def _rewrite(path, substitution, expect):
         handle.write(rewritten)
 
 
+def resolveStateDir(state=None):
+    """The state directory this run will use, without creating anything.
+
+    Split out of apply() so a caller can find it -- to sweep leftover
+    processes from a previous, abnormally-killed run -- before that run's
+    own directories and services exist.
+    """
+    state = state or os.environ.get("ECCE_TEST_STATE") or defaultStateDir()
+    return os.path.abspath(os.path.expanduser(state))
+
+
+def killLeftovers(state):
+    """Stop processes still holding THIS run's own state directory.
+
+    A run that is killed (a ctest timeout, ^C, SIGTERM) never reaches its
+    `finally:` block, so the ActiveMQ brokers, the per-user apache2 and
+    whatever else the services scripts started are left running -- and
+    because they are per-user services keyed by state on disk, the next
+    run collides with them: "httpd already running", "broker did not come
+    up within 30s", every app then reporting no window.
+
+    Matched by STATE DIRECTORY PATH in `/proc/<pid>/cmdline`, deliberately
+    never by process name -- "activemq"/"apache2" also names a real user's
+    live session on their own, real `~/.ECCE`, and this must never be able
+    to touch that.  A process whose command line does not mention this
+    exact, isolated state directory is left alone, unconditionally.
+    """
+    needle = os.fsencode(state)
+    self_pid = os.getpid()
+    victims = []
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        pid = int(entry)
+        if pid == self_pid:
+            continue
+        try:
+            with open("/proc/%s/cmdline" % entry, "rb") as handle:
+                cmdline = handle.read()
+        except OSError:
+            continue        # gone already, or not ours to read
+        if needle in cmdline:
+            victims.append(pid)
+
+    if not victims:
+        return None
+
+    for pid in victims:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+
+    deadline = time.time() + 5
+    remaining = set(victims)
+    while remaining and time.time() < deadline:
+        remaining = set(pid for pid in remaining
+                        if os.path.exists("/proc/%d" % pid))
+        if remaining:
+            time.sleep(0.2)
+
+    for pid in remaining:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+    return ("stopped %d leftover process(es) under %s left by a previous "
+            "run that did not shut down cleanly"
+            % (len(victims), state))
+
+
 def apply(install, state=None):
     """Redirect this process's environment at a private ECCE instance.
 
     Returns a dict of what was set, for the run's own log.  Every value goes
     into `os.environ`, so every subprocess inherits it.
     """
-    state = state or os.environ.get("ECCE_TEST_STATE") or defaultStateDir()
-    state = os.path.abspath(os.path.expanduser(state))
+    state = resolveStateDir(state)
 
     real = os.path.realpath(os.path.expanduser("~"))
     if os.path.realpath(state) == real:

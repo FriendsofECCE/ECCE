@@ -25,6 +25,7 @@ live desktop by accident.
 
 import os
 import shutil
+import signal
 import subprocess
 import time
 
@@ -54,10 +55,17 @@ def findXvfb():
 class Display(object):
     """An Xvfb instance, and the X queries the suite needs against it."""
 
-    def __init__(self, number=None):
+    def __init__(self, number=None, pidfile=None):
         self.binary = findXvfb()
         self.number = number
         self.proc = None
+        #  Where this instance's own pid is recorded, so a NEXT run of the
+        #  suite -- one that starts because this one was killed rather than
+        #  torn down cleanly -- can find and stop it.  Only ever a path
+        #  under the suite's own isolated state directory (see
+        #  killStaleXvfb / isolate.py); left None for --use-real-state,
+        #  which does not get this leak-recovery behaviour at all.
+        self.pidfile = pidfile
 
     def __enter__(self):
         if self.number is None:
@@ -66,6 +74,14 @@ class Display(object):
             [self.binary, ":%d" % self.number, "-screen", "0", SCREEN,
              "-nolisten", "tcp"],
             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        if self.pidfile:
+            #  Best-effort: a failure to write this only means a killed run
+            #  cannot be swept up next time, not that this run cannot work.
+            try:
+                with open(self.pidfile, "w") as handle:
+                    handle.write(str(self.proc.pid))
+            except OSError:
+                pass
         deadline = time.time() + 15
         while time.time() < deadline:
             if self.proc.poll() is not None:
@@ -85,6 +101,11 @@ class Display(object):
             except subprocess.TimeoutExpired:
                 self.proc.kill()
             self.proc = None
+        if self.pidfile:
+            try:
+                os.remove(self.pidfile)
+            except OSError:
+                pass
         return False
 
     @property
@@ -212,6 +233,59 @@ class Display(object):
         except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
             return None
         return b"direct rendering: Yes" in result.stdout
+
+
+def killStaleXvfb(pidfile):
+    """Stop an Xvfb THIS SUITE started on a previous, killed run.
+
+    Xvfb's own command line never mentions the suite's state directory --
+    unlike the broker/dataserver, which killLeftovers() (isolate.py) finds
+    that way -- so it needs its own record: the pid `Display.__enter__`
+    wrote to `pidfile` last time it started one.  Before believing that
+    pid is still an Xvfb worth killing, re-check `/proc/<pid>/cmdline` --
+    pids get recycled, and killing whatever some other process has become
+    would not be a leak fix, it would be a new bug.  Returns the pid killed,
+    or None if there was nothing to do.
+    """
+    try:
+        with open(pidfile) as handle:
+            pid = int(handle.read().strip())
+    except (OSError, ValueError):
+        return None
+    try:
+        with open("/proc/%d/cmdline" % pid, "rb") as handle:
+            cmdline = handle.read()
+    except OSError:
+        _removeQuietly(pidfile)
+        return None
+    if b"Xvfb" not in cmdline:
+        _removeQuietly(pidfile)
+        return None
+
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        _removeQuietly(pidfile)
+        return None
+
+    deadline = time.time() + 5
+    while time.time() < deadline and os.path.exists("/proc/%d" % pid):
+        time.sleep(0.2)
+    if os.path.exists("/proc/%d" % pid):
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+    _removeQuietly(pidfile)
+    return pid
+
+
+def _removeQuietly(path):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
 
 
 def _freeDisplay():
