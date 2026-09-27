@@ -187,12 +187,22 @@ int main(int argc, char** argv)
   check(cfg != 0, "TGBSConfig parsed from the fixture's NumericalBasis text");
   if (!cfg) return 1;
 
-  TGBSAngFunc* angfunc = code->getAngFunc(TGaussianBasisSet::Cartesian);
-  check(angfunc != 0, "real Cartesian MOOrdering table loaded");
+  //  Coordinate system read straight off the fixture's own NumericalBasis
+  //  text ("ao basis" cartesian|spherical) -- not assumed, since one of
+  //  these fixtures (ch4-td-5d.txt) exists specifically to exercise the
+  //  spherical branch (ShellRotation::buildD() via a non-1.0
+  //  getoddNormalize()) through the real oracle, not just the synthetic
+  //  group-closure check in testShellRotation.C.
+  const bool spherical = fx.basisText.find("spherical") != string::npos;
+  TGBSAngFunc* angfunc = code->getAngFunc(spherical ? TGaussianBasisSet::Spherical
+                                                    : TGaussianBasisSet::Cartesian);
+  check(angfunc != 0, "real MOOrdering table loaded");
   if (!angfunc) return 1;
 
   vector<EspBasisFunction> basis;
-  int lengthShell[7] = { 1, 3, 6, 10, 15, 21, 28 };
+  int lengthShellCart[7] = { 1, 3, 6, 10, 15, 21, 28 };
+  int lengthShellSph[7]  = { 1, 3, 5, 7, 9, 11, 13 };
+  int *lengthShell = spherical ? lengthShellSph : lengthShellCart;
   bool flat = BasisFlatten::flatten(fx.elements, fx.stored, cfg, code, angfunc,
                                     angfunc->maxShells(), lengthShell, basis);
   check(flat, "basis flattened");
@@ -219,12 +229,15 @@ int main(int argc, char** argv)
     shellTypeOf[i] = deg;
   }
   //  Basis functions per atom -- 6-31G(d): d only on non-hydrogen
-  //  atoms, so H=2 (S,S), C/F=15 (S,SP,SP,D), S=19 (S,SP,SP,SP,D).
-  //  Fixed per element for every fixture this test reads.
+  //  atoms, so H=2 (S,S) regardless; C/F=15 (S,SP,SP,D) cartesian or 14
+  //  spherical (one fewer d function, 5 vs 6); S=19 cartesian or 18
+  //  spherical. Fixed per element (+coordsys) for every fixture read.
   vector<int> perAtom(NATOMS);
   for (int a = 0; a < NATOMS; a++) {
     const string& el = fx.elements[a];
-    perAtom[a] = (el == "H") ? 2 : (el == "S") ? 19 : 15;
+    int n = (el == "H") ? 2 : (el == "S") ? 19 : 15;
+    if (spherical && el != "H") n -= 1;
+    perAtom[a] = n;
   }
 
   //  Real operations, from the real symops binary -- same convention
