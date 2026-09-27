@@ -1321,15 +1321,19 @@ void WxLauncher::refreshAllocationAccount()
     if (supported)
         p_allocAcctTextCtrl->SetValue(p_slctPrefs->getAllocationAccount());
 
-    p_allocAcctPanel->Show(supported);      //  Need to adjust alignment of the queue label according to visibility
-                                            //  of the allocation account panel.  Not as straightforward as it sounds.
+    p_allocAcctPanel->Show(supported);
 
-    p_queueLabelLeft->Show(!supported);     //  The SetWindowStyle() does nothing.  The alignment of a static text
-    p_queueLabelRight->Show(supported);     //  control (i.e., Label) cannot be changed once the control is created.
-                                            //  This is confirmed from information gleaned off the on-line discussion
-                                            //  forums.  Two ways to get the desired behavior:  (1) Destroy and recreate
-                                            //  the control with the proper alignment; (2) Have two controls with
-                                            //  opposite alignments, and ensure only one is visible at a time.
+    //  The Queue choice no longer shares this row -- it sits beside
+    //  Processors -- so the row is empty without an allocation account
+    //  and is hidden outright rather than left as a zero-height cell.
+    //  The queue label is always the right-aligned one now, matching
+    //  Nodes: and Memory Limit: in the same column position.
+    wxWindow *batch0 = FindWindow(ID_PANEL_WXLAUNCHER_BATCH0);
+    if (batch0 != NULL)
+        batch0->Show(supported);
+
+    p_queueLabelLeft->Show(false);
+    p_queueLabelRight->Show(true);
 }
 
 
@@ -1372,9 +1376,13 @@ const Queue * WxLauncher::refreshQueues(RefMachine *machRgstn)
         {
             p_queueChoice->SetSelection(0);
         }
-        else
+        else if (!p_queueChoice->SetStringSelection(slctnName))
         {
-            p_queueChoice->SetStringSelection(slctnName);
+            //  The remembered queue is no longer defined for this machine
+            //  (removed or renamed in Machine Registration).  Without this
+            //  the choice opens BLANK, getQueueSelection() returns NULL and
+            //  isLaunchAllowed() refuses with no visible reason.
+            p_queueChoice->SetSelection(0);
         }
 
         slctQueue = this->getQueueSelection();
@@ -2126,6 +2134,16 @@ void WxLauncher::reloadMachinePreferences()
         this->updatePreferences();
     }
 
+    //  p_queueChoice's client data are raw Queue* owned by QueueManager's
+    //  cache, keyed by machine refname and loaded once from the Queues
+    //  file.  Machine Registration writes to that file directly, so a
+    //  running launcher never saw a newly added/changed queue and could
+    //  hold dangling client data once the cache below is torn down (#131).
+    //  Clear the choice first, then drop the cache so the next
+    //  refreshQueues() call re-reads it from disk.
+    p_queueChoice->Clear();
+    QueueManager::finalize();
+
     string slctnKey = p_slctPrefs->getItemKey();
     p_slctPrefs = NULL;
 
@@ -2146,6 +2164,13 @@ void WxLauncher::reloadMachinePreferences()
     }
 
     p_machinesChoice->SetSelection(slctnIdx);
+
+    //  SetSelection() above does not fire wxEVT_CHOICE, so nothing would
+    //  otherwise repopulate p_queueChoice (cleared above) -- refreshControls()
+    //  is what machinesChoiceSelectedCB() itself calls, and it re-reads the
+    //  queue list from the now-reinitialized QueueManager cache.
+    if (p_slctPrefs != NULL)
+        this->refreshControls();
 }
 
 

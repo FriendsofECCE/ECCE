@@ -362,30 +362,6 @@ void WxLauncherGUI::CreateControls()
         itemTextCtrl34->SetToolTip(_("(Required)\nAccount number to charge for the use of the computing resource."));
     itemFlexGridSizer31->Add(itemTextCtrl34, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
 
-    ewxPanel* itemPanel35 = new ewxPanel( itemPanel28, ID_PANEL_WXLAUNCHER_QUEUE, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
-    itemFlexGridSizer29->Add(itemPanel35, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
-
-    wxFlexGridSizer* itemFlexGridSizer36 = new wxFlexGridSizer(1, 3, 0, 3);
-    itemFlexGridSizer36->AddGrowableCol(2);
-    itemPanel35->SetSizer(itemFlexGridSizer36);
-
-    wxBoxSizer* itemBoxSizer37 = new wxBoxSizer(wxHORIZONTAL);
-    itemFlexGridSizer36->Add(itemBoxSizer37, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-
-    ewxStaticText* itemStaticText38 = new ewxStaticText( itemPanel35, ID_STATIC_WXLAUNCHER_QUEUELABELRIGHT, _("Queue:"), wxDefaultPosition, wxSize(90, -1), wxALIGN_RIGHT );
-    itemBoxSizer37->Add(itemStaticText38, 0, wxALIGN_CENTER_VERTICAL, 3);
-
-    ewxStaticText* itemStaticText39 = new ewxStaticText( itemPanel35, ID_STATIC_WXLAUNCHER_QUEUELABELLEFT, _("Queue:"), wxDefaultPosition, wxSize(120, -1), wxALIGN_LEFT );
-    itemStaticText39->Show(false);
-    itemBoxSizer37->Add(itemStaticText39, 0, wxALIGN_CENTER_VERTICAL, 3);
-
-    ewxStaticText* itemStaticText40 = new ewxStaticText( itemPanel35, wxID_STATIC, _T(""), wxDefaultPosition, wxSize(7, -1), 0 );
-    itemFlexGridSizer36->Add(itemStaticText40, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-
-    wxString* itemChoice41Strings = NULL;
-    ewxChoice* itemChoice41 = new ewxChoice( itemPanel35, ID_CHOICE_WXLAUNCHER_QUEUE, wxDefaultPosition, wxSize(100, -1), 0, itemChoice41Strings, 0 );
-    itemFlexGridSizer36->Add(itemChoice41, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
-
     ewxPanel* itemPanel42 = new ewxPanel( itemPanel26, ID_PANEL_WXLAUNCHER_WALLTIME, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemFlexGridSizer27->Add(itemPanel42, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
@@ -473,6 +449,32 @@ void WxLauncherGUI::CreateControls()
     itemWxParameterEdit64->setUnitsVisible(0);
     itemWxParameterEdit64->setValue(1);
     itemFlexGridSizer55->Add(itemWxParameterEdit64, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
+
+    ewxPanel* itemPanel35 = new ewxPanel( itemPanel52, ID_PANEL_WXLAUNCHER_QUEUE, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
+    //  Queue sits beside Processors (it bounds them) rather than on a row of
+    //  its own; Nodes, usually hidden, follows it.
+    itemFlexGridSizer53->Add(itemPanel35, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+
+    wxFlexGridSizer* itemFlexGridSizer36 = new wxFlexGridSizer(1, 3, 0, 3);
+    itemFlexGridSizer36->AddGrowableCol(2);
+    itemPanel35->SetSizer(itemFlexGridSizer36);
+
+    wxBoxSizer* itemBoxSizer37 = new wxBoxSizer(wxHORIZONTAL);
+    itemFlexGridSizer36->Add(itemBoxSizer37, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
+
+    ewxStaticText* itemStaticText38 = new ewxStaticText( itemPanel35, ID_STATIC_WXLAUNCHER_QUEUELABELRIGHT, _("Queue:"), wxDefaultPosition, wxSize(90, -1), wxALIGN_RIGHT );
+    itemBoxSizer37->Add(itemStaticText38, 0, wxALIGN_CENTER_VERTICAL, 3);
+
+    ewxStaticText* itemStaticText39 = new ewxStaticText( itemPanel35, ID_STATIC_WXLAUNCHER_QUEUELABELLEFT, _("Queue:"), wxDefaultPosition, wxSize(120, -1), wxALIGN_LEFT );
+    itemStaticText39->Show(false);
+    itemBoxSizer37->Add(itemStaticText39, 0, wxALIGN_CENTER_VERTICAL, 3);
+
+    ewxStaticText* itemStaticText40 = new ewxStaticText( itemPanel35, wxID_STATIC, _T(""), wxDefaultPosition, wxSize(7, -1), 0 );
+    itemFlexGridSizer36->Add(itemStaticText40, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+
+    wxString* itemChoice41Strings = NULL;
+    ewxChoice* itemChoice41 = new ewxChoice( itemPanel35, ID_CHOICE_WXLAUNCHER_QUEUE, wxDefaultPosition, wxSize(100, -1), 0, itemChoice41Strings, 0 );
+    itemFlexGridSizer36->Add(itemChoice41, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
 
     ewxPanel* itemPanel65 = new ewxPanel( itemPanel52, ID_PANEL_WXLAUNCHER_BATCHNODES, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemFlexGridSizer53->Add(itemPanel65, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);

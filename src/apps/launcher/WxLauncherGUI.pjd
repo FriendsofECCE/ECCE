@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- Out of step with WxLauncherGUI.C as of #131 (2026-09-27): the Queue
+     panel (ID_PANEL_WXLAUNCHER_QUEUE, ID_CHOICE_WXLAUNCHER_QUEUE) was moved
+     by hand out of the allocation-account row's sizer and into the
+     Processors row's flex grid sizer (now Processors | Queue | Nodes), so
+     it stays visible whether or not the allocation-account field is shown.
+     This project file was NOT updated to match -- reordering this component
+     tree by hand risked producing a project DialogBlocks itself could not
+     reopen. Regenerating WxLauncherGUI.C/.H from this file as-is would
+     revert that layout change. -->
 <anthemion-project version="1.0.0.0" xmlns="http://www.anthemion.co.uk">
   <header>
     <long name="name_counter">0</long>
