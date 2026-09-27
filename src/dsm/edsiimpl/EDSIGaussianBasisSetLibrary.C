@@ -721,10 +721,44 @@ vector<TGaussianBasisSet*> EDSIGaussianBasisSetLibrary::lookup
     // basis-set data: every file in this group is already filed under
     // this exact name/category in the (real, working) per-type index
     // file, just not duplicated onto the individual file's own metadata.
+    //
+    // BUT NOT FOR A COMPONENT OF A MULTI-FILE AGGREGATE.  Giving every
+    // component the aggregate's own name and type made them all the same
+    // basis set to TGBSGroup::insertGBS(), which keeps the first and drops
+    // the rest: 6-31G* lost its polarization functions (6-31G.BAS kept,
+    // 6-31GS.BAS dropped), and .POT components were typed as orbital sets.
+    // 113 of the 129 multi-file aggregates lost a component this way.  A
+    // component is normally filed on its own too -- 6-31GS.BAS is the
+    // single-file "6-31G* Polarization" -- so take its identity from that.
+    const size_t components = file_list->size() - numDummyFile;
+    if ((!name || !type) && components > 1) {
+      for (int t = 0; t < 12 && (!name || !type); t++) {
+        const vector<gbs_alias*> *own =
+            getAliasList((TGaussianBasisSet::GBSType)t);
+        if (own == 0) continue;
+        for (size_t a = 0; a < own->size(); a++) {
+          const gbs_alias *cand = (*own)[a];
+          if (cand->files.size() == 1 &&
+              strcmp(cand->files[0], (*file_list)[f]) == 0) {
+            if (!name) name = strdup(cand->nicename);
+            if (!type) type = strdup(TGaussianBasisSet::gbs_type_formatter[t]);
+            break;
+          }
+        }
+      }
+    }
     if (!name)
       name = strdup(alias->nicename);
-    if (!type)
-      type = strdup(TGaussianBasisSet::gbs_type_formatter[(int)gbs_type]);
+    if (!type) {
+      //  An ECP component with no identity of its own is still an ECP,
+      //  whatever the aggregate it belongs to is filed as.
+      const string file((*file_list)[f]);
+      const bool isPot = components > 1 && file.size() > 4 &&
+                         file.compare(file.size() - 4, 4, ".POT") == 0;
+      type = strdup(isPot ?
+          TGaussianBasisSet::gbs_type_formatter[(int)TGaussianBasisSet::ecp] :
+          TGaussianBasisSet::gbs_type_formatter[(int)gbs_type]);
+    }
 
     istream* is = edsi->getDataSet();
     if (!is)
