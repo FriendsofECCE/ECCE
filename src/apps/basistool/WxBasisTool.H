@@ -227,6 +227,18 @@ class WxBasisTool: public WxBasisToolGUI,
         void applyBasisSetFilter(int index);
         void basisSetFilterChangedCB(wxCommandEvent& event);
 
+        //  #117 (comment, 2026-09-27): typing in one list's filter box only
+        //  ever searched that one already-narrowed list.  Discoverability
+        //  was the whole point, so a non-empty filter now also matches
+        //  every OTHER category's names and lists them too, each tagged
+        //  with the category it belongs to; picking one of those switches
+        //  the notebook to that category and selects it there for real.
+        static const char* basisSetTypeLabel(int index);
+        static bool parseCrossCategoryMatch(const wxString& shown,
+                                            string& name, string& category);
+        void switchToBasisSetType(int target);
+        void selectBasisSetMatch(int originIndex, const wxString& shown);
+
         //  #122: offer -- never silently apply -- the ECP that goes with
         //  the orbital basis set just added.
         void offerMatchingECP(TGBSConfig* config, const string& bsName,

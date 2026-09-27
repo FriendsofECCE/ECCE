@@ -828,11 +828,12 @@ void WxBasisTool::basisSetTypeListboxSelectedCB(wxCommandEvent& event)
         else if (id == ID_LISTBOX_WXBASISTOOL_BASISSET_TYPE_11)
             p_typeSlctn = 11;
 
-        p_lastSlctn = (string)(p_basisSetTypeListBox[p_typeSlctn]->GetStringSelection());
-        TGaussianBasisSet::GBSType bstype = p_basisSetTypes[p_typeSlctn];
-        showCoverage(p_lastSlctn, bstype);
-        p_detailsButton->Enable(true);
-        p_contextAddButton->Enable(p_editAllwd);
+        //  #117: the string just selected may be a cross-category filter
+        //  match ("<name>   [<category>]") rather than a plain name in
+        //  this list's own category -- selectBasisSetMatch() tells the
+        //  two apart and switches panels first if it needs to.
+        wxString shown = p_basisSetTypeListBox[p_typeSlctn]->GetStringSelection();
+        selectBasisSetMatch(p_typeSlctn, shown);
     }
 }
 
@@ -3646,6 +3647,19 @@ void WxBasisTool::basisSetFilterChangedCB(wxCommandEvent& event)
 /**
  *  Repopulate one list box from its cached full name list, keeping only
  *  the names the filter box accepts, and report the counts beside it.
+ *
+ *  #117 (comment, 2026-09-27): a non-empty filter is a discoverability
+ *  search -- "people know the name of the basis they want" -- so it must
+ *  not stop at whichever one of the twelve lists happens to be on screen.
+ *  When the filter box is non-empty this also asks every OTHER category
+ *  for names matching it (EDSIGaussianBasisSetLibrary::gbsNameList()
+ *  caches each type's alias list after its first fetch, so this costs
+ *  nothing once every category has been visited once) and appends those
+ *  matches to the SAME list box, each tagged "  [Category]" so it is
+ *  obvious where it actually lives. Picking one of those switches the
+ *  notebook to that category for real -- see selectBasisSetMatch(). An
+ *  empty filter is untouched: only this list, unannotated, exactly as
+ *  before.
  */
 void WxBasisTool::applyBasisSetFilter(int index)
 {
@@ -3666,6 +3680,7 @@ void WxBasisTool::applyBasisSetFilter(int index)
     list->Clear();
 
     int shown = 0;
+    int crossShown = 0;
     size_t i;
 
     for (i = 0; i < p_basisSetAllNames[index].size(); i++)
@@ -3677,6 +3692,46 @@ void WxBasisTool::applyBasisSetFilter(int index)
         }
     }
 
+    if (filter.size() > 0)
+    {
+        vector<string> *symbols = p_elementsTable->getSelectionSymbols();
+        vector<const char*> atoms;
+
+        if (symbols != NULL)
+        {
+            for (size_t s = 0; s < symbols->size(); s++)
+                atoms.push_back((*symbols)[s].c_str());
+        }
+
+        for (int t = 0; t < WXBASISTOOL_TOTAL_BASISSET_TYPES; t++)
+        {
+            if (t == index)
+                continue;
+
+            vector<const char*> *names =
+                p_gbsFactory->gbsNameList(p_basisSetTypes[t], &atoms);
+
+            if (names == NULL)
+                continue;
+
+            vector<const char*>::const_iterator it;
+
+            for (it = names->begin(); it != names->end(); it++)
+            {
+                if ((*it != NULL) && GBSNameRules::matchesFilter(*it, filter))
+                {
+                    wxString shownName;
+                    shownName.Printf(wxT("%s   [%s]"), wxString(*it).c_str(),
+                                     wxString(basisSetTypeLabel(t)).c_str());
+                    list->Append(shownName);
+                    crossShown++;
+                }
+            }
+
+            delete names;
+        }
+    }
+
     list->Thaw();
 
     if (p_basisSetFilterCount[index] != NULL)
@@ -3684,10 +3739,13 @@ void WxBasisTool::applyBasisSetFilter(int index)
         int total = (int)(p_basisSetAllNames[index].size());
         wxString text;
 
-        if (shown == total)
+        if (filter.size() == 0)
             text = wxString::Format(wxT("%d"), total);
-        else
+        else if (crossShown == 0)
             text = wxString::Format(wxT("%d of %d"), shown, total);
+        else
+            text = wxString::Format(wxT("%d of %d, +%d elsewhere"),
+                                    shown, total, crossShown);
 
         p_basisSetFilterCount[index]->SetLabel(text);
 
@@ -3707,6 +3765,153 @@ void WxBasisTool::applyBasisSetFilter(int index)
 
     if (p_contextAddButton != NULL)
         p_contextAddButton->Enable(false);
+}
+
+
+/**
+ *  The human-readable label for one of the twelve basis set types, in the
+ *  same words the tab that holds it uses (WxBasisToolGUI::CreateControls()'
+ *  AddPage() calls) -- so a cross-category filter match can be tagged with
+ *  something the user already recognises as a place in this tool's own UI.
+ */
+const char* WxBasisTool::basisSetTypeLabel(int index)
+{
+    static const char* labels[WXBASISTOOL_TOTAL_BASISSET_TYPES] = {
+        "Pople Shared",         // 0
+        "Other Segmented",      // 1
+        "Corr. Consistent",     // 2
+        "Other Gen. Contr.",    // 3
+        "ECP Orbital",          // 4
+        "DFT Orbital",          // 5
+        "Polarization",         // 6
+        "Diffuse",              // 7
+        "Rydberg",              // 8
+        "ECP",                  // 9
+        "Charge Fitting",       // 10
+        "Exchange Fitting"      // 11
+    };
+
+    if ((index < 0) || (index >= WXBASISTOOL_TOTAL_BASISSET_TYPES))
+        return "";
+
+    return labels[index];
+}
+
+
+/**
+ *  applyBasisSetFilter() tags a cross-category match "<name>   [<label>]".
+ *  Split it back apart; returns false for a plain, same-category entry
+ *  (the separator can't occur in a basis set name, so this is unambiguous).
+ */
+bool WxBasisTool::parseCrossCategoryMatch(const wxString& shownWx,
+                                          string& name, string& category)
+{
+    string shown = (const char *)(shownWx.mb_str());
+
+    if ((shown.size() == 0) || (shown[shown.size() - 1] != ']'))
+        return false;
+
+    size_t open = shown.rfind("   [");
+
+    if (open == string::npos)
+        return false;
+
+    name = shown.substr(0, open);
+    category = shown.substr(open + 4, shown.size() - open - 4 - 1);
+    return true;
+}
+
+
+/**
+ *  Bring one of the twelve basis set type panels to the front and refresh
+ *  its list -- the reverse of the notebook page-changed handlers, driven
+ *  programmatically instead of by a click on a tab.
+ */
+void WxBasisTool::switchToBasisSetType(int target)
+{
+    if ((target < 0) || (target >= WXBASISTOOL_TOTAL_BASISSET_TYPES))
+        return;
+
+    int ctgy = p_basisSetCtgys[target];
+
+    p_typeSlctn = target;
+
+    bool wasInCtrlUpdate = p_inCtrlUpdate;
+    p_inCtrlUpdate = true;
+
+    p_basisSetsNotebook->SetSelection(ctgy);
+
+    if (ctgy == 0)
+        p_basisSetCategoryNotebook[0]->SetSelection(target);
+    else if (ctgy == 1)
+        p_basisSetCategoryNotebook[1]->SetSelection(target - 6);
+
+    p_inCtrlUpdate = wasInCtrlUpdate;
+
+    //  The target panel's own filter must not be left hiding the very
+    //  name we are about to select into it.
+    if (p_basisSetFilterText[target] != NULL)
+        p_basisSetFilterText[target]->ChangeValue(wxT(""));
+
+    if ((target == 10) || (target == 11))
+    {
+        updateBasisSets(10);
+        updateBasisSets(11);
+    }
+    else
+    {
+        updateBasisSets(target);
+    }
+}
+
+
+/**
+ *  Resolve a string picked from a (possibly cross-category) list box into
+ *  a real selection: switch panels first if the match belongs to a
+ *  different category, then select it there and refresh coverage/buttons
+ *  exactly as a same-category pick always has.
+ */
+void WxBasisTool::selectBasisSetMatch(int originIndex, const wxString& shown)
+{
+    string name, category;
+    int target = originIndex;
+
+    if (parseCrossCategoryMatch(shown, name, category))
+    {
+        for (int t = 0; t < WXBASISTOOL_TOTAL_BASISSET_TYPES; t++)
+        {
+            if (category == basisSetTypeLabel(t))
+            {
+                target = t;
+                break;
+            }
+        }
+    }
+    else
+    {
+        name = (const char *)(shown.mb_str());
+    }
+
+    if (target != originIndex)
+    {
+        switchToBasisSetType(target);
+
+        ewxListBox *list = p_basisSetTypeListBox[target];
+
+        if (list != NULL)
+            list->SetStringSelection(wxString(name.c_str()));
+    }
+
+    p_lastSlctn = name;
+
+    TGaussianBasisSet::GBSType bstype = p_basisSetTypes[target];
+    showCoverage(p_lastSlctn, bstype);
+
+    if (p_detailsButton != NULL)
+        p_detailsButton->Enable(true);
+
+    if (p_contextAddButton != NULL)
+        p_contextAddButton->Enable(p_editAllwd);
 }
 
 
