@@ -214,7 +214,6 @@ brc
 bromine
 brx
 bytes
-c*v
 c1
 c2
 c2h
@@ -445,6 +444,7 @@ gill
 gold
 gradient
 grimme
+group
 guess
 h
 hafnium
@@ -628,6 +628,7 @@ pkzb
 pl
 platinum
 plutonium
+point
 polar
 polariz.
 polarizability
