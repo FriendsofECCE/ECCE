@@ -1462,7 +1462,13 @@ void MoDiagramPanel::build()
   vector<int> betaOfAlpha;
   if (haveBeta) matchAlphaBeta(s, sB, (int)e.size(), (int)eB.size(), betaOfAlpha);
 
-  MoDiagram::groupByIrrep(e, o, s, dimensions, 1.0e-4, centre.levels);
+  //  1e-5, not 1e-4: same tightening as SymmetryAnalysis::
+  //  fullLabelSpectrum() and for the same reason (#132 follow-up,
+  //  Cr(CO)6) -- a real degenerate set agrees far tighter than either
+  //  value, so this only removes the risk of two DIFFERENT same-named
+  //  levels (unlikely, but the same-irrep guard below does not bound
+  //  energy on its own) being averaged into one.
+  MoDiagram::groupByIrrep(e, o, s, dimensions, 1.0e-5, centre.levels);
   centre.title = "Molecular orbitals";
 
   //  MERGE: one spatial level per alpha level, at the alpha energy

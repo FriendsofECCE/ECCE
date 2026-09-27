@@ -1323,14 +1323,28 @@ int SymmetryAnalysis::fullLabelSpectrum(const vector< vector<double> >& orbitals
    derived.assign(orbitals.size(), string());
    if (orbitals.empty()) return 0;
 
-   //  Degenerate sets, grouped by energy exactly as labelSpectrum()
-   //  does -- see that function's comment for why the tolerance is
-   //  1e-3 and not tighter.
+   //  Degenerate sets, grouped by energy -- CONNECTED COMPONENTS
+   //  (each member within tolerance of its immediate neighbour), not a
+   //  chain anchored to the set's first member, and at 1e-5 Hartree,
+   //  not 1e-3.
+   //
+   //  A real degeneracy from ORCA/Gaussian agrees to the printed
+   //  precision (1e-6 Ha or tighter); 1e-3 is loose enough to merge
+   //  two DIFFERENT nearby irreps into one un-reducible set instead --
+   //  Cr(CO)6's t1u (x3) and eg (x2) sit 4e-4 Ha apart, well inside
+   //  the old tolerance, so the two were grouped as one five-orbital
+   //  set that reduces to neither irrep, fails fullOrbitalIrrep() as a
+   //  whole, and then fails again tried as five singles (a true
+   //  multi-dimensional irrep's own component cannot be labelled
+   //  alone -- see the comment below) -- silently leaving ~68 orbitals
+   //  unlabelled with no error anywhere. 1e-5 keeps every genuine
+   //  degenerate set together (CH4 t2, benzene's e sets, SF6, N2/CO's
+   //  pi) while telling Cr(CO)6's t1u and eg apart.
    vector< vector<size_t> > sets;
    for (size_t i = 0; i < orbitals.size(); ) {
       size_t j = i;
       while (j + 1 < orbitals.size() && j + 1 < energies.size() &&
-             fabs(energies[j+1] - energies[i]) < 1.0e-3) {
+             fabs(energies[j+1] - energies[j]) < 1.0e-5) {
          j++;
       }
       vector<size_t> one;

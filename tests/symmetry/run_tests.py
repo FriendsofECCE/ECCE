@@ -785,14 +785,26 @@ def checkFullOrbitalIrrep(verbose):
     env.setdefault("ECCE_REALUSERHOME", os.path.expanduser("~"))
     env["ECCE_TEST_SYMOPS"] = symops
 
-    #  (fixture, natoms, nbasis) -- CH4/Td (s+p+d, cartesian) and
-    #  benzene/D6h (#151's live case: the degenerate e1g/e2u sets ORCA's
-    #  D2h-subgroup labelling cannot reach at all).
+    #  (fixture, natoms, nbasis, minLabelled) -- CH4/Td (s+p+d,
+    #  cartesian) and benzene/D6h (#151's live case: the degenerate
+    #  e1g/e2u sets ORCA's D2h-subgroup labelling cannot reach at all).
+    #
+    #  minLabelled is a REGRESSION FLOOR, not a target: it is exactly
+    #  what fullLabelSpectrum() labels today (Cr(CO)6 fix, #132
+    #  follow-up -- connected-components degenerate grouping at 1e-5
+    #  Ha instead of a same-anchor chain at 1e-3). Before that fix,
+    #  SF6 labelled only 91 of 109 (t1g/t2g/eg sets close enough in
+    #  energy to merge across irreps) and benzene 88 of 102; if this
+    #  ever drops below the floor, the grouping tolerance has been
+    #  loosened back and Cr(CO)6-shaped molecules will silently lose
+    #  their labels again, the same failure mode that motivated the
+    #  fix and left ~68 of that molecule's orbitals as bare numbers.
     rc = 0
-    for fixture, natoms, nbasis in (("ch4-td.txt", 5, 23),
-                                    ("c6h6-d6h.txt", 12, 102),
-                                    ("sf6-oh.txt", 7, 109),
-                                    ("ch4-td-5d.txt", 5, 22)):
+    for fixture, natoms, nbasis, minLabelled in (
+            ("ch4-td.txt", 5, 23, 23),
+            ("c6h6-d6h.txt", 12, 102, 94),
+            ("sf6-oh.txt", 7, 109, 109),
+            ("ch4-td-5d.txt", 5, 22, 22)):
         path = os.path.join(HERE, "fixtures", "g16mo", fixture)
         run = subprocess.run([out, path, str(natoms), str(nbasis)],
                              capture_output=True, text=True, env=env)
@@ -801,6 +813,20 @@ def checkFullOrbitalIrrep(verbose):
             print(run.stderr, end="")
         if run.returncode != 0:
             rc = run.returncode
+
+        m = re.search(r"(\d+) labelled, (\d+) agree, (\d+) disagree",
+                      run.stdout)
+        if m is None:
+            print("  %s: could not find the labelled/agree/disagree line" %
+                  fixture)
+            rc = 1
+        else:
+            labelled = int(m.group(1))
+            ok = labelled >= minLabelled
+            print("  %-16s degenerate-grouping floor: %d labelled >= %d %s" %
+                  (fixture, labelled, minLabelled, "ok" if ok else "FAIL"))
+            if not ok:
+                rc = 1
     os.unlink(out)
     return rc
 
