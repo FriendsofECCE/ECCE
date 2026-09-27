@@ -1335,8 +1335,12 @@ void WxLauncher::refreshAllocationAccount()
 
 /**
  *  Load the names of the available queues into the appropriate drop-down list.
- *  Show only if more than one to choose from.  Queue referenced by the machRgstn
- *  object is selected and returned.
+ *  Always shown for a queued machine (this method is only reached when the
+ *  machine supports the "Q" option) -- even a single queue must still be
+ *  visible and selectable, since isLaunchAllowed() requires a queue selection
+ *  and hiding the control leaves Launch silently disabled with nothing to
+ *  explain why (#131).  Queue referenced by the machRgstn object is selected
+ *  and returned.
  */
 const Queue * WxLauncher::refreshQueues(RefMachine *machRgstn)
 {
@@ -1375,8 +1379,15 @@ const Queue * WxLauncher::refreshQueues(RefMachine *machRgstn)
 
         slctQueue = this->getQueueSelection();
     }
+    else
+    {
+        this->showFeedbackMessage(
+            "No queues are defined for " + machRgstn->fullname() +
+            " -- add one in Machine Registration's Queues tab.",
+            WxFeedback::ERROR);
+    }
 
-    p_queuePanel->Show(p_queueChoice->GetCount() > 1);
+    p_queuePanel->Show(true);
     p_inCtrlUpdate = prevState;
 
     return slctQueue;
