@@ -64,7 +64,11 @@ if [ -x "$ECCE_HOME/bin/ecce-gateway-reap" ]; then
 fi
 
 # --- 1. ActiveMQ broker -----------------------------------------------
-if port_open "$BROKER_PORT"; then
+if [ -n "${ECCE_REMOTE_SERVER:-}" ]; then
+  # -remote: the broker is the central server's (siteconfig/jndi.properties,
+  # written by ecce-remote-setup); only this session's relay runs here.
+  echo "ecce-gateway-start: -remote -- using the central broker"
+elif port_open "$BROKER_PORT"; then
   echo "ecce-gateway-start: broker already listening on $BROKER_PORT"
 else
   # The Debian activemq package ships /usr/bin/activemq as its own launcher
@@ -104,8 +108,20 @@ else
     # verbatim. Rewritten whenever it does not already name this port, so
     # changing ECCE_BROKER_PORT takes effect without hand-deleting the copy.
     _amq_conf="$ACTIVEMQ_BASE/conf/activemq.xml"
-    if [ ! -e "$_amq_conf" ] || ! grep -q "tcp://localhost:$BROKER_PORT" "$_amq_conf"; then
-      sed -e "s|tcp://localhost:[0-9][0-9]*|tcp://localhost:$BROKER_PORT|g" \
+    # A central server's broker must be reachable by its clients: it
+    # follows the data server's listen setting (#138, #167) -- loopback by
+    # default, every interface for anything else (one ActiveMQ connector
+    # cannot bind an address list).
+    _listen="${ECCE_DATASERVER_LISTEN:-}"
+    if [ -z "$_listen" ] && [ -f "$STATEDIR/dataserver/listen" ]; then
+      _listen="$(sed -e 's/#.*//' "$STATEDIR/dataserver/listen" | tr -d ' \t\n')"
+    fi
+    case "${_listen:-loopback}" in
+      loopback) _amq_host=localhost ;;
+      *)        _amq_host=0.0.0.0 ;;
+    esac
+    if [ ! -e "$_amq_conf" ] || ! grep -q "tcp://$_amq_host:$BROKER_PORT" "$_amq_conf"; then
+      sed -e "s|tcp://[a-z0-9.]*:[0-9][0-9]*|tcp://$_amq_host:$BROKER_PORT|g" \
           "$ECCE_HOME/server/activemq-conf/activemq.xml" >"$_amq_conf"
     fi
     export ACTIVEMQ_BASE
@@ -185,7 +201,10 @@ else
   # one on the classpath. $ECCE_HOME/siteconfig is root-owned and shared,
   # so it cannot be rewritten per user or per instance anyway.
   mkdir -p "$STATEDIR/siteconfig"
-  if [ -f "$ECCE_HOME/siteconfig/jndi.properties" ]; then
+  if [ -n "${ECCE_REMOTE_SERVER:-}" ] && [ -f "$ECCE_HOME/siteconfig/jndi.properties" ]; then
+    # Keep the central broker's URL as ecce-remote-setup wrote it.
+    cp "$ECCE_HOME/siteconfig/jndi.properties" "$STATEDIR/siteconfig/jndi.properties"
+  elif [ -f "$ECCE_HOME/siteconfig/jndi.properties" ]; then
     sed -e "s|\(java\.naming\.provider\.url[ \t]*=[ \t]*\).*|\1tcp://localhost:$BROKER_PORT|" \
         "$ECCE_HOME/siteconfig/jndi.properties" \
         >"$STATEDIR/siteconfig/jndi.properties"

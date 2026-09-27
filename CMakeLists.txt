@@ -886,7 +886,9 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
   set(_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-${_app})
   list(FIND ECCE_MESSAGING_APPS ${_app} _msg_idx)
   if(_msg_idx GREATER -1)
-    set(_gateway_start "if [ -z \"$ECCE_NO_MESSAGING\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi")
+    # Started under -remote too: every app needs this session's relay, and
+    # ecce-gateway-start itself skips the local broker in that mode (#167).
+    set(_gateway_start "if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi")
     # Same app set as messaging: apps that need the JMS gateway also need
     # data-server (EDSI/WebDAV) access, per EDSIServerCentral::
     # checkServerSetup() -- see ecce-dataserver-start.
@@ -944,7 +946,9 @@ export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 # (Ecce::ecceAutoAccounts, ecceStoreTrajectories, EDSIServerCentral); it
 # was only these wrappers that did not know about it, and they would
 # start a per-user broker and Apache underneath a client that wanted
-# neither. Recognised here so \"ecce -remote\" means what it always did.
+# neither: under -remote only the session relay starts, pointed at the
+# central broker (#167). Recognised here so \"ecce -remote\" means what
+# it always did.
 for _arg in \"$@\"; do
   if [ \"$_arg\" = \"-remote\" ]; then export ECCE_REMOTE_SERVER=1; fi
 done

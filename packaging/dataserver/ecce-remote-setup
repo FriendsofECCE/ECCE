@@ -33,7 +33,7 @@ Usage: ecce-remote-setup <server-host> [data-port] [broker-port]
 
   server-host   host name of the central ECCE server
   data-port     data server port      (default 8096)
-  broker-port   message broker port   (default 8095)
+  broker-port   message broker port   (default 8088)
 
 Writes $ECCE_HOME/siteconfig/RemoteServer/ and repoints the broker URL.
 Run "ecce -remote" afterwards.
@@ -47,7 +47,7 @@ fi
 
 HOST="$1"
 DATA_PORT="${2:-8096}"
-BROKER_PORT="${3:-8095}"
+BROKER_PORT="${3:-8088}"
 
 : "${ECCE_HOME:=/opt/ecce}"
 SITE="$ECCE_HOME/siteconfig"
