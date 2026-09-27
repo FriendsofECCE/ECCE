@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cctype>
+#include <algorithm>
 
 #include "tdat/SymmetryAnalysis.H"
 #include "tdat/CharacterTable.H"
@@ -10,6 +11,71 @@
 using std::map;
 
 namespace {
+
+  /**
+   * Cyclic Jacobi eigendecomposition of a 3x3 SYMMETRIC matrix.
+   *
+   * Plain and small on purpose: this is only ever asked to diagonalise
+   * a 3x3 (H^T H for alignFrames() below), so a full SVD library would
+   * be a lot of new dependency for a shape that has a closed, simple
+   * classical method.  A fixed sweep count is enough for 3x3 -- off-
+   * diagonal elements are driven towards zero geometrically and a
+   * handful of sweeps is the standard textbook figure for convergence
+   * to machine precision at this size.
+   *
+   * @param a        the symmetric matrix, overwritten with garbage
+   * @param eigval   filled with the 3 eigenvalues
+   * @param eigvec   filled with the 3 eigenvectors, AS COLUMNS
+   */
+  void jacobiEigen3(double a[3][3], double eigval[3], double eigvec[3][3])
+  {
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++) eigvec[i][j] = (i == j) ? 1.0 : 0.0;
+
+    for (int sweep = 0; sweep < 60; sweep++) {
+      double off = fabs(a[0][1]) + fabs(a[0][2]) + fabs(a[1][2]);
+      if (off < 1.0e-14) break;
+
+      for (int p = 0; p < 3; p++) {
+        for (int q = p+1; q < 3; q++) {
+          if (fabs(a[p][q]) < 1.0e-300) continue;
+
+          const double theta = (a[q][q] - a[p][p]) / (2.0*a[p][q]);
+          const double sign = (theta >= 0.0) ? 1.0 : -1.0;
+          const double t = sign / (fabs(theta) + sqrt(theta*theta + 1.0));
+          const double c = 1.0 / sqrt(t*t + 1.0);
+          const double s = t*c;
+
+          const double app = a[p][p], aqq = a[q][q], apq = a[p][q];
+          a[p][p] = app - t*apq;
+          a[q][q] = aqq + t*apq;
+          a[p][q] = a[q][p] = 0.0;
+
+          for (int r = 0; r < 3; r++) {
+            if (r == p || r == q) continue;
+            const double arp = a[r][p], arq = a[r][q];
+            a[r][p] = a[p][r] = c*arp - s*arq;
+            a[r][q] = a[q][r] = s*arp + c*arq;
+          }
+          for (int r = 0; r < 3; r++) {
+            const double vrp = eigvec[r][p], vrq = eigvec[r][q];
+            eigvec[r][p] = c*vrp - s*vrq;
+            eigvec[r][q] = s*vrp + c*vrq;
+          }
+        }
+      }
+    }
+
+    for (int i = 0; i < 3; i++) eigval[i] = a[i][i];
+  }
+
+  SymOp identityOp()
+  {
+    SymOp id;
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++) id.m[i][j] = (i == j) ? 1.0 : 0.0;
+    return id;
+  }
 
   /** Apply an operation to a point. */
   void apply(const SymOp& op, const double* in, double* out)
@@ -861,4 +927,143 @@ int SymmetryAnalysis::labelSpectrum(const vector< vector<double> >& orbitals,
       }
    }
    return labelled;
+}
+
+
+bool SymmetryAnalysis::alignFrames(const vector<double>& from,
+                                   const vector<double>& to,
+                                   SymOp& R,
+                                   double& rmsd)
+{
+   R = identityOp();
+   rmsd = 0.0;
+
+   if (from.size() != to.size() || from.size() < 9 || from.size() % 3 != 0)
+      return false;
+   const size_t n = from.size() / 3;
+
+   double cFrom[3] = { 0.0, 0.0, 0.0 };
+   double cTo[3]   = { 0.0, 0.0, 0.0 };
+   for (size_t i = 0; i < n; i++) {
+      for (int k = 0; k < 3; k++) {
+         cFrom[k] += from[i*3+k];
+         cTo[k]   += to[i*3+k];
+      }
+   }
+   for (int k = 0; k < 3; k++) { cFrom[k] /= n; cTo[k] /= n; }
+
+   //  H = sum_i (from_i - cFrom) (to_i - cTo)^T, a 3x3 covariance --
+   //  the Kabsch cross-covariance matrix.
+   double H[3][3] = { {0,0,0}, {0,0,0}, {0,0,0} };
+   for (size_t i = 0; i < n; i++) {
+      double p[3], q[3];
+      for (int k = 0; k < 3; k++) {
+         p[k] = from[i*3+k] - cFrom[k];
+         q[k] = to[i*3+k]   - cTo[k];
+      }
+      for (int a = 0; a < 3; a++)
+         for (int b = 0; b < 3; b++)
+            H[a][b] += p[a]*q[b];
+   }
+
+   //  R = V * diag(sign) * U^T from the SVD H = U*Sigma*V^T.  Rather
+   //  than a general SVD, diagonalise the 3x3 symmetric H^T H = V *
+   //  Sigma^2 * V^T (Jacobi, above), then recover U's columns as
+   //  H*v_i / sigma_i wherever sigma_i is not degenerately small.
+   double HtH[3][3];
+   for (int a = 0; a < 3; a++)
+      for (int b = 0; b < 3; b++) {
+         double s = 0.0;
+         for (int k = 0; k < 3; k++) s += H[k][a]*H[k][b];
+         HtH[a][b] = s;
+      }
+
+   double sigma2[3], V[3][3];
+   jacobiEigen3(HtH, sigma2, V);
+
+   //  Sort descending by singular value -- Jacobi returns them in
+   //  whatever order the sweeps left them, and the smallest one is the
+   //  one a near-planar molecule can leave numerically ambiguous, so it
+   //  must be LAST, not wherever it happened to land.
+   int order[3] = { 0, 1, 2 };
+   for (int a = 0; a < 3; a++)
+      for (int b = a+1; b < 3; b++)
+         if (sigma2[order[b]] > sigma2[order[a]]) std::swap(order[a], order[b]);
+
+   double U[3][3];
+   double sigma[3];
+   for (int oi = 0; oi < 3; oi++) {
+      const int i = order[oi];
+      sigma[oi] = sqrt(sigma2[i] > 0.0 ? sigma2[i] : 0.0);
+      double col[3] = { 0.0, 0.0, 0.0 };
+      for (int a = 0; a < 3; a++)
+         for (int b = 0; b < 3; b++) col[a] += H[a][b]*V[b][i];
+
+      if (sigma[oi] > 1.0e-9) {
+         for (int a = 0; a < 3; a++) U[a][oi] = col[a]/sigma[oi];
+      } else {
+         //  A degenerate direction (planar/linear input, or fewer than
+         //  3 independent directions): fill in something orthogonal to
+         //  what is already there rather than leaving garbage, fixed up
+         //  by the Gram-Schmidt pass below.
+         for (int a = 0; a < 3; a++) U[a][oi] = (a == oi) ? 1.0 : 0.0;
+      }
+   }
+   //  Gram-Schmidt, in case a degenerate column above needs it.
+   for (int oi = 0; oi < 3; oi++) {
+      for (int oj = 0; oj < oi; oj++) {
+         double dot = 0.0;
+         for (int a = 0; a < 3; a++) dot += U[a][oi]*U[a][oj];
+         for (int a = 0; a < 3; a++) U[a][oi] -= dot*U[a][oj];
+      }
+      double norm = 0.0;
+      for (int a = 0; a < 3; a++) norm += U[a][oi]*U[a][oi];
+      norm = sqrt(norm);
+      if (norm > 1.0e-9) for (int a = 0; a < 3; a++) U[a][oi] /= norm;
+   }
+
+   double Vsorted[3][3];
+   for (int oi = 0; oi < 3; oi++)
+      for (int a = 0; a < 3; a++) Vsorted[a][oi] = V[a][order[oi]];
+
+   //  d = sign needed to make R a PROPER rotation (det +1) rather than
+   //  a reflection -- the Kabsch algorithm's one well-known gotcha.
+   double detU = U[0][0]*(U[1][1]*U[2][2]-U[1][2]*U[2][1])
+               - U[0][1]*(U[1][0]*U[2][2]-U[1][2]*U[2][0])
+               + U[0][2]*(U[1][0]*U[2][1]-U[1][1]*U[2][0]);
+   double detV = Vsorted[0][0]*(Vsorted[1][1]*Vsorted[2][2]-Vsorted[1][2]*Vsorted[2][1])
+               - Vsorted[0][1]*(Vsorted[1][0]*Vsorted[2][2]-Vsorted[1][2]*Vsorted[2][0])
+               + Vsorted[0][2]*(Vsorted[1][0]*Vsorted[2][1]-Vsorted[1][1]*Vsorted[2][0]);
+   const double d = (detU*detV < 0.0) ? -1.0 : 1.0;
+
+   for (int a = 0; a < 3; a++) {
+      for (int b = 0; b < 3; b++) {
+         double s = 0.0;
+         for (int k = 0; k < 3; k++) {
+            const double sign = (k == 2) ? d : 1.0;
+            s += Vsorted[a][k]*sign*U[b][k];
+         }
+         R.m[a][b] = s;
+      }
+   }
+
+   double sse = 0.0;
+   for (size_t i = 0; i < n; i++) {
+      double p[3], q[3], rp[3];
+      for (int k = 0; k < 3; k++) {
+         p[k] = from[i*3+k] - cFrom[k];
+         q[k] = to[i*3+k]   - cTo[k];
+      }
+      apply(R, p, rp);
+      for (int k = 0; k < 3; k++) sse += (rp[k]-q[k])*(rp[k]-q[k]);
+   }
+   rmsd = sqrt(sse / n);
+
+   return true;
+}
+
+
+SymOp SymmetryAnalysis::conjugate(const SymOp& R, const SymOp& Q)
+{
+   return multiply(transpose(Q), multiply(R, Q));
 }

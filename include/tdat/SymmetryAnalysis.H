@@ -272,6 +272,51 @@ class SymmetryAnalysis
                              const CharacterTable& table,
                              const string& irrep,
                              vector< vector<double> >& vectors);
+
+    /**
+     * The rigid rotation (+ centroid shift) that best carries one set
+     * of coordinates onto another -- the orthogonal Procrustes/Kabsch
+     * fit (#151).
+     *
+     * Needed because a code's MO coefficients are reported in ITS OWN
+     * frame (whatever orientation its SCF happened to run in), while
+     * the symmetry operations this analysis works with are in autosym's
+     * STANDARD frame (SymmetryOps::find() reorients and symmetrises).
+     * The two agree only by accident, so an operation built in one
+     * frame cannot be applied directly to coefficients reported in the
+     * other -- see conjugate() below, which is what actually makes the
+     * two usable together.
+     *
+     * Solved via the eigendecomposition of H^T H (H = fromCentered^T *
+     * toCentered), a 3x3 symmetric matrix -- plain Jacobi rotations,
+     * no external linear algebra needed for a matrix this size.
+     *
+     * @param from   3N atom-major coordinates, in the frame R maps FROM
+     * @param to     3N atom-major coordinates, SAME ATOM ORDER, in the
+     *               frame R maps TO
+     * @param R      filled with the rotation: R*(from_i - centroid(from))
+     *               best approximates (to_i - centroid(to))
+     * @param rmsd   filled with the residual RMS distance, in the same
+     *               units as the coordinates, AFTER applying R -- the
+     *               number a caller should refuse a large value of
+     *               rather than trust a bad fit silently
+     *
+     * @return false if from/to are not the same size, empty, or fewer
+     *         than 3 atoms (nothing to determine an orientation from)
+     */
+    static bool alignFrames(const vector<double>& from,
+                            const vector<double>& to,
+                            SymOp& R,
+                            double& rmsd);
+
+    /**
+     * Conjugate a symmetry operation from the frame it was built in
+     * into another frame related to it by a known rotation:
+     * R_s = Q^T * R * Q, where Q is alignFrames()'s result carrying the
+     * SECOND frame onto the FIRST.  (Q rotates op's own operand into
+     * the frame R_s will be applied in, so Q^T undoes that afterwards.)
+     */
+    static SymOp conjugate(const SymOp& R, const SymOp& Q);
 };
 
 #endif
