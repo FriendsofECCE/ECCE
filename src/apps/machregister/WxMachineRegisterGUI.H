@@ -136,6 +136,7 @@ public:
 ////@begin WxMachineRegisterGUI member variables
     static const wxWindowID ID_CHECKBOX_QUEUE_ALLOCATION;
     static const wxWindowID ID_TEXT_MACHINE_FULLNAME;
+    static const wxWindowID ID_STATIC_MACHINE_LOCALITY;
     static const wxWindowID ID_BUTTON_MACHINE_CHANGE;
     static const wxWindowID ID_SPIN_QUEUE_MAXMEMORY;
     static const wxWindowID ID_PANEL_WXMACHINEREGISTER_APPLICATIONS;

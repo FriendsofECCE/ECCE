@@ -41,6 +41,7 @@
 ////@end XPM images
 const wxWindowID WxMachineRegisterGUI::ID_CHECKBOX_QUEUE_ALLOCATION = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_TEXT_MACHINE_FULLNAME = wxNewId();
+const wxWindowID WxMachineRegisterGUI::ID_STATIC_MACHINE_LOCALITY = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_BUTTON_MACHINE_CHANGE = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_SPIN_QUEUE_MAXMEMORY = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_PANEL_WXMACHINEREGISTER_APPLICATIONS = wxNewId();
@@ -191,6 +192,12 @@ void WxMachineRegisterGUI::CreateControls()
     wxFlexGridSizer* itemFlexGridSizer8 = new wxFlexGridSizer(4, 2, 0, 0);
     itemFlexGridSizer8->AddGrowableCol(1);
     itemBoxSizer7->Add(itemFlexGridSizer8, 1, wxGROW, 3);
+
+    //  #144 (hand-added, not from the .pjd): where jobs for a machine that
+    //  names this host will run. Hidden for every other machine.
+    ewxStaticText* itemStaticTextLocality = new ewxStaticText( itemPanel3, ID_STATIC_MACHINE_LOCALITY, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
+    itemStaticTextLocality->Show(false);
+    itemBoxSizer7->Add(itemStaticTextLocality, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 3);
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Machine:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer8->Add(itemStaticText9, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 3);

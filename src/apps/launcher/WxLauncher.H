@@ -206,6 +206,7 @@ class WxLauncher : public WxLauncherGUI,
 
         void updatePriority(int pval);
         void refreshAuthentication(RefMachine *machRgstn, string shellName);
+        void refreshLocality();
 
         void refreshLaunchControls();
         void refreshLaunchControls(bool cnctAllwd);

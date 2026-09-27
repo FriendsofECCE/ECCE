@@ -153,6 +153,11 @@ public:
 
     static bool isRemote(const string& machine, const string& remShell,
                          const string& userName="");
+    // "" unless machine names THIS machine; otherwise a short statement of
+    // what isRemote() will actually do with it for this shell and user
+    // ("runs locally, as <you>" / "via <shell> to <machine> as <user>").
+    static string localityNote(const string& machine, const string& remShell,
+                               const string& userName="");
     static bool isSameDomain(const string& machine);
     static string whereami(void);
     static string commandShell(const string& machine="",

@@ -398,6 +398,7 @@ void WxLauncher::refreshControls()
 
     string shellName = this->refreshShells(machRgstn);
     this->refreshAuthentication(machRgstn, shellName);
+    this->refreshLocality();
 
     this->refreshCalcDirectory();
     this->refreshScratchDirectory();
@@ -502,6 +503,10 @@ void WxLauncher::usernameTextCtrlUpdateCB(wxCommandEvent& event)
         p_shellOpenButton->Enable(cnctAllwd);
         this->verifyMachineListLocation(cnctAllwd);
         this->refreshLaunchControls(cnctAllwd);
+
+        //  For a machine naming this host, the username decides local vs
+        //  ssh (#144) -- keep the statement of which in step with it.
+        this->refreshLocality();
     }
 }
 
@@ -857,6 +862,7 @@ void WxLauncher::remshellChoiceSelectedCB(wxCommandEvent& event)
         string slctShell = (string)p_remShellChoice->GetStringSelection();
         RefMachine *machRgstn = p_slctPrefs->getRegisteredMachine();
         this->refreshAuthentication(machRgstn, slctShell);
+        this->refreshLocality();
 
         bool cnctAllwd = this->checkConnectAllowed();
 
@@ -1712,6 +1718,46 @@ string WxLauncher::refreshShells(RefMachine *machRgstn)
     }
 
     return slctShell;
+}
+
+
+/**
+ *  Show, beside the machine's full name, whether a machine that names
+ *  THIS host (localhost, 127.0.0.1, ::1, or its own hostname) will run the
+ *  job locally or go over the remote shell -- which depends on the login
+ *  name (#144). Same shell and username the launch will use, and asked of
+ *  RCommand::isRemote() itself, so it cannot disagree with the launch.
+ *  Nothing is added for an ordinary remote machine.
+ */
+void WxLauncher::refreshLocality()
+{
+    if (p_slctPrefs == NULL)
+        return;
+    RefMachine *machRgstn = p_slctPrefs->getRegisteredMachine();
+    if (machRgstn == NULL)
+        return;
+
+    string user = "";
+    if (p_slctPrefs->isOptionSupported("UN"))
+        user = (string)p_usernameTextCtrl->GetValue();
+    string shell = (string)p_remShellChoice->GetStringSelection();
+
+    string label = machRgstn->fullname();
+    string note = RCommand::localityNote(machRgstn->fullname(), shell, user);
+    if (!note.empty())
+        label += "  (" + note + ")";
+
+    if ((string)p_machineNameStaticText->GetLabel() != label)
+    {
+        p_machineNameStaticText->SetLabel(label);
+        p_machineNameStaticText->SetToolTip(note.empty() ? wxString("") :
+            wxString("This machine names the computer ECCE is running on. "
+                     "Jobs for it run locally when the Username is empty or "
+                     "your own, and over the remote shell to it as that user "
+                     "otherwise -- e.g. through a port forward to a cluster."));
+        if (!p_inCtrlUpdate)
+            this->Layout();
+    }
 }
 
 

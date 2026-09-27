@@ -312,6 +312,40 @@ bool RCommand::isRemote(const string& machine, const string& remShell,
   return !localFlag;
 }
 
+/**
+ * Say where a job for this machine will actually run (#144).
+ *
+ * A machine registered under a loopback name (or this host's own name) is
+ * run LOCALLY when the login name is empty or your own, and over the
+ * remote shell to that name when it is anyone else's -- the deliberate
+ * escape hatch a port-forwarded cluster login relies on. Nothing used to
+ * say which branch was taken, and when the code is installed here too, a
+ * job meant for the cluster succeeds on the workstation instead.
+ *
+ * Deliberately built from isRemote() itself rather than restating its
+ * rules, so this can never describe a different decision than the one the
+ * launch makes. "ssh" stands in for the shell in the first question only
+ * to keep isRemote()'s Globus shortcut (always remote) out of "is this
+ * name this machine?".
+ */
+string RCommand::localityNote(const string& machine, const string& remShell,
+                              const string& userName)
+{
+  if (machine == "" || RCommand::isRemote(machine, "ssh", "")) {
+    return "";
+  }
+
+  if (!RCommand::isRemote(machine, remShell, userName)) {
+    return string("runs locally, as ") + Ecce::realUser();
+  }
+
+  string shell = remShell == "" ? string("the remote shell") : remShell;
+  string note = "via " + shell + " to " + machine;
+  if (userName != "") note += " as " + userName;
+  return note;
+}
+
+
 bool RCommand::isSameDomain(const string& machine)
 {
   bool sameDomain = false;

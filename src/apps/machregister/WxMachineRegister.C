@@ -40,7 +40,10 @@
 #include "tdat/Queue.H"
 #include "tdat/QueueMgr.H"
 
+#include "comm/RCommand.H"
+
 #include "dsm/CodeFactory.H"
+#include "dsm/MachinePreferences.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceTool.H"
 
@@ -212,6 +215,7 @@ void WxMachineRegister::initialize()
         p_machinesList = (ewxListBox*)(this->FindWindowById(ID_LISTBOX_MACHINES));
 
         p_machineFullNameText = (ewxTextCtrl*)(this->FindWindowById(ID_TEXT_MACHINE_FULLNAME));
+        p_localityText = (ewxStaticText*)(this->FindWindowById(ID_STATIC_MACHINE_LOCALITY));
         p_machineRefNameText = (ewxTextCtrl*)(this->FindWindowById(ID_TEXT_MACHINE_REFNAME));
         p_machineVendorText = (ewxTextCtrl*)(this->FindWindowById(ID_TEXT_MACHINE_VENDOR));
         p_machineModelText = (ewxTextCtrl*)(this->FindWindowById(ID_TEXT_MACHINE_MODEL));
@@ -350,6 +354,68 @@ void WxMachineRegister::machineFullNameUpdatedCB(wxCommandEvent& event)
 
     p_machineRefNameText->SetValue(refName);
     p_machineChangeButton->Enable(true);
+
+    this->refreshLocality();
+}
+
+
+/**
+ *  A machine registered as localhost, 127.0.0.1, ::1 or this host's own
+ *  name runs jobs LOCALLY when the login name used for it is empty or
+ *  your own, and over ssh to that name when it is anyone else's -- the
+ *  escape hatch a port-forwarded cluster login depends on (#144). Nothing
+ *  said which, so say it here, where the name is typed. The login name
+ *  itself is chosen in the Launcher, not here: show the rule, and the
+ *  outcome too when a login name has already been saved for the machine.
+ *  Both come from RCommand::isRemote(), the function the launch uses.
+ */
+void WxMachineRegister::refreshLocality()
+{
+    if (p_localityText == NULL || p_machineFullNameText == NULL)
+        return;
+
+    string machine = (string)p_machineFullNameText->GetValue();
+    string text = "";
+
+    if (!RCommand::localityNote(machine, "ssh", "").empty())
+    {
+        text = "This computer: jobs run locally when the login name is empty or ";
+        text += Ecce::realUser();
+        text += ";\nany other login name goes via ssh to " + machine +
+                " as that user.";
+
+        string refName = (string)p_machineRefNameText->GetValue();
+        MachinePreferences *prefs = refName.empty() ? NULL :
+                                    MachinePreferences::lookup(refName);
+        if (prefs != NULL && prefs->isOptionSupported("UN") &&
+            !prefs->getUsername().empty())
+        {
+            text += "\nWith the saved login name \"" + prefs->getUsername() +
+                    "\": " + RCommand::localityNote(machine,
+                                                    prefs->getRemoteShell(),
+                                                    prefs->getUsername()) + ".";
+        }
+    }
+
+    if ((string)p_localityText->GetLabel() != text)
+    {
+        p_localityText->SetLabel(text);
+        p_localityText->Show(!text.empty());
+
+        //  The frame's minimum was fixed at construction, with this label
+        //  hidden, so showing it would squeeze the Machine/Name/Vendor rows
+        //  into overlapping it. Grow the frame just enough; never shrink it
+        //  (the user may have enlarged it).
+        if (GetSizer() != NULL)
+        {
+            wxSize need = GetSizer()->GetMinSize();
+            wxSize have = GetClientSize();
+            if (need.y > have.y || need.x > have.x)
+                SetClientSize(wxSize(wxMax(need.x, have.x),
+                                     wxMax(need.y, have.y)));
+        }
+        Layout();
+    }
 }
 
 

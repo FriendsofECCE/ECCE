@@ -358,7 +358,8 @@ ecce_app(launcher src/apps/launcher WX
 ecce_app(machbrowser src/apps/machbrowser WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd ecceexp eccetdat ecceutil)
 ecce_app(machregister src/apps/machregister WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+  # eccercmd for RCommand::localityNote (#144), the same decision the launch makes.
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd ecceexp eccetdat ecceutil)
 ecce_app(mddynamics src/apps/mddynamics WX
   LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(mdenergy src/apps/mdenergy WX

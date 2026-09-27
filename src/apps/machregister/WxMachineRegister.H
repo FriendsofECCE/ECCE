@@ -41,6 +41,7 @@ class ewxCheckBox;
 class ewxChoice;
 class ewxListBox;
 class ewxSpinCtrl;
+class ewxStaticText;
 class ewxTextCtrl;
 
 class WxMachineRegister: public WxMachineRegisterGUI
@@ -113,11 +114,15 @@ class WxMachineRegister: public WxMachineRegisterGUI
 
         ewxListBox          *p_machinesList;
 
+        //  Where jobs for a machine naming this host run (#144).
+        ewxStaticText       *p_localityText;
+
 
     private:
         void initialize();
         void loadMachinesList();
         void refreshControls();
+        void refreshLocality();
 
         void saveSettings(Preferences& prefs);
         void restoreSettings(Preferences& prefs);
