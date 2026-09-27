@@ -248,6 +248,51 @@ int main()
   }
 
   //  ------------------------------------------------------------------
+  //  THE OP THRESHOLD MUST NOT BE SET BY ONE OUTLIER (#132 follow-up,
+  //  Cr(CO)6/benzene, live 2026-09-27).  A deep, strongly-bonding sigma
+  //  framework level can carry an overlap population several times any
+  //  other level's in the same window; a threshold set as a fraction of
+  //  the WINDOW'S MAXIMUM then swamps everything weaker sharing that
+  //  window -- benzene's occupied pi orbitals measured OP +0.30 to
+  //  +0.45, genuinely bonding, and were marked non-bonding because one
+  //  unrelated sigma level's OP of magnitude 8 put the 5%-of-maximum bar
+  //  at 0.4. The threshold has to be judged against the window's own
+  //  typical scale (RMS), not its single largest member.
+  {
+    printf("\n  no-central-atom construction: the OP threshold survives "
+           "one outlier level\n");
+
+    vector<MoLevel> left(4), right;
+    vector<MoLevel> centre(4);
+    const char* irr[] = { "t1u", "e1g", "e2u", "a1g" };
+    for (int i = 0; i < 4; i++) {
+      left[i].irrep = MoDiagram::canonicalIrrep(irr[i]);
+      left[i].degeneracy = 1;
+      centre[i].irrep = MoDiagram::canonicalIrrep(irr[i]);
+      centre[i].degeneracy = 1;
+      centre[i].energy = -0.6 + 0.2*i;
+    }
+    vector<double> op(4);
+    op[0] =  8.0;     // t1u -- an unrelated, strongly-bonding sigma level
+    op[1] =  0.35;    // e1g -- weaker, genuinely bonding pi level
+    op[2] = -0.40;    // e2u -- antibonding
+    op[3] =  0.0005;  // a1g -- negligible
+
+    MoDiagram::classify(left, centre, right, false, vector<double>(), op);
+
+    check(centre[0].character == MoLevel::BONDING,
+          "the outlier's own OP is trivially above any threshold it sets");
+    check(centre[1].character == MoLevel::BONDING,
+          "a weaker but real bonding OP (+0.35) is not swamped by the "
+          "outlier -- this is exactly what the old max-based 5% "
+          "threshold got wrong (0.05*8.0 = 0.4 > 0.35)");
+    check(centre[2].character == MoLevel::ANTIBONDING,
+          "the antibonding level is unaffected");
+    check(centre[3].character == MoLevel::NONBONDING,
+          "the negligible level is still left non-bonding");
+  }
+
+  //  ------------------------------------------------------------------
   //  LOCALISATION PRE-EMPTS EVERYTHING, whichever construction this is
   //  (Andy, 2026-09-27): a level sitting almost entirely on one atom is
   //  that atom's lone pair no matter what it is being correlated

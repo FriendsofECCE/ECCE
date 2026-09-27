@@ -1279,11 +1279,26 @@ void MoDiagram::classify(const vector<MoLevel>& left,
   //  appears only once (benzene's a2u, on its own) would otherwise be
   //  compared only to itself, and 5% of its own magnitude is always
   //  smaller than itself, so nothing could ever come out non-bonding.
-  double largestOP = 0.0;
+  //
+  //  THE SCALE IS THE RMS OF THE WINDOW, NOT ITS MAXIMUM.
+  //
+  //  A single strongly-bonding sigma level (a deep C-H/C-C framework
+  //  orbital) can carry an OP several times any other level's, and a
+  //  threshold set off that ONE level's magnitude swamps everything
+  //  weaker sharing its window -- benzene's occupied pi orbitals came
+  //  out at OP +0.30 to +0.45, genuinely bonding, and were still
+  //  marked non-bonding because the sigma framework's peak OP put the
+  //  bar above them. The RMS keeps the same "judge against the
+  //  window, not the irrep" protection the comment above is about (a
+  //  lone irrep is still compared to a real, multi-level statistic,
+  //  not to itself) while one outlier no longer sets the whole scale.
+  double sumSquares = 0.0;
   for (size_t c = 0; c < overlapPopulation.size(); c++) {
-    const double a = fabs(overlapPopulation[c]);
-    if (a > largestOP) largestOP = a;
+    const double a = overlapPopulation[c];
+    sumSquares += a*a;
   }
+  const double largestOP = overlapPopulation.empty() ? 0.0
+      : sqrt(sumSquares/overlapPopulation.size());
 
   int nextPair = 0;
 
