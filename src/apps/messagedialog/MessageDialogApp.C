@@ -20,16 +20,20 @@ bool MessageDialogApp::OnInit()
 {
   ewxApp::OnInit();
 
+  // The test suite runs this app with no arguments; bail out rather than
+  // reading argv[1]/argv[2] unchecked.
+  if (argc < 3) {
+    return false;
+  }
+
   std::string type = argv[1].ToStdString();
 
   std::string caption = argv[2].ToStdString();
 
-  char message[1024];
-  strcpy(message, "");
-
+  std::string message;
   for (int i = 3; i < argc; i++) {
-    strcat(message, argv[i]);
-    strcat(message, "\n");
+    message += argv[i].ToStdString();
+    message += "\n";
   }
 
   if (strncmp(type.c_str(), "pass", 4) == 0) {
