@@ -112,6 +112,8 @@ int MoDiagram::dimensionFromName(const string& canonical)
 
   //  Linear molecules, as the codes spell them: SIG/SIU, PIU/PIG, ...
   if (canonical.compare(0, 2, "SI") == 0) return 1;
+  if (canonical.compare(0, 2, "SG") == 0) return 1;   // Gaussian: SG, SGG, SGU
+  if (canonical.compare(0, 2, "DL") == 0) return 2;   // Gaussian: DLTA, DLTG, DLTU
   if (canonical.compare(0, 2, "PI") == 0) return 2;
   if (canonical.compare(0, 2, "DE") == 0) return 2;
   if (canonical.compare(0, 2, "PH") == 0) return 2;

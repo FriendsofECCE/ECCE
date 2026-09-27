@@ -189,10 +189,11 @@ class MoDiagramCanvas : public wxPanel
       //  its first character would otherwise be taken for a Mulliken
       //  symbol and the rest of its name for a subscript.
       static const char* const names[]  =
-          {"sigma", "delta", "phi", "pi", "si", "de", 0};
+          {"sigma", "delta", "dlta", "phi", "pi", "si", "sg", "de", 0};
+      //  "dlta" and "sg" are Gaussian's own spellings (SGG, PIU, DLTG...).
       static const char* const glyphs[] =
-          {"\xcf\x83", "\xce\xb4", "\xcf\x86",
-           "\xcf\x80", "\xcf\x83", "\xce\xb4"};
+          {"\xcf\x83", "\xce\xb4", "\xce\xb4", "\xcf\x86",
+           "\xcf\x80", "\xcf\x83", "\xcf\x83", "\xce\xb4"};
       bool greek = false;
       for (int k = 0; names[k] != 0 && !greek; k++) {
         if (!startsWith(label, i, names[k])) continue;

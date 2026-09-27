@@ -583,6 +583,47 @@ namespace {
   }
 
 
+
+  //  LINEAR MOLECULES.  autosym has no infinite groups and stands C4v in
+  //  for C-infinity-v and D4h for D-infinity-h.  Gaussian labels in the
+  //  true groups (SG, PI, DLTA; SGG, PIU, DLTG ...), everything else in
+  //  the stand-in, so the two could never be matched.  Everything is
+  //  put in Gaussian's spelling, which the canvas draws as sigma, pi,
+  //  delta.  a1 is sigma+, a2 sigma-, e pi, and b1 and b2 are the two
+  //  halves of delta.
+  bool isCollinear(const vector<double>& xyz)
+  {
+    const size_t n = xyz.size() / 3;
+    if (n < 2) return false;
+    double d[3] = { xyz[3]-xyz[0], xyz[4]-xyz[1], xyz[5]-xyz[2] };
+    const double len = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
+    if (len < 1.0e-6) return false;
+    for (int k = 0; k < 3; k++) d[k] /= len;
+    for (size_t i = 2; i < n; i++) {
+      double v[3] = { xyz[i*3]-xyz[0], xyz[i*3+1]-xyz[1], xyz[i*3+2]-xyz[2] };
+      double c[3] = { v[1]*d[2]-v[2]*d[1], v[2]*d[0]-v[0]*d[2],
+                      v[0]*d[1]-v[1]*d[0] };
+      if (sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2]) > 0.05) return false;
+    }
+    return true;
+  }
+
+  //  A finite stand-in irrep (canonical spelling) in the linear group's
+  //  spelling; anything already linear, or unknown, is returned as is.
+  string linearName(const string& irrep)
+  {
+    static const char* const map[][2] = {
+      {"A1","SG"}, {"A2","SG-"}, {"E","PI"}, {"B1","DLTA"}, {"B2","DLTA"},
+      {"A1G","SGG"}, {"A2U","SGU"}, {"A2G","SGG-"}, {"A1U","SGU-"},
+      {"EG","PIG"}, {"EU","PIU"},
+      {"B1G","DLTG"}, {"B2G","DLTG"}, {"B1U","DLTU"}, {"B2U","DLTU"},
+      {0,0} };
+    for (int k = 0; map[k][0] != 0; k++) {
+      if (irrep == map[k][0]) return map[k][1];
+    }
+    return irrep;
+  }
+
   bool computeFullGroupLabels(IPropCalculation *calc,
                               const string& group,
                               const CharacterTable *table,
@@ -1057,13 +1098,26 @@ void MoDiagramPanel::build()
   //  `s` ONLY when the independent cross-check below fully agrees;
   //  otherwise `s` is untouched and the existing subgroup-downgrade
   //  path further down runs exactly as it already did.
+  bool labelsInFullGroup = false;
   {
     vector<string> computedLabels;
     string computedNote;
     if (computeFullGroupLabels(calc, group, table, sgfrag, coords, elements,
                                e, s, computedLabels, computedNote)) {
       s = computedLabels;
+      labelsInFullGroup = true;
       if (why.empty()) why = computedNote;
+    }
+  }
+
+  //  A linear molecule's labels in the linear spelling -- but only labels
+  //  known to be in the FULL stand-in group.  In ORCA's own C2v labels b1
+  //  and b2 are the two halves of pi, not delta.
+  const bool linearMolecule = isCollinear(coords) &&
+      (group == "C4V" || group == "C4v" || group == "D4H" || group == "D4h");
+  if (linearMolecule && labelsInFullGroup) {
+    for (size_t i = 0; i < s.size(); i++) {
+      s[i] = linearName(MoDiagram::canonicalIrrep(s[i]));
     }
   }
 
@@ -1369,6 +1423,14 @@ void MoDiagramPanel::build()
   }
   for (size_t j = 0; j < right.levels.size(); j++) {
     if (!right.levels[j].irrep.empty()) columnsCarryIrreps = true;
+  }
+
+  //  The fragment columns are always in the full stand-in group.
+  if (linearMolecule) {
+    for (size_t j = 0; j < left.levels.size(); j++)
+      left.levels[j].irrep = linearName(left.levels[j].irrep);
+    for (size_t j = 0; j < right.levels.size(); j++)
+      right.levels[j].irrep = linearName(right.levels[j].irrep);
   }
 
   if (byIrrep) {
