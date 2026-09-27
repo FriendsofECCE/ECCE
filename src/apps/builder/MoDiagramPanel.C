@@ -568,6 +568,21 @@ namespace {
    * the existing s/p-only orbitalIrrep() path already exists for that
    * more common case and is untouched by any of this.
    */
+  //  ECCE_DEBUG_MOSYM=1 names the step at which the full-group labelling
+  //  gave up.  Every exit below is otherwise silent by design -- the
+  //  diagram falls back to the code's own labels -- which left a live
+  //  failure with nothing to go on.
+  static bool mosymFail(int where, const char *why)
+  {
+    if (getenv("ECCE_DEBUG_MOSYM")) {
+      fprintf(stderr, "[MOSYM] full-group labels not computed (step %d): %s\n",
+              where, why);
+      fflush(stderr);
+    }
+    return false;
+  }
+
+
   bool computeFullGroupLabels(IPropCalculation *calc,
                               const string& group,
                               const CharacterTable *table,
@@ -579,25 +594,28 @@ namespace {
                               vector<string>& computed,
                               string& note)
   {
-    if (calc == 0 || table == 0 || sgfrag == 0) return false;
-    if (reported.empty()) return false;   // nothing to cross-check against
-    if (probeCoords.size() != elements.size()*3) return false;
+    if (getenv("ECCE_DEBUG_MOSYM"))
+      fprintf(stderr, "[MOSYM] group %s, %d orbitals, %d reported labels\n",
+              group.c_str(), (int)e.size(), (int)reported.size());
+    if (calc == 0 || table == 0 || sgfrag == 0) return mosymFail(11, "calc == 0 || table == 0 || sgfrag == 0");
+    if (reported.empty()) return mosymFail(12, "reported.empty()");   // nothing to cross-check against
+    if (probeCoords.size() != elements.size()*3) return mosymFail(13, "probeCoords.size() != elements.size()*3");
 
     ICalculation *escalc = dynamic_cast<ICalculation*>(calc);
-    if (escalc == 0) return false;
+    if (escalc == 0) return mosymFail(16, "escalc == 0");
 
     TGBSConfig *config = escalc->gbsConfig();
-    if (config == 0 || config->empty()) return false;
+    if (config == 0 || config->empty()) return mosymFail(19, "config == 0 || config->empty()");
 
     const JCode *code = escalc->application();
-    if (code == 0) return false;
+    if (code == 0) return mosymFail(22, "code == 0");
 
     TGBSAngFunc *angfunc = code->getAngFunc(config->coordsys());
-    if (angfunc == 0) return false;
+    if (angfunc == 0) return mosymFail(25, "angfunc == 0");
     const bool spherical = (config->coordsys() == TGaussianBasisSet::Spherical);
 
     PropTable *moCoefs = (PropTable*)calc->getProperty("MO");
-    if (moCoefs == 0) return false;
+    if (moCoefs == 0) return mosymFail(29, "moCoefs == 0");
 
     //  The STORED frame -- sgfrag's OWN coordinates, not the reoriented
     //  probe copy -- because the MO coefficients are in whatever frame
@@ -609,7 +627,7 @@ namespace {
     if (atoms == 0 || xyz == 0 || natoms == 0 || atoms->size() != natoms ||
         elements.size() != natoms) {
       delete atoms;
-      return false;
+      return mosymFail(41, "if (atoms == 0 || xyz == 0 || natoms == 0 || atoms->size() != natoms ||");
     }
     vector<string> storedElements(natoms);
     vector<double> storedCoords(natoms*3);
@@ -625,13 +643,13 @@ namespace {
     int *lengthShell = spherical ? lengthShellSph : lengthShellCart;
     if (!BasisFlatten::flatten(storedElements, storedCoords, config, code,
                               angfunc, angfunc->maxShells(), lengthShell, basis))
-      return false;
-    if ((int)basis.size() != moCoefs->columns()) return false;
+      return mosymFail(57, "if (!BasisFlatten::flatten(storedElements, storedCoords, config, code,");
+    if ((int)basis.size() != moCoefs->columns()) return mosymFail(58, "(int)basis.size() != moCoefs->columns()");
 
     //  A shell the angular table cannot describe leaves an EMPTY
     //  placeholder with no centre -- decline outright rather than risk
     //  misreading the atom boundaries below from it.
-    for (size_t i = 0; i < basis.size(); i++) if (basis[i].empty()) return false;
+    for (size_t i = 0; i < basis.size(); i++) if (basis[i].empty()) return mosymFail(63, "for (size_t i = 0; i < basis.size(); i++) if (basis[i].empty())");
 
     //  Per-atom function counts, read back off the flattened basis's
     //  OWN atom-major walk (grouped by contiguous matching centre)
@@ -650,7 +668,7 @@ namespace {
         i = j;
       }
     }
-    if (perAtom.size() != natoms) return false;
+    if (perAtom.size() != natoms) return mosymFail(82, "perAtom.size() != natoms");
 
     const int nbasis = (int)basis.size();
     vector< vector<double> > S(nbasis, vector<double>(nbasis, 0.0));
@@ -667,29 +685,29 @@ namespace {
     //  matching `probeCoords`) -- shelled out to symops exactly as
     //  every other structural tool in ECCE does.
     vector<SymOp> ops;
-    if (!MoFragments::symmetryOperations(group, ops)) return false;
+    if (!MoFragments::symmetryOperations(group, ops)) return mosymFail(99, "!MoFragments::symmetryOperations(group, ops)");
 
     vector< vector<int> > images;
     if (!SymmetryAnalysis::atomImages(probeCoords, elements, ops, 0.05, images))
-      return false;
+      return mosymFail(103, "if (!SymmetryAnalysis::atomImages(probeCoords, elements, ops, 0.05, images))");
 
     vector< vector<int> > classes;
     SymmetryAnalysis::conjugacyClasses(ops, classes);
     vector<int> classOfOp;
     if (!SymmetryAnalysis::matchClasses(ops, classes, *table, classOfOp))
-      return false;
+      return mosymFail(109, "if (!SymmetryAnalysis::matchClasses(ops, classes, *table, classOfOp))");
 
     SymOp Q; double rmsd;
     if (!SymmetryAnalysis::alignFrames(storedCoords, probeCoords, Q, rmsd))
-      return false;
-    if (rmsd > 0.1) return false;   // frames do not actually agree
+      return mosymFail(113, "if (!SymmetryAnalysis::alignFrames(storedCoords, probeCoords, Q, rmsd))");
+    if (rmsd > 0.1) return mosymFail(114, "rmsd > 0.1");   // frames do not actually agree
 
     vector<SymOp> opsInCoeffFrame(ops.size());
     for (size_t i = 0; i < ops.size(); i++)
       opsInCoeffFrame[i] = SymmetryAnalysis::conjugate(ops[i], Q);
 
     const int norb = moCoefs->rows();
-    if (norb <= 0 || (int)e.size() != norb) return false;
+    if (norb <= 0 || (int)e.size() != norb) return mosymFail(121, "norb <= 0 || (int)e.size() != norb");
     vector< vector<double> > orbitals(norb, vector<double>(nbasis));
     for (int m = 0; m < norb; m++)
       for (int mu = 0; mu < nbasis; mu++)
@@ -699,16 +717,16 @@ namespace {
     const int fullLabelled = SymmetryAnalysis::fullLabelSpectrum(
         orbitals, e, perAtom, shellTypeOf, S, images, classOfOp,
         opsInCoeffFrame, angfunc, *table, 1.0e-4, fullDerived);
-    if (fullLabelled <= 0) return false;
+    if (fullLabelled <= 0) return mosymFail(131, "fullLabelled <= 0");
 
     //  THE INDEPENDENT CHECK: the code's own reported labels, verified
     //  against operations built directly in the stored frame (no
     //  gensym/autosym on this side at all -- see
     //  SymmetryAnalysis::subgroupLabelSpectrum()'s header comment).
     const string subgroupName = smallestCoveringGroup(reported);
-    if (subgroupName.empty() || subgroupName == group) return false;
+    if (subgroupName.empty() || subgroupName == group) return mosymFail(138, "subgroupName.empty() || subgroupName == group");
     const CharacterTable *subgroupTable = CharacterTable::lookup(subgroupName);
-    if (subgroupTable == 0) return false;
+    if (subgroupTable == 0) return mosymFail(140, "subgroupTable == 0");
 
     vector<string> subDerived;
     string axisNote;
@@ -716,7 +734,7 @@ namespace {
         orbitals, reported, perAtom, shellTypeOf, S, storedElements,
         storedCoords, angfunc, *subgroupTable, 1.0e-4, 1.0e-4, subDerived,
         axisNote);
-    if (subLabelled <= 0) return false;
+    if (subLabelled <= 0) return mosymFail(148, "subLabelled <= 0");
 
     int agree = 0, checked = 0;
     for (int i = 0; i < norb; i++) {
@@ -731,7 +749,10 @@ namespace {
     //  ALL OR NOTHING: a single disagreement means the axis convention
     //  or the frame premise is wrong somewhere, and a diagram is not
     //  the place to find out which -- keep the code's own labels.
-    if (checked == 0 || agree != checked) return false;
+    if (getenv("ECCE_DEBUG_MOSYM"))
+      fprintf(stderr, "[MOSYM] subgroup %s cross-check: %d of %d agree\n",
+              subgroupName.c_str(), agree, checked);
+    if (checked == 0 || agree != checked) return mosymFail(163, "checked == 0 || agree != checked");
 
     //  SUBDUCTION, independent of the cross-check just done: every
     //  full-group label fullLabelSpectrum() assigned must itself
@@ -820,7 +841,7 @@ namespace {
           if (bestMult <= 0.5) subductionOk = false;
         }
       }
-      if (!subductionOk) return false;
+      if (!subductionOk) return mosymFail(252, "!subductionOk");
     }
 
     computed.assign(reported.size(), string());
