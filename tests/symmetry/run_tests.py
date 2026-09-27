@@ -789,7 +789,8 @@ def checkFullOrbitalIrrep(verbose):
     #  D2h-subgroup labelling cannot reach at all).
     rc = 0
     for fixture, natoms, nbasis in (("ch4-td.txt", 5, 23),
-                                    ("c6h6-d6h.txt", 12, 102)):
+                                    ("c6h6-d6h.txt", 12, 102),
+                                    ("sf6-oh.txt", 7, 109)):
         path = os.path.join(HERE, "fixtures", "g16mo", fixture)
         run = subprocess.run([out, path, str(natoms), str(nbasis)],
                              capture_output=True, text=True, env=env)

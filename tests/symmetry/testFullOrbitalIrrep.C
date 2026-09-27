@@ -48,6 +48,15 @@
 //  the immediately-consecutive one) rather than loosening the
 //  tolerance, which would risk merging genuinely different orbitals
 //  instead.
+//
+//  Also run against SF6/Oh: the full octahedral irrep set (a1g, a2g,
+//  eg, t1g, t2g, a2u, eu, t1u, t2u) all present and all agreeing with
+//  Gaussian, 97 of 109 orbitals labelled, 0 disagreements, 12 declines
+//  -- again all traced to the SAME energy-grouping cause (near-
+//  degenerate F 1s core orbitals spanning 2eg+3t1u+a1g, and a valence
+//  near-degeneracy spanning t1g+t2g). The basis for S and F here is
+//  Gaussian's OWN real AO dump (route keywords gfinput/gfprint), not
+//  transcribed from memory -- see generate.py.
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -209,11 +218,14 @@ int main(int argc, char** argv)
             : basis[i].powerX[0] + basis[i].powerY[0] + basis[i].powerZ[0];
     shellTypeOf[i] = deg;
   }
-  //  Basis functions per atom -- this basis (6-31G(d): d only on C) is
-  //  the same for every fixture this test reads.
+  //  Basis functions per atom -- 6-31G(d): d only on non-hydrogen
+  //  atoms, so H=2 (S,S), C/F=15 (S,SP,SP,D), S=19 (S,SP,SP,SP,D).
+  //  Fixed per element for every fixture this test reads.
   vector<int> perAtom(NATOMS);
-  for (int a = 0; a < NATOMS; a++)
-    perAtom[a] = (fx.elements[a] == "C") ? 15 : 2;
+  for (int a = 0; a < NATOMS; a++) {
+    const string& el = fx.elements[a];
+    perAtom[a] = (el == "H") ? 2 : (el == "S") ? 19 : 15;
+  }
 
   //  Real operations, from the real symops binary -- same convention
   //  tests/symmetry already uses.
