@@ -1274,31 +1274,20 @@ void MoDiagram::classify(const vector<MoLevel>& left,
     }
   }
 
-  //  THE OP THRESHOLD IS AGAINST THE WHOLE VALENCE WINDOW, not against
-  //  whatever happens to share one level's irrep -- an irrep that
-  //  appears only once (benzene's a2u, on its own) would otherwise be
-  //  compared only to itself, and 5% of its own magnitude is always
-  //  smaller than itself, so nothing could ever come out non-bonding.
+  //  THE THRESHOLD IS ABSOLUTE, IN ELECTRONS -- NOT RELATIVE TO THE WINDOW.
   //
-  //  THE SCALE IS THE RMS OF THE WINDOW, NOT ITS MAXIMUM.
-  //
-  //  A single strongly-bonding sigma level (a deep C-H/C-C framework
-  //  orbital) can carry an OP several times any other level's, and a
-  //  threshold set off that ONE level's magnitude swamps everything
-  //  weaker sharing its window -- benzene's occupied pi orbitals came
-  //  out at OP +0.30 to +0.45, genuinely bonding, and were still
-  //  marked non-bonding because the sigma framework's peak OP put the
-  //  bar above them. The RMS keeps the same "judge against the
-  //  window, not the irrep" protection the comment above is about (a
-  //  lone irrep is still compared to a real, multi-level statistic,
-  //  not to itself) while one outlier no longer sets the whole scale.
-  double sumSquares = 0.0;
-  for (size_t c = 0; c < overlapPopulation.size(); c++) {
-    const double a = overlapPopulation[c];
-    sumSquares += a*a;
-  }
-  const double largestOP = overlapPopulation.empty() ? 0.0
-      : sqrt(sumSquares/overlapPopulation.size());
+  //  Two relative scales were tried and both failed the same way.  5% of
+  //  the window's MAXIMUM let one strong sigma level set the bar; 5% of
+  //  its RMS let the VIRTUALS set it -- a diffuse virtual's Mulliken OP
+  //  runs to -20 .. -65 (big on-atom populations cancelled by big
+  //  negative bond terms), so benzene's RMS was ~20, the bar ~1, and
+  //  every occupied level at +0.30 .. +0.45 still came out "nb".
+  //  Any statistic over a window that contains virtuals has that flaw.
+  //  But no scale needs inferring: for a normalised orbital the OP is a
+  //  fraction of the one electron it holds, which is already a fixed
+  //  scale.  Below 0.05 e either way the level does nothing measurable
+  //  to the molecule's bonds.
+  const double opThreshold = 0.05;
 
   int nextPair = 0;
 
@@ -1442,10 +1431,9 @@ void MoDiagram::classify(const vector<MoLevel>& left,
     //  and the overlap matrix).  Positive reinforces those bonds
     //  (bonding), negative works against them (antibonding), and a
     //  magnitude too small to trust either way is left non-bonding --
-    //  against a threshold relative to the largest magnitude actually
-    //  present, because the OP itself is not on any fixed scale.
+    //  against opThreshold above, an absolute 0.05 electron.
     if (overlapPopulation.size() == centre.size()) {
-      const double threshold = 0.05*largestOP;
+      const double threshold = opThreshold;
 
       vector<size_t> bonding, antibonding;
       for (size_t k = 0; k < mine.size(); k++) {
