@@ -1205,6 +1205,39 @@ void TaskJob::getDataFile(JCode::CodeFileType type, TypedFile& dataFile) const
     dataFile.setName(url.getFilePathTail());
     dataFile.setType(getMimeType(url));
   }
+  //  AN IMPORTED OUTPUT KEEPS THE USER'S FILE NAME (g16.testout, job.log),
+  //  which matches neither the declared name nor -- since the data server
+  //  types files by extension -- the declared mimetype, so the output was
+  //  stored but "not found".  For the primary output only, fall back to
+  //  the one stored output that is not the run log and not any other file
+  //  the code declares (fort.7 and the like).  A launched job always
+  //  matches above, so this never changes what it finds.
+  else if (type == JCode::PRIMARY_OUTPUT && application() != 0) {
+    vector<EcceURL> outputs;
+    try { outputs = getVDoc()->getOutputs(); } catch (...) { outputs.clear(); }
+    const JCode *codeCap = application();
+    vector<string> declared;
+    const JCode::CodeFileType others[] = {
+      JCode::AUXILIARY_OUTPUT, JCode::PROPERTY_OUTPUT, JCode::FRAGMENT_OUTPUT,
+      JCode::RESTART_OUTPUT, JCode::TOPOLOGY_OUTPUT, JCode::ESP_OUTPUT };
+    for (size_t k = 0; k < sizeof(others)/sizeof(others[0]); k++) {
+      vector<TypedFile> files = codeCap->getCodeFiles(others[k]);
+      for (size_t f = 0; f < files.size(); f++) declared.push_back(files[f].name());
+    }
+    vector<EcceURL> candidates;
+    for (size_t i = 0; i < outputs.size(); i++) {
+      const string tail = outputs[i].getFilePathTail();
+      if (tail.find(".ecce_run_log") != string::npos) continue;
+      if (find(declared.begin(), declared.end(), tail) != declared.end()) continue;
+      candidates.push_back(outputs[i]);
+    }
+    if (candidates.size() == 1) {
+      dataFile.setName(candidates[0].getFilePathTail());
+      dataFile.setType(getMimeType(candidates[0]));
+    } else {
+      dataFile = codeCap->getCodeFile(type);
+    }
+  }
   // If data file hasn't been created then return
   // default code file.
   else {
