@@ -1379,10 +1379,16 @@ namespace {
      return false;
   }
 
+  //  Case-folded, and with ORCA's and Gaussian's double-quote spelling
+  //  of a double prime (A") made the character table's A''.  Without
+  //  that every A'' orbital of a Cs calculation read as a disagreement.
   string upper(const string& s)
   {
-     string r = s;
-     for (size_t i = 0; i < r.size(); i++) r[i] = toupper((unsigned char)r[i]);
+     string r;
+     for (size_t i = 0; i < s.size(); i++) {
+        if (s[i] == '"') r += "''";
+        else r += (char)toupper((unsigned char)s[i]);
+     }
      return r;
   }
 }
