@@ -63,6 +63,8 @@ class AuthCache
     static void sessionClear();
     void sessionLoad();
     void sessionSave() const;
+    bool sessionLookup(const string& url, const string& user,
+                       const string& realm, string& pass) const;
 
     void pipeOut(const string& pipeName);
     void pipeIn(const string& pipeName);
@@ -105,6 +107,7 @@ class AuthCache
     void addIt(const string& url,const string& user, const string& pass);
 
     static bool sessionWorthy(const string& url);
+    static void sessionRead(vector<AuthTuple>& stored);
 
     static AuthCache  *p_singleton;
     UserPolicy         p_userPolicy;

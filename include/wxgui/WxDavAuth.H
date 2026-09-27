@@ -66,6 +66,10 @@ class WxDavAuth : public AuthEventListener
 
       int p_promptCount;
 
+      // Whether this request has already re-read the session credential
+      // store (AuthCache::sessionLookup) before prompting.
+      bool p_sessionTried;
+
       /**
        * True while an authentication dialog is on screen.
        *

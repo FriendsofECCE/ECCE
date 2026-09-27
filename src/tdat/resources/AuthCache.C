@@ -194,6 +194,21 @@ bool AuthCache::sessionWorthy(const string& url)
  */
 void AuthCache::sessionLoad()
 {
+  vector<AuthTuple> stored;
+  sessionRead(stored);
+  for (int idx = 0; idx < (int)stored.size(); idx++) {
+    if (exists(stored[idx].url, stored[idx].user)) continue;
+    addIt(stored[idx].url, stored[idx].user, stored[idx].pass);
+  }
+}
+
+
+/**
+ * Parse the session store.  Only http/https entries are returned, and a
+ * missing or unreadable file is simply no entries.
+ */
+void AuthCache::sessionRead(vector<AuthTuple>& stored)
+{
   string path = sessionFile();
   if (path == "") return;
 
@@ -218,16 +233,55 @@ void AuthCache::sessionLoad()
     string::size_type second = line.find('|', first+1);
     if (second == string::npos) continue;
 
-    string url = line.substr(0, first);
-    string user = line.substr(first+1, second-first-1);
-    string pass = line.substr(second+1);
+    AuthTuple tuple;
+    tuple.url = line.substr(0, first);
+    tuple.user = line.substr(first+1, second-first-1);
+    tuple.pass = line.substr(second+1);
 
-    if (!sessionWorthy(url)) continue;
-    if (exists(url, user)) continue;
-
-    addIt(url, user, pass);
+    if (!sessionWorthy(tuple.url)) continue;
+    stored.push_back(tuple);
   }
   fclose(fp);
+}
+
+
+/**
+ * Look the credential for url/user up in the session store AS IT IS NOW,
+ * not as it was when this process loaded it.
+ *
+ * This is what lets a process that is already running pick up a password
+ * another process has since learned -- the user changed it in another
+ * window, or an administrator reset it and someone else has already typed
+ * the new one -- when the "ecce_auth_changed" broadcast did not reach it.
+ * Matches the way getAuthentication() does for a first try: the exact
+ * url+realm key, then the same server with any realm (BEST_URL).
+ */
+bool AuthCache::sessionLookup(const string& url, const string& user,
+                              const string& realm, string& pass) const
+{
+  vector<AuthTuple> stored;
+  sessionRead(stored);
+
+  string key = makeKey(url, realm);
+  for (int idx = 0; idx < (int)stored.size(); idx++) {
+    if (stored[idx].url == key && stored[idx].user == user &&
+        stored[idx].pass != "") {
+      pass = stored[idx].pass;
+      return true;
+    }
+  }
+  // Same server, any realm: the key with no realm is the server part
+  // alone, so every realm-qualified key for that server starts with it.
+  string server = makeKey(url, "");
+  for (int idx = 0; idx < (int)stored.size(); idx++) {
+    if (stored[idx].user == user && server != "" &&
+        stored[idx].url.find(server) == 0 &&
+        stored[idx].pass != "") {
+      pass = stored[idx].pass;
+      return true;
+    }
+  }
+  return false;
 }
 
 

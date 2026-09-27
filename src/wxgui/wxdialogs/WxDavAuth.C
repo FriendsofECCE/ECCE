@@ -43,6 +43,7 @@ WxDavAuth::WxDavAuth(wxWindow *window)
    p_window = window;
    p_prompting = false;
    p_promptCount = 0;
+   p_sessionTried = false;
 }
 
 
@@ -52,6 +53,7 @@ WxDavAuth::WxDavAuth(const WxDavAuth& rhs)
    p_window = rhs.p_window;
    p_prompting = false;
    p_promptCount = 0;
+   p_sessionTried = false;
    throw NotImplementedException("DavAuth copy constructor!", WHERE);
 }
 
@@ -144,6 +146,7 @@ bool WxDavAuth::getAuthorization(AuthEvent& event)
    // We might have lots of items in cache that COULD match
    if (event.m_retryCount == 1) {
       p_promptCount = 0;
+      p_sessionTried = false;
    }
 
 
@@ -161,28 +164,35 @@ bool WxDavAuth::getAuthorization(AuthEvent& event)
             event.m_retryCount);
    }
 
+   // Before asking the user, see whether another process of this session
+   // has learned a newer password since this one loaded the session
+   // store -- the user changed it elsewhere, or it was reset and typed in
+   // another window, and the ecce_auth_changed broadcast did not reach
+   // us (#120). Once per request, and only a password other than the one
+   // just refused, so a stale store can never cost a prompt attempt or
+   // loop. Not counted against the three prompts.
+   //
+   // This replaces a read of $prefpath/ServerPass that nothing ever
+   // wrote: it offered one bare password, unscoped by server or user, to
+   // whichever http URL first missed the cache -- a second or central
+   // data server included -- and never closed the file.
+   if (ba == 0 && !p_sessionTried) {
+      p_sessionTried = true;
+      string stored;
+      if (AuthCache::getCache().sessionLookup(event.m_url, event.m_user,
+                                              event.m_realm, stored) &&
+          stored != event.m_password) {
+         event.m_password = stored;
+         return true;
+      }
+   }
+
    if (ba == 0) {
       // try prompting then
       p_promptCount++;
 
       if (p_promptCount > 3) {
          throw RetryException("Maximum retries exceeded (3).",WHERE);
-      }
-
-      static bool tryFileOnce = true;
-      if (tryFileOnce) {
-        tryFileOnce = false;
-        string passFile = Ecce::realUserPrefPath();
-        passFile += "ServerPass";
-        FILE *fp = fopen(passFile.c_str(), "r");
-        if (fp != NULL) {
-          char buf[256];
-          if (fgets(buf, sizeof(buf), fp) != NULL) {
-            buf[strlen(buf)-1] = '\0';
-            event.m_password = buf;
-            ret = true;
-          }
-        }
       }
 
       if (!ret)

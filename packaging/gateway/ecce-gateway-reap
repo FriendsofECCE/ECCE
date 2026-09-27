@@ -150,6 +150,37 @@ done
 # attributed to a session, so it is only ever noise.
 rm -f "$STATEDIR/jmsdispatcher.pid"
 
+# --- 1b. Session credential files with no session left ------------------
+# The loop above removes a display's credential file along with its
+# dispatcher, which covers the ordinary per-user session. It does not
+# cover a session that never HAD a local dispatcher: "ecce -remote" (the
+# central-server client, whose credential is the central server's
+# password) and ECCE_NO_MESSAGING both skip ecce-gateway-start, so there
+# is no pidfile for the loop to find, and the file would outlive the
+# session indefinitely (#120). So also sweep by the thing that actually
+# defines a session here -- a live ECCE app on that display -- and keep
+# only the files that one of them could be using. Limited to this HOST's
+# files, since a home directory shared over NFS holds other machines'.
+live_auth=""
+for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
+  [ -O "/proc/$pid" ] || continue
+  exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
+  case "$exe" in "$BINDIR"/*) ;; *) continue ;; esac
+  [ -r "/proc/$pid/environ" ] || continue
+  d="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
+       sed -n 's/^DISPLAY=//p' | head -n1)"
+  [ -n "$d" ] && live_auth="$live_auth $(authfile "$d")"
+done
+auth_prefix="$(authfile "")"      # .../authcache_<host>_
+for f in "$auth_prefix"*; do
+  [ -e "$f" ] || continue
+  base="${f%.tmp.*}"              # a stranded writer's temporary, too
+  case " $live_auth " in *" $base "*) continue ;; esac
+  [ "$f" = "$base" ] &&
+    say "no ECCE app left for $(basename "$base") -- removing session credential"
+  rm -f "$f"
+done
+
 if [ "$dispatchers_left" -gt 0 ]; then
   exit 0
 fi
