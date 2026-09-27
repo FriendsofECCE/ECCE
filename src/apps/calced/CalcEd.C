@@ -98,6 +98,7 @@ CalcEd::CalcEd( )
     p_ESPCnstrnt(NULL),
     p_context(""),
     p_startUp(false),
+    p_handEdited(false),
     p_theoryPid(0),
     p_theoryInFilePath(""),
     p_theoryOutFile(NULL),
@@ -144,6 +145,7 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
     p_ESPCnstrnt(NULL),
     p_context(""),
     p_startUp(false),
+    p_handEdited(false),
     p_theoryPid(0),
     p_theoryInFilePath(""),
     p_theoryOutFile(NULL),
@@ -686,6 +688,11 @@ void CalcEd::processEditCompletion(const EditEvent& ee)
   if (!p_iCalc->putInputFile(infile, &ifs))
     p_feedback->setMessage("Input file could not be copied back to DAV",
                            WxFeedback::ERROR);
+  else
+    // The file on disk is now a hand edit, not something generateInput()
+    // wrote -- regenerateIfStructureChanged() must ask before replacing
+    // it, rather than silently regenerating over it.
+    p_handEdited = true;
   ifs.close();
 
   //  A hand edit is the ONE case where the deck can become broken
@@ -1112,10 +1119,15 @@ void CalcEd::OnButtonCalcedFinalEditClick( wxCommandEvent& event )
 {
   if (p_iCalc) {
     try {
+      if (!regenerateIfStructureChanged()) {
+        event.Skip();
+        return;
+      }
+
       if (p_feedback->getEditStatus() == WxFeedback::MODIFIED) {
         doSave(); // also generates input file
       }
-  
+
       istream* is = p_iCalc->getDataFile(JCode::PRIMARY_INPUT);
       if (is) {
         bool isReadOnly(p_feedback->getRunState() >
@@ -1281,10 +1293,62 @@ void CalcEd::OnButtonCalcedVerifyClick( wxCommandEvent& event )
 
 void CalcEd::OnButtonCalcedLaunchClick( wxCommandEvent& event )
 {
+  if (!regenerateIfStructureChanged())
+    return;
+
   ResourceTool *tool =
           ResourceDescriptor::getResourceDescriptor().getTool(LAUNCHER);
   event.SetId(tool->getId());
   OnToolClick(event);
+}
+
+
+/**
+ * See CalcEd.H for the full rationale (#GitHub, 2026-09-27).  Asks the
+ * calculation itself -- a real WebDAV timestamp comparison, independent
+ * of whatever this window's own edit-status bookkeeping believes --
+ * whether the structure is newer than the input file, and regenerates
+ * when it is, so a stale deck (edited in the Builder viewer while this
+ * window stayed open, or simply never regenerated) cannot reach
+ * Launch or Final Edit.
+ */
+bool CalcEd::regenerateIfStructureChanged()
+{
+  if (!p_iCalc || !p_iCalc->isFragmentNew())
+    return true;
+
+  if (p_handEdited) {
+    long buttons = wxYES_NO | wxCANCEL | wxICON_QUESTION | wxNO_DEFAULT;
+    ewxMessageDialog dialog(this,
+        "The chemical structure has changed since this input file was "
+        "last generated, but the current input file is a hand edit "
+        "(Final Edit) that regenerating it would lose.\n\n"
+        "Regenerate the input file from the current structure now?\n"
+        "Yes: regenerate it, losing the hand edit.\n"
+        "No: launch the hand-edited file unchanged.\n"
+        "Cancel: do nothing.",
+        "Structure Changed Since Hand Edit", buttons);
+    int answer = dialog.ShowModal();
+    if (answer == wxID_CANCEL) return false;
+    if (answer == wxID_NO) return true;
+    // wxID_YES falls through to regenerate, below.
+  } else {
+    p_feedback->setMessage("The chemical structure has changed since "
+            "this input file was last generated.  Regenerating the "
+            "input file.", WxFeedback::INFO);
+  }
+
+  //  Same refresh-and-regenerate path the JMS "ecce_url_subject"
+  //  notification already runs (subjectMCB()) when the Builder is open
+  //  on the same calc at the moment the edit is saved.  Calling it
+  //  again here is deliberately redundant with that: it is the one
+  //  path guaranteed to pick up the new structure even if that
+  //  notification was never delivered (CalcEd opened in a separate
+  //  session, message missed, this window's context not matched, ...).
+  wxCommandEvent dummy;
+  subjectMCB(dummy);
+
+  return true;
 }
 
 
@@ -2947,6 +3011,11 @@ bool CalcEd::generateInput(const bool& paramFlag)
         p_feedback->setMessage(message, WxFeedback::ERROR);
       }
     }
+
+    //  A freshly-generated deck is not a hand edit, whatever the file
+    //  it just replaced was.
+    if (success)
+      p_handEdited = false;
 
     //  A deck has just been written: check it and set the lamp (#148).
     //  Here rather than in enableLaunch(), which runs on every edit --

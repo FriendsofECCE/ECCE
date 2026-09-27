@@ -281,6 +281,31 @@ class CalcEd: public CalcEdGUI,
     void setVerifyLight(bool checked, VerifyFinding::Level level,
                         const string& tip);
 
+    /**
+     * The structure can change out from under an already-open CalcEd --
+     * edited in the Builder viewer while this window stays open on the
+     * same calculation (#GitHub, reported live 2026-09-27).  doSave()
+     * only regenerates the deck when ITS OWN fields are marked
+     * MODIFIED, which a purely-external structure edit never sets, so
+     * the stale deck was what got launched.
+     *
+     * Call this at every point that is about to hand the deck to
+     * something else (Launch, switching to another EcceTool).  It asks
+     * the calculation directly (ICalculation::isFragmentNew(), a real
+     * WebDAV timestamp comparison) rather than trusting this window's
+     * own edit-status bookkeeping, and regenerates when the structure
+     * is newer than the input file.
+     *
+     * If the current input file is a Final Edit hand edit, regenerating
+     * would silently destroy it, so this asks first (Yes = regenerate
+     * and lose the hand edit / No = launch the hand-edited file as is /
+     * Cancel = do nothing).
+     *
+     * @return false only on Cancel -- the caller must not proceed
+     *         (launch, tool switch) when this returns false.
+     */
+    bool regenerateIfStructureChanged();
+
   private:
     WxFeedback *p_feedback;
     EcceTool   *p_builderTool;
@@ -310,6 +335,15 @@ class CalcEd: public CalcEdGUI,
 
     string p_context;
     bool   p_startUp;
+
+    /**
+     * True once Final Edit has written a hand-edited deck back to DAV
+     * (processEditCompletion()), and cleared again the next time
+     * generateInput() writes a fresh, editor-generated deck.  Tracks
+     * whether the CURRENT input file on disk is a hand edit that
+     * regenerateIfStructureChanged() must not silently overwrite.
+     */
+    bool   p_handEdited;
 
     const static char* p_BASIS_QUICK_PICKS[];
 
