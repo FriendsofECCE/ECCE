@@ -952,7 +952,12 @@ bool SymmetryAnalysis::alignFrames(const vector<double>& from,
    R = identityOp();
    rmsd = 0.0;
 
-   if (from.size() != to.size() || from.size() < 9 || from.size() % 3 != 0)
+   //  Two atoms are enough: a diatomic is collinear, the fit fixes only
+   //  its axis, and the spin about that axis the degenerate-direction
+   //  fill-in below picks is as good as any other, because a linear
+   //  molecule is symmetric under all of them.  Requiring three atoms
+   //  refused every diatomic (CO, N2) outright.
+   if (from.size() != to.size() || from.size() < 6 || from.size() % 3 != 0)
       return false;
    const size_t n = from.size() / 3;
 

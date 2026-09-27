@@ -184,6 +184,24 @@ int main()
     check(diff < 1.0e-9, msg);
   }
 
+  //  A diatomic (CO, N2): two atoms, collinear.  Only the axis is fixed,
+  //  so check that the fitted rotation maps the atoms onto the target,
+  //  not which spin about the axis it chose.
+  {
+    vector<double> stored = { 0.0, 0.0, 0.0,   0.3, 0.8, 0.5 };
+    vector<double> target = { 0.0, 0.0, -0.4949747, 0.0, 0.0, 0.4949747 };
+    SymOp fit; double rmsd;
+    bool ok = SymmetryAnalysis::alignFrames(stored, target, fit, rmsd);
+    check(ok, "diatomic: alignFrames() succeeds with two atoms");
+    if (ok) {
+      char msg[120];
+      snprintf(msg, sizeof(msg), "diatomic: residual RMSD %.2e is ~0", rmsd);
+      check(rmsd < 1.0e-6, msg);
+      check(fabs(fit.determinant() - 1.0) < 1.0e-6,
+            "diatomic: fit is a proper rotation");
+    }
+  }
+
   printf("%s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }
