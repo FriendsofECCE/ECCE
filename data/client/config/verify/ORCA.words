@@ -30,12 +30,10 @@ $opt_n.basis
 $opt_n.con
 $opt_n.frag
 $opt_n.param
-$primcnt\n
 $result\
 $revision:
 $revision\n
 $runtype
-$shelllabel
 $solvent
 $symbol
 $theory
@@ -43,8 +41,8 @@ $useexplicitbasis
 $value
 $wrote
 %-46s
-%10.7f%18.8f%16.8f\n
 %3d%17.8f%16.8f\n
+%3d%17.8f%18.8f%4d\n
 %basis\n
 %cpcm\n
 %d\n
@@ -240,6 +238,7 @@ es.theory.scf.userijcosx
 es.theory.scf.usesolvation
 es.theory.scf.usesymmetry
 es.theory.usesymmetry
+expected
 exponent
 f
 file
@@ -331,6 +330,7 @@ pbe0
 pc-1
 pertab.pl
 polarization
+potential
 print[p_mos]
 print[p_orben]
 pwpb95
@@ -351,6 +351,7 @@ rmp2
 rpbe
 runtype
 s
+s-f
 s4
 s6
 s8
