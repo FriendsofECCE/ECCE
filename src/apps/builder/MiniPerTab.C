@@ -127,24 +127,36 @@ void MiniPerTab::CreateControls()
   p_gridSizer = new wxGridBagSizer(3, 3);
   p_sizer->Add(p_gridSizer, 0, wxEXPAND|wxLEFT|wxRIGHT|wxTOP, 2);
 
+  // Add H / Del H / Clean go on their own row now, split from the bond
+  // and shape selectors below -- keeping all five together on one row
+  // made this the pane's widest row once the element grid below was
+  // tightened up, defeating the point of tightening it.
+  wxBoxSizer * htopSizer = new wxBoxSizer(wxHORIZONTAL);
   wxBoxSizer * hSizer = new wxBoxSizer(wxHORIZONTAL);
 
+  // wxDefaultSize + wxBU_EXACTFIT, not a hardcoded wxSize(48,24) -- the
+  // same GTK3 theme padding problem the element buttons have (see
+  // setElements() below): a fixed pixel size can be too small for the
+  // label to fit under this theme, where letting the button size itself
+  // cannot.
   ewxButton * btn = new ewxButton(this, ViewerEvtHandler::ID_ADD_H,
-                                  "Add H", wxDefaultPosition, wxSize(48, 24));
-  hSizer->Add(btn, 0, wxCENTER|wxALL, 2);
+                                  "Add H", wxDefaultPosition, wxDefaultSize,
+                                  wxBU_EXACTFIT);
+  htopSizer->Add(btn, 0, wxCENTER|wxALL, 2);
   Connect(ViewerEvtHandler::ID_ADD_H, wxEVT_COMMAND_BUTTON_CLICKED,
           wxCommandEventHandler(MiniPerTab::OnAddhClick));
 
   btn = new ewxButton(this, ViewerEvtHandler::ID_DEL_H,
-                      "Del H", wxDefaultPosition, wxSize(48, 24));
-  hSizer->Add(btn, 0, wxCENTER|wxALL, 2);
+                      "Del H", wxDefaultPosition, wxDefaultSize,
+                      wxBU_EXACTFIT);
+  htopSizer->Add(btn, 0, wxCENTER|wxALL, 2);
   Connect(ViewerEvtHandler::ID_DEL_H, wxEVT_COMMAND_BUTTON_CLICKED,
           wxCommandEventHandler(MiniPerTab::OnRemovehClick));
 
   ewxBitmapButton *clean = new ewxBitmapButton(this,
           ViewerEvtHandler::ID_CLEAN_COORD,
           ewxBitmap("clean.png", wxBITMAP_TYPE_PNG));
-  hSizer->Add(clean, 0, wxCENTER|wxALL, 2);
+  htopSizer->Add(clean, 0, wxCENTER|wxALL, 2);
   Connect(ViewerEvtHandler::ID_CLEAN_COORD, wxEVT_COMMAND_BUTTON_CLICKED,
           wxCommandEventHandler(MiniPerTab::OnCleanClick));
 
@@ -210,8 +222,9 @@ void MiniPerTab::CreateControls()
 
   hSizer->Add(p_shapes, 0, wxALIGN_BOTTOM|wxLEFT|wxRIGHT|wxBOTTOM, 2);
 
+  p_sizer->Add(htopSizer, 0, wxEXPAND|wxLEFT|wxRIGHT|wxTOP, 2);
   p_sizer->Add(hSizer, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, 2);
-  
+
   setElements();
   //  p_sizer->AddSpacer(10);
 }
@@ -244,31 +257,55 @@ void MiniPerTab::setElements()
   TPerTab pertab;
   Preferences prefs("PerTable");
   string color;
-  
+
+  // Create all twelve element toggle buttons first (not yet placed in the
+  // grid), size them uniformly from their own content, then lay out the
+  // grid. wxBU_EXACTFIT (replacing the old wxSize(28,24)/wxDefaultSize
+  // guess -- see the earlier note about "Negative content width" GTK
+  // warnings) lets each button report an honest best size instead of the
+  // GTK3 theme's ~80px default button width, which is what was
+  // widening the whole pane past the dock. Sizing every button to the
+  // largest of the twelve keeps the grid regular rather than ragged
+  // (a "Cl" button noticeably wider than an "H" one); clamping width to
+  // at least height keeps each one roughly square rather than a thin
+  // postage stamp.
+  int index;
+  for (index = 0; index < NUM_ELT_BTN; ++index) {
+    p_eltBtns[index] = new wxToggleButton(this, index+ID_ELT_BASE,
+                                          p_elements[index],
+                                          wxDefaultPosition, wxDefaultSize,
+                                          wxBU_EXACTFIT);
+    ewxColor col;
+    if (prefs.getString(p_elements[index]+".Color", color))
+      col = ewxColor(color);
+    else
+      col = ewxColor(pertab.color(pertab.atomicNumber(p_elements[index])));
+    p_eltBtns[index]->SetBackgroundColour(col);
+    p_eltBtns[index]->SetFont(ewxStyledWindow::getBoldFont());
+  }
+
+  wxSize uniform(0, 0);
+  for (index = 0; index < NUM_ELT_BTN; ++index) {
+    const wxSize best = p_eltBtns[index]->GetBestSize();
+    if (best.x > uniform.x) uniform.x = best.x;
+    if (best.y > uniform.y) uniform.y = best.y;
+  }
+  if (uniform.x < uniform.y) {
+    uniform.x = uniform.y;
+  }
+  for (index = 0; index < NUM_ELT_BTN; ++index) {
+    p_eltBtns[index]->SetMinSize(uniform);
+  }
+
   wxWindow *btn;
-  int i, j, index=0;
+  int i, j;
+  index = 0;
   for (i=0; i<9; ++i) {
     for (j=0; j<2; ++j) {
       if (i == 4 || i == 7) {
         p_gridSizer->Add(5, 5, wxGBPosition(j,i));
       }
       else if (i<7) {
-        // wxSize(28, 24) used to be hardcoded here; under this system's
-        // GTK3 theme that's too small for the button's own padding/border
-        // to fit its 17x17 content region ("Negative content width"
-        // GTK-WARNING spam on every launch). Let the button size itself
-        // to its label instead of guessing a fixed pixel size.
-        p_eltBtns[index] = new wxToggleButton(this, index+ID_ELT_BASE,
-                                              p_elements[index],
-                                              wxDefaultPosition,
-                                              wxDefaultSize);
-        ewxColor col;
-        if (prefs.getString(p_elements[index]+".Color", color))
-          col = ewxColor(color);
-        else
-          col = ewxColor(pertab.color(pertab.atomicNumber(p_elements[index])));
-        p_eltBtns[index]->SetBackgroundColour(col);
-        p_eltBtns[index]->SetFont(ewxStyledWindow::getBoldFont());
         p_gridSizer->Add(p_eltBtns[index], wxGBPosition(j,i));
         ++index;
       }

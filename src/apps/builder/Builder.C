@@ -244,6 +244,12 @@ END_EVENT_TABLE()
 
 static bool internalSelect = false;
 
+//  Forward declarations: definitions (and their rationale) are with
+//  addToolPanel() below, but OnToolMenuClick() needs to call
+//  debugPrintPaneSizes() earlier in the file.
+static int contentMinWidth(wxWindow *window);
+static void debugPrintPaneSizes(wxAuiManager &mgr);
+
 
 namespace {
 
@@ -3225,6 +3231,7 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
     panel->refresh();
   }
   p_mgr.Update();
+  debugPrintPaneSizes(p_mgr);
 
 
   event.Skip();
@@ -4106,6 +4113,15 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
     wxString info;
     if (config->Read(layoutPrefix + pane.name, &info)) {
       p_mgr.LoadPaneInfo(info, pane);
+      //  A layout saved under an older build carries whatever flat
+      //  min_size.x was in force when it was saved (e.g. the old flat
+      //  200) -- LoadPaneInfo() just restored it verbatim, overriding
+      //  the content-derived floor addToolPanel() computed for this
+      //  session. Reapply it here, same as the property-panel restore
+      //  below.
+      wxSize minSize = pane.min_size;
+      minSize.x = contentMinWidth(pane.window);
+      pane.MinSize(minSize);
     }
   }
 
@@ -4123,6 +4139,11 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
         continue;
       }
       p.SafeSet(pane);
+      //  Same stale-saved-minimum problem as the tool-pane restore
+      //  above: SafeSet() just copied the saved min_size.x verbatim.
+      wxSize minSize = p.min_size;
+      minSize.x = contentMinWidth(p.window);
+      p.MinSize(minSize);
       //  addPropertyPanel() ticked this panel's Property-menu item from
       //  the pane's visibility as it added it, which was BEFORE the line
       //  above put the saved visibility back.  So a panel restored hidden
@@ -4164,6 +4185,7 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
 
   if (update) {
     p_mgr.Update();
+    debugPrintPaneSizes(p_mgr);
   }
 }
 
@@ -4638,6 +4660,77 @@ void Builder::torsionPopup(int x, int y, AtomMeasureTorsion *torsion)
 }
 
 
+//  A docked pane's width floor, derived from its own content rather than
+//  a flat constant. wxAUI's LayoutAll() raises a dock's width to the
+//  largest shown pane's min_size.x, so giving every pane an honest
+//  content-based MinSize().x is enough to widen the whole right-hand
+//  dock to fit whichever pane needs the most room (reported live: the
+//  Build tool pane's element grid clipped against the dock). Used
+//  uniformly by addToolPanel(), addPropertyPanel() and loadPaneLayout()
+//  (the last one because a saved wxbuilder.ini layout
+//  from an older build carries whatever flat minimum was in force when it
+//  was saved, and LoadPaneInfo()/SafeSet() would otherwise silently
+//  reimpose that stale value over whatever was just computed here).
+//
+//  PANE_WIDTH_MIN is the same "unpainted GTK3 panel reports ~0" floor
+//  described beside PANEL_HEIGHT_MIN below -- a degenerate answer is not
+//  evidence the panel wants to be that narrow. PANE_WIDTH_MAX caps the
+//  other end: one unusually wide pane (a wide table, a long combo row)
+//  must not let the dock swallow the 3-D viewer -- above the cap the pane
+//  is resizable/scrolls internally rather than widening the shared dock.
+static const int PANE_WIDTH_MIN = 200;
+static const int PANE_WIDTH_MAX = 600;
+
+static int contentMinWidth(wxWindow *window)
+{
+  if (!window) {
+    return PANE_WIDTH_MIN;
+  }
+  // Lay out first -- GetMinSize()/GetBestSize() on a panel with a sizer
+  // needs the sizer to have seen its children, and these can be called
+  // before the panel has ever been shown.
+  window->Layout();
+  int w = window->GetMinSize().x;
+  if (w <= 0) {
+    w = window->GetBestSize().x;
+  }
+  if (w < PANE_WIDTH_MIN) {
+    w = PANE_WIDTH_MIN;
+  }
+  if (w > PANE_WIDTH_MAX) {
+    w = PANE_WIDTH_MAX;
+  }
+  return w;
+}
+
+
+//  ECCE_DEBUG_PANEL_SIZE=1 also prints one [PANESIZE] line per currently
+//  shown docked pane, once the frame's layout has actually settled --
+//  this is how an affected applet is identified by data rather than by
+//  eye. CLIPPED means wxAUI gave the pane less width than its own content
+//  asked for.
+static void debugPrintPaneSizes(wxAuiManager &mgr)
+{
+  if (!getenv("ECCE_DEBUG_PANEL_SIZE")) {
+    return;
+  }
+  wxAuiPaneInfoArray &panes = mgr.GetAllPanes();
+  for (size_t i = 0, count = panes.GetCount(); i < count; ++i) {
+    wxAuiPaneInfo &pane = panes.Item(i);
+    if (!pane.IsShown() || !pane.window) {
+      continue;
+    }
+    const wxSize best = pane.window->GetBestSize();
+    const bool clipped = pane.rect.width > 0 && pane.rect.width < best.x;
+    printf("[PANESIZE] %-28s content=%dx%d min=%d actual=%dx%d%s\n",
+           (const char*)pane.name.mb_str(), best.x, best.y, pane.min_size.x,
+           pane.rect.width, pane.rect.height,
+           clipped ? " CLIPPED" : "");
+    fflush(stdout);
+  }
+}
+
+
 void Builder::addToolPanel(wxWindow *panel, const string& name,
                            const bool& readOnlyDisabled,
                            const bool& alwaysFixed)
@@ -4645,8 +4738,10 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
   wxAuiPaneInfo pinfo;
   pinfo.Name(name).Caption(name).Show(false).CaptionVisible(true)
           .Right().Position(p_toolCount).Fixed();
+  int minWidth = contentMinWidth(panel);
   if (alwaysFixed) {
     pinfo.Fixed().MaximizeButton(false);
+    pinfo.MinSize(wxSize(minWidth, 150));
   } else {
     pinfo.Resizable(true).MaximizeButton(true);
     // A resizable pane is only actually recoverable if there's a resize
@@ -4658,7 +4753,7 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
     // before this session) collapsing the same way as the newly-
     // resizable panels, confirming this is a pane-level floor problem,
     // not something specific to any one panel's own layout.
-    pinfo.MinSize(wxSize(200, 150));
+    pinfo.MinSize(wxSize(minWidth, 150));
   }
 
   // NOTE: the OptionsButton() caption button (ewxAUI addition) has no
@@ -4776,7 +4871,6 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     static const int PANEL_HEIGHT_MIN      = 80;   // still leaves a grip
     static const int PANEL_HEIGHT_MAX      = 600;  // no pane eats the dock
     static const int PANEL_HEIGHT_PADDING  = 12;
-    static const int PANEL_WIDTH_MIN       = 200;  // last resort only
 
     int paneHeight = PANEL_HEIGHT_FALLBACK;
     if (!uniformPanelHeight()) {
@@ -4812,20 +4906,15 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     //  Proportional rather than absolute, so a taller dock scales all of
     //  them up; a short readout still gets a small share of it instead of
     //  an equal one, which is the point.
-    //  The floor's WIDTH comes from the panel, not a constant.  A
-    //  hardcoded 200 lets the dock shrink a pane below what its own
-    //  content needs, and the controls at the end of a horizontal row
-    //  are simply clipped -- reported as the vibration panel's
-    //  stop-animation button "not showing, or too narrow", with the
-    //  play button beside it visible.  createPropertyPanel() already
+    //  The floor's WIDTH comes from the panel, not a constant -- see
+    //  contentMinWidth() above, shared with addToolPanel() and
+    //  loadPaneLayout(). A hardcoded 200 lets the dock shrink a pane
+    //  below what its own content needs, and the controls at the end of
+    //  a horizontal row are simply clipped -- reported as the vibration
+    //  panel's stop-animation button "not showing, or too narrow", with
+    //  the play button beside it visible.  createPropertyPanel() already
     //  gives every property panel SetMinSize(400, -1); honour it.
-    int paneMinWidth = panel->GetMinSize().x;
-    if (paneMinWidth <= 0) {
-      paneMinWidth = panel->GetBestSize().x;
-    }
-    if (paneMinWidth < PANEL_WIDTH_MIN) {
-      paneMinWidth = PANEL_WIDTH_MIN;
-    }
+    int paneMinWidth = contentMinWidth(panel);
     info.MinSize(wxSize(paneMinWidth, PANEL_HEIGHT_MIN));
     info.BestSize(wxSize(paneMinWidth, paneHeight));
     info.dock_proportion = paneHeight;
