@@ -2467,7 +2467,21 @@ bool MoFragments::build(const vector<double>& coords,
       }
 
       if (how != 0) *how = CENTRAL;
-      if ((want != NOT_BUILT && want != CENTRAL) ||
+      //  AN EXPLICIT "metal and its donor atoms" REQUEST MUST TAKE THE
+      //  SAME PATH AUTOMATIC DOES (#132 follow-up).
+      //
+      //  partition() on the coordination skeleton (ligandField above
+      //  has already reduced coordsUsed/elementsUsed to the metal plus
+      //  one donor atom per ligand) is exactly a central atom with one
+      //  set of equivalent neighbours -- the case it exists for -- and
+      //  Automatic (want == NOT_BUILT) reaches it and succeeds. Asking
+      //  for SKELETON explicitly used to be excluded from this gate
+      //  (only NOT_BUILT and CENTRAL were let through), which forced
+      //  every explicit request into the fallback chain below instead,
+      //  where none of its branches are gated for SKELETON and Cr(CO)6
+      //  fell all the way to "there is no such split" -- even though
+      //  Automatic, one call away, builds the identical skeleton fine.
+      if ((want != NOT_BUILT && want != CENTRAL && want != SKELETON) ||
           !partition(orbits, elementsUsed, central, terminal)) {
 
          //  THE MOST CONNECTED ATOM AGAINST EVERYTHING ELSE.
