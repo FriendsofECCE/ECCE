@@ -20,11 +20,16 @@
 #include "tdat/PropTable.H"
 #include "tdat/TGBSAngFunc.H"
 #include "dsm/TGBSConfig.H"
+#include "dsm/TGaussianBasisSet.H"
 #include "dsm/ICalculation.H"
 #include "dsm/ICalcUtils.H"
 #include "dsm/JCode.H"
 #include "tdat/CharacterTable.H"
 #include "tdat/SymmetryOps.H"
+#include "tdat/SymmetryAnalysis.H"
+#include "tdat/ShellRotation.H"
+#include "tdat/BasisFlatten.H"
+#include "tdat/EspField.H"
 #include "tdat/TAtm.H"
 
 #include "dsm/IPropCalculation.H"
@@ -495,6 +500,347 @@ void MoDiagramPanel::initialize()
 }
 
 
+namespace {
+
+  /**
+   * The subgroup name whose irreps cover a set of reported labels --
+   * the SAME "smallest group whose irreps cover them" search the
+   * existing #147 downgrade further down in build() runs, but wanted
+   * here, BEFORE groupByIrrep(), to drive the independent cross-check.
+   * Kept as its own small copy rather than factored out: the two
+   * versions differ in exactly one respect (this one returns just the
+   * name; the other also rewrites `group`/`why` for the whole diagram)
+   * and sharing risked coupling changes to one into the other.
+   */
+  string smallestCoveringGroup(const vector<string>& reported)
+  {
+    set<string> canon;
+    for (size_t i = 0; i < reported.size(); i++) {
+      const string c = MoDiagram::canonicalIrrep(reported[i]);
+      if (!c.empty()) canon.insert(c);
+    }
+    if (canon.empty()) return string();
+
+    vector<string> all = CharacterTable::names();
+    string best;
+    int bestOrder = 0;
+    for (size_t g = 0; g < all.size(); g++) {
+      const CharacterTable *cand = CharacterTable::lookup(all[g]);
+      if (cand == 0) continue;
+      const vector<string>& theirs = cand->irreps();
+      bool covers = true;
+      for (set<string>::const_iterator it = canon.begin();
+           covers && it != canon.end(); ++it) {
+        bool found = false;
+        for (size_t j = 0; j < theirs.size(); j++) {
+          if (MoDiagram::canonicalIrrep(theirs[j]) == *it) found = true;
+        }
+        if (!found) covers = false;
+      }
+      if (!covers) continue;
+      const int order = cand->order();
+      if (best.empty() || order < bestOrder) { best = all[g]; bestOrder = order; }
+    }
+    return best;
+  }
+
+  /**
+   * Try to replace a code's own ORBSYM with labels computed from the
+   * orbitals themselves, in the FULL point group (#147/#132).
+   *
+   * Deliberately all-or-nothing and heavily defensive: anything this
+   * needs that is missing, mismatched, or fails its own internal
+   * checks (a shell the angular table cannot describe, a bad frame
+   * fit, a subgroup cross-check that does not fully agree) makes this
+   * return false and leave `computed`/`note` untouched -- the caller
+   * then keeps the code's own labels and the existing #147 subgroup-
+   * downgrade path exactly as it already runs.
+   *
+   * The independent evidence this insists on before replacing anything
+   * is the SAME one tests/symmetry/testSubgroupCrossCheck.C uses: the
+   * code's own abelian-subgroup labels (built from diagonal +/-1
+   * operations in the STORED frame, no gensym/autosym involved) must
+   * agree with what this computes for that subgroup, AND the full-
+   * group label this assigns must subduce to it. Only both together
+   * are treated as confirmation; the full-group computation is never
+   * trusted on its own say-so. If the code reported no labels at all
+   * there is nothing to cross-check against, so nothing is replaced --
+   * the existing s/p-only orbitalIrrep() path already exists for that
+   * more common case and is untouched by any of this.
+   */
+  bool computeFullGroupLabels(IPropCalculation *calc,
+                              const string& group,
+                              const CharacterTable *table,
+                              SGFragment *sgfrag,
+                              const vector<double>& probeCoords,
+                              const vector<string>& elements,
+                              const vector<double>& e,
+                              const vector<string>& reported,
+                              vector<string>& computed,
+                              string& note)
+  {
+    if (calc == 0 || table == 0 || sgfrag == 0) return false;
+    if (reported.empty()) return false;   // nothing to cross-check against
+    if (probeCoords.size() != elements.size()*3) return false;
+
+    ICalculation *escalc = dynamic_cast<ICalculation*>(calc);
+    if (escalc == 0) return false;
+
+    TGBSConfig *config = escalc->gbsConfig();
+    if (config == 0 || config->empty()) return false;
+
+    const JCode *code = escalc->application();
+    if (code == 0) return false;
+
+    TGBSAngFunc *angfunc = code->getAngFunc(config->coordsys());
+    if (angfunc == 0) return false;
+    const bool spherical = (config->coordsys() == TGaussianBasisSet::Spherical);
+
+    PropTable *moCoefs = (PropTable*)calc->getProperty("MO");
+    if (moCoefs == 0) return false;
+
+    //  The STORED frame -- sgfrag's OWN coordinates, not the reoriented
+    //  probe copy -- because the MO coefficients are in whatever frame
+    //  the code's SCF actually ran in (see SymmetryAnalysis::alignFrames()'s
+    //  header comment).
+    vector<TAtm*> *atoms = sgfrag->atoms();
+    double *xyz = sgfrag->coordinates();
+    const unsigned long natoms = sgfrag->numAtoms();
+    if (atoms == 0 || xyz == 0 || natoms == 0 || atoms->size() != natoms ||
+        elements.size() != natoms) {
+      delete atoms;
+      return false;
+    }
+    vector<string> storedElements(natoms);
+    vector<double> storedCoords(natoms*3);
+    for (unsigned long a = 0; a < natoms; a++) {
+      storedElements[a] = (*atoms)[a]->atomicSymbol();
+      for (int k = 0; k < 3; k++) storedCoords[a*3+k] = xyz[a*3+k];
+    }
+    delete atoms;
+
+    vector<EspBasisFunction> basis;
+    int lengthShellCart[7] = { 1, 3, 6, 10, 15, 21, 28 };
+    int lengthShellSph[7]  = { 1, 3, 5, 7, 9, 11, 13 };
+    int *lengthShell = spherical ? lengthShellSph : lengthShellCart;
+    if (!BasisFlatten::flatten(storedElements, storedCoords, config, code,
+                              angfunc, angfunc->maxShells(), lengthShell, basis))
+      return false;
+    if ((int)basis.size() != moCoefs->columns()) return false;
+
+    //  A shell the angular table cannot describe leaves an EMPTY
+    //  placeholder with no centre -- decline outright rather than risk
+    //  misreading the atom boundaries below from it.
+    for (size_t i = 0; i < basis.size(); i++) if (basis[i].empty()) return false;
+
+    //  Per-atom function counts, read back off the flattened basis's
+    //  OWN atom-major walk (grouped by contiguous matching centre)
+    //  rather than re-derived from the config -- one walk, trusted,
+    //  not two that could disagree.
+    vector<int> perAtom;
+    {
+      size_t i = 0;
+      while (i < basis.size()) {
+        size_t j = i;
+        while (j < basis.size() &&
+               fabs(basis[j].center[0]-basis[i].center[0]) < 1.0e-9 &&
+               fabs(basis[j].center[1]-basis[i].center[1]) < 1.0e-9 &&
+               fabs(basis[j].center[2]-basis[i].center[2]) < 1.0e-9) j++;
+        perAtom.push_back((int)(j - i));
+        i = j;
+      }
+    }
+    if (perAtom.size() != natoms) return false;
+
+    const int nbasis = (int)basis.size();
+    vector< vector<double> > S(nbasis, vector<double>(nbasis, 0.0));
+    for (int i = 0; i < nbasis; i++)
+      for (int j = 0; j < nbasis; j++)
+        S[i][j] = EspField::overlapOf(basis[i], basis[j]);
+
+    vector<int> shellTypeOf(nbasis);
+    for (int i = 0; i < nbasis; i++) {
+      shellTypeOf[i] = basis[i].powerX[0]+basis[i].powerY[0]+basis[i].powerZ[0];
+    }
+
+    //  The full group's own operations (gensym's standard frame,
+    //  matching `probeCoords`) -- shelled out to symops exactly as
+    //  every other structural tool in ECCE does.
+    vector<SymOp> ops;
+    if (!MoFragments::symmetryOperations(group, ops)) return false;
+
+    vector< vector<int> > images;
+    if (!SymmetryAnalysis::atomImages(probeCoords, elements, ops, 0.05, images))
+      return false;
+
+    vector< vector<int> > classes;
+    SymmetryAnalysis::conjugacyClasses(ops, classes);
+    vector<int> classOfOp;
+    if (!SymmetryAnalysis::matchClasses(ops, classes, *table, classOfOp))
+      return false;
+
+    SymOp Q; double rmsd;
+    if (!SymmetryAnalysis::alignFrames(storedCoords, probeCoords, Q, rmsd))
+      return false;
+    if (rmsd > 0.1) return false;   // frames do not actually agree
+
+    vector<SymOp> opsInCoeffFrame(ops.size());
+    for (size_t i = 0; i < ops.size(); i++)
+      opsInCoeffFrame[i] = SymmetryAnalysis::conjugate(ops[i], Q);
+
+    const int norb = moCoefs->rows();
+    if (norb <= 0 || (int)e.size() != norb) return false;
+    vector< vector<double> > orbitals(norb, vector<double>(nbasis));
+    for (int m = 0; m < norb; m++)
+      for (int mu = 0; mu < nbasis; mu++)
+        orbitals[m][mu] = moCoefs->value(m, mu);
+
+    vector<string> fullDerived;
+    const int fullLabelled = SymmetryAnalysis::fullLabelSpectrum(
+        orbitals, e, perAtom, shellTypeOf, S, images, classOfOp,
+        opsInCoeffFrame, angfunc, *table, 1.0e-4, fullDerived);
+    if (fullLabelled <= 0) return false;
+
+    //  THE INDEPENDENT CHECK: the code's own reported labels, verified
+    //  against operations built directly in the stored frame (no
+    //  gensym/autosym on this side at all -- see
+    //  SymmetryAnalysis::subgroupLabelSpectrum()'s header comment).
+    const string subgroupName = smallestCoveringGroup(reported);
+    if (subgroupName.empty() || subgroupName == group) return false;
+    const CharacterTable *subgroupTable = CharacterTable::lookup(subgroupName);
+    if (subgroupTable == 0) return false;
+
+    vector<string> subDerived;
+    string axisNote;
+    const int subLabelled = SymmetryAnalysis::subgroupLabelSpectrum(
+        orbitals, reported, perAtom, shellTypeOf, S, storedElements,
+        storedCoords, angfunc, *subgroupTable, 1.0e-4, 1.0e-4, subDerived,
+        axisNote);
+    if (subLabelled <= 0) return false;
+
+    int agree = 0, checked = 0;
+    for (int i = 0; i < norb; i++) {
+      if (subDerived[i].empty() || i >= (int)reported.size() ||
+          reported[i].empty()) continue;
+      checked++;
+      string a = subDerived[i], b = reported[i];
+      for (size_t c = 0; c < a.size(); c++) a[c] = toupper((unsigned char)a[c]);
+      for (size_t c = 0; c < b.size(); c++) b[c] = toupper((unsigned char)b[c]);
+      if (a == b) agree++;
+    }
+    //  ALL OR NOTHING: a single disagreement means the axis convention
+    //  or the frame premise is wrong somewhere, and a diagram is not
+    //  the place to find out which -- keep the code's own labels.
+    if (checked == 0 || agree != checked) return false;
+
+    //  SUBDUCTION, independent of the cross-check just done: every
+    //  full-group label fullLabelSpectrum() assigned must itself
+    //  restrict, via its own characters, to include the (now verified)
+    //  subgroup label for that same orbital -- otherwise the full-
+    //  group computation and the subgroup one agree with the code by
+    //  coincidence, not because the full-group frame/operations are
+    //  actually right for this run.  Only D2/D2H subgroups (what
+    //  subgroupLabelSpectrum() builds operations for) are checked this
+    //  way; the axis permutation it settled on is recovered from
+    //  axisNote rather than threaded through another parameter.
+    {
+      static const int PERMS[6][3] = { {0,1,2},{0,2,1},{1,0,2},{1,2,0},{2,0,1},{2,1,0} };
+      int perm[3] = { 0, 1, 2 };
+      bool permFound = false;
+      for (int p = 0; p < 6 && !permFound; p++) {
+        const char *ax[3] = {
+          PERMS[p][0]==0?"z":PERMS[p][0]==1?"y":"x",
+          PERMS[p][1]==0?"z":PERMS[p][1]==1?"y":"x",
+          PERMS[p][2]==0?"z":PERMS[p][2]==1?"y":"x" };
+        if (axisNote.find(string("(1st table C2)=") + ax[0]) != string::npos &&
+            axisNote.find(string("(2nd)=") + ax[1]) != string::npos) {
+          perm[0] = PERMS[p][0]; perm[1] = PERMS[p][1]; perm[2] = PERMS[p][2];
+          permFound = true;
+        }
+      }
+
+      const int subOrder = subgroupTable->order();
+      SymOp c2phys[3] = {
+        { {{-1,0,0},{0,-1,0},{0,0,1}} },
+        { {{-1,0,0},{0,1,0},{0,0,-1}} },
+        { {{1,0,0},{0,-1,0},{0,0,-1}} }
+      };
+      const SymOp inv = { {{-1,0,0},{0,-1,0},{0,0,-1}} };
+      vector<SymOp> subPhys;
+      subPhys.push_back({ {{1,0,0},{0,1,0},{0,0,1}} });
+      for (int k = 0; k < 3; k++) subPhys.push_back(c2phys[perm[k]]);
+      if (subOrder == 8) {
+        subPhys.push_back(inv);
+        for (int k = 0; k < 3; k++) {
+          const SymOp& c = c2phys[perm[k]];
+          SymOp s;
+          for (int a=0;a<3;a++) for (int b=0;b<3;b++) s.m[a][b] =
+              (a==b) ? inv.m[a][a]*c.m[a][a] : 0.0;
+          subPhys.push_back(s);
+        }
+      }
+
+      bool subductionOk = permFound && (int)subPhys.size() == subOrder;
+      vector<int> subClassToFullClass(subOrder, -1);
+      if (subductionOk) {
+        for (int k = 1; k < subOrder; k++) {
+          const SymOp& want = subPhys[k];
+          int foundClass = -1;
+          for (size_t o = 0; o < opsInCoeffFrame.size() && foundClass < 0; o++) {
+            bool same = true;
+            for (int a = 0; a < 3 && same; a++)
+              for (int b = 0; b < 3 && same; b++)
+                if (fabs(opsInCoeffFrame[o].m[a][b]-want.m[a][b]) > 1.0e-3) same = false;
+            if (same) foundClass = classOfOp[o];
+          }
+          subClassToFullClass[k] = foundClass;
+          if (foundClass < 0) subductionOk = false;
+        }
+      }
+
+      if (subductionOk) {
+        const vector<string>& subNames = subgroupTable->irreps();
+        for (int i = 0; i < norb && subductionOk; i++) {
+          if (fullDerived[i].empty() || subDerived[i].empty()) continue;
+          const vector<double> *chiFull = table->characters(fullDerived[i]);
+          if (chiFull == 0) { subductionOk = false; break; }
+
+          double bestMult = -1;
+          for (size_t x = 0; x < subNames.size(); x++) {
+            const vector<double> *chiSub = subgroupTable->characters(subNames[x]);
+            if (chiSub == 0 || (int)chiSub->size() != subOrder) continue;
+            double sum = (*chiFull)[0]*(*chiSub)[0];
+            for (int k = 1; k < subOrder; k++)
+              sum += (*chiFull)[subClassToFullClass[k]] * (*chiSub)[k];
+            string a = subNames[x], b = subDerived[i];
+            for (size_t c=0;c<a.size();c++) a[c]=toupper((unsigned char)a[c]);
+            for (size_t c=0;c<b.size();c++) b[c]=toupper((unsigned char)b[c]);
+            if (a == b) bestMult = sum/subOrder;
+          }
+          if (bestMult <= 0.5) subductionOk = false;
+        }
+      }
+      if (!subductionOk) return false;
+    }
+
+    computed.assign(reported.size(), string());
+    for (int i = 0; i < norb && i < (int)computed.size(); i++) {
+      if (!fullDerived[i].empty()) computed[i] = fullDerived[i];
+    }
+
+    ostringstream text;
+    text << "Symmetry labels computed from the orbitals in " << group
+         << " (cross-checked against the code's own " << subgroupName
+         << " labels, which agreed on all " << checked << " orbitals "
+            "both sides could label, and every computed label subduces "
+            "to match).";
+    note = text.str();
+    return true;
+  }
+
+}
+
+
 void MoDiagramPanel::refresh()
 {
   build();
@@ -654,6 +1000,23 @@ void MoDiagramPanel::build()
           table->dimension(irreps[i]);
     }
   }
+
+  //  #147/#132: labelling in the FULL point group, from the orbitals
+  //  themselves, rather than trusting a code that symmetry-adapts only
+  //  in an abelian subgroup (ORCA's UseSym, some G16 jobs). Replaces
+  //  `s` ONLY when the independent cross-check below fully agrees;
+  //  otherwise `s` is untouched and the existing subgroup-downgrade
+  //  path further down runs exactly as it already did.
+  {
+    vector<string> computedLabels;
+    string computedNote;
+    if (computeFullGroupLabels(calc, group, table, sgfrag, coords, elements,
+                               e, s, computedLabels, computedNote)) {
+      s = computedLabels;
+      if (why.empty()) why = computedNote;
+    }
+  }
+
   MoDiagram::groupByIrrep(e, o, s, dimensions, 1.0e-4, centre.levels);
   centre.title = "Molecular orbitals";
 
