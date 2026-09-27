@@ -12,6 +12,9 @@
 #endif
 
 #include <iostream>
+#include <fstream>
+#include <vector>
+#include <cctype>
 using namespace std;
 
 #include "util/Ecce.H"
@@ -144,6 +147,41 @@ void WxCalcImport::importCalc()
               if (oput != "")
                 name = oput;
             }
+          }
+        }
+
+        // Gaussian: name the calculation after the job's own title, the
+        // line Gaussian prints between dashes just before "Symbolic
+        // Z-matrix:" (it does so for Cartesian input too), rather than
+        // after the file -- every G16 import used to be "Gaussian16".
+        // Calculation names allow only letters, digits, '.' and '_'
+        // (CalcMgr::isValidName), so anything else becomes '_'.
+        if (name.compare(0, 8, "Gaussian") == 0) {
+          ifstream in(fileSpec.c_str());
+          vector<string> recent;
+          string line;
+          while (getline(in, line)) {
+            if (line.find("Symbolic Z-matrix:") != string::npos) {
+              const size_t n = recent.size();
+              if (n >= 3 &&
+                  recent[n-1].find_first_not_of(" -") == string::npos &&
+                  recent[n-3].find_first_not_of(" -") == string::npos) {
+                string title = recent[n-2];
+                const size_t b = title.find_first_not_of(" \t");
+                const size_t e = title.find_last_not_of(" \t\r");
+                title = (b == string::npos) ? "" : title.substr(b, e-b+1);
+                string clean;
+                for (size_t i = 0; i < title.size() && clean.size() < 64; i++) {
+                  const char ch = title[i];
+                  clean += (isalnum((unsigned char)ch) || ch == '.' || ch == '_')
+                           ? ch : '_';
+                }
+                if (!clean.empty()) name = clean;
+              }
+              break;
+            }
+            recent.push_back(line);
+            if (recent.size() > 3) recent.erase(recent.begin());
           }
         }
 
