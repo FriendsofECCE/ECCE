@@ -282,7 +282,15 @@ bool EDSIServerCentral::checkServerSetup()
       //  this check fails, so a missing basis set library presents as the
       //  Builder and Viewer refusing to open at all, with nothing
       //  connecting the two.
-      msg += "\nThe data server recreates these when it starts. Try:\n";
+      //  On a fresh install the usual cause is that no ECCE account exists
+      //  yet (#150): every request is refused, so "users" fails first.
+      if (failure.find("users") != string::npos) {
+        msg += "\nIf you have not created an ECCE account yet, do that first:\n";
+        msg += "    ecce-dataserver-adduser\n";
+        msg += "then start ECCE again. Otherwise:\n";
+      } else {
+        msg += "\nThe data server recreates these when it starts. Try:\n";
+      }
       msg += "    ecce-dataserver-stop && ecce-dataserver-start\n";
       throw EcceException(msg, WHERE);
     }

@@ -108,6 +108,12 @@ sub printThem {
 
   ($ekey, $mokey) = @_;
 
+  # No MO block in fort.7 (no pop=full): emit nothing rather than a
+  # rows=0 property, which is rejected as invalid (#160).
+  if ($norb == 0) {
+    return;
+  }
+
   ## ORBITAL ENERGIES
   print "key: $ekey\n";
   print "size:\n$norb\n";
