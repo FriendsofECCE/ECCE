@@ -319,6 +319,7 @@ sub defineStatusSymbols()
   $retval .= "set X_INTERRUPTED     = 302;    # caught interrupt - kill \n";
   $retval .= "set X_FILE_EXIST      = 211;    # in/out file does not exist\n";
   $retval .= "set X_UNEXPECTED_CORE = 221;    # code exit 0 but core exists\n";
+  $retval .= "set X_NOT_NORMAL      = 231;    # code exit 0 but no normal-termination line\n";
 
   return $retval;
   nouse strict vars;
@@ -521,6 +522,24 @@ sub determineStatus()
   $retval .= "  set exitStatus = \$X_FILE_EXIST\n";
 
   $retval .= "endif\n";
+
+  # Some codes exit 0 after aborting -- ORCA does when its MPI start-up
+  # fails ("binding more processes than cpus"), and the job was then
+  # reported as completed with no results.  Where a code prints a line
+  # only on success, require it.
+  my %normalTermination = (
+    'orca' => 'ORCA TERMINATED NORMALLY',
+  );
+  if (defined $normalTermination{$lccode}) {
+    my $marker = $normalTermination{$lccode};
+    $retval .= "\nif ( \$exitStatus == 0 ) then\n";
+    $retval .= "  grep -q \"$marker\" $runDir/$outFile\n";
+    $retval .= "  if ( \$status != 0 ) then\n";
+    $retval .= "    echo \"No '$marker' in $outFile - setting status to failed\" >> $logfile\n";
+    $retval .= "    set exitStatus = \$X_NOT_NORMAL\n";
+    $retval .= "  endif\n";
+    $retval .= "endif\n";
+  }
   $retval .= "echo \"Final exit status = \$exitStatus\" >> $logfile\n";
   return $retval; 
 }
