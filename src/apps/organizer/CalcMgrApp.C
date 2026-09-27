@@ -227,6 +227,11 @@ void CalcMgrApp::msgMachConfChangedMCB(JMSMessage& msg)
 void CalcMgrApp::msgMachRegChangedMCB(JMSMessage& msg)
 {
   RefMachine::markUpdateUserPrefs();
+
+  // Issue #150: Register Machines just reported a save or delete -- the
+  // notice must not wait for the window to be reactivated to notice.
+  if (p_calcMgr != NULL)
+    p_calcMgr->refreshMachineNotice();
 }
 
 

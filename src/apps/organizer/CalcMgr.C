@@ -73,9 +73,12 @@ using std::endl;
 #include "wxgui/EcceTool.H"
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxBitmap.H"
+#include "wxgui/ewxButton.H"
 #include "wxgui/ewxFileDialog.H"
 #include "wxgui/ewxMessageDialog.H"
+#include "wxgui/ewxPanel.H"
 #include "wxgui/ewxStaticLine.H"
+#include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextEntryDialog.H"
 #include "wxgui/WxCalcImport.H"
 #include "wxgui/WxCalcImportClient.H"
@@ -151,6 +154,12 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   p_disabler = 0;
   p_disablerCount = 0;
   p_cursor = 0;
+
+  // Issue #150: built once, right after the base class has laid out the
+  // toolbar and splitter this inserts itself between.
+  p_machineNoticePanel = NULL;
+  buildMachineNotice();
+  Bind(wxEVT_ACTIVATE, &CalcMgr::OnActivate, this);
 
   initializeGUI();
 
@@ -252,6 +261,10 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   if (msg != "") {
     setMessage(msg, WxFeedback::INFO);
   }
+
+  // Issue #150: checked last, once whatever registerLocalMachine() just
+  // did (or failed to do) is already reflected in RefMachine's tables.
+  refreshMachineNotice();
 
   stopDisabler();
 
@@ -2688,6 +2701,108 @@ void CalcMgr::OnGlobalTool(wxCommandEvent& event)
     return;
   }
   startApp(tool->getName(), 0, "");
+}
+
+
+/**
+ *  Issue #150: nothing in the running application told a first-time user
+ *  that a compute machine has to be registered before any calculation can
+ *  be launched -- both GETTING_STARTED.md-only facts, discoverable to
+ *  nobody who installed from a .deb.  This builds the (initially hidden)
+ *  one-line notice row and inserts it into the frame's own top-level
+ *  sizer, between the toolbar and the tree splitter -- non-modal, so it
+ *  never blocks getting on with anything else the Organizer can already
+ *  do (browsing, importing, ...).
+ *
+ *  Built here, not in the generated CalcMgrGUI::CreateControls(), for the
+ *  same reason WxBasisTool::buildFilterControls() is hand-written (#117):
+ *  a wxFormBuilder-style regeneration of the .pjd would silently discard
+ *  it.
+ */
+void CalcMgr::buildMachineNotice()
+{
+  p_machineNoticePanel = new ewxPanel(this, wxID_ANY);
+
+  wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+
+  ewxStaticText *text = new ewxStaticText(p_machineNoticePanel, wxID_STATIC,
+      _("No compute machine is registered yet -- a calculation cannot be "
+        "launched until one is."));
+  row->Add(text, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 6);
+
+  ewxButton *button = new ewxButton(p_machineNoticePanel, wxID_ANY,
+                                    _("Register Machines..."));
+  button->Bind(wxEVT_BUTTON, &CalcMgr::machineNoticeRegisterClickCB, this);
+  row->Add(button, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 6);
+
+  p_machineNoticePanel->SetSizer(row);
+
+  //  Right after the toolbar (index 0), before the tree splitter -- see
+  //  CalcMgrGUI::CreateControls(), which adds exactly those two, in that
+  //  order, and nothing else, to p_topSizer.
+  p_topSizer->Insert(1, p_machineNoticePanel, 0, wxGROW|wxALL, 0);
+  p_machineNoticePanel->Show(false);
+  p_topSizer->Hide(p_machineNoticePanel);
+}
+
+
+/**
+ *  Show or hide the notice depending on whether ANY compute machine is
+ *  currently known -- site-configured (the central-server / classroom
+ *  case, where students never register anything themselves) or the
+ *  user's own MyMachines. RefMachine::referenceNames(allMachines) is
+ *  exactly CalcMgr's own idea of "is a machine registered", already used
+ *  (transitively, via RunMgmt::registerLocalMachine()) at the end of
+ *  Create() -- so a fresh install that failed to auto-register the local
+ *  host still gets the fallback of this notice pointing at Register
+ *  Machines.
+ *
+ *  Called after Create()'s own initial check, again whenever the
+ *  Register Machines tool reports a save or delete (JMS "ecce_machreg_
+ *  changed", see CalcMgrApp::msgMachRegChangedMCB()), and on the frame
+ *  being reactivated -- covering both "closed Register Machines and came
+ *  back" and, belt-and-suspenders, any other path that changed
+ *  MyMachines without publishing that message.
+ */
+void CalcMgr::refreshMachineNotice()
+{
+  if (p_machineNoticePanel == NULL)
+    return;
+
+  vector<string> *names =
+      RefMachine::referenceNames(RefMachine::allMachines);
+  bool none = (names == NULL) || names->empty();
+  if (names != NULL)
+    delete names;
+
+  //  Opt-in diagnostic, same pattern as ECCE_DEBUG_GEOMTRACE (#99): silent
+  //  by default, and the one thing a from-scratch build/test run needs to
+  //  confirm this code path without a screen to look at.
+  if (getenv("ECCE_DEBUG_MACHNOTICE") != NULL)
+    cerr << "[MACHNOTICE] " << (none ? "shown" : "hidden") << endl;
+
+  bool wasShown = p_topSizer->IsShown(p_machineNoticePanel);
+  if (none == wasShown)
+    return;
+
+  p_machineNoticePanel->Show(none);
+  p_topSizer->Show(p_machineNoticePanel, none);
+  p_topSizer->Layout();
+}
+
+
+void CalcMgr::machineNoticeRegisterClickCB(wxCommandEvent& event)
+{
+  //  Exactly OnGlobalTool()'s own launch call -- see addGlobalTools().
+  startApp("MachineRegister", 0, "");
+}
+
+
+void CalcMgr::OnActivate(wxActivateEvent& event)
+{
+  if (event.GetActive())
+    refreshMachineNotice();
+  event.Skip();
 }
 
 

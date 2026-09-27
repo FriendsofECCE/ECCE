@@ -34,6 +34,7 @@
 
 class BookmarkEditor;
 class WxFind;
+class ewxPanel;
 
 class WxConfigureNwfsArchive;
 
@@ -78,6 +79,12 @@ public:
               long style = SYMBOL_CALCMGRGUI_STYLE );
 
   ~CalcMgr();
+
+  // Issue #150: called by CalcMgrApp::msgMachRegChangedMCB() when the
+  // Register Machines tool reports a save/delete, so the notice can
+  // disappear (or, if the last machine was removed, reappear) without
+  // waiting for the window to be reactivated.
+  void refreshMachineNotice();
 
   /// wxEVT_CLOSE_WINDOW event handler for ID_FRAME
   void OnCloseWindow( wxCloseEvent& event );
@@ -317,6 +324,18 @@ protected:
   // Ids already wired to OnGlobalTool, so rebuilding the menu does not
   // stack duplicate handlers.
   std::set<int> p_globalToolIds;
+
+  // Issue #150: nothing told a first-time user that a machine has to be
+  // registered before any calculation can be launched.  A non-modal
+  // notice sits between the toolbar and the tree, shown only while
+  // RefMachine::referenceNames() is empty, with a button that reuses the
+  // exact same launch path as the Tools menu's own Register Machines
+  // entry (see addGlobalTools()/OnGlobalTool()).  refreshMachineNotice()
+  // itself is public -- see above.
+  void buildMachineNotice();
+  void machineNoticeRegisterClickCB(wxCommandEvent& event);
+  void OnActivate(wxActivateEvent& event);
+  ewxPanel   *p_machineNoticePanel;
 
   void startApp(const string& app, int force, const string& url,
                 const string& codename = "", int amulet = 0);
