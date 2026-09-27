@@ -494,12 +494,15 @@ sub writeGaussian09{
           #  an Rexponent, a Gauss exponent, and a P coefficient
           #
           my %prim = %{$primPtr};
-          if($prim{Coefficient} ne 0) 
-          {
-            print  ("$prim{Rexponent}");
-            printf ("%18.8f",$prim{GaussExponent});
-            printf ("%16.8f\n", $prim{Coefficient});
-          }
+          #  $primCnt above already counts every primitive in the list
+          #  unconditionally -- this filter never actually fires on any
+          #  shipped ECP data (print_potential emits a fixed-point 0.0,
+          #  not a numeric zero this ne comparison would catch), but it
+          #  is the same declared-count-vs-printed-rows mismatch fixed
+          #  in wrORCAGBS.pm for #122, so print every primitive here too.
+          print  ("$prim{Rexponent}");
+          printf ("%18.8f",$prim{GaussExponent});
+          printf ("%16.8f\n", $prim{Coefficient});
         }
         $cntr++;
       }

@@ -101,7 +101,39 @@ CASES = [
         exporter="std2ORCA",
         expect=[("H named", lambda t: 'NewGTO H "6-31G*" end' in t),
                 ("Pt explicit", lambda t: "2.63000000" in t),
-                ("ECP still written", lambda t: "NewECP Pt" in t)],
+                ("ECP still written", lambda t: "NewECP Pt" in t),
+                ("every NewECP row has the required leading index column "
+                 "and its declared count matches the rows listed (#122)",
+                 lambda t: orca_ecp_rows_shape_ok(t))],
+    ),
+    dict(
+        name="orca-ecp-ch3i",
+        fixture="ch3i_def2.gbs",
+        exporter="std2ORCA",
+        #  CH3I with def2-SVP/def2-ECP -- the deck this writes reproduces
+        #  ORCA 6.1.1's own built-in def2-ECP to 1e-12 Eh (#122). Real ORCA
+        #  input/output round-trip in /home/andy/tmp/ecce/scratch-ecp/
+        #  run_patched_def2/p.out: "FINAL SINGLE POINT ENERGY
+        #  -336.231481671562".
+        expect=[("I's ECP still written", lambda t: "NewECP I" in t),
+                ("every NewECP row has the required leading index column "
+                 "and its declared count matches the rows listed (#122)",
+                 lambda t: orca_ecp_rows_shape_ok(t))],
+    ),
+    dict(
+        name="g16-ecp-ch3i",
+        fixture="ch3i_def2.gbs",
+        exporter="std2Gaussian-16",
+        #  Same CH3I fixture through Gaussian's writer -- cheap to add
+        #  alongside the ORCA case, and Gaussian's writer's declared-count-
+        #  vs-printed-rows mismatch is fixed in this same change (#122).
+        expect=[("I's ECP still written", lambda t: "I-ECP" in t)],
+    ),
+    dict(
+        name="nwchem-ecp-ch3i",
+        fixture="ch3i_def2.gbs",
+        exporter="std2NWChem",
+        expect=[("I's ECP still written", lambda t: "ECP" in t and "I" in t)],
     ),
     dict(
         name="orca-no-names-all-explicit",
@@ -264,6 +296,45 @@ def mo_ordering_matches_the_code():
                 "%s: spherical l=1 order is %s, the code prints %s (%s)"
                 % (stem, " ".join(got), " ".join(want), evidence))
     return findings
+
+
+def orca_ecp_rows_shape_ok(text):
+    """Every ORCA NewECP shell's declared count must match its rows, and
+    each row must carry the leading index column ORCA 6.1.1 requires
+    ("exponent expected in NewECP" otherwise -- #122).
+
+    A shell header line looks like "  p 4" (label, declared count); the
+    following "count" lines must each be "<idx> <exponent> <coefficient>
+    <power>". Anchored against the row itself (not "a number appears on
+    this line somewhere"), the same discipline CLAUDE.md asks of the
+    input checker's row-of-primitives rule.
+    """
+    HEADER = re.compile(r'^\s*([a-z])\s+(\d+)\s*$')
+    ROW = re.compile(
+        r'^\s*\d+\s+-?\d+\.\d+\s+-?\d+\.\d+\s+\d+\s*$')
+    lines = text.splitlines()
+    inECP = False
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if line.startswith("NewECP "):
+            inECP = True
+            i += 1
+            continue
+        if inECP and line.strip() == "end":
+            inECP = False
+            i += 1
+            continue
+        if inECP:
+            m = HEADER.match(line)
+            if m:
+                count = int(m.group(2))
+                for j in range(count):
+                    i += 1
+                    if i >= len(lines) or not ROW.match(lines[i]):
+                        return False
+        i += 1
+    return True
 
 
 def run(case):

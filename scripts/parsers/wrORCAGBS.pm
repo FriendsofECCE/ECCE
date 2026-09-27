@@ -10,12 +10,14 @@
 # a separate S shell and P shell here, each using the same exponents
 # but their own contraction coefficients.
 #
-# STATUS: the GBS (orbital basis) block below has been checked against
-# real ORCA 6.1.1 input/output round-trips. The ECP (NewECP) block is
-# a structural best-effort translation of the same Rexponent/
-# GaussExponent/Coefficient triples Gaussian uses and has NOT been
-# verified against a real ORCA ECP job -- check it against the ORCA
-# manual (%basis / NewECP section) before relying on it. See issue #38.
+# STATUS: both the GBS (orbital basis) and ECP (NewECP) blocks below have
+# been checked against real ORCA 6.1.1 input/output round-trips. The
+# NewECP block was verified 2026-09-27 against CH3I with def2-SVP/
+# def2-ECP: with the leading per-primitive index column ORCA's grammar
+# requires, the reproduced energy (-336.231481671562 Eh) is identical to
+# ORCA's own built-in def2-ECP. See issue #122 (missing index column --
+# "exponent expected in NewECP", every ORCA job with an ECP element
+# failed) and #38.
 #
 # Like wrGaussian16GBS.pm, if every atom uses the same named library
 # basis (no explicit coefficients, no ECP) and that name is one ORCA
@@ -117,7 +119,22 @@ sub writeORCA{
   }
 
   ########################################
-  # Write out ECP information (unverified -- see header note)
+  # Write out ECP information
+  #
+  # ORCA 6.1.1's NewECP grammar, established by running it (2026-09-27):
+  #   NewECP <El>
+  #     N_core <n>
+  #     lmax <l>
+  #     <l> <count>
+  #       <idx> <exponent> <coefficient> <power>
+  #     ...
+  #   end
+  # The leading index column is REQUIRED: without it ORCA stops with
+  # "exponent expected in NewECP".  Shell order is free (lmax first and
+  # s-first gave identical energies), and each non-lmax shell carries
+  # U_l - U_lmax exactly as ECCE stores it (the Gaussian "s-f potential"
+  # convention), with the same r^(n-2) power as Gaussian.  CH3I with
+  # def2-SVP + def2-ECP reproduces ORCA's built-in def2-ECP to 1e-12 Eh.
   ########################################
   @shells = ("s", "p", "d", "f", "g", "h", "i");
   foreach $atom (sort keys %ecp) {
@@ -137,17 +154,18 @@ sub writeORCA{
     foreach $componentPtr (@ecpComponents) {
       my @component = @{$componentPtr};
       my $shellLabel = ($cntr eq 0) ? $lmax : $shells[$cntr - 1];
+      #  Every primitive is written, zero coefficients included, so the
+      #  declared count always equals the rows listed.  A whole-zero ul
+      #  term (Stuttgart RLC/RSC ship "2 1.0 0.0") is accepted by ORCA.
       my @primitiveList = @{$component[1]};
-      my $primCnt = $#primitiveList + 1;
-      print "  $shellLabel $primCnt\n";
+      printf "  %s %d\n", $shellLabel, ($#primitiveList + 1);
 
+      my $idx = 1;
       my $primPtr;
       foreach $primPtr (@primitiveList) {
         my %prim = %{$primPtr};
-        if ($prim{Coefficient} ne 0) {
-          printf "   %10.7f%18.8f%16.8f\n",
-                 $prim{GaussExponent}, $prim{Coefficient}, $prim{Rexponent};
-        }
+        printf "   %3d%17.8f%18.8f%4d\n", $idx++,
+               $prim{GaussExponent}, $prim{Coefficient}, $prim{Rexponent};
       }
       $cntr++;
     }
