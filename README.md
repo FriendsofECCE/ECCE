@@ -108,6 +108,12 @@ than papered over.
 One line each. Full notes, and the packages, are on the
 [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
+- **v8.16.1** — **`ecce -remote` works again**: the central-server
+  client no longer aborts at startup. The data server and broker listen
+  on loopback unless configured as a central server. One password prompt
+  per session; G16 imports without `pop=full` no longer store a broken
+  ORBENG.
+
 - **v8.16.0** — **Launcher and Organizer say why a job failed**, in one
   line. A basis-library fault that silently dropped 6-31G\*'s d shell is
   fixed. MO diagrams label orbitals in the full point group (Oh, D6h,
