@@ -805,6 +805,44 @@ namespace {
     return irrep;
   }
 
+  /**
+   * Match each alpha orbital to the beta orbital it corresponds to, for
+   * a merged open-shell level (#132: unrestricted calculations, e.g.
+   * O2's triplet ground state).
+   *
+   * BY IRREP FIRST -- the k-th alpha orbital of a given irrep is matched
+   * to the k-th beta orbital reporting the SAME irrep, both taken in
+   * their own energy order (a PropVector's rows already run that way).
+   * Falls back to matching by plain energy-ordered POSITION when either
+   * side carries no usable labels of matching length, since that is the
+   * best evidence left.
+   */
+  void matchAlphaBeta(const vector<string>& sAlpha, const vector<string>& sBeta,
+                      int nAlpha, int nBeta, vector<int>& betaOfAlpha)
+  {
+    betaOfAlpha.assign(nAlpha, -1);
+    const bool haveLabels = (int)sAlpha.size() == nAlpha &&
+        (int)sBeta.size() == nBeta && !sAlpha.empty() && !sBeta.empty();
+    if (haveLabels) {
+      map<string, vector<int> > byIrrep;
+      for (int i = 0; i < nBeta; i++) {
+        const string c = MoDiagram::canonicalIrrep(sBeta[i]);
+        if (!c.empty()) byIrrep[c].push_back(i);
+      }
+      map<string, size_t> next;
+      for (int i = 0; i < nAlpha; i++) {
+        const string c = MoDiagram::canonicalIrrep(sAlpha[i]);
+        if (c.empty()) continue;
+        map<string, vector<int> >::iterator it = byIrrep.find(c);
+        if (it == byIrrep.end()) continue;
+        size_t& n = next[c];
+        if (n < it->second.size()) betaOfAlpha[i] = it->second[n++];
+      }
+    } else {
+      for (int i = 0; i < nAlpha && i < nBeta; i++) betaOfAlpha[i] = i;
+    }
+  }
+
   bool computeFullGroupLabels(IPropCalculation *calc,
                               const string& group,
                               const CharacterTable *table,
@@ -814,13 +852,18 @@ namespace {
                               const vector<double>& e,
                               const vector<string>& reported,
                               vector<string>& computed,
-                              string& note)
+                              string& note,
+                              const char *moPropertyName = "MO")
   {
     if (getenv("ECCE_DEBUG_MOSYM"))
       fprintf(stderr, "[MOSYM] group %s, %d orbitals, %d reported labels\n",
               group.c_str(), (int)e.size(), (int)reported.size());
     if (calc == 0 || table == 0 || sgfrag == 0) return mosymFail(11, "calc == 0 || table == 0 || sgfrag == 0");
-    if (reported.empty()) return mosymFail(12, "reported.empty()");   // nothing to cross-check against
+    //  NOTE: `reported.empty()` used to return here unconditionally.  A
+    //  code that reports no labels at all now still gets computed ones
+    //  (#132), just with a weaker acceptance test further down -- see
+    //  `haveReported` -- since there is nothing of the code's own left
+    //  to cross-check a computed label against.
     if (probeCoords.size() != elements.size()*3) return mosymFail(13, "probeCoords.size() != elements.size()*3");
 
     ICalculation *escalc = dynamic_cast<ICalculation*>(calc);
@@ -833,7 +876,7 @@ namespace {
     if (code == 0) return mosymFail(22, "code == 0");
 
 
-    PropTable *moCoefs = (PropTable*)calc->getProperty("MO");
+    PropTable *moCoefs = (PropTable*)calc->getProperty(moPropertyName);
     if (moCoefs == 0) return mosymFail(29, "moCoefs == 0");
 
     //  The STORED frame -- sgfrag's OWN coordinates, not the reoriented
@@ -970,6 +1013,32 @@ namespace {
         opsInCoeffFrame, angfunc, *table, 1.0e-4, fullDerived);
     if (fullLabelled <= 0) return mosymFail(131, "fullLabelled <= 0");
 
+    //  NO CODE LABELS TO CROSS-CHECK AGAINST (#132).
+    //
+    //  The subgroup cross-check below is the only independent evidence
+    //  this function otherwise insists on, and it needs the code's own
+    //  labels to exist at all.  Where they do not, accept the computed
+    //  full-group labels on a weaker but still real condition instead:
+    //  every orbital in the calculation must have been labelled, not
+    //  just the ones later shown.  A partial labelling here would mean
+    //  some shell the angular table or the projection could not handle,
+    //  which is exactly the situation the cross-check exists to catch,
+    //  and there is no second source to catch it instead.
+    if (reported.empty()) {
+      if (fullLabelled != norb)
+        return mosymFail(132, "reported.empty() && fullLabelled != norb");
+
+      computed.assign(e.size(), string());
+      for (int i = 0; i < norb && i < (int)computed.size(); i++) {
+        if (!fullDerived[i].empty()) computed[i] = fullDerived[i];
+      }
+      ostringstream text;
+      text << "Symmetry labels computed from the orbitals in " << group
+           << "; the code reported none.";
+      note = text.str();
+      return true;
+    }
+
     //  THE INDEPENDENT CHECK: the code's own reported labels, verified
     //  against operations built directly in the stored frame (no
     //  gensym/autosym on this side at all -- see
@@ -1096,7 +1165,7 @@ namespace {
       if (!subductionOk) return mosymFail(252, "!subductionOk");
     }
 
-    computed.assign(reported.size(), string());
+    computed.assign(e.size(), string());
     for (int i = 0; i < norb && i < (int)computed.size(); i++) {
       if (!fullDerived[i].empty()) computed[i] = fullDerived[i];
     }
@@ -1152,6 +1221,32 @@ void MoDiagramPanel::build()
   //  at the end; the same care is worth taking here.
   if (syms != 0 && syms->rows() == energies->rows()) {
     for (int i = 0; i < syms->rows(); i++) s.push_back(syms->value(i));
+  }
+
+  //  --- beta orbitals, for a merged open-shell level (#132) -----------
+  //
+  //  An unrestricted calculation (O2's triplet ground state is the live
+  //  case) reports ORBOCC as the ALPHA occupation alone, so without this
+  //  every level came out singly occupied whether or not it actually
+  //  was.  Read here, matched to the alpha orbitals below (once the
+  //  molecule's point group is known, since matching is by irrep first),
+  //  and folded into each drawn level as MoLevel::occupancyBeta.
+  PropVector    *energiesBeta = (PropVector*)calc->getProperty("ORBENGBETA");
+  PropVector    *occsBeta     = (PropVector*)calc->getProperty("ORBOCCBETA");
+  PropVecString *symsBeta     = (PropVecString*)calc->getProperty("ORBSYMBETA");
+
+  vector<double> eB, oB;
+  vector<string> sB;
+  const bool haveBeta = (energiesBeta != 0 && occsBeta != 0 &&
+      occsBeta->rows() == energiesBeta->rows());
+  if (haveBeta) {
+    for (int i = 0; i < energiesBeta->rows(); i++)
+      eB.push_back(energiesBeta->value(i));
+    for (int i = 0; i < occsBeta->rows(); i++)
+      oB.push_back(occsBeta->value(i));
+    if (symsBeta != 0 && symsBeta->rows() == energiesBeta->rows()) {
+      for (int i = 0; i < symsBeta->rows(); i++) sB.push_back(symsBeta->value(i));
+    }
   }
 
   //  --- the molecule's symmetry --------------------------------------
@@ -1292,6 +1387,19 @@ void MoDiagramPanel::build()
     }
   }
 
+  //  THE SAME, FOR BETA -- computed only when the code did not report
+  //  ORBSYMBETA itself, since that is what the alpha-beta irrep match
+  //  above needs to prefer irrep over energy order (#132).
+  if (haveBeta && sB.empty()) {
+    vector<string> computedBetaLabels;
+    string computedBetaNote;
+    if (computeFullGroupLabels(calc, group, table, sgfrag, coords, elements,
+                               eB, sB, computedBetaLabels, computedBetaNote,
+                               "MOBETA")) {
+      sB = computedBetaLabels;
+    }
+  }
+
   //  A linear molecule's labels in the linear spelling -- but only labels
   //  known to be in the FULL stand-in group.  In ORCA's own C2v labels b1
   //  and b2 are the two halves of pi, not delta.
@@ -1303,8 +1411,41 @@ void MoDiagramPanel::build()
     }
   }
 
+  //  Which beta orbital (an index into eB/oB/sB) matches each alpha
+  //  orbital (an index into e/o/s) -- computed once, here, in the same
+  //  spelling `s` ends up in, then read back per drawn LEVEL below once
+  //  groupByIrrep() has grouped the alpha orbitals into levels.
+  vector<int> betaOfAlpha;
+  if (haveBeta) matchAlphaBeta(s, sB, (int)e.size(), (int)eB.size(), betaOfAlpha);
+
   MoDiagram::groupByIrrep(e, o, s, dimensions, 1.0e-4, centre.levels);
   centre.title = "Molecular orbitals";
+
+  //  MERGE: one spatial level per alpha level, at the alpha energy
+  //  (unchanged above), with the matched beta electrons folded in as
+  //  MoLevel::occupancyBeta -- see its header comment and
+  //  MoDiagramCanvas::drawElectrons() for how the two spins are then
+  //  drawn independently.  A level whose orbitals could not all be
+  //  matched to a beta orbital is left with occupancyBeta unset (-1):
+  //  a partial count would be worse than the old combined-spin arrow.
+  if (haveBeta) {
+    for (size_t i = 0; i < centre.levels.size(); i++) {
+      MoLevel& level = centre.levels[i];
+      double betaSum = 0.0;
+      bool ok = !level.orbitals.empty();
+      for (size_t k = 0; k < level.orbitals.size() && ok; k++) {
+        const int a = level.orbitals[k];
+        if (a < 0 || a >= (int)betaOfAlpha.size() || betaOfAlpha[a] < 0) {
+          ok = false;
+          break;
+        }
+        const int b = betaOfAlpha[a];
+        if (b < 0 || b >= (int)oB.size()) { ok = false; break; }
+        betaSum += oB[b];
+      }
+      if (ok) level.occupancyBeta = betaSum;
+    }
+  }
 
   //  The WHOLE spectrum, kept for reconcile() below.  Whether the
   //  fragments' irreps can be found among the molecule's is a question
@@ -1408,6 +1549,10 @@ void MoDiagramPanel::build()
             "they are built from rather than by symmetry.";
   } else {
     note << "Energies in Hartree.";
+  }
+  if (haveBeta) {
+    note << "  Unrestricted: levels at alpha energies; beta electrons "
+            "matched by symmetry.";
   }
 
   //  --- the fragment columns -----------------------------------------

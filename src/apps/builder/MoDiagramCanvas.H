@@ -967,6 +967,41 @@ class MoDiagramCanvas : public wxPanel
                        const wxRect& plot)
     {
       const int count = level.degeneracy > 0 ? level.degeneracy : 1;
+
+      //  MERGED OPEN-SHELL LEVEL: the two spins are drawn independently,
+      //  each by its own Hund's-rule fill, rather than as a single
+      //  combined count -- see MoLevel::occupancyBeta's header comment.
+      //  This is what lets O2's 1pi-g* come out as two unpaired arrows
+      //  (two alpha electrons, no beta) instead of one up-down pair.
+      if (level.occupancyBeta >= 0.0) {
+        const int totalA = (int)(level.occupancy + 0.5);
+        const int totalB = (int)(level.occupancyBeta + 0.5);
+        if (totalA <= 0 && totalB <= 0) return;
+        dc.SetPen(wxPen(*wxBLUE, 2));
+        for (int d = 0; d < count; d++) {
+          const bool up   = d < totalA;
+          const bool down = d < totalB;
+          if (!up && !down) continue;
+          int yy = y;
+          if (split != 0 && d < (int)split->energies.size())
+            yy = yFor(split->energies[d], plot);
+          const int cx = x + d*slot + lineWidth/2;
+          if (up) {
+            const int ax = cx - 4;
+            dc.DrawLine(ax, yy - 9, ax, yy + 9);
+            dc.DrawLine(ax, yy - 9, ax - 3, yy - 9 + 4);
+            dc.DrawLine(ax, yy - 9, ax + 3, yy - 9 + 4);
+          }
+          if (down) {
+            const int ax = cx + 4;
+            dc.DrawLine(ax, yy - 9, ax, yy + 9);
+            dc.DrawLine(ax, yy + 9, ax - 3, yy + 9 - 4);
+            dc.DrawLine(ax, yy + 9, ax + 3, yy + 9 - 4);
+          }
+        }
+        return;
+      }
+
       const int total = (int)(level.occupancy + 0.5);
       if (total <= 0) return;
 

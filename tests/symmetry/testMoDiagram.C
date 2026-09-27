@@ -463,6 +463,117 @@ int main()
     }
   }
 
+  printf("\n  O2 triplet: merged open-shell occupancy (#132)\n");
+  {
+    //  Real ORCA ORBENG/ORBOCC/ORBENGBETA/ORBOCCBETA from Andy's live
+    //  O2 calculation (users/andy/O2 on niobium), which reports NO
+    //  ORBSYM at all -- exactly the case matchAlphaBeta() falls back to
+    //  energy-ordered position for.  9 alpha orbitals occupied, 7 beta:
+    //  16 electrons, S=1, two unpaired alpha electrons in 1pi-g*.
+    double eA[] = {-20.74006,-20.73959,-1.74520,-1.16234,-0.86383,-0.86383,
+                   -0.78126,-0.53798,-0.53798, 0.51152};
+    double oA[] = {  1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0 };
+    double eB[] = {-20.68416,-20.68301,-1.62277,-0.95821,-0.71459,-0.60321,
+                   -0.60321, 0.12981, 0.12981};
+    double oB[] = {  1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0 };
+    vector<double> EA(eA, eA+10), OA(oA, oA+10), EB(eB, eB+9), OB(oB, oB+9);
+    vector<string> noLabels;
+    map<string,int> noDims;
+
+    vector<MoLevel> levels;
+    MoDiagram::groupByIrrep(EA, OA, noLabels, noDims, 1e-4, levels);
+
+    //  Falls back to plain energy grouping, exactly as it does with real
+    //  ORBSYM missing -- confirms the levels a diagram would actually
+    //  draw, not a hand-picked grouping.
+    check(levels.size() == 8,
+          "2 core + 2sg + 2su + 1piu(2) + 3sg + 1pig*(2) + LUMO = 8 levels");
+
+    if (levels.size() == 8) {
+      //  Indices: 0=1sg,1su core (merged, both -20.7x within 1e-4? they
+      //  are 0.00047 Ha apart, so tolerance keeps them separate --
+      //  hence 8 levels, not 7).  Levels 2..7 are the valence ladder.
+      MoLevel& sigma2g   = levels[2];
+      MoLevel& sigma2u   = levels[3];
+      MoLevel& piu       = levels[4];
+      MoLevel& sigma3g   = levels[5];
+      MoLevel& pigStar   = levels[6];
+
+      check(fabs(sigma2g.energy - (-1.74520)) < 1e-4 &&
+            sigma2g.degeneracy == 1 && fabs(sigma2g.occupancy-1.0) < 1e-9,
+            "2sigma_g: one orbital, alpha occupancy 1");
+      check(fabs(sigma2u.energy - (-1.16234)) < 1e-4 &&
+            sigma2u.degeneracy == 1 && fabs(sigma2u.occupancy-1.0) < 1e-9,
+            "2sigma_u: one orbital, alpha occupancy 1");
+      check(piu.degeneracy == 2 && fabs(piu.occupancy-2.0) < 1e-9,
+            "1pi_u: two orbitals, alpha occupancy 2 (one each)");
+      check(fabs(sigma3g.energy - (-0.78126)) < 1e-4 &&
+            sigma3g.degeneracy == 1 && fabs(sigma3g.occupancy-1.0) < 1e-9,
+            "3sigma_g: one orbital, alpha occupancy 1");
+      check(pigStar.degeneracy == 2 && fabs(pigStar.occupancy-2.0) < 1e-9,
+            "1pi_g*: two orbitals, alpha occupancy 2 (one each, unpaired)");
+
+      //  --- matched beta, positional fallback (no labels available) ---
+      //
+      //  Same fallback matchAlphaBeta() uses in MoDiagramPanel.C, done
+      //  by hand here since that function is static to that file: the
+      //  k-th alpha orbital's beta count is the k-th beta orbital's
+      //  occupancy, by plain index.
+      MoLevel* valence[5] = { &sigma2g, &sigma2u, &piu, &sigma3g, &pigStar };
+      for (int v = 0; v < 5; v++) {
+        MoLevel& lev = *valence[v];
+        double betaSum = 0.0;
+        bool ok = true;
+        for (size_t k = 0; k < lev.orbitals.size(); k++) {
+          const int a = lev.orbitals[k];
+          if (a < 0 || a >= (int)OB.size()) { ok = false; break; }
+          betaSum += OB[a];
+        }
+        if (ok) lev.occupancyBeta = betaSum;
+      }
+
+      check(fabs(sigma2g.occupancyBeta - 1.0) < 1e-9, "2sigma_g: beta 1 (paired)");
+      check(fabs(sigma2u.occupancyBeta - 1.0) < 1e-9, "2sigma_u: beta 1 (paired)");
+      check(fabs(piu.occupancyBeta - 2.0) < 1e-9,
+            "1pi_u: beta 2 -- fully paired despite the label mismatch "
+            "the positional fallback cannot see");
+      check(fabs(sigma3g.occupancyBeta - 1.0) < 1e-9,
+            "3sigma_g: beta 1 -- fully paired");
+      check(fabs(pigStar.occupancyBeta - 0.0) < 1e-9,
+            "1pi_g*: beta 0 -- the two unpaired electrons are here, "
+            "and only here");
+
+      //  --- the per-orbital arrow fill MoDiagramCanvas::drawElectrons()
+      //  computes, replicated here since that method is private to a wx
+      //  class this test does not link against.  What matters is the
+      //  CONTRACT: alpha and beta filled independently, Hund's rule each,
+      //  which is what turns 1pi_g*'s (2, 0) into two up-only arrows
+      //  rather than one paired orbital and one empty one.
+      {
+        const int count = pigStar.degeneracy;
+        const int totalA = (int)(pigStar.occupancy + 0.5);
+        const int totalB = (int)(pigStar.occupancyBeta + 0.5);
+        int upOnly = 0, paired = 0, empty = 0;
+        for (int d = 0; d < count; d++) {
+          const bool up = d < totalA, down = d < totalB;
+          if (up && down) paired++;
+          else if (up) upOnly++;
+          else if (!up && !down) empty++;
+        }
+        check(upOnly == 2 && paired == 0 && empty == 0,
+              "1pi_g* draws as two unpaired up arrows, not one pair");
+      }
+      {
+        const int count = sigma2g.degeneracy;
+        const int totalA = (int)(sigma2g.occupancy + 0.5);
+        const int totalB = (int)(sigma2g.occupancyBeta + 0.5);
+        int paired = 0;
+        for (int d = 0; d < count; d++) if (d < totalA && d < totalB) paired++;
+        check(paired == 1, "2sigma_g draws as one paired (up+down) arrow");
+      }
+    }
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }

@@ -154,6 +154,24 @@ struct MoLevel
    vector<int>    orbitals;        // their indices, for clicking through
 
    /**
+    * The matched beta electron count for this level, or -1.
+    *
+    * Set only for a merged open-shell level (an unrestricted calculation
+    * with beta orbital data): `occupancy` then holds the ALPHA count
+    * alone, matched by MoDiagramPanel::build() from ORBOCC, and this
+    * holds the count from whichever beta orbital was matched to it by
+    * irrep (or, failing that, by energy order).  -1 is not the same as
+    * zero -- it means "no separate beta count", so a closed-shell
+    * level's single `occupancy` is drawn exactly as it always was, split
+    * between the level's orbitals by Hund's rule.  A positive value
+    * makes the canvas draw the two spins independently instead, which is
+    * what lets a level such as O2's 1pi-g* come out as two unpaired
+    * up arrows (two alpha electrons, no beta) rather than one up-down
+    * pair per orbital.
+    */
+   double         occupancyBeta;
+
+   /**
     * Each orbital's own energy, in the same order as `orbitals`.
     *
     * `energy` is their mean, which is where the level is drawn when
@@ -166,6 +184,7 @@ struct MoLevel
    vector<double> energies;
 
    MoLevel() : energy(0.0), occupancy(0.0), degeneracy(0),
+               occupancyBeta(-1.0),
                shareLeft(-1.0), shareRight(-1.0), shell(-1), slot(-1),
                tabulated(0.0), character(UNKNOWN), pairing(-1) {}
 };
