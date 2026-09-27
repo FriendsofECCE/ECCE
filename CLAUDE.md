@@ -12,6 +12,11 @@ intentionally *not* a running log of past sessions. For that, see
 Once a design decision is settled, delegate the implementation to the sonnet-implementer subagent rather than writing the files yourself. Keep doing the design work, review, and any decision the subagent flags, directly.
 
 ## Standing preferences
+- **Comments: a few lines, saying WHY — never the history.** How a bug
+  was found, what was tried first and which versions failed go in the
+  commit message, not the source. Long essay comments went stale and
+  wrong in this tree (a "the OP is on no fixed scale" comment outlived
+  the fix that disproved it). Agreed with Andy 2026-09-27.
 - Andy runs Debian ("trixie") on his machines — **beryllium** and
   **niobium**. Default to Debian conventions, not Ubuntu, for anything
   environment/package related, unless told otherwise.
@@ -419,6 +424,12 @@ Runs `SymmetryOps::find()` (autosym — **reorients and symmetrises**) →
 Two callers build the model and must stay in step:
 `MoDiagramPanel::build()` (from a calculation) and
 `include/tdat/MoSpec.H` (from a spec file, used by the offline tools).
+
+- **Start from the AO composition, not symmetry machinery** (Andy,
+  2026-09-27). Every MO's share per atom and per shell is known
+  (`MoComposition`). Non-bonding = on one atom; ligand orbital = no
+  share on the metal; metal–ligand = mixed. Reach for irreps and
+  overlap-population statistics only for what composition cannot say.
 
 A **standalone diagram program is planned as a separate Python
 project, not part of ECCE** (Andy's call, 2026-09-24). A C++ one was
