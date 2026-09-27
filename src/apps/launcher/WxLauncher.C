@@ -2129,8 +2129,15 @@ void WxLauncher::updateContext(const ResourceDescriptor::RUNSTATE& state)
     {
         string reason = p_taskJob->getProp(VDoc::getEcceNamespace() +
                                             ":runStatusReason");
-        if (!reason.empty())
+        //  updateContext() runs on every state notification, and a job
+        //  that ends badly sends more than one, so the same reason was
+        //  printed twice.  Show each calc's reason once.
+        static string lastShown;
+        const string key = p_taskJob->getURL().toString() + "\n" + reason;
+        if (!reason.empty() && key != lastShown) {
+            lastShown = key;
             p_messagesFeedback->setMessage(reason, WxFeedback::ERROR, false, true);
+        }
     }
 
     this->refreshLaunchControls();
