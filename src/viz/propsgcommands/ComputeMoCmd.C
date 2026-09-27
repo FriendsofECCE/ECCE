@@ -526,6 +526,61 @@ bool ComputeMoCmd::execute()
         length_shell[6] = 28;
       }
 
+      //  THE COEFFICIENTS, NOT THE RECORDED CONFIG, DECIDE THE CONVENTION.
+      //  gbsConfig->coordsys() says what the user picked; the code may
+      //  have used something else -- ORCA is spherical-only whatever is
+      //  recorded.  Trusting it walked every d shell as six functions
+      //  where five are stored, reading past the end of each MO row
+      //  (thousands of PropTable out-of-bounds assertions per surface)
+      //  and misaligning every coefficient after the first d shell, so
+      //  the surface drawn was not the orbital.  MoDiagramPanel's
+      //  computeFullGroupLabels() already chooses by width the same way.
+      if (moCoefs != 0 && gbsConfig != 0) {
+        vector<EspBasisFunction> probe;
+        const bool asRecorded =
+          buildEspBasis(sgfrag, gbsConfig, code, angfunc, maxShell,
+                        length_shell, probe) &&
+          (int)probe.size() == moCoefs->columns();
+        if (!asRecorded) {
+          const bool wasCart =
+            (gbsConfig->coordsys() == TGaussianBasisSet::Cartesian);
+          TGBSAngFunc *other = jcode->getAngFunc(wasCart ?
+              TGaussianBasisSet::Spherical : TGaussianBasisSet::Cartesian);
+          int otherLen[7] = { 1, 3, 5, 7, 9, 11, 13 };
+          if (!wasCart) {
+            otherLen[2] = 6;  otherLen[3] = 10; otherLen[4] = 15;
+            otherLen[5] = 21; otherLen[6] = 28;
+          }
+          probe.clear();
+          if (other != 0 &&
+              buildEspBasis(sgfrag, gbsConfig, code, other,
+                            other->maxShells(), otherLen, probe) &&
+              (int)probe.size() == moCoefs->columns()) {
+            delete angfunc;
+            angfunc = other;
+            maxShell = other->maxShells();
+            for (int k = 0; k < 7; k++) length_shell[k] = otherLen[k];
+            cerr << "MO: coefficient width " << moCoefs->columns()
+                 << " matches the " << (wasCart ? "spherical" : "Cartesian")
+                 << " basis, not the recorded one" << endl;
+          } else {
+            delete other;
+            cerr << "MO: coefficient width " << moCoefs->columns()
+                 << " matches neither basis convention -- not drawing"
+                 << endl;
+            delete angfunc;
+            return false;
+          }
+        }
+      }
+      if (moCoefs == 0 || (long)endMO >= (long)moCoefs->rows()) {
+        cerr << "MO: orbital " << endMO+1 << " requested, "
+             << (moCoefs ? moCoefs->rows() : 0) << " stored -- not drawing"
+             << endl;
+        delete angfunc;
+        return false;
+      }
+
       unsigned long ialpha;
 
       // Shouldn't be here if we don't have one of these.
