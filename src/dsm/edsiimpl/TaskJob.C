@@ -1233,7 +1233,12 @@ void TaskJob::getDataFile(JCode::CodeFileType type, TypedFile& dataFile) const
     }
     if (candidates.size() == 1) {
       dataFile.setName(candidates[0].getFilePathTail());
-      dataFile.setType(getMimeType(candidates[0]));
+      //  The callers refuse a file with no type, and a file the data
+      //  server does not recognise may report none -- which made this
+      //  fallback find the output and then discard it.
+      string mime = getMimeType(candidates[0]);
+      if (mime.empty()) mime = codeCap->getCodeFile(type).type();
+      dataFile.setType(mime);
     } else {
       dataFile = codeCap->getCodeFile(type);
     }
