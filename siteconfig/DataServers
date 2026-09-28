@@ -40,7 +40,7 @@
 <EcceData>
   <EcceServer>
     <Url>http://eccetera.emsl.pnl.gov:8096/Ecce</Url>
-    <Desc>EMSL ECCE Web Server</Desc>
+    <Desc>ECCE Data Server</Desc>
   </EcceServer>
 
   <BasisSet>http://eccetera.emsl.pnl.gov:8096/Ecce/system/GaussianBasisSetLibrary</BasisSet>
