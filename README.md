@@ -108,6 +108,12 @@ than papered over.
 One line each. Full notes, and the packages, are on the
 [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
+- **v8.16.2** — **Fixes a gateway segfault** when the authentication
+  dialog is closed via its window's own close button instead of
+  Cancel: an unsigned underflow handed wx an invalid range, and a
+  missing `return` let a failed startup check run again on already
+  torn-down state.
+
 - **v8.16.1** — **`ecce -remote` works again**: the central-server
   client no longer aborts at startup. The data server and broker listen
   on loopback unless configured as a central server. One password prompt
