@@ -39,6 +39,21 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 
+# ------------------------------------------------------------------------
+# Road to 9.0, step 1: split the single monolithic package into
+# ecce-client (GUI apps, input generators/parsers, codereg dialogs, the
+# job-side scripts the Launcher copies to compute hosts, the per-session
+# JMSDispatcher relay, ecce-remote-setup) and ecce-server (the per-user
+# or central WebDAV data server and its content, the ActiveMQ broker
+# config and its start/stop). Every install() rule below carries a
+# COMPONENT tag either way -- that costs nothing when this is OFF, since
+# plain `cpack`/`cpack -G DEB` ignores COMPONENT entirely and produces
+# one monolithic package exactly as before (CPACK_DEB_COMPONENT_INSTALL
+# defaults OFF). Turning this ON is what makes CPack actually split them.
+# Default OFF so 8.x releases (one .deb, everything in it) are
+# unaffected; flip it on with `cmake -DECCE_SPLIT_PACKAGES=ON`.
+option(ECCE_SPLIT_PACKAGES "Package ecce-client and ecce-server as separate .deb/.rpm files instead of one monolithic package" OFF)
+
 add_compile_options(-Wall -Wno-deprecated -Wno-sign-compare -Wno-non-virtual-dtor)
 
 find_package(XercesC REQUIRED)
@@ -495,7 +510,8 @@ if(ANT_EXECUTABLE)
   add_custom_target(ecce_jms ALL DEPENDS ${CMAKE_SOURCE_DIR}/java/lib/ecce_jms.jar)
   install(FILES ${CMAKE_SOURCE_DIR}/java/lib/ecce_jms.jar
                 ${CMAKE_SOURCE_DIR}/java/lib/activemq-all-5.1.0.jar
-          DESTINATION java/lib)
+          DESTINATION java/lib
+          COMPONENT client)
   set(ECCE_GATEWAY_JAVA_AVAILABLE TRUE)
 else()
   message(WARNING "ant not found - the JMS gateway (java/) will not be built "
@@ -580,8 +596,15 @@ if(EXISTS ${_ecce_help_tarball})
   add_custom_target(ecce_help_cgi_patch ALL
     DEPENDS ${CMAKE_BINARY_DIR}/ecce-help-extracted/.help-cgi-patched)
 
+  # Lives under data/client/ on disk (BrowserHelp's rare file:// fallback
+  # path expects that layout - see BrowserHelp::initialize()) but this is
+  # server content: served over HTTP by the data server's Apache instance
+  # (httpd.conf.ecce's "/EcceHelp" Alias) and the source of the help CGI
+  # scripts ecce-dataserver-start seeds into its own cgi-bin/ -- so it
+  # goes in the server component, not client, when packages are split.
   install(DIRECTORY ${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp
-          DESTINATION data/client/WebHelp)
+          DESTINATION data/client/WebHelp
+          COMPONENT server)
   set(ECCE_HELP_AVAILABLE TRUE)
 else()
   message(WARNING "No vendored help tarball at ${_ecce_help_tarball} - "
@@ -639,7 +662,15 @@ endif()
 # separate install(DIRECTORY siteconfig/ ...) calls with different
 # exclude sets would both run at install time and race on which version
 # of the non-excluded files wins.)
+# siteconfig/ is entirely client-side config: it tells a CLIENT install
+# where to find servers (DataServers, RemoteServer/, jndi.properties),
+# what compute resources/queues exist (Machines, Queues, CONFIG-Examples),
+# and how it should behave (site_runtime). Nothing under server/ reads
+# any of it -- the data server and broker are configured from
+# packaging/dataserver and packaging/gateway instead. So it goes whole
+# into the client component with no split needed.
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/siteconfig/ DESTINATION siteconfig
+        COMPONENT client
         PATTERN "jndi.properties" EXCLUDE
         PATTERN "RemoteServer" EXCLUDE
         PATTERN "DataServers" EXCLUDE
@@ -647,18 +678,30 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/siteconfig/ DESTINATION siteconfig
 install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/jndi.properties
               ${CMAKE_BINARY_DIR}/siteconfig-local/DataServers
               ${CMAKE_BINARY_DIR}/siteconfig-local/site_runtime
-        DESTINATION siteconfig)
+        DESTINATION siteconfig
+        COMPONENT client)
 
+# ecce-gateway-{start,stop,status,reap}: manage the per-session
+# JMSDispatcher relay (always client-side, needs Java) AND, when it finds
+# server/activemq-conf/activemq.xml installed alongside it, the local
+# ActiveMQ broker too. A client-only install still needs these scripts
+# (the relay is unconditional) -- see ecce-gateway-start's own check for
+# what it does when the broker half of that config is missing.
 install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-start
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-stop
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-status
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-reap
           ${CMAKE_SOURCE_DIR}/packaging/nwchem/ecce-nwchem-datadir
-        DESTINATION bin)
+        DESTINATION bin
+        COMPONENT client)
+# The broker's own config: only meaningful on a machine running the
+# broker, i.e. only needed by ecce-server. ecce-gateway-start checks for
+# this exact path to decide whether a local broker exists to start.
 install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/activemq.xml.ecce
         DESTINATION server/activemq-conf
-        RENAME activemq.xml)
+        RENAME activemq.xml
+        COMPONENT server)
 
 # Also put the gateway control scripts on PATH directly (like the ecce-<app>
 # wrappers) so `ecce-gateway-status` etc. work without needing $ECCE_HOME.
@@ -670,7 +713,7 @@ export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 exec \"$ECCE_HOME/bin/ecce-gateway-${_gw}\" \"$@\"
 ")
-  install(PROGRAMS ${_gw_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
+  install(PROGRAMS ${_gw_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 endforeach()
 
 # ------------------------------------------------------------------------
@@ -683,16 +726,29 @@ endforeach()
 # below); nothing to vendor/extract here since both are ordinary Debian
 # packages, unlike ActiveMQ above.
 # ------------------------------------------------------------------------
+# The dataserver's own start/stop/status/adduser: only meaningful on a
+# machine actually running the Apache instance, so these -- and the
+# Apache config they resolve -- are server-only.
 install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-start
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-stop
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-status
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-adduser
+        DESTINATION bin
+        COMPONENT server)
+install(FILES ${CMAKE_SOURCE_DIR}/packaging/dataserver/httpd.conf.ecce
+        DESTINATION server/httpd-conf
+        COMPONENT server)
+# ecce-remote-setup and ecce-diagnose, by contrast, run on and describe
+# the CLIENT installation (ecce-remote-setup writes this client's own
+# siteconfig/RemoteServer/; ecce-diagnose collects this install's own
+# state) -- they belong with ecce-client even though they live under
+# packaging/dataserver/ and packaging/ for historical reasons.
+install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-remote-setup
           ${CMAKE_SOURCE_DIR}/packaging/ecce-diagnose
-        DESTINATION bin)
-install(FILES ${CMAKE_SOURCE_DIR}/packaging/dataserver/httpd.conf.ecce
-        DESTINATION server/httpd-conf)
+        DESTINATION bin
+        COMPONENT client)
 
 foreach(_ds start stop status adduser)
   set(_ds_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-dataserver-${_ds})
@@ -703,7 +759,7 @@ export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export ECCE_REALUSER=\${ECCE_REALUSER:-\$(id -un)}
 exec \"$ECCE_HOME/bin/ecce-dataserver-${_ds}\" \"$@\"
 ")
-  install(PROGRAMS ${_ds_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
+  install(PROGRAMS ${_ds_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT server)
 endforeach()
 
 # The same wrapper for the central-server setup helper, so an
@@ -718,7 +774,7 @@ file(WRITE ${_diag_wrapper}
 export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
 exec \"$ECCE_HOME/bin/ecce-diagnose\" \"$@\"
 ")
-install(PROGRAMS ${_diag_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
+install(PROGRAMS ${_diag_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 
 set(_remote_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-remote-setup)
 file(WRITE ${_remote_wrapper}
@@ -726,7 +782,7 @@ file(WRITE ${_remote_wrapper}
 export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
 exec \"$ECCE_HOME/bin/ecce-remote-setup\" \"$@\"
 ")
-install(PROGRAMS ${_remote_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
+install(PROGRAMS ${_remote_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 
 # ------------------------------------------------------------------------
 # Install rules. Everything installs under /opt/ecce (see
@@ -744,9 +800,23 @@ set(ECCE_CLI_APPS
   load_tgbs ecmd eccejobmaster eccejobstore
   autosym getfrag genmol genmollat cleansym symops)
 
-install(TARGETS ${ECCE_GUI_APPS} ${ECCE_CLI_APPS} RUNTIME DESTINATION bin)
-if(EXISTS ${CMAKE_SOURCE_DIR}/data)
-  install(DIRECTORY ${CMAKE_SOURCE_DIR}/data DESTINATION .)
+install(TARGETS ${ECCE_GUI_APPS} ${ECCE_CLI_APPS} RUNTIME DESTINATION bin
+        COMPONENT client)
+# data/ splits cleanly along its own top-level directories: data/client
+# is exactly what the GUI apps/scripts above read locally via
+# ecceDataPath() (edml manifests, templates, pixmaps, the local
+# StructureLibrary browsed by New Structure -- see StructLib.C), so it
+# is client content; data/admin is exclusively read by
+# ecce-dataserver-start (basis-set seed, the data-server seed tar, the
+# vendored help tarball/CGI source) to build the server's own document
+# root, and nothing else ever opens it, so it is server content.
+if(EXISTS ${CMAKE_SOURCE_DIR}/data/client)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/data/client DESTINATION data
+          COMPONENT client)
+endif()
+if(EXISTS ${CMAKE_SOURCE_DIR}/data/admin)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/data/admin DESTINATION data
+          COMPONENT server)
 endif()
 
 # scripts/parsers: per-code basis-set translation and I/O-format scripts
@@ -763,7 +833,8 @@ endif()
 if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/parsers)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/scripts/parsers
           DESTINATION scripts
-          USE_SOURCE_PERMISSIONS)
+          USE_SOURCE_PERMISSIONS
+          COMPONENT client)
 endif()
 
 # scripts/processmachine: Machine Registration's save handler
@@ -783,7 +854,8 @@ endif()
 # to the writable per-user path.
 if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/processmachine)
   install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/processmachine
-          DESTINATION scripts)
+          DESTINATION scripts
+          COMPONENT client)
 endif()
 
 # scripts/gensub: job-submission-script generator, invoked as a bare
@@ -798,7 +870,8 @@ endif()
 # porting job.
 if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/gensub)
   install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/gensub
-          DESTINATION scripts)
+          DESTINATION scripts
+          COMPONENT client)
 endif()
 
 
@@ -831,7 +904,8 @@ endif()
 # dependency).
 if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/eccejobmonitor)
   install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/eccejobmonitor
-          DESTINATION scripts)
+          DESTINATION scripts
+          COMPONENT client)
 endif()
 
 # scripts/codereg: Theory/Runtype "Details" dialogs (JCode::
@@ -864,6 +938,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/codereg)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/scripts/codereg
           DESTINATION scripts
           USE_SOURCE_PERMISSIONS
+          COMPONENT client
           PATTERN "__pycache__" EXCLUDE)
 endif()
 
@@ -904,7 +979,20 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
     # Same app set as messaging: apps that need the JMS gateway also need
     # data-server (EDSI/WebDAV) access, per EDSIServerCentral::
     # checkServerSetup() -- see ecce-dataserver-start.
-    set(_dataserver_start "if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ]; then \"$ECCE_HOME/bin/ecce-dataserver-start\" || true; fi")
+    # Split packaging (ECCE_SPLIT_PACKAGES): ecce-dataserver-start only
+    # exists at all when the ecce-server package is installed alongside
+    # this ecce-client one. A client-only install (talking to someone
+    # else's central server, or none yet configured) must not try to
+    # spawn it -- and must say clearly why not, rather than a bare
+    # "No such file or directory" swallowed by the trailing `|| true`.
+    set(_dataserver_start "if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ]; then
+  if [ -x \"$ECCE_HOME/bin/ecce-dataserver-start\" ]; then
+    \"$ECCE_HOME/bin/ecce-dataserver-start\" || true
+  else
+    echo \"${_app}: no local data server installed ($ECCE_HOME/bin/ecce-dataserver-start missing -- ecce-server not installed) and ECCE_REMOTE_SERVER is not set.\" >&2
+    echo \"${_app}: install ecce-server for a local data server, or point this client at a central one (ecce-remote-setup, then 'ecce -remote').\" >&2
+  fi
+fi")
     # Issue #102: the app is run, not exec'd, so this wrapper shell
     # outlives it and its EXIT trap runs however the app terminated --
     # including the SIGABRT that stranded the broker and a JMSDispatcher
@@ -969,7 +1057,7 @@ ${_gateway_start}
 ${_dataserver_start}
 ${_app_exec}
 ")
-  install(PROGRAMS ${_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
+  install(PROGRAMS ${_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 endforeach()
 
 # Plain "ecce" is what people actually expect to type -- gateway is the
@@ -1085,7 +1173,7 @@ for arg in \"$@\"; do
 done
 exec ecce-gateway \"\${passthrough[@]}\"
 ")
-install(PROGRAMS ${_ecce_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
+install(PROGRAMS ${_ecce_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 
 # "Viewer" isn't a separate build target -- the legacy scripts/viewer
 # csh wrapper (not packaged, along with the rest of scripts/ -- see the
@@ -1112,11 +1200,17 @@ export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 export ECCE_INVOKE_VIEWER=1
 export ECCE_INVOKE_FROMECCE=1
 if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi
-if [ -z \"$ECCE_NO_DATASERVER\" ]; then \"$ECCE_HOME/bin/ecce-dataserver-start\" || true; fi
+if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ]; then
+  if [ -x \"$ECCE_HOME/bin/ecce-dataserver-start\" ]; then
+    \"$ECCE_HOME/bin/ecce-dataserver-start\" || true
+  else
+    echo \"ecce-viewer: no local data server installed (ecce-server not installed) and ECCE_REMOTE_SERVER is not set.\" >&2
+  fi
+fi
 trap 'ECCE_REAP_QUIET=1 \"$ECCE_HOME/bin/ecce-gateway-reap\" --if-idle >/dev/null 2>&1 || true' EXIT
 \"$ECCE_HOME/bin/builder\" \"$@\"
 ")
-install(PROGRAMS ${_viewer_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION})
+install(PROGRAMS ${_viewer_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 
 # ------------------------------------------------------------------------
 # CPack: build a .deb instead of the old install_ecce self-extracting
@@ -1224,6 +1318,146 @@ if(RPMBUILD_EXECUTABLE)
 else()
   message(STATUS "rpmbuild not found: cpack will produce a .deb only "
                  "(apt install rpm to enable RPM packaging)")
+endif()
+
+# ---------------------------------------------------------------------------
+# Split packaging (ECCE_SPLIT_PACKAGES). Every install() rule above already
+# carries COMPONENT client/server; this block only decides whether CPack
+# acts on those tags at all, and what each resulting package's own
+# metadata is. No ecce-common component: auditing every install() rule
+# above by which side reads it, nothing was needed by both -- siteconfig/
+# and scripts/ are entirely client-read, data/admin and the Apache/broker
+# config are entirely server-read. A common package would have shipped
+# empty, so there isn't one.
+# ---------------------------------------------------------------------------
+if(ECCE_SPLIT_PACKAGES)
+  # The version boundary below which a plain "ecce" install is the OLD
+  # monolithic package -- ecce-client/ecce-server each Break+Replace it
+  # so dpkg can upgrade one straight into the split pair instead of
+  # refusing with a file-already-owned-by-another-package conflict. Kept
+  # as its own variable (rather than reusing _ecce_deb_version directly
+  # in the Breaks string) because the branch is still versioned 8.17.0 --
+  # whichever release first ships split packages is the real boundary,
+  # and that is a decision for whoever cuts that release, not something
+  # to hardcode here now.
+  set(ECCE_MONOLITHIC_BREAK_VERSION "${_ecce_deb_version}" CACHE STRING
+      "ecce-client/ecce-server Break+Replace the monolithic ecce package for versions strictly below this (Debian: 'ecce (<< VERSION)'; RPM: 'ecce < VERSION'). Defaults to this build's own version, i.e. the first split release breaks/replaces every version older than itself.")
+
+  # CPack falls back to the monolithic-build globals below (Depends,
+  # Recommends) for any component that doesn't set its own -- confirmed
+  # live: without this, ecce-server and the ecce metapackage both picked
+  # up "Recommends: nwchem" from CPACK_DEBIAN_PACKAGE_RECOMMENDS above,
+  # which is wrong for both (a headless server box, and a metapackage
+  # that should only Depend on the two real components). Clear the
+  # globals here so every component's metadata is exactly what this
+  # block sets and nothing leaks in from the monolithic settings above.
+  unset(CPACK_DEBIAN_PACKAGE_DEPENDS)
+  unset(CPACK_DEBIAN_PACKAGE_RECOMMENDS)
+
+  set(CPACK_DEB_COMPONENT_INSTALL ON)
+  set(CPACK_COMPONENTS_ALL client server meta)
+  # Each component becomes its own independently installable package
+  # rather than CPack's default of one combined "unspecified"-grouped
+  # archive; auto-shlibdeps and auto-provides/requires run separately per
+  # component package (so e.g. only ecce-client ends up depending on
+  # wxWidgets/Xerces, since only its ELF binaries link them).
+  set(CPACK_DEB_COMPONENT_INSTALL ON)
+  set(CPACK_COMPONENTS_GROUPING IGNORE)
+  set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
+  set(CPACK_RPM_COMPONENT_INSTALL ON)
+
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_NAME "ecce-client")
+  set(CPACK_DEBIAN_CLIENT_FILE_NAME DEB-DEFAULT)
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_DESCRIPTION
+    "Extensible Computational Chemistry Environment - client (GUI apps, input generators/parsers, job-launch tooling)")
+  # apache2/apache2-utils and the broker move to ecce-server; everything
+  # else CPACK_DEBIAN_PACKAGE_DEPENDS listed for the monolithic build is
+  # still needed here (python3-wxgtk4.0 for scripts/codereg, same
+  # rationale as the monolithic set above).
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS "python3-wxgtk4.0")
+  # A client on the SAME machine as a server benefits from it (the
+  # default "everything on one box" case this project still ships), but
+  # a client of an already-central server (#167/#138 -- the teaching
+  # deployment) has no use for a local data server or broker at all, so
+  # this is Recommends, not Depends, matching the design brief.
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, nwchem")
+  # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
+  # without this, installing ecce-client while the old ecce package still
+  # owns e.g. /opt/ecce/bin/organizer is a file-already-owned conflict,
+  # not an upgrade.
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_BREAKS "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_REPLACES "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
+
+  set(CPACK_DEBIAN_SERVER_PACKAGE_NAME "ecce-server")
+  set(CPACK_DEBIAN_SERVER_FILE_NAME DEB-DEFAULT)
+  set(CPACK_DEBIAN_SERVER_PACKAGE_DESCRIPTION
+    "Extensible Computational Chemistry Environment - server (WebDAV data server, ActiveMQ broker configuration)")
+  set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "apache2, apache2-utils, activemq")
+  # Deliberately no CPACK_DEBIAN_SERVER_PACKAGE_RECOMMENDS "ecce-client":
+  # the central-server deployment (CLAUDE.md, #138/#167) is exactly a
+  # machine that runs ecce-server and nothing else, with every real user
+  # on a separate client machine -- recommending the client back would
+  # pull GUI/wx onto a headless server box by default.
+  set(CPACK_DEBIAN_SERVER_PACKAGE_BREAKS "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
+  set(CPACK_DEBIAN_SERVER_PACKAGE_REPLACES "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
+
+  # The "ecce" metapackage (Andy, 2026-09-28): ships no files of its own
+  # -- CPack's Debian generator refuses a truly empty component archive,
+  # so it gets one harmless marker doc instead -- and exists purely so
+  # `apt install ecce` keeps meaning "everything, one machine", and so a
+  # bare `apt upgrade` of the old monolithic 8.x "ecce" pulls in both
+  # halves via its own Breaks/Replaces above plus this package's
+  # Depends. Not Recommends: the whole point is that installing "ecce"
+  # unconditionally gets you both.
+  set(_ecce_meta_marker ${CMAKE_BINARY_DIR}/ecce-meta/README)
+  file(WRITE ${_ecce_meta_marker}
+"This package is empty by design.
+
+It exists only so \"apt install ecce\"/\"dnf install ecce\" keeps meaning
+\"the full, one-machine ECCE install\" now that it is split into
+ecce-client and ecce-server (see GETTING_STARTED.md's \"Split packages\"
+section) -- installing this package pulls in both.
+")
+  install(FILES ${_ecce_meta_marker}
+          DESTINATION share/doc/ecce-meta
+          COMPONENT meta)
+  set(CPACK_DEBIAN_META_PACKAGE_NAME "ecce")
+  set(CPACK_DEBIAN_META_FILE_NAME DEB-DEFAULT)
+  set(CPACK_DEBIAN_META_PACKAGE_DESCRIPTION
+    "Extensible Computational Chemistry Environment - metapackage (installs ecce-client and ecce-server together, the pre-9.0 default)")
+  set(CPACK_DEBIAN_META_PACKAGE_DEPENDS "ecce-client (= ${_ecce_deb_version}), ecce-server (= ${_ecce_deb_version})")
+  # dpkg-shlibdeps has nothing to scan in an empty package and errors if
+  # asked to try.
+  set(CPACK_DEBIAN_META_PACKAGE_SHLIBDEPS OFF)
+
+  if(RPMBUILD_EXECUTABLE)
+    set(CPACK_RPM_CLIENT_PACKAGE_NAME "ecce-client")
+    set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
+    set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES "python3-wxpython4")
+    set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS "ecce-server, nwchem")
+    # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the
+    # idiomatic equivalent for "this package supersedes an older one
+    # that owned the same paths", and Conflicts blocks the two from
+    # being installed side by side (the old monolithic package is
+    # exactly what ecce-client+ecce-server now provide between them, so
+    # letting both stay installed would leave stale duplicate files).
+    set(CPACK_RPM_CLIENT_PACKAGE_OBSOLETES "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
+    set(CPACK_RPM_CLIENT_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
+    set(CPACK_RPM_SERVER_PACKAGE_NAME "ecce-server")
+    set(CPACK_RPM_SERVER_FILE_NAME RPM-DEFAULT)
+    set(CPACK_RPM_SERVER_PACKAGE_REQUIRES "httpd, httpd-tools")
+    set(CPACK_RPM_SERVER_PACKAGE_SUGGESTS "activemq")
+    set(CPACK_RPM_SERVER_PACKAGE_OBSOLETES "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
+    set(CPACK_RPM_SERVER_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
+    set(CPACK_RPM_META_PACKAGE_NAME "ecce")
+    set(CPACK_RPM_META_FILE_NAME RPM-DEFAULT)
+    set(CPACK_RPM_META_PACKAGE_REQUIRES "ecce-client = ${_ecce_deb_version}, ecce-server = ${_ecce_deb_version}")
+    set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/opt")
+    set(CPACK_RPM_CLIENT_PACKAGE_AUTOREQ ON)
+    set(CPACK_RPM_SERVER_PACKAGE_AUTOREQ ON)
+    set(CPACK_RPM_META_PACKAGE_AUTOREQ OFF)
+    set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
+  endif()
 endif()
 
 include(CPack)
