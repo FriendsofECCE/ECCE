@@ -1423,7 +1423,12 @@ hopToIt:
                   "bind 'set enable-bracketed-paste off' 2>/dev/null"))
       return;
   } else {
-    if (!expwrite("unalias precmd; set prompt=+go+; unset echo")) return;
+    //  "unset edit": where csh is tcsh (Ubuntu), its line editor wraps a
+    //  long command's echo at 80 columns with " \b", so the exact-echo
+    //  match that eccejobstore waits on never arrives and monitoring
+    //  hangs forever (#143).  bsd-csh has no editor and ignores it.
+    if (!expwrite("unalias precmd; set prompt=+go+; unset echo; unset edit"))
+      return;
   }
   if (expect1("+go+$") != 1) {
     p_errMessage =
@@ -1838,7 +1843,9 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
                   "bind 'set enable-bracketed-paste off' 2>/dev/null"))
       return false;
   } else {
-    if (!expwrite("unalias precmd; set prompt=+go+; unset echo")) return false;
+    //  See the matching "unset edit" note above (#143).
+    if (!expwrite("unalias precmd; set prompt=+go+; unset echo; unset edit"))
+      return false;
   }
   if (expect1("+go+$") != 1) {
     p_errMessage =
