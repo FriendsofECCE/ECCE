@@ -174,10 +174,12 @@ static bool countFunctions(TGBSConfig *config, const vector<TAtm*>& atoms,
 
 static bool functionsPerAtom(IPropCalculation *expt, SGFragment *sgfrag,
                              int coefficientWidth,
-                             vector<int>& counts, vector<int>& shellOf)
+                             vector<int>& counts, vector<int>& shellOf,
+                             bool *semiempirical = 0)
 {
   counts.clear();
   shellOf.clear();
+  if (semiempirical != 0) *semiempirical = false;
 
   ICalculation *escalc = dynamic_cast<ICalculation*>(expt);
   if (escalc == 0 || sgfrag == 0) return false;
@@ -189,7 +191,15 @@ static bool functionsPerAtom(IPropCalculation *expt, SGFragment *sgfrag,
   //  do.  Each fetches the config independently.
   if (config == 0 || config->empty()) {
     TGBSConfig *slater = ICalcUtils::slaterBasisConfig(expt);
-    if (slater != 0) { delete config; config = slater; }
+    if (slater != 0) {
+      delete config;
+      config = slater;
+      //  NDDO coefficients are already in an orthonormal basis (S=I):
+      //  a caller composing Lowdin shares from this basis must use
+      //  plain c^2 rather than transforming through a REAL Slater
+      //  overlap, which the method itself never sees (#175).
+      if (semiempirical != 0) *semiempirical = true;
+    }
   }
   if (config == 0 || config->empty()) { delete config; return false; }
 
@@ -1389,6 +1399,7 @@ void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
   out << "  hiddenCount: " << col.hiddenCount << "\n";
   out << "  hiddenMaxEnergy: " << std::fixed << std::setprecision(6)
       << col.hiddenMaxEnergy << "\n";
+  out << "  hiddenSemicoreCount: " << col.hiddenSemicoreCount << "\n";
   out << "  hiddenAboveCount: " << col.hiddenAboveCount << "\n";
   out << "  shellKeys:";
   for (size_t i = 0; i < col.shellKeys.size(); i++) out << " " << col.shellKeys[i];
@@ -1809,10 +1820,167 @@ void MoDiagramPanel::buildOnce()
   //  levels alone refused a correct D6h calculation.
   const vector<MoLevel> wholeSpectrum = centre.levels;
 
+  //  MO COEFFICIENTS AND THE BASIS OVERLAP -- built ONCE here, before
+  //  the core cutoff is even chosen, and reused below for the semicore
+  //  check as well as further down for the fragment composition
+  //  (composeLevels()) and the localisation check (#175).  Independent
+  //  of any fragment construction: functionsPerAtom()/buildBasisOverlap()
+  //  read `calc` and `sgfrag` directly, not the left/right columns
+  //  MoFragments::build() has not even produced yet at this point.
+  vector<int> moPerAtom, moShellOf, moPerAtomS;
+  vector< vector<double> > moCoefficients;
+  vector<double> moSflat, moSqrtS;
+  bool moHaveSqrtS = false;
+  bool moSemiempirical = false;
+  {
+    PropTable *moCoefs = (PropTable*)calc->getProperty("MO");
+    //  MOAOORDER-marked calcs (currently ORCA) store MO with columns in
+    //  the PARSER's canonical order, not TGBSConfig's own -- see
+    //  MoAoOrder.H. "elements" above is already sgfrag's own atom
+    //  order, the same one functionsPerAtom() below assumes.
+    std::unique_ptr<PropTable> moCoefsOwned;
+    if (moCoefs != 0) {
+      ICalculation *moAoEscalc = dynamic_cast<ICalculation*>(calc);
+      //  gbsConfig() returns a NEW TGBSConfig the caller owns (see the
+      //  other call sites in this file, which all delete it) -- only
+      //  needed transiently here, to hand to reorderToNative().
+      std::unique_ptr<TGBSConfig> moAoConfig(
+          moAoEscalc != 0 ? moAoEscalc->gbsConfig() : 0);
+      if (moAoConfig != 0) {
+        PropTable *reordered = MoAoOrder::reorderToNative(
+            moCoefs, calc, elements, moAoConfig.get());
+        if (reordered != moCoefs) {
+          moCoefsOwned.reset(reordered);
+          moCoefs = reordered;
+        }
+      }
+    }
+    if (moCoefs != 0 && moCoefs->rows() > 0 && moCoefs->columns() > 0 &&
+        functionsPerAtom(calc, sgfrag, moCoefs->columns(), moPerAtom,
+                         moShellOf, &moSemiempirical)) {
+      const int norb = moCoefs->rows();
+      const int nbasis = moCoefs->columns();
+      moCoefficients.assign(norb, vector<double>(nbasis));
+      for (int m = 0; m < norb; m++)
+        for (int mu = 0; mu < nbasis; mu++)
+          moCoefficients[m][mu] = moCoefs->value(m, mu);
+
+      progressDlg.progress(44, _("Computing overlap integrals"));
+      wxStopWatch overlapThrottle;
+      if (buildBasisOverlap(calc, sgfrag, nbasis, moPerAtomS, moSflat,
+                            [&](double frac) {
+                              if (overlapThrottle.Time() < 100) return;
+                              overlapThrottle.Start();
+                              progressDlg.progress(44 + (int)(frac*4),
+                                  _("Computing overlap integrals"));
+                            })) {
+        //  S^{1/2}, once per diagram -- every MO below reuses it, only
+        //  c changes per orbital (#170, then reused again for #175).
+        progressDlg.progress(48, _("Orthogonalising the basis (Lowdin)"));
+        wxStopWatch sqrtThrottle;
+        moHaveSqrtS =
+            MoComposition::buildSqrtOverlap(moSflat, nbasis, moSqrtS,
+                [&](double frac) {
+                  if (sqrtThrottle.Time() < 100) return;
+                  sqrtThrottle.Start();
+                  progressDlg.progress(48 + (int)(frac*2),
+                      _("Orthogonalising the basis (Lowdin)"));
+                });
+        if (!moHaveSqrtS && !moSemiempirical && why.empty()) {
+          why = "The basis overlap matrix is too close to linearly "
+                "dependent to take a square root of, so the fragment "
+                "composition uses plain AO coefficients instead of a "
+                "Lowdin share.";
+        }
+      }
+    }
+  }
+
   //  Both ends of the spectrum are folded away, not just the core, and
   //  both cutoffs report what they hid so an absence the reader cannot
   //  see does not pass for a complete diagram.
   MoDiagram::hideBelow(centre, MoDiagram::suggestCoreCutoff(centre.levels));
+
+  //  SEMICORE (#175): an OCCUPIED level whose largest Lowdin share sits,
+  //  at 90% or more, on one atom, AND whose energy is below TWICE that
+  //  atom's own most negative tabulated valence energy, takes no part
+  //  in bonding even though it sits well inside the valence energy
+  //  WINDOW -- suggestCoreCutoff()'s single biggest-occupied-gap rule
+  //  cannot catch it, because nothing separates it from genuine valence
+  //  levels by a gap (Cr(CO)6's 3p semicore at -2.246 Ha, with the
+  //  valence t2g at -0.354 and nothing between).
+  //
+  //  Checked AFTER hideBelow(), not before: a real core orbital (e.g.
+  //  water's O 1s) is JUST as localised and JUST as far below twice the
+  //  valence energy as a true semicore one is -- the energy-plus-share
+  //  rule alone cannot tell the two apart, only "already caught by the
+  //  ordinary big-gap cutoff" can. Running this against what hideBelow()
+  //  leaves means it only ever sees levels the gap rule did NOT already
+  //  remove, so a genuine core level is never double-counted or
+  //  relabelled -- confirmed against the water fixtures, where nothing
+  //  here fires at all (#175 capture).
+  vector<bool> isSemicore(centre.levels.size(), false);
+  if ((moHaveSqrtS || moSemiempirical) &&
+      moPerAtomS.size() == elements.size()) {
+    const vector<int> noShellSplit;
+    const double HARTREE = 27.211386245988;   // eV per Hartree
+    for (size_t i = 0; i < centre.levels.size(); i++) {
+      const MoLevel& level = centre.levels[i];
+      if (level.occupancy <= 0.0) continue;
+
+      vector<double> atomSum(elements.size(), 0.0);
+      int ncomp = 0;
+      for (size_t k = 0; k < level.orbitals.size(); k++) {
+        const int mo = level.orbitals[k];
+        if (mo < 0 || mo >= (int)moCoefficients.size()) continue;
+        const vector<double>& c = moCoefficients[mo];
+
+        vector<double> shares;
+        if (moSemiempirical) {
+          //  Plain c^2 per atom -- the orthonormal-basis case, same
+          //  convention MoComposition::compute()/share() use when no
+          //  overlap matrix is given.
+          const vector<MoComposition::Share> full = MoComposition::compute(
+              c, moPerAtomS, noShellSplit, elements, vector<double>());
+          shares.assign(elements.size(), 0.0);
+          for (size_t f = 0; f < full.size(); f++) {
+            if (full[f].atom >= 0 && full[f].atom < (int)shares.size()) {
+              shares[full[f].atom] += full[f].share;
+            }
+          }
+        } else {
+          shares = MoComposition::lowdinShares(c, moPerAtomS, moSqrtS);
+        }
+        if (shares.size() != atomSum.size()) continue;
+        for (size_t a = 0; a < shares.size(); a++) atomSum[a] += shares[a];
+        ncomp++;
+      }
+      if (ncomp == 0) continue;
+
+      int maxAtom = -1;
+      double maxShare = 0.0;
+      for (size_t a = 0; a < atomSum.size(); a++) {
+        const double v = atomSum[a]/ncomp;
+        if (v > maxShare) { maxShare = v; maxAtom = (int)a; }
+      }
+      if (maxAtom < 0 || maxShare < MoComposition::LOCALISED_SHARE_THRESHOLD)
+        continue;
+
+      bool haveVoie = false;
+      double mostNegative = 0.0;
+      for (int l = 0; l <= 2; l++) {
+        double eV;
+        if (!MoFragments::valenceEnergy(elements[maxAtom], l, eV)) continue;
+        const double ha = eV/HARTREE;
+        if (!haveVoie || ha < mostNegative) { mostNegative = ha; haveVoie = true; }
+      }
+      if (!haveVoie) continue;
+
+      if (level.energy < 2.0*mostNegative) isSemicore[i] = true;
+    }
+  }
+  MoDiagram::hideSemicore(centre, isSemicore);
+
   MoDiagram::hideAbove(centre,
                        MoDiagram::suggestVirtualCutoff(centre.levels));
 
@@ -2106,172 +2274,131 @@ void MoDiagramPanel::buildOnce()
   //  than threaded into it.  (Declared earlier, at buildOnce()'s top, so
   //  every dump call site -- including the early returns above -- can
   //  pass the same names.)
-  if (haveFragments && !leftAtoms.empty() && !rightAtoms.empty()) {
-    PropTable *moCoefs = (PropTable*)calc->getProperty("MO");
-    //  MOAOORDER-marked calcs (currently ORCA) store MO with columns in
-    //  the PARSER's canonical order, not TGBSConfig's own -- see
-    //  MoAoOrder.H. "elements" above is already sgfrag's own atom
-    //  order, the same one functionsPerAtom() below assumes.
-    std::unique_ptr<PropTable> moCoefsOwned;
-    if (moCoefs != 0) {
-      ICalculation *moAoEscalc = dynamic_cast<ICalculation*>(calc);
-      //  gbsConfig() returns a NEW TGBSConfig the caller owns (see the
-      //  other call sites in this file, which all delete it) -- only
-      //  needed transiently here, to hand to reorderToNative().
-      std::unique_ptr<TGBSConfig> moAoConfig(
-          moAoEscalc != 0 ? moAoEscalc->gbsConfig() : 0);
-      if (moAoConfig != 0) {
-        PropTable *reordered = MoAoOrder::reorderToNative(
-            moCoefs, calc, elements, moAoConfig.get());
-        if (reordered != moCoefs) {
-          moCoefsOwned.reset(reordered);
-          moCoefs = reordered;
-        }
+  if (haveFragments && !leftAtoms.empty() && !rightAtoms.empty() &&
+      !moCoefficients.empty()) {
+    //  COMPOSITION IS LOWDIN, NOT PLAIN c^2 (#175): composeLevels()
+    //  itself still reads plain c^2 (no overlap matrix), so what makes
+    //  the difference is transforming each row to c' = S^{1/2} c
+    //  BEFORE handing it in -- plain c'^2 of that IS the Lowdin share.
+    //  Skipped for a semiempirical basis (NDDO coefficients are already
+    //  in an orthonormal basis, S = I, so plain c^2 already IS their
+    //  Lowdin share) and whenever S^1/2 itself failed above, in which
+    //  case the raw coefficients are used exactly as before this fix.
+    const bool useLowdinCompose = moHaveSqrtS && !moSemiempirical;
+    vector< vector<double> > lowdinCoefficients;
+    if (useLowdinCompose) {
+      lowdinCoefficients.resize(moCoefficients.size());
+      for (size_t m = 0; m < moCoefficients.size(); m++) {
+        lowdinCoefficients[m] =
+            MoComposition::transform(moCoefficients[m], moSqrtS);
       }
     }
-    if (moCoefs != 0 && moCoefs->rows() > 0 && moCoefs->columns() > 0) {
-      vector<int> perAtom, shellOf;
-      //  functionsPerAtom() reads the STORED frame's atoms (sgfrag's
-      //  own), which is the order the coefficients are in -- the same
-      //  frame computeFullGroupLabels() insists on for the same reason.
-      if (functionsPerAtom(calc, sgfrag, moCoefs->columns(), perAtom,
-                           shellOf)) {
-        const int norb = moCoefs->rows();
-        const int nbasis = moCoefs->columns();
-        vector< vector<double> > coefficients(norb, vector<double>(nbasis));
-        for (int m = 0; m < norb; m++)
-          for (int mu = 0; mu < nbasis; mu++)
-            coefficients[m][mu] = moCoefs->value(m, mu);
+    const vector< vector<double> >& composeCoefficients =
+        useLowdinCompose ? lowdinCoefficients : moCoefficients;
 
-        progressDlg.progress(60, _("Building fragment orbitals"));
-        MoFragments::composeLevels(centre.levels, coefficients, perAtom,
-                                   shellOf, elements, leftAtoms, rightAtoms,
-                                   left, right);
+    progressDlg.progress(60, _("Building fragment orbitals"));
+    MoFragments::composeLevels(centre.levels, composeCoefficients, moPerAtom,
+                               moShellOf, elements, leftAtoms, rightAtoms,
+                               left, right);
 
-        vector<int> perAtomS;
-        vector<double> Sflat;
-        progressDlg.progress(65, _("Computing overlap integrals"));
-        wxStopWatch overlapThrottle;
-        if (buildBasisOverlap(calc, sgfrag, nbasis, perAtomS, Sflat,
-                              [&](double frac) {
-                                if (overlapThrottle.Time() < 100) return;
-                                overlapThrottle.Start();
-                                progressDlg.progress(65 + (int)(frac*10),
-                                    _("Computing overlap integrals"));
-                              })) {
-          vector< std::pair<int,int> > bonds;
-          MoFragments::covalentBonds(coords, elements, bonds);
+    if (!moSflat.empty()) {
+      vector< std::pair<int,int> > bonds;
+      MoFragments::covalentBonds(coords, elements, bonds);
 
-          //  S^{1/2}, once per diagram -- every MO below reuses it,
-          //  only c changes per orbital (#170).
-          progressDlg.progress(75, _("Orthogonalising the basis (Lowdin)"));
-          vector<double> sqrtS;
-          wxStopWatch sqrtThrottle;
-          const bool haveSqrtS =
-              MoComposition::buildSqrtOverlap(Sflat, nbasis, sqrtS,
-                  [&](double frac) {
-                    if (sqrtThrottle.Time() < 100) return;
-                    sqrtThrottle.Start();
-                    progressDlg.progress(75 + (int)(frac*15),
-                        _("Orthogonalising the basis (Lowdin)"));
-                  });
+      const bool debug = mosymDebug();
+      centreOP.assign(centre.levels.size(), 0.0);
+      //  Left empty (rather than filled with a measure that can't
+      //  be trusted) if S is linearly dependent enough that S^1/2
+      //  failed -- classify() skips the localisation rule on an
+      //  empty vector.
+      if (moHaveSqrtS) localisedShare.assign(centre.levels.size(), 0.0);
+      //  Dump-only (#171): kept alongside centreOP/localisedShare so
+      //  the oracle can show the same [MOLOC] diagnostics without
+      //  reading debug stderr output.
+      mullikenMaxVec.assign(centre.levels.size(), 0.0);
+      normVec.assign(centre.levels.size(), 0.0);
+      const vector<int> noShellSplit;
+      for (size_t i = 0; i < centre.levels.size(); i++) {
+        MoLevel& level = centre.levels[i];
+        //  Per-atom shares, summed over this level's components and
+        //  later divided by ncomp -- same averaging for both
+        //  measures, only Lowdin feeds localisedShare[i] now (#170).
+        //  Mulliken is kept only for the debug comparison line.
+        vector<double> lowdinAtomSum(elements.size(), 0.0);
+        vector<double> mullikenAtomSum(elements.size(), 0.0);
+        double opSum = 0.0, normSum = 0.0;
+        int ncomp = 0;
+        for (size_t k = 0; k < level.orbitals.size(); k++) {
+          const int mo = level.orbitals[k];
+          if (mo < 0 || mo >= (int)moCoefficients.size()) continue;
+          ncomp++;
+          const vector<double>& c = moCoefficients[mo];
 
-          const bool debug = mosymDebug();
-          centreOP.assign(centre.levels.size(), 0.0);
-          //  Left empty (rather than filled with a measure that can't
-          //  be trusted) if S is linearly dependent enough that S^1/2
-          //  failed -- classify() skips the localisation rule on an
-          //  empty vector.
-          if (haveSqrtS) localisedShare.assign(centre.levels.size(), 0.0);
-          //  Dump-only (#171): kept alongside centreOP/localisedShare so
-          //  the oracle can show the same [MOLOC] diagnostics without
-          //  reading debug stderr output.
-          mullikenMaxVec.assign(centre.levels.size(), 0.0);
-          normVec.assign(centre.levels.size(), 0.0);
-          const vector<int> noShellSplit;
-          for (size_t i = 0; i < centre.levels.size(); i++) {
-            MoLevel& level = centre.levels[i];
-            //  Per-atom shares, summed over this level's components and
-            //  later divided by ncomp -- same averaging for both
-            //  measures, only Lowdin feeds localisedShare[i] now (#170).
-            //  Mulliken is kept only for the debug comparison line.
-            vector<double> lowdinAtomSum(elements.size(), 0.0);
-            vector<double> mullikenAtomSum(elements.size(), 0.0);
-            double opSum = 0.0, normSum = 0.0;
-            int ncomp = 0;
-            for (size_t k = 0; k < level.orbitals.size(); k++) {
-              const int mo = level.orbitals[k];
-              if (mo < 0 || mo >= (int)coefficients.size()) continue;
-              ncomp++;
-              const vector<double>& c = coefficients[mo];
-
-              if (haveSqrtS) {
-                const vector<double> lowdin =
-                    MoComposition::lowdinShares(c, perAtomS, sqrtS);
-                for (size_t a = 0; a < lowdin.size() &&
-                                   a < lowdinAtomSum.size(); a++) {
-                  lowdinAtomSum[a] += lowdin[a];
-                }
-              }
-
-              //  shellOf left empty: one entry per ATOM, already
-              //  summed over its shells -- Mulliken, kept for the
-              //  debug comparison only.
-              const vector<MoComposition::Share> full =
-                  MoComposition::compute(c, perAtomS,
-                                         noShellSplit, elements, Sflat);
-              for (size_t f = 0; f < full.size(); f++) {
-                if (full[f].atom >= 0 &&
-                    full[f].atom < (int)mullikenAtomSum.size()) {
-                  mullikenAtomSum[full[f].atom] += full[f].share;
-                }
-              }
-
-              //  c^T.S.c for this MO, independent of either share
-              //  measure above -- the actual invariant #170 wants
-              //  checked (should be 1 for a properly normalised MO).
-              double norm = 0.0;
-              const int nb = (int)c.size();
-              if ((int)Sflat.size() == nb*nb) {
-                for (int mu = 0; mu < nb; mu++) {
-                  double row = 0.0;
-                  for (int nu = 0; nu < nb; nu++) row += c[nu]*Sflat[mu*nb + nu];
-                  norm += c[mu]*row;
-                }
-              }
-              normSum += norm;
-
-              opSum += MoComposition::overlapPopulation(c, perAtomS, Sflat,
-                                                         bonds);
+          if (moHaveSqrtS) {
+            const vector<double> lowdin =
+                MoComposition::lowdinShares(c, moPerAtomS, moSqrtS);
+            for (size_t a = 0; a < lowdin.size() &&
+                               a < lowdinAtomSum.size(); a++) {
+              lowdinAtomSum[a] += lowdin[a];
             }
-            if (ncomp > 0) {
-              centreOP[i] = opSum/ncomp;
-              normVec[i] = normSum/ncomp;
+          }
 
-              double lowdinMax = 0.0;
-              if (haveSqrtS) {
-                for (size_t a = 0; a < lowdinAtomSum.size(); a++) {
-                  const double v = lowdinAtomSum[a]/ncomp;
-                  if (v > lowdinMax) lowdinMax = v;
-                }
-                localisedShare[i] = lowdinMax;
-              }
-
-              double mullikenMax = 0.0;
-              for (size_t a = 0; a < mullikenAtomSum.size(); a++) {
-                const double v = mullikenAtomSum[a]/ncomp;
-                if (v > mullikenMax) mullikenMax = v;
-              }
-              mullikenMaxVec[i] = mullikenMax;
-
-              if (debug) {
-                mosymPrintf("[MOLOC] %s E=%.4f lowdinMax=%.3f "
-                            "mullikenMax=%.3f OP=%.4f norm=%.3f\n",
-                            level.irrep.c_str(), level.energy,
-                            lowdinMax, mullikenMax,
-                            centreOP[i], normSum/ncomp);
-              }
+          //  shellOf left empty: one entry per ATOM, already
+          //  summed over its shells -- Mulliken, kept for the
+          //  debug comparison only.
+          const vector<MoComposition::Share> full =
+              MoComposition::compute(c, moPerAtomS,
+                                     noShellSplit, elements, moSflat);
+          for (size_t f = 0; f < full.size(); f++) {
+            if (full[f].atom >= 0 &&
+                full[f].atom < (int)mullikenAtomSum.size()) {
+              mullikenAtomSum[full[f].atom] += full[f].share;
             }
+          }
+
+          //  c^T.S.c for this MO, independent of either share
+          //  measure above -- the actual invariant #170 wants
+          //  checked (should be 1 for a properly normalised MO).
+          double norm = 0.0;
+          const int nb = (int)c.size();
+          if ((int)moSflat.size() == nb*nb) {
+            for (int mu = 0; mu < nb; mu++) {
+              double row = 0.0;
+              for (int nu = 0; nu < nb; nu++) row += c[nu]*moSflat[mu*nb + nu];
+              norm += c[mu]*row;
+            }
+          }
+          normSum += norm;
+
+          opSum += MoComposition::overlapPopulation(c, moPerAtomS, moSflat,
+                                                     bonds);
+        }
+        if (ncomp > 0) {
+          centreOP[i] = opSum/ncomp;
+          normVec[i] = normSum/ncomp;
+
+          double lowdinMax = 0.0;
+          if (moHaveSqrtS) {
+            for (size_t a = 0; a < lowdinAtomSum.size(); a++) {
+              const double v = lowdinAtomSum[a]/ncomp;
+              if (v > lowdinMax) lowdinMax = v;
+            }
+            localisedShare[i] = lowdinMax;
+          }
+
+          double mullikenMax = 0.0;
+          for (size_t a = 0; a < mullikenAtomSum.size(); a++) {
+            const double v = mullikenAtomSum[a]/ncomp;
+            if (v > mullikenMax) mullikenMax = v;
+          }
+          mullikenMaxVec[i] = mullikenMax;
+
+          if (debug) {
+            mosymPrintf("[MOLOC] %s E=%.4f lowdinMax=%.3f "
+                        "mullikenMax=%.3f OP=%.4f norm=%.3f\n",
+                        level.irrep.c_str(), level.energy,
+                        lowdinMax, mullikenMax,
+                        centreOP[i], normSum/ncomp);
           }
         }
       }

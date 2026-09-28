@@ -1434,12 +1434,27 @@ class MoDiagramCanvas : public wxPanel
       //  The folded core, said out loud rather than silently dropped:
       //  an absence the reader cannot see is worse than a cluttered
       //  diagram.
-      if (p_centre.hiddenCount > 0) {
+      if (p_centre.hiddenCount > 0 || p_centre.hiddenSemicoreCount > 0) {
         line -= lineHeight;
         ostringstream text;
-        text << p_centre.hiddenCount << " core orbital"
-             << (p_centre.hiddenCount == 1 ? "" : "s") << " below "
-             << p_centre.hiddenMaxEnergy << " Hartree, not shown";
+        //  Semicore counted under its own name rather than folded
+        //  silently into "core" -- it is hidden for the same reason
+        //  (it takes no part in bonding) but is a different chemical
+        //  claim, and a reader comparing against a textbook diagram
+        //  needs to be able to tell the two apart (#175).
+        if (p_centre.hiddenCount > 0 && p_centre.hiddenSemicoreCount > 0) {
+          text << p_centre.hiddenCount << " core and "
+               << p_centre.hiddenSemicoreCount << " semicore orbitals below "
+               << p_centre.hiddenMaxEnergy << " Hartree, not shown";
+        } else if (p_centre.hiddenSemicoreCount > 0) {
+          text << p_centre.hiddenSemicoreCount << " semicore orbital"
+               << (p_centre.hiddenSemicoreCount == 1 ? "" : "s") << " below "
+               << p_centre.hiddenMaxEnergy << " Hartree, not shown";
+        } else {
+          text << p_centre.hiddenCount << " core orbital"
+               << (p_centre.hiddenCount == 1 ? "" : "s") << " below "
+               << p_centre.hiddenMaxEnergy << " Hartree, not shown";
+        }
         dc.DrawText(wxString(text.str().c_str(), wxConvUTF8),
                     xCentre - 30, line);
 

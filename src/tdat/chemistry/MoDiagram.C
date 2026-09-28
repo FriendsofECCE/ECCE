@@ -813,8 +813,13 @@ void MoDiagram::hideBelow(MoColumn& column, double cutoff)
 {
   vector<MoLevel> kept;
   column.hiddenCount = 0;
-  column.hiddenMaxEnergy = 0.0;
-  bool anyHidden = false;
+  //  hiddenMaxEnergy is reset here UNLESS hideSemicore() already hid
+  //  something (#175): that always runs first and always at a HIGHER
+  //  (less negative) energy than any real core, so blindly zeroing it
+  //  would silently throw away the true "below X Hartree" bound the
+  //  footer reports and report the deep core's own bound instead.
+  bool anyHidden = (column.hiddenSemicoreCount > 0);
+  if (!anyHidden) column.hiddenMaxEnergy = 0.0;
 
   for (size_t i = 0; i < column.levels.size(); i++) {
     if (column.levels[i].energy < cutoff) {
@@ -823,6 +828,29 @@ void MoDiagram::hideBelow(MoColumn& column, double cutoff)
         column.hiddenMaxEnergy = column.levels[i].energy;
       }
       anyHidden = true;
+    } else {
+      kept.push_back(column.levels[i]);
+    }
+  }
+  column.levels = kept;
+}
+
+
+void MoDiagram::hideSemicore(MoColumn& column, const vector<bool>& isSemicore)
+{
+  if (isSemicore.size() != column.levels.size()) return;
+
+  vector<MoLevel> kept;
+  bool anyHiddenBefore = (column.hiddenCount > 0 ||
+                          column.hiddenSemicoreCount > 0);
+
+  for (size_t i = 0; i < column.levels.size(); i++) {
+    if (isSemicore[i]) {
+      column.hiddenSemicoreCount += column.levels[i].degeneracy;
+      if (!anyHiddenBefore || column.levels[i].energy > column.hiddenMaxEnergy) {
+        column.hiddenMaxEnergy = column.levels[i].energy;
+      }
+      anyHiddenBefore = true;
     } else {
       kept.push_back(column.levels[i]);
     }

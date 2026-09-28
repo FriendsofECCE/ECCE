@@ -128,6 +128,80 @@ int main()
           "and both antibonding levels stay: all four are drawn");
   }
 
+  printf("\n  hiding semicore levels (#175)\n");
+  {
+    //  Cr(CO)6-shaped spectrum: a real core level (Cr 3s-ish, far
+    //  below everything), a SEMICORE level sitting well inside the
+    //  valence window with nothing separating it by a gap (Cr's 3p,
+    //  -2.246 Ha against a t2g valence level at -0.354 -- exactly
+    //  suggestCoreCutoff()'s blind spot, since only the biggest gap
+    //  between occupied levels is a core/valence boundary and this one
+    //  is not it), then genuine valence.
+    //  The gap ABOVE the semicore level must stay under 1 Hartree, or
+    //  suggestCoreCutoff()'s "highest gap, not biggest" rule picks IT
+    //  instead and hides the semicore level as ordinary core -- filled
+    //  in with intervening levels the way six CO ligands actually do,
+    //  rather than the two-level jump a hand-picked test would have.
+    double e[] = {-10.0, -2.246, -1.5, -1.0, -0.354, -0.10};
+    double o[] = {  2.0,    2.0,   2.0,  2.0,    2.0,   2.0};
+    const char* l[] = {"a1g","t1u","eg1","t2g1","t2g","a1g2"};
+    vector<double> E(e, e+6), O(o, o+6);
+    vector<string> L(l, l+6);
+
+    MoColumn col;
+    MoDiagram::group(E, O, L, 1e-4, col.levels);
+    check(col.levels.size() == 6, "six distinct levels before any hiding");
+
+    //  hideBelow() FIRST, on the ORIGINAL spectrum -- the order that
+    //  matters (see hideSemicore()'s header): the -10.0 level is deep
+    //  enough below the next occupied level (-2.246) to be the biggest
+    //  gap, so the ordinary core rule alone already removes it.
+    const double cut = MoDiagram::suggestCoreCutoff(col.levels);
+    MoDiagram::hideBelow(col, cut);
+    check(col.levels.size() == 5 && col.hiddenCount == 1,
+          "the real core level (-10.0) is hidden by the ordinary rule");
+
+    //  THEN flag the semicore level against what is LEFT -- index 0 is
+    //  now -2.246, the level that survived the gap rule but is still
+    //  too localised and too deep to be valence.
+    check(fabs(col.levels[0].energy - (-2.246)) < 1e-9,
+          "the semicore level is what remains at index 0");
+    vector<bool> isSemicore(col.levels.size(), false);
+    isSemicore[0] = true;
+    MoDiagram::hideSemicore(col, isSemicore);
+    check(col.levels.size() == 4 && col.hiddenSemicoreCount == 1,
+          "the semicore level is hidden and counted under its own name");
+    check(col.hiddenCount == 1,
+          "core and semicore both end up hidden, counted separately");
+    check(fabs(col.hiddenMaxEnergy - (-2.246)) < 1e-9,
+          "hiddenMaxEnergy now reports the SEMICORE energy, not the "
+          "deeper core's -- it is the higher (less negative) of the two");
+  }
+  {
+    //  A VALENCE LONE PAIR MUST NOT BE CAUGHT.  Water's O 2a1 (about
+    //  -1.0 Ha) is exactly what a caller's Lowdin-share-plus-energy
+    //  rule must clear: it can be strongly localised on oxygen, but at
+    //  an energy far short of 2x oxygen's tabulated 2s VOIE (-1.19 Ha
+    //  -> -2.38 Ha threshold), so it is ordinary valence and stays.
+    //  This test only exercises hideSemicore() itself -- the threshold
+    //  arithmetic lives in MoDiagramPanel.C and is exercised live by
+    //  the water fixture in tests/modiagram, which shows no semicore
+    //  line before or after #175.
+    double e[] = {-1.35, -1.00, -0.72, -0.57, -0.50};
+    double o[] = { 2.0,   2.0,   2.0,   2.0,   2.0};
+    const char* l[] = {"a1","a1","b1","a1","b2"};
+    vector<double> E(e, e+5), O(o, o+5);
+    vector<string> L(l, l+5);
+
+    MoColumn col;
+    MoDiagram::group(E, O, L, 1e-4, col.levels);
+
+    vector<bool> isSemicore(col.levels.size(), false);   // nothing flagged
+    MoDiagram::hideSemicore(col, isSemicore);
+    check(col.levels.size() == 5 && col.hiddenSemicoreCount == 0,
+          "a lone pair with no semicore flag is left alone");
+  }
+
   printf("\n  connecting by symmetry\n");
   {
     //  Water: the hydrogen TASOs are a1 + b1; oxygen brings a1 and b1

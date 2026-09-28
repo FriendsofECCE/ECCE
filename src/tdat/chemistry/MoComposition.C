@@ -289,3 +289,23 @@ MoComposition::lowdinShares(const vector<double>& coefficients,
    for (size_t a = 0; a < out.size(); a++) out[a] /= whole;
    return out;
 }
+
+
+vector<double>
+MoComposition::transform(const vector<double>& coefficients,
+                         const vector<double>& sqrtOverlap)
+{
+   vector<double> out;
+   const size_t nbas = coefficients.size();
+   if (nbas == 0 || sqrtOverlap.size() != nbas*nbas) return out;
+
+   out.assign(nbas, 0.0);
+   for (size_t mu = 0; mu < nbas; mu++) {
+      double sum = 0.0;
+      for (size_t nu = 0; nu < nbas; nu++) {
+         sum += sqrtOverlap[mu*nbas + nu]*coefficients[nu];
+      }
+      out[mu] = sum;
+   }
+   return out;
+}

@@ -205,7 +205,11 @@ class MoFragments
      * With no overlap matrix the basis is taken as orthonormal and it
      * reduces to the sum of c^2, which is a Lowdin population and is
      * the right answer for a semiempirical calculation, whose
-     * coefficients are in an orthonormalised basis to begin with.
+     * coefficients are in an orthonormalised basis to begin with. For
+     * anything else (a Gaussian basis, S != I), plain c^2 is only a
+     * genuine Lowdin share if `coefficients` was already transformed
+     * by MoComposition::transform() (c' = S^{1/2} c) before calling
+     * this -- untransformed, it is neither Mulliken nor Lowdin (#175).
      *
      * @param coefficients     one per basis function
      * @param functionsPerAtom one per atom, in the same order the
@@ -234,7 +238,9 @@ class MoFragments
      * is not -- the same two cases share() documents, at the level of
      * individual functions instead of whole atoms, which is what lets
      * a caller ask about one atom's one shell rather than an atom's
-     * every function.
+     * every function. Same caveat as share(): with no overlap given,
+     * this is only a Lowdin share for coefficients already run through
+     * MoComposition::transform().
      *
      * @param coefficients one per basis function
      * @param indices      which basis functions to sum
@@ -263,7 +269,17 @@ class MoFragments
      *                     set in place, in Hartree-independent shares
      * @param coefficients one row per molecular orbital, one column per
      *                     basis function, in `centreLevels`' own MO
-     *                     numbering (level.orbitals indexes this)
+     *                     numbering (level.orbitals indexes this).
+     *                     This function reads plain c^2 (no overlap
+     *                     matrix), so for a real Gaussian basis the
+     *                     caller must pass Lowdin-transformed rows
+     *                     (MoComposition::transform(), c' = S^{1/2} c)
+     *                     for the result to be a genuine Lowdin share
+     *                     rather than a meaningless net-AO-coefficient
+     *                     sum -- see #175. A semiempirical basis
+     *                     rebuilt from Slater exponents is already
+     *                     orthonormal (S = I) and passes its raw
+     *                     coefficients unchanged.
      * @param perAtom      basis functions per atom, same order as
      *                     `elements`
      * @param shellOf      the angular momentum of each basis function,

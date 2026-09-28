@@ -200,6 +200,28 @@ class MoComposition
     static vector<double> lowdinShares(const vector<double>& coefficients,
                                        const vector<int>& functionsPerAtom,
                                        const vector<double>& sqrtOverlap);
+
+    /**
+     * c' = S^{1/2} c -- the whole transformed row, not just its
+     * per-atom sum.
+     *
+     * lowdinShares() above applies this internally and discards it;
+     * exposed so a caller that needs the full row -- MoFragments::
+     * composeLevels()'s per-atom AND per-shell fragment/shell shares,
+     * #175 -- can transform each orbital ONCE and hand the result to
+     * code that otherwise reads plain c^2 as a Lowdin population (the
+     * convention MoFragments::share()/MoComposition::compute() already
+     * use whenever no overlap matrix is given): plain c'^2 of the
+     * transformed row IS the Lowdin share, so nothing downstream of
+     * this needs to change.
+     *
+     * @param coefficients one per basis function, this orbital's row
+     * @param sqrtOverlap  nbasis*nbasis, row major, from
+     *                     buildSqrtOverlap() above
+     * @return c', or empty if the sizes do not line up
+     */
+    static vector<double> transform(const vector<double>& coefficients,
+                                    const vector<double>& sqrtOverlap);
 };
 
 #endif

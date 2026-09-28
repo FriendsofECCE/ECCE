@@ -248,11 +248,23 @@ struct MoColumn
    int    hiddenCount;
    double hiddenMaxEnergy;
 
+   /**
+    * Occupied levels folded away as SEMICORE, counted separately from
+    * `hiddenCount` (#175).
+    *
+    * A semicore level (e.g. Cr's 3p, at -2.246 Ha) sits well inside
+    * the valence energy WINDOW -- suggestCoreCutoff()'s single big-gap
+    * rule does not catch it -- but is chemically core: it takes no
+    * part in bonding, so it must be hidden the same way, just counted
+    * under its own name rather than folded silently into "core".
+    */
+   int    hiddenSemicoreCount;
+
    /** Virtuals folded away at the top, counted the same way. */
    int    hiddenAboveCount;
 
    MoColumn() : fromHalves(false), hiddenCount(0), hiddenMaxEnergy(0.0),
-               hiddenAboveCount(0), sketchNormal(2) {}
+               hiddenSemicoreCount(0), hiddenAboveCount(0), sketchNormal(2) {}
 };
 
 
@@ -391,6 +403,33 @@ class MoDiagram
      * @param cutoff  Hartree; levels below this are hidden
      */
     static void hideBelow(MoColumn& column, double cutoff);
+
+    /**
+     * Fold away levels flagged semicore, counted under
+     * MoColumn::hiddenSemicoreCount rather than hiddenCount (#175).
+     *
+     * Call AFTER hideBelow(): `isSemicore` indexes `column.levels` as
+     * it stands when this runs, so it must be built against what
+     * hideBelow() leaves, not the original un-hidden spectrum.
+     *
+     * This order is load-bearing, not incidental. A genuine core level
+     * (water's O 1s) is just as localised on one atom and just as far
+     * below twice that atom's tabulated valence energy as a true
+     * semicore one is -- the share-plus-energy rule alone cannot tell
+     * them apart. What DOES tell them apart is whether
+     * suggestCoreCutoff()'s big-gap rule already caught it: a genuine
+     * core level always sits below the biggest gap among occupied
+     * levels, a semicore one (by definition) does not. So the semicore
+     * check must only ever be run against what hideBelow() leaves
+     * behind -- run it first and every core level passes it too,
+     * silently relabelling real core as "semicore" instead (caught by
+     * the water fixtures in tests/modiagram, which must show none).
+     *
+     * @param isSemicore  one per level in `column.levels`; a size
+     *                    mismatch is a no-op, since misaligned indices
+     *                    would hide the wrong levels silently
+     */
+    static void hideSemicore(MoColumn& column, const vector<bool>& isSemicore);
 
     /**
      * Fold levels ABOVE a cutoff into the column's hidden band.
