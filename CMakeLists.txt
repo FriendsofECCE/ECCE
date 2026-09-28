@@ -1047,7 +1047,9 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # Details dialogs (see the scripts/codereg install() block above) -- a
 # spawned `python3 .../codereg/*.py`, not a linked dependency of any
 # ECCE binary, so dpkg-shlibdeps can't see it either.
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, activemq")
+# csh: ECCE's local job sessions and scripts run csh; bsd-csh and tcsh
+# both work.
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, activemq, csh | tcsh")
 # NWChem is a real Debian package (confirmed working: /usr/bin/nwchem,
 # symlinked to nwchem.openmpi by the package itself) and the auto-register-
 # this-machine flow (RunMgmt::registerLocalMachine()) defaults new machine
@@ -1087,7 +1089,7 @@ if(RPMBUILD_EXECUTABLE)
   set(CPACK_RPM_PACKAGE_LICENSE "ECL-2.0")
   set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
   set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
-  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4")
+  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, tcsh")
   set(CPACK_RPM_PACKAGE_SUGGESTS "activemq, nwchem")
   set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
   #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
