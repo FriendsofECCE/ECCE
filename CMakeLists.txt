@@ -1049,7 +1049,12 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # ECCE binary, so dpkg-shlibdeps can't see it either.
 # csh: ECCE's local job sessions and scripts run csh; bsd-csh and tcsh
 # both work.
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, activemq, csh | tcsh")
+# perl: the whole job pipeline (ai.<code>, *.expt, gensub,
+# eccejobmonitor, processmachine) is Perl, and Getopt::Std and
+# Sys::Hostname are in perl-modules, which perl-base alone lacks.
+# xterm: editing an input file with the default editor (vi) opens it in
+# an xterm (UserEditor.C).
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, activemq, csh | tcsh, perl, xterm")
 # NWChem is a real Debian package (confirmed working: /usr/bin/nwchem,
 # symlinked to nwchem.openmpi by the package itself) and the auto-register-
 # this-machine flow (RunMgmt::registerLocalMachine()) defaults new machine
@@ -1058,7 +1063,12 @@ set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, acti
 # auto-registration default, without unconditionally forcing NWChem +
 # its MPI/Fortran runtime dependencies onto anyone who explicitly opts
 # out via --no-install-recommends.
-set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem")
+# openssh-client: RCommand drives ssh/scp/sftp for remote machines;
+# a purely local install never uses it.
+# imagemagick: optional viewer-snapshot export (ImageConverter.C).
+# www-browser: the Help menu (BrowserHelp.C).
+set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem, openssh-client")
+set(CPACK_DEBIAN_PACKAGE_SUGGESTS "imagemagick, www-browser")
 # RelWithDebInfo keeps -g everywhere (useful while porting - see the
 # CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
 # strip debug symbols out of the packaged copies only, not the build tree.
@@ -1071,7 +1081,7 @@ set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 #  failing at the end of a long build.  Install it with `apt install rpm`.
 #
 #  The dependency list is NOT the Debian one with different spellings.
-#  Three real differences:
+#  Real differences:
 #
 #    * apache2/apache2-utils are httpd/httpd-tools.
 #    * python3-wxgtk4.0 is python3-wxpython4.
@@ -1080,17 +1090,25 @@ set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 #      uninstallable everywhere, so it is a Recommends (rpm >= 4.12) and
 #      GETTING_STARTED covers installing it by hand.  A missing broker is
 #      not silent -- ecce-gateway-start reports it.
+#    * openssh-client is openssh-clients.
+#
+#  perl and xterm are Requires here for the same reasons given beside
+#  the Debian CPACK_DEBIAN_PACKAGE_DEPENDS above (the scripts/ Perl
+#  pipeline, and UserEditor.C's "vi" default running inside xterm) --
+#  both package names are identical on Fedora/RHEL/Rocky.
 #
 #  nwchem is in Fedora but not in RHEL/Rocky without EPEL, so it stays a
-#  weak dependency there too, matching the Debian Recommends.
+#  weak dependency there too, matching the Debian Recommends. ImageMagick
+#  and firefox match the Debian Suggests (ImageConverter.C's optional
+#  mogrify/convert export, and BrowserHelp.C's Help-menu fallback).
 find_program(RPMBUILD_EXECUTABLE rpmbuild)
 if(RPMBUILD_EXECUTABLE)
   list(APPEND CPACK_GENERATOR "RPM")
   set(CPACK_RPM_PACKAGE_LICENSE "ECL-2.0")
   set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
   set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
-  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, tcsh")
-  set(CPACK_RPM_PACKAGE_SUGGESTS "activemq, nwchem")
+  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, tcsh, perl, xterm")
+  set(CPACK_RPM_PACKAGE_SUGGESTS "activemq, nwchem, openssh-clients, ImageMagick, firefox")
   set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
   #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
   #  this the package claims /opt and conflicts with it.
