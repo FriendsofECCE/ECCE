@@ -70,6 +70,14 @@ if [ -n "${ECCE_REMOTE_SERVER:-}" ]; then
   echo "ecce-gateway-start: -remote -- using the central broker"
 elif port_open "$BROKER_PORT"; then
   echo "ecce-gateway-start: broker already listening on $BROKER_PORT"
+elif [ ! -f "$ECCE_HOME/server/activemq-conf/activemq.xml" ]; then
+  # This install has no broker config at all -- the ecce-server package
+  # (split packaging, #split-packages) isn't installed, so there is
+  # nothing to start locally and no ECCE_REMOTE_SERVER was set either.
+  # Say so plainly rather than silently skipping: the relay below will
+  # still start, but with no broker reachable it has nothing to talk to.
+  echo "ecce-gateway-start: no local broker config ($ECCE_HOME/server/activemq-conf/activemq.xml missing -- ecce-server not installed) and ECCE_REMOTE_SERVER is not set." >&2
+  echo "ecce-gateway-start: install ecce-server for a local broker, or point this client at a central one (ecce-remote-setup, then 'ecce -remote')." >&2
 else
   # The Debian activemq package ships /usr/bin/activemq as its own launcher
   # script, but that script's invokeJar() has a real quoting bug on this

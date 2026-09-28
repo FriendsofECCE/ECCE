@@ -57,6 +57,42 @@ running `ecce-builder` and friends directly skips that setup). No
 below runs as a real Apache instance), not just build-time — `dpkg -i` will
 fail to configure without them if `apt-get install` wasn't run first.
 
+### Split packages (client/server)
+
+By default CPack still builds one monolithic `ecce_<version>_amd64.deb`
+with everything in it, as above — nothing below changes unless you ask
+for it. Configuring with `-DECCE_SPLIT_PACKAGES=ON` instead produces two
+packages from the same build:
+
+```
+cmake -G Ninja -DECCE_SPLIT_PACKAGES=ON ..
+ninja
+cpack -G DEB
+```
+
+- **`ecce-client`** — the GUI apps, input generators/parsers, codereg
+  dialogs, the job-side scripts the Launcher copies to compute hosts
+  (`gensub`, `eccejobmonitor`, `*.desc`), the per-session JMSDispatcher
+  relay, `siteconfig/`, and `ecce-remote-setup`/`ecce-diagnose`. Depends
+  on `python3-wxgtk4.0`; Recommends `ecce-server` and `nwchem` (not
+  Depends — a client of someone else's central server needs neither
+  locally).
+- **`ecce-server`** — the per-user or central WebDAV data server (Apache
+  config, structure/basis-set libraries, help content) and the ActiveMQ
+  broker's config. Depends on `apache2`, `apache2-utils`, `activemq`.
+
+Install both on one machine for the same all-in-one behaviour as the
+monolithic package. For the teaching/central-server deployment (one data
+server + broker for a group, students as clients — see CLAUDE.md), install
+only `ecce-server` on the server box and only `ecce-client` everywhere
+else, then run `ecce-remote-setup <server-host>` on each client and start
+sessions with `ecce -remote`.
+
+A client-only install (no `ecce-server` package, `ECCE_REMOTE_SERVER` not
+set) does not try to start a local data server or broker — `ecce-gateway-start`
+and the `ecce-<app>` wrappers print what's missing on stderr and tell you
+to either install `ecce-server` or point at a central one.
+
 ### Describing the queues on your own cluster
 
 ECCE needs to know a machine's batch queues — their names, processor and
