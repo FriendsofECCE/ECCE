@@ -40,6 +40,7 @@ class ewxButton;
 class ewxCheckBox;
 class ewxChoice;
 class ewxListBox;
+class ewxScrolledWindow;
 class ewxSpinCtrl;
 class ewxStaticText;
 class ewxTextCtrl;
@@ -117,12 +118,26 @@ class WxMachineRegister: public WxMachineRegisterGUI
         //  Where jobs for a machine naming this host run (#144).
         ewxStaticText       *p_localityText;
 
+        //  The whole form (Machine/Name grid through Queues), as one
+        //  scrolling box below the machine list, above the button row
+        //  (#187).
+        ewxScrolledWindow   *p_formScroll;
+
 
     private:
         void initialize();
         void loadMachinesList();
         void refreshControls();
         void refreshLocality();
+
+        //  #187: cap the frame to the display it's on, shrinking the
+        //  whole scrolled form (never the button row) when there isn't
+        //  room for everything at its natural size; also used to grow
+        //  the frame to fit (never shrinking what's already there) when
+        //  the locality note appears or changes.
+        void growToFitSizer();
+        wxSize maxClientSizeForDisplay();
+        void keepOnScreen();
 
         void saveSettings(Preferences& prefs);
         void restoreSettings(Preferences& prefs);
