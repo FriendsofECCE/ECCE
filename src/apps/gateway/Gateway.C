@@ -309,10 +309,18 @@ void Gateway::CreateControls()
  */
 void Gateway::clearTargetList()
 {
-  Disconnect(ID_GATEWAY_APPSBASE,
-             ID_GATEWAY_APPSBASE + p_targetList.size()-1,
-             wxEVT_COMMAND_MENU_SELECTED,
-             wxCommandEventHandler(Gateway::OnMenuClick));
+  // p_targetList.size()-1 underflows (size_t) when the list is empty --
+  // e.g. quitting before any app has registered, such as closing the
+  // auth dialog via the window's own close button -- turning this into
+  // an inverted [winid, lastId] range that crashes inside wx's own
+  // dynamic event table walk rather than disconnecting nothing (#found
+  // 2026-10-02, crash: wxEvtHandler::DoUnbind/GetNextDynamicEntry).
+  if (!p_targetList.empty()) {
+    Disconnect(ID_GATEWAY_APPSBASE,
+               ID_GATEWAY_APPSBASE + p_targetList.size()-1,
+               wxEVT_COMMAND_MENU_SELECTED,
+               wxCommandEventHandler(Gateway::OnMenuClick));
+  }
   vector<Target *>::iterator targetItor = p_targetList.begin();
   for (; targetItor != p_targetList.end(); targetItor++)
     delete (*targetItor);

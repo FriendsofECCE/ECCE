@@ -159,9 +159,19 @@ bool GatewayApp::OnInit()
 
   bool newUserFlag = false;
 
+  // Every quit() below must be followed by returning false: quit() tears
+  // down p_timer and the target list, and OnInit had no `return` after
+  // any of these, so a failed check fell through into the NEXT try block
+  // and could call quit() again on the now-torn-down gateway --
+  // dereferencing the already-deleted, NULLed p_timer (found live
+  // 2026-10-02, closing the auth dialog's window via its own X button:
+  // checkServerSetup() reports canceled, quit()s, falls through to
+  // checkServer(), which also reports canceled and quit()s again,
+  // crashing on p_timer->Stop()).
   try {
     if (!checkServerSetup()) {
       p_gateway->quit(false); // canceled
+      return false;
     }
   } catch (RetryException& rex) {
     ewxMessageDialog * dlg =
@@ -170,6 +180,7 @@ bool GatewayApp::OnInit()
     dlg->ShowModal();
     dlg->Destroy();
     p_gateway->quit(false);
+    return false;
   } catch (EcceException& ex) {
     string msg = ex.what();
     msg += "Please contact your ECCE Administrator.";
@@ -179,11 +190,13 @@ bool GatewayApp::OnInit()
     dlg->ShowModal();
     dlg->Destroy();
     p_gateway->quit(false);
+    return false;
   }
 
   try {
     if (!checkServer()) {
       p_gateway->quit(false); // canceled
+      return false;
     }
   } catch (RetryException& rex) {
     ewxMessageDialog * dlg =
@@ -192,6 +205,7 @@ bool GatewayApp::OnInit()
     dlg->ShowModal();
     dlg->Destroy();
     p_gateway->quit(false);
+    return false;
   } catch (EcceException& ex) {
     string msg = "An error has occured while attempting to access "
       "the ECCE server.  Please contact your administrator for assistence "
@@ -203,10 +217,12 @@ bool GatewayApp::OnInit()
     dlg->ShowModal();
     dlg->Destroy();
     p_gateway->quit(false);
+    return false;
   }
 
   if (!checkUser()) {
     p_gateway->quit(false);
+    return false;
   }
 
   // notify pertinent eccejobstore processes to reconnect tooltalk messaging
