@@ -19,6 +19,7 @@
 #include "wxgui/ewxApp.H"
 
 class Gateway;
+class SessionWatch;
 
 static string cmdLineVersion;
 
@@ -31,6 +32,8 @@ class GatewayApp: public ewxApp, public WxDavAuth, public WxJMSMessageDispatch
 public:
 
   GatewayApp();
+
+  void checkSessionEnd();
   
 protected:
 
@@ -53,8 +56,14 @@ protected:
   bool checkServerSetup();
   bool checkUser();
   void reconnectJobStoreMessaging();
+  int otherSessionApps() const;
 
   Gateway * p_gateway;
+
+  //  Ends the session when the last app closes, while the frame is hidden.
+  SessionWatch * p_sessionWatch;
+  bool p_sessionSeen;
+  int p_idleTicks;
 
   friend class Gateway;
 };

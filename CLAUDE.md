@@ -50,7 +50,12 @@ Once a design decision is settled, delegate the implementation to the sonnet-imp
   only its frame is hidden, which is one guarded `Show()` call. To get
   the old window back for a session: `ECCE_GATEWAY_WINDOW=1 ecce`. If a
   UI decision like this needs reversing, prefer that env var to a
-  revert.
+  revert. With the frame hidden the gateway quits once no other app of
+  its session is left (#185; job monitors don't count), ending only that
+  session and its relay. **The broker, like the data server, is stopped
+  only by an explicit Quit and Stop Server** (`ecce-gateway-reap
+  --stop`): it may be a central server's, shared with students, and an
+  idle broker left running is the accepted cost.
 - `GETTING_STARTED.md` (repo root) has the full build/package/install/
   first-login walkthrough. Don't reproduce it here.
 - **The central-server deployment is unconditional** (stated 2026-09-25).
