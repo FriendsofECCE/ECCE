@@ -619,6 +619,110 @@ int main()
     }
   }
 
+  printf("\n  placeFragments keeps a fragment's own shell order\n");
+
+  //  A synthetic Cr-like fragment: 3d below 4s below 4p in the free
+  //  atom, but the weighted-mean placement below inverts it -- the
+  //  shell connected to the lowest molecular orbital is 4p, so a
+  //  bare mean would draw 4p at the bottom, under the non-bonding 3d.
+  {
+    MoColumn centre;
+    centre.levels.resize(3);
+    centre.levels[0].energy = -1.45;
+    centre.levels[1].energy = -0.12;
+    centre.levels[2].energy =  0.20;
+    for (size_t i = 0; i < 3; i++) centre.levels[i].occupancy = 2.0;
+
+    MoColumn left;
+    left.shellKeys.push_back("Cr:0");   // 0: s
+    left.shellKeys.push_back("Cr:1");   // 1: p
+    left.shellKeys.push_back("Cr:2");   // 2: d
+    left.levels.resize(3);
+
+    MoLevel& d = left.levels[0];
+    MoLevel& s = left.levels[1];
+    MoLevel& p = left.levels[2];
+    d.slot = 2; d.energy = -0.26*27.211386; d.moWeight.assign(3, 0.0);
+    s.slot = 0; s.energy = -0.24*27.211386; s.moWeight.assign(3, 0.0);
+    p.slot = 1; p.energy = -0.13*27.211386; p.moWeight.assign(3, 0.0);
+
+    //  Inverted case: d -> mid MO, s -> top MO, p -> bottom MO.
+    d.moWeight[1] = 1.0;
+    s.moWeight[2] = 1.0;
+    p.moWeight[0] = 1.0;
+
+    MoColumn right;   // empty: this diagram has no right-hand fragment
+
+    vector<MoConnection> connections;
+    MoConnection cd; cd.leftLevel = 0; cd.centreLevel = 1; cd.rightLevel = -1;
+    MoConnection cs; cs.leftLevel = 1; cs.centreLevel = 2; cs.rightLevel = -1;
+    MoConnection cp; cp.leftLevel = 2; cp.centreLevel = 0; cp.rightLevel = -1;
+    connections.push_back(cd);
+    connections.push_back(cs);
+    connections.push_back(cp);
+
+    MoDiagram::placeFragments(centre, left, right, connections);
+
+    check(left.levels[0].energy < left.levels[1].energy,
+          "3d ends up below 4s");
+    check(left.levels[1].energy < left.levels[2].energy,
+          "4s ends up below 4p");
+    check(fabs(left.levels[0].energy - (-0.12)) < 1e-9,
+          "3d itself is not moved (nothing below it to collide with)");
+    check(fabs(left.levels[1].energy - 0.20) < 1e-9,
+          "4s itself is not moved either (already above 3d with room)");
+    check(left.levels[2].energy > 0.20,
+          "4p is pushed up off its raw mean of -1.45");
+  }
+
+  //  Same shells, already in the right order and with room to spare:
+  //  the reordering step must leave the means it is handed untouched,
+  //  bit for bit.
+  {
+    MoColumn centre;
+    centre.levels.resize(3);
+    centre.levels[0].energy = -1.45;
+    centre.levels[1].energy = -0.12;
+    centre.levels[2].energy =  0.20;
+    for (size_t i = 0; i < 3; i++) centre.levels[i].occupancy = 2.0;
+
+    MoColumn left;
+    left.shellKeys.push_back("Cr:0");
+    left.shellKeys.push_back("Cr:1");
+    left.shellKeys.push_back("Cr:2");
+    left.levels.resize(3);
+
+    MoLevel& d = left.levels[0];
+    MoLevel& s = left.levels[1];
+    MoLevel& p = left.levels[2];
+    d.slot = 2; d.energy = -0.26*27.211386; d.moWeight.assign(3, 0.0);
+    s.slot = 0; s.energy = -0.24*27.211386; s.moWeight.assign(3, 0.0);
+    p.slot = 1; p.energy = -0.13*27.211386; p.moWeight.assign(3, 0.0);
+
+    //  Already in order: d -> bottom MO, s -> mid MO, p -> top MO.
+    d.moWeight[0] = 1.0;
+    s.moWeight[1] = 1.0;
+    p.moWeight[2] = 1.0;
+
+    MoColumn right;
+    vector<MoConnection> connections;
+    MoConnection cd; cd.leftLevel = 0; cd.centreLevel = 0; cd.rightLevel = -1;
+    MoConnection cs; cs.leftLevel = 1; cs.centreLevel = 1; cs.rightLevel = -1;
+    MoConnection cp; cp.leftLevel = 2; cp.centreLevel = 2; cp.rightLevel = -1;
+    connections.push_back(cd);
+    connections.push_back(cs);
+    connections.push_back(cp);
+
+    MoDiagram::placeFragments(centre, left, right, connections);
+
+    check(fabs(left.levels[0].energy - (-1.45)) < 1e-12,
+          "3d unchanged, bit-identical to its raw mean");
+    check(fabs(left.levels[1].energy - (-0.12)) < 1e-12,
+          "4s unchanged, bit-identical to its raw mean");
+    check(fabs(left.levels[2].energy - 0.20) < 1e-12,
+          "4p unchanged, bit-identical to its raw mean");
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }

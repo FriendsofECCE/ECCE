@@ -2283,7 +2283,8 @@ void MoDiagramPanel::buildOnce()
 
     note << " Each fragment level is placed at the mean of the "
             "molecular orbitals it became, weighted by its share of "
-            "them; its free-atom energy is given beside it.";
+            "them, kept in the atom's own shell order; its free-atom "
+            "energy is given beside it.";
   }
 
   if (!why.empty()) note << "  " << why;
