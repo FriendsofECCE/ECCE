@@ -469,7 +469,11 @@ sub readQueues {
   $wasThere=false;
 
   @lines = ();
-  open(QUEUES,"$path/$qsFile") || die("Unable to open $path/$qsFile"); 
+  #  A user who has never set up a queue has no ~/.ECCE/Queues, and that
+  #  is the normal state of every new account: it means no queues, not an
+  #  error.  Dying here failed every first-run registration (#188).
+  return ($wasThere,"",@lines) if (! -e "$path/$qsFile");
+  open(QUEUES,"$path/$qsFile") || die("Unable to open $path/$qsFile");
   $qMachines = "";
   while (<QUEUES>) {
     #  Anchored: an unanchored /Queues/ also matches any comment mentioning
