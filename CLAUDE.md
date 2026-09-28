@@ -24,11 +24,18 @@ Once a design decision is settled, delegate the implementation to the sonnet-imp
   is a bugfix release made after `main` has moved on to the next minor
   version: it goes on a `release/X.Y.Z` branch off the previous tag,
   with the fixes cherry-picked from `main` (8.16.2 and 8.16.3 were made
-  this way while `main` was 8.17.0-dev). One long-lived feature branch
-  exists by design: `native/split` (worktree `../ECCE-native`), the road to
-  9.0 (server/client packages, then native macOS/Windows clients; plan on
-  #133). It carries only the disruptive work; anything that also helps
-  Linux lands on `main` and the branch rebases. Old branches
+  this way while `main` was 8.17.0-dev). One long-lived branch exists by
+  design: `native/split` (worktree `../ECCE-native`), the **9.x
+  experimental line** (plan on #133). Risky or structural work lands
+  there first: the libssh transport, the server/client package split,
+  STOMP broker access, the Coin3D viewer, retiring csh. `main` is the
+  **8.x stable line**: bug fixes go straight to it, and proven 9.x
+  changes are **backported** as small cherry-picks ("cherry picked
+  from ..."). "Proven" means its test passes on 9.x, it has run there
+  a while, and Andy has seen anything user-visible. Keep 9.x commits
+  backport-sized (one change plus its test), and bring `main` into 9.x
+  regularly so backports stay conflict-free. Packaging-only changes
+  (the split, non-Linux installers) are 9.x-only. Old branches
   (`develop`, `modernize-build`, `stable`, `master`, `make`) were
   consolidated into `main` and renamed to `archive/*` — no reason to
   branch from or compare against them.
