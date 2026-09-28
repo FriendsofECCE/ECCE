@@ -1173,4 +1173,22 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   # Generous: 20 apps x (window wait + settle), plus broker startup.
   set_tests_properties(apps PROPERTIES TIMEOUT 1800)
+
+  # tests/shells -- does a long command's echo come back byte for byte
+  # from csh, tcsh and bash (and through zsh/ksh login shells on a hop)?
+  # A line editor redrawing it hangs job monitoring forever (#143, #69).
+  # Pty harness plus a driver linked against the real RCommand.  Not
+  # installed.  See tests/shells/run_tests.py.
+  #
+  #     cd build-cmake && ctest -R shells --output-on-failure
+  add_executable(testRCommandEcho tests/shells/testRCommandEcho.C)
+  target_link_libraries(testRCommandEcho PRIVATE
+    eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+    ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME shells
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/shells/run_tests.py
+                   --driver $<TARGET_FILE:testRCommandEcho>
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/shells)
+  set_tests_properties(shells PROPERTIES TIMEOUT 900)
 endif()
