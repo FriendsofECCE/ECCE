@@ -108,6 +108,11 @@ than papered over.
 One line each. Full notes, and the packages, are on the
 [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
+- **v8.16.4** — **Fixes job monitoring on systems where `csh` is tcsh**
+  (Ubuntu) (#143): tcsh's line editor wrapped the long monitor command's
+  echo at 80 columns, so the job store waited forever and jobs stayed
+  "submitted" although they ran.
+
 - **v8.16.3** — **Partial fix for the Wayland auth-dialog freeze**
   (#120): a stale window-activation timestamp made Mutter silently
   decline focus for the dialog under XWayland. A deeper, likely
