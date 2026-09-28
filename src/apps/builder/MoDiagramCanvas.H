@@ -659,11 +659,30 @@ class MoDiagramCanvas : public wxPanel
                       true, plot, colour);
           }
 
-          if (hits != 0) {
-            Hit hit;
-            hit.box = wxRect(groupLeft - 6, y - 7, count*slot + 12, 15);
-            hit.orbital = level.orbitals.empty() ? -1 : level.orbitals[0];
-            hits->push_back(hit);
+          //  ONE HIT BOX PER DRAWN COMPONENT, NOT ONE FOR THE WHOLE ROW.
+          //
+          //  A degenerate level's `count` components are drawn side by
+          //  side, each in its own slot (see the DrawLine loop above,
+          //  lx = x + (drawn+d)*slot) -- but until now the click region
+          //  covering all of them resolved to the single hardcoded
+          //  level.orbitals[0], so clicking anywhere on a degenerate
+          //  row always showed the SAME member's 3-D MO, never the
+          //  others, which is exactly why every orbital of a degenerate
+          //  set looked identical when clicked (found live, 2026-10-02).
+          //  Each component gets its own box over its own slot and its
+          //  own orbital index, split's own y where the level is drawn
+          //  spread out.
+          if (hits != 0 && !level.orbitals.empty()) {
+            for (int d = 0; d < count; d++) {
+              const int lx = x + (drawn + d)*slot;
+              const int ly = split ? yFor(level.energies[d], plot) : y;
+              const size_t oi = (size_t)d < level.orbitals.size()
+                                ? (size_t)d : level.orbitals.size() - 1;
+              Hit hit;
+              hit.box = wxRect(lx - 6, ly - 7, slot + 12, 15);
+              hit.orbital = level.orbitals[oi];
+              hits->push_back(hit);
+            }
           }
           drawn += count;
         }
