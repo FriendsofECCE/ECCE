@@ -105,8 +105,12 @@ than papered over.
 
 ### Release history
 
-One line each. Full notes, and the packages, are on the
+Full notes, and the packages, are on the
 [releases page](https://github.com/FriendsofECCE/ECCE/releases).
+
+*In progress: **8.17.0**.* The MO diagram rebuilt on correct ORCA and
+Gaussian coefficients and Löwdin composition, with metal–ligand
+classification (#163, #170, #162), plus ORCA Raman activities (#173).
 
 - **v8.16.4** — **Fixes job monitoring on systems where `csh` is tcsh**
   (Ubuntu) (#143): tcsh's line editor wrapped the long monitor command's
