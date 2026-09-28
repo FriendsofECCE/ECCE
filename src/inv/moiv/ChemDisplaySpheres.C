@@ -135,6 +135,40 @@ static int32_t atomStart;
 static int32_t atomEnd;
 static int32_t theAtom;
 
+//  TEMPORARY, #83: a shared log handle for ECCE_DEBUG_MATERIAL.
+//  The earlier probes did fopen()/fclose() on every atom of every frame --
+//  real file-open/close syscalls in the render hot path, every frame, for
+//  as long as the app runs. That is enough of a timing perturbation that
+//  it may have been avoiding the very race #83 is chasing (the tint did
+//  not reproduce across two live tries with that logging on, after
+//  reproducing once with it off). Default here is now open-once,
+//  never-close, flush-after-each-write.
+//
+//  ECCE_DEBUG_MATERIAL_HEAVY=1 restores the OLD per-call fopen()/fclose()
+//  cost exactly (one open+close syscall pair per log statement, same
+//  granularity the original probes had -- once per ChemDisplay::GLRender
+//  entry, once per renderAtomsAsSpheres entry, once per atom in the
+//  sphere draw loop) so the two can be A/B tested directly against each
+//  other rather than argued about.
+static FILE *debugMaterialLog()
+{
+	static bool heavy = (getenv("ECCE_DEBUG_MATERIAL_HEAVY") != 0);
+	static FILE *log = NULL;
+	static bool tried = false;
+	const char *where = getenv("ECCE_DEBUG_MATERIAL");
+	if (where == 0) return NULL;
+	if (heavy) {
+		if (log != 0) fclose(log);
+		log = fopen(where, "a");
+		return log;
+	}
+	if (!tried) {
+		tried = true;
+		log = fopen(where, "a");
+	}
+	return log;
+}
+
 #define ATOMLOOP_START(INDEX)												  \
 numAtomLoops = (INDEX).getNum();										      \
 for (atomLoop = 0; atomLoop < numAtomLoops; atomLoop++) {					  \
@@ -326,15 +360,13 @@ printf ("In ChemDisplay::renderAtomsAsSpheres\n");
 	//  so a probe here runs whichever of the many copy-pasted draw
 	//  loops below is taken.
 	{
-		const char *where = getenv("ECCE_DEBUG_MATERIAL");
-		if (where != 0) {
-			FILE *log = fopen(where, "a");
-			if (log != 0) {
-				GLfloat amb[4], emi[4], dif[4], col[4];
-				glGetMaterialfv(GL_FRONT, GL_AMBIENT,  amb);
-				glGetMaterialfv(GL_FRONT, GL_EMISSION, emi);
-				glGetMaterialfv(GL_FRONT, GL_DIFFUSE,  dif);
-				glGetFloatv(GL_CURRENT_COLOR, col);
+		FILE *log = debugMaterialLog();
+		if (log != 0) {
+			GLfloat amb[4], emi[4], dif[4], col[4];
+			glGetMaterialfv(GL_FRONT, GL_AMBIENT,  amb);
+			glGetMaterialfv(GL_FRONT, GL_EMISSION, emi);
+			glGetMaterialfv(GL_FRONT, GL_DIFFUSE,  dif);
+			glGetFloatv(GL_CURRENT_COLOR, col);
 			GLfloat lm[4];
 			glGetFloatv(GL_LIGHT_MODEL_AMBIENT, lm);
 			fprintf(log, "ENTRY-LIGHTMODEL %.3f %.3f %.3f\n",
@@ -352,8 +384,14 @@ printf ("In ChemDisplay::renderAtomsAsSpheres\n");
 					"dif %.3f %.3f %.3f\n",
 					col[0],col[1],col[2], amb[0],amb[1],amb[2],
 					emi[0],emi[1],emi[2], dif[0],dif[1],dif[2]);
-				fclose(log);
-			}
+			//  TEMPORARY, #83: is highlightSphere* ever taken with
+			//  real atoms in it, even though nothing is selected?
+			//  renderHighlight is hardcoded TRUE at every call site
+			//  (ChemDisplay.C), so the only thing gating it is
+			//  whether highlightIndex actually has entries.
+			fprintf(log, "SPHERE-INDEX normal=%d highlight=%d\n",
+				normalIndex.getNum(), highlightIndex.getNum());
+			fflush(log);
 		}
 	}
 
@@ -382,18 +420,15 @@ printf ("In ChemDisplay::renderAtomsAsSpheres\n");
 	}
 	const SbColor *atomColors = chemColor->atomColor.getValues(0);
 	{   //  TEMPORARY, #83: the colours actually handed to GL.
-		const char *w2 = getenv("ECCE_DEBUG_MATERIAL");
-		if (w2 != 0) {
-			FILE *lg = fopen(w2, "a");
-			if (lg != 0) {
-				const int n = chemColor->atomColor.getNum();
-				for (int ci = 0; ci < 4 && ci < n; ci++) {
-					fprintf(lg, "ATOMCOLOR %d = %.3f %.3f %.3f\n", ci,
-						atomColors[ci][0], atomColors[ci][1],
-						atomColors[ci][2]);
-				}
-				fclose(lg);
+		FILE *lg = debugMaterialLog();
+		if (lg != 0) {
+			const int n = chemColor->atomColor.getNum();
+			for (int ci = 0; ci < 4 && ci < n; ci++) {
+				fprintf(lg, "ATOMCOLOR %d = %.3f %.3f %.3f\n", ci,
+					atomColors[ci][0], atomColors[ci][1],
+					atomColors[ci][2]);
 			}
+			fflush(lg);
 		}
 	}
 	const float *atomRadii = chemRadii->atomRadii.getValues(0);
@@ -762,22 +797,24 @@ normalSphereROCA
 			//  in ChemDisplay::GLRender happens before this and cannot show
 			//  what GL_COLOR_MATERIAL has since made of it.
 			{
-				const char *where = getenv("ECCE_DEBUG_MATERIAL");
-				if (where != 0 && theAtom < 4) {
-					FILE *log = fopen(where, "a");
-					if (log != 0) {
-						GLfloat amb[4], emi[4], dif[4], col[4];
-						glGetMaterialfv(GL_FRONT, GL_AMBIENT,  amb);
-						glGetMaterialfv(GL_FRONT, GL_EMISSION, emi);
-						glGetMaterialfv(GL_FRONT, GL_DIFFUSE,  dif);
-						glGetFloatv(GL_CURRENT_COLOR, col);
-						fprintf(log, "SPHERE atom %d colour %.3f %.3f %.3f | "
-							"amb %.3f %.3f %.3f | emi %.3f %.3f %.3f | "
-							"dif %.3f %.3f %.3f\n", (int)theAtom,
-							col[0],col[1],col[2], amb[0],amb[1],amb[2],
-							emi[0],emi[1],emi[2], dif[0],dif[1],dif[2]);
-						fclose(log);
-					}
+				//  #83: was capped to theAtom < 4, which on a 6-atom
+				//  molecule (C,H,H,H,O,H) silently never covered the
+				//  oxygen or the last hydrogen -- exactly the atoms whose
+				//  measured colour showed the tint. Log every atom now
+				//  that the handle is cheap (opened once, not per call).
+				FILE *log = debugMaterialLog();
+				if (log != 0) {
+					GLfloat amb[4], emi[4], dif[4], col[4];
+					glGetMaterialfv(GL_FRONT, GL_AMBIENT,  amb);
+					glGetMaterialfv(GL_FRONT, GL_EMISSION, emi);
+					glGetMaterialfv(GL_FRONT, GL_DIFFUSE,  dif);
+					glGetFloatv(GL_CURRENT_COLOR, col);
+					fprintf(log, "SPHERE atom %d colour %.3f %.3f %.3f | "
+						"amb %.3f %.3f %.3f | emi %.3f %.3f %.3f | "
+						"dif %.3f %.3f %.3f\n", (int)theAtom,
+						col[0],col[1],col[2], amb[0],amb[1],amb[2],
+						emi[0],emi[1],emi[2], dif[0],dif[1],dif[2]);
+					fflush(log);
 				}
 			}
 

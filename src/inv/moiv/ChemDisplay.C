@@ -688,39 +688,51 @@ ChemDisplay::GLRender(SoGLRenderAction *action)
 	//  which is why an earlier attempt at this produced nothing and
 	//  could not be told apart from the code never running.
 	{
+		//  Opened once, not per call -- see ChemDisplaySpheres.C's
+		//  debugMaterialLog() for why (fopen/fclose in the render hot
+		//  path may itself have been masking the #83 race).
+		//  ECCE_DEBUG_MATERIAL_HEAVY=1 restores the old per-call cost
+		//  for an A/B test -- same toggle as ChemDisplaySpheres.C.
+		static bool heavy = (getenv("ECCE_DEBUG_MATERIAL_HEAVY") != 0);
+		static FILE *log = NULL;
+		static bool tried = false;
 		const char *where = getenv("ECCE_DEBUG_MATERIAL");
-		if (where != 0) {
-			FILE *log = fopen(where, "a");
-			if (log != 0) {
-				GLfloat amb[4], emi[4], dif[4], spc[4], lm[4];
-				glGetMaterialfv(GL_FRONT, GL_AMBIENT,  amb);
-				glGetMaterialfv(GL_FRONT, GL_EMISSION, emi);
-				glGetMaterialfv(GL_FRONT, GL_DIFFUSE,  dif);
-				glGetMaterialfv(GL_FRONT, GL_SPECULAR, spc);
-				glGetFloatv(GL_LIGHT_MODEL_AMBIENT, lm);
-				GLboolean cm = glIsEnabled(GL_COLOR_MATERIAL);
-				GLint mode = 0;
-				glGetIntegerv(GL_COLOR_MATERIAL_PARAMETER, &mode);
+		if (heavy && where != 0) {
+			if (log != 0) fclose(log);
+			log = fopen(where, "a");
+		} else if (!tried) {
+			tried = true;
+			if (where != 0) log = fopen(where, "a");
+		}
+		if (log != 0) {
+			GLfloat amb[4], emi[4], dif[4], spc[4], lm[4];
+			glGetMaterialfv(GL_FRONT, GL_AMBIENT,  amb);
+			glGetMaterialfv(GL_FRONT, GL_EMISSION, emi);
+			glGetMaterialfv(GL_FRONT, GL_DIFFUSE,  dif);
+			glGetMaterialfv(GL_FRONT, GL_SPECULAR, spc);
+			glGetFloatv(GL_LIGHT_MODEL_AMBIENT, lm);
+			GLboolean cm = glIsEnabled(GL_COLOR_MATERIAL);
+			GLint mode = 0;
+			glGetIntegerv(GL_COLOR_MATERIAL_PARAMETER, &mode);
+			fprintf(log,
+				"MATERIAL amb %.3f %.3f %.3f | emi %.3f %.3f %.3f | "
+				"dif %.3f %.3f %.3f | spc %.3f %.3f %.3f | "
+				"lightmodel %.3f %.3f %.3f | colorMaterial %d mode 0x%x\n",
+				amb[0],amb[1],amb[2], emi[0],emi[1],emi[2],
+				dif[0],dif[1],dif[2], spc[0],spc[1],spc[2],
+				lm[0],lm[1],lm[2], (int)cm, (unsigned)mode);
+			for (int li = 0; li < 8; li++) {
+				if (!glIsEnabled(GL_LIGHT0 + li)) continue;
+				GLfloat la[4], ld[4], ls[4];
+				glGetLightfv(GL_LIGHT0+li, GL_AMBIENT,  la);
+				glGetLightfv(GL_LIGHT0+li, GL_DIFFUSE,  ld);
+				glGetLightfv(GL_LIGHT0+li, GL_SPECULAR, ls);
 				fprintf(log,
-					"MATERIAL amb %.3f %.3f %.3f | emi %.3f %.3f %.3f | "
-					"dif %.3f %.3f %.3f | spc %.3f %.3f %.3f | "
-					"lightmodel %.3f %.3f %.3f | colorMaterial %d mode 0x%x\n",
-					amb[0],amb[1],amb[2], emi[0],emi[1],emi[2],
-					dif[0],dif[1],dif[2], spc[0],spc[1],spc[2],
-					lm[0],lm[1],lm[2], (int)cm, (unsigned)mode);
-				for (int li = 0; li < 8; li++) {
-					if (!glIsEnabled(GL_LIGHT0 + li)) continue;
-					GLfloat la[4], ld[4], ls[4];
-					glGetLightfv(GL_LIGHT0+li, GL_AMBIENT,  la);
-					glGetLightfv(GL_LIGHT0+li, GL_DIFFUSE,  ld);
-					glGetLightfv(GL_LIGHT0+li, GL_SPECULAR, ls);
-					fprintf(log,
-						"LIGHT%d amb %.3f %.3f %.3f | dif %.3f %.3f %.3f | "
-						"spc %.3f %.3f %.3f\n", li,
-						la[0],la[1],la[2], ld[0],ld[1],ld[2], ls[0],ls[1],ls[2]);
-				}
-				fclose(log);
+					"LIGHT%d amb %.3f %.3f %.3f | dif %.3f %.3f %.3f | "
+					"spc %.3f %.3f %.3f\n", li,
+					la[0],la[1],la[2], ld[0],ld[1],ld[2], ls[0],ls[1],ls[2]);
 			}
+			fflush(log);
 		}
 	}
 
