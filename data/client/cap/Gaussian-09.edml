@@ -52,7 +52,7 @@
      Bruce is looking into this.
 -->
 
-<MOOrdering type="cartesian" >
+<MOOrdering type="cartesian" componentNormalized="true">
    <lshell lval="0" a1="1"></lshell>
    <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
    <lshell lval="2" a1="xx" a2="yy" a3="zz" a4="xy" a5="xz"

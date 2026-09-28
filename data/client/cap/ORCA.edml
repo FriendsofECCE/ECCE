@@ -96,6 +96,10 @@
      against 18 for ethane, so the molecule was being drawn as though
      it carried +3 to +5 charge, and every electrostatic potential map
      came out positive everywhere. -->
+<!-- f(+3) and f(-3) are negated: ORCA's coefficients carry the opposite
+     sign on those two components, so with the textbook signs every MO
+     with f character came out un-normalised (cT S c up to 3 for
+     methane/def2-TZVP; exactly 1 once negated). -->
 <MOOrdering type="spherical" >
    <lshell lval="0" a1="1"></lshell>
    <lshell lval="1" a1="z" a2="x" a3="y"></lshell>
@@ -103,7 +107,7 @@
     a5="xy"></lshell>
    <lshell lval="3" a1="-3xxz/2-3yyz/2+zzz" a2="-xxx/2-xyy/2+2xzz"
     a3="-xxy/2-yyy/2+2yzz" a4="xxz/2-yyz/2" a5="xyz"
-    a6="xxx/2-3xyy/2" a7="3xxy/2-yyy/2"></lshell>
+    a6="-xxx/2+3xyy/2" a7="-3xxy/2+yyy/2"></lshell>
 </MOOrdering>
 
 

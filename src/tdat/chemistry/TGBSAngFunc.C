@@ -22,6 +22,7 @@
 TGBSAngFunc::TGBSAngFunc(void) {
   p_code = "";
   p_basisType = TGBSAngFunc::Cartesian;
+  p_componentNormalized = false;
 }
 
 // Destructor
@@ -37,6 +38,10 @@ string TGBSAngFunc::code(void) {
 
 TGBSAngFunc::BasisType TGBSAngFunc::basisType(void) {
   return p_basisType;
+}
+
+bool TGBSAngFunc::componentNormalized(void) {
+  return p_componentNormalized;
 }
 
 int TGBSAngFunc::maxShells(void) {
@@ -81,6 +86,11 @@ void TGBSAngFunc::code(string codeName) {
 
 void TGBSAngFunc::basisType(TGBSAngFunc::BasisType type) {
   p_basisType = type;
+  return;
+}
+
+void TGBSAngFunc::componentNormalized(bool normalized) {
+  p_componentNormalized = normalized;
   return;
 }
 

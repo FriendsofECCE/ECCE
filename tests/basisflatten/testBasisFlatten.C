@@ -134,6 +134,83 @@ int main()
   delete angfunc;
   delete cfg;
 
+  //  Cartesian d self-overlap, on/off-axis component (issue: getoddNormalize
+  //  Cartesian branch was a flat 1.0 for every code, so a Cartesian
+  //  d_xy/d_xz/d_yz came out with self-overlap 1/3 relative to d_xx --
+  //  Gaussian actually normalizes each Cartesian component individually
+  //  (6D/10F) and needs that corrected; NWChem does not and must stay
+  //  exactly as it was. One shared single-primitive d shell, checked
+  //  against both codes' real MOOrdering tables.
+  {
+    const double alpha = 0.8;
+    ostringstream gbs;
+    gbs << "NumericalBasis\n"
+        << "basis \"ao basis\" cartesian print\n"
+        << "H D\n"
+        << "      " << alpha << "              1.0000000\n"
+        << "END\n"
+        << "EndNumericalBasis";
+    istringstream in(gbs.str());
+    TGBSConfig* dcfg = ICalcUtils::importConfig(in);
+    check(dcfg != 0, "d-shell TGBSConfig parsed");
+
+    vector<string> atomSymbols(1, "H");
+    vector<double> atomCoordsAng(3, 0.0);
+    int length_shell[7] = { 1, 3, 6, 10, 15, 21, 28 };
+
+    struct { const char* codeName; bool normalized; } cases[] = {
+      { "Gaussian-16", true },
+      { "NWChem", false },
+    };
+    for (const auto& c : cases) {
+      const JCode* dcode = CodeFactory::lookup(c.codeName);
+      TGBSAngFunc* dang = dcode ? dcode->getAngFunc(TGaussianBasisSet::Cartesian) : 0;
+      char what[160];
+      snprintf(what, sizeof(what), "%s Cartesian MOOrdering loaded", c.codeName);
+      check(dang != 0, what);
+      if (dang == 0) continue;
+
+      vector<EspBasisFunction> dbasis;
+      bool dok = BasisFlatten::flatten(atomSymbols, atomCoordsAng, dcfg, dcode,
+                                       dang, dang->maxShells(), length_shell,
+                                       dbasis);
+      snprintf(what, sizeof(what), "%s: d shell flattened (6 Cartesian components)", c.codeName);
+      check(dok && dbasis.size() == 6, what);
+      if (!dok || dbasis.size() != 6) continue;
+
+      //  Find an on-axis (xx) and an off-axis (xy) component by their
+      //  actual powers rather than assuming an index -- Gaussian's and
+      //  NWChem's real MOOrdering tables list the six d components in
+      //  different orders (see each .edml).
+      int onAxisIdx = -1, offAxisIdx = -1;
+      for (int deg = 0; deg < 6 && (onAxisIdx < 0 || offAxisIdx < 0); deg++) {
+        int lx, ly, lz;
+        dang->getMaxExponents(TGaussianBasisSet::d_shell, deg, lx, ly, lz);
+        if (lx == 2) onAxisIdx = deg;
+        else if (lx == 1 && ly == 1) offAxisIdx = deg;
+      }
+      snprintf(what, sizeof(what), "%s: found both xx and xy components", c.codeName);
+      check(onAxisIdx >= 0 && offAxisIdx >= 0, what);
+      if (onAxisIdx < 0 || offAxisIdx < 0) continue;
+
+      const double onAxis = EspField::overlapOf(dbasis[onAxisIdx], dbasis[onAxisIdx]);
+      const double offAxis = EspField::overlapOf(dbasis[offAxisIdx], dbasis[offAxisIdx]);
+      snprintf(what, sizeof(what),
+               "%s: on-axis (xx) self-overlap is 1", c.codeName);
+      check(fabs(onAxis - 1.0) < 1.0e-8, what);
+
+      const double expectedOffAxis = c.normalized ? 1.0 : (1.0/3.0);
+      snprintf(what, sizeof(what),
+               "%s: off-axis (xy) self-overlap is %s",
+               c.codeName, c.normalized ? "1 (component-normalized)"
+                                         : "1/3 (unchanged NWChem convention)");
+      check(fabs(offAxis - expectedOffAxis) < 1.0e-8, what);
+
+      delete dang;
+    }
+    delete dcfg;
+  }
+
   printf("%s\n", failures ? "FAIL" : "PASS");
   return failures ? 1 : 0;
 }

@@ -55,9 +55,16 @@ public:
   int numFuncs(int shell);
   AngMomFunc getFunc(int shell, int index);
 
+  // True when this code normalizes each Cartesian component of a shell
+  // individually (Gaussian's 6D/10F), rather than leaving all components
+  // at the "axis-aligned" NORMF normalization (NWChem's convention).
+  // Meaningless for a Spherical-type table.
+  bool componentNormalized(void);
+
   // Modifiers
   void code(string codeName);
   void basisType(BasisType type);
+  void componentNormalized(bool normalized);
   void addFunc(AngMomFunc func);
   void markShell();
 
@@ -72,7 +79,8 @@ private:
 
   string p_code;
   TGBSAngFunc::BasisType p_basisType;
-  
+  bool p_componentNormalized;
+
   vector<Monomial> p_monomial;
   vector<int>      p_AngMomFuncPtrs;
   vector<int>      p_AngMomShellPtrs;

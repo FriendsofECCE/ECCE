@@ -1130,6 +1130,19 @@ TGBSAngFunc* JCode::getAngFunc(TGaussianBasisSet::CoordinateSystem type) const
     if (foundBasis) {
       if (typestring=="cartesian") {
         ret->basisType(TGBSAngFunc::Cartesian);
+        // Opt-in per code: Gaussian normalizes each Cartesian component
+        // of a shell individually (6D/10F); NWChem does not. See
+        // BasisFlatten::getoddNormalize()'s Cartesian branch.
+        tmpStr = XMLString::transcode("componentNormalized");
+        attribute = attributes->getNamedItem(tmpStr);
+        delete [] tmpStr;
+        if (attribute != 0) {
+          attributeValue = XMLString::transcode(attribute->getNodeValue());
+          if (strcmp(attributeValue, "true") == 0) {
+            ret->componentNormalized(true);
+          }
+          delete [] attributeValue;
+        }
       } else {
         ret->basisType(TGBSAngFunc::Spherical);
       }
