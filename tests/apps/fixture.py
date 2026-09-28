@@ -208,14 +208,23 @@ def realm(userRoot):
     return ""
 
 
-def install(name="calc-water-vib"):
+def install(name="calc-water-vib", source_dir=None):
     """Copy a fixture calculation into the fixture account's tree.
+
+    `source_dir` overrides where the fixture is read from -- tests/apps'
+    own fixtures/ by default, but tests/modiagram keeps its own (smaller,
+    MO-diagram-only) fixtures under tests/modiagram/fixtures/ and reuses
+    this rather than duplicating fixture.py's account/auth/htaccess
+    plumbing.  `name` is still used as both the lookup key (when
+    `source_dir` is None) and the directory name installed into the
+    fixture account, so two callers naming the same calc still collide on
+    purpose -- that mirrors a real account, where a name is unique.
 
     Returns (contextUrl, error).  Replaces any previous copy so a run always
     starts from the checked-in state rather than from whatever the last run
     left behind.
     """
-    source = os.path.join(FIXTURES, name)
+    source = source_dir or os.path.join(FIXTURES, name)
     if not os.path.isdir(source):
         return "", "no such fixture: %s" % source
     userRoot, error = ensureAccount()

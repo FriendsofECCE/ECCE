@@ -1,0 +1,19 @@
+title: 
+type: molecule
+fragment_attributes:
+  point_group: C4v
+end_fragment_attributes:
+num_atoms: 2
+atom_info: symbol cart
+atom_list: 
+C 0.00000 0.00000 -0.785665
+O 0.00000 0.00000 0.589436
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+atom_type_list:
+        1   2
+        1   2
+num_bonds: 1
+bond_list: 
+1 2 1.00000 2

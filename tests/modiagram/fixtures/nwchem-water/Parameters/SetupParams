@@ -1,0 +1,29 @@
+ES.Theory.DFT.CorrelationFunctionals|VWN 5 (local)||0|0|menu_input
+ES.Theory.DFT.CoulombCutoff|1e-10||1|0|float_input
+ES.Theory.DFT.Dispersion|Grimme D3||1|1|menu_input
+ES.Theory.DFT.ExchangeFunctionals|Slater (local)||0|0|menu_input
+ES.Theory.DFT.GridAngular|Lebedev||1|0|menu_input
+ES.Theory.DFT.GridDensity|Medium||1|0|menu_input
+ES.Theory.DFT.GridPartition|Erf1||1|0|menu_input
+ES.Theory.DFT.GridRadial|Mura||1|0|menu_input
+ES.Theory.DFT.XCFunctionals|B3LYP (hybrid)||1|1|menu_input
+ES.Theory.SCF.ConvergenceAlgorithm|DIIS||1|0|menu_input
+ES.Theory.SCF.ConvergenceDensity.Value|1e-05||1|0|float_input
+ES.Theory.SCF.ConvergenceEnergy.Value|1e-06|Hartree|1|0|float_input
+ES.Theory.SCF.ConvergenceGradient.Value|0.0005|Hartree|1|0|float_input
+ES.Theory.SCF.ConvergenceIterations|30||1|0|integer_input
+ES.Theory.SCF.Damping|0||1|0|toggle_input
+ES.Theory.SCF.DampingValue|70||0|1|integer_input
+ES.Theory.SCF.Dielectric|78.4|Debye|0|0|float_input
+ES.Theory.SCF.Direct|In Core||1|0|menu_input
+ES.Theory.SCF.InitialGuess|NWChem Atomic Guess||1|0|menu_input
+ES.Theory.SCF.LevelShift|0||1|0|toggle_input
+ES.Theory.SCF.LevelShiftSize|0.5|Hartree|0|1|float_input
+ES.Theory.SCF.Memory|0||1|0|toggle_input
+ES.Theory.SCF.MemorySize|2|Gigabytes / core|0|1|integer_input
+ES.Theory.SCF.Solvent|Water: 78.4 Debye||0|0|menu_input
+ES.Theory.SCF.SolventRadius|0.5|Angstroms|0|0|float_input
+ES.Theory.SCF.UseCosmo|0||1|0|toggle_input
+ES.Theory.SymmetryTol|0.01|Angstroms|1|0|float_input
+ES.Theory.UseAutoZ|1||1|0|toggle_input
+ES.Theory.UseSymmetry|1||1|1|toggle_input

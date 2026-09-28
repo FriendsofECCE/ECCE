@@ -1,0 +1,58 @@
+group: C4v
+formula: CO
+construction: its two chemical groups
+headline: 
+note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree. Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, kept in the atom's own shell order; its free-atom energy is given beside it.  Drawn as its two chemical groups, C and O.
+column left
+  title: C
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenAboveCount: 0
+  shellKeys: C:0 C:1
+  levels: 3
+  level 0 energy=-0.309543 tabulated=-19.400000 irrep=SG label=A1  (2s) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.71 Ha"
+  level 1 energy=-0.129821 tabulated=-10.700000 irrep=SG label=A1  (2p) character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.39 Ha"
+  level 2 energy=-0.129821 tabulated=-10.700000 irrep=PI label=E  (2p) character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=2 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.39 Ha"
+column centre
+  title: Molecular orbitals
+  fromHalves: 0
+  hiddenCount: 2
+  hiddenMaxEnergy: -11.470483
+  hiddenAboveCount: 5
+  shellKeys:
+  levels: 6
+  level 0 energy=-1.356735 tabulated=0.000000 irrep=SG label=3SG character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1424 shareRight=0.8576 lowdinMax=0.7323 OP=0.2241 mullikenMax=0.7976 norm=1.0000 orbitals=[2] annotation="-1.3567"
+  level 1 energy=-0.780581 tabulated=0.000000 irrep=SG label=4SG nb character=NONBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.4815 shareRight=0.5185 lowdinMax=0.5440 OP=0.0111 mullikenMax=0.5254 norm=1.0000 orbitals=[3] annotation="-0.7806"
+  level 2 energy=-0.561170 tabulated=0.000000 irrep=SG label=5SG nb character=NONBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.7003 shareRight=0.2997 lowdinMax=0.7026 OP=-0.0368 mullikenMax=0.7143 norm=1.0000 orbitals=[4] annotation="-0.5612"
+  level 3 energy=-0.550925 tabulated=0.000000 irrep=PI label=1PI character=BONDING pairing=1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.1604 shareRight=0.8396 lowdinMax=0.7729 OP=0.1547 mullikenMax=0.7876 norm=1.0000 orbitals=[5,6] annotation="-0.5509"
+  level 4 energy=0.058791 tabulated=0.000000 irrep=PI label=2PI* character=ANTIBONDING pairing=1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.7194 shareRight=0.2806 lowdinMax=0.7795 OP=-0.3661 mullikenMax=0.8040 norm=1.0000 orbitals=[7,8] annotation="0.0588"
+  level 5 energy=0.330463 tabulated=0.000000 irrep=SG label=6SG* character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.6139 shareRight=0.3861 lowdinMax=0.7960 OP=-6.8699 mullikenMax=1.1696 norm=1.0000 orbitals=[9] annotation="0.3305"
+column right
+  title: O
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenAboveCount: 0
+  shellKeys: O:0 O:1
+  levels: 3
+  level 0 energy=-0.882870 tabulated=-32.400000 irrep=SG label=A1  (2s) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -1.19 Ha"
+  level 1 energy=-0.481175 tabulated=-15.900000 irrep=SG label=A1  (2p) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.58 Ha"
+  level 2 energy=-0.481175 tabulated=-15.900000 irrep=PI label=E  (2p) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=2 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.58 Ha"
+links: 16
+  link 0 left=0 centre=0 right=-1
+  link 1 left=1 centre=0 right=-1
+  link 2 left=-1 centre=0 right=0
+  link 3 left=-1 centre=0 right=1
+  link 4 left=-1 centre=1 right=0
+  link 5 left=-1 centre=1 right=1
+  link 6 left=0 centre=2 right=-1
+  link 7 left=1 centre=2 right=-1
+  link 8 left=2 centre=3 right=-1
+  link 9 left=-1 centre=3 right=2
+  link 10 left=2 centre=4 right=-1
+  link 11 left=-1 centre=4 right=2
+  link 12 left=1 centre=5 right=-1
+  link 13 left=0 centre=5 right=-1
+  link 14 left=-1 centre=5 right=1
+  link 15 left=-1 centre=5 right=0

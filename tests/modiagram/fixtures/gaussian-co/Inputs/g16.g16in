@@ -1,0 +1,9 @@
+%nprocshared=4
+#P rhf/def2SVP 6D 10F  Symmetry=(PG=C4V,Loose)  Punch=(MO) Pop=(full) 
+
+CO
+
+0 1 ! charge and multiplicity
+ C     0.00000     0.00000     -0.785665
+ O     0.00000     0.00000     0.589436
+

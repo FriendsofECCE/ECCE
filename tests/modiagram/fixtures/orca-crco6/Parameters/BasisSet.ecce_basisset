@@ -1,0 +1,178 @@
+<MolecularConfig>
+<Map>
+<Group Tag="C" Name="def2-svp">
+<OrderedList>
+<BasisSet Type="ECPOrbital">def2-svp</BasisSet>
+<ECP Type="ecp">Def2-ECP</ECP>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="def2-svp">
+<BasisSet Type="ECPOrbital">def2-svp</BasisSet>
+<ECP Type="ecp">Def2-ECP</ECP>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
+<Element tag="C">
+<BasisSet uniqueKey="def2-svp:ECPOrbital">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="C">
+0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="C">
+0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+<Group Tag="Cr" Name="def2-svp">
+<OrderedList>
+<BasisSet Type="ECPOrbital">def2-svp</BasisSet>
+<ECP Type="ecp">Def2-ECP</ECP>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="def2-svp">
+<BasisSet Type="ECPOrbital">def2-svp</BasisSet>
+<ECP Type="ecp">Def2-ECP</ECP>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
+<Element tag="Cr">
+<BasisSet uniqueKey="def2-svp:ECPOrbital">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="Cr">
+0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="Cr">
+0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+<Group Tag="O" Name="def2-svp">
+<OrderedList>
+<BasisSet Type="ECPOrbital">def2-svp</BasisSet>
+<ECP Type="ecp">Def2-ECP</ECP>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="def2-svp">
+<BasisSet Type="ECPOrbital">def2-svp</BasisSet>
+<ECP Type="ecp">Def2-ECP</ECP>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
+<Element tag="O">
+<BasisSet uniqueKey="def2-svp:ECPOrbital">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="O">
+0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="O">
+0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+</Map>
+<Data>
+BasisSet=Def2-ECP
+Type=ecp Category=AUXILIARY Spherical=UnknownCoordSys ContType=UnknownContType
+EndBasisSet
+BasisSet=def2-svp
+Type=ECPOrbital Category=ORBITAL Spherical=UnknownCoordSys ContType=UnknownContType
+element=C
+contraction shell=S num_primitives=5 num_coefficients=1
+1238.401693800000 0.005456883208
+186.290049920000 0.040638409211
+42.251176346000 0.180255938880
+11.676557932000 0.463151217550
+3.593050648200 0.440871733140
+contraction shell=S num_primitives=1 num_coefficients=1
+0.402451473630 1.000000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.130901826680 1.000000000000
+contraction shell=P num_primitives=3 num_coefficients=1
+9.468097062100 0.038387871728
+2.010354514200 0.211170251120
+0.547710047070 0.513281721140
+contraction shell=P num_primitives=1 num_coefficients=1
+0.152686137950 1.000000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.800000000000 1.000000000000
+element=Cr
+contraction shell=S num_primitives=6 num_coefficients=1
+51528.086348999997 0.001440582311
+7737.210348700000 0.011036202287
+1760.374847000000 0.054676651806
+496.877065440000 0.189650381030
+161.465205980000 0.382954128500
+55.466352268000 0.290900506680
+contraction shell=S num_primitives=3 num_coefficients=1
+107.547329990000 -0.109322811000
+12.408671897000 0.644725994710
+5.042362882600 0.462627125600
+contraction shell=S num_primitives=3 num_coefficients=1
+8.546164016500 -0.227110132860
+1.390044122100 0.733015275910
+0.560666028760 0.442255654330
+contraction shell=S num_primitives=1 num_coefficients=1
+0.071483705972 1.000000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.028250687604 1.000000000000
+contraction shell=P num_primitives=5 num_coefficients=1
+640.485360960000 0.009612671520
+150.697111940000 0.070889834655
+47.503755296000 0.270652589900
+16.934120165000 0.524373434140
+6.240968059000 0.341079947140
+contraction shell=P num_primitives=3 num_coefficients=1
+3.088546320600 0.339739869030
+1.179104776900 0.572720629270
+0.433697744320 0.245827282060
+contraction shell=P num_primitives=1 num_coefficients=1
+0.120675000000 1.000000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+27.559479426000 0.030612488044
+7.468702032700 0.155932709440
+2.434590357400 0.369844212760
+0.782447548080 0.470711180770
+contraction shell=D num_primitives=1 num_coefficients=1
+0.219957743110 1.000000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+1.147000000000 1.000000000000
+element=O
+contraction shell=S num_primitives=5 num_coefficients=1
+2266.176778500000 -0.005343180993
+340.870101910000 -0.039890039230
+77.363135167000 -0.178539119850
+21.479644940000 -0.464276849590
+6.658943312400 -0.443097451720
+contraction shell=S num_primitives=1 num_coefficients=1
+0.809759756680 1.000000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.255307722340 1.000000000000
+contraction shell=P num_primitives=3 num_coefficients=1
+17.721504317000 0.043394573193
+3.863550544000 0.230941207650
+1.048092088300 0.513753110640
+contraction shell=P num_primitives=1 num_coefficients=1
+0.276415444110 1.000000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+1.200000000000 1.000000000000
+EndBasisSet
+</Data>
+</MolecularConfig>
