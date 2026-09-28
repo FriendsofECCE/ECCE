@@ -141,9 +141,21 @@ bool BuilderApp::OnInit()
       EE_RT_ASSERT(FALSE, EE_FATAL, msg);
     }
 
+    //  Defensive, not a fix for an observed crash: GatewayApp::OnInit()
+    //  had this exact shape (quit() called with no `return`, so a failed
+    //  check fell through into the next try block and could call quit()
+    //  again on already-torn-down state -- segfault, #120/97d4a862).
+    //  Builder::quit() currently can't be hit twice this way in practice
+    //  -- with nothing loaded yet (always true this early) it always
+    //  reaches its unconditional _exit(0) rather than returning to the
+    //  caller -- but that's incidental to how quit() happens to be
+    //  written today, not something this startup sequence should rely
+    //  on. Same `return false` after every quit() as the Gateway fix,
+    //  so this can't become the same live bug if quit() ever changes.
     try {
       if (!checkServerSetup()) {
         p_builder->quit(false); // canceled
+        return false;
       }
     } catch (RetryException& rex) {
       ewxMessageDialog * dlg =
@@ -152,6 +164,7 @@ bool BuilderApp::OnInit()
       dlg->ShowModal();
       dlg->Destroy();
       p_builder->quit(false);
+      return false;
     } catch (EcceException& ex) {
       string msg = ex.what();
       msg += "Please contact your ECCE Administrator.";
@@ -161,11 +174,13 @@ bool BuilderApp::OnInit()
       dlg->ShowModal();
       dlg->Destroy();
       p_builder->quit(false);
+      return false;
     }
 
     try {
       if (!checkServer()) {
         p_builder->quit(false); // canceled
+        return false;
       }
     } catch (RetryException& rex) {
       ewxMessageDialog * dlg =
@@ -174,6 +189,7 @@ bool BuilderApp::OnInit()
       dlg->ShowModal();
       dlg->Destroy();
       p_builder->quit(false);
+      return false;
     } catch (EcceException& ex) {
       string msg = "An error has occured while attempting to access "
         "the ECCE server.  Please contact your administrator for assistence "
@@ -185,10 +201,12 @@ bool BuilderApp::OnInit()
       dlg->ShowModal();
       dlg->Destroy();
       p_builder->quit(false);
+      return false;
     }
 
     if (!checkUser()) {
       p_builder->quit(false);
+      return false;
     }
   }
 
