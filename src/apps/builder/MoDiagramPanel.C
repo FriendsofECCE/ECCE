@@ -1,13 +1,17 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdarg>
+#include <cstdlib>
+#include <fstream>
 #include <functional>
 #include <ios>
+#include <iomanip>
 #include <memory>
 #include <set>
 #include <sstream>
 #include <utility>
 
+#include <wx/app.h>
 #include <wx/dcbuffer.h>
 #include <wx/link.h>
 #include <wx/sizer.h>
@@ -1342,6 +1346,137 @@ class MoDiagramProgress
 }  // namespace
 
 
+/**
+ * ECCE_MODIAGRAM_DUMP=<path> oracle for #171: a deterministic text
+ * record of buildOnce()'s finished model, written at every return point
+ * that calls setDiagram().  Plain types only (no wx) -- this is meant
+ * to move verbatim into the wx-free library Stage 1 extracts.  Kept
+ * free-standing rather than a member so it can't reach into panel
+ * state by accident.
+ */
+namespace {
+
+string escapeDumpText(const string& s)
+{
+  string out;
+  out.reserve(s.size());
+  for (size_t i = 0; i < s.size(); i++) {
+    const char c = s[i];
+    if (c == '\n') out += "\\n";
+    else if (c == '\t') out += "\\t";
+    else out += c;
+  }
+  return out;
+}
+
+const char* levelCharacterName(MoLevel::Character c)
+{
+  switch (c) {
+    case MoLevel::BONDING:     return "BONDING";
+    case MoLevel::NONBONDING:  return "NONBONDING";
+    case MoLevel::ANTIBONDING: return "ANTIBONDING";
+    default:                   return "UNKNOWN";
+  }
+}
+
+void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
+    const vector<double> *localisedShare, const vector<double> *centreOP,
+    const vector<double> *mullikenMax, const vector<double> *normVals)
+{
+  out << "column " << name << "\n";
+  out << "  title: " << escapeDumpText(col.title) << "\n";
+  out << "  fromHalves: " << (col.fromHalves ? 1 : 0) << "\n";
+  out << "  hiddenCount: " << col.hiddenCount << "\n";
+  out << "  hiddenMaxEnergy: " << std::fixed << std::setprecision(6)
+      << col.hiddenMaxEnergy << "\n";
+  out << "  hiddenAboveCount: " << col.hiddenAboveCount << "\n";
+  out << "  shellKeys:";
+  for (size_t i = 0; i < col.shellKeys.size(); i++) out << " " << col.shellKeys[i];
+  out << "\n";
+  out << "  levels: " << col.levels.size() << "\n";
+  out << std::fixed;
+  for (size_t i = 0; i < col.levels.size(); i++) {
+    const MoLevel& lv = col.levels[i];
+    out << "  level " << i
+        << " energy=" << std::setprecision(6) << lv.energy
+        << " tabulated=" << lv.tabulated
+        << " irrep=" << (lv.irrep.empty() ? "-" : lv.irrep)
+        << " label=" << escapeDumpText(lv.label.empty() ? "-" : lv.label)
+        << " character=" << levelCharacterName(lv.character)
+        << " pairing=" << lv.pairing
+        << " occupancy=" << std::setprecision(4) << lv.occupancy
+        << " occupancyBeta=" << lv.occupancyBeta
+        << " degeneracy=" << lv.degeneracy
+        << " shell=" << lv.shell
+        << " slot=" << lv.slot
+        << " shareLeft=" << lv.shareLeft
+        << " shareRight=" << lv.shareRight;
+    if (localisedShare != 0 && i < localisedShare->size())
+      out << " lowdinMax=" << (*localisedShare)[i];
+    if (centreOP != 0 && i < centreOP->size())
+      out << " OP=" << (*centreOP)[i];
+    if (mullikenMax != 0 && i < mullikenMax->size())
+      out << " mullikenMax=" << (*mullikenMax)[i];
+    if (normVals != 0 && i < normVals->size())
+      out << " norm=" << (*normVals)[i];
+    out << " orbitals=[";
+    for (size_t k = 0; k < lv.orbitals.size(); k++) {
+      if (k > 0) out << ",";
+      out << lv.orbitals[k];
+    }
+    out << "]";
+    out << " annotation=\"" << escapeDumpText(lv.annotation) << "\"\n";
+  }
+}
+
+void dumpMoDiagram(const string& path, const string& group,
+    const string& formula, const string& construction,
+    const string& headline, const string& note,
+    const MoColumn& left, const MoColumn& centre, const MoColumn& right,
+    const vector<MoConnection>& links,
+    const vector<double>& localisedShare, const vector<double>& centreOP,
+    const vector<double>& mullikenMax, const vector<double>& normVals)
+{
+  std::ofstream out(path.c_str());
+  if (!out) return;
+  out << "group: " << (group.empty() ? "-" : group) << "\n";
+  out << "formula: " << (formula.empty() ? "-" : formula) << "\n";
+  out << "construction: " << (construction.empty() ? "-" : construction) << "\n";
+  out << "headline: " << escapeDumpText(headline) << "\n";
+  out << "note: " << escapeDumpText(note) << "\n";
+  dumpColumn(out, "left", left, 0, 0, 0, 0);
+  dumpColumn(out, "centre", centre,
+             &localisedShare, &centreOP, &mullikenMax, &normVals);
+  dumpColumn(out, "right", right, 0, 0, 0, 0);
+  out << "links: " << links.size() << "\n";
+  for (size_t i = 0; i < links.size(); i++) {
+    out << "  link " << i << " left=" << links[i].leftLevel
+        << " centre=" << links[i].centreLevel
+        << " right=" << links[i].rightLevel << "\n";
+  }
+}
+
+/**
+ * ECCE_EXIT_AFTER_DUMP=1 (#171): close the app once the dump this build
+ * asked for has actually been written, so a capture script has a
+ * deterministic end rather than a settle timer.  Deferred via
+ * CallAfter() -- this runs from inside initialize()/build(), itself
+ * called from Show() from deep inside AUI pane bookkeeping, and closing
+ * the top window synchronously from there is exactly the kind of
+ * reentrancy CLAUDE.md warns about for wx3.2/GTK3.
+ */
+void exitAfterDumpIfRequested()
+{
+  if (getenv("ECCE_EXIT_AFTER_DUMP") == 0) return;
+  wxTheApp->CallAfter([]() {
+    wxWindow *top = wxTheApp->GetTopWindow();
+    if (top != 0) top->Close(true);
+  });
+}
+
+}  // namespace
+
+
 void MoDiagramPanel::build()
 {
   //  Re-entrancy guard (#170): ewxProgressDialog::Update() below pumps
@@ -1378,9 +1513,24 @@ void MoDiagramPanel::buildOnce()
   MoColumn left, centre, right;
   vector<MoConnection> links;
 
+  //  Stage 0 oracle (#171): read once, used at every return point below.
+  //  The diagnostic vectors are declared here (empty until the fragment
+  //  block near the end fills them) so every dump call site can pass
+  //  the same names regardless of how early it returns.
+  const char *dumpPathEnv = getenv("ECCE_MODIAGRAM_DUMP");
+  const string dumpPath = dumpPathEnv != 0 ? string(dumpPathEnv) : string();
+  vector<double> localisedShare, centreOP, mullikenMaxVec, normVec;
+
   if (energies == 0) {
-    p_canvas->setDiagram(left, centre, right, links, false,
-                         "This calculation has no orbital energies.");
+    const string note = "This calculation has no orbital energies.";
+    p_canvas->setDiagram(left, centre, right, links, false, note);
+    if (!dumpPath.empty()) {
+      dumpMoDiagram(dumpPath, "", "",
+          MoFragments::fragmentationName(p_fragmentation), "", note,
+          left, centre, right, links,
+          localisedShare, centreOP, mullikenMaxVec, normVec);
+      exitAfterDumpIfRequested();
+    }
     return;
   }
 
@@ -1953,8 +2103,9 @@ void MoDiagramPanel::buildOnce()
   //  (only meaningful for a no-central-atom construction) -- both need
   //  the REAL overlap matrix, which composeLevels()'s own Lowdin
   //  composition does not, so they are computed separately here rather
-  //  than threaded into it.
-  vector<double> localisedShare, centreOP;
+  //  than threaded into it.  (Declared earlier, at buildOnce()'s top, so
+  //  every dump call site -- including the early returns above -- can
+  //  pass the same names.)
   if (haveFragments && !leftAtoms.empty() && !rightAtoms.empty()) {
     PropTable *moCoefs = (PropTable*)calc->getProperty("MO");
     //  MOAOORDER-marked calcs (currently ORCA) store MO with columns in
@@ -2032,6 +2183,11 @@ void MoDiagramPanel::buildOnce()
           //  failed -- classify() skips the localisation rule on an
           //  empty vector.
           if (haveSqrtS) localisedShare.assign(centre.levels.size(), 0.0);
+          //  Dump-only (#171): kept alongside centreOP/localisedShare so
+          //  the oracle can show the same [MOLOC] diagnostics without
+          //  reading debug stderr output.
+          mullikenMaxVec.assign(centre.levels.size(), 0.0);
+          normVec.assign(centre.levels.size(), 0.0);
           const vector<int> noShellSplit;
           for (size_t i = 0; i < centre.levels.size(); i++) {
             MoLevel& level = centre.levels[i];
@@ -2090,6 +2246,7 @@ void MoDiagramPanel::buildOnce()
             }
             if (ncomp > 0) {
               centreOP[i] = opSum/ncomp;
+              normVec[i] = normSum/ncomp;
 
               double lowdinMax = 0.0;
               if (haveSqrtS) {
@@ -2105,6 +2262,7 @@ void MoDiagramPanel::buildOnce()
                 const double v = mullikenAtomSum[a]/ncomp;
                 if (v > mullikenMax) mullikenMax = v;
               }
+              mullikenMaxVec[i] = mullikenMax;
 
               if (debug) {
                 mosymPrintf("[MOLOC] %s E=%.4f lowdinMax=%.3f "
@@ -2317,6 +2475,13 @@ void MoDiagramPanel::buildOnce()
       p_canvas->setFormula(MoDiagram::formula(elements, charge));
       p_canvas->setDiagram(left, centre, right, links, false, note.str(),
                            headline);
+      if (!dumpPath.empty()) {
+        dumpMoDiagram(dumpPath, group, MoDiagram::formula(elements, charge),
+            MoFragments::fragmentationName(p_fragmentation),
+            headline, note.str(), left, centre, right, links,
+            localisedShare, centreOP, mullikenMaxVec, normVec);
+        exitAfterDumpIfRequested();
+      }
       return;
     }
 
@@ -2332,4 +2497,11 @@ void MoDiagramPanel::buildOnce()
   p_canvas->setGroup(group);
   p_canvas->setFormula(MoDiagram::formula(elements, charge));
   p_canvas->setDiagram(left, centre, right, links, haveFragments, note.str());
+  if (!dumpPath.empty()) {
+    dumpMoDiagram(dumpPath, group, MoDiagram::formula(elements, charge),
+        MoFragments::fragmentationName(p_fragmentation),
+        "", note.str(), left, centre, right, links,
+        localisedShare, centreOP, mullikenMaxVec, normVec);
+    exitAfterDumpIfRequested();
+  }
 }

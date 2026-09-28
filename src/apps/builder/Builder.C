@@ -4482,6 +4482,43 @@ void Builder::updatePropertyMenus()
     p_mgr.Update(); // TODO is this needed yet or can it wait?
   }
 
+  //  ECCE_OPEN_PANEL=<name> (#171): headless capture needs a way to open
+  //  a specific property panel with no synthetic input.  Done here,
+  //  right after every relevant panel for this calc has been created,
+  //  by doing exactly what OnPropertyMenuClick() does for a user's
+  //  click -- Show() the pane, which is what actually triggers
+  //  PropertyPanel::ensureInitialized()/initialize() the first time.
+  //  Once only: this runs again on every property the calculation
+  //  gains, and a panel the automation (or the user) has since closed
+  //  must stay closed. The latch must only be set once the pane is
+  //  actually found and shown -- the first call here can run before
+  //  any panel exists yet, and latching then means it never retries.
+  static bool openPanelDone = false;
+  if (!openPanelDone) {
+    const char *openPanelName = getenv("ECCE_OPEN_PANEL");
+    if (openPanelName != 0) {
+      wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(openPanelName));
+      if (pane.IsOk()) {
+        openPanelDone = true;
+        pane.Show(true);
+        for (int i = 0; i < p_propertyMenu->GetMenuItemCount(); i++) {
+          wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
+          if (item != 0 && item->GetItemLabelText() == openPanelName) {
+            item->Check(true);
+            break;
+          }
+        }
+        p_mgr.Update();
+      } else if (p_propertyMenu->GetMenuItemCount() > 0) {
+        // Panels exist now and still no match -- report once rather
+        // than on the very first (panel-less) pass.
+        openPanelDone = true;
+        fprintf(stderr, "ECCE_OPEN_PANEL: no property panel named '%s' "
+                        "for this calculation\n", openPanelName);
+      }
+    }
+  }
+
   // disable menu if no property guis found
   GetMenuBar()->EnableTop(GetMenuBar()->FindMenu(p_propertyMenu->GetTitle()),
                           p_propertyMenu->GetMenuItemCount()>0);
@@ -5038,6 +5075,12 @@ void Builder::createPropertyPanel(const string& name)
   // reports certain property keys.  However, there are some cases where
   // dynamic information is needed to determine relevance.
   if (!panel->isRelevant(p_calculation)) {
+    // A silent drop here costs a whole investigation (#171) -- the menu
+    // entry vanishes with no other trace.
+    if (getenv("ECCE_DEBUG_PANELS")) {
+      fprintf(stderr, "[PANELS] %s dropped: isRelevant() false\n",
+              name.c_str());
+    }
     delete panel;
     return;
   }
