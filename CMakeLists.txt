@@ -910,7 +910,8 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
     # including the SIGABRT that stranded the broker and a JMSDispatcher
     # for ten days on beryllium. ecce-gateway-reap --if-idle does nothing
     # while any other ECCE app is still up on this display, so only the
-    # last one out turns the lights off.
+    # last one out stops the display's relay; the broker and data server
+    # stay up until an explicit Quit and Stop Server.
     set(_app_exec "trap 'ECCE_REAP_QUIET=1 \"$ECCE_HOME/bin/ecce-gateway-reap\" --if-idle >/dev/null 2>&1 || true' EXIT
 \"$ECCE_HOME/bin/${_app}\" \"$@\"")
   else()

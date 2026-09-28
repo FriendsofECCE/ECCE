@@ -1,6 +1,6 @@
 #!/bin/bash
-# ecce-gateway-reap: shut down JMSDispatcher relays and the ActiveMQ
-# broker that no longer belong to a live ECCE session.
+# ecce-gateway-reap: shut down JMSDispatcher relays that no longer belong
+# to a live ECCE session, and, on an explicit stop, the ActiveMQ broker.
 #
 # Issue #102. The gateway used to start the broker and the dispatcher as
 # detached background processes and tear them down only from
@@ -27,8 +27,19 @@
 #                                  -- however it exits, including on an
 #                                  abort, because the trap is in the
 #                                  wrapper shell and not in the app --
-#                                  it takes the session's services down
-#                                  with it.
+#                                  it stops that display's relay.
+#
+#   ecce-gateway-reap --stop       from ecce-gateway-stop ("Quit and
+#                                  Stop Server"). As the full sweep, and
+#                                  also stops the broker once no display
+#                                  has a live relay left.
+#
+# Only --stop ever stops the broker. A session ending, cleanly or not,
+# takes down its own relay and leaves the broker running, exactly as the
+# data server is left running: a broker can be shared by other machines'
+# sessions (a central server, #185), and nothing here can tell reliably
+# whether it is. An idle broker left up is the accepted cost, as it is
+# for the data server; a dead session's relay is still reaped.
 #
 # Liveness is decided by looking for running ECCE binaries, not by
 # reference counting, deliberately: a pid-file scheme only knows about
@@ -47,7 +58,11 @@ ACTIVEMQ_BASE="$STATEDIR/activemq"
 UID_="$(id -u)"
 
 IF_IDLE=0
-if [ "${1:-}" = "--if-idle" ]; then IF_IDLE=1; fi
+EXPLICIT_STOP=0
+case "${1:-}" in
+  --if-idle) IF_IDLE=1 ;;
+  --stop)    EXPLICIT_STOP=1 ;;   # ecce-gateway-stop: the user asked
+esac
 
 # An escape hatch for anything that manages the services itself.
 #
@@ -77,6 +92,18 @@ authfile() {
 
 BINDIR="$(readlink -f "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")"
 
+# Is this resolved executable one of $ECCE_HOME/bin's? Also true when
+# bin/<name> is a symlink to it, as in an overlay pointing into a build
+# tree -- the same rule the gateway applies when deciding its session is
+# over, so the two agree.
+is_ecce_exe() {
+  local exe="${1% (deleted)}" name
+  case "$exe" in "$BINDIR"/*) return 0 ;; esac
+  name="${exe##*/}"
+  [ -e "$ECCE_HOME/bin/$name" ] || return 1
+  [ "$(readlink -f "$ECCE_HOME/bin/$name" 2>/dev/null)" = "$exe" ]
+}
+
 # Pids of ECCE app binaries running for a given DISPLAY, for this user.
 #
 # Identified by /proc/<pid>/exe, NOT by matching the command line. Apps
@@ -94,10 +121,7 @@ apps_for_display() {
   for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
     [ -O "/proc/$pid" ] || continue
     exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
-    case "$exe" in
-      "$BINDIR"/*) ;;
-      *) continue ;;
-    esac
+    is_ecce_exe "$exe" || continue
     [ -r "/proc/$pid/environ" ] || continue
     disp="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
             sed -n 's/^DISPLAY=//p' | head -n1)"
@@ -165,7 +189,7 @@ live_auth=""
 for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
   [ -O "/proc/$pid" ] || continue
   exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
-  case "$exe" in "$BINDIR"/*) ;; *) continue ;; esac
+  is_ecce_exe "$exe" || continue
   [ -r "/proc/$pid/environ" ] || continue
   d="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
        sed -n 's/^DISPLAY=//p' | head -n1)"
@@ -181,13 +205,13 @@ for f in "$auth_prefix"*; do
   rm -f "$f"
 done
 
-if [ "$dispatchers_left" -gt 0 ]; then
+# --- 2. The broker, shared by every display ----------------------------
+# Only on an explicit stop (see the header), and only once no display has
+# a live dispatcher, so no session of this account is still using it.
+if [ "$EXPLICIT_STOP" = 0 ] || [ "$dispatchers_left" -gt 0 ]; then
   exit 0
 fi
 
-# --- 2. The broker, shared by every display ----------------------------
-# Only reached when no display has a live dispatcher, so nothing can be
-# talking to it.
 brokerpid=""
 if [ -f "$STATEDIR/activemq.pid" ]; then
   brokerpid="$(cat "$STATEDIR/activemq.pid" 2>/dev/null)"
@@ -206,7 +230,7 @@ if [ -z "${brokerpid:-}" ]; then
 fi
 
 if [ -n "${brokerpid:-}" ]; then
-  say "no ECCE session left -- stopping ActiveMQ broker (pid $brokerpid)"
+  say "stop requested, no ECCE session left -- stopping ActiveMQ broker (pid $brokerpid)"
   reap_pid "$brokerpid"
   rm -f "$STATEDIR/activemq.pid"
 

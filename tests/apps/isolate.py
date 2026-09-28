@@ -186,7 +186,12 @@ def killLeftovers(state):
     to touch that.  A process whose command line does not mention this
     exact, isolated state directory is left alone, unconditionally.
     """
-    needle = os.fsencode(state)
+    #  The path must end where the match does: a plain substring test
+    #  lets the default state directory match a sibling that extends its
+    #  name (ecce-apps-suite vs session_end.py's ecce-apps-suite-session),
+    #  and a run started beside another then kills the other's services.
+    needle = re.compile(re.escape(os.fsencode(state.rstrip("/")))
+                        + rb"(?=/|\0|$)")
     self_pid = os.getpid()
     victims = []
     for entry in os.listdir("/proc"):
@@ -200,7 +205,7 @@ def killLeftovers(state):
                 cmdline = handle.read()
         except OSError:
             continue        # gone already, or not ours to read
-        if needle in cmdline:
+        if needle.search(cmdline):
             victims.append(pid)
 
     if not victims:
