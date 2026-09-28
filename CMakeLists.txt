@@ -267,6 +267,18 @@ pkg_check_modules(GLIB2 REQUIRED glib-2.0)
 target_include_directories(eccewxgui PRIVATE ${GLIB2_INCLUDE_DIRS})
 target_link_libraries(eccewxgui PRIVATE ${GLIB2_LIBRARIES})
 
+# WxDavAuth.C calls gtk_window_present_with_time()/gdk_x11_get_server_time()
+# directly (#120: Mutter's focus-stealing prevention silently drops the
+# auth dialog's window-manager activation unless it's requested with a
+# fresh, real X server timestamp) -- same gtk+-3.0 need as eccewxplotctrl
+# below, headers AND the library this time since it's a real call, not
+# just the log filter's headers-only use above.
+pkg_check_modules(GTK3 QUIET gtk+-3.0)
+if(GTK3_FOUND)
+  target_include_directories(eccewxgui PRIVATE ${GTK3_INCLUDE_DIRS})
+  target_link_libraries(eccewxgui PRIVATE ${GTK3_LIBRARIES})
+endif()
+
 ecce_library(eccewxguicomm src/wxgui/comm)
 target_compile_definitions(eccewxguicomm PRIVATE ${wxWidgets_DEFINITIONS})
 target_include_directories(eccewxguicomm PRIVATE ${wxWidgets_INCLUDE_DIRS})
