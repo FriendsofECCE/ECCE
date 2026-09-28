@@ -20,7 +20,11 @@ Once a design decision is settled, delegate the implementation to the sonnet-imp
 - Andy runs Debian ("trixie") on his machines — **beryllium** and
   **niobium**. Default to Debian conventions, not Ubuntu, for anything
   environment/package related, unless told otherwise.
-- Releases are tagged (e.g. `v8.0.0-alpha.1`), not branched. Old branches
+- Releases are tagged (e.g. `v8.0.0-alpha.1`) on `main`. The exception
+  is a bugfix release made after `main` has moved on to the next minor
+  version: it goes on a `release/X.Y.Z` branch off the previous tag,
+  with the fixes cherry-picked from `main` (8.16.2 and 8.16.3 were made
+  this way while `main` was 8.17.0-dev). Old branches
   (`develop`, `modernize-build`, `stable`, `master`, `make`) were
   consolidated into `main` and renamed to `archive/*` — no reason to
   branch from or compare against them.
