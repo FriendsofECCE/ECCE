@@ -25,7 +25,7 @@ Once a design decision is settled, delegate the implementation to the sonnet-imp
   version: it goes on a `release/X.Y.Z` branch off the previous tag,
   with the fixes cherry-picked from `main` (8.16.2 and 8.16.3 were made
   this way while `main` was 8.17.0-dev). One long-lived branch exists by
-  design: `native/split` (worktree `../ECCE-native`), the **9.x
+  design: `v9` (the code-name for the revamped ECCE; worktree `../ECCE-native`), the **9.x
   experimental line** (plan on #133). Risky or structural work lands
   there first: the libssh transport, the server/client package split,
   STOMP broker access, the Coin3D viewer, retiring csh. `main` is the
