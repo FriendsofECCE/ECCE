@@ -240,6 +240,23 @@ dialog — log in with the username/password you just created. From the
 gateway toolbar you can open the other tools (Organizer, Builder, Periodic
 Table, ...).
 
+### `ecce` command-line options
+
+`ecce --help` lists these:
+
+- **`-admin`** — edit the site-wide machine list (`$ECCE_HOME/siteconfig`)
+  directly in Machine Registration; no broker or data server started.
+  Needs write access to `siteconfig`, so typically `sudo ecce -admin`.
+- **`-machine`** / **`-machines`** — edit your own machine registrations
+  (`~/.ECCE`) the same way, without starting a session.
+- **`-remote`** — use a central data server/broker
+  (`siteconfig/RemoteServer`) instead of starting your own, for the
+  two-machine teaching deployment (one server, students connect as
+  clients).
+- **`-l LOGIN`** — use `LOGIN` as your server login name instead of your
+  Unix username, then start normally.
+- **`--help`** / **`-h`** — print this list and exit.
+
 ## 7. Getting help
 
 `ecce-<app>`'s Help menu opens local HTML content shipped in the package
