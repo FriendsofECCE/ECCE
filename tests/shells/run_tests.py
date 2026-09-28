@@ -193,16 +193,35 @@ def scenario_ssh(sh, dialect, env, inits):
         p.close()
 
 
+def wait_shell_ready(p, tries=10, per_try=0.5):
+    """Mirrors RCommand::waitShellReady() (#143/#69 item 3): poll with a
+    real probe instead of a fixed sleep, so a login shell's editor
+    (tcsh, zsh, ksh93) flushing typed-ahead input during its own raw-
+    mode setup can't discard what we send next -- we just see no probe
+    echo and retry."""
+    for _ in range(tries):
+        p.send("echo ECCE_READY_''PROBE")
+        #  A bare substring, not "\r\n...\r\n"-anchored: bash's bracketed-
+        #  paste escapes and a shell's own prompt/echo quirks (bsd-csh
+        #  prints its prompt directly against the output with no
+        #  newline between) can land other bytes at that exact
+        #  boundary. All that matters here is "did this shell just run
+        #  our command", not the framing -- unlike the item-1 sentinel,
+        #  nothing downstream parses what follows this match.
+        if p.until(lambda b: b"ECCE_READY_PROBE" in b, timeout=per_try):
+            return True
+        #  ksh93 continuation-prompt flush before the next attempt.
+        os.write(p.fd, b"\x03\n")
+    return False
+
+
 def scenario_hop(login, sh, dialect, env, inits):
     p = Pty([login, "-i"], env)
     try:
         p.until(lambda b: False, timeout=0.6)
         p.send(sh + " -i")
-        #  RCommand does NOT wait here.  It should: a login shell whose
-        #  editor is in raw mode (tcsh, zsh, ksh93) can discard the init
-        #  line typed ahead of the new shell.  That is a separate race,
-        #  and this suite is about the echo, so give the shell time.
-        p.until(lambda b: False, timeout=1.0)
+        if not wait_shell_ready(p):
+            return "inner shell %s never became ready" % sh
         return converse(p, dialect, inits)
     finally:
         p.close()
@@ -211,10 +230,10 @@ def scenario_hop(login, sh, dialect, env, inits):
 def run_driver(driver, shells, base_env, tmp):
     results = []
     for dialect, sh in shells:
-        #  RCommand recognises bash by the bare name "bash" only; any
-        #  other spelling gets csh syntax.  So name it, and put it first
-        #  on PATH.
-        name = "bash" if dialect == "bash" else sh
+        #  RCommand classifies by basename now (#143/#69 item 3), not by
+        #  an exact match against the literal string "bash" -- so drive
+        #  it with the shell's own name/path directly.
+        name = sh
         for term in (None, "xterm"):
             env = dict(base_env, ECCE_REALUSER=os.environ.get(
                 "USER", "ecce"), HOME=tmp)
@@ -229,6 +248,43 @@ def run_driver(driver, shells, base_env, tmp):
             except subprocess.TimeoutExpired:
                 out, ok = "TIMEOUT", False
             results.append(("driver", sh, term, None if ok else out))
+    return results
+
+
+def run_driver_reject(driver, shells, base_env, tmp):
+    """Anything that isn't csh/tcsh/bash must be refused outright, not
+    silently treated as csh (#143/#69 item 3, narrowed 2026-09-28):
+    RCommand's constructor sets p_errMessage and returns before
+    p_connected is ever set, so isOpen() is false and testRCommandEcho
+    exits 2 with "NO SESSION" -- never 0 or 1.
+
+    Only checks for the rejection itself (exit 2, "NO SESSION"), not
+    the specific "ECCE needs csh, tcsh or bash" wording RCommand's
+    constructor actually sets: isOpen()'s existing "else" branch
+    unconditionally overwrites p_errMessage with a generic "Failed to
+    open remote shell ... (incorrect password?)" whenever p_connected
+    is false, for EVERY early-return case in the constructor, not just
+    this new one -- a pre-existing bug (predates this change, same
+    shape as the CalcEd/ai.<code> "discarded error message" class in
+    CLAUDE.md) that swallows the specific rejection text before
+    commError() is ever read. Flagged for a decision, not fixed here:
+    fixing isOpen() is a separate, wider change than this task's scope."""
+    results = []
+    for sh in shells:
+        for term in (None, "xterm"):
+            env = dict(base_env, ECCE_REALUSER=os.environ.get(
+                "USER", "ecce"), HOME=tmp)
+            env["PATH"] = os.path.dirname(sh) + ":" + env["PATH"]
+            if term:
+                env["TERM"] = term
+            try:
+                r = subprocess.run([driver, sh], env=env, timeout=90,
+                                   capture_output=True, text=True)
+                out = (r.stdout.strip().splitlines() or ["(no output)"])[-1]
+                ok = r.returncode == 2 and "NO SESSION" in out
+            except subprocess.TimeoutExpired:
+                out, ok = "TIMEOUT", False
+            results.append(("driver reject", sh, term, None if ok else out))
     return results
 
 
@@ -268,6 +324,18 @@ def main():
         if not find_shell(name, dirs):
             print("SKIP %s: not found" % name)
 
+    #  ECCE's LOCAL shell classification (#143/#69 item 3, narrowed
+    #  2026-09-28) only recognises csh/tcsh/bash by basename; anything
+    #  else must be refused outright rather than guessed at as csh
+    #  syntax. Drive the real binary at each of these other spellings
+    #  and expect a clean rejection, not a dialect match.
+    reject_targets = []
+    for name in ("sh", "dash", "ksh", "ksh93", "mksh", "zsh"):
+        p = find_shell(name, dirs)
+        if p and os.path.realpath(p) not in [os.path.realpath(t[1])
+                                             for t in targets]:
+            reject_targets.append(p)
+
     results = []
     for term in (None, "xterm"):
         env = dict(base, TERM=term) if term else dict(base)
@@ -286,6 +354,7 @@ def main():
         print("(control run: driver skipped, it uses the compiled code)")
     elif os.access(args.driver, os.X_OK):
         results += run_driver(args.driver, targets, base, tmp)
+        results += run_driver_reject(args.driver, reject_targets, base, tmp)
     else:
         print("SKIP driver: %s not built" % args.driver)
 
