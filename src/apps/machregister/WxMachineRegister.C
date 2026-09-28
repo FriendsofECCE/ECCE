@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <algorithm>
 #include <fstream>
 #include <regex>
   using std::ifstream;
@@ -74,6 +75,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent,
 {
     p_config = new EcceMap();
     p_adminFlag = admin;
+    p_prefillFromSite = false;
     p_queuesDirty = false;
 
     p_slctRgstn = NULL;
@@ -707,11 +709,43 @@ bool WxMachineRegister::selectMachine(string refName)
     bool found;
 
     found = p_machinesList->SetStringSelection((wxString)(refName));
+    p_prefillFromSite = false;
 
     if (found)
     {
         p_slctRgstn = RefMachine::refLookup(refName.c_str());
         this->refreshControls();
+    }
+    else if (!p_adminFlag)
+    {
+        //  A site machine (e.g. the Machine Browser's Register action on
+        //  "dummy"/"localhost") never appears in the user's own list, so
+        //  SetStringSelection above always misses.  Fall back to the site
+        //  definition, unselected, so the form can be edited and saved as
+        //  the user's own shadowing copy (#104).
+        vector<string> *siteNames = RefMachine::referenceNames(RefMachine::siteMachines);
+        bool isSiteMachine = (find(siteNames->begin(), siteNames->end(), refName)
+                               != siteNames->end());
+        delete siteNames;
+
+        if (isSiteMachine)
+        {
+            p_machinesList->SetSelection(-1);
+            p_slctRgstn = RefMachine::refLookup(refName.c_str());
+            p_prefillFromSite = true;
+            this->refreshControls();
+            //  Nothing of the user's to delete yet.
+            p_machineDeleteButton->Enable(false);
+
+            displayMessage("'" + refName + "' is a site machine, shared by "
+                "everyone using this ECCE installation, so it can't be "
+                "changed here. The form now shows its settings: edit them "
+                "and press Add/Change to save your own copy under the same "
+                "name. Your copy is used instead of the site one; deleting "
+                "it brings the site version back.");
+
+            found = true;
+        }
     }
 
     return found;
@@ -740,6 +774,7 @@ void WxMachineRegister::loadMachinesList()
     if (nNames > 0)
     {
         p_machinesList->SetSelection(0);
+        p_prefillFromSite = false;
         string refName = (string)(p_machinesList->GetString(0));
         p_slctRgstn = RefMachine::refLookup(refName.c_str());
         this->refreshControls();
@@ -1078,6 +1113,10 @@ vector<string> WxMachineRegister::getConfigFileNames(string refName) const
         base = Ecce::realUserPrefPath();
     }
 
+    string siteBase = Ecce::ecceHome();
+    siteBase += "/siteconfig";
+
+
     string path;
     SFile teste;
 
@@ -1089,13 +1128,35 @@ vector<string> WxMachineRegister::getConfigFileNames(string refName) const
     {
         ret.push_back(path);
     }
+    else if (p_prefillFromSite)
+    {
+        // Not overridden by the user -- fall back to the site copy so a
+        // site machine's settings still pre-fill the form (#104).
+        path = siteBase + "/submit.site";
+        teste = path;
+
+        if (teste.exists())
+            ret.push_back(path);
+    }
 
     // This is like CONFIG.columbo
     path = base + "/CONFIG." + refName;
     teste = path;
 
     if (teste.exists())
+    {
         ret.push_back(path);
+    }
+    else if (p_prefillFromSite)
+    {
+        // A site machine (never a user machine) has no CONFIG.<name> in
+        // the user's own prefs -- read the site one instead (#104).
+        path = siteBase + "/CONFIG." + refName;
+        teste = path;
+
+        if (teste.exists())
+            ret.push_back(path);
+    }
 
     return ret;
 }

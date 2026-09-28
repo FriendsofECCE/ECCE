@@ -154,6 +154,9 @@ class WxMachineRegister: public WxMachineRegisterGUI
 
         //  Private Variables
         bool                    p_adminFlag;
+        //  The form holds an unshadowed site machine, so its CONFIG and
+        //  submit.site come from siteconfig (#104).
+        bool                    p_prefillFromSite;
         bool                    p_queuesDirty;  // queue list edited, not yet written by processmachine
         EcceMap                *p_config;
         vector<string>          p_qnames;
