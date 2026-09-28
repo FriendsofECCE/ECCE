@@ -297,6 +297,25 @@ does not help with 2FA, because the transfer needs the same authentication.
 in is issue #44, and is not wired up yet — for now the results have to be
 brought in by other means.
 
+#### Reaching the machine through a port-forwarded tunnel
+
+If you forward a local port to the cluster (for example
+`ssh -L 2222:login.hpc.example.edu:22 gateway`, after which you authenticate
+once), **do not register the machine as `localhost` or `127.0.0.1`**.
+ECCE treats those names, and this host's own name, as *this* machine: if the
+login name you register is your own local one, the job runs locally on your
+workstation instead of through the tunnel (#144). The Launcher and Machine
+Registration say which way a loopback name will go, but the safe setup avoids
+the question. Give the tunnel its own name in `~/.ssh/config`:
+
+    Host hpc-tunnel
+        HostName 127.0.0.1
+        Port 2222
+        User <your cluster username>
+
+and register the machine as `hpc-tunnel`. An alias is never treated as local,
+so it always goes through ssh.
+
 ### The job ran, but with different settings than I chose
 
 This is the failure mode to know about: ECCE builds a code's input file by
