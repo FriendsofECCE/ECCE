@@ -1289,6 +1289,20 @@ def main():
         print("FAILED  extended Huckel")
         return 1
 
+    print("")
+    if standalone("testLowdinComposition",
+                  ["src/tdat/chemistry/MoComposition.C",
+                   "src/tdat/chemistry/MoFragments.C",
+                   "src/tdat/chemistry/Huckel.C",
+                   "src/tdat/chemistry/SymmetryAnalysis.C",
+                   "src/tdat/chemistry/ShellRotation.C",
+                   "src/tdat/chemistry/TGBSAngFunc.C",
+                   "src/tdat/chemistry/BasisAngularNorm.C",
+                   "src/tdat/chemistry/CharacterTable.C",
+                   "src/tdat/chemistry/MoDiagram.C"]) != 0:
+        print("FAILED  Lowdin composition")
+        return 1
+
     print("PASSED")
     return 0
 

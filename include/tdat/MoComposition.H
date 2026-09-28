@@ -18,6 +18,7 @@
 #ifndef MOCOMPOSITION_HH
 #define MOCOMPOSITION_HH
 
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -36,6 +37,15 @@ class MoComposition
      * non-bonding whichever two columns the diagram correlates it
      * against, so this check runs BEFORE any per-construction bonding/
      * antibonding rule and pre-empts it.
+     *
+     * This is compared against a LOWDIN share (see lowdinShares()
+     * below), not a Mulliken one (#170). A Mulliken per-atom share is
+     * not bounded to [0,1] -- an antibonding virtual can put well over
+     * 1.0 on one atom and a compensating negative share on the other
+     * (confirmed against ORCA's own Mulliken printout for CO's 6-sigma*)
+     * -- so it can cross a "mostly on one atom" threshold for an orbital
+     * that plainly is not localised. Lowdin shares are bounded and sum
+     * to 1 by construction.
      *
      * Started at 0.90 and to be revisited from observed values
      * (ECCE_DEBUG_MOSYM prints each level's own maximum atom share) --
@@ -127,6 +137,69 @@ class MoComposition
                                     const vector<int>& functionsPerAtom,
                                     const vector<double>& overlap,
                                     const vector< std::pair<int,int> >& bonds);
+
+    /**
+     * A generic symmetric eigensolver (cyclic Jacobi): rotate away the
+     * largest off-diagonal element, repeat. Moved here from Huckel.C,
+     * which still uses it to build S^-1/2 for its own orthogonalisation
+     * -- this class needs the same routine to build S^+1/2 for
+     * lowdinShares() below, so it lives where both can call it rather
+     * than existing twice.
+     *
+     * @param a       nxn symmetric matrix; destroyed by the rotation
+     * @param values  the n eigenvalues, unordered
+     * @param vectors the n eigenvectors, as columns: vectors[i][k] is
+     *                component i of eigenvector k
+     * @param onSweep optional progress callback, called once per sweep
+     *                with a fraction in [0,1] estimated from how far
+     *                the off-diagonal norm has fallen towards the
+     *                convergence threshold (log scale, since it falls
+     *                geometrically) -- purely cosmetic, never affects
+     *                the result
+     * @return true (kept bool for interface stability; the sweep limit
+     *         is generous enough for anything this size that a genuine
+     *         non-convergence has not been observed)
+     */
+    static bool jacobiEigen(vector< vector<double> >& a,
+                            vector<double>& values,
+                            vector< vector<double> >& vectors,
+                            std::function<void(double)> onSweep = nullptr);
+
+    /**
+     * S^{1/2}, the symmetric square root of the overlap matrix, built
+     * once per diagram and reused for every MO's lowdinShares() below
+     * -- Sflat itself does not change per orbital, only c does.
+     *
+     * @param overlap    nbasis*nbasis, row major (Sflat[i*n+j])
+     * @param nbasis     the basis size overlap.size() should equal n*n of
+     * @param sqrtOverlap out: nbasis*nbasis, row major
+     * @param onSweep optional progress callback, forwarded to jacobiEigen()
+     * @return false if overlap does not match nbasis, or if any
+     *         eigenvalue of S is <= ~1e-8 (linear dependence -- S^1/2
+     *         itself is fine there, but a caller relying on this being
+     *         well-conditioned should not trust the result)
+     */
+    static bool buildSqrtOverlap(const vector<double>& overlap, int nbasis,
+                                 vector<double>& sqrtOverlap,
+                                 std::function<void(double)> onSweep = nullptr);
+
+    /**
+     * One MO's Lowdin (symmetrically-orthogonalised) share per atom:
+     * c' = S^{1/2} c, then share_A = sum_{mu on A} c'_mu^2 / sum_mu c'_mu^2.
+     * Bounded to [0,1] and sums to 1, unlike a Mulliken share -- see
+     * LOCALISED_SHARE_THRESHOLD's comment above for why that matters.
+     *
+     * @param coefficients one per basis function, this orbital's row
+     * @param functionsPerAtom basis functions per atom; must sum to
+     *                         coefficients.size()
+     * @param sqrtOverlap  nbasis*nbasis, row major, from
+     *                     buildSqrtOverlap() above
+     * @return one share per atom, or empty if the arguments do not
+     *         line up
+     */
+    static vector<double> lowdinShares(const vector<double>& coefficients,
+                                       const vector<int>& functionsPerAtom,
+                                       const vector<double>& sqrtOverlap);
 };
 
 #endif

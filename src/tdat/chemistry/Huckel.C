@@ -18,6 +18,7 @@ using namespace std;
 //  free of the utility layer is what lets tests/symmetry compile it
 //  alongside MoFragments with no build tree.
 #include "tdat/Huckel.H"
+#include "tdat/MoComposition.H"
 #include "tdat/MoFragments.H"
 
 namespace {
@@ -214,61 +215,6 @@ double contractedOverlap(const Function& f, const double* A,
 }
 
 
-//  --- a symmetric eigensolver ---------------------------------------
-//
-//  Jacobi: rotate away the largest off-diagonal element, repeat.  Slow
-//  for a big matrix and entirely adequate for one the size of a
-//  molecule's valence basis, with the advantage of being short enough
-//  to read and having no failure mode more exotic than not converging,
-//  which is reported.
-bool jacobi(vector< vector<double> >& a, vector<double>& values,
-            vector< vector<double> >& vectors)
-{
-   const size_t n = a.size();
-   vectors.assign(n, vector<double>(n, 0.0));
-   for (size_t i = 0; i < n; i++) vectors[i][i] = 1.0;
-
-   for (int sweep = 0; sweep < 100; sweep++) {
-      double off = 0.0;
-      for (size_t i = 0; i < n; i++) {
-         for (size_t j = i + 1; j < n; j++) off += a[i][j]*a[i][j];
-      }
-      if (off < 1.0e-22) break;
-
-      for (size_t p = 0; p < n; p++) {
-         for (size_t q = p + 1; q < n; q++) {
-            if (fabs(a[p][q]) < 1.0e-18) continue;
-
-            const double theta = (a[q][q] - a[p][p])/(2.0*a[p][q]);
-            const double t = (theta >= 0.0 ? 1.0 : -1.0)
-                           / (fabs(theta) + sqrt(theta*theta + 1.0));
-            const double c = 1.0/sqrt(t*t + 1.0);
-            const double s = t*c;
-
-            for (size_t k = 0; k < n; k++) {
-               const double akp = a[k][p], akq = a[k][q];
-               a[k][p] = c*akp - s*akq;
-               a[k][q] = s*akp + c*akq;
-            }
-            for (size_t k = 0; k < n; k++) {
-               const double apk = a[p][k], aqk = a[q][k];
-               a[p][k] = c*apk - s*aqk;
-               a[q][k] = s*apk + c*aqk;
-            }
-            for (size_t k = 0; k < n; k++) {
-               const double vkp = vectors[k][p], vkq = vectors[k][q];
-               vectors[k][p] = c*vkp - s*vkq;
-               vectors[k][q] = s*vkp + c*vkq;
-            }
-         }
-      }
-   }
-
-   values.assign(n, 0.0);
-   for (size_t i = 0; i < n; i++) values[i] = a[i][i];
-   return true;
-}
-
 }  // namespace
 
 
@@ -407,7 +353,7 @@ bool Huckel::solve(const vector<double>& coords,
    vector< vector<double> > work = S;
    vector<double> sValues;
    vector< vector<double> > sVectors;
-   jacobi(work, sValues, sVectors);
+   MoComposition::jacobiEigen(work, sValues, sVectors);
 
    for (size_t i = 0; i < n; i++) {
       if (sValues[i] < 1.0e-8) {
@@ -448,7 +394,7 @@ bool Huckel::solve(const vector<double>& coords,
 
    vector<double> eValues;
    vector< vector<double> > eVectors;
-   jacobi(Hp, eValues, eVectors);
+   MoComposition::jacobiEigen(Hp, eValues, eVectors);
 
    //  C = X C', and in ascending energy.
    vector<size_t> order;

@@ -123,6 +123,11 @@ class MoDiagramPanel : public VizPropertyPanel,
 
       void build();
 
+      //  The actual work, with all of build()'s early returns -- build()
+      //  itself is just the re-entrancy guard around this (see p_building
+      //  below).
+      void buildOnce();
+
       MoDiagramCanvas *p_canvas;
       wxCheckListBox  *p_fragments;
       wxStaticText    *p_fragmentHint;
@@ -130,6 +135,16 @@ class MoDiagramPanel : public VizPropertyPanel,
       wxChoice        *p_construction;
       wxCheckBox      *p_piOnly;
       wxCheckBox      *p_showEnergies;
+
+      //  Re-entrancy guard (#170 progress dialog): ewxProgressDialog::
+      //  Update() pumps the event loop, so a resize or a control the
+      //  user clicks mid-build can call build() again before the first
+      //  call returns. p_building marks a build in flight; a re-entrant
+      //  call sets p_rebuildPending and returns without touching the
+      //  canvas, and the original call re-runs build() once more after
+      //  it finishes, rather than the two calls racing on p_canvas.
+      bool p_building;
+      bool p_rebuildPending;
 };
 
 #endif

@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <cmath>
+#include <cstdarg>
+#include <functional>
 #include <ios>
 #include <set>
 #include <sstream>
@@ -8,6 +10,8 @@
 #include <wx/dcbuffer.h>
 #include <wx/link.h>
 #include <wx/sizer.h>
+#include <wx/stopwatch.h>
+#include <wx/toplevel.h>
 
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
@@ -15,6 +19,7 @@
 
 #include "wxgui/ewxCheckBox.H"
 #include "wxgui/ewxChoice.H"
+#include "wxgui/ewxProgressDialog.H"
 #include "wxgui/ewxStaticText.H"
 
 #include "tdat/MoComposition.H"
@@ -62,7 +67,8 @@ IMPLEMENT_DYNAMIC_CLASS(MoDiagramPanel, VizPropertyPanel)
 
 MoDiagramPanel::MoDiagramPanel()
   : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0),
-    p_fragmentation(MoFragments::NOT_BUILT)
+    p_fragmentation(MoFragments::NOT_BUILT),
+    p_building(false), p_rebuildPending(false)
 {
 }
 
@@ -71,7 +77,8 @@ MoDiagramPanel::MoDiagramPanel(IPropCalculation *calculation,
       wxWindow *parent, wxWindowID id, const wxPoint& pos,
       const wxSize& size, long style, const wxString& name)
   : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0),
-    p_fragmentation(MoFragments::NOT_BUILT)
+    p_fragmentation(MoFragments::NOT_BUILT),
+    p_building(false), p_rebuildPending(false)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -230,7 +237,8 @@ static bool functionsPerAtom(IPropCalculation *expt, SGFragment *sgfrag,
  */
 static bool buildBasisOverlap(IPropCalculation *expt, SGFragment *sgfrag,
                               int coefficientWidth,
-                              vector<int>& perAtom, vector<double>& Sflat)
+                              vector<int>& perAtom, vector<double>& Sflat,
+                              std::function<void(double)> onRow = nullptr)
 {
   perAtom.clear();
   Sflat.clear();
@@ -313,9 +321,11 @@ static bool buildBasisOverlap(IPropCalculation *expt, SGFragment *sgfrag,
 
   const size_t nbasis = basis.size();
   Sflat.assign(nbasis*nbasis, 0.0);
-  for (size_t i = 0; i < nbasis; i++)
+  for (size_t i = 0; i < nbasis; i++) {
     for (size_t j = 0; j < nbasis; j++)
       Sflat[i*nbasis + j] = EspField::overlapOf(basis[i], basis[j]);
+    if (onRow) onRow((i+1.0)/nbasis);
+  }
 
   return true;
 }
@@ -758,7 +768,9 @@ namespace {
   //  detached child process, so that stderr never reaches whatever
   //  terminal started `ecce` -- same gotcha the #83 material probes
   //  already ran into. ECCE_DEBUG_MOSYM_LOG=<path>, if set, additionally
-  //  (or instead) writes to that file so this can actually be read.
+  //  (or instead) writes to that file so this can actually be read --
+  //  and setting the log path alone is enough to turn debug output on,
+  //  with no separate ECCE_DEBUG_MOSYM needed.
   static FILE *mosymLog()
   {
     static FILE *log = NULL;
@@ -770,18 +782,32 @@ namespace {
     }
     return log;
   }
+  static bool mosymDebug()
+  {
+    return getenv("ECCE_DEBUG_MOSYM") != 0 || getenv("ECCE_DEBUG_MOSYM_LOG") != 0;
+  }
+  //  Every [MOSYM]/[MOLOC] print goes through here so stderr and the
+  //  log file (when there is one) never drift apart.
+  static void mosymPrintf(const char *fmt, ...)
+  {
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+    fflush(stderr);
+    FILE *log = mosymLog();
+    if (log != 0) {
+      va_start(ap, fmt);
+      vfprintf(log, fmt, ap);
+      va_end(ap);
+      fflush(log);
+    }
+  }
   static bool mosymFail(int where, const char *why)
   {
-    if (getenv("ECCE_DEBUG_MOSYM")) {
-      fprintf(stderr, "[MOSYM] full-group labels not computed (step %d): %s\n",
-              where, why);
-      fflush(stderr);
-      FILE *log = mosymLog();
-      if (log) {
-        fprintf(log, "[MOSYM] full-group labels not computed (step %d): %s\n",
-                where, why);
-        fflush(log);
-      }
+    if (mosymDebug()) {
+      mosymPrintf("[MOSYM] full-group labels not computed (step %d): %s\n",
+                  where, why);
     }
     return false;
   }
@@ -900,14 +926,12 @@ namespace {
                               string& note,
                               const char *moPropertyName = "MO",
                               double windowLow = -1.0e30,
-                              double windowHigh = 1.0e30)
+                              double windowHigh = 1.0e30,
+                              std::function<void(double)> onRow = nullptr)
   {
-    if (getenv("ECCE_DEBUG_MOSYM")) {
-      fprintf(stderr, "[MOSYM] group %s, %d orbitals, %d reported labels\n",
-              group.c_str(), (int)e.size(), (int)reported.size());
-      FILE *log = mosymLog();
-      if (log) fprintf(log, "[MOSYM] group %s, %d orbitals, %d reported labels\n",
-                        group.c_str(), (int)e.size(), (int)reported.size());
+    if (mosymDebug()) {
+      mosymPrintf("[MOSYM] group %s, %d orbitals, %d reported labels\n",
+                  group.c_str(), (int)e.size(), (int)reported.size());
     }
     if (calc == 0 || table == 0 || sgfrag == 0) return mosymFail(11, "calc == 0 || table == 0 || sgfrag == 0");
     //  NOTE: `reported.empty()` used to return here unconditionally.  A
@@ -978,14 +1002,10 @@ namespace {
             (int)trial.size() == moCoefs->columns()) {
           basis.swap(trial);
           angfunc = candidate;
-          if (t == 1 && getenv("ECCE_DEBUG_MOSYM")) {
-            fprintf(stderr, "[MOSYM] coefficient width matches the %s "
-                    "basis, not the recorded one\n",
-                    sph ? "spherical" : "Cartesian");
-            FILE *log = mosymLog();
-            if (log) fprintf(log, "[MOSYM] coefficient width matches the %s "
-                              "basis, not the recorded one\n",
-                              sph ? "spherical" : "Cartesian");
+          if (t == 1 && mosymDebug()) {
+            mosymPrintf("[MOSYM] coefficient width matches the %s "
+                        "basis, not the recorded one\n",
+                        sph ? "spherical" : "Cartesian");
           }
         } else {
           delete candidate;
@@ -1022,9 +1042,11 @@ namespace {
 
     const int nbasis = (int)basis.size();
     vector< vector<double> > S(nbasis, vector<double>(nbasis, 0.0));
-    for (int i = 0; i < nbasis; i++)
+    for (int i = 0; i < nbasis; i++) {
       for (int j = 0; j < nbasis; j++)
         S[i][j] = EspField::overlapOf(basis[i], basis[j]);
+      if (onRow && nbasis > 0) onRow((i+1.0)/nbasis);
+    }
 
     vector<int> shellTypeOf(nbasis);
     for (int i = 0; i < nbasis; i++) {
@@ -1140,12 +1162,9 @@ namespace {
     //  ALL OR NOTHING: a single disagreement means the axis convention
     //  or the frame premise is wrong somewhere, and a diagram is not
     //  the place to find out which -- keep the code's own labels.
-    if (getenv("ECCE_DEBUG_MOSYM")) {
-      fprintf(stderr, "[MOSYM] subgroup %s cross-check: %d of %d agree\n",
-              subgroupName.c_str(), agree, checked);
-      FILE *log = mosymLog();
-      if (log) fprintf(log, "[MOSYM] subgroup %s cross-check: %d of %d agree\n",
-                        subgroupName.c_str(), agree, checked);
+    if (mosymDebug()) {
+      mosymPrintf("[MOSYM] subgroup %s cross-check: %d of %d agree\n",
+                  subgroupName.c_str(), agree, checked);
     }
     if (checked == 0 || agree != checked) return mosymFail(163, "checked == 0 || agree != checked");
 
@@ -1264,9 +1283,72 @@ void MoDiagramPanel::refresh()
 }
 
 
+/**
+ * RAII lifetime for the "building..." progress dialog. Created empty;
+ * progress() only actually pops up a dialog once 300ms have elapsed,
+ * so a fast build (water, a small organic) never flashes one. Every
+ * return from buildOnce() destroys this stack-local, which Destroy()s
+ * the dialog if one was ever created -- no explicit cleanup needed at
+ * each of buildOnce()'s many early returns.
+ */
+namespace {
+class MoDiagramProgress
+{
+  public:
+    explicit MoDiagramProgress(wxWindow *parent)
+      : p_parent(parent), p_dlg(0)
+    {
+    }
+
+    ~MoDiagramProgress()
+    {
+      if (p_dlg != 0) p_dlg->Destroy();
+    }
+
+    void progress(int percent, const wxString& stage)
+    {
+      if (p_dlg == 0) {
+        if (p_watch.Time() < 300) return;
+        p_dlg = new ewxProgressDialog(_("Building MO Diagram"), stage, 100,
+            p_parent, wxPD_AUTO_HIDE|wxPD_APP_MODAL|wxPD_SMOOTH);
+        p_dlg->Show();
+      }
+      p_dlg->Update(percent, stage);
+    }
+
+  private:
+    wxWindow *p_parent;
+    ewxProgressDialog *p_dlg;
+    wxStopWatch p_watch;
+};
+}  // namespace
+
+
 void MoDiagramPanel::build()
 {
+  //  Re-entrancy guard (#170): ewxProgressDialog::Update() below pumps
+  //  the event loop, so a resize or a control the user clicks mid-build
+  //  can call build() again before the first call returns. A re-entrant
+  //  call just asks for one more pass once the in-flight one finishes,
+  //  rather than two calls racing on p_canvas.
+  if (p_building) {
+    p_rebuildPending = true;
+    return;
+  }
+  p_building = true;
+  do {
+    p_rebuildPending = false;
+    buildOnce();
+  } while (p_rebuildPending);
+  p_building = false;
+}
+
+
+void MoDiagramPanel::buildOnce()
+{
   if (p_canvas == 0) return;
+
+  MoDiagramProgress progressDlg(wxGetTopLevelParent(this));
 
   IPropCalculation *calc = getCalculation();
   if (calc == 0) return;
@@ -1363,6 +1445,8 @@ void MoDiagramPanel::build()
   WxVizToolFW& fw = getFW();
   SGFragment *sgfrag = fw.getSceneGraph().getFragment();
 
+  progressDlg.progress(5, _("Finding the point group"));
+
   if (sgfrag == 0 || sgfrag->numAtoms() == 0) {
     why = "No structure is loaded, so there is no symmetry to use.";
   } else {
@@ -1452,13 +1536,21 @@ void MoDiagramPanel::build()
   //  path further down runs exactly as it already did.
   bool labelsInFullGroup = false;
   {
+    progressDlg.progress(20, _("Assigning full-group symmetry labels"));
     double windowLow, windowHigh;
     drawnWindow(e, o, windowLow, windowHigh);
     vector<string> computedLabels;
     string computedNote;
+    wxStopWatch throttle;
     if (computeFullGroupLabels(calc, group, table, sgfrag, coords, elements,
                                e, s, computedLabels, computedNote, "MO",
-                               windowLow, windowHigh)) {
+                               windowLow, windowHigh,
+                               [&](double frac) {
+                                 if (throttle.Time() < 100) return;
+                                 throttle.Start();
+                                 progressDlg.progress(20 + (int)(frac*20),
+                                     _("Assigning full-group symmetry labels"));
+                               })) {
       s = computedLabels;
       labelsInFullGroup = true;
       if (why.empty()) why = computedNote;
@@ -1469,13 +1561,21 @@ void MoDiagramPanel::build()
   //  ORBSYMBETA itself, since that is what the alpha-beta irrep match
   //  above needs to prefer irrep over energy order (#132).
   if (haveBeta && sB.empty()) {
+    progressDlg.progress(40, _("Assigning full-group symmetry labels (beta)"));
     double windowLowB, windowHighB;
     drawnWindow(eB, oB, windowLowB, windowHighB);
     vector<string> computedBetaLabels;
     string computedBetaNote;
+    wxStopWatch throttle;
     if (computeFullGroupLabels(calc, group, table, sgfrag, coords, elements,
                                eB, sB, computedBetaLabels, computedBetaNote,
-                               "MOBETA", windowLowB, windowHighB)) {
+                               "MOBETA", windowLowB, windowHighB,
+                               [&](double frac) {
+                                 if (throttle.Time() < 100) return;
+                                 throttle.Start();
+                                 progressDlg.progress(40 + (int)(frac*10),
+                                     _("Assigning full-group symmetry labels (beta)"));
+                               })) {
       sB = computedBetaLabels;
     }
   }
@@ -1813,6 +1913,7 @@ void MoDiagramPanel::build()
       }
     }
 
+    progressDlg.progress(50, _("Building fragment orbitals"));
     haveFragments = MoFragments::build(coords, elements, group, charge,
                                        left, right, why, &leftAtoms,
                                        &rightAtoms, chosen,
@@ -1852,59 +1953,126 @@ void MoDiagramPanel::build()
           for (int mu = 0; mu < nbasis; mu++)
             coefficients[m][mu] = moCoefs->value(m, mu);
 
+        progressDlg.progress(60, _("Building fragment orbitals"));
         MoFragments::composeLevels(centre.levels, coefficients, perAtom,
                                    shellOf, elements, leftAtoms, rightAtoms,
                                    left, right);
 
         vector<int> perAtomS;
         vector<double> Sflat;
-        if (buildBasisOverlap(calc, sgfrag, nbasis, perAtomS, Sflat)) {
+        progressDlg.progress(65, _("Computing overlap integrals"));
+        wxStopWatch overlapThrottle;
+        if (buildBasisOverlap(calc, sgfrag, nbasis, perAtomS, Sflat,
+                              [&](double frac) {
+                                if (overlapThrottle.Time() < 100) return;
+                                overlapThrottle.Start();
+                                progressDlg.progress(65 + (int)(frac*10),
+                                    _("Computing overlap integrals"));
+                              })) {
           vector< std::pair<int,int> > bonds;
           MoFragments::covalentBonds(coords, elements, bonds);
 
-          const bool debug = (getenv("ECCE_DEBUG_MOSYM") != 0);
-          localisedShare.assign(centre.levels.size(), 0.0);
+          //  S^{1/2}, once per diagram -- every MO below reuses it,
+          //  only c changes per orbital (#170).
+          progressDlg.progress(75, _("Orthogonalising the basis (Lowdin)"));
+          vector<double> sqrtS;
+          wxStopWatch sqrtThrottle;
+          const bool haveSqrtS =
+              MoComposition::buildSqrtOverlap(Sflat, nbasis, sqrtS,
+                  [&](double frac) {
+                    if (sqrtThrottle.Time() < 100) return;
+                    sqrtThrottle.Start();
+                    progressDlg.progress(75 + (int)(frac*15),
+                        _("Orthogonalising the basis (Lowdin)"));
+                  });
+
+          const bool debug = mosymDebug();
           centreOP.assign(centre.levels.size(), 0.0);
+          //  Left empty (rather than filled with a measure that can't
+          //  be trusted) if S is linearly dependent enough that S^1/2
+          //  failed -- classify() skips the localisation rule on an
+          //  empty vector.
+          if (haveSqrtS) localisedShare.assign(centre.levels.size(), 0.0);
           const vector<int> noShellSplit;
           for (size_t i = 0; i < centre.levels.size(); i++) {
             MoLevel& level = centre.levels[i];
-            vector<double> atomShareSum(elements.size(), 0.0);
-            double opSum = 0.0;
+            //  Per-atom shares, summed over this level's components and
+            //  later divided by ncomp -- same averaging for both
+            //  measures, only Lowdin feeds localisedShare[i] now (#170).
+            //  Mulliken is kept only for the debug comparison line.
+            vector<double> lowdinAtomSum(elements.size(), 0.0);
+            vector<double> mullikenAtomSum(elements.size(), 0.0);
+            double opSum = 0.0, normSum = 0.0;
             int ncomp = 0;
             for (size_t k = 0; k < level.orbitals.size(); k++) {
               const int mo = level.orbitals[k];
               if (mo < 0 || mo >= (int)coefficients.size()) continue;
               ncomp++;
+              const vector<double>& c = coefficients[mo];
 
-              //  shellOf left empty: one entry per ATOM, already
-              //  summed over its shells -- exactly what a "which one
-              //  atom does this level sit on" check wants.
-              const vector<MoComposition::Share> full =
-                  MoComposition::compute(coefficients[mo], perAtomS,
-                                         noShellSplit, elements, Sflat);
-              for (size_t f = 0; f < full.size(); f++) {
-                if (full[f].atom >= 0 &&
-                    full[f].atom < (int)atomShareSum.size()) {
-                  atomShareSum[full[f].atom] += full[f].share;
+              if (haveSqrtS) {
+                const vector<double> lowdin =
+                    MoComposition::lowdinShares(c, perAtomS, sqrtS);
+                for (size_t a = 0; a < lowdin.size() &&
+                                   a < lowdinAtomSum.size(); a++) {
+                  lowdinAtomSum[a] += lowdin[a];
                 }
               }
 
-              opSum += MoComposition::overlapPopulation(coefficients[mo],
-                                                         perAtomS, Sflat,
+              //  shellOf left empty: one entry per ATOM, already
+              //  summed over its shells -- Mulliken, kept for the
+              //  debug comparison only.
+              const vector<MoComposition::Share> full =
+                  MoComposition::compute(c, perAtomS,
+                                         noShellSplit, elements, Sflat);
+              for (size_t f = 0; f < full.size(); f++) {
+                if (full[f].atom >= 0 &&
+                    full[f].atom < (int)mullikenAtomSum.size()) {
+                  mullikenAtomSum[full[f].atom] += full[f].share;
+                }
+              }
+
+              //  c^T.S.c for this MO, independent of either share
+              //  measure above -- the actual invariant #170 wants
+              //  checked (should be 1 for a properly normalised MO).
+              double norm = 0.0;
+              const int nb = (int)c.size();
+              if ((int)Sflat.size() == nb*nb) {
+                for (int mu = 0; mu < nb; mu++) {
+                  double row = 0.0;
+                  for (int nu = 0; nu < nb; nu++) row += c[nu]*Sflat[mu*nb + nu];
+                  norm += c[mu]*row;
+                }
+              }
+              normSum += norm;
+
+              opSum += MoComposition::overlapPopulation(c, perAtomS, Sflat,
                                                          bonds);
             }
             if (ncomp > 0) {
-              double maxShare = 0.0;
-              for (size_t a = 0; a < atomShareSum.size(); a++) {
-                const double v = atomShareSum[a]/ncomp;
-                if (v > maxShare) maxShare = v;
-              }
-              localisedShare[i] = maxShare;
               centreOP[i] = opSum/ncomp;
+
+              double lowdinMax = 0.0;
+              if (haveSqrtS) {
+                for (size_t a = 0; a < lowdinAtomSum.size(); a++) {
+                  const double v = lowdinAtomSum[a]/ncomp;
+                  if (v > lowdinMax) lowdinMax = v;
+                }
+                localisedShare[i] = lowdinMax;
+              }
+
+              double mullikenMax = 0.0;
+              for (size_t a = 0; a < mullikenAtomSum.size(); a++) {
+                const double v = mullikenAtomSum[a]/ncomp;
+                if (v > mullikenMax) mullikenMax = v;
+              }
+
               if (debug) {
-                fprintf(stderr, "[MOLOC] %s E=%.4f maxAtomShare=%.3f "
-                        "OP=%.4f\n", level.irrep.c_str(), level.energy,
-                        maxShare, centreOP[i]);
+                mosymPrintf("[MOLOC] %s E=%.4f lowdinMax=%.3f "
+                            "mullikenMax=%.3f OP=%.4f norm=%.3f\n",
+                            level.irrep.c_str(), level.energy,
+                            lowdinMax, mullikenMax,
+                            centreOP[i], normSum/ncomp);
               }
             }
           }
@@ -2017,6 +2185,7 @@ void MoDiagramPanel::build()
       }
     }
 
+    progressDlg.progress(90, _("Classifying orbitals"));
     MoDiagram::classify(left.levels, centre.levels, right.levels,
                         left.fromHalves, localisedShare,
                         useOverlapPopulation ? centreOP : vector<double>());
@@ -2104,6 +2273,7 @@ void MoDiagramPanel::build()
           ? "The orbital labels do not match the structure's symmetry"
           : "This job was run WITHOUT SYMMETRY - no diagram can be drawn";
 
+      progressDlg.progress(97, _("Drawing"));
       p_canvas->setGroup(group);
       p_canvas->setFormula(MoDiagram::formula(elements, charge));
       p_canvas->setDiagram(left, centre, right, links, false, note.str(),
@@ -2118,6 +2288,7 @@ void MoDiagramPanel::build()
 
   if (!why.empty()) note << "  " << why;
 
+  progressDlg.progress(97, _("Drawing"));
   p_canvas->setGroup(group);
   p_canvas->setFormula(MoDiagram::formula(elements, charge));
   p_canvas->setDiagram(left, centre, right, links, haveFragments, note.str());
