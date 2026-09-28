@@ -861,11 +861,20 @@ void MoDiagram::hideSemicore(MoColumn& column, const vector<bool>& isSemicore)
 
 void MoDiagram::hideAbove(MoColumn& column, double cutoff)
 {
+  hideAbove(column, cutoff, vector<bool>());
+}
+
+
+void MoDiagram::hideAbove(MoColumn& column, double cutoff,
+                          const vector<bool>& protect)
+{
+  const bool haveProtect = (protect.size() == column.levels.size());
+
   vector<MoLevel> kept;
   int hidden = 0;
 
   for (size_t i = 0; i < column.levels.size(); i++) {
-    if (column.levels[i].energy > cutoff) {
+    if (column.levels[i].energy > cutoff && !(haveProtect && protect[i])) {
       hidden += column.levels[i].degeneracy;
     } else {
       kept.push_back(column.levels[i]);
@@ -877,6 +886,13 @@ void MoDiagram::hideAbove(MoColumn& column, double cutoff)
 
 
 void MoDiagram::hideBeyondValence(MoColumn& centre, int room)
+{
+  hideBeyondValence(centre, room, vector<bool>());
+}
+
+
+void MoDiagram::hideBeyondValence(MoColumn& centre, int room,
+                                  const vector<bool>& protect)
 {
   //  A QUALITATIVE DIAGRAM IS THE SIZE OF A MINIMAL VALENCE BASIS.
   //
@@ -908,13 +924,20 @@ void MoDiagram::hideBeyondValence(MoColumn& centre, int room)
 
   //  NEVER FOLD AN OCCUPIED LEVEL AWAY.  An orbital with electrons in
   //  it is part of the molecule whatever the basis did, and hiding one
-  //  would misstate the electron count the diagram shows.
+  //  would misstate the electron count the diagram shows.  A PROTECTED
+  //  VIRTUAL (#183) is kept the same way -- otherwise this second,
+  //  room-based fold silently undoes hideAbove()'s own protection for
+  //  any metal-heavy virtual that happens to sit past the room count.
+  const bool haveProtect = (protect.size() == centre.levels.size());
   for (size_t i = keep; i < centre.levels.size(); i++) {
-    if (centre.levels[i].occupancy > 0.0) keep = i + 1;
+    if (centre.levels[i].occupancy > 0.0 ||
+        (haveProtect && protect[i])) {
+      keep = i + 1;
+    }
   }
 
   if (keep < centre.levels.size()) {
-    hideAbove(centre, centre.levels[keep].energy - 1.0e-9);
+    hideAbove(centre, centre.levels[keep].energy - 1.0e-9, protect);
   }
 }
 
@@ -1363,7 +1386,9 @@ void MoDiagram::classify(const vector<MoLevel>& left,
                          const vector<MoLevel>& right,
                          bool fromHalves,
                          const vector<double>& localisedShare,
-                         const vector<double>& overlapPopulation)
+                         const vector<double>& overlapPopulation,
+                         const vector<double>& metalShare,
+                         const vector<double>& metalLigandOP)
 {
   //  WITHOUT IRREPS ON THE FRAGMENT SIDE THERE IS NOTHING TO COUNT,
   //  and counting nothing is not the same as counting zero.
@@ -1421,6 +1446,99 @@ void MoDiagram::classify(const vector<MoLevel>& left,
   const double opThreshold = 0.05;
 
   int nextPair = 0;
+
+  //  --- SKELETON: a metal and its donor set (#183) -------------------
+  //
+  //  The counting rule below (min(p,q) picks energy extremes per irrep)
+  //  gets the wrong answer for a metal complex: in Cr(CO)6 the energy
+  //  extremes of eg and t2g are CO-internal combinations, not the
+  //  sigma/pi interactions with the metal that a ligand-field diagram
+  //  is drawn to show (2Eg at -1.50 Ha, Cr Lowdin share 0.005, called
+  //  "bonding" by counting; the real sigma-bonding eg is 4Eg at -0.61,
+  //  Cr share 0.36, which counting calls nb). Composition answers the
+  //  question directly: does this level actually touch the metal, and
+  //  does it reinforce or oppose the metal-ligand overlap.
+  if (metalShare.size() == centre.size() && metalLigandOP.size() == centre.size()) {
+    //  0.10 Lowdin share: below this a level is effectively confined to
+    //  one side (ligand-internal, or -- for a virtual with no ligand
+    //  character at all -- metal-localised) and there is no
+    //  metal-ligand interaction to characterise.
+    const double shareFloor = 0.10;
+
+    //  0.02 electron on OP_ml.  Printed from Cr(CO)6 while developing
+    //  this rule (see tests/symmetry/testMoDiagram.C and the capture
+    //  report): the levels that plainly interact with the metal --
+    //  4Eg +0.09, 5Eg -0.06, 1T2g +0.11, 3T2g -0.04 -- sit well clear of
+    //  this on both sides, while the ones the counting rule got wrong
+    //  by picking energy extremes -- 2Eg 0.001, 6Eg* 0.004 -- sit at
+    //  noise level next to it.
+    const double mlThreshold = 0.02;
+
+    for (size_t c = 0; c < centre.size(); c++) {
+      if (settled[c]) continue;
+      const double metal  = metalShare[c];
+      const double ligand = 1.0 - metal;
+      if (metal < shareFloor || ligand < shareFloor) {
+        centre[c].character = MoLevel::NONBONDING;
+        centre[c].pairing = -1;
+        continue;
+      }
+      const double op = metalLigandOP[c];
+      if (op > mlThreshold) {
+        centre[c].character = MoLevel::BONDING;
+      } else if (op < -mlThreshold) {
+        centre[c].character = MoLevel::ANTIBONDING;
+      } else {
+        centre[c].character = MoLevel::NONBONDING;
+        centre[c].pairing = -1;
+      }
+    }
+
+    //  PAIRING: a bonding level pairs with the antibonding level of the
+    //  SAME IRREP carrying the largest metal share -- Delta_o's eg/eg*
+    //  and the analogous a1g/a1g*, t1u/t1u*.  The HOMO t2g (metal-
+    //  centred, non-bonding by the rule above) is deliberately left
+    //  unpaired: Albright's 2t2g is not one end of an interaction.
+    vector<string> irrepsHere;
+    for (size_t c = 0; c < centre.size(); c++) {
+      if (centre[c].character == MoLevel::UNKNOWN) continue;
+      bool seen = false;
+      for (size_t k = 0; k < irrepsHere.size(); k++) {
+        if (irrepsHere[k] == centre[c].irrep) seen = true;
+      }
+      if (!seen) irrepsHere.push_back(centre[c].irrep);
+    }
+    for (size_t j = 0; j < irrepsHere.size(); j++) {
+      const string& irrep = irrepsHere[j];
+      int bestAnti = -1;
+      double bestAntiMetal = -1.0;
+      for (size_t c = 0; c < centre.size(); c++) {
+        if (centre[c].irrep != irrep) continue;
+        if (centre[c].character != MoLevel::ANTIBONDING) continue;
+        if (metalShare[c] > bestAntiMetal) {
+          bestAntiMetal = metalShare[c];
+          bestAnti = (int)c;
+        }
+      }
+      if (bestAnti < 0) continue;
+      for (size_t c = 0; c < centre.size(); c++) {
+        if (centre[c].irrep != irrep) continue;
+        if (centre[c].character != MoLevel::BONDING) continue;
+        centre[c].pairing = nextPair;
+        centre[bestAnti].pairing = nextPair;
+        nextPair++;
+      }
+    }
+
+    for (size_t c = 0; c < centre.size(); c++) {
+      if (centre[c].character == MoLevel::ANTIBONDING) {
+        centre[c].label += "*";
+      } else if (centre[c].character == MoLevel::NONBONDING) {
+        centre[c].label += " nb";
+      }
+    }
+    return;
+  }
 
   //  --- two halves: the pairing is known, not inferred --------------
   //
@@ -1836,7 +1954,8 @@ void MoDiagram::connect(const vector<MoLevel>& left,
                         const vector<MoLevel>& centre,
                         const vector<MoLevel>& right,
                         vector<MoConnection>& connections,
-                        double cutoff)
+                        double cutoff,
+                        bool bothSidesQualify)
 {
   connections.clear();
 
@@ -1897,7 +2016,15 @@ void MoDiagram::connect(const vector<MoLevel>& left,
     //  where both are available: nitrite's a2 is the one the counting
     //  calls non-bonding for want of a partner, and the coefficients
     //  put it at 100% on the oxygens.
-    if (nonBonding) {
+    //  A SKELETON'S REAL METAL-LIGAND INTERACTIONS ARE NOT THINNED THIS
+    //  WAY (#183, bothSidesQualify).  The one-side restriction exists
+    //  because a non-bonding level is on the fragment side that HAS a
+    //  matching orbital, and the other side's match is spurious
+    //  symmetry mixing.  In a metal complex a non-bonding t2g (the
+    //  metal-centred HOMO) still carries real, measured shares of BOTH
+    //  the metal and the CO pi* it mixes with -- that mixing is the
+    //  whole point of the pi-acceptor picture -- so both lines belong.
+    if (nonBonding && !bothSidesQualify) {
       if (knowShare) {
         const bool leftWins = centre[c].shareLeft > centre[c].shareRight;
         onLeft  = onLeft  && leftWins;
@@ -1964,8 +2091,15 @@ void MoDiagram::connect(const vector<MoLevel>& left,
       leftNear.push_back(std::make_pair(fabs(where - mo), l));
     }
 
+    //  AT MOST TWO A SIDE -- UNLESS bothSidesQualify SAYS EVERY MATCH IS
+    //  REAL.  The cap exists because composition cannot always
+    //  discriminate (two equivalent halves each carry half of every
+    //  orbital by symmetry); a SKELETON's shares are the real thing, so
+    //  dropping a qualifying donor set's line would drop a genuine
+    //  interaction rather than clutter.
+    const size_t leftCap = bothSidesQualify ? leftNear.size() : 2;
     std::sort(leftNear.begin(), leftNear.end());
-    for (size_t k = 0; k < leftNear.size() && k < 2; k++) {
+    for (size_t k = 0; k < leftNear.size() && k < leftCap; k++) {
       MoConnection link;
       link.leftLevel = (int)leftNear[k].second;
       link.centreLevel = (int)c;
@@ -1987,8 +2121,9 @@ void MoDiagram::connect(const vector<MoLevel>& left,
       rightNear.push_back(std::make_pair(fabs(where - mo), r));
     }
 
+    const size_t rightCap = bothSidesQualify ? rightNear.size() : 2;
     std::sort(rightNear.begin(), rightNear.end());
-    for (size_t k = 0; k < rightNear.size() && k < 2; k++) {
+    for (size_t k = 0; k < rightNear.size() && k < rightCap; k++) {
       MoConnection link;
       link.leftLevel = -1;
       link.centreLevel = (int)c;

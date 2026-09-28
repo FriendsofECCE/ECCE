@@ -54,7 +54,7 @@ FIXTURES = {
 }
 
 
-def captureOne(name, source, outfile, timeout):
+def captureOne(name, source, outfile, timeout, png=None):
     """Run builder headlessly against `source`, dump to `outfile`.
 
     Returns an error string, or None on success.  Brings its own isolated
@@ -62,6 +62,13 @@ def captureOne(name, source, outfile, timeout):
     several fixtures in one process still get a fresh service pair per
     fixture, which costs ~10s each but keeps one fixture's failure from
     wedging the rest.
+
+    @param png  optional path: also screenshot the "ECCE Builder" window
+                (the MO Diagram panel open inside it) before the app
+                closes.  Uses ECCE_EXIT_AFTER_DUMP_DELAY_MS to hold the
+                window open a few seconds after the dump is written --
+                see tools/screenshots/capture.py for the same "import
+                -window <id>" technique on this same private display.
     """
     #  Each call picks its own free ports -- isolate.apply() treats an
     #  already-set ECCE_DATASERVER_PORT/ECCE_BROKER_PORT as an explicit
@@ -107,6 +114,10 @@ def captureOne(name, source, outfile, timeout):
         env["ECCE_OPEN_PANEL"] = "MO Diagram"
         env["ECCE_MODIAGRAM_DUMP"] = outfile
         env["ECCE_EXIT_AFTER_DUMP"] = "1"
+        if png:
+            #  Long enough to find the window, let it settle and shoot it;
+            #  short enough not to make a --png run noticeably slower.
+            env["ECCE_EXIT_AFTER_DUMP_DELAY_MS"] = "6000"
 
         #  -pipe avoids the "ECCE Authentication" modal, which otherwise
         #  blocks the event loop before the calc ever loads.
@@ -119,9 +130,34 @@ def captureOne(name, source, outfile, timeout):
                                 stderr=subprocess.STDOUT,
                                 start_new_session=True)
         deadline = time.time() + timeout
+        shot = False
         while time.time() < deadline:
             if os.path.exists(outfile) and os.path.getsize(outfile) > 0:
-                break
+                if png and not shot:
+                    #  Give the window a moment to paint the diagram
+                    #  (the dump is written from inside the same build()
+                    #  call that fills the canvas, but the paint itself
+                    #  is a separate, later event) before shooting it --
+                    #  well inside the delay above, which is what keeps
+                    #  the app from closing under us.
+                    time.sleep(2)
+                    #  The MO Diagram panel opens as its own top-level
+                    #  window (an AUI floating pane, not a tab inside the
+                    #  Builder/Viewer frame) -- confirmed against a live
+                    #  window listing, which is why this is not "ECCE
+                    #  Builder"/"ECCE Viewer" as in tools/screenshots.
+                    wid = None
+                    for w, title in display.windows():
+                        if title == "MO Diagram":
+                            wid = w
+                            break
+                    if wid:
+                        subprocess.run(["import", "-display", display.name,
+                                       "-window", wid, png], env=display.env(),
+                                       check=False)
+                    shot = True
+                if not png:
+                    break
             if proc.poll() is not None:
                 break
             time.sleep(0.5)
@@ -164,7 +200,13 @@ def main():
                         help="capture each fixture N times and require "
                              "byte-identical dumps (determinism check)")
     parser.add_argument("--timeout", type=float, default=90)
+    parser.add_argument("--png", metavar="DIR",
+                        help="also screenshot the ECCE Builder window "
+                             "(MO Diagram panel open) for each captured "
+                             "fixture, as DIR/<name>.png")
     args = parser.parse_args()
+    if args.png:
+        os.makedirs(args.png, exist_ok=True)
 
     names = args.names or list(FIXTURES)
     unknown = [n for n in names if n not in FIXTURES]
@@ -185,7 +227,8 @@ def main():
         for run in range(max(1, args.repeat)):
             scratch = os.path.join("/tmp", "modiagram-capture-%s-%d.dump"
                                    % (name, run))
-            error = captureOne(name, source, scratch, args.timeout)
+            png = os.path.join(args.png, name + ".png") if args.png else None
+            error = captureOne(name, source, scratch, args.timeout, png=png)
             if error:
                 failures.append("%s: %s" % (name, error))
                 ok = False

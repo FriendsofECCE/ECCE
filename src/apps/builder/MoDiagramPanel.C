@@ -16,6 +16,7 @@
 #include <wx/link.h>
 #include <wx/sizer.h>
 #include <wx/stopwatch.h>
+#include <wx/timer.h>
 #include <wx/toplevel.h>
 
 #include "tdat/PropVector.H"
@@ -1391,7 +1392,8 @@ const char* levelCharacterName(MoLevel::Character c)
 
 void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
     const vector<double> *localisedShare, const vector<double> *centreOP,
-    const vector<double> *mullikenMax, const vector<double> *normVals)
+    const vector<double> *mullikenMax, const vector<double> *normVals,
+    const vector<double> *metalLigandOP = 0)
 {
   out << "column " << name << "\n";
   out << "  title: " << escapeDumpText(col.title) << "\n";
@@ -1430,6 +1432,10 @@ void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
       out << " mullikenMax=" << (*mullikenMax)[i];
     if (normVals != 0 && i < normVals->size())
       out << " norm=" << (*normVals)[i];
+    //  SKELETON only (#183): metal-ligand overlap population, empty
+    //  and so absent for every other construction/fixture.
+    if (metalLigandOP != 0 && i < metalLigandOP->size())
+      out << " OPml=" << (*metalLigandOP)[i];
     out << " orbitals=[";
     for (size_t k = 0; k < lv.orbitals.size(); k++) {
       if (k > 0) out << ",";
@@ -1446,7 +1452,8 @@ void dumpMoDiagram(const string& path, const string& group,
     const MoColumn& left, const MoColumn& centre, const MoColumn& right,
     const vector<MoConnection>& links,
     const vector<double>& localisedShare, const vector<double>& centreOP,
-    const vector<double>& mullikenMax, const vector<double>& normVals)
+    const vector<double>& mullikenMax, const vector<double>& normVals,
+    const vector<double>& metalLigandOP = vector<double>())
 {
   std::ofstream out(path.c_str());
   if (!out) return;
@@ -1457,7 +1464,7 @@ void dumpMoDiagram(const string& path, const string& group,
   out << "note: " << escapeDumpText(note) << "\n";
   dumpColumn(out, "left", left, 0, 0, 0, 0);
   dumpColumn(out, "centre", centre,
-             &localisedShare, &centreOP, &mullikenMax, &normVals);
+             &localisedShare, &centreOP, &mullikenMax, &normVals, &metalLigandOP);
   dumpColumn(out, "right", right, 0, 0, 0, 0);
   out << "links: " << links.size() << "\n";
   for (size_t i = 0; i < links.size(); i++) {
@@ -1475,10 +1482,30 @@ void dumpMoDiagram(const string& path, const string& group,
  * called from Show() from deep inside AUI pane bookkeeping, and closing
  * the top window synchronously from there is exactly the kind of
  * reentrancy CLAUDE.md warns about for wx3.2/GTK3.
+ *
+ * ECCE_EXIT_AFTER_DUMP_DELAY_MS (#183, optional): a screenshot tool
+ * needs the window to stay painted for a moment after the dump is
+ * written, not close on the very next idle turn -- a wxTimer, not a
+ * sleep here, since sleeping on the main thread would freeze the event
+ * loop that is supposed to be painting the window in the meantime.
  */
 void exitAfterDumpIfRequested()
 {
   if (getenv("ECCE_EXIT_AFTER_DUMP") == 0) return;
+  int delayMs = 0;
+  if (const char *d = getenv("ECCE_EXIT_AFTER_DUMP_DELAY_MS")) delayMs = atoi(d);
+  if (delayMs > 0) {
+    //  Deliberately never deleted: the process exits moments after this
+    //  fires, and freeing a timer from inside its own event handler is
+    //  its own hazard for no benefit here.
+    wxTimer *timer = new wxTimer();
+    timer->Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+      wxWindow *top = wxTheApp->GetTopWindow();
+      if (top != 0) top->Close(true);
+    });
+    timer->StartOnce(delayMs);
+    return;
+  }
   wxTheApp->CallAfter([]() {
     wxWindow *top = wxTheApp->GetTopWindow();
     if (top != 0) top->Close(true);
@@ -1531,6 +1558,13 @@ void MoDiagramPanel::buildOnce()
   const char *dumpPathEnv = getenv("ECCE_MODIAGRAM_DUMP");
   const string dumpPath = dumpPathEnv != 0 ? string(dumpPathEnv) : string();
   vector<double> localisedShare, centreOP, mullikenMaxVec, normVec;
+  //  SKELETON only (#183): the metal's own Lowdin share of each centre
+  //  level, and its Mulliken overlap population against every ligand
+  //  atom (not the molecule's covalent bonds, which for a carbonyl are
+  //  mostly C-O and would swamp the metal's own interaction).  Empty
+  //  for every other construction, so classify()/connect() run exactly
+  //  as before for them.
+  vector<double> metalShare, metalLigandOP;
 
   if (energies == 0) {
     const string note = "This calculation has no orbital energies.";
@@ -1620,6 +1654,12 @@ void MoDiagramPanel::buildOnce()
   string group, why;
   vector<double> coords;
   vector<string> elements;
+  //  Set below from coordinationSkeleton(), central atom first (#183):
+  //  the SKELETON construction's metal-ligand classification needs to
+  //  know which atom the metal is before fragments are even built, to
+  //  protect its antibonding virtuals from the core/valence cutoffs
+  //  below and to compute the metal-ligand overlap population later.
+  int metalAtomIndex = -1;
 
   WxVizToolFW& fw = getFW();
   SGFragment *sgfrag = fw.getSceneGraph().getFragment();
@@ -1676,6 +1716,11 @@ void MoDiagramPanel::buildOnce()
         } catch (...) {
           //  Keep the whole-molecule answer; it is no worse than it was.
         }
+        //  skeleton[0] is the central atom, in coordinationSkeleton()'s
+        //  own contract -- and it indexes allElements/allCoords, which
+        //  this loop built in exactly probe's atom order, the same
+        //  order `elements`/`coords` below are about to be built in.
+        if (!skeleton.empty()) metalAtomIndex = skeleton[0];
       }
     }
 
@@ -1981,8 +2026,63 @@ void MoDiagramPanel::buildOnce()
   }
   MoDiagram::hideSemicore(centre, isSemicore);
 
+  //  PROTECT A METAL-HEAVY VIRTUAL FROM THE CUTOFFS (#183, "partner
+  //  always shown"): suggestVirtualCutoff() folds by counting/gaps
+  //  alone, and hideBeyondValence() folds by a fixed valence-orbital
+  //  COUNT -- neither knows which virtual is a bonding level's
+  //  antibonding partner. A lambda, not a one-off vector, because it
+  //  has to be recomputed against whatever centre.levels IS at the
+  //  time: hideAbove() below removes levels, so a vector sized for the
+  //  list before it no longer lines up with the list after it, and
+  //  hideBeyondValence() runs later still.  Only for the metal atom
+  //  identified from the coordination skeleton, and only for
+  //  UNoccupied levels (an occupied one is never hidden by hideAbove()
+  //  anyway).
+  auto protectMetalVirtuals = [&]() -> vector<bool> {
+    vector<bool> protect(centre.levels.size(), false);
+    if (metalAtomIndex < 0 || !(moHaveSqrtS || moSemiempirical) ||
+        moPerAtomS.size() != elements.size() ||
+        (size_t)metalAtomIndex >= elements.size()) {
+      return protect;
+    }
+    const vector<int> noShellSplit;
+    for (size_t i = 0; i < centre.levels.size(); i++) {
+      const MoLevel& level = centre.levels[i];
+      if (level.occupancy > 0.0) continue;
+
+      double metalSum = 0.0;
+      int ncomp = 0;
+      for (size_t k = 0; k < level.orbitals.size(); k++) {
+        const int mo = level.orbitals[k];
+        if (mo < 0 || mo >= (int)moCoefficients.size()) continue;
+        const vector<double>& c = moCoefficients[mo];
+
+        vector<double> shares;
+        if (moSemiempirical) {
+          const vector<MoComposition::Share> full = MoComposition::compute(
+              c, moPerAtomS, noShellSplit, elements, vector<double>());
+          shares.assign(elements.size(), 0.0);
+          for (size_t f = 0; f < full.size(); f++) {
+            if (full[f].atom >= 0 && full[f].atom < (int)shares.size()) {
+              shares[full[f].atom] += full[f].share;
+            }
+          }
+        } else {
+          shares = MoComposition::lowdinShares(c, moPerAtomS, moSqrtS);
+        }
+        if ((size_t)metalAtomIndex >= shares.size()) continue;
+        metalSum += shares[metalAtomIndex];
+        ncomp++;
+      }
+      if (ncomp == 0) continue;
+      if (metalSum/ncomp >= 0.10) protect[i] = true;
+    }
+    return protect;
+  };
+
   MoDiagram::hideAbove(centre,
-                       MoDiagram::suggestVirtualCutoff(centre.levels));
+                       MoDiagram::suggestVirtualCutoff(centre.levels),
+                       protectMetalVirtuals());
 
   //  Set below when the pi-only filter actually removed something --
   //  used much further down to trim the FRAGMENT columns to match,
@@ -2048,6 +2148,14 @@ void MoDiagramPanel::buildOnce()
     for (size_t i = 0; i < elements.size(); i++) {
       valenceRoom += MoFragments::valenceOrbitals(elements[i]);
     }
+    //  NOT protected here (#183): hideBeyondValence()'s cut is a basis-
+    //  set-size artefact removal, not a chemistry judgement, and a flat
+    //  10% metal-share protection there pulled in Cr(CO)6's whole tail
+    //  of deep, weakly d-mixed Rydberg-like virtuals (24 shown levels
+    //  became 44) rather than just the handful of real antibonding
+    //  partners -- which suggestVirtualCutoff()'s own protection above
+    //  already keeps whenever a partner is genuinely close to the
+    //  valence region, confirmed against this fixture.
     MoDiagram::hideBeyondValence(centre, valenceRoom);
   }
 
@@ -2305,6 +2413,21 @@ void MoDiagramPanel::buildOnce()
       vector< std::pair<int,int> > bonds;
       MoFragments::covalentBonds(coords, elements, bonds);
 
+      //  Metal-vs-every-ligand-atom pairs, not covalentBonds() -- see
+      //  metalShare/metalLigandOP's declaration above.
+      const bool wantMetalLigand = (p_fragmentation == MoFragments::SKELETON &&
+          metalAtomIndex >= 0 && (size_t)metalAtomIndex < elements.size() &&
+          moHaveSqrtS);
+      vector< std::pair<int,int> > metalLigandBonds;
+      if (wantMetalLigand) {
+        for (size_t a = 0; a < elements.size(); a++) {
+          if ((int)a == metalAtomIndex) continue;
+          metalLigandBonds.push_back(std::make_pair(metalAtomIndex, (int)a));
+        }
+        metalShare.assign(centre.levels.size(), 0.0);
+        metalLigandOP.assign(centre.levels.size(), 0.0);
+      }
+
       const bool debug = mosymDebug();
       centreOP.assign(centre.levels.size(), 0.0);
       //  Left empty (rather than filled with a measure that can't
@@ -2326,7 +2449,7 @@ void MoDiagramPanel::buildOnce()
         //  Mulliken is kept only for the debug comparison line.
         vector<double> lowdinAtomSum(elements.size(), 0.0);
         vector<double> mullikenAtomSum(elements.size(), 0.0);
-        double opSum = 0.0, normSum = 0.0;
+        double opSum = 0.0, normSum = 0.0, metalLigandOpSum = 0.0;
         int ncomp = 0;
         for (size_t k = 0; k < level.orbitals.size(); k++) {
           const int mo = level.orbitals[k];
@@ -2372,10 +2495,19 @@ void MoDiagramPanel::buildOnce()
 
           opSum += MoComposition::overlapPopulation(c, moPerAtomS, moSflat,
                                                      bonds);
+          if (wantMetalLigand) {
+            metalLigandOpSum += MoComposition::overlapPopulation(
+                c, moPerAtomS, moSflat, metalLigandBonds);
+          }
         }
         if (ncomp > 0) {
           centreOP[i] = opSum/ncomp;
           normVec[i] = normSum/ncomp;
+          if (wantMetalLigand) {
+            metalLigandOP[i] = metalLigandOpSum/ncomp;
+            metalShare[i] = ((size_t)metalAtomIndex < lowdinAtomSum.size())
+                ? lowdinAtomSum[metalAtomIndex]/ncomp : 0.0;
+          }
 
           double lowdinMax = 0.0;
           if (moHaveSqrtS) {
@@ -2509,11 +2641,20 @@ void MoDiagramPanel::buildOnce()
       }
     }
 
+    //  SKELETON (#183): metalShare/metalLigandOP are only ever populated
+    //  for this construction (see their computation above), so passing
+    //  them unconditionally is equivalent to gating on p_fragmentation
+    //  and changes nothing for any other construction.
+    const bool useMetalLigand = (p_fragmentation == MoFragments::SKELETON);
+
     progressDlg.progress(90, _("Classifying orbitals"));
     MoDiagram::classify(left.levels, centre.levels, right.levels,
                         left.fromHalves, localisedShare,
-                        useOverlapPopulation ? centreOP : vector<double>());
-    MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+                        useOverlapPopulation ? centreOP : vector<double>(),
+                        useMetalLigand ? metalShare : vector<double>(),
+                        useMetalLigand ? metalLigandOP : vector<double>());
+    MoDiagram::connect(left.levels, centre.levels, right.levels, links,
+                       useMetalLigand ? 0.10 : 0.05, useMetalLigand);
 
     //  PI-ONLY: THE FRAGMENT COLUMNS MUST DROP TOO, not just the
     //  molecular one -- see the trimming block right after connect()
@@ -2606,7 +2747,7 @@ void MoDiagramPanel::buildOnce()
         dumpMoDiagram(dumpPath, group, MoDiagram::formula(elements, charge),
             MoFragments::fragmentationName(p_fragmentation),
             headline, note.str(), left, centre, right, links,
-            localisedShare, centreOP, mullikenMaxVec, normVec);
+            localisedShare, centreOP, mullikenMaxVec, normVec, metalLigandOP);
         exitAfterDumpIfRequested();
       }
       return;
@@ -2628,7 +2769,7 @@ void MoDiagramPanel::buildOnce()
     dumpMoDiagram(dumpPath, group, MoDiagram::formula(elements, charge),
         MoFragments::fragmentationName(p_fragmentation),
         "", note.str(), left, centre, right, links,
-        localisedShare, centreOP, mullikenMaxVec, normVec);
+        localisedShare, centreOP, mullikenMaxVec, normVec, metalLigandOP);
     exitAfterDumpIfRequested();
   }
 }

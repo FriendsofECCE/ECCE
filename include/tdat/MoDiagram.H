@@ -462,6 +462,15 @@ class MoDiagram
     */
    static void hideBeyondValence(MoColumn& centre, int room);
 
+   /**
+    * The same, but never folding a level a caller has protected --
+    * see hideAbove()'s @p protect for why (#183): otherwise this
+    * room-based fold silently undoes that protection for any virtual
+    * beyond the room count.
+    */
+   static void hideBeyondValence(MoColumn& centre, int room,
+                                 const vector<bool>& protect);
+
     /**
      * A cutoff that folds away genuine core orbitals and nothing else.
      *
@@ -616,13 +625,33 @@ class MoDiagram
      *                    Positive is bonding, negative antibonding, a
      *                    small value non-bonding, against a threshold
      *                    relative to the largest magnitude present.
+     * @param metalShare  one per centre level, or empty: the Lowdin
+     *                    share on the metal atom, SKELETON only (#183).
+     *                    A SKELETON's counting rule picks energy
+     *                    extremes per irrep, which in an ML6 complex are
+     *                    ligand-internal combinations, not the metal's
+     *                    real sigma/pi interactions -- so where this and
+     *                    @p metalLigandOP are both supplied, they decide
+     *                    the whole column instead of the counting rule:
+     *                    below 0.10 share on either side is one-sided
+     *                    (non-bonding), otherwise the sign of the real
+     *                    metal-ligand overlap population decides.
+     * @param metalLigandOP  one per centre level, or empty: the Mulliken
+     *                    overlap population between the metal atom and
+     *                    every ligand atom (MoComposition::
+     *                    overlapPopulation() over metal-vs-everything-
+     *                    else pairs, NOT the molecule's covalent bonds,
+     *                    which for Cr(CO)6 are mostly C-O and swamp the
+     *                    metal's own interaction).  See @p metalShare.
      */
     static void classify(const vector<MoLevel>& left,
                          vector<MoLevel>& centre,
                          const vector<MoLevel>& right,
                          bool fromHalves = false,
                          const vector<double>& localisedShare = vector<double>(),
-                         const vector<double>& overlapPopulation = vector<double>());
+                         const vector<double>& overlapPopulation = vector<double>(),
+                         const vector<double>& metalShare = vector<double>(),
+                         const vector<double>& metalLigandOP = vector<double>());
 
     /**
      * Connect fragment levels to molecular orbitals.
@@ -646,6 +675,14 @@ class MoDiagram
      * is a busier diagram and not a wrong one.
      *
      * @param cutoff  the least share worth drawing, 0 to 1
+     * @param bothSidesQualify  SKELETON only (#183): draw a line to
+     *                    EVERY side clearing @p cutoff, including a
+     *                    non-bonding level to both sides at once, and
+     *                    keep every such match rather than the nearest
+     *                    two -- the ordinary rules exist to thin a
+     *                    diagram where composition cannot discriminate,
+     *                    which is not true of a metal's real sigma/pi
+     *                    interactions with its donor set.
      */
     /**
      * Mark levels bonding or antibonding from their energies alone.
@@ -669,7 +706,24 @@ class MoDiagram
                         const vector<MoLevel>& centre,
                         const vector<MoLevel>& right,
                         vector<MoConnection>& connections,
-                        double cutoff = 0.05);
+                        double cutoff = 0.05,
+                        bool bothSidesQualify = false);
+
+    /**
+     * Fold levels ABOVE a cutoff, except ones a caller has protected.
+     *
+     * @param protect  one per level in `column.levels`, or empty for
+     *                 none protected; a protected virtual is kept
+     *                 whatever the cutoff says and does not count
+     *                 towards hiddenAboveCount -- the "partner always
+     *                 shown" rule (#183): a metal-heavy virtual (an
+     *                 antibonding partner such as eg-star, a1g-star or
+     *                 t1u-star) must not disappear because
+     *                 suggestVirtualCutoff() happened to draw the line
+     *                 below it.
+     */
+    static void hideAbove(MoColumn& column, double cutoff,
+                          const vector<bool>& protect);
 };
 
 #endif

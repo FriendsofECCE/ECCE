@@ -856,6 +856,94 @@ int main()
     check(s.energy + gap <= p.energy + 1e-12, "4s below 4p by the gap");
   }
 
+  //  ------------------------------------------------------------------
+  //  SKELETON: composition beats the counting rule (#183, Cr(CO)6, live
+  //  2026-09-28).  Modelled directly on the real orca-crco6 capture's
+  //  Eg set: an Eg irrep with one metal (3d) level and one ligand
+  //  (sigma) level gives the counting rule p=q=1, pairs=1 -- lowest
+  //  energy bonding, highest antibonding, whatever they actually are.
+  //  In Cr(CO)6 the three real Eg molecular levels are a CO-internal
+  //  combination at the bottom (2Eg, Cr Lowdin share 0.005), the real
+  //  sigma-bonding eg in the middle (4Eg, Cr share 0.36), and the
+  //  metal-heavy eg* that sets Delta_o at the top (5Eg, Cr share 0.52)
+  //  -- so the counting rule picks the CO-internal level as "bonding"
+  //  and leaves the real bonding level marked non-bonding.  Composition
+  //  (metalShare + metalLigandOP) gets all three right.
+  {
+    printf("\n  SKELETON: metal-ligand composition, not the counting "
+           "rule (Cr(CO)6's Eg set)\n");
+
+    vector<MoLevel> left(1), right(1);
+    left[0].irrep = right[0].irrep = MoDiagram::canonicalIrrep("eg");
+    left[0].degeneracy = right[0].degeneracy = 2;
+
+    vector<MoLevel> centre(3);
+    centre[0].irrep = centre[1].irrep = centre[2].irrep =
+        MoDiagram::canonicalIrrep("eg");
+    centre[0].degeneracy = centre[1].degeneracy = centre[2].degeneracy = 2;
+    centre[0].energy = -1.505;   // "2Eg": CO-internal, near-zero on Cr
+    centre[1].energy = -0.613;   // "4Eg": the real sigma-bonding eg
+    centre[2].energy =  0.284;   // "5Eg*": metal-heavy, sets Delta_o
+
+    //  Sanity: with no composition, the counting rule picks the energy
+    //  extremes -- this is the wrong answer #183 exists to fix, kept
+    //  here so a future change to the counting rule itself is visible.
+    {
+      vector<MoLevel> c = centre;
+      MoDiagram::classify(left, c, right);
+      check(c[0].character == MoLevel::BONDING,
+            "sanity: the plain counting rule calls the CO-internal "
+            "extreme bonding -- the bug #183 fixes");
+      check(c[1].character == MoLevel::NONBONDING,
+            "sanity: and leaves the real bonding level non-bonding");
+    }
+
+    vector<double> metalShare(3), metalLigandOP(3);
+    metalShare[0] = 0.005;  metalLigandOP[0] =  0.006;  // one-sided: nb
+    metalShare[1] = 0.36;   metalLigandOP[1] =  0.25;   // real bonding
+    metalShare[2] = 0.52;   metalLigandOP[2] = -0.50;   // real antibonding
+
+    MoDiagram::classify(left, centre, right, false, vector<double>(),
+                        vector<double>(), metalShare, metalLigandOP);
+
+    check(centre[0].character == MoLevel::NONBONDING,
+          "the CO-internal level (Cr share 0.005, below the 0.10 floor) "
+          "is non-bonding, not the energy-extreme \"bonding\" the "
+          "counting rule picked");
+    check(centre[1].character == MoLevel::BONDING,
+          "the real sigma-bonding eg is bonding");
+    check(centre[2].character == MoLevel::ANTIBONDING,
+          "the metal-heavy eg* is antibonding");
+    check(centre[0].pairing < 0,
+          "the non-bonding CO-internal level carries no pairing");
+    check(centre[1].pairing >= 0 && centre[1].pairing == centre[2].pairing,
+          "the real bonding/antibonding pair share a colour -- this is "
+          "Delta_o's eg/eg* pair");
+
+    //  connect(): both sides qualify, and the cap does not drop a
+    //  qualifying side (#183).  The non-bonding CO-internal level still
+    //  carries real (>=10%) share on both fragment columns -- unlike
+    //  the ordinary rule, a SKELETON draws both lines for it rather
+    //  than picking the side it is "more on".
+    left[0].shareLeft = -1.0;  // unused on this side; shares live on centre
+    centre[0].shareLeft = 0.30; centre[0].shareRight = 0.70;
+    centre[1].shareLeft = 0.36; centre[1].shareRight = 0.64;
+    centre[2].shareLeft = 0.52; centre[2].shareRight = 0.48;
+
+    vector<MoConnection> links;
+    MoDiagram::connect(left, centre, right, links, 0.10, true);
+
+    bool level0Left = false, level0Right = false;
+    for (size_t k = 0; k < links.size(); k++) {
+      if (links[k].centreLevel != 0) continue;
+      if (links[k].leftLevel  >= 0) level0Left  = true;
+      if (links[k].rightLevel >= 0) level0Right = true;
+    }
+    check(level0Left && level0Right,
+          "a SKELETON's non-bonding level still draws to BOTH sides it "
+          "has real share on, unlike the ordinary one-sided rule");
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }
