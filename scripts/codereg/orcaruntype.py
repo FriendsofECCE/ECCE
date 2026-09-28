@@ -80,6 +80,21 @@ class OrcaRunTypePanel(EccePanel):
                                           label="Method:",
                                           export=1)
             vibSizer.AddWidget(self.vibMethod)
+
+            # Raman activities (issue #173), requested by "%elprop
+            # Polar 1". Offered for every DFT/HF theory the dialog can
+            # reach; ai.orca's verifyRamanRequest rejects the
+            # combinations ORCA 6.1.1 actually cannot do this for
+            # (double hybrids outright; plain B88-exchange functionals
+            # -- BLYP/BP86/B3LYP -- unless Method above is Numerical),
+            # with a message naming the fix, rather than silently
+            # emitting a keyword that dies or a deck missing a property.
+            self.useRaman = EcceCheckBox(self,
+                                         label=" Raman activities",
+                                         name="ES.Runtype.Vibration.UseRaman",
+                                         default=False,
+                                         export=1)
+            vibSizer.AddWidget(self.useRaman)
             self.panelSizer.Add(vibSizer)
 
         # PARTIAL CHARGES (issue #88). orca.desc has parsed "CHELPG

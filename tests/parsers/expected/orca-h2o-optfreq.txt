@@ -347,9 +347,9 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
 
 [VIBIR]  Script=orca.vibir  Freq=last  Skip=6  Lines=-
   Begin=IR SPECTRUM
-  End=The first frequency considered to be a vibration
+  End=The dipole moment derivative
   begins=1 delivered=1 buffered_away=0
-  block 1: begin-line=2690 fed=8 rc=0 first-fed='  6:   2169.82   0.001432    7.24  0.000206  (-0.000000 -0.000000  0.014350)'
+  block 1: begin-line=2690 fed=6 rc=0 first-fed='  6:   2169.82   0.001432    7.24  0.000206  (-0.000000 -0.000000  0.014350)'
     key: VIBIR
       size: 9
       rowlabels: 1 2 3 4 5 6 7 8 9

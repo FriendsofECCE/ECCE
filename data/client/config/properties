@@ -199,6 +199,7 @@ Vibration	Vib Modes				VIB		Length		PropVecTable<Normal Mode,Atom,Coordinate>
 Vibration	Frequencies				VIBFREQ		Frequency	PropVector<Normal Mode>
 Vibration	IR Intensities				VIBIR		IRIntensity	PropVector<Normal Mode>
 Vibration	Raman Activities			VIBRAM		RamanIntensity	PropVector<Normal Mode>
+Vibration	Raman Depolarization			VIBRAMDEPOL	NA		PropVector<Normal Mode>
 Vibration	Vib Mode Symmetries			VIBSYM		NA		PropVecString<Normal Mode>
 #
 #  Freq=Anharmonic (Gaussian 16).  Second-order perturbative fundamental

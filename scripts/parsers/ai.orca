@@ -52,6 +52,7 @@ if ($TplFILE eq "") {
 &verifyGBSFile;
 &readChemSys;
 &readCnstrntFile;
+&verifyRamanRequest;
 &modifyInputFile;
 &cleanup;
 exit(0);
@@ -391,6 +392,62 @@ sub IsDoubleHybrid {
   return (defined($doubleHybrids{$label}) ? 1 : 0);
 }
 
+# Raman activities (issue #173, "Raman Activities" checkbox in the
+# Frequencies box of the Runtype Details dialog -> "%elprop Polar 1").
+#
+# Two real ORCA 6.1.1 constraints found by running it, not by reading
+# about it, both checked here in the MAIN flow rather than inside a
+# template resolver (see CLAUDE.md #92 -- a resolver die is now
+# re-raised, but a main-flow check runs before any generation is
+# attempted and matches ai.qe's &verifyPeriodic pattern):
+#
+#  * Double hybrids (MP2-correlated) fail even with NumFreq: the MP2
+#    response module used for the Raman property dies with "Invalid or
+#    unknown value for Exchange in DFT GXC" while the outer ORCA process
+#    still exits 0 -- silently incomplete output, not a hard failure, so
+#    this cannot be left to the user to discover. Checked with
+#    mPW2PLYP/NumFreq/Polar: RAMAN SPECTRUM never appears.
+#  * Any functional whose exchange part is B88 (BLYP, BP86, B3LYP -- NOT
+#    CAM-B3LYP, which reuses the B3LYP name but not its plain B88 term)
+#    needs a numerical Hessian for Raman: the analytic path dies with
+#    "Third functional derivative of a B88 exchange-containing
+#    functional requested ... not available natively with ORCA" (exit
+#    55). NumFreq works (verified for all three). Pure/other hybrid
+#    functionals (PBE0, CAM-B3LYP, M06 family, TPSS family, ...) need no
+#    such workaround; checked directly by sweeping every functional
+#    orcatheory.py offers with Freq + Polar.
+sub verifyRamanRequest {
+  return if ($AbiDict{"ES.Runtype.Vibration.UseRaman"} ne "1");
+
+  my $category = $AbiDict{"Category"};
+  my $theory = $AbiDict{"Theory"};
+  my $func = $AbiDict{"ES.Theory.DFT.XCFunctionals"};
+
+  if (($category eq "DFT") && &IsDoubleHybrid($func)) {
+    die "ai.orca error: Raman activities are not supported for the " .
+        "double-hybrid functional '$func' -- ORCA's MP2 response " .
+        "module cannot compute them (verified against ORCA 6.1.1, " .
+        "with and without Numerical Frequencies). Turn off Raman " .
+        "Activities, or pick a non-double-hybrid functional.\n";
+  }
+
+  my %needsNumFreq = (
+    "BLYP"  => 1,
+    "BP86"  => 1,
+    "B3LYP" => 1,
+  );
+  if (($category eq "DFT") && defined($needsNumFreq{$func}) &&
+      ($AbiDict{"ES.Runtype.Vibration.Method"} ne "Numerical")) {
+    die "ai.orca error: Raman activities with '$func' require " .
+        "Numerical Frequencies -- ORCA's analytic Hessian path cannot " .
+        "compute the third functional derivative a B88-exchange " .
+        "functional needs for this (verified against ORCA 6.1.1: " .
+        "'Third functional derivative of a B88 exchange-containing " .
+        "functional requested', exit 55). Set the Frequencies Method " .
+        "to Numerical, or turn off Raman Activities.\n";
+  }
+}
+
 sub ChelpgToken {
   my $result = "";
   if ($AbiDict{"ES.Runtype.ORCA.UseCHELPG"} eq "1") {
@@ -483,11 +540,16 @@ sub ORCABlocks {
   #  header.  Unconditional, like Print[P_MOs]: it only lengthens the
   #  listing of numbers ORCA already computed.
   $result .= "%output\n  Print[P_MOs] 1\n  Print[P_OrbEn] 2\nend\n";
-  # Unconditionally request the quadrupole moment (not computed by
-  # default) so orca.quadpole has something to parse -- verified this
-  # alone is enough to make ORCA print a "QUADRUPOLE MOMENT" section; no
-  # equivalent flag exists for octupole/hexadecapole moments in ORCA.
-  $result .= "%elprop\n  Quadrupole true\nend\n";
+  # One %elprop block. Quadrupole is unconditional (orca.quadpole needs
+  # it; ORCA has no octupole/hexadecapole flag). Polar 1 gives Raman
+  # activities; verifyRamanRequest has already rejected combinations
+  # ORCA cannot do.
+  my $elprop = "  Quadrupole true\n";
+  if ($AbiDict{"ES.Runtype.Vibration.UseRaman"} eq "1" &&
+      $AbiDict{"RunType"} =~ /Vib/i) {
+    $elprop .= "  Polar 1\n";
+  }
+  $result .= "%elprop\n" . $elprop . "end\n";
   #  SMD solvation. Unlike CPCM there is no route-card form: ORCA takes
   #  it inside the %cpcm block. Verified against ORCA 6.1.1 -- this alone
   #  produces "CPCM SOLVATION MODEL" with the SMD-CDS descriptors.

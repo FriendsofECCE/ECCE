@@ -213,12 +213,51 @@ End=^-{4,}\s*$
 # VIBFREQ above (counts the Begin line itself): block is Begin/dashes/
 # blank/header/units-header/dashes, so data starts on line 7.
 # Grounded in the real ORCA 6.1.1 sample block from ORCA's own docs
-# (faccts.de IR tutorial, 2026-09 session) -- not yet independently
-# verified against a live run in this environment.
+# (faccts.de IR tutorial, 2026-09 session), and now also confirmed
+# against a live run (issue #173 session, water and CH4).
+#
+# End used to be "The first frequency considered to be a vibration",
+# the true end of the IR table -- but only when Raman (%elprop Polar 1)
+# is off. With Raman on, ORCA prints a whole RAMAN SPECTRUM block
+# between the IR table's footnotes and that line, so the old End
+# swallowed RAMAN SPECTRUM's own header too and starved [VIBRAM]'s
+# Begin -- the same End-line-starvation shape [VIBFREQ] above already
+# warns about. Ending on the second footnote line closes the IR table
+# identically whether Raman ran or not; verified against real ORCA
+# 6.1.1 output both ways.
 [VIBIR]
 Script=orca.vibir
 Begin=IR SPECTRUM
 Skip=6
+Frequency=last
+End=The dipole moment derivative
+[END]
+
+# Raman activities/depolarization ratios (issue #173), requested by
+# ai.orca's Raman Activities checkbox ("%elprop Polar 1"). RAMAN
+# SPECTRUM, like IR SPECTRUM, lists only the real vibrational modes --
+# orca.vibram pads the leading translation/rotation modes with 0.0 for
+# the same row-alignment-with-VIBFREQ reason orca.vibir does.
+#
+# Skip=5: Begin/dashes/blank/header/dashes (one header line, not IR
+# SPECTRUM's two), so data starts on line 6.
+#
+# End is the text [VIBIR] used to use before Raman existed -- safe here
+# because this is the last entry reading this part of the file, so
+# nothing else needs that line as its own Begin.
+#
+# Depolarization ratio has no existing property key (checked
+# data/client/config/properties); VIBRAMDEPOL was added there as a
+# plain PropVector<Normal Mode>, with no display panel yet.
+#
+# Verified against real ORCA 6.1.1: water (HF and B3LYP) and CH4 (to
+# confirm degenerate modes are listed individually here, unlike
+# MOPAC's DESCRIPTION OF VIBRATIONS -- see CLAUDE.md), with and without
+# a preceding geometry optimization.
+[VIBRAM][VIBRAMDEPOL]
+Script=orca.vibram
+Begin=RAMAN SPECTRUM
+Skip=5
 Frequency=last
 End=The first frequency considered to be a vibration
 [END]

@@ -703,6 +703,79 @@ CASES = [
         },
     ),
     dict(
+        # RHF/def2-SVP Freq with Raman requested ("%elprop Polar 1 end",
+        # issue #173) -- the real run this feature was verified against.
+        # No geometry optimisation, so this is also the regression guard
+        # for [VIBIR]'s new End: with Raman on, the old End ("The first
+        # frequency considered to be a vibration") would swallow the
+        # whole RAMAN SPECTRUM block and starve [VIBRAM]'s Begin -- the
+        # exact bug this fixture exists to catch. VIBFREQ/VIBIR are
+        # asserted unchanged from the no-Raman shape (orca-h2o-optfreq)
+        # to confirm the End change is a no-op without Raman, and
+        # row-aligned against VIBRAM/VIBRAMDEPOL the same way.
+        name='orca-h2o-freq-raman',
+        desc='orca.desc',
+        fixture='orca/h2o_freq_raman.out',
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck, so ORCA '
+                                         'prints no Irrep column'},
+        parse_args=('.', 'Vibration', 'SCF', 'RHF', '0'),
+        expect={
+            'VIBFREQ': dict(keys={'VIBFREQ': {
+                'size': '9',
+                'values': '0.00 0.00 0.00 0.00 0.00 0.00 1789.30 3978.84 '
+                          '4068.57',
+                'units': 'cm-1'}}),
+            'VIB': dict(blocks=1, keys={'VIB': {
+                'size': '9 3 3',
+                'columnlabels': 'X Y Z'}}),
+            'VIBIR': dict(keys={'VIBIR': {
+                'size': '9',
+                'values': '0 0 0 0 0 0 80.07 25.44 68.75',
+                'units': 'KM/Mole'}}),
+            'VIBRAM][VIBRAMDEPOL': dict(keys={
+                'VIBRAM': {'size': '9',
+                           'values': '0 0 0 0 0 0 5.573684 73.133864 '
+                                     '36.306747',
+                           'units': 'A**4/AMU'},
+                'VIBRAMDEPOL': {'size': '9',
+                                'values': '0 0 0 0 0 0 0.530134 0.169961 '
+                                          '0.750000'},
+            }),
+        },
+    ),
+    dict(
+        # CH4/def2-SVP Freq with Raman -- degenerate modes (7/8, 9/10,
+        # 12/13/14 are triply/doubly degenerate). ORCA's RAMAN SPECTRUM
+        # lists every degenerate mode individually (unlike MOPAC's
+        # DESCRIPTION OF VIBRATIONS, which collapses them -- see
+        # CLAUDE.md), so orca.vibram needs no special handling, but this
+        # confirms VIBFREQ/VIBIR/VIBRAM/VIBRAMDEPOL all stay the same
+        # length and row-aligned when modes repeat.
+        name='orca-ch4-freq-raman',
+        desc='orca.desc',
+        fixture='orca/ch4_freq_raman.out',
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck, so ORCA '
+                                         'prints no Irrep column'},
+        parse_args=('.', 'Vibration', 'SCF', 'RHF', '0'),
+        expect={
+            'VIBFREQ': dict(keys={'VIBFREQ': {'size': '15'}}),
+            'VIBIR': dict(keys={'VIBIR': {'size': '15'}}),
+            'VIBRAM][VIBRAMDEPOL': dict(keys={
+                'VIBRAM': {
+                    'size': '15',
+                    'values': '0 0 0 0 0 0 1.368828 1.368828 1.368828 '
+                              '25.770659 25.770659 158.887950 71.936445 '
+                              '71.936445 71.936445',
+                    'units': 'A**4/AMU'},
+                'VIBRAMDEPOL': {
+                    'size': '15',
+                    'values': '0 0 0 0 0 0 0.750000 0.750000 0.750000 '
+                              '0.750000 0.750000 0.000000 0.750000 '
+                              '0.750000 0.750000'},
+            }),
+        },
+    ),
+    dict(
         # UHF/STO-3G doublet: S2 and the beta-spin orbital path, neither
         # of which any closed-shell fixture can reach.
         name='orca-oh-uhf',
