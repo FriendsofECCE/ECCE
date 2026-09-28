@@ -113,6 +113,12 @@ Gaussian coefficients and Löwdin composition, with metal–ligand
 classification (#163, #170, #162); ORCA Raman activities (#173); and a
 Machine Registration fix for site machines (#104).
 
+- **v8.16.5** — **For new installs and central-server labs**: closing
+  the Organizer ends the session (#185); first-run machine registration
+  works on new accounts, and `ecce -admin`, `-machine`, `-l` and the
+  StartMessage notice are back (#188); Register Machines fits small
+  screens (#187); perl and xterm are now declared dependencies.
+
 - **v8.16.4** — **Fixes job monitoring on Ubuntu and with bash** (#143,
   #69): tcsh's line editor (Ubuntu's `csh`) and bash's readline mangled
   the long monitor command's echo, so the job store waited forever and
