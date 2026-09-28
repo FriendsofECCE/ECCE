@@ -108,6 +108,12 @@ than papered over.
 One line each. Full notes, and the packages, are on the
 [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
+- **v8.16.3** — **Partial fix for the Wayland auth-dialog freeze**
+  (#120): a stale window-activation timestamp made Mutter silently
+  decline focus for the dialog under XWayland. A deeper, likely
+  Mutter-side issue can still leave it unresponsive to the keyboard
+  even with focus confirmed correct — not fully resolved.
+
 - **v8.16.2** — **Fixes a gateway segfault** when the authentication
   dialog is closed via its window's own close button instead of
   Cancel: an unsigned underflow handed wx an invalid range, and a
