@@ -753,12 +753,35 @@ namespace {
   //  gave up.  Every exit below is otherwise silent by design -- the
   //  diagram falls back to the code's own labels -- which left a live
   //  failure with nothing to go on.
+  //
+  //  Written to stderr, but Builder is spawned by Organizer as a
+  //  detached child process, so that stderr never reaches whatever
+  //  terminal started `ecce` -- same gotcha the #83 material probes
+  //  already ran into. ECCE_DEBUG_MOSYM_LOG=<path>, if set, additionally
+  //  (or instead) writes to that file so this can actually be read.
+  static FILE *mosymLog()
+  {
+    static FILE *log = NULL;
+    static bool tried = false;
+    if (!tried) {
+      tried = true;
+      const char *where = getenv("ECCE_DEBUG_MOSYM_LOG");
+      if (where != 0) log = fopen(where, "a");
+    }
+    return log;
+  }
   static bool mosymFail(int where, const char *why)
   {
     if (getenv("ECCE_DEBUG_MOSYM")) {
       fprintf(stderr, "[MOSYM] full-group labels not computed (step %d): %s\n",
               where, why);
       fflush(stderr);
+      FILE *log = mosymLog();
+      if (log) {
+        fprintf(log, "[MOSYM] full-group labels not computed (step %d): %s\n",
+                where, why);
+        fflush(log);
+      }
     }
     return false;
   }
@@ -879,9 +902,13 @@ namespace {
                               double windowLow = -1.0e30,
                               double windowHigh = 1.0e30)
   {
-    if (getenv("ECCE_DEBUG_MOSYM"))
+    if (getenv("ECCE_DEBUG_MOSYM")) {
       fprintf(stderr, "[MOSYM] group %s, %d orbitals, %d reported labels\n",
               group.c_str(), (int)e.size(), (int)reported.size());
+      FILE *log = mosymLog();
+      if (log) fprintf(log, "[MOSYM] group %s, %d orbitals, %d reported labels\n",
+                        group.c_str(), (int)e.size(), (int)reported.size());
+    }
     if (calc == 0 || table == 0 || sgfrag == 0) return mosymFail(11, "calc == 0 || table == 0 || sgfrag == 0");
     //  NOTE: `reported.empty()` used to return here unconditionally.  A
     //  code that reports no labels at all now still gets computed ones
@@ -951,10 +978,15 @@ namespace {
             (int)trial.size() == moCoefs->columns()) {
           basis.swap(trial);
           angfunc = candidate;
-          if (t == 1 && getenv("ECCE_DEBUG_MOSYM"))
+          if (t == 1 && getenv("ECCE_DEBUG_MOSYM")) {
             fprintf(stderr, "[MOSYM] coefficient width matches the %s "
                     "basis, not the recorded one\n",
                     sph ? "spherical" : "Cartesian");
+            FILE *log = mosymLog();
+            if (log) fprintf(log, "[MOSYM] coefficient width matches the %s "
+                              "basis, not the recorded one\n",
+                              sph ? "spherical" : "Cartesian");
+          }
         } else {
           delete candidate;
         }
@@ -1108,9 +1140,13 @@ namespace {
     //  ALL OR NOTHING: a single disagreement means the axis convention
     //  or the frame premise is wrong somewhere, and a diagram is not
     //  the place to find out which -- keep the code's own labels.
-    if (getenv("ECCE_DEBUG_MOSYM"))
+    if (getenv("ECCE_DEBUG_MOSYM")) {
       fprintf(stderr, "[MOSYM] subgroup %s cross-check: %d of %d agree\n",
               subgroupName.c_str(), agree, checked);
+      FILE *log = mosymLog();
+      if (log) fprintf(log, "[MOSYM] subgroup %s cross-check: %d of %d agree\n",
+                        subgroupName.c_str(), agree, checked);
+    }
     if (checked == 0 || agree != checked) return mosymFail(163, "checked == 0 || agree != checked");
 
     //  SUBDUCTION, independent of the cross-check just done: every
