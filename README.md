@@ -110,12 +110,14 @@ Full notes, and the packages, are on the
 
 *In progress: **8.17.0**.* The MO diagram rebuilt on correct ORCA and
 Gaussian coefficients and Löwdin composition, with metal–ligand
-classification (#163, #170, #162), plus ORCA Raman activities (#173).
+classification (#163, #170, #162); ORCA Raman activities (#173); and a
+Machine Registration fix for site machines (#104).
 
-- **v8.16.4** — **Fixes job monitoring on systems where `csh` is tcsh**
-  (Ubuntu) (#143): tcsh's line editor wrapped the long monitor command's
-  echo at 80 columns, so the job store waited forever and jobs stayed
-  "submitted" although they ran.
+- **v8.16.4** — **Fixes job monitoring on Ubuntu and with bash** (#143,
+  #69): tcsh's line editor (Ubuntu's `csh`) and bash's readline mangled
+  the long monitor command's echo, so the job store waited forever and
+  jobs stayed "submitted" although they ran. The package now declares
+  that it needs a csh.
 
 - **v8.16.3** — **Partial fix for the Wayland auth-dialog freeze**
   (#120): a stale window-activation timestamp made Mutter silently
