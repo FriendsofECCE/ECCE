@@ -34,6 +34,9 @@
 #include "wxgui/ewxTextCtrl.H"
 ////@end includes
 
+//  #187 (hand-added, not from the .pjd): the whole form scrolls.
+#include "wxgui/ewxScrolledWindow.H"
+
 #include "WxMachineRegisterGUI.H"
 
 ////@begin XPM images
@@ -45,6 +48,9 @@ const wxWindowID WxMachineRegisterGUI::ID_STATIC_MACHINE_LOCALITY = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_BUTTON_MACHINE_CHANGE = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_SPIN_QUEUE_MAXMEMORY = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_PANEL_WXMACHINEREGISTER_APPLICATIONS = wxNewId();
+//  #187 (hand-added, not from the .pjd): the scrolled window wrapping the
+//  whole form below the machine list, above the button row.
+const wxWindowID WxMachineRegisterGUI::ID_SCROLLEDWINDOW_WXMACHINEREGISTER_FORM = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_CHECKBOX_REMSHELL_SSH_PASS = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_TEXT_MACHINE_REFNAME = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_TEXT_QUEUE_NAME = wxNewId();
@@ -186,118 +192,137 @@ void WxMachineRegisterGUI::CreateControls()
     ewxListBox* itemListBox6 = new ewxListBox( itemPanel3, ID_LISTBOX_MACHINES, wxDefaultPosition, wxSize(150, -1), 0, itemListBox6Strings, wxLB_SINGLE );
     itemBoxSizer5->Add(itemListBox6, 0, wxGROW|wxALL, 3);
 
+    //  #187 (hand-edit): the whole form below the machine list -- every-
+    //  thing but the button row -- scrolls as one. The frame is capped to
+    //  the display's client area (growToFitSizer()) and this is what
+    //  absorbs the difference, so nothing is ever squeezed below its own
+    //  natural size (a sizer inside a scrolled window is laid out at its
+    //  OWN min via FitInside()'s virtual size, never at the window's
+    //  smaller viewport -- see WxMachineRegister::growToFitSizer()) and
+    //  nothing ends up off-screen.
+    ewxScrolledWindow* itemScrolledWindowForm = new ewxScrolledWindow( itemPanel3, ID_SCROLLEDWINDOW_WXMACHINEREGISTER_FORM, wxDefaultPosition, wxDefaultSize, wxVSCROLL|wxNO_BORDER|wxTAB_TRAVERSAL );
+    itemBoxSizer5->Add(itemScrolledWindowForm, 1, wxGROW, 3);
+
     wxBoxSizer* itemBoxSizer7 = new wxBoxSizer(wxVERTICAL);
-    itemBoxSizer5->Add(itemBoxSizer7, 1, wxGROW, 3);
+    itemScrolledWindowForm->SetSizer(itemBoxSizer7);
 
     wxFlexGridSizer* itemFlexGridSizer8 = new wxFlexGridSizer(4, 2, 0, 0);
     itemFlexGridSizer8->AddGrowableCol(1);
-    itemBoxSizer7->Add(itemFlexGridSizer8, 1, wxGROW, 3);
+    //  #187 (hand-edit: proportion changed from the .pjd's 1 to 0). With
+    //  Applications now capable of being shrunk below its natural size
+    //  (see initialize()/growToFitSizer()), a proportion of 1 here made
+    //  THIS the item wxBoxSizer shrinks first whenever the total is still
+    //  short after that -- and because it has no growable row, that
+    //  shrink came out as rows overlapping rows, not smaller rows. A
+    //  fixed-size machine-fields grid never has to shrink; the display
+    //  cap is met by the scrolling box alone, or not fully met at all.
+    itemBoxSizer7->Add(itemFlexGridSizer8, 0, wxGROW, 3);
 
     //  #144 (hand-added, not from the .pjd): where jobs for a machine that
     //  names this host will run. Hidden for every other machine.
-    ewxStaticText* itemStaticTextLocality = new ewxStaticText( itemPanel3, ID_STATIC_MACHINE_LOCALITY, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticTextLocality = new ewxStaticText( itemScrolledWindowForm, ID_STATIC_MACHINE_LOCALITY, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemStaticTextLocality->Show(false);
     itemBoxSizer7->Add(itemStaticTextLocality, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 3);
 
-    ewxStaticText* itemStaticText9 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Machine:"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText9 = new ewxStaticText( itemScrolledWindowForm, wxID_STATIC, _("Machine:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer8->Add(itemStaticText9, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxTextCtrl* itemTextCtrl10 = new ewxTextCtrl( itemPanel3, ID_TEXT_MACHINE_FULLNAME, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxTextCtrl* itemTextCtrl10 = new ewxTextCtrl( itemScrolledWindowForm, ID_TEXT_MACHINE_FULLNAME, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     if (ShowToolTips())
         itemTextCtrl10->SetToolTip(_("(Required)\nFully-qualified Machine Name\n(e.g.,\"machine.anywhere.com\")"));
     itemFlexGridSizer8->Add(itemTextCtrl10, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxStaticText* itemStaticText11 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Name:"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText11 = new ewxStaticText( itemScrolledWindowForm, wxID_STATIC, _("Name:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer8->Add(itemStaticText11, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxTextCtrl* itemTextCtrl12 = new ewxTextCtrl( itemPanel3, ID_TEXT_MACHINE_REFNAME, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxTextCtrl* itemTextCtrl12 = new ewxTextCtrl( itemScrolledWindowForm, ID_TEXT_MACHINE_REFNAME, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     if (ShowToolTips())
         itemTextCtrl12->SetToolTip(_("(Required)\nComputer Logical Name\n(e.g., \"curie-batch\")"));
     itemFlexGridSizer8->Add(itemTextCtrl12, 1, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxStaticText* itemStaticText13 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Vendor:"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText13 = new ewxStaticText( itemScrolledWindowForm, wxID_STATIC, _("Vendor:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer8->Add(itemStaticText13, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer14 = new wxBoxSizer(wxHORIZONTAL);
     itemFlexGridSizer8->Add(itemBoxSizer14, 1, wxGROW|wxALIGN_CENTER_VERTICAL, 3);
 
-    ewxTextCtrl* itemTextCtrl15 = new ewxTextCtrl( itemPanel3, ID_TEXT_MACHINE_VENDOR, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxTextCtrl* itemTextCtrl15 = new ewxTextCtrl( itemScrolledWindowForm, ID_TEXT_MACHINE_VENDOR, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer14->Add(itemTextCtrl15, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxStaticText* itemStaticText16 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Model:"), wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT );
+    ewxStaticText* itemStaticText16 = new ewxStaticText( itemScrolledWindowForm, wxID_STATIC, _("Model:"), wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT );
     itemBoxSizer14->Add(itemStaticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxTextCtrl* itemTextCtrl17 = new ewxTextCtrl( itemPanel3, ID_TEXT_MACHINE_MODEL, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxTextCtrl* itemTextCtrl17 = new ewxTextCtrl( itemScrolledWindowForm, ID_TEXT_MACHINE_MODEL, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer14->Add(itemTextCtrl17, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxStaticText* itemStaticText18 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Processor:"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText18 = new ewxStaticText( itemScrolledWindowForm, wxID_STATIC, _("Processor:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer14->Add(itemStaticText18, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxTextCtrl* itemTextCtrl19 = new ewxTextCtrl( itemPanel3, ID_TEXT_MACHINE_PROC, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxTextCtrl* itemTextCtrl19 = new ewxTextCtrl( itemScrolledWindowForm, ID_TEXT_MACHINE_PROC, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer14->Add(itemTextCtrl19, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer20 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer7->Add(itemBoxSizer20, 0, wxALIGN_LEFT, 3);
 
-    ewxStaticText* itemStaticText21 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Total # Processors:"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText21 = new ewxStaticText( itemScrolledWindowForm, wxID_STATIC, _("Total # Processors:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer20->Add(itemStaticText21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxSpinCtrl* itemSpinCtrl22 = new ewxSpinCtrl( itemPanel3, ID_SPIN_MACHINE_NUMPROCS, _("1"), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 100000, 1 );
+    ewxSpinCtrl* itemSpinCtrl22 = new ewxSpinCtrl( itemScrolledWindowForm, ID_SPIN_MACHINE_NUMPROCS, _("1"), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 100000, 1 );
     itemBoxSizer20->Add(itemSpinCtrl22, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer20->Add(15, 5, 0, wxGROW|wxALL, 3);
 
-    ewxStaticText* itemStaticText24 = new ewxStaticText( itemPanel3, wxID_STATIC, _("# Nodes"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText24 = new ewxStaticText( itemScrolledWindowForm, wxID_STATIC, _("# Nodes"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer20->Add(itemStaticText24, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxSpinCtrl* itemSpinCtrl25 = new ewxSpinCtrl( itemPanel3, ID_SPIN_MACHINE_NUMNODES, _("1"), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 100000, 1 );
+    ewxSpinCtrl* itemSpinCtrl25 = new ewxSpinCtrl( itemScrolledWindowForm, ID_SPIN_MACHINE_NUMNODES, _("1"), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 100000, 1 );
     itemBoxSizer20->Add(itemSpinCtrl25, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM, 3);
 
     wxBoxSizer* itemBoxSizer26 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer7->Add(itemBoxSizer26, 0, wxALIGN_LEFT, 3);
 
-    ewxCheckBox* itemCheckBox27 = new ewxCheckBox( itemPanel3, ID_CHECKBOX_REMSHELL_SSH, _("ssh"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
+    ewxCheckBox* itemCheckBox27 = new ewxCheckBox( itemScrolledWindowForm, ID_CHECKBOX_REMSHELL_SSH, _("ssh"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox27->SetValue(false);
     itemCheckBox27->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemBoxSizer26->Add(itemCheckBox27, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxCheckBox* itemCheckBox28 = new ewxCheckBox( itemPanel3, ID_CHECKBOX_REMSHELL_SSH_FTP, _("ssh/ftp"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
+    ewxCheckBox* itemCheckBox28 = new ewxCheckBox( itemScrolledWindowForm, ID_CHECKBOX_REMSHELL_SSH_FTP, _("ssh/ftp"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox28->SetValue(false);
     itemCheckBox28->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemBoxSizer26->Add(itemCheckBox28, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxCheckBox* itemCheckBox29 = new ewxCheckBox( itemPanel3, ID_CHECKBOX_REMSHELL_SSH_PASS, _("sshpass"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
+    ewxCheckBox* itemCheckBox29 = new ewxCheckBox( itemScrolledWindowForm, ID_CHECKBOX_REMSHELL_SSH_PASS, _("sshpass"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox29->SetValue(false);
     itemCheckBox29->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemBoxSizer26->Add(itemCheckBox29, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxCheckBox* itemCheckBox30 = new ewxCheckBox( itemPanel3, ID_CHECKBOX_REMSHELL_RSH, _("rsh"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
+    ewxCheckBox* itemCheckBox30 = new ewxCheckBox( itemScrolledWindowForm, ID_CHECKBOX_REMSHELL_RSH, _("rsh"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox30->SetValue(false);
     itemCheckBox30->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemBoxSizer26->Add(itemCheckBox30, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxCheckBox* itemCheckBox31 = new ewxCheckBox( itemPanel3, ID_CHECKBOX_REMSHELL_TELNET, _("telnet"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
+    ewxCheckBox* itemCheckBox31 = new ewxCheckBox( itemScrolledWindowForm, ID_CHECKBOX_REMSHELL_TELNET, _("telnet"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox31->SetValue(false);
     itemCheckBox31->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemBoxSizer26->Add(itemCheckBox31, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxCheckBox* itemCheckBox32 = new ewxCheckBox( itemPanel3, ID_CHECKBOX_REMSHELL_GLOBUS, _("globus"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
+    ewxCheckBox* itemCheckBox32 = new ewxCheckBox( itemScrolledWindowForm, ID_CHECKBOX_REMSHELL_GLOBUS, _("globus"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox32->SetValue(false);
     itemCheckBox32->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemBoxSizer26->Add(itemCheckBox32, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxCheckBox* itemCheckBox33 = new ewxCheckBox( itemPanel3, ID_CHECKBOX_REMSHELL_GLOBUS_SSH, _("globus-ssh"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
+    ewxCheckBox* itemCheckBox33 = new ewxCheckBox( itemScrolledWindowForm, ID_CHECKBOX_REMSHELL_GLOBUS_SSH, _("globus-ssh"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox33->SetValue(false);
     itemCheckBox33->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemBoxSizer26->Add(itemCheckBox33, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxPanel* itemPanel34 = new ewxPanel( itemPanel3, ID_PANEL_WXMACHINEREGISTER_APPLICATIONS, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
+    ewxPanel* itemPanel34 = new ewxPanel( itemScrolledWindowForm, ID_PANEL_WXMACHINEREGISTER_APPLICATIONS, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemBoxSizer7->Add(itemPanel34, 0, wxGROW|wxALL, 3);
 
-    ewxPanel* itemPanel35 = new ewxPanel( itemPanel3, ID_PANEL_WXMACHINEREGISTER_MISCPATHS, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
+    ewxPanel* itemPanel35 = new ewxPanel( itemScrolledWindowForm, ID_PANEL_WXMACHINEREGISTER_MISCPATHS, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemBoxSizer7->Add(itemPanel35, 0, wxGROW|wxALL, 3);
 
-    ewxPanel* itemPanel36 = new ewxPanel( itemPanel3, ID_PANEL_QUEUES, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
+    ewxPanel* itemPanel36 = new ewxPanel( itemScrolledWindowForm, ID_PANEL_QUEUES, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemBoxSizer7->Add(itemPanel36, 0, wxGROW|wxALL, 3);
 
     wxStaticBox* itemStaticBoxSizer37Static = new wxStaticBox(itemPanel36, wxID_ANY, _("Queues"));

@@ -140,6 +140,7 @@ public:
     static const wxWindowID ID_BUTTON_MACHINE_CHANGE;
     static const wxWindowID ID_SPIN_QUEUE_MAXMEMORY;
     static const wxWindowID ID_PANEL_WXMACHINEREGISTER_APPLICATIONS;
+    static const wxWindowID ID_SCROLLEDWINDOW_WXMACHINEREGISTER_FORM;
     static const wxWindowID ID_CHECKBOX_REMSHELL_SSH_PASS;
     static const wxWindowID ID_TEXT_MACHINE_REFNAME;
     static const wxWindowID ID_TEXT_QUEUE_NAME;

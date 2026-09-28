@@ -55,9 +55,12 @@
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxSpinCtrl.H"
+#include "wxgui/ewxScrolledWindow.H"
 #include "wxgui/ewxStaticBoxSizer.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/ewxWindowUtils.H"
+
+#include "wx/display.h"
 
 #include "WxMachineRegister.H"
 
@@ -150,7 +153,7 @@ void WxMachineRegister::initialize()
         wxFlexGridSizer *gridsizer;
         ewxStaticBoxSizer *boxsizer;
 
-        //  Create and populate the "Applications" static box
+        //  Create and populate the "Applications" static box.
         panel = (ewxPanel *)(wxWindow::FindWindowById(ID_PANEL_WXMACHINEREGISTER_APPLICATIONS, this));
         boxsizer = new ewxStaticBoxSizer(wxHORIZONTAL, panel, _("Applications"));
 
@@ -213,6 +216,7 @@ void WxMachineRegister::initialize()
 
         //  Find all other components on the form
         p_machinesList = (ewxListBox*)(this->FindWindowById(ID_LISTBOX_MACHINES));
+        p_formScroll = (ewxScrolledWindow*)(this->FindWindowById(ID_SCROLLEDWINDOW_WXMACHINEREGISTER_FORM));
 
         p_machineFullNameText = (ewxTextCtrl*)(this->FindWindowById(ID_TEXT_MACHINE_FULLNAME));
         p_localityText = (ewxStaticText*)(this->FindWindowById(ID_STATIC_MACHINE_LOCALITY));
@@ -267,9 +271,32 @@ void WxMachineRegister::initialize()
         p_formCloseButton = (ewxButton*)(this->FindWindowById( ID_BUTTON_FORM_CLOSE));
         p_helpButton = (ewxButton*)(this->FindWindowById( ID_BUTTON_HELP));
 
+        //  The whole form (everything above) was built inside p_formScroll
+        //  (#187) -- give it its scrollbar and its virtual (content) size
+        //  now that all of it exists.
+        if (p_formScroll != NULL)
+        {
+            p_formScroll->SetScrollRate(0, 10);
+            p_formScroll->FitInside();
+        }
+
         this->InvalidateBestSize();
         this->GetSizer()->SetSizeHints(this);
         this->GetSizer()->Fit(this);
+
+        //  Cap the initial size to the display (#187), the same way a
+        //  later grow (the locality note appearing) is capped.
+        this->growToFitSizer();
+
+        //  ewxFrame::Create()'s Centre() ran on the small, pre-content
+        //  window (Applications/Misc Paths/Queues are empty placeholders
+        //  until the loop above fills them in) -- so the position it
+        //  chose can leave a since-grown, now display-capped frame
+        //  hanging off the bottom of the screen even though its SIZE is
+        //  correct. Only done here, once, at construction: a later grow
+        //  (the locality note) must not relocate a window the user may
+        //  already have moved.
+        this->keepOnScreen();
 }
 
 void WxMachineRegister::mainWindowCloseCB(wxCloseEvent& event)
@@ -404,18 +431,164 @@ void WxMachineRegister::refreshLocality()
 
         //  The frame's minimum was fixed at construction, with this label
         //  hidden, so showing it would squeeze the Machine/Name/Vendor rows
-        //  into overlapping it. Grow the frame just enough; never shrink it
-        //  (the user may have enlarged it).
-        if (GetSizer() != NULL)
-        {
-            wxSize need = GetSizer()->GetMinSize();
-            wxSize have = GetClientSize();
-            if (need.y > have.y || need.x > have.x)
-                SetClientSize(wxSize(wxMax(need.x, have.x),
-                                     wxMax(need.y, have.y)));
-        }
-        Layout();
+        //  into overlapping it. growToFitSizer() grows the frame just
+        //  enough (never shrinking it -- the user may have enlarged it),
+        //  but never past what the display can show (#187): it shrinks
+        //  the whole scrolled form instead when there isn't room.
+        this->growToFitSizer();
     }
+}
+
+
+/**
+ *  #187: "Register Machines" can be taller than the screen on a FastX or
+ *  other small/odd desktop. The whole form below the machine list --
+ *  Machine/Name grid, checkboxes, Misc Paths, Queues and Applications --
+ *  is built inside one scrolled window (see initialize()), and this is
+ *  what shrinks first when there isn't room; the machine list and the
+ *  button row never do. Also used for the ordinary case: fitting the
+ *  frame to its sizer at construction, and growing it (never shrinking)
+ *  when the locality note above appears or changes.
+ */
+void WxMachineRegister::growToFitSizer()
+{
+    if (this->GetSizer() == NULL || p_formScroll == NULL
+        || p_formScroll->GetSizer() == NULL)
+        return;
+
+    wxSize cap = this->maxClientSizeForDisplay();
+    wxSize have = this->GetClientSize();
+
+    //  wxScrolledWindow's own best size is NOT tied to its content -- the
+    //  whole point of a scrolled window is that its size need not match
+    //  what's inside it -- so an UNSET min here measures as some small,
+    //  content-independent default, not the form. Query the sizer it was
+    //  given (SetSizer() in initialize()) directly for the form's TRUE
+    //  natural (full, unscrolled) size instead, and always give the
+    //  window an explicit min derived from that. This also changes as
+    //  the locality note (#144) is shown or hidden, so it is re-measured
+    //  on every call rather than cached.
+    wxSize natural = p_formScroll->GetSizer()->GetMinSize();
+    p_formScroll->SetMinSize(natural);
+    //  Refreshes the virtual (scrollable) size to match -- needed here
+    //  too, not just once at construction, for the same reason.
+    p_formScroll->FitInside();
+    this->Layout();
+
+    wxSize need = this->GetSizer()->GetMinSize();
+    wxSize want(wxMax(need.x, have.x), wxMax(need.y, have.y));
+
+    int overflowY = want.y - cap.y;
+    if (overflowY > 0)
+    {
+        //  A sizer inside a scrolled window is laid out at its OWN min
+        //  (via FitInside()'s virtual size), never squeezed to the
+        //  window's smaller viewport -- so unlike the single-section
+        //  Applications-only version of this fix, there is no floor
+        //  needed to avoid corruption. Only usability sets one: never
+        //  below a sliver too small to mean anything.
+        const int MIN_VISIBLE_HEIGHT = 40;
+
+        wxSize shrunk(natural.x, wxMax(MIN_VISIBLE_HEIGHT, natural.y - overflowY));
+
+        p_formScroll->SetMinSize(shrunk);
+        this->Layout();
+        need = this->GetSizer()->GetMinSize();
+        want = wxSize(wxMax(need.x, have.x), wxMax(need.y, have.y));
+    }
+
+    //  Cap to the display, but NEVER below the sizer's own minimum
+    //  (post-shrink): forcing a client size smaller than what the sizer
+    //  says it needs doesn't make the form smaller, it makes wx lay it
+    //  out over itself -- rows overlapping rows (found the hard way with
+    //  the Applications-only version of this fix, against a fixed-size
+    //  sibling that had nowhere to give). If shrinking the form to its
+    //  floor still isn't enough, the honest result is a frame a little
+    //  taller than the display, not a corrupted one.
+    want.x = wxMax(need.x, wxMin(want.x, cap.x));
+    want.y = wxMax(need.y, wxMin(want.y, cap.y));
+
+    //  maxClientSizeForDisplay() is a pure query -- applying the max size
+    //  here, once the final target is known, means it can never clamp
+    //  the SetClientSize() below out from under itself. It only widens
+    //  past the display when `want` had to, just above.
+    wxSize decoration = this->GetSize() - this->GetClientSize();
+    this->SetMaxSize(wxSize(wxMax(want.x, cap.x) + decoration.x,
+                            wxMax(want.y, cap.y) + decoration.y));
+
+    if (want != have)
+        this->SetClientSize(want);
+
+    this->Layout();
+
+    if (getenv("ECCE_DEBUG_MACHREGISTER_SIZE") != NULL)
+    {
+        wxSize formSize = p_formScroll ? p_formScroll->GetSize() : wxSize(-1,-1);
+        wxSize formVirt = p_formScroll ? p_formScroll->GetVirtualSize() : wxSize(-1,-1);
+        wxSize needAfter = this->GetSizer()->GetMinSize();
+        fprintf(stderr,
+                "[MACHREG_SIZE] cap=%dx%d need=%dx%d frameClient=%dx%d frameOuter=%dx%d "
+                "formSize=%dx%d formVirtual=%dx%d\n",
+                cap.x, cap.y, needAfter.x, needAfter.y,
+                this->GetClientSize().x, this->GetClientSize().y,
+                this->GetSize().x, this->GetSize().y,
+                formSize.x, formSize.y, formVirt.x, formVirt.y);
+    }
+}
+
+
+/**
+ *  Nudge the frame back fully onto its display (#187) -- falls back to
+ *  display 0 when the frame isn't associated with one yet (e.g. before
+ *  the first Show()). Only moves it, never resizes it.
+ */
+void WxMachineRegister::keepOnScreen()
+{
+    int dpyIdx = wxDisplay::GetFromWindow(this);
+    wxDisplay display((unsigned)(dpyIdx == wxNOT_FOUND ? 0 : dpyIdx));
+    wxRect avail = display.GetClientArea();
+
+    wxPoint pos = this->GetPosition();
+    wxSize size = this->GetSize();
+
+    int x = pos.x, y = pos.y;
+    if (x + size.x > avail.x + avail.width)
+        x = avail.x + avail.width - size.x;
+    if (y + size.y > avail.y + avail.height)
+        y = avail.y + avail.height - size.y;
+    if (x < avail.x)
+        x = avail.x;
+    if (y < avail.y)
+        y = avail.y;
+
+    if (x != pos.x || y != pos.y)
+        this->SetPosition(wxPoint(x, y));
+}
+
+
+/**
+ *  The most this frame's client area can be without the window (frame,
+ *  borders and all) exceeding the usable area of the display it's on
+ *  (#187) -- falls back to display 0 when the frame isn't associated
+ *  with one yet (e.g. before the first Show()).
+ */
+wxSize WxMachineRegister::maxClientSizeForDisplay()
+{
+    int dpyIdx = wxDisplay::GetFromWindow(this);
+    wxDisplay display((unsigned)(dpyIdx == wxNOT_FOUND ? 0 : dpyIdx));
+    wxRect avail = display.GetClientArea();
+
+    //  A pure query -- growToFitSizer() is the one that applies a max
+    //  size, once it knows the final target, so this can't clamp a
+    //  SetClientSize() out from under it (see the comment there).
+    wxSize decoration = this->GetSize() - this->GetClientSize();
+    wxSize cap(avail.width - decoration.x, avail.height - decoration.y);
+    if (cap.x <= 0)
+        cap.x = avail.width;
+    if (cap.y <= 0)
+        cap.y = avail.height;
+
+    return cap;
 }
 
 
