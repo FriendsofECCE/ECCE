@@ -44,6 +44,7 @@
 #include <algorithm>
 #include <exception>
 #include <iostream>
+#include <memory>
   using std::cout;
   using std::endl;
 
@@ -56,6 +57,7 @@
 #include "tdat/TGBSAngFunc.H"
 #include "tdat/EspField.H"
 #include "tdat/BasisFlatten.H"
+#include "tdat/MoAoOrder.H"
 #include "tdat/PropTable.H"
 #include "tdat/PropVector.H"
 #include "tdat/SingleGrid.H"
@@ -496,6 +498,37 @@ bool ComputeMoCmd::execute()
       //  is read before it, so a missing basis used to be a null
       //  dereference and not the clean refusal it was written to be.
       if (gbsConfig == (TGBSConfig *)0) return false;
+
+      //  MOAOORDER-marked calcs (currently ORCA) store MO/MOBETA with
+      //  columns in the PARSER's canonical order, not TGBSConfig's own --
+      //  see MoAoOrder.H. unique_ptr so the possible new copy is freed on
+      //  every return path out of this scope, never the cached property
+      //  itself.
+      vector<string> moAoAtomSymbols;
+      {
+        vector<TAtm*> *moAoAtoms = sgfrag->atoms();
+        if (moAoAtoms != 0) {
+          for (size_t ii = 0; ii < moAoAtoms->size(); ii++)
+            moAoAtomSymbols.push_back((*moAoAtoms)[ii]->atomicSymbol());
+        }
+      }
+      std::unique_ptr<PropTable> moCoefsOwned, moCoefsBetaOwned;
+      {
+        PropTable *reordered = MoAoOrder::reorderToNative(
+            moCoefs, calc, moAoAtomSymbols, gbsConfig);
+        if (reordered != moCoefs) { moCoefsOwned.reset(reordered); moCoefs = reordered; }
+      }
+      if (moCoefsBeta != 0 && moCoefsBeta != moCoefs) {
+        PropTable *reordered = MoAoOrder::reorderToNative(
+            moCoefsBeta, calc, moAoAtomSymbols, gbsConfig);
+        if (reordered != moCoefsBeta) {
+          moCoefsBetaOwned.reset(reordered); moCoefsBeta = reordered;
+        }
+      } else if (moCoefsBeta == moCoefs) {
+        // Same underlying property (moType=="beta" reassigned moCoefs to
+        // MOBETA above) -- already reordered via moCoefs, do not do it twice.
+        moCoefsBeta = moCoefs;
+      }
 
       // Assign order based on the "code dependence"
       // This is currently done by getting the angle function orders

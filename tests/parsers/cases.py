@@ -605,7 +605,7 @@ CASES = [
             # Needs ai.orca's "%output Print[P_MOs] 1 end"; the fixture's
             # deck carries it.  Closed shell, so the BETA keys are
             # correctly absent -- see orca-oh-uhf for those.
-            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA': dict(
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER': dict(
                 keys={
                     'ORBENG': {'values': '-20.25158 -1.25755 -0.59386 '
                                          '-0.45973 -0.39262 0.58179 0.69267',
@@ -614,6 +614,10 @@ CASES = [
                                          '2.00000 0.00000 0.00000',
                                'units': 'electrons'},
                     'MO': {'size': '7 7'},
+                    #  Tells MoAoOrder::reorderToNative() this MO's columns
+                    #  are in canonical (atom, l) order, not ORCA's own --
+                    #  see CLAUDE.md's ORCA MOOrdering fault A note.
+                    'MOAOORDER': {'values': 'angular-momentum'},
                 }),
             'EGRAD][EGRADVEC': dict(blocks=4, keys={
                 'EGRAD': {'values': '0.0000258219', 'units': 'Hartree/Bohr'},
@@ -713,7 +717,7 @@ CASES = [
         parse_args=('.', 'Energy', 'SCF', 'UHF', '1'),
         expect={
             'S2': dict(keys={'S2': {'values': '0.753262'}}),
-            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA': dict(
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER': dict(
                 blocks=1, keys={
                     'ORBENG': {'values': '-20.28571 -1.29219 -0.55098 '
                                          '-0.52456 -0.42967 0.62006'},

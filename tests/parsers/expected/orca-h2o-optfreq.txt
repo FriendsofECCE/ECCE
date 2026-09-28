@@ -211,7 +211,7 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
       values: 74.51860233804906
       units: Hartree
 
-[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA]  Script=orca.mo  Freq=last  Skip=2  Lines=-
+[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER]  Script=orca.mo  Freq=last  Skip=2  Lines=-
   Begin=MOLECULAR ORBITALS
   End=MULLIKEN POPULATION ANALYSIS
   begins=2 delivered=1 buffered_away=1
@@ -229,6 +229,9 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
       rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7
       columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7
       values: -0.994216 -0.025847 0.004164 -0.000000 0.000000 0.005584 0.005584 0.233766 -0.844449 0.122838 0.000000 0.000000 -0.155594 -0.155594 0.000000 0.000000 -0.000000 0.000000 0.612697 0.449222 -0.449222 -0.104036 0.538168 0.755876 -0.000000 -0.000000 -0.295103 -0.295103 0.000000 -0.000000 -0.000000 -1.000000 -0.000000 0.000000 0.000000 0.125820 -0.820145 0.763553 0.000000 0.000000 0.769164 0.769164 0.00 ...[461 chars]
+    key: MOAOORDER
+      size: 1
+      values: angular-momentum
 
 [ORBSYM][ORBSYMBETA]  Script=orca.orbsym  Freq=last  Skip=2  Lines=-
   Begin=ORBITAL ENERGIES

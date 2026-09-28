@@ -3,6 +3,7 @@
 #include <cstdarg>
 #include <functional>
 #include <ios>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <utility>
@@ -36,6 +37,7 @@
 #include "tdat/SymmetryAnalysis.H"
 #include "tdat/ShellRotation.H"
 #include "tdat/BasisFlatten.H"
+#include "tdat/MoAoOrder.H"
 #include "tdat/EspField.H"
 #include "tdat/TAtm.H"
 
@@ -973,6 +975,22 @@ namespace {
       for (int k = 0; k < 3; k++) storedCoords[a*3+k] = xyz[a*3+k];
     }
     delete atoms;
+
+    //  MOAOORDER-marked calcs (currently ORCA) store MO/MOBETA with
+    //  columns in the PARSER's canonical order, not TGBSConfig's own --
+    //  see MoAoOrder.H. Without this, #163's full-group labelling would
+    //  be computed from scrambled coefficients for any such calc.
+    //  unique_ptr frees the possible new copy on every return out of
+    //  this function; never mutates the cached property itself.
+    std::unique_ptr<PropTable> moCoefsOwned;
+    {
+      PropTable *reordered = MoAoOrder::reorderToNative(
+          moCoefs, calc, storedElements, config);
+      if (reordered != moCoefs) {
+        moCoefsOwned.reset(reordered);
+        moCoefs = reordered;
+      }
+    }
 
     //  THE COEFFICIENT TABLE'S WIDTH DECIDES CARTESIAN VS SPHERICAL.
     //  The calculation records the basis's own convention (Pople sets
@@ -1939,6 +1957,27 @@ void MoDiagramPanel::buildOnce()
   vector<double> localisedShare, centreOP;
   if (haveFragments && !leftAtoms.empty() && !rightAtoms.empty()) {
     PropTable *moCoefs = (PropTable*)calc->getProperty("MO");
+    //  MOAOORDER-marked calcs (currently ORCA) store MO with columns in
+    //  the PARSER's canonical order, not TGBSConfig's own -- see
+    //  MoAoOrder.H. "elements" above is already sgfrag's own atom
+    //  order, the same one functionsPerAtom() below assumes.
+    std::unique_ptr<PropTable> moCoefsOwned;
+    if (moCoefs != 0) {
+      ICalculation *moAoEscalc = dynamic_cast<ICalculation*>(calc);
+      //  gbsConfig() returns a NEW TGBSConfig the caller owns (see the
+      //  other call sites in this file, which all delete it) -- only
+      //  needed transiently here, to hand to reorderToNative().
+      std::unique_ptr<TGBSConfig> moAoConfig(
+          moAoEscalc != 0 ? moAoEscalc->gbsConfig() : 0);
+      if (moAoConfig != 0) {
+        PropTable *reordered = MoAoOrder::reorderToNative(
+            moCoefs, calc, elements, moAoConfig.get());
+        if (reordered != moCoefs) {
+          moCoefsOwned.reset(reordered);
+          moCoefs = reordered;
+        }
+      }
+    }
     if (moCoefs != 0 && moCoefs->rows() > 0 && moCoefs->columns() > 0) {
       vector<int> perAtom, shellOf;
       //  functionsPerAtom() reads the STORED frame's atoms (sgfrag's

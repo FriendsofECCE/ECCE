@@ -85,7 +85,7 @@ Lines=2
 # to text output at all. Deriving ORBENG/ORBOCC from this block instead of
 # the separate "ORBITAL ENERGIES" section since that section truncates to
 # the first 10 virtuals by default while this one prints every orbital.
-[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA]
+[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER]
 Script=orca.mo
 Begin=MOLECULAR ORBITALS
 Skip=2

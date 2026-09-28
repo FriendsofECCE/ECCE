@@ -17,6 +17,12 @@ moved code's own intermediate steps.
 Needs a configured CMake build tree; exit 0 and "skipped" if there isn't
 one (this is the register-with-ECCE's-own-XML/JCode test, not the
 no-build-tree-needed kind tests/symmetry and tests/slater otherwise use).
+
+Also runs testCrOMoAoOrder: the real scripts/parsers/orca.mo against a
+real ORCA CrO/def2-SVP MO block, then MoAoOrder + BasisFlatten, checking
+c^T S c == 1 -- the regression test for fault A (ORCA's own def2-SVP
+shell order interleaving a polarization shell among the d shells) and
+the f(+-3) spherical sign fix in ORCA.edml, together.
 """
 
 import os
@@ -56,6 +62,48 @@ def main():
     if run.stderr:
         print(run.stderr, end="")
     os.unlink(out)
+    rc = run.returncode
+
+    rc2 = run_cro_moaoorder(env)
+    return rc or rc2
+
+
+def run_cro_moaoorder(env):
+    """orca.mo's canonical-order fix (fault A) + MoAoOrder's un-permute,
+    against ORCA's real CrO/def2-SVP MO block -- see testCrOMoAoOrder.C.
+    """
+    perl = subprocess.run(
+        ["perl", os.path.join(ROOT, "scripts/parsers/orca.mo"),
+         "MO", "Energy", "SCF", "RHF"],
+        stdin=open(os.path.join(HERE, "fixtures/cro_mo_block.txt")),
+        capture_output=True, text=True)
+    if perl.returncode != 0:
+        print("orca.mo failed on the CrO fixture:")
+        print(perl.stderr)
+        return 2
+    parsed = os.path.join(HERE, "cro_mo_parsed.txt")
+    with open(parsed, "w") as f:
+        f.write(perl.stdout)
+
+    out = os.path.join(HERE, "testCrOMoAoOrder")
+    cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
+            "-o", out, os.path.join(HERE, "testCrOMoAoOrder.C"),
+            "-L" + BUILD]
+           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c"])
+    build = subprocess.run(cmd, capture_output=True, text=True)
+    if build.returncode != 0:
+        print("could not build testCrOMoAoOrder:")
+        print(build.stderr)
+        os.unlink(parsed)
+        return 2
+
+    run = subprocess.run([out, parsed], capture_output=True, text=True,
+                          env=env, cwd=HERE)
+    print(run.stdout, end="")
+    if run.stderr:
+        print(run.stderr, end="")
+    os.unlink(out)
+    os.unlink(parsed)
     return run.returncode
 
 

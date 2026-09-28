@@ -246,6 +246,14 @@ EStruct		MO Occupations				ORBOCC		Charge		PropVector<Basis Function>
 EStruct		MO Occupations (beta)			ORBOCCBETA	Charge		PropVector<Basis Function>
 EStruct		MO Symmetries 				ORBSYM		NA		PropVecString<Basis Function>
 EStruct		MO Symmetries (beta)			ORBSYMBETA	NA		PropVecString<Basis Function>
+#
+# Marks MO/MOBETA's basis-function (column) order as the parser's
+# canonical (atom, angular momentum, shell) order rather than whatever
+# order the code's own output happened to print them in -- see
+# MoAoOrder::reorderToNative(). Absent (old calcs, other codes) means
+# "native order, do nothing", so this must never be retrofitted onto
+# already-parsed data.
+EStruct		MO AO Column Order			MOAOORDER	NA		PropString
 EStruct		One Density Matrix			DMAT1		Electrons	PropTable<Basis Function,Basis Function>
 #  The Slater exponents of a semiempirical code's valence basis, one row
 #  per atom: atomic number then the s, p and d exponents.  Not a result a

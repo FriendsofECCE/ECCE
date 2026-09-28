@@ -31,6 +31,22 @@
 # groups, one blank line, then beta groups with different eigenvalues)
 # -- so splitting the whole block on blank lines cleanly separates spins.
 #
+# ORCA's own row order is NOT sorted by angular momentum for a NAMED
+# basis: a def2-SVP transition metal prints e.g. "S,S,S,S,S,P,P,D,D,P,F"
+# (a polarization p shell after the d shells), because ORCA prints
+# shells in its internal library order, not grouped by l. ECCE's own
+# basis storage (TGBSConfig, and everything that enumerates it --
+# BasisFlatten::flatten, ComputeMoCmd, MoCoeffs, MoDiagramPanel,
+# MullikenPanel) is always l-sorted per atom. Left unreordered, the
+# coefficient columns are silently assigned to the wrong basis function
+# from the D shell onward for any such element: MOs no longer satisfy
+# cT S c = 1 (issue: CrO/Cr(CO)6 norms 0.7-105 before this fix). Each
+# row carries its own AO label (e.g. "1s", "2pz", "1dxy", "1f+3"), which
+# is enough to recover the angular momentum and do a per-atom, STABLE
+# sort by l -- "stable" so shells of the same l keep ORCA's relative
+# order, which is what makes this match ECCE's own order (verified by
+# re-parsing and checking cT S c on real jobs, not assumed).
+#
 ################################################################################
 
 $| = 1;
@@ -76,11 +92,42 @@ sub splitFixed {
 }
 
 
+# Angular momentum letter -> l, for the AAO label ("1s"/"2pz"/"1dxy"/
+# "1f+3"/...) ORCA prints on each coefficient row.
+my %L_OF_LETTER = (s=>0, p=>1, d=>2, f=>3, g=>4, h=>5, i=>6);
+
+# Given the (atomIndex, aoLabel) of every row IN THE ORIGINAL ORCA ORDER,
+# return the permutation new-row-index -> old-row-index that puts them
+# in ECCE's canonical order: grouped by atom (already contiguous in
+# ORCA's own output), stably sorted by angular momentum within each atom.
+sub canonicalRowOrder {
+  my @rowMeta = @_;  # array of [atomIndex, aoLabel]
+  my @order;
+  my $start = 0;
+  while ($start <= $#rowMeta) {
+    my $atomIdx = $rowMeta[$start][0];
+    my $end = $start;
+    $end++ while ($end <= $#rowMeta && $rowMeta[$end][0] == $atomIdx);
+    my @withKey;
+    for my $i ($start .. $end-1) {
+      my ($letter) = ($rowMeta[$i][1] =~ /^\d*([A-Za-z])/);
+      push(@withKey, [$i, $L_OF_LETTER{lc($letter)}]);
+    }
+    # Perl's sort is stable (guaranteed since 5.8), so shells sharing an
+    # l keep ORCA's own relative order.
+    push(@order, map { $_->[0] } sort { $a->[1] <=> $b->[1] } @withKey);
+    $start = $end;
+  }
+  return @order;
+}
+
 sub parseSegment {
   my @seglines = @{$_[0]};
   my (@orbEnergy, @orbOcc, %coeff);
   my $nbas = 0;
   my $i = 0;
+  my @rowMeta;
+  my $rowOrder;  # computed once, from the first column-group's rows
   while ($i < @seglines) {
     # header line: only integers and whitespace
     last if ($seglines[$i] !~ /^\s*\d+(\s+\d+)*\s*$/);
@@ -90,19 +137,32 @@ sub parseSegment {
     $i++; # dashed separator line, discard
     my $row = 0;
     while ($i < @seglines &&
-           $seglines[$i] =~ /^\s*\d+[A-Za-z]+\s+\S+\s+(.+)$/) {
-      my @vals = &splitFixed($1);
+           $seglines[$i] =~ /^\s*(\d+)([A-Za-z]+)\s+(\S+)\s+(.+)$/) {
+      my ($atomIdx, $aoLabel, $rest) = ($1, $3, $4);
+      my @vals = &splitFixed($rest);
       for my $j (0 .. $#idx) {
         $coeff{$idx[$j]}{$row} = $vals[$j];
       }
+      push(@rowMeta, [$atomIdx, $aoLabel]) if (!defined $rowOrder);
       $row++;
       $i++;
     }
     $nbas = $row if ($row > $nbas);
+    $rowOrder = [ &canonicalRowOrder(@rowMeta) ] if (!defined $rowOrder);
     for my $j (0 .. $#idx) {
       $orbEnergy[$idx[$j]] = $en[$j];
       $orbOcc[$idx[$j]] = $occ[$j];
     }
+  }
+  if (defined $rowOrder && $nbas > 0) {
+    my %reordered;
+    for my $newRow (0 .. $#$rowOrder) {
+      my $oldRow = $rowOrder->[$newRow];
+      for my $col (keys %coeff) {
+        $reordered{$col}{$newRow} = $coeff{$col}{$oldRow};
+      }
+    }
+    %coeff = %reordered;
   }
   return (\@orbEnergy, \@orbOcc, \%coeff, $nbas);
 }
@@ -113,7 +173,7 @@ sub printMO {
   my @orbOcc = @$orbOccRef;
   my %coeff = %$coeffRef;
   my $nmo = scalar(@orbEnergy);
-  return if ($nmo == 0 || $nbas == 0);
+  return 0 if ($nmo == 0 || $nbas == 0);
 
   print "key: $engKey\n";
   print "size:\n$nmo\n";
@@ -149,14 +209,29 @@ sub printMO {
     print "\n";
   }
   print "END\n";
+  return 1;
 }
 
+my $printedAny = 0;
 if (@segments >= 1) {
   my ($orbEnergy, $orbOcc, $coeff, $nbas) = parseSegment($segments[0]);
-  printMO("MO", "ORBENG", "ORBOCC", $orbEnergy, $orbOcc, $coeff, $nbas);
+  $printedAny |= printMO("MO", "ORBENG", "ORBOCC", $orbEnergy, $orbOcc, $coeff, $nbas);
 }
 if (@segments >= 2) {
   my ($orbEnergy, $orbOcc, $coeff, $nbas) = parseSegment($segments[1]);
-  printMO("MOBETA", "ORBENGBETA", "ORBOCCBETA", $orbEnergy, $orbOcc, $coeff, $nbas);
+  $printedAny |= printMO("MOBETA", "ORBENGBETA", "ORBOCCBETA", $orbEnergy, $orbOcc, $coeff, $nbas);
 }
+
+# Tells the C++ side (MoAoOrder::reorderToNative()) that MO/MOBETA's
+# basis-function columns are in canonical (atom, l, shell-of-that-l)
+# order rather than whatever order ORCA printed them in -- see
+# canonicalRowOrder() above. Absent on older/other-code data, which
+# means "native order, leave alone".
+if ($printedAny) {
+  print "key: MOAOORDER\n";
+  print "size:\n1\n";
+  print "values:\nangular-momentum\n";
+  print "END\n";
+}
+
 exit(0);

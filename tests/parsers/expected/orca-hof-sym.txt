@@ -59,7 +59,7 @@ args:    '.' 'Energy' 'SCF' 'RHF' '0'
       values: 175.22012515978150
       units: Hartree
 
-[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA]  Script=orca.mo  Freq=last  Skip=2  Lines=-
+[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER]  Script=orca.mo  Freq=last  Skip=2  Lines=-
   Begin=MOLECULAR ORBITALS
   End=MULLIKEN POPULATION ANALYSIS
   begins=1 delivered=1 buffered_away=0
@@ -77,6 +77,9 @@ args:    '.' 'Energy' 'SCF' 'RHF' '0'
       rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7 MO-8 MO-9 MO-10 MO-11 MO-12 MO-13 MO-14 MO-15 MO-16 MO-17 MO-18 MO-19 MO-20 MO-21 MO-22 MO-23 MO-24 MO-25 MO-26 MO-27 MO-28 MO-29 MO-30 MO-31 MO-32 MO-33
       columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8 BasFun-9 BasFun-10 BasFun-11 BasFun-12 BasFun-13 BasFun-14 BasFun-15 BasFun-16 BasFun-17 BasFun-18 BasFun-19 BasFun-20 BasFun-21 BasFun-22 BasFun-23 BasFun-24 BasFun-25 BasFun-26 BasFun-27 BasFun-28 BasFun-29 BasFun-30 BasFun-31 BasFun-32 BasFun-33
       values: 0.000215 0.000759 -0.008069 0.000000 -0.000241 0.000218 0.000000 0.003219 -0.004512 -0.000311 0.000000 0.000000 -0.000159 -0.000828 0.000330 -0.000541 0.000000 -0.000012 0.000824 0.990006 -0.034010 0.018573 0.000000 0.001502 -0.001735 0.000000 0.003702 -0.004517 -0.000189 0.000000 0.000000 -0.000009 -0.000304 -0.990199 0.033395 -0.009786 0.000000 0.000709 0.002609 0.000000 -0.000335 -0.000422 -0.0 ...[10125 chars]
+    key: MOAOORDER
+      size: 1
+      values: angular-momentum
 
 [ORBSYM][ORBSYMBETA]  Script=orca.orbsym  Freq=last  Skip=2  Lines=-
   Begin=ORBITAL ENERGIES

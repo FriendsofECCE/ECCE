@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
   using std::cout;
   using std::cerr;
   using std::endl;
@@ -16,6 +17,7 @@
 #include "util/EventDispatcher.H"
 
 #include "tdat/PropTable.H"
+#include "tdat/MoAoOrder.H"
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
 #include "tdat/SingleGrid.H"
@@ -176,6 +178,20 @@ void MoCoeffs::showCoeffs(ICalculation *expt, int moNum)
    expt->getFragment(frag);
    TGBSConfig *gbsConfig = expt->gbsConfig();
    INTERNALEXCEPTION(gbsConfig,"basis set is null.");
+
+   //  MOAOORDER-marked calcs (currently ORCA) store MO with columns in
+   //  the PARSER's canonical order, not TGBSConfig's own -- see
+   //  MoAoOrder.H. unique_ptr frees the possible new copy on any return
+   //  out of this function; never mutates the cached property itself.
+   vector<string> moAoAtomSymbols;
+   for (size_t ii = 0; ii < frag.numAtoms(); ii++)
+     moAoAtomSymbols.push_back(frag.atomRef(ii)->atomicSymbol());
+   std::unique_ptr<PropTable> moCoefsOwned;
+   {
+     PropTable *reordered = MoAoOrder::reorderToNative(
+         moCoefs, expt, moAoAtomSymbols, gbsConfig);
+     if (reordered != moCoefs) { moCoefsOwned.reset(reordered); moCoefs = reordered; }
+   }
 
 
    char buf[80];
@@ -397,7 +413,11 @@ void MoCoeffs::showCoeffs(ICalculation *expt, int moNum)
    p_grid->AutoSizeColumns();
    GetSizer()->Fit(this);
 
-
+   //  gbsConfig() returns a NEW TGBSConfig this function owns (a
+   //  pre-existing leak here, same shape MoDiagramPanel.C's other
+   //  gbsConfig() call sites already guard against with "delete
+   //  config" -- fixed while adding a second consumer of it above).
+   delete gbsConfig;
 }
 
 
