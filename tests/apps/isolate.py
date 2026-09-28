@@ -99,7 +99,14 @@ def _pickPort(name, preferred):
 
 
 def _link(source, target):
-    if os.path.lexists(target):
+    #  A state directory outlives the install it was made for, so an existing
+    #  link to a different install must be replaced, or the run silently
+    #  tests whatever the old link points at.
+    if os.path.islink(target):
+        if os.readlink(target) == source:
+            return
+        os.unlink(target)
+    elif os.path.lexists(target):
         return
     os.symlink(source, target)
 
