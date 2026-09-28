@@ -24,7 +24,11 @@ Once a design decision is settled, delegate the implementation to the sonnet-imp
   is a bugfix release made after `main` has moved on to the next minor
   version: it goes on a `release/X.Y.Z` branch off the previous tag,
   with the fixes cherry-picked from `main` (8.16.2 and 8.16.3 were made
-  this way while `main` was 8.17.0-dev). Old branches
+  this way while `main` was 8.17.0-dev). One long-lived feature branch
+  exists by design: `native/split` (worktree `../ECCE-native`), the road to
+  9.0 (server/client packages, then native macOS/Windows clients; plan on
+  #133). It carries only the disruptive work; anything that also helps
+  Linux lands on `main` and the branch rebases. Old branches
   (`develop`, `modernize-build`, `stable`, `master`, `make`) were
   consolidated into `main` and renamed to `archive/*` — no reason to
   branch from or compare against them.
