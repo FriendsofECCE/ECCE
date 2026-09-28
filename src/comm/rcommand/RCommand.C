@@ -1419,8 +1419,15 @@ hopToIt:
     // for the rest of the session -- readline re-emits the escape
     // sequence around every future prompt otherwise, since it's a
     // per-prompt readline behavior, not a one-time startup message.
+    //  "set +o emacs; set +o vi" turns readline off.  Otherwise a long
+    //  command's echo comes back redrawn (wrapped with "\r", or
+    //  horizontally scrolled with a leading "<"), so the exact-echo match
+    //  eccejobstore waits on never arrives and monitoring hangs forever
+    //  (#69 Bug 2; the bash side of #143).  The local "bash -f" spawn
+    //  has readline on; --noediting only covers the direct ssh path.
     if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; "
-                  "bind 'set enable-bracketed-paste off' 2>/dev/null"))
+                  "bind 'set enable-bracketed-paste off' 2>/dev/null; "
+                  "set +o emacs; set +o vi"))
       return;
   } else {
     //  "unset edit": where csh is tcsh (Ubuntu), its line editor wraps a
@@ -1839,8 +1846,11 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
   if (useBash) {
     // See the main constructor's identical setup line above for the
     // full story on why bracketed-paste mode needs disabling here too.
+    //  See the matching "set +o emacs" note above (#69, #143): a hop's
+    //  "bash -i" runs on the remote pty ssh allocates, readline on.
     if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; "
-                  "bind 'set enable-bracketed-paste off' 2>/dev/null"))
+                  "bind 'set enable-bracketed-paste off' 2>/dev/null; "
+                  "set +o emacs; set +o vi"))
       return false;
   } else {
     //  See the matching "unset edit" note above (#143).
