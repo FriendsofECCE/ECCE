@@ -2356,6 +2356,28 @@ bool MoFragments::build(const vector<double>& coords,
    const vector<double>& coordsUsed  = ligandField ? workCoords   : coords;
    const vector<string>& elementsUsed = ligandField ? workElements : elements;
 
+   //  THE CALLER'S ATOM NUMBERING, NOT THE SKELETON'S.
+   //
+   //  Everything below numbers atoms within coordsUsed, which for a
+   //  ligand field is the skeleton (metal 0, donors 1..k).  The
+   //  caller indexes the whole molecule's coefficients with the atom
+   //  lists handed back, so they are mapped back on every return.
+   struct ToOriginal {
+      const vector<int>& of;
+      const bool on;
+      vector<int>* sets[2];
+      ~ToOriginal() {
+         if (!on) return;
+         for (int k = 0; k < 2; k++) {
+            if (sets[k] == 0) continue;
+            for (size_t i = 0; i < sets[k]->size(); i++) {
+               int& a = (*sets[k])[i];
+               if (a >= 0 && a < (int)of.size()) a = of[a];
+            }
+         }
+      }
+   } toOriginal = { skeletonOf, ligandField, { leftAtoms, rightAtoms } };
+
    const int numAtoms = (int)elementsUsed.size();
 
    vector< vector<int> > images;
@@ -2757,6 +2779,7 @@ bool MoFragments::build(const vector<double>& coords,
    if (polyatomicLigands) {
       buildSigmaColumn(attachments, elementsUsed, numAtoms, images, classOfOp,
                        ops, *table, right);
+      if (how != 0) *how = SKELETON;
       if (note.empty()) {
          ostringstream said;
          said << "Each ligand contributes one sigma donor orbital, as a "

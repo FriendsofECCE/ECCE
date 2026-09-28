@@ -1327,6 +1327,50 @@ int main(int argc, char** argv) {
     }
   }
 
+  //  --- Cr(CO)6 with the oxygens listed first, Oh ------------------
+  //  The ligand-field skeleton renumbers atoms (metal 0, donors 1..k);
+  //  the atom lists handed back must be in the CALLER's numbering, or
+  //  the panel reads the wrong atoms' coefficients.  Listed Cr, C, O
+  //  the two numberings coincide and hide the bug.
+  {
+    const double rc = 1.918, ro = 3.059;
+    const double dir[6][3] = { {1,0,0}, {-1,0,0}, {0,1,0},
+                               {0,-1,0}, {0,0,1}, {0,0,-1} };
+    vector<double> coords;
+    vector<string> elements;
+    for (int k = 0; k < 6; k++) {          // atoms 0..5: O
+      for (int c = 0; c < 3; c++) coords.push_back(ro*dir[k][c]);
+      elements.push_back("O");
+    }
+    for (int c = 0; c < 3; c++) coords.push_back(0.0);   // atom 6: Cr
+    elements.push_back("Cr");
+    for (int k = 0; k < 6; k++) {          // atoms 7..12: C
+      for (int c = 0; c < 3; c++) coords.push_back(rc*dir[k][c]);
+      elements.push_back("C");
+    }
+
+    MoColumn left, right;
+    string note;
+    vector<int> leftAtoms, rightAtoms;
+    MoFragments::Fragmentation how = MoFragments::NOT_BUILT;
+    bool ok = MoFragments::build(coords, elements, "OH", 0, left, right, note,
+                                 &leftAtoms, &rightAtoms, 0, &how);
+    printf("  %-46s %s\n", "reordered Cr(CO)6 builds", ok ? "yes" : note.c_str());
+    if (!ok) { bad++; }
+    else {
+      string l, r;
+      for (size_t i = 0; i < leftAtoms.size(); i++)
+        l += (i ? " " : "") + elements[leftAtoms[i]];
+      for (size_t i = 0; i < rightAtoms.size(); i++)
+        r += (i ? " " : "") + elements[rightAtoms[i]];
+      check("Cr(CO)6: left atoms, caller's numbering", l, "Cr");
+      check("Cr(CO)6: right atoms, caller's numbering", r, "C C C C C C");
+      check("Cr(CO)6: construction reported", 
+            MoFragments::fragmentationName(how),
+            MoFragments::fragmentationName(MoFragments::SKELETON));
+    }
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }

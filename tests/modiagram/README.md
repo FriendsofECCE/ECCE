@@ -78,15 +78,18 @@ ordering bug, and both were just the stale files. The overlay must link
 - Cr(CO)6: t2g and eg sets are labelled, the HOMO is 2T2g and metal-heavy,
   and there are three t2g levels (the pi-acceptor pattern of Albright
   et al. 2013, sec. 15.3).
-- **Open bug, Cr(CO)6 metal column:** Eg (3d) is drawn at +0.61 Ha and
-  T2g (3d) at -3.70 Ha, below every molecular orbital, with A1g (4s)
-  0.19 and T1u (4p) 0.27. A weighted mean of molecular energies cannot
-  leave the molecular range, the two halves of one 3d shell should share
-  a row, and the shell-order step (d8c2ed0) should keep 3d < 4s < 4p.
-  So the metal column's placement is broken for this construction. Its
-  levels carry no slot shares (`shareLeft=-1`), which points at the
-  skeleton construction's composition indices (atom indices in skeleton
-  numbering, never mapped back to the molecule).
+- Cr(CO)6 metal column: fixed. It had drawn 3d T2g at -3.70 Ha and split
+  3d across two rows. placeFragments()' one-row snap averaged a placed
+  level with an unplaced one still holding its tabulated eV, and the
+  shell-order step ran before the unconnected-level fallback. Now 3d
+  (-0.21) < 4s (0.19) < 4p (0.27), all inside the molecular range.
+- Still wrong in Cr(CO)6, both about which lines are drawn:
+  1. Eg (3d) links to no molecular orbital, so the eg/eg* interaction
+     (Delta_o) is missing. composeLevels() uses plain c^2, which gives Cr
+     only 0.04-0.13 of the eg MOs (the Löwdin share of 5Eg is 0.52), so
+     connect()'s 0.05 cutoff draws them to the ligands only.
+  2. 4p (T1u) links only to 2T1u at -2.246 Ha, which is Cr's 3p semicore
+     (99% on Cr). The core cutoff (-3.49) leaves it visible.
 
 ## Reproducing
 

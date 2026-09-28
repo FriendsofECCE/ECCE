@@ -549,11 +549,16 @@ void MoDiagram::placeFragments(const MoColumn& centre,
       //  A level carrying a phase pattern is such a combination.
       if (!levels[i].phases.empty()) { done[i] = true; continue; }
 
+      //  Only components that were placed are averaged: an unplaced
+      //  one still holds its tabulated eV value, and averaging that
+      //  with Hartree means drew Cr(CO)6's t2g at -3.7 Ha.  Unplaced
+      //  components take the shell's row and count as placed.
       for (size_t j = i; j < levels.size(); j++) {
         if (done[j]) continue;
         if (!levels[j].phases.empty()) continue;
         if (fabs(tabulated[j] - tabulated[i]) > 1.0e-9) continue;
         if (levels[j].shell != levels[i].shell) continue;
+        if (!placed[c][j]) continue;
         sum += levels[j].energy;
         count++;
       }
@@ -566,102 +571,8 @@ void MoDiagram::placeFragments(const MoColumn& centre,
         if (fabs(tabulated[j] - tabulated[i]) > 1.0e-9) continue;
         if (levels[j].shell != levels[i].shell) continue;
         levels[j].energy = common;
+        placed[c][j] = true;
         done[j] = true;
-      }
-    }
-  }
-
-  //  A FRAGMENT COLUMN KEEPS THE ATOM'S OWN SHELL ORDER.
-  //
-  //  Placing each shell at the weighted mean of what it became can put
-  //  a less tightly bound shell below a more tightly bound one when
-  //  its orbitals are the more stabilised by bonding (a metal 4p
-  //  under its 3d).  Within one element, a later shell must never end up below an
-  //  earlier one: a shell whose drawn range would overlap or fall
-  //  below the previous shell is shifted up as a whole, keeping its
-  //  own internal spacing, so the levels within it still show which
-  //  molecular orbitals they connect to.
-  //
-  //  Comparison is by ELEMENT, never across the whole column: a
-  //  column can hold more than one element (a ligand donor column, or
-  //  a terminal fragment with several atom types), and O's 2s has
-  //  nothing to say about where C's 2p belongs.
-  {
-    double loMo = 1.0e30, hiMo = -1.0e30;
-    for (size_t i = 0; i < centre.levels.size(); i++) {
-      const double e = centre.levels[i].energy;
-      if (e < loMo) loMo = e;
-      if (e > hiMo) hiMo = e;
-    }
-    const double minGap = (hiMo > loMo) ? 0.03*(hiMo - loMo) : 0.0;
-
-    for (c = 0; c < 2; c++) {
-      vector<MoLevel>& levels = cols[c]->levels;
-      const vector<string>& keys = cols[c]->shellKeys;
-      if (levels.size() < 2) continue;
-
-      //  Group indices by element and free-atom energy: the same
-      //  value to 1e-6 Hartree is one shell (its symmetry components
-      //  and TASOs together, same as the snap above).
-      map<string, vector<std::pair<double, vector<size_t> > > > byElement;
-      for (size_t i = 0; i < levels.size(); i++) {
-        string element;
-        if (levels[i].slot >= 0 && (size_t)levels[i].slot < keys.size()) {
-          const string& key = keys[levels[i].slot];
-          const size_t colon = key.find(':');
-          element = (colon == string::npos) ? key : key.substr(0, colon);
-        }
-        const double tab = levels[i].tabulated/27.211386;
-
-        vector<std::pair<double, vector<size_t> > >& groups =
-            byElement[element];
-        bool found = false;
-        for (size_t g = 0; g < groups.size(); g++) {
-          if (fabs(groups[g].first - tab) <= 1.0e-6) {
-            groups[g].second.push_back(i);
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          groups.push_back(std::make_pair(tab, vector<size_t>(1, i)));
-        }
-      }
-
-      for (map<string, vector<std::pair<double, vector<size_t> > > >::
-           iterator eIt = byElement.begin(); eIt != byElement.end(); ++eIt) {
-        vector<std::pair<double, vector<size_t> > >& groups = eIt->second;
-        if (groups.size() < 2) continue;
-
-        //  Increasing free-atom energy: the more tightly bound shell
-        //  first, the way a person orders s below p below d.
-        std::sort(groups.begin(), groups.end(),
-                   [](const std::pair<double, vector<size_t> >& a,
-                      const std::pair<double, vector<size_t> >& b) {
-                     return a.first < b.first;
-                   });
-
-        double prevHigh = 0.0;
-        bool havePrev = false;
-        for (size_t g = 0; g < groups.size(); g++) {
-          vector<size_t>& idx = groups[g].second;
-          double lo = 1.0e30, hi = -1.0e30;
-          for (size_t k = 0; k < idx.size(); k++) {
-            const double e = levels[idx[k]].energy;
-            if (e < lo) lo = e;
-            if (e > hi) hi = e;
-          }
-
-          if (havePrev && lo < prevHigh + minGap) {
-            const double shift = (prevHigh + minGap) - lo;
-            for (size_t k = 0; k < idx.size(); k++) {
-              levels[idx[k]].energy += shift;
-            }
-            hi += shift;
-          }
-          prevHigh = hi;
-          havePrev = true;
-        }
       }
     }
   }
@@ -795,6 +706,103 @@ void MoDiagram::placeFragments(const MoColumn& centre,
 
     for (size_t i = 0; i < levels.size(); i++) {
       if (i >= placed[c].size() || !placed[c][i]) levels[i].energy = fallback;
+    }
+  }
+
+  //  A FRAGMENT COLUMN KEEPS THE ATOM'S OWN SHELL ORDER.
+  //
+  //  Last, after every fallback, so nothing placed later can undo it.
+  //
+  //  Placing each shell at the weighted mean of what it became can put
+  //  a less tightly bound shell below a more tightly bound one when
+  //  its orbitals are the more stabilised by bonding (a metal 4p
+  //  under its 3d).  Within one element, a later shell must never end up below an
+  //  earlier one: a shell whose drawn range would overlap or fall
+  //  below the previous shell is shifted up as a whole, keeping its
+  //  own internal spacing, so the levels within it still show which
+  //  molecular orbitals they connect to.
+  //
+  //  Comparison is by ELEMENT, never across the whole column: a
+  //  column can hold more than one element (a ligand donor column, or
+  //  a terminal fragment with several atom types), and O's 2s has
+  //  nothing to say about where C's 2p belongs.
+  {
+    double loMo = 1.0e30, hiMo = -1.0e30;
+    for (size_t i = 0; i < centre.levels.size(); i++) {
+      const double e = centre.levels[i].energy;
+      if (e < loMo) loMo = e;
+      if (e > hiMo) hiMo = e;
+    }
+    const double minGap = (hiMo > loMo) ? 0.03*(hiMo - loMo) : 0.0;
+
+    for (c = 0; c < 2; c++) {
+      vector<MoLevel>& levels = cols[c]->levels;
+      const vector<string>& keys = cols[c]->shellKeys;
+      if (levels.size() < 2) continue;
+
+      //  Group indices by element and free-atom energy: the same
+      //  value to 1e-6 Hartree is one shell (its symmetry components
+      //  and TASOs together, same as the snap above).
+      map<string, vector<std::pair<double, vector<size_t> > > > byElement;
+      for (size_t i = 0; i < levels.size(); i++) {
+        string element;
+        if (levels[i].slot >= 0 && (size_t)levels[i].slot < keys.size()) {
+          const string& key = keys[levels[i].slot];
+          const size_t colon = key.find(':');
+          element = (colon == string::npos) ? key : key.substr(0, colon);
+        }
+        const double tab = levels[i].tabulated/27.211386;
+
+        vector<std::pair<double, vector<size_t> > >& groups =
+            byElement[element];
+        bool found = false;
+        for (size_t g = 0; g < groups.size(); g++) {
+          if (fabs(groups[g].first - tab) <= 1.0e-6) {
+            groups[g].second.push_back(i);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          groups.push_back(std::make_pair(tab, vector<size_t>(1, i)));
+        }
+      }
+
+      for (map<string, vector<std::pair<double, vector<size_t> > > >::
+           iterator eIt = byElement.begin(); eIt != byElement.end(); ++eIt) {
+        vector<std::pair<double, vector<size_t> > >& groups = eIt->second;
+        if (groups.size() < 2) continue;
+
+        //  Increasing free-atom energy: the more tightly bound shell
+        //  first, the way a person orders s below p below d.
+        std::sort(groups.begin(), groups.end(),
+                   [](const std::pair<double, vector<size_t> >& a,
+                      const std::pair<double, vector<size_t> >& b) {
+                     return a.first < b.first;
+                   });
+
+        double prevHigh = 0.0;
+        bool havePrev = false;
+        for (size_t g = 0; g < groups.size(); g++) {
+          vector<size_t>& idx = groups[g].second;
+          double lo = 1.0e30, hi = -1.0e30;
+          for (size_t k = 0; k < idx.size(); k++) {
+            const double e = levels[idx[k]].energy;
+            if (e < lo) lo = e;
+            if (e > hi) hi = e;
+          }
+
+          if (havePrev && lo < prevHigh + minGap) {
+            const double shift = (prevHigh + minGap) - lo;
+            for (size_t k = 0; k < idx.size(); k++) {
+              levels[idx[k]].energy += shift;
+            }
+            hi += shift;
+          }
+          prevHigh = hi;
+          havePrev = true;
+        }
+      }
     }
   }
 }

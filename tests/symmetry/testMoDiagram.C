@@ -723,6 +723,65 @@ int main()
           "4p unchanged, bit-identical to its raw mean");
   }
 
+  //  Shaped like Cr(CO)6's metal column: 3d split into eg (connected
+  //  to nothing) and t2g, 4p connected only to a deep level.  The
+  //  unconnected eg must not be averaged into t2g while still in eV,
+  //  and no fallback may run after the shell order is fixed.
+  {
+    MoColumn centre;
+    const double mo[5] = { -2.246, -0.354, 0.071, 0.146, 0.348 };
+    centre.levels.resize(5);
+    for (int i = 0; i < 5; i++) {
+      centre.levels[i].energy = mo[i];
+      centre.levels[i].occupancy = (i < 2) ? 2.0 : 0.0;
+      centre.levels[i].degeneracy = 1;
+    }
+
+    MoColumn left;
+    left.shellKeys.push_back("Cr:0");
+    left.shellKeys.push_back("Cr:1");
+    left.shellKeys.push_back("Cr:2");
+    left.levels.resize(4);
+    MoLevel& eg  = left.levels[0];
+    MoLevel& t2g = left.levels[1];
+    MoLevel& s   = left.levels[2];
+    MoLevel& p   = left.levels[3];
+    eg.slot  = 2; eg.shell  = 2; eg.energy  = -7.2;
+    t2g.slot = 2; t2g.shell = 2; t2g.energy = -7.2;
+    s.slot   = 0; s.shell   = 0; s.energy   = -6.6;
+    p.slot   = 1; p.shell   = 1; p.energy   = -3.5;
+    for (int i = 0; i < 4; i++) left.levels[i].moWeight.assign(5, 0.0);
+    t2g.moWeight[1] = 0.74; t2g.moWeight[3] = 0.31;
+    s.moWeight[2] = 0.96;   s.moWeight[4] = 0.76;
+    p.moWeight[0] = 0.99;
+
+    MoColumn right;
+    vector<MoConnection> connections;
+    const int links[5][2] = { {1,1}, {1,3}, {2,2}, {2,4}, {3,0} };
+    for (int k = 0; k < 5; k++) {
+      MoConnection c;
+      c.leftLevel = links[k][0]; c.centreLevel = links[k][1];
+      c.rightLevel = -1;
+      connections.push_back(c);
+    }
+
+    MoDiagram::placeFragments(centre, left, right, connections);
+
+    const double lo = -2.246, hi = 0.348, gap = 0.03*(hi - lo);
+    bool inside = true;
+    for (int i = 0; i < 3; i++) {
+      if (left.levels[i].energy < lo || left.levels[i].energy > hi) {
+        inside = false;
+      }
+    }
+    check(inside, "3d and 4s stay inside the molecular range");
+    check(fabs(eg.energy - t2g.energy) < 1e-12,
+          "eg and t2g of one 3d shell share a row");
+    check(t2g.energy + gap <= s.energy + 1e-12 &&
+          eg.energy + gap <= s.energy + 1e-12, "all of 3d below 4s by the gap");
+    check(s.energy + gap <= p.energy + 1e-12, "4s below 4p by the gap");
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }

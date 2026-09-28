@@ -1,6 +1,6 @@
 group: Oh
 formula: CrC6O6
-construction: a central atom and its neighbours
+construction: a metal and its donor atoms
 headline: 
 note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree. Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, kept in the atom's own shell order; its free-atom energy is given beside it.  Each ligand contributes one sigma donor orbital, as a ligand field diagram does; the ligands' own internal orbitals are not drawn.
 column left
@@ -11,8 +11,8 @@ column left
   hiddenAboveCount: 0
   shellKeys: Cr:0 Cr:1 Cr:2
   levels: 4
-  level 0 energy=0.612920 tabulated=-7.200000 irrep=EG label=Eg  (3d) character=UNKNOWN pairing=-1 occupancy=3.0000 occupancyBeta=-1.0000 degeneracy=2 shell=2 slot=2 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.26 Ha"
-  level 1 energy=-3.703766 tabulated=-7.200000 irrep=T2G label=T2g  (3d) character=UNKNOWN pairing=-1 occupancy=3.0000 occupancyBeta=-1.0000 degeneracy=3 shell=2 slot=2 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.26 Ha"
+  level 0 energy=-0.207532 tabulated=-7.200000 irrep=EG label=Eg  (3d) character=UNKNOWN pairing=-1 occupancy=3.0000 occupancyBeta=-1.0000 degeneracy=2 shell=2 slot=2 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.26 Ha"
+  level 1 energy=-0.207532 tabulated=-7.200000 irrep=T2G label=T2g  (3d) character=UNKNOWN pairing=-1 occupancy=3.0000 occupancyBeta=-1.0000 degeneracy=3 shell=2 slot=2 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.26 Ha"
   level 2 energy=0.193180 tabulated=-6.600000 irrep=A1G label=A1g  (4s) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.24 Ha"
   level 3 energy=0.274604 tabulated=-3.500000 irrep=T1U label=T1u  (4p) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.13 Ha"
 column centre
