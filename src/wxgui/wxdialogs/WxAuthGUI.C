@@ -125,7 +125,7 @@ void WxAuthGUI::CreateControls()
     wxBoxSizer* itemBoxSizer3 = new wxBoxSizer(wxVERTICAL);
     itemDialog1->SetSizer(itemBoxSizer3);
 
-    ewxStaticText* itemStaticText4 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_PROMPT_LABEL, _("Please enter your data server user name and password:"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText4 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_PROMPT_LABEL, _("Please enter your data server\nuser name and password:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
 
     wxBoxSizer* itemBoxSizer5 = new wxBoxSizer(wxHORIZONTAL);
