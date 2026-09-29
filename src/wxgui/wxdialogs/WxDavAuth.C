@@ -230,7 +230,9 @@ bool WxDavAuth::getAuthorization(AuthEvent& event)
 /**
  * Prompt user for password.
  * Username can also be changed.
- * @param retryCount if != 1 (first time), window looks slightly different??
+ * @param retryCount p_promptCount from getAuthorization(): 1 for the first
+ *   prompt of a request, 2 or 3 when the password just typed was refused
+ *   by the server (a third refusal throws RetryException).
  */
 bool WxDavAuth::prompt(const string& strurl,
       const bool& newUser,
@@ -281,6 +283,15 @@ bool WxDavAuth::prompt(const string& strurl,
      if (newUser) {
        authDlg.setPrompt("You do not have an existing data server account!\nPlease enter a new data server password to create one:");
        authDlg.setPasswordLabel("  New\nPassword:");
+     } else if (retryCount > 1) {
+       // A prior prompt's password was refused by the server -- say so,
+       // rather than silently repeating the same dialog.
+       string promptStr = "The user name or password was not accepted.\n"
+             "Please try again (attempt " + std::to_string(retryCount) +
+             " of 3):";
+       authDlg.setPrompt(promptStr);
+       authDlg.Layout();
+       authDlg.Fit();
      }
 
      authDlg.showChangeBtn(true);
