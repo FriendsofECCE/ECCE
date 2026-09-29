@@ -1250,10 +1250,11 @@ endif()
 
 # The site configuration an admin edits (sudo ecce -admin, ecce-remote-
 # setup's copy of a server's machine list, #188) must survive upgrades,
-# so it is a Debian conffile / RPM %config(noreplace). Not jndi.properties:
-# ecce-remote-setup rewrites it in place and keeps its own .local copy.
+# so it is a Debian conffile / RPM %config(noreplace). jndi.properties
+# too: ecce-remote-setup points it at the central broker, and an upgrade
+# resetting it to localhost would silently break every -remote client.
 set(_ecce_siteconfig_conffiles
-  Machines Queues QueueManagers DataServers site_runtime
+  Machines Queues QueueManagers DataServers site_runtime jndi.properties
   remote_shells.site submit.site AppColors StartupMessage NewUserMessage
   CONFIG.dummy dummy.Q example-slurm.Q
   CONFIG-Examples/CONFIG.loadleveler CONFIG-Examples/CONFIG.lsf
