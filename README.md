@@ -245,6 +245,9 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.17.3** — the data server starts on RHEL 9, which ships `mod_unixd`
+  as a module (#193).
+
 - **v8.17.2** — the data server starts on RHEL, where Apache is
   `httpd` with its modules in `/usr/lib64` (#193).
 
