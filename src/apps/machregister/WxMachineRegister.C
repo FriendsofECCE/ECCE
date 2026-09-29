@@ -385,8 +385,12 @@ void WxMachineRegister::machineFullNameUpdatedCB(wxCommandEvent& event)
     if (chpos != string::npos && !isAddress)
         refName = refName.substr(0, chpos);
 
-    p_machineRefNameText->SetValue(refName);
-    p_machineChangeButton->Enable(true);
+    //  Only when the user types a machine: loading a saved entry must keep
+    //  its own name, or Delete looks for a name that was never saved.
+    if (!p_inCtrlUpdate) {
+        p_machineRefNameText->SetValue(refName);
+        p_machineChangeButton->Enable(true);
+    }
 
     this->refreshLocality();
 }
