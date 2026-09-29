@@ -130,12 +130,10 @@ class WxMachineRegister: public WxMachineRegisterGUI
         void refreshControls();
         void refreshLocality();
 
-        //  #187: cap the frame to the display it's on, shrinking the
-        //  whole scrolled form (never the button row) when there isn't
-        //  room for everything at its natural size; also used to grow
-        //  the frame to fit (never shrinking what's already there) when
-        //  the locality note appears or changes.
-        void growToFitSizer();
+        //  #187: size the scrolled form and the frame's minimum so the
+        //  button row always fits; fitWholeForm also opens the frame at
+        //  the form's full size, capped to the display.
+        void growToFitSizer(bool fitWholeForm = false);
         wxSize maxClientSizeForDisplay();
         void keepOnScreen();
 
