@@ -444,13 +444,10 @@ sub verifyRamanRequest {
   );
   if (($category eq "DFT") && defined($needsNumFreq{$func}) &&
       ($AbiDict{"ES.Runtype.Vibration.Method"} ne "Numerical")) {
-    die "ai.orca error: Raman activities with '$func' require " .
-        "Numerical Frequencies -- ORCA's analytic Hessian path cannot " .
-        "compute the third functional derivative a B88-exchange " .
-        "functional needs for this (verified against ORCA 6.1.1: " .
-        "'Third functional derivative of a B88 exchange-containing " .
-        "functional requested', exit 55). Set the Frequencies Method " .
-        "to Numerical, or turn off Raman Activities.\n";
+    die "ai.orca error: Raman activities with '$func' need Numerical " .
+        "frequencies (ORCA cannot compute them analytically for " .
+        "B88-exchange functionals). Set the Frequencies Method to " .
+        "Numerical, or turn off Raman activities.\n";
   }
 }
 

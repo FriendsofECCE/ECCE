@@ -58,6 +58,54 @@
 
 //#define DEBUG
 
+namespace {
+
+//  ai.<code>'s own diagnostic is worth showing; the shell session it
+//  ran in is not.  RCommand::execout() can leak its prompt/status
+//  bookkeeping into the captured output (most reliably on a non-zero
+//  exit code it doesn't specifically recognise -- see RCommand.C's
+//  CMDSTAT matching), and ESInputController.C appends the reproduction
+//  command after it.  Strip all of that before anything reaches a
+//  user-visible message.
+string cleanGeneratorMessage(const string& raw)
+{
+  string out;
+  size_t pos = 0;
+  while (pos <= raw.size()) {
+    size_t eol = raw.find('\n', pos);
+    string line = raw.substr(pos, eol == string::npos ? string::npos
+                                                       : eol - pos);
+    pos = (eol == string::npos) ? raw.size() + 1 : eol + 1;
+
+    size_t start = line.find_first_not_of(" \t\r");
+    if (start == string::npos) continue;
+    line = line.substr(start, line.find_last_not_of(" \t\r") - start + 1);
+
+    if (line == "Input files could not be generated." ||
+        line.rfind("CMDSTAT=", 0) == 0 ||
+        line.rfind("+go+", 0) == 0 ||
+        line.rfind("(command:", 0) == 0)
+      continue;
+
+    if (!out.empty()) out += "  ";
+    out += line;
+  }
+  return out;
+}
+
+//  The status area has room for one line, not a generator's whole
+//  explanation -- take the first sentence (or the first line, if that
+//  comes first) and point at Verify for the rest.
+string firstSentence(const string& text)
+{
+  size_t cut = text.find(". ");
+  if (cut != string::npos) return text.substr(0, cut + 1);
+  return text;
+}
+
+}  // namespace
+
+
 IMPLEMENT_CLASS( CalcEd, CalcEdGUI )
 
 BEGIN_EVENT_TABLE(CalcEd, CalcEdGUI)
@@ -100,6 +148,8 @@ CalcEd::CalcEd( )
     p_startUp(false),
     p_handEdited(false),
     p_inputGenFailed(false),
+    p_inputGenError(""),
+    p_hasInputFile(false),
     p_theoryPid(0),
     p_theoryInFilePath(""),
     p_theoryOutFile(NULL),
@@ -148,6 +198,8 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
     p_startUp(false),
     p_handEdited(false),
     p_inputGenFailed(false),
+    p_inputGenError(""),
+    p_hasInputFile(false),
     p_theoryPid(0),
     p_theoryInFilePath(""),
     p_theoryOutFile(NULL),
@@ -381,7 +433,12 @@ void CalcEd::setContext(const string& url, const string& codeName)
     //  lamp means something on a calculation that is merely opened
     //  and not re-saved (#148).  Once per open, not per edit.  It sets
     //  the lamp blank, not green, when there is no input file yet.
+    //  It also refreshes p_hasInputFile, so re-run enableLaunch() to
+    //  put the Launch button in step with whatever that turned out to
+    //  be -- doSetContext() above already ran it once, against
+    //  whatever the previous calculation (or nothing) had left there.
     verifyInput();
+    enableLaunch();
     if (msgFlag) {
       p_feedback->setMessage("Calculation context set to " + p_iCalc->getName()
                              + ".", WxFeedback::INFO);
@@ -582,6 +639,7 @@ void CalcEd::setContextTheoryRuntype()
 void CalcEd::freeContext()
 {
   p_inputGenFailed = false;
+  p_inputGenError = "";
 
   if (p_frag) {
     delete p_frag;
@@ -698,14 +756,11 @@ void CalcEd::processEditCompletion(const EditEvent& ee)
     // it, rather than silently regenerating over it.
     p_handEdited = true;
 
-    // A hand edit is the user's call, so it overrides a failed
-    // generation: the edited deck is launchable as it stands.
-    if (p_inputGenFailed ||
-        p_iCalc->getState() < ResourceDescriptor::STATE_READY) {
-      p_inputGenFailed = false;
-      p_iCalc->setState(ResourceDescriptor::STATE_READY);
-      enableLaunch();
-    }
+    // A hand edit is the user's call: it replaces whatever the last
+    // generateInput() attempt did or didn't produce, so a stale
+    // "generator refused these settings" no longer describes the file
+    // that is now on disk.
+    p_inputGenFailed = false;
   }
   ifs.close();
 
@@ -1197,7 +1252,40 @@ bool CalcEd::verifyInput(vector<VerifyFinding>* out)
   if (!p_iCalc) return false;
 
   istream* is = p_iCalc->getDataFile(JCode::PRIMARY_INPUT);
-  if (!is) return false;
+  p_hasInputFile = (is != 0);
+
+  //  A failed generation is a fact about the deck that the checker
+  //  script never sees -- it only ever reads what's on disk.  Fold it
+  //  in here, as a finding, so the SAME path colours the lamp and
+  //  builds the Verify dialog, rather than a second mechanism that
+  //  could disagree with this one.
+  vector<VerifyFinding> findings;
+  if (p_inputGenFailed) {
+    VerifyFinding bad;
+    bad.level = VerifyFinding::BAD;
+    bad.check = "generatorFailed";
+    bad.message = "The input generator refused the current settings: " +
+                  p_inputGenError + (p_hasInputFile ?
+                    "  The deck below is from the last successful "
+                    "generation and does not reflect these settings." :
+                    "  There is no input file: nothing has ever been "
+                    "generated for this calculation.");
+    findings.push_back(bad);
+  }
+
+  if (!is) {
+    //  Unchanged for the plain case: a checker that never ran says
+    //  nothing about the deck, so leave the lamp as it was.  But a
+    //  known generator failure IS something to say, even with no deck
+    //  to check.
+    if (findings.empty()) return false;
+
+    if (out) *out = findings;
+    setVerifyLight(true, VerifyFinding::BAD,
+                   VerifyReportDialog::summary(findings) +
+                   ". Click Verify for the detail.");
+    return true;
+  }
 
   string text;
   StringConverter::streamToText(*is, text);
@@ -1210,9 +1298,11 @@ bool CalcEd::verifyInput(vector<VerifyFinding>* out)
   int atoms = 0;
   if (p_frag) atoms = p_frag->numAtoms();
 
-  vector<VerifyFinding> findings;
+  vector<VerifyFinding> checked;
   string error;
-  if (!InputVerifier::run(text, p_codeName, atoms, findings, error)) {
+  if (InputVerifier::run(text, p_codeName, atoms, checked, error)) {
+    findings.insert(findings.end(), checked.begin(), checked.end());
+  } else if (findings.empty()) {
     setVerifyLight(false, VerifyFinding::GOOD, error);
     return false;
   }
@@ -1297,7 +1387,14 @@ void CalcEd::OnButtonCalcedVerifyClick( wxCommandEvent& event )
           stale.message = "The editor has changes that are not in this "
                           "file yet. This is the input file as it was "
                           "last generated; save to regenerate it.";
-          findings.insert(findings.begin(), stale);
+          //  Insert after a generator-failure finding rather than
+          //  before it -- that one must stay first, since it is the
+          //  more pressing of the two ("at the top" per #187 followup).
+          size_t at = 0;
+          while (at < findings.size() &&
+                 findings[at].check == "generatorFailed")
+            at++;
+          findings.insert(findings.begin() + at, stale);
         }
 
         VerifyReportDialog dialog(this, p_codeName, text, findings);
@@ -1316,18 +1413,6 @@ void CalcEd::OnButtonCalcedLaunchClick( wxCommandEvent& event )
 {
   if (!regenerateIfStructureChanged())
     return;
-
-  //  Save here rather than in OnToolClick(), so that a generation
-  //  failure stops the Launcher opening on a deck the generator refused.
-  if (p_feedback->getEditStatus() == WxFeedback::MODIFIED)
-    doSave();
-  else if (p_iCalc &&
-           p_iCalc->getState() < ResourceDescriptor::STATE_READY)
-    generateInput(false);   // e.g. reopened after a failed generation
-  if (p_inputGenFailed) {
-    enableLaunch();
-    return;
-  }
 
   ResourceTool *tool =
           ResourceDescriptor::getResourceDescriptor().getTool(LAUNCHER);
@@ -2833,11 +2918,7 @@ void CalcEd::enableDetailsFields()
 void CalcEd::enableLaunch()
 {
   if (p_iCalc) {
-    //  A failed generation blocks launch until a regeneration succeeds --
-    //  except with unsaved edits, because Launch saves (and regenerates)
-    //  first.
-    bool ready = isReady() && (!p_inputGenFailed ||
-            p_feedback->getEditStatus() == WxFeedback::MODIFIED);
+    bool ready = isReady();
 
     if (ready) {
       p_feedback->setRunState(ResourceDescriptor::STATE_READY);
@@ -2869,11 +2950,13 @@ void CalcEd::enableLaunch()
   
     bool togo = p_feedback->getRunState() > ResourceDescriptor::STATE_CREATED
             && p_feedback->getRunState() != ResourceDescriptor::STATE_LOADED;
-    //  Final Edit stays open after a failed generation: a deck the user
-    //  edits by hand is theirs to submit, whatever the generator thinks.
-    FindWindow(ID_BUTTON_CALCED_FINAL_EDIT)->Enable(togo ||
-            (p_inputGenFailed && isReady()));
-    FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(togo);
+    FindWindow(ID_BUTTON_CALCED_FINAL_EDIT)->Enable(togo);
+    //  Unlike Final Edit, Launch has nothing to submit if a deck was
+    //  never actually written -- everything ELSE about whether a bad
+    //  or stale deck may be launched is Verify's job, not this one's
+    //  (Andy, 2026-09-29: Verify is what should flag a bad deck; Launch
+    //  should let people do what they want with it).
+    FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(togo && p_hasInputFile);
     FindWindow(ID_BUTTON_CALCED_VERIFY)->Enable(togo);
 
     //  Deliberately NOT running the checker here.  enableLaunch() is
@@ -3043,13 +3126,20 @@ bool CalcEd::generateInput(const bool& paramFlag)
   if (isReady()) {
     string message;
     success = input_controller(paramFlag, getUseExpCoeff(), message);
-    if (!message.empty()) {
-      if (success) {
-        //ewxMessageDialog *dialog = new ewxMessageDialog(this, message,
-                //"Input File Generation");
-      } else {
-        p_feedback->setMessage(message, WxFeedback::ERROR);
-      }
+
+    //  Feeds the Verify lamp/dialog below, not readiness -- a failed
+    //  generation is Verify's news to carry (Andy, 2026-09-29), so
+    //  nothing here touches p_iCalc's stored state or Launch.
+    p_inputGenFailed = !success;
+    p_inputGenError = success ? "" : cleanGeneratorMessage(message);
+
+    if (!success && !message.empty()) {
+      //  One line, not the generator's whole session transcript -- the
+      //  detail (and the reproduction command) is for the Verify
+      //  dialog, which has room for it.
+      p_feedback->setMessage("Input file not generated: " +
+              firstSentence(p_inputGenError) + "  See Verify for details.",
+              WxFeedback::ERROR);
     }
 
     //  A freshly-generated deck is not a hand edit, whatever the file
@@ -3057,31 +3147,13 @@ bool CalcEd::generateInput(const bool& paramFlag)
     if (success)
       p_handEdited = false;
 
-    //  The stored state is what the Launcher and Organizer go by, so it
-    //  must follow the generator's verdict: a READY left over from an
-    //  earlier save would let them submit the old deck for settings the
-    //  generator has just refused.
-    p_inputGenFailed = !success;
-    ResourceDescriptor::RUNSTATE state = p_iCalc->getState();
-    if (!success && state == ResourceDescriptor::STATE_READY) {
-      p_iCalc->setState(ResourceDescriptor::STATE_CREATED);
-    } else if (success && state < ResourceDescriptor::STATE_READY) {
-      p_iCalc->setState(ResourceDescriptor::STATE_READY);
-    }
-
-    //  A deck has just been written: check it and set the lamp (#148).
-    //  Here rather than in enableLaunch(), which runs on every edit --
-    //  this is the one moment the file can have changed, so it is also
-    //  the only moment worth spending a WebDAV fetch and a process on.
-    //
-    //  Silent either way.  The user gets a coloured lamp beside the
-    //  Verify button and nothing else: no dialog, no message, no
-    //  focus taken.  A checker that interrupts a working session to
-    //  announce that it found nothing would be turned off within a
-    //  day, and one that interrupts to announce a fault teaches the
-    //  user to dismiss it without reading.
-    if (success)
-      verifyInput();
+    //  A deck has just been written, or the attempt to write one has
+    //  just failed -- either way something changed that the lamp
+    //  beside the Verify button needs to reflect (#148).  Here rather
+    //  than in enableLaunch(), which runs on every edit: this is the
+    //  one moment the file can have changed, so it is also the only
+    //  moment worth spending a WebDAV fetch and a process on.
+    verifyInput();
   }
 
   return success;
@@ -3228,15 +3300,13 @@ void CalcEd::doSave()
     // reset the save status indicator
     enableSave(false);
 
-    p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() + ".",
-                           WxFeedback::INFO);
-    if (p_inputGenFailed) {
-      //  "Saved" is true of the settings, but it must not read as
-      //  "ready", so say so after it.
-      p_feedback->setMessage("It cannot be launched until its input file "
-                             "can be generated -- see the error above -- "
-                             "or until you edit the input file yourself "
-                             "with Final Edit.", WxFeedback::ERROR);
+    //  On a failed generation, generateInput() has already put the one
+    //  line that matters on screen -- the generator's own reason.
+    //  Following it straight up with "Calculation saved" would bury
+    //  that line and imply the deck is fine when it is not.
+    if (!p_inputGenFailed) {
+      p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() +
+                             ".", WxFeedback::INFO);
     }
     enableLaunch();
 
