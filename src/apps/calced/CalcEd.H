@@ -348,10 +348,26 @@ class CalcEd: public CalcEdGUI,
     /**
      * True when the last generateInput() ran the generator and it failed:
      * the settings describe a deck that cannot be written, and any deck
-     * on DAV is an older one.  Blocks Launch until a generation succeeds
-     * or the user takes responsibility for the deck with Final Edit.
+     * on DAV (if there is one at all) is an older one.  Feeds the Verify
+     * lamp/dialog (#148) as a BAD finding -- it does NOT gate Launch or
+     * Final Edit (Andy, 2026-09-29: Verify is what should flag a bad
+     * deck; Launch should let people do what they want with it).
      */
     bool   p_inputGenFailed;
+
+    /** The generator's own diagnostic, cleaned of shell/session noise,
+     *  from the last failed generateInput().  Empty when the last
+     *  attempt succeeded or none has run yet. */
+    string p_inputGenError;
+
+    /**
+     * Whether this calculation has an input file at all, as of the last
+     * time verifyInput() checked (context open, a generation attempt,
+     * a hand edit).  Launch needs a deck to submit -- this is cheaper
+     * than a DAV fetch on every enableLaunch(), which runs on nearly
+     * every edit.
+     */
+    bool   p_hasInputFile;
 
     const static char* p_BASIS_QUICK_PICKS[];
 

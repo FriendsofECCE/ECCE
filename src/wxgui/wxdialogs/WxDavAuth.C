@@ -290,8 +290,18 @@ bool WxDavAuth::prompt(const string& strurl,
        string promptStr = "The user name or password was not accepted.\n"
              "Please try again:";
        authDlg.setPrompt(promptStr);
+
+       // Fit() sizes the dialog to the new prompt text's best size,
+       // which can come out NARROWER than the dialog's first
+       // appearance -- seen live truncating the title bar to "ECCE
+       // Authenti...".  Never let the retry dialog end up smaller than
+       // it was already showing.
+       wxSize before = authDlg.GetSize();
        authDlg.Layout();
        authDlg.Fit();
+       wxSize after = authDlg.GetSize();
+       authDlg.SetSize(wxSize(wxMax(before.GetWidth(), after.GetWidth()),
+                              wxMax(before.GetHeight(), after.GetHeight())));
      }
 
      authDlg.showChangeBtn(true);
