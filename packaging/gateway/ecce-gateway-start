@@ -5,12 +5,8 @@
 # starts. Safe to call every time an app launches -- it does nothing if
 # the gateway is already up.
 #
-# This replaces the "-remote"-unaware half of the old install_ecce/
-# scripts/ecce launcher (see build/install_ecce, scripts/ecce) for the
-# common case this modern package targets: client and server on the same
-# machine, single user. It does not implement the old "-remote" flag /
-# siteconfig/RemoteServer split for pointing at a separate ECCE server
-# host -- set ECCE_NO_MESSAGING=1 and manage that by hand if you need it.
+# Which broker the relay talks to, and whether one is started here,
+# depends on the deployment mode; see "--- 1." below.
 
 set -u
 
@@ -24,7 +20,9 @@ export DISPLAY="${DISPLAY:-:0}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
 mkdir -p "$STATEDIR"
 
-ACTIVEMQ_HOME="/usr/share/activemq"
+# ACTIVEMQ_HOME: Debian/Ubuntu package path by default; set it to an
+# upstream ActiveMQ Classic install (e.g. on RHEL, which packages none).
+ACTIVEMQ_HOME="${ACTIVEMQ_HOME:-/usr/share/activemq}"
 
 # The broker's listening port. Three things have to agree on it: this
 # script's check, activemq.xml's <transportConnector>, and
@@ -51,129 +49,104 @@ port_open() {
   # "did not report ready within 20s -- see <log>".
   (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1
 }
+port_open_at() { (exec 3<>"/dev/tcp/$1/$2") >/dev/null 2>&1; }
+
+# ecce-gateway-reap (called below, and from every wrapper's EXIT trap)
+# may stop this user's broker when their last session ends. Hold one
+# lock across the decision and the start, so a session starting as the
+# previous one ends cannot adopt a broker that is being stopped. Nothing
+# started from here may inherit the descriptor, or the lock outlives us.
+exec 9>>"$STATEDIR/.gateway.lock"
+flock -w 90 9 || echo "ecce-gateway-start: could not lock $STATEDIR/.gateway.lock; continuing" >&2
 
 # --- 0. Clean up after a session that died badly -----------------------
-# Issue #102: an aborted gateway left the broker and its JMSDispatcher
-# running, and the port check below would then happily adopt the orphan --
-# so nothing ever cleaned it up, and a machine nobody was using
-# accumulated gigabytes of stranded Java. The sweep only touches services
-# whose display has no live ECCE app, so it cannot disturb a session that
-# is genuinely running, including one on another display.
+# Issue #102: an aborted gateway's relay was left running and adopted by
+# the next session. The sweep only touches relays whose display has no
+# live ECCE app, so it cannot disturb a running session.
 if [ -x "$ECCE_HOME/bin/ecce-gateway-reap" ]; then
-  "$ECCE_HOME/bin/ecce-gateway-reap" || true
+  # It would wait for the lock we hold; tell it we hold it.
+  ECCE_GATEWAY_LOCKED=1 "$ECCE_HOME/bin/ecce-gateway-reap" 9>&- || true
 fi
 
-# --- 1. ActiveMQ broker -----------------------------------------------
-if [ -n "${ECCE_REMOTE_SERVER:-}" ]; then
-  # -remote: the broker is the central server's (siteconfig/jndi.properties,
-  # written by ecce-remote-setup); only this session's relay runs here.
+# --- 1. Which broker ----------------------------------------------------
+# Three deployment modes (GETTING_STARTED.md, "Deployment modes"):
+#   3. siteconfig/SharedBroker declares the site's broker, a system
+#      service. It wins over -remote, so an app server can use a central
+#      data server with its own local broker.
+#   2. -remote: the central server's broker, as ecce-remote-setup wrote
+#      it into siteconfig/jndi.properties.
+#   1. otherwise this user's own broker on BROKER_PORT, started here.
+SHARED=""
+if [ -x "$ECCE_HOME/bin/ecce-broker-setup" ]; then
+  SHARED="$("$ECCE_HOME/bin/ecce-broker-setup" --show 2>/dev/null)" || SHARED=""
+fi
+if [ -z "$SHARED" ] && [ -e "$ECCE_HOME/siteconfig/SharedBroker" ]; then
+  echo "ecce-gateway-start: $ECCE_HOME/siteconfig/SharedBroker is unreadable or not host:port -- fix it (ecce-broker-setup); not starting a broker of our own over it" >&2
+  SHARED="invalid"
+fi
+
+own_broker_pid() {
+  local pid
+  pid="$(cat "$STATEDIR/activemq.pid" 2>/dev/null)"
+  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then echo "$pid"; return; fi
+  pgrep -u "$(id -u)" -f "activemq.base=$STATEDIR/activemq( |$)" 2>/dev/null | head -n1
+}
+
+if [ -n "$SHARED" ]; then
+  if [ "$SHARED" != "invalid" ]; then
+    set -- $SHARED
+    if port_open_at "$1" "$2"; then
+      echo "ecce-gateway-start: using the site's shared broker $1:$2 (siteconfig/SharedBroker)"
+    else
+      echo "ecce-gateway-start: the site's shared broker $1:$2 (siteconfig/SharedBroker) is not answering -- ask the administrator to check 'systemctl status ecce-broker'" >&2
+    fi
+  fi
+elif [ -n "${ECCE_REMOTE_SERVER:-}" ]; then
   echo "ecce-gateway-start: -remote -- using the central broker"
 elif port_open "$BROKER_PORT"; then
-  echo "ecce-gateway-start: broker already listening on $BROKER_PORT"
-elif [ ! -f "$ECCE_HOME/server/activemq-conf/activemq.xml" ]; then
-  # This install has no broker config at all -- the ecce-server package
-  # (split packaging, #split-packages) isn't installed, so there is
-  # nothing to start locally and no ECCE_REMOTE_SERVER was set either.
-  # Say so plainly rather than silently skipping: the relay below will
-  # still start, but with no broker reachable it has nothing to talk to.
-  echo "ecce-gateway-start: no local broker config ($ECCE_HOME/server/activemq-conf/activemq.xml missing -- ecce-server not installed) and ECCE_REMOTE_SERVER is not set." >&2
-  echo "ecce-gateway-start: install ecce-server for a local broker, or point this client at a central one (ecce-remote-setup, then 'ecce -remote')." >&2
-else
-  # The Debian activemq package ships /usr/bin/activemq as its own launcher
-  # script, but that script's invokeJar() has a real quoting bug on this
-  # system (its `sh -c "$JAVACMD ..."` construction fails with a bare
-  # "command not found" -- confirmed directly, not theorized; some
-  # interaction between its DOIT_PREFIX handling and this shell/version
-  # combination). Rather than depend on that, invoke java directly
-  # ourselves with the same JVM args and activemq.* system properties that
-  # script would have computed -- verified this launches identically by
-  # capturing the script's own (correct, up to the quoting bug) computed
-  # command line before it fails, and testing this exact invocation
-  # standalone: broker actually comes up and accepts connections.
-  #
-  # ACTIVEMQ_HOME is a shared, package-owned install (root:root, not
-  # group/other-writable) since it's meant to be installed once and used
-  # by every user on the machine -- so activemq.base (persistence store,
-  # lock file, log file) must NOT default to it, or every user's broker
-  # instance fails writing there. Point ACTIVEMQ_BASE at this user's own
-  # per-user state dir instead, matching how JMSDispatcher's own PID/port
-  # files already work. Unlike the old vendored 5.1.0 tarball (which
-  # shipped its own conf/ alongside bin/, letting this be a symlink back
-  # to $ACTIVEMQ_HOME/conf), the Debian package keeps its own default
-  # config under /etc/activemq/ entirely separately from
-  # /usr/share/activemq -- and we don't want that shared, root-owned,
-  # single-instance config anyway (it defaults to port 61616, not the
-  # 8088 siteconfig/jndi.properties expects). So ship and copy our own
-  # known-working config instead of symlinking to anything
-  # system-provided.
-  if [ ! -d "$ACTIVEMQ_HOME" ]; then
-    echo "ecce-gateway-start: no ActiveMQ broker installed (apt install activemq) -- messaging will not work" >&2
+  if [ -n "$(own_broker_pid)" ]; then
+    echo "ecce-gateway-start: broker already listening on $BROKER_PORT"
   else
-    echo "ecce-gateway-start: starting ActiveMQ broker..."
-    ACTIVEMQ_BASE="$STATEDIR/activemq"
-    mkdir -p "$ACTIVEMQ_BASE/data" "$ACTIVEMQ_BASE/conf"
-    # Resolve the shipped config against BROKER_PORT rather than copying it
-    # verbatim. Rewritten whenever it does not already name this port, so
-    # changing ECCE_BROKER_PORT takes effect without hand-deleting the copy.
-    _amq_conf="$ACTIVEMQ_BASE/conf/activemq.xml"
-    # A central server's broker must be reachable by its clients: it
-    # follows the data server's listen setting (#138, #167) -- loopback by
-    # default, every interface for anything else (one ActiveMQ connector
-    # cannot bind an address list).
-    _listen="${ECCE_DATASERVER_LISTEN:-}"
-    if [ -z "$_listen" ] && [ -f "$STATEDIR/dataserver/listen" ]; then
-      _listen="$(sed -e 's/#.*//' "$STATEDIR/dataserver/listen" | tr -d ' \t\n')"
-    fi
-    case "${_listen:-loopback}" in
-      loopback) _amq_host=localhost ;;
-      *)        _amq_host=0.0.0.0 ;;
-    esac
-    if [ ! -e "$_amq_conf" ] || ! grep -q "tcp://$_amq_host:$BROKER_PORT" "$_amq_conf"; then
-      sed -e "s|tcp://[a-z0-9.]*:[0-9][0-9]*|tcp://$_amq_host:$BROKER_PORT|g" \
-          "$ECCE_HOME/server/activemq-conf/activemq.xml" >"$_amq_conf"
-    fi
-    export ACTIVEMQ_BASE
-    CP=""
-    for f in "$ACTIVEMQ_HOME"/lib/*.jar; do CP="$f:$CP"; done
-    (
-      cd "$ACTIVEMQ_HOME" || exit 1
-      nohup java -Xms512M -Xmx512M -Dorg.apache.activemq.UseDedicatedTaskRunner=true \
-        --add-reads=java.xml=java.logging \
-        --add-opens java.base/java.security=ALL-UNNAMED \
-        --add-opens java.base/java.net=ALL-UNNAMED \
-        --add-opens java.base/java.lang=ALL-UNNAMED \
-        --add-opens java.base/java.util=ALL-UNNAMED \
-        --add-opens java.naming/javax.naming.spi=ALL-UNNAMED \
-        --add-opens java.rmi/sun.rmi.transport.tcp=ALL-UNNAMED \
-        --add-opens java.base/java.util.concurrent=ALL-UNNAMED \
-        --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED \
-        --add-exports=java.base/sun.net.www.protocol.http=ALL-UNNAMED \
-        --add-exports=java.base/sun.net.www.protocol.https=ALL-UNNAMED \
-        --add-exports=java.base/sun.net.www.protocol.jar=ALL-UNNAMED \
-        --add-exports=jdk.xml.dom/org.w3c.dom.html=ALL-UNNAMED \
-        --add-exports=jdk.naming.rmi/com.sun.jndi.url.rmi=ALL-UNNAMED \
-        -Dactivemq.classpath="$ACTIVEMQ_BASE/conf:$CP" \
-        -Dactivemq.home="$ACTIVEMQ_HOME" \
-        -Dactivemq.base="$ACTIVEMQ_BASE" \
-        -Dactivemq.conf="$ACTIVEMQ_BASE/conf" \
-        -Dactivemq.data="$ACTIVEMQ_BASE/data" \
-        -jar "$ACTIVEMQ_HOME/bin/activemq.jar" start \
-        >"$STATEDIR/activemq.log" 2>&1 &
-      # Recorded so ecce-gateway-reap and ecce-gateway-stop can identify
-      # this broker exactly, rather than pattern-matching the process
-      # table. $! is the java process itself: nohup execs, it does not
-      # fork.
-      echo $! >"$STATEDIR/activemq.pid"
-    )
-    i=0
-    while [ $i -lt 60 ]; do
-      if port_open "$BROKER_PORT"; then break; fi
-      i=$((i + 1))
-      sleep 0.5
-    done
-    if ! port_open "$BROKER_PORT"; then
-      echo "ecce-gateway-start: broker did not come up within 30s -- see $STATEDIR/activemq.log" >&2
-    fi
+    # Someone else's -- most likely another user's per-user broker, which
+    # goes when their last session ends, taking this session's messaging
+    # with it. A machine shared by several users wants a shared broker.
+    echo "ecce-gateway-start: port $BROKER_PORT is held by a broker this account did not start; using it, but it may stop when its owner quits. On a machine with several ECCE users, declare a shared broker (ecce-broker-setup), or set ECCE_BROKER_PORT." >&2
+  fi
+elif [ ! -f "$ECCE_HOME/server/activemq-conf/activemq.xml" ] ||
+     [ ! -x "$ECCE_HOME/bin/ecce-broker-run" ]; then
+  # A client-only install (split packaging): nothing to start locally.
+  echo "ecce-gateway-start: no local broker (ecce-server not installed) and neither ECCE_REMOTE_SERVER nor siteconfig/SharedBroker is set." >&2
+  echo "ecce-gateway-start: install ecce-server for a local broker, or point this client at a central one (ecce-remote-setup, then 'ecce -remote')." >&2
+elif [ ! -d "$ACTIVEMQ_HOME" ]; then
+  echo "ecce-gateway-start: no ActiveMQ at $ACTIVEMQ_HOME (apt install activemq, or set ACTIVEMQ_HOME to an upstream ActiveMQ Classic install) -- messaging will not work" >&2
+else
+  echo "ecce-gateway-start: starting ActiveMQ broker..."
+  # A central server's broker must be reachable by its clients: it
+  # follows the data server's listen setting (#138, #167) -- loopback by
+  # default, every interface for anything else.
+  _listen="${ECCE_DATASERVER_LISTEN:-}"
+  if [ -z "$_listen" ] && [ -f "$STATEDIR/dataserver/listen" ]; then
+    _listen="$(sed -e 's/#.*//' "$STATEDIR/dataserver/listen" | tr -d ' \t\n')"
+  fi
+  case "${_listen:-loopback}" in
+    loopback) _amq_host=localhost ;;
+    *)        _amq_host=0.0.0.0 ;;
+  esac
+  (
+    nohup "$ECCE_HOME/bin/ecce-broker-run" "$STATEDIR/activemq" \
+      "$_amq_host" "$BROKER_PORT" >"$STATEDIR/activemq.log" 2>&1 9>&- &
+    # The reaper identifies this broker by it. ecce-broker-run execs the
+    # JVM, so $! is the broker itself.
+    echo $! >"$STATEDIR/activemq.pid"
+  )
+  i=0
+  while [ $i -lt 60 ]; do
+    if port_open "$BROKER_PORT"; then break; fi
+    i=$((i + 1))
+    sleep 0.5
+  done
+  if ! port_open "$BROKER_PORT"; then
+    echo "ecce-gateway-start: broker did not come up within 30s -- see $STATEDIR/activemq.log" >&2
   fi
 fi
 
@@ -209,7 +182,12 @@ else
   # one on the classpath. $ECCE_HOME/siteconfig is root-owned and shared,
   # so it cannot be rewritten per user or per instance anyway.
   mkdir -p "$STATEDIR/siteconfig"
-  if [ -n "${ECCE_REMOTE_SERVER:-}" ] && [ -f "$ECCE_HOME/siteconfig/jndi.properties" ]; then
+  if [ -n "$SHARED" ] && [ "$SHARED" != "invalid" ] && [ -f "$ECCE_HOME/siteconfig/jndi.properties" ]; then
+    set -- $SHARED
+    sed -e "s|\(java\.naming\.provider\.url[ \t]*=[ \t]*\).*|\1tcp://$1:$2|" \
+        "$ECCE_HOME/siteconfig/jndi.properties" \
+        >"$STATEDIR/siteconfig/jndi.properties"
+  elif [ -n "${ECCE_REMOTE_SERVER:-}" ] && [ -f "$ECCE_HOME/siteconfig/jndi.properties" ]; then
     # Keep the central broker's URL as ecce-remote-setup wrote it.
     cp "$ECCE_HOME/siteconfig/jndi.properties" "$STATEDIR/siteconfig/jndi.properties"
   elif [ -f "$ECCE_HOME/siteconfig/jndi.properties" ]; then
@@ -223,7 +201,7 @@ else
       -DECCE_HOME="$ECCE_HOME" -DECCE_USERHOME="$ECCE_REALUSERHOME" \
       -cp "$STATEDIR/siteconfig:$CP:$ECCE_HOME/siteconfig" \
       gov.pnnl.emsl.ecce.jms.JMSDispatcher \
-      >"$STATEDIR/jmsdispatcher.log" 2>&1 &
+      >"$STATEDIR/jmsdispatcher.log" 2>&1 9>&- &
     echo $! >"$PIDFILE"
   )
   i=0

@@ -1,0 +1,40 @@
+# ECCE's shared message broker (deployment mode 3): one ActiveMQ for
+# every ECCE user of this machine, instead of one per user. Enabled by
+# `ecce-broker-setup`, which writes the siteconfig/SharedBroker
+# declaration this reads its port from; see GETTING_STARTED.md,
+# "Deployment modes". Without that file the service does not start.
+#
+# No user session starts, reaps or stops this broker; only systemctl does.
+
+[Unit]
+Description=ECCE shared message broker (ActiveMQ)
+After=network.target
+ConditionPathExists=@ECCE_HOME_DIR@/siteconfig/SharedBroker
+
+[Service]
+Type=simple
+# Its own account, created on demand; the store survives restarts in
+# /var/lib/ecce-broker.
+DynamicUser=yes
+User=ecce-broker
+StateDirectory=ecce-broker
+Environment=ECCE_HOME=@ECCE_HOME_DIR@
+ExecStart=@ECCE_HOME_DIR@/bin/ecce-broker-run --shared %S/ecce-broker
+# The JVM exits 143 on the SIGTERM systemctl stop sends.
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+# It needs the network and its store, nothing else. No
+# MemoryDenyWriteExecute: the JIT needs it.
+CapabilityBoundingSet=
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

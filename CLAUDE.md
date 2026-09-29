@@ -37,10 +37,15 @@ Once a design decision is settled, delegate the implementation to the sonnet-imp
   UI decision like this needs reversing, prefer that env var to a
   revert. With the frame hidden the gateway quits once no other app of
   its session is left (#185; job monitors don't count), ending only that
-  session and its relay. **The broker, like the data server, is stopped
-  only by an explicit Quit and Stop Server** (`ecce-gateway-reap
-  --stop`): it may be a central server's, shared with students, and an
-  idle broker left running is the accepted cost.
+  session and its relay. **A per-user broker stops with the user's last
+  session on any display; a server's broker never does on a plain quit**
+  (#191). "A server's" comes only from declarations, never from who is
+  connected (clients may tunnel in over loopback): `siteconfig/
+  SharedBroker` (mode 3, a systemd service no user can stop, not even
+  with Quit and Stop Server), or `~/.ECCE/activemq/server` (`ecce-remote-
+  setup --server`) or a broker listening beyond loopback (mode 2, stopped
+  only by that account's Quit and Stop Server). The data server is
+  stopped only by Quit and Stop Server, in every mode (#97).
 - `GETTING_STARTED.md` (repo root) has the full build/package/install/
   first-login walkthrough. Don't reproduce it here.
 - **The central-server deployment is unconditional** (stated 2026-09-25).
@@ -54,9 +59,13 @@ Once a design decision is settled, delegate the implementation to the sonnet-imp
   `siteconfig/RemoteServer/` as first-class rather than a fallback, and
   before changing the data server, the broker, `Listen` or service
   startup, ask explicitly what it does to a central install. #138 is
-  the live instance; `packaging/dataserver/ecce-remote-setup` has so far
-  only been tested against a fake install tree, never a live two-machine
-  deployment.
+  the live instance. There are three deployment modes (GETTING_STARTED,
+  "Deployment modes"): local, central server (`-remote`), and a shared
+  system broker on an app server (`siteconfig/SharedBroker`, #191).
+  `tests/apps/session_end.py` covers all three, but on one machine as
+  one Unix user (a second "user" is a second `ECCE_REALUSERHOME`). None
+  has been tested with real separate accounts or two machines, and
+  `ecce-broker.service` has never run under the system manager.
 - **Memory settings should be entered/labeled in GB everywhere, for
   every code** — Andy's explicit UX preference (2026-09-07), not each
   code's native convention. The wire format still has to match what

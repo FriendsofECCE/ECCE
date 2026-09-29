@@ -703,6 +703,32 @@ install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/activemq.xml.ecce
         RENAME activemq.xml
         COMPONENT server)
 
+# Deployment mode 3, the site's shared broker (GETTING_STARTED.md,
+# "Deployment modes"). ecce-broker-setup writes siteconfig/SharedBroker,
+# which the clients read, so it goes with them; ecce-broker-run and the
+# unit run the broker, so they go with its config. The unit is installed
+# beside that config rather than into /usr/lib/systemd/system, so a
+# non-root prefix install still works; ecce-broker-setup prints the
+# `systemctl link` for it.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker-setup
+        DESTINATION bin
+        COMPONENT client)
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker-run
+        DESTINATION bin
+        COMPONENT server)
+configure_file(${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker.service.in
+               ${CMAKE_BINARY_DIR}/systemd/ecce-broker.service @ONLY)
+install(FILES ${CMAKE_BINARY_DIR}/systemd/ecce-broker.service
+        DESTINATION server/systemd
+        COMPONENT server)
+set(_bs_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-broker-setup)
+file(WRITE ${_bs_wrapper}
+"#!/bin/bash
+export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+exec \"$ECCE_HOME/bin/ecce-broker-setup\" \"$@\"
+")
+install(PROGRAMS ${_bs_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
+
 # Also put the gateway control scripts on PATH directly (like the ecce-<app>
 # wrappers) so `ecce-gateway-status` etc. work without needing $ECCE_HOME.
 foreach(_gw start stop status reap)
@@ -998,8 +1024,9 @@ fi")
     # including the SIGABRT that stranded the broker and a JMSDispatcher
     # for ten days on beryllium. ecce-gateway-reap --if-idle does nothing
     # while any other ECCE app is still up on this display, so only the
-    # last one out stops the display's relay; the broker and data server
-    # stay up until an explicit Quit and Stop Server.
+    # last one out stops the display's relay, and the user's last session
+    # stops a per-user broker (never a server's or the site's shared one).
+    # The data server stays up until an explicit Quit and Stop Server.
     set(_app_exec "trap 'ECCE_REAP_QUIET=1 \"$ECCE_HOME/bin/ecce-gateway-reap\" --if-idle >/dev/null 2>&1 || true' EXIT
 \"$ECCE_HOME/bin/${_app}\" \"$@\"")
   else()
@@ -1344,15 +1371,21 @@ if(ECCE_SPLIT_PACKAGES)
       "ecce-client/ecce-server Break+Replace the monolithic ecce package for versions strictly below this (Debian: 'ecce (<< VERSION)'; RPM: 'ecce < VERSION'). Defaults to this build's own version, i.e. the first split release breaks/replaces every version older than itself.")
 
   # CPack falls back to the monolithic-build globals below (Depends,
-  # Recommends) for any component that doesn't set its own -- confirmed
-  # live: without this, ecce-server and the ecce metapackage both picked
-  # up "Recommends: nwchem" from CPACK_DEBIAN_PACKAGE_RECOMMENDS above,
-  # which is wrong for both (a headless server box, and a metapackage
-  # that should only Depend on the two real components). Clear the
-  # globals here so every component's metadata is exactly what this
-  # block sets and nothing leaks in from the monolithic settings above.
+  # Recommends, Suggests) for any component that doesn't set its own --
+  # confirmed live: without this, ecce-server and the ecce metapackage
+  # both picked up "Recommends: nwchem" from CPACK_DEBIAN_PACKAGE_RECOMMENDS
+  # above, which is wrong for both (a headless server box, and a
+  # metapackage that should only Depend on the two real components).
+  # CPACK_DEBIAN_PACKAGE_SUGGESTS ("imagemagick, www-browser" -- both
+  # client-only, ImageConverter.C's viewer export and the Help menu) leaks
+  # the same way if left unset: it showed up as a Suggests on ecce-server
+  # and the ecce metapackage too, found the same way as the Recommends
+  # case above. Clear all three globals here so every component's
+  # metadata is exactly what this block sets and nothing leaks in from
+  # the monolithic settings above.
   unset(CPACK_DEBIAN_PACKAGE_DEPENDS)
   unset(CPACK_DEBIAN_PACKAGE_RECOMMENDS)
+  unset(CPACK_DEBIAN_PACKAGE_SUGGESTS)
 
   set(CPACK_DEB_COMPONENT_INSTALL ON)
   set(CPACK_COMPONENTS_ALL client server meta)
@@ -1372,15 +1405,29 @@ if(ECCE_SPLIT_PACKAGES)
     "Extensible Computational Chemistry Environment - client (GUI apps, input generators/parsers, job-launch tooling)")
   # apache2/apache2-utils and the broker move to ecce-server; everything
   # else CPACK_DEBIAN_PACKAGE_DEPENDS listed for the monolithic build is
-  # still needed here (python3-wxgtk4.0 for scripts/codereg, same
-  # rationale as the monolithic set above).
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS "python3-wxgtk4.0")
+  # still needed here (python3-wxgtk4.0 for scripts/codereg, csh/perl/
+  # xterm for the same reasons given beside the monolithic set above --
+  # none of that is server-side).
+  #
+  # default-jre-headless: the monolithic package never had to list a JVM
+  # explicitly because activemq (a hard Depends there) pulls in
+  # default-jre-headless transitively -- confirmed via `apt-cache depends
+  # activemq`. Splitting moves activemq to ecce-server and demotes it to
+  # a client Recommends, which would silently drop the client's own JVM
+  # need: ecce-gateway-start's "per-session JMSDispatcher relay" step
+  # runs `java gov.pnnl.emsl.ecce.jms.JMSDispatcher` unconditionally,
+  # including under -remote against a central broker with no local
+  # ecce-server at all, so it cannot be left to arrive only via a
+  # Recommends that a remote client has no reason to install.
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
+      "python3-wxgtk4.0, csh | tcsh, perl, xterm, default-jre-headless")
   # A client on the SAME machine as a server benefits from it (the
   # default "everything on one box" case this project still ships), but
   # a client of an already-central server (#167/#138 -- the teaching
   # deployment) has no use for a local data server or broker at all, so
   # this is Recommends, not Depends, matching the design brief.
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, nwchem")
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, nwchem, openssh-client")
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "imagemagick, www-browser")
   # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
   # without this, installing ecce-client while the old ecce package still
   # owns e.g. /opt/ecce/bin/organizer is a file-already-owned conflict,
@@ -1433,8 +1480,16 @@ section) -- installing this package pulls in both.
   if(RPMBUILD_EXECUTABLE)
     set(CPACK_RPM_CLIENT_PACKAGE_NAME "ecce-client")
     set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
-    set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES "python3-wxpython4")
-    set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS "ecce-server, nwchem")
+    # java-headless: same rationale as CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
+    # above -- the JMSDispatcher relay needs a JVM unconditionally, and on
+    # RPM distros activemq (the only thing that pulled one in transitively
+    # for the monolithic package, where it even applied -- see the
+    # monolithic CPACK_RPM_PACKAGE_SUGGESTS comment above) isn't even a
+    # hard Requires there, so it cannot be relied on at all here.
+    set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
+        "python3-wxpython4, tcsh, perl, xterm, java-headless")
+    set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
+        "ecce-server, nwchem, openssh-clients, ImageMagick, firefox")
     # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the
     # idiomatic equivalent for "this package supersedes an older one
     # that owned the same paths", and Conflicts blocks the two from

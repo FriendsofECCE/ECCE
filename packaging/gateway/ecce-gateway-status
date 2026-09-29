@@ -24,8 +24,25 @@ port_open() {
   (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1
 }
 
-if port_open "$BROKER_PORT"; then
-  echo "ActiveMQ broker:  running (port $BROKER_PORT)"
+ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
+shared=""
+[ -x "$ECCE_HOME/bin/ecce-broker-setup" ] &&
+  shared="$("$ECCE_HOME/bin/ecce-broker-setup" --show 2>/dev/null)"
+if [ -n "$shared" ]; then
+  set -- $shared
+  if (exec 3<>"/dev/tcp/$1/$2") >/dev/null 2>&1; then
+    echo "ActiveMQ broker:  the site's shared broker $1:$2, answering"
+  else
+    echo "ActiveMQ broker:  the site's shared broker $1:$2, NOT answering (systemctl status ecce-broker)"
+  fi
+elif port_open "$BROKER_PORT"; then
+  kind="this user's; stopped with the last session"
+  if [ -e "$STATEDIR/activemq/server" ] ||
+     { [ -f "$STATEDIR/activemq/conf/activemq.xml" ] &&
+       ! grep -q 'tcp://localhost:' "$STATEDIR/activemq/conf/activemq.xml"; }; then
+    kind="a server's; stopped only by Quit and Stop Server"
+  fi
+  echo "ActiveMQ broker:  running (port $BROKER_PORT, $kind)"
 else
   echo "ActiveMQ broker:  not running"
 fi

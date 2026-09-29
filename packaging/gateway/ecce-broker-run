@@ -1,0 +1,80 @@
+#!/bin/bash
+# ecce-broker-run: run ECCE's ActiveMQ broker in the FOREGROUND.
+#
+#   ecce-broker-run <base-dir> <bind-host> <port>
+#       A per-user broker; ecce-gateway-start backgrounds this.
+#   ecce-broker-run --shared <base-dir>
+#       The site's shared broker (deployment mode 3), as ecce-broker.service
+#       runs it. Port and bind address come from siteconfig/SharedBroker,
+#       so the declaration the clients read is the one the broker obeys.
+#
+# One launcher for both, so the JVM flags cannot drift between them.
+
+set -u
+
+ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
+ACTIVEMQ_HOME="${ACTIVEMQ_HOME:-/usr/share/activemq}"
+CONF_TEMPLATE="$ECCE_HOME/server/activemq-conf/activemq.xml"
+
+die() { echo "ecce-broker-run: $*" >&2; exit 1; }
+
+if [ "${1:-}" = "--shared" ]; then
+  [ $# -eq 2 ] || die "usage: ecce-broker-run --shared <base-dir>"
+  BASE="$2"
+  decl="$("$ECCE_HOME/bin/ecce-broker-setup" --show)" ||
+    die "no shared broker declared in $ECCE_HOME/siteconfig/SharedBroker (run ecce-broker-setup)"
+  set -- $decl
+  PORT="$2"
+  # A broker declared by a loopback name serves this machine only; any
+  # other name is for other machines too, and one ActiveMQ connector
+  # cannot bind an address list.
+  case "$1" in
+    localhost|127.*|::1) BIND=localhost ;;
+    *)                   BIND=0.0.0.0 ;;
+  esac
+else
+  [ $# -eq 3 ] || die "usage: ecce-broker-run <base-dir> <bind-host> <port>"
+  BASE="$1" BIND="$2" PORT="$3"
+fi
+
+[ -d "$ACTIVEMQ_HOME" ] || die "no ActiveMQ at $ACTIVEMQ_HOME (apt install activemq, or set ACTIVEMQ_HOME to an upstream ActiveMQ Classic install)"
+[ -f "$CONF_TEMPLATE" ] || die "no broker config at $CONF_TEMPLATE (ecce-server not installed)"
+
+# ACTIVEMQ_HOME is package-owned and shared, so the store, lock and log
+# live under BASE, and so does a config resolved against this port.
+# Debian's /etc/activemq config is single-instance and on another port.
+mkdir -p "$BASE/data" "$BASE/conf" || die "cannot create $BASE"
+conf="$BASE/conf/activemq.xml"
+if [ ! -e "$conf" ] || ! grep -q "tcp://$BIND:$PORT\"" "$conf"; then
+  sed -e "s|tcp://[a-z0-9.]*:[0-9][0-9]*|tcp://$BIND:$PORT|g" \
+      "$CONF_TEMPLATE" >"$conf" || die "cannot write $conf"
+fi
+
+CP=""
+for f in "$ACTIVEMQ_HOME"/lib/*.jar; do CP="$f:$CP"; done
+
+# java directly, not /usr/bin/activemq: Debian's launcher fails here with
+# a bare "command not found" from its sh -c quoting. These are the flags
+# it computes. exec, so the caller's $! and systemd's MainPID are the JVM.
+cd "$ACTIVEMQ_HOME" || die "cannot cd to $ACTIVEMQ_HOME"
+exec java -Xms512M -Xmx512M -Dorg.apache.activemq.UseDedicatedTaskRunner=true \
+  --add-reads=java.xml=java.logging \
+  --add-opens java.base/java.security=ALL-UNNAMED \
+  --add-opens java.base/java.net=ALL-UNNAMED \
+  --add-opens java.base/java.lang=ALL-UNNAMED \
+  --add-opens java.base/java.util=ALL-UNNAMED \
+  --add-opens java.naming/javax.naming.spi=ALL-UNNAMED \
+  --add-opens java.rmi/sun.rmi.transport.tcp=ALL-UNNAMED \
+  --add-opens java.base/java.util.concurrent=ALL-UNNAMED \
+  --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED \
+  --add-exports=java.base/sun.net.www.protocol.http=ALL-UNNAMED \
+  --add-exports=java.base/sun.net.www.protocol.https=ALL-UNNAMED \
+  --add-exports=java.base/sun.net.www.protocol.jar=ALL-UNNAMED \
+  --add-exports=jdk.xml.dom/org.w3c.dom.html=ALL-UNNAMED \
+  --add-exports=jdk.naming.rmi/com.sun.jndi.url.rmi=ALL-UNNAMED \
+  -Dactivemq.classpath="$BASE/conf:$CP" \
+  -Dactivemq.home="$ACTIVEMQ_HOME" \
+  -Dactivemq.base="$BASE" \
+  -Dactivemq.conf="$BASE/conf" \
+  -Dactivemq.data="$BASE/data" \
+  -jar "$ACTIVEMQ_HOME/bin/activemq.jar" start
