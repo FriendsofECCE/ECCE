@@ -357,12 +357,7 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
     message = "Input files could not be generated--temporary local directory "
               + dir->path() + " does not exist";
   else {
-    // Remove all input files from DAV to insure consistency
-
-    if (!p_iCalc->removeInputFiles())
-      message = "Input files could not be deleted "
-                "from DAV before regeneration";
-    else {
+    {
       TypedFile typedInFile = codecap->getCodeFile(JCode::PRIMARY_INPUT);
       string input_file = typedInFile.name();
       string orig_input_file = input_file + ".orig";
@@ -460,6 +455,12 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
             if (!localconn.exec(pretty_cmd))
               message = "Input files could not be generated--pretty parsing "
                         "command " + pretty_cmd + " failed";
+            //  Only now, once there is a new deck to replace it: a failed
+            //  generation leaves the last good deck for Final Edit, and
+            //  CalcEd demotes the calculation so that deck cannot launch.
+            else if (!p_iCalc->removeInputFiles())
+              message = "Input files could not be deleted "
+                        "from DAV before regeneration";
             else {
               // DAV put (copy from local disk to DAV)
 
@@ -502,7 +503,7 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
           } // parser command succeeded
         } // parser file exists
       } // parser exists
-    } // Input file could be deleted from DAV
+    }
   } // UNIX directory exists, writable, and able to cd to it
 
   // Revert working directory before deleting temporary one because

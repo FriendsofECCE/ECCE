@@ -99,6 +99,7 @@ CalcEd::CalcEd( )
     p_context(""),
     p_startUp(false),
     p_handEdited(false),
+    p_inputGenFailed(false),
     p_theoryPid(0),
     p_theoryInFilePath(""),
     p_theoryOutFile(NULL),
@@ -146,6 +147,7 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
     p_context(""),
     p_startUp(false),
     p_handEdited(false),
+    p_inputGenFailed(false),
     p_theoryPid(0),
     p_theoryInFilePath(""),
     p_theoryOutFile(NULL),
@@ -579,6 +581,8 @@ void CalcEd::setContextTheoryRuntype()
 
 void CalcEd::freeContext()
 {
+  p_inputGenFailed = false;
+
   if (p_frag) {
     delete p_frag;
     p_frag = 0;
@@ -688,11 +692,21 @@ void CalcEd::processEditCompletion(const EditEvent& ee)
   if (!p_iCalc->putInputFile(infile, &ifs))
     p_feedback->setMessage("Input file could not be copied back to DAV",
                            WxFeedback::ERROR);
-  else
+  else {
     // The file on disk is now a hand edit, not something generateInput()
     // wrote -- regenerateIfStructureChanged() must ask before replacing
     // it, rather than silently regenerating over it.
     p_handEdited = true;
+
+    // A hand edit is the user's call, so it overrides a failed
+    // generation: the edited deck is launchable as it stands.
+    if (p_inputGenFailed ||
+        p_iCalc->getState() < ResourceDescriptor::STATE_READY) {
+      p_inputGenFailed = false;
+      p_iCalc->setState(ResourceDescriptor::STATE_READY);
+      enableLaunch();
+    }
+  }
   ifs.close();
 
   //  A hand edit is the ONE case where the deck can become broken
@@ -1140,6 +1154,13 @@ void CalcEd::OnButtonCalcedFinalEditClick( wxCommandEvent& event )
                   "applied you must launch the task without making any "
                   "further changes.", WxFeedback::INFO);
         }
+        if (p_inputGenFailed) {
+          p_feedback->setMessage("The current settings could not be "
+                  "generated, so this is the last input file that was: it "
+                  "does not reflect the settings the generator refused. "
+                  "Saving an edit makes it launchable as you leave it.",
+                  WxFeedback::WARNING);
+        }
   
         string text;
         StringConverter::streamToText(*is, text);
@@ -1295,6 +1316,18 @@ void CalcEd::OnButtonCalcedLaunchClick( wxCommandEvent& event )
 {
   if (!regenerateIfStructureChanged())
     return;
+
+  //  Save here rather than in OnToolClick(), so that a generation
+  //  failure stops the Launcher opening on a deck the generator refused.
+  if (p_feedback->getEditStatus() == WxFeedback::MODIFIED)
+    doSave();
+  else if (p_iCalc &&
+           p_iCalc->getState() < ResourceDescriptor::STATE_READY)
+    generateInput(false);   // e.g. reopened after a failed generation
+  if (p_inputGenFailed) {
+    enableLaunch();
+    return;
+  }
 
   ResourceTool *tool =
           ResourceDescriptor::getResourceDescriptor().getTool(LAUNCHER);
@@ -2800,7 +2833,11 @@ void CalcEd::enableDetailsFields()
 void CalcEd::enableLaunch()
 {
   if (p_iCalc) {
-    bool ready = isReady();
+    //  A failed generation blocks launch until a regeneration succeeds --
+    //  except with unsaved edits, because Launch saves (and regenerates)
+    //  first.
+    bool ready = isReady() && (!p_inputGenFailed ||
+            p_feedback->getEditStatus() == WxFeedback::MODIFIED);
 
     if (ready) {
       p_feedback->setRunState(ResourceDescriptor::STATE_READY);
@@ -2832,7 +2869,10 @@ void CalcEd::enableLaunch()
   
     bool togo = p_feedback->getRunState() > ResourceDescriptor::STATE_CREATED
             && p_feedback->getRunState() != ResourceDescriptor::STATE_LOADED;
-    FindWindow(ID_BUTTON_CALCED_FINAL_EDIT)->Enable(togo);
+    //  Final Edit stays open after a failed generation: a deck the user
+    //  edits by hand is theirs to submit, whatever the generator thinks.
+    FindWindow(ID_BUTTON_CALCED_FINAL_EDIT)->Enable(togo ||
+            (p_inputGenFailed && isReady()));
     FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(togo);
     FindWindow(ID_BUTTON_CALCED_VERIFY)->Enable(togo);
 
@@ -3017,6 +3057,18 @@ bool CalcEd::generateInput(const bool& paramFlag)
     if (success)
       p_handEdited = false;
 
+    //  The stored state is what the Launcher and Organizer go by, so it
+    //  must follow the generator's verdict: a READY left over from an
+    //  earlier save would let them submit the old deck for settings the
+    //  generator has just refused.
+    p_inputGenFailed = !success;
+    ResourceDescriptor::RUNSTATE state = p_iCalc->getState();
+    if (!success && state == ResourceDescriptor::STATE_READY) {
+      p_iCalc->setState(ResourceDescriptor::STATE_CREATED);
+    } else if (success && state < ResourceDescriptor::STATE_READY) {
+      p_iCalc->setState(ResourceDescriptor::STATE_READY);
+    }
+
     //  A deck has just been written: check it and set the lamp (#148).
     //  Here rather than in enableLaunch(), which runs on every edit --
     //  this is the one moment the file can have changed, so it is also
@@ -3178,6 +3230,15 @@ void CalcEd::doSave()
 
     p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() + ".",
                            WxFeedback::INFO);
+    if (p_inputGenFailed) {
+      //  "Saved" is true of the settings, but it must not read as
+      //  "ready", so say so after it.
+      p_feedback->setMessage("It cannot be launched until its input file "
+                             "can be generated -- see the error above -- "
+                             "or until you edit the input file yourself "
+                             "with Final Edit.", WxFeedback::ERROR);
+    }
+    enableLaunch();
 
     if (saveCode)    urlChangeNotify("ecce_url_code");
     if (saveFrag)    urlChangeNotify("ecce_url_subject");
