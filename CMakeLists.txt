@@ -934,6 +934,11 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/eccejobmonitor)
           COMPONENT client)
 endif()
 
+# Named by `ecce --help`, so it has to be on the machine.
+install(FILES ${CMAKE_SOURCE_DIR}/docs/ENVIRONMENT.md
+        DESTINATION doc
+        COMPONENT client)
+
 # scripts/codereg: Theory/Runtype "Details" dialogs (JCode::
 # getTheoryRunTypeEditorNames(), src/dsm/xml/JCode.C). Wrongly assessed in
 # an earlier pass of the audit above as unported Python 2/wxPython
@@ -1117,7 +1122,18 @@ Usage: ecce [options]
 
 With no options, starts the Organizer -- the front door for New
 Structure, Register Machines, Machine Browser and Periodic Table.
+
+Environment (set before ecce; the first two win over Edit > Preferences):
+
+  ECCE_EDITOR          Editor for input and output files, e.g. \"geany -i\".
+                       Otherwise Preferences, VISUAL, EDITOR, then vi.
+  ECCE_BROWSER         Web browser for Help. Otherwise the desktop's opener.
+  ECCE_GATEWAY_WINDOW  Set to 1 to show the old Gateway launcher window.
+
+The editor, terminal and browser can also be set in the Organizer, under
+Edit > Preferences. All variables ECCE reads are listed in:
 USAGE
+    echo \"  \${ECCE_HOME:-${ECCE_HOME_DIR}}/doc/ENVIRONMENT.md\"
     exit 0
     ;;
 esac
