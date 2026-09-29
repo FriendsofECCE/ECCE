@@ -318,6 +318,7 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
   string realExpName;
 
   message = "";
+  p_inputGenWarnings.clear();
 
   // Create the files needed by the perl scripts
   // We assume that all three files (param, basisset, fragment) are needed
@@ -453,6 +454,27 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
             message += "\n(command: " + parser_path + ")";
           }
           else {
+            //  Combination problems the generator knows about are
+            //  reported, not fatal: the deck is written and Verify
+            //  shows them.  Form: ai.<code> warning [<anchor>]: <text>
+            size_t pos = 0;
+            while (pos < generatorOutput.size()) {
+              size_t eol = generatorOutput.find('\n', pos);
+              if (eol == string::npos) eol = generatorOutput.size();
+              string line = generatorOutput.substr(pos, eol - pos);
+              pos = eol + 1;
+              size_t open = line.find(" warning [");
+              size_t close = line.find("]: ", open == string::npos ? 0 : open);
+              if (line.compare(0, 3, "ai.") == 0 && open != string::npos &&
+                  close != string::npos) {
+                size_t a = open + 10;
+                size_t end = line.find_last_not_of(" \t\r");
+                p_inputGenWarnings.push_back(std::make_pair(
+                    line.substr(a, close - a),
+                    line.substr(close + 3, end + 1 - (close + 3))));
+              }
+            }
+
             string pretty_cmd = "prettyInput <" + orig_input_file +
                                 " >" + input_file;
 
