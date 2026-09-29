@@ -22,9 +22,10 @@ notices.
 
 Every ECCE app's wrapper runs `ecce-gateway-reap --if-idle` on exit, so
 a display's dispatcher is stopped once the last app on it closes (#102 —
-a SIGABRT once stranded one for ten days). The broker is left running,
-like the data server, and is stopped only by `ecce-gateway-stop` (Quit
-and Stop Server), which calls the reaper with `--stop` (#185).
+a SIGABRT once stranded one for ten days), and a per-user broker once the
+user's last session ends (#191). A server's broker and the data server
+are stopped only by `ecce-gateway-stop` (Quit and Stop Server), which
+calls the reaper with `--stop`.
 
 That rule is right for a user's session and wrong here, where apps are
 run **one at a time** and every app is therefore the last one out. The
@@ -366,28 +367,38 @@ read methods and still denying writes. No credentials, no `-pipe`, no
 guessing, and the permission change is confined to an account holding
 nothing but the fixture.
 
-## Session end (#185): `session_end.py`
+## Session end (#185, #191): `session_end.py`
 
 A separate entry point, not part of `run_tests.py` or ctest: it needs the
-tree's own gateway and scripts, takes a few minutes, and drives real
+tree's own gateway and scripts, takes several minutes, and drives real
 windows closed (`python3-xlib`, `xdotool`). With the Gateway window hidden,
 the gateway must quit once no other app of its session is left, ending
-that session and its relay but never the broker or data server.
+that session and its relay; a per-user broker goes with the user's last
+session, a server's or the site's shared broker never on a plain quit,
+and the data server only on Quit and Stop Server.
 
     tests/apps/session_end.py --tree build-cmake            all cases
     tests/apps/session_end.py --tree build-cmake stop remote
 
 `--tree` builds a `bin/` of symlinks to the install with `gateway` from
-the build directory and `ecce-gateway-*` from `packaging/gateway/`, and
-checks through `/proc/<pid>/exe` that the gateway that ran is the build's.
-Cases: `organizer`, `builder`, `jobstore` (a job-monitor stand-in survives
-and does not hold the session), `stop` (Quit and Stop Server stops the
-broker), `remote` (#167's single-machine recipe: a `-remote` client
-quitting leaves the server's services alone), `window`
-(`ECCE_GATEWAY_WINDOW=1`). Before every case each ECCE binary still
-running on the test display is killed and checked gone: an app the
-gateway spawned is outside `ecce`'s process group, and one left over
-held a later case's session open.
+the build directory and the `ecce-gateway-*`/`ecce-broker-*` scripts and
+`ecce-remote-setup` from `packaging/`, and checks through
+`/proc/<pid>/exe` that the gateway that ran is the build's. Use
+`--wrappers <dir>` for wrappers generated from the current
+`CMakeLists.txt` when the build directory's are older.
+Cases: `organizer` (the per-user broker stops), `builder`, `jobstore` (a
+job-monitor stand-in survives and does not hold the session), `stop`
+(Quit and Stop Server stops the broker), `remote` (#167's recipe with the
+server account marked: neither its quit nor the client's stops its
+broker), `displays` (the broker outlives one of two displays), `shared`
+(mode 3: `ecce-broker-run --shared` as the unit runs it, two "users" on
+two displays, no per-user broker ever, nothing stops it), `markers` (the
+reaper's server rules, with a stand-in broker), `window`
+(`ECCE_GATEWAY_WINDOW=1`). A second "user" is a second
+`ECCE_REALUSERHOME` of the same account: separate Unix users need root.
+Before every case each ECCE binary still running on the test display is
+killed and checked gone: an app the gateway spawned is outside `ecce`'s
+process group, and one left over held a later case's session open.
 
 ## Adding an app
 

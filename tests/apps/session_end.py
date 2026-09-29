@@ -8,17 +8,32 @@ server stay up; only an explicit Quit and Stop Server stops the broker.
 This drives that through the real wrappers on a private Xvfb, closing
 windows the way a window manager does (WM_DELETE_WINDOW):
 
-  organizer   close the Organizer; `ecce` returns, broker and data
-              server are still running
+  organizer   close the Organizer; `ecce` returns, the per-user broker
+              is stopped (mode 1), the data server is still running
   builder     open a Builder first; closing the Organizer alone must not
               end the session, closing the Builder afterwards must
   jobstore    a stand-in for a running eccejobstore must not hold the
               session open, and must survive it
   stop        ecce-gateway-stop (Quit and Stop Server) ends the session
               and stops the broker
-  remote      #167's recipe: a -remote client quitting leaves the
-              server's broker and data server alone
+  remote      #167's recipe (mode 2): with the server account marked
+              (ecce-remote-setup --server), neither its own plain quit nor
+              a -remote client's quit stops its broker
+  displays    one user on two displays: the per-user broker outlives the
+              first session and goes with the last
+  shared      mode 3: a stand-in for ecce-broker.service, run exactly as
+              the unit runs it from its own state directory, used by two
+              "users" (two state directories) through siteconfig/
+              SharedBroker; no quit, reap or Quit and Stop Server stops it,
+              and no per-user broker is ever started
+  markers     the reaper alone: a broker listening beyond loopback, or
+              under a server marker, survives --if-idle; a loopback one
+              does not
   window      ECCE_GATEWAY_WINDOW=1 keeps the Gateway window's behaviour
+
+Different Unix users cannot be run without root, so a second "user" is
+a second ECCE_REALUSERHOME of the same account; the scripts key all
+their state and liveness by it.
 
 Every process of this user on the test displays running an ECCE binary
 is killed, and checked gone, between cases, so one case's leftover
@@ -26,7 +41,8 @@ window cannot hold the next one's session open.
 
 Isolated exactly as run_tests.py is (isolate.py). `--tree <build-dir>`
 tests an uninstalled change: bin/ becomes symlinks to the install with
-gateway taken from the build and the gateway scripts from packaging/.
+gateway taken from the build and the gateway and broker scripts (and
+ecce-remote-setup) from packaging/.
 
     tests/apps/session_end.py [--tree build-cmake] [case ...]
 """
@@ -53,11 +69,16 @@ def treeHome(state, install, build):
         if entry != "bin":
             os.symlink(os.path.join(install, entry), os.path.join(home, entry))
     overrides = {"gateway": os.path.join(build, "gateway")}
-    for script in os.listdir(os.path.join(REPO, "packaging", "gateway")):
-        if script.startswith("ecce-gateway-"):
-            overrides[script] = os.path.join(REPO, "packaging", "gateway",
-                                             script)
-    for entry in os.listdir(os.path.join(install, "bin")):
+    gwdir = os.path.join(REPO, "packaging", "gateway")
+    for script in os.listdir(gwdir):
+        if script.startswith("ecce-") and os.access(
+                os.path.join(gwdir, script), os.X_OK):
+            overrides[script] = os.path.join(gwdir, script)
+    overrides["ecce-remote-setup"] = os.path.join(
+        REPO, "packaging", "dataserver", "ecce-remote-setup")
+    #  Scripts this change adds are not in the install at all yet.
+    entries = set(os.listdir(os.path.join(install, "bin"))) | set(overrides)
+    for entry in entries:
         source = overrides.get(entry, os.path.join(install, "bin", entry))
         os.symlink(source, os.path.join(home, "bin", entry))
     return home
@@ -67,7 +88,8 @@ def parse():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("cases", nargs="*",
                         default=["organizer", "builder", "jobstore", "stop",
-                                 "remote", "window"])
+                                 "remote", "displays", "shared", "markers",
+                                 "window"])
     parser.add_argument("--tree", help="build directory to take gateway from")
     parser.add_argument("--wrappers", help="directory holding the ecce "
                         "wrappers (default: <tree>/wrappers, else "
@@ -256,6 +278,56 @@ def portOpen(port):
         return sock.connect_ex(("127.0.0.1", port)) == 0
 
 
+def brokerPort():
+    return int(os.environ["ECCE_BROKER_PORT"])
+
+
+def brokerStopped(checks, amq, why):
+    checks.check(amq is not None and not alive(amq)
+                 and not portOpen(brokerPort()),
+                 "the per-user broker %s was stopped: %s" % (amq, why))
+    checks.check(broker() is None, "and its pidfile removed")
+
+
+def brokersOf(statedirs):
+    """Pids of brokers whose ActiveMQ base is under one of statedirs."""
+    found = []
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        try:
+            with open("/proc/%s/cmdline" % entry, "rb") as handle:
+                argv = handle.read().split(b"\0")
+        except OSError:
+            continue
+        for base in statedirs:
+            want = ("-Dactivemq.base=" + os.path.join(base, ".ECCE",
+                                                      "activemq")).encode()
+            if want in argv:
+                found.append(int(entry))
+    return found
+
+
+def connectedTo(port):
+    """Pids with an established TCP connection to localhost:port."""
+    out = subprocess.run(["ss", "-Htnp", "state", "established",
+                          "( dport = :%d )" % port],
+                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    return set(int(p) for p in re.findall(r"pid=(\d+)",
+                                          out.stdout.decode()))
+
+
+def run(script, env, *argv):
+    return subprocess.run([os.path.join(install, "bin", script)] + list(argv),
+                          env=env, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, timeout=180)
+
+
+def stopOwnBroker(env):
+    """Stop this state's per-user broker, as Quit and Stop Server would."""
+    run("ecce-gateway-reap", env, "--stop")
+
+
 # --- windows ---------------------------------------------------------------
 
 def waitWindow(display, pattern, timeout=60, gone=False):
@@ -313,6 +385,15 @@ def quitVia(display, frame):
         time.sleep(1)
     say("    (%s did not close; windows: %s)"
         % (frame[1], [t for _, t in display.windows() if t]))
+    for pid, exe in procs(display.name).items():
+        try:
+            with open("/proc/%d/wchan" % pid) as handle:
+                wchan = handle.read()
+            with open("/proc/%d/stat" % pid) as handle:
+                st = handle.read().rsplit(")", 1)[1].split()[0]
+        except OSError:
+            continue
+        say("    (  %d %s %s %s)" % (pid, os.path.basename(exe), st, wchan))
     return False
 
 
@@ -436,9 +517,8 @@ def caseOrganizer(checks, display, logdir):
         t0 = time.time()
         quitVia(display, frame)
         endsCleanly(checks, session, d, gw, disp, t0)
-        checks.check(amq is not None and alive(amq)
-                     and portOpen(int(os.environ["ECCE_BROKER_PORT"])),
-                     "broker %s left running (a plain quit, #185)" % amq)
+        brokerStopped(checks, amq, "the user's last session ended "
+                      "(mode 1, #191)")
         checks.check(portOpen(fixture.dataserverPort()),
                      "data server left running (a plain quit, #97)")
     finally:
@@ -577,6 +657,13 @@ def caseRemote(checks, display, logdir):
     if not checks.check(amq and alive(amq) and sdisp and alive(sdisp),
                         "server broker %s and relay %s up" % (amq, sdisp)):
         return
+    marker = os.path.join(statedir(), "activemq", "server")
+    mark = run("ecce-remote-setup", serverEnv, "--server")
+    if not checks.check(mark.returncode == 0 and os.path.exists(marker),
+                        "the server account marked (ecce-remote-setup "
+                        "--server)"):
+        say(mark.stdout.decode())
+        return
     client = os.path.join(state, "client")
     os.makedirs(os.path.join(client, ".ECCE"), exist_ok=True)
     chome = isolate.homeOverlay(apps.INSTALL, client, dport, bport)
@@ -615,8 +702,8 @@ def caseRemote(checks, display, logdir):
         checks.check(not alive(sdisp), "the teacher's relay %d was reaped"
                      % sdisp)
         checks.check(alive(amq) and "broker" not in said,
-                     "the teacher quitting left the broker the client uses "
-                     "(reaper: %s)" % said)
+                     "the marked server's own plain quit left the broker "
+                     "the client uses (reaper: %s)" % said)
         t0 = time.time()
         quitVia(cdisplay, frame)
         endsCleanly(checks, session, cd, gw or -1, cdisp, t0)
@@ -635,6 +722,219 @@ def caseRemote(checks, display, logdir):
         subprocess.run([os.path.join(install, "bin", "ecce-gateway-stop")],
                        env=stopEnv, stdout=subprocess.DEVNULL)
         cdisplay.__exit__(None, None, None)
+        try:
+            os.unlink(marker)
+        except OSError:
+            pass
+
+
+def caseDisplays(checks, display, logdir):
+    """Mode 1, one user on two displays: the per-user broker is the
+    user's, so it outlives the first session and goes with the last."""
+    other = xdisplay.Display().__enter__()
+    first = second = None
+    try:
+        first = Session(display, os.path.join(logdir, "displays-1.log"))
+        frame1 = first.organizer()
+        if not checks.check(frame1, "the Organizer opened on %s"
+                            % display.name):
+            return
+        gw1 = gatewayIsTheTree(checks, display.name)
+        second = Session(other, os.path.join(logdir, "displays-2.log"))
+        frame2 = second.organizer()
+        if not checks.check(frame2, "a second Organizer opened on %s"
+                            % other.name):
+            return
+        gw2 = gatewayIsTheTree(checks, other.name)
+        amq = broker()
+        disp1, disp2 = dispatcher(display.name), dispatcher(other.name)
+        checks.check(amq and alive(amq), "one broker for both (%s)" % amq)
+        t0 = time.time()
+        quitVia(display, frame1)
+        endsCleanly(checks, first, display.name, gw1 or -1, disp1, t0)
+        checks.check(amq is not None and alive(amq)
+                     and portOpen(brokerPort()),
+                     "the broker survives the first session: the user "
+                     "is still on %s" % other.name)
+        checks.check(disp2 and alive(disp2), "the other display's relay "
+                     "is untouched (%s)" % disp2)
+        t0 = time.time()
+        quitVia(other, frame2)
+        endsCleanly(checks, second, other.name, gw2 or -1, disp2, t0)
+        brokerStopped(checks, amq, "the user's last session ended")
+    finally:
+        for session in (first, second):
+            if session is not None:
+                session.kill()
+        checks.check(clearDisplay(other.name), "nothing left on %s"
+                     % other.name)
+        other.__exit__(None, None, None)
+
+
+def caseShared(checks, display, logdir):
+    """Mode 3: the site's shared broker, and two users of it.
+
+    The service is ecce-broker-run --shared, the unit's ExecStart, from a
+    state directory of its own (the unit's /var/lib/ecce-broker). The
+    users are this run's state and a second one, each on its own display.
+    """
+    env = display.env()
+    stopOwnBroker(env)
+    bport = brokerPort()
+    user2 = os.path.join(state, "user2")
+    os.makedirs(os.path.join(user2, ".ECCE"), exist_ok=True)
+    users = [os.environ["ECCE_REALUSERHOME"], user2]
+    checks.check(not portOpen(bport) and not brokersOf(users),
+                 "no per-user broker to begin with")
+    sport = isolate._pickPort("ECCE_TEST_SHARED_BROKER_PORT", bport + 100)
+    decl = os.path.join(os.environ["ECCE_HOME"], "siteconfig",
+                        "SharedBroker")
+    setup = run("ecce-broker-setup", env, "localhost:%d" % sport)
+    if not checks.check(setup.returncode == 0 and os.path.exists(decl),
+                        "ecce-broker-setup declared localhost:%d" % sport):
+        say(setup.stdout.decode())
+        return
+    base = os.path.join(state, "service", "ecce-broker")
+    serviceLog = open(os.path.join(logdir, "shared-service.log"), "w")
+    service = subprocess.Popen(
+        [os.path.join(install, "bin", "ecce-broker-run"), "--shared", base],
+        env={"PATH": os.environ["PATH"],
+             "ECCE_HOME": os.environ["ECCE_HOME"]},
+        cwd="/", stdin=subprocess.DEVNULL, stdout=serviceLog,
+        stderr=subprocess.STDOUT, start_new_session=True)
+    other = xdisplay.Display().__enter__()
+    first = second = None
+    try:
+        deadline = time.time() + 60
+        while not portOpen(sport) and time.time() < deadline:
+            time.sleep(0.5)
+        if not checks.check(portOpen(sport) and service.poll() is None,
+                            "the stand-in service %d answers on %d"
+                            % (service.pid, sport)):
+            return
+        extra2 = {"ECCE_REALUSERHOME": user2, "ECCE_NO_DATASERVER": "1"}
+        first = Session(display, os.path.join(logdir, "shared-1.log"))
+        frame1 = first.organizer()
+        if not checks.check(frame1, "user 1's Organizer opened"):
+            return
+        gw1 = gatewayIsTheTree(checks, display.name)
+        second = Session(other, os.path.join(logdir, "shared-2.log"),
+                         extra=extra2)
+        frame2 = second.organizer()
+        if not checks.check(frame2, "user 2's Organizer opened"):
+            return
+        gw2 = gatewayIsTheTree(checks, other.name)
+        disp1 = dispatcher(display.name)
+        disp2 = pidfile(os.path.join(user2, ".ECCE",
+                                     "jmsdispatcher_%s.pid" % other.name))
+        linked = connectedTo(sport)
+        for who, home, relay in (("user 1", users[0], disp1),
+                                 ("user 2", user2, disp2)):
+            with open(os.path.join(home, ".ECCE", "siteconfig",
+                                   "jndi.properties")) as handle:
+                jndi = handle.read()
+            checks.check("tcp://localhost:%d" % sport in jndi,
+                         "%s's relay is pointed at the shared broker" % who)
+            checks.check(relay in linked, "%s's relay %s is connected to "
+                         "it (connected: %s)" % (who, relay, sorted(linked)))
+        checks.check(not portOpen(bport) and not brokersOf(users),
+                     "no per-user broker was started")
+
+        t0 = time.time()
+        quitVia(display, frame1)
+        endsCleanly(checks, first, display.name, gw1 or -1, disp1, t0)
+        checks.check(service.poll() is None and portOpen(sport),
+                     "user 1's plain quit left the shared broker running")
+        env2 = dict(other.env(), **extra2)
+        t0 = time.time()
+        stop = ""
+        for script in ("ecce-dataserver-stop", "ecce-gateway-stop"):
+            stop += run(script, env2).stdout.decode()
+        endsCleanly(checks, second, other.name, gw2 or -1, disp2, t0,
+                    apps=False)
+        checks.check(service.poll() is None and portOpen(sport),
+                     "user 2's Quit and Stop Server left it running")
+        checks.check("shared service" in stop,
+                     "and said why (%s)" % " / ".join(
+                         l for l in stop.splitlines() if "broker" in l))
+        said = run("ecce-gateway-reap", env, "--stop").stdout.decode()
+        checks.check(service.poll() is None and portOpen(sport),
+                     "user 1's reaper --stop left it running (%s)"
+                     % said.strip().replace("\n", " / "))
+        checks.check(portOpen(fixture.dataserverPort()),
+                     "user 2's Quit and Stop Server left user 1's data "
+                     "server alone")
+        checks.check(not portOpen(bport) and not brokersOf(users)
+                     and broker() is None,
+                     "still no per-user broker, for either user")
+    finally:
+        for session in (first, second):
+            if session is not None:
+                session.kill()
+        checks.check(clearDisplay(other.name,
+                                  [os.path.join(user2, ".ECCE")]),
+                     "nothing left on %s" % other.name)
+        other.__exit__(None, None, None)
+        run("ecce-broker-setup", env, "--remove")
+        service.terminate()
+        try:
+            service.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            service.kill()
+            service.wait()
+        serviceLog.close()
+        checks.check(not os.path.exists(decl) and not portOpen(sport),
+                     "declaration withdrawn and the stand-in service "
+                     "stopped (exit %s)" % service.returncode)
+
+
+def caseMarkers(checks, display, logdir):
+    """The reaper alone, on the two things that make a broker a server's.
+
+    The broker is a stand-in (sleep, under activemq.pid), so the
+    listen-beyond-loopback case needs no real outward socket.
+    """
+    env = display.env()
+    stopOwnBroker(env)
+    base = os.path.join(statedir(), "activemq")
+    conf = os.path.join(base, "conf", "activemq.xml")
+    marker = os.path.join(base, "server")
+    os.makedirs(os.path.dirname(conf), exist_ok=True)
+    saved = open(conf).read() if os.path.exists(conf) else None
+    uri = 'uri="tcp://%s:%d"'
+    try:
+        for host, marked, survives, what in (
+                ("0.0.0.0", False, True, "listening beyond loopback"),
+                ("localhost", True, True, "marked a server's"),
+                ("localhost", False, False, "a loopback per-user broker")):
+            with open(conf, "w") as handle:
+                handle.write('<transportConnector name="openwire" %s/>\n'
+                             % (uri % (host, brokerPort())))
+            if marked:
+                open(marker, "w").close()
+            fake = subprocess.Popen(["sleep", "300"],
+                                    start_new_session=True)
+            with open(os.path.join(statedir(), "activemq.pid"), "w") as f:
+                f.write("%d\n" % fake.pid)
+            said = run("ecce-gateway-reap", env, "--if-idle")
+            time.sleep(0.5)
+            checks.check((fake.poll() is None) == survives,
+                         "%s: --if-idle %s it (%s)"
+                         % (what, "leaves" if survives else "stops",
+                            said.stdout.decode().strip()))
+            fake.kill()
+            fake.wait()
+            for path in (marker, os.path.join(statedir(), "activemq.pid")):
+                try:
+                    os.unlink(path)
+                except OSError:
+                    pass
+    finally:
+        if saved is None:
+            os.unlink(conf)
+        else:
+            with open(conf, "w") as handle:
+                handle.write(saved)
 
 
 def caseWindow(checks, display, logdir):
@@ -672,6 +972,8 @@ def caseWindow(checks, display, logdir):
 
 
 CASES = {"window": caseWindow, "stop": caseStop, "remote": caseRemote,
+         "displays": caseDisplays, "shared": caseShared,
+         "markers": caseMarkers,
          "organizer": caseOrganizer, "builder": caseBuilder,
          "jobstore": caseJobstore}
 

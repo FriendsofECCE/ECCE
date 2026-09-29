@@ -1,0 +1,124 @@
+#!/bin/bash
+# ecce-broker-setup: declare (or withdraw) this site's SHARED broker.
+#
+# Deployment mode 3: one broker for every user of an app server, run as
+# a system service (ecce-broker.service), instead of a per-user broker
+# for each. The declaration is $ECCE_HOME/siteconfig/SharedBroker, one
+# "host:port" line. While it exists, ecce-gateway-start starts no broker
+# of its own and points each session's relay there, and no user's quit,
+# reaper run or Quit and Stop Server ever stops a broker.
+#
+#   ecce-broker-setup [host[:port]]   declare it (default localhost:8088)
+#   ecce-broker-setup --remove        back to per-user brokers
+#   ecce-broker-setup --show          print "host port"; exit 1 if none
+#
+# Run as whoever owns $ECCE_HOME (normally root). It writes the
+# declaration and prints the systemctl commands; it starts nothing.
+
+set -u
+
+: "${ECCE_HOME:=/opt/ecce}"
+SITE="$ECCE_HOME/siteconfig"
+DECL="$SITE/SharedBroker"
+UNIT="$ECCE_HOME/server/systemd/ecce-broker.service"
+
+usage() {
+  cat <<'USAGE'
+Usage: ecce-broker-setup [host[:port]]   declare the shared broker (default localhost:8088)
+       ecce-broker-setup --remove        back to per-user brokers
+       ecce-broker-setup --show          print "host port"; exit 1 if none
+USAGE
+}
+
+# The one parser of the declaration; the other scripts call --show.
+# Comments and blanks are ignored, a tcp:// prefix is tolerated, and the
+# port defaults to 8088.
+show() {
+  [ -f "$DECL" ] || return 1
+  local line host port
+  line="$(sed -e 's/#.*//' -e 's|^[ \t]*tcp://||' -e 's/[ \t]//g' "$DECL" |
+          grep -m1 .)" || return 1
+  host="${line%%:*}"
+  port="${line#*:}"
+  [ "$port" = "$line" ] && port=8088
+  case "$port" in ''|*[!0-9]*) return 1 ;; esac
+  # Callers word-split this and put it in a sed replacement.
+  case "$host" in ''|*[!A-Za-z0-9._-]*) return 1 ;; esac
+  echo "$host $port"
+}
+
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  --show)
+    if show; then exit 0; fi
+    [ -f "$DECL" ] && echo "ecce-broker-setup: $DECL is not host:port" >&2
+    exit 1
+    ;;
+  --remove)
+    [ -w "$SITE" ] || { echo "ecce-broker-setup: cannot write $SITE (run as its owner)" >&2; exit 1; }
+    rm -f "$DECL"
+    echo "Removed $DECL: sessions start per-user brokers again."
+    echo "Stop the service if it runs here:"
+    echo "    sudo systemctl disable --now ecce-broker"
+    exit 0
+    ;;
+  -*) usage >&2; exit 2 ;;
+esac
+
+spec="${1:-localhost:8088}"
+spec="${spec#tcp://}"
+host="${spec%%:*}"
+port="${spec#*:}"
+[ "$port" = "$spec" ] && port=8088
+case "$port" in ''|*[!0-9]*) echo "ecce-broker-setup: bad port in '$spec'" >&2; exit 2 ;; esac
+case "$host" in ''|*[!A-Za-z0-9._-]*) echo "ecce-broker-setup: bad host in '$spec' (a name or IPv4 address)" >&2; exit 2 ;; esac
+
+if [ ! -d "$SITE" ]; then
+  echo "ecce-broker-setup: no siteconfig at $SITE (set ECCE_HOME)" >&2
+  exit 1
+fi
+if [ ! -w "$SITE" ]; then
+  echo "ecce-broker-setup: cannot write $SITE (run as its owner, usually root)" >&2
+  exit 1
+fi
+
+cat >"$DECL" <<EOF
+# The site's shared ECCE broker (deployment mode 3), written by
+# ecce-broker-setup. While this file exists no session starts a broker
+# of its own, and none stops this one.
+$host:$port
+EOF
+echo "Wrote $DECL ($host:$port)."
+
+if (exec 3<>"/dev/tcp/$host/$port") >/dev/null 2>&1; then
+  echo "A broker is already answering on $host:$port."
+fi
+
+echo
+case "$host" in
+  localhost|127.*|::1) local_broker=1 ;;
+  "$(hostname)"|"$(hostname -f 2>/dev/null)") local_broker=1 ;;
+  *) local_broker=0 ;;
+esac
+if [ -f "$UNIT" ]; then
+  echo "To run the broker here as a system service:"
+  echo
+  echo "    sudo systemctl link $UNIT"
+  echo "    sudo systemctl enable --now ecce-broker"
+  echo
+  echo "It runs as its own account (ecce-broker), keeps its store in"
+  echo "/var/lib/ecce-broker, and reads the port from $DECL."
+  case "$host" in
+    localhost|127.*|::1) ;;
+    *) echo "It listens on every interface, because '$host' is not a loopback"
+       echo "name. The broker has no authentication: firewall the port to the"
+       echo "machines that need it." ;;
+  esac
+  [ "$local_broker" = 1 ] || echo "($host is not this machine: run the service there instead.)"
+else
+  echo "The broker service is not installed here (ecce-server); it must"
+  echo "run on $host."
+fi
+echo
+echo "Users then run plain \"ecce\" (or \"ecce -remote\" when the data"
+echo "server is central too, see ecce-remote-setup)."

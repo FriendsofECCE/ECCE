@@ -30,7 +30,11 @@ set -u
 usage() {
   cat <<'USAGE'
 Usage: ecce-remote-setup <server-host> [data-port] [broker-port]
+       ecce-remote-setup --server [listen]
 
+  --server      on the SERVER, as the account running it: mark its broker
+                as a central server's, so its plain quit leaves it running;
+                listen (all, loopback or addresses) goes to dataserver/listen
   server-host   host name of the central ECCE server
   data-port     data server port      (default 8096)
   broker-port   message broker port   (default 8088)
@@ -39,6 +43,29 @@ Writes $ECCE_HOME/siteconfig/RemoteServer/ and repoints the broker URL.
 Run "ecce -remote" afterwards.
 USAGE
 }
+
+#  The SERVER's step: run once as the account that runs the central data
+#  server and broker.  It marks that account's broker as a server's, so
+#  the account's own plain quit never stops it under its clients; only
+#  its Quit and Stop Server does.  A mark, not a guess from the listen
+#  address, because clients may reach a loopback-only server through ssh
+#  tunnels.  The optional listen value is written to dataserver/listen.
+if [ "${1:-}" = "--server" ]; then
+  STATEDIR="${ECCE_REALUSERHOME:-$HOME}/.ECCE"
+  mkdir -p "$STATEDIR/activemq" || exit 1
+  echo "# ECCE central server: plain quits leave this broker running (ecce-remote-setup --server)" \
+    >"$STATEDIR/activemq/server" || exit 1
+  echo "Marked $STATEDIR/activemq/server: this account's broker is a central server's."
+  if [ -n "${2:-}" ]; then
+    mkdir -p "$STATEDIR/dataserver" || exit 1
+    echo "$2" >"$STATEDIR/dataserver/listen" || exit 1
+    echo "Wrote $STATEDIR/dataserver/listen ($2): the data server and broker listen there."
+    echo "Restart them for it to take effect:"
+    echo "    ecce-dataserver-stop; ecce-gateway-stop"
+  fi
+  echo "Remove that file to make it a per-user broker again."
+  exit 0
+fi
 
 if [ $# -lt 1 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
   usage

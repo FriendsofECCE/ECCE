@@ -74,9 +74,13 @@ cpack -G DEB
   dialogs, the job-side scripts the Launcher copies to compute hosts
   (`gensub`, `eccejobmonitor`, `*.desc`), the per-session JMSDispatcher
   relay, `siteconfig/`, and `ecce-remote-setup`/`ecce-diagnose`. Depends
-  on `python3-wxgtk4.0`; Recommends `ecce-server` and `nwchem` (not
-  Depends — a client of someone else's central server needs neither
-  locally).
+  on `python3-wxgtk4.0`, `csh | tcsh`, `perl`, `xterm` and
+  `default-jre-headless` (the JMSDispatcher relay runs unconditionally,
+  including under `-remote` with no local `ecce-server` at all, so its
+  JVM can't be left to arrive only via a Recommends); Recommends
+  `ecce-server`, `nwchem` and `openssh-client`; Suggests `imagemagick`
+  and `www-browser` (not Depends — a client of someone else's central
+  server needs neither `ecce-server` nor `nwchem` locally).
 - **`ecce-server`** — the per-user or central WebDAV data server (Apache
   config, structure/basis-set libraries, help content) and the ActiveMQ
   broker's config. Depends on `apache2`, `apache2-utils`, `activemq`.
@@ -247,6 +251,78 @@ a service is already running, the wrapper's start call is a no-op — safe to
 launch multiple apps back to back). Set `ECCE_NO_MESSAGING=1` or
 `ECCE_NO_DATASERVER=1` to skip auto-start (e.g. for debugging one app in
 isolation).
+
+### Deployment modes
+
+That is mode 1. A site can instead share the broker, the data server, or
+both. Which broker a quit may stop is decided only by what the admin
+declared (below), never by guessing who is connected. The data server is
+only ever stopped by **Quit and Stop Server**, in every mode.
+
+The broker has no authentication, and the data server speaks plain HTTP
+(#138): whoever can reach their ports can use them. Keep them on loopback
+or firewall them.
+
+**RHEL, Rocky, Fedora:** these distributions don't package ActiveMQ, so
+a machine that runs a broker (modes 1 and 3) needs it installed by hand:
+a JRE (`dnf install java-17-openjdk-headless`), then the ActiveMQ Classic
+binary tarball from https://activemq.apache.org unpacked in, e.g.,
+`/opt/activemq`. Point ECCE at it with `export
+ACTIVEMQ_HOME=/opt/activemq` in the users' environment; for the mode 3
+service, add `Environment=ACTIVEMQ_HOME=/opt/activemq` to the unit.
+A client of a central server (mode 2) needs none of this.
+
+#### Mode 1: everything local (the default)
+
+Nothing to set up. A user's first session starts their own broker (port
+8088, loopback only) and data server. The broker stops when that user's
+last session ends, on any display. On a machine with several ECCE users
+use mode 3: per-user brokers all want port 8088, so the first user's is
+used by everyone else and goes away when that user quits.
+
+#### Mode 2: a central server
+
+One account on the server runs the data server and broker for everyone.
+On the server, as that account:
+
+```
+ecce-remote-setup --server all   # mark it as the server; listen on every interface
+ecce-dataserver-start && ecce-gateway-start
+ecce-dataserver-adduser          # once per user
+```
+
+Leave out `all` if clients reach the server through ssh tunnels. On each
+client machine, as root:
+
+```
+sudo ecce-remote-setup <server-host>
+```
+
+Users then run `ecce -remote`. A client quitting never stops the server's
+services, and neither does the server account's own plain quit; its
+Quit and Stop Server does. To make the account per-user again, remove
+`~/.ECCE/activemq/server`.
+
+#### Mode 3: one shared broker on an app server
+
+One broker for every user of the machine, run by systemd under its own
+account, instead of one JVM per user. As root:
+
+```
+sudo ecce-broker-setup           # declares localhost:8088 in siteconfig/SharedBroker
+sudo systemctl link /opt/ecce/server/systemd/ecce-broker.service
+sudo systemctl enable --now ecce-broker
+```
+
+Sessions then start only their own relay, pointed at that broker. No
+quit, not even Quit and Stop Server, stops it; only `systemctl` does.
+`ecce-broker-setup host:port` names a broker on another port or machine
+(any non-loopback name makes the service listen on every interface).
+`sudo ecce-broker-setup --remove` goes back to mode 1.
+
+The data server is separate. Users run `ecce` for a per-user data server,
+or `ecce -remote` for a central one set up with `ecce-remote-setup
+<data-host>` as in mode 2; the shared broker is used either way.
 
 ## 5. Create a data-server account
 

@@ -1,6 +1,6 @@
 #!/bin/bash
-# ecce-gateway-stop: stop the per-user JMSDispatcher relay and the
-# ActiveMQ broker started by ecce-gateway-start.
+# ecce-gateway-stop: stop this display's gateway and JMSDispatcher relay,
+# and this account's ActiveMQ broker (never the site's shared one).
 
 set -u
 
@@ -72,10 +72,9 @@ rm -f "$STATEDIR/jmsdispatcher.pid"
 # is over either way and this file holds a password.
 rm -f "$AUTHFILE" "$AUTHFILE".tmp.*
 
-# This is the explicit "Quit and Stop Server", so the broker goes too --
-# but it is shared by every display, so the reaper stops it only once no
-# display has a live dispatcher left. A plain session end never gets here
-# and leaves the broker running (see ecce-gateway-reap).
+# The explicit "Quit and Stop Server": this account's broker goes too once
+# no display has a relay left -- unless it is the site's shared service
+# (siteconfig/SharedBroker), which no user stops. The reaper decides.
 ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
 if [ -x "$ECCE_HOME/bin/ecce-gateway-reap" ]; then
   "$ECCE_HOME/bin/ecce-gateway-reap" --stop || true
