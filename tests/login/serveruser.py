@@ -72,7 +72,7 @@ class Harness:
     def cleanup(self):
         shutil.rmtree(self.home, ignore_errors=True)
 
-    def run(self, remote=False, session_login=None):
+    def run(self, remote=False, session_login=None, args=None):
         e = dict(os.environ)
         e["ECCE_REALUSER"] = "unixuser"
         e["ECCE_REALUSERHOME"] = self.home
@@ -83,7 +83,8 @@ class Harness:
             e["ECCE_REMOTE_SERVER"] = "1"
         if session_login:
             e["ECCE_SERVER_LOGIN"] = session_login
-        r = subprocess.run([self.driver], env=e, capture_output=True, text=True)
+        r = subprocess.run([self.driver] + (args or []), env=e,
+                            capture_output=True, text=True)
         # Last non-empty line is the printed login (earlier lines can be
         # the unrelated "Unable to open error message file" notice).
         lines = [l for l in r.stdout.splitlines() if l.strip()]
@@ -95,6 +96,22 @@ class Harness:
         fname = "ServerLogin.remote" if remote else "ServerLogin"
         with open(os.path.join(d, fname), "w") as f:
             f.write("LOGIN: %s\n" % name)
+
+    def login_file_exists(self, remote):
+        fname = "ServerLogin.remote" if remote else "ServerLogin"
+        return os.path.exists(os.path.join(self.home, ".ECCE", fname))
+
+    def login_file_has_override(self, remote):
+        """True if the file exists AND still has a Login: entry.
+        saveFile() always rewrites the file (with just a header comment
+        if empty) -- clearing the override means the Login key is gone,
+        not that the file itself disappears."""
+        fname = "ServerLogin.remote" if remote else "ServerLogin"
+        path = os.path.join(self.home, ".ECCE", fname)
+        if not os.path.exists(path):
+            return False
+        with open(path) as f:
+            return "LOGIN:" in f.read().upper()
 
 
 def test_fallback_to_unix_user(h):
@@ -148,6 +165,49 @@ def test_files_kept_separate_by_mode(h):
         fail("local mode after remote file written: expected 'localfile', got %r" % got)
 
 
+def test_set_session_server_user(h):
+    """Ecce::setSessionServerUser() -- what GatewayApp::authorizationAccepted()
+    calls once the session's first login actually succeeds as a
+    different name than serverUser() had assumed. It must win over
+    everything else in THIS process (same precedence as -l, since it
+    sets the same variable), including a remembered file."""
+    h.write_login_file(remote=False, name="filelogin")
+    got = h.run(args=["set", "typedname"])
+    if got == "typedname":
+        ok("setSessionServerUser: overrides even an on-disk remembered login")
+    else:
+        fail("setSessionServerUser: expected 'typedname', got %r" % got)
+
+
+def test_remember_server_user(h):
+    """Ecce::rememberServerUser() -- what GatewayApp::authorizationAccepted()
+    calls (only when the session did NOT start with -l) to persist the
+    typed name for next time, or to clear a stale override once the
+    typed name turns out to equal the Unix username after all."""
+    got = h.run(args=["remember", "newlogin"])
+    if got == "newlogin":
+        ok("rememberServerUser: written name is read back as the login")
+    else:
+        fail("rememberServerUser: expected 'newlogin', got %r" % got)
+    if h.login_file_exists(remote=False):
+        ok("rememberServerUser: wrote ~/.ECCE/ServerLogin")
+    else:
+        fail("rememberServerUser: ~/.ECCE/ServerLogin was not written")
+
+    # Typed name equal to the Unix user: clears the override rather than
+    # writing "unixuser" to the file (both resolve the same, but a
+    # lingering file is a stale trap for later -- see Ecce.C).
+    got = h.run(args=["remember", "unixuser"])
+    if got == "unixuser":
+        ok("rememberServerUser(unix name): still resolves correctly")
+    else:
+        fail("rememberServerUser(unix name): expected 'unixuser', got %r" % got)
+    if not h.login_file_has_override(remote=False):
+        ok("rememberServerUser(unix name): cleared the now-redundant override")
+    else:
+        fail("rememberServerUser(unix name): ~/.ECCE/ServerLogin still has a Login: entry")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
@@ -165,6 +225,8 @@ if __name__ == "__main__":
             test_fallback_to_unix_user(h)
             test_session_login_wins(h)
             test_files_kept_separate_by_mode(h)
+            test_set_session_server_user(h)
+            test_remember_server_user(h)
         finally:
             h.cleanup()
     finally:

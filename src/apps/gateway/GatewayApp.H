@@ -49,6 +49,14 @@ protected:
   void preferenceMCB(JMSMessage& msg);
   void authMCB(JMSMessage& msg);
 
+  // The name that actually authenticates the session's FIRST login
+  // (this process's own startup checks, below) becomes the session's
+  // server user from then on -- see Ecce::setSessionServerUser() and
+  // the long comment on the definition. A later auth (e.g. retrying
+  // into a folder this user has no access to) must NOT do this, hence
+  // the p_sessionLoginFinalized guard.
+  void authorizationAccepted(const AuthEvent& event);
+
   void sendIconify(int iconicState);
   void notifyExit();
 
@@ -64,6 +72,18 @@ protected:
   SessionWatch * p_sessionWatch;
   bool p_sessionSeen;
   int p_idleTicks;
+
+  // True if `ecce -l` set the session's login before this process ever
+  // started (captured at the very top of OnInit(), before anything
+  // could touch it) -- ECCE_SERVER_LOGIN is session-only by design, so
+  // the name that authenticates while it's set must never be written
+  // to ~/.ECCE/ServerLogin[.remote].
+  bool p_loginFromDashL;
+
+  // Set true the first time authorizationAccepted() finalizes the
+  // session's server user, so later ones (a different folder's auth)
+  // are left alone.
+  bool p_sessionLoginFinalized;
 
   friend class Gateway;
 };

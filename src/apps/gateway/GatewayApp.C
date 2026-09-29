@@ -77,7 +77,9 @@ GatewayApp::GatewayApp()
     p_gateway(NULL),
     p_sessionWatch(NULL),
     p_sessionSeen(false),
-    p_idleTicks(0)
+    p_idleTicks(0),
+    p_loginFromDashL(false),
+    p_sessionLoginFinalized(false)
 {
 }
 
@@ -104,6 +106,15 @@ wxWindow* GatewayApp::dialogParent()
 bool GatewayApp::OnInit()
 {
   ewxApp::OnInit();
+
+  // Captured before anything else runs: whether `-l` set this session's
+  // login is what decides, once the session's first login succeeds
+  // below, whether that name is ever written to ~/.ECCE/ServerLogin[.
+  // remote] -- see authorizationAccepted().
+  {
+    const char *l = getenv("ECCE_SERVER_LOGIN");
+    p_loginFromDashL = (l != (const char*)0 && l[0] != '\0');
+  }
 
   string compileVersion = Ecce::ecceVersion();
   int idx;
@@ -453,6 +464,46 @@ void GatewayApp::preferenceMCB(JMSMessage& msg)
 void GatewayApp::authMCB(JMSMessage& msg)
 {
   AuthCache::getCache().msgIn(msg, getMyID());
+}
+
+
+/**
+ * The gateway is the FIRST thing in a session to authenticate to the
+ * data server (checkServer()/checkServerSetup()/checkUser(), all called
+ * from OnInit() before any other app is spawned) -- so the very first
+ * time this fires, event.m_user is the name that actually authenticated
+ * this session, which is not necessarily the name serverUser() assumed
+ * going in (the user can change it in the login dialog: live report,
+ * "even with the correct user and password I still don't get access to
+ * my files" -- the typed name authenticated fine, but Ecce::serverUser()
+ * kept returning the saved/-l name for the rest of the session, so the
+ * home-folder check below and every app it spawned used the wrong one).
+ *
+ * Fixed by making the FIRST accepted name the session's server user
+ * from here on (setSessionServerUser() exports ECCE_SERVER_LOGIN,
+ * inherited by every app this process goes on to spawn), and, unless
+ * `-l` is what set it (session-only by design), remembering it on disk
+ * for next time. p_sessionLoginFinalized makes this a one-shot: a LATER
+ * auth success -- e.g. the no-access retry finding a folder's real
+ * owner -- must not re-point the session at yet another user.
+ */
+void GatewayApp::authorizationAccepted(const AuthEvent& event)
+{
+  WxDavAuth::authorizationAccepted(event);
+
+  if (p_sessionLoginFinalized || event.m_user.empty()) {
+    return;
+  }
+  p_sessionLoginFinalized = true;
+
+  // Always set: cheap, and guarantees ECCE_SERVER_LOGIN is exactly the
+  // name that just authenticated for the rest of this process and
+  // everything it spawns, regardless of what it was set to going in.
+  Ecce::setSessionServerUser(event.m_user);
+
+  if (!p_loginFromDashL) {
+    Ecce::rememberServerUser(event.m_user);
+  }
 }
 
 
