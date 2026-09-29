@@ -5,14 +5,23 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting. Only the first box is required; anything else you can add helps. If you can, search the [existing issues](https://github.com/FriendsofECCE/ECCE/issues) first; much prior investigation is recorded there.
+        Thanks for reporting. Either attach the `ecce-diagnose` file or describe what happened; either one is enough, and anything more helps. If you can, search the [existing issues](https://github.com/FriendsofECCE/ECCE/issues) first; much prior investigation is recorded there.
+  - type: textarea
+    id: diagnose
+    attributes:
+      label: ecce-diagnose output
+      description: |
+        Run `ecce-diagnose`, or `ecce-diagnose /path/to/run/dir` for a job that didn't start or never finished, and attach the `ecce-diagnostics-*.txt` file it writes (drag it into this box). It contains no passwords, but it does contain host names, user names and paths, so read it first.
+        For a crash or a window that doesn't appear, also attach a trace: `ECCE_RCOM_LOGMODE=1 ecce > ecce-trace.txt 2>&1`, reproduce, quit.
+    validations:
+      required: false
   - type: textarea
     id: what
     attributes:
       label: What happened, and what did you expect?
-      description: Include the exact text of any error message.
+      description: Include the exact text of any error message. Optional if you attached the ecce-diagnose file.
     validations:
-      required: true
+      required: false
   - type: textarea
     id: steps
     attributes:
@@ -48,14 +57,5 @@ body:
         - Client of a central server (`ecce -remote`)
         - Shared broker on an app server (siteconfig/SharedBroker)
         - Not sure
-    validations:
-      required: false
-  - type: textarea
-    id: diagnose
-    attributes:
-      label: ecce-diagnose output
-      description: |
-        Run `ecce-diagnose`, or `ecce-diagnose /path/to/run/dir` for a job that didn't start or never finished, and attach the `ecce-diagnostics-*.txt` file it writes (drag it into this box). It contains no passwords, but it does contain host names, user names and paths, so read it first.
-        For a crash or a window that doesn't appear, also attach a trace: `ECCE_RCOM_LOGMODE=1 ecce > ecce-trace.txt 2>&1`, reproduce, quit.
     validations:
       required: false
