@@ -408,10 +408,13 @@ without root and running two builds side by side are in
 
 ## Contributing
 
-Issues and pull requests are welcome — see the
-[issue tracker](https://github.com/FriendsofECCE/ECCE/issues). For a
-crash or a failed job, attach the `ecce --bug` archive (see
-[Reporting a problem](#reporting-a-problem)). `CLAUDE.md` has a
+What helps most now is **using ECCE and telling us what breaks**: run
+your real calculations with it — on a workstation, a cluster, or a
+teaching lab's central server — and report anything that fails, looks
+wrong or is confusing, with the `ecce --bug` archive attached (see
+[Reporting a problem](#reporting-a-problem)). Issues and pull requests
+are welcome on the
+[issue tracker](https://github.com/FriendsofECCE/ECCE/issues). `CLAUDE.md` has a
 condensed map of the codebase and the bug patterns worth knowing about;
 `docs/HISTORY.md` has the full history, dead ends included.
 
