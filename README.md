@@ -80,13 +80,18 @@ build your own instead, see [Building from source](#building-from-source).
 On Debian 13 or Ubuntu, from the directory you downloaded it to:
 
 ```
-sudo apt install ./ecce_<version>_amd64.deb
+sudo apt install ./ecce-client_<version>_amd64.deb ./ecce-server_<version>_amd64.deb
 ```
 
-The `./` matters: it tells apt this is a local file, and apt then pulls
+The `./` matters: it tells apt these are local files, and apt then pulls
 in every dependency itself (Apache, ActiveMQ, wxPython, a csh, xterm).
+From 8.17.0 ECCE is two packages: **`ecce-client`**, the program you
+use, and **`ecce-server`**, the data server and message broker. A
+workstation or a central server needs both; a client of a central
+server needs only `ecce-client` (see [Deployment modes](#deployment-modes)). Upgrading
+removes an older `ecce` package and keeps your site configuration.
 
-On RHEL, Rocky or Fedora, `sudo dnf install ./ecce-<version>.x86_64.rpm`.
+On RHEL, Rocky or Fedora, `sudo dnf install ./ecce-client-<version>.x86_64.rpm ./ecce-server-<version>.x86_64.rpm`.
 These distributions don't package ActiveMQ, so a machine that runs a
 broker needs it installed by hand — see
 [Deployment modes](GETTING_STARTED.md#deployment-modes).
@@ -168,7 +173,8 @@ shared is up to the site; the three modes are set up step by step in
    own data server and broker. Nothing to configure.
 2. **A central server** for a group or a class. One account on the
    server holds everyone's calculations and the shared libraries; users
-   elsewhere connect to it. On the server, as that account:
+   elsewhere connect to it. The server machine needs both packages, the
+   clients only `ecce-client`. On the server, as that account:
 
    ```
    ecce-remote-setup --server all     # mark it as the server; listen on every interface
@@ -385,10 +391,11 @@ ninja
 cpack -G DEB
 ```
 
-That leaves `ecce_<version>_amd64.deb` in `build-cmake/`, to install as
+That leaves `ecce-client_<version>_amd64.deb` and
+`ecce-server_<version>_amd64.deb` in `build-cmake/`, to install as
 in step 1. The build needs CMake 3.16 and wxWidgets 3.2 at least (this
 is a wx3.2-only port). For an RPM, install `rpm` and re-run `cmake .`;
-`cpack -G RPM` then builds it. Split client/server packages, installing
+`cpack -G RPM` then builds it. What each package holds, installing
 without root and running two builds side by side are in
 [GETTING_STARTED.md](GETTING_STARTED.md).
 

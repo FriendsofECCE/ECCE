@@ -42,8 +42,7 @@ in-tree libraries.
 ```
 cd build-cmake
 cpack -G DEB
-sudo apt-get install -y apache2 apache2-utils   # data server dependency
-sudo dpkg -i ecce_<version>_amd64.deb
+sudo apt install ./ecce-client_<version>_amd64.deb ./ecce-server_<version>_amd64.deb
 ```
 
 The package installs to `/opt/ecce` and drops thin wrapper scripts named
@@ -53,22 +52,14 @@ you actually start (it launches the gateway, which then spawns the apps --
 running `ecce-builder` and friends directly skips that setup). No
 `ECCE_HOME` sourcing or environment setup required first.
 
-`apache2`/`apache2-utils` are real runtime dependencies (the data server
-below runs as a real Apache instance), not just build-time — `dpkg -i` will
-fail to configure without them if `apt-get install` wasn't run first.
+`apt install ./…` (with the `./`) pulls in every dependency, including
+Apache and ActiveMQ for the data server and broker. An installed `ecce`
+package of any earlier version is removed in the same step: from 8.17.0
+ECCE ships as two packages, described next.
 
-### Split packages (client/server)
+### The two packages: client and server
 
-By default CPack still builds one monolithic `ecce_<version>_amd64.deb`
-with everything in it, as above — nothing below changes unless you ask
-for it. Configuring with `-DECCE_SPLIT_PACKAGES=ON` instead produces two
-packages from the same build:
-
-```
-cmake -G Ninja -DECCE_SPLIT_PACKAGES=ON ..
-ninja
-cpack -G DEB
-```
+CPack builds two packages from one build (`cpack -G DEB`, or `-G RPM`):
 
 - **`ecce-client`** — the GUI apps, input generators/parsers, codereg
   dialogs, the job-side scripts the Launcher copies to compute hosts
@@ -78,24 +69,29 @@ cpack -G DEB
   `default-jre-headless` (the JMSDispatcher relay runs unconditionally,
   including under `-remote` with no local `ecce-server` at all, so its
   JVM can't be left to arrive only via a Recommends); Recommends
-  `ecce-server`, `nwchem` and `openssh-client`; Suggests `imagemagick`
-  and `www-browser` (not Depends — a client of someone else's central
-  server needs neither `ecce-server` nor `nwchem` locally).
+  `nwchem` and `openssh-client`; Suggests `ecce-server`, `imagemagick`
+  and `www-browser`. `ecce-server` is only a Suggests so that a client of
+  a central server doesn't get a data server and broker of its own.
 - **`ecce-server`** — the per-user or central WebDAV data server (Apache
   config, structure/basis-set libraries, help content) and the ActiveMQ
   broker's config. Depends on `apache2`, `apache2-utils`, `activemq`.
 
-Install both on one machine for the same all-in-one behaviour as the
-monolithic package. For the teaching/central-server deployment (one data
-server + broker for a group, students as clients — see CLAUDE.md), install
-only `ecce-server` on the server box and only `ecce-client` everywhere
-else, then run `ecce-remote-setup <server-host>` on each client and start
-sessions with `ecce -remote`.
+Install both on one machine for a workstation (mode 1 below). For a
+central server (mode 2 below), install **both** on the server machine,
+because starting the broker (`ecce-gateway-start`) and marking the server
+(`ecce-remote-setup --server`) are in `ecce-client`; install only
+`ecce-client` on the students' machines, run `ecce-remote-setup
+<server-host>` on each, and start sessions with `ecce -remote`.
 
 A client-only install (no `ecce-server` package, `ECCE_REMOTE_SERVER` not
 set) does not try to start a local data server or broker — `ecce-gateway-start`
 and the `ecce-<app>` wrappers print what's missing on stderr and tell you
 to either install `ecce-server` or point at a central one.
+
+The site configuration under `/opt/ecce/siteconfig` (the machine list,
+queues, `DataServers`, …) is marked as configuration, so an upgrade keeps
+what `sudo ecce -admin` or `ecce-remote-setup` wrote there; dpkg asks
+before replacing a file you changed.
 
 ### Describing the queues on your own cluster
 
