@@ -762,7 +762,12 @@ bool CalcMgr::confirmAndQuit()
 {
   ewxMessageDialog dlg(this, "Do you really want to quit?", "Quit ECCE",
                        wxOK|wxCANCEL|wxICON_QUESTION, wxDefaultPosition);
-  dlg.AddButton(ID_ORGANIZER_QUIT_STOP_SERVER, "Quit and Stop Server");
+  // #190: under a central server (ECCE_REMOTE_SERVER) this client's own
+  // ecce-dataserver-stop/ecce-gateway-stop can't reach the server's
+  // services anyway (different account) -- offering the button is just
+  // misleading, so don't.
+  if (!getenv("ECCE_REMOTE_SERVER"))
+    dlg.AddButton(ID_ORGANIZER_QUIT_STOP_SERVER, "Quit and Stop Server");
   int result = dlg.ShowModal();
 
   if (result == wxID_CANCEL)

@@ -12,6 +12,7 @@
 
 #include <stdlib.h>              // system()
 #include <string.h>
+#include <unistd.h>               // access()
 
 #include "util/Ecce.H"
 #include "util/Preferences.H"
@@ -157,12 +158,60 @@ void BrowserHelp::initialize()
     char* ehelpCmd = NULL;
     ehelpCmd = getenv("ECCE_BROWSER");
 
-    // fallback to firefox if help browser variable not set
     if (ehelpCmd!=NULL && strcmp(ehelpCmd, "")!=0)
       p_helpCmd = ehelpCmd;
     else
-      p_helpCmd = "firefox";
+      // Debian ships firefox-esr, not firefox -- a bare "firefox" fallback
+      // just fails there. Prefer the desktop's own opener (honors whatever
+      // browser the user actually has set as default), then the Debian
+      // alternatives that stand in for it, then a literal browser name.
+      p_helpCmd = findBrowserOnPath();
   }
+}
+
+/**
+ * First of these found on PATH; falls back to the literal "firefox" (the
+ * pre-existing default) if none are -- system() will then report that
+ * failure the same way it always did for a missing browser.
+ */
+string BrowserHelp::findBrowserOnPath()
+{
+  static const char* candidates[] = {
+    "xdg-open", "x-www-browser", "sensible-browser",
+    "firefox", "firefox-esr"
+  };
+  const char* path = getenv("PATH");
+  if (path != NULL) {
+    for (size_t c = 0; c < sizeof(candidates)/sizeof(candidates[0]); c++) {
+      StringTokenizer tok(path, ":");
+      while (tok.hasMoreTokens()) {
+        string dir = tok.next();
+        if (dir.empty())
+          continue;
+        string full = dir + "/" + candidates[c];
+        if (access(full.c_str(), X_OK) == 0)
+          return candidates[c];
+      }
+    }
+  }
+  return "firefox";
+}
+
+/**
+ * xdg-open/x-www-browser/sensible-browser are generic openers that just
+ * exec whatever the desktop's real browser is -- they don't understand
+ * a "--new-window" argument themselves (it would be passed straight
+ * through as if it were the URL). Only pass it to an actual browser
+ * binary.
+ */
+bool BrowserHelp::supportsNewWindowFlag(const string& cmd)
+{
+  string base = cmd;
+  size_t slash = base.find_last_of('/');
+  if (slash != string::npos)
+    base = base.substr(slash+1);
+  return base != "xdg-open" && base != "x-www-browser" &&
+         base != "sensible-browser";
 }
 
 
@@ -203,7 +252,7 @@ void BrowserHelp::displayURL(const string& url, bool new_window)
    // as a plain argument instead, which every modern browser (including
    // Firefox) supports directly.
    string cmd = p_helpCmd;
-   if (new_window) cmd += " --new-window";
+   if (new_window && supportsNewWindowFlag(p_helpCmd)) cmd += " --new-window";
    cmd += " '" + noQuoteUrl + "' 2> /dev/null &";
    system(cmd.c_str());
 }

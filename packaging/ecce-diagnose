@@ -155,6 +155,113 @@ else
   note "'script' not available; skipped"
 fi
 
+# ------------------------------------------ long-echo-through-a-pty (#143)
+say "Long echo through a pty (byte-exact, #143)"
+# The check just above types "echo ECCE_MARKER" -- short enough that a
+# line editor never has a reason to redraw it. #143's actual failure
+# mode only shows up on a LONG command: RCommand's expect-style dialogue
+# writes one, then waits with no timeout for exactly that text followed
+# by "\r\n"; a line editor that redraws or wraps it (tcsh's editor, or
+# bash's readline once its "set +o emacs; set +o vi" init line hasn't
+# run yet, or ran against the wrong shell instance) means that exact
+# text never arrives and job monitoring hangs forever -- with nothing
+# else to point at. This drives each available local shell exactly the
+# way RCommand.C does: same interactive "-i" spawn on a pty, same
+# editor-off init line first, then a ~300-character command, checking
+# whether the echo comes back byte for byte.
+#
+# Prefer the real thing if this install happens to carry it (a dev
+# build, or a future packaged one): tests/shells/testRCommandEcho.C,
+# linked against the actual RCommand, run via tests/shells/run_tests.py
+# in `ctest -R shells`. It is not part of the normal install, so this
+# usually falls through to the duplicated pty dialogue below -- kept in
+# sync with RCommand.C by hand; if this ever disagrees with a real
+# RCommand-driven job hang, check RCommand.C's two `expwrite()` init
+# lines (constructor ~1503/~1512, hop() ~1951/~1957) for a change here.
+HELPER=""
+for cand in "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")/testRCommandEcho" \
+            "${ECCE_HOME:-}/bin/testRCommandEcho" \
+            "$(command -v testRCommandEcho 2>/dev/null || true)"; do
+  [ -n "$cand" ] && [ -x "$cand" ] && { HELPER="$cand"; break; }
+done
+if [ -n "$HELPER" ]; then
+  note "using $HELPER (linked against the real RCommand)"
+  for s in csh tcsh bash; do
+    p=$(command -v "$s" 2>/dev/null) || continue
+    run "$HELPER" "$s"
+  done
+elif ! have python3; then
+  note "no testRCommandEcho and no python3; skipped"
+else
+  note "testRCommandEcho not found on this install; duplicating"
+  note "RCommand.C's pty dialogue here instead (see comment above)"
+  for s in csh tcsh bash; do
+    p=$(command -v "$s" 2>/dev/null) || continue
+    case "$s" in
+      bash|sh)
+        init="unalias -a 2>/dev/null; PS1='+go+'; bind 'set enable-bracketed-paste off' 2>/dev/null; set +o emacs; set +o vi" ;;
+      *)
+        init="unalias precmd; set prompt=+go+; unset echo; unset edit" ;;
+    esac
+    note ""
+    note "--- $s"
+    T 15 python3 - "$p" "$init" >> "$OUT" 2>&1 <<'PYEOF'
+import os, pty, select, sys, time
+
+shell, init = sys.argv[1], sys.argv[2]
+# Shaped exactly like initMon()'s command (tests/shells/run_tests.py's
+# LONG_CMD): long enough that any line editor's wrap/redraw shows up.
+cmd = ("echo ECCE_LONG_ECHO -configFile eccejobmonitor.conf -jobId 10"
+       " -bookmark 0" +
+       "".join(" -arg%02d /tmp/ecce_mca32/jobs/direct__da8YQu" % i
+               for i in range(7)) +
+       "; echo eccejobmonitor_went_bye_bye")
+
+def readUntil(fd, seconds, marker=None):
+    # Stops as soon as `marker` has appeared (a couple of poll cycles
+    # of quiet afterwards, in case more is still coming), not just on a
+    # fixed timeout -- keeps this check to a couple of seconds per
+    # shell instead of always paying the worst case.
+    buf, deadline, quiet = b"", time.time() + seconds, 0
+    while time.time() < deadline:
+        r, _, _ = select.select([fd], [], [], 0.3)
+        if not r:
+            if marker and marker in buf:
+                quiet += 1
+                if quiet >= 2:
+                    break
+            continue
+        try:
+            chunk = os.read(fd, 65536)
+        except OSError:
+            break
+        if not chunk:
+            break
+        buf += chunk
+        quiet = 0
+    return buf
+
+pid, fd = pty.fork()
+if pid == 0:
+    os.execvp(shell, [shell, "-i"])
+try:
+    os.write(fd, (init + "\n").encode())
+    readUntil(fd, 3, b"+go+")            # let the init line take effect
+    os.write(fd, (cmd + "\n").encode())
+    data = readUntil(fd, 8, b"went_bye_bye")
+finally:
+    try:
+        os.kill(pid, 9)
+    except OSError:
+        pass
+exact = (cmd + "\r\n").encode() in data
+print("exact-echo=%s" % ("yes" if exact else "NO"))
+if not exact:
+    print("captured (last 400 bytes): %r" % data[-400:])
+PYEOF
+  done
+fi
+
 # --------------------------------------------------- terminal and locale
 say "Terminal and locale"
 # ECCE's shell connections run on a pty.  A locale that changes number

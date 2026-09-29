@@ -38,6 +38,8 @@ protected:
 
         void initialize();
         static void displayURL(const string& url,bool new_window=false);
+        static string findBrowserOnPath();
+        static bool supportsNewWindowFlag(const string& cmd);
 
 private:
 

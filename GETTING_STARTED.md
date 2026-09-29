@@ -291,8 +291,10 @@ ecce-dataserver-start && ecce-gateway-start
 ecce-dataserver-adduser          # once per user
 ```
 
-Leave out `all` if clients reach the server through ssh tunnels. On each
-client machine, as root:
+The listen setting is written once, to `~/.ECCE/dataserver/listen`, and
+both services read it: the data server's own `Listen` directive and the
+broker's bind address (#138). Leave out `all` if clients reach the
+server through ssh tunnels. On each client machine, as root:
 
 ```
 sudo ecce-remote-setup <server-host>
@@ -302,6 +304,13 @@ Users then run `ecce -remote`. A client quitting never stops the server's
 services, and neither does the server account's own plain quit; its
 Quit and Stop Server does. To make the account per-user again, remove
 `~/.ECCE/activemq/server`.
+
+Run the server under a dedicated account (e.g. `ecce`), not a teacher's
+own login shared with students — `ecce-dataserver-adduser` still creates
+one data-server login per student under it. That way only the server
+account (or root) can ever reach the pidfiles and stop the services; a
+client under `ECCE_REMOTE_SERVER` doesn't even get offered "Quit and Stop
+Server" (#190), only a plain Quit.
 
 #### Mode 3: one shared broker on an app server
 
@@ -322,7 +331,9 @@ quit, not even Quit and Stop Server, stops it; only `systemctl` does.
 
 The data server is separate. Users run `ecce` for a per-user data server,
 or `ecce -remote` for a central one set up with `ecce-remote-setup
-<data-host>` as in mode 2; the shared broker is used either way.
+<data-host>` as in mode 2; the shared broker is used either way. If you
+also run a central data server alongside the shared broker, give it its
+own dedicated account too, per mode 2 above.
 
 ## 5. Create a data-server account
 
