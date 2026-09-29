@@ -10,6 +10,7 @@
 #include <fstream>
    using std::ofstream;
 
+#include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -78,7 +79,16 @@ class WxEditTimer : public wxTimer
          }
 
          if (it != WxEditSessionMgr::p_sessions.end()) {
-            // Loook up pid - if found notify listener
+            // Reap only our own editor.  A process-wide SIGCHLD handler
+            // calling wait3() reaped whatever child exited, including the
+            // one system() was waiting for on another thread.
+            if (!p_destroy) {
+               pid_t waited = waitpid(p_pid, NULL, WNOHANG);
+               if (waited == p_pid || (waited == -1 && errno == ECHILD)) {
+                  p_destroy = true;
+               }
+            }
+
             if (p_destroy) {
                // sigchild handler
 
@@ -113,9 +123,8 @@ class WxEditTimer : public wxTimer
                      (*it).l->processEditCompletion(ee);
                      (*it).modsec = file.lastModified().toSeconds();
                   }
-
-                  Start(CHECK_INTERVAL, true);
                }
+               Start(CHECK_INTERVAL, true);
 
             }
          }
@@ -238,14 +247,8 @@ SFile* WxEditSessionMgr::makeTemporaryFile(const string& data)
 
 
 /**
- * Performs fork/execve on the specified command.  The process id
- * and other information is retained for later when a SIGCHLD is
- * received.
- *
- * The signal handler must be uninstalled prior to the fork/exec process
- * or else upon forking a second process, the parent will hang until
- * the child dies.  I found this out via experience.  Nothing in the
- * man pages explained why this is so.
+ * Performs fork/execve on the specified command.  The session's timer
+ * polls for writes and reaps the editor when it exits.
  */
 void WxEditSessionMgr::startSession (const string& app,
       /*const*/ char *args[],
@@ -255,9 +258,6 @@ void WxEditSessionMgr::startSession (const string& app,
 {
    int pid;
 
-
-   // temporarily suspend signal handler
-   signal(SIGCHLD, SIG_DFL);
 
    if ((pid = fork()) == 0) {
       /* child */
@@ -283,54 +283,9 @@ void WxEditSessionMgr::startSession (const string& app,
       WxEditTimer *timer = new WxEditTimer(pid, false);
       timer->Start(CHECK_INTERVAL,true);
    }
-
-   // install signal handler for Citations/Annotations
-   signal(SIGCHLD, WxEditSessionMgr::editSessionCompleted);
-
 }
 
 
-/**
- * Signal handler for SIGCHLD.  All processing is actually done
- * in a method schduled via WxEditTimer (sublcass WxTimer) to avoid
- * ANY Xlib calls in the handler.  This basic philosophy carried over from
- * old X implementation (See O'Reilly Chapter 20 for more information)
- * 
- * A timer of basically no time is used to schedule actual sigchild processing.
- * We go to all this trouble so that the application can post
- * messages to the feedback area if problems occurr.
- */
-void WxEditSessionMgr::editSessionCompleted(int arg)
-{
-   int pid;
-   int status;
-
-   pid = wait3(&status,WNOHANG,NULL);
-
-   if (pid == -1) {
-      // man pages say: If there are no children, -1 is returned immediately
-      // cerr << "No children to wait3() on." << endl;
-
-   } else if (pid == 0) {
-      // Got tired of seeing this warning which didn't seem related to any
-      // problems so I commented it out  GDB 2/15/08
-      // EE_ASSERT(false, EE_WARNING, "nothing to wait on");
-
-   } else {
-      // Add timer so we don't process any Xlib events in handler
-      //XtAppAddTimeOut(XtDisplayToApplicationContext(XtDisplay(p_shell)),
-      //      0,processDeadChild,(XtPointer)new int(pid));
-      WxEditTimer *timer = new WxEditTimer(pid, true);
-      timer->Start(1,true);
-   }
-
-   // From the man pages:
-   // Before entering the signal-catching function, the value of func for the
-   // caught signal will be set to SIG_DFL unless the signal is SIGILL,
-   // SIGTRAP, or SIGPWR.  This means that before exiting the handler, a
-   // signal call is necessary to again set the disposition to catch the signal
-   signal(SIGCHLD, WxEditSessionMgr::editSessionCompleted);
-}
 
 
 

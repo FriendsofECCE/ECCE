@@ -3539,29 +3539,9 @@ unsigned long CalcEd::getCoreElectrons(const unsigned long atomicNumber) const
  * child at all -- this only needs to guarantee no zombie is left
  * behind (issue #79).
  *
- * The previous approach, system((cmd+"&").c_str()), leaves calced as
- * the direct parent of the intermediate /bin/sh that system() itself
- * forks to run "cmd &". Reaping that shell races with
- * WxEditSessionMgr's own SIGCHLD handler (editSessionCompleted(),
- * installed process-wide -- not scoped to its own children -- for the
- * annotation editor sessions also started from CalcEd), which reaps at
- * most one child per signal with no loop. Losing that race leaves a
- * "[sh] <defunct>" zombie with no guarantee any further SIGCHLD will
- * ever arrive to clean it up, since signals don't queue.
- *
- * Doing our own explicit double-fork sidesteps that race rather than
- * competing in it: the immediate child here does nothing but fork the
- * real command and _exit() right away, so the blocking waitpid() below
- * returns almost immediately -- it is not waiting on the dialog's
- * lifetime, only on this short-lived intermediate process. If
- * WxEditSessionMgr's handler happens to win the race and reaps our
- * intermediate child first, waitpid() here just gets back an
- * already-reaped pid (ECHILD) -- also not a zombie, so either outcome
- * is safe, and nothing here changes how WxEditSessionMgr's own
- * children, or any wxProcess-based subprocess elsewhere, get reaped.
- * The real dialog process (the grandchild) is reparented directly to
- * init when the intermediate child exits, so calced never has it as a
- * child to reap in the first place.
+ * A double fork: the intermediate child forks the real command and
+ * exits at once, so the dialog process is reparented to init and calced
+ * never has a long-lived child to reap.
  */
 bool CalcEd::launchDetachedApp(const string& cmd)
 {
@@ -3598,8 +3578,7 @@ bool CalcEd::launchDetachedApp(const string& cmd)
   //
   // So poll with WNOHANG for a short bounded period instead.  If the
   // child still hasn't been reaped by then, give up and return: the
-  // worst case is one short-lived zombie (which WxEditSessionMgr's
-  // SIGCHLD handler may still collect), which is the very thing this
+  // worst case is one short-lived zombie, which is the very thing this
   // function exists to avoid -- but a leaked zombie is vastly
   // preferable to a frozen GUI.
   const int maxWaitMs = 250;
@@ -3611,7 +3590,7 @@ bool CalcEd::launchDetachedApp(const string& cmd)
       break;              // reaped
     }
     if ((waited == -1) && (errno != EINTR)) {
-      break;              // ECHILD: already reaped by the SIGCHLD handler
+      break;              // ECHILD: nothing left to reap
     }
     usleep(pollMs * 1000);
   }
