@@ -43,6 +43,10 @@ const char *PrefLabels::UNITFAMILY        = "UnitFamily";     // String
 const char *PrefLabels::ALWAYSONTOP       = "Gateway.AlwaysOnTop"; // Boolean
 const char *PrefLabels::ORIENTATION       = "Gateway.Orientation"; // Int
 
+const char *PrefLabels::EDITOR            = "Editor";         // String
+const char *PrefLabels::TERMINAL          = "Terminal";       // String
+const char *PrefLabels::BROWSER           = "Browser";        // String
+
 
 /*
 const char *PrefLabels::energyUnit        = "Unit.Energy";    // String

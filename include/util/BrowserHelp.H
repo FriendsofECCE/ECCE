@@ -39,11 +39,11 @@ protected:
         void initialize();
         static void displayURL(const string& url,bool new_window=false);
         static string findBrowserOnPath();
+        static string browserCommand();
         static bool supportsNewWindowFlag(const string& cmd);
 
 private:
 
-        static string p_helpCmd;
         static string p_helpFile;
         static string p_urlPrefix;
         static string p_filePrefix;

@@ -25,11 +25,10 @@
 #include "util/IndexOutOfRangeException.H"
 #include "util/TempStorage.H"
 #include "util/Color.H"
+#include "util/Preferences.H"
+#include "util/PreferenceLabels.H"
 
 #include "util/UserEditor.H"
-
-
-string UserEditor::p_editor = "";
 
 
 /**
@@ -57,24 +56,40 @@ UserEditor::~UserEditor()
 
 
 /**
- * Get the user's preferred editor command, which may carry arguments
- * ("emacs -nw").  ECCE_EDITOR wins over the conventional VISUAL and
- * EDITOR, so ECCE can be pointed at a different editor than the shell.
+ * The editor command, which may carry arguments ("emacs -nw").  Order:
+ * ECCE_EDITOR, then Edit > Preferences, then VISUAL and EDITOR, then vi.
+ * Read on every call so a preference change needs no restart.
  */
 string UserEditor::getPreferredEditor()
 {
-  if (p_editor == "") {
-    static const char* const vars[] = { "ECCE_EDITOR", "VISUAL", "EDITOR" };
-    for (unsigned i = 0; i < sizeof(vars)/sizeof(vars[0]); i++) {
-      const char *tmp = getenv(vars[i]);
-      if (tmp != (const char*)0 && *tmp != '\0') {
-        p_editor = tmp;
-        break;
-      }
-    }
-    if (p_editor == "") p_editor = "vi";
+  const char *tmp = getenv("ECCE_EDITOR");
+  if (tmp != (const char*)0 && *tmp != '\0') return tmp;
+
+  Preferences pref(PrefLabels::GLOBALPREFFILE);
+  string fromPref;
+  if (pref.getString(PrefLabels::EDITOR, fromPref) && !fromPref.empty()) {
+    return fromPref;
   }
-  return p_editor;
+
+  static const char* const vars[] = { "VISUAL", "EDITOR" };
+  for (unsigned i = 0; i < sizeof(vars)/sizeof(vars[0]); i++) {
+    tmp = getenv(vars[i]);
+    if (tmp != (const char*)0 && *tmp != '\0') return tmp;
+  }
+  return "vi";
+}
+
+
+/**
+ * The terminal command used for editors that need one; xterm unless the
+ * preference names another.  May carry arguments.
+ */
+string UserEditor::getTerminal()
+{
+  Preferences pref(PrefLabels::GLOBALPREFFILE);
+  string term;
+  if (pref.getString(PrefLabels::TERMINAL, term) && !term.empty()) return term;
+  return "xterm";
 }
 
 
@@ -145,33 +160,44 @@ void UserEditor::getEditCommand(const SFile& file,
    if (cmdPath == "") {
       msg = "Could not find editor command " + cmd + " in path.";
    } else if (terminal) {
-      exe = getPath("xterm");
+      vector<string> termWords = splitWords(getTerminal());
+      if (termWords.empty()) termWords.push_back("xterm");
+      const string termBase = baseName(termWords[0]);
+      const bool isXterm = (termBase == "xterm");
+      exe = getPath(termWords[0]);
 
       if (exe != "") {
          addArg(args,curArg, maxArgs, exe.c_str());
-
-         addArg(args,curArg, maxArgs, "-geom");
-         if (quotedName.find("amica.out") != string::npos) {
-            // determine width of xterm based on longest line of file
-            string pcmd = "perl -e 'open(INFILE, \"" + quotedName + "\"); "
-               "while (<INFILE>) {exit(0) if (length() > 81); "
-               "exit(1) if ($lines_in++ > 1000);} exit(1);'";
-            int istatus = system(pcmd.c_str());
-            istatus = istatus >> 8;
-            addArg(args,curArg, maxArgs, istatus == 0 ? "132x40" : "80x40");
-         } else {
-            addArg(args,curArg, maxArgs, "80x40");
+         for (size_t i = 1; i < termWords.size(); i++) {
+            addArg(args,curArg, maxArgs, termWords[i]);
          }
 
-         addColorArgs(args,curArg, maxArgs, readOnly);
+         // Geometry, colours, font and title are xterm options; other
+         // terminals get only -e.
+         if (isXterm) {
+            addArg(args,curArg, maxArgs, "-geom");
+            if (quotedName.find("amica.out") != string::npos) {
+               // determine width of xterm based on longest line of file
+               string pcmd = "perl -e 'open(INFILE, \"" + quotedName + "\"); "
+                  "while (<INFILE>) {exit(0) if (length() > 81); "
+                  "exit(1) if ($lines_in++ > 1000);} exit(1);'";
+               int istatus = system(pcmd.c_str());
+               istatus = istatus >> 8;
+               addArg(args,curArg, maxArgs, istatus == 0 ? "132x40" : "80x40");
+            } else {
+               addArg(args,curArg, maxArgs, "80x40");
+            }
 
-         if (getenv("ECCE_XTERM_FONT")) {
-            addArg(args,curArg, maxArgs, "-fn");
-            addArg(args,curArg, maxArgs, getenv("ECCE_XTERM_FONT"));
+            addColorArgs(args,curArg, maxArgs, readOnly);
+
+            if (getenv("ECCE_XTERM_FONT")) {
+               addArg(args,curArg, maxArgs, "-fn");
+               addArg(args,curArg, maxArgs, getenv("ECCE_XTERM_FONT"));
+            }
+
+            addArg(args,curArg, maxArgs, "-T");
+            addArg(args,curArg, maxArgs, name);
          }
-
-         addArg(args,curArg, maxArgs, "-T");
-         addArg(args,curArg, maxArgs, name);
          addArg(args,curArg, maxArgs, "-e");
          for (size_t i = 0; i < words.size(); i++) {
             addArg(args,curArg, maxArgs, words[i]);
@@ -186,7 +212,7 @@ void UserEditor::getEditCommand(const SFile& file,
          }
 
       } else {
-         msg = "Could not find xterm in path.";
+         msg = "Could not find terminal " + termWords[0] + " in path.";
       }
    } else {
       exe = cmdPath;

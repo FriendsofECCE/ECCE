@@ -98,6 +98,7 @@ using std::endl;
 #include "TreeDropTarget.H"
 #include "WxConfigureNwfsArchive.H"
 #include "WxFind.H"
+#include "wxgui/GlobalPrefs.H"
 
 #include "CalcMgr.H"
 
@@ -185,6 +186,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   p_serverListEditor = new BookmarkEditor("ServerList", false, this,
                                           wxID_ANY, "Server List Editor");
   p_find = 0;
+  p_prefs = 0;
+  Bind(wxEVT_MENU, &CalcMgr::OnPreferencesClick, this, wxID_PREFERENCES);
   updateBookmarkMenu();
 
   p_nwfs = 0;
@@ -1538,6 +1541,20 @@ void CalcMgr::OnFindClick( wxCommandEvent& event )
   p_find->Show(true);
   updateFindDlg();
   p_find->Raise();
+}
+
+
+/**
+ * Edit > Preferences.  Built on first use; closing only hides it, and the
+ * frame is owned by this one.
+ */
+void CalcMgr::OnPreferencesClick( wxCommandEvent& event )
+{
+  if (p_prefs == (GlobalPrefs*)0) {
+    p_prefs = new GlobalPrefs(this);
+  }
+  p_prefs->Show(true);
+  p_prefs->Raise();
 }
 
 

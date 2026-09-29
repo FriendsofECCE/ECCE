@@ -29,6 +29,7 @@ class UserEditor
       virtual ~UserEditor();
 
       virtual string getPreferredEditor();
+      static string getTerminal();
       virtual void   getEditCommand(const SFile& file, 
                             string& exe, char *args[], int maxArgs,
                             const string& name, bool readOnly=false)
@@ -41,8 +42,6 @@ class UserEditor
     void addArg(char *args[], int& curArg, int maxArg, const string& value);
     void addColorArgs(char *args[], int& curArg, int maxArg, bool readOnly);
 
-
-    static string p_editor;
 
 };
 
