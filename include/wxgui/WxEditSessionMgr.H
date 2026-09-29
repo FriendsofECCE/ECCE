@@ -17,7 +17,8 @@
 
 class SFile;
 class EditListener;
-class WxEditTimer;
+class WxEditProcess;
+class WxEditWatcher;
 
 /**
  * A class that manages user edit sessions with their favorite editor.
@@ -44,8 +45,9 @@ class WxEditSessionMgr
               SFile* file, const string& id, EditListener *l);
 
 
-      //static void processDeadChild(XtPointer clientData, XtIntervalId *);
-      //static void checkFileWrite(XtPointer clientData, XtIntervalId *);
+      static bool notifyIfChanged(EditSession& s);
+      static void checkSession(int pid);
+      static void finishSession(EditSession& s);
 
       void editFile(SFile* file, const string& id, EditListener *l,
             bool readOnly=true,const string & name=0);
@@ -55,7 +57,8 @@ class WxEditSessionMgr
 
       static vector<EditSession> p_sessions;
 
-      friend class WxEditTimer;
+      friend class WxEditProcess;
+      friend class WxEditWatcher;
 
 
 };
