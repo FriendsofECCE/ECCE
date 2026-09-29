@@ -1,0 +1,15 @@
+title: H2
+annotation: H2
+parseFile: ecce.out
+Category: SCF
+Theory: RHF
+RunType: Energy
+Charge: 0
+Symmetry: C1
+NumElectrons: 2
+NumFrozenOrbs: 0
+NumOccupiedOrbs: 1
+NumVirtualOrbs: 1
+NumNormalModes: 1
+ChemSys.Multiplicity: 1
+BasisSet.Coordinates: Spherical

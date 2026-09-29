@@ -1,0 +1,36 @@
+Title "O2"
+
+Start  O2
+
+echo
+
+
+charge 0
+
+geometry noautosym units angstrom
+ O     0.000000     0.000000     0.604
+ O     0.000000     0.000000     -0.604
+end
+
+ecce_print ecce.out
+
+basis "ao basis" spherical print
+  O library "6-31G*"
+END
+
+
+
+scf
+  UHF
+  nopen 2
+end
+
+
+
+
+
+
+
+
+
+task scf energy

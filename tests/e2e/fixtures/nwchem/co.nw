@@ -1,0 +1,37 @@
+Title "CO"
+
+Start  CO
+
+echo
+
+
+charge 0
+
+geometry noautosym units angstrom
+ C     0.000000     0.000000     0.000000
+ O     0.000000     0.000000     1.128
+end
+
+ecce_print ecce.out
+
+basis "ao basis" spherical print
+  C library "6-31G*"
+  O library "6-31G*"
+END
+
+
+
+scf
+  RHF
+  nopen 0
+end
+
+
+
+
+
+
+
+
+
+task scf energy
