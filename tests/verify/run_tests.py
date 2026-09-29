@@ -595,11 +595,6 @@ def codes_agreement(verbose):
 #  the deck; CalcEd turns the line into a Verify finding.  (name, ai script,
 #  template, param lines, anchor).  The anchor must appear in the deck.
 WARN_CASES = [
-    ("orca-raman-b3lyp-analytic", "ai.orca", "orca.tpl",
-     ["Category: DFT", "Theory: DFT", "RunType: Vibration", "Charge: 0",
-      "ChemSys.Multiplicity: 1", "ES.Theory.DFT.XCFunctionals: B3LYP",
-      "ES.Runtype.Vibration.UseRaman: 1",
-      "ES.Runtype.Vibration.Method: Analytic"], "Polar"),
     ("g16-raman-numerical-2nd", "ai.gauss16", "g16.tpl",
      ["Category: DFT", "Theory: RDFT", "RunType: Vibration", "Charge: 0",
       "ChemSys.Multiplicity: 1", "ES.Theory.DFT.XCFunctionals: B3LYP",

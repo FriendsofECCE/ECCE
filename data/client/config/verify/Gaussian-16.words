@@ -79,7 +79,6 @@ $wrote
 -h
 -v
 .0
-.\n
 .chk
 .param
 0.0\n
@@ -127,6 +126,7 @@ $wrote
 <outfile>\n
 >tmpfile
 [ecce-ai]
+[freq
 \'$inputfile\'
 \'$result\'
 \n
@@ -139,13 +139,16 @@ abichem
 actinium
 activeelectrons
 activeorbitals
+activities\
 additional
 ai.gauss09
 ai.gauss09\n
+ai.gauss16
 aim
 aluminum
 americium
-analytic
+an
+analysis
 and
 angle
 anharmonic
@@ -195,7 +198,6 @@ becke95
 becke97
 becke98
 been
-before
 berkelium
 beryllium
 bhandh
@@ -238,6 +240,7 @@ calcium
 calculate
 californium
 cam-b3lyp
+cannot
 carbon
 cartesian
 cas
@@ -257,19 +260,19 @@ cesium
 charge
 chemsys.multiplicity
 chlorine
-choose
 chromium
 ci
 ci.convergenceenergy.value
 ci.convergenceiterations
 ci.convergencestates
-cinfv
 cis
 cisd
 clear
 coarse
 coarsegrid
 cobalt
+code
+compute
 constraint
 constraints
 continuous
@@ -281,6 +284,7 @@ core
 correlation
 correlationfunctionals
 couldn't
+count
 cp
 createcheckpoint
 criticalpoints
@@ -320,7 +324,6 @@ def2tzvpp
 density
 derivative
 descent
-details
 detected
 dft
 dftcdfitting
@@ -329,7 +332,6 @@ dictionary
 dielectric
 difference
 diis
-dinfh
 direct
 directly
 disk
@@ -349,8 +351,6 @@ ecce_ai_debug
 ecp
 efieldstepsize
 einsteinium
-either
-either\n
 empiricaldispersion
 end\n
 energy
@@ -396,6 +396,7 @@ executing:
 extended
 f
 f\n
+fails
 false
 fc
 fermium
@@ -413,6 +414,7 @@ found
 fragment
 francium
 freq
+frequencies
 from
 frozencore
 frozencorevalue
@@ -541,6 +543,7 @@ midi!
 midix
 min
 minimum
+mismatch
 missing
 mn12l
 mn12sx
@@ -580,6 +583,7 @@ nodirect
 noeigen
 none
 nonlocal
+normal-mode
 nosymm
 nstates
 nuc
@@ -590,6 +594,7 @@ of
 oh
 ohse1pbe
 ohse2pbe
+on
 opbe
 open
 opening
@@ -598,7 +603,6 @@ options
 options:
 optx
 or
-or\n
 orbitals
 origin
 osmium
@@ -664,6 +668,7 @@ readwindow
 recognition
 removing
 replaced
+reported
 require
 retrying
 revtpss
@@ -676,11 +681,13 @@ rmp4
 ro
 rodft
 rohf
+rotation\
 route
 rpa
 rqcisd
 rrevtpss-revtpss
 rubidium
+run
 runtype
 ruthenium
 rutherfordium
@@ -724,11 +731,9 @@ sodium
 sogga11
 sogga11x
 solvent
-source.
 sp
 specified.
 spherical
-starts.
 state
 steepest
 step
@@ -784,6 +789,7 @@ tpss
 tpssh
 transformations
 transition
+translation
 true
 ts
 tungsten
@@ -820,6 +826,7 @@ vshift
 vsxc
 vwn
 vwn5
+warning
 was
 water
 wb97
