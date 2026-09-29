@@ -43,8 +43,6 @@ those settings.
 | `ECCE_SURFACE_COLOR1` | Colours of the positive and negative isosurface in the "light/dark" colour scheme, as 0.0 to 1.0 values. | Six numbers separated by space, `,`, `:` or `/`: positive R G B then negative R G B. Default 0.95 0.95 0.95 / 0.2 0.2 0.2. |
 | `ECCE_SURFACE_COLOR255` | As `ECCE_SURFACE_COLOR1` with 0 to 255 values; wins over it if both are set. | Six integers, same separators. |
 | `ECCE_ESP_RANGE` | Fixes the colour ramp of an electrostatic-potential surface to plus and minus this value instead of scaling to the data. | Positive number, Hartree per e. Unset or invalid: scaled automatically (an invalid value is reported on stderr). |
-| `ECCE_JOB_FAILMAIL` | Mail a report when job monitoring fails. Sends through the local `Mail` command to `ecce-test@emsl.pnl.gov`, a PNNL address. | `true` for every failure; any other non-empty text is matched as a substring of the calculation URL. Unset: never. |
-| `ECCE_JOB_ALLFAILMAIL` | The same for a failure of `eccejobstore` itself. | As `ECCE_JOB_FAILMAIL`. |
 | `ECCE_NWCHEM_DFT_USE_B3LYP` | NWChem DFT dialog starts with B3LYP instead of VWN5 with Slater exchange. The user can still change it. | The exact text `true`. Default off. |
 | `ECCE_JOB_CHECK` | The Organizer, when a project is opened, checks whether calculations shown as submitted or running still have a running `eccejobstore`, and repairs a stuck state. | Set to enable. Default off. |
 
@@ -85,6 +83,36 @@ those settings.
 
 ## Troubleshooting and debugging
 
+### Filing a bug: `ecce --bug`
+
+`ecce --bug` (or `ECCE_BUG=1 ecce`; any value but empty or `0`) is one
+switch for a bug report, so nobody has to set the variables below by hand.
+It makes `~/ecce-bug-<time>/` (under `ECCE_REALUSERHOME`), exports it as
+`ECCE_BUG_DIR`, and sets, for that session only:
+
+- `ECCE_RCOM_LOGMODE`, `ECCE_JOB_LOGMODE=yes,yes` (keep the job logs),
+  `ECCE_JOB_LOGALL`, `ECCE_AI_DEBUG=1`, `ECCE_DEBUG_PANELS`,
+  `ECCE_DEBUG_GL_VISUAL`, `ECCE_DEBUG_MACHNOTICE`;
+- `ECCE_DEBUG_MOSYM_LOG` and `ECCE_DEBUG_AUTHPARENT`, pointed at files in
+  `ECCE_BUG_DIR`.
+
+Left out on purpose: `ECCE_DAV_DEBUG` (always writes to `/tmp/davtraffic`
+and includes the `Authorization` header, which holds the password),
+`ECCE_LOG_ALL_EVENTS`, `ECCE_DEBUG_ATOM_COLOR` and `ECCE_RCOM_DEBUGGING`
+(they flood), and everything that changes behaviour (`ECCE_DEVELOPER`,
+`ECCE_NO_MESSAGING`, `ECCE_EXIT_AFTER_DUMP`, `ECCE_DISABLE_RENDER_CACHE`,
+`ECCE_OLD_RECEIVE`).
+
+The session's own output goes to `session.log` in that folder and is
+still shown in the terminal. When `ecce` returns, or on Ctrl-C, bug mode
+adds what the broker, session relay and per-user data server logged
+during the session (for a central server or a shared broker it notes that
+those logs are on the server), the job logs of jobs touched during the
+session, and the output of `ecce-diagnose`; then packs the folder as
+`~/ecce-bug-<time>.zip` (`.tar.gz` if `zip` is missing) and prints its
+name. The archive has no passwords but does hold host names, user names
+and paths.
+
 Output goes to stderr unless a file is named. Apps started from the
 Organizer are detached, so their stderr does not reach the terminal that
 started `ecce`; use the variables that take a file where there is one.
@@ -96,7 +124,7 @@ started `ecce`; use the variables that take a file where there is one.
 | `ECCE_JOB_LOGMODE` | Keep or delete job-monitoring log files. Two comma-separated modes, for `eccejobstore` and then `eccejobmonitor`. | `yes`, `rmifok` (keep unless the job was clean), `no`. `true` and `false` are accepted for the second. Default `rmifok`. |
 | `ECCE_JOB_LOGALL` | Log every job-monitoring event in the data server's run log (Run Mgmt, View Run Log). | Set to enable. |
 | `ECCE_LOG_ALL_EVENTS` | The same, for the property interpreter. | Set to enable. |
-| `ECCE_DAV_DEBUG` | Log every WebDAV request and response header. | Set to enable. (`ECCE_DAV_DEBUG_BODY` appears only in commented-out code and does nothing.) |
+| `ECCE_DAV_DEBUG` | Log every WebDAV request and response header, appended to `/tmp/davtraffic` (a fixed name, shared by all users). The requests include the `Authorization` header, so the file holds your password in encoded form: delete it, and do not attach it to a report. | Set to enable. (`ECCE_DAV_DEBUG_BODY` appears only in commented-out code and does nothing.) |
 | `ECCE_OLD_RECEIVE` | Receive from the data server with `MSG_WAITALL`, the older behaviour. The newer default fixed very slow transfers over NFS. | Set to enable. |
 | `ECCE_DEVELOPER` | Developer mode: shows ECCE's internal files (`linkbase.xml`, `Parameters`, `Props`), the Organizer's Developer menu, the Builder's command line and Dump menu item, and logs XML parse errors. | Set to enable. |
 | `ECCE_AI_DEBUG` | Input generators (`ai.<code>` in `scripts/parsers`) print one line per template tag on stderr saying what it resolved. | `1`. |
@@ -117,6 +145,8 @@ started `ecce`; use the variables that take a file where there is one.
 | `ECCE_DEBUG_MACHNOTICE` | Print whether the Organizer's "no machines registered" notice is shown. | Set to enable. |
 | `ECCE_DEBUG_AUTHPARENT` | Log each authentication prompt and its parent window to this file. | File path. |
 | `ECCE_NWDIRDY_DEBUG` | The reaction-rate editor prints its general theory data. | Set to enable. |
+| `ECCE_BUG` | Same as `ecce --bug`: see above. | Set and not `0`. |
+| `ECCE_BUG_DIR` | Set by bug mode to the folder collecting the report. | Do not set. |
 | `ECCE_NO_REAP` | `ecce-gateway-reap` does nothing; whoever sets it stops the services itself. Used by the test suite. | Set to enable. |
 | `ECCE_REAP_QUIET` | `ecce-gateway-reap` prints nothing. The launchers set it on exit. | Set to enable. |
 | `ECCE_GATEWAY_LOCKED` | Internal: `ecce-gateway-start` tells the reaper it already holds the lock. | Do not set. |

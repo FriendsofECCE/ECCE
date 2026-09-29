@@ -1,0 +1,262 @@
+#!/bin/bash
+# The `ecce` command: option handling, then the Organizer session.
+# Everything is parsed first; nothing starts a broker or data server
+# until the plain session start at the end.
+ECCE_HOME_DEFAULT=@ECCE_HOME_DIR@
+ECCE_VERSION_STRING=@ECCE_VERSION_RAW@
+
+usage() {
+  cat <<'USAGE'
+Usage: ecce [options]
+
+Reporting a problem:
+  --bug                Run this session with diagnostic logging on and
+                       collect logs, service logs and ecce-diagnose
+                       output into ~/ecce-bug-<time>/, then pack it as
+                       an archive to attach to your report. Same as
+                       ECCE_BUG=1.
+
+  -admin               Edit the site-wide machine list ($ECCE_HOME/siteconfig).
+                       Needs write access there (run as a user who has it,
+                       e.g. with sudo). Starts no broker or data server.
+  -machine, -machines  Edit your own machine registrations (~/.ECCE),
+                       without starting a session.
+  -remote              Use the central data server/broker (siteconfig/
+                       RemoteServer) instead of starting your own.
+  -l LOGIN             Use LOGIN as your server login name instead of
+                       your own username (writes ~/.ECCE/ServerLogin).
+  --version, -V        Show the version and exit.
+  --help, -h           Show this message and exit.
+
+With no options, starts the Organizer -- the front door for New
+Structure, Register Machines, Machine Browser and Periodic Table.
+
+Environment (set before ecce; the first two win over Edit > Preferences):
+
+  ECCE_EDITOR          Editor for input and output files, e.g. "geany -i".
+                       Otherwise Preferences, VISUAL, EDITOR, then vi.
+  ECCE_BROWSER         Web browser for Help. Otherwise the desktop's opener.
+  ECCE_GATEWAY_WINDOW  Set to 1 to show the old Gateway launcher window.
+
+The editor, terminal and browser can also be set in the Organizer, under
+Edit > Preferences. All variables ECCE reads are listed in:
+USAGE
+  echo "  ${ECCE_HOME:-$ECCE_HOME_DEFAULT}/doc/ENVIRONMENT.md"
+}
+
+admin=false
+machines=false
+remote=false
+bug=false
+login=""
+case "${ECCE_BUG:-}" in ""|0) ;; *) bug=true ;; esac
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --help|-h) usage; exit 0 ;;
+    --version|-V) echo "ECCE ${ECCE_VERSION_STRING#v}"; exit 0 ;;
+    --bug) bug=true ;;
+    -admin) admin=true ;;
+    -machine|-machines) machines=true ;;
+    -remote) remote=true ;;
+    -l)
+      if [ $# -lt 2 ]; then
+        echo "ecce: option -l needs a login name (try --help)" >&2
+        exit 2
+      fi
+      login="$2"; shift ;;
+    *)
+      echo "ecce: unknown option $1 (try --help)" >&2
+      exit 2 ;;
+  esac
+  shift
+done
+if $remote; then export ECCE_REMOTE_SERVER=1; fi
+
+export ECCE_HOME=${ECCE_HOME:-$ECCE_HOME_DEFAULT}
+
+# A site admin's maintenance notice and lock, shown for every
+# invocation -- including -admin/-machine -- matching the old script's
+# placement ahead of any option handling.
+if [ -e "$ECCE_HOME/siteconfig/StartMessage" ]; then
+  echo ""
+  cat "$ECCE_HOME/siteconfig/StartMessage"
+  echo ""
+  if [ -t 1 ]; then
+    sleep 3
+  fi
+  if [ -e "$ECCE_HOME/siteconfig/PreventStart" ]; then
+    echo "Aborting ECCE run..."
+    echo ""
+    exit 1
+  fi
+fi
+
+if $admin; then
+  if [ ! -w "$ECCE_HOME/siteconfig" ]; then
+    echo "ecce -admin edits the site-wide machine list in $ECCE_HOME/siteconfig; run it as a user who can write there (e.g. with sudo)" >&2
+    exit 1
+  fi
+  export ECCE_NO_MESSAGING=1
+  export ECCE_NO_DATASERVER=1
+  exec ecce-machregister -admin
+fi
+
+if $machines; then
+  export ECCE_REALUSERHOME=${ECCE_REALUSERHOME:-$HOME}
+  if [ ! -w "$ECCE_REALUSERHOME/.ECCE" ]; then
+    echo "ecce -machine edits your own registrations in $ECCE_REALUSERHOME/.ECCE; that directory is not writable." >&2
+    exit 1
+  fi
+  export ECCE_NO_MESSAGING=1
+  export ECCE_NO_DATASERVER=1
+  exec ecce-machregister
+fi
+
+# -l overrides the server login name: Ecce::serverUser()
+# (src/util/genutil/Ecce.C) reads it back from ~/.ECCE/ServerLogin's
+# "Login" key -- same file, same key spelling, as the old script wrote
+# (Preferences is case-insensitive on keys).
+if [ -n "$login" ]; then
+  export ECCE_REALUSERHOME=${ECCE_REALUSERHOME:-$HOME}
+  mkdir -p "$ECCE_REALUSERHOME/.ECCE"
+  echo "LOGIN: $login" > "$ECCE_REALUSERHOME/.ECCE/ServerLogin"
+fi
+
+# Only -remote reaches ecce-gateway; it has no use for the rest.
+passthrough=()
+if $remote; then passthrough+=(-remote); fi
+
+if ! $bug; then
+  exec ecce-gateway "${passthrough[@]}"
+fi
+
+# ---------------------------------------------------------------- bug mode
+# One switch for whoever files a bug report: logging that shows what
+# ECCE did, a copy of the session's output and service logs, and
+# ecce-diagnose, packed into one archive.  Only variables that write
+# diagnostics without changing behaviour are set.  Left out on purpose:
+# ECCE_DAV_DEBUG (writes to a fixed /tmp/davtraffic shared by all users,
+# with the Authorization header, i.e. the password), ECCE_LOG_ALL_EVENTS
+# and ECCE_DEBUG_ATOM_COLOR (flood), ECCE_RCOM_DEBUGGING (Expect's own
+# trace, flood), ECCE_DEVELOPER and the switches that change behaviour.
+export ECCE_REALUSERHOME=${ECCE_REALUSERHOME:-$HOME}
+stamp=$(date +%Y%m%d-%H%M%S)
+bugname="ecce-bug-$stamp"
+export ECCE_BUG_DIR="$ECCE_REALUSERHOME/$bugname"
+mkdir -p "$ECCE_BUG_DIR" || { echo "ecce: cannot create $ECCE_BUG_DIR" >&2; exit 1; }
+session_log="$ECCE_BUG_DIR/session.log"
+: > "$session_log"
+
+export ECCE_RCOM_LOGMODE=1
+export ECCE_JOB_LOGMODE=yes,yes
+export ECCE_JOB_LOGALL=1
+export ECCE_AI_DEBUG=1
+export ECCE_DEBUG_PANELS=1
+export ECCE_DEBUG_GL_VISUAL=1
+export ECCE_DEBUG_MACHNOTICE=1
+export ECCE_DEBUG_MOSYM_LOG="$ECCE_BUG_DIR/mosym.log"
+export ECCE_DEBUG_AUTHPARENT="$ECCE_BUG_DIR/authparent.log"
+
+statedir="$ECCE_REALUSERHOME/.ECCE"
+jobroot="${ECCE_TMPDIR:-/tmp}/ecce_${ECCE_REALUSER:-$(id -un)}/jobs"
+# The broker and relay logs are rewritten whenever the service starts, so
+# they are copied whole; the data server's are appended to for good, so
+# note where each ends now and copy only what this session added.
+bug_logs="$statedir/activemq.log $statedir/jmsdispatcher.log $statedir/dataserver/logs/error_log $statedir/dataserver/logs/access_log"
+declare -A startsize
+for f in $bug_logs; do
+  startsize[$f]=$(stat -c %s "$f" 2>/dev/null || echo 0)
+done
+marker="$ECCE_BUG_DIR/.session-start"
+: > "$marker"
+
+{
+  echo "ecce --bug, $(date -Is)"
+  echo "ECCE $ECCE_VERSION_STRING, arguments: ${*:-none}"
+  echo "ECCE_REMOTE_SERVER=${ECCE_REMOTE_SERVER:-<unset>}"
+  echo "Set by bug mode:"
+  env | grep -E '^ECCE_(RCOM_LOGMODE|JOB_LOGMODE|JOB_LOGALL|AI_DEBUG|DEBUG_[A-Z_]+|BUG_DIR)=' | sort
+} > "$ECCE_BUG_DIR/bug-mode.txt"
+
+bug_finish() {
+  trap - EXIT INT TERM HUP
+  echo "" >&2
+  echo "ecce --bug: collecting logs (this takes about half a minute)..." >&2
+  local f name off
+  {
+    if [ -n "${ECCE_REMOTE_SERVER:-}" ]; then
+      echo "Central-server session: the broker and data server run on the server; their logs are there."
+    fi
+    if [ -e "$ECCE_HOME/siteconfig/SharedBroker" ]; then
+      echo "Shared system broker: its log is the ecce-broker service's:"
+      timeout 10 journalctl -u ecce-broker.service -n 300 --no-pager 2>&1 || echo "(journalctl not available or not readable)"
+    fi
+  } > "$ECCE_BUG_DIR/services.txt" 2>&1
+  for f in $bug_logs; do
+    name=$(basename "$f")
+    if [ ! -r "$f" ]; then
+      echo "$f: absent or not readable here" >> "$ECCE_BUG_DIR/services.txt"
+      continue
+    fi
+    off=0
+    case "$name" in error_log|access_log) off=${startsize[$f]:-0} ;; esac
+    tail -c +$((off + 1)) "$f" > "$ECCE_BUG_DIR/$name" 2>/dev/null
+  done
+  # Job staging directories touched during the session: the logs and the
+  # configuration, not the parse scripts and inputs.
+  if [ -d "$jobroot" ]; then
+    local d
+    for d in "$jobroot"/*/; do
+      [ -d "$d" ] && [ "$d" -nt "$marker" ] || continue
+      mkdir -p "$ECCE_BUG_DIR/jobs/$(basename "$d")"
+      cp -p "$d"/*.log* "$d"/*.conf "$d"/parseOut "$d"/submit__* \
+        "$ECCE_BUG_DIR/jobs/$(basename "$d")/" 2>/dev/null
+    done
+  fi
+  local diag="$ECCE_HOME/bin/ecce-diagnose"
+  [ -x "$diag" ] || diag=$(command -v ecce-diagnose)
+  if [ -n "$diag" ]; then
+    timeout 300 "$diag" -o "$ECCE_BUG_DIR" > "$ECCE_BUG_DIR/diagnose-stdout.txt" 2>&1
+  else
+    echo "ecce-diagnose not found" > "$ECCE_BUG_DIR/diagnose-stdout.txt"
+  fi
+  rm -f "$marker"
+  local archive
+  if command -v zip >/dev/null 2>&1; then
+    archive="$ECCE_REALUSERHOME/$bugname.zip"
+    ( cd "$ECCE_REALUSERHOME" && zip -qr "$archive" "$bugname" )
+  else
+    archive="$ECCE_REALUSERHOME/$bugname.tar.gz"
+    tar -C "$ECCE_REALUSERHOME" -czf "$archive" "$bugname"
+  fi
+  local shown=$archive
+  [ "$ECCE_REALUSERHOME" = "$HOME" ] && shown="~/$(basename "$archive")"
+  echo "ECCE bug report: attach $shown to your report. It contains no passwords, but it does contain host names, user names and paths." >&2
+}
+
+# The session runs in its own process group, so that Ctrl-C can end all
+# of it, and its output goes to a file that is also shown here: a job
+# monitor that outlives the session would hold a pipe open and keep this
+# command from returning.
+setsid ecce-gateway "${passthrough[@]}" >> "$session_log" 2>&1 < /dev/null &
+child=$!
+tail -n +1 -F --pid=$child "$session_log" 2>/dev/null &
+follower=$!
+interrupted=false
+stop_session() {
+  interrupted=true
+  kill -TERM -- "-$child" 2>/dev/null
+}
+trap stop_session INT TERM HUP
+trap bug_finish EXIT
+status=0
+while kill -0 "$child" 2>/dev/null; do
+  wait "$child"
+  status=$?
+done
+wait "$follower" 2>/dev/null
+if $interrupted; then
+  ECCE_REAP_QUIET=1 "$ECCE_HOME/bin/ecce-gateway-reap" --if-idle >/dev/null 2>&1
+  exit 130
+fi
+exit $status

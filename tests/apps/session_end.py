@@ -30,6 +30,8 @@ windows the way a window manager does (WM_DELETE_WINDOW):
               under a server marker, survives --if-idle; a loopback one
               does not
   window      ECCE_GATEWAY_WINDOW=1 keeps the Gateway window's behaviour
+  bug         `ecce --bug`: a folder with session.log, service logs and
+              ecce-diagnose output, and an archive, once the session ends
 
 Different Unix users cannot be run without root, so a second "user" is
 a second ECCE_REALUSERHOME of the same account; the scripts key all
@@ -76,6 +78,8 @@ def treeHome(state, install, build):
             overrides[script] = os.path.join(gwdir, script)
     overrides["ecce-remote-setup"] = os.path.join(
         REPO, "packaging", "dataserver", "ecce-remote-setup")
+    overrides["ecce-diagnose"] = os.path.join(REPO, "packaging",
+                                              "ecce-diagnose")
     #  Scripts this change adds are not in the install at all yet.
     entries = set(os.listdir(os.path.join(install, "bin"))) | set(overrides)
     for entry in entries:
@@ -89,7 +93,7 @@ def parse():
     parser.add_argument("cases", nargs="*",
                         default=["organizer", "builder", "jobstore", "stop",
                                  "remote", "displays", "shared", "markers",
-                                 "window"])
+                                 "window", "bug"])
     parser.add_argument("--tree", help="build directory to take gateway from")
     parser.add_argument("--wrappers", help="directory holding the ecce "
                         "wrappers (default: <tree>/wrappers, else "
@@ -971,7 +975,60 @@ def caseWindow(checks, display, logdir):
         session.kill()
 
 
-CASES = {"window": caseWindow, "stop": caseStop, "remote": caseRemote,
+def caseBug(checks, display, logdir):
+    import glob
+    home = os.environ["ECCE_REALUSERHOME"]
+    pattern = os.path.join(home, "ecce-bug-*")
+    for old in glob.glob(pattern):
+        if os.path.isdir(old):
+            shutil.rmtree(old)
+        else:
+            os.unlink(old)
+    log = os.path.join(logdir, "bug.log")
+    session = Session(display, log, argv=["--bug"])
+    try:
+        frame = session.organizer()
+        if not checks.check(frame, "the Organizer opened"):
+            return
+        folders = [f for f in glob.glob(pattern) if os.path.isdir(f)]
+        if not checks.check(len(folders) == 1,
+                            "one ecce-bug-<time> folder made (%s)" % folders):
+            return
+        folder = folders[0]
+        time.sleep(3)
+        checks.check(os.path.exists(os.path.join(folder, "session.log")),
+                     "session.log exists while the session runs")
+        quitVia(display, frame)
+        #  ecce-diagnose runs after the session ends and takes ~30s.
+        checks.check(session.ended(180), "`ecce --bug` returned")
+        found = sorted(os.listdir(folder))
+        for want in ("session.log", "bug-mode.txt", "activemq.log",
+                     "jmsdispatcher.log", "error_log", "services.txt"):
+            checks.check(want in found, "the folder holds %s" % want)
+        checks.check(any(f.startswith("ecce-diagnostics-") for f in found),
+                     "the folder holds the ecce-diagnose output")
+        with open(os.path.join(folder, "bug-mode.txt")) as handle:
+            checks.check("ECCE_RCOM_LOGMODE=1" in handle.read(),
+                         "bug-mode.txt lists the logging switched on")
+        archives = glob.glob(folder + ".zip") + glob.glob(folder + ".tar.gz")
+        if checks.check(len(archives) == 1, "one archive made: %s" % archives):
+            listing = subprocess.run(
+                ["unzip", "-l", archives[0]] if archives[0].endswith(".zip")
+                else ["tar", "tzf", archives[0]],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
+            checks.check(b"session.log" in listing and b"ecce-diagnostics-"
+                         in listing, "the archive holds both")
+        with open(log) as handle:
+            said = handle.read()
+        checks.check("ECCE bug report: attach" in said,
+                     "the terminal was told which file to attach")
+        say("    session.log: %d bytes; folder: %s"
+            % (os.path.getsize(os.path.join(folder, "session.log")), found))
+    finally:
+        session.kill()
+
+
+CASES = {"bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
          "displays": caseDisplays, "shared": caseShared,
          "markers": caseMarkers,
          "organizer": caseOrganizer, "builder": caseBuilder,
