@@ -439,6 +439,7 @@ void GlobalPrefs::setProgramRow(ProgramRow& row, const string& value)
   row.choice->SetSelection((int)found);
   row.text->ChangeValue(found == row.presets.size() ? value : string(row.presets[found]));
   row.text->Enable(found == row.presets.size());
+  row.text->setCustomDisabledStyle(found == row.presets.size());
 }
 
 
@@ -451,6 +452,7 @@ void GlobalPrefs::OnProgramChoice(wxCommandEvent& event)
     int sel = row.choice->GetSelection();
     bool other = sel >= (int)row.presets.size();
     row.text->Enable(other);
+    row.text->setCustomDisabledStyle(other);
     if (!other) row.text->ChangeValue(row.presets[sel]);
     else row.text->SetFocus();
   }
