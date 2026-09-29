@@ -258,17 +258,14 @@ def run_driver_reject(driver, shells, base_env, tmp):
     p_connected is ever set, so isOpen() is false and testRCommandEcho
     exits 2 with "NO SESSION" -- never 0 or 1.
 
-    Only checks for the rejection itself (exit 2, "NO SESSION"), not
-    the specific "ECCE needs csh, tcsh or bash" wording RCommand's
-    constructor actually sets: isOpen()'s existing "else" branch
-    unconditionally overwrites p_errMessage with a generic "Failed to
+    Also checks the specific "ECCE needs csh, tcsh or bash" wording
+    RCommand's constructor actually sets: isOpen()'s "else" branch used
+    to unconditionally overwrite p_errMessage with a generic "Failed to
     open remote shell ... (incorrect password?)" whenever p_connected
-    is false, for EVERY early-return case in the constructor, not just
-    this new one -- a pre-existing bug (predates this change, same
-    shape as the CalcEd/ai.<code> "discarded error message" class in
-    CLAUDE.md) that swallows the specific rejection text before
-    commError() is ever read. Flagged for a decision, not fixed here:
-    fixing isOpen() is a separate, wider change than this task's scope."""
+    was false, swallowing that text before commError() was ever read.
+    Fixed to keep whatever specific message the constructor already set,
+    falling back to the generic guess only when none was -- so this
+    should now see the real reason, not the password guess."""
     results = []
     for sh in shells:
         for term in (None, "xterm"):
@@ -281,7 +278,9 @@ def run_driver_reject(driver, shells, base_env, tmp):
                 r = subprocess.run([driver, sh], env=env, timeout=90,
                                    capture_output=True, text=True)
                 out = (r.stdout.strip().splitlines() or ["(no output)"])[-1]
-                ok = r.returncode == 2 and "NO SESSION" in out
+                ok = (r.returncode == 2 and "NO SESSION" in out and
+                      "ECCE needs csh, tcsh or bash" in out and
+                      "incorrect password?" not in out)
             except subprocess.TimeoutExpired:
                 out, ok = "TIMEOUT", False
             results.append(("driver reject", sh, term, None if ok else out))

@@ -3337,7 +3337,10 @@ bool RCommand::isOpen(void)
     if (!p_connected)
       p_errMessage = "Opened remote shell on " + p_machine +
                      ", but unable to process new commands";
-  } else
+  } else if (p_errMessage.empty())
+    // Only when open() itself set nothing specific (e.g. "Unsupported
+    // local shell ...", #143/08716de) -- otherwise that message is more
+    // useful than this generic guess and was getting overwritten.
     p_errMessage = "Failed to open remote shell on " + p_machine +
                    " (incorrect password?)";
 
