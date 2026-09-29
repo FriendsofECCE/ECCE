@@ -1983,15 +1983,21 @@ void Builder::saveSettings()
 void Builder::restoreSettings()
 {
    ewxConfig * config = ewxConfig::getConfig("wxbuilder.ini");
+   bool firstRun = !config->HasEntry("/Window/Width");
    restoreWindowSettings(config, true);
 
-   //  Never larger than the screen: the new default (900x800) is taller
-   //  than a 1366x768 laptop, and a size saved on a bigger monitor is too.
+   //  First run: a share of the screen it opens on, so a desktop monitor
+   //  gets a roomy window and a small remote-desktop one still fits.  A
+   //  size the user chose is kept, but never larger than the screen.
    int displayIdx = wxDisplay::GetFromWindow(this);
    wxRect area = wxDisplay(displayIdx == wxNOT_FOUND ? 0 : displayIdx)
                    .GetClientArea();
    wxSize size = GetSize();
-   if (size.x > area.width || size.y > area.height) {
+   if (firstRun) {
+     size = wxSize(area.width * 8 / 10, area.height * 8 / 10);
+     SetSize(size);
+     CentreOnScreen();
+   } else if (size.x > area.width || size.y > area.height) {
      SetSize(wxSize(wxMin(size.x, area.width), wxMin(size.y, area.height)));
    }
    bool resetPerspective;
