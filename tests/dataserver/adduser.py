@@ -64,6 +64,8 @@ class Harness:
     def env(self):
         e = dict(os.environ)
         e["ECCE_REALUSERHOME"] = self.home
+        # The script falls back to $HOME; never let that be the real one.
+        e["HOME"] = self.home
         e["PATH"] = self.bindir + os.pathsep + e["PATH"]
         return e
 
