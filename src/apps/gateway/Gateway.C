@@ -688,8 +688,10 @@ void Gateway::exitGateway()
       // as well means it is gone even if that script is not on PATH or
       // resolves the session key differently than this process did.
       AuthCache::sessionClear();
-      (void)system("ecce-gateway-stop");
+      // Data server first: ecce-gateway-stop ends this process, so
+      // nothing after it runs.
       (void)system("ecce-dataserver-stop");
+      (void)system("ecce-gateway-stop");
     }
   } else {
     quit(true);
