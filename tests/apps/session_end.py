@@ -679,6 +679,15 @@ def caseRemote(checks, display, logdir):
     if not checks.check(setup.returncode == 0, "ecce-remote-setup ran"):
         say(setup.stdout.decode())
         return
+    # A new student account: nothing registered, no Queues file (#188).
+    myMachines = os.path.join(client, ".ECCE", "MyMachines")
+    for leftover in ("MyMachines", "Queues"):
+        try:
+            os.unlink(os.path.join(client, ".ECCE", leftover))
+        except OSError:
+            pass
+    accessLog = os.path.join(statedir(), "dataserver", "logs", "access_log")
+    logStart = os.path.getsize(accessLog) if os.path.exists(accessLog) else 0
     cdisplay = xdisplay.Display().__enter__()
     session = None
     try:
@@ -687,6 +696,20 @@ def caseRemote(checks, display, logdir):
         frame = session.organizer()
         if not checks.check(frame, "the client's Organizer opened"):
             return
+        with open(accessLog, errors="replace") as f:
+            f.seek(logStart)
+            served = [l for l in f if "PROPFIND" in l and " 207 " in l]
+        checks.check(served, "the central data server answered the client "
+                     "(%d PROPFIND 207 in its access log)" % len(served))
+        host = socket.gethostname().split(".")[0]
+        try:
+            with open(myMachines) as f:
+                registered = any(l.split("\t")[0] in (host, socket.getfqdn())
+                                 for l in f)
+        except OSError:
+            registered = False
+        checks.check(registered, "the client's own machine %s was registered "
+                     "in its MyMachines" % host)
         cd = cdisplay.name
         cdisp = pidfile(os.path.join(client, ".ECCE",
                                      "jmsdispatcher_%s.pid" % cd))
