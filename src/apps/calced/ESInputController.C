@@ -159,11 +159,11 @@ bool CalcEd::write_gbsconfig(const string& output_file,
     TGBSConfig* const gbsConfig = p_iCalc->gbsConfig();
     if (gbsConfig != (TGBSConfig*)0)
     {
-      // Produce code formatted basis set file
-      ostrstream stdStream;
-      stdStream << gbsConfig->dump(code->name().c_str(), !useExpCoeff);
-      stdStream << ends;
-      char* charData = stdStream.str();
+      // dump() returns null when the translator fails.  Streaming that
+      // null put the stream in a failed state and left an unterminated
+      // buffer, which went into the deck as a few bytes of binary.
+      const char* charData = gbsConfig->dump(code->name().c_str(),
+                                             !useExpCoeff);
 
       ofstream outFile(output_file.c_str());
       if (outFile && charData!=NULL && charData[0]!='\0') {

@@ -43,7 +43,6 @@ class WxEditSessionMgr
       void startSession(const string& app, /*const*/ char *args[],
               SFile* file, const string& id, EditListener *l);
 
-      static void editSessionCompleted(int pid);
 
       //static void processDeadChild(XtPointer clientData, XtIntervalId *);
       //static void checkFileWrite(XtPointer clientData, XtIntervalId *);
