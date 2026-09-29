@@ -186,7 +186,10 @@ void WxMachineRegisterGUI::CreateControls()
     itemPanel3->SetSizer(itemBoxSizer4);
 
     wxBoxSizer* itemBoxSizer5 = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer4->Add(itemBoxSizer5, 0, wxGROW, 3);
+    //  #187 (hand-edit: proportion 0 in the .pjd). The list and scrolled
+    //  form take whatever height the frame has, so a resize never pushes
+    //  the button row below the frame's bottom edge.
+    itemBoxSizer4->Add(itemBoxSizer5, 1, wxGROW, 3);
 
     wxString* itemListBox6Strings = NULL;
     ewxListBox* itemListBox6 = new ewxListBox( itemPanel3, ID_LISTBOX_MACHINES, wxDefaultPosition, wxSize(150, -1), 0, itemListBox6Strings, wxLB_SINGLE );
