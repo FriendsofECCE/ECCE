@@ -245,6 +245,9 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.17.3** — RHEL 9: the data server starts (#193); Tail, Final Edit and
+  Open Shell work with bash (#200). First release with native Ubuntu and
+  RHEL packages.
 - **v8.17.2** — the data server starts on RHEL (#193).
 - **v8.17.1** — an RPM built on RHEL installs there (#199).
 - **v8.17.0** — central servers for a class: the server's machine list
