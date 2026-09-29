@@ -217,17 +217,27 @@ case "$LISTEN_SETTING" in
     ;;
 esac
 
-# Debian only puts /usr/sbin (where the apache2 binary lives) on PATH for
-# root -- a regular user's login/desktop session PATH does not include it
-# (confirmed via `systemctl --user show-environment` and gnome-session's
-# own /proc/<pid>/environ). Relying on bare `apache2` here silently fails
-# with "command not found" for any non-root, non-customized-PATH user,
-# which then surfaces downstream as bin/gateway's opaque "cannot
-# establish a connection to the ECCE Server" dialog instead of an actual
-# error from this script. Resolve a full path instead.
-APACHE2_BIN="$(command -v apache2 2>/dev/null || echo /usr/sbin/apache2)"
-if [ ! -x "$APACHE2_BIN" ]; then
-  echo "ecce-dataserver-start: no apache2 binary found (looked on PATH and at /usr/sbin/apache2) -- install apache2" >&2
+# /usr/sbin is on PATH only for root on Debian, so a bare name would fail
+# for users as "command not found" and surface as the gateway's opaque
+# "cannot establish a connection" dialog. Debian calls the binary apache2
+# and keeps modules in /usr/lib/apache2/modules; RHEL calls it httpd and
+# uses /usr/lib64/httpd/modules (#193).
+APACHE2_BIN=""
+for cand in "$(command -v apache2 2>/dev/null)" /usr/sbin/apache2 \
+            "$(command -v httpd 2>/dev/null)" /usr/sbin/httpd; do
+  if [ -n "$cand" ] && [ -x "$cand" ]; then APACHE2_BIN="$cand"; break; fi
+done
+if [ -z "$APACHE2_BIN" ]; then
+  echo "ecce-dataserver-start: no Apache found (apache2 or httpd, on PATH or in /usr/sbin) -- install apache2 (Debian/Ubuntu) or httpd (RHEL/Fedora)" >&2
+  exit 1
+fi
+MODULES_DIR=""
+for cand in /usr/lib/apache2/modules /usr/lib64/httpd/modules \
+            /usr/lib/httpd/modules /usr/lib64/apache2/modules; do
+  if [ -f "$cand/mod_dav.so" ]; then MODULES_DIR="$cand"; break; fi
+done
+if [ -z "$MODULES_DIR" ]; then
+  echo "ecce-dataserver-start: found $APACHE2_BIN but no Apache module directory with mod_dav.so (looked in /usr/lib/apache2/modules, /usr/lib64/httpd/modules, /usr/lib/httpd/modules)" >&2
   exit 1
 fi
 
@@ -258,7 +268,7 @@ if port_open "$PORT"; then
     echo "  stale). It is probably an orphan from a killed run, and it is still" >&2
     echo "  serving its OLD configuration -- edits to httpd.conf or to any" >&2
     echo "  .htaccess will appear to be ignored. Stop it and start again:" >&2
-    echo "    ecce-dataserver-stop   # or: pkill -f 'apache2 -f $STATEDIR'" >&2
+    echo "    ecce-dataserver-stop   # or: pkill -f -- '-f $STATEDIR/httpd.conf'" >&2
   fi
   # The listen setting only takes effect when Apache starts, and this early
   # exit means changing it has no effect on a running server. Say so rather
@@ -319,6 +329,7 @@ sed -e "s|^##LISTEN##\$|$listen_repl|" \
     -e "s|##PORT##|$PORT|g" \
     -e "s|##EMAIL##|$ECCE_REALUSER@localhost|g" \
     -e "s|##SERVER##|localhost|g" \
+    -e "s|##MODULES##|$MODULES_DIR|g" \
     "$CONF_TEMPLATE" > "$STATEDIR/httpd.conf"
 
 case "$LISTEN_SETTING" in

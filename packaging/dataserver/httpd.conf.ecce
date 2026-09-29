@@ -45,42 +45,42 @@ PidFile "##HTTPDROOT##/logs/httpd.pid"
 
 Mutex file:##HTTPDROOT##/logs default
 
-LoadModule mpm_prefork_module   /usr/lib/apache2/modules/mod_mpm_prefork.so
-LoadModule authz_core_module    /usr/lib/apache2/modules/mod_authz_core.so
-LoadModule authn_core_module    /usr/lib/apache2/modules/mod_authn_core.so
-LoadModule authz_host_module    /usr/lib/apache2/modules/mod_authz_host.so
+LoadModule mpm_prefork_module   ##MODULES##/mod_mpm_prefork.so
+LoadModule authz_core_module    ##MODULES##/mod_authz_core.so
+LoadModule authn_core_module    ##MODULES##/mod_authn_core.so
+LoadModule authz_host_module    ##MODULES##/mod_authz_host.so
 # The vendored seed data (data/admin/dataserver/server_config/
 # data_server_files.tar) ships its own .htaccess files using legacy
 # Order/Allow/Deny syntax (2.2-era) under directories AllowOverride lets
 # .htaccess control (Ecce/users, Ecce/share). Load the compat shim so
 # those vendored files keep working as-is, rather than rewriting data we
 # don't own the source of.
-LoadModule access_compat_module /usr/lib/apache2/modules/mod_access_compat.so
-LoadModule auth_basic_module    /usr/lib/apache2/modules/mod_auth_basic.so
-LoadModule authn_file_module    /usr/lib/apache2/modules/mod_authn_file.so
-LoadModule authz_user_module    /usr/lib/apache2/modules/mod_authz_user.so
-LoadModule dav_module           /usr/lib/apache2/modules/mod_dav.so
-LoadModule dav_fs_module        /usr/lib/apache2/modules/mod_dav_fs.so
-LoadModule dav_lock_module      /usr/lib/apache2/modules/mod_dav_lock.so
-LoadModule mime_module          /usr/lib/apache2/modules/mod_mime.so
-LoadModule alias_module         /usr/lib/apache2/modules/mod_alias.so
-LoadModule cgi_module           /usr/lib/apache2/modules/mod_cgi.so
-LoadModule env_module           /usr/lib/apache2/modules/mod_env.so
-LoadModule setenvif_module      /usr/lib/apache2/modules/mod_setenvif.so
-LoadModule dir_module           /usr/lib/apache2/modules/mod_dir.so
-LoadModule rewrite_module       /usr/lib/apache2/modules/mod_rewrite.so
+LoadModule access_compat_module ##MODULES##/mod_access_compat.so
+LoadModule auth_basic_module    ##MODULES##/mod_auth_basic.so
+LoadModule authn_file_module    ##MODULES##/mod_authn_file.so
+LoadModule authz_user_module    ##MODULES##/mod_authz_user.so
+LoadModule dav_module           ##MODULES##/mod_dav.so
+LoadModule dav_fs_module        ##MODULES##/mod_dav_fs.so
+LoadModule dav_lock_module      ##MODULES##/mod_dav_lock.so
+LoadModule mime_module          ##MODULES##/mod_mime.so
+LoadModule alias_module         ##MODULES##/mod_alias.so
+LoadModule cgi_module           ##MODULES##/mod_cgi.so
+LoadModule env_module           ##MODULES##/mod_env.so
+LoadModule setenvif_module      ##MODULES##/mod_setenvif.so
+LoadModule dir_module           ##MODULES##/mod_dir.so
+LoadModule rewrite_module       ##MODULES##/mod_rewrite.so
 # "Options Indexes" (set below on Ecce/ and DocumentRoot) needs this to
 # actually generate a response for a directory with no index.html --
 # without it, a bare collection URL like the <Url> from DataServers
 # (http://host:port/Ecce, no filename) 404s instead of listing, which
 # broke EDSIServerCentral::checkServerSetup()'s existence check.
-LoadModule autoindex_module     /usr/lib/apache2/modules/mod_autoindex.so
+LoadModule autoindex_module     ##MODULES##/mod_autoindex.so
 # The vendored help content's .shtml pages use Server Side Includes
 # (<!--#include file="..."-->) to assemble each page's actual body text
 # and links out of smaller fragment files -- without this, Apache serves
 # those directives back as literal, unprocessed text and the page's real
 # content (and every link in it) never appears.
-LoadModule include_module       /usr/lib/apache2/modules/mod_include.so
+LoadModule include_module       ##MODULES##/mod_include.so
 
 DocumentRoot "##DATAROOT##"
 
