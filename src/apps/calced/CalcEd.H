@@ -345,6 +345,14 @@ class CalcEd: public CalcEdGUI,
      */
     bool   p_handEdited;
 
+    /**
+     * True when the last generateInput() ran the generator and it failed:
+     * the settings describe a deck that cannot be written, and any deck
+     * on DAV is an older one.  Blocks Launch until a generation succeeds
+     * or the user takes responsibility for the deck with Final Edit.
+     */
+    bool   p_inputGenFailed;
+
     const static char* p_BASIS_QUICK_PICKS[];
 
     // wxPython IPC for theory dialog
