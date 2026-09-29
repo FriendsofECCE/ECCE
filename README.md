@@ -245,6 +245,9 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.17.1** — the RPM installs on RHEL again: it declared
+  requirements nothing provided (#199).
+
 - **v8.17.0** — **Central servers for a class, and correct orbitals**:
   the Organizer names the server it is connected to; `ecce-remote-setup`
   copies the server's machine list to each client (#188);
