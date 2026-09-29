@@ -528,7 +528,11 @@ void CalcEd::doSetContext(const string& codeName)
     p_ESPCnstrnt = new ESPConstraintModel(*p_frag);
     p_fullFrag = new Fragment(*p_frag);
     if (p_frag->useSymmetry()) {
-      p_fullFrag->generateFullMolecule();
+      if (!p_fullFrag->generateFullMolecule())
+        p_feedback->setMessage("The full molecule could not be generated from "
+                "its symmetry-unique atoms (point group " +
+                p_fullFrag->pointGroup() + "); see the terminal for why.",
+                WxFeedback::WARNING);
     }
 
     // initialize spin multiplicities list and selection
@@ -1002,7 +1006,11 @@ void CalcEd::OnCheckboxCalcedIrreducibleClick( wxCommandEvent& event )
     if (p_fullFrag) delete p_fullFrag;
     p_fullFrag = new Fragment(*p_frag);
     if (event.IsChecked()) {
-      p_fullFrag->generateFullMolecule();
+      if (!p_fullFrag->generateFullMolecule())
+        p_feedback->setMessage("The full molecule could not be generated from "
+                "its symmetry-unique atoms (point group " +
+                p_fullFrag->pointGroup() + "); see the terminal for why.",
+                WxFeedback::WARNING);
     }
     p_frag->useSymmetry(event.IsChecked());
 
@@ -1571,7 +1579,11 @@ void CalcEd::subjectMCB(wxCommandEvent& event)
 
     p_fullFrag = new Fragment(*p_frag);
     if (p_frag->useSymmetry()) {
-      p_fullFrag->generateFullMolecule();
+      if (!p_fullFrag->generateFullMolecule())
+        p_feedback->setMessage("The full molecule could not be generated from "
+                "its symmetry-unique atoms (point group " +
+                p_fullFrag->pointGroup() + "); see the terminal for why.",
+                WxFeedback::WARNING);
     }
     updateGeomModel();
   }
