@@ -1,0 +1,61 @@
+name: Bug report
+description: Something in ECCE doesn't work, crashes, or gives a wrong result.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please search the [existing issues](https://github.com/FriendsofECCE/ECCE/issues) first; much prior investigation is recorded there.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: Include the exact text of any error message.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Which code (NWChem, Gaussian 16, ORCA, ...), which runtype, and what you clicked.
+      placeholder: |
+        1. New ORCA calculation on water
+        2. Theory Details: B3LYP, Runtype: Vibration
+        3. Launch
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: ECCE version
+      description: "`dpkg-query -W 'ecce*'` on Debian/Ubuntu, `rpm -qa 'ecce*'` on RHEL/Fedora."
+      placeholder: ecce 8.16.6
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Operating system
+      placeholder: Debian 13, Ubuntu 24.04, Rocky 9, WSL2 ...
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: How is ECCE set up?
+      options:
+        - Everything on my machine (plain `ecce`)
+        - Client of a central server (`ecce -remote`)
+        - Shared broker on an app server (siteconfig/SharedBroker)
+        - Don't know
+    validations:
+      required: true
+  - type: textarea
+    id: diagnose
+    attributes:
+      label: ecce-diagnose output
+      description: |
+        Run `ecce-diagnose`, or `ecce-diagnose /path/to/run/dir` for a job that didn't start or never finished, and attach the `ecce-diagnostics-*.txt` file it writes (drag it into this box). It contains no passwords, but it does contain host names, user names and paths, so read it first.
+        For a crash or a window that doesn't appear, also attach a trace: `ECCE_RCOM_LOGMODE=1 ecce > ecce-trace.txt 2>&1`, reproduce, quit.
+    validations:
+      required: false
