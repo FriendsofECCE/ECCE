@@ -594,17 +594,9 @@ sub ORCABlocks {
     }
     $result .= "%maxcore $maxcore\n";
   }
-  # %pal nprocs N: only written if the user explicitly set Processors>1
-  # in the theory dialog. Left at the default (1, no block at all) lets
-  # gensub's orca() sub inject the actual launch-time queue processor
-  # count instead -- confirmed empirically that ORCA just uses the LAST
-  # %pal block if there happen to be two, so gensub only adds its own
-  # when this one is absent, rather than risking the launch-time
-  # allocation being silently overridden by a stale edit-time choice.
-  my $nprocs = $AbiDict{"ES.Theory.SCF.NumProcessors"};
-  if ($nprocs ne "" && $nprocs > 1) {
-    $result .= "%pal nprocs $nprocs end\n";
-  }
+  # No %pal here: the Launcher's processor count is the one setting, and
+  # gensub's orca() writes it at launch. A value stored by the theory
+  # dialog's old Processors field is ignored, so it cannot override that.
   my $maxiter = $AbiDict{"ES.Theory.SCF.ConvergenceIterations"};
   if ($maxiter ne "") {
     $result .= "%scf\n  MaxIter $maxiter\nend\n";
