@@ -126,7 +126,8 @@ void Color::setTheme(const string& theme)
     Color::CAPTION = strdup("#4c5489");
     Color::CAPTION_GRADIENT = strdup("#646c99");
     Color::WARNING = strdup("#ffffc6");
-  } else if (theme=="Pnnl" || theme=="pnnl" || theme=="PNNL") {
+  } else if (theme=="Orange" || theme=="orange" ||
+             theme=="Pnnl" || theme=="pnnl" || theme=="PNNL") {
     Color::WINDOW = strdup("#e0e1e1");
     Color::MENUBAR = strdup("#b7b8ba");
     Color::TEXT = strdup("#000000");
@@ -135,7 +136,8 @@ void Color::setTheme(const string& theme)
     Color::CAPTION = strdup("#d57500");
     Color::CAPTION_GRADIENT = strdup("#e29e4c");
     Color::WARNING = strdup("#d57500");
-  } else if (theme=="Emsl" || theme=="emsl" || theme=="EMSL") {
+  } else if (theme=="Green" || theme=="green" ||
+             theme=="Emsl" || theme=="emsl" || theme=="EMSL") {
     Color::WINDOW = strdup("#e0e1e1");
     Color::MENUBAR = strdup("#b7b8ba");
     Color::TEXT = strdup("#000000");
@@ -144,7 +146,9 @@ void Color::setTheme(const string& theme)
     Color::CAPTION = strdup("#719500");
     Color::CAPTION_GRADIENT = strdup("#b8ca7f");
     Color::WARNING = strdup("#ffffc6");
-  } else if (theme=="PnnlEmsl" || theme=="pnnlemsl" || theme=="PNNLEMSL" ||
+  } else if (theme=="Orange and Green" || theme=="orange and green" ||
+             theme=="OrangeGreen" || theme=="orangegreen" ||
+             theme=="PnnlEmsl" || theme=="pnnlemsl" || theme=="PNNLEMSL" ||
              theme=="Pnnl_Emsl" || theme=="pnnl_emsl" || theme=="PNNL_EMSL") {
     Color::WINDOW = strdup("#e0e1e1");
     Color::MENUBAR = strdup("#b7b8ba");

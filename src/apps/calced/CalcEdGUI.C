@@ -211,6 +211,7 @@ void CalcEdGUI::CreateControls()
     wxMenu* itemMenu8 = new wxMenu;
     itemMenu8->Append(wxID_HELP, _("on Electronic Structure Editor..."), _T(""), wxITEM_NORMAL);
     itemMenu8->Append(ID_MENU_FEEDBACK, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu8->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu8, _("Help"));
     itemFrame1->SetMenuBar(menuBar);
 

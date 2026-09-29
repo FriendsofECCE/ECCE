@@ -195,9 +195,9 @@ void GlobalPrefs::createGeneralPage(wxWindow* page)
 
   p_colorTheme->Append(_("Site Default"));
   p_colorTheme->Append(_("Classic"));
-  p_colorTheme->Append(_("PNNL"));
-  p_colorTheme->Append(_("EMSL"));
-  p_colorTheme->Append(_("PNNL_EMSL"));
+  p_colorTheme->Append(_("Orange"));
+  p_colorTheme->Append(_("Green"));
+  p_colorTheme->Append(_("Orange and Green"));
   p_colorTheme->SetToolTip(_("Takes effect the next time ECCE is started"));
 
   p_fontSize->Append(_("Small"));
@@ -680,6 +680,10 @@ void GlobalPrefs::restoreSettings()
   Preferences colorPref = Preferences(PrefLabels::COLORPREFFILE);
   if (!colorPref.getString(PrefLabels::COLORTHEME, strBuf))
     strBuf = "Site Default";
+  // Prefs files written before the rename hold the old branded names.
+  if (strBuf == "PNNL") strBuf = "Orange";
+  else if (strBuf == "EMSL") strBuf = "Green";
+  else if (strBuf == "PNNL_EMSL") strBuf = "Orange and Green";
   p_colorTheme->SetStringSelection(strBuf);
 
   Preferences gwPref = Preferences(PrefLabels::GATEWAYPREFFILE);

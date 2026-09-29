@@ -5,6 +5,7 @@
   using std::string;
 
 #include "wx/app.h"
+#include "wx/event.h"
 
 
 /**
@@ -26,6 +27,10 @@ class ewxApp : public wxApp
       virtual string getName() const { return "noname"; }
 
       virtual void processGlobalPreferenceChange();
+
+      // Help > About ECCE...; reaches the app because unhandled menu
+      // events propagate from the frame to wxTheApp.
+      void OnAbout(wxCommandEvent& event);
 
 
 };

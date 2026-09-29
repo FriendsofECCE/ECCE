@@ -4,9 +4,10 @@
 # Four possible themes can be specified or colors can be set individually.
 # The four themes are:
 #   Classic - Traditional ECCE colors prior to version 5.0
-#   PNNL - Pacific Northwest National Laborary copper/silver branding
-#   EMSL - Environmental Molecular Sciences Laboratory green branding
-#   PNNL_EMSL - Combined copper and green branding
+#   Orange - copper/silver (formerly PNNL)
+#   Green - green (formerly EMSL)
+#   Orange and Green - combined copper and green (formerly PNNL_EMSL)
+# The former names are still accepted.
 #
 # Seven colors can be set individually by #RRGGBB hexadecimal value or by
 # the name of color (no "#" character) for some basic colors.
@@ -23,7 +24,7 @@
 #
 # A "#" character before the name of a theme or color indicates the line
 # is commented out and the setting is not applied.
-# The following are the color values for the default PNNL color theme as a
+# The following are the color values for the default Orange color theme as a
 # syntax example:
 # Window: #e0e1e1
 # Menubar: #b7b8ba
@@ -46,4 +47,4 @@
 # individual colors (Window, Input, etc.) can still be done by manually
 # editing the file.
 
-Theme: PNNL
+Theme: Orange

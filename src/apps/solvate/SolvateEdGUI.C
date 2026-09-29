@@ -147,6 +147,7 @@ void SolvateEdGUI::CreateControls()
     wxMenu* itemMenu7 = new wxMenu;
     itemMenu7->Append(wxID_HELP, _("on Solvation Editor..."), _T(""), wxITEM_NORMAL);
     itemMenu7->Append(ID_MENU_FEEDBACK, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu7->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu7, _("Help"));
     itemFrame1->SetMenuBar(menuBar);
 

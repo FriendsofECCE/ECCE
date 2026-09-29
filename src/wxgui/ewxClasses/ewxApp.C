@@ -10,6 +10,9 @@
 #endif
 
 #include "wx/image.h"
+#include "wx/aboutdlg.h"
+#include <fstream>
+#include <sstream>
 
 #include "util/Ecce.H"
 #include "util/Preferences.H"
@@ -98,6 +101,8 @@ bool ewxApp::OnInit()
 
    Ecce::initialize();
 
+   Bind(wxEVT_MENU, &ewxApp::OnAbout, this, wxID_ABOUT);
+
    Color::initialize();
 
    DavDebug::setDebugContext(("/tmp/dav" + getName()).c_str());
@@ -118,4 +123,43 @@ void ewxApp::processGlobalPreferenceChange()
    wxWindow *top = GetTopWindow();
    ewxWindowUtils::processGlobalPreferenceChange(top);
 
+}
+
+
+void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
+{
+   wxAboutDialogInfo info;
+   info.SetName("ECCE");
+   info.SetVersion(Ecce::ecceVersion());
+   info.SetDescription(_("Extensible Computational Chemistry Environment\n\n"
+      "Originally developed at the Environmental Molecular Sciences "
+      "Laboratory (EMSL), Pacific Northwest National Laboratory, operated "
+      "for the U.S. Department of Energy by Battelle. Neither Pacific "
+      "Northwest National Laboratory, Battelle Memorial Institute nor the "
+      "U.S. Department of Energy is responsible for, or endorses, the "
+      "modifications made since 2012."));
+   info.SetCopyright(wxString::FromUTF8(
+      "Copyright \xC2\xA9 1994-2012 Pacific Northwest National Laboratory, "
+      "Battelle Memorial Institute.\n"
+      "Copyright \xC2\xA9 2017-2026 CA Ohlin."));
+   info.SetWebSite("https://github.com/FriendsofECCE/ECCE");
+   info.AddDeveloper("CA Ohlin");
+   info.AddDeveloper("Matthew Asplund");
+   info.AddDeveloper(_("The original ECCE team at EMSL, Pacific Northwest "
+                       "National Laboratory"));
+
+   // Full text when the install carries it; the notice alone otherwise.
+   std::string path = std::string(Ecce::ecceHome()) + "/LICENSE";
+   std::ifstream in(path.c_str());
+   std::ostringstream text;
+   if (in) text << in.rdbuf();
+   if (in && !text.str().empty()) {
+      info.SetLicence(wxString::FromUTF8(text.str().c_str()));
+   } else {
+      info.SetLicence(wxString::FromUTF8(
+         "Licensed under the Educational Community License, Version 2.0 "
+         "\xE2\x80\x94 http://opensource.org/licenses/ecl2.php"));
+   }
+
+   wxAboutBox(info, GetTopWindow());
 }

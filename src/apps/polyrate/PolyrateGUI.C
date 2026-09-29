@@ -264,6 +264,7 @@ void PolyrateGUI::CreateControls()
     menuBar->Append(itemMenu161, _("File"));
     wxMenu* itemMenu165 = new wxMenu;
     itemMenu165->Append(ID_MENU_FEEDBACK, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu165->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     itemMenu165->Append(ID_MENU_PLYRT_HELP, _("on POLYRATE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu165, _("Help"));
     itemFrame1->SetMenuBar(menuBar);

@@ -138,6 +138,7 @@ void MDEdBaseGUI::CreateControls()
     wxMenu* itemMenu7 = new wxMenu;
     itemMenu7->Append(ID_MENU_HELP, _("on NWChem MD Task..."), _T(""), wxITEM_NORMAL);
     itemMenu7->Append(ID_MENU_SUPPORT, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu7->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu7, _("Help"));
     itemFrame1->SetMenuBar(menuBar);
 

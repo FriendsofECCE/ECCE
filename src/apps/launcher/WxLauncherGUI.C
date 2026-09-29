@@ -231,6 +231,7 @@ void WxLauncherGUI::CreateControls()
     wxMenu* itemMenu139 = new wxMenu;
     itemMenu139->Append(wxID_HELP, _("on Launcher..."), _T(""), wxITEM_NORMAL);
     itemMenu139->Append(ID_MENUITEM_WXLAUNCHER_HELPSUPPORT, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu139->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu139, _("Help"));
     itemFrame1->SetMenuBar(menuBar);
 

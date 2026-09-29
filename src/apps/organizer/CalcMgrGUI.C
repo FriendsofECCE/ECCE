@@ -322,6 +322,7 @@ void CalcMgrGUI::CreateControls()
     wxMenu* itemMenu54 = new wxMenu;
     itemMenu54->Append(wxID_HELP, _("&on Organizer...\tCtrl+H"), _T(""), wxITEM_NORMAL);
     itemMenu54->Append(ID_MENU_SUPPORT, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu54->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu54, _("&Help"));
     wxMenu* itemMenu57 = new wxMenu;
     itemMenu57->Append(wxID_TEST_SUITE, _("Generate Theory/RunType Test Suite"), _T(""), wxITEM_NORMAL);

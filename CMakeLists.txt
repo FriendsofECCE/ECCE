@@ -934,6 +934,11 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/eccejobmonitor)
           COMPONENT client)
 endif()
 
+# Read at runtime by Help > About ECCE (ewxApp::OnAbout).
+install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
+        DESTINATION .
+        COMPONENT client)
+
 # Named by `ecce --help`, so it has to be on the machine.
 install(FILES ${CMAKE_SOURCE_DIR}/docs/ENVIRONMENT.md
         DESTINATION doc

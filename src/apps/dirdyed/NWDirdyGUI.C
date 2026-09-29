@@ -245,6 +245,7 @@ void NWDirdyGUI::CreateControls()
     menuBar->Append(itemMenu110, _("File"));
     wxMenu* itemMenu114 = new wxMenu;
     itemMenu114->Append(ID_MENU_FEEDBACK, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu114->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     itemMenu114->Append(ID_MENU_MDPREP_HELP, _("on NWChem DirDyVTST Editor..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu114, _("Help"));
     itemFrame1->SetMenuBar(menuBar);

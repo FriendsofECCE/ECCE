@@ -222,6 +222,7 @@ void BuilderGUI::CreateControls()
     wxMenu* itemMenu45 = new wxMenu;
     itemMenu45->Append(wxID_HELP, _("on Builder...\tCtrl+h"), _T(""), wxITEM_NORMAL);
     itemMenu45->Append(ID_SUPPORT, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu45->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu45, _("Help"));
     itemewxTool1->SetMenuBar(menuBar);
 
