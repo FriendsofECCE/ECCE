@@ -263,13 +263,13 @@ ci
 ci.convergenceenergy.value
 ci.convergenceiterations
 ci.convergencestates
-cinfv
 cis
 cisd
 clear
 coarse
 coarsegrid
 cobalt
+code
 constraint
 constraints
 continuous
@@ -329,7 +329,6 @@ dictionary
 dielectric
 difference
 diis
-dinfh
 direct
 directly
 disk
@@ -664,6 +663,7 @@ readwindow
 recognition
 removing
 replaced
+reported
 require
 retrying
 revtpss

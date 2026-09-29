@@ -64,7 +64,6 @@ $wrote
 '$theory'.\n
 '$value'
 '%s'
-'third
 -3c
 -b
 -f
@@ -101,7 +100,6 @@ $wrote
 6-31g*
 6-31g**
 6.1.1
-6.1.1:
 :n:t:pfbcqeshv
 <auxbasis>
 <basename>
@@ -123,6 +121,7 @@ against
 ai.orca
 ai.orca:
 also
+analytically
 and
 appear
 are
@@ -138,7 +137,6 @@ aug-pc-1
 b2gp-plyp
 b2plyp
 b3lyp
-b88
 b88-exchange
 b97-d3
 b97m-v
@@ -216,7 +214,6 @@ def2-svp/c
 def2-tzvp
 def2-tzvpp
 def2/j
-derivative
 descriptive
 details
 dft
@@ -255,8 +252,6 @@ es.theory.scf.userijcosx
 es.theory.scf.usesolvation
 es.theory.scf.usesymmetry
 es.theory.usesymmetry
-exchange-containing
-exit
 expected
 exponent
 f
@@ -270,6 +265,7 @@ frequencies
 from
 functional
 functional.\n
+functionals
 g
 gb/core;
 gbs
@@ -327,7 +323,7 @@ mult
 must
 n_core
 name_gbs
-needs
+need
 newecp
 newgto
 nmr
@@ -341,7 +337,6 @@ numerical
 numfreq
 nwchem
 o
-of
 off
 oh
 open
@@ -372,8 +367,6 @@ ran
 re-save
 read
 replaced
-requested'
-require
 response
 retrying
 revpbe
@@ -416,7 +409,6 @@ th
 the
 them
 theory
-third
 this
 tight
 tightopt
