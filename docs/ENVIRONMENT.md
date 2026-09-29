@@ -166,9 +166,8 @@ started `ecce`; use the variables that take a file where there is one.
 
 These are CMake options, not environment variables: `ECCE_HOME_DIR`
 (install root, default `/opt/ecce`), `ECCE_WRAPPER_DESTINATION` (where the
-`ecce-<app>` launchers go, default `/usr/bin`). Packaging always builds
-the two separate `ecce-client`/`ecce-server` packages (see
-GETTING_STARTED.md) — there is no monolithic-package option any more.
+`ecce-<app>` launchers go, default `/usr/bin`), `ECCE_SPLIT_PACKAGES`
+(separate client and server packages), `ECCE_MONOLITHIC_BREAK_VERSION`.
 
 ## Variables ECCE reads that are not named `ECCE_*`
 

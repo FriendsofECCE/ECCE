@@ -200,7 +200,7 @@ jobs:
         working-directory: build-cmake
         run: |
           cpack -G DEB
-          sudo dpkg -i ecce-client_*_amd64.deb ecce-server_*_amd64.deb
+          sudo dpkg -i ecce_*_amd64.deb
 
       # ECCE_APPS_TRACE names each app before it starts.  Without it a
       # wedged suite leaves the last SUCCESSFUL app as the final log
