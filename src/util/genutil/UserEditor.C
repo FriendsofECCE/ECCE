@@ -222,6 +222,9 @@ void UserEditor::getEditCommand(const SFile& file,
          if (flag != NULL && !hasAny(words, flag, alt)) {
             addArg(args,curArg, maxArgs, flag);
          }
+         if (base=="geany" && readOnly) {
+            addArg(args,curArg, maxArgs, "-r");
+         }
       }
       addArg(args,curArg, maxArgs, quotedName);
    }

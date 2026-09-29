@@ -368,6 +368,12 @@ void WxEditSessionMgr::editFile(SFile* file,
       const string& name)
 {
 
+   // Most GUI editors have no read-only flag; a read-only file makes them
+   // refuse the save instead of writing to a copy that is then deleted.
+   if (readOnly) {
+      (void)chmod(file->path().c_str(), S_IRUSR);
+   }
+
    UserEditor editor;
 
    string exe;
