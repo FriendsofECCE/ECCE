@@ -585,12 +585,11 @@ bool GatewayApp::checkUser()
       dlg->Destroy();
       ret = false;
     } else if (!userExists) {
-      string msg = "No top-level user directory exists for ";
+      string msg = "There is no account for ";
       msg += Ecce::serverUser();
-      msg += " on the default ECCE server.  The site administrator "
-        "must run the add_ecce_user script and create an account for ";
-      msg += Ecce::serverUser();
-      msg += " in order to run ECCE as this user.";
+      msg += " on this ECCE data server.  Create one there with "
+        "ecce-dataserver-adduser, or start ECCE as another user with "
+        "\"ecce -l NAME\" (the name is remembered for later sessions).";
       ewxMessageDialog* dlg = new ewxMessageDialog(dialogParent(), msg.c_str(),
                                   "ECCE Server User Not Recognized",
                                   wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
