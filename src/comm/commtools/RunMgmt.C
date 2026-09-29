@@ -314,8 +314,12 @@ bool RunMgmt::registerLocalMachine(string& msg)
       // Assume fullwhereami is machine name if no domain name available
       string machine = fullwhereami;
       string refname = machine;
+      // Short name = the first label of a host name; an IP address has
+      // no such thing (127.0.0.1 would become "127").
+      bool isAddress = refname.find_first_not_of("0123456789.") ==
+                       string::npos;
       int idx = refname.find('.');
-      if (idx != string::npos)
+      if (idx != string::npos && !isAddress)
         refname = refname.substr(0, idx);
 
       string settings = "type=accept&siteconfig=false&machine=";
