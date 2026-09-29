@@ -67,6 +67,7 @@ double GUIValue::getValueAsDouble() const
 // Constructor
 //////////////////////////////////////////////////////////////////////////////
 GUIValues::GUIValues()
+  : p_convertedLegacyUnits(false)
 {
 }
 
@@ -74,6 +75,7 @@ GUIValues::GUIValues()
 // Copy Constructor
 //////////////////////////////////////////////////////////////////////////////
 GUIValues::GUIValues(const GUIValues& rhs)
+  : p_convertedLegacyUnits(false)
 {
   *this = rhs;
 }
@@ -94,6 +96,7 @@ GUIValues::~GUIValues()
 GUIValues& GUIValues::operator=(const GUIValues& rhs)
 {
   if (this != &rhs) {
+    p_convertedLegacyUnits = rhs.p_convertedLegacyUnits;
     GUIValue* guival;
     GUIValues::const_iterator it;
     for (it=rhs.begin(); it!=rhs.end(); it++) {
@@ -113,6 +116,7 @@ GUIValues& GUIValues::operator=(const GUIValues& rhs)
 GUIValues& GUIValues::operator=(const string& rhs)
 {
   clear();
+  p_convertedLegacyUnits = false;
   istrstream buf(rhs.c_str());
   load(buf);
   return *this;
@@ -227,6 +231,54 @@ GUIValue *GUIValues::get(const string& key) const
 }
 
 //////////////////////////////////////////////////////////////////////////////
+// convertLegacyMemoryUnit()
+//   Every dialog's memory field is entered in GB now, and every generator
+//   reads the bare number as GB: dumpKeyVals() does not pass the unit on.
+//   A calculation saved before that change still stores Megawords or
+//   Megabytes, so 1800 Megawords became %Mem=1800GB.  Every stored value
+//   passes through load(), so convert here, for the dialogs and the
+//   generators alike.  The fields are integer spin controls: round to the
+//   nearest GB, but never turn a nonzero setting into 0.
+//////////////////////////////////////////////////////////////////////////////
+static bool convertLegacyMemoryUnit(GUIValue& obj)
+{
+  static const string suffix = ".MemorySize";
+  if (obj.m_key.size() < suffix.size() ||
+      obj.m_key.compare(obj.m_key.size() - suffix.size(), suffix.size(),
+                        suffix) != 0)
+    return false;
+
+  // Keep a qualifier such as " / core": it says what the number is per,
+  // not what it is measured in.
+  string unit = obj.m_units;
+  string qualifier;
+  string::size_type slash = unit.find(" / ");
+  if (slash != string::npos) {
+    qualifier = unit.substr(slash);
+    unit = unit.substr(0, slash);
+  }
+
+  double perGB;
+  if (unit == "Megawords")
+    perGB = 125.0;     // 8-byte words, the factor ai.gamess-uk uses back
+  else if (unit == "Megabytes")
+    perGB = 1000.0;    // the factor ai.orca uses for %maxcore
+  else
+    return false;
+
+  if (obj.getValueAsString().empty()) {
+    obj.m_units = "Gigabytes" + qualifier;
+    return true;
+  }
+  double gb = obj.getValueAsDouble() / perGB;
+  int rounded = (int)(gb + 0.5);
+  if (gb > 0.0 && rounded < 1) rounded = 1;
+  obj.setValue(rounded);
+  obj.m_units = "Gigabytes" + qualifier;
+  return true;
+}
+
+//////////////////////////////////////////////////////////////////////////////
 // load()
 //   Reads from stream in format
 //     key: value 1/0 1/0
@@ -335,6 +387,8 @@ int GUIValues::load(istream& inputsrc)
       if (cptr != NULL)
         obj.m_type = cptr;
     }
+
+    if (convertLegacyMemoryUnit(obj)) p_convertedLegacyUnits = true;
 
     set(obj.m_key,new GUIValue(obj));
     ret++;

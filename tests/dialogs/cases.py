@@ -305,12 +305,45 @@ RESTORE_CASES = [
         changes={"ES.Theory.SCF.MemorySize": ("1600", "Megawords")},
         expect={"ES.Theory.SCF.MemorySize":
                 {"value": 6, "unit": "Gigabytes"}},
+        resent=["ES.Theory.SCF.MemorySize"],
         why="""
             The original #77 report: a Gaussian Memory field showing
             "Megawords" despite a verified-correct source, because
             FinalizeSetting() called SetUnit(unit) with whatever was persisted
             in the calc's stored data.  The unit label must come from
             ged16theory.py's own constructor, never from the restore file.
+            The default it shows instead must be sent again AFTER
+            #INITIALIZED, or calced never marks the calc modified and Launch
+            reuses a deck made from the old number (Calculation-9-2: the
+            dialog read 6 GB, the deck said %Mem=1800GB).
+        """),
+
+    dict(
+        name="g16-memory-converted-megawords",
+        script="ged16theory.py", category="SCF", theory="RHF",
+        changes={"ES.Theory.SCF.MemorySize": ("14", "Gigabytes")},
+        expect={"ES.Theory.SCF.MemorySize":
+                {"value": 14, "unit": "Gigabytes"}},
+        resent=[],
+        why="""
+            What calced hands the dialog for a stored 1800 Megawords once
+            GUIValues::load() has converted it (tests/guivalues checks that
+            half).  It must be restored, not replaced by the default, and
+            nothing may be re-sent: an unchanged restore is not an edit.
+        """),
+
+    dict(
+        name="nwchem-memory-converted-per-core",
+        script="nedtheory.py", category="DFT", theory="RDFT",
+        changes={"ES.Theory.SCF.MemorySize": ("5", "Gigabytes")},
+        expect={"ES.Theory.SCF.MemorySize":
+                {"value": 5, "unit": "Gigabytes / core"}},
+        resent=[],
+        why="""
+            NWChem's field was plain "Megawords" and is now "Gigabytes /
+            core"; calced's conversion yields "Gigabytes".  The per-core
+            qualifier says what the number is per, not its unit, so the
+            converted value must be restored rather than dropped.
         """),
 
     dict(
