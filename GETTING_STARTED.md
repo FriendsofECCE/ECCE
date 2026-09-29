@@ -57,6 +57,11 @@ running `ecce-builder` and friends directly skips that setup). No
 below runs as a real Apache instance), not just build-time — `dpkg -i` will
 fail to configure without them if `apt-get install` wasn't run first.
 
+The site configuration under `/opt/ecce/siteconfig` (the machine list,
+queues, `DataServers`, …) is marked as configuration from 8.17.0, so an
+upgrade keeps what `sudo ecce -admin` or `ecce-remote-setup` wrote there;
+dpkg asks before replacing a file you changed.
+
 ### Split packages (client/server)
 
 By default CPack still builds one monolithic `ecce_<version>_amd64.deb`

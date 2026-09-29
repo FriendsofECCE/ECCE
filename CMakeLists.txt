@@ -1248,6 +1248,33 @@ else()
                  "(apt install rpm to enable RPM packaging)")
 endif()
 
+# The site configuration an admin edits (sudo ecce -admin, ecce-remote-
+# setup's copy of a server's machine list, #188) must survive upgrades,
+# so it is a Debian conffile / RPM %config(noreplace). Not jndi.properties:
+# ecce-remote-setup rewrites it in place and keeps its own .local copy.
+set(_ecce_siteconfig_conffiles
+  Machines Queues QueueManagers DataServers site_runtime
+  remote_shells.site submit.site AppColors StartupMessage NewUserMessage
+  CONFIG.dummy dummy.Q example-slurm.Q
+  CONFIG-Examples/CONFIG.loadleveler CONFIG-Examples/CONFIG.lsf
+  CONFIG-Examples/CONFIG.mpp2 CONFIG-Examples/CONFIG.pbs
+  CONFIG-Examples/CONFIG.sge CONFIG-Examples/CONFIG.workstation)
+set(_ecce_conffiles_debian ${CMAKE_BINARY_DIR}/conffiles/conffiles)
+set(_ecce_conffiles_content "")
+set(_ecce_rpm_filelist "")
+foreach(_f ${_ecce_siteconfig_conffiles})
+  string(APPEND _ecce_conffiles_content
+         "${CPACK_PACKAGING_INSTALL_PREFIX}/siteconfig/${_f}\n")
+  list(APPEND _ecce_rpm_filelist
+       "%config(noreplace) ${CPACK_PACKAGING_INSTALL_PREFIX}/siteconfig/${_f}")
+endforeach()
+file(WRITE ${_ecce_conffiles_debian} "${_ecce_conffiles_content}")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${_ecce_conffiles_debian}")
+set(CPACK_RPM_USER_FILELIST "${_ecce_rpm_filelist}")
+# siteconfig/ is all client-side, so under the split it goes with ecce-client.
+set(CPACK_DEBIAN_CLIENT_PACKAGE_CONTROL_EXTRA "${_ecce_conffiles_debian}")
+set(CPACK_RPM_CLIENT_USER_FILELIST "${_ecce_rpm_filelist}")
+
 # ---------------------------------------------------------------------------
 # Split packaging (ECCE_SPLIT_PACKAGES). Every install() rule above already
 # carries COMPONENT client/server; this block only decides whether CPack
