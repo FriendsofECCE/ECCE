@@ -139,7 +139,6 @@ BasicAuth *WxDavAuth::getAuthorization(const string& url, const string& user)
  *
  * The user and password fields of the event may be replacedd
  *
- * @throw RetryException after n user prompts
  * @return true if there is a new value to try.
  */
 bool WxDavAuth::getAuthorization(AuthEvent& event)
@@ -202,10 +201,9 @@ bool WxDavAuth::getAuthorization(AuthEvent& event)
       // try prompting then
       p_promptCount++;
 
-      if (p_promptCount > 3) {
-         throw RetryException("Maximum retries exceeded (3).",WHERE);
-      }
-
+      // No cap here: prompt() only returns true on OK (Cancel already
+      // ends the loop), so this can't spin on its own, and a client-side
+      // limit protects nothing -- anyone can hit Apache directly anyway.
       if (!ret)
         ret = prompt(event.m_url,
               event.m_newUser,
@@ -231,8 +229,9 @@ bool WxDavAuth::getAuthorization(AuthEvent& event)
  * Prompt user for password.
  * Username can also be changed.
  * @param retryCount p_promptCount from getAuthorization(): 1 for the first
- *   prompt of a request, 2 or 3 when the password just typed was refused
- *   by the server (a third refusal throws RetryException).
+ *   prompt of a request, higher each time the password just typed was
+ *   refused by the server. Unbounded -- the user keeps retrying until
+ *   they succeed or press Cancel.
  */
 bool WxDavAuth::prompt(const string& strurl,
       const bool& newUser,
@@ -287,8 +286,7 @@ bool WxDavAuth::prompt(const string& strurl,
        // A prior prompt's password was refused by the server -- say so,
        // rather than silently repeating the same dialog.
        string promptStr = "The user name or password was not accepted.\n"
-             "Please try again (attempt " + std::to_string(retryCount) +
-             " of 3):";
+             "Please try again:";
        authDlg.setPrompt(promptStr);
        authDlg.Layout();
        authDlg.Fit();
