@@ -161,5 +161,9 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
          "\xE2\x80\x94 http://opensource.org/licenses/ecl2.php"));
    }
 
+   // The app's own tool icon; without one GTK draws a broken-image glyph.
+   wxTopLevelWindow *top = wxDynamicCast(GetTopWindow(), wxTopLevelWindow);
+   if (top && top->GetIcon().IsOk()) info.SetIcon(top->GetIcon());
+
    wxAboutBox(info, GetTopWindow());
 }
