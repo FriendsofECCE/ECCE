@@ -265,6 +265,7 @@ class Builder: public BuilderGUI,
       virtual void OnToolMenuClick( wxCommandEvent& event );
 
       virtual void OnPaneClose(wxAuiManagerEvent& event);
+      void OnPaneButton(wxAuiManagerEvent& event);
       virtual void OnChildFocus(wxChildFocusEvent& event);
       virtual void OnPaneTakeFocus(wxAuiManagerEvent& event);
       virtual void OnPaneAddFocus(wxAuiManagerEvent& event);
@@ -468,6 +469,13 @@ class Builder: public BuilderGUI,
       ewxBitmapButton * p_cameraButton;
 
       map<wxWindow*, wxString> p_propertyPanelInfo;
+
+      // Property panes folded to their caption bar, with what to restore.
+      struct FoldState { wxSize best; wxSize min; bool resizable; int proportion; };
+      map<wxWindow*, FoldState> p_folded;
+      void toggleFold(wxWindow *win);
+      void unfoldPane(wxAuiPaneInfo &pane);
+      wxString paneInfoForSave(wxAuiPaneInfo &pane);
 
       //  >0 while property panels are being created, re-docked or
       //  re-laid-out.  OnChildFocus() refuses to hand a panel the 3-D

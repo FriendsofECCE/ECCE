@@ -10,11 +10,23 @@
 // wxAuiDefaultDockArt and only keeps the (unaffected) color customization.
 #include <wx/aui/aui.h>
 
+#include <functional>
+
 class BuilderDockArt : public wxAuiDefaultDockArt
 {
   public:
     BuilderDockArt();
     virtual ~BuilderDockArt();
+
+    // Asks Builder whether a pane is folded; the pin slot is the fold toggle.
+    void setFoldedQuery(std::function<bool(wxWindow*)> q) { p_isFolded = q; }
+
+    virtual void DrawPaneButton(wxDC& dc, wxWindow* window, int button,
+                                int buttonState, const wxRect& rect,
+                                wxAuiPaneInfo& pane);
+
+  private:
+    std::function<bool(wxWindow*)> p_isFolded;
 };
 
 #endif // BUILDERDOCKART_H_
