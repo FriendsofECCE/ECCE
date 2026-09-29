@@ -42,6 +42,24 @@ else
 fi
 
 OUT="ecce-diagnostics-$(hostname -s 2>/dev/null || echo host)-$(date +%Y%m%d-%H%M%S).txt"
+case "${1:-}" in
+  -h|--help)
+    cat <<'USAGE'
+Usage: ecce-diagnose [run-directory]
+
+Collects what is needed to diagnose an ECCE problem into one file,
+ecce-diagnostics-<host>-<time>.txt in the current directory. It changes
+nothing and collects no passwords, but the file contains host names,
+user names and paths: read it before attaching it to an issue.
+
+  run-directory   a job's run directory on this machine, for a job that
+                  did not start or never finished (optional)
+USAGE
+    exit 0 ;;
+  -*)
+    echo "ecce-diagnose: unknown option $1 (try --help)" >&2
+    exit 2 ;;
+esac
 RUNDIR="${1:-}"
 
 say()  { printf '\n===== %s =====\n' "$1" >> "$OUT"; }
