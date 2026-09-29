@@ -43,8 +43,8 @@ window cannot hold the next one's session open.
 
 Isolated exactly as run_tests.py is (isolate.py). `--tree <build-dir>`
 tests an uninstalled change: bin/ becomes symlinks to the install with
-gateway taken from the build and the gateway and broker scripts (and
-ecce-remote-setup) from packaging/.
+gateway, organizer and builder taken from the build and the gateway and
+broker scripts (and ecce-remote-setup) from packaging/.
 
     tests/apps/session_end.py [--tree build-cmake] [case ...]
 """
@@ -71,7 +71,8 @@ def treeHome(state, install, build):
         if entry != "bin":
             os.symlink(os.path.join(install, entry), os.path.join(home, entry))
     overrides = {"gateway": os.path.join(build, "gateway"),
-                 "organizer": os.path.join(build, "organizer")}
+                 "organizer": os.path.join(build, "organizer"),
+                 "builder": os.path.join(build, "builder")}
     gwdir = os.path.join(REPO, "packaging", "gateway")
     for script in os.listdir(gwdir):
         if script.startswith("ecce-") and os.access(
@@ -369,6 +370,13 @@ def pressReturn(display, wid):
     subprocess.run(["xdotool", "key", "Return"], env=env, timeout=10)
 
 
+# Modal dialogs a user would answer on the way out: while one is up, wx
+# ignores the frame's close. The Builder's layout notice appears whenever
+# wxbuilder.ini was last written by another ECCE version, and is never
+# written back if the Builder is killed, so it recurs until answered.
+ACCEPT = ("Quit ECCE", "Reset Default Tools/Toolbars")
+
+
 def quitVia(display, frame):
     """Close a frame and accept its 'Quit ECCE' confirmation, if any.
 
@@ -382,7 +390,7 @@ def quitVia(display, frame):
         windows = display.windows()
         if frame[0] not in [w for w, _ in windows]:
             return True
-        dialog = next((w for w in windows if w[1] == "Quit ECCE"), None)
+        dialog = next((w for w in windows if w[1] in ACCEPT), None)
         if dialog:
             time.sleep(0.5)
             pressReturn(display, dialog[0])
@@ -682,6 +690,10 @@ def caseRemote(checks, display, logdir):
     clientMachines = os.path.join(chome, "siteconfig", "Machines")
     with open(clientMachines, "w"):
         pass
+    # An install that was itself once made a client carries its backup,
+    # which ecce-remote-setup keeps rather than overwrites.
+    shutil.rmtree(os.path.join(chome, "siteconfig", "local-machines.orig"),
+                  ignore_errors=True)
     setup = subprocess.run(
         [os.path.join(install, "bin", "ecce-remote-setup"), "localhost",
          str(dport), str(bport)], env=dict(os.environ, **extra),
