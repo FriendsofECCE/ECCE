@@ -297,7 +297,7 @@ void GlobalPrefs::createProgramsPage(wxWindow* page)
   termLabels.push_back("Other");
   p_terminal = makeProgramRow(sb, grid, _("Terminal:"), termLabels, termVals,
                               PrefLabels::TERMINAL);
-  p_terminal.choice->SetToolTip(_("Used to run terminal editors such as vi; started as: terminal -e editor file"));
+  p_terminal.choice->SetToolTip(_("Used only to run terminal editors such as vi, started as: terminal -e editor file. Open Shell always uses xterm."));
 
   const char* brPresets[] = {"", "firefox", "firefox-esr", "chromium"};
   vector<string> brVals(brPresets, brPresets + 4);
@@ -313,7 +313,8 @@ void GlobalPrefs::createProgramsPage(wxWindow* page)
 
   outer->Add(new ewxStaticText(page, wxID_ANY,
       _("Default editor: VISUAL or EDITOR if set, otherwise vi.\n"
-        "Terminal editors (vi, vim, nano, emacs -nw) run in the terminal.\n"
+        "Terminal editors (vi, vim, nano, emacs -nw) run in this terminal;\n"
+        "Open Shell always uses xterm.\n"
         "Choose Other to type a command; it may include arguments.")),
       0, wxLEFT|wxRIGHT|wxBOTTOM, PAD*2);
 
