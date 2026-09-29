@@ -43,7 +43,12 @@ GEN_INPUTS = os.path.join(FIXTURES, "gen-inputs")
 #  shell only and NWChem refuses multiplicity 3 under it, so the sane
 #  choice for a triplet -- the one nedtheory.py actually offers under SCF
 #  for an open shell -- is UHF, which is what CalcEd would need selected.
-CASES = ("h2", "o2", "co")
+#  "co-opt" is a Geometry runtype (the others are all Energy) -- it
+#  regenerates the trailing "task scf optimize / scf / task scf
+#  gradient" that reprints the converged-geometry orbitals, so a
+#  generator regression there fails here rather than only downstream in
+#  run_tests.py's nwchem-co-opt-mos case.
+CASES = ("h2", "o2", "co", "co-opt")
 
 
 def regenerate(name, workdir):

@@ -300,6 +300,64 @@ def expect_nwchem_co_mos(props, report):
                      '(got %g)' % te)
 
 
+def expect_nwchem_co_opt_mos(props, report):
+    """CO, RHF/6-31G*, Geometry (optimisation) starting well off
+    equilibrium (1.375 A) -- the regression guard for the "optimise then
+    show orbitals" bug: NWChem's ecce_print of the MO vectors block is a
+    one-shot per process (fires once, for the FIRST SCF evaluation of
+    the whole optimisation) and a bare trailing task cannot retrigger
+    it, so without ai.nwchem's fix ORBENG comes from the unconverged
+    starting geometry instead of the converged one.
+
+    Also the property-length invariant from the fix itself: the
+    trailing "task scf gradient" ai.nwchem now appends must advance
+    TEVEC and GEOMTRACE together, never leaving TEVEC one point ahead
+    (GeomTracePropertyPanel indexes GEOMTRACE by TEVEC's row and a
+    stray extra point reads past the last frame -- the MOPAC #86
+    GEOMTRACE/TEVEC lesson in CLAUDE.md, here for NWChem's own
+    Geometry+energy interaction instead of a code difference).
+    """
+    for key in ('TE', 'TEVEC', 'GEOMTRACE'):
+        report.check(bool(props.get(key)), '%s extracted' % key)
+    if not (props.get('TEVEC') and props.get('GEOMTRACE')):
+        return
+
+    report.check(len(props['TEVEC']) <= len(props['GEOMTRACE']),
+                 'len(TEVEC) <= len(GEOMTRACE) (got %d vs %d)'
+                 % (len(props['TEVEC']), len(props['GEOMTRACE'])))
+
+    occ = _check_mo_block(props, report, 28)
+    if occ is not None:
+        report.check(sum(occ) == 14.0,
+                     'occupancies sum to 14 electrons (got %g)' % sum(occ))
+        report.check(occ[:7] == [2.0] * 7 and occ[7:] == [0.0] * 21,
+                     'seven filled levels then virtuals (got first 8: %s)'
+                     % occ[:8])
+
+    if props.get('ORBENG'):
+        #  Orbital 7 (0-based index 6): -0.5474 at the 1.375 A starting
+        #  geometry, -0.5457 at the converged one (~1.126 A) -- a real
+        #  but modest shift, so the window is narrow and placed to
+        #  reject the unconverged value rather than merely accept a
+        #  plausible one.
+        eng = [float(x) for x in
+              sect(props['ORBENG'][-1], 'values').split()]
+        report.check(-0.5465 < eng[6] < -0.5450,
+                     'orbital 7 is at the CONVERGED geometry, not the '
+                     'first optimisation step (got %.6f, first-step '
+                     'value is -0.5474)' % eng[6])
+
+    if props.get('TE'):
+        te = float(sect(props['TE'][-1], 'values'))
+        #  Converged RHF/6-31G* energy for CO near its equilibrium bond
+        #  length; the 1.375 A starting point is -112.627, well outside
+        #  this window, so this also catches a TE that never advanced
+        #  past the first step.
+        report.check(-112.74 < te < -112.73,
+                     'total energy is the CONVERGED RHF/6-31G* value for '
+                     'CO (got %g)' % te)
+
+
 def expect_nwchem_o2_triplet_mos(props, report):
     """O2, UHF/6-31G*, multiplicity 3 -- the one that actually matters:
     open shell, separate alpha and beta orbital sets.  16 electrons split
@@ -497,6 +555,17 @@ CASES = [
         parse_args=('.', 'Energy', 'SCF', 'RHF', '0'),
         output='ecce.out',
         expect=expect_nwchem_co_mos,
+    ),
+    dict(
+        #  Regression guard for the optimise-then-show-orbitals bug --
+        #  see expect_nwchem_co_opt_mos's own docstring.
+        name='nwchem-co-opt-mos',
+        code='nwchem',
+        desc='nwchem.desc',
+        deck='nwchem/co-opt.nw',
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        output='ecce.out',
+        expect=expect_nwchem_co_opt_mos,
     ),
     dict(
         #  Bulk Si, 2 atoms, low cutoff -- under a second.  QE needs
