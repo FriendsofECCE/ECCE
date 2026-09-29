@@ -246,7 +246,8 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      older is on the releases page. -->
 
 - **v8.17.3** — the data server starts on RHEL 9, which ships `mod_unixd`
-  as a module (#193).
+  as a module (#193); Tail, Final Edit and Open Shell work when the
+  local shell is RHEL's bash (#200).
 
 - **v8.17.2** — the data server starts on RHEL, where Apache is
   `httpd` with its modules in `/usr/lib64` (#193).
