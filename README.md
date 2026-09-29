@@ -245,11 +245,19 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
-*In progress: **8.17.0**.* The MO diagram rebuilt on correct ORCA and
-Gaussian coefficients and Löwdin composition, with metal–ligand
-classification (#163, #170, #162); ORCA Raman activities (#173); a
-Machine Registration fix for site machines (#104); and ECCE shipped as
-two packages, `ecce-client` and `ecce-server`.
+- **v8.17.0** — **Central servers for a class, and correct orbitals**:
+  the Organizer names the server it is connected to; `ecce-remote-setup`
+  copies the server's machine list to each client (#188);
+  `ecce-dataserver-adduser --from` creates a class from a file; a login
+  name is the session's user, and "no access to this folder" is no
+  longer reported as a wrong password; `ecce -remote` says when the
+  server is down. Site configuration survives upgrades. After an NWChem
+  geometry optimisation the orbitals shown are the final geometry's
+  (#198). The MO diagram is rebuilt on correct ORCA and Gaussian
+  coefficients (#163, #170, #162) and marked experimental; ORCA Raman
+  activities (#173); Builder/Viewer layout and measurement highlighting
+  (#196, #197); a site machine opens pre-filled in Machine Registration
+  (#104); queue memory in GB.
 
 - **v8.16.7** — **Teaching-round fixes, Preferences, and `ecce --bug`**:
   a random basis-set failure after using an editor is fixed; Verify is
@@ -312,20 +320,6 @@ two packages, `ecce-client` and `ecce-server`.
   Fixes basis sets being silently corrupted in ORCA and Gaussian decks.
   Gaussian 16 Raman and anharmonic frequencies; RPM packages.
 
-- **v8.13.2** — **Jobs that staged and never ran now run**: the submit
-  script was backgrounded with a redirection csh rejects. Affects any
-  machine whose `/usr/bin/csh` is tcsh. Present since v8.0.3.
-
-- **v8.13.1** — **Running against a central server works again**:
-  `ecce -remote`, and `ecce-remote-setup <host>` to configure a client.
-  Fixes helper programs invoked by relative path.
-
-- **v8.13.0** — **Electrostatic potential maps** on the molecular
-  surface. 3-D orbitals for MOPAC. Queues configurable inside ECCE.
-  **Fixes ORCA p functions declared in the wrong order** — orbitals with
-  p character were drawn wrong since v8.0.7, so re-render any you rely
-  on — and basis-set values read without their exponent.
-
 ## Roadmap
 
 No dates — this is a small effort, and the order below reflects what is
@@ -340,12 +334,13 @@ being worked on rather than a schedule. Current work is tracked in the
 * **Deeper coverage of the codes already supported** — ORCA, Gaussian 16
   and MOPAC each still have options reachable in the code but not from
   the interface.
-* **Client and server packages**: `ecce-client` for the machines people
-  sit at, `ecce-server` for the machine that holds the data.
 
 **Next (9.x)** — the plan is on
 [#186](https://github.com/FriendsofECCE/ECCE/issues/186):
 
+* **Separate client and server packages**, once the server package can
+  run a central server on its own: `ecce-client` for the machines people
+  sit at, `ecce-server` for the machine that holds the data.
 * **Jobs launched without an interactive shell** (libssh, and a direct
   local spawn), which ends the bash and csh problems for good and
   retires the csh requirement.
