@@ -22,6 +22,15 @@ PORTFILE="$STATEDIR/${HOST}_${DISPLAY}"
 AUTHFILE="$STATEDIR/authcache_$(printf '%s_%s' "$HOST" "$DISPLAY" |
                                 tr -c 'A-Za-z0-9._-' '_')"
 
+# Held until this script exits, and taken by ecce-gateway-reap in the
+# EXIT trap of the wrapper that ran the gateway: so `ecce` returns only
+# after everything below has been done and said, not with its prompt
+# printed ahead of this script's output.
+if [ -d "$STATEDIR" ]; then
+  exec 9>>"$STATEDIR/.gateway.lock"
+  flock -w 90 9 || echo "ecce-gateway-stop: could not lock $STATEDIR/.gateway.lock; continuing" >&2
+fi
+
 # Stop the gateway APPLICATION first, not just the services it owns.
 #
 # Reported from a live session 2026-09-22: the Organizer's new "Quit and
@@ -77,7 +86,7 @@ rm -f "$AUTHFILE" "$AUTHFILE".tmp.*
 # (siteconfig/SharedBroker), which no user stops. The reaper decides.
 ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
 if [ -x "$ECCE_HOME/bin/ecce-gateway-reap" ]; then
-  "$ECCE_HOME/bin/ecce-gateway-reap" --stop || true
+  ECCE_GATEWAY_LOCKED=1 "$ECCE_HOME/bin/ecce-gateway-reap" --stop || true
 else
   echo "ecce-gateway-stop: ecce-gateway-reap not installed -- leaving the broker running" >&2
 fi

@@ -16,6 +16,8 @@ windows the way a window manager does (WM_DELETE_WINDOW):
               session open, and must survive it
   stop        ecce-gateway-stop (Quit and Stop Server) ends the session
               and stops the broker
+  quit-stop   the Organizer's Quit and Stop Server, clicked: all the
+              teardown's output reaches `ecce`'s stream before it returns
   remote      #167's recipe (mode 2): with the server account marked
               (ecce-remote-setup --server), neither its own plain quit nor
               a -remote client's quit stops its broker
@@ -99,6 +101,7 @@ def parse():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("cases", nargs="*",
                         default=["organizer", "builder", "jobstore", "stop",
+                                 "quit-stop",
                                  "remote", "remote-down", "displays",
                                  "shared", "markers",
                                  "window", "bug"])
@@ -419,13 +422,14 @@ def quitVia(display, frame):
 # --- one session -------------------------------------------------------
 
 class Session(object):
-    def __init__(self, display, log, argv=(), extra=None):
+    def __init__(self, display, log, argv=(), extra=None, pipe=False):
         self.display = display
         self.extra = extra or {}
         self.log = open(log, "w")
         self.proc = subprocess.Popen(
             [os.path.join(wrappers, "ecce")] + list(argv), env=self.env(),
-            stdin=subprocess.DEVNULL, stdout=self.log,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE if pipe else self.log,
             stderr=subprocess.STDOUT, start_new_session=True)
 
     def env(self):
@@ -653,6 +657,106 @@ def caseStop(checks, display, logdir):
         checks.check(broker() is None, "and its pidfile removed")
         checks.check(not portOpen(fixture.dataserverPort()),
                      "the data server was stopped, as asked")
+    finally:
+        session.kill()
+
+
+class StreamWatch(object):
+    """What arrives on a session's output, and when, until every writer
+    has closed it -- as a terminal would see it."""
+
+    def __init__(self, session):
+        import threading
+        self.chunks = []
+        self.exited = None
+        self.eof = None
+        self.session = session
+
+        def read():
+            fd = session.proc.stdout.fileno()
+            while True:
+                data = os.read(fd, 4096)
+                if not data:
+                    break
+                self.chunks.append((time.time(), data))
+                session.log.write(data.decode(errors="replace"))
+                session.log.flush()
+            self.eof = time.time()
+
+        def wait():
+            session.proc.wait()
+            self.exited = time.time()
+
+        self.reader = threading.Thread(target=read, daemon=True)
+        self.waiter = threading.Thread(target=wait, daemon=True)
+        self.reader.start()
+        self.waiter.start()
+
+    def text(self, after=None):
+        return b"".join(d for t, d in self.chunks
+                        if after is None or t > after).decode(errors="replace")
+
+
+def clickLastButton(display, wid):
+    """Click a message dialog's right-most button (ewxMessageDialog lays
+    its buttons out right-aligned, in the order they were added)."""
+    env = display.env()
+    geo = subprocess.run(["xdotool", "getwindowgeometry", "--shell",
+                          str(int(wid, 16))], env=env, timeout=10,
+                         stdout=subprocess.PIPE).stdout.decode()
+    size = dict(l.split("=") for l in geo.split() if "=" in l)
+    x, y = int(size["WIDTH"]) - 30, int(size["HEIGHT"]) - 22
+    subprocess.run(["xdotool", "mousemove", "--window", str(int(wid, 16)),
+                    str(x), str(y), "click", "1"], env=env, timeout=10)
+
+
+def caseQuitStop(checks, display, logdir):
+    """The Organizer's Quit and Stop Server, clicked: everything the
+    teardown prints reaches `ecce`'s output before `ecce` returns, so the
+    shell prompt is not followed by stray lines."""
+    d = display.name
+    session = Session(display, os.path.join(logdir, "quit-stop.log"),
+                      pipe=True)
+    watch = StreamWatch(session)
+    try:
+        frame = session.organizer()
+        if not checks.check(frame, "the Organizer opened"):
+            return
+        gw = gatewayIsTheTree(checks, d)
+        disp, amq = dispatcher(d), broker()
+        time.sleep(3)
+        dialog = None
+        deadline = time.time() + 40
+        while not dialog and time.time() < deadline:
+            closeWindow(display, frame[0])
+            dialog = waitWindow(display, "Quit ECCE", timeout=8)
+        if not checks.check(dialog, "the Quit ECCE dialog opened"):
+            return
+        time.sleep(1)
+        clickLastButton(display, dialog[0])
+        watch.waiter.join(60)
+        if not checks.check(watch.exited is not None,
+                            "`ecce` returned after Quit and Stop Server"):
+            return
+        watch.reader.join(30)
+        checks.check(watch.eof is not None, "its output was closed %.1fs "
+                     "after it returned" % ((watch.eof or time.time())
+                                            - watch.exited))
+        before = watch.text()
+        late = watch.text(after=watch.exited + 0.1)
+        checks.check("stopped JMSDispatcher" in before
+                     and "stopping ActiveMQ broker" in before,
+                     "the teardown's messages were printed")
+        if not checks.check(not late, "nothing printed after `ecce` "
+                            "returned: %r" % late):
+            for t, data in watch.chunks:
+                say("    %+.2fs %r" % (t - watch.exited, data))
+        checks.check(amq is not None and not alive(amq),
+                     "the broker %s was stopped" % amq)
+        checks.check(not portOpen(fixture.dataserverPort()),
+                     "the data server was stopped")
+        checks.check(not alive(gw or -1) and not (disp and alive(disp)),
+                     "gateway and relay gone")
     finally:
         session.kill()
 
@@ -1199,6 +1303,7 @@ def caseBug(checks, display, logdir):
 
 CASES = {"bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
          "remote-down": caseRemoteDown,
+         "quit-stop": caseQuitStop,
          "displays": caseDisplays, "shared": caseShared,
          "markers": caseMarkers,
          "organizer": caseOrganizer, "builder": caseBuilder,
