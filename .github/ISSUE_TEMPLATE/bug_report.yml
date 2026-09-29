@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting. Either attach the `ecce-diagnose` file or describe what happened; either one is enough, and anything more helps. If you can, search the [existing issues](https://github.com/FriendsofECCE/ECCE/issues) first; much prior investigation is recorded there.
+        Thanks for reporting. Either attach the `ecce-diagnose` file or describe what happened; either one is enough to get started, but the more you can tell us, the better. If you can, search the [existing issues](https://github.com/FriendsofECCE/ECCE/issues) first; much prior investigation is recorded there.
   - type: textarea
     id: diagnose
     attributes:
