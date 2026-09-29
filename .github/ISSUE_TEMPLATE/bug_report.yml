@@ -5,14 +5,14 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting. Please describe what happened and attach the `ecce-diagnose` file. No field is required, so send what you have: the more you can tell us, the better.
+        Thanks for reporting. Please describe what happened and attach the `ecce --bug` archive. No field is required, so send what you have: the more you can tell us, the better.
   - type: textarea
     id: diagnose
     attributes:
-      label: ecce-diagnose output
+      label: Bug report archive
       description: |
-        Run `ecce-diagnose`, or `ecce-diagnose /path/to/run/dir` for a job that didn't start or never finished, and attach the `ecce-diagnostics-*.txt` file it writes (drag it into this box). It contains no passwords, but it does contain host names, user names and paths, so read it first.
-        For a crash or a window that doesn't appear, also attach a trace: `ECCE_RCOM_LOGMODE=1 ecce > ecce-trace.txt 2>&1`, reproduce, quit.
+        Run `ecce --bug`, reproduce the problem, and close the Organizer. It writes `~/ecce-bug-<time>.zip` with the logs, service logs and `ecce-diagnose` output; drag it into this box. It contains no passwords, but it does contain host names, user names and paths, so look through it first.
+        If ECCE won't start at all, attach the output of `ecce-diagnose` instead (`ecce-diagnose /path/to/run/dir` for one job).
     validations:
       required: false
   - type: textarea
@@ -37,8 +37,8 @@ body:
     id: version
     attributes:
       label: ECCE version
-      description: "`dpkg-query -W 'ecce*'` on Debian/Ubuntu, `rpm -qa 'ecce*'` on RHEL/Fedora."
-      placeholder: ecce 8.16.6
+      description: "`ecce --version` (the `ecce --bug` archive has it too)."
+      placeholder: ECCE 8.16.7
     validations:
       required: false
   - type: input
