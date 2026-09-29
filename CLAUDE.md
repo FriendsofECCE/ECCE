@@ -9,7 +9,14 @@ lean map of where things live and what to watch out for — it is
 intentionally *not* a running log of past sessions. For that, see
 "Where the history lives" at the bottom.
 
-Once a design decision is settled, delegate the implementation to the sonnet-implementer subagent rather than writing the files yourself. Keep doing the design work, review, and any decision the subagent flags, directly.
+Once a design decision is settled, delegate the implementation to the
+sonnet-implementer subagent rather than writing the files yourself, unless
+the edit is trivial (a few lines in one file, no investigation needed):
+make those directly, since a fresh agent re-reads the context and costs
+several times the tokens of the change itself (Andy, 2026-09-29). Use
+agents for investigations, multi-file work and anything that runs in
+parallel. Keep doing the design work, review, and any decision the
+subagent flags, directly.
 
 ## Standing preferences
 - **Comments: a few lines, saying WHY — never the history.** How a bug
