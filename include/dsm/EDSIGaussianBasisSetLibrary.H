@@ -133,6 +133,8 @@ class EDSIGaussianBasisSetLibrary {
 
      const vector<gbs_alias*>* getAliasList( TGaussianBasisSet::GBSType type );
 
+     bool                hasWholeFile( const gbs_alias* alias );
+
      const gbs_alias*    getGbsAlias( const char* gbs_name,
                                       TGaussianBasisSet::GBSType& type );
    

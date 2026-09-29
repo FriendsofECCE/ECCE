@@ -25,17 +25,33 @@
  * aggregate, "AGG <index>|<name>|<files>" followed by one
  * "COMP <file>|<name>|<type>|<nelements>" line per component lookup()
  * returned.  The checks are made by run_tests.py.
+ *
+ *   loadBasis <library-url> --oracle [composite]
+ *
+ * looks up every multi-file aggregate, puts the result in one group as the
+ * Basis Set Tool does, and prints per aggregate the shells of each element
+ * in the order TGBSConfig::dump() writes them, then dump("NWChem")'s own
+ * text (by name, and with every primitive).  "composite" makes lookup() ignore the whole-set placeholder file,
+ * i.e. load the set from its components, which is the reference the whole
+ * file is compared with.  "sweep composite" does the same for --sweep.
+ *
+ * --dump and --complete are described where they are defined.
  */
 #include <string.h>
 #include <iostream>
 #include <strstream>
 #include <string>
 #include <vector>
+#include <set>
+#include <stdio.h>
 
 #include "util/Ecce.H"
 #include "util/EcceURL.H"
 #define private public
 #include "dsm/EDSIGaussianBasisSetLibrary.H"
+#undef private
+#define private public
+#include "dsm/ICalcUtils.H"
 #undef private
 #include "dsm/TGBSConfig.H"
 #include "dsm/TGBSGroup.H"
@@ -47,6 +63,23 @@
 #undef protected
 
 using namespace std;
+
+//  Make lookup() see an aggregate without its "-AGG." placeholder, exactly
+//  as a library whose placeholders are empty (or a client that skips them)
+//  does.
+static void hideWholeFiles(EDSIGaussianBasisSetLibrary& library)
+{
+  for (int t = 0; t <= (int)TGaussianBasisSet::charge; t++) {
+    const vector<gbs_alias*>* aliases =
+        library.getAliasList((TGaussianBasisSet::GBSType)t);
+    if (aliases == 0) continue;
+    for (size_t a = 0; a < aliases->size(); a++) {
+      gbs_alias* alias = (*aliases)[a];
+      if (alias->files.size() > 1 && strstr(alias->files[0], "-AGG."))
+        alias->files.erase(alias->files.begin());
+    }
+  }
+}
 
 static int sweep(EDSIGaussianBasisSetLibrary& library)
 {
@@ -81,12 +114,158 @@ static int sweep(EDSIGaussianBasisSetLibrary& library)
   return 0;
 }
 
+static void printShells(const TGBSGroup* group, ostream& out)
+{
+  set<string> elements;
+  const vector<TGaussianBasisSet*>* list =
+      const_cast<TGBSGroup*>(group)->getOrderedList();
+  for (size_t i = 0; i < list->size(); i++)
+    for (ContractionMap::iterator it = (*list)[i]->p_contractions.begin();
+         it != (*list)[i]->p_contractions.end(); it++)
+      elements.insert(it->first);
+  char buf[64];
+  for (set<string>::iterator e = elements.begin(); e != elements.end(); e++) {
+    out << "element " << *e << endl;
+    for (size_t i = 0; i < list->size(); i++) {
+      ContractionMap::iterator it = (*list)[i]->p_contractions.find(*e);
+      if (it == (*list)[i]->p_contractions.end()) continue;
+      for (size_t c = 0; c < it->second->size(); c++) {
+        Contraction_* cont = (*it->second)[c];
+        out << "shell ";
+        for (size_t k = 0; k < cont->shells.size(); k++)
+          out << TGaussianBasisSet::shell_formatter[cont->shells[k]];
+        out << " " << cont->num_exponents << " " << cont->num_coefficients
+            << endl;
+        for (size_t p = 0; p < cont->num_exponents; p++) {
+          snprintf(buf, sizeof buf, "%.17g", cont->exponents[p]);
+          out << buf;
+          for (size_t k = 0; k < cont->num_coefficients; k++) {
+            snprintf(buf, sizeof buf, " %.17g",
+                     cont->coefficients[p * cont->num_coefficients + k]);
+            out << buf;
+          }
+          out << endl;
+        }
+      }
+    }
+  }
+}
+
+static int oracle(EDSIGaussianBasisSetLibrary& library)
+{
+  for (int t = 0; t <= (int)TGaussianBasisSet::charge; t++) {
+    TGaussianBasisSet::GBSType type = (TGaussianBasisSet::GBSType)t;
+    const vector<gbs_alias*>* aliases = library.getAliasList(type);
+    if (aliases == 0) continue;
+    for (size_t a = 0; a < aliases->size(); a++) {
+      const gbs_alias* alias = (*aliases)[a];
+      size_t components = alias->files.size();
+      if (components > 0 && strstr(alias->files[0], "-AGG.")) components--;
+      if (components < 2) continue;
+      vector<TGaussianBasisSet*> list =
+          library.lookup(alias->nicename, type, 0);
+      cout << "AGG " << TGaussianBasisSet::gbs_type_formatter[t] << "|"
+           << alias->nicename << "|" << list.size() << endl;
+      TGBSConfig config;
+      TGBSGroup* group = new TGBSGroup();
+      group->insertOrbitalGBS(alias->nicename, list, true);
+      set<string> elements;
+      for (size_t i = 0; i < list.size(); i++)
+        for (ContractionMap::iterator it = list[i]->p_contractions.begin();
+             it != list[i]->p_contractions.end(); it++)
+          elements.insert(it->first);
+      string tag;
+      for (set<string>::iterator e = elements.begin(); e != elements.end(); e++)
+        tag += (tag.empty() ? "" : " ") + *e;
+      printShells(group, cout);
+      if (!tag.empty()) {
+        config.insertGBSGroup(tag, group);
+        //  By name, as a saved calculation is written, and in full.
+        for (int named = 1; named >= 0; named--) {
+          const char* text = config.dump("NWChem", named != 0);
+          cout << (named ? "dump named\n" : "dump explicit\n") << text << endl;
+          delete [] text;
+        }
+      }
+      cout << "END" << endl;
+    }
+  }
+  return 0;
+}
+
+//  loadBasis <library-url> --dump <name> <type> <tag> named|explicit
+//  prints TGBSConfig::dump("NWChem") of that one set: the .basis file
+//  CalcEd hands ai.nwchem.
+static int dumpOne(int argc, char** argv)
+{
+  if (argc != 7) {
+    cerr << "usage: loadBasis <library-url> --dump <name> <type> <tag> "
+            "named|explicit\n";
+    return 2;
+  }
+  Ecce::initialize();
+  const EcceURL libraryUrl(argv[1]);
+  EDSIGaussianBasisSetLibrary library(libraryUrl);
+  TGBSConfig config;
+  vector<TGaussianBasisSet*> list = library.lookup(
+      argv[3], TGaussianBasisSet::strToType(argv[4]), argv[5]);
+  TGBSGroup* group = new TGBSGroup();
+  group->insertOrbitalGBS(argv[3], list, true);
+  config.insertGBSGroup(argv[5], group);
+  const char* text = config.dump("NWChem", string(argv[6]) == "named");
+  cout << text << endl;
+  delete [] text;
+  return 0;
+}
+
+//  loadBasis <library-url> --complete <name> <type> <tag>
+//  builds the group a stored calculation from an older release holds (the
+//  aggregate as its components) and completes it for <tag> the way
+//  ICalcUtils does when the molecule changes; prints what is in the result.
+static int completeOne(int argc, char** argv)
+{
+  if (argc != 6) {
+    cerr << "usage: loadBasis <library-url> --complete <name> <type> <tag>\n";
+    return 2;
+  }
+  Ecce::initialize();
+  const EcceURL libraryUrl(argv[1]);
+  EDSIGaussianBasisSetLibrary library(libraryUrl);
+  //  ICalcUtils built its own library at static-initialisation time, before
+  //  this process knew which server to ask.
+  delete ICalcUtils::p_gbsFactory;
+  ICalcUtils::p_gbsFactory = new EDSIGaussianBasisSetLibrary(libraryUrl);
+  hideWholeFiles(library);
+  vector<TGaussianBasisSet*> list = library.lookup(
+      argv[3], TGaussianBasisSet::strToType(argv[4]), argv[5]);
+  TGBSGroup* stored = new TGBSGroup();
+  stored->insertOrbitalGBS(argv[3], list, true);
+  TGBSGroup* group = ICalcUtils::completeGroup(stored, argv[5]);
+  const vector<TGaussianBasisSet*>* sets = group->getOrderedList();
+  for (size_t i = 0; i < sets->size(); i++)
+    cout << "SET " << (*sets)[i]->p_name << "|"
+         << TGaussianBasisSet::gbs_type_formatter[(*sets)[i]->p_type] << endl;
+  printShells(group, cout);
+  return 0;
+}
+
 int main(int argc, char** argv)
 {
-  if (argc == 3 && string(argv[2]) == "--sweep") {
+  if (argc >= 3 && string(argv[2]) == "--complete")
+    return completeOne(argc, argv);
+  if (argc >= 3 && string(argv[2]) == "--dump") return dumpOne(argc, argv);
+  if (argc >= 3 && string(argv[2]) == "--oracle") {
     Ecce::initialize();
     const EcceURL libraryUrl(argv[1]);
     EDSIGaussianBasisSetLibrary library(libraryUrl);
+    if (argc == 4 && string(argv[3]) == "composite") hideWholeFiles(library);
+    return oracle(library);
+  }
+  if (argc >= 3 && string(argv[2]) == "--sweep") {
+    Ecce::initialize();
+    const EcceURL libraryUrl(argv[1]);
+    EDSIGaussianBasisSetLibrary library(libraryUrl);
+    if (argc == 4 && string(argv[3]) == "composite") hideWholeFiles(library);
     return sweep(library);
   }
   if (argc != 5) {

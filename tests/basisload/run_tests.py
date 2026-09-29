@@ -30,6 +30,20 @@ readable dead properties (the legacy sdbm stores in the seed tar are
 unreadable to a modern mod_dav_fs), so the second pass is the one that
 reproduces a data server that has been in use.
 
+Whole-file aggregates
+---------------------
+An aggregate such as 6-31G* is one file (its "-AGG.BAS", written by
+tools/basissets/merge_aggregates.py) and loads as ONE basis set, the way
+cc-pVDZ does.  The file decides the path: a library whose placeholders are
+empty (an older server) is read from the component files, as before.  So the
+suite runs the cases against the shipped library (whole sets), again after
+PROPPATCHing the dead properties, and once more with the placeholders
+emptied on top of that (the older server, the #164 reproduction), each with
+its own expectations.  In the clean phase it also loads every multi-file
+aggregate both ways and requires the shells in dump() order, and dump()'s
+own text (by name and in full), to be identical: the component load is the
+oracle for the whole file.
+
 Only this suite's own server is ever started or stopped; it listens on
 loopback alone, and its config -- the shipped template with PROPPATCH
 permitted on the library, which the real one denies -- never leaves the
@@ -49,6 +63,10 @@ import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))), "tools", "basissets"))
+import merge_aggregates  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -78,8 +96,11 @@ POISON = [
 
 #  (label, name, picked-from list or "quick", tag, expectations).
 #  An expectation is (set name, set type, element, shells it must have);
-#  shells=None means an ECP entry for that element.
-CASES = [
+#  shells=None means an ECP entry for that element, and element "*" means
+#  the set must not be in the saved data at all.
+#  COMPOSITE_CASES is what a library with empty aggregate placeholders gives:
+#  the aggregate as its components, each with an identity of its own.
+COMPOSITE_CASES = [
     ("6-31G* CH4", "6-31G*", "pople", "C H", [
         ("6-31G", "pople", "C", ["S", "SP", "SP"]),
         ("6-31G", "pople", "H", ["S", "S"]),
@@ -107,6 +128,47 @@ CASES = [
         ("STO-3G", "pople", "Si", ["S", "SP", "SP"]),
         ("STO-3G* Polarization", "polarization", "Si", ["D"]),
     ]),
+]
+
+#  What the shipped library gives: the same sets whole, one entry each.
+WHOLE_CASES = [
+    ("6-31G* CH4", "6-31G*", "pople", "C H", [
+        ("6-31G*", "pople", "C", ["S", "SP", "SP", "D"]),
+        ("6-31G*", "pople", "H", ["S", "S"]),
+        ("6-31G", "pople", "*", None),
+        ("6-31G* Polarization", "polarization", "*", None),
+    ]),
+    ("6-31G* CH4 quick pick", "6-31G*", "quick", "C H", [
+        ("6-31G*", "pople", "C", ["S", "SP", "SP", "D"]),
+        ("6-31G* Polarization", "polarization", "*", None),
+    ]),
+    ("6-31G** CH4", "6-31G**", "pople", "C H", [
+        ("6-31G**", "pople", "C", ["S", "SP", "SP", "D"]),
+        ("6-31G**", "pople", "H", ["S", "S", "P"]),
+        ("6-31G** Polarization", "polarization", "*", None),
+    ]),
+    ("6-31G* on O alone, mixed basis", "6-31G*", "pople", "O", [
+        ("6-31G*", "pople", "O", ["S", "SP", "SP", "D"]),
+    ]),
+    ("6-31G alone keeps its own name", "6-31G", "pople", "C H", [
+        ("6-31G", "pople", "C", ["S", "SP", "SP"]),
+    ]),
+    ("STO-3G* SiH4", "STO-3G*", "pople", "Si H", [
+        ("STO-3G*", "pople", "Si", ["S", "SP", "SP", "D"]),
+        ("STO-3G* Polarization", "polarization", "*", None),
+    ]),
+    ("aug-cc-pVDZ water", "aug-cc-pVDZ", "correlation_consistent", "O H", [
+        ("aug-cc-pVDZ", "correlation_consistent", "O", ["S", "P", "D"]),
+        ("aug-cc-pVDZ Diffuse", "diffuse", "*", None),
+    ]),
+    ("6-31+G* CH4 (diffuse from a shared file)", "6-31+G*", "pople", "C H", [
+        ("6-31+G*", "pople", "C", ["S", "SP", "SP", "SP", "D"]),
+        ("6-31+G*", "pople", "H", ["S", "S"]),
+    ]),
+]
+
+#  Sets that were never aggregates load as they always did.
+COMMON_CASES = [
     ("cc-pVDZ-PP I", "cc-pVDZ-PP", "ECPOrbital", "I", [
         ("cc-pVDZ-PP", "ECPOrbital", "I", ["S", "P", "D"]),
         ("Stuttgart-Koeln MCDHF RSC ECP", "ecp", "I", None),
@@ -117,6 +179,11 @@ CASES = [
         ("Def2-ECP", "ecp", "I", None),
     ]),
 ]
+
+#  aggregate-with-ECP sets keep the component path in every phase.
+KEPT_COMPOSITE = ["aug-cc-pVDZ-PP", "aug-cc-pVTZ-PP", "aug-cc-pVQZ-PP",
+                  "aug-cc-pV5Z-PP", "LANL2DZdp ECP", "SDB-aug-cc-pVTZ",
+                  "SDB-aug-cc-pVQZ"]
 
 
 class Skip(Exception):
@@ -151,6 +218,9 @@ def makeHome(state, port):
     #  The repository's own data: the library it is testing, the seed tree
     #  and the client tables (element data) the C++ loads.
     os.symlink(os.path.join(REPO, "data"), os.path.join(home, "data"))
+    #  dump() pipes its text through std2NWChem, which finds its perl
+    #  modules under $ECCE_HOME/scripts/parsers.
+    os.symlink(os.path.join(REPO, "scripts"), os.path.join(home, "scripts"))
     #  The C++ reads siteconfig/DataServers on first contact with a server.
     #  Point it at this run's port, never at the real 8096.
     os.makedirs(os.path.join(home, "siteconfig"))
@@ -191,8 +261,10 @@ def makeHome(state, port):
 
 def env(state, home, port):
     e = dict(os.environ)
-    e.update(ECCE_HOME=home, ECCE_REALUSERHOME=state,
-             ECCE_DATASERVER_PORT=str(port))
+    e.update(ECCE_HOME=home, ECCE_REALUSERHOME=state, ECCE_REALUSER="tester",
+             ECCE_DATASERVER_PORT=str(port),
+             PATH=os.path.join(REPO, "scripts", "parsers") + os.pathsep
+             + e.get("PATH", ""))
     e.pop("ECCE_DATASERVER_LISTEN", None)
     return e
 
@@ -261,7 +333,11 @@ def runCase(driver, e, base, case, verbose):
     problems = []
     for setName, gtype, element, shells in expect:
         got = sets.get((setName, gtype))
-        if got is None:
+        if element == "*":
+            if got is not None:
+                problems.append("%s (%s) is in the saved data; it should "
+                                "be part of the whole set" % (setName, gtype))
+        elif got is None:
             problems.append("no %s (%s) in the saved data; it has %s"
                             % (setName, gtype, sorted(sets)))
         elif element not in got:
@@ -276,8 +352,14 @@ def runCase(driver, e, base, case, verbose):
     return problems
 
 
-def runSweep(driver, e, base, verbose):
-    """Every multi-file aggregate: all components, each its own identity."""
+def runSweep(driver, e, base, verbose, whole):
+    """Every multi-file aggregate.
+
+    whole=True: the ones tools/basissets/merge_aggregates.py fills come
+    back as ONE set carrying the aggregate's own name and type; the rest
+    (ECP, fitting) come back as components.  whole=False: all components,
+    each its own identity.
+    """
     proc = subprocess.run([driver, base, "--sweep"], env=e,
                           capture_output=True, text=True)
     if proc.returncode != 0:
@@ -290,10 +372,27 @@ def runSweep(driver, e, base, verbose):
             aggs.append(cur)
         elif line.startswith("COMP "):
             cur["comps"].append(line[5:].split("|"))
-    problems = []
+    merged = {(a["type"], a["name"]) for a, verdict, _ in
+              merge_aggregates.plan(merge_aggregates.DEFAULT_DIR)
+              if verdict == "merge"}
+    problems, wholeCount = [], 0
     for agg in aggs:
         where = "%s %s" % (agg["index"], agg["name"])
         comps = agg["comps"]
+        if whole and (agg["index"], agg["name"]) in merged:
+            wholeCount += 1
+            if len(comps) != 1:
+                problems.append("%s: %d sets came back, want the one whole "
+                                "set" % (where, len(comps)))
+            else:
+                _, cname, ctype, count = comps[0]
+                if (cname, ctype) != (agg["name"], agg["index"]):
+                    problems.append("%s: whole set is %s (%s)"
+                                    % (where, cname, ctype))
+                if count == "0":
+                    problems.append("%s: the whole set has no elements"
+                                    % where)
+            continue
         if len(comps) != len(agg["files"]):
             problems.append("%s: %d of %d components came back"
                             % (where, len(comps), len(agg["files"])))
@@ -308,9 +407,99 @@ def runSweep(driver, e, base, verbose):
                 problems.append("%s: %s typed %s" % (where, filename, ctype))
             if count == "0":
                 problems.append("%s: %s has no elements" % (where, filename))
+    if whole and wholeCount != len(merged):
+        problems.append("%d aggregates came back whole, %d were merged"
+                        % (wholeCount, len(merged)))
     if verbose:
-        print("  swept %d aggregates" % len(aggs))
+        print("  swept %d aggregates, %d whole" % (len(aggs), wholeCount))
     return len(aggs), problems
+
+
+def parseOracle(text):
+    """{aggregate: (sets returned, body)}"""
+    result, key = {}, None
+    for line in text.splitlines(True):
+        if line.startswith("AGG "):
+            head, _, count = line.rstrip("\n").rpartition("|")
+            key = head
+            result[key] = [int(count), []]
+        elif key is not None:
+            result[key][1].append(line)
+    return result
+
+
+def runOracle(driver, e, base):
+    """The whole file against the components it was merged from: same
+    shells, in dump() order, and the same dump() text."""
+    texts = {}
+    for mode in ("whole", "composite"):
+        args = [driver, base, "--oracle"] + ([mode] if mode == "composite"
+                                             else [])
+        proc = subprocess.run(args, env=e, capture_output=True, text=True)
+        if proc.returncode != 0:
+            return 0, 0, ["--oracle %s exited %d: %s"
+                          % (mode, proc.returncode, proc.stderr[-500:])]
+        texts[mode] = parseOracle(proc.stdout)
+    whole, comp = texts["whole"], texts["composite"]
+    problems = []
+    if set(whole) != set(comp) or not whole:
+        problems.append("the two loads did not cover the same aggregates")
+    single = compared = 0
+    for key in sorted(whole):
+        if key not in comp:
+            continue
+        compared += 1
+        if whole[key][0] == 1 and comp[key][0] > 1:
+            single += 1
+        if whole[key][1] != comp[key][1]:
+            a, b = whole[key][1], comp[key][1]
+            first = next((i for i in range(min(len(a), len(b)))
+                          if a[i] != b[i]), min(len(a), len(b)))
+            problems.append("%s: whole file differs from its components at "
+                            "line %d: %r vs %r" % (
+                                key, first,
+                                a[first] if first < len(a) else None,
+                                b[first] if first < len(b) else None))
+    return compared, single, problems
+
+
+def runComplete(driver, e, base):
+    """A calculation stored by an older release holds 6-31G* as its
+    components; completing its group for a new molecule must not add the
+    polarization set a second time next to the whole set."""
+    proc = subprocess.run([driver, base, "--complete", "6-31G*", "pople",
+                           "C H"], env=e, capture_output=True, text=True)
+    if proc.returncode != 0:
+        return ["--complete exited %d: %s" % (proc.returncode,
+                                              proc.stderr[-500:])]
+    sets = [l[4:] for l in proc.stdout.splitlines() if l.startswith("SET ")]
+    ref = subprocess.run([driver, base, "6-31G*", "pople", "C H"], env=e,
+                         capture_output=True, text=True)
+    want = parseData(ref.stdout)[("6-31G*", "pople")]
+    lines = proc.stdout.splitlines()
+    shells, element = {}, None
+    for l in lines:
+        if l.startswith("element "):
+            element = l.split()[1]
+            shells[element] = []
+        elif l.startswith("shell "):
+            shells[element].append(l.split()[1])
+    problems = []
+    if sets != ["6-31G*|pople"]:
+        problems.append("completed group holds %s, want only 6-31G*" % sets)
+    for element, expect in want.items():
+        got = shells.get(element)
+        if got != expect:
+            problems.append("%s: completed group has %s, the whole set %s"
+                            % (element, got, expect))
+    return problems
+
+
+def report(label, problems, verbose=False):
+    print("  %s %s" % ("FAIL" if problems else "ok  ", label))
+    for p in problems:
+        print("       " + p)
+    return bool(problems)
 
 
 def main():
@@ -348,6 +537,28 @@ def main():
                      + proc.stdout + proc.stderr)
         base = "http://127.0.0.1:%d%s" % (port, LIBPATH)
 
+        libdir = os.path.join(state, ".ECCE", "dataserver", "htdocs", "Ecce",
+                              "system", "GaussianBasisSetLibrary")
+
+        def runCases(cases, whole):
+            failed = 0
+            for case in cases:
+                problems = runCase(driver, e, base, case, args.verbose)
+                failed += report(case[0], problems)
+            count, problems = runSweep(driver, e, base, args.verbose, whole)
+            failed += report("every multi-file aggregate (%d)" % count,
+                             problems or ([] if count else ["none found"]))
+            return failed
+
+        #  The committed placeholders are what the script writes today.
+        stale = subprocess.run(
+            [sys.executable, os.path.join(REPO, "tools", "basissets",
+                                          "merge_aggregates.py"), "--check"],
+            capture_output=True, text=True)
+        failures += report("-AGG.BAS files are current (merge_aggregates.py "
+                           "--check)", [] if stale.returncode == 0
+                           else [stale.stdout.strip()[-400:]])
+
         for phase in ("clean", "poisoned"):
             if phase == "poisoned":
                 for filename, name, gtype in POISON:
@@ -361,18 +572,42 @@ def main():
                     sys.exit("poisoning did not take: 6-31GS.BAS is %r"
                              % served)
             print("%s library:" % phase)
-            for case in CASES:
-                problems = runCase(driver, e, base, case, args.verbose)
-                print("  %s %s" % ("FAIL" if problems else "ok  ", case[0]))
-                for p in problems:
-                    print("       " + p)
-                failures += bool(problems)
-            count, problems = runSweep(driver, e, base, args.verbose)
-            print("  %s every multi-file aggregate (%d)"
-                  % ("FAIL" if problems or not count else "ok  ", count))
-            for p in problems:
-                print("       " + p)
-            failures += bool(problems) or not count
+            failures += runCases(WHOLE_CASES + COMMON_CASES, True)
+            if phase == "clean":
+                compared, single, problems = runOracle(driver, e, base)
+                failures += report(
+                    "whole file == its components, shell for shell and "
+                    "dump() for dump() (%d aggregates, %d loaded whole)"
+                    % (compared, single), problems)
+                failures += report(
+                    "a stored calculation's components complete without "
+                    "doubling the polarization set",
+                    runComplete(driver, e, base))
+
+        #  An older server: same files, empty placeholders.  Poisoned too,
+        #  which is the state #164 was reproduced in.
+        emptied = 0
+        for name in os.listdir(libdir):
+            if name.endswith("-AGG.BAS"):
+                open(os.path.join(libdir, name), "w").close()
+                emptied += 1
+        if not emptied:
+            sys.exit("no placeholders found in %s" % libdir)
+        print("older library (%d placeholders empty), poisoned:" % emptied)
+        failures += runCases(COMPOSITE_CASES + COMMON_CASES, False)
+
+        #  Upgrading that server in place: the start script's stamp differs
+        #  from the package's, so its sync copies the shipped files over.
+        with open(os.path.join(libdir, ".ecce-library-stamp"), "w") as stamp:
+            stamp.write("stale\n")
+        subprocess.run([os.path.join(DATASERVER, "ecce-dataserver-start")],
+                       env=e, capture_output=True, text=True)
+        filled = os.path.getsize(os.path.join(libdir, "6-31GS-AGG.BAS"))
+        print("after the in-place upgrade (6-31GS-AGG.BAS is %d bytes):"
+              % filled)
+        failures += report("the sync refilled the placeholders",
+                           [] if filled else ["still empty"])
+        failures += runCases(WHOLE_CASES + COMMON_CASES, True)
     finally:
         if started:
             subprocess.run([os.path.join(DATASERVER, "ecce-dataserver-stop")],

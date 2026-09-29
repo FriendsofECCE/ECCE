@@ -73,8 +73,9 @@ triple per row -- r exponent, gaussian exponent, coefficient.
 
 What a full re-sourcing still needs
 ------------------------------------
-1. Aggregate assembly -- the shipped library composes base + polarization
-   + diffuse into one named set via `.descriptor` files.
+1. Aggregate assembly -- `merge_aggregates.py` writes each orbital-only
+   aggregate as one whole `-AGG.BAS` (see data/admin/basissets/README); it
+   must be rerun after any component file changes.
 2. Regenerating the per-type alias files the GUI reads for its names.
 3. The step 5 diff of every regenerated basis against the current one,
    reviewed before anything is replaced. A silent numerical change here

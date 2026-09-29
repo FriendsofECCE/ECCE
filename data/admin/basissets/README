@@ -19,6 +19,19 @@ Those operations cannot be expressed as a library name at all.
 So without this data ECCE cannot produce a basis set -- not even by name,
 since the selection UI is driven by what the library contains.
 
+Aggregates
+----------
+A named composite such as 6-31G* is listed in the index files as
+"files= 6-31GS-AGG.BAS 6-31G.BAS 6-31GS.BAS".  The component files stay
+available on their own (the Basis Set Tool's polarization and diffuse
+lists, and clients that predate whole-file sets).  The -AGG.BAS placeholder
+holds the merged basis set, written by tools/basissets/merge_aggregates.py
+for every aggregate whose components are all orbital-type files; the loader
+reads that one file as the set.  A placeholder that is empty (an older
+server, or an aggregate with an ECP or fitting component) makes the loader
+assemble the set from its components instead.  Rerun the script after
+changing a component file; tests/basisload checks the files are current.
+
 Provenance
 ----------
 Exported from the EMSL Basis Set Exchange (the retired bse.pnl.gov), 2013
