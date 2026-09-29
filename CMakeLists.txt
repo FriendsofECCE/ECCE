@@ -1006,7 +1006,12 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
   if(_msg_idx GREATER -1)
     # Started under -remote too: every app needs this session's relay, and
     # ecce-gateway-start itself skips the local broker in that mode (#167).
-    set(_gateway_start "if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi")
+    # It fails only when there is no relay for this display, and every one
+    # of these apps would then abort on the missing port file
+    # (JMSMessage.C), so stop here with its message instead.
+    set(_gateway_start "if [ -z \"$ECCE_NO_MESSAGING\" ]; then
+  \"$ECCE_HOME/bin/ecce-gateway-start\" || { _rc=$?; echo \"${_app}: not started -- no messaging relay for this session (see above)\" >&2; exit $_rc; }
+fi")
     # Same app set as messaging: apps that need the JMS gateway also need
     # data-server (EDSI/WebDAV) access, per EDSIServerCentral::
     # checkServerSetup() -- see ecce-dataserver-start.
@@ -1127,7 +1132,9 @@ export ECCE_NWCHEM_DATA=\${ECCE_NWCHEM_DATA:-$(\"$ECCE_HOME/bin/ecce-nwchem-data
 export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 export ECCE_INVOKE_VIEWER=1
 export ECCE_INVOKE_FROMECCE=1
-if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi
+if [ -z \"$ECCE_NO_MESSAGING\" ]; then
+  \"$ECCE_HOME/bin/ecce-gateway-start\" || { _rc=$?; echo \"ecce-viewer: not started -- no messaging relay for this session (see above)\" >&2; exit $_rc; }
+fi
 if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ]; then
   if [ -x \"$ECCE_HOME/bin/ecce-dataserver-start\" ]; then
     \"$ECCE_HOME/bin/ecce-dataserver-start\" || true

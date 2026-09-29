@@ -50,6 +50,45 @@ port_open() {
   (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1
 }
 port_open_at() { (exec 3<>"/dev/tcp/$1/$2") >/dev/null 2>&1; }
+# A remote host that drops packets would hang a plain connect for minutes.
+port_open_remote() {
+  timeout 5 bash -c '(exec 3<>"/dev/tcp/$1/$2")' _ "$1" "$2" >/dev/null 2>&1
+}
+
+# -remote: the central server's broker and data server, as
+# ecce-remote-setup wrote them. Checked before starting the relay, which
+# would otherwise wait out its timeout against a server that is down and
+# leave nothing to say but "did not report ready".
+check_central_server() {
+  local jndi="$ECCE_HOME/siteconfig/jndi.properties"
+  local ds="$ECCE_HOME/siteconfig/RemoteServer/DataServers"
+  local bhost="" bport="" dhost="" dport="" url down="" host=""
+  url="$(sed -n 's/^[ \t]*java\.naming\.provider\.url[ \t]*=[ \t]*//p' "$jndi" 2>/dev/null | head -n1)"
+  case "$url" in
+    *tcp://*) url="${url#*tcp://}"; bhost="${url%%:*}"
+              bport="$(printf '%s' "${url#*:}" | sed 's/[^0-9].*//')" ;;
+  esac
+  url="$(sed -n 's|.*<Url>[ \t]*\(https\{0,1\}://[^/<]*\).*|\1|p' "$ds" 2>/dev/null | head -n1)"
+  if [ -n "$url" ]; then
+    dport=80; case "$url" in https:*) dport=443 ;; esac
+    url="${url#*://}"
+    dhost="${url%%:*}"
+    case "$url" in *:*) dport="${url##*:}" ;; esac
+  fi
+  if [ -z "$bhost" ] || [ -z "$bport" ] || [ -z "$dhost" ]; then
+    echo "ecce-gateway-start: -remote, but this client has no central server configured ($jndi, $ds) -- run ecce-remote-setup <server> first" >&2
+    return 1
+  fi
+  if ! port_open_remote "$bhost" "$bport"; then down="$bhost:$bport (broker)"; fi
+  if ! port_open_remote "$dhost" "$dport"; then
+    down="${down:+$down and }$dhost:$dport (data server)"
+  fi
+  [ -z "$down" ] && return 0
+  host="$bhost"
+  [ "$bhost" = "$dhost" ] || host="$bhost / $dhost"
+  echo "ecce-gateway-start: the central ECCE server $host is not answering on $down -- is it running? (on the server: ecce-dataserver-status, ecce-gateway-status)" >&2
+  return 1
+}
 
 # ecce-gateway-reap (called below, and from every wrapper's EXIT trap)
 # may stop this user's broker when their last session ends. Hold one
@@ -102,6 +141,7 @@ if [ -n "$SHARED" ]; then
     fi
   fi
 elif [ -n "${ECCE_REMOTE_SERVER:-}" ]; then
+  check_central_server || exit 2
   echo "ecce-gateway-start: -remote -- using the central broker"
 elif port_open "$BROKER_PORT"; then
   if [ -n "$(own_broker_pid)" ]; then
@@ -211,6 +251,11 @@ else
   done
   if [ ! -f "$PORTFILE" ]; then
     echo "ecce-gateway-start: JMSDispatcher did not report ready within 20s -- see $STATEDIR/jmsdispatcher.log" >&2
+    # A relay that never reported is no use to anyone, and left running
+    # it would be adopted by nobody and reaped only by the next start.
+    pid="$(cat "$PIDFILE" 2>/dev/null)"
+    [ -n "$pid" ] && kill "$pid" 2>/dev/null
+    rm -f "$PIDFILE"
     exit 1
   fi
 fi

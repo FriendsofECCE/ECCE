@@ -19,6 +19,9 @@ windows the way a window manager does (WM_DELETE_WINDOW):
   remote      #167's recipe (mode 2): with the server account marked
               (ecce-remote-setup --server), neither its own plain quit nor
               a -remote client's quit stops its broker
+  remote-down `ecce -remote` with nothing listening on the central
+              server's ports: one message naming them, a non-zero exit,
+              no gateway left to abort
   displays    one user on two displays: the per-user broker outlives the
               first session and goes with the last
   shared      mode 3: a stand-in for ecce-broker.service, run exactly as
@@ -96,7 +99,8 @@ def parse():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("cases", nargs="*",
                         default=["organizer", "builder", "jobstore", "stop",
-                                 "remote", "displays", "shared", "markers",
+                                 "remote", "remote-down", "displays",
+                                 "shared", "markers",
                                  "window", "bug"])
     parser.add_argument("--tree", help="build directory to take gateway from")
     parser.add_argument("--wrappers", help="directory holding the ecce "
@@ -803,6 +807,100 @@ def caseRemote(checks, display, logdir):
             pass
 
 
+def caseRemoteDown(checks, display, logdir):
+    """`ecce -remote` with the central server down: a message naming the
+    server and its ports, a non-zero exit, and no gateway left to abort
+    on the relay's missing port file."""
+    client = os.path.join(state, "client-down")
+    shutil.rmtree(client, ignore_errors=True)
+    os.makedirs(os.path.join(client, ".ECCE"))
+    dport = isolate._pickPort("ECCE_TEST_DOWN_DATA_PORT", 8390)
+    bport = isolate._pickPort("ECCE_TEST_DOWN_BROKER_PORT", dport + 10)
+    chome = isolate.homeOverlay(apps.INSTALL, client, dport, bport)
+    extra = {"ECCE_REALUSERHOME": client, "ECCE_HOME": chome}
+    setup = subprocess.run(
+        [os.path.join(install, "bin", "ecce-remote-setup"), "localhost",
+         str(dport), str(bport)], env=dict(os.environ, **extra),
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if not checks.check(setup.returncode == 0, "ecce-remote-setup ran "
+                        "against ports %d/%d with nothing on them"
+                        % (dport, bport)):
+        say(setup.stdout.decode())
+        return
+    log = os.path.join(logdir, "remote-down.log")
+    t0 = time.time()
+    session = Session(display, log, ["-remote"], extra)
+    try:
+        returned = session.ended(30)
+        checks.check(returned, "`ecce -remote` returned (%.1fs)"
+                     % (time.time() - t0))
+        checks.check(returned and session.proc.returncode != 0,
+                     "with a non-zero exit (%s)" % session.proc.returncode)
+        with open(log, errors="replace") as handle:
+            said = handle.read()
+        want = ("the central ECCE server localhost is not answering on "
+                "localhost:%d (broker) and localhost:%d (data server)"
+                % (bport, dport))
+        checks.check(want in said and "ecce-dataserver-status" in said,
+                     "it named the server, both ports and what to check")
+        checks.check("ASSERTION" not in said and "core dumped" not in said
+                     and "did not report ready" not in said,
+                     "no assertion, core dump or relay timeout")
+        checks.check(not named(display.name, "gateway"),
+                     "no gateway process left")
+        relay = pidfile(os.path.join(client, ".ECCE",
+                                     "jmsdispatcher_%s.pid" % display.name))
+        checks.check(relay is None or not alive(relay),
+                     "no relay left (%s)" % relay)
+        if want not in said:
+            say("    " + said.replace("\n", "\n    "))
+    finally:
+        session.kill()
+
+    # Both ports answer, but the "broker" is a socket that never speaks,
+    # so the relay cannot connect and never reports ready.
+    silent = socket.socket()
+    silent.bind(("127.0.0.1", 0))
+    silent.listen(8)
+    sport = silent.getsockname()[1]
+    try:
+        setup = subprocess.run(
+            [os.path.join(install, "bin", "ecce-remote-setup"), "localhost",
+             str(fixture.dataserverPort()), str(sport)],
+            env=dict(os.environ, **extra), stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT)
+        if not checks.check(setup.returncode == 0, "ecce-remote-setup ran "
+                            "against a silent broker port %d" % sport):
+            say(setup.stdout.decode())
+            return
+        log = os.path.join(logdir, "remote-relay.log")
+        t0 = time.time()
+        session = Session(display, log, ["-remote"], extra)
+        try:
+            returned = session.ended(45)
+            checks.check(returned and session.proc.returncode != 0,
+                         "a relay that never becomes ready: `ecce` exits "
+                         "non-zero (%s, %.1fs)"
+                         % (session.proc.returncode, time.time() - t0))
+            with open(log, errors="replace") as handle:
+                said = handle.read()
+            checks.check("did not report ready" in said
+                         and "not started" in said
+                         and "ASSERTION" not in said,
+                         "with the relay's message, not the gateway's "
+                         "assertion")
+            checks.check(not named(display.name, "gateway"),
+                         "no gateway process left")
+            relay = pidfile(os.path.join(
+                client, ".ECCE", "jmsdispatcher_%s.pid" % display.name))
+            checks.check(relay is None, "the relay that never reported was "
+                         "stopped and its pidfile removed (%s)" % relay)
+        finally:
+            session.kill()
+    finally:
+        silent.close()
+
+
 def caseDisplays(checks, display, logdir):
     """Mode 1, one user on two displays: the per-user broker is the
     user's, so it outlives the first session and goes with the last."""
@@ -1100,6 +1198,7 @@ def caseBug(checks, display, logdir):
 
 
 CASES = {"bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
+         "remote-down": caseRemoteDown,
          "displays": caseDisplays, "shared": caseShared,
          "markers": caseMarkers,
          "organizer": caseOrganizer, "builder": caseBuilder,
