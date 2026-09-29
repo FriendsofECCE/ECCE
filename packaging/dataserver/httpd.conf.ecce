@@ -68,6 +68,7 @@ LoadModule cgi_module           /usr/lib/apache2/modules/mod_cgi.so
 LoadModule env_module           /usr/lib/apache2/modules/mod_env.so
 LoadModule setenvif_module      /usr/lib/apache2/modules/mod_setenvif.so
 LoadModule dir_module           /usr/lib/apache2/modules/mod_dir.so
+LoadModule rewrite_module       /usr/lib/apache2/modules/mod_rewrite.so
 # "Options Indexes" (set below on Ecce/ and DocumentRoot) needs this to
 # actually generate a response for a directory with no index.html --
 # without it, a bare collection URL like the <Url> from DataServers
@@ -294,6 +295,14 @@ AddType  chemical/x-qe-output .pwout
 <Directory "##DATAROOT##/Ecce/users">
    AllowOverride AuthConfig Limit
 </Directory>
+
+# A user's folder named without its trailing slash is authorised by the
+# parent's open rules, not by the folder's own .htaccess, so anyone could
+# list the names of its calculations. Hand it on with the slash, so the
+# owner's .htaccess (and whoever it shares with) always decides.
+RewriteEngine On
+RewriteCond "##DATAROOT##%{REQUEST_URI}" -d
+RewriteRule "^/Ecce/users/([^/]+)$" "/Ecce/users/$1/" [PT]
 
 # Don't allow users to remove/modify their home folder.
 <LocationMatch "^/Ecce/users/[A-Za-z0-9]+/*$">
