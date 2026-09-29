@@ -216,7 +216,7 @@ bool BuilderApp::OnInit()
   }
 
   p_builder->Show(true);
-  
+
   return true;
 }
 

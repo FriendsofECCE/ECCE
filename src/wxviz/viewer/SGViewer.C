@@ -776,6 +776,17 @@ SbBool SGViewer::processCommonEvents(wxEvent * event)
   if ( !isViewing() ) {
     p_renderArea->processRenderAreaEvent(event);
     if (!p_ecceSel->isFreePick()) {
+      //  Same early-return-skips-repaint shape as the wheel-zoom case
+      //  above (see its comment): returning true here makes
+      //  processEvent() take its own early return, skipping the
+      //  Refresh()/Update() at its tail. A shift-click that adds a 2nd,
+      //  3rd or 4th atom to a measurement selection updates the scene
+      //  graph's highlight correctly but was never repainted, so only
+      //  the first atom ever appeared to turn magenta (#197). Force it
+      //  here instead, for every pick, not just later ones -- nothing
+      //  else guarantees the first one either.
+      p_renderArea->Refresh(false);
+      p_renderArea->Update();
       return true;
     }
   }

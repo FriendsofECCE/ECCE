@@ -39,7 +39,19 @@ class ewxTool;
 #define SYMBOL_BUILDERGUI_STYLE wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxMINIMIZE_BOX|wxMAXIMIZE_BOX|wxCLOSE_BOX
 #define SYMBOL_BUILDERGUI_TITLE _("ECCE Builder")
 #define SYMBOL_BUILDERGUI_IDNAME ID_FRAME_Builder
-#define SYMBOL_BUILDERGUI_SIZE wxSize(800, 600)
+//  800x600 (the wxDesigner-generated original) is too short for a new
+//  user's very first launch: with no saved window size, this is the
+//  actual size AUI lays the default right-hand tool stack out at
+//  (Context+Build+Coordinates+Symmetry+Log, each with a ~150px MinSize
+//  floor plus its own caption bar). That stack needs more height than
+//  an 800x600 frame has to give it, and AUI's response to a pane that
+//  doesn't fit is to collapse it to zero height rather than resize the
+//  frame or scroll -- which left the Symmetry tool's real widget
+//  rendered at a stale position, looking like it was floating over the
+//  build area instead of docked with the others (#196). Only changes
+//  the size a brand-new user's first window opens at: restoreWindowSettings()
+//  overrides this with a saved size for anyone who has ever resized it.
+#define SYMBOL_BUILDERGUI_SIZE wxSize(900, 800)
 #define SYMBOL_BUILDERGUI_POSITION wxDefaultPosition
 ////@end control identifiers
 

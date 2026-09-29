@@ -1966,6 +1966,15 @@ void Builder::saveSettings()
        savePaneLayout(NAME_LAYOUT_DEFAULT);
      }
    }
+
+   //  saveWindowSettings() above already flushed once, but every write
+   //  after that point -- savePaneLayout() included -- stays buffered in
+   //  wxConfig's in-memory copy.  quit() below ends in _exit(0), which
+   //  skips static destructors (see its own comment: exit() was tried
+   //  and segfaulted in libwx_gtk3u_core's global teardown) and with them
+   //  wxConfig's flush-on-destroy -- so a user's rearranged pane layout
+   //  was never actually reaching wxbuilder.ini.  Flush explicitly.
+   config->Flush();
 }
 
 
