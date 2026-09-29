@@ -1,7 +1,8 @@
 # Site-specific configuration parameters
-# Parameters in this file are put into the user environment at runtime.
-# They will not override values the user may have already set at the
-# command line.
+# In this build only ECCE_AUTO_ACCOUNTS and ECCE_STORE_TRAJECTORIES are read
+# from this file. The other entries were put into the environment by the old
+# csh launchers; the ecce launcher does not, so to use one, export it as an
+# environment variable instead (see docs/ENVIRONMENT.md).
 #
 # Note: To disable a feature shown below with a value of "true", comment out
 # the variable definition--setting the value to false will not disable the
