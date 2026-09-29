@@ -40,19 +40,17 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # ------------------------------------------------------------------------
-# Road to 9.0, step 1: split the single monolithic package into
-# ecce-client (GUI apps, input generators/parsers, codereg dialogs, the
-# job-side scripts the Launcher copies to compute hosts, the per-session
-# JMSDispatcher relay, ecce-remote-setup) and ecce-server (the per-user
-# or central WebDAV data server and its content, the ActiveMQ broker
-# config and its start/stop). Every install() rule below carries a
-# COMPONENT tag either way -- that costs nothing when this is OFF, since
-# plain `cpack`/`cpack -G DEB` ignores COMPONENT entirely and produces
-# one monolithic package exactly as before (CPACK_DEB_COMPONENT_INSTALL
-# defaults OFF). Turning this ON is what makes CPack actually split them.
-# Default OFF so 8.x releases (one .deb, everything in it) are
-# unaffected; flip it on with `cmake -DECCE_SPLIT_PACKAGES=ON`.
-option(ECCE_SPLIT_PACKAGES "Package ecce-client and ecce-server as separate .deb/.rpm files instead of one monolithic package" OFF)
+# From 8.17.0: ECCE packages as ecce-client (GUI apps, input generators/
+# parsers, codereg dialogs, the job-side scripts the Launcher copies to
+# compute hosts, the per-session JMSDispatcher relay, ecce-remote-setup)
+# and ecce-server (the per-user or central WebDAV data server and its
+# content, the ActiveMQ broker config and its start/stop) -- no
+# monolithic "ecce" package any more (Andy, 2026-09-29). Every install()
+# rule below carries a COMPONENT client/server tag for this split; see
+# the CPack settings below for how each component's own package is built
+# and how it takes over from an installed monolithic "ecce" of any
+# version.
+# ------------------------------------------------------------------------
 
 add_compile_options(-Wall -Wno-deprecated -Wno-sign-compare -Wno-non-virtual-dtor)
 
@@ -1010,8 +1008,8 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
     # Same app set as messaging: apps that need the JMS gateway also need
     # data-server (EDSI/WebDAV) access, per EDSIServerCentral::
     # checkServerSetup() -- see ecce-dataserver-start.
-    # Split packaging (ECCE_SPLIT_PACKAGES): ecce-dataserver-start only
-    # exists at all when the ecce-server package is installed alongside
+    # ecce-dataserver-start only exists at all when the ecce-server package
+    # is installed alongside
     # this ecce-client one. A client-only install (talking to someone
     # else's central server, or none yet configured) must not try to
     # spawn it -- and must say clearly why not, rather than a bare
@@ -1141,11 +1139,18 @@ trap 'ECCE_REAP_QUIET=1 \"$ECCE_HOME/bin/ecce-gateway-reap\" --if-idle >/dev/nul
 install(PROGRAMS ${_viewer_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 
 # ------------------------------------------------------------------------
-# CPack: build a .deb instead of the old install_ecce self-extracting
-# installer. Run `cpack` (or `cpack -G DEB`) after building to produce it.
-# Runtime library deps are auto-detected from the actual linked .so's via
-# dpkg-shlibdeps (CPACK_DEBIAN_PACKAGE_SHLIBDEPS) rather than hand-listed,
-# so this stays correct as the wx/Xerces/Mesa package versions change.
+# CPack: build ecce-client and ecce-server .deb/.rpm packages instead of
+# the old install_ecce self-extracting installer or a single monolithic
+# package. Run `cpack` (or `cpack -G DEB`) after building to produce them.
+# No ecce-common component and no "ecce" metapackage: auditing every
+# install() rule below by which side reads it, nothing was needed by both
+# -- siteconfig/ and scripts/ are entirely client-read, data/admin and the
+# Apache/broker config are entirely server-read -- and Andy's call
+# (2026-09-29) is that from 8.17.0 there is no monolithic/metapackage
+# "ecce" any more, only these two. Runtime library deps are auto-detected
+# from the actual linked .so's via dpkg-shlibdeps
+# (CPACK_DEBIAN_PACKAGE_SHLIBDEPS) rather than hand-listed, so this stays
+# correct as the wx/Xerces/Mesa package versions change.
 # ------------------------------------------------------------------------
 string(REGEX REPLACE "^v" "" _ecce_deb_version "${ECCE_VERSION_RAW}")
 string(REPLACE "-" "~" _ecce_deb_version "${_ecce_deb_version}")
@@ -1164,13 +1169,62 @@ set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_CONTACT}")
 set(CPACK_DEBIAN_PACKAGE_SECTION "science")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
-# dpkg-shlibdeps only catches linked .so's, not a spawned subprocess --
-# apache2 (the data server, see ecce-dataserver-start above) is invoked
-# as an external binary, not linked, so it has to be listed explicitly.
-# python3-wxgtk4.0 is the same story for scripts/codereg's Theory/Runtype
-# Details dialogs (see the scripts/codereg install() block above) -- a
-# spawned `python3 .../codereg/*.py`, not a linked dependency of any
-# ECCE binary, so dpkg-shlibdeps can't see it either.
+# RelWithDebInfo keeps -g everywhere (useful while porting - see the
+# CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
+# strip debug symbols out of the packaged copies only, not the build tree.
+set(CPACK_STRIP_FILES ON)
+
+# ---------------------------------------------------------------------------
+#  RPM, for Fedora/RHEL/Rocky.  Built only when rpmbuild is present, so a
+#  Debian box without it still packages exactly as before rather than
+#  failing at the end of a long build.  Install it with `apt install rpm`.
+#  Component-specific Requires/Suggests are set per-package below; real
+#  spelling differences from the Debian names are noted there too (httpd
+#  vs apache2, python3-wxpython4 vs python3-wxgtk4.0, openssh-clients vs
+#  openssh-client, ActiveMQ not packaged for RHEL/Rocky/Fedora at all).
+find_program(RPMBUILD_EXECUTABLE rpmbuild)
+if(RPMBUILD_EXECUTABLE)
+  list(APPEND CPACK_GENERATOR "RPM")
+  set(CPACK_RPM_PACKAGE_LICENSE "ECL-2.0")
+  set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
+  set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
+  #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
+  #  this the package claims /opt and conflicts with it.
+  set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/opt")
+  #  Built on Debian, so let rpmbuild work out library requirements from
+  #  the binaries rather than trusting a hand-written list that would be
+  #  wrong on both distributions.
+  set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
+  message(STATUS "rpmbuild found: cpack will also produce .rpm packages")
+else()
+  message(STATUS "rpmbuild not found: cpack will produce .deb packages only "
+                 "(apt install rpm to enable RPM packaging)")
+endif()
+
+# ---------------------------------------------------------------------------
+# Split packaging. Every install() rule above already carries COMPONENT
+# client/server; this decides what each resulting package's own metadata
+# is.
+# ---------------------------------------------------------------------------
+set(CPACK_DEB_COMPONENT_INSTALL ON)
+set(CPACK_COMPONENTS_ALL client server)
+# Each component becomes its own independently installable package rather
+# than CPack's default of one combined "unspecified"-grouped archive;
+# auto-shlibdeps and auto-provides/requires run separately per component
+# package (so e.g. only ecce-client ends up depending on wxWidgets/Xerces,
+# since only its ELF binaries link them).
+set(CPACK_COMPONENTS_GROUPING IGNORE)
+set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
+set(CPACK_RPM_COMPONENT_INSTALL ON)
+
+set(CPACK_DEBIAN_CLIENT_PACKAGE_NAME "ecce-client")
+set(CPACK_DEBIAN_CLIENT_FILE_NAME DEB-DEFAULT)
+set(CPACK_DEBIAN_CLIENT_PACKAGE_DESCRIPTION
+  "Extensible Computational Chemistry Environment - client (GUI apps, input generators/parsers, job-launch tooling)")
+# apache2/apache2-utils and the broker are ecce-server's.
+# python3-wxgtk4.0: scripts/codereg's Theory/Runtype Details dialogs spawn
+# `python3 .../codereg/*.py`, not a linked dependency of any ECCE binary,
+# so dpkg-shlibdeps can't see it.
 # csh: ECCE's local job sessions and scripts run csh; bsd-csh and tcsh
 # both work.
 # perl: the whole job pipeline (ai.<code>, *.expt, gensub,
@@ -1178,242 +1232,150 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # Sys::Hostname are in perl-modules, which perl-base alone lacks.
 # xterm: editing an input file with the default editor (vi) opens it in
 # an xterm (UserEditor.C).
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, activemq, csh | tcsh, perl, xterm")
+# default-jre-headless: ecce-gateway-start's "per-session JMSDispatcher
+# relay" step runs `java gov.pnnl.emsl.ecce.jms.JMSDispatcher`
+# unconditionally, including under -remote against a central broker with
+# no local ecce-server at all -- it needs its own JVM and cannot rely on
+# one arriving transitively via activemq (that's ecce-server's Depends).
+set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
+    "python3-wxgtk4.0, csh | tcsh, perl, xterm, default-jre-headless")
 # NWChem is a real Debian package (confirmed working: /usr/bin/nwchem,
 # symlinked to nwchem.openmpi by the package itself) and the auto-register-
 # this-machine flow (RunMgmt::registerLocalMachine()) defaults new machine
 # registrations to it -- Recommends (not Depends) so `apt-get install
-# ecce`/`apt-get install -f` pulls it in by default, matching that
-# auto-registration default, without unconditionally forcing NWChem +
-# its MPI/Fortran runtime dependencies onto anyone who explicitly opts
-# out via --no-install-recommends.
-# openssh-client: RCommand drives ssh/scp/sftp for remote machines;
-# a purely local install never uses it.
+# ecce-client`/`apt-get install -f` pulls it in by default, without
+# unconditionally forcing NWChem + its MPI/Fortran runtime dependencies
+# onto anyone who explicitly opts out via --no-install-recommends.
+# openssh-client: RCommand drives ssh/scp/sftp for remote machines; a
+# purely local install never uses it.
+set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "nwchem, openssh-client")
+# ecce-server: Recommends would pull a local data server/broker onto
+# EVERY client by default, including a classroom client of an already-
+# central server (#167/#138/#138) that has no use for either -- Suggests
+# instead, so the common "everything on one box" case is one `apt-get
+# install --install-suggests` (or a second explicit install) away rather
+# than the default. See the wrapper logic above (ECCE_GUI_APPS loop) for
+# how a client with no local ecce-server degrades: it says so on stderr
+# rather than failing silently.
 # imagemagick: optional viewer-snapshot export (ImageConverter.C).
 # www-browser: the Help menu (BrowserHelp.C).
-set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem, openssh-client")
-set(CPACK_DEBIAN_PACKAGE_SUGGESTS "imagemagick, www-browser")
-# RelWithDebInfo keeps -g everywhere (useful while porting - see the
-# CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
-# strip debug symbols out of the packaged copies only, not the build tree.
-set(CPACK_STRIP_FILES ON)
-set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "ecce-server, imagemagick, www-browser")
+# Lets dpkg upgrade a monolithic "ecce" of ANY version straight into
+# ecce-client: without this, installing ecce-client while the old ecce
+# package still owns e.g. /opt/ecce/bin/organizer is a file-already-owned
+# conflict, not an upgrade. Unversioned -- there is no future monolithic
+# "ecce" release to bound this against, so any "ecce" at all is superseded.
+set(CPACK_DEBIAN_CLIENT_PACKAGE_BREAKS "ecce")
+set(CPACK_DEBIAN_CLIENT_PACKAGE_REPLACES "ecce")
+set(CPACK_DEBIAN_CLIENT_PACKAGE_CONFLICTS "ecce")
+
+set(CPACK_DEBIAN_SERVER_PACKAGE_NAME "ecce-server")
+set(CPACK_DEBIAN_SERVER_FILE_NAME DEB-DEFAULT)
+set(CPACK_DEBIAN_SERVER_PACKAGE_DESCRIPTION
+  "Extensible Computational Chemistry Environment - server (WebDAV data server, ActiveMQ broker configuration)")
+set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "apache2, apache2-utils, activemq")
+# Deliberately no CPACK_DEBIAN_SERVER_PACKAGE_RECOMMENDS "ecce-client":
+# the central-server deployment (CLAUDE.md, #138/#167) is exactly a
+# machine that runs ecce-server and nothing else, with every real user on
+# a separate client machine -- recommending the client back would pull
+# GUI/wx onto a headless server box by default.
+set(CPACK_DEBIAN_SERVER_PACKAGE_BREAKS "ecce")
+set(CPACK_DEBIAN_SERVER_PACKAGE_REPLACES "ecce")
+set(CPACK_DEBIAN_SERVER_PACKAGE_CONFLICTS "ecce")
 
 # ---------------------------------------------------------------------------
-#  RPM, for Fedora/RHEL/Rocky.  Built only when rpmbuild is present, so a
-#  Debian box without it still packages exactly as before rather than
-#  failing at the end of a long build.  Install it with `apt install rpm`.
+# Conffiles (issue: the 8.16.7 monolithic .deb shipped NO conffiles, so
+# every `apt upgrade` silently overwrote a site admin's edits under
+# siteconfig/ -- the machine/queue list from `ecce -admin`, and, from
+# #188, the copy ecce-remote-setup pulls from a central server's
+# published list). Everything under siteconfig/ is COMPONENT client (see
+# the install(DIRECTORY siteconfig/ ...) rule above), so these all belong
+# to ecce-client.
 #
-#  The dependency list is NOT the Debian one with different spellings.
-#  Real differences:
+# Deliberately excluded, because ECCE's own scripts regenerate them
+# rather than an admin hand-editing them in place:
+#   - jndi.properties: rewritten in place by ecce-remote-setup itself
+#     (packaging/dataserver/ecce-remote-setup) whenever it repoints a
+#     client at a central broker; that script already keeps its own
+#     backup (jndi.properties.local), so dpkg doesn't need to.
+# Also excluded: README/README.Q (documentation, not config),
+# global_host_list and disabled-queuemanagers-archive.txt (reference
+# text nothing in this tree reads back).
 #
-#    * apache2/apache2-utils are httpd/httpd-tools.
-#    * python3-wxgtk4.0 is python3-wxpython4.
-#    * ActiveMQ is not packaged for RHEL, Rocky or Fedora at all.  It
-#      cannot be a hard Requires without making the package
-#      uninstallable everywhere, so it is a Recommends (rpm >= 4.12) and
-#      GETTING_STARTED covers installing it by hand.  A missing broker is
-#      not silent -- ecce-gateway-start reports it.
-#    * openssh-client is openssh-clients.
-#
-#  perl and xterm are Requires here for the same reasons given beside
-#  the Debian CPACK_DEBIAN_PACKAGE_DEPENDS above (the scripts/ Perl
-#  pipeline, and UserEditor.C's "vi" default running inside xterm) --
-#  both package names are identical on Fedora/RHEL/Rocky.
-#
-#  nwchem is in Fedora but not in RHEL/Rocky without EPEL, so it stays a
-#  weak dependency there too, matching the Debian Recommends. ImageMagick
-#  and firefox match the Debian Suggests (ImageConverter.C's optional
-#  mogrify/convert export, and BrowserHelp.C's Help-menu fallback).
-find_program(RPMBUILD_EXECUTABLE rpmbuild)
+# Everything else an admin would plausibly hand-edit at a site --
+# Machines/Queues/QueueManagers (including the ones ecce-remote-setup
+# copies down from a central server, #188), DataServers, site_runtime,
+# remote_shells.site, submit.site, AppColors, the startup/welcome
+# messages, and every shipped machine-queue CONFIG.*/*.Q file (both the
+# live ones and the CONFIG-Examples/ templates) -- is listed here.
+set(_ecce_siteconfig_conffiles
+  Machines
+  Queues
+  QueueManagers
+  DataServers
+  site_runtime
+  remote_shells.site
+  submit.site
+  AppColors
+  StartupMessage
+  NewUserMessage
+  CONFIG.dummy
+  dummy.Q
+  example-slurm.Q
+  CONFIG-Examples/CONFIG.loadleveler
+  CONFIG-Examples/CONFIG.lsf
+  CONFIG-Examples/CONFIG.mpp2
+  CONFIG-Examples/CONFIG.pbs
+  CONFIG-Examples/CONFIG.sge
+  CONFIG-Examples/CONFIG.workstation
+)
+
+set(_ecce_conffiles_debian ${CMAKE_BINARY_DIR}/conffiles/client/conffiles)
+set(_ecce_conffiles_content "")
+foreach(_f ${_ecce_siteconfig_conffiles})
+  string(APPEND _ecce_conffiles_content "${CPACK_PACKAGING_INSTALL_PREFIX}/siteconfig/${_f}\n")
+endforeach()
+file(WRITE ${_ecce_conffiles_debian} "${_ecce_conffiles_content}")
+set(CPACK_DEBIAN_CLIENT_PACKAGE_CONTROL_EXTRA "${_ecce_conffiles_debian}")
+
 if(RPMBUILD_EXECUTABLE)
-  list(APPEND CPACK_GENERATOR "RPM")
-  set(CPACK_RPM_PACKAGE_LICENSE "ECL-2.0")
-  set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
-  set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
-  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, tcsh, perl, xterm")
-  set(CPACK_RPM_PACKAGE_SUGGESTS "activemq, nwchem, openssh-clients, ImageMagick, firefox")
-  set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
-  #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
-  #  this the package claims /opt and conflicts with it.
-  set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/opt")
-  #  Built on Debian, so let rpmbuild work out library requirements from
-  #  the binaries rather than trusting a hand-written list that would be
-  #  wrong on both distributions.
-  set(CPACK_RPM_PACKAGE_AUTOREQ ON)
-  set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
-  message(STATUS "rpmbuild found: cpack will also produce an .rpm")
-else()
-  message(STATUS "rpmbuild not found: cpack will produce a .deb only "
-                 "(apt install rpm to enable RPM packaging)")
-endif()
+  set(CPACK_RPM_CLIENT_PACKAGE_NAME "ecce-client")
+  set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
+  # java-headless: same rationale as CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
+  # above -- the JMSDispatcher relay needs a JVM unconditionally, and on
+  # RPM distros activemq isn't even a hard Requires of ecce-server, so it
+  # cannot be relied on to arrive transitively.
+  set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
+      "python3-wxpython4, tcsh, perl, xterm, java-headless")
+  set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
+      "ecce-server, nwchem, openssh-clients, ImageMagick, firefox")
+  # RPM has no direct Breaks/Replaces pair; Obsoletes is the idiomatic
+  # equivalent for "this package supersedes an older one that owned the
+  # same paths", and Conflicts blocks the two from being installed side
+  # by side. Unversioned, matching the Debian Breaks/Replaces/Conflicts
+  # above -- any "ecce" at all is superseded, and there is no Provides:
+  # "ecce" from either new package, since there is no longer an "ecce"
+  # for anything to depend on by that name.
+  set(CPACK_RPM_CLIENT_PACKAGE_OBSOLETES "ecce")
+  set(CPACK_RPM_CLIENT_PACKAGE_CONFLICTS "ecce")
+  set(CPACK_RPM_CLIENT_PACKAGE_AUTOREQ ON)
+  # %config(noreplace) marks each file as admin-editable: rpm keeps a
+  # modified copy on upgrade instead of overwriting it. Same file list and
+  # same exclusions as the Debian conffiles above.
+  set(_ecce_rpm_client_filelist "")
+  foreach(_f ${_ecce_siteconfig_conffiles})
+    list(APPEND _ecce_rpm_client_filelist
+         "%config(noreplace) ${CPACK_PACKAGING_INSTALL_PREFIX}/siteconfig/${_f}")
+  endforeach()
+  set(CPACK_RPM_CLIENT_USER_FILELIST "${_ecce_rpm_client_filelist}")
 
-# ---------------------------------------------------------------------------
-# Split packaging (ECCE_SPLIT_PACKAGES). Every install() rule above already
-# carries COMPONENT client/server; this block only decides whether CPack
-# acts on those tags at all, and what each resulting package's own
-# metadata is. No ecce-common component: auditing every install() rule
-# above by which side reads it, nothing was needed by both -- siteconfig/
-# and scripts/ are entirely client-read, data/admin and the Apache/broker
-# config are entirely server-read. A common package would have shipped
-# empty, so there isn't one.
-# ---------------------------------------------------------------------------
-if(ECCE_SPLIT_PACKAGES)
-  # The version boundary below which a plain "ecce" install is the OLD
-  # monolithic package -- ecce-client/ecce-server each Break+Replace it
-  # so dpkg can upgrade one straight into the split pair instead of
-  # refusing with a file-already-owned-by-another-package conflict. Kept
-  # as its own variable (rather than reusing _ecce_deb_version directly
-  # in the Breaks string) because the branch is still versioned 8.17.0 --
-  # whichever release first ships split packages is the real boundary,
-  # and that is a decision for whoever cuts that release, not something
-  # to hardcode here now.
-  set(ECCE_MONOLITHIC_BREAK_VERSION "${_ecce_deb_version}" CACHE STRING
-      "ecce-client/ecce-server Break+Replace the monolithic ecce package for versions strictly below this (Debian: 'ecce (<< VERSION)'; RPM: 'ecce < VERSION'). Defaults to this build's own version, i.e. the first split release breaks/replaces every version older than itself.")
-
-  # CPack falls back to the monolithic-build globals below (Depends,
-  # Recommends, Suggests) for any component that doesn't set its own --
-  # confirmed live: without this, ecce-server and the ecce metapackage
-  # both picked up "Recommends: nwchem" from CPACK_DEBIAN_PACKAGE_RECOMMENDS
-  # above, which is wrong for both (a headless server box, and a
-  # metapackage that should only Depend on the two real components).
-  # CPACK_DEBIAN_PACKAGE_SUGGESTS ("imagemagick, www-browser" -- both
-  # client-only, ImageConverter.C's viewer export and the Help menu) leaks
-  # the same way if left unset: it showed up as a Suggests on ecce-server
-  # and the ecce metapackage too, found the same way as the Recommends
-  # case above. Clear all three globals here so every component's
-  # metadata is exactly what this block sets and nothing leaks in from
-  # the monolithic settings above.
-  unset(CPACK_DEBIAN_PACKAGE_DEPENDS)
-  unset(CPACK_DEBIAN_PACKAGE_RECOMMENDS)
-  unset(CPACK_DEBIAN_PACKAGE_SUGGESTS)
-
-  set(CPACK_DEB_COMPONENT_INSTALL ON)
-  set(CPACK_COMPONENTS_ALL client server meta)
-  # Each component becomes its own independently installable package
-  # rather than CPack's default of one combined "unspecified"-grouped
-  # archive; auto-shlibdeps and auto-provides/requires run separately per
-  # component package (so e.g. only ecce-client ends up depending on
-  # wxWidgets/Xerces, since only its ELF binaries link them).
-  set(CPACK_DEB_COMPONENT_INSTALL ON)
-  set(CPACK_COMPONENTS_GROUPING IGNORE)
-  set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
-  set(CPACK_RPM_COMPONENT_INSTALL ON)
-
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_NAME "ecce-client")
-  set(CPACK_DEBIAN_CLIENT_FILE_NAME DEB-DEFAULT)
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_DESCRIPTION
-    "Extensible Computational Chemistry Environment - client (GUI apps, input generators/parsers, job-launch tooling)")
-  # apache2/apache2-utils and the broker move to ecce-server; everything
-  # else CPACK_DEBIAN_PACKAGE_DEPENDS listed for the monolithic build is
-  # still needed here (python3-wxgtk4.0 for scripts/codereg, csh/perl/
-  # xterm for the same reasons given beside the monolithic set above --
-  # none of that is server-side).
-  #
-  # default-jre-headless: the monolithic package never had to list a JVM
-  # explicitly because activemq (a hard Depends there) pulls in
-  # default-jre-headless transitively -- confirmed via `apt-cache depends
-  # activemq`. Splitting moves activemq to ecce-server and demotes it to
-  # a client Recommends, which would silently drop the client's own JVM
-  # need: ecce-gateway-start's "per-session JMSDispatcher relay" step
-  # runs `java gov.pnnl.emsl.ecce.jms.JMSDispatcher` unconditionally,
-  # including under -remote against a central broker with no local
-  # ecce-server at all, so it cannot be left to arrive only via a
-  # Recommends that a remote client has no reason to install.
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
-      "python3-wxgtk4.0, csh | tcsh, perl, xterm, default-jre-headless")
-  # A client on the SAME machine as a server benefits from it (the
-  # default "everything on one box" case this project still ships), but
-  # a client of an already-central server (#167/#138 -- the teaching
-  # deployment) has no use for a local data server or broker at all, so
-  # this is Recommends, not Depends, matching the design brief.
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, nwchem, openssh-client")
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "imagemagick, www-browser")
-  # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
-  # without this, installing ecce-client while the old ecce package still
-  # owns e.g. /opt/ecce/bin/organizer is a file-already-owned conflict,
-  # not an upgrade.
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_BREAKS "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_REPLACES "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
-
-  set(CPACK_DEBIAN_SERVER_PACKAGE_NAME "ecce-server")
-  set(CPACK_DEBIAN_SERVER_FILE_NAME DEB-DEFAULT)
-  set(CPACK_DEBIAN_SERVER_PACKAGE_DESCRIPTION
-    "Extensible Computational Chemistry Environment - server (WebDAV data server, ActiveMQ broker configuration)")
-  set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "apache2, apache2-utils, activemq")
-  # Deliberately no CPACK_DEBIAN_SERVER_PACKAGE_RECOMMENDS "ecce-client":
-  # the central-server deployment (CLAUDE.md, #138/#167) is exactly a
-  # machine that runs ecce-server and nothing else, with every real user
-  # on a separate client machine -- recommending the client back would
-  # pull GUI/wx onto a headless server box by default.
-  set(CPACK_DEBIAN_SERVER_PACKAGE_BREAKS "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
-  set(CPACK_DEBIAN_SERVER_PACKAGE_REPLACES "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
-
-  # The "ecce" metapackage (Andy, 2026-09-28): ships no files of its own
-  # -- CPack's Debian generator refuses a truly empty component archive,
-  # so it gets one harmless marker doc instead -- and exists purely so
-  # `apt install ecce` keeps meaning "everything, one machine", and so a
-  # bare `apt upgrade` of the old monolithic 8.x "ecce" pulls in both
-  # halves via its own Breaks/Replaces above plus this package's
-  # Depends. Not Recommends: the whole point is that installing "ecce"
-  # unconditionally gets you both.
-  set(_ecce_meta_marker ${CMAKE_BINARY_DIR}/ecce-meta/README)
-  file(WRITE ${_ecce_meta_marker}
-"This package is empty by design.
-
-It exists only so \"apt install ecce\"/\"dnf install ecce\" keeps meaning
-\"the full, one-machine ECCE install\" now that it is split into
-ecce-client and ecce-server (see GETTING_STARTED.md's \"Split packages\"
-section) -- installing this package pulls in both.
-")
-  install(FILES ${_ecce_meta_marker}
-          DESTINATION share/doc/ecce-meta
-          COMPONENT meta)
-  set(CPACK_DEBIAN_META_PACKAGE_NAME "ecce")
-  set(CPACK_DEBIAN_META_FILE_NAME DEB-DEFAULT)
-  set(CPACK_DEBIAN_META_PACKAGE_DESCRIPTION
-    "Extensible Computational Chemistry Environment - metapackage (installs ecce-client and ecce-server together, the pre-9.0 default)")
-  set(CPACK_DEBIAN_META_PACKAGE_DEPENDS "ecce-client (= ${_ecce_deb_version}), ecce-server (= ${_ecce_deb_version})")
-  # dpkg-shlibdeps has nothing to scan in an empty package and errors if
-  # asked to try.
-  set(CPACK_DEBIAN_META_PACKAGE_SHLIBDEPS OFF)
-
-  if(RPMBUILD_EXECUTABLE)
-    set(CPACK_RPM_CLIENT_PACKAGE_NAME "ecce-client")
-    set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
-    # java-headless: same rationale as CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
-    # above -- the JMSDispatcher relay needs a JVM unconditionally, and on
-    # RPM distros activemq (the only thing that pulled one in transitively
-    # for the monolithic package, where it even applied -- see the
-    # monolithic CPACK_RPM_PACKAGE_SUGGESTS comment above) isn't even a
-    # hard Requires there, so it cannot be relied on at all here.
-    set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
-        "python3-wxpython4, tcsh, perl, xterm, java-headless")
-    set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
-        "ecce-server, nwchem, openssh-clients, ImageMagick, firefox")
-    # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the
-    # idiomatic equivalent for "this package supersedes an older one
-    # that owned the same paths", and Conflicts blocks the two from
-    # being installed side by side (the old monolithic package is
-    # exactly what ecce-client+ecce-server now provide between them, so
-    # letting both stay installed would leave stale duplicate files).
-    set(CPACK_RPM_CLIENT_PACKAGE_OBSOLETES "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
-    set(CPACK_RPM_CLIENT_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
-    set(CPACK_RPM_SERVER_PACKAGE_NAME "ecce-server")
-    set(CPACK_RPM_SERVER_FILE_NAME RPM-DEFAULT)
-    set(CPACK_RPM_SERVER_PACKAGE_REQUIRES "httpd, httpd-tools")
-    set(CPACK_RPM_SERVER_PACKAGE_SUGGESTS "activemq")
-    set(CPACK_RPM_SERVER_PACKAGE_OBSOLETES "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
-    set(CPACK_RPM_SERVER_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
-    set(CPACK_RPM_META_PACKAGE_NAME "ecce")
-    set(CPACK_RPM_META_FILE_NAME RPM-DEFAULT)
-    set(CPACK_RPM_META_PACKAGE_REQUIRES "ecce-client = ${_ecce_deb_version}, ecce-server = ${_ecce_deb_version}")
-    set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/opt")
-    set(CPACK_RPM_CLIENT_PACKAGE_AUTOREQ ON)
-    set(CPACK_RPM_SERVER_PACKAGE_AUTOREQ ON)
-    set(CPACK_RPM_META_PACKAGE_AUTOREQ OFF)
-    set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
-  endif()
+  set(CPACK_RPM_SERVER_PACKAGE_NAME "ecce-server")
+  set(CPACK_RPM_SERVER_FILE_NAME RPM-DEFAULT)
+  set(CPACK_RPM_SERVER_PACKAGE_REQUIRES "httpd, httpd-tools")
+  set(CPACK_RPM_SERVER_PACKAGE_SUGGESTS "activemq")
+  set(CPACK_RPM_SERVER_PACKAGE_OBSOLETES "ecce")
+  set(CPACK_RPM_SERVER_PACKAGE_CONFLICTS "ecce")
+  set(CPACK_RPM_SERVER_PACKAGE_AUTOREQ ON)
 endif()
 
 include(CPack)
