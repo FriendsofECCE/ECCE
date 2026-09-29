@@ -85,6 +85,27 @@ if [ -d "$GBS_SRC" ]; then
   fi
 fi
 
+# Publish this install's site machine list (issue #188): a central-server
+# client's ecce-remote-setup fetches these so machines registered with
+# "ecce -admin" on the server reach clients without hand copying. Placed
+# here, before the "already listening" exit below, for the same reason as
+# the basis set sync above -- it has to run on every real start, including
+# one that finds the server already up, or an admin's change never reaches
+# clients until the account restarts the data server for some other reason.
+# /Ecce/system is already served without a login (the basis set library
+# lives there too), so this needs no auth changes.
+SITECONFIG_SRC="$ECCE_HOME/siteconfig"
+SITECONFIG_DEST="$DATAROOT/Ecce/system/siteconfig"
+rm -rf "$SITECONFIG_DEST"
+mkdir -p "$SITECONFIG_DEST"
+: > "$SITECONFIG_DEST/MANIFEST"
+for f in "$SITECONFIG_SRC/Machines" "$SITECONFIG_SRC/Queues" \
+         "$SITECONFIG_SRC"/CONFIG.* "$SITECONFIG_SRC"/*.Q; do
+  [ -f "$f" ] || continue
+  cp "$f" "$SITECONFIG_DEST/"
+  basename "$f" >> "$SITECONFIG_DEST/MANIFEST"
+done
+
 PORT="${ECCE_DATASERVER_PORT:-8096}"
 PIDFILE="$STATEDIR/logs/httpd.pid"
 

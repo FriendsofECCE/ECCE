@@ -176,9 +176,10 @@ shared is up to the site; the three modes are set up step by step in
    ecce-dataserver-adduser            # once per user
    ```
 
-   On each client machine, `sudo ecce-remote-setup <server-host>`; users
-   then run `ecce -remote`. Plain `ecce` still runs a local session, so
-   one installation can do both.
+   On each client machine, `sudo ecce-remote-setup <server-host>`, which
+   also copies the server's registered machine list; users then run
+   `ecce -remote`. Plain `ecce` still runs a local session, so one
+   installation can do both.
 3. **One shared broker on an app server** with many users logged in, run
    by systemd instead of one broker per user (`sudo ecce-broker-setup`).
 

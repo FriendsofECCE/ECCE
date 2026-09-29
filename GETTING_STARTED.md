@@ -300,6 +300,11 @@ server through ssh tunnels. On each client machine, as root:
 sudo ecce-remote-setup <server-host>
 ```
 
+`ecce-remote-setup` also copies the server's registered site machine list
+(`sudo ecce -admin` on the server) onto the client, so students don't
+register machines by hand; re-run it on the client after the admin
+changes that list (#188).
+
 Users then run `ecce -remote`. A client quitting never stops the server's
 services, and neither does the server account's own plain quit; its
 Quit and Stop Server does. To make the account per-user again, remove
