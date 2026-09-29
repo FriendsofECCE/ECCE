@@ -121,7 +121,20 @@ const char* Ecce::realUser(void)
 }
 const char* Ecce::serverUser(void)
 {
-  Preferences prefs("ServerLogin");
+  // `ecce -l NAME` is session-only (packaging/ecce.in exports this
+  // instead of writing a file), so it can never leak into a later
+  // plain `ecce` as a remembered login for the wrong server.
+  const char* sessionLogin = getenv("ECCE_SERVER_LOGIN");
+  if (sessionLogin != (const char*)0 && sessionLogin[0] != '\0') {
+    return sessionLogin;
+  }
+
+  // The remembered login is kept separately per mode: a name recalled
+  // for the central server (ECCE_REMOTE_SERVER) must never become the
+  // default for the local data server, and vice versa.
+  const char* prefFile = (getenv("ECCE_REMOTE_SERVER") != (const char*)0)
+                        ? "ServerLogin.remote" : "ServerLogin";
+  Preferences prefs(prefFile);
   static string login;
   if (prefs.getString("Login", login)) {
     return login.c_str();

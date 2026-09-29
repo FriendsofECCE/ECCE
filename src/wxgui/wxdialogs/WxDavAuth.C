@@ -256,6 +256,22 @@ bool WxDavAuth::prompt(const string& strurl,
      if (p_prompting) {
        return false;
      }
+
+     // The user already cancelled a prompt for this exact url a moment
+     // ago -- a second 401 for it right behind that cancel (a follow-up
+     // request from the same user action, e.g. two DAV calls opening one
+     // folder) must not pop a second dialog. A few seconds is enough to
+     // cover one user action; a later, genuinely new attempt (the user
+     // navigates back to the same folder) ages out and prompts again.
+     const time_t cancelSuppressSeconds = 5;
+     std::map<string, time_t>::iterator cit = p_cancelledAt.find(strurl);
+     if (cit != p_cancelledAt.end()) {
+       if (time(0) - cit->second < cancelSuppressSeconds) {
+         return false;
+       }
+       p_cancelledAt.erase(cit);
+     }
+
      p_prompting = true;
 
      //  TEMPORARY, #120: which parent this dialog actually gets, and
@@ -281,14 +297,28 @@ bool WxDavAuth::prompt(const string& strurl,
 
      WxAuth authDlg(p_window);
 
+     // A retry with a credential already proven good elsewhere this
+     // session (knownGood()) means the server can see the password --
+     // it just won't let this user into THIS folder. That is a
+     // different problem than a wrong password, and the fix is a
+     // different login, not a retyped one.
+     bool noAccess = !newUser && retryCount > 1 &&
+                     knownGood(url.getHost(), user);
+
      if (newUser) {
        authDlg.setPrompt("You do not have an existing data server account!\nPlease enter a new data server password to create one:");
        authDlg.setPasswordLabel("  New\nPassword:");
      } else if (retryCount > 1) {
-       // A prior prompt's password was refused by the server -- say so,
-       // rather than silently repeating the same dialog.
-       string promptStr = "The user name or password was not accepted.\n"
-             "Please try again:";
+       string promptStr;
+       if (noAccess) {
+         promptStr = user + " has no access to this folder.\n"
+               "Enter its owner's name and password to open it:";
+       } else {
+         // A prior prompt's password was refused by the server -- say
+         // so, rather than silently repeating the same dialog.
+         promptStr = "The user name or password was not accepted.\n"
+               "Please try again:";
+       }
        authDlg.setPrompt(promptStr);
 
        // Fit() sizes the dialog to the new prompt text's best size,
@@ -307,10 +337,14 @@ bool WxDavAuth::prompt(const string& strurl,
      authDlg.showChangeBtn(true);
      authDlg.setServer(url.getHost());
      authDlg.setProtocol("http");
-     authDlg.setUser(user);
+     // Prefilling the session user's own name here would invite retyping
+     // the same password that already failed for lack of access -- leave
+     // it blank so the owner's name has to be entered instead.
+     authDlg.setUser(noAccess ? "" : user);
 
      int status;
      bool done = false;
+     bool userCancelled = false;
      while (!done) {
        ret = false;
        done = true;
@@ -347,6 +381,9 @@ bool WxDavAuth::prompt(const string& strurl,
 #endif
 
        status = authDlg.ShowModal();
+       if (status != wxID_OK) {
+         userCancelled = true;
+       }
 
        if (status == wxID_OK) {
          ret = true;
@@ -390,6 +427,12 @@ bool WxDavAuth::prompt(const string& strurl,
            }
          }
        }
+     }
+
+     if (userCancelled) {
+       // Remember it so a second 401 for this same url, arriving right
+       // behind this cancel, doesn't prompt again.
+       p_cancelledAt[strurl] = time(0);
      }
    }
 
@@ -481,5 +524,18 @@ void WxDavAuth::authorizationAccepted(const AuthEvent& event)
    AuthCache::getCache().addAuthentication(event.m_url, event.m_user,
                                            event.m_password,
                                            event.m_realm, true);
+
+   EcceURL eurl(event.m_url);
+   p_knownGoodUsers.insert(eurl.getHost() + "|" + event.m_user);
+}
+
+/**
+ * Has `user` already succeeded against `host` (any url) this session?
+ * If so, a fresh 401 for a different folder is "no access", not a bad
+ * password -- the credential itself already proved good.
+ */
+bool WxDavAuth::knownGood(const string& host, const string& user) const
+{
+   return p_knownGoodUsers.find(host + "|" + user) != p_knownGoodUsers.end();
 }
 

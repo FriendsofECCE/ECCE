@@ -24,7 +24,7 @@ Reporting a problem:
   -remote              Use the central data server/broker (siteconfig/
                        RemoteServer) instead of starting your own.
   -l LOGIN             Use LOGIN as your server login name instead of
-                       your own username (writes ~/.ECCE/ServerLogin).
+                       your own username, for this session only.
   --version, -V        Show the version and exit.
   --help, -h           Show this message and exit.
 
@@ -112,14 +112,13 @@ if $machines; then
   exec ecce-machregister
 fi
 
-# -l overrides the server login name: Ecce::serverUser()
-# (src/util/genutil/Ecce.C) reads it back from ~/.ECCE/ServerLogin's
-# "Login" key -- same file, same key spelling, as the old script wrote
-# (Preferences is case-insensitive on keys).
+# -l overrides the server login name for this session only: exported
+# rather than written to ~/.ECCE/ServerLogin, so it can never become a
+# later plain `ecce`'s remembered login (a central-server name landing
+# on the local data server, where it has no account, was the bug).
+# Ecce::serverUser() (src/util/genutil/Ecce.C) checks this first.
 if [ -n "$login" ]; then
-  export ECCE_REALUSERHOME=${ECCE_REALUSERHOME:-$HOME}
-  mkdir -p "$ECCE_REALUSERHOME/.ECCE"
-  echo "LOGIN: $login" > "$ECCE_REALUSERHOME/.ECCE/ServerLogin"
+  export ECCE_SERVER_LOGIN="$login"
 fi
 
 # Only -remote reaches ecce-gateway; it has no use for the rest.
@@ -174,6 +173,7 @@ marker="$ECCE_BUG_DIR/.session-start"
   echo "ecce --bug, $(date -Is)"
   echo "ECCE $ECCE_VERSION_STRING, arguments: ${*:-none}"
   echo "ECCE_REMOTE_SERVER=${ECCE_REMOTE_SERVER:-<unset>}"
+  echo "ECCE_SERVER_LOGIN=${ECCE_SERVER_LOGIN:-<unset, uses remembered or Unix login>}"
   echo "Set by bug mode:"
   env | grep -E '^ECCE_(RCOM_LOGMODE|JOB_LOGMODE|JOB_LOGALL|AI_DEBUG|DEBUG_[A-Z_]+|BUG_DIR)=' | sort
 } > "$ECCE_BUG_DIR/bug-mode.txt"
