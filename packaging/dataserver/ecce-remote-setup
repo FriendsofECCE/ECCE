@@ -121,6 +121,7 @@ mkdir -p "$REMOTE" || exit 1
 if [ -f "$SITE/DataServers" ]; then
   sed -e "s|http://[^:/]*:[0-9]*/Ecce|$URL|g" \
       -e "s|http://[^:/]*:[0-9]*/Ecce/system|$URL/system|g" \
+      -e "s|<Desc>[^<]*</Desc>|<Desc>ECCE Data Server on $HOST</Desc>|" \
       "$SITE/DataServers" > "$REMOTE/DataServers"
 else
   echo "ecce-remote-setup: no $SITE/DataServers to base this on" >&2

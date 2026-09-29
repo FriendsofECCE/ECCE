@@ -70,7 +70,8 @@ def treeHome(state, install, build):
     for entry in os.listdir(install):
         if entry != "bin":
             os.symlink(os.path.join(install, entry), os.path.join(home, entry))
-    overrides = {"gateway": os.path.join(build, "gateway")}
+    overrides = {"gateway": os.path.join(build, "gateway"),
+                 "organizer": os.path.join(build, "organizer")}
     gwdir = os.path.join(REPO, "packaging", "gateway")
     for script in os.listdir(gwdir):
         if script.startswith("ecce-") and os.access(
@@ -696,6 +697,8 @@ def caseRemote(checks, display, logdir):
         frame = session.organizer()
         if not checks.check(frame, "the client's Organizer opened"):
             return
+        checks.check(waitWindow(cdisplay, "ECCE Organizer on localhost", 10),
+                     "the client's Organizer names its server in the title")
         with open(accessLog, errors="replace") as f:
             f.seek(logStart)
             served = [l for l in f if "PROPFIND" in l and " 207 " in l]

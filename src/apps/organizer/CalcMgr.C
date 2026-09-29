@@ -164,6 +164,15 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 
   initializeGUI();
 
+  // Under -remote the calculations live on another machine; say which,
+  // so a client's window cannot be mistaken for a local session's.
+  if (getenv("ECCE_REMOTE_SERVER")) {
+    EDSIServerCentral central;
+    string host = central.getDefaultUserHome().getHost();
+    if (!host.empty())
+      SetTitle(GetTitle() + " on " + wxString::FromUTF8(host.c_str()));
+  }
+
   setAuthDialogParent(this);
   EDSIFactory::addAuthEventListener(this);
   EDSIFactory::addProgressEventListener(this);
