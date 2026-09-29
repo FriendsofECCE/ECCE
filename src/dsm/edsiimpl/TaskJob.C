@@ -677,12 +677,22 @@ bool TaskJob::isInputFileNew() const
  *
  * @return Returns true if all input files were removed, otherwise false.
  */
+string TaskJob::inputWarningsProp()
+{
+  return VDoc::getEcceNamespace() + ":inputwarnings";
+}
+
+
 bool TaskJob::removeInputFiles()
 {
   bool ret = true;
 
   try {
     getVDoc()->removeInputs();
+    // The warnings describe the deck just removed, and a duplicate
+    // starts as a copy of them.
+    if (!getProp(inputWarningsProp()).empty())
+      addProp(inputWarningsProp(), "");
   }
   catch (DavException& davException) {
     p_msgStack->add("UNABLE_TO_COMPLETE_REQUEST",

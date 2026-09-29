@@ -370,6 +370,13 @@ class CalcEd: public CalcEdGUI,
      *  containing the anchor.  Cleared on every generation. */
     vector<pair<string, string> > p_inputGenWarnings;
 
+    /** Persist/restore p_inputGenWarnings as a DAV property on the
+     *  calculation, so the lamp describes the deck on the server and
+     *  not just this session.  Store never writes to a calculation
+     *  that is read-only. */
+    void storeInputGenWarnings();
+    void loadInputGenWarnings();
+
     /**
      * Whether this calculation has an input file at all, as of the last
      * time verifyInput() checked (context open, a generation attempt,

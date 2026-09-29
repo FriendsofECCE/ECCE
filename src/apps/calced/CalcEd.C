@@ -437,6 +437,7 @@ void CalcEd::setContext(const string& url, const string& codeName)
     //  put the Launch button in step with whatever that turned out to
     //  be -- doSetContext() above already ran it once, against
     //  whatever the previous calculation (or nothing) had left there.
+    loadInputGenWarnings();
     verifyInput();
     enableLaunch();
     if (msgFlag) {
@@ -778,6 +779,7 @@ void CalcEd::processEditCompletion(const EditEvent& ee)
     // that is now on disk.
     p_inputGenFailed = false;
     p_inputGenWarnings.clear();
+    storeInputGenWarnings();
   }
   ifs.close();
 
@@ -3172,6 +3174,78 @@ void CalcEd::urlChangeNotify(const string& topic) const
 }
 
 
+//  One warning per line, "anchor<TAB>message".  Escaped by hand because
+//  putMetaData() writes the value into XML unescaped.
+static string escapeWarningText(const string& in)
+{
+  string out;
+  for (size_t i = 0; i < in.size(); i++) {
+    switch (in[i]) {
+      case '%':  out += "%25"; break;
+      case '<':  out += "%3C"; break;
+      case '>':  out += "%3E"; break;
+      case '&':  out += "%26"; break;
+      case '\t': out += "%09"; break;
+      case '\n': out += "%0A"; break;
+      case '\r': out += "%0D"; break;
+      default:   out += in[i];
+    }
+  }
+  return out;
+}
+
+static string unescapeWarningText(const string& in)
+{
+  string out;
+  for (size_t i = 0; i < in.size(); i++) {
+    if (in[i] == '%' && i + 2 < in.size() && isxdigit(in[i+1]) &&
+        isxdigit(in[i+2])) {
+      out += (char)strtol(in.substr(i + 1, 2).c_str(), 0, 16);
+      i += 2;
+    } else {
+      out += in[i];
+    }
+  }
+  return out;
+}
+
+
+void CalcEd::storeInputGenWarnings()
+{
+  if (!p_iCalc) return;
+  if (p_feedback->getRunState() > ResourceDescriptor::STATE_READY) return;
+
+  string value;
+  for (size_t w = 0; w < p_inputGenWarnings.size(); w++)
+    value += escapeWarningText(p_inputGenWarnings[w].first) + "\t" +
+             escapeWarningText(p_inputGenWarnings[w].second) + "\n";
+
+  if (p_iCalc->getProp(TaskJob::inputWarningsProp()) != value)
+    p_iCalc->addProp(TaskJob::inputWarningsProp(), value);
+}
+
+
+void CalcEd::loadInputGenWarnings()
+{
+  p_inputGenWarnings.clear();
+  if (!p_iCalc) return;
+
+  string value = p_iCalc->getProp(TaskJob::inputWarningsProp());
+  size_t pos = 0;
+  while (pos < value.size()) {
+    size_t eol = value.find('\n', pos);
+    if (eol == string::npos) eol = value.size();
+    string line = value.substr(pos, eol - pos);
+    pos = eol + 1;
+    size_t tab = line.find('\t');
+    if (tab != string::npos)
+      p_inputGenWarnings.push_back(std::make_pair(
+          unescapeWarningText(line.substr(0, tab)),
+          unescapeWarningText(line.substr(tab + 1))));
+  }
+}
+
+
 bool CalcEd::generateInput(const bool& paramFlag)
 {
   bool success = false;
@@ -3185,6 +3259,11 @@ bool CalcEd::generateInput(const bool& paramFlag)
     //  nothing here touches p_iCalc's stored state or Launch.
     p_inputGenFailed = !success;
     p_inputGenError = success ? "" : cleanGeneratorMessage(message);
+
+    // The deck on disk only changes on success; after a failure the
+    // stored warnings still describe it, so put them back.
+    if (success) storeInputGenWarnings();
+    else         loadInputGenWarnings();
 
     if (!success && !message.empty()) {
       //  One line, not the generator's whole session transcript -- the
