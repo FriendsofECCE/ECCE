@@ -34,8 +34,10 @@ Once a design decision is settled, delegate the implementation to the sonnet-imp
   from ..."). "Proven" means its test passes on 9.x, it has run there
   a while, and Andy has seen anything user-visible. Keep 9.x commits
   backport-sized (one change plus its test), and bring `main` into 9.x
-  regularly so backports stay conflict-free. Packaging-only changes
-  (the split, non-Linux installers) are 9.x-only. Old branches
+  regularly so backports stay conflict-free. "v9" is a code-word for
+  the big future features, not a gate: anything from it that is useful
+  now and opt-in on 8.x can ship in an 8.x release, as the split
+  packages did in 8.16.6 (Andy, 2026-09-29). Old branches
   (`develop`, `modernize-build`, `stable`, `master`, `make`) were
   consolidated into `main` and renamed to `archive/*` — no reason to
   branch from or compare against them.
