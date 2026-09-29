@@ -44,7 +44,7 @@
 
 #include "Gateway.H"
 #include "GatewayApp.H"
-#include "GatewayPrefs.H"
+#include "wxgui/GlobalPrefs.H"
 
 
 IMPLEMENT_CLASS( Gateway, wxFrame )
@@ -109,7 +109,7 @@ Gateway::Gateway( GatewayApp* app, wxWindow* parent,
   p_numActivities = 0;
   p_pixmapIndex = 0;
   p_winMenu = NULL;
-  p_prefsDlg = new GatewayPrefs(NULL);
+  p_prefsDlg = new GlobalPrefs(NULL);
   p_app->registerTopShell(p_prefsDlg);
   p_targetList.clear();
   p_preference = new Preferences(PrefLabels::GATEWAYPREFFILE);

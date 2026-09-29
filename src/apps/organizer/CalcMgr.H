@@ -34,6 +34,7 @@
 
 class BookmarkEditor;
 class WxFind;
+class GlobalPrefs;
 class ewxPanel;
 
 class WxConfigureNwfsArchive;
@@ -197,6 +198,7 @@ public:
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_MENU_HELP
   void OnHelpClick( wxCommandEvent& event );
+  void OnPreferencesClick( wxCommandEvent& event );
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_MENU_SUPPORT
   void OnMenuSupportClick( wxCommandEvent& event );
@@ -438,6 +440,7 @@ protected:
   BookmarkEditor        * p_bookmarkEditor;
   BookmarkEditor        * p_serverListEditor;
   WxFind                * p_find;
+  GlobalPrefs           * p_prefs;
   
   WxConfigureNwfsArchive * p_nwfs;
 

@@ -69,7 +69,7 @@ class EcceTool;
 class ewxMenu;
 class Gateway;
 class GatewayApp;
-class GatewayPrefs;
+class GlobalPrefs;
 class JMSMessage;
 class Target;
 
@@ -125,7 +125,7 @@ protected:
   static char *p_bigBusyPixmaps[];
   short p_numActivities;
   short p_pixmapIndex;
-  GatewayPrefs * p_prefsDlg;
+  GlobalPrefs * p_prefsDlg;
   wxTimer* p_timer;
   bool p_fixingSize;
 

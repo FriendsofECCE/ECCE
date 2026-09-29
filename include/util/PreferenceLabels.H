@@ -49,6 +49,11 @@ static const char *UNITFAMILY       ;
 static const char *ALWAYSONTOP      ;
 static const char *ORIENTATION      ;
 
+// External programs (strings). Empty or absent means the built-in default.
+static const char *EDITOR           ;
+static const char *TERMINAL         ;
+static const char *BROWSER          ;
+
 
 /*
 static const char *energyUnit       ;

@@ -271,6 +271,8 @@ void CalcMgrGUI::CreateControls()
     // is gone -- WxConfigureNwfsArchive and the archive lookup in
     // TrajectoryPanel.C are left intact, so restoring it is putting this
     // line back.
+    itemMenu8->AppendSeparator();
+    itemMenu8->Append(wxID_PREFERENCES, _("Prefere&nces..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu8, _("&Edit"));
     wxMenu* itemMenu23 = new wxMenu;
     itemMenu23->Append(wxID_SHOW_TOOLBAR, _("Show Toolbar"), _T(""), wxITEM_CHECK);

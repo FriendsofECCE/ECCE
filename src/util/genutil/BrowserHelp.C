@@ -16,6 +16,7 @@
 
 #include "util/Ecce.H"
 #include "util/Preferences.H"
+#include "util/PreferenceLabels.H"
 #include "util/StringTokenizer.H"
 #include "util/BrowserHelp.H"
 #include "util/NullPointerException.H"
@@ -25,7 +26,6 @@
 // class statics
 // Statics hold mapping data so its loaded only once.
 ///////////////////////////////////////////////////////////////////////////////
-string BrowserHelp::p_helpCmd = "";
 string BrowserHelp::p_helpFile = "help.urls";
 string BrowserHelp::p_urlPrefix = "";
 string BrowserHelp::p_filePrefix = "";
@@ -153,20 +153,26 @@ void BrowserHelp::initialize()
     p_filePrefix = Ecce::ecceDataPath();
     p_filePrefix += "/client/WebHelp/";
   }
+}
 
-  if (p_helpCmd == "") {
-    char* ehelpCmd = NULL;
-    ehelpCmd = getenv("ECCE_BROWSER");
+/**
+ * The browser command, which may carry arguments.  Order: ECCE_BROWSER,
+ * then Edit > Preferences, then whatever opener is on PATH.  Read on every
+ * call so a preference change needs no restart.
+ */
+string BrowserHelp::browserCommand()
+{
+  const char* env = getenv("ECCE_BROWSER");
+  if (env != NULL && *env != '\0')
+    return env;
 
-    if (ehelpCmd!=NULL && strcmp(ehelpCmd, "")!=0)
-      p_helpCmd = ehelpCmd;
-    else
-      // Debian ships firefox-esr, not firefox -- a bare "firefox" fallback
-      // just fails there. Prefer the desktop's own opener (honors whatever
-      // browser the user actually has set as default), then the Debian
-      // alternatives that stand in for it, then a literal browser name.
-      p_helpCmd = findBrowserOnPath();
-  }
+  Preferences pref(PrefLabels::GLOBALPREFFILE);
+  string fromPref;
+  if (pref.getString(PrefLabels::BROWSER, fromPref) && !fromPref.empty())
+    return fromPref;
+
+  // Debian ships firefox-esr, not firefox, so a bare "firefox" fails there.
+  return findBrowserOnPath();
 }
 
 /**
@@ -206,7 +212,7 @@ string BrowserHelp::findBrowserOnPath()
  */
 bool BrowserHelp::supportsNewWindowFlag(const string& cmd)
 {
-  string base = cmd;
+  string base = cmd.substr(0, cmd.find_first_of(" \t"));
   size_t slash = base.find_last_of('/');
   if (slash != string::npos)
     base = base.substr(slash+1);
@@ -251,8 +257,8 @@ void BrowserHelp::displayURL(const string& url, bool new_window)
    // old exit-status-based fallback below never triggered. Pass the URL
    // as a plain argument instead, which every modern browser (including
    // Firefox) supports directly.
-   string cmd = p_helpCmd;
-   if (new_window && supportsNewWindowFlag(p_helpCmd)) cmd += " --new-window";
+   string cmd = browserCommand();
+   if (new_window && supportsNewWindowFlag(cmd)) cmd += " --new-window";
    cmd += " '" + noQuoteUrl + "' 2> /dev/null &";
    system(cmd.c_str());
 }
