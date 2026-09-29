@@ -61,13 +61,6 @@
   </PropertyPanel>
 
   <PropertyPanel>
-    <name>Key/String</name>
-    <class>KeyStringPropertyPanel</class>
-    <consumer>false</consumer>
-    <property type="string"/>
-  </PropertyPanel>
-
-  <PropertyPanel>
     <name>Run Statistics</name>
     <class>KeyValuePropertyPanel</class>
     <consumer>true</consumer>
