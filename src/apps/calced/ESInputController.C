@@ -246,7 +246,11 @@ bool CalcEd::write_setup(const string& output_file)
         if (sysdir) binDir += sysdir;
         binDir += "bin";
         string currDir = changeWD(binDir);
-        frag->generateFullMolecule();
+        if (!frag->generateFullMolecule())
+          p_feedback->setMessage("The full molecule could not be generated "
+                  "from its symmetry-unique atoms (point group " +
+                  frag->pointGroup() + "); see the terminal for why.",
+                  WxFeedback::WARNING);
         changeWD(currDir);
       }
       os << "NumElectrons: " << frag->numElectrons() << endl;
