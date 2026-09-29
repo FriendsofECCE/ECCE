@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting. Please search the [existing issues](https://github.com/FriendsofECCE/ECCE/issues) first; much prior investigation is recorded there.
+        Thanks for reporting. Only the first box is required; anything else you can add helps. If you can, search the [existing issues](https://github.com/FriendsofECCE/ECCE/issues) first; much prior investigation is recorded there.
   - type: textarea
     id: what
     attributes:
@@ -23,7 +23,7 @@ body:
         2. Theory Details: B3LYP, Runtype: Vibration
         3. Launch
     validations:
-      required: true
+      required: false
   - type: input
     id: version
     attributes:
@@ -31,14 +31,14 @@ body:
       description: "`dpkg-query -W 'ecce*'` on Debian/Ubuntu, `rpm -qa 'ecce*'` on RHEL/Fedora."
       placeholder: ecce 8.16.6
     validations:
-      required: true
+      required: false
   - type: input
     id: system
     attributes:
       label: Operating system
       placeholder: Debian 13, Ubuntu 24.04, Rocky 9, WSL2 ...
     validations:
-      required: true
+      required: false
   - type: dropdown
     id: mode
     attributes:
@@ -47,9 +47,9 @@ body:
         - Everything on my machine (plain `ecce`)
         - Client of a central server (`ecce -remote`)
         - Shared broker on an app server (siteconfig/SharedBroker)
-        - Don't know
+        - Not sure
     validations:
-      required: true
+      required: false
   - type: textarea
     id: diagnose
     attributes:
