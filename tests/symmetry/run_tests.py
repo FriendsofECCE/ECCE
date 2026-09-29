@@ -275,6 +275,55 @@ def standalone(name, sources, args=()):
     return run.returncode
 
 
+def checkLinearGeneratorGroups(verbose):
+    """A linear molecule's deck must name a finite point group.
+
+    The job parser writes the code's own report of the group back onto
+    the molecule, so a calculation copied from a finished Gaussian job
+    arrives with "C*V" -- and Gaussian rejects PG=C*V on its own route
+    card (QPErr, then l1 segfaults).  Runs the real generators on CO and
+    CO2 with each spelling the codes print.
+    """
+    import shutil
+    parsers = os.path.join(ROOT, "scripts", "parsers")
+    cases = [("C*V", "C4V"), ("C(inf)v", "C4V"), ("Cinfv", "C4V"),
+             ("D*H", "D4H"), ("D(inf)h", "D4H"), ("C2v", "C2V")]
+    failures = 0
+    for gen, tpl in (("ai.gauss16", "g16.tpl"), ("ai.gauss09", "g09.tpl")):
+        for group, want in cases:
+            work = tempfile.mkdtemp(prefix="linear-")
+            try:
+                with open(os.path.join(work, "co.param"), "w") as f:
+                    f.write("Category: SCF\nTheory: RHF\nRunType: Energy\n"
+                            "Charge: 0\nSymmetry: %s\n"
+                            "ES.Theory.UseSymmetry: 1\n" % group)
+                with open(os.path.join(work, "co.frag"), "w") as f:
+                    f.write("# frag\ntitle: CO\nnum_atoms: 2\n"
+                            "atom_info: symbol x y z\natom_list:\n"
+                            "C 0.0 0.0 -0.564\nO 0.0 0.0 0.564\n")
+                with open(os.path.join(work, "co.basis"), "w") as f:
+                    f.write("useRouteCard sto-3g false\n")
+                #  A copy: the generator overwrites the template it is given.
+                deck = os.path.join(work, "deck")
+                shutil.copy(os.path.join(parsers, tpl), deck)
+                env = dict(os.environ, ECCE_HOME=ROOT)
+                subprocess.run(["perl", os.path.join(parsers, gen), "-n", "co",
+                                "-p", "-f", "-b", "-t", deck], cwd=work,
+                               env=env, capture_output=True, text=True,
+                               timeout=60)
+                route = open(deck).readline()
+            finally:
+                shutil.rmtree(work, ignore_errors=True)
+            ok = ("PG=%s," % want) in route
+            if not ok or verbose:
+                print("  %s %-5s %-8s -> %s" % ("ok  " if ok else "FAIL",
+                                              gen[3:], group, route.strip()))
+            failures += 0 if ok else 1
+    print("  linear point groups in generated decks: %s"
+          % ("FAIL" if failures else "PASS"))
+    return 1 if failures else 0
+
+
 def checkLoader(tablePath, verbose):
     """Does the C++ loader read the same file faithfully?
 
@@ -1316,6 +1365,12 @@ def main():
                    "src/tdat/chemistry/MoDiagram.C",
                    "src/tdat/chemistry/Huckel.C"]) != 0:
         print("FAILED  the ligand-field interaction model")
+        return 1
+
+    print("")
+    if standalone("testLinearPointGroup", []) != 0 or \
+            checkLinearGeneratorGroups(args.verbose) != 0:
+        print("FAILED  linear point groups")
         return 1
 
     print("PASSED")

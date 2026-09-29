@@ -1660,8 +1660,10 @@ sub Symmetry {
     #  than"), and the largest finite subgroup is enough -- PG=D4H on
     #  N2 and PG=C4V on CO still report D*H / C*V and SGG/PIU labels.
     #  Verified by running Gaussian 16 C.01, 2026-09-27.
-    $group = "C4V" if ($group eq "CINFV");
-    $group = "D4H" if ($group eq "DINFH");
+    #  Any spelling of the infinite groups: a molecule can carry the one
+    #  a previous job's code reported (Gaussian's own C*V, ORCA's C(inf)v).
+    $group = "C4V" if ($group =~ /^C\(?(\*|INF|OO)\)?V$/);
+    $group = "D4H" if ($group =~ /^D\(?(\*|INF|OO)\)?H$/);
     if ($group ne "" && $group ne "C1" && $group !~ /UNKNOWN/) {
       return "Symmetry=(PG=$group,Loose) ";
     }
