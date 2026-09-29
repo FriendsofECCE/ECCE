@@ -27,7 +27,8 @@
 ################################################################################
 
 use Getopt::Std;
-use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t);
+use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t
+            $opt_e $opt_s $opt_q);
 
 push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
 require "pertab.pl";
@@ -35,7 +36,12 @@ require "pertab.pl";
 
 $| = 1;
 
-&getopts(':n:t:pfbchv');
+# CalcEd passes the same flags to every generator: -e (ECPs present),
+# -s (spherical) and -q (an .esp constraint file exists).  ORCA needs none
+# of them -- the basis file carries its ECPs, it is spherical-only and has
+# no ESP runtype -- but they must parse, or Getopt prints an unknown-option
+# into the message CalcEd shows the user.
+&getopts(':n:t:pfbcqeshv');
 &handle_options;
 
 %AbiDict = ();
