@@ -429,12 +429,13 @@ sub verifyRamanRequest {
   my $theory = $AbiDict{"Theory"};
   my $func = $AbiDict{"ES.Theory.DFT.XCFunctionals"};
 
+  # The deck is still written; Verify shows the warning, anchored on the
+  # "Polar" line that requests Raman.
   if (($category eq "DFT") && &IsDoubleHybrid($func)) {
-    die "ai.orca error: Raman activities are not supported for the " .
-        "double-hybrid functional '$func' -- ORCA's MP2 response " .
-        "module cannot compute them (verified against ORCA 6.1.1, " .
-        "with and without Numerical Frequencies). Turn off Raman " .
-        "Activities, or pick a non-double-hybrid functional.\n";
+    print STDERR "ai.orca warning [Polar]: Raman activities are not " .
+        "supported for the double-hybrid functional '$func'; ORCA's MP2 " .
+        "response module cannot compute them. Turn off Raman Activities " .
+        "or pick another functional.\n";
   }
 
   my %needsNumFreq = (
@@ -444,10 +445,10 @@ sub verifyRamanRequest {
   );
   if (($category eq "DFT") && defined($needsNumFreq{$func}) &&
       ($AbiDict{"ES.Runtype.Vibration.Method"} ne "Numerical")) {
-    die "ai.orca error: Raman activities with '$func' need Numerical " .
-        "frequencies (ORCA cannot compute them analytically for " .
-        "B88-exchange functionals). Set the Frequencies Method to " .
-        "Numerical, or turn off Raman activities.\n";
+    print STDERR "ai.orca warning [Polar]: Raman activities with '$func' " .
+        "need Numerical frequencies; ORCA cannot compute them " .
+        "analytically for B88-exchange functionals. Set the Frequencies " .
+        "Method to Numerical or turn off Raman activities.\n";
   }
 }
 
@@ -545,8 +546,8 @@ sub ORCABlocks {
   $result .= "%output\n  Print[P_MOs] 1\n  Print[P_OrbEn] 2\nend\n";
   # One %elprop block. Quadrupole is unconditional (orca.quadpole needs
   # it; ORCA has no octupole/hexadecapole flag). Polar 1 gives Raman
-  # activities; verifyRamanRequest has already rejected combinations
-  # ORCA cannot do.
+  # activities; verifyRamanRequest warns about combinations ORCA
+  # cannot do.
   my $elprop = "  Quadrupole true\n";
   if ($AbiDict{"ES.Runtype.Vibration.UseRaman"} eq "1" &&
       $AbiDict{"RunType"} =~ /Vib/i) {

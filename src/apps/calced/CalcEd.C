@@ -655,6 +655,7 @@ void CalcEd::freeContext()
 {
   p_inputGenFailed = false;
   p_inputGenError = "";
+  p_inputGenWarnings.clear();
 
   if (p_frag) {
     delete p_frag;
@@ -776,6 +777,7 @@ void CalcEd::processEditCompletion(const EditEvent& ee)
     // "generator refused these settings" no longer describes the file
     // that is now on disk.
     p_inputGenFailed = false;
+    p_inputGenWarnings.clear();
   }
   ifs.close();
 
@@ -895,7 +897,11 @@ void CalcEd::OnMenuCalcedRegenInputClick( wxCommandEvent& event )
   }
 
   if (generateInput(false)) {
-    p_feedback->setMessage("Input file regenerated.", WxFeedback::INFO);
+    if (p_inputGenWarnings.empty())
+      p_feedback->setMessage("Input file regenerated.", WxFeedback::INFO);
+    else
+      p_feedback->setMessage("Input file regenerated with warnings. "
+                             "See Verify.", WxFeedback::WARNING);
   } else {
     //  generateInput() puts the generator's own diagnostic on screen
     //  when it fails, so do not paper over it with a generic message.
@@ -1316,6 +1322,30 @@ bool CalcEd::verifyInput(vector<VerifyFinding>* out)
   //  which is the one thing this feature must not do.
   int atoms = 0;
   if (p_frag) atoms = p_frag->numAtoms();
+
+  //  Combination problems the generator reported while still writing
+  //  the deck.  Placed on the first deck line holding the anchor, so
+  //  the dialog can mark it; 0 (whole file) when it is not there.
+  for (size_t w = 0; w < p_inputGenWarnings.size(); w++) {
+    VerifyFinding warn;
+    warn.level = VerifyFinding::BAD;
+    warn.check = "generatorWarning";
+    warn.message = p_inputGenWarnings[w].second;
+    int lineNo = 1;
+    size_t start = 0;
+    while (start <= text.size()) {
+      size_t eol = text.find('\n', start);
+      if (eol == string::npos) eol = text.size();
+      if (text.substr(start, eol - start).find(
+              p_inputGenWarnings[w].first) != string::npos) {
+        warn.line = warn.lineEnd = lineNo;
+        break;
+      }
+      start = eol + 1;
+      lineNo++;
+    }
+    findings.push_back(warn);
+  }
 
   vector<VerifyFinding> checked;
   string error;
@@ -3328,8 +3358,13 @@ void CalcEd::doSave()
     //  Following it straight up with "Calculation saved" would bury
     //  that line and imply the deck is fine when it is not.
     if (!p_inputGenFailed) {
-      p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() +
-                             ".", WxFeedback::INFO);
+      if (p_inputGenWarnings.empty())
+        p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() +
+                               ".", WxFeedback::INFO);
+      else
+        p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() +
+                               ". Input file generated with warnings. "
+                               "See Verify.", WxFeedback::WARNING);
     }
     enableLaunch();
 

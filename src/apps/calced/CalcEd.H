@@ -2,6 +2,10 @@
 #define _CALCED_H_
 
 #include <string>
+#include <utility>
+#include <vector>
+using std::pair;
+using std::vector;
   using std::string;
 
 #include "wx/wx.h"
@@ -359,6 +363,12 @@ class CalcEd: public CalcEdGUI,
      *  from the last failed generateInput().  Empty when the last
      *  attempt succeeded or none has run yet. */
     string p_inputGenError;
+
+    /** "ai.<code> warning [anchor]: message" lines from the last
+     *  SUCCESSFUL generation, as (anchor, message).  The deck was
+     *  written; Verify shows these, anchored on the first deck line
+     *  containing the anchor.  Cleared on every generation. */
+    vector<pair<string, string> > p_inputGenWarnings;
 
     /**
      * Whether this calculation has an input file at all, as of the last

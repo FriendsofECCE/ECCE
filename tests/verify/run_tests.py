@@ -591,6 +591,73 @@ def codes_agreement(verbose):
     return (checked > 0, failures, checked)
 
 
+#  Generators report a combination they know is bad on stderr and still write
+#  the deck; CalcEd turns the line into a Verify finding.  (name, ai script,
+#  template, param lines, anchor).  The anchor must appear in the deck.
+WARN_CASES = [
+    ("orca-raman-b3lyp-analytic", "ai.orca", "orca.tpl",
+     ["Category: DFT", "Theory: DFT", "RunType: Vibration", "Charge: 0",
+      "ChemSys.Multiplicity: 1", "ES.Theory.DFT.XCFunctionals: B3LYP",
+      "ES.Runtype.Vibration.UseRaman: 1",
+      "ES.Runtype.Vibration.Method: Analytic"], "Polar"),
+    ("g16-raman-numerical-2nd", "ai.gauss16", "g16.tpl",
+     ["Category: DFT", "Theory: RDFT", "RunType: Vibration", "Charge: 0",
+      "ChemSys.Multiplicity: 1", "ES.Theory.DFT.XCFunctionals: B3LYP",
+      "ES.Runtype.Vibration.ComputeRaman: 1",
+      "ES.Runtype.Vibration.Method: Numerical 2nd Derivative"], "Freq="),
+]
+
+
+def generator_warnings():
+    """Each case must exit 0, write a deck holding the anchor, and print
+    exactly one well-formed warning line naming that anchor."""
+    import shutil
+    import tempfile
+    failures = 0
+    parsers = os.path.join(ROOT, os.pardir, "scripts", "parsers")
+    for name, script, tpl, params, anchor in WARN_CASES:
+        work = tempfile.mkdtemp(prefix="ecce-genwarn-")
+        try:
+            #  ai.<code> overwrites its -t file, so never the repo's own.
+            shutil.copy(os.path.join(parsers, tpl), os.path.join(work, "t.tpl"))
+            with open(os.path.join(work, "w.frag"), "w") as f:
+                f.write("# frag\nnum_atoms: 3\ntitle: water\n"
+                        "atom_info: symbol\natom_list:\n"
+                        "O 0.0 0.0 0.1\nH 0.0 0.76 -0.47\nH 0.0 -0.76 -0.47\n")
+            with open(os.path.join(work, "w.basis"), "w") as f:
+                f.write("useRouteCard 6-31G\n")
+            with open(os.path.join(work, "w.param"), "w") as f:
+                f.write("\n".join(params) + "\n")
+            env = dict(os.environ, ECCE_HOME=os.path.join(ROOT, os.pardir))
+            p = subprocess.run(["perl", os.path.join(parsers, script),
+                                "-p", "-f", "-b", "-n", "w", "-t", "t.tpl"],
+                               cwd=work, env=env, capture_output=True,
+                               text=True)
+            with open(os.path.join(work, "t.tpl")) as f:
+                deck = f.read()
+            lines = [l for l in p.stderr.splitlines() if " warning [" in l]
+            problems = []
+            if p.returncode != 0:
+                problems.append("exit status %d, wanted 0" % p.returncode)
+            if anchor not in deck:
+                problems.append("deck lacks anchor %r" % anchor)
+            pat = r"^%s warning \[%s\]: \S.*$" % (re.escape(script),
+                                                   re.escape(anchor))
+            if len(lines) != 1 or not re.match(pat, lines[0]):
+                problems.append("stderr is not one well-formed warning: %r"
+                                % p.stderr)
+            if problems:
+                failures += 1
+                print("FAIL  generator warning: %s" % name)
+                for x in problems:
+                    print("        %s" % x)
+            else:
+                print("ok    generator warning: %s" % name)
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
+    return failures
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -675,6 +742,8 @@ def main():
         failures += amber
     else:
         print("ok    every word in the ECCE-generated fixtures is known")
+
+    failures += generator_warnings()
 
     ran, codeFailures, codesChecked = codes_agreement(args.verbose)
     if not ran:

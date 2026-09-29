@@ -99,7 +99,6 @@ $wrote
 6-31g
 6-31g*
 6-31g**
-6.1.1
 :n:t:pfbcqeshv
 <auxbasis>
 <basename>
@@ -111,18 +110,18 @@ $wrote
 <template>\n
 >tmpfile
 [ecce-ai]
+[polar]:
 \'$result\'
 \n
 \nend\n
 a
 activities
 activities.\n
-against
 ai.orca
 ai.orca:
 also
-analytically
 and
+another
 appear
 are
 argument
@@ -137,7 +136,6 @@ aug-pc-1
 b2gp-plyp
 b2plyp
 b3lyp
-b88-exchange
 b97-d3
 b97m-v
 basis>/c
@@ -221,7 +219,6 @@ dictionary
 directly
 dlpno-ccsd
 dlpno-mp2
-double-hybrid
 dropped
 dsd-blyp
 dsd-pbep86
@@ -257,15 +254,14 @@ exponent
 f
 file
 file:
-for
 fort.7
 fragment
 freq
 frequencies
+frequencies;
 from
 functional
 functional.\n
-functionals
 g
 gb/core;
 gbs
@@ -315,7 +311,6 @@ memorysize
 method
 missing
 model
-module
 molecular
 mp2
 mpw2plyp
@@ -328,7 +323,6 @@ newecp
 newgto
 nmr
 no
-non-double-hybrid
 none
 normal
 not
@@ -346,7 +340,6 @@ or
 orbital
 orbitals
 orca
-orca's
 p
 pbe
 pbe0
@@ -367,7 +360,6 @@ ran
 re-save
 read
 replaced
-response
 retrying
 revpbe
 revtpss
@@ -395,7 +387,6 @@ sub
 subroutine
 substitution
 such
-supported
 supported.\n
 supported:
 symbol
@@ -433,12 +424,12 @@ use
 useroutecard
 usesym
 value
-verified
 version\n
 very
 verytightopt
 verytightscf
 vibration
+warning
 water
 wb2plyp
 wb97m-v
@@ -446,7 +437,6 @@ wb97x-d3
 wb97x-v
 will
 with
-without
 writing
 wrong
 wrote

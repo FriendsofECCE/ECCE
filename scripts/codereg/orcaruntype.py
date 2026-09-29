@@ -83,7 +83,7 @@ class OrcaRunTypePanel(EccePanel):
 
             # Raman activities (issue #173), requested by "%elprop
             # Polar 1". Offered for every DFT/HF theory the dialog can
-            # reach; ai.orca's verifyRamanRequest rejects the
+            # reach; ai.orca's verifyRamanRequest warns about the
             # combinations ORCA 6.1.1 actually cannot do this for
             # (double hybrids outright; plain B88-exchange functionals
             # -- BLYP/BP86/B3LYP -- unless Method above is Numerical),
