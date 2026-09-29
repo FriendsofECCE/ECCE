@@ -64,6 +64,7 @@
 #include "wx/display.h"
 
 #include "WxMachineRegister.H"
+#include "MemoryUnits.H"
 
 #define MAXLINE 512
 
@@ -377,7 +378,11 @@ void WxMachineRegister::machineFullNameUpdatedCB(wxCommandEvent& event)
     string refName = (string)(p_machineFullNameText->GetValue());
     int chpos = refName.find('.');
 
-    if (chpos != string::npos)
+    //  Don't cut an IP address at its first '.' -- 127.0.0.1 must stay
+    //  127.0.0.1, not become "127" (matches RunMgmt::registerLocalMachine).
+    bool isAddress = refName.find_first_not_of("0123456789.") == string::npos;
+
+    if (chpos != string::npos && !isAddress)
         refName = refName.substr(0, chpos);
 
     p_machineRefNameText->SetValue(refName);
@@ -690,7 +695,7 @@ void WxMachineRegister::queueChangeButtonClickedCB(wxCommandEvent& event)
             p_minProcs[it] = p_queueMinProcsSpin->GetValue();
             p_maxProcs[it] = p_queueMaxProcsSpin->GetValue();
             p_maxWall[it] = p_queueMaxWallSpin->GetValue();
-            p_maxMem[it] = p_queueMaxMemorySpin->GetValue();
+            p_maxMem[it] = MemoryUnits::gbToMB(p_queueMaxMemorySpin->GetValue());
             p_minScratch[it] = p_queueMinScratchSpin->GetValue();
         }
         else
@@ -701,7 +706,7 @@ void WxMachineRegister::queueChangeButtonClickedCB(wxCommandEvent& event)
             p_minProcs.push_back(p_queueMinProcsSpin->GetValue());
             p_maxProcs.push_back(p_queueMaxProcsSpin->GetValue());
             p_maxWall.push_back(p_queueMaxWallSpin->GetValue());
-            p_maxMem.push_back(p_queueMaxMemorySpin->GetValue());
+            p_maxMem.push_back(MemoryUnits::gbToMB(p_queueMaxMemorySpin->GetValue()));
             p_minScratch.push_back(p_queueMinScratchSpin->GetValue());
 
             p_queuesChoicebox->Append(_(name.c_str()));
@@ -1661,7 +1666,7 @@ void WxMachineRegister::showQueue(string refName)
 
         if (p_maxMem[pos] != INT_MAX)
         {
-            p_queueMaxMemorySpin->SetValue(p_maxMem[pos]);
+            p_queueMaxMemorySpin->SetValue(MemoryUnits::mbToGB(p_maxMem[pos]));
         }
         else
         {

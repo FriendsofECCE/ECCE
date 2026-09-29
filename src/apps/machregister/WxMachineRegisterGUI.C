@@ -407,7 +407,7 @@ void WxMachineRegisterGUI::CreateControls()
     ewxSpinCtrl* itemSpinCtrl61 = new ewxSpinCtrl( itemPanel36, ID_SPIN_QUEUE_MAXMEMORY, _("0"), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 100000, 0 );
     itemFlexGridSizer50->Add(itemSpinCtrl61, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxStaticText* itemStaticText62 = new ewxStaticText( itemPanel36, wxID_STATIC, _("MW"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText62 = new ewxStaticText( itemPanel36, wxID_STATIC, _("GB"), wxDefaultPosition, wxDefaultSize, 0 );
     itemStaticText62->SetFont(wxFont(8, wxDEFAULT, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemFlexGridSizer50->Add(itemStaticText62, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
