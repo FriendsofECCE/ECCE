@@ -46,6 +46,11 @@ PidFile "##HTTPDROOT##/logs/httpd.pid"
 Mutex file:##HTTPDROOT##/logs default
 
 LoadModule mpm_prefork_module   ##MODULES##/mod_mpm_prefork.so
+# Debian builds unixd into httpd; RHEL ships it as a module, and httpd
+# refuses to start without it (AH00136).
+<IfModule !unixd_module>
+LoadModule unixd_module         ##MODULES##/mod_unixd.so
+</IfModule>
 LoadModule authz_core_module    ##MODULES##/mod_authz_core.so
 LoadModule authn_core_module    ##MODULES##/mod_authn_core.so
 LoadModule authz_host_module    ##MODULES##/mod_authz_host.so
