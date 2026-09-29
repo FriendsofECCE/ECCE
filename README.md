@@ -245,86 +245,24 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
-- **v8.17.2** — the data server starts on RHEL, where Apache is
-  `httpd` with its modules in `/usr/lib64` (#193).
-
-- **v8.17.1** — the RPM installs on RHEL again: it declared
-  requirements nothing provided (#199).
-
-- **v8.17.0** — **Central servers for a class, and correct orbitals**:
-  the Organizer names the server it is connected to; `ecce-remote-setup`
-  copies the server's machine list to each client (#188);
-  `ecce-dataserver-adduser --from` creates a class from a file; a login
-  name is the session's user, and "no access to this folder" is no
-  longer reported as a wrong password; `ecce -remote` says when the
-  server is down. Site configuration survives upgrades. After an NWChem
-  geometry optimisation the orbitals shown are the final geometry's
-  (#198). The MO diagram is rebuilt on correct ORCA and Gaussian
-  coefficients (#163, #170, #162) and marked experimental; ORCA Raman
-  activities (#173); Builder/Viewer layout and measurement highlighting
-  (#196, #197); a site machine opens pre-filled in Machine Registration
-  (#104); queue memory in GB.
-
-- **v8.16.7** — **Teaching-round fixes, Preferences, and `ecce --bug`**:
-  a random basis-set failure after using an editor is fixed; Verify is
-  the only gate and its red line survives reopening; View Input is
-  read-only for every editor; old Megaword memory settings convert to
-  GB; linear molecules no longer send `PG=C*V` to Gaussian. Organizer →
-  Edit → Preferences is back, with the editor, terminal and browser;
-  `ecce --bug` collects a bug report into one zip.
-
-- **v8.16.6** — **Deployment modes for teaching labs** (#191): a shared
-  systemd broker for many-user app servers (mode 3), per-user brokers
-  stop again at session end, RHEL can use an upstream ActiveMQ; no Quit
-  and Stop Server under `-remote` and real connection errors (#190); job
-  monitoring waits for a marker, not its command's echo (#143); optional
-  split `ecce-client`/`ecce-server` packages.
-
-- **v8.16.5** — **For new installs and central-server labs**: closing
-  the Organizer ends the session (#185); first-run machine registration
-  works on new accounts, and `ecce -admin`, `-machine`, `-l` and the
-  StartMessage notice are back (#188); Register Machines fits small
-  screens (#187); perl and xterm are now declared dependencies.
-
-- **v8.16.4** — **Fixes job monitoring on Ubuntu and with bash** (#143,
-  #69): tcsh's line editor (Ubuntu's `csh`) and bash's readline mangled
-  the long monitor command's echo, so the job store waited forever and
-  jobs stayed "submitted" although they ran. The package now declares
-  that it needs a csh.
-
-- **v8.16.3** — **Partial fix for the Wayland auth-dialog freeze**
-  (#120): a stale window-activation timestamp made Mutter silently
-  decline focus for the dialog under XWayland. A deeper, likely
-  Mutter-side issue can still leave it unresponsive to the keyboard
-  even with focus confirmed correct — not fully resolved.
-
-- **v8.16.2** — **Fixes a gateway segfault** when the authentication
-  dialog is closed via its window's own close button instead of
-  Cancel: an unsigned underflow handed wx an invalid range, and a
-  missing `return` let a failed startup check run again on already
-  torn-down state.
-
-- **v8.16.1** — **`ecce -remote` works again**: the central-server
-  client no longer aborts at startup. The data server and broker listen
-  on loopback unless configured as a central server. One password prompt
-  per session; G16 imports without `pop=full` no longer store a broken
-  ORBENG.
-
-- **v8.16.0** — **Launcher and Organizer say why a job failed**, in one
-  line. A basis-library fault that silently dropped 6-31G\*'s d shell is
-  fixed. MO diagrams label orbitals in the full point group (Oh, D6h,
-  σ/π for linear molecules); coordination complexes are not right yet.
-
-- **v8.15.0** — **Verify**: a check on the generated input file before
-  it is submitted. The point group you choose now reaches Gaussian.
-  Final Edit no longer strips a deck's terminating blank line. Register
-  Machines works on a fresh install. MO diagrams gain fragment
-  orbitals, chemical groups and a π-only view; still experimental.
-
-- **v8.14.0** — **Qualitative MO correlation diagrams**, experimental.
-  "Use symmetry" moves onto the Calculation Editor and defaults on.
-  Fixes basis sets being silently corrupted in ORCA and Gaussian decks.
-  Gaussian 16 Raman and anharmonic frequencies; RPM packages.
+- **v8.17.2** — the data server starts on RHEL (#193).
+- **v8.17.1** — an RPM built on RHEL installs there (#199).
+- **v8.17.0** — central servers for a class: the server's machine list
+  reaches each client, classes are created from a file (#188); final-
+  geometry orbitals after an NWChem optimisation (#198); MO diagram on
+  correct ORCA and Gaussian coefficients (#163, #170).
+- **v8.16.7** — Preferences is back; `ecce --bug` collects a bug report.
+- **v8.16.6** — deployment modes for teaching labs, including a shared
+  system broker (#191).
+- **v8.16.5** — closing the Organizer ends the session (#185); first-run
+  machine registration works (#188).
+- **v8.16.4** — job monitoring works on Ubuntu and with bash (#143, #69).
+- **v8.16.3** — partial fix for the Wayland login-dialog freeze (#120).
+- **v8.16.2** — fixes a gateway crash when the login dialog is closed.
+- **v8.16.1** — `ecce -remote` works again.
+- **v8.16.0** — the Launcher and Organizer say why a job failed.
+- **v8.15.0** — Verify: the input file is checked before submission.
+- **v8.14.0** — MO correlation diagrams (experimental); RPM packages.
 
 ## Roadmap
 
