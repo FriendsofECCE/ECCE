@@ -113,6 +113,14 @@ Gaussian coefficients and Löwdin composition, with metal–ligand
 classification (#163, #170, #162); ORCA Raman activities (#173); and a
 Machine Registration fix for site machines (#104).
 
+- **v8.16.7** — **Teaching-round fixes, Preferences, and `ecce --bug`**:
+  a random basis-set failure after using an editor is fixed; Verify is
+  the only gate and its red line survives reopening; View Input is
+  read-only for every editor; old Megaword memory settings convert to
+  GB; linear molecules no longer send `PG=C*V` to Gaussian. Organizer →
+  Edit → Preferences is back, with the editor, terminal and browser;
+  `ecce --bug` collects a bug report into one zip.
+
 - **v8.16.6** — **Deployment modes for teaching labs** (#191): a shared
   systemd broker for many-user app servers (mode 3), per-user brokers
   stop again at session end, RHEL can use an upstream ActiveMQ; no Quit
