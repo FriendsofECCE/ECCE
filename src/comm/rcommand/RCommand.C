@@ -1500,7 +1500,9 @@ hopToIt:
     //  eccejobstore waits on never arrives and monitoring hangs forever
     //  (#69 Bug 2; the bash side of #143).  The local "bash -f" spawn
     //  has readline on; --noediting only covers the direct ssh path.
-    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; "
+    //  PROMPT_COMMAND: RHEL's /etc/bashrc prints an xterm title escape
+    //  before every prompt, so "\r\n+go+" never matches (#200).
+    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; unset PROMPT_COMMAND; "
                   "bind 'set enable-bracketed-paste off' 2>/dev/null; "
                   "set +o emacs; set +o vi"))
       return;
@@ -1948,7 +1950,7 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
     // full story on why bracketed-paste mode needs disabling here too.
     //  See the matching "set +o emacs" note above (#69, #143): a hop's
     //  "bash -i" runs on the remote pty ssh allocates, readline on.
-    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; "
+    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; unset PROMPT_COMMAND; "
                   "bind 'set enable-bracketed-paste off' 2>/dev/null; "
                   "set +o emacs; set +o vi"))
       return false;
