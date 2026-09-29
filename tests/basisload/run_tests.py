@@ -321,6 +321,21 @@ def parseData(text):
     return sets
 
 
+def runCollide(driver, e):
+    proc = subprocess.run([driver, "-", "--collide"], env=e,
+                          capture_output=True, text=True)
+    if proc.returncode != 0:
+        return ["driver exited %d: %s" % (proc.returncode, proc.stderr[-500:])]
+    same, _, twins = proc.stderr.partition("CASE twins")
+    problems = []
+    marker = "two of its parts are both named"
+    if marker in same:
+        problems.append("warned about one part inserted twice")
+    if marker not in twins:
+        problems.append("no warning for two distinct parts named 6-31G*")
+    return problems
+
+
 def runCase(driver, e, base, case, verbose):
     label, name, how, tag, expect = case
     proc = subprocess.run([driver, base, name, how, tag], env=e,
@@ -558,6 +573,10 @@ def main():
         failures += report("-AGG.BAS files are current (merge_aggregates.py "
                            "--check)", [] if stale.returncode == 0
                            else [stale.stdout.strip()[-400:]])
+
+        failures += report("two same-named parts of one set are reported "
+                           "(#164's shape); one part inserted twice is not",
+                           runCollide(driver, e))
 
         for phase in ("clean", "poisoned"):
             if phase == "poisoned":

@@ -249,8 +249,35 @@ static int completeOne(int argc, char** argv)
   return 0;
 }
 
+//  loadBasis - --collide
+//  Two distinct parts of one aggregate with the same name and type (the
+//  #164 shape) must warn; the same part inserted twice must not.  No
+//  server needed: this exercises TGBSGroup alone.
+static int collide()
+{
+  TGaussianBasisSet::GBSType pople = TGaussianBasisSet::pople;
+  string name = "6-31G*";
+  //  Separate objects per group: a group owns what it inserts.
+  TGaussianBasisSet* a = new TGaussianBasisSet(pople, name);
+  TGaussianBasisSet* b = new TGaussianBasisSet(pople, name);
+  TGaussianBasisSet* c = new TGaussianBasisSet(pople, name);
+  vector<TGaussianBasisSet*> same, twins;
+  same.push_back(a);
+  same.push_back(a);
+  twins.push_back(b);
+  twins.push_back(c);
+  cerr << "CASE same\n";
+  TGBSGroup g1;
+  g1.insertOrbitalGBS("6-31G*", same, false);
+  cerr << "CASE twins\n";
+  TGBSGroup g2;
+  g2.insertOrbitalGBS("6-31G*", twins, false);
+  return 0;
+}
+
 int main(int argc, char** argv)
 {
+  if (argc >= 3 && string(argv[2]) == "--collide") return collide();
   if (argc >= 3 && string(argv[2]) == "--complete")
     return completeOne(argc, argv);
   if (argc >= 3 && string(argv[2]) == "--dump") return dumpOne(argc, argv);
