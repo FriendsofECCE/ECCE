@@ -239,7 +239,9 @@ bool WxDavAuth::prompt(const string& strurl,
       string& password,
       int retryCount)
 {
-   bool ret;
+   // false for anything but http: getAuthorization() retries without limit
+   // while this returns true, so an unset value could loop with no dialog.
+   bool ret = false;
 
    EcceURL url(strurl);
 
