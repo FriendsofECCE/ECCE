@@ -132,6 +132,10 @@ class TaskJob : public Job,
       virtual bool isInputFileNew() const;
 
       virtual bool removeInputFiles();
+
+      /** DAV property holding the generator warnings that go with the
+          deck in Inputs/ (see CalcEd); cleared with the deck. */
+      static string inputWarningsProp();
       virtual bool removeOutputFiles();
 
       /** Remove the extracted properties, leaving the calculation's
