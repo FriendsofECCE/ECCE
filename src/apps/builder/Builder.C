@@ -10,6 +10,8 @@ using std::map;
 using std::ostringstream;
 using std::ends;
 #include <vector>
+
+#include <wx/display.h>
 using std::vector;
   
 #include <math.h>
@@ -1982,6 +1984,16 @@ void Builder::restoreSettings()
 {
    ewxConfig * config = ewxConfig::getConfig("wxbuilder.ini");
    restoreWindowSettings(config, true);
+
+   //  Never larger than the screen: the new default (900x800) is taller
+   //  than a 1366x768 laptop, and a size saved on a bigger monitor is too.
+   int displayIdx = wxDisplay::GetFromWindow(this);
+   wxRect area = wxDisplay(displayIdx == wxNOT_FOUND ? 0 : displayIdx)
+                   .GetClientArea();
+   wxSize size = GetSize();
+   if (size.x > area.width || size.y > area.height) {
+     SetSize(wxSize(wxMin(size.x, area.width), wxMin(size.y, area.height)));
+   }
    bool resetPerspective;
 
    wxString curversion = Ecce::ecceVersion();
