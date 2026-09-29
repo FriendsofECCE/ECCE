@@ -1037,8 +1037,17 @@ fi")
     # last one out stops the display's relay, and the user's last session
     # stops a per-user broker (never a server's or the site's shared one).
     # The data server stays up until an explicit Quit and Stop Server.
+    # bash's own "Terminated" report for a SIGTERM (Quit and Stop Server
+    # ends the apps that way) is noise, so the shell's stderr is muted
+    # around the app; any other signal is still reported, by name.
     set(_app_exec "trap 'ECCE_REAP_QUIET=1 \"$ECCE_HOME/bin/ecce-gateway-reap\" --if-idle >/dev/null 2>&1 || true' EXIT
-\"$ECCE_HOME/bin/${_app}\" \"$@\"")
+exec 3>&2
+{ \"$ECCE_HOME/bin/${_app}\" \"$@\" 2>&3 3>&-; } 2>/dev/null
+_status=$?
+if [ $_status -gt 128 ] && [ $_status -ne 143 ]; then
+  echo \"${_app}: ended by SIG$(kill -l $((_status - 128)) 2>/dev/null)\" >&2
+fi
+exit $_status")
   else()
     set(_gateway_start "")
     set(_dataserver_start "")
@@ -1143,7 +1152,13 @@ if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ]; then
   fi
 fi
 trap 'ECCE_REAP_QUIET=1 \"$ECCE_HOME/bin/ecce-gateway-reap\" --if-idle >/dev/null 2>&1 || true' EXIT
-\"$ECCE_HOME/bin/builder\" \"$@\"
+exec 3>&2
+{ \"$ECCE_HOME/bin/builder\" \"$@\" 2>&3 3>&-; } 2>/dev/null
+_status=$?
+if [ $_status -gt 128 ] && [ $_status -ne 143 ]; then
+  echo \"ecce-viewer: ended by SIG$(kill -l $((_status - 128)) 2>/dev/null)\" >&2
+fi
+exit $_status
 ")
 install(PROGRAMS ${_viewer_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 
