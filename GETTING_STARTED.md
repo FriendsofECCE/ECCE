@@ -382,11 +382,17 @@ Table, ...).
 
 ### Choosing the editor
 
-Text files (input decks, outputs) open in an external editor. ECCE uses
-`ECCE_EDITOR`, then `VISUAL`, then `EDITOR`, and falls back to `vi` in an
-`xterm`. The value may carry arguments (`ECCE_EDITOR="geany -i"`). Set it
-for one run with `ECCE_EDITOR=geany ecce`, or for good with
-`export ECCE_EDITOR=geany` in `~/.profile`.
+Text files (input decks, outputs) open in an external editor. The
+simplest way to choose one is **Edit > Preferences > External programs**
+in the Organizer, which also sets the terminal used for terminal editors
+and the web browser for Help; changes apply at once. ECCE picks the editor
+from `ECCE_EDITOR` first, then that preference, then `VISUAL`, then
+`EDITOR`, and falls back to `vi` in an `xterm`. The value may carry
+arguments (`ECCE_EDITOR="geany -i"`). Set the variable for one run with
+`ECCE_EDITOR=geany ecce`, or for good with `export ECCE_EDITOR=geany` in
+`~/.profile`. Every environment variable ECCE reads is listed in
+[docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) (installed as
+`/opt/ecce/doc/ENVIRONMENT.md`).
 
 Terminal editors (`vi`, `vim`, `nvim`, `view`, `nano`, `pico`, `micro`,
 `emacs -nw`) are run inside an `xterm`. For `gedit`, `gnome-text-editor`,
