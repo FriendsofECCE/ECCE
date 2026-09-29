@@ -46,6 +46,7 @@
 
 #include "tdat/LatticeDef.H"
 #include "tdat/Fragment.H"
+#include "tdat/LinearPointGroup.H"
 #include "tdat/FragUtil.H"
 #include "tdat/TFormula.H"
 #include "tdat/TTCPair.H"
@@ -3410,7 +3411,7 @@ void Fragment::clear()
 { clearState(); }
 
 void Fragment::pointGroup(const string& group)
-{ p_pointGroup = group; }
+{ p_pointGroup = finitePointGroup(group); }
 
 string Fragment::pointGroup() const
 { return p_pointGroup; }
@@ -5580,7 +5581,7 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
               }
             }
             tmpgrp[j] ='\0';
-            p_pointGroup = tmpgrp;
+            pointGroup(tmpgrp);
           }
           infile.getline(buf, 1023);
           line = buf;
