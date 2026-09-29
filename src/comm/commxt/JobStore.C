@@ -1584,27 +1584,6 @@ void goodbye(int exitStatus)
   msg += buf;
 
   logMessage("eccejobstore exit", msg);
-
-  // Email failures to ecce-test if ECCE_JOB_ALLFAILMAIL tells us to.
-  // calculation can still be NULL here -- fail() reaches goodbye() via
-  // cleanup() even when calcLoad()'s own EDSIFactory::getResource()
-  // call is what failed in the first place. Confirmed live via a real
-  // core dump.
-  if (exitStatus != 0 && calculation) {
-    string url = calculation->getURL().toString();
-    string failmail = getenv("ECCE_JOB_ALLFAILMAIL")?
-                      getenv("ECCE_JOB_ALLFAILMAIL"): "";
-    if (failmail=="true" ||
-        (failmail!="" && url.find(failmail)!=string::npos)) {
-      string mail =
-             "Mail -s 'Eccejobstore Failure' ecce-test@emsl.pnl.gov << EOM\n"
-             "Eccejobstore ";
-      mail += Ecce::ecceVersion();
-      mail += " has terminated due to a monitoring error.\n"
-              "Calculation URL: " + url + "\nEOM";
-      (void)system(mail.c_str());
-    }
-  }
 }
 
 
