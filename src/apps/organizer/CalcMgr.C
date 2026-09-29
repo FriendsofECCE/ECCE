@@ -4201,24 +4201,6 @@ bool CalcMgr::checkSingleJob(Resource *resource, string& message)
             calc->setState(ResourceDescriptor::STATE_FAILED);
             updateUrl(resource->getURL());
 
-            // Email failures to ecce-test if ECCE_JOB_FAILMAIL tells us to
-            /**
-             * @todo This will not work under windows, not sure about mac.
-             *       May need some ifdef to handle it differently.
-             */
-            string url = resource->getURL().toString();
-            string failmail = getenv("ECCE_JOB_FAILMAIL") ?
-              getenv("ECCE_JOB_FAILMAIL"): "";
-            if (failmail=="true" ||
-                (failmail!="" && url.find(failmail)!=string::npos)) {
-              string mail =
-              "Mail -s 'Job Monitoring Failure' ecce-test@emsl.pnl.gov << EOM\n"
-              "Job found in the submitted/running state without an "
-              "eccejobstore ";
-              mail += Ecce::ecceVersion();
-              mail += " process.\nCalculation name: " + url + "\nEOM";
-              (void)system(mail.c_str());
-            }
           }
         } else {
           ret = false;

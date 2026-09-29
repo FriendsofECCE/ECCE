@@ -64,20 +64,6 @@ ECCE_STORE_TRAJECTORIES yes
 # are opened?
 ECCE_JOB_CHECK true
 
-# this controls sending mail to the ecce-test queue for jobs recognized
-# as job monitoring errors.  If the variable is not set no mail will ever
-# be sent.  If it is set to "true" then mail for failed jobs will always
-# be sent.  If it is set to some other value then that value is treated
-# as a substring search pattern in the URL for any calculation that fails.
-# Usually it will be the name of the data server or part of the IP domain
-# name for the data server.  For example, "emsl.pnl.gov" results in mail
-# being sent from all jobs run on EMSL data servers but no mail from data
-# servers outside EMSL.  If you wish to enable this feature outside EMSL
-# so that ECCE developers can work with you diagnosing problems with job
-# monitoring, simply set the value to "true" rather than figuring out the
-# proper data server domain name value.
-ECCE_JOB_FAILMAIL emsl.pnl.gov
-
 # define the communication scheme to use for job monitoring communications
 # possible values are:
 # stdio => use the remote shell (ssh, telnet, etc.) for all jobs
