@@ -1565,6 +1565,16 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify)
 
+  # tests/guivalues -- memory sizes saved before the GB-everywhere change
+  # (Megawords, Megabytes) are converted by GUIValues::load() before a
+  # dialog or a generator reads them.  Needs g++ and libecceutil.a.
+  #
+  #     cd build-cmake && ctest -R guivalues --output-on-failure
+  add_test(NAME guivalues
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/guivalues/run_tests.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/guivalues)
+
   # tests/apps -- the third tier: starts every INSTALLED wx-linked ECCE app
   # on a headless X server with software OpenGL (Xvfb + llvmpipe; broadway
   # cannot be used here because these apps link GLX for the Open Inventor

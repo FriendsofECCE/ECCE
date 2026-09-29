@@ -483,6 +483,8 @@ class EccePanel(wx.Panel):
 
 
     def FinalizeSetting(self):
+        # Settings left at their default because the stored unit differs.
+        notRestored = []
         if (EcceGlobals.RestoreFlag == "GUIValues"):
             f = open(EcceGlobals.FdIn, "r")
             line = f.readline()
@@ -558,6 +560,13 @@ class EccePanel(wx.Panel):
                             if widgetUnit is None:
                                 widgetUnit = ""
                             widgetUnit = widgetUnit.strip()
+                            # calced converts old memory units to plain
+                            # "Gigabytes"; NWChem's widget adds " / core",
+                            # which says what the number is per, not its
+                            # unit, so compare without it.
+                            if storedUnit.split(" / ")[0] == \
+                               widgetUnit.split(" / ")[0]:
+                                storedUnit = widgetUnit
                             if storedUnit and widgetUnit and \
                                storedUnit != widgetUnit:
                                 debug("restore %s: SKIPPED stored value %r -- "
@@ -565,6 +574,7 @@ class EccePanel(wx.Panel):
                                       "uses %r; keeping the widget default %r"
                                       % (name, value, storedUnit, widgetUnit,
                                          getattr(setting, "default", "?")))
+                                notRestored.append(setting)
                                 continue
                             debug("restore %s = %r (%s)"
                                   % (name, value, valType))
@@ -624,6 +634,13 @@ class EccePanel(wx.Panel):
             EcceGlobals.BatchValues.append("#INITIALIZED\n")
           else:
             EcceGlobals.Socket.send("#INITIALIZED\n".encode())
+            # The dialog now shows a value the calculation does not hold.
+            # Values sent before #INITIALIZED do not mark the calc modified,
+            # so without this Launch reuses the old deck, and typing the
+            # value already shown changes nothing.  Send them again as edits.
+            for setting in notRestored:
+                EcceGlobals.Socket.send(
+                    (setting.ExportSetting()+"\n").encode())
 
         if EcceGlobals.RestoreFlag == "NO_GUIValues":
             # Send the batched list of values over the socket

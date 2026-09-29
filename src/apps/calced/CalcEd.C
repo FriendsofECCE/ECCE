@@ -594,6 +594,17 @@ void CalcEd::doSetContext(const string& codeName)
     p_GUIValues = p_iCalc->guiparams();
   }
 
+  // The stored deck may have been generated from the unconverted number,
+  // and Launch reuses a deck unless the calc is modified -- so mark it.
+  if (p_GUIValues->convertedLegacyUnits() &&
+      p_feedback->getEditStatus() != WxFeedback::READONLY) {
+    p_feedback->setMessage("The memory setting was saved in an older unit "
+            "and has been converted to gigabytes.  Check it in Theory "
+            "Details, then save to regenerate the input file.",
+            WxFeedback::WARNING);
+    enableSave();
+  }
+
   p_codeName = p_code->name();
 
   updateAllFields();
