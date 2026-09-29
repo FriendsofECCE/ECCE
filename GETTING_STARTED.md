@@ -380,6 +380,20 @@ Table, ...).
   Unix username, then start normally.
 - **`--help`** / **`-h`** — print this list and exit.
 
+### Choosing the editor
+
+Text files (input decks, outputs) open in an external editor. ECCE uses
+`ECCE_EDITOR`, then `VISUAL`, then `EDITOR`, and falls back to `vi` in an
+`xterm`. The value may carry arguments (`ECCE_EDITOR="geany -i"`). Set it
+for one run with `ECCE_EDITOR=geany ecce`, or for good with
+`export ECCE_EDITOR=geany` in `~/.profile`.
+
+Terminal editors (`vi`, `vim`, `nvim`, `view`, `nano`, `pico`, `micro`,
+`emacs -nw`) are run inside an `xterm`. For `gedit`, `gnome-text-editor`,
+`xed`, `geany` and `kate`, ECCE adds the "new instance" flag itself; an
+editor that hands the file to an already-running copy and exits would
+otherwise end the edit session at once.
+
 ## 7. Getting help
 
 `ecce-<app>`'s Help menu opens local HTML content shipped in the package
