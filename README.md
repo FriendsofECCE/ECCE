@@ -113,6 +113,13 @@ Gaussian coefficients and Löwdin composition, with metal–ligand
 classification (#163, #170, #162); ORCA Raman activities (#173); and a
 Machine Registration fix for site machines (#104).
 
+- **v8.16.6** — **Deployment modes for teaching labs** (#191): a shared
+  systemd broker for many-user app servers (mode 3), per-user brokers
+  stop again at session end, RHEL can use an upstream ActiveMQ; no Quit
+  and Stop Server under `-remote` and real connection errors (#190); job
+  monitoring waits for a marker, not its command's echo (#143); optional
+  split `ecce-client`/`ecce-server` packages.
+
 - **v8.16.5** — **For new installs and central-server labs**: closing
   the Organizer ends the session (#185); first-run machine registration
   works on new accounts, and `ecce -admin`, `-machine`, `-l` and the
