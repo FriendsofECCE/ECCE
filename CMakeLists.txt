@@ -1264,6 +1264,26 @@ if(RPMBUILD_EXECUTABLE)
   #  wrong on both distributions.
   set(CPACK_RPM_PACKAGE_AUTOREQ ON)
   set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
+  #  With AutoProv off, nothing provides what the package requires of
+  #  itself: the scripts' own Perl files (perl(rdStandardGBS) ...) and
+  #  config(ecce) for the %config files. dnf then refuses the install
+  #  (#199). rpm adds the config() requirement itself, past any filter,
+  #  so provide it; the Perl ones are dropped from the generated list.
+  #  Brackets, not backslashes: rpm's macro expansion eats one level.
+  set(CPACK_RPM_PACKAGE_PROVIDES "config(ecce) = %{version}-%{release}")
+  file(GLOB_RECURSE _ecce_own_perl RELATIVE ${CMAKE_SOURCE_DIR}
+       ${CMAKE_SOURCE_DIR}/scripts/*.pm ${CMAKE_SOURCE_DIR}/scripts/*.pl)
+  set(_ecce_own_perl_names "")
+  foreach(_p ${_ecce_own_perl})
+    get_filename_component(_n ${_p} NAME)
+    string(REGEX REPLACE "\\.pm$" "" _n "${_n}")
+    string(REPLACE "." "[.]" _n "${_n}")
+    list(APPEND _ecce_own_perl_names "${_n}")
+  endforeach()
+  list(REMOVE_DUPLICATES _ecce_own_perl_names)
+  string(REPLACE ";" "|" _ecce_own_perl_names "${_ecce_own_perl_names}")
+  set(CPACK_RPM_SPEC_MORE_DEFINE
+      "%global __requires_exclude ^perl[(](${_ecce_own_perl_names})[)]")
   message(STATUS "rpmbuild found: cpack will also produce an .rpm")
 else()
   message(STATUS "rpmbuild not found: cpack will produce a .deb only "
@@ -1460,6 +1480,7 @@ section) -- installing this package pulls in both.
     set(CPACK_RPM_META_PACKAGE_REQUIRES "ecce-client = ${_ecce_deb_version}, ecce-server = ${_ecce_deb_version}")
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/opt")
     set(CPACK_RPM_CLIENT_PACKAGE_AUTOREQ ON)
+    set(CPACK_RPM_CLIENT_PACKAGE_PROVIDES "config(ecce-client) = %{version}-%{release}")
     set(CPACK_RPM_SERVER_PACKAGE_AUTOREQ ON)
     set(CPACK_RPM_META_PACKAGE_AUTOREQ OFF)
     set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
