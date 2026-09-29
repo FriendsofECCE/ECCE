@@ -669,7 +669,6 @@ class EcceCheckBox(wx.CheckBox):
         if tip:
             self.SetToolTip(wx.ToolTip(tip))
 
-        self.SetBackgroundColour(EcceGlobals.InputColour)
         self.Bind(wx.EVT_CHECKBOX, self.OnChanges)
 
         self.save = self.default = default
