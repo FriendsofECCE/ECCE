@@ -94,6 +94,12 @@ CASES = [
         ("6-31G** Polarization", "polarization", "C", ["D"]),
         ("6-31G** Polarization", "polarization", "H", ["P"]),
     ]),
+    #  A mixed basis gives each element its own group (#164: WaterX,
+    #  H STO-3G + O 6-31G*, was stored with no O d shell).
+    ("6-31G* on O alone, mixed basis", "6-31G*", "pople", "O", [
+        ("6-31G", "pople", "O", ["S", "SP", "SP"]),
+        ("6-31G* Polarization", "polarization", "O", ["D"]),
+    ]),
     ("6-31G alone keeps its own name", "6-31G", "pople", "C H", [
         ("6-31G", "pople", "C", ["S", "SP", "SP"]),
     ]),
