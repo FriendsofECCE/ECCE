@@ -490,7 +490,10 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   setSaveHandler(this);
 
   p_mgr.SetManagedWindow(this);
-  p_mgr.SetArtProvider(new BuilderDockArt);
+  BuilderDockArt *art = new BuilderDockArt;
+  art->setFoldedQuery([this](wxWindow *w) { return p_folded.count(w) > 0; });
+  p_mgr.SetArtProvider(art);
+  p_mgr.Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
   
   p_viewerEvtHandler = new ViewerEvtHandler(this);
   p_viewerEvtHandler->connectToolKitFW(this);
@@ -1313,7 +1316,7 @@ void Builder::setContext(const string& url, const bool& force)
       if (pane.IsOk()) {
         // NOTE: wxAuiPaneInfo::Focus() (ewxAUI addition) has no stock
         // wx3.2 equivalent and is dropped here - see EwxAuiCompat.H.
-        p_propertyPanelInfo[pane.window] = p_mgr.SavePaneInfo(pane);
+        p_propertyPanelInfo[pane.window] = paneInfoForSave(pane);
       }
     }
   }
@@ -3185,6 +3188,9 @@ void Builder::OnPropertyMenuClick( wxCommandEvent& event )
 {
   wxString name = p_propertyMenu->GetLabelText(event.GetId());
   wxAuiPaneInfo &pane = p_mgr.GetPane(name);
+  if (!event.IsChecked()) {
+    unfoldPane(pane);
+  }
   pane.Show(event.IsChecked());
   // If caption panel is toggled closed, open it by default
   if (event.IsChecked() && !pane.IsShown()) {
@@ -3288,6 +3294,73 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
 }
 
 
+// The caption's pin button folds a property pane to its caption bar.
+// The resize is deferred so it never runs inside AUI's own event handling.
+void Builder::OnPaneButton(wxAuiManagerEvent& event)
+{
+  wxAuiPaneInfo *pane = event.GetPane();
+  if (event.GetButton() != wxAUI_BUTTON_PIN || pane == 0 ||
+      dynamic_cast<PropertyPanel*>(pane->window) == 0) {
+    event.Skip();
+    return;
+  }
+  wxWindow *win = pane->window;
+  CallAfter([this, win]() { toggleFold(win); });
+}
+
+
+void Builder::toggleFold(wxWindow *win)
+{
+  wxAuiPaneInfo &pane = p_mgr.GetPane(win);
+  if (!pane.IsOk()) {
+    return;
+  }
+  if (p_folded.count(win)) {
+    unfoldPane(pane);
+    win->Show();
+  } else {
+    FoldState st = { pane.best_size, pane.min_size, pane.IsResizable(),
+                     pane.dock_proportion };
+    p_folded[win] = st;
+    pane.BestSize(wxSize(st.best.x, 1)).MinSize(wxSize(st.min.x, 1)).Fixed();
+    pane.dock_proportion = 1;
+  }
+  p_mgr.Update();
+  if (p_folded.count(win)) {
+    win->Hide();
+  }
+}
+
+
+// Puts a folded pane's sizes back without touching the manager's layout.
+void Builder::unfoldPane(wxAuiPaneInfo &pane)
+{
+  map<wxWindow*, FoldState>::iterator it = p_folded.find(pane.window);
+  if (it == p_folded.end()) {
+    return;
+  }
+  pane.BestSize(it->second.best).MinSize(it->second.min)
+      .Resizable(it->second.resizable);
+  pane.dock_proportion = it->second.proportion;
+  p_folded.erase(it);
+}
+
+
+// Folded state is never persisted: a saved 1px pane would reopen empty.
+wxString Builder::paneInfoForSave(wxAuiPaneInfo &pane)
+{
+  map<wxWindow*, FoldState>::iterator it = p_folded.find(pane.window);
+  if (it == p_folded.end()) {
+    return p_mgr.SavePaneInfo(pane);
+  }
+  wxAuiPaneInfo copy(pane);
+  copy.BestSize(it->second.best).MinSize(it->second.min)
+      .Resizable(it->second.resizable);
+  copy.dock_proportion = it->second.proportion;
+  return p_mgr.SavePaneInfo(copy);
+}
+
+
 void Builder::OnPaneClose(wxAuiManagerEvent& event)
 {
   if (event.pane->name == NAME_TOOL_STRUCTLIB) {
@@ -3298,6 +3371,7 @@ void Builder::OnPaneClose(wxAuiManagerEvent& event)
   } else {
     wxString name(event.pane->name);
     wxWindow *win = event.pane->window;
+    unfoldPane(*event.pane);
     int tool_id = p_toolMenu->FindItem(name);
     int prop_id = p_propertyMenu->FindItem(name);
     if (tool_id != wxNOT_FOUND) {
@@ -4096,7 +4170,7 @@ void Builder::savePaneLayout(const wxString& layoutName_)
   wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
   for (size_t i = 0, count = panes.GetCount(); i < count; ++i) {
     wxAuiPaneInfo &pane = panes.Item(i);
-    wxString info = p_mgr.SavePaneInfo(pane);
+    wxString info = paneInfoForSave(pane);
     if (dynamic_cast<PropertyPanel*>(pane.window)) {
       // prop panel layouts are save elsewhere
       p_propertyPanelInfo[pane.window] = info;
@@ -4149,6 +4223,7 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
   for (ppanelIt = ppanels.begin(); ppanelIt != ppanels.end(); ++ppanelIt) {
     wxAuiPaneInfo &pane = p_mgr.GetPane(*ppanelIt);
     if (pane.IsOk()) {
+      p_folded.erase(pane.window);
       pane.window->Hide();
       p_mgr.DetachPane(*ppanelIt);
     }
@@ -4189,6 +4264,7 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
         continue;
       }
       p.SafeSet(pane);
+      p.PinButton(true);
       //  Same stale-saved-minimum problem as the tool-pane restore
       //  above: SafeSet() just copied the saved min_size.x verbatim.
       wxSize minSize = p.min_size;
@@ -4937,7 +5013,7 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     wxAuiPaneInfo info = wxAuiPaneInfo();
     info.DefaultPane();
     info.Name(name).Caption(name).CaptionVisible(true).
-            Left().Layer(2).Resizable(true);
+            PinButton(true).Left().Layer(2).Resizable(true);
 
     //  A panel too wide for the dock opens floating instead.  It is
     //  still an ordinary AUI pane and can be docked by hand; only where
@@ -5137,6 +5213,7 @@ void Builder::removePropertyPanels(const string& context)
   set<PropertyPanel*> panels = PropertyPanel::getPanels(contextToClose);
   set<PropertyPanel*>::iterator panelIt;
   for (panelIt = panels.begin(); panelIt != panels.end(); ++panelIt) {
+    p_folded.erase(*panelIt);
     p_mgr.DetachPane(*panelIt);
   }
   PropertyPanel::removePanels(contextToClose);
