@@ -5876,8 +5876,9 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
   return (!error && numAtoms() > 0);
 }
 
-void Fragment::generateFullMolecule(void)
+bool Fragment::generateFullMolecule(void)
 {
+  bool ok = true;
   string symmetry = pointGroup();
   string symmorig = symmetry;
   for (int i=0; i<symmetry.size(); i++) {
@@ -5938,10 +5939,21 @@ void Fragment::generateFullMolecule(void)
 
           ifs.close();
           outFile->remove();
+          ok = status;
+        } else {
+          ok = false;
         }
+      } else {
+        outFile->remove();
+        std::cerr << "genmol failed (status " << istatus << ") for point group "
+             << symmetry << "; full molecule not generated" << endl;
+        ok = false;
       }
+    } else {
+      ok = false;
     }
   }
+  return ok;
 }
 
 void Fragment::generateIrreducibleFragment(void)

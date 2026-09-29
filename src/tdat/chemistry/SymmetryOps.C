@@ -50,6 +50,28 @@ static string genFrag         = Ecce::ecceBinCommand("genmol");
 static string genLatticeFrag  = Ecce::ecceBinCommand("genmollat");
 
 
+// Every non-zero status is a failure: a status that falls through
+// leaves the fragment untouched, which looks like success.
+static void throwHelperFailure(const string& prog, int istatus,
+                               const string& group)
+{
+   if (istatus == 1) {
+      throw InvalidException("Failed to execute " + prog + ".", WHERE);
+   } else if (istatus == 2) {
+      throw InvalidException("Maximum number of atoms exceeded.", WHERE);
+   } else if (istatus == 3) {
+      throw InvalidException("Point group " + group + " is not supported"
+            " by the symmetry tools. For a linear molecule use C4V"
+            " (C*V) or D4H (D*H).", WHERE);
+   } else if (istatus > 128 && istatus < 160) {
+      throw InvalidException(prog + " crashed (signal " +
+            std::to_string(istatus - 128) + ").", WHERE);
+   }
+   throw InvalidException(prog + " failed with exit status " +
+                          std::to_string(istatus) + ".", WHERE);
+}
+
+
 void SymmetryOps::addGhosts(Fragment& frag)
 {
    string group = frag.pointGroup();
@@ -157,10 +179,15 @@ void SymmetryOps::findIrreducible(Fragment& frag, double threshold, const string
       ghostatoms->clear();
       delete ghostatoms;
 
-   } else if ( istatus == 1 ) {
-      throw InvalidException("Failed to execute getfrag.", WHERE);
-   } else if ( istatus == 2 ) {
-      throw InvalidException("Maximum number of atoms exceeded.", WHERE);
+   } else {
+      outFile->remove();
+      delete outFile;
+      // the ghosts were deleted from frag above; put them back
+      for (size_t t = 0; t < ghostatoms->size(); t++) {
+         frag.addAtom((*ghostatoms)[t], 0);
+      }
+      delete ghostatoms;
+      throwHelperFailure("getfrag", istatus, group);
    }
 
 }
@@ -235,10 +262,13 @@ void SymmetryOps::generateLatticeFragment(Fragment& frag, double threshold)
          throw IOException("Failed to open output file.", WHERE);
       }
 
-   } else if ( istatus == 1 ) {
-      throw InvalidException("Failed to execute generate fragment.", WHERE);
-   } else if ( istatus == 2 ) {
-      throw InvalidException("Maximum number of atoms exceeded.", WHERE);
+   } else {
+      outFile->remove();
+      delete outFile;
+      for (size_t g = 0; g < ghostatoms->size(); g++)
+         delete (*ghostatoms)[g];
+      delete ghostatoms;
+      throwHelperFailure("genmollat", istatus, frag.pointGroup());
    }
 }
 
@@ -304,10 +334,13 @@ void SymmetryOps::generateFragment(Fragment& frag, double threshold)
          throw IOException("Failed to open output file.", WHERE);
       }
 
-   } else if ( istatus == 1 ) {
-      throw InvalidException("Failed to execute generate fragment.", WHERE);
-   } else if ( istatus == 2 ) {
-      throw InvalidException("Maximum number of atoms exceeded.", WHERE);
+   } else {
+      outFile->remove();
+      delete outFile;
+      for (size_t g = 0; g < ghostatoms->size(); g++)
+         delete (*ghostatoms)[g];
+      delete ghostatoms;
+      throwHelperFailure("genmol", istatus, frag.pointGroup());
    }
 }
 
@@ -360,10 +393,10 @@ void SymmetryOps::clean(Fragment& frag, double threshold, const string& group)
          throw InvalidException("Duplicate atoms detected.", WHERE);
       }
 
-   } else if ( istatus == 1 ) {
-      throw InvalidException("Failed to execute cleansym.", WHERE);
-   } else if ( istatus == 2 ) {
-      throw InvalidException("Maximum number of atoms exceeded.", WHERE);
+   } else {
+      outFile->remove();
+      delete outFile;
+      throwHelperFailure("cleansym", istatus, lgroup);
    }
 } 
 
