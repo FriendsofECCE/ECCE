@@ -59,7 +59,9 @@ c
       do i = 1, 46
        if (group_name.eq.sym_molgnames(i)) numgrp = i
       end do
-c      if (numgrp.eq.0) call exit(3)
+c  gensym only knows the tabulated groups; anything else (Gaussian's
+c  C*V/D*H, a typed-in name) would run it on an unset generator table.
+      if (numgrp.eq.0) call exit(3)
       oprint = .false.
 c
 c   lattice vectors & angles (cell constants)
@@ -80,11 +82,7 @@ c
 c    generate symmetry operators for whatever group (crystals, surfaces
 c    polymers or molecules) have been requested.
 c
-      if (numgrp == 0) then
-        call gensym(-1,-1,numset,sym_ops,nops,oprint,group_name)
-      else
-        call gensym(itype,numgrp,numset,sym_ops,nops,oprint,group_name)
-      endif
+      call gensym(itype,numgrp,numset,sym_ops,nops,oprint,group_name)
 c
 c    generate molecule from irreducible fragment
 c

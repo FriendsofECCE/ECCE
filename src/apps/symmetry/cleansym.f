@@ -41,9 +41,12 @@ c  probably be 0 or 1 (probably 1).
 c
       itype  = 0
       numset = 1
+      numgrp = 0
       do i = 1, 46
        if (group_name.eq.sym_molgnames(i)) numgrp = i
       end do
+c  unknown group: see genmol.f
+      if (numgrp.eq.0) call exit(3)
       oprint = .false.
 c
 c   lattice vectors & angles (cell constants)
