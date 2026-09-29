@@ -9,6 +9,19 @@
 #   ecce-dataserver-adduser                       interactive prompts
 #   ecce-dataserver-adduser -b USER PASS [FIRST] [LAST]
 #                                                  non-interactive (scripting/testing)
+#   ecce-dataserver-adduser --from FILE            batch, e.g. for a class
+#                                                  (FILE may be - for stdin)
+#
+# --from FILE reads CSV lines "username,password,first,last" (first/last
+# optional, default to username; blank lines and #-comments are ignored;
+# a header line starting with "username" is skipped). No quoting: commas
+# are not allowed inside a field. An empty password is generated. Every
+# generated (not admin-supplied) password is written to FILE.passwords
+# (./ecce-accounts.passwords for stdin) -- hand those out, then delete
+# the file.
+#
+# Every mode feeds the password to htpasswd on stdin (-i), never on its
+# command line, which would otherwise be visible to any user via ps.
 
 set -u
 
@@ -18,6 +31,141 @@ STATEDIR="$ECCE_REALUSERHOME/.ECCE/dataserver"
 if [ ! -d "$STATEDIR" ]; then
   echo "ecce-dataserver-adduser: $STATEDIR doesn't exist -- run ecce-dataserver-start first" >&2
   exit 1
+fi
+
+# create_account USER PASS FIRST LAST
+# Creates the htpasswd entry (password read from stdin, never argv) and
+# the account's home dir/.htaccess. Returns 1 without doing anything if
+# USER already exists, so callers can report a skip.
+create_account() {
+  local userid="$1" password="$2" firstname="$3" lastname="$4"
+
+  if [ -f "$STATEDIR/users" ] && grep -q "^${userid}:" "$STATEDIR/users"; then
+    return 1
+  fi
+  USERDIR="$STATEDIR/htdocs/Ecce/users/$userid"
+  if [ -d "$USERDIR" ]; then
+    return 1
+  fi
+
+  if [ ! -f "$STATEDIR/users" ]; then
+    printf '%s\n' "$password" | htpasswd -i -c "$STATEDIR/users" "$userid" || return 2
+  else
+    printf '%s\n' "$password" | htpasswd -i "$STATEDIR/users" "$userid" || return 2
+  fi
+
+  mkdir -p "$USERDIR"
+  cat > "$USERDIR/.htaccess" <<EOF
+# ECCE .htaccess File #
+#
+## DO NOT EDIT ## - file automatically generated
+#
+#R##R#
+#RW#${userid}#RW#
+AuthName Ecce-${firstname}.${lastname}
+<Limit OPTIONS HEAD GET PUT DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK POST>
+Allow from all
+require user ${userid} ecceadm
+</Limit>
+EOF
+  return 0
+}
+
+# gen_password: 12 chars from [A-Za-z0-9] minus ambiguous 0O1lI, from
+# /dev/urandom.
+gen_password() {
+  tr -dc 'A-Za-z0-9' < /dev/urandom | tr -d '0O1lI' | head -c 12
+}
+
+if [ "${1:-}" = "--from" ]; then
+  file="${2:?FILE required (- for stdin)}"
+  if [ "$file" = "-" ]; then
+    passfile="./ecce-accounts.passwords"
+  else
+    passfile="${file}.passwords"
+  fi
+  if [ -e "$passfile" ]; then
+    echo "ecce-dataserver-adduser: $passfile already exists -- refusing to overwrite a previous run's passwords" >&2
+    exit 1
+  fi
+
+  created=0
+  skipped=0
+  failed=0
+  lineno=0
+  first_data_line=1
+  # Generated passwords only; created with umask 077 before any content
+  # is written.
+  ( umask 077 && : > "$passfile" )
+
+  if [ "$file" = "-" ]; then
+    exec 3<&0
+  else
+    exec 3< "$file"
+  fi
+  while IFS= read -r line <&3 || [ -n "$line" ]; do
+    lineno=$((lineno + 1))
+
+    trimmed="$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    [ -z "$trimmed" ] && continue
+    case "$trimmed" in
+      \#*) continue ;;
+    esac
+
+    if [ "$first_data_line" = "1" ]; then
+      first_data_line=0
+      first_field="${trimmed%%,*}"
+      first_field_lc="$(printf '%s' "$first_field" | tr '[:upper:]' '[:lower:]' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+      if [ "$first_field_lc" = "username" ]; then
+        continue
+      fi
+    fi
+
+    IFS=',' read -r userid password firstname lastname <<< "$trimmed"
+    userid="$(printf '%s' "${userid:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    password="$(printf '%s' "${password:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    firstname="$(printf '%s' "${firstname:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    lastname="$(printf '%s' "${lastname:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+
+    if ! [[ "$userid" =~ ^[A-Za-z0-9]+$ ]]; then
+      echo "failed line $lineno: invalid username '$userid' (must match ^[A-Za-z0-9]+\$)"
+      failed=$((failed + 1))
+      continue
+    fi
+
+    [ -z "$firstname" ] && firstname="$userid"
+    [ -z "$lastname" ] && lastname="$userid"
+
+    generated=0
+    if [ -z "$password" ]; then
+      password="$(gen_password)"
+      generated=1
+    fi
+
+    create_account "$userid" "$password" "$firstname" "$lastname"
+    rc=$?
+    if [ "$rc" = "1" ]; then
+      echo "skipped $userid (already exists)"
+      skipped=$((skipped + 1))
+      continue
+    elif [ "$rc" != "0" ]; then
+      echo "failed line $lineno: htpasswd failed for '$userid'"
+      failed=$((failed + 1))
+      continue
+    fi
+
+    if [ "$generated" = "1" ]; then
+      echo "${userid},${password}" >> "$passfile"
+    fi
+    echo "created $userid"
+    created=$((created + 1))
+  done
+  exec 3<&-
+
+  echo "$created created, $skipped skipped, $failed failed"
+  echo "ecce-dataserver-adduser: generated passwords written to $passfile -- hand them out, then delete this file"
+  [ "$failed" -gt 0 ] && exit 1
+  exit 0
 fi
 
 batch=0
@@ -48,36 +196,21 @@ else
     [Yy]|[Yy][Ee][Ss]) ;;
     *) echo "Cancelled."; exit 0 ;;
   esac
+  read -r -s -p "Password? " password
+  echo ""
 fi
 
-if [ ! -f "$STATEDIR/users" ]; then
-  if [ "$batch" = "1" ]; then
-    htpasswd -c -b "$STATEDIR/users" "$userid" "$password"
-  else
-    htpasswd -c "$STATEDIR/users" "$userid"
-  fi
-else
-  if [ "$batch" = "1" ]; then
-    htpasswd -b "$STATEDIR/users" "$userid" "$password"
-  else
-    htpasswd "$STATEDIR/users" "$userid"
-  fi
+[ -z "${firstname:-}" ] && firstname="$userid"
+[ -z "${lastname:-}" ] && lastname="$userid"
+
+create_account "$userid" "$password" "$firstname" "$lastname"
+rc=$?
+if [ "$rc" = "1" ]; then
+  echo "ecce-dataserver-adduser: account '$userid' already exists" >&2
+  exit 1
+elif [ "$rc" != "0" ]; then
+  echo "ecce-dataserver-adduser: htpasswd failed for '$userid'" >&2
+  exit 1
 fi
 
-USERDIR="$STATEDIR/htdocs/Ecce/users/$userid"
-mkdir -p "$USERDIR"
-cat > "$USERDIR/.htaccess" <<EOF
-# ECCE .htaccess File #
-#
-## DO NOT EDIT ## - file automatically generated
-#
-#R##R#
-#RW#${userid}#RW#
-AuthName Ecce-${firstname}.${lastname}
-<Limit OPTIONS HEAD GET PUT DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK POST>
-Allow from all
-require user ${userid} ecceadm
-</Limit>
-EOF
-
-echo "ecce-dataserver-adduser: account '$userid' ready at $USERDIR"
+echo "ecce-dataserver-adduser: account '$userid' ready at $STATEDIR/htdocs/Ecce/users/$userid"

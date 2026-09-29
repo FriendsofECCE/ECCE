@@ -291,6 +291,11 @@ ecce-dataserver-start && ecce-gateway-start
 ecce-dataserver-adduser          # once per user
 ```
 
+For a class, `ecce-dataserver-adduser --from class.csv` creates a batch of
+accounts at once from a `username,password,first,last` CSV file (blank
+password fields get a random one generated); generated passwords are
+written to `class.csv.passwords` for the admin to hand out and then delete.
+
 The listen setting is written once, to `~/.ECCE/dataserver/listen`, and
 both services read it: the data server's own `Listen` directive and the
 broker's bind address (#138). Leave out `all` if clients reach the
