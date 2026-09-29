@@ -245,6 +245,9 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.17.2** — the data server starts on RHEL, where Apache is
+  `httpd` with its modules in `/usr/lib64` (#193).
+
 - **v8.17.1** — the RPM installs on RHEL again: it declared
   requirements nothing provided (#199).
 
