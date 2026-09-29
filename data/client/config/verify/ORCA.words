@@ -25,7 +25,6 @@ $message\n
 $model
 $namebasis
 $nametobasis{$oldbasis}\n
-$nprocs
 $numelectrons\n
 $opt_n.basis
 $opt_n.con
@@ -52,7 +51,6 @@ $wrote
 %geom\n
 %maxcore
 %output\n
-%pal
 %s
 %scf\n
 &$sub
@@ -241,7 +239,6 @@ es.theory.dft.xcfunctionals
 es.theory.scf.convergenceiterations
 es.theory.scf.convergencetolerance
 es.theory.scf.memorysize
-es.theory.scf.numprocessors
 es.theory.scf.rijcosxauxbasis
 es.theory.scf.solvationmodel
 es.theory.scf.solvent
@@ -326,7 +323,6 @@ no
 none
 normal
 not
-nprocs
 numerical
 numfreq
 nwchem
