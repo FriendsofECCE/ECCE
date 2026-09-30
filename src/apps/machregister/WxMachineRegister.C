@@ -90,9 +90,6 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent,
     p_shellNames.push_back("ssh/ftp");
     p_shellNames.push_back("sshpass");
     p_shellNames.push_back("rsh");
-    p_shellNames.push_back("telnet");
-    p_shellNames.push_back("Globus");
-    p_shellNames.push_back("Globus-ssh");
 
     this->initialize();
     this->loadMachinesList();
@@ -252,15 +249,6 @@ void WxMachineRegister::initialize()
         p_remshellsCheckboxes.push_back(checkbox);
 
         checkbox = (ewxCheckBox*)(this->FindWindowById(ID_CHECKBOX_REMSHELL_RSH));
-        p_remshellsCheckboxes.push_back(checkbox);
-
-        checkbox = (ewxCheckBox*)(this->FindWindowById(ID_CHECKBOX_REMSHELL_TELNET));
-        p_remshellsCheckboxes.push_back(checkbox);
-
-        checkbox = (ewxCheckBox*)(this->FindWindowById(ID_CHECKBOX_REMSHELL_GLOBUS));
-        p_remshellsCheckboxes.push_back(checkbox);
-
-        checkbox = (ewxCheckBox*)(this->FindWindowById(ID_CHECKBOX_REMSHELL_GLOBUS_SSH));
         p_remshellsCheckboxes.push_back(checkbox);
 
         p_queueAllctnAcctsCheckbox = (ewxCheckBox*)(wxWindow::FindWindowById(ID_CHECKBOX_QUEUE_ALLOCATION));
@@ -1414,9 +1402,6 @@ string WxMachineRegister::collectSettings() const
     ret += "&sshftp=" + StringConverter::toString(p_remshellsCheckboxes[1]->IsChecked());
     ret += "&sshpass=" + StringConverter::toString(p_remshellsCheckboxes[2]->IsChecked());
     ret += "&rsh=" + StringConverter::toString(p_remshellsCheckboxes[3]->IsChecked());
-    ret += "&telnet=" + StringConverter::toString(p_remshellsCheckboxes[4]->IsChecked());
-    ret += "&gsh=" + StringConverter::toString(p_remshellsCheckboxes[5]->IsChecked());
-    ret += "&gssh=" + StringConverter::toString(p_remshellsCheckboxes[6]->IsChecked());
 
     // Applications - first pass in list of all known codes.  Then one by
     // one, pass in info for each code.

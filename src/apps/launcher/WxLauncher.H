@@ -95,14 +95,12 @@ class WxLauncher : public WxLauncherGUI,
         void remshellChoiceSelectedCB(wxCommandEvent& event);
         void usernameTextCtrlUpdateCB( wxCommandEvent& event);
         void password1TextCtrlUpdateCB( wxCommandEvent& event);
-        void password2TextCtrlUpdateCB( wxCommandEvent& event);
         void shellOpenButtonClickCB(wxCommandEvent& event);
 
         void calculationDirectoryTextCtrlUpdateCB( wxCommandEvent& event );
         void scratchDirectoryTextCtrlUpdateCB( wxCommandEvent& event );
         void launchButtonClickCB(wxCommandEvent& event);
 
-        static bool checkRemoteGlobus(RefMachine *machRgstn, string remShell);
 
         void focusGainedCB(wxFocusEvent& event);
         void focusLostCB(wxFocusEvent& event);
@@ -137,9 +135,6 @@ class WxLauncher : public WxLauncherGUI,
         void reloadMachinePreferences();
 
         static bool connectAllowed(MachinePreferences *prefs);
-        static bool isGlobusSSH(RefMachine *machRgstn, string shellName);
-        static bool isGlobusSSH(bool remoteGlobus, string shellName);
-        static bool isRemoteGlobus(RefMachine *machRgstn, string shellName);
 
     private:
         void saveSettings();
@@ -163,8 +158,6 @@ class WxLauncher : public WxLauncherGUI,
         bool checkLaunchAllowed(bool cnctAllwd);
         bool checkLaunchAllowed(RefMachine *machRgstn, bool cnctAllwd);
 
-        bool checkGlobusSSH(bool remoteGlobus, string shellName);
-        bool checkGlobusSSH();
 
         unsigned long parseWallTime(string s);
         void stageLaunch();
@@ -188,7 +181,7 @@ class WxLauncher : public WxLauncherGUI,
 
         void refreshProcessors(RefMachine *machRgstn);
 
-        void refreshPasswords(const bool& remoteGlobus, const string& shellName,
+        void refreshPasswords(const string& shellName,
                               const string& machName, const string& user);
 
         int computeNodesValue(int numProcs, int numNodes, int slctProcs);
@@ -263,10 +256,7 @@ class WxLauncher : public WxLauncherGUI,
 
         ewxStaticText       *p_password1Label;
         ewxTextCtrl         *p_password1TextCtrl;
-        ewxStaticText       *p_password2Label;
-        ewxTextCtrl         *p_password2TextCtrl;
         ewxPanel            *p_password1Panel;
-        ewxPanel            *p_password2Panel;
 
         ewxPanel            *p_calcDrctyPanel;
         ewxTextCtrl         *p_calcDrctyTextCtrl;

@@ -80,9 +80,6 @@ public:
     /// wxEVT_COMMAND_TEXT_UPDATED event handler for ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD1
     virtual    void password1TextCtrlUpdatedCB( wxCommandEvent& event );
 
-    /// wxEVT_COMMAND_TEXT_UPDATED event handler for ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD2
-    virtual    void password2TextCtrlUpdatedCB( wxCommandEvent& event );
-
     /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_WXCONFIGUREACCESS_OKAY
     virtual    void okayButtonClickCB( wxCommandEvent& event );
 
@@ -103,12 +100,9 @@ public:
     static bool ShowToolTips();
 
 ////@begin WxConfigureAccessGUI member variables
-    static const wxWindowID ID_STATIC_WXCONFIGUREACCESS_PASSWORD2;
     static const wxWindowID ID_PANEL_WXCONFIGUREACCESS_PASSWORD1;
-    static const wxWindowID ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD2;
     static const wxWindowID ID_TEXTCTRL_WXCONFIGUREACCESS_USERNAME;
     static const wxWindowID ID_PANEL;
-    static const wxWindowID ID_PANEL_WXCONFIGUREACCESS_PASSWORD2;
     static const wxWindowID ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD1;
     static const wxWindowID ID_STATIC_WXCONFIGUREACCESS_PASSWORD1;
     static const wxWindowID ID_CHOICE_WXCONFIGUREACCESS_REMOTESHELL;

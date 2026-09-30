@@ -1225,34 +1225,25 @@ bool Launch::generateJobMonitoringFiles(void)
 
     char* value;
 
-    if (p_cache->remoteShell.find("Globus")!=string::npos &&
-        RCommand::isRemote(p_cache->fullMachineName,
-                           p_cache->remoteShell, p_cache->userName)) {
-      monitorConfigFile << "jobQ globus" << endl;
+    monitorConfigFile << "jobQ " << p_cache->mgr->name() << endl;
 
-      // Globus must use stdio because ejm writes to ejs over stdio
-      monitorConfigFile << "commType stdio" << endl;
-    } else {
-      monitorConfigFile << "jobQ " << p_cache->mgr->name() << endl;
+    string comms = "stdio";
+    if ((value = getenv("ECCE_JOB_COMMS")) != NULL)
+      comms = value;
 
-      string comms = "stdio";
-      if ((value = getenv("ECCE_JOB_COMMS")) != NULL)
-        comms = value;
-
-      if (comms == "socketlocal") {
-        if (RCommand::isSameDomain(p_cache->fullMachineName)) {
-          monitorConfigFile << "commType socket" << endl;
-          monitorConfigFile << "portFile ecce.port" << endl;
-        } else
-          monitorConfigFile << "commType stdio" << endl;
-      }
-      else if (comms == "socket") {
+    if (comms == "socketlocal") {
+      if (RCommand::isSameDomain(p_cache->fullMachineName)) {
         monitorConfigFile << "commType socket" << endl;
         monitorConfigFile << "portFile ecce.port" << endl;
-      }
-      else
+      } else
         monitorConfigFile << "commType stdio" << endl;
     }
+    else if (comms == "socket") {
+      monitorConfigFile << "commType socket" << endl;
+      monitorConfigFile << "portFile ecce.port" << endl;
+    }
+    else
+      monitorConfigFile << "commType stdio" << endl;
 
     string parseFileName = (*p_options)["##parse##"];
     string outputFileName = (*p_options)["##output##"];
@@ -1851,12 +1842,7 @@ bool Launch::doLaunch(void)
           p_lastMessage = "Job id must be entered.";
         }
       } else {
-        if (p_cache->remoteShell.find("Globus") != string::npos &&
-            RCommand::isRemote(p_cache->fullMachineName,
-                               p_cache->remoteShell, p_cache->userName))
-          ret = launchGlobus();
-        else
-          ret = launchNormal();
+        ret = launchNormal();
       }
 
       if (ret)
@@ -1987,143 +1973,6 @@ bool Launch::launchNormal(void)
       p_cache->jobId = id;
     }
   }
-
-  return ret;
-}
-
-bool Launch::launchGlobus(void)
-{
-  string command = p_cache->remoteDir + "/" + p_cache->scriptName;
-  string queueRSL = "";
-  string tmpVal;
-
-  if (p_cache->mgr->name() == "Shell") {
-    tmpVal = (*p_options)["##priority##"];
-    if (!tmpVal.empty()) {
-      command.insert(0, tmpVal + " ");
-
-      // Figure out where the nice command lives for this platform
-      if (command.substr(0,5) == "nice ") {
-        if (p_connection->executable("/bin/nice"))
-          command.insert(0, "/bin/");
-        else if (p_connection->executable("/usr/bin/nice"))
-          command.insert(0, "/usr/bin/");
-      }
-    }
-  } else {
-    tmpVal = (*p_options)["##queue##"];
-    if (!tmpVal.empty())
-      queueRSL += "(queue=" + tmpVal + ")";
-
-    tmpVal = (*p_options)["##wall_clock_seconds##"];
-    if (tmpVal != "0" && tmpVal != "") {
-      unsigned long seconds;
-      char buf[32];
-      sscanf(tmpVal.c_str(),"%lu",&seconds);
-      snprintf(buf,sizeof(buf),"%lu",seconds/60);
-      queueRSL += "(maxWallTime=";
-      queueRSL += buf;
-      queueRSL += ")";
-    }
-
-    tmpVal = (*p_options)["##maxmemory##"];
-    if (tmpVal != "0" && tmpVal != "") {
-      unsigned long mwords;
-      char buf[12];
-      sscanf(tmpVal.c_str(),"%lu",&mwords);
-      sprintf(buf,"%lu",mwords*8);
-      queueRSL += "(maxMemory=";
-      queueRSL += buf;
-      queueRSL += ")";
-    }
-
-    tmpVal = (*p_options)["##minscratch##"];
-    if (!tmpVal.empty())
-      queueRSL += "(minScratch=" + tmpVal + ")";
-
-    queueRSL += "(directory=" + p_cache->remoteDir + ")";
-
-    queueRSL += "(stdout=";
-    queueRSL += p_cache->remoteDir + "/" + (*p_options)["##output##"] +")";
-
-    // Need this so that our submit script runs non-parallel and
-    // our job runs parallel.
-    queueRSL += "(jobType=single)";
-
-    tmpVal = (*p_options)["##account_no##"];
-    if (!tmpVal.empty())
-      queueRSL += "(project=" + tmpVal + ")";
-  }
-
-  tmpVal = (*p_options)["##numProcs##"];
-  if (!tmpVal.empty())
-    queueRSL += "(count=" + tmpVal + ")";
-
-  tmpVal = (*p_options)["##numNodes##"];
-  if (!tmpVal.empty())
-    queueRSL += "(hostCount=" + tmpVal + ")";
-
-#if (!defined(INSTALL) && defined(DEBUG))
-  cout << "launch: Executing Command: " << command << endl;
-#endif
-
-  bool ret;
-
-  string output;
-  string errMessage;
-
-  const MachineConfig *conf = MachineConfig::userPref(p_cache->machineName);
-  if (conf != (MachineConfig*)0) {
-    string password;
-    if (p_cache->remoteShell=="Globus-ssh" ||
-        p_cache->remoteShell.find("Globus-ssh/")==0)
-      password = (*p_options)["##password2##"];
-    else
-      password = (*p_options)["##password1##"];
-
-    RefMachine* refMachine = RefMachine::refLookup(p_cache->machineName);
-
-    if (refMachine == (RefMachine*)0) {
-      ret = false;
-      p_lastMessage = p_cache->machineName + " is not a registered ECCE machine";
-    } else {
-      ret = RCommand::globusrun(command.c_str(), output, errMessage,
-                                p_cache->fullMachineName,
-                                refMachine->globusContact(), password, queueRSL);
-      if (!ret) {
-        p_lastMessage = errMessage;
-        if (output != "") {
-          p_lastMessage += "\nJob submission output: ";
-          p_lastMessage += output;
-        }
-      }
-    }
-  } else {
-    p_lastMessage = "No current " + p_cache->remoteShell;
-    p_lastMessage += " machine configuration for " + p_cache->userName;
-    p_lastMessage += " on " + p_cache->machineName;
-    ret = false;
-  }
-
-#if (!defined(INSTALL) && defined(DEBUG))
-  cout << "launch: Executed " << command << endl;
-#endif
-
-  if (ret) {
-    // Extract and save Globus job manager URL
-    string id = output;
-    p_infoMessage = "Globus Job URL is " + id;
-
-    Jobdata jobdata = p_taskjob->jobdata();
-    jobdata.jobid = id;
-    p_taskjob->jobdata(jobdata);
-
-    p_cache->jobId = id;
-  }
-
-#if (!defined(INSTALL) && defined(DEBUG))
-  cout << "launch: Executed " << command << endl;
-#endif
 
   return ret;
 }
@@ -2499,12 +2348,6 @@ bool Launch::instanceScript(EcceMap& kv)
       os << " -C " + p_cache->mdCalcName << "\n";
     }
 
-    // Oh boy this is getting so ugly.  We do this so that gensub will know
-    // whether or not to include keywords which it must not do if using globus.
-    if (kv.count("##globus##") == 1 && 
-        kv["##globus##"] == "true") {
-      os <<  " -g\n";
-    }
     os.close();
 
     // Now run gensub and return the results

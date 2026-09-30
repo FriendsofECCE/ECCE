@@ -36,12 +36,9 @@
 ////@begin XPM images
 
 ////@end XPM images
-const wxWindowID WxConfigureAccessGUI::ID_STATIC_WXCONFIGUREACCESS_PASSWORD2 = wxNewId();
 const wxWindowID WxConfigureAccessGUI::ID_PANEL_WXCONFIGUREACCESS_PASSWORD1 = wxNewId();
-const wxWindowID WxConfigureAccessGUI::ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD2 = wxNewId();
 const wxWindowID WxConfigureAccessGUI::ID_TEXTCTRL_WXCONFIGUREACCESS_USERNAME = wxNewId();
 const wxWindowID WxConfigureAccessGUI::ID_PANEL = wxNewId();
-const wxWindowID WxConfigureAccessGUI::ID_PANEL_WXCONFIGUREACCESS_PASSWORD2 = wxNewId();
 const wxWindowID WxConfigureAccessGUI::ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD1 = wxNewId();
 const wxWindowID WxConfigureAccessGUI::ID_STATIC_WXCONFIGUREACCESS_PASSWORD1 = wxNewId();
 const wxWindowID WxConfigureAccessGUI::ID_CHOICE_WXCONFIGUREACCESS_REMOTESHELL = wxNewId();
@@ -71,7 +68,6 @@ BEGIN_EVENT_TABLE( WxConfigureAccessGUI, ewxDialog )
 
     EVT_TEXT( ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD1, WxConfigureAccessGUI::password1TextCtrlUpdatedCB )
 
-    EVT_TEXT( ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD2, WxConfigureAccessGUI::password2TextCtrlUpdatedCB )
 
     EVT_BUTTON( ID_BUTTON_WXCONFIGUREACCESS_OKAY, WxConfigureAccessGUI::okayButtonClickCB )
 
@@ -178,20 +174,6 @@ void WxConfigureAccessGUI::CreateControls()
     ewxTextCtrl* itemTextCtrl19 = new ewxTextCtrl( itemPanel16, ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD1, _T(""), wxDefaultPosition, wxDefaultSize, wxTE_PASSWORD );
     itemBoxSizer17->Add(itemTextCtrl19, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxPanel* itemPanel20 = new ewxPanel( itemPanel5, ID_PANEL_WXCONFIGUREACCESS_PASSWORD2, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
-    itemBoxSizer6->Add(itemPanel20, 0, wxGROW, 3);
-
-    wxBoxSizer* itemBoxSizer21 = new wxBoxSizer(wxHORIZONTAL);
-    itemPanel20->SetSizer(itemBoxSizer21);
-
-    itemBoxSizer21->Add(90, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
-
-    ewxStaticText* itemStaticText23 = new ewxStaticText( itemPanel20, ID_STATIC_WXCONFIGUREACCESS_PASSWORD2, _("Globus Pass Phrase:"), wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT );
-    itemBoxSizer21->Add(itemStaticText23, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
-
-    ewxTextCtrl* itemTextCtrl24 = new ewxTextCtrl( itemPanel20, ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD2, _T(""), wxDefaultPosition, wxDefaultSize, wxTE_PASSWORD );
-    itemBoxSizer21->Add(itemTextCtrl24, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
-
     wxBoxSizer* itemBoxSizer25 = new wxBoxSizer(wxVERTICAL);
     itemBoxSizer4->Add(itemBoxSizer25, 0, wxGROW, 5);
 
@@ -240,18 +222,6 @@ void WxConfigureAccessGUI::password1TextCtrlUpdatedCB( wxCommandEvent& event )
     // Before editing this code, remove the block markers.
     event.Skip();
 ////@end wxEVT_COMMAND_TEXT_UPDATED event handler for ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD1 in WxConfigureAccessGUI. 
-}
-
-/*!
- * wxEVT_COMMAND_TEXT_UPDATED event handler for ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD2
- */
-
-void WxConfigureAccessGUI::password2TextCtrlUpdatedCB( wxCommandEvent& event )
-{
-////@begin wxEVT_COMMAND_TEXT_UPDATED event handler for ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD2 in WxConfigureAccessGUI.
-    // Before editing this code, remove the block markers.
-    event.Skip();
-////@end wxEVT_COMMAND_TEXT_UPDATED event handler for ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD2 in WxConfigureAccessGUI. 
 }
 
 /*!

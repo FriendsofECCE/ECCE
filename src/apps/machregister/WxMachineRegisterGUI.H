@@ -159,18 +159,15 @@ public:
     static const wxWindowID ID_BUTTON_FORM_CLEAR;
     static const wxWindowID ID_PANEL_QUEUES;
     static const wxWindowID ID_PANEL_WXMACHINEREGISTER_MISCPATHS;
-    static const wxWindowID ID_CHECKBOX_REMSHELL_GLOBUS;
     static const wxWindowID ID_BUTTON_QUEUE_CHANGE;
     static const wxWindowID ID_LISTBOX_MACHINES;
     static const wxWindowID ID_BUTTON_QUEUE_REMOVE;
     static const wxWindowID ID_BUTTON_QUEUE_CLEAR;
     static const wxWindowID ID_BUTTON_MACHINE_DELETE;
-    static const wxWindowID ID_CHECKBOX_REMSHELL_TELNET;
     static const wxWindowID ID_TEXT_MACHINE_VENDOR;
     static const wxWindowID ID_SPIN_QUEUE_MINPROCS;
     static const wxWindowID ID_BUTTON_HELP;
     static const wxWindowID ID_TEXT_MACHINE_MODEL;
-    static const wxWindowID ID_CHECKBOX_REMSHELL_GLOBUS_SSH;
     static const wxWindowID ID_SPIN_QUEUE_MAXPROCS;
     static const wxWindowID ID_FRAME_MAIN;
 ////@end WxMachineRegisterGUI member variables

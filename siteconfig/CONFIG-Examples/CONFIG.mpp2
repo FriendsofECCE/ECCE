@@ -1,7 +1,6 @@
 NWChem: /home/nwchem/nwchem-5.1/bin/LINUX64/nwchem
 xappsPath: /usr/X11R6/bin
 sourceFile:  /etc/csh.login
-globusContact: jobmanager-lsf
 frontendMachine: mpp2e.emsl.pnl.gov
 frontendBypass: .pnl.gov
 
