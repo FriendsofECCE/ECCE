@@ -17,3 +17,8 @@ http://ecce.emsl.pnl.gov/docs/2864B-server_reg.pdf.  You should read this
 document before proceeding and then use these examples as templates for
 your systems.
 
+
+The job script ECCE generates is POSIX sh (#!/bin/sh), so the setup, wrapup
+and <Code>Command fragments in these files must be sh, not csh.  The examples
+here were converted from csh.  See "Job scripts are POSIX sh" in
+GETTING_STARTED.md.

@@ -27,7 +27,7 @@
 #     . -o output file
 #
 # WARNING
-#  On some platforms (unicos), there is a maximum length for csh variable
+#  On some platforms (unicos), there is a maximum length for shell variable
 #  names.  I think it is 16. (eg EXIT_UNCONVERGED_MIN doesn't work)
 #
 # --------------------------------------------------------------------
@@ -38,7 +38,7 @@
 #     named like <code>_<queuemanager>.  For example nwchem_maui (lower case).
 #     The queue manager name for non-queued workstations is shell.
 #     Illegal subroutine name characters are stripped out (eg '-').
-#     This subroutine returns a string which is csh code to be added to
+#     This subroutine returns a string which is sh code to be added to
 #     the generated submit script.  IMPORTANT: The last thing this
 #     subroutine should do is run the code since code that gets added
 #     after that, gets and evaluates the exit status.
@@ -149,11 +149,15 @@
   }
 
   print SUBMIT "\n$CC Handle interrupts\n";
-  print SUBMIT "onintr canceljob\n";
+  print SUBMIT "canceljob() {\n";
+  print SUBMIT "  echo \$X_INTERRUPTED > $statusFile\n";
+  print SUBMIT "  exit 1\n";
+  print SUBMIT "}\n";
+  print SUBMIT "trap canceljob INT\n";
 
   # Always run from the run directory.
   print SUBMIT "\n$CC Change to the run directory\n";
-  print SUBMIT "cd $runDir\n";
+  print SUBMIT "cd $runDir || exit 1\n";
 
   print SUBMIT "\n$CC Remove any left-over ecce files from previous runs\n";
   print SUBMIT "rm -f $statusFile core\n";
@@ -165,7 +169,7 @@
   $preFileExpr = $::config{$lccode . "prelimfilestoremove"};
   if ($preFileExpr ne "") {
     print SUBMIT "\n$::CC Removing files specified by PrelimFilesToRemove\n";
-    print SUBMIT "rm -f $preFileExpr >& /dev/null\n";
+    print SUBMIT "rm -f $preFileExpr >/dev/null 2>&1\n";
   }
 
   # create back files if configured to do so
@@ -177,12 +181,12 @@
 
   # If there is a specific setup registered, add it
   if (defined($config{$lccode . "_setup"})) {
-    $out = $config{$lccode . "_setup"};
+    $out = &shSnippet($lccode . "_setup", $config{$lccode . "_setup"});
     print SUBMIT &provideVariables($out);
     print SUBMIT "\n";
   } else {
     if (defined($config{"setup"})) {
-      $out = $config{"setup"};
+      $out = &shSnippet("setup", $config{"setup"});
       print SUBMIT &provideVariables($out);
       print SUBMIT "\n";
     }
@@ -210,25 +214,26 @@
   #
   # Harmless where there is no MPI: an unused environment variable.
   print SUBMIT "\n$CC Keep Open MPI shared memory files with the job, not in /dev/shm\n";
-  print SUBMIT "setenv OMPI_MCA_btl_sm_backing_directory $runDir\n";
+  print SUBMIT "export OMPI_MCA_btl_sm_backing_directory=$runDir\n";
 
 
   # For loadleveler...
   # Some day we'll need to do copies too.
   if (defined($scratchDir) && $qMgr eq "Maui") {
     print SUBMIT "# Make scratch dir on all nodes.\n";
-    print SUBMIT "if ( ! -e ~/.rhosts) touch ~/.rhosts\n";
-    print SUBMIT "foreach node (\$LOADL_PROCESSOR_LIST)\n";
-    print SUBMIT "  if ( `grep -c \"\${node} \$USER\" ~/.rhosts` == 0) echo \"\${node} \$USER\" >> ~/.rhosts\n";
-    print SUBMIT "end\n";
-    print SUBMIT "foreach node (\$LOADL_PROCESSOR_LIST)\n";
-    print SUBMIT "  echo rsh \${node} 'if (! -d $scratchDir) mkdir -p $scratchDir'\n";
-    print SUBMIT "  rsh \${node} \"if (! -d $scratchDir) mkdir -p $scratchDir\"\n";
-    print SUBMIT "end\n";
+    print SUBMIT "if [ ! -e ~/.rhosts ]; then touch ~/.rhosts; fi\n";
+    print SUBMIT "for node in \$LOADL_PROCESSOR_LIST; do\n";
+    print SUBMIT "  if [ `grep -c \"\${node} \$USER\" ~/.rhosts` -eq 0 ]; then echo \"\${node} \$USER\" >> ~/.rhosts; fi\n";
+    print SUBMIT "done\n";
+    # mkdir -p is the same in the remote login shell whichever it is.
+    print SUBMIT "for node in \$LOADL_PROCESSOR_LIST; do\n";
+    print SUBMIT "  echo rsh \${node} 'mkdir -p $scratchDir'\n";
+    print SUBMIT "  rsh \${node} \"mkdir -p $scratchDir\"\n";
+    print SUBMIT "done\n";
   }
 
   print SUBMIT "\n";
-  print SUBMIT "echo -n \"Starting Job: \" >> $::logfile\n";
+  print SUBMIT "printf \"Starting Job: \" >> $::logfile\n";
   print SUBMIT "date >> $::logfile\n";
 
   print SUBMIT "\n$CC - code/queue manager section...\n";
@@ -236,7 +241,7 @@
   # Apparently, subroutine names with '-' characters are illegal.
   $fct =~ s/-//g;
   if (defined($config{$fct})) {
-    print SUBMIT $config{$fct};
+    print SUBMIT &shSnippet($fct, $config{$fct});
   } else {
     $fct = $lccode;
     $fct =~ s/-//g;
@@ -259,7 +264,7 @@
 
   if ($sendMetrics) {
     print SUBMIT "\n$CC - capture completed job metrics \n\n";
-    print SUBMIT '  Mail ecce_tracking@emsl.pnl.gov << EOM >& /dev/null'."\n";
+    print SUBMIT '  Mail ecce_tracking@emsl.pnl.gov << EOM >/dev/null 2>&1'."\n";
     print SUBMIT "$completedTag ".
                  '`date +"%T %d-%h-%y"`: $USER job completed, job was started from '.
                  $domainAddress.
@@ -276,16 +281,16 @@
 
 
   print SUBMIT "\n";
-  print SUBMIT "echo -n \"Completed Job: \" >> $::logfile\n";
+  print SUBMIT "printf \"Completed Job: \" >> $::logfile\n";
   print SUBMIT "date >> $::logfile\n\n";
 
   # If there is a specific wrapup registered, add it
   if (defined($config{$lccode . "_wrapup"})) {
-    $out = $config{$lccode . "_wrapup"};
+    $out = &shSnippet($lccode . "_wrapup", $config{$lccode . "_wrapup"});
     print SUBMIT &provideVariables($out);
   } else {
     if (defined($config{"wrapup"})) {
-      $out = $config{"wrapup"};
+      $out = &shSnippet("wrapup", $config{"wrapup"});
       print SUBMIT &provideVariables($out);
     }
   }
@@ -295,25 +300,24 @@
   # Now write the $statusFile file for oc_server
   # Its assumed to have been removed at the start of the job
   # but may have been created externally by the kill process.
-  print SUBMIT "if ( ! -e $statusFile ) then \n  echo \$exitStatus > $statusFile\nendif\n";
+  print SUBMIT "if [ ! -e $statusFile ]; then\n  echo \$exitStatus > $statusFile\nfi\n";
 
   # Concatenate log info to output file and remove log file
   print SUBMIT "\n$CC Adding ecce log info to output file for debugging...";
-  print SUBMIT "\nif ( ! -e $::outFile) touch $::runDir/$::outFile\n";
+  print SUBMIT "\nif [ ! -e $::outFile ]; then touch $::runDir/$::outFile; fi\n";
   print SUBMIT "echo \"\" >> $::runDir/$::outFile \n";
   print SUBMIT "echo \"-----ECCE Log Information-----\" >> $runDir/$::outFile \n";
   print SUBMIT "cat $logfile >> $runDir/$::outFile \n";
   print SUBMIT "rm -f $logfile\n\n";
 
   # Probably need to have exit status values here
-  print SUBMIT "exit (0)\n";
-
-  print SUBMIT "\n$CC Handle interrupt here...\n";
-  print SUBMIT "canceljob:\n";
-  print SUBMIT "   echo \$X_INTERRUPTED > $statusFile\n";
-  print SUBMIT "   exit (1)\n";
+  print SUBMIT "exit 0\n";
 
   close(SUBMIT);
+  if (@shErrors) {
+    unlink($submitFile);
+    die &shErrorReport();
+  }
   `chmod 744 $submitFile`;
 }
 
@@ -324,10 +328,10 @@ sub defineStatusSymbols()
   use strict vars;
   my ($retval);
 
-  $retval .= "set X_INTERRUPTED     = 302;    # caught interrupt - kill \n";
-  $retval .= "set X_FILE_EXIST      = 211;    # in/out file does not exist\n";
-  $retval .= "set X_UNEXPECTED_CORE = 221;    # code exit 0 but core exists\n";
-  $retval .= "set X_NOT_NORMAL      = 231;    # code exit 0 but no normal-termination line\n";
+  $retval .= "X_INTERRUPTED=302       # caught interrupt - kill \n";
+  $retval .= "X_FILE_EXIST=211        # in/out file does not exist\n";
+  $retval .= "X_UNEXPECTED_CORE=221   # code exit 0 but core exists\n";
+  $retval .= "X_NOT_NORMAL=231        # code exit 0 but no normal-termination line\n";
 
   return $retval;
   nouse strict vars;
@@ -361,7 +365,7 @@ sub cleanup()
   $fileExpr = $::config{$lccode . "filestoremove"};
   if ($fileExpr ne "") {
     $retval .= "\n$::CC Removing files specified by FilesToRemove\n";
-    $retval .= "rm -f $fileExpr >& /dev/null\n\n";
+    $retval .= "rm -f $fileExpr >/dev/null 2>&1\n\n";
   }
   return $retval;
 }
@@ -389,13 +393,13 @@ sub doEnvironment()
     ($evar,$rhs) = split(/ +/,$var);
     # For any path variables, append if defined
     if ($evar =~ /PATH/i) {
-      $retval .= "if (\$?$evar) then\n";
-      $retval .= "  setenv $evar \$\{${evar}\}:$rhs\n";
+      $retval .= "if [ -n \"\${$evar+set}\" ]; then\n";
+      $retval .= "  export $evar=\"\$\{${evar}\}:$rhs\"\n";
       $retval .= "else\n";
-      $retval .= "  setenv $evar $rhs\n";
-      $retval .= "endif\n";
+      $retval .= "  export $evar=\"$rhs\"\n";
+      $retval .= "fi\n";
     } else {
-      $retval .= "setenv $evar $rhs\n";
+      $retval .= "export $evar=\"$rhs\"\n";
     }
   }
   return $retval;
@@ -466,7 +470,7 @@ sub provideVariables()
   # Only comment-style directive lines are filtered (#SBATCH, #PBS, #BSUB,
   # #MSUB, #CONDOR, and SGE's "#$ ").  The same function
   # also processes real shell code from CONFIG.<machine>'s setup/wrapup
-  # blocks, where "$var" is a csh variable the running script resolves
+  # blocks, where "$var" is a shell variable the running script resolves
   # for itself and an "X=" assignment is perfectly legal.
   my %vals = (
     'account'     => $::account,     'host'         => $::host,
@@ -507,36 +511,28 @@ sub provideVariables()
 
 
 ##########################################################################
-# From csh man pages:
-#     status            The status returned  by  the  most  recent
-#                       command.    If   that  command  terminated
-#                       abnormally, 0200 is added to  the  status.
-#                       Built-in  commands  that  fail return exit
-#                       status 1; all other built-in commands  set
-#                       status to 0.
-#     $status appears to be the "true" program exit value.
-#
-#  Checking for a core file could be more robust - make sure there is
-#  no core to start with - make sure its associated with the current run...
+# $? is the code's own exit value.  Checking for a core file could be more
+# robust - make sure there is no core to start with - make sure its
+# associated with the current run...
 ##########################################################################
 sub determineStatus()
 {
   my ($reval);
-  $retval = "set exitStatus = \$status\n";
+  $retval = "exitStatus=\$?\n";
   $retval .= "echo \"$lccode exit status = \$exitStatus\" >> $logfile\n";
   $retval .= "\n$CC look for suspicious core\n";
-  $retval .= "if ( -e \'core\' ) then\n";
+  $retval .= "if [ -e core ]; then\n";
   $retval .= "  echo \"Unexpected core - setting status to X_UNEXPECTED_CORE\" >> $logfile\n";
-  $retval .= "  set exitStatus = \$X_UNEXPECTED_CORE\n";
-  $retval .= "endif\n";
+  $retval .= "  exitStatus=\$X_UNEXPECTED_CORE\n";
+  $retval .= "fi\n";
 
   # If the output file doesn't even exist, something bad happened.
   $retval .= "\n";
-  $retval .= "if ( ! -e $runDir/$outFile) then\n";
+  $retval .= "if [ ! -e $runDir/$outFile ]; then\n";
   $retval .= "  echo \"Output file $outFile does not exist - setting status to failed\" >> $logfile\n";
-  $retval .= "  set exitStatus = \$X_FILE_EXIST\n";
+  $retval .= "  exitStatus=\$X_FILE_EXIST\n";
 
-  $retval .= "endif\n";
+  $retval .= "fi\n";
 
   # Some codes exit 0 after aborting -- ORCA does when its MPI start-up
   # fails ("binding more processes than cpus"), and the job was then
@@ -547,13 +543,12 @@ sub determineStatus()
   );
   if (defined $normalTermination{$lccode}) {
     my $marker = $normalTermination{$lccode};
-    $retval .= "\nif ( \$exitStatus == 0 ) then\n";
-    $retval .= "  grep -q \"$marker\" $runDir/$outFile\n";
-    $retval .= "  if ( \$status != 0 ) then\n";
+    $retval .= "\nif [ \"\$exitStatus\" = 0 ]; then\n";
+    $retval .= "  if ! grep -q \"$marker\" $runDir/$outFile; then\n";
     $retval .= "    echo \"No '$marker' in $outFile - setting status to failed\" >> $logfile\n";
-    $retval .= "    set exitStatus = \$X_NOT_NORMAL\n";
-    $retval .= "  endif\n";
-    $retval .= "endif\n";
+    $retval .= "    exitStatus=\$X_NOT_NORMAL\n";
+    $retval .= "  fi\n";
+    $retval .= "fi\n";
   }
   $retval .= "echo \"Final exit status = \$exitStatus\" >> $logfile\n";
   return $retval; 
@@ -588,7 +583,7 @@ sub getQMgrKeys()
 sub getHeader() 
 {
   my ($header);
-  $header = "#!/bin/csh\n";
+  $header = "#!/bin/sh\n";
   $header .= "$CC ECCE Submit Script\n";
   $date = `date`;
   chop ($date);
@@ -752,7 +747,7 @@ sub printConfig()
 # Description
 #   Assign $opt_* to reasonable variable names  
 #   Take arguments either at the command line or from a param file.
-#   The latter is necessary to handle problems with csh cmd length
+#   The latter is necessary to handle problems with shell cmd length
 #   overflow.
 ##########################################################################
 sub handleOptions()
@@ -895,224 +890,173 @@ sub usage()
 
 
 ###########################################################################
+# Shell text the generated script is made of.  Everything gensub writes
+# itself is POSIX sh; text a site or user supplies in CONFIG.<machine> (setup,
+# wrapup, <code>Command, <code>_loophole, ...) is checked by shSnippet().
+###########################################################################
+
+# "$var = path", then the path replaced by $ECCE_<CODE> when that is set.
+sub pathVar()
+{
+  my ($var, $path, $envVar) = @_;
+  return "$var=$path\n" .
+         "if [ -n \"\${$envVar+set}\" ]; then\n  $var=\$$envVar\nfi\n";
+}
+
+# A code's custom command from CONFIG, checked and translated.
+sub userCmd()
+{
+  my ($key) = @_;
+  return &shSnippet($key, $::config{$key});
+}
+
+# Returns the snippet as sh.  Plain `setenv N V`, `set N = V`, csh redirections
+# and `exit (n)` are translated; anything else csh is collected in
+# @::shErrors and reported once the script is generated, so a site sees every
+# offending line in one run.
+sub shSnippet()
+{
+  my ($key, $text) = @_;
+
+  # These csh constructs have no mechanical translation; each is reported with
+  # the sh form to write instead.  Guessing wrong here runs the wrong job.
+  my @cshOnly = (
+    [qr/^if\s*\(/,            'if [ ... ]; then ... fi'],
+    [qr/^else\s+if\b/,        'elif [ ... ]; then'],
+    [qr/^(?:endif|endsw|end)\s*$/, 'fi, done or esac'],
+    [qr/^foreach\b/,          'for v in ...; do ... done'],
+    [qr/^while\s*\(/,         'while [ ... ]; do ... done'],
+    [qr/^(?:switch|case|default:|breaksw)\b/, 'case ... in pattern) ... ;; esac'],
+    [qr/^repeat\b/,           'a for loop'],
+    [qr/^@\s/,                'x=$((expression))'],
+    [qr/^set\s+\w+\s*=\s*\(/, 'a string, e.g. x="a b" (PATH="dir:$PATH" for path)'],
+    [qr/^set\s+\w+\s*=\s*\S+\s+\S/, 'x="value with spaces"'],
+    [qr/^set\s+\w+\s*$/,      'x=""'],
+    [qr/^setenv\b/,           'export NAME=value'],
+    [qr/^source\s/,           '. file   (the file itself must be sh syntax)'],
+    [qr/^(?:limit|unlimit)\b/, 'ulimit'],
+    [qr/^(?:alias|unalias|rehash|onintr|goto)\b/, 'the sh equivalent (alias n=\'cmd\', trap)'],
+    [qr/\$\??\{?status\b/,    '$?'],
+    [qr/\$\{?\?\w/,           '${NAME+set} (or ${NAME:+set} for non-empty)'],
+    [qr/\$#?argv\b/,          '$1, $#, "$@"'],
+    [qr/\$\w+:[htre](?![\w])/, '${x%/*} for :h, ${x##*/} for :t'],
+    [qr/\$\{\w+:[htre]\}/,    '${x%/*} for :h, ${x##*/} for :t'],
+  );
+
+
+  return $text if (!defined($text) || $text eq "");
+  my (@out, $heredoc);
+  my $n = 0;
+  foreach my $line (split(/\n/, $text, -1)) {
+    $n++;
+    if (defined($heredoc)) {
+      push @out, $line;
+      undef $heredoc if ($line =~ /^\s*\Q$heredoc\E\s*$/);
+      next;
+    }
+    if ($line =~ /^\s*(?:#|$)/) { push @out, $line; next; }
+    my ($ind, $body) = ($line =~ /^(\s*)(.*?)\s*$/);
+    my $orig = $body;
+
+    my $oneWord = qr/"[^"]*"|'[^']*'|`[^`]*`|[^\s"'`]\S*/;
+    if ($body =~ /^setenv\s+(\w+)\s+($oneWord)$/) {
+      $body = "export $1=$2";
+    } elsif ($body =~ /^setenv\s+(\w+)$/) {
+      $body = "export $1=";
+    } elsif ($body =~ /^unsetenv\s+(\w+)$/) {
+      $body = "unset $1";
+    } elsif ($body =~ /^set\s+(\w+)\s*=\s*($oneWord)\s*(;?\s*)$/ && $2 !~ /^\(/) {
+      $body = "$1=$2";
+    } elsif ($body =~ /^exit\s*\(\s*(\d+)\s*\)$/) {
+      $body = "exit $1";
+    }
+    $body =~ s/>>&\s*(?![0-9]\b)(\S+)/>> $1 2>&1/g;
+    $body =~ s/(?<![0-9&])>&!?\s*(?![0-9]\b)(\S+)/> $1 2>&1/g;
+    $body =~ s/\|&/2>&1 |/g;
+    $body =~ s/>>!/>>/g;
+    $body =~ s/>!/>/g;
+
+    foreach my $rule (@cshOnly) {
+      if ($body =~ $rule->[0]) {
+        push @::shErrors, sprintf("  %s, line %d: %s\n      ECCE job scripts are POSIX sh; write: %s\n",
+                                  $key, $n, $orig, $rule->[1]);
+        last;
+      }
+    }
+    if ($body =~ /<<-?\s*['"]?(\w+)['"]?/) { $heredoc = $1; }
+    push @out, $ind . $body;
+  }
+  return join("\n", @out);
+}
+
+sub shErrorReport()
+{
+  return "The job script would contain csh syntax, which ECCE no longer runs " .
+         "(job scripts are POSIX sh, #!/bin/sh).\n" .
+         "Fix these entries (line numbers count within the entry) in the config " .
+         "file that defines them, one of those listed below; see " .
+         "GETTING_STARTED.md, \"Job scripts are POSIX sh\":\n" .
+         join("", @::shErrors) .
+         "Config files read: " . join(", ", @configFiles) . "\n";
+}
+
+###########################################################################
 #         Code/QueueManager Implementation Subroutines
 ###########################################################################
 
 
 ###########################################################################
-# Description
+# Gaussian 98/03/09/16 differ only in names.  $tag is the variable holding
+# the path ("g16"), $envOverride the environment variable that may replace
+# it, $cmdKey the config key of a custom command.
 ###########################################################################
-sub gaussian98() 
+sub gaussianScript()
 {
-  my ($retval,$cmd);
+  my ($tag, $label, $envOverride, $cmdKey) = @_;
+  my ($retval,$exe,$cmd);
   $retval = "";
-  $g98 = $config{$lccode};
-  if ($g98 eq "") { die "Path for G98 not found"; }
-  $cmd = $::config{"gaussian-98command"};
+  $exe = $config{$lccode};
+  if ($exe eq "") { die "Path for $label not found"; }
+  $cmd = &userCmd($cmdKey);
 
   # We still need to check the environment to allow the user
   # to override the path like we did with the previous implementation
-  $retval .= "set g98 = $g98\n";
-  $retval .= "if (\$\?ECCE_GAUSSIAN98) then\n  set g98 = \$ECCE_GAUSSIAN98\nendif\n";
-  my ($tmp);
-  $_ = $g98;
-  /(.*)\/(.*)$/;
-  $tmp = $1;
-  $retval .= "if (\$?GAUSS_EXEDIR) then\n";
-  $retval .= "  setenv GAUSS_EXEDIR \${GAUSS_EXEDIR}:\${g98:h}\n";
+  $retval .= &pathVar($tag, $exe, $envOverride);
+  $retval .= "if [ -n \"\${GAUSS_EXEDIR+set}\" ]; then\n";
+  $retval .= "  export GAUSS_EXEDIR=\"\${GAUSS_EXEDIR}:\${$tag%/*}\"\n";
   $retval .= "else\n";
-  $retval .= "  setenv GAUSS_EXEDIR \$g98:h\n";
-  $retval .= "endif\n";
-  # Try to identify it as an sgi - if so add g98 to path to pick up util.so
-  #if ($g98 =~ /g98.*r.*/) {
-    $retval .= "if (\$?LD_LIBRARY_PATH) then\n";
-    $retval .= "  setenv LD_LIBRARY_PATH \${g98:h}:\${LD_LIBRARY_PATH}\n";
-    $retval .= "else\n";
-    $retval .= "  setenv LD_LIBRARY_PATH \$g98:h\n";
-    $retval .= "endif\n";
-  #}
-  $retval .= "echo \"Using g98 path: \$g98\" >> $::logfile\n";
+  $retval .= "  export GAUSS_EXEDIR=\"\${$tag%/*}\"\n";
+  $retval .= "fi\n";
+  $retval .= "if [ -n \"\${LD_LIBRARY_PATH+set}\" ]; then\n";
+  $retval .= "  export LD_LIBRARY_PATH=\"\${$tag%/*}:\${LD_LIBRARY_PATH}\"\n";
+  $retval .= "else\n";
+  $retval .= "  export LD_LIBRARY_PATH=\"\${$tag%/*}\"\n";
+  $retval .= "fi\n";
+  $retval .= "echo \"Using $tag path: \$$tag\" >> $::logfile\n";
 
   # For NQS and NQE systems use the system defined $TMPDIR, if available,
   # otherwise use the user configured scratch directory (if defined)
   if (defined($::scratchDir)) {
-    $retval .= "setenv GAUSS_SCRDIR $::scratchDir\n";
+    $retval .= "export GAUSS_SCRDIR=$::scratchDir\n";
     $retval .= "echo \"Using $::scratchDir as GAUSS_SCRDIR\" >> $::logfile\n";
   } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
-    $retval .= "if (\$\?TMPDIR) then\n  setenv GAUSS_SCRDIR \$TMPDIR\n";
+    $retval .= "if [ -n \"\${TMPDIR+set}\" ]; then\n  export GAUSS_SCRDIR=\$TMPDIR\n";
     $retval .= "  echo \"Using \$TMPDIR as GAUSS_SCRDIR\" >> $::logfile\n";
-    $retval .= "endif\n";
+    $retval .= "fi\n";
   }
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } else {
-    $retval .= "\$g98 < $::inFile >&! $::outFile\n";
+    $retval .= "\$$tag < $::inFile > $::outFile 2>&1\n";
   }
   return $retval;
 }
 
-###########################################################################
-# Description
-###########################################################################
-sub gaussian16() 
-{
-  my ($retval,$cmd);
-  $retval = "";
-  $g16 = $config{$lccode};
-  if ($g16 eq "") { die "Path for G16 not found"; }
-  $cmd = $::config{"gaussian-16command"};
-
-  # We still need to check the environment to allow the user
-  # to override the path like we did with the previous implementation
-  $retval .= "set g16 = $g16\n";
-  $retval .= "if (\$\?ECCE_GAUSSIAN16) then\n  set g16 = \$ECCE_GAUSSIAN16\nendif\n";
-  my ($tmp);
-  $_ = $g16;
-  /(.*)\/(.*)$/;
-  $tmp = $1;
-  $retval .= "if (\$?GAUSS_EXEDIR) then\n";
-  $retval .= "  setenv GAUSS_EXEDIR \${GAUSS_EXEDIR}:\${g16:h}\n";
-  $retval .= "else\n";
-  $retval .= "  setenv GAUSS_EXEDIR \$g16:h\n";
-  $retval .= "endif\n";
-  # Try to identify it as an sgi - if so add g16 to path to pick up util.so
-  #if ($g16 =~ /g16.*r.*/) {
-    $retval .= "if (\$?LD_LIBRARY_PATH) then\n";
-    $retval .= "  setenv LD_LIBRARY_PATH \${g16:h}:\${LD_LIBRARY_PATH}\n";
-    $retval .= "else\n";
-    $retval .= "  setenv LD_LIBRARY_PATH \$g16:h\n";
-    $retval .= "endif\n";
-  #}
-  $retval .= "echo \"Using g16 path: \$g16\" >> $::logfile\n";
-
-  # For NQS and NQE systems use the system defined $TMPDIR, if available,
-  # otherwise use the user configured scratch directory (if defined)
-  if (defined($::scratchDir)) {
-    $retval .= "setenv GAUSS_SCRDIR $::scratchDir\n";
-    $retval .= "echo \"Using $::scratchDir as GAUSS_SCRDIR\" >> $::logfile\n";
-  } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
-    $retval .= "if (\$\?TMPDIR) then\n  setenv GAUSS_SCRDIR \$TMPDIR\n";
-    $retval .= "  echo \"Using \$TMPDIR as GAUSS_SCRDIR\" >> $::logfile\n";
-    $retval .= "endif\n";
-  }
-
-  if ($cmd ne "") {
-    $retval .= "$cmd\n";
-  } else {
-    $retval .= "\$g16 < $::inFile >&! $::outFile\n";
-  }
-  return $retval;
-}
-
-
-
-###########################################################################
-# Description
-###########################################################################
-sub gaussian09() 
-{
-  my ($retval,$cmd);
-  $retval = "";
-  $g09 = $config{$lccode};
-  if ($g09 eq "") { die "Path for G09 not found"; }
-  $cmd = $::config{"gaussian-09command"};
-
-  # We still need to check the environment to allow the user
-  # to override the path like we did with the previous implementation
-  $retval .= "set g09 = $g09\n";
-  $retval .= "if (\$\?ECCE_GAUSSIAN09) then\n  set g09 = \$ECCE_GAUSSIAN09\nendif\n";
-  my ($tmp);
-  $_ = $g09;
-  /(.*)\/(.*)$/;
-  $tmp = $1;
-  $retval .= "if (\$?GAUSS_EXEDIR) then\n";
-  $retval .= "  setenv GAUSS_EXEDIR \${GAUSS_EXEDIR}:\${g09:h}\n";
-  $retval .= "else\n";
-  $retval .= "  setenv GAUSS_EXEDIR \$g09:h\n";
-  $retval .= "endif\n";
-  # Try to identify it as an sgi - if so add g09 to path to pick up util.so
-  #if ($g09 =~ /g09.*r.*/) {
-    $retval .= "if (\$?LD_LIBRARY_PATH) then\n";
-    $retval .= "  setenv LD_LIBRARY_PATH \${g09:h}:\${LD_LIBRARY_PATH}\n";
-    $retval .= "else\n";
-    $retval .= "  setenv LD_LIBRARY_PATH \$g09:h\n";
-    $retval .= "endif\n";
-  #}
-  $retval .= "echo \"Using g09 path: \$g09\" >> $::logfile\n";
-
-  # For NQS and NQE systems use the system defined $TMPDIR, if available,
-  # otherwise use the user configured scratch directory (if defined)
-  if (defined($::scratchDir)) {
-    $retval .= "setenv GAUSS_SCRDIR $::scratchDir\n";
-    $retval .= "echo \"Using $::scratchDir as GAUSS_SCRDIR\" >> $::logfile\n";
-  } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
-    $retval .= "if (\$\?TMPDIR) then\n  setenv GAUSS_SCRDIR \$TMPDIR\n";
-    $retval .= "  echo \"Using \$TMPDIR as GAUSS_SCRDIR\" >> $::logfile\n";
-    $retval .= "endif\n";
-  }
-
-  if ($cmd ne "") {
-    $retval .= "$cmd\n";
-  } else {
-    $retval .= "\$g09 < $::inFile >&! $::outFile\n";
-  }
-  return $retval;
-}
-
-
-###########################################################################
-# Description
-###########################################################################
-sub gaussian03() 
-{
-  my ($retval,$cmd);
-  $retval = "";
-  $g03 = $config{$lccode};
-  if ($g03 eq "") { die "Path for G03 not found"; }
-  $cmd = $::config{"gaussian-03command"};
-
-  # We still need to check the environment to allow the user
-  # to override the path like we did with the previous implementation
-  $retval .= "set g03 = $g03\n";
-  $retval .= "if (\$\?ECCE_GAUSSIAN03) then\n  set g03 = \$ECCE_GAUSSIAN03\nendif\n";
-  my ($tmp);
-  $_ = $g03;
-  /(.*)\/(.*)$/;
-  $tmp = $1;
-  $retval .= "if (\$?GAUSS_EXEDIR) then\n";
-  $retval .= "  setenv GAUSS_EXEDIR \${GAUSS_EXEDIR}:\${g03:h}\n";
-  $retval .= "else\n";
-  $retval .= "  setenv GAUSS_EXEDIR \$g03:h\n";
-  $retval .= "endif\n";
-  # Try to identify it as an sgi - if so add g03 to path to pick up util.so
-  #if ($g03 =~ /g03.*r.*/) {
-    $retval .= "if (\$?LD_LIBRARY_PATH) then\n";
-    $retval .= "  setenv LD_LIBRARY_PATH \${g03:h}:\${LD_LIBRARY_PATH}\n";
-    $retval .= "else\n";
-    $retval .= "  setenv LD_LIBRARY_PATH \$g03:h\n";
-    $retval .= "endif\n";
-  #}
-  $retval .= "echo \"Using g03 path: \$g03\" >> $::logfile\n";
-
-  # For NQS and NQE systems use the system defined $TMPDIR, if available,
-  # otherwise use the user configured scratch directory (if defined)
-  if (defined($::scratchDir)) {
-    $retval .= "setenv GAUSS_SCRDIR $::scratchDir\n";
-    $retval .= "echo \"Using $::scratchDir as GAUSS_SCRDIR\" >> $::logfile\n";
-  } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
-    $retval .= "if (\$\?TMPDIR) then\n  setenv GAUSS_SCRDIR \$TMPDIR\n";
-    $retval .= "  echo \"Using \$TMPDIR as GAUSS_SCRDIR\" >> $::logfile\n";
-    $retval .= "endif\n";
-  }
-
-  if ($cmd ne "") {
-    $retval .= "$cmd\n";
-  } else {
-    $retval .= "\$g03 < $::inFile >&! $::outFile\n";
-  }
-  return $retval;
-}
+sub gaussian98() { return &gaussianScript("g98", "G98", "ECCE_GAUSSIAN98", "gaussian-98command"); }
+sub gaussian16() { return &gaussianScript("g16", "G16", "ECCE_GAUSSIAN16", "gaussian-16command"); }
+sub gaussian09() { return &gaussianScript("g09", "G09", "ECCE_GAUSSIAN09", "gaussian-09command"); }
+sub gaussian03() { return &gaussianScript("g03", "G03", "ECCE_GAUSSIAN03", "gaussian-03command"); }
 
 ###########################################################################
 # Description
@@ -1141,46 +1085,45 @@ sub nwchem()
   $retval = "";
   $nwchem = $::config{$::lccode};
   if ($nwchem eq "") { die "Path for nwchem not found"; }
-  $cmd = $::config{"nwchemcommand"};
+  $cmd = &userCmd("nwchemcommand");
 
   # We still need to check the environment to allow the user
   # to override the path like we did with the previous implementation
-  $retval .= "set nwchem = $nwchem\n";
-  $retval .= "if (\$\?ECCE_NWCHEM) then\n  set nwchem = \$ECCE_NWCHEM\nendif\n";
+  $retval .= &pathVar("nwchem", "$nwchem", "ECCE_NWCHEM");
 
   # For running the ECCE distribution of NWChem, set $LD_LIBRARY_PATH to
   # find libgfortran.so.1
   if ($nwchem =~ /3rdparty\/nwchem\/bin/) {
-    $retval .= "if (\$?LD_LIBRARY_PATH) then\n";
-    $retval .= "  setenv LD_LIBRARY_PATH \${nwchem:h}/../lib:\${LD_LIBRARY_PATH}\n";
+    $retval .= "if [ -n \"\${LD_LIBRARY_PATH+set}\" ]; then\n";
+    $retval .= "  export LD_LIBRARY_PATH=\"\${nwchem%/*}/../lib:\${LD_LIBRARY_PATH}\"\n";
     $retval .= "else\n";
-    $retval .= "  setenv LD_LIBRARY_PATH \${nwchem:h}/../lib\n";
-    $retval .= "endif\n";
+    $retval .= "  export LD_LIBRARY_PATH=\"\${nwchem%/*}/../lib\"\n";
+    $retval .= "fi\n";
   }
 
   # For NQS and NQE systems use the system defined $TMPDIR, if available,
   # otherwise use the user configured scratch directory (if defined)
   if (defined($::scratchDir)) {
-    $retval .= "setenv SCRATCH_DIR $::scratchDir\n";
+    $retval .= "export SCRATCH_DIR=$::scratchDir\n";
     $retval .= "echo \"Using $::scratchDir as nwchem SCRATCH_DIR\" >> $::logfile\n";
   } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
-    $retval .= "if (\$\?TMPDIR) then\n  setenv SCRATCH_DIR \$TMPDIR\n";
+    $retval .= "if [ -n \"\${TMPDIR+set}\" ]; then\n  export SCRATCH_DIR=\$TMPDIR\n";
     $retval .= "  echo \"Using \$TMPDIR as nwchem SCRATCH_DIR\" >> $::logfile\n";
-    $retval .= "endif\n";
+    $retval .= "fi\n";
   }
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
-    $retval .= "\$nwchem $::inFile >&! $::outFile\n";
+    $retval .= "\$nwchem $::inFile > $::outFile 2>&1\n";
   } elsif ($::totalprocs > 1) {
     $retval .= "\n$::CC - Generating submit file for NWChem built with MPI\n";
     $retval .= "\n$::CC - Path to mpirun if running an ECCE deployed NWChem\n";
-    $retval .= "set mpibindir = \$nwchem:h/../../system/bin\n";
-    $retval .= "if (-d \$mpibindir) then\n";
-    $retval .= "  set path = (\$mpibindir \$path)\n";
-    $retval .= "endif\n";
-    $retval .= "mpirun -np $::totalprocs \$nwchem $::runDir/$::inFile >&! $::runDir/$::outFile < /dev/null\n";
+    $retval .= "mpibindir=\${nwchem%/*}/../../system/bin\n";
+    $retval .= "if [ -d \$mpibindir ]; then\n";
+    $retval .= "  PATH=\"\$mpibindir:\$PATH\"; export PATH\n";
+    $retval .= "fi\n";
+    $retval .= "mpirun -np $::totalprocs \$nwchem $::runDir/$::inFile > $::runDir/$::outFile 2>&1 < /dev/null\n";
   }
   return $retval;
   nouse strict vars;
@@ -1196,41 +1139,40 @@ sub nwchemmd()
   # <machine>.CONFIG files don't have to change
   $nwchem = $::config{"nwchem"};
   if ($nwchem eq "") { die "Path for nwchem not found"; }
-  $cmd = $::config{"nwchemcommand"};
+  $cmd = &userCmd("nwchemcommand");
 
   # We still need to check the environment to allow the user
   # to override the path like we did with the previous implementation
-  $retval .= "set nwchem = $nwchem\n";
-  $retval .= "if (\$\?ECCE_NWCHEM) then\n  set nwchem = \$ECCE_NWCHEM\nendif\n";
+  $retval .= &pathVar("nwchem", "$nwchem", "ECCE_NWCHEM");
 
   # For NQS and NQE systems use the system defined $TMPDIR, if available,
   # otherwise use the user configured scratch directory (if defined)
   if (defined($::scratchDir)) {
-    $retval .= "setenv SCRATCH_DIR $::scratchDir\n";
+    $retval .= "export SCRATCH_DIR=$::scratchDir\n";
     $retval .= "echo \"Using $::scratchDir as nwchem SCRATCH_DIR\" >> $::logfile\n";
   } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
-    $retval .= "if (\$\?TMPDIR) then\n  setenv SCRATCH_DIR \$TMPDIR\n";
+    $retval .= "if [ -n \"\${TMPDIR+set}\" ]; then\n  export SCRATCH_DIR=\$TMPDIR\n";
     $retval .= "  echo \"Using \$TMPDIR as nwchem SCRATCH_DIR\" >> $::logfile\n";
-    $retval .= "endif\n";
+    $retval .= "fi\n";
   }
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
-    $retval .= "\$nwchem $::inFile >&! $::outFile\n";
+    $retval .= "\$nwchem $::inFile > $::outFile 2>&1\n";
   } elsif ($::totalprocs > 1) {
     # parallel is assumed to be in the same location as nwchem itself.
     $retval .= "\n$::CC - Generating setup file for use with Parallel\n";
-    $retval .= "if ( -e nwchem.p) rm -f nwchem.p\n";
-    $retval .= "if ( \$?ECCE_NWCHEM_P) then\n";
+    $retval .= "rm -f nwchem.p\n";
+    $retval .= "if [ -n \"\${ECCE_NWCHEM_P+set}\" ]; then\n";
     $retval .= "cp \$ECCE_NWCHEM_P nwchem.p\n";
     $retval .= "else\n";
     $retval .= "cat << EOCAT > nwchem.p\n";
     $retval .= "\$USER `hostname` $::totalprocs \$nwchem $::runDir\n";
     $retval .= "EOCAT\n";
-    $retval .= "endif\n";
-    $retval .= "set loc = \$nwchem:h\n";
-    $retval .= "\$loc/parallel nwchem $::runDir/$::inFile >&! $::runDir/$::outFile\n";
+    $retval .= "fi\n";
+    $retval .= "loc=\${nwchem%/*}\n";
+    $retval .= "\$loc/parallel nwchem $::runDir/$::inFile > $::runDir/$::outFile 2>&1\n";
   }
   return $retval;
   nouse strict vars;
@@ -1246,25 +1188,24 @@ sub amica()
   $retval = "";
   $amica = $::config{$::lccode};
   if ($amica eq "") { die "Path for amica not found"; }
-  $cmd = $::config{"amicacommand"};
+  $cmd = &userCmd("amicacommand");
 
   # We still need to check the environment to allow the user
   # to override the path like we did with the previous implementation
-  $retval .= "set amica = $amica\n";
-  $retval .= "if (\$\?ECCE_AMICA) then\n  set amica = \$ECCE_AMICA\nendif\n";
+  $retval .= &pathVar("amica", "$amica", "ECCE_AMICA");
   $retval .= "echo \"Using amica path: \$amica\" >> $::logfile\n";
-  $retval .= "set path = (\$amica /usr/bsd \$path)\n";
-  $retval .= "alias which /usr/bsd/which\n";
+  $retval .= "PATH=\"\$amica:/usr/bsd:\$PATH\"; export PATH\n";
+  $retval .= "alias which=/usr/bsd/which\n";
 
   # For NQS and NQE systems use the system defined $TMPDIR, if available,
   # otherwise use the user configured scratch directory (if defined)
   if (defined($::scratchDir)) {
-    $retval .= "setenv AMICA_SCR $::scratchDir\n";
+    $retval .= "export AMICA_SCR=$::scratchDir\n";
     $retval .= "echo \"Using $::scratchDir as AMICA_SCR\" >> $::logfile\n";
   } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
-    $retval .= "if (\$\?TMPDIR) then\n  setenv AMICA_SCR \$TMPDIR\n";
+    $retval .= "if [ -n \"\${TMPDIR+set}\" ]; then\n  export AMICA_SCR=\$TMPDIR\n";
     $retval .= "  echo \"Using \$TMPDIR as AMICA_SCR\" >> $::logfile\n";
-    $retval .= "endif\n";
+    $retval .= "fi\n";
   }
 
   if ($cmd ne "") {
@@ -1309,10 +1250,9 @@ sub orca()
   $retval = "";
   $orca = $::config{$::lccode};
   if ($orca eq "") { die "Path for ORCA not found"; }
-  $cmd = $::config{"orcacommand"};
+  $cmd = &userCmd("orcacommand");
 
-  $retval .= "set orca = $orca\n";
-  $retval .= "if (\$\?ECCE_ORCA) then\n  set orca = \$ECCE_ORCA\nendif\n";
+  $retval .= &pathVar("orca", "$orca", "ECCE_ORCA");
   $retval .= "echo \"Using ORCA path: \$orca\" >> $::logfile\n";
 
   if ($cmd ne "") {
@@ -1327,12 +1267,12 @@ sub orca()
     }
     if ($::totalprocs > 1 && !$hasOwnPal) {
       $retval .= "\n$::CC - Prepend %pal so ORCA's own driver launches mpirun itself\n";
-      $retval .= "if ( ! -e $::inFile.orig ) cp $::inFile $::inFile.orig\n";
+      $retval .= "if [ ! -e $::inFile.orig ]; then cp $::inFile $::inFile.orig; fi\n";
       $retval .= "echo '%pal nprocs $::totalprocs end' > $::inFile.tmp\n";
       $retval .= "cat $::inFile.orig >> $::inFile.tmp\n";
       $retval .= "mv $::inFile.tmp $::inFile\n";
     }
-    $retval .= "\$orca $::inFile >&! $::outFile\n";
+    $retval .= "\$orca $::inFile > $::outFile 2>&1\n";
   }
   return $retval;
   nouse strict vars;
@@ -1345,7 +1285,7 @@ sub orca()
 #
 #   1. MOPAC takes its data set as a plain argument and writes almost
 #      nothing to stdout (just a one-line "Job ... ended normally"), so
-#      the usual "$code $inFile >&! $outFile" shape produces an empty
+#      the usual "$code $inFile > $outFile" shape produces an empty
 #      output file.  The real output goes to a file MOPAC names itself.
 #
 #   2. MOPAC names that file by stripping a known extension out of the
@@ -1392,10 +1332,9 @@ sub gromacs()
   $retval = "";
   $gmx = $::config{$::lccode};
   if ($gmx eq "") { die "Path for GROMACS not found"; }
-  $cmd = $::config{"gromacscommand"};
+  $cmd = &userCmd("gromacscommand");
 
-  $retval .= "set gmx = $gmx\n";
-  $retval .= "if (\$\?ECCE_GROMACS) then\n  set gmx = \$ECCE_GROMACS\nendif\n";
+  $retval .= &pathVar("gmx", "$gmx", "ECCE_GROMACS");
   $retval .= "echo \"Using GROMACS path: \$gmx\" >> $::logfile\n";
 
   if ($cmd ne "") {
@@ -1407,7 +1346,7 @@ sub gromacs()
     $retval .= "$::CC - from the .mdp, .top and .gro. -deffnm gives every\n";
     $retval .= "$::CC - output file the same base name so the declared\n";
     $retval .= "$::CC - output can be predicted and followed live.\n";
-    $retval .= "\$gmx mdrun -deffnm $base -ntmpi 1 -ntomp $::totalprocs >>& $::logfile\n";
+    $retval .= "\$gmx mdrun -deffnm $base -ntmpi 1 -ntomp $::totalprocs >> $::logfile 2>&1\n";
   }
   return $retval;
   nouse strict vars;
@@ -1420,10 +1359,9 @@ sub mopac()
   $retval = "";
   $mopac = $::config{$::lccode};
   if ($mopac eq "") { die "Path for MOPAC not found"; }
-  $cmd = $::config{"mopaccommand"};
+  $cmd = &userCmd("mopaccommand");
 
-  $retval .= "set mopac = $mopac\n";
-  $retval .= "if (\$\?ECCE_MOPAC) then\n  set mopac = \$ECCE_MOPAC\nendif\n";
+  $retval .= &pathVar("mopac", "$mopac", "ECCE_MOPAC");
   $retval .= "echo \"Using MOPAC path: \$mopac\" >> $::logfile\n";
 
   if ($cmd ne "") {
@@ -1433,11 +1371,11 @@ sub mopac()
     $base =~ s/\.[^.]*$//;
     $retval .= "\n$::CC - MOPAC writes $base.out itself; expose it under the\n";
     $retval .= "$::CC - declared output name so live monitoring can follow it.\n";
-    $retval .= "if ( \"$base.out\" != \"$::outFile\" ) then\n";
+    $retval .= "if [ \"$base.out\" != \"$::outFile\" ]; then\n";
     $retval .= "  rm -f $::outFile\n";
     $retval .= "  ln -s $base.out $::outFile\n";
-    $retval .= "endif\n";
-    $retval .= "\$mopac $::inFile >>& $::logfile\n";
+    $retval .= "fi\n";
+    $retval .= "\$mopac $::inFile >> $::logfile 2>&1\n";
     $retval .= "\n$::CC - Now the run is finished, replace that symlink with a\n";
     $retval .= "$::CC - real copy. The symlink is only needed DURING the run,\n";
     $retval .= "$::CC - so live monitoring has the declared name to follow;\n";
@@ -1446,10 +1384,10 @@ sub mopac()
     $retval .= "$::CC - job's Outputs/ collection came back with only\n";
     $retval .= "$::CC - eccejobstorelog in it while every regular file (the\n";
     $retval .= "$::CC - input) and all 12 parsed properties uploaded fine.\n";
-    $retval .= "if ( -l $::outFile ) then\n";
+    $retval .= "if [ -h $::outFile ]; then\n";
     $retval .= "  rm -f $::outFile\n";
     $retval .= "  cp $base.out $::outFile\n";
-    $retval .= "endif\n";
+    $retval .= "fi\n";
   }
   return $retval;
   nouse strict vars;
@@ -1493,19 +1431,18 @@ sub quantumespresso()
   $retval = "";
   $pw = $::config{$::lccode};
   if ($pw eq "") { die "Path for Quantum ESPRESSO not found"; }
-  $cmd = $::config{"quantumespressocommand"};
+  $cmd = &userCmd("quantumespressocommand");
 
-  $retval .= "set pw = $pw\n";
-  $retval .= "if (\$\?ECCE_PWSCF) then\n  set pw = \$ECCE_PWSCF\nendif\n";
+  $retval .= &pathVar("pw", "$pw", "ECCE_PWSCF");
   $retval .= "echo \"Using Quantum ESPRESSO path: \$pw\" >> $::logfile\n";
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
-    $retval .= "\$pw -in $::inFile >&! $::outFile\n";
+    $retval .= "\$pw -in $::inFile > $::outFile 2>&1\n";
   } else {
     $retval .= "\n$::CC - pw.x is a plain MPI program; mpirun wraps it.\n";
-    $retval .= "mpirun -np $::totalprocs \$pw -in $::inFile >&! $::outFile < /dev/null\n";
+    $retval .= "mpirun -np $::totalprocs \$pw -in $::inFile > $::outFile 2>&1 < /dev/null\n";
   }
   return $retval;
   nouse strict vars;
@@ -1518,17 +1455,16 @@ sub gamessuk()
   $retval = "";
   $gamessuk = $::config{$::lccode};
   if ($gamessuk eq "") { die "Path for GAMESS-UK not found"; }
-  $cmd = $::config{"gamess-ukcommand"};
+  $cmd = &userCmd("gamess-ukcommand");
 
   # We still need to check the environment to allow the user
   # to override the path like we did with the previous implementation
-  $retval .= "set gamessuk = $gamessuk\n";
-  $retval .= "if (\$\?ECCE_GAMESSUK) then\n  set gamessuk = \$ECCE_GAMESSUK\nendif\n";
+  $retval .= &pathVar("gamessuk", "$gamessuk", "ECCE_GAMESSUK");
   $retval .= "echo \"Using GAMESS-UK path: \$gamessuk\" >> $::logfile\n";
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
-    $retval .= "\$gamessuk $::inFile >&! $::outFile\n";
+    $retval .= "\$gamessuk $::inFile > $::outFile 2>&1\n";
   }
   return $retval;
   nouse strict vars;
@@ -1545,17 +1481,16 @@ sub gamessus()
   $retval = "";
   $gamess = $::config{$::lccode};
   if ($gamess eq "") { die "Path for GAMESS not found"; }
-  $cmd = $::config{"gamess-uscommand"};
+  $cmd = &userCmd("gamess-uscommand");
 
   # We still need to check the environment to allow the user
   # to override the path like we did with the previous implementation
-  $retval .= "set gamess = $gamess\n";
-  $retval .= "if (\$\?ECCE_GAMESS) then\n  set gamess = \$ECCE_GAMESS\nendif\n";
+  $retval .= &pathVar("gamess", "$gamess", "ECCE_GAMESS");
   $retval .= "echo \"Using gamess path: \$gamess\" >> $::logfile\n";
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
-    $retval .= "\$gamess $::inFile >&! $::outFile\n";
+    $retval .= "\$gamess $::inFile > $::outFile 2>&1\n";
   }
   return $retval;
   nouse strict vars;
@@ -1572,12 +1507,11 @@ sub polyrate()
   $retval = "";
   $polyrate = $::config{$::lccode};
   if ($polyrate eq "") { die "Path for POLYRATE not found"; }
-  $cmd = $::config{"polyratecommand"};
+  $cmd = &userCmd("polyratecommand");
 
   # We still need to check the environment to allow the user
   # to override the path like we did with the previous implementation
-  $retval .= "set polyrate = $polyrate\n";
-  $retval .= "if (\$\?ECCE_POLYRATE) then\n  set polyrate = \$ECCE_POLYRATE\nendif\n";
+  $retval .= &pathVar("polyrate", "$polyrate", "ECCE_POLYRATE");
   $retval .= "echo \"Using POLYRATE path: \$polyrate\" >> $::logfile\n";
   if ($cmd ne "") {
     $retval .= "$cmd\n";

@@ -15,13 +15,13 @@ LSF {
 
 setup {
 
-source /home/mscf/sw/modules/init/csh
+. /home/mscf/sw/modules/init/sh
 
 module purge
 module load pnnl_env/2.10
 module load nwchem
 
-set refundFile = $runDir/refund.out
+refundFile=$runDir/refund.out
 rm -f $refundFile
 touch $refundFile
 
@@ -36,19 +36,19 @@ echo "Amount of time requested = $wallHrMin" >> $refundFile
 echo "Processor list = $LSB_HOSTS" >> $refundFile
 echo "" >> $refundFile
 
-if ("$mdSystemName" != "" && `echo $runDir | grep "/dtemp"` == "") then
-  hostname >! $runDir/hopnode.out
-endif
+if [ -n "$mdSystemName" ] && ! echo $runDir | grep -q "/dtemp"; then
+  hostname > $runDir/hopnode.out
+fi
 }
 
 wrapup {
-if ("$mdSystemName" != "" && `echo $runDir | grep "/dtemp"` == "") then
-  foreach file ($SDIR/*.*)
-    if ((-o $file) && (! -x $file)) cp $file $runDir/.
-  end
+if [ -n "$mdSystemName" ] && ! echo $runDir | grep -q "/dtemp"; then
+  for file in $SDIR/*.*; do
+    if [ -O $file ] && [ ! -x $file ]; then cp $file $runDir/.; fi
+  done
 
   rm -f $runDir/hopnode.out
-endif
+fi
 
 cat $refundFile >> $runDir/$outFile
 rm -f $refundFile
@@ -61,19 +61,19 @@ rm -f $refundFile
 # if this is not done (if the nwchem image is referenced often).
 #******
 NWChemCommand {
-setenv SDIR /scratch
+export SDIR=/scratch
 pdsh -f 30 -w `nodes c $LSB_HOSTS` cp $nwchem $SDIR/nwchem
 
-if (`echo $runDir | grep "/dtemp"` == "") then
-  if ("$mdSystemName" != "") then
+if ! echo $runDir | grep -q "/dtemp"; then
+  if [ -n "$mdSystemName" ]; then
     cp *.top $SDIR
     cp *.pdb $SDIR
     cp *.rst $SDIR
-  endif
+  fi
 
   cd $SDIR
-endif
+fi
 
-prun -n $totalprocs $SDIR/nwchem $runDir/$inFile >& $runDir/$outFile
+prun -n $totalprocs $SDIR/nwchem $runDir/$inFile > $runDir/$outFile 2>&1
 
 }

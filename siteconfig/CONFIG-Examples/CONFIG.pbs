@@ -35,7 +35,7 @@ perlPath: /usr/bin
 # don't provide a custom one but it probably won't be what you want.
 #******
 PBS {
-#PBS -S /bin/csh
+#PBS -S /bin/sh
 #PBS -l nodes=$nodes:ppn=$ppn,walltime=$wallTime
 #PBS -A $account
 #PBS -c n
@@ -50,8 +50,8 @@ PBS {
 #******
 setup {
 
-setenv MPI_COMM VIA
-@ procs = $nodes * $ppn 
+export MPI_COMM=VIA
+procs=$(($nodes * $ppn)) 
 
 }
 #******

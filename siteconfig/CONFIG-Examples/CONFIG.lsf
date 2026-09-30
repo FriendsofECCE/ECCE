@@ -58,9 +58,9 @@ LSF {
 #******
 setup {
 
-setenv MLIB_NUMBER_OF_THREADS 1
-setenv ARMCI_DEFAULT_SHMMAX 440
-setenv OMP_NUM_THREADS 1
+export MLIB_NUMBER_OF_THREADS=1
+export ARMCI_DEFAULT_SHMMAX=440
+export OMP_NUM_THREADS=1
 
 rm -f refund.out
 touch refund.out
@@ -90,5 +90,5 @@ rm -f $refund
 # Customize execution command for NWChem
 #******
 NWChemCommand {
-prun -n $totalprocs $nwchem $inFile >& $outFile
+prun -n $totalprocs $nwchem $inFile > $outFile 2>&1
 }

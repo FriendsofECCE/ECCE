@@ -187,6 +187,36 @@ refused** with an explanation; use one under your home directory. LoadLeveler, M
 retired in 8.11.0 — see `siteconfig/disabled-queuemanagers-archive.txt`,
 which keeps their definitions verbatim if you ever need one back.
 
+### Job scripts are POSIX sh
+
+The script `gensub` writes starts with `#!/bin/sh`, so a compute machine needs
+no `csh` or `tcsh` to run ECCE jobs. Scheduler shell-selection directives
+(`#PBS -S`, `#BSUB -L`, `#$ -S`) name `/bin/sh` too.
+
+Text you put in `CONFIG.<host>` or `submit.site` that becomes part of that
+script (`setup`, `wrapup`, `<Code>Command`, `<Code>_loophole`) must therefore
+be sh. `gensub` checks it line by line:
+
+| csh you may have | what `gensub` does |
+|---|---|
+| `setenv NAME value` (one word, or quoted) | translated to `export NAME=value` |
+| `set name = value` (one word, or quoted) | translated to `name=value` |
+| `cmd >& file`, `>&! file`, `>>& file`, `\|&` | translated to `> file 2>&1` etc. |
+| `exit (n)` | translated to `exit n` |
+| anything else csh: `if (...) then`, `foreach`, `end`/`endif`, `source`, `set x = (a b)`, `@ n = ...`, `$?var`, `$status`, `$x:h`, `limit`, `alias`, `switch`, `while (...)` | **refused**: no script is written and the error lists every such line with the sh form to use |
+
+It refuses rather than guesses because a wrong guess would run the wrong job.
+Equivalents: `if [ -e f ]; then ... fi`, `for x in a b; do ... done`,
+`. /etc/profile.d/modules.sh` (the `sh` flavour of an init file, never the
+`csh` one), `x="a b"`, `PATH="dir:$PATH"; export PATH`, `n=$((a * b))`,
+`${VAR+set}` for `$?VAR`, `${x%/*}` for `$x:h`, `ulimit` for `limit`.
+
+Migrating a site: run one job per machine after upgrading; a CONFIG that
+needs changes fails at launch with the lines named. The shipped
+`siteconfig/CONFIG-Examples/` are already converted. `sourceFile` in a CONFIG
+file is unaffected: it is read by the login shell ECCE connects through, not by
+the job script.
+
 ### Running two instances at once
 
 Everything that makes an instance distinct is an environment variable:
