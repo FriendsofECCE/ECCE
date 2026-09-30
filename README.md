@@ -37,10 +37,6 @@ bringing the application itself back to life.
 * **Run one server for a group**, with students or colleagues connecting
   to it as clients.
 
-Gaussian 09 still works but is legacy, and is no longer tested against.
-Gaussian 03, Gaussian 98, GAMESS-UK and Amica are retired. Quantum
-ESPRESSO and GROMACS are in progress — see the roadmap.
-
 ## Screenshots
 
 Click any image for the full-size version.
