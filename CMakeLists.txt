@@ -202,6 +202,17 @@ ecce_library(eccecommxt src/comm/commxt)
 # linkage automatically without needing to list it themselves.
 target_link_libraries(eccecommxt PUBLIC X11::Xt X11::X11)
 ecce_library(eccercmd   src/comm/rcommand)
+# SshTransport needs libssh >= 0.10; without it the glob's copy is dropped
+# and nothing else changes.
+pkg_check_modules(LIBSSH IMPORTED_TARGET libssh>=0.10)
+if(LIBSSH_FOUND)
+  target_link_libraries(eccercmd PUBLIC PkgConfig::LIBSSH)
+  target_compile_definitions(eccercmd PUBLIC ECCE_HAVE_LIBSSH=1)
+else()
+  get_target_property(_rcmd_srcs eccercmd SOURCES)
+  list(FILTER _rcmd_srcs EXCLUDE REGEX "/SshTransport\\.C$")
+  set_property(TARGET eccercmd PROPERTY SOURCES ${_rcmd_srcs})
+endif()
 ecce_library(ecceexp    src/comm/expect)
 # Old build's src/comm/expect/Makefile: CCFLAGS += -DNO_UNION_WAIT (this vendored
 # Tcl/Expect code's WAIT_STATUS_TYPE macro defaults to the BSD "union wait" type,
@@ -1603,6 +1614,13 @@ if(PYTHON3_EXECUTABLE)
     ecceutil ${XercesC_LIBRARIES})
   add_test(NAME transport_rcommand COMMAND testRCommandDirect)
   set_tests_properties(transport_rcommand PROPERTIES TIMEOUT 120)
+
+  # SshTransport against tests/transport/sshd; needs that sshd running, so
+  # not a ctest.  tests/transport/sshd/build_test.sh builds it in a container.
+  if(LIBSSH_FOUND)
+    add_executable(testSshTransport tests/transport/testSshTransport.C)
+    target_link_libraries(testSshTransport PRIVATE eccercmd ecceutil)
+  endif()
 
   # tests/launch -- submit one real MOPAC job on localhost/Shell through
   # the real Launch class and assert it reaches "completed" (#107 A).
