@@ -152,6 +152,23 @@ def seenBinaries(home):
     return found
 
 
+def monitorStdin():
+    """Where a running eccejobmonitor's stdin points: "pipe:[..]" or /dev/pts/N."""
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        try:
+            with open("/proc/%s/cmdline" % entry, "rb") as handle:
+                argv = handle.read().split(b"\0")
+            if b"-configFile" not in argv or not any(
+                    a.endswith(b"eccejobmonitor") for a in argv):
+                continue
+            return os.readlink("/proc/%s/fd/0" % entry)
+        except OSError:
+            continue
+    return None
+
+
 # --- the run --------------------------------------------------------------
 
 class Suite(object):
@@ -263,15 +280,26 @@ class Suite(object):
         #  Watch for the jobmaster/jobstore binaries while the job is alive:
         #  a process's exe is the only proof of which build was started.
         state = ""
+        stdin = None
         deadline = time.time() + WAIT_SECONDS
         while time.time() < deadline:
             self.seen.update(seenBinaries(self.home))
+            for _ in range(20):
+                stdin = stdin or monitorStdin()
+                time.sleep(0.05)
             rc, out = self.driver("state", url)
             state = out.strip().splitlines()[-1] if out.strip() else ""
             if state in ("completed", "loaded", "failed", "killed",
                          "unsuccessful", "system_failure"):
                 break
-            time.sleep(1.0)
+        say("  eccejobmonitor stdin: %s" % stdin)
+        if stdin is not None:
+            self.check(stdin.startswith("pipe:") == (transport == "direct"),
+                       "monitor stdin is %s under %s"
+                       % ("a pipe" if transport == "direct" else "a tty",
+                          label))
+        elif transport == "direct":
+            self.check(False, "monitor seen while the job ran")
         self.check(state == "completed",
                    "run state reached completed within %ds (last: %s)"
                    % (WAIT_SECONDS, state or "none"))

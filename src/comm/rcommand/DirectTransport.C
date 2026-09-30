@@ -371,3 +371,106 @@ long DirectTransport::spawnDetached(const std::string& script, std::string& erro
   }
   return pid;
 }
+
+bool DirectTransport::openStream(const std::string& script, Stream& s,
+                                 std::string& error)
+{
+  std::string full = withDir(script);
+  if (full.size() > 100000) {
+    error = "script too long to stream";
+    return false;
+  }
+
+  ChildSpec cs;
+  buildEnv(cs, p_env, p_unset);
+  static char a0[] = "sh", a1[] = "-c";
+  cs.argv.push_back(a0);
+  cs.argv.push_back(a1);
+  cs.argv.push_back(const_cast<char*>(full.c_str()));
+  cs.argv.push_back(0);
+
+  int pin[2], pout[2];
+  if (pipe2(pin, O_CLOEXEC) < 0) { error = strerror(errno); return false; }
+  if (pipe2(pout, O_CLOEXEC) < 0) {
+    error = strerror(errno);
+    close(pin[0]); close(pin[1]);
+    return false;
+  }
+
+  pid_t pid = fork();
+  if (pid < 0) {
+    error = strerror(errno);
+    close(pin[0]); close(pin[1]); close(pout[0]); close(pout[1]);
+    return false;
+  }
+  if (pid == 0) childExec(cs, pin[0], pout[1], pout[1], true);
+
+  setpgid(pid, pid);
+  close(pin[0]); close(pout[1]);
+  s.pid = pid;
+  s.wfd = pin[1];
+  s.rfd = pout[0];
+  return true;
+}
+
+bool DirectTransport::writeStream(Stream& s, const std::string& data)
+{
+  if (s.wfd < 0) return false;
+  // A dead reader must give EPIPE, not kill this process.
+  sigset_t pipeSet, oldMask, pend;
+  sigemptyset(&pipeSet);
+  sigaddset(&pipeSet, SIGPIPE);
+  sigpending(&pend);
+  bool pendedBefore = sigismember(&pend, SIGPIPE) == 1;
+  pthread_sigmask(SIG_BLOCK, &pipeSet, &oldMask);
+
+  size_t done = 0;
+  bool ok = true;
+  while (done < data.size()) {
+    ssize_t w = write(s.wfd, data.data() + done, data.size() - done);
+    if (w > 0) done += w;
+    else if (w < 0 && errno == EINTR) continue;
+    else { ok = false; break; }
+  }
+
+  if (!pendedBefore) {
+    sigpending(&pend);
+    if (sigismember(&pend, SIGPIPE) == 1) {
+      struct timespec zero = { 0, 0 };
+      sigtimedwait(&pipeSet, 0, &zero);
+    }
+  }
+  pthread_sigmask(SIG_SETMASK, &oldMask, 0);
+  return ok;
+}
+
+void DirectTransport::interruptStream(Stream& s)
+{
+  if (s.pid > 0) kill(-(pid_t)s.pid, SIGINT);
+}
+
+int DirectTransport::closeStream(Stream& s, int graceMs)
+{
+  closeFd(s.wfd);
+  closeFd(s.rfd);
+  if (s.pid <= 0) return -1;
+  pid_t pid = (pid_t)s.pid;
+  s.pid = -1;
+
+  int st = 0;
+  bool reaped = false;
+  for (int phase = 0; phase < 2 && !reaped; phase++) {
+    if (phase == 1) kill(-pid, SIGTERM);
+    for (int ms = 0; ms <= graceMs && !reaped; ms += 10) {
+      pid_t r = waitpid(pid, &st, WNOHANG);
+      if (r == pid) reaped = true;
+      else if (r < 0 && errno != EINTR) return -1;
+      else sleepMs(10);
+    }
+  }
+  if (!reaped) {
+    kill(-pid, SIGKILL);
+    if (waitChild(pid, st) < 0) return -1;
+  }
+  return decode(st);
+}

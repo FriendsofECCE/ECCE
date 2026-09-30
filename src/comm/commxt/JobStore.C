@@ -1739,7 +1739,8 @@ void initConn(void)
     if (remoteconn == (RCommand*)0)
       remoteconn = new RCommand(cpServerName, cpRemoteShell, cpLocalShell,
                                 cpUserName, "", frontendMachine, frontendBypass,
-                                shellPath, libPath, sourceFile, false);
+                                shellPath, libPath, sourceFile,
+                                !socketComms);
   } else
     (void)remoteconn->hop(nodeForRestart, cpLocalShell, cpUserName,
                           "", shellPath, libPath, sourceFile);
@@ -1872,7 +1873,16 @@ void initMon(void)
       // infinite timeout
       remoteconn->exptimeout(-1);
 
-      if (!socketComms) {
+      if (!socketComms && remoteconn->isDirect()) {
+        // No pty: the monitor's stdout/stderr come back on a pipe and the
+        // framed protocol is read from it as usual.  No start marker is
+        // echoed, since nothing is waiting to consume it.
+        if (!remoteconn->startStream(cmd))
+          restart("System", remoteconn->commError());
+        logMessage("Job Monitor",
+                   "Started job monitor (stdio comms, no pty) with command: " +
+                   cmd);
+      } else if (!socketComms) {
         // See the socketComms branch above for the full story: wait for
         // eccejobmonitor's own sentinel output, not the shell's echo of
         // what we typed, since a line editor can redraw or wrap that
@@ -2087,7 +2097,9 @@ void interactGetOutput(void)
   // eventual 3-minute heartbeat timeout (a corrupted/recycled fd value
   // being read from freed memory, retried internally by the expect
   // library, rather than a clean crash).
-  if (remoteconn != (RCommand*)0) {
+  if (remoteconn != (RCommand*)0 && remoteconn->isDirect()) {
+    remoteconn->stopStream();
+  } else if (remoteconn != (RCommand*)0) {
     // check status of remote shell and prep it for further usage
     // transferring output files, etc.
     (void)remoteconn->expect1("\r\n+go+$");
