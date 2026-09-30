@@ -28,6 +28,7 @@
 #include "comm/DirectTransport.H"
 
 class Transport;
+struct SshStream;
 
 static const long RC_CONNECT_TIMEOUT = 60;  // Connect timeout seconds
 static const long RC_EXEC_TIMEOUT = 30;     // Normal execute timeout seconds
@@ -86,10 +87,13 @@ public:
              const string& shellPath="", const string& libPath="",
              const string& sourceFile="");
 
-    // Direct mode only: the monitor stream.  startStream() runs the command
+    // Direct and ssh modes: the monitor stream.  startStream() runs the command
     // on pipes; expfid()/expwrite() then address it, and \003 sent through
     // exec() becomes SIGINT to its process group.
     bool isDirect(void) const { return p_direct && !p_ssh; }
+    // True when startStream() is available: direct, or ssh over libssh
+    // (the stream then has its own session and thread).
+    bool canStream(void) const { return p_direct; }
     bool startStream(const string& command);
     void stopStream(int graceMs=2000);
 
@@ -241,6 +245,7 @@ private:
     bool p_ssh;              // the Transport is an SshTransport
     string p_scriptPrefix;   // PATH/LD_LIBRARY_PATH setup for every script
     DirectTransport::Stream p_stream;
+    SshStream* p_sshStream;
 
     bool directExecout(const string& command, string& output,
                        const string& errorMessage, const int& timeout);
@@ -250,6 +255,10 @@ private:
     bool importSourceFile(const string& sourceFile, const string& locShell,
                           bool loginShell, std::set<std::string>& changed);
     bool transferFile(bool putFlag, const string& local, const string& remote);
+    static bool sshCopy(bool putFlag, const string& machine,
+                        const string& remShell, const string& userName,
+                        const string& password, const vector<string>& files,
+                        const string& toFile, string& errMessage);
 
 }; // RCommand
 

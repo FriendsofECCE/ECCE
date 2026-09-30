@@ -17,13 +17,18 @@ prints where each one resolves.
     tests/launch/run_tests.py [--build build-native] [--transport unset|direct|both]
                               [--keep] [-v]
     tests/launch/run_tests.py --machine sshtest --remote-user bashuser \
-                              --transport unset|ssh|both
+                              --transport unset|ssh|both [--drop]
 
 With --machine the job runs on a machine reached over ssh instead of on
 localhost.  The test registers it (MyMachines, Queues, CONFIG.<machine>) for
 the isolated user and leaves ~/.ssh alone, so the caller has to have made
 `--machine` and its host resolvable by ssh non-interactively; see
-tests/launch/remote_test.sh, which does that inside a container.
+tests/launch/remote_test.sh, which does that inside a container.  MOPAC
+there is a wrapper that sleeps first, so the remote monitor can be observed
+while it runs: its stdin must be a pty over the pty ssh path and not one
+over libssh, and no scp may be started over libssh.  --drop adds a run per
+transport in which the monitor's sshd session is killed mid-job; the job must
+still end completed, through eccejobstore's restart.
 
 Exit status 77 (CTest SKIP) when a prerequisite is missing.
 """
@@ -177,6 +182,24 @@ def monitorStdin():
     return None
 
 
+REMOTE_MONITOR = ("for p in $(pgrep -f '^perl eccejobmonitor'); do "
+                  "echo \"$p $(readlink /proc/$p/fd/0)\"; done")
+
+#  Kills the sshd session that carries the monitor: the closest ancestor
+#  of the monitor whose command name is sshd*, which is the user's own
+#  process after privilege separation.
+DROP_SESSION = (
+    "p=$(pgrep -f '^perl eccejobmonitor' | head -1); "
+    "while [ -n \"$p\" ] && [ \"$p\" != 1 ]; do "
+    "c=$(cat /proc/$p/comm); "
+    "case $c in sshd*) kill -9 $p; echo \"killed $p $c\"; exit 0;; esac; "
+    "p=$(ps -o ppid= -p $p | tr -d ' '); done; echo none")
+
+#  Stands in for MOPAC on the remote machine; the delay is read at run time.
+MOPAC_WRAPPER = ("#!/bin/sh\nsleep $(cat \"$HOME/.mopac-delay\" 2>/dev/null "
+                 "|| echo 0)\nexec /usr/bin/mopac \"$@\"\n")
+
+
 # --- the run --------------------------------------------------------------
 
 class Suite(object):
@@ -203,18 +226,51 @@ class Suite(object):
         if self.remote():
             env["ECCE_RCOM_LOGMODE"] = "1"
         env.update(extra or {})
+        if (extra or {}).get("ECCE_TRANSPORT") == "ssh":
+            env["PATH"] = self.stubDir() + ":" + env["PATH"]
         return env
+
+    def stubDir(self):
+        """scp and friends that only record that they were started."""
+        stubs = os.path.join(self.state, "stubs")
+        os.makedirs(stubs, exist_ok=True)
+        for name in ("scp", "sftp", "rcp", "ssh", "sshpass"):
+            path = os.path.join(stubs, name)
+            with open(path, "w") as handle:
+                handle.write("#!/bin/sh\necho \"%s $*\" >> %s\nexit 99\n"
+                             % (name, self.stubLog()))
+            os.chmod(path, 0o755)
+        return stubs
+
+    def stubLog(self):
+        return os.path.join(self.state, "stubs.log")
+
+    def remoteMonitorStdin(self):
+        """Where the remote eccejobmonitor's stdin points, or None."""
+        rc, out = self.sshRun(REMOTE_MONITOR)
+        for line in out.splitlines():
+            parts = line.split(None, 1)
+            if len(parts) == 2:
+                return parts[1]
+        return None
+
+    def setMopacDelay(self, seconds):
+        self.sshRun("cat > ~/mopac-slow <<'EOF'\n%sEOF\nchmod +x ~/mopac-slow; "
+                    "echo %d > ~/.mopac-delay" % (MOPAC_WRAPPER, seconds))
 
     def remote(self):
         return self.args.machine != "localhost"
 
     def sshRun(self, command):
-        """Run `command` on the remote machine, outside ECCE."""
+        """Run the sh script `command` on the remote machine, outside ECCE.
+
+        The script goes on stdin, since the login shell may be csh.
+        """
         result = subprocess.run(
             ["ssh", "-o", "BatchMode=yes", "%s@%s" % (self.args.remote_user,
                                                       self.args.machine),
-             command], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            timeout=60)
+             "/bin/sh -s"], input=command.encode(), stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, timeout=60)
         return result.returncode, result.stdout.decode("utf-8", "replace")
 
     def check(self, ok, what):
@@ -279,8 +335,15 @@ class Suite(object):
         os.chmod(path, 0o600)
         return path
 
-    def one(self, label, transport):
+    def one(self, label, transport, drop=False):
         say("--- %s (ECCE_TRANSPORT=%s)" % (label, transport or "unset"))
+        self.dropNote = ""
+        if self.remote():
+            self.sshRun("pkill -9 -f '^perl eccejobmonitor'; "
+                        "pkill -f mopac-slow; true")
+            self.setMopacDelay(30 if drop else 12)
+            if os.path.exists(self.stubLog()):
+                os.unlink(self.stubLog())
         name = "mopac-ch4-%s-%d" % (label, int(time.time()))
         if self.remote():
             rundir = "/home/%s/ecce-jobs/%s" % (self.args.remote_user, name)
@@ -312,22 +375,47 @@ class Suite(object):
         #  a process's exe is the only proof of which build was started.
         state = ""
         stdin = None
+        dropped = False
         self.monitorLog = ""
-        deadline = time.time() + WAIT_SECONDS
+        deadline = time.time() + WAIT_SECONDS * (2 if drop else 1)
         while time.time() < deadline:
             self.seen.update(seenBinaries(self.home))
             self.readMonitorLog(name)
-            for _ in range(20):
-                stdin = stdin or monitorStdin()
-                time.sleep(0.05)
+            if self.remote():
+                found = self.remoteMonitorStdin()
+                if found and not stdin:
+                    stdin = found
+                    say("  remote eccejobmonitor stdin: %s" % found)
+                if found and drop and not dropped:
+                    dropped = True
+                    rc, out = self.sshRun(DROP_SESSION)
+                    self.dropNote = out.strip()
+                    say("  dropped the monitor's session: %s" % self.dropNote)
+                    self.check(out.startswith("killed"),
+                               "killed the monitor's sshd session")
+            else:
+                for _ in range(20):
+                    stdin = stdin or monitorStdin()
+                    time.sleep(0.05)
             rc, out = self.driver("state", url)
             state = out.strip().splitlines()[-1] if out.strip() else ""
+            #  system_failure is what a lost monitor reports until
+            #  eccejobmaster has restarted eccejobstore.
             if state in ("completed", "loaded", "failed", "killed",
-                         "unsuccessful", "system_failure"):
+                         "unsuccessful") or (
+                             state == "system_failure" and not drop):
                 break
         say("  eccejobmonitor stdin: %s" % stdin)
         if self.remote():
-            pass        # the monitor runs on the remote machine
+            isPty = stdin is not None and stdin.startswith("/dev/pts/")
+            if not self.check(stdin is not None, "remote monitor seen while the job ran"):
+                pass
+            elif transport == "ssh":
+                self.check(not isPty, "remote monitor stdin is not a tty over libssh (%s)" % stdin)
+            else:
+                #  ssh is given the shell as a command, so even this path
+                #  has no tty on the remote side.
+                say("  (pty ssh path: remote monitor stdin %s)" % stdin)
         elif stdin is not None:
             self.check(stdin.startswith("pipe:") == (transport == "direct"),
                        "monitor stdin is %s under %s"
@@ -348,7 +436,32 @@ class Suite(object):
         for prop in REQUIRED_PROPS:
             self.check(prop in props, "%s present in Props/" % prop)
         if self.remote():
-            self.checkRemoteRun(rundir, name)
+            self.checkRemoteRun(rundir, name, transport)
+            if drop:
+                self.checkRestarted(name)
+
+    def checkRestarted(self, name):
+        """The dropped monitor must have been replaced by a restart."""
+        import glob
+        text = ""
+        #  The state turns completed a little before eccejobstore exits.
+        for _ in range(30):
+            text = ""
+            for log in glob.glob(os.path.join(self.state, "tmp", "*", "jobs",
+                                              name + "__*", "eccejobmaster.log")):
+                with open(log, errors="replace") as handle:
+                    text += handle.read()
+            if "exited with final status" in text:
+                break
+            time.sleep(1)
+        for line in text.splitlines():
+            if "restart count" in line or "exited with status" in line:
+                say("  master: " + line.strip()[:120])
+        self.check("exited with status value 4" in text
+                   and "restart count is 1" in text,
+                   "eccejobstore lost the monitor (exit 4) and was restarted")
+        self.check("exited with final status value 0" in text,
+                   "the restarted eccejobstore finished the job")
 
     def readMonitorLog(self, name):
         import glob
@@ -367,7 +480,7 @@ class Suite(object):
                    "Launch connected over %s"
                    % ("libssh" if viaSsh else "the pty ssh path"))
 
-    def checkRemoteRun(self, rundir, name):
+    def checkRemoteRun(self, rundir, name, transport):
         """Show that MOPAC ran in the sshd container, not here."""
         rc, out = self.sshRun("hostname; ls -A %s" % rundir)
         say("  remote host and run directory:\n" + "\n".join(
@@ -381,17 +494,24 @@ class Suite(object):
         text = self.monitorLog
         if not text:
             say("  (no eccejobstore.log seen: the cache is gone once it finishes)")
-        if text:
-            for mark in ("Connecting to compute server", "Started job monitor",
-                         "Authenticated to", "ssh transport"):
-                for line in text.splitlines():
-                    if mark in line:
-                        say("  monitor connection: " + line.strip()[:160])
-                        break
-            self.check("Connecting to compute server" in text
-                       and "ssh transport" not in text,
-                       "the remote monitor connection is still the pty ssh "
-                       "(expected until the monitor moves to a channel)")
+        else:
+            for line in text.splitlines():
+                if "Started job monitor" in line:
+                    say("  monitor connection: " + line.strip()[:160])
+                    break
+            noPty = "stdio comms, no pty" in text
+            self.check("Started job monitor" in text and
+                       noPty == (transport == "ssh"),
+                       "the remote monitor ran %s"
+                       % ("over a channel, no pty" if transport == "ssh"
+                          else "over the pty ssh"))
+        if transport == "ssh":
+            used = ""
+            if os.path.exists(self.stubLog()):
+                with open(self.stubLog()) as handle:
+                    used = handle.read().strip()
+            self.check(used == "", "no scp/sftp/ssh was started over libssh%s"
+                       % (": " + used.replace("\n", "; ") if used else ""))
         self.check(not os.path.exists(rundir),
                    "the run directory does not exist on this machine")
 
@@ -414,7 +534,7 @@ class Suite(object):
                         say("  ---- %s\n%s" % (name, handle.read()[-1500:]))
 
 
-def registerRemote(state, machine):
+def registerRemote(state, machine, user):
     """Register `machine` for the isolated user as Machine Registration would.
 
     The Shell queue manager and a CONFIG file naming MOPAC's path on the
@@ -427,7 +547,7 @@ def registerRemote(state, machine):
     with open(os.path.join(prefs, "Queues"), "w") as handle:
         handle.write("Queues: %s\n%s|queueMgrName:   Shell\n" % (machine, machine))
     with open(os.path.join(prefs, "CONFIG." + machine), "w") as handle:
-        handle.write("MOPAC: /usr/bin/mopac\nperlPath: /usr/bin\n")
+        handle.write("MOPAC: /home/%s/mopac-slow\nperlPath: /usr/bin\n" % user)
 
 
 def prerequisites(build):
@@ -455,6 +575,9 @@ def main():
                         help="login name on --machine")
     parser.add_argument("--cwd", help="working directory of the launch "
                         "(default $ECCE_HOME/bin, as under the gateway)")
+    parser.add_argument("--drop", action="store_true",
+                        help="also run each remote transport with the "
+                        "monitor's ssh session killed mid-job")
     parser.add_argument("--keep", action="store_true",
                         help="leave the services running afterwards")
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -490,7 +613,7 @@ def main():
         with open(os.path.join(state, ".ECCE", "CONFIG.localhost"), "w") as handle:
             handle.write("MOPAC: %s\n" % shutil.which("mopac"))
     else:
-        registerRemote(state, args.machine)
+        registerRemote(state, args.machine, args.remote_user)
 
     suite = Suite(args, build, state, home)
     say("binaries under test (ECCE_HOME=%s):" % home)
@@ -513,13 +636,16 @@ def main():
     modes = {"unset": [("pty", None)], "direct": [("direct", "direct")],
              "ssh": [("ssh", "ssh")],
              "both": [("pty", None), second]}[args.transport]
+    modes = [m + (False,) for m in modes]
+    if args.drop and args.machine != "localhost":
+        modes += [(label + "-drop", t, True) for label, t, _ in modes]
     try:
         if not suite.services(True):
             suite.check(False, "services started")
         else:
             fixture.ensureRealUserAccount()
-            for label, transport in modes:
-                suite.one(label, transport)
+            for label, transport, drop in modes:
+                suite.one(label, transport, drop)
         for name, path in sorted(suite.seen.items()):
             inBuild = os.path.dirname(path) == build
             suite.check(inBuild, "ran while the job was alive: %s" % path)
