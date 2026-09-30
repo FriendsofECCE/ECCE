@@ -447,7 +447,8 @@ sub provideVariables()
   # because "#PBS -A" (an emptied $account) and "#PBS -nr" (a legitimate
   # flag that never had a value) are indistinguishable by then.
   #
-  # Only comment-style directive lines are filtered.  The same function
+  # Only comment-style directive lines are filtered (#SBATCH, #PBS, #BSUB,
+  # #MSUB, and SGE's "#$ ").  The same function
   # also processes real shell code from CONFIG.<machine>'s setup/wrapup
   # blocks, where "$var" is a csh variable the running script resolves
   # for itself and an "X=" assignment is perfectly legal.
@@ -469,7 +470,7 @@ sub provideVariables()
   my @kept;
   for (my $i = 0; $i < scalar(@fixd); $i++) {
     my $src = ($i < scalar(@orig)) ? $orig[$i] : "";
-    if ($src =~ /^\s*\#(?:SBATCH|PBS|BSUB|MSUB)\b/) {
+    if ($src =~ /^\s*\#(?:(?:SBATCH|PBS|BSUB|MSUB)\b|\$\s)/) {
       my $drop = 0;
       # Longest names first, so $mem_x_1024 is not matched as $memory.
       foreach my $name (sort { length($b) <=> length($a) } keys %vals) {

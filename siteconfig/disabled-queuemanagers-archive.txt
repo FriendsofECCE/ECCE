@@ -25,7 +25,8 @@ comments (RefQueueMgr.C, RunMgmt.C).
 
 Still supported, for the record: Slurm (the common case on new clusters),
 PBS (OpenPBS/PBS Pro), LSF, Moab and Shell. SGE joined the retired list
-later the same day -- see the second batch below.
+later the same day -- see the second batch below -- and was RESTORED on
+2026-09-30, so it is no longer retired (see the note there).
 
 Update 2026-09-22, after actually generating a script for each of them:
 being listed in QueueManagers was never evidence that a manager WORKED.
@@ -115,13 +116,20 @@ Maui {
 
 
 ==================================================================
-Second batch, 2026-09-22: SGE
+Second batch, 2026-09-22: SGE  --  RESTORED 2026-09-30
 ==================================================================
 Sun Grid Engine. Oracle discontinued it after acquiring Sun; the
 surviving forks are either commercial (Altair Grid Engine) or
 unmaintained (Son of Grid Engine). Kept in the first pass of this
 retirement because it is still occasionally encountered, then retired
 on the maintainer's decision.
+
+RESTORED on 2026-09-30, when a working Grid Engine became available to
+test against: siteconfig/QueueManagers has its entry again (as below) and
+siteconfig/submit.site has an SGE block, now with queue, wall time,
+memory, account and shell as well -- the block below set none of them.
+tests/queues runs MOPAC and NWChem through it, cancel included. The text
+below is kept as it was when retired.
 
 From siteconfig/QueueManagers:
 SGE|submitCommand:           qsub ##script##
