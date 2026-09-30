@@ -252,7 +252,7 @@ static bool scenario(bool ssh, const string& user, const string& shell,
   one.push_back(lo);
   r = RCommand::put(serr, HOST, "ssh", user, "", one, sdir + "/nodir");
   log.push_back(rec("put two files to a missing target", r, serr));
-  EXECOUT("put two to missing target left nothing", "ls " + sdir);
+  EXECOUT("put two to missing target", "ls " + sdir + "; ls -l " + sdir + "/nodir");
   one.clear();
   one.push_back(rdir + "/missing");
   r = RCommand::get(serr, HOST, "ssh", user, "", one, gdir);
@@ -263,6 +263,12 @@ static bool scenario(bool ssh, const string& user, const string& shell,
   r = RCommand::get(serr, HOST, "ssh", user, "", one, gdir + "/renamed");
   log.push_back(rec("get two files to a non-directory", r, serr +
                     readFile(gdir + "/renamed")));
+  r = RCommand::get(serr, HOST, "ssh", user, "", one, gdir + "/nolocaldir");
+  log.push_back(rec("get two files to a missing local target", r, serr));
+  { string ls = "ls -l " + gdir + "/nolocaldir 2>&1 | tail -n +2 | awk '{print $1, $NF}'";
+    FILE* pp = popen(ls.c_str(), "r"); string lo2; char bb[512];
+    while (pp && fgets(bb, sizeof bb, pp)) lo2 += bb; if (pp) pclose(pp);
+    log.push_back(rec("missing local target now", true, lo2)); }
   r = RCommand::command("echo via command; echo two", sout, serr, HOST, "ssh",
                         shell, user);
   log.push_back(rec("command", r, sout));

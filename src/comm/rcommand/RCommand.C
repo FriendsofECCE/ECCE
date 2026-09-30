@@ -4600,9 +4600,17 @@ bool RCommand::sshCopy(bool putFlag, const string& machine,
           files[i].find_first_of("*?[") == string::npos)
         copyWarn(files[i] + ": No such file or directory");
     if (src.empty()) return true;
-    if (src.size() > 1 && t->remoteKind(toFile) != 1) {
-      copyWarn(toFile + ": Not a directory");
-      return true;
+    if (src.size() > 1) {
+      // scp creates a missing target directory here and skips an existing file.
+      int kind = t->remoteKind(toFile);
+      if (kind == 0) {
+        copyWarn(toFile + ": Not a directory");
+        return true;
+      }
+      if (kind < 0 && t->run("mkdir -- " + shQuote(toFile), 30).status != 0) {
+        errMessage = "cannot create " + toFile;
+        return false;
+      }
     }
     for (size_t i = 0; i < src.size(); i++)
       if (!t->putTree(src[i], toFile, err)) { errMessage = err; return false; }
