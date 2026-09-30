@@ -167,6 +167,14 @@ int main()
     close(leak);
   }
   {
+    // The script pipe must not reach commands: reading fd 3 fails and the
+    // rest of the script still runs.
+    TransportResult r = t.run("(cat <&3) 2>/dev/null; echo \"rc=$?\"\necho after\n");
+    check("script pipe closed for commands",
+          r.out.compare(0, 3, "rc=") == 0 && r.out.compare(0, 4, "rc=0") != 0 &&
+          r.out.find("after\n") != std::string::npos, r.out);
+  }
+  {
     std::string s = "exit 0\n";
     while (s.size() < 1048576) s += "# padding padding padding padding padding\n";
     for (int i = 0; i < 3; i++) {
