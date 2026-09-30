@@ -15,14 +15,16 @@ struct TransportResult {
 };
 
 // Runs POSIX sh scripts somewhere: here (DirectTransport), or on a remote
-// host.  The script travels as data on sh's stdin, never through a login
+// host.  The script travels as data on a private pipe, never through a login
 // shell's line editor or quoting, so the account's shell does not matter.
 class Transport {
 public:
   virtual ~Transport();
 
-  // /bin/sh -s with the script on stdin, in dir() with the env overrides.
-  // timeoutSec <= 0 waits indefinitely.
+  // /bin/sh running the script, in dir() with the env overrides.  The script
+  // is read from a private descriptor; the script's own stdin is /dev/null.
+  // timeoutSec is seconds without output (any data on stdout or stderr
+  // restarts it); <= 0 waits indefinitely.
   virtual TransportResult run(const std::string& script, int timeoutSec = -1) = 0;
 
   // Starts the script in its own session with no controlling terminal;
