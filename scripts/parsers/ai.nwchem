@@ -1952,6 +1952,9 @@ sub DispersionCorrection {
       && $dispersionModel{$choice} ne "") {
     $result = "disp " . $dispersionModel{$choice};
   }
+  # The engine keeps the template line unless $_ is set, as the other
+  # resolvers do; without it "##DispersionCorrection##" stayed in the deck.
+  $_ = $result;
   return $result;
 }
 
