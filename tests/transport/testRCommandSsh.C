@@ -392,7 +392,7 @@ static void sshChecks(const string& user, const string& shell)
   }
   {
     RCommand rc(HOST, "ssh", shell, user, "", "", "", "", "", "/nonexistent");
-    check("sourceFile keeps the pty", rc.isOpen() && rc.expfid() > 0);
+    check("a missing sourceFile stays on libssh", rc.isOpen() && rc.expfid() == -1);
   }
   {
     RCommand rc(HOST, "rsh", shell, user);
@@ -403,6 +403,122 @@ static void sshChecks(const string& user, const string& shell)
     string o;
     check("local machine is direct", rc.isOpen() && rc.execout("echo x", o) &&
           o == "x\r\n" && rc.expfid() == -1);
+  }
+}
+
+// A sourceFile in the account's own login-shell syntax: the pty sources it in
+// its shell, libssh in a shell run once at connect, and both must see the
+// same variables, PATH, unset variables and working directory.
+static bool sourceScenario(bool ssh, const string& user, const string& shell,
+                           const string& srcFile, const string& shellPath,
+                           const string& rdir, vector<string>& log)
+{
+  setMode(ssh);
+  RCommand rc(HOST, "ssh", shell, user, "", "", "", shellPath, "", srcFile);
+  if (!rc.isOpen()) {
+    cout << "no session (" << (ssh ? "ssh" : "pty") << ", " << user << "): "
+         << rc.commError() << endl;
+    return false;
+  }
+  if (ssh && rc.expfid() != -1) {
+    cout << "the ssh transport was not used" << endl;
+    return false;
+  }
+  string o;
+  bool r;
+#define ASK(name, cmd) \
+  do { o = "untouched"; r = rc.execout(cmd, o); \
+       log.push_back(rec(name, r, o)); } while (0)
+  ASK("ECCE_T variables", "env | grep '^ECCE_T[1_]' | sort; echo end");
+  ASK("LOGNAME", "env | grep -c '^LOGNAME='");
+  ASK("PATH head", "echo $PATH | cut -d: -f1,2");
+  r = rc.execout("ecce_src_tool", o);
+  log.push_back(string("tool runs: ret=") + (r ? "1 out=[" + esc(o) + "]" : "0"));
+  ASK("pwd before cd()", "pwd");
+  string path;
+  r = rc.which("ecce_src_tool", path);
+  log.push_back(rec("which", r, path));
+  r = rc.cd(rdir);
+  log.push_back(rec("cd", r, ""));
+  ASK("pwd after cd()", "pwd");
+  return true;
+}
+
+static void sourceChecks(const string& user, const string& shell,
+                         const string& rdir, const string& ldir)
+{
+  bool csh = shell == "csh";
+  string body = csh ?
+    "echo noise from the file\n"
+    "setenv ECCE_T1 \"a b 'q' x\"\n"
+    "setenv PATH \"" + rdir + "/bin:$PATH\"\n"
+    "unsetenv LOGNAME\n"
+    "alias ll 'ls -l'\n"
+    "cd " + rdir + "/sub\n"
+    "nonexistent_command_ecce\n"
+    "setenv ECCE_T_AFTER yes\n" :
+    "echo noise from the file\n"
+    "export ECCE_T1=\"a b 'q' \\\"d\\\" \\$x\"\n"
+    "export PATH=" + rdir + "/bin:$PATH\n"
+    "unset LOGNAME\n"
+    "alias ll='ls -l'\n"
+    "cd " + rdir + "/sub\n"
+    "nonexistent_command_ecce\n"
+    "export ECCE_T_AFTER=yes\n";
+  { ofstream f((ldir + "/srcfile").c_str()); f << body; }
+  { ofstream f((ldir + "/srctool").c_str()); f << "#!/bin/sh\necho tool ran\n"; }
+  chmod((ldir + "/srctool").c_str(), 0755);
+  {
+    setMode(true);
+    RCommand rc(HOST, "ssh", shell, user);
+    string o;
+    rc.exec("mkdir -p " + rdir + "/bin");
+    string srcPath = ldir + "/srcfile", toolPath = ldir + "/srctool";
+    const char* from[] = { srcPath.c_str(), 0 };
+    rc.shellput(from, rdir);
+    const char* tool[] = { toolPath.c_str(), 0 };
+    rc.shellput(tool, rdir + "/bin");
+    rc.exec("mv " + rdir + "/bin/srctool " + rdir + "/bin/ecce_src_tool");
+  }
+
+  struct { string file, prefix; } cases[] = {
+    { rdir + "/srcfile", "" },
+    { rdir + "/srcfile", "/opt/ecce_pfx" },
+    { rdir + "/no_such_source_file", "" } };
+  for (int c = 0; c < 3; c++) {
+    vector<string> pty, ssh;
+    cout << "source file " << cases[c].file << " shellPath=[" << cases[c].prefix
+         << "]" << endl;
+    if (!sourceScenario(false, user, shell, cases[c].file, cases[c].prefix, rdir, pty)) {
+      check("sourceFile: pty session (oracle)", false);
+      continue;
+    }
+    if (!sourceScenario(true, user, shell, cases[c].file, cases[c].prefix, rdir, ssh)) {
+      check("sourceFile: ssh session", false);
+      continue;
+    }
+    for (size_t i = 0; i < pty.size() && i < ssh.size(); i++) {
+      if (pty[i] == ssh[i]) cout << "ok   " << pty[i] << endl;
+      else {
+        extra++;
+        cout << "FAIL\n  pty " << pty[i] << "\n  ssh " << ssh[i] << endl;
+      }
+    }
+  }
+  {
+    setMode(true);
+    { ofstream f((ldir + "/srcbad").c_str()); f << "exit 3\n"; }
+    RCommand rc0(HOST, "ssh", shell, user);
+    string badPath = ldir + "/srcbad";
+    const char* from[] = { badPath.c_str(), 0 };
+    rc0.shellput(from, rdir);
+    RCommand rc(HOST, "ssh", shell, user, "", "", "", "", "", rdir + "/srcbad");
+    // csh's exit only ends the sourced file, as it does in the pty session.
+    if (csh)
+      check("csh: exit in the sourceFile only ends it", rc.isOpen());
+    else
+      check("sourceFile that exits fails the connection (" + rc.commError() + ")",
+            !rc.isOpen() && rc.commError().find("srcbad") != string::npos);
   }
 }
 
@@ -529,6 +645,7 @@ int main()
 
     sshChecks(user, shell);
     streamChecks(user, shell);
+    sourceChecks(user, shell, rdir, ldir);
     authChecks(user, shell);
 
     setMode(true);
