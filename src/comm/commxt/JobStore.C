@@ -1666,7 +1666,9 @@ void initCache(void)
 {
   // localconn may be corrupted so just don't even mess with looking at
   // the old one--leave it as a memory leak
-  localconn = new RCommand("system");
+  // JobStore speaks the raw expect API to the monitor, so it needs the pty.
+  localconn = new RCommand("system", "", "csh", "", "", "", "", "", "", "",
+                           false);
   if (localconn->isOpen())
     logMessage("System", "Started local csh RCommand connection");
   else
@@ -1737,7 +1739,7 @@ void initConn(void)
     if (remoteconn == (RCommand*)0)
       remoteconn = new RCommand(cpServerName, cpRemoteShell, cpLocalShell,
                                 cpUserName, "", frontendMachine, frontendBypass,
-                                shellPath, libPath, sourceFile);
+                                shellPath, libPath, sourceFile, false);
   } else
     (void)remoteconn->hop(nodeForRestart, cpLocalShell, cpUserName,
                           "", shellPath, libPath, sourceFile);

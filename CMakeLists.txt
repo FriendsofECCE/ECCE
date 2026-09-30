@@ -1595,4 +1595,12 @@ if(PYTHON3_EXECUTABLE)
   target_link_libraries(testTransport PRIVATE eccercmd ecceutil)
   add_test(NAME transport COMMAND testTransport)
   set_tests_properties(transport PROPERTIES TIMEOUT 120)
+
+  # RCommand in ECCE_TRANSPORT=direct mode against the pty path (#204).
+  add_executable(testRCommandDirect tests/transport/testRCommandDirect.C)
+  target_link_libraries(testRCommandDirect PRIVATE
+    eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+    ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME transport_rcommand COMMAND testRCommandDirect)
+  set_tests_properties(transport_rcommand PROPERTIES TIMEOUT 120)
 endif()
