@@ -1620,6 +1620,13 @@ if(PYTHON3_EXECUTABLE)
   if(LIBSSH_FOUND)
     add_executable(testSshTransport tests/transport/testSshTransport.C)
     target_link_libraries(testSshTransport PRIVATE eccercmd ecceutil)
+
+    # RCommand over libssh against the pty ssh path; same sshd, run by
+    # tests/transport/sshd/rcommand_test.sh, so not a ctest either.
+    add_executable(testRCommandSsh tests/transport/testRCommandSsh.C)
+    target_link_libraries(testRCommandSsh PRIVATE
+      eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+      ecceutil ${XercesC_LIBRARIES})
   endif()
 
   # tests/launch -- submit one real MOPAC job on localhost/Shell through

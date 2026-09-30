@@ -1739,7 +1739,7 @@ void initConn(void)
       remoteconn = new RCommand(cpServerName, cpRemoteShell, cpLocalShell,
                                 cpUserName, "", frontendMachine, frontendBypass,
                                 shellPath, libPath, sourceFile,
-                                !socketComms);
+                                !socketComms, false);  // monitor needs a pty
   } else
     (void)remoteconn->hop(nodeForRestart, cpLocalShell, cpUserName,
                           "", shellPath, libPath, sourceFile);

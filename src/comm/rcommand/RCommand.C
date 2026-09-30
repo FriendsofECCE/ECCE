@@ -8,6 +8,7 @@
 #include <iostream>
   using std::cout;
   using std::endl;
+  using std::cerr;
 #include <fstream>
   using std::ifstream;
   using std::ofstream;
@@ -40,6 +41,9 @@
 
 #include "comm/expect.h"
 #include "comm/DirectTransport.H"
+#ifdef ECCE_HAVE_LIBSSH
+#include "comm/SshTransport.H"
+#endif
 
 #define MAXARGS 32
 /*#define MAXLINE 256*/
@@ -136,9 +140,124 @@ static bool waitShellReady(int fid)
   return ready;
 }
 
+RCommand::HostKeyHook RCommand::hostKeyHook = 0;
+
+#ifdef ECCE_HAVE_LIBSSH
+static string shQuote(const string& s)
+{
+  string q = "'";
+  for (size_t i = 0; i < s.size(); i++) {
+    if (s[i] == '\'') q += "'\\''";
+    else q += s[i];
+  }
+  return q + "'";
+}
+
+// One line from passdialog; false if it was cancelled or could not run.
+static bool askPassdialog(const char* type, const string& machine,
+                          const string& user, string& answer)
+{
+  string cmd = Ecce::ecceBinCommand("passdialog") + " " + type + " " +
+               machine + " " + user;
+  FILE* p = popen(cmd.c_str(), "r");
+  if (!p) return false;
+  char buf[MAXLINE];
+  bool ok = fgets(buf, sizeof(buf), p) != NULL;
+  pclose(p);
+  if (!ok) return false;
+  answer = buf;
+  while (!answer.empty() && (answer[answer.size()-1]=='\n' ||
+                             answer[answer.size()-1]=='\r'))
+    answer.erase(answer.size()-1);
+  return !answer.empty();
+}
+
+static bool looksLikeCode(const string& prompt)
+{
+  string l;
+  for (size_t i = 0; i < prompt.size(); i++)
+    l += (char)tolower((unsigned char)prompt[i]);
+  return l.find("passcode")!=string::npos || l.find("verification")!=string::npos ||
+         l.find("token")!=string::npos || l.find("otp")!=string::npos ||
+         l.find("duo")!=string::npos || l.find("code")!=string::npos;
+}
+
+// Logs in over libssh with the credentials the pty login loop would use:
+// the password given, then AuthCache, then passdialog; passdialog's
+// "passcode" for what looks like a second factor.
+bool RCommand::sshConnect(const string& machine, const string& userName,
+                          const string& password)
+{
+  const string theUser = userName == "" ? string(Ecce::realUser()) : userName;
+  string thePass = password;
+  bool passTried = false;
+  string hostKeyMsg;
+
+  // Port 0 leaves the port to ~/.ssh/config, as for the ssh command.
+  SshTransport* t = new SshTransport(machine, 0, userName);
+  t->setConnectTimeout(RC_CONNECT_TIMEOUT);
+  t->setPasswordAttempts(3);
+  t->setPromptCallback([&](const string& prompt, bool echo, string& answer) {
+    if (echo || looksLikeCode(prompt))
+      return askPassdialog("passcode", machine, theUser, answer);
+    if (!passTried &&
+        (thePass != "" || RCommand::getPassCache(p_shell, machine, theUser,
+                                                 thePass))) {
+      passTried = true;
+      answer = thePass;
+      return true;
+    }
+    passTried = true;
+    if (!askPassdialog("password", machine, theUser, thePass)) return false;
+    answer = thePass;
+    return true;
+  });
+  t->setHostKeyCallback([&](const string& host, const string& fingerprint) {
+    if (RCommand::hostKeyHook && RCommand::hostKeyHook(host, fingerprint))
+      return true;
+    hostKeyMsg = "The host key of " + host + " (" + fingerprint +
+                 ") is not known.  Run \"ssh " + host + "\" once in a "
+                 "terminal to accept it, then try again.";
+    return false;
+  });
+
+  string error;
+  bool ok = t->connect(error);
+  t->setPromptCallback(SshTransport::PromptFn());
+  t->setHostKeyCallback(SshTransport::HostKeyFn());
+
+  if (!ok) {
+    p_errMessage = hostKeyMsg != "" ? hostKeyMsg :
+                   "Unable to open ssh connection to " + machine + ": " + error;
+    delete t;
+    return false;
+  }
+
+  p_transport = t;
+  p_direct = true;
+  p_ssh = true;
+  p_remoteBash = true;
+  exp_timeout = RC_EXEC_TIMEOUT;
+  p_connected = true;
+
+  if (thePass != "")
+    RCommand::setPassCache(p_shell, machine, theUser, thePass);
+
+  if (getenv("ECCE_RCOM_LOGMODE"))
+    cout << "ssh transport: commands run over libssh on " << machine << endl;
+  return true;
+}
+#else
+bool RCommand::sshConnect(const string&, const string&, const string&)
+{
+  return false;
+}
+#endif
+
 bool RCommand::directUnsupported(const char* what)
 {
-  p_errMessage = string(what) + " is not available with ECCE_TRANSPORT=direct";
+  p_errMessage = string(what) + " is not available with ECCE_TRANSPORT=" +
+                 (p_ssh ? "ssh" : "direct");
   return false;
 }
 
@@ -1130,7 +1249,7 @@ RCommand::RCommand(const string& machine, const string& remShell,
                    const string& password, const string& frontendMachine,
                    const string& frontendBypass, const string& shellPath,
                    const string& libPath, const string& sourceFile,
-                   bool allowDirect)
+                   bool allowDirect, bool allowSsh)
 {
   p_connected = false;
   p_background = false;
@@ -1138,6 +1257,7 @@ RCommand::RCommand(const string& machine, const string& remShell,
   p_remoteBash = false;
   p_transport = 0;
   p_direct = false;
+  p_ssh = false;
   p_fid = -1;
   p_pid = 0;
   p_pats = 0;
@@ -1183,7 +1303,8 @@ RCommand::RCommand(const string& machine, const string& remShell,
   // A sourceFile is written for the user's login shell and cannot run
   // under sh, so such connections keep the pty.
   const char* transportEnv = getenv("ECCE_TRANSPORT");
-  if (allowDirect && transportEnv && string(transportEnv)=="direct" &&
+  const string transportMode = transportEnv ? transportEnv : "";
+  if (allowDirect && (transportMode=="direct" || transportMode=="ssh") &&
       !RCommand::isRemote(machine, remShell, userName) &&
       frontendMachine=="") {
     if (sourceFile != "") {
@@ -1210,6 +1331,37 @@ RCommand::RCommand(const string& machine, const string& remShell,
 
       p_connected = true;
       return;
+    }
+  }
+
+  if (allowDirect && allowSsh && transportMode=="ssh" &&
+      RCommand::isRemote(machine, remShell, userName) &&
+      frontendMachine=="" &&
+      (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
+       remShell.find("ssh/")==0)) {
+    if (sourceFile != "") {
+      if (getenv("ECCE_RCOM_LOGMODE"))
+        cout << "ssh transport skipped: a source file is set" << endl;
+    } else {
+#ifdef ECCE_HAVE_LIBSSH
+      p_shell = "ssh";
+      if (shellPath != "")
+        p_scriptPrefix += "PATH=" + shQuote(shellPath) + ":$PATH; export PATH\n";
+      if (libPath != "")
+        p_scriptPrefix += "LD_LIBRARY_PATH=" + shQuote(libPath) +
+                          ":$LD_LIBRARY_PATH; export LD_LIBRARY_PATH\n";
+      // A refused or failed login is final: falling back to the pty would
+      // only prompt the user a second time for the same thing.
+      sshConnect(p_machine, userName, password);
+      return;
+#else
+      static bool warned = false;
+      if (!warned) {
+        cerr << "ECCE_TRANSPORT=ssh: this build has no libssh; using the "
+                "pty ssh path" << endl;
+        warned = true;
+      }
+#endif
     }
   }
 
@@ -3155,7 +3307,8 @@ bool RCommand::directExecout(const string& command, string& output,
   if (timeout != 0)
     exp_timeout = timeout;
 
-  TransportResult r = p_transport->run("exec 2>&1\n" + command + "\n",
+  TransportResult r = p_transport->run(p_scriptPrefix + "exec 2>&1\n" +
+                                       command + "\n",
                                        exp_timeout > 0 ? exp_timeout : -1);
 
   if (timeout > 0)
@@ -3173,6 +3326,8 @@ bool RCommand::directExecout(const string& command, string& output,
   } else if (r.status < 0) {
     p_errMessage = "Unable to execute command " + command +
                    (r.error.empty() ? "" : ": " + r.error);
+    if (p_ssh && r.error.find("connection") != string::npos)
+      p_connected = false;
   } else if (r.status == 0) {
     status = true;
   } else {
@@ -3193,7 +3348,7 @@ bool RCommand::directExecout(const string& command, string& output,
 
 bool RCommand::startStream(const string& command)
 {
-  if (!p_direct || !p_connected || p_stream.pid > 0) return false;
+  if (!p_direct || p_ssh || !p_connected || p_stream.pid > 0) return false;
   string error;
   if (!static_cast<DirectTransport*>(p_transport)->openStream(
         command, p_stream, error)) {
@@ -3208,7 +3363,7 @@ bool RCommand::startStream(const string& command)
 
 void RCommand::stopStream(int graceMs)
 {
-  if (!p_direct || p_stream.pid <= 0) return;
+  if (!p_direct || p_ssh || p_stream.pid <= 0) return;
   int st = static_cast<DirectTransport*>(p_transport)->closeStream(
              p_stream, graceMs);
   if (getenv("ECCE_RCOM_LOGMODE"))
@@ -3387,7 +3542,8 @@ bool RCommand::execbg(const string& command, string& output,
 
   if (p_direct) {
     string error;
-    long pid = p_transport->spawnDetached("nohup " + command, error);
+    long pid = p_transport->spawnDetached(p_scriptPrefix + "nohup " + command,
+                                          error);
     if (getenv("ECCE_RCOM_LOGMODE"))
       cout << "Direct background command (" << command << ") in ("
            << p_transport->dir() << ") pid " << pid << endl;
@@ -4662,6 +4818,21 @@ static string underDir(const string& dir, const string& path)
   return dir + "/" + path;
 }
 
+// Direct mode copies locally; ssh mode goes over SFTP.  remote is already
+// resolved against the directory cd() set.
+bool RCommand::transferFile(bool putFlag, const string& local,
+                            const string& remote)
+{
+#ifdef ECCE_HAVE_LIBSSH
+  if (p_ssh) {
+    string error;
+    SshTransport* t = static_cast<SshTransport*>(p_transport);
+    return putFlag ? t->put(local, remote, error) : t->get(remote, local, error);
+  }
+#endif
+  return putFlag ? copyFileData(local, remote) : copyFileData(remote, local);
+}
+
 bool RCommand::shellput(const char** fromFiles, const string& toFile)
 {
   string fullToFile;
@@ -4688,7 +4859,7 @@ bool RCommand::shellput(const char** fromFiles, const string& toFile)
       else
         fullToFile = toFile + "/" + globbedFiles[ig];
 
-      status = copyFileData(globbedFiles[ig],
+      status = transferFile(true, globbedFiles[ig],
                             underDir(p_transport->dir(), fullToFile));
       if (!status) {
         p_errMessage = string("Failed executing put file script");
@@ -4907,8 +5078,8 @@ bool RCommand::shellget(const char** fromFiles, const string& toFile)
           fullToFile = toFile + "/" + globbedFile;
 
         if (p_direct) {
-          status = copyFileData(underDir(p_transport->dir(), globbedFile),
-                                fullToFile);
+          status = transferFile(false, fullToFile,
+                                underDir(p_transport->dir(), globbedFile));
           if (!status) {
             p_errMessage = "Failed executing cat command for get file "
                            "operation";
