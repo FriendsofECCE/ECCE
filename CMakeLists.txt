@@ -1595,4 +1595,20 @@ if(PYTHON3_EXECUTABLE)
                    --driver $<TARGET_FILE:testRCommandEcho>
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/shells)
   set_tests_properties(shells PROPERTIES TIMEOUT 900)
+
+  # tests/launch -- submit real jobs on localhost/Shell through the real
+  # Launch class and assert they reach "completed".  launchjob is a test
+  # driver and is not installed.  The suites SKIP (77) when a prerequisite
+  # is absent.
+  add_executable(launchjob tests/launch/launchjob.C)
+  target_include_directories(launchjob PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(launchjob PRIVATE
+    eccecommxt eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME launch
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_tests.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 endif()
