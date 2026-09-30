@@ -593,6 +593,18 @@ EcceURL VDoc::getOutput(const string& name)
  *
  * @return Output resource Url's.
  */
+// A Depth-1 listing can include the collection's own entry, and for a
+// calculation with no output yet that was the only "output": TaskJob then
+// named the primary output "Outputs" (#207).
+static bool sameResource(const EcceURL& a, const EcceURL& b)
+{
+  string x = a.toString(), y = b.toString();
+  while (!x.empty() && x[x.size()-1] == '/') x.erase(x.size()-1);
+  while (!y.empty() && y[y.size()-1] == '/') y.erase(y.size()-1);
+  return x == y;
+}
+
+
 vector<EcceURL> VDoc::getOutputs()
 {
   vector<EcceURL> urls;
@@ -628,6 +640,7 @@ vector<EcceURL> VDoc::getOutputs()
     p_edsi->listCollection(results);
     int i;
     for (i = 0; i < results.size(); i++) {
+      if (sameResource(results[i].url, url)) continue;
       urls.push_back(results[i].url);
     }
   }
@@ -639,6 +652,7 @@ vector<EcceURL> VDoc::getOutputs()
     p_edsi->listCollection(results);
     int i;
     for (i = 0; i < results.size(); i++) {
+      if (sameResource(results[i].url, url)) continue;
       if ((isOutputFilename(results[i].url.getFilePathTail())) ||
           (isOutputType(results[i].url))) {
         urls.push_back(results[i].url);
