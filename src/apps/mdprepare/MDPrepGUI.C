@@ -654,6 +654,7 @@ void MDPrepGUI::CreateControls()
     wxMenu* itemMenu537 = new wxMenu;
     itemMenu537->Append(ID_MENU_MDPREP_HELP, _("on NWChem MD Prepare..."), _T(""), wxITEM_NORMAL);
     itemMenu537->Append(ID_MENU_FEEDBACK, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu537->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu537, _("Help"));
     itemFrame1->SetMenuBar(menuBar);
 

@@ -30,6 +30,7 @@
 
 #include "tdat/MoComposition.H"
 #include "tdat/MoFragments.H"
+#include "tdat/MoLigandField.H"
 #include "tdat/PropTable.H"
 #include "tdat/TGBSAngFunc.H"
 #include "dsm/TGBSConfig.H"
@@ -1474,6 +1475,106 @@ void dumpMoDiagram(const string& path, const string& group,
   }
 }
 
+const char* ligandFieldCharacterName(MoLigandField::Level::Character c)
+{
+  switch (c) {
+    case MoLigandField::Level::BONDING:     return "BONDING";
+    case MoLigandField::Level::NONBONDING:  return "NONBONDING";
+    case MoLigandField::Level::ANTIBONDING: return "ANTIBONDING";
+    default:                                return "UNKNOWN";
+  }
+}
+
+void dumpLigandFieldColumn(std::ofstream& out, const string& name,
+    const vector<MoLigandField::Level>& col)
+{
+  out << "  column " << name << ": " << col.size() << "\n";
+  for (size_t i = 0; i < col.size(); i++) {
+    const MoLigandField::Level& lv = col[i];
+    out << "    level " << i
+        << " label=" << escapeDumpText(lv.label)
+        << " energy=" << std::setprecision(6) << lv.energy
+        << " degeneracy=" << lv.degeneracy
+        << " character=" << ligandFieldCharacterName(lv.character)
+        << " pairing=" << lv.pairing
+        << " metalWeight=" << std::setprecision(4) << lv.metalWeight
+        << " ligandWeight=" << lv.ligandWeight
+        << " capture=" << lv.capture
+        << " energyDeviation=" << lv.energyDeviation
+        << " canonicalMOs=[";
+    for (size_t k = 0; k < lv.canonicalMOs.size(); k++) {
+      if (k > 0) out << ",";
+      out << lv.canonicalMOs[k] << ":" << lv.canonicalOverlap[k];
+    }
+    out << "]\n";
+  }
+}
+
+/**
+ * ECCE_MODIAGRAM_DUMP's SKELETON-only appended section (#162 follow-up,
+ * the fragment-orbital ligand-field model): opened in APPEND mode, so
+ * this runs strictly after dumpMoDiagram() has already written the
+ * ordinary sections above -- every other fixture's golden stays byte-
+ * identical because nothing calls this for them (MoLigandField::build()
+ * itself declines with metalAtomIndex < 0, but this is gated on the
+ * construction too, so the intent is not left to that alone).
+ */
+void dumpLigandFieldModel(const string& path, const MoLigandField::Result& r)
+{
+  std::ofstream out(path.c_str(), std::ios::app);
+  if (!out) return;
+  out << "model:\n";
+  out << "  ok: " << (r.ok ? 1 : 0) << "\n";
+  out << "  note: " << escapeDumpText(r.note) << "\n";
+  out << "  method: " << escapeDumpText(r.method) << "\n";
+  out << "  energyScaleNote: " << escapeDumpText(r.energyScaleNote) << "\n";
+  out << "  ligandAsymmetry: " << std::setprecision(6) << r.ligandAsymmetry << "\n";
+  out << "  couplingThreshold: " << r.couplingThreshold << "\n";
+  out << "  thresholdWhy: " << escapeDumpText(r.thresholdWhy) << "\n";
+  out << "  deltaO: " << r.deltaO << "\n";
+  const char *verdictName = r.verdict == MoLigandField::Result::REPRESENTATIVE
+      ? "REPRESENTATIVE"
+      : r.verdict == MoLigandField::Result::APPROXIMATE ? "APPROXIMATE"
+                                                         : "NOT_REPRESENTATIVE";
+  out << "  verdict: " << verdictName << "\n";
+  for (size_t i = 0; i < r.verdictReasons.size(); i++)
+    out << "  verdictReason: " << escapeDumpText(r.verdictReasons[i]) << "\n";
+  for (size_t i = 0; i < r.disagreements.size(); i++)
+    out << "  disagreement: " << escapeDumpText(r.disagreements[i]) << "\n";
+
+  dumpLigandFieldColumn(out, "metal", r.metal);
+  dumpLigandFieldColumn(out, "interaction", r.interaction);
+  dumpLigandFieldColumn(out, "ligandInteracting", r.ligandInteracting);
+  dumpLigandFieldColumn(out, "ligandInternal", r.ligandInternal);
+
+  out << "  links: " << r.links.size() << "\n";
+  for (size_t i = 0; i < r.links.size(); i++) {
+    out << "    link " << i << " metal=" << r.links[i].metalIndex
+        << " model=" << r.links[i].modelIndex
+        << " ligand=" << r.links[i].ligandIndex
+        << " weight=" << std::setprecision(4) << r.links[i].weight << "\n";
+  }
+
+  out << "  couplings: " << r.couplings.size() << "\n";
+  for (size_t i = 0; i < r.couplings.size(); i++) {
+    out << "    coupling " << i << " label=" << escapeDumpText(r.couplings[i].label)
+        << " energy=" << std::setprecision(6) << r.couplings[i].energy
+        << " maxCoupling=" << r.couplings[i].maxCoupling
+        << " interacting=" << (r.couplings[i].interacting ? 1 : 0) << "\n";
+  }
+
+  out << "  robustness: " << r.robustness.size() << "\n";
+  for (size_t i = 0; i < r.robustness.size(); i++) {
+    const MoLigandField::RobustnessPoint& p = r.robustness[i];
+    out << "    scan scale=" << p.scale
+        << " piAcceptorPattern=" << (p.piAcceptorPattern ? 1 : 0)
+        << " deltaOSign=" << (p.deltaOSign ? 1 : 0)
+        << " eg2AboveT2g=" << (p.eg2AboveT2g ? 1 : 0) << "\n";
+    for (size_t k = 0; k < p.characterChanges.size(); k++)
+      out << "      characterChange: " << escapeDumpText(p.characterChanges[k]) << "\n";
+  }
+}
+
 /**
  * ECCE_EXIT_AFTER_DUMP=1 (#171): close the app once the dump this build
  * asked for has actually been written, so a capture script has a
@@ -2770,6 +2871,24 @@ void MoDiagramPanel::buildOnce()
         MoFragments::fragmentationName(p_fragmentation),
         "", note.str(), left, centre, right, links,
         localisedShare, centreOP, mullikenMaxVec, normVec, metalLigandOP);
+
+    //  The fragment-orbital ligand-field MODEL (#162 follow-up): only
+    //  for SKELETON, and only when a metal atom and a usable overlap
+    //  matrix are both in hand -- exactly the inputs MoLigandField::
+    //  build() declines without. Gated on the dump path, like the model
+    //  computation itself: it is real linear algebra (a handful of
+    //  small generalised eigenproblems, run three times over for the
+    //  robustness scan), not something every interactive rebuild should
+    //  pay for before the four-column canvas that will actually show it
+    //  exists (a separate follow-up).
+    if (p_fragmentation == MoFragments::SKELETON && metalAtomIndex >= 0 &&
+        moHaveSqrtS && !moCoefficients.empty()) {
+      MoLigandField::Result lfResult;
+      MoLigandField::build(coords, elements, metalAtomIndex, e, o, moCoefficients,
+                           moPerAtom, moShellOf, moSflat, moSqrtS, haveBeta, lfResult);
+      dumpLigandFieldModel(dumpPath, lfResult);
+    }
+
     exitAfterDumpIfRequested();
   }
 }

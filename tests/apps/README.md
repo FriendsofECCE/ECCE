@@ -21,8 +21,11 @@ notices.
 ## The reaper, and why this suite turns it off
 
 Every ECCE app's wrapper runs `ecce-gateway-reap --if-idle` on exit, so
-the broker and dispatcher are stopped once the last app on a display
-closes (#102 — a SIGABRT once stranded them for ten days).
+a display's dispatcher is stopped once the last app on it closes (#102 —
+a SIGABRT once stranded one for ten days), and a per-user broker once the
+user's last session ends (#191). A server's broker and the data server
+are stopped only by `ecce-gateway-stop` (Quit and Stop Server), which
+calls the reaper with `--stop`.
 
 That rule is right for a user's session and wrong here, where apps are
 run **one at a time** and every app is therefore the last one out. The
@@ -31,7 +34,6 @@ after it met a dead gateway:
 
 ```
 ecce-gateway-reap: no ECCE app left on :70 -- stopping JMSDispatcher
-ecce-gateway-reap: no ECCE session left -- stopping ActiveMQ broker
 ```
 
 which surfaced as ten apps "opening no window" and gateway showing
@@ -44,11 +46,9 @@ debugging session, for instance.
 
 It is unset again for the shutdown, and that matters more than it looks:
 `ecce-gateway-stop` stops the dispatcher itself but hands the **broker**
-to `ecce-gateway-reap`, which is the only thing that knows whether another
-display still needs it. With `ECCE_NO_REAP` still set, the reaper exited
-immediately and the broker was never stopped — so every run leaked a
-512MB JVM, which is #102 again, caused this time by the fix for it being
-switched off and left off.
+to `ecce-gateway-reap --stop`, which stops it once no display still has a
+dispatcher. With `ECCE_NO_REAP` still set, the reaper exited immediately
+and the broker was never stopped — every run leaked a 512MB JVM.
 
 ## A window is not proof an app started
 
@@ -366,6 +366,39 @@ itself — `fixture.py` overwrites the generated `.htaccess` with one allowing
 read methods and still denying writes. No credentials, no `-pipe`, no
 guessing, and the permission change is confined to an account holding
 nothing but the fixture.
+
+## Session end (#185, #191): `session_end.py`
+
+A separate entry point, not part of `run_tests.py` or ctest: it needs the
+tree's own gateway and scripts, takes several minutes, and drives real
+windows closed (`python3-xlib`, `xdotool`). With the Gateway window hidden,
+the gateway must quit once no other app of its session is left, ending
+that session and its relay; a per-user broker goes with the user's last
+session, a server's or the site's shared broker never on a plain quit,
+and the data server only on Quit and Stop Server.
+
+    tests/apps/session_end.py --tree build-cmake            all cases
+    tests/apps/session_end.py --tree build-cmake stop remote
+
+`--tree` builds a `bin/` of symlinks to the install with `gateway` from
+the build directory and the `ecce-gateway-*`/`ecce-broker-*` scripts and
+`ecce-remote-setup` from `packaging/`, and checks through
+`/proc/<pid>/exe` that the gateway that ran is the build's. Use
+`--wrappers <dir>` for wrappers generated from the current
+`CMakeLists.txt` when the build directory's are older.
+Cases: `organizer` (the per-user broker stops), `builder`, `jobstore` (a
+job-monitor stand-in survives and does not hold the session), `stop`
+(Quit and Stop Server stops the broker), `remote` (#167's recipe with the
+server account marked: neither its quit nor the client's stops its
+broker), `displays` (the broker outlives one of two displays), `shared`
+(mode 3: `ecce-broker-run --shared` as the unit runs it, two "users" on
+two displays, no per-user broker ever, nothing stops it), `markers` (the
+reaper's server rules, with a stand-in broker), `window`
+(`ECCE_GATEWAY_WINDOW=1`). A second "user" is a second
+`ECCE_REALUSERHOME` of the same account: separate Unix users need root.
+Before every case each ECCE binary still running on the test display is
+killed and checked gone: an app the gateway spawned is outside `ecce`'s
+process group, and one left over held a later case's session open.
 
 ## Adding an app
 

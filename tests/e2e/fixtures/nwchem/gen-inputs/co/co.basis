@@ -1,0 +1,4 @@
+basis "ao basis" spherical print
+  C library "6-31G*"
+  O library "6-31G*"
+END

@@ -1,0 +1,15 @@
+title: CO
+annotation: CO
+parseFile: ecce.out
+Category: SCF
+Theory: RHF
+RunType: Energy
+Charge: 0
+Symmetry: C1
+NumElectrons: 14
+NumFrozenOrbs: 0
+NumOccupiedOrbs: 7
+NumVirtualOrbs: 11
+NumNormalModes: 1
+ChemSys.Multiplicity: 1
+BasisSet.Coordinates: Spherical

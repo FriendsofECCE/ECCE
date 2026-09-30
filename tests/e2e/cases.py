@@ -218,6 +218,189 @@ def expect_nwchem_h2o(props, report):
                  '(got %g)' % te)
 
 
+#  H2, O2 (triplet) and CO -- the class exercise this trio exists for
+#  (#199): "build a diatomic with NWChem, look at the shape of its MOs".
+#  The three decks are ai.nwchem's own real output for a student's
+#  default clicks (SCF/RHF or, for O2's open shell, SCF/UHF; Energy;
+#  6-31G*) -- see check_nwchem_generation.py, which re-derives them from
+#  the real generator on every run and fails first if it ever stops
+#  reproducing what is checked in here.  This file's own job is the
+#  other half: that a real NWChem run on that deck still gives a real
+#  MoPanel something to draw.
+def _check_mo_block(props, report, nOrbitals, engKey='ORBENG',
+                    occKey='ORBOCC', moKey='MO', label=''):
+    """The invariant MoPanel::fillTable() depends on, shared by all three
+    (and both spins of O2): energies, occupations and the MO table must
+    all agree on how many orbitals there are, or the table silently
+    misindexes past the shorter vector."""
+    eng = props.get(engKey, [])
+    occ = props.get(occKey, [])
+    mo = props.get(moKey, [])
+    report.check(bool(eng), '%s extracted' % engKey)
+    report.check(bool(occ), '%s extracted' % occKey)
+    report.check(bool(mo), '%s coefficients extracted' % moKey)
+    if not (eng and occ and mo):
+        return None
+
+    nEng = len(sect(eng[-1], 'values').split())
+    nOcc = len(sect(occ[-1], 'values').split())
+    report.check(nEng == nOrbitals,
+                 '%s%s has %d orbitals (got %d)'
+                 % (label, engKey, nOrbitals, nEng))
+    report.check(nOcc == nEng,
+                 '%s%s length matches %s (%d vs %d)'
+                 % (label, occKey, engKey, nOcc, nEng))
+    size = (sect(mo[-1], 'size') or '').split()
+    report.check(size == [str(nOrbitals)] * 2,
+                 '%s%s table is %dx%d (got %r)'
+                 % (label, moKey, nOrbitals, nOrbitals, size))
+    return [float(x) for x in sect(occ[-1], 'values').split()]
+
+
+def expect_nwchem_h2_mos(props, report):
+    """H2, RHF/6-31G* -- the simplest possible MO case: one filled sigma_g,
+    the rest empty (sigma_u* first among them).  6-31G* adds no
+    polarization function on hydrogen, so it is plain 6-31G there: 2
+    functions per H, 4 for the molecule."""
+    for key in ('TE', 'GEOMTRACE'):
+        report.check(bool(props.get(key)), '%s extracted' % key)
+
+    occ = _check_mo_block(props, report, 4)
+    if occ is not None:
+        report.check(occ == [2.0, 0.0, 0.0, 0.0],
+                     'one filled sigma_g, the rest empty (got %s)' % occ)
+
+    if props.get('TE'):
+        te = float(sect(props['TE'][-1], 'values'))
+        #  RHF/6-31G*: -1.13ish Hartree.  Loose window -- see the water
+        #  case's own comment on why these are not pinned tighter.
+        report.check(-1.20 < te < -1.05,
+                     'total energy is a plausible RHF/6-31G* value for H2 '
+                     '(got %g)' % te)
+
+
+def expect_nwchem_co_mos(props, report):
+    """CO, RHF/6-31G* -- a heteronuclear case with real orbital character
+    (5sigma HOMO, mostly on C), 6-31G*/C+O is 28 functions."""
+    for key in ('TE', 'GEOMTRACE'):
+        report.check(bool(props.get(key)), '%s extracted' % key)
+
+    occ = _check_mo_block(props, report, 28)
+    if occ is not None:
+        report.check(sum(occ) == 14.0,
+                     'occupancies sum to 14 electrons (got %g)' % sum(occ))
+        report.check(occ[:7] == [2.0] * 7 and occ[7:] == [0.0] * 21,
+                     'seven filled levels then virtuals (got first 8: %s)'
+                     % occ[:8])
+
+    if props.get('TE'):
+        te = float(sect(props['TE'][-1], 'values'))
+        report.check(-113.0 < te < -112.0,
+                     'total energy is a plausible RHF/6-31G* value for CO '
+                     '(got %g)' % te)
+
+
+def expect_nwchem_co_opt_mos(props, report):
+    """CO, RHF/6-31G*, Geometry (optimisation) starting well off
+    equilibrium (1.375 A) -- the regression guard for the "optimise then
+    show orbitals" bug: NWChem's ecce_print of the MO vectors block is a
+    one-shot per process (fires once, for the FIRST SCF evaluation of
+    the whole optimisation) and a bare trailing task cannot retrigger
+    it, so without ai.nwchem's fix ORBENG comes from the unconverged
+    starting geometry instead of the converged one.
+
+    Also the property-length invariant from the fix itself: the
+    trailing "task scf gradient" ai.nwchem now appends must advance
+    TEVEC and GEOMTRACE together, never leaving TEVEC one point ahead
+    (GeomTracePropertyPanel indexes GEOMTRACE by TEVEC's row and a
+    stray extra point reads past the last frame -- the MOPAC #86
+    GEOMTRACE/TEVEC lesson in CLAUDE.md, here for NWChem's own
+    Geometry+energy interaction instead of a code difference).
+    """
+    for key in ('TE', 'TEVEC', 'GEOMTRACE'):
+        report.check(bool(props.get(key)), '%s extracted' % key)
+    if not (props.get('TEVEC') and props.get('GEOMTRACE')):
+        return
+
+    report.check(len(props['TEVEC']) <= len(props['GEOMTRACE']),
+                 'len(TEVEC) <= len(GEOMTRACE) (got %d vs %d)'
+                 % (len(props['TEVEC']), len(props['GEOMTRACE'])))
+
+    occ = _check_mo_block(props, report, 28)
+    if occ is not None:
+        report.check(sum(occ) == 14.0,
+                     'occupancies sum to 14 electrons (got %g)' % sum(occ))
+        report.check(occ[:7] == [2.0] * 7 and occ[7:] == [0.0] * 21,
+                     'seven filled levels then virtuals (got first 8: %s)'
+                     % occ[:8])
+
+    if props.get('ORBENG'):
+        #  Orbital 7 (0-based index 6): -0.5474 at the 1.375 A starting
+        #  geometry, -0.5457 at the converged one (~1.126 A) -- a real
+        #  but modest shift, so the window is narrow and placed to
+        #  reject the unconverged value rather than merely accept a
+        #  plausible one.
+        eng = [float(x) for x in
+              sect(props['ORBENG'][-1], 'values').split()]
+        report.check(-0.5465 < eng[6] < -0.5450,
+                     'orbital 7 is at the CONVERGED geometry, not the '
+                     'first optimisation step (got %.6f, first-step '
+                     'value is -0.5474)' % eng[6])
+
+    if props.get('TE'):
+        te = float(sect(props['TE'][-1], 'values'))
+        #  Converged RHF/6-31G* energy for CO near its equilibrium bond
+        #  length; the 1.375 A starting point is -112.627, well outside
+        #  this window, so this also catches a TE that never advanced
+        #  past the first step.
+        report.check(-112.74 < te < -112.73,
+                     'total energy is the CONVERGED RHF/6-31G* value for '
+                     'CO (got %g)' % te)
+
+
+def expect_nwchem_o2_triplet_mos(props, report):
+    """O2, UHF/6-31G*, multiplicity 3 -- the one that actually matters:
+    open shell, separate alpha and beta orbital sets.  16 electrons split
+    9 alpha / 7 beta (S=1, a triplet); the alpha HOMO is the degenerate
+    pi*g pair O2 is famous for having half-filled.  6-31G*/O2 is 28
+    functions per spin.
+    """
+    for key in ('TE', 'GEOMTRACE', 'S2'):
+        report.check(bool(props.get(key)), '%s extracted' % key)
+
+    occA = _check_mo_block(props, report, 28, label='alpha ')
+    occB = _check_mo_block(props, report, 28, engKey='ORBENGBETA',
+                           occKey='ORBOCCBETA', moKey='MOBETA',
+                           label='beta ')
+    if occA is not None and occB is not None:
+        nAlpha = sum(1 for o in occA if o > 0)
+        nBeta = sum(1 for o in occB if o > 0)
+        report.check(nAlpha == 9,
+                     '9 alpha orbitals occupied (got %d)' % nAlpha)
+        report.check(nBeta == 7,
+                     '7 beta orbitals occupied (got %d)' % nBeta)
+        report.check(nAlpha + nBeta == 16,
+                     'alpha+beta occupied = 16 electrons (got %d)'
+                     % (nAlpha + nBeta))
+
+        #  The alpha HOMO (index 8, 0-based) must be part of a degenerate
+        #  pair with orbital 7 -- the two components of pi*g.  A UHF run
+        #  that broke that symmetry (wrong geometry, wrong basis order)
+        #  would still have 9 occupied alpha orbitals but not this.
+        engA = [float(x) for x in
+               sect(props['ORBENG'][-1], 'values').split()]
+        report.check(abs(engA[7] - engA[8]) < 1e-4,
+                     'alpha HOMO is part of a degenerate pair (orbitals 7 '
+                     'and 8: %.6f, %.6f)' % (engA[7], engA[8]))
+
+    if props.get('TE'):
+        te = float(sect(props['TE'][-1], 'values'))
+        #  UHF/6-31G* triplet O2: -149.6ish Hartree.
+        report.check(-150.0 < te < -149.0,
+                     'total energy is a plausible UHF/6-31G* value for O2 '
+                     '(got %g)' % te)
+
+
 def expect_qe_si(props, report):
     """Bulk silicon, PBE, 2 atoms -- QE's scalar and tensor results.
 
@@ -340,6 +523,49 @@ CASES = [
         parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
         output='ecce.out',
         expect=expect_nwchem_h2o,
+    ),
+    dict(
+        #  #199: the class exercise -- H2/O2/CO with NWChem, looking at
+        #  MO shapes.  Decks are ai.nwchem's own output for a student's
+        #  default clicks; see check_nwchem_generation.py for the other
+        #  half (that the generator still reproduces them).
+        name='nwchem-h2-mos',
+        code='nwchem',
+        desc='nwchem.desc',
+        deck='nwchem/h2.nw',
+        parse_args=('.', 'Energy', 'SCF', 'RHF', '0'),
+        output='ecce.out',
+        expect=expect_nwchem_h2_mos,
+    ),
+    dict(
+        #  The one that matters: triplet O2, UHF, alpha/beta orbitals.
+        name='nwchem-o2-triplet-mos',
+        code='nwchem',
+        desc='nwchem.desc',
+        deck='nwchem/o2.nw',
+        parse_args=('.', 'Energy', 'SCF', 'UHF', '0'),
+        output='ecce.out',
+        expect=expect_nwchem_o2_triplet_mos,
+    ),
+    dict(
+        name='nwchem-co-mos',
+        code='nwchem',
+        desc='nwchem.desc',
+        deck='nwchem/co.nw',
+        parse_args=('.', 'Energy', 'SCF', 'RHF', '0'),
+        output='ecce.out',
+        expect=expect_nwchem_co_mos,
+    ),
+    dict(
+        #  Regression guard for the optimise-then-show-orbitals bug --
+        #  see expect_nwchem_co_opt_mos's own docstring.
+        name='nwchem-co-opt-mos',
+        code='nwchem',
+        desc='nwchem.desc',
+        deck='nwchem/co-opt.nw',
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        output='ecce.out',
+        expect=expect_nwchem_co_opt_mos,
     ),
     dict(
         #  Bulk Si, 2 atoms, low cutoff -- under a second.  QE needs

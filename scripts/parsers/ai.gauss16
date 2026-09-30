@@ -1454,7 +1454,7 @@ sub VibOptions {
 ##############################################################################
 #
 #  Description:
-#      Refuse the Freq= combinations Gaussian 16 rejects outright.
+#      Warn about the Freq= combinations Gaussian 16 rejects outright.
 #
 #  Implementation:
 #      In the MAIN FLOW, before any generation starts, which is the only
@@ -1479,20 +1479,20 @@ sub verifyVibOptions {
 
   if ($AbiDict{"ES.Runtype.Vibration.ComputeRaman"} &&
       $AbiDict{"ES.Runtype.Vibration.Method"} eq "Numerical 2nd Derivative") {
-    die "ai.gauss16 error:  Gaussian cannot compute Raman activities with\n" .
-        "numerical second derivatives -- Freq=(Raman,Numerical) fails with\n" .
-        "\"Unrecognized FrqTyp\" before the job starts.  In Runtype Details,\n" .
-        "either clear \"Raman Activities\" or choose the Analytic or\n" .
-        "Numerical 1st and 2nd Derivative method.\n";
+    print STDERR "ai.gauss16 warning [Freq=]: Gaussian cannot compute " .
+        "Raman activities with numerical second derivatives (Freq=(Raman," .
+        "Numerical) fails with \"Unrecognized FrqTyp\"). Clear \"Raman " .
+        "Activities\" or choose the Analytic or Numerical 1st and 2nd " .
+        "Derivative method.\n";
   }
 
   if ($AbiDict{"ES.Runtype.Vibration.Anharmonic"} &&
       $AbiDict{"ES.Runtype.Vibration.Projected"}) {
-    die "ai.gauss16 error:  Gaussian cannot run an anharmonic analysis on\n" .
-        "projected frequencies -- Freq=(Anharmonic,Projected) fails with a\n" .
-        "mismatch between the number of normal modes of the calculation and\n" .
-        "of the input source.  In Runtype Details, clear either\n" .
-        "\"Anharmonic Frequencies\" or \"Project Out Translation/Rotation\".\n";
+    print STDERR "ai.gauss16 warning [Freq=]: Gaussian cannot run an " .
+        "anharmonic analysis on projected frequencies " .
+        "(Freq=(Anharmonic,Projected) fails on a normal-mode count " .
+        "mismatch). Clear \"Anharmonic Frequencies\" or \"Project Out " .
+        "Translation/Rotation\".\n";
   }
 }
 
@@ -1660,8 +1660,10 @@ sub Symmetry {
     #  than"), and the largest finite subgroup is enough -- PG=D4H on
     #  N2 and PG=C4V on CO still report D*H / C*V and SGG/PIU labels.
     #  Verified by running Gaussian 16 C.01, 2026-09-27.
-    $group = "C4V" if ($group eq "CINFV");
-    $group = "D4H" if ($group eq "DINFH");
+    #  Any spelling of the infinite groups: a molecule can carry the one
+    #  a previous job's code reported (Gaussian's own C*V, ORCA's C(inf)v).
+    $group = "C4V" if ($group =~ /^C\(?(\*|INF|OO)\)?V$/);
+    $group = "D4H" if ($group =~ /^D\(?(\*|INF|OO)\)?H$/);
     if ($group ne "" && $group ne "C1" && $group !~ /UNKNOWN/) {
       return "Symmetry=(PG=$group,Loose) ";
     }

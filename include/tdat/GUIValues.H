@@ -96,6 +96,12 @@ public:
 
   string toString() const;
 
+  // True when load() rewrote a memory size saved in a pre-GB unit, so the
+  // caller knows the stored calculation (and its input deck) is stale.
+  bool convertedLegacyUnits() const { return p_convertedLegacyUnits; }
+
+private:
+  bool p_convertedLegacyUnits;
 }; 
 
 

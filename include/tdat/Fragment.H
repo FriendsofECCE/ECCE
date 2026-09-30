@@ -108,7 +108,8 @@ class Fragment
       virtual void generateShapes(void);
       virtual bool generateShape(TAtm *atm);
       virtual void generateBondOrders(void);
-      void generateFullMolecule(void);
+      // false if genmol failed; the fragment is then left unchanged
+      bool generateFullMolecule(void);
       void generateIrreducibleFragment(void);
 
       virtual void setLattice(LatticeDef *lattice);

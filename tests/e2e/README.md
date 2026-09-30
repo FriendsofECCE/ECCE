@@ -164,3 +164,29 @@ stored `.frag`/`.param` first, so the deck is *generated* — that is what
 makes a property with nothing able to request it fail here (#88's CHELPG
 was parsed for the life of the ORCA integration and could never be asked
 for). See #107.
+
+The three NWChem MO cases below (`nwchem-h2-mos`, `nwchem-o2-triplet-mos`,
+`nwchem-co-mos`, #199) are a first, narrow instance of this for NWChem:
+`check_nwchem_generation.py` re-runs the real `ai.nwchem` over the
+`.frag`/`.param`/`.basis` under `fixtures/nwchem/gen-inputs/` and diffs
+the result against the checked-in `.nw`, so a generator regression is
+caught before it ever reaches `run_tests.py`. It is a separate script
+rather than folded into `run_case()` because `run_tests.py`'s cases are
+all deck-in, not generator-in — see #107 for doing this for every case
+instead.
+
+```
+tests/e2e/check_nwchem_generation.py            check H2/O2/CO regenerate
+tests/e2e/check_nwchem_generation.py --update   regenerate the fixtures
+```
+
+### The class exercise (#199): H2, O2 (triplet), CO with NWChem
+
+`nwchem-h2-mos`, `nwchem-o2-triplet-mos` and `nwchem-co-mos` are the
+permanent regression guard for "a chemistry class builds H2/O2/CO with
+NWChem and looks at the MO shapes" — SCF/RHF (SCF/UHF for O2's open
+shell) at Energy/6-31G*, the defaults a student's clicks would produce.
+`nwchem-o2-triplet-mos` is the one that matters: it is the only case in
+this suite exercising the alpha/beta split (`ORBENGBETA`/`ORBOCCBETA`/
+`MOBETA`), asserts 9 alpha / 7 beta occupied electrons, and pins the
+alpha HOMO to a degenerate pair — the half-filled pi*g O2 is famous for.

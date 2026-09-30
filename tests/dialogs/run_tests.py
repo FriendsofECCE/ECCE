@@ -305,11 +305,24 @@ def checkRestore(display, results, verbose=False):
         overrides = {k: v for k, v in case.items()
                      if k in harness.ARGV_FIELDS}
         try:
-            got, _before, _after = restore.roundTrip(
+            got, _before, after = restore.roundTrip(
                 display, case["script"], case["changes"], **overrides)
         except harness.DialogError as exc:
             results.fail(where, "%s\n      %s" % (exc, _why(case)))
             continue
+        if "resent" in case:
+            emitted = after.get("emitted", [])
+            if "#INITIALIZED" not in emitted:
+                results.fail(where, "the dialog never sent #INITIALIZED")
+            else:
+                late = emitted[emitted.index("#INITIALIZED") + 1:]
+                late = sorted(set(l.split("|")[0] for l in late
+                                  if l.count("|") == 5))
+                if late != sorted(case["resent"]):
+                    results.fail(
+                        where, "sent after #INITIALIZED: %s, expected %s\n"
+                        "      %s" % (late, sorted(case["resent"]),
+                                      _why(case)))
         for name, expected in case["expect"].items():
             if name not in got:
                 results.fail(where, "the dialog built no widget named %s"

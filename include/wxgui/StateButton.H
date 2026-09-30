@@ -6,7 +6,7 @@
  *
  * This is a homemade widget that mimic a button but can be turned off
  * as flat if needed. It also got customized drawing on it using WxState.
- * It is used in GatewayPref dialog to set or reset state colors.
+ * It is used in the Preferences dialog to set or reset state colors.
  *
  */
 
@@ -32,7 +32,7 @@
 
 
 class WxState;
-class GatewayPrefs;
+class GlobalPrefs;
 
 class StateButton: public ewxPanel {
 
@@ -43,7 +43,8 @@ public:
   enum BUTTONSTATUS { FLATBUTTON, SUNKENBUTTON, RAISENBUTTON };
 
   StateButton(ResourceDescriptor::RUNSTATE state, bool isDefault,
-              GatewayPrefs* parent, wxWindowID id = ID_STATEBUTTON,
+              GlobalPrefs* owner, wxWindow* parent,
+              wxWindowID id = ID_STATEBUTTON,
               const wxPoint& pos = STATEBUTTON_POSITION,
               const wxSize& size = STATEBUTTON_SIZE,
               long style = STATEBUTTON_STYLE);
@@ -58,7 +59,8 @@ protected:
   StateButton();
 
   void Create(ResourceDescriptor::RUNSTATE state, bool isDefault,
-              GatewayPrefs* parent, wxWindowID id = ID_STATEBUTTON,
+              GlobalPrefs* owner, wxWindow* parent,
+              wxWindowID id = ID_STATEBUTTON,
               const wxPoint& pos = STATEBUTTON_POSITION,
               const wxSize& size = STATEBUTTON_SIZE,
               long style = STATEBUTTON_STYLE);
@@ -69,12 +71,13 @@ protected:
   void OnMouseEnterWindow( wxMouseEvent& event );
   void OnMouseLeaveWindow( wxMouseEvent& event );
   void OnPaint( wxPaintEvent& event );
+  void OnSize( wxSizeEvent& event );
 
   void ToolActive();
   bool Enable(bool enable);
   void SiblingClicked();
 
-  GatewayPrefs * p_parent;
+  GlobalPrefs * p_parent;
   StateButton * p_sibling;
   WxState * p_stateIcon;
   ResourceDescriptor::RUNSTATE p_state;

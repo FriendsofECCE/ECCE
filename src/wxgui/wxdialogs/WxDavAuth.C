@@ -42,6 +42,25 @@ extern "C" {
 #include "wxgui/WxAuth.H"
 #include "wxgui/ewxMessageDialog.H"
 
+// ECCE_DEBUG_DAVAUTH=<file>: appends one line per getAuthorization()/
+// prompt()/authorizationAccepted() decision -- which of cache, session
+// file or a real dialog supplied credentials, what retryCount reached
+// prompt(), and what knownGood() found. Added to root-cause a live
+// report ("even with the correct password I still don't get access to
+// my files": the retry dialog showed the wrong wording and a prefilled
+// username instead of "<user> has no access...") that a single-process
+// static read of this file could not settle on its own -- see the
+// long comment on the fix in getAuthorization(AuthEvent&) below.
+static void davAuthDebug(const string& msg)
+{
+   const char *where = getenv("ECCE_DEBUG_DAVAUTH");
+   if (where == 0) return;
+   FILE *log = fopen(where, "a");
+   if (log == 0) return;
+   fprintf(log, "[DAVAUTH] pid=%d %s\n", (int)getpid(), msg.c_str());
+   fclose(log);
+}
+
 /**
  * This class implements the AuthEventListener interface by using the
  * authorization cache and prompting when necessary.
@@ -139,7 +158,6 @@ BasicAuth *WxDavAuth::getAuthorization(const string& url, const string& user)
  *
  * The user and password fields of the event may be replacedd
  *
- * @throw RetryException after n user prompts
  * @return true if there is a new value to try.
  */
 bool WxDavAuth::getAuthorization(AuthEvent& event)
@@ -175,6 +193,12 @@ bool WxDavAuth::getAuthorization(AuthEvent& event)
             event.m_retryCount);
    }
 
+   davAuthDebug("getAuthorization url=" + event.m_url +
+                " user=" + event.m_user +
+                " event.retryCount=" + std::to_string(event.m_retryCount) +
+                " p_promptCount=" + std::to_string(p_promptCount) +
+                " cacheHit=" + (ba != 0 ? "yes" : "no"));
+
    // Before asking the user, see whether another process of this session
    // has learned a newer password since this one loaded the session
    // store -- the user changed it elsewhere, or it was reset and typed in
@@ -202,16 +226,37 @@ bool WxDavAuth::getAuthorization(AuthEvent& event)
       // try prompting then
       p_promptCount++;
 
-      if (p_promptCount > 3) {
-         throw RetryException("Maximum retries exceeded (3).",WHERE);
-      }
-
+      // prompt()'s retryCount must be event.m_retryCount (how many
+      // times THE SERVER has rejected an attempt for this operation),
+      // not p_promptCount (how many times a DIALOG has been shown for
+      // it) -- they are not the same number. AuthCache's key is
+      // per-SERVER, not per-path (EcceURL::getRef() carries no path),
+      // so a credential already cached from logging in elsewhere on
+      // this server is retried automatically on attempt 1 of a fresh
+      // operation, with no dialog at all; only once that silent retry
+      // is ALSO rejected (event.m_retryCount reaches 2) does the cache
+      // finally come up empty and a dialog actually appear -- as
+      // p_promptCount's very first prompt, i.e. 1. Passing p_promptCount
+      // here made that dialog look like a brand new, never-tried
+      // request, so the "no access" wording (which needs retryCount>1)
+      // and the "not accepted" wording could never appear on exactly
+      // the sequence that produces them: known-good credentials,
+      // cached from an earlier login on this server, silently retried
+      // and rejected by a DIFFERENT folder's access control. Confirmed
+      // live (2026-09-29): "stud1" successfully logged in, then
+      // clicking andy's folder in the Organizer showed the plain
+      // first-time dialog, prefilled "stud1", instead of "stud1 has no
+      // access to this folder...".
+      //
+      // No cap here: prompt() only returns true on OK (Cancel already
+      // ends the loop), so this can't spin on its own, and a client-side
+      // limit protects nothing -- anyone can hit Apache directly anyway.
       if (!ret)
         ret = prompt(event.m_url,
               event.m_newUser,
               event.m_user,
               event.m_password,
-              p_promptCount);
+              event.m_retryCount);
    } else {
       // Got something from cache
       event.m_user = ba->m_user;
@@ -230,7 +275,14 @@ bool WxDavAuth::getAuthorization(AuthEvent& event)
 /**
  * Prompt user for password.
  * Username can also be changed.
- * @param retryCount if != 1 (first time), window looks slightly different??
+ * @param retryCount the AuthEvent's own m_retryCount: how many times
+ *   THE SERVER has rejected an attempt for this operation so far, 1 for
+ *   the very first. NOT p_promptCount (how many times a dialog has
+ *   actually been shown) -- an earlier rejected attempt can be a
+ *   silent cache retry that never showed a dialog at all, and this
+ *   still needs to count as "already tried and failed" (see the
+ *   comment in getAuthorization(AuthEvent&) on why). Unbounded -- the
+ *   user keeps retrying until they succeed or press Cancel.
  */
 bool WxDavAuth::prompt(const string& strurl,
       const bool& newUser,
@@ -238,7 +290,9 @@ bool WxDavAuth::prompt(const string& strurl,
       string& password,
       int retryCount)
 {
-   bool ret;
+   // false for anything but http: getAuthorization() retries without limit
+   // while this returns true, so an unset value could loop with no dialog.
+   bool ret = false;
 
    EcceURL url(strurl);
 
@@ -253,6 +307,22 @@ bool WxDavAuth::prompt(const string& strurl,
      if (p_prompting) {
        return false;
      }
+
+     // The user already cancelled a prompt for this exact url a moment
+     // ago -- a second 401 for it right behind that cancel (a follow-up
+     // request from the same user action, e.g. two DAV calls opening one
+     // folder) must not pop a second dialog. A few seconds is enough to
+     // cover one user action; a later, genuinely new attempt (the user
+     // navigates back to the same folder) ages out and prompts again.
+     const time_t cancelSuppressSeconds = 5;
+     std::map<string, time_t>::iterator cit = p_cancelledAt.find(strurl);
+     if (cit != p_cancelledAt.end()) {
+       if (time(0) - cit->second < cancelSuppressSeconds) {
+         return false;
+       }
+       p_cancelledAt.erase(cit);
+     }
+
      p_prompting = true;
 
      //  TEMPORARY, #120: which parent this dialog actually gets, and
@@ -278,18 +348,60 @@ bool WxDavAuth::prompt(const string& strurl,
 
      WxAuth authDlg(p_window);
 
+     // A retry with a credential already proven good elsewhere this
+     // session (knownGood()) means the server can see the password --
+     // it just won't let this user into THIS folder. That is a
+     // different problem than a wrong password, and the fix is a
+     // different login, not a retyped one.
+     bool noAccess = !newUser && retryCount > 1 &&
+                     knownGood(url.getHost(), user);
+
+     davAuthDebug("prompt url=" + strurl + " user=" + user +
+                  " retryCount=" + std::to_string(retryCount) +
+                  " newUser=" + (newUser ? "yes" : "no") +
+                  " knownGood=" + (knownGood(url.getHost(), user) ? "yes" : "no") +
+                  " -> noAccess=" + (noAccess ? "yes" : "no"));
+
      if (newUser) {
        authDlg.setPrompt("You do not have an existing data server account!\nPlease enter a new data server password to create one:");
        authDlg.setPasswordLabel("  New\nPassword:");
+     } else if (retryCount > 1) {
+       string promptStr;
+       if (noAccess) {
+         promptStr = user + " has no access to this folder.\n"
+               "Enter its owner's name and password to open it:";
+       } else {
+         // A prior prompt's password was refused by the server -- say
+         // so, rather than silently repeating the same dialog.
+         promptStr = "The user name or password was not accepted.\n"
+               "Please try again:";
+       }
+       authDlg.setPrompt(promptStr);
+
+       // Fit() sizes the dialog to the new prompt text's best size,
+       // which can come out NARROWER than the dialog's first
+       // appearance -- seen live truncating the title bar to "ECCE
+       // Authenti...".  Never let the retry dialog end up smaller than
+       // it was already showing.
+       wxSize before = authDlg.GetSize();
+       authDlg.Layout();
+       authDlg.Fit();
+       wxSize after = authDlg.GetSize();
+       authDlg.SetSize(wxSize(wxMax(before.GetWidth(), after.GetWidth()),
+                              wxMax(before.GetHeight(), after.GetHeight())));
      }
 
      authDlg.showChangeBtn(true);
      authDlg.setServer(url.getHost());
      authDlg.setProtocol("http");
-     authDlg.setUser(user);
+     // Prefilling the session user's own name here would invite retyping
+     // the same password that already failed for lack of access -- leave
+     // it blank so the owner's name has to be entered instead.
+     authDlg.setUser(noAccess ? "" : user);
 
      int status;
      bool done = false;
+     bool userCancelled = false;
      while (!done) {
        ret = false;
        done = true;
@@ -326,6 +438,9 @@ bool WxDavAuth::prompt(const string& strurl,
 #endif
 
        status = authDlg.ShowModal();
+       if (status != wxID_OK) {
+         userCancelled = true;
+       }
 
        if (status == wxID_OK) {
          ret = true;
@@ -369,6 +484,12 @@ bool WxDavAuth::prompt(const string& strurl,
            }
          }
        }
+     }
+
+     if (userCancelled) {
+       // Remember it so a second 401 for this same url, arriving right
+       // behind this cancel, doesn't prompt again.
+       p_cancelledAt[strurl] = time(0);
      }
    }
 
@@ -460,5 +581,22 @@ void WxDavAuth::authorizationAccepted(const AuthEvent& event)
    AuthCache::getCache().addAuthentication(event.m_url, event.m_user,
                                            event.m_password,
                                            event.m_realm, true);
+
+   EcceURL eurl(event.m_url);
+   p_knownGoodUsers.insert(eurl.getHost() + "|" + event.m_user);
+
+   davAuthDebug("authorizationAccepted url=" + event.m_url +
+                " user=" + event.m_user +
+                " host=" + eurl.getHost() + " -> knownGood recorded");
+}
+
+/**
+ * Has `user` already succeeded against `host` (any url) this session?
+ * If so, a fresh 401 for a different folder is "no access", not a bad
+ * password -- the credential itself already proved good.
+ */
+bool WxDavAuth::knownGood(const string& host, const string& user) const
+{
+   return p_knownGoodUsers.find(host + "|" + user) != p_knownGoodUsers.end();
 }
 

@@ -126,6 +126,7 @@ $wrote
 \'$result\'
 \@toremove\n
 \n
+\nend\ntask
 \ntask
 \s*
 \s*\

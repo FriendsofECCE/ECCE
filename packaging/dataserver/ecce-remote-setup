@@ -30,15 +30,45 @@ set -u
 usage() {
   cat <<'USAGE'
 Usage: ecce-remote-setup <server-host> [data-port] [broker-port]
+       ecce-remote-setup --server [listen]
 
+  --server      on the SERVER, as the account running it: mark its broker
+                as a central server's, so its plain quit leaves it running;
+                listen (all, loopback or addresses) goes to dataserver/listen
   server-host   host name of the central ECCE server
   data-port     data server port      (default 8096)
   broker-port   message broker port   (default 8088)
 
-Writes $ECCE_HOME/siteconfig/RemoteServer/ and repoints the broker URL.
+Writes $ECCE_HOME/siteconfig/RemoteServer/ and repoints the broker URL, and
+copies the server's registered site machine list (Machines, Queues,
+CONFIG.*, *.Q) into siteconfig/ if the server publishes one. Re-run after
+the admin changes that list on the server.
 Run "ecce -remote" afterwards.
 USAGE
 }
+
+#  The SERVER's step: run once as the account that runs the central data
+#  server and broker.  It marks that account's broker as a server's, so
+#  the account's own plain quit never stops it under its clients; only
+#  its Quit and Stop Server does.  A mark, not a guess from the listen
+#  address, because clients may reach a loopback-only server through ssh
+#  tunnels.  The optional listen value is written to dataserver/listen.
+if [ "${1:-}" = "--server" ]; then
+  STATEDIR="${ECCE_REALUSERHOME:-$HOME}/.ECCE"
+  mkdir -p "$STATEDIR/activemq" || exit 1
+  echo "# ECCE central server: plain quits leave this broker running (ecce-remote-setup --server)" \
+    >"$STATEDIR/activemq/server" || exit 1
+  echo "Marked $STATEDIR/activemq/server: this account's broker is a central server's."
+  if [ -n "${2:-}" ]; then
+    mkdir -p "$STATEDIR/dataserver" || exit 1
+    echo "$2" >"$STATEDIR/dataserver/listen" || exit 1
+    echo "Wrote $STATEDIR/dataserver/listen ($2): the data server and broker listen there."
+    echo "Restart them for it to take effect:"
+    echo "    ecce-dataserver-stop; ecce-gateway-stop"
+  fi
+  echo "Remove that file to make it a per-user broker again."
+  exit 0
+fi
 
 if [ $# -lt 1 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
   usage
@@ -94,6 +124,7 @@ mkdir -p "$REMOTE" || exit 1
 if [ -f "$SITE/DataServers" ]; then
   sed -e "s|http://[^:/]*:[0-9]*/Ecce|$URL|g" \
       -e "s|http://[^:/]*:[0-9]*/Ecce/system|$URL/system|g" \
+      -e "s|<Desc>[^<]*</Desc>|<Desc>ECCE Data Server on $HOST</Desc>|" \
       "$SITE/DataServers" > "$REMOTE/DataServers"
 else
   echo "ecce-remote-setup: no $SITE/DataServers to base this on" >&2
@@ -126,6 +157,66 @@ if [ -f "$SITE/jndi.properties" ]; then
   fi
   sed -e "s|^\( *java.naming.provider.url *= *\).*|\1tcp://$HOST:$BROKER_PORT|" \
       "$SITE/jndi.properties.local" > "$SITE/jndi.properties"
+fi
+
+#  Site machine list (issue #188).  ecce-dataserver-start publishes the
+#  server's siteconfig/{Machines,Queues,CONFIG.*,*.Q} under Ecce/system,
+#  which is served without a login -- same tree the basis set library
+#  comes from -- so this needs no credentials.  All-or-nothing: a partial
+#  copy would leave CONFIG.* files with no matching Machines entry, or vice
+#  versa, which is worse than not copying at all.
+MACHINES_MSG=""
+if ! command -v curl >/dev/null 2>&1; then
+  echo "WARNING: curl not found -- cannot copy the server's machine list;" >&2
+  echo "  register machines by hand, or install curl and re-run this script." >&2
+else
+  TMPDIR=$(mktemp -d) || exit 1
+  trap 'rm -rf "$TMPDIR"' EXIT
+  if curl -sf --connect-timeout 5 "$URL/system/siteconfig/MANIFEST" \
+       -o "$TMPDIR/MANIFEST" 2>/dev/null; then
+    names="" ok=true
+    while IFS= read -r name || [ -n "$name" ]; do
+      [ -n "$name" ] || continue
+      case "$name" in
+        */*|.*)
+          echo "WARNING: ignoring bad name '$name' in the server's MANIFEST" >&2
+          continue ;;
+      esac
+      if ! curl -sf --connect-timeout 5 \
+             "$URL/system/siteconfig/$name" -o "$TMPDIR/$name" 2>/dev/null; then
+        echo "WARNING: could not fetch $name from the server -- machine list not copied." >&2
+        ok=false
+        break
+      fi
+      names="$names $name"
+    done <"$TMPDIR/MANIFEST"
+    names="${names# }"
+    if [ "$ok" = true ] && [ -n "$names" ]; then
+      #  Back up the client's own machine files once, so a re-run keeps the
+      #  pristine pre-server-copy original rather than overwriting it again.
+      BACKUP="$SITE/local-machines.orig"
+      if [ ! -d "$BACKUP" ]; then
+        mkdir -p "$BACKUP"
+        for f in "$SITE/Machines" "$SITE/Queues" "$SITE"/CONFIG.* "$SITE"/*.Q; do
+          [ -f "$f" ] && cp -p "$f" "$BACKUP/"
+        done
+      fi
+      count=0
+      for name in $names; do
+        install -m 644 "$TMPDIR/$name" "$SITE/$name"
+      done
+      if [ -f "$SITE/Machines" ]; then
+        count=$(grep -cve '^[[:space:]]*#' -e '^[[:space:]]*$' "$SITE/Machines")
+      fi
+      MACHINES_MSG="Copied the server's machine list: $count machine(s) ($(echo "$names" | tr -s ' ' ','))"
+      echo "$MACHINES_MSG"
+    fi
+  else
+    echo "WARNING: no machine list published at $URL/system/siteconfig/MANIFEST"
+    echo "  (an older server, or the server is not up yet). Machines were NOT"
+    echo "  copied -- register them by hand, or re-run ecce-remote-setup once"
+    echo "  the server is running 8.17.0 or later."
+  fi
 fi
 
 echo

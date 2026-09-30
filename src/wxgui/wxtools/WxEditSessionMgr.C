@@ -10,125 +10,153 @@
 #include <fstream>
    using std::ofstream;
 
+#include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/wait.h>
 #include <sys/stat.h>  // stat
 #include <sys/types.h>
 
-#include "wx/timer.h"
+#include <map>
+
+#include "wx/utils.h"
+#include "wx/process.h"
+#include "wx/fswatcher.h"
+#include "wx/filename.h"
 
 #include "util/ErrMsg.H"
 #include "util/UserEditor.H"
 #include "util/TempStorage.H"
-#include "util/TDateTime.H"
 #include "util/SFile.H"
 #include "util/EditListener.H"
 #include "util/EditEvent.H"
 
 #include "wxgui/WxEditSessionMgr.H"
 
-extern char **environ;
+static const int MAX_EDITOR_ARGS = 32;
 
-static const int CHECK_INTERVAL = 2000;
+// Modification time to the nanosecond plus size: two saves within one
+// second must still register as two changes.
+static bool fileStamp(const string& path, long long& stamp, long long& size)
+{
+   struct stat sb;
+   if (stat(path.c_str(), &sb) != 0) return false;
+   stamp = (long long)sb.st_mtim.tv_sec * 1000000000LL + sb.st_mtim.tv_nsec;
+   size = (long long)sb.st_size;
+   return true;
+}
+
+static vector<EditSession>::iterator findSession(vector<EditSession>& v, int pid)
+{
+   vector<EditSession>::iterator it = v.begin();
+   while (it != v.end() && (*it).pid != pid) it++;
+   return it;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
-// Helper class - WxEditTimer
+// Helper class - WxEditProcess
 //////////////////////////////////////////////////////////////////////////////
 
 /**
- * Handles timer events for WxEditFile facade.
- * This is an internal support class for WxEditSessionMgr.
- * This class is a timer that can be used for either sigchild handling
- * or to handle the case where the user has updated the file they are
- * editing.  It needs access to the EditSessions kept by WxEditSessionMgr
- * and is thus a friend.
- * 
- * Note that instances are created on the stack and not cleaned up.
- * This could be fixed by keeping a vector of these, marking them when they
- * are expired and periodically clean up expired timers.
- * I didn't bother now because its a fairly small memory problem.
- *
- * The Notify method is called to handle when the timer expires.
- * The behavior will depend on whether or not the instance was created
- * to handle sigchild or to check on file changes which is defined
- * at object construction time.
- * In the case of sigchild handling (destroy=true), notify the listener
- * only if there were writes.
+ * Owns the editor child.  wx reaps only the processes it started, so this
+ * cannot steal the children of system() calls on other threads the way a
+ * process-wide SIGCHLD handler did.  On exit the listener is notified IFF
+ * the file changed since the last notification, then the temp file goes.
  */
-class WxEditTimer : public wxTimer
+class WxEditProcess : public wxProcess
 {
    public:
+      WxEditProcess() : wxProcess(wxPROCESS_DEFAULT) {}
 
-      WxEditTimer( int pid, bool destroy)
-         : p_pid(pid), p_destroy(destroy) {;}
-
-      ~WxEditTimer() {;}
-
-      void Notify()
+      void OnTerminate(int pid, int status)
       {
-         vector<EditSession>::iterator it = 
-            WxEditSessionMgr::p_sessions.begin();
-         while (it != WxEditSessionMgr::p_sessions.end()) {
-            if ( (*it).pid == p_pid) {
-               break;
-            }
-            it++;
-         }
-
+         vector<EditSession>::iterator it =
+            findSession(WxEditSessionMgr::p_sessions, pid);
          if (it != WxEditSessionMgr::p_sessions.end()) {
-            // Loook up pid - if found notify listener
-            if (p_destroy) {
-               // sigchild handler
-
-               // Notify the client IFF file changed
-               SFile file((*it).file);
-               if (file.exists()) {
-                  long modSec = file.lastModified().toSeconds();
-                  if (modSec > (*it).modsec) {
-                     EditEvent ee;
-                     ee.id = (*it).callerids;
-                     ee.filename = (*it).file;
-                     (*it).l->processEditCompletion(ee);
-                  }
-
-                  // Delete the file - AFTER notifying client
-                  file.remove();
-               }
-
+            WxEditSessionMgr::finishSession(*it);
+            it = findSession(WxEditSessionMgr::p_sessions, pid);
+            if (it != WxEditSessionMgr::p_sessions.end()) {
                WxEditSessionMgr::p_sessions.erase(it);
-
-
-            } else {
-               // update handler
-               SFile file((*it).file);
-               if (file.exists()) {
-                  long modSec = file.lastModified().toSeconds();
-                  if (modSec > (*it).modsec) {
-                     // Notify the client IFF file changed
-                     EditEvent ee;
-                     ee.id = (*it).callerids;
-                     ee.filename = (*it).file;
-                     (*it).l->processEditCompletion(ee);
-                     (*it).modsec = file.lastModified().toSeconds();
-                  }
-
-                  Start(CHECK_INTERVAL, true);
-               }
-
             }
          }
+         delete this;
       }
-
-   protected:
-      int p_pid;
-      bool p_destroy;
-      
 };
 
 
+//////////////////////////////////////////////////////////////////////////////
+// Helper class - WxEditWatcher
+//////////////////////////////////////////////////////////////////////////////
 
+/**
+ * Watches the directories of files under edit, so a save is reported while
+ * the editor is still open.  Editors that save by writing a new file and
+ * renaming it show up as create/rename events in the directory, so the
+ * directory is watched and each event just re-stats the session files.
+ * If the watch cannot be set up, the change is still picked up when the
+ * editor exits.
+ */
+class WxEditWatcher : public wxEvtHandler
+{
+   public:
+      WxEditWatcher() : p_watcher(NULL)
+      {
+         Bind(wxEVT_FSWATCHER, &WxEditWatcher::onEvent, this);
+      }
+
+      ~WxEditWatcher() { delete p_watcher; }
+
+      static WxEditWatcher& instance()
+      {
+         static WxEditWatcher* w = new WxEditWatcher();
+         return *w;
+      }
+
+      void add(const string& dir)
+      {
+         if (p_dirs[dir]++ > 0) return;
+         if (p_watcher == NULL) {
+            p_watcher = new wxFileSystemWatcher();
+            p_watcher->SetOwner(this);
+         }
+         p_watcher->Add(wxFileName::DirName(wxString::FromUTF8(dir.c_str())),
+               wxFSW_EVENT_CREATE | wxFSW_EVENT_MODIFY | wxFSW_EVENT_RENAME);
+      }
+
+      void remove(const string& dir)
+      {
+         std::map<string,int>::iterator it = p_dirs.find(dir);
+         if (it == p_dirs.end()) return;
+         if (--(it->second) > 0) return;
+         p_dirs.erase(it);
+         if (p_watcher != NULL) {
+            p_watcher->Remove(
+               wxFileName::DirName(wxString::FromUTF8(dir.c_str())));
+         }
+      }
+
+   private:
+      void onEvent(wxFileSystemWatcherEvent& evt)
+      {
+         wxString path = evt.GetPath().GetFullPath();
+         wxString newPath = evt.GetNewPath().GetFullPath();
+         vector<int> pids;
+         for (size_t i = 0; i < WxEditSessionMgr::p_sessions.size(); i++) {
+            wxString f = wxString::FromUTF8(
+                  WxEditSessionMgr::p_sessions[i].file.c_str());
+            if (f == path || f == newPath) {
+               pids.push_back(WxEditSessionMgr::p_sessions[i].pid);
+            }
+         }
+         for (size_t i = 0; i < pids.size(); i++) {
+            WxEditSessionMgr::checkSession(pids[i]);
+         }
+      }
+
+      wxFileSystemWatcher *p_watcher;
+      std::map<string,int> p_dirs;
+};
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -238,14 +266,9 @@ SFile* WxEditSessionMgr::makeTemporaryFile(const string& data)
 
 
 /**
- * Performs fork/execve on the specified command.  The process id
- * and other information is retained for later when a SIGCHLD is
- * received.
- *
- * The signal handler must be uninstalled prior to the fork/exec process
- * or else upon forking a second process, the parent will hang until
- * the child dies.  I found this out via experience.  Nothing in the
- * man pages explained why this is so.
+ * Starts the editor asynchronously.  A WxEditProcess ends the session
+ * when the editor exits and a directory watch reports saves meanwhile;
+ * neither needs a signal handler or a timer.
  */
 void WxEditSessionMgr::startSession (const string& app,
       /*const*/ char *args[],
@@ -253,84 +276,88 @@ void WxEditSessionMgr::startSession (const string& app,
       const string& id,
       EditListener *l)
 {
-   int pid;
+   WxEditProcess *proc = new WxEditProcess();
+   long pid = wxExecute(args, wxEXEC_ASYNC, proc);
 
-
-   // temporarily suspend signal handler
-   signal(SIGCHLD, SIG_DFL);
-
-   if ((pid = fork()) == 0) {
-      /* child */
-      if (execve((char*)app.c_str(),args,environ) < 0) {
-         string msg = "Failed to execute execve - ";
-         msg += app;
-         EE_RT_ASSERT(false, EE_FATAL, msg);
-      }
-   } else if (pid == -1) {
-      EE_RT_ASSERT(false, EE_WARNING, "fork failure");
-   } else {
-      /* parent */
-
-      EditSession session;
-      session.callerids = id;
-      session.file = file->path();
-      session.l = l;
-      session.modsec = file->lastModified().toSeconds();
-      session.pid = pid;
-      p_sessions.push_back(session);
-
-      // Add timer to check for writes
-      WxEditTimer *timer = new WxEditTimer(pid, false);
-      timer->Start(CHECK_INTERVAL,true);
+   if (pid <= 0) {
+      delete proc;
+      EE_RT_ASSERT(false, EE_WARNING, "Failed to start editor " + app);
+      return;
    }
 
-   // install signal handler for Citations/Annotations
-   signal(SIGCHLD, WxEditSessionMgr::editSessionCompleted);
+   EditSession session;
+   session.callerids = id;
+   session.file = file->path();
+   session.l = l;
+   session.pid = (int)pid;
+   if (!fileStamp(session.file, session.stamp, session.size)) {
+      session.stamp = 0;
+      session.size = 0;
+   }
+   p_sessions.push_back(session);
 
+   size_t slash = session.file.rfind('/');
+   WxEditWatcher::instance().add(
+         slash == string::npos ? "." : session.file.substr(0, slash));
 }
 
 
 /**
- * Signal handler for SIGCHLD.  All processing is actually done
- * in a method schduled via WxEditTimer (sublcass WxTimer) to avoid
- * ANY Xlib calls in the handler.  This basic philosophy carried over from
- * old X implementation (See O'Reilly Chapter 20 for more information)
- * 
- * A timer of basically no time is used to schedule actual sigchild processing.
- * We go to all this trouble so that the application can post
- * messages to the feedback area if problems occurr.
+ * Notify the listener if the file differs from what it last saw.
+ * @return true if the file exists.
  */
-void WxEditSessionMgr::editSessionCompleted(int arg)
+bool WxEditSessionMgr::notifyIfChanged(EditSession& s)
 {
-   int pid;
-   int status;
+   long long stamp, size;
+   if (!fileStamp(s.file, stamp, size)) return false;
 
-   pid = wait3(&status,WNOHANG,NULL);
-
-   if (pid == -1) {
-      // man pages say: If there are no children, -1 is returned immediately
-      // cerr << "No children to wait3() on." << endl;
-
-   } else if (pid == 0) {
-      // Got tired of seeing this warning which didn't seem related to any
-      // problems so I commented it out  GDB 2/15/08
-      // EE_ASSERT(false, EE_WARNING, "nothing to wait on");
-
-   } else {
-      // Add timer so we don't process any Xlib events in handler
-      //XtAppAddTimeOut(XtDisplayToApplicationContext(XtDisplay(p_shell)),
-      //      0,processDeadChild,(XtPointer)new int(pid));
-      WxEditTimer *timer = new WxEditTimer(pid, true);
-      timer->Start(1,true);
+   if (stamp != s.stamp || size != s.size) {
+      s.stamp = stamp;
+      s.size = size;
+      EditEvent ee;
+      ee.id = s.callerids;
+      ee.filename = s.file;
+      s.l->processEditCompletion(ee);
    }
-
-   // From the man pages:
-   // Before entering the signal-catching function, the value of func for the
-   // caught signal will be set to SIG_DFL unless the signal is SIGILL,
-   // SIGTRAP, or SIGPWR.  This means that before exiting the handler, a
-   // signal call is necessary to again set the disposition to catch the signal
-   signal(SIGCHLD, WxEditSessionMgr::editSessionCompleted);
+   return true;
 }
+
+
+/**
+ * Save-while-open: called by the directory watch.
+ */
+void WxEditSessionMgr::checkSession(int pid)
+{
+   vector<EditSession>::iterator it = findSession(p_sessions, pid);
+   if (it != p_sessions.end()) {
+      EditSession copy = *it;   // the listener may start another session
+      notifyIfChanged(copy);
+      it = findSession(p_sessions, pid);
+      if (it != p_sessions.end()) {
+         it->stamp = copy.stamp;
+         it->size = copy.size;
+      }
+   }
+}
+
+
+/**
+ * The editor has exited: last change check, then remove the temp file
+ * AFTER notifying the client.
+ */
+void WxEditSessionMgr::finishSession(EditSession& s)
+{
+   EditSession copy = s;
+   if (notifyIfChanged(copy)) {
+      SFile file(copy.file);
+      file.remove();
+   }
+   size_t slash = copy.file.rfind('/');
+   WxEditWatcher::instance().remove(
+         slash == string::npos ? "." : copy.file.substr(0, slash));
+}
+
+
 
 
 
@@ -341,12 +368,17 @@ void WxEditSessionMgr::editFile(SFile* file,
       const string& name)
 {
 
+   // Most GUI editors have no read-only flag; a read-only file makes them
+   // refuse the save instead of writing to a copy that is then deleted.
+   if (readOnly) {
+      (void)chmod(file->path().c_str(), S_IRUSR);
+   }
+
    UserEditor editor;
 
-   static const int MAX_ARGS = 16;   // gotta be plenty bug
    string exe;
-   char *args[MAX_ARGS];
-   editor.getEditCommand(*file, exe, args, MAX_ARGS, name, readOnly);
+   char *args[MAX_EDITOR_ARGS];
+   editor.getEditCommand(*file, exe, args, MAX_EDITOR_ARGS, name, readOnly);
 
    // If we got here, no problems getting editor command
    startSession(exe, args, file, id, l);

@@ -1,0 +1,36 @@
+Title "H2"
+
+Start  H2
+
+echo
+
+
+charge 0
+
+geometry noautosym units angstrom
+ H     0.000000     0.000000     0.3705
+ H     0.000000     0.000000     -0.3705
+end
+
+ecce_print ecce.out
+
+basis "ao basis" spherical print
+  H library "6-31G*"
+END
+
+
+
+scf
+  RHF
+  nopen 0
+end
+
+
+
+
+
+
+
+
+
+task scf energy

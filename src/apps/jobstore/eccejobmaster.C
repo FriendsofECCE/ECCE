@@ -191,20 +191,6 @@ int main(int argc, char** argv)
 
   logEntry(entry);
 
-  // Email failures to ecce-test if ECCE_JOB_FAILMAIL tells us to
-  if (status!=0 && status!=4) {
-    string url = argv[6];
-    string failmail = getenv("ECCE_JOB_FAILMAIL")?
-                      getenv("ECCE_JOB_FAILMAIL"): "";
-    if (failmail=="true" ||
-        (failmail!="" && url.find(failmail)!=string::npos)) {
-      string mail =
-             "Mail -s 'Job Monitoring Failure' ecce-test@emsl.pnl.gov << EOM\n"
-             "Calculation state set to 'monitor error'.\n"
-             "Calculation URL: " + url + "\nEOM";
-      (void)system(mail.c_str());
-    }
-  }
 
 
   // delete cacheDir when appropriate

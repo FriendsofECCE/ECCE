@@ -56,11 +56,15 @@
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxSpinCtrl.H"
+#include "wxgui/ewxScrolledWindow.H"
 #include "wxgui/ewxStaticBoxSizer.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/ewxWindowUtils.H"
 
+#include "wx/display.h"
+
 #include "WxMachineRegister.H"
+#include "MemoryUnits.H"
 
 #define MAXLINE 512
 
@@ -152,7 +156,7 @@ void WxMachineRegister::initialize()
         wxFlexGridSizer *gridsizer;
         ewxStaticBoxSizer *boxsizer;
 
-        //  Create and populate the "Applications" static box
+        //  Create and populate the "Applications" static box.
         panel = (ewxPanel *)(wxWindow::FindWindowById(ID_PANEL_WXMACHINEREGISTER_APPLICATIONS, this));
         boxsizer = new ewxStaticBoxSizer(wxHORIZONTAL, panel, _("Applications"));
 
@@ -215,6 +219,7 @@ void WxMachineRegister::initialize()
 
         //  Find all other components on the form
         p_machinesList = (ewxListBox*)(this->FindWindowById(ID_LISTBOX_MACHINES));
+        p_formScroll = (ewxScrolledWindow*)(this->FindWindowById(ID_SCROLLEDWINDOW_WXMACHINEREGISTER_FORM));
 
         p_machineFullNameText = (ewxTextCtrl*)(this->FindWindowById(ID_TEXT_MACHINE_FULLNAME));
         p_localityText = (ewxStaticText*)(this->FindWindowById(ID_STATIC_MACHINE_LOCALITY));
@@ -269,9 +274,31 @@ void WxMachineRegister::initialize()
         p_formCloseButton = (ewxButton*)(this->FindWindowById( ID_BUTTON_FORM_CLOSE));
         p_helpButton = (ewxButton*)(this->FindWindowById( ID_BUTTON_HELP));
 
+        //  The whole form (everything above) was built inside p_formScroll
+        //  (#187) -- give it its scrollbar and its virtual (content) size
+        //  now that all of it exists.
+        if (p_formScroll != NULL)
+        {
+            p_formScroll->SetScrollRate(0, 10);
+            p_formScroll->FitInside();
+        }
+
         this->InvalidateBestSize();
         this->GetSizer()->SetSizeHints(this);
         this->GetSizer()->Fit(this);
+
+        //  Open showing the whole form, capped to the display (#187).
+        this->growToFitSizer(true);
+
+        //  ewxFrame::Create()'s Centre() ran on the small, pre-content
+        //  window (Applications/Misc Paths/Queues are empty placeholders
+        //  until the loop above fills them in) -- so the position it
+        //  chose can leave a since-grown, now display-capped frame
+        //  hanging off the bottom of the screen even though its SIZE is
+        //  correct. Only done here, once, at construction: a later grow
+        //  (the locality note) must not relocate a window the user may
+        //  already have moved.
+        this->keepOnScreen();
 }
 
 void WxMachineRegister::mainWindowCloseCB(wxCloseEvent& event)
@@ -351,11 +378,19 @@ void WxMachineRegister::machineFullNameUpdatedCB(wxCommandEvent& event)
     string refName = (string)(p_machineFullNameText->GetValue());
     int chpos = refName.find('.');
 
-    if (chpos != string::npos)
+    //  Don't cut an IP address at its first '.' -- 127.0.0.1 must stay
+    //  127.0.0.1, not become "127" (matches RunMgmt::registerLocalMachine).
+    bool isAddress = refName.find_first_not_of("0123456789.") == string::npos;
+
+    if (chpos != string::npos && !isAddress)
         refName = refName.substr(0, chpos);
 
-    p_machineRefNameText->SetValue(refName);
-    p_machineChangeButton->Enable(true);
+    //  Only when the user types a machine: loading a saved entry must keep
+    //  its own name, or Delete looks for a name that was never saved.
+    if (!p_inCtrlUpdate) {
+        p_machineRefNameText->SetValue(refName);
+        p_machineChangeButton->Enable(true);
+    }
 
     this->refreshLocality();
 }
@@ -404,20 +439,137 @@ void WxMachineRegister::refreshLocality()
         p_localityText->SetLabel(text);
         p_localityText->Show(!text.empty());
 
-        //  The frame's minimum was fixed at construction, with this label
-        //  hidden, so showing it would squeeze the Machine/Name/Vendor rows
-        //  into overlapping it. Grow the frame just enough; never shrink it
-        //  (the user may have enlarged it).
-        if (GetSizer() != NULL)
-        {
-            wxSize need = GetSizer()->GetMinSize();
-            wxSize have = GetClientSize();
-            if (need.y > have.y || need.x > have.x)
-                SetClientSize(wxSize(wxMax(need.x, have.x),
-                                     wxMax(need.y, have.y)));
-        }
-        Layout();
+        //  The note changes the form's natural size; re-measure it so the
+        //  scrolled form and the frame's minimum follow (#187).
+        this->growToFitSizer();
     }
+}
+
+
+/**
+ *  #187: keep the frame's minimum in step with the form and, with
+ *  fitWholeForm, grow the frame to show all of it, capped to the display.
+ *  The scrolled form is the one flexible item and its minimum is only a
+ *  small floor, so the frame's minimum always includes the whole button
+ *  row: any resize takes height from the form, never from the buttons.
+ */
+void WxMachineRegister::growToFitSizer(bool fitWholeForm)
+{
+    if (this->GetSizer() == NULL || p_formScroll == NULL
+        || p_formScroll->GetSizer() == NULL)
+        return;
+
+    //  Smallest useful slice of the form; below this it scrolls in a
+    //  window too small to read.
+    const int MIN_FORM_HEIGHT = 100;
+
+    wxSize cap = this->maxClientSizeForDisplay();
+    wxSize have = this->GetClientSize();
+
+    //  A scrolled window's best size is not its content's, so measure the
+    //  form's sizer. Re-measured every call: the locality note (#144)
+    //  changes it.
+    wxSize natural = p_formScroll->GetSizer()->GetMinSize();
+
+    //  The frame size that shows the whole form without scrolling.
+    p_formScroll->SetMinSize(natural);
+    wxSize full = this->GetSizer()->GetMinSize();
+
+    //  The real minimum: the width stays natural (no horizontal scroll),
+    //  the height may shrink to the floor. Applied as the frame's own
+    //  minimum too, so no resize can cut into the button row.
+    p_formScroll->SetMinSize(wxSize(natural.x,
+                                    wxMin(natural.y, MIN_FORM_HEIGHT)));
+    p_formScroll->FitInside();
+    wxSize need = this->GetSizer()->GetMinSize();
+    this->SetMinClientSize(need);
+
+    //  Only at construction: later (the locality note) the form just
+    //  scrolls, so a frame the user shrank stays that size.
+    wxSize target = fitWholeForm ? full : need;
+    wxSize want(wxMax(target.x, have.x), wxMax(target.y, have.y));
+    want.x = wxMax(need.x, wxMin(want.x, cap.x));
+    want.y = wxMax(need.y, wxMin(want.y, cap.y));
+
+    //  Applied only now that the target is known, so it cannot clamp the
+    //  SetClientSize() below; it widens past the display only if `need`
+    //  itself does.
+    wxSize decoration = this->GetSize() - this->GetClientSize();
+    this->SetMaxSize(wxSize(wxMax(want.x, cap.x) + decoration.x,
+                            wxMax(want.y, cap.y) + decoration.y));
+
+    if (want != have)
+        this->SetClientSize(want);
+
+    this->Layout();
+
+    if (getenv("ECCE_DEBUG_MACHREGISTER_SIZE") != NULL)
+    {
+        wxSize formSize = p_formScroll->GetSize();
+        wxSize formVirt = p_formScroll->GetVirtualSize();
+        fprintf(stderr,
+                "[MACHREG_SIZE] cap=%dx%d need=%dx%d full=%dx%d frameClient=%dx%d "
+                "frameOuter=%dx%d formSize=%dx%d formVirtual=%dx%d\n",
+                cap.x, cap.y, need.x, need.y, full.x, full.y,
+                this->GetClientSize().x, this->GetClientSize().y,
+                this->GetSize().x, this->GetSize().y,
+                formSize.x, formSize.y, formVirt.x, formVirt.y);
+    }
+}
+
+
+/**
+ *  Nudge the frame back fully onto its display (#187) -- falls back to
+ *  display 0 when the frame isn't associated with one yet (e.g. before
+ *  the first Show()). Only moves it, never resizes it.
+ */
+void WxMachineRegister::keepOnScreen()
+{
+    int dpyIdx = wxDisplay::GetFromWindow(this);
+    wxDisplay display((unsigned)(dpyIdx == wxNOT_FOUND ? 0 : dpyIdx));
+    wxRect avail = display.GetClientArea();
+
+    wxPoint pos = this->GetPosition();
+    wxSize size = this->GetSize();
+
+    int x = pos.x, y = pos.y;
+    if (x + size.x > avail.x + avail.width)
+        x = avail.x + avail.width - size.x;
+    if (y + size.y > avail.y + avail.height)
+        y = avail.y + avail.height - size.y;
+    if (x < avail.x)
+        x = avail.x;
+    if (y < avail.y)
+        y = avail.y;
+
+    if (x != pos.x || y != pos.y)
+        this->SetPosition(wxPoint(x, y));
+}
+
+
+/**
+ *  The most this frame's client area can be without the window (frame,
+ *  borders and all) exceeding the usable area of the display it's on
+ *  (#187) -- falls back to display 0 when the frame isn't associated
+ *  with one yet (e.g. before the first Show()).
+ */
+wxSize WxMachineRegister::maxClientSizeForDisplay()
+{
+    int dpyIdx = wxDisplay::GetFromWindow(this);
+    wxDisplay display((unsigned)(dpyIdx == wxNOT_FOUND ? 0 : dpyIdx));
+    wxRect avail = display.GetClientArea();
+
+    //  A pure query -- growToFitSizer() is the one that applies a max
+    //  size, once it knows the final target, so this can't clamp a
+    //  SetClientSize() out from under it (see the comment there).
+    wxSize decoration = this->GetSize() - this->GetClientSize();
+    wxSize cap(avail.width - decoration.x, avail.height - decoration.y);
+    if (cap.x <= 0)
+        cap.x = avail.width;
+    if (cap.y <= 0)
+        cap.y = avail.height;
+
+    return cap;
 }
 
 
@@ -547,7 +699,7 @@ void WxMachineRegister::queueChangeButtonClickedCB(wxCommandEvent& event)
             p_minProcs[it] = p_queueMinProcsSpin->GetValue();
             p_maxProcs[it] = p_queueMaxProcsSpin->GetValue();
             p_maxWall[it] = p_queueMaxWallSpin->GetValue();
-            p_maxMem[it] = p_queueMaxMemorySpin->GetValue();
+            p_maxMem[it] = MemoryUnits::gbToMB(p_queueMaxMemorySpin->GetValue());
             p_minScratch[it] = p_queueMinScratchSpin->GetValue();
         }
         else
@@ -558,7 +710,7 @@ void WxMachineRegister::queueChangeButtonClickedCB(wxCommandEvent& event)
             p_minProcs.push_back(p_queueMinProcsSpin->GetValue());
             p_maxProcs.push_back(p_queueMaxProcsSpin->GetValue());
             p_maxWall.push_back(p_queueMaxWallSpin->GetValue());
-            p_maxMem.push_back(p_queueMaxMemorySpin->GetValue());
+            p_maxMem.push_back(MemoryUnits::gbToMB(p_queueMaxMemorySpin->GetValue()));
             p_minScratch.push_back(p_queueMinScratchSpin->GetValue());
 
             p_queuesChoicebox->Append(_(name.c_str()));
@@ -1518,7 +1670,7 @@ void WxMachineRegister::showQueue(string refName)
 
         if (p_maxMem[pos] != INT_MAX)
         {
-            p_queueMaxMemorySpin->SetValue(p_maxMem[pos]);
+            p_queueMaxMemorySpin->SetValue(MemoryUnits::mbToGB(p_maxMem[pos]));
         }
         else
         {

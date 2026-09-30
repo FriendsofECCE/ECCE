@@ -15,6 +15,7 @@
   using std::istrstream;
 
 #include <stdio.h>
+#include <strings.h>
 
 #include <algorithm>
    using std::sort;
@@ -607,12 +608,34 @@ vector<TGaussianBasisSet*> EDSIGaussianBasisSetLibrary::lookup
       numDummyFile = 1;
     }
   }
+
+  // When the placeholder holds the merged set (orbital, polarization,
+  // diffuse ... in one file), the aggregate loads like any single-file set:
+  // one basis set with the aggregate's own name and type.  A library whose
+  // placeholder is empty, and every aggregate with an ECP or fitting
+  // component, is assembled from its component files as before.
+  const bool whole = numDummyFile == 1 && hasWholeFile(alias);
+  vector<char*> wholeAtoms;
+  if (whole) {
+    for (size_t a = 0; a < alias->atoms.size(); a++)
+      for (size_t i = 0; i < alias->atoms[a].size(); i++) {
+        bool seen = false;
+        for (size_t k = 0; k < wholeAtoms.size(); k++)
+          if (strcmp(wholeAtoms[k], alias->atoms[a][i]) == 0) seen = true;
+        if (!seen) wholeAtoms.push_back(alias->atoms[a][i]);
+      }
+  }
+
   // loop through all the GBSs in the set, adding them to the list:
   for(size_t f = 0; f < file_list->size(); f++) {
 
-    // skip the dummy aggregate placeholder file, if it exists:
-    if (numDummyFile == 1 && f == 0) {
+    // skip the dummy aggregate placeholder file, if it exists and is
+    // not the set itself:
+    if (numDummyFile == 1 && f == 0 && !whole) {
       continue;
+    }
+    if (whole && f > 0) {
+      break;
     }
 
     // connect to server and get file
@@ -700,7 +723,7 @@ vector<TGaussianBasisSet*> EDSIGaussianBasisSetLibrary::lookup
     // name and type (every component would then be the same basis set to
     // insertGBS()); it is normally filed on its own too -- 6-31GS.BAS is
     // the single-file "6-31G* Polarization" -- so take its identity there.
-    const size_t components = file_list->size() - numDummyFile;
+    const size_t components = whole ? 1 : file_list->size() - numDummyFile;
     if ((!name || !type) && components == 1) {
       if (!name) name = strdup(alias->nicename);
       if (!type) type = strdup(TGaussianBasisSet::gbs_type_formatter[(int)gbs_type]);
@@ -811,7 +834,10 @@ vector<TGaussianBasisSet*> EDSIGaussianBasisSetLibrary::lookup
     const vector<char*>* atoms_list;
 
     // This is a backward compatible hack for old dav gbs format
-    if (f-numDummyFile >= alias->atoms.size()) {
+    if (whole) {
+      atoms_list = &wholeAtoms;
+
+    } else if (f-numDummyFile >= alias->atoms.size()) {
       atoms_list = &(alias->atoms[0]);  // Make it compatible w/ old data
                                         // where there was only 1 atom mapping
                                         // for all the files
@@ -860,6 +886,30 @@ vector<TGaussianBasisSet*> EDSIGaussianBasisSetLibrary::lookup
   }
 
   return result;
+}
+
+/*******************************************************************
+ Method : hasWholeFile
+ Summary: True if the aggregate's "-AGG." placeholder holds the merged
+          basis set.  The file itself decides, so a library that still
+          ships empty placeholders (an older server) is read from its
+          components.  ECP aggregates are never read whole.
+*******************************************************************/
+bool EDSIGaussianBasisSetLibrary::hasWholeFile(const gbs_alias* alias)
+{
+  const vector<char*>& files = alias->files;
+  if (files.size() < 3 || !strstr(files[0], "-AGG."))
+    return false;
+  for (size_t f = 1; f < files.size(); f++) {
+    size_t n = strlen(files[f]);
+    if (n >= 4 && strcasecmp(files[f] + n - 4, ".POT") == 0)
+      return false;
+  }
+  EDSI* edsi = EDSIFactory::getEDSI(
+      (p_gbsURLBase.toString() + "/" + files[0]).c_str());
+  const bool full = edsi->getDataSetSize() > 0;
+  delete edsi;
+  return full;
 }
 
 /*******************************************************************

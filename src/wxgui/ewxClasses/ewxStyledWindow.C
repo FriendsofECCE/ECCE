@@ -217,7 +217,8 @@ void ewxStyledWindow::setStyles(wxWindow *win, bool recursive)
    } else if (dynamic_cast<wxCheckBox*>(win)) {
       //cout << "wxCheckBox";
       win->SetFont(getBoldFont());
-      win->SetBackgroundColour(getInputColor());
+      // GTK3 paints a checkbox's background behind its whole label, so the
+      // input colour draws a band across the text; keep the window colour.
       ewxCheckBox *ebox = dynamic_cast<ewxCheckBox*>(win);
       if (ebox && !ebox->IsEditable()) {
          //cout << "\tewxCheckBox";

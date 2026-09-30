@@ -58,6 +58,54 @@
 
 //#define DEBUG
 
+namespace {
+
+//  ai.<code>'s own diagnostic is worth showing; the shell session it
+//  ran in is not.  RCommand::execout() can leak its prompt/status
+//  bookkeeping into the captured output (most reliably on a non-zero
+//  exit code it doesn't specifically recognise -- see RCommand.C's
+//  CMDSTAT matching), and ESInputController.C appends the reproduction
+//  command after it.  Strip all of that before anything reaches a
+//  user-visible message.
+string cleanGeneratorMessage(const string& raw)
+{
+  string out;
+  size_t pos = 0;
+  while (pos <= raw.size()) {
+    size_t eol = raw.find('\n', pos);
+    string line = raw.substr(pos, eol == string::npos ? string::npos
+                                                       : eol - pos);
+    pos = (eol == string::npos) ? raw.size() + 1 : eol + 1;
+
+    size_t start = line.find_first_not_of(" \t\r");
+    if (start == string::npos) continue;
+    line = line.substr(start, line.find_last_not_of(" \t\r") - start + 1);
+
+    if (line == "Input files could not be generated." ||
+        line.rfind("CMDSTAT=", 0) == 0 ||
+        line.rfind("+go+", 0) == 0 ||
+        line.rfind("(command:", 0) == 0)
+      continue;
+
+    if (!out.empty()) out += "  ";
+    out += line;
+  }
+  return out;
+}
+
+//  The status area has room for one line, not a generator's whole
+//  explanation -- take the first sentence (or the first line, if that
+//  comes first) and point at Verify for the rest.
+string firstSentence(const string& text)
+{
+  size_t cut = text.find(". ");
+  if (cut != string::npos) return text.substr(0, cut + 1);
+  return text;
+}
+
+}  // namespace
+
+
 IMPLEMENT_CLASS( CalcEd, CalcEdGUI )
 
 BEGIN_EVENT_TABLE(CalcEd, CalcEdGUI)
@@ -99,6 +147,9 @@ CalcEd::CalcEd( )
     p_context(""),
     p_startUp(false),
     p_handEdited(false),
+    p_inputGenFailed(false),
+    p_inputGenError(""),
+    p_hasInputFile(false),
     p_theoryPid(0),
     p_theoryInFilePath(""),
     p_theoryOutFile(NULL),
@@ -146,6 +197,9 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
     p_context(""),
     p_startUp(false),
     p_handEdited(false),
+    p_inputGenFailed(false),
+    p_inputGenError(""),
+    p_hasInputFile(false),
     p_theoryPid(0),
     p_theoryInFilePath(""),
     p_theoryOutFile(NULL),
@@ -379,7 +433,13 @@ void CalcEd::setContext(const string& url, const string& codeName)
     //  lamp means something on a calculation that is merely opened
     //  and not re-saved (#148).  Once per open, not per edit.  It sets
     //  the lamp blank, not green, when there is no input file yet.
+    //  It also refreshes p_hasInputFile, so re-run enableLaunch() to
+    //  put the Launch button in step with whatever that turned out to
+    //  be -- doSetContext() above already ran it once, against
+    //  whatever the previous calculation (or nothing) had left there.
+    loadInputGenWarnings();
     verifyInput();
+    enableLaunch();
     if (msgFlag) {
       p_feedback->setMessage("Calculation context set to " + p_iCalc->getName()
                              + ".", WxFeedback::INFO);
@@ -469,7 +529,11 @@ void CalcEd::doSetContext(const string& codeName)
     p_ESPCnstrnt = new ESPConstraintModel(*p_frag);
     p_fullFrag = new Fragment(*p_frag);
     if (p_frag->useSymmetry()) {
-      p_fullFrag->generateFullMolecule();
+      if (!p_fullFrag->generateFullMolecule())
+        p_feedback->setMessage("The full molecule could not be generated from "
+                "its symmetry-unique atoms (point group " +
+                p_fullFrag->pointGroup() + "); see the terminal for why.",
+                WxFeedback::WARNING);
     }
 
     // initialize spin multiplicities list and selection
@@ -535,6 +599,17 @@ void CalcEd::doSetContext(const string& codeName)
     p_GUIValues = p_iCalc->guiparams();
   }
 
+  // The stored deck may have been generated from the unconverted number,
+  // and Launch reuses a deck unless the calc is modified -- so mark it.
+  if (p_GUIValues->convertedLegacyUnits() &&
+      p_feedback->getEditStatus() != WxFeedback::READONLY) {
+    p_feedback->setMessage("The memory setting was saved in an older unit "
+            "and has been converted to gigabytes.  Check it in Theory "
+            "Details, then save to regenerate the input file.",
+            WxFeedback::WARNING);
+    enableSave();
+  }
+
   p_codeName = p_code->name();
 
   updateAllFields();
@@ -579,6 +654,10 @@ void CalcEd::setContextTheoryRuntype()
 
 void CalcEd::freeContext()
 {
+  p_inputGenFailed = false;
+  p_inputGenError = "";
+  p_inputGenWarnings.clear();
+
   if (p_frag) {
     delete p_frag;
     p_frag = 0;
@@ -688,11 +767,20 @@ void CalcEd::processEditCompletion(const EditEvent& ee)
   if (!p_iCalc->putInputFile(infile, &ifs))
     p_feedback->setMessage("Input file could not be copied back to DAV",
                            WxFeedback::ERROR);
-  else
+  else {
     // The file on disk is now a hand edit, not something generateInput()
     // wrote -- regenerateIfStructureChanged() must ask before replacing
     // it, rather than silently regenerating over it.
     p_handEdited = true;
+
+    // A hand edit is the user's call: it replaces whatever the last
+    // generateInput() attempt did or didn't produce, so a stale
+    // "generator refused these settings" no longer describes the file
+    // that is now on disk.
+    p_inputGenFailed = false;
+    p_inputGenWarnings.clear();
+    storeInputGenWarnings();
+  }
   ifs.close();
 
   //  A hand edit is the ONE case where the deck can become broken
@@ -811,7 +899,11 @@ void CalcEd::OnMenuCalcedRegenInputClick( wxCommandEvent& event )
   }
 
   if (generateInput(false)) {
-    p_feedback->setMessage("Input file regenerated.", WxFeedback::INFO);
+    if (p_inputGenWarnings.empty())
+      p_feedback->setMessage("Input file regenerated.", WxFeedback::INFO);
+    else
+      p_feedback->setMessage("Input file regenerated with warnings. "
+                             "See Verify.", WxFeedback::WARNING);
   } else {
     //  generateInput() puts the generator's own diagnostic on screen
     //  when it fails, so do not paper over it with a generic message.
@@ -922,7 +1014,11 @@ void CalcEd::OnCheckboxCalcedIrreducibleClick( wxCommandEvent& event )
     if (p_fullFrag) delete p_fullFrag;
     p_fullFrag = new Fragment(*p_frag);
     if (event.IsChecked()) {
-      p_fullFrag->generateFullMolecule();
+      if (!p_fullFrag->generateFullMolecule())
+        p_feedback->setMessage("The full molecule could not be generated from "
+                "its symmetry-unique atoms (point group " +
+                p_fullFrag->pointGroup() + "); see the terminal for why.",
+                WxFeedback::WARNING);
     }
     p_frag->useSymmetry(event.IsChecked());
 
@@ -1140,6 +1236,13 @@ void CalcEd::OnButtonCalcedFinalEditClick( wxCommandEvent& event )
                   "applied you must launch the task without making any "
                   "further changes.", WxFeedback::INFO);
         }
+        if (p_inputGenFailed) {
+          p_feedback->setMessage("The current settings could not be "
+                  "generated, so this is the last input file that was: it "
+                  "does not reflect the settings the generator refused. "
+                  "Saving an edit makes it launchable as you leave it.",
+                  WxFeedback::WARNING);
+        }
   
         string text;
         StringConverter::streamToText(*is, text);
@@ -1176,7 +1279,40 @@ bool CalcEd::verifyInput(vector<VerifyFinding>* out)
   if (!p_iCalc) return false;
 
   istream* is = p_iCalc->getDataFile(JCode::PRIMARY_INPUT);
-  if (!is) return false;
+  p_hasInputFile = (is != 0);
+
+  //  A failed generation is a fact about the deck that the checker
+  //  script never sees -- it only ever reads what's on disk.  Fold it
+  //  in here, as a finding, so the SAME path colours the lamp and
+  //  builds the Verify dialog, rather than a second mechanism that
+  //  could disagree with this one.
+  vector<VerifyFinding> findings;
+  if (p_inputGenFailed) {
+    VerifyFinding bad;
+    bad.level = VerifyFinding::BAD;
+    bad.check = "generatorFailed";
+    bad.message = "The input generator refused the current settings: " +
+                  p_inputGenError + (p_hasInputFile ?
+                    "  The deck below is from the last successful "
+                    "generation and does not reflect these settings." :
+                    "  There is no input file: nothing has ever been "
+                    "generated for this calculation.");
+    findings.push_back(bad);
+  }
+
+  if (!is) {
+    //  Unchanged for the plain case: a checker that never ran says
+    //  nothing about the deck, so leave the lamp as it was.  But a
+    //  known generator failure IS something to say, even with no deck
+    //  to check.
+    if (findings.empty()) return false;
+
+    if (out) *out = findings;
+    setVerifyLight(true, VerifyFinding::BAD,
+                   VerifyReportDialog::summary(findings) +
+                   ". Click Verify for the detail.");
+    return true;
+  }
 
   string text;
   StringConverter::streamToText(*is, text);
@@ -1189,9 +1325,35 @@ bool CalcEd::verifyInput(vector<VerifyFinding>* out)
   int atoms = 0;
   if (p_frag) atoms = p_frag->numAtoms();
 
-  vector<VerifyFinding> findings;
+  //  Combination problems the generator reported while still writing
+  //  the deck.  Placed on the first deck line holding the anchor, so
+  //  the dialog can mark it; 0 (whole file) when it is not there.
+  for (size_t w = 0; w < p_inputGenWarnings.size(); w++) {
+    VerifyFinding warn;
+    warn.level = VerifyFinding::BAD;
+    warn.check = "generatorWarning";
+    warn.message = p_inputGenWarnings[w].second;
+    int lineNo = 1;
+    size_t start = 0;
+    while (start <= text.size()) {
+      size_t eol = text.find('\n', start);
+      if (eol == string::npos) eol = text.size();
+      if (text.substr(start, eol - start).find(
+              p_inputGenWarnings[w].first) != string::npos) {
+        warn.line = warn.lineEnd = lineNo;
+        break;
+      }
+      start = eol + 1;
+      lineNo++;
+    }
+    findings.push_back(warn);
+  }
+
+  vector<VerifyFinding> checked;
   string error;
-  if (!InputVerifier::run(text, p_codeName, atoms, findings, error)) {
+  if (InputVerifier::run(text, p_codeName, atoms, checked, error)) {
+    findings.insert(findings.end(), checked.begin(), checked.end());
+  } else if (findings.empty()) {
     setVerifyLight(false, VerifyFinding::GOOD, error);
     return false;
   }
@@ -1276,7 +1438,14 @@ void CalcEd::OnButtonCalcedVerifyClick( wxCommandEvent& event )
           stale.message = "The editor has changes that are not in this "
                           "file yet. This is the input file as it was "
                           "last generated; save to regenerate it.";
-          findings.insert(findings.begin(), stale);
+          //  Insert after a generator-failure finding rather than
+          //  before it -- that one must stay first, since it is the
+          //  more pressing of the two ("at the top" per #187 followup).
+          size_t at = 0;
+          while (at < findings.size() &&
+                 findings[at].check == "generatorFailed")
+            at++;
+          findings.insert(findings.begin() + at, stale);
         }
 
         VerifyReportDialog dialog(this, p_codeName, text, findings);
@@ -1442,7 +1611,11 @@ void CalcEd::subjectMCB(wxCommandEvent& event)
 
     p_fullFrag = new Fragment(*p_frag);
     if (p_frag->useSymmetry()) {
-      p_fullFrag->generateFullMolecule();
+      if (!p_fullFrag->generateFullMolecule())
+        p_feedback->setMessage("The full molecule could not be generated from "
+                "its symmetry-unique atoms (point group " +
+                p_fullFrag->pointGroup() + "); see the terminal for why.",
+                WxFeedback::WARNING);
     }
     updateGeomModel();
   }
@@ -2833,7 +3006,12 @@ void CalcEd::enableLaunch()
     bool togo = p_feedback->getRunState() > ResourceDescriptor::STATE_CREATED
             && p_feedback->getRunState() != ResourceDescriptor::STATE_LOADED;
     FindWindow(ID_BUTTON_CALCED_FINAL_EDIT)->Enable(togo);
-    FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(togo);
+    //  Unlike Final Edit, Launch has nothing to submit if a deck was
+    //  never actually written -- everything ELSE about whether a bad
+    //  or stale deck may be launched is Verify's job, not this one's
+    //  (Andy, 2026-09-29: Verify is what should flag a bad deck; Launch
+    //  should let people do what they want with it).
+    FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(togo && p_hasInputFile);
     FindWindow(ID_BUTTON_CALCED_VERIFY)->Enable(togo);
 
     //  Deliberately NOT running the checker here.  enableLaunch() is
@@ -2996,6 +3174,78 @@ void CalcEd::urlChangeNotify(const string& topic) const
 }
 
 
+//  One warning per line, "anchor<TAB>message".  Escaped by hand because
+//  putMetaData() writes the value into XML unescaped.
+static string escapeWarningText(const string& in)
+{
+  string out;
+  for (size_t i = 0; i < in.size(); i++) {
+    switch (in[i]) {
+      case '%':  out += "%25"; break;
+      case '<':  out += "%3C"; break;
+      case '>':  out += "%3E"; break;
+      case '&':  out += "%26"; break;
+      case '\t': out += "%09"; break;
+      case '\n': out += "%0A"; break;
+      case '\r': out += "%0D"; break;
+      default:   out += in[i];
+    }
+  }
+  return out;
+}
+
+static string unescapeWarningText(const string& in)
+{
+  string out;
+  for (size_t i = 0; i < in.size(); i++) {
+    if (in[i] == '%' && i + 2 < in.size() && isxdigit(in[i+1]) &&
+        isxdigit(in[i+2])) {
+      out += (char)strtol(in.substr(i + 1, 2).c_str(), 0, 16);
+      i += 2;
+    } else {
+      out += in[i];
+    }
+  }
+  return out;
+}
+
+
+void CalcEd::storeInputGenWarnings()
+{
+  if (!p_iCalc) return;
+  if (p_feedback->getRunState() > ResourceDescriptor::STATE_READY) return;
+
+  string value;
+  for (size_t w = 0; w < p_inputGenWarnings.size(); w++)
+    value += escapeWarningText(p_inputGenWarnings[w].first) + "\t" +
+             escapeWarningText(p_inputGenWarnings[w].second) + "\n";
+
+  if (p_iCalc->getProp(TaskJob::inputWarningsProp()) != value)
+    p_iCalc->addProp(TaskJob::inputWarningsProp(), value);
+}
+
+
+void CalcEd::loadInputGenWarnings()
+{
+  p_inputGenWarnings.clear();
+  if (!p_iCalc) return;
+
+  string value = p_iCalc->getProp(TaskJob::inputWarningsProp());
+  size_t pos = 0;
+  while (pos < value.size()) {
+    size_t eol = value.find('\n', pos);
+    if (eol == string::npos) eol = value.size();
+    string line = value.substr(pos, eol - pos);
+    pos = eol + 1;
+    size_t tab = line.find('\t');
+    if (tab != string::npos)
+      p_inputGenWarnings.push_back(std::make_pair(
+          unescapeWarningText(line.substr(0, tab)),
+          unescapeWarningText(line.substr(tab + 1))));
+  }
+}
+
+
 bool CalcEd::generateInput(const bool& paramFlag)
 {
   bool success = false;
@@ -3003,13 +3253,25 @@ bool CalcEd::generateInput(const bool& paramFlag)
   if (isReady()) {
     string message;
     success = input_controller(paramFlag, getUseExpCoeff(), message);
-    if (!message.empty()) {
-      if (success) {
-        //ewxMessageDialog *dialog = new ewxMessageDialog(this, message,
-                //"Input File Generation");
-      } else {
-        p_feedback->setMessage(message, WxFeedback::ERROR);
-      }
+
+    //  Feeds the Verify lamp/dialog below, not readiness -- a failed
+    //  generation is Verify's news to carry (Andy, 2026-09-29), so
+    //  nothing here touches p_iCalc's stored state or Launch.
+    p_inputGenFailed = !success;
+    p_inputGenError = success ? "" : cleanGeneratorMessage(message);
+
+    // The deck on disk only changes on success; after a failure the
+    // stored warnings still describe it, so put them back.
+    if (success) storeInputGenWarnings();
+    else         loadInputGenWarnings();
+
+    if (!success && !message.empty()) {
+      //  One line, not the generator's whole session transcript -- the
+      //  detail (and the reproduction command) is for the Verify
+      //  dialog, which has room for it.
+      p_feedback->setMessage("Input file not generated: " +
+              firstSentence(p_inputGenError) + "  See Verify for details.",
+              WxFeedback::ERROR);
     }
 
     //  A freshly-generated deck is not a hand edit, whatever the file
@@ -3017,19 +3279,13 @@ bool CalcEd::generateInput(const bool& paramFlag)
     if (success)
       p_handEdited = false;
 
-    //  A deck has just been written: check it and set the lamp (#148).
-    //  Here rather than in enableLaunch(), which runs on every edit --
-    //  this is the one moment the file can have changed, so it is also
-    //  the only moment worth spending a WebDAV fetch and a process on.
-    //
-    //  Silent either way.  The user gets a coloured lamp beside the
-    //  Verify button and nothing else: no dialog, no message, no
-    //  focus taken.  A checker that interrupts a working session to
-    //  announce that it found nothing would be turned off within a
-    //  day, and one that interrupts to announce a fault teaches the
-    //  user to dismiss it without reading.
-    if (success)
-      verifyInput();
+    //  A deck has just been written, or the attempt to write one has
+    //  just failed -- either way something changed that the lamp
+    //  beside the Verify button needs to reflect (#148).  Here rather
+    //  than in enableLaunch(), which runs on every edit: this is the
+    //  one moment the file can have changed, so it is also the only
+    //  moment worth spending a WebDAV fetch and a process on.
+    verifyInput();
   }
 
   return success;
@@ -3176,8 +3432,20 @@ void CalcEd::doSave()
     // reset the save status indicator
     enableSave(false);
 
-    p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() + ".",
-                           WxFeedback::INFO);
+    //  On a failed generation, generateInput() has already put the one
+    //  line that matters on screen -- the generator's own reason.
+    //  Following it straight up with "Calculation saved" would bury
+    //  that line and imply the deck is fine when it is not.
+    if (!p_inputGenFailed) {
+      if (p_inputGenWarnings.empty())
+        p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() +
+                               ".", WxFeedback::INFO);
+      else
+        p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() +
+                               ". Input file generated with warnings. "
+                               "See Verify.", WxFeedback::WARNING);
+    }
+    enableLaunch();
 
     if (saveCode)    urlChangeNotify("ecce_url_code");
     if (saveFrag)    urlChangeNotify("ecce_url_subject");
@@ -3385,29 +3653,9 @@ unsigned long CalcEd::getCoreElectrons(const unsigned long atomicNumber) const
  * child at all -- this only needs to guarantee no zombie is left
  * behind (issue #79).
  *
- * The previous approach, system((cmd+"&").c_str()), leaves calced as
- * the direct parent of the intermediate /bin/sh that system() itself
- * forks to run "cmd &". Reaping that shell races with
- * WxEditSessionMgr's own SIGCHLD handler (editSessionCompleted(),
- * installed process-wide -- not scoped to its own children -- for the
- * annotation editor sessions also started from CalcEd), which reaps at
- * most one child per signal with no loop. Losing that race leaves a
- * "[sh] <defunct>" zombie with no guarantee any further SIGCHLD will
- * ever arrive to clean it up, since signals don't queue.
- *
- * Doing our own explicit double-fork sidesteps that race rather than
- * competing in it: the immediate child here does nothing but fork the
- * real command and _exit() right away, so the blocking waitpid() below
- * returns almost immediately -- it is not waiting on the dialog's
- * lifetime, only on this short-lived intermediate process. If
- * WxEditSessionMgr's handler happens to win the race and reaps our
- * intermediate child first, waitpid() here just gets back an
- * already-reaped pid (ECHILD) -- also not a zombie, so either outcome
- * is safe, and nothing here changes how WxEditSessionMgr's own
- * children, or any wxProcess-based subprocess elsewhere, get reaped.
- * The real dialog process (the grandchild) is reparented directly to
- * init when the intermediate child exits, so calced never has it as a
- * child to reap in the first place.
+ * A double fork: the intermediate child forks the real command and
+ * exits at once, so the dialog process is reparented to init and calced
+ * never has a long-lived child to reap.
  */
 bool CalcEd::launchDetachedApp(const string& cmd)
 {
@@ -3444,8 +3692,7 @@ bool CalcEd::launchDetachedApp(const string& cmd)
   //
   // So poll with WNOHANG for a short bounded period instead.  If the
   // child still hasn't been reaped by then, give up and return: the
-  // worst case is one short-lived zombie (which WxEditSessionMgr's
-  // SIGCHLD handler may still collect), which is the very thing this
+  // worst case is one short-lived zombie, which is the very thing this
   // function exists to avoid -- but a leaked zombie is vastly
   // preferable to a frozen GUI.
   const int maxWaitMs = 250;
@@ -3457,7 +3704,7 @@ bool CalcEd::launchDetachedApp(const string& cmd)
       break;              // reaped
     }
     if ((waited == -1) && (errno != EINTR)) {
-      break;              // ECHILD: already reaped by the SIGCHLD handler
+      break;              // ECHILD: nothing left to reap
     }
     usleep(pollMs * 1000);
   }

@@ -119,15 +119,64 @@ const char* Ecce::realUser(void)
 	       string("You Must Define ") + Ecce::realUserVar);
   return realUser;
 }
+// The remembered login is kept separately per mode: a name recalled
+// for the central server (ECCE_REMOTE_SERVER) must never become the
+// default for the local data server, and vice versa. Shared by
+// serverUser() (reads it) and rememberServerUser() (writes it).
+static const char* serverLoginPrefFile()
+{
+  return (getenv("ECCE_REMOTE_SERVER") != (const char*)0)
+       ? "ServerLogin.remote" : "ServerLogin";
+}
+
 const char* Ecce::serverUser(void)
 {
-  Preferences prefs("ServerLogin");
+  // `ecce -l NAME`, or a name typed into the first login dialog of the
+  // session (see setSessionServerUser()), is session-only: exported
+  // rather than written to a file, so it can never leak into a later
+  // plain `ecce` as a remembered login for the wrong server.
+  const char* sessionLogin = getenv("ECCE_SERVER_LOGIN");
+  if (sessionLogin != (const char*)0 && sessionLogin[0] != '\0') {
+    return sessionLogin;
+  }
+
+  Preferences prefs(serverLoginPrefFile());
   static string login;
   if (prefs.getString("Login", login)) {
     return login.c_str();
   } else {
     return Ecce::realUser();
   }
+}
+
+// Called once, by whichever process owns the session's first successful
+// data-server login (the gateway), when the name that actually
+// authenticated differs from what serverUser() had assumed -- e.g. the
+// user changed the name in the login dialog. Every later serverUser()
+// call in THIS process, and in every process this one goes on to spawn
+// (environment is inherited), returns `name` from then on.
+void Ecce::setSessionServerUser(const string& name)
+{
+  setenv("ECCE_SERVER_LOGIN", name.c_str(), 1);
+}
+
+// Remembers `name` as the server login to default to next time, in the
+// file for the current mode (see serverLoginPrefFile()) -- or, if it is
+// the same as the Unix username, clears any existing override so that
+// default (no file needed) applies again. Never call this for a name
+// that came from `ecce -l`: that stays session-only by design, and
+// letting it reach this file is exactly the bug this pair of functions
+// exists to prevent (a central-server login becoming a later local
+// session's default, or vice versa).
+void Ecce::rememberServerUser(const string& name)
+{
+  Preferences prefs(serverLoginPrefFile());
+  if (name == string(Ecce::realUser())) {
+    prefs.remove_entry("Login");
+  } else {
+    prefs.setString("Login", name);
+  }
+  prefs.saveFile();
 }
 const char* Ecce::realUserHome(void)
 {

@@ -16,17 +16,19 @@
   using std::flush;
 #include <fstream>
   using std::ofstream;
+#include <sstream>
+#include <vector>
+  using std::vector;
 
 #include "util/Ecce.H"
 #include "util/SFile.H"
 #include "util/IndexOutOfRangeException.H"
 #include "util/TempStorage.H"
 #include "util/Color.H"
+#include "util/Preferences.H"
+#include "util/PreferenceLabels.H"
 
 #include "util/UserEditor.H"
-
-
-string UserEditor::p_editor = "";
 
 
 /**
@@ -54,29 +56,65 @@ UserEditor::~UserEditor()
 
 
 /**
- * Get the name of the users prefered editor.
- * This implementation uses the EDITOR environment variable and defaults
- * to vi if necessary.
+ * The editor command, which may carry arguments ("emacs -nw").  Order:
+ * ECCE_EDITOR, then Edit > Preferences, then VISUAL and EDITOR, then vi.
+ * Read on every call so a preference change needs no restart.
  */
 string UserEditor::getPreferredEditor()
 {
-  if (p_editor == "") {
-    char *tmp = getenv("ECCE_EDITOR");
-    if (tmp != (char*)0) {
-      p_editor = tmp;
-    } else {
-      tmp = getenv("EDITOR");
-      if (tmp != (char*)0) {
-        p_editor = tmp;
-      } else {
-        p_editor = "vi";
-      }
-    }
+  const char *tmp = getenv("ECCE_EDITOR");
+  if (tmp != (const char*)0 && *tmp != '\0') return tmp;
+
+  Preferences pref(PrefLabels::GLOBALPREFFILE);
+  string fromPref;
+  if (pref.getString(PrefLabels::EDITOR, fromPref) && !fromPref.empty()) {
+    return fromPref;
   }
-  return p_editor;
+
+  static const char* const vars[] = { "VISUAL", "EDITOR" };
+  for (unsigned i = 0; i < sizeof(vars)/sizeof(vars[0]); i++) {
+    tmp = getenv(vars[i]);
+    if (tmp != (const char*)0 && *tmp != '\0') return tmp;
+  }
+  return "vi";
 }
 
 
+/**
+ * The terminal command used for editors that need one; xterm unless the
+ * preference names another.  May carry arguments.
+ */
+string UserEditor::getTerminal()
+{
+  Preferences pref(PrefLabels::GLOBALPREFFILE);
+  string term;
+  if (pref.getString(PrefLabels::TERMINAL, term) && !term.empty()) return term;
+  return "xterm";
+}
+
+
+static vector<string> splitWords(const string& s)
+{
+  vector<string> words;
+  std::istringstream is(s);
+  string w;
+  while (is >> w) words.push_back(w);
+  return words;
+}
+
+static string baseName(const string& path)
+{
+  string::size_type slash = path.rfind('/');
+  return slash == string::npos ? path : path.substr(slash+1);
+}
+
+static bool hasAny(const vector<string>& words, const char* a, const char* b)
+{
+  for (size_t i = 1; i < words.size(); i++) {
+    if (words[i] == a || (b != NULL && words[i] == b)) return true;
+  }
+  return false;
+}
 
 
 void UserEditor::getEditCommand(const SFile& file,
@@ -94,115 +132,135 @@ void UserEditor::getEditCommand(const SFile& file,
    string quotedName = file.path(true);
 
    string usersEditor = getPreferredEditor();
+   vector<string> words = splitWords(usersEditor);
+   if (words.empty()) words.push_back("vi");
+   const string cmd = words[0];
+   const string base = baseName(cmd);
+
+   // Editors that need a terminal, and the flag that opens read-only.
+   bool terminal = false;
+   const char* roFlag = "";
+   if (base=="vi" || base=="vim" || base=="nvim") {
+      terminal = true;
+      roFlag = "-R";
+   } else if (base=="view" || base=="pico" || base=="micro") {
+      terminal = true;
+   } else if (base=="nano") {
+      terminal = true;
+      roFlag = "-v";
+   } else if (base=="emacs" &&
+              (hasAny(words, "-nw", "--no-window-system") ||
+               hasAny(words, "-t", "--terminal"))) {
+      terminal = true;
+   }
 
    string msg;
+   string cmdPath = getPath(cmd);
 
-   if (usersEditor=="emacs" ||
-       (usersEditor.length()>5 &&
-        usersEditor.find("/emacs")==usersEditor.length()-6)) {
-      exe = getPath(usersEditor);
+   if (cmdPath == "") {
+      msg = "Could not find editor command " + cmd + " in path.";
+   } else if (terminal) {
+      vector<string> termWords = splitWords(getTerminal());
+      if (termWords.empty()) termWords.push_back("xterm");
+      const string termBase = baseName(termWords[0]);
+      const bool isXterm = (termBase == "xterm");
+      exe = getPath(termWords[0]);
 
       if (exe != "") {
          addArg(args,curArg, maxArgs, exe.c_str());
+         for (size_t i = 1; i < termWords.size(); i++) {
+            addArg(args,curArg, maxArgs, termWords[i]);
+         }
+
+         // Geometry, colours, font and title are xterm options; other
+         // terminals get only -e.
+         if (isXterm) {
+            addArg(args,curArg, maxArgs, "-geom");
+            if (quotedName.find("amica.out") != string::npos) {
+               // determine width of xterm based on longest line of file
+               string pcmd = "perl -e 'open(INFILE, \"" + quotedName + "\"); "
+                  "while (<INFILE>) {exit(0) if (length() > 81); "
+                  "exit(1) if ($lines_in++ > 1000);} exit(1);'";
+               int istatus = system(pcmd.c_str());
+               istatus = istatus >> 8;
+               addArg(args,curArg, maxArgs, istatus == 0 ? "132x40" : "80x40");
+            } else {
+               addArg(args,curArg, maxArgs, "80x40");
+            }
+
+            addColorArgs(args,curArg, maxArgs, readOnly);
+
+            if (getenv("ECCE_XTERM_FONT")) {
+               addArg(args,curArg, maxArgs, "-fn");
+               addArg(args,curArg, maxArgs, getenv("ECCE_XTERM_FONT"));
+            }
+
+            addArg(args,curArg, maxArgs, "-T");
+            addArg(args,curArg, maxArgs, name);
+         }
+         addArg(args,curArg, maxArgs, "-e");
+         for (size_t i = 0; i < words.size(); i++) {
+            addArg(args,curArg, maxArgs, words[i]);
+         }
+         if (readOnly && *roFlag) addArg(args,curArg, maxArgs, roFlag);
+         addArg(args,curArg, maxArgs, quotedName);
+         if (readOnly && base=="emacs") {
+            addArg(args,curArg, maxArgs, "-l");
+            addArg(args,curArg, maxArgs, string(Ecce::ecceDataPrefPath())+"/readonly.el");
+            addArg(args,curArg, maxArgs, "-f");
+            addArg(args,curArg, maxArgs, "find-file-read-only-from-command-line");
+         }
+
+      } else {
+         msg = "Could not find terminal " + termWords[0] + " in path.";
+      }
+   } else {
+      exe = cmdPath;
+      addArg(args,curArg, maxArgs, exe.c_str());
+      for (size_t i = 1; i < words.size(); i++) {
+         addArg(args,curArg, maxArgs, words[i]);
+      }
+
+      if (base=="emacs") {
          addColorArgs(args, curArg, maxArgs, readOnly);
-         addArg(args, curArg, maxArgs, quotedName);
+         addArg(args,curArg, maxArgs, quotedName);
          if (readOnly) {
             addArg(args,curArg, maxArgs, "-l");
             addArg(args,curArg, maxArgs, string(Ecce::ecceDataPrefPath())+"/readonly.el");
             addArg(args,curArg, maxArgs, "-f");
             addArg(args,curArg, maxArgs, "find-file-read-only-from-command-line");
          }
+         args[curArg] = (char*)0;
+         return;
+      } else if ((base=="jot" || base=="dtpad") && readOnly) {
+         addArg(args,curArg, maxArgs, "-v");
       } else {
-         msg = "Could not find editor command " + usersEditor + " in path.";
-      }
-
-   } else if (usersEditor=="vi" ||
-              (usersEditor.length()>2 &&
-               usersEditor.find("/vi")==usersEditor.length()-3)) {
-      exe = getPath("xterm");
-
-      if (exe != "") {
-         addArg(args,curArg, maxArgs, exe.c_str());
-
-         if (quotedName.find("amica.out") != string::npos) {
-            // determine width of xterm based on longest line of file
-            string cmd = "perl -e 'open(INFILE, \"" + quotedName + "\"); "
-               "while (<INFILE>) {exit(0) if (length() > 81); "
-               "exit(1) if ($lines_in++ > 1000);} exit(1);'";
-            int istatus = system(cmd.c_str());
-            istatus = istatus >> 8;
-            addArg(args,curArg, maxArgs, "-geom");
-            if (istatus == 0)
-               addArg(args,curArg, maxArgs, "132x40");
-            else
-               addArg(args,curArg, maxArgs, "80x40");
-         } else {
-            addArg(args,curArg, maxArgs, "-geom");
-            addArg(args,curArg, maxArgs, "80x40");
+         // A single-instance editor hands the file to the running copy and
+         // exits at once, which would end the session before any edit.
+         const char *flag = NULL, *alt = NULL;
+         if (base=="gedit" || base=="gnome-text-editor" || base=="xed") {
+            flag = "--standalone"; alt = "-s";
+         } else if (base=="geany") {
+            flag = "-i"; alt = "--new-instance";
+         } else if (base=="kate") {
+            flag = "-n"; alt = "--new";
          }
-
-         addColorArgs(args,curArg, maxArgs, readOnly);
-
-         if (getenv("ECCE_XTERM_FONT")) {
-            addArg(args,curArg, maxArgs, "-fn");
-            addArg(args,curArg, maxArgs, getenv("ECCE_XTERM_FONT"));
+         if (flag != NULL && !hasAny(words, flag, alt)) {
+            addArg(args,curArg, maxArgs, flag);
          }
-
-         addArg(args,curArg, maxArgs, "-T");
-         addArg(args,curArg, maxArgs, name);
-         addArg(args,curArg, maxArgs, "-e");
-         addArg(args,curArg, maxArgs, usersEditor);
-         if (readOnly) addArg(args,curArg, maxArgs, "-R");
-
-         addArg(args,curArg, maxArgs, quotedName);
-
-      } else {
-         msg = "Could not find xterm in path.";
+         if (base=="geany" && readOnly) {
+            addArg(args,curArg, maxArgs, "-r");
+         }
       }
-   } else if (usersEditor=="jot" ||
-         usersEditor.find("/jot")==usersEditor.length()-4) {
-      exe = getPath(usersEditor);
-
-      if (exe != "") {
-         addArg(args,curArg, maxArgs, exe.c_str());
-         if (readOnly)
-            addArg(args,curArg, maxArgs, "-v");
-
-         addArg(args,curArg, maxArgs, quotedName);
-      } else {
-         msg = "Could not find editor command " + usersEditor + " in path.";
-      }
-   } else if (usersEditor=="dtpad" ||
-         usersEditor.find("/dtpad")==usersEditor.length()-6) {
-      exe = getPath(usersEditor);
-
-      if (exe != "") {
-         addArg(args,curArg, maxArgs, exe.c_str());
-         if (readOnly)
-            addArg(args,curArg, maxArgs, "-v");
-
-         addArg(args,curArg, maxArgs, quotedName);
-      } else {
-         msg = "Could not find editor command " + usersEditor + " in path.";
-      }
-
-   } else {
-      // Its hard to know what arguments to use.  Just keep it as
-      // minimal as possible.
-      exe = getPath(usersEditor);
-
-      if (exe != "") {
-         addArg(args,curArg, maxArgs, exe);
-
-         addArg(args,curArg, maxArgs, quotedName);
-      } else {
-         msg = "Could not find editor command " + usersEditor + " in path.";
-      }
+      addArg(args,curArg, maxArgs, quotedName);
    }
 
    args[curArg] = (char*)0;
 
    if (msg != "") {
+      // Free what was added; the caller does not get to see args on throw.
+      freeArguments(args);
+      args[0] = (char*)0;
       throw (InvalidException(msg,WHERE));
    }
 

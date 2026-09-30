@@ -300,6 +300,21 @@ sub Tasks {
       } elsif ($AbiDict{"Theory"} eq "UDFT") {
         $result .= " numerical";
       }
+    } elsif (($local_runtype eq "optimize" || $local_runtype eq "saddle")
+             && ($local_theory eq "scf" || $local_theory eq "dft")) {
+      #
+      # NWChem prints the MO vectors eccejobmonitor/nwchem.desc read
+      # only once per process -- the optimizer's first SCF/DFT call --
+      # never again for the rest of the run, so the trace never carries
+      # the converged geometry's orbitals.  Re-opening the (now empty)
+      # theory block and running one more task, restarting from the
+      # converged vectors, gets a fresh print.  gradient rather than
+      # energy: both are needed to force it (energy alone stayed
+      # silent), and gradient's task tag keeps TEVEC/GEOMTRACE growing
+      # together instead of leaving TEVEC one point ahead.  GeoVib needs
+      # none of this: its own trailing freq task already reprints.
+      # Left for MP2/CCSD/NWPW: unverified there.
+      $result .= "\n".$local_theory."\nend\ntask ".$local_theory." gradient";
     }
   } else {
     $result .= "task ";

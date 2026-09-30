@@ -46,6 +46,7 @@
 
 #include "tdat/LatticeDef.H"
 #include "tdat/Fragment.H"
+#include "tdat/LinearPointGroup.H"
 #include "tdat/FragUtil.H"
 #include "tdat/TFormula.H"
 #include "tdat/TTCPair.H"
@@ -3410,7 +3411,7 @@ void Fragment::clear()
 { clearState(); }
 
 void Fragment::pointGroup(const string& group)
-{ p_pointGroup = group; }
+{ p_pointGroup = finitePointGroup(group); }
 
 string Fragment::pointGroup() const
 { return p_pointGroup; }
@@ -5580,7 +5581,7 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
               }
             }
             tmpgrp[j] ='\0';
-            p_pointGroup = tmpgrp;
+            pointGroup(tmpgrp);
           }
           infile.getline(buf, 1023);
           line = buf;
@@ -5875,8 +5876,9 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
   return (!error && numAtoms() > 0);
 }
 
-void Fragment::generateFullMolecule(void)
+bool Fragment::generateFullMolecule(void)
 {
+  bool ok = true;
   string symmetry = pointGroup();
   string symmorig = symmetry;
   for (int i=0; i<symmetry.size(); i++) {
@@ -5937,10 +5939,21 @@ void Fragment::generateFullMolecule(void)
 
           ifs.close();
           outFile->remove();
+          ok = status;
+        } else {
+          ok = false;
         }
+      } else {
+        outFile->remove();
+        std::cerr << "genmol failed (status " << istatus << ") for point group "
+             << symmetry << "; full molecule not generated" << endl;
+        ok = false;
       }
+    } else {
+      ok = false;
     }
   }
+  return ok;
 }
 
 void Fragment::generateIrreducibleFragment(void)

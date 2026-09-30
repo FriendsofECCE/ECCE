@@ -40,6 +40,12 @@ class Ecce
       static const char*  realUserVar;        // ECCE_REALUSER
       static const char*  realUser();         // Accessor with Default
       static const char*  serverUser();       // Accessor with Default
+
+      // Set once by the gateway, when the session's first successful
+      // data-server login turns out to be a different name than
+      // serverUser() had assumed (see Ecce.C for the full rationale).
+      static void setSessionServerUser(const string& name);
+      static void rememberServerUser(const string& name);
       static const char*  realUserHome();     // HOME
       static const char*  realUserPrefPath(); // $HOME/.ECCE* Prefs Directory
       static const char*  ecceHomeVar;        // ECCE_HOME

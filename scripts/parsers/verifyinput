@@ -656,6 +656,22 @@ sub gaussian
                 (($geomEnd <= $#L) ? $geomEnd - 1 : $#L),
                 undef, "molecule specification");
 
+  #  Gaussian reads past the molecule only when the route asks it to,
+  #  and ignores anything else, so text there is never what was meant.
+  #  Any keyword that might read input keeps this quiet.
+  if ($geomEnd <= $#L &&
+      $route !~ /gen|extrabasis|pseudo|modred|read|charge|massage|connect|oniom|gic|cards|extern|\@/i &&
+      $whole !~ /--link1--/i) {
+    for my $i ($geomEnd + 1 .. $#L) {
+      next if ($L[$i] =~ /^\s*$/);
+      finding("UNSURE", $i + 1, "sections",
+              "Nothing on the route card asks Gaussian to read input " .
+              "after the molecule specification, so it will ignore " .
+              "this line.");
+      last;
+    }
+  }
+
   if ($L[$#L] !~ /^\s*$/) {
     finding("BAD", $#L + 1, "sections",
             "The file does not end with a blank line, which Gaussian " .

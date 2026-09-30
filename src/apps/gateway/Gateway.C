@@ -44,7 +44,7 @@
 
 #include "Gateway.H"
 #include "GatewayApp.H"
-#include "GatewayPrefs.H"
+#include "wxgui/GlobalPrefs.H"
 
 
 IMPLEMENT_CLASS( Gateway, wxFrame )
@@ -109,7 +109,7 @@ Gateway::Gateway( GatewayApp* app, wxWindow* parent,
   p_numActivities = 0;
   p_pixmapIndex = 0;
   p_winMenu = NULL;
-  p_prefsDlg = new GatewayPrefs(NULL);
+  p_prefsDlg = new GlobalPrefs(NULL);
   p_app->registerTopShell(p_prefsDlg);
   p_targetList.clear();
   p_preference = new Preferences(PrefLabels::GATEWAYPREFFILE);
@@ -666,7 +666,12 @@ void Gateway::exitGateway()
     // ecce-dataserver-stop. Offer that as a third button on the same
     // confirm dialog instead of a separate menu (Gateway has no menu bar
     // at all -- just a toolbar).
-    dlg.AddButton(ID_GATEWAY_QUIT_STOP_SERVER, "Quit and Stop Server");
+    // #190: under a central server (ECCE_REMOTE_SERVER) this client's own
+    // ecce-dataserver-stop/ecce-gateway-stop can't reach the server's
+    // services anyway (different account) -- offering the button is just
+    // misleading, so don't.
+    if (!getenv("ECCE_REMOTE_SERVER"))
+      dlg.AddButton(ID_GATEWAY_QUIT_STOP_SERVER, "Quit and Stop Server");
     int result = dlg.ShowModal();
     if (result == wxID_OK)
       quit(true);
@@ -683,8 +688,10 @@ void Gateway::exitGateway()
       // as well means it is gone even if that script is not on PATH or
       // resolves the session key differently than this process did.
       AuthCache::sessionClear();
-      (void)system("ecce-gateway-stop");
+      // Data server first: ecce-gateway-stop ends this process, so
+      // nothing after it runs.
       (void)system("ecce-dataserver-stop");
+      (void)system("ecce-gateway-stop");
     }
   } else {
     quit(true);

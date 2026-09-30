@@ -5,7 +5,7 @@
 # not open, a job that does not start, a property that never appears.
 # The run directory is only needed for a job problem.
 #
-#   ecce-diagnose [run-directory]
+#   ecce-diagnose [-o directory] [run-directory]
 #
 # Written because the alternative is asking someone to run a dozen
 # commands, one round trip each.  It reads; it changes nothing, starts
@@ -41,7 +41,41 @@ else
   T() { shift; "$@"; }
 fi
 
-OUT="ecce-diagnostics-$(hostname -s 2>/dev/null || echo host)-$(date +%Y%m%d-%H%M%S).txt"
+OUTDIR=.
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help)
+      cat <<'USAGE'
+Usage: ecce-diagnose [-o directory] [run-directory]
+
+Collects what is needed to diagnose an ECCE problem into one file,
+ecce-diagnostics-<host>-<time>.txt (in the current directory unless -o
+says otherwise). It changes nothing and collects no passwords, but the
+file contains host names, user names and paths: read it before
+attaching it to an issue.
+
+  -o directory    write the file there (created if missing)
+  run-directory   a job's run directory on this machine, for a job that
+                  did not start or never finished. Optional: without it
+                  the five most recent jobs are looked up (machine, run
+                  directory, state, job logs) and each run directory on
+                  this machine is inspected. Only a directory given here
+                  is also reproduced.
+
+To collect a whole session's logs as well, start ECCE with "ecce --bug".
+USAGE
+      exit 0 ;;
+    -o)
+      [ $# -ge 2 ] || { echo "ecce-diagnose: -o needs a directory" >&2; exit 2; }
+      OUTDIR="$2"; shift 2 ;;
+    -*)
+      echo "ecce-diagnose: unknown option $1 (try --help)" >&2
+      exit 2 ;;
+    *) break ;;
+  esac
+done
+mkdir -p "$OUTDIR" || { echo "ecce-diagnose: cannot create $OUTDIR" >&2; exit 1; }
+OUT="$OUTDIR/ecce-diagnostics-$(hostname -s 2>/dev/null || echo host)-$(date +%Y%m%d-%H%M%S).txt"
 RUNDIR="${1:-}"
 
 say()  { printf '\n===== %s =====\n' "$1" >> "$OUT"; }
@@ -153,6 +187,113 @@ if have script; then
   done
 else
   note "'script' not available; skipped"
+fi
+
+# ------------------------------------------ long-echo-through-a-pty (#143)
+say "Long echo through a pty (byte-exact, #143)"
+# The check just above types "echo ECCE_MARKER" -- short enough that a
+# line editor never has a reason to redraw it. #143's actual failure
+# mode only shows up on a LONG command: RCommand's expect-style dialogue
+# writes one, then waits with no timeout for exactly that text followed
+# by "\r\n"; a line editor that redraws or wraps it (tcsh's editor, or
+# bash's readline once its "set +o emacs; set +o vi" init line hasn't
+# run yet, or ran against the wrong shell instance) means that exact
+# text never arrives and job monitoring hangs forever -- with nothing
+# else to point at. This drives each available local shell exactly the
+# way RCommand.C does: same interactive "-i" spawn on a pty, same
+# editor-off init line first, then a ~300-character command, checking
+# whether the echo comes back byte for byte.
+#
+# Prefer the real thing if this install happens to carry it (a dev
+# build, or a future packaged one): tests/shells/testRCommandEcho.C,
+# linked against the actual RCommand, run via tests/shells/run_tests.py
+# in `ctest -R shells`. It is not part of the normal install, so this
+# usually falls through to the duplicated pty dialogue below -- kept in
+# sync with RCommand.C by hand; if this ever disagrees with a real
+# RCommand-driven job hang, check RCommand.C's two `expwrite()` init
+# lines (constructor ~1503/~1512, hop() ~1951/~1957) for a change here.
+HELPER=""
+for cand in "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")/testRCommandEcho" \
+            "${ECCE_HOME:-}/bin/testRCommandEcho" \
+            "$(command -v testRCommandEcho 2>/dev/null || true)"; do
+  [ -n "$cand" ] && [ -x "$cand" ] && { HELPER="$cand"; break; }
+done
+if [ -n "$HELPER" ]; then
+  note "using $HELPER (linked against the real RCommand)"
+  for s in csh tcsh bash; do
+    p=$(command -v "$s" 2>/dev/null) || continue
+    run "$HELPER" "$s"
+  done
+elif ! have python3; then
+  note "no testRCommandEcho and no python3; skipped"
+else
+  note "testRCommandEcho not found on this install; duplicating"
+  note "RCommand.C's pty dialogue here instead (see comment above)"
+  for s in csh tcsh bash; do
+    p=$(command -v "$s" 2>/dev/null) || continue
+    case "$s" in
+      bash|sh)
+        init="unalias -a 2>/dev/null; PS1='+go+'; bind 'set enable-bracketed-paste off' 2>/dev/null; set +o emacs; set +o vi" ;;
+      *)
+        init="unalias precmd; set prompt=+go+; unset echo; unset edit" ;;
+    esac
+    note ""
+    note "--- $s"
+    T 15 python3 - "$p" "$init" >> "$OUT" 2>&1 <<'PYEOF'
+import os, pty, select, sys, time
+
+shell, init = sys.argv[1], sys.argv[2]
+# Shaped exactly like initMon()'s command (tests/shells/run_tests.py's
+# LONG_CMD): long enough that any line editor's wrap/redraw shows up.
+cmd = ("echo ECCE_LONG_ECHO -configFile eccejobmonitor.conf -jobId 10"
+       " -bookmark 0" +
+       "".join(" -arg%02d /tmp/ecce_mca32/jobs/direct__da8YQu" % i
+               for i in range(7)) +
+       "; echo eccejobmonitor_went_bye_bye")
+
+def readUntil(fd, seconds, marker=None):
+    # Stops as soon as `marker` has appeared (a couple of poll cycles
+    # of quiet afterwards, in case more is still coming), not just on a
+    # fixed timeout -- keeps this check to a couple of seconds per
+    # shell instead of always paying the worst case.
+    buf, deadline, quiet = b"", time.time() + seconds, 0
+    while time.time() < deadline:
+        r, _, _ = select.select([fd], [], [], 0.3)
+        if not r:
+            if marker and marker in buf:
+                quiet += 1
+                if quiet >= 2:
+                    break
+            continue
+        try:
+            chunk = os.read(fd, 65536)
+        except OSError:
+            break
+        if not chunk:
+            break
+        buf += chunk
+        quiet = 0
+    return buf
+
+pid, fd = pty.fork()
+if pid == 0:
+    os.execvp(shell, [shell, "-i"])
+try:
+    os.write(fd, (init + "\n").encode())
+    readUntil(fd, 3, b"+go+")            # let the init line take effect
+    os.write(fd, (cmd + "\n").encode())
+    data = readUntil(fd, 8, b"went_bye_bye")
+finally:
+    try:
+        os.kill(pid, 9)
+    except OSError:
+        pass
+exact = (cmd + "\r\n").encode() in data
+print("exact-echo=%s" % ("yes" if exact else "NO"))
+if not exact:
+    print("captured (last 400 bytes): %r" % data[-400:])
+PYEOF
+  done
 fi
 
 # --------------------------------------------------- terminal and locale
@@ -432,12 +573,11 @@ else
 fi
 
 # ------------------------------------------------------------- run dir
-say "The failing run directory"
-if [ -z "$RUNDIR" ]; then
-  note "No run directory given."
-  note "Re-run as:  ecce-diagnose /path/to/the/job/directory"
-  note "It is the directory ECCE said it copied the files to."
-else
+# One run directory: listing, logs, submit script.  REPRODUCTION runs the
+# job (in a copy), so only a directory the user named gets it; the ones
+# found automatically are read, never run.
+rundir_section() {
+  local RUNDIR="$1" REPRO="$2" f I SUB COPY BASE s p
   note "$RUNDIR"
   run ls -la "$RUNDIR"
   have getfacl && run getfacl -p "$RUNDIR"
@@ -467,51 +607,136 @@ else
     cat "$f" >> "$OUT" 2>&1
   done
 
-  # ------------------------------------------------------ REPRODUCTION
-  # The one part of this script that RUNS the real job.  It copies the
-  # run directory aside and launches the submit script there exactly as
-  # RCommand::execbg() does, so the real job directory is untouched and
-  # no results are overwritten.
-  say "REPRODUCTION (in a copy; the real run directory is not touched)"
-  SUB=$(ls "$RUNDIR"/submit__* 2>/dev/null | head -1)
-  if [ -n "$SUB" ]; then
-    COPY=$(mktemp -d 2>/dev/null) || COPY=/tmp/ecce-diag-copy-$$
-    cp -a "$RUNDIR/." "$COPY/" 2>/dev/null
-    BASE=$(basename "$SUB")
-    note "copy: $COPY"
-    note "(note: this copy may be on a different filesystem to the real run"
-    note " directory -- compare against the filesystem section above)"
-    for s in csh tcsh bash sh; do
-      p=$(command -v "$s" 2>/dev/null) || continue
+  if [ "$REPRO" = 1 ]; then
+    # ------------------------------------------------------ REPRODUCTION
+    # The one part of this script that RUNS the real job.  It copies the
+    # run directory aside and launches the submit script there exactly as
+    # RCommand::execbg() does, so the real job directory is untouched and
+    # no results are overwritten.
+    say "REPRODUCTION (in a copy; the real run directory is not touched)"
+    SUB=$(ls "$RUNDIR"/submit__* 2>/dev/null | head -1)
+    if [ -n "$SUB" ]; then
+      COPY=$(mktemp -d 2>/dev/null) || COPY=/tmp/ecce-diag-copy-$$
+      cp -a "$RUNDIR/." "$COPY/" 2>/dev/null
+      BASE=$(basename "$SUB")
+      note "copy: $COPY"
+      note "(note: this copy may be on a different filesystem to the real run"
+      note " directory -- compare against the filesystem section above)"
+      for s in csh tcsh bash sh; do
+        p=$(command -v "$s" 2>/dev/null) || continue
+        note ""
+        note "--- as ECCE would, under $s"
+        ( cd "$COPY" && T 15 "$p" -c "nohup ./$BASE > /dev/null 2>&1 & echo RC_EXECBG_PID=\$!" ) >> "$OUT" 2>&1
+        sleep 5
+        if [ -s "$COPY/ecce.submit.log" ]; then
+          note "    -> ecce.submit.log was written:"
+          sed 's/^/       /' "$COPY/ecce.submit.log" >> "$OUT" 2>&1
+        else
+          note "    -> NO ecce.submit.log: the submit script did not run, or died"
+          note "       before writing anything."
+        fi
+        rm -f "$COPY/ecce.submit.log"
+      done
       note ""
-      note "--- as ECCE would, under $s"
-      ( cd "$COPY" && T 15 "$p" -c "nohup ./$BASE > /dev/null 2>&1 & echo RC_EXECBG_PID=\$!" ) >> "$OUT" 2>&1
-      sleep 5
-      if [ -s "$COPY/ecce.submit.log" ]; then
-        note "    -> ecce.submit.log was written:"
-        sed 's/^/       /' "$COPY/ecce.submit.log" >> "$OUT" 2>&1
-      else
-        note "    -> NO ecce.submit.log: the submit script did not run, or died"
-        note "       before writing anything."
+      note "--- and directly, with its output captured rather than discarded"
+      ( cd "$COPY" && T 120 ./"$BASE" ) >> "$OUT" 2>&1
+      note "    (exit status $?)"
+      if have strace; then
+        note ""
+        note "--- once more under strace, to catch a failure before main()"
+        note "    (permission denied here is fine; it just means no trace)"
+        ( cd "$COPY" && strace -f -e trace=execve,openat,access ./"$BASE" 2>&1 | head -60 ) >> "$OUT" 2>&1
       fi
-      rm -f "$COPY/ecce.submit.log"
-    done
-    note ""
-    note "--- and directly, with its output captured rather than discarded"
-    ( cd "$COPY" && T 120 ./"$BASE" ) >> "$OUT" 2>&1
-    note "    (exit status $?)"
-    if have strace; then
       note ""
-      note "--- once more under strace, to catch a failure before main()"
-      note "    (permission denied here is fine; it just means no trace)"
-      ( cd "$COPY" && strace -f -e trace=execve,openat,access ./"$BASE" 2>&1 | head -60 ) >> "$OUT" 2>&1
+      note "Leaving the copy at $COPY for inspection; delete it when done."
+    else
+      note "No submit__* script in $RUNDIR -- ECCE never generated one."
     fi
-    note ""
-    note "Leaving the copy at $COPY for inspection; delete it when done."
   else
-    note "No submit__* script in $RUNDIR -- ECCE never generated one."
+    note ""
+    note "(no reproduction for an automatically found job; run"
+    note " ecce-diagnose <run-directory> to reproduce this one)"
   fi
+}
+
+# ------------------------------------------------------------ recent jobs
+# ECCE keeps a staging directory per submitted job on the machine ECCE
+# runs on (also for cluster jobs, also under -remote), holding
+# eccejobstore.conf (machine, calculation URL, remote directory) and the
+# job logs.  That needs no server and no password, so it is the source
+# here rather than the calculation's WebDAV metadata; the recorded state
+# is added from the local data-server tree when there is one.
+this_host() {
+  local h
+  h=$(printf '%s' "$1" | tr 'A-Z' 'a-z')
+  case "$h" in localhost|127.*|::1) return 0 ;; esac
+  [ "${h%%.*}" = "$(hostname -s 2>/dev/null | tr 'A-Z' 'a-z')" ] && return 0
+  [ "$h" = "$(hostname -f 2>/dev/null | tr 'A-Z' 'a-z')" ] && return 0
+  return 1
+}
+davstate() {
+  local rel f
+  rel=${1#*/Ecce/users/}
+  [ "$rel" = "$1" ] && return 0
+  f="${ECCE_REALUSERHOME:-$HOME}/.ECCE/dataserver/htdocs/Ecce/users/$rel/.DAV/.state_for_dir"
+  [ -r "$f" ] || return 0
+  T 10 strings -n 3 "$f" 2>/dev/null | grep -B1 -x '1:state' | head -1
+}
+recent_jobs() {
+  local root d conf n host url code rdir name st ds f
+  root="${ECCE_TMPDIR:-/tmp}/ecce_${ECCE_REALUSER:-$(id -un)}/jobs"
+  say "Recent jobs"
+  note "source: $root (newest 5 by modification time)"
+  if [ ! -d "$root" ]; then
+    note "no job staging directory: no job has been submitted from this machine"
+    return
+  fi
+  n=0
+  for d in $(T 10 ls -1dt "$root"/*/ 2>/dev/null | head -5); do
+    d=${d%/}
+    n=$((n+1))
+    conf="$d/eccejobstore.conf"
+    getk() { sed -n "s/^$1: *//p" "$conf" 2>/dev/null | head -1; }
+    host=$(getk host); url=$(getk calcURL); code=$(getk codeName); rdir=$(getk remoteDir)
+    name=${url##*/}
+    st=$(grep -h 'Calculation State Change' "$d"/eccejobstore.log* 2>/dev/null | tail -1 | sed 's/.*>\(.*\)<\/event>.*/\1/; s/^ *//; s/ *$//')
+    ds=$(davstate "$url")
+    note ""
+    note "--- job $n: ${name:-<unknown>}   ($(stat -c %y "$d" 2>/dev/null | cut -c1-19))"
+    note "    code:          ${code:-?}"
+    note "    machine:       ${host:-?}"
+    note "    run directory: ${rdir:-?}"
+    note "    state:         ${ds:-${st:-?}}  (server record: ${ds:-not readable here}; last event in job log: ${st:-none})"
+    note "    staging dir:   $d"
+    for f in eccejobstore.conf eccejobstore.log eccejobmaster.log; do
+      [ -r "$d/$f" ] || continue
+      note ""; note "    ~~ $f (last 25 lines)"
+      tail -25 "$d/$f" 2>&1 | sed 's/^/    /' >> "$OUT"
+    done
+    if [ -n "$host" ] && [ -n "$rdir" ] && this_host "$host"; then
+      if [ -d "$rdir" ]; then
+        note ""; note "    ~~ run directory is on this machine; inspecting it"
+        rundir_section "$rdir" 0
+      else
+        note ""; note "    run directory $rdir does not exist on this machine"
+      fi
+    elif [ -n "$host" ]; then
+      note ""; note "    run directory is on another machine: $host:$rdir (not inspected)"
+    fi
+  done
+  [ "$n" = 0 ] && note "the job staging directory is empty"
+  return 0
+}
+
+say "The failing run directory"
+if [ -n "$RUNDIR" ]; then
+  rundir_section "$RUNDIR" 1
+else
+  note "No run directory given; looking up recent jobs instead."
+  note "For one job, re-run as:  ecce-diagnose /path/to/the/job/directory"
+  recent_jobs
 fi
+
 
 say "End"
 printf '\nWrote %s\n' "$OUT"
@@ -519,6 +744,6 @@ printf 'Please review it (it contains host names, user names and paths)\n'
 printf 'and attach it to your report.\n'
 printf '\n'
 printf 'If your problem is a crash or a window that does not appear, it\n'
-printf 'also helps to capture a run:\n'
-printf '    ECCE_RCOM_LOGMODE=1 ecce > ecce-trace.txt 2>&1\n'
-printf 'reproduce the problem, quit, and attach ecce-trace.txt too.\n'
+printf 'also helps to capture a whole session with logging on:\n'
+printf '    ecce --bug\n'
+printf 'reproduce the problem, quit, and attach the archive it names.\n'

@@ -2,6 +2,10 @@
 #define _CALCED_H_
 
 #include <string>
+#include <utility>
+#include <vector>
+using std::pair;
+using std::vector;
   using std::string;
 
 #include "wx/wx.h"
@@ -344,6 +348,43 @@ class CalcEd: public CalcEdGUI,
      * regenerateIfStructureChanged() must not silently overwrite.
      */
     bool   p_handEdited;
+
+    /**
+     * True when the last generateInput() ran the generator and it failed:
+     * the settings describe a deck that cannot be written, and any deck
+     * on DAV (if there is one at all) is an older one.  Feeds the Verify
+     * lamp/dialog (#148) as a BAD finding -- it does NOT gate Launch or
+     * Final Edit (Andy, 2026-09-29: Verify is what should flag a bad
+     * deck; Launch should let people do what they want with it).
+     */
+    bool   p_inputGenFailed;
+
+    /** The generator's own diagnostic, cleaned of shell/session noise,
+     *  from the last failed generateInput().  Empty when the last
+     *  attempt succeeded or none has run yet. */
+    string p_inputGenError;
+
+    /** "ai.<code> warning [anchor]: message" lines from the last
+     *  SUCCESSFUL generation, as (anchor, message).  The deck was
+     *  written; Verify shows these, anchored on the first deck line
+     *  containing the anchor.  Cleared on every generation. */
+    vector<pair<string, string> > p_inputGenWarnings;
+
+    /** Persist/restore p_inputGenWarnings as a DAV property on the
+     *  calculation, so the lamp describes the deck on the server and
+     *  not just this session.  Store never writes to a calculation
+     *  that is read-only. */
+    void storeInputGenWarnings();
+    void loadInputGenWarnings();
+
+    /**
+     * Whether this calculation has an input file at all, as of the last
+     * time verifyInput() checked (context open, a generation attempt,
+     * a hand edit).  Launch needs a deck to submit -- this is cheaper
+     * than a DAV fetch on every enableLaunch(), which runs on nearly
+     * every edit.
+     */
+    bool   p_hasInputFile;
 
     const static char* p_BASIS_QUICK_PICKS[];
 

@@ -1,0 +1,15 @@
+title: O2
+annotation: O2
+parseFile: ecce.out
+Category: SCF
+Theory: UHF
+RunType: Energy
+Charge: 0
+Symmetry: C1
+NumElectrons: 16
+NumFrozenOrbs: 0
+NumOccupiedOrbs: 8
+NumVirtualOrbs: 10
+NumNormalModes: 1
+ChemSys.Multiplicity: 3
+BasisSet.Coordinates: Spherical

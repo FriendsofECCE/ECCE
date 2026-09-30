@@ -480,6 +480,24 @@ void TGBSGroup::insertOrbitalGBS(string bsName,
   vector<string> bsNames;
   string key;  // used to uniquely identify a basis set
 
+  // Two different components of one aggregate sharing a name and type
+  // means insertGBS() will keep one and silently drop the other's
+  // shells (#164: 6-31G* saved with no d shell). Say so.
+  for (size_t i = 0; i < gbsList.size(); i++) {
+    for (size_t j = 0; j < i; j++) {
+      if (gbsList[i] != gbsList[j] &&
+          gbsList[i]->p_type == gbsList[j]->p_type &&
+          gbsList[i]->p_name == gbsList[j]->p_name) {
+        string msg = "Basis set " + bsName + ": two of its parts are both "
+            "named \"" + gbsList[i]->p_name + "\" (" +
+            TGaussianBasisSet::gbs_type_formatter[gbsList[i]->p_type] +
+            "), so one of them will be left out. Check the basis set "
+            "library on the data server.";
+        EE_RT_ASSERT(false, EE_WARNING, msg);
+      }
+    }
+  }
+
   // Insert the real basis sets into the main map, removing duplicates
   for (size_t i = 0; i < gbsList.size(); i++) {
     // If inserting an aggregate group with both exchange and

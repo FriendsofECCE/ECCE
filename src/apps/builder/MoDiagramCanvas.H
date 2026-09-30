@@ -1123,6 +1123,7 @@ class MoDiagramCanvas : public wxPanel
       int footerLines = (int)noteLines.size();
       if (!p_centre.levels.empty()) footerLines++;          // the hint
       if (p_centre.hiddenCount > 0)  footerLines += 2;      // band and text
+      footerLines++;                                         // "Experimental"
 
       const int footerHeight = footerLines*lineHeight + 6;
 
@@ -1430,6 +1431,14 @@ class MoDiagramCanvas : public wxPanel
                         "sized by weight; a bar is a p lobe in the page."),
                     8, line);
       }
+
+      //  The diagram can look authoritative while being wrong, so it
+      //  says what it is, above everything else it explains.
+      line -= lineHeight;
+      dc.SetTextForeground(wxColour(170, 80, 0));
+      dc.DrawText(wxT("Experimental: check the orbitals themselves "
+                      "before relying on this diagram."), 8, line);
+      dc.SetTextForeground(wxColour(110, 110, 110));
 
       //  The folded core, said out loud rather than silently dropped:
       //  an absence the reader cannot see is worse than a cluttered

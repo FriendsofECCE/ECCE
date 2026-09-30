@@ -10,6 +10,8 @@ using std::map;
 using std::ostringstream;
 using std::ends;
 #include <vector>
+
+#include <wx/display.h>
 using std::vector;
   
 #include <math.h>
@@ -1966,13 +1968,38 @@ void Builder::saveSettings()
        savePaneLayout(NAME_LAYOUT_DEFAULT);
      }
    }
+
+   //  saveWindowSettings() above already flushed once, but every write
+   //  after that point -- savePaneLayout() included -- stays buffered in
+   //  wxConfig's in-memory copy.  quit() below ends in _exit(0), which
+   //  skips static destructors (see its own comment: exit() was tried
+   //  and segfaulted in libwx_gtk3u_core's global teardown) and with them
+   //  wxConfig's flush-on-destroy -- so a user's rearranged pane layout
+   //  was never actually reaching wxbuilder.ini.  Flush explicitly.
+   config->Flush();
 }
 
 
 void Builder::restoreSettings()
 {
    ewxConfig * config = ewxConfig::getConfig("wxbuilder.ini");
+   bool firstRun = !config->HasEntry("/Window/Width");
    restoreWindowSettings(config, true);
+
+   //  First run: a share of the screen it opens on, so a desktop monitor
+   //  gets a roomy window and a small remote-desktop one still fits.  A
+   //  size the user chose is kept, but never larger than the screen.
+   int displayIdx = wxDisplay::GetFromWindow(this);
+   wxRect area = wxDisplay(displayIdx == wxNOT_FOUND ? 0 : displayIdx)
+                   .GetClientArea();
+   wxSize size = GetSize();
+   if (firstRun) {
+     size = wxSize(area.width * 8 / 10, area.height * 8 / 10);
+     SetSize(size);
+     CentreOnScreen();
+   } else if (size.x > area.width || size.y > area.height) {
+     SetSize(wxSize(wxMin(size.x, area.width), wxMin(size.y, area.height)));
+   }
    bool resetPerspective;
 
    wxString curversion = Ecce::ecceVersion();

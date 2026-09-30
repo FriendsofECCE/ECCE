@@ -188,7 +188,10 @@ def ensureRealUserAccount():
     adduser = os.path.join(install_dir(), "bin", "ecce-dataserver-adduser")
     if not os.access(adduser, os.X_OK):
         return ""
-    subprocess.run([adduser, "-b", user, "ecce", "Ecce", "User"],
+    #  tests/modiagram runs the apps AS the fixture user, and this runs
+    #  first: the fixture's own password, or its -pipe file never matches.
+    password = PASSWORD if user == USER else "ecce"
+    subprocess.run([adduser, "-b", user, password, "Ecce", "User"],
                    stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT,
                    timeout=60)
     return ("data server: created the %s account (a server with no account "

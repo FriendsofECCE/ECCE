@@ -78,6 +78,7 @@ PerTabFrame::PerTabFrame(wxWindow* parent, wxWindowID id, const wxString& captio
   ewxMenu * helpMenu = new ewxMenu;
   helpMenu->Append(wxID_HELP, "on Periodic Table...", "", wxITEM_NORMAL);
   helpMenu->Append(ID_ITEM_FEEDBACK, "Support...", "", wxITEM_NORMAL);
+  helpMenu->Append(wxID_ABOUT, "About ECCE...", "", wxITEM_NORMAL);
   menuBar->Append(helpMenu, "Help");
 
   SetMenuBar(menuBar);

@@ -703,6 +703,32 @@ install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/activemq.xml.ecce
         RENAME activemq.xml
         COMPONENT server)
 
+# Deployment mode 3, the site's shared broker (GETTING_STARTED.md,
+# "Deployment modes"). ecce-broker-setup writes siteconfig/SharedBroker,
+# which the clients read, so it goes with them; ecce-broker-run and the
+# unit run the broker, so they go with its config. The unit is installed
+# beside that config rather than into /usr/lib/systemd/system, so a
+# non-root prefix install still works; ecce-broker-setup prints the
+# `systemctl link` for it.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker-setup
+        DESTINATION bin
+        COMPONENT client)
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker-run
+        DESTINATION bin
+        COMPONENT server)
+configure_file(${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker.service.in
+               ${CMAKE_BINARY_DIR}/systemd/ecce-broker.service @ONLY)
+install(FILES ${CMAKE_BINARY_DIR}/systemd/ecce-broker.service
+        DESTINATION server/systemd
+        COMPONENT server)
+set(_bs_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-broker-setup)
+file(WRITE ${_bs_wrapper}
+"#!/bin/bash
+export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+exec \"$ECCE_HOME/bin/ecce-broker-setup\" \"$@\"
+")
+install(PROGRAMS ${_bs_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
+
 # Also put the gateway control scripts on PATH directly (like the ecce-<app>
 # wrappers) so `ecce-gateway-status` etc. work without needing $ECCE_HOME.
 foreach(_gw start stop status reap)
@@ -908,6 +934,16 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/eccejobmonitor)
           COMPONENT client)
 endif()
 
+# Read at runtime by Help > About ECCE (ewxApp::OnAbout).
+install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
+        DESTINATION .
+        COMPONENT client)
+
+# Named by `ecce --help`, so it has to be on the machine.
+install(FILES ${CMAKE_SOURCE_DIR}/docs/ENVIRONMENT.md
+        DESTINATION doc
+        COMPONENT client)
+
 # scripts/codereg: Theory/Runtype "Details" dialogs (JCode::
 # getTheoryRunTypeEditorNames(), src/dsm/xml/JCode.C). Wrongly assessed in
 # an earlier pass of the audit above as unported Python 2/wxPython
@@ -975,7 +1011,12 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
   if(_msg_idx GREATER -1)
     # Started under -remote too: every app needs this session's relay, and
     # ecce-gateway-start itself skips the local broker in that mode (#167).
-    set(_gateway_start "if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi")
+    # It fails only when there is no relay for this display, and every one
+    # of these apps would then abort on the missing port file
+    # (JMSMessage.C), so stop here with its message instead.
+    set(_gateway_start "if [ -z \"$ECCE_NO_MESSAGING\" ]; then
+  \"$ECCE_HOME/bin/ecce-gateway-start\" || { _rc=$?; echo \"${_app}: not started -- no messaging relay for this session (see above)\" >&2; exit $_rc; }
+fi")
     # Same app set as messaging: apps that need the JMS gateway also need
     # data-server (EDSI/WebDAV) access, per EDSIServerCentral::
     # checkServerSetup() -- see ecce-dataserver-start.
@@ -998,9 +1039,20 @@ fi")
     # including the SIGABRT that stranded the broker and a JMSDispatcher
     # for ten days on beryllium. ecce-gateway-reap --if-idle does nothing
     # while any other ECCE app is still up on this display, so only the
-    # last one out turns the lights off.
+    # last one out stops the display's relay, and the user's last session
+    # stops a per-user broker (never a server's or the site's shared one).
+    # The data server stays up until an explicit Quit and Stop Server.
+    # bash's own "Terminated" report for a SIGTERM (Quit and Stop Server
+    # ends the apps that way) is noise, so the shell's stderr is muted
+    # around the app; any other signal is still reported, by name.
     set(_app_exec "trap 'ECCE_REAP_QUIET=1 \"$ECCE_HOME/bin/ecce-gateway-reap\" --if-idle >/dev/null 2>&1 || true' EXIT
-\"$ECCE_HOME/bin/${_app}\" \"$@\"")
+exec 3>&2
+{ \"$ECCE_HOME/bin/${_app}\" \"$@\" 2>&3 3>&-; } 2>/dev/null
+_status=$?
+if [ $_status -gt 128 ] && [ $_status -ne 143 ]; then
+  echo \"${_app}: ended by SIG$(kill -l $((_status - 128)) 2>/dev/null)\" >&2
+fi
+exit $_status")
   else()
     set(_gateway_start "")
     set(_dataserver_start "")
@@ -1067,10 +1119,7 @@ endforeach()
 # that same wrapper, so it inherits its env setup rather than duplicating
 # it.
 set(_ecce_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce)
-file(WRITE ${_ecce_wrapper}
-"#!/bin/bash
-exec ecce-gateway \"$@\"
-")
+configure_file(${CMAKE_SOURCE_DIR}/packaging/ecce.in ${_ecce_wrapper} @ONLY)
 install(PROGRAMS ${_ecce_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 
 # "Viewer" isn't a separate build target -- the legacy scripts/viewer
@@ -1097,7 +1146,9 @@ export ECCE_NWCHEM_DATA=\${ECCE_NWCHEM_DATA:-$(\"$ECCE_HOME/bin/ecce-nwchem-data
 export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 export ECCE_INVOKE_VIEWER=1
 export ECCE_INVOKE_FROMECCE=1
-if [ -z \"$ECCE_NO_MESSAGING\" ]; then \"$ECCE_HOME/bin/ecce-gateway-start\" || true; fi
+if [ -z \"$ECCE_NO_MESSAGING\" ]; then
+  \"$ECCE_HOME/bin/ecce-gateway-start\" || { _rc=$?; echo \"ecce-viewer: not started -- no messaging relay for this session (see above)\" >&2; exit $_rc; }
+fi
 if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ]; then
   if [ -x \"$ECCE_HOME/bin/ecce-dataserver-start\" ]; then
     \"$ECCE_HOME/bin/ecce-dataserver-start\" || true
@@ -1106,7 +1157,13 @@ if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ]; then
   fi
 fi
 trap 'ECCE_REAP_QUIET=1 \"$ECCE_HOME/bin/ecce-gateway-reap\" --if-idle >/dev/null 2>&1 || true' EXIT
-\"$ECCE_HOME/bin/builder\" \"$@\"
+exec 3>&2
+{ \"$ECCE_HOME/bin/builder\" \"$@\" 2>&3 3>&-; } 2>/dev/null
+_status=$?
+if [ $_status -gt 128 ] && [ $_status -ne 143 ]; then
+  echo \"ecce-viewer: ended by SIG$(kill -l $((_status - 128)) 2>/dev/null)\" >&2
+fi
+exit $_status
 ")
 install(PROGRAMS ${_viewer_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 
@@ -1141,7 +1198,14 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # Details dialogs (see the scripts/codereg install() block above) -- a
 # spawned `python3 .../codereg/*.py`, not a linked dependency of any
 # ECCE binary, so dpkg-shlibdeps can't see it either.
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, activemq")
+# csh: ECCE's local job sessions and scripts run csh; bsd-csh and tcsh
+# both work.
+# perl: the whole job pipeline (ai.<code>, *.expt, gensub,
+# eccejobmonitor, processmachine) is Perl, and Getopt::Std and
+# Sys::Hostname are in perl-modules, which perl-base alone lacks.
+# xterm: editing an input file with the default editor (vi) opens it in
+# an xterm (UserEditor.C).
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, activemq, csh | tcsh, perl, xterm")
 # NWChem is a real Debian package (confirmed working: /usr/bin/nwchem,
 # symlinked to nwchem.openmpi by the package itself) and the auto-register-
 # this-machine flow (RunMgmt::registerLocalMachine()) defaults new machine
@@ -1150,7 +1214,12 @@ set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, acti
 # auto-registration default, without unconditionally forcing NWChem +
 # its MPI/Fortran runtime dependencies onto anyone who explicitly opts
 # out via --no-install-recommends.
-set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem")
+# openssh-client: RCommand drives ssh/scp/sftp for remote machines;
+# a purely local install never uses it.
+# imagemagick: optional viewer-snapshot export (ImageConverter.C).
+# www-browser: the Help menu (BrowserHelp.C).
+set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem, openssh-client")
+set(CPACK_DEBIAN_PACKAGE_SUGGESTS "imagemagick, www-browser")
 # RelWithDebInfo keeps -g everywhere (useful while porting - see the
 # CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
 # strip debug symbols out of the packaged copies only, not the build tree.
@@ -1163,7 +1232,7 @@ set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 #  failing at the end of a long build.  Install it with `apt install rpm`.
 #
 #  The dependency list is NOT the Debian one with different spellings.
-#  Three real differences:
+#  Real differences:
 #
 #    * apache2/apache2-utils are httpd/httpd-tools.
 #    * python3-wxgtk4.0 is python3-wxpython4.
@@ -1172,17 +1241,25 @@ set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 #      uninstallable everywhere, so it is a Recommends (rpm >= 4.12) and
 #      GETTING_STARTED covers installing it by hand.  A missing broker is
 #      not silent -- ecce-gateway-start reports it.
+#    * openssh-client is openssh-clients.
+#
+#  perl and xterm are Requires here for the same reasons given beside
+#  the Debian CPACK_DEBIAN_PACKAGE_DEPENDS above (the scripts/ Perl
+#  pipeline, and UserEditor.C's "vi" default running inside xterm) --
+#  both package names are identical on Fedora/RHEL/Rocky.
 #
 #  nwchem is in Fedora but not in RHEL/Rocky without EPEL, so it stays a
-#  weak dependency there too, matching the Debian Recommends.
+#  weak dependency there too, matching the Debian Recommends. ImageMagick
+#  and firefox match the Debian Suggests (ImageConverter.C's optional
+#  mogrify/convert export, and BrowserHelp.C's Help-menu fallback).
 find_program(RPMBUILD_EXECUTABLE rpmbuild)
 if(RPMBUILD_EXECUTABLE)
   list(APPEND CPACK_GENERATOR "RPM")
   set(CPACK_RPM_PACKAGE_LICENSE "ECL-2.0")
   set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
   set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
-  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4")
-  set(CPACK_RPM_PACKAGE_SUGGESTS "activemq, nwchem")
+  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, tcsh, perl, xterm")
+  set(CPACK_RPM_PACKAGE_SUGGESTS "activemq, nwchem, openssh-clients, ImageMagick, firefox")
   set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
   #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
   #  this the package claims /opt and conflicts with it.
@@ -1192,11 +1269,59 @@ if(RPMBUILD_EXECUTABLE)
   #  wrong on both distributions.
   set(CPACK_RPM_PACKAGE_AUTOREQ ON)
   set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
+  #  With AutoProv off, nothing provides what the package requires of
+  #  itself: the scripts' own Perl files (perl(rdStandardGBS) ...) and
+  #  config(ecce) for the %config files. dnf then refuses the install
+  #  (#199). rpm adds the config() requirement itself, past any filter,
+  #  so provide it; the Perl ones are dropped from the generated list.
+  #  Brackets, not backslashes: rpm's macro expansion eats one level.
+  set(CPACK_RPM_PACKAGE_PROVIDES "config(ecce) = %{version}-%{release}")
+  file(GLOB_RECURSE _ecce_own_perl RELATIVE ${CMAKE_SOURCE_DIR}
+       ${CMAKE_SOURCE_DIR}/scripts/*.pm ${CMAKE_SOURCE_DIR}/scripts/*.pl)
+  set(_ecce_own_perl_names "")
+  foreach(_p ${_ecce_own_perl})
+    get_filename_component(_n ${_p} NAME)
+    string(REGEX REPLACE "\\.pm$" "" _n "${_n}")
+    string(REPLACE "." "[.]" _n "${_n}")
+    list(APPEND _ecce_own_perl_names "${_n}")
+  endforeach()
+  list(REMOVE_DUPLICATES _ecce_own_perl_names)
+  string(REPLACE ";" "|" _ecce_own_perl_names "${_ecce_own_perl_names}")
+  set(CPACK_RPM_SPEC_MORE_DEFINE
+      "%global __requires_exclude ^perl[(](${_ecce_own_perl_names})[)]")
   message(STATUS "rpmbuild found: cpack will also produce an .rpm")
 else()
   message(STATUS "rpmbuild not found: cpack will produce a .deb only "
                  "(apt install rpm to enable RPM packaging)")
 endif()
+
+# The site configuration an admin edits (sudo ecce -admin, ecce-remote-
+# setup's copy of a server's machine list, #188) must survive upgrades,
+# so it is a Debian conffile / RPM %config(noreplace). jndi.properties
+# too: ecce-remote-setup points it at the central broker, and an upgrade
+# resetting it to localhost would silently break every -remote client.
+set(_ecce_siteconfig_conffiles
+  Machines Queues QueueManagers DataServers site_runtime jndi.properties
+  remote_shells.site submit.site AppColors StartupMessage NewUserMessage
+  CONFIG.dummy dummy.Q example-slurm.Q
+  CONFIG-Examples/CONFIG.loadleveler CONFIG-Examples/CONFIG.lsf
+  CONFIG-Examples/CONFIG.mpp2 CONFIG-Examples/CONFIG.pbs
+  CONFIG-Examples/CONFIG.sge CONFIG-Examples/CONFIG.workstation)
+set(_ecce_conffiles_debian ${CMAKE_BINARY_DIR}/conffiles/conffiles)
+set(_ecce_conffiles_content "")
+set(_ecce_rpm_filelist "")
+foreach(_f ${_ecce_siteconfig_conffiles})
+  string(APPEND _ecce_conffiles_content
+         "${CPACK_PACKAGING_INSTALL_PREFIX}/siteconfig/${_f}\n")
+  list(APPEND _ecce_rpm_filelist
+       "%config(noreplace) ${CPACK_PACKAGING_INSTALL_PREFIX}/siteconfig/${_f}")
+endforeach()
+file(WRITE ${_ecce_conffiles_debian} "${_ecce_conffiles_content}")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${_ecce_conffiles_debian}")
+set(CPACK_RPM_USER_FILELIST "${_ecce_rpm_filelist}")
+# siteconfig/ is all client-side, so under the split it goes with ecce-client.
+set(CPACK_DEBIAN_CLIENT_PACKAGE_CONTROL_EXTRA "${_ecce_conffiles_debian}")
+set(CPACK_RPM_CLIENT_USER_FILELIST "${_ecce_rpm_filelist}")
 
 # ---------------------------------------------------------------------------
 # Split packaging (ECCE_SPLIT_PACKAGES). Every install() rule above already
@@ -1222,15 +1347,21 @@ if(ECCE_SPLIT_PACKAGES)
       "ecce-client/ecce-server Break+Replace the monolithic ecce package for versions strictly below this (Debian: 'ecce (<< VERSION)'; RPM: 'ecce < VERSION'). Defaults to this build's own version, i.e. the first split release breaks/replaces every version older than itself.")
 
   # CPack falls back to the monolithic-build globals below (Depends,
-  # Recommends) for any component that doesn't set its own -- confirmed
-  # live: without this, ecce-server and the ecce metapackage both picked
-  # up "Recommends: nwchem" from CPACK_DEBIAN_PACKAGE_RECOMMENDS above,
-  # which is wrong for both (a headless server box, and a metapackage
-  # that should only Depend on the two real components). Clear the
-  # globals here so every component's metadata is exactly what this
-  # block sets and nothing leaks in from the monolithic settings above.
+  # Recommends, Suggests) for any component that doesn't set its own --
+  # confirmed live: without this, ecce-server and the ecce metapackage
+  # both picked up "Recommends: nwchem" from CPACK_DEBIAN_PACKAGE_RECOMMENDS
+  # above, which is wrong for both (a headless server box, and a
+  # metapackage that should only Depend on the two real components).
+  # CPACK_DEBIAN_PACKAGE_SUGGESTS ("imagemagick, www-browser" -- both
+  # client-only, ImageConverter.C's viewer export and the Help menu) leaks
+  # the same way if left unset: it showed up as a Suggests on ecce-server
+  # and the ecce metapackage too, found the same way as the Recommends
+  # case above. Clear all three globals here so every component's
+  # metadata is exactly what this block sets and nothing leaks in from
+  # the monolithic settings above.
   unset(CPACK_DEBIAN_PACKAGE_DEPENDS)
   unset(CPACK_DEBIAN_PACKAGE_RECOMMENDS)
+  unset(CPACK_DEBIAN_PACKAGE_SUGGESTS)
 
   set(CPACK_DEB_COMPONENT_INSTALL ON)
   set(CPACK_COMPONENTS_ALL client server meta)
@@ -1250,15 +1381,29 @@ if(ECCE_SPLIT_PACKAGES)
     "Extensible Computational Chemistry Environment - client (GUI apps, input generators/parsers, job-launch tooling)")
   # apache2/apache2-utils and the broker move to ecce-server; everything
   # else CPACK_DEBIAN_PACKAGE_DEPENDS listed for the monolithic build is
-  # still needed here (python3-wxgtk4.0 for scripts/codereg, same
-  # rationale as the monolithic set above).
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS "python3-wxgtk4.0")
+  # still needed here (python3-wxgtk4.0 for scripts/codereg, csh/perl/
+  # xterm for the same reasons given beside the monolithic set above --
+  # none of that is server-side).
+  #
+  # default-jre-headless: the monolithic package never had to list a JVM
+  # explicitly because activemq (a hard Depends there) pulls in
+  # default-jre-headless transitively -- confirmed via `apt-cache depends
+  # activemq`. Splitting moves activemq to ecce-server and demotes it to
+  # a client Recommends, which would silently drop the client's own JVM
+  # need: ecce-gateway-start's "per-session JMSDispatcher relay" step
+  # runs `java gov.pnnl.emsl.ecce.jms.JMSDispatcher` unconditionally,
+  # including under -remote against a central broker with no local
+  # ecce-server at all, so it cannot be left to arrive only via a
+  # Recommends that a remote client has no reason to install.
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
+      "python3-wxgtk4.0, csh | tcsh, perl, xterm, default-jre-headless")
   # A client on the SAME machine as a server benefits from it (the
   # default "everything on one box" case this project still ships), but
   # a client of an already-central server (#167/#138 -- the teaching
   # deployment) has no use for a local data server or broker at all, so
   # this is Recommends, not Depends, matching the design brief.
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, nwchem")
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, nwchem, openssh-client")
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "imagemagick, www-browser")
   # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
   # without this, installing ecce-client while the old ecce package still
   # owns e.g. /opt/ecce/bin/organizer is a file-already-owned conflict,
@@ -1311,8 +1456,16 @@ section) -- installing this package pulls in both.
   if(RPMBUILD_EXECUTABLE)
     set(CPACK_RPM_CLIENT_PACKAGE_NAME "ecce-client")
     set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
-    set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES "python3-wxpython4")
-    set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS "ecce-server, nwchem")
+    # java-headless: same rationale as CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
+    # above -- the JMSDispatcher relay needs a JVM unconditionally, and on
+    # RPM distros activemq (the only thing that pulled one in transitively
+    # for the monolithic package, where it even applied -- see the
+    # monolithic CPACK_RPM_PACKAGE_SUGGESTS comment above) isn't even a
+    # hard Requires there, so it cannot be relied on at all here.
+    set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
+        "python3-wxpython4, tcsh, perl, xterm, java-headless")
+    set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
+        "ecce-server, nwchem, openssh-clients, ImageMagick, firefox")
     # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the
     # idiomatic equivalent for "this package supersedes an older one
     # that owned the same paths", and Conflicts blocks the two from
@@ -1332,6 +1485,7 @@ section) -- installing this package pulls in both.
     set(CPACK_RPM_META_PACKAGE_REQUIRES "ecce-client = ${_ecce_deb_version}, ecce-server = ${_ecce_deb_version}")
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/opt")
     set(CPACK_RPM_CLIENT_PACKAGE_AUTOREQ ON)
+    set(CPACK_RPM_CLIENT_PACKAGE_PROVIDES "config(ecce-client) = %{version}-%{release}")
     set(CPACK_RPM_SERVER_PACKAGE_AUTOREQ ON)
     set(CPACK_RPM_META_PACKAGE_AUTOREQ OFF)
     set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
@@ -1388,6 +1542,16 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify)
 
+  # tests/guivalues -- memory sizes saved before the GB-everywhere change
+  # (Megawords, Megabytes) are converted by GUIValues::load() before a
+  # dialog or a generator reads them.  Needs g++ and libecceutil.a.
+  #
+  #     cd build-cmake && ctest -R guivalues --output-on-failure
+  add_test(NAME guivalues
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/guivalues/run_tests.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/guivalues)
+
   # tests/apps -- the third tier: starts every INSTALLED wx-linked ECCE app
   # on a headless X server with software OpenGL (Xvfb + llvmpipe; broadway
   # cannot be used here because these apps link GLX for the Open Inventor
@@ -1407,4 +1571,22 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   # Generous: 20 apps x (window wait + settle), plus broker startup.
   set_tests_properties(apps PROPERTIES TIMEOUT 1800)
+
+  # tests/shells -- does a long command's echo come back byte for byte
+  # from csh, tcsh and bash (and through zsh/ksh login shells on a hop)?
+  # A line editor redrawing it hangs job monitoring forever (#143, #69).
+  # Pty harness plus a driver linked against the real RCommand.  Not
+  # installed.  See tests/shells/run_tests.py.
+  #
+  #     cd build-cmake && ctest -R shells --output-on-failure
+  add_executable(testRCommandEcho tests/shells/testRCommandEcho.C)
+  target_link_libraries(testRCommandEcho PRIVATE
+    eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+    ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME shells
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/shells/run_tests.py
+                   --driver $<TARGET_FILE:testRCommandEcho>
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/shells)
+  set_tests_properties(shells PROPERTIES TIMEOUT 900)
 endif()

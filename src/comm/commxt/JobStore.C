@@ -1584,27 +1584,6 @@ void goodbye(int exitStatus)
   msg += buf;
 
   logMessage("eccejobstore exit", msg);
-
-  // Email failures to ecce-test if ECCE_JOB_ALLFAILMAIL tells us to.
-  // calculation can still be NULL here -- fail() reaches goodbye() via
-  // cleanup() even when calcLoad()'s own EDSIFactory::getResource()
-  // call is what failed in the first place. Confirmed live via a real
-  // core dump.
-  if (exitStatus != 0 && calculation) {
-    string url = calculation->getURL().toString();
-    string failmail = getenv("ECCE_JOB_ALLFAILMAIL")?
-                      getenv("ECCE_JOB_ALLFAILMAIL"): "";
-    if (failmail=="true" ||
-        (failmail!="" && url.find(failmail)!=string::npos)) {
-      string mail =
-             "Mail -s 'Eccejobstore Failure' ecce-test@emsl.pnl.gov << EOM\n"
-             "Eccejobstore ";
-      mail += Ecce::ecceVersion();
-      mail += " has terminated due to a monitoring error.\n"
-              "Calculation URL: " + url + "\nEOM";
-      (void)system(mail.c_str());
-    }
-  }
 }
 
 
@@ -1855,25 +1834,23 @@ void initMon(void)
       if (cpLocalShell == "bash")
         cmd = "(trap '' HUP; " + cmd + ")";
       cmd += "&";
-      if (!remoteconn->expwrite(cmd))
+
+      // Wait for eccejobmonitor's own sentinel line, not the shell's
+      // echo of what we typed: a line editor can redraw or wrap that
+      // echo (readline, tcsh's editor, zsh's zle), so an exact match on
+      // it can simply never arrive, and a bare "\r\n" instead matches
+      // the first newline in the buffer -- confirmed live as a race
+      // against a leftover newline, misread as eccejobmonitor dying
+      // instantly (#143, #69 Bug 2). The sentinel's own output can only
+      // appear once, in order, after the shell actually runs it, so
+      // there is nothing left to race. The '' keeps the marker's
+      // literal text out of the typed-line echo (in csh and sh alike),
+      // so only the command's own output can match.
+      if (!remoteconn->expwrite("echo ECCE_MON_''START; " + cmd))
         restart("System", remoteconn->commError());
 
-      // A bare "\r\n" pattern matches the FIRST newline anywhere in the
-      // growing read buffer -- confirmed live, directly, as a genuine
-      // race: without artificial delay (e.g. verbose logging enabled,
-      // which happens to add just enough), this consistently matched
-      // way too early against a leftover/unrelated newline, before the
-      // command's own real echo had even fully arrived -- then the
-      // *actual* echo text (which contains this command's own literal
-      // "echo eccejobmonitor_went_bye_bye" suffix) showed up on a
-      // subsequent raw fd read and got misread as eccejobmonitor having
-      // already died, instantly, every time. Anchoring on the full,
-      // known command text instead of a generic "\r\n" removes the
-      // ambiguity outright -- same fix shape as several RCommand.C
-      // fixes earlier today, just needed here too since this is a
-      // separate expect1() call in a different file.
-      if (remoteconn->expect1((cmd + "\r\n").c_str()) != 1)
-        restart("System", "Did not receive eccejobmonitor command echo");
+      if (remoteconn->expect1("\r\nECCE_MON_START\r\n") != 1)
+        restart("System", "Did not receive eccejobmonitor start sentinel");
 
       if (remoteconn->expect1("\r\n+go+") != 1)
         restart("System", "Did not receive eccejobmonitor background job id");
@@ -1894,19 +1871,15 @@ void initMon(void)
       remoteconn->exptimeout(-1);
 
       if (!socketComms) {
-        if (!remoteconn->expwrite(cmd))
+        // See the socketComms branch above for the full story: wait for
+        // eccejobmonitor's own sentinel output, not the shell's echo of
+        // what we typed, since a line editor can redraw or wrap that
+        // echo and the exact match then never arrives.
+        if (!remoteconn->expwrite("echo ECCE_MON_''START; " + cmd))
           restart("System", remoteconn->commError());
 
-        // See the socketComms branch above for the full story: a bare
-        // "\r\n" pattern races against the command's own echo arriving
-        // in multiple reads, confirmed live as the actual root cause of
-        // a "job monitor died instantly" report on every single
-        // attempt (100% reproduction without artificial delay) even
-        // though the real eccejobmonitor process was running correctly
-        // the whole time. Anchoring on the full known command text
-        // removes the race.
-        if (remoteconn->expect1((cmd + "\r\n").c_str()) != 1)
-          restart("System", "Did not receive eccejobmonitor command echo");
+        if (remoteconn->expect1("\r\nECCE_MON_START\r\n") != 1)
+          restart("System", "Did not receive eccejobmonitor start sentinel");
         else {
           message = "Started job monitor (stdio comms) with command: ";
           message += remoteconn->expout();

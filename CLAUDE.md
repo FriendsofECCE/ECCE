@@ -9,7 +9,14 @@ lean map of where things live and what to watch out for — it is
 intentionally *not* a running log of past sessions. For that, see
 "Where the history lives" at the bottom.
 
-Once a design decision is settled, delegate the implementation to the sonnet-implementer subagent rather than writing the files yourself. Keep doing the design work, review, and any decision the subagent flags, directly.
+Once a design decision is settled, delegate the implementation to the
+sonnet-implementer subagent rather than writing the files yourself, unless
+the edit is trivial (a few lines in one file, no investigation needed):
+make those directly, since a fresh agent re-reads the context and costs
+several times the tokens of the change itself (Andy, 2026-09-29). Use
+agents for investigations, multi-file work and anything that runs in
+parallel. Keep doing the design work, review, and any decision the
+subagent flags, directly.
 
 ## Standing preferences
 - **Comments: a few lines, saying WHY — never the history.** How a bug
@@ -24,7 +31,20 @@ Once a design decision is settled, delegate the implementation to the sonnet-imp
   is a bugfix release made after `main` has moved on to the next minor
   version: it goes on a `release/X.Y.Z` branch off the previous tag,
   with the fixes cherry-picked from `main` (8.16.2 and 8.16.3 were made
-  this way while `main` was 8.17.0-dev). Old branches
+  this way while `main` was 8.17.0-dev). One long-lived branch exists by
+  design: `v9` (the code-name for the revamped ECCE; worktree `../ECCE-native`), the **9.x
+  experimental line** (plan on #133). Risky or structural work lands
+  there first: the libssh transport, the server/client package split,
+  STOMP broker access, the Coin3D viewer, retiring csh. `main` is the
+  **8.x stable line**: bug fixes go straight to it, and proven 9.x
+  changes are **backported** as small cherry-picks ("cherry picked
+  from ..."). "Proven" means its test passes on 9.x, it has run there
+  a while, and Andy has seen anything user-visible. Keep 9.x commits
+  backport-sized (one change plus its test), and bring `main` into 9.x
+  regularly so backports stay conflict-free. "v9" is a code-word for
+  the big future features, not a gate: anything from it that is useful
+  now and opt-in on 8.x can ship in an 8.x release, as the split
+  packages did in 8.16.6 (Andy, 2026-09-29). Old branches
   (`develop`, `modernize-build`, `stable`, `master`, `make`) were
   consolidated into `main` and renamed to `archive/*` — no reason to
   branch from or compare against them.
@@ -39,7 +59,17 @@ Once a design decision is settled, delegate the implementation to the sonnet-imp
   only its frame is hidden, which is one guarded `Show()` call. To get
   the old window back for a session: `ECCE_GATEWAY_WINDOW=1 ecce`. If a
   UI decision like this needs reversing, prefer that env var to a
-  revert.
+  revert. With the frame hidden the gateway quits once no other app of
+  its session is left (#185; job monitors don't count), ending only that
+  session and its relay. **A per-user broker stops with the user's last
+  session on any display; a server's broker never does on a plain quit**
+  (#191). "A server's" comes only from declarations, never from who is
+  connected (clients may tunnel in over loopback): `siteconfig/
+  SharedBroker` (mode 3, a systemd service no user can stop, not even
+  with Quit and Stop Server), or `~/.ECCE/activemq/server` (`ecce-remote-
+  setup --server`) or a broker listening beyond loopback (mode 2, stopped
+  only by that account's Quit and Stop Server). The data server is
+  stopped only by Quit and Stop Server, in every mode (#97).
 - `GETTING_STARTED.md` (repo root) has the full build/package/install/
   first-login walkthrough. Don't reproduce it here.
 - **The central-server deployment is unconditional** (stated 2026-09-25).
@@ -53,9 +83,13 @@ Once a design decision is settled, delegate the implementation to the sonnet-imp
   `siteconfig/RemoteServer/` as first-class rather than a fallback, and
   before changing the data server, the broker, `Listen` or service
   startup, ask explicitly what it does to a central install. #138 is
-  the live instance; `packaging/dataserver/ecce-remote-setup` has so far
-  only been tested against a fake install tree, never a live two-machine
-  deployment.
+  the live instance. There are three deployment modes (GETTING_STARTED,
+  "Deployment modes"): local, central server (`-remote`), and a shared
+  system broker on an app server (`siteconfig/SharedBroker`, #191).
+  `tests/apps/session_end.py` covers all three, but on one machine as
+  one Unix user (a second "user" is a second `ECCE_REALUSERHOME`). None
+  has been tested with real separate accounts or two machines, and
+  `ecce-broker.service` has never run under the system manager.
 - **Memory settings should be entered/labeled in GB everywhere, for
   every code** — Andy's explicit UX preference (2026-09-07), not each
   code's native convention. The wire format still has to match what

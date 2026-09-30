@@ -30,6 +30,12 @@ using std::ofstream;
 #include "wx/stopwatch.h"
 
 #include <signal.h>
+#include <ctype.h>
+#include <dirent.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
@@ -56,8 +62,24 @@ using std::ofstream;
 IMPLEMENT_APP( GatewayApp )
 
 
+class SessionWatch : public wxTimer
+{
+public:
+  SessionWatch(GatewayApp *app) : p_app(app) {}
+  void Notify() { p_app->checkSessionEnd(); }
+private:
+  GatewayApp *p_app;
+};
+
+
 GatewayApp::GatewayApp()
-  : WxJMSMessageDispatch(GATEWAY)
+  : WxJMSMessageDispatch(GATEWAY),
+    p_gateway(NULL),
+    p_sessionWatch(NULL),
+    p_sessionSeen(false),
+    p_idleTicks(0),
+    p_loginFromDashL(false),
+    p_sessionLoginFinalized(false)
 {
 }
 
@@ -84,6 +106,15 @@ wxWindow* GatewayApp::dialogParent()
 bool GatewayApp::OnInit()
 {
   ewxApp::OnInit();
+
+  // Captured before anything else runs: whether `-l` set this session's
+  // login is what decides, once the session's first login succeeds
+  // below, whether that name is ever written to ~/.ECCE/ServerLogin[.
+  // remote] -- see authorizationAccepted().
+  {
+    const char *l = getenv("ECCE_SERVER_LOGIN");
+    p_loginFromDashL = (l != (const char*)0 && l[0] != '\0');
+  }
 
   string compileVersion = Ecce::ecceVersion();
   int idx;
@@ -256,6 +287,11 @@ bool GatewayApp::OnInit()
     startMsg->addIntProperty("forcenew", 0);
     publish("ecce_get_app", *startMsg);
     delete startMsg;
+
+    //  With no Gateway window there is no Quit button, so the session
+    //  ends when its last app closes (#185).
+    p_sessionWatch = new SessionWatch(this);
+    p_sessionWatch->Start(1000);
   }
 
   static const int BUFSIZE=512;
@@ -309,6 +345,12 @@ bool GatewayApp::OnInit()
 
 int GatewayApp::OnExit()
 {
+  if (p_sessionWatch) {
+    p_sessionWatch->Stop();
+    delete p_sessionWatch;
+    p_sessionWatch = NULL;
+  }
+
   // This wxTimer logic allows all the other apps in the session to exit
   // cleanly before Gateway tries to unsubscribe messaging.
   // Otherwise, some nastiness could result, although this is a theory.
@@ -399,6 +441,10 @@ void GatewayApp::toolStartStatusMCB(JMSMessage& msg)
   p_gateway->endActivity();
   
   if (status == "failed") {
+    //  A launch that failed still counts as the session having started,
+    //  or an Organizer that never came up would leave this hidden process
+    //  waiting for an app that will never appear.
+    p_sessionSeen = true;
     ewxMessageDialog * dlg = new ewxMessageDialog(dialogParent(),
                     "Unable to start the application.\n"
                     "Please use the ECCE Support tool to report this problem.",
@@ -418,6 +464,46 @@ void GatewayApp::preferenceMCB(JMSMessage& msg)
 void GatewayApp::authMCB(JMSMessage& msg)
 {
   AuthCache::getCache().msgIn(msg, getMyID());
+}
+
+
+/**
+ * The gateway is the FIRST thing in a session to authenticate to the
+ * data server (checkServer()/checkServerSetup()/checkUser(), all called
+ * from OnInit() before any other app is spawned) -- so the very first
+ * time this fires, event.m_user is the name that actually authenticated
+ * this session, which is not necessarily the name serverUser() assumed
+ * going in (the user can change it in the login dialog: live report,
+ * "even with the correct user and password I still don't get access to
+ * my files" -- the typed name authenticated fine, but Ecce::serverUser()
+ * kept returning the saved/-l name for the rest of the session, so the
+ * home-folder check below and every app it spawned used the wrong one).
+ *
+ * Fixed by making the FIRST accepted name the session's server user
+ * from here on (setSessionServerUser() exports ECCE_SERVER_LOGIN,
+ * inherited by every app this process goes on to spawn), and, unless
+ * `-l` is what set it (session-only by design), remembering it on disk
+ * for next time. p_sessionLoginFinalized makes this a one-shot: a LATER
+ * auth success -- e.g. the no-access retry finding a folder's real
+ * owner -- must not re-point the session at yet another user.
+ */
+void GatewayApp::authorizationAccepted(const AuthEvent& event)
+{
+  WxDavAuth::authorizationAccepted(event);
+
+  if (p_sessionLoginFinalized || event.m_user.empty()) {
+    return;
+  }
+  p_sessionLoginFinalized = true;
+
+  // Always set: cheap, and guarantees ECCE_SERVER_LOGIN is exactly the
+  // name that just authenticated for the rest of this process and
+  // everything it spawns, regardless of what it was set to going in.
+  Ecce::setSessionServerUser(event.m_user);
+
+  if (!p_loginFromDashL) {
+    Ecce::rememberServerUser(event.m_user);
+  }
 }
 
 
@@ -550,12 +636,11 @@ bool GatewayApp::checkUser()
       dlg->Destroy();
       ret = false;
     } else if (!userExists) {
-      string msg = "No top-level user directory exists for ";
+      string msg = "There is no account for ";
       msg += Ecce::serverUser();
-      msg += " on the default ECCE server.  The site administrator "
-        "must run the add_ecce_user script and create an account for ";
-      msg += Ecce::serverUser();
-      msg += " in order to run ECCE as this user.";
+      msg += " on this ECCE data server.  Create one there with "
+        "ecce-dataserver-adduser, or start ECCE as another user with "
+        "\"ecce -l NAME\" (the name is remembered for later sessions).";
       ewxMessageDialog* dlg = new ewxMessageDialog(dialogParent(), msg.c_str(),
                                   "ECCE Server User Not Recognized",
                                   wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
@@ -617,4 +702,105 @@ void GatewayApp::reconnectJobStoreMessaging()
     }
     pclose(psPtr);
   }
+}
+
+
+/**
+ * Called once a second while the Gateway frame is hidden (#185). Quits
+ * once an app of this session has been seen and none is left.
+ *
+ * Idle must hold on two successive ticks: an app launched just before
+ * the last one closed is briefly only a /bin/sh between fork and exec.
+ */
+void GatewayApp::checkSessionEnd()
+{
+  if (p_sessionWatch == NULL || p_gateway == NULL) return;
+
+  // Never from under a dialog: timers still fire in a modal loop.
+  for (wxWindowList::compatibility_iterator node = wxTopLevelWindows.GetFirst();
+       node; node = node->GetNext()) {
+    wxWindow *win = node->GetData();
+    if (win != p_gateway && win->IsShown()) return;
+  }
+
+  if (otherSessionApps() > 0) {
+    p_sessionSeen = true;
+    p_idleTicks = 0;
+    return;
+  }
+  if (!p_sessionSeen || ++p_idleTicks < 2) return;
+
+  p_sessionWatch->Stop();
+  p_gateway->quit(true);
+}
+
+
+/**
+ * The ECCE apps of this session still running: this user's processes
+ * running a binary from $ECCE_HOME/bin on this DISPLAY, the same rule
+ * ecce-gateway-reap uses, so the two agree on when a session is over.
+ *
+ * A binary counts if $ECCE_HOME/bin/<name> resolves to it, so a bin/
+ * of symlinks into a build tree is recognised too. Job monitoring is
+ * excluded: eccejobstore/eccejobmaster outlive the session by design,
+ * and ecmd is a command runner, not a window.
+ */
+int GatewayApp::otherSessionApps() const
+{
+  static const char *notApps[] =
+    { "gateway", "eccejobstore", "eccejobmaster", "ecmd", NULL };
+
+  const char *d = getenv("DISPLAY");
+  string display = d ? d : "";
+  string bindir = string(Ecce::ecceHome()) + "/bin/";
+  pid_t self = getpid();
+  uid_t uid = getuid();
+
+  DIR *proc = opendir("/proc");
+  if (proc == NULL) return 0;
+
+  int count = 0;
+  struct dirent *entry;
+  while ((entry = readdir(proc)) != NULL) {
+    if (!isdigit((unsigned char)entry->d_name[0])) continue;
+    if ((pid_t)atoi(entry->d_name) == self) continue;
+
+    string dir = string("/proc/") + entry->d_name;
+    struct stat st;
+    if (stat(dir.c_str(), &st) != 0 || st.st_uid != uid) continue;
+
+    char buf[PATH_MAX];
+    ssize_t len = readlink((dir + "/exe").c_str(), buf, sizeof(buf) - 1);
+    if (len <= 0) continue;          // zombie, kernel thread, or not ours
+    buf[len] = '\0';
+    string exe = buf;
+    static const string deleted = " (deleted)";   // rebuilt while running
+    if (exe.size() > deleted.size() &&
+        exe.compare(exe.size() - deleted.size(), deleted.size(), deleted) == 0)
+      exe.erase(exe.size() - deleted.size());
+
+    string name = exe.substr(exe.rfind('/') + 1);
+    bool skip = false;
+    for (int i = 0; notApps[i]; i++)
+      if (name == notApps[i]) skip = true;
+    if (skip) continue;
+
+    char real[PATH_MAX];
+    if (realpath((bindir + name).c_str(), real) == NULL || exe != real)
+      continue;
+
+    ifstream env((dir + "/environ").c_str());
+    string var, appDisplay;
+    bool found = false;
+    while (std::getline(env, var, '\0')) {
+      if (var.compare(0, 8, "DISPLAY=") == 0) {
+        appDisplay = var.substr(8);
+        found = true;
+        break;
+      }
+    }
+    if (found && appDisplay == display) count++;
+  }
+  closedir(proc);
+  return count;
 }

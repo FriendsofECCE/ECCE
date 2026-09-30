@@ -10,6 +10,7 @@
 // SEE ALSO:
 //    
 ///////////////////////////////////////////////////////////////////////////////
+#include <set>
 #include <stdio.h>
 
 #include <iostream>
@@ -232,12 +233,21 @@ TGBSGroup* ICalcUtils::completeGroup(TGBSGroup* oldGroup, string tag)
    
     group->insertOrbitalGBS(orbitalName, factoryList);
     
-    // Next add any other basis sets besides those in the orbital:
+    // Next add any other basis sets besides those in the orbital.  A
+    // stored calculation may hold an aggregate as its components (6-31G and
+    // 6-31G* Polarization) where the library now gives it whole; the
+    // components belong to the orbital set just added, not to the extras.
+    std::set<string> orbitalParts;
+    for (OrbitalMap::const_iterator om = orbitalMap->begin();
+         om != orbitalMap->end(); om++)
+      orbitalParts.insert(om->second.begin(), om->second.end());
+
     const vector<TGaussianBasisSet*>* gbsList = oldGroup->getOrderedList();
     for (int i = 0; i < gbsList->size(); i++)
     {
       oldGBS = (*gbsList)[i];
       if (!group->contains(oldGBS->p_name, oldGBS->p_type) &&
+          orbitalParts.count(oldGBS->getUniqueKey()) == 0 &&
 	  (*gbsList)[i]->p_type != TGaussianBasisSet::appended_tight &&
 	  (*gbsList)[i]->p_type != TGaussianBasisSet::appended_diffuse)
       {

@@ -159,11 +159,11 @@ bool CalcEd::write_gbsconfig(const string& output_file,
     TGBSConfig* const gbsConfig = p_iCalc->gbsConfig();
     if (gbsConfig != (TGBSConfig*)0)
     {
-      // Produce code formatted basis set file
-      ostrstream stdStream;
-      stdStream << gbsConfig->dump(code->name().c_str(), !useExpCoeff);
-      stdStream << ends;
-      char* charData = stdStream.str();
+      // dump() returns null when the translator fails.  Streaming that
+      // null put the stream in a failed state and left an unterminated
+      // buffer, which went into the deck as a few bytes of binary.
+      const char* charData = gbsConfig->dump(code->name().c_str(),
+                                             !useExpCoeff);
 
       ofstream outFile(output_file.c_str());
       if (outFile && charData!=NULL && charData[0]!='\0') {
@@ -246,7 +246,11 @@ bool CalcEd::write_setup(const string& output_file)
         if (sysdir) binDir += sysdir;
         binDir += "bin";
         string currDir = changeWD(binDir);
-        frag->generateFullMolecule();
+        if (!frag->generateFullMolecule())
+          p_feedback->setMessage("The full molecule could not be generated "
+                  "from its symmetry-unique atoms (point group " +
+                  frag->pointGroup() + "); see the terminal for why.",
+                  WxFeedback::WARNING);
         changeWD(currDir);
       }
       os << "NumElectrons: " << frag->numElectrons() << endl;
@@ -314,6 +318,7 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
   string realExpName;
 
   message = "";
+  p_inputGenWarnings.clear();
 
   // Create the files needed by the perl scripts
   // We assume that all three files (param, basisset, fragment) are needed
@@ -357,12 +362,7 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
     message = "Input files could not be generated--temporary local directory "
               + dir->path() + " does not exist";
   else {
-    // Remove all input files from DAV to insure consistency
-
-    if (!p_iCalc->removeInputFiles())
-      message = "Input files could not be deleted "
-                "from DAV before regeneration";
-    else {
+    {
       TypedFile typedInFile = codecap->getCodeFile(JCode::PRIMARY_INPUT);
       string input_file = typedInFile.name();
       string orig_input_file = input_file + ".orig";
@@ -454,12 +454,39 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
             message += "\n(command: " + parser_path + ")";
           }
           else {
+            //  Combination problems the generator knows about are
+            //  reported, not fatal: the deck is written and Verify
+            //  shows them.  Form: ai.<code> warning [<anchor>]: <text>
+            size_t pos = 0;
+            while (pos < generatorOutput.size()) {
+              size_t eol = generatorOutput.find('\n', pos);
+              if (eol == string::npos) eol = generatorOutput.size();
+              string line = generatorOutput.substr(pos, eol - pos);
+              pos = eol + 1;
+              size_t open = line.find(" warning [");
+              size_t close = line.find("]: ", open == string::npos ? 0 : open);
+              if (line.compare(0, 3, "ai.") == 0 && open != string::npos &&
+                  close != string::npos) {
+                size_t a = open + 10;
+                size_t end = line.find_last_not_of(" \t\r");
+                p_inputGenWarnings.push_back(std::make_pair(
+                    line.substr(a, close - a),
+                    line.substr(close + 3, end + 1 - (close + 3))));
+              }
+            }
+
             string pretty_cmd = "prettyInput <" + orig_input_file +
                                 " >" + input_file;
 
             if (!localconn.exec(pretty_cmd))
               message = "Input files could not be generated--pretty parsing "
                         "command " + pretty_cmd + " failed";
+            //  Only now, once there is a new deck to replace it: a failed
+            //  generation leaves the last good deck for Final Edit, and
+            //  CalcEd demotes the calculation so that deck cannot launch.
+            else if (!p_iCalc->removeInputFiles())
+              message = "Input files could not be deleted "
+                        "from DAV before regeneration";
             else {
               // DAV put (copy from local disk to DAV)
 
@@ -502,7 +529,7 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
           } // parser command succeeded
         } // parser file exists
       } // parser exists
-    } // Input file could be deleted from DAV
+    }
   } // UNIX directory exists, writable, and able to cd to it
 
   // Revert working directory before deleting temporary one because

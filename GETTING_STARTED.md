@@ -57,6 +57,11 @@ running `ecce-builder` and friends directly skips that setup). No
 below runs as a real Apache instance), not just build-time — `dpkg -i` will
 fail to configure without them if `apt-get install` wasn't run first.
 
+The site configuration under `/opt/ecce/siteconfig` (the machine list,
+queues, `DataServers`, …) is marked as configuration from 8.17.0, so an
+upgrade keeps what `sudo ecce -admin` or `ecce-remote-setup` wrote there;
+dpkg asks before replacing a file you changed.
+
 ### Split packages (client/server)
 
 By default CPack still builds one monolithic `ecce_<version>_amd64.deb`
@@ -74,9 +79,13 @@ cpack -G DEB
   dialogs, the job-side scripts the Launcher copies to compute hosts
   (`gensub`, `eccejobmonitor`, `*.desc`), the per-session JMSDispatcher
   relay, `siteconfig/`, and `ecce-remote-setup`/`ecce-diagnose`. Depends
-  on `python3-wxgtk4.0`; Recommends `ecce-server` and `nwchem` (not
-  Depends — a client of someone else's central server needs neither
-  locally).
+  on `python3-wxgtk4.0`, `csh | tcsh`, `perl`, `xterm` and
+  `default-jre-headless` (the JMSDispatcher relay runs unconditionally,
+  including under `-remote` with no local `ecce-server` at all, so its
+  JVM can't be left to arrive only via a Recommends); Recommends
+  `ecce-server`, `nwchem` and `openssh-client`; Suggests `imagemagick`
+  and `www-browser` (not Depends — a client of someone else's central
+  server needs neither `ecce-server` nor `nwchem` locally).
 - **`ecce-server`** — the per-user or central WebDAV data server (Apache
   config, structure/basis-set libraries, help content) and the ActiveMQ
   broker's config. Depends on `apache2`, `apache2-utils`, `activemq`.
@@ -248,6 +257,99 @@ launch multiple apps back to back). Set `ECCE_NO_MESSAGING=1` or
 `ECCE_NO_DATASERVER=1` to skip auto-start (e.g. for debugging one app in
 isolation).
 
+### Deployment modes
+
+That is mode 1. A site can instead share the broker, the data server, or
+both. Which broker a quit may stop is decided only by what the admin
+declared (below), never by guessing who is connected. The data server is
+only ever stopped by **Quit and Stop Server**, in every mode.
+
+The broker has no authentication, and the data server speaks plain HTTP
+(#138): whoever can reach their ports can use them. Keep them on loopback
+or firewall them.
+
+**RHEL, Rocky, Fedora:** these distributions don't package ActiveMQ, so
+a machine that runs a broker (modes 1 and 3) needs it installed by hand:
+a JRE (`dnf install java-17-openjdk-headless`), then the ActiveMQ Classic
+binary tarball from https://activemq.apache.org unpacked in, e.g.,
+`/opt/activemq`. Point ECCE at it with `export
+ACTIVEMQ_HOME=/opt/activemq` in the users' environment; for the mode 3
+service, add `Environment=ACTIVEMQ_HOME=/opt/activemq` to the unit.
+A client of a central server (mode 2) needs none of this.
+
+#### Mode 1: everything local (the default)
+
+Nothing to set up. A user's first session starts their own broker (port
+8088, loopback only) and data server. The broker stops when that user's
+last session ends, on any display. On a machine with several ECCE users
+use mode 3: per-user brokers all want port 8088, so the first user's is
+used by everyone else and goes away when that user quits.
+
+#### Mode 2: a central server
+
+One account on the server runs the data server and broker for everyone.
+On the server, as that account:
+
+```
+ecce-remote-setup --server all   # mark it as the server; listen on every interface
+ecce-dataserver-start && ecce-gateway-start
+ecce-dataserver-adduser          # once per user
+```
+
+For a class, `ecce-dataserver-adduser --from class.csv` creates a batch of
+accounts at once from a `username,password,first,last` CSV file (blank
+password fields get a random one generated); generated passwords are
+written to `class.csv.passwords` for the admin to hand out and then delete.
+
+The listen setting is written once, to `~/.ECCE/dataserver/listen`, and
+both services read it: the data server's own `Listen` directive and the
+broker's bind address (#138). Leave out `all` if clients reach the
+server through ssh tunnels. On each client machine, as root:
+
+```
+sudo ecce-remote-setup <server-host>
+```
+
+`ecce-remote-setup` also copies the server's registered site machine list
+(`sudo ecce -admin` on the server) onto the client, so students don't
+register machines by hand; re-run it on the client after the admin
+changes that list (#188).
+
+Users then run `ecce -remote`. A client quitting never stops the server's
+services, and neither does the server account's own plain quit; its
+Quit and Stop Server does. To make the account per-user again, remove
+`~/.ECCE/activemq/server`.
+
+Run the server under a dedicated account (e.g. `ecce`), not a teacher's
+own login shared with students — `ecce-dataserver-adduser` still creates
+one data-server login per student under it. That way only the server
+account (or root) can ever reach the pidfiles and stop the services; a
+client under `ECCE_REMOTE_SERVER` doesn't even get offered "Quit and Stop
+Server" (#190), only a plain Quit.
+
+#### Mode 3: one shared broker on an app server
+
+One broker for every user of the machine, run by systemd under its own
+account, instead of one JVM per user. As root:
+
+```
+sudo ecce-broker-setup           # declares localhost:8088 in siteconfig/SharedBroker
+sudo systemctl link /opt/ecce/server/systemd/ecce-broker.service
+sudo systemctl enable --now ecce-broker
+```
+
+Sessions then start only their own relay, pointed at that broker. No
+quit, not even Quit and Stop Server, stops it; only `systemctl` does.
+`ecce-broker-setup host:port` names a broker on another port or machine
+(any non-loopback name makes the service listen on every interface).
+`sudo ecce-broker-setup --remove` goes back to mode 1.
+
+The data server is separate. Users run `ecce` for a per-user data server,
+or `ecce -remote` for a central one set up with `ecce-remote-setup
+<data-host>` as in mode 2; the shared broker is used either way. If you
+also run a central data server alongside the shared broker, give it its
+own dedicated account too, per mode 2 above.
+
 ## 5. Create a data-server account
 
 The data server ships with account auto-creation turned off
@@ -275,6 +377,43 @@ This is ECCE's main entry point/toolbar. It'll show an "ECCE Authentication"
 dialog — log in with the username/password you just created. From the
 gateway toolbar you can open the other tools (Organizer, Builder, Periodic
 Table, ...).
+
+### `ecce` command-line options
+
+`ecce --help` lists these:
+
+- **`-admin`** — edit the site-wide machine list (`$ECCE_HOME/siteconfig`)
+  directly in Machine Registration; no broker or data server started.
+  Needs write access to `siteconfig`, so typically `sudo ecce -admin`.
+- **`-machine`** / **`-machines`** — edit your own machine registrations
+  (`~/.ECCE`) the same way, without starting a session.
+- **`-remote`** — use a central data server/broker
+  (`siteconfig/RemoteServer`) instead of starting your own, for the
+  two-machine teaching deployment (one server, students connect as
+  clients).
+- **`-l LOGIN`** — use `LOGIN` as your server login name instead of your
+  Unix username, then start normally.
+- **`--help`** / **`-h`** — print this list and exit.
+
+### Choosing the editor
+
+Text files (input decks, outputs) open in an external editor. The
+simplest way to choose one is **Edit > Preferences > External programs**
+in the Organizer, which also sets the terminal used for terminal editors
+and the web browser for Help; changes apply at once. ECCE picks the editor
+from `ECCE_EDITOR` first, then that preference, then `VISUAL`, then
+`EDITOR`, and falls back to `vi` in an `xterm`. The value may carry
+arguments (`ECCE_EDITOR="geany -i"`). Set the variable for one run with
+`ECCE_EDITOR=geany ecce`, or for good with `export ECCE_EDITOR=geany` in
+`~/.profile`. Every environment variable ECCE reads is listed in
+[docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) (installed as
+`/opt/ecce/doc/ENVIRONMENT.md`).
+
+Terminal editors (`vi`, `vim`, `nvim`, `view`, `nano`, `pico`, `micro`,
+`emacs -nw`) are run inside an `xterm`. For `gedit`, `gnome-text-editor`,
+`xed`, `geany` and `kate`, ECCE adds the "new instance" flag itself; an
+editor that hands the file to an already-running copy and exits would
+otherwise end the edit session at once.
 
 ## 7. Getting help
 

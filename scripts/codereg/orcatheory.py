@@ -117,22 +117,6 @@ class OrcaTheoryPanel(EccePanel):
         memSizer.AddWidget(self.memSize)
         self.panelSizer.Add(memSizer)
 
-        # PROCESSORS -- lets a job's "%pal nprocs N end" block be set
-        # explicitly at edit time (e.g. for a manually-run input file),
-        # independent of whatever processor count Launch later requests.
-        # gensub's orca() sub only injects its own %pal block if the
-        # input file doesn't already have one from here, so an explicit
-        # choice here always wins over the launch-time queue setting --
-        # leave at 1 (the default) to let Launch's queue choice decide.
-        procSizer = EcceBoxSizer(self, label="Parallel", cols=1)
-        self.numProcs = EcceSpinCtrl(self,
-                                     hardRange="[1..)",
-                                     name="ES.Theory.SCF.NumProcessors",
-                                     default=1,
-                                     label="Processors:",
-                                     export=1)
-        procSizer.AddWidget(self.numProcs)
-        self.panelSizer.Add(procSizer)
 
         # DFT FUNCTIONAL -- keep in sync with ai.orca's DFTXCFun map
         if EcceGlobals.Category == "DFT":

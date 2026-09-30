@@ -65,6 +65,75 @@ static const char* globus_opts[] = {"-o", "GSSAPIAuthentication=yes",
                                     "-o", "TISAuthentication=no",
                                     0};
 
+// A machine CONFIG's locShell can be a bare name or a full path
+// ("/usr/bin/bash", "/bin/csh", ...). Classify by basename, not by an
+// exact match against the full string, so "/usr/bin/bash" is
+// recognised the same as "bash". ECCE's LOCAL shell only ever needs to
+// be csh, tcsh or bash (Andy, 2026-09-28) -- zsh/mksh/ksh/dash/sh are
+// only ever relevant as a REMOTE login shell during a hop, which is a
+// different code path (waitShellReady() below) and never runs this
+// classification. Anything else here is refused outright rather than
+// silently guessing csh syntax, which used to fail the login with a
+// generic, misleading "(incorrect password?)" (#143/#69).
+enum ShellDialect { SHELL_CSH, SHELL_BASH, SHELL_UNSUPPORTED };
+
+static ShellDialect classifyShell(const string& locShell)
+{
+  string base = locShell;
+  string::size_type slash = base.find_last_of('/');
+  if (slash != string::npos)
+    base = base.substr(slash + 1);
+
+  if (base == "csh" || base == "tcsh")
+    return SHELL_CSH;
+  if (base == "bash")
+    return SHELL_BASH;
+
+  return SHELL_UNSUPPORTED;
+}
+
+// A login shell (tcsh, zsh, ksh93) freshly spawned by "locShell -i"
+// can still be mid-setup -- reading its startup file, enabling its own
+// line editor -- when we start writing to it, and a raw-mode editor's
+// terminal setup can flush already-typed-ahead input, discarding it.
+// A fixed sleep is exactly the hang-shaped risk this file already had
+// (#143/#69): poll with a real probe instead, so the wait is only ever
+// as long as it needs to be, and never longer than the retry budget.
+static bool waitShellReady(int fid)
+{
+  static const char* probe = "echo ECCE_READY_''PROBE";
+  // A bare substring, not "\r\n...\r\n"-anchored: bash's bracketed-paste
+  // escapes and a shell's own prompt/echo quirks (bsd-csh prints its
+  // prompt directly against a command's output with no newline between)
+  // can land other bytes at that exact boundary. All that matters here
+  // is "did this shell just run our command" -- unlike the item-1
+  // sentinel, nothing downstream parses what follows this match.
+  static const char* mark = "ECCE_READY_PROBE";
+  size_t problen = strlen(probe);
+
+  int savedTimeout = exp_timeout;
+  exp_timeout = 1;
+
+  bool ready = false;
+  for (int tries = 0; !ready && tries < 10; tries++) {
+    if (write(fid, probe, problen) != (ssize_t)problen ||
+        write(fid, "\n", 1) != 1)
+      break;
+
+    if (exp_expectl(fid, exp_glob, mark, 1, exp_end) == 1) {
+      ready = true;
+    } else {
+      // ksh93 can be left at a "> " continuation prompt if a flush cut
+      // the probe mid-word; Ctrl-C plus a newline gets back to a plain
+      // prompt before the next attempt instead of compounding garbage.
+      write(fid, "\x03", 1);
+      write(fid, "\n", 1);
+    }
+  }
+
+  exp_timeout = savedTimeout;
+  return ready;
+}
 
 int RCommand::expect1(const char* pat)
 {
@@ -1381,12 +1450,18 @@ hopToIt:
   // remote command, and we just matched its "+hi+" echo. So just check
   // locShell's own value directly -- it's already the single source of
   // truth for what's actually running, no separate detection needed.
-  // Only "bash" gets the new syntax; csh, tcsh, zsh, sh, or anything
-  // else configured all get the original, long-tested csh-style syntax
-  // (zsh nominally isn't csh-compatible either, but nobody's configuring
-  // zsh as locShell today, and this errs toward the safer, unchanged
-  // default rather than guessing).
-  bool useBash = (locShell == "bash");
+  // Classify by basename (classifyShell), not an exact match against
+  // the literal string "bash" -- a CONFIG naming "/usr/bin/bash" used
+  // to fall through to csh syntax and fail the login outright. Anything
+  // that isn't csh/tcsh/bash is refused rather than guessed at (see
+  // classifyShell's comment).
+  ShellDialect dialect = classifyShell(locShell);
+  if (dialect == SHELL_UNSUPPORTED) {
+    p_errMessage = "Unsupported local shell '" + locShell + "' for " +
+                   theMachine + " -- ECCE needs csh, tcsh or bash";
+    return;
+  }
+  bool useBash = (dialect == SHELL_BASH);
   p_remoteBash = useBash;
 
   // Login failure is caught by trying to set the prompt.
@@ -1419,8 +1494,17 @@ hopToIt:
     // for the rest of the session -- readline re-emits the escape
     // sequence around every future prompt otherwise, since it's a
     // per-prompt readline behavior, not a one-time startup message.
-    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; "
-                  "bind 'set enable-bracketed-paste off' 2>/dev/null"))
+    //  "set +o emacs; set +o vi" turns readline off.  Otherwise a long
+    //  command's echo comes back redrawn (wrapped with "\r", or
+    //  horizontally scrolled with a leading "<"), so the exact-echo match
+    //  eccejobstore waits on never arrives and monitoring hangs forever
+    //  (#69 Bug 2; the bash side of #143).  The local "bash -f" spawn
+    //  has readline on; --noediting only covers the direct ssh path.
+    //  PROMPT_COMMAND: RHEL's /etc/bashrc prints an xterm title escape
+    //  before every prompt, so "\r\n+go+" never matches (#200).
+    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; unset PROMPT_COMMAND; "
+                  "bind 'set enable-bracketed-paste off' 2>/dev/null; "
+                  "set +o emacs; set +o vi"))
       return;
   } else {
     //  "unset edit": where csh is tcsh (Ubuntu), its line editor wraps a
@@ -1815,6 +1899,18 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
   if (p_shell == "ssh") {
     cmd = locShell + " -i";
     if (!expwrite(cmd)) return false;
+
+    // locShell -i is a fresh interactive login shell on the hop
+    // machine (tcsh, zsh, ksh93, ...) -- it can still be sourcing its
+    // startup file and enabling its own raw-mode editor when we write
+    // the init line next, and that editor's terminal setup can flush
+    // (discard) whatever we already typed. Wait for it to actually be
+    // reading before sending anything else, rather than racing it.
+    if (!waitShellReady(p_fid)) {
+      p_errMessage = "Timeout waiting for " + locShell +
+                     " to start on " + hopMachine;
+      return false;
+    }
   }
 
   // Same dialect handling as the main constructor above (see its
@@ -1823,7 +1919,20 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
   // the hop machine, since shellCommand()/the cmd above already used
   // that exact value and we're about to match its output. No separate
   // detection needed, just check locShell's own value directly.
-  bool useBash = (locShell == "bash");
+  // Classify by basename (classifyShell), not an exact match against
+  // the literal string "bash" -- see the main constructor above. This
+  // is ECCE's own local-shell config for the hop machine (the shell it
+  // will send further commands in), not the login shell "locShell -i"
+  // above ran into -- that one can legitimately be zsh/mksh/ksh93 and
+  // waitShellReady() above already handles it, but locShell itself is
+  // still restricted to csh/tcsh/bash.
+  ShellDialect dialect = classifyShell(locShell);
+  if (dialect == SHELL_UNSUPPORTED) {
+    p_errMessage = "Unsupported local shell '" + locShell + "' for " +
+                   hopMachine + " -- ECCE needs csh, tcsh or bash";
+    return false;
+  }
+  bool useBash = (dialect == SHELL_BASH);
   p_remoteBash = useBash;
 
   // Login failure is caught by trying to set the prompt.
@@ -1839,8 +1948,11 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
   if (useBash) {
     // See the main constructor's identical setup line above for the
     // full story on why bracketed-paste mode needs disabling here too.
-    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; "
-                  "bind 'set enable-bracketed-paste off' 2>/dev/null"))
+    //  See the matching "set +o emacs" note above (#69, #143): a hop's
+    //  "bash -i" runs on the remote pty ssh allocates, readline on.
+    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; unset PROMPT_COMMAND; "
+                  "bind 'set enable-bracketed-paste off' 2>/dev/null; "
+                  "set +o emacs; set +o vi"))
       return false;
   } else {
     //  See the matching "unset edit" note above (#143).
@@ -3227,7 +3339,10 @@ bool RCommand::isOpen(void)
     if (!p_connected)
       p_errMessage = "Opened remote shell on " + p_machine +
                      ", but unable to process new commands";
-  } else
+  } else if (p_errMessage.empty())
+    // Only when open() itself set nothing specific (e.g. "Unsupported
+    // local shell ...", #143/08716de) -- otherwise that message is more
+    // useful than this generic guess and was getting overwritten.
     p_errMessage = "Failed to open remote shell on " + p_machine +
                    " (incorrect password?)";
 

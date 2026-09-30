@@ -83,6 +83,13 @@ ordering bug, and both were just the stale files. The overlay must link
   level with an unplaced one still holding its tabulated eV, and the
   shell-order step ran before the unconnected-level fallback. Now 3d
   (-0.21) < 4s (0.19) < 4p (0.27), all inside the molecular range.
+- Cr(CO)6's large negative OP on the virtuals (-62.38 for 10A1g*) is
+  real Mulliken arithmetic, not bad data (#170): ORCA's own printed
+  overlap matrix and MO coefficients (`Print[P_Overlap]`,
+  `Print[P_MOs]`), summed over the same 12 bonds with numpy, give every
+  level's OP to four decimals. That orbital's coefficients reach 7.7
+  with a net Cr population of 29; S's condition number is 6290.
+  classify() uses only the sign against 0.05, so the size is harmless.
 - Still wrong in Cr(CO)6, both about which lines are drawn:
   1. Eg (3d) links to no molecular orbital, so the eg/eg* interaction
      (Delta_o) is missing. composeLevels() uses plain c^2, which gives Cr

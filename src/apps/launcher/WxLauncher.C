@@ -32,6 +32,8 @@
 
 #include "tdat/QueueMgr.H"
 
+#include "MemoryUnits.H"
+
 #include "dsm/NWChemMDModel.H"
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
@@ -1073,7 +1075,8 @@ void WxLauncher::updatePreferences()
             p_slctPrefs->setAllocationAccount(STLUtil::trim((string)(p_allocAcctTextCtrl->GetValue())));
 
         if (p_slctPrefs->isOptionSupported("MM"))
-            p_slctPrefs->setMemoryLimit(p_maxMemoryParamEdit->getValue());
+            //  Field is GB; setMemoryLimit()/MachinePreferences store MB.
+            p_slctPrefs->setMemoryLimit(MemoryUnits::gbToMB(p_maxMemoryParamEdit->getValue()));
 
         if (p_slctPrefs->isOptionSupported("SS"))
             p_slctPrefs->setScratchSpace(p_minScratchParamEdit->getValue());
@@ -1483,16 +1486,17 @@ void WxLauncher::refreshMemoryLimit(const Queue *slctQueue)
 
     if (supported)
     {
+        //  All of these are MB (Queue::memLimit()/defMemory(),
+        //  MachinePreferences' stored memoryLimit) -- the field is shown
+        //  in GB (Andy, 2026-09-07), converted here at the widget only.
         unsigned long value = p_slctPrefs->getMemoryLimit();
         unsigned long vmax = value;
         unsigned long dflt = 0;
-        string units = "MBytes";
 
         if (slctQueue != NULL)
         {
             vmax = slctQueue->memLimit();
             dflt = slctQueue->defMemory();
-            units = slctQueue->memUnits();           //  string representation; could be empty
         }
 
         if (value == 0)
@@ -1501,9 +1505,9 @@ void WxLauncher::refreshMemoryLimit(const Queue *slctQueue)
         if (value > vmax)
             value = vmax / 2;
 
-        p_maxMemoryParamEdit->setRange(0, vmax);
-        p_maxMemoryParamEdit->setValue(value);
-        p_maxMemoryParamEdit->setUnitsLabel(units);
+        p_maxMemoryParamEdit->setRange(0, MemoryUnits::mbToGB(vmax));
+        p_maxMemoryParamEdit->setValue(MemoryUnits::mbToGB(value));
+        p_maxMemoryParamEdit->setUnitsLabel("GB");
         p_maxMemoryParamEdit->Layout();
         p_maxMemoryParamEdit->Fit();
     }
@@ -2049,7 +2053,8 @@ void WxLauncher::updateControls(Launchdata ldat)
 
         if (p_slctPrefs->isOptionSupported("MM") && (ldat.maxmemory > 0))
         {
-            p_maxMemoryParamEdit->setValue(ldat.maxmemory);
+            //  ldat.maxmemory is MB (TaskJob.H); field is GB.
+            p_maxMemoryParamEdit->setValue(MemoryUnits::mbToGB(ldat.maxmemory));
             p_prefsEdited = true;
         }
 

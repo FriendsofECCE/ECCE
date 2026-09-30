@@ -453,12 +453,37 @@ bool WxResourceTreeCtrl::removeFromTree(const EcceURL & url,
  * Automatically open to the resource tree either to the last place the user
  * was working on, if failed then open to the default home area.
  */
+/**
+ * A remembered location can be under some OTHER server login's
+ * /users/<name> tree -- e.g. the Unix account's own last folder,
+ * reopened after this session ended up authenticated as a different
+ * server login (live report: correct password, but "I still don't get
+ * access to my files", because the remembered folder was /Ecce/users/
+ * andy while the session had authenticated as stud1). A location
+ * outside /users entirely (structure library, GBSL, ...) is unaffected.
+ */
+static bool isUnderAnotherUsersHome(const EcceURL& url)
+{
+  EDSIServerCentral servers;
+  EcceURL home = servers.getDefaultUserHome();
+  if (url.isChildOrMe(home.toString())) {
+    return false;
+  }
+  return url.isChildOf(home.getParent());
+}
+
+
 bool WxResourceTreeCtrl::autoOpen()
 {
   WxResourceTreeItemData * autoOpenNode = 0;
   if (p_historyList && p_historyList->size() > 0) {
     EcceURL url = p_historyList->pop();
-    autoOpenNode = findNode(url, true);
+    if (!isUnderAnotherUsersHome(url)) {
+      autoOpenNode = findNode(url, true);
+    }
+    // else: someone else's /users/<name> folder -- fall through to the
+    // default home area below, exactly as if the location were not
+    // found.
   }
 
   // We'll be nice and try to open to a default location on the first

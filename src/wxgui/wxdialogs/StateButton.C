@@ -14,8 +14,8 @@
 
 #include "dsm/ResourceDescriptor.H"
 
-#include "StateButton.H"
-#include "GatewayPrefs.H"
+#include "wxgui/StateButton.H"
+#include "wxgui/GlobalPrefs.H"
 
 #include "wxgui/ewxColorDialog.H"
 #include "wxgui/WxState.H"
@@ -28,6 +28,7 @@ BEGIN_EVENT_TABLE( StateButton, wxPanel )
   EVT_ENTER_WINDOW      (StateButton::OnMouseEnterWindow)
   EVT_LEAVE_WINDOW      (StateButton::OnMouseLeaveWindow)
   EVT_PAINT             (StateButton::OnPaint)
+  EVT_SIZE              (StateButton::OnSize)
 
 END_EVENT_TABLE()
 
@@ -53,13 +54,15 @@ StateButton::~StateButton() {}
  * @param state The button's run state.
  * @param isDefault Whether the button is the user customization one or
  *                  the reset to default one.
- * @param parent The parent dialog which is the GatewayPrefs.
+ * @param owner The Preferences dialog, told when a colour changes.
+ * @param parent The window the button is drawn in.
  */
 StateButton::StateButton(ResourceDescriptor::RUNSTATE state, bool isDefault,
-                         GatewayPrefs * parent, wxWindowID id, const wxPoint& pos,
+                         GlobalPrefs * owner, wxWindow * parent,
+                         wxWindowID id, const wxPoint& pos,
                          const wxSize& size, long style)
 {
-  Create(state, isDefault, parent, id, pos, size, style);
+  Create(state, isDefault, owner, parent, id, pos, size, style);
 }
 
 
@@ -67,7 +70,8 @@ StateButton::StateButton(ResourceDescriptor::RUNSTATE state, bool isDefault,
  * Create the button by putting a WxState in the center and set the status.
  */
 void StateButton::Create(ResourceDescriptor::RUNSTATE state, bool isDefault,
-                         GatewayPrefs * parent, wxWindowID id, const wxPoint& pos,
+                         GlobalPrefs * owner, wxWindow * parent,
+                         wxWindowID id, const wxPoint& pos,
                          const wxSize& size, long style)
 {
   ewxPanel::Create( parent, id, pos, size, style );
@@ -75,7 +79,7 @@ void StateButton::Create(ResourceDescriptor::RUNSTATE state, bool isDefault,
   p_state = state;
   p_isDefault = isDefault;
   p_sibling = NULL;
-  p_parent = parent;
+  p_parent = owner;
 
   wxBoxSizer * buttonSizer = new wxBoxSizer(wxVERTICAL);
   SetSizer(buttonSizer);
@@ -179,6 +183,18 @@ void StateButton::OnMouseLeaveWindow( wxMouseEvent& event )
 
 
 /**
+ * The icon's whole handler chain is this button (see Create), so its size
+ * events arrive here too.  Letting them reach the default handler makes
+ * this panel Layout() on every icon resize, and that Layout() resizes the
+ * icon again without end.  Only our own size is acted on.
+ */
+void StateButton::OnSize( wxSizeEvent& event )
+{
+  if (event.GetEventObject() == this) event.Skip();
+}
+
+
+/**
  * Paint the border based on the StateButton's status.
  */
 void StateButton::OnPaint( wxPaintEvent& event )
@@ -211,14 +227,14 @@ void StateButton::ToolActive()
   if (!p_isDefault) {
     ewxColorDialog colorDialog(ewxColor(p_stateIcon->getColorString().c_str()), p_parent);
     if (colorDialog.ShowModal() == wxID_OK) {
-      ((GatewayPrefs *)p_parent)->changeStateColor(p_stateIcon->getPrefString(), ewxColor(colorDialog.GetColor()).ToString());
+      ((GlobalPrefs *)p_parent)->changeStateColor(p_stateIcon->getPrefString(), ewxColor(colorDialog.GetColor()).ToString());
       p_stateIcon->resetToUserDefault();
       p_sibling->SiblingClicked();
     }
   }
   // If this button is a default one
   else {
-    ((GatewayPrefs *)p_parent)->resetStateColor(p_stateIcon->getPrefString());
+    ((GlobalPrefs *)p_parent)->resetStateColor(p_stateIcon->getPrefString());
     p_sibling->SiblingClicked();
   }
 }

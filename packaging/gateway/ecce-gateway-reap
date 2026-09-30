@@ -1,40 +1,36 @@
 #!/bin/bash
-# ecce-gateway-reap: shut down JMSDispatcher relays and the ActiveMQ
-# broker that no longer belong to a live ECCE session.
+# ecce-gateway-reap: shut down JMSDispatcher relays that no longer belong
+# to a live ECCE session, and this user's own broker once none is left.
 #
-# Issue #102. The gateway used to start the broker and the dispatcher as
-# detached background processes and tear them down only from
-# ecce-gateway-stop -- i.e. only on a *clean* exit. When the gateway
-# aborted instead (SIGABRT from the JMSMessage.C:497 assertion, in the
-# reported case) the two Java processes were simply left behind, and
-# nothing on the next start noticed: ecce-gateway-start early-exits when
-# it sees the broker port already listening, so the next session silently
-# adopted the orphan rather than cleaning it up. On beryllium that
-# accumulated ~3.2 GB of resident memory over ten days in which nobody
-# had an ECCE session open.
+#   ecce-gateway-reap              full sweep, from ecce-gateway-start: a
+#                                  session that died badly (#102) is
+#                                  cleaned up before the next one decides
+#                                  what to adopt. Never stops a broker.
+#   ecce-gateway-reap --if-idle    from every messaging wrapper's EXIT
+#                                  trap, however the app ended: stops a
+#                                  display's relay once no ECCE app is left
+#                                  on it, and a PER-USER broker once no
+#                                  session of this user is left anywhere.
+#   ecce-gateway-reap --stop       from ecce-gateway-stop (Quit and Stop
+#                                  Server): as the sweep, and stops this
+#                                  account's broker, a server's included,
+#                                  once no relay is left.
 #
-# Two call sites, matching the two halves of the fix:
+# Which broker a plain quit may stop is decided only by declarations,
+# never by guessing who is connected (a central server's clients may
+# come in over loopback ssh tunnels):
+#   - siteconfig/SharedBroker (mode 3): the site's service. Nothing here
+#     ever stops it, not even --stop.
+#   - $STATEDIR/activemq/server, written by `ecce-remote-setup --server`,
+#     or a broker configured to listen beyond loopback (mode 2): a
+#     server's. Only --stop stops it.
+#   - anything else this account started (mode 1): stopped with the
+#     user's last session, so idle per-user JVMs do not pile up on a
+#     machine with many users.
 #
-#   ecce-gateway-reap              full sweep. Called at the top of
-#                                  ecce-gateway-start, so a session that
-#                                  died badly is cleaned up before the
-#                                  next one decides what to adopt.
-#
-#   ecce-gateway-reap --if-idle    called from every messaging app
-#                                  wrapper's EXIT trap. Does nothing
-#                                  while any ECCE app is still running on
-#                                  this display; when the last one exits
-#                                  -- however it exits, including on an
-#                                  abort, because the trap is in the
-#                                  wrapper shell and not in the app --
-#                                  it takes the session's services down
-#                                  with it.
-#
-# Liveness is decided by looking for running ECCE binaries, not by
-# reference counting, deliberately: a pid-file scheme only knows about
-# processes started after it shipped, and would have to be correct on
-# every abnormal-exit path to avoid the very leak it is meant to prevent.
-# Asking the process table cannot go stale.
+# Liveness is read from the process table (/proc/<pid>/exe), not from
+# reference counts, which would have to be right on every abnormal exit
+# to avoid the very leak they are meant to prevent.
 
 set -u
 
@@ -47,7 +43,11 @@ ACTIVEMQ_BASE="$STATEDIR/activemq"
 UID_="$(id -u)"
 
 IF_IDLE=0
-if [ "${1:-}" = "--if-idle" ]; then IF_IDLE=1; fi
+EXPLICIT_STOP=0
+case "${1:-}" in
+  --if-idle) IF_IDLE=1 ;;
+  --stop)    EXPLICIT_STOP=1 ;;   # ecce-gateway-stop: the user asked
+esac
 
 # An escape hatch for anything that manages the services itself.
 #
@@ -66,6 +66,13 @@ fi
 
 say() { [ -n "${ECCE_REAP_QUIET:-}" ] || echo "ecce-gateway-reap: $*"; }
 
+# Serialised with ecce-gateway-start, which holds this lock across its own
+# decisions and says so when it calls us.
+if [ -z "${ECCE_GATEWAY_LOCKED:-}" ]; then
+  exec 9>>"$STATEDIR/.gateway.lock"
+  flock -w 90 9 || say "could not lock $STATEDIR/.gateway.lock; continuing"
+fi
+
 # The data server credential AuthCache shares between this session's
 # processes (AuthCache::sessionFile). It holds a password, so it must go
 # when the session's services do -- same lifetime as the port file, same
@@ -76,6 +83,18 @@ authfile() {
 }
 
 BINDIR="$(readlink -f "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")"
+
+# Is this resolved executable one of $ECCE_HOME/bin's? Also true when
+# bin/<name> is a symlink to it, as in an overlay pointing into a build
+# tree -- the same rule the gateway applies when deciding its session is
+# over, so the two agree.
+is_ecce_exe() {
+  local exe="${1% (deleted)}" name
+  case "$exe" in "$BINDIR"/*) return 0 ;; esac
+  name="${exe##*/}"
+  [ -e "$ECCE_HOME/bin/$name" ] || return 1
+  [ "$(readlink -f "$ECCE_HOME/bin/$name" 2>/dev/null)" = "$exe" ]
+}
 
 # Pids of ECCE app binaries running for a given DISPLAY, for this user.
 #
@@ -94,14 +113,27 @@ apps_for_display() {
   for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
     [ -O "/proc/$pid" ] || continue
     exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
-    case "$exe" in
-      "$BINDIR"/*) ;;
-      *) continue ;;
-    esac
+    is_ecce_exe "$exe" || continue
     [ -r "/proc/$pid/environ" ] || continue
     disp="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
             sed -n 's/^DISPLAY=//p' | head -n1)"
     if [ "$disp" = "$want" ]; then echo "$pid"; fi
+  done
+}
+
+# Is any ECCE app of this state directory running, on any display? Keyed
+# by ECCE_REALUSERHOME, which every wrapper exports, so a second instance
+# of the same account (another ECCE_REALUSERHOME) does not count.
+apps_for_state() {
+  local pid exe home
+  for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
+    [ -O "/proc/$pid" ] || continue
+    exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
+    is_ecce_exe "$exe" || continue
+    [ -r "/proc/$pid/environ" ] || continue
+    home="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
+            sed -n 's/^ECCE_REALUSERHOME=//p' | head -n1)"
+    if [ "${home:-$HOME}" = "$ECCE_REALUSERHOME" ]; then echo "$pid"; fi
   done
 }
 
@@ -165,7 +197,7 @@ live_auth=""
 for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
   [ -O "/proc/$pid" ] || continue
   exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
-  case "$exe" in "$BINDIR"/*) ;; *) continue ;; esac
+  is_ecce_exe "$exe" || continue
   [ -r "/proc/$pid/environ" ] || continue
   d="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
        sed -n 's/^DISPLAY=//p' | head -n1)"
@@ -181,13 +213,25 @@ for f in "$auth_prefix"*; do
   rm -f "$f"
 done
 
-if [ "$dispatchers_left" -gt 0 ]; then
+# --- 2. The broker, shared by every display ----------------------------
+if [ -e "$ECCE_HOME/siteconfig/SharedBroker" ]; then
+  [ "$EXPLICIT_STOP" = 1 ] &&
+    say "the broker is the site's shared service (siteconfig/SharedBroker) -- left running"
   exit 0
 fi
+# The sweep never stops one, and nobody stops it while a relay is left.
+if [ "$IF_IDLE$EXPLICIT_STOP" = 00 ] || [ "$dispatchers_left" -gt 0 ]; then
+  exit 0
+fi
+if [ "$IF_IDLE" = 1 ]; then
+  [ -z "$(apps_for_state)" ] || exit 0
+  [ -e "$ACTIVEMQ_BASE/server" ] && exit 0
+  if [ -f "$ACTIVEMQ_BASE/conf/activemq.xml" ] &&
+     ! grep -q 'tcp://localhost:' "$ACTIVEMQ_BASE/conf/activemq.xml"; then
+    exit 0
+  fi
+fi
 
-# --- 2. The broker, shared by every display ----------------------------
-# Only reached when no display has a live dispatcher, so nothing can be
-# talking to it.
 brokerpid=""
 if [ -f "$STATEDIR/activemq.pid" ]; then
   brokerpid="$(cat "$STATEDIR/activemq.pid" 2>/dev/null)"
@@ -202,11 +246,15 @@ if [ -z "${brokerpid:-}" ]; then
   # whose pidfile was removed. Match on -Dactivemq.base, which names this
   # user's own state directory -- precise enough not to touch another
   # user's broker, or a second instance of our own on another base.
-  brokerpid="$(pgrep -u "$UID_" -f "activemq.base=$ACTIVEMQ_BASE" 2>/dev/null | head -n1)"
+  brokerpid="$(pgrep -u "$UID_" -f "activemq.base=$ACTIVEMQ_BASE( |$)" 2>/dev/null | head -n1)"
 fi
 
 if [ -n "${brokerpid:-}" ]; then
-  say "no ECCE session left -- stopping ActiveMQ broker (pid $brokerpid)"
+  if [ "$EXPLICIT_STOP" = 1 ]; then
+    say "stop requested, no ECCE session left -- stopping ActiveMQ broker (pid $brokerpid)"
+  else
+    say "last ECCE session of this user ended -- stopping its ActiveMQ broker (pid $brokerpid)"
+  fi
   reap_pid "$brokerpid"
   rm -f "$STATEDIR/activemq.pid"
 

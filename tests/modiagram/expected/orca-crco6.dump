@@ -105,3 +105,240 @@ links: 39
   link 36 left=0 centre=22 right=-1
   link 37 left=-1 centre=22 right=1
   link 38 left=-1 centre=23 right=4
+model:
+  ok: 1
+  note: 6 ligand fragments, largest same-type energy spread 1.50113e-06 Ha.
+  method: canonical closed-shell HF/DFT orbitals
+  energyScaleNote: Every energy and gap here is a canonical-orbital ENERGY GAP (Koopmans-like at best), never a computed excitation energy.
+  ligandAsymmetry: 1.50113e-06
+  couplingThreshold: 0.0482662
+  thresholdWhy: Largest ratio gap in the sorted couplings is 2.48811x, between 0.076134 and 0.0305991 Ha; threshold set to their geometric mean.
+  deltaO: 0
+  verdict: NOT_REPRESENTATIVE
+  verdictReason: Worst per-level capture: 0.322135 (ligand:sigma5*)
+  verdictReason: One or more order claims are unresolved (see disagreements).
+  verdictReason: A qualitative claim changed under the 0.5x/2x threshold scan.
+  disagreement: Order claim ligand:sigma2 < ligand:sigma2 (gap 0.400203 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (2.85334 Ha).
+  disagreement: Order claim ligand:sigma2 < ligand:sigma1 (gap 0.99965 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (2.85334 Ha).
+  disagreement: Order claim ligand:sigma1 < ligand:sigma1 (gap 0.000657373 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.000519491 Ha).
+  disagreement: Order claim ligand:sigma3 < ligand:sigma3 (gap 0.00468163 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0327182 Ha).
+  disagreement: Order claim ligand:sigma3 < ligand:sigma3 (gap 0.0112537 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.00650012 Ha).
+  disagreement: Order claim ligand:pi1 < ligand:pi1 (gap 0.0272311 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.021111 Ha).
+  disagreement: Order claim ligand:pi1 < ligand:sigma4 (gap 0.00743743 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0746175 Ha).
+  disagreement: Order claim ligand:sigma4 < ligand:pi1 (gap 0.00782648 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0746175 Ha).
+  disagreement: Order claim ligand:pi1 < ligand:pi1 (gap 0.0209472 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0218464 Ha).
+  disagreement: Order claim ligand:pi1 < ligand:sigma4 (gap 0.0123822 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0218464 Ha).
+  disagreement: Order claim ligand:pi2 < ligand:pi2 (gap 0.168602 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.221603 Ha).
+  disagreement: Order claim ligand:pi2 < a1g (gap 0.00607782 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.028507 Ha).
+  disagreement: Order claim a1g < ligand:pi2 (gap 0.0391585 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.028507 Ha).
+  disagreement: Order claim ligand:sigma5 < eg (gap 0.000211938 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0295444 Ha).
+  disagreement: Order claim ligand:sigma5* < ligand:pi3 (gap 0.0681311 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0422876 Ha).
+  disagreement: Order claim ligand:pi3 < ligand:sigma5* (gap 0.012196 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.242965 Ha).
+  disagreement: Order claim ligand:sigma5* < ligand:pi3 (gap 0.0910631 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.242965 Ha).
+  disagreement: Order claim ligand:pi3 < t2g* (gap 0.105224 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.111769 Ha).
+  disagreement: Order claim t2g* < ligand:sigma5* (gap 0.0879977 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.111769 Ha).
+  disagreement: Order claim ligand:sigma5* < ligand:pi3 (gap 0.012335 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.076704 Ha).
+  disagreement: Order claim ligand:pi3 < ligand:sigma2* (gap 0.333941 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.496725 Ha).
+  column metal: 4
+    level 0 label=t1u energy=-0.619585 degeneracy=3 character=UNKNOWN pairing=-1 metalWeight=1 ligandWeight=0 capture=-1 energyDeviation=-1 canonicalMOs=[]
+    level 1 label=a1g energy=-0.118512 degeneracy=1 character=UNKNOWN pairing=-1 metalWeight=1 ligandWeight=0 capture=-1 energyDeviation=-1 canonicalMOs=[]
+    level 2 label=eg energy=0.455442 degeneracy=2 character=UNKNOWN pairing=-1 metalWeight=1 ligandWeight=0 capture=-1 energyDeviation=-1 canonicalMOs=[]
+    level 3 label=t2g energy=0.597617 degeneracy=3 character=UNKNOWN pairing=-1 metalWeight=1 ligandWeight=0 capture=-1 energyDeviation=-1 canonicalMOs=[]
+  column interaction: 31
+    level 0 label=ligand:sigma2 energy=-2.9058 degeneracy=3 character=BONDING pairing=-1 metalWeight=0.4777 ligandWeight=0.5223 capture=0.8271 energyDeviation=0.6598 canonicalMOs=[19:0.7957]
+    level 1 label=ligand:sigma2 energy=-2.5056 degeneracy=1 character=BONDING pairing=-1 metalWeight=0.149 ligandWeight=0.851 capture=0.7172 energyDeviation=2.853 canonicalMOs=[72:0.1914]
+    level 2 label=ligand:sigma1 energy=-1.50595 degeneracy=1 character=NONBONDING pairing=-1 metalWeight=0.0224 ligandWeight=0.9776 capture=0.9999 energyDeviation=0.0005195 canonicalMOs=[21:0.9993]
+    level 3 label=ligand:sigma1 energy=-1.50529 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.02239 ligandWeight=0.9776 capture=1 energyDeviation=8.314e-05 canonicalMOs=[22:0.9999]
+    level 4 label=ligand:sigma1 energy=-1.50472 degeneracy=2 character=NONBONDING pairing=-1 metalWeight=0.001102 ligandWeight=0.9989 capture=1 energyDeviation=6.219e-05 canonicalMOs=[26:1]
+    level 5 label=ligand:sigma3 energy=-0.815182 degeneracy=1 character=BONDING pairing=-1 metalWeight=0.05647 ligandWeight=0.9435 capture=0.9778 energyDeviation=0.03272 canonicalMOs=[27:0.8362]
+    level 6 label=ligand:sigma3 energy=-0.8105 degeneracy=3 character=BONDING pairing=-1 metalWeight=0.09057 ligandWeight=0.9094 capture=0.999 energyDeviation=0.0065 canonicalMOs=[30:0.985]
+    level 7 label=ligand:sigma3 energy=-0.799246 degeneracy=2 character=NONBONDING pairing=-1 metalWeight=5.062e-06 ligandWeight=1 capture=0.9995 energyDeviation=0.0002536 canonicalMOs=[32:0.9995]
+    level 8 label=ligand:pi1 energy=-0.689521 degeneracy=3 character=BONDING pairing=-1 metalWeight=0.1696 ligandWeight=0.8304 capture=0.9973 energyDeviation=0.02111 canonicalMOs=[35:0.8915]
+    level 9 label=ligand:pi1 energy=-0.66229 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.008222 ligandWeight=0.9918 capture=0.9882 energyDeviation=0.00587 canonicalMOs=[39:0.9845]
+    level 10 label=ligand:sigma4 energy=-0.654853 degeneracy=1 character=BONDING pairing=-1 metalWeight=0.06802 ligandWeight=0.932 capture=0.9752 energyDeviation=0.07462 canonicalMOs=[33:0.7885]
+    level 11 label=ligand:pi1 energy=-0.647026 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=4.836e-16 ligandWeight=1 capture=1 energyDeviation=3.398e-05 canonicalMOs=[42:1]
+    level 12 label=ligand:pi1 energy=-0.640054 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=9.979e-20 ligandWeight=1 capture=1 energyDeviation=6.438e-06 canonicalMOs=[44:1]
+    level 13 label=ligand:pi1 energy=-0.619106 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.08238 ligandWeight=0.9176 capture=0.9951 energyDeviation=0.02185 canonicalMOs=[48:0.8955]
+    level 14 label=ligand:sigma4 energy=-0.606724 degeneracy=2 character=NONBONDING pairing=-1 metalWeight=0.01815 ligandWeight=0.9818 capture=0.9896 energyDeviation=0.006136 canonicalMOs=[47:0.9891]
+    level 15 label=ligand:pi2 energy=-0.0753027 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.01504 ligandWeight=0.985 capture=0.6676 energyDeviation=0.2216 canonicalMOs=[61:0.5153]
+    level 16 label=ligand:pi2 energy=0.0932992 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.007716 ligandWeight=0.9923 capture=0.9963 energyDeviation=0.004551 canonicalMOs=[56:0.9866]
+    level 17 label=a1g energy=0.099377 degeneracy=1 character=NONBONDING pairing=-1 metalWeight=0.569 ligandWeight=0.431 capture=0.9403 energyDeviation=0.02851 canonicalMOs=[54:0.8599]
+    level 18 label=ligand:pi2 energy=0.138535 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=1.021e-15 ligandWeight=1 capture=0.9983 energyDeviation=0.002915 canonicalMOs=[60:0.9982]
+    level 19 label=ligand:pi2 energy=0.225441 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=3.089e-19 ligandWeight=1 capture=0.998 energyDeviation=0.002531 canonicalMOs=[65:0.9978]
+    level 20 label=ligand:sigma5 energy=0.313782 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.009803 ligandWeight=0.9902 capture=0.9826 energyDeviation=0.0197 canonicalMOs=[69:0.9614]
+    level 21 label=eg energy=0.313994 degeneracy=2 character=BONDING pairing=-1 metalWeight=0.5421 ligandWeight=0.4579 capture=0.8997 energyDeviation=0.02954 canonicalMOs=[68:0.89]
+    level 22 label=ligand:sigma5* energy=0.510378 degeneracy=2 character=ANTIBONDING pairing=-1 metalWeight=0.3148 ligandWeight=0.6852 capture=0.87 energyDeviation=0.04229 canonicalMOs=[74:0.8188]
+    level 23 label=ligand:pi3 energy=0.578509 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.2313 ligandWeight=0.7687 capture=0.9518 energyDeviation=0.03825 canonicalMOs=[75:0.8655]
+    level 24 label=ligand:sigma5* energy=0.590705 degeneracy=1 character=ANTIBONDING pairing=-1 metalWeight=0.1351 ligandWeight=0.8649 capture=0.7172 energyDeviation=0.243 canonicalMOs=[72:0.3563]
+    level 25 label=ligand:pi3 energy=0.681768 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.02267 ligandWeight=0.9773 capture=0.7165 energyDeviation=0.02195 canonicalMOs=[79:0.4715]
+    level 26 label=ligand:pi3 energy=0.756537 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=1.265e-14 ligandWeight=1 capture=0.9738 energyDeviation=0.01976 canonicalMOs=[83:0.9736]
+    level 27 label=t2g* energy=0.861761 degeneracy=3 character=ANTIBONDING pairing=-1 metalWeight=0.7454 ligandWeight=0.2546 capture=0.7982 energyDeviation=0.1118 canonicalMOs=[100:0.7637]
+    level 28 label=ligand:sigma5* energy=0.949759 degeneracy=3 character=ANTIBONDING pairing=-1 metalWeight=0.1171 ligandWeight=0.8829 capture=0.3221 energyDeviation=0.06647 canonicalMOs=[103:0.3102]
+    level 29 label=ligand:pi3 energy=0.962094 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=1.272e-15 ligandWeight=1 capture=0.8754 energyDeviation=0.0767 canonicalMOs=[90:0.8747]
+    level 30 label=ligand:sigma2* energy=1.29604 degeneracy=2 character=ANTIBONDING pairing=-1 metalWeight=0.1239 ligandWeight=0.8761 capture=0.5102 energyDeviation=0.4967 canonicalMOs=[88:0.3379]
+  column ligandInteracting: 8
+    level 0 label=sigma1 energy=-1.50556 degeneracy=6 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
+    level 1 label=sigma2 energy=-1.11703 degeneracy=6 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
+    level 2 label=sigma3 energy=-0.786535 degeneracy=6 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
+    level 3 label=pi1 energy=-0.65153 degeneracy=12 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
+    level 4 label=sigma4 energy=-0.360275 degeneracy=6 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
+    level 5 label=pi2 energy=0.00382632 degeneracy=12 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
+    level 6 label=sigma5 energy=0.365949 degeneracy=6 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
+    level 7 label=pi3 energy=0.580449 degeneracy=12 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
+  column ligandInternal: 1
+    level 0 label=sigma6 energy=0.952309 degeneracy=6 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
+  links: 77
+    link 0 metal=-1 model=0 ligand=1 weight=0.4652
+    link 1 metal=0 model=0 ligand=-1 weight=0.4777
+    link 2 metal=-1 model=1 ligand=1 weight=0.5676
+    link 3 metal=-1 model=1 ligand=4 weight=0.2493
+    link 4 metal=1 model=1 ligand=-1 weight=0.149
+    link 5 metal=-1 model=2 ligand=0 weight=0.977
+    link 6 metal=-1 model=3 ligand=0 weight=0.9714
+    link 7 metal=-1 model=4 ligand=0 weight=0.9932
+    link 8 metal=-1 model=5 ligand=1 weight=0.1391
+    link 9 metal=-1 model=5 ligand=2 weight=0.7579
+    link 10 metal=1 model=5 ligand=-1 weight=0.05647
+    link 11 metal=-1 model=6 ligand=1 weight=0.07897
+    link 12 metal=-1 model=6 ligand=2 weight=0.783
+    link 13 metal=0 model=6 ligand=-1 weight=0.09057
+    link 14 metal=-1 model=7 ligand=2 weight=0.9385
+    link 15 metal=-1 model=8 ligand=3 weight=0.4002
+    link 16 metal=-1 model=8 ligand=1 weight=0.1006
+    link 17 metal=-1 model=8 ligand=2 weight=0.1581
+    link 18 metal=-1 model=8 ligand=4 weight=0.1444
+    link 19 metal=0 model=8 ligand=-1 weight=0.1696
+    link 20 metal=-1 model=9 ligand=3 weight=0.9866
+    link 21 metal=-1 model=10 ligand=1 weight=0.2872
+    link 22 metal=-1 model=10 ligand=2 weight=0.2095
+    link 23 metal=-1 model=10 ligand=4 weight=0.416
+    link 24 metal=1 model=10 ligand=-1 weight=0.06802
+    link 25 metal=-1 model=11 ligand=3 weight=0.9973
+    link 26 metal=-1 model=12 ligand=3 weight=0.9817
+    link 27 metal=-1 model=13 ligand=3 weight=0.5735
+    link 28 metal=-1 model=13 ligand=1 weight=0.07427
+    link 29 metal=-1 model=13 ligand=4 weight=0.1756
+    link 30 metal=0 model=13 ligand=-1 weight=0.08238
+    link 31 metal=-1 model=14 ligand=1 weight=0.1899
+    link 32 metal=-1 model=14 ligand=4 weight=0.7213
+    link 33 metal=-1 model=15 ligand=5 weight=0.9797
+    link 34 metal=-1 model=16 ligand=5 weight=0.7646
+    link 35 metal=-1 model=16 ligand=4 weight=0.1402
+    link 36 metal=-1 model=16 ligand=6 weight=0.05009
+    link 37 metal=-1 model=17 ligand=4 weight=0.1084
+    link 38 metal=-1 model=17 ligand=6 weight=0.2948
+    link 39 metal=1 model=17 ligand=-1 weight=0.569
+    link 40 metal=-1 model=18 ligand=5 weight=0.9283
+    link 41 metal=-1 model=18 ligand=7 weight=0.07048
+    link 42 metal=-1 model=19 ligand=5 weight=0.7609
+    link 43 metal=-1 model=19 ligand=7 weight=0.2352
+    link 44 metal=-1 model=20 ligand=7 weight=0.06891
+    link 45 metal=-1 model=20 ligand=1 weight=0.09264
+    link 46 metal=-1 model=20 ligand=4 weight=0.1953
+    link 47 metal=-1 model=20 ligand=6 weight=0.6252
+    link 48 metal=-1 model=21 ligand=1 weight=0.1115
+    link 49 metal=-1 model=21 ligand=4 weight=0.1419
+    link 50 metal=-1 model=21 ligand=6 weight=0.2014
+    link 51 metal=2 model=21 ligand=-1 weight=0.5421
+    link 52 metal=-1 model=22 ligand=6 weight=0.6741
+    link 53 metal=2 model=22 ligand=-1 weight=0.3148
+    link 54 metal=-1 model=23 ligand=7 weight=0.7659
+    link 55 metal=3 model=23 ligand=-1 weight=0.2313
+    link 56 metal=-1 model=24 ligand=4 weight=0.1901
+    link 57 metal=-1 model=24 ligand=6 weight=0.6577
+    link 58 metal=1 model=24 ligand=-1 weight=0.1351
+    link 59 metal=-1 model=25 ligand=7 weight=0.7525
+    link 60 metal=-1 model=25 ligand=4 weight=0.197
+    link 61 metal=-1 model=26 ligand=5 weight=0.06977
+    link 62 metal=-1 model=26 ligand=7 weight=0.9287
+    link 63 metal=-1 model=27 ligand=7 weight=0.2325
+    link 64 metal=3 model=27 ligand=-1 weight=0.7454
+    link 65 metal=-1 model=28 ligand=5 weight=0.1559
+    link 66 metal=-1 model=28 ligand=7 weight=0.1213
+    link 67 metal=-1 model=28 ligand=1 weight=0.1678
+    link 68 metal=-1 model=28 ligand=4 weight=0.122
+    link 69 metal=-1 model=28 ligand=6 weight=0.2966
+    link 70 metal=0 model=28 ligand=-1 weight=0.1171
+    link 71 metal=-1 model=29 ligand=5 weight=0.2264
+    link 72 metal=-1 model=29 ligand=7 weight=0.7593
+    link 73 metal=-1 model=30 ligand=1 weight=0.6525
+    link 74 metal=-1 model=30 ligand=4 weight=0.1099
+    link 75 metal=-1 model=30 ligand=6 weight=0.09962
+    link 76 metal=2 model=30 ligand=-1 weight=0.1239
+  couplings: 72
+    coupling 0 label=ligand#0 ligand:sigma1 energy=-1.50556 maxCoupling=0.159605 interacting=1
+    coupling 1 label=ligand#0 ligand:sigma2 energy=-1.11703 maxCoupling=0.134274 interacting=1
+    coupling 2 label=ligand#0 ligand:sigma3 energy=-0.786535 maxCoupling=0.0761342 interacting=1
+    coupling 3 label=ligand#0 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
+    coupling 4 label=ligand#0 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
+    coupling 5 label=ligand#0 ligand:sigma4 energy=-0.360276 maxCoupling=0.191964 interacting=1
+    coupling 6 label=ligand#0 ligand:pi2 energy=0.00382632 maxCoupling=0.161192 interacting=1
+    coupling 7 label=ligand#0 ligand:pi2 energy=0.00382633 maxCoupling=0.161192 interacting=1
+    coupling 8 label=ligand#0 ligand:sigma5 energy=0.365949 maxCoupling=0.194464 interacting=1
+    coupling 9 label=ligand#0 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
+    coupling 10 label=ligand#0 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
+    coupling 11 label=ligand#0 ligand:sigma6 energy=0.952309 maxCoupling=0.030599 interacting=0
+    coupling 12 label=ligand#1 ligand:sigma1 energy=-1.50556 maxCoupling=0.159605 interacting=1
+    coupling 13 label=ligand#1 ligand:sigma2 energy=-1.11703 maxCoupling=0.134274 interacting=1
+    coupling 14 label=ligand#1 ligand:sigma3 energy=-0.786535 maxCoupling=0.0761342 interacting=1
+    coupling 15 label=ligand#1 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
+    coupling 16 label=ligand#1 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
+    coupling 17 label=ligand#1 ligand:sigma4 energy=-0.360276 maxCoupling=0.191964 interacting=1
+    coupling 18 label=ligand#1 ligand:pi2 energy=0.00382632 maxCoupling=0.161192 interacting=1
+    coupling 19 label=ligand#1 ligand:pi2 energy=0.00382633 maxCoupling=0.161192 interacting=1
+    coupling 20 label=ligand#1 ligand:sigma5 energy=0.365949 maxCoupling=0.194464 interacting=1
+    coupling 21 label=ligand#1 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
+    coupling 22 label=ligand#1 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
+    coupling 23 label=ligand#1 ligand:sigma6 energy=0.952309 maxCoupling=0.030599 interacting=0
+    coupling 24 label=ligand#2 ligand:sigma1 energy=-1.50556 maxCoupling=0.159604 interacting=1
+    coupling 25 label=ligand#2 ligand:sigma2 energy=-1.11703 maxCoupling=0.134274 interacting=1
+    coupling 26 label=ligand#2 ligand:sigma3 energy=-0.786535 maxCoupling=0.076134 interacting=1
+    coupling 27 label=ligand#2 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
+    coupling 28 label=ligand#2 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
+    coupling 29 label=ligand#2 ligand:sigma4 energy=-0.360275 maxCoupling=0.191964 interacting=1
+    coupling 30 label=ligand#2 ligand:pi2 energy=0.00382633 maxCoupling=0.161192 interacting=1
+    coupling 31 label=ligand#2 ligand:pi2 energy=0.00382633 maxCoupling=0.161192 interacting=1
+    coupling 32 label=ligand#2 ligand:sigma5 energy=0.365949 maxCoupling=0.194464 interacting=1
+    coupling 33 label=ligand#2 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
+    coupling 34 label=ligand#2 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
+    coupling 35 label=ligand#2 ligand:sigma6 energy=0.952309 maxCoupling=0.0305989 interacting=0
+    coupling 36 label=ligand#3 ligand:sigma1 energy=-1.50556 maxCoupling=0.159604 interacting=1
+    coupling 37 label=ligand#3 ligand:sigma2 energy=-1.11703 maxCoupling=0.134274 interacting=1
+    coupling 38 label=ligand#3 ligand:sigma3 energy=-0.786535 maxCoupling=0.076134 interacting=1
+    coupling 39 label=ligand#3 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
+    coupling 40 label=ligand#3 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
+    coupling 41 label=ligand#3 ligand:sigma4 energy=-0.360275 maxCoupling=0.191964 interacting=1
+    coupling 42 label=ligand#3 ligand:pi2 energy=0.00382633 maxCoupling=0.161192 interacting=1
+    coupling 43 label=ligand#3 ligand:pi2 energy=0.00382633 maxCoupling=0.161192 interacting=1
+    coupling 44 label=ligand#3 ligand:sigma5 energy=0.365949 maxCoupling=0.194464 interacting=1
+    coupling 45 label=ligand#3 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
+    coupling 46 label=ligand#3 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
+    coupling 47 label=ligand#3 ligand:sigma6 energy=0.952309 maxCoupling=0.0305989 interacting=0
+    coupling 48 label=ligand#4 ligand:sigma1 energy=-1.50556 maxCoupling=0.159605 interacting=1
+    coupling 49 label=ligand#4 ligand:sigma2 energy=-1.11703 maxCoupling=0.134274 interacting=1
+    coupling 50 label=ligand#4 ligand:sigma3 energy=-0.786535 maxCoupling=0.0761344 interacting=1
+    coupling 51 label=ligand#4 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
+    coupling 52 label=ligand#4 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
+    coupling 53 label=ligand#4 ligand:sigma4 energy=-0.360275 maxCoupling=0.191964 interacting=1
+    coupling 54 label=ligand#4 ligand:pi2 energy=0.0038263 maxCoupling=0.161192 interacting=1
+    coupling 55 label=ligand#4 ligand:pi2 energy=0.00382632 maxCoupling=0.161192 interacting=1
+    coupling 56 label=ligand#4 ligand:sigma5 energy=0.365949 maxCoupling=0.194464 interacting=1
+    coupling 57 label=ligand#4 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
+    coupling 58 label=ligand#4 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
+    coupling 59 label=ligand#4 ligand:sigma6 energy=0.95231 maxCoupling=0.0305991 interacting=0
+    coupling 60 label=ligand#5 ligand:sigma1 energy=-1.50556 maxCoupling=0.159605 interacting=1
+    coupling 61 label=ligand#5 ligand:sigma2 energy=-1.11703 maxCoupling=0.134274 interacting=1
+    coupling 62 label=ligand#5 ligand:sigma3 energy=-0.786535 maxCoupling=0.0761344 interacting=1
+    coupling 63 label=ligand#5 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
+    coupling 64 label=ligand#5 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
+    coupling 65 label=ligand#5 ligand:sigma4 energy=-0.360275 maxCoupling=0.191964 interacting=1
+    coupling 66 label=ligand#5 ligand:pi2 energy=0.0038263 maxCoupling=0.161192 interacting=1
+    coupling 67 label=ligand#5 ligand:pi2 energy=0.00382632 maxCoupling=0.161192 interacting=1
+    coupling 68 label=ligand#5 ligand:sigma5 energy=0.365949 maxCoupling=0.194464 interacting=1
+    coupling 69 label=ligand#5 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
+    coupling 70 label=ligand#5 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
+    coupling 71 label=ligand#5 ligand:sigma6 energy=0.95231 maxCoupling=0.0305991 interacting=0
+  robustness: 2
+    scan scale=0.5 piAcceptorPattern=0 deltaOSign=0 eg2AboveT2g=0
+    scan scale=2 piAcceptorPattern=0 deltaOSign=0 eg2AboveT2g=0
+      characterChange: ligand:sigma4: BONDING -> NONBONDING

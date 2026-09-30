@@ -98,6 +98,7 @@ using std::endl;
 #include "TreeDropTarget.H"
 #include "WxConfigureNwfsArchive.H"
 #include "WxFind.H"
+#include "wxgui/GlobalPrefs.H"
 
 #include "CalcMgr.H"
 
@@ -163,6 +164,15 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 
   initializeGUI();
 
+  // Under -remote the calculations live on another machine; say which,
+  // so a client's window cannot be mistaken for a local session's.
+  if (getenv("ECCE_REMOTE_SERVER")) {
+    EDSIServerCentral central;
+    string host = central.getDefaultUserHome().getHost();
+    if (!host.empty())
+      SetTitle(GetTitle() + " on " + wxString::FromUTF8(host.c_str()));
+  }
+
   setAuthDialogParent(this);
   EDSIFactory::addAuthEventListener(this);
   EDSIFactory::addProgressEventListener(this);
@@ -185,6 +195,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   p_serverListEditor = new BookmarkEditor("ServerList", false, this,
                                           wxID_ANY, "Server List Editor");
   p_find = 0;
+  p_prefs = 0;
+  Bind(wxEVT_MENU, &CalcMgr::OnPreferencesClick, this, wxID_PREFERENCES);
   updateBookmarkMenu();
 
   p_nwfs = 0;
@@ -762,7 +774,12 @@ bool CalcMgr::confirmAndQuit()
 {
   ewxMessageDialog dlg(this, "Do you really want to quit?", "Quit ECCE",
                        wxOK|wxCANCEL|wxICON_QUESTION, wxDefaultPosition);
-  dlg.AddButton(ID_ORGANIZER_QUIT_STOP_SERVER, "Quit and Stop Server");
+  // #190: under a central server (ECCE_REMOTE_SERVER) this client's own
+  // ecce-dataserver-stop/ecce-gateway-stop can't reach the server's
+  // services anyway (different account) -- offering the button is just
+  // misleading, so don't.
+  if (!getenv("ECCE_REMOTE_SERVER"))
+    dlg.AddButton(ID_ORGANIZER_QUIT_STOP_SERVER, "Quit and Stop Server");
   int result = dlg.ShowModal();
 
   if (result == wxID_CANCEL)
@@ -1533,6 +1550,20 @@ void CalcMgr::OnFindClick( wxCommandEvent& event )
   p_find->Show(true);
   updateFindDlg();
   p_find->Raise();
+}
+
+
+/**
+ * Edit > Preferences.  Built on first use; closing only hides it, and the
+ * frame is owned by this one.
+ */
+void CalcMgr::OnPreferencesClick( wxCommandEvent& event )
+{
+  if (p_prefs == (GlobalPrefs*)0) {
+    p_prefs = new GlobalPrefs(this);
+  }
+  p_prefs->Show(true);
+  p_prefs->Raise();
 }
 
 
@@ -4179,24 +4210,6 @@ bool CalcMgr::checkSingleJob(Resource *resource, string& message)
             calc->setState(ResourceDescriptor::STATE_FAILED);
             updateUrl(resource->getURL());
 
-            // Email failures to ecce-test if ECCE_JOB_FAILMAIL tells us to
-            /**
-             * @todo This will not work under windows, not sure about mac.
-             *       May need some ifdef to handle it differently.
-             */
-            string url = resource->getURL().toString();
-            string failmail = getenv("ECCE_JOB_FAILMAIL") ?
-              getenv("ECCE_JOB_FAILMAIL"): "";
-            if (failmail=="true" ||
-                (failmail!="" && url.find(failmail)!=string::npos)) {
-              string mail =
-              "Mail -s 'Job Monitoring Failure' ecce-test@emsl.pnl.gov << EOM\n"
-              "Job found in the submitted/running state without an "
-              "eccejobstore ";
-              mail += Ecce::ecceVersion();
-              mail += " process.\nCalculation name: " + url + "\nEOM";
-              (void)system(mail.c_str());
-            }
           }
         } else {
           ret = false;
