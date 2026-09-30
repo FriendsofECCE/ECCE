@@ -183,6 +183,9 @@ def monitorStdin():
     return None
 
 
+#  pids of the remote monitors; the script is sh so the login shell may be csh.
+MONITOR_PIDS = "pgrep -f '^perl eccejobmonitor'; true"
+
 REMOTE_MONITOR = ("for p in $(pgrep -f '^perl eccejobmonitor'); do "
                   "echo \"$p $(readlink /proc/$p/fd/0)\"; done")
 
@@ -302,10 +305,11 @@ class Suite(object):
                 pass
         return True
 
-    def driver(self, *argv, transport=None):
+    def driver(self, *argv, transport=None, extra=None):
         """One launchjob invocation, with credentials piped in."""
         pipe = self.authFile(os.path.join(self.state, "auth.pipe"))
-        extra = {"ECCE_TRANSPORT": transport} if transport else None
+        if extra is None:
+            extra = {"ECCE_TRANSPORT": transport} if transport else None
         #  The gateway starts every app with `cd $ECCE_HOME/bin && ./app`,
         #  and eccejobmaster runs "./eccejobstore" relative to that, so the
         #  default mirrors it.  --cwd . shows what happens otherwise.
@@ -336,13 +340,24 @@ class Suite(object):
         os.chmod(path, 0o600)
         return path
 
-    def one(self, label, transport, drop=False):
+    def monitorPids(self):
+        rc, out = self.sshRun(MONITOR_PIDS)
+        return [int(w) for w in out.split() if w.isdigit()]
+
+    def one(self, label, transport, drop=False, kills=0, env=None,
+            giveup=False):
+        """One job.  drop: kill the monitor's sshd session once (#205);
+        kills: kill the remote monitor process that many times, as a login
+        node would (#206); giveup: expect monitoring to be abandoned."""
         say("--- %s (ECCE_TRANSPORT=%s)" % (label, transport or "unset"))
         self.dropNote = ""
         if self.remote():
+            left = self.monitorPids()
+            self.check(not left, "no eccejobmonitor left over from the "
+                       "previous run%s" % (" (pids %s)" % left if left else ""))
             self.sshRun("pkill -9 -f '^perl eccejobmonitor'; "
                         "pkill -f mopac-slow; true")
-            self.setMopacDelay(30 if drop or self.args.hold else 12)
+            self.setMopacDelay(150 if kills else 30 if drop or self.args.hold else 12)
             if os.path.exists(self.stubLog()):
                 os.unlink(self.stubLog())
         name = "mopac-ch4-%s-%d" % (label, int(time.time()))
@@ -362,7 +377,9 @@ class Suite(object):
         url = out.strip().splitlines()[-1]
         say("  calculation: " + url)
 
-        rc, out = self.driver("launch", url, transport=transport)
+        extra = {"ECCE_TRANSPORT": transport} if transport else {}
+        extra.update(env or {})
+        rc, out = self.driver("launch", url, extra=extra)
         say("\n".join("  | " + line for line in out.strip().splitlines()))
         if not self.check(rc == 0, "Launch ran to the end"):
             return
@@ -377,24 +394,57 @@ class Suite(object):
         state = ""
         stdin = None
         dropped = False
+        oldPids = []
+        killed = []             # (pid, time) of monitors killed by kills
+        seenAt = {}             # pid -> first time seen
         self.monitorLog = ""
         wait = drop or self.args.hold
-        deadline = time.time() + WAIT_SECONDS * (2 if wait else 1)
+        deadline = time.time() + WAIT_SECONDS * (
+            4 if kills else 2 if wait else 1)
         while time.time() < deadline:
             self.seen.update(seenBinaries(self.home))
             self.readMonitorLog(name)
+            self.masterLog(name)
             if self.remote():
                 found = self.remoteMonitorStdin()
                 if found and not stdin:
                     stdin = found
                     say("  remote eccejobmonitor stdin: %s" % found)
+                if kills:
+                    now = time.time()
+                    for pid in self.monitorPids():
+                        seenAt.setdefault(pid, now)
+                        #  Only a monitor that has run a while, so that
+                        #  each kill is a separate, spaced failure.
+                        if (len(killed) < kills and now - seenAt[pid] > 8
+                                and not any(k[0] == pid for k in killed)):
+                            self.sshRun("kill -9 %d" % pid)
+                            killed.append((pid, now))
+                            say("  killed remote monitor %d (%d of %d)"
+                                % (pid, len(killed), kills))
                 if found and drop and not dropped:
                     dropped = True
+                    oldPids = self.monitorPids()
                     rc, out = self.sshRun(DROP_SESSION)
                     self.dropNote = out.strip()
                     say("  dropped the monitor's session: %s" % self.dropNote)
                     self.check(out.startswith("killed"),
                                "killed the monitor's sshd session")
+                    #  #205: the orphan has to notice within a heartbeat.
+                    gone = False
+                    t0 = time.time()
+                    for _ in range(30):
+                        time.sleep(1)
+                        alive = [p for p in self.monitorPids() if p in oldPids]
+                        if not alive:
+                            gone = True
+                            break
+                    took = time.time() - t0
+                    self.check(gone and took < 12,
+                               "the monitor on the dropped session exited by "
+                               "itself within 12s (%s)" % (
+                                   "still running: %s" % alive if not gone
+                                   else "pids %s, %.0fs" % (oldPids, took)))
             else:
                 for _ in range(20):
                     stdin = stdin or monitorStdin()
@@ -403,9 +453,12 @@ class Suite(object):
             state = out.strip().splitlines()[-1] if out.strip() else ""
             #  system_failure is what a lost monitor reports until
             #  eccejobmaster has restarted eccejobstore.
-            if state in ("completed", "loaded", "failed", "killed",
-                         "unsuccessful") or (
-                             state == "system_failure" and not wait):
+            if giveup:
+                if "exited with final status" in self.masterLog(name):
+                    break
+            elif state in ("completed", "loaded", "failed", "killed",
+                           "unsuccessful") or (
+                    state == "system_failure" and not wait and not kills):
                 break
         say("  eccejobmonitor stdin: %s" % stdin)
         if self.remote():
@@ -425,10 +478,42 @@ class Suite(object):
                           label))
         elif transport == "direct":
             self.check(False, "monitor seen while the job ran")
+        if giveup:
+            text = self.masterLog(name)
+            for line in text.splitlines():
+                if "restart count" in line or "exited with" in line or "reset" in line:
+                    say("  master: " + line.strip()[:120])
+            self.check(len(killed) >= 2, "the monitor was killed at least twice"
+                       " (%d)" % len(killed))
+            self.check("exited with final status" in text
+                       and "restart count reset" not in text,
+                       "eccejobmaster gave up without a reset")
+            self.check(state != "completed",
+                       "monitoring was abandoned, the run did not reach "
+                       "completed (last: %s)" % (state or "none"))
+            self.check("TE" not in self.props(url), "no TE was stored")
+            return
         self.check(state == "completed",
                    "run state reached completed within %ds (last: %s)"
                    % (WAIT_SECONDS, state or "none"))
+        if kills:
+            self.check(len(killed) == kills, "the monitor was killed %d times "
+                       "(%d)" % (kills, len(killed)))
+            self.check("restart count reset" in self.masterLog(name),
+                       "eccejobmaster reset the restart count")
+        if state == "completed" and (drop or kills):
+            #  Nothing may be left once the job is done: neither the
+            #  dropped monitor nor a replaced one.
+            for _ in range(30):
+                left = self.monitorPids()
+                if not left:
+                    break
+                time.sleep(1)
+            self.check(not left, "no eccejobmonitor left after the job "
+                       "completed%s" % (" (pids %s)" % left if left else ""))
         if state != "completed":
+            say("  ---- eccejobmaster.log\n" + self.masterLog(name)[-1500:])
+            say("  ---- eccejobstore.log (last run)\n" + self.monitorLog[-2500:])
             self.diagnose(url)
             return
 
@@ -525,17 +610,29 @@ class Suite(object):
         self.check(set(first) <= set(second), "the restart kept the first run's properties (%s)"
                    % " ".join(sorted(set(first) - set(second))))
 
+    def masterLog(self, name):
+        import glob
+        text = ""
+        for log in glob.glob(os.path.join(self.state, "tmp", "*", "jobs",
+                                          name + "__*", "eccejobmaster.log")):
+            try:
+                with open(log, errors="replace") as handle:
+                    text += handle.read()
+            except OSError:
+                pass
+        #  The cache directory goes once the job is done; keep the last text.
+        if not hasattr(self, "masterSeen"):
+            self.masterSeen = {}
+        if text:
+            self.masterSeen[name] = text
+        return self.masterSeen.get(name, "")
+
     def checkRestarted(self, name):
         """The dropped monitor must have been replaced by a restart."""
-        import glob
         text = ""
         #  The state turns completed a little before eccejobstore exits.
         for _ in range(30):
-            text = ""
-            for log in glob.glob(os.path.join(self.state, "tmp", "*", "jobs",
-                                              name + "__*", "eccejobmaster.log")):
-                with open(log, errors="replace") as handle:
-                    text += handle.read()
+            text = self.masterLog(name)
             if "exited with final status" in text:
                 break
             time.sleep(1)
@@ -669,6 +766,10 @@ def main():
     parser.add_argument("--expect-keepalive", action="store_true",
                         help="with --hold: the restart must come from the ssh "
                         "keepalive (ECCE_SSH_KEEPALIVE)")
+    parser.add_argument("--kill", action="store_true",
+                        help="#205/#206: kill the remote monitor process four "
+                        "times, as a login node would; the restart count "
+                        "must reset, and without the reset must run out")
     parser.add_argument("--nwchem-restart", action="store_true",
                         help="#202: only run NWChem, Reset for Restart, run again")
     parser.add_argument("--keep", action="store_true",
@@ -730,6 +831,7 @@ def main():
     modes = {"unset": [("pty", None)], "direct": [("direct", "direct")],
              "ssh": [("ssh", "ssh")],
              "both": [("pty", None), second]}[args.transport]
+    kill_modes = modes
     modes = [m + (False,) for m in modes]
     if args.drop and args.machine != "localhost":
         modes += [(label + "-drop", t, True) for label, t, _ in modes]
@@ -743,10 +845,24 @@ def main():
                 modes = []
             for label, transport, drop in modes:
                 suite.one(label, transport, drop)
+            if args.kill and args.machine != "localhost":
+                for label, transport in kill_modes:
+                    suite.one(label + "-kill", transport, kills=4, env={
+                        "ECCE_JOB_MAXCONNECTS": "2",
+                        "ECCE_JOB_RESTARTRESET": "5",
+                        "ECCE_JOB_MAXQUICKTIME": "1"})
+                    suite.one(label + "-kill-noreset", transport, kills=4,
+                              giveup=True, env={
+                                  "ECCE_JOB_MAXCONNECTS": "2",
+                                  "ECCE_JOB_RESTARTRESET": "100000",
+                                  "ECCE_JOB_MAXQUICKTIME": "1"})
         for name, path in sorted(suite.seen.items()):
             inBuild = os.path.dirname(path) == build
             suite.check(inBuild, "ran while the job was alive: %s" % path)
     finally:
+        if suite.remote():
+            suite.sshRun("pkill -9 -f '^perl eccejobmonitor'; "
+                         "pkill -f mopac-slow; true")
         if not args.keep:
             suite.services(False)
             note, n = sweep(state)

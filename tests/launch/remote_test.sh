@@ -6,7 +6,7 @@
 # The client runs in a container (Containerfile.launch) so the test owns the
 # ~/.ssh that ssh reads; OpenSSH takes it from the passwd home, which an
 # isolated $HOME on the host cannot override.  RUN_ARGS overrides the
-# arguments to run_tests.py (default: --transport both --drop).  The build goes to build-ssh in
+# arguments to run_tests.py (default: --transport both --drop --kill).  The build goes to build-ssh in
 # the worktree, untracked.  To run beside another run: ECCE_TEST_SSH_PORT,
 # ECCE_TEST_SSH_NAME (run.sh), ECCE_TEST_CLIENT_HOME, ECCE_TEST_STATE (a path
 # inside the client home, e.g. /tmp/client/st), ECCE_DATASERVER_PORT, ECCE_BROKER_PORT.
@@ -33,7 +33,7 @@ podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce
   -v "$root:/src:Z" -v "$state:/state:Z,ro" -v "$chome:/tmp/client:Z" \
   ${ECCE_TEST_STATE:+-e ECCE_TEST_STATE} ${ECCE_DATASERVER_PORT:+-e ECCE_DATASERVER_PORT} \
   ${ECCE_BROKER_PORT:+-e ECCE_BROKER_PORT} ${ECCE_SSH_KEEPALIVE:+-e ECCE_SSH_KEEPALIVE} \
-  -e PORT="$port" -e USERS="$users" -e RUN_ARGS="${RUN_ARGS:---transport both --drop}" localhost/ecce-launch bash -c '
+  -e PORT="$port" -e USERS="$users" -e RUN_ARGS="${RUN_ARGS:---transport both --drop --kill}" localhost/ecce-launch bash -c '
   set -e
   install -d -m 700 ~/.ssh
   install -m 600 /state/id_ed25519 ~/.ssh/ecce_test_key

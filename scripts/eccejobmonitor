@@ -134,6 +134,8 @@ my $gMsgBlockBuffering;
 my $gMsgBlockBufParseType;
 my $gMsgBlockCurrent;
 my $gMsgDest = undef;
+my $gParentPid = getppid();	# parent at start; it changes when the client's shell dies
+my $gPidFile = undef;
 my %gPdCount;
 my @gPdMatchList;
 my %gPdTable;
@@ -1047,6 +1049,106 @@ sub Die
 }
 
 # --------------------------------------------------------------------------- #
+# A monitor has no tty, so when the client's connection goes away nothing
+# signals it.  Called on every job poll: exit when the process that started
+# us is gone.  (A failed write to the client already ends us, in MsgSend.)
+# --------------------------------------------------------------------------- #
+
+sub ConnCheck
+{
+    return if ($gConfig{'commType'} ne 'stdio');
+
+    my $why;
+    if (getppid() != $gParentPid)
+    {
+        $why = "parent process $gParentPid is gone";
+    }
+    return unless defined $why;
+
+    LogMsg "ConnCheck: connection to the client lost ($why)";
+    &Done(0);
+}
+
+# --------------------------------------------------------------------------- #
+# One monitor per run directory: a pid file names the current one, and a
+# live predecessor, recognised by its command line and working directory so
+# that a recycled pid is never signalled, is stopped before we take over.
+# --------------------------------------------------------------------------- #
+
+sub PidIsMonitor
+{
+    my($pid) = @_;
+    my $args = '';
+
+    if (open(my $fh, '<', "/proc/$pid/cmdline"))
+    {
+        local $/;
+        $args = <$fh>;
+        close $fh;
+        $args =~ tr/\0/ /;
+        my $theirCwd = readlink("/proc/$pid/cwd");
+        return 0 unless (defined $theirCwd && $theirCwd eq cwd());
+    }
+    else
+    {
+        $args = `ps -o args= -p $pid 2>/dev/null`;
+    }
+    return ($args =~ /\beccejobmonitor\b/) ? 1 : 0;
+}
+
+sub PidFileTakeOver
+{
+    $gPidFile = cwd() . '/.eccejobmonitor.pid';
+
+    if (open(my $fh, '<', $gPidFile))
+    {
+        my $old = <$fh>;
+        close $fh;
+        $old = '' unless defined $old;
+        chomp $old;
+        if ($old =~ /^\d+$/ && $old != $$ && kill(0, $old) && &PidIsMonitor($old))
+        {
+            LogMsg "PidFileTakeOver: stopping previous monitor $old";
+            kill 'TERM', $old;
+            for (my $i = 0; $i < 20 && kill(0, $old); $i++)
+            {
+                select(undef, undef, undef, 0.25);
+            }
+            if (kill(0, $old))
+            {
+                kill 'KILL', $old;
+                select(undef, undef, undef, 0.5);
+            }
+        }
+    }
+
+    if (open(my $fh, '>', $gPidFile))
+    {
+        print $fh "$$\n";
+        close $fh;
+    }
+    else
+    {
+        LogWarn "cannot write $gPidFile: $!";
+        $gPidFile = undef;
+    }
+}
+
+sub PidFileRelease
+{
+    return unless defined $gPidFile;
+
+    # a successor may already have replaced it
+    if (open(my $fh, '<', $gPidFile))
+    {
+        my $pid = <$fh>;
+        close $fh;
+        unlink $gPidFile if (defined $pid && $pid =~ /^$$\s*$/);
+    }
+    $gPidFile = undef;
+}
+
+# --------------------------------------------------------------------------- #
 # Print a termination message based on the given exit status,
 # clean up the log file, and exit with the given exit status.
 # --------------------------------------------------------------------------- #
@@ -1058,6 +1160,7 @@ sub Done
 
     LogMsg "$gProgramName terminating $how, exit status $exitStatus";
     &LogClose();
+    &PidFileRelease();
 
     exit $exitStatus;
 }
@@ -1545,6 +1648,9 @@ sub Init
     # ignore SIGPIPE to test whether they are really fatal type problems
     $SIG{'PIPE'} = \&SigHandleMisc;
 
+    # a monitor left behind by a lost connection must not keep running
+    &PidFileTakeOver();
+
     # initialize communications
     &CommInit();
 
@@ -1602,6 +1708,8 @@ sub JobCheck
     my $cmd;
     my $gotState;
     my $status = $JOB_STATE_NONE;
+
+    &ConnCheck();
 
     if ($q eq 'shell')
     {
