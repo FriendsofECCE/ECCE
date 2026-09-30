@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cerrno>
 #include <chrono>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -14,9 +15,16 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <netinet/in.h>
+#ifdef __linux__
+#include <linux/tcp.h>   // glibc's struct tcp_info stops short of the byte counters
+#else
+#include <netinet/tcp.h>
+#endif
 #include <unistd.h>
 
 #include <libssh/libssh.h>
+#include <libssh/server.h>   // ssh_send_keepalive
 #include <libssh/sftp.h>
 
 namespace {
@@ -46,6 +54,53 @@ void wipe(std::string& s)
   volatile char* p = s.empty() ? 0 : &s[0];
   for (size_t i = 0; i < s.size(); i++) p[i] = 0;
   s.clear();
+}
+
+// Seconds of silence before a keepalive (ECCE_SSH_KEEPALIVE; 0 = off).  A
+// link is called dead after three intervals without any traffic.
+int keepaliveSec()
+{
+  const char* e = getenv("ECCE_SSH_KEEPALIVE");
+  if (!e || !*e) return 30;
+  int v = atoi(e);
+  return v < 0 ? 0 : v;
+}
+
+// Kernel TCP keepalive: ends a blocked read on a link whose host is gone.  It
+// cannot tell a frozen sshd from a live one, which the ssh keepalive can.
+void setTcpKeepalive(ssh_session s, int sec)
+{
+  if (sec <= 0) return;
+  int fd = ssh_get_fd(s);
+  if (fd < 0) return;
+  int on = 1, idle = sec, intvl = std::max(1, sec / 3), cnt = 3;
+  setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on);
+#ifdef TCP_KEEPIDLE
+  setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &idle, sizeof idle);
+  setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &intvl, sizeof intvl);
+  setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &cnt, sizeof cnt);
+#endif
+}
+
+// Bytes the kernel has received on the connection so far.  libssh does not
+// report the reply to a keepalive, but any packet it brings shows up here.
+// -1 where the kernel cannot say.
+template <class T>
+auto rxBytes(const T& ti, int) -> decltype((long long)ti.tcpi_bytes_received)
+{ return (long long)ti.tcpi_bytes_received; }
+template <class T>
+long long rxBytes(const T&, long) { return -1; }
+
+long long receivedBytes(int fd)
+{
+#ifdef TCP_INFO
+  struct tcp_info ti;
+  socklen_t len = sizeof ti;
+  memset(&ti, 0, sizeof ti);
+  if (fd >= 0 && getsockopt(fd, IPPROTO_TCP, TCP_INFO, &ti, &len) == 0)
+    return rxBytes(ti, 0);
+#endif
+  return -1;
 }
 
 // Sleeps until the channel has data or eof, or the timeout passes.
@@ -123,6 +178,7 @@ ssh_session SshTransport::newSession(std::string& error)
     ssh_free(s);
     return 0;
   }
+  setTcpKeepalive(s, keepaliveSec());
   return s;
 }
 
@@ -725,7 +781,31 @@ void pump(SshStream* st)
   Clock::time_point deadline;
   char buf[16384];
 
+  const int kaSec = keepaliveSec();
+  const int kaFd = ssh_get_fd(s);
+  long long lastRx = receivedBytes(kaFd);
+  Clock::time_point lastHeard = Clock::now(), lastPing = lastHeard;
+
   while (!fail) {
+    if (kaSec > 0 && lastRx >= 0 && !stopping) {
+      Clock::time_point now = Clock::now();
+      long long rx = receivedBytes(kaFd);
+      if (rx != lastRx) { lastRx = rx; lastHeard = lastPing = now; }
+      std::chrono::seconds quiet =
+        std::chrono::duration_cast<std::chrono::seconds>(now - lastHeard);
+      if (quiet.count() >= 3 * kaSec) {
+        fprintf(stderr, "ssh keepalive: nothing heard from the host for %d s; "
+                "treating the connection as dead\n", (int)quiet.count());
+        fflush(stderr);
+        fail = true;
+        break;
+      }
+      if (now - lastPing >= std::chrono::seconds(kaSec)) {
+        ssh_send_keepalive(s);
+        lastPing = now;
+      }
+    }
+
     if (st->intr.exchange(false))
       ssh_channel_request_send_signal(ch, "INT");
     if (st->stop.load() && !stopping) {
@@ -793,15 +873,16 @@ void pump(SshStream* st)
     }
   }
 
+  // The app sees EOF first: closing a dead link can take a while.
+  shutdown(st->pumpFd, SHUT_RDWR);
+  close(st->pumpFd);
+  st->pumpFd = -1;
   ssh_channel_close(ch);
   ssh_channel_free(ch);
   ssh_disconnect(s);
   ssh_free(s);
   st->channel = 0;
   st->session = 0;
-  shutdown(st->pumpFd, SHUT_RDWR);
-  close(st->pumpFd);
-  st->pumpFd = -1;
 }
 
 }  // namespace

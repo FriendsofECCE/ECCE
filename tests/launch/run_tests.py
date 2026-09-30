@@ -357,7 +357,7 @@ class Suite(object):
                        "previous run%s" % (" (pids %s)" % left if left else ""))
             self.sshRun("pkill -9 -f '^perl eccejobmonitor'; "
                         "pkill -f mopac-slow; true")
-            self.setMopacDelay(150 if kills else 30 if drop else 12)
+            self.setMopacDelay(150 if kills else 30 if drop or self.args.hold else 12)
             if os.path.exists(self.stubLog()):
                 os.unlink(self.stubLog())
         name = "mopac-ch4-%s-%d" % (label, int(time.time()))
@@ -398,8 +398,9 @@ class Suite(object):
         killed = []             # (pid, time) of monitors killed by kills
         seenAt = {}             # pid -> first time seen
         self.monitorLog = ""
+        wait = drop or self.args.hold
         deadline = time.time() + WAIT_SECONDS * (
-            4 if kills else 2 if drop else 1)
+            4 if kills else 2 if wait else 1)
         while time.time() < deadline:
             self.seen.update(seenBinaries(self.home))
             self.readMonitorLog(name)
@@ -457,7 +458,7 @@ class Suite(object):
                     break
             elif state in ("completed", "loaded", "failed", "killed",
                            "unsuccessful") or (
-                    state == "system_failure" and not drop and not kills):
+                    state == "system_failure" and not wait and not kills):
                 break
         say("  eccejobmonitor stdin: %s" % stdin)
         if self.remote():
@@ -521,8 +522,11 @@ class Suite(object):
             self.check(prop in props, "%s present in Props/" % prop)
         if self.remote():
             self.checkRemoteRun(rundir, name, transport)
-            if drop:
+            if drop or self.args.hold:
                 self.checkRestarted(name)
+            if self.args.expect_keepalive:
+                self.check("ssh keepalive: nothing heard" in self.storeLogs(),
+                           "the ssh keepalive declared the stream dead")
 
     def waitState(self, url, want=("completed", "loaded", "failed", "killed",
                                   "unsuccessful", "system_failure"), seconds=180):
@@ -758,6 +762,12 @@ def main():
                         help="#205/#206: kill the remote monitor process four "
                         "times, as a login node would; the restart count "
                         "must reset, and without the reset must run out")
+    parser.add_argument("--hold", action="store_true",
+                        help="an outside agent freezes the link mid-job (#204 "
+                        "keepalive test): allow the monitor to be restarted")
+    parser.add_argument("--expect-keepalive", action="store_true",
+                        help="with --hold: the restart must come from the ssh "
+                        "keepalive (ECCE_SSH_KEEPALIVE)")
     parser.add_argument("--nwchem-restart", action="store_true",
                         help="#202: only run NWChem, Reset for Restart, run again")
     parser.add_argument("--keep", action="store_true",
