@@ -1343,8 +1343,14 @@ if(ECCE_SPLIT_PACKAGES)
   # whichever release first ships split packages is the real boundary,
   # and that is a decision for whoever cuts that release, not something
   # to hardcode here now.
-  set(ECCE_MONOLITHIC_BREAK_VERSION "${_ecce_deb_version}" CACHE STRING
-      "ecce-client/ecce-server Break+Replace the monolithic ecce package for versions strictly below this (Debian: 'ecce (<< VERSION)'; RPM: 'ecce < VERSION'). Defaults to this build's own version, i.e. the first split release breaks/replaces every version older than itself.")
+  # Not a cache variable: a cached default froze at the version of the
+  # build directory's first configure (8.17.0), so an 8.17.x install was
+  # not replaced and the upgrade stopped on file conflicts.
+  if(NOT ECCE_MONOLITHIC_BREAK_VERSION_OVERRIDE)
+    set(ECCE_MONOLITHIC_BREAK_VERSION "${_ecce_deb_version}")
+  else()
+    set(ECCE_MONOLITHIC_BREAK_VERSION "${ECCE_MONOLITHIC_BREAK_VERSION_OVERRIDE}")
+  endif()
 
   # CPack falls back to the monolithic-build globals below (Depends,
   # Recommends, Suggests) for any component that doesn't set its own --
