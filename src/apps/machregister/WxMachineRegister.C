@@ -346,7 +346,8 @@ void WxMachineRegister::machinesListBoxSelectedCB(wxCommandEvent& event)
             if (answer == wxID_CANCEL ||
                 (answer == wxID_YES && !saveRegistration()))
             {
-                p_machinesList->SetStringSelection((wxString)prev);
+                p_machinesList->SetSelection(
+                    p_machinesList->FindString((wxString)prev, true));
                 return;
             }
             p_queuesDirty = false;
@@ -854,19 +855,27 @@ bool WxMachineRegister::selectMachine(string refName)
 {
     bool found;
 
-    found = p_machinesList->SetStringSelection((wxString)(refName));
+    //  Case-sensitive: wx matches list strings ignoring case, but machine
+    //  names are case-sensitive, so after deleting "tellurium" it selected
+    //  "Tellurium" while refLookup("tellurium") returned NULL.
+    int idx = p_machinesList->FindString((wxString)(refName), true);
+    found = idx != wxNOT_FOUND;
+    if (found)
+        p_machinesList->SetSelection(idx);
     p_prefillFromSite = false;
 
     if (found)
     {
         p_slctRgstn = RefMachine::refLookup(refName.c_str());
-        this->refreshControls();
+        found = p_slctRgstn != NULL;
+        if (found)
+            this->refreshControls();
     }
     else if (!p_adminFlag)
     {
         //  A site machine (e.g. the Machine Browser's Register action on
         //  "dummy"/"localhost") never appears in the user's own list, so
-        //  SetStringSelection above always misses.  Fall back to the site
+        //  the lookup above always misses.  Fall back to the site
         //  definition, unselected, so the form can be edited and saved as
         //  the user's own shadowing copy (#104).
         vector<string> *siteNames = RefMachine::referenceNames(RefMachine::siteMachines);
