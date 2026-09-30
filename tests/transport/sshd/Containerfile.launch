@@ -1,0 +1,7 @@
+# Client side of the remote launch test (tests/launch/remote_test.sh): the
+# libssh build image plus what the isolated data server, broker and dispatcher
+# need at run time.
+FROM localhost/ecce-sshbuild
+RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -qq -y install \
+      apache2 apache2-utils activemq default-jre-headless perl tcsh mopac \
+      python3 procps psmisc curl >/dev/null && rm -rf /var/lib/apt/lists/*
