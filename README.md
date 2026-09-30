@@ -245,6 +245,10 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.18.0** — experimental built-in ssh (Edit > Preferences): commands,
+  file copies and job monitoring without a shell session, a host-key
+  dialog (#204); telnet, Globus and rsh removed; Machine Registration
+  crash and Name-field fixes; About ECCE dialog (#168).
 - **v8.17.4** — cluster job monitoring: a monitor whose connection drops
   exits, and a login node killing it no longer ends monitoring (#205).
 - **v8.17.3** — RHEL 9: the data server starts (#193); Tail, Final Edit and
