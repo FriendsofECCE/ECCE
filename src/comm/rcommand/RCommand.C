@@ -13,6 +13,7 @@
   using std::ifstream;
   using std::ofstream;
 #include <map>
+#include <set>
   using std::map;
 
 #include <stdlib.h> // getenv
@@ -142,7 +143,6 @@ static bool waitShellReady(int fid)
 
 RCommand::HostKeyHook RCommand::hostKeyHook = 0;
 
-#ifdef ECCE_HAVE_LIBSSH
 static string shQuote(const string& s)
 {
   string q = "'";
@@ -153,6 +153,114 @@ static string shQuote(const string& s)
   return q + "'";
 }
 
+// What the machine's sourceFile adds to the environment, found by running it
+// once in the shell it was written for and diffing `env -0` before and after.
+// Aliases and shell functions the file defines cannot be carried over.
+// On success, `changed` names the variables the file set or removed.
+bool RCommand::importSourceFile(const string& sourceFile, const string& locShell,
+                                bool loginShell, std::set<std::string>& changed)
+{
+  string shell = locShell;
+  if (loginShell) {
+    TransportResult sr = p_transport->run("printf '%s' \"$SHELL\"\n", 60);
+    if (sr.status == 0 && classifyShell(sr.out) != SHELL_UNSUPPORTED)
+      shell = sr.out;
+  }
+  ShellDialect dialect = classifyShell(shell);
+  if (dialect == SHELL_UNSUPPORTED) {
+    p_errMessage = "Unsupported local shell '" + shell + "' for " +
+                   p_machine + " -- ECCE needs csh, tcsh or bash";
+    return false;
+  }
+  bool csh = (dialect == SHELL_CSH);
+  if (csh && sourceFile.find_first_of("'!") != string::npos) {
+    p_errMessage = "Unsuccessful remote shell login--source " + sourceFile +
+                   " failed: quote or ! in the file name";
+    return false;
+  }
+
+  // The test-and-source line is the one the pty login sends; -f and
+  // --norc --noprofile keep everything but the file itself out of the diff.
+  const string srcLine = csh ?
+    "if (-e " + sourceFile + ") source " + sourceFile :
+    "[ -e " + sourceFile + " ] && source " + sourceFile;
+  const string inner = string("env -0; printf 'ECCE_SRC_A\\n'; ") + srcLine +
+    "; printf 'ECCE_SRC_B\\n'; env -0; printf 'ECCE_SRC_E\\n'";
+  string script = p_scriptPrefix + shQuote(shell) +
+    (csh ? " -f -c " : " --norc --noprofile -c ") + shQuote(inner) + "\n";
+
+  TransportResult r = p_transport->run(script, 60);
+  const string mb = "ECCE_SRC_A\n", mc = "ECCE_SRC_B\n", me = "ECCE_SRC_E\n";
+  string::size_type pa = r.out.find(mb), pb = r.out.find(mc);
+  bool complete = r.status == 0 && pa != string::npos && pb != string::npos &&
+                  pb > pa && r.out.size() >= me.size() &&
+                  r.out.compare(r.out.size() - me.size(), me.size(), me) == 0;
+  if (!complete) {
+    string why = r.error != "" ? r.error : r.err;
+    while (!why.empty() && (why[why.size()-1] == '\n' || why[why.size()-1] == '\r'))
+      why.erase(why.size() - 1);
+    p_errMessage = "Unsuccessful remote shell login--source " + sourceFile +
+                   " failed" + (why != "" ? ": " + why : "");
+    return false;
+  }
+
+  map<string, string> before, after;
+  for (int pass = 0; pass < 2; pass++) {
+    string block = pass == 0 ? r.out.substr(0, pa) :
+      r.out.substr(pb + mc.size(), r.out.size() - me.size() - pb - mc.size());
+    map<string, string>& dst = pass == 0 ? before : after;
+    string::size_type at = 0;
+    while (at < block.size()) {
+      string::size_type nul = block.find('\0', at);
+      if (nul == string::npos) nul = block.size();
+      string::size_type eq = block.find('=', at);
+      if (eq != string::npos && eq < nul)
+        dst[block.substr(at, eq - at)] = block.substr(eq + 1, nul - eq - 1);
+      at = nul + 1;
+    }
+  }
+
+  // Shell bookkeeping, not environment; function exports (BASH_FUNC_x%%)
+  // are not valid names and go with the functions.
+  static const char* volatileNames[] = { "PWD", "OLDPWD", "SHLVL", "_", "PS1",
+    "PS2", "PS4", "prompt", "COLUMNS", "LINES", "SHELL", 0 };
+  struct Skip {
+    static bool name(const string& n, const char** v) {
+      if (n.empty() || isdigit((unsigned char)n[0])) return true;
+      for (size_t i = 0; i < n.size(); i++)
+        if (!isalnum((unsigned char)n[i]) && n[i] != '_') return true;
+      for (int i = 0; v[i]; i++) if (n == v[i]) return true;
+      return false;
+    }
+  };
+
+  for (map<string, string>::const_iterator i = after.begin(); i != after.end(); ++i) {
+    if (Skip::name(i->first, volatileNames)) continue;
+    map<string, string>::const_iterator b = before.find(i->first);
+    if (b == before.end() || b->second != i->second) {
+      p_transport->setEnv(i->first, i->second);
+      changed.insert(i->first);
+    }
+  }
+  for (map<string, string>::const_iterator b = before.begin(); b != before.end(); ++b) {
+    if (Skip::name(b->first, volatileNames) || after.count(b->first)) continue;
+    p_transport->unsetEnv(b->first);
+    changed.insert(b->first);
+  }
+
+  // The pty session stays in the directory the file cd'd to.
+  map<string, string>::const_iterator wb = before.find("PWD"),
+                                      wa = after.find("PWD");
+  if (wb != before.end() && wa != after.end() && wa->second != wb->second)
+    p_transport->setDir(wa->second);
+
+  if (getenv("ECCE_RCOM_LOGMODE"))
+    cout << "source file " << sourceFile << " (" << shell << "): "
+         << changed.size() << " variable(s) imported" << endl;
+  return true;
+}
+
+#ifdef ECCE_HAVE_LIBSSH
 // One line from passdialog; false if it was cancelled or could not run.
 static bool askPassdialog(const char* type, const string& machine,
                           const string& user, string& answer)
@@ -1300,38 +1408,37 @@ RCommand::RCommand(const string& machine, const string& remShell,
   p_machine = (machine=="" || machine=="-f" || machine=="system")?
                RCommand::whereami(): machine;
 
-  // A sourceFile is written for the user's login shell and cannot run
-  // under sh, so such connections keep the pty.
   const char* transportEnv = getenv("ECCE_TRANSPORT");
   const string transportMode = transportEnv ? transportEnv : "";
   if (allowDirect && (transportMode=="direct" || transportMode=="ssh") &&
       !RCommand::isRemote(machine, remShell, userName) &&
       frontendMachine=="") {
-    if (sourceFile != "") {
-      if (getenv("ECCE_RCOM_LOGMODE"))
-        cout << "Direct mode skipped: a source file is set" << endl;
-    } else {
-      p_direct = true;
-      p_transport = new DirectTransport;
-      p_remoteBash = true;
-      exp_timeout = RC_EXEC_TIMEOUT;
+    p_direct = true;
+    p_transport = new DirectTransport;
+    p_remoteBash = true;
+    exp_timeout = RC_EXEC_TIMEOUT;
 
-      if (shellPath != "") {
-        const char* cur = getenv("PATH");
-        p_transport->setEnv("PATH", shellPath + ":" + (cur ? cur : ""));
-      }
-      if (libPath != "") {
-        const char* cur = getenv("LD_LIBRARY_PATH");
-        p_transport->setEnv("LD_LIBRARY_PATH",
-                            libPath + ":" + (cur ? cur : ""));
-      }
-
-      if (getenv("ECCE_RCOM_LOGMODE"))
-        cout << "Direct mode: commands run without a shell session" << endl;
-
-      p_connected = true;
-      return;
+    if (shellPath != "") {
+      const char* cur = getenv("PATH");
+      p_transport->setEnv("PATH", shellPath + ":" + (cur ? cur : ""));
     }
+    if (libPath != "") {
+      const char* cur = getenv("LD_LIBRARY_PATH");
+      p_transport->setEnv("LD_LIBRARY_PATH",
+                          libPath + ":" + (cur ? cur : ""));
+    }
+
+    if (sourceFile != "") {
+      std::set<std::string> changed;
+      if (!importSourceFile(sourceFile, locShell, false, changed))
+        return;
+    }
+
+    if (getenv("ECCE_RCOM_LOGMODE"))
+      cout << "Direct mode: commands run without a shell session" << endl;
+
+    p_connected = true;
+    return;
   }
 
   if (allowDirect && allowSsh && transportMode=="ssh" &&
@@ -1339,30 +1446,35 @@ RCommand::RCommand(const string& machine, const string& remShell,
       frontendMachine=="" &&
       (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
        remShell.find("ssh/")==0)) {
-    if (sourceFile != "") {
-      if (getenv("ECCE_RCOM_LOGMODE"))
-        cout << "ssh transport skipped: a source file is set" << endl;
-    } else {
 #ifdef ECCE_HAVE_LIBSSH
-      p_shell = "ssh";
-      if (shellPath != "")
-        p_scriptPrefix += "PATH=" + shQuote(shellPath) + ":$PATH; export PATH\n";
-      if (libPath != "")
-        p_scriptPrefix += "LD_LIBRARY_PATH=" + shQuote(libPath) +
-                          ":$LD_LIBRARY_PATH; export LD_LIBRARY_PATH\n";
-      // A refused or failed login is final: falling back to the pty would
-      // only prompt the user a second time for the same thing.
-      sshConnect(p_machine, userName, password);
-      return;
-#else
-      static bool warned = false;
-      if (!warned) {
-        cerr << "ECCE_TRANSPORT=ssh: this build has no libssh; using the "
-                "pty ssh path" << endl;
-        warned = true;
+    p_shell = "ssh";
+    const string pathLine = shellPath == "" ? "" :
+      "PATH=" + shQuote(shellPath) + ":$PATH; export PATH\n";
+    const string libLine = libPath == "" ? "" :
+      "LD_LIBRARY_PATH=" + shQuote(libPath) + ":$LD_LIBRARY_PATH; "
+      "export LD_LIBRARY_PATH\n";
+    p_scriptPrefix = pathLine + libLine;
+    // A refused or failed login is final: falling back to the pty would
+    // only prompt the user a second time for the same thing.
+    if (sshConnect(p_machine, userName, password) && sourceFile != "") {
+      std::set<std::string> changed;
+      if (!importSourceFile(sourceFile, locShell, true, changed)) {
+        p_connected = false;
+        return;
       }
-#endif
+      // A variable the file set already carries the prefix it saw.
+      p_scriptPrefix = (changed.count("PATH") ? "" : pathLine) +
+                       (changed.count("LD_LIBRARY_PATH") ? "" : libLine);
     }
+    return;
+#else
+    static bool warned = false;
+    if (!warned) {
+      cerr << "ECCE_TRANSPORT=ssh: this build has no libssh; using the "
+              "pty ssh path" << endl;
+      warned = true;
+    }
+#endif
   }
 
   string theMachine, shellMachine;
