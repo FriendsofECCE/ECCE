@@ -277,7 +277,9 @@ The broker has no authentication, and the data server speaks plain HTTP
 (#138): whoever can reach their ports can use them. Keep them on loopback
 or firewall them.
 
-**RHEL, Rocky, Fedora:** these distributions don't package ActiveMQ, so
+### ActiveMQ on RHEL, Rocky and Fedora
+
+These distributions don't package ActiveMQ, so
 a machine that runs a broker (modes 1 and 3) needs it installed by hand:
 a JRE (`dnf install java-17-openjdk-headless`), then the ActiveMQ Classic
 binary tarball from https://activemq.apache.org unpacked in, e.g.,
