@@ -20,7 +20,7 @@
 #SBATCH --nodes=2
 #SBATCH --ntasks=8
 #SBATCH --time=26:0:00
-#  carries whatever unit the machine's .Q file declares in
+# The memory value carries whatever unit the machine's .Q file declares in
 # memUnits (MB for the ones shipped here), so the suffix is spelled out
 # rather than left to sbatch's default. Change it if your .Q uses GB.
 # Both of these lines are dropped entirely when the field is unset, so a
