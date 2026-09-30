@@ -177,6 +177,11 @@ def monitorStdin():
             if b"-configFile" not in argv or not any(
                     a.endswith(b"eccejobmonitor") for a in argv):
                 continue
+            #  Only this run's: another run's monitors are not ours.
+            jobs = os.path.join(os.path.dirname(
+                os.environ.get("ECCE_TMPDIR", "/nonexistent/x")), "jobs")
+            if not os.readlink("/proc/%s/cwd" % entry).startswith(jobs + "/"):
+                continue
             return os.readlink("/proc/%s/fd/0" % entry)
         except OSError:
             continue
