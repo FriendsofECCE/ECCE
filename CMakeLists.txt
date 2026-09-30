@@ -1653,6 +1653,14 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME transport_terminal COMMAND testTerminalArgv)
   set_tests_properties(transport_terminal PROPERTIES TIMEOUT 60)
 
+  # ECCE_TRANSPORT / Preferences resolution of the transport (#204).
+  add_executable(testTransportPref tests/transport/testTransportPref.C)
+  target_link_libraries(testTransportPref PRIVATE
+    eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+    ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME transport_pref COMMAND testTransportPref)
+  set_tests_properties(transport_pref PROPERTIES TIMEOUT 60)
+
   # SshTransport against tests/transport/sshd; needs that sshd running, so
   # not a ctest.  tests/transport/sshd/build_test.sh builds it in a container.
   if(LIBSSH_FOUND)

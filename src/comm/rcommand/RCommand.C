@@ -1390,8 +1390,8 @@ string RCommand::transportMode()
   const char* env = getenv("ECCE_TRANSPORT");
   if (env && *env) return env;
 
-  // Ecce::realUserHome() aborts without it, and plain tools use RCommand too.
-  if (!getenv("ECCE_REALUSERHOME")) return "pty";
+  // Ecce asserts on either being unset, and plain tools use RCommand too.
+  if (!getenv("ECCE_REALUSERHOME") || !getenv("ECCE_HOME")) return "pty";
   Preferences pref(PrefLabels::GLOBALPREFFILE);
   bool builtin = false;
   if (pref.getBool(PrefLabels::BUILTINSSH, builtin) && builtin) return "ssh";
