@@ -309,54 +309,69 @@ static bool looksLikeCode(const string& prompt)
 // the password given, then AuthCache, then passdialog; passdialog's
 // "passcode" for what looks like a second factor.
 bool RCommand::sshConnect(const string& machine, const string& userName,
-                          const string& password)
+                          const string& password, const string& jumpHost)
 {
   const string theUser = userName == "" ? string(Ecce::realUser()) : userName;
 
   // The callbacks outlive this call: the monitor stream logs in again on
-  // a session of its own, reusing the password that just worked.
-  struct Creds { string pass; bool passTried; string hostKeyMsg; };
-  std::shared_ptr<Creds> c(new Creds);
-  c->pass = password;
-  c->passTried = false;
+  // a session of its own, reusing the password that just worked.  Each host
+  // keeps its own password state, since a front end and the machine behind
+  // it need not share one.
+  struct Creds { string pass; bool passTried; };
+  struct HostKey { string msg; };
+  std::shared_ptr<HostKey> hk(new HostKey);
   const string shell = p_shell;
+
+  auto newCreds = [&password]() {
+    std::shared_ptr<Creds> c(new Creds);
+    c->pass = password;
+    c->passTried = false;
+    return c;
+  };
+  auto promptFor = [shell, theUser](std::shared_ptr<Creds> c, const string& host) {
+    return SshTransport::PromptFn([c, shell, host, theUser](const string& prompt,
+                                                            bool echo, string& answer) {
+      if (echo || looksLikeCode(prompt))
+        return askPassdialog("passcode", host, theUser, answer);
+      if (!c->passTried &&
+          (c->pass != "" || RCommand::getPassCache(shell, host, theUser, c->pass))) {
+        c->passTried = true;
+        answer = c->pass;
+        return true;
+      }
+      c->passTried = true;
+      if (!askPassdialog("password", host, theUser, c->pass)) return false;
+      answer = c->pass;
+      return true;
+    });
+  };
+  std::shared_ptr<Creds> c = newCreds(), cj = newCreds();
 
   // Port 0 leaves the port to ~/.ssh/config, as for the ssh command.
   SshTransport* t = new SshTransport(machine, 0, userName);
   t->setConnectTimeout(RC_CONNECT_TIMEOUT);
   t->setPasswordAttempts(3);
-  t->setPromptCallback([c, shell, machine, theUser](const string& prompt,
-                                                    bool echo, string& answer) {
-    if (echo || looksLikeCode(prompt))
-      return askPassdialog("passcode", machine, theUser, answer);
-    if (!c->passTried &&
-        (c->pass != "" || RCommand::getPassCache(shell, machine, theUser,
-                                                 c->pass))) {
-      c->passTried = true;
-      answer = c->pass;
-      return true;
-    }
-    c->passTried = true;
-    if (!askPassdialog("password", machine, theUser, c->pass)) return false;
-    answer = c->pass;
-    return true;
-  });
-  t->setHostKeyCallback([c](const string& host, const string& fingerprint,
-                            const string& keyType) {
+  t->setPromptCallback(promptFor(c, machine));
+  if (jumpHost != "") {
+    t->setJumpHost(jumpHost, 0, userName);
+    t->setJumpPromptCallback(promptFor(cj, jumpHost));
+  }
+  t->setHostKeyCallback([hk](const string& host, const string& fingerprint,
+                             const string& keyType) {
     if (RCommand::hostKeyHook) {
       if (RCommand::hostKeyHook(host, fingerprint)) return true;
     } else {
       bool ran;
       if (askHostKeyDialog(host, fingerprint, keyType, ran)) return true;
       if (ran) {
-        c->hostKeyMsg = "The host key of " + host + " (" + fingerprint +
-                        ") was not accepted.";
+        hk->msg = "The host key of " + host + " (" + fingerprint +
+                  ") was not accepted.";
         return false;
       }
     }
-    c->hostKeyMsg = "The host key of " + host + " (" + fingerprint +
-                 ") is not known.  Run \"ssh " + host + "\" once in a "
-                 "terminal to accept it, then try again.";
+    hk->msg = "The host key of " + host + " (" + fingerprint +
+              ") is not known.  Run \"ssh " + host + "\" once in a "
+              "terminal to accept it, then try again.";
     return false;
   });
 
@@ -364,15 +379,20 @@ bool RCommand::sshConnect(const string& machine, const string& userName,
   bool ok = t->connect(error);
 
   if (!ok) {
-    p_errMessage = c->hostKeyMsg != "" ? c->hostKeyMsg :
+    p_errMessage = hk->msg != "" ? hk->msg :
                    "Unable to open ssh connection to " + machine + ": " + error;
     delete t;
     return false;
   }
   // A later session starts from the password that was accepted.
   c->passTried = false;
-  const string thePass = c->pass;
+  cj->passTried = false;
+  const string thePass = c->pass, theJumpPass = cj->pass;
 
+  if (p_transport) {
+    stopStream();
+    delete p_transport;
+  }
   p_transport = t;
   p_direct = true;
   p_ssh = true;
@@ -382,17 +402,72 @@ bool RCommand::sshConnect(const string& machine, const string& userName,
 
   if (thePass != "")
     RCommand::setPassCache(p_shell, machine, theUser, thePass);
+  if (jumpHost != "" && theJumpPass != "")
+    RCommand::setPassCache(p_shell, jumpHost, theUser, theJumpPass);
 
   if (getenv("ECCE_RCOM_LOGMODE"))
-    cout << "ssh transport: commands run over libssh on " << machine << endl;
+    cout << "ssh transport: commands run over libssh on " << machine
+         << (jumpHost == "" ? "" : t->nested() ?
+             " through " + jumpHost + " (nested ssh)" :
+             " through " + jumpHost + " (forwarded connection)") << endl;
+  return true;
+}
+
+// hop() over libssh: a new connection to hopMachine, through the same
+// front end the current one used, or through the current machine when there
+// was none.  The pty path types ssh into its shell; that would nest one
+// hop deeper each time here, and compute nodes are reached from the front end.
+bool RCommand::sshHop(const string& hopMachine, const string& locShell,
+                      const string& userName, const string& password,
+                      const string& shellPath, const string& libPath,
+                      const string& sourceFile)
+{
+  SshTransport* cur = static_cast<SshTransport*>(p_transport);
+  const string jump = cur->jumpHost() != "" ? cur->jumpHost() : cur->host();
+  const string user = userName != "" ? userName : cur->user();
+  const string pathLine = shellPath == "" ? "" :
+    "PATH=" + shQuote(shellPath) + ":$PATH; export PATH\n";
+  const string libLine = libPath == "" ? "" :
+    "LD_LIBRARY_PATH=" + shQuote(libPath) + ":$LD_LIBRARY_PATH; "
+    "export LD_LIBRARY_PATH\n";
+  p_scriptPrefix = pathLine + libLine;
+  if (!sshConnect(hopMachine, user, password, jump)) return false;
+  if (sourceFile != "") {
+    std::set<std::string> changed;
+    if (!importSourceFile(sourceFile, locShell, true, changed)) {
+      p_connected = false;
+      return false;
+    }
+    p_scriptPrefix = (changed.count("PATH") ? "" : pathLine) +
+                     (changed.count("LD_LIBRARY_PATH") ? "" : libLine);
+  }
   return true;
 }
 #else
-bool RCommand::sshConnect(const string&, const string&, const string&)
+bool RCommand::sshConnect(const string&, const string&, const string&,
+                          const string&)
+{
+  return false;
+}
+
+bool RCommand::sshHop(const string&, const string&, const string&,
+                      const string&, const string&, const string&,
+                      const string&)
 {
   return false;
 }
 #endif
+
+string RCommand::frontEndMode() const
+{
+#ifdef ECCE_HAVE_LIBSSH
+  if (p_ssh && p_transport) {
+    const SshTransport* t = static_cast<const SshTransport*>(p_transport);
+    if (t->jumpHost() != "") return t->nested() ? "nested" : "forward";
+  }
+#endif
+  return "";
+}
 
 bool RCommand::directUnsupported(const char* what)
 {
@@ -1406,7 +1481,6 @@ RCommand::RCommand(const string& machine, const string& remShell,
 
   if (allowDirect && allowSsh && transportMode=="ssh" &&
       RCommand::isRemote(machine, remShell, userName) &&
-      frontendMachine=="" &&
       (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
        remShell.find("ssh/")==0)) {
 #ifdef ECCE_HAVE_LIBSSH
@@ -1419,7 +1493,12 @@ RCommand::RCommand(const string& machine, const string& remShell,
     p_scriptPrefix = pathLine + libLine;
     // A refused or failed login is final: falling back to the pty would
     // only prompt the user a second time for the same thing.
-    if (sshConnect(p_machine, userName, password) && sourceFile != "") {
+    // The pty path's own test: a machine inside the front end's domain is
+    // reached directly.
+    const string jump = frontendMachine != "" &&
+      (frontendBypass=="" || !RCommand::isSameDomain(frontendBypass)) ?
+      frontendMachine : string("");
+    if (sshConnect(p_machine, userName, password, jump) && sourceFile != "") {
       std::set<std::string> changed;
       if (!importSourceFile(sourceFile, locShell, true, changed)) {
         p_connected = false;
@@ -1919,8 +1998,11 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
                    const string& shellPath, const string& libPath,
                    const string& sourceFile)
 {
-  if (p_direct)
+  if (p_direct) {
+    if (p_ssh) return sshHop(hopMachine, locShell, userName, password,
+                             shellPath, libPath, sourceFile);
     return directUnsupported("hop");
+  }
 
   p_hopCount++;
 

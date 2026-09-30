@@ -6,6 +6,7 @@
 #include <vector>
 
 struct SshStream;
+struct SshJump;
 
 #include "comm/Transport.H"
 
@@ -39,6 +40,25 @@ public:
   void setHostKeyCallback(const HostKeyFn& f) { p_hostKey = f; }
   void setConnectTimeout(int sec) { p_connectTimeout = sec; }
   void setPasswordAttempts(int n) { p_passwordAttempts = n; }
+
+  // A front end (login node) the target is reached through.  FE_FORWARD
+  // opens a direct-tcpip channel to the target's sshd over the front end's
+  // connection (libssh before 0.11 cannot do ProxyJump itself, and 0.11's
+  // shells out to ssh(1)); FE_NESTED runs `ssh target sh -c ...` in an exec
+  // channel to the front end, which needs only the front end's own keys and
+  // works where TCP forwarding is off; FE_AUTO tries forwarding first and
+  // falls back to nesting when the front end refuses the channel.
+  // ECCE_SSH_FRONTEND=forward|nested|auto overrides the mode.
+  enum FrontEnd { FE_AUTO, FE_FORWARD, FE_NESTED };
+  void setJumpHost(const std::string& host, int port = 0,
+                   const std::string& user = "");
+  void setJumpPromptCallback(const PromptFn& f) { p_jumpPrompt = f; }
+  void setFrontEndMode(FrontEnd m) { p_feMode = m; }
+  const std::string& host() const { return p_host; }
+  const std::string& user() const { return p_user; }
+  const std::string& jumpHost() const { return p_jumpHost; }
+  // True once connected through a front end by nested exec.
+  bool nested() const { return p_nested; }
 
   // Connects, checks the host key, authenticates (agent and keys, then
   // keyboard-interactive, then password).
@@ -86,11 +106,30 @@ private:
   SshTransport(const SshTransport&);
   SshTransport& operator=(const SshTransport&);
 
-  ssh_session_struct* newSession(std::string& error);
-  bool checkHostKey(ssh_session_struct* s, std::string& error);
-  bool authenticate(ssh_session_struct* s, std::string& error);
-  bool authKeyboardInteractive(ssh_session_struct* s, int& rc, bool& asked,
-                               std::string& error);
+  // link is set when the session runs over a forwarded channel; whoever
+  // frees the session then frees the link too (closeJump()).
+  ssh_session_struct* newSession(std::string& error, SshJump** link = 0);
+  ssh_session_struct* rawSession(const std::string& host, int port,
+                                 const std::string& user, const PromptFn& prompt,
+                                 int fd, std::string& error);
+  bool checkHostKey(ssh_session_struct* s, const std::string& host,
+                    std::string& error);
+  bool authenticate(ssh_session_struct* s, const std::string& host,
+                    const std::string& user, const PromptFn& prompt,
+                    std::string& error);
+  bool authKeyboardInteractive(ssh_session_struct* s, const PromptFn& prompt,
+                               int& rc, bool& asked, std::string& error);
+  // The exec request for a script command: run on this host, or on the
+  // target through the front end when nested.
+  std::string execLine(const std::string& remoteCmd) const;
+  TransportResult runImpl(const std::string& script, int timeoutSec, bool useDir);
+  // Files and trees when there is no SFTP to the target (nested).
+  bool nestedPut(const std::string& local, const std::string& remote,
+                 std::string& error);
+  bool nestedGet(const std::string& remote, const std::string& local,
+                 std::string& error);
+  bool nestedPutInto(const std::string& local, const std::string& remote,
+                     std::string& error);
   bool sftp(std::string& error);
   std::string envPrefix(std::string& error) const;
 
@@ -100,8 +139,13 @@ private:
   std::string p_knownHosts, p_configFile;
   bool p_useConfig;
   int p_connectTimeout, p_passwordAttempts;
-  PromptFn p_prompt;
+  PromptFn p_prompt, p_jumpPrompt;
   HostKeyFn p_hostKey;
+  std::string p_jumpHost, p_jumpUser;
+  int p_jumpPort;
+  FrontEnd p_feMode;
+  bool p_nested, p_forwardWorked, p_authFailed;
+  SshJump* p_link;
   ssh_session_struct* p_session;
   sftp_session_struct* p_sftp;
 };
