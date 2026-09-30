@@ -1611,4 +1611,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
+  # tests/teaching -- introductory chemistry teaching calculations run end
+  # to end through Launch, with NWChem, and checked against known answers.
+  add_test(NAME teaching
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/teaching/run_tests.py
+                   --build ${CMAKE_BINARY_DIR} --jobs 4
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/teaching)
+  set_tests_properties(teaching PROPERTIES TIMEOUT 7200 SKIP_RETURN_CODE 77)
 endif()
