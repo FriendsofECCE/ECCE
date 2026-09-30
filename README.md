@@ -20,7 +20,8 @@ bringing the application itself back to life.
 
 The **ECCE server** stores your projects and results; it is not where
 calculations run. Calculations run on a **compute machine**, a workstation
-or an HPC cluster, which ECCE reaches over ssh. On a single computer all of
+or an HPC cluster: the client submits each job there over ssh and stores
+the results on the ECCE server. On a single computer all of
 this is installed and started for you.
 
 ## General features
