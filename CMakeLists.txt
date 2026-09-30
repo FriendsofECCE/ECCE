@@ -50,9 +50,8 @@ endif()
 # plain `cpack`/`cpack -G DEB` ignores COMPONENT entirely and produces
 # one monolithic package exactly as before (CPACK_DEB_COMPONENT_INSTALL
 # defaults OFF). Turning this ON is what makes CPack actually split them.
-# Default OFF so 8.x releases (one .deb, everything in it) are
-# unaffected; flip it on with `cmake -DECCE_SPLIT_PACKAGES=ON`.
-option(ECCE_SPLIT_PACKAGES "Package ecce-client and ecce-server as separate .deb/.rpm files instead of one monolithic package" OFF)
+# ON on v9 (9.x ships ecce-client and ecce-server); 8.x on main is monolithic.
+option(ECCE_SPLIT_PACKAGES "Package ecce-client and ecce-server as separate .deb/.rpm files instead of one monolithic package" ON)
 
 add_compile_options(-Wall -Wno-deprecated -Wno-sign-compare -Wno-non-virtual-dtor)
 
@@ -1371,14 +1370,12 @@ if(ECCE_SPLIT_PACKAGES)
 
   # CPack falls back to the monolithic-build globals below (Depends,
   # Recommends, Suggests) for any component that doesn't set its own --
-  # confirmed live: without this, ecce-server and the ecce metapackage
-  # both picked up "Recommends: nwchem" from CPACK_DEBIAN_PACKAGE_RECOMMENDS
-  # above, which is wrong for both (a headless server box, and a
-  # metapackage that should only Depend on the two real components).
+  # confirmed live: without this, ecce-server
+  # picked up "Recommends: nwchem" from CPACK_DEBIAN_PACKAGE_RECOMMENDS
+  # above, which is wrong for a headless server box.
   # CPACK_DEBIAN_PACKAGE_SUGGESTS ("imagemagick, www-browser" -- both
   # client-only, ImageConverter.C's viewer export and the Help menu) leaks
-  # the same way if left unset: it showed up as a Suggests on ecce-server
-  # and the ecce metapackage too, found the same way as the Recommends
+  # the same way if left unset: it showed up as a Suggests on ecce-server, found the same way as the Recommends
   # case above. Clear all three globals here so every component's
   # metadata is exactly what this block sets and nothing leaks in from
   # the monolithic settings above.
@@ -1387,7 +1384,7 @@ if(ECCE_SPLIT_PACKAGES)
   unset(CPACK_DEBIAN_PACKAGE_SUGGESTS)
 
   set(CPACK_DEB_COMPONENT_INSTALL ON)
-  set(CPACK_COMPONENTS_ALL client server meta)
+  set(CPACK_COMPONENTS_ALL client server)
   # Each component becomes its own independently installable package
   # rather than CPack's default of one combined "unspecified"-grouped
   # archive; auto-shlibdeps and auto-provides/requires run separately per
@@ -1438,7 +1435,9 @@ if(ECCE_SPLIT_PACKAGES)
   set(CPACK_DEBIAN_SERVER_FILE_NAME DEB-DEFAULT)
   set(CPACK_DEBIAN_SERVER_PACKAGE_DESCRIPTION
     "Extensible Computational Chemistry Environment - server (WebDAV data server, ActiveMQ broker configuration)")
-  set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "apache2, apache2-utils, activemq")
+  # The broker/relay scripts and ecce-remote-setup ship in ecce-client, and
+  # a server machine needs them, so installing the server brings the client.
+  set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "apache2, apache2-utils, activemq, ecce-client (= ${_ecce_deb_version})")
   # Deliberately no CPACK_DEBIAN_SERVER_PACKAGE_RECOMMENDS "ecce-client":
   # the central-server deployment (CLAUDE.md, #138/#167) is exactly a
   # machine that runs ecce-server and nothing else, with every real user
@@ -1447,34 +1446,9 @@ if(ECCE_SPLIT_PACKAGES)
   set(CPACK_DEBIAN_SERVER_PACKAGE_BREAKS "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
   set(CPACK_DEBIAN_SERVER_PACKAGE_REPLACES "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
 
-  # The "ecce" metapackage (Andy, 2026-09-28): ships no files of its own
-  # -- CPack's Debian generator refuses a truly empty component archive,
-  # so it gets one harmless marker doc instead -- and exists purely so
-  # `apt install ecce` keeps meaning "everything, one machine", and so a
-  # bare `apt upgrade` of the old monolithic 8.x "ecce" pulls in both
-  # halves via its own Breaks/Replaces above plus this package's
-  # Depends. Not Recommends: the whole point is that installing "ecce"
-  # unconditionally gets you both.
-  set(_ecce_meta_marker ${CMAKE_BINARY_DIR}/ecce-meta/README)
-  file(WRITE ${_ecce_meta_marker}
-"This package is empty by design.
-
-It exists only so \"apt install ecce\"/\"dnf install ecce\" keeps meaning
-\"the full, one-machine ECCE install\" now that it is split into
-ecce-client and ecce-server (see GETTING_STARTED.md's \"Split packages\"
-section) -- installing this package pulls in both.
-")
-  install(FILES ${_ecce_meta_marker}
-          DESTINATION share/doc/ecce-meta
-          COMPONENT meta)
-  set(CPACK_DEBIAN_META_PACKAGE_NAME "ecce")
-  set(CPACK_DEBIAN_META_FILE_NAME DEB-DEFAULT)
-  set(CPACK_DEBIAN_META_PACKAGE_DESCRIPTION
-    "Extensible Computational Chemistry Environment - metapackage (installs ecce-client and ecce-server together, the pre-9.0 default)")
-  set(CPACK_DEBIAN_META_PACKAGE_DEPENDS "ecce-client (= ${_ecce_deb_version}), ecce-server (= ${_ecce_deb_version})")
-  # dpkg-shlibdeps has nothing to scan in an empty package and errors if
-  # asked to try.
-  set(CPACK_DEBIAN_META_PACKAGE_SHLIBDEPS OFF)
+  # No "ecce" metapackage (Andy, 2026-09-30): ECCE ships as loose files, not
+  # from an apt/dnf repository, so it would never pull the halves in on an
+  # upgrade, and its unpack removed the monolithic files first.
 
   if(RPMBUILD_EXECUTABLE)
     set(CPACK_RPM_CLIENT_PACKAGE_NAME "ecce-client")
@@ -1499,18 +1473,14 @@ section) -- installing this package pulls in both.
     set(CPACK_RPM_CLIENT_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
     set(CPACK_RPM_SERVER_PACKAGE_NAME "ecce-server")
     set(CPACK_RPM_SERVER_FILE_NAME RPM-DEFAULT)
-    set(CPACK_RPM_SERVER_PACKAGE_REQUIRES "httpd, httpd-tools")
+    set(CPACK_RPM_SERVER_PACKAGE_REQUIRES "httpd, httpd-tools, ecce-client = ${_ecce_deb_version}")
     set(CPACK_RPM_SERVER_PACKAGE_SUGGESTS "activemq")
     set(CPACK_RPM_SERVER_PACKAGE_OBSOLETES "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
     set(CPACK_RPM_SERVER_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
-    set(CPACK_RPM_META_PACKAGE_NAME "ecce")
-    set(CPACK_RPM_META_FILE_NAME RPM-DEFAULT)
-    set(CPACK_RPM_META_PACKAGE_REQUIRES "ecce-client = ${_ecce_deb_version}, ecce-server = ${_ecce_deb_version}")
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/opt")
     set(CPACK_RPM_CLIENT_PACKAGE_AUTOREQ ON)
     set(CPACK_RPM_CLIENT_PACKAGE_PROVIDES "config(ecce-client) = %{version}-%{release}")
     set(CPACK_RPM_SERVER_PACKAGE_AUTOREQ ON)
-    set(CPACK_RPM_META_PACKAGE_AUTOREQ OFF)
     set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
   endif()
 endif()
