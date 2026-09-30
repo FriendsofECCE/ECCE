@@ -1595,4 +1595,10 @@ if(PYTHON3_EXECUTABLE)
                    --driver $<TARGET_FILE:testRCommandEcho>
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/shells)
   set_tests_properties(shells PROPERTIES TIMEOUT 900)
+
+  # tests/transport -- DirectTransport against a real /bin/sh (#204).
+  add_executable(testTransport tests/transport/testTransport.C)
+  target_link_libraries(testTransport PRIVATE eccercmd ecceutil)
+  add_test(NAME transport COMMAND testTransport)
+  set_tests_properties(transport PROPERTIES TIMEOUT 120)
 endif()
