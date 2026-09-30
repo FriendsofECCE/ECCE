@@ -1635,6 +1635,15 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME transport_source COMMAND testRCommandSource)
   set_tests_properties(transport_source PROPERTIES TIMEOUT 240)
 
+  # telnet, Globus and Globus-ssh were removed; a machine still registered
+  # with one must fail with a message, not a spawn.
+  add_executable(testRemovedShells tests/transport/testRemovedShells.C)
+  target_link_libraries(testRemovedShells PRIVATE
+    eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+    ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME transport_removed_shells COMMAND testRemovedShells)
+  set_tests_properties(transport_removed_shells PROPERTIES TIMEOUT 120)
+
   # SshTransport against tests/transport/sshd; needs that sshd running, so
   # not a ctest.  tests/transport/sshd/build_test.sh builds it in a container.
   if(LIBSSH_FOUND)

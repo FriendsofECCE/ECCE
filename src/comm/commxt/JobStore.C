@@ -130,7 +130,6 @@ void initDAV(void);
 void convertToNewlines(char* data);
 void interactProperty(char* propData, char seqCode);
 void interactStatus(char* statusData);
-void interactStatusRequest(void);
 void interactUp(char* upData);
 void interactError(char* errorData);
 void interactFile(char* fileData);
@@ -807,7 +806,7 @@ void cleanup(int exitStatus)
 //     Full pathname of directory on compute server in which the
 //     the calculation will be run.
 // remoteShell
-//     Remote communications shell (ssh, rsh, telnet) to be used.
+//     Remote communications shell (ssh, rsh) to be used.
 // userName
 //     Login name of user running the computation.
 // importDir
@@ -1723,10 +1722,8 @@ void initConn(void)
 
   // Determine whether to use socket or stdio based comms
   // I would do this in envRead but cpServerName has not been set
-  // Globus must use stdio comms because ejs sends status values back to ejm
   char* value;
-  if (cpRemoteShell.find("Globus")==string::npos &&
-      (value = getenv("ECCE_JOB_COMMS"))!=NULL) {
+  if ((value = getenv("ECCE_JOB_COMMS"))!=NULL) {
     string comms = value;
     if (comms == "socketlocal")
       socketComms = RCommand::isSameDomain(cpServerName);
@@ -1952,11 +1949,6 @@ void xtGetJobMonitorInput(XtPointer client_data, int* fid, XtInputId* id)
           logErr("Skipped output not from eccejobmonitor", nonMonStr);
           nonMonStr = "";
         }
-      } else if (*databuf == '~') {
-        // just ignore all data up to \001 completely when "~" found
-        // this is data coming from ejs itself (Globus status response)
-        // so we don't want to flag it as if there was a problem
-        ignoreFlag = true;
       } else if (!ignoreFlag) {
         // append a single character
         nonMonStr += *databuf;
@@ -1998,8 +1990,6 @@ void xtGetJobMonitorInput(XtPointer client_data, int* fid, XtInputId* id)
         interactUp(&databuf[5]);
       else if (strcmp(databuf, "jmSTATUS") == 0)
         interactStatus(&databuf[9]);
-      else if (strcmp(databuf, "jmSTATREQ") == 0)
-        interactStatusRequest();
       else if (strcmp(databuf, "jmFILE") == 0)
         interactFile(&databuf[7]);
       else if (strcmp(databuf, "jmEOFS") == 0)
@@ -2451,29 +2441,6 @@ void interactStatus(char* statusData)
   }
 
 }
-
-void interactStatusRequest(void)
-{
-  string cmd = "globusrun -status " + cpJobId;
-  string statout;
-  if (localconn->execout(cmd, statout)) {
-    // prefix the state with "~" so ejs knows to ignore the message
-    // I wanted to use a control character but those were recognized
-    // as two separate characters such as "^" and "A" for \001
-    // I don't think this will cause a problem however because logging
-    // non ejm message data isn't critical to proper monitoring
-    if (statout.find("ACTIVE") != string::npos)
-      remoteconn->expwrite("~RUNNING");
-    else if (statout.find("PENDING")!=string::npos ||
-             statout.find("SUSPENDED")!=string::npos)
-      remoteconn->expwrite("~PENDING");
-    else if (statout.find("DONE") != string::npos)
-      remoteconn->expwrite("~DONE");
-
-    logMessage("eccejobmonitor", cmd);
-  }
-}
-
 
 // ------------------------------------------------------------------------- //
 // Process an error message by echoing it to the log file,

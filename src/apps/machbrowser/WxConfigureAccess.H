@@ -49,7 +49,6 @@ class WxConfigureAccess: public WxConfigureAccessGUI
         void remoteShellChoiceSelectedCB( wxCommandEvent& event );
         void usernameTextCtrlUpdatedCB( wxCommandEvent& event );
         void password1TextCtrlUpdatedCB( wxCommandEvent& event );
-        void password2TextCtrlUpdatedCB( wxCommandEvent& event );
         void okayButtonClickCB( wxCommandEvent& event );
         void cancelButtonClickCB( wxCommandEvent& event );
 
@@ -57,32 +56,25 @@ class WxConfigureAccess: public WxConfigureAccessGUI
         string getPassword();
 
     private:
-        bool checkRemoteGlobus(RefMachine *machRgstn, string shellName);
 
-        bool checkGlobusSSH(RefMachine *machRgstn, string shellName);
-        bool checkGlobusSSH(bool remoteGlobus, string shellName);
-        bool checkGlobusSSH();
 
         void updateControls();
         
         string refreshShells(RefMachine *machRgstn);
         void refreshAuthentication(RefMachine *machRgstn, string shellName);
-        void refreshPasswords(const bool& remoteGlobus, const string& shellName,
+        void refreshPasswords(const string& shellName,
                               const string& machName, const string& user);
 
         ewxChoice               *p_remoteShellChoice;
         ewxTextCtrl             *p_usernameTextCtrl;
         ewxTextCtrl             *p_password1TextCtrl;
         ewxStaticText           *p_password1Label;
-        ewxTextCtrl             *p_password2TextCtrl;
-        ewxStaticText           *p_password2Label;
         ewxButton               *p_okayButton;
         ewxButton               *p_cancelButton;
 
         ewxPanel                *p_remoteShellPanel;
         ewxPanel                *p_usernamePanel;
         ewxPanel                *p_password1Panel;
-        ewxPanel                *p_password2Panel;
 
         bool                     p_cncld;
         MachinePreferences      *p_slctPrefs;

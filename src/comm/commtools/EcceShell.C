@@ -178,9 +178,6 @@ string EcceShell::remoteShell
   string theShell = RCommand::commandShell(refMachine->fullname(),shell,user);
 
   bool displayFlag = theShell=="rsh" || theShell.find("rsh/")==0 ||
-                     theShell=="telnet" || theShell.find("telnet/")==0 ||
-                     theShell=="Globus" || theShell.find("Globus/")==0 ||
-                     theShell=="Globus-ssh" ||theShell.find("Globus-ssh/")==0 ||
                      !presetDisplayFlag;
 
   bool xsetFlag = displayFlag || theShell=="" || theShell=="ssh" ||

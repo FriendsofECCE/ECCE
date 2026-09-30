@@ -231,9 +231,6 @@ void WxLauncher::createControls()
     p_password1Panel        =        (ewxPanel *)(FindWindow(ID_PANEL_WXLAUNCHER_PASSWORD1));
     p_password1TextCtrl     =     (ewxTextCtrl *)(FindWindow(ID_TEXTCTRL_WXLAUNCHER_PASSWORD1));
     p_password1Label        =   (ewxStaticText *)(FindWindow(ID_STATIC_WXLAUNCHER_PASSWORD1LABEL));
-    p_password2Panel        =        (ewxPanel *)(FindWindow(ID_PANEL_WXLAUNCHER_PASSWORD2));
-    p_password2TextCtrl     =     (ewxTextCtrl *)(FindWindow(ID_TEXTCTRL_WXLAUNCHER_PASSWORD2));
-    p_password2Label        =   (ewxStaticText *)(FindWindow(ID_STATIC_WXLAUNCHER_PASSWORD2LABEL));
 
     p_calcDrctyPanel        =        (ewxPanel *)(FindWindow(ID_PANEL_WXLAUNCHER_CALCDIR));
     p_calcDrctyTextCtrl     =     (ewxTextCtrl *)(FindWindow(ID_TEXTCTRL_WXLAUNCHER_CALCDIR));
@@ -330,30 +327,6 @@ bool WxLauncher::connectAllowed(MachinePreferences *prefs)
 }
 
 
-bool WxLauncher::isGlobusSSH(RefMachine *machRgstn, string shellName)
-{
-    return (isGlobusSSH(isRemoteGlobus(machRgstn, shellName), shellName));
-}
-
-
-bool WxLauncher::isGlobusSSH(bool remoteGlobus, string shellName)
-{
-    return (remoteGlobus && (shellName.find("ssh") != string::npos));
-}
-
-
-bool WxLauncher::isRemoteGlobus(RefMachine *machRgstn,
-                                             string shellName)
-{
-    string machName = machRgstn->fullname();
-    bool isGlobus = (shellName.find("Globus") != string::npos);
-    bool isRemote = RCommand::isRemote(machName, shellName);
-    bool result = (isGlobus && isRemote);
-
-    return result;
-}
-
-
 /**
  *  Invoke the feedback area to display the indicated caption.
  */
@@ -442,7 +415,6 @@ void WxLauncher::clearControls()
     p_remShellChoice->Clear();
     p_usernameTextCtrl->Clear();
     p_password1TextCtrl->Clear();
-    p_password2TextCtrl->Clear();
 
     p_shellOpenButton->Enable(false);
 
@@ -520,21 +492,6 @@ void WxLauncher::usernameTextCtrlUpdateCB(wxCommandEvent& event)
  *  set.
  */
 void WxLauncher::password1TextCtrlUpdateCB(wxCommandEvent& event)
-{
-    if (!p_inCtrlUpdate)
-    {
-        p_prefsEdited = true;
-    }
-}
-
-
-/**
- *  Contents of the auxiliary password text area have changed.  This method
- *  first establishes that the changes do not arise programmatically--that
- *  they are the result of user interaction.  If so, the prefsChgd flag is
- *  set.
- */
-void WxLauncher::password2TextCtrlUpdateCB(wxCommandEvent& event)
 {
     if (!p_inCtrlUpdate)
     {
@@ -942,27 +899,6 @@ void WxLauncher::verifyMachineListLocation(bool cnctAllwd)
 
 
 /**
- *  Return true/false depending on whether the indicated shell is Globus-SSH.
- */
-bool WxLauncher::checkGlobusSSH(bool remoteGlobus, string shellName)
-{
-    return (remoteGlobus && (shellName.find("ssh") != string::npos));
-}
-
-
-/**
- *  Return true/false depending on whether the currently selected shell is Globus-SSH.
- */
-bool WxLauncher::checkGlobusSSH()
-{
-    string slctShell = (string)p_remShellChoice->GetStringSelection();
-    RefMachine *machRgstn = p_slctPrefs->getRegisteredMachine();
-
-    return (checkGlobusSSH(machRgstn, slctShell));
-}
-
-
-/**
  *  Returns true/false depending on whether all requirements for launching a
  *  job on the selected compute server have been met.
  */
@@ -1300,21 +1236,6 @@ void WxLauncher::updatePriority(int pval)
         k = 2;
 
     p_priorityChoice->SetSelection(k);
-}
-
-
-/**
- *  Return true or false depending on whether a second password is required
- *  to invoke the indicated remote shell on the machine.
- */
-bool WxLauncher::checkRemoteGlobus(RefMachine *machRgstn,
-                                        string shellName)
-{
-    string machName = machRgstn->fullname();
-    bool isGlobus = (shellName.find("Globus") != string::npos);
-    bool isRemote = RCommand::isRemote(machName, shellName);
-
-    return (isGlobus && isRemote);
 }
 
 
@@ -1768,33 +1689,25 @@ void WxLauncher::refreshLocality()
 void WxLauncher::refreshAuthentication(RefMachine *machRgstn, string shellName)
 {
     string uname = "";
-    bool remoteGlobus = false;
     bool supported = p_slctPrefs->isOptionSupported("UN");
 
     if (supported)
     {
         uname = p_slctPrefs->getUsername();
-
-        if (!shellName.empty())
-            remoteGlobus = this->checkRemoteGlobus(machRgstn, shellName);
     }
 
     p_usernameTextCtrl->SetValue(uname);
-    p_usernameTextCtrl->Enable(!remoteGlobus);
     p_usernameLabel->Show(supported);
     p_usernameTextCtrl->Show(supported);
 
-    this->refreshPasswords(remoteGlobus, shellName,
-                           machRgstn->fullname(), uname);
+    this->refreshPasswords(shellName, machRgstn->fullname(), uname);
 }
 
 
-void WxLauncher::refreshPasswords(const bool& remoteGlobus,
-                                  const string& shellName,
+void WxLauncher::refreshPasswords(const string& shellName,
                                   const string& machName, const string& user)
 {
     bool supported = p_slctPrefs->isOptionSupported("PW");
-    bool pswd2Rqrd = false;
 
     if (supported)
     {
@@ -1809,33 +1722,10 @@ void WxLauncher::refreshPasswords(const bool& remoteGlobus,
 
         p_password1TextCtrl->SetValue(pswd1);
 
-        //  UI now indicates required fields with asterisk.
-        //  Make sure they are included in the labels for the password fields.
-        if (remoteGlobus)
-        {
-            pswd2Rqrd = checkGlobusSSH(remoteGlobus, shellName);
-            p_password1Label->SetLabel(pswd2Rqrd ? "ssh Pass:": "Pass Phrase:");
-        }
-        else
-            p_password1Label->SetLabel("Password:");
-
-        if (pswd2Rqrd)
-        {
-            string pswd2 = "";
-
-            string url = "ssh://" + machName;
-            ba = AuthCache::getCache().getAuthentication(url, user, "", 1);
-            if (ba != NULL) {
-              pswd2 = ba->m_pass;
-              delete ba;
-            }
-
-            p_password2TextCtrl->SetValue(pswd2);
-        }
+        p_password1Label->SetLabel("Password:");
     }
 
     p_password1Panel->Show(supported);
-    p_password2Panel->Show(supported && pswd2Rqrd);
 }
 
 
@@ -2116,7 +2006,6 @@ void WxLauncher::updateControls(Launchdata ldat)
         {
             p_usernameTextCtrl->SetValue(ldat.user);
             p_password1TextCtrl->SetValue("");
-            p_password2TextCtrl->SetValue("");
         }
 
         p_prefsEdited = true;
@@ -2477,13 +2366,6 @@ void WxLauncher::buildArgs(EcceMap& kvargs)
             = STLUtil::trim((string)(p_password1TextCtrl->GetValue()));
 
         kvargs["##password1##"] = ptext1;
-
-        if (this->checkGlobusSSH())
-        {
-          string ptext2
-                  = STLUtil::trim((string)(p_password2TextCtrl->GetValue()));
-          kvargs["##password2##"] = ptext2;
-        }
     }
 
     // Checked (default) forces csh/tcsh for this launch's connections
@@ -2496,9 +2378,6 @@ void WxLauncher::buildArgs(EcceMap& kvargs)
     // Uncheck only to test/troubleshoot bash specifically.
     if (p_forceCshCheckBox != 0)
         kvargs["##forcecsh##"] = p_forceCshCheckBox->GetValue() ? "true" : "false";
-
-    if (ldat.remoteShell.find("Globus") != string::npos)
-        kvargs["##globus##"] = "true";
 
     sprintf(buf, "%lu", ldat.totalprocs);
     kvargs["##numProcs##"] = buf;

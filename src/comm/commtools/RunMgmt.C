@@ -93,11 +93,7 @@ string RunMgmt::terminate(const TaskJob *calc)
              launch.machine + "\" is not currently registered";
     }
 
-    bool isGlobus = RCommand::isRemote(refMachine->fullname(),
-                     launch.remoteShell, launch.user) && 
-                     launch.remoteShell=="Globus";
-
-    if (!isGlobus) {
+    {
       const QueueManager* qMgr = 
         QueueManager::lookup(launch.machine);
       if (qMgr) qMgrName = qMgr->queueMgrName();
@@ -146,35 +142,21 @@ string RunMgmt::terminate(const TaskJob *calc)
         fixStatus += job.jobpath + "/.ecce.status";
         if (rcmd.exec(fixStatus)) {
           string outstr;
-          if (!isGlobus) {
-            if (rcmd.execout(command, outstr))
+          if (rcmd.execout(command, outstr))
+            ret = "Request to terminate job " + id + " on " +
+                  launch.machine + " has been issued";
+          else {
+            // If the job has already completed then the kill command
+            // will return "No such process" and no $status
+            if (outstr.find("such process") != string::npos)
               ret = "Request to terminate job " + id + " on " +
-                    launch.machine + " has been issued";
+                    launch.machine + " not issued--process not found";
             else {
-              // If the job has already completed then the kill command
-              // will return "No such process" and no $status
-              if (outstr.find("such process") != string::npos)
+              ret = rcmd.commError();
+              if (ret.find("No status returned") != string::npos)
                 ret = "Request to terminate job " + id + " on " +
                       launch.machine + " not issued--process not found";
-              else {
-                ret = rcmd.commError();
-                if (ret.find("No status returned") != string::npos)
-                  ret = "Request to terminate job " + id + " on " +
-                        launch.machine + " not issued--process not found";
-              }
             }
-          } else {
-            command = "globusrun -kill ";
-            command += id;
-            RCommand lcmd;
-            if (lcmd.isOpen() &&
-                lcmd.execout(command, outstr))
-              ret = "Request to terminate Globus job " + id + " on " +
-                    launch.machine + " has been issued";
-            else
-              ret = "Request to terminate Globus job " + id + " on " +
-                    launch.machine+" could not be issued:\nError output: "
-                    + outstr;
           }
         } else
           ret = rcmd.commError();
@@ -342,7 +324,7 @@ bool RunMgmt::registerLocalMachine(string& msg)
         model = "O2";
 
       settings += "&vendor=" + vendor + "&model=" + model;
-      settings += "&processor=Unspecified&procs=1&nodes=1&rsh=false&ssh=true&sshftp=false&telnet=false&gsh=false";
+      settings += "&processor=Unspecified&procs=1&nodes=1&rsh=false&ssh=true&sshftp=false";
 
       // Within PNNL, use the AFS installations of codes as defined in the
       // CONFIG.<vendor> files.

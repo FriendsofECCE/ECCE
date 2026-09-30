@@ -44,7 +44,6 @@
 ////@end XPM images
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_MAXWALLTIME = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_MACHINE = wxNewId();
-const wxWindowID WxLauncherGUI::ID_TEXTCTRL_WXLAUNCHER_PASSWORD2 = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_BATCHNODES = wxNewId();
 const wxWindowID WxLauncherGUI::ID_STATIC_WXLAUNCHER_MACHINENAME = wxNewId();
 const wxWindowID WxLauncherGUI::ID_BUTTON_WXLAUNCHER_SHELLOPEN = wxNewId();
@@ -94,8 +93,6 @@ const wxWindowID WxLauncherGUI::ID_STATIC_WXLAUNCHER_PASSWORD1LABEL = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PARAMEDIT_WXLAUNCHER_MAXMEMORY = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_BATCH2 = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_USERNAME = wxNewId();
-const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_PASSWORD2 = wxNewId();
-const wxWindowID WxLauncherGUI::ID_STATIC_WXLAUNCHER_PASSWORD2LABEL = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_CALCDIR = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PARAMEDIT_WXLAUNCHER_MINSCRATCH = wxNewId();
 const wxWindowID WxLauncherGUI::ID_CHOICE_WXLAUNCHER_QUEUE = wxNewId();
@@ -146,7 +143,6 @@ BEGIN_EVENT_TABLE( WxLauncherGUI, ewxFrame )
 
     EVT_TEXT( ID_TEXTCTRL_WXLAUNCHER_PASSWORD1, WxLauncherGUI::password1TextCtrlUpdateCB )
 
-    EVT_TEXT( ID_TEXTCTRL_WXLAUNCHER_PASSWORD2, WxLauncherGUI::password2TextCtrlUpdateCB )
 
     EVT_CHOICE( ID_CHOICE_WXLAUNCHER_REMSHELL, WxLauncherGUI::remshellChoiceSelectedCB )
 
@@ -575,8 +571,7 @@ void WxLauncherGUI::CreateControls()
     itemFlexGridSizer87->AddGrowableCol(0);
     itemPanel86->SetSizer(itemFlexGridSizer87);
 
-    wxFlexGridSizer* itemFlexGridSizer88 = new wxFlexGridSizer(2, 2, 0, 3);
-    itemFlexGridSizer88->AddGrowableRow(1);
+    wxFlexGridSizer* itemFlexGridSizer88 = new wxFlexGridSizer(1, 2, 0, 3);
     itemFlexGridSizer88->AddGrowableCol(1);
     itemFlexGridSizer87->Add(itemFlexGridSizer88, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 5);
 
@@ -615,28 +610,6 @@ void WxLauncherGUI::CreateControls()
 
     ewxTextCtrl* itemTextCtrl98 = new ewxTextCtrl( itemPanel94, ID_TEXTCTRL_WXLAUNCHER_PASSWORD1, _T(""), wxDefaultPosition, wxSize(100, -1), wxTE_PROCESS_ENTER|wxTE_PASSWORD );
     itemFlexGridSizer95->Add(itemTextCtrl98, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
-
-    itemFlexGridSizer88->Add(1, 1, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
-
-    ewxPanel* itemPanel100 = new ewxPanel( itemPanel86, ID_PANEL_WXLAUNCHER_PASSWORD2, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
-    itemFlexGridSizer88->Add(itemPanel100, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
-
-    wxFlexGridSizer* itemFlexGridSizer101 = new wxFlexGridSizer(1, 3, 3, 3);
-    itemFlexGridSizer101->AddGrowableCol(2);
-    itemPanel100->SetSizer(itemFlexGridSizer101);
-
-    ewxStaticText* itemStaticText102 = new ewxStaticText( itemPanel100, ID_STATIC_WXLAUNCHER_PASSWORD2LABEL, _("Globus Pass:"), wxDefaultPosition, wxSize(90, -1), wxALIGN_RIGHT );
-    itemFlexGridSizer101->Add(itemStaticText102, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 3);
-
-    ewxStaticText* itemStaticText103 = new ewxStaticText( itemPanel100, wxID_STATIC, _("*"), wxDefaultPosition, wxSize(7, -1), 0 );
-    itemStaticText103->SetForegroundColour(wxColour(255, 0, 0));
-    itemStaticText103->SetFont(wxFont(14, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
-    itemFlexGridSizer101->Add(itemStaticText103, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-
-    ewxTextCtrl* itemTextCtrl104 = new ewxTextCtrl( itemPanel100, ID_TEXTCTRL_WXLAUNCHER_PASSWORD2, _T(""), wxDefaultPosition, wxSize(100, -1), wxTE_PROCESS_ENTER|wxTE_PASSWORD );
-    if (ShowToolTips())
-        itemTextCtrl104->SetToolTip(_("(Required)\nGlobus authentication passphrase"));
-    itemFlexGridSizer101->Add(itemTextCtrl104, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
 
     wxFlexGridSizer* itemFlexGridSizer105 = new wxFlexGridSizer(1, 2, 0, 3);
     itemFlexGridSizer105->AddGrowableCol(1);
@@ -895,18 +868,6 @@ void WxLauncherGUI::password1TextCtrlUpdateCB( wxCommandEvent& event )
     // Before editing this code, remove the block markers.
     event.Skip();
 ////@end wxEVT_COMMAND_TEXT_UPDATED event handler for ID_TEXTCTRL_WXLAUNCHER_PASSWORD1 in WxLauncherGUI. 
-}
-
-/*!
- * wxEVT_COMMAND_TEXT_UPDATED event handler for ID_TEXTCTRL_WXLAUNCHER_PASSWORD2
- */
-
-void WxLauncherGUI::password2TextCtrlUpdateCB( wxCommandEvent& event )
-{
-////@begin wxEVT_COMMAND_TEXT_UPDATED event handler for ID_TEXTCTRL_WXLAUNCHER_PASSWORD2 in WxLauncherGUI.
-    // Before editing this code, remove the block markers.
-    event.Skip();
-////@end wxEVT_COMMAND_TEXT_UPDATED event handler for ID_TEXTCTRL_WXLAUNCHER_PASSWORD2 in WxLauncherGUI. 
 }
 
 /*!

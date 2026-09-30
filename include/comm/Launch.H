@@ -127,7 +127,6 @@ private:
         bool validateScratchDir(void);
         bool moveFiles(void);
         bool launchNormal(void);
-        bool launchGlobus(void);
 
         ///////////
         // Operations helper functions

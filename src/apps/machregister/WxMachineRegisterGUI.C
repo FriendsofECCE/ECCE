@@ -69,18 +69,15 @@ const wxWindowID WxMachineRegisterGUI::ID_SPIN_MACHINE_NUMPROCS = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_BUTTON_FORM_CLEAR = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_PANEL_QUEUES = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_PANEL_WXMACHINEREGISTER_MISCPATHS = wxNewId();
-const wxWindowID WxMachineRegisterGUI::ID_CHECKBOX_REMSHELL_GLOBUS = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_BUTTON_QUEUE_CHANGE = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_LISTBOX_MACHINES = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_BUTTON_QUEUE_REMOVE = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_BUTTON_QUEUE_CLEAR = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_BUTTON_MACHINE_DELETE = wxNewId();
-const wxWindowID WxMachineRegisterGUI::ID_CHECKBOX_REMSHELL_TELNET = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_TEXT_MACHINE_VENDOR = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_SPIN_QUEUE_MINPROCS = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_BUTTON_HELP = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_TEXT_MACHINE_MODEL = wxNewId();
-const wxWindowID WxMachineRegisterGUI::ID_CHECKBOX_REMSHELL_GLOBUS_SSH = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_SPIN_QUEUE_MAXPROCS = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_FRAME_MAIN = wxNewId();
 
@@ -303,21 +300,6 @@ void WxMachineRegisterGUI::CreateControls()
     itemCheckBox30->SetValue(false);
     itemCheckBox30->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemBoxSizer26->Add(itemCheckBox30, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
-
-    ewxCheckBox* itemCheckBox31 = new ewxCheckBox( itemScrolledWindowForm, ID_CHECKBOX_REMSHELL_TELNET, _("telnet"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
-    itemCheckBox31->SetValue(false);
-    itemCheckBox31->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
-    itemBoxSizer26->Add(itemCheckBox31, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
-
-    ewxCheckBox* itemCheckBox32 = new ewxCheckBox( itemScrolledWindowForm, ID_CHECKBOX_REMSHELL_GLOBUS, _("globus"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
-    itemCheckBox32->SetValue(false);
-    itemCheckBox32->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
-    itemBoxSizer26->Add(itemCheckBox32, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
-
-    ewxCheckBox* itemCheckBox33 = new ewxCheckBox( itemScrolledWindowForm, ID_CHECKBOX_REMSHELL_GLOBUS_SSH, _("globus-ssh"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
-    itemCheckBox33->SetValue(false);
-    itemCheckBox33->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
-    itemBoxSizer26->Add(itemCheckBox33, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxPanel* itemPanel34 = new ewxPanel( itemScrolledWindowForm, ID_PANEL_WXMACHINEREGISTER_APPLICATIONS, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemBoxSizer7->Add(itemPanel34, 0, wxGROW|wxALL, 3);

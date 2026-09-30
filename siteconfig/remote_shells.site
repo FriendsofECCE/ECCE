@@ -4,7 +4,7 @@
 # Purpose:
 #   Provide site specific remote shell, copy, xterm, and proxy authentication
 #   commands.  For the remote shell and copy commands, these augment the
-#   built-in ssh/scp, rsh/rcp, telnet/ftp, and Globus command invocations.
+#   built-in ssh/scp and rsh/rcp command invocations.
 #   For the remote xterm command this allows a site to override the default
 #   mechanism Ecce uses to create a remote xterm within a remote shell by
 #   specifying a command to be issued on the local client machine that
@@ -35,7 +35,7 @@
 #   Machine Configuration dialog, and the "Open Shell" menu item in the Machine
 #   Browser.  A custom remote xterm command can be used when the standard
 #   mechanism for setting the $DISPLAY envrionment variable to the host machine
-#   as required by telnet and rsh (and potentially other attributes such as
+#   as required by rsh (and potentially other attributes such as
 #   $XAUTHORITY) does not allow standard Ecce remote shells running the xterm
 #   command to be created.  For example, sites using the KTH (Royal Institute
 #   of Technology, Stockholm, Sweden) version of Kerberos can use the
@@ -146,8 +146,8 @@
 #   This option should be explicitly specified with the command in this file
 #   when it is supported.
 #
-#   It is not possible to specify remote shell commands that support telnet
-#   or ftp protocol due to complexity of how these commands operate.
+#   It is not possible to specify remote shell commands that support the ftp
+#   protocol due to complexity of how these commands operate.
 #
 #   The two commented out remote shell specifications below the line of all
 #   "#" characters at the end of this file are provided as additional examples

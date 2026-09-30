@@ -118,14 +118,14 @@ public:
     typedef bool (*HostKeyHook)(const string& host, const string& fingerprint);
     static HostKeyHook hostKeyHook;
 
-    static bool globusproxy(const string& password, string& errMessage);
+    // Non-empty (a message fit to show the user) when remShell names one of
+    // the shells ECCE no longer supports: telnet, Globus, Globus-ssh.
+    static string removedShellMessage(const string& remShell);
+
     static bool userproxy(const string& proxyAuth, const string& machine,
                           const string& userName, const string& password,
                           string& errMessage);
-    static bool globusrun(const string& command, string& output,
-                          string& errMessage,
-                          const string& machine, const string& contact,
-                          const string& password, const string& queueRSL="");
+
 
     static bool get(string& errMessage,
                     const string& machine, const string& remShell,
@@ -205,7 +205,6 @@ private:
                     const char** fromFiles, const string& toFile,
                     const bool& putFlag);
     static bool globFiles(const char** inFiles, char**& outFiles,int& numFiles);
-    static string globusRSL(const string& command, const string& queueRSL);
     static string shellCommand(const string& remShell, const string& machine,
                                const string& locShell, const string& userName,
                                const bool& hopFlag, string& proxyAuth,

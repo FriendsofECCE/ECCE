@@ -55,23 +55,6 @@ int main(int argc, char** argv)
 #if 000
   {
     string msg;
-    //status = RCommand::get(msg, "aeneas.mit.edu", "telnet", "anonymous",
-    //                       "gary.black@pnl.gov", 3, "/pub/gnu/webstump.README",
-    //                       "/pub/gnu/w3.README", "/tmp");
-    status = RCommand::put(msg, "aeneas.mit.edu", "telnet", "anonymous",
-                           "gary.black@pnl.gov", 3, 
-                           "eccejobmaster", "eccejobstore", "/home/ecce1/newdir/twodir/threedir");
-    if (status)
-      cout << "status: TRUE" << endl;
-    else {
-      cout << "status: FALSE" << endl;
-      cout << msg << endl;
-    }
-  }
-#endif
-#if 000
-  {
-    string msg;
     status = RCommand::put(msg, "n2.emsl.pnl.gov", "sftp", "d3j766",
                            "fakepass", 3, 
                            "eccejobmaster", "eccejobstore", "/nwfs/d3j766/test_put");
@@ -268,45 +251,6 @@ int main(int argc, char** argv)
     }
   }
 #endif
-#if 000
-  {
-    output = "hello";
-    status = RCommand::globusrun(
-                      "$(GLOBUS_INSTALL_PATH)/bin/globus-tools-path", output,
-                      "peace.emsl.pnl.gov", "abc123");
-
-    cout << "out (" << output << ")" << endl;
-  }
-#endif
-#if 000
-  {
-    status = RCommand::get("goofey.emsl.pnl.gov", "telnet", "ecce1",
-                           "fakepass", 3, "/msrc/home/ecce1/cool.ps",
-                           "/msrc/home/ecce1/fort.7", "/msrc/home/d39842");
-    if (status)
-      cout << "status: TRUE" << endl;
-    else {
-      cout << "status: FALSE" << endl;
-      cout << RCommand::commError() << endl;
-    }
-  }
-#endif
-#if 000
-  {
-    RCommand rcmd("goofey.emsl.pnl.gov", "telnet", "ecce1", "fakepass");
-    if (rcmd.isOpen())
-      cout << "working great!" << endl;
-    else {
-      cout << "working bad!" << endl;
-      cout << "got line (" << rcmd.expout() << ")" << endl;
-    }
-#if 000
-    status = rcmd.execout("tcsh -fc 'perl /msrc/tmp/timeout.pl'", output);
-    if (status)
-      cout << "status: TRUE" << endl;
-    else
-      cout << "status: FALSE" << endl;
-    cout << "output (" << output << ")" << endl;
 #endif
   }
 #endif
@@ -391,45 +335,6 @@ int main(int argc, char** argv)
     }
     else
       cout << "connection not open" << endl;
-  }
-#endif
-#if 000
-  {
-    RCommand rcmd("mpp1", "telnet", "ecce1", "fakepass");
-    if (rcmd.isOpen())
-      cout << "working great!" << endl;
-    status = rcmd.execout("echo $TERM", output);
-    if (status)
-      cout << "status: TRUE" << endl;
-    else
-      cout << "status: FALSE" << endl;
-    cout << "output (" << output << ")" << endl;
-  }
-#endif
-#if 000
-  {
-    RCommand rcmd("t3e.osc.edu", "telnet", "osc249", "gr8chess");
-    if (rcmd.isOpen())
-      cout << "working great!" << endl;
-    status = rcmd.execout("echo $TERM", output);
-    if (status)
-      cout << "status: TRUE" << endl;
-    else
-      cout << "status: FALSE" << endl;
-    cout << "output (" << output << ")" << endl;
-  }
-#endif
-#if 000
-  {
-    RCommand rcmd("mcurie.nersc.gov", "telnet", "eccetera", "4globus");
-    if (rcmd.isOpen())
-      cout << "working great!" << endl;
-    status = rcmd.execout("echo $TERM", output);
-    if (status)
-      cout << "status: TRUE" << endl;
-    else
-      cout << "status: FALSE" << endl;
-    cout << "output (" << output << ")" << endl;
   }
 #endif
 #if 000
