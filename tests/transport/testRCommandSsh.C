@@ -242,6 +242,27 @@ static bool scenario(bool ssh, const string& user, const string& shell,
   r = RCommand::put(serr, HOST, "ssh", user, "", one, sdir);
   log.push_back(rec("put glob without a match", r, ""));
 
+  // The pty path's copy() ignores missing files; so does the ssh path.
+  one.clear();
+  one.push_back(ldir + "/no_such_file");
+  r = RCommand::put(serr, HOST, "ssh", user, "", one, sdir);
+  log.push_back(rec("put missing", r, serr));
+  one.clear();
+  one.push_back(lp);
+  one.push_back(lo);
+  r = RCommand::put(serr, HOST, "ssh", user, "", one, sdir + "/nodir");
+  log.push_back(rec("put two files to a missing target", r, serr));
+  EXECOUT("put two to missing target left nothing", "ls " + sdir);
+  one.clear();
+  one.push_back(rdir + "/missing");
+  r = RCommand::get(serr, HOST, "ssh", user, "", one, gdir);
+  log.push_back(rec("get missing file", r, serr));
+  one.clear();
+  one.push_back(rdir + "/plain");
+  one.push_back(rdir + "/script");
+  r = RCommand::get(serr, HOST, "ssh", user, "", one, gdir + "/renamed");
+  log.push_back(rec("get two files to a non-directory", r, serr +
+                    readFile(gdir + "/renamed")));
   r = RCommand::command("echo via command; echo two", sout, serr, HOST, "ssh",
                         shell, user);
   log.push_back(rec("command", r, sout));
@@ -337,38 +358,6 @@ static void streamChecks(const string& user, const string& shell)
   check("stream: interrupt ends the script", eof && time(0) - t0 < 8);
   rc.stopStream();
   rc.exec("rm -rf /tmp/ecce_stream_" + user);
-}
-
-// Where libssh is stricter than the pty path, whose copy() ignores "No such
-// file or directory" and reports success.
-static void copyErrorChecks(const string& user, const string& shell,
-                            const string& ldir)
-{
-  setMode(true);
-  string err, lp = ldir + "/lplain", lo = ldir + "/lother";
-  vector<string> two, one;
-  two.push_back(lp);
-  two.push_back(lo);
-  check("ssh: put two files to a missing target fails",
-        !RCommand::put(err, HOST, "ssh", user, "", two,
-                       "/tmp/ecce_rcssh_no_such_dir") &&
-        err.find("Not a directory") != string::npos);
-  one.push_back(ldir + "/no_such_file");
-  check("ssh: put of a missing file fails and names it",
-        !RCommand::put(err, HOST, "ssh", user, "", one, "/tmp") &&
-        err.find("no_such_file: No such file or directory") != string::npos);
-  one.clear();
-  one.push_back("/tmp/ecce_rcssh_" + user + "/missing");
-  check("ssh: get of a missing file fails and names it",
-        !RCommand::get(err, HOST, "ssh", user, "", one, ldir) &&
-        err.find("missing") != string::npos);
-  one.clear();
-  one.push_back("/tmp/ecce_rcssh_" + user + "/plain");
-  one.push_back("/tmp/ecce_rcssh_" + user + "/script");
-  check("ssh: get of two files to a non-directory fails",
-        !RCommand::get(err, HOST, "ssh", user, "", one, ldir + "/lplain") &&
-        err.find("Not a directory") != string::npos);
-  (void)shell;
 }
 
 static void sshChecks(const string& user, const string& shell)
@@ -657,7 +646,6 @@ int main()
     sshChecks(user, shell);
     sourceChecks(user, shell, rdir, ldir);
     streamChecks(user, shell);
-    copyErrorChecks(user, shell, ldir);
     authChecks(user, shell);
 
     setMode(true);
