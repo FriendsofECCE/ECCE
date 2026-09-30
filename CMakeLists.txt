@@ -205,6 +205,11 @@ ecce_library(eccercmd   src/comm/rcommand)
 # SshTransport needs libssh >= 0.10; without it the glob's copy is dropped
 # and nothing else changes.
 pkg_check_modules(LIBSSH IMPORTED_TARGET libssh>=0.10)
+# Release builds set this, so a package can't quietly ship without built-in ssh.
+option(ECCE_REQUIRE_LIBSSH "Fail configuration when libssh >= 0.10 is not found" OFF)
+if(ECCE_REQUIRE_LIBSSH AND NOT LIBSSH_FOUND)
+  message(FATAL_ERROR "ECCE_REQUIRE_LIBSSH is ON but libssh >= 0.10 was not found (install libssh-dev / libssh-devel)")
+endif()
 if(LIBSSH_FOUND)
   target_link_libraries(eccercmd PUBLIC PkgConfig::LIBSSH)
   target_compile_definitions(eccercmd PUBLIC ECCE_HAVE_LIBSSH=1)
