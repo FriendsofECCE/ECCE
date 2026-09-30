@@ -382,8 +382,8 @@ static void sshChecks(const string& user, const string& shell)
     check("ssh: stderr merged into output",
           rc.execout("echo out; echo err 1>&2; echo out2", p) &&
           p == "out\r\nerr\r\nout2\r\n");
-    check("ssh: hop refused", !rc.hop("elsewhere") &&
-          rc.commError() == "hop is not available with ECCE_TRANSPORT=ssh");
+    check("ssh: hop to an unknown host fails cleanly",
+          !rc.hop("no-such-host.invalid") && rc.commError() != "");
     check("ssh: raw api fails without crashing",
           !rc.expwrite("date") && rc.expect1("x") == -1 && rc.expfid() == -1 &&
           !rc.isDirect() && rc.canStream());
