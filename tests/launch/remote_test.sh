@@ -7,7 +7,9 @@
 # ~/.ssh that ssh reads; OpenSSH takes it from the passwd home, which an
 # isolated $HOME on the host cannot override.  RUN_ARGS overrides the
 # arguments to run_tests.py (default: --transport both --drop).  The build goes to build-ssh in
-# the worktree, untracked.
+# the worktree, untracked.  To run beside another run: ECCE_TEST_SSH_PORT,
+# ECCE_TEST_SSH_NAME (run.sh), ECCE_TEST_CLIENT_HOME, ECCE_TEST_STATE (a path
+# inside the client home, e.g. /tmp/client/st), ECCE_DATASERVER_PORT, ECCE_BROKER_PORT.
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
@@ -24,11 +26,13 @@ podman image exists localhost/ecce-launch ||
 
 # ssh takes its home from passwd, hence --passwd-entry.  The client's home persists between runs so the data server's seeded
 # document root and basis-set library are built once.
-chome=${XDG_CACHE_HOME:-$HOME/.cache}/ecce-remote-launch-client
+chome=${ECCE_TEST_CLIENT_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/ecce-remote-launch-client}
 mkdir -p "$chome"
 podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce \
   --passwd-entry "ecce:*:$(id -u):$(id -g)::/tmp/client:/bin/bash" \
   -v "$root:/src:Z" -v "$state:/state:Z,ro" -v "$chome:/tmp/client:Z" \
+  ${ECCE_TEST_STATE:+-e ECCE_TEST_STATE} ${ECCE_DATASERVER_PORT:+-e ECCE_DATASERVER_PORT} \
+  ${ECCE_BROKER_PORT:+-e ECCE_BROKER_PORT} ${ECCE_SSH_KEEPALIVE:+-e ECCE_SSH_KEEPALIVE} \
   -e PORT="$port" -e USERS="$users" -e RUN_ARGS="${RUN_ARGS:---transport both --drop}" localhost/ecce-launch bash -c '
   set -e
   install -d -m 700 ~/.ssh
