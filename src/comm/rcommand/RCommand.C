@@ -4449,8 +4449,17 @@ static bool useSshCopy(const string& machine, const string& remShell,
           remShell.find("ssh/")==0);
 }
 
-// scp -r over SFTP.  Remote paths are relative to the login directory, local
-// wildcards are expanded here and remote ones by the remote shell.
+// scp -r over SFTP, with the pty path's leniency: copy() ignores "No such
+// file or directory", so a missing source or a several-files-to-a-file
+// target is skipped with a warning and the call still succeeds, which is what
+// callers were written against.  Remote paths are relative to the login
+// directory, local wildcards are expanded here and remote ones by the remote
+// shell.
+static void copyWarn(const string& what)
+{
+  if (getenv("ECCE_RCOM_LOGMODE")) cout << "copy warning: " << what << endl;
+}
+
 bool RCommand::sshCopy(bool putFlag, const string& machine,
                        const string& remShell, const string& userName,
                        const string& password, const vector<string>& files,
@@ -4465,28 +4474,23 @@ bool RCommand::sshCopy(bool putFlag, const string& machine,
   string err;
   vector<string> src;
 
-  // A wildcard that matches nothing is not an error, as with the pty path;
-  // a named file that is missing is.
   if (putFlag) {
     vector<const char*> in;
-    for (size_t i = 0; i < files.size(); i++) {
-      if (files[i].find_first_of("*?[") == string::npos &&
-          access(files[i].c_str(), F_OK) != 0) {
-        errMessage = files[i] + ": No such file or directory";
-        return false;
-      }
-      in.push_back(files[i].c_str());
-    }
+    for (size_t i = 0; i < files.size(); i++) in.push_back(files[i].c_str());
     in.push_back(NULL);
     char** globbed;
     int num;
     if (!RCommand::globFiles(&in[0], globbed, num)) return false;
     for (int i = 0; i < num; i++) { src.push_back(globbed[i]); free(globbed[i]); }
     free(globbed);
+    for (size_t i = 0; i < files.size(); i++)
+      if (access(files[i].c_str(), F_OK) != 0 &&
+          files[i].find_first_of("*?[") == string::npos)
+        copyWarn(files[i] + ": No such file or directory");
     if (src.empty()) return true;
     if (src.size() > 1 && t->remoteKind(toFile) != 1) {
-      errMessage = toFile + ": Not a directory";
-      return false;
+      copyWarn(toFile + ": Not a directory");
+      return true;
     }
     for (size_t i = 0; i < src.size(); i++)
       if (!t->putTree(src[i], toFile, err)) { errMessage = err; return false; }
@@ -4496,19 +4500,27 @@ bool RCommand::sshCopy(bool putFlag, const string& machine,
   for (size_t i = 0; i < files.size(); i++) {
     vector<string> one;
     if (!t->remoteGlob(files[i], one, err)) {
-      if (files[i].find_first_of("*?[") != string::npos &&
-          err == files[i] + ": No such file or directory")
+      if (err == files[i] + ": No such file or directory" ||
+          t->remoteKind(files[i]) < 0) {
+        copyWarn(err);
         continue;
+      }
       errMessage = err;
       return false;
     }
-    src.insert(src.end(), one.begin(), one.end());
+    for (size_t k = 0; k < one.size(); k++) {
+      if (t->remoteKind(one[k]) < 0) {
+        copyWarn(one[k] + ": No such file or directory");
+        continue;
+      }
+      src.push_back(one[k]);
+    }
   }
   if (src.empty()) return true;
   struct stat sb;
   if (src.size() > 1 && !(stat(toFile.c_str(), &sb)==0 && S_ISDIR(sb.st_mode))) {
-    errMessage = toFile + ": Not a directory";
-    return false;
+    copyWarn(toFile + ": Not a directory");
+    return true;
   }
   for (size_t i = 0; i < src.size(); i++)
     if (!t->getTree(src[i], toFile, err)) { errMessage = err; return false; }
