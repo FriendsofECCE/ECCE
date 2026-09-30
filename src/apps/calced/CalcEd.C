@@ -121,6 +121,11 @@ const char* CalcEd::p_BASIS_QUICK_PICKS[] = {
   "DZVP (DFT Orbital)", "DZVP2 (DFT Orbital)", "TZVP (DFT Orbital)" // len(3)
 }; // len(18)
 
+// Both the menu and its event range follow the list, so an entry added to it
+// can't be left out of one of them (TZVP was, with a hardcoded 17).
+#define BASIS_QUICK_COUNT \
+    ((int)(sizeof(p_BASIS_QUICK_PICKS) / sizeof(p_BASIS_QUICK_PICKS[0])))
+
 
 CalcEd::CalcEd( )
   : CalcEdGUI(),
@@ -1037,7 +1042,7 @@ void CalcEd::OnCheckboxCalcedIrreducibleClick( wxCommandEvent& event )
 void CalcEd::OnButtonCalcedBasisQuickClick( wxCommandEvent& event )
 {
   wxMenu menu;
-  for (int i = 0; i < 17; i++) {
+  for (int i = 0; i < BASIS_QUICK_COUNT; i++) {
     if (strcmp(p_BASIS_QUICK_PICKS[i], "-") == 0) {
       menu.AppendSeparator();
     } else {
@@ -1668,7 +1673,7 @@ void CalcEd::CreateControls()
   replaceBuilderButton();
   replaceBasisSetButton();
 
-  Connect( 100000, 100016, wxEVT_COMMAND_MENU_SELECTED,
+  Connect( 100000, 100000 + BASIS_QUICK_COUNT - 1, wxEVT_COMMAND_MENU_SELECTED,
            wxCommandEventHandler( CalcEd::OnMenuCalcedBasisSetSelected ) );
 }
 
