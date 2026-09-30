@@ -188,7 +188,7 @@ static void directChecks()
   }
   {
     RCommand rc("system", "", "bash", "", "", "", "", "", "", "/nonexistent");
-    check("sourceFile keeps the pty", rc.isOpen() && rc.expfid() > 0);
+    check("a missing sourceFile stays direct", rc.isOpen() && rc.expfid() == -1);
   }
   {
     string out, err;
