@@ -248,13 +248,24 @@ int RCommand::expect(int numPatterns, ...)
 
 int RCommand::expfid(void)
 {
-  if (p_direct) { directUnsupported("expfid"); return -1; }
+  if (p_direct) {
+    if (p_stream.rfd >= 0) return p_stream.rfd;
+    directUnsupported("expfid");
+    return -1;
+  }
   return p_fid;
 }
 
 bool RCommand::expwrite(const string& command)
 {
-  if (p_direct) return directUnsupported("expwrite");
+  if (p_direct) {
+    if (p_stream.wfd < 0) return directUnsupported("expwrite");
+    if (static_cast<DirectTransport*>(p_transport)->writeStream(
+          p_stream, command + "\n"))
+      return true;
+    p_errMessage = "Lost connection to the job monitor attempting to send command";
+    return false;
+  }
   int comlen = command.length();
 
   if (comlen >= MAXLINE) {
@@ -272,7 +283,7 @@ bool RCommand::expwrite(const string& command)
 
 bool RCommand::expwrite(const char* command)
 {
-  if (p_direct) return directUnsupported("expwrite");
+  if (p_direct) return expwrite(string(command));
   int comlen = strlen(command);
 
   if (comlen >= MAXLINE) {
@@ -2137,6 +2148,7 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
 RCommand::~RCommand(void)
 { 
   if (p_direct) {
+    stopStream();
     delete p_transport;
     return;
   }
@@ -3179,10 +3191,40 @@ bool RCommand::directExecout(const string& command, string& output,
   return status;
 }
 
+bool RCommand::startStream(const string& command)
+{
+  if (!p_direct || !p_connected || p_stream.pid > 0) return false;
+  string error;
+  if (!static_cast<DirectTransport*>(p_transport)->openStream(
+        command, p_stream, error)) {
+    p_errMessage = "Could not start " + command + ": " + error;
+    return false;
+  }
+  if (getenv("ECCE_RCOM_LOGMODE"))
+    cout << "Direct stream (" << command << ") in (" << p_transport->dir()
+         << ") pid " << p_stream.pid << " on pipes, no pty" << endl;
+  return true;
+}
+
+void RCommand::stopStream(int graceMs)
+{
+  if (!p_direct || p_stream.pid <= 0) return;
+  int st = static_cast<DirectTransport*>(p_transport)->closeStream(
+             p_stream, graceMs);
+  if (getenv("ECCE_RCOM_LOGMODE"))
+    cout << "Direct stream closed, status " << st << endl;
+}
+
 bool RCommand::execout(const string& command, string& output,
                        const string& errorMessage, const int& timeout)
 {
   if (!p_connected) return false;
+
+  if (p_direct && command == "\003") {
+    if (p_stream.pid <= 0) return false;
+    static_cast<DirectTransport*>(p_transport)->interruptStream(p_stream);
+    return true;
+  }
 
   if (p_direct)
     return directExecout(command, output, errorMessage, timeout);

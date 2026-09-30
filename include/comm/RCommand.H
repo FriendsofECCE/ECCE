@@ -24,6 +24,8 @@
 #include <vector>
   using std::vector;
 
+#include "comm/DirectTransport.H"
+
 class Transport;
 
 static const long RC_CONNECT_TIMEOUT = 60;  // Connect timeout seconds
@@ -80,6 +82,13 @@ public:
              const string& userName="", const string& password="",
              const string& shellPath="", const string& libPath="",
              const string& sourceFile="");
+
+    // Direct mode only: the monitor stream.  startStream() runs the command
+    // on pipes; expfid()/expwrite() then address it, and \003 sent through
+    // exec() becomes SIGINT to its process group.
+    bool isDirect(void) const { return p_direct; }
+    bool startStream(const string& command);
+    void stopStream(int graceMs=2000);
 
     bool expwrite(const string& command);
     bool expwrite(const char* command);
@@ -220,6 +229,7 @@ private:
     bool p_remoteBash;    // set by exec() -- see remoteShellIsBash()
     Transport* p_transport;  // non-null only in ECCE_TRANSPORT=direct mode
     bool p_direct;
+    DirectTransport::Stream p_stream;
 
     bool directExecout(const string& command, string& output,
                        const string& errorMessage, const int& timeout);
