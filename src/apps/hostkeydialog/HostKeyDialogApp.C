@@ -72,7 +72,7 @@ class HostKeyDialog : public ewxDialog
 
       ewxStaticText* t2 = new ewxStaticText(this, wxID_ANY,
         "Compare it with the fingerprint your administrator gives you, or "
-        "with `ssh-keygen -lf /etc/ssh/ssh_host_*_key.pub` on the server.  "
+        "with the output of \"ssh-keygen -lf /etc/ssh/ssh_host_*_key.pub\" on the server.  "
         "If you accept, the key is saved in ~/.ssh/known_hosts and you will "
         "not be asked again.");
       t2->Wrap(wrap);

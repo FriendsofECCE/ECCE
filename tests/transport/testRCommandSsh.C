@@ -252,7 +252,7 @@ static bool scenario(bool ssh, const string& user, const string& shell,
   one.push_back(lo);
   r = RCommand::put(serr, HOST, "ssh", user, "", one, sdir + "/nodir");
   log.push_back(rec("put two files to a missing target", r, serr));
-  EXECOUT("put two to missing target", "ls " + sdir + "; ls -l " + sdir + "/nodir");
+  EXECOUT("put two to missing target", "ls " + sdir + "; ls -l " + sdir + "/nodir | awk '{print $1, $5, $NF}'");
   one.clear();
   one.push_back(rdir + "/missing");
   r = RCommand::get(serr, HOST, "ssh", user, "", one, gdir);
