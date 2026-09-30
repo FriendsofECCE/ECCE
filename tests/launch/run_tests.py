@@ -16,6 +16,14 @@ prints where each one resolves.
 
     tests/launch/run_tests.py [--build build-native] [--transport unset|direct|both]
                               [--keep] [-v]
+    tests/launch/run_tests.py --machine sshtest --remote-user bashuser \
+                              --transport unset|ssh|both
+
+With --machine the job runs on a machine reached over ssh instead of on
+localhost.  The test registers it (MyMachines, Queues, CONFIG.<machine>) for
+the isolated user and leaves ~/.ssh alone, so the caller has to have made
+`--machine` and its host resolvable by ssh non-interactively; see
+tests/launch/remote_test.sh, which does that inside a container.
 
 Exit status 77 (CTest SKIP) when a prerequisite is missing.
 """
@@ -192,8 +200,22 @@ class Suite(object):
         })
         env.pop("ECCE_NO_REAP", None)
         env.pop("ECCE_TRANSPORT", None)
+        if self.remote():
+            env["ECCE_RCOM_LOGMODE"] = "1"
         env.update(extra or {})
         return env
+
+    def remote(self):
+        return self.args.machine != "localhost"
+
+    def sshRun(self, command):
+        """Run `command` on the remote machine, outside ECCE."""
+        result = subprocess.run(
+            ["ssh", "-o", "BatchMode=yes", "%s@%s" % (self.args.remote_user,
+                                                      self.args.machine),
+             command], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            timeout=60)
+        return result.returncode, result.stdout.decode("utf-8", "replace")
 
     def check(self, ok, what):
         say("  %s %s" % ("ok  " if ok else "FAIL", what))
@@ -260,12 +282,16 @@ class Suite(object):
     def one(self, label, transport):
         say("--- %s (ECCE_TRANSPORT=%s)" % (label, transport or "unset"))
         name = "mopac-ch4-%s-%d" % (label, int(time.time()))
-        rundir = os.path.join(self.state, "jobs")
-        os.makedirs(rundir, exist_ok=True)
+        if self.remote():
+            rundir = "/home/%s/ecce-jobs/%s" % (self.args.remote_user, name)
+            runUser = self.args.remote_user
+        else:
+            rundir = os.path.join(self.state, "jobs")
+            os.makedirs(rundir, exist_ok=True)
+            runUser = self.env()["ECCE_REALUSER"]
 
         rc, out = self.driver("create", self.userUrl(), name, "mopac_es", DECK,
-                              "mopac.mop", "localhost", rundir,
-                              self.env()["ECCE_REALUSER"])
+                              "mopac.mop", self.args.machine, rundir, runUser)
         if not self.check(rc == 0, "calculation created"):
             say(out)
             return
@@ -276,14 +302,21 @@ class Suite(object):
         say("\n".join("  | " + line for line in out.strip().splitlines()))
         if not self.check(rc == 0, "Launch ran to the end"):
             return
+        if self.remote():
+            self.checkTransport(out, transport)
+            ran = [l.split(":", 1)[1].strip() for l in out.splitlines()
+                   if l.startswith("run directory:")]
+            rundir = ran[-1] if ran else rundir
 
         #  Watch for the jobmaster/jobstore binaries while the job is alive:
         #  a process's exe is the only proof of which build was started.
         state = ""
         stdin = None
+        self.monitorLog = ""
         deadline = time.time() + WAIT_SECONDS
         while time.time() < deadline:
             self.seen.update(seenBinaries(self.home))
+            self.readMonitorLog(name)
             for _ in range(20):
                 stdin = stdin or monitorStdin()
                 time.sleep(0.05)
@@ -293,7 +326,9 @@ class Suite(object):
                          "unsuccessful", "system_failure"):
                 break
         say("  eccejobmonitor stdin: %s" % stdin)
-        if stdin is not None:
+        if self.remote():
+            pass        # the monitor runs on the remote machine
+        elif stdin is not None:
             self.check(stdin.startswith("pipe:") == (transport == "direct"),
                        "monitor stdin is %s under %s"
                        % ("a pipe" if transport == "direct" else "a tty",
@@ -312,6 +347,53 @@ class Suite(object):
         say("  properties: " + " ".join(props))
         for prop in REQUIRED_PROPS:
             self.check(prop in props, "%s present in Props/" % prop)
+        if self.remote():
+            self.checkRemoteRun(rundir, name)
+
+    def readMonitorLog(self, name):
+        import glob
+        for log in glob.glob(os.path.join(self.state, "tmp", "*", "jobs",
+                                          name + "__*", "eccejobstore.log")):
+            try:
+                with open(log, errors="replace") as handle:
+                    self.monitorLog = handle.read() or self.monitorLog
+            except OSError:
+                pass
+
+    def checkTransport(self, launchOut, transport):
+        """The connection Launch made must be the one this mode asks for."""
+        viaSsh = "ssh transport: commands run over libssh" in launchOut
+        self.check(viaSsh == (transport == "ssh"),
+                   "Launch connected over %s"
+                   % ("libssh" if viaSsh else "the pty ssh path"))
+
+    def checkRemoteRun(self, rundir, name):
+        """Show that MOPAC ran in the sshd container, not here."""
+        rc, out = self.sshRun("hostname; ls -A %s" % rundir)
+        say("  remote host and run directory:\n" + "\n".join(
+            "  | " + line for line in out.strip().splitlines()))
+        files = out.split()
+        self.check(rc == 0 and any(f.endswith(".out") for f in files),
+                   "MOPAC output exists in %s on the remote machine" % rundir)
+        #  Launch deletes it first, so only the remote job can have written it.
+        self.check(".ecce.status" in files,
+                   "the remote monitor reported status (.ecce.status)")
+        text = self.monitorLog
+        if not text:
+            say("  (no eccejobstore.log seen: the cache is gone once it finishes)")
+        if text:
+            for mark in ("Connecting to compute server", "Started job monitor",
+                         "Authenticated to", "ssh transport"):
+                for line in text.splitlines():
+                    if mark in line:
+                        say("  monitor connection: " + line.strip()[:160])
+                        break
+            self.check("Connecting to compute server" in text
+                       and "ssh transport" not in text,
+                       "the remote monitor connection is still the pty ssh "
+                       "(expected until the monitor moves to a channel)")
+        self.check(not os.path.exists(rundir),
+                   "the run directory does not exist on this machine")
 
     def diagnose(self, url):
         jobs = os.path.join(self.state, "jobs")
@@ -332,6 +414,22 @@ class Suite(object):
                         say("  ---- %s\n%s" % (name, handle.read()[-1500:]))
 
 
+def registerRemote(state, machine):
+    """Register `machine` for the isolated user as Machine Registration would.
+
+    The Shell queue manager and a CONFIG file naming MOPAC's path on the
+    remote side are all a workstation with the code installed needs.
+    """
+    prefs = os.path.join(state, ".ECCE")
+    with open(os.path.join(prefs, "MyMachines"), "w") as handle:
+        handle.write("%s\t%s\tGeneric\tRemote test host\tUnspecified\t4:1\t"
+                     "ssh\t:MOPAC\tWS\n" % (machine, machine))
+    with open(os.path.join(prefs, "Queues"), "w") as handle:
+        handle.write("Queues: %s\n%s|queueMgrName:   Shell\n" % (machine, machine))
+    with open(os.path.join(prefs, "CONFIG." + machine), "w") as handle:
+        handle.write("MOPAC: /usr/bin/mopac\nperlPath: /usr/bin\n")
+
+
 def prerequisites(build):
     for exe in ("launchjob", "eccejobstore", "eccejobmaster", "ecmd"):
         if not os.access(os.path.join(build, exe), os.X_OK):
@@ -349,7 +447,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--build", default=os.path.join(REPO, "build-native"))
     parser.add_argument("--transport", default="both",
-                        choices=("unset", "direct", "both"))
+                        choices=("unset", "direct", "ssh", "both"))
+    parser.add_argument("--machine", default="localhost",
+                        help="machine to run on; anything but localhost is "
+                        "registered as an ssh machine (default: localhost)")
+    parser.add_argument("--remote-user", default="bashuser",
+                        help="login name on --machine")
     parser.add_argument("--cwd", help="working directory of the launch "
                         "(default $ECCE_HOME/bin, as under the gateway)")
     parser.add_argument("--keep", action="store_true",
@@ -383,8 +486,11 @@ def main():
     import apps  # noqa: F401  (fixture reads apps.INSTALL)
     import fixture
 
-    with open(os.path.join(state, ".ECCE", "CONFIG.localhost"), "w") as handle:
-        handle.write("MOPAC: %s\n" % shutil.which("mopac"))
+    if args.machine == "localhost":
+        with open(os.path.join(state, ".ECCE", "CONFIG.localhost"), "w") as handle:
+            handle.write("MOPAC: %s\n" % shutil.which("mopac"))
+    else:
+        registerRemote(state, args.machine)
 
     suite = Suite(args, build, state, home)
     say("binaries under test (ECCE_HOME=%s):" % home)
@@ -401,8 +507,12 @@ def main():
                 == os.path.join(REPO, "scripts", "gensub"),
                 "gensub on PATH -> %s" % found)
 
+    second = ("ssh", "ssh") if args.machine != "localhost" else ("direct", "direct")
+    if args.machine != "localhost" and args.transport == "direct":
+        skip("--transport direct is for localhost")
     modes = {"unset": [("pty", None)], "direct": [("direct", "direct")],
-             "both": [("pty", None), ("direct", "direct")]}[args.transport]
+             "ssh": [("ssh", "ssh")],
+             "both": [("pty", None), second]}[args.transport]
     try:
         if not suite.services(True):
             suite.check(False, "services started")

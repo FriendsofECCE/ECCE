@@ -1,9 +1,10 @@
 # A disposable sshd for testing ECCE's ssh transport (#204): one account with
 # a csh login shell and one with bash, key and password/keyboard-interactive
 # login, so the tests cover what real clusters present without needing one.
+# perl and mopac let it also run a real job (tests/launch --machine).
 FROM docker.io/library/debian:trixie
 RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -qq -y install \
-      openssh-server tcsh bash coreutils >/dev/null && rm -rf /var/lib/apt/lists/*
+      openssh-server tcsh bash coreutils perl mopac procps >/dev/null && rm -rf /var/lib/apt/lists/*
 RUN useradd -m -s /usr/bin/tcsh cshuser && useradd -m -s /bin/bash bashuser \
  && echo 'cshuser:ecce-test' | chpasswd && echo 'bashuser:ecce-test' | chpasswd \
  && mkdir -p /run/sshd \
