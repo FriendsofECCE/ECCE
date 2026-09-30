@@ -16,6 +16,7 @@ prints where each one resolves.
 
     tests/launch/run_tests.py [--build build-native] [--transport unset|direct|both]
                               [--keep] [-v]
+    tests/launch/run_tests.py --nwchem-restart     # #202: relaunch a finished NWChem job
     tests/launch/run_tests.py --machine sshtest --remote-user bashuser \
                               --transport unset|ssh|both [--drop]
 
@@ -440,6 +441,86 @@ class Suite(object):
             if drop:
                 self.checkRestarted(name)
 
+    def waitState(self, url, want=("completed", "loaded", "failed", "killed",
+                                  "unsuccessful", "system_failure"), seconds=180):
+        state = ""
+        deadline = time.time() + seconds
+        while time.time() < deadline:
+            rc, out = self.driver("state", url)
+            state = out.strip().splitlines()[-1] if out.strip() else ""
+            if state in want:
+                break
+            time.sleep(1)
+        return state
+
+    def props(self, url):
+        rc, out = self.driver("props", url)
+        return sorted(out.split())
+
+    def storeLogs(self):
+        """eccejobmaster/eccejobstore logs of every job, while they still exist."""
+        import glob
+        text = ""
+        for log in sorted(glob.glob(os.path.join(self.state, "tmp", "*", "jobs",
+                                                 "*", "eccejob*.log"))):
+            with open(log, errors="replace") as handle:
+                text += "== %s\n%s\n" % (log, handle.read())
+        return text
+
+    def nwchemRestart(self):
+        """#202: run an NWChem optimisation, Reset for Restart, run it again.
+
+        The restarted job must store its properties without eccejobstore
+        aborting, and must not lose the ones the first run left.
+        """
+        say("--- NWChem optimisation, then Reset for Restart")
+        name = "nwchem-co-restart-%d" % int(time.time())
+        rundir = os.path.join(self.state, "jobs")
+        os.makedirs(rundir, exist_ok=True)
+        deck = os.path.join(REPO, "tests", "e2e", "fixtures", "nwchem", "co-opt.nw")
+        rc, out = self.driver("create", self.userUrl(), name, "nwchem_es", deck,
+                              "nwch.nw", self.args.machine, rundir, self.user())
+        if not self.check(rc == 0, "calculation created"):
+            say(out)
+            return
+        url = out.strip().splitlines()[-1]
+        rc, out = self.driver("launch", url)
+        say("\n".join("  | " + l for l in out.strip().splitlines()[-6:]))
+        if not self.check(rc == 0, "first Launch ran to the end"):
+            return
+        state = self.waitState(url)
+        self.check(state == "completed", "first run reached completed (last: %s)" % state)
+        time.sleep(3)
+        first = self.props(url)
+        say("  first run properties (%d): %s" % (len(first), " ".join(first)))
+        self.check("GEOMTRACE" in first and "TE" in first, "first run stored GEOMTRACE and TE")
+
+        restartDeck = os.path.join(self.state, "restart.nw")
+        with open(deck) as src, open(restartDeck, "w") as dst:
+            for line in src:
+                dst.write("restart CO\n" if line.strip().lower().startswith("start") else line)
+        rc, out = self.driver("restart", url, restartDeck, "nwch.nw")
+        if not self.check(rc == 0, "reset for restart and edited deck stored"):
+            say(out)
+            return
+        rc, out = self.driver("launch", url)
+        say("\n".join("  | " + l for l in out.strip().splitlines()[-6:]))
+        if not self.check(rc == 0, "restart Launch ran to the end"):
+            return
+        state = self.waitState(url)
+        self.check(state == "completed", "restarted run reached completed (last: %s)" % state)
+        time.sleep(3)
+        second = self.props(url)
+        say("  restarted run properties (%d): %s" % (len(second), " ".join(second)))
+        text = self.storeLogs()
+        for line in text.splitlines():
+            if any(k in line for k in ("Cannot re-parse", "restart count", "exited with",
+                                       "Fatal", "terminating")):
+                say("  log: " + line.strip()[:160])
+        self.check("Cannot re-parse" not in text, "no 'Cannot re-parse frequency last' in the logs")
+        self.check(set(first) <= set(second), "the restart kept the first run's properties (%s)"
+                   % " ".join(sorted(set(first) - set(second))))
+
     def checkRestarted(self, name):
         """The dropped monitor must have been replaced by a restart."""
         import glob
@@ -578,6 +659,8 @@ def main():
     parser.add_argument("--drop", action="store_true",
                         help="also run each remote transport with the "
                         "monitor's ssh session killed mid-job")
+    parser.add_argument("--nwchem-restart", action="store_true",
+                        help="#202: only run NWChem, Reset for Restart, run again")
     parser.add_argument("--keep", action="store_true",
                         help="leave the services running afterwards")
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -611,7 +694,8 @@ def main():
 
     if args.machine == "localhost":
         with open(os.path.join(state, ".ECCE", "CONFIG.localhost"), "w") as handle:
-            handle.write("MOPAC: %s\n" % shutil.which("mopac"))
+            handle.write("MOPAC: %s\nNWChem: %s\n" % (shutil.which("mopac"),
+                                                     shutil.which("nwchem") or ""))
     else:
         registerRemote(state, args.machine, args.remote_user)
 
@@ -644,6 +728,9 @@ def main():
             suite.check(False, "services started")
         else:
             fixture.ensureRealUserAccount()
+            if args.nwchem_restart:
+                suite.nwchemRestart()
+                modes = []
             for label, transport, drop in modes:
                 suite.one(label, transport, drop)
         for name, path in sorted(suite.seen.items()):

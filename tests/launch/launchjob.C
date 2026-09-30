@@ -7,6 +7,8 @@
 //   launchjob launch <calcURL>                            exit 0 when submitted
 //   launchjob state  <calcURL>                            prints the run state
 //   launchjob props  <calcURL>                            one property per line
+//   launchjob restart <calcURL> <deckFile> <deckName>     "Reset for Restart", then
+//                                                         store the edited deck
 //
 // Credentials arrive as an AuthCache pipe file named by -pipe <file>,
 // exactly as ecmd and eccejobmaster receive them.
@@ -151,6 +153,21 @@ static int doLaunch(const string& url)
   return 0;
 }
 
+// What CalcMgr::resetForRestart() does, then the user's edited input deck.
+static int doRestart(const vector<string>& a)
+{
+  if (a.size() != 3) { cerr << "restart: <calcURL> <deckFile> <deckName>" << endl; return 2; }
+  TaskJob* task = getTask(a[0]);
+  if (!task) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+  if (!task->resetForRestart()) { cerr << "resetForRestart failed" << endl; return 1; }
+  ifstream deck(a[1].c_str());
+  if (!deck || !task->putInputFile(a[2], &deck)) {
+    cerr << "could not store input deck" << endl;
+    return 1;
+  }
+  return 0;
+}
+
 int main(int argc, char** argv)
 {
   Ecce::initialize();
@@ -169,6 +186,7 @@ int main(int argc, char** argv)
   const string mode = a[0];
   a.erase(a.begin());
   if (mode == "create") return doCreate(a);
+  if (mode == "restart") return doRestart(a);
   if (a.size() != 1) { cerr << mode << ": needs a calculation URL" << endl; return 2; }
   if (mode == "launch") return doLaunch(a[0]);
 
