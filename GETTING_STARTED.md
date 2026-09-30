@@ -415,6 +415,21 @@ Terminal editors (`vi`, `vim`, `nvim`, `view`, `nano`, `pico`, `micro`,
 editor that hands the file to an already-running copy and exits would
 otherwise end the edit session at once.
 
+### Experimental: built-in ssh
+
+By default ECCE runs every command through a scripted shell session (a
+pty, `ssh` and `expect`-style prompt matching). Tick **Edit > Preferences >
+External programs > Run commands without a shell session (built-in ssh)**
+to run commands on this machine directly and on ssh machines over ECCE's
+own libssh connection instead, with no prompts to match. It needs a build
+with libssh (the packages built on Debian and RHEL have it), applies to
+connections opened after the change, and a job keeps the choice it was
+launched with. An ssh host key ECCE has not seen is asked about in a
+dialog, and is refused until accepted. `ECCE_TRANSPORT` overrides the
+checkbox: `ssh` or `direct` turn it on, `pty` turns it off. Machines with
+a front end or a site-defined shell keep the shell session. It is
+experimental; leave it off unless you are testing it.
+
 ## 7. Getting help
 
 `ecce-<app>`'s Help menu opens local HTML content shipped in the package

@@ -2021,7 +2021,10 @@ bool Launch::startJobStore(const string& importDir)
     }
   } else {
     // nohup added to fix to sh/bash shell issue with exitting ECCE
-    string clientCmd = "nohup " + Ecce::ecceBinCommand("eccejobmaster") + " ";
+    // The job's monitor keeps the transport it was launched with, whatever
+    // the preference says by the time it restarts.
+    string clientCmd = "ECCE_TRANSPORT=" + RCommand::transportMode() +
+                       " nohup " + Ecce::ecceBinCommand("eccejobmaster") + " ";
 
     string pipeName = AuthCache::pipeName();
     clientCmd += "-pipe " + pipeName + " ";

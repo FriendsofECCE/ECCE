@@ -189,6 +189,10 @@ public:
     // connection really is libssh rather than the pty fallback.
     static bool usesLibssh(const string& machine, const string& remShell,
                            const string& userName);
+    // The transport every process of a user agrees on: ECCE_TRANSPORT when
+    // set (direct, ssh, or pty for the shell session), else "ssh" if
+    // Edit > Preferences asks for it, else "pty".
+    static string transportMode();
     static bool usesSsh(const string& machine, const string& remShell,
                         const string& userName);
     static bool isRemote(const string& machine, const string& remShell,

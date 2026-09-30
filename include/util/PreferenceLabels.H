@@ -53,6 +53,7 @@ static const char *ORIENTATION      ;
 static const char *EDITOR           ;
 static const char *TERMINAL         ;
 static const char *BROWSER          ;
+static const char *BUILTINSSH       ;   // Boolean: RCommand's ssh transport
 
 
 /*

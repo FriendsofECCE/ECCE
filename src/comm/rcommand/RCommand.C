@@ -37,6 +37,8 @@
 
 #include "util/StringTokenizer.H"
 #include "util/Ecce.H"
+#include "util/Preferences.H"
+#include "util/PreferenceLabels.H"
 
 #include "tdat/AuthCache.H"
 
@@ -1383,11 +1385,23 @@ string RCommand::copyToShell(const string& copyCmd)
 //  Implementation
 //
 ///////////////////////////////////////////////////////////////////////////////
+string RCommand::transportMode()
+{
+  const char* env = getenv("ECCE_TRANSPORT");
+  if (env && *env) return env;
+
+  // Ecce::realUserHome() aborts without it, and plain tools use RCommand too.
+  if (!getenv("ECCE_REALUSERHOME")) return "pty";
+  Preferences pref(PrefLabels::GLOBALPREFFILE);
+  bool builtin = false;
+  if (pref.getBool(PrefLabels::BUILTINSSH, builtin) && builtin) return "ssh";
+  return "pty";
+}
+
 bool RCommand::usesSsh(const string& machine, const string& remShell,
                        const string& userName)
 {
-  const char* mode = getenv("ECCE_TRANSPORT");
-  return mode && !strcmp(mode, "ssh") &&
+  return transportMode() == "ssh" &&
          RCommand::isRemote(machine, remShell, userName) &&
          (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
           remShell.find("ssh/")==0);
@@ -1466,9 +1480,8 @@ RCommand::RCommand(const string& machine, const string& remShell,
       return;
   }
 
-  const char* transportEnv = getenv("ECCE_TRANSPORT");
-  const string transportMode = transportEnv ? transportEnv : "";
-  if (allowDirect && (transportMode=="direct" || transportMode=="ssh") &&
+  const string mode = transportMode();
+  if (allowDirect && (mode=="direct" || mode=="ssh") &&
       !RCommand::isRemote(machine, remShell, userName) &&
       frontendMachine=="") {
     p_direct = true;
@@ -1529,7 +1542,7 @@ RCommand::RCommand(const string& machine, const string& remShell,
 #else
     static bool warned = false;
     if (!warned) {
-      cerr << "ECCE_TRANSPORT=ssh: this build has no libssh; using the "
+      cerr << "Built-in ssh (ECCE_TRANSPORT=ssh): this build has no libssh; using the "
               "pty ssh path" << endl;
       warned = true;
     }
@@ -4263,8 +4276,7 @@ bool RCommand::globFiles(const char** inFiles, char**& outFiles, int& numFiles)
 static bool useSshCopy(const string& machine, const string& remShell,
                        const string& userName)
 {
-  const char* mode = getenv("ECCE_TRANSPORT");
-  return mode && string(mode)=="ssh" &&
+  return RCommand::transportMode()=="ssh" &&
          RCommand::isRemote(machine, remShell, userName) &&
          (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
           remShell.find("ssh/")==0);
