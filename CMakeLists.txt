@@ -1720,7 +1720,8 @@ if(PYTHON3_EXECUTABLE)
 
   # tests/queues -- batch-queue support.  "queues" needs no scheduler: gensub
   # scripts against golden files, and PBS/LSF/Moab against stand-in clients.
-  # "queues_slurm" uses this machine's real Slurm and SKIPs without one.
+  # "queues_slurm", "queues_sge" and "queues_htcondor" use this machine's real
+  # scheduler and SKIP without one.
   add_test(NAME queues
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/run_tests.py
@@ -1733,4 +1734,12 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR} --suite slurm
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
   set_tests_properties(queues_slurm PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  foreach(qm sge htcondor)
+    add_test(NAME queues_${qm}
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/run_tests.py
+                     --build ${CMAKE_BINARY_DIR} --suite ${qm}
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
+    set_tests_properties(queues_${qm} PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  endforeach()
 endif()

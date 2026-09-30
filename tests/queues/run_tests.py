@@ -1,34 +1,36 @@
 #!/usr/bin/env python3
 """Batch-queue support: submit script, submission, job id, completion, cancel.
 
-Two suites, each over the queue managers ECCE ships in siteconfig/QueueManagers:
+Suites, over the queue managers ECCE ships in siteconfig/QueueManagers:
 
-  stubs   PBS, LSF and Moab against STAND-IN clients (tests/queues/stubsched.py,
-          installed as qsub/qdel/qstat, bsub/bkill/bjobs, msub/mjobctl/checkjob
-          on PATH for this test only).  They run the submitted script in the
-          background and print a job id in the real client's format.  They
-          prove ECCE's side of the protocol (script, submit command, id
-          parsing, cancel command) and say nothing about the real schedulers.
-  slurm   Slurm against the real sbatch/squeue/scancel of this machine.
+  stubs     PBS, LSF and Moab against STAND-IN clients (tests/queues/stubsched.py,
+            installed as qsub/qdel/qstat, bsub/bkill/bjobs, msub/mjobctl/checkjob
+            on the machines' queue manager path).  They run the submitted script
+            in the background and print a job id in the real client's format.
+            They prove ECCE's side of the protocol (script, submit command, id
+            parsing, cancel command) and say nothing about the real schedulers.
+  slurm, sge, htcondor
+            the real scheduler of this machine; each is SKIPped when absent.
+  golden    gensub alone, against tests/queues/golden/.
 
-Both launch MOPAC and NWChem through the real Launch (tests/launch/launchjob)
-on a machine registered under the queue manager, with queue, node, processor,
-wall time, memory and account set as the launcher's queue controls set them,
-and cancel a long job through RunMgmt::terminate, which is what the
-Organizer's Kill calls.
+The live suites launch MOPAC and NWChem through the real Launch
+(tests/launch/launchjob) on a machine registered under the queue manager, with
+queue, node, processor, wall time, memory and account set as the launcher's queue
+controls set them, and cancel a long job through RunMgmt::terminate, which is what
+the Organizer's Kill calls.
 
 The submit script of every manager is also generated directly by gensub for
 fixed settings and compared with tests/queues/golden/, so the csh-to-sh port
 of gensub can be checked against what csh produced.
 
-    tests/queues/run_tests.py [--build build] [--suite local|stubs|slurm|golden|all]
+    tests/queues/run_tests.py [--build build] [--suite local|golden|stubs|slurm|sge|htcondor|all]
                               [--transport unset|direct|both] [--manager pbs ...]
                               [--update-golden] [--keep] [-v]
 
 "local" is golden plus stubs: everything that needs no scheduler.
 
-Exit status 77 (CTest SKIP) when a prerequisite is missing; for the slurm
-suite that includes sinfo failing or listing no partition.
+Exit status 77 (CTest SKIP) when a prerequisite is missing; for a real scheduler
+that includes its client failing or listing no queue.
 """
 
 import argparse
@@ -60,9 +62,14 @@ MANAGERS = {
     "lsf": ("LSF", "#BSUB", "lsftest"),
     "moab": ("Moab", "#MSUB", "moabtest"),
     "slurm": ("Slurm", "#SBATCH", "slurmtest"),
+    "sge": ("SGE", "#$", "sgetest"),
+    "htcondor": ("HTCondor", "#CONDOR", "condortest"),
     "shell": ("Shell", None, "goldhost"),
 }
 STUB_MANAGERS = ("pbs", "lsf", "moab")
+REAL_MANAGERS = ("slurm", "sge", "htcondor")
+#  The queue a real scheduler of this host accepts for the "basic" profile.
+LIVE_QUEUE = {"slurm": "debug", "sge": "all.q", "htcondor": "pool"}
 
 #  What the launcher's queue controls can set.  wall is what Launch passes as
 #  ##wall_clock_time##, hrmin as ##wall_clock_hrmin##; None means the control
@@ -81,7 +88,12 @@ CODES = {"nwchem": ("NWChem", "nwch.nw", "nwch.nwout"),
          "mopac": ("MOPAC", "mopac.mop", "mopac.mopout")}
 
 
-def expectedDirectives(mgr, p, jobname):
+def wallSeconds(wall):
+    h, m, sec = (int(x) for x in wall.split(":"))
+    return h * 3600 + m * 60 + sec
+
+
+def expectedDirectives(mgr, p, jobname, rundir="/qtest/run"):
     """The directive lines submit.site's block must yield for profile `p`."""
     ppn = p["procs"] // p["nodes"]
     out = []
@@ -115,6 +127,26 @@ def expectedDirectives(mgr, p, jobname):
         add("#MSUB -l mem=%smb" % p["mem"], p["mem"])
         add("#MSUB -A %s" % p["account"], p["account"])
         out += ["#MSUB -j oe", "#MSUB -o moab.out"]
+    elif mgr == "sge":
+        add("#$ -N " + jobname)
+        add("#$ -q %s" % p["queue"], p["queue"])
+        add("#$ -pe smp %d" % p["procs"])
+        add("#$ -l h_rt=%s" % p["wall"], p["wall"])
+        add("#$ -l mem_free=%sM" % p["mem"], p["mem"])
+        add("#$ -A %s" % p["account"], p["account"])
+        out += ["#$ -S /bin/csh", "#$ -cwd", "#$ -v SHELL", "#$ -j y", "#$ -o sge.out"]
+    elif mgr == "htcondor":
+        out += ["#CONDOR executable = @SCRIPT@", "#CONDOR initialdir = " + rundir,
+                "#CONDOR should_transfer_files = NO", "#CONDOR notification = never",
+                '#CONDOR environment = "HOME=$ENV(HOME)"',
+                "#CONDOR request_cpus = %d" % p["procs"]]
+        add("#CONDOR request_memory = %s" % p["mem"], p["mem"])
+        if p["wall"]:
+            out.append("#CONDOR periodic_remove = (JobStatus == 2) && "
+                       "((time() - EnteredCurrentStatus) > %d)" % wallSeconds(p["wall"]))
+        add('#CONDOR +ProjectName = "%s"' % p["account"], p["account"])
+        out += ["#CONDOR output = condor.out", "#CONDOR error = condor.err",
+                "#CONDOR log = condor.log", "#CONDOR queue"]
     elif mgr == "slurm":
         add("#SBATCH --partition=%s" % p["queue"], p["queue"])
         add("#SBATCH --nodes=%d" % p["nodes"])
@@ -135,12 +167,15 @@ def wellFormed(text, mgr):
     """Problems in the directive block that no scheduler would accept."""
     problems = []
     for line in directiveLines(text, mgr):
-        if "$" in line or re.search(r"(=|\s-\w)\s*$", line) or "= " in line:
+        body = line[len(MANAGERS[mgr][1]):]
+        if mgr == "htcondor":
+            #  A description line is "key = value"; an empty value is the fault.
+            if re.search(r"=\s*$|\$(?!ENV\()", body) or (body.strip() != "queue" and "=" not in body):
+                problems.append("malformed directive: %r" % line)
+        elif "$" in body or re.search(r"(=|\s-\w)\s*$", line) or "= " in line:
             problems.append("malformed directive: %r" % line)
     if not text.startswith("#!"):
         problems.append("no interpreter line")
-    first = [l for l in text.splitlines() if not l.startswith("#!")
-             and not l.startswith("# ")][:1]
     return problems
 
 
@@ -182,12 +217,12 @@ class Report(object):
     def table(self):
         say("")
         say("=" * 110)
-        say("%-7s %-6s %-9s %-26s %-9s %6s  %s" % (
+        say("%-8s %-8s %-9s %-26s %-9s %6s  %s" % (
             "suite", "mgr", "transport", "job", "result", "secs", "note"))
         say("-" * 110)
         bad = 0
         for r in self.rows:
-            say("%-7s %-6s %-9s %-26s %-9s %6.0f  %s" % (
+            say("%-8s %-8s %-9s %-26s %-9s %6.0f  %s" % (
                 r["suite"], r["mgr"], r["transport"], r["job"], r["status"],
                 r["seconds"], "; ".join(r["notes"])[:60]))
             for f in r["fails"]:
@@ -227,11 +262,11 @@ class Gensub(object):
                     "perlPath: /usr/bin\n")
         self.env = dict(os.environ, ECCE_HOME=self.home, ECCE_REALUSERHOME=self.user)
 
-    def script(self, mgr, code, p, host="goldhost", name="gold"):
+    def script(self, mgr, code, p, host="goldhost", name="gold", rundir="/qtest/run"):
         name_c, infile, outfile = CODES[code]
         lines = ["-Q %s" % MANAGERS[mgr][0], "-H %s" % host, "-d localhost",
                  "-c %s" % name_c, "-n %d" % p["procs"], "-N %d" % p["nodes"],
-                 "-r /qtest/run", "-i " + infile, "-o " + outfile,
+                 "-r " + rundir, "-i " + infile, "-o " + outfile,
                  "-f %s/submit__%s" % (self.tmp, name)]
         if p["queue"]:
             lines.append("-q " + p["queue"])
@@ -301,54 +336,295 @@ def goldenSuite(args, rep):
                 for prob in wellFormed(text, mgr):
                     rep.check(False, prob)
             rep.done()
-        if not args.manager or "slurm" in args.manager:
-            slurmTestOnly(g, rep)
+        realParsers(g, rep, args)
     finally:
         g.close()
 
 
-def slurmTestOnly(g, rep):
-    """sbatch --test-only: the real parser's verdict on generated directives."""
-    if not slurmUsable():
-        return
-    for prof in ("basic", "bare"):
-        rep.row("golden", "slurm", "-", "sbatch-test-only.%s" % prof)
-        text = g.script("slurm", "nwchem", PROFILES[prof], host="goldhost", name="t-" + prof)
-        path = os.path.join(g.tmp, "submit__t-" + prof)
-        res = subprocess.run(["sbatch", "--test-only", path], stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT, cwd=g.tmp)
-        out = res.stdout.decode().strip()
-        rep.check(res.returncode == 0, "sbatch accepts the generated directives: %s" % out[:120])
+# --- the schedulers ---------------------------------------------------------
+
+def sh(argv, timeout=60):
+    res = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         timeout=timeout)
+    return res.returncode, res.stdout.decode("utf-8", "replace")
+
+
+def pollFor(fn, seconds, every=2):
+    """fn() until it returns something truthy, for at most `seconds`."""
+    deadline = time.time() + seconds
+    while True:
+        got = fn()
+        if got or time.time() > deadline:
+            return got
+        time.sleep(every)
+
+
+class Sched(object):
+    """One scheduler as the test sees it: job state and its own record of a job."""
+    real = True
+
+    def usable(self):
+        """None when it can be used, else why not."""
+
+    def state(self, jobid):
+        """'R' running, 'Q' waiting, 'done', or None when it has never heard of it."""
+
+    def record(self, jobid):
+        """Text of the scheduler's own description of the job ('' if none)."""
+        return ""
+
+    def verify(self, rep, prof, name, jobdir, jobid, final):
+        """Assert that the scheduler holds the settings the launcher gave."""
+
+    def cancelled(self, rep, jobid):
+        """Assert how this scheduler records a cancelled job."""
+
+    def drop(self, jobid):
+        """Remove the job if still there (cleanup after a failed test)."""
+
+
+class SlurmSched(Sched):
+    def usable(self):
+        if not shutil.which("sinfo") or not shutil.which("sbatch"):
+            return "no sbatch/sinfo"
+        rc, out = sh(["sinfo", "-h", "-o", "%R"])
+        if rc != 0 or not out.split():
+            return "sinfo fails or lists no partition"
+        if LIVE_QUEUE["slurm"] not in out.split():
+            return "Slurm has no partition %s" % LIVE_QUEUE["slurm"]
+
+    def job(self, jobid):
+        rc, out = sh(["scontrol", "-o", "show", "job", str(jobid)])
+        return dict(kv.split("=", 1) for kv in out.split() if "=" in kv)
+
+    def state(self, jobid):
+        rc, out = sh(["squeue", "-h", "-j", str(jobid), "-o", "%T"])
+        q = out.strip() if rc == 0 else ""
+        if q:
+            return {"RUNNING": "R", "PENDING": "Q"}.get(q.split()[0], "done")
+        return "done" if self.job(jobid) else None
+
+    def record(self, jobid):
+        rc, out = sh(["scontrol", "show", "job", str(jobid)])
+        return out if rc == 0 else ""
+
+    def verify(self, rep, prof, name, jobdir, jobid, final):
+        j = self.job(jobid)
+        rep.check(j.get("Partition") == prof["queue"],
+                  "runs on partition %s (scontrol: %s)" % (prof["queue"], j.get("Partition")))
+        rep.check(j.get("TimeLimit") in ("00:30:00", "0:30:00"),
+                  "time limit 00:30:00 (scontrol: %s)" % j.get("TimeLimit"))
+        rep.check(j.get("NumNodes") in ("1", "1-1") and j.get("NumTasks", "1") == "1",
+                  "1 node, 1 task (scontrol: %s, %s)" % (j.get("NumNodes"), j.get("NumTasks")))
+        mem = j.get("MinMemoryNode", j.get("MinMemoryCPU", ""))
+        rep.check(mem in ("2000M", "2000"), "memory 2000M (scontrol: %s)" % mem)
+        rep.check(j.get("Account") in ("proj1", "(null)", None),
+                  "account %s accepted, not substituted (scontrol: %s)"
+                  % (prof["account"], j.get("Account")))
+        rep.check(j.get("UserId", "").split("(")[0] == os.environ.get("USER", ""),
+                  "job belongs to this user (scontrol: %s)" % j.get("UserId"))
+
+    def cancelled(self, rep, jobid):
+        js = pollFor(lambda: self.job(jobid).get("JobState") not in (None, "COMPLETING")
+                     and self.job(jobid).get("JobState"), 20, 1)
+        rep.check(js == "CANCELLED", "slurm JobState CANCELLED (%s)" % js)
+
+    def drop(self, jobid):
+        if self.state(jobid) in ("R", "Q"):
+            sh(["scancel", str(jobid)])
+
+
+class SgeSched(Sched):
+    def usable(self):
+        if not shutil.which("qsub") or not shutil.which("qstat") or not shutil.which("qconf"):
+            return "Grid Engine client commands not installed"
+        rc, out = sh(["qstat", "-g", "c"])
+        if rc != 0 or LIVE_QUEUE["sge"] not in out:
+            return "no working Grid Engine queue %s (qstat -g c: %s)" % (
+                LIVE_QUEUE["sge"], out.strip()[:60])
+
+    def state(self, jobid):
+        rc, out = sh(["qstat", "-u", "*"])
+        for line in out.splitlines():
+            f = line.split()
+            if f and f[0] == str(jobid):
+                return "R" if f[4] in ("r", "t", "Rr") else "Q"
+        rc, out = sh(["qacct", "-j", str(jobid)])
+        return "done" if rc == 0 else None
+
+    def record(self, jobid):
+        rc, out = sh(["qstat", "-j", str(jobid)])
+        if rc == 0:
+            return out
+        rc, out = sh(["qacct", "-j", str(jobid)])
+        return out if rc == 0 else ""
+
+    def verify(self, rep, prof, name, jobdir, jobid, final):
+        #  While it is queued or running qstat -j describes it; afterwards qacct does.
+        text = self.record(jobid)
+        if final:
+            text = pollFor(lambda: sh(["qacct", "-j", str(jobid)])[1]
+                           if sh(["qacct", "-j", str(jobid)])[0] == 0 else "", 40) or text
+        for what, rx in (("queue " + prof["queue"], re.escape(prof["queue"])),
+                         ("account " + prof["account"], re.escape(prof["account"])),
+                         ("h_rt 30 minutes", r"h_rt=(1800|0:30:00|00:30:00)"),
+                         ("mem_free 2000M", r"mem_free=(2000M|2000m|2\.0G|2G|2097152000)"),
+                         ("parallel environment smp", r"\bsmp\b")):
+            rep.check(re.search(rx, text) is not None,
+                      "Grid Engine's record has %s" % what)
+        if not final:
+            say("      " + " | ".join(l.strip() for l in text.splitlines()
+                                     if re.match(r"\s*(hard resource_list|account|hard_queue_list|"
+                                                 r"parallel environment)", l)))
+
+    def cancelled(self, rep, jobid):
+        rc = pollFor(lambda: sh(["qacct", "-j", str(jobid)])[1]
+                     if sh(["qacct", "-j", str(jobid)])[0] == 0 else "", 30)
+        rep.check(bool(rc) and re.search(r"exit_status\s+(137|143)|failed\s+100", rc) is not None,
+                  "qacct records the job as killed (exit_status 137, failed 100)")
+
+    def drop(self, jobid):
+        if self.state(jobid) in ("R", "Q"):
+            sh(["qdel", str(jobid)])
+
+
+class CondorSched(Sched):
+    def usable(self):
+        if not shutil.which("condor_submit") or not shutil.which("condor_q"):
+            return "HTCondor client commands not installed"
+        rc, out = sh(["condor_status", "-total"])
+        if rc != 0 or "Total" not in out:
+            return "no HTCondor pool answers condor_status"
+
+    def ad(self, jobid):
+        rc, out = sh(["condor_q", "-long", str(jobid)])
+        text = out if rc == 0 and "=" in out else ""
+        if not text:
+            rc, out = sh(["condor_history", "-limit", "1", "-long", str(jobid)])
+            text = out if rc == 0 and "=" in out else ""
+        return dict((k.strip(), v.strip()) for k, v in
+                    (l.split(" = ", 1) for l in text.splitlines() if " = " in l))
+
+    def state(self, jobid):
+        rc, out = sh(["condor_q", "-format", "%d\\n", "JobStatus", str(jobid)])
+        st = out.split()[0] if rc == 0 and out.split() and out.split()[0].isdigit() else ""
+        if st:
+            return {"2": "R", "6": "R", "1": "Q", "5": "Q", "7": "Q"}.get(st, "done")
+        return "done" if self.ad(jobid) else None
+
+    def record(self, jobid):
+        return "\n".join("%s = %s" % kv for kv in self.ad(jobid).items())
+
+    def verify(self, rep, prof, name, jobdir, jobid, final):
+        ad = pollFor(lambda: self.ad(jobid), 30)
+        rep.check(bool(ad), "HTCondor has a job ad for cluster %s" % jobid)
+        if final:
+            ad = pollFor(lambda: (lambda a: a if a.get("JobStatus") in ("3", "4") else None)(
+                self.ad(jobid)), 40) or ad
+        rep.check(ad.get("RequestCpus") == "1", "request_cpus 1 (ad: %s)" % ad.get("RequestCpus"))
+        rep.check(ad.get("RequestMemory") == "2000",
+                  "request_memory 2000 (ad: %s)" % ad.get("RequestMemory"))
+        rep.check(ad.get("Iwd", "").strip('"').rstrip("/") == jobdir.rstrip("/"),
+                  "initialdir is the run directory (ad: %s)" % ad.get("Iwd"))
+        rep.check(ad.get("Cmd", "").strip('"').endswith("submit__" + name),
+                  "the executable is the ECCE script (ad: %s)" % ad.get("Cmd"))
+        rep.check(ad.get("ProjectName", "").strip('"') == prof["account"],
+                  "ProjectName %s (ad: %s)" % (prof["account"], ad.get("ProjectName")))
+        rep.check("1800" in ad.get("PeriodicRemove", ""),
+                  "wall time limit of 1800 s in periodic_remove")
+        rep.check(ad.get("Owner", "").strip('"') == os.environ.get("USER", ""),
+                  "job belongs to this user (ad: %s)" % ad.get("Owner"))
+
+    def cancelled(self, rep, jobid):
+        ad = pollFor(lambda: (lambda a: a if a.get("JobStatus") == "3" else None)(self.ad(jobid)), 30)
+        rep.check(bool(ad), "HTCondor JobStatus is 3 (removed)")
+
+    def drop(self, jobid):
+        if self.state(jobid) in ("R", "Q"):
+            sh(["condor_rm", str(jobid)])
+
+
+class StubSched(Sched):
+    """The stand-ins of tests/queues/stubsched.py, through their spool."""
+    real = False
+
+    def __init__(self, mgr, bindir):
+        self.mgr, self.bin = mgr, bindir
+
+    def dir(self, jobid):
+        seq = re.match(r"\d+", str(jobid))
+        return os.path.join(self.bin, "..", "spool", self.mgr, seq.group(0)) if seq else None
+
+    def state(self, jobid):
+        d = self.dir(jobid)
+        if not d or not os.path.isdir(d):
+            return None
+        if os.path.exists(os.path.join(d, "exit")):
+            return "done"
+        try:
+            with open(os.path.join(d, "pgid")) as h:
+                os.killpg(int(h.read()), 0)
+            return "R"
+        except (OSError, ValueError):
+            return "done"
+
+    def cancelled(self, rep, jobid):
+        rep.check(os.path.exists(os.path.join(self.dir(jobid), "cancelled")),
+                  "the stand-in's cancel command (%s) ended it" % {
+                      "pbs": "qdel", "lsf": "bkill", "moab": "mjobctl -c"}[self.mgr])
+
+
+def schedFor(mgr, stubdir):
+    if mgr in STUB_MANAGERS:
+        return StubSched(mgr, stubdir)
+    return {"slurm": SlurmSched, "sge": SgeSched, "htcondor": CondorSched}[mgr]()
+
+
+def realParsers(g, rep, args):
+    """The real schedulers' own parsers on the generated descriptions."""
+    for mgr in REAL_MANAGERS:
+        if args.manager and mgr not in args.manager:
+            continue
+        sched = schedFor(mgr, None)
+        if sched.usable():
+            continue
+        for prof in ("basic", "bare"):
+            p = dict(PROFILES[prof])
+            if p["queue"]:
+                p["queue"] = LIVE_QUEUE[mgr]
+            rep.row("golden", mgr, "-", "real-parser.%s" % prof)
+            name = "t-" + prof
+            #  condor_submit checks that initialdir exists, and not under /tmp.
+            run = tempfile.mkdtemp(prefix="ecce-rundir-", dir=os.path.expanduser("~/.cache"))
+            text = g.script(mgr, "nwchem", p, host="goldhost", name=name, rundir=run)
+            path = os.path.join(g.tmp, "submit__" + name)
+            if mgr == "slurm":
+                rc, out = sh(["sbatch", "--test-only", path])
+                what = "sbatch --test-only"
+            elif mgr == "sge":
+                rc, out = sh(["qsub", "-verify", path])
+                what = "qsub -verify"
+            else:
+                #  Through the submit command's own extraction of the description.
+                sub = path + ".sub"
+                with open(sub, "w") as h:
+                    h.write("".join(l[len("#CONDOR "):] + "\n" for l in text.splitlines()
+                                    if l.startswith("#CONDOR ")).replace("@SCRIPT@", path))
+                rc, out = sh(["condor_submit", "-dry-run", "/dev/null", sub])
+                what = "condor_submit -dry-run"
+            rep.check(rc == 0, "%s accepts the generated description: %s" % (
+                what, " ".join(out.split())[:110]))
+            shutil.rmtree(run, ignore_errors=True)
+            rep.done()
+    if not args.manager or "htcondor" in args.manager:
+        rep.row("golden", "htcondor", "-", "tmp-rundir")
+        try:
+            g.script("htcondor", "nwchem", PROFILES["basic"], rundir="/tmp/qtest")
+            rep.check(False, "gensub accepted a run directory under /tmp")
+        except RuntimeError as exc:
+            rep.check("/tmp" in str(exc) and "home" in str(exc),
+                      "gensub refuses a run directory under /tmp, saying why")
         rep.done()
-
-
-# --- environment ----------------------------------------------------------
-
-def slurmUsable():
-    if not shutil.which("sinfo") or not shutil.which("sbatch"):
-        return False
-    res = subprocess.run(["sinfo", "-h", "-o", "%P"], stdout=subprocess.PIPE,
-                         stderr=subprocess.DEVNULL)
-    return res.returncode == 0 and bool(res.stdout.strip())
-
-
-def partitions():
-    res = subprocess.run(["sinfo", "-h", "-o", "%R"], stdout=subprocess.PIPE)
-    return res.stdout.decode().split()
-
-
-def slurmJob(jobid):
-    """scontrol's view of a job (still there MinJobAge seconds after it ends)."""
-    res = subprocess.run(["scontrol", "-o", "show", "job", str(jobid)],
-                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-    text = res.stdout.decode()
-    return dict(kv.split("=", 1) for kv in text.split() if "=" in kv)
-
-
-def slurmQueue(jobid):
-    res = subprocess.run(["squeue", "-h", "-j", str(jobid), "-o", "%i %P %T"],
-                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-    return res.stdout.decode().strip()
 
 
 # --- live jobs ----------------------------------------------------------
@@ -357,7 +633,8 @@ class Live(object):
     def __init__(self, s, rep, args, suite, stubdir=None):
         self.s, self.rep, self.args, self.suite = s, rep, args, suite
         self.stub = stubdir
-        self.submitted = []          # (mgr, id) to clean up
+        self.scheds = {}
+        self.submitted = []          # (sched, id) to clean up
         self.wrapper = os.path.join(s.state, "slow-mopac")
         self.delay = os.path.join(s.state, "mopac-delay")
         with open(self.wrapper, "w") as h:
@@ -370,40 +647,15 @@ class Live(object):
         with open(self.delay, "w") as h:
             h.write("%d\n" % seconds)
 
-    def scheduler(self, mgr):
-        """The scheduler's own record of a job, or None."""
+    def sched(self, mgr):
+        if mgr not in self.scheds:
+            self.scheds[mgr] = schedFor(mgr, self.stub)
+        return self.scheds[mgr]
 
-    def stubJobDir(self, mgr, seq):
-        return os.path.join(self.stub, "..", "spool", mgr, str(seq))
-
-    def schedulerState(self, mgr, jobid):
-        """'R' running, 'done', or None when the scheduler does not know it."""
-        if mgr == "slurm":
-            q = slurmQueue(jobid)
-            if q:
-                return {"RUNNING": "R", "PENDING": "Q"}.get(q.split()[-1], "done")
-            j = slurmJob(jobid)
-            return "done" if j else None
-        seq = re.match(r"\d+", jobid)
-        d = self.stubJobDir(mgr, seq.group(0)) if seq else None
-        if not d or not os.path.isdir(d):
-            return None
-        if os.path.exists(os.path.join(d, "exit")):
-            return "done"
-        try:
-            with open(os.path.join(d, "pgid")) as h:
-                os.killpg(int(h.read()), 0)
-            return "R"
-        except (OSError, ValueError):
-            return "done"
-
-    def submittedScript(self, mgr, jobid, rundir):
-        if mgr != "slurm":
-            seq = re.match(r"\d+", jobid).group(0)
-            path = os.path.join(self.stubJobDir(mgr, seq), "script")
-        else:
-            found = glob.glob(os.path.join(rundir, "submit__*"))
-            path = found[0] if found else None
+    def submittedScript(self, mgr, jobid, rundir, name):
+        sched = self.sched(mgr)
+        path = (os.path.join(sched.dir(jobid), "script") if not sched.real
+                else os.path.join(rundir, "submit__" + name) if rundir else None)
         if path and os.path.exists(path):
             with open(path) as h:
                 return h.read()
@@ -412,12 +664,14 @@ class Live(object):
     def run(self, mgr, code, transport, kill=False):
         mname, prefix, machine = MANAGERS[mgr]
         rep, s = self.rep, self.s
+        sched = self.sched(mgr)
         kind = "kill" if kill else "run"
         job = "%s-%s" % (code, kind)
         rep.row(self.suite, mgr, transport, job)
         say("--- %s %s %s (ECCE_TRANSPORT=%s)" % (mgr, code, kind, transport))
         s.transport = None if transport == "unset" else transport
-        prof = PROFILES["basic"]
+        prof = dict(PROFILES["basic"])
+        prof["queue"] = LIVE_QUEUE.get(mgr, prof["queue"])
         stamp = str(int(time.time()) % 100000)
         name = "q%s%s%s%s" % (mgr[0], code[0], kind[0], stamp)
         rundir = os.path.join(s.state, "jobs")
@@ -445,10 +699,10 @@ class Live(object):
         if outbug:
             rep.knownFault(
                 "TaskJob::getDataFile(PRIMARY_OUTPUT) on a calculation that has not run "
-                "yet returned %r instead of the declared %s (c610bf6c's imported-output "
-                "fallback); the job writes %r, eccejobmonitor reads %s, and "
-                "MOPAC loses the properties only the live monitor extracts (TE, GEOMTRACE)"
-                % (outname, CODES[code][2], outname, CODES[code][2]))
+                "yet returned 'Outputs' instead of the declared output name (c610bf6c's "
+                "imported-output fallback); the job writes that name where the monitor "
+                "expects the declared one, and MOPAC loses the properties only the live "
+                "monitor extracts (TE, GEOMTRACE)")
         ran = [l.split(":", 1)[1].strip() for l in out.splitlines()
                if l.startswith("run directory:")]
         jobdir = ran[-1] if ran else None
@@ -457,59 +711,39 @@ class Live(object):
             rep.done()
             return
         jobid = s.driver("jobid", url)[1].strip().splitlines()[-1]
-        self.submitted.append((mgr, jobid))
+        self.submitted.append((sched, jobid))
         rep.note("id " + jobid)
-        idre = {"pbs": r"\d+\.stubserver", "lsf": r"\d+", "moab": r"\d+",
-                "slurm": r"\d+"}[mgr]
+        idre = {"pbs": r"\d+\.stubserver"}.get(mgr, r"\d+")
         rep.check(re.fullmatch(idre, jobid) is not None,
                   "parsed job id %r has the form %s" % (jobid, idre))
-        known = self.schedulerState(mgr, jobid)
-        rep.check(known is not None, "the scheduler knows job %s (%s)" % (
-            jobid, "squeue/scontrol" if mgr == "slurm" else "stand-in spool"))
+        known = pollFor(lambda: sched.state(jobid), 15, 1)
+        rep.check(known is not None, "the scheduler knows job %s" % jobid)
 
-        if mgr != "slurm":
+        if not sched.real:
             #  Proof that it was the stand-in, not a scheduler of this host, that ran.
             cmd = {"pbs": "qsub", "lsf": "bsub", "moab": "msub"}[mgr]
             log = os.path.join(self.stub, "..", "spool", mgr, "commands.log")
             text = open(log).read() if os.path.exists(log) else ""
-            rep.check(re.search(r"^%s .*submit__%s" % (cmd, name), text, re.M) is not None
-                      or (mgr == "lsf" and "bsub" in text),
+            spooled = self.submittedScript(mgr, jobid, jobdir, name) or ""
+            rep.check(re.search(r"^%s\b" % cmd, text, re.M) is not None and name in spooled,
                       "the stand-in %s recorded this submission" % cmd)
-        if mgr != "slurm":
-            #  Proof that it was the stand-in, not a scheduler of this host, that ran.
-            cmd = {"pbs": "qsub", "lsf": "bsub", "moab": "msub"}[mgr]
-            log = os.path.join(self.stub, "..", "spool", mgr, "commands.log")
-            text = open(log).read() if os.path.exists(log) else ""
-            rep.check(re.search(r"^%s .*submit__%s" % (cmd, name), text, re.M) is not None
-                      or (mgr == "lsf" and "bsub" in text),
-                      "the stand-in %s recorded this submission" % cmd)
-        if mgr == "slurm":
-            q = slurmQueue(jobid)
-            j = slurmJob(jobid)
-            rep.check(j.get("Partition") == prof["queue"],
-                      "runs on partition %s (scontrol: %s)" % (prof["queue"], j.get("Partition")))
-            rep.check(j.get("TimeLimit") in ("00:30:00", "0:30:00"),
-                      "time limit 00:30:00 (scontrol: %s)" % j.get("TimeLimit"))
-            rep.check(j.get("NumNodes") in ("1", "1-1") and j.get("NumTasks", "1") == "1",
-                      "1 node, 1 task (scontrol: %s, %s)" % (j.get("NumNodes"), j.get("NumTasks")))
-            mem = j.get("MinMemoryNode", j.get("MinMemoryCPU", ""))
-            rep.check(mem in ("2000M", "2000"), "memory 2000M (scontrol: %s)" % mem)
-            rep.check(j.get("Account") in ("proj1", "(null)", None),
-                      "account %s accepted, not substituted (scontrol: %s)"
-                      % (prof["account"], j.get("Account")))
-            rep.check(j.get("UserId", "").startswith(s.user() + "("),
-                      "job belongs to %s (scontrol: %s)" % (s.user(), j.get("UserId")))
-            say("      squeue: %s" % (q or "(already finished)"))
 
-        script = self.submittedScript(mgr, jobid, jobdir or rundir)
+        if sched.real:
+            sched.verify(rep, prof, name, jobdir, jobid, final=False)
+            say("      scheduler state: %s" % sched.state(jobid))
+
+        script = self.submittedScript(mgr, jobid, jobdir, name)
         if rep.check(script is not None, "the submitted script was captured"):
             if prefix:
-                want = expectedDirectives(mgr, prof, name[:14])
+                want = expectedDirectives(mgr, prof, name[:14], jobdir)
                 got = directiveLines(script, mgr)
                 rep.check(got == want, "script directives as expected" + (
                     "" if got == want else ": got %r want %r" % (got, want)))
                 for prob in wellFormed(script, mgr):
                     rep.check(False, prob)
+            if mgr == "htcondor" and jobdir:
+                sub = os.path.join(jobdir, "submit__%s.sub" % name)
+                rep.check(os.path.exists(sub), "the submit command wrote %s" % os.path.basename(sub))
             keep = os.path.join(s.state, "scripts")
             os.makedirs(keep, exist_ok=True)
             with open(os.path.join(keep, "%s.%s.%s.%s.sh" % (mgr, code, kind, transport)), "w") as h:
@@ -522,7 +756,7 @@ class Live(object):
             rep.check(state == "completed", "state completed (last: %s)" % state)
             if state == "completed":
                 #  "completed" is set before eccejobstore has stored every property.
-                deadline = time.time() + 40
+                deadline = time.time() + (0 if outbug and code == "mopac" else 40)
                 while True:
                     got = s.props(url)
                     if ("TE" in got and "GEOMTRACE" in got) or time.time() > deadline:
@@ -533,40 +767,41 @@ class Live(object):
                 else:
                     rep.check("TE" in got and "GEOMTRACE" in got,
                               "TE and GEOMTRACE in Props/ (have: %s)" % " ".join(got))
-            after = self.schedulerState(mgr, jobid)
+            after = sched.state(jobid)
             rep.check(after in ("done", None), "the scheduler no longer runs the job (%s)" % after)
+            if sched.real and state == "completed":
+                #  The scheduler's own account of how it ended.
+                sched.verify(rep, prof, name, jobdir, jobid, final=True)
+        if rep.cur["fails"]:
+            self.preserve(name, jobdir)
         rep.done()
+
+    def preserve(self, name, jobdir):
+        """Keep a failed job's run directory and monitor logs past the next run."""
+        dest = os.path.join(self.s.state, "failed", name)
+        shutil.rmtree(dest, ignore_errors=True)
+        os.makedirs(dest)
+        if jobdir and os.path.isdir(jobdir):
+            shutil.copytree(jobdir, os.path.join(dest, "rundir"), symlinks=True,
+                            ignore_dangling_symlinks=True)
+        for d in glob.glob(os.path.join(self.s.state, "tmp", "*", "jobs", "*" + name + "*")):
+            shutil.copytree(d, os.path.join(dest, "ecce-" + os.path.basename(d)),
+                            symlinks=True, ignore_dangling_symlinks=True)
+        say("      kept for inspection: " + dest)
 
     def cancel(self, mgr, url, jobid, jobdir):
         rep, s = self.rep, self.s
+        sched = self.sched(mgr)
         #  The job is held in the wrapper's sleep; wait until the scheduler runs it.
-        deadline = time.time() + 60
-        while time.time() < deadline and self.schedulerState(mgr, jobid) != "R":
-            time.sleep(1)
-        rep.check(self.schedulerState(mgr, jobid) == "R", "the job is running under the scheduler")
-        if mgr == "slurm":
-            rep.note(slurmQueue(jobid))
+        running = pollFor(lambda: sched.state(jobid) == "R", 120, 1)
+        rep.check(running, "the job is running under the scheduler")
         time.sleep(3)
         rc, out = s.driver("kill", url)
         msg = out.strip().splitlines()[-1] if out.strip() else ""
         rep.check(rc == 0 and "has been issued" in msg, "RunMgmt::terminate: %s" % msg)
-        deadline = time.time() + 30
-        while time.time() < deadline and self.schedulerState(mgr, jobid) == "R":
-            time.sleep(1)
-        now = self.schedulerState(mgr, jobid)
-        rep.check(now != "R", "the scheduler job ended after the cancel command (%s)" % now)
-        if mgr != "slurm":
-            seq = re.match(r"\d+", jobid).group(0)
-            rep.check(os.path.exists(os.path.join(self.stubJobDir(mgr, seq), "cancelled")),
-                      "the stand-in's cancel command (%s) ended it" % {
-                          "pbs": "qdel", "lsf": "bkill", "moab": "mjobctl -c"}[mgr])
-        if mgr == "slurm":
-            for _ in range(20):
-                js = slurmJob(jobid).get("JobState")
-                if js != "COMPLETING":
-                    break
-                time.sleep(1)
-            rep.check(js == "CANCELLED", "slurm JobState CANCELLED (%s)" % js)
+        ended = pollFor(lambda: sched.state(jobid) != "R", 40, 1)
+        rep.check(ended, "the scheduler job ended after the cancel command (%s)" % sched.state(jobid))
+        sched.cancelled(rep, jobid)
         time.sleep(2)
         left = subprocess.run(["pgrep", "-f", self.wrapper], stdout=subprocess.PIPE)
         rep.check(left.returncode != 0,
@@ -575,15 +810,14 @@ class Live(object):
         rep.check(state == "killed", "calculation state is killed (last: %s)" % state)
 
     def cleanup(self):
-        for mgr, jobid in self.submitted:
-            if mgr == "slurm" and self.schedulerState(mgr, jobid) in ("R", "Q"):
-                subprocess.run(["scancel", str(jobid)])
+        for sched, jobid in self.submitted:
+            if sched.real:
+                sched.drop(jobid)
 
 
-def liveSuite(args, rep, suite, managers, stubdir=None, slurm=False):
+def liveSuite(args, rep, suite, managers, stubdir=None):
     build = os.path.abspath(args.build)
-    tools = ("nwchem", "mopac") + (("sbatch",) if slurm else ())
-    harness.prerequisites(build, tools)
+    harness.prerequisites(build, ("nwchem", "mopac"))
     codes = {"NWChem": shutil.which("nwchem"), "MOPAC": None}
     modes = ["unset", "direct"] if args.transport == "both" else [args.transport]
     s = harness.Session(build, "queue", {"NWChem": shutil.which("nwchem")},
@@ -595,6 +829,7 @@ def liveSuite(args, rep, suite, managers, stubdir=None, slurm=False):
         #  front of PATH for its commands there, so qsub is ours and not the
         #  Grid Engine one this host also has.
         s.registerMachine(MANAGERS[m][2], MANAGERS[m][0], codes,
+                          queues=(LIVE_QUEUE.get(m, "normal"),),
                           config={"qmgrPath": stubdir} if stubdir else None)
     try:
         if not s.services(True):
@@ -643,21 +878,26 @@ def stubsSuite(args, rep):
         os.environ["PATH"] = saved
 
 
-def slurmSuite(args, rep):
-    if args.manager and "slurm" not in args.manager:
-        return
-    if not slurmUsable():
-        harness.skip("no working Slurm (sinfo fails or lists no partition)")
-    need = set(PROFILES["basic"]["queue"].split())
-    if not need <= set(p.rstrip("*") for p in partitions()):
-        harness.skip("Slurm has no partition %s" % PROFILES["basic"]["queue"])
-    liveSuite(args, rep, "slurm", ["slurm"], slurm=True)
+def realSuite(mgr):
+    def suite(args, rep):
+        if args.manager and mgr not in args.manager:
+            return
+        why = schedFor(mgr, None).usable()
+        if why:
+            harness.skip("%s: %s" % (mgr, why))
+        liveSuite(args, rep, mgr, [mgr])
+    return suite
+
+
+SUITES = [("golden", goldenSuite), ("stubs", stubsSuite)] + \
+         [(m, realSuite(m)) for m in REAL_MANAGERS]
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", default=os.path.join(REPO, "build"))
-    ap.add_argument("--suite", default="all", choices=("all", "local", "stubs", "slurm", "golden"))
+    ap.add_argument("--suite", default="all",
+                    choices=["all", "local", "golden", "stubs"] + list(REAL_MANAGERS))
     ap.add_argument("--transport", default="both",
                     choices=("unset", "direct", "ssh", "both"))
     ap.add_argument("--manager", action="append", choices=sorted(MANAGERS))
@@ -677,9 +917,9 @@ def main():
     rep = Report(args.strict)
     t0 = time.time()
     skipped = []
-    for suite, fn in (("golden", goldenSuite), ("stubs", stubsSuite), ("slurm", slurmSuite)):
-        if args.suite not in ("all", suite) and not (
-                args.suite == "local" and suite != "slurm"):
+    for suite, fn in SUITES:
+        real = suite in REAL_MANAGERS
+        if args.suite not in ("all", suite) and not (args.suite == "local" and not real):
             continue
         if suite == "golden" and not shutil.which("perl"):
             harness.skip("perl is not installed")

@@ -129,6 +129,14 @@ def run_one(s, case, mode, deck, stamp):
             r.check(False, out.strip()[-400:])
             r.state = "launch failed"
             return r
+        if getattr(s, "queueMachine", None) and r.rundir:
+            #  Proof that the job went through sbatch and not the Shell manager.
+            import glob
+            found = glob.glob(os.path.join(r.rundir, "submit__*"))
+            text = open(found[0]).read() if found else ""
+            r.check("#SBATCH --partition=normal" in text, "submitted through Slurm (#SBATCH in the submit script)")
+            jid = s.driver("jobid", url)[1].strip().splitlines()
+            r.note("slurm job", jid[-1] if jid else "?")
         r.state = s.waitState(url, case.timeout) or "no state"
         if not r.check(r.state == "completed", "state completed (last: %s)" % r.state):
             return r

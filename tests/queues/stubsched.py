@@ -199,14 +199,24 @@ def main():
             print(msgs[mgr], file=sys.stderr)
             return {"pbs": 153, "lsf": 255, "moab": 1}[mgr]
         if mgr == "pbs":
-            print("Job id                    Name             User             Time Use S Queue")
-            print("------------------------- ---------------- ---------------- -------- - -----")
-            print("%-25s %-16s %-16s %8s %s %s" % (
-                ids[-1], "submit", os.environ.get("USER", "user"), "00:00:00",
-                st, open(os.path.join(jobDir(mgr, seq), "queue")).read() or "normal"))
+            queue = open(os.path.join(jobDir(mgr, seq), "queue")).read() or "normal"
+            if "-f" in args:
+                #  qstat -f, the form eccejobmonitor reads: "    job_state = R".
+                print("Job Id: %s" % ids[-1])
+                print("    Job_Name = submit")
+                print("    Job_Owner = %s@%s" % (os.environ.get("USER", "user"), SERVER))
+                print("    job_state = %s" % st)
+                print("    queue = %s" % queue)
+            else:
+                print("Job id                    Name             User             Time Use S Queue")
+                print("------------------------- ---------------- ---------------- -------- - -----")
+                print("%-25s %-16s %-16s %8s %s %s" % (
+                    ids[-1], "submit", os.environ.get("USER", "user"), "00:00:00", st, queue))
         elif mgr == "lsf":
-            print("Job <%d>, User <%s>, Status <RUN>, Queue <normal>" % (
-                seq, os.environ.get("USER", "user")))
+            #  bjobs -w, the form eccejobmonitor reads: "... user  RUN  queue  from  exec ...".
+            print("JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME")
+            print("%-7d %-7s RUN   %-10s %-11s %-11s %-10s Sep 30 12:00" % (
+                seq, os.environ.get("USER", "user"), "normal", SERVER, SERVER, "submit"))
         else:
             print("State: %s" % {"R": "Running", "C": "Completed", "X": "Removed"}[st])
         return 0
