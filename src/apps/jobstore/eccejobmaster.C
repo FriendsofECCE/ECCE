@@ -38,6 +38,7 @@
 #include <string>
   using std::string;
 
+#include "util/Ecce.H"
 #include "tdat/AuthCache.H"
 
 static string logFileName;
@@ -80,8 +81,9 @@ int main(int argc, char** argv)
 
   int it;
   // nohup was added because it seems to fix an sh/bash problem with
-  // closing a shell after exitting ECCE
-  string ejsStart = "nohup ./eccejobstore";
+  // closing a shell after exitting ECCE. The full path, because the
+  // working directory is whatever the launching app had (#107).
+  string ejsStart = "nohup " + Ecce::ecceBinCommand("eccejobstore");
 
   for (it=9; it<argc; it++) {
     ejsStart += " ";
