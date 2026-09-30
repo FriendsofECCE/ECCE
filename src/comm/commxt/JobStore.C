@@ -1666,9 +1666,8 @@ void initCache(void)
 {
   // localconn may be corrupted so just don't even mess with looking at
   // the old one--leave it as a memory leak
-  // JobStore speaks the raw expect API to the monitor, so it needs the pty.
-  localconn = new RCommand("system", "", "csh", "", "", "", "", "", "", "",
-                           false);
+  // Only exec/execout/cd go through localconn, so direct mode can serve it.
+  localconn = new RCommand("system", "", "csh", "", "", "", "", "", "", "");
   if (localconn->isOpen())
     logMessage("System", "Started local csh RCommand connection");
   else
