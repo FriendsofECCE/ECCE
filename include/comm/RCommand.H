@@ -40,13 +40,15 @@ public:
   // Constructor.  With ECCE_TRANSPORT=direct a local connection runs its
   // commands through a DirectTransport instead of a pty shell, unless
   // allowDirect is false: callers that use the raw expect API (expwrite,
-  // expfid, expect...) need the pty.
+  // expfid, expect...) need the pty.  ECCE_TRANSPORT=ssh does the same and
+  // also sends ssh machines through libssh (SshTransport) unless allowSsh
+  // is false; hops, front ends and a sourceFile always keep the pty.
     RCommand(const string& machine="", const string& remShell="",
              const string& locShell="csh", const string& userName="",
              const string& password="", const string& frontendMachine="",
              const string& frontendBypass="", const string& shellPath="",
              const string& libPath="", const string& sourceFile="",
-             bool allowDirect=true);
+             bool allowDirect=true, bool allowSsh=true);
 
   // Destructor
     ~RCommand(void);
@@ -86,7 +88,7 @@ public:
     // Direct mode only: the monitor stream.  startStream() runs the command
     // on pipes; expfid()/expwrite() then address it, and \003 sent through
     // exec() becomes SIGINT to its process group.
-    bool isDirect(void) const { return p_direct; }
+    bool isDirect(void) const { return p_direct && !p_ssh; }
     bool startStream(const string& command);
     void stopStream(int graceMs=2000);
 
@@ -104,6 +106,12 @@ public:
     int expfid(void);
 
     string commError(void); // Return error message string
+
+    // Asked when an ssh host key is not in known_hosts (ECCE_TRANSPORT=ssh).
+    // Return true to accept and record it.  Unset, the key is refused and
+    // the user is told to run ssh once by hand.
+    typedef bool (*HostKeyHook)(const string& host, const string& fingerprint);
+    static HostKeyHook hostKeyHook;
 
     static bool globusproxy(const string& password, string& errMessage);
     static bool userproxy(const string& proxyAuth, const string& machine,
@@ -227,13 +235,18 @@ private:
     string p_machine;
     string p_errMessage;
     bool p_remoteBash;    // set by exec() -- see remoteShellIsBash()
-    Transport* p_transport;  // non-null only in ECCE_TRANSPORT=direct mode
-    bool p_direct;
+    Transport* p_transport;  // non-null only when a Transport backs this
+    bool p_direct;           // true for DirectTransport and SshTransport alike
+    bool p_ssh;              // the Transport is an SshTransport
+    string p_scriptPrefix;   // PATH/LD_LIBRARY_PATH setup for every script
     DirectTransport::Stream p_stream;
 
     bool directExecout(const string& command, string& output,
                        const string& errorMessage, const int& timeout);
     bool directUnsupported(const char* what);
+    bool sshConnect(const string& machine, const string& userName,
+                    const string& password);
+    bool transferFile(bool putFlag, const string& local, const string& remote);
 
 }; // RCommand
 

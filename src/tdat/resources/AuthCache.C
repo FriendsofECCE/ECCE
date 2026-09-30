@@ -877,7 +877,8 @@ bool AuthCache::addAuthentication
       sessionSave();
    }
 
-   if (ret && publish) {
+   // ECCE_AUTHCACHE_NO_BROADCAST: tests run without a JMS session to publish to.
+   if (ret && publish && getenv("ECCE_AUTHCACHE_NO_BROADCAST") == NULL) {
       JMSPublisher publisher("AuthCache");
 
       JMSMessage *msg = publisher.newMessage();
