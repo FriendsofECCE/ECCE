@@ -45,7 +45,7 @@ those settings.
 | `ECCE_ESP_RANGE` | Fixes the colour ramp of an electrostatic-potential surface to plus and minus this value instead of scaling to the data. | Positive number, Hartree per e. Unset or invalid: scaled automatically (an invalid value is reported on stderr). |
 | `ECCE_NWCHEM_DFT_USE_B3LYP` | NWChem DFT dialog starts with B3LYP instead of VWN5 with Slater exchange. The user can still change it. | The exact text `true`. Default off. |
 | `ECCE_JOB_CHECK` | The Organizer, when a project is opened, checks whether calculations shown as submitted or running still have a running `eccejobstore`, and repairs a stuck state. | Set to enable. Default off. |
-| `ECCE_TRANSPORT` | Experimental. `direct` runs commands on this machine without a shell session (local connections only; remote ones and connections with a source file or front end keep the shell). | `direct`. Default unset: shell. |
+| `ECCE_TRANSPORT` | Experimental. `direct` runs commands on this machine without a shell session. `ssh` does that too and runs commands on ssh machines over libssh exec channels (needs a build with libssh; otherwise ECCE warns and uses the shell). Machines with a source file or front end, rsh and site-defined shells keep the shell session, and so does job monitoring on remote machines. An unknown ssh host key is refused until accepted once with `ssh <host>`. | `direct` or `ssh`. Default unset: every connection uses a shell session. |
 
 ## Deployment and site
 
