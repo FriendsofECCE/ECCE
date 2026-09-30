@@ -375,8 +375,14 @@ void WxMachineRegister::machineFullNameUpdatedCB(wxCommandEvent& event)
 
     //  Only when the user types a machine: loading a saved entry must keep
     //  its own name, or Delete looks for a name that was never saved.
+    //  Follow the machine only while Name is empty or still the value
+    //  filled in here, so a name the user typed is never overwritten.
     if (!p_inCtrlUpdate) {
-        p_machineRefNameText->SetValue(refName);
+        string current = (string)(p_machineRefNameText->GetValue());
+        if (current.empty() || current == p_autoRefName) {
+            p_autoRefName = refName;
+            p_machineRefNameText->SetValue(refName);
+        }
         p_machineChangeButton->Enable(true);
     }
 

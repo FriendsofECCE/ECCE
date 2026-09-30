@@ -245,6 +245,8 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.17.4** — cluster job monitoring: a monitor whose connection drops
+  exits, and a login node killing it no longer ends monitoring (#205).
 - **v8.17.3** — RHEL 9: the data server starts (#193); Tail, Final Edit and
   Open Shell work with bash (#200). First release with native Ubuntu and
   RHEL packages.
