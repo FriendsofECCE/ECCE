@@ -147,6 +147,15 @@ bool SshTransport::checkHostKey(ssh_session s, std::string& error)
     error = "cannot read the server's host key";
     return false;
   }
+  std::string keyType;
+  {
+    const char* kt = ssh_key_type_to_char(ssh_key_type(key));
+    keyType = kt ? kt : "";
+    if (keyType.compare(0, 4, "ssh-") == 0) keyType = keyType.substr(4);
+    if (keyType.compare(0, 6, "ecdsa-") == 0) keyType = "ecdsa";
+    for (size_t i = 0; i < keyType.size(); i++)
+      keyType[i] = (char)toupper((unsigned char)keyType[i]);
+  }
   unsigned char* hash = 0;
   size_t hlen = 0;
   int rc = ssh_get_publickey_hash(key, SSH_PUBLICKEY_HASH_SHA256, &hash, &hlen);
@@ -157,7 +166,7 @@ bool SshTransport::checkHostKey(ssh_session s, std::string& error)
   ssh_string_free_char(fp);
   ssh_clean_pubkey_hash(&hash);
 
-  if (!p_hostKey || !p_hostKey(p_host, fingerprint)) {
+  if (!p_hostKey || !p_hostKey(p_host, fingerprint, keyType)) {
     error = "host key of " + p_host + " (" + fingerprint + ") was not accepted";
     return false;
   }

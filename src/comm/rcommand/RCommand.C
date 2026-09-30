@@ -282,6 +282,30 @@ static bool askPassdialog(const char* type, const string& machine,
   return !answer.empty();
 }
 
+// Runs hostkeydialog.  ran=false when it could not start (no display, no
+// program), so the caller can fall back to "run ssh once by hand".
+static bool askHostKeyDialog(const string& host, const string& fp,
+                             const string& keyType, bool& ran)
+{
+  ran = false;
+  const char* d1 = getenv("DISPLAY");
+  const char* d2 = getenv("WAYLAND_DISPLAY");
+  if ((!d1 || !*d1) && (!d2 || !*d2)) return false;
+  string cmd = Ecce::ecceBinCommand("hostkeydialog") + " " + shQuote(host) +
+               " " + shQuote(fp) + " " + shQuote(keyType);
+  FILE* p = popen(cmd.c_str(), "r");
+  if (!p) return false;
+  char buf[MAXLINE];
+  string out;
+  while (fgets(buf, sizeof(buf), p)) out += buf;
+  int st = pclose(p);
+  // 126/127: the shell could not run the program at all.
+  if (WIFEXITED(st) && (WEXITSTATUS(st) == 126 || WEXITSTATUS(st) == 127))
+    return false;
+  ran = true;
+  return WIFEXITED(st) && WEXITSTATUS(st) == 0 && out.find("accept") == 0;
+}
+
 static bool looksLikeCode(const string& prompt)
 {
   string l;
@@ -328,9 +352,19 @@ bool RCommand::sshConnect(const string& machine, const string& userName,
     answer = c->pass;
     return true;
   });
-  t->setHostKeyCallback([c](const string& host, const string& fingerprint) {
-    if (RCommand::hostKeyHook && RCommand::hostKeyHook(host, fingerprint))
-      return true;
+  t->setHostKeyCallback([c](const string& host, const string& fingerprint,
+                            const string& keyType) {
+    if (RCommand::hostKeyHook) {
+      if (RCommand::hostKeyHook(host, fingerprint)) return true;
+    } else {
+      bool ran;
+      if (askHostKeyDialog(host, fingerprint, keyType, ran)) return true;
+      if (ran) {
+        c->hostKeyMsg = "The host key of " + host + " (" + fingerprint +
+                        ") was not accepted.";
+        return false;
+      }
+    }
     c->hostKeyMsg = "The host key of " + host + " (" + fingerprint +
                  ") is not known.  Run \"ssh " + host + "\" once in a "
                  "terminal to accept it, then try again.";

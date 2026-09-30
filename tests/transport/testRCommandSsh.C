@@ -594,6 +594,68 @@ static void authChecks(const string& user, const string& shell)
           !rc.isOpen() && rc.commError().find("ssh " + string(HOST)) != string::npos &&
           rc.commError().find("SHA256:") != string::npos);
   }
+  // hostkeydialog stub in $ECCE_HOME/bin; DISPLAY only has to be set.
+  {
+    char tmpl[] = "/tmp/hkdXXXXXX";
+    string hd = mkdtemp(tmpl);
+    mkdir((hd + "/bin").c_str(), 0755);
+    string stub = hd + "/bin/hostkeydialog", log = hd + "/args";
+    const char* oldHome = getenv("ECCE_HOME");
+    string saveHome = oldHome ? oldHome : "";
+    const char* oldDisp = getenv("DISPLAY");
+    string saveDisp = oldDisp ? oldDisp : "";
+    setenv("ECCE_HOME", hd.c_str(), 1);
+    setenv("DISPLAY", ":99", 1);
+    RCommand::hostKeyHook = 0;
+
+    { ofstream f(stub.c_str());
+      f << "#!/bin/sh\necho \"$@\" > " << log << "\necho accept\n"; }
+    chmod(stub.c_str(), 0755);
+    {
+      RCommand rc(HOST, "ssh", shell, user);
+      check("dialog accepts: connected", rc.isOpen());
+      string args = readFile(log);
+      check("dialog got host, SHA256 fingerprint and key type",
+            args.find(HOST) == 0 && args.find("SHA256:") != string::npos &&
+            args.find("ED25519") != string::npos);
+      check("dialog accept recorded in known_hosts",
+            readFile(kh).find("127.0.0.1") != string::npos);
+    }
+    unlink(log.c_str());
+    {
+      RCommand rc(HOST, "ssh", shell, user);
+      check("recorded key: no second prompt", rc.isOpen() && access(log.c_str(), F_OK) != 0);
+    }
+    unlink(kh.c_str());
+
+    { ofstream f(stub.c_str()); f << "#!/bin/sh\nexit 1\n"; }
+    {
+      RCommand rc(HOST, "ssh", shell, user);
+      check("dialog refuses: not connected, says not accepted",
+            !rc.isOpen() && rc.commError().find("was not accepted") != string::npos &&
+            rc.commError().find("SHA256:") != string::npos);
+      check("dialog refuses: known_hosts unchanged", access(kh.c_str(), F_OK) != 0);
+    }
+
+    unlink(stub.c_str());
+    {
+      RCommand rc(HOST, "ssh", shell, user);
+      check("no dialog program: tells the user to run ssh",
+            !rc.isOpen() && rc.commError().find("Run \"ssh " + string(HOST)) != string::npos);
+    }
+    unsetenv("DISPLAY");
+    { ofstream f(stub.c_str()); f << "#!/bin/sh\necho accept\n"; }
+    chmod(stub.c_str(), 0755);
+    {
+      RCommand rc(HOST, "ssh", shell, user);
+      check("no display: tells the user to run ssh",
+            !rc.isOpen() && rc.commError().find("Run \"ssh " + string(HOST)) != string::npos);
+    }
+    unlink(stub.c_str()); rmdir((hd + "/bin").c_str());
+    unlink(log.c_str()); rmdir(hd.c_str());
+    if (oldHome) setenv("ECCE_HOME", saveHome.c_str(), 1); else unsetenv("ECCE_HOME");
+    if (oldDisp) setenv("DISPLAY", saveDisp.c_str(), 1);
+  }
   {
     RCommand::hostKeyHook = acceptHook;
     RCommand rc(HOST, "ssh", shell, user);
