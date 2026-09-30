@@ -108,6 +108,12 @@ ECCE_JOB_COMMS stdio
 # Default value is 60
 #ECCE_JOB_MAXQUICKTIME 60
 
+# a monitoring run that lasted at least this many seconds before failing
+# resets the MAXCONNECTS count, so only rapid failures use it up (for
+# login nodes that kill long-running processes).
+# Default value is 600
+#ECCE_JOB_RESTARTRESET 600
+
 # send remote communications output to the console for diagnosing problems
 #ECCE_RCOM_LOGMODE true
 

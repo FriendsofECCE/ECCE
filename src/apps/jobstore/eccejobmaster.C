@@ -67,6 +67,9 @@ int main(int argc, char** argv)
   int MAX_RESTART_TRIES = 25;
   int MAX_QUICK_TRIES = 5;
   int MAX_QUICK_TIME = 60;
+  // a run this long is not a rapid failure: a login node that kills the
+  // monitor now and then must not use up the restart budget of a long job
+  int RESTART_RESET = 600;
 
   // possibly overriden by siteconfig/site_runtime settings
   if (getenv("ECCE_JOB_MAXCONNECTS")) {
@@ -77,6 +80,9 @@ int main(int argc, char** argv)
   }
   if (getenv("ECCE_JOB_MAXQUICKTIME")) {
     MAX_QUICK_TIME = (int)strtol(getenv("ECCE_JOB_MAXQUICKTIME"), NULL, 10);
+  }
+  if (getenv("ECCE_JOB_RESTARTRESET")) {
+    RESTART_RESET = (int)strtol(getenv("ECCE_JOB_RESTARTRESET"), NULL, 10);
   }
 
   int it;
@@ -129,8 +135,10 @@ int main(int argc, char** argv)
 
   pid_t pid;
 
-  for (it=0; it<maxTries && status!=0 && status!=3 &&
-       sumTimes>MAX_QUICK_TIME; it++) {
+  // it numbers the runs (and their log files); tries is what maxTries limits
+  int tries = 0;
+  for (it=0; tries<maxTries && status!=0 && status!=3 &&
+       sumTimes>MAX_QUICK_TIME; it++, tries++) {
 
     ejsCmd = ejsStart;
 
@@ -172,6 +180,15 @@ int main(int argc, char** argv)
       status = status >> 8;
 
       runTimes[it % MAX_QUICK_TRIES] = time(0) - starttime;
+
+      if (status != 0 && status != 3 && runTimes[it % MAX_QUICK_TRIES] >= RESTART_RESET) {
+        sprintf(buf, "%d", (int)runTimes[it % MAX_QUICK_TRIES]);
+        entry = "eccejobstore ran for ";
+        entry += buf;
+        entry += " seconds; restart count reset";
+        logEntry(entry);
+        tries = 0;
+      }
 
       entry = "eccejobstore exited with status value ";
       sprintf(buf, "%d", status);
