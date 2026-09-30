@@ -1,0 +1,16 @@
+# A disposable sshd for testing ECCE's ssh transport (#204): one account with
+# a csh login shell and one with bash, key and password/keyboard-interactive
+# login, so the tests cover what real clusters present without needing one.
+FROM docker.io/library/debian:trixie
+RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -qq -y install \
+      openssh-server tcsh bash coreutils >/dev/null && rm -rf /var/lib/apt/lists/*
+RUN useradd -m -s /usr/bin/tcsh cshuser && useradd -m -s /bin/bash bashuser \
+ && echo 'cshuser:ecce-test' | chpasswd && echo 'bashuser:ecce-test' | chpasswd \
+ && mkdir -p /run/sshd \
+ && printf 'KbdInteractiveAuthentication yes\nPasswordAuthentication yes\nUsePAM yes\n' \
+      > /etc/ssh/sshd_config.d/ecce-test.conf
+COPY authorized_keys /tmp/authorized_keys
+RUN for u in cshuser bashuser; do install -d -m 700 -o $u -g $u /home/$u/.ssh; \
+      install -m 600 -o $u -g $u /tmp/authorized_keys /home/$u/.ssh/authorized_keys; done
+EXPOSE 22
+CMD ["/usr/sbin/sshd", "-D", "-e"]
