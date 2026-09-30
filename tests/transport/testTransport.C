@@ -108,6 +108,22 @@ int main()
           r.out == "a!b\nhi\nline ! `not run` $nothing\n", r.out);
   }
   {
+    // The timeout is idle time: steady output keeps a long script alive.
+    double t0 = now();
+    TransportResult r = t.run(
+      "i=0; while [ $i -lt 8 ]; do echo line$i; i=$((i+1)); sleep 0.3; done", 1);
+    std::string want;
+    for (int i = 0; i < 8; i++) want += "line" + std::to_string(i) + "\n";
+    check("idle timeout restarts on output",
+          !r.timedOut && r.status == 0 && r.out == want && now() - t0 > 2.0,
+          r.out + r.error);
+  }
+  {
+    TransportResult r = t.run("cat\necho after\nread x; echo \"got:$x\"\n", 5);
+    check("script cannot read its own stdin",
+          r.status == 0 && !r.timedOut && r.out == "after\ngot:\n", r.out);
+  }
+  {
     std::string pf = tmp + "/pid";
     double t0 = now();
     TransportResult r = t.run("sleep 30 & echo $! > '" + pf + "'; sleep 30; wait", 1);

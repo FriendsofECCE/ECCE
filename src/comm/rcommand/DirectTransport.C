@@ -45,16 +45,19 @@ void buildEnv(ChildSpec& cs, const std::map<std::string, std::string>& set,
   cs.maxFd = (m < 0 || m > 65536) ? 65536 : (int)m;
 }
 
-void closeFrom3(int maxFd)
+void closeFrom(int first, int maxFd)
 {
 #ifdef SYS_close_range
-  if (syscall(SYS_close_range, 3u, ~0u, 0u) == 0) return;
+  if (syscall(SYS_close_range, (unsigned)first, ~0u, 0u) == 0) return;
 #endif
-  for (int fd = 3; fd < maxFd; fd++) close(fd);
+  for (int fd = first; fd < maxFd; fd++) close(fd);
 }
 
-// Runs in the forked child.  Never returns.
-void childExec(const ChildSpec& cs, int in, int out, int err, bool newGroup)
+// Runs in the forked child.  Never returns.  With scriptFd >= 0 the script
+// is read from fd 3 (`sh /dev/fd/3`) and stdin is /dev/null, so nothing the
+// script runs can consume the script itself.
+void childExec(const ChildSpec& cs, int in, int out, int err, bool newGroup,
+               int scriptFd = -1)
 {
   if (newGroup) setpgid(0, 0);
   for (int s = 1; s < NSIG; s++) {
@@ -71,7 +74,12 @@ void childExec(const ChildSpec& cs, int in, int out, int err, bool newGroup)
   if (in != 0) dup2(in, 0);
   if (out != 1) dup2(out, 1);
   if (err != 2) dup2(err, 2);
-  closeFrom3(cs.maxFd);
+  if (scriptFd >= 0) {
+    dup2(scriptFd, 3);
+    closeFrom(4, cs.maxFd);
+  } else {
+    closeFrom(3, cs.maxFd);
+  }
 
   execve("/bin/sh", const_cast<char* const*>(&cs.argv[0]), const_cast<char* const*>(&cs.envp[0]));
   _exit(127);
@@ -122,7 +130,7 @@ TransportResult DirectTransport::run(const std::string& script, int timeoutSec)
 
   ChildSpec cs;
   buildEnv(cs, p_env, p_unset);
-  static char a0[] = "sh", a1[] = "-s";
+  static char a0[] = "sh", a1[] = "/dev/fd/3";
   cs.argv.push_back(a0);
   cs.argv.push_back(a1);
   cs.argv.push_back(0);
@@ -140,7 +148,26 @@ TransportResult DirectTransport::run(const std::string& script, int timeoutSec)
     return res;
   }
 
-  // A child that exits without reading stdin must not kill us with SIGPIPE.
+  // Keep the script pipe and /dev/null clear of 0-3, which the child
+  // redirects onto.
+  int devnull = open("/dev/null", O_RDONLY | O_CLOEXEC);
+  if (devnull >= 0) {
+    int hi = fcntl(devnull, F_DUPFD_CLOEXEC, 10);
+    close(devnull);
+    devnull = hi;
+  }
+  if (devnull >= 0) {
+    int hi = fcntl(pin[0], F_DUPFD_CLOEXEC, 10);
+    if (hi >= 0) { close(pin[0]); pin[0] = hi; } else { close(devnull); devnull = -1; }
+  }
+  if (devnull < 0) {
+    res.error = strerror(errno);
+    close(pin[0]); close(pin[1]); close(pout[0]); close(pout[1]);
+    close(perr[0]); close(perr[1]);
+    return res;
+  }
+
+  // A child that exits without reading the script must not kill us with SIGPIPE.
   sigset_t pipeSet, oldMask, pendBefore;
   sigemptyset(&pipeSet);
   sigaddset(&pipeSet, SIGPIPE);
@@ -152,14 +179,14 @@ TransportResult DirectTransport::run(const std::string& script, int timeoutSec)
   if (pid < 0) {
     res.error = strerror(errno);
     close(pin[0]); close(pin[1]); close(pout[0]); close(pout[1]);
-    close(perr[0]); close(perr[1]);
+    close(perr[0]); close(perr[1]); close(devnull);
     pthread_sigmask(SIG_SETMASK, &oldMask, 0);
     return res;
   }
-  if (pid == 0) childExec(cs, pin[0], pout[1], perr[1], true);
+  if (pid == 0) childExec(cs, devnull, pout[1], perr[1], true, pin[0]);
 
   setpgid(pid, pid);   // also done by the child; whoever runs first wins
-  close(pin[0]); close(pout[1]); close(perr[1]);
+  close(pin[0]); close(pout[1]); close(perr[1]); close(devnull);
   int fin = pin[1], fout = pout[0], ferr = perr[0];
   setNonBlock(fin); setNonBlock(fout); setNonBlock(ferr);
 
@@ -201,8 +228,12 @@ TransportResult DirectTransport::run(const std::string& script, int timeoutSec)
     for (int k = 0; k < 2; k++) {
       if (idx[k] < 0 || !(p[idx[k]].revents & (POLLIN | POLLERR | POLLHUP))) continue;
       ssize_t got = read(*fds[k], buf, sizeof buf);
-      if (got > 0) dst[k]->append(buf, got);
-      else if (got == 0 || (errno != EAGAIN && errno != EINTR)) closeFd(*fds[k]);
+      if (got > 0) {
+        dst[k]->append(buf, got);
+        if (timeoutSec > 0) deadline = Clock::now() + std::chrono::seconds(timeoutSec);
+      } else if (got == 0 || (errno != EAGAIN && errno != EINTR)) {
+        closeFd(*fds[k]);
+      }
     }
   }
   closeFd(fin);
