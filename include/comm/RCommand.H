@@ -24,6 +24,8 @@
 #include <vector>
   using std::vector;
 
+class Transport;
+
 static const long RC_CONNECT_TIMEOUT = 60;  // Connect timeout seconds
 static const long RC_EXEC_TIMEOUT = 30;     // Normal execute timeout seconds
 static const long RC_COPY_TIMEOUT = 900;    // Copy timeout seconds
@@ -33,12 +35,16 @@ class RCommand
 {
 
 public:
-  // Constructor
+  // Constructor.  With ECCE_TRANSPORT=direct a local connection runs its
+  // commands through a DirectTransport instead of a pty shell, unless
+  // allowDirect is false: callers that use the raw expect API (expwrite,
+  // expfid, expect...) need the pty.
     RCommand(const string& machine="", const string& remShell="",
              const string& locShell="csh", const string& userName="",
              const string& password="", const string& frontendMachine="",
              const string& frontendBypass="", const string& shellPath="",
-             const string& libPath="", const string& sourceFile="");
+             const string& libPath="", const string& sourceFile="",
+             bool allowDirect=true);
 
   // Destructor
     ~RCommand(void);
@@ -212,6 +218,12 @@ private:
     string p_machine;
     string p_errMessage;
     bool p_remoteBash;    // set by exec() -- see remoteShellIsBash()
+    Transport* p_transport;  // non-null only in ECCE_TRANSPORT=direct mode
+    bool p_direct;
+
+    bool directExecout(const string& command, string& output,
+                       const string& errorMessage, const int& timeout);
+    bool directUnsupported(const char* what);
 
 }; // RCommand
 

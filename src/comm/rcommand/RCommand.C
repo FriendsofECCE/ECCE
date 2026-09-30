@@ -39,6 +39,7 @@
 #include "comm/RCommand.H"
 
 #include "comm/expect.h"
+#include "comm/DirectTransport.H"
 
 #define MAXARGS 32
 /*#define MAXLINE 256*/
@@ -135,8 +136,15 @@ static bool waitShellReady(int fid)
   return ready;
 }
 
+bool RCommand::directUnsupported(const char* what)
+{
+  p_errMessage = string(what) + " is not available with ECCE_TRANSPORT=direct";
+  return false;
+}
+
 int RCommand::expect1(const char* pat)
 {
+  if (p_direct) { directUnsupported("expect1"); return -1; }
   int ixp = exp_expectl(p_fid, exp_glob, pat, 1, exp_end);
 
   if (ixp < 1) {
@@ -150,6 +158,7 @@ int RCommand::expect1(const char* pat)
 
 int RCommand::expect2(const char* pat1, const char* pat2)
 {
+  if (p_direct) { directUnsupported("expect2"); return -1; }
   int ixp = exp_expectl(p_fid, exp_glob, pat1, 1,
                                exp_glob, pat2, 2, exp_end);
 
@@ -164,6 +173,7 @@ int RCommand::expect2(const char* pat1, const char* pat2)
 
 void RCommand::patalloc(int numPatterns, ...)
 {
+  if (p_direct) { directUnsupported("patalloc"); return; }
   int it;
   va_list ap;
   va_start(ap, numPatterns);
@@ -182,6 +192,7 @@ void RCommand::patalloc(int numPatterns, ...)
 
 void RCommand::patfree(void)
 {
+  if (p_direct) return;
   int it;
 
   for (it=0; p_pats[it].type != exp_end; it++)
@@ -192,6 +203,7 @@ void RCommand::patfree(void)
 
 int RCommand::patexpect(void)
 {
+  if (p_direct) { directUnsupported("patexpect"); return -1; }
   int ixp = exp_expectv(p_fid, p_pats);
 
   if (ixp < 1) {
@@ -205,6 +217,7 @@ int RCommand::patexpect(void)
 
 int RCommand::expect(int numPatterns, ...)
 {
+  if (p_direct) { directUnsupported("expect"); return -1; }
   int it;
   va_list ap;
   va_start(ap, numPatterns);
@@ -235,11 +248,13 @@ int RCommand::expect(int numPatterns, ...)
 
 int RCommand::expfid(void)
 {
+  if (p_direct) { directUnsupported("expfid"); return -1; }
   return p_fid;
 }
 
 bool RCommand::expwrite(const string& command)
 {
+  if (p_direct) return directUnsupported("expwrite");
   int comlen = command.length();
 
   if (comlen >= MAXLINE) {
@@ -257,6 +272,7 @@ bool RCommand::expwrite(const string& command)
 
 bool RCommand::expwrite(const char* command)
 {
+  if (p_direct) return directUnsupported("expwrite");
   int comlen = strlen(command);
 
   if (comlen >= MAXLINE) {
@@ -274,6 +290,7 @@ bool RCommand::expwrite(const char* command)
 
 bool RCommand::expwritefull(const string& command)
 {
+  if (p_direct) return directUnsupported("expwritefull");
   int comlen = command.length();
 
   if (write(p_fid, command.c_str(), comlen)==comlen && write(p_fid, "\n", 1)==1)
@@ -294,6 +311,11 @@ void RCommand::exptimeout(const int& timeout)
 
 char* RCommand::expout(void)
 {
+  if (p_direct) {
+    directUnsupported("expout");
+    static char empty[1] = "";
+    return empty;
+  }
   *exp_match = '\0';
 
   // strip /r characters
@@ -1096,12 +1118,18 @@ RCommand::RCommand(const string& machine, const string& remShell,
                    const string& locShell, const string& userName,
                    const string& password, const string& frontendMachine,
                    const string& frontendBypass, const string& shellPath,
-                   const string& libPath, const string& sourceFile)
+                   const string& libPath, const string& sourceFile,
+                   bool allowDirect)
 {
   p_connected = false;
   p_background = false;
   p_hopCount = 0;
   p_remoteBash = false;
+  p_transport = 0;
+  p_direct = false;
+  p_fid = -1;
+  p_pid = 0;
+  p_pats = 0;
 
   if (getenv("ECCE_RCOM_DEBUGGING"))
     exp_is_debugging = 1;
@@ -1140,6 +1168,39 @@ RCommand::RCommand(const string& machine, const string& remShell,
   // messages (the values passed in are const)
   p_machine = (machine=="" || machine=="-f" || machine=="system")?
                RCommand::whereami(): machine;
+
+  // A sourceFile is written for the user's login shell and cannot run
+  // under sh, so such connections keep the pty.
+  const char* transportEnv = getenv("ECCE_TRANSPORT");
+  if (allowDirect && transportEnv && string(transportEnv)=="direct" &&
+      !RCommand::isRemote(machine, remShell, userName) &&
+      frontendMachine=="") {
+    if (sourceFile != "") {
+      if (getenv("ECCE_RCOM_LOGMODE"))
+        cout << "Direct mode skipped: a source file is set" << endl;
+    } else {
+      p_direct = true;
+      p_transport = new DirectTransport;
+      p_remoteBash = true;
+      exp_timeout = RC_EXEC_TIMEOUT;
+
+      if (shellPath != "") {
+        const char* cur = getenv("PATH");
+        p_transport->setEnv("PATH", shellPath + ":" + (cur ? cur : ""));
+      }
+      if (libPath != "") {
+        const char* cur = getenv("LD_LIBRARY_PATH");
+        p_transport->setEnv("LD_LIBRARY_PATH",
+                            libPath + ":" + (cur ? cur : ""));
+      }
+
+      if (getenv("ECCE_RCOM_LOGMODE"))
+        cout << "Direct mode: commands run without a shell session" << endl;
+
+      p_connected = true;
+      return;
+    }
+  }
 
   string theMachine, shellMachine;
 
@@ -1652,6 +1713,9 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
                    const string& shellPath, const string& libPath,
                    const string& sourceFile)
 {
+  if (p_direct)
+    return directUnsupported("hop");
+
   p_hopCount++;
 
   bool done;
@@ -2072,6 +2136,11 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
 // ---------- Destructors ------------
 RCommand::~RCommand(void)
 { 
+  if (p_direct) {
+    delete p_transport;
+    return;
+  }
+
   if (p_connected) {
 hopToExit:
     // send the exit to the shell.  If it fails I really don't know what an
@@ -2980,6 +3049,20 @@ bool RCommand::cd(const string& directory)
   }
 
   string output;
+  if (p_direct) {
+    // Nothing persists between commands, so remember where we are, as an
+    // absolute path; the transport prepends the cd to every later command.
+    if (!execout("cd -- " + directory + " && pwd", output)) {
+      p_errMessage = "Unable to cd to " + directory;
+      return false;
+    }
+    while (!output.empty() && (output[output.size()-1]=='\n' ||
+                               output[output.size()-1]=='\r'))
+      output.erase(output.size()-1);
+    p_transport->setDir(output);
+    return true;
+  }
+
   if (!execout("cd " + directory, output)) {
     p_errMessage = "Unable to cd to " + directory;
     return false;
@@ -3029,10 +3112,80 @@ bool RCommand::which(const string& filename, string& path)
   return ret;
 }
 
+// What the pty path hands back: every newline as CR LF, and the stray
+// backspace and colour sequences expMungedOutputFix() removes.
+static string ptyStyleOutput(const string& raw)
+{
+  string s;
+  s.reserve(raw.size() + raw.size()/16);
+  for (size_t i = 0; i < raw.size(); i++) {
+    if (raw[i] == '\n')
+      s += '\r';
+    s += raw[i];
+  }
+
+  size_t pos;
+  while (s.size() > 1 && (pos = s.find('\b', 1)) != string::npos)
+    s.erase(pos-1, 2);
+  while ((pos = s.find("\033[00m")) != string::npos)
+    s.erase(pos, 5);
+  while ((pos = s.find("\033[m")) != string::npos)
+    s.erase(pos, 3);
+
+  return s;
+}
+
+bool RCommand::directExecout(const string& command, string& output,
+                             const string& errorMessage, const int& timeout)
+{
+  output = "";
+
+  if (timeout != 0)
+    exp_timeout = timeout;
+
+  TransportResult r = p_transport->run("exec 2>&1\n" + command + "\n",
+                                       exp_timeout > 0 ? exp_timeout : -1);
+
+  if (timeout > 0)
+    exp_timeout = RC_EXEC_TIMEOUT;
+
+  if (getenv("ECCE_RCOM_LOGMODE"))
+    cout << "Direct command (" << command << ") in ("
+         << p_transport->dir() << ") status " << r.status
+         << (r.error.empty() ? "" : " " + r.error) << endl;
+
+  bool status = false;
+
+  if (r.timedOut) {
+    p_errMessage = "Unexpected timeout executing command " + command;
+  } else if (r.status < 0) {
+    p_errMessage = "Unable to execute command " + command +
+                   (r.error.empty() ? "" : ": " + r.error);
+  } else if (r.status == 0) {
+    status = true;
+  } else {
+    // The pty path only recognises a status that begins with 0, 1 or 2
+    // (glob patterns on "CMDSTAT=").  Mirror that, including its message
+    // for the rest.
+    char lead = std::to_string(r.status)[0];
+    if (lead=='1' || lead=='2')
+      p_errMessage = errorMessage != "" ? errorMessage :
+                     "Failed executing command " + command;
+    else
+      p_errMessage = "No status returned from executing command " + command;
+  }
+
+  output = ptyStyleOutput(r.out);
+  return status;
+}
+
 bool RCommand::execout(const string& command, string& output,
                        const string& errorMessage, const int& timeout)
 {
   if (!p_connected) return false;
+
+  if (p_direct)
+    return directExecout(command, output, errorMessage, timeout);
 
   bool status = false;
   string cmdstat = command;
@@ -3190,6 +3343,23 @@ bool RCommand::execbg(const string& command, string& output,
 {
   if (!p_connected) return false;
 
+  if (p_direct) {
+    string error;
+    long pid = p_transport->spawnDetached("nohup " + command, error);
+    if (getenv("ECCE_RCOM_LOGMODE"))
+      cout << "Direct background command (" << command << ") in ("
+           << p_transport->dir() << ") pid " << pid << endl;
+    if (pid < 0) {
+      p_errMessage = errorMessage != "" ? errorMessage :
+                     "Failed executing background command " + command;
+      output = "";
+      return false;
+    }
+    output = std::to_string(pid);
+    p_background = true;
+    return true;
+  }
+
   bool status = false;
 
   // Old approach sent "command&; sleep 2" and hoped an asynchronous
@@ -3334,6 +3504,9 @@ bool RCommand::remoteShellIsBash(void) const
 
 bool RCommand::isOpen(void)
 {
+  if (p_direct)
+    return p_connected;
+
   if (p_connected) {
     p_connected = exec("date");
     if (!p_connected)
@@ -4426,6 +4599,27 @@ bool RCommand::put(string& errMessage,
 }
 
 
+// Copy one file byte for byte, the way the direct-mode shellput/shellget
+// stand in for the pty's dd and cat.
+static bool copyFileData(const string& from, const string& to)
+{
+  ifstream in(from.c_str(), std::ios::binary);
+  if (!in) return false;
+  ofstream out(to.c_str(), std::ios::binary | std::ios::trunc);
+  if (!out) return false;
+  out << in.rdbuf();
+  out.flush();
+  return (bool)out;
+}
+
+// A path as the "remote" side sees it: relative to the directory cd() set.
+static string underDir(const string& dir, const string& path)
+{
+  if (dir.empty() || (!path.empty() && path[0]=='/'))
+    return path;
+  return dir + "/" + path;
+}
+
 bool RCommand::shellput(const char** fromFiles, const string& toFile)
 {
   string fullToFile;
@@ -4444,6 +4638,26 @@ bool RCommand::shellput(const char** fromFiles, const string& toFile)
     return false;
 
   if (!p_connected) return false;
+
+  if (p_direct) {
+    for (ig=0; globbedFiles[ig]!=NULL; ig++) {
+      if ((baseFrom = strrchr(globbedFiles[ig], '/')) != NULL)
+        fullToFile = toFile + baseFrom;
+      else
+        fullToFile = toFile + "/" + globbedFiles[ig];
+
+      status = copyFileData(globbedFiles[ig],
+                            underDir(p_transport->dir(), fullToFile));
+      if (!status) {
+        p_errMessage = string("Failed executing put file script");
+        break;
+      }
+    }
+    for (ig=0; globbedFiles[ig]!=NULL; ig++)
+      free(globbedFiles[ig]);
+    free(globbedFiles);
+    return status;
+  }
 
   for (ig=0; globbedFiles[ig]!=NULL; ig++) {
     if ((baseFrom = strrchr(globbedFiles[ig], '/')) != NULL)
@@ -4649,6 +4863,17 @@ bool RCommand::shellget(const char** fromFiles, const string& toFile)
           fullToFile = toFile + baseFrom;
         else
           fullToFile = toFile + "/" + globbedFile;
+
+        if (p_direct) {
+          status = copyFileData(underDir(p_transport->dir(), globbedFile),
+                                fullToFile);
+          if (!status) {
+            p_errMessage = "Failed executing cat command for get file "
+                           "operation";
+            return false;
+          }
+          continue;
+        }
 
         cmd = "wc -lc " + globbedFile;
         execout(cmd, wcstr);
