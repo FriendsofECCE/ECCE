@@ -287,9 +287,45 @@ class Session(object):
                          "-pipe", self.authFile()] + list(argv),
                         cwd=os.path.join(self.home, "bin"), timeout=timeout)
 
-    def create(self, name, resourceType, deck, deckName, rundir):
+    def registerMachine(self, name, manager, codes, queues=("normal", "debug"),
+                        limits=None, config=None):
+        """Register `name` (this host, reached as localhost) under a queue manager.
+
+        Writes what Machine Registration and the Queues preference would:
+        MyMachines, Queues, <name>.Q and CONFIG.<name> in the user's ~/.ECCE.
+        The capability column enables the launcher's queue, wall time,
+        memory and account controls, which decide what Launch passes on.
+        """
+        prefs = os.path.join(self.state, ".ECCE")
+        self.machines = getattr(self, "machines", {})
+        self.machines[name] = manager
+        with open(os.path.join(prefs, "MyMachines"), "w") as h:
+            for m in self.machines:
+                h.write("%s\tlocalhost\tGeneric\tqueue test machine\tUnspecified\t"
+                        "1:16\tssh\t:%s\tMN:RD:SD:Q:TL:MM:SS:AA\n"
+                        % (m, ":".join(sorted(codes))))
+        with open(os.path.join(prefs, "Queues"), "w") as h:
+            h.write("Queues: %s\n" % " ".join(self.machines))
+            for m, mgr in self.machines.items():
+                h.write("%s|queueMgrName:   %s\n%s|prefFile:       %s.Q\n\n"
+                        % (m, mgr, m, m))
+        with open(os.path.join(prefs, name + ".Q"), "w") as h:
+            h.write("Queues: %s\n" % " ".join(queues))
+            for q in queues:
+                lim = (limits or {}).get(q, (1, 16, 30 if q == "debug" else 1440))
+                h.write("%s|minProcessors: %d\n%s|maxProcessors: %d\n"
+                        "%s|runLimit: %d\n%s|memLimit: 0\n%s|memUnits: MB\n"
+                        % (q, lim[0], q, lim[1], q, lim[2], q, q))
+        with open(os.path.join(prefs, "CONFIG." + name), "w") as h:
+            h.write("".join("%s: %s\n" % kv for kv in codes.items()))
+            h.write("perlPath: /usr/bin\n")
+            h.write("".join("%s: %s\n" % kv for kv in (config or {}).items()))
+
+    def create(self, name, resourceType, deck, deckName, rundir,
+               machine="localhost", extra=()):
         rc, out = self.driver("create", self.userUrl(), name, resourceType,
-                              deck, deckName, "localhost", rundir, self.user())
+                              deck, deckName, machine, rundir, self.user(),
+                              *extra)
         if rc != 0:
             return None, out
         return out.strip().splitlines()[-1], out

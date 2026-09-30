@@ -4,7 +4,12 @@
 //
 //   launchjob create <parentURL> <name> <resourceType> <deckFile> <deckName>
 //                    <machine> <runDir> <user>            prints the calc URL
+//                    [queue=Q] [nodes=N] [procs=P] [wall="D H:M"] [mem=MB]
+//                                 batch settings, as the launcher's queue controls set them;
+//                                 LAUNCHJOB_ACCOUNT in the environment sets the account at launch
 //   launchjob launch <calcURL>                            exit 0 when submitted
+//   launchjob kill   <calcURL>                            RunMgmt::terminate, as the Organizer's Kill
+//   launchjob jobid  <calcURL>                            prints the job id Launch parsed
 //   launchjob state  <calcURL>                            prints the run state
 //   launchjob props  <calcURL>                            one property per line
 //   launchjob restart <calcURL> <deckFile> <deckName>     "Reset for Restart", then
@@ -21,6 +26,7 @@
 #include <vector>
 
 #include "comm/Launch.H"
+#include "comm/RunMgmt.H"
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/JCode.H"
@@ -65,7 +71,7 @@ static TaskJob* getTask(const string& url)
 
 static int doCreate(const vector<string>& a)
 {
-  if (a.size() != 8) { cerr << "create: wrong argument count" << endl; return 2; }
+  if (a.size() < 8) { cerr << "create: wrong argument count" << endl; return 2; }
   const string& parentUrl = a[0], &name = a[1], &code = a[2], &deckFile = a[3],
                 &deckName = a[4], &machine = a[5], &runDir = a[6], &user = a[7];
 
@@ -103,6 +109,16 @@ static int doCreate(const vector<string>& a)
   ldat.remoteShell = "ssh";
   ldat.maxwall = "0 0:0";
   ldat.forceCsh = "true";
+  for (size_t i = 8; i < a.size(); i++) {
+    string::size_type eq = a[i].find('=');
+    string k = a[i].substr(0, eq), v = eq == string::npos ? "" : a[i].substr(eq + 1);
+    if (k == "queue") ldat.queue = v;
+    else if (k == "nodes") ldat.nodes = strtoul(v.c_str(), 0, 10);
+    else if (k == "procs") ldat.totalprocs = strtoul(v.c_str(), 0, 10);
+    else if (k == "wall") ldat.maxwall = v;
+    else if (k == "mem") ldat.maxmemory = strtoul(v.c_str(), 0, 10);
+    else { cerr << "create: unknown setting " << a[i] << endl; return 2; }
+  }
   Jobdata jdata;
   jdata.jobpath = runDir + TempStorage::getJobRunDirectoryPath(task->getURL());
   if (!task->launchdata(ldat) || !task->jobdata(jdata)) {
@@ -129,6 +145,22 @@ static void buildArgs(TaskJob* task, EcceMap& kv)
   kv["##numNodes##"] = StringConverter::toString((int)ldat.nodes);
   kv["##runDir##"] = task->jobdata().jobpath;
   kv["##priority##"] = "";
+  //  WxLauncher sets these only for a machine whose options include Q/AA/MM/TL.
+  if (!ldat.queue.empty()) {
+    kv["##queue##"] = ldat.queue;
+    if (getenv("LAUNCHJOB_ACCOUNT")) kv["##account_no##"] = getenv("LAUNCHJOB_ACCOUNT");
+    kv["##maxmemory##"] = StringConverter::toString((size_t)ldat.maxmemory);
+    int days = 0, hours = 0, mins = 0;
+    char buf[32];
+    sscanf(ldat.maxwall.c_str(), "%d %d:%d:00", &days, &hours, &mins);
+    hours += days*24;
+    sprintf(buf, "%d:%d:00", hours, mins);
+    kv["##wall_clock_time##"] = buf;
+    sprintf(buf, "%d", days*86400 + hours*3600 + mins*60);
+    kv["##wall_clock_seconds##"] = buf;
+    sprintf(buf, "%d:%d", hours, mins);
+    kv["##wall_clock_hrmin##"] = buf;
+  }
 }
 
 static int doLaunch(const string& url)
@@ -137,6 +169,8 @@ static int doLaunch(const string& url)
   if (!task) { cerr << "not a calculation: " << url << endl; return 1; }
   EcceMap kv;
   buildArgs(task, kv);
+  cout << "files: input=" << kv["##input##"] << " output=" << kv["##output##"]
+       << " parse=" << kv["##parse##"] << endl;
 
   Launch launch(task, kv, true);
   bool valid = true;
@@ -189,6 +223,27 @@ int main(int argc, char** argv)
   if (mode == "restart") return doRestart(a);
   if (a.size() != 1) { cerr << mode << ": needs a calculation URL" << endl; return 2; }
   if (mode == "launch") return doLaunch(a[0]);
+  if (mode == "kill") {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    cout << RunMgmt::terminate(t) << endl;
+    return 0;
+  }
+  if (mode == "names") {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    EcceMap kv;
+    buildArgs(t, kv);
+    cout << "files: input=" << kv["##input##"] << " output=" << kv["##output##"]
+         << " parse=" << kv["##parse##"] << endl;
+    return 0;
+  }
+  if (mode == "jobid") {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    cout << t->jobdata().jobid << endl;
+    return 0;
+  }
 
   TaskJob* task = getTask(a[0]);
   if (!task) { cerr << "not a calculation: " << a[0] << endl; return 1; }

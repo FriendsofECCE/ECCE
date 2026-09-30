@@ -11,7 +11,7 @@ hypervalent isomer energies, pi systems.
 
     tests/teaching/run_tests.py [--build build] [--jobs N] [--case NAME ...]
                                 [--group A|B|C] [--transport unset|direct|ssh|both]
-                                [--keep] [-v]
+                                [--queue shell|slurm] [--keep] [-v]
 
 Needs NWChem and the prerequisites of tests/launch.  Exit status 77 (CTest
 SKIP) when one is missing.
@@ -22,6 +22,7 @@ import concurrent.futures
 import os
 import re
 import shutil
+import subprocess
 import sys
 import time
 import traceback
@@ -113,7 +114,9 @@ def run_one(s, case, mode, deck, stamp):
         deckfile = os.path.join(s.state, "deck-%s.nw" % name)
         with open(deckfile, "w") as h:
             h.write(deck)
-        url, out = s.create(name, "nwchem_es", deckfile, "nwch.nw", rundir)
+        url, out = s.create(name, "nwchem_es", deckfile, "nwch.nw", rundir,
+                            machine=getattr(s, "queueMachine", "localhost"),
+                            extra=getattr(s, "queueExtra", ()))
         if not r.check(url is not None, "calculation created"):
             r.state = "create failed"
             r.check(False, out.strip()[-300:])
@@ -225,6 +228,10 @@ def main():
                     choices=("unset", "direct", "ssh", "both"),
                     help="ECCE_TRANSPORT for the ECCE processes started; 'both' runs "
                     "everything under unset, then under direct")
+    ap.add_argument("--queue", default="shell", choices=("shell", "slurm"),
+                    help="run through this machine's queue manager: 'slurm' submits "
+                    "with the local sbatch to the 'normal' partition (default: the "
+                    "Shell queue manager on localhost)")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--show-decks", action="store_true")
     ap.add_argument("--strict", action="store_true",
@@ -269,6 +276,14 @@ def main():
 
     s = Session(build, "teach", {"NWChem": shutil.which("nwchem")}, (8596, 8588),
                 keep=args.keep, transport=modes[0])
+    if args.queue == "slurm":
+        res = subprocess.run(["sinfo", "-h", "-o", "%R"], stdout=subprocess.PIPE,
+                             stderr=subprocess.DEVNULL) if shutil.which("sbatch") else None
+        if not res or res.returncode != 0 or "normal" not in res.stdout.decode().split():
+            harness.skip("--queue slurm needs a working Slurm with a 'normal' partition")
+        s.registerMachine("slurmtest", "Slurm", {"NWChem": shutil.which("nwchem")})
+        s.queueMachine = "slurmtest"
+        s.queueExtra = ("queue=normal", "nodes=1", "procs=1", "wall=0 12:00")
     #  Earlier runs' calculations only make the server slower to start.
     users = os.path.join(s.fixture.stateDir(), "htdocs", "Ecce", "users", s.user())
     if os.path.isdir(users):

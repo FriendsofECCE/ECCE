@@ -1700,7 +1700,7 @@ if(PYTHON3_EXECUTABLE)
   add_executable(launchjob tests/launch/launchjob.C)
   target_include_directories(launchjob PRIVATE ${XercesC_INCLUDE_DIRS})
   target_link_libraries(launchjob PRIVATE
-    eccecommxt eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml
+    eccecommxt eccecomm eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml
     eccetdat ecceutil ${XercesC_LIBRARIES})
   add_test(NAME launch
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -1717,4 +1717,20 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR} --jobs 4
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/teaching)
   set_tests_properties(teaching PROPERTIES TIMEOUT 7200 SKIP_RETURN_CODE 77)
+
+  # tests/queues -- batch-queue support.  "queues" needs no scheduler: gensub
+  # scripts against golden files, and PBS/LSF/Moab against stand-in clients.
+  # "queues_slurm" uses this machine's real Slurm and SKIPs without one.
+  add_test(NAME queues
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/run_tests.py
+                   --build ${CMAKE_BINARY_DIR} --suite local
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
+  set_tests_properties(queues PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+  add_test(NAME queues_slurm
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/run_tests.py
+                   --build ${CMAKE_BINARY_DIR} --suite slurm
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
+  set_tests_properties(queues_slurm PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
 endif()
