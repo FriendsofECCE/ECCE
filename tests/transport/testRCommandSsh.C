@@ -506,6 +506,37 @@ static void sourceChecks(const string& user, const string& shell,
     }
   }
   {
+    // The stream runs on a session of its own and must see the same
+    // imported environment and directory as a command on the main one.
+    setMode(true);
+    RCommand rc(HOST, "ssh", shell, user, "", "", "", "", "", rdir + "/srcfile");
+    const string cmd = "echo \"[$ECCE_T1][$ECCE_T_AFTER][$LOGNAME]\"; pwd; "
+                       "ecce_src_tool";
+    string viaExec;
+    bool ok = rc.isOpen() && rc.execout(cmd, viaExec) && rc.startStream(cmd);
+    check("sourceFile: stream starts", ok);
+    if (ok) {
+      int fd = rc.expfid();
+      string got;
+      for (int i = 0; i < 100 && got.find("tool ran") == string::npos; i++) {
+        fd_set f; FD_ZERO(&f); FD_SET(fd, &f);
+        struct timeval tv = { 0, 100000 };
+        if (select(fd + 1, &f, 0, 0, &tv) > 0) {
+          char b[4096];
+          ssize_t n = read(fd, b, sizeof b);
+          if (n <= 0) break;
+          got.append(b, n);
+        }
+      }
+      string want;
+      for (size_t i = 0; i < viaExec.size(); i++)
+        if (viaExec[i] != '\r') want += viaExec[i];
+      check("sourceFile: stream sees the imported environment and directory: " +
+            esc(got), got == want && got.find("[a b 'q'") != string::npos);
+    }
+    rc.stopStream();
+  }
+  {
     setMode(true);
     { ofstream f((ldir + "/srcbad").c_str()); f << "exit 3\n"; }
     RCommand rc0(HOST, "ssh", shell, user);
