@@ -80,8 +80,14 @@ def submit(mgr, script_text, queue):
         h.write(queue or "")
     #  No scheduler runs a job in the submitter's session, and the client
     #  must return at once: detach completely and close every inherited fd.
+    cmd = path
+    if os.path.exists(os.path.join(SPOOL, "no-csh")):
+        #  The job sees csh and tcsh as unusable files; probe records that.
+        cmd = ("bwrap --dev-bind / / --ro-bind /dev/null /usr/bin/tcsh "
+               "--ro-bind /dev/null /usr/bin/bsd-csh -- sh -c "
+               "'csh -fc true >/dev/null 2>&1; echo $? > %s/csh-probe; exec %s'" % (d, path))
     runner = ("cd \"$HOME\"; %s > %s/stdout 2> %s/stderr < /dev/null; "
-              "echo $? > %s/exit" % (path, d, d, d))
+              "echo $? > %s/exit" % (cmd, d, d, d))
     proc = subprocess.Popen(["/bin/sh", "-c", runner], stdin=subprocess.DEVNULL,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                             start_new_session=True, close_fds=True)

@@ -931,7 +931,8 @@ def stubsSuite(args, rep):
     managers = [m for m in STUB_MANAGERS if not args.manager or m in args.manager]
     if not managers:
         return
-    root = os.path.join(os.path.expanduser("~"), ".cache", "ecce-queue-stubs")
+    root = os.environ.get("ECCE_TEST_STUBS") or os.path.join(
+        os.path.expanduser("~"), ".cache", "ecce-queue-stubs")
     shutil.rmtree(root, ignore_errors=True)
     bindir = os.path.join(root, "bin")
     os.makedirs(bindir)
@@ -939,10 +940,21 @@ def stubsSuite(args, rep):
         os.symlink(os.path.join(HERE, "stubsched.py"), os.path.join(bindir, name))
     say("STAND-IN schedulers (tests/queues/stubsched.py, NOT the real PBS/LSF/Moab) "
         "on PATH: " + bindir)
+    spool = os.path.join(root, "spool")
+    os.makedirs(spool, exist_ok=True)
+    if args.no_csh:
+        open(os.path.join(spool, "no-csh"), "w").close()
+        say("jobs run with csh and tcsh made unusable (bwrap)")
     saved = os.environ["PATH"]
     os.environ["PATH"] = bindir + ":" + saved
     try:
         liveSuite(args, rep, "stubs", managers, stubdir=bindir)
+        if args.no_csh:
+            probes = glob.glob(os.path.join(spool, "*", "*", "csh-probe"))
+            rep.row("stubs", "-", "-", "no-csh.probe")
+            rep.check(probes and all(open(f).read().strip() != "0" for f in probes),
+                      "csh was unusable in all %d stand-in jobs" % len(probes))
+            rep.done()
     finally:
         os.environ["PATH"] = saved
 
@@ -975,6 +987,8 @@ def main():
     ap.add_argument("--no-kill", action="store_true", help="skip the cancel jobs")
     ap.add_argument("--repeat", type=int, default=1, help="repeat each live job N times")
     ap.add_argument("--update-golden", action="store_true")
+    ap.add_argument("--no-csh", action="store_true",
+                    help="stand-in scheduler jobs run with csh/tcsh unusable")
     ap.add_argument("--strict", action="store_true",
                     help="count the known ECCE faults as failures")
     ap.add_argument("--keep", action="store_true")

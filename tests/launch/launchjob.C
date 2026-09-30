@@ -139,7 +139,9 @@ static void buildArgs(TaskJob* task, EcceMap& kv)
   task->getDataFile(JCode::PROPERTY_OUTPUT, f);    kv["##property##"] = f.name();
   task->getDataFile(JCode::AUXILIARY_OUTPUT, f);   kv["##auxiliary##"] = f.name();
   kv["##title##"] = task->getName();
-  kv["##forcecsh##"] = "true";
+  // Like the launcher's "Use csh/tcsh" box; unchecked, nothing on the
+  // remote side needs csh.
+  kv["##forcecsh##"] = getenv("ECCE_TEST_NO_FORCECSH") ? "false" : "true";
   Launchdata ldat = task->launchdata();
   kv["##numProcs##"] = StringConverter::toString((int)ldat.totalprocs);
   kv["##numNodes##"] = StringConverter::toString((int)ldat.nodes);
