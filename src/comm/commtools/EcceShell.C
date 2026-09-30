@@ -454,8 +454,7 @@ string EcceShell::remoteShell
 
   string theShell = RCommand::commandShell(refMachine->fullname(),shell,user);
 
-  bool displayFlag = theShell=="rsh" || theShell.find("rsh/")==0 ||
-                     !presetDisplayFlag;
+  bool displayFlag = !presetDisplayFlag;
 
   bool xsetFlag = displayFlag || theShell=="" || theShell=="ssh" ||
                   theShell=="sshpass" || theShell.find("ssh/")==0 ||

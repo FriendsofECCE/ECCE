@@ -149,7 +149,6 @@ public:
     static const wxWindowID ID_SPIN_MACHINE_NUMNODES;
     static const wxWindowID ID_PANEL;
     static const wxWindowID ID_TEXT_MACHINE_PROC;
-    static const wxWindowID ID_CHECKBOX_REMSHELL_RSH;
     static const wxWindowID ID_SPIN_QUEUE_MAXWALL;
     static const wxWindowID ID_CHECKBOX_REMSHELL_SSH;
     static const wxWindowID ID_BUTTON_FORM_CLOSE;

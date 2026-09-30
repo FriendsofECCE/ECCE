@@ -1,5 +1,5 @@
 // Machines registered with a removed remote shell (telnet, Globus,
-// Globus-ssh) must fail with a message that says what to do, through the
+// Globus-ssh, rsh, rcp) must fail with a message that says what to do, through the
 // channel connection errors already use, and must not reach any spawn.
 
 #include <cstdlib>
@@ -32,7 +32,8 @@ int main()
     f << "mysiteshell: /bin/false\n"; }
   setenv("ECCE_HOME", home.c_str(), 1);
 
-  const char* removed[] = {"telnet", "Globus", "Globus-ssh", "telnet/ftp", 0};
+  const char* removed[] = {"telnet", "Globus", "Globus-ssh", "telnet/ftp",
+                           "rsh", "rsh/ftp", "rcp", 0};
   for (int i = 0; removed[i]; i++) {
     const string shell = removed[i];
     const string name = shell.substr(0, shell.find('/'));
@@ -56,7 +57,7 @@ int main()
   }
 
   // The supported shells are not reported as removed.
-  const char* kept[] = {"", "ssh", "sshpass", "ssh/ftp", "rsh", "sftp",
+  const char* kept[] = {"", "ssh", "sshpass", "ssh/ftp", "sftp",
                         "mysiteshell", 0};
   for (int i = 0; kept[i]; i++)
     check(RCommand::removedShellMessage(kept[i]).empty(),

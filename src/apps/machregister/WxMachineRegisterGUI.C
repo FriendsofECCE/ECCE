@@ -59,7 +59,6 @@ const wxWindowID WxMachineRegisterGUI::ID_CHOICEBOX_QUEUE_MANAGER = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_SPIN_MACHINE_NUMNODES = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_PANEL = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_TEXT_MACHINE_PROC = wxNewId();
-const wxWindowID WxMachineRegisterGUI::ID_CHECKBOX_REMSHELL_RSH = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_SPIN_QUEUE_MAXWALL = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_CHECKBOX_REMSHELL_SSH = wxNewId();
 const wxWindowID WxMachineRegisterGUI::ID_BUTTON_FORM_CLOSE = wxNewId();
@@ -295,11 +294,6 @@ void WxMachineRegisterGUI::CreateControls()
     itemCheckBox29->SetValue(false);
     itemCheckBox29->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemBoxSizer26->Add(itemCheckBox29, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
-
-    ewxCheckBox* itemCheckBox30 = new ewxCheckBox( itemScrolledWindowForm, ID_CHECKBOX_REMSHELL_RSH, _("rsh"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
-    itemCheckBox30->SetValue(false);
-    itemCheckBox30->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
-    itemBoxSizer26->Add(itemCheckBox30, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxPanel* itemPanel34 = new ewxPanel( itemScrolledWindowForm, ID_PANEL_WXMACHINEREGISTER_APPLICATIONS, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemBoxSizer7->Add(itemPanel34, 0, wxGROW|wxALL, 3);

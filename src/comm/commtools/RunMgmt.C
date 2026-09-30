@@ -324,7 +324,7 @@ bool RunMgmt::registerLocalMachine(string& msg)
         model = "O2";
 
       settings += "&vendor=" + vendor + "&model=" + model;
-      settings += "&processor=Unspecified&procs=1&nodes=1&rsh=false&ssh=true&sshftp=false";
+      settings += "&processor=Unspecified&procs=1&nodes=1&ssh=true&sshftp=false";
 
       // Within PNNL, use the AFS installations of codes as defined in the
       // CONFIG.<vendor> files.
