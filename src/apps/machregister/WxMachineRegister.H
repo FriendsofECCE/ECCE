@@ -183,6 +183,7 @@ class WxMachineRegister: public WxMachineRegisterGUI
 
         RefMachine             *p_slctRgstn;
         bool                    p_inCtrlUpdate;
+        string                  p_autoRefName;
 
         string                  p_slctQueue;
 
