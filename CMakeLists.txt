@@ -1644,6 +1644,15 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME transport_removed_shells COMMAND testRemovedShells)
   set_tests_properties(transport_removed_shells PROPERTIES TIMEOUT 120)
 
+  # EcceShell's local terminal for ECCE_TRANSPORT=ssh (#204): command line
+  # and argv with stub terminals, no connection.
+  add_executable(testTerminalArgv tests/transport/testTerminalArgv.C)
+  target_link_libraries(testTerminalArgv PRIVATE
+    eccecomm eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME transport_terminal COMMAND testTerminalArgv)
+  set_tests_properties(transport_terminal PROPERTIES TIMEOUT 60)
+
   # SshTransport against tests/transport/sshd; needs that sshd running, so
   # not a ctest.  tests/transport/sshd/build_test.sh builds it in a container.
   if(LIBSSH_FOUND)
@@ -1662,6 +1671,12 @@ if(PYTHON3_EXECUTABLE)
     target_link_libraries(testRCommandFrontend PRIVATE
       eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
       ecceutil ${XercesC_LIBRARIES})
+
+    # EcceShell's terminals over ssh; tests/transport/sshd/terminal_test.sh.
+    add_executable(testTerminal tests/transport/testTerminal.C)
+    target_link_libraries(testTerminal PRIVATE
+      eccecomm eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml
+      eccetdat ecceutil ${XercesC_LIBRARIES})
 
     # bgcommand -> ecmd -> command; tests/transport/sshd/bgcommand_test.sh.
     add_executable(testBgcommand tests/transport/testBgcommand.C)

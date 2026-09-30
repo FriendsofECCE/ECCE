@@ -1383,6 +1383,26 @@ string RCommand::copyToShell(const string& copyCmd)
 //  Implementation
 //
 ///////////////////////////////////////////////////////////////////////////////
+bool RCommand::usesSsh(const string& machine, const string& remShell,
+                       const string& userName)
+{
+  const char* mode = getenv("ECCE_TRANSPORT");
+  return mode && !strcmp(mode, "ssh") &&
+         RCommand::isRemote(machine, remShell, userName) &&
+         (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
+          remShell.find("ssh/")==0);
+}
+
+bool RCommand::usesLibssh(const string& machine, const string& remShell,
+                          const string& userName)
+{
+#ifdef ECCE_HAVE_LIBSSH
+  return usesSsh(machine, remShell, userName);
+#else
+  return false;
+#endif
+}
+
 RCommand::RCommand(const string& machine, const string& remShell,
                    const string& locShell, const string& userName,
                    const string& password, const string& frontendMachine,
@@ -1479,10 +1499,7 @@ RCommand::RCommand(const string& machine, const string& remShell,
     return;
   }
 
-  if (allowDirect && allowSsh && transportMode=="ssh" &&
-      RCommand::isRemote(machine, remShell, userName) &&
-      (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
-       remShell.find("ssh/")==0)) {
+  if (allowDirect && allowSsh && usesSsh(machine, remShell, userName)) {
 #ifdef ECCE_HAVE_LIBSSH
     p_shell = "ssh";
     const string pathLine = shellPath == "" ? "" :

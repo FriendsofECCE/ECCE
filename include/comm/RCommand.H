@@ -184,6 +184,13 @@ public:
                                 const string& remShell, const bool& isRemote,
                                 string& commandWithArgs);
 
+    // ECCE_TRANSPORT=ssh and a remote ssh machine: the test the constructor
+    // applies.  usesLibssh() adds that libssh is built in, i.e. that the
+    // connection really is libssh rather than the pty fallback.
+    static bool usesLibssh(const string& machine, const string& remShell,
+                           const string& userName);
+    static bool usesSsh(const string& machine, const string& remShell,
+                        const string& userName);
     static bool isRemote(const string& machine, const string& remShell,
                          const string& userName="");
     // "" unless machine names THIS machine; otherwise a short statement of
