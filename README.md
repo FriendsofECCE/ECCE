@@ -245,6 +245,11 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.17.4** — job monitoring on clusters: a monitor whose connection
+  drops exits instead of lingering, and one killed by a login node no
+  longer uses up the restart limit (#205); results are stored however the
+  launching app was started (#107).
+
 - **v8.17.3** — the data server starts on RHEL 9, which ships `mod_unixd`
   as a module (#193); Tail, Final Edit and Open Shell work when the
   local shell is RHEL's bash (#200).
