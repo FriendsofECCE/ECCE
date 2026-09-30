@@ -81,11 +81,14 @@ string UserEditor::getPreferredEditor()
 
 
 /**
- * The terminal command used for editors that need one; xterm unless the
- * preference names another.  May carry arguments.
+ * The terminal command used for editors and remote shells; ECCE_TERMINAL,
+ * then the preference, else xterm.  May carry arguments.
  */
 string UserEditor::getTerminal()
 {
+  const char *env = getenv("ECCE_TERMINAL");
+  if (env != (const char*)0 && *env != '\0') return env;
+
   Preferences pref(PrefLabels::GLOBALPREFFILE);
   string term;
   if (pref.getString(PrefLabels::TERMINAL, term) && !term.empty()) return term;
