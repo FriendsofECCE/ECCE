@@ -1650,6 +1650,12 @@ if(PYTHON3_EXECUTABLE)
     target_link_libraries(testRCommandSsh PRIVATE
       eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
       ecceutil ${XercesC_LIBRARIES})
+
+    # The same through a front end; tests/transport/sshd/frontend_test.sh.
+    add_executable(testRCommandFrontend tests/transport/testRCommandFrontend.C)
+    target_link_libraries(testRCommandFrontend PRIVATE
+      eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+      ecceutil ${XercesC_LIBRARIES})
   endif()
 
   # tests/launch -- submit one real MOPAC job on localhost/Shell through

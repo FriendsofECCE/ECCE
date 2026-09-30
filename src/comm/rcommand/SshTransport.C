@@ -41,6 +41,60 @@ std::string shQuote(const std::string& s)
   return q + "'";
 }
 
+// A path for the target's sh; a leading ~ still expands.
+std::string shPath(const std::string& p)
+{
+  if (p == "~") return "\"$HOME\"";
+  if (p.compare(0, 2, "~/") == 0) return "\"$HOME\"/" + shQuote(p.substr(2));
+  return shQuote(p);
+}
+
+std::vector<std::string> splitLines(const std::string& t)
+{
+  std::vector<std::string> v;
+  size_t pos = 0;
+  while (pos < t.size()) {
+    size_t nl = t.find('\n', pos);
+    if (nl == std::string::npos) nl = t.size();
+    if (nl > pos) v.push_back(t.substr(pos, nl - pos));
+    pos = nl + 1;
+  }
+  return v;
+}
+
+const char kB64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+std::string b64Encode(const std::string& in)
+{
+  std::string o;
+  for (size_t i = 0; i < in.size(); i += 3) {
+    unsigned v = (unsigned char)in[i] << 16;
+    if (i + 1 < in.size()) v |= (unsigned char)in[i+1] << 8;
+    if (i + 2 < in.size()) v |= (unsigned char)in[i+2];
+    o += kB64[(v >> 18) & 63];
+    o += kB64[(v >> 12) & 63];
+    o += i + 1 < in.size() ? kB64[(v >> 6) & 63] : '=';
+    o += i + 2 < in.size() ? kB64[v & 63] : '=';
+    if ((i / 3) % 19 == 18) o += '\n';
+  }
+  return o + "\n";
+}
+
+std::string b64Decode(const std::string& in)
+{
+  std::string o;
+  unsigned v = 0;
+  int bits = 0;
+  for (size_t i = 0; i < in.size(); i++) {
+    const char* p = in[i] == '=' ? 0 : strchr(kB64, in[i]);
+    if (!p || !in[i]) continue;
+    v = (v << 6) | (unsigned)(p - kB64);
+    bits += 6;
+    if (bits >= 8) { bits -= 8; o += (char)((v >> bits) & 255); }
+  }
+  return o;
+}
+
 bool validName(const std::string& n)
 {
   if (n.empty() || isdigit((unsigned char)n[0])) return false;
@@ -115,11 +169,26 @@ void waitChannel(ssh_channel ch, struct timeval& tv)
 
 }  // namespace
 
+static void closeJump(SshJump* j);
+
 SshTransport::SshTransport(const std::string& host, int port,
                            const std::string& user)
   : p_host(host), p_user(user), p_port(port), p_useConfig(true),
-    p_connectTimeout(15), p_passwordAttempts(1), p_session(0), p_sftp(0)
+    p_connectTimeout(15), p_passwordAttempts(1), p_jumpPort(0),
+    p_feMode(FE_AUTO), p_nested(false), p_forwardWorked(false), p_authFailed(false), p_link(0),
+    p_session(0), p_sftp(0)
 {
+  const char* e = getenv("ECCE_SSH_FRONTEND");
+  if (e && !strcmp(e, "forward")) p_feMode = FE_FORWARD;
+  else if (e && !strcmp(e, "nested")) p_feMode = FE_NESTED;
+}
+
+void SshTransport::setJumpHost(const std::string& host, int port,
+                               const std::string& user)
+{
+  p_jumpHost = host;
+  p_jumpPort = port;
+  p_jumpUser = user;
 }
 
 SshTransport::~SshTransport() { disconnect(); }
@@ -132,23 +201,238 @@ void SshTransport::disconnect()
     ssh_free(p_session);
     p_session = 0;
   }
+  if (p_link) { closeJump(p_link); p_link = 0; }
 }
 
 bool SshTransport::connect(std::string& error)
 {
   disconnect();
-  p_session = newSession(error);
-  return p_session != 0;
+  p_session = newSession(error, &p_link);
+  if (!p_session) return false;
+  if (p_nested) {
+    // ssh from the front end can fail for reasons the front end alone
+    // knows (unknown host key, no key); find out now, with its message.
+    TransportResult r = runImpl("exit 0\n", 60, false);
+    if (r.status != 0) {
+      std::string why = r.error.empty() ? r.err : r.error;
+      while (!why.empty() && (why[why.size()-1] == '\n' || why[why.size()-1] == '\r'))
+        why.erase(why.size() - 1);
+      error = "ssh from " + p_jumpHost + " to " + p_host + " failed: " + why +
+              " (the front end needs a key for " + p_host + " and " + p_host +
+              " in its known_hosts; try \"ssh " + p_host + "\" there once)";
+      disconnect();
+      return false;
+    }
+  }
+  return true;
 }
 
-ssh_session SshTransport::newSession(std::string& error)
+std::string SshTransport::execLine(const std::string& remoteCmd) const
+{
+  if (!p_nested) return remoteCmd;
+  // Both login shells parse this line, so it sticks to quotes they agree on.
+  std::string c = "ssh -T -o BatchMode=yes -o LogLevel=ERROR -o ConnectTimeout=" +
+                  std::to_string(p_connectTimeout);
+  if (p_port > 0) c += " -p " + std::to_string(p_port);
+  if (!p_user.empty()) c += " -l " + shQuote(p_user);
+  return c + " " + shQuote(p_host) + " " + shQuote(remoteCmd);
+}
+
+// ---- the forwarded connection ----
+
+// A direct-tcpip channel on its own ssh session to the front end, pumped
+// to a socketpair whose other end is the inner session's transport (libssh
+// has no way to run a session over a channel).  One thread owns the outer
+// session from the moment it starts.
+struct SshJump {
+  SshJump() : outer(0), ch(0), appFd(-1), pumpFd(-1), stop(false)
+  { ctl[0] = ctl[1] = -1; }
+  ssh_session outer;
+  ssh_channel ch;
+  int appFd, pumpFd, ctl[2];
+  std::thread thread;
+  std::atomic<bool> stop;
+};
+
+namespace {
+
+void jumpPump(SshJump* j)
+{
+  ssh_session s = j->outer;
+  ssh_channel ch = j->ch;
+  ssh_set_blocking(s, 0);
+  std::string toCh, toApp;
+  size_t off = 0;
+  bool sockEof = false, chEof = false, fail = false, stopping = false;
+  Clock::time_point until;
+  char buf[16384];
+
+  while (!fail) {
+    if (j->stop.load() && !stopping) {
+      stopping = true;
+      until = Clock::now() + std::chrono::seconds(1);
+    }
+    if (!sockEof && off >= toCh.size()) {
+      ssize_t n = read(j->pumpFd, buf, sizeof buf);
+      if (n > 0) { toCh.assign(buf, n); off = 0; }
+      else if (n == 0 || (errno != EAGAIN && errno != EINTR)) sockEof = true;
+    }
+    if (off < toCh.size()) {
+      int n = ssh_channel_write(ch, toCh.data() + off, (uint32_t)(toCh.size() - off));
+      if (n == SSH_ERROR) break;
+      if (n > 0) off += n;
+    } else if (sockEof) {
+      break;
+    }
+    if (toApp.empty() && !chEof) {
+      int n = ssh_channel_read_nonblocking(ch, buf, sizeof buf, 0);
+      if (n == SSH_EOF) chEof = true;
+      else if (n == SSH_ERROR) break;
+      else if (n > 0) toApp.append(buf, n);
+      ssh_channel_read_nonblocking(ch, buf, sizeof buf, 1);
+    }
+    if (!toApp.empty()) {
+      ssize_t w = send(j->pumpFd, toApp.data(), toApp.size(), MSG_NOSIGNAL | MSG_DONTWAIT);
+      if (w > 0) toApp.erase(0, w);
+      else if (w < 0 && errno != EAGAIN && errno != EINTR) break;
+    }
+    if ((chEof || ssh_channel_is_closed(ch)) && toApp.empty()) break;
+    if (stopping && Clock::now() >= until) break;
+
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(j->ctl[0], &rfds);
+    int maxfd = j->ctl[0];
+    if (!sockEof && off >= toCh.size()) {
+      FD_SET(j->pumpFd, &rfds);
+      maxfd = std::max(maxfd, j->pumpFd);
+    }
+    struct timeval tv = { 0, toApp.empty() && off >= toCh.size() ? 100000 : 5000 };
+    ssh_channel chans[2] = { ch, 0 };
+    ssh_channel outc[2] = { 0, 0 };
+    ssh_select(chans, outc, maxfd + 1, &rfds, &tv);
+    if (FD_ISSET(j->ctl[0], &rfds)) {
+      char c[16];
+      if (read(j->ctl[0], c, sizeof c) < 0) {}
+    }
+  }
+  (void)fail;
+
+  shutdown(j->pumpFd, SHUT_RDWR);
+  close(j->pumpFd);
+  j->pumpFd = -1;
+  ssh_set_blocking(s, 1);
+  ssh_channel_close(ch);
+  ssh_channel_free(ch);
+  ssh_disconnect(s);
+  ssh_free(s);
+  j->ch = 0;
+  j->outer = 0;
+}
+
+}  // namespace
+
+// Call after the inner session is freed: closing our end of the pair is
+// what tells the pump that the inner side is done.
+static void closeJump(SshJump* j)
+{
+  if (!j) return;
+  close(j->appFd);
+  j->stop = true;
+  if (write(j->ctl[1], "s", 1) < 0) {}
+  j->thread.join();
+  close(j->ctl[0]);
+  close(j->ctl[1]);
+  delete j;
+}
+
+ssh_session SshTransport::newSession(std::string& error, SshJump** linkOut)
+{
+  if (linkOut) *linkOut = 0;
+  if (p_jumpHost.empty())
+    return rawSession(p_host, p_port, p_user, p_prompt, -1, error);
+
+  ssh_session outer = rawSession(p_jumpHost, p_jumpPort, p_jumpUser,
+                                 p_jumpPrompt ? p_jumpPrompt : p_prompt, -1, error);
+  if (!outer) return 0;
+  if (p_feMode == FE_NESTED || p_nested) { p_nested = true; return outer; }
+
+  ssh_channel fw = ssh_channel_new(outer);
+  int port = p_port > 0 ? p_port : 22;
+  if (!fw || ssh_channel_open_forward(fw, p_host.c_str(), port, "127.0.0.1", 0) != SSH_OK) {
+    std::string why = ssh_get_error(outer);
+    if (fw) ssh_channel_free(fw);
+    if (p_feMode == FE_AUTO && !p_forwardWorked) {
+      if (getenv("ECCE_RCOM_LOGMODE"))
+        fprintf(stderr, "%s refused a forward to %s (%s); running ssh there "
+                "instead\n", p_jumpHost.c_str(), p_host.c_str(), why.c_str());
+      p_nested = true;
+      return outer;
+    }
+    error = p_jumpHost + " cannot forward a connection to " + p_host + ": " + why;
+    ssh_disconnect(outer);
+    ssh_free(outer);
+    return 0;
+  }
+  p_forwardWorked = true;
+
+  int sp[2];
+  SshJump* j = new SshJump;
+  if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, sp) != 0 ||
+      pipe2(j->ctl, O_CLOEXEC) != 0) {
+    error = strerror(errno);
+    ssh_channel_free(fw);
+    ssh_disconnect(outer);
+    ssh_free(outer);
+    delete j;
+    return 0;
+  }
+  j->outer = outer;
+  j->ch = fw;
+  j->appFd = sp[0];
+  j->pumpFd = sp[1];
+  fcntl(j->pumpFd, F_SETFL, fcntl(j->pumpFd, F_GETFL) | O_NONBLOCK);
+  j->thread = std::thread(jumpPump, j);
+
+  // libssh closes the descriptor it is given; we keep the original so the
+  // pump sees EOF only when we say so.
+  int fdc = dup(sp[0]);
+  p_authFailed = false;
+  ssh_session inner = rawSession(p_host, p_port, p_user, p_prompt, fdc, error);
+  if (!inner) {
+    closeJump(j);
+    // The target may accept only the front end's keys, as cluster nodes
+    // often do; ssh from the front end is what the pty path always did.
+    if (p_authFailed && p_feMode == FE_AUTO) {
+      std::string e2;
+      ssh_session again = rawSession(p_jumpHost, p_jumpPort, p_jumpUser,
+                                     p_jumpPrompt ? p_jumpPrompt : p_prompt, -1, e2);
+      if (again) {
+        if (getenv("ECCE_RCOM_LOGMODE"))
+          fprintf(stderr, "%s; running ssh from %s instead\n", error.c_str(),
+                  p_jumpHost.c_str());
+        p_nested = true;
+        return again;
+      }
+    }
+    return 0;
+  }
+  if (linkOut) *linkOut = j;
+  else closeJump(j);   // not reached: every caller wants the link
+  return inner;
+}
+
+ssh_session SshTransport::rawSession(const std::string& host, int port,
+                                     const std::string& user,
+                                     const PromptFn& prompt, int fd,
+                                     std::string& error)
 {
   ssh_session s = ssh_new();
   if (!s) { error = "ssh_new failed"; return 0; }
 
-  ssh_options_set(s, SSH_OPTIONS_HOST, p_host.c_str());
-  if (p_port > 0) ssh_options_set(s, SSH_OPTIONS_PORT, &p_port);
-  if (!p_user.empty()) ssh_options_set(s, SSH_OPTIONS_USER, p_user.c_str());
+  ssh_options_set(s, SSH_OPTIONS_HOST, host.c_str());
+  if (port > 0) ssh_options_set(s, SSH_OPTIONS_PORT, &port);
+  if (!user.empty()) ssh_options_set(s, SSH_OPTIONS_USER, user.c_str());
   ssh_options_set(s, SSH_OPTIONS_TIMEOUT, &p_connectTimeout);
   if (p_useConfig) {
     const char* cf = p_configFile.empty() ? 0 : p_configFile.c_str();
@@ -161,6 +445,12 @@ ssh_session SshTransport::newSession(std::string& error)
     int off = 0;
     ssh_options_set(s, SSH_OPTIONS_PROCESS_CONFIG, &off);
   }
+  // Over a forwarded channel the name is only for known_hosts: a HostName
+  // in the config would record the key under a name the user never typed.
+  if (fd >= 0) {
+    ssh_options_set(s, SSH_OPTIONS_HOST, host.c_str());
+    ssh_options_set(s, SSH_OPTIONS_FD, &fd);
+  }
   if (!p_knownHosts.empty())
     ssh_options_set(s, SSH_OPTIONS_KNOWNHOSTS, p_knownHosts.c_str());
   else if (const char* home = getenv("HOME"))
@@ -169,11 +459,11 @@ ssh_session SshTransport::newSession(std::string& error)
     ssh_options_set(s, SSH_OPTIONS_ADD_IDENTITY, p_identities[i].c_str());
 
   if (ssh_connect(s) != SSH_OK) {
-    error = std::string("cannot connect to ") + p_host + ": " + ssh_get_error(s);
+    error = std::string("cannot connect to ") + host + ": " + ssh_get_error(s);
     ssh_free(s);
     return 0;
   }
-  if (!checkHostKey(s, error) || !authenticate(s, error)) {
+  if (!checkHostKey(s, host, error) || !authenticate(s, host, user, prompt, error)) {
     ssh_disconnect(s);
     ssh_free(s);
     return 0;
@@ -182,13 +472,13 @@ ssh_session SshTransport::newSession(std::string& error)
   return s;
 }
 
-bool SshTransport::checkHostKey(ssh_session s, std::string& error)
+bool SshTransport::checkHostKey(ssh_session s, const std::string& host, std::string& error)
 {
   enum ssh_known_hosts_e st = ssh_session_is_known_server(s);
   if (st == SSH_KNOWN_HOSTS_OK) return true;
 
   if (st == SSH_KNOWN_HOSTS_CHANGED || st == SSH_KNOWN_HOSTS_OTHER) {
-    error = "the host key of " + p_host + " has CHANGED since it was recorded "
+    error = "the host key of " + host + " has CHANGED since it was recorded "
             "in known_hosts (or differs in type); refusing to connect. "
             "If the change is expected, remove the old entry and retry.";
     return false;
@@ -222,8 +512,8 @@ bool SshTransport::checkHostKey(ssh_session s, std::string& error)
   ssh_string_free_char(fp);
   ssh_clean_pubkey_hash(&hash);
 
-  if (!p_hostKey || !p_hostKey(p_host, fingerprint, keyType)) {
-    error = "host key of " + p_host + " (" + fingerprint + ") was not accepted";
+  if (!p_hostKey || !p_hostKey(host, fingerprint, keyType)) {
+    error = "host key of " + host + " (" + fingerprint + ") was not accepted";
     return false;
   }
   if (ssh_session_update_known_hosts(s) != SSH_OK) {
@@ -234,7 +524,7 @@ bool SshTransport::checkHostKey(ssh_session s, std::string& error)
 }
 
 // Sets rc to the libssh result; false means the user aborted.
-bool SshTransport::authKeyboardInteractive(ssh_session s, int& rc, bool& asked, std::string& error)
+bool SshTransport::authKeyboardInteractive(ssh_session s, const PromptFn& prompt_, int& rc, bool& asked, std::string& error)
 {
   rc = ssh_userauth_kbdint(s, 0, 0);
   while (rc == SSH_AUTH_INFO) {
@@ -248,7 +538,7 @@ bool SshTransport::authKeyboardInteractive(ssh_session s, int& rc, bool& asked, 
       if (i == 0 && !instr.empty()) prompt = instr + "\n" + prompt;
       std::string answer;
       asked = true;
-      if (!p_prompt || !p_prompt(prompt, echo != 0, answer)) {
+      if (!prompt_ || !prompt_(prompt, echo != 0, answer)) {
         error = "authentication cancelled";
         wipe(answer);
         return false;
@@ -261,10 +551,13 @@ bool SshTransport::authKeyboardInteractive(ssh_session s, int& rc, bool& asked, 
   return true;
 }
 
-bool SshTransport::authenticate(ssh_session s, std::string& error)
+bool SshTransport::authenticate(ssh_session s, const std::string& host,
+                                const std::string& user, const PromptFn& prompt,
+                                std::string& error)
 {
   bool kbdintTried = false;
   int passwordsLeft = p_passwordAttempts;
+  p_authFailed = false;
   // A partial success (key, then a second factor) needs another round.
   for (int round = 0; round < 4; round++) {
     int rc = ssh_userauth_none(s, 0);
@@ -280,23 +573,24 @@ bool SshTransport::authenticate(ssh_session s, std::string& error)
     if (!partial && (methods & SSH_AUTH_METHOD_INTERACTIVE) && !kbdintTried) {
       kbdintTried = true;
       bool asked = false;
-      if (!authKeyboardInteractive(s, rc, asked, error)) return false;
+      if (!authKeyboardInteractive(s, prompt, rc, asked, error)) return false;
       if (rc == SSH_AUTH_SUCCESS) return true;
       partial = (rc == SSH_AUTH_PARTIAL);
       // A failed answered prompt is a failed login; asking the same
       // question again as a password would only repeat a wrong answer.
       if (!partial && asked) {
-        error = "authentication failed for " + p_user + "@" + p_host;
+        error = "authentication failed for " + user + "@" + host;
+        p_authFailed = true;
         return false;
       }
     }
     if (partial) continue;
 
-    if ((methods & SSH_AUTH_METHOD_PASSWORD) && p_prompt) {
+    if ((methods & SSH_AUTH_METHOD_PASSWORD) && prompt) {
       while (passwordsLeft-- > 0) {
         std::string pw;
-        if (!p_prompt("Password for " + (p_user.empty() ? "" : p_user + "@") +
-                      p_host + ": ", false, pw)) {
+        if (!prompt("Password for " + (user.empty() ? "" : user + "@") +
+                      host + ": ", false, pw)) {
           wipe(pw);
           error = "authentication cancelled";
           return false;
@@ -308,10 +602,12 @@ bool SshTransport::authenticate(ssh_session s, std::string& error)
       }
       if (rc == SSH_AUTH_PARTIAL) continue;
     }
-    error = "authentication failed for " + p_user + "@" + p_host;
+    error = "authentication failed for " + user + "@" + host;
+    p_authFailed = true;
     return false;
   }
-  error = "authentication failed for " + p_user + "@" + p_host;
+  error = "authentication failed for " + user + "@" + host;
+  p_authFailed = true;
   return false;
 }
 
@@ -333,6 +629,12 @@ std::string SshTransport::envPrefix(std::string& error) const
 
 TransportResult SshTransport::run(const std::string& script, int timeoutSec)
 {
+  return runImpl(script, timeoutSec, true);
+}
+
+TransportResult SshTransport::runImpl(const std::string& script, int timeoutSec,
+                                      bool useDir)
+{
   TransportResult res;
   if (!p_session) { res.error = "not connected"; return res; }
   std::string err;
@@ -340,12 +642,12 @@ TransportResult SshTransport::run(const std::string& script, int timeoutSec)
   if (!err.empty()) { res.error = err; return res; }
 
   // fd 3 carries the script, stdin is /dev/null, as in DirectTransport.
-  std::string full = "exec 3<&-\n" + envp + withDir(script);
+  std::string full = "exec 3<&-\n" + envp + (useDir ? withDir(script) : script);
 
   ssh_channel ch = ssh_channel_new(p_session);
   if (!ch) { res.error = "cannot create channel"; return res; }
   if (ssh_channel_open_session(ch) != SSH_OK ||
-      ssh_channel_request_exec(ch, "sh -c 'exec 3<&0 </dev/null; . /dev/fd/3'") != SSH_OK) {
+      ssh_channel_request_exec(ch, execLine("sh -c 'exec 3<&0 </dev/null; . /dev/fd/3'").c_str()) != SSH_OK) {
     res.error = std::string("cannot start command: ") + ssh_get_error(p_session);
     ssh_channel_free(ch);
     return res;
@@ -480,6 +782,7 @@ bool SshTransport::sftp(std::string& error)
 bool SshTransport::put(const std::string& localPath, const std::string& remotePath,
                        std::string& error)
 {
+  if (p_nested) return nestedPut(localPath, remotePath, error);
   int in = open(localPath.c_str(), O_RDONLY);
   if (in < 0) { error = "cannot read " + localPath + ": " + strerror(errno); return false; }
   struct stat sb;
@@ -522,6 +825,7 @@ bool SshTransport::put(const std::string& localPath, const std::string& remotePa
 bool SshTransport::get(const std::string& remotePath, const std::string& localPath,
                        std::string& error)
 {
+  if (p_nested) return nestedGet(remotePath, localPath, error);
   if (!sftp(error)) return false;
   sftp_attributes attr = sftp_stat(p_sftp, remotePath.c_str());
   if (!attr) {
@@ -561,6 +865,89 @@ bool SshTransport::get(const std::string& remotePath, const std::string& localPa
 }
 
 
+// ---- files without SFTP (nested): base64 through the script channel ----
+
+bool SshTransport::nestedPut(const std::string& local, const std::string& remote,
+                             std::string& error)
+{
+  int in = open(local.c_str(), O_RDONLY);
+  if (in < 0) { error = "cannot read " + local + ": " + strerror(errno); return false; }
+  struct stat sb;
+  fstat(in, &sb);
+  std::string data;
+  char buf[32768];
+  for (ssize_t n; (n = read(in, buf, sizeof buf)) > 0;) data.append(buf, n);
+  close(in);
+  char mode[16];
+  snprintf(mode, sizeof mode, "%04o", (unsigned)(sb.st_mode & 07777));
+  std::string p = shPath(remote);
+  TransportResult r = runImpl("base64 -d > " + p + " <<'ECCE_B64_END'\n" +
+    b64Encode(data) + "ECCE_B64_END\nrc=$?\n[ $rc = 0 ] && chmod " + mode + " " + p +
+    "\nexit $?\n", 120, false);
+  if (r.status != 0 || !r.error.empty()) {
+    error = "cannot write " + remote + ": " + (r.error.empty() ? r.err : r.error);
+    return false;
+  }
+  return true;
+}
+
+bool SshTransport::nestedGet(const std::string& remote, const std::string& local,
+                             std::string& error)
+{
+  std::string p = shPath(remote);
+  TransportResult r = runImpl("p=" + p + "\n[ -f \"$p\" ] && [ -r \"$p\" ] || "
+    "{ echo \"cannot open $p\" >&2; exit 2; }\n"
+    "stat -c %a \"$p\" 2>/dev/null || stat -f %Lp \"$p\" || echo 644\n"
+    "base64 < \"$p\"\n", 120, false);
+  if (r.status != 0 || !r.error.empty()) {
+    error = "cannot read " + remote + ": " + (r.error.empty() ? r.err : r.error);
+    return false;
+  }
+  size_t nl = r.out.find('\n');
+  mode_t mode = nl == std::string::npos ? 0644 : (mode_t)strtol(r.out.c_str(), 0, 8);
+  std::string data = nl == std::string::npos ? "" : b64Decode(r.out.substr(nl + 1));
+  int out = open(local.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0600);
+  if (out < 0) { error = "cannot write " + local + ": " + strerror(errno); return false; }
+  bool ok = true;
+  for (size_t off = 0; off < data.size();) {
+    ssize_t w = write(out, data.data() + off, data.size() - off);
+    if (w < 0) { error = "write error on " + local; ok = false; break; }
+    off += w;
+  }
+  if (ok) fchmod(out, mode & 07777);
+  close(out);
+  return ok;
+}
+
+bool SshTransport::nestedPutInto(const std::string& local, const std::string& remote,
+                                 std::string& error)
+{
+  struct stat sb;
+  if (stat(local.c_str(), &sb) != 0) {
+    error = "cannot read " + local + ": " + strerror(errno);
+    return false;
+  }
+  if (!S_ISDIR(sb.st_mode)) return nestedPut(local, remote, error);
+  std::string p = shPath(remote);
+  TransportResult r = runImpl("[ -d " + p + " ] || mkdir " + p + "\n", 30, false);
+  if (r.status != 0) { error = "cannot create directory " + remote + ": " + r.err; return false; }
+  DIR* d = opendir(local.c_str());
+  if (!d) { error = "cannot read " + local + ": " + strerror(errno); return false; }
+  std::vector<std::string> names;
+  while (struct dirent* e = readdir(d)) {
+    std::string n = e->d_name;
+    if (n != "." && n != "..") names.push_back(n);
+  }
+  closedir(d);
+  std::sort(names.begin(), names.end());
+  for (size_t i = 0; i < names.size(); i++) {
+    std::string l = local + (local.empty() || local[local.size()-1] == '/' ? "" : "/") + names[i];
+    std::string rm = remote + (remote.empty() || remote[remote.size()-1] == '/' ? "" : "/") + names[i];
+    if (!nestedPutInto(l, rm, error)) return false;
+  }
+  return true;
+}
+
 // ---- scp -r style trees ----
 
 namespace {
@@ -590,6 +977,11 @@ std::string homeRelative(const std::string& p)
 
 int SshTransport::remoteKind(const std::string& remotePath)
 {
+  if (p_nested) {
+    TransportResult r = runImpl("p=" + shPath(remotePath) + "\nif [ -d \"$p\" ]; "
+      "then echo 1; elif [ -e \"$p\" ]; then echo 0; else echo -1; fi\n", 30, false);
+    return r.status == 0 ? atoi(r.out.c_str()) : -1;
+  }
   std::string err;
   if (!sftp(err)) return -1;
   sftp_attributes a = sftp_stat(p_sftp, homeRelative(remotePath).c_str());
@@ -674,6 +1066,11 @@ static bool putInto(SshTransport* t, sftp_session sf, ssh_session ss,
 bool SshTransport::putTree(const std::string& localPath,
                            const std::string& remotePath, std::string& error)
 {
+  if (p_nested) {
+    std::string target = remotePath;
+    if (remoteKind(remotePath) == 1) target = joinPath(target, baseName(localPath));
+    return nestedPutInto(localPath, target, error);
+  }
   if (!sftp(error)) return false;
   std::string target = homeRelative(remotePath);
   if (remoteKind(remotePath) == 1) target = joinPath(target, baseName(localPath));
@@ -684,6 +1081,35 @@ bool SshTransport::putTree(const std::string& localPath,
 bool SshTransport::getTree(const std::string& remotePath,
                            const std::string& localPath, std::string& error)
 {
+  if (p_nested) {
+    struct stat nb;
+    std::string tgt = localPath;
+    if (stat(localPath.c_str(), &nb) == 0 && S_ISDIR(nb.st_mode))
+      tgt = joinPath(localPath, baseName(remotePath));
+    int kind = remoteKind(remotePath);
+    if (kind < 0) { error = "cannot stat " + remotePath; return false; }
+    if (kind == 0) return nestedGet(remotePath, tgt, error);
+    std::string top = shPath(remotePath);
+    TransportResult d = runImpl("cd " + top + " && find . -type d\n", 60, false);
+    TransportResult f = runImpl("cd " + top + " && find . ! -type d\n", 60, false);
+    if (d.status != 0 || f.status != 0) {
+      error = "cannot list " + remotePath + ": " + d.err + f.err;
+      return false;
+    }
+    std::vector<std::string> dirs = splitLines(d.out), files = splitLines(f.out);
+    for (size_t i = 0; i < dirs.size(); i++) {
+      std::string dst = dirs[i] == "." ? tgt : joinPath(tgt, dirs[i].substr(2));
+      if (mkdir(dst.c_str(), 0755) != 0 && errno != EEXIST) {
+        error = "cannot create " + dst + ": " + strerror(errno);
+        return false;
+      }
+    }
+    for (size_t i = 0; i < files.size(); i++)
+      if (files[i].size() > 2 && !nestedGet(joinPath(remotePath, files[i].substr(2)),
+                                            joinPath(tgt, files[i].substr(2)), error))
+        return false;
+    return true;
+  }
   if (!sftp(error)) return false;
   std::string remote = homeRelative(remotePath);
   struct stat sb;
@@ -737,11 +1163,12 @@ bool SshTransport::getTree(const std::string& remotePath,
 // ---- the monitor stream ----
 
 struct SshStream {
-  SshStream() : session(0), channel(0), appFd(-1), pumpFd(-1),
+  SshStream() : session(0), channel(0), jump(0), appFd(-1), pumpFd(-1),
                 graceMs(2000), intr(false), stop(false)
   { ctl[0] = ctl[1] = -1; }
   ssh_session session;
   ssh_channel channel;
+  SshJump* jump;
   int appFd, pumpFd, ctl[2];
   std::string header;      // the script, first thing on the channel's stdin
   std::thread thread;
@@ -881,6 +1308,8 @@ void pump(SshStream* st)
   ssh_channel_free(ch);
   ssh_disconnect(s);
   ssh_free(s);
+  closeJump(st->jump);
+  st->jump = 0;
   st->channel = 0;
   st->session = 0;
 }
@@ -894,16 +1323,18 @@ SshStream* SshTransport::openStream(const std::string& script, int& fd,
   std::string envp = envPrefix(err);
   if (!err.empty()) { error = err; return 0; }
 
-  ssh_session s = newSession(error);
+  SshJump* link = 0;
+  ssh_session s = newSession(error, &link);
   if (!s) return 0;
 
   ssh_channel ch = ssh_channel_new(s);
   if (!ch || ssh_channel_open_session(ch) != SSH_OK ||
-      ssh_channel_request_exec(ch, kStreamExec) != SSH_OK) {
+      ssh_channel_request_exec(ch, execLine(kStreamExec).c_str()) != SSH_OK) {
     error = std::string("cannot start command: ") + ssh_get_error(s);
     if (ch) ssh_channel_free(ch);
     ssh_disconnect(s);
     ssh_free(s);
+    closeJump(link);
     return 0;
   }
 
@@ -917,6 +1348,7 @@ SshStream* SshTransport::openStream(const std::string& script, int& fd,
     SshStream* st = new SshStream;
     st->session = s;
     st->channel = ch;
+    st->jump = link;
     st->appFd = sp[0];
     st->pumpFd = sp[1];
     st->ctl[0] = ctl[0];
@@ -931,6 +1363,7 @@ SshStream* SshTransport::openStream(const std::string& script, int& fd,
   ssh_channel_free(ch);
   ssh_disconnect(s);
   ssh_free(s);
+  closeJump(link);
   return 0;
 }
 

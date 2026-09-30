@@ -44,7 +44,8 @@ public:
   // allowDirect is false: callers that use the raw expect API (expwrite,
   // expfid, expect...) need the pty.  ECCE_TRANSPORT=ssh does the same and
   // also sends ssh machines through libssh (SshTransport) unless allowSsh
-  // is false; hops, front ends and a sourceFile always keep the pty.
+  // is false; a front end is reached by a forwarded channel or a nested ssh
+  // (SshTransport::FrontEnd) and hop() opens a new connection through it.
     RCommand(const string& machine="", const string& remShell="",
              const string& locShell="csh", const string& userName="",
              const string& password="", const string& frontendMachine="",
@@ -81,6 +82,10 @@ public:
     bool shellput(const char** fromFiles, const string& toFile);
     bool shellget(const char** fromFiles, const string& toFile);
     bool shellget(const vector<string>& fromFiles, const string& toFile);
+
+    // "" unless libssh reaches this machine through a front end; then
+    // "forward" (direct-tcpip channel) or "nested" (ssh run on the front end).
+    string frontEndMode() const;
 
     bool hop(const string& hopMachine, const string& locShell="csh",
              const string& userName="", const string& password="",
@@ -250,7 +255,11 @@ private:
                        const string& errorMessage, const int& timeout);
     bool directUnsupported(const char* what);
     bool sshConnect(const string& machine, const string& userName,
-                    const string& password);
+                    const string& password, const string& jumpHost = "");
+    bool sshHop(const string& hopMachine, const string& locShell,
+                const string& userName, const string& password,
+                const string& shellPath, const string& libPath,
+                const string& sourceFile);
     bool importSourceFile(const string& sourceFile, const string& locShell,
                           bool loginShell, std::set<std::string>& changed);
     bool transferFile(bool putFlag, const string& local, const string& remote);
