@@ -40,7 +40,7 @@ podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce
   ssh-keyscan -p $PORT 127.0.0.1 2>/dev/null > ~/.ssh/known_hosts
   printf "Host sshtest 127.0.0.1\n  HostName 127.0.0.1\n  Port $PORT\n  IdentityFile $HOME/.ssh/ecce_test_key\n  IdentitiesOnly yes\n  PasswordAuthentication no\n  KbdInteractiveAuthentication no\n" > ~/.ssh/config
   cd /src
-  ninja -C build-ssh launchjob eccejobstore eccejobmaster ecmd >/dev/null
+  ninja -C build-ssh launchjob eccejobstore eccejobmaster ecmd ecce_jms >/dev/null
   rc=0
   for u in $USERS; do
     echo "=== remote user $u"
