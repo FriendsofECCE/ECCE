@@ -13,12 +13,14 @@
   using std::ifstream;
   using std::ofstream;
 #include <map>
+#include <memory>
   using std::map;
 
 #include <stdlib.h> // getenv
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/socket.h>
 
 #ifndef __APPLE__
 #include <wait.h> // wait
@@ -189,33 +191,39 @@ bool RCommand::sshConnect(const string& machine, const string& userName,
                           const string& password)
 {
   const string theUser = userName == "" ? string(Ecce::realUser()) : userName;
-  string thePass = password;
-  bool passTried = false;
-  string hostKeyMsg;
+
+  // The callbacks outlive this call: the monitor stream logs in again on
+  // a session of its own, reusing the password that just worked.
+  struct Creds { string pass; bool passTried; string hostKeyMsg; };
+  std::shared_ptr<Creds> c(new Creds);
+  c->pass = password;
+  c->passTried = false;
+  const string shell = p_shell;
 
   // Port 0 leaves the port to ~/.ssh/config, as for the ssh command.
   SshTransport* t = new SshTransport(machine, 0, userName);
   t->setConnectTimeout(RC_CONNECT_TIMEOUT);
   t->setPasswordAttempts(3);
-  t->setPromptCallback([&](const string& prompt, bool echo, string& answer) {
+  t->setPromptCallback([c, shell, machine, theUser](const string& prompt,
+                                                    bool echo, string& answer) {
     if (echo || looksLikeCode(prompt))
       return askPassdialog("passcode", machine, theUser, answer);
-    if (!passTried &&
-        (thePass != "" || RCommand::getPassCache(p_shell, machine, theUser,
-                                                 thePass))) {
-      passTried = true;
-      answer = thePass;
+    if (!c->passTried &&
+        (c->pass != "" || RCommand::getPassCache(shell, machine, theUser,
+                                                 c->pass))) {
+      c->passTried = true;
+      answer = c->pass;
       return true;
     }
-    passTried = true;
-    if (!askPassdialog("password", machine, theUser, thePass)) return false;
-    answer = thePass;
+    c->passTried = true;
+    if (!askPassdialog("password", machine, theUser, c->pass)) return false;
+    answer = c->pass;
     return true;
   });
-  t->setHostKeyCallback([&](const string& host, const string& fingerprint) {
+  t->setHostKeyCallback([c](const string& host, const string& fingerprint) {
     if (RCommand::hostKeyHook && RCommand::hostKeyHook(host, fingerprint))
       return true;
-    hostKeyMsg = "The host key of " + host + " (" + fingerprint +
+    c->hostKeyMsg = "The host key of " + host + " (" + fingerprint +
                  ") is not known.  Run \"ssh " + host + "\" once in a "
                  "terminal to accept it, then try again.";
     return false;
@@ -223,15 +231,16 @@ bool RCommand::sshConnect(const string& machine, const string& userName,
 
   string error;
   bool ok = t->connect(error);
-  t->setPromptCallback(SshTransport::PromptFn());
-  t->setHostKeyCallback(SshTransport::HostKeyFn());
 
   if (!ok) {
-    p_errMessage = hostKeyMsg != "" ? hostKeyMsg :
+    p_errMessage = c->hostKeyMsg != "" ? c->hostKeyMsg :
                    "Unable to open ssh connection to " + machine + ": " + error;
     delete t;
     return false;
   }
+  // A later session starts from the password that was accepted.
+  c->passTried = false;
+  const string thePass = c->pass;
 
   p_transport = t;
   p_direct = true;
@@ -365,6 +374,19 @@ int RCommand::expect(int numPatterns, ...)
   return ixp;
 }
 
+// A dead reader must give EPIPE, not SIGPIPE.
+static bool sendAll(int fd, const string& data)
+{
+  size_t done = 0;
+  while (done < data.size()) {
+    ssize_t w = send(fd, data.data() + done, data.size() - done, MSG_NOSIGNAL);
+    if (w > 0) done += w;
+    else if (w < 0 && errno == EINTR) continue;
+    else return false;
+  }
+  return true;
+}
+
 int RCommand::expfid(void)
 {
   if (p_direct) {
@@ -379,8 +401,9 @@ bool RCommand::expwrite(const string& command)
 {
   if (p_direct) {
     if (p_stream.wfd < 0) return directUnsupported("expwrite");
-    if (static_cast<DirectTransport*>(p_transport)->writeStream(
-          p_stream, command + "\n"))
+    if (p_ssh ? sendAll(p_stream.wfd, command + "\n")
+              : static_cast<DirectTransport*>(p_transport)->writeStream(
+                  p_stream, command + "\n"))
       return true;
     p_errMessage = "Lost connection to the job monitor attempting to send command";
     return false;
@@ -1258,6 +1281,7 @@ RCommand::RCommand(const string& machine, const string& remShell,
   p_transport = 0;
   p_direct = false;
   p_ssh = false;
+  p_sshStream = 0;
   p_fid = -1;
   p_pid = 0;
   p_pats = 0;
@@ -3348,8 +3372,26 @@ bool RCommand::directExecout(const string& command, string& output,
 
 bool RCommand::startStream(const string& command)
 {
-  if (!p_direct || p_ssh || !p_connected || p_stream.pid > 0) return false;
+  if (!p_direct || !p_connected || p_stream.rfd >= 0) return false;
   string error;
+  if (p_ssh) {
+#ifdef ECCE_HAVE_LIBSSH
+    int fd = -1;
+    p_sshStream = static_cast<SshTransport*>(p_transport)->openStream(
+                    p_scriptPrefix + command, fd, error);
+    if (!p_sshStream) {
+      p_errMessage = "Could not start " + command + ": " + error;
+      return false;
+    }
+    p_stream.rfd = p_stream.wfd = fd;
+    if (getenv("ECCE_RCOM_LOGMODE"))
+      cout << "ssh stream (" << command << ") in (" << p_transport->dir()
+           << ") on its own session, no pty" << endl;
+    return true;
+#else
+    return false;
+#endif
+  }
   if (!static_cast<DirectTransport*>(p_transport)->openStream(
         command, p_stream, error)) {
     p_errMessage = "Could not start " + command + ": " + error;
@@ -3363,7 +3405,17 @@ bool RCommand::startStream(const string& command)
 
 void RCommand::stopStream(int graceMs)
 {
-  if (!p_direct || p_ssh || p_stream.pid <= 0) return;
+  if (!p_direct) return;
+#ifdef ECCE_HAVE_LIBSSH
+  if (p_sshStream) {
+    static_cast<SshTransport*>(p_transport)->closeStream(p_sshStream, graceMs);
+    p_sshStream = 0;
+    p_stream.rfd = p_stream.wfd = -1;
+    if (getenv("ECCE_RCOM_LOGMODE")) cout << "ssh stream closed" << endl;
+    return;
+  }
+#endif
+  if (p_ssh || p_stream.pid <= 0) return;
   int st = static_cast<DirectTransport*>(p_transport)->closeStream(
              p_stream, graceMs);
   if (getenv("ECCE_RCOM_LOGMODE"))
@@ -3376,7 +3428,13 @@ bool RCommand::execout(const string& command, string& output,
   if (!p_connected) return false;
 
   if (p_direct && command == "\003") {
-    if (p_stream.pid <= 0) return false;
+#ifdef ECCE_HAVE_LIBSSH
+    if (p_sshStream) {
+      static_cast<SshTransport*>(p_transport)->interruptStream(p_sshStream);
+      return true;
+    }
+#endif
+    if (p_ssh || p_stream.pid <= 0) return false;
     static_cast<DirectTransport*>(p_transport)->interruptStream(p_stream);
     return true;
   }
@@ -4379,6 +4437,85 @@ bool RCommand::globFiles(const char** inFiles, char**& outFiles, int& numFiles)
 }
 
 
+#ifdef ECCE_HAVE_LIBSSH
+// The machines the ssh transport serves; the same test as the constructor's.
+static bool useSshCopy(const string& machine, const string& remShell,
+                       const string& userName)
+{
+  const char* mode = getenv("ECCE_TRANSPORT");
+  return mode && string(mode)=="ssh" &&
+         RCommand::isRemote(machine, remShell, userName) &&
+         (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
+          remShell.find("ssh/")==0);
+}
+
+// scp -r over SFTP.  Remote paths are relative to the login directory, local
+// wildcards are expanded here and remote ones by the remote shell.
+bool RCommand::sshCopy(bool putFlag, const string& machine,
+                       const string& remShell, const string& userName,
+                       const string& password, const vector<string>& files,
+                       const string& toFile, string& errMessage)
+{
+  RCommand rc(machine, remShell, "csh", userName, password);
+  if (!rc.isOpen()) {
+    errMessage = rc.commError();
+    return false;
+  }
+  SshTransport* t = static_cast<SshTransport*>(rc.p_transport);
+  string err;
+  vector<string> src;
+
+  // A wildcard that matches nothing is not an error, as with the pty path;
+  // a named file that is missing is.
+  if (putFlag) {
+    vector<const char*> in;
+    for (size_t i = 0; i < files.size(); i++) {
+      if (files[i].find_first_of("*?[") == string::npos &&
+          access(files[i].c_str(), F_OK) != 0) {
+        errMessage = files[i] + ": No such file or directory";
+        return false;
+      }
+      in.push_back(files[i].c_str());
+    }
+    in.push_back(NULL);
+    char** globbed;
+    int num;
+    if (!RCommand::globFiles(&in[0], globbed, num)) return false;
+    for (int i = 0; i < num; i++) { src.push_back(globbed[i]); free(globbed[i]); }
+    free(globbed);
+    if (src.empty()) return true;
+    if (src.size() > 1 && t->remoteKind(toFile) != 1) {
+      errMessage = toFile + ": Not a directory";
+      return false;
+    }
+    for (size_t i = 0; i < src.size(); i++)
+      if (!t->putTree(src[i], toFile, err)) { errMessage = err; return false; }
+    return true;
+  }
+
+  for (size_t i = 0; i < files.size(); i++) {
+    vector<string> one;
+    if (!t->remoteGlob(files[i], one, err)) {
+      if (files[i].find_first_of("*?[") != string::npos &&
+          err == files[i] + ": No such file or directory")
+        continue;
+      errMessage = err;
+      return false;
+    }
+    src.insert(src.end(), one.begin(), one.end());
+  }
+  if (src.empty()) return true;
+  struct stat sb;
+  if (src.size() > 1 && !(stat(toFile.c_str(), &sb)==0 && S_ISDIR(sb.st_mode))) {
+    errMessage = toFile + ": Not a directory";
+    return false;
+  }
+  for (size_t i = 0; i < src.size(); i++)
+    if (!t->getTree(src[i], toFile, err)) { errMessage = err; return false; }
+  return true;
+}
+#endif
+
 bool RCommand::get(string& errMessage,
                    const string& machine, const string& remShell,
                    const string& userName, const string& password,
@@ -4393,6 +4530,17 @@ bool RCommand::get(string& errMessage,
 
   va_list ap;
   va_start(ap, numFiles);
+
+#ifdef ECCE_HAVE_LIBSSH
+  if (useSshCopy(machine, remShell, userName)) {
+    vector<string> fs;
+    for (int k=0; k<numFiles-1; k++) fs.push_back(va_arg(ap, char*));
+    string to = va_arg(ap, char*);
+    va_end(ap);
+    return RCommand::sshCopy(false, machine, remShell, userName, password,
+                             fs, to, errMessage);
+  }
+#endif
 
   bool isRemote = RCommand::isRemote(machine, remShell, userName);
 
@@ -4530,10 +4678,18 @@ bool RCommand::get(string& errMessage,
   char** fromFileStrs;
   int it;
 
-  bool isRemote = RCommand::isRemote(machine, remShell, userName);
-
   int numFiles;
   for (numFiles=0; fromFiles[numFiles]!=NULL; numFiles++);
+
+#ifdef ECCE_HAVE_LIBSSH
+  if (useSshCopy(machine, remShell, userName)) {
+    vector<string> fs(fromFiles, fromFiles + numFiles);
+    return RCommand::sshCopy(false, machine, remShell, userName, password,
+                             fs, toFile, errMessage);
+  }
+#endif
+
+  bool isRemote = RCommand::isRemote(machine, remShell, userName);
 
   int argc = 0;
   char** argv = (char**)malloc((numFiles+MAXARGS) * sizeof(char*));
@@ -4616,6 +4772,17 @@ bool RCommand::put(string& errMessage,
   va_list ap;
   va_start(ap, numFiles);
 
+#ifdef ECCE_HAVE_LIBSSH
+  if (useSshCopy(machine, remShell, userName)) {
+    vector<string> fs;
+    for (int k=0; k<numFiles-1; k++) fs.push_back(va_arg(ap, char*));
+    string to = va_arg(ap, char*);
+    va_end(ap);
+    return RCommand::sshCopy(true, machine, remShell, userName, password,
+                             fs, to, errMessage);
+  }
+#endif
+
   char **fromFiles = (char**)malloc(numFiles * sizeof(char*));
   for (it=0; it<numFiles-1; it++)
     fromFiles[it] = (char*)va_arg(ap, char*);
@@ -4695,6 +4862,16 @@ bool RCommand::put(string& errMessage,
                    const char** fromFiles, const string& toFile)
 {
   char **globbedFiles;
+
+#ifdef ECCE_HAVE_LIBSSH
+  if (useSshCopy(machine, remShell, userName)) {
+    int n;
+    for (n=0; fromFiles[n]!=NULL; n++);
+    vector<string> fs(fromFiles, fromFiles + n);
+    return RCommand::sshCopy(true, machine, remShell, userName, password,
+                             fs, toFile, errMessage);
+  }
+#endif
 
   int numFiles;
   if (!RCommand::globFiles(fromFiles, globbedFiles, numFiles))

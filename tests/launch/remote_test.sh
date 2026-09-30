@@ -5,7 +5,8 @@
 #
 # The client runs in a container (Containerfile.launch) so the test owns the
 # ~/.ssh that ssh reads; OpenSSH takes it from the passwd home, which an
-# isolated $HOME on the host cannot override.  The build goes to build-ssh in
+# isolated $HOME on the host cannot override.  RUN_ARGS overrides the
+# arguments to run_tests.py (default: --transport both --drop).  The build goes to build-ssh in
 # the worktree, untracked.
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
@@ -28,7 +29,7 @@ mkdir -p "$chome"
 podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce \
   --passwd-entry "ecce:*:$(id -u):$(id -g)::/tmp/client:/bin/bash" \
   -v "$root:/src:Z" -v "$state:/state:Z,ro" -v "$chome:/tmp/client:Z" \
-  -e PORT="$port" -e USERS="$users" localhost/ecce-launch bash -c '
+  -e PORT="$port" -e USERS="$users" -e RUN_ARGS="${RUN_ARGS:---transport both --drop}" localhost/ecce-launch bash -c '
   set -e
   install -d -m 700 ~/.ssh
   install -m 600 /state/id_ed25519 ~/.ssh/ecce_test_key
@@ -40,6 +41,6 @@ podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce
   for u in $USERS; do
     echo "=== remote user $u"
     python3 tests/launch/run_tests.py --build /src/build-ssh --machine sshtest \
-      --remote-user $u --transport both || rc=1
+      --remote-user $u $RUN_ARGS || rc=1
   done
   exit $rc'

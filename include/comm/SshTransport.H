@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+struct SshStream;
+
 #include "comm/Transport.H"
 
 struct ssh_session_struct;
@@ -53,13 +55,41 @@ public:
   bool get(const std::string& remotePath, const std::string& localPath,
            std::string& error);
 
+  // scp -r semantics: a directory source is copied with its contents, and
+  // when the target is an existing directory the source lands inside it.
+  bool putTree(const std::string& localPath, const std::string& remotePath,
+               std::string& error);
+  bool getTree(const std::string& remotePath, const std::string& localPath,
+               std::string& error);
+  // 1 directory, 0 other file, -1 does not exist.
+  int remoteKind(const std::string& remotePath);
+  // The remote shell's expansion of a wildcard pattern (sorted; a pattern
+  // matching nothing comes back as an error).
+  bool remoteGlob(const std::string& pattern, std::vector<std::string>& out,
+                  std::string& error);
+
+  // A long-running script on its own ssh session, for a reader that needs
+  // a file descriptor.  fd is one end of a socketpair: read the script's
+  // stdout and stderr from it, write what the script should get on stdin.
+  // A private thread owns the session and shuttles between the channel and
+  // the socket; when the channel or the connection ends, it closes its end
+  // so the reader sees EOF.  The script runs in dir() with the env set.
+  SshStream* openStream(const std::string& script, int& fd, std::string& error);
+  // SIGINT to the script's shell (the session has no tty for ^C).
+  void interruptStream(SshStream* s);
+  // Sends EOF, gives the script graceMs to finish, closes everything and
+  // joins the thread.  Frees s.
+  void closeStream(SshStream* s, int graceMs = 2000);
+
 private:
   SshTransport(const SshTransport&);
   SshTransport& operator=(const SshTransport&);
 
-  bool checkHostKey(std::string& error);
-  bool authenticate(std::string& error);
-  bool authKeyboardInteractive(int& rc, bool& asked, std::string& error);
+  ssh_session_struct* newSession(std::string& error);
+  bool checkHostKey(ssh_session_struct* s, std::string& error);
+  bool authenticate(ssh_session_struct* s, std::string& error);
+  bool authKeyboardInteractive(ssh_session_struct* s, int& rc, bool& asked,
+                               std::string& error);
   bool sftp(std::string& error);
   std::string envPrefix(std::string& error) const;
 

@@ -1739,7 +1739,7 @@ void initConn(void)
       remoteconn = new RCommand(cpServerName, cpRemoteShell, cpLocalShell,
                                 cpUserName, "", frontendMachine, frontendBypass,
                                 shellPath, libPath, sourceFile,
-                                !socketComms, false);  // monitor needs a pty
+                                !socketComms, !socketComms);  // socket comms need a pty
   } else
     (void)remoteconn->hop(nodeForRestart, cpLocalShell, cpUserName,
                           "", shellPath, libPath, sourceFile);
@@ -1872,7 +1872,7 @@ void initMon(void)
       // infinite timeout
       remoteconn->exptimeout(-1);
 
-      if (!socketComms && remoteconn->isDirect()) {
+      if (!socketComms && remoteconn->canStream()) {
         // No pty: the monitor's stdout/stderr come back on a pipe and the
         // framed protocol is read from it as usual.  No start marker is
         // echoed, since nothing is waiting to consume it.
@@ -2096,7 +2096,7 @@ void interactGetOutput(void)
   // eventual 3-minute heartbeat timeout (a corrupted/recycled fd value
   // being read from freed memory, retried internally by the expect
   // library, rather than a clean crash).
-  if (remoteconn != (RCommand*)0 && remoteconn->isDirect()) {
+  if (remoteconn != (RCommand*)0 && remoteconn->canStream()) {
     remoteconn->stopStream();
   } else if (remoteconn != (RCommand*)0) {
     // check status of remote shell and prep it for further usage
