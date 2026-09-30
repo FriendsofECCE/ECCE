@@ -201,10 +201,6 @@ sub doAccept {
     $shell .= ":" if ($shell ne "");
     $shell .= "sshpass"; 
   }
-  if ($contents{"rsh"} eq "true") { 
-    $shell .= ":" if ($shell ne "");
-    $shell .= "rsh"; 
-  }
   if ($shell eq "") { $shell = "ssh";}  # don't leave empty field
   $line .= $shell . "\t";;
 

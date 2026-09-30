@@ -1716,58 +1716,6 @@ Computer Logical Name
                         <string name="proxy-Custom arguments">""</string>
                         <string name="proxy-Custom ctor arguments">""</string>
                       </document>
-                      <document>
-                        <string name="title">"wxCheckBox: ID_CHECKBOX_REMSHELL_RSH"</string>
-                        <string name="type">"dialog-control-document"</string>
-                        <string name="filename">""</string>
-                        <string name="icon-name">"checkbox"</string>
-                        <long name="is-transient">0</long>
-                        <long name="owns-file">1</long>
-                        <long name="title-mode">0</long>
-                        <long name="parent">160303472</long>
-                        <long name="locked">0</long>
-                        <string name="created">"23/5/2006"</string>
-                        <string name="proxy-type">"wbCheckBoxProxy"</string>
-                        <string name="proxy-Id name">"ID_CHECKBOX_REMSHELL_RSH"</string>
-                        <long name="proxy-Id value">10011</long>
-                        <string name="proxy-Class">"wxCheckBox"</string>
-                        <string name="proxy-Member variable name">""</string>
-                        <string name="proxy-Label">"rsh"</string>
-                        <bool name="proxy-Initial value">0</bool>
-                        <string name="proxy-Help text">""</string>
-                        <string name="proxy-Tooltip text">""</string>
-                        <string name="proxy-Data variable">""</string>
-                        <string name="proxy-Data validator">""</string>
-                        <string name="proxy-Background colour">""</string>
-                        <string name="proxy-Foreground colour">""</string>
-                        <string name="proxy-Font">"8, wxSWISS, wxNORMAL, wxBOLD, false, Sans"</string>
-                        <bool name="proxy-Hidden">0</bool>
-                        <bool name="proxy-Enabled">1</bool>
-                        <string name="proxy-Platform">"&lt;Any platform&gt;"</string>
-                        <bool name="proxy-wxALIGN_RIGHT">0</bool>
-                        <bool name="proxy-wxCHK_2STATE">1</bool>
-                        <bool name="proxy-wxCHK_3STATE">0</bool>
-                        <bool name="proxy-wxCHK_ALLOW_3RD_STATE_FOR_USER">0</bool>
-                        <bool name="proxy-wxWANTS_CHARS">0</bool>
-                        <string name="proxy-Custom styles">""</string>
-                        <long name="proxy-X">-1</long>
-                        <long name="proxy-Y">-1</long>
-                        <long name="proxy-Width">-1</long>
-                        <long name="proxy-Height">-1</long>
-                        <string name="proxy-AlignH">"Centre"</string>
-                        <string name="proxy-AlignV">"Centre"</string>
-                        <long name="proxy-Stretch factor">0</long>
-                        <long name="proxy-Border">3</long>
-                        <bool name="proxy-wxLEFT">1</bool>
-                        <bool name="proxy-wxRIGHT">1</bool>
-                        <bool name="proxy-wxTOP">1</bool>
-                        <bool name="proxy-wxBOTTOM">1</bool>
-                        <bool name="proxy-wxSHAPED">0</bool>
-                        <bool name="proxy-0">0</bool>
-                        <bool name="proxy-wxFIXED_MINSIZE">0</bool>
-                        <string name="proxy-Custom arguments">""</string>
-                        <string name="proxy-Custom ctor arguments">""</string>
-                      </document>
                     </document>
                     <document>
                       <string name="title">"wxPanel: ID_PANEL_WXMACHINEREGISTER_APPLICATIONS"</string>

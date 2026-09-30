@@ -402,7 +402,7 @@ static void sshChecks(const string& user, const string& shell)
   }
   {
     RCommand rc(HOST, "rsh", shell, user);
-    check("rsh keeps the pty", rc.expfid() != -1 || !rc.isOpen());
+    check("rsh is refused", !rc.isOpen() && rc.expfid() == -1);
   }
   {
     RCommand rc("system", "", "bash");

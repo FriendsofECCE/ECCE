@@ -831,7 +831,8 @@ bool RCommand::isSameDomain(const string& machine)
 string RCommand::removedShellMessage(const string& remShell)
 {
   string name = remShell.substr(0, remShell.find('/'));
-  if (name=="telnet" || name=="Globus" || name=="Globus-ssh")
+  if (name=="telnet" || name=="Globus" || name=="Globus-ssh" ||
+      name=="rsh" || name=="rcp")
     return "The remote shell '" + name + "' is no longer supported by ECCE; "
            "edit this machine in Machine Registration and choose ssh.";
   return "";
@@ -924,10 +925,7 @@ string RCommand::shellCommand(const string& remShell, const string& machine,
         for (it=0; sshpass_opts[it]!=(char*)0; it++)
           argv[argc++] = (char*)sshpass_opts[it];
 
-    } else if (remShell=="rsh" || remShell.find("rsh/")==0)
-      theShell = "rsh";
-
-    else {
+    } else {
       theShell = RCommand::userShellCommandArgs(remShell, proxyAuth, argc,argv);
       if (theShell=="ssh" || (theShell.find("/ssh")!=string::npos &&
                               theShell.find("/ssh")==theShell.length()-4)) {
@@ -1030,9 +1028,6 @@ string RCommand::userCommand(const string& command,
       if (remShell == "sshpass")
         for (it=0; sshpass_opts[it]!=(char*)0; it++)
           argv[argc++] = (char*)sshpass_opts[it];
-
-    } else if (remShell=="rsh" || remShell.find("rsh/")==0) {
-      theShell = "rsh";
 
     } else {
       theShell = RCommand::userShellCommandArgs(remShell, proxyAuth, argc,argv);
@@ -1329,13 +1324,6 @@ string RCommand::copyCommand(const string& remShell, const bool& isRemote,
 
       argv[argc++] = (char*)minr;
 
-    } else if (remShell=="rcp" ||
-               (remShell.find("/rcp")!=string::npos &&
-                remShell.find("/rcp")==remShell.length()-4) ||
-               remShell=="rsh") {
-      theCopy = "rcp";
-      argv[argc++] = (char*)minr;
-
     } else if (remShell=="ftp" ||
                (remShell.find("/ftp")!=string::npos &&
                 remShell.find("/ftp")==remShell.length()-4)) {
@@ -1370,8 +1358,6 @@ string RCommand::copyToShell(const string& copyCmd)
 
   if (copyCmd=="scp" || copyCmd=="sftp")
     shellCmd = "ssh";
-  else if (copyCmd == "rcp")
-    shellCmd = "rsh";
 
   return shellCmd;
 }
@@ -2632,10 +2618,7 @@ string RCommand::commandShell(const string& machine, const string& remShell,
   if (!RCommand::isRemote(machine, remShell, userName) ||
       remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
       remShell.find("ssh/")==0 || (remShell.find("/ssh")!=string::npos &&
-       remShell.find("/ssh")==remShell.length()-4) ||
-      remShell=="rsh" || remShell.find("rsh/")==0 ||
-      (remShell.find("/rsh")!=string::npos &&
-       remShell.find("/rsh")==remShell.length()-4)) {
+       remShell.find("/ssh")==remShell.length()-4)) {
     // empty -- done this way for speed of evaluation
   } else {
     string shellMatch = remShell + ":";
@@ -2708,8 +2691,7 @@ string RCommand::argsToCommand(const string& command, const string& args,
 
   if (!isRemote ||
       remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
-      remShell.find("ssh/")==0 ||
-      remShell=="rsh" || remShell.find("rsh/")==0) {
+      remShell.find("ssh/")==0) {
     // empty -- done this way for speed of evaluation
   } else {
     string shellMatch = remShell + ":";
@@ -2777,10 +2759,7 @@ string RCommand::argsToCommand(const string& command, const string& args,
   if (!isRemote ||
       theShell=="ssh" || theShell=="sshpass" ||
       theShell.find("ssh/")==0 || (theShell.find("/ssh")!=string::npos &&
-       theShell.find("/ssh")==theShell.length()-4) ||
-      theShell=="rsh" || theShell.find("rsh/")==0 ||
-      (theShell.find("/rsh")!=string::npos &&
-       theShell.find("/rsh")==theShell.length()-4))
+       theShell.find("/ssh")==theShell.length()-4))
     commandWithArgs = command;
 
   if (args != "") {

@@ -243,7 +243,7 @@ class Suite(object):
         """scp and friends that only record that they were started."""
         stubs = os.path.join(self.state, "stubs")
         os.makedirs(stubs, exist_ok=True)
-        for name in ("scp", "sftp", "rcp", "ssh", "sshpass"):
+        for name in ("scp", "sftp", "ssh", "sshpass"):
             path = os.path.join(stubs, name)
             with open(path, "w") as handle:
                 handle.write("#!/bin/sh\necho \"%s $*\" >> %s\nexit 99\n"

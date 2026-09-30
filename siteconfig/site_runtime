@@ -67,7 +67,7 @@ ECCE_JOB_CHECK true
 
 # define the communication scheme to use for job monitoring communications
 # possible values are:
-# stdio => use the remote shell (ssh, rsh, etc.) for all jobs
+# stdio => use the remote shell (ssh or a site-defined shell) for all jobs
 # socket => use sockets for all jobs
 # socketlocal => use sockets for same domain job launches, stdio
 # externally
