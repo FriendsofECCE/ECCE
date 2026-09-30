@@ -126,7 +126,9 @@ void sleepMs(int ms)
 TransportResult DirectTransport::run(const std::string& script, int timeoutSec)
 {
   TransportResult res;
-  std::string full = withDir(script);
+  // sh reads the script through its own descriptor for /dev/fd/3, so fd 3
+  // itself can be closed: commands and daemons then never inherit it.
+  std::string full = "exec 3<&-\n" + withDir(script);
 
   ChildSpec cs;
   buildEnv(cs, p_env, p_unset);
