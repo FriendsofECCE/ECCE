@@ -2212,6 +2212,49 @@ sub JobCheck
             &MsgSendErr($MSG_TYPE_E_WARN, "'$cmd' failed: $!");
         }
     }
+    elsif ($q eq 'htcondor')
+    {
+        # JobStatus: 1 idle, 2 running, 3 removed, 4 completed, 5 held,
+        # 6 transferring output, 7 suspended.  A job that has left the queue
+        # prints nothing.
+        $cmd = "condor_q -format '%d\\n' JobStatus $id 2>&1";
+        if (open(QUERY, "$cmd |"))
+        {
+            $gotState = 0;
+            while (<QUERY>)
+            {
+                LogMsg "JobCheck HTCondor status:  $_";
+                next unless /^(\d)\s*$/;
+
+                my $state = $1;
+                &MsgSendUp("HTCONDOR job id '$id' in state '$state'");
+                $gotState = 1;
+
+                if ($state == 2 || $state == 6)
+                {
+                    $status = $JOB_STATE_RUNNING;
+                }
+                elsif ($state == 1 || $state == 5 || $state == 7)
+                {
+                    $status = $JOB_STATE_PENDING;
+                }
+                else
+                {
+                    $status = $JOB_STATE_DONE;
+                }
+                last;
+            }
+            close QUERY;
+            if ($gotState == 0 && $gJobCheckState != $JOB_STATE_NONE)
+            {
+                $status = $JOB_STATE_DONE;
+            }
+        }
+        else
+        {
+            &MsgSendErr($MSG_TYPE_E_WARN, "'$cmd' failed: $!");
+        }
+    }
 # Add new queue system here
     elsif ($q eq 'slurm')
     {

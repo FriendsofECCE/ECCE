@@ -232,3 +232,34 @@ SGE {
 #$ -j y
 #$ -o sge.out
 }
+
+#
+# HTCondor
+#
+# condor_submit reads a submit description, not this script.  The lines below
+# are that description; QueueManagers' submitCommand cuts them out of the
+# script into <script>.sub and submits it, with @SCRIPT@ standing for the
+# script itself.  Jobs run in the run directory and nothing is transferred
+# (should_transfer_files = NO), which needs a shared file system, or a pool
+# of one machine.  request_memory is in MB.  A wall time limit is enforced by
+# removing the job when it has run longer, since HTCondor has no such request.
+# HOME is set because a job starts without one, and Open MPI, which NWChem
+# uses, then stops with "Unable to get the user home directory".
+# The account is a job attribute (+ProjectName) and not an accounting group,
+# which a pool only accepts if the group is configured.
+#
+HTCondor {
+#CONDOR executable = @SCRIPT@
+#CONDOR initialdir = $runDir
+#CONDOR should_transfer_files = NO
+#CONDOR notification = never
+#CONDOR environment = "HOME=$ENV(HOME)"
+#CONDOR request_cpus = $totalprocs
+#CONDOR request_memory = $memory
+#CONDOR periodic_remove = (JobStatus == 2) && ((time() - EnteredCurrentStatus) > $wallSeconds)
+#CONDOR +ProjectName = "$account"
+#CONDOR output = condor.out
+#CONDOR error = condor.err
+#CONDOR log = condor.log
+#CONDOR queue
+}

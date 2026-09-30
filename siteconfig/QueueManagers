@@ -13,6 +13,7 @@ QueueManagers:		PBS \
 			LSF \
 			Moab \
 			SGE \
+			HTCondor \
 			Shell \
 			Slurm
 
@@ -135,6 +136,28 @@ SGE|queryQueueCommand:       qstat -f
 SGE|queryDiskUsageCommand:   df -k
 SGE|jobIdParseExpression:    .*
 SGE|jobIdParseLeadingText:   job 
+
+###############################################################################
+# HTCondor
+#
+# condor_submit takes a submit description file, not the script.  The
+# description is written in the script's header as "#CONDOR " lines (the
+# HTCondor block of submit.site), because Launch copies only the script to
+# the run directory; the submit command cuts the lines out into
+# <script>.sub and submits that.  "@SCRIPT@" in them is the script's name.
+# "submitted to cluster N." is condor_submit's own report; the id is N.
+# ##script## is written once and handed to sh as $f because Launch replaces
+# only the first ##script## in a command.
+#
+HTCondor|submitCommand:          env f=##script## sh -c 'sed -n "s/^[#]CONDOR //p" "$f" | sed "s|@SCRIPT@|./$f|g" > "$f.sub" && condor_submit "$f.sub"'
+HTCondor|cancelCommand:          condor_rm ##id##
+HTCondor|queryJobCommand:        condor_q ##id##
+HTCondor|queryMachineCommand:    condor_status
+HTCondor|queryQueueCommand:      condor_q
+HTCondor|queryDiskUsageCommand:  df -k
+HTCondor|jobIdParseExpression:   [ ]*[0-9]+
+HTCondor|jobIdParseLeadingText:  submitted to cluster
+HTCondor|jobIdParseTrailingText:
 
 ###############################################################################
 # Generic Shell

@@ -170,11 +170,20 @@ Variables you can use:
 `$account` `$code` `$ecceDir` `$host` `$infile` `$inFile` `$memory`
 `$memoryMw` `$nodes` `$outfile` `$outFile` `$ppn` `$queue` `$runDir`
 `$scratchDir` `$submitFile` `$totalprocs` `$USER` `$wallTime` `$wallHrMin`
+`$wallSeconds`
 
 `$wallTime` is `H:M:00` and is not zero-padded; `$wallHrMin` is `H:M`.
 
 Supported queue managers: **Slurm**, PBS (OpenPBS/PBS Pro), LSF, Moab, SGE,
-and Shell (run directly, no scheduler). LoadLeveler, Maui and EASY were
+HTCondor, and Shell (run directly, no scheduler).
+
+HTCondor submits a description file, not the script.  Its block in
+`submit.site` holds that description as `#CONDOR` lines, and the submit
+command cuts them out of the script into `<script>.sub` for `condor_submit`.
+Jobs run in the run directory with `should_transfer_files = NO`, so they
+need a shared file system (or a one-machine pool).  Pools mount a private
+`/tmp` over the real one, so **a run directory under `/tmp` or `/var/tmp` is
+refused** with an explanation; use one under your home directory. LoadLeveler, Maui and EASY were
 retired in 8.11.0 — see `siteconfig/disabled-queuemanagers-archive.txt`,
 which keeps their definitions verbatim if you ever need one back.
 
