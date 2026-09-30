@@ -19,6 +19,7 @@
 #ifndef RCOMMAND_HH
 #define RCOMMAND_HH
 
+#include <set>
 #include <string>
   using std::string;
 #include <vector>
@@ -246,6 +247,8 @@ private:
     bool directUnsupported(const char* what);
     bool sshConnect(const string& machine, const string& userName,
                     const string& password);
+    bool importSourceFile(const string& sourceFile, const string& locShell,
+                          bool loginShell, std::set<std::string>& changed);
     bool transferFile(bool putFlag, const string& local, const string& remote);
 
 }; // RCommand
