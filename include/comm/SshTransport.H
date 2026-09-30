@@ -23,7 +23,8 @@ public:
                              std::string& answer)> PromptFn;
   // Asked for a host key not in known_hosts; true accepts and records it.
   typedef std::function<bool(const std::string& host,
-                             const std::string& fingerprintSHA256)> HostKeyFn;
+                             const std::string& fingerprintSHA256,
+                             const std::string& keyType)> HostKeyFn;
 
   SshTransport(const std::string& host, int port = 22,
                const std::string& user = "");

@@ -64,7 +64,7 @@ static void runUser(const std::string& user)
     std::string fp;
     SshTransport* t = make(user, kh);
     t->addIdentityFile(keyFile);
-    t->setHostKeyCallback([&](const std::string&, const std::string& f) {
+    t->setHostKeyCallback([&](const std::string&, const std::string& f, const std::string&) {
       calls++; fp = f; return false; });
     bool ok = t->connect(err);
     check("unknown host key refused", !ok && calls == 1 &&
@@ -75,7 +75,7 @@ static void runUser(const std::string& user)
     calls = 0;
     t = make(user, kh);
     t->addIdentityFile(keyFile);
-    t->setHostKeyCallback([&](const std::string&, const std::string&) {
+    t->setHostKeyCallback([&](const std::string&, const std::string&, const std::string&) {
       calls++; return true; });
     ok = t->connect(err);
     check("unknown host key accepted", ok && calls == 1 &&
@@ -85,7 +85,7 @@ static void runUser(const std::string& user)
     calls = 0;
     t = make(user, kh);
     t->addIdentityFile(keyFile);
-    t->setHostKeyCallback([&](const std::string&, const std::string&) {
+    t->setHostKeyCallback([&](const std::string&, const std::string&, const std::string&) {
       calls++; return true; });
     ok = t->connect(err);
     check("known host key: no callback", ok && calls == 0, err);
@@ -252,7 +252,7 @@ static void runUser(const std::string& user)
     int calls = 0;
     SshTransport* c = make(user, kh);
     c->addIdentityFile(keyFile);
-    c->setHostKeyCallback([&](const std::string&, const std::string&) {
+    c->setHostKeyCallback([&](const std::string&, const std::string&, const std::string&) {
       calls++; return true; });
     bool ok = c->connect(err);
     check("changed host key refused", !ok && calls == 0 &&

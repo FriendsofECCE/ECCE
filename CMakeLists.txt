@@ -412,6 +412,12 @@ ecce_app(metadyn src/apps/metadyn WX
   LINK eccecomm eccercmd ecceexp eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(organizer src/apps/organizer WX
   LINK eccewxguicomm eccecommxt eccecomm eccercmd ecceexp eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(hostkeydialog src/apps/hostkeydialog WX
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+if(GTK3_FOUND)
+  target_include_directories(hostkeydialog PRIVATE ${GTK3_INCLUDE_DIRS})
+  target_link_libraries(hostkeydialog PRIVATE ${GTK3_LIBRARIES})
+endif()
 ecce_app(passdialog src/apps/passdialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(pertable src/apps/pertable WX
@@ -832,7 +838,7 @@ install(PROGRAMS ${_remote_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMP
 set(ECCE_GUI_APPS
   basistool calced dirdyed gateway launcher machbrowser machregister
   mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
-  passdialog pertable polyed solvate builder vizthumbnail)
+  passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
   load_tgbs ecmd eccejobmaster eccejobstore
   autosym getfrag genmol genmollat cleansym symops)

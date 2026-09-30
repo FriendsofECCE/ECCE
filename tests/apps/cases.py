@@ -18,6 +18,8 @@ HELPERS = {
                  "show; with no arguments it has nothing to display.",
     "passdialog": "The authentication prompt, exec'd by the apps that need "
                   "credentials.",
+    "hostkeydialog": "The unknown-ssh-host-key prompt, exec'd by RCommand "
+                     "with host and fingerprint arguments.",
     "vizthumbnail": "Offscreen thumbnail renderer, run per calculation with "
                     "a structure argument; not interactive.",
     "launcher": "The app-launch helper the gateway drives over JMS.",
