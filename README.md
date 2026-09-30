@@ -14,6 +14,16 @@ we're at version 8: reaching it took a real modernization of the build
 system and every major dependency, not just a recompile, on top of
 bringing the application itself back to life.
 
+## How ECCE is organised
+
+![ECCE has three parts: the client (the windows you use), the ECCE server (a data server that stores your work and a message broker), and the compute machines where calculations run.](docs/images/ecce-architecture.svg)
+
+The **ECCE server** stores your projects and results; it is not where
+calculations run. Calculations run on a **compute machine**, a workstation
+or an HPC cluster: the client submits each job there over ssh and stores
+the results on the ECCE server. On a single computer all of
+this is installed and started for you.
+
 ## General features
 
 * **Build molecular models**, or import a structure and work from that.
@@ -36,10 +46,6 @@ bringing the application itself back to life.
   ECCE cannot submit directly.
 * **Run one server for a group**, with students or colleagues connecting
   to it as clients.
-
-Gaussian 09 still works but is legacy, and is no longer tested against.
-Gaussian 03, Gaussian 98, GAMESS-UK and Amica are retired. Quantum
-ESPRESSO and GROMACS are in progress — see the roadmap.
 
 ## Screenshots
 
@@ -245,6 +251,10 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.18.0** — experimental built-in ssh (Edit > Preferences): commands,
+  file copies and job monitoring without a shell session, a host-key
+  dialog (#204); telnet, Globus and rsh removed; Machine Registration
+  crash and Name-field fixes; About ECCE dialog (#168).
 - **v8.17.4** — cluster job monitoring: a monitor whose connection drops
   exits, and a login node killing it no longer ends monitoring (#205).
 - **v8.17.3** — RHEL 9: the data server starts (#193); Tail, Final Edit and

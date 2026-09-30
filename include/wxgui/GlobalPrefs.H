@@ -101,6 +101,7 @@ private:
   ewxCheckBox* p_confirmExit;
   ewxCheckBox* p_closeShells;
   ewxCheckBox* p_savePasswords;
+  ewxCheckBox* p_builtinSsh;      // Programs page
 
   // Gateway window page; all NULL unless ECCE_GATEWAY_WINDOW is set.
   ewxCheckBox* p_showBusy;

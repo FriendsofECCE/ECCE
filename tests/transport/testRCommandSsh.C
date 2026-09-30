@@ -743,8 +743,8 @@ int main()
     }
 
     sshChecks(user, shell);
-    streamChecks(user, shell);
     sourceChecks(user, shell, rdir, ldir);
+    streamChecks(user, shell);
     authChecks(user, shell);
 
     setMode(true);

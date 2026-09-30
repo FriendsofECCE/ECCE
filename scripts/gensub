@@ -132,6 +132,17 @@
   &readConfig();
   ##&printConfig();
 
+  # HTCondor gives every job a private /tmp and /var/tmp (MOUNT_UNDER_SCRATCH),
+  # so a run directory there does not exist for the job and it is held with
+  # "Cannot access initial working directory".  Say so now, not from the pool.
+  if (lc($qMgr) eq "htcondor" && $runDir =~ m{^/(?:var/)?tmp(?:/|$)} &&
+      $::config{"condorallowtmp"} ne "true") {
+    die "HTCondor jobs cannot use a run directory under /tmp or /var/tmp " .
+        "($runDir): the pool mounts a private /tmp over it.  Choose a run " .
+        "directory under your home directory, or set condorAllowTmp: true " .
+        "in CONFIG.$host if your pool does not do that.\n";
+  }
+
   # If using a Queued system, you probably have a header to generate
   if ($metascheduler ne "true") {
     print SUBMIT &provideVariables(&getQMgrKeys);
@@ -406,8 +417,12 @@ sub provideVariables()
   # replace $HOST which is intended to be the unix env variable.
 
   # Need for PBS
-  my ($ppn);
+  my ($ppn, $wallSeconds);
   $ppn = $::totalprocs/$::nodes;
+  $wallSeconds = "";
+  if ($::wallTime =~ /^(\d+):(\d+):(\d+)$/) {
+    $wallSeconds = $1*3600 + $2*60 + $3;
+  }
 
   $fixedString =~ s/\$host/$::host/g;
   $fixedString =~ s/\$qMgr/$::qMgr/gi;
@@ -419,6 +434,7 @@ sub provideVariables()
   $fixedString =~ s/\$cpuTime/$::cpuTime/gi;
   $fixedString =~ s/\$wallTime/$::wallTime/gi;
   $fixedString =~ s/\$wallHrMin/$::wallHrMin/gi;
+  $fixedString =~ s/\$wallSeconds/$wallSeconds/gi;
   $fixedString =~ s/\$runDir/$::runDir/gi;
   $fixedString =~ s/\$scratchDir/$::scratchDir/gi;
   $fixedString =~ s/\$inFile/$::inFile/gi;
@@ -447,7 +463,8 @@ sub provideVariables()
   # because "#PBS -A" (an emptied $account) and "#PBS -nr" (a legitimate
   # flag that never had a value) are indistinguishable by then.
   #
-  # Only comment-style directive lines are filtered.  The same function
+  # Only comment-style directive lines are filtered (#SBATCH, #PBS, #BSUB,
+  # #MSUB, #CONDOR, and SGE's "#$ ").  The same function
   # also processes real shell code from CONFIG.<machine>'s setup/wrapup
   # blocks, where "$var" is a csh variable the running script resolves
   # for itself and an "X=" assignment is perfectly legal.
@@ -457,6 +474,7 @@ sub provideVariables()
     'code'        => $::code,        'nodes'        => $::nodes,
     'totalprocs'  => $::totalprocs,  'cputime'      => $::cpuTime,
     'walltime'    => $::wallTime,    'wallhrmin'    => $::wallHrMin,
+    'wallseconds' => $wallSeconds,
     'rundir'      => $::runDir,      'scratchdir'   => $::scratchDir,
     'infile'      => $::inFile,      'outfile'      => $::outFile,
     'memory'      => $::memory,      'mem_x_1024'   => $::mem_x_1024,
@@ -469,7 +487,7 @@ sub provideVariables()
   my @kept;
   for (my $i = 0; $i < scalar(@fixd); $i++) {
     my $src = ($i < scalar(@orig)) ? $orig[$i] : "";
-    if ($src =~ /^\s*\#(?:SBATCH|PBS|BSUB|MSUB)\b/) {
+    if ($src =~ /^\s*\#(?:(?:SBATCH|PBS|BSUB|MSUB|CONDOR)\b|\$\s)/) {
       my $drop = 0;
       # Longest names first, so $mem_x_1024 is not matched as $memory.
       foreach my $name (sort { length($b) <=> length($a) } keys %vals) {

@@ -170,11 +170,20 @@ Variables you can use:
 `$account` `$code` `$ecceDir` `$host` `$infile` `$inFile` `$memory`
 `$memoryMw` `$nodes` `$outfile` `$outFile` `$ppn` `$queue` `$runDir`
 `$scratchDir` `$submitFile` `$totalprocs` `$USER` `$wallTime` `$wallHrMin`
+`$wallSeconds`
 
 `$wallTime` is `H:M:00` and is not zero-padded; `$wallHrMin` is `H:M`.
 
 Supported queue managers: **Slurm**, PBS (OpenPBS/PBS Pro), LSF, Moab, SGE,
-and Shell (run directly, no scheduler). LoadLeveler, Maui and EASY were
+HTCondor, and Shell (run directly, no scheduler).
+
+HTCondor submits a description file, not the script.  Its block in
+`submit.site` holds that description as `#CONDOR` lines, and the submit
+command cuts them out of the script into `<script>.sub` for `condor_submit`.
+Jobs run in the run directory with `should_transfer_files = NO`, so they
+need a shared file system (or a one-machine pool).  Pools mount a private
+`/tmp` over the real one, so **a run directory under `/tmp` or `/var/tmp` is
+refused** with an explanation; use one under your home directory. LoadLeveler, Maui and EASY were
 retired in 8.11.0 — see `siteconfig/disabled-queuemanagers-archive.txt`,
 which keeps their definitions verbatim if you ever need one back.
 
@@ -268,7 +277,9 @@ The broker has no authentication, and the data server speaks plain HTTP
 (#138): whoever can reach their ports can use them. Keep them on loopback
 or firewall them.
 
-**RHEL, Rocky, Fedora:** these distributions don't package ActiveMQ, so
+### ActiveMQ on RHEL, Rocky and Fedora
+
+These distributions don't package ActiveMQ, so
 a machine that runs a broker (modes 1 and 3) needs it installed by hand:
 a JRE (`dnf install java-17-openjdk-headless`), then the ActiveMQ Classic
 binary tarball from https://activemq.apache.org unpacked in, e.g.,
@@ -414,6 +425,21 @@ Terminal editors (`vi`, `vim`, `nvim`, `view`, `nano`, `pico`, `micro`,
 `xed`, `geany` and `kate`, ECCE adds the "new instance" flag itself; an
 editor that hands the file to an already-running copy and exits would
 otherwise end the edit session at once.
+
+### Experimental: built-in ssh
+
+By default ECCE runs every command through a scripted shell session (a
+pty, `ssh` and `expect`-style prompt matching). Tick **Edit > Preferences >
+External programs > Run commands without a shell session (built-in ssh)**
+to run commands on this machine directly and on ssh machines over ECCE's
+own libssh connection instead, with no prompts to match. It needs a build
+with libssh (the packages built on Debian and RHEL have it), applies to
+connections opened after the change, and a job keeps the choice it was
+launched with. An ssh host key ECCE has not seen is asked about in a
+dialog, and is refused until accepted. `ECCE_TRANSPORT` overrides the
+checkbox: `ssh` or `direct` turn it on, `pty` turns it off. Machines with
+a front end or a site-defined shell keep the shell session. It is
+experimental; leave it off unless you are testing it.
 
 ## 7. Getting help
 

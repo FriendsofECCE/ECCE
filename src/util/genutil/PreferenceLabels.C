@@ -46,6 +46,7 @@ const char *PrefLabels::ORIENTATION       = "Gateway.Orientation"; // Int
 const char *PrefLabels::EDITOR            = "Editor";         // String
 const char *PrefLabels::TERMINAL          = "Terminal";       // String
 const char *PrefLabels::BROWSER           = "Browser";        // String
+const char *PrefLabels::BUILTINSSH        = "BuiltinSsh";     // Boolean
 
 
 /*

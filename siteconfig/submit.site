@@ -194,7 +194,7 @@ Slurm {
 #SBATCH --nodes=$nodes
 #SBATCH --ntasks=$totalprocs
 #SBATCH --time=$wallTime
-# $memory carries whatever unit the machine's .Q file declares in
+# The memory value carries whatever unit the machine's .Q file declares in
 # memUnits (MB for the ones shipped here), so the suffix is spelled out
 # rather than left to sbatch's default. Change it if your .Q uses GB.
 # Both of these lines are dropped entirely when the field is unset, so a
@@ -205,3 +205,61 @@ Slurm {
 #SBATCH --error=slurm.err
 }
 
+#
+# SGE (Grid Engine)
+#
+# Restored from siteconfig/disabled-queuemanagers-archive.txt, where it had
+# only -pe/-v/-cwd; queue, wall time, memory, account and the shell were
+# missing, so the job ran in whatever queue and shell the site defaulted to.
+# "-pe smp" is a parallel environment of that name; sites name theirs
+# differently (mpi, orte, make), so override it in your own CONFIG.<host>.
+# Memory is requested as mem_free, which only places the job on a host with
+# that much free.  h_vmem is NOT used: it is a hard limit on virtual memory,
+# and NWChem with OpenBLAS and MPI maps more than it uses, so the job spun
+# at 100% CPU in malloc once the limit was reached, and never ended.
+# Lines whose value is unset are dropped.
+#
+SGE {
+#$ -N $submitFile
+#$ -q $queue
+#$ -pe smp $totalprocs
+#$ -l h_rt=$wallTime
+#$ -l mem_free=$memoryM
+#$ -A $account
+#$ -S /bin/csh
+#$ -cwd
+#$ -v SHELL
+#$ -j y
+#$ -o sge.out
+}
+
+#
+# HTCondor
+#
+# condor_submit reads a submit description, not this script.  The lines below
+# are that description; QueueManagers' submitCommand cuts them out of the
+# script into <script>.sub and submits it, with @SCRIPT@ standing for the
+# script itself.  Jobs run in the run directory and nothing is transferred
+# (should_transfer_files = NO), which needs a shared file system, or a pool
+# of one machine.  request_memory is in MB.  A wall time limit is enforced by
+# removing the job when it has run longer, since HTCondor has no such request.
+# HOME is set because a job starts without one, and Open MPI, which NWChem
+# uses, then stops with "Unable to get the user home directory".
+# The account is a job attribute (+ProjectName) and not an accounting group,
+# which a pool only accepts if the group is configured.
+#
+HTCondor {
+#CONDOR executable = @SCRIPT@
+#CONDOR initialdir = $runDir
+#CONDOR should_transfer_files = NO
+#CONDOR notification = never
+#CONDOR environment = "HOME=$ENV(HOME)"
+#CONDOR request_cpus = $totalprocs
+#CONDOR request_memory = $memory
+#CONDOR periodic_remove = (JobStatus == 2) && ((time() - EnteredCurrentStatus) > $wallSeconds)
+#CONDOR +ProjectName = "$account"
+#CONDOR output = condor.out
+#CONDOR error = condor.err
+#CONDOR log = condor.log
+#CONDOR queue
+}

@@ -177,6 +177,11 @@ def monitorStdin():
             if b"-configFile" not in argv or not any(
                     a.endswith(b"eccejobmonitor") for a in argv):
                 continue
+            #  Only this run's: another run's monitors are not ours.
+            jobs = os.path.join(os.path.dirname(
+                os.environ.get("ECCE_TMPDIR", "/nonexistent/x")), "jobs")
+            if not os.readlink("/proc/%s/cwd" % entry).startswith(jobs + "/"):
+                continue
             return os.readlink("/proc/%s/fd/0" % entry)
         except OSError:
             continue
@@ -760,16 +765,16 @@ def main():
     parser.add_argument("--drop", action="store_true",
                         help="also run each remote transport with the "
                         "monitor's ssh session killed mid-job")
+    parser.add_argument("--kill", action="store_true",
+                        help="#205/#206: kill the remote monitor process four "
+                        "times, as a login node would; the restart count "
+                        "must reset, and without the reset must run out")
     parser.add_argument("--hold", action="store_true",
                         help="an outside agent freezes the link mid-job (#204 "
                         "keepalive test): allow the monitor to be restarted")
     parser.add_argument("--expect-keepalive", action="store_true",
                         help="with --hold: the restart must come from the ssh "
                         "keepalive (ECCE_SSH_KEEPALIVE)")
-    parser.add_argument("--kill", action="store_true",
-                        help="#205/#206: kill the remote monitor process four "
-                        "times, as a login node would; the restart count "
-                        "must reset, and without the reset must run out")
     parser.add_argument("--nwchem-restart", action="store_true",
                         help="#202: only run NWChem, Reset for Restart, run again")
     parser.add_argument("--keep", action="store_true",
