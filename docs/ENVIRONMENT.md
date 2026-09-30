@@ -77,6 +77,7 @@ those settings.
 | `ECCE_JOB_MAXCONNECTS` | Total attempts to reconnect to a compute machine before job monitoring gives up and sets a failed state. | Integer. Default 25. |
 | `ECCE_JOB_MAXQUICKCONNECTS` | Attempts within `ECCE_JOB_MAXQUICKTIME` before giving up early. | Integer. Default 5. |
 | `ECCE_JOB_MAXQUICKTIME` | The time limit for those quick attempts. | Seconds. Default 60. |
+| `ECCE_JOB_RESTARTRESET` | A job-monitoring run that lasted at least this long before failing resets the `ECCE_JOB_MAXCONNECTS` count, so only rapid failures use up the budget. Matters on login nodes that kill long-running processes. | Seconds. Default 600. |
 | `ECCE_SUBMIT_TIMEOUT` | How long a job submission command may run. | Seconds. Default 120. |
 | `ECCE_JOB_PARSE_TIMEOUT` | How long one perl parse script may run on the client. | Minutes. Default 5. |
 | `ECCE_JOB_PARSE_IGNORE` | Parse descriptor blocks whose `Script` name occurs in this text are dropped when the descriptor is staged for a job. | Text containing script names. Default unset. |
