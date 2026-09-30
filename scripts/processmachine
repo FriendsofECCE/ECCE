@@ -205,18 +205,6 @@ sub doAccept {
     $shell .= ":" if ($shell ne "");
     $shell .= "rsh"; 
   }
-  if ($contents{"telnet"} eq "true") { 
-    $shell .= ":" if ($shell ne "");
-    $shell .= "telnet"; 
-  }
-  if ($contents{"gsh"} eq "true") { 
-    $shell .= ":" if ($shell ne "");
-    $shell .= "Globus"; 
-  }
-  if ($contents{"gssh"} eq "true") { 
-    $shell .= ":" if ($shell ne "");
-    $shell .= "Globus-ssh"; 
-  }
   if ($shell eq "") { $shell = "ssh";}  # don't leave empty field
   $line .= $shell . "\t";;
 

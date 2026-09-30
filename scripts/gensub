@@ -92,7 +92,6 @@
   local ($verbose);     # -v option
   local ($mdSystemName);# -S option -- md jobs only
   local ($mdCalcName);  # -C option -- md jobs only
-  local ($globus);      # -g option
   local ($metascheduler);    # -Q "Silver"
 
   local ($CC);        # comment character(s)
@@ -107,7 +106,7 @@
   # script requesting 1 unit of memory and left "4000" as a stray argument.
   # Production launches go through the -p param file, which parses these
   # correctly, which is why it never showed up there.
-  getopts(':p:f:H:Q:q:c:a:n:N:t:T:w:r:s:i:o:S:C:m:x:hgv');
+  getopts(':p:f:H:Q:q:c:a:n:N:t:T:w:r:s:i:o:S:C:m:x:hv');
 
   # get this from config files
   $CC = "# ";
@@ -134,16 +133,14 @@
   ##&printConfig();
 
   # If using a Queued system, you probably have a header to generate
-  # But not with globus (-g) because it messes it up.
-  if ($globus ne "true" && $metascheduler ne "true") {
+  if ($metascheduler ne "true") {
     print SUBMIT &provideVariables(&getQMgrKeys);
   }
 
   print SUBMIT "\n$CC Handle interrupts\n";
   print SUBMIT "onintr canceljob\n";
 
-  # For globus expecially we need to make sure we change to the rundir
-  # Not a bad idea for regular ecce too.
+  # Always run from the run directory.
   print SUBMIT "\n$CC Change to the run directory\n";
   print SUBMIT "cd $runDir\n";
 
@@ -770,7 +767,6 @@ sub handleOptions()
   $submitFile   = $opt_f if defined ($opt_f);
   $mdSystemName = $opt_S  if defined ($opt_S);
   $mdCalcName = $opt_C  if defined ($opt_C);
-  $globus   = "true" if defined ($opt_g);
 
   # The parameters can be sent in via a param file also.  They
   # override anything specified at the command line.
@@ -807,7 +803,6 @@ sub handleOptions()
       $submitFile   = $value if ($opt =~ /-f/);
       $mdSystemName = $value  if ($opt =~ /-S/);
       $mdCalcName = $value  if ($opt =~ /-C/);
-      $globus   = "true" if ($opt =~ /-g/);
      }
      close(PARAM);
 #close(DEBUG);

@@ -185,5 +185,4 @@ These are CMake options, not environment variables: `ECCE_HOME_DIR`
 
 `ECCE_MESA_OPENGL` and `ECCE_MESA_EXCEPT` are read only by the old csh
 launcher (`scripts/ecce_env`). `ECCE_SUPPORT` appears only in code that is
-compiled out. `ECCE_TELNET` is a terminal type name passed to a remote
-shell, not a variable.
+compiled out.

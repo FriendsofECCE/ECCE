@@ -83,7 +83,6 @@ my $MSG_TYPE_PORT    = 'jmPORT';	# port message
 my $MSG_TYPE_PROP    = 'jmPROP';	# property message
 my $MSG_TYPE_NODE    = 'jmNODE';	# ejm requests restart on compute node
 my $MSG_TYPE_STATUS  = 'jmSTATUS';	# status message
-my $MSG_TYPE_STATREQ = 'jmSTATREQ';	# request status from client--Globus
 my $MSG_TYPE_UP      = 'jmUP';  	# up (heartbeat) message
 
 my $MSG_TYPE_E_INFO  = "info";		# error: informational
@@ -2214,32 +2213,6 @@ sub JobCheck
         }
     }
 # Add new queue system here
-    elsif ($q eq 'globus')
-    {
-        # Globus status commands issued on client side 
-        &MsgSendStatusRequest();
-
-        # Read status from stdin (blocking)
-        my $state = <STDIN>;
-
-        if ($state =~ /RUNNING/)
-        {
-            $status = $JOB_STATE_RUNNING;
-            $state = "RUNNING";
-        }
-        elsif ($state =~ /PENDING/)
-        {
-            $status = $JOB_STATE_PENDING;
-            $state = "PENDING";
-        }
-        else
-        {
-            $status = $JOB_STATE_DONE;
-            $state = "DONE";
-        }
-
-        LogMsg "Globus status from eccejobstore: $state";
-    }
     elsif ($q eq 'slurm')
     {
         $cmd = "sacct -j $id -P -o State 2>&1";
@@ -3789,16 +3762,6 @@ sub MsgSendStatus
 
     &MsgSend(join $MSG_SEP, $MSG_TYPE_STATUS, $status);
 }
-
-# --------------------------------------------------------------------------- #
-# Send a status request message to the client (Globus only).
-# --------------------------------------------------------------------------- #
-
-sub MsgSendStatusRequest
-{
-    &MsgSend($MSG_TYPE_STATREQ);
-}
-
 
 # --------------------------------------------------------------------------- #
 # Read the parse descriptor file.

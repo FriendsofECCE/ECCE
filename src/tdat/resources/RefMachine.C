@@ -318,22 +318,6 @@ string RefMachine::shell(void) const
   return shell;
 }
 
-string RefMachine::globusContact(void) const
-{
-  string contact = "";
-
-  string configName = RefMachine::configFile(refname());
-
-  EcceMap *config = EcceMap::load(configName);
-
-  string tmp;
-  if (config->findValue("globusContact", tmp))
-    contact = tmp;
-  delete config;
-
-  return contact;
-}
-
 string RefMachine::frontendMachine(void) const
 {
   string machine = "";

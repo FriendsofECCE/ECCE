@@ -116,9 +116,6 @@ public:
     /// wxEVT_COMMAND_TEXT_UPDATED event handler for ID_TEXTCTRL_WXLAUNCHER_PASSWORD1
     virtual    void password1TextCtrlUpdateCB( wxCommandEvent& event );
 
-    /// wxEVT_COMMAND_TEXT_UPDATED event handler for ID_TEXTCTRL_WXLAUNCHER_PASSWORD2
-    virtual    void password2TextCtrlUpdateCB( wxCommandEvent& event );
-
     /// wxEVT_COMMAND_CHOICE_SELECTED event handler for ID_CHOICE_WXLAUNCHER_REMSHELL
     virtual    void remshellChoiceSelectedCB( wxCommandEvent& event );
 
@@ -168,7 +165,6 @@ public:
 ////@begin WxLauncherGUI member variables
     static const wxWindowID ID_PANEL_WXLAUNCHER_MAXWALLTIME;
     static const wxWindowID ID_PANEL_WXLAUNCHER_MACHINE;
-    static const wxWindowID ID_TEXTCTRL_WXLAUNCHER_PASSWORD2;
     static const wxWindowID ID_PANEL_WXLAUNCHER_BATCHNODES;
     static const wxWindowID ID_STATIC_WXLAUNCHER_MACHINENAME;
     static const wxWindowID ID_BUTTON_WXLAUNCHER_SHELLOPEN;
@@ -218,8 +214,6 @@ public:
     static const wxWindowID ID_PARAMEDIT_WXLAUNCHER_MAXMEMORY;
     static const wxWindowID ID_PANEL_WXLAUNCHER_BATCH2;
     static const wxWindowID ID_PANEL_WXLAUNCHER_USERNAME;
-    static const wxWindowID ID_PANEL_WXLAUNCHER_PASSWORD2;
-    static const wxWindowID ID_STATIC_WXLAUNCHER_PASSWORD2LABEL;
     static const wxWindowID ID_PANEL_WXLAUNCHER_CALCDIR;
     static const wxWindowID ID_PARAMEDIT_WXLAUNCHER_MINSCRATCH;
     static const wxWindowID ID_CHOICE_WXLAUNCHER_QUEUE;

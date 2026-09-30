@@ -65,9 +65,6 @@ WxConfigureAccess::WxConfigureAccess(wxWindow* parent,
     p_password1TextCtrl =   (ewxTextCtrl *)(FindWindowById(ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD1));
     p_password1Panel    =      (ewxPanel *)(FindWindowById(ID_PANEL_WXCONFIGUREACCESS_PASSWORD1));
 
-    p_password2Label    = (ewxStaticText *)(FindWindowById(ID_STATIC_WXCONFIGUREACCESS_PASSWORD2));
-    p_password2TextCtrl =   (ewxTextCtrl *)(FindWindowById(ID_TEXTCTRL_WXCONFIGUREACCESS_PASSWORD2));
-    p_password2Panel    =      (ewxPanel *)(FindWindowById(ID_PANEL_WXCONFIGUREACCESS_PASSWORD2));
 
     p_okayButton        =     (ewxButton *)(FindWindowById(ID_BUTTON_WXCONFIGUREACCESS_OKAY));
     p_cancelButton      =     (ewxButton *)(FindWindowById(ID_BUTTON_WXCONFIGUREACCESS_CANCEL));
@@ -121,15 +118,6 @@ void WxConfigureAccess::usernameTextCtrlUpdatedCB( wxCommandEvent& event )
 
 
 void WxConfigureAccess::password1TextCtrlUpdatedCB( wxCommandEvent& event )
-{
-    if (!p_inCtrlUpdate)
-    {
-        p_okayButton->Enable(true);
-    }
-}
-
-
-void WxConfigureAccess::password2TextCtrlUpdatedCB( wxCommandEvent& event )
 {
     if (!p_inCtrlUpdate)
     {
@@ -198,32 +186,25 @@ string WxConfigureAccess::refreshShells(RefMachine *machRgstn)
 void WxConfigureAccess::refreshAuthentication(RefMachine *machRgstn, string shellName)
 {
     string uname = "";
-    bool remoteGlobus = false;
     bool supported = p_slctPrefs->isOptionSupported("UN");
 
     if (supported)
     {
         uname = p_slctPrefs->getUsername();
-
-        if (!shellName.empty())
-            remoteGlobus = this->checkRemoteGlobus(machRgstn, shellName);
     }
 
     p_usernameTextCtrl->SetValue(uname);
-    p_usernameTextCtrl->Enable(!remoteGlobus);
     p_usernamePanel->Show(supported);
 
-    this->refreshPasswords(remoteGlobus, shellName,
-                           machRgstn->fullname(), uname);
+    this->refreshPasswords(shellName, machRgstn->fullname(), uname);
 }
 
 
-void WxConfigureAccess::refreshPasswords(const bool& remoteGlobus,
+void WxConfigureAccess::refreshPasswords(
                         const string& shellName, const string& machName,
                         const string& user)
 {
     bool supported = p_slctPrefs->isOptionSupported("PW");
-    bool pswd2Rqrd = false;
 
     if (supported)
     {
@@ -238,33 +219,10 @@ void WxConfigureAccess::refreshPasswords(const bool& remoteGlobus,
 
         p_password1TextCtrl->SetValue(pswd1);
 
-        //  UI now indicates required fields with asterisk.
-        //  Make sure they are included in the labels for the password fields.
-        if (remoteGlobus)
-        {
-            pswd2Rqrd = checkGlobusSSH(remoteGlobus, shellName);
-            p_password1Label->SetLabel(pswd2Rqrd ? "ssh Password:": "Pass Phrase:");
-        }
-        else
-            p_password1Label->SetLabel("Password:");
-
-        if (pswd2Rqrd)
-        {
-            string pswd2 = "";
-
-            string url = "ssh://" + machName;
-            ba = AuthCache::getCache().getAuthentication(url, user, "", 1);
-            if (ba != NULL) {
-              pswd2 = ba->m_pass;
-              delete ba;
-            }
-
-            p_password2TextCtrl->SetValue(pswd2);
-        }
+        p_password1Label->SetLabel("Password:");
     }
 
     p_password1Panel->Show(supported);
-    p_password2Panel->Show(supported && pswd2Rqrd);
 }
 
 
@@ -282,40 +240,6 @@ void WxConfigureAccess::remoteShellChoiceSelectedCB(wxCommandEvent& event)
         this->Layout();
         this->Fit();
     }
-}
-
-
-bool WxConfigureAccess::checkRemoteGlobus(RefMachine *machRgstn,
-                                          string shellName)
-{
-    string machName = machRgstn->fullname();
-    bool isGlobus = (shellName.find("Globus") != string::npos);
-    bool isRemote = RCommand::isRemote(machName, shellName);
-
-    return (isGlobus && isRemote);
-}
-
-
-bool WxConfigureAccess::checkGlobusSSH(RefMachine *machRgstn, string shellName)
-{
-    bool remoteGlobus = this->checkRemoteGlobus(machRgstn, shellName);
-
-    return (this->checkGlobusSSH(remoteGlobus, shellName));
-}
-
-
-bool WxConfigureAccess::checkGlobusSSH(bool remoteGlobus, string shellName)
-{
-    return ((remoteGlobus && (shellName.find("ssh") != string::npos)));
-}
-
-
-bool WxConfigureAccess::checkGlobusSSH()
-{
-    string slctShell = (string)p_remoteShellChoice->GetStringSelection();
-    RefMachine *machRgstn = p_slctPrefs->getRegisteredMachine();
-
-    return (this->checkGlobusSSH(machRgstn, slctShell));
 }
 
 

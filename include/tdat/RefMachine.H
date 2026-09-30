@@ -72,7 +72,6 @@ public:
     string        libPath(void) const;
     string        sourceFile(void) const;
     string        shell(void) const;
-    string        globusContact(void) const;
     string        frontendMachine(void) const;
     string        frontendBypass(void) const;
     bool          singleConnect(void) const;

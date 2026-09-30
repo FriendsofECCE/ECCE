@@ -62,17 +62,6 @@ static const char* sshpass_opts[] = {"-o", "PasswordAuthentication=yes",
                                      "-o", "TISAuthentication=no",
                                      0};
 
-static const char* globus_opts[] = {"-o", "GSSAPIAuthentication=yes",
-                                    "-o", "StrictHostKeyChecking=no",
-                                    "-o", "FallBackToRsh=no",
-                                    "-o", "UseRsh=no",
-                                    "-o", "PasswordAuthentication=no",
-                                    "-o", "RhostsAuthentication=no",
-                                    "-o", "RhostsRSAAuthentication=no",
-                                    "-o", "RSAAuthentication=no",
-                                    "-o", "TISAuthentication=no",
-                                    0};
-
 // A machine CONFIG's locShell can be a bare name or a full path
 // ("/usr/bin/bash", "/bin/csh", ...). Classify by basename, not by an
 // exact match against the full string, so "/usr/bin/bash" is
@@ -664,11 +653,7 @@ bool RCommand::isRemote(const string& machine, const string& remShell,
 
   bool localFlag = false;
 
-  // Hardwire return value for testing local Globus launches
-#if 111
-  if (machine=="" || machine=="-f" || machine=="system" ||
-      remShell.find("Globus")!=0) {
-#endif
+  {
     string whereami = RCommand::whereami();
 
     // "localhost" and the loopback address name this machine as surely as
@@ -691,9 +676,7 @@ bool RCommand::isRemote(const string& machine, const string& remShell,
 
     if (localFlag)
       localFlag = userName=="" || strcmp(userName.c_str(), Ecce::realUser())==0;
-#if 111
   }
-#endif
 
   return !localFlag;
 }
@@ -710,9 +693,7 @@ bool RCommand::isRemote(const string& machine, const string& remShell,
  *
  * Deliberately built from isRemote() itself rather than restating its
  * rules, so this can never describe a different decision than the one the
- * launch makes. "ssh" stands in for the shell in the first question only
- * to keep isRemote()'s Globus shortcut (always remote) out of "is this
- * name this machine?".
+ * launch makes.
  */
 string RCommand::localityNote(const string& machine, const string& remShell,
                               const string& userName)
@@ -770,32 +751,13 @@ bool RCommand::isSameDomain(const string& machine)
   return sameDomain;
 }
 
-string RCommand::globusRSL(const string& command, const string& queueRSL)
+string RCommand::removedShellMessage(const string& remShell)
 {
-  string rsl = "";
-
-  if (command != "") {
-    char* cmd = strtok((char*)command.c_str(), " \t\n");
-
-    // Grab all the remaining arguments in one shot
-    char* args = strtok(NULL, "\0");
-
-    rsl = "&(executable=";
-    rsl += cmd;
-    rsl += ")";
-
-    if (args != NULL) {
-      // Start after the first space character
-      rsl += "(arguments=";
-      rsl += args+1;
-      rsl += ")";
-    }
-  }
-
-  if (queueRSL != "")
-    rsl += queueRSL;
-
-  return rsl;
+  string name = remShell.substr(0, remShell.find('/'));
+  if (name=="telnet" || name=="Globus" || name=="Globus-ssh")
+    return "The remote shell '" + name + "' is no longer supported by ECCE; "
+           "edit this machine in Machine Registration and choose ssh.";
+  return "";
 }
 
 string RCommand::shellCommand(const string& remShell, const string& machine,
@@ -865,8 +827,7 @@ string RCommand::shellCommand(const string& remShell, const string& machine,
 
   if (RCommand::isRemote(machine, remShell, userName)) {
     if (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
-        remShell.find("ssh/")==0 || remShell=="Globus-ssh" ||
-        remShell.find("Globus-ssh/")==0) {
+        remShell.find("ssh/")==0) {
       theShell = "ssh";
 
       // enable ssh verbose mode
@@ -889,27 +850,7 @@ string RCommand::shellCommand(const string& remShell, const string& machine,
     } else if (remShell=="rsh" || remShell.find("rsh/")==0)
       theShell = "rsh";
 
-    else if (remShell=="telnet" || remShell.find("telnet/") == 0)
-      theShell = "telnet";
-
-    else if (remShell=="Globus" || remShell.find("Globus/")==0) {
-      theShell = "globusrun";
-
-      // enable GSI ssh verbose mode
-      argv[argc++] = (char*)minv;
-
-      // GSI ssh does not work with port forwarding
-      // argv[argc++] = (char*)mino;
-      // argv[argc++] = (char*)minx;
-
-      // All the globus ssh "-o" options that attempt to force GSSAPI
-      // authentication.  They seem to have some effect although I'm sure the
-      // server side sshd daemon ultimately decides what authentication it
-      // will accept.
-      for (it=0; globus_opts[it]!=(char*)0; it++)
-        argv[argc++] = (char*)globus_opts[it];
-
-    } else {
+    else {
       theShell = RCommand::userShellCommandArgs(remShell, proxyAuth, argc,argv);
       if (theShell=="ssh" || (theShell.find("/ssh")!=string::npos &&
                               theShell.find("/ssh")==theShell.length()-4)) {
@@ -922,24 +863,21 @@ string RCommand::shellCommand(const string& remShell, const string& machine,
       }
     }
 
-    if (theShell != "telnet") {
-      // user name is irrelevant for Globus
-      if (theShell!="globusrun" && userName!="") {
-        argv[argc++] = (char*)minl;
-        argv[argc++] = strdup((char*)userName.c_str());
-      }
+    if (userName!="") {
+      argv[argc++] = (char*)minl;
+      argv[argc++] = strdup((char*)userName.c_str());
+    }
 
-      argv[argc++] = strdup((char*)theMachine.c_str());
+    argv[argc++] = strdup((char*)theMachine.c_str());
 
-      // for ssh, recognize authentication success/failure from verbose
-      // mode logging and request a local "csh" shell after the connection
-      // is established if there are no hops being done
-      // Otherwise there are problems with authentication when making hops
-      // to other machines from the one initially logged in on
-      if (theShell!="ssh" || !hopFlag) {
-        for (it=0; cmd[it]!=(char*)0; it++)
-          argv[argc++] = (char*)cmd[it];
-      }
+    // for ssh, recognize authentication success/failure from verbose
+    // mode logging and request a local "csh" shell after the connection
+    // is established if there are no hops being done
+    // Otherwise there are problems with authentication when making hops
+    // to other machines from the one initially logged in on
+    if (theShell!="ssh" || !hopFlag) {
+      for (it=0; cmd[it]!=(char*)0; it++)
+        argv[argc++] = (char*)cmd[it];
     }
 
   } else {
@@ -999,8 +937,7 @@ string RCommand::userCommand(const string& command,
 
   if (RCommand::isRemote(machine, remShell, userName)) {
     if (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
-        remShell.find("ssh/")==0 || remShell=="Globus-ssh" ||
-        remShell.find("Globus-ssh/")==0) {
+        remShell.find("ssh/")==0) {
       theShell = "ssh";
 
       // enable ssh X11 port forwarding
@@ -1020,24 +957,6 @@ string RCommand::userCommand(const string& command,
     } else if (remShell=="rsh" || remShell.find("rsh/")==0) {
       theShell = "rsh";
 
-    } else if (remShell=="telnet" || remShell.find("telnet/") == 0)
-      theShell = "telnet";
-
-    else if (remShell=="Globus" || remShell.find("Globus/")==0) {
-      theShell = "globusrun";
-
-      // GSI ssh does not work with port forwarding
-      // enable ssh X11 port forwarding for Globus
-      // argv[argc++] = (char*)mino;
-      // argv[argc++] = (char*)minx;
-
-      // All the globus ssh "-o" options that attempt to force GSSAPI
-      // authentication.  They seem to have some effect although I'm sure the
-      // server side sshd daemon ultimately decides what authentication it
-      // will accept.
-      for (it=0; globus_opts[it]!=(char*)0; it++)
-        argv[argc++] = (char*)globus_opts[it];
-
     } else {
       theShell = RCommand::userShellCommandArgs(remShell, proxyAuth, argc,argv);
       if (theShell=="ssh" || (theShell.find("/ssh")!=string::npos &&
@@ -1048,119 +967,116 @@ string RCommand::userCommand(const string& command,
       }
     }
 
-    if (theShell != "telnet") {
-      if (fullShell.find(" -l ") != string::npos) {
-        string subme = fullShell;
-        int idx = subme.find("##user##");
-        if (idx != string::npos)
-          subme.replace(idx, 8, userName);
+    if (fullShell.find(" -l ") != string::npos) {
+      string subme = fullShell;
+      int idx = subme.find("##user##");
+      if (idx != string::npos)
+        subme.replace(idx, 8, userName);
 
-        idx = subme.find("##machine##");
-        if (idx != string::npos)
-          subme.replace(idx, 11, theMachine);
+      idx = subme.find("##machine##");
+      if (idx != string::npos)
+        subme.replace(idx, 11, theMachine);
 
-        // tokenize with ##command## within the string so we can substitute
-        // for this in argv directly w/o tokenizing the command itself
-        char* tokenify = strdup((char*)subme.c_str());
-        string tossShell = strtok(tokenify, " ");
+      // tokenize with ##command## within the string so we can substitute
+      // for this in argv directly w/o tokenizing the command itself
+      char* tokenify = strdup((char*)subme.c_str());
+      string tossShell = strtok(tokenify, " ");
 
-        while ((argv[argc++] = strtok(NULL, " ")) != NULL);
-        argc--;
+      while ((argv[argc++] = strtok(NULL, " ")) != NULL);
+      argc--;
 
-        // find ##command## and then throw in the value for command in the
-        // same place within argv
-        for (idx=1; idx<argc && strcmp(argv[idx], "##command##")!=0 &&
-                    strcmp(argv[idx], "command##")!=0; idx++);
+      // find ##command## and then throw in the value for command in the
+      // same place within argv
+      for (idx=1; idx<argc && strcmp(argv[idx], "##command##")!=0 &&
+                  strcmp(argv[idx], "command##")!=0; idx++);
 
-        if (idx < argc) {
-          if (command != "") {
-            // prepend "csh/tcsh -c" for standard remote shells so we know the
-            // environment the command will be executed under
-            if (theShell=="ssh" || theShell=="rsh" || theShell=="globusrun") {
-              string cshCommand = locShell + " -c '";
-              cshCommand += command + "'";
-              argv[idx] = strdup((char*)cshCommand.c_str());
-            } else
-              argv[idx] = strdup((char*)command.c_str());
-
-            // check if the preceeding argument started with a ## which
-            // indicates that the command was actually a compound structure
-            // such as ##-e command##
-            // In this case we get rid of the leading ## and combine them
-            // as a single argument
-            if (idx>0 && strncmp(argv[idx-1], "##", 2)==0) {
-              char* cptr = argv[idx-1];
-              cptr += 2;
-              argv[idx-1] = (char*)malloc(strlen(cptr) + strlen(argv[idx]) + 2);
-              strcpy(argv[idx-1], cptr);
-              strcat(argv[idx-1], " ");
-              strcat(argv[idx-1], argv[idx]);
-
-              argc--;
-              for (it=idx; it<argc; it++)
-                argv[it] = argv[it+1];
-            }
-
-          } else {
-            // no command--get rid of ##command## placeholder from argv
-            argc--;
-            for (it=idx; it<argc; it++)
-              argv[it] = argv[it+1];
-
-            // if it is a compound command then get rid of that argument too
-            if (idx>0 && strncmp(argv[idx-1], "##", 2)==0) {
-              argc--;
-              for (it=idx-1; it<argc; it++)
-                argv[it] = argv[it+1];
-            }
-          }
-
-        } else if (command != "") {
-          // append command as a new last arg
-          // prepend "csh/tcsh -c" for standard remote shells so we know the
-          // environment the command will be executed under
-          if (theShell=="ssh" || theShell=="rsh" || theShell=="globusrun") {
-            string cshCommand = locShell + " -c '" + command + "'";
-            argv[argc++] = strdup((char*)cshCommand.c_str());
-          } else
-            argv[argc++] = strdup((char*)command.c_str());
-        }
-
-      } else {
-        // user name is irrelevant for Globus
-        if (theShell!="globusrun" && userName!="") {
-          argv[argc++] = (char*)minl;
-          argv[argc++] = strdup((char*)userName.c_str());
-        }
-
-        argv[argc++] = strdup((char*)theMachine.c_str());
-
-        // append on any extra args given with fullShell
-        // this completes the strtok up at the top of the method
-        while ((argv[argc++] = strtok(NULL, " ")) != NULL);
-        argc--;
-
-#if 000
-        // seems like passing the whole command as a single argument works
-        // just fine.  But if it doesn't then it can simply be tokenized
-        // which for some reason also behaves correctly with quotes around
-        // tokens to indicate grouping
-        tokenize = strdup((char*)command.c_str());
-        argv[argc++] = strtok(tokenize, " ");
-        while ((argv[argc++] = strtok(NULL, " ")) != NULL);
-        argc--;
-#else
+      if (idx < argc) {
         if (command != "") {
           // prepend "csh/tcsh -c" for standard remote shells so we know the
           // environment the command will be executed under
-          if (theShell=="ssh" || theShell=="rsh" || theShell=="globusrun") {
-            string cshCommand = locShell + " -c '" + command + "'";
-            argv[argc++] = strdup((char*)cshCommand.c_str());
+          if (theShell=="ssh" || theShell=="rsh") {
+            string cshCommand = locShell + " -c '";
+            cshCommand += command + "'";
+            argv[idx] = strdup((char*)cshCommand.c_str());
           } else
-            argv[argc++] = strdup((char*)command.c_str());
+            argv[idx] = strdup((char*)command.c_str());
+
+          // check if the preceeding argument started with a ## which
+          // indicates that the command was actually a compound structure
+          // such as ##-e command##
+          // In this case we get rid of the leading ## and combine them
+          // as a single argument
+          if (idx>0 && strncmp(argv[idx-1], "##", 2)==0) {
+            char* cptr = argv[idx-1];
+            cptr += 2;
+            argv[idx-1] = (char*)malloc(strlen(cptr) + strlen(argv[idx]) + 2);
+            strcpy(argv[idx-1], cptr);
+            strcat(argv[idx-1], " ");
+            strcat(argv[idx-1], argv[idx]);
+
+            argc--;
+            for (it=idx; it<argc; it++)
+              argv[it] = argv[it+1];
+          }
+
+        } else {
+          // no command--get rid of ##command## placeholder from argv
+          argc--;
+          for (it=idx; it<argc; it++)
+            argv[it] = argv[it+1];
+
+          // if it is a compound command then get rid of that argument too
+          if (idx>0 && strncmp(argv[idx-1], "##", 2)==0) {
+            argc--;
+            for (it=idx-1; it<argc; it++)
+              argv[it] = argv[it+1];
+          }
         }
-#endif
+
+      } else if (command != "") {
+        // append command as a new last arg
+        // prepend "csh/tcsh -c" for standard remote shells so we know the
+        // environment the command will be executed under
+        if (theShell=="ssh" || theShell=="rsh") {
+          string cshCommand = locShell + " -c '" + command + "'";
+          argv[argc++] = strdup((char*)cshCommand.c_str());
+        } else
+          argv[argc++] = strdup((char*)command.c_str());
       }
+
+    } else {
+      if (userName!="") {
+        argv[argc++] = (char*)minl;
+        argv[argc++] = strdup((char*)userName.c_str());
+      }
+
+      argv[argc++] = strdup((char*)theMachine.c_str());
+
+      // append on any extra args given with fullShell
+      // this completes the strtok up at the top of the method
+      while ((argv[argc++] = strtok(NULL, " ")) != NULL);
+      argc--;
+
+#if 000
+      // seems like passing the whole command as a single argument works
+      // just fine.  But if it doesn't then it can simply be tokenized
+      // which for some reason also behaves correctly with quotes around
+      // tokens to indicate grouping
+      tokenize = strdup((char*)command.c_str());
+      argv[argc++] = strtok(tokenize, " ");
+      while ((argv[argc++] = strtok(NULL, " ")) != NULL);
+      argc--;
+#else
+      if (command != "") {
+        // prepend "csh/tcsh -c" for standard remote shells so we know the
+        // environment the command will be executed under
+        if (theShell=="ssh" || theShell=="rsh") {
+          string cshCommand = locShell + " -c '" + command + "'";
+          argv[argc++] = strdup((char*)cshCommand.c_str());
+        } else
+          argv[argc++] = strdup((char*)command.c_str());
+      }
+#endif
     }
 
   } else {
@@ -1327,23 +1243,12 @@ string RCommand::copyCommand(const string& remShell, const bool& isRemote,
     if (remShell=="" || remShell=="scp" ||
         (remShell.find("/scp")!=string::npos &&
          remShell.find("/scp")==remShell.length()-4) ||
-        remShell=="ssh" || remShell=="sshpass" || remShell=="Globus-ssh") {
+        remShell=="ssh" || remShell=="sshpass") {
       theCopy = "scp";
 
       if (remShell == "sshpass")
         for (it=0; sshpass_opts[it]!=(char*)0; it++)
           argv[argc++] = (char*)sshpass_opts[it];
-
-      argv[argc++] = (char*)minr;
-
-    } else if (remShell=="globus-rcp" ||
-               (remShell.find("/globus-rcp")!=string::npos &&
-                remShell.find("/globus-rcp")==remShell.length()-11) ||
-               remShell=="Globus") {
-      theCopy = "globus-rcp";
-
-      for (it=0; globus_opts[it]!=(char*)0; it++)
-        argv[argc++] = (char*)globus_opts[it];
 
       argv[argc++] = (char*)minr;
 
@@ -1356,8 +1261,7 @@ string RCommand::copyCommand(const string& remShell, const bool& isRemote,
 
     } else if (remShell=="ftp" ||
                (remShell.find("/ftp")!=string::npos &&
-                remShell.find("/ftp")==remShell.length()-4) ||
-               remShell=="telnet") {
+                remShell.find("/ftp")==remShell.length()-4)) {
       theCopy = "ftp";
       argv[argc++] = (char*)mini;
       argv[argc++] = strdup((char*)machine.c_str());
@@ -1389,13 +1293,8 @@ string RCommand::copyToShell(const string& copyCmd)
 
   if (copyCmd=="scp" || copyCmd=="sftp")
     shellCmd = "ssh";
-  else if (copyCmd == "globus-rcp")
-    shellCmd = "Globus";
   else if (copyCmd == "rcp")
     shellCmd = "rsh";
-  else if (copyCmd == "ftp")
-    shellCmd = "telnet";
-
 
   return shellCmd;
 }
@@ -1465,6 +1364,12 @@ RCommand::RCommand(const string& machine, const string& remShell,
   // messages (the values passed in are const)
   p_machine = (machine=="" || machine=="-f" || machine=="system")?
                RCommand::whereami(): machine;
+
+  if (RCommand::isRemote(machine, remShell, userName)) {
+    p_errMessage = RCommand::removedShellMessage(remShell);
+    if (p_errMessage != "")
+      return;
+  }
 
   const char* transportEnv = getenv("ECCE_TRANSPORT");
   const string transportMode = transportEnv ? transportEnv : "";
@@ -1564,14 +1469,7 @@ RCommand::RCommand(const string& machine, const string& remShell,
   p_shell = RCommand::shellCommand(remShell, shellMachine, locShell, userName,
                                    p_hopCount>0, proxyAuth, argv);
 
-  // Globus uses the GSSAPI version of ssh for persistent connections
-  if (p_shell == "globusrun") {
-    if (!RCommand::globusproxy(password, p_errMessage))
-      return;
-
-    p_shell = "ssh";
-    argv[0] = strdup((char*)p_shell.c_str());
-  } else if (proxyAuth != "") {
+  if (proxyAuth != "") {
     if (!RCommand::userproxy(proxyAuth, theMachine, userName,
                              password, p_errMessage))
       return;
@@ -1585,7 +1483,6 @@ RCommand::RCommand(const string& machine, const string& remShell,
 
   bool done;
   string output;
-  bool first_telnet_prompt = true;
   bool login_prompt = false;
 
   // Save away spawned process id in order to use waitpid in destructor
@@ -1627,7 +1524,6 @@ hopToIt:
                                exp_glob, "passphrase*: $", 9,
                                exp_glob, "PASSCODE:$", 10,
                                exp_glob, "PASSCODE: $", 10,
-                               exp_glob, "telnet> $", 11,
                                exp_glob, "login: $", 12,
                                exp_glob, "Authentication succeeded", 14,
                                // Modern OpenSSH's actual -v output for a
@@ -1770,17 +1666,6 @@ hopToIt:
           return;
         break;
 
-      case 11:
-        if (first_telnet_prompt) {
-          if (!expwrite("environ define TERM ECCE_TELNET")) return;
-          first_telnet_prompt = false;
-        }
-        else {
-          if (!expwrite("open " + theMachine)) return;
-        }
-        done = false;
-        break;
-
       case 12:
         if (login_prompt) {
           p_errMessage = "Invalid username " + theUser +
@@ -1911,9 +1796,6 @@ hopToIt:
   if (expect1("+go+$") != 1) {
     p_errMessage =
       "Unsuccessful remote shell login--invalid username or password";
-    if (p_shell == "telnet")
-      p_errMessage += "\nDid you forget to modify the .login file to remove"
-                      " interactive prompts based on the $TERM variable?";
     return;
   }
 
@@ -1924,15 +1806,6 @@ hopToIt:
     if (!expwrite("unalias *")) return;
     if (expect1("\r\n+go+$") != 1) {
       p_errMessage = "Unsuccessful remote shell login--unalias * failed";
-      return;
-    }
-  }
-
-  if (p_shell == "telnet") {
-    cmd = useBash ? "export TERM=xterm" : "setenv TERM xterm";
-    if (!expwrite(cmd)) return;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful telnet login--setenv TERM xterm failed";
       return;
     }
   }
@@ -2053,7 +1926,6 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
 
   bool done;
   string output;
-  bool first_telnet_prompt = true;
   bool login_prompt = false;
 
   string theUser;
@@ -2107,7 +1979,6 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
                                exp_glob, "passphrase*: $", 9,
                                exp_glob, "PASSCODE:$", 10,
                                exp_glob, "PASSCODE: $", 10,
-                               exp_glob, "telnet> $", 11,
                                exp_glob, "login: $", 12,
                                exp_glob, "Authentication succeeded", 14,
                                // Modern OpenSSH's actual -v output for a
@@ -2250,17 +2121,6 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
           return false;
         break;
 
-      case 11:
-        if (first_telnet_prompt) {
-          if (!expwrite("environ define TERM ECCE_TELNET")) return false;
-          first_telnet_prompt = false;
-        }
-        else {
-          if (!expwrite("open " + p_machine)) return false;
-        }
-        done = false;
-        break;
-
       case 12:
         if (login_prompt) {
           p_errMessage = "Invalid username " + theUser +
@@ -2359,9 +2219,6 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
   if (expect1("+go+$") != 1) {
     p_errMessage =
       "Unsuccessful remote shell login--invalid username or password";
-    if (p_shell == "telnet")
-      p_errMessage += "\nDid you forget to modify the .login file to remove"
-                      " interactive prompts based on the $TERM variable?";
     return false;
   }
 
@@ -2372,15 +2229,6 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
     if (!expwrite("unalias *")) return false;
     if (expect1("\r\n+go+$") != 1) {
       p_errMessage = "Unsuccessful remote shell login--unalias * failed";
-      return false;
-    }
-  }
-
-  if (p_shell == "telnet") {
-    cmd = useBash ? "export TERM=xterm" : "setenv TERM xterm";
-    if (!expwrite(cmd)) return false;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful telnet login--setenv TERM xterm failed";
       return false;
     }
   }
@@ -2485,27 +2333,19 @@ hopToExit:
     (void)expwrite("exit; echo GOODBYE");
     (void)expect1("GOODBYE\r\n");
 
-    if (p_shell=="ssh" || p_shell=="telnet") {
-      // telnet is a bad boy.  Without the security of knowing what the
-      // prompt will be once the first exit (closes the csh/tcsh created within
-      // the telnet session) is sent we are effectively blind and just hoping
-      // that we are correctly closing the connection.  The sleep call is just
-      // a way of trying to let the first exit finish cleanly before issuing
-      // the second one which causes the actual logout.
+    if (p_shell=="ssh") {
+      // Let the first exit finish cleanly before the one that logs out.
       sleep(1);
       (void)expwrite("exit");
-      if (p_shell == "ssh") {
-        // If background commands were issued in this shell, then waiting for
-        // the regular ssh "connection closed" message will result in the
-        // exit hanging.  Use the ssh verbose mesage about "exit-status"
-        // because this happens before it waits on background jobs.
-        // (void)expect1("Connection to * closed.");
-        if (p_background)
-          (void)expect1("exit-status reply");
-        else
-          (void)expect1("Connection to * closed.");
-      } else
-        (void)expect1("Connection closed");
+      // If background commands were issued in this shell, then waiting for
+      // the regular ssh "connection closed" message will result in the
+      // exit hanging.  Use the ssh verbose mesage about "exit-status"
+      // because this happens before it waits on background jobs.
+      // (void)expect1("Connection to * closed.");
+      if (p_background)
+        (void)expect1("exit-status reply");
+      else
+        (void)expect1("Connection to * closed.");
     }
 
     // It is possible to be all hopped up!!  Actually, two hops should
@@ -2683,10 +2523,7 @@ string RCommand::commandShell(const string& machine, const string& remShell,
        remShell.find("/ssh")==remShell.length()-4) ||
       remShell=="rsh" || remShell.find("rsh/")==0 ||
       (remShell.find("/rsh")!=string::npos &&
-       remShell.find("/rsh")==remShell.length()-4) || 
-      remShell=="telnet" || remShell.find("telnet/")==0 ||
-      remShell=="Globus" || remShell.find("Globus/")==0 ||
-      remShell=="Globus-ssh" || remShell.find("Globus-ssh/")==0) {
+       remShell.find("/rsh")==remShell.length()-4)) {
     // empty -- done this way for speed of evaluation
   } else {
     string shellMatch = remShell + ":";
@@ -2760,10 +2597,7 @@ string RCommand::argsToCommand(const string& command, const string& args,
   if (!isRemote ||
       remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
       remShell.find("ssh/")==0 ||
-      remShell=="rsh" || remShell.find("rsh/")==0 ||
-      remShell=="telnet" || remShell.find("telnet/")==0 ||
-      remShell=="Globus" || remShell.find("Globus/")==0 ||
-      remShell=="Globus-ssh" || remShell.find("Globus-ssh/")==0) {
+      remShell=="rsh" || remShell.find("rsh/")==0) {
     // empty -- done this way for speed of evaluation
   } else {
     string shellMatch = remShell + ":";
@@ -2834,10 +2668,7 @@ string RCommand::argsToCommand(const string& command, const string& args,
        theShell.find("/ssh")==theShell.length()-4) ||
       theShell=="rsh" || theShell.find("rsh/")==0 ||
       (theShell.find("/rsh")!=string::npos &&
-       theShell.find("/rsh")==theShell.length()-4) || 
-      theShell=="telnet" || theShell.find("telnet/")==0 ||
-      theShell=="Globus" || theShell.find("Globus/")==0 ||
-      theShell=="Globus-ssh" || theShell.find("Globus-ssh/")==0)
+       theShell.find("/rsh")==theShell.length()-4))
     commandWithArgs = command;
 
   if (args != "") {
@@ -3015,261 +2846,6 @@ bool RCommand::userproxy(const string& proxyAuth, const string& machine,
 
   // Must wait for EOF before closing descriptor
   (void)wait(NULL);
-
-  // Shouldn't complain even if spawned process has already been closed by EOF
-  close(theFid);
-
-  return status;
-}
-
-bool RCommand::globusproxy(const string& password, string& errMessage)
-{
-  bool status = false;
-
-  if (getenv("ECCE_RCOM_DEBUGGING"))
-    exp_is_debugging = 1;
-  else
-    exp_is_debugging = 0;
-
-  if (getenv("ECCE_RCOM_LOGMODE"))
-    exp_loguser = 1;
-  else
-    exp_loguser = 0;
-
-  // This should finish quickly
-  exp_timeout = RC_EXEC_TIMEOUT;
-
-  static const char* command = "grid-proxy-init";
-  static const char* minh = "-hours";
-  static const char* hours = "336";   // 2 weeks
-
-  char *argv[4];
-  argv[0] = (char*)command;
-  argv[1] = (char*)minh;
-  argv[2] = (char*)hours;
-  argv[3] = (char*)0;
-
-  if (exp_loguser == 1) {
-    cout << "globus proxy command:" << endl;
-    for (int it=0; it<3; it++)
-      cout << "arg " << it << ": " << argv[it] << endl;
-    cout << "end globus proxy command" << endl; 
-  }
-
-  int theFid;
-  if ((theFid = exp_spawnv((char*)command, argv)) <= 0) {
-    errMessage = "Unable to spawn command ";
-    errMessage += command;
-    return false;
-  }
-
-  string output;
-  bool done;
-  do {
-    done = true;  // be optimistic
-
-    switch (exp_expectl(theFid, exp_glob, "Command not found", 1,
-                                exp_glob, "execvp(", 1,
-                                exp_glob, "Bad", 2,
-                                exp_glob, "ERROR", 2,
-                                exp_glob, "pass phrase for this identity:$", 3,
-                                exp_end)) {
-      case 1:
-        errMessage = "Unable to find grid-proxy-init command";
-        errMessage += " (not in the path?)";
-        break;
-
-      case 2:
-        if (strlen(exp_buffer) > 2)
-          exp_buffer[strlen(exp_buffer)-2] = '\0';
-        output = (exp_buffer != NULL)? exp_buffer: "";
-        errMessage = "Unsuccessful Globus proxy authentication";
-        if (output != "")
-          errMessage += "\nError output: " + output;
-        break;
-
-      case 3:
-        // Globus requires 4+ character pass phrases so send it a bogus
-        // pass phrase so it doesn't go into an infinite loop prompting for
-        // one that's too short
-        exp_elide(password.c_str());
-        if (password.length() < 4) {
-          if (!fidwrite(theFid, "XXXX", errMessage)) break;
-        }
-        else if (!fidwrite(theFid, password, errMessage)) break;
-
-        done = false;
-        break;
-
-      case EXP_EOF:
-        // Successful login
-        status = true;
-        break;
-
-      case EXP_TIMEOUT:
-        errMessage = "Timeout running Globus proxy authentication";
-        break;
-
-      default:
-        errMessage = "Unrecognized Globus proxy authentication failure";
-        break;
-    }
-  } while (!done);
-
-  exp_elide(NULL);
-
-  // Must wait for EOF before closing descriptor
-  (void)wait(NULL);
-
-  // Shouldn't complain even if spawned process has already been closed by EOF
-  close(theFid);
-
-  return status;
-}
-
-
-///////////////////////////////////////////////////////////////////////////////
-//
-//  Description
-//
-//  Implementation
-//
-///////////////////////////////////////////////////////////////////////////////
-bool RCommand::globusrun(const string& command, string& output,
-                         string& errMessage,
-                         const string& machine, const string& contact,
-                         const string& password, const string& queueRSL)
-{
-  if (!RCommand::globusproxy(password, errMessage))
-    return false;
-
-  bool status = false;
-  string globuscn;
-  string globusrsl;
-
-  if (getenv("ECCE_RCOM_DEBUGGING"))
-    exp_is_debugging = 1;
-  else
-    exp_is_debugging = 0;
-
-  if (getenv("ECCE_RCOM_LOGMODE"))
-    exp_loguser = 1;
-  else
-    exp_loguser = 0;
-
-  // Bump up timeout because we can't predict how long a command takes
-  exp_timeout = RC_COMMAND_TIMEOUT;
-
-  // Set the machine and user name variables for the benefit of error
-  // messages (the values passed in are const)
-  string theMachine = (machine=="" || machine=="-f" || machine=="system")?
-                       RCommand::whereami(): machine;
-
-  char *argv[MAXARGS];
-  int argc = 1;
-
-  // local user/machine connections don't need a remote shell
-  static const char* theShell = "globusrun";
-  static const char* minq = "-q";
-  static const char* minb = "-b";
-  static const char* minr = "-r";
-
-  argv[argc++] = (char*)minq;
-  argv[argc++] = (char*)minb;
-  argv[argc++] = (char*)minr;
-
-  globuscn = machine;
-  if (contact != "")
-    globuscn += "/" + contact;
-  argv[argc++] = strdup((char*)globuscn.c_str());
-
-  globusrsl = RCommand::globusRSL(command, queueRSL);
-  argv[argc++] = strdup((char*)globusrsl.c_str());
-
-  argv[0] = (char*)theShell;
-  argv[argc] = (char*)0;
-
-  if (exp_loguser == 1) {
-    cout << "globusrun command:" << endl;
-    for (int it=0; it<argc; it++)
-      cout << "arg " << it << ": " << argv[it] << endl;
-    cout << "end globusrun command" << endl; 
-  }
-
-  int theFid;
-  if ((theFid = exp_spawnv((char*)theShell, argv)) <= 0) {
-    errMessage = "Unable to run remote shell ";
-    errMessage += theShell;
-    errMessage += " (not in the path?)";
-    return false;
-  }
-
-  bool done;
-  do {
-    done = true;  // be optimistic
-
-    switch (exp_expectl(theFid, exp_glob, "globusrun: Command not found", 1,
-                                exp_glob, "execvp(", 1,
-                                exp_glob, "denied", 2,
-                                exp_glob, "failed", 2,
-                                exp_glob, " closed", 2,
-                                exp_glob, "remote server failed", 2,
-                                exp_glob, "Bad host name", 3,
-                                exp_glob, "Unknown host", 3,
-                                exp_glob, "error code*\n", 4,
-                                exp_end)) {
-      case 1:
-        errMessage = "Unable to find remote shell ";
-        errMessage += theShell;
-        errMessage += " (not in the path?)";
-        break;
-
-      case 2:
-        errMessage = "Permission to run shell ";
-        errMessage += theShell;
-        errMessage += " denied for " + machine;
-        break;
-
-      case 3:
-        errMessage = "Unknown or unavailable host " + machine;
-        break;
-
-      case 4:
-        if (strlen(exp_buffer) > 2)
-          exp_buffer[strlen(exp_buffer)-2] = '\0';
-        output = (exp_buffer != NULL)? exp_buffer: "";
-        errMessage = "Could not run " + command;
-        if (output != "")
-          errMessage += "\nError output: " + output;
-        break;
-
-      case EXP_EOF:
-        // Successful login without password
-        status = true;
-        if (strlen(exp_buffer) > 2)
-          exp_buffer[strlen(exp_buffer)-2] = '\0';
-        output = (exp_buffer != NULL)? exp_buffer: "";
-        break;
-
-      case EXP_TIMEOUT:
-        errMessage = "Timeout running remote shell ";
-        errMessage += theShell;
-        errMessage += " for " + machine;
-        break;
-
-      default:
-        errMessage ="Unrecognized authentication failure running remote shell ";
-        errMessage += theShell;
-        errMessage += " for " + machine;
-        break;
-    }
-  } while (!done);
-
-  // Must wait for EOF before closing descriptor
-  (void)wait(NULL);
-
-  // Set timeout back to normal
-  exp_timeout = RC_EXEC_TIMEOUT;
 
   // Shouldn't complain even if spawned process has already been closed by EOF
   close(theFid);
@@ -4087,7 +3663,7 @@ bool RCommand::copy(string& errMessage,
         break;
 
       case 11:
-        errMessage = "Globus remote copy authentication failure";
+        errMessage = "Remote copy authentication failure";
         break;
 
       case 12:
@@ -4710,6 +4286,15 @@ bool RCommand::get(string& errMessage,
 
   bool isRemote = RCommand::isRemote(machine, remShell, userName);
 
+  if (isRemote) {
+    string removed = RCommand::removedShellMessage(remShell);
+    if (removed != "") {
+      errMessage = removed;
+      va_end(ap);
+      return false;
+    }
+  }
+
   int argc = 0;
   char** argv = (char**)malloc((numFiles+MAXARGS) * sizeof(char*));
 
@@ -4719,18 +4304,12 @@ bool RCommand::get(string& errMessage,
 
   if (theCopy!="ftp" && theCopy!="sftp" && isRemote) {
     string fromFileBaseStr = "";
-    if (theCopy!="globus-rcp" && userName!="")
+    if (userName!="")
       fromFileBaseStr = userName + "@";
 
     fromFileBaseStr += machine + ":";
 
-    if (theCopy == "globus-rcp") {
-      if (!RCommand::globusproxy(password, errMessage))
-        return false;
-
-      theCopy = "scp";
-      argv[0] = strdup((char*)theCopy.c_str());
-    } else if (proxyAuth != "") {
+    if (proxyAuth != "") {
       if (!RCommand::userproxy(proxyAuth, machine, userName,
                                password, errMessage))
         return false;
@@ -4857,6 +4436,14 @@ bool RCommand::get(string& errMessage,
 
   bool isRemote = RCommand::isRemote(machine, remShell, userName);
 
+  if (isRemote) {
+    string removed = RCommand::removedShellMessage(remShell);
+    if (removed != "") {
+      errMessage = removed;
+      return false;
+    }
+  }
+
   int argc = 0;
   char** argv = (char**)malloc((numFiles+MAXARGS) * sizeof(char*));
 
@@ -4866,18 +4453,12 @@ bool RCommand::get(string& errMessage,
 
   if (theCopy!="ftp" && theCopy!="sftp" && isRemote) {
     string fromFileBaseStr = "";
-    if (theCopy!="globus-rcp" && userName!="")
+    if (userName!="")
       fromFileBaseStr = userName + "@";
 
     fromFileBaseStr += machine + ":";
 
-    if (theCopy == "globus-rcp") {
-      if (!RCommand::globusproxy(password, errMessage))
-        return false;
-
-      theCopy = "scp";
-      argv[0] = strdup((char*)theCopy.c_str());
-    } else if (proxyAuth != "") {
+    if (proxyAuth != "") {
       if (!RCommand::userproxy(proxyAuth, machine, userName,
                                password, errMessage))
         return false;
@@ -4957,6 +4538,15 @@ bool RCommand::put(string& errMessage,
   string toFile;
   bool isRemote = RCommand::isRemote(machine, remShell, userName);
 
+  if (isRemote) {
+    string removed = RCommand::removedShellMessage(remShell);
+    if (removed != "") {
+      errMessage = removed;
+      va_end(ap);
+      return false;
+    }
+  }
+
   int argc = 0;
   char** argv = (char**)malloc((numFiles+MAXARGS) * sizeof(char*));
 
@@ -4968,17 +4558,11 @@ bool RCommand::put(string& errMessage,
     toFile = (char*)va_arg(ap, char*);
   else {
     toFile = "";
-    if (theCopy!="globus-rcp" && userName!="")
+    if (userName!="")
       toFile = userName + "@";
     toFile += machine + ":" + (char*)va_arg(ap, char*);
 
-    if (isRemote && theCopy=="globus-rcp") {
-      if (!RCommand::globusproxy(password, errMessage))
-        return false;
-
-      theCopy = "scp";
-      argv[0] = strdup((char*)theCopy.c_str());
-    } else if (proxyAuth != "") {
+    if (proxyAuth != "") {
       if (!RCommand::userproxy(proxyAuth, machine, userName,
                                password, errMessage))
         return false;
@@ -5046,6 +4630,14 @@ bool RCommand::put(string& errMessage,
   string fullToFile;
   bool isRemote = RCommand::isRemote(machine, remShell, userName);
 
+  if (isRemote) {
+    string removed = RCommand::removedShellMessage(remShell);
+    if (removed != "") {
+      errMessage = removed;
+      return false;
+    }
+  }
+
   int argc = 0;
   char* argv[MAXARGS];
 
@@ -5057,17 +4649,11 @@ bool RCommand::put(string& errMessage,
     fullToFile = toFile;
   else {
     fullToFile = "";
-    if (theCopy!="globus-rcp" && userName!="")
+    if (userName!="")
       fullToFile = userName + "@";
     fullToFile += machine + ":" + toFile;
 
-    if (isRemote && theCopy=="globus-rcp") {
-      if (!RCommand::globusproxy(password, errMessage))
-        return false;
-
-      theCopy = "scp";
-      argv[0] = strdup((char*)theCopy.c_str());
-    } else if (proxyAuth != "") {
+    if (proxyAuth != "") {
       if (!RCommand::userproxy(proxyAuth, machine, userName,
                                password, errMessage))
         return false;
