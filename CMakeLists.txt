@@ -1603,4 +1603,20 @@ if(PYTHON3_EXECUTABLE)
     ecceutil ${XercesC_LIBRARIES})
   add_test(NAME transport_rcommand COMMAND testRCommandDirect)
   set_tests_properties(transport_rcommand PROPERTIES TIMEOUT 120)
+
+  # tests/launch -- submit one real MOPAC job on localhost/Shell through
+  # the real Launch class and assert it reaches "completed" (#107 A).
+  # launchjob is a test driver and is not installed.  The suite SKIPs
+  # (exit 77) when MOPAC, csh or the data-server prerequisites are absent.
+  add_executable(launchjob tests/launch/launchjob.C)
+  target_include_directories(launchjob PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(launchjob PRIVATE
+    eccecommxt eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME launch
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_tests.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 endif()
