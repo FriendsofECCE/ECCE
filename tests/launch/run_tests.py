@@ -511,6 +511,8 @@ class Suite(object):
             self.check(not left, "no eccejobmonitor left after the job "
                        "completed%s" % (" (pids %s)" % left if left else ""))
         if state != "completed":
+            say("  ---- eccejobmaster.log\n" + self.masterLog(name)[-1500:])
+            say("  ---- eccejobstore.log (last run)\n" + self.monitorLog[-2500:])
             self.diagnose(url)
             return
 
