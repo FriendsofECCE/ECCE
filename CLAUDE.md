@@ -27,27 +27,18 @@ subagent flags, directly.
 - Andy runs Debian ("trixie") on his machines — **beryllium** and
   **niobium**. Default to Debian conventions, not Ubuntu, for anything
   environment/package related, unless told otherwise.
-- Releases are tagged (e.g. `v8.0.0-alpha.1`) on `main`. The exception
-  is a bugfix release made after `main` has moved on to the next minor
-  version: it goes on a `release/X.Y.Z` branch off the previous tag,
-  with the fixes cherry-picked from `main` (8.16.2 and 8.16.3 were made
-  this way while `main` was 8.17.0-dev). One long-lived branch exists by
-  design: `v9` (the code-name for the revamped ECCE; worktree `../ECCE-native`), the **9.x
-  experimental line** (plan on #133). Risky or structural work lands
-  there first: the libssh transport, the server/client package split,
-  STOMP broker access, the Coin3D viewer, retiring csh. `main` is the
-  **8.x stable line**: bug fixes go straight to it, and proven 9.x
-  changes are **backported** as small cherry-picks ("cherry picked
-  from ..."). "Proven" means its test passes on 9.x, it has run there
-  a while, and Andy has seen anything user-visible. Keep 9.x commits
-  backport-sized (one change plus its test), and bring `main` into 9.x
-  regularly so backports stay conflict-free. "v9" is a code-word for
-  the big future features, not a gate: anything from it that is useful
-  now and opt-in on 8.x can ship in an 8.x release, as the split
-  packages did in 8.16.6 (Andy, 2026-09-29). Old branches
-  (`develop`, `modernize-build`, `stable`, `master`, `make`) were
-  consolidated into `main` and renamed to `archive/*` — no reason to
-  branch from or compare against them.
+- Releases are tagged on `main`, which is the **9.x line** (9.0.0-dev
+  from 2026-10-01; the breaking changes — split packages, sh job
+  scripts, no site-defined shells, "killed" only on a user cancel —
+  made it 9.0.0). **8.x gets bug fixes only** (Andy, 2026-10-01): each
+  8.x patch release goes on its own `release/X.Y.Z` branch off the
+  previous tag, with the fix cherry-picked from `main` (`-x`), as
+  8.18.1 and 8.18.2 were. Before tagging, run `tests/teaching` on the
+  release branch. The `v9` branch was merged into `main` and retired
+  (`archive/v9`); work that needs isolation goes on short-lived `wip/*`
+  branches. Old branches (`develop`, `modernize-build`, `stable`,
+  `master`, `make`) were consolidated into `main` and renamed to
+  `archive/*` — no reason to branch from or compare against them.
 - Build directory is `build-cmake` (not `cmake-build`) — `ninja` or
   `cmake --build .` from inside it.
 - **The Gateway window no longer appears** (#93, 2026-09-22). `ecce`
