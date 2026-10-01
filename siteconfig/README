@@ -15,8 +15,9 @@ jndi.properties - information needed by the messaging server.
 This information is filled in by the installation script and can be hand
 modified later.
 
-remote_shells.site - customizations for remote shell, copy, and remote
-xterm commands.  See the extensive documentation within this file.
+remote_shells.site - removed.  Site-defined remote shells are no longer
+supported: every machine connects with ssh (ssh, sshpass or ssh/ftp).  A
+leftover copy of the file is ignored.
 
 site_runtime - environment variables used by Ecce.
 

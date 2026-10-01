@@ -1343,7 +1343,7 @@ endif()
 # resetting it to localhost would silently break every -remote client.
 set(_ecce_siteconfig_conffiles
   Machines Queues QueueManagers DataServers site_runtime jndi.properties
-  remote_shells.site submit.site AppColors StartupMessage NewUserMessage
+  submit.site AppColors StartupMessage NewUserMessage
   CONFIG.dummy dummy.Q example-slurm.Q
   CONFIG-Examples/CONFIG.loadleveler CONFIG-Examples/CONFIG.lsf
   CONFIG-Examples/CONFIG.mpp2 CONFIG-Examples/CONFIG.pbs

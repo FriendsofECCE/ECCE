@@ -491,7 +491,7 @@ connections opened after the change, and a job keeps the choice it was
 launched with. An ssh host key ECCE has not seen is asked about in a
 dialog, and is refused until accepted. `ECCE_TRANSPORT` overrides the
 checkbox: `ssh` or `direct` turn it on, `pty` turns it off. Machines with
-a front end or a site-defined shell keep the shell session. It is
+a front end keep the shell session. It is
 experimental; leave it off unless you are testing it.
 
 ## 7. Getting help

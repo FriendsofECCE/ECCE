@@ -523,24 +523,6 @@ vector<string>* RefMachine::remshells(void) const
   while (!(token = next.next(":")).empty())
     result->push_back(token);
 
-  string siteShellFile = Ecce::ecceHome();
-  siteShellFile += "/siteconfig/remote_shells.site";
-
-  if (access(siteShellFile.c_str(), F_OK) == 0) {
-    ifstream is(siteShellFile.c_str());
-    char buf[256];
-    char* tokptr;
-    while (!is.eof()) {
-      is.getline(buf, 255);
-      if (buf[0]!='\0' && buf[0]!='#') {
-        tokptr = strtok(buf, ":");
-        if (tokptr != NULL)
-          result->push_back(tokptr);
-      }
-    }
-    is.close();
-  }
-
   return result;
 }
 

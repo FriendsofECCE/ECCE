@@ -1,6 +1,7 @@
 // Machines registered with a removed remote shell (telnet, Globus,
-// Globus-ssh, rsh, rcp) must fail with a message that says what to do, through the
-// channel connection errors already use, and must not reach any spawn.
+// Globus-ssh, rsh, rcp, and anything remote_shells.site used to define) must
+// fail with a message that says what to do, through the channel connection
+// errors already use, and must not reach any spawn.
 
 #include <cstdlib>
 #include <fstream>
@@ -32,8 +33,10 @@ int main()
     f << "mysiteshell: /bin/false\n"; }
   setenv("ECCE_HOME", home.c_str(), 1);
 
+  // mysiteshell is defined in the site file above, which is now ignored.
   const char* removed[] = {"telnet", "Globus", "Globus-ssh", "telnet/ftp",
-                           "rsh", "rsh/ftp", "rcp", 0};
+                           "rsh", "rsh/ftp", "rcp", "mysiteshell", "sftp",
+                           "scp", "ftp", "krsh/ftp", 0};
   for (int i = 0; removed[i]; i++) {
     const string shell = removed[i];
     const string name = shell.substr(0, shell.find('/'));
@@ -57,20 +60,10 @@ int main()
   }
 
   // The supported shells are not reported as removed.
-  const char* kept[] = {"", "ssh", "sshpass", "ssh/ftp", "sftp",
-                        "mysiteshell", 0};
+  const char* kept[] = {"", "ssh", "sshpass", "ssh/ftp", 0};
   for (int i = 0; kept[i]; i++)
     check(RCommand::removedShellMessage(kept[i]).empty(),
           string("'") + kept[i] + "' is still supported");
-
-  // A site-defined shell (remote_shells.site) still takes the pty path:
-  // the session is attempted, so the failure is not the removed-shell one.
-  {
-    RCommand rc("nosuchhost.invalid", "mysiteshell", "csh", "nobody", "x");
-    check(!rc.isOpen(), "unknown site shell cannot open");
-    check(rc.commError().find("no longer supported") == string::npos,
-          "site shell is not reported as removed");
-  }
 
   unlink((home + "/siteconfig/remote_shells.site").c_str());
   rmdir((home + "/siteconfig").c_str());

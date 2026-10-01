@@ -123,14 +123,10 @@ public:
     typedef bool (*HostKeyHook)(const string& host, const string& fingerprint);
     static HostKeyHook hostKeyHook;
 
-    // Non-empty (a message fit to show the user) when remShell names one of
-    // the shells ECCE no longer supports: telnet, Globus, Globus-ssh.
+    // Non-empty (a message fit to show the user) when remShell is anything
+    // but the ssh family (ssh, sshpass, ssh/ftp): telnet, Globus, rsh and
+    // the shells remote_shells.site used to define are all refused.
     static string removedShellMessage(const string& remShell);
-
-    static bool userproxy(const string& proxyAuth, const string& machine,
-                          const string& userName, const string& password,
-                          string& errMessage);
-
 
     static bool get(string& errMessage,
                     const string& machine, const string& remShell,
@@ -223,21 +219,11 @@ private:
     static bool globFiles(const char** inFiles, char**& outFiles,int& numFiles);
     static string shellCommand(const string& remShell, const string& machine,
                                const string& locShell, const string& userName,
-                               const bool& hopFlag, string& proxyAuth,
-                               char** argv);
+                               const bool& hopFlag, char** argv);
     static string copyCommand(const string& remShell, const bool& isRemote,
                               const string& machine, const string& userName,
-                              string& proxyAuth, int& argc, char** argv);
+                              int& argc, char** argv);
     static string copyToShell(const string& copyCmd);
-    static string userCommand(const string& command,
-                              const string& remShell, const string& machine,
-                              const string& locShell, const string& userName,
-                              string& proxyAuth, char** argv);
-    static string userShellCommandArgs(const string& remShell,
-                                       string& proxyAuth,
-                                       int& argc, char** argv);
-    static string userCopyCommandArgs(const string& remCopy, string& proxyAuth,
-                                      int& argc, char** argv);
     static void expMungedOutputFix();
 
     static const bool getPassCache(const string& shell, const string& machine,

@@ -830,18 +830,18 @@ bool RCommand::isSameDomain(const string& machine)
 
 string RCommand::removedShellMessage(const string& remShell)
 {
+  // Only the ssh family is left: telnet, Globus, rsh and the site-defined
+  // shells of remote_shells.site are all refused alike.
   string name = remShell.substr(0, remShell.find('/'));
-  if (name=="telnet" || name=="Globus" || name=="Globus-ssh" ||
-      name=="rsh" || name=="rcp")
-    return "The remote shell '" + name + "' is no longer supported by ECCE; "
-           "edit this machine in Machine Registration and choose ssh.";
-  return "";
+  if (name=="" || name=="ssh" || name=="sshpass")
+    return "";
+  return "The remote shell '" + name + "' is no longer supported by ECCE; "
+         "edit this machine in Machine Registration and choose ssh.";
 }
 
 string RCommand::shellCommand(const string& remShell, const string& machine,
                               const string& locShell, const string& userName,
-                              const bool& hopFlag, string& proxyAuth,
-                              char** argv)
+                              const bool& hopFlag, char** argv)
 {
   string theShell;
 
@@ -925,17 +925,6 @@ string RCommand::shellCommand(const string& remShell, const string& machine,
         for (it=0; sshpass_opts[it]!=(char*)0; it++)
           argv[argc++] = (char*)sshpass_opts[it];
 
-    } else {
-      theShell = RCommand::userShellCommandArgs(remShell, proxyAuth, argc,argv);
-      if (theShell=="ssh" || (theShell.find("/ssh")!=string::npos &&
-                              theShell.find("/ssh")==theShell.length()-4)) {
-        // enable ssh verbose mode
-        argv[argc++] = (char*)minv;
-
-        // enable ssh X11 port forwarding
-        argv[argc++] = (char*)mino;
-        argv[argc++] = (char*)minx;
-      }
     }
 
     if (userName!="") {
@@ -983,324 +972,9 @@ string RCommand::shellCommand(const string& remShell, const string& machine,
   return theShell;
 }
 
-string RCommand::userCommand(const string& command,
-                             const string& fullShell, const string& machine,
-                             const string& locShell, const string& userName,
-                             string& proxyAuth, char** argv)
-{
-  static const char* minfc  =  "-fc";
-  static const char* minc  =  "-c";
-  static const char* minl  =  "-l";
-
-  // for forwarding ssh X11 connections
-  static const char* mino  =  "-o";
-  static const char* minx  =  "ForwardX11=yes";
-
-  int argc = 1, it;
-  string theShell;
-  string theMachine = (machine=="" || machine=="-f" || machine=="system")?
-                       RCommand::whereami(): machine;
-
-  char* tokenize;
-  string remShell = "";
-
-  // strtok hangs with an empty string
-  if (fullShell != "") {
-    tokenize = strdup((char*)fullShell.c_str());
-    remShell = strtok(tokenize, " ");
-  }
-
-  if (RCommand::isRemote(machine, remShell, userName)) {
-    if (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
-        remShell.find("ssh/")==0) {
-      theShell = "ssh";
-
-      // enable ssh X11 port forwarding
-      argv[argc++] = (char*)mino;
-      argv[argc++] = (char*)minx;
-
-      // All the ssh "-o" options that attempt to force password authentication.
-      // They seem to have some effect although I'm sure the server side sshd
-      // daemon ultimately decides what authentication it will accept.
-      // Only apply these if the shell is sshpass to potentially allow other
-      // types of ssh authentication as long as it doesn't break the expect
-      // pattern matching.
-      if (remShell == "sshpass")
-        for (it=0; sshpass_opts[it]!=(char*)0; it++)
-          argv[argc++] = (char*)sshpass_opts[it];
-
-    } else {
-      theShell = RCommand::userShellCommandArgs(remShell, proxyAuth, argc,argv);
-      if (theShell=="ssh" || (theShell.find("/ssh")!=string::npos &&
-                              theShell.find("/ssh")==theShell.length()-4)) {
-        // enable ssh X11 port forwarding
-        argv[argc++] = (char*)mino;
-        argv[argc++] = (char*)minx;
-      }
-    }
-
-    if (fullShell.find(" -l ") != string::npos) {
-      string subme = fullShell;
-      int idx = subme.find("##user##");
-      if (idx != string::npos)
-        subme.replace(idx, 8, userName);
-
-      idx = subme.find("##machine##");
-      if (idx != string::npos)
-        subme.replace(idx, 11, theMachine);
-
-      // tokenize with ##command## within the string so we can substitute
-      // for this in argv directly w/o tokenizing the command itself
-      char* tokenify = strdup((char*)subme.c_str());
-      string tossShell = strtok(tokenify, " ");
-
-      while ((argv[argc++] = strtok(NULL, " ")) != NULL);
-      argc--;
-
-      // find ##command## and then throw in the value for command in the
-      // same place within argv
-      for (idx=1; idx<argc && strcmp(argv[idx], "##command##")!=0 &&
-                  strcmp(argv[idx], "command##")!=0; idx++);
-
-      if (idx < argc) {
-        if (command != "") {
-          // prepend "csh/tcsh -c" for standard remote shells so we know the
-          // environment the command will be executed under
-          if (theShell=="ssh" || theShell=="rsh") {
-            string cshCommand = locShell + " -c '";
-            cshCommand += command + "'";
-            argv[idx] = strdup((char*)cshCommand.c_str());
-          } else
-            argv[idx] = strdup((char*)command.c_str());
-
-          // check if the preceeding argument started with a ## which
-          // indicates that the command was actually a compound structure
-          // such as ##-e command##
-          // In this case we get rid of the leading ## and combine them
-          // as a single argument
-          if (idx>0 && strncmp(argv[idx-1], "##", 2)==0) {
-            char* cptr = argv[idx-1];
-            cptr += 2;
-            argv[idx-1] = (char*)malloc(strlen(cptr) + strlen(argv[idx]) + 2);
-            strcpy(argv[idx-1], cptr);
-            strcat(argv[idx-1], " ");
-            strcat(argv[idx-1], argv[idx]);
-
-            argc--;
-            for (it=idx; it<argc; it++)
-              argv[it] = argv[it+1];
-          }
-
-        } else {
-          // no command--get rid of ##command## placeholder from argv
-          argc--;
-          for (it=idx; it<argc; it++)
-            argv[it] = argv[it+1];
-
-          // if it is a compound command then get rid of that argument too
-          if (idx>0 && strncmp(argv[idx-1], "##", 2)==0) {
-            argc--;
-            for (it=idx-1; it<argc; it++)
-              argv[it] = argv[it+1];
-          }
-        }
-
-      } else if (command != "") {
-        // append command as a new last arg
-        // prepend "csh/tcsh -c" for standard remote shells so we know the
-        // environment the command will be executed under
-        if (theShell=="ssh" || theShell=="rsh") {
-          string cshCommand = locShell + " -c '" + command + "'";
-          argv[argc++] = strdup((char*)cshCommand.c_str());
-        } else
-          argv[argc++] = strdup((char*)command.c_str());
-      }
-
-    } else {
-      if (userName!="") {
-        argv[argc++] = (char*)minl;
-        argv[argc++] = strdup((char*)userName.c_str());
-      }
-
-      argv[argc++] = strdup((char*)theMachine.c_str());
-
-      // append on any extra args given with fullShell
-      // this completes the strtok up at the top of the method
-      while ((argv[argc++] = strtok(NULL, " ")) != NULL);
-      argc--;
-
-#if 000
-      // seems like passing the whole command as a single argument works
-      // just fine.  But if it doesn't then it can simply be tokenized
-      // which for some reason also behaves correctly with quotes around
-      // tokens to indicate grouping
-      tokenize = strdup((char*)command.c_str());
-      argv[argc++] = strtok(tokenize, " ");
-      while ((argv[argc++] = strtok(NULL, " ")) != NULL);
-      argc--;
-#else
-      if (command != "") {
-        // prepend "csh/tcsh -c" for standard remote shells so we know the
-        // environment the command will be executed under
-        if (theShell=="ssh" || theShell=="rsh") {
-          string cshCommand = locShell + " -c '" + command + "'";
-          argv[argc++] = strdup((char*)cshCommand.c_str());
-        } else
-          argv[argc++] = strdup((char*)command.c_str());
-      }
-#endif
-    }
-
-  } else {
-    theShell = locShell;
-
-    // The "-f" or "system" value for the machine indicates a local launch
-    // that is a fast shell (doesn't read .cshrc) and thus picks up the
-    // environment of the calling process.  This is suitable for using an
-    // RCommand instance to replace the usual system() calls.
-    if (machine=="-f" || machine=="system")
-      argv[argc++] = (char*)minfc;
-    else
-      argv[argc++] = (char*)minc;
-
-    if (command != "")
-      argv[argc++] = strdup((char*)command.c_str());
-  }
-
-  argv[0] = strdup((char*)theShell.c_str());
-  argv[argc] = (char*)0;
-
-  if (exp_loguser == 1) {
-    cout << "Remote shell command:" << endl;
-    for (it=0; it<argc; it++)
-      cout << "arg " << it << ": " << argv[it] << endl;
-    cout << "End remote shell command" << endl; 
-  }
-
-  return theShell;
-}
-
-string RCommand::userShellCommandArgs(const string& remShell, string& proxyAuth,
-                                      int& argc, char** argv)
-{
-  proxyAuth = "";
-  string ret = remShell;
-  string shellMatch = remShell + ":";
-
-  string siteShellFile = Ecce::ecceHome();
-  siteShellFile += "/siteconfig/remote_shells.site";
-
-  if (access(siteShellFile.c_str(), F_OK) == 0) {
-    ifstream is(siteShellFile.c_str());
-    char buf[MAXLINE];
-    char* tok;
-    while (!is.eof()) {
-      is.getline(buf, MAXLINE);
-      if (buf[0]!='\0' && buf[0]!='#') {
-        if (strncmp(buf, shellMatch.c_str(), shellMatch.length()) == 0) {
-          tok = &buf[shellMatch.length()];
-          char* afterptr = NULL;
-          char* slashptr = strchr(tok, '|');
-          if (slashptr != NULL) {
-            afterptr = slashptr+1;
-            *slashptr = '\0';
-	  }
-
-          tok = strtok(tok, " ");
-          ret = tok==NULL? remShell.c_str(): tok;
-
-          while ((tok = strtok(NULL, " ")) != NULL)
-            argv[argc++] = strdup(tok);
-
-          if (afterptr != NULL) {
-            afterptr = strchr(afterptr, '|');
-            if (afterptr != NULL) {
-              afterptr = strchr(afterptr+1, '|');
-              if (afterptr!=NULL && afterptr+1!=NULL)
-                // this is the 4th item
-                proxyAuth = afterptr+1; 
-            }
-          }
-          break;
-        }
-      }
-    }
-    is.close();
-  }
-
-  string::size_type slash = ret.find('\\');
-  if (slash != string::npos)
-    ret.resize(slash);
-
-  return ret;
-}
-
-string RCommand::userCopyCommandArgs(const string& remCopy, string& proxyAuth,
-                                     int& argc, char** argv)
-{
-  string ret = remCopy;
-  string copyMatch = remCopy + ":";
-
-  string siteShellFile = Ecce::ecceHome();
-  siteShellFile += "/siteconfig/remote_shells.site";
-
-  if (access(siteShellFile.c_str(), F_OK) == 0) {
-    ifstream is(siteShellFile.c_str());
-    char buf[MAXLINE];
-    char* tok;
-    char* tokend;
-    while (!is.eof()) {
-      is.getline(buf, MAXLINE);
-      if (buf[0]!='\0' && buf[0]!='#') {
-        if (strncmp(buf, copyMatch.c_str(), copyMatch.length()) == 0) {
-          tok = strchr(&buf[copyMatch.length()], '|');
-          char* afterptr = NULL;
-          if (tok != NULL) {
-            tok++;
-            tokend = strchr(tok, '|');
-            if (tokend != NULL) {
-              afterptr = tokend+1;
-              *tokend = '\0';
-	    }
-          } else
-            tok = &buf[copyMatch.length()];
-
-          tok = strtok(tok, " ");
-          ret = tok==NULL? remCopy.c_str(): tok;
-
-          while ((tok = strtok(NULL, " ")) != NULL)
-            argv[argc++] = strdup(tok);
-
-          if (afterptr != NULL) {
-            afterptr = strchr(afterptr+1, '|');
-            if (afterptr!=NULL && afterptr+1!=NULL)
-              // this is the 4th item
-              proxyAuth = afterptr+1; 
-          }
-          break;
-        }
-      }
-    }
-    is.close();
-  }
-
-  string::size_type slash = ret.find('\\');
-  if (slash != string::npos) {
-    ret.replace(0, slash+1, "");
-
-    slash = ret.find('\\');
-    if (slash != string::npos)
-      ret.replace(slash, ret.length()-slash, "");
-
-  } else if (ret.rfind("sh")!=string::npos && ret.rfind("sh")==ret.length()-2)
-    ret.replace(ret.length()-2, 2, "cp");
-
-  return ret;
-}
-
 string RCommand::copyCommand(const string& remShell, const bool& isRemote,
                              const string& machine, const string& userName,
-                             string& proxyAuth, int& argc, char** argv)
+                             int& argc, char** argv)
 {
   string theCopy;
 
@@ -1312,10 +986,13 @@ string RCommand::copyCommand(const string& remShell, const bool& isRemote,
   int it;
 
   if (isRemote) {
-    if (remShell=="" || remShell=="scp" ||
-        (remShell.find("/scp")!=string::npos &&
-         remShell.find("/scp")==remShell.length()-4) ||
-        remShell=="ssh" || remShell=="sshpass") {
+    // ssh/ftp copies with ftp; every other supported shell uses scp.
+    if (remShell.size() >= 4 && remShell.compare(remShell.size()-4, 4, "/ftp") == 0) {
+      theCopy = "ftp";
+      argv[argc++] = (char*)mini;
+      argv[argc++] = strdup((char*)machine.c_str());
+
+    } else {
       theCopy = "scp";
 
       if (remShell == "sshpass")
@@ -1323,23 +1000,7 @@ string RCommand::copyCommand(const string& remShell, const bool& isRemote,
           argv[argc++] = (char*)sshpass_opts[it];
 
       argv[argc++] = (char*)minr;
-
-    } else if (remShell=="ftp" ||
-               (remShell.find("/ftp")!=string::npos &&
-                remShell.find("/ftp")==remShell.length()-4)) {
-      theCopy = "ftp";
-      argv[argc++] = (char*)mini;
-      argv[argc++] = strdup((char*)machine.c_str());
-
-    } else if (remShell=="sftp" ||
-               (remShell.find("/sftp")!=string::npos &&
-                remShell.find("/sftp")==remShell.length()-5)) {
-      theCopy = "sftp";
-      string useratmach = userName + "@" + machine;
-      argv[argc++] = strdup((char*)useratmach.c_str());
-
-    } else
-      theCopy = RCommand::userCopyCommandArgs(remShell, proxyAuth, argc, argv);
+    }
 
   } else {
     theCopy = "cp";
@@ -1560,15 +1221,8 @@ RCommand::RCommand(const string& machine, const string& remShell,
 
   char *argv[MAXARGS];
 
-  string proxyAuth;
   p_shell = RCommand::shellCommand(remShell, shellMachine, locShell, userName,
-                                   p_hopCount>0, proxyAuth, argv);
-
-  if (proxyAuth != "") {
-    if (!RCommand::userproxy(proxyAuth, theMachine, userName,
-                             password, p_errMessage))
-      return;
-  }
+                                   p_hopCount>0, argv);
 
   if ((p_fid = exp_spawnv((char*)p_shell.c_str(), argv)) <= 0) {
     p_errMessage = "Unable to run remote shell " + p_shell +
@@ -2613,165 +2267,23 @@ bool RCommand::bgcommand(const string& command, string& errMessage,
 string RCommand::commandShell(const string& machine, const string& remShell,
                               const string& userName)
 {
-  string theShell = remShell;
-
-  if (!RCommand::isRemote(machine, remShell, userName) ||
-      remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
-      remShell.find("ssh/")==0 || (remShell.find("/ssh")!=string::npos &&
-       remShell.find("/ssh")==remShell.length()-4)) {
-    // empty -- done this way for speed of evaluation
-  } else {
-    string shellMatch = remShell + ":";
-
-    string siteShellFile = Ecce::ecceHome();
-    siteShellFile += "/siteconfig/remote_shells.site";
-
-    if (access(siteShellFile.c_str(), F_OK) == 0) {
-      ifstream is(siteShellFile.c_str());
-      char buf[MAXLINE];
-      char* tok;
-      char* tokend;
-      while (!is.eof()) {
-        is.getline(buf, MAXLINE);
-        if (buf[0]!='\0' && buf[0]!='#') {
-          if (strncmp(buf, shellMatch.c_str(), shellMatch.length()) == 0) {
-            tok = strchr(&buf[shellMatch.length()], '|');
-            if (tok != NULL) {
-              tok++;
-              tok = strchr(tok, '|');
-              if (tok != NULL)
-                tok++;
-            }
-            if (tok == NULL) {
-              tok = &buf[shellMatch.length()];
-              tokend = strchr(tok, '|');
-              if (tokend != NULL)
-                *tokend = '\0';
-            }
-
-            tok = strtok(tok, " ");
-            if (tok != NULL)
-              theShell = tok;
-
-            break;
-          }
-        }
-      }
-      is.close();
-    }
-  }
-
-  string origShell = theShell;
-  string::size_type slash = theShell.find('\\');
-  if (slash != string::npos) {
-    theShell.replace(0, slash+1, "");
-
-    slash = theShell.find('\\');
-    if (slash != string::npos)
-      theShell.replace(0, slash+1, "");
-    else {
-      // go back to the first one if there is no third
-      slash = origShell.find('\\');
-      origShell.replace(slash, origShell.length()-slash, "");
-      theShell = origShell;
-    }
-  }
-
-  return theShell;
+  (void)machine; (void)userName;
+  return remShell;
 }
 
 string RCommand::argsToCommand(const string& command, const string& args,
                                const string& remShell, const bool& isRemote,
                                string& commandWithArgs)
 {
-  string theShell = remShell;
-  string shellArgs = "";
-
-  commandWithArgs = "";
-
-  if (!isRemote ||
-      remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
-      remShell.find("ssh/")==0) {
-    // empty -- done this way for speed of evaluation
-  } else {
-    string shellMatch = remShell + ":";
-
-    string siteShellFile = Ecce::ecceHome();
-    siteShellFile += "/siteconfig/remote_shells.site";
-
-    if (access(siteShellFile.c_str(), F_OK) == 0) {
-      ifstream is(siteShellFile.c_str());
-      char buf[MAXLINE];
-      char* tok;
-      char* tokend;
-      while (!is.eof()) {
-        is.getline(buf, MAXLINE);
-        if (buf[0]!='\0' && buf[0]!='#') {
-          if (strncmp(buf, shellMatch.c_str(), shellMatch.length()) == 0) {
-            tok = strchr(&buf[shellMatch.length()], '|');
-            if (tok != NULL) {
-              tok++;
-              tok = strchr(tok, '|');
-              if (tok != NULL)
-                tok++;
-            }
-            if (tok == NULL) {
-              tok = &buf[shellMatch.length()];
-              tokend = strchr(tok, '|');
-              if (tokend != NULL)
-                *tokend = '\0';
-            }
-
-            tok = strtok(tok, " ");
-            if (tok != NULL)
-              theShell = tok;
-
-            tok = strtok(NULL, "\0");
-            if (tok != NULL) {
-              shellArgs = " ";
-              shellArgs += tok;
-            }
-
-            break;
-          }
-        }
-      }
-      is.close();
-    }
-  }
-
-  string origShell = theShell;
-  string::size_type slash = theShell.find('\\');
-  if (slash != string::npos) {
-    theShell.replace(0, slash+1, "");
-
-    slash = theShell.find('\\');
-    if (slash != string::npos)
-      theShell.replace(0, slash+1, "");
-    else {
-      // go back to the first one if there is no third
-      slash = origShell.find('\\');
-      origShell.replace(slash, origShell.length()-slash, "");
-      theShell = origShell;
-    }
-  }
-
-  if (!isRemote ||
-      theShell=="ssh" || theShell=="sshpass" ||
-      theShell.find("ssh/")==0 || (theShell.find("/ssh")!=string::npos &&
-       theShell.find("/ssh")==theShell.length()-4))
-    commandWithArgs = command;
-
+  (void)isRemote;
+  commandWithArgs = command;
   if (args != "") {
     if (commandWithArgs == "")
       commandWithArgs = args;
     else
       commandWithArgs += " " + args;
   }
-
-  theShell += shellArgs;
-
-  return theShell;
+  return remShell;
 }
 
 bool RCommand::command(const string& command, const string& args,
@@ -2829,121 +2341,6 @@ bool RCommand::bgcommand(const string& command, const string& args,
   return RCommand::bgcommand(theCommand, errMessage, machine, theShell,
                              userName, password);
 }
-
-bool RCommand::userproxy(const string& proxyAuth, const string& machine,
-               const string& userName, const string& password, string& errMessage)
-{
-  bool status = false;
-  string proxy = proxyAuth;
-
-  int idx = proxy.find("##user##");
-  if (idx != string::npos)
-    proxy.replace(idx, 8, userName);
-
-  idx = proxy.find("##machine##");
-  if (idx != string::npos)
-    proxy.replace(idx, 11, machine);
-
-  if (getenv("ECCE_RCOM_DEBUGGING"))
-    exp_is_debugging = 1;
-  else
-    exp_is_debugging = 0;
-
-  if (getenv("ECCE_RCOM_LOGMODE"))
-    exp_loguser = 1;
-  else
-    exp_loguser = 0;
-
-  // This should finish quickly
-  exp_timeout = RC_EXEC_TIMEOUT;
-
-  char* tokenify = strdup((char*)proxy.c_str());
-  char* argv[MAXARGS];
-  int argc = 1;
-
-  argv[0] = strtok(tokenify, " ");
-  while ((argv[argc++] = strtok(NULL, " ")) != NULL);
-  argv[argc] = (char*)0;
-  argc--;
-
-  if (exp_loguser == 1) {
-    cout << "proxy authentication command:" << endl;
-    for (int it=0; it<argc; it++)
-      cout << "arg " << it << ": " << argv[it] << endl;
-    cout << "end proxy authentication command" << endl; 
-  }
-
-  int theFid;
-  if ((theFid = exp_spawnv(argv[0], argv)) <= 0) {
-    errMessage = "Unable to spawn command ";
-    errMessage += argv[0];
-    return false;
-  }
-
-  string output;
-  bool done;
-  do {
-    done = true;  // be optimistic
-
-    switch (exp_expectl(theFid, exp_glob, "Command not found", 1,
-                                exp_glob, "execvp(", 1,
-                                exp_glob, "Bad", 2,
-                                exp_glob, "Wrong", 2,
-                                exp_glob, "ERROR", 2,
-                                exp_glob, "error", 2,
-                                exp_glob, "incorrect", 2,
-                                exp_glob, "password: $", 3,
-                                exp_glob, "passphrase*: $", 3,
-                                exp_glob, "Password:$", 3,
-                                exp_glob, "Password: $", 3,
-                                exp_end)) {
-      case 1:
-        errMessage = "Unable to find proxy authentication command";
-        errMessage += " (not in the path?)";
-        break;
-
-      case 2:
-        if (strlen(exp_buffer) > 2)
-          exp_buffer[strlen(exp_buffer)-2] = '\0';
-        output = (exp_buffer != NULL)? exp_buffer: "";
-        errMessage = "Unsuccessful proxy authentication";
-        if (output != "")
-          errMessage += "\nError output: " + output;
-        break;
-
-      case 3:
-        exp_elide(password.c_str());
-        if (!fidwrite(theFid, password, errMessage)) break;
-
-        done = false;
-        break;
-
-      case EXP_EOF:
-        // Successful login
-        status = true;
-        break;
-
-      case EXP_TIMEOUT:
-        errMessage = "Timeout running proxy authentication";
-        break;
-
-      default:
-        errMessage = "Unrecognized proxy authentication failure";
-        break;
-    }
-  } while (!done);
-
-  exp_elide(NULL);
-
-  // Must wait for EOF before closing descriptor
-  (void)wait(NULL);
-
-  // Shouldn't complain even if spawned process has already been closed by EOF
-  close(theFid);
-
-  return status;
-}
-
 
 bool RCommand::fileOp(const string& op, const string& filename)
 {
@@ -4388,9 +3785,8 @@ bool RCommand::get(string& errMessage,
   int argc = 0;
   char** argv = (char**)malloc((numFiles+MAXARGS) * sizeof(char*));
 
-  string proxyAuth;
   string theCopy = RCommand::copyCommand(remShell, isRemote, machine,
-                                         userName, proxyAuth, argc, argv);
+                                         userName, argc, argv);
 
   if (theCopy!="ftp" && theCopy!="sftp" && isRemote) {
     string fromFileBaseStr = "";
@@ -4399,11 +3795,6 @@ bool RCommand::get(string& errMessage,
 
     fromFileBaseStr += machine + ":";
 
-    if (proxyAuth != "") {
-      if (!RCommand::userproxy(proxyAuth, machine, userName,
-                               password, errMessage))
-        return false;
-    }
 
     fromFileStrs = (char**)malloc(numFiles * sizeof(char*));
     fromFileStrs[numFiles-1] = NULL;
@@ -4537,9 +3928,8 @@ bool RCommand::get(string& errMessage,
   int argc = 0;
   char** argv = (char**)malloc((numFiles+MAXARGS) * sizeof(char*));
 
-  string proxyAuth;
   string theCopy = RCommand::copyCommand(remShell, isRemote, machine,
-                                         userName, proxyAuth, argc, argv);
+                                         userName, argc, argv);
 
   if (theCopy!="ftp" && theCopy!="sftp" && isRemote) {
     string fromFileBaseStr = "";
@@ -4548,11 +3938,6 @@ bool RCommand::get(string& errMessage,
 
     fromFileBaseStr += machine + ":";
 
-    if (proxyAuth != "") {
-      if (!RCommand::userproxy(proxyAuth, machine, userName,
-                               password, errMessage))
-        return false;
-    }
 
     fromFileStrs = (char**)malloc((numFiles+1) * sizeof(char*));
     fromFileStrs[numFiles] = NULL;
@@ -4640,9 +4025,8 @@ bool RCommand::put(string& errMessage,
   int argc = 0;
   char** argv = (char**)malloc((numFiles+MAXARGS) * sizeof(char*));
 
-  string proxyAuth;
   string theCopy = RCommand::copyCommand(remShell, isRemote, machine,
-                                         userName, proxyAuth, argc, argv);
+                                         userName, argc, argv);
 
   if (theCopy=="ftp" || theCopy=="sftp" || theCopy=="cp")
     toFile = (char*)va_arg(ap, char*);
@@ -4652,11 +4036,6 @@ bool RCommand::put(string& errMessage,
       toFile = userName + "@";
     toFile += machine + ":" + (char*)va_arg(ap, char*);
 
-    if (proxyAuth != "") {
-      if (!RCommand::userproxy(proxyAuth, machine, userName,
-                               password, errMessage))
-        return false;
-    }
   }
 
   va_end(ap);
@@ -4731,9 +4110,8 @@ bool RCommand::put(string& errMessage,
   int argc = 0;
   char* argv[MAXARGS];
 
-  string proxyAuth;
   string theCopy = RCommand::copyCommand(remShell, isRemote, machine,
-                                         userName, proxyAuth, argc, argv);
+                                         userName, argc, argv);
 
   if (theCopy=="ftp" || theCopy=="sftp" || theCopy=="cp")
     fullToFile = toFile;
@@ -4743,11 +4121,6 @@ bool RCommand::put(string& errMessage,
       fullToFile = userName + "@";
     fullToFile += machine + ":" + toFile;
 
-    if (proxyAuth != "") {
-      if (!RCommand::userproxy(proxyAuth, machine, userName,
-                               password, errMessage))
-        return false;
-    }
   }
 
   int it;
