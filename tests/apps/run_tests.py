@@ -345,6 +345,10 @@ def checkStale(results, tested):
                 "%s is listed in HELPERS but was not run as one" % name)
 
 
+# ctest's SKIP_RETURN_CODE: a skip must not read as a pass.
+SKIP = 77
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--app", action="append", help="only this app")
@@ -362,6 +366,9 @@ def main():
                              "the data server, the broker and the "
                              "preferences with any ECCE session you have "
                              "running, so do not")
+    parser.add_argument("--any-version", action="store_true",
+                        help="test the installed ECCE even when its version "
+                             "differs from this tree's")
     parser.add_argument("--budget", type=int, default=DEFAULT_BUDGET,
                         help="seconds the whole run may take before it is "
                              "abandoned (default %(default)s)")
@@ -377,7 +384,16 @@ def main():
         print("SKIP: no installed ECCE GUI apps found under %s "
               "(this suite tests an INSTALLED build, not the build tree)"
               % apps.INSTALL)
-        return 0
+        return SKIP
+
+    #  An install from another version reports that version's failures as
+    #  this tree's, which is worse than not running.
+    installed, tree = apps.installedVersion(), apps.treeVersion()
+    if installed != tree and not args.any_version:
+        print("SKIP: installed ECCE under %s is %s, this tree is %s; install "
+              "a package built from this tree, or pass --any-version"
+              % (apps.INSTALL, installed or "unknown", tree))
+        return SKIP
 
     selected = [n for n in binaries if not args.app or n in args.app]
     if not selected:
@@ -440,7 +456,7 @@ def main():
                                    pidfile=xvfbPidfile).__enter__()
     except xdisplay.DisplayUnavailable as exc:
         print("SKIP: %s" % exc)
-        return 0
+        return SKIP
     teardown.display = display
 
     before = apps.serviceState(display)

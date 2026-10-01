@@ -233,7 +233,8 @@ is in `/opt/ecce`, not what is in the build tree. That is deliberate: it is
 the only tier that can catch the "correct in the repo, broken in the `.deb`"
 class of problem this project has hit repeatedly (a `scripts/*` file with no
 `install()` rule is absent from the package and produces "command not found"
-only when installed). If nothing is installed, the suite skips.
+only when installed). If nothing is installed, or the installed `Version` differs from this
+tree's, the suite skips (exit 77); `--any-version` overrides the second.
 
 It also means a green run says nothing about uninstalled changes. Package and
 install first, or the result is stale.

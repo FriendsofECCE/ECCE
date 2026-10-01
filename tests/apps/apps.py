@@ -41,6 +41,24 @@ INSTALL = os.environ.get("ECCE_TEST_HOME", "/opt/ecce")
 WRAPPERS = os.environ.get("ECCE_TEST_WRAPPERS", "/usr/bin")
 
 
+def _readVersion(root):
+    try:
+        with open(os.path.join(root, "data", "client", "config",
+                               "Version")) as f:
+            return f.read().strip()
+    except OSError:
+        return None
+
+
+def installedVersion():
+    return _readVersion(INSTALL)
+
+
+def treeVersion():
+    return _readVersion(os.path.dirname(os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__)))))
+
+
 class Result(object):
     def __init__(self, name):
         self.name = name
