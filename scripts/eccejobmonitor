@@ -2045,15 +2045,32 @@ sub JobCheck
     }
     elsif ($q eq 'moab')
     {
-        $cmd = "squeue -h -a -j $id -o %T 2>&1";
+        # checkjob, not squeue: a Moab site need not run Slurm, and an
+        # unknown id would read as a finished job at once (#209).
+        $cmd = "checkjob $id 2>&1";
         if (open(QUERY, "$cmd |"))
         {
             while (<QUERY>)
             {
                 LogMsg "JobCheck Moab status:  $_";
 
-                my $state = $_;
-                chomp $state;
+                my $state;
+                if (/^State:\s*(\S+)/)
+                {
+                    $state = uc $1;
+                }
+                elsif (/cannot locate job/)
+                {
+                    if ($gJobCheckState != $JOB_STATE_NONE)
+                    {
+                        $status = $JOB_STATE_DONE;
+                    }
+                    last;
+                }
+                else
+                {
+                    next;
+                }
 
                 my $capq = uc $q;
                 &MsgSendUp("$capq job id '$id' in state '$state'");
