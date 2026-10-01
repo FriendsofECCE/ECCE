@@ -65,6 +65,9 @@ ecce_filechooser_request
 // New message for viz thumbnail renderer
 ecce_vizthumbnail
 
+// Carries the data server password, so it must stay in this session
+ecce_auth_changed
+
 FILTER BY: NONE
 
 ecce_url_created
@@ -87,7 +90,6 @@ ecce_ejs_kill
 
 FILTER BY: USER
 
-ecce_auth_changed 
 ecce_preferences_pertab
 ecce_preferences_misc
 ecce_preferences_states
