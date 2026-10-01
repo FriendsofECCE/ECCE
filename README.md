@@ -251,6 +251,8 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.18.1** — a fresh calculation's output file is no longer sometimes
+  named "Outputs", which lost MOPAC's energies and geometries (#207).
 - **v8.18.0** — experimental built-in ssh (Edit > Preferences): commands,
   file copies and job monitoring without a shell session, a host-key
   dialog (#204); telnet, Globus and rsh removed; Machine Registration
