@@ -237,8 +237,8 @@ package never edits site files: it prints a notice when `submit.site` or a site
 Migrating a site: run one job per machine after upgrading; a CONFIG that
 needs changes fails at launch with the lines named. The shipped
 `siteconfig/CONFIG-Examples/` are already converted. `sourceFile` in a CONFIG
-file is unaffected: it is read by the login shell ECCE connects through, not by
-the job script.
+file is unaffected: ECCE runs it once per connection, in the machine's own
+shell (`shell:`), not in the job script.
 
 ### Running two instances at once
 
@@ -479,10 +479,11 @@ Terminal editors (`vi`, `vim`, `nvim`, `view`, `nano`, `pico`, `micro`,
 editor that hands the file to an already-running copy and exits would
 otherwise end the edit session at once.
 
-### Built-in ssh
+### How ECCE connects to machines
 
 ECCE runs commands on this machine directly and on ssh machines over its
-own libssh connection, with no shell session or prompts to match. A host
+own libssh connection, with no shell session or prompts to match. There is
+no setting for this: the scripted shell session of 8.x is gone. A host
 whose ssh config shares connections (`ControlMaster`/`ControlPath`, often
 used to answer a second factor once) is reached through the `ssh` command
 instead, so it reuses that connection. When that connection is not open,
@@ -490,12 +491,15 @@ ECCE opens it: the password or verification code (and an unknown host key)
 are asked in ECCE dialogs, so no terminal is needed. Without a display, or
 if the dialog is cancelled, ECCE says that no shared connection is open and
 to run `ssh <host>` once in a terminal. An ssh host key ECCE has not seen
-is asked about in a dialog, and is refused until accepted. The setting is
-**Edit > Preferences > External programs > Run commands without a shell
-session (built-in ssh)**, on by default; untick it, or set
-`ECCE_TRANSPORT=pty`, to go back to the scripted shell session of 8.x. It
-applies to connections opened after the change, and a job keeps the
-choice it was launched with.
+is asked about in a dialog, and is refused until accepted.
+
+Because no interactive shell is started, `~/.bashrc` and `~/.cshrc` on a
+compute machine are no longer read for ECCE's commands. Whatever a code
+needs on its `PATH` or in its environment goes in the machine's **source
+file** (`sourceFile` in its `CONFIG` file, see above); ECCE runs it once
+per connection in the shell it is written for, and applies the variables it sets to every command
+(aliases and shell functions it defines are not carried over). Machines
+registered with `sshpass` or `ssh/ftp` are plain ssh now.
 
 ## 7. Getting help
 

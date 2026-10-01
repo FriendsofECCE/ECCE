@@ -90,7 +90,7 @@ sudo apt install ./ecce_<version>_amd64.deb
 ```
 
 The `./` matters: it tells apt this is a local file, and apt then pulls
-in every dependency itself (Apache, ActiveMQ, wxPython, a csh, xterm).
+in every dependency itself (Apache, ActiveMQ, wxPython, xterm).
 
 On RHEL, Rocky or Fedora, `sudo dnf install ./ecce-<version>.x86_64.rpm`.
 These distributions don't package ActiveMQ, so a machine that runs a
