@@ -204,8 +204,9 @@ ecce_library(eccercmd   src/comm/rcommand)
 # SshTransport needs libssh >= 0.10; without it the glob's copy is dropped
 # and nothing else changes.
 pkg_check_modules(LIBSSH IMPORTED_TARGET libssh>=0.10)
-# Release builds set this, so a package can't quietly ship without built-in ssh.
-option(ECCE_REQUIRE_LIBSSH "Fail configuration when libssh >= 0.10 is not found" OFF)
+# ssh machines need libssh or the OpenSSH client; a build without libssh would
+# only have the second, so configuration fails unless -DECCE_REQUIRE_LIBSSH=OFF.
+option(ECCE_REQUIRE_LIBSSH "Fail configuration when libssh >= 0.10 is not found" ON)
 if(ECCE_REQUIRE_LIBSSH AND NOT LIBSSH_FOUND)
   message(FATAL_ERROR "ECCE_REQUIRE_LIBSSH is ON but libssh >= 0.10 was not found (install libssh-dev / libssh-devel)")
 endif()
@@ -1235,14 +1236,12 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # Details dialogs (see the scripts/codereg install() block above) -- a
 # spawned `python3 .../codereg/*.py`, not a linked dependency of any
 # ECCE binary, so dpkg-shlibdeps can't see it either.
-# csh: ECCE's local job sessions and scripts run csh; bsd-csh and tcsh
-# both work.
 # perl: the whole job pipeline (ai.<code>, *.expt, gensub,
 # eccejobmonitor, processmachine) is Perl, and Getopt::Std and
 # Sys::Hostname are in perl-modules, which perl-base alone lacks.
 # xterm: editing an input file with the default editor (vi) opens it in
 # an xterm (UserEditor.C).
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, activemq, csh | tcsh, perl, xterm")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, activemq, perl, xterm")
 # NWChem is a real Debian package (confirmed working: /usr/bin/nwchem,
 # symlinked to nwchem.openmpi by the package itself) and the auto-register-
 # this-machine flow (RunMgmt::registerLocalMachine()) defaults new machine
@@ -1295,7 +1294,7 @@ if(RPMBUILD_EXECUTABLE)
   set(CPACK_RPM_PACKAGE_LICENSE "ECL-2.0")
   set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
   set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
-  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, tcsh, perl, xterm")
+  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, perl, xterm")
   set(CPACK_RPM_PACKAGE_SUGGESTS "activemq, nwchem, openssh-clients, ImageMagick, firefox")
   set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
   #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
@@ -1433,9 +1432,9 @@ if(ECCE_SPLIT_PACKAGES)
     "Extensible Computational Chemistry Environment - client (GUI apps, input generators/parsers, job-launch tooling)")
   # apache2/apache2-utils and the broker move to ecce-server; everything
   # else CPACK_DEBIAN_PACKAGE_DEPENDS listed for the monolithic build is
-  # still needed here (python3-wxgtk4.0 for scripts/codereg, csh/perl/
-  # xterm for the same reasons given beside the monolithic set above --
-  # none of that is server-side).
+  # still needed here (python3-wxgtk4.0 for scripts/codereg, perl/xterm
+  # for the same reasons given beside the monolithic set above -- none of
+  # that is server-side).
   #
   # default-jre-headless: the monolithic package never had to list a JVM
   # explicitly because activemq (a hard Depends there) pulls in
@@ -1448,7 +1447,7 @@ if(ECCE_SPLIT_PACKAGES)
   # ecce-server at all, so it cannot be left to arrive only via a
   # Recommends that a remote client has no reason to install.
   set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
-      "python3-wxgtk4.0, csh | tcsh, perl, xterm, default-jre-headless")
+      "python3-wxgtk4.0, perl, xterm, default-jre-headless")
   # A client on the SAME machine as a server benefits from it (the
   # default "everything on one box" case this project still ships), but
   # a client of an already-central server (#167/#138 -- the teaching
@@ -1492,7 +1491,7 @@ if(ECCE_SPLIT_PACKAGES)
     # monolithic CPACK_RPM_PACKAGE_SUGGESTS comment above) isn't even a
     # hard Requires there, so it cannot be relied on at all here.
     set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
-        "python3-wxpython4, tcsh, perl, xterm, java-headless")
+        "python3-wxpython4, perl, xterm, java-headless")
     set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
         "ecce-server, nwchem, openssh-clients, ImageMagick, firefox")
     # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the

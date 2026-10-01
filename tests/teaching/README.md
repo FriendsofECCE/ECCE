@@ -12,7 +12,7 @@ tests/teaching/run_tests.py --list
 tests/teaching/run_tests.py --show-decks --case h2se print the generated decks
 ```
 
-CTest: `ctest -R teaching` (SKIP, exit 77, without NWChem, csh, apache2, java).
+CTest: `ctest -R teaching` (SKIP, exit 77, without NWChem, apache2, java).
 It needs the `launchjob`, `eccejobmaster`, `eccejobstore` and `ecmd` targets.
 
 ## What is exercised

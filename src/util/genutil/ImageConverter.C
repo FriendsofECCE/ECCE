@@ -39,7 +39,7 @@ void ImageConverter::initialize()
     p_initialized = true;
 
     // 1. mogrify, 2. convert
-    string cmd = "csh -c \"" + p_mogrifyCheck + " >& /dev/null\"";
+    string cmd = p_mogrifyCheck + " >/dev/null 2>&1";
     int status = system(cmd.c_str());
     status = status >> 8;
     if (status == 0) {

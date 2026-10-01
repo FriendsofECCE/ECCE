@@ -127,30 +127,21 @@ W=$(command -v ecce 2>/dev/null) && { note "$W"; head -60 "$W" >> "$OUT" 2>&1; }
 
 # ---------------------------------------------------------------- shells
 say "Shells"
-# THE LOCAL SHELL MATTERS: the launcher forces csh/tcsh for job
-# connections by default, and the submit command is run through it.
+# Job scripts are POSIX sh; the machine's own shell is only used to source
+# its source file.
 note "login shell for this user: ${SHELL:-<unset>}"
 have getent && note "passwd entry: $(getent passwd "$(id -un)" 2>/dev/null)"
-for s in csh tcsh bash sh ksh zsh; do
+for s in bash sh dash ksh zsh; do
   p=$(command -v "$s" 2>/dev/null) && note "$s -> $p" || note "$s -> NOT FOUND"
-done
-for s in csh tcsh; do
-  p=$(command -v "$s" 2>/dev/null) || continue
-  note ""
-  note "--- $p"
-  ls -la "$p" >> "$OUT" 2>&1
-  T 10 "$p" --version >> "$OUT" 2>&1 || note "(no --version; this shell does not support the flag)"
 done
 run bash --version
 
 # ------------------------------------------------- shell startup files
 say "Shell startup files"
-# ECCE drives its shell connections through an expect-style dialogue: it
-# writes a command and waits for an exact string back.  Anything a
-# startup file prints -- a fortune, a "you have mail", a module-load
-# banner, an scp-breaking echo -- lands in that stream and can make the
-# match fail, after which ECCE continues believing the command was sent.
-# This is a classic cause of "it worked for years and then stopped", and
+# ECCE runs each command in the account's login shell over an ssh exec
+# channel or a local pipe.  Anything a startup file prints -- a fortune, a
+# "you have mail", a module-load banner -- lands in the command's output.
+# That is a classic cause of "it worked for years and then stopped", and
 # nothing about it is visible from inside the application.
 for f in .cshrc .tcshrc .login .bashrc .bash_profile .profile .kshrc; do
   [ -r "$HOME/$f" ] || { note "~/$f: absent"; continue; }
@@ -163,15 +154,15 @@ note "(secret-shaped assignments above are masked, but read them anyway"
 note " before sending this file on)"
 note ""
 note "--- does a non-login shell print anything before the marker?"
-note "    (anything other than the marker alone can derail ECCE's"
-note "     expect dialogue; stderr is shown separately)"
-for s in csh tcsh bash sh; do
+note "    (anything other than the marker alone ends up in the output of"
+note "     ECCE's commands; stderr is shown separately)"
+for s in bash sh; do
   p=$(command -v "$s" 2>/dev/null) || continue
   note ""
   note "$s stdout: [$(T 10 "$p" -c 'echo ECCE_MARKER' 2>/dev/null | tr '\n' '|')]"
   note "$s stderr: [$(T 10 "$p" -c 'echo ECCE_MARKER' 2>&1 >/dev/null | tr '\n' '|')]"
 done
-for s in csh tcsh bash; do
+for s in bash; do
   p=$(command -v "$s" 2>/dev/null) || continue
   note ""
   note "$s as a LOGIN shell, stdout: [$(T 10 "$p" -l -c 'echo ECCE_MARKER' 2>/dev/null | tr '\n' '|')]"
@@ -188,35 +179,27 @@ have tty && note "tty: $(tty 2>/dev/null)"
 
 # ------------------------------------------------------- shell behaviour
 say "Shell behaviour ECCE depends on"
-# This is the exact line RCommand::execbg() sends.  If the shell cannot
+# Starting a job runs `nohup <script> & echo $!` in sh.  If the shell cannot
 # parse it, or does not set $!, the job never starts and ECCE still
 # reports success -- so this is the single most useful test here.
 TMPD=$(mktemp -d 2>/dev/null) || TMPD=/tmp/ecce-diag-$$
 mkdir -p "$TMPD"
 printf '#!/bin/sh\ntouch "%s/PROOF_IT_RAN"\n' "$TMPD" > "$TMPD/fakesubmit"
 chmod +x "$TMPD/fakesubmit"
-# Both redirect dialects are tested.  "> /dev/null 2>&1" is the sh form
-# and is what ECCE sent before the #141 fix; ">& /dev/null" is the csh
-# form and is what it sends now to a csh/tcsh machine.  A csh that
-# rejects the first and accepts the second is the confirmed cause of
-# "the job stages and never runs", so recording both tells us straight
-# away whether a new report is that bug again or something else.
-for s in csh tcsh bash sh; do
+for s in bash sh; do
   p=$(command -v "$s" 2>/dev/null) || continue
   note ""
   note "--- $s  (resolves to: $(readlink -f "$p" 2>/dev/null || echo "$p"))"
-  for form in '> /dev/null 2>&1' '>& /dev/null'; do
-    rm -f "$TMPD/PROOF_IT_RAN"
-    note "    nohup ./fakesubmit $form & echo RC_EXECBG_PID=\$!"
-    ( cd "$TMPD" && T 15 "$p" -c "nohup ./fakesubmit $form & echo RC_EXECBG_PID=\$!" ) >> "$OUT" 2>&1
-    sleep 1
-    if [ -e "$TMPD/PROOF_IT_RAN" ]; then note "      -> RAN"
-    else                                 note "      -> DID NOT RUN"; fi
-  done
+  rm -f "$TMPD/PROOF_IT_RAN"
+  note "    nohup ./fakesubmit > /dev/null 2>&1 & echo RC_EXECBG_PID=\$!"
+  ( cd "$TMPD" && T 15 "$p" -c "nohup ./fakesubmit > /dev/null 2>&1 & echo RC_EXECBG_PID=\$!" ) >> "$OUT" 2>&1
+  sleep 1
+  if [ -e "$TMPD/PROOF_IT_RAN" ]; then note "      -> RAN"
+  else                                 note "      -> DID NOT RUN"; fi
 done
 note ""
 note "--- is nohup present, and does the shell use its own builtin?"
-for s in csh tcsh bash sh; do
+for s in bash sh; do
   p=$(command -v "$s" 2>/dev/null) || continue
   note "$s: $("$p" -c 'command -v nohup || which nohup' 2>&1 | head -1)"
 done
@@ -224,7 +207,7 @@ rm -rf "$TMPD"
 
 # ------------------------------------------------------------- toolchain
 say "Tools ECCE shells out to"
-for t in perl python3 java httpd apache2 ssh scp expect nohup env sed awk; do
+for t in perl python3 java httpd apache2 ssh nohup env sed awk; do
   p=$(command -v "$t" 2>/dev/null) && { note ""; note "$t -> $p"; T 10 "$t" --version >> "$OUT" 2>&1 || T 10 "$t" -V >> "$OUT" 2>&1 || true; } \
                                    || note "$t -> NOT FOUND"
 done
@@ -239,7 +222,7 @@ say "PATH as a non-interactive shell sees it"
 # A submit script runs the code by name.  A code present in a login
 # shell but absent here is a job that dies the instant it starts.
 note "PATH in this shell: $PATH"
-for s in csh tcsh bash sh; do
+for s in bash sh; do
   p=$(command -v "$s" 2>/dev/null) || continue
   note ""
   note "--- $s"
@@ -500,7 +483,7 @@ rundir_section() {
       note "copy: $COPY"
       note "(note: this copy may be on a different filesystem to the real run"
       note " directory -- compare against the filesystem section above)"
-      for s in csh tcsh bash sh; do
+      for s in bash sh; do
         p=$(command -v "$s" 2>/dev/null) || continue
         note ""
         note "--- as ECCE would, under $s"

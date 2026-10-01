@@ -151,7 +151,7 @@ def prerequisites(build, tools):
         if not os.access(os.path.join(build, exe), os.X_OK):
             skip("%s is not built in %s (ninja launchjob eccejobmaster "
                  "eccejobstore ecmd)" % (exe, build))
-    for tool in ("csh", "apache2", "htpasswd", "java", "perl") + tuple(tools):
+    for tool in ("apache2", "htpasswd", "java", "perl") + tuple(tools):
         if not shutil.which(tool) and not (
                 tool == "apache2" and os.access("/usr/sbin/apache2", os.X_OK)):
             skip("%s is not installed" % tool)
