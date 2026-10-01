@@ -328,7 +328,10 @@ only ever stopped by **Quit and Stop Server**, in every mode.
 
 The broker has no authentication, and the data server speaks plain HTTP
 (#138): whoever can reach their ports can use them. Keep them on loopback
-or firewall them.
+or firewall them. A firewall does not separate the users of one machine:
+on a shared server with a central broker, any user logged in to that
+server can send the broker messages in another user's name, for example
+to cancel that user's jobs (#194).
 
 ### ActiveMQ on RHEL, Rocky and Fedora
 
