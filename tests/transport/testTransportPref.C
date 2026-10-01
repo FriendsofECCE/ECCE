@@ -1,5 +1,5 @@
 // RCommand::transportMode(): ECCE_TRANSPORT wins, then the Edit >
-// Preferences switch, else the pty path.  The preference is written in an
+// Preferences switch, else built-in ssh.  The preference is written in an
 // isolated ECCE_REALUSERHOME with the same Preferences class the dialog uses.
 
 #include <cstdlib>
@@ -33,7 +33,7 @@ int main()
   if (system(cmd.c_str()) != 0) return 2;
 
   unsetenv("ECCE_TRANSPORT");
-  same("no preference file, no variable", RCommand::transportMode(), "pty");
+  same("no preference file, no variable", RCommand::transportMode(), "ssh");
 
   {
     Preferences pref(PrefLabels::GLOBALPREFFILE);

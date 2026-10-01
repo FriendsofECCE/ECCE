@@ -1092,9 +1092,10 @@ string RCommand::transportMode()
   // Ecce asserts on either being unset, and plain tools use RCommand too.
   if (!getenv("ECCE_REALUSERHOME") || !getenv("ECCE_HOME")) return "pty";
   Preferences pref(PrefLabels::GLOBALPREFFILE);
-  bool builtin = false;
-  if (pref.getBool(PrefLabels::BUILTINSSH, builtin) && builtin) return "ssh";
-  return "pty";
+  // Built-in ssh unless the user has unticked it.
+  bool builtin = true;
+  if (!pref.getBool(PrefLabels::BUILTINSSH, builtin)) builtin = true;
+  return builtin ? "ssh" : "pty";
 }
 
 bool RCommand::usesSsh(const string& machine, const string& remShell,

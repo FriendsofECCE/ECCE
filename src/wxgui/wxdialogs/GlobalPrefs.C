@@ -313,7 +313,7 @@ void GlobalPrefs::createProgramsPage(wxWindow* page)
 
   wxStaticBoxSizer* cbox = new wxStaticBoxSizer(wxVERTICAL, page, _("Connections"));
   p_builtinSsh = new ewxCheckBox(cbox->GetStaticBox(), wxID_ANY,
-      _("Run commands without a shell session (built-in ssh) - experimental"),
+      _("Run commands without a shell session (built-in ssh)"),
       wxDefaultPosition, wxDefaultSize, wxCHK_2STATE);
   p_builtinSsh->SetToolTip(_("Runs commands on this machine directly and on ssh machines through ECCE's own ssh library instead of a scripted shell session. Applies to connections opened after the change."));
   cbox->Add(p_builtinSsh, 0, wxALL, 3);
@@ -527,7 +527,7 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
     setProgramRow(p_terminal, "");
     setProgramRow(p_browser, "");
   }
-  if (p_builtinSsh->GetValue()) p_builtinSsh->SetValue(false);
+  if (!p_builtinSsh->GetValue()) p_builtinSsh->SetValue(true);
 
   if (!isDefaultStatePref()) {
     resetAllStateColors();
@@ -693,7 +693,7 @@ void GlobalPrefs::restoreSettings()
   strBuf = "";
   eccePref.getString(PrefLabels::BROWSER, strBuf);
   setProgramRow(p_browser, strBuf);
-  if (!eccePref.getBool(PrefLabels::BUILTINSSH, boolBuf)) boolBuf = false;
+  if (!eccePref.getBool(PrefLabels::BUILTINSSH, boolBuf)) boolBuf = true;
   p_builtinSsh->SetValue(boolBuf);
 
   Preferences colorPref = Preferences(PrefLabels::COLORPREFFILE);
@@ -789,7 +789,7 @@ bool GlobalPrefs::isDefaultGatewayPref()
 bool GlobalPrefs::isDefaultPrograms()
 {
   return programValue(p_editor).empty() && programValue(p_terminal).empty() &&
-         programValue(p_browser).empty() && !p_builtinSsh->GetValue();
+         programValue(p_browser).empty() && p_builtinSsh->GetValue();
 }
 
 

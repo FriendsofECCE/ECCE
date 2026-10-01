@@ -846,9 +846,10 @@ def main():
     second = ("ssh", "ssh") if args.machine != "localhost" else ("direct", "direct")
     if args.machine != "localhost" and args.transport == "direct":
         skip("--transport direct is for localhost")
-    modes = {"unset": [("pty", None)], "direct": [("direct", "direct")],
+    #  The pty path is no longer the default, so it is asked for by name.
+    modes = {"unset": [("pty", "pty")], "direct": [("direct", "direct")],
              "ssh": [("ssh", "ssh")],
-             "both": [("pty", None), second]}[args.transport]
+             "both": [("pty", "pty"), second]}[args.transport]
     kill_modes = modes
     modes = [m + (False,) for m in modes]
     if args.drop and args.machine != "localhost":
