@@ -74,6 +74,7 @@ void WxJMSSubscriber::initSocket() {
 
   // Create datagram socket, Let Wx select a port for us - (Service(0))
   wxIPV4address bindAddress;
+  bindAddress.Hostname("127.0.0.1");
   bindAddress.Service(0); 
   p_inputSocket = new wxDatagramSocket(bindAddress);
   
@@ -366,6 +367,8 @@ void WxJMSSubscriber::processMessage(wxSocketEvent& event) {
 
       buf[packetSize] = '\0';
       packet = buf;
+      if (!DatagramUtil::acceptPacket(packet))
+        return;
       
       // Create and parse the message
       JMSMessage msg;

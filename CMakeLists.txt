@@ -1691,6 +1691,19 @@ if(PYTHON3_EXECUTABLE)
   target_link_libraries(launchjob PRIVATE
     eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
     eccetdat ecceutil ${XercesC_LIBRARIES})
+  # tests/jms -- the local UDP link between the apps and their relay, and
+  # what the broker is allowed to see.  jmsprobe is a test driver.
+  add_executable(jmsprobe tests/jms/jmsprobe.C)
+  target_include_directories(jmsprobe PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(jmsprobe PRIVATE
+    eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME jms
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/jms/run_tests.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/jms)
+  set_tests_properties(jms PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
   add_test(NAME launch
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_tests.py

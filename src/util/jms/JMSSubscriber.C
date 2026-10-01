@@ -64,7 +64,7 @@ void JMSSubscriber::initSocket() {
 
     addIN.sin_family      = AF_INET;
     addIN.sin_port        = htons(0); // let the port get chosen dynamically
-    addIN.sin_addr.s_addr = INADDR_ANY;
+    addIN.sin_addr.s_addr = DatagramUtil::loopbackAddress();
     
     // Explicitly ::-qualified: this file has "using namespace std;" above,
     // and newer libc++ (confirmed: Xcode 26.6 on macOS CI) resolves the
@@ -368,6 +368,8 @@ void JMSSubscriber::processMessage() {
     if (size != -1) { // a packet was indeed there
       buf[size] = '\0';
       packet = buf;
+      if (!DatagramUtil::acceptPacket(packet))
+        return;
       
       // Create and parse the message
       JMSMessage msg;
