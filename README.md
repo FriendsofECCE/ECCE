@@ -245,6 +245,8 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.18.4** — Builder's property panes fold to their caption bar
+  (#196); a new application icon.
 - **v8.18.3** — passwords no longer pass through the message broker, and
   ECCE's local message link accepts only its own session (#194); a
   desktop menu entry (#211).
