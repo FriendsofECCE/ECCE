@@ -285,45 +285,55 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
 
 ## Roadmap
 
-No dates — this is a small effort, and the order below reflects what is
-being worked on rather than a schedule. Current work is tracked in the
-[issue tracker](https://github.com/FriendsofECCE/ECCE/issues).
+No dates — this is a small effort. The order below is the estimated order
+of work, not a schedule. Current work is tracked in the
+[issue tracker](https://github.com/FriendsofECCE/ECCE/issues); the 9.x
+plan as a whole is on [#186](https://github.com/FriendsofECCE/ECCE/issues/186).
 
-**Now (8.x)**
+**8.x** receives bug fixes only, as 8.18.x patch releases.
 
-* **Qualitative MO correlation diagrams**, including coordination
-  complexes. **Released as experimental**: what it can draw depends on
-  what the calculation reports.
+**9.0** (previews: the 9.0.0-alpha releases):
+
+* **Separate client and server packages**: `ecce-client` for the machines
+  people sit at, `ecce-server` for the machine that holds the data
+  ([#186](https://github.com/FriendsofECCE/ECCE/issues/186)).
+* **Jobs launched without an interactive shell**: commands run directly
+  on this machine and over ssh elsewhere (libssh, or the `ssh` command
+  for hosts that share connections or are reached through a jump host),
+  and job scripts are POSIX sh, so csh is no longer required ([#204](https://github.com/FriendsofECCE/ECCE/issues/204)).
+* **HTCondor as a supported queue manager** ([#105](https://github.com/FriendsofECCE/ECCE/issues/105)).
+* **Broker authentication**, so that the users of a shared server cannot
+  act in each other's name ([#194](https://github.com/FriendsofECCE/ECCE/issues/194)). It is decided first whether ECCE
+  moves from ActiveMQ to an MQTT broker (Mosquitto), which would also
+  remove Java from the client ([#213](https://github.com/FriendsofECCE/ECCE/issues/213)).
+
+**After 9.0, in estimated order:**
+
+1. **A complete queue editor**: discovering a cluster's queues, job-script
+   settings, a preview of the job script and a dry-run test ([#212](https://github.com/FriendsofECCE/ECCE/issues/212)).
+2. **A modernised look**: platform-native colours and spacing, current
+   icons, consistent plots ([#210](https://github.com/FriendsofECCE/ECCE/issues/210)).
+3. **Coin3D in place of the vendored SGI Open Inventor** in the 3D viewer
+   ([#166](https://github.com/FriendsofECCE/ECCE/issues/166)), followed by an updated look for the viewer.
+4. **Groundwork for native clients**: a session identifier in place of
+   `$DISPLAY`, a job store without the X Toolkit, bundled Perl and Python
+   ([#186](https://github.com/FriendsofECCE/ECCE/issues/186)).
+5. **Native macOS and Windows clients**, macOS first ([#133](https://github.com/FriendsofECCE/ECCE/issues/133)).
+
+**Also planned, not yet placed in the order:**
+
 * **Deeper coverage of the codes already supported** — ORCA, Gaussian 16
   and MOPAC each still have options reachable in the code but not from
   the interface.
-
-**In 9.0** (previews: the 9.0.0-alpha releases):
-
-* **Separate client and server packages**: `ecce-client` for the machines
-  people sit at, `ecce-server` for the machine that holds the data.
-* **Jobs launched without an interactive shell**: commands run directly
-  on this machine and over ssh (libssh, or the `ssh` command for hosts
-  that share connections) elsewhere, and job scripts are POSIX sh, so
-  csh is no longer required.
-* **HTCondor** as a queue manager.
-
-**Next (9.x)** — the plan is on
-[#186](https://github.com/FriendsofECCE/ECCE/issues/186):
-
-* **Native macOS and Windows clients**, once the client no longer needs
-  its own data server and broker
-  ([#133](https://github.com/FriendsofECCE/ECCE/issues/133)). macOS
-  needs someone with a Mac to test it.
-* **Finishing Quantum ESPRESSO** and **registering GROMACS**
-  ([#106](https://github.com/FriendsofECCE/ECCE/issues/106)).
+* **Finishing Quantum ESPRESSO** and **registering GROMACS** ([#106](https://github.com/FriendsofECCE/ECCE/issues/106)).
+* **MO correlation diagrams for coordination complexes** ([#162](https://github.com/FriendsofECCE/ECCE/issues/162)); the
+  diagrams are released as experimental.
 
 **Under consideration**
 
+* **Jobs monitored by the ECCE server rather than the client** ([#208](https://github.com/FriendsofECCE/ECCE/issues/208)).
 * **A standalone MO diagram tool**, usable without the rest of ECCE and
   without requiring computational output — for teaching use.
-* **A queue editor worth the name.** Queues can be configured inside
-  ECCE, but the editor is rudimentary.
 
 ## Building from source
 
@@ -335,7 +345,7 @@ sudo apt-get install -y \
   build-essential gfortran cmake ninja-build \
   libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
   libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-  default-jdk ant activemq git
+  default-jdk ant activemq git libssh-dev
 
 git clone https://github.com/FriendsofECCE/ECCE.git
 cd ECCE
@@ -345,27 +355,25 @@ ninja
 cpack -G DEB
 ```
 
-That leaves `ecce_<version>_amd64.deb` in `build-cmake/`, to install as
-in step 1. The build needs CMake 3.16 and wxWidgets 3.2 at least (this
-is a wx3.2-only port). For an RPM, install `rpm` and re-run `cmake .`;
-`cpack -G RPM` then builds it. Split client/server packages, installing
+That leaves `ecce-client_<version>_amd64.deb` and
+`ecce-server_<version>_amd64.deb` in `build-cmake/`; install both for a
+standalone machine (`-DECCE_SPLIT_PACKAGES=OFF` builds the single
+`ecce` package instead). The build needs CMake 3.16, wxWidgets 3.2 and
+libssh at least (this is a wx3.2-only port). For RPMs, install `rpm`
+and re-run `cmake .`; `cpack -G RPM` then builds them. Installing
 without root and running two builds side by side are in
 [GETTING_STARTED.md](GETTING_STARTED.md).
 
 ## Branches and releases
 
-* **`main`** is the 8.x stable line — build from it and file PRs
-  against it. Bug fixes land here first.
+* **`main`** is the 9.x line — build from it and file PRs against it.
 * **`release/X.Y.Z`** branches cut a patch release: each starts from the
   previous release's tag and takes the fixes from `main` as
   cherry-picks, so a patch carries fixes and nothing else. Releases are
-  tagged `vX.Y.Z`.
-* **`v9`** is the experimental line for large, structural work (the
-  client/server split, the new job transport, native clients). Changes
-  that prove themselves there come back to `main` in small pieces, and
-  can ship in an 8.x release when they are opt-in.
-* `archive/*` preserves the old `develop`, `stable`, `master` and
-  `make` branches for history only.
+  tagged `vX.Y.Z`. 8.x patch releases (8.18.x) are made this way.
+* **`wip/*`** branches hold work in progress until it is merged.
+* `archive/*` preserves old branches (`develop`, `stable`, `master`,
+  `make`, and `v9`, merged into `main` for 9.0) for history only.
 
 ## Contributing
 
