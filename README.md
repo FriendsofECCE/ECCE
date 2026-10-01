@@ -251,6 +251,9 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.18.3** — passwords no longer pass through the message broker, and
+  ECCE's local message link accepts only its own session (#194); a
+  desktop menu entry (#211).
 - **v8.18.2** — a job that finishes while its monitor is restarting is no
   longer stored as killed.
 - **v8.18.1** — a fresh calculation's output file is no longer sometimes
