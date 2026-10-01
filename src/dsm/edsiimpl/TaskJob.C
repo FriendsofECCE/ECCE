@@ -358,6 +358,24 @@ Jobdata TaskJob::jobdata() const
 }
 
 
+bool TaskJob::killRequested(bool requested)
+{
+  vector<MetaDataResult> results(1);
+  results[0].name = VDoc::getEcceNamespace() + ":killrequested";
+  results[0].value = requested ? "true" : "";
+  return addProps(results);
+}
+
+
+/** Reads from the server, not the property cache: the request is made by
+    another process. */
+bool TaskJob::killRequested() const
+{
+  const_cast<TaskJob*>(this)->updateProps();
+  return getProp(VDoc::getEcceNamespace() + ":killrequested") == "true";
+}
+
+
 /**
  * Sets launch data associated with the task.
  *
@@ -1769,7 +1787,7 @@ bool TaskJob::canChangeState(string & message) const
 bool TaskJob::setState(const ResourceDescriptor::RUNSTATE& state)
 {
   string stateName = ResourceUtils::stateToString(state);
-  vector<MetaDataResult> results((state<=ResourceDescriptor::STATE_READY)?6:2);
+  vector<MetaDataResult> results((state<=ResourceDescriptor::STATE_READY)?7:2);
   results[0].name = VDoc::getEcceNamespace() + ":state";
   results[0].value = stateName;
   results[1].name = VDoc::getEcceNamespace() + ":rerun";
@@ -1783,6 +1801,8 @@ bool TaskJob::setState(const ResourceDescriptor::RUNSTATE& state)
     results[4].value = "false";
     results[5].name = VDoc::getEcceNamespace() + ":reviewedDate";
     results[5].value = "";
+    results[6].name = VDoc::getEcceNamespace() + ":killrequested";
+    results[6].value = "";
   }
   
   bool ret = addProps(results);
