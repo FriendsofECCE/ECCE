@@ -62,5 +62,5 @@ wrapup {
 # Customize execution command for NWChem
 #******
 NWChemCommand {
-/usr/local/mpich-1.2.5/gcc/bin/mpirun -np $totalprocs $nwchem $inFile >& $outFile
+/usr/local/mpich-1.2.5/gcc/bin/mpirun -np $totalprocs $nwchem $inFile > $outFile 2>&1
 }

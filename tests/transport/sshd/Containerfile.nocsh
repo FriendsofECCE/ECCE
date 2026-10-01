@@ -1,0 +1,16 @@
+# Like Containerfile, without tcsh and without the csh account: a compute host
+# where no csh exists at all, to show a launched job needs none (job scripts
+# are POSIX sh).  Build and run under its own image and container name.
+FROM docker.io/library/debian:trixie
+RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -qq -y install \
+      openssh-server bash coreutils perl mopac procps >/dev/null && rm -rf /var/lib/apt/lists/*
+RUN useradd -m -s /bin/bash bashuser \
+ && echo 'bashuser:ecce-test' | chpasswd \
+ && mkdir -p /run/sshd \
+ && printf 'KbdInteractiveAuthentication yes\nPasswordAuthentication yes\nUsePAM yes\n' \
+      > /etc/ssh/sshd_config.d/ecce-test.conf
+COPY authorized_keys /tmp/authorized_keys
+RUN install -d -m 700 -o bashuser -g bashuser /home/bashuser/.ssh; \
+    install -m 600 -o bashuser -g bashuser /tmp/authorized_keys /home/bashuser/.ssh/authorized_keys
+EXPOSE 22
+CMD ["/usr/sbin/sshd", "-D", "-e"]

@@ -1503,6 +1503,10 @@ sub FileWait
 
     if ($status == $TRY_TIMEOUT)
     {
+        # The alarm can cut the last pause short just after the file
+        # appeared; look once more before giving up.
+        return undef if (-e $file);
+
         $errMsg = "$what '$file' "
             . "does not exist and have nonzero size within "
             . "$timeLimit seconds";
@@ -1567,6 +1571,10 @@ sub FileWait2
     }
     elsif ($status == $TRY_TIMEOUT)
     {
+        # Same last look as FileWait: the alarm can cut the final pause short.
+        $result = &$function();
+        return ($TRY_OK, $result) if ($result);
+
         $errMsg = "neither $what1 '$file1' nor $what2 '$file2'"
             . "exist and have nonzero size within "
             . "$timeLimit seconds";

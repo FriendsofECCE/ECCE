@@ -9,6 +9,9 @@
 //                                 LAUNCHJOB_ACCOUNT in the environment sets the account at launch
 //   launchjob launch <calcURL>                            exit 0 when submitted
 //   launchjob kill   <calcURL>                            RunMgmt::terminate, as the Organizer's Kill
+//   launchjob killflag <calcURL> [set|clear]              prints whether a kill request is recorded
+//   launchjob reason <calcURL>                            runStatusReason and the run log
+//   launchjob rerun  <calcURL>                            "Reset for Rerun" (state ready)
 //   launchjob jobid  <calcURL>                            prints the job id Launch parsed
 //   launchjob state  <calcURL>                            prints the run state
 //   launchjob props  <calcURL>                            one property per line
@@ -35,6 +38,7 @@
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceType.H"
 #include "dsm/TaskJob.H"
+#include "dsm/VDoc.H"
 #include "tdat/AuthCache.H"
 #include "tdat/DefaultDavAuth.H"
 #include "util/Ecce.H"
@@ -139,7 +143,9 @@ static void buildArgs(TaskJob* task, EcceMap& kv)
   task->getDataFile(JCode::PROPERTY_OUTPUT, f);    kv["##property##"] = f.name();
   task->getDataFile(JCode::AUXILIARY_OUTPUT, f);   kv["##auxiliary##"] = f.name();
   kv["##title##"] = task->getName();
-  kv["##forcecsh##"] = "true";
+  // Like the launcher's "Use csh/tcsh" box; unchecked, nothing on the
+  // remote side needs csh.
+  kv["##forcecsh##"] = getenv("ECCE_TEST_NO_FORCECSH") ? "false" : "true";
   Launchdata ldat = task->launchdata();
   kv["##numProcs##"] = StringConverter::toString((int)ldat.totalprocs);
   kv["##numNodes##"] = StringConverter::toString((int)ldat.nodes);
@@ -221,6 +227,13 @@ int main(int argc, char** argv)
   a.erase(a.begin());
   if (mode == "create") return doCreate(a);
   if (mode == "restart") return doRestart(a);
+  if (mode == "killflag" && a.size() >= 1) {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    if (a.size() > 1) return t->killRequested(a[1] == "set") ? 0 : 1;
+    cout << (t->killRequested() ? "set" : "clear") << endl;
+    return 0;
+  }
   if (a.size() != 1) { cerr << mode << ": needs a calculation URL" << endl; return 2; }
   if (mode == "launch") return doLaunch(a[0]);
   if (mode == "kill") {
@@ -228,6 +241,18 @@ int main(int argc, char** argv)
     if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
     cout << RunMgmt::terminate(t) << endl;
     return 0;
+  }
+  if (mode == "reason") {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    cout << t->getProp(VDoc::getEcceNamespace() + ":runStatusReason") << endl;
+    cout << t->joblog() << endl;
+    return 0;
+  }
+  if (mode == "rerun") {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    return t->resetForRerun() ? 0 : 1;
   }
   if (mode == "names") {
     TaskJob* t = getTask(a[0]);

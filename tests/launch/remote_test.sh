@@ -32,7 +32,7 @@ podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce
   --passwd-entry "ecce:*:$(id -u):$(id -g)::/tmp/client:/bin/bash" \
   -v "$root:/src:Z" -v "$state:/state:Z,ro" -v "$chome:/tmp/client:Z" \
   ${ECCE_TEST_STATE:+-e ECCE_TEST_STATE} ${ECCE_DATASERVER_PORT:+-e ECCE_DATASERVER_PORT} \
-  ${ECCE_BROKER_PORT:+-e ECCE_BROKER_PORT} ${ECCE_SSH_KEEPALIVE:+-e ECCE_SSH_KEEPALIVE} \
+  ${ECCE_BROKER_PORT:+-e ECCE_BROKER_PORT} ${ECCE_TEST_NO_FORCECSH:+-e ECCE_TEST_NO_FORCECSH} ${ECCE_SSH_KEEPALIVE:+-e ECCE_SSH_KEEPALIVE} \
   -e PORT="$port" -e USERS="$users" -e RUN_ARGS="${RUN_ARGS:---transport both --drop --kill}" localhost/ecce-launch bash -c '
   set -e
   install -d -m 700 ~/.ssh

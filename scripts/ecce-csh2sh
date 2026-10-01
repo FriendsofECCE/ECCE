@@ -1,0 +1,316 @@
+#!/usr/bin/env perl
+#
+# ecce-csh2sh: check and convert csh job-script snippets in ECCE's configuration.
+#
+# gensub writes POSIX sh job scripts, so the shell text a site or user puts in
+# submit.site or CONFIG.<machine> (setup, wrapup, <Code>Command, <Code>_loophole)
+# must be sh.  This finds those snippets, rewrites what has an exact sh
+# equivalent (rules shared with gensub: CshToSh.pm) and reports the rest line
+# by line.  Everything else in the file is left exactly as it was.
+#
+use strict;
+use warnings;
+use FindBin;
+use lib $FindBin::RealBin;
+use CshToSh;
+use Cwd qw(abs_path);
+use File::Copy qw(copy);
+
+my $usage = <<'USAGE';
+Usage: ecce-csh2sh --check   [targets]   report only; exit 1 if anything needs attention
+       ecce-csh2sh --convert [targets]   rewrite, keeping <file>.csh-backup
+
+Targets (any number):
+  --user          ~/.ECCE/CONFIG.*
+  --siteconfig    $ECCE_HOME/siteconfig/submit.site and CONFIG.*
+  FILE...         these files
+
+Options:
+  --assume-sh-twins  convert `source x.csh` to `. x.sh` without finding x.sh here
+                     (it must exist on the machine that runs the job)
+  --force            replace an existing .csh-backup
+  --quiet            print nothing on success
+  --brief            one line per file, without the lines themselves
+  --notice-file F    write a message for the user to F when something was
+                     converted or needs attention
+  --once --stamp S   the per-user first-start run: --convert --user --quiet, at
+                     most once per stamp S (the version), notice for the Organizer
+
+Exit status: 0 nothing to do or all converted, 1 attention needed (check) or
+lines left that cannot be converted (convert), 2 error.
+USAGE
+
+my %o;
+my @targets;
+my @files;
+while (@ARGV) {
+  my $a = shift @ARGV;
+  if    ($a eq '--check')            { $o{mode} = 'check'; }
+  elsif ($a eq '--convert')          { $o{mode} = 'convert'; }
+  elsif ($a eq '--user')             { $o{user} = 1; }
+  elsif ($a eq '--siteconfig')       { $o{site} = 1; }
+  elsif ($a eq '--assume-sh-twins')  { $o{assume} = 1; }
+  elsif ($a eq '--force')            { $o{force} = 1; }
+  elsif ($a eq '--quiet')            { $o{quiet} = 1; }
+  elsif ($a eq '--brief')            { $o{brief} = 1; }
+  elsif ($a eq '--once')             { $o{once} = 1; }
+  elsif ($a eq '--stamp')            { $o{stamp} = shift @ARGV; }
+  elsif ($a eq '--notice-file')      { $o{notice} = shift @ARGV; }
+  elsif ($a eq '-h' || $a eq '--help') { print $usage; exit 0; }
+  elsif ($a =~ /^-/)                 { print STDERR "ecce-csh2sh: unknown option $a\n$usage"; exit 2; }
+  else                               { push @files, $a; }
+}
+
+my $userHome = $ENV{ECCE_REALUSERHOME} || $ENV{HOME} || '';
+my $userDir = "$userHome/.ECCE";
+
+if ($o{once}) {
+  if (!defined $o{stamp} || $o{stamp} eq '') {
+    print STDERR "ecce-csh2sh: --once needs --stamp\n"; exit 2;
+  }
+  $o{mode} = 'convert'; $o{user} = 1; $o{quiet} = 1;
+  $o{notice} = "$userDir/csh2sh-notice";
+  my $marker = "$userDir/csh2sh-done";
+  if (open(my $m, '<', $marker)) {
+    my $v = <$m>; close $m;
+    chomp $v if defined $v;
+    exit 0 if (defined $v && $v eq $o{stamp});
+  }
+}
+
+if (!$o{mode}) { print STDERR $usage; exit 2; }
+
+sub isBackup {
+  return $_[0] =~ /(?:\.csh-backup|~|\.bak|\.orig|\.rpmnew|\.rpmsave|\.dpkg-\w+)$/;
+}
+
+if ($o{user}) {
+  push @targets, grep { !isBackup($_) } sort glob("$userDir/CONFIG.*");
+}
+if ($o{site}) {
+  my $home = $ENV{ECCE_HOME};
+  if (!$home) { print STDERR "ecce-csh2sh: --siteconfig needs ECCE_HOME\n"; exit 2; }
+  my $d = "$home/siteconfig";
+  push @targets, "$d/submit.site" if (-f "$d/submit.site");
+  push @targets, grep { !isBackup($_) && -f $_ } sort glob("$d/CONFIG.*");
+}
+push @targets, @files;
+if (!@targets && !$o{user} && !$o{site} && !@files) {
+  print STDERR "ecce-csh2sh: name FILEs, or use --user or --siteconfig\n"; exit 2;
+}
+
+# --- reading a config file the way gensub does ---------------------------------
+
+my $SNIPPET = qr/^(?:setup|wrapup|[\w-]+_(?:setup|wrapup|loophole)|[\w-]+command)$/;
+
+# Returns ([line texts], newline-or-empty at the end) -> list of line records.
+sub readLines {
+  my ($path) = @_;
+  open(my $h, '<', $path) or return;
+  local $/;
+  my $all = <$h>;
+  close $h;
+  my @l = split(/(?<=\n)/, $all);
+  return \@l;
+}
+
+# Each snippet entry: { key, first => 0-based index of its first line, n,
+# single => [start, len] for one-line forms }.
+sub snippetEntries {
+  my ($lines) = @_;
+  my @e;
+  my $i = 0;
+  while ($i < @$lines) {
+    my $l = $lines->[$i];
+    (my $c = $l) =~ s/\n\z//;
+    if ($c =~ /^\s*\/\// || $c =~ /^\s*#/ || $c =~ /^\s*$/) { $i++; next; }
+    if ($c =~ /^\s*(.*)\s*\{(.*)\}/) {
+      my ($key, $vs, $ve) = ($1, $-[2], $+[2]);
+      $key =~ s/^\s+|\s+$//g;
+      push @e, { key => $key, first => $i, n => 1, single => [$vs, $ve - $vs] }
+        if (lc($key) =~ $SNIPPET);
+      $i++;
+    } elsif ($c =~ /^\s*(.*)\s*\{/) {
+      my $key = $1;
+      $key =~ s/\s*$//; $key =~ s/^\s+//;
+      my $start = $i + 1;
+      my $j = $start;
+      $j++ while ($j < @$lines && $lines->[$j] !~ /^\}/);
+      push @e, { key => $key, first => $start, n => $j - $start }
+        if (lc($key) =~ $SNIPPET);
+      $i = $j + 1;
+    } else {
+      if ($c =~ /^\s*(.*):\s*(.*)/) {
+        my ($key, $vs, $ve) = ($1, $-[2], $+[2]);
+        $key =~ s/\s+$//; $key =~ s/^\s+//;
+        push @e, { key => $key, first => $i, n => 1, single => [$vs, $ve - $vs] }
+          if (lc($key) =~ $SNIPPET);
+      }
+      $i++;
+    }
+  }
+  return @e;
+}
+
+# -> { path, lines (new), changes [{line,key,from,to}], issues [{line,key,...}], changed }
+sub analyse {
+  my ($path) = @_;
+  my $lines = readLines($path);
+  return { path => $path, error => "cannot read: $!" } if (!$lines);
+  my @new = @$lines;
+  my (@changes, @issues);
+  my %opt = (structured => 1, assume_twins => $o{assume} ? 1 : 0);
+  foreach my $e (snippetEntries($lines)) {
+    my ($text, $off);
+    if ($e->{single}) {
+      (my $c = $lines->[$e->{first}]) =~ s/\n\z//;
+      $text = substr($c, $e->{single}[0], $e->{single}[1]);
+      $off = $e->{first};
+    } else {
+      my @b = @{$lines}[$e->{first} .. $e->{first} + $e->{n} - 1];
+      s/\n\z// for @b;
+      $text = join("\n", @b);
+    }
+    next if ($text =~ /^\s*$/);
+    my ($lead) = $text =~ /^(\s*)/;
+    my ($trail) = $text =~ /(\s*)$/;
+    my $core = $text;
+    $core =~ s/^\s+|\s+$//g;
+    my $res = CshToSh::snippet($e->{single} ? $core : $text, %opt);
+    foreach my $c (@{$res->{changes}}) {
+      push @changes, { line => $e->{first} + $c->{line}, key => $e->{key}, from => $c->{from}, to => $c->{to} };
+    }
+    foreach my $iss (@{$res->{issues}}) {
+      push @issues, { %$iss, line => $e->{first} + $iss->{line}, key => $e->{key} };
+    }
+    next if ($res->{text} eq ($e->{single} ? $core : $text));
+    if ($e->{single}) {
+      (my $c = $lines->[$e->{first}]) =~ s/\n\z//;
+      my ($eol) = $lines->[$e->{first}] =~ /(\n?)\z/;
+      substr($c, $e->{single}[0], $e->{single}[1]) = $lead . $res->{text} . $trail;
+      $new[$e->{first}] = $c . $eol;
+    } else {
+      my @nl = split(/\n/, $res->{text}, -1);
+      for my $k (0 .. $e->{n} - 1) {
+        my ($eol) = $lines->[$e->{first} + $k] =~ /(\n?)\z/;
+        $new[$e->{first} + $k] = $nl[$k] . $eol;
+      }
+    }
+  }
+  return { path => $path, old => $lines, lines => \@new, changes => \@changes,
+           issues => \@issues, changed => scalar(@changes) ? 1 : 0 };
+}
+
+sub writeFile {
+  my ($path, $lines, $mode, $uid, $gid) = @_;
+  my $tmp = "$path.csh2sh.$$";
+  open(my $h, '>', $tmp) or return "cannot write $tmp: $!";
+  print $h @$lines;
+  close($h) or return "cannot write $tmp: $!";
+  chmod($mode & 07777, $tmp);
+  chown($uid, $gid, $tmp) if ($> == 0);
+  rename($tmp, $path) or do { unlink $tmp; return "cannot replace $path: $!"; };
+  return undef;
+}
+
+# --- run --------------------------------------------------------------------
+
+my $anyAttention = 0;   # check: changes or issues;  convert: issues left
+my $errors = 0;
+my (@out, @noticeConverted, @noticeIssues, @noticeErrors);
+
+foreach my $given (@targets) {
+  my $path = -l $given ? (abs_path($given) || $given) : $given;
+  my $r = analyse($path);
+  if ($r->{error}) {
+    push @out, "$given: $r->{error}\n";
+    push @noticeErrors, "$given: $r->{error}";
+    $errors++;
+    next;
+  }
+  my $nch = scalar @{$r->{changes}};
+  my $nis = scalar @{$r->{issues}};
+  next if (!$nch && !$nis);
+
+  my $head = "$given\n";
+  my $backup = "$path.csh-backup";
+  my $done = 0;
+  if ($o{mode} eq 'convert' && $nch) {
+    if (-e $backup && !$o{force}) {
+      $head .= "  NOT converted: $backup exists (move it away, or use --force to replace it)\n";
+      push @noticeErrors, "$given: not converted, $backup already exists";
+      $errors++;
+    } else {
+      my @st = stat($path);
+      my $err;
+      if (!copy($path, $backup)) { $err = "cannot write backup $backup: $!"; }
+      else {
+        chmod($st[2] & 07777, $backup);
+        utime($st[8], $st[9], $backup);
+        $err = writeFile($path, $r->{lines}, $st[2], $st[4], $st[5]);
+      }
+      if ($err) {
+        $head .= "  NOT converted: $err\n";
+        push @noticeErrors, "$given: not converted: $err";
+        $errors++;
+      } else {
+        $done = 1;
+        $head .= "  converted $nch line" . ($nch == 1 ? "" : "s") . "; original kept as $backup\n";
+        push @noticeConverted, "$given   ($nch line" . ($nch == 1 ? "" : "s") . ", original kept as $backup)";
+      }
+    }
+  } elsif ($nch) {
+    $head .= "  $nch line" . ($nch == 1 ? "" : "s") . " would be converted (ecce-csh2sh --convert)\n";
+    $anyAttention = 1;
+  }
+  foreach my $c ($o{brief} ? () : @{$r->{changes}}) {
+    $head .= sprintf("    line %d [%s]  %s\n        -> %s\n", $c->{line}, $c->{key}, $c->{from}, $c->{to});
+  }
+  if ($nis) {
+    $head .= "  needs attention ($nis line" . ($nis == 1 ? "" : "s") . ", gensub refuses a job until fixed):\n";
+    foreach my $i (@{$r->{issues}}) {
+      unless ($o{brief}) {
+        $head .= sprintf("    line %d [%s]  %s\n        write: %s\n", $i->{line}, $i->{key}, $i->{text}, $i->{want});
+        $head .= "        note: $i->{why}\n" if ($i->{why});
+      }
+      push @noticeIssues, sprintf("%s line %d: %s\n      write: %s%s", $given, $i->{line}, $i->{text},
+                                  $i->{want}, $i->{why} ? "\n      note: $i->{why}" : "");
+    }
+    $anyAttention = 1;
+  }
+  push @out, $head;
+}
+
+if (@out && !$o{quiet}) {
+  print @out;
+  print "\nJob scripts are POSIX sh; see GETTING_STARTED.md, \"Job scripts are POSIX sh\".\n" unless ($o{brief});
+} elsif (!@out && !$o{quiet}) {
+  print "ecce-csh2sh: nothing to convert, nothing needs attention.\n";
+}
+
+if ($o{notice} && (@noticeConverted || @noticeIssues || @noticeErrors)) {
+  my $n = "ECCE now runs job scripts with /bin/sh instead of csh.\n" .
+          "Your job-script settings (setup, wrapup, <Code>Command, <Code>_loophole in\n" .
+          "~/.ECCE/CONFIG.*) were checked.\n";
+  if (@noticeConverted) {
+    $n .= "\nConverted to sh (the original of each is kept beside it):\n  " .
+          join("\n  ", @noticeConverted) . "\n";
+  }
+  if (@noticeIssues) {
+    $n .= "\nStill csh. Jobs on these machines will not start until these lines are\n" .
+          "written in sh:\n  " . join("\n  ", @noticeIssues) . "\n";
+  }
+  if (@noticeErrors) {
+    $n .= "\nCould not be converted:\n  " . join("\n  ", @noticeErrors) . "\n";
+  }
+  $n .= "\nRun 'ecce-csh2sh --check --user' to see this again.\n";
+  if (open(my $h, '>', $o{notice})) { print $h $n; close $h; }
+}
+
+if ($o{once} && !$errors) {
+  if (open(my $h, '>', "$userDir/csh2sh-done")) { print $h "$o{stamp}\n"; close $h; }
+}
+
+exit 2 if ($errors);
+exit($anyAttention ? 1 : 0) if ($o{mode} eq 'check');
+exit(@noticeIssues ? 1 : 0);

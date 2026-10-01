@@ -121,6 +121,23 @@ if [ -n "$login" ]; then
   export ECCE_SERVER_LOGIN="$login"
 fi
 
+# Job scripts are sh now: convert the user's csh snippets in ~/.ECCE/CONFIG.*
+# once per version (ecce-csh2sh keeps the originals and leaves a message for the
+# Gateway to show).  The marker is read with builtins only, so a start after the
+# first one pays for no process.
+c2s_dir="${ECCE_REALUSERHOME:-$HOME}/.ECCE"
+c2s_seen=""
+{ read -r c2s_seen < "$c2s_dir/csh2sh-done"; } 2>/dev/null
+if [ "$c2s_seen" != "$ECCE_VERSION_STRING" ] && [ -d "$c2s_dir" ]; then
+  set -- "$c2s_dir"/CONFIG.*
+  if [ -e "$1" ] && [ -x "$ECCE_HOME/scripts/ecce-csh2sh" ]; then
+    ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}" \
+      "$ECCE_HOME/scripts/ecce-csh2sh" --once --stamp "$ECCE_VERSION_STRING" >/dev/null 2>&1 || true
+  else
+    echo "$ECCE_VERSION_STRING" > "$c2s_dir/csh2sh-done" 2>/dev/null || true
+  fi
+fi
+
 # Only -remote reaches ecce-gateway; it has no use for the rest.
 passthrough=()
 if $remote; then passthrough+=(-remote); fi

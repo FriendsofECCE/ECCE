@@ -109,7 +109,7 @@ def expectedDirectives(mgr, p, jobname, rundir="/qtest/run"):
         add("#PBS -l walltime=%s" % p["wall"], p["wall"])
         add("#PBS -l mem=%smb" % p["mem"], p["mem"])
         add("#PBS -A %s" % p["account"], p["account"])
-        out += ["#PBS -j oe", "#PBS -o pbs.out", "#PBS -S /bin/csh"]
+        out += ["#PBS -j oe", "#PBS -o pbs.out", "#PBS -S /bin/sh"]
     elif mgr == "lsf":
         add("#BSUB -J " + jobname)
         add("#BSUB -q %s" % p["queue"], p["queue"])
@@ -118,7 +118,7 @@ def expectedDirectives(mgr, p, jobname, rundir="/qtest/run"):
         add("#BSUB -M %s" % p["mem"], p["mem"])
         add("#BSUB -P %s" % p["account"], p["account"])
         out += ["#BSUB -o %s.out" % jobname, "#BSUB -e %s.err" % jobname,
-                "#BSUB -L /bin/csh"]
+                "#BSUB -L /bin/sh"]
     elif mgr == "moab":
         add("#MSUB -N " + jobname)
         add("#MSUB -q %s" % p["queue"], p["queue"])
@@ -134,7 +134,7 @@ def expectedDirectives(mgr, p, jobname, rundir="/qtest/run"):
         add("#$ -l h_rt=%s" % p["wall"], p["wall"])
         add("#$ -l mem_free=%sM" % p["mem"], p["mem"])
         add("#$ -A %s" % p["account"], p["account"])
-        out += ["#$ -S /bin/csh", "#$ -cwd", "#$ -v SHELL", "#$ -j y", "#$ -o sge.out"]
+        out += ["#$ -S /bin/sh", "#$ -cwd", "#$ -v SHELL", "#$ -j y", "#$ -o sge.out"]
     elif mgr == "htcondor":
         out += ["#CONDOR executable = @SCRIPT@", "#CONDOR initialdir = " + rundir,
                 "#CONDOR should_transfer_files = NO", "#CONDOR notification = never",
@@ -257,10 +257,13 @@ class Gensub(object):
             harness.link(os.path.join(REPO, sub), os.path.join(self.home, sub))
         harness.link(os.path.join(REPO, "data", "client"),
                      os.path.join(self.home, "data", "client"))
+        self.config("")
+        self.env = dict(os.environ, ECCE_HOME=self.home, ECCE_REALUSERHOME=self.user)
+
+    def config(self, extra):
         with open(os.path.join(self.user, ".ECCE", "CONFIG.goldhost"), "w") as h:
             h.write("NWChem: /opt/codes/nwchem\nMOPAC: /opt/codes/mopac\n"
-                    "perlPath: /usr/bin\n")
-        self.env = dict(os.environ, ECCE_HOME=self.home, ECCE_REALUSERHOME=self.user)
+                    "perlPath: /usr/bin\n" + extra)
 
     def script(self, mgr, code, p, host="goldhost", name="gold", rundir="/qtest/run"):
         name_c, infile, outfile = CODES[code]
@@ -327,6 +330,8 @@ def goldenSuite(args, rep):
                 diff = "".join(difflib.unified_diff(
                     want.splitlines(1), text.splitlines(1), "golden", "generated"))
                 rep.check(not diff, "script equals golden" + ("\n" + diff if diff else ""))
+            for prob in notShell(text):
+                rep.check(False, prob)
             if MANAGERS[mgr][1]:
                 want = expectedDirectives(mgr, p, "gold")
                 got = directiveLines(text, mgr)
@@ -336,9 +341,73 @@ def goldenSuite(args, rep):
                 for prob in wellFormed(text, mgr):
                     rep.check(False, prob)
             rep.done()
+        snippetCases(g, rep, args)
         realParsers(g, rep, args)
     finally:
         g.close()
+
+
+CSH_LEFTOVERS = re.compile(
+    r"^\s*(?:setenv|foreach|endif|onintr|set\s+\w+\s*=)\b|\$status\b|\$\?\w|(?<![0-9])>&(?![0-9])|\$\w+:[htre]\b|/bin/t?csh")
+
+
+def notShell(text):
+    """Problems with a generated script as a POSIX sh script."""
+    problems = []
+    if text.splitlines()[0] != "#!/bin/sh":
+        problems.append("interpreter line is %r, not #!/bin/sh" % text.splitlines()[0])
+    for l in text.splitlines():
+        if not l.startswith("#") and CSH_LEFTOVERS.search(l):
+            problems.append("csh syntax left in the script: %r" % l)
+    sh = shutil.which("dash") or "/bin/sh"
+    res = subprocess.run([sh, "-n"], input=text.encode(), stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT)
+    if res.returncode != 0:
+        problems.append("%s -n rejects the script: %s" % (os.path.basename(sh),
+                        res.stdout.decode("utf-8", "replace").strip()[:200]))
+    return problems
+
+
+#  What a site's csh snippet becomes: (CONFIG text, substring expected in the
+#  script, substring that must be gone); or (text, None, error fragment).
+SNIPPETS = [
+    ("setup {\nsetenv MLIB_NUMBER_OF_THREADS 1\nsetenv OMP_NUM_THREADS \"1\"\n}\n",
+     "export MLIB_NUMBER_OF_THREADS=1\nexport OMP_NUM_THREADS=\"1\"", "setenv"),
+    ("NWChemCommand {\nprun -n $totalprocs $nwchem $inFile >& $outFile\n}\n",
+     "prun -n 1 $nwchem nwch.nw > nwch.nwout 2>&1", ">& "),
+    ("NWChemCommand {\nmpirun -np 2 $nwchem $inFile >&! $outFile < /dev/null\n}\n",
+     "mpirun -np 2 $nwchem nwch.nw > nwch.nwout 2>&1 < /dev/null", ">&!"),
+    ("wrapup {\nset refund = \"refund.out\"\ncat $refund >> $outFile\n}\n",
+     "refund=\"refund.out\"\ncat $refund", "set refund"),
+    ("setup {\nif ($?SCRATCH) then\n  echo yes\nendif\n}\n",
+     None, "setup, line 1"),
+    ("setup {\nset procs = (a b)\nsource /etc/csh.login\nforeach f ($x)\nend\n}\n",
+     None, "setup, line 3"),
+    ("NWChemCommand {\nsetenv X a b\n}\n", None, "nwchemcommand, line 1"),
+]
+
+
+def snippetCases(g, rep, args):
+    if args.manager and "shell" not in args.manager:
+        return
+    for i, (text, want, other) in enumerate(SNIPPETS):
+        rep.row("golden", "shell", "-", "snippet.%d" % (i + 1))
+        g.config(text)
+        try:
+            out = g.script("shell", "nwchem", PROFILES["basic"])
+            if want is None:
+                rep.check(False, "gensub accepted csh syntax: %r" % text)
+            else:
+                rep.check(want in out, "translated to %r" % want)
+                rep.check(other not in out, "%r is gone" % other)
+                for prob in notShell(out):
+                    rep.check(False, prob)
+        except RuntimeError as exc:
+            msg = str(exc)
+            rep.check(want is None and other in msg,
+                      "gensub names the line: %s" % " ".join(msg.split())[:120])
+        rep.done()
+    g.config("")
 
 
 # --- the schedulers ---------------------------------------------------------
@@ -862,7 +931,8 @@ def stubsSuite(args, rep):
     managers = [m for m in STUB_MANAGERS if not args.manager or m in args.manager]
     if not managers:
         return
-    root = os.path.join(os.path.expanduser("~"), ".cache", "ecce-queue-stubs")
+    root = os.environ.get("ECCE_TEST_STUBS") or os.path.join(
+        os.path.expanduser("~"), ".cache", "ecce-queue-stubs")
     shutil.rmtree(root, ignore_errors=True)
     bindir = os.path.join(root, "bin")
     os.makedirs(bindir)
@@ -870,10 +940,21 @@ def stubsSuite(args, rep):
         os.symlink(os.path.join(HERE, "stubsched.py"), os.path.join(bindir, name))
     say("STAND-IN schedulers (tests/queues/stubsched.py, NOT the real PBS/LSF/Moab) "
         "on PATH: " + bindir)
+    spool = os.path.join(root, "spool")
+    os.makedirs(spool, exist_ok=True)
+    if args.no_csh:
+        open(os.path.join(spool, "no-csh"), "w").close()
+        say("jobs run with csh and tcsh made unusable (bwrap)")
     saved = os.environ["PATH"]
     os.environ["PATH"] = bindir + ":" + saved
     try:
         liveSuite(args, rep, "stubs", managers, stubdir=bindir)
+        if args.no_csh:
+            probes = glob.glob(os.path.join(spool, "*", "*", "csh-probe"))
+            rep.row("stubs", "-", "-", "no-csh.probe")
+            rep.check(probes and all(open(f).read().strip() != "0" for f in probes),
+                      "csh was unusable in all %d stand-in jobs" % len(probes))
+            rep.done()
     finally:
         os.environ["PATH"] = saved
 
@@ -906,6 +987,8 @@ def main():
     ap.add_argument("--no-kill", action="store_true", help="skip the cancel jobs")
     ap.add_argument("--repeat", type=int, default=1, help="repeat each live job N times")
     ap.add_argument("--update-golden", action="store_true")
+    ap.add_argument("--no-csh", action="store_true",
+                    help="stand-in scheduler jobs run with csh/tcsh unusable")
     ap.add_argument("--strict", action="store_true",
                     help="count the known ECCE faults as failures")
     ap.add_argument("--keep", action="store_true")

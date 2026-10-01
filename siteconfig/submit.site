@@ -25,6 +25,12 @@
 # Case for keys is not sensitive.
 #
 #
+# Shell snippets (setup, wrapup, <code>Command, <code>_loophole) become part
+# of a #!/bin/sh job script, so they must be POSIX sh.  Plain csh forms
+# (setenv N V, set N = V, >& and >&! redirects) are translated; anything else
+# csh (if (...) then, foreach, source, set x = (...), $?var, ...) makes gensub
+# stop and name the line.  See GETTING_STARTED.md, "Job scripts are POSIX sh".
+#
 # The submit script generator recognizes the keywords described below.
 # Most of these are easily recognized as fields the user controls 
 # through the interface.
@@ -75,11 +81,11 @@ NWChemPrelimFilesToRemove { *.q  *.trj  *.prp  *[0-9][0-9][0-9]*.rst *.file30 me
 
 #NWChemCommand {
 ##  - Generating setup file for use with Parallel
-#if ( -e nwchem.p) rm -f nwchem.p
+#rm -f nwchem.p
 #cat << EOCAT > nwchem.p
 #$USER `hostname` $totalprocs $nwchem $runDir
 #EOCAT
-#/msrc/proj/nwchem/bin/parallel nwchem $inFile >&! $outFile
+#/msrc/proj/nwchem/bin/parallel nwchem $inFile > $outFile 2>&1
 #}
 
 ################
@@ -143,7 +149,7 @@ PBS {
 #PBS -A $account
 #PBS -j oe
 #PBS -o pbs.out
-#PBS -S /bin/csh
+#PBS -S /bin/sh
 }
 
 LSF {
@@ -155,7 +161,7 @@ LSF {
 #BSUB -P $account
 #BSUB -o $submitFile.out
 #BSUB -e $submitFile.err
-#BSUB -L /bin/csh
+#BSUB -L /bin/sh
 }
 Moab {
 #MSUB -N $submitFile
@@ -226,7 +232,7 @@ SGE {
 #$ -l h_rt=$wallTime
 #$ -l mem_free=$memoryM
 #$ -A $account
-#$ -S /bin/csh
+#$ -S /bin/sh
 #$ -cwd
 #$ -v SHELL
 #$ -j y

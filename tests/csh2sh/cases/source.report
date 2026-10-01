@@ -1,0 +1,27 @@
+exit=1
+@T@/CONFIG.case
+  3 lines would be converted (ecce-csh2sh --convert)
+    line 3 [setup]  source @T@/have.csh
+        -> . @T@/have.sh
+    line 4 [setup]  source @T@/init/csh
+        -> . @T@/init/sh
+    line 10 [setup]  source @T@/have.csh # keep this comment
+        -> . @T@/have.sh # keep this comment
+  needs attention (5 lines, gensub refuses a job until fixed):
+    line 5 [setup]  source @T@/lonely.csh
+        write: . file   (the file itself must be sh syntax)
+        note: @T@/lonely.sh not found on this machine; if it exists where the job runs, use: . @T@/lonely.sh (or run ecce-csh2sh with --assume-sh-twins)
+    line 6 [setup]  source @T@/missing.csh
+        write: . file   (the file itself must be sh syntax)
+        note: @T@/missing.sh not found on this machine; if it exists where the job runs, use: . @T@/missing.sh (or run ecce-csh2sh with --assume-sh-twins)
+    line 7 [setup]  source $MODULES/init/csh
+        write: . file   (the file itself must be sh syntax)
+        note: the path has a variable, so $MODULES/init/sh cannot be checked; if it exists where the job runs, use: . $MODULES/init/sh (or --assume-sh-twins)
+    line 8 [setup]  source ./have.csh
+        write: . file   (the file itself must be sh syntax)
+        note: ./have.sh not found on this machine; if it exists where the job runs, use: . ./have.sh (or run ecce-csh2sh with --assume-sh-twins)
+    line 9 [setup]  source /etc/csh.login
+        write: . file   (the file itself must be sh syntax)
+        note: no sh twin is known for this file name; write the sh version of its contents
+
+Job scripts are POSIX sh; see GETTING_STARTED.md, "Job scripts are POSIX sh".

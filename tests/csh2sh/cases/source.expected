@@ -1,0 +1,11 @@
+# source with and without an sh twin on this machine (@T@ is made by the test).
+setup {
+. @T@/have.sh
+. @T@/init/sh
+source @T@/lonely.csh
+source @T@/missing.csh
+source $MODULES/init/csh
+source ./have.csh
+source /etc/csh.login
+. @T@/have.sh # keep this comment
+}

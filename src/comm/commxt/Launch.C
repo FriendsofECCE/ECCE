@@ -2142,8 +2142,10 @@ void Launch::updateState(void)
   // Also switch "created" calcs because that's what they are for imports
   // Lisong 07/24/06: Not sure if setState sending notification will
   // cause problem or not.
-  if (currentState <= ResourceDescriptor::STATE_READY)
+  if (currentState <= ResourceDescriptor::STATE_READY) {
+    p_taskjob->killRequested(false);
     p_taskjob->setState(ResourceDescriptor::STATE_SUBMITTED);
+  }
 
     // special STTR reaction rate study logic to reset the state of all
     // follow-on tasks to force input file regeneration because it's likely

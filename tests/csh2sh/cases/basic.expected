@@ -1,0 +1,32 @@
+# The forms gensub itself translates.
+NWChem: /opt/codes/nwchem
+qmgrPath: /usr/local/bin
+
+PBS {
+#PBS -S /bin/sh
+#PBS -l nodes=$nodes:ppn=$ppn
+}
+
+setup {
+export MLIB_NUMBER_OF_THREADS=1
+export OMP_NUM_THREADS="1"
+export EMPTY=
+unset DISPLAY
+refund="refund.out"
+n=4
+here=`pwd`
+echo done > /dev/null 2>&1
+echo done >> $runDir/log 2>&1
+echo done > $runDir/log 2>&1
+make 2>&1 | tee make.log
+echo x > out.txt
+exit 0
+}
+
+wrapup {
+cat $refund >> $runDir/$outFile
+}
+
+NWChemCommand {
+mpirun -np $totalprocs $nwchem $inFile > $outFile 2>&1
+}

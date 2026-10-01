@@ -187,6 +187,59 @@ refused** with an explanation; use one under your home directory. LoadLeveler, M
 retired in 8.11.0 — see `siteconfig/disabled-queuemanagers-archive.txt`,
 which keeps their definitions verbatim if you ever need one back.
 
+### Job scripts are POSIX sh
+
+The script `gensub` writes starts with `#!/bin/sh`, so a compute machine needs
+no `csh` or `tcsh` to run ECCE jobs. Scheduler shell-selection directives
+(`#PBS -S`, `#BSUB -L`, `#$ -S`) name `/bin/sh` too.
+
+Text you put in `CONFIG.<host>` or `submit.site` that becomes part of that
+script (`setup`, `wrapup`, `<Code>Command`, `<Code>_loophole`) must therefore
+be sh. `gensub` checks it line by line:
+
+| csh you may have | what `gensub` does |
+|---|---|
+| `setenv NAME value` (one word, or quoted) | translated to `export NAME=value` |
+| `set name = value` (one word, or quoted) | translated to `name=value` |
+| `cmd >& file`, `>&! file`, `>>& file`, `\|&` | translated to `> file 2>&1` etc. |
+| `exit (n)` | translated to `exit n` |
+| anything else csh: `if (...) then`, `foreach`, `end`/`endif`, `source`, `set x = (a b)`, `@ n = ...`, `$?var`, `$status`, `$x:h`, `limit`, `alias`, `switch`, `while (...)` | **refused**: no script is written and the error lists every such line with the sh form to use |
+
+It refuses rather than guesses because a wrong guess would run the wrong job.
+Equivalents: `if [ -e f ]; then ... fi`, `for x in a b; do ... done`,
+`. /etc/profile.d/modules.sh` (the `sh` flavour of an init file, never the
+`csh` one), `x="a b"`, `PATH="dir:$PATH"; export PATH`, `n=$((a * b))`,
+`${VAR+set}` for `$?VAR`, `${x%/*}` for `$x:h`, `ulimit` for `limit`.
+
+`ecce-csh2sh` does the conversion for you. It rewrites what has an exact sh
+equivalent (everything in the table above that `gensub` translates, plus
+`if (-e|-d|-f|-x|... f) then`, `if ($?VAR)`, `if ("$X" == "y")` and numeric
+`<`/`>` tests with `&&`, `||`, `!`, `else if`, `else`, `endif`, one-line
+`if (...) command`, `foreach v (words) ... end`, `while (...) ... end`,
+`$status` and `source`). Anything it is not certain of is left alone and
+listed with the sh form to write. `source x.csh` becomes `. x.sh` when `x.sh`
+exists on the machine running the command, or always with `--assume-sh-twins`
+(then `x.sh` must exist where the job runs; `/init/csh` becomes `/init/sh`).
+
+    ecce-csh2sh --check --user          # ~/.ECCE/CONFIG.*, report only
+    ecce-csh2sh --convert --user        # rewrite; original kept as CONFIG.x.csh-backup
+    sudo ecce-csh2sh --convert --siteconfig   # submit.site and CONFIG.* in $ECCE_HOME/siteconfig
+
+`--check` exits 1 when anything needs attention. A second `--convert` changes
+nothing, and an existing `.csh-backup` is never overwritten (`--force`).
+Comments, blank lines, key order and every other key are untouched.
+
+`ecce` runs `--convert --user` once for each version of ECCE and tells you in a
+dialog which files it changed and which lines still need you. Installing the
+package never edits site files: it prints a notice when `submit.site` or a site
+`CONFIG.*` still holds csh, and you run the `sudo` command above.
+
+Migrating a site: run one job per machine after upgrading; a CONFIG that
+needs changes fails at launch with the lines named. The shipped
+`siteconfig/CONFIG-Examples/` are already converted. `sourceFile` in a CONFIG
+file is unaffected: it is read by the login shell ECCE connects through, not by
+the job script.
+
 ### Running two instances at once
 
 Everything that makes an instance distinct is an environment variable:

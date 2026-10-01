@@ -1,0 +1,21 @@
+exit=1
+@T@/CONFIG.case
+  8 lines would be converted (ecce-csh2sh --convert)
+    line 10 [setup]  setenv A b
+        -> export A=b
+    line 11 [wrapup]  setenv C d
+        -> export C=d
+    line 12 [NWChemCommand]  if (-e x) echo y
+        -> if [ -e x ]; then echo y; fi
+    line 13 [Gaussian-16Command]  setenv GAUSS_SCRDIR /scratch
+        -> export GAUSS_SCRDIR=/scratch
+    line 15 [orca_setup]  setenv ORCA_TMP /tmp
+        -> export ORCA_TMP=/tmp
+    line 18 [nwchem_loophole]  if (-e go) then
+        -> if [ -e go ]; then
+    line 19 [nwchem_loophole]  sh go >& log
+        -> sh go > log 2>&1
+    line 20 [nwchem_loophole]  endif
+        -> fi
+
+Job scripts are POSIX sh; see GETTING_STARTED.md, "Job scripts are POSIX sh".

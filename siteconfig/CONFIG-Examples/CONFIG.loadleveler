@@ -80,21 +80,19 @@ Gaussian-98Environment {
 #******
 setup {
 
-set refund = "refund.out"
+refund="refund.out"
 rm -f $refund
 touch $refund
 
 echo "" >> $refund
 echo "-----MSCF Refund Information-----" >> $refund
 
-set batchnodes = ""
-set spnodes = `echo $LOADL_PROCESSOR_LIST`
-foreach anode (${spnodes})
-  set mynode =  `echo $anode| cut -f1 -d"."`
-  set batchnodes = ($batchnodes $mynode)
-end
-set temp = (-nodelist \"$batchnodes\")
-setenv GAUSS_LFLAGS "$temp"
+batchnodes=""
+for anode in $LOADL_PROCESSOR_LIST; do
+  mynode=`echo $anode| cut -f1 -d"."`
+  batchnodes="$batchnodes $mynode"
+done
+export GAUSS_LFLAGS="-nodelist \"$batchnodes\""
 
 echo "UserID = $USER" >> $refund
 echo "Account name = $account" >> $refund

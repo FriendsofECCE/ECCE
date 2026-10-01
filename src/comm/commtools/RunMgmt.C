@@ -138,13 +138,18 @@ string RunMgmt::terminate(const TaskJob *calc)
         // shell config enabled it, there's no reason this internal,
         // ECCE-controlled status write should ever want to fail because
         // of it.
+        // Before the status file: the monitor may report 302 the moment
+        // it appears, and eccejobstore calls that a cancel only with this
+        // set.  Withdrawn below if the request could not be made.
+        const_cast<TaskJob*>(calc)->killRequested(true);
         string fixStatus = "echo 302 > ";
         fixStatus += job.jobpath + "/.ecce.status";
         if (rcmd.exec(fixStatus)) {
           string outstr;
-          if (rcmd.execout(command, outstr))
+          if (rcmd.execout(command, outstr)) {
             ret = "Request to terminate job " + id + " on " +
                   launch.machine + " has been issued";
+          }
           else {
             // If the job has already completed then the kill command
             // will return "No such process" and no $status
@@ -165,6 +170,13 @@ string RunMgmt::terminate(const TaskJob *calc)
             " not issued--run directory " + job.jobpath + " does not exist";
     } else
       ret = rcmd.commError();
+
+    // The Shell cancel command ends with a second kill that fails once the
+    // first has worked, so "process not found" still means the user's
+    // request went through.
+    if (ret.find("has been issued") == string::npos &&
+        ret.find("process not found") == string::npos)
+      const_cast<TaskJob*>(calc)->killRequested(false);
 
     delete refMachine;
   } else

@@ -1,4 +1,4 @@
-#!/bin/csh
+#!/bin/sh
 #  ECCE Submit Script
 #  Generated <date> with ECCE Version <version>.
 # 
@@ -26,14 +26,18 @@
 #BSUB -P proj1
 #BSUB -o gold.out
 #BSUB -e gold.err
-#BSUB -L /bin/csh
+#BSUB -L /bin/sh
 
 
 #  Handle interrupts
-onintr canceljob
+canceljob() {
+  echo $X_INTERRUPTED > /qtest/run/.ecce.status
+  exit 1
+}
+trap canceljob INT
 
 #  Change to the run directory
-cd /qtest/run
+cd /qtest/run || exit 1
 
 #  Remove any left-over ecce files from previous runs
 rm -f /qtest/run/.ecce.status core
@@ -41,33 +45,33 @@ rm -f /qtest/run/ecce.submit.log
 touch /qtest/run/ecce.submit.log
 
 #  Exit status and ECCE states...
-set X_INTERRUPTED     = 302;    # caught interrupt - kill 
-set X_FILE_EXIST      = 211;    # in/out file does not exist
-set X_UNEXPECTED_CORE = 221;    # code exit 0 but core exists
-set X_NOT_NORMAL      = 231;    # code exit 0 but no normal-termination line
+X_INTERRUPTED=302       # caught interrupt - kill 
+X_FILE_EXIST=211        # in/out file does not exist
+X_UNEXPECTED_CORE=221   # code exit 0 but core exists
+X_NOT_NORMAL=231        # code exit 0 but no normal-termination line
 
 #  Setting environment variables...
 
 #  Keep Open MPI shared memory files with the job, not in /dev/shm
-setenv OMPI_MCA_btl_sm_backing_directory /qtest/run
+export OMPI_MCA_btl_sm_backing_directory=/qtest/run
 
-echo -n "Starting Job: " >> /qtest/run/ecce.submit.log
+printf "Starting Job: " >> /qtest/run/ecce.submit.log
 date >> /qtest/run/ecce.submit.log
 
 #  - code/queue manager section...
-set mopac = /opt/codes/mopac
-if ($?ECCE_MOPAC) then
-  set mopac = $ECCE_MOPAC
-endif
+mopac=/opt/codes/mopac
+if [ -n "${ECCE_MOPAC+set}" ]; then
+  mopac=$ECCE_MOPAC
+fi
 echo "Using MOPAC path: $mopac" >> /qtest/run/ecce.submit.log
 
 #  - MOPAC writes mopac.out itself; expose it under the
 #  - declared output name so live monitoring can follow it.
-if ( "mopac.out" != "mopac.mopout" ) then
+if [ "mopac.out" != "mopac.mopout" ]; then
   rm -f mopac.mopout
   ln -s mopac.out mopac.mopout
-endif
-$mopac mopac.mop >>& /qtest/run/ecce.submit.log
+fi
+$mopac mopac.mop >> /qtest/run/ecce.submit.log 2>&1
 
 #  - Now the run is finished, replace that symlink with a
 #  - real copy. The symlink is only needed DURING the run,
@@ -77,45 +81,40 @@ $mopac mopac.mop >>& /qtest/run/ecce.submit.log
 #  - job's Outputs/ collection came back with only
 #  - eccejobstorelog in it while every regular file (the
 #  - input) and all 12 parsed properties uploaded fine.
-if ( -l mopac.mopout ) then
+if [ -h mopac.mopout ]; then
   rm -f mopac.mopout
   cp mopac.out mopac.mopout
-endif
+fi
 
 
 #  - determine state...
-set exitStatus = $status
+exitStatus=$?
 echo "mopac exit status = $exitStatus" >> /qtest/run/ecce.submit.log
 
 #  look for suspicious core
-if ( -e 'core' ) then
+if [ -e core ]; then
   echo "Unexpected core - setting status to X_UNEXPECTED_CORE" >> /qtest/run/ecce.submit.log
-  set exitStatus = $X_UNEXPECTED_CORE
-endif
+  exitStatus=$X_UNEXPECTED_CORE
+fi
 
-if ( ! -e /qtest/run/mopac.mopout) then
+if [ ! -e /qtest/run/mopac.mopout ]; then
   echo "Output file mopac.mopout does not exist - setting status to failed" >> /qtest/run/ecce.submit.log
-  set exitStatus = $X_FILE_EXIST
-endif
+  exitStatus=$X_FILE_EXIST
+fi
 echo "Final exit status = $exitStatus" >> /qtest/run/ecce.submit.log
 
-echo -n "Completed Job: " >> /qtest/run/ecce.submit.log
+printf "Completed Job: " >> /qtest/run/ecce.submit.log
 date >> /qtest/run/ecce.submit.log
 
-if ( ! -e /qtest/run/.ecce.status ) then 
+if [ ! -e /qtest/run/.ecce.status ]; then
   echo $exitStatus > /qtest/run/.ecce.status
-endif
+fi
 
 #  Adding ecce log info to output file for debugging...
-if ( ! -e mopac.mopout) touch /qtest/run/mopac.mopout
+if [ ! -e mopac.mopout ]; then touch /qtest/run/mopac.mopout; fi
 echo "" >> /qtest/run/mopac.mopout 
 echo "-----ECCE Log Information-----" >> /qtest/run/mopac.mopout 
 cat /qtest/run/ecce.submit.log >> /qtest/run/mopac.mopout 
 rm -f /qtest/run/ecce.submit.log
 
-exit (0)
-
-#  Handle interrupt here...
-canceljob:
-   echo $X_INTERRUPTED > /qtest/run/.ecce.status
-   exit (1)
+exit 0
