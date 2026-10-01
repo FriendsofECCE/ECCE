@@ -388,6 +388,8 @@ class Suite(object):
 
         extra = {"ECCE_TRANSPORT": transport} if transport else {}
         extra.update(env or {})
+        if self.args.job_comms:
+            extra["ECCE_JOB_COMMS"] = self.args.job_comms
         rc, out = self.driver("launch", url, extra=extra)
         say("\n".join("  | " + line for line in out.strip().splitlines()))
         if not self.check(rc == 0, "Launch ran to the end"):
@@ -505,6 +507,13 @@ class Suite(object):
         self.check(state == "completed",
                    "run state reached completed within %ds (last: %s)"
                    % (WAIT_SECONDS, state or "none"))
+        if self.args.job_comms in ("socket", "socketlocal"):
+            #  Socket comms are gone; the request is read as stdio, said so
+            #  in the log, and the job is monitored over the stream.
+            self.readMonitorLog(name)
+            self.check("no longer supported" in self.monitorLog,
+                       "ECCE_JOB_COMMS=%s was read as stdio and logged"
+                       % self.args.job_comms)
         if kills:
             self.check(len(killed) == kills, "the monitor was killed %d times "
                        "(%d)" % (kills, len(killed)))
@@ -790,6 +799,9 @@ def main():
                         "(ControlMaster) that is the only way in: Launch must "
                         "choose the OpenSSH client and still run, monitor and "
                         "copy back the job")
+    parser.add_argument("--job-comms", metavar="VALUE",
+                        help="run the jobs with ECCE_JOB_COMMS=VALUE (socket "
+                        "and socketlocal are read as stdio)")
     parser.add_argument("--keep", action="store_true",
                         help="leave the services running afterwards")
     parser.add_argument("-v", "--verbose", action="store_true")

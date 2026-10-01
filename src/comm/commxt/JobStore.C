@@ -23,10 +23,6 @@
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 
 #include <iostream>
   using std::cout;
@@ -133,7 +129,6 @@ void interactStatus(char* statusData);
 void interactUp(char* upData);
 void interactError(char* errorData);
 void interactFile(char* fileData);
-void interactPort(char* portData);
 void interactNode(char* nodeData);
 void interactGetOutput(void);
 void interactGetFiles(void);
@@ -156,8 +151,6 @@ void logPrint(const ActivityLog::EventType type,
               const char* event, const string& msg);
 char* firstToken(char* data);
 char* nextToken(void);
-void socketClose(void);
-bool socketConnect(int port);
 const char* strErrno(void);
 string localDirectory(void);
 
@@ -212,8 +205,6 @@ static string bookmarkFileName;
 static FileListStruct filesToGet;
 static bool logIsOpen = false;
 static int logNumErrors = 0;
-static bool socketComms = false;
-static bool socketFail = false;
 static string parseIn;
 static LogModeJobStore logModeJobStore;
 static XtAppContext appContext;
@@ -759,14 +750,6 @@ void cleanup(int exitStatus)
   }
 
   if (exitStatus == 0) {
-    if (socketComms)
-      socketClose();
-
-    // interactPort() deletes remoteconn and nulls it out once socket
-    // comms takes over -- same real bug shape as the interactGetOutput()
-    // fix above, just hit on successful completion instead of during
-    // monitoring. Guarding rather than assuming remoteconn is always
-    // still live here.
     if (remoteconn != (RCommand*)0 && remoteconn->isOpen()) {
       (void)remoteconn->exec("/bin/rm -f eccejobmonitor eccejobmonitor.conf "
                              "eccejobmonitor.propbuf *.desc");
@@ -1720,23 +1703,16 @@ void initConn(void)
   string frontendMachine = refMachine->frontendMachine();
   string frontendBypass = refMachine->frontendBypass();
 
-  // Determine whether to use socket or stdio based comms
-  // I would do this in envRead but cpServerName has not been set
-  char* value;
-  if ((value = getenv("ECCE_JOB_COMMS"))!=NULL) {
-    string comms = value;
-    if (comms == "socketlocal")
-      socketComms = RCommand::isSameDomain(cpServerName);
-    else
-      socketComms = (comms == "socket");
-  }
+  const char* comms = getenv("ECCE_JOB_COMMS");
+  if (comms && (string(comms) == "socket" || string(comms) == "socketlocal"))
+    logMessage("Compute Server", string("ECCE_JOB_COMMS=") + comms +
+               " is no longer supported; monitoring over stdio");
 
   if (nodeForRestart == "") {
     if (remoteconn == (RCommand*)0)
       remoteconn = new RCommand(cpServerName, cpRemoteShell, cpLocalShell,
                                 cpUserName, "", frontendMachine, frontendBypass,
-                                shellPath, libPath, sourceFile,
-                                !socketComms, !socketComms);  // socket comms need a pty
+                                shellPath, libPath, sourceFile);
   } else
     (void)remoteconn->hop(nodeForRestart, cpLocalShell, cpUserName,
                           "", shellPath, libPath, sourceFile);
@@ -1787,23 +1763,9 @@ void initMon(void)
 
     // The value echoed below serves as the indicator in output that something
     // went wrong--unexpected exit from eccejobmonitor.  It is more reliable
-    // than looking for a "+go+" prompt because eccejobmonitor can run in the
-    // background when socket comms fail so I think it would be easy for the
-    // remote connection to somehow get "bumped" during normal ejm execution
-    // with the prompt being sent but ejm still executing just fine
+    // than looking for a "+go+" prompt, which a bumped connection could send
+    // while the monitor is still running fine
     cmd += "; echo eccejobmonitor_went_bye_bye";
-
-    // this is a hack for an IRIX 6.5/csh bug where signals aren't trapped
-    // if using csh.  I invoke eccejobmonitor under a tcsh shell instead.
-    string unameOut;
-    if (remoteconn->execout("uname -a", unameOut))
-      if (unameOut.find("IRIX")!=string::npos &&
-          unameOut.find("6.5")!=string::npos) {
-        cmd.insert(0, "tcsh -fc '");
-        cmd.append("'");
-        logMessage("IRIX 6.5 workaround",
-                   "Using tcsh on IRIX 6.5 machine to workaround signal bug");
-      }
 
     // cd to the calculation directory so all paths can be relative
     if (!remoteconn->cd(cpRemoteDir)) {
@@ -1812,64 +1774,11 @@ void initMon(void)
       restart("System", message);
     }
 
-    if (socketComms) {
-      // interactPort() below deletes remoteconn (closes the ssh/pty
-      // session) the moment the socket handshake succeeds, since "all
-      // further comms is over socket" -- but eccejobmonitor is still
-      // sitting in that session's process group as a backgrounded job.
-      // Under bash, closing the session sends it SIGHUP (confirmed
-      // today, same root cause as the execbg()/RCommand.C fix for
-      // long-running compute jobs dying the same way) -- killing the
-      // monitor right as socket comms takes over, so it can never send
-      // its next heartbeat. Matches this issue's symptom exactly
-      // (socket comms only; stdio comms never closes remoteconn mid-
-      // session so it isn't affected). csh already ignores SIGHUP for
-      // backgrounded jobs on session exit (confirmed empirically
-      // today), so only bash needs the explicit trap. Deliberately NOT
-      // using nohup here: nohup redirects stdout to nohup.out when it's
-      // still a tty, which would break the port-handshake read below
-      // (and the stdio-comms path's entire comms stream) that depends
-      // on eccejobmonitor's stdout staying attached to this pty.
-      if (cpLocalShell == "bash")
-        cmd = "(trap '' HUP; " + cmd + ")";
-      cmd += "&";
-
-      // Wait for eccejobmonitor's own sentinel line, not the shell's
-      // echo of what we typed: a line editor can redraw or wrap that
-      // echo (readline, tcsh's editor, zsh's zle), so an exact match on
-      // it can simply never arrive, and a bare "\r\n" instead matches
-      // the first newline in the buffer -- confirmed live as a race
-      // against a leftover newline, misread as eccejobmonitor dying
-      // instantly (#143, #69 Bug 2). The sentinel's own output can only
-      // appear once, in order, after the shell actually runs it, so
-      // there is nothing left to race. The '' keeps the marker's
-      // literal text out of the typed-line echo (in csh and sh alike),
-      // so only the command's own output can match.
-      if (!remoteconn->expwrite("echo ECCE_MON_''START; " + cmd))
-        restart("System", remoteconn->commError());
-
-      if (remoteconn->expect1("\r\nECCE_MON_START\r\n") != 1)
-        restart("System", "Did not receive eccejobmonitor start sentinel");
-
-      if (remoteconn->expect1("\r\n+go+") != 1)
-        restart("System", "Did not receive eccejobmonitor background job id");
-
-      message =  "Started job monitor (socket comms) with command: " + cmd;
-      logMessage("eccejobmonitor", message); 
-
-      // set file descriptor for reading port from stdio
-      fdesc = remoteconn->expfid();
-
-      // get the socket port using the main read/process loop
-      // which returns after port is sent by eccejobmonitor
-      interactGetOutput();
-    }
-
-    if (!socketComms || socketFail) {
+    {
       // infinite timeout
       remoteconn->exptimeout(-1);
 
-      if (!socketComms && remoteconn->canStream()) {
+      if (remoteconn->canStream()) {
         // No pty: the monitor's stdout/stderr come back on a pipe and the
         // framed protocol is read from it as usual.  No start marker is
         // echoed, since nothing is waiting to consume it.
@@ -1878,11 +1787,10 @@ void initMon(void)
         logMessage("Job Monitor",
                    "Started job monitor (stdio comms, no pty) with command: " +
                    cmd);
-      } else if (!socketComms) {
-        // See the socketComms branch above for the full story: wait for
-        // eccejobmonitor's own sentinel output, not the shell's echo of
-        // what we typed, since a line editor can redraw or wrap that
-        // echo and the exact match then never arrives.
+      } else {
+        // Wait for eccejobmonitor's own sentinel output, not the shell's
+        // echo of what we typed: a line editor can redraw or wrap that echo
+        // and the exact match then never arrives.
         if (!remoteconn->expwrite("echo ECCE_MON_''START; " + cmd))
           restart("System", remoteconn->commError());
 
@@ -1996,11 +1904,7 @@ void xtGetJobMonitorInput(XtPointer client_data, int* fid, XtInputId* id)
         filesFlag = true;
       else if (strcmp(databuf, "jmERROR") == 0)
         interactError(&databuf[8]);
-      else if (strcmp(databuf, "jmPORT") == 0) {
-        interactPort(&databuf[7]);
-        // exit message processing after socket connection is established
-        doneFlag = true;
-      } else if (strcmp(databuf, "jmNODE") == 0) {
+      else if (strcmp(databuf, "jmNODE") == 0) {
         interactNode(&databuf[7]);
         doneFlag = true;
       } else if (strcmp(databuf, "jmDONE") == 0) {
@@ -2072,20 +1976,6 @@ void interactGetOutput(void)
 
   XtRemoveInput(jobMonitorId);
 
-  // interactPort() deletes remoteconn and nulls it out the instant a
-  // socketComms handshake succeeds ("close remote shell since all
-  // further comms is over socket") -- and jmPORT sets doneFlag=true
-  // specifically to return here right after that happens, so this is
-  // the common case for socket comms, not a rare edge case. Calling
-  // through remoteconn unconditionally below was a genuine
-  // use-after-free/null-dereference on every successful socket-comms
-  // connection: found by tracing why socket comms (issue #65) never
-  // got past the initial handshake even when eccejobmonitor's own
-  // side connected correctly -- accessing the freed RCommand's stale
-  // internal fd here plausibly explains the observed busy CPU loop and
-  // eventual 3-minute heartbeat timeout (a corrupted/recycled fd value
-  // being read from freed memory, retried internally by the expect
-  // library, rather than a clean crash).
   if (remoteconn != (RCommand*)0 && remoteconn->canStream()) {
     remoteconn->stopStream();
   } else if (remoteconn != (RCommand*)0) {
@@ -2099,69 +1989,6 @@ void interactGetOutput(void)
       logMessage("Benchmark", "eccejobmonitor done--"
                  "remote shell connection is not available");
   }
-}
-
-
-// ------------------------------------------------------------------------- //
-// Close the current socket.
-// ------------------------------------------------------------------------- //
-void socketClose(void)
-{
-  if (close(fdesc) < 0) {
-    string errMsg = "Cannot close socket: ";
-    errMsg += strErrno();
-    logErr("socket", errMsg);
-  }
-}
-
-
-// ------------------------------------------------------------------------- //
-// Connect to the server on the given port.
-// ------------------------------------------------------------------------- //
-bool socketConnect(int port)
-{
-  bool ret = false;
-
-  if ((fdesc = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    string errMsg = "Cannot create socket: ";
-    errMsg += strErrno();
-    logErr("socket", errMsg);
-
-    ret = true;
-  }
-
-  string serverAddr = "";
-  struct hostent* h = gethostbyname((char*)cpServerName.c_str());
-  if ((h != (struct hostent*)0) && (h->h_addr_list[0] != (char*)0)) {
-    // extract struct in_addr from struct hostent
-    struct in_addr in;
-    (void)memcpy((void*)&in, (void*)h->h_addr_list[0], sizeof(in));
- 
-    // map struct in_addr to d.d.d.d
-    serverAddr = inet_ntoa(in);
-  }
- 
-  struct sockaddr_in address;
-  (void)memset((void*)&address, 0, sizeof(address));
-  address.sin_family      = AF_INET;
-  address.sin_addr.s_addr = inet_addr(serverAddr.c_str());
-  address.sin_port        = htons(port);
- 
-  if (connect(fdesc, (struct sockaddr*)&address, sizeof(address)) < 0) {
-    string errMsg = "Cannot connect to server " + serverAddr + " on port ";
-
-    char buf[8];
-    (void)sprintf(buf, "%d", port);
-    errMsg += buf;
-
-    errMsg += ": ";
-    errMsg += strErrno();
-    logErr("socket", errMsg);
-
-    ret = true;
-  }
-
-  return ret;
 }
 
 
@@ -2537,36 +2364,6 @@ void interactFile(char* fileData)
 
   // store info for later retrieval
   fileAdd(callCount, dbStoreContents, dbStoreName, fileName, parseType);
-}
-
-void interactPort(char* portData)
-{
-  string port = firstToken(portData);
-  if (port == "")
-    restart("eccejobmonitor", "Unexpected end of message (wanted port number)");
-  else if (port == "FAILED") {
-    socketFail = true;
-    logMessage("eccejobmonitor",
-           "Unable to create socket from compute server back to local machine");
-  } else {
-    int sport = atoi(port.c_str());
-
-    // establish socket connection
-    socketFail = socketConnect(sport);
-
-    string message;
-    if (socketFail) {
-      message =  "Unable to connect to eccejobmonitor port " + port;
-      logMessage("eccejobmonitor", message); 
-    } else {
-      message =  "Successfully connected to eccejobmonitor port " + port;
-      logMessage("eccejobmonitor", message); 
-
-      // close remote shell since all further comms is over socket
-      delete remoteconn;
-      remoteconn = (RCommand*)0;
-    }
-  }
 }
 
 void interactNode(char* nodeData)

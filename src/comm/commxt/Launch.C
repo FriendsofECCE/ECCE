@@ -1227,23 +1227,7 @@ bool Launch::generateJobMonitoringFiles(void)
 
     monitorConfigFile << "jobQ " << p_cache->mgr->name() << endl;
 
-    string comms = "stdio";
-    if ((value = getenv("ECCE_JOB_COMMS")) != NULL)
-      comms = value;
-
-    if (comms == "socketlocal") {
-      if (RCommand::isSameDomain(p_cache->fullMachineName)) {
-        monitorConfigFile << "commType socket" << endl;
-        monitorConfigFile << "portFile ecce.port" << endl;
-      } else
-        monitorConfigFile << "commType stdio" << endl;
-    }
-    else if (comms == "socket") {
-      monitorConfigFile << "commType socket" << endl;
-      monitorConfigFile << "portFile ecce.port" << endl;
-    }
-    else
-      monitorConfigFile << "commType stdio" << endl;
+    monitorConfigFile << "commType stdio" << endl;
 
     string parseFileName = (*p_options)["##parse##"];
     string outputFileName = (*p_options)["##output##"];

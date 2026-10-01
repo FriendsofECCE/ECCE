@@ -1727,6 +1727,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  add_test(NAME launch_socketcomms
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_tests.py
+                   --build ${CMAKE_BINARY_DIR} --transport direct
+                   --job-comms socket
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_socketcomms PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   add_test(NAME launch_jobwait
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/jobwait_test.py --control
