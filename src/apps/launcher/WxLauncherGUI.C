@@ -96,7 +96,6 @@ const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_USERNAME = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_CALCDIR = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PARAMEDIT_WXLAUNCHER_MINSCRATCH = wxNewId();
 const wxWindowID WxLauncherGUI::ID_CHOICE_WXLAUNCHER_QUEUE = wxNewId();
-const wxWindowID WxLauncherGUI::ID_CHECKBOX_WXLAUNCHER_FORCECSH = wxNewId();
 const wxWindowID WxLauncherGUI::ID_BUTTON_WXLAUNCHER_LAUNCH = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_MAXMEMORY = wxNewId();
 const wxWindowID WxLauncherGUI::ID_MENUITEM_WXLAUNCHER_HELPSUPPORT = wxNewId();
@@ -694,13 +693,6 @@ void WxLauncherGUI::CreateControls()
 
     ewxStaticText* itemStaticText127 = new ewxStaticText( itemPanel3, ID_STATIC_WXLAUNCHER_REQUIREDFIELDSKEY, _("Required value"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer124->Add(itemStaticText127, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
-
-    ewxCheckBox* itemCheckBoxForceCsh = new ewxCheckBox( itemPanel3, ID_CHECKBOX_WXLAUNCHER_FORCECSH, _("Use csh/tcsh"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
-    if (ShowToolTips())
-        itemCheckBoxForceCsh->SetToolTip(_("Force csh/tcsh for this connection instead of the machine's configured shell (bash).\nLOCKED ON as of 2026-09-03 (github.com/FriendsofECCE/ECCE#69): bash hits two\nconfirmed, real bugs here -- an intermittent SIGHUP mid-computation, and job\nmonitoring that never completes (readline's horizontal-scroll rendering breaks\nan exact-echo match eccejobstore waits on forever). csh hits neither. Remove\nthe Enable(false) below once #69 is root-caused and actually fixed, not before."));
-    itemCheckBoxForceCsh->SetValue(true);
-    itemCheckBoxForceCsh->Enable(false);
-    itemBoxSizer124->Add(itemCheckBoxForceCsh, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxButton* itemButton128 = new ewxButton( itemPanel3, ID_BUTTON_WXLAUNCHER_LAUNCH, _("Launch"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer124->Add(itemButton128, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);

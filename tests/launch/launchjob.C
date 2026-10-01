@@ -112,7 +112,6 @@ static int doCreate(const vector<string>& a)
   ldat.user = user;
   ldat.remoteShell = "ssh";
   ldat.maxwall = "0 0:0";
-  ldat.forceCsh = "true";
   for (size_t i = 8; i < a.size(); i++) {
     string::size_type eq = a[i].find('=');
     string k = a[i].substr(0, eq), v = eq == string::npos ? "" : a[i].substr(eq + 1);
@@ -143,9 +142,6 @@ static void buildArgs(TaskJob* task, EcceMap& kv)
   task->getDataFile(JCode::PROPERTY_OUTPUT, f);    kv["##property##"] = f.name();
   task->getDataFile(JCode::AUXILIARY_OUTPUT, f);   kv["##auxiliary##"] = f.name();
   kv["##title##"] = task->getName();
-  // Like the launcher's "Use csh/tcsh" box; unchecked, nothing on the
-  // remote side needs csh.
-  kv["##forcecsh##"] = getenv("ECCE_TEST_NO_FORCECSH") ? "false" : "true";
   Launchdata ldat = task->launchdata();
   kv["##numProcs##"] = StringConverter::toString((int)ldat.totalprocs);
   kv["##numNodes##"] = StringConverter::toString((int)ldat.nodes);

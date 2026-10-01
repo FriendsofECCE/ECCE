@@ -40,7 +40,7 @@ podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce
   --passwd-entry "ecce:*:$(id -u):$(id -g)::/tmp/client:/bin/bash" \
   -v "$root:/src:Z" -v "$state:/state:Z,ro" -v "$chome:/tmp/client:Z" \
   ${ECCE_TEST_STATE:+-e ECCE_TEST_STATE} ${ECCE_DATASERVER_PORT:+-e ECCE_DATASERVER_PORT} \
-  ${ECCE_BROKER_PORT:+-e ECCE_BROKER_PORT} ${ECCE_TEST_NO_FORCECSH:+-e ECCE_TEST_NO_FORCECSH} ${ECCE_SSH_KEEPALIVE:+-e ECCE_SSH_KEEPALIVE} ${ECCE_SSH_BACKEND:+-e ECCE_SSH_BACKEND} \
+  ${ECCE_BROKER_PORT:+-e ECCE_BROKER_PORT} ${ECCE_SSH_KEEPALIVE:+-e ECCE_SSH_KEEPALIVE} ${ECCE_SSH_BACKEND:+-e ECCE_SSH_BACKEND} \
   -e PORT="$port" -e USERS="$users" -e CM="${ECCE_TEST_CONTROLMASTER:-}" \
   -e RUN_ARGS="${RUN_ARGS:-${ECCE_TEST_CONTROLMASTER:+--transport ssh --shared-connection --kill}}" \
   -e RUN_ARGS_DEFAULT="--transport both --drop --kill" localhost/ecce-launch bash -c '

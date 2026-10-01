@@ -386,7 +386,7 @@ bool TaskJob::killRequested() const
 bool TaskJob::launchdata(const Launchdata& launchinfo)
 {
   char buf[80];
-  vector<MetaDataResult> results(13);
+  vector<MetaDataResult> results(12);
   results[0].name = VDoc::getEcceNamespace() + ":launch_machine";
   results[1].name = VDoc::getEcceNamespace() + ":launch_nodes";
   results[2].name = VDoc::getEcceNamespace() + ":launch_rundir";
@@ -399,7 +399,6 @@ bool TaskJob::launchdata(const Launchdata& launchinfo)
   results[9].name = VDoc::getEcceNamespace() + ":launch_minscratch";
   results[10].name = VDoc::getEcceNamespace() + ":launch_maxwall";
   results[11].name = VDoc::getEcceNamespace() + ":launch_remoteShell";
-  results[12].name = VDoc::getEcceNamespace() + ":launch_forceCsh";
 
   results[0].value = launchinfo.machine;
   sprintf(buf, "%lu", launchinfo.nodes);
@@ -417,7 +416,6 @@ bool TaskJob::launchdata(const Launchdata& launchinfo)
   results[9].value = buf;
   results[10].value = launchinfo.maxwall;
   results[11].value = launchinfo.remoteShell;
-  results[12].value = launchinfo.forceCsh;
 
   return addProps(results);
 }

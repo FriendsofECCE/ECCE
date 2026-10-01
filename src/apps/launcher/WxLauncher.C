@@ -237,8 +237,6 @@ void WxLauncher::createControls()
     p_scratchDrctyPanel     =        (ewxPanel *)(FindWindow(ID_PANEL_WXLAUNCHER_SCRATCHDIR));
     p_scratchDrctyTextCtrl  =     (ewxTextCtrl *)(FindWindow(ID_TEXTCTRL_WXLAUNCHER_SCRATCHDIR));
 
-    p_forceCshCheckBox      =    (ewxCheckBox *)(FindWindow(ID_CHECKBOX_WXLAUNCHER_FORCECSH));
-
     p_launchButton          =       (ewxButton *)(FindWindow(ID_BUTTON_WXLAUNCHER_LAUNCH));
     p_launchButton->Enable(false);
 
@@ -1984,22 +1982,6 @@ void WxLauncher::updateControls(Launchdata ldat)
         p_prefsEdited = true;
     }
 
-    // Restore the "Use csh/tcsh" checkbox from whatever was actually used
-    // the last time this job's launch settings were saved. An empty
-    // ldat.forceCsh means this job predates the field (or has never been
-    // launched) -- leave the checkbox at its constructed default (checked)
-    // rather than guessing.
-    // IsEnabled() guard: the checkbox is locked on (see WxLauncherGUI.C,
-    // github.com/FriendsofECCE/ECCE#69) while bash's two confirmed local-
-    // connection bugs are unfixed -- reopening an old job that was
-    // actually run with bash unchecked must not silently uncheck it again.
-    if (p_forceCshCheckBox != 0 && p_forceCshCheckBox->IsEnabled() &&
-        !ldat.forceCsh.empty())
-    {
-        p_forceCshCheckBox->SetValue(ldat.forceCsh == "true");
-        p_prefsEdited = true;
-    }
-
     if (p_slctPrefs->isOptionSupported("UN") && !ldat.user.empty())
     {
         if (ldat.user != p_slctPrefs->getUsername())
@@ -2368,17 +2350,6 @@ void WxLauncher::buildArgs(EcceMap& kvargs)
         kvargs["##password1##"] = ptext1;
     }
 
-    // Checked (default) forces csh/tcsh for this launch's connections
-    // regardless of the machine's configured shell -- see
-    // Launch::validateRemoteLogin(). Added as a stopgap after a real,
-    // confirmed bug: bash spawned over a real ssh session (not the
-    // same-domain "local shell" shortcut) intermittently duplicates its
-    // own command echo, which job monitoring misreads as the job having
-    // died instantly. csh over the same ssh path doesn't hit this.
-    // Uncheck only to test/troubleshoot bash specifically.
-    if (p_forceCshCheckBox != 0)
-        kvargs["##forcecsh##"] = p_forceCshCheckBox->GetValue() ? "true" : "false";
-
     sprintf(buf, "%lu", ldat.totalprocs);
     kvargs["##numProcs##"] = buf;
 
@@ -2645,9 +2616,6 @@ void WxLauncher::saveJob()
     ldat.remoteShell = p_slctPrefs->getRemoteShell();
     ldat.rundir = p_slctPrefs->getRemoteDirectory();
     ldat.scratchdir = p_slctPrefs->getScratchDirectory();
-
-    if (p_forceCshCheckBox != 0)
-        ldat.forceCsh = p_forceCshCheckBox->GetValue() ? "true" : "false";
 
     if (p_slctPrefs->isOptionSupported("UN"))
     {

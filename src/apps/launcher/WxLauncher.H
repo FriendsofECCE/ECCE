@@ -263,7 +263,6 @@ class WxLauncher : public WxLauncherGUI,
         ewxPanel            *p_scratchDrctyPanel;
         ewxTextCtrl         *p_scratchDrctyTextCtrl;
 
-        ewxCheckBox         *p_forceCshCheckBox;
         ewxButton           *p_launchButton;
 
         ewxMenuItem         *p_jobSaveMenuItem;
