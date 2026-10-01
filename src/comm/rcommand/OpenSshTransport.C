@@ -157,15 +157,32 @@ bool OpenSshTransport::sharesConnection(const std::string& out)
   return shares;
 }
 
-bool OpenSshTransport::configSharesConnection(const std::string& host,
-                                              const std::string& user,
-                                              const std::string& configFile)
+bool OpenSshTransport::proxiesConnection(const std::string& out)
+{
+  for (const std::string& line : splitLines(out)) {
+    size_t sp = line.find(' ');
+    if (sp == std::string::npos) continue;
+    std::string key = lower(line.substr(0, sp));
+    std::string val = lower(line.substr(sp + 1));
+    // "proxyusefdpass" is a different key and is always printed.
+    if ((key == "proxyjump" || key == "proxycommand") && val != "none" &&
+        !val.empty())
+      return true;
+  }
+  return false;
+}
+
+namespace {
+struct SshG { bool shares, proxied; };
+
+SshG sshG(const std::string& host, const std::string& user,
+          const std::string& configFile)
 {
   static std::mutex mu;
-  static std::map<std::string, bool> cache;
+  static std::map<std::string, SshG> cache;
   const std::string key = configFile + "\n" + user + "\n" + host;
   std::lock_guard<std::mutex> lock(mu);
-  std::map<std::string, bool>::iterator it = cache.find(key);
+  std::map<std::string, SshG>::iterator it = cache.find(key);
   if (it != cache.end()) return it->second;
 
   std::vector<std::string> args;
@@ -175,9 +192,26 @@ bool OpenSshTransport::configSharesConnection(const std::string& host,
   if (!user.empty()) { args.push_back("-l"); args.push_back(user); }
   args.push_back(host);
   TransportResult r = DirectTransport::runProcess(args, "", -1, -1, 15);
-  bool shares = r.status == 0 && sharesConnection(r.out);
-  cache[key] = shares;
-  return shares;
+  SshG g;
+  g.shares = r.status == 0 && OpenSshTransport::sharesConnection(r.out);
+  g.proxied = r.status == 0 && OpenSshTransport::proxiesConnection(r.out);
+  cache[key] = g;
+  return g;
+}
+}  // namespace
+
+bool OpenSshTransport::configSharesConnection(const std::string& host,
+                                              const std::string& user,
+                                              const std::string& configFile)
+{
+  return sshG(host, user, configFile).shares;
+}
+
+bool OpenSshTransport::configProxiesConnection(const std::string& host,
+                                               const std::string& user,
+                                               const std::string& configFile)
+{
+  return sshG(host, user, configFile).proxied;
 }
 
 OpenSshTransport::Backend OpenSshTransport::backendFor(const std::string& host,
@@ -186,8 +220,11 @@ OpenSshTransport::Backend OpenSshTransport::backendFor(const std::string& host,
 {
   Backend b = requestedBackend();
   if (b != BACKEND_AUTO) return b;
-  return configSharesConnection(host, user, configFile) ? BACKEND_OPENSSH
-                                                        : BACKEND_LIBSSH;
+  // libssh cannot prompt on a proxy's own login, and a shared connection
+  // is something only the ssh command can use.
+  return configSharesConnection(host, user, configFile) ||
+         configProxiesConnection(host, user, configFile) ? BACKEND_OPENSSH
+                                                         : BACKEND_LIBSSH;
 }
 
 namespace {
@@ -286,7 +323,32 @@ std::vector<std::string> OpenSshTransport::targetArgs() const
     a.push_back("-J");
     a.push_back(j);
   }
+  if (ownsControl()) {
+    // Short, so that %C (a hash) keeps the socket under the 108-byte limit.
+    const char* h = getenv("ECCE_REALUSERHOME");
+    if (!h || !*h) h = getenv("HOME");
+    const std::string dir = std::string(h ? h : "/tmp") + "/.ECCE/cm";
+    mkdir((std::string(h ? h : "/tmp") + "/.ECCE").c_str(), 0700);
+    mkdir(dir.c_str(), 0700);
+    a.push_back("-o"); a.push_back("ControlMaster=auto");
+    a.push_back("-o"); a.push_back("ControlPath=" + dir + "/%C");
+    a.push_back("-o"); a.push_back("ControlPersist=10m");
+  }
   return a;
+}
+
+// A proxied host with no sharing of its own gets ECCE's, so that the proxy
+// is logged in to once and not for every command.
+bool OpenSshTransport::ownsControl() const
+{
+  return p_jumpHost.empty() &&
+         configProxiesConnection(p_host, p_user, p_configFile) &&
+         !configSharesConnection(p_host, p_user, p_configFile);
+}
+
+bool OpenSshTransport::sharedConnection() const
+{
+  return ownsControl() || configSharesConnection(p_host, p_user, p_configFile);
 }
 
 // ---- opening the shared connection ----
@@ -305,7 +367,7 @@ void OpenSshTransport::forgetMasterAttempts()
   gMasterFailed.clear();
 }
 
-bool OpenSshTransport::masterAlive()
+bool OpenSshTransport::masterAlive() const
 {
   std::vector<std::string> a;
   a.push_back(p_program);
@@ -321,8 +383,12 @@ bool OpenSshTransport::wantsMaster(const TransportResult& r) const
 {
   if (p_askpass.empty() || r.status != 255 || r.timedOut) return false;
   const std::string low = lower(r.err);
-  return (mentions(low, kLoginText) || mentions(low, kHostKeyText)) &&
-         configSharesConnection(p_host, p_user, p_configFile);
+  if (mentions(low, kLoginText) || mentions(low, kHostKeyText))
+    return sharedConnection();
+  // A refused login on a proxy's hop says nothing at LogLevel=ERROR; 255
+  // with no master up is then all there is.  With one up, 255 is the
+  // script's own status and must not run it again.
+  return ownsControl() && !masterAlive();
 }
 
 bool OpenSshTransport::openMaster()
@@ -400,7 +466,7 @@ void OpenSshTransport::explain(TransportResult& r) const
   if (r.timedOut) return;
   if (r.status == 255) {
     std::string why = explainFailure(p_host, r.err,
-      configSharesConnection(p_host, p_user, p_configFile));
+      sharedConnection());
     if (!why.empty()) { r.error = why; r.status = -1; }
   } else if (r.status < 0 && !r.error.empty() &&
              r.error.find("command not found") != std::string::npos) {

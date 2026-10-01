@@ -82,13 +82,22 @@ public:
   // text of `ssh -G` (parsed here) has a controlmaster other than no/false,
   // or a controlpath.
   static bool sharesConnection(const std::string& sshGOutput);
+  // True when `ssh -G` reports a proxyjump or proxycommand other than none.
+  static bool proxiesConnection(const std::string& sshGOutput);
   // The same for a host, from `ssh -G`; the answer is cached per process.
   // false when ssh cannot be run.
   static bool configSharesConnection(const std::string& host,
                                      const std::string& user = "",
                                      const std::string& configFile = "");
+  static bool configProxiesConnection(const std::string& host,
+                                      const std::string& user = "",
+                                      const std::string& configFile = "");
   // Which backend serves this host: the requested one, or in auto mode
-  // OpenSSH exactly when its configuration shares connections.
+  // OpenSSH exactly when its configuration shares connections or reaches
+  // the host through ProxyJump/ProxyCommand (libssh cannot answer a login
+  // prompt of the proxy's ssh).  A proxied host that does not share gets
+  // ControlMaster=auto, a short ControlPath under ~/.ECCE/cm and
+  // ControlPersist=10m from ECCE; the user's own settings are never changed.
   static Backend backendFor(const std::string& host,
                             const std::string& user = "",
                             const std::string& configFile = "");
@@ -116,8 +125,12 @@ private:
   void explain(TransportResult& r) const;
   // The ssh options that name the target: -F, -p, -l, -J.
   std::vector<std::string> targetArgs() const;
+  // True when ECCE supplies the Control* options for this host.
+  bool ownsControl() const;
+  // The host's connection is shared, by the user's config or by ECCE.
+  bool sharedConnection() const;
   // `ssh -O check`: is there a live master for this host?
-  bool masterAlive();
+  bool masterAlive() const;
   // True when r says a login is needed on a host that shares connections and
   // an askpass program is set.
   bool wantsMaster(const TransportResult& r) const;

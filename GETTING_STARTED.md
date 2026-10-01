@@ -490,7 +490,11 @@ instead, so it reuses that connection. When that connection is not open,
 ECCE opens it: the password or verification code (and an unknown host key)
 are asked in ECCE dialogs, so no terminal is needed. Without a display, or
 if the dialog is cancelled, ECCE says that no shared connection is open and
-to run `ssh <host>` once in a terminal. An ssh host key ECCE has not seen
+to run `ssh <host>` once in a terminal. A host reached through `ProxyJump` or
+`ProxyCommand` in `~/.ssh/config` goes the same way, since libssh cannot
+answer a login prompt of the proxy's own ssh; if the config shares no
+connection for it, ECCE adds its own (kept ten minutes under `~/.ECCE/cm`),
+so you are asked once. An ssh host key ECCE has not seen
 is asked about in a dialog, and is refused until accepted.
 
 Because no interactive shell is started, `~/.bashrc` and `~/.cshrc` on a

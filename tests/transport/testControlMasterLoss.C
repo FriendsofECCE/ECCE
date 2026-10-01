@@ -38,6 +38,14 @@ static void check(const string& name, bool ok, const string& why = "")
 
 static int sh(const string& c) { return system(c.c_str()); }
 
+// ECCE_TEST_SSH_OPTS: ssh options for the test's own `ssh -O check`, when
+// the master's ControlPath is ECCE's and not in the user's config.
+static string sshOpts()
+{
+  const char* o = getenv("ECCE_TEST_SSH_OPTS");
+  return o ? string(o) + " " : string();
+}
+
 int main(int argc, char** argv)
 {
   if (argc == 3 && string(argv[1]) == "--libssh-refused") {
@@ -73,8 +81,12 @@ int main(int argc, char** argv)
             rc.isOpen() && count() == asks, rc.commError() + " asked " + to_string(count()));
       check("served by the OpenSSH client", rc.sshBackend() == "openssh", rc.sshBackend());
       check("runs a command", rc.execout("echo asked", o) && o == "asked\r\n", o);
+      check("more commands do not ask again",
+            rc.execout("echo two", o) && rc.execout("echo three", o) &&
+            RCommand(host, "ssh", "bash", user).execout("echo four", o) &&
+            count() == asks, "asked " + to_string(count()));
       check("a master was left behind",
-            sh("ssh -O check -o BatchMode=yes -l " + user + " " + host + " 2>/dev/null") == 0);
+            sh("ssh -O check " + sshOpts() + "-o BatchMode=yes -l " + user + " " + host + " 2>/dev/null") == 0);
     } else {
       const string msg = "No shared ssh connection to " + host +
         " is open. Run \"ssh " + host + "\" once in a terminal (that opens it), "
@@ -91,7 +103,7 @@ int main(int argc, char** argv)
             !again.isOpen() && (again.commError() == msg || again.commError() == key) &&
             count() == 1, again.commError() + " asked " + to_string(count()));
       check("no master was made",
-            sh("ssh -O check -o BatchMode=yes -l " + user + " " + host + " 2>/dev/null") != 0);
+            sh("ssh -O check " + sshOpts() + "-o BatchMode=yes -l " + user + " " + host + " 2>/dev/null") != 0);
     }
     cout << (failures ? "FAILED " : "PASSED ") << failures << endl;
     return failures ? 1 : 0;

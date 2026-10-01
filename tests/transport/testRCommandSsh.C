@@ -56,7 +56,8 @@ static string readFile(const string& f)
 
 // ECCE_TEST_CONTROLMASTER=1 (controlmaster_test.sh): HOST is a name whose ssh
 // config shares one connection that is the only way in, so the session must
-// run over the OpenSSH client.
+// run over the OpenSSH client.  ECCE_TEST_HOST names another host to use
+// (proxyjump_test.sh).
 static const char* HOST = "127.0.0.1";
 static bool controlMaster = false;
 
@@ -658,7 +659,10 @@ int main()
   const char* home = getenv("HOME");
   if (home && !getenv("ECCE_REALUSERHOME")) setenv("ECCE_REALUSERHOME", home, 1);
   controlMaster = getenv("ECCE_TEST_CONTROLMASTER") != 0;
-  if (controlMaster) HOST = "cm";
+  if (controlMaster) {
+    const char* h = getenv("ECCE_TEST_HOST");
+    HOST = h && *h ? h : "cm";
+  }
   if (!controlMaster &&
       (!home || access((string(home) + "/.ssh/ecce_test_key").c_str(), R_OK) != 0)) {
     cout << "SKIP: run through tests/transport/sshd/rcommand_test.sh" << endl;

@@ -520,12 +520,33 @@ int main()
     check("ssh -G: another host of the same file is unaffected",
           !OpenSshTransport::configSharesConnection("elsewhere", "", c1));
 
+    check("proxyjump: proxied", OpenSshTransport::proxiesConnection(
+      "proxyusefdpass no\nproxyjump u@jump\n"));
+    check("proxycommand: proxied", OpenSshTransport::proxiesConnection(
+      "proxycommand ssh -W %h:%p jump\n"));
+    check("proxyusefdpass alone: not proxied", !OpenSshTransport::proxiesConnection(
+      "proxyusefdpass no\ncontrolmaster false\n"));
+    check("proxyjump none: not proxied", !OpenSshTransport::proxiesConnection("proxyjump none\n"));
+    string c5 = tmp + "/cfg_pj";
+    spit(c5, "Host viajump\n  ProxyJump u@somewhere\nHost viacmd\n  ProxyCommand ssh -W %h:%p x\n"
+             "Host pjshared\n  ProxyJump somewhere\n  ControlMaster auto\n  ControlPath ~/.ssh/cm-%C\n");
+    check("ssh -G: ProxyJump", OpenSshTransport::configProxiesConnection("viajump", "", c5));
+    check("ssh -G: ProxyCommand", OpenSshTransport::configProxiesConnection("viacmd", "", c5));
+    check("ssh -G: no proxy", !OpenSshTransport::configProxiesConnection("direct", "", c5));
+
     typedef OpenSshTransport O;
     unsetenv("ECCE_SSH_BACKEND");
+    check("auto: ProxyJump -> openssh", O::backendFor("viajump", "", c5) == O::BACKEND_OPENSSH);
+    check("auto: ProxyCommand -> openssh", O::backendFor("viacmd", "", c5) == O::BACKEND_OPENSSH);
+    check("auto: no proxy -> libssh", O::backendFor("direct", "", c5) == O::BACKEND_LIBSSH);
+    check("a proxied host that shares is left alone",
+          O::configSharesConnection("pjshared", "", c5) &&
+          O::configProxiesConnection("pjshared", "", c5));
     check("auto: shared -> openssh", O::backendFor("shared", "", c1) == O::BACKEND_OPENSSH);
     check("auto: plain -> libssh", O::backendFor("plain", "", c2) == O::BACKEND_LIBSSH);
     setenv("ECCE_SSH_BACKEND", "libssh", 1);
     check("ECCE_SSH_BACKEND=libssh wins", O::backendFor("shared", "", c1) == O::BACKEND_LIBSSH);
+    check("ECCE_SSH_BACKEND=libssh wins over a proxy", O::backendFor("viajump", "", c5) == O::BACKEND_LIBSSH);
     setenv("ECCE_SSH_BACKEND", "openssh", 1);
     check("ECCE_SSH_BACKEND=openssh wins", O::backendFor("plain", "", c2) == O::BACKEND_OPENSSH);
     setenv("ECCE_SSH_BACKEND", "auto", 1);
