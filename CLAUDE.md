@@ -303,12 +303,11 @@ Six real bugs surfaced adding one new code, none obvious from reading
   bounds check and the atoms collapse to the origin. If a code prints a
   per-cycle energy trace but not per-cycle geometries, don't map it to
   TEVEC.
-- **`ResourceDescriptor.xml`'s `project` `<Contains>` list is missing
-  `gaussian16_es`, `gaussian09_es` and `orca_es`** — latent rather than
-  live only because `ResourceDescriptor.C` switches to the `Rxn.xml`
-  variant whenever `bin/dirdyed` exists, and it does on this build. If
-  `dirdyed` is ever dropped, three codes vanish from the New-Calculation
-  menu at once.
+- **Keep `ResourceDescriptor.xml` and `ResourceDescriptorRxn.xml` in
+  step.** `ResourceDescriptor.C` uses the `Rxn` variant whenever
+  `bin/dirdyed` exists, so a code missing from the plain file's
+  `project` `<Contains>` list is invisible on this build and vanishes
+  from the New-Calculation menu only where `dirdyed` is absent.
 - **A `.desc` parse-type's `Begin` value is also its hash key, AND its
   match priority** — `scripts/eccejobmonitor`'s `PDFileRead()` keys its
   whole parse-type table by the literal `Begin` string (`$parseHandle =

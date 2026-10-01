@@ -517,7 +517,7 @@
         <Contains>
           </Contains>
         <ContainedBy>
-          <ContianedByResource name="project"/>
+          <ContainedByResource name="project"/>
         </ContainedBy>
       </Containment>
     </Relationships>
@@ -777,7 +777,7 @@
         <Contains>
           </Contains>
         <ContainedBy>
-          <ContianedByResource name="project"/>
+          <ContainedByResource name="project"/>
         </ContainedBy>
       </Containment>
     </Relationships>
@@ -1042,7 +1042,7 @@
         <Contains>
           </Contains>
         <ContainedBy>
-          <ContianedByResource name="project"/>
+          <ContainedByResource name="project"/>
         </ContainedBy>
       </Containment>
     </Relationships>
@@ -1318,7 +1318,7 @@
         <Contains>
           </Contains>
         <ContainedBy>
-          <ContianedByResource name="project"/>
+          <ContainedByResource name="project"/>
         </ContainedBy>
       </Containment>
     </Relationships>
@@ -1572,7 +1572,7 @@
         <Contains>
           </Contains>
         <ContainedBy>
-          <ContianedByResource name="project"/>
+          <ContainedByResource name="project"/>
         </ContainedBy>
       </Containment>
     </Relationships>
