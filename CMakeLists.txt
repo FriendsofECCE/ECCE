@@ -1153,11 +1153,15 @@ configure_file(${CMAKE_SOURCE_DIR}/packaging/desktop/ecce.desktop.in
                ${CMAKE_BINARY_DIR}/wrappers/ecce.desktop @ONLY)
 install(FILES ${CMAKE_BINARY_DIR}/wrappers/ecce.desktop
         DESTINATION ${_ecce_share}/applications COMPONENT client)
-foreach(_size 48 64)
+# packaging/desktop/make-icon.py generates the icon files.
+foreach(_size 48 64 128 256)
   install(FILES ${CMAKE_SOURCE_DIR}/packaging/desktop/ecce-${_size}.png
           DESTINATION ${_ecce_share}/icons/hicolor/${_size}x${_size}/apps
           RENAME ecce.png COMPONENT client)
 endforeach()
+install(FILES ${CMAKE_SOURCE_DIR}/packaging/desktop/ecce.svg
+        DESTINATION ${_ecce_share}/icons/hicolor/scalable/apps
+        COMPONENT client)
 
 # "Viewer" isn't a separate build target -- the legacy scripts/viewer
 # csh wrapper (not packaged, along with the rest of scripts/ -- see the
